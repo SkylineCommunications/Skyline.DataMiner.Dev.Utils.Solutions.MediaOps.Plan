@@ -1,0 +1,32 @@
+name: Internal DataMiner CICD NuGet Solution
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events.
+  push:
+    branches: []
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+.[0-9]+"
+      - "[0-9]+.[0-9]+.[0-9]+"
+      - "[0-9]+.[0-9]+.[0-9]+.[0-9]+-**"
+      - "[0-9]+.[0-9]+.[0-9]+-**"
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+
+# Note: Tagging will push the nupackage to the GitHub NuGet registry using the provided NUGETAPIKEY_GITHUB (Personal Access Token). You can tag both a prerelease version (a.b.c-xxxx) or a stable release (a.b.c).
+  CICD:
+    uses: SkylineCommunications/_ReusableWorkflows/.github/workflows/Internal NuGet Solution Master Workflow.yml@main
+    with:
+      referenceName: ${{ github.ref_name }}
+      runNumber: ${{ github.run_number }}
+      referenceType: ${{ github.ref_type }}
+      repository: ${{ github.repository }}
+      owner: ${{ github.repository_owner }}
+      sonarCloudProjectName: SkylineCommunications_Skyline.DataMiner.MediaOps.API
+    secrets:
+      sonarCloudToken: ${{ secrets.SONAR_TOKEN }}
+      nugetApiKey: ${{ secrets.NUGETAPIKEY_GITHUB }}
