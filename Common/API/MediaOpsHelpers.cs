@@ -2,6 +2,8 @@
 {
     using System;
 
+    using Skyline.DataMiner.MediaOps.API.Common.Providers;
+
     /// <summary>
     /// Provides helpers to interact with the MediaOps solution.
     /// </summary>
@@ -9,7 +11,9 @@
     {
         private readonly ICommunication communication;
 
-        private Lazy<ResourceStudio.ResourceStudioHelper> lazyResourceStudioHelper;
+        private Lazy<DataProviders> lazyDataProviders;
+
+        private Lazy<ResourceStudio.DomResourceStudioHelper> lazyResourceStudioHelper;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="MediaOpsHelpers"/> class.
@@ -23,17 +27,21 @@
             Init();
         }
 
+        /// <summary>
+        /// Gets the implementation of <see cref="ResourceStudio.IResourceStudioHelper"/>.
+        /// </summary>
+        /// <value>The lazily initialized <see cref="ResourceStudio.IResourceStudioHelper"/> instance.</value>
+        public ResourceStudio.IResourceStudioHelper ResourceStudioHelper => lazyResourceStudioHelper.Value;
+
         internal ICommunication Communication => communication;
 
-        /// <summary>
-        /// Gets the instance of <see cref="ResourceStudio.ResourceStudioHelper"/>.
-        /// </summary>
-        /// <value>The lazily initialized <see cref="ResourceStudio.ResourceStudioHelper"/> instance.</value>
-        public ResourceStudio.ResourceStudioHelper ResourceStudioHelper => lazyResourceStudioHelper.Value;
+        internal DataProviders DataProviders => lazyDataProviders.Value;
 
         private void Init()
         {
-            lazyResourceStudioHelper = new Lazy<ResourceStudio.ResourceStudioHelper>(() => new ResourceStudio.ResourceStudioHelper(this));
+            lazyDataProviders = new Lazy<DataProviders>(() => new DataProviders(Communication));
+
+            lazyResourceStudioHelper = new Lazy<ResourceStudio.DomResourceStudioHelper>(() => new ResourceStudio.DomResourceStudioHelper(this));
         }
     }
 }

@@ -1,7 +1,8 @@
 ﻿namespace Skyline.DataMiner.MediaOps.API.Protocol.Extensions
 {
     using System;
-    using Skyline.DataMiner.MediaOps.API.Common.MediaOpsHelpers;
+
+    using Skyline.DataMiner.MediaOps.API.Common;
     using Skyline.DataMiner.Scripting;
 
     /// <summary>
@@ -10,19 +11,19 @@
     public static class SlProtocolExtensions
     {
         /// <summary>
-        /// Retrieves an instance of the <see cref="Helpers"/> class.
+        /// Retrieves an instance of the <see cref="MediaOpsHelpers"/> class.
         /// </summary>
         /// <param name="protocol">The <see cref="SLProtocol"/> instance.</param>
         /// <exception cref="ArgumentNullException"><paramref name="protocol"/> is <see langword="null" />.</exception>
-        /// <returns>Instance of the <see cref="Helpers"/> class.</returns>
-        public static Helpers GetMediaOpsHelpers(this SLProtocol protocol)
+        /// <returns>Instance of the <see cref="MediaOpsHelpers"/> class.</returns>
+        public static MediaOpsHelpers GetMediaOpsHelpers(this SLProtocol protocol)
         {
             if (protocol == null)
             {
                 throw new ArgumentNullException(nameof(protocol));
             }
 
-            return new Helpers(new ConnectionCommunication(protocol.GetUserConnection()));
+            return new MediaOpsHelpers(new ConnectionCommunication(protocol.GetUserConnection()));
         }
     }
 }

@@ -3,7 +3,7 @@
     using System;
 
     using Skyline.DataMiner.Analytics.GenericInterface;
-    using Skyline.DataMiner.MediaOps.API.Common.MediaOpsHelpers;
+    using Skyline.DataMiner.MediaOps.API.Common;
 
     /// <summary>
     /// Defines extension methods on the <see cref="GQIDMS"/> class.
@@ -11,19 +11,19 @@
     public class GQIDMSExtensions
     {
         /// <summary>
-        /// Retrieves an instance of the <see cref="Helpers"/> class.
+        /// Retrieves an instance of the <see cref="MediaOpsHelpers"/> class.
         /// </summary>
         /// <param name="dms">The <see cref="GQIDMS"/> instance.</param>
         /// <exception cref="ArgumentNullException"><paramref name="dms"/> is <see langword="null" />.</exception>
-        /// <returns>Instance of the <see cref="Helpers"/> class.</returns>
-        public static Helpers GetMediaOpsHelpers(GQIDMS dms)
+        /// <returns>Instance of the <see cref="MediaOpsHelpers"/> class.</returns>
+        public static MediaOpsHelpers GetMediaOpsHelpers(GQIDMS dms)
         {
             if (dms == null)
             {
                 throw new ArgumentNullException(nameof(dms));
             }
 
-            return new Helpers(new ConnectionCommunication(dms.GetConnection()));
+            return new MediaOpsHelpers(new ConnectionCommunication(dms.GetConnection()));
         }
     }
 }
