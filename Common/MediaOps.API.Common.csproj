@@ -29,11 +29,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Skyline.DataMiner.Core.DataMinerSystem.Common" Version="1.1.2.2" />
     <PackageReference Include="Skyline.DataMiner.Dev.Common" Version="10.5.1" />
     <PackageReference Include="Skyline.DataMiner.MediaOps.Common" Version="0.0.1-dev-a.3" />
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="API\Organizations\" />
     <Folder Include="API\ResourceStudio\Builders\" />
     <Folder Include="API\ResourceStudio\Validators\" />
   </ItemGroup>

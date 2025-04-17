@@ -1,7 +1,9 @@
 ﻿namespace Skyline.DataMiner.MediaOps.API.Common
 {
     using System;
+    using System.Net.Http.Headers;
 
+    using Skyline.DataMiner.Core.DataMinerSystem.Common;
     using Skyline.DataMiner.MediaOps.API.Common.Providers;
 
     /// <summary>
@@ -44,4 +46,16 @@
             lazyResourceStudioHelper = new Lazy<ResourceStudio.DomResourceStudioHelper>(() => new ResourceStudio.DomResourceStudioHelper(this));
         }
     }
-}
+
+    public static class MediaOpsHelpersExtensions
+    {
+        /// <summary>
+        /// Gets the <see cref="MediaOpsHelpers"/> instance from the <see cref="ICommunication"/> instance.
+        /// </summary>
+        /// <param name="communication">The <see cref="ICommunication"/> instance.</param>
+        /// <returns>The <see cref="MediaOpsHelpers"/> instance.</returns>
+        public static IMediaOps GetMediaOpsHelpers(this IDms thisDms)
+        {
+            throw new NotImplementedException();
+        }
+    }
