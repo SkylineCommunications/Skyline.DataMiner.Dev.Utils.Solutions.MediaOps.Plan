@@ -2,12 +2,10 @@
 {
     using System.Collections.Generic;
 
-    using Skyline.DataMiner.MediaOps.API.Common.API.Generic;
-
     /// <summary>
     /// Represents a team.
     /// </summary>
-    public interface ITeam : IApiObject<TeamConfig>
+    public interface ITeam //: IApiObject<TeamConfig>
     {
         /// <summary>
         /// Gets the name of the team.
@@ -27,6 +25,6 @@
         /// <summary>
         /// Gets the skills of the team.
         /// </summary>
-        IEnumerable<ISkill> Skills { get; }
+        //IEnumerable<ISkill> Skills { get; }
     }
 }

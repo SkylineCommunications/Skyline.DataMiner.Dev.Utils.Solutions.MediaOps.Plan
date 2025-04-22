@@ -2,9 +2,13 @@
 {
     using System;
     using System.Net.Http.Headers;
+    using DomHelpers.SlcPeople_Organizations;
 
     using Skyline.DataMiner.Core.DataMinerSystem.Common;
+    using Skyline.DataMiner.MediaOps.API.Common.API;
+    using Skyline.DataMiner.MediaOps.API.Common.API.People;
     using Skyline.DataMiner.MediaOps.API.Common.Providers;
+    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 
     /// <summary>
     /// Provides helpers to interact with the MediaOps solution.
@@ -47,6 +51,25 @@
         }
     }
 
+    internal class MediaOpsHelper : IMediaOps
+    {
+        public IDms ThisDms { get; }
+
+        private Lazy<DomHelper> _pnoHelper;
+        private Lazy<PeopleCollection> _peopleHelper;
+
+        public MediaOpsHelper(IDms thisDms)
+        {
+            ThisDms = thisDms ?? throw new ArgumentNullException(nameof(thisDms));
+            _pnoHelper = new Lazy<DomHelper>(() => new DomHelper(thisDms.Communication.SendMessages, SlcPeople_OrganizationsIds.ModuleId));
+            _peopleHelper = new Lazy<PeopleCollection>(() => new PeopleCollection(this));
+        }
+
+        public DomHelper Module_PnO => _pnoHelper.Value;
+
+        public IPeopleCollection People => _peopleHelper.Value;
+    }
+
     public static class MediaOpsHelpersExtensions
     {
         /// <summary>
@@ -59,3 +82,4 @@
             throw new NotImplementedException();
         }
     }
+}

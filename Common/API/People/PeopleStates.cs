@@ -1,9 +1,5 @@
 ﻿namespace Skyline.DataMiner.MediaOps.API.Common.API.People
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Text;
-
     /// <summary>
     /// The states that people can have.
     /// </summary>

@@ -26,6 +26,15 @@ namespace DomHelpers
             domInstance = new DomInstance { DomDefinitionId = id };
         }
 
+        protected DomInstanceBase(DomDefinitionId id, Guid instanceId)
+        {
+            if (id == null)
+                throw new ArgumentNullException("id");
+            if (instanceId == Guid.Empty)
+                throw new ArgumentException("instanceId cannot be empty", "instanceId");
+            domInstance = new DomInstance { DomDefinitionId = id, ID = new DomInstanceId(instanceId) };
+        }
+
         protected DomInstanceBase(DomInstance domInstance)
         {
             if (domInstance == null)
@@ -4770,6 +4779,11 @@ namespace DomHelpers.SlcPeople_Organizations
     internal partial class PeopleInstance : DomInstanceBase
     {
         public PeopleInstance() : base(SlcPeople_OrganizationsIds.Definitions.People)
+        {
+            InitializeProperties();
+        }
+
+        public PeopleInstance(Guid instanceId) : base(SlcPeople_OrganizationsIds.Definitions.People, instanceId)
         {
             InitializeProperties();
         }
