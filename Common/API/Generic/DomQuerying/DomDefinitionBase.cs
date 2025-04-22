@@ -1,116 +1,95 @@
-﻿namespace Skyline.DataMiner.MediaOps.API.Common.API.Generic
+﻿namespace Skyline.DataMiner.MediaOps.API.Common
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Text;
-    using DataMinerMessageBroker.API.Configuration;
 
-    using Skyline.DataMiner.MediaOps.Common.Tools;
+    using DomHelpers;
+
+    using Skyline.DataMiner.MediaOps.API.Common.API.Generic;
+    using Skyline.DataMiner.MediaOps.API.Common.API.Generic.DomQuerying;
+    using Skyline.DataMiner.MediaOps.Common;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
-    using SLDataGateway.API.Querying;
+    using Skyline.DataMiner.Utils.DOM.Extensions;
 
+    using SLDataGateway.API.Querying;
     using SLDataGateway.API.Types.Querying;
 
-    internal abstract class DomDefinition<T, TConfig> : IApiCollection<T, TConfig>
-        where T : DomObject
-        where TConfig : DomConfiguration<T>
+    internal abstract class DomDefinitionBase<T>
+        where T : IApiObject
     {
-        private readonly DomQueryProvider<T> _queryProvider;
+        private readonly ApiRepositoryQueryProvider<T> _queryProvider;
 
-        protected DomDefinition(DomHelper helper)
+        protected DomDefinitionBase(DomHelper helper)
         {
-            Helper = helper ?? throw new ArgumentNullException(nameof(helper));
+            DomHelper = helper ?? throw new ArgumentNullException(nameof(helper));
 
             _queryProvider = new ApiRepositoryQueryProvider<T>(this);
         }
 
-        protected DomHelper Helper { get; }
+        protected DomHelper DomHelper { get; }
 
         protected internal abstract DomDefinitionId DomDefinition { get; }
 
         protected abstract T CreateInstance(DomInstance domInstance);
 
-        public virtual void Add(TConfig config)
+        public virtual void Create(DomInstanceBase domInstance)
         {
-            ValidateConfigForCreate(new[] { config });
-            Helper.DomInstances.Create(config.TranslateToDomInstance());
-        }
-
-        public virtual void AddRange(IEnumerable<TConfig> configs)
-        {
-            ValidateConfigForCreate(configs);
-            foreach (var config in configs)
+            if (domInstance == null)
             {
-                Helper.DomInstances.Create(config.TranslateToDomInstance());
+                throw new ArgumentNullException(nameof(domInstance));
             }
+
+            DomHelper.DomInstances.Create(domInstance);
         }
 
-        public virtual void Update(TConfig config)
+        public virtual void Update(DomInstanceBase domInstance)
         {
-            ValidateConfigForUpdate(new[] { config });
-
-            // TODO: Get instance from cache or from DOM
-            var prevObject = Read(config.ObjectId.Value);
-            Helper.DomInstances.Update(config.TranslateToDomInstance(prevObject));
-        }
-
-        public virtual void UpdateRange(IEnumerable<TConfig> configs)
-        {
-            ValidateConfigForUpdate(configs);
-            foreach (var config in configs)
+            if (domInstance == null)
             {
-                // TODO: Get instance from cache or from DOM
-                var prevObject = Read(config.ObjectId.Value);
-                Helper.DomInstances.Update(config.TranslateToDomInstance(prevObject));
+                throw new ArgumentNullException(nameof(domInstance));
             }
+
+            DomHelper.DomInstances.Update(domInstance);
         }
 
-        public virtual void BulkUpdate(IEnumerable<Guid> ids, TConfig config)
-        {
-            ValidateConfigForBulkUpdate(config);
-            foreach (var id in ids)
-            {
-                // TODO: Get instance from cache or from DOM
-                var prevObject = Read(id);
-                Helper.DomInstances.Update(config.TranslateToDomInstance(prevObject));
-            }
-        }
-
-        public virtual void CreateOrUpdate(IEnumerable<T> instances)
+        public virtual void CreateOrUpdate(IEnumerable<DomInstanceBase> instances)
         {
             if (instances == null)
             {
                 throw new ArgumentNullException(nameof(instances));
             }
 
-            var domInstances = instances.Select(x => x.DomInstance.ToInstance()).ToList();
-            Helper.DomInstances.CreateOrUpdateInBatches(domInstances).ThrowOnFailure();
+            var domInstances = instances.Select(x => x.ToInstance()).ToList();
+            DomHelper.DomInstances.CreateOrUpdateInBatches(domInstances).ThrowOnFailure();
         }
 
-        public virtual void Delete(Guid id)
+        public virtual void Delete(DomInstanceBase domInstance)
         {
-            // TODO: Get instance from cache or from DOM and check if we can avoid a read all together?
-            var prevObject = Read(id);
-            Helper.DomInstances.Delete(prevObject.DomInstance);
+            if (domInstance == null)
+            {
+                throw new ArgumentNullException(nameof(domInstance));
+            }
+
+            DomHelper.DomInstances.Delete(domInstance);
         }
 
-        public virtual void Delete(IEnumerable<T> instances)
+        public virtual void Delete(IEnumerable<DomInstanceBase> instances)
         {
             if (instances == null)
             {
                 throw new ArgumentNullException(nameof(instances));
             }
 
-            var domInstances = instances.Select(x => x.DomInstance.ToInstance()).ToList();
-            Helper.DomInstances.DeleteInBatches(domInstances).ThrowOnFailure();
+            var domInstances = instances.Select(x => x.ToInstance()).ToList();
+            DomHelper.DomInstances.DeleteInBatches(domInstances).ThrowOnFailure();
         }
 
         public virtual long CountAll()
         {
             var filter = DomInstanceExposers.DomDefinitionId.Equal(DomDefinition.Id);
-            return Helper.DomInstances.Count(filter);
+            return DomHelper.DomInstances.Count(filter);
         }
 
         public virtual long Count(FilterElement<T> filter)
@@ -123,7 +102,7 @@
             var domFilter = TranslateFullFilter(filter);
             domFilter = domFilter.AND(DomInstanceExposers.DomDefinitionId.Equal(DomDefinition.Id));
 
-            return Helper.DomInstances.Count(domFilter);
+            return DomHelper.DomInstances.Count(domFilter);
         }
 
         internal long Count(FilterElement<DomInstance> domFilter)
@@ -135,19 +114,19 @@
 
             domFilter = domFilter.AND(DomInstanceExposers.DomDefinitionId.Equal(DomDefinition.Id));
 
-            return Helper.DomInstances.Count(domFilter);
+            return DomHelper.DomInstances.Count(domFilter);
         }
 
         public virtual IEnumerable<T> ReadAll()
         {
             var filter = DomInstanceExposers.DomDefinitionId.Equal(DomDefinition.Id);
-            return Helper.DomInstances.Read(filter).Select(CreateInstance);
+            return DomHelper.DomInstances.Read(filter).Select(CreateInstance);
         }
 
         public virtual IEnumerable<IEnumerable<T>> ReadAllPaged()
         {
             var filter = DomInstanceExposers.DomDefinitionId.Equal(DomDefinition.Id);
-            return Helper.DomInstances.ReadPaged(filter).Select(x => x.Select(CreateInstance));
+            return DomHelper.DomInstances.ReadPaged(filter).Select(x => x.Select(CreateInstance));
         }
 
         public virtual T Read(Guid id)
@@ -155,9 +134,9 @@
             var filter = DomInstanceExposers.DomDefinitionId.Equal(DomDefinition.Id)
                 .AND(DomInstanceExposers.Id.Equal(id));
 
-            var domInstance = Helper.DomInstances.Read(filter).SingleOrDefault();
+            var domInstance = DomHelper.DomInstances.Read(filter).SingleOrDefault();
 
-            return domInstance != null ? CreateInstance(domInstance) : null;
+            return domInstance != null ? CreateInstance(domInstance) : default;
         }
 
         public virtual IDictionary<Guid, T> Read(IEnumerable<Guid> ids)
@@ -174,9 +153,9 @@
             return FilterQueryExecutor.RetrieveFilteredItems(
                     ids,
                     x => CreateFilter(x),
-                    x => Helper.DomInstances.Read(x))
+                    x => DomHelper.DomInstances.Read(x))
                 .Select(CreateInstance)
-                .SafeToDictionary(x => x.ID);
+                .SafeToDictionary(x => x.Id);
         }
 
         public virtual IEnumerable<T> Read(FilterElement<T> filter)
@@ -191,27 +170,6 @@
             return Read(domFilter);
         }
 
-        /// <summary>
-        /// This method is used to validate the configuration for creating a new object.
-        /// </summary>
-        /// <param name="configuration">The configuration</param>
-        /// <exception cref="ArgumentException">If the configuration is invalid.</exception>
-        protected abstract void ValidateConfigForCreate(IEnumerable<TConfig> configuration);
-
-        /// <summary>
-        /// This method is used to validate the configuration for updating an existing  object.
-        /// </summary>
-        /// <param name="configuration">The configuration</param>
-        /// <exception cref="ArgumentException">If the configuration is invalid.</exception>
-        protected abstract void ValidateConfigForUpdate(IEnumerable<TConfig> configuration);
-
-        /// <summary>
-        /// This method is used to validate the configuration for updating multiple objects with the same configuration.
-        /// </summary>
-        /// <param name="configuration">The configuration</param>
-        /// <exception cref="ArgumentException">If the configuration is invalid.</exception>
-        protected abstract void ValidateConfigForBulkUpdate(TConfig configuration);
-
         internal IEnumerable<T> Read(FilterElement<DomInstance> domFilter)
         {
             if (domFilter == null)
@@ -221,7 +179,7 @@
 
             domFilter = domFilter.AND(DomInstanceExposers.DomDefinitionId.Equal(DomDefinition.Id));
 
-            var domInstances = Helper.DomInstances.Read(domFilter);
+            var domInstances = DomHelper.DomInstances.Read(domFilter);
 
             return domInstances.Select(CreateInstance);
         }
@@ -254,12 +212,12 @@
 
             domQuery = domQuery.WithFilter(domFilter);
 
-            var domInstances = Helper.DomInstances.Read(domQuery);
+            var domInstances = DomHelper.DomInstances.Read(domQuery);
 
             return domInstances.Select(CreateInstance);
         }
 
-        public virtual IQueryable<T> Query()
+        public virtual IOrderedQueryable<T> Query()
         {
             return new ApiRepositoryQuery<T>(_queryProvider);
         }
@@ -268,8 +226,9 @@
         {
             switch (fieldName)
             {
-                case nameof(ApiObject<T>.ID):
+                case nameof(IApiObject.Id):
                     return FilterElementFactory.Create(DomInstanceExposers.Id, comparer, (Guid)value);
+
                 default:
                     throw new NotImplementedException();
             }
@@ -279,8 +238,9 @@
         {
             switch (fieldName)
             {
-                case nameof(ApiObject<T>.ID):
+                case nameof(IApiObject.Id):
                     return OrderByElementFactory.Create(DomInstanceExposers.Id, sortOrder, naturalSort);
+
                 default:
                     throw new NotImplementedException();
             }

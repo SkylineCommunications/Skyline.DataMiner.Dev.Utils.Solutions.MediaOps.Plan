@@ -2,12 +2,10 @@
 {
     using System;
 
-    using Skyline.DataMiner.MediaOps.API.Common.API.Generic;
-
     /// <summary>
     /// Represents the configuration of a team in the MediaOps API.
     /// </summary>
-    public class TeamConfig : IConfiguration
+    public class TeamConfig //: IRequest
     {
         /// <summary>
         /// Gets or sets the unique identifier of the team.

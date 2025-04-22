@@ -4,7 +4,7 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    using Skyline.DataMiner.MediaOps.Common.DOM;
+    using Skyline.DataMiner.Utils.DOM.Extensions;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
 

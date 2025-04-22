@@ -5,7 +5,6 @@
     /// <summary>
     /// Defines a generic API object interface.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
     public interface IApiObject
     {
         /// <summary>

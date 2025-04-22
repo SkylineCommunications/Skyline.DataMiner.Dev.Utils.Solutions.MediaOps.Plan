@@ -95,7 +95,7 @@
                     result[domResource.ResourceInfo.Name] = resource;
                     resourcesByDomInstanceId[domResource.ID.Id] = resource;
                     resourcesByName[domResource.ResourceInfo.Name] = resource;
-                    
+
                     AddResourceIfCoreResourceAvailable(resource, domResource);
                 }
             }

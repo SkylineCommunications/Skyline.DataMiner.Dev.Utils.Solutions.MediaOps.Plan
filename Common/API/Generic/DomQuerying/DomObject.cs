@@ -1,20 +1,23 @@
-﻿namespace Skyline.DataMiner.MediaOps.API.Common.API.Generic
+﻿namespace Skyline.DataMiner.MediaOps.API.Common.API.Generic.DomQuerying
 {
     using System;
 
     using DomHelpers;
 
-    internal abstract class DomObject : IApiObject, IEquatable<DomObject>
+    using Skyline.DataMiner.MediaOps.API.Common.API.Generic;
+
+    internal abstract class DomObject<T> : IApiObject, IEquatable<DomObject<T>>
+        where T : DomObject<T>
     {
-        protected DomObject(string defintionName, DomInstanceBase domInstance)
+        protected DomObject(string definitionName, DomInstanceBase domInstance)
         {
+            DefinitionName = definitionName;
             DomInstance = domInstance ?? throw new ArgumentNullException(nameof(domInstance));
-            DefinitionName = defintionName ?? throw new ArgumentNullException(nameof(defintionName));
         }
 
         internal DomInstanceBase DomInstance { get; }
 
-        public string DefinitionName { get; }
+        string DefinitionName { get; }
 
         public Guid Id => throw new NotImplementedException();
 
@@ -27,10 +30,10 @@
 
         public override bool Equals(object obj)
         {
-            return Equals(obj as DomObject);
+            return Equals(obj as DomObject<T>);
         }
 
-        public virtual bool Equals(DomObject other)
+        public virtual bool Equals(DomObject<T> other)
         {
             if (other == null)
             {

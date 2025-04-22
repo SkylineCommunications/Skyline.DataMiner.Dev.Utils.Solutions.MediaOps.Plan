@@ -8,7 +8,7 @@
     /// <summary>
     /// Represents a person in the system.
     /// </summary>
-    public interface IPerson : IApiObject<PersonConfig>
+    public interface IPerson : IApiObject
     {
         /// <summary>
         /// Gets the name of the person.

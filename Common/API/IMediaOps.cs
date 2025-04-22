@@ -12,10 +12,10 @@
 
     public interface IMediaOps
     {
-        IApiCollection<IPerson, PersonConfig> People { get; }
+        IPeopleCollection People { get; }
 
-        IApiCollection<ITeam, TeamConfig> Teams { get; }
+        //IApiCollection<ITeam, TeamConfig> Teams { get; }
 
-        IApiCollection<IOrganization, OrganizationConfig> Organizations { get; }
+        //IApiCollection<IOrganization, OrganizationConfig> Organizations { get; }
     }
 }
