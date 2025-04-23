@@ -3,7 +3,7 @@
     using System;
 
     using DomHelpers.SlcResource_Studio;
-
+    using Skyline.DataMiner.MediaOps.API.Common.API;
     using Skyline.DataMiner.MediaOps.API.Common.Handlers.SRM;
     using Skyline.DataMiner.MediaOps.API.Common.Providers;
     using Skyline.DataMiner.MediaOps.API.Common.ResourceStudio;

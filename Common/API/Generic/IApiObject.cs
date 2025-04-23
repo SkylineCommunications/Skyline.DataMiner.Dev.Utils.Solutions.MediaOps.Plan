@@ -10,6 +10,6 @@
         /// <summary>
         /// Gets the unique identifier of the object.
         /// </summary>
-        Guid Id { get; }
+        Guid ID { get; }
     }
 }

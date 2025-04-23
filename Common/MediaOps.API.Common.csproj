@@ -21,6 +21,11 @@
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/SkylineCommunications/Skyline.DataMiner.MediaOps.API</RepositoryUrl>
   </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="API\Organizations\**" />
+    <EmbeddedResource Remove="API\Organizations\**" />
+    <None Remove="API\Organizations\**" />
+  </ItemGroup>
 
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="" />
@@ -36,7 +41,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="API\Organizations\" />
     <Folder Include="API\ResourceStudio\Builders\" />
     <Folder Include="API\ResourceStudio\Validators\" />
   </ItemGroup>

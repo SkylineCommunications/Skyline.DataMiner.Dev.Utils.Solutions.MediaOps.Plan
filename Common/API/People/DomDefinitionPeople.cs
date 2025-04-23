@@ -10,17 +10,24 @@
 
     using SLDataGateway.API.Types.Querying;
     using Skyline.DataMiner.MediaOps.API.Common.Storage.DOM;
+    using Skyline.DataMiner.Net.Sections;
 
-    internal class DomDefinitionPeople : DomDefinitionBase<IPerson>
+    internal class DomDefinitionPeople : DomDefinitionBase<Person>
     {
         public DomDefinitionPeople(DomHelper helper)
             : base(helper)
         {
         }
 
-        protected override IPerson CreateInstance(DomInstance domInstance)
+        protected override Person CreateInstance(DomInstance domInstance)
         {
-            return new DomPerson(domInstance);
+            return new Person
+            {
+                ID = domInstance.ID.Id,
+                Name = domInstance.GetFieldValue<string>(SlcPeople_OrganizationsIds.Sections.PeopleInformation.Id, SlcPeople_OrganizationsIds.Sections.PeopleInformation.FullName)?.Value ?? null,
+                Email = domInstance.GetFieldValue<string>(SlcPeople_OrganizationsIds.Sections.ContactInfo.Id, SlcPeople_OrganizationsIds.Sections.ContactInfo.Email)?.Value ?? null,
+                PhoneNumber = domInstance.GetFieldValue<string>(SlcPeople_OrganizationsIds.Sections.ContactInfo.Id, SlcPeople_OrganizationsIds.Sections.ContactInfo.Phone)?.Value ?? null,
+            };
         }
 
         protected internal override DomDefinitionId DomDefinition => SlcPeople_OrganizationsIds.Definitions.People;
@@ -29,11 +36,11 @@
         {
             switch (fieldName)
             {
-                case nameof(DomPerson.Name):
+                case "Name":
                     return FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcPeople_OrganizationsIds.Sections.PeopleInformation.FullName), comparer, (string)value);
-                case nameof(DomPerson.Email):
+                case "Email":
                     return FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcPeople_OrganizationsIds.Sections.ContactInfo.Email), comparer, (string)value);
-                case nameof(DomPerson.PhoneNumber):
+                case "PhoneNumber":
                     return FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcPeople_OrganizationsIds.Sections.ContactInfo.Phone), comparer, (string)value);
             }
 
@@ -44,11 +51,11 @@
         {
             switch (fieldName)
             {
-                case nameof(DomPerson.Name):
+                case "Name":
                     return OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcPeople_OrganizationsIds.Sections.PeopleInformation.FullName), sortOrder, naturalSort);
-                case nameof(DomPerson.Email):
+                case "Email":
                     return OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcPeople_OrganizationsIds.Sections.ContactInfo.Email), sortOrder, naturalSort);
-                case nameof(DomPerson.PhoneNumber):
+                case "PhoneNumber":
                     return OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcPeople_OrganizationsIds.Sections.ContactInfo.Phone), sortOrder, naturalSort);
             }
 

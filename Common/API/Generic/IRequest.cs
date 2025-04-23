@@ -5,7 +5,7 @@
     /// <summary>
     /// The base interface for all requests made.
     /// </summary>
-    public interface IRequest
+    internal interface IRequest
     {
         /// <summary>
         /// The ID of the request. This ID is used to track the request in the system.
@@ -13,8 +13,8 @@
         Guid RequestId { get; set; }
 
         /// <summary>
-        /// The ID of the main object to perform a CRUD action on. Can be left empty when creating a new object.
+        /// The ID of the main object to perform a CRUD action on. Can have default value when creating a new object.
         /// </summary>
-        Guid? ObjectId { get; set; }
+        Guid ObjectId { get; set; }
     }
 }

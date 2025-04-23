@@ -2,7 +2,7 @@
 {
     using System.Linq;
 
-    public interface IApiQuerable<T>
+    public interface IApiQueryable<T>
         where T : IApiObject
     {
         IOrderedQueryable<T> Query();

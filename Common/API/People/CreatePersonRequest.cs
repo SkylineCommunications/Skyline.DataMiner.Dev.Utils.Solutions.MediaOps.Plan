@@ -6,11 +6,11 @@
     using Skyline.DataMiner.MediaOps.API.Common.API.Generic;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 
-    public class CreatePersonRequest : IRequest
+    internal class CreatePersonRequest : IRequest
     {
         public Guid RequestId { get; set; } = Guid.NewGuid();
 
-        public Guid? ObjectId { get; set; }
+        public Guid ObjectId { get; set; }
 
         public string Name { get; set; }
 
@@ -20,7 +20,7 @@
 
         internal DomInstance ToInstance()
         {
-            var person = ObjectId.HasValue ? new PeopleInstance(ObjectId.Value) : new PeopleInstance();
+            var person = Guid.Empty.Equals(ObjectId) ? new PeopleInstance() : new PeopleInstance(ObjectId);
             person.ContactInfo.Email = Email;
             person.ContactInfo.Phone = PhoneNumber;
             person.PeopleInformation.FullName = Name;

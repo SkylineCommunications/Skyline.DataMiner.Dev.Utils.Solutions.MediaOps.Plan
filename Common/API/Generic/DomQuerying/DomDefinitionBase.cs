@@ -155,7 +155,7 @@
                     x => CreateFilter(x),
                     x => DomHelper.DomInstances.Read(x))
                 .Select(CreateInstance)
-                .SafeToDictionary(x => x.Id);
+                .SafeToDictionary(x => x.ID);
         }
 
         public virtual IEnumerable<T> Read(FilterElement<T> filter)
@@ -226,7 +226,7 @@
         {
             switch (fieldName)
             {
-                case nameof(IApiObject.Id):
+                case nameof(IApiObject.ID):
                     return FilterElementFactory.Create(DomInstanceExposers.Id, comparer, (Guid)value);
 
                 default:
@@ -238,7 +238,7 @@
         {
             switch (fieldName)
             {
-                case nameof(IApiObject.Id):
+                case nameof(IApiObject.ID):
                     return OrderByElementFactory.Create(DomInstanceExposers.Id, sortOrder, naturalSort);
 
                 default:

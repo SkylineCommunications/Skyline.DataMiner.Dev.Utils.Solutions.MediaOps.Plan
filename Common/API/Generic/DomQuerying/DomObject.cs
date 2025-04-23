@@ -19,7 +19,7 @@
 
         string DefinitionName { get; }
 
-        public Guid Id => throw new NotImplementedException();
+        public Guid ID => throw new NotImplementedException();
 
         ////public ApiObjectReference<T> Reference => new ApiObjectReference<T>(DomInstance.ID.Id);
 
@@ -45,7 +45,7 @@
 
         public override string ToString()
         {
-            return $"{DefinitionName} [{Id}]";
+            return $"{DefinitionName} [{ID}]";
         }
     }
 }

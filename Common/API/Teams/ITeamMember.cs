@@ -6,7 +6,7 @@
     {
         ITeam Team { get; }
 
-        IPerson Person { get; }
+        Person Person { get; }
 
         string Role { get; }
     }

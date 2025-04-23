@@ -3,28 +3,32 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-
+    using DomHelpers.SlcResource_Studio;
+    using Skyline.DataMiner.Core.DataMinerSystem.Common;
+    using Skyline.DataMiner.MediaOps.API.Common.API;
     using Skyline.DataMiner.MediaOps.API.Common.Handlers.ResourceStudio;
     using Skyline.DataMiner.MediaOps.API.Common.Storage.DOM.ResourceStudio;
+    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 
     internal class DomResourceStudioHelper : IResourceStudioHelper
     {
         #region Fields
-        private readonly MediaOpsHelpers mediaOpsHelpers;
+        private readonly MediaOpsPlanApi _helper;
+        private readonly ResourceStudioProvider _resourceStudioDomHelper;
 
         private Cache cache;
 
         private ClientMetadata clientMetadata;
         #endregion
 
-        internal DomResourceStudioHelper(MediaOpsHelpers helpers)
+        internal DomResourceStudioHelper(MediaOpsPlanApi helpers)
         {
-            mediaOpsHelpers = helpers ?? throw new ArgumentNullException(nameof(helpers));
+            _helper = helpers ?? throw new ArgumentNullException(nameof(helpers));
+            var domHelper = new DomHelper(helpers.Communication.Connection.HandleMessages, SlcResource_StudioIds.ModuleId);
+            _resourceStudioDomHelper = new ResourceStudioProvider(domHelper);
 
             Init();
         }
-
-        private ResourceStudioProvider ResourceStudioProvider => mediaOpsHelpers.DataProviders.ResourceStudioProvider;
 
         #region Methods
         public void SetClientMetadata(ClientMetadata clientMetadata)
@@ -66,13 +70,13 @@
 
         public IEnumerable<IResource> GetAllResources()
         {
-            return ResourceStudioProvider.GetAllResources()
+            return _resourceStudioDomHelper.GetAllResources()
                 .Select(x => new Resource(x));
         }
 
         public long GetResourcesCount()
         {
-            return ResourceStudioProvider.CountAllResources();
+            return _resourceStudioDomHelper.CountAllResources();
         }
 
         public Guid CreateResource(ResourceConfiguration configuration, ObjectMetadata objectMetadata)
@@ -87,7 +91,7 @@
                 throw new ArgumentNullException(nameof(objectMetadata));
             }
 
-            var handler = new CreateResourceHandler(mediaOpsHelpers.DataProviders, clientMetadata, configuration, objectMetadata);
+            var handler = new CreateResourceHandler(_helper.DataProviders, clientMetadata, configuration, objectMetadata);
             return handler.Execute();
         }
 
@@ -104,7 +108,7 @@
         private void Init()
         {
             clientMetadata = new ClientMetadata();
-            cache = new Cache(mediaOpsHelpers.DataProviders);
+            cache = new Cache(_helper.DataProviders);
         }
         #endregion
     }

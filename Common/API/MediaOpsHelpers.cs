@@ -1,85 +1,29 @@
 ﻿namespace Skyline.DataMiner.MediaOps.API.Common
 {
     using System;
-    using System.Net.Http.Headers;
-    using DomHelpers.SlcPeople_Organizations;
 
-    using Skyline.DataMiner.Core.DataMinerSystem.Common;
     using Skyline.DataMiner.MediaOps.API.Common.API;
     using Skyline.DataMiner.MediaOps.API.Common.API.People;
     using Skyline.DataMiner.MediaOps.API.Common.Providers;
-    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 
-    /// <summary>
-    /// Provides helpers to interact with the MediaOps solution.
-    /// </summary>
-    public class MediaOpsHelpers
+    public class MediaOpsPlanApi : IMediaOpsPlanApi
     {
-        private readonly ICommunication communication;
+        private readonly Lazy<DataProviders> _lazyDataProviders;
 
-        private Lazy<DataProviders> lazyDataProviders;
+        private readonly ICommunication _communication;
+        private readonly Lazy<PeopleApi> _peopleApi;
 
-        private Lazy<ResourceStudio.DomResourceStudioHelper> lazyResourceStudioHelper;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="MediaOpsHelpers"/> class.
-        /// </summary>
-        /// <param name="communication">The <see cref="ICommunication"/> implementation.</param>
-        /// <exception cref="ArgumentNullException"><paramref name="communication"/> is <see langword="null" />.</exception>
-        public MediaOpsHelpers(ICommunication communication)
+        public MediaOpsPlanApi(ICommunication communication)
         {
-            this.communication = communication ?? throw new ArgumentNullException(nameof(communication));
-
-            Init();
+            _communication = communication ?? throw new ArgumentNullException(nameof(communication));
+            _lazyDataProviders = new Lazy<DataProviders>(() => new DataProviders(Communication));
+            _peopleApi = new Lazy<PeopleApi>(() => new PeopleApi(this));
         }
 
-        /// <summary>
-        /// Gets the implementation of <see cref="ResourceStudio.IResourceStudioHelper"/>.
-        /// </summary>
-        /// <value>The lazily initialized <see cref="ResourceStudio.IResourceStudioHelper"/> instance.</value>
-        public ResourceStudio.IResourceStudioHelper ResourceStudioHelper => lazyResourceStudioHelper.Value;
+        public IPeopleApi People => _peopleApi.Value;
 
-        internal ICommunication Communication => communication;
+        internal ICommunication Communication => _communication;
 
-        internal DataProviders DataProviders => lazyDataProviders.Value;
-
-        private void Init()
-        {
-            lazyDataProviders = new Lazy<DataProviders>(() => new DataProviders(Communication));
-
-            lazyResourceStudioHelper = new Lazy<ResourceStudio.DomResourceStudioHelper>(() => new ResourceStudio.DomResourceStudioHelper(this));
-        }
-    }
-
-    internal class MediaOpsHelper : IMediaOps
-    {
-        public IDms ThisDms { get; }
-
-        private Lazy<DomHelper> _pnoHelper;
-        private Lazy<PeopleCollection> _peopleHelper;
-
-        public MediaOpsHelper(IDms thisDms)
-        {
-            ThisDms = thisDms ?? throw new ArgumentNullException(nameof(thisDms));
-            _pnoHelper = new Lazy<DomHelper>(() => new DomHelper(thisDms.Communication.SendMessages, SlcPeople_OrganizationsIds.ModuleId));
-            _peopleHelper = new Lazy<PeopleCollection>(() => new PeopleCollection(this));
-        }
-
-        public DomHelper Module_PnO => _pnoHelper.Value;
-
-        public IPeopleCollection People => _peopleHelper.Value;
-    }
-
-    public static class MediaOpsHelpersExtensions
-    {
-        /// <summary>
-        /// Gets the <see cref="MediaOpsHelpers"/> instance from the <see cref="ICommunication"/> instance.
-        /// </summary>
-        /// <param name="communication">The <see cref="ICommunication"/> instance.</param>
-        /// <returns>The <see cref="MediaOpsHelpers"/> instance.</returns>
-        public static IMediaOps GetMediaOpsHelpers(this IDms thisDms)
-        {
-            throw new NotImplementedException();
-        }
+        internal DataProviders DataProviders => _lazyDataProviders.Value;
     }
 }
