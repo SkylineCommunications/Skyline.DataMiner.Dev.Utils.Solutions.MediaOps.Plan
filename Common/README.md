@@ -1,8 +1,8 @@
-# Skyline.DataMiner.MediaOps.API.Common
+# Skyline.DataMiner.MediaOps.Plan
 
 ## About
 
-API classes to interact with the MediaOps solution
+
 
 ### About DataMiner
 

@@ -1,12 +1,12 @@
-# Skyline.DataMiner.MediaOps.API
+# Skyline.DataMiner.MediaOps.Plan
 
 ## About
 
-API to communicate with the MediaOps solution
+
 
 ## Projects
 
-* For more information about Skyline.DataMiner.MediaOps.API, see [MediaOps.API/README.md](MediaOps.API/README.md).
+* For more information about Skyline.DataMiner.MediaOps.Plan, see [MediaOps.Plan/README.md](MediaOps.Plan/README.md).
 
 ### About DataMiner
 

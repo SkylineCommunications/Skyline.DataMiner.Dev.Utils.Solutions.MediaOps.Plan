@@ -1,29 +1,31 @@
-﻿namespace Skyline.DataMiner.MediaOps.API.Automation
+﻿namespace Skyline.DataMiner.MediaOps.Plan.Automation
 {
     using System;
 
     using Skyline.DataMiner.Automation;
-    using Skyline.DataMiner.MediaOps.API.Common;
+    using Skyline.DataMiner.MediaOps.Plan.API;
+    using Skyline.DataMiner.MediaOps.Plan.Logger;
 
     /// <summary>
     /// Defines extension methods on the <see cref="Engine"/> class.
     /// </summary>
     public static class EngineExtensions
-    {
+	{
         /// <summary>
-        /// Retrieves an instance of the <see cref="MediaOpsHelpers"/> class.
+        /// Retrieves an instance of the <see cref="IMediaOpsPlanApi"/> interface."/>
         /// </summary>
         /// <param name="engine">The <see cref="Engine"/> instance.</param>
+        /// <param name="logger">The <see cref="ILogger"/> implementation.</param>
+        /// <returns>Instance of the <see cref="IMediaOpsPlanApi"/> interface.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="engine"/> is <see langword="null" />.</exception>
-        /// <returns>Instance of the <see cref="MediaOpsHelpers"/> class.</returns>
-        public static MediaOpsHelpers GetMediaOpsHelpers(Engine engine)
+        public static IMediaOpsPlanApi GetMediaOpsPlanApi(this Engine engine, ILogger logger = null)
         {
             if (engine == null)
             {
                 throw new ArgumentNullException(nameof(engine));
             }
 
-            return new MediaOpsHelpers(new ConnectionCommunication(engine.GetUserConnection()));
+            return new MediaOpsPlanApi(engine.GetUserConnection(), logger);
         }
-    }
+	}
 }

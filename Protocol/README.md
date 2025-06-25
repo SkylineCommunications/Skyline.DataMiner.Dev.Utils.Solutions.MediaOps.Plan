@@ -1,8 +1,8 @@
-# Skyline.DataMiner.MediaOps.API.Protocol
+# Skyline.DataMiner.MediaOps.Plan.Protocol
 
 ## About
 
-Protocol API to communicate with the MediaOps Solution
+
 
 ### About DataMiner
 

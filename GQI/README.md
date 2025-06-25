@@ -1,8 +1,8 @@
-# Skyline.DataMiner.MediaOps.API.GQI
+# Skyline.DataMiner.MediaOps.Plan.GQI
 
 ## About
 
-GQI API to communicate with the MediaOps Solution
+
 
 ### About DataMiner
 
