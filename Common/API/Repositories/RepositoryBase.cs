@@ -4,13 +4,13 @@
 
     internal abstract class RepositoryBase<T> where T : IApiObject
     {
-        private readonly IMediaOpsPlanApi planApi;
+        private readonly MediaOpsPlanApi planApi;
 
-        public RepositoryBase(IMediaOpsPlanApi planApi)
+        public RepositoryBase(MediaOpsPlanApi planApi)
         {
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        public IMediaOpsPlanApi PlanApi => this.planApi;
+        public MediaOpsPlanApi PlanApi => planApi;
     }
 }

@@ -2,6 +2,7 @@
 {
     using System;
 
+    using Skyline.DataMiner.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel.General;
 
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
@@ -14,16 +15,17 @@
 
         public ResourcePool()
         {
+            State = ResourcePoolState.Draft;
         }
 
-        public ResourcePool(Guid id)
+        public ResourcePool(Guid resourcePoolId)
         {
-            if (id == Guid.Empty)
+            if (resourcePoolId == Guid.Empty)
             {
-                throw new ArgumentException("Id cannot be empty.", nameof(id));
+                throw new ArgumentException("Id cannot be empty.", nameof(resourcePoolId));
             }
 
-            Id = id;
+            Id = resourcePoolId;
         }
 
         internal ResourcePool(StorageResourceStudio.ResourcepoolInstance instance)
@@ -42,6 +44,8 @@
                 name = value;
             }
         }
+
+        public ResourcePoolState State { get; private set; }
 
         internal bool IsNew => instance != null;
 
@@ -64,6 +68,7 @@
 
             Id = instance.ID.Id;
             Name = instance.ResourcePoolInfo.Name;
+            State = EnumExtensions.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.StatusesEnum, ResourcePoolState>(instance.Status);
         }
 
         internal DomInstanceDifferences GetChanges()

@@ -56,7 +56,6 @@
   </ItemGroup>
   
   <ItemGroup>
-    <Folder Include="API\Validators\" />
     <Folder Include="TraceData\" />
   </ItemGroup>
 

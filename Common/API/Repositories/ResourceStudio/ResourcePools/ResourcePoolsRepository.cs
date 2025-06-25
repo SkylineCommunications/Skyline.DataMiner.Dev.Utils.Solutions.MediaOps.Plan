@@ -3,11 +3,12 @@
     using System;
     using System.Collections.Generic;
 
+    using Skyline.DataMiner.MediaOps.Plan.API.Validators;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
     internal class ResourcePoolsRepository : RepositoryBase<ResourcePool>, IResourcePoolsRepository
     {
-        public ResourcePoolsRepository(IMediaOpsPlanApi planApi) : base(planApi)
+        public ResourcePoolsRepository(MediaOpsPlanApi planApi) : base(planApi)
         {
         }
 
@@ -23,7 +24,8 @@
                 // Check if the object already exists
             }
 
-            // Validate name
+            ValidateName(apiObject.Name, apiObject.State);
+
 
             throw new NotImplementedException();
         }
@@ -40,6 +42,26 @@
 
         public void Delete(params Guid[] objectIds)
         {
+            throw new NotImplementedException();
+        }
+
+        public void MoveTo(ResourcePool resourcePool, ResourcePoolState desiredState)
+        {
+            if (resourcePool == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePool));
+            }
+
+            MoveTo(resourcePool.Id, desiredState);
+        }
+
+        public void MoveTo(Guid resourcePoolId, ResourcePoolState desiredState)
+        {
+            if (resourcePoolId == Guid.Empty)
+            {
+                throw new ArgumentException(nameof(resourcePoolId));
+            }
+
             throw new NotImplementedException();
         }
 
@@ -71,6 +93,31 @@
         public Guid Update(ResourcePool apiObject)
         {
             throw new NotImplementedException();
+        }
+
+        private void ValidateName(string name, ResourcePoolState resourcePoolState)
+        {
+            if (!InputValidator.ValidateEmptyText(name))
+            {
+                // todo: throw new exception
+                return;
+            }
+
+            if (!InputValidator.ValidateTextLength(name))
+            {
+                // todo: throw new exception
+                return;
+            }
+
+            if (resourcePoolState != ResourcePoolState.Complete)
+            {
+                return;
+            }
+
+            // todo: check if name is unique in DOM
+
+            // todo: check if name is unique in core
+
         }
     }
 }
