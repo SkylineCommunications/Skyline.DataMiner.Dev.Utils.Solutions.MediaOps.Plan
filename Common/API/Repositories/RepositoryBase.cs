@@ -2,9 +2,13 @@
 {
     using System;
 
+    using Skyline.DataMiner.MediaOps.Plan.Exceptions;
+
     internal abstract class RepositoryBase<T> where T : IApiObject
     {
         private readonly MediaOpsPlanApi planApi;
+
+        private readonly MediaOpsTraceData traceData = new MediaOpsTraceData();
 
         public RepositoryBase(MediaOpsPlanApi planApi)
         {
@@ -12,5 +16,7 @@
         }
 
         public MediaOpsPlanApi PlanApi => planApi;
+
+        public MediaOpsTraceData TraceData => traceData;
     }
 }

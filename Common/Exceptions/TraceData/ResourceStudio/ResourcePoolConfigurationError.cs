@@ -1,0 +1,34 @@
+﻿namespace Skyline.DataMiner.MediaOps.Plan.Exceptions
+{
+    /// <summary>
+    /// Represents an error that occurs when creating or updating a resource pool with invalid configuration.
+    /// </summary>
+    public class ResourcePoolConfigurationError : MediaOpsErrorData
+    {
+        /// <summary>
+		/// Specifies the reason for the error.
+		/// </summary>
+		public enum Reason
+        {
+            /// <summary>
+            /// Indicates that a resource pool with the same name already exists.
+            /// </summary>
+            NameExists,
+
+            /// <summary>
+            /// Indicates that the name is invalid.
+            /// </summary>
+            InvalidName,
+
+            /// <summary>
+            /// Indicates that the ID is already in use by another object.
+            /// </summary>
+            IdInUse,
+        }
+
+        /// <summary>
+        /// Gets the reason for the resource pool configuration error.
+        /// </summary>
+        public Reason ErrorReason { get; set; }
+    }
+}

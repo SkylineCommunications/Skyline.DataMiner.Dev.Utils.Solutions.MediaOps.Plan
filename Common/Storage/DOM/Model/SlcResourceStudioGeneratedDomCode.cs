@@ -12,7 +12,7 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Sections;
 
-    public static class SlcResource_StudioIds
+    internal static class SlcResource_StudioIds
     {
         public const string ModuleId = "(slc)resource_studio";
         public static class Enums
@@ -509,7 +509,7 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
     /// Represents a wrapper class for accessing a ResourcepropertyInstance DOM instance.
     /// The <see cref="ResourcepropertyInstance"/> class provides simplified access to the data and functionality of the underlying DOM instance, allowing for easier manipulation and retrieval of data from DOM.
     /// </summary>
-    public partial class ResourcepropertyInstance : DomInstanceBase
+    internal partial class ResourcepropertyInstance : DomInstanceBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ResourcepropertyInstance"/> class. Creates an empty <see cref="ResourcepropertyInstance"/> instance with default settings.
@@ -618,7 +618,7 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
     /// Represents a wrapper class for accessing a ResourcepoolInstance DOM instance.
     /// The <see cref="ResourcepoolInstance"/> class provides simplified access to the data and functionality of the underlying DOM instance, allowing for easier manipulation and retrieval of data from DOM.
     /// </summary>
-    public partial class ResourcepoolInstance : DomInstanceBase
+    internal partial class ResourcepoolInstance : DomInstanceBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ResourcepoolInstance"/> class. Creates an empty <see cref="ResourcepoolInstance"/> instance with default settings.
@@ -852,7 +852,7 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
     /// Represents a wrapper class for accessing a ResourceInstance DOM instance.
     /// The <see cref="ResourceInstance"/> class provides simplified access to the data and functionality of the underlying DOM instance, allowing for easier manipulation and retrieval of data from DOM.
     /// </summary>
-    public partial class ResourceInstance : DomInstanceBase
+    internal partial class ResourceInstance : DomInstanceBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ResourceInstance"/> class. Creates an empty <see cref="ResourceInstance"/> instance with default settings.
@@ -1125,7 +1125,7 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
     /// Represents a wrapper class for accessing a ResourcePoolCostSection section.
     /// The <see cref="ResourcePoolCostSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
     /// </summary>
-    public partial class ResourcePoolCostSection : DomSectionBase
+    internal partial class ResourcePoolCostSection : DomSectionBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ResourcePoolCostSection"/> class. Creates an empty <see cref="ResourcePoolCostSection"/> object with default settings.
@@ -1210,7 +1210,7 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
     /// Represents a wrapper class for accessing a ResourceCostSection section.
     /// The <see cref="ResourceCostSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
     /// </summary>
-    public partial class ResourceCostSection : DomSectionBase
+    internal partial class ResourceCostSection : DomSectionBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ResourceCostSection"/> class. Creates an empty <see cref="ResourceCostSection"/> object with default settings.
@@ -1295,7 +1295,7 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
     /// Represents a wrapper class for accessing a ResourcePropertiesSection section.
     /// The <see cref="ResourcePropertiesSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
     /// </summary>
-    public partial class ResourcePropertiesSection : DomSectionBase
+    internal partial class ResourcePropertiesSection : DomSectionBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ResourcePropertiesSection"/> class. Creates an empty <see cref="ResourcePropertiesSection"/> object with default settings.
@@ -1423,7 +1423,7 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
     /// Represents a wrapper class for accessing a ExternalMetadataSection section.
     /// The <see cref="ExternalMetadataSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
     /// </summary>
-    public partial class ExternalMetadataSection : DomSectionBase
+    internal partial class ExternalMetadataSection : DomSectionBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ExternalMetadataSection"/> class. Creates an empty <see cref="ExternalMetadataSection"/> object with default settings.
@@ -1551,7 +1551,7 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
     /// Represents a wrapper class for accessing a ResourceCapabilitiesSection section.
     /// The <see cref="ResourceCapabilitiesSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
     /// </summary>
-    public partial class ResourceCapabilitiesSection : DomSectionBase
+    internal partial class ResourceCapabilitiesSection : DomSectionBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ResourceCapabilitiesSection"/> class. Creates an empty <see cref="ResourceCapabilitiesSection"/> object with default settings.
@@ -1679,7 +1679,7 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
     /// Represents a wrapper class for accessing a ResourceInternalPropertiesSection section.
     /// The <see cref="ResourceInternalPropertiesSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
     /// </summary>
-    public partial class ResourceInternalPropertiesSection : DomSectionBase
+    internal partial class ResourceInternalPropertiesSection : DomSectionBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ResourceInternalPropertiesSection"/> class. Creates an empty <see cref="ResourceInternalPropertiesSection"/> object with default settings.
@@ -1979,7 +1979,7 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
     /// Represents a wrapper class for accessing a ResourceConnectionManagementSection section.
     /// The <see cref="ResourceConnectionManagementSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
     /// </summary>
-    public partial class ResourceConnectionManagementSection : DomSectionBase
+    internal partial class ResourceConnectionManagementSection : DomSectionBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ResourceConnectionManagementSection"/> class. Creates an empty <see cref="ResourceConnectionManagementSection"/> object with default settings.
@@ -2107,7 +2107,7 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
     /// Represents a wrapper class for accessing a ResourcePoolInfoSection section.
     /// The <see cref="ResourcePoolInfoSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
     /// </summary>
-    public partial class ResourcePoolInfoSection : DomSectionBase
+    internal partial class ResourcePoolInfoSection : DomSectionBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ResourcePoolInfoSection"/> class. Creates an empty <see cref="ResourcePoolInfoSection"/> object with default settings.
@@ -2235,7 +2235,7 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
     /// Represents a wrapper class for accessing a ErrorsSection section.
     /// The <see cref="ErrorsSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
     /// </summary>
-    public partial class ErrorsSection : DomSectionBase
+    internal partial class ErrorsSection : DomSectionBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ErrorsSection"/> class. Creates an empty <see cref="ErrorsSection"/> object with default settings.
@@ -2363,7 +2363,7 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
     /// Represents a wrapper class for accessing a ResourceOtherSection section.
     /// The <see cref="ResourceOtherSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
     /// </summary>
-    public partial class ResourceOtherSection : DomSectionBase
+    internal partial class ResourceOtherSection : DomSectionBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ResourceOtherSection"/> class. Creates an empty <see cref="ResourceOtherSection"/> object with default settings.
@@ -2491,7 +2491,7 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
     /// Represents a wrapper class for accessing a ResourcePoolOtherSection section.
     /// The <see cref="ResourcePoolOtherSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
     /// </summary>
-    public partial class ResourcePoolOtherSection : DomSectionBase
+    internal partial class ResourcePoolOtherSection : DomSectionBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ResourcePoolOtherSection"/> class. Creates an empty <see cref="ResourcePoolOtherSection"/> object with default settings.
@@ -2619,7 +2619,7 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
     /// Represents a wrapper class for accessing a ResourceControlSection section.
     /// The <see cref="ResourceControlSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
     /// </summary>
-    public partial class ResourceControlSection : DomSectionBase
+    internal partial class ResourceControlSection : DomSectionBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ResourceControlSection"/> class. Creates an empty <see cref="ResourceControlSection"/> object with default settings.
@@ -2704,7 +2704,7 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
     /// Represents a wrapper class for accessing a ConfigurationInfoSection section.
     /// The <see cref="ConfigurationInfoSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
     /// </summary>
-    public partial class ConfigurationInfoSection : DomSectionBase
+    internal partial class ConfigurationInfoSection : DomSectionBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ConfigurationInfoSection"/> class. Creates an empty <see cref="ConfigurationInfoSection"/> object with default settings.
@@ -2789,7 +2789,7 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
     /// Represents a wrapper class for accessing a ResourcePoolInternalPropertiesSection section.
     /// The <see cref="ResourcePoolInternalPropertiesSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
     /// </summary>
-    public partial class ResourcePoolInternalPropertiesSection : DomSectionBase
+    internal partial class ResourcePoolInternalPropertiesSection : DomSectionBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ResourcePoolInternalPropertiesSection"/> class. Creates an empty <see cref="ResourcePoolInternalPropertiesSection"/> object with default settings.
@@ -2874,7 +2874,7 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
     /// Represents a wrapper class for accessing a ResourceCapacitiesSection section.
     /// The <see cref="ResourceCapacitiesSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
     /// </summary>
-    public partial class ResourceCapacitiesSection : DomSectionBase
+    internal partial class ResourceCapacitiesSection : DomSectionBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ResourceCapacitiesSection"/> class. Creates an empty <see cref="ResourceCapacitiesSection"/> object with default settings.
@@ -3002,7 +3002,7 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
     /// Represents a wrapper class for accessing a ResourceInfoSection section.
     /// The <see cref="ResourceInfoSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
     /// </summary>
-    public partial class ResourceInfoSection : DomSectionBase
+    internal partial class ResourceInfoSection : DomSectionBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ResourceInfoSection"/> class. Creates an empty <see cref="ResourceInfoSection"/> object with default settings.
@@ -3345,7 +3345,7 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
     /// Represents a wrapper class for accessing a ResourcePoolLinksSection section.
     /// The <see cref="ResourcePoolLinksSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
     /// </summary>
-    public partial class ResourcePoolLinksSection : DomSectionBase
+    internal partial class ResourcePoolLinksSection : DomSectionBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ResourcePoolLinksSection"/> class. Creates an empty <see cref="ResourcePoolLinksSection"/> object with default settings.
@@ -3473,7 +3473,7 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
     /// Represents a wrapper class for accessing a PropertyInfoSection section.
     /// The <see cref="PropertyInfoSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
     /// </summary>
-    public partial class PropertyInfoSection : DomSectionBase
+    internal partial class PropertyInfoSection : DomSectionBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="PropertyInfoSection"/> class. Creates an empty <see cref="PropertyInfoSection"/> object with default settings.
@@ -3558,7 +3558,7 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
     /// Represents a wrapper class for accessing a ResourcePoolCapabilitiesSection section.
     /// The <see cref="ResourcePoolCapabilitiesSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
     /// </summary>
-    public partial class ResourcePoolCapabilitiesSection : DomSectionBase
+    internal partial class ResourcePoolCapabilitiesSection : DomSectionBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ResourcePoolCapabilitiesSection"/> class. Creates an empty <see cref="ResourcePoolCapabilitiesSection"/> object with default settings.
