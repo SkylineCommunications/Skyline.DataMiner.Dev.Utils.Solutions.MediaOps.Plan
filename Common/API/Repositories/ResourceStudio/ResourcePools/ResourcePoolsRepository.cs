@@ -6,6 +6,8 @@
 
     using Skyline.DataMiner.MediaOps.Plan.API.Validators;
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
+    using Skyline.DataMiner.MediaOps.Plan.Extensions;
+    using Skyline.DataMiner.MediaOps.Plan.Storage.DOM;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
@@ -88,12 +90,41 @@
 
         public ResourcePool Read(Guid id)
         {
-            throw new NotImplementedException();
+            if (id == Guid.Empty)
+            {
+                throw new ArgumentNullException(nameof(id));
+            }
+
+            var filter = DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourcepool.Id)
+                .AND(DomInstanceExposers.Id.Equal(id));
+         
+            var domResourcePool = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(filter)
+                .FirstOrDefault();
+
+            if (domResourcePool == null)
+            {
+                return null;
+            }
+
+            return new ResourcePool(domResourcePool);
         }
 
         public IDictionary<Guid, ResourcePool> Read(IEnumerable<Guid> ids)
         {
-            throw new NotImplementedException();
+            if (ids == null)
+            {
+                throw new ArgumentNullException(nameof(ids));
+            }
+
+            FilterElement<DomInstance> CreateFilter(Guid id) =>
+                DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourcepool.Id)
+                .AND(DomInstanceExposers.Id.Equal(id));
+
+            return FilterQueryExecutor.RetrieveFilteredItems(
+                ids.Distinct(),
+                x => CreateFilter(x),
+                x => PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(x))
+                .SafeToDictionary(x => x.ID.Id, x => new ResourcePool(x));
         }
 
         public IEnumerable<ResourcePool> Read(FilterElement<ResourcePool> filter)
@@ -103,7 +134,11 @@
 
         public IEnumerable<ResourcePool> ReadAll()
         {
-            throw new NotImplementedException();
+            var filter = DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourcepool.Id);
+            foreach (var domResourcePool in PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(filter))
+            {
+                yield return new ResourcePool(domResourcePool);
+            }
         }
 
         public IEnumerable<IEnumerable<ResourcePool>> ReadAllPage()
