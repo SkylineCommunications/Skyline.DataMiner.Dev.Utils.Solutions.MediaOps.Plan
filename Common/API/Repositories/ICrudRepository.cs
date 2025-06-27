@@ -3,7 +3,7 @@
     using System;
     using System.Collections.Generic;
 
-    public interface ICrudRepository<T> : ICreatorRepository<T>, IReaderRepository<T>, IUpdaterRepository<T>, IDeleterRepository<T> where T : IApiObject
+    public interface ICrudRepository<T> : ICreatorRepository<T>, IReaderRepository<T>, IUpdaterRepository<T>, IDeleterRepository<T> where T : ApiObject
     {
         IEnumerable<Guid> CreateOrUpdate(IEnumerable<T> apiObjects);
     }

@@ -7,33 +7,29 @@
 
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
-    public class ResourcePool : IApiObject
+    public class ResourcePool : ApiObject
     {
-        private StorageResourceStudio.ResourcepoolInstance instance;
+        private StorageResourceStudio.ResourcepoolInstance originalInstance;
+
+        private StorageResourceStudio.ResourcepoolInstance updatedInstance;
 
         private string name;
 
-        public ResourcePool()
+        public ResourcePool() : base()
         {
-            State = ResourcePoolState.Draft;
+            IsNew = true;
         }
 
-        public ResourcePool(Guid resourcePoolId)
+        public ResourcePool(Guid resourcePoolId) : base(resourcePoolId)
         {
-            if (resourcePoolId == Guid.Empty)
-            {
-                throw new ArgumentException("Id cannot be empty.", nameof(resourcePoolId));
-            }
-
-            Id = resourcePoolId;
+            IsNew = true;
+            HasUserDefinedId = true;
         }
 
-        internal ResourcePool(StorageResourceStudio.ResourcepoolInstance instance)
+        internal ResourcePool(StorageResourceStudio.ResourcepoolInstance instance) : base(instance.ID.Id)
         {
             ParseInstance(instance);
         }
-
-        public Guid Id { get; private set; }
 
         public string Name
         {
@@ -47,35 +43,32 @@
 
         public ResourcePoolState State { get; private set; }
 
-        internal bool IsNew => instance != null;
+        internal override bool IsNew { get; set; }
 
-        internal bool HasChanges{ get; set; } = false;
+        internal override bool HasUserDefinedId { get; set; } = false;
 
-        internal StorageResourceStudio.ResourcepoolInstance Instance => instance;
+        internal override bool HasChanges { get; set; } = false;
 
-        internal StorageResourceStudio.ResourcepoolInstance GetInstance()
+        internal StorageResourceStudio.ResourcepoolInstance OriginalInstance => originalInstance;
+
+        internal StorageResourceStudio.ResourcepoolInstance GetInstanceWithChanges()
         {
-            var updatedInstance = IsNew ? ComposeNewInstance() : instance.Clone();
+            if (updatedInstance == null)
+            {
+                updatedInstance = IsNew ? ComposeNewInstance() : originalInstance.Clone();
+            }
 
-            instance.ResourcePoolInfo.Name = Name;
+            updatedInstance.ResourcePoolInfo.Name = Name;
 
             return updatedInstance;
         }
 
-        internal void ParseInstance(StorageResourceStudio.ResourcepoolInstance instance)
+        private void ParseInstance(StorageResourceStudio.ResourcepoolInstance instance)
         {
-            this.instance = instance ?? throw new ArgumentNullException(nameof(instance));
+            this.originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
 
-            Id = instance.ID.Id;
             Name = instance.ResourcePoolInfo.Name;
             State = EnumExtensions.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.StatusesEnum, ResourcePoolState>(instance.Status);
-        }
-
-        internal DomInstanceDifferences GetChanges()
-        {
-            var updatedinstance = GetInstance();
-
-            return DomTools.CompareDomInstances(instance.ToInstance(), updatedinstance.ToInstance());
         }
 
         private StorageResourceStudio.ResourcepoolInstance ComposeNewInstance()

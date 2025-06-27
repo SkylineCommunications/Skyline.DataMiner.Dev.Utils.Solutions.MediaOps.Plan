@@ -10,6 +10,7 @@
     using Skyline.DataMiner.MediaOps.Plan.Storage.DOM;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
+    using Skyline.DataMiner.Net.Sections;
 
     using CoreResourcePool = Skyline.DataMiner.Net.Messages.ResourcePool;
     using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
@@ -28,19 +29,27 @@
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
-            if (apiObject.Id != Guid.Empty)
+            if (!apiObject.IsNew)
+            {
+                throw new MediaOpsException("Not possible to use method Create for existing resource pool. Use CreateOrUpdate or Update instead.");
+            }
+
+            if (apiObject.HasUserDefinedId)
             {
                 ValidateIdNotInUse(apiObject.Id);
             }
 
             ValidateName(apiObject.Name);
 
-            var domResourcePool = (apiObject.Id != Guid.Empty) ? new DomResourcePool(apiObject.Id) : new DomResourcePool();
-            domResourcePool.ResourcePoolInfo.Name = apiObject.Name;
-
+            var domResourcePool = apiObject.GetInstanceWithChanges();
             domResourcePool.Save(PlanApi.DomHelpers.SlcResourceStudioHelper.DomHelper);
 
             return domResourcePool.ID.Id;
+        }
+
+        public IEnumerable<Guid> Create(IEnumerable<ResourcePool> apiObjects)
+        {
+            throw new NotImplementedException();
         }
 
         public IEnumerable<Guid> CreateOrUpdate(IEnumerable<ResourcePool> apiObjects)
@@ -97,7 +106,6 @@
 
             var filter = DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourcepool.Id)
                 .AND(DomInstanceExposers.Id.Equal(id));
-         
             var domResourcePool = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(filter)
                 .FirstOrDefault();
 
@@ -116,13 +124,13 @@
                 throw new ArgumentNullException(nameof(ids));
             }
 
-            FilterElement<DomInstance> CreateFilter(Guid id) =>
+            FilterElement<DomInstance> createFilter(Guid id) =>
                 DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourcepool.Id)
                 .AND(DomInstanceExposers.Id.Equal(id));
 
             return FilterQueryExecutor.RetrieveFilteredItems(
                 ids.Distinct(),
-                x => CreateFilter(x),
+                x => createFilter(x),
                 x => PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(x))
                 .SafeToDictionary(x => x.ID.Id, x => new ResourcePool(x));
         }
@@ -146,7 +154,83 @@
             throw new NotImplementedException();
         }
 
-        public Guid Update(ResourcePool apiObject)
+        public void Update(ResourcePool apiObject)
+        {
+            if (apiObject == null)
+            {
+                throw new ArgumentNullException(nameof(apiObject));
+            }
+
+            if (!apiObject.HasChanges)
+            {
+                return;
+            }
+
+            if (apiObject.IsNew)
+            {
+                throw new MediaOpsException("Not possible to use method Update for a new resource pool. Use CreateOrUpdate or Create instead.");
+            }
+
+            if (apiObject.State == ResourcePoolState.Deprecated)
+            {
+                throw new MediaOpsException("Not allowed to update a resource pool in Deprecated state.");
+            }
+
+#warning lock DOM instance
+            // todo: lock DOM instance
+
+            var storedInstance = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourcepool.Id)
+                .AND(DomInstanceExposers.Id.Equal(apiObject.Id))).FirstOrDefault();
+            if (storedInstance == null)
+            {
+                throw new MediaOpsException($"Resource pool with ID '{apiObject.Id}' no longer exists.");
+            }
+
+
+            var changeResult = DomChangeHandler.HandleChanges(apiObject.OriginalInstance, apiObject.GetInstanceWithChanges(), storedInstance);
+            if (changeResult.HasErrors)
+            {
+                foreach (var error in changeResult.Errors)
+                {
+                    TraceData.Add(new ResourcePoolConfigurationError
+                    {
+                        ErrorReason = ResourcePoolConfigurationError.Reason.ValueAlreadyChanged,
+                        ErrorMessage = error,
+                    });
+                }
+
+                throw new MediaOpsException(TraceData);
+            }
+
+            var domResourcePool = new DomResourcePool(changeResult.Instance);
+
+            bool hasCoreChanges = false;
+            foreach (var id in changeResult.ChangedFieldDescriptorIds)
+            {
+                if (id == StorageResourceStudio.SlcResource_StudioIds.Sections.ResourcePoolInfo.Name.Id)
+                {
+                    ValidateName(domResourcePool.ResourcePoolInfo.Name);
+
+                    if (apiObject.State != ResourcePoolState.Draft)
+                    {
+                        ValidateNameInUseInDom(domResourcePool.ResourcePoolInfo.Name, apiObject.Id);
+                    }
+
+                    hasCoreChanges = true;
+                }
+            }
+            
+            if (hasCoreChanges && apiObject.State == ResourcePoolState.Complete)
+            {
+                CreateOrUpdateCore(domResourcePool);
+            }
+
+            domResourcePool.Save(PlanApi.DomHelpers.SlcResourceStudioHelper.DomHelper);
+
+            // Todo: unlock DOM instance
+        }
+
+        public void Update(IEnumerable<ResourcePool> apiObjects)
         {
             throw new NotImplementedException();
         }

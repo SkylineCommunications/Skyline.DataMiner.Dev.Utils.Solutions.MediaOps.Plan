@@ -24,6 +24,11 @@
             /// Indicates that the ID is already in use by another object.
             /// </summary>
             IdInUse,
+
+            /// <summary>
+            /// Indicates that the value was already changed.
+            /// </summary>
+            ValueAlreadyChanged,
         }
 
         /// <summary>

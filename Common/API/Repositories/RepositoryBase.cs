@@ -4,7 +4,7 @@
 
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
 
-    internal abstract class RepositoryBase<T> where T : IApiObject
+    internal abstract class RepositoryBase<T> where T : ApiObject
     {
         private readonly MediaOpsPlanApi planApi;
 

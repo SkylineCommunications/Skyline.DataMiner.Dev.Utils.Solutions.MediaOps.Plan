@@ -2,7 +2,7 @@
 {
     using System;
 
-    public interface IDeleterRepository<T> where T : IApiObject
+    public interface IDeleterRepository<T> where T : ApiObject
     {
         void Delete(params T[] objectApis);
 

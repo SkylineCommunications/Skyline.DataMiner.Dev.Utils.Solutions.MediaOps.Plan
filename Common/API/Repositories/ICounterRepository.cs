@@ -4,7 +4,7 @@
     using System.Collections.Generic;
     using System.Text;
 
-    public interface ICounterRepository<T> where T : IApiObject
+    public interface ICounterRepository<T> where T : ApiObject
     {
     }
 }

@@ -4,7 +4,7 @@
     using System.Collections.Generic;
     using System.Text;
 
-    public interface IQuerierRepository<T> where T : IApiObject
+    public interface IQuerierRepository<T> where T : ApiObject
     {
     }
 }

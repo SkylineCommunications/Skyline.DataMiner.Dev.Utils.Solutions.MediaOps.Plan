@@ -5,7 +5,7 @@
 
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
-    public interface IReaderRepository<T> where T : IApiObject
+    public interface IReaderRepository<T> where T : ApiObject
     {
         IEnumerable<T> ReadAll();
 

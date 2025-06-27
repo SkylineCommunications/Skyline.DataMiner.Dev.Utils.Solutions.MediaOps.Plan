@@ -1,9 +1,11 @@
 ﻿namespace Skyline.DataMiner.MediaOps.Plan.API
 {
-    using System;
+    using System.Collections.Generic;
 
-    public interface IUpdaterRepository<T> where T : IApiObject
+    public interface IUpdaterRepository<T> where T : ApiObject
     {
-        Guid Update(T apiObject);
+        void Update(T apiObject);
+
+        void Update(IEnumerable<T> apiObjects);
     }
 }
