@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediaOps.Plan.Protocol", "P
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediaOps.Plan.GQI", "GQI\MediaOps.Plan.GQI.csproj", "{BB96CE5E-9BF0-40DA-B6C3-02D242881AAB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediaOps Injector", "MediaOps Injector\MediaOps Injector.csproj", "{640F00D6-A6BD-4562-8C3B-C06AE4A77203}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{BB96CE5E-9BF0-40DA-B6C3-02D242881AAB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BB96CE5E-9BF0-40DA-B6C3-02D242881AAB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BB96CE5E-9BF0-40DA-B6C3-02D242881AAB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{640F00D6-A6BD-4562-8C3B-C06AE4A77203}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{640F00D6-A6BD-4562-8C3B-C06AE4A77203}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{640F00D6-A6BD-4562-8C3B-C06AE4A77203}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{640F00D6-A6BD-4562-8C3B-C06AE4A77203}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
