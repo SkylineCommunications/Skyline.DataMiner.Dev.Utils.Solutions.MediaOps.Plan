@@ -18,11 +18,11 @@
 
         private DomChangeHandler(DomInstanceBase original, DomInstanceBase updated, DomInstanceBase stored)
         {
-            this.original = original?.ToInstance() ?? throw new ArgumentNullException(nameof(original));
-            this.updated = updated?.ToInstance() ?? throw new ArgumentNullException(nameof(updated));
-            this.stored = stored?.ToInstance() ?? throw new ArgumentNullException(nameof(stored));
+            this.original = original ?? throw new ArgumentNullException(nameof(original));
+            this.updated = updated ?? throw new ArgumentNullException(nameof(updated));
+            this.stored = stored ?? throw new ArgumentNullException(nameof(stored));
 
-            results = new DomChangeResults(stored);
+            results = new DomChangeResults(this.stored);
         }
 
         public static DomChangeResults HandleChanges(DomInstanceBase original, DomInstanceBase updated, DomInstanceBase stored)
@@ -43,14 +43,11 @@
 
             foreach (var changedFieldValue in changes.FieldValues)
             {
-                if (!TryHandleChangedFieldValue(changedFieldValue))
-                {
-                    continue;
-                }
+                HandleChangedFieldValue(changedFieldValue);
             }
         }
 
-        private bool TryHandleChangedFieldValue(FieldValueDifference difference)
+        private void HandleChangedFieldValue(FieldValueDifference difference)
         {
             var storedSection = stored.Sections.FirstOrDefault(x => x.ID.Id == difference.SectionId.Id);
             var originalSection = original.Sections.FirstOrDefault(x => x.ID.Id == difference.SectionId.Id);
@@ -59,47 +56,81 @@
                 || (storedSection != null && originalSection == null))
             {
                 results.Errors.Add($"Value for field '{difference.FieldDescriptorId.Id}' has already been changed.");
-                return false;
+                return;
             }
 
             if (storedSection == null)
             {
-                return true;
+                ApplyChangedValue(difference);
+
+                return;
             }
 
-            var storedFieldDescriptor = storedSection.FieldValues.FirstOrDefault(x => x.FieldDescriptorID.Id == difference.FieldDescriptorId.Id);
-            var originalFieldDescriptor = originalSection.FieldValues.FirstOrDefault(x => x.FieldDescriptorID.Id == difference.FieldDescriptorId.Id);
+            var storedFieldValue = storedSection.FieldValues.FirstOrDefault(x => x.FieldDescriptorID.Id == difference.FieldDescriptorId.Id);
+            var originalFieldValue = originalSection.FieldValues.FirstOrDefault(x => x.FieldDescriptorID.Id == difference.FieldDescriptorId.Id);
 
-            if ((storedFieldDescriptor == null && originalFieldDescriptor != null)
-                || (storedFieldDescriptor != null && originalFieldDescriptor == null))
+            if ((storedFieldValue == null && originalFieldValue != null)
+                || (storedFieldValue != null && originalFieldValue == null))
             {
                 results.Errors.Add($"Value for field '{difference.FieldDescriptorId.Id}' has already been changed.");
-                return false;
+                return;
             }
 
-            if (storedFieldDescriptor == null)
+            if (storedFieldValue == null)
             {
-                return true;
+                ApplyChangedValue(storedSection, difference);
+
+                return;
             }
 
-            if (storedFieldDescriptor.Value != difference.ValueBefore)
+            if (!storedFieldValue.Value.Equals(difference.ValueBefore))
             {
                 results.Errors.Add($"Value for field '{difference.FieldDescriptorId.Id}' has already been changed.");
-                return false;
+                return;
             }
 
+            ApplyChangedValue(storedSection, storedFieldValue, difference);
+        }
+
+        private void ApplyChangedValue(FieldValueDifference difference)
+        {
+            if (difference.Type == CrudType.Delete)
+            {
+                return;
+            }
+
+            var storedSection = new Section(difference.SectionDefinitionId);
+            storedSection.AddOrReplaceFieldValue(new FieldValue(difference.FieldDescriptorId, difference.ValueAfter));
+            stored.Sections.Add(storedSection);
+
+            results.ChangedFieldDescriptorIds.Add(difference.FieldDescriptorId.Id);
+        }
+
+        private void ApplyChangedValue(Section storedSection, FieldValueDifference difference)
+        {
+            if (difference.Type == CrudType.Delete)
+            {
+                return;
+            }
+
+            var storedFieldValue = new FieldValue(difference.FieldDescriptorId, difference.ValueAfter);
+            storedSection.AddOrReplaceFieldValue(storedFieldValue);
+
+            results.ChangedFieldDescriptorIds.Add(difference.FieldDescriptorId.Id);
+        }
+
+        private void ApplyChangedValue(Section storedSection, FieldValue storedFieldValue, FieldValueDifference difference)
+        {
             if (difference.Type == CrudType.Delete)
             {
                 storedSection.RemoveFieldValueById(difference.FieldDescriptorId);
             }
             else
             {
-                storedSection.AddOrUpdateValue(difference.FieldDescriptorId, difference.ValueAfter);
+                storedFieldValue.Value = difference.ValueAfter;
             }
 
             results.ChangedFieldDescriptorIds.Add(difference.FieldDescriptorId.Id);
-
-            return true;
         }
     }
 

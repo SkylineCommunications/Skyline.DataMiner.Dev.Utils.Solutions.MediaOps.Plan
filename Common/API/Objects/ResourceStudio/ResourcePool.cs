@@ -3,7 +3,6 @@
     using System;
 
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
-    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel.General;
 
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
