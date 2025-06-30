@@ -11,6 +11,7 @@
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Net.Sections;
+    using Skyline.DataMiner.Utils.DOM.Extensions;
 
     using CoreResourcePool = Skyline.DataMiner.Net.Messages.ResourcePool;
     using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
@@ -59,12 +60,22 @@
 
         public void Delete(params ResourcePool[] objectApis)
         {
-            throw new NotImplementedException();
+            if (objectApis == null)
+            {
+                throw new ArgumentNullException(nameof(objectApis));
+            }
+
+            PlanApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.Delete(objectApis.Select(x => x.OriginalInstance.ToInstance()).ToList());
         }
 
         public void Delete(params Guid[] objectIds)
         {
-            throw new NotImplementedException();
+            if (objectIds == null)
+            {
+                throw new ArgumentNullException(nameof(objectIds));
+            }
+
+            PlanApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.Delete(objectIds.Select(x => new DomResourcePool(x).ToInstance()).ToList());
         }
 
         public void MoveTo(ResourcePool resourcePool, ResourcePoolState desiredState)
