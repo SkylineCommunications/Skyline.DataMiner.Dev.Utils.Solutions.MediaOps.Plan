@@ -9,6 +9,7 @@
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.MediaOps.Plan.Storage.DOM;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+    using Skyline.DataMiner.Net.Helper;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Net.Sections;
     using Skyline.DataMiner.Utils.DOM.Extensions;
@@ -253,7 +254,62 @@
 
         internal CoreResourcePool GetCoreResourcePool(Guid coreResourcePoolId)
         {
-            return PlanApi.CoreHelpers.ResourceManagerHelper.GetResourcePool(coreResourcePoolId);
+            if (coreResourcePoolId == Guid.Empty)
+            {
+                throw new ArgumentNullException(nameof(coreResourcePoolId));
+            }
+
+            var coreResourcePoolsById = GetCoreResourcePools(new[] { coreResourcePoolId });
+            if (!coreResourcePoolsById.TryGetValue(coreResourcePoolId, out var coreResourcePool))
+            {
+                return null;
+            }
+
+            return coreResourcePool;
+        }
+
+        internal IReadOnlyDictionary<Guid, CoreResourcePool> GetCoreResourcePools(IEnumerable<Guid> coreResourcePoolIds)
+        {
+            if (coreResourcePoolIds == null)
+            {
+                throw new ArgumentNullException(nameof(coreResourcePoolIds));
+            }
+
+            if (!coreResourcePoolIds.Any())
+            {
+                return new Dictionary<Guid, CoreResourcePool>();
+            }
+
+            var coreResourcePools = new List<CoreResourcePool>();
+            foreach (var batch in coreResourcePoolIds.Where(x => x != Guid.Empty).Distinct().Batch(500))
+            {
+                coreResourcePools.AddRange(PlanApi.CoreHelpers.ResourceManagerHelper.GetResourcePools(batch.Select(x => new CoreResourcePool(x)).ToArray()));
+            }
+
+            return coreResourcePools.ToDictionary(x => x.ID);
+        }
+
+        internal IReadOnlyDictionary<string, IReadOnlyCollection<CoreResourcePool>> GetCoreResourcePools(IEnumerable<string> coreResourcePoolNames)
+        {
+            if (coreResourcePoolNames == null)
+            {
+                throw new ArgumentNullException(nameof(coreResourcePoolNames));
+            }
+
+            if (!coreResourcePoolNames.Any())
+            {
+                return new Dictionary<string, IReadOnlyCollection<CoreResourcePool>>();
+            }
+
+            var coreResourcePools = new List<CoreResourcePool>();
+            foreach (var batch in coreResourcePoolNames.Where(x => !string.IsNullOrEmpty(x)).Distinct().Batch(500))
+            {
+                coreResourcePools.AddRange(PlanApi.CoreHelpers.ResourceManagerHelper.GetResourcePools(batch.Select(x => new CoreResourcePool { Name = x}).ToArray()));
+            }
+
+            return coreResourcePools
+                .GroupBy(x => x.Name)
+                .ToDictionary(x => x.Key, x => (IReadOnlyCollection<CoreResourcePool>)x.ToList());
         }
 
         private void HandleMoveToCompleteAction(Guid resourcePoolId)
@@ -290,7 +346,7 @@
         {
             ValidateNameInUseInCore(domResourcePool.ResourcePoolInfo.Name, domResourcePool.ResourcePoolInternalProperties.ResourcePoolId);
 
-            var coreResourcePool = new CoreResourcePool
+            var coreResourcePool = new CoreResourcePool(Guid.NewGuid())
             {
                 Name = domResourcePool.ResourcePoolInfo.Name,
             };
@@ -313,6 +369,29 @@
             coreResourcePool.Name = domResourcePool.ResourcePoolInfo.Name;
 
             PlanApi.CoreHelpers.ResourceManagerHelper.AddOrUpdateResourcePools(coreResourcePool);
+        }
+
+        private void CreateOrUpdateCore(IEnumerable<DomResourcePool> domResourcePools)
+        {
+            if (domResourcePools == null)
+            {
+                throw new ArgumentNullException(nameof(domResourcePools));
+            }
+
+            var coreResourcePoolsById = GetCoreResourcePools(domResourcePools
+                .Where(x => x.ResourcePoolInternalProperties.ResourcePoolId != Guid.Empty)
+                .Select(x => x.ResourcePoolInternalProperties.ResourcePoolId)
+                .Distinct());
+
+
+
+            /*
+             * 
+             * Get existing core resource pools
+             * Check for if names needs to be validated
+             * 
+             * 
+             */
         }
 
         private void ValidateName(string name)

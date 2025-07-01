@@ -3,7 +3,7 @@
     using System;
 
     /// <summary>
-    /// Represents errors that occur during Media Operations.
+    /// Thrown when a MediaOps operation failed.
     /// </summary>
     public class MediaOpsException : Exception
     {
