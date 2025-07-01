@@ -1,11 +1,23 @@
 ﻿namespace Skyline.DataMiner.MediaOps.Plan.API
 {
-    public enum ResourcePoolState
-    {
-        Draft,
+	/// <summary>
+	/// Represents the state of a resource pool.
+	/// </summary>
+	public enum ResourcePoolState
+	{
+		/// <summary>
+		/// The resource pool is in draft state.
+		/// </summary>
+		Draft,
 
-        Complete,
+		/// <summary>
+		/// The resource pool is complete.
+		/// </summary>
+		Complete,
 
-        Deprecated,
-    }
+		/// <summary>
+		/// The resource pool is deprecated.
+		/// </summary>
+		Deprecated,
+	}
 }

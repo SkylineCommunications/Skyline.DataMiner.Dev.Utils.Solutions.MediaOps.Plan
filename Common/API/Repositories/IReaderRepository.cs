@@ -5,16 +5,43 @@
 
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
-    public interface IReaderRepository<T> where T : ApiObject
-    {
-        IEnumerable<T> ReadAll();
+	/// <summary>
+	/// Defines methods to read API objects from a data source.
+	/// </summary>
+	/// <typeparam name="T">The type of API object.</typeparam>
+	public interface IReaderRepository<T> where T : ApiObject
+	{
+		/// <summary>
+		/// Reads all API objects.
+		/// </summary>
+		/// <returns>An enumerable collection of all API objects.</returns>
+		IEnumerable<T> ReadAll();
 
-        IEnumerable<IEnumerable<T>> ReadAllPage();
+		/// <summary>
+		/// Reads all API objects in pages.
+		/// </summary>
+		/// <returns>An enumerable collection of pages, where each page is an enumerable collection of API objects.</returns>
+		IEnumerable<IEnumerable<T>> ReadAllPage();
 
-        T Read(Guid id);
+		/// <summary>
+		/// Reads a single API object by its unique identifier.
+		/// </summary>
+		/// <param name="id">The unique identifier of the API object.</param>
+		/// <returns>The API object with the specified identifier, or <c>null</c> if not found.</returns>
+		T Read(Guid id);
 
-        IDictionary<Guid, T> Read(IEnumerable<Guid> ids);
+		/// <summary>
+		/// Reads multiple API objects by their unique identifiers.
+		/// </summary>
+		/// <param name="ids">A collection of unique identifiers.</param>
+		/// <returns>A dictionary mapping each identifier to its corresponding API object.</returns>
+		IDictionary<Guid, T> Read(IEnumerable<Guid> ids);
 
-        IEnumerable<T> Read(FilterElement<T> filter);
-    }
+		/// <summary>
+		/// Reads API objects that match the specified filter.
+		/// </summary>
+		/// <param name="filter">The filter to apply when reading API objects.</param>
+		/// <returns>An enumerable collection of API objects that match the filter.</returns>
+		IEnumerable<T> Read(FilterElement<T> filter);
+	}
 }

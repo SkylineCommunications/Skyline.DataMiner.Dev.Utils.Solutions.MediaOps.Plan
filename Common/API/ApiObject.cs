@@ -2,29 +2,36 @@
 {
     using System;
 
+
+	/// <summary>
+	/// Represents the base class for all API objects in the MediaOps Plan API.
+	/// </summary>
     public abstract class ApiObject
-    {
-        internal ApiObject()
-            : this(Guid.NewGuid())
-        {
-        }
+	{
+		/// <summary>
+		/// Gets the unique identifier of the API object.
+		/// </summary>
+		public Guid Id { get; private set; }
 
-        internal ApiObject(Guid id)
-        {
-            if (id == Guid.Empty)
-            {
-                throw new ArgumentNullException(nameof(id));
-            }
+		internal ApiObject()
+			: this(Guid.NewGuid())
+		{
+		}
 
-            Id = id;
-        }
+		internal ApiObject(Guid id)
+		{
+			if (id == Guid.Empty)
+			{
+				throw new ArgumentNullException(nameof(id));
+			}
 
-        public Guid Id { get; private set; }
+			Id = id;
+		}
 
-        internal abstract bool IsNew { get; set; }
+		internal abstract bool IsNew { get; set; }
 
-        internal abstract bool HasUserDefinedId { get; set; }
+		internal abstract bool HasUserDefinedId { get; set; }
 
-        internal abstract bool HasChanges { get; set; }
-    }
+		internal abstract bool HasChanges { get; set; }
+	}
 }
