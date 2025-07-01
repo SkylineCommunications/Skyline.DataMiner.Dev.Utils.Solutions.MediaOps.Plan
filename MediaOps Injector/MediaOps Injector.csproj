@@ -3,6 +3,7 @@
     <TargetFramework>net48</TargetFramework>
     <OutputType>Exe</OutputType>
     <RootNamespace>MediaOps_Injector</RootNamespace>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System.Data.DataSetExtensions" />
