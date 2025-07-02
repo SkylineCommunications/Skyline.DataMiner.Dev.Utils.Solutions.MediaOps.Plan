@@ -29,6 +29,12 @@
             /// Indicates that the value was already changed.
             /// </summary>
             ValueAlreadyChanged,
+
+            /// <summary>
+            /// Indicates that the input data contains a duplicate name.
+            /// This can only occur when resource pools with the same name are provided to a bulk operation.
+            /// </summary>
+            DuplicateName,
         }
 
         /// <summary>

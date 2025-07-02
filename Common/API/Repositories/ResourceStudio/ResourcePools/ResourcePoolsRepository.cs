@@ -7,9 +7,9 @@
     using Skyline.DataMiner.MediaOps.Plan.API.Validators;
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
+    using Skyline.DataMiner.MediaOps.Plan.Storage.Core;
     using Skyline.DataMiner.MediaOps.Plan.Storage.DOM;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
-    using Skyline.DataMiner.Net.Helper;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Net.Sections;
     using Skyline.DataMiner.Utils.DOM.Extensions;
@@ -93,7 +93,7 @@
         {
             if (resourcePoolId == Guid.Empty)
             {
-                throw new ArgumentException(nameof(resourcePoolId));
+                throw new ArgumentException("Resource pool ID cannot be empty.", nameof(resourcePoolId));
             }
 
             var actionMethods = new Dictionary<ResourcePoolState, Action<Guid>>
@@ -231,10 +231,10 @@
                     hasCoreChanges = true;
                 }
             }
-            
+
             if (hasCoreChanges && apiObject.State == ResourcePoolState.Complete)
             {
-                CreateOrUpdateCore(domResourcePool);
+                CoreResourcePoolHandler.CreateOrUpdate(PlanApi, [domResourcePool]);
             }
 
             domResourcePool.Save(PlanApi.DomHelpers.SlcResourceStudioHelper.DomHelper);
@@ -249,6 +249,11 @@
 
         internal DomResourcePool GetDomResourcePool(Guid domResourcePoolId)
         {
+            if (domResourcePoolId == Guid.Empty)
+            {
+                throw new ArgumentException("Resource pool ID cannot be empty.", nameof(domResourcePoolId));
+            }
+
             return PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(DomInstanceExposers.Id.Equal(domResourcePoolId)).FirstOrDefault();
         }
 
@@ -256,10 +261,10 @@
         {
             if (coreResourcePoolId == Guid.Empty)
             {
-                throw new ArgumentNullException(nameof(coreResourcePoolId));
+                throw new ArgumentException("Resource pool ID cannot be empty.", nameof(coreResourcePoolId));
             }
 
-            var coreResourcePoolsById = GetCoreResourcePools(new[] { coreResourcePoolId });
+            var coreResourcePoolsById = PlanApi.CoreHelpers.ResourceManagerHelper.GetResourcePoolsInBatches(new[] { coreResourcePoolId });
             if (!coreResourcePoolsById.TryGetValue(coreResourcePoolId, out var coreResourcePool))
             {
                 return null;
@@ -268,52 +273,13 @@
             return coreResourcePool;
         }
 
-        internal IReadOnlyDictionary<Guid, CoreResourcePool> GetCoreResourcePools(IEnumerable<Guid> coreResourcePoolIds)
-        {
-            if (coreResourcePoolIds == null)
-            {
-                throw new ArgumentNullException(nameof(coreResourcePoolIds));
-            }
-
-            if (!coreResourcePoolIds.Any())
-            {
-                return new Dictionary<Guid, CoreResourcePool>();
-            }
-
-            var coreResourcePools = new List<CoreResourcePool>();
-            foreach (var batch in coreResourcePoolIds.Where(x => x != Guid.Empty).Distinct().Batch(500))
-            {
-                coreResourcePools.AddRange(PlanApi.CoreHelpers.ResourceManagerHelper.GetResourcePools(batch.Select(x => new CoreResourcePool(x)).ToArray()));
-            }
-
-            return coreResourcePools.ToDictionary(x => x.ID);
-        }
-
-        internal IReadOnlyDictionary<string, IReadOnlyCollection<CoreResourcePool>> GetCoreResourcePools(IEnumerable<string> coreResourcePoolNames)
-        {
-            if (coreResourcePoolNames == null)
-            {
-                throw new ArgumentNullException(nameof(coreResourcePoolNames));
-            }
-
-            if (!coreResourcePoolNames.Any())
-            {
-                return new Dictionary<string, IReadOnlyCollection<CoreResourcePool>>();
-            }
-
-            var coreResourcePools = new List<CoreResourcePool>();
-            foreach (var batch in coreResourcePoolNames.Where(x => !string.IsNullOrEmpty(x)).Distinct().Batch(500))
-            {
-                coreResourcePools.AddRange(PlanApi.CoreHelpers.ResourceManagerHelper.GetResourcePools(batch.Select(x => new CoreResourcePool { Name = x}).ToArray()));
-            }
-
-            return coreResourcePools
-                .GroupBy(x => x.Name)
-                .ToDictionary(x => x.Key, x => (IReadOnlyCollection<CoreResourcePool>)x.ToList());
-        }
-
         private void HandleMoveToCompleteAction(Guid resourcePoolId)
         {
+            if (resourcePoolId == Guid.Empty)
+            {
+                throw new ArgumentException("Resource pool ID cannot be empty.", nameof(resourcePoolId));
+            }
+
             var domResourcePool = GetDomResourcePool(resourcePoolId);
 
             if (domResourcePool.Status != StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.StatusesEnum.Draft)
@@ -323,75 +289,11 @@
 
             ValidateNameInUseInDom(domResourcePool.ResourcePoolInfo.Name, domResourcePool.ID.Id);
 
-            CreateOrUpdateCore(domResourcePool);
+            CoreResourcePoolHandler.CreateOrUpdate(PlanApi, [domResourcePool]);
 
             domResourcePool.Save(PlanApi.DomHelpers.SlcResourceStudioHelper.DomHelper);
 
             PlanApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.DoStatusTransition(domResourcePool, StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.Transitions.Draft_To_Complete);
-        }
-
-        private void CreateOrUpdateCore(DomResourcePool domResourcePool)
-        {
-            if (domResourcePool.ResourcePoolInternalProperties.ResourcePoolId == Guid.Empty)
-            {
-                CreateCore(domResourcePool);
-            }
-            else
-            {
-                UpdateCore(domResourcePool);
-            }
-        }
-
-        private void CreateCore(DomResourcePool domResourcePool)
-        {
-            ValidateNameInUseInCore(domResourcePool.ResourcePoolInfo.Name, domResourcePool.ResourcePoolInternalProperties.ResourcePoolId);
-
-            var coreResourcePool = new CoreResourcePool(Guid.NewGuid())
-            {
-                Name = domResourcePool.ResourcePoolInfo.Name,
-            };
-
-            coreResourcePool = PlanApi.CoreHelpers.ResourceManagerHelper.AddOrUpdateResourcePools(coreResourcePool)[0];
-            domResourcePool.ResourcePoolInternalProperties.ResourcePoolId = coreResourcePool.ID;
-        }
-
-        private void UpdateCore(DomResourcePool domResourcePool)
-        {
-            var coreResourcePool = GetCoreResourcePool(domResourcePool.ResourcePoolInternalProperties.ResourcePoolId);
-            if (coreResourcePool == null)
-            {
-                CreateCore(domResourcePool);
-                return;
-            }
-
-            ValidateNameInUseInCore(domResourcePool.ResourcePoolInfo.Name, domResourcePool.ResourcePoolInternalProperties.ResourcePoolId);
-
-            coreResourcePool.Name = domResourcePool.ResourcePoolInfo.Name;
-
-            PlanApi.CoreHelpers.ResourceManagerHelper.AddOrUpdateResourcePools(coreResourcePool);
-        }
-
-        private void CreateOrUpdateCore(IEnumerable<DomResourcePool> domResourcePools)
-        {
-            if (domResourcePools == null)
-            {
-                throw new ArgumentNullException(nameof(domResourcePools));
-            }
-
-            var coreResourcePoolsById = GetCoreResourcePools(domResourcePools
-                .Where(x => x.ResourcePoolInternalProperties.ResourcePoolId != Guid.Empty)
-                .Select(x => x.ResourcePoolInternalProperties.ResourcePoolId)
-                .Distinct());
-
-
-
-            /*
-             * 
-             * Get existing core resource pools
-             * Check for if names needs to be validated
-             * 
-             * 
-             */
         }
 
         private void ValidateName(string name)
@@ -436,21 +338,6 @@
             if (existingDomResourcePool != null)
             {
                 PlanApi.Logger.Information(this, $"Name '{name}' is already in use by a DOM resource pool with ID '{existingDomResourcePool.ID.Id}'.");
-                throw new MediaOpsException(new ResourcePoolConfigurationError
-                {
-                    ErrorReason = ResourcePoolConfigurationError.Reason.NameExists,
-                    ErrorMessage = "Name is already in use.",
-                });
-            }
-        }
-
-        private void ValidateNameInUseInCore(string name, Guid coreResourcePoolId)
-        {
-            var existingCoreResourcePool = PlanApi.CoreHelpers.ResourceManagerHelper.GetResourcePools(new CoreResourcePool { Name = name })
-                .FirstOrDefault(x => x.ID != coreResourcePoolId);
-            if (existingCoreResourcePool != null)
-            {
-                PlanApi.Logger.Information(this, $"Name '{name}' is already in use by a CORE resource pool with ID '{existingCoreResourcePool.ID}'.");
                 throw new MediaOpsException(new ResourcePoolConfigurationError
                 {
                     ErrorReason = ResourcePoolConfigurationError.Reason.NameExists,

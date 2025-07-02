@@ -12,6 +12,60 @@
 
     internal static class ResourceManagerHelperExtensions
     {
+        public static IReadOnlyDictionary<Guid, ResourcePool> GetResourcePoolsInBatches(this ResourceManagerHelper helper, IEnumerable<Guid> resourcePoolIds)
+        {
+            if (helper == null)
+            {
+                throw new ArgumentNullException(nameof(helper));
+            }
+
+            if (resourcePoolIds == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePoolIds));
+            }
+
+            if (!resourcePoolIds.Any())
+            {
+                return new Dictionary<Guid, ResourcePool>();
+            }
+
+            var coreResourcePools = new List<ResourcePool>();
+            foreach (var batch in resourcePoolIds.Where(x => x != Guid.Empty).Distinct().Batch(500))
+            {
+                coreResourcePools.AddRange(helper.GetResourcePools(batch.Select(x => new ResourcePool(x)).ToArray()));
+            }
+
+            return coreResourcePools.ToDictionary(x => x.ID);
+        }
+
+        public static IReadOnlyDictionary<string, IReadOnlyCollection<ResourcePool>> GetResourcePoolsInBatches(this ResourceManagerHelper helper, IEnumerable<string> resourcePoolNames)
+        {
+            if (helper == null)
+            {
+                throw new ArgumentNullException(nameof(helper));
+            }
+
+            if (resourcePoolNames == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePoolNames));
+            }
+
+            if (!resourcePoolNames.Any())
+            {
+                return new Dictionary<string, IReadOnlyCollection<ResourcePool>>();
+            }
+
+            var coreResourcePools = new List<ResourcePool>();
+            foreach (var batch in resourcePoolNames.Where(x => !string.IsNullOrEmpty(x)).Distinct().Batch(500))
+            {
+                coreResourcePools.AddRange(helper.GetResourcePools(batch.Select(x => new ResourcePool { Name = x }).ToArray()));
+            }
+
+            return coreResourcePools
+                .GroupBy(x => x.Name)
+                .ToDictionary(x => x.Key, x => (IReadOnlyCollection<ResourcePool>)x.ToList());
+        }
+
         public static BulkCreateOrUpdateResult<Guid> CreateOrUpdateResourcePoolsInBatches(this ResourceManagerHelper helper, IEnumerable<ResourcePool> resourcePools)
         {
             if (helper == null)
