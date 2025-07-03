@@ -7,8 +7,10 @@
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.MediaOps.Plan.Storage.Core;
+    using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
     using CoreResourcePool = Skyline.DataMiner.Net.Messages.ResourcePool;
+    using CoreResource = Skyline.DataMiner.Net.Messages.Resource;
     using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
 
     internal class CoreResourcePoolHandler
@@ -41,6 +43,27 @@
             handler.CreateOrUpdate(domResourcePools);
 
             result = new BulkCreateOrUpdateResult<Guid>(handler.successfulIds, handler.unsucessfulIds, handler.traceDataPerItem);
+
+            return !result.HasFailures();
+        }
+
+        public static BulkDeleteResult<Guid> Delete(MediaOpsPlanApi planApi, IEnumerable<DomResourcePool> domResourcePools, ResourcePoolDeleteOptions options)
+        {
+            var handler = new CoreResourcePoolHandler(planApi);
+            handler.Delete(domResourcePools, options ?? ResourcePoolDeleteOptions.GetDefaults());
+
+            var result = new BulkDeleteResult<Guid>(handler.successfulIds, handler.unsucessfulIds, handler.traceDataPerItem);
+            result.ThrowOnFailure();
+
+            return result;
+        }
+
+        public static bool TryDelete(MediaOpsPlanApi planApi, IEnumerable<DomResourcePool> domResourcePools, ResourcePoolDeleteOptions options, out BulkDeleteResult<Guid> result)
+        {
+            var handler = new CoreResourcePoolHandler(planApi);
+            handler.Delete(domResourcePools, options ?? ResourcePoolDeleteOptions.GetDefaults());
+
+            result = new BulkDeleteResult<Guid>(handler.successfulIds, handler.unsucessfulIds, handler.traceDataPerItem);
 
             return !result.HasFailures();
         }
@@ -122,6 +145,44 @@
 
                 successfulIds.Add(domId);
             }
+        }
+
+        private void Delete(IEnumerable<DomResourcePool> domResourcePools, ResourcePoolDeleteOptions options)
+        {
+            if (domResourcePools == null)
+            {
+                throw new ArgumentNullException(nameof(domResourcePools));
+            }
+
+            if (!domResourcePools.Any())
+            {
+                return;
+            }
+
+            var coreResourcePoolsById = planApi.CoreHelpers.ResourceManagerHelper.GetResourcePoolsInBatches(domResourcePools
+                .Where(x => x.ResourcePoolInternalProperties.ResourcePoolId != Guid.Empty)
+                .Select(x => x.ResourcePoolInternalProperties.ResourcePoolId)
+                .Distinct());
+
+            // DOM resource pools without a CORE can be removed.
+            successfulIds.AddRange(domResourcePools.Where(x => !coreResourcePoolsById.ContainsKey(x.ResourcePoolInternalProperties.ResourcePoolId)).Select(x => x.ID.Id));
+
+            /* Todo: Define how pool and resource deletion should work > see loop for more details
+
+            FilterElement<CoreResource> filter(Guid resourcePoolId) => Skyline.DataMiner.Net.Messages.ResourceExposers.PoolGUIDs.Contains(resourcePoolId);
+
+			var coreResourcesByCorePoolId = planApi.CoreHelpers.ResourceManagerHelper.GetResources(coreResourcePoolsById.Keys, filter)
+				.SelectMany(resource => resource.PoolGUIDs.Select(poolGuid => new { PoolGuid = poolGuid, Resource = resource }))
+				.GroupBy(x => x.PoolGuid)
+				.ToDictionary(
+					g => g.Key,
+					g => (IReadOnlyCollection<CoreResource>)g.Select(x => x.Resource).ToList()
+				);
+
+            foreach (var coreResourcePool in coreResourcePoolsById.Values)
+            {
+
+            }*/
         }
 
         private void ValidateNames(IEnumerable<DomResourcePool> domResourcePools)

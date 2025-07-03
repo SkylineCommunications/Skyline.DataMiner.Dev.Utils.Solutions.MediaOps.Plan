@@ -8,6 +8,7 @@
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Net.Helper;
     using Skyline.DataMiner.Net.Messages;
+    using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Net.ResponseErrorData;
 
     internal static class ResourceManagerHelperExtensions
@@ -99,6 +100,29 @@
             result = InnerCreateOrUpdateResourcePoolsInBatches(helper, resourcePools);
 
             return !result.HasFailures();
+        }
+
+        public static IEnumerable<Resource> GetResources<T>(this ResourceManagerHelper helper, IEnumerable<T> values, Func<T, FilterElement<Resource>> filter)
+        {
+            if (helper == null)
+            {
+                throw new ArgumentNullException(nameof(helper));
+            }
+
+            if (values == null)
+            {
+                throw new ArgumentNullException(nameof(values));
+            }
+
+            if (filter == null)
+            {
+                throw new ArgumentNullException(nameof(filter));
+            }
+
+            return FilterQueryExecutor.RetrieveFilteredItems(
+                values.Distinct(),
+                x => filter(x),
+                x => helper.GetResources(x));
         }
 
         private static BulkCreateOrUpdateResult<Guid> InnerCreateOrUpdateResourcePoolsInBatches(ResourceManagerHelper helper, IEnumerable<ResourcePool> resourcePools)

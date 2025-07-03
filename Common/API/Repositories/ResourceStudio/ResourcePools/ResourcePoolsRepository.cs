@@ -49,27 +49,17 @@
 
         public IEnumerable<Guid> CreateOrUpdate(IEnumerable<ResourcePool> apiObjects)
         {
-            throw new NotImplementedException(); ;
+            throw new NotImplementedException();
         }
 
         public void Delete(params ResourcePool[] objectApis)
         {
-            if (objectApis == null)
-            {
-                throw new ArgumentNullException(nameof(objectApis));
-            }
-
-            PlanApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.DeleteInBatches(objectApis.Select(x => x.OriginalInstance.ToInstance()).ToList());
+            throw new NotImplementedException();
         }
 
         public void Delete(params Guid[] objectIds)
         {
-            if (objectIds == null)
-            {
-                throw new ArgumentNullException(nameof(objectIds));
-            }
-
-            PlanApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.DeleteInBatches(objectIds.Select(x => new DomResourcePool(x).ToInstance()).ToList());
+            throw new NotImplementedException();
         }
 
         public void MoveTo(ResourcePool resourcePool, ResourcePoolState desiredState)
@@ -215,41 +205,6 @@
             domResourcePool.Save(PlanApi.DomHelpers.SlcResourceStudioHelper.DomHelper);
 
             PlanApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.DoStatusTransition(domResourcePool, StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.Transitions.Draft_To_Complete);
-        }
-
-        private void ValidateName(string name)
-        {
-            if (!InputValidator.ValidateEmptyText(name))
-            {
-                throw new MediaOpsException(new ResourcePoolConfigurationError
-                {
-                    ErrorReason = ResourcePoolConfigurationError.Reason.InvalidName,
-                    ErrorMessage = "Name cannot be empty."
-                });
-            }
-
-            if (!InputValidator.ValidateTextLength(name, 150))
-            {
-                throw new MediaOpsException(new ResourcePoolConfigurationError
-                {
-                    ErrorReason = ResourcePoolConfigurationError.Reason.InvalidName,
-                    ErrorMessage = "Name cannot contain more than 150 characters."
-                });
-            }
-        }
-
-        private void ValidateIdNotInUse(Guid domResourcePoolId)
-        {
-            var foundInstances = PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(DomInstanceExposers.Id.Equal(domResourcePoolId));
-            if (foundInstances != 0)
-            {
-                PlanApi.Logger.Information(this, $"ID '{domResourcePoolId}' is already in use by a Resource Studio instance");
-                throw new MediaOpsException(new ResourcePoolConfigurationError
-                {
-                    ErrorReason = ResourcePoolConfigurationError.Reason.IdInUse,
-                    ErrorMessage = "ID is already in use."
-                });
-            }
         }
 
         private void ValidateNameInUseInDom(string name, Guid domResourcePoolId)
