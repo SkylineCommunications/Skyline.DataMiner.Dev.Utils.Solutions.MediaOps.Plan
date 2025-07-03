@@ -10,7 +10,7 @@
 
         private readonly MediaOpsTraceData traceData = new MediaOpsTraceData();
 
-        public RepositoryBase(MediaOpsPlanApi planApi)
+        protected RepositoryBase(MediaOpsPlanApi planApi)
         {
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }

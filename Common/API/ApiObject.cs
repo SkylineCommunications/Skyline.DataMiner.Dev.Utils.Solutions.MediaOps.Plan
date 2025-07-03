@@ -13,12 +13,12 @@
 		/// </summary>
 		public Guid Id { get; private set; }
 
-		internal ApiObject()
+		private protected ApiObject()
 			: this(Guid.NewGuid())
 		{
 		}
 
-		internal ApiObject(Guid id)
+		private protected ApiObject(Guid id)
 		{
 			if (id == Guid.Empty)
 			{

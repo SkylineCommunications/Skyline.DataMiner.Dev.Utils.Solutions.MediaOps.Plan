@@ -8,43 +8,50 @@
     using Skyline.DataMiner.MediaOps.Plan.Storage.DOM;
     using Skyline.DataMiner.Net;
 
-    public class MediaOpsPlanApi : IMediaOpsPlanApi
-    {
-        private readonly IConnection connection;
-        private readonly ILogger logger;
+	/// <summary>
+	/// Provides the main entry point for interacting with the MediaOps Plan API.
+	/// </summary>
+	public class MediaOpsPlanApi : IMediaOpsPlanApi
+	{
+		private readonly IConnection connection;
+		private readonly ILogger logger;
 
-        private readonly DomHelpers domHelpers;
-        private readonly CoreHelpers coreHelpers;
+		private readonly DomHelpers domHelpers;
+		private readonly CoreHelpers coreHelpers;
 
-        private Lazy<IDms> lazyDms;
-        private Lazy<IResourcePoolsRepository> lazyResourcePoolsRepository;
+		private readonly Lazy<IDms> lazyDms;
+		private readonly Lazy<IResourcePoolsRepository> lazyResourcePoolsRepository;
 
-        public MediaOpsPlanApi(IConnection connection, ILogger logger = null)
-        {
-            this.connection = connection ?? throw new ArgumentNullException(nameof(connection));
-            this.logger = logger ?? new NoLogger();
+		/// <summary>
+		/// Initializes a new instance of the <see cref="MediaOpsPlanApi"/> class.
+		/// </summary>
+		/// <param name="connection">The connection to use for API operations.</param>
+		/// <param name="logger">The logger to use for logging operations.</param>
+		public MediaOpsPlanApi(IConnection connection, ILogger logger = null)
+		{
+			this.connection = connection ?? throw new ArgumentNullException(nameof(connection));
+			this.logger = logger ?? new NoLogger();
 
-            domHelpers = new DomHelpers(connection);
-            coreHelpers = new CoreHelpers(connection);
+			domHelpers = new DomHelpers(connection);
+			coreHelpers = new CoreHelpers(connection);
 
-            ContextId = Guid.NewGuid();
+			lazyDms = new Lazy<IDms>(() => connection.GetDms());
+			lazyResourcePoolsRepository = new Lazy<IResourcePoolsRepository>(() => new ResourcePoolsRepository(this));
+		}
 
-            lazyDms = new Lazy<IDms>(() => connection.GetDms());
-            lazyResourcePoolsRepository = new Lazy<IResourcePoolsRepository>(() => new ResourcePoolsRepository(this));
-        }
+		/// <summary>
+		/// Gets the repository for managing resource pools.
+		/// </summary>
+		public IResourcePoolsRepository ResourcePools => lazyResourcePoolsRepository.Value;
 
-        public Guid ContextId { get; }
+		internal IConnection Connection => connection;
 
-        public IResourcePoolsRepository ResourcePools => lazyResourcePoolsRepository.Value;
+		internal ILogger Logger => logger;
 
-        internal IConnection Connection => connection;
+		internal DomHelpers DomHelpers => domHelpers;
 
-        internal ILogger Logger => logger;
+		internal CoreHelpers CoreHelpers => coreHelpers;
 
-        internal DomHelpers DomHelpers => domHelpers;
-
-        internal CoreHelpers CoreHelpers => coreHelpers;
-
-        internal IDms Dms => lazyDms.Value;
-    }
+		internal IDms Dms => lazyDms.Value;
+	}
 }

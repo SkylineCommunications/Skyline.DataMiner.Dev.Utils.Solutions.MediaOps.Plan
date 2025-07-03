@@ -1,17 +1,40 @@
 ﻿namespace Skyline.DataMiner.MediaOps.Plan.API
 {
-    public interface IMediaOpsPlanApi
+	/// <summary>
+	/// Defines the contract for the MediaOps Plan API.
+	/// </summary>
+	public interface IMediaOpsPlanApi
 	{
-        //IResourcesRepository Resources { get; }
+		// /// <summary>
+		// /// Gets the repository for managing resources.
+		// /// </summary>
+		// IResourcesRepository Resources { get; }
 
-        IResourcePoolsRepository ResourcePools { get; }
+		/// <summary>
+		/// Gets the repository for managing resource pools.
+		/// </summary>
+		IResourcePoolsRepository ResourcePools { get; }
 
-        /*ICapabilitiesRepository Capabilities { get; }
+		/*
+		/// <summary>
+		/// Gets the repository for managing capabilities.
+		/// </summary>
+		ICapabilitiesRepository Capabilities { get; }
 
-        ICapacitiesRepository Capacities { get; }
+		/// <summary>
+		/// Gets the repository for managing capacities.
+		/// </summary>
+		ICapacitiesRepository Capacities { get; }
 
-        IConfigurationsRepository Configurations { get; }
+		/// <summary>
+		/// Gets the repository for managing configurations.
+		/// </summary>
+		IConfigurationsRepository Configurations { get; }
 
-        IResourcePropertiesRepository Properties { get; }*/
-    }
+		/// <summary>
+		/// Gets the repository for managing resource properties.
+		/// </summary>
+		IResourcePropertiesRepository Properties { get; }
+		*/
+	}
 }

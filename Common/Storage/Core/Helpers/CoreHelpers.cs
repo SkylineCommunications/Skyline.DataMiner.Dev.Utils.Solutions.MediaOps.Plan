@@ -10,8 +10,8 @@
     {
         private readonly IConnection connection;
 
-        private Lazy<ResourceManagerHelper> lazyResourceManagerHelper;
-        private Lazy<ProfileHelper> lazyProfileHelper;
+        private readonly Lazy<ResourceManagerHelper> lazyResourceManagerHelper;
+        private readonly Lazy<ProfileHelper> lazyProfileHelper;
 
         public CoreHelpers(IConnection connection)
         {

@@ -8,7 +8,7 @@
     {
         private readonly IConnection connection;
 
-        private Lazy<SlcResourceStudioHelper> lazySlcResourceStudioHelper;
+        private readonly Lazy<SlcResourceStudioHelper> lazySlcResourceStudioHelper;
 
         public DomHelpers(IConnection connection)
         {

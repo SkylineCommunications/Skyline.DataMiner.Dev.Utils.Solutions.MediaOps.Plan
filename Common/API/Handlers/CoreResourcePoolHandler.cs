@@ -105,7 +105,7 @@
             foreach (var mapping in resourcePoolMappings)
             {
                 var dom = mapping.DomResourcePool;
-                var core = mapping?.CoreResourcePool ?? new CoreResourcePool(Guid.NewGuid());
+                var core = mapping.CoreResourcePool ?? new CoreResourcePool(Guid.NewGuid());
 
                 core.Name = dom.ResourcePoolInfo.Name;
 
@@ -287,6 +287,11 @@
 
             public static IEnumerable<ResourcePoolMapping> GetMappings(MediaOpsPlanApi planApi, IEnumerable<DomResourcePool> domResourcePools)
             {
+                if (planApi == null)
+                {
+                    throw new ArgumentNullException(nameof(planApi));
+                }
+
                 if (domResourcePools == null)
                 {
                     throw new ArgumentNullException(nameof(domResourcePools));
@@ -294,13 +299,18 @@
 
                 if (!domResourcePools.Any())
                 {
-                    yield break;
+                    return [];
                 }
 
+                return GetMappingsIterator(planApi, domResourcePools);
+            }
+
+            private static IEnumerable<ResourcePoolMapping> GetMappingsIterator(MediaOpsPlanApi planApi, IEnumerable<DomResourcePool> domResourcePools)
+            {
                 var coreResourcePoolsById = planApi.CoreHelpers.ResourceManagerHelper.GetResourcePoolsInBatches(domResourcePools
-                .Where(x => x.ResourcePoolInternalProperties.ResourcePoolId != Guid.Empty)
-                .Select(x => x.ResourcePoolInternalProperties.ResourcePoolId)
-                .Distinct());
+               .Where(x => x.ResourcePoolInternalProperties.ResourcePoolId != Guid.Empty)
+               .Select(x => x.ResourcePoolInternalProperties.ResourcePoolId)
+               .Distinct());
 
                 foreach (var domResourcePool in domResourcePools)
                 {

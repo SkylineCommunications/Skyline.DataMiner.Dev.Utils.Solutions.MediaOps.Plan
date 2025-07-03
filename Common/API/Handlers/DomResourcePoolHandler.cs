@@ -271,9 +271,14 @@
 
             if (!apiResourcePools.Any())
             {
-                yield break;
+                return [];
             }
 
+            return GetPoolsWithChangesIterator(apiResourcePools);
+        }
+
+        private IEnumerable<DomChangeResults> GetPoolsWithChangesIterator(IEnumerable<ResourcePool> apiResourcePools)
+        {
             var poolsRequiringValidation = apiResourcePools.Where(x => !x.IsNew && x.HasChanges).ToList();
             if (poolsRequiringValidation.Count == 0)
             {
