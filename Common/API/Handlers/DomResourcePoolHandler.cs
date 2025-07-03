@@ -240,14 +240,14 @@
             {
                 if (!domPoolsbyName.TryGetValue(pool.Name, out var domPools))
                 {
-                    poolIdsWithCoreChanges.Add(pool.Id);
+                    MarkAsPoolWithCoreChanges(pool);
                     continue;
                 }
 
                 var existingPools = domPools.Where(x => x.ID.Id != pool.Id).ToList();
                 if (existingPools.Count == 0)
                 {
-                    poolIdsWithCoreChanges.Add(pool.Id);
+                    MarkAsPoolWithCoreChanges(pool);
                     continue;
                 }
 
@@ -340,6 +340,21 @@
             }
 
             mediaOpsTraceData.Add(error);
+        }
+
+        private void MarkAsPoolWithCoreChanges(ResourcePool resourcePool)
+        {
+            if (resourcePool == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePool));
+            }
+
+            if (resourcePool.State != ResourcePoolState.Complete)
+            {
+                return;
+            }
+
+            poolIdsWithCoreChanges.Add(resourcePool.Id);
         }
     }
 }

@@ -10,7 +10,6 @@
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
     using CoreResourcePool = Skyline.DataMiner.Net.Messages.ResourcePool;
-    using CoreResource = Skyline.DataMiner.Net.Messages.Resource;
     using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
 
     internal class CoreResourcePoolHandler
@@ -112,7 +111,7 @@
                 poolsToCreateOrUpdate.Add(core);
 
                 domPoolsById.Add(dom.ID.Id, dom);
-                DomIdByCoreId.Add(dom.ID.Id, core.ID);
+                DomIdByCoreId.Add(core.ID, dom.ID.Id);
             }
 
             planApi.CoreHelpers.ResourceManagerHelper.TryCreateOrUpdateResourcePoolsInBatches(poolsToCreateOrUpdate, out var result);
@@ -317,6 +316,7 @@
                     if (coreResourcePoolsById.TryGetValue(domResourcePool.ResourcePoolInternalProperties.ResourcePoolId, out var coreResourcePool))
                     {
                         yield return new ResourcePoolMapping(domResourcePool, coreResourcePool);
+                        continue;
                     }
 
                     yield return new ResourcePoolMapping(domResourcePool);
