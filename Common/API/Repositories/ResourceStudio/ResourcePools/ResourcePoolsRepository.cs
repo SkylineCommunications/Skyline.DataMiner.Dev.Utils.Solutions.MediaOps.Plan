@@ -34,17 +34,12 @@
                 throw new MediaOpsException("Not possible to use method Create for existing resource pool. Use CreateOrUpdate or Update instead.");
             }
 
-            if (apiObject.HasUserDefinedId)
+            if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
             {
-                ValidateIdNotInUse(apiObject.Id);
+                throw new MediaOpsException(result.TraceDataPerItem[apiObject.Id]);
             }
 
-            ValidateName(apiObject.Name);
-
-            var domResourcePool = apiObject.GetInstanceWithChanges();
-            domResourcePool.Save(PlanApi.DomHelpers.SlcResourceStudioHelper.DomHelper);
-
-            return domResourcePool.ID.Id;
+            return result.SuccessfulIds.First();
         }
 
         public IEnumerable<Guid> Create(IEnumerable<ResourcePool> apiObjects)
@@ -178,63 +173,10 @@
                 throw new MediaOpsException("Not possible to use method Update for a new resource pool. Use CreateOrUpdate or Create instead.");
             }
 
-            if (apiObject.State == ResourcePoolState.Deprecated)
+            if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
             {
-                throw new MediaOpsException("Not allowed to update a resource pool in Deprecated state.");
+                throw new MediaOpsException(result.TraceDataPerItem[apiObject.Id]);
             }
-
-#warning lock DOM instance
-            // todo: lock DOM instance
-
-            var storedInstance = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourcepool.Id)
-                .AND(DomInstanceExposers.Id.Equal(apiObject.Id))).FirstOrDefault();
-            if (storedInstance == null)
-            {
-                throw new MediaOpsException($"Resource pool with ID '{apiObject.Id}' no longer exists.");
-            }
-
-
-            var changeResult = DomChangeHandler.HandleChanges(apiObject.OriginalInstance, apiObject.GetInstanceWithChanges(), storedInstance);
-            if (changeResult.HasErrors)
-            {
-                foreach (var error in changeResult.Errors)
-                {
-                    TraceData.Add(new ResourcePoolConfigurationError
-                    {
-                        ErrorReason = ResourcePoolConfigurationError.Reason.ValueAlreadyChanged,
-                        ErrorMessage = error,
-                    });
-                }
-
-                throw new MediaOpsException(TraceData);
-            }
-
-            var domResourcePool = new DomResourcePool(changeResult.Instance);
-
-            bool hasCoreChanges = false;
-            foreach (var id in changeResult.ChangedFieldDescriptorIds)
-            {
-                if (id == StorageResourceStudio.SlcResource_StudioIds.Sections.ResourcePoolInfo.Name.Id)
-                {
-                    ValidateName(domResourcePool.ResourcePoolInfo.Name);
-
-                    if (apiObject.State != ResourcePoolState.Draft)
-                    {
-                        ValidateNameInUseInDom(domResourcePool.ResourcePoolInfo.Name, apiObject.Id);
-                    }
-
-                    hasCoreChanges = true;
-                }
-            }
-
-            if (hasCoreChanges && apiObject.State == ResourcePoolState.Complete)
-            {
-                CoreResourcePoolHandler.CreateOrUpdate(PlanApi, [domResourcePool]);
-            }
-
-            domResourcePool.Save(PlanApi.DomHelpers.SlcResourceStudioHelper.DomHelper);
-
-            // Todo: unlock DOM instance
         }
 
         public void Update(IEnumerable<ResourcePool> apiObjects)
