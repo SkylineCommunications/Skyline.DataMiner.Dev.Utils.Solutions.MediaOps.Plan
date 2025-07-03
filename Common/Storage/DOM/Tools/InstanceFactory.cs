@@ -26,17 +26,7 @@
                 throw new ArgumentNullException(nameof(createInstance));
             }
 
-            foreach (var domInstance in domInstances)
-            {
-                if (domInstance == null)
-                {
-                    continue;
-                }
-
-                var instance = createInstance(domInstance);
-
-                yield return instance;
-            }
+            return CreateInstancesIterator(domInstances, createInstance);
         }
 
         public static IEnumerable<T> ReadAndCreateInstances<T>(DomHelper domHelper, FilterElement<DomInstance> filter, Func<DomInstance, T> createInstance)
@@ -95,6 +85,22 @@
             var instances = pages.SelectMany(page => page);
 
             return CreateInstances(instances, createInstance);
+        }
+
+        private static IEnumerable<T> CreateInstancesIterator<T>(IEnumerable<DomInstance> domInstances, Func<DomInstance, T> createInstance)
+            where T : DomInstanceBase
+        {
+            foreach (var domInstance in domInstances)
+            {
+                if (domInstance == null)
+                {
+                    continue;
+                }
+
+                var instance = createInstance(domInstance);
+
+                yield return instance;
+            }
         }
     }
 }

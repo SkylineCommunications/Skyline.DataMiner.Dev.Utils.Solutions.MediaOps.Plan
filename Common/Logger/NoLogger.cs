@@ -5,6 +5,7 @@
     internal class NoLogger : ILogger
     {
         private LogLevel minimumLogLevel;
+        private bool disposedValue;
 
         public NoLogger()
         {
@@ -26,11 +27,6 @@
         }
 
         void ILogger.Debug(string className, string methodName, string message)
-        {
-            // No logic
-        }
-
-        void IDisposable.Dispose()
         {
             // No logic
         }
@@ -83,6 +79,26 @@
         void ILogger.Warning(string className, string methodName, string message)
         {
             // No logic
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    // Nothing to dispose
+                }
+
+                disposedValue = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 }
