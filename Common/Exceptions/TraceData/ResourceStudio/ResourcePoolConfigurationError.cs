@@ -35,6 +35,16 @@
             /// This can only occur when resource pools with the same name are provided to a bulk operation.
             /// </summary>
             DuplicateName,
+
+            /// <summary>
+            /// Indicates that a resource pool is in a state that does not allow the requested operation.
+            /// </summary>
+            InvalidState,
+
+            /// <summary>
+            /// Represents a response status indicating that the requested resource pool was not found.
+            /// </summary>
+            NotFound,
         }
 
         /// <summary>

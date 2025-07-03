@@ -136,34 +136,27 @@
                 return;
             }
 
-            var poolsRequiringNameValidation = domResourcePools.ToList();
-            if (poolsRequiringNameValidation.Count == 0)
+            var poolsRequiringValidation = domResourcePools.ToList();
+            var poolsWithDuplicateNames = poolsRequiringValidation
+                .GroupBy(pool => pool.ResourcePoolInfo.Name)
+                .Where(g => g.Count() > 1)
+                .SelectMany(x => x)
+                .ToList();
+            foreach (var pool in poolsWithDuplicateNames)
             {
-                return;
-            }
-            else if (poolsRequiringNameValidation.Count > 1)
-            {
-                var poolsWithDuplicateNames = poolsRequiringNameValidation
-                    .GroupBy(pool => pool.ResourcePoolInfo.Name)
-                    .Where(g => g.Count() > 1)
-                    .SelectMany(x => x)
-                    .ToList();
-                foreach (var pool in poolsWithDuplicateNames)
+                var error = new ResourcePoolConfigurationError
                 {
-                    var error = new ResourcePoolConfigurationError
-                    {
-                        ErrorReason = ResourcePoolConfigurationError.Reason.DuplicateName,
-                        ErrorMessage = $"Resource pool '{pool.ResourcePoolInfo.Name}' has a duplicate name.",
-                    };
-                    AddError(pool.ID.Id, error);
+                    ErrorReason = ResourcePoolConfigurationError.Reason.DuplicateName,
+                    ErrorMessage = $"Resource pool '{pool.ResourcePoolInfo.Name}' has a duplicate name.",
+                };
+                AddError(pool.ID.Id, error);
 
-                    poolsRequiringNameValidation.Remove(pool);
-                }
+                poolsRequiringValidation.Remove(pool);
             }
 
-            var corePoolsByName = planApi.CoreHelpers.ResourceManagerHelper.GetResourcePoolsInBatches(poolsRequiringNameValidation.Select(x => x.ResourcePoolInfo.Name).ToArray());
+            var corePoolsByName = planApi.CoreHelpers.ResourceManagerHelper.GetResourcePoolsInBatches(poolsRequiringValidation.Select(x => x.ResourcePoolInfo.Name).ToArray());
 
-            foreach (var pool in poolsRequiringNameValidation)
+            foreach (var pool in poolsRequiringValidation)
             {
                 if (!corePoolsByName.TryGetValue(pool.ResourcePoolInfo.Name, out var corePools))
                 {

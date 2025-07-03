@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
 
     using Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
     using Skyline.DataMiner.Net;
@@ -24,6 +25,24 @@
             return DomHelper.DomInstances.Count(filter);
         }
 
+        public IEnumerable<DomInstance> GetResourceStudioInstances(IEnumerable<Guid> ids)
+        {
+            if (ids == null)
+            {
+                throw new ArgumentNullException(nameof(ids));
+            }
+
+            if (!ids.Any())
+            {
+                return Enumerable.Empty<DomInstance>();
+            }
+
+            return FilterQueryExecutor.RetrieveFilteredItems(
+                ids.Distinct(),
+                x => DomInstanceExposers.Id.Equal(x),
+                x => DomHelper.DomInstances.Read(x));
+        }
+
         public IEnumerable<ResourcepoolInstance> GetResourcePools(FilterElement<DomInstance> filter)
         {
             if (filter == null)
@@ -32,6 +51,46 @@
             }
 
             return GetResourcePoolIterator(filter);
+        }
+
+        public IEnumerable<ResourcepoolInstance> GetResourcePools(IEnumerable<Guid> ids)
+        {
+            if (ids == null)
+            {
+                throw new ArgumentNullException(nameof(ids));
+            }
+
+            if (!ids.Any())
+            {
+                return Enumerable.Empty<ResourcepoolInstance>();
+            }
+
+            FilterElement<DomInstance> filter(Guid id) =>
+                DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resourcepool.Id)
+                .AND(DomInstanceExposers.Id.Equal(id));
+
+            return FilterQueryExecutor.RetrieveFilteredItems(
+                ids.Distinct(),
+                x => filter(x),
+                x => GetResourcePoolIterator(x));
+        }
+
+        public IEnumerable<ResourcepoolInstance> GetResourcePools<T>(IEnumerable<T> values, Func<T, FilterElement<DomInstance>> filter)
+        {
+            if (values == null)
+            {
+                throw new ArgumentNullException(nameof(values));
+            }
+
+            if (filter == null)
+            {
+                throw new ArgumentNullException(nameof(filter));
+            }
+
+            return FilterQueryExecutor.RetrieveFilteredItems(
+                values.Distinct(),
+                x => filter(x),
+                x => GetResourcePoolIterator(x));
         }
 
         private IEnumerable<ResourcepoolInstance> GetResourcePoolIterator(FilterElement<DomInstance> filter)

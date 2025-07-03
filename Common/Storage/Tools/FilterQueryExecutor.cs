@@ -1,4 +1,4 @@
-﻿namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM
+﻿namespace Skyline.DataMiner.MediaOps.Plan.Storage
 {
     using System;
     using System.Collections.Generic;

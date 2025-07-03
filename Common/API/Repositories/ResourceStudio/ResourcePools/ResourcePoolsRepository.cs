@@ -4,17 +4,15 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    using Skyline.DataMiner.MediaOps.Plan.API.Validators;
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
-    using Skyline.DataMiner.MediaOps.Plan.Storage.Core;
+    using Skyline.DataMiner.MediaOps.Plan.Storage;
     using Skyline.DataMiner.MediaOps.Plan.Storage.DOM;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Net.Sections;
     using Skyline.DataMiner.Utils.DOM.Extensions;
 
-    using CoreResourcePool = Skyline.DataMiner.Net.Messages.ResourcePool;
     using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
@@ -136,15 +134,12 @@
                 throw new ArgumentNullException(nameof(ids));
             }
 
-            FilterElement<DomInstance> createFilter(Guid id) =>
-                DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourcepool.Id)
-                .AND(DomInstanceExposers.Id.Equal(id));
+            if (!ids.Any())
+            {
+                return new Dictionary<Guid, ResourcePool>();
+            }
 
-            return FilterQueryExecutor.RetrieveFilteredItems(
-                ids.Distinct(),
-                x => createFilter(x),
-                x => PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(x))
-                .SafeToDictionary(x => x.ID.Id, x => new ResourcePool(x));
+            return PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(ids).SafeToDictionary(x => x.ID.Id, x => new ResourcePool(x));
         }
 
         public IEnumerable<ResourcePool> Read(FilterElement<ResourcePool> filter)
@@ -255,22 +250,6 @@
             }
 
             return PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(DomInstanceExposers.Id.Equal(domResourcePoolId)).FirstOrDefault();
-        }
-
-        internal CoreResourcePool GetCoreResourcePool(Guid coreResourcePoolId)
-        {
-            if (coreResourcePoolId == Guid.Empty)
-            {
-                throw new ArgumentException("Resource pool ID cannot be empty.", nameof(coreResourcePoolId));
-            }
-
-            var coreResourcePoolsById = PlanApi.CoreHelpers.ResourceManagerHelper.GetResourcePoolsInBatches(new[] { coreResourcePoolId });
-            if (!coreResourcePoolsById.TryGetValue(coreResourcePoolId, out var coreResourcePool))
-            {
-                return null;
-            }
-
-            return coreResourcePool;
         }
 
         private void HandleMoveToCompleteAction(Guid resourcePoolId)

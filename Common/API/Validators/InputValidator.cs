@@ -1,4 +1,4 @@
-﻿namespace Skyline.DataMiner.MediaOps.Plan.API.Validators
+﻿namespace Skyline.DataMiner.MediaOps.Plan.API
 {
     using System;
 
