@@ -19,7 +19,7 @@
         private readonly MediaOpsPlanApi planApi;
 
         private readonly List<Guid> successfulIds = new List<Guid>();
-        private readonly List<Guid> unsucessfulIds = new List<Guid>();
+        private readonly List<Guid> unsuccessfulIds = new List<Guid>();
         private readonly Dictionary<Guid, MediaOpsTraceData> traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
 
         private readonly HashSet<Guid> poolIdsWithCoreChanges = new HashSet<Guid>();
@@ -34,7 +34,7 @@
             var handler = new DomResourcePoolHandler(planApi);
             handler.CreateOrUpdate(apiResourcePools);
 
-            var result = new BulkCreateOrUpdateResult<Guid>(handler.successfulIds, handler.unsucessfulIds, handler.traceDataPerItem);
+            var result = new BulkCreateOrUpdateResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
             result.ThrowOnFailure();
 
             return result;
@@ -45,7 +45,7 @@
             var handler = new DomResourcePoolHandler(planApi);
             handler.CreateOrUpdate(apiResourcePools);
 
-            result = new BulkCreateOrUpdateResult<Guid>(handler.successfulIds, handler.unsucessfulIds, handler.traceDataPerItem);
+            result = new BulkCreateOrUpdateResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
 
             return !result.HasFailures();
         }
@@ -117,7 +117,7 @@
 
                 foreach (var id in coreResult.UnsuccessfulIds)
                 {
-                    unsucessfulIds.Add(id);
+                    unsuccessfulIds.Add(id);
 
                     if (coreResult.TraceDataPerItem.TryGetValue(id, out var traceData))
                     {
@@ -132,7 +132,7 @@
 
             foreach (var id in domResult.UnsuccessfulIds)
             {
-                unsucessfulIds.Add(id.Id);
+                unsuccessfulIds.Add(id.Id);
 
                 if (domResult.TraceDataPerItem.TryGetValue(id, out var traceData))
                 {
@@ -336,7 +336,7 @@
                 mediaOpsTraceData = new MediaOpsTraceData();
                 traceDataPerItem.Add(id, mediaOpsTraceData);
 
-                unsucessfulIds.Add(id);
+                unsuccessfulIds.Add(id);
             }
 
             mediaOpsTraceData.Add(error);

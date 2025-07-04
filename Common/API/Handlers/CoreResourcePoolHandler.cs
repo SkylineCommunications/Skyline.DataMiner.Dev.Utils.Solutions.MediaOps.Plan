@@ -17,7 +17,7 @@
         private readonly MediaOpsPlanApi planApi;
 
         private readonly List<Guid> successfulIds = new List<Guid>();
-        private readonly List<Guid> unsucessfulIds = new List<Guid>();
+        private readonly List<Guid> unsuccessfulIds = new List<Guid>();
         private readonly Dictionary<Guid, MediaOpsTraceData> traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
 
         private CoreResourcePoolHandler(MediaOpsPlanApi planApi)
@@ -30,7 +30,7 @@
             var handler = new CoreResourcePoolHandler(planApi);
             handler.CreateOrUpdate(domResourcePools);
 
-            var result = new BulkCreateOrUpdateResult<Guid>(handler.successfulIds, handler.unsucessfulIds, handler.traceDataPerItem);
+            var result = new BulkCreateOrUpdateResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
             result.ThrowOnFailure();
 
             return result;
@@ -41,7 +41,7 @@
             var handler = new CoreResourcePoolHandler(planApi);
             handler.CreateOrUpdate(domResourcePools);
 
-            result = new BulkCreateOrUpdateResult<Guid>(handler.successfulIds, handler.unsucessfulIds, handler.traceDataPerItem);
+            result = new BulkCreateOrUpdateResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
 
             return !result.HasFailures();
         }
@@ -51,7 +51,7 @@
             var handler = new CoreResourcePoolHandler(planApi);
             handler.Delete(domResourcePools, options ?? ResourcePoolDeleteOptions.GetDefaults());
 
-            var result = new BulkDeleteResult<Guid>(handler.successfulIds, handler.unsucessfulIds, handler.traceDataPerItem);
+            var result = new BulkDeleteResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
             result.ThrowOnFailure();
 
             return result;
@@ -62,7 +62,7 @@
             var handler = new CoreResourcePoolHandler(planApi);
             handler.Delete(domResourcePools, options ?? ResourcePoolDeleteOptions.GetDefaults());
 
-            result = new BulkDeleteResult<Guid>(handler.successfulIds, handler.unsucessfulIds, handler.traceDataPerItem);
+            result = new BulkDeleteResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
 
             return !result.HasFailures();
         }
@@ -124,11 +124,12 @@
                     continue;
                 }
 
-                unsucessfulIds.Add(domId);
+
+                unsuccessfulIds.Add(domId);
 
                 if (result.TraceDataPerItem.TryGetValue(id, out var traceData))
                 {
-                    traceDataPerItem.Add(DomIdByCoreId[id], traceData);
+                    traceDataPerItem.Add(domId, traceData);
                 }
             }
 
@@ -257,7 +258,7 @@
                 mediaOpsTraceData = new MediaOpsTraceData();
                 traceDataPerItem.Add(id, mediaOpsTraceData);
 
-                unsucessfulIds.Add(id);
+                unsuccessfulIds.Add(id);
             }
 
             mediaOpsTraceData.Add(error);

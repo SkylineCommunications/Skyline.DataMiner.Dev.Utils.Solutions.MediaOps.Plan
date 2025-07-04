@@ -82,7 +82,7 @@
 		{
 			this.originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
 
-			Name = instance.ResourcePoolInfo.Name;
+			name = instance.ResourcePoolInfo.Name;
 			State = EnumExtensions.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.StatusesEnum, ResourcePoolState>(instance.Status);
 		}
 
