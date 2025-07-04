@@ -162,6 +162,23 @@
                 return;
             }
 
+            var poolsWithDuplicateIds = poolsRequiringValidation
+                .GroupBy(pool => pool.Id)
+                .Where(g => g.Count() > 1)
+                .SelectMany(x => x)
+                .ToList();
+            foreach (var pool in poolsWithDuplicateIds)
+            {
+                var error = new ResourcePoolConfigurationError
+                {
+                    ErrorReason = ResourcePoolConfigurationError.Reason.DuplicateId,
+                    ErrorMessage = $"Resource pool '{pool.Name}' has a duplicate ID.",
+                };
+                AddError(pool.Id, error);
+
+                poolsRequiringValidation.Remove(pool);
+            }
+
             foreach (var foundInstance in planApi.DomHelpers.SlcResourceStudioHelper.GetResourceStudioInstances(poolsRequiringValidation.Select(x => x.Id)))
             {
                 planApi.Logger.Information(this, $"ID '{foundInstance.ID.Id}' is already in use by a Resource Studio instance.");

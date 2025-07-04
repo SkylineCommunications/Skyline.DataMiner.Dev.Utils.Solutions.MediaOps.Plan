@@ -124,7 +124,6 @@
                     continue;
                 }
 
-
                 unsuccessfulIds.Add(domId);
 
                 if (result.TraceDataPerItem.TryGetValue(id, out var traceData))

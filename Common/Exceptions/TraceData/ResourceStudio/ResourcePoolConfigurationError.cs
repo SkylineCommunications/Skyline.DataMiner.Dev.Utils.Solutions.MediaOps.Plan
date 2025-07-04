@@ -37,6 +37,12 @@
             DuplicateName,
 
             /// <summary>
+            /// Indicates that the input data contains a duplicate ID.
+            /// This can only occur when resource pools with the same ID are provided to a bulk operation.
+            /// </summary>
+            DuplicateId,
+
+            /// <summary>
             /// Indicates that a resource pool is in a state that does not allow the requested operation.
             /// </summary>
             InvalidState,
