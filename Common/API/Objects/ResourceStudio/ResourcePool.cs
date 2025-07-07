@@ -70,7 +70,7 @@
 		{
 			if (updatedInstance == null)
 			{
-				updatedInstance = IsNew ? ComposeNewInstance() : originalInstance.Clone();
+				updatedInstance = IsNew ? new StorageResourceStudio.ResourcepoolInstance(Id) : originalInstance.Clone();
 			}
 
 			updatedInstance.ResourcePoolInfo.Name = Name;
@@ -84,16 +84,6 @@
 
 			name = instance.ResourcePoolInfo.Name;
 			State = EnumExtensions.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.StatusesEnum, ResourcePoolState>(instance.Status);
-		}
-
-		private StorageResourceStudio.ResourcepoolInstance ComposeNewInstance()
-		{
-			if (Id == Guid.Empty)
-			{
-				return new StorageResourceStudio.ResourcepoolInstance();
-			}
-
-			return new StorageResourceStudio.ResourcepoolInstance(Id);
 		}
 	}
 }
