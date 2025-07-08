@@ -228,6 +228,31 @@
             }
 
             var poolsRequiringValidation = apiResourcePools.ToList();
+
+            foreach (var pool in poolsRequiringValidation.Where(x => !InputValidator.ValidateEmptyText(x.Name)))
+            {
+                var error = new ResourcePoolConfigurationError
+                {
+                    ErrorReason = ResourcePoolConfigurationError.Reason.InvalidName,
+                    ErrorMessage = "Name cannot be empty.",
+                };
+                AddError(pool.Id, error);
+
+                poolsRequiringValidation.Remove(pool);
+            }
+
+            foreach (var pool in poolsRequiringValidation.Where(x => !InputValidator.ValidateTextLength(x.Name)))
+            {
+                var error = new ResourcePoolConfigurationError
+                {
+                    ErrorReason = ResourcePoolConfigurationError.Reason.InvalidName,
+                    ErrorMessage = "Name exceeds maximum length of 150 characters.",
+                };
+                AddError(pool.Id, error);
+
+                poolsRequiringValidation.Remove(pool);
+            }
+
             var poolsWithDuplicateNames = poolsRequiringValidation
                 .GroupBy(pool => pool.Name)
                 .Where(g => g.Count() > 1)
@@ -312,6 +337,7 @@
                         ErrorReason = ResourcePoolConfigurationError.Reason.NotFound,
                         ErrorMessage = $"Resource pool with ID '{pool.Id}' no longer exists."
                     };
+                    AddError(pool.Id, error);
 
                     continue;
                 }
