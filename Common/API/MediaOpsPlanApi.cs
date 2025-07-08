@@ -30,7 +30,7 @@
 		public MediaOpsPlanApi(IConnection connection, ILogger logger = null)
 		{
 			this.connection = connection ?? throw new ArgumentNullException(nameof(connection));
-			this.logger = logger ?? new NoLogger();
+			this.logger = logger ?? new DefaultLogger();
 
 			domHelpers = new DomHelpers(connection);
 			coreHelpers = new CoreHelpers(connection);
