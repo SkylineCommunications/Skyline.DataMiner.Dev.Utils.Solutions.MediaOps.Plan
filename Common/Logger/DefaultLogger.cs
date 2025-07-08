@@ -23,7 +23,7 @@
         {
             if (!Tools.UnitTestDetector.IsInUnitTest)
             {
-                string path = FixedFileLogger.GenerateLogFilePath("PLAN API");
+                string path = FixedFileLogger.GenerateLogFilePath("PlanAPI");
                 fixedFileLogger = new FixedFileLogger(path);
             }
         }
