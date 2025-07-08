@@ -93,9 +93,64 @@
                 x => GetResourcePoolIterator(x));
         }
 
+        public IEnumerable<ResourceInstance> GetResources(FilterElement<DomInstance> filter)
+        {
+            if (filter == null)
+            {
+                throw new ArgumentNullException(nameof(filter));
+            }
+
+            return GetResourceIterator(filter);
+        }
+
+        public IEnumerable<ResourceInstance> GetResources(IEnumerable<Guid> ids)
+        {
+            if (ids == null)
+            {
+                throw new ArgumentNullException(nameof(ids));
+            }
+
+            if (!ids.Any())
+            {
+                return Enumerable.Empty<ResourceInstance>();
+            }
+
+            FilterElement<DomInstance> filter(Guid id) =>
+                DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resource.Id)
+                .AND(DomInstanceExposers.Id.Equal(id));
+
+            return FilterQueryExecutor.RetrieveFilteredItems(
+                ids.Distinct(),
+                x => filter(x),
+                x => GetResourceIterator(x));
+        }
+
+        public IEnumerable<ResourceInstance> GetResources<T>(IEnumerable<T> values, Func<T, FilterElement<DomInstance>> filter)
+        {
+            if (values == null)
+            {
+                throw new ArgumentNullException(nameof(values));
+            }
+
+            if (filter == null)
+            {
+                throw new ArgumentNullException(nameof(filter));
+            }
+
+            return FilterQueryExecutor.RetrieveFilteredItems(
+                values.Distinct(),
+                x => filter(x),
+                x => GetResourceIterator(x));
+        }
+
         private IEnumerable<ResourcepoolInstance> GetResourcePoolIterator(FilterElement<DomInstance> filter)
         {
             return InstanceFactory.ReadAndCreateInstances(DomHelper, filter, instance => new ResourcepoolInstance(instance));
+        }
+
+        private IEnumerable<ResourceInstance> GetResourceIterator(FilterElement<DomInstance> filter)
+        {
+            return InstanceFactory.ReadAndCreateInstances(DomHelper, filter, instance => new ResourceInstance(instance));
         }
     }
 }

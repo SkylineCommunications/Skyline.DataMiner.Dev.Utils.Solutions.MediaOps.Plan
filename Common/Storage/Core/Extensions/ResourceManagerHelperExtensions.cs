@@ -125,6 +125,86 @@
                 x => helper.GetResources(x));
         }
 
+        public static BulkCreateOrUpdateResult<Guid> CreateOrUpdateResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources)
+        {
+            if (helper == null)
+            {
+                throw new ArgumentNullException(nameof(helper));
+            }
+
+            if (resources == null)
+            {
+                throw new ArgumentNullException(nameof(resources));
+            }
+
+            var result = InnerCreateOrUpdateResourcesInBatches(helper, resources);
+            result.ThrowOnFailure();
+
+            return result;
+        }
+
+        public static bool TryCreateOrUpdateResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources, out BulkCreateOrUpdateResult<Guid> result)
+        {
+            if (helper == null)
+            {
+                throw new ArgumentNullException(nameof(helper));
+            }
+
+            if (resources == null)
+            {
+                throw new ArgumentNullException(nameof(resources));
+            }
+
+            result = InnerCreateOrUpdateResourcesInBatches(helper, resources);
+
+            return !result.HasFailures();
+        }
+
+        public static Exceptions.BulkDeleteResult<Guid> DeleteResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources, ResourceDeleteOptions options)
+        {
+            if (helper == null)
+            {
+                throw new ArgumentNullException(nameof(helper));
+            }
+
+            if (resources == null)
+            {
+                throw new ArgumentNullException(nameof(resources));
+            }
+
+            if (options == null)
+            {
+                throw new ArgumentNullException(nameof(options));
+            }
+
+            var result = InnerDeleteResourcesInBathes(helper, resources, options);
+            result.ThrowOnFailure();
+
+            return result;
+        }
+
+        public static bool TryDeleteResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources, ResourceDeleteOptions options, out Exceptions.BulkDeleteResult<Guid> result)
+        {
+            if (helper == null)
+            {
+                throw new ArgumentNullException(nameof(helper));
+            }
+
+            if (resources == null)
+            {
+                throw new ArgumentNullException(nameof(resources));
+            }
+
+            if (options == null)
+            {
+                throw new ArgumentNullException(nameof(options));
+            }
+
+            result = InnerDeleteResourcesInBathes(helper, resources, options);
+
+            return !result.HasFailures();
+        }
+
         private static BulkCreateOrUpdateResult<Guid> InnerCreateOrUpdateResourcePoolsInBatches(ResourceManagerHelper helper, IEnumerable<ResourcePool> resourcePools)
         {
             var successfulIds = new List<Guid>();
@@ -158,6 +238,76 @@
             }
 
             return new BulkCreateOrUpdateResult<Guid>(successfulIds, unsuccessfulIds, traceDataPerItem);
+        }
+
+        private static BulkCreateOrUpdateResult<Guid> InnerCreateOrUpdateResourcesInBatches(ResourceManagerHelper helper, IEnumerable<Resource> resources)
+        {
+            var successfulIds = new List<Guid>();
+            var unsuccessfulIds = new List<Guid>();
+            var traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
+
+            foreach (var batch in resources.Batch(100))
+            {
+                var res = helper.AddOrUpdateResources(batch.ToArray());
+
+                successfulIds.AddRange(res.Select(x => x.ID));
+
+                var traceData = helper.GetTraceDataLastCall();
+                foreach (var error in traceData.ErrorData.OfType<ResourceManagerErrorData>())
+                {
+                    if (!error.SubjectId.HasValue)
+                    {
+                        continue;
+                    }
+
+                    if (!traceDataPerItem.TryGetValue(error.SubjectId.Value, out var mediaOpsTraceData))
+                    {
+                        mediaOpsTraceData = new MediaOpsTraceData();
+                        traceDataPerItem.Add(error.SubjectId.Value, mediaOpsTraceData);
+
+                        unsuccessfulIds.Add(error.SubjectId.Value);
+                    }
+
+                    mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = error.ToString() });
+                }
+            }
+
+            return new BulkCreateOrUpdateResult<Guid>(successfulIds, unsuccessfulIds, traceDataPerItem);
+        }
+
+        private static Exceptions.BulkDeleteResult<Guid> InnerDeleteResourcesInBathes(ResourceManagerHelper helper, IEnumerable<Resource> resources, ResourceDeleteOptions options)
+        {
+            var successfulIds = new List<Guid>();
+            var unsuccessfulIds = new List<Guid>();
+            var traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
+
+            foreach (var batch in resources.Batch(100))
+            {
+                var res = helper.RemoveResources(batch.ToArray(), options);
+
+                successfulIds.AddRange(res.Select(x => x.ID));
+
+                var traceData = helper.GetTraceDataLastCall();
+                foreach (var error in traceData.ErrorData.OfType<ResourceManagerErrorData>())
+                {
+                    if (!error.SubjectId.HasValue)
+                    {
+                        continue;
+                    }
+
+                    if (!traceDataPerItem.TryGetValue(error.SubjectId.Value, out var mediaOpsTraceData))
+                    {
+                        mediaOpsTraceData = new MediaOpsTraceData();
+                        traceDataPerItem.Add(error.SubjectId.Value, mediaOpsTraceData);
+
+                        unsuccessfulIds.Add(error.SubjectId.Value);
+                    }
+
+                    mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = error.ToString() });
+                }
+            }
+
+            return new Exceptions.BulkDeleteResult<Guid>(successfulIds, unsuccessfulIds, traceDataPerItem);
         }
     }
 }
