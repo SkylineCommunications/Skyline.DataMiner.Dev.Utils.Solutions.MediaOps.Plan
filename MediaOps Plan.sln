@@ -1,0 +1,55 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33213.308
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{D4DFFC85-B20C-479F-84B4-AE027A8DFD5E}"
+	ProjectSection(SolutionItems) = preProject
+		LICENSE = LICENSE
+		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediaOps.Plan", "Common\MediaOps.Plan.csproj", "{92DBF04A-1595-494F-BC40-D2EFD35B7E81}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediaOps.Plan.Automation", "Automation\MediaOps.Plan.Automation.csproj", "{BFCA0DAC-404B-423E-81E5-A5DF3A1936B1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediaOps.Plan.Protocol", "Protocol\MediaOps.Plan.Protocol.csproj", "{0E80593B-56AF-4A04-B6E7-274741A27CC1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediaOps.Plan.GQI", "GQI\MediaOps.Plan.GQI.csproj", "{BB96CE5E-9BF0-40DA-B6C3-02D242881AAB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediaOps Injector", "MediaOps Injector\MediaOps Injector.csproj", "{640F00D6-A6BD-4562-8C3B-C06AE4A77203}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{92DBF04A-1595-494F-BC40-D2EFD35B7E81}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{92DBF04A-1595-494F-BC40-D2EFD35B7E81}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{92DBF04A-1595-494F-BC40-D2EFD35B7E81}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{92DBF04A-1595-494F-BC40-D2EFD35B7E81}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BFCA0DAC-404B-423E-81E5-A5DF3A1936B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BFCA0DAC-404B-423E-81E5-A5DF3A1936B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BFCA0DAC-404B-423E-81E5-A5DF3A1936B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BFCA0DAC-404B-423E-81E5-A5DF3A1936B1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0E80593B-56AF-4A04-B6E7-274741A27CC1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0E80593B-56AF-4A04-B6E7-274741A27CC1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0E80593B-56AF-4A04-B6E7-274741A27CC1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0E80593B-56AF-4A04-B6E7-274741A27CC1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BB96CE5E-9BF0-40DA-B6C3-02D242881AAB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BB96CE5E-9BF0-40DA-B6C3-02D242881AAB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BB96CE5E-9BF0-40DA-B6C3-02D242881AAB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BB96CE5E-9BF0-40DA-B6C3-02D242881AAB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{640F00D6-A6BD-4562-8C3B-C06AE4A77203}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{640F00D6-A6BD-4562-8C3B-C06AE4A77203}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{640F00D6-A6BD-4562-8C3B-C06AE4A77203}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{640F00D6-A6BD-4562-8C3B-C06AE4A77203}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {BDDF6818-9853-4F56-A93A-486FDD845549}
+	EndGlobalSection
+EndGlobal

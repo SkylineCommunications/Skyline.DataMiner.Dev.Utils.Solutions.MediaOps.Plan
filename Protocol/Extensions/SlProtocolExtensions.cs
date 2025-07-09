@@ -1,29 +1,31 @@
-﻿namespace Skyline.DataMiner.MediaOps.API.Protocol.Extensions
+﻿namespace Skyline.DataMiner.MediaOps.Plan.Protocol
 {
     using System;
 
-    using Skyline.DataMiner.MediaOps.API.Common;
+    using Skyline.DataMiner.MediaOps.Plan.API;
+    using Skyline.DataMiner.MediaOps.Plan.Logger;
     using Skyline.DataMiner.Scripting;
 
     /// <summary>
-    /// Defines extension methods on the <see cref="SLProtocol"/> class.
+    /// Defines extension methods on the <see cref="SlProtocolExtensions"/> class.
     /// </summary>
     public static class SlProtocolExtensions
     {
         /// <summary>
-        /// Retrieves an instance of the <see cref="MediaOpsHelpers"/> class.
+        /// Retrieves an instance of the <see cref="IMediaOpsPlanApi"/> interface."/>
         /// </summary>
         /// <param name="protocol">The <see cref="SLProtocol"/> instance.</param>
+        /// <param name="logger">The <see cref="ILogger"/> implementation.</param>
+        /// <returns>Instance of the <see cref="IMediaOpsPlanApi"/> interface.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="protocol"/> is <see langword="null" />.</exception>
-        /// <returns>Instance of the <see cref="MediaOpsHelpers"/> class.</returns>
-        public static MediaOpsHelpers GetMediaOpsHelpers(this SLProtocol protocol)
+        public static IMediaOpsPlanApi GetMediaOpsPlanApi(this SLProtocol protocol, ILogger logger = null)
         {
             if (protocol == null)
             {
                 throw new ArgumentNullException(nameof(protocol));
             }
 
-            return new MediaOpsHelpers(new ConnectionCommunication(protocol.GetUserConnection()));
+            return new MediaOpsPlanApi(protocol.GetUserConnection(), logger);
         }
     }
 }

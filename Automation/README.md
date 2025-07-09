@@ -1,8 +1,8 @@
-# Skyline.DataMiner.MediaOps.API.Automation
+# Skyline.DataMiner.MediaOps.Plan.Automation
 
 ## About
 
-Automation API to communicate with the MediaOps Solution
+
 
 ### About DataMiner
 
