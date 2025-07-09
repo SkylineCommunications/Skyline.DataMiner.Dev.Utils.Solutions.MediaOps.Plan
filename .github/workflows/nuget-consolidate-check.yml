@@ -1,0 +1,30 @@
+name: Check NuGet Package Versions
+
+on:
+  push:
+    branches: 
+     - '**'
+    paths:
+     - '**/*.csproj'  # Trigger on changes to project files
+  pull_request:
+    branches: 
+     - '**'
+    paths:
+     - '**/*.csproj'
+
+env:
+  #https://github.com/NuGet/Home/issues/7575#issuecomment-443801131
+  NUGET_RESTORE_MSBUILD_ARGS: /p:Configuration=Release
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+     - uses: actions/checkout@v4
+
+     - name: Install dotnet-consolidate
+       run: dotnet tool install -g dotnet-consolidate
+
+     - name: Run dotnet consolidate
+       run: dotnet consolidate -s 'MediaOps Plan.sln'

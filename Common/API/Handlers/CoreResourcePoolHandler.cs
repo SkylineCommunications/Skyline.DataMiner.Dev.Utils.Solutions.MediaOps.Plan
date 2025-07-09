@@ -197,6 +197,31 @@
             }
 
             var poolsRequiringValidation = domResourcePools.ToList();
+
+            foreach (var pool in poolsRequiringValidation.Where(x => !InputValidator.ValidateEmptyText(x.ResourcePoolInfo.Name)))
+            {
+                var error = new ResourcePoolConfigurationError
+                {
+                    ErrorReason = ResourcePoolConfigurationError.Reason.InvalidName,
+                    ErrorMessage = "Name cannot be empty.",
+                };
+                AddError(pool.ID.Id, error);
+
+                poolsRequiringValidation.Remove(pool);
+            }
+
+            foreach (var pool in poolsRequiringValidation.Where(x => !InputValidator.ValidateTextLength(x.ResourcePoolInfo.Name)))
+            {
+                var error = new ResourcePoolConfigurationError
+                {
+                    ErrorReason = ResourcePoolConfigurationError.Reason.InvalidName,
+                    ErrorMessage = "Name exceeds maximum length of 150 characters.",
+                };
+                AddError(pool.ID.Id, error);
+
+                poolsRequiringValidation.Remove(pool);
+            }
+
             var poolsWithDuplicateNames = poolsRequiringValidation
                 .GroupBy(pool => pool.ResourcePoolInfo.Name)
                 .Where(g => g.Count() > 1)

@@ -21,12 +21,7 @@
             return true;
         }
 
-        public static bool ValidateTextLength(string text)
-        {
-            return ValidateTextLength(text, DefaultMaxTextLength);
-        }
-
-        public static bool ValidateTextLength(string text, int maxCharacters)
+        public static bool ValidateTextLength(string text, int maxCharacters = DefaultMaxTextLength)
         {
             if (text == null)
             {
