@@ -27,6 +27,7 @@
             var planApi = new MediaOpsPlanApi(connection);
 
             var tracingProvider = Sdk.CreateTracerProviderBuilder()
+                .SetSampler(new AlwaysOnSampler())
                 .AddSource(OpenTelemetrySourceName)
                 .AddSource(MediaOpsPlanApi.ApiSourceName)
                 .AddOtlpExporter(options =>
