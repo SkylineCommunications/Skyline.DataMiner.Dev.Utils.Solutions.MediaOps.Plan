@@ -13,8 +13,10 @@
 
         private readonly Lazy<ResourceManagerHelper> lazyResourceManagerHelper;
         private readonly Lazy<ProfileHelper> lazyProfileHelper;
+
         private readonly Lazy<ProtocolFunctionHelper> lazyProtocolFunctionHelper;
         private readonly Lazy<ProtocolFunctionHelperCache> lazyProtocolFunctionHelperCache;
+
         private readonly Lazy<IDms> lazyDms;
         private readonly Lazy<DataMinerSystemCache> lazyDataMinerSystemCache;
 
@@ -24,8 +26,10 @@
 
             lazyResourceManagerHelper = new Lazy<ResourceManagerHelper>(() => new ResourceManagerHelper(connection.HandleSingleResponseMessage));
             lazyProfileHelper = new Lazy<ProfileHelper>(() => new ProfileHelper(connection.HandleMessages));
+
             lazyProtocolFunctionHelper = new Lazy<ProtocolFunctionHelper>(() => new ProtocolFunctionHelper(connection.HandleMessages));
             lazyProtocolFunctionHelperCache = new Lazy<ProtocolFunctionHelperCache>(() => new ProtocolFunctionHelperCache(ProtocolFunctionHelper));
+
             lazyDms = new Lazy<IDms>(() => connection.GetDms());
             lazyDataMinerSystemCache = new Lazy<DataMinerSystemCache>(() => new DataMinerSystemCache(Dms));
         }

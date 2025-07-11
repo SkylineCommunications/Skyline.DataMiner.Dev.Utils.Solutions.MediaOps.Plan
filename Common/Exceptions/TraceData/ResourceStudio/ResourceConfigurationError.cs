@@ -62,6 +62,12 @@
             InvalidTableIndexLink,
 
             /// <summary>
+            /// Indicates that the input data contains a duplicate table index link.
+            /// This can only occur when resources with the same table index link are provided to a bulk operation.
+            /// </summary>
+            DuplicateTableIndexLink,
+
+            /// <summary>
             /// Indicates that the ID is already in use by another object.
             /// </summary>
             IdInUse,

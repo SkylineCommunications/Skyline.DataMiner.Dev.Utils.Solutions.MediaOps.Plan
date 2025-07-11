@@ -6,12 +6,9 @@
 
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
-    using Skyline.DataMiner.MediaOps.Plan.Storage;
-    using Skyline.DataMiner.MediaOps.Plan.Storage.DOM;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Net.Sections;
-    using Skyline.DataMiner.Utils.DOM.Extensions;
 
     using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
@@ -209,11 +206,15 @@
 
         private void ValidateNameInUseInDom(string name, Guid domResourcePoolId)
         {
-            var existingDomResourcePool = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(DomInstanceExposers.FieldValues.DomInstanceField(StorageResourceStudio.SlcResource_StudioIds.Sections.ResourcePoolInfo.Name).Equal(name))
-                .FirstOrDefault(x => x.ID.Id != domResourcePoolId && x.Status != StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.StatusesEnum.Draft);
-            if (existingDomResourcePool != null)
+            var existingPools = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(
+                DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourcepool.Id)
+                .AND(DomInstanceExposers.FieldValues.DomInstanceField(StorageResourceStudio.SlcResource_StudioIds.Sections.ResourcePoolInfo.Name).Equal(name))
+                .AND(DomInstanceExposers.StatusId.NotEqual(StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.Statuses.Draft)))
+                .Where(x => x.ID.Id != domResourcePoolId)
+                .ToList();
+            if (existingPools.Count != 0)
             {
-                PlanApi.Logger.Information(this, $"Name '{name}' is already in use by a DOM resource pool with ID '{existingDomResourcePool.ID.Id}'.");
+                PlanApi.Logger.Information(this, $"Name '{name}' is already in use by DOM resource pool(s) with ID(s): {string.Join(", ", existingPools.Select(x => x.ID.Id))}.");
                 throw new MediaOpsException(new ResourcePoolConfigurationError
                 {
                     ErrorReason = ResourcePoolConfigurationError.Reason.NameExists,

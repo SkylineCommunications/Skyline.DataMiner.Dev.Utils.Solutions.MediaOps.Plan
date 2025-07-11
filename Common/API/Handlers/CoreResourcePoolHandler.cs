@@ -98,7 +98,7 @@
             }
 
             var domPoolsById = new Dictionary<Guid, DomResourcePool>();
-            var DomIdByCoreId = new Dictionary<Guid, Guid>();
+            var domIdByCoreId = new Dictionary<Guid, Guid>();
 
             var poolsToCreateOrUpdate = new List<CoreResourcePool>();
             foreach (var mapping in resourcePoolMappings)
@@ -111,14 +111,14 @@
                 poolsToCreateOrUpdate.Add(core);
 
                 domPoolsById.Add(dom.ID.Id, dom);
-                DomIdByCoreId.Add(core.ID, dom.ID.Id);
+                domIdByCoreId.Add(core.ID, dom.ID.Id);
             }
 
             planApi.CoreHelpers.ResourceManagerHelper.TryCreateOrUpdateResourcePoolsInBatches(poolsToCreateOrUpdate, out var result);
 
             foreach (var id in result.UnsuccessfulIds)
             {
-                if (!DomIdByCoreId.TryGetValue(id, out var domId))
+                if (!domIdByCoreId.TryGetValue(id, out var domId))
                 {
                     planApi.Logger.Error(this, $"Failed to find DOM ID for CORE resource pool ID {id}.");
                     continue;
@@ -134,7 +134,7 @@
 
             foreach (var id in result.SuccessfulIds)
             {
-                if (!DomIdByCoreId.TryGetValue(id, out var domId))
+                if (!domIdByCoreId.TryGetValue(id, out var domId))
                 {
                     planApi.Logger.Error(this, $"Failed to find DOM ID for CORE resource pool ID {id}.");
                     continue;
@@ -167,6 +167,10 @@
             successfulIds.AddRange(domResourcePools.Where(x => !coreResourcePoolsById.ContainsKey(x.ResourcePoolInternalProperties.ResourcePoolId)).Select(x => x.ID.Id));
 
             /* Todo: Define how pool and resource deletion should work > see loop for more details
+             * 
+            TOL: Not sure if we need to check if there are resources in this pool instead of just removing the pool?
+            > Checks can be done in the DOM handler since we only care about the DOM resources.
+            > Resource pool DOM Handler can then first delete the resources by using the resource repository before deleting the pool.
 
             FilterElement<CoreResource> filter(Guid resourcePoolId) => Skyline.DataMiner.Net.Messages.ResourceExposers.PoolGUIDs.Contains(resourcePoolId);
 
@@ -198,7 +202,7 @@
 
             var poolsRequiringValidation = domResourcePools.ToList();
 
-            foreach (var pool in poolsRequiringValidation.Where(x => !InputValidator.ValidateEmptyText(x.ResourcePoolInfo.Name)))
+            foreach (var pool in poolsRequiringValidation.Where(x => !InputValidator.ValidateEmptyText(x.ResourcePoolInfo.Name)).ToList())
             {
                 var error = new ResourcePoolConfigurationError
                 {
@@ -210,7 +214,7 @@
                 poolsRequiringValidation.Remove(pool);
             }
 
-            foreach (var pool in poolsRequiringValidation.Where(x => !InputValidator.ValidateTextLength(x.ResourcePoolInfo.Name)))
+            foreach (var pool in poolsRequiringValidation.Where(x => !InputValidator.ValidateTextLength(x.ResourcePoolInfo.Name)).ToList())
             {
                 var error = new ResourcePoolConfigurationError
                 {

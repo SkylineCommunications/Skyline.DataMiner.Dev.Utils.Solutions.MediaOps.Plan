@@ -20,6 +20,22 @@
             this.helper = helper ?? throw new ArgumentNullException(nameof(helper));
         }
 
+        public FunctionDefinition GetFunctionDefinition(Guid id, bool forceGet = false)
+        {
+            if (id == Guid.Empty)
+            {
+                throw new ArgumentException("Function definition ID cannot be empty.", nameof(id));
+            }
+
+            var functionDefinitionsById = GetFunctionDefinitions(new[] { id }, forceGet);
+            if (functionDefinitionsById.TryGetValue(id, out var functionDefinition))
+            {
+                return functionDefinition;
+            }
+
+            return null;
+        }
+
         public IReadOnlyDictionary<Guid, FunctionDefinition> GetFunctionDefinitions(IEnumerable<Guid> ids, bool forceGet = false)
         {
             if (ids == null)
