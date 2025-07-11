@@ -84,9 +84,11 @@
                     Console.ReadLine();
                 }
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                // Nothing to do
+                Console.WriteLine($"Something went wrong: {e}");
+                Console.WriteLine("Press Enter to exit...");
+                Console.ReadLine();
             }
             finally
             {
