@@ -39,7 +39,7 @@
 
             try
             {
-                using (activitySource.StartActivity())
+                using (activitySource.StartActivity("MediaOps Plan Injector"))
                 {
                     var resourcePool = new ResourcePool()
                     {
