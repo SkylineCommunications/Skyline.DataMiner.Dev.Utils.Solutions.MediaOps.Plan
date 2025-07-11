@@ -23,6 +23,8 @@
         private readonly List<Guid> unsuccessfulIds = new List<Guid>();
         private readonly Dictionary<Guid, MediaOpsTraceData> traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
 
+        private readonly Dictionary<Guid, Action<CoreResource>> EnableDveActionByCoreId = new Dictionary<Guid, Action<CoreResource>>();
+
         private CoreResourceHandler(MediaOpsPlanApi planApi)
         {
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
@@ -152,7 +154,7 @@
                 domIdByCoreId.Add(core.ID, dom.ID.Id);
             }
 
-            planApi.CoreHelpers.ResourceManagerHelper.TryCreateOrUpdateResourcesInBatches(resourcesToCreateOrUpdate, out var result);
+            planApi.CoreHelpers.ResourceManagerHelper.TryCreateOrUpdateResourcesInBatches(resourcesToCreateOrUpdate, out var result, out var createdOrUpdatedResources);
 
             foreach (var id in unsuccessfulIds)
             {
@@ -170,6 +172,7 @@
                 }
             }
 
+            var createdOrUpdatedResourcesByCoreId = createdOrUpdatedResources?.ToDictionary(x => x.ID) ?? new Dictionary<Guid, CoreResource>();
             foreach (var id in result.SuccessfulIds)
             {
                 if (!domIdByCoreId.TryGetValue(id, out var domId))
@@ -179,6 +182,11 @@
                 }
 
                 domResourcesById[domId].ResourceInternalProperties.Resource_Id = id;
+
+                if (EnableDveActionByCoreId.TryGetValue(id, out var enableDveAction))
+                {
+                    enableDveAction?.Invoke(createdOrUpdatedResourcesByCoreId[id]);
+                }
 
                 successfulIds.Add(domId);
             }
@@ -325,7 +333,19 @@
 
             SetResourceType(coreResource, "Virtual Function");
 
-            throw new NotImplementedException();
+            Action<CoreResource> enableDveAction = (createdResource) =>
+            {
+                if (createdResource is not Net.ResourceManager.Objects.FunctionResource fResource)
+                {
+                    return;
+                }
+
+                var element = planApi.CoreHelpers.DmsCache.GetElement(elementInfo);
+                var genericDveTable = element.GetTable(65132);
+                var dveStateColumn = genericDveTable.GetColumn<int?>(65136);
+                dveStateColumn.SetValue(fResource.PK, 1);
+            };
+            EnableDveActionByCoreId.Add(coreResource.ID, enableDveAction);
         }
 
         private void SetResourceType(CoreResource resource, string resourceTypeValue)

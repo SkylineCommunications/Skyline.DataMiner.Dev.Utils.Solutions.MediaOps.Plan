@@ -137,7 +137,25 @@
                 throw new ArgumentNullException(nameof(resources));
             }
 
-            var result = InnerCreateOrUpdateResourcesInBatches(helper, resources);
+            var result = InnerCreateOrUpdateResourcesInBatches(helper, resources, out _);
+            result.ThrowOnFailure();
+
+            return result;
+        }
+
+        public static BulkCreateOrUpdateResult<Guid> CreateOrUpdateResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources, out IEnumerable<Resource> createdOrUpdatedResources)
+        {
+            if (helper == null)
+            {
+                throw new ArgumentNullException(nameof(helper));
+            }
+
+            if (resources == null)
+            {
+                throw new ArgumentNullException(nameof(resources));
+            }
+
+            var result = InnerCreateOrUpdateResourcesInBatches(helper, resources, out createdOrUpdatedResources);
             result.ThrowOnFailure();
 
             return result;
@@ -155,7 +173,25 @@
                 throw new ArgumentNullException(nameof(resources));
             }
 
-            result = InnerCreateOrUpdateResourcesInBatches(helper, resources);
+            result = InnerCreateOrUpdateResourcesInBatches(helper, resources, out _);
+
+            return !result.HasFailures();
+        }
+
+        // Todo: Needs refactoring to avoid 2 out parameters???
+        public static bool TryCreateOrUpdateResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources, out BulkCreateOrUpdateResult<Guid> result, out IEnumerable<Resource> createdOrUpdatedResources)
+        {
+            if (helper == null)
+            {
+                throw new ArgumentNullException(nameof(helper));
+            }
+
+            if (resources == null)
+            {
+                throw new ArgumentNullException(nameof(resources));
+            }
+
+            result = InnerCreateOrUpdateResourcesInBatches(helper, resources, out createdOrUpdatedResources);
 
             return !result.HasFailures();
         }
@@ -240,16 +276,19 @@
             return new BulkCreateOrUpdateResult<Guid>(successfulIds, unsuccessfulIds, traceDataPerItem);
         }
 
-        private static BulkCreateOrUpdateResult<Guid> InnerCreateOrUpdateResourcesInBatches(ResourceManagerHelper helper, IEnumerable<Resource> resources)
+        private static BulkCreateOrUpdateResult<Guid> InnerCreateOrUpdateResourcesInBatches(ResourceManagerHelper helper, IEnumerable<Resource> resources, out IEnumerable<Resource> createdOrUpdatedResources)
         {
             var successfulIds = new List<Guid>();
             var unsuccessfulIds = new List<Guid>();
             var traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
 
+            var createdOrUpdated = new List<Resource>();
+
             foreach (var batch in resources.Batch(100))
             {
                 var res = helper.AddOrUpdateResources(batch.ToArray());
 
+                createdOrUpdated.AddRange(res);
                 successfulIds.AddRange(res.Select(x => x.ID));
 
                 var traceData = helper.GetTraceDataLastCall();
@@ -271,6 +310,8 @@
                     mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = error.ToString() });
                 }
             }
+
+            createdOrUpdatedResources = createdOrUpdated;
 
             return new BulkCreateOrUpdateResult<Guid>(successfulIds, unsuccessfulIds, traceDataPerItem);
         }

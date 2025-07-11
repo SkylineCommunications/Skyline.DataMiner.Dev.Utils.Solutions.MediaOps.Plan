@@ -19,6 +19,22 @@
             this.dms = dms ?? throw new ArgumentNullException(nameof(dms));
         }
 
+        public IDmsElement GetElement(DmsElementId elementId, bool forceGet = false)
+        {
+            if (elementId == null)
+            {
+                throw new ArgumentNullException(nameof(elementId));
+            }
+
+            var elementsById = GetElements([elementId], forceGet);
+            if (elementsById.TryGetValue(elementId, out var element))
+            {
+                return element;
+            }
+
+            return null;
+        }
+
         public IReadOnlyDictionary<DmsElementId, IDmsElement> GetElements(IEnumerable<DmsElementId> elementIds, bool forceGet = false)
         {
             if (elementIds == null)

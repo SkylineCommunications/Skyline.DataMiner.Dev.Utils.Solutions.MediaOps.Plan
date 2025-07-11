@@ -27,7 +27,7 @@
                 throw new ArgumentException("Function definition ID cannot be empty.", nameof(id));
             }
 
-            var functionDefinitionsById = GetFunctionDefinitions(new[] { id }, forceGet);
+            var functionDefinitionsById = GetFunctionDefinitions([id], forceGet);
             if (functionDefinitionsById.TryGetValue(id, out var functionDefinition))
             {
                 return functionDefinition;
