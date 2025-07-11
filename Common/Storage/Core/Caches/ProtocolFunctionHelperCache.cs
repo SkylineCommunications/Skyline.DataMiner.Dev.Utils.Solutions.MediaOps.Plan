@@ -27,8 +27,8 @@
                 throw new ArgumentException("Function definition ID cannot be empty.", nameof(id));
             }
 
-            var functionDefinitionsById = GetFunctionDefinitions([id], forceGet);
-            if (functionDefinitionsById.TryGetValue(id, out var functionDefinition))
+            var result = GetFunctionDefinitions([id], forceGet);
+            if (result.TryGetValue(id, out var functionDefinition))
             {
                 return functionDefinition;
             }
@@ -84,7 +84,7 @@
 
         public IEnumerable<EntryPointData> GetElementFunctionEntryPoints(Guid functionDefinitionId, DmsElementId elementInfo, bool forceGet = false, bool returnAvailableOnly = false)
         {
-            if (elementInfo == null)
+            if (elementInfo == default)
             {
                 throw new ArgumentNullException(nameof(elementInfo));
             }

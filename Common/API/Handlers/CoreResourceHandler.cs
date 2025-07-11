@@ -632,7 +632,7 @@
             mediaOpsTraceData.Add(error);
         }
 
-        private class ResourceMapping
+        private sealed class ResourceMapping
         {
             private ResourceMapping(DomResource domResource)
             {

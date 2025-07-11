@@ -24,14 +24,14 @@
 
         private int concurrency;
 
-        internal Resource() : base()
+        private protected Resource() : base()
         {
             IsNew = true;
 
             SetDefaultValues();
         }
 
-        internal Resource(Guid resourceId) : base(resourceId)
+        private protected Resource(Guid resourceId) : base(resourceId)
         {
             IsNew = true;
             HasUserDefinedId = true;
@@ -39,7 +39,7 @@
             SetDefaultValues();
         }
 
-        internal Resource(StorageResourceStudio.ResourceInstance instance) : base(instance.ID.Id)
+        private protected Resource(StorageResourceStudio.ResourceInstance instance) : base(instance.ID.Id)
         {
             ParseInstance(instance);
         }

@@ -292,7 +292,7 @@
             mediaOpsTraceData.Add(error);
         }
 
-        private class ResourcePoolMapping
+        private sealed class ResourcePoolMapping
         {
             private ResourcePoolMapping(DomResourcePool domResourcePool)
             {

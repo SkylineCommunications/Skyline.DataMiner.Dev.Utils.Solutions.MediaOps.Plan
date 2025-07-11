@@ -21,13 +21,13 @@
 
         public IDmsElement GetElement(DmsElementId elementId, bool forceGet = false)
         {
-            if (elementId == null)
+            if (elementId == default)
             {
                 throw new ArgumentNullException(nameof(elementId));
             }
 
-            var elementsById = GetElements([elementId], forceGet);
-            if (elementsById.TryGetValue(elementId, out var element))
+            var result = GetElements([elementId], forceGet);
+            if (result.TryGetValue(elementId, out var element))
             {
                 return element;
             }
