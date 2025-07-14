@@ -5,6 +5,8 @@
     using System.Net;
     using OpenTelemetry;
     using OpenTelemetry.Trace;
+
+    using Skyline.DataMiner.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.MediaOps.Plan.API;
     using Skyline.DataMiner.Net;
 
@@ -29,7 +31,7 @@
             var tracingProvider = Sdk.CreateTracerProviderBuilder()
                 .SetSampler(new AlwaysOnSampler())
                 .AddSource(OpenTelemetrySourceName)
-                .AddSource(MediaOpsPlanApi.ApiSourceName)
+                .AddSource(ActivityHelper.ApiSourceName)
                 .AddOtlpExporter(options =>
                 {
                     options.Endpoint = new Uri("http://SLC-H67-G02:8081/traces"); // Replace with your OpenTelemetry collector endpoint
