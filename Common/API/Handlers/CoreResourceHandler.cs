@@ -3,7 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-
+    using Microsoft.Extensions.Logging;
     using Skyline.DataMiner.Core.DataMinerSystem.Common;
     using Skyline.DataMiner.Core.DataMinerSystem.Common.Selectors;
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
@@ -160,7 +160,7 @@
             {
                 if (!domIdByCoreId.TryGetValue(id, out var domId))
                 {
-                    planApi.Logger.Error(this, $"Failed to find DOM ID for CORE resource ID {id}.");
+                    planApi.Logger.LogError($"Failed to find DOM ID for CORE resource ID {id}.");
                     continue;
                 }
 
@@ -177,7 +177,7 @@
             {
                 if (!domIdByCoreId.TryGetValue(id, out var domId))
                 {
-                    planApi.Logger.Error(this, $"Failed to find DOM ID for CORE resource pool ID {id}.");
+                    planApi.Logger.LogError($"Failed to find DOM ID for CORE resource pool ID {id}.");
                     continue;
                 }
 
@@ -242,7 +242,7 @@
             {
                 if (!domIdByCoreId.TryGetValue(id, out var domId))
                 {
-                    planApi.Logger.Error(this, $"Failed to find DOM ID for CORE resource ID {id}.");
+                    planApi.Logger.LogError($"Failed to find DOM ID for CORE resource ID {id}.");
                     continue;
                 }
 
@@ -258,7 +258,7 @@
             {
                 if (!domIdByCoreId.TryGetValue(id, out var domId))
                 {
-                    planApi.Logger.Error(this, $"Failed to find DOM ID for CORE resource ID {id}.");
+                    planApi.Logger.LogError("Failed to find DOM ID for CORE resource ID {id}.");
                     continue;
                 }
 
@@ -403,7 +403,7 @@
                     continue;
                 }
 
-                planApi.Logger.Information(this, $"Name '{resource.ResourceInfo.Name}' is already in use by CORE resource(s) with ID(s): {string.Join(" ,", existingResources.Select(x => x.ID))}");
+                planApi.Logger.LogInformation($"Name '{resource.ResourceInfo.Name}' is already in use by CORE resource(s) with ID(s): {string.Join(" ,", existingResources.Select(x => x.ID))}");
 
                 var error = new ResourceConfigurationError
                 {

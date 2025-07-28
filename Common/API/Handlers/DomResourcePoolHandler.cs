@@ -3,7 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-
+    using Microsoft.Extensions.Logging;
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.MediaOps.Plan.Storage.DOM;
@@ -181,7 +181,7 @@
 
             foreach (var foundInstance in planApi.DomHelpers.SlcResourceStudioHelper.GetResourceStudioInstances(poolsRequiringValidation.Select(x => x.Id)))
             {
-                planApi.Logger.Information(this, $"ID '{foundInstance.ID.Id}' is already in use by a Resource Studio instance.");
+                planApi.Logger.LogInformation($"ID is already in use by a Resource Studio instance.", foundInstance.ID.Id);
 
                 var error = new ResourcePoolConfigurationError
                 {
@@ -294,7 +294,7 @@
                     continue;
                 }
 
-                planApi.Logger.Information(this, $"Name '{pool.Name}' is already in use by DOM resource pool(s) with ID(s): {string.Join(", ", existingPools.Select(x => x.ID.Id))}.");
+                planApi.Logger.LogInformation($"Name '{pool.Name}' is already in use by DOM resource pool(s) with ID(s)", existingPools.Select(x => x.ID.Id).ToArray());
 
                 var error = new ResourcePoolConfigurationError
                 {
