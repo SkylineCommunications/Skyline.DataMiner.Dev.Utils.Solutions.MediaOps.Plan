@@ -4,14 +4,12 @@
     using System.Collections.Generic;
     using System.Linq;
 
+    using Skyline.DataMiner.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
-    using Skyline.DataMiner.MediaOps.Plan.Storage;
-    using Skyline.DataMiner.MediaOps.Plan.Storage.DOM;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Net.Sections;
-    using Skyline.DataMiner.Utils.DOM.Extensions;
 
     using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
@@ -29,17 +27,23 @@
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
-            if (!apiObject.IsNew)
+            return ActivityHelper.Track(nameof(Create), act =>
             {
-                throw new MediaOpsException("Not possible to use method Create for existing resource pool. Use CreateOrUpdate or Update instead.");
-            }
+                if (!apiObject.IsNew)
+                {
+                    throw new MediaOpsException("Not possible to use method Create for existing resource pool. Use CreateOrUpdate or Update instead.");
+                }
 
-            if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
-            {
-                throw new MediaOpsException(result.TraceDataPerItem[apiObject.Id]);
-            }
+                if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
+                {
+                    throw new MediaOpsException(result.TraceDataPerItem[apiObject.Id]);
+                }
 
-            return result.SuccessfulIds.First();
+                var resourcePoolId = result.SuccessfulIds[0];
+                act.AddTag("ResourcePoolId", resourcePoolId);
+
+                return resourcePoolId;
+            });
         }
 
         public IEnumerable<Guid> Create(IEnumerable<ResourcePool> apiObjects)
@@ -79,17 +83,23 @@
                 throw new ArgumentException("Resource pool ID cannot be empty.", nameof(resourcePoolId));
             }
 
-            var actionMethods = new Dictionary<ResourcePoolState, Action<Guid>>
+            ActivityHelper.Track(nameof(MoveTo), act =>
             {
-                [ResourcePoolState.Complete] = HandleMoveToCompleteAction,
-            };
+                act.AddTag("ResourcePoolId", resourcePoolId);
+                act.AddTag("DesiredState", desiredState);
 
-            if (!actionMethods.TryGetValue(desiredState, out var action))
-            {
-                throw new MediaOpsException($"Move to state '{desiredState}' is not supported.");
-            }
+                var actionMethods = new Dictionary<ResourcePoolState, Action<Guid>>
+                {
+                    [ResourcePoolState.Complete] = HandleMoveToCompleteAction,
+                };
 
-            action(resourcePoolId);
+                if (!actionMethods.TryGetValue(desiredState, out var action))
+                {
+                    throw new MediaOpsException($"Move to state '{desiredState}' is not supported.");
+                }
+
+                action(resourcePoolId);
+            });
         }
 
         public ResourcePool Read(Guid id)
@@ -99,17 +109,23 @@
                 throw new ArgumentNullException(nameof(id));
             }
 
-            var filter = DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourcepool.Id)
-                .AND(DomInstanceExposers.Id.Equal(id));
-            var domResourcePool = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(filter)
-                .FirstOrDefault();
-
-            if (domResourcePool == null)
+            return ActivityHelper.Track(nameof(Read), act =>
             {
-                return null;
-            }
+                act.AddTag("ResourcePoolId", id);
+                var filter = DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourcepool.Id)
+                        .AND(DomInstanceExposers.Id.Equal(id));
+                var domResourcePool = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(filter)
+                    .FirstOrDefault();
 
-            return new ResourcePool(domResourcePool);
+                if (domResourcePool == null)
+                {
+                    act.AddTag("Hit", false);
+                    return null;
+                }
+
+                act.AddTag("Hit", true);
+                return new ResourcePool(domResourcePool);
+            });
         }
 
         public IDictionary<Guid, ResourcePool> Read(IEnumerable<Guid> ids)
@@ -119,12 +135,19 @@
                 throw new ArgumentNullException(nameof(ids));
             }
 
-            if (!ids.Any())
+            return ActivityHelper.Track(nameof(Read), act =>
             {
-                return new Dictionary<Guid, ResourcePool>();
-            }
+                act.AddTag("RequestedResourcePoolCount", ids.Count());
+                if (!ids.Any())
+                {
+                    return new Dictionary<Guid, ResourcePool>();
+                }
 
-            return PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(ids).SafeToDictionary(x => x.ID.Id, x => new ResourcePool(x));
+                var retrievedPools = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(ids).SafeToDictionary(x => x.ID.Id, x => new ResourcePool(x));
+
+                act.AddTag("RetrievedResourcePoolCount", retrievedPools.Count);
+                return retrievedPools;
+            });
         }
 
         public IEnumerable<ResourcePool> Read(FilterElement<ResourcePool> filter)
@@ -134,11 +157,19 @@
 
         public IEnumerable<ResourcePool> ReadAll()
         {
-            var filter = DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourcepool.Id);
-            foreach (var domResourcePool in PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(filter))
+            return ActivityHelper.Track(nameof(Read), act =>
             {
-                yield return new ResourcePool(domResourcePool);
-            }
+                var filter = DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourcepool.Id);
+                IEnumerable<ResourcePool> Iterator()
+                {
+                    foreach (var domResourcePool in PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(filter))
+                    {
+                        yield return new ResourcePool(domResourcePool);
+                    }
+                }
+
+                return Iterator();
+            });
         }
 
         public IEnumerable<IEnumerable<ResourcePool>> ReadAllPage()
@@ -153,20 +184,24 @@
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
-            if (!apiObject.HasChanges)
+            ActivityHelper.Track(nameof(Update), act =>
             {
-                return;
-            }
+                if (!apiObject.HasChanges)
+                {
+                    act.AddTag("NoChanges", true);
+                    return;
+                }
 
-            if (apiObject.IsNew)
-            {
-                throw new MediaOpsException("Not possible to use method Update for a new resource pool. Use CreateOrUpdate or Create instead.");
-            }
+                if (apiObject.IsNew)
+                {
+                    throw new MediaOpsException("Not possible to use method Update for a new resource pool. Use CreateOrUpdate or Create instead.");
+                }
 
-            if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
-            {
-                throw new MediaOpsException(result.TraceDataPerItem[apiObject.Id]);
-            }
+                if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
+                {
+                    throw new MediaOpsException(result.TraceDataPerItem[apiObject.Id]);
+                }
+            });
         }
 
         public void Update(IEnumerable<ResourcePool> apiObjects)
@@ -181,7 +216,11 @@
                 throw new ArgumentException("Resource pool ID cannot be empty.", nameof(domResourcePoolId));
             }
 
-            return PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(DomInstanceExposers.Id.Equal(domResourcePoolId)).FirstOrDefault();
+            return ActivityHelper.Track(nameof(GetDomResourcePool), act =>
+            {
+                act.AddTag("ResourcePoolId", domResourcePoolId);
+                return PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(DomInstanceExposers.Id.Equal(domResourcePoolId)).FirstOrDefault();
+            });
         }
 
         private void HandleMoveToCompleteAction(Guid resourcePoolId)
