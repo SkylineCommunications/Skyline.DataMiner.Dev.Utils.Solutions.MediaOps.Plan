@@ -4,11 +4,12 @@
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Linq;
-
+    using Microsoft.Extensions.Logging;
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.MediaOps.Plan.Storage;
     using Skyline.DataMiner.MediaOps.Plan.Storage.DOM;
+    using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Net.Sections;
@@ -25,6 +26,8 @@
 
         public Guid Create(ResourcePool apiObject)
         {
+            PlanApi.Logger?.LogInformation("Creating new ResourcePool...");
+
             using (var act = MediaOpsPlanApi.ActivitySource.StartActivity(nameof(Create), ActivityKind.Server))
             {
                 try
@@ -89,6 +92,8 @@
 
         public void MoveTo(Guid resourcePoolId, ResourcePoolState desiredState)
         {
+            PlanApi.Logger?.LogInformation($"Moving ResourcePool {resourcePoolId} to {desiredState}...");
+
             using (var act = MediaOpsPlanApi.ActivitySource.StartActivity(nameof(MoveTo), ActivityKind.Server))
             {
                 act.AddTag("ResourcePoolId", resourcePoolId);
@@ -123,6 +128,8 @@
 
         public ResourcePool Read(Guid id)
         {
+            PlanApi.Logger?.LogInformation($"Reading ResourcePool with ID: {id}...");
+
             using (var act = MediaOpsPlanApi.ActivitySource.StartActivity())
             {
                 act.AddTag("ResourcePoolId", id);
@@ -301,7 +308,7 @@
                 .FirstOrDefault(x => x.ID.Id != domResourcePoolId && x.Status != StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.StatusesEnum.Draft);
             if (existingDomResourcePool != null)
             {
-                PlanApi.Logger.Information(this, $"Name '{name}' is already in use by a DOM resource pool with ID '{existingDomResourcePool.ID.Id}'.");
+                PlanApi.Logger?.LogInformation($"Name '{name}' is already in use by a DOM resource pool with ID '{existingDomResourcePool.ID.Id}'.");
                 throw new MediaOpsException(new ResourcePoolConfigurationError
                 {
                     ErrorReason = ResourcePoolConfigurationError.Reason.NameExists,
