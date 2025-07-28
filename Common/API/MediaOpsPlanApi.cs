@@ -1,7 +1,6 @@
 ﻿namespace Skyline.DataMiner.MediaOps.Plan.API
 {
     using System;
-    using System.Diagnostics;
     using Microsoft.Extensions.Logging;
     using Skyline.DataMiner.Core.DataMinerSystem.Common;
     using Skyline.DataMiner.MediaOps.Plan.Logger;
@@ -14,10 +13,6 @@
     /// </summary>
     public class MediaOpsPlanApi : IMediaOpsPlanApi
     {
-        public static readonly string ApiSourceName = "Skyline.DataMiner.MediaOps.Plan.API";
-
-        internal static readonly ActivitySource ActivitySource = new ActivitySource(ApiSourceName);
-
         private readonly ILogger<IMediaOpsPlanApi> logger;
         private readonly IConnection connection;
 
