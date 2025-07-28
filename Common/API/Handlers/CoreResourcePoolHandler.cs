@@ -3,7 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-
+    using Microsoft.Extensions.Logging;
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.MediaOps.Plan.Storage.Core;
@@ -120,7 +120,7 @@
             {
                 if (!DomIdByCoreId.TryGetValue(id, out var domId))
                 {
-                    planApi.Logger.Error(this, $"Failed to find DOM ID for CORE resource pool ID {id}.");
+                    planApi.Logger.LogError($"Failed to find DOM ID for CORE resource pool ID", id);
                     continue;
                 }
 
@@ -136,7 +136,7 @@
             {
                 if (!DomIdByCoreId.TryGetValue(id, out var domId))
                 {
-                    planApi.Logger.Error(this, $"Failed to find DOM ID for CORE resource pool ID {id}.");
+                    planApi.Logger.LogError($"Failed to find DOM ID for CORE resource pool ID", id);
                     continue;
                 }
 
@@ -254,7 +254,7 @@
                     continue;
                 }
 
-                planApi.Logger.Information(this, $"Name '{pool.ResourcePoolInfo.Name}' is already in use by CORE resource pool(s) with ID(s): {string.Join(", ", existingPools.Select(x => x.ID))}.");
+                planApi.Logger.LogInformation($"Name '{pool.ResourcePoolInfo.Name}' is already in use by CORE resource pool(s) with ID(s)", existingPools.Select(x => x.ID).ToArray());
 
                 var error = new ResourcePoolConfigurationError
                 {

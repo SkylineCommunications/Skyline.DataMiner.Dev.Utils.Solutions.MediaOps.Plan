@@ -30,11 +30,12 @@
             {
                 act?.AddTag("error", "true");
                 act?.AddEvent(new ActivityEvent("exception", default, new ActivityTagsCollection
-            {
-                { "exception.type", ex.GetType().FullName },
-                { "exception.message", ex.Message },
-                { "exception.stacktrace", ex.StackTrace }
-            }));
+                {
+                    { "exception.type", ex.GetType().FullName },
+                    { "exception.message", ex.Message },
+                    { "exception.stacktrace", ex.StackTrace }
+                }));
+
                 throw;
             }
         }
@@ -57,11 +58,12 @@
             {
                 act?.AddTag("error", "true");
                 act?.AddEvent(new ActivityEvent("exception", default, new ActivityTagsCollection
-            {
-                { "exception.type", ex.GetType().FullName },
-                { "exception.message", ex.Message },
-                { "exception.stacktrace", ex.StackTrace }
-            }));
+                {
+                    { "exception.type", ex.GetType().FullName },
+                    { "exception.message", ex.Message },
+                    { "exception.stacktrace", ex.StackTrace }
+                }));
+
                 throw;
             }
         }

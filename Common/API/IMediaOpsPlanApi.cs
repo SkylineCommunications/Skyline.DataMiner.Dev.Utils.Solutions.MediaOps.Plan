@@ -1,9 +1,11 @@
 ﻿namespace Skyline.DataMiner.MediaOps.Plan.API
 {
+    using System;
+
     /// <summary>
     /// Defines the contract for the MediaOps Plan API.
     /// </summary>
-    public interface IMediaOpsPlanApi
+    public interface IMediaOpsPlanApi : IDisposable
     {
         // /// <summary>
         // /// Gets the repository for managing resources.

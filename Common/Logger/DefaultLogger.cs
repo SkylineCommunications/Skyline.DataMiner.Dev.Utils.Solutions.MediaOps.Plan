@@ -2,17 +2,21 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.Runtime.CompilerServices;
     using System.Threading;
+    using Microsoft.Extensions.Logging;
+    using Skyline.DataMiner.MediaOps.Plan.API;
 
-    internal class DefaultLogger : ILogger
+    internal class DefaultLogger : ILogger<IMediaOpsPlanApi>, IDisposable
     {
         private static readonly IReadOnlyDictionary<LogLevel, string> LogLevelAbbreviations = new Dictionary<LogLevel, string>
         {
+            { LogLevel.Trace, "TRC" },
             { LogLevel.Debug, "DBG" },
             { LogLevel.Information, "INF" },
             { LogLevel.Warning, "WRN" },
             { LogLevel.Error, "ERR" },
+            { LogLevel.Critical, "CRT" },
+            { LogLevel.None, "N/A" }
         };
 
         private readonly FixedFileLogger fixedFileLogger;
@@ -29,71 +33,6 @@
         }
 
         public LogLevel MinimumLogLevel { get; set; } = LogLevel.Information;
-
-        public void Debug(string className, string methodName, string message)
-        {
-            Log(LogLevel.Debug, className, methodName, message);
-        }
-
-        public void Debug(object callerInstance, string message, [CallerMemberName] string methodName = "")
-        {
-            Debug(callerInstance.GetType().Name, methodName, message);
-        }
-
-        public void Error(object callerInstance, Exception exception, string message, [CallerMemberName] string methodName = "")
-        {
-            Error(callerInstance.GetType().Name, methodName, $"{message} with exception:{Environment.NewLine}{exception}");
-        }
-
-        public void Error(Exception exception, string message)
-        {
-            Log("ERR", $"{message} with exception:{Environment.NewLine}{exception}");
-        }
-
-        public void Error(string className, string methodName, Exception exception, string message)
-        {
-            Log(LogLevel.Error, className, methodName, $"{message} with exception:{Environment.NewLine}{exception}");
-        }
-
-        public void Error(string className, string methodName, string message)
-        {
-            Log(LogLevel.Error, className, methodName, message);
-        }
-
-        public void Error(object callerInstance, string message, [CallerMemberName] string methodName = "")
-        {
-            Error(callerInstance.GetType().Name, methodName, message);
-        }
-
-        public void Information(string className, string methodName, string message)
-        {
-            Log(LogLevel.Information, className, methodName, message);
-        }
-
-        public void Information(object callerInstance, string message, [CallerMemberName] string methodName = "")
-        {
-            Information(callerInstance.GetType().Name, methodName, message);
-        }
-
-        public void Warning(Exception exception, string message)
-        {
-            Log("WRN", $"{message} with exception:{Environment.NewLine}{exception}");
-        }
-
-        public void Warning(string className, string methodName, Exception exception, string message)
-        {
-            Log(LogLevel.Warning, className, methodName, $"{message} with exception:{Environment.NewLine}{exception}");
-        }
-
-        public void Warning(string className, string methodName, string message)
-        {
-            Log(LogLevel.Warning, className, methodName, message);
-        }
-
-        public void Warning(object callerInstance, string message, [CallerMemberName] string methodName = "")
-        {
-            Warning(callerInstance.GetType().Name, methodName, message);
-        }
 
         public void Dispose()
         {
@@ -117,19 +56,37 @@
             }
         }
 
-        private void Log(LogLevel logLevel, string className, string methodName, string message)
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
         {
-            if (logLevel < MinimumLogLevel)
+            if (logLevel < MinimumLogLevel || fixedFileLogger == null)
             {
                 return;
             }
 
-            Log(LogLevelAbbreviations[logLevel], $"{className}|{methodName}|{message}");
+            if (formatter == null)
+            {
+                throw new ArgumentNullException(nameof(formatter));
+            }
+
+            string logLevelAbbreviation = LogLevelAbbreviations.TryGetValue(logLevel, out var abbr) ? abbr : logLevel.ToString().ToUpperInvariant();
+            string message = formatter(state, exception);
+
+            if (exception != null)
+            {
+                message = $"{message} with exception:{Environment.NewLine}{exception}";
+            }
+
+            fixedFileLogger.LogLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} [{Thread.CurrentThread.ManagedThreadId}] [{logLevelAbbreviation}] {message}");
         }
 
-        private void Log(string logLevel, string message)
+        public bool IsEnabled(LogLevel logLevel)
         {
-            fixedFileLogger?.LogLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} [{Thread.CurrentThread.ManagedThreadId}] [{logLevel}] {message}");
+            return logLevel >= MinimumLogLevel && fixedFileLogger != null;
+        }
+
+        public IDisposable BeginScope<TState>(TState state) where TState : notnull
+        {
+            throw new NotSupportedException();
         }
     }
 }

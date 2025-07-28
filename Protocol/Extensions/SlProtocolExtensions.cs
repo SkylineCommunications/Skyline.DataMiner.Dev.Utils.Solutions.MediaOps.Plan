@@ -1,9 +1,8 @@
 ﻿namespace Skyline.DataMiner.MediaOps.Plan.Protocol
 {
     using System;
-
+    using Microsoft.Extensions.Logging;
     using Skyline.DataMiner.MediaOps.Plan.API;
-    using Skyline.DataMiner.MediaOps.Plan.Logger;
     using Skyline.DataMiner.Scripting;
 
     /// <summary>
@@ -18,7 +17,7 @@
         /// <param name="logger">The <see cref="ILogger"/> implementation.</param>
         /// <returns>Instance of the <see cref="IMediaOpsPlanApi"/> interface.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="protocol"/> is <see langword="null" />.</exception>
-        public static IMediaOpsPlanApi GetMediaOpsPlanApi(this SLProtocol protocol, ILogger logger = null)
+        public static IMediaOpsPlanApi GetMediaOpsPlanApi(this SLProtocol protocol, ILogger<IMediaOpsPlanApi> logger = null)
         {
             if (protocol == null)
             {

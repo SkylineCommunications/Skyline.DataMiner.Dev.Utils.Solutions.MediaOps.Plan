@@ -5,6 +5,7 @@
     using System.Linq;
 
     using Skyline.DataMiner.MediaOps.Plan.ActivityHelper;
+    using Microsoft.Extensions.Logging;
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
@@ -22,6 +23,8 @@
 
         public Guid Create(ResourcePool apiObject)
         {
+            PlanApi.Logger.LogInformation("Creating new ResourcePool...");
+
             if (apiObject == null)
             {
                 throw new ArgumentNullException(nameof(apiObject));
@@ -78,6 +81,8 @@
 
         public void MoveTo(Guid resourcePoolId, ResourcePoolState desiredState)
         {
+            PlanApi.Logger.LogInformation($"Moving ResourcePool {resourcePoolId} to {desiredState}...");
+
             if (resourcePoolId == Guid.Empty)
             {
                 throw new ArgumentException("Resource pool ID cannot be empty.", nameof(resourcePoolId));
@@ -104,6 +109,8 @@
 
         public ResourcePool Read(Guid id)
         {
+            PlanApi.Logger.LogInformation($"Reading ResourcePool with ID: {id}...");
+
             if (id == Guid.Empty)
             {
                 throw new ArgumentNullException(nameof(id));
@@ -252,7 +259,7 @@
                 .FirstOrDefault(x => x.ID.Id != domResourcePoolId && x.Status != StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.StatusesEnum.Draft);
             if (existingDomResourcePool != null)
             {
-                PlanApi.Logger.Information(this, $"Name '{name}' is already in use by a DOM resource pool with ID '{existingDomResourcePool.ID.Id}'.");
+                PlanApi.Logger.LogInformation($"Name '{name}' is already in use by a DOM resource pool with ID '{existingDomResourcePool.ID.Id}'.");
                 throw new MediaOpsException(new ResourcePoolConfigurationError
                 {
                     ErrorReason = ResourcePoolConfigurationError.Reason.NameExists,

@@ -4,18 +4,19 @@
     using System.Diagnostics;
     using System.Net;
     using OpenTelemetry;
+    using OpenTelemetry.Logs;
     using OpenTelemetry.Trace;
 
     using Skyline.DataMiner.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.MediaOps.Plan.API;
     using Skyline.DataMiner.Net;
-
     using DMConnection = Skyline.DataMiner.Net.Connection;
 
     internal class Program
     {
         public static readonly string OpenTelemetrySourceName = "Skyline.DataMiner.MediaOps.Plan.Injector";
-        internal static readonly ActivitySource activitySource = new ActivitySource(OpenTelemetrySourceName);
+
+        private static readonly ActivitySource activitySource = new ActivitySource(OpenTelemetrySourceName);
 
         static void Main(string[] args)
         {
@@ -95,6 +96,7 @@
             }
             finally
             {
+                planApi.Dispose();
                 tracingProvider.Dispose();
             }
         }
