@@ -13,9 +13,6 @@
     /// </summary>
     public class MediaOpsPlanApi : IMediaOpsPlanApi
     {
-        public static readonly string ApiSourceName = "Skyline.DataMiner.MediaOps.Plan.API";
-        internal static readonly ActivitySource ActivitySource = new ActivitySource(ApiSourceName);
-
         private readonly IConnection connection;
         private readonly ILogger logger;
 
