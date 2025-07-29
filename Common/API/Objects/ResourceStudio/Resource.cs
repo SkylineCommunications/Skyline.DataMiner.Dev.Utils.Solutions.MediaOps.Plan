@@ -24,6 +24,8 @@
 
         private int concurrency;
 
+        private Guid coreResourceId;
+
         private protected Resource() : base()
         {
             IsNew = true;
@@ -47,12 +49,12 @@
         /// <summary>
         /// Gets or sets the name of the resource.
         /// </summary>
-        public string Name
+        public override string Name
         {
             get => name;
             set
             {
-                HasChanges = true;
+                HasChanges |= !String.Equals(name, value);
                 name = value;
             }
         }
@@ -65,7 +67,7 @@
             get => isFavorite;
             set
             {
-                HasChanges = true;
+                HasChanges |= isFavorite != value;
                 isFavorite = value;
             }
         }
@@ -78,7 +80,7 @@
             get => concurrency;
             set
             {
-                HasChanges = true;
+                HasChanges |= concurrency != value;
                 concurrency = value;
             }
         }
@@ -112,6 +114,8 @@
         }
 
         internal StorageResourceStudio.ResourceInstance OriginalInstance => originalInstance;
+
+        internal Guid CoreResourceId => coreResourceId;
 
         internal StorageResourceStudio.ResourceInstance GetInstanceWithChanges()
         {
@@ -163,8 +167,19 @@
             name = instance.ResourceInfo.Name;
             isFavorite = instance.ResourceInfo.Favorite.HasValue ? instance.ResourceInfo.Favorite.Value : false;
             concurrency = instance.ResourceInfo.Concurrency.HasValue ? (int)instance.ResourceInfo.Concurrency.Value : 1;
+            coreResourceId = instance.ResourceInternalProperties.Resource_Id ?? Guid.Empty;
 
             State = EnumExtensions.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum, ResourceState>(instance.Status);
+        }
+
+        // TODO: should we support this? OR should a user read the created/updated instances after pushing their changes?
+        internal void UpdateInstance(StorageResourceStudio.ResourceInstance instance)
+        {
+            ParseInstance(instance);
+
+            updatedInstance = null;
+            HasChanges = false;
+            IsNew = false;
         }
     }
 
@@ -261,9 +276,16 @@
 
         private void ParseInstance(StorageResourceStudio.ResourceInstance instance)
         {
-            if (!string.IsNullOrWhiteSpace(instance.ResourceInternalProperties.Metadata.LinkedElementInfo))
+            DmsElementId elementInfo;
+            if (!string.IsNullOrEmpty(instance.ResourceInternalProperties?.Metadata?.LinkedElementInfo))
             {
-                var elementInfo = new DmsElementId(instance.ResourceInternalProperties.Metadata.LinkedElementInfo);
+                elementInfo = new DmsElementId(instance.ResourceInternalProperties.Metadata.LinkedElementInfo);
+                agentId = elementInfo.AgentId;
+                elementId = elementInfo.ElementId;
+            }
+            else if (!string.IsNullOrEmpty(instance.ResourceInfo?.Element))
+            {
+                elementInfo = new DmsElementId(instance.ResourceInfo.Element);
                 agentId = elementInfo.AgentId;
                 elementId = elementInfo.ElementId;
             }

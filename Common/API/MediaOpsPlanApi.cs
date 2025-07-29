@@ -20,6 +20,7 @@
         private readonly CoreHelpers coreHelpers;
 
         private readonly Lazy<IDms> lazyDms;
+        private readonly Lazy<IResourcesRepository> lazyResourceRepository;
         private readonly Lazy<IResourcePoolsRepository> lazyResourcePoolsRepository;
         private bool disposedValue;
 
@@ -37,11 +38,17 @@
             coreHelpers = new CoreHelpers(connection);
 
             lazyDms = new Lazy<IDms>(() => connection.GetDms());
+            lazyResourceRepository = new Lazy<IResourcesRepository>(() => new ResourcesRepository(this));
             lazyResourcePoolsRepository = new Lazy<IResourcePoolsRepository>(() => new ResourcePoolsRepository(this));
         }
 
         /// <summary>
-        /// Gets the repository for managing resource pools.
+        /// <inheritdoc/>
+        /// </summary>
+        public IResourcesRepository Resources => lazyResourceRepository.Value;
+
+        /// <summary>
+        /// <inheritdoc/>
         /// </summary>
         public IResourcePoolsRepository ResourcePools => lazyResourcePoolsRepository.Value;
 

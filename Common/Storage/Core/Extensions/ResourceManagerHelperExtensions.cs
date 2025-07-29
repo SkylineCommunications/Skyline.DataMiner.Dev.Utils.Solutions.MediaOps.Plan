@@ -213,7 +213,7 @@
                 throw new ArgumentNullException(nameof(options));
             }
 
-            var result = InnerDeleteResourcesInBathes(helper, resources, options);
+            var result = InnerDeleteResourcesInBatches(helper, resources, options);
             result.ThrowOnFailure();
 
             return result;
@@ -236,7 +236,7 @@
                 throw new ArgumentNullException(nameof(options));
             }
 
-            result = InnerDeleteResourcesInBathes(helper, resources, options);
+            result = InnerDeleteResourcesInBatches(helper, resources, options);
 
             return !result.HasFailures();
         }
@@ -316,7 +316,7 @@
             return new BulkCreateOrUpdateResult<Guid>(successfulIds, unsuccessfulIds, traceDataPerItem);
         }
 
-        private static Exceptions.BulkDeleteResult<Guid> InnerDeleteResourcesInBathes(ResourceManagerHelper helper, IEnumerable<Resource> resources, ResourceDeleteOptions options)
+        private static Exceptions.BulkDeleteResult<Guid> InnerDeleteResourcesInBatches(ResourceManagerHelper helper, IEnumerable<Resource> resources, ResourceDeleteOptions options)
         {
             var successfulIds = new List<Guid>();
             var unsuccessfulIds = new List<Guid>();

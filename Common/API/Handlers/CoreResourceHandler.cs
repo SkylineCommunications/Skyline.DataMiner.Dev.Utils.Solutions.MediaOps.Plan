@@ -345,6 +345,7 @@
                 var dveStateColumn = genericDveTable.GetColumn<int?>(65136);
                 dveStateColumn.SetValue(fResource.PK, 1);
             };
+
             EnableDveActionByCoreId.Add(coreResource.ID, enableDveAction);
         }
 
@@ -372,6 +373,7 @@
                 .Where(g => g.Count() > 1)
                 .SelectMany(x => x)
                 .ToList();
+
             foreach (var resource in resourcesWithDuplicateNames)
             {
                 var error = new ResourceConfigurationError
@@ -410,6 +412,7 @@
                     ErrorReason = ResourceConfigurationError.Reason.NameExists,
                     ErrorMessage = "Name is already in use.",
                 };
+
                 AddError(resource.ID.Id, error);
             }
         }
@@ -438,6 +441,7 @@
                         ErrorReason = ResourceConfigurationError.Reason.InvalidElementLink,
                         ErrorMessage = $"No element found with ID '{kvp.Value.ResourceInternalProperties.Metadata.LinkedElementInfo}'.",
                     };
+
                     AddError(kvp.Value.ID.Id, error);
 
                     continue;
@@ -450,6 +454,7 @@
                         ErrorReason = ResourceConfigurationError.Reason.InvalidElementLink,
                         ErrorMessage = $"Element '{element.Name}' is a function element and cannot be linked to a resource.",
                     };
+
                     AddError(kvp.Value.ID.Id, error);
                 }
             }
@@ -477,6 +482,7 @@
                     ErrorReason = ResourceConfigurationError.Reason.InvalidServiceLink,
                     ErrorMessage = $"No service found with ID '{kvp.Value.ResourceInternalProperties.Metadata.LinkedServiceInfo}'.",
                 };
+
                 AddError(kvp.Value.ID.Id, error);
             }
         }

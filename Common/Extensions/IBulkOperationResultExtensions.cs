@@ -1,8 +1,6 @@
 ﻿namespace Skyline.DataMiner.MediaOps.Plan.Extensions
 {
     using System;
-    using System.Collections.Generic;
-
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
 
     internal static class IBulkOperationResultExtensions
@@ -14,7 +12,7 @@
                 throw new ArgumentException(nameof(result));
             }
 
-            List<K> unsuccessfulIds = result.UnsuccessfulIds;
+            var unsuccessfulIds = result.UnsuccessfulIds;
             if (unsuccessfulIds == null)
             {
                 return false;

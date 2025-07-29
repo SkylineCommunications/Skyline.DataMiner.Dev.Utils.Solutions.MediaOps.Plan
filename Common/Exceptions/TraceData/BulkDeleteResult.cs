@@ -4,13 +4,13 @@
     using System.Collections.Generic;
 
     /// <summary>
-    /// Contains the succesfully deleted items and the <see cref="MediaOpsTraceData"/> per item.
+    /// Contains the successfully deleted items and the <see cref="MediaOpsTraceData"/> per item.
     /// </summary>
     /// <typeparam name="K">The ID of an item.</typeparam>
     public class BulkDeleteResult<K> : IBulkOperationResult<K>
     where K : IEquatable<K>
     {
-        internal BulkDeleteResult(List<K> successfulIds, List<K> unsuccessfulIds, Dictionary<K, MediaOpsTraceData> traceDataPerItem)
+        internal BulkDeleteResult(IReadOnlyCollection<K> successfulIds, IReadOnlyCollection<K> unsuccessfulIds, IReadOnlyDictionary<K, MediaOpsTraceData> traceDataPerItem)
         {
             SuccessfulIds = successfulIds ?? throw new ArgumentNullException(nameof(successfulIds));
             UnsuccessfulIds = unsuccessfulIds ?? throw new ArgumentNullException(nameof(unsuccessfulIds));
@@ -20,16 +20,16 @@
         /// <summary>
         /// Gets a list of IDs of items that were successfully deleted.
         /// </summary>
-        public List<K> SuccessfulIds { get; }
+        public IReadOnlyCollection<K> SuccessfulIds { get; }
 
         /// <summary>
         /// Gets a the <see cref="MediaOpsTraceData"/> per deleted item.
         /// </summary>
-        public Dictionary<K, MediaOpsTraceData> TraceDataPerItem { get; }
+        public IReadOnlyDictionary<K, MediaOpsTraceData> TraceDataPerItem { get; }
 
         /// <summary>
         /// Gets a list of IDs of the items that could not get created or updated.
         /// </summary>
-        public List<K> UnsuccessfulIds { get; }
+        public IReadOnlyCollection<K> UnsuccessfulIds { get; }
     }
 }

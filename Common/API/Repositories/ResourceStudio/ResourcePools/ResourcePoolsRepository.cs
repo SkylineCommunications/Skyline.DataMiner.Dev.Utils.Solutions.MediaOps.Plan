@@ -42,7 +42,7 @@
                     throw new MediaOpsException(result.TraceDataPerItem[apiObject.Id]);
                 }
 
-                var resourcePoolId = result.SuccessfulIds[0];
+                var resourcePoolId = result.SuccessfulIds.First();
                 act.AddTag("ResourcePoolId", resourcePoolId);
 
                 return resourcePoolId;
@@ -179,7 +179,7 @@
             });
         }
 
-        public IEnumerable<IEnumerable<ResourcePool>> ReadAllPage()
+        public IEnumerable<IEnumerable<ResourcePool>> ReadAllPaged()
         {
             throw new NotImplementedException();
         }
