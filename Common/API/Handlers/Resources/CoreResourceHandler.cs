@@ -5,13 +5,13 @@
     using System.Linq;
     using Microsoft.Extensions.Logging;
     using Skyline.DataMiner.Core.DataMinerSystem.Common;
-    using Skyline.DataMiner.Core.DataMinerSystem.Common.Selectors;
+    using Skyline.DataMiner.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.MediaOps.Plan.Storage.Core;
+    using Skyline.DataMiner.Net.Helper;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
-    using Skyline.DataMiner.Net.PerformanceIndication;
-
+    using Skyline.DataMiner.Net.SRM.Capacities;
     using CoreResource = Skyline.DataMiner.Net.Messages.Resource;
     using DomResource = Storage.DOM.SlcResource_Studio.ResourceInstance;
 
@@ -22,13 +22,26 @@
         private readonly List<Guid> successfulIds = new List<Guid>();
         private readonly List<Guid> unsuccessfulIds = new List<Guid>();
         private readonly Dictionary<Guid, MediaOpsTraceData> traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
-
         private readonly Dictionary<Guid, Action<CoreResource>> EnableDveActionByCoreId = new Dictionary<Guid, Action<CoreResource>>();
+
+        private Lazy<Dictionary<Guid, Skyline.DataMiner.Net.Profiles.Parameter>> lazyCoreCapabilitiesById;
+        private Lazy<Dictionary<Guid, Skyline.DataMiner.Net.Profiles.Parameter>> lazyCoreCapacitiesById;
+        private Lazy<DomCapabilitiesHandler> lazyCapabilitiesHandler;
 
         private CoreResourceHandler(MediaOpsPlanApi planApi)
         {
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
+
+            lazyCoreCapabilitiesById = new Lazy<Dictionary<Guid, Skyline.DataMiner.Net.Profiles.Parameter>>(() => planApi.CoreHelpers.ProfileProvider.GetAllCapabilities().ToDictionary(x => x.ID));
+            lazyCoreCapacitiesById = new Lazy<Dictionary<Guid, Skyline.DataMiner.Net.Profiles.Parameter>>(() => planApi.CoreHelpers.ProfileProvider.GetAllCapacities().ToDictionary(x => x.ID));
+            lazyCapabilitiesHandler = new Lazy<DomCapabilitiesHandler>(() => new DomCapabilitiesHandler(planApi));
         }
+
+        private Dictionary<Guid, Skyline.DataMiner.Net.Profiles.Parameter> CoreCapabilitiesById => lazyCoreCapabilitiesById.Value;
+
+        private Dictionary<Guid, Skyline.DataMiner.Net.Profiles.Parameter> CoreCapacitiesById => lazyCoreCapacitiesById.Value;
+
+        private DomCapabilitiesHandler CapabilitiesHandler => lazyCapabilitiesHandler.Value;
 
         public static BulkCreateOrUpdateResult<Guid> CreateOrUpdate(MediaOpsPlanApi planApi, IEnumerable<DomResource> domResources)
         {
@@ -44,7 +57,7 @@
         public static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, IEnumerable<DomResource> domResources, out BulkCreateOrUpdateResult<Guid> result)
         {
             var handler = new CoreResourceHandler(planApi);
-            handler.CreateOrUpdate(domResources);
+            ActivityHelper.Track(nameof(CoreResourceHandler), nameof(CreateOrUpdate), act => handler.CreateOrUpdate(domResources));
 
             result = new BulkCreateOrUpdateResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
 
@@ -54,7 +67,7 @@
         public static BulkDeleteResult<Guid> Delete(MediaOpsPlanApi planApi, IEnumerable<DomResource> domResources)
         {
             var handler = new CoreResourceHandler(planApi);
-            handler.Delete(domResources);
+            ActivityHelper.Track(nameof(CoreResourceHandler), nameof(Delete), act => handler.Delete(domResources));
 
             var result = new BulkDeleteResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
             result.ThrowOnFailure();
@@ -65,11 +78,35 @@
         public static bool TryDelete(MediaOpsPlanApi planApi, IEnumerable<DomResource> domResources, out BulkDeleteResult<Guid> result)
         {
             var handler = new CoreResourceHandler(planApi);
-            handler.Delete(domResources);
+            ActivityHelper.Track(nameof(CoreResourceHandler), nameof(Delete), act => handler.Delete(domResources));
 
             result = new BulkDeleteResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
 
             return !result.HasFailures();
+        }
+
+        public static void DeprecateResource(MediaOpsPlanApi planApi, DomResource domResource)
+        {
+            if (domResource == null)
+            {
+                throw new ArgumentNullException(nameof(domResource));
+            }
+
+            var handler = new CoreResourceHandler(planApi);
+            ActivityHelper.Track(nameof(CoreResourceHandler), nameof(DeprecateResource), act => handler.DeprecateResource(domResource));
+        }
+
+        private void DeprecateResource(DomResource domResource)
+        {
+            var mapping = ResourceMapping.GetMappings(planApi, [domResource]).FirstOrDefault();
+            if (mapping?.CoreResource == null)
+            {
+                return;
+            }
+
+            var coreResource = mapping.CoreResource;
+            coreResource.Mode = Net.Messages.ResourceMode.Unavailable;
+            ActivityHelper.Track(nameof(Net.Messages.ResourceManagerHelper), nameof(Net.Messages.ResourceManagerHelper.AddOrUpdateResources), act => planApi.CoreHelpers.ResourceManagerHelper.AddOrUpdateResources(coreResource));
         }
 
         private void CreateOrUpdate(IEnumerable<DomResource> domResources)
@@ -503,6 +540,7 @@
             var domResourcesByElementInfo = domResources
                 .GroupBy(x => new DmsElementId(x.ResourceInternalProperties.Metadata.LinkedElementInfo))
                 .ToDictionary(x => x.Key, x => x.ToList());
+
             var elementsByElementInfo = planApi.CoreHelpers.DmsCache.GetElements(domResourcesByElementInfo.Keys);
 
             foreach (var kvp in domResourcesByElementInfo.ToList())
@@ -514,6 +552,7 @@
                         ErrorReason = ResourceConfigurationError.Reason.InvalidElementLink,
                         ErrorMessage = $"No element found with ID '{kvp.Key.Value}'.",
                     };
+
                     AddError(kvp.Value, error);
 
                     domResourcesByElementInfo.Remove(kvp.Key);
@@ -527,6 +566,7 @@
                         ErrorReason = ResourceConfigurationError.Reason.InvalidElementLink,
                         ErrorMessage = $"Element '{element.Name}' is a function element and cannot be linked to a resource.",
                     };
+
                     AddError(kvp.Value, error);
 
                     domResourcesByElementInfo.Remove(kvp.Key);
@@ -546,6 +586,7 @@
                     ErrorReason = ResourceConfigurationError.Reason.InvalidFunctionLink,
                     ErrorMessage = $"No function found with ID '{kvp.Key}'.",
                 };
+
                 AddError(kvp.Value, error);
 
                 domResourcesByFunctionId.Remove(kvp.Key);
@@ -579,6 +620,7 @@
                         ErrorReason = ResourceConfigurationError.Reason.DuplicateTableIndexLink,
                         ErrorMessage = $"Resource '{resource.ResourceInfo.Name}' has a duplicate table index '{resource.ResourceInternalProperties.Metadata.LinkedFunctionTableIndex}'.",
                     };
+
                     AddError(resource.ID.Id, error);
 
                     resourcesRequiringValidation.Remove(resource);
@@ -592,6 +634,7 @@
                         ErrorReason = ResourceConfigurationError.Reason.InvalidTableIndexLink,
                         ErrorMessage = $"Resource '{resource.ResourceInfo.Name}' has an invalid table index '{resource.ResourceInternalProperties.Metadata.LinkedFunctionTableIndex}'.",
                     };
+
                     AddError(resource.ID.Id, error);
                 }
             }
@@ -636,6 +679,203 @@
             }
 
             mediaOpsTraceData.Add(error);
+        }
+
+        internal static void SyncResources(MediaOpsPlanApi planApi, DomResource domResource)
+        {
+            var handler = new CoreResourceHandler(planApi);
+            handler.SyncResources(domResource);
+        }
+
+        private void SyncResources(DomResource domResource)
+        {
+            var resourceMapping = ResourceMapping.GetMappings(planApi, [domResource]).FirstOrDefault();
+            if (resourceMapping?.CoreResource == null)
+            {
+                // No CORE resource found for the DOM resource, nothing to sync.
+                return;
+            }
+
+            bool updateRequired = false;
+            updateRequired |= SyncCapacities(resourceMapping);
+            updateRequired |= SyncCapabilities(resourceMapping);
+            updateRequired |= SyncConcurrency(resourceMapping);
+            updateRequired |= SyncPools(resourceMapping);
+
+            if (!updateRequired)
+            {
+                return;
+            }
+
+            planApi.CoreHelpers.ResourceManagerHelper.AddOrUpdateResources(resourceMapping.CoreResource);
+        }
+
+        private bool SyncCapacities(ResourceMapping resourceMapping)
+        {
+            bool resourceHasChanges = false;
+            var required = GetRequiredResourceCapacities(resourceMapping);
+            var removed = resourceMapping.CoreResource.Capacities.Where(x => !required.Select(y => y.CapacityProfileID).Contains(x.CapacityProfileID)).ToList();
+
+            foreach (var resourceCapacity in removed)
+            {
+                resourceMapping.CoreResource.Capacities.Remove(resourceCapacity);
+
+                resourceHasChanges = true;
+            }
+
+            foreach (var resourceCapacity in required)
+            {
+                var capacity = resourceMapping.CoreResource.Capacities.SingleOrDefault(x => x.CapacityProfileID == resourceCapacity.CapacityProfileID);
+                if (capacity == null)
+                {
+                    resourceMapping.CoreResource.Capacities.Add(resourceCapacity);
+                }
+                else if (!capacity.Value.MaxDecimalQuantity.Equals(resourceCapacity.Value.MaxDecimalQuantity))
+                {
+                    capacity.Value.MaxDecimalQuantity = resourceCapacity.Value.MaxDecimalQuantity;
+                }
+                else
+                {
+                    continue;
+                }
+
+                resourceHasChanges = true;
+            }
+
+            return resourceHasChanges;
+        }
+
+        private List<MultiResourceCapacity> GetRequiredResourceCapacities(ResourceMapping resourceMapping)
+        {
+            var capacities = new List<MultiResourceCapacity>();
+            foreach (var resourceCapacity in resourceMapping.DomResource.ResourceCapacities)
+            {
+                if (!Guid.TryParse(resourceCapacity.ProfileParameterID, out Guid profileParameterId))
+                {
+                    planApi.Logger.LogWarning($"Invalid ProfileParameterID '{resourceCapacity.ProfileParameterID}' for resource '{resourceMapping.DomResource.ResourceInfo.Name}'. Skipping capacity sync.");
+                    continue;
+                }
+
+                if (!CoreCapacitiesById.TryGetValue(profileParameterId, out var coreCapacity))
+                {
+                    continue;
+                }
+
+                var capacity = new MultiResourceCapacity
+                {
+                    CapacityProfileID = coreCapacity.ID,
+                    Value = new Skyline.DataMiner.Net.Profiles.CapacityParameterValue
+                    {
+                        MaxDecimalQuantity = (decimal)resourceCapacity.DoubleValue,
+                    },
+                };
+
+                capacities.Add(capacity);
+            }
+
+            return capacities;
+        }
+
+        private bool SyncCapabilities(ResourceMapping resourceMapping)
+        {
+            bool resourceHasChanges = false;
+            var required = GetRequiredResourceCapabilities(resourceMapping);
+            var removed = resourceMapping.CoreResource.Capabilities.Where(x => !required.Select(y => y.CapabilityProfileID).Contains(x.CapabilityProfileID)).ToList();
+
+            foreach (var resourceCapability in removed)
+            {
+                resourceMapping.CoreResource.Capabilities.Remove(resourceCapability);
+
+                resourceHasChanges = true;
+            }
+
+            foreach (var resourceCapability in required)
+            {
+                var capability = resourceMapping.CoreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == resourceCapability.CapabilityProfileID);
+                if (capability == null)
+                {
+                    resourceMapping.CoreResource.Capabilities.Add(resourceCapability);
+                }
+                else if (!capability.Value.Discreets.Equals(resourceCapability.Value.Discreets))
+                {
+                    capability.Value.Discreets = resourceCapability.Value.Discreets;
+                }
+                else
+                {
+                    continue;
+                }
+
+                resourceHasChanges = true;
+            }
+
+            return resourceHasChanges;
+        }
+
+        private List<Skyline.DataMiner.Net.SRM.Capabilities.ResourceCapability> GetRequiredResourceCapabilities(ResourceMapping resourceMapping)
+        {
+            var domCapabilities = CapabilitiesHandler.GetExpectedCoreResourceCapabilities(resourceMapping.DomResource);
+
+            var coreCapabilities = new List<Skyline.DataMiner.Net.SRM.Capabilities.ResourceCapability>();
+            foreach (var configuredCapability in domCapabilities)
+            {
+                if (!CoreCapabilitiesById.TryGetValue(configuredCapability.ProfileParameterId, out var coreCapability))
+                {
+                    continue;
+                }
+
+                var capability = new Skyline.DataMiner.Net.SRM.Capabilities.ResourceCapability(coreCapability.ID)
+                {
+                    Value = new Skyline.DataMiner.Net.Profiles.CapabilityParameterValue(GetDiscretes(configuredCapability)),
+                };
+
+                coreCapabilities.Add(capability);
+            }
+
+            return coreCapabilities;
+        }
+
+        private List<string> GetDiscretes(IConfiguredCapability configuredCapability)
+        {
+            if (string.IsNullOrEmpty(configuredCapability.StringValue))
+            {
+                return new List<string>();
+            }
+
+            return configuredCapability.StringValue.Split(';').ToList();
+        }
+
+        private bool SyncConcurrency(ResourceMapping resourceMapping)
+        {
+            var configuredConcurrency = (int)resourceMapping.DomResource.ResourceInfo.Concurrency;
+            if (configuredConcurrency < 1)
+            {
+                configuredConcurrency = 1;
+            }
+
+            if (resourceMapping.CoreResource.MaxConcurrency == configuredConcurrency)
+            {
+                return false;
+            }
+
+            resourceMapping.CoreResource.MaxConcurrency = configuredConcurrency;
+            return true;
+        }
+
+        private bool SyncPools(ResourceMapping resourceMapping)
+        {
+            var poolIds = resourceMapping.DomResource.PoolIds ?? Enumerable.Empty<Guid>();
+            var pools = planApi.ResourcePools.Read(poolIds).Values;
+            var corePoolIds = pools.Select(x => x.CoreResourcePoolId).Where(x => x != Guid.Empty).ToList();
+
+            if (resourceMapping.CoreResource.PoolGUIDs.ScrambledEquals(corePoolIds))
+            {
+                return false;
+            }
+
+            resourceMapping.CoreResource.PoolGUIDs.Clear();
+            resourceMapping.CoreResource.PoolGUIDs.AddRange(corePoolIds);
+
+            return true;
         }
 
         private sealed class ResourceMapping

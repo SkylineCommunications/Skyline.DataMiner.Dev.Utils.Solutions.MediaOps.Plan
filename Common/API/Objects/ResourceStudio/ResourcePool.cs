@@ -17,6 +17,8 @@
 
         private string name;
 
+        private Guid coreResourcePoolId;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ResourcePool"/> class.
         /// </summary>
@@ -64,6 +66,8 @@
 
         internal override bool HasChanges { get; set; } = false;
 
+        internal Guid CoreResourcePoolId => coreResourcePoolId;
+
         internal StorageResourceStudio.ResourcepoolInstance OriginalInstance => originalInstance;
 
         internal StorageResourceStudio.ResourcepoolInstance GetInstanceWithChanges()
@@ -84,6 +88,7 @@
 
             name = instance.ResourcePoolInfo.Name;
             State = EnumExtensions.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.StatusesEnum, ResourcePoolState>(instance.Status);
+            coreResourcePoolId = instance.ResourcePoolInternalProperties.ResourcePoolId;
         }
     }
 }

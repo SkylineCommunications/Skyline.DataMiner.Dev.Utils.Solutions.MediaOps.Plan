@@ -10,6 +10,7 @@
     using Skyline.DataMiner.Net.Messages;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Net.ResponseErrorData;
+    using Skyline.DataMiner.MediaOps.Plan.ActivityHelper;
 
     internal static class ResourceManagerHelperExtensions
     {
@@ -284,32 +285,35 @@
 
             var createdOrUpdated = new List<Resource>();
 
-            foreach (var batch in resources.Batch(100))
+            ActivityHelper.Track(nameof(ResourceManagerHelperExtensions), nameof(InnerCreateOrUpdateResourcesInBatches), act =>
             {
-                var res = helper.AddOrUpdateResources(batch.ToArray());
-
-                createdOrUpdated.AddRange(res);
-                successfulIds.AddRange(res.Select(x => x.ID));
-
-                var traceData = helper.GetTraceDataLastCall();
-                foreach (var error in traceData.ErrorData.OfType<ResourceManagerErrorData>())
+                foreach (var batch in resources.Batch(100))
                 {
-                    if (!error.SubjectId.HasValue)
+                    var res = helper.AddOrUpdateResources(batch.ToArray());
+
+                    createdOrUpdated.AddRange(res);
+                    successfulIds.AddRange(res.Select(x => x.ID));
+
+                    var traceData = helper.GetTraceDataLastCall();
+                    foreach (var error in traceData.ErrorData.OfType<ResourceManagerErrorData>())
                     {
-                        continue;
+                        if (!error.SubjectId.HasValue)
+                        {
+                            continue;
+                        }
+
+                        if (!traceDataPerItem.TryGetValue(error.SubjectId.Value, out var mediaOpsTraceData))
+                        {
+                            mediaOpsTraceData = new MediaOpsTraceData();
+                            traceDataPerItem.Add(error.SubjectId.Value, mediaOpsTraceData);
+
+                            unsuccessfulIds.Add(error.SubjectId.Value);
+                        }
+
+                        mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = error.ToString() });
                     }
-
-                    if (!traceDataPerItem.TryGetValue(error.SubjectId.Value, out var mediaOpsTraceData))
-                    {
-                        mediaOpsTraceData = new MediaOpsTraceData();
-                        traceDataPerItem.Add(error.SubjectId.Value, mediaOpsTraceData);
-
-                        unsuccessfulIds.Add(error.SubjectId.Value);
-                    }
-
-                    mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = error.ToString() });
                 }
-            }
+            });
 
             createdOrUpdatedResources = createdOrUpdated;
 
@@ -322,31 +326,34 @@
             var unsuccessfulIds = new List<Guid>();
             var traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
 
-            foreach (var batch in resources.Batch(100))
+            ActivityHelper.Track(nameof(ResourceManagerHelperExtensions), nameof(InnerDeleteResourcesInBatches), act =>
             {
-                var res = helper.RemoveResources(batch.ToArray(), options);
-
-                successfulIds.AddRange(res.Select(x => x.ID));
-
-                var traceData = helper.GetTraceDataLastCall();
-                foreach (var error in traceData.ErrorData.OfType<ResourceManagerErrorData>())
+                foreach (var batch in resources.Batch(100))
                 {
-                    if (!error.SubjectId.HasValue)
+                    var res = helper.RemoveResources(batch.ToArray(), options);
+
+                    successfulIds.AddRange(res.Select(x => x.ID));
+
+                    var traceData = helper.GetTraceDataLastCall();
+                    foreach (var error in traceData.ErrorData.OfType<ResourceManagerErrorData>())
                     {
-                        continue;
+                        if (!error.SubjectId.HasValue)
+                        {
+                            continue;
+                        }
+
+                        if (!traceDataPerItem.TryGetValue(error.SubjectId.Value, out var mediaOpsTraceData))
+                        {
+                            mediaOpsTraceData = new MediaOpsTraceData();
+                            traceDataPerItem.Add(error.SubjectId.Value, mediaOpsTraceData);
+
+                            unsuccessfulIds.Add(error.SubjectId.Value);
+                        }
+
+                        mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = error.ToString() });
                     }
-
-                    if (!traceDataPerItem.TryGetValue(error.SubjectId.Value, out var mediaOpsTraceData))
-                    {
-                        mediaOpsTraceData = new MediaOpsTraceData();
-                        traceDataPerItem.Add(error.SubjectId.Value, mediaOpsTraceData);
-
-                        unsuccessfulIds.Add(error.SubjectId.Value);
-                    }
-
-                    mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = error.ToString() });
                 }
-            }
+            });
 
             return new Exceptions.BulkDeleteResult<Guid>(successfulIds, unsuccessfulIds, traceDataPerItem);
         }

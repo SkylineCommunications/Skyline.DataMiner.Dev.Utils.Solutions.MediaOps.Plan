@@ -30,7 +30,7 @@
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
-            return ActivityHelper.Track(nameof(Create), act =>
+            return ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Create), act =>
             {
                 if (!apiObject.IsNew)
                 {
@@ -81,14 +81,14 @@
 
         public void MoveTo(Guid resourcePoolId, ResourcePoolState desiredState)
         {
-            PlanApi.Logger.LogInformation($"Moving ResourcePool {resourcePoolId} to {desiredState}...");
+            PlanApi.Logger.LogInformation("Moving ResourcePool {resourcePoolId} to {desiredState}...", resourcePoolId, desiredState);
 
             if (resourcePoolId == Guid.Empty)
             {
                 throw new ArgumentException("Resource pool ID cannot be empty.", nameof(resourcePoolId));
             }
 
-            ActivityHelper.Track(nameof(MoveTo), act =>
+            ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(MoveTo), act =>
             {
                 act.AddTag("ResourcePoolId", resourcePoolId);
                 act.AddTag("DesiredState", desiredState);
@@ -96,6 +96,7 @@
                 var actionMethods = new Dictionary<ResourcePoolState, Action<Guid>>
                 {
                     [ResourcePoolState.Complete] = HandleMoveToCompleteAction,
+                    [ResourcePoolState.Deprecated] = HandleMoveToDeprecatedAction,
                 };
 
                 if (!actionMethods.TryGetValue(desiredState, out var action))
@@ -109,14 +110,14 @@
 
         public ResourcePool Read(Guid id)
         {
-            PlanApi.Logger.LogInformation($"Reading ResourcePool with ID: {id}...");
+            PlanApi.Logger.LogInformation("Reading ResourcePool with ID: {id}...", id);
 
             if (id == Guid.Empty)
             {
                 throw new ArgumentNullException(nameof(id));
             }
 
-            return ActivityHelper.Track(nameof(Read), act =>
+            return ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Read), act =>
             {
                 act.AddTag("ResourcePoolId", id);
                 var filter = DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourcepool.Id)
@@ -142,9 +143,10 @@
                 throw new ArgumentNullException(nameof(ids));
             }
 
-            return ActivityHelper.Track(nameof(Read), act =>
+            return ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Read), act =>
             {
                 act.AddTag("RequestedResourcePoolCount", ids.Count());
+
                 if (!ids.Any())
                 {
                     return new Dictionary<Guid, ResourcePool>();
@@ -164,7 +166,7 @@
 
         public IEnumerable<ResourcePool> ReadAll()
         {
-            return ActivityHelper.Track(nameof(Read), act =>
+            return ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(ReadAll), act =>
             {
                 var filter = DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourcepool.Id);
                 IEnumerable<ResourcePool> Iterator()
@@ -191,7 +193,7 @@
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
-            ActivityHelper.Track(nameof(Update), act =>
+            ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Update), act =>
             {
                 if (!apiObject.HasChanges)
                 {
@@ -223,7 +225,7 @@
                 throw new ArgumentException("Resource pool ID cannot be empty.", nameof(domResourcePoolId));
             }
 
-            return ActivityHelper.Track(nameof(GetDomResourcePool), act =>
+            return ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(GetDomResourcePool), act =>
             {
                 act.AddTag("ResourcePoolId", domResourcePoolId);
                 return PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(DomInstanceExposers.Id.Equal(domResourcePoolId)).FirstOrDefault();
@@ -253,6 +255,11 @@
             PlanApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.DoStatusTransition(domResourcePool, StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.Transitions.Draft_To_Complete);
         }
 
+        private void HandleMoveToDeprecatedAction(Guid guid)
+        {
+            throw new NotImplementedException();
+        }
+
         private void ValidateNameInUseInDom(string name, Guid domResourcePoolId)
         {
             var existingPools = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(
@@ -263,7 +270,7 @@
                 .ToList();
             if (existingPools.Count != 0)
             {
-                PlanApi.Logger.LogInformation($"Name '{name}' is already in use by a DOM resource pool with ID '{domResourcePoolId}'.");
+                PlanApi.Logger.LogInformation("Name '{name}' is already in use by a DOM resource pool with ID '{domResourcePoolId}'.", name, domResourcePoolId);
                 throw new MediaOpsException(new ResourcePoolConfigurationError
                 {
                     ErrorReason = ResourcePoolConfigurationError.Reason.NameExists,

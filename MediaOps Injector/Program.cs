@@ -4,6 +4,7 @@
     using System.Diagnostics;
     using System.Linq;
     using System.Net;
+    using Microsoft.Extensions.Logging;
     using OpenTelemetry;
     using OpenTelemetry.Logs;
     using OpenTelemetry.Trace;
@@ -28,7 +29,13 @@
             connection.Authenticate(credentials.UserName, credentials.Password, credentials.Domain);
             Console.WriteLine("Connected to DataMiner\r\n");
 
-            var planApi = new MediaOpsPlanApi(connection);
+            var loggerFactory = LoggerFactory.Create(builder =>
+            {
+                builder.AddConsole();
+                builder.SetMinimumLevel(LogLevel.Information);
+            });
+
+            var logger = loggerFactory.CreateLogger<Program>();
 
             var tracingProvider = Sdk.CreateTracerProviderBuilder()
                 .SetSampler(new AlwaysOnSampler())
@@ -36,11 +43,14 @@
                 .AddSource(ActivityHelper.ApiSourceName)
                 .AddOtlpExporter(options =>
                 {
-                    options.Endpoint = new Uri("http://SLC-H67-G02:8081/traces"); // Replace with your OpenTelemetry collector endpoint
+                    options.Endpoint = new Uri("http://SLC-H67-G02:8081/traces");
                     options.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.HttpProtobuf;
                     options.Headers = $"Authorization=Bearer Skyline123";
                 })
+                //.AddConsoleExporter()
                 .Build();
+
+            var planApi = new MediaOpsPlanApi(connection, loggerFactory.CreateLogger<IMediaOpsPlanApi>());
 
             try
             {
@@ -55,18 +65,19 @@
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Something went wrong: {e}");
+                logger.LogError(e, "Something went wrong: {Message}", e.Message);
                 Console.WriteLine("Press Enter to exit...");
                 Console.ReadLine();
             }
             finally
             {
                 planApi.Dispose();
+                loggerFactory.Dispose();
                 tracingProvider.Dispose();
             }
         }
 
-        private static void TestResourcePoolRepository(MediaOpsPlanApi planApi)
+        private static void TestResourcePoolRepository(IMediaOpsPlanApi planApi)
         {
             var resourcePool = new ResourcePool()
             {
@@ -109,7 +120,7 @@
             Console.WriteLine($"Updated Resource Pool Name: {movedResourcePool.Name}");
         }
 
-        private static void TestResourceRepository(MediaOpsPlanApi planApi)
+        private static void TestResourceRepository(IMediaOpsPlanApi planApi)
         {
             var unmanagedResource = new UnmanagedResource()
             {

@@ -7,6 +7,7 @@
     using Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+    using Skyline.DataMiner.Net.Messages;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
     internal class SlcResourceStudioHelper : DomModuleHelperBase
@@ -123,6 +124,37 @@
                 ids.Distinct(),
                 x => filter(x),
                 x => GetResourceIterator(x));
+        }
+
+        public IEnumerable<ResourceInstance> GetResourcesByPool(ResourcepoolInstance resourcePool)
+        {
+            if (resourcePool == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePool));
+            }
+
+            return GetResourcesByPoolId(resourcePool.ID.Id);
+        }
+
+        public IEnumerable<ResourceInstance> GetResourcesByPoolId(Guid id)
+        {
+            var filter = DomInstanceExposers.FieldValues
+                .DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.Pool_Ids)
+                .Contains(Convert.ToString(id));
+
+            return GetResourceIterator(filter);
+        }
+
+        public void TransitionToComplete(Guid resourceId)
+        {
+            var transitionId = SlcResource_StudioIds.Behaviors.Resource_Behavior.Transitions.Draft_To_Complete;
+            DomHelper.DomInstances.DoStatusTransition(new DomInstanceId(resourceId), transitionId);
+        }
+
+        public void TransitionToDeprecated(Guid resourceId)
+        {
+            var transitionId = SlcResource_StudioIds.Behaviors.Resource_Behavior.Transitions.Complete_To_Deprecated;
+            DomHelper.DomInstances.DoStatusTransition(new DomInstanceId(resourceId), transitionId);
         }
 
         public IEnumerable<ResourceInstance> GetResources<T>(IEnumerable<T> values, Func<T, FilterElement<DomInstance>> filter)

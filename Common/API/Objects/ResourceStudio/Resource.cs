@@ -203,7 +203,7 @@
         {
         }
 
-        internal UnmanagedResource(StorageResourceStudio.ResourceInstance instance) : base(instance.ID.Id)
+        internal UnmanagedResource(StorageResourceStudio.ResourceInstance instance) : base(instance)
         {
         }
 
@@ -237,7 +237,7 @@
         {
         }
 
-        internal ElementResource(StorageResourceStudio.ResourceInstance instance) : base(instance.ID.Id)
+        internal ElementResource(StorageResourceStudio.ResourceInstance instance) : base(instance)
         {
             ParseInstance(instance);
         }
@@ -316,7 +316,7 @@
         {
         }
 
-        internal ServiceResource(StorageResourceStudio.ResourceInstance instance) : base(instance.ID.Id)
+        internal ServiceResource(StorageResourceStudio.ResourceInstance instance) : base(instance)
         {
             ParseInstance(instance);
         }
@@ -392,7 +392,7 @@
         {
         }
 
-        internal VirtualFunctionResource(StorageResourceStudio.ResourceInstance instance) : base(instance.ID.Id)
+        internal VirtualFunctionResource(StorageResourceStudio.ResourceInstance instance) : base(instance)
         {
             ParseInstance(instance);
         }

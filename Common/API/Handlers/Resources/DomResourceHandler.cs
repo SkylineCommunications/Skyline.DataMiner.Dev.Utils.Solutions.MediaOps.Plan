@@ -1,4 +1,4 @@
-﻿namespace Skyline.DataMiner.MediaOps.Plan.API.Handlers
+﻿namespace Skyline.DataMiner.MediaOps.Plan.API
 {
     using System;
     using System.Collections.Generic;
@@ -12,6 +12,7 @@
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Utils.DOM.Extensions;
     using DomResource = Storage.DOM.SlcResource_Studio.ResourceInstance;
+    using Skyline.DataMiner.MediaOps.Plan.ActivityHelper;
 
     internal class DomResourceHandler : ApiObjectValidator<Guid>
     {
@@ -44,6 +45,40 @@
             return !result.HasFailures();
         }
 
+        public static void TransitionToComplete(MediaOpsPlanApi planApi, Resource apiResource)
+        {
+            var handler = new DomResourceHandler(planApi);
+            handler.TransitionToComplete(apiResource);
+        }
+
+        private void TransitionToComplete(Resource apiResource)
+        {
+            ClearErrors(planApi, apiResource, ResourceErrors.ExecuteAction_MarkCompleteException);
+            planApi.DomHelpers.SlcResourceStudioHelper.TransitionToComplete(apiResource.Id);
+
+            CoreResourceHandler.SyncResources(planApi, apiResource.OriginalInstance);
+        }
+
+        internal static void TransitionToDeprecated(MediaOpsPlanApi planApi, Resource apiResource)
+        {
+            var handler = new DomResourceHandler(planApi);
+            handler.TransitionToDeprecated(apiResource);
+        }
+
+        private void TransitionToDeprecated(Resource apiResource)
+        {
+            CoreResourceHandler.DeprecateResource(planApi, apiResource.OriginalInstance);
+            planApi.DomHelpers.SlcResourceStudioHelper.TransitionToDeprecated(apiResource.Id);
+        }
+
+        private void ClearErrors(MediaOpsPlanApi planApi, Resource apiResource, ErrorDefinition errorDefinition)
+        {
+            var domResource = planApi.DomHelpers.SlcResourceStudioHelper.GetResources([apiResource.Id]).First();
+            domResource.ClearError(errorDefinition.ErrorCode);
+            CreateOrUpdate([domResource]);
+            apiResource.UpdateInstance(domResource);
+        }
+
         private void CreateOrUpdate(IEnumerable<Resource> apiResources)
         {
             if (apiResources == null)
@@ -74,11 +109,11 @@
             ValidateState(toUpdate);
 
             // Todo: lock DOM instances
-            var changeResults = GetResourcesWithChanges(toUpdate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)));
+            var changeResults = ActivityHelper.Track(nameof(DomResourceHandler), nameof(GetResourcesWithChanges), act => GetResourcesWithChanges(toUpdate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id))));
 
             var toCreateNameValidation = toCreate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id));
             var toUpdateNameValidation = toUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFieldDescriptorIds.Contains(SlcResource_StudioIds.Sections.ResourceInfo.Name.Id)));
-            ValidateNames(toCreateNameValidation.Concat(toUpdateNameValidation));
+            ActivityHelper.Track(nameof(DomResourceHandler), nameof(ValidateNames), act => ValidateNames(toCreateNameValidation.Concat(toUpdateNameValidation)));
 
             var toCreateDomInstances = toCreate
                 .Where(x => !TraceDataPerItem.Keys.Contains(x.Id))
@@ -158,6 +193,20 @@
                 return;
             }
 
+            var newResources = apiResources.Where(x => x.IsNew).ToList();
+            newResources.ForEach(x =>
+            {
+                var error = new ResourceConfigurationError
+                {
+                    ErrorReason = ResourceConfigurationError.Reason.InvalidState,
+                    ErrorMessage = $"A resource that was not saved cannot be removed.",
+                };
+
+                ReportError(x.Id, error);
+            });
+
+            apiResources = apiResources.Except(newResources).ToList();
+
             var invalidStateResources = apiResources.Where(x => x.State != ResourceState.Draft && x.State != ResourceState.Deprecated).ToList();
             invalidStateResources.ForEach(x =>
             {
@@ -170,7 +219,9 @@
                 ReportError(x.Id, error);
             });
 
-            var resourcesToDelete = apiResources.Except(invalidStateResources).ToDictionary(x => x.Id);
+            apiResources = apiResources.Except(invalidStateResources).ToList();
+
+            var resourcesToDelete = apiResources.ToDictionary(x => x.Id);
             CoreResourceHandler.TryDelete(planApi, resourcesToDelete.Values.Select(x => x.OriginalInstance), out var coreResult);
 
             foreach (var id in coreResult.UnsuccessfulIds)
