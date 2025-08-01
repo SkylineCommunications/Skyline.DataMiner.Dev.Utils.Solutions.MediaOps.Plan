@@ -131,6 +131,10 @@
             var unmanagedResourceId = planApi.Resources.Create(unmanagedResource);
             Console.WriteLine($"Created Unmanaged Resource with ID: {unmanagedResourceId}\r\n");
 
+            planApi.Resources.MoveTo(unmanagedResource, ResourceState.Complete);
+
+            planApi.Resources.MoveTo(unmanagedResource, ResourceState.Deprecated);
+
             var elementResource = new ElementResource()
             {
                 Name = "MyElementResource",

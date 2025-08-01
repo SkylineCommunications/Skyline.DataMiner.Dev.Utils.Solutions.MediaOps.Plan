@@ -9,6 +9,7 @@
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.MediaOps.Plan.Storage.Core;
+    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Helper;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Net.SRM.Capacities;
@@ -23,6 +24,14 @@
         private readonly List<Guid> unsuccessfulIds = new List<Guid>();
         private readonly Dictionary<Guid, MediaOpsTraceData> traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
         private readonly Dictionary<Guid, Action<CoreResource>> EnableDveActionByCoreId = new Dictionary<Guid, Action<CoreResource>>();
+
+        private readonly IReadOnlyDictionary<Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type, Action<DomResource, CoreResource>> TypeSyncers = new Dictionary<Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type, Action<DomResource, CoreResource>>
+        {
+            [Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type.Unmanaged] = ApplyUnmanagedResourceConfig,
+            [Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type.Element] = ApplyElementResourceConfig,
+            [Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type.Service] = ApplyServiceResourceConfig,
+            [Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type.VirtualFunction] = ApplyVirtualFunctionResourceConfig,
+        };
 
         private Lazy<Dictionary<Guid, Skyline.DataMiner.Net.Profiles.Parameter>> lazyCoreCapabilitiesById;
         private Lazy<Dictionary<Guid, Skyline.DataMiner.Net.Profiles.Parameter>> lazyCoreCapacitiesById;
@@ -166,24 +175,31 @@
             var domResourcesById = new Dictionary<Guid, DomResource>();
             var domIdByCoreId = new Dictionary<Guid, Guid>();
 
-            var configMapping = new Dictionary<Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type, Action<CoreResource, DomResource>>
-            {
-                [Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type.Unmanaged] = ApplyUnmanagedResourceConfig,
-                [Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type.Element] = ApplyElementResourceConfig,
-                [Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type.Service] = ApplyServiceResourceConfig,
-                [Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type.VirtualFunction] = ApplyVirtualFunctionResourceConfig,
-            };
-
             var resourcesToCreateOrUpdate = new List<CoreResource>();
             foreach (var mapping in resourceMappings)
             {
                 var dom = mapping.DomResource;
-                var core = mapping.CoreResource ?? BuildCoreResource(dom.ResourceInfo.Type.Value);
+                var core = mapping.CoreResource;
 
-                core.Name = dom.ResourceInfo.Name;
-                core.MaxConcurrency = (int)dom.ResourceInfo.Concurrency;
+                bool updateRequired = false;
 
-                configMapping[dom.ResourceInfo.Type.Value].Invoke(core, dom);
+                if (core == null)
+                {
+                    core = BuildCoreResource(dom.ResourceInfo.Type.Value);
+                    updateRequired = true;
+                }
+
+                updateRequired |= SyncName(dom, core);
+                updateRequired |= SyncType(dom, core);
+                updateRequired |= SyncCapacities(dom, core);
+                updateRequired |= SyncCapabilities(dom, core);
+                updateRequired |= SyncConcurrency(dom, core);
+                updateRequired |= SyncPools(dom, core);
+
+                if (!updateRequired)
+                {
+                    planApi.Logger.LogInformation($"No changes detected to Capacities, Capabilities, Concurrency or Pools for DOM resource {mapping.DomResource.ID}");
+                }
 
                 resourcesToCreateOrUpdate.Add(core);
 
@@ -316,35 +332,56 @@
             return new CoreResource(Guid.NewGuid());
         }
 
-        private void ApplyUnmanagedResourceConfig(CoreResource coreResource, DomResource domResource)
+        private bool ApplyUnmanagedResourceConfig(DomResource domResource, CoreResource coreResource)
         {
-            SetResourceType(coreResource, "Unlinked Resource");
+            return SetResourceType(coreResource, "Unlinked Resource");
         }
 
-        private void ApplyElementResourceConfig(CoreResource coreResource, DomResource domResource)
+        private bool ApplyElementResourceConfig(DomResource domResource, CoreResource coreResource)
         {
             var elementInfo = new DmsElementId(domResource.ResourceInternalProperties.Metadata.LinkedElementInfo);
-            coreResource.DmaID = elementInfo.AgentId;
-            coreResource.ElementID = elementInfo.ElementId;
 
-            SetResourceType(coreResource, "Element");
+            bool updateRequired = false;
+            if (coreResource.DmaID != elementInfo.AgentId)
+            {
+                coreResource.DmaID = elementInfo.AgentId;
+                updateRequired = true;
+            }
+
+            if (coreResource.ElementID != elementInfo.ElementId)
+            {
+                coreResource.ElementID = elementInfo.ElementId;
+                updateRequired = true;
+            }
+
+            updateRequired |= SetResourceType(coreResource, "Element");
+            return updateRequired;
         }
 
-        private void ApplyServiceResourceConfig(CoreResource coreResource, DomResource domResource)
+        private bool ApplyServiceResourceConfig(DomResource domResource, CoreResource coreResource)
         {
-            var serviceLinkProperty = coreResource.Properties.FirstOrDefault(x => x.Name == "Service Link");
+            bool updateRequired = false;
+            var serviceLinkProperty = coreResource.Properties.FirstOrDefault(x => String.Equals(x.Name, "Service Link"));
             if (serviceLinkProperty == null)
             {
                 serviceLinkProperty = new Net.Messages.ResourceManagerProperty("Service Link", string.Empty);
                 coreResource.Properties.Add(serviceLinkProperty);
+                updateRequired = true;
+            }
+            else if ()
+            {
+                serviceLinkProperty.Value = domResource.ResourceInternalProperties.Metadata.LinkedServiceInfo;
+            }
+            else
+            {
+                // no update required
             }
 
-            serviceLinkProperty.Value = domResource.ResourceInternalProperties.Metadata.LinkedServiceInfo;
-
-            SetResourceType(coreResource, "Service");
+            updateRequired |= SetResourceType(coreResource, "Service");
+            return updateRequired;
         }
 
-        private void ApplyVirtualFunctionResourceConfig(CoreResource coreResource, DomResource domResource)
+        private bool ApplyVirtualFunctionResourceConfig(DomResource domResource, CoreResource coreResource)
         {
             if (domResource.Status != Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum.Draft)
             {
@@ -386,10 +423,31 @@
             EnableDveActionByCoreId.Add(coreResource.ID, enableDveAction);
         }
 
-        private void SetResourceType(CoreResource resource, string resourceTypeValue)
+        // TODO should this move to CoreCapabilitiesHandler?
+        private bool SetResourceType(CoreResource coreResource, string resourceTypeValue)
         {
-            // Todo: implement when capability repository is available
-            throw new NotImplementedException();
+            bool updateRequired = false;
+            var resourceTypeCapability = coreResource.Capabilities.FirstOrDefault(x => x.CapabilityProfileID == CoreCapabilities.ResourceType.Id);
+            var capabilityValue = new Skyline.DataMiner.Net.Profiles.CapabilityParameterValue(new List<string> { resourceTypeValue });
+            if (resourceTypeCapability == null)
+            {
+                coreResource.Capabilities.Add(new Skyline.DataMiner.Net.SRM.Capabilities.ResourceCapability(CoreCapabilities.ResourceType.Id)
+                {
+                    Value = new Skyline.DataMiner.Net.Profiles.CapabilityParameterValue(new List<string> { resourceTypeValue }),
+                });
+
+                updateRequired = true;
+            }
+            else if (!resourceTypeCapability.Value.Equals(capabilityValue))
+            {
+                resourceTypeCapability.Value = capabilityValue;
+            }
+            else
+            {
+                // no update required
+            }
+
+            return updateRequired;
         }
 
         private void ValidateNames(IEnumerable<DomResource> domResources)
@@ -681,54 +739,41 @@
             mediaOpsTraceData.Add(error);
         }
 
-        internal static void SyncResources(MediaOpsPlanApi planApi, DomResource domResource)
+        private bool SyncName(DomResource domResource, CoreResource coreResource)
         {
-            var handler = new CoreResourceHandler(planApi);
-            handler.SyncResources(domResource);
-        }
-
-        private void SyncResources(DomResource domResource)
-        {
-            var resourceMapping = ResourceMapping.GetMappings(planApi, [domResource]).FirstOrDefault();
-            if (resourceMapping?.CoreResource == null)
+            if (String.Equals(domResource.Name, coreResource.Name))
             {
-                // No CORE resource found for the DOM resource, nothing to sync.
-                return;
+                return false;
             }
 
-            bool updateRequired = false;
-            updateRequired |= SyncCapacities(resourceMapping);
-            updateRequired |= SyncCapabilities(resourceMapping);
-            updateRequired |= SyncConcurrency(resourceMapping);
-            updateRequired |= SyncPools(resourceMapping);
-
-            if (!updateRequired)
-            {
-                return;
-            }
-
-            planApi.CoreHelpers.ResourceManagerHelper.AddOrUpdateResources(resourceMapping.CoreResource);
+            coreResource.Name = domResource.ResourceInfo.Name;
+            return true;
         }
 
-        private bool SyncCapacities(ResourceMapping resourceMapping)
+        private bool SyncType(DomResource domResource, CoreResource coreResource)
+        {
+            return TypeSyncers[domResource.ResourceInfo.Type.Value].Invoke(domResource, coreResource);
+        }
+
+        private bool SyncCapacities(DomResource domResource, CoreResource coreResource)
         {
             bool resourceHasChanges = false;
-            var required = GetRequiredResourceCapacities(resourceMapping);
-            var removed = resourceMapping.CoreResource.Capacities.Where(x => !required.Select(y => y.CapacityProfileID).Contains(x.CapacityProfileID)).ToList();
+            var required = GetRequiredResourceCapacities(domResource);
+            var removed = coreResource.Capacities.Where(x => !required.Select(y => y.CapacityProfileID).Contains(x.CapacityProfileID)).ToList();
 
             foreach (var resourceCapacity in removed)
             {
-                resourceMapping.CoreResource.Capacities.Remove(resourceCapacity);
+                coreResource.Capacities.Remove(resourceCapacity);
 
                 resourceHasChanges = true;
             }
 
             foreach (var resourceCapacity in required)
             {
-                var capacity = resourceMapping.CoreResource.Capacities.SingleOrDefault(x => x.CapacityProfileID == resourceCapacity.CapacityProfileID);
+                var capacity = coreResource.Capacities.SingleOrDefault(x => x.CapacityProfileID == resourceCapacity.CapacityProfileID);
                 if (capacity == null)
                 {
-                    resourceMapping.CoreResource.Capacities.Add(resourceCapacity);
+                    coreResource.Capacities.Add(resourceCapacity);
                 }
                 else if (!capacity.Value.MaxDecimalQuantity.Equals(resourceCapacity.Value.MaxDecimalQuantity))
                 {
@@ -745,14 +790,14 @@
             return resourceHasChanges;
         }
 
-        private List<MultiResourceCapacity> GetRequiredResourceCapacities(ResourceMapping resourceMapping)
+        private List<MultiResourceCapacity> GetRequiredResourceCapacities(DomResource domResource)
         {
             var capacities = new List<MultiResourceCapacity>();
-            foreach (var resourceCapacity in resourceMapping.DomResource.ResourceCapacities)
+            foreach (var resourceCapacity in domResource.ResourceCapacities)
             {
                 if (!Guid.TryParse(resourceCapacity.ProfileParameterID, out Guid profileParameterId))
                 {
-                    planApi.Logger.LogWarning($"Invalid ProfileParameterID '{resourceCapacity.ProfileParameterID}' for resource '{resourceMapping.DomResource.ResourceInfo.Name}'. Skipping capacity sync.");
+                    planApi.Logger.LogWarning($"Invalid ProfileParameterID '{resourceCapacity.ProfileParameterID}' for resource '{domResource.ResourceInfo.Name}'. Skipping capacity sync.");
                     continue;
                 }
 
@@ -776,25 +821,24 @@
             return capacities;
         }
 
-        private bool SyncCapabilities(ResourceMapping resourceMapping)
+        private bool SyncCapabilities(DomResource domResource, CoreResource coreResource)
         {
             bool resourceHasChanges = false;
-            var required = GetRequiredResourceCapabilities(resourceMapping);
-            var removed = resourceMapping.CoreResource.Capabilities.Where(x => !required.Select(y => y.CapabilityProfileID).Contains(x.CapabilityProfileID)).ToList();
+            var required = GetRequiredResourceCapabilities(domResource);
+            var removed = coreResource.Capabilities.Where(x => !required.Select(y => y.CapabilityProfileID).Contains(x.CapabilityProfileID)).ToList();
 
             foreach (var resourceCapability in removed)
             {
-                resourceMapping.CoreResource.Capabilities.Remove(resourceCapability);
-
+                coreResource.Capabilities.Remove(resourceCapability);
                 resourceHasChanges = true;
             }
 
             foreach (var resourceCapability in required)
             {
-                var capability = resourceMapping.CoreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == resourceCapability.CapabilityProfileID);
+                var capability = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == resourceCapability.CapabilityProfileID);
                 if (capability == null)
                 {
-                    resourceMapping.CoreResource.Capabilities.Add(resourceCapability);
+                    coreResource.Capabilities.Add(resourceCapability);
                 }
                 else if (!capability.Value.Discreets.Equals(resourceCapability.Value.Discreets))
                 {
@@ -811,9 +855,9 @@
             return resourceHasChanges;
         }
 
-        private List<Skyline.DataMiner.Net.SRM.Capabilities.ResourceCapability> GetRequiredResourceCapabilities(ResourceMapping resourceMapping)
+        private List<Skyline.DataMiner.Net.SRM.Capabilities.ResourceCapability> GetRequiredResourceCapabilities(DomResource domResource)
         {
-            var domCapabilities = CapabilitiesHandler.GetExpectedCoreResourceCapabilities(resourceMapping.DomResource);
+            var domCapabilities = CapabilitiesHandler.GetExpectedCoreResourceCapabilities(domResource);
 
             var coreCapabilities = new List<Skyline.DataMiner.Net.SRM.Capabilities.ResourceCapability>();
             foreach (var configuredCapability in domCapabilities)
@@ -844,36 +888,36 @@
             return configuredCapability.StringValue.Split(';').ToList();
         }
 
-        private bool SyncConcurrency(ResourceMapping resourceMapping)
+        private bool SyncConcurrency(DomResource domResource, CoreResource coreResource)
         {
-            var configuredConcurrency = (int)resourceMapping.DomResource.ResourceInfo.Concurrency;
+            var configuredConcurrency = (int)domResource.ResourceInfo.Concurrency;
             if (configuredConcurrency < 1)
             {
                 configuredConcurrency = 1;
             }
 
-            if (resourceMapping.CoreResource.MaxConcurrency == configuredConcurrency)
+            if (coreResource.MaxConcurrency == configuredConcurrency)
             {
                 return false;
             }
 
-            resourceMapping.CoreResource.MaxConcurrency = configuredConcurrency;
+            coreResource.MaxConcurrency = configuredConcurrency;
             return true;
         }
 
-        private bool SyncPools(ResourceMapping resourceMapping)
+        private bool SyncPools(DomResource domResource, CoreResource coreResource)
         {
-            var poolIds = resourceMapping.DomResource.PoolIds ?? Enumerable.Empty<Guid>();
+            var poolIds = domResource.PoolIds ?? Enumerable.Empty<Guid>();
             var pools = planApi.ResourcePools.Read(poolIds).Values;
             var corePoolIds = pools.Select(x => x.CoreResourcePoolId).Where(x => x != Guid.Empty).ToList();
 
-            if (resourceMapping.CoreResource.PoolGUIDs.ScrambledEquals(corePoolIds))
+            if (coreResource.PoolGUIDs.ScrambledEquals(corePoolIds))
             {
                 return false;
             }
 
-            resourceMapping.CoreResource.PoolGUIDs.Clear();
-            resourceMapping.CoreResource.PoolGUIDs.AddRange(corePoolIds);
+            coreResource.PoolGUIDs.Clear();
+            coreResource.PoolGUIDs.AddRange(corePoolIds);
 
             return true;
         }

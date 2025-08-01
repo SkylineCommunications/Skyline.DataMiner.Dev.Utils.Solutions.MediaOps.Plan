@@ -54,9 +54,8 @@
         private void TransitionToComplete(Resource apiResource)
         {
             ClearErrors(planApi, apiResource, ResourceErrors.ExecuteAction_MarkCompleteException);
+            CoreResourceHandler.CreateOrUpdate(planApi, [apiResource.OriginalInstance]);
             planApi.DomHelpers.SlcResourceStudioHelper.TransitionToComplete(apiResource.Id);
-
-            CoreResourceHandler.SyncResources(planApi, apiResource.OriginalInstance);
         }
 
         internal static void TransitionToDeprecated(MediaOpsPlanApi planApi, Resource apiResource)
