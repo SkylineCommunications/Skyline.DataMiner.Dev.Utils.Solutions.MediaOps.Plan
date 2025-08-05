@@ -82,6 +82,22 @@
             return result;
         }
 
+        public IDmsService GetService(DmsServiceId serviceId, bool forceGet = false)
+        {
+            if (serviceId == default)
+            {
+                throw new ArgumentNullException(nameof(serviceId));
+            }
+
+            var result = GetServices([serviceId], forceGet);
+            if (result.TryGetValue(serviceId, out var service))
+            {
+                return service;
+            }
+
+            return null;
+        }
+
         public IReadOnlyDictionary<DmsServiceId, IDmsService> GetServices(IEnumerable<DmsServiceId> serviceIds, bool forceGet = false)
         {
             if (serviceIds == null)

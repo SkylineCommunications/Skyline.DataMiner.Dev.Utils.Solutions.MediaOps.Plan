@@ -132,8 +132,8 @@
             Console.WriteLine($"Created Unmanaged Resource with ID: {unmanagedResourceId}\r\n");
 
             planApi.Resources.MoveTo(unmanagedResource, ResourceState.Complete);
-
             planApi.Resources.MoveTo(unmanagedResource, ResourceState.Deprecated);
+            planApi.Resources.Delete(unmanagedResource);
 
             var elementResource = new ElementResource()
             {
@@ -145,10 +145,29 @@
             var elementResourceId = planApi.Resources.Create(elementResource);
             Console.WriteLine($"Created Element Resource with ID: {elementResourceId}\r\n");
 
-            Console.WriteLine("Press Enter to continue...");
-            Console.ReadLine();
+            var virtualFunctionResource = new VirtualFunctionResource()
+            {
+                Name = "MyVirtualFunctionResource",
+                AgentId = 78,
+                ElementId = 140461,
+                FunctionId = Guid.Parse("7bd8d399-b503-4fd9-9b2e-8dc188d591b8"), // Example Function ID
+                FunctionTableIndex = "1"
+            };
 
-            planApi.Resources.Delete(unmanagedResource, elementResource);
+            var virtualFunctionResourceId = planApi.Resources.Create(virtualFunctionResource);
+            Console.WriteLine($"Created Virtual Function Resource with ID: {virtualFunctionResourceId}\r\n");
+
+            var serviceResource = new ServiceResource()
+            {
+                Name = "MyServiceResource",
+                AgentId = 78,
+                ServiceId = 140467, // Example Service ID
+            };
+
+            var serviceResourceId = planApi.Resources.Create(serviceResource);
+            Console.WriteLine($"Created Service Resource with ID: {serviceResourceId}\r\n");
+
+            planApi.Resources.Delete(elementResource, virtualFunctionResource, serviceResource);
 
             var allResources = planApi.Resources.ReadAll();
             Console.WriteLine($"Resource Count: {allResources.Count()}");

@@ -46,9 +46,9 @@
         /// <summary>
         /// Attempts to convert the resource with the specified identifier to an <see cref="UnmanagedResource"/>.
         /// </summary>
-        /// <param name="guid">The unique identifier of the resource to convert.</param>
+        /// <param name="resourceId">The unique identifier of the resource to convert.</param>
         /// <param name="unmanagedResource">When this method returns, contains the converted <see cref="UnmanagedResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
-        bool TryConvertToUnmanagedResource(Guid guid, out UnmanagedResource unmanagedResource);
+        bool TryConvertToUnmanagedResource(Guid resourceId, out UnmanagedResource unmanagedResource);
 
         /// <summary>
         /// Converts the specified <see cref="Resource"/> to an <see cref="ElementResource"/> using the provided configuration.

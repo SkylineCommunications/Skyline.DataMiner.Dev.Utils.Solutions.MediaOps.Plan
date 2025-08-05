@@ -9,6 +9,7 @@
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.MediaOps.Plan.Storage.Core;
+    using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Helper;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
@@ -105,6 +106,103 @@
 
             var handler = new CoreResourceHandler(planApi);
             ActivityHelper.Track(nameof(CoreResourceHandler), nameof(DeprecateResource), act => handler.DeprecateResource(domResource));
+        }
+
+        public static bool TryValidateVirtualFunctionConfiguration(MediaOpsPlanApi planApi, ResourceVirtualFunctionLinkConfiguration configuration, out ResourceConfigurationError error)
+        {
+            error = null;
+
+            var handler = new CoreResourceHandler(planApi);
+            if (configuration == null)
+            {
+                throw new ArgumentNullException(nameof(configuration));
+            }
+
+            var elementId = new DmsElementId(configuration.AgentId, configuration.ElementId);
+            if (!handler.TryValidateVirtualFunctionResourceElementLink(elementId, out string invalidElementInfoReason))
+            {
+                error = new ResourceConfigurationError
+                {
+                    ErrorReason = ResourceConfigurationError.Reason.InvalidElementLink,
+                    ErrorMessage = invalidElementInfoReason,
+                };
+
+                return false;
+            }
+
+            if (!handler.TryValidateVirtualFunctionResourceFunctionDefinition(configuration.FunctionDefinitionId, out string invalidFunctionDefinitionReason))
+            {
+                error = new ResourceConfigurationError
+                {
+                    ErrorReason = ResourceConfigurationError.Reason.InvalidFunctionLink,
+                    ErrorMessage = invalidElementInfoReason,
+                };
+
+                return false;
+            }
+
+            if (!handler.TryValidateVirtualFunctionResourceTableIndex(configuration.FunctionDefinitionId, elementId, configuration.FunctionTableIndex, out string reason))
+            {
+                error = new ResourceConfigurationError
+                {
+                    ErrorReason = ResourceConfigurationError.Reason.InvalidTableIndexLink,
+                    ErrorMessage = invalidElementInfoReason,
+                };
+
+                return false;
+            }
+
+            return true;
+        }
+
+        public static bool TryValidateServiceConfiguration(MediaOpsPlanApi planApi, ResourceServiceLinkConfiguration configuration, out ResourceConfigurationError error)
+        {
+            error = null;
+
+            var handler = new CoreResourceHandler(planApi);
+            if (configuration == null)
+            {
+                throw new ArgumentNullException(nameof(configuration));
+            }
+
+            var serviceId = new DmsServiceId(configuration.AgentId, configuration.ServiceId);
+            if (!handler.TryValidateServiceResourceServiceLink(serviceId, out var reason))
+            {
+                error = new ResourceConfigurationError
+                {
+                    ErrorReason = ResourceConfigurationError.Reason.InvalidServiceLink,
+                    ErrorMessage = reason,
+                };
+
+                return false;
+            }
+
+            return true;
+        }
+
+        public static bool TryValidateElementConfiguration(MediaOpsPlanApi planApi, ResourceElementLinkConfiguration configuration, out ResourceConfigurationError error)
+        {
+            error = null;
+
+            var handler = new CoreResourceHandler(planApi);
+            if (configuration == null)
+            {
+                throw new ArgumentNullException(nameof(configuration));
+            }
+
+            var elementId = new DmsElementId(configuration.AgentId, configuration.ElementId);
+            if (!handler.TryValidateElementResourceElementLink(elementId, out var reason))
+            {
+                error = new ResourceConfigurationError
+                {
+                    ErrorReason = ResourceConfigurationError.Reason.InvalidElementLink,
+                    ErrorMessage = reason,
+                };
+
+                return false;
+            }
+
+            return true;
         }
 
         private void DeprecateResource(DomResource domResource)
@@ -549,40 +647,40 @@
                 throw new ArgumentNullException(nameof(domResources));
             }
 
-            if (!domResources.Any())
+            foreach (var domResource in domResources)
             {
-                return;
-            }
-
-            var domResourcesByElementInfo = domResources.ToDictionary(x => new DmsElementId(x.ResourceInternalProperties.Metadata.LinkedElementInfo));
-            var elementsByElementInfo = planApi.CoreHelpers.DmsCache.GetElements(domResourcesByElementInfo.Keys);
-
-            foreach (var kvp in domResourcesByElementInfo)
-            {
-                if (!elementsByElementInfo.TryGetValue(kvp.Key, out var element))
+                var elementId = new DmsElementId(domResource.ResourceInternalProperties.Metadata.LinkedElementInfo);
+                if (!TryValidateElementResourceElementLink(elementId, out string reason))
                 {
                     var error = new ResourceConfigurationError
                     {
                         ErrorReason = ResourceConfigurationError.Reason.InvalidElementLink,
-                        ErrorMessage = $"No element found with ID '{kvp.Value.ResourceInternalProperties.Metadata.LinkedElementInfo}'.",
+                        ErrorMessage = reason,
                     };
 
-                    AddError(kvp.Value.ID.Id, error);
-
-                    continue;
-                }
-
-                if (element.FunctionSettings.IsFunctionElement)
-                {
-                    var error = new ResourceConfigurationError
-                    {
-                        ErrorReason = ResourceConfigurationError.Reason.InvalidElementLink,
-                        ErrorMessage = $"Element '{element.Name}' is a function element and cannot be linked to a resource.",
-                    };
-
-                    AddError(kvp.Value.ID.Id, error);
+                    AddError(domResource.ID.Id, error);
                 }
             }
+        }
+
+        public bool TryValidateElementResourceElementLink(DmsElementId elementId, out string reason)
+        {
+            reason = String.Empty;
+            var element = planApi.CoreHelpers.DmsCache.GetElement(elementId);
+
+            if (element == null)
+            {
+                reason = $"No element found with ID '{elementId}'.";
+                return false;
+            }
+
+            if (element.FunctionSettings.IsFunctionElement)
+            {
+                reason = $"Element '{element.Name}' is a function element and cannot be linked to a resource.";
+                return false;
+            }
+
+            return true;
         }
 
         private void ValidateServiceResources(IEnumerable<DomResource> domResources)
@@ -592,24 +690,35 @@
                 throw new ArgumentNullException(nameof(domResources));
             }
 
-            if (!domResources.Any())
+            foreach (var domResource in domResources)
             {
-                return;
-            }
-
-            var domResourcesByServiceInfo = domResources.ToDictionary(x => new DmsServiceId(x.ResourceInternalProperties.Metadata.LinkedServiceInfo));
-            var servicesByServiceInfo = planApi.CoreHelpers.DmsCache.GetServices(domResourcesByServiceInfo.Keys);
-
-            foreach (var kvp in domResourcesByServiceInfo.Where(x => !servicesByServiceInfo.ContainsKey(x.Key)))
-            {
-                var error = new ResourceConfigurationError
+                var serviceId = new DmsServiceId(domResource.ResourceInternalProperties.Metadata.LinkedServiceInfo);
+                if (!TryValidateServiceResourceServiceLink(serviceId, out string reason))
                 {
-                    ErrorReason = ResourceConfigurationError.Reason.InvalidServiceLink,
-                    ErrorMessage = $"No service found with ID '{kvp.Value.ResourceInternalProperties.Metadata.LinkedServiceInfo}'.",
-                };
+                    var error = new ResourceConfigurationError
+                    {
+                        ErrorReason = ResourceConfigurationError.Reason.InvalidServiceLink,
+                        ErrorMessage = reason,
+                    };
 
-                AddError(kvp.Value.ID.Id, error);
+                    AddError(domResource.ID.Id, error);
+                }
             }
+        }
+
+        private bool TryValidateServiceResourceServiceLink(DmsServiceId serviceId, out string reason)
+        {
+            reason = String.Empty;
+
+            var service = planApi.CoreHelpers.DmsCache.GetService(serviceId);
+
+            if (service == null)
+            {
+                reason = $"No service found with ID '{serviceId}'.";
+                return false;
+            }
+
+            return true;
         }
 
         private void ValidateVirtualFunctionResources(IEnumerable<DomResource> domResources)
@@ -625,44 +734,29 @@
             }
 
             // Validate elements
-            var domResourcesByElementInfo = domResources
-                .GroupBy(x => new DmsElementId(x.ResourceInternalProperties.Metadata.LinkedElementInfo))
-                .ToDictionary(x => x.Key, x => x.ToList());
-
-            var elementsByElementInfo = planApi.CoreHelpers.DmsCache.GetElements(domResourcesByElementInfo.Keys);
-
-            foreach (var kvp in domResourcesByElementInfo.ToList())
+            var domResourcesToValidate = new List<DomResource>(domResources);
+            var invalidDomResources = new List<DomResource>();
+            foreach (var domResource in domResourcesToValidate)
             {
-                if (!elementsByElementInfo.TryGetValue(kvp.Key, out var element))
+                var elementId = new DmsElementId(domResource.ResourceInternalProperties.Metadata.LinkedElementInfo);
+                if (!TryValidateVirtualFunctionResourceElementLink(elementId, out string invalidElementInfoReason))
                 {
                     var error = new ResourceConfigurationError
                     {
                         ErrorReason = ResourceConfigurationError.Reason.InvalidElementLink,
-                        ErrorMessage = $"No element found with ID '{kvp.Key.Value}'.",
+                        ErrorMessage = invalidElementInfoReason,
                     };
 
-                    AddError(kvp.Value, error);
+                    AddError(domResource.ID.Id, error);
 
-                    domResourcesByElementInfo.Remove(kvp.Key);
-                    continue;
-                }
-
-                if (element.FunctionSettings.IsFunctionElement)
-                {
-                    var error = new ResourceConfigurationError
-                    {
-                        ErrorReason = ResourceConfigurationError.Reason.InvalidElementLink,
-                        ErrorMessage = $"Element '{element.Name}' is a function element and cannot be linked to a resource.",
-                    };
-
-                    AddError(kvp.Value, error);
-
-                    domResourcesByElementInfo.Remove(kvp.Key);
+                    invalidDomResources.Add(domResource);
                 }
             }
 
+            domResourcesToValidate.RemoveAll(x => invalidDomResources.Contains(x));
+
             // Validate functions
-            var domResourcesByFunctionId = domResourcesByElementInfo.Values.SelectMany(x => x)
+            var domResourcesByFunctionId = domResourcesToValidate
                 .GroupBy(x => x.ResourceInternalProperties.Metadata.LinkedFunctionId)
                 .ToDictionary(x => x.Key, x => x.ToList());
             var functionDefinitionsById = planApi.CoreHelpers.ProtocolFunctionHelperCache.GetFunctionDefinitions(domResourcesByFunctionId.Keys);
@@ -726,6 +820,56 @@
                     AddError(resource.ID.Id, error);
                 }
             }
+        }
+
+        private bool TryValidateVirtualFunctionResourceElementLink(DmsElementId elementId, out string reason)
+        {
+            reason = String.Empty;
+
+            var element = planApi.CoreHelpers.DmsCache.GetElement(elementId);
+
+            if (element == null)
+            {
+                reason = $"No element found with ID '{elementId}'.";
+                return false;
+            }
+
+            if (element.FunctionSettings.IsFunctionElement)
+            {
+                reason = $"Element '{element.Name}' is a function element and cannot be linked to a resource.";
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool TryValidateVirtualFunctionResourceFunctionDefinition(Guid functionDefinitionId, out string reason)
+        {
+            reason = String.Empty;
+
+            var functionDefinition = planApi.CoreHelpers.ProtocolFunctionHelperCache.GetFunctionDefinition(functionDefinitionId);
+
+            if (functionDefinition == null)
+            {
+                reason = $"No function found with ID '{functionDefinitionId}'.";
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool TryValidateVirtualFunctionResourceTableIndex(Guid functionDefinitionId, DmsElementId functionElementId, string tableIndex, out string reason)
+        {
+            reason = String.Empty;
+
+            var entryPoints = planApi.CoreHelpers.ProtocolFunctionHelperCache.GetElementFunctionEntryPoints(functionDefinitionId, functionElementId, returnAvailableOnly: true);
+            if (!entryPoints.Any(x => x.IndexValue == tableIndex))
+            {
+                reason = $"Invalid table index '{tableIndex}'.";
+                return false;
+            }
+
+            return true;
         }
 
         private void AddError(IEnumerable<DomResource> domResources, MediaOpsErrorData error)

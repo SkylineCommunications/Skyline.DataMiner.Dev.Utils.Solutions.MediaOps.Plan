@@ -48,7 +48,7 @@
 		/// <summary>
 		/// Gets or sets the function ID associated with the resource link.
 		/// </summary>
-		public Guid FunctionId { get; set; }
+		public Guid FunctionDefinitionId { get; set; }
 
 		/// <summary>
 		/// Gets or sets the function table index associated with the resource link.

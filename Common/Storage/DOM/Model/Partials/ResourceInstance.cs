@@ -30,6 +30,11 @@
         {
             get
             {
+                if (ResourceInternalProperties?.Pool_Ids == null)
+                {
+                    return null;
+                }
+
                 return ResourceInternalProperties.Pool_Ids.Split([";"], StringSplitOptions.RemoveEmptyEntries).Select(x => Guid.Parse(x));
             }
         }

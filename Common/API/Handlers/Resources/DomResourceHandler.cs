@@ -4,6 +4,8 @@
     using System.Collections.Generic;
     using System.Linq;
     using Microsoft.Extensions.Logging;
+    using Skyline.DataMiner.Core.DataMinerSystem.Common;
+    using Skyline.DataMiner.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.MediaOps.Plan.Storage.DOM;
@@ -12,7 +14,6 @@
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Utils.DOM.Extensions;
     using DomResource = Storage.DOM.SlcResource_Studio.ResourceInstance;
-    using Skyline.DataMiner.MediaOps.Plan.ActivityHelper;
 
     internal class DomResourceHandler : ApiObjectValidator<Guid>
     {
@@ -25,7 +26,7 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        public static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, IEnumerable<Resource> apiResources, out BulkCreateOrUpdateResult<Guid> result)
+        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, IEnumerable<Resource> apiResources, out BulkCreateOrUpdateResult<Guid> result)
         {
             var handler = new DomResourceHandler(planApi);
             handler.CreateOrUpdate(apiResources);
@@ -35,7 +36,7 @@
             return !result.HasFailures();
         }
 
-        public static bool TryDelete(MediaOpsPlanApi planApi, IEnumerable<Resource> apiResources, out BulkDeleteResult<Guid> result)
+        internal static bool TryDelete(MediaOpsPlanApi planApi, IEnumerable<Resource> apiResources, out BulkDeleteResult<Guid> result)
         {
             var handler = new DomResourceHandler(planApi);
             handler.Delete(apiResources);
@@ -45,10 +46,40 @@
             return !result.HasFailures();
         }
 
-        public static void TransitionToComplete(MediaOpsPlanApi planApi, Resource apiResource)
+        internal static void TransitionToComplete(MediaOpsPlanApi planApi, Resource apiResource)
         {
             var handler = new DomResourceHandler(planApi);
             handler.TransitionToComplete(apiResource);
+        }
+
+        internal static void ConvertToUnmanagedResource(MediaOpsPlanApi planApi, Resource resource)
+        {
+            var handler = new DomResourceHandler(planApi);
+            handler.ConvertToUnmanagedResource(resource);
+        }
+
+        internal static void ConvertToVirtualFunctionResource(MediaOpsPlanApi planApi, Resource resource, ResourceVirtualFunctionLinkConfiguration configuration)
+        {
+            var handler = new DomResourceHandler(planApi);
+            handler.ConvertToVirtualFunctionResource(resource, configuration);
+        }
+
+        internal static void ConvertToServiceResource(MediaOpsPlanApi planApi, Resource resource, ResourceServiceLinkConfiguration configuration)
+        {
+            var handler = new DomResourceHandler(planApi);
+            handler.ConvertToServiceResource(resource, configuration);
+        }
+
+        internal static void ConvertToElementResource(MediaOpsPlanApi planApi, Resource resource, ResourceElementLinkConfiguration configuration)
+        {
+            var handler = new DomResourceHandler(planApi);
+            handler.ConvertToElementResource(resource, configuration);
+        }
+
+        internal static void TransitionToDeprecated(MediaOpsPlanApi planApi, Resource apiResource)
+        {
+            var handler = new DomResourceHandler(planApi);
+            handler.TransitionToDeprecated(apiResource);
         }
 
         private void TransitionToComplete(Resource apiResource)
@@ -56,12 +87,6 @@
             ClearErrors(planApi, apiResource, ResourceErrors.ExecuteAction_MarkCompleteException);
             CoreResourceHandler.CreateOrUpdate(planApi, [apiResource.OriginalInstance]);
             planApi.DomHelpers.SlcResourceStudioHelper.TransitionToComplete(apiResource.Id);
-        }
-
-        internal static void TransitionToDeprecated(MediaOpsPlanApi planApi, Resource apiResource)
-        {
-            var handler = new DomResourceHandler(planApi);
-            handler.TransitionToDeprecated(apiResource);
         }
 
         private void TransitionToDeprecated(Resource apiResource)
@@ -494,6 +519,115 @@
             }
 
             resourceIdsWithCoreChanges.Add(resource.Id);
+        }
+
+        private void ConvertToUnmanagedResource(Resource resource)
+        {
+            var domResource = planApi.DomHelpers.SlcResourceStudioHelper.GetResources([resource.Id]).FirstOrDefault();
+            if (domResource == null)
+            {
+                ReportError(resource.Id, new ResourceConfigurationError
+                {
+                    ErrorReason = ResourceConfigurationError.Reason.NotFound,
+                    ErrorMessage = $"Resource with ID '{resource.Id}' not found."
+                });
+
+                return;
+            }
+
+            domResource.ResourceInfo.Type = SlcResource_StudioIds.Enums.Type.Unmanaged;
+            domResource.ResourceInternalProperties.ResourceMetadata = String.Empty;
+
+            CreateOrUpdate([domResource]);
+        }
+
+        private void ConvertToVirtualFunctionResource(Resource resource, ResourceVirtualFunctionLinkConfiguration configuration)
+        {
+            if (!CoreResourceHandler.TryValidateVirtualFunctionConfiguration(planApi, configuration, out var error))
+            {
+                ReportError(resource.Id, error);
+                return;
+            }
+
+            var domResource = planApi.DomHelpers.SlcResourceStudioHelper.GetResources([resource.Id]).FirstOrDefault();
+            if (domResource == null)
+            {
+                ReportError(resource.Id, new ResourceConfigurationError
+                {
+                    ErrorReason = ResourceConfigurationError.Reason.NotFound,
+                    ErrorMessage = $"Resource with ID '{resource.Id}' not found."
+                });
+
+                return;
+            }
+
+            domResource.ResourceInfo.Type = SlcResource_StudioIds.Enums.Type.VirtualFunction;
+            domResource.ResourceInternalProperties.ResourceMetadata = new ResourceMetadata
+            {
+                LinkedElementInfo = new DmsElementId(configuration.AgentId, configuration.ElementId).Value,
+                LinkedFunctionId = configuration.FunctionDefinitionId,
+                LinkedFunctionTableIndex = configuration.FunctionTableIndex,
+            }.Serialize();
+
+            CreateOrUpdate([domResource]);
+        }
+
+        private void ConvertToServiceResource(Resource resource, ResourceServiceLinkConfiguration configuration)
+        {
+            if (!CoreResourceHandler.TryValidateServiceConfiguration(planApi, configuration, out var error))
+            {
+                ReportError(resource.Id, error);
+                return;
+            }
+
+            var domResource = planApi.DomHelpers.SlcResourceStudioHelper.GetResources([resource.Id]).FirstOrDefault();
+            if (domResource == null)
+            {
+                ReportError(resource.Id, new ResourceConfigurationError
+                {
+                    ErrorReason = ResourceConfigurationError.Reason.NotFound,
+                    ErrorMessage = $"Resource with ID '{resource.Id}' not found."
+                });
+
+                return;
+            }
+
+            domResource.ResourceInfo.Type = SlcResource_StudioIds.Enums.Type.Service;
+            domResource.ResourceInternalProperties.ResourceMetadata = new ResourceMetadata
+            {
+                LinkedServiceInfo = new DmsServiceId(configuration.AgentId, configuration.ServiceId).Value,
+            }.Serialize();
+
+            CreateOrUpdate([domResource]);
+        }
+
+        private void ConvertToElementResource(Resource resource, ResourceElementLinkConfiguration configuration)
+        {
+            if (!CoreResourceHandler.TryValidateElementConfiguration(planApi, configuration, out var error))
+            {
+                ReportError(resource.Id, error);
+                return;
+            }
+
+            var domResource = planApi.DomHelpers.SlcResourceStudioHelper.GetResources([resource.Id]).FirstOrDefault();
+            if (domResource == null)
+            {
+                ReportError(resource.Id, new ResourceConfigurationError
+                {
+                    ErrorReason = ResourceConfigurationError.Reason.NotFound,
+                    ErrorMessage = $"Resource with ID '{resource.Id}' not found."
+                });
+
+                return;
+            }
+
+            domResource.ResourceInfo.Type = SlcResource_StudioIds.Enums.Type.Element;
+            domResource.ResourceInternalProperties.ResourceMetadata = new ResourceMetadata
+            {
+                LinkedElementInfo = new DmsElementId(configuration.AgentId, configuration.ElementId).Value,
+            }.Serialize();
+
+            CreateOrUpdate([domResource]);
         }
     }
 }

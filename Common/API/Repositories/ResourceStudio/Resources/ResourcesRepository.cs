@@ -17,42 +17,90 @@
 
         public ElementResource ConvertToElementResource(Resource resource, ResourceElementLinkConfiguration configuration)
         {
-            throw new NotImplementedException();
+            if (resource.State != ResourceState.Draft)
+            {
+                throw new MediaOpsException($"Resource {resource.Name} is not in Draft state. Cannot convert to ElementResource.");
+            }
+
+            if (resource is ElementResource elementResource)
+            {
+                return elementResource;
+            }
+
+            DomResourceHandler.ConvertToElementResource(PlanApi, resource, configuration);
+            return (ElementResource)Read(resource.Id);
         }
 
         public ElementResource ConvertToElementResource(Guid resourceId, ResourceElementLinkConfiguration configuration)
         {
-            throw new NotImplementedException();
+            var resource = Read(resourceId) ?? throw new ResourceNotFoundException(resourceId);
+            return ConvertToElementResource(resource, configuration);
         }
 
         public ServiceResource ConvertToServiceResource(Resource resource, ResourceServiceLinkConfiguration configuration)
         {
-            throw new NotImplementedException();
+            if (resource.State != ResourceState.Draft)
+            {
+                throw new MediaOpsException($"Resource {resource.Name} is not in Draft state. Cannot convert to ElementResource.");
+            }
+
+            if (resource is ServiceResource serviceResource)
+            {
+                return serviceResource;
+            }
+
+            DomResourceHandler.ConvertToServiceResource(PlanApi, resource, configuration);
+            return (ServiceResource)Read(resource.Id);
         }
 
         public ServiceResource ConvertToServiceResource(Guid resourceId, ResourceServiceLinkConfiguration configuration)
         {
-            throw new NotImplementedException();
+            var resource = Read(resourceId) ?? throw new ResourceNotFoundException(resourceId);
+            return ConvertToServiceResource(resource, configuration);
         }
 
         public UnmanagedResource ConvertToUnmanagedResource(Resource resource)
         {
-            throw new NotImplementedException();
+            if (resource.State != ResourceState.Draft)
+            {
+                throw new MediaOpsException($"Resource {resource.Name} is not in Draft state. Cannot convert to ElementResource.");
+            }
+
+            if (resource is UnmanagedResource unmanagedResource)
+            {
+                return unmanagedResource;
+            }
+
+            DomResourceHandler.ConvertToUnmanagedResource(PlanApi, resource);
+            return (UnmanagedResource)Read(resource.Id);
         }
 
         public UnmanagedResource ConvertToUnmanagedResource(Guid resourceId)
         {
-            throw new NotImplementedException();
+            var resource = Read(resourceId) ?? throw new ResourceNotFoundException(resourceId);
+            return ConvertToUnmanagedResource(resource);
         }
 
         public VirtualFunctionResource ConvertToVirtualFunctionResource(Resource resource, ResourceVirtualFunctionLinkConfiguration configuration)
         {
-            throw new NotImplementedException();
+            if (resource.State != ResourceState.Draft)
+            {
+                throw new MediaOpsException($"Resource {resource.Name} is not in Draft state. Cannot convert to ElementResource.");
+            }
+
+            if (resource is VirtualFunctionResource virtualFunctionResource)
+            {
+                return virtualFunctionResource;
+            }
+
+            DomResourceHandler.ConvertToVirtualFunctionResource(PlanApi, resource, configuration);
+            return (VirtualFunctionResource)Read(resource.Id);
         }
 
         public VirtualFunctionResource ConvertToVirtualFunctionResource(Guid resourceId, ResourceVirtualFunctionLinkConfiguration configuration)
         {
-            throw new NotImplementedException();
+            var resource = Read(resourceId) ?? throw new ResourceNotFoundException(resourceId);
+            return ConvertToVirtualFunctionResource(resource, configuration);
         }
 
         public Guid Create(Resource apiObject)
@@ -68,7 +116,7 @@
             {
                 if (!apiObject.IsNew)
                 {
-                    throw new MediaOpsException("Not possible to use method Create for existing resources. Use CreateOrUpdate or Update instead.");
+                    throw new InvalidOperationException("Not possible to use method Create for existing resources. Use CreateOrUpdate or Update instead.");
                 }
 
                 if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
@@ -95,7 +143,7 @@
                 var existingResources = apiObjects.Where(x => !x.IsNew);
                 if (existingResources.Any())
                 {
-                    throw new MediaOpsException("Not possible to use method Create for existing resources. Use CreateOrUpdate or Update instead.");
+                    throw new InvalidOperationException("Not possible to use method Create for existing resources. Use CreateOrUpdate or Update instead.");
                 }
 
                 if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
@@ -254,10 +302,10 @@
 
             if (id == Guid.Empty)
             {
-                throw new ArgumentNullException(nameof(id));
+                throw new ArgumentException(nameof(id));
             }
 
-            return ActivityHelper.Track<Resource>(nameof(ResourcesRepository), nameof(Read), act =>
+            return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Read), act =>
             {
                 act.AddTag("ResourceId", id);
                 var filter = DomInstanceExposers.DomDefinitionId.Equal(Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Definitions.Resource.Id)
@@ -315,42 +363,130 @@
 
         public bool TryConvertToElementResource(Resource resource, ResourceElementLinkConfiguration configuration, out ElementResource elementResource)
         {
-            throw new NotImplementedException();
+            elementResource = null;
+
+            try
+            {
+                elementResource = ConvertToElementResource(resource, configuration);
+                return true;
+            }
+            catch (Exception e)
+            {
+                PlanApi.Logger.LogWarning($"Unable to convert Resource {resource.Name} [{resource.Id}] to an Element Resource because of: {e}");
+                return false;
+            }
         }
 
         public bool TryConvertToElementResource(Guid resourceId, ResourceElementLinkConfiguration configuration, out ElementResource elementResource)
         {
-            throw new NotImplementedException();
+            elementResource = null;
+
+            try
+            {
+                elementResource = ConvertToElementResource(resourceId, configuration);
+                return true;
+            }
+            catch (Exception e)
+            {
+                PlanApi.Logger.LogWarning($"Unable to convert Resource with ID {resourceId} to an Element Resource because of: {e}");
+                return false;
+            }
         }
 
         public bool TryConvertToServiceResource(Resource resource, ResourceServiceLinkConfiguration configuration, out ServiceResource serviceResource)
         {
-            throw new NotImplementedException();
+            serviceResource = null;
+
+            try
+            {
+                serviceResource = ConvertToServiceResource(resource, configuration);
+                return true;
+            }
+            catch (Exception e)
+            {
+                PlanApi.Logger.LogWarning($"Unable to convert Resource {resource.Name} [{resource.Id}] to a Service Resource because of: {e}");
+                return false;
+            }
         }
 
         public bool TryConvertToServiceResource(Guid resourceId, ResourceServiceLinkConfiguration configuration, out ServiceResource serviceResource)
         {
-            throw new NotImplementedException();
+            serviceResource = null;
+
+            try
+            {
+                serviceResource = ConvertToServiceResource(resourceId, configuration);
+                return true;
+            }
+            catch (Exception e)
+            {
+                PlanApi.Logger.LogWarning($"Unable to convert Resource with ID {resourceId} to a Service Resource because of: {e}");
+                return false;
+            }
         }
 
         public bool TryConvertToUnmanagedResource(Resource resource, out UnmanagedResource unmanagedResource)
         {
-            throw new NotImplementedException();
+            unmanagedResource = null;
+
+            try
+            {
+                unmanagedResource = ConvertToUnmanagedResource(resource);
+                return true;
+            }
+            catch (Exception e)
+            {
+                PlanApi.Logger.LogWarning($"Unable to convert Resource {resource.Name} [{resource.Id}] to an Unmanaged Resource because of: {e}");
+                return false;
+            }
         }
 
-        public bool TryConvertToUnmanagedResource(Guid guid, out UnmanagedResource unmanagedResource)
+        public bool TryConvertToUnmanagedResource(Guid resourceId, out UnmanagedResource unmanagedResource)
         {
-            throw new NotImplementedException();
+            unmanagedResource = null;
+
+            try
+            {
+                unmanagedResource = ConvertToUnmanagedResource(resourceId);
+                return true;
+            }
+            catch (Exception e)
+            {
+                PlanApi.Logger.LogWarning($"Unable to convert Resource with ID {resourceId} to an Unmanaged Resource because of: {e}");
+                return false;
+            }
         }
 
         public bool TryConvertToVirtualFunctionResource(Resource resource, ResourceVirtualFunctionLinkConfiguration configuration, out VirtualFunctionResource virtualFunctionResource)
         {
-            throw new NotImplementedException();
+            virtualFunctionResource = null;
+
+            try
+            {
+                virtualFunctionResource = ConvertToVirtualFunctionResource(resource, configuration);
+                return true;
+            }
+            catch (Exception e)
+            {
+                PlanApi.Logger.LogWarning($"Unable to convert Resource {resource.Name} [{resource.Id}] to a Virtual Function Resource because of: {e}");
+                return false;
+            }
         }
 
         public bool TryConvertToVirtualFunctionResource(Guid resourceId, ResourceVirtualFunctionLinkConfiguration configuration, out VirtualFunctionResource virtualFunctionResource)
         {
-            throw new NotImplementedException();
+            virtualFunctionResource = null;
+
+            try
+            {
+                virtualFunctionResource = ConvertToVirtualFunctionResource(resourceId, configuration);
+                return true;
+            }
+            catch (Exception e)
+            {
+                PlanApi.Logger.LogWarning($"Unable to convert Resource with ID {resourceId} to a Virtual Function Resource because of: {e}");
+                return false;
+            }
         }
 
         public void Update(Resource apiObject)

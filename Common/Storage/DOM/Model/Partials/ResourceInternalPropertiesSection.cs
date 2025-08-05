@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.Linq;
     using Newtonsoft.Json;
+    using Skyline.DataMiner.Utils.SecureCoding.SecureSerialization.Json.Newtonsoft;
 
     internal partial class ResourceInternalPropertiesSection
     {
@@ -26,11 +27,17 @@
         {
             get
             {
-                if (string.IsNullOrWhiteSpace(ResourceMetadata))
+                if (resourceMetadata != null)
                 {
-                    resourceMetadata = new ResourceMetadata();
+                    return resourceMetadata;
                 }
 
+                if (SlcResource_Studio.ResourceMetadata.TryDeserialize(ResourceMetadata, out resourceMetadata))
+                {
+                    return resourceMetadata;
+                }
+
+                resourceMetadata = new ResourceMetadata();
                 return resourceMetadata;
             }
         }
@@ -39,7 +46,7 @@
         {
             if (resourceMetadata != null)
             {
-                ResourceMetadata = JsonConvert.SerializeObject(resourceMetadata);
+                ResourceMetadata = resourceMetadata.Serialize();
             }
         }
     }
@@ -53,5 +60,30 @@
         public Guid LinkedFunctionId { get; set; }
 
         public string LinkedFunctionTableIndex { get; set; }
+
+        public static bool TryDeserialize(string json, out ResourceMetadata resourceMetadata)
+        {
+            resourceMetadata = null;
+
+            if (String.IsNullOrEmpty(json))
+            {
+                return false;
+            }
+            try
+            {
+                resourceMetadata = SecureNewtonsoftDeserialization.DeserializeObject<ResourceMetadata>(json);
+                return true;
+            }
+            catch (JsonException)
+            {
+                // Handle JSON parsing errors if necessary
+                return false;
+            }
+        }
+
+        public string Serialize()
+        {
+            return JsonConvert.SerializeObject(this);
+        }
     }
 }
