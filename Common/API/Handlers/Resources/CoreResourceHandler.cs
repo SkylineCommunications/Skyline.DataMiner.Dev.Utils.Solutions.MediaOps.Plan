@@ -25,13 +25,7 @@
         private readonly Dictionary<Guid, MediaOpsTraceData> traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
         private readonly Dictionary<Guid, Action<CoreResource>> EnableDveActionByCoreId = new Dictionary<Guid, Action<CoreResource>>();
 
-        private readonly IReadOnlyDictionary<Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type, Action<DomResource, CoreResource>> TypeSyncers = new Dictionary<Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type, Action<DomResource, CoreResource>>
-        {
-            [Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type.Unmanaged] = ApplyUnmanagedResourceConfig,
-            [Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type.Element] = ApplyElementResourceConfig,
-            [Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type.Service] = ApplyServiceResourceConfig,
-            [Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type.VirtualFunction] = ApplyVirtualFunctionResourceConfig,
-        };
+        private readonly IReadOnlyDictionary<Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type, Func<DomResource, CoreResource, bool>> TypeSyncers;
 
         private Lazy<Dictionary<Guid, Skyline.DataMiner.Net.Profiles.Parameter>> lazyCoreCapabilitiesById;
         private Lazy<Dictionary<Guid, Skyline.DataMiner.Net.Profiles.Parameter>> lazyCoreCapacitiesById;
@@ -44,6 +38,14 @@
             lazyCoreCapabilitiesById = new Lazy<Dictionary<Guid, Skyline.DataMiner.Net.Profiles.Parameter>>(() => planApi.CoreHelpers.ProfileProvider.GetAllCapabilities().ToDictionary(x => x.ID));
             lazyCoreCapacitiesById = new Lazy<Dictionary<Guid, Skyline.DataMiner.Net.Profiles.Parameter>>(() => planApi.CoreHelpers.ProfileProvider.GetAllCapacities().ToDictionary(x => x.ID));
             lazyCapabilitiesHandler = new Lazy<DomCapabilitiesHandler>(() => new DomCapabilitiesHandler(planApi));
+
+            TypeSyncers = new Dictionary<Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type, Func<DomResource, CoreResource, bool>>
+            {
+                [Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type.Unmanaged] = ApplyUnmanagedResourceConfig,
+                [Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type.Element] = ApplyElementResourceConfig,
+                [Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type.Service] = ApplyServiceResourceConfig,
+                [Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type.VirtualFunction] = ApplyVirtualFunctionResourceConfig,
+            };
         }
 
         private Dictionary<Guid, Skyline.DataMiner.Net.Profiles.Parameter> CoreCapabilitiesById => lazyCoreCapabilitiesById.Value;
@@ -364,17 +366,18 @@
             var serviceLinkProperty = coreResource.Properties.FirstOrDefault(x => String.Equals(x.Name, "Service Link"));
             if (serviceLinkProperty == null)
             {
-                serviceLinkProperty = new Net.Messages.ResourceManagerProperty("Service Link", string.Empty);
+                serviceLinkProperty = new Net.Messages.ResourceManagerProperty("Service Link", domResource.ResourceInternalProperties.Metadata.LinkedServiceInfo);
                 coreResource.Properties.Add(serviceLinkProperty);
                 updateRequired = true;
             }
-            else if ()
+            else if (!String.Equals(serviceLinkProperty.Value, domResource.ResourceInternalProperties.Metadata.LinkedServiceInfo))
             {
                 serviceLinkProperty.Value = domResource.ResourceInternalProperties.Metadata.LinkedServiceInfo;
+                updateRequired = true;
             }
             else
             {
-                // no update required
+                // no property update required
             }
 
             updateRequired |= SetResourceType(coreResource, "Service");
@@ -383,29 +386,54 @@
 
         private bool ApplyVirtualFunctionResourceConfig(DomResource domResource, CoreResource coreResource)
         {
-            if (domResource.Status != Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum.Draft)
-            {
-                return;
-            }
-
             if (coreResource is not Net.ResourceManager.Objects.FunctionResource functionResource)
             {
-                return;
+                throw new InvalidOperationException($"Core Resource {coreResource.Name} ({coreResource.ID}) is not a FunctionResource.");
             }
 
+            bool updateRequired = false;
             var functionDefinition = planApi.CoreHelpers.ProtocolFunctionHelperCache.GetFunctionDefinition(domResource.ResourceInternalProperties.Metadata.LinkedFunctionId);
-            functionResource.FunctionGUID = functionDefinition.GUID;
+            if (functionResource.FunctionGUID != functionDefinition.GUID)
+            {
+                functionResource.FunctionGUID = functionDefinition.GUID;
+                updateRequired = true;
+            }
 
             var elementInfo = new DmsElementId(domResource.ResourceInternalProperties.Metadata.LinkedElementInfo);
-            functionResource.MainDVEDmaID = elementInfo.AgentId;
-            functionResource.MainDVEElementID = elementInfo.ElementId;
+            if (functionResource.MainDVEDmaID != elementInfo.AgentId)
+            {
+                functionResource.MainDVEDmaID = elementInfo.AgentId;
+                updateRequired = true;
+            }
+
+            if (functionResource.MainDVEElementID != elementInfo.ElementId)
+            {
+                functionResource.MainDVEElementID = elementInfo.ElementId;
+                updateRequired = true;
+            }
 
             if (functionDefinition.EntryPoints.Any())
             {
-                functionResource.LinkerTableEntries = new[] { new Tuple<int, string>(functionDefinition.EntryPoints.First().ParameterId, domResource.ResourceInternalProperties.Metadata.LinkedFunctionTableIndex) };
+                int parameterId = functionDefinition.EntryPoints.First().ParameterId;
+                string tableIndex = domResource.ResourceInternalProperties.Metadata.LinkedFunctionTableIndex;
+
+                if (functionResource.LinkerTableEntries.Any())
+                {
+                    var existingEntry = functionResource.LinkerTableEntries.First();
+                    if (existingEntry.Item1 != parameterId || !String.Equals(existingEntry.Item2, tableIndex))
+                    {
+                        functionResource.LinkerTableEntries = [new Tuple<int, string>(parameterId, tableIndex)];
+                        updateRequired = true;
+                    }
+                }
+                else
+                {
+                    functionResource.LinkerTableEntries = [new Tuple<int, string>(parameterId, tableIndex)];
+                    updateRequired = true;
+                }
             }
 
-            SetResourceType(coreResource, "Virtual Function");
+            updateRequired |= SetResourceType(coreResource, "Virtual Function");
 
             Action<CoreResource> enableDveAction = (createdResource) =>
             {
@@ -421,6 +449,8 @@
             };
 
             EnableDveActionByCoreId.Add(coreResource.ID, enableDveAction);
+
+            return updateRequired;
         }
 
         // TODO should this move to CoreCapabilitiesHandler?
