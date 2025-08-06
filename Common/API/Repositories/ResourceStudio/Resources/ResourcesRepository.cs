@@ -265,7 +265,7 @@
                 throw new MediaOpsException("A resource can only be completed from Draft State");
             }
 
-            ActivityHelper.Track(nameof(ResourcesRepository), nameof(HandleMoveToCompleteAction), act =>
+            ActivityHelper.Track(nameof(DomResourceHandler), nameof(DomResourceHandler.TransitionToComplete), act =>
             {
                 act.AddTag("ResourceId", resource.Id);
                 act.AddTag("ResourceName", resource.Name);
@@ -538,6 +538,16 @@
                 var resourceIds = result.SuccessfulIds;
                 act.AddTag("ResourceIds", String.Join(", ", resourceIds));
             });
+        }
+
+        public long CountAll()
+        {
+            return DomResourceHandler.CountAll(PlanApi);
+        }
+
+        public long Count(FilterElement<Resource> filter)
+        {
+            throw new NotImplementedException();
         }
     }
 }

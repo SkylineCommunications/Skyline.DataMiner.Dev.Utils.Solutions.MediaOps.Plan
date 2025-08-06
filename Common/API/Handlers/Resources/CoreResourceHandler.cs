@@ -130,7 +130,7 @@
                 return false;
             }
 
-            if (!handler.TryValidateVirtualFunctionResourceFunctionDefinition(configuration.FunctionDefinitionId, out string invalidFunctionDefinitionReason))
+            if (!handler.TryValidateVirtualFunctionResourceFunctionDefinition(configuration.FunctionId, out string invalidFunctionDefinitionReason))
             {
                 error = new ResourceConfigurationError
                 {
@@ -141,7 +141,7 @@
                 return false;
             }
 
-            if (!handler.TryValidateVirtualFunctionResourceTableIndex(configuration.FunctionDefinitionId, elementId, configuration.FunctionTableIndex, out string reason))
+            if (!handler.TryValidateVirtualFunctionResourceTableIndex(configuration.FunctionId, elementId, configuration.FunctionTableIndex, out string reason))
             {
                 error = new ResourceConfigurationError
                 {
@@ -364,9 +364,9 @@
             {
                 domResourcesById.Add(domResource.ID.Id, domResource);
 
-                if (!domResource.ResourceInternalProperties.Resource_Id.HasValue
-                    || domResource.ResourceInternalProperties.Resource_Id.Value == Guid.Empty)
+                if (domResource.ResourceInternalProperties.Resource_Id.GetValueOrDefault() == Guid.Empty)
                 {
+                    // No CORE resource linked to the DOM resource
                     continue;
                 }
 
@@ -622,7 +622,7 @@
                     continue;
                 }
 
-                var existingResources = coreResources.Where(x => x.ID != resource.ResourceInternalProperties.Resource_Id.Value).ToList();
+                var existingResources = coreResources.Where(x => x.ID != resource.ResourceInternalProperties.Resource_Id.GetValueOrDefault()).ToList();
                 if (existingResources.Count == 0)
                 {
                     continue;
@@ -808,7 +808,7 @@
                     resourcesRequiringValidation.Remove(resource);
                 }
 
-                var entryPoints = planApi.CoreHelpers.ProtocolFunctionHelperCache.GetElementFunctionEntryPoints(kvp.Key.FunctionDefinitionId, kvp.Key.ElementInfo, returnAvailableOnly: true);
+                var entryPoints = planApi.CoreHelpers.ProtocolFunctionHelperCache.GetElementFunctionEntryPoints(kvp.Key.FunctionDefinitionId, kvp.Key.ElementInfo, forceGet: true, returnAvailableOnly: true);
                 foreach (var resource in resourcesRequiringValidation.Where(x => !entryPoints.Any(y => y.IndexValue == x.ResourceInternalProperties.Metadata.LinkedFunctionTableIndex)))
                 {
                     var error = new ResourceConfigurationError

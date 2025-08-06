@@ -82,10 +82,31 @@
             handler.TransitionToDeprecated(apiResource);
         }
 
+        internal static long CountAll(MediaOpsPlanApi planApi)
+        {
+            var handler = new DomResourceHandler(planApi);
+            return handler.CountAll();
+        }
+
+        private long CountAll()
+        {
+            return planApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(
+                DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resource.Id));
+        }
+
         private void TransitionToComplete(Resource apiResource)
         {
+            // Clear Errors
             ClearErrors(planApi, apiResource, ResourceErrors.ExecuteAction_MarkCompleteException);
-            CoreResourceHandler.CreateOrUpdate(planApi, [apiResource.OriginalInstance]);
+
+            // Create CORE Resource
+            var result = CoreResourceHandler.CreateOrUpdate(planApi, [apiResource.OriginalInstance]);
+            result.ThrowOnFailure();
+
+            // Save link with CORE Resource
+            CreateOrUpdate([apiResource.OriginalInstance]);
+
+            // Transition DOM Resource to Complete
             planApi.DomHelpers.SlcResourceStudioHelper.TransitionToComplete(apiResource.Id);
         }
 
@@ -565,7 +586,7 @@
             domResource.ResourceInternalProperties.ResourceMetadata = new ResourceMetadata
             {
                 LinkedElementInfo = new DmsElementId(configuration.AgentId, configuration.ElementId).Value,
-                LinkedFunctionId = configuration.FunctionDefinitionId,
+                LinkedFunctionId = configuration.FunctionId,
                 LinkedFunctionTableIndex = configuration.FunctionTableIndex,
             }.Serialize();
 

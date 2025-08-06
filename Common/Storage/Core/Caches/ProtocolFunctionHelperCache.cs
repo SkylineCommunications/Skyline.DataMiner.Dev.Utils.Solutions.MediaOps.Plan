@@ -67,7 +67,8 @@
 
             if (idsToRetrieve.Count > 0)
             {
-                foreach (var systemFunctionDefinition in helper.GetFunctionDefinitions(idsToRetrieve.Select(x => new Net.FunctionDefinitionID(x)).ToList()))
+                var functionDefinitions = ActivityHelper.ActivityHelper.Track(nameof(ProtocolFunctionHelper), nameof(ProtocolFunctionHelper.GetFunctionDefinitions), act => helper.GetFunctionDefinitions(idsToRetrieve.Select(x => new Net.FunctionDefinitionID(x)).ToList()));
+                foreach (var systemFunctionDefinition in functionDefinitions)
                 {
                     if (systemFunctionDefinition is not FunctionDefinition functionDefinition)
                     {
@@ -107,7 +108,7 @@
                     : entryPointData;
             }
 
-            var functionEntryPoint = helper.GetFunctionEntryPoints(functionDefinitionId, elementInfo.AgentId, elementInfo.ElementId).FirstOrDefault();
+            var functionEntryPoint = ActivityHelper.ActivityHelper.Track<FunctionEntryPoint>(nameof(ProtocolFunctionHelper), nameof(ProtocolFunctionHelper.GetFunctionEntryPoints), act => helper.GetFunctionEntryPoints(functionDefinitionId, elementInfo.AgentId, elementInfo.ElementId).FirstOrDefault());
             if (functionEntryPoint == null)
             {
                 entryPointDataByElementFunction.Add(key, new List<EntryPointData>());
