@@ -21,6 +21,16 @@
         {
         }
 
+        public long Count(FilterElement<ResourcePool> filter)
+        {
+            throw new NotImplementedException();
+        }
+
+        public long CountAll()
+        {
+            return DomResourcePoolHandler.CountAll(PlanApi);
+        }
+
         public Guid Create(ResourcePool apiObject)
         {
             PlanApi.Logger.LogInformation("Creating new ResourcePool...");
@@ -56,7 +66,24 @@
 
         public IEnumerable<Guid> CreateOrUpdate(IEnumerable<ResourcePool> apiObjects)
         {
-            throw new NotImplementedException();
+            if (apiObjects == null)
+            {
+                throw new ArgumentNullException(nameof(apiObjects));
+            }
+
+            return ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(CreateOrUpdate), act =>
+            {
+                if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
+                {
+                    throw new MediaOpsBulkException<Guid>(result);
+                }
+
+                var resourceIds = result.SuccessfulIds;
+                act.AddTag("Created Resource Pools", String.Join(", ", resourceIds));
+                act.AddTag("Created Resource Pools Count", resourceIds.Count);
+
+                return resourceIds;
+            });
         }
 
         public void Delete(params ResourcePool[] objectApis)
@@ -65,6 +92,26 @@
         }
 
         public void Delete(params Guid[] objectIds)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Delete(ResourcePool resourcepool, ResourcePoolDeleteOptions options)
+        {
+            throw new NotImplementedException();
+        }
+
+        public long DeprecatedResourceCount(ResourcePool resourcePool)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool HasDeprecatedResources(ResourcePool resourcePool)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool HasResources(ResourcePool resourcePool)
         {
             throw new NotImplementedException();
         }
@@ -182,6 +229,11 @@
         }
 
         public IEnumerable<IEnumerable<ResourcePool>> ReadAllPaged()
+        {
+            throw new NotImplementedException();
+        }
+
+        public long ResourceCount(ResourcePool resourcePool)
         {
             throw new NotImplementedException();
         }

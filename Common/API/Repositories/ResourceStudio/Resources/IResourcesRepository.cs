@@ -1,6 +1,7 @@
 ﻿namespace Skyline.DataMiner.MediaOps.Plan.API
 {
     using System;
+    using System.Collections.Generic;
 
     /// <summary>
     /// Defines methods for managing <see cref="Resource"/> objects.
@@ -151,5 +152,33 @@
         /// <param name="virtualFunctionResource">When this method returns, contains the converted <see cref="VirtualFunctionResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
         /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
         bool TryConvertToVirtualFunctionResource(Guid resourceId, ResourceVirtualFunctionLinkConfiguration configuration, out VirtualFunctionResource virtualFunctionResource);
+
+        /// <summary>
+        /// Gets all deprecated resources in the specified resource pool.
+        /// </summary>
+        /// <param name="resourcePool">The resource pool to search for deprecated resources.</param>
+        /// <returns>An enumerable collection of deprecated resources in the specified pool.</returns>
+        IEnumerable<Resource> GetDeprecatedResourcesInPool(ResourcePool resourcePool);
+
+        /// <summary>
+        /// Gets a dictionary mapping each specified resource pool to its deprecated resource.
+        /// </summary>
+        /// <param name="resourcePools">The resource pools to search for deprecated resources.</param>
+        /// <returns>A read-only dictionary mapping each resource pool to its deprecated resources.</returns>
+        IReadOnlyDictionary<ResourcePool, IEnumerable<Resource>> GetDeprecatedResourcesPerPool(IEnumerable<ResourcePool> resourcePools);
+
+        /// <summary>
+        /// Gets all resources in the specified resource pool.
+        /// </summary>
+        /// <param name="resourcePool">The resource pool to search for resources.</param>
+        /// <returns>An enumerable collection of resources in the specified pool.</returns>
+        IEnumerable<Resource> GetResourcesInPool(ResourcePool resourcePool);
+
+        /// <summary>
+        /// Gets a dictionary mapping each specified resource pool to its resource.
+        /// </summary>
+        /// <param name="resourcePools">The resource pools to search for resources.</param>
+        /// <returns>A read-only dictionary mapping each resource pool to its resources.</returns>
+        IReadOnlyDictionary<ResourcePool, IEnumerable<Resource>> GetResourcesPerPool(IEnumerable<ResourcePool> resourcePools);
     }
 }

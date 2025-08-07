@@ -6,16 +6,15 @@
     public class ResourcePoolDeleteOptions
     {
         /// <summary>
-        /// Gets or sets a value indicating whether draft or deprecated resources,
-        /// which only belong to this resource pool, are allowed to be deleted.
+        /// Gets or sets a value indicating whether deprecated resources, part of the resource pool, should be deleted.
         /// </summary>
-        public bool DeleteChildren { get; set; } = false;
+        public bool DeleteDeprecatedResources { get; set; } = false;
 
         internal static ResourcePoolDeleteOptions GetDefaults()
         {
             return new ResourcePoolDeleteOptions
             {
-                DeleteChildren = false
+                DeleteDeprecatedResources = false
             };
         }
     }

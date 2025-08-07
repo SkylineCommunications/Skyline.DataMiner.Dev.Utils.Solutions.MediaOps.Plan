@@ -13,6 +13,22 @@
 
     internal static class InstanceFactory
     {
+        public static T CreateInstance<T>(DomInstance domInstance, Func<DomInstance, T> createInstance)
+            where T : DomInstanceBase
+        {
+            if (domInstance == null)
+            {
+                throw new ArgumentNullException(nameof(domInstance));
+            }
+
+            if (createInstance == null)
+            {
+                throw new ArgumentNullException(nameof(createInstance));
+            }
+
+            return createInstance(domInstance);
+        }
+
         public static IEnumerable<T> CreateInstances<T>(IEnumerable<DomInstance> domInstances, Func<DomInstance, T> createInstance)
             where T : DomInstanceBase
         {

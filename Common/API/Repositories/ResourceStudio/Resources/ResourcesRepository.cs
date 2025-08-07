@@ -358,7 +358,8 @@
 
         public IEnumerable<IEnumerable<Resource>> ReadAllPaged()
         {
-            throw new NotImplementedException();
+            return PlanApi.DomHelpers.SlcResourceStudioHelper.GetAllResourcesPaged()
+                .Select(page => Resource.InstantiateResources(page));
         }
 
         public bool TryConvertToElementResource(Resource resource, ResourceElementLinkConfiguration configuration, out ElementResource elementResource)
@@ -548,6 +549,42 @@
         public long Count(FilterElement<Resource> filter)
         {
             throw new NotImplementedException();
+        }
+
+        public IEnumerable<Resource> GetDeprecatedResourcesInPool(ResourcePool resourcePool)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IReadOnlyDictionary<ResourcePool, IEnumerable<Resource>> GetDeprecatedResourcesPerPool(IEnumerable<ResourcePool> resourcePools)
+        {
+            var resources = PlanApi.DomHelpers.SlcResourceStudioHelper.GetAllDeprecatedResourcesInPools(resourcePools.Select(x => x.Id));
+
+            var resourcesPerPool = new Dictionary<ResourcePool, IEnumerable<Resource>>();
+            foreach (var pool in resourcePools)
+            {
+                resourcesPerPool.Add(pool, Resource.InstantiateResources(resources.Where(x => x.PoolIds.Contains(pool.Id))));
+            }
+
+            return resourcesPerPool;
+        }
+
+        public IEnumerable<Resource> GetResourcesInPool(ResourcePool resourcePool)
+        {
+            return Resource.InstantiateResources(PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcesByPool(resourcePool.Id));
+        }
+
+        public IReadOnlyDictionary<ResourcePool, IEnumerable<Resource>> GetResourcesPerPool(IEnumerable<ResourcePool> resourcePools)
+        {
+            var resources = PlanApi.DomHelpers.SlcResourceStudioHelper.GetAllResourcesInPools(resourcePools.Select(x => x.Id));
+
+            var resourcesPerPool = new Dictionary<ResourcePool, IEnumerable<Resource>>();
+            foreach (var pool in resourcePools)
+            {
+                resourcesPerPool.Add(pool, Resource.InstantiateResources(resources.Where(x => x.PoolIds.Contains(pool.Id))));
+            }
+
+            return resourcesPerPool;
         }
     }
 }

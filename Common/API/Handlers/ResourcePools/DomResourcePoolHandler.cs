@@ -25,7 +25,7 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        public static BulkCreateOrUpdateResult<Guid> CreateOrUpdate(MediaOpsPlanApi planApi, IEnumerable<ResourcePool> apiResourcePools)
+        internal static BulkCreateOrUpdateResult<Guid> CreateOrUpdate(MediaOpsPlanApi planApi, IEnumerable<ResourcePool> apiResourcePools)
         {
             var handler = new DomResourcePoolHandler(planApi);
             handler.CreateOrUpdate(apiResourcePools);
@@ -36,7 +36,7 @@
             return result;
         }
 
-        public static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, IEnumerable<ResourcePool> apiResourcePools, out BulkCreateOrUpdateResult<Guid> result)
+        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, IEnumerable<ResourcePool> apiResourcePools, out BulkCreateOrUpdateResult<Guid> result)
         {
             var handler = new DomResourcePoolHandler(planApi);
             handler.CreateOrUpdate(apiResourcePools);
@@ -44,6 +44,12 @@
             result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
             return !result.HasFailures();
+        }
+
+        internal static long CountAll(MediaOpsPlanApi planApi)
+        {
+            var handler = new DomResourcePoolHandler(planApi);
+            return handler.CountAll();
         }
 
         private void CreateOrUpdate(IEnumerable<ResourcePool> apiResourcePools)
@@ -384,6 +390,12 @@
             }
 
             poolIdsWithCoreChanges.Add(resourcePool.Id);
+        }
+
+        private long CountAll()
+        {
+            return planApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances
+                .Count(DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resourcepool.Id));
         }
     }
 }
