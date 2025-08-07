@@ -2,7 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
-
+    using System.Linq;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
     /// <summary>
@@ -38,10 +38,15 @@
         IDictionary<Guid, T> Read(IEnumerable<Guid> ids);
 
         /// <summary>
-        /// Reads API objects that match the specified filter.
+        /// Returns an <see cref="IQueryable{T}"/> that can be used to build LINQ queries against the API objects.
         /// </summary>
-        /// <param name="filter">The filter to apply when reading API objects.</param>
-        /// <returns>An enumerable collection of API objects that match the filter.</returns>
-        IEnumerable<T> Read(FilterElement<T> filter);
+        /// <returns>An <see cref="IQueryable{T}"/> for querying API objects.</returns>
+        IQueryable<T> Query();
+
+        /// <summary>
+        /// Gets the total number of API objects in the repository.
+        /// </summary>
+        /// <returns>The total count of API objects.</returns>
+        long CountAll();
     }
 }

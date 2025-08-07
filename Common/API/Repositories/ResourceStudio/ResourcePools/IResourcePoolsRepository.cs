@@ -6,7 +6,7 @@
     /// <summary>
     /// Defines methods for managing <see cref="ResourcePool"/> objects, including state transitions.
     /// </summary>
-    public interface IResourcePoolsRepository : ICrudRepository<ResourcePool>, ICounterRepository<ResourcePool>
+    public interface IResourcePoolsRepository : ICrudRepository<ResourcePool>
     {
         /// <summary>
         /// Moves the specified <see cref="ResourcePool"/> to the desired state.

@@ -3,15 +3,15 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-
-    using Skyline.DataMiner.MediaOps.Plan.ActivityHelper;
     using Microsoft.Extensions.Logging;
+    using Skyline.DataMiner.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
+    using Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Net.Sections;
-
+    using SLDataGateway.API.Types.Querying;
     using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
@@ -270,6 +270,28 @@
             throw new NotImplementedException();
         }
 
+        internal override IEnumerable<ResourcePool> Read(IQuery<DomInstance> query)
+        {
+            if (query == null)
+            {
+                throw new ArgumentNullException(nameof(query));
+            }
+
+            var domFilter = AddDomDefinitionFilter(query.Filter, SlcResource_StudioIds.Definitions.Resourcepool);
+
+            query = query.WithFilter(domFilter);
+
+            var domInstances = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(query);
+
+            return domInstances.Select(x => new ResourcePool(x));
+        }
+
+        internal override long Count(FilterElement<DomInstance> domFilter)
+        {
+            return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(
+                DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resource.Id).AND(domFilter));
+        }
+
         internal DomResourcePool GetDomResourcePool(Guid domResourcePoolId)
         {
             if (domResourcePoolId == Guid.Empty)
@@ -329,6 +351,11 @@
                     ErrorMessage = "Name is already in use.",
                 });
             }
+        }
+
+        public IQueryable<ResourcePool> Query()
+        {
+            return new ApiRepositoryQuery<ResourcePool>(QueryProvider);
         }
     }
 }

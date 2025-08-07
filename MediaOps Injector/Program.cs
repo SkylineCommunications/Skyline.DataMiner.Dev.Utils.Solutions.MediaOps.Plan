@@ -12,6 +12,7 @@
     using Skyline.DataMiner.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.MediaOps.Plan.API;
     using Skyline.DataMiner.Net;
+    using Skyline.DataMiner.Net.Helper;
     using DMConnection = Skyline.DataMiner.Net.Connection;
 
     internal class Program
@@ -56,6 +57,8 @@
             {
                 using (activitySource.StartActivity("MediaOps Plan Injector"))
                 {
+                    planApi.Resources.Query().Where(x => x.Name.Contains("Makito")).ForEach(x => Console.WriteLine($"Makito: {x.Name}"));
+
                     //TestResourcePoolRepository(planApi);
                     TestResourceRepository(planApi);
 

@@ -6,8 +6,10 @@
     using Microsoft.Extensions.Logging;
     using Skyline.DataMiner.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
+    using Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
+    using SLDataGateway.API.Types.Querying;
 
     internal class ResourcesRepository : RepositoryBase<Resource>, IResourcesRepository
     {
@@ -543,12 +545,8 @@
 
         public long CountAll()
         {
-            return DomResourceHandler.CountAll(PlanApi);
-        }
-
-        public long Count(FilterElement<Resource> filter)
-        {
-            throw new NotImplementedException();
+            return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(
+                DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resource.Id));
         }
 
         public IEnumerable<Resource> GetDeprecatedResourcesInPool(ResourcePool resourcePool)
@@ -585,6 +583,33 @@
             }
 
             return resourcesPerPool;
+        }
+
+        internal override IEnumerable<Resource> Read(IQuery<DomInstance> query)
+        {
+            if (query == null)
+            {
+                throw new ArgumentNullException(nameof(query));
+            }
+
+            var domFilter = AddDomDefinitionFilter(query.Filter, SlcResource_StudioIds.Definitions.Resource);
+
+            query = query.WithFilter(domFilter);
+
+            var domInstances = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(query);
+
+            return Resource.InstantiateResources(domInstances);
+        }
+
+        internal override long Count(FilterElement<DomInstance> domFilter)
+        {
+            return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(
+                DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resource.Id).AND(domFilter));
+        }
+
+        public IQueryable<Resource> Query()
+        {
+            return new ApiRepositoryQuery<Resource>(QueryProvider);
         }
     }
 }

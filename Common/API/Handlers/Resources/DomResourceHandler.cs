@@ -82,18 +82,6 @@
             handler.TransitionToDeprecated(apiResource);
         }
 
-        internal static long CountAll(MediaOpsPlanApi planApi)
-        {
-            var handler = new DomResourceHandler(planApi);
-            return handler.CountAll();
-        }
-
-        private long CountAll()
-        {
-            return planApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(
-                DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resource.Id));
-        }
-
         private void TransitionToComplete(Resource apiResource)
         {
             // Clear Errors

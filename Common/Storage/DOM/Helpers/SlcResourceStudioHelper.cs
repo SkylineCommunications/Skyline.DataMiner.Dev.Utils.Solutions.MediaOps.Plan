@@ -9,6 +9,7 @@
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Utils.DOM.Extensions;
+    using SLDataGateway.API.Types.Querying;
 
     internal class SlcResourceStudioHelper : DomModuleHelperBase
     {
@@ -52,6 +53,11 @@
             }
 
             return GetResourcePoolIterator(filter);
+        }
+
+        internal IEnumerable<ResourcepoolInstance> GetResourcePools(IQuery<DomInstance> query)
+        {
+            return InstanceFactory.ReadAndCreateInstances(DomHelper, query, instance => new ResourcepoolInstance(instance));
         }
 
         public IEnumerable<ResourcepoolInstance> GetResourcePools(IEnumerable<Guid> ids)
@@ -119,6 +125,11 @@
             }
 
             return GetResourceIterator(filter);
+        }
+
+        internal IEnumerable<ResourceInstance> GetResources(IQuery<DomInstance> query)
+        {
+            return InstanceFactory.ReadAndCreateInstances(DomHelper, query, instance => new ResourceInstance(instance));
         }
 
         public IEnumerable<ResourceInstance> GetResources(IEnumerable<Guid> ids)
