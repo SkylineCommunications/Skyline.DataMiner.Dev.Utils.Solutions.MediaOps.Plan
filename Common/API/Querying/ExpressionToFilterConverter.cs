@@ -2,7 +2,6 @@
 {
     using System;
     using System.Linq.Expressions;
-    using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
 

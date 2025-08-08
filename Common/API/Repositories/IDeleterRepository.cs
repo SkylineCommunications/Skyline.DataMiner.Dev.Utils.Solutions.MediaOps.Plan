@@ -17,7 +17,7 @@
         /// <summary>
         /// Deletes the API objects with the specified unique identifiers from the repository.
         /// </summary>
-        /// <param name="objectIds">The unique identifiers of the API objects to delete.</param>
+        /// <param name="apiObjectIds">The unique identifiers of the API objects to delete.</param>
         void Delete(params Guid[] apiObjectIds);
     }
 }

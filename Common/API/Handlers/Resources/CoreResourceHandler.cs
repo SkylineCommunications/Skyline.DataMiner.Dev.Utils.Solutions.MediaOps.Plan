@@ -28,9 +28,9 @@
 
         private readonly IReadOnlyDictionary<Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type, Func<DomResource, CoreResource, bool>> TypeSyncers;
 
-        private Lazy<Dictionary<Guid, Skyline.DataMiner.Net.Profiles.Parameter>> lazyCoreCapabilitiesById;
-        private Lazy<Dictionary<Guid, Skyline.DataMiner.Net.Profiles.Parameter>> lazyCoreCapacitiesById;
-        private Lazy<DomCapabilitiesHandler> lazyCapabilitiesHandler;
+        private readonly Lazy<Dictionary<Guid, Skyline.DataMiner.Net.Profiles.Parameter>> lazyCoreCapabilitiesById;
+        private readonly Lazy<Dictionary<Guid, Skyline.DataMiner.Net.Profiles.Parameter>> lazyCoreCapacitiesById;
+        private readonly Lazy<DomCapabilitiesHandler> lazyCapabilitiesHandler;
 
         private CoreResourceHandler(MediaOpsPlanApi planApi)
         {
@@ -119,7 +119,7 @@
             }
 
             var elementId = new DmsElementId(configuration.AgentId, configuration.ElementId);
-            if (!handler.TryValidateVirtualFunctionResourceElementLink(elementId, out string invalidElementInfoReason))
+            if (!handler.TryValidateElementLink(elementId, out string invalidElementInfoReason))
             {
                 error = new ResourceConfigurationError
                 {
@@ -191,7 +191,7 @@
             }
 
             var elementId = new DmsElementId(configuration.AgentId, configuration.ElementId);
-            if (!handler.TryValidateElementResourceElementLink(elementId, out var reason))
+            if (!handler.TryValidateElementLink(elementId, out var reason))
             {
                 error = new ResourceConfigurationError
                 {
@@ -656,7 +656,7 @@
             foreach (var domResource in domResources)
             {
                 var elementId = new DmsElementId(domResource.ResourceInternalProperties.Metadata.LinkedElementInfo);
-                if (!TryValidateElementResourceElementLink(elementId, out string reason))
+                if (!TryValidateElementLink(elementId, out string reason))
                 {
                     var error = new ResourceConfigurationError
                     {
@@ -669,7 +669,7 @@
             }
         }
 
-        public bool TryValidateElementResourceElementLink(DmsElementId elementId, out string reason)
+        public bool TryValidateElementLink(DmsElementId elementId, out string reason)
         {
             reason = String.Empty;
             var element = planApi.CoreHelpers.DmsCache.GetElement(elementId);
@@ -745,7 +745,7 @@
             foreach (var domResource in domResourcesToValidate)
             {
                 var elementId = new DmsElementId(domResource.ResourceInternalProperties.Metadata.LinkedElementInfo);
-                if (!TryValidateVirtualFunctionResourceElementLink(elementId, out string invalidElementInfoReason))
+                if (!TryValidateElementLink(elementId, out string invalidElementInfoReason))
                 {
                     var error = new ResourceConfigurationError
                     {
@@ -826,27 +826,6 @@
                     AddError(resource.ID.Id, error);
                 }
             }
-        }
-
-        private bool TryValidateVirtualFunctionResourceElementLink(DmsElementId elementId, out string reason)
-        {
-            reason = String.Empty;
-
-            var element = planApi.CoreHelpers.DmsCache.GetElement(elementId);
-
-            if (element == null)
-            {
-                reason = $"No element found with ID '{elementId}'.";
-                return false;
-            }
-
-            if (element.FunctionSettings.IsFunctionElement)
-            {
-                reason = $"Element '{element.Name}' is a function element and cannot be linked to a resource.";
-                return false;
-            }
-
-            return true;
         }
 
         private bool TryValidateVirtualFunctionResourceFunctionDefinition(Guid functionDefinitionId, out string reason)

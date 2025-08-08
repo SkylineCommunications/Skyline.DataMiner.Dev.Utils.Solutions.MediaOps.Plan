@@ -36,16 +36,6 @@
 
         public static IEnumerable<TSource> Duplicates<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> selector, IEqualityComparer<TKey> comparer = null)
         {
-            if (source == null)
-            {
-                throw new ArgumentNullException(nameof(source));
-            }
-
-            if (selector == null)
-            {
-                throw new ArgumentNullException(nameof(selector));
-            }
-
             var set = new HashSet<TKey>(comparer);
 
             foreach (var item in source)

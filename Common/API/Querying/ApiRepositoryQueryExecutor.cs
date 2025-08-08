@@ -11,7 +11,7 @@
     using SLDataGateway.API.Querying;
     using SLDataGateway.API.Types.Querying;
 
-    public class ApiRepositoryQueryExecutor<T, TResult> : ExpressionVisitor
+    internal class ApiRepositoryQueryExecutor<T, TResult> : ExpressionVisitor
         where T : ApiObject
     {
         private readonly ApiRepositoryQueryProvider<T> _provider;

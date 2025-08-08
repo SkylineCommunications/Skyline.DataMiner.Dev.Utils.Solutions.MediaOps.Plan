@@ -32,7 +32,7 @@
             {
                 if (ResourceInternalProperties?.Pool_Ids == null)
                 {
-                    return null;
+                    return Enumerable.Empty<Guid>();
                 }
 
                 return ResourceInternalProperties.Pool_Ids.Split([";"], StringSplitOptions.RemoveEmptyEntries).Select(x => Guid.Parse(x));
