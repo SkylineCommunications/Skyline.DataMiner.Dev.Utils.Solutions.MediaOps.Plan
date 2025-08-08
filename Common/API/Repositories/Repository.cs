@@ -8,14 +8,14 @@
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using SLDataGateway.API.Types.Querying;
 
-    internal abstract class RepositoryBase<T> where T : ApiObject
+    internal abstract class Repository<T> where T : ApiObject
     {
         private readonly MediaOpsPlanApi planApi;
 
         private readonly MediaOpsTraceData traceData = new MediaOpsTraceData();
         private readonly ApiRepositoryQueryProvider<T> _queryProvider;
 
-        protected RepositoryBase(MediaOpsPlanApi planApi)
+        protected Repository(MediaOpsPlanApi planApi)
         {
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
             _queryProvider = new ApiRepositoryQueryProvider<T>(this);
@@ -36,6 +36,11 @@
                 default:
                     throw new NotImplementedException();
             }
+        }
+
+        protected internal virtual FilterElement<DomInstance> CreateFilter(Type type, Comparer comparer)
+        {
+            throw new NotImplementedException();
         }
 
         protected internal virtual IOrderByElement CreateOrderBy(string fieldName, SortOrder sortOrder, bool naturalSort = false)

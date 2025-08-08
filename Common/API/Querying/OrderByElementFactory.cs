@@ -7,7 +7,7 @@
     using SLDataGateway.API.Querying;
     using SLDataGateway.API.Types.Querying;
 
-    public static class OrderByElementFactory
+    internal static class OrderByElementFactory
     {
         public static IOrderByElement Create(FieldExposer exposer, SortOrder sortOrder, bool naturalSort = false)
         {

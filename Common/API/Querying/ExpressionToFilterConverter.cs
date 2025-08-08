@@ -2,21 +2,21 @@
 {
     using System;
     using System.Linq.Expressions;
-
+    using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
     internal class ExpressionToFilterConverter<T>
         where T : ApiObject
     {
-        private readonly RepositoryBase<T> _repository;
+        private readonly Repository<T> _repository;
 
-        private ExpressionToFilterConverter(RepositoryBase<T> repository)
+        private ExpressionToFilterConverter(Repository<T> repository)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         }
 
-        public static FilterElement<DomInstance> Convert(Expression expression, RepositoryBase<T> repository)
+        public static FilterElement<DomInstance> Convert(Expression expression, Repository<T> repository)
         {
             if (expression is null)
             {
@@ -42,6 +42,7 @@
                 ConstantExpression constant => ConvertConstant(constant),
                 MethodCallExpression methodCall => ConvertMethodCall(methodCall),
                 LambdaExpression lambda => ConvertInternal(lambda.Body),
+                TypeBinaryExpression typeBinary => ConvertTypeBinary(typeBinary),
                 _ => throw new NotSupportedException($"Unsupported expression: {expr.NodeType} ({expr})"),
             };
         }
@@ -121,6 +122,11 @@
             throw new NotSupportedException($"Unsupported method call: {node.Method}");
         }
 
+        private FilterElement<DomInstance> ConvertTypeBinary(TypeBinaryExpression node)
+        {
+            return _repository.CreateFilter(node.TypeOperand, ExpressionTypeToComparer(node.NodeType));
+        }
+
         private static Comparer ExpressionTypeToComparer(ExpressionType type)
         {
             return type switch
@@ -131,6 +137,8 @@
                 ExpressionType.LessThanOrEqual => Comparer.LTE,
                 ExpressionType.GreaterThan => Comparer.GT,
                 ExpressionType.GreaterThanOrEqual => Comparer.GTE,
+                ExpressionType.TypeIs => Comparer.Equals,
+                ExpressionType.TypeEqual => Comparer.Equals,
                 _ => throw new NotSupportedException($"Unknown comparison: {type}")
             };
         }

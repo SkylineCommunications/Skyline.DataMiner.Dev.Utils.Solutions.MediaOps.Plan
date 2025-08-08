@@ -11,7 +11,7 @@
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using SLDataGateway.API.Types.Querying;
 
-    internal class ResourcesRepository : RepositoryBase<Resource>, IResourcesRepository
+    internal class ResourcesRepository : Repository<Resource>, IResourcesRepository
     {
         public ResourcesRepository(MediaOpsPlanApi planApi) : base(planApi)
         {
@@ -344,11 +344,6 @@
             });
         }
 
-        public IEnumerable<Resource> Read(FilterElement<Resource> filter)
-        {
-            throw new NotImplementedException();
-        }
-
         public IEnumerable<Resource> ReadAll()
         {
             return ActivityHelper.Track(nameof(ResourcesRepository), nameof(ReadAll), act =>
@@ -610,6 +605,84 @@
         public IQueryable<Resource> Query()
         {
             return new ApiRepositoryQuery<Resource>(QueryProvider);
+        }
+
+        public IQueryable<IEnumerable<Resource>> QueryPaged()
+        {
+            throw new NotImplementedException();
+        }
+
+        protected internal override FilterElement<DomInstance> CreateFilter(string fieldName, Comparer comparer, object value)
+        {
+            switch (fieldName)
+            {
+                case nameof(Resource.Concurrency):
+                    return FilterElementFactory.Create<long>(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Concurrency), comparer, value);
+                case nameof(Resource.State):
+                    return FilterElementFactory.Create(DomInstanceExposers.StatusId, comparer, TranslateResourceState((ResourceState)value));
+                case nameof(Resource.Name):
+                    return FilterElementFactory.Create(DomInstanceExposers.Name, comparer, value);
+                case nameof(Resource.IsFavorite):
+                    return FilterElementFactory.Create<bool>(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Favorite), comparer, value);
+            }
+
+            return base.CreateFilter(fieldName, comparer, value);
+        }
+
+        protected internal override FilterElement<DomInstance> CreateFilter(Type type, Comparer comparer)
+        {
+            if (type == typeof(UnmanagedResource))
+            {
+                return FilterElementFactory.Create<int>(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Type), comparer, SlcResource_StudioIds.Enums.Type.Unmanaged);
+            }
+            else if (type == typeof(VirtualFunctionResource))
+            {
+                return FilterElementFactory.Create<int>(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Type), comparer, SlcResource_StudioIds.Enums.Type.VirtualFunction);
+            }
+            else if (type == typeof(ServiceResource))
+            {
+                return FilterElementFactory.Create<int>(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Type), comparer, SlcResource_StudioIds.Enums.Type.Service);
+            }
+            else if (type == typeof(ElementResource))
+            {
+                return FilterElementFactory.Create<int>(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Type), comparer, SlcResource_StudioIds.Enums.Type.Element);
+            }
+
+            return base.CreateFilter(type, comparer);
+        }
+
+        protected internal override IOrderByElement CreateOrderBy(string fieldName, SortOrder sortOrder, bool naturalSort = false)
+        {
+            switch (fieldName)
+            {
+                case nameof(Resource.Concurrency):
+                    return OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Concurrency), sortOrder, naturalSort);
+                case nameof(Resource.State):
+                    return OrderByElementFactory.Create(DomInstanceExposers.StatusId, sortOrder, naturalSort);
+                case nameof(Resource.Name):
+                    return OrderByElementFactory.Create(DomInstanceExposers.Name, sortOrder, naturalSort);
+                case nameof(Resource.IsFavorite):
+                    return OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Favorite), sortOrder, naturalSort);
+            }
+
+            return base.CreateOrderBy(fieldName, sortOrder, naturalSort);
+        }
+
+        /// <summary>
+        /// Translates the ResourceState enum to the state in DOM.
+        /// </summary>
+        /// <param name="state">State to be translated.</param>
+        /// <returns></returns>
+        /// <exception cref="NotSupportedException">If the provided state is not supported.</exception>
+        private string TranslateResourceState(ResourceState state)
+        {
+            return state switch
+            {
+                ResourceState.Draft => SlcResource_StudioIds.Behaviors.Resource_Behavior.Statuses.Draft,
+                ResourceState.Complete => SlcResource_StudioIds.Behaviors.Resource_Behavior.Statuses.Complete,
+                ResourceState.Deprecated => SlcResource_StudioIds.Behaviors.Resource_Behavior.Statuses.Deprecated,
+                _ => throw new NotSupportedException($"Resource state '{state}' is not supported.")
+            };
         }
     }
 }

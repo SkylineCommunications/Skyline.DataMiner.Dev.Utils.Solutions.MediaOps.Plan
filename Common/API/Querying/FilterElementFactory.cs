@@ -6,7 +6,7 @@
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
-    public static class FilterElementFactory
+    internal static class FilterElementFactory
     {
         public static FilterElement<DomInstance> Create<T>(DynamicListExposer<DomInstance, T> exposer, Comparer comparer, object value)
         {
@@ -42,6 +42,21 @@
             var filterValue = ConvertFilterValue<T>(value);
 
             return CreateFilter(exposer, comparer, filterValue);
+        }
+
+        public static FilterElement<DomInstance> Create(Exposer<DomInstance, string> exposer, Comparer comparer, object value)
+        {
+            if (exposer == null)
+            {
+                throw new ArgumentNullException(nameof(exposer));
+            }
+
+            if (value is not string stringValue)
+            {
+                throw new InvalidOperationException($"Expects {nameof(value)} to be of type string");
+            }
+
+            return CreateFilter(exposer, comparer, stringValue);
         }
 
         public static FilterElement<DomInstance> Create<T>(Exposer<DomInstance, object> exposer, Comparer comparer, object value)
@@ -97,6 +112,35 @@
                     return exposer.UncheckedLessThan(filterValue);
                 case Comparer.LTE:
                     return exposer.UncheckedLessThanOrEqual(filterValue);
+                default:
+                    throw new NotSupportedException("This comparer option is not supported");
+            }
+        }
+
+        private static FilterElement<DomInstance> CreateFilter(Exposer<DomInstance, string> exposer, Comparer comparer, string filterValue)
+        {
+            switch (comparer)
+            {
+                case Comparer.Equals:
+                    return exposer.UncheckedEqual(filterValue);
+                case Comparer.NotEquals:
+                    return exposer.UncheckedNotEqual(filterValue);
+                case Comparer.GT:
+                    return exposer.UncheckedGreaterThan(filterValue);
+                case Comparer.GTE:
+                    return exposer.UncheckedGreaterThanOrEqual(filterValue);
+                case Comparer.LT:
+                    return exposer.UncheckedLessThan(filterValue);
+                case Comparer.LTE:
+                    return exposer.UncheckedLessThanOrEqual(filterValue);
+                case Comparer.Contains:
+                    return exposer.Contains(filterValue);
+                case Comparer.NotContains:
+                    return exposer.NotContains(filterValue);
+                case Comparer.Regex:
+                    return exposer.Matches(filterValue);
+                case Comparer.NotRegex:
+                    return exposer.NotMatches(filterValue);
                 default:
                     throw new NotSupportedException("This comparer option is not supported");
             }

@@ -15,7 +15,7 @@
     using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
-    internal class ResourcePoolsRepository : RepositoryBase<ResourcePool>, IResourcePoolsRepository
+    internal class ResourcePoolsRepository : Repository<ResourcePool>, IResourcePoolsRepository
     {
         public ResourcePoolsRepository(MediaOpsPlanApi planApi) : base(planApi)
         {
@@ -356,6 +356,11 @@
         public IQueryable<ResourcePool> Query()
         {
             return new ApiRepositoryQuery<ResourcePool>(QueryProvider);
+        }
+
+        public IQueryable<IEnumerable<ResourcePool>> QueryPaged()
+        {
+            throw new NotImplementedException();
         }
     }
 }

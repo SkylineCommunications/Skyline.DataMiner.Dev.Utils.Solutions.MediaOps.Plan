@@ -3,7 +3,6 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
     /// <summary>
     /// Defines methods to read API objects from a data source.
@@ -42,6 +41,12 @@
         /// </summary>
         /// <returns>An <see cref="IQueryable{T}"/> for querying API objects.</returns>
         IQueryable<T> Query();
+
+        /// <summary>
+        /// Returns an <see cref="IQueryable{T}"/> of pages, where each page is an enumerable collection of API objects.
+        /// This can be used to build LINQ queries that operate on paged data.
+        /// </summary>
+        IQueryable<IEnumerable<T>> QueryPaged();
 
         /// <summary>
         /// Gets the total number of API objects in the repository.

@@ -48,7 +48,7 @@
                     options.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.HttpProtobuf;
                     options.Headers = $"Authorization=Bearer Skyline123";
                 })
-                //.AddConsoleExporter()
+                .AddConsoleExporter()
                 .Build();
 
             var planApi = new MediaOpsPlanApi(connection, loggerFactory.CreateLogger<IMediaOpsPlanApi>());
@@ -57,13 +57,11 @@
             {
                 using (activitySource.StartActivity("MediaOps Plan Injector"))
                 {
-                    planApi.Resources.Query().Where(x => x.Name.Contains("Makito")).ForEach(x => Console.WriteLine($"Makito: {x.Name}"));
-
                     //TestResourcePoolRepository(planApi);
                     TestResourceRepository(planApi);
 
-                    Console.WriteLine("Press Enter to exit...");
-                    Console.ReadLine();
+                    //Console.WriteLine("Press Enter to exit...");
+                    //Console.ReadLine();
                 }
             }
             catch (Exception e)
@@ -125,6 +123,9 @@
 
         private static void TestResourceRepository(IMediaOpsPlanApi planApi)
         {
+            ActivityHelper.Track(nameof(Program), "Read Makito Resources", act => planApi.Resources.Query().Where(x => x.Name.Contains("Makito")).ForEach(x => Console.WriteLine($"Makito: {x.Name}")));
+            ActivityHelper.Track(nameof(Program), "Count Makito Resources", act => Console.WriteLine($"Number of Makito resources: {planApi.Resources.Query().Count(x => x.Name.Contains("Makito"))}"));
+
             var unmanagedResource = new UnmanagedResource()
             {
                 Name = "MyUnmanagedResource",
@@ -186,15 +187,30 @@
 
             planApi.Resources.Delete(elementResource, virtualFunctionResource, serviceResource);
 
-            var allResources = planApi.Resources.ReadAll();
-            Console.WriteLine($"Resource Count: {allResources.Count()}");
-            Console.WriteLine($"Draft Resource Count: {allResources.Count(x => x.State == ResourceState.Draft)}");
-            Console.WriteLine($"Complete Resource Count: {allResources.Count(x => x.State == ResourceState.Complete)}");
-            Console.WriteLine($"Deprecated Resource Count: {allResources.Count(x => x.State == ResourceState.Deprecated)}");
-            Console.WriteLine($"Unmanaged Resource Count: {allResources.Count(x => x is UnmanagedResource)}");
-            Console.WriteLine($"Service Resource Count: {allResources.Count(x => x is ServiceResource)}");
-            Console.WriteLine($"Element Resource Count: {allResources.Count(x => x is ElementResource)}");
-            Console.WriteLine($"Virtual Function Resource Count: {allResources.Count(x => x is VirtualFunctionResource)}");
+            ActivityHelper.Track(nameof(Program), "Read All Resources", act =>
+            {
+                var allResources = planApi.Resources.ReadAll();
+                Console.WriteLine($"Resource Count: {allResources.Count()}");
+                Console.WriteLine($"Draft Resource Count: {allResources.Count(x => x.State == ResourceState.Draft)}");
+                Console.WriteLine($"Complete Resource Count: {allResources.Count(x => x.State == ResourceState.Complete)}");
+                Console.WriteLine($"Deprecated Resource Count: {allResources.Count(x => x.State == ResourceState.Deprecated)}");
+                Console.WriteLine($"Unmanaged Resource Count: {allResources.Count(x => x is UnmanagedResource)}");
+                Console.WriteLine($"Service Resource Count: {allResources.Count(x => x is ServiceResource)}");
+                Console.WriteLine($"Element Resource Count: {allResources.Count(x => x is ElementResource)}");
+                Console.WriteLine($"Virtual Function Resource Count: {allResources.Count(x => x is VirtualFunctionResource)}");
+            });
+
+            ActivityHelper.Track(nameof(Program), "Count All Resources", act =>
+            {
+                Console.WriteLine($"Resource Count: {planApi.Resources.Query().Count()}");
+                Console.WriteLine($"Draft Resource Count: {planApi.Resources.Query().Count(x => x.State == ResourceState.Draft)}");
+                Console.WriteLine($"Complete Resource Count: {planApi.Resources.Query().Count(x => x.State == ResourceState.Complete)}");
+                Console.WriteLine($"Deprecated Resource Count: {planApi.Resources.Query().Count(x => x.State == ResourceState.Deprecated)}");
+                Console.WriteLine($"Unmanaged Resource Count: {planApi.Resources.Query().Count(x => x is UnmanagedResource)}");
+                Console.WriteLine($"Service Resource Count: {planApi.Resources.Query().Count(x => x is ServiceResource)}");
+                Console.WriteLine($"Element Resource Count: {planApi.Resources.Query().Count(x => x is ElementResource)}");
+                Console.WriteLine($"Virtual Function Resource Count: {planApi.Resources.Query().Count(x => x is VirtualFunctionResource)}");
+            });
         }
     }
 }

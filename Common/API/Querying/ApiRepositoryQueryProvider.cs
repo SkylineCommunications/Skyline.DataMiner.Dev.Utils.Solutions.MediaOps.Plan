@@ -6,12 +6,12 @@
 
     internal class ApiRepositoryQueryProvider<T> : IQueryProvider where T : ApiObject
     {
-        public ApiRepositoryQueryProvider(RepositoryBase<T> repository)
+        public ApiRepositoryQueryProvider(Repository<T> repository)
         {
             Repository = repository ?? throw new ArgumentNullException(nameof(repository));
         }
 
-        public RepositoryBase<T> Repository { get; }
+        public Repository<T> Repository { get; }
 
         public IQueryable CreateQuery(Expression expression)
         {
