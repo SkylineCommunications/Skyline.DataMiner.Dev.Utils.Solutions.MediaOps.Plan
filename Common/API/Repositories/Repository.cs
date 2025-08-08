@@ -33,6 +33,8 @@
             {
                 case nameof(ApiObject.Id):
                     return FilterElementFactory.Create<Guid>(DomInstanceExposers.Id, comparer, value);
+                case nameof(ApiObject.Name):
+                    return FilterElementFactory.Create(DomInstanceExposers.Name, comparer, value);
                 default:
                     throw new NotImplementedException();
             }
@@ -49,6 +51,8 @@
             {
                 case nameof(ApiObject.Id):
                     return OrderByElementFactory.Create(DomInstanceExposers.Id, sortOrder, naturalSort);
+                case nameof(Resource.Name):
+                    return OrderByElementFactory.Create(DomInstanceExposers.Name, sortOrder, naturalSort);
                 default:
                     throw new NotImplementedException();
             }

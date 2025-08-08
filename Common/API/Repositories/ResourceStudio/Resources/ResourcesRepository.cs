@@ -620,8 +620,6 @@
                     return FilterElementFactory.Create<long>(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Concurrency), comparer, value);
                 case nameof(Resource.State):
                     return FilterElementFactory.Create(DomInstanceExposers.StatusId, comparer, TranslateResourceState((ResourceState)value));
-                case nameof(Resource.Name):
-                    return FilterElementFactory.Create(DomInstanceExposers.Name, comparer, value);
                 case nameof(Resource.IsFavorite):
                     return FilterElementFactory.Create<bool>(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Favorite), comparer, value);
             }
@@ -659,8 +657,6 @@
                     return OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Concurrency), sortOrder, naturalSort);
                 case nameof(Resource.State):
                     return OrderByElementFactory.Create(DomInstanceExposers.StatusId, sortOrder, naturalSort);
-                case nameof(Resource.Name):
-                    return OrderByElementFactory.Create(DomInstanceExposers.Name, sortOrder, naturalSort);
                 case nameof(Resource.IsFavorite):
                     return OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Favorite), sortOrder, naturalSort);
             }

@@ -286,8 +286,6 @@
             {
                 case nameof(ResourcePool.State):
                     return FilterElementFactory.Create(DomInstanceExposers.StatusId, comparer, TranslateResourcePoolState((ResourcePoolState)value));
-                case nameof(ResourcePool.Name):
-                    return FilterElementFactory.Create(DomInstanceExposers.Name, comparer, value);
             }
 
             return base.CreateFilter(fieldName, comparer, value);
@@ -299,8 +297,6 @@
             {
                 case nameof(ResourcePool.State):
                     return OrderByElementFactory.Create(DomInstanceExposers.StatusId, sortOrder, naturalSort);
-                case nameof(ResourcePool.Name):
-                    return OrderByElementFactory.Create(DomInstanceExposers.Name, sortOrder, naturalSort);
             }
 
             return base.CreateOrderBy(fieldName, sortOrder, naturalSort);
