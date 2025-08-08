@@ -86,12 +86,12 @@
             });
         }
 
-        public void Delete(params ResourcePool[] objectApis)
+        public void Delete(params ResourcePool[] apiObjects)
         {
             throw new NotImplementedException();
         }
 
-        public void Delete(params Guid[] objectIds)
+        public void Delete(params Guid[] apiObjectIds)
         {
             throw new NotImplementedException();
         }

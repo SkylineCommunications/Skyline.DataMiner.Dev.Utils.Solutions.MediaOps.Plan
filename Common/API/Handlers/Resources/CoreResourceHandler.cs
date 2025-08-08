@@ -281,24 +281,10 @@
                 var dom = mapping.DomResource;
                 var core = mapping.CoreResource;
 
-                bool updateRequired = false;
-
-                if (core == null)
+                if (!SyncDomResourceWitCoreResource(dom, core))
                 {
-                    core = BuildCoreResource(dom.ResourceInfo.Type.Value);
-                    updateRequired = true;
-                }
-
-                updateRequired |= SyncName(dom, core);
-                updateRequired |= SyncType(dom, core);
-                updateRequired |= SyncCapacities(dom, core);
-                updateRequired |= SyncCapabilities(dom, core);
-                updateRequired |= SyncConcurrency(dom, core);
-                updateRequired |= SyncPools(dom, core);
-
-                if (!updateRequired)
-                {
-                    planApi.Logger.LogInformation($"No changes detected to Capacities, Capabilities, Concurrency or Pools for DOM resource {mapping.DomResource.ID}");
+                    planApi.Logger.LogInformation($"No CORE changes for DOM resource {mapping.DomResource.ID}");
+                    continue;
                 }
 
                 resourcesToCreateOrUpdate.Add(core);
@@ -309,7 +295,7 @@
 
             planApi.CoreHelpers.ResourceManagerHelper.TryCreateOrUpdateResourcesInBatches(resourcesToCreateOrUpdate, out var result, out var createdOrUpdatedResources);
 
-            foreach (var id in unsuccessfulIds)
+            foreach (var id in result.UnsuccessfulIds)
             {
                 if (!domIdByCoreId.TryGetValue(id, out var domId))
                 {
@@ -343,6 +329,26 @@
 
                 successfulIds.Add(domId);
             }
+        }
+
+        private bool SyncDomResourceWitCoreResource(DomResource dom, CoreResource core)
+        {
+            bool updateRequired = false;
+
+            if (core == null)
+            {
+                core = BuildCoreResource(dom.ResourceInfo.Type.Value);
+                updateRequired = true;
+            }
+
+            updateRequired |= SyncName(dom, core);
+            updateRequired |= SyncType(dom, core);
+            updateRequired |= SyncCapacities(dom, core);
+            updateRequired |= SyncCapabilities(dom, core);
+            updateRequired |= SyncConcurrency(dom, core);
+            updateRequired |= SyncPools(dom, core);
+
+            return updateRequired;
         }
 
         private void Delete(IEnumerable<DomResource> domResources)
