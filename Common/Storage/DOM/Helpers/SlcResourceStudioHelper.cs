@@ -127,6 +127,24 @@
             return GetResourceIterator(filter);
         }
 
+        public IEnumerable<ResourceInstance> GetResources<T>(IEnumerable<T> values, Func<T, FilterElement<DomInstance>> filter)
+        {
+            if (values == null)
+            {
+                throw new ArgumentNullException(nameof(values));
+            }
+
+            if (filter == null)
+            {
+                throw new ArgumentNullException(nameof(filter));
+            }
+
+            return FilterQueryExecutor.RetrieveFilteredItems(
+                values.Distinct(),
+                x => filter(x),
+                x => GetResourceIterator(x));
+        }
+
         internal IEnumerable<ResourceInstance> GetResources(IQuery<DomInstance> query)
         {
             return InstanceFactory.ReadAndCreateInstances(DomHelper, query, instance => new ResourceInstance(instance));
@@ -257,24 +275,6 @@
         {
             var transitionId = SlcResource_StudioIds.Behaviors.Resource_Behavior.Transitions.Complete_To_Deprecated;
             DomHelper.DomInstances.DoStatusTransition(new DomInstanceId(resourceId), transitionId);
-        }
-
-        public IEnumerable<ResourceInstance> GetResources<T>(IEnumerable<T> values, Func<T, FilterElement<DomInstance>> filter)
-        {
-            if (values == null)
-            {
-                throw new ArgumentNullException(nameof(values));
-            }
-
-            if (filter == null)
-            {
-                throw new ArgumentNullException(nameof(filter));
-            }
-
-            return FilterQueryExecutor.RetrieveFilteredItems(
-                values.Distinct(),
-                x => filter(x),
-                x => GetResourceIterator(x));
         }
 
         private IEnumerable<ResourcepoolInstance> GetResourcePoolIterator(FilterElement<DomInstance> filter)

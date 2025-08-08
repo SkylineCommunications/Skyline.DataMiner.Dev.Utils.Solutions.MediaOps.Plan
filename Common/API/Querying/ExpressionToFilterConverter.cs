@@ -113,7 +113,7 @@
             if (node.Method.DeclaringType == typeof(System.Linq.Enumerable) &&
                 node.Method.Name == nameof(System.Linq.Enumerable.Any) &&
                 node.Arguments.Count == 2 &&
-                ExpressionTools.TryGetMember(node.Arguments[0], out var collectionMemberInfo))
+                ExpressionTools.TryGetMember(node.Arguments[0], out _))
             {
                 return ConvertInternal(node.Arguments[1]);
             }

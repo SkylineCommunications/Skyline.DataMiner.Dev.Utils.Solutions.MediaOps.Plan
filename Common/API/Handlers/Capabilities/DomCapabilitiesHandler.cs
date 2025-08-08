@@ -180,7 +180,7 @@
                     configuredCapabilitiesById.Add(capability.ProfileParameterId, configuredCapability);
                 }
 
-                var discretes = configuredCapability.StringValue.Split(';').ToList() ?? new List<string>();
+                var discretes = configuredCapability.StringValue.Split(';').ToList();
                 discretes.AddRange(capability.StringValue.Split(';'));
 
                 configuredCapability.StringValue = string.Join(";", discretes.Distinct());

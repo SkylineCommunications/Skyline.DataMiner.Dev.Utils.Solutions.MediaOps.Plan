@@ -135,18 +135,18 @@
                 error = new ResourceConfigurationError
                 {
                     ErrorReason = ResourceConfigurationError.Reason.InvalidFunctionLink,
-                    ErrorMessage = invalidElementInfoReason,
+                    ErrorMessage = invalidFunctionDefinitionReason,
                 };
 
                 return false;
             }
 
-            if (!handler.TryValidateVirtualFunctionResourceTableIndex(configuration.FunctionId, elementId, configuration.FunctionTableIndex, out string reason))
+            if (!handler.TryValidateVirtualFunctionResourceTableIndex(configuration.FunctionId, elementId, configuration.FunctionTableIndex, out string invalidTableIndexReason))
             {
                 error = new ResourceConfigurationError
                 {
                     ErrorReason = ResourceConfigurationError.Reason.InvalidTableIndexLink,
-                    ErrorMessage = invalidElementInfoReason,
+                    ErrorMessage = invalidTableIndexReason,
                 };
 
                 return false;

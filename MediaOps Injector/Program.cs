@@ -171,7 +171,7 @@
             var serviceResourceId = planApi.Resources.Create(serviceResource);
             Console.WriteLine($"Created Service Resource with ID: {serviceResourceId}\r\n");
 
-            var convertedVirtualFunctionResource = planApi.Resources.ConvertToVirtualFunctionResource(elementResource, new ResourceVirtualFunctionLinkConfiguration
+            planApi.Resources.ConvertToVirtualFunctionResource(elementResource, new ResourceVirtualFunctionLinkConfiguration
             {
                 AgentId = 78,
                 ElementId = 140461,
@@ -179,7 +179,7 @@
                 FunctionTableIndex = "1"
             });
 
-            var convertedElementResource = planApi.Resources.ConvertToElementResource(virtualFunctionResource, new ResourceElementLinkConfiguration
+            planApi.Resources.ConvertToElementResource(virtualFunctionResource, new ResourceElementLinkConfiguration
             {
                 AgentId = 78,
                 ElementId = 140466,
