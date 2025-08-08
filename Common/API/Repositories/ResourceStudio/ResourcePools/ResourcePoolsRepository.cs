@@ -270,6 +270,42 @@
             throw new NotImplementedException();
         }
 
+        public IQueryable<ResourcePool> Query()
+        {
+            return new ApiRepositoryQuery<ResourcePool>(QueryProvider);
+        }
+
+        public IQueryable<IEnumerable<ResourcePool>> QueryPaged()
+        {
+            throw new NotImplementedException();
+        }
+
+        protected internal override FilterElement<DomInstance> CreateFilter(string fieldName, Comparer comparer, object value)
+        {
+            switch (fieldName)
+            {
+                case nameof(ResourcePool.State):
+                    return FilterElementFactory.Create(DomInstanceExposers.StatusId, comparer, TranslateResourcePoolState((ResourcePoolState)value));
+                case nameof(ResourcePool.Name):
+                    return FilterElementFactory.Create(DomInstanceExposers.Name, comparer, value);
+            }
+
+            return base.CreateFilter(fieldName, comparer, value);
+        }
+
+        protected internal override IOrderByElement CreateOrderBy(string fieldName, SortOrder sortOrder, bool naturalSort = false)
+        {
+            switch (fieldName)
+            {
+                case nameof(ResourcePool.State):
+                    return OrderByElementFactory.Create(DomInstanceExposers.StatusId, sortOrder, naturalSort);
+                case nameof(ResourcePool.Name):
+                    return OrderByElementFactory.Create(DomInstanceExposers.Name, sortOrder, naturalSort);
+            }
+
+            return base.CreateOrderBy(fieldName, sortOrder, naturalSort);
+        }
+
         internal override IEnumerable<ResourcePool> Read(IQuery<DomInstance> query)
         {
             if (query == null)
@@ -288,8 +324,7 @@
 
         internal override long Count(FilterElement<DomInstance> domFilter)
         {
-            return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(
-                DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resource.Id).AND(domFilter));
+            return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(AddDomDefinitionFilter(domFilter, SlcResource_StudioIds.Definitions.Resourcepool));
         }
 
         internal DomResourcePool GetDomResourcePool(Guid domResourcePoolId)
@@ -353,14 +388,21 @@
             }
         }
 
-        public IQueryable<ResourcePool> Query()
+        /// <summary>
+        /// Translates the ResourceState enum to the state in DOM.
+        /// </summary>
+        /// <param name="state">State to be translated.</param>
+        /// <returns></returns>
+        /// <exception cref="NotSupportedException">If the provided state is not supported.</exception>
+        private string TranslateResourcePoolState(ResourcePoolState state)
         {
-            return new ApiRepositoryQuery<ResourcePool>(QueryProvider);
-        }
-
-        public IQueryable<IEnumerable<ResourcePool>> QueryPaged()
-        {
-            throw new NotImplementedException();
+            return state switch
+            {
+                ResourcePoolState.Draft => SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.Statuses.Draft,
+                ResourcePoolState.Complete => SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.Statuses.Complete,
+                ResourcePoolState.Deprecated => SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.Statuses.Deprecated,
+                _ => throw new NotSupportedException($"Resource Pool state '{state}' is not supported.")
+            };
         }
     }
 }
