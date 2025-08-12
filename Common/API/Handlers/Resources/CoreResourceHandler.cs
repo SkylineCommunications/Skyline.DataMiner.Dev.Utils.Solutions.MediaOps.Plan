@@ -26,7 +26,7 @@
         private readonly Dictionary<Guid, MediaOpsTraceData> traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
         private readonly Dictionary<Guid, Action<CoreResource>> EnableDveActionByCoreId = new Dictionary<Guid, Action<CoreResource>>();
 
-        private readonly IReadOnlyDictionary<Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type, Func<DomResource, CoreResource, bool>> TypeSyncers;
+        private readonly IReadOnlyDictionary<Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type, Func<DomResource, CoreResource, bool>> typeSyncers;
 
         private readonly Lazy<Dictionary<Guid, Skyline.DataMiner.Net.Profiles.Parameter>> lazyCoreCapabilitiesById;
         private readonly Lazy<Dictionary<Guid, Skyline.DataMiner.Net.Profiles.Parameter>> lazyCoreCapacitiesById;
@@ -40,7 +40,7 @@
             lazyCoreCapacitiesById = new Lazy<Dictionary<Guid, Skyline.DataMiner.Net.Profiles.Parameter>>(() => planApi.CoreHelpers.ProfileProvider.GetAllCapacities().ToDictionary(x => x.ID));
             lazyCapabilitiesHandler = new Lazy<DomCapabilitiesHandler>(() => new DomCapabilitiesHandler(planApi));
 
-            TypeSyncers = new Dictionary<Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type, Func<DomResource, CoreResource, bool>>
+            typeSyncers = new Dictionary<Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type, Func<DomResource, CoreResource, bool>>
             {
                 [Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type.Unmanaged] = ApplyUnmanagedResourceConfig,
                 [Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type.Element] = ApplyElementResourceConfig,
@@ -576,10 +576,6 @@
             {
                 resourceTypeCapability.Value = capabilityValue;
             }
-            else
-            {
-                // no update required
-            }
 
             return updateRequired;
         }
@@ -911,7 +907,7 @@
 
         private bool SyncType(DomResource domResource, CoreResource coreResource)
         {
-            return TypeSyncers[domResource.ResourceInfo.Type.Value].Invoke(domResource, coreResource);
+            return typeSyncers[domResource.ResourceInfo.Type.Value].Invoke(domResource, coreResource);
         }
 
         private bool SyncCapacities(DomResource domResource, CoreResource coreResource)

@@ -14,16 +14,16 @@
     internal class ApiRepositoryQueryExecutor<T, TResult> : ExpressionVisitor
         where T : ApiObject
     {
-        private readonly ApiRepositoryQueryProvider<T> _provider;
+        private readonly ApiRepositoryQueryProvider<T> provider;
 
-        private readonly List<FilterElement<DomInstance>> _filters = new List<FilterElement<DomInstance>>();
-        private readonly List<IOrderByElement> _orderBy = new List<IOrderByElement>();
-        private int? _limit;
-        private bool _canExtendQuery = true;
+        private readonly List<FilterElement<DomInstance>> filters = new List<FilterElement<DomInstance>>();
+        private readonly List<IOrderByElement> orderBy = new List<IOrderByElement>();
+        private int? limit;
+        private bool canExtendQuery = true;
 
         private ApiRepositoryQueryExecutor(ApiRepositoryQueryProvider<T> provider)
         {
-            _provider = provider ?? throw new ArgumentNullException(nameof(provider));
+            this.provider = provider ?? throw new ArgumentNullException(nameof(provider));
         }
 
         internal static TResult Execute(ApiRepositoryQueryProvider<T> provider, Expression expression)
@@ -38,7 +38,7 @@
         protected override Expression VisitMethodCall(MethodCallExpression node)
         {
             if ((node.Method.DeclaringType == typeof(Queryable) || node.Method.DeclaringType == typeof(Enumerable))
-                && _canExtendQuery)
+                && canExtendQuery)
             {
                 switch (node.Method.Name)
                 {
@@ -104,15 +104,15 @@
 
             if (!node.Method.Name.StartsWith("ThenBy"))
             {
-                _orderBy.Clear();
+                orderBy.Clear();
             }
 
             if (ExpressionTools.TryGetMember(arguments[1], out var member))
             {
-                var orderBy = _provider.Repository.CreateOrderBy(member.Name, sortOrder);
+                var orderBy = provider.Repository.CreateOrderBy(member.Name, sortOrder);
                 if (orderBy != null)
                 {
-                    _orderBy.Add(orderBy);
+                    this.orderBy.Add(orderBy);
                 }
 
                 return BuildExecuteQueryExpression();
@@ -130,7 +130,7 @@
                 AddFilter(node.Arguments[1]);
             }
 
-            _canExtendQuery = false;
+            canExtendQuery = false;
             return Expression.Convert(BuildExecuteCountExpression(), node.Type);
         }
 
@@ -143,8 +143,8 @@
                 AddFilter(node.Arguments[1]);
             }
 
-            _limit = limit;
-            _canExtendQuery = false;
+            this.limit = limit;
+            canExtendQuery = false;
 
             // Queryable.First(x, ...) => Queryable.First(BuildExecuteQueryExpression(), ...)
             var newArguments =
@@ -163,7 +163,7 @@
                 AddFilter(node.Arguments[1]);
             }
 
-            _canExtendQuery = false;
+            canExtendQuery = false;
 
             // Queryable.Any(x, ...) => BuildExecuteCountExpression() > 0
             return Expression.GreaterThan(BuildExecuteCountExpression(), Expression.Constant(0L));
@@ -173,7 +173,7 @@
         {
             Visit(node.Arguments[0]);
 
-            _canExtendQuery = false;
+            canExtendQuery = false;
 
             // Queryable.All(x, ...) => BuildExecuteCountExpression(!filter) == 0
             AddFilter(node.Arguments[1], invertFilter: true);
@@ -187,9 +187,9 @@
             if (ExpressionTools.TryGetValue(node.Arguments[1], out var value) &&
                 value is int number)
             {
-                _limit = number;
+                limit = number;
 
-                _canExtendQuery = false;
+                canExtendQuery = false;
                 return BuildExecuteQueryExpression();
             }
 
@@ -198,7 +198,7 @@
 
         private void AddFilter(Expression expression, bool invertFilter = false)
         {
-            var filter = ExpressionToFilterConverter<T>.Convert(expression, _provider.Repository);
+            var filter = ExpressionToFilterConverter<T>.Convert(expression, provider.Repository);
 
             if (filter == null)
             {
@@ -210,20 +210,20 @@
                 filter = new NOTFilterElement<DomInstance>(filter);
             }
 
-            _filters.Add(filter);
+            filters.Add(filter);
         }
 
         private FilterElement<DomInstance> BuildFilter()
         {
             FilterElement<DomInstance> filter;
 
-            if (_filters.Count == 1)
+            if (filters.Count == 1)
             {
-                filter = _filters[0];
+                filter = filters[0];
             }
-            else if (_filters.Count > 1)
+            else if (filters.Count > 1)
             {
-                filter = new ANDFilterElement<DomInstance>(_filters.ToArray());
+                filter = new ANDFilterElement<DomInstance>(filters.ToArray());
             }
             else
             {
@@ -237,14 +237,14 @@
         {
             var query = BuildFilter().ToQuery();
 
-            if (_orderBy.Count > 0)
+            if (orderBy.Count > 0)
             {
-                query = query.WithOrder(new OrderBy(_orderBy));
+                query = query.WithOrder(new OrderBy(orderBy));
             }
 
-            if (_limit.HasValue)
+            if (limit.HasValue)
             {
-                query = query.Limit(_limit.Value);
+                query = query.Limit(limit.Value);
             }
 
             return query;
@@ -254,7 +254,7 @@
         {
             var query = BuildQuery();
 
-            Expression<Func<IQueryable<T>>> func = () => _provider.Repository.Read(query).AsQueryable();
+            Expression<Func<IQueryable<T>>> func = () => provider.Repository.Read(query).AsQueryable();
             return func.Body;
         }
 
@@ -262,7 +262,7 @@
         {
             var filter = BuildFilter();
 
-            Expression<Func<long>> func = () => _provider.Repository.Count(filter);
+            Expression<Func<long>> func = () => provider.Repository.Count(filter);
             return func.Body;
         }
     }
