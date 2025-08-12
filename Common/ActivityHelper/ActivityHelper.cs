@@ -2,6 +2,8 @@
 {
     using System;
     using System.Diagnostics;
+    using System.Linq;
+    using System.Reflection;
 
     /// <summary>
     /// Provides helper methods for tracking activities using OpenTelemetry.
@@ -17,11 +19,12 @@
         /// <summary>
         /// Starts an activity with the specified name and executes the provided action within that activity context.
         /// </summary>
-        /// <param name="name">The name of the activity.</param>
+        /// <param name="className">The name of the class from which logic is tracked.</param>
+        /// <param name="methodName">The name of the method from which logic is tracked.</param>
         /// <param name="action">The action to track.</param>
-        public static void Track(string name, Action<Activity> action)
+        public static void Track(string className, string methodName, Action<Activity> action)
         {
-            using var act = ActivitySource.StartActivity(name, ActivityKind.Server);
+            using var act = ActivitySource.StartActivity($"{className}.{methodName}", ActivityKind.Server);
             try
             {
                 action(act);
@@ -31,7 +34,8 @@
                 act?.AddTag("error", "true");
                 act?.AddEvent(new ActivityEvent("exception", default, new ActivityTagsCollection
                 {
-                    { "exception.type", ex.GetType().FullName },
+                    { "exception.type", ex.GetType().FullName
+},
                     { "exception.message", ex.Message },
                     { "exception.stacktrace", ex.StackTrace }
                 }));
@@ -44,12 +48,13 @@
         /// Starts an activity with the specified name and executes the provided function within that activity context, returning the result.
         /// </summary>
         /// <typeparam name="T">The return type of the function.</typeparam>
-        /// <param name="name">The name of the activity.</param>
+        /// <param name="className">The name of the class from which logic is tracked.</param>
+        /// <param name="methodName">The name of the method from which logic is tracked.</param>
         /// <param name="func">The function to track.</param>
         /// <returns></returns>
-        public static T Track<T>(string name, Func<Activity, T> func)
+        public static T Track<T>(string className, string methodName, Func<Activity, T> func)
         {
-            using var act = ActivitySource.StartActivity(name, ActivityKind.Server);
+            using var act = ActivitySource.StartActivity($"{className}.{methodName}", ActivityKind.Server);
             try
             {
                 return func(act);

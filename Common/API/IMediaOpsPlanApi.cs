@@ -7,10 +7,10 @@
     /// </summary>
     public interface IMediaOpsPlanApi : IDisposable
     {
-        // /// <summary>
-        // /// Gets the repository for managing resources.
-        // /// </summary>
-        // IResourcesRepository Resources { get; }
+        /// <summary>
+        /// Gets the repository for managing resources.
+        /// </summary>
+        IResourcesRepository Resources { get; }
 
         /// <summary>
         /// Gets the repository for managing resource pools.

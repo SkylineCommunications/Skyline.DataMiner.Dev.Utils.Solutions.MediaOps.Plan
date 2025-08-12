@@ -14,13 +14,9 @@
 
     using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
 
-    internal class DomResourcePoolHandler
+    internal class DomResourcePoolHandler : ApiObjectValidator<Guid>
     {
         private readonly MediaOpsPlanApi planApi;
-
-        private readonly List<Guid> successfulIds = new List<Guid>();
-        private readonly List<Guid> unsuccessfulIds = new List<Guid>();
-        private readonly Dictionary<Guid, MediaOpsTraceData> traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
 
         private readonly HashSet<Guid> poolIdsWithCoreChanges = new HashSet<Guid>();
 
@@ -29,25 +25,31 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        public static BulkCreateOrUpdateResult<Guid> CreateOrUpdate(MediaOpsPlanApi planApi, IEnumerable<ResourcePool> apiResourcePools)
+        internal static BulkCreateOrUpdateResult<Guid> CreateOrUpdate(MediaOpsPlanApi planApi, IEnumerable<ResourcePool> apiResourcePools)
         {
             var handler = new DomResourcePoolHandler(planApi);
             handler.CreateOrUpdate(apiResourcePools);
 
-            var result = new BulkCreateOrUpdateResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
+            var result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
             result.ThrowOnFailure();
 
             return result;
         }
 
-        public static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, IEnumerable<ResourcePool> apiResourcePools, out BulkCreateOrUpdateResult<Guid> result)
+        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, IEnumerable<ResourcePool> apiResourcePools, out BulkCreateOrUpdateResult<Guid> result)
         {
             var handler = new DomResourcePoolHandler(planApi);
             handler.CreateOrUpdate(apiResourcePools);
 
-            result = new BulkCreateOrUpdateResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
+            result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
             return !result.HasFailures();
+        }
+
+        internal static long CountAll(MediaOpsPlanApi planApi)
+        {
+            var handler = new DomResourcePoolHandler(planApi);
+            return handler.CountAll();
         }
 
         private void CreateOrUpdate(IEnumerable<ResourcePool> apiResourcePools)
@@ -80,20 +82,22 @@
             ValidateState(toUpdate);
 
             // Todo: lock DOM instances
-            var changeResults = GetPoolsWithChanges(toUpdate.Where(x => !traceDataPerItem.Keys.Contains(x.Id)));
+            var changeResults = GetPoolsWithChanges(toUpdate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)));
 
-            var toCreateNameValidation = toCreate.Where(x => !traceDataPerItem.Keys.Contains(x.Id));
+            var toCreateNameValidation = toCreate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id));
             var toUpdateNameValidation = toUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFieldDescriptorIds.Contains(SlcResource_StudioIds.Sections.ResourcePoolInfo.Name.Id)));
             ValidateNames(toCreateNameValidation.Concat(toUpdateNameValidation));
 
             var toCreateDomInstances = toCreate
-                .Where(x => !traceDataPerItem.Keys.Contains(x.Id))
+                .Where(x => !TraceDataPerItem.Keys.Contains(x.Id))
                 .Select(x => x.GetInstanceWithChanges())
                 .ToList();
+
             var toUpdateDomInstances = changeResults
-                .Where(x => !traceDataPerItem.Keys.Contains(x.Instance.ID.Id))
+                .Where(x => !TraceDataPerItem.Keys.Contains(x.Instance.ID.Id))
                 .Select(x => new DomResourcePool(x.Instance))
                 .ToList();
+
             CreateOrUpdate(toCreateDomInstances.Concat(toUpdateDomInstances));
         }
 
@@ -117,11 +121,11 @@
 
                 foreach (var id in coreResult.UnsuccessfulIds)
                 {
-                    unsuccessfulIds.Add(id);
+                    ReportError(id);
 
                     if (coreResult.TraceDataPerItem.TryGetValue(id, out var traceData))
                     {
-                        traceDataPerItem.Add(id, traceData);
+                        PassTraceData(id, traceData);
                     }
 
                     domPoolsById.Remove(id);
@@ -132,7 +136,7 @@
 
             foreach (var id in domResult.UnsuccessfulIds)
             {
-                unsuccessfulIds.Add(id.Id);
+                ReportError(id.Id);
 
                 if (domResult.TraceDataPerItem.TryGetValue(id, out var traceData))
                 {
@@ -141,7 +145,7 @@
                 }
             }
 
-            successfulIds.AddRange(domResult.SuccessfulIds.Select(x => x.Id));
+            ReportSuccess(domResult.SuccessfulIds.Select(x => x.Id));
         }
 
         private void ValidateIdsNotInUse(IEnumerable<ResourcePool> apiResourcePools)
@@ -167,6 +171,7 @@
                 .Where(g => g.Count() > 1)
                 .SelectMany(x => x)
                 .ToList();
+
             foreach (var pool in poolsWithDuplicateIds)
             {
                 var error = new ResourcePoolConfigurationError
@@ -174,7 +179,8 @@
                     ErrorReason = ResourcePoolConfigurationError.Reason.DuplicateId,
                     ErrorMessage = $"Resource pool '{pool.Name}' has a duplicate ID.",
                 };
-                AddError(pool.Id, error);
+
+                ReportError(pool.Id, error);
 
                 poolsRequiringValidation.Remove(pool);
             }
@@ -188,7 +194,8 @@
                     ErrorReason = ResourcePoolConfigurationError.Reason.IdInUse,
                     ErrorMessage = "ID is already in use.",
                 };
-                AddError(foundInstance.ID.Id, error);
+
+                ReportError(foundInstance.ID.Id, error);
             }
         }
 
@@ -211,7 +218,7 @@
                     ErrorReason = ResourcePoolConfigurationError.Reason.InvalidState,
                     ErrorMessage = "Not allowed to update a resource pool in Deprecated state."
                 };
-                AddError(pool.Id, error);
+                ReportError(pool.Id, error);
             }
         }
 
@@ -236,7 +243,8 @@
                     ErrorReason = ResourcePoolConfigurationError.Reason.InvalidName,
                     ErrorMessage = "Name cannot be empty.",
                 };
-                AddError(pool.Id, error);
+
+                ReportError(pool.Id, error);
 
                 poolsRequiringValidation.Remove(pool);
             }
@@ -248,7 +256,8 @@
                     ErrorReason = ResourcePoolConfigurationError.Reason.InvalidName,
                     ErrorMessage = "Name exceeds maximum length of 150 characters.",
                 };
-                AddError(pool.Id, error);
+
+                ReportError(pool.Id, error);
 
                 poolsRequiringValidation.Remove(pool);
             }
@@ -258,6 +267,7 @@
                 .Where(g => g.Count() > 1)
                 .SelectMany(x => x)
                 .ToList();
+
             foreach (var pool in poolsWithDuplicateNames)
             {
                 var error = new ResourcePoolConfigurationError
@@ -265,14 +275,16 @@
                     ErrorReason = ResourcePoolConfigurationError.Reason.DuplicateName,
                     ErrorMessage = $"Resource pool '{pool.Name}' has a duplicate name.",
                 };
-                AddError(pool.Id, error);
+
+                ReportError(pool.Id, error);
 
                 poolsRequiringValidation.Remove(pool);
             }
 
             FilterElement<DomInstance> filter(string name) =>
                 DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resourcepool.Id)
-                .AND(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourcePoolInfo.Name).Equal(name));
+                .AND(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourcePoolInfo.Name).Equal(name)
+                .AND(DomInstanceExposers.StatusId.NotEqual(SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.Statuses.Draft)));
 
             var domPoolsbyName = planApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(poolsRequiringValidation.Select(x => x.Name), filter)
                 .GroupBy(x => x.Name)
@@ -300,7 +312,8 @@
                     ErrorReason = ResourcePoolConfigurationError.Reason.NameExists,
                     ErrorMessage = "Name is already in use.",
                 };
-                AddError(pool.Id, error);
+
+                ReportError(pool.Id, error);
             }
         }
 
@@ -337,7 +350,8 @@
                         ErrorReason = ResourcePoolConfigurationError.Reason.NotFound,
                         ErrorMessage = $"Resource pool with ID '{pool.Id}' no longer exists."
                     };
-                    AddError(pool.Id, error);
+
+                    ReportError(pool.Id, error);
 
                     continue;
                 }
@@ -352,7 +366,8 @@
                             ErrorReason = ResourcePoolConfigurationError.Reason.ValueAlreadyChanged,
                             ErrorMessage = errorMessage
                         };
-                        AddError(pool.Id, error);
+
+                        ReportError(pool.Id, error);
                     }
 
                     continue;
@@ -360,29 +375,6 @@
 
                 yield return changeResult;
             }
-        }
-
-        private void AddError(Guid id, MediaOpsErrorData error)
-        {
-            if (id == Guid.Empty)
-            {
-                throw new ArgumentException("Id cannot be empty.", nameof(id));
-            }
-
-            if (error == null)
-            {
-                throw new ArgumentNullException(nameof(error));
-            }
-
-            if (!traceDataPerItem.TryGetValue(id, out var mediaOpsTraceData))
-            {
-                mediaOpsTraceData = new MediaOpsTraceData();
-                traceDataPerItem.Add(id, mediaOpsTraceData);
-
-                unsuccessfulIds.Add(id);
-            }
-
-            mediaOpsTraceData.Add(error);
         }
 
         private void MarkAsPoolWithCoreChanges(ResourcePool resourcePool)
@@ -398,6 +390,12 @@
             }
 
             poolIdsWithCoreChanges.Add(resourcePool.Id);
+        }
+
+        private long CountAll()
+        {
+            return planApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances
+                .Count(DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resourcepool.Id));
         }
     }
 }

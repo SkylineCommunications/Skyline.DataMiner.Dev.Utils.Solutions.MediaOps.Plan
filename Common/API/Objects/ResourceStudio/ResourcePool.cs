@@ -6,94 +6,89 @@
 
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
-	/// <summary>
-	/// Represents a resource pool in the MediaOps Plan API.
-	/// </summary>
-	public class ResourcePool : ApiObject
-	{
-		private StorageResourceStudio.ResourcepoolInstance originalInstance;
+    /// <summary>
+    /// Represents a resource pool in the MediaOps Plan API.
+    /// </summary>
+    public class ResourcePool : ApiObject
+    {
+        private StorageResourceStudio.ResourcepoolInstance originalInstance;
 
-		private StorageResourceStudio.ResourcepoolInstance updatedInstance;
+        private StorageResourceStudio.ResourcepoolInstance updatedInstance;
 
-		private string name;
+        private string name;
 
-		/// <summary>
-		/// Initializes a new instance of the <see cref="ResourcePool"/> class.
-		/// </summary>
-		public ResourcePool() : base()
-		{
-			IsNew = true;
-		}
+        private Guid coreResourcePoolId;
 
-		/// <summary>
-		/// Initializes a new instance of the <see cref="ResourcePool"/> class with a specific resource pool ID.
-		/// </summary>
-		/// <param name="resourcePoolId">The unique identifier of the resource pool.</param>
-		public ResourcePool(Guid resourcePoolId) : base(resourcePoolId)
-		{
-			IsNew = true;
-			HasUserDefinedId = true;
-		}
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ResourcePool"/> class.
+        /// </summary>
+        public ResourcePool() : base()
+        {
+            IsNew = true;
+        }
 
-		internal ResourcePool(StorageResourceStudio.ResourcepoolInstance instance) : base(instance.ID.Id)
-		{
-			ParseInstance(instance);
-		}
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ResourcePool"/> class with a specific resource pool ID.
+        /// </summary>
+        /// <param name="resourcePoolId">The unique identifier of the resource pool.</param>
+        public ResourcePool(Guid resourcePoolId) : base(resourcePoolId)
+        {
+            IsNew = true;
+            HasUserDefinedId = true;
+        }
 
-		/// <summary>
-		/// Gets or sets the name of the resource pool.
-		/// </summary>
-		public string Name
-		{
-			get => name;
-			set
-			{
-				HasChanges = true;
-				name = value;
-			}
-		}
+        internal ResourcePool(StorageResourceStudio.ResourcepoolInstance instance) : base(instance.ID.Id)
+        {
+            ParseInstance(instance);
+        }
 
-		/// <summary>
-		/// Gets the state of the resource pool.
-		/// </summary>
-		public ResourcePoolState State { get; private set; }
+        /// <summary>
+        /// Gets or sets the name of the resource pool.
+        /// </summary>
+        public override string Name
+        {
+            get => name;
+            set
+            {
+                HasChanges = true;
+                name = value;
+            }
+        }
 
-		internal override bool IsNew { get; set; }
+        /// <summary>
+        /// Gets the state of the resource pool.
+        /// </summary>
+        public ResourcePoolState State { get; private set; }
 
-		internal override bool HasUserDefinedId { get; set; } = false;
+        internal override bool IsNew { get; set; }
 
-		internal override bool HasChanges { get; set; } = false;
+        internal override bool HasUserDefinedId { get; set; } = false;
 
-		internal StorageResourceStudio.ResourcepoolInstance OriginalInstance => originalInstance;
+        internal override bool HasChanges { get; set; } = false;
 
-		internal StorageResourceStudio.ResourcepoolInstance GetInstanceWithChanges()
-		{
-			if (updatedInstance == null)
-			{
-				updatedInstance = IsNew ? ComposeNewInstance() : originalInstance.Clone();
-			}
+        internal Guid CoreResourcePoolId => coreResourcePoolId;
 
-			updatedInstance.ResourcePoolInfo.Name = Name;
+        internal StorageResourceStudio.ResourcepoolInstance OriginalInstance => originalInstance;
 
-			return updatedInstance;
-		}
+        internal StorageResourceStudio.ResourcepoolInstance GetInstanceWithChanges()
+        {
+            if (updatedInstance == null)
+            {
+                updatedInstance = IsNew ? new StorageResourceStudio.ResourcepoolInstance(Id) : originalInstance.Clone();
+            }
 
-		private void ParseInstance(StorageResourceStudio.ResourcepoolInstance instance)
-		{
-			this.originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
+            updatedInstance.ResourcePoolInfo.Name = Name;
 
-			name = instance.ResourcePoolInfo.Name;
-			State = EnumExtensions.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.StatusesEnum, ResourcePoolState>(instance.Status);
-		}
+            return updatedInstance;
+        }
 
-		private StorageResourceStudio.ResourcepoolInstance ComposeNewInstance()
-		{
-			if (Id == Guid.Empty)
-			{
-				return new StorageResourceStudio.ResourcepoolInstance();
-			}
+        private void ParseInstance(StorageResourceStudio.ResourcepoolInstance instance)
+        {
+            this.originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
 
-			return new StorageResourceStudio.ResourcepoolInstance(Id);
-		}
-	}
+            name = instance.ResourcePoolInfo.Name;
+            State = EnumExtensions.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.StatusesEnum, ResourcePoolState>(instance.Status);
+            coreResourcePoolId = instance.ResourcePoolInternalProperties.ResourcePoolId;
+        }
+    }
 }

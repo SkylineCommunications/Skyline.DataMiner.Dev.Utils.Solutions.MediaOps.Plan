@@ -33,5 +33,28 @@
         {
             return source.SafeToDictionary(keySelector, x => x, comparer);
         }
+
+        public static IEnumerable<TSource> Duplicates<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> selector, IEqualityComparer<TKey> comparer = null)
+        {
+            var set = new HashSet<TKey>(comparer);
+
+            foreach (var item in source)
+            {
+                if (!set.Add(selector(item)))
+                {
+                    yield return item;
+                }
+            }
+        }
+
+        public static IEnumerable<TSource> Duplicates<TSource>(this IEnumerable<TSource> source, IEqualityComparer<TSource> comparer = null)
+        {
+            if (source == null)
+            {
+                throw new ArgumentNullException(nameof(source));
+            }
+
+            return Duplicates(source, x => x, comparer);
+        }
     }
 }

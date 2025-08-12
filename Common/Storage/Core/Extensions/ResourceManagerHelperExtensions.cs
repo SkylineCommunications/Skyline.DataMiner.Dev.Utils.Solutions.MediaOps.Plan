@@ -10,6 +10,7 @@
     using Skyline.DataMiner.Net.Messages;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Net.ResponseErrorData;
+    using Skyline.DataMiner.MediaOps.Plan.ActivityHelper;
 
     internal static class ResourceManagerHelperExtensions
     {
@@ -125,6 +126,122 @@
                 x => helper.GetResources(x));
         }
 
+        public static BulkCreateOrUpdateResult<Guid> CreateOrUpdateResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources)
+        {
+            if (helper == null)
+            {
+                throw new ArgumentNullException(nameof(helper));
+            }
+
+            if (resources == null)
+            {
+                throw new ArgumentNullException(nameof(resources));
+            }
+
+            var result = InnerCreateOrUpdateResourcesInBatches(helper, resources, out _);
+            result.ThrowOnFailure();
+
+            return result;
+        }
+
+        public static BulkCreateOrUpdateResult<Guid> CreateOrUpdateResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources, out IEnumerable<Resource> createdOrUpdatedResources)
+        {
+            if (helper == null)
+            {
+                throw new ArgumentNullException(nameof(helper));
+            }
+
+            if (resources == null)
+            {
+                throw new ArgumentNullException(nameof(resources));
+            }
+
+            var result = InnerCreateOrUpdateResourcesInBatches(helper, resources, out createdOrUpdatedResources);
+            result.ThrowOnFailure();
+
+            return result;
+        }
+
+        public static bool TryCreateOrUpdateResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources, out BulkCreateOrUpdateResult<Guid> result)
+        {
+            if (helper == null)
+            {
+                throw new ArgumentNullException(nameof(helper));
+            }
+
+            if (resources == null)
+            {
+                throw new ArgumentNullException(nameof(resources));
+            }
+
+            result = InnerCreateOrUpdateResourcesInBatches(helper, resources, out _);
+
+            return !result.HasFailures();
+        }
+
+        // Todo: Needs refactoring to avoid 2 out parameters???
+        public static bool TryCreateOrUpdateResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources, out BulkCreateOrUpdateResult<Guid> result, out IEnumerable<Resource> createdOrUpdatedResources)
+        {
+            if (helper == null)
+            {
+                throw new ArgumentNullException(nameof(helper));
+            }
+
+            if (resources == null)
+            {
+                throw new ArgumentNullException(nameof(resources));
+            }
+
+            result = InnerCreateOrUpdateResourcesInBatches(helper, resources, out createdOrUpdatedResources);
+
+            return !result.HasFailures();
+        }
+
+        public static Exceptions.BulkDeleteResult<Guid> DeleteResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources, ResourceDeleteOptions options)
+        {
+            if (helper == null)
+            {
+                throw new ArgumentNullException(nameof(helper));
+            }
+
+            if (resources == null)
+            {
+                throw new ArgumentNullException(nameof(resources));
+            }
+
+            if (options == null)
+            {
+                throw new ArgumentNullException(nameof(options));
+            }
+
+            var result = InnerDeleteResourcesInBatches(helper, resources, options);
+            result.ThrowOnFailure();
+
+            return result;
+        }
+
+        public static bool TryDeleteResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources, ResourceDeleteOptions options, out Exceptions.BulkDeleteResult<Guid> result)
+        {
+            if (helper == null)
+            {
+                throw new ArgumentNullException(nameof(helper));
+            }
+
+            if (resources == null)
+            {
+                throw new ArgumentNullException(nameof(resources));
+            }
+
+            if (options == null)
+            {
+                throw new ArgumentNullException(nameof(options));
+            }
+
+            result = InnerDeleteResourcesInBatches(helper, resources, options);
+
+            return !result.HasFailures();
+        }
+
         private static BulkCreateOrUpdateResult<Guid> InnerCreateOrUpdateResourcePoolsInBatches(ResourceManagerHelper helper, IEnumerable<ResourcePool> resourcePools)
         {
             var successfulIds = new List<Guid>();
@@ -158,6 +275,87 @@
             }
 
             return new BulkCreateOrUpdateResult<Guid>(successfulIds, unsuccessfulIds, traceDataPerItem);
+        }
+
+        private static BulkCreateOrUpdateResult<Guid> InnerCreateOrUpdateResourcesInBatches(ResourceManagerHelper helper, IEnumerable<Resource> resources, out IEnumerable<Resource> createdOrUpdatedResources)
+        {
+            var successfulIds = new List<Guid>();
+            var unsuccessfulIds = new List<Guid>();
+            var traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
+
+            var createdOrUpdated = new List<Resource>();
+
+            ActivityHelper.Track(nameof(ResourceManagerHelperExtensions), nameof(InnerCreateOrUpdateResourcesInBatches), act =>
+            {
+                foreach (var batch in resources.Batch(100))
+                {
+                    var res = helper.AddOrUpdateResources(batch.ToArray());
+
+                    createdOrUpdated.AddRange(res);
+                    successfulIds.AddRange(res.Select(x => x.ID));
+
+                    var traceData = helper.GetTraceDataLastCall();
+                    foreach (var error in traceData.ErrorData.OfType<ResourceManagerErrorData>())
+                    {
+                        if (!error.SubjectId.HasValue)
+                        {
+                            continue;
+                        }
+
+                        if (!traceDataPerItem.TryGetValue(error.SubjectId.Value, out var mediaOpsTraceData))
+                        {
+                            mediaOpsTraceData = new MediaOpsTraceData();
+                            traceDataPerItem.Add(error.SubjectId.Value, mediaOpsTraceData);
+
+                            unsuccessfulIds.Add(error.SubjectId.Value);
+                        }
+
+                        mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = error.ToString() });
+                    }
+                }
+            });
+
+            createdOrUpdatedResources = createdOrUpdated;
+
+            return new BulkCreateOrUpdateResult<Guid>(successfulIds, unsuccessfulIds, traceDataPerItem);
+        }
+
+        private static Exceptions.BulkDeleteResult<Guid> InnerDeleteResourcesInBatches(ResourceManagerHelper helper, IEnumerable<Resource> resources, ResourceDeleteOptions options)
+        {
+            var successfulIds = new List<Guid>();
+            var unsuccessfulIds = new List<Guid>();
+            var traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
+
+            ActivityHelper.Track(nameof(ResourceManagerHelperExtensions), nameof(InnerDeleteResourcesInBatches), act =>
+            {
+                foreach (var batch in resources.Batch(100))
+                {
+                    var res = helper.RemoveResources(batch.ToArray(), options);
+
+                    successfulIds.AddRange(res.Select(x => x.ID));
+
+                    var traceData = helper.GetTraceDataLastCall();
+                    foreach (var error in traceData.ErrorData.OfType<ResourceManagerErrorData>())
+                    {
+                        if (!error.SubjectId.HasValue)
+                        {
+                            continue;
+                        }
+
+                        if (!traceDataPerItem.TryGetValue(error.SubjectId.Value, out var mediaOpsTraceData))
+                        {
+                            mediaOpsTraceData = new MediaOpsTraceData();
+                            traceDataPerItem.Add(error.SubjectId.Value, mediaOpsTraceData);
+
+                            unsuccessfulIds.Add(error.SubjectId.Value);
+                        }
+
+                        mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = error.ToString() });
+                    }
+                }
+            });
+
+            return new Exceptions.BulkDeleteResult<Guid>(successfulIds, unsuccessfulIds, traceDataPerItem);
         }
     }
 }

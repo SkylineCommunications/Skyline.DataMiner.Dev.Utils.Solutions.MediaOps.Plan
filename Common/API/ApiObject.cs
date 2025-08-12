@@ -13,7 +13,10 @@
         /// </summary>
         public Guid Id { get; private set; } // Should this be a Guid, could be a string?
 
-        // Do we need a Name property here?
+        /// <summary>
+        /// Gets the name of the API object.
+        /// </summary>
+        public abstract string Name { get; set; }
 
         private protected ApiObject()
             : this(Guid.NewGuid())

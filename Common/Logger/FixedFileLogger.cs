@@ -6,7 +6,7 @@
     using System.Text;
     using System.Threading;
 
-    public class FixedFileLogger : IDisposable
+    internal class FixedFileLogger : IDisposable
     {
         public static readonly string SkylineDataFilePath = @"C:\Skyline DataMiner\Logging\MediaOps\";
         public static readonly string TextFileExtension = ".txt";
