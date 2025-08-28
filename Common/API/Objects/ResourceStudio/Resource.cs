@@ -90,12 +90,6 @@
         /// </summary>
         public ResourceState State { get; private set; }
 
-        internal override bool IsNew { get; set; }
-
-        internal override bool HasUserDefinedId { get; set; } = false;
-
-        internal override bool HasChanges { get; set; } = false;
-
         internal abstract void ApplyChanges(StorageResourceStudio.ResourceInstance instance);
 
         internal static IEnumerable<Resource> InstantiateResources(IEnumerable<StorageResourceStudio.ResourceInstance> instances)

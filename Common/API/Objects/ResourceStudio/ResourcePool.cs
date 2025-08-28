@@ -60,12 +60,6 @@
         /// </summary>
         public ResourcePoolState State { get; private set; }
 
-        internal override bool IsNew { get; set; }
-
-        internal override bool HasUserDefinedId { get; set; } = false;
-
-        internal override bool HasChanges { get; set; } = false;
-
         internal Guid CoreResourcePoolId => coreResourcePoolId;
 
         internal StorageResourceStudio.ResourcepoolInstance OriginalInstance => originalInstance;
