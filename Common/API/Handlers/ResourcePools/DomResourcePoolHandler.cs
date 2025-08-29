@@ -254,7 +254,7 @@
                 var error = new ResourcePoolConfigurationError
                 {
                     ErrorReason = ResourcePoolConfigurationError.Reason.InvalidName,
-                    ErrorMessage = "Name exceeds maximum length of 150 characters.",
+                    ErrorMessage = $"Name exceeds maximum length of {InputValidator.DefaultMaxTextLength} characters.",
                 };
 
                 ReportError(pool.Id, error);

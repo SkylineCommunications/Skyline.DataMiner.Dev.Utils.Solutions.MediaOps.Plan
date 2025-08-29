@@ -7,6 +7,7 @@
     using Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+    using Skyline.DataMiner.Net.Messages;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Utils.DOM.Extensions;
     using SLDataGateway.API.Types.Querying;
@@ -265,16 +266,61 @@
             return GetResourceIterator(filter);
         }
 
-        public void TransitionToComplete(Guid resourceId)
+        public void TransitionResourceToComplete(Guid resourceId)
         {
             var transitionId = SlcResource_StudioIds.Behaviors.Resource_Behavior.Transitions.Draft_To_Complete;
             DomHelper.DomInstances.DoStatusTransition(new DomInstanceId(resourceId), transitionId);
         }
 
-        public void TransitionToDeprecated(Guid resourceId)
+        public void TransitionResourceToDeprecated(Guid resourceId)
         {
             var transitionId = SlcResource_StudioIds.Behaviors.Resource_Behavior.Transitions.Complete_To_Deprecated;
             DomHelper.DomInstances.DoStatusTransition(new DomInstanceId(resourceId), transitionId);
+        }
+
+        public IEnumerable<ResourcepropertyInstance> GetResourceProperties(IEnumerable<Guid> ids)
+        {
+            if (ids == null)
+            {
+                throw new ArgumentNullException(nameof(ids));
+            }
+
+            if (!ids.Any())
+            {
+                return Enumerable.Empty<ResourcepropertyInstance>();
+            }
+
+            FilterElement<DomInstance> filter(Guid id) =>
+                DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resourceproperty.Id)
+                .AND(DomInstanceExposers.Id.Equal(id));
+
+            return FilterQueryExecutor.RetrieveFilteredItems(
+                ids.Distinct(),
+                x => filter(x),
+                x => GetResourcePropertyIterator(x));
+        }
+
+        public IEnumerable<ResourcepropertyInstance> GetResourceProperties<T>(IEnumerable<T> values, Func<T, FilterElement<DomInstance>> filter)
+        {
+            if (values == null)
+            {
+                throw new ArgumentNullException(nameof(values));
+            }
+
+            if (filter == null)
+            {
+                throw new ArgumentNullException(nameof(filter));
+            }
+
+            return FilterQueryExecutor.RetrieveFilteredItems(
+                values.Distinct(),
+                x => filter(x),
+                x => GetResourcePropertyIterator(x));
+        }
+
+        internal IEnumerable<ResourcepropertyInstance> GetResourceProperties(IQuery<DomInstance> query)
+        {
+            return InstanceFactory.ReadAndCreateInstances(DomHelper, query, instance => new ResourcepropertyInstance(instance));
         }
 
         private IEnumerable<ResourcepoolInstance> GetResourcePoolIterator(FilterElement<DomInstance> filter)
@@ -298,6 +344,11 @@
         private IEnumerable<ResourceInstance> GetResourceIterator(FilterElement<DomInstance> filter)
         {
             return InstanceFactory.ReadAndCreateInstances(DomHelper, filter, instance => new ResourceInstance(instance));
+        }
+
+        private IEnumerable<ResourcepropertyInstance> GetResourcePropertyIterator(FilterElement<DomInstance> filter)
+        {
+            return InstanceFactory.ReadAndCreateInstances(DomHelper, filter, instance => new ResourcepropertyInstance(instance));
         }
     }
 }

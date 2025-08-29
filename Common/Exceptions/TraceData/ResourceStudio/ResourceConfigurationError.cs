@@ -1,11 +1,5 @@
 ﻿namespace Skyline.DataMiner.MediaOps.Plan.Exceptions
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
-
     /// <summary>
     /// Represents an error that occurs when creating or updating a resource with invalid configuration.
     /// </summary>

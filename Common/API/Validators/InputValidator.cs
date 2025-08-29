@@ -4,7 +4,7 @@
 
     internal static class InputValidator
     {
-        private const int DefaultMaxTextLength = 150;
+        internal const int DefaultMaxTextLength = 150;
 
         public static bool ValidateEmptyText(string text)
         {

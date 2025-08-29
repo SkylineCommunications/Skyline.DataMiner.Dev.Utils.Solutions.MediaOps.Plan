@@ -3,15 +3,18 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Microsoft.Extensions.Logging;
+
     using Skyline.DataMiner.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
-    using Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Net.Sections;
+
     using SLDataGateway.API.Types.Querying;
+
     using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
@@ -309,7 +312,7 @@
                 throw new ArgumentNullException(nameof(query));
             }
 
-            var domFilter = AddDomDefinitionFilter(query.Filter, SlcResource_StudioIds.Definitions.Resourcepool);
+            var domFilter = AddDomDefinitionFilter(query.Filter, StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourcepool);
 
             query = query.WithFilter(domFilter);
 
@@ -320,7 +323,7 @@
 
         internal override long Count(FilterElement<DomInstance> domFilter)
         {
-            return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(AddDomDefinitionFilter(domFilter, SlcResource_StudioIds.Definitions.Resourcepool));
+            return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(AddDomDefinitionFilter(domFilter, StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourcepool));
         }
 
         internal DomResourcePool GetDomResourcePool(Guid domResourcePoolId)
@@ -394,9 +397,9 @@
         {
             return state switch
             {
-                ResourcePoolState.Draft => SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.Statuses.Draft,
-                ResourcePoolState.Complete => SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.Statuses.Complete,
-                ResourcePoolState.Deprecated => SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.Statuses.Deprecated,
+                ResourcePoolState.Draft => StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.Statuses.Draft,
+                ResourcePoolState.Complete => StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.Statuses.Complete,
+                ResourcePoolState.Deprecated => StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.Statuses.Deprecated,
                 _ => throw new NotSupportedException($"Resource Pool state '{state}' is not supported.")
             };
         }
