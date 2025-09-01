@@ -43,6 +43,11 @@
             DuplicateId,
 
             /// <summary>
+            /// Indicates that a resource property is in a state that does not allow the requested operation.
+            /// </summary>
+            InvalidState,
+
+            /// <summary>
             /// Represents a response status indicating that the requested resource property was not found.
             /// </summary>
             NotFound,

@@ -3,7 +3,6 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Runtime.Remoting.Metadata.W3cXsd2001;
 
     using Microsoft.Extensions.Logging;
 
@@ -43,6 +42,27 @@
             handler.CreateOrUpdate(apiResourceProperties);
 
             result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+
+            return !result.HasFailures();
+        }
+
+        internal static BulkDeleteResult<Guid> Delete(MediaOpsPlanApi planApi, IEnumerable<ResourceProperty> apiResourceProperties)
+        {
+            var handler = new DomResourcePropertyHandler(planApi);
+            handler.Delete(apiResourceProperties);
+
+            var result = new BulkDeleteResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result.ThrowOnFailure();
+
+            return result;
+        }
+
+        internal static bool TryDelete(MediaOpsPlanApi planApi, IEnumerable<ResourceProperty> apiResourceProperties, out BulkDeleteResult<Guid> result)
+        {
+            var handler = new DomResourcePropertyHandler(planApi);
+            handler.Delete(apiResourceProperties);
+
+            result = new BulkDeleteResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
             return !result.HasFailures();
         }
@@ -117,6 +137,49 @@
                 {
                     var mediaOpsTraceData = new MediaOpsTraceData();
                     mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = traceData.ToString() });
+                }
+            }
+
+            ReportSuccess(domResult.SuccessfulIds.Select(x => x.Id));
+        }
+
+        private void Delete(IEnumerable<ResourceProperty> apiResourceProperties)
+        {
+            if (apiResourceProperties == null)
+            {
+                throw new ArgumentNullException(nameof(apiResourceProperties));
+            }
+
+            if (!apiResourceProperties.Any())
+            {
+                return;
+            }
+
+            var newProperties = apiResourceProperties.Where(x => x.IsNew).ToList();
+            newProperties.ForEach(x =>
+            {
+                var error = new ResourcePropertyConfigurationError
+                {
+                    ErrorReason = ResourcePropertyConfigurationError.Reason.InvalidState,
+                    ErrorMessage = $"A resource that was not saved cannot be removed.",
+                };
+
+                ReportError(x.Id, error);
+            });
+
+            // Todo: add check is property is in use
+
+            var propertiesToDelete = apiResourceProperties.Except(newProperties).ToList();
+            planApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.TryDeleteInBatches(propertiesToDelete.Select(x => x.OriginalInstance.ToInstance()), out var domResult);
+
+            foreach (var id in domResult.UnsuccessfulIds)
+            {
+                ReportError(id.Id);
+
+                if (domResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+                {
+                    var mediaOpsTraceData = new MediaOpsTraceData();
+                    mediaOpsTraceData.Add(new MediaOpsErrorData { ErrorMessage = traceData.ToString() });
                 }
             }
 
