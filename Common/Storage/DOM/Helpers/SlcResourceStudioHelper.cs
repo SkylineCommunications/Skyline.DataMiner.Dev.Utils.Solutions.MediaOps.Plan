@@ -7,9 +7,9 @@
     using Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
-    using Skyline.DataMiner.Net.Messages;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Utils.DOM.Extensions;
+
     using SLDataGateway.API.Types.Querying;
 
     internal class SlcResourceStudioHelper : DomModuleHelperBase
@@ -278,6 +278,33 @@
             DomHelper.DomInstances.DoStatusTransition(new DomInstanceId(resourceId), transitionId);
         }
 
+        public IEnumerable<ResourcepropertyInstance> GetAllResourceProperties()
+        {
+            var filter = DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resourceproperty.Id);
+            return GetResourcePropertyIterator(filter);
+        }
+
+        public IEnumerable<IEnumerable<ResourcepropertyInstance>> GetAllResourcePropertiesPaged(long? pageSize = null)
+        {
+            var filter = DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resourceproperty.Id);
+
+            var pages = pageSize.HasValue
+                ? DomHelper.DomInstances.ReadPaged(filter, pageSize.Value)
+                : DomHelper.DomInstances.ReadPaged(filter);
+
+            return pages.Select(p => GetResourcePropertyIterator(p));
+        }
+
+        public IEnumerable<ResourcepropertyInstance> GetResourceProperties(FilterElement<DomInstance> filter)
+        {
+            if (filter == null)
+            {
+                throw new ArgumentNullException(nameof(filter));
+            }
+
+            return GetResourcePropertyIterator(filter);
+        }
+
         public IEnumerable<ResourcepropertyInstance> GetResourceProperties(IEnumerable<Guid> ids)
         {
             if (ids == null)
@@ -349,6 +376,19 @@
         private IEnumerable<ResourcepropertyInstance> GetResourcePropertyIterator(FilterElement<DomInstance> filter)
         {
             return InstanceFactory.ReadAndCreateInstances(DomHelper, filter, instance => new ResourcepropertyInstance(instance));
+        }
+
+        private IEnumerable<ResourcepropertyInstance> GetResourcePropertyIterator(IEnumerable<DomInstance> instances)
+        {
+            foreach (var instance in instances)
+            {
+                if (instance == null || instance.DomDefinitionId.Id != SlcResource_StudioIds.Definitions.Resourceproperty.Id)
+                {
+                    continue;
+                }
+
+                yield return InstanceFactory.CreateInstance(instance, instance => new ResourcepropertyInstance(instance));
+            }
         }
     }
 }

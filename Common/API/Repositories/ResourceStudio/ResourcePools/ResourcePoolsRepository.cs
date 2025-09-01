@@ -47,7 +47,7 @@
             {
                 if (!apiObject.IsNew)
                 {
-                    throw new MediaOpsException("Not possible to use method Create for existing resource pool. Use CreateOrUpdate or Update instead.");
+                    throw new InvalidOperationException("Not possible to use method Create for existing resource pool. Use CreateOrUpdate or Update instead.");
                 }
 
                 if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
@@ -258,7 +258,7 @@
 
                 if (apiObject.IsNew)
                 {
-                    throw new MediaOpsException("Not possible to use method Update for a new resource pool. Use CreateOrUpdate or Create instead.");
+                    throw new InvalidOperationException("Not possible to use method Update for a new resource pool. Use CreateOrUpdate or Create instead.");
                 }
 
                 if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
