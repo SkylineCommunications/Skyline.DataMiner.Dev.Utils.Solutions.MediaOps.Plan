@@ -95,13 +95,13 @@
             CreateOrUpdate([apiResource.OriginalInstance]);
 
             // Transition DOM Resource to Complete
-            planApi.DomHelpers.SlcResourceStudioHelper.TransitionToComplete(apiResource.Id);
+            planApi.DomHelpers.SlcResourceStudioHelper.TransitionResourceToComplete(apiResource.Id);
         }
 
         private void TransitionToDeprecated(Resource apiResource)
         {
             CoreResourceHandler.DeprecateResource(planApi, apiResource.OriginalInstance);
-            planApi.DomHelpers.SlcResourceStudioHelper.TransitionToDeprecated(apiResource.Id);
+            planApi.DomHelpers.SlcResourceStudioHelper.TransitionResourceToDeprecated(apiResource.Id);
         }
 
         private void ClearErrors(MediaOpsPlanApi planApi, Resource apiResource, ErrorDefinition errorDefinition)

@@ -175,8 +175,8 @@
                 }
 
                 var resourceIds = result.SuccessfulIds;
-                act.AddTag("Created Resources", String.Join(", ", resourceIds));
-                act.AddTag("Created Resources Count", resourceIds.Count);
+                act.AddTag("Created or Updated Resources", String.Join(", ", resourceIds));
+                act.AddTag("Created or Updated Resources Count", resourceIds.Count);
 
                 return resourceIds;
             });
@@ -190,15 +190,10 @@
             }
 
             Delete(apiObjects.Select(x => x.Id).ToArray());
-        }
 
-        public void Delete(params Guid[] apiObjectIds)
-        {
             ActivityHelper.Track(nameof(ResourcesRepository), nameof(Delete), act =>
             {
-                var resourcesToDelete = Read(apiObjectIds).Values;
-
-                if (!DomResourceHandler.TryDelete(PlanApi, resourcesToDelete, out var result))
+                if (!DomResourceHandler.TryDelete(PlanApi, apiObjects, out var result))
                 {
                     throw new MediaOpsBulkException<Guid>(result);
                 }
@@ -207,6 +202,18 @@
                 act.AddTag("Removed Resources", String.Join(", ", resourceIds));
                 act.AddTag("Removed Resources Count", resourceIds.Count);
             });
+        }
+
+        public void Delete(params Guid[] apiObjectIds)
+        {
+            if (apiObjectIds == null)
+            {
+                throw new ArgumentNullException(nameof(apiObjectIds));
+            }
+
+            var resourcesToDelete = Read(apiObjectIds).Values;
+
+            Delete(resourcesToDelete.ToArray());
         }
 
         public void MoveTo(Resource resource, ResourceState desiredState)
@@ -500,7 +507,7 @@
             {
                 if (apiObject.IsNew)
                 {
-                    throw new MediaOpsException("Not possible to use method Update for new resources. Use Create or CreateOrUpdate instead.");
+                    throw new InvalidOperationException("Not possible to use method Update for new resources. Use Create or CreateOrUpdate instead.");
                 }
 
                 if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))

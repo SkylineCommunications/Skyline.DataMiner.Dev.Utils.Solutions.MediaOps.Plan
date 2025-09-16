@@ -1,10 +1,9 @@
 ﻿namespace Skyline.DataMiner.MediaOps.Plan.API
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Text;
-
-    public interface IResourcePropertiesRepository
+    /// <summary>
+    /// Defines methods for managing <see cref="ResourceProperty"/> objects.
+    /// </summary>
+    public interface IResourcePropertiesRepository : ICrudRepository<ResourceProperty>
     {
     }
 }

@@ -33,10 +33,10 @@
             Id = id;
         }
 
-        internal abstract bool IsNew { get; set; }
+        internal bool IsNew { get; set; }
 
-        internal abstract bool HasUserDefinedId { get; set; }
+        internal bool HasUserDefinedId { get; set; }
 
-        internal abstract bool HasChanges { get; set; }
+        internal bool HasChanges { get; set; }
     }
 }
