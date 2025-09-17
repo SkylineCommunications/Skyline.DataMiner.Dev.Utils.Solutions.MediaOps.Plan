@@ -4,9 +4,10 @@
 
     internal static class TestHelper
     {
-        public static string GetRandomName(string prefix)
+        public static string GetRandomName(string prefix, Guid? id = null)
         {
-            return $"{prefix}{Guid.NewGuid().ToString().Replace("-", string.Empty)}";
+            var guid = id ?? Guid.NewGuid();
+            return $"{prefix}{guid.ToString().Replace("-", string.Empty)}";
         }
     }
 }
