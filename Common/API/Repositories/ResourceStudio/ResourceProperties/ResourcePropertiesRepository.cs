@@ -50,7 +50,7 @@
                 }
 
                 var resourcePropertyId = result.SuccessfulIds.First();
-                act.AddTag("ResourcePropertyId", resourcePropertyId);
+                act?.AddTag("ResourcePropertyId", resourcePropertyId);
 
                 return resourcePropertyId;
             });
@@ -77,7 +77,7 @@
                 }
 
                 var propertyIds = result.SuccessfulIds;
-                act.AddTag("ResourcePropertyIds", string.Join(", ", propertyIds));
+                act?.AddTag("ResourcePropertyIds", string.Join(", ", propertyIds));
 
                 return propertyIds;
             });
@@ -98,8 +98,8 @@
                 }
 
                 var propertyIds = result.SuccessfulIds;
-                act.AddTag("Created or Updated Resource Properties", String.Join(", ", propertyIds));
-                act.AddTag("Created or Updated Resource Properties Count", propertyIds.Count);
+                act?.AddTag("Created or Updated Resource Properties", String.Join(", ", propertyIds));
+                act?.AddTag("Created or Updated Resource Properties Count", propertyIds.Count);
 
                 return propertyIds;
             });
@@ -122,8 +122,8 @@
                 }
 
                 var propertyIds = result.SuccessfulIds;
-                act.AddTag("Removed Resource Properties", String.Join(", ", propertyIds));
-                act.AddTag("Removed Resource Properties Count", propertyIds.Count);
+                act?.AddTag("Removed Resource Properties", String.Join(", ", propertyIds));
+                act?.AddTag("Removed Resource Properties Count", propertyIds.Count);
             });
         }
 
@@ -160,7 +160,7 @@
 
             return ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Read), act =>
             {
-                act.AddTag("ResourcePropertyId", id);
+                act?.AddTag("ResourcePropertyId", id);
                 var filter = DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourceproperty.Id)
                         .AND(DomInstanceExposers.Id.Equal(id));
                 var domResourceProperty = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourceProperties(filter)
@@ -168,11 +168,11 @@
 
                 if (domResourceProperty == null)
                 {
-                    act.AddTag("Hit", false);
+                    act?.AddTag("Hit", false);
                     return null;
                 }
 
-                act.AddTag("Hit", true);
+                act?.AddTag("Hit", true);
 
                 return new ResourceProperty(domResourceProperty);
             });
@@ -187,8 +187,8 @@
 
             return ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Read), act =>
             {
-                act.AddTag("ResourcePropertyIds", String.Join(", ", ids));
-                act.AddTag("ResourcePropertyIds Count", ids.Count());
+                act?.AddTag("ResourcePropertyIds", String.Join(", ", ids));
+                act?.AddTag("ResourcePropertyIds Count", ids.Count());
 
                 var properties = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourceProperties(ids);
                 return properties.Select(x => new ResourceProperty(x)).ToDictionary(x => x.Id);
@@ -232,7 +232,7 @@
                 }
 
                 var resourceId = result.SuccessfulIds.First();
-                act.AddTag("ResourcePropertyId", resourceId);
+                act?.AddTag("ResourcePropertyId", resourceId);
             });
         }
 
@@ -257,7 +257,7 @@
                 }
 
                 var resourceIds = result.SuccessfulIds;
-                act.AddTag("ResourcePropertyIds", String.Join(", ", resourceIds));
+                act?.AddTag("ResourcePropertyIds", String.Join(", ", resourceIds));
             });
         }
 

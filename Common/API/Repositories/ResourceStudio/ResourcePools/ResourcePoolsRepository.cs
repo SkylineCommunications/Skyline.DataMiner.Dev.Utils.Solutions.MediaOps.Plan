@@ -56,7 +56,7 @@
                 }
 
                 var resourcePoolId = result.SuccessfulIds.First();
-                act.AddTag("ResourcePoolId", resourcePoolId);
+                act?.AddTag("ResourcePoolId", resourcePoolId);
 
                 return resourcePoolId;
             });
@@ -82,8 +82,8 @@
                 }
 
                 var resourceIds = result.SuccessfulIds;
-                act.AddTag("Created Resource Pools", String.Join(", ", resourceIds));
-                act.AddTag("Created Resource Pools Count", resourceIds.Count);
+                act?.AddTag("Created Resource Pools", String.Join(", ", resourceIds));
+                act?.AddTag("Created Resource Pools Count", resourceIds.Count);
 
                 return resourceIds;
             });
@@ -140,8 +140,8 @@
 
             ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(MoveTo), act =>
             {
-                act.AddTag("ResourcePoolId", resourcePoolId);
-                act.AddTag("DesiredState", desiredState);
+                act?.AddTag("ResourcePoolId", resourcePoolId);
+                act?.AddTag("DesiredState", desiredState);
 
                 var actionMethods = new Dictionary<ResourcePoolState, Action<Guid>>
                 {
@@ -169,7 +169,7 @@
 
             return ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Read), act =>
             {
-                act.AddTag("ResourcePoolId", id);
+               act?.AddTag("ResourcePoolId", id);
                 var filter = DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourcepool.Id)
                         .AND(DomInstanceExposers.Id.Equal(id));
                 var domResourcePool = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(filter)
@@ -177,11 +177,11 @@
 
                 if (domResourcePool == null)
                 {
-                    act.AddTag("Hit", false);
+                   act?.AddTag("Hit", false);
                     return null;
                 }
 
-                act.AddTag("Hit", true);
+               act?.AddTag("Hit", true);
                 return new ResourcePool(domResourcePool);
             });
         }
@@ -195,7 +195,7 @@
 
             return ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Read), act =>
             {
-                act.AddTag("RequestedResourcePoolCount", ids.Count());
+               act?.AddTag("RequestedResourcePoolCount", ids.Count());
 
                 if (!ids.Any())
                 {
@@ -204,7 +204,7 @@
 
                 var retrievedPools = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(ids).SafeToDictionary(x => x.ID.Id, x => new ResourcePool(x));
 
-                act.AddTag("RetrievedResourcePoolCount", retrievedPools.Count);
+               act?.AddTag("RetrievedResourcePoolCount", retrievedPools.Count);
                 return retrievedPools;
             });
         }
@@ -252,7 +252,7 @@
             {
                 if (!apiObject.HasChanges)
                 {
-                    act.AddTag("NoChanges", true);
+                   act?.AddTag("NoChanges", true);
                     return;
                 }
 
@@ -335,7 +335,7 @@
 
             return ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(GetDomResourcePool), act =>
             {
-                act.AddTag("ResourcePoolId", domResourcePoolId);
+               act?.AddTag("ResourcePoolId", domResourcePoolId);
                 return PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(DomInstanceExposers.Id.Equal(domResourcePoolId)).FirstOrDefault();
             });
         }
