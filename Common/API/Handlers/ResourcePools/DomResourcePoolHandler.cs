@@ -3,12 +3,15 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Microsoft.Extensions.Logging;
+
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.MediaOps.Plan.Storage.DOM;
     using Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+    using Skyline.DataMiner.Net.Messages;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Utils.DOM.Extensions;
 
@@ -40,6 +43,36 @@
         {
             var handler = new DomResourcePoolHandler(planApi);
             handler.CreateOrUpdate(apiResourcePools);
+
+            result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+
+            return !result.HasFailures();
+        }
+
+        internal static bool TryComplete(MediaOpsPlanApi planApi, IEnumerable<ResourcePool> apiResourcePools, out BulkCreateOrUpdateResult<Guid> result)
+        {
+            var handler = new DomResourcePoolHandler(planApi);
+            handler.TransitionToCompleted(apiResourcePools);
+
+            result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+
+            return !result.HasFailures();
+        }
+
+        internal static bool TryDeprecate(MediaOpsPlanApi planApi, IEnumerable<ResourcePool> apiResourcePools, out BulkCreateOrUpdateResult<Guid> result, ResourcePoolDeprecateOptions options = null)
+        {
+            var handler = new DomResourcePoolHandler(planApi);
+            handler.TransitionToDeprecated(apiResourcePools, options ?? ResourcePoolDeprecateOptions.GetDefaults());
+
+            result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+
+            return !result.HasFailures();
+        }
+
+        internal static bool TryDelete(MediaOpsPlanApi planApi, IEnumerable<ResourcePool> apiResourcePools, out BulkCreateOrUpdateResult<Guid> result, ResourcePoolDeleteOptions options = null)
+        {
+            var handler = new DomResourcePoolHandler(planApi);
+            handler.Delete(apiResourcePools, options ?? ResourcePoolDeleteOptions.GetDefaults());
 
             result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
@@ -79,7 +112,7 @@
             }
 
             ValidateIdsNotInUse(toCreate);
-            ValidateState(toUpdate);
+            ValidateStateForUpdateAction(toUpdate);
 
             // Todo: lock DOM instances
             var changeResults = GetPoolsWithChanges(toUpdate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)));
@@ -142,10 +175,112 @@
                 {
                     var mediaOpsTraceData = new MediaOpsTraceData();
                     mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = traceData.ToString() });
+
+                    PassTraceData(id.Id, mediaOpsTraceData);
                 }
             }
 
             ReportSuccess(domResult.SuccessfulIds.Select(x => x.Id));
+        }
+
+        private void TransitionToCompleted(IEnumerable<ResourcePool> apiResourcePools)
+        {
+            if (apiResourcePools == null)
+            {
+                throw new ArgumentNullException(nameof(apiResourcePools));
+            }
+
+            if (!apiResourcePools.Any())
+            {
+                return;
+            }
+
+            ValidateStateForCompleteAction(apiResourcePools);
+            ValidateNames(apiResourcePools.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)));
+
+            // Create CORE resource pools
+            var poolsToCreate = apiResourcePools
+                .Where(x => !TraceDataPerItem.Keys.Contains(x.Id))
+                .Select(x => x.OriginalInstance)
+                .ToList();
+            if (poolsToCreate.Count == 0)
+            {
+                return;
+            }
+
+            CoreResourcePoolHandler.TryCreateOrUpdate(planApi, poolsToCreate, out var coreResult);
+            foreach (var id in coreResult.UnsuccessfulIds)
+            {
+                ReportError(id);
+
+                if (coreResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+                {
+                    PassTraceData(id, traceData);
+                }
+            }
+
+            // Save link with CORE resource pools
+            var poolsToSave = poolsToCreate.Where(x => coreResult.SuccessfulIds.Contains(x.ID.Id)).ToList();
+            planApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.TryCreateOrUpdateInBatches(poolsToSave.Select(x => x.ToInstance()), out var domResult);
+            foreach (var id in domResult.UnsuccessfulIds)
+            {
+                ReportError(id.Id);
+
+                if (domResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+                {
+                    var mediaOpsTraceData = new MediaOpsTraceData();
+                    mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = traceData.ToString() });
+
+                    PassTraceData(id.Id, mediaOpsTraceData);
+                }
+            }
+
+            // Transition DOM resource pools to Complete state
+            foreach (var domInstanceId in domResult.SuccessfulIds)
+            {
+                try
+                {
+                    planApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.DoStatusTransition(domInstanceId, SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.Transitions.Draft_To_Complete);
+
+                    ReportSuccess(domInstanceId.Id);
+                }
+                catch (Exception ex)
+                {
+                    ReportError(domInstanceId.Id, new MediaOpsErrorData() { ErrorMessage = ex.ToString() });
+                }
+            }
+        }
+
+        private void TransitionToDeprecated(IEnumerable<ResourcePool> apiResourcePools, ResourcePoolDeprecateOptions options)
+        {
+            if (apiResourcePools == null)
+            {
+                throw new ArgumentNullException(nameof(apiResourcePools));
+            }
+
+            if (!apiResourcePools.Any())
+            {
+                return;
+            }
+
+            ValidateStateForDeprecateAction(apiResourcePools);
+        }
+
+        private void Delete(IEnumerable<ResourcePool> apiResourcePools, ResourcePoolDeleteOptions options)
+        {
+            if (apiResourcePools == null)
+            {
+                throw new ArgumentNullException(nameof(apiResourcePools));
+            }
+
+            if (!apiResourcePools.Any())
+            {
+                return;
+            }
+
+            ValidateStateForDeleteAction(apiResourcePools);
+
+            throw new NotImplementedException();
         }
 
         private void ValidateIdsNotInUse(IEnumerable<ResourcePool> apiResourcePools)
@@ -199,7 +334,7 @@
             }
         }
 
-        private void ValidateState(IEnumerable<ResourcePool> apiResourcePools)
+        private void ValidateStateForUpdateAction(IEnumerable<ResourcePool> apiResourcePools)
         {
             if (apiResourcePools == null)
             {
@@ -217,6 +352,75 @@
                 {
                     ErrorReason = ResourcePoolConfigurationError.Reason.InvalidState,
                     ErrorMessage = "Not allowed to update a resource pool in Deprecated state."
+                };
+                ReportError(pool.Id, error);
+            }
+        }
+
+        private void ValidateStateForCompleteAction(IEnumerable<ResourcePool> apiResourcePools)
+        {
+            if (apiResourcePools == null)
+            {
+                throw new ArgumentNullException(nameof(apiResourcePools));
+            }
+
+            if (!apiResourcePools.Any())
+            {
+                return;
+            }
+
+            foreach (var pool in apiResourcePools.Where(x => x.State != ResourcePoolState.Draft))
+            {
+                var error = new ResourcePoolConfigurationError
+                {
+                    ErrorReason = ResourcePoolConfigurationError.Reason.InvalidState,
+                    ErrorMessage = "Not allowed to complete a resource pool that is not in Draft state."
+                };
+                ReportError(pool.Id, error);
+            }
+        }
+
+        private void ValidateStateForDeprecateAction(IEnumerable<ResourcePool> apiResourcePools)
+        {
+            if (apiResourcePools == null)
+            {
+                throw new ArgumentNullException(nameof(apiResourcePools));
+            }
+
+            if (!apiResourcePools.Any())
+            {
+                return;
+            }
+
+            foreach (var pool in apiResourcePools.Where(x => x.State != ResourcePoolState.Complete))
+            {
+                var error = new ResourcePoolConfigurationError
+                {
+                    ErrorReason = ResourcePoolConfigurationError.Reason.InvalidState,
+                    ErrorMessage = "Not allowed to deprecate a resource pool that is not in Completed state."
+                };
+                ReportError(pool.Id, error);
+            }
+        }
+
+        private void ValidateStateForDeleteAction(IEnumerable<ResourcePool> apiResourcePools)
+        {
+            if (apiResourcePools == null)
+            {
+                throw new ArgumentNullException(nameof(apiResourcePools));
+            }
+
+            if (!apiResourcePools.Any())
+            {
+                return;
+            }
+
+            foreach (var pool in apiResourcePools.Where(x => new[] { ResourcePoolState.Draft, ResourcePoolState.Deprecated }.Contains(x.State)))
+            {
+                var error = new ResourcePoolConfigurationError
+                {
+                    ErrorReason = ResourcePoolConfigurationError.Reason.InvalidState,
+                    ErrorMessage = "Not allowed to delete a resource pool that is not in Draft or Deprecated state."
                 };
                 ReportError(pool.Id, error);
             }

@@ -100,6 +100,7 @@
 
         private void TransitionToDeprecated(Resource apiResource)
         {
+            // Todo: add checks to see if resource is in use by jobs, etc.
             CoreResourceHandler.DeprecateResource(planApi, apiResource.OriginalInstance);
             planApi.DomHelpers.SlcResourceStudioHelper.TransitionResourceToDeprecated(apiResource.Id);
         }

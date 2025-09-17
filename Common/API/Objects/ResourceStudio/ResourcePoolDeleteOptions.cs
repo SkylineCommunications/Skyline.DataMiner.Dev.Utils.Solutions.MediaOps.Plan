@@ -6,7 +6,8 @@
     public class ResourcePoolDeleteOptions
     {
         /// <summary>
-        /// Gets or sets a value indicating whether deprecated resources, part of the resource pool, should be deleted.
+        /// Gets or sets a value indicating whether deprecated resources should be deleted.
+        /// Resources that are part of multiple resource pools will not be deleted.
         /// </summary>
         public bool DeleteDeprecatedResources { get; set; } = false;
 

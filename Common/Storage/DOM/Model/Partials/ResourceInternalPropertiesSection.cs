@@ -3,7 +3,9 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Newtonsoft.Json;
+
     using Skyline.DataMiner.Utils.SecureCoding.SecureSerialization.Json.Newtonsoft;
 
     internal partial class ResourceInternalPropertiesSection

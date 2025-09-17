@@ -154,20 +154,6 @@
         bool TryConvertToVirtualFunctionResource(Guid resourceId, ResourceVirtualFunctionLinkConfiguration configuration, out VirtualFunctionResource virtualFunctionResource);
 
         /// <summary>
-        /// Gets all deprecated resources in the specified resource pool.
-        /// </summary>
-        /// <param name="resourcePool">The resource pool to search for deprecated resources.</param>
-        /// <returns>An enumerable collection of deprecated resources in the specified pool.</returns>
-        IEnumerable<Resource> GetDeprecatedResourcesInPool(ResourcePool resourcePool);
-
-        /// <summary>
-        /// Gets a dictionary mapping each specified resource pool to its deprecated resource.
-        /// </summary>
-        /// <param name="resourcePools">The resource pools to search for deprecated resources.</param>
-        /// <returns>A read-only dictionary mapping each resource pool to its deprecated resources.</returns>
-        IReadOnlyDictionary<ResourcePool, IEnumerable<Resource>> GetDeprecatedResourcesPerPool(IEnumerable<ResourcePool> resourcePools);
-
-        /// <summary>
         /// Gets all resources in the specified resource pool.
         /// </summary>
         /// <param name="resourcePool">The resource pool to search for resources.</param>
@@ -175,10 +161,42 @@
         IEnumerable<Resource> GetResourcesInPool(ResourcePool resourcePool);
 
         /// <summary>
+        /// Retrieves a collection of resources from the specified resource pool that match the given state.
+        /// </summary>
+        /// <param name="resourcePool">The resource pool to search for resources.</param>
+        /// <param name="state">The state that the resources must match to be included in the result.</param>
+        /// <returns>An enumerable collection of resources that belong to the specified resource pool and match the given state.
+        /// If no matching resources are found, the collection will be empty.</returns>
+        IEnumerable<Resource> GetResourcesInPool(ResourcePool resourcePool, ResourceState state);
+
+        /// <summary>
         /// Gets a dictionary mapping each specified resource pool to its resource.
         /// </summary>
         /// <param name="resourcePools">The resource pools to search for resources.</param>
         /// <returns>A read-only dictionary mapping each resource pool to its resources.</returns>
         IReadOnlyDictionary<ResourcePool, IEnumerable<Resource>> GetResourcesPerPool(IEnumerable<ResourcePool> resourcePools);
+
+        /// <summary>
+        /// Retrieves a mapping of resource pools to their associated resources that match the specified state.
+        /// </summary>
+        /// <param name="resourcePools">The collection of resource pools to evaluate. Cannot be null.</param>
+        /// <param name="state">The state that the resources must match to be included in the result.</param>
+        /// <returns>A read-only dictionary where each key is a resource pool and the value is a collection of resources  within
+        /// that pool that match the specified state. The dictionary will be empty if no matching resources are found.</returns>
+        IReadOnlyDictionary<ResourcePool, IEnumerable<Resource>> GetResourcesPerPool(IEnumerable<ResourcePool> resourcePools, ResourceState state);
+
+        /// <summary>
+        /// Determines whether the specified <see cref="ResourcePool"/> contains any resources.
+        /// </summary>
+        /// <param name="resourcePool">The resource pool to check for resources.</param>
+        /// <returns><c>true</c> if the resource pool contains resources; otherwise, <c>false</c>.</returns>
+        bool HasResources(ResourcePool resourcePool);
+
+        /// <summary>
+        /// Gets the total number of resources in the specified <see cref="ResourcePool"/>.
+        /// </summary>
+        /// <param name="resourcePool">The resource pool to count resources in.</param>
+        /// <returns>The count of resources in the resource pool.</returns>
+        long ResourceCount(ResourcePool resourcePool);
     }
 }

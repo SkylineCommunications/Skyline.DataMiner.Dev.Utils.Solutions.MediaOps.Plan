@@ -231,16 +231,6 @@
             return GetResourceIterator(filter);
         }
 
-        public IEnumerable<ResourceInstance> GetDeprecatedResourcesByPool(Guid id)
-        {
-            var filter = DomInstanceExposers.FieldValues
-                .DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.Pool_Ids)
-                .Contains(Convert.ToString(id))
-                .AND(DomInstanceExposers.StatusId.Equal(SlcResource_StudioIds.Behaviors.Resource_Behavior.Statuses.Deprecated));
-
-            return GetResourceIterator(filter);
-        }
-
         /// <summary>
         /// Returns deprecated resources that are included in any of the provided pools.
         /// </summary>

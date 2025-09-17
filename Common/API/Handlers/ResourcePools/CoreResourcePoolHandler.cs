@@ -46,10 +46,10 @@
             return !result.HasFailures();
         }
 
-        public static BulkDeleteResult<Guid> Delete(MediaOpsPlanApi planApi, IEnumerable<DomResourcePool> domResourcePools, ResourcePoolDeleteOptions options)
+        public static BulkDeleteResult<Guid> Delete(MediaOpsPlanApi planApi, IEnumerable<DomResourcePool> domResourcePools)
         {
             var handler = new CoreResourcePoolHandler(planApi);
-            handler.Delete(domResourcePools, options ?? ResourcePoolDeleteOptions.GetDefaults());
+            handler.Delete(domResourcePools);
 
             var result = new BulkDeleteResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
             result.ThrowOnFailure();
@@ -57,10 +57,10 @@
             return result;
         }
 
-        public static bool TryDelete(MediaOpsPlanApi planApi, IEnumerable<DomResourcePool> domResourcePools, ResourcePoolDeleteOptions options, out BulkDeleteResult<Guid> result)
+        public static bool TryDelete(MediaOpsPlanApi planApi, IEnumerable<DomResourcePool> domResourcePools, out BulkDeleteResult<Guid> result)
         {
             var handler = new CoreResourcePoolHandler(planApi);
-            handler.Delete(domResourcePools, options ?? ResourcePoolDeleteOptions.GetDefaults());
+            handler.Delete(domResourcePools);
 
             result = new BulkDeleteResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
 
@@ -146,7 +146,7 @@
             }
         }
 
-        private void Delete(IEnumerable<DomResourcePool> domResourcePools, ResourcePoolDeleteOptions options)
+        private void Delete(IEnumerable<DomResourcePool> domResourcePools)
         {
             if (domResourcePools == null)
             {
@@ -158,13 +158,7 @@
                 return;
             }
 
-            var coreResourcePoolsById = planApi.CoreHelpers.ResourceManagerHelper.GetResourcePoolsInBatches(domResourcePools
-                .Where(x => x.ResourcePoolInternalProperties.ResourcePoolId != Guid.Empty)
-                .Select(x => x.ResourcePoolInternalProperties.ResourcePoolId)
-                .Distinct());
-
-            // DOM resource pools without a CORE can be removed.
-            successfulIds.AddRange(domResourcePools.Where(x => !coreResourcePoolsById.ContainsKey(x.ResourcePoolInternalProperties.ResourcePoolId)).Select(x => x.ID.Id));
+            Delete(ResourcePoolMapping.GetMappings(planApi, domResourcePools));
 
             /* Todo: Define how pool and resource deletion should work > see loop for more details
              * 
@@ -186,6 +180,57 @@
             {
 
             }*/
+        }
+
+        private void Delete(IEnumerable<ResourcePoolMapping> resourcePoolMappings)
+        {
+            if (resourcePoolMappings == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePoolMappings));
+            }
+
+            if (!resourcePoolMappings.Any())
+            {
+                return;
+            }
+
+            var domPoolsById = new Dictionary<Guid, DomResourcePool>();
+            var domIdByCoreId = new Dictionary<Guid, Guid>();
+
+            var poolsToDelete = new List<CoreResourcePool>();
+            foreach (var mapping in resourcePoolMappings)
+            {
+                if (mapping.CoreResourcePool == null)
+                {
+                    // DOM resource pools without a CORE can be removed.
+                    successfulIds.Add(mapping.DomResourcePool.ID.Id);
+
+                    continue;
+                }
+
+                poolsToDelete.Add(mapping.CoreResourcePool);
+                domIdByCoreId.Add(mapping.CoreResourcePool.ID, mapping.DomResourcePool.ID.Id);
+            }
+
+            planApi.CoreHelpers.ResourceManagerHelper.TryDeleteResourcePoolsInBatches(poolsToDelete, out var result);
+
+            foreach (var id in result.UnsuccessfulIds)
+            {
+                if (!domIdByCoreId.TryGetValue(id, out var domId))
+                {
+                    planApi.Logger.LogError($"Failed to find DOM ID for CORE resource pool ID", id);
+                    continue;
+                }
+
+                unsuccessfulIds.Add(domId);
+
+                if (result.TraceDataPerItem.TryGetValue(id, out var traceData))
+                {
+                    traceDataPerItem.Add(domId, traceData);
+                }
+            }
+
+            successfulIds.AddRange(result.SuccessfulIds);
         }
 
         private void ValidateNames(IEnumerable<DomResourcePool> domResourcePools)

@@ -103,6 +103,41 @@
             return !result.HasFailures();
         }
 
+        public static Exceptions.BulkDeleteResult<Guid> DeleteResourcePoolsInBatches(this ResourceManagerHelper helper, IEnumerable<ResourcePool> resourcePools)
+        {
+            if (helper == null)
+            {
+                throw new ArgumentNullException(nameof(helper));
+            }
+
+            if (resourcePools == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePools));
+            }
+
+            var result = InnerDeleteResourcePoolsInBatches(helper, resourcePools);
+            result.ThrowOnFailure();
+
+            return result;
+        }
+
+        public static bool TryDeleteResourcePoolsInBatches(this ResourceManagerHelper helper, IEnumerable<ResourcePool> resourcePools, out Exceptions.BulkDeleteResult<Guid> result)
+        {
+            if (helper == null)
+            {
+                throw new ArgumentNullException(nameof(helper));
+            }
+
+            if (resourcePools == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePools));
+            }
+
+            result = InnerDeleteResourcePoolsInBatches(helper, resourcePools);
+
+            return !result.HasFailures();
+        }
+
         public static IEnumerable<Resource> GetResources<T>(this ResourceManagerHelper helper, IEnumerable<T> values, Func<T, FilterElement<Resource>> filter)
         {
             if (helper == null)
@@ -275,6 +310,44 @@
             }
 
             return new BulkCreateOrUpdateResult<Guid>(successfulIds, unsuccessfulIds, traceDataPerItem);
+        }
+
+        private static Exceptions.BulkDeleteResult<Guid> InnerDeleteResourcePoolsInBatches(ResourceManagerHelper helper, IEnumerable<ResourcePool> resourcePools)
+        {
+            var successfulIds = new List<Guid>();
+            var unsuccessfulIds = new List<Guid>();
+            var traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
+
+            ActivityHelper.Track(nameof(ResourceManagerHelperExtensions), nameof(InnerDeleteResourcePoolsInBatches), act =>
+            {
+                foreach (var batch in resourcePools.Batch(100))
+                {
+                    var res = helper.RemoveResourcePools(batch.ToArray());
+
+                    successfulIds.AddRange(res.Select(x => x.ID));
+
+                    var traceData = helper.GetTraceDataLastCall();
+                    foreach (var error in traceData.ErrorData.OfType<ResourceManagerErrorData>())
+                    {
+                        if (!error.SubjectId.HasValue)
+                        {
+                            continue;
+                        }
+
+                        if (!traceDataPerItem.TryGetValue(error.SubjectId.Value, out var mediaOpsTraceData))
+                        {
+                            mediaOpsTraceData = new MediaOpsTraceData();
+                            traceDataPerItem.Add(error.SubjectId.Value, mediaOpsTraceData);
+
+                            unsuccessfulIds.Add(error.SubjectId.Value);
+                        }
+
+                        mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = error.ToString() });
+                    }
+                }
+            });
+
+            return new Exceptions.BulkDeleteResult<Guid>(successfulIds, unsuccessfulIds, traceDataPerItem);
         }
 
         private static BulkCreateOrUpdateResult<Guid> InnerCreateOrUpdateResourcesInBatches(ResourceManagerHelper helper, IEnumerable<Resource> resources, out IEnumerable<Resource> createdOrUpdatedResources)
