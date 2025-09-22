@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.ObjectModel;
     using System.Linq;
 
     using Microsoft.Extensions.Logging;
@@ -339,6 +340,52 @@
         public IQueryable<IEnumerable<ResourcePool>> QueryPaged()
         {
             throw new NotImplementedException();
+        }
+
+        public IEnumerable<ResourcePool> GetResourcePools(Resource resource)
+        {
+            if (resource == null)
+            {
+                throw new ArgumentNullException(nameof(resource));
+            }
+
+            return PlanApi.DomHelpers.SlcResourceStudioHelper.GetPoolsByResource(resource.Id)
+                .Select(x => new ResourcePool(x));
+        }
+
+        public IReadOnlyDictionary<Resource, IEnumerable<ResourcePool>> GetPoolsPerResource(IEnumerable<Resource> resources)
+        {
+            if (resources == null)
+            {
+                throw new ArgumentNullException(nameof(resources));
+            }
+
+            var domResourcesById = resources.Select(x => x.OriginalInstance).ToDictionary(x => x.ID.Id);
+            var domResourcePools = PlanApi.DomHelpers.SlcResourceStudioHelper.GetAllPoolsForResources(domResourcesById.Values);
+            var apiPoolsById = domResourcePools.Select(x => new ResourcePool(x)).ToDictionary(x => x.Id);
+
+            var poolsPerResource = new Dictionary<Resource, List<ResourcePool>>();
+            foreach (var resource in resources)
+            {
+                if (!domResourcesById.TryGetValue(resource.Id, out var domResource))
+                {
+                    continue;
+                }
+
+                var pools = domResource.ResourceInternalProperties.PoolIds
+                    .Select(poolId => apiPoolsById.TryGetValue(poolId, out var pool) ? pool : null)
+                    .Where(pool => pool != null)
+                    .ToList();
+
+                if (pools.Count == 0)
+                {
+                    continue;
+                }
+
+                poolsPerResource.Add(resource, pools);
+            }
+
+            return (IReadOnlyDictionary<Resource, IEnumerable<ResourcePool>>)poolsPerResource;
         }
 
         protected internal override FilterElement<DomInstance> CreateFilter(string fieldName, Comparer comparer, object value)

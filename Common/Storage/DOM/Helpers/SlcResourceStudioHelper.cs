@@ -101,6 +101,52 @@
                 x => GetResourcePoolIterator(x));
         }
 
+        public IEnumerable<ResourcepoolInstance> GetPoolsByResource(ResourceInstance resource)
+        {
+            if (resource == null)
+            {
+                throw new ArgumentNullException(nameof(resource));
+            }
+
+            return GetResourcePools(resource.ResourceInternalProperties.PoolIds);
+        }
+
+        public IEnumerable<ResourcepoolInstance> GetPoolsByResource(Guid id)
+        {
+            if (id == Guid.Empty)
+            {
+                throw new ArgumentNullException(nameof(id));
+            }
+
+            return GetPoolsByResource(GetResources([id]).FirstOrDefault());
+        }
+
+        public IEnumerable<ResourcepoolInstance> GetAllPoolsForResources(IEnumerable<ResourceInstance> resources)
+        {
+            if (resources == null)
+            {
+                throw new ArgumentNullException(nameof(resources));
+            }
+
+            var poolIds = resources
+                .Where(x => x != null)
+                .SelectMany(x => x.ResourceInternalProperties.PoolIds)
+                .Distinct()
+                .ToArray();
+
+            return GetResourcePools(poolIds);
+        }
+
+        public IEnumerable<ResourcepoolInstance> GetAllPoolsForResources(IEnumerable<Guid> resourceIds)
+        {
+            if (resourceIds == null)
+            {
+                throw new ArgumentNullException(nameof(resourceIds));
+            }
+
+            return GetAllPoolsForResources(GetResources(resourceIds));
+        }
+
         public IEnumerable<ResourceInstance> GetAllResources()
         {
             var filter = DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resource.Id);
@@ -185,6 +231,11 @@
 
         public IEnumerable<ResourceInstance> GetResourcesByPool(Guid id)
         {
+            if (id == Guid.Empty)
+            {
+                throw new ArgumentNullException(nameof(id));
+            }
+
             var filter = DomInstanceExposers.FieldValues
                 .DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.Pool_Ids)
                 .Contains(Convert.ToString(id));
@@ -227,31 +278,6 @@
             }
 
             var filter = new ORFilterElement<DomInstance>(filters);
-
-            return GetResourceIterator(filter);
-        }
-
-        /// <summary>
-        /// Returns deprecated resources that are included in any of the provided pools.
-        /// </summary>
-        public IEnumerable<ResourceInstance> GetAllDeprecatedResourcesInPools(IEnumerable<Guid> poolIds)
-        {
-            if (poolIds == null)
-            {
-                throw new ArgumentNullException(nameof(poolIds));
-            }
-
-            var filters = poolIds
-                .Select(x => DomInstanceExposers.FieldValues
-                    .DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.Pool_Ids)
-                    .Contains(Convert.ToString(x))).ToArray();
-
-            if (filters.Length == 0)
-            {
-                return Enumerable.Empty<ResourceInstance>();
-            }
-
-            var filter = new ORFilterElement<DomInstance>(filters).AND(DomInstanceExposers.StatusId.Equal(SlcResource_StudioIds.Behaviors.Resource_Behavior.Statuses.Deprecated));
 
             return GetResourceIterator(filter);
         }

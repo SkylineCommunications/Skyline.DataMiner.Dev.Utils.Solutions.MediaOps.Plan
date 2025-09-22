@@ -264,6 +264,27 @@
             }
 
             ValidateStateForDeprecateAction(apiResourcePools);
+
+            var poolsToDeprecate = apiResourcePools.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)).ToList();
+            if (options.AllowResourceDeprecation)
+            {
+                DeprecatePoolResources(poolsToDeprecate);
+            }
+
+            foreach (var pool in poolsToDeprecate)
+            {
+                try
+                {
+                    planApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.DoStatusTransition(pool.OriginalInstance.ID, SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.Transitions.Complete_To_Deprecated);
+
+                    ReportSuccess(pool.Id);
+                }
+                catch (Exception ex)
+                {
+                    ReportError(pool.Id, new MediaOpsErrorData() { ErrorMessage = ex.ToString() });
+                    throw;
+                }
+            }
         }
 
         private void Delete(IEnumerable<ResourcePool> apiResourcePools, ResourcePoolDeleteOptions options)
@@ -280,7 +301,114 @@
 
             ValidateStateForDeleteAction(apiResourcePools);
 
-            throw new NotImplementedException();
+            var poolsToDelete = apiResourcePools.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)).ToList();
+            HandleDeleteOptions(poolsToDelete, options);
+            UnassignResourcesFromPool(poolsToDelete);
+
+            var domPoolsById = poolsToDelete.ToDictionary(x => x.Id, x => x.OriginalInstance);
+
+            CoreResourcePoolHandler.TryDelete(planApi, domPoolsById.Values, out var coreResult);
+
+            foreach (var id in coreResult.UnsuccessfulIds)
+            {
+                ReportError(id);
+
+                if (coreResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+                {
+                    PassTraceData(id, traceData);
+                }
+
+                domPoolsById.Remove(id);
+            }
+
+            planApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.TryDeleteInBatches(domPoolsById.Values.Select(x => x.ToInstance()), out var domResult);
+
+            foreach (var id in domResult.UnsuccessfulIds)
+            {
+                ReportError(id.Id);
+
+                if (domResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+                {
+                    var mediaOpsTraceData = new MediaOpsTraceData();
+                    mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = traceData.ToString() });
+
+                    PassTraceData(id.Id, mediaOpsTraceData);
+                }
+            }
+
+            ReportSuccess(domResult.SuccessfulIds.Select(x => x.Id));
+        }
+
+        private void DeprecatePoolResources(IEnumerable<ResourcePool> apiResourcePools)
+        {
+            var resourcesPerPoolOverview = planApi.Resources.GetResourcesPerPool(apiResourcePools, ResourceState.Complete);
+            var poolsPerResourceOverview = planApi.ResourcePools.GetPoolsPerResource(resourcesPerPoolOverview.Values.SelectMany(x => x).Distinct(new DefaultApiObjectComparer()).Cast<Resource>());
+
+            var resourcesToDeprecate = new List<Resource>();
+            foreach (var resourcesPerPool in resourcesPerPoolOverview)
+            {
+                var poolResourcesToDeprecate = resourcesPerPoolOverview.Values
+                    .SelectMany(x => x)
+                    .Distinct(new DefaultApiObjectComparer())
+                    .Cast<Resource>()
+                    .Where(x => poolsPerResourceOverview.TryGetValue(x, out var pools) && pools.Count() == 1 && pools.First().Id == resourcesPerPool.Key.Id)
+                    .ToList();
+
+                resourcesToDeprecate.AddRange(poolResourcesToDeprecate);
+            }
+
+            // todo: use bulk deprecate call when available in resource repository (ADO34081)
+            foreach (var resource in resourcesToDeprecate)
+            {
+                try
+                {
+                    planApi.Resources.MoveTo(resource, ResourceState.Deprecated);
+                    ReportSuccess(resource.Id);
+                }
+                catch (Exception ex)
+                {
+                    ReportError(resource.Id, new MediaOpsErrorData() { ErrorMessage = ex.ToString() });
+                }
+            }
+        }
+
+        private void HandleDeleteOptions(IEnumerable<ResourcePool> apiResourcePools, ResourcePoolDeleteOptions options)
+        {
+            if (options.DeleteDraftResources)
+            {
+                DeletePoolResources(apiResourcePools, ResourceState.Draft);
+            }
+
+            if (options.DeleteDeprecatedResources)
+            {
+                DeletePoolResources(apiResourcePools, ResourceState.Deprecated);
+            }
+        }
+
+        private void DeletePoolResources(IEnumerable<ResourcePool> apiResourcePools, ResourceState state)
+        {
+            var resourcesPerPoolOverview = planApi.Resources.GetResourcesPerPool(apiResourcePools, state);
+            var poolsPerResourceOverview = planApi.ResourcePools.GetPoolsPerResource(resourcesPerPoolOverview.Values.SelectMany(x => x).Distinct(new DefaultApiObjectComparer()).Cast<Resource>());
+
+            var resourcesToDelete = new List<Resource>();
+            foreach (var resourcesPerPool in resourcesPerPoolOverview)
+            {
+                var poolResourcesToDelete = resourcesPerPoolOverview.Values
+                    .SelectMany(x => x)
+                    .Distinct(new DefaultApiObjectComparer())
+                    .Cast<Resource>()
+                    .Where(x => poolsPerResourceOverview.TryGetValue(x, out var pools) && pools.Count() == 1 && pools.First().Id == resourcesPerPool.Key.Id)
+                    .ToList();
+
+                resourcesToDelete.AddRange(poolResourcesToDelete);
+            }
+
+            planApi.Resources.Delete(resourcesToDelete.Select(x => x.Id).ToArray());
+        }
+
+        private void UnassignResourcesFromPool(IEnumerable<ResourcePool> apiResourcePools)
+        {
+            // todo: implement logic to unassign resources from the given resource pools
         }
 
         private void ValidateIdsNotInUse(IEnumerable<ResourcePool> apiResourcePools)
@@ -415,7 +543,7 @@
                 return;
             }
 
-            foreach (var pool in apiResourcePools.Where(x => new[] { ResourcePoolState.Draft, ResourcePoolState.Deprecated }.Contains(x.State)))
+            foreach (var pool in apiResourcePools.Where(x => !new[] { ResourcePoolState.Draft, ResourcePoolState.Deprecated }.Contains(x.State)))
             {
                 var error = new ResourcePoolConfigurationError
                 {

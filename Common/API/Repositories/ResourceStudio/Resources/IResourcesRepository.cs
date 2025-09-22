@@ -179,8 +179,10 @@
         /// <summary>
         /// Retrieves a mapping of resource pools to their associated resources that match the specified state.
         /// </summary>
+        /// <remarks>This method filters resources based on their state and groups them by their
+        /// respective resource pools. The returned dictionary is read-only and cannot be modified.</remarks>
         /// <param name="resourcePools">The collection of resource pools to evaluate. Cannot be null.</param>
-        /// <param name="state">The state that the resources must match to be included in the result.</param>
+        /// <param name="state">The desired state of the resources to include in the result.</param>
         /// <returns>A read-only dictionary where each key is a resource pool and the value is a collection of resources  within
         /// that pool that match the specified state. The dictionary will be empty if no matching resources are found.</returns>
         IReadOnlyDictionary<ResourcePool, IEnumerable<Resource>> GetResourcesPerPool(IEnumerable<ResourcePool> resourcePools, ResourceState state);

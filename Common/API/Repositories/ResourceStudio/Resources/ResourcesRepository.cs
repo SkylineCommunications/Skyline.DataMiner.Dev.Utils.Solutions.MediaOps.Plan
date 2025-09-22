@@ -585,6 +585,11 @@
 
         public IReadOnlyDictionary<ResourcePool, IEnumerable<Resource>> GetResourcesPerPool(IEnumerable<ResourcePool> resourcePools)
         {
+            if (resourcePools == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePools));
+            }
+
             var domResources = PlanApi.DomHelpers.SlcResourceStudioHelper.GetAllResourcesInPools(resourcePools.Select(x => x.Id));
             var apiResourcesById = Resource.InstantiateResources(domResources).ToDictionary(x => x.Id);
 
@@ -601,7 +606,32 @@
 
         public IReadOnlyDictionary<ResourcePool, IEnumerable<Resource>> GetResourcesPerPool(IEnumerable<ResourcePool> resourcePools, ResourceState state)
         {
-            throw new NotImplementedException();
+            if (resourcePools == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePools));
+            }
+
+            var resourceFilters = resourcePools
+                .Select(x => DomInstanceExposers.FieldValues
+                    .DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.Pool_Ids)
+                    .Contains(Convert.ToString(x.Id)))
+                .ToArray();
+
+            var filter = new ORFilterElement<DomInstance>(resourceFilters)
+                .AND(DomInstanceExposers.StatusId.Equal(SlcResource_StudioIds.Behaviors.Resource_Behavior.Statuses.ToValue(EnumExtensions.MapEnum<ResourceState, SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum>(state))));
+
+            var domResources = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(filter);
+            var apiResourcesById = Resource.InstantiateResources(domResources).ToDictionary(x => x.Id);
+
+            var resourcesPerPool = resourcePools.ToDictionary(
+                pool => pool,
+                pool =>
+                    domResources
+                        .Where(x => x.ResourceInternalProperties.PoolIds.Contains(pool.Id))
+                        .Select(x => apiResourcesById[x.ID.Id])
+            );
+
+            return resourcesPerPool;
         }
 
         public IQueryable<Resource> Query()
