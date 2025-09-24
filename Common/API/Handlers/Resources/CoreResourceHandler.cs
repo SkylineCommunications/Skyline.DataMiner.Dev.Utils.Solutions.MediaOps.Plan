@@ -1079,9 +1079,8 @@
 
         private sealed class ResourceMapping
         {
-            private ResourceMapping(DomResource domResource)
+            private ResourceMapping(DomResource domResource) : this(domResource, new CoreResource { ID = Guid.NewGuid() })
             {
-                DomResource = domResource ?? throw new ArgumentNullException(nameof(domResource));
             }
 
             private ResourceMapping(DomResource domResource, CoreResource coreResource)

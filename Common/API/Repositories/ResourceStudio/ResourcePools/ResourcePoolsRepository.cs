@@ -72,7 +72,7 @@
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
-            var existingResourcePools  = apiObjects.Where(x => !x.IsNew).ToList();
+            var existingResourcePools = apiObjects.Where(x => !x.IsNew).ToList();
             if (existingResourcePools.Any())
             {
                 throw new InvalidOperationException("Not possible to use method Create for existing resource pools. Use CreateOrUpdate or Update instead.");
