@@ -2,7 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.Collections.ObjectModel;
+    using System.Linq;
 
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
 
@@ -19,7 +19,7 @@
 
         private string name;
 
-        private readonly List<ResourcePoolLink> resourcepoolLinks = new List<ResourcePoolLink>();
+        private readonly ICollection<ResourcePoolLink> resourcepoolLinks = [];
 
         private Guid coreResourcePoolId;
 
@@ -64,12 +64,19 @@
         /// </summary>
         public ResourcePoolState State { get; private set; }
 
-        public IReadOnlyCollection<ResourcePoolLink> ResourcePoolLinks => resourcepoolLinks;
+        /// <summary>
+        /// Gets the collection of links associated with this resource pool.
+        /// </summary>
+        public IReadOnlyCollection<ResourcePoolLink> ResourcePoolLinks => (IReadOnlyCollection<ResourcePoolLink>)resourcepoolLinks;
 
         internal Guid CoreResourcePoolId => coreResourcePoolId;
 
         internal StorageResourceStudio.ResourcepoolInstance OriginalInstance => originalInstance;
 
+        /// <summary>
+        /// Adds a link to another resource pool.
+        /// </summary>
+        /// <param name="resourcePoolLink">The resource pool link to add.</param>
         public void AddResourcePoolLink(ResourcePoolLink resourcePoolLink)
         {
             if (resourcePoolLink == null)
@@ -77,10 +84,19 @@
                 throw new ArgumentNullException(nameof(resourcePoolLink));
             }
 
-            HasChanges = true;
+            if (!resourcePoolLink.IsNew)
+            {
+                return;
+            }
+
             resourcepoolLinks.Add(resourcePoolLink);
+            HasChanges = true;
         }
 
+        /// <summary>
+        /// Removes the specified resource pool link from the collection, if it exists.
+        /// </summary>
+        /// <param name="resourcePoolLink">The resource pool link to remove.</param>
         public void RemoveResourcePoolLink(ResourcePoolLink resourcePoolLink)
         {
             if (resourcePoolLink == null)
@@ -88,7 +104,13 @@
                 throw new ArgumentNullException(nameof(resourcePoolLink));
             }
 
-            if (resourcepoolLinks.RemoveAll(x => x.OriginalSection.ID == resourcePoolLink.OriginalSection.ID) > 0)
+            if (resourcePoolLink.IsNew)
+            {
+                return;
+            }
+
+            var toRemove = resourcepoolLinks.SingleOrDefault(x => x.OriginalSection.ID == resourcePoolLink.OriginalSection.ID);
+            if (toRemove != null && resourcepoolLinks.Remove(toRemove))
             {
                 HasChanges = true;
             }
@@ -103,6 +125,12 @@
 
             updatedInstance.ResourcePoolInfo.Name = Name;
 
+            updatedInstance.ResourcePoolLinks.Clear();
+            foreach (var link in resourcepoolLinks)
+            {
+                updatedInstance.ResourcePoolLinks.Add(link.GetSectionWithChanges());
+            }
+
             return updatedInstance;
         }
 
@@ -113,6 +141,13 @@
             name = instance.ResourcePoolInfo.Name;
             State = EnumExtensions.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.StatusesEnum, ResourcePoolState>(instance.Status);
             coreResourcePoolId = instance.ResourcePoolInternalProperties.ResourcePoolId;
+
+            foreach (var section in instance.ResourcePoolLinks)
+            {
+                var link = new ResourcePoolLink(section);
+                link.ValueChanged += (s, e) => { HasChanges = true; };
+                resourcepoolLinks.Add(link);
+            }
         }
     }
 }
