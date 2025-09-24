@@ -146,7 +146,7 @@
             var changeResults = ActivityHelper.Track(nameof(DomResourceHandler), nameof(GetResourcesWithChanges), act => GetResourcesWithChanges(toUpdate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id))));
 
             var toCreateNameValidation = toCreate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id));
-            var toUpdateNameValidation = toUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFieldDescriptorIds.Contains(SlcResource_StudioIds.Sections.ResourceInfo.Name.Id)));
+            var toUpdateNameValidation = toUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFieldDescriptors.Select(z => z.FieldDescriptorId).Contains(SlcResource_StudioIds.Sections.ResourceInfo.Name.Id)));
             ActivityHelper.Track(nameof(DomResourceHandler), nameof(ValidateNames), act => ValidateNames(toCreateNameValidation.Concat(toUpdateNameValidation)));
 
             var toCreateDomInstances = toCreate
@@ -498,12 +498,12 @@
                 var changeResult = DomChangeHandler.HandleChanges(resource.OriginalInstance, resource.GetInstanceWithChanges(), stored);
                 if (changeResult.HasErrors)
                 {
-                    foreach (var errorMessage in changeResult.Errors)
+                    foreach (var errorDetail in changeResult.Errors)
                     {
                         var error = new ResourceConfigurationError
                         {
                             ErrorReason = ResourceConfigurationError.Reason.ValueAlreadyChanged,
-                            ErrorMessage = errorMessage
+                            ErrorMessage = errorDetail.Message,
                         };
 
                         ReportError(resource.Id, error);

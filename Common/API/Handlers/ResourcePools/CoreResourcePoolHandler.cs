@@ -194,10 +194,9 @@
                 return;
             }
 
-            var domPoolsById = new Dictionary<Guid, DomResourcePool>();
             var domIdByCoreId = new Dictionary<Guid, Guid>();
-
             var poolsToDelete = new List<CoreResourcePool>();
+
             foreach (var mapping in resourcePoolMappings)
             {
                 if (mapping.CoreResourcePool == null)

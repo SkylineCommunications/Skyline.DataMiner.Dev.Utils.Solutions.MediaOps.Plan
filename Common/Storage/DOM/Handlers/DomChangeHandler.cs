@@ -14,20 +14,24 @@
         private readonly DomInstance updated;
         private readonly DomInstance stored;
 
+        private readonly List<Guid> multiSectionDefinitionIds;
+
         private readonly DomChangeResults results;
 
-        private DomChangeHandler(DomInstanceBase original, DomInstanceBase updated, DomInstanceBase stored)
+        private DomChangeHandler(DomInstanceBase original, DomInstanceBase updated, DomInstanceBase stored, List<Guid> multiSectionDefinitionIds)
         {
             this.original = original ?? throw new ArgumentNullException(nameof(original));
             this.updated = updated ?? throw new ArgumentNullException(nameof(updated));
             this.stored = stored ?? throw new ArgumentNullException(nameof(stored));
 
+            this.multiSectionDefinitionIds = multiSectionDefinitionIds ?? new List<Guid>();
+
             results = new DomChangeResults(this.stored);
         }
 
-        public static DomChangeResults HandleChanges(DomInstanceBase original, DomInstanceBase updated, DomInstanceBase stored)
+        public static DomChangeResults HandleChanges(DomInstanceBase original, DomInstanceBase updated, DomInstanceBase stored, List<Guid> multiSectionDefinitionIds = null)
         {
-            var handler = new DomChangeHandler(original, updated, stored);
+            var handler = new DomChangeHandler(original, updated, stored, multiSectionDefinitionIds);
             handler.Handle();
 
             return handler.results;
@@ -41,9 +45,129 @@
                 return;
             }
 
-            foreach (var changedFieldValue in changes.FieldValues)
+            HandleAddedSections(updated.Sections.Where(s => original.Sections.All(os => os.ID.Id != s.ID.Id)));
+            HandleRemovedSections(original.Sections.Where(s => updated.Sections.All(os => os.ID.Id != s.ID.Id)));
+            HandleChangedFieldValues(changes.FieldValues);
+        }
+
+        private void HandleAddedSections(IEnumerable<Section> sections)
+        {
+            if (sections == null)
             {
-                HandleChangedFieldValue(changedFieldValue);
+                throw new ArgumentNullException(nameof(sections));
+            }
+
+            if (!sections.Any())
+            {
+                return;
+            }
+
+            foreach (var section in sections)
+            {
+                HandleAddedSection(section);
+            }
+        }
+
+        private void HandleAddedSection(Section section)
+        {
+            var isMultiSection = multiSectionDefinitionIds.Contains(section.SectionDefinitionID.Id);
+
+            if (!isMultiSection)
+            {
+                var storedSection = stored.Sections.FirstOrDefault(x => x.SectionDefinitionID.Id == section.SectionDefinitionID.Id);
+
+                if (storedSection != null)
+                {
+                    results.Errors.Add(new ErrorDetails
+                    {
+                        Reason = ErrorDetails.ErrorReason.SectionAdded,
+                        Message = $"Section with definition ID '{section.SectionDefinitionID.Id}' already exists.",
+                        Details = new DomDetails
+                        {
+                            SectionDefinitionId = storedSection.SectionDefinitionID.Id,
+                            SectionId = storedSection.ID.Id,
+                        },
+                    });
+
+                    return;
+                }
+            }
+
+            stored.Sections.Add(section);
+
+            results.AddedSections.Add(new DomDetails
+            {
+                SectionDefinitionId = section.SectionDefinitionID.Id,
+                SectionId = section.ID.Id,
+            });
+        }
+
+        private void HandleRemovedSections(IEnumerable<Section> sections)
+        {
+            if (sections == null)
+            {
+                throw new ArgumentNullException(nameof(sections));
+            }
+
+            if (!sections.Any())
+            {
+                return;
+            }
+
+            foreach (var section in sections)
+            {
+                HandleRemovedSection(section);
+            }
+        }
+
+        private void HandleRemovedSection(Section section)
+        {
+            var storedSection = stored.Sections.FirstOrDefault(x => x.ID.Id == section.ID.Id);
+            var orginalSection = original.Sections.FirstOrDefault(x => x.ID.Id == section.ID.Id);
+
+            if (storedSection == null)
+            {
+                results.Errors.Add(new ErrorDetails
+                {
+                    Reason = ErrorDetails.ErrorReason.SectionRemoved,
+                    Message = $"Section with ID '{section.ID.Id}' has already been removed.",
+                    Details = new DomDetails
+                    {
+                        SectionDefinitionId = orginalSection.SectionDefinitionID.Id,
+                        SectionId = orginalSection.ID.Id,
+                    },
+                });
+
+                return;
+            }
+
+            stored.Sections.Remove(storedSection);
+
+            results.RemovedSections.Add(new DomDetails
+            {
+                SectionDefinitionId = section.SectionDefinitionID.Id,
+                SectionId = section.ID.Id,
+            });
+        }
+
+        private void HandleChangedFieldValues(FieldValueDifferences differences)
+        {
+            if (differences == null)
+            {
+                throw new ArgumentNullException(nameof(differences));
+            }
+
+            var sectionsToIgnore = results.AddedSections.Select(s => s.SectionId)
+                .Concat(results.RemovedSections.Select(s => s.SectionId))
+                .Concat(results.Errors.Select(e => e.Details.SectionId))
+                .ToList();
+            var filteredDifferences = differences
+                .Where(d => !sectionsToIgnore.Contains(d.SectionId.Id))
+                .ToList();
+
+            foreach (var difference in filteredDifferences)
+            {
+                HandleChangedFieldValue(difference);
             }
         }
 
@@ -55,7 +179,18 @@
             if ((storedSection == null && originalSection != null)
                 || (storedSection != null && originalSection == null))
             {
-                results.Errors.Add($"Value for field '{difference.FieldDescriptorId.Id}' has already been changed.");
+                results.Errors.Add(new ErrorDetails
+                {
+                    Reason = ErrorDetails.ErrorReason.ValueChanged,
+                    Message = $"Value for field '{difference.FieldDescriptorId.Id}' has already been changed.",
+                    Details = new DomDetails
+                    {
+                        FieldDescriptorId = difference.FieldDescriptorId.Id,
+                        SectionDefinitionId = difference.SectionDefinitionId.Id,
+                        SectionId = difference.SectionId.Id,
+                    },
+                });
+
                 return;
             }
 
@@ -72,7 +207,18 @@
             if ((storedFieldValue == null && originalFieldValue != null)
                 || (storedFieldValue != null && originalFieldValue == null))
             {
-                results.Errors.Add($"Value for field '{difference.FieldDescriptorId.Id}' has already been changed.");
+                results.Errors.Add(new ErrorDetails
+                {
+                    Reason = ErrorDetails.ErrorReason.ValueChanged,
+                    Message = $"Value for field '{difference.FieldDescriptorId.Id}' has already been changed.",
+                    Details = new DomDetails
+                    {
+                        FieldDescriptorId = difference.FieldDescriptorId.Id,
+                        SectionDefinitionId = difference.SectionDefinitionId.Id,
+                        SectionId = difference.SectionId.Id,
+                    },
+                });
+
                 return;
             }
 
@@ -85,7 +231,18 @@
 
             if (!storedFieldValue.Value.Equals(difference.ValueBefore))
             {
-                results.Errors.Add($"Value for field '{difference.FieldDescriptorId.Id}' has already been changed.");
+                results.Errors.Add(new ErrorDetails
+                {
+                    Reason = ErrorDetails.ErrorReason.ValueChanged,
+                    Message = $"Value for field '{difference.FieldDescriptorId.Id}' has already been changed.",
+                    Details = new DomDetails
+                    {
+                        FieldDescriptorId = difference.FieldDescriptorId.Id,
+                        SectionDefinitionId = difference.SectionDefinitionId.Id,
+                        SectionId = difference.SectionId.Id,
+                    },
+                });
+
                 return;
             }
 
@@ -103,7 +260,12 @@
             storedSection.AddOrReplaceFieldValue(new FieldValue(difference.FieldDescriptorId, difference.ValueAfter));
             stored.Sections.Add(storedSection);
 
-            results.ChangedFieldDescriptorIds.Add(difference.FieldDescriptorId.Id);
+            results.ChangedFieldDescriptors.Add(new DomDetails
+            {
+                FieldDescriptorId = difference.FieldDescriptorId.Id,
+                SectionDefinitionId = difference.SectionDefinitionId.Id,
+                SectionId = difference.SectionId.Id,
+            });
         }
 
         private void ApplyChangedValue(Section storedSection, FieldValueDifference difference)
@@ -116,7 +278,12 @@
             var storedFieldValue = new FieldValue(difference.FieldDescriptorId, difference.ValueAfter);
             storedSection.AddOrReplaceFieldValue(storedFieldValue);
 
-            results.ChangedFieldDescriptorIds.Add(difference.FieldDescriptorId.Id);
+            results.ChangedFieldDescriptors.Add(new DomDetails
+            {
+                FieldDescriptorId = difference.FieldDescriptorId.Id,
+                SectionDefinitionId = difference.SectionDefinitionId.Id,
+                SectionId = difference.SectionId.Id,
+            });
         }
 
         private void ApplyChangedValue(Section storedSection, FieldValue storedFieldValue, FieldValueDifference difference)
@@ -130,7 +297,12 @@
                 storedFieldValue.Value = difference.ValueAfter;
             }
 
-            results.ChangedFieldDescriptorIds.Add(difference.FieldDescriptorId.Id);
+            results.ChangedFieldDescriptors.Add(new DomDetails
+            {
+                FieldDescriptorId = difference.FieldDescriptorId.Id,
+                SectionDefinitionId = difference.SectionDefinitionId.Id,
+                SectionId = difference.SectionId.Id,
+            });
         }
     }
 
@@ -147,8 +319,39 @@
 
         internal bool HasErrors => Errors.Count != 0;
 
-        internal List<string> Errors { get; } = new List<string>();
+        internal List<ErrorDetails> Errors { get; } = new List<ErrorDetails>();
 
-        internal List<Guid> ChangedFieldDescriptorIds { get; } = new List<Guid>();
+        internal List<DomDetails> AddedSections { get; } = new List<DomDetails>();
+
+        internal List<DomDetails> RemovedSections { get; } = new List<DomDetails>();
+
+        internal List<DomDetails> ChangedFieldDescriptors { get; } = new List<DomDetails>();
+    }
+
+    internal class ErrorDetails
+    {
+        internal enum ErrorReason
+        {
+            ValueChanged,
+
+            SectionRemoved,
+
+            SectionAdded,
+        }
+
+        internal ErrorReason Reason { get; set; }
+
+        internal string Message { get; set; }
+
+        internal  DomDetails Details { get; set; }
+    }
+
+    internal class DomDetails
+    {
+        internal Guid FieldDescriptorId { get; set; }
+
+        internal Guid SectionId { get; set; }
+
+        internal Guid SectionDefinitionId { get; set; }
     }
 }

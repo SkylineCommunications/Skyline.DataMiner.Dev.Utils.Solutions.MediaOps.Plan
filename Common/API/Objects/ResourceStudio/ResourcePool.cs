@@ -1,6 +1,8 @@
 ﻿namespace Skyline.DataMiner.MediaOps.Plan.API
 {
     using System;
+    using System.Collections.Generic;
+    using System.Collections.ObjectModel;
 
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
 
@@ -16,6 +18,8 @@
         private StorageResourceStudio.ResourcepoolInstance updatedInstance;
 
         private string name;
+
+        private readonly List<ResourcePoolLink> resourcepoolLinks = new List<ResourcePoolLink>();
 
         private Guid coreResourcePoolId;
 
@@ -60,9 +64,35 @@
         /// </summary>
         public ResourcePoolState State { get; private set; }
 
+        public IReadOnlyCollection<ResourcePoolLink> ResourcePoolLinks => resourcepoolLinks;
+
         internal Guid CoreResourcePoolId => coreResourcePoolId;
 
         internal StorageResourceStudio.ResourcepoolInstance OriginalInstance => originalInstance;
+
+        public void AddResourcePoolLink(ResourcePoolLink resourcePoolLink)
+        {
+            if (resourcePoolLink == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePoolLink));
+            }
+
+            HasChanges = true;
+            resourcepoolLinks.Add(resourcePoolLink);
+        }
+
+        public void RemoveResourcePoolLink(ResourcePoolLink resourcePoolLink)
+        {
+            if (resourcePoolLink == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePoolLink));
+            }
+
+            if (resourcepoolLinks.RemoveAll(x => x.OriginalSection.ID == resourcePoolLink.OriginalSection.ID) > 0)
+            {
+                HasChanges = true;
+            }
+        }
 
         internal StorageResourceStudio.ResourcepoolInstance GetInstanceWithChanges()
         {
