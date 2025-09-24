@@ -691,12 +691,12 @@
                 var changeResult = DomChangeHandler.HandleChanges(pool.OriginalInstance, pool.GetInstanceWithChanges(), stored);
                 if (changeResult.HasErrors)
                 {
-                    foreach (var errorDetail in changeResult.Errors)
+                    foreach (var errorDetails in changeResult.Errors)
                     {
                         var error = new ResourcePoolConfigurationError
                         {
                             ErrorReason = ResourcePoolConfigurationError.Reason.ValueAlreadyChanged,
-                            ErrorMessage = errorDetail.Message,
+                            ErrorMessage = errorDetails.Message,
                         };
 
                         ReportError(pool.Id, error);

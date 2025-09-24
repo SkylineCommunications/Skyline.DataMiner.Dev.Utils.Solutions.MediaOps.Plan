@@ -498,12 +498,12 @@
                 var changeResult = DomChangeHandler.HandleChanges(resource.OriginalInstance, resource.GetInstanceWithChanges(), stored);
                 if (changeResult.HasErrors)
                 {
-                    foreach (var errorDetail in changeResult.Errors)
+                    foreach (var errorDetails in changeResult.Errors)
                     {
                         var error = new ResourceConfigurationError
                         {
                             ErrorReason = ResourceConfigurationError.Reason.ValueAlreadyChanged,
-                            ErrorMessage = errorDetail.Message,
+                            ErrorMessage = errorDetails.Message,
                         };
 
                         ReportError(resource.Id, error);
