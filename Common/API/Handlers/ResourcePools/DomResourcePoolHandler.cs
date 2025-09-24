@@ -118,7 +118,7 @@
             var changeResults = GetPoolsWithChanges(toUpdate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)));
 
             var toCreateNameValidation = toCreate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id));
-            var toUpdateNameValidation = toUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFieldDescriptors.Select(z => z.FieldDescriptorId).Contains(SlcResource_StudioIds.Sections.ResourcePoolInfo.Name.Id)));
+            var toUpdateNameValidation = toUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcResource_StudioIds.Sections.ResourcePoolInfo.Name.Id)));
             ValidateNames(toCreateNameValidation.Concat(toUpdateNameValidation));
 
             var toCreateDomInstances = toCreate

@@ -6,6 +6,7 @@
 
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel.General;
+    using Skyline.DataMiner.Net.Helper;
     using Skyline.DataMiner.Net.Sections;
 
     internal class DomChangeHandler
@@ -14,24 +15,20 @@
         private readonly DomInstance updated;
         private readonly DomInstance stored;
 
-        private readonly ICollection<Guid> multiSectionDefinitionIds;
-
         private readonly DomChangeResults results;
 
-        private DomChangeHandler(DomInstanceBase original, DomInstanceBase updated, DomInstanceBase stored, ICollection<Guid> multiSectionDefinitionIds)
+        private DomChangeHandler(DomInstanceBase original, DomInstanceBase updated, DomInstanceBase stored)
         {
             this.original = original ?? throw new ArgumentNullException(nameof(original));
             this.updated = updated ?? throw new ArgumentNullException(nameof(updated));
             this.stored = stored ?? throw new ArgumentNullException(nameof(stored));
 
-            this.multiSectionDefinitionIds = multiSectionDefinitionIds ?? [];
-
             results = new DomChangeResults(this.stored);
         }
 
-        public static DomChangeResults HandleChanges(DomInstanceBase original, DomInstanceBase updated, DomInstanceBase stored, ICollection<Guid> multiSectionDefinitionIds = null)
+        public static DomChangeResults HandleChanges(DomInstanceBase original, DomInstanceBase updated, DomInstanceBase stored)
         {
-            var handler = new DomChangeHandler(original, updated, stored, multiSectionDefinitionIds);
+            var handler = new DomChangeHandler(original, updated, stored);
             handler.Handle();
 
             return handler.results;
@@ -44,9 +41,9 @@
             {
                 return;
             }
-
-            HandleAddedSections(updated.Sections.Where(s => original.Sections.All(os => os.ID.Id != s.ID.Id)));
-            HandleRemovedSections(original.Sections.Where(s => updated.Sections.All(os => os.ID.Id != s.ID.Id)));
+            
+            HandleAddedSections(updated.Sections.ExceptBy(original.Sections, x => x.ID.Id));
+            HandleRemovedSections(original.Sections.ExceptBy(updated.Sections, x => x.ID.Id));
             HandleChangedFieldValues(changes.FieldValues);
         }
 
@@ -70,29 +67,6 @@
 
         private void HandleAddedSection(Section section)
         {
-            var isMultiSection = multiSectionDefinitionIds.Contains(section.SectionDefinitionID.Id);
-
-            if (!isMultiSection)
-            {
-                var storedSection = stored.Sections.FirstOrDefault(x => x.SectionDefinitionID.Id == section.SectionDefinitionID.Id);
-
-                if (storedSection != null)
-                {
-                    results.Errors.Add(new ErrorDetails
-                    {
-                        Reason = ErrorDetails.ErrorReason.SectionAdded,
-                        Message = $"Section with definition ID '{section.SectionDefinitionID.Id}' already exists.",
-                        Details = new DomDetails
-                        {
-                            SectionDefinitionId = storedSection.SectionDefinitionID.Id,
-                            SectionId = storedSection.ID.Id,
-                        },
-                    });
-
-                    return;
-                }
-            }
-
             stored.Sections.Add(section);
 
             results.AddedSections.Add(new DomDetails
@@ -260,7 +234,7 @@
             storedSection.AddOrReplaceFieldValue(new FieldValue(difference.FieldDescriptorId, difference.ValueAfter));
             stored.Sections.Add(storedSection);
 
-            results.ChangedFieldDescriptors.Add(new DomDetails
+            results.ChangedFields.Add(new DomDetails
             {
                 FieldDescriptorId = difference.FieldDescriptorId.Id,
                 SectionDefinitionId = difference.SectionDefinitionId.Id,
@@ -278,7 +252,7 @@
             var storedFieldValue = new FieldValue(difference.FieldDescriptorId, difference.ValueAfter);
             storedSection.AddOrReplaceFieldValue(storedFieldValue);
 
-            results.ChangedFieldDescriptors.Add(new DomDetails
+            results.ChangedFields.Add(new DomDetails
             {
                 FieldDescriptorId = difference.FieldDescriptorId.Id,
                 SectionDefinitionId = difference.SectionDefinitionId.Id,
@@ -297,7 +271,7 @@
                 storedFieldValue.Value = difference.ValueAfter;
             }
 
-            results.ChangedFieldDescriptors.Add(new DomDetails
+            results.ChangedFields.Add(new DomDetails
             {
                 FieldDescriptorId = difference.FieldDescriptorId.Id,
                 SectionDefinitionId = difference.SectionDefinitionId.Id,
@@ -325,7 +299,7 @@
 
         internal ICollection<DomDetails> RemovedSections { get; } = [];
 
-        internal ICollection<DomDetails> ChangedFieldDescriptors { get; } = [];
+        internal ICollection<DomDetails> ChangedFields { get; } = [];
     }
 
     internal class ErrorDetails
@@ -335,8 +309,6 @@
             ValueChanged,
 
             SectionRemoved,
-
-            SectionAdded,
         }
 
         internal ErrorReason Reason { get; set; }
