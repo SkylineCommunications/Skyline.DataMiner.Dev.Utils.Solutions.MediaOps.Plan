@@ -131,7 +131,7 @@
                 }
 
                 var resourceId = result.SuccessfulIds.First();
-                act.AddTag("ResourceId", resourceId);
+                act?.AddTag("ResourceId", resourceId);
 
                 return resourceId;
             });
@@ -158,7 +158,7 @@
                 }
 
                 var resourceIds = result.SuccessfulIds;
-                act.AddTag("ResourceIds", String.Join(", ", resourceIds));
+                act?.AddTag("ResourceIds", String.Join(", ", resourceIds));
 
                 return resourceIds;
             });
@@ -179,8 +179,8 @@
                 }
 
                 var resourceIds = result.SuccessfulIds;
-                act.AddTag("Created or Updated Resources", String.Join(", ", resourceIds));
-                act.AddTag("Created or Updated Resources Count", resourceIds.Count);
+                act?.AddTag("Created or Updated Resources", String.Join(", ", resourceIds));
+                act?.AddTag("Created or Updated Resources Count", resourceIds.Count);
 
                 return resourceIds;
             });
@@ -213,8 +213,8 @@
                 }
 
                 var resourceIds = result.SuccessfulIds;
-                act.AddTag("Removed Resources", String.Join(", ", resourceIds));
-                act.AddTag("Removed Resources Count", resourceIds.Count);
+                act?.AddTag("Removed Resources", String.Join(", ", resourceIds));
+                act?.AddTag("Removed Resources Count", resourceIds.Count);
             });
         }
 
@@ -245,8 +245,8 @@
 
             ActivityHelper.Track(nameof(ResourcesRepository), nameof(MoveTo), act =>
             {
-                act.AddTag("ResourceId", resourceId);
-                act.AddTag("DesiredState", desiredState);
+                act?.AddTag("ResourceId", resourceId);
+                act?.AddTag("DesiredState", desiredState);
 
                 var actionMethods = new Dictionary<ResourceState, Action<Resource>>
                 {
@@ -278,8 +278,8 @@
 
             ActivityHelper.Track(nameof(DomResourceHandler), nameof(DomResourceHandler.TransitionToComplete), act =>
             {
-                act.AddTag("ResourceId", resource.Id);
-                act.AddTag("ResourceName", resource.Name);
+                act?.AddTag("ResourceId", resource.Id);
+                act?.AddTag("ResourceName", resource.Name);
 
                 DomResourceHandler.TransitionToComplete(PlanApi, resource);
             });
@@ -300,8 +300,8 @@
 
             ActivityHelper.Track(nameof(ResourcesRepository), nameof(HandleMoveToDeprecatedAction), act =>
             {
-                act.AddTag("ResourceId", resource.Id);
-                act.AddTag("ResourceName", resource.Name);
+                act?.AddTag("ResourceId", resource.Id);
+                act?.AddTag("ResourceName", resource.Name);
 
                 DomResourceHandler.TransitionToDeprecated(PlanApi, resource);
             });
@@ -318,7 +318,7 @@
 
             return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Read), act =>
             {
-                act.AddTag("ResourceId", id);
+                act?.AddTag("ResourceId", id);
                 var filter = DomInstanceExposers.DomDefinitionId.Equal(Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Definitions.Resource.Id)
                         .AND(DomInstanceExposers.Id.Equal(id));
                 var domResource = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(filter)
@@ -326,11 +326,11 @@
 
                 if (domResource == null)
                 {
-                    act.AddTag("Hit", false);
+                    act?.AddTag("Hit", false);
                     return null;
                 }
 
-                act.AddTag("Hit", true);
+                act?.AddTag("Hit", true);
 
                 return Resource.InstantiateResources([domResource]).First();
             });
@@ -345,8 +345,8 @@
 
             return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Read), act =>
             {
-                act.AddTag("ResourceIds", String.Join(", ", ids));
-                act.AddTag("ResourceIds Count", ids.Count());
+                act?.AddTag("ResourceIds", String.Join(", ", ids));
+                act?.AddTag("ResourceIds Count", ids.Count());
 
                 var resources = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(ids);
                 return Resource.InstantiateResources(resources).ToDictionary(x => x.Id);
@@ -509,7 +509,7 @@
             {
                 if (!apiObject.HasChanges)
                 {
-                    act.AddTag("NoChanges", true);
+                    act?.AddTag("NoChanges", true);
                     return;
                 }
 
@@ -524,7 +524,7 @@
                 }
 
                 var resourceId = result.SuccessfulIds.First();
-                act.AddTag("ResourceId", resourceId);
+                act?.AddTag("ResourceId", resourceId);
             });
         }
 
@@ -549,7 +549,7 @@
                 }
 
                 var resourceIds = result.SuccessfulIds;
-                act.AddTag("ResourceIds", String.Join(", ", resourceIds));
+                act?.AddTag("ResourceIds", String.Join(", ", resourceIds));
             });
         }
 
