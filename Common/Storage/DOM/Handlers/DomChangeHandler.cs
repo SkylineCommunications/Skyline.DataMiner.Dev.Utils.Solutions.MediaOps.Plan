@@ -14,22 +14,22 @@
         private readonly DomInstance updated;
         private readonly DomInstance stored;
 
-        private readonly List<Guid> multiSectionDefinitionIds;
+        private readonly ICollection<Guid> multiSectionDefinitionIds;
 
         private readonly DomChangeResults results;
 
-        private DomChangeHandler(DomInstanceBase original, DomInstanceBase updated, DomInstanceBase stored, List<Guid> multiSectionDefinitionIds)
+        private DomChangeHandler(DomInstanceBase original, DomInstanceBase updated, DomInstanceBase stored, ICollection<Guid> multiSectionDefinitionIds)
         {
             this.original = original ?? throw new ArgumentNullException(nameof(original));
             this.updated = updated ?? throw new ArgumentNullException(nameof(updated));
             this.stored = stored ?? throw new ArgumentNullException(nameof(stored));
 
-            this.multiSectionDefinitionIds = multiSectionDefinitionIds ?? new List<Guid>();
+            this.multiSectionDefinitionIds = multiSectionDefinitionIds ?? [];
 
             results = new DomChangeResults(this.stored);
         }
 
-        public static DomChangeResults HandleChanges(DomInstanceBase original, DomInstanceBase updated, DomInstanceBase stored, List<Guid> multiSectionDefinitionIds = null)
+        public static DomChangeResults HandleChanges(DomInstanceBase original, DomInstanceBase updated, DomInstanceBase stored, ICollection<Guid> multiSectionDefinitionIds = null)
         {
             var handler = new DomChangeHandler(original, updated, stored, multiSectionDefinitionIds);
             handler.Handle();
@@ -319,13 +319,13 @@
 
         internal bool HasErrors => Errors.Count != 0;
 
-        internal List<ErrorDetails> Errors { get; } = new List<ErrorDetails>();
+        internal ICollection<ErrorDetails> Errors { get; } = [];
 
-        internal List<DomDetails> AddedSections { get; } = new List<DomDetails>();
+        internal ICollection<DomDetails> AddedSections { get; } = [];
 
-        internal List<DomDetails> RemovedSections { get; } = new List<DomDetails>();
+        internal ICollection<DomDetails> RemovedSections { get; } = [];
 
-        internal List<DomDetails> ChangedFieldDescriptors { get; } = new List<DomDetails>();
+        internal ICollection<DomDetails> ChangedFieldDescriptors { get; } = [];
     }
 
     internal class ErrorDetails
