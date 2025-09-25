@@ -9,7 +9,7 @@
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
     /// <summary>
-    /// Represents a resource pool in the MediaOps Plan API.
+    /// Represents a resource pool in the MediaOps.
     /// </summary>
     public class ResourcePool : ApiObject
     {
