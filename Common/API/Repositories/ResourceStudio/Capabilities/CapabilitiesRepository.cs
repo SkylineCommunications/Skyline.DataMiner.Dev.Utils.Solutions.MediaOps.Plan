@@ -6,6 +6,7 @@
     using System.Text;
     using System.Threading.Tasks;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+    using Skyline.DataMiner.Net.Helper;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using SLDataGateway.API.Types.Querying;
 
@@ -17,7 +18,7 @@
 
         public long CountAll()
         {
-            throw new NotImplementedException();
+            return PlanApi.CoreHelpers.ProfileProvider.CountCapabilities();
         }
 
         public Guid Create(Capability apiObject)
@@ -67,7 +68,7 @@
 
         public IEnumerable<Capability> ReadAll()
         {
-            throw new NotImplementedException();
+            return PlanApi.CoreHelpers.ProfileProvider.GetAllCapabilities().Select(x => new Capability(x));
         }
 
         public IEnumerable<IEnumerable<Capability>> ReadAllPaged()

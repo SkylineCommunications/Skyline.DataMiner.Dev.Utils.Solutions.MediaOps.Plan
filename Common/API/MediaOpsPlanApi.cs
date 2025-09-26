@@ -64,7 +64,6 @@
 
         public IConfigurationsRepository Configurations => lazyConfigurationsRepository.Value;
 
-
         internal IConnection Connection => connection;
 
         internal ILogger<IMediaOpsPlanApi> Logger => logger;
