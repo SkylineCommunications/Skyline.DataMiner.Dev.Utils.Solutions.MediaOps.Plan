@@ -2,7 +2,6 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.Collections.ObjectModel;
     using System.Linq;
 
     using Microsoft.Extensions.Logging;
@@ -10,15 +9,12 @@
     using Skyline.DataMiner.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
-    using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
-    using Skyline.DataMiner.Net.Messages;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Net.Sections;
 
     using SLDataGateway.API.Types.Querying;
 
-    using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
     internal class ResourcePoolsRepository : Repository<ResourcePool>, IResourcePoolsRepository
@@ -386,6 +382,49 @@
             }
 
             return (IReadOnlyDictionary<Resource, IEnumerable<ResourcePool>>)poolsPerResource;
+        }
+
+        public IReadOnlyDictionary<ResourcePool, IEnumerable<ResourcePool>> GetParentPoolLinks(IEnumerable<ResourcePool> resourcePools)
+        {
+            if (resourcePools == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePools));
+            }
+
+            var apiPoolsById = resourcePools.ToDictionary(x => x.Id);
+
+            var poolFilters = resourcePools
+                .Select(x => DomInstanceExposers.FieldValues
+                    .DomInstanceField(StorageResourceStudio.SlcResource_StudioIds.Sections.ResourcePoolLinks.LinkedResourcePool)
+                    .Equal(x.Id))
+                .ToArray();
+
+            var filter = new ORFilterElement<DomInstance>(poolFilters)
+                .AND(DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourcepool.Id));
+
+            var domPools = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(filter);
+            var parentApiPoolsById = domPools.Select(x => new ResourcePool(x)).ToDictionary(x => x.Id);
+
+            var parentPoolsPerPool = resourcePools.ToDictionary(
+                pool => pool,
+                pool =>
+                    domPools
+                        .Where(domPool => domPool.ResourcePoolLinks
+                        .Any(link => link.LinkedResourcePool.Value == pool.Id))
+                        .Select(domPool =>
+                        {
+                            if (apiPoolsById.ContainsKey(domPool.ID.Id))
+                            {
+                                return apiPoolsById[domPool.ID.Id];
+                            }
+                            else
+                            {
+                                return parentApiPoolsById[domPool.ID.Id];
+                            }
+                        })
+            );
+
+            return parentPoolsPerPool;
         }
 
         protected internal override FilterElement<DomInstance> CreateFilter(string fieldName, Comparer comparer, object value)

@@ -23,6 +23,8 @@
 
         private readonly HashSet<Guid> poolIdsWithCoreChanges = new HashSet<Guid>();
 
+        private readonly HashSet<ResourcePool> referencedApiResourcePoolsToUpdate = new HashSet<ResourcePool>();
+
         private DomResourcePoolHandler(MediaOpsPlanApi planApi)
         {
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
@@ -302,6 +304,7 @@
             ValidateStateForDeleteAction(apiResourcePools);
 
             var poolsToDelete = apiResourcePools.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)).ToList();
+            RemovePoolFromParentPoolLinks(poolsToDelete);
             HandleDeleteOptions(poolsToDelete, options);
             UnassignResourcesFromPool(poolsToDelete);
 
@@ -337,21 +340,24 @@
             }
 
             ReportSuccess(domResult.SuccessfulIds.Select(x => x.Id));
+
+            var poolsToUpdate = referencedApiResourcePoolsToUpdate.Where(x => !domResult.SuccessfulIds.Select(y => y.Id).Contains(x.Id)).ToList();
+            planApi.ResourcePools.Update(poolsToUpdate);
         }
 
         private void DeprecatePoolResources(IEnumerable<ResourcePool> apiResourcePools)
         {
-            var resourcesPerPoolOverview = planApi.Resources.GetResourcesPerPool(apiResourcePools, ResourceState.Complete);
-            var poolsPerResourceOverview = planApi.ResourcePools.GetPoolsPerResource(resourcesPerPoolOverview.Values.SelectMany(x => x).Distinct(new DefaultApiObjectComparer()).Cast<Resource>());
+            var resourcesPerPoolCollection = planApi.Resources.GetResourcesPerPool(apiResourcePools, ResourceState.Complete);
+            var poolsPerResourceCollection = planApi.ResourcePools.GetPoolsPerResource(resourcesPerPoolCollection.Values.SelectMany(x => x).Distinct(new DefaultApiObjectComparer()).Cast<Resource>());
 
             var resourcesToDeprecate = new List<Resource>();
-            foreach (var resourcesPerPool in resourcesPerPoolOverview)
+            foreach (var resourcesPerPool in resourcesPerPoolCollection)
             {
-                var poolResourcesToDeprecate = resourcesPerPoolOverview.Values
+                var poolResourcesToDeprecate = resourcesPerPoolCollection.Values
                     .SelectMany(x => x)
                     .Distinct(new DefaultApiObjectComparer())
                     .Cast<Resource>()
-                    .Where(x => poolsPerResourceOverview.TryGetValue(x, out var pools) && pools.Count() == 1 && pools.First().Id == resourcesPerPool.Key.Id)
+                    .Where(x => poolsPerResourceCollection.TryGetValue(x, out var pools) && pools.Count() == 1 && pools.First().Id == resourcesPerPool.Key.Id)
                     .ToList();
 
                 resourcesToDeprecate.AddRange(poolResourcesToDeprecate);
@@ -372,6 +378,24 @@
             }
         }
 
+        private void RemovePoolFromParentPoolLinks(IEnumerable<ResourcePool> apiResourcePools)
+        {
+            var parentLinksPerPoolCollection = planApi.ResourcePools.GetParentPoolLinks(apiResourcePools);
+
+            foreach (var pool in apiResourcePools)
+            {
+                if (parentLinksPerPoolCollection.TryGetValue(pool, out var parentPools))
+                {
+                    foreach (var parentPool in parentPools)
+                    {
+                        parentPool.RemoveResourcePoolLink(pool);
+
+                        referencedApiResourcePoolsToUpdate.Add(parentPool);
+                    }
+                }
+            }
+        }
+
         private void HandleDeleteOptions(IEnumerable<ResourcePool> apiResourcePools, ResourcePoolDeleteOptions options)
         {
             if (options.DeleteDraftResources)
@@ -387,17 +411,17 @@
 
         private void DeletePoolResources(IEnumerable<ResourcePool> apiResourcePools, ResourceState state)
         {
-            var resourcesPerPoolOverview = planApi.Resources.GetResourcesPerPool(apiResourcePools, state);
-            var poolsPerResourceOverview = planApi.ResourcePools.GetPoolsPerResource(resourcesPerPoolOverview.Values.SelectMany(x => x).Distinct(new DefaultApiObjectComparer()).Cast<Resource>());
+            var resourcesPerPoolCollection = planApi.Resources.GetResourcesPerPool(apiResourcePools, state);
+            var poolsPerResourceCollection = planApi.ResourcePools.GetPoolsPerResource(resourcesPerPoolCollection.Values.SelectMany(x => x).Distinct(new DefaultApiObjectComparer()).Cast<Resource>());
 
             var resourcesToDelete = new List<Resource>();
-            foreach (var resourcesPerPool in resourcesPerPoolOverview)
+            foreach (var resourcesPerPool in resourcesPerPoolCollection)
             {
-                var poolResourcesToDelete = resourcesPerPoolOverview.Values
+                var poolResourcesToDelete = resourcesPerPoolCollection.Values
                     .SelectMany(x => x)
                     .Distinct(new DefaultApiObjectComparer())
                     .Cast<Resource>()
-                    .Where(x => poolsPerResourceOverview.TryGetValue(x, out var pools) && pools.Count() == 1 && pools.First().Id == resourcesPerPool.Key.Id)
+                    .Where(x => poolsPerResourceCollection.TryGetValue(x, out var pools) && pools.Count() == 1 && pools.First().Id == resourcesPerPool.Key.Id)
                     .ToList();
 
                 resourcesToDelete.AddRange(poolResourcesToDelete);

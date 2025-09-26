@@ -54,5 +54,16 @@
         /// enumerable of resource pools associated with that resource. If a resource has no associated pools, it will
         /// not appear in the dictionary.</returns>
         IReadOnlyDictionary<Resource, IEnumerable<ResourcePool>> GetPoolsPerResource(IEnumerable<Resource> resources);
+
+        /// <summary>
+        /// Retrieves a mapping of resource pools to their respective parent resource pools.
+        /// </summary>
+        /// <remarks>The method does not modify the input collection or the resource pools themselves. The
+        /// caller should ensure that the input collection is not null or empty to avoid unexpected results.</remarks>
+        /// <param name="resourcePools">A collection of resource pools for which to retrieve parent-child relationships.</param>
+        /// <returns>A read-only dictionary where each key is a resource pool from the input collection, and the value is an
+        /// enumerable of its parent resource pools. If a resource pool has no parents, its value will be an empty
+        /// enumerable.</returns>
+        IReadOnlyDictionary<ResourcePool, IEnumerable<ResourcePool>> GetParentPoolLinks(IEnumerable<ResourcePool> resourcePools);
     }
 }

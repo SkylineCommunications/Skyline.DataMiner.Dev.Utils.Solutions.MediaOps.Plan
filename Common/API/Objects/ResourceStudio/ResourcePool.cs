@@ -6,6 +6,8 @@
 
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
 
+    using static Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections;
+
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
     /// <summary>
@@ -113,6 +115,29 @@
             if (toRemove != null && resourcepoolLinks.Remove(toRemove))
             {
                 HasChanges = true;
+            }
+        }
+
+        internal void RemoveResourcePoolLink(ResourcePool resourcePool)
+        {
+            if (resourcePool == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePool));
+            }
+
+            if (resourcePool.IsNew)
+            {
+                return;
+            }
+
+            var toRemove = resourcepoolLinks.Where(x => x.LinkedResourcePoolId == resourcePool.Id).ToList();
+            if (toRemove.Count > 0)
+            {
+                foreach (var item in toRemove)
+                {
+                    resourcepoolLinks.Remove(item);
+                    HasChanges = true;
+                }
             }
         }
 
