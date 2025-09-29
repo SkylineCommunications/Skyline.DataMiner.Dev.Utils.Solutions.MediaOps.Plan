@@ -13,6 +13,7 @@
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
+    using Skyline.DataMiner.Net.Ticketing;
     using Skyline.DataMiner.Utils.DOM.Extensions;
 
     using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
@@ -116,6 +117,11 @@
             ValidateIdsNotInUse(toCreate);
             ValidateStateForUpdateAction(toUpdate);
 
+            // Always validate all configured pool links
+            var toCreatePoolLinksValidation = toCreate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id));
+            var toUpdatePoolLinksValidation = toUpdate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id));
+            ValidatePoolLinks(toCreatePoolLinksValidation.Concat(toUpdatePoolLinksValidation));
+
             // Todo: lock DOM instances
             var changeResults = GetPoolsWithChanges(toUpdate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)));
 
@@ -127,12 +133,10 @@
                 .Where(x => !TraceDataPerItem.Keys.Contains(x.Id))
                 .Select(x => x.GetInstanceWithChanges())
                 .ToList();
-
             var toUpdateDomInstances = changeResults
                 .Where(x => !TraceDataPerItem.Keys.Contains(x.Instance.ID.Id))
                 .Select(x => new DomResourcePool(x.Instance))
                 .ToList();
-
             CreateOrUpdate(toCreateDomInstances.Concat(toUpdateDomInstances));
         }
 
@@ -670,6 +674,63 @@
                 };
 
                 ReportError(pool.Id, error);
+            }
+        }
+
+        private void ValidatePoolLinks(IEnumerable<ResourcePool> apiResourcePools)
+        {
+            if (apiResourcePools == null)
+            {
+                throw new ArgumentNullException(nameof(apiResourcePools));
+            }
+
+            if (!apiResourcePools.Any())
+            {
+                return;
+            }
+
+            var linkedResourcePoolIds = apiResourcePools
+                .SelectMany(x => x.ResourcePoolLinks)
+                .Select(x => x.LinkedResourcePoolId)
+                .Distinct()
+                .ToList();
+            var domPoolsById = planApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(linkedResourcePoolIds).ToDictionary(x => x.ID.Id);
+
+            foreach (var pool in apiResourcePools)
+            {
+                foreach (var link in pool.ResourcePoolLinks)
+                {
+                    if (link.LinkedResourcePoolId == Guid.Empty)
+                    {
+                        var error = new ResourcePoolConfigurationError
+                        {
+                            ErrorReason = ResourcePoolConfigurationError.Reason.InvalidPoolLink,
+                            ErrorMessage = "Linked resource pool ID cannot be empty.",
+                        };
+
+                        ReportError(pool.Id, error);
+                    }
+                    else if (link.LinkedResourcePoolId == pool.Id)
+                    {
+                        var error = new ResourcePoolConfigurationError
+                        {
+                            ErrorReason = ResourcePoolConfigurationError.Reason.InvalidPoolLink,
+                            ErrorMessage = "A resource pool cannot link to itself.",
+                        };
+
+                        ReportError(pool.Id, error);
+                    }
+                    else if (!domPoolsById.TryGetValue(link.LinkedResourcePoolId, out _))
+                    {
+                        var error = new ResourcePoolConfigurationError
+                        {
+                            ErrorReason = ResourcePoolConfigurationError.Reason.InvalidPoolLink,
+                            ErrorMessage = $"Linked resource pool with ID '{link.LinkedResourcePoolId}' {(link.IsNew ? "does not exist" : "no longer exists")}.",
+                        };
+
+                        ReportError(pool.Id, error);
+                    }
+                }
             }
         }
 

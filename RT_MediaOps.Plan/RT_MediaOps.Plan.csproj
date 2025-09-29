@@ -16,8 +16,4 @@
     <ProjectReference Include="..\Common\MediaOps.Plan.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="RST\ResourcePools\" />
-  </ItemGroup>
-
 </Project>

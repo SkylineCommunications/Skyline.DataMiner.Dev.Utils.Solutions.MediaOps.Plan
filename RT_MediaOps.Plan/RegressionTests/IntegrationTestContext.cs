@@ -21,7 +21,8 @@
         {
             var credentials = CredentialCache.DefaultNetworkCredentials;
 
-            connection = ConnectionSettings.GetConnection("slc-h67-g03.skyline.local") ?? throw new NullReferenceException("Unable to connect to DataMiner");
+            //connection = ConnectionSettings.GetConnection("slc-h67-g03.skyline.local") ?? throw new NullReferenceException("Unable to connect to DataMiner");
+            connection = ConnectionSettings.GetConnection("jensvd.skyline.local") ?? throw new NullReferenceException("Unable to connect to DataMiner");
             connection.Authenticate(credentials.UserName, credentials.Password, credentials.Domain);
             var serviceProvider = new ServiceCollection()
                 .AddLogging()
