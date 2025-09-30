@@ -148,7 +148,7 @@
             planApi.ResourcePools.MoveTo(resourcePoolIds.ElementAt(0), ResourcePoolState.Complete);
             planApi.ResourcePools.MoveTo(resourcePoolIds.ElementAt(1), ResourcePoolState.Complete);
 
-            var resourcePoolId = planApi.ResourcePools.Create(resourcePool3);
+            planApi.ResourcePools.Create(resourcePool3);
         }
 
         private static void TestResourceRepository(IMediaOpsPlanApi planApi)
