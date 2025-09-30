@@ -76,6 +76,7 @@
                 updatedSection = IsNew ? new StorageResourceStudio.ResourcePoolLinksSection() : originalSection.Clone();
             }
 
+            updatedSection.LinkedResourcePool = LinkedResourcePoolId;
             updatedSection.ResourceSelectionType = EnumExtensions.MapEnum<ResourceSelectionType, StorageResourceStudio.SlcResource_StudioIds.Enums.Resourceselectiontype>(resourceSelectionType);
 
             return updatedSection;

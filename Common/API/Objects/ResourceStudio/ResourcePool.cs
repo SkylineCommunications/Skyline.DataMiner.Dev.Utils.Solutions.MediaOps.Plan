@@ -15,11 +15,16 @@
     /// </summary>
     public class ResourcePool : ApiObject
     {
+        // Todo: add domain property?
         private StorageResourceStudio.ResourcepoolInstance originalInstance;
 
         private StorageResourceStudio.ResourcepoolInstance updatedInstance;
 
         private string name;
+
+        private string iconImage;
+
+        private string url;
 
         private readonly ICollection<ResourcePoolLink> resourcepoolLinks = [];
 
@@ -65,6 +70,32 @@
         /// Gets the state of the resource pool.
         /// </summary>
         public ResourcePoolState State { get; private set; }
+
+        /// <summary>
+        /// Gets or sets the icon of the resource pool.
+        /// </summary>
+        public string IconImage
+        {
+            get => iconImage;
+            set
+            {
+                HasChanges = true;
+                iconImage = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the URL of the resource pool.
+        /// </summary>
+        public string Url
+        {
+            get => url;
+            set
+            {
+                HasChanges = true;
+                url = value;
+            }
+        }
 
         /// <summary>
         /// Gets the collection of links associated with this resource pool.
@@ -150,6 +181,9 @@
 
             updatedInstance.ResourcePoolInfo.Name = Name;
 
+            updatedInstance.ResourcePoolOther.IconImage = iconImage;
+            updatedInstance.ResourcePoolOther.URL = url;
+
             updatedInstance.ResourcePoolLinks.Clear();
             foreach (var link in resourcepoolLinks)
             {
@@ -166,6 +200,9 @@
             name = instance.ResourcePoolInfo.Name;
             State = EnumExtensions.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.StatusesEnum, ResourcePoolState>(instance.Status);
             coreResourcePoolId = instance.ResourcePoolInternalProperties.ResourcePoolId;
+
+            iconImage = instance.ResourcePoolOther.IconImage;
+            url = instance.ResourcePoolOther.URL;
 
             foreach (var section in instance.ResourcePoolLinks)
             {

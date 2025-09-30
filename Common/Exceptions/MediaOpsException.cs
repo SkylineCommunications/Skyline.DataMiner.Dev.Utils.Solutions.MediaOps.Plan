@@ -36,7 +36,7 @@
         /// </summary>
         /// <param name="message">The error message that describes the reason for the exception.</param>
         public MediaOpsException(string message)
-            : this (new MediaOpsErrorData { ErrorMessage = message })
+            : this(new MediaOpsErrorData { ErrorMessage = message })
         {
         }
 
@@ -52,7 +52,12 @@
         {
             get
             {
-                return $"Exception of type '{GetType().Name}' was thrown. TraceData:{Environment.NewLine}{TraceData}";
+                if (TraceData.ErrorData.Count == 1)
+                {
+                    return TraceData.ErrorData[0].ErrorMessage;
+                }
+
+                return TraceData.ToString();
             }
         }
 

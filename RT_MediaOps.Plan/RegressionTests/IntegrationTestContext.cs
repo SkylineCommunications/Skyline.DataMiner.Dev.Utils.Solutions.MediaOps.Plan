@@ -1,7 +1,6 @@
 ﻿namespace RT_MediaOps.Plan.RegressionTests
 {
     using System.Net;
-
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
 
@@ -21,8 +20,9 @@
         {
             var credentials = CredentialCache.DefaultNetworkCredentials;
 
-            //connection = ConnectionSettings.GetConnection("slc-h67-g03.skyline.local") ?? throw new NullReferenceException("Unable to connect to DataMiner");
-            connection = ConnectionSettings.GetConnection("jensvd.skyline.local") ?? throw new NullReferenceException("Unable to connect to DataMiner");
+            var config = Config.Load();
+
+            connection = ConnectionSettings.GetConnection(config.BaseUrl) ?? throw new NullReferenceException("Unable to connect to DataMiner");
             connection.Authenticate(credentials.UserName, credentials.Password, credentials.Domain);
             var serviceProvider = new ServiceCollection()
                 .AddLogging()

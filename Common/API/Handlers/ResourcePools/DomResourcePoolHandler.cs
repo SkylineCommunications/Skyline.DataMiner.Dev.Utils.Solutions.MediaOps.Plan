@@ -13,7 +13,6 @@
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
-    using Skyline.DataMiner.Net.Ticketing;
     using Skyline.DataMiner.Utils.DOM.Extensions;
 
     using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
@@ -643,8 +642,7 @@
 
             FilterElement<DomInstance> filter(string name) =>
                 DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resourcepool.Id)
-                .AND(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourcePoolInfo.Name).Equal(name)
-                .AND(DomInstanceExposers.StatusId.NotEqual(SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.Statuses.Draft)));
+                .AND(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourcePoolInfo.Name).Equal(name));
 
             var domPoolsbyName = planApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(poolsRequiringValidation.Select(x => x.Name), filter)
                 .GroupBy(x => x.Name)

@@ -89,7 +89,19 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
                 public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("8d6d47d1-493d-4dec-9add-6203a908d7e6"))
                 { ModuleId = "(slc)resource_studio" };
                 public static FieldDescriptorID InputVsgs { get; } = new FieldDescriptorID(new Guid("fb0a663e-d43f-406c-b339-67737ce79678"));
+                public static FieldDescriptorID InputReference { get; } = new FieldDescriptorID(new Guid("a8d97923-7f69-4fcd-946b-9e889a9b8b72"));
+                public static FieldDescriptorID OutputReference { get; } = new FieldDescriptorID(new Guid("d2532a69-e66e-4b8c-a9d8-ced103912f70"));
                 public static FieldDescriptorID OutputVsgs { get; } = new FieldDescriptorID(new Guid("129e4c6d-3b33-4e57-96bb-9dd9c206c6ab"));
+            }
+
+            public static class ProfileParameterValues
+            {
+                public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("7dbc545c-6c08-4964-a945-568cb4fabe02"))
+                { ModuleId = "(slc)resource_studio" };
+                public static FieldDescriptorID ProfileParameterID { get; } = new FieldDescriptorID(new Guid("80f66794-6915-4634-a79f-b3fe80f460fe"));
+                public static FieldDescriptorID StringValue { get; } = new FieldDescriptorID(new Guid("664591e2-598f-48f2-ab4a-7bba49124015"));
+                public static FieldDescriptorID DoubleValue { get; } = new FieldDescriptorID(new Guid("2ecda765-f024-45a9-ac8a-ef6cbf205421"));
+                public static FieldDescriptorID ReferenceID { get; } = new FieldDescriptorID(new Guid("9c61edc3-c0b8-4b09-a204-7e98c6ba8cbf"));
             }
 
             public static class ResourcePoolInfo
@@ -136,6 +148,7 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
                 public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("c81204b6-0c99-4f2b-8112-5184b2fda31f"))
                 { ModuleId = "(slc)resource_studio" };
                 public static FieldDescriptorID ProfileDefinitionID { get; } = new FieldDescriptorID(new Guid("b5f7703c-7a13-44d8-83a4-c690c9ba0f05"));
+                public static FieldDescriptorID PoolConfiguration { get; } = new FieldDescriptorID(new Guid("961784a2-3b59-4e5e-bb8d-27ccdea9cfdb"));
             }
 
             public static class ResourcePoolInternalProperties
@@ -151,6 +164,15 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
                 { ModuleId = "(slc)resource_studio" };
                 public static FieldDescriptorID ProfileParameterID { get; } = new FieldDescriptorID(new Guid("c3372c5c-d07d-4334-bab7-134711ddd0be"));
                 public static FieldDescriptorID DoubleValue { get; } = new FieldDescriptorID(new Guid("cea18270-2694-45c8-8a16-38e1edf15263"));
+            }
+
+            public static class OrchestrationEvents
+            {
+                public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("09bd71e9-813b-45d8-8110-e6068d5038e1"))
+                { ModuleId = "(slc)resource_studio" };
+                public static FieldDescriptorID Name { get; } = new FieldDescriptorID(new Guid("a03da98b-bfda-4c71-a890-8a75bebc6756"));
+                public static FieldDescriptorID Script { get; } = new FieldDescriptorID(new Guid("46d1f842-cbd8-4db0-b286-4e2c8956337d"));
+                public static FieldDescriptorID ScriptInput { get; } = new FieldDescriptorID(new Guid("a8224cf3-d544-4b08-84ff-e78e6c10c88c"));
             }
 
             public static class ResourceInfo
@@ -193,6 +215,8 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
         public static class Definitions
         {
             public static DomDefinitionId Resourceproperty { get; } = new DomDefinitionId(new Guid("60450534-b5bd-43c2-b088-37e171725fa0"))
+            { ModuleId = "(slc)resource_studio" };
+            public static DomDefinitionId Configuration { get; } = new DomDefinitionId(new Guid("dad3646a-caaa-4971-b550-c618e562f5cc"))
             { ModuleId = "(slc)resource_studio" };
             public static DomDefinitionId Resourcepool { get; } = new DomDefinitionId(new Guid("a8262bd8-6f6c-47d4-964e-87de26d1e32e"))
             { ModuleId = "(slc)resource_studio" };
@@ -615,6 +639,122 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
     }
 
     /// <summary>
+    /// Represents a wrapper class for accessing a ConfigurationInstance DOM instance.
+    /// The <see cref="ConfigurationInstance"/> class provides simplified access to the data and functionality of the underlying DOM instance, allowing for easier manipulation and retrieval of data from DOM.
+    /// </summary>
+    internal partial class ConfigurationInstance : DomInstanceBase
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ConfigurationInstance"/> class. Creates an empty <see cref="ConfigurationInstance"/> instance with default settings.
+        /// </summary>
+        public ConfigurationInstance() : base(SlcResource_StudioIds.Definitions.Configuration)
+        {
+            InitializeProperties();
+            AfterLoad();
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ConfigurationInstance"/> class. Creates an empty <see cref="ConfigurationInstance"/> instance with default settings and a specific ID.
+        /// </summary>
+        public ConfigurationInstance(Guid id) : base(SlcResource_StudioIds.Definitions.Configuration, id)
+        {
+            InitializeProperties();
+            AfterLoad();
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ConfigurationInstance"/> class using the specified <paramref name="domInstance"/> for initializing the object.
+        /// </summary>
+        /// <param name="domInstance">The <see cref="DomInstance"/> object that provides data for initializing the <see cref="ConfigurationInstance"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+        public ConfigurationInstance(DomInstance domInstance) : base(domInstance)
+        {
+            if (!domInstance.DomDefinitionId.Equals(SlcResource_StudioIds.Definitions.Configuration))
+                throw new ArgumentException($"The given domInstance, is not of type '{nameof(SlcResource_StudioIds.Definitions.Configuration)}'", nameof(domInstance));
+            InitializeProperties();
+            AfterLoad();
+        }
+
+        /// <summary>
+        /// Gets or sets the ProfileParameterValues section of the DOM Instance.
+        /// </summary>
+        public IList<ProfileParameterValuesSection> ProfileParameterValues { get; private set; }
+
+        /// <summary>
+        /// Gets or sets the OrchestrationEvents section of the DOM Instance.
+        /// </summary>
+        public IList<OrchestrationEventsSection> OrchestrationEvents { get; private set; }
+
+        public static explicit operator ConfigurationInstance(DomInstance instance)
+        {
+            return new ConfigurationInstance(instance);
+        }
+
+        /// <summary>
+        /// Creates a deep copy of the current <see cref="ConfigurationInstance"/>.
+        /// </summary>
+        /// <returns>A new <see cref="ConfigurationInstance"/> object that is a deep copy of this instance.</returns>
+        public ConfigurationInstance Clone()
+        {
+            return new ConfigurationInstance((DomInstance)this.ToInstance().Clone());
+        }
+
+        /// <summary>
+        /// Creates a duplicate of the current <see cref="ConfigurationInstance"/> with a new id.
+        /// </summary>
+        /// <returns>A new <see cref="ConfigurationInstance"/> object that is a copy of this instance but with a different id.</returns>
+        public ConfigurationInstance Duplicate()
+        {
+            var instance = (DomInstance)this.ToInstance().Clone();
+            instance.ID = new DomInstanceId(Guid.NewGuid())
+            { ModuleId = ModuleId };
+            foreach (var section in instance.Sections)
+            {
+                section.ID = new Skyline.DataMiner.Net.Sections.SectionID(Guid.NewGuid());
+            }
+
+            return new ConfigurationInstance(instance);
+        }
+
+        /// <inheritdoc />
+        protected sealed override DomInstance InternalToInstance()
+        {
+            domInstance.Sections.Clear();
+            foreach (var item in ProfileParameterValues)
+            {
+                domInstance.Sections.Add(item.ToSection());
+            }
+
+            foreach (var item in OrchestrationEvents)
+            {
+                domInstance.Sections.Add(item.ToSection());
+            }
+
+            return domInstance;
+        }
+
+        /// <inheritdoc />
+        public sealed override void Save(DomHelper helper)
+        {
+            var exist = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(domInstance.ID)).FirstOrDefault();
+            var instance = ToInstance();
+            if (exist == null)
+            {
+                domInstance = helper.DomInstances.Create(instance);
+            }
+            else
+            {
+                domInstance = helper.DomInstances.Update(instance);
+            }
+        }
+
+        protected sealed override void InitializeProperties()
+        {
+            ProfileParameterValues = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcResource_StudioIds.Sections.ProfileParameterValues.Id)).Select(section => new ProfileParameterValuesSection(section)).ToList();
+            OrchestrationEvents = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcResource_StudioIds.Sections.OrchestrationEvents.Id)).Select(section => new OrchestrationEventsSection(section)).ToList();
+        }
+    }
+
+    /// <summary>
     /// Represents a wrapper class for accessing a ResourcepoolInstance DOM instance.
     /// The <see cref="ResourcepoolInstance"/> class provides simplified access to the data and functionality of the underlying DOM instance, allowing for easier manipulation and retrieval of data from DOM.
     /// </summary>
@@ -741,16 +881,32 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
         protected sealed override DomInstance InternalToInstance()
         {
             domInstance.Sections.Clear();
-            domInstance.Sections.Add(ResourcePoolCost.ToSection());
-            domInstance.Sections.Add(ExternalMetadata.ToSection());
+            if (ResourcePoolCost != null && !ResourcePoolCost.IsEmpty)
+            {
+                domInstance.Sections.Add(ResourcePoolCost.ToSection());
+            }
+
+            if (ExternalMetadata != null && !ExternalMetadata.IsEmpty)
+            {
+                domInstance.Sections.Add(ExternalMetadata.ToSection());
+            }
+
             domInstance.Sections.Add(ResourcePoolInfo.ToSection());
             foreach (var item in Errors)
             {
                 domInstance.Sections.Add(item.ToSection());
             }
 
-            domInstance.Sections.Add(ResourcePoolOther.ToSection());
-            domInstance.Sections.Add(ConfigurationInfo.ToSection());
+            if (ResourcePoolOther != null && !ResourcePoolOther.IsEmpty)
+            {
+                domInstance.Sections.Add(ResourcePoolOther.ToSection());
+            }
+
+            if (ConfigurationInfo != null && !ConfigurationInfo.IsEmpty)
+            {
+                domInstance.Sections.Add(ConfigurationInfo.ToSection());
+            }
+
             domInstance.Sections.Add(ResourcePoolInternalProperties.ToSection());
             foreach (var item in ResourcePoolLinks)
             {
@@ -985,26 +1141,42 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
         protected sealed override DomInstance InternalToInstance()
         {
             domInstance.Sections.Clear();
-            domInstance.Sections.Add(ResourceCost.ToSection());
+            if (ResourceCost != null && !ResourceCost.IsEmpty)
+            {
+                domInstance.Sections.Add(ResourceCost.ToSection());
+            }
+
             foreach (var item in ResourceProperties)
             {
                 domInstance.Sections.Add(item.ToSection());
             }
 
-            domInstance.Sections.Add(ExternalMetadata.ToSection());
+            if (ExternalMetadata != null && !ExternalMetadata.IsEmpty)
+            {
+                domInstance.Sections.Add(ExternalMetadata.ToSection());
+            }
+
             foreach (var item in ResourceCapabilities)
             {
                 domInstance.Sections.Add(item.ToSection());
             }
 
             domInstance.Sections.Add(ResourceInternalProperties.ToSection());
-            domInstance.Sections.Add(ResourceConnectionManagement.ToSection());
+            if (ResourceConnectionManagement != null && !ResourceConnectionManagement.IsEmpty)
+            {
+                domInstance.Sections.Add(ResourceConnectionManagement.ToSection());
+            }
+
             foreach (var item in Errors)
             {
                 domInstance.Sections.Add(item.ToSection());
             }
 
-            domInstance.Sections.Add(ResourceOther.ToSection());
+            if (ResourceOther != null && !ResourceOther.IsEmpty)
+            {
+                domInstance.Sections.Add(ResourceOther.ToSection());
+            }
+
             foreach (var item in ResourceControl)
             {
                 domInstance.Sections.Add(item.ToSection());
@@ -1996,19 +2168,15 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
         {
         }
 
+        [Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
         /// <summary>
-        /// Gets or sets the InputVsgs field of the DOM Instance.
+        /// Gets the InputVsgs field of the DOM Instance.
         /// </summary>
         /// <remarks>
         /// When retrieving the value:
         /// <list type="bullet">
         /// <item>If the field has been set, it will return the value.</item>
         /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
         /// </list>
         /// </remarks>
         public Guid? InputVsgs
@@ -2025,22 +2193,10 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
                     return null;
                 }
             }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcResource_StudioIds.Sections.ResourceConnectionManagement.InputVsgs);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcResource_StudioIds.Sections.ResourceConnectionManagement.InputVsgs, (Guid)value);
-                }
-            }
         }
 
         /// <summary>
-        /// Gets or sets the OutputVsgs field of the DOM Instance.
+        /// Gets or sets the InputReference field of the DOM Instance.
         /// </summary>
         /// <remarks>
         /// When retrieving the value:
@@ -2052,6 +2208,88 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
         /// <list type="bullet">
         /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
         /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+        /// </list>
+        /// </remarks>
+        public String InputReference
+        {
+            get
+            {
+                var wrapper = section.GetValue<String>(SlcResource_StudioIds.Sections.ResourceConnectionManagement.InputReference);
+                if (wrapper != null)
+                {
+                    return (String)wrapper.Value;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+
+            set
+            {
+                if (value == null)
+                {
+                    section.RemoveFieldValueById(SlcResource_StudioIds.Sections.ResourceConnectionManagement.InputReference);
+                }
+                else
+                {
+                    section.AddOrUpdateValue(SlcResource_StudioIds.Sections.ResourceConnectionManagement.InputReference, (String)value);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the OutputReference field of the DOM Instance.
+        /// </summary>
+        /// <remarks>
+        /// When retrieving the value:
+        /// <list type="bullet">
+        /// <item>If the field has been set, it will return the value.</item>
+        /// <item>If the field is not set it will return <see langword="null"/>.</item>
+        /// </list>
+        /// When setting the value:
+        /// <list type="bullet">
+        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+        /// </list>
+        /// </remarks>
+        public String OutputReference
+        {
+            get
+            {
+                var wrapper = section.GetValue<String>(SlcResource_StudioIds.Sections.ResourceConnectionManagement.OutputReference);
+                if (wrapper != null)
+                {
+                    return (String)wrapper.Value;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+
+            set
+            {
+                if (value == null)
+                {
+                    section.RemoveFieldValueById(SlcResource_StudioIds.Sections.ResourceConnectionManagement.OutputReference);
+                }
+                else
+                {
+                    section.AddOrUpdateValue(SlcResource_StudioIds.Sections.ResourceConnectionManagement.OutputReference, (String)value);
+                }
+            }
+        }
+
+        [Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
+        /// <summary>
+        /// Gets the OutputVsgs field of the DOM Instance.
+        /// </summary>
+        /// <remarks>
+        /// When retrieving the value:
+        /// <list type="bullet">
+        /// <item>If the field has been set, it will return the value.</item>
+        /// <item>If the field is not set it will return <see langword="null"/>.</item>
         /// </list>
         /// </remarks>
         public Guid? OutputVsgs
@@ -2066,18 +2304,6 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
                 else
                 {
                     return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcResource_StudioIds.Sections.ResourceConnectionManagement.OutputVsgs);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcResource_StudioIds.Sections.ResourceConnectionManagement.OutputVsgs, (Guid)value);
                 }
             }
         }
@@ -2100,6 +2326,228 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
             var section = (Section)this.ToSection().Clone();
             section.ID = new SectionID(Guid.NewGuid());
             return new ResourceConnectionManagementSection(section);
+        }
+    }
+
+    /// <summary>
+    /// Represents a wrapper class for accessing a ProfileParameterValuesSection section.
+    /// The <see cref="ProfileParameterValuesSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
+    /// </summary>
+    internal partial class ProfileParameterValuesSection : DomSectionBase
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ProfileParameterValuesSection"/> class. Creates an empty <see cref="ProfileParameterValuesSection"/> object with default settings.
+        /// </summary>
+        public ProfileParameterValuesSection() : base(SlcResource_StudioIds.Sections.ProfileParameterValues.Id)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ProfileParameterValuesSection"/> class using the specified <paramref name="section"/> for initializing the object.
+        /// </summary>
+        /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ProfileParameterValuesSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+        public ProfileParameterValuesSection(Section section) : base(section, SlcResource_StudioIds.Sections.ProfileParameterValues.Id)
+        {
+        }
+
+        /// <summary>
+        /// Gets or sets the ProfileParameterID field of the DOM Instance.
+        /// </summary>
+        /// <remarks>
+        /// When retrieving the value:
+        /// <list type="bullet">
+        /// <item>If the field has been set, it will return the value.</item>
+        /// <item>If the field is not set it will return <see langword="null"/>.</item>
+        /// </list>
+        /// When setting the value:
+        /// <list type="bullet">
+        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+        /// </list>
+        /// </remarks>
+        public String ProfileParameterID
+        {
+            get
+            {
+                var wrapper = section.GetValue<String>(SlcResource_StudioIds.Sections.ProfileParameterValues.ProfileParameterID);
+                if (wrapper != null)
+                {
+                    return (String)wrapper.Value;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+
+            set
+            {
+                if (value == null)
+                {
+                    section.RemoveFieldValueById(SlcResource_StudioIds.Sections.ProfileParameterValues.ProfileParameterID);
+                }
+                else
+                {
+                    section.AddOrUpdateValue(SlcResource_StudioIds.Sections.ProfileParameterValues.ProfileParameterID, (String)value);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the StringValue field of the DOM Instance.
+        /// </summary>
+        /// <remarks>
+        /// When retrieving the value:
+        /// <list type="bullet">
+        /// <item>If the field has been set, it will return the value.</item>
+        /// <item>If the field is not set it will return <see langword="null"/>.</item>
+        /// </list>
+        /// When setting the value:
+        /// <list type="bullet">
+        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+        /// </list>
+        /// </remarks>
+        public String StringValue
+        {
+            get
+            {
+                var wrapper = section.GetValue<String>(SlcResource_StudioIds.Sections.ProfileParameterValues.StringValue);
+                if (wrapper != null)
+                {
+                    return (String)wrapper.Value;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+
+            set
+            {
+                if (value == null)
+                {
+                    section.RemoveFieldValueById(SlcResource_StudioIds.Sections.ProfileParameterValues.StringValue);
+                }
+                else
+                {
+                    section.AddOrUpdateValue(SlcResource_StudioIds.Sections.ProfileParameterValues.StringValue, (String)value);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the DoubleValue field of the DOM Instance.
+        /// </summary>
+        /// <remarks>
+        /// When retrieving the value:
+        /// <list type="bullet">
+        /// <item>If the field has been set, it will return the value.</item>
+        /// <item>If the field is not set it will return <see langword="null"/>.</item>
+        /// </list>
+        /// When setting the value:
+        /// <list type="bullet">
+        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+        /// </list>
+        /// </remarks>
+        public Double? DoubleValue
+        {
+            get
+            {
+                var wrapper = section.GetValue<Double>(SlcResource_StudioIds.Sections.ProfileParameterValues.DoubleValue);
+                if (wrapper != null)
+                {
+                    return (Double?)wrapper.Value;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+
+            set
+            {
+                if (value == null)
+                {
+                    section.RemoveFieldValueById(SlcResource_StudioIds.Sections.ProfileParameterValues.DoubleValue);
+                }
+                else
+                {
+                    section.AddOrUpdateValue(SlcResource_StudioIds.Sections.ProfileParameterValues.DoubleValue, (Double)value);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the ReferenceID field of the DOM Instance.
+        /// </summary>
+        /// <remarks>
+        /// When retrieving the value:
+        /// <list type="bullet">
+        /// <item>If the field has been set, it will return the value.</item>
+        /// <item>If the field is not set it will return <see langword="null"/>.</item>
+        /// </list>
+        /// When setting the value:
+        /// <list type="bullet">
+        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+        /// </list>
+        /// </remarks>
+        public String ReferenceID
+        {
+            get
+            {
+                var wrapper = section.GetValue<String>(SlcResource_StudioIds.Sections.ProfileParameterValues.ReferenceID);
+                if (wrapper != null)
+                {
+                    return (String)wrapper.Value;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+
+            set
+            {
+                if (value == null)
+                {
+                    section.RemoveFieldValueById(SlcResource_StudioIds.Sections.ProfileParameterValues.ReferenceID);
+                }
+                else
+                {
+                    section.AddOrUpdateValue(SlcResource_StudioIds.Sections.ProfileParameterValues.ReferenceID, (String)value);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Creates a deep copy of the current <see cref="ProfileParameterValuesSection"/>.
+        /// </summary>
+        /// <returns>A new <see cref="ProfileParameterValuesSection"/> object that is a deep copy of this section.</returns>
+        public ProfileParameterValuesSection Clone()
+        {
+            return new ProfileParameterValuesSection((Section)this.ToSection().Clone());
+        }
+
+        /// <summary>
+        /// Creates a duplicate of the current <see cref="ProfileParameterValuesSection"/> with a new id.
+        /// </summary>
+        /// <returns>A new <see cref="ProfileParameterValuesSection"/> object that is a copy of this section but with a different id.</returns>
+        public ProfileParameterValuesSection Duplicate()
+        {
+            var section = (Section)this.ToSection().Clone();
+            section.ID = new SectionID(Guid.NewGuid());
+            return new ProfileParameterValuesSection(section);
+        }
+
+        /// <inheritdoc />
+        protected override Section InternalToSection()
+        {
+            if (section.GetValue<String>(SlcResource_StudioIds.Sections.ProfileParameterValues.ProfileParameterID) == null)
+                throw new InvalidOperationException("'ProfileParameterID' is required. Please fill it in before saving, or mark it as optional with the DOM Editor.");
+            return section;
         }
     }
 
@@ -2721,19 +3169,15 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
         {
         }
 
+        [Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
         /// <summary>
-        /// Gets or sets the ProfileDefinitionID field of the DOM Instance.
+        /// Gets the ProfileDefinitionID field of the DOM Instance.
         /// </summary>
         /// <remarks>
         /// When retrieving the value:
         /// <list type="bullet">
         /// <item>If the field has been set, it will return the value.</item>
         /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
         /// </list>
         /// </remarks>
         public String ProfileDefinitionID
@@ -2750,16 +3194,47 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
                     return null;
                 }
             }
+        }
+
+        /// <summary>
+        /// Gets or sets the PoolConfiguration field of the DOM Instance.
+        /// </summary>
+        /// <remarks>
+        /// When retrieving the value:
+        /// <list type="bullet">
+        /// <item>If the field has been set, it will return the value.</item>
+        /// <item>If the field is not set it will return <see langword="null"/>.</item>
+        /// </list>
+        /// When setting the value:
+        /// <list type="bullet">
+        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+        /// </list>
+        /// </remarks>
+        public Guid? PoolConfiguration
+        {
+            get
+            {
+                var wrapper = section.GetValue<Guid>(SlcResource_StudioIds.Sections.ConfigurationInfo.PoolConfiguration);
+                if (wrapper != null)
+                {
+                    return (Guid?)wrapper.Value;
+                }
+                else
+                {
+                    return null;
+                }
+            }
 
             set
             {
                 if (value == null)
                 {
-                    section.RemoveFieldValueById(SlcResource_StudioIds.Sections.ConfigurationInfo.ProfileDefinitionID);
+                    section.RemoveFieldValueById(SlcResource_StudioIds.Sections.ConfigurationInfo.PoolConfiguration);
                 }
                 else
                 {
-                    section.AddOrUpdateValue(SlcResource_StudioIds.Sections.ConfigurationInfo.ProfileDefinitionID, (String)value);
+                    section.AddOrUpdateValue(SlcResource_StudioIds.Sections.ConfigurationInfo.PoolConfiguration, (Guid)value);
                 }
             }
         }
@@ -2995,6 +3470,185 @@ namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
             var section = (Section)this.ToSection().Clone();
             section.ID = new SectionID(Guid.NewGuid());
             return new ResourceCapacitiesSection(section);
+        }
+    }
+
+    /// <summary>
+    /// Represents a wrapper class for accessing a OrchestrationEventsSection section.
+    /// The <see cref="OrchestrationEventsSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
+    /// </summary>
+    internal partial class OrchestrationEventsSection : DomSectionBase
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="OrchestrationEventsSection"/> class. Creates an empty <see cref="OrchestrationEventsSection"/> object with default settings.
+        /// </summary>
+        public OrchestrationEventsSection() : base(SlcResource_StudioIds.Sections.OrchestrationEvents.Id)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="OrchestrationEventsSection"/> class using the specified <paramref name="section"/> for initializing the object.
+        /// </summary>
+        /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="OrchestrationEventsSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+        public OrchestrationEventsSection(Section section) : base(section, SlcResource_StudioIds.Sections.OrchestrationEvents.Id)
+        {
+        }
+
+        /// <summary>
+        /// Gets or sets the Name field of the DOM Instance.
+        /// </summary>
+        /// <remarks>
+        /// When retrieving the value:
+        /// <list type="bullet">
+        /// <item>If the field has been set, it will return the value.</item>
+        /// <item>If the field is not set it will return <see langword="null"/>.</item>
+        /// </list>
+        /// When setting the value:
+        /// <list type="bullet">
+        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+        /// </list>
+        /// </remarks>
+        public String Name
+        {
+            get
+            {
+                var wrapper = section.GetValue<String>(SlcResource_StudioIds.Sections.OrchestrationEvents.Name);
+                if (wrapper != null)
+                {
+                    return (String)wrapper.Value;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+
+            set
+            {
+                if (value == null)
+                {
+                    section.RemoveFieldValueById(SlcResource_StudioIds.Sections.OrchestrationEvents.Name);
+                }
+                else
+                {
+                    section.AddOrUpdateValue(SlcResource_StudioIds.Sections.OrchestrationEvents.Name, (String)value);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the Script field of the DOM Instance.
+        /// </summary>
+        /// <remarks>
+        /// When retrieving the value:
+        /// <list type="bullet">
+        /// <item>If the field has been set, it will return the value.</item>
+        /// <item>If the field is not set it will return <see langword="null"/>.</item>
+        /// </list>
+        /// When setting the value:
+        /// <list type="bullet">
+        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+        /// </list>
+        /// </remarks>
+        public String Script
+        {
+            get
+            {
+                var wrapper = section.GetValue<String>(SlcResource_StudioIds.Sections.OrchestrationEvents.Script);
+                if (wrapper != null)
+                {
+                    return (String)wrapper.Value;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+
+            set
+            {
+                if (value == null)
+                {
+                    section.RemoveFieldValueById(SlcResource_StudioIds.Sections.OrchestrationEvents.Script);
+                }
+                else
+                {
+                    section.AddOrUpdateValue(SlcResource_StudioIds.Sections.OrchestrationEvents.Script, (String)value);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the ScriptInput field of the DOM Instance.
+        /// </summary>
+        /// <remarks>
+        /// When retrieving the value:
+        /// <list type="bullet">
+        /// <item>If the field has been set, it will return the value.</item>
+        /// <item>If the field is not set it will return <see langword="null"/>.</item>
+        /// </list>
+        /// When setting the value:
+        /// <list type="bullet">
+        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+        /// </list>
+        /// </remarks>
+        public String ScriptInput
+        {
+            get
+            {
+                var wrapper = section.GetValue<String>(SlcResource_StudioIds.Sections.OrchestrationEvents.ScriptInput);
+                if (wrapper != null)
+                {
+                    return (String)wrapper.Value;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+
+            set
+            {
+                if (value == null)
+                {
+                    section.RemoveFieldValueById(SlcResource_StudioIds.Sections.OrchestrationEvents.ScriptInput);
+                }
+                else
+                {
+                    section.AddOrUpdateValue(SlcResource_StudioIds.Sections.OrchestrationEvents.ScriptInput, (String)value);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Creates a deep copy of the current <see cref="OrchestrationEventsSection"/>.
+        /// </summary>
+        /// <returns>A new <see cref="OrchestrationEventsSection"/> object that is a deep copy of this section.</returns>
+        public OrchestrationEventsSection Clone()
+        {
+            return new OrchestrationEventsSection((Section)this.ToSection().Clone());
+        }
+
+        /// <summary>
+        /// Creates a duplicate of the current <see cref="OrchestrationEventsSection"/> with a new id.
+        /// </summary>
+        /// <returns>A new <see cref="OrchestrationEventsSection"/> object that is a copy of this section but with a different id.</returns>
+        public OrchestrationEventsSection Duplicate()
+        {
+            var section = (Section)this.ToSection().Clone();
+            section.ID = new SectionID(Guid.NewGuid());
+            return new OrchestrationEventsSection(section);
+        }
+
+        /// <inheritdoc />
+        protected override Section InternalToSection()
+        {
+            if (section.GetValue<String>(SlcResource_StudioIds.Sections.OrchestrationEvents.Name) == null)
+                throw new InvalidOperationException("'Name' is required. Please fill it in before saving, or mark it as optional with the DOM Editor.");
+            return section;
         }
     }
 

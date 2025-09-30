@@ -34,6 +34,7 @@
 
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
+    <UserSecretsId>8b63d789-daa9-4f00-ade9-5791180385c7</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
