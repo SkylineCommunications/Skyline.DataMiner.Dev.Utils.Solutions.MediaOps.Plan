@@ -67,7 +67,7 @@
 
         private void ParseParameter(CoreParameter parameter)
         {
-            if (!parameter.Categories.HasFlag(ProfileParameterCategory.Capacity))
+            if (parameter.Categories != ProfileParameterCategory.Capacity)
                 throw new ArgumentException($"The provided parameter is not a {ProfileParameterCategory.Capacity}.", nameof(parameter));
 
             name = parameter.Name;

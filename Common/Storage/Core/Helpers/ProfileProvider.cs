@@ -23,7 +23,8 @@
             ParameterExposers.Categories.Contains((int)ProfileParameterCategory.Capability)
             .AND(ParameterExposers.Categories.NotContains((int)ProfileParameterCategory.Capacity))
             .AND(ParameterExposers.Categories.NotContains((int)ProfileParameterCategory.Configuration))
-            .AND(ParameterExposers.Type.Equal((int)ParameterType.Discrete));
+            .AND(ParameterExposers.Type.Equal((int)ParameterType.Discrete))
+            .AND(ParameterExposers.Name.NotMatches(".*- Time dependent$")); // Skip linked Time dependent capabilities.
 
         private readonly FilterElement<Net.Profiles.Parameter> AllCapacitiesFilter =
             ParameterExposers.Categories.Contains((int)ProfileParameterCategory.Capacity)
@@ -94,6 +95,11 @@
         {
             var filter = new ORFilterElement<Skyline.DataMiner.Net.Profiles.Parameter>(names.Select(name => ParameterExposers.Name.Equal(name)).ToArray());
             return profileHelper.ProfileParameters.Read(filter);
+        }
+
+        public IEnumerable<Net.Profiles.Parameter> CreateOrUpdateParameters(IEnumerable<Skyline.DataMiner.Net.Profiles.Parameter> parameters)
+        {
+            return profileHelper.ProfileParameters.AddOrUpdateBulk(parameters.ToArray());
         }
 
         /// <summary>
@@ -237,7 +243,14 @@
             return profileHelper.ProfileParameters.Read(AllCapabilitiesFilter);
         }
 
+
+
         public long CountCapabilities()
+        {
+            return profileHelper.ProfileParameters.Count(AllCapabilitiesFilter);
+        }
+
+        public long CountNonTimeDependentCapabilities()
         {
             return profileHelper.ProfileParameters.Count(AllCapabilitiesFilter);
         }

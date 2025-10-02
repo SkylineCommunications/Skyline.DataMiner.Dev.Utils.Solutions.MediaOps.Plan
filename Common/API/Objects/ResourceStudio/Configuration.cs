@@ -67,7 +67,7 @@
 
         private void ParseParameter(CoreParameter parameter)
         {
-            if (!parameter.Categories.HasFlag(ProfileParameterCategory.Configuration))
+            if (parameter.Categories != ProfileParameterCategory.Configuration)
                 throw new ArgumentException($"The provided parameter is not a {ProfileParameterCategory.Configuration}.", nameof(parameter));
 
             name = parameter.Name;

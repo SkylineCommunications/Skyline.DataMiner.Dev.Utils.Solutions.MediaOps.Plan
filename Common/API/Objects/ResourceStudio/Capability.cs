@@ -1,6 +1,8 @@
 ﻿namespace Skyline.DataMiner.MediaOps.Plan.API
 {
     using System;
+    using System.Collections.Generic;
+    using System.Linq;
     using Skyline.DataMiner.Net.Profiles;
     using CoreParameter = Skyline.DataMiner.Net.Profiles.Parameter;
 
@@ -9,8 +11,12 @@
     /// </summary>
     public class Capability : ApiObject
     {
+        private readonly CoreParameter originalParameter;
+
         private string name;
         private bool isMandatory;
+        private HashSet<string> discretes = new HashSet<string>();
+        private bool isTimeDependent;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Capability"/> class.
@@ -36,6 +42,7 @@
         /// <param name="parameter">The core parameter used to initialize the capability. Must not be <see langword="null"/>.</param>
         internal protected Capability(CoreParameter parameter) : base(parameter.ID)
         {
+            originalParameter = parameter ?? throw new ArgumentNullException(nameof(parameter));
             ParseParameter(parameter);
         }
 
@@ -65,13 +72,63 @@
             }
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the capability is time-dependent or not.
+        /// </summary>
+        public bool IsTimeDependent
+        {
+            get => isTimeDependent;
+            set
+            {
+                HasChanges = true;
+                isTimeDependent = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets a read-only collection of discrete values.
+        /// </summary>
+        public IReadOnlyCollection<string> Discretes => discretes;
+
+        internal CoreParameter OriginalParameter => originalParameter;
+
+        /// <summary>
+        /// Adds a discrete option to the collection if it is not already present.
+        /// </summary>
+        /// <param name="option">The discrete option to add. Cannot be <see langword="null"/> or whitespace.</param>
+        /// <exception cref="ArgumentException">Thrown if <paramref name="option"/> is <see langword="null"/> or whitespace.</exception>
+        public void AddDiscrete(string option)
+        {
+            if (String.IsNullOrWhiteSpace(option))
+                throw new ArgumentException(nameof(option));
+
+            if (discretes.Add(option))
+                HasChanges = true;
+        }
+
+        /// <summary>
+        /// Removes the specified option from the collection of discretes.
+        /// </summary>
+        /// <param name="option">The option to remove. Cannot be <see langword="null"/>.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="option"/> is <see langword="null"/>.</exception>
+        public void RemoveDiscrete(string option)
+        {
+            if (option == null)
+                throw new ArgumentNullException(nameof(option));
+
+            if (discretes.Remove(option))
+                HasChanges = true;
+        }
+
         private void ParseParameter(CoreParameter parameter)
         {
-            if (!parameter.Categories.HasFlag(ProfileParameterCategory.Capability))
+            if (parameter.Categories != ProfileParameterCategory.Capability)
                 throw new ArgumentException($"The provided parameter is not a {ProfileParameterCategory.Capability}.", nameof(parameter));
 
             name = parameter.Name;
             isMandatory = parameter.IsOptional == false;
+            discretes = parameter.Discretes.ToHashSet();
+            isTimeDependent = TimeDependentCapabilityLink.TryDeserialize(parameter.Remarks, out var timeDependentLink) && timeDependentLink.IsTimeDependent;
         }
     }
 }

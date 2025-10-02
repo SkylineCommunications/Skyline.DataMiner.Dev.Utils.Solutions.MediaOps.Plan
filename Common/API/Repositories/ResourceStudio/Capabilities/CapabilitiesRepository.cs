@@ -5,6 +5,7 @@
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
+    using Skyline.DataMiner.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Helper;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
@@ -23,7 +24,7 @@
 
         public Guid Create(Capability apiObject)
         {
-            throw new NotImplementedException();
+
         }
 
         public IEnumerable<Guid> Create(IEnumerable<Capability> apiObjects)
