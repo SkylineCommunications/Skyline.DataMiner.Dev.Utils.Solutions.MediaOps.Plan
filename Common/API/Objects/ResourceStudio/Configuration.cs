@@ -15,7 +15,7 @@
         /// <summary>
         /// Initializes a new instance of the <see cref="Configuration"/> class.
         /// </summary>
-        internal protected Configuration() : base()
+        public Configuration() : base()
         {
             IsNew = true;
         }
@@ -24,7 +24,7 @@
         /// Initializes a new instance of the <see cref="Configuration"/> class with the specified unique identifier.
         /// </summary>
         /// <param name="id">The unique identifier for the configuration.</param>
-        internal protected Configuration(Guid id) : base(id)
+        public Configuration(Guid id) : base(id)
         {
             IsNew = true;
             HasUserDefinedId = true;

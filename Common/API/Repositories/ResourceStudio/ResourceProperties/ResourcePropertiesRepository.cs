@@ -141,7 +141,7 @@
 
         public IQueryable<ResourceProperty> Query()
         {
-            throw new NotImplementedException();
+            return new ApiRepositoryQuery<ResourceProperty>(QueryProvider);
         }
 
         public IQueryable<IEnumerable<ResourceProperty>> QueryPaged()

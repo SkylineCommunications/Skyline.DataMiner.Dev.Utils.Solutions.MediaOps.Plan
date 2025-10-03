@@ -28,6 +28,16 @@
             return !result.HasFailures();
         }
 
+        internal static bool TryDelete(MediaOpsPlanApi planApi, IEnumerable<Capability> apiCapabilities, out BulkDeleteResult<Guid> result)
+        {
+            var handler = new CoreCapabilitiesHandler(planApi);
+            handler.Delete(apiCapabilities);
+
+            result = new BulkDeleteResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+
+            return !result.HasFailures();
+        }
+
         private void CreateOrUpdate(IEnumerable<Capability> apiCapabilities)
         {
             if (apiCapabilities == null)
@@ -120,7 +130,7 @@
                 if (capability.IsNew)
                     continue;
 
-                if (capability.IsTimeDependent == capability.OriginalParameter.IsTimeDependent())
+                if (capability.IsTimeDependent == capability.CoreParameter.IsTimeDependent())
                     continue;
 
                 ReportError(capability.Id, new CapabilityConfigurationError
@@ -128,6 +138,51 @@
                     ErrorReason = CapabilityConfigurationError.Reason.InvalidTimeDependency,
                     ErrorMessage = "Changing the time dependency of a capability is not allowed.",
                 });
+            }
+        }
+
+        private void Delete(IEnumerable<Capability> apiCapabilities)
+        {
+            if (apiCapabilities == null)
+            {
+                throw new ArgumentNullException(nameof(apiCapabilities));
+            }
+
+            if (!apiCapabilities.Any())
+            {
+                return;
+            }
+
+            var newCapabilities = apiCapabilities.Where(x => x.IsNew).ToList();
+            newCapabilities.ForEach(x =>
+            {
+                var error = new CapabilityConfigurationError
+                {
+                    ErrorReason = CapabilityConfigurationError.Reason.InvalidState,
+                    ErrorMessage = $"A capability that was not saved cannot be removed.",
+                };
+
+                ReportError(x.Id, error);
+            });
+
+            var capabilitiesToDelete = apiCapabilities.Except(newCapabilities).ToList();
+
+            try
+            {
+                var deletedCapabilities = planApi.CoreHelpers.ProfileProvider.Delete(capabilitiesToDelete.Select(x => x.CoreParameter));
+                foreach (var deletedCapability in deletedCapabilities)
+                {
+                    ReportSuccess(deletedCapability.ID);
+                }
+            }
+            catch (Exception ex)
+            {
+                planApi.Logger.LogError(ex, "An error occurred while deleting capabilities.");
+
+                foreach (var capability in capabilitiesToDelete)
+                {
+                    ReportError(capability.Id, new MediaOpsErrorData() { ErrorMessage = ex.ToString() });
+                }
             }
         }
 
@@ -314,11 +369,11 @@
             {
                 var sortedDiscretes = GetSortedDiscretes(capability);
 
-                capability.OriginalParameter.IsOptional = !capability.IsMandatory;
-                capability.OriginalParameter.Discretes = sortedDiscretes;
-                capability.OriginalParameter.DiscreetDisplayValues = sortedDiscretes;
+                capability.CoreParameter.IsOptional = !capability.IsMandatory;
+                capability.CoreParameter.Discretes = sortedDiscretes;
+                capability.CoreParameter.DiscreetDisplayValues = sortedDiscretes;
 
-                return capability.OriginalParameter;
+                return capability.CoreParameter;
             }
         }
 

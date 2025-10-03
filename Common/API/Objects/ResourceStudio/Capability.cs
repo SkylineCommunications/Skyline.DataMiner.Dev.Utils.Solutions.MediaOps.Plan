@@ -3,6 +3,8 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using Skyline.DataMiner.Net;
+    using Skyline.DataMiner.Net.Helper;
     using Skyline.DataMiner.Net.Profiles;
     using CoreParameter = Skyline.DataMiner.Net.Profiles.Parameter;
 
@@ -11,7 +13,7 @@
     /// </summary>
     public class Capability : ApiObject
     {
-        private readonly CoreParameter originalParameter;
+        private readonly CoreParameter coreParameter;
 
         private string name;
         private bool isMandatory;
@@ -21,7 +23,7 @@
         /// <summary>
         /// Initializes a new instance of the <see cref="Capability"/> class.
         /// </summary>
-        internal protected Capability() : base()
+        public Capability() : base()
         {
             IsNew = true;
         }
@@ -30,7 +32,7 @@
         /// Initializes a new instance of the <see cref="Capability"/> class with the specified unique identifier.
         /// </summary>
         /// <param name="id">The unique identifier for the capability.</param>
-        internal protected Capability(Guid id) : base(id)
+        public Capability(Guid id) : base(id)
         {
             IsNew = true;
             HasUserDefinedId = true;
@@ -42,7 +44,7 @@
         /// <param name="parameter">The core parameter used to initialize the capability. Must not be <see langword="null"/>.</param>
         internal protected Capability(CoreParameter parameter) : base(parameter.ID)
         {
-            originalParameter = parameter ?? throw new ArgumentNullException(nameof(parameter));
+            coreParameter = parameter ?? throw new ArgumentNullException(nameof(parameter));
             ParseParameter(parameter);
         }
 
@@ -90,7 +92,7 @@
         /// </summary>
         public IReadOnlyCollection<string> Discretes => discretes;
 
-        internal CoreParameter OriginalParameter => originalParameter;
+        internal CoreParameter CoreParameter => coreParameter;
 
         /// <summary>
         /// Adds a discrete option to the collection if it is not already present.
@@ -104,6 +106,26 @@
 
             if (discretes.Add(option))
                 HasChanges = true;
+        }
+
+        public void SetDiscretes(IEnumerable<string> options)
+        {
+            if (options == null)
+                throw new ArgumentNullException(nameof(options));
+
+            if (options.Any(x => String.IsNullOrWhiteSpace(x)))
+                throw new ArgumentException(nameof(options));
+
+            if (discretes.ScrambledEquals(options))
+                return;
+
+            discretes.Clear();
+            foreach (var option in options)
+            {
+                discretes.Add(option);
+            }
+
+            HasChanges = true;
         }
 
         /// <summary>
@@ -127,7 +149,7 @@
 
             name = parameter.Name;
             isMandatory = parameter.IsOptional == false;
-            discretes = parameter.Discretes.ToHashSet();
+            discretes = System.Linq.Enumerable.ToHashSet(parameter.Discretes);
             isTimeDependent = TimeDependentCapabilityLink.TryDeserialize(parameter.Remarks, out var timeDependentLink) && timeDependentLink.IsTimeDependent;
         }
     }

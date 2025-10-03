@@ -58,6 +58,11 @@
             /// Indicates that the time-dependent value is invalid when attempting to change a capability from time-dependent to non-time-dependent or vice versa.
             /// </summary>
             InvalidTimeDependency,
+
+            /// <summary>
+            /// Indicates that a capability is in a state that does not allow the requested operation.
+            /// </summary>
+            InvalidState,
         }
 
         /// <summary>

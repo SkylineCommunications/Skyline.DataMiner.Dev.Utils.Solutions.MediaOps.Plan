@@ -15,7 +15,7 @@
         /// <summary>
         /// Initializes a new instance of the <see cref="Capacity"/> class.
         /// </summary>
-        internal protected Capacity() : base()
+        public Capacity() : base()
         {
             IsNew = true;
         }
@@ -24,7 +24,7 @@
         /// Initializes a new instance of the <see cref="Capacity"/> class with the specified unique identifier.
         /// </summary>
         /// <param name="id">The unique identifier for the capacity.</param>
-        internal protected Capacity(Guid id) : base(id)
+        public Capacity(Guid id) : base(id)
         {
             IsNew = true;
             HasUserDefinedId = true;

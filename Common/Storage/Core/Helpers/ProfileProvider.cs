@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using Skyline.DataMiner.MediaOps.Plan.API;
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Net.Profiles;
@@ -24,7 +25,7 @@
             .AND(ParameterExposers.Categories.NotContains((int)ProfileParameterCategory.Capacity))
             .AND(ParameterExposers.Categories.NotContains((int)ProfileParameterCategory.Configuration))
             .AND(ParameterExposers.Type.Equal((int)ParameterType.Discrete))
-            .AND(ParameterExposers.Name.NotMatches(".*- Time dependent$")); // Skip linked Time dependent capabilities.
+            .AND(ParameterExposers.Name.NotMatches(".*- Time dependent$")); // Don't include linked Time dependent capabilities.
 
         private readonly FilterElement<Net.Profiles.Parameter> AllCapacitiesFilter =
             ParameterExposers.Categories.Contains((int)ProfileParameterCategory.Capacity)
@@ -111,6 +112,10 @@
             return profileHelper.ProfileParameters.Read(AllCapacitiesFilter);
         }
 
+        /// <summary>
+        /// Total amount of capacity parameters.
+        /// </summary>
+        /// <returns>Total amount of capacity parameters.</returns>
         public long CountAllCapacities()
         {
             return profileHelper.ProfileParameters.Count(AllCapacitiesFilter);
@@ -137,9 +142,9 @@
         /// </summary>
         /// <param name="ids">The collection of capacity parameter IDs.</param>
         /// <returns>A dictionary mapping each ID to its associated capacity parameter.</returns>
-        public IDictionary<Guid, Skyline.DataMiner.Net.Profiles.Parameter> GetCapacitiesById(IEnumerable<Guid> ids)
+        public IEnumerable<Skyline.DataMiner.Net.Profiles.Parameter> GetCapacitiesById(IEnumerable<Guid> ids)
         {
-            return GetParametersById(ids).Where(x => x.Categories.HasFlag(ProfileParameterCategory.Capacity)).ToDictionary(x => x.ID);
+            return GetParametersById(ids).Where(x => x.Categories.HasFlag(ProfileParameterCategory.Capacity));
         }
 
         /// <summary>
@@ -163,9 +168,9 @@
         /// </summary>
         /// <param name="names">The collection of capacity parameter names.</param>
         /// <returns>A dictionary mapping each name to its associated capacity parameter.</returns>
-        public IDictionary<string, Skyline.DataMiner.Net.Profiles.Parameter> GetCapacitiesByName(IEnumerable<string> names)
+        public IEnumerable<Skyline.DataMiner.Net.Profiles.Parameter> GetCapacitiesByName(IEnumerable<string> names)
         {
-            return GetParametersByName(names).Where(x => x.Categories.HasFlag(ProfileParameterCategory.Capacity)).ToDictionary(x => x.Name);
+            return GetParametersByName(names).Where(x => x.Categories.HasFlag(ProfileParameterCategory.Capacity));
         }
 
         /// <summary>
@@ -203,9 +208,9 @@
         /// </summary>
         /// <param name="ids">The collection of configuration parameter IDs.</param>
         /// <returns>A dictionary mapping each ID to its associated configuration parameter.</returns>
-        public IDictionary<Guid, Skyline.DataMiner.Net.Profiles.Parameter> GetConfigurationsById(IEnumerable<Guid> ids)
+        public IEnumerable<Skyline.DataMiner.Net.Profiles.Parameter> GetConfigurationsById(IEnumerable<Guid> ids)
         {
-            return GetParametersById(ids).Where(x => x.Categories.HasFlag(ProfileParameterCategory.Configuration)).ToDictionary(x => x.ID);
+            return GetParametersById(ids).Where(x => x.Categories.HasFlag(ProfileParameterCategory.Configuration));
         }
 
         /// <summary>
@@ -229,9 +234,9 @@
         /// </summary>
         /// <param name="names">The collection of configuration parameter names.</param>
         /// <returns>A dictionary mapping each name to its associated configuration parameter.</returns>
-        public IDictionary<string, Skyline.DataMiner.Net.Profiles.Parameter> GetConfigurationsByName(IEnumerable<string> names)
+        public IEnumerable<Skyline.DataMiner.Net.Profiles.Parameter> GetConfigurationsByName(IEnumerable<string> names)
         {
-            return GetParametersByName(names).Where(x => x.Categories.HasFlag(ProfileParameterCategory.Configuration)).ToDictionary(x => x.Name);
+            return GetParametersByName(names).Where(x => x.Categories.HasFlag(ProfileParameterCategory.Configuration));
         }
 
         /// <summary>
@@ -242,8 +247,6 @@
         {
             return profileHelper.ProfileParameters.Read(AllCapabilitiesFilter);
         }
-
-
 
         public long CountCapabilities()
         {
@@ -276,9 +279,9 @@
         /// </summary>
         /// <param name="ids">The collection of capability parameter IDs.</param>
         /// <returns>A dictionary mapping each ID to its associated capability parameter.</returns>
-        public IDictionary<Guid, Skyline.DataMiner.Net.Profiles.Parameter> GetCapabilitiesById(IEnumerable<Guid> ids)
+        public IEnumerable<Skyline.DataMiner.Net.Profiles.Parameter> GetCapabilitiesById(IEnumerable<Guid> ids)
         {
-            return GetParametersById(ids).Where(x => x.Categories.HasFlag(ProfileParameterCategory.Capability)).ToDictionary(x => x.ID);
+            return GetParametersById(ids).Where(x => x.Categories.HasFlag(ProfileParameterCategory.Capability));
         }
 
         /// <summary>
@@ -302,9 +305,14 @@
         /// </summary>
         /// <param name="names">The collection of capability parameter names.</param>
         /// <returns>A dictionary mapping each name to its associated capability parameter.</returns>
-        public IDictionary<string, Skyline.DataMiner.Net.Profiles.Parameter> GetCapabilitiesByName(IEnumerable<string> names)
+        public IEnumerable<Skyline.DataMiner.Net.Profiles.Parameter> GetCapabilitiesByName(IEnumerable<string> names)
         {
-            return GetParametersByName(names).Where(x => x.Categories.HasFlag(ProfileParameterCategory.Capability)).ToDictionary(x => x.Name);
+            return GetParametersByName(names).Where(x => x.Categories.HasFlag(ProfileParameterCategory.Capability));
+        }
+
+        public IEnumerable<Skyline.DataMiner.Net.Profiles.Parameter> Delete(IEnumerable<Skyline.DataMiner.Net.Profiles.Parameter> parametersToDelete)
+        {
+            return profileHelper.ProfileParameters.RemoveBulk(parametersToDelete.ToArray());
         }
     }
 }
