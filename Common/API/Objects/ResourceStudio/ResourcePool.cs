@@ -6,8 +6,6 @@
 
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
 
-    using static Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections;
-
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
     /// <summary>

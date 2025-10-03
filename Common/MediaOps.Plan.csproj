@@ -55,6 +55,10 @@
     </PackageReference>
     <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="9.0.0" />
   </ItemGroup>
+  
+  <ItemGroup>
+    <Folder Include="API\Handlers\Capacities\" />
+  </ItemGroup>
 
   <Target Name="CopyNuGetPackage" AfterTargets="Pack" Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <Copy SourceFiles="$(OutputPath)..\$(PackageId).$(PackageVersion).nupkg" DestinationFolder="C:\Skyline_Data\MyNugets\" />
