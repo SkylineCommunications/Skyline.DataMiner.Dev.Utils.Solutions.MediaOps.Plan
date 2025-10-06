@@ -7,6 +7,7 @@
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Net;
+    using static Skyline.DataMiner.Net.Apps.Modules.ModuleIdValidator;
     using CoreParameter = Skyline.DataMiner.Net.Profiles.Parameter;
 
     internal class CoreCapabilitiesHandler : ApiObjectValidator<Guid>
@@ -104,23 +105,18 @@
                 return;
             }
 
-            try
-            {
-                var createdOrUpdatedParameters = planApi.CoreHelpers.ProfileProvider.CreateOrUpdateParameters(coreParameters).ToList();
-                foreach (var createdOrUpdatedParameter in createdOrUpdatedParameters)
-                {
-                    ReportSuccess(createdOrUpdatedParameter.ID);
-                }
-            }
-            catch (Exception ex)
-            {
-                planApi.Logger.LogError(ex, "An error occurred while creating or updating capabilities.");
+            planApi.CoreHelpers.ProfileProvider.TryCreateOrUpdateParametersInBatches(coreParameters, out var result);
 
-                foreach (var capability in coreParameters)
+            foreach (var id in result.UnsuccessfulIds)
+            {
+                ReportError(id);
+                if (result.TraceDataPerItem.TryGetValue(id, out var traceData))
                 {
-                    ReportError(capability.ID, new MediaOpsErrorData() { ErrorMessage = ex.ToString() });
+                    PassTraceData(id, traceData);
                 }
             }
+
+            ReportSuccess(result.SuccessfulIds);
         }
 
         private void ValidateTimeDependency(List<Capability> apiCapabilities)
@@ -167,23 +163,18 @@
 
             var capabilitiesToDelete = apiCapabilities.Except(newCapabilities).ToList();
 
-            try
-            {
-                var deletedCapabilities = planApi.CoreHelpers.ProfileProvider.Delete(capabilitiesToDelete.Select(x => x.CoreParameter));
-                foreach (var deletedCapability in deletedCapabilities)
-                {
-                    ReportSuccess(deletedCapability.ID);
-                }
-            }
-            catch (Exception ex)
-            {
-                planApi.Logger.LogError(ex, "An error occurred while deleting capabilities.");
+            planApi.CoreHelpers.ProfileProvider.TryDeleteInBatches(capabilitiesToDelete.Select(x => x.CoreParameter), out var result);
 
-                foreach (var capability in capabilitiesToDelete)
+            foreach (var id in result.UnsuccessfulIds)
+            {
+                ReportError(id);
+                if (result.TraceDataPerItem.TryGetValue(id, out var traceData))
                 {
-                    ReportError(capability.Id, new MediaOpsErrorData() { ErrorMessage = ex.ToString() });
+                    PassTraceData(id, traceData);
                 }
             }
+
+            ReportSuccess(result.SuccessfulIds);
         }
 
         private void ValidateIdsNotInUse(IEnumerable<Capability> apiCapabilities)

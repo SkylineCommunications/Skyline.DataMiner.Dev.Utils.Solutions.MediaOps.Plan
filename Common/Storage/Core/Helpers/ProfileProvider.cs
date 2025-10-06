@@ -4,9 +4,15 @@
     using System.Collections.Generic;
     using System.Linq;
     using Skyline.DataMiner.MediaOps.Plan.API;
+    using Skyline.DataMiner.MediaOps.Plan.Exceptions;
+    using Skyline.DataMiner.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Net;
+    using Skyline.DataMiner.Net.Helper;
+    using Skyline.DataMiner.Net.Messages;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Net.Profiles;
+    using Skyline.DataMiner.Net.ReportsAndDashboards;
+    using Skyline.DataMiner.Net.ResponseErrorData;
     using static Skyline.DataMiner.Net.Profiles.Parameter;
 
     /// <summary>
@@ -98,9 +104,57 @@
             return profileHelper.ProfileParameters.Read(filter);
         }
 
-        public IEnumerable<Net.Profiles.Parameter> CreateOrUpdateParameters(IEnumerable<Skyline.DataMiner.Net.Profiles.Parameter> parameters)
+        /// <summary>
+        /// Attempts to create or update the specified parameters in batches.
+        /// </summary>
+        /// <remarks>The method processes the parameters in batches of 100 to optimize performance. If any
+        /// parameters fail to be created or updated, their IDs and associated error details are included in the
+        /// <paramref name="result"/>.</remarks>
+        /// <param name="parameters">A collection of <see cref="Skyline.DataMiner.Net.Profiles.Parameter"/> objects to be created or updated.
+        /// Cannot be <see langword="null"/>.</param>
+        /// <param name="result">When the method returns, contains a <see cref="BulkCreateOrUpdateResult{T}"/> object that provides details
+        /// about the operation, including the IDs of successfully processed parameters, IDs of failed parameters, and
+        /// any associated error trace data.</param>
+        /// <returns><see langword="true"/> if all parameters were successfully created or updated; otherwise, <see
+        /// langword="false"/>.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="parameters"/> is <see langword="null"/>.</exception>
+        public bool TryCreateOrUpdateParametersInBatches(IEnumerable<Skyline.DataMiner.Net.Profiles.Parameter> parameters, out BulkCreateOrUpdateResult<Guid> result)
         {
-            return profileHelper.ProfileParameters.AddOrUpdateBulk(parameters.ToArray());
+            if (parameters == null)
+                throw new ArgumentNullException(nameof(parameters));
+
+            var successfulIds = new List<Guid>();
+            var unsuccessfulIds = new List<Guid>();
+            var traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
+
+            foreach (var batch in parameters.Batch(100))
+            {
+                var succeededParameters = profileHelper.ProfileParameters.AddOrUpdateBulk(batch.ToArray());
+
+                successfulIds.AddRange(succeededParameters.Select(x => x.ID));
+
+                var traceData = profileHelper.ProfileParameters.GetTraceDataLastCall();
+                foreach (var error in traceData.ErrorData.OfType<ProfileManagerErrorData>())
+                {
+                    if (Guid.Equals(error.ProfileParameterID, Guid.Empty))
+                    {
+                        continue;
+                    }
+
+                    if (!traceDataPerItem.TryGetValue(error.ProfileParameterID, out var mediaOpsTraceData))
+                    {
+                        mediaOpsTraceData = new MediaOpsTraceData();
+                        traceDataPerItem.Add(error.ProfileParameterID, mediaOpsTraceData);
+
+                        unsuccessfulIds.Add(error.ProfileParameterID);
+                    }
+
+                    mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = error.ToString() });
+                }
+            }
+
+            result = new BulkCreateOrUpdateResult<Guid>(successfulIds, unsuccessfulIds, traceDataPerItem);
+            return !result.HasFailures();
         }
 
         /// <summary>
@@ -310,9 +364,43 @@
             return GetParametersByName(names).Where(x => x.Categories.HasFlag(ProfileParameterCategory.Capability));
         }
 
-        public IEnumerable<Skyline.DataMiner.Net.Profiles.Parameter> Delete(IEnumerable<Skyline.DataMiner.Net.Profiles.Parameter> parametersToDelete)
+        public bool TryDeleteInBatches(IEnumerable<Skyline.DataMiner.Net.Profiles.Parameter> parameters, out Skyline.DataMiner.MediaOps.Plan.Exceptions.BulkDeleteResult<Guid> result)
         {
-            return profileHelper.ProfileParameters.RemoveBulk(parametersToDelete.ToArray());
+            if (parameters == null)
+                throw new ArgumentNullException(nameof(parameters));
+
+            var successfulIds = new List<Guid>();
+            var unsuccessfulIds = new List<Guid>();
+            var traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
+
+            foreach (var batch in parameters.Batch(100))
+            {
+                var succeededParameters = profileHelper.ProfileParameters.RemoveBulk(batch.ToArray());
+
+                successfulIds.AddRange(succeededParameters.Select(x => x.ID));
+
+                var traceData = profileHelper.ProfileParameters.GetTraceDataLastCall();
+                foreach (var error in traceData.ErrorData.OfType<ProfileManagerErrorData>())
+                {
+                    if (Guid.Equals(error.ProfileParameterID, Guid.Empty))
+                    {
+                        continue;
+                    }
+
+                    if (!traceDataPerItem.TryGetValue(error.ProfileParameterID, out var mediaOpsTraceData))
+                    {
+                        mediaOpsTraceData = new MediaOpsTraceData();
+                        traceDataPerItem.Add(error.ProfileParameterID, mediaOpsTraceData);
+
+                        unsuccessfulIds.Add(error.ProfileParameterID);
+                    }
+
+                    mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = error.ToString() });
+                }
+            }
+
+            result = new Skyline.DataMiner.MediaOps.Plan.Exceptions.BulkDeleteResult<Guid>(successfulIds, unsuccessfulIds, traceDataPerItem);
+            return !result.HasFailures();
         }
     }
 }
