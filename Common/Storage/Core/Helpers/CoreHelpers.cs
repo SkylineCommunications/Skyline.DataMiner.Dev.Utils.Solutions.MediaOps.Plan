@@ -24,7 +24,7 @@
             this.connection = connection ?? throw new ArgumentNullException(nameof(connection));
 
             lazyResourceManagerHelper = new Lazy<ResourceManagerHelper>(() => new ResourceManagerHelper(connection.HandleSingleResponseMessage));
-            lazyProfileHelper = new Lazy<ProfileProvider>(() => new ProfileProvider(connection.HandleMessages));
+            lazyProfileHelper = new Lazy<ProfileProvider>(() => new ProfileProvider(connection));
 
             lazyProtocolFunctionHelper = new Lazy<ProtocolFunctionHelper>(() => new ProtocolFunctionHelper(connection.HandleMessages));
             lazyProtocolFunctionHelperCache = new Lazy<ProtocolFunctionHelperCache>(() => new ProtocolFunctionHelperCache(ProtocolFunctionHelper));

@@ -22,6 +22,9 @@
         private readonly Lazy<IDms> lazyDms;
         private readonly Lazy<IResourcesRepository> lazyResourceRepository;
         private readonly Lazy<IResourcePoolsRepository> lazyResourcePoolsRepository;
+        private readonly Lazy<ICapabilitiesRepository> lazyCapabilitiesRepository;
+        private readonly Lazy<ICapacitiesRepository> lazyCapacitiesRepository;
+        private readonly Lazy<IConfigurationsRepository> lazyConfigurationsRepository;
         private bool disposedValue;
 
         /// <summary>
@@ -40,6 +43,9 @@
             lazyDms = new Lazy<IDms>(() => connection.GetDms());
             lazyResourceRepository = new Lazy<IResourcesRepository>(() => new ResourcesRepository(this));
             lazyResourcePoolsRepository = new Lazy<IResourcePoolsRepository>(() => new ResourcePoolsRepository(this));
+            lazyCapabilitiesRepository = new Lazy<ICapabilitiesRepository>(() => new CapabilitiesRepository(this));
+            lazyCapacitiesRepository = new Lazy<ICapacitiesRepository>(() => new CapacitiesRepository(this));
+            lazyConfigurationsRepository = new Lazy<IConfigurationsRepository>(() => new ConfigurationsRepository(this));
         }
 
         /// <summary>
@@ -51,6 +57,12 @@
         /// <inheritdoc/>
         /// </summary>
         public IResourcePoolsRepository ResourcePools => lazyResourcePoolsRepository.Value;
+
+        public ICapabilitiesRepository Capabilities => lazyCapabilitiesRepository.Value;
+
+        public ICapacitiesRepository Capacities => lazyCapacitiesRepository.Value;
+
+        public IConfigurationsRepository Configurations => lazyConfigurationsRepository.Value;
 
         internal IConnection Connection => connection;
 

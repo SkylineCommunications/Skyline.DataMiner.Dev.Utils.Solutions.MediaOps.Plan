@@ -17,26 +17,25 @@
         /// </summary>
         IResourcePoolsRepository ResourcePools { get; }
 
-        /*
-		/// <summary>
-		/// Gets the repository for managing capabilities.
-		/// </summary>
-		ICapabilitiesRepository Capabilities { get; }
+        /// <summary>
+        /// Gets the repository for managing capabilities.
+        /// </summary>
+        ICapabilitiesRepository Capabilities { get; }
 
-		/// <summary>
-		/// Gets the repository for managing capacities.
-		/// </summary>
-		ICapacitiesRepository Capacities { get; }
+        /// <summary>
+        /// Gets the repository for managing capacities.
+        /// </summary>
+        ICapacitiesRepository Capacities { get; }
 
-		/// <summary>
-		/// Gets the repository for managing configurations.
-		/// </summary>
-		IConfigurationsRepository Configurations { get; }
+        /// <summary>
+        /// Gets the repository for managing configurations.
+        /// </summary>
+        IConfigurationsRepository Configurations { get; }
 
-		/// <summary>
-		/// Gets the repository for managing resource properties.
-		/// </summary>
-		IResourcePropertiesRepository Properties { get; }
-		*/
+        /// <summary>
+        /// Gets the repository for managing resource properties.
+        /// </summary>
+        //IResourcePropertiesRepository Properties { get; }
+
     }
 }
