@@ -15,7 +15,7 @@
 
     using SLDataGateway.API.Types.Querying;
 
-    internal class ResourcesRepository : Repository<Resource>, IResourcesRepository
+    internal class ResourcesRepository : DomRepository<Resource>, IResourcesRepository
     {
         public ResourcesRepository(MediaOpsPlanApi planApi) : base(planApi)
         {
@@ -636,7 +636,7 @@
 
         public IQueryable<Resource> Query()
         {
-            return new ApiRepositoryQuery<Resource>(QueryProvider);
+            return new ApiRepositoryQuery<Resource, DomInstance>(QueryProvider);
         }
 
         public IQueryable<IEnumerable<Resource>> QueryPaged()
@@ -681,11 +681,11 @@
             switch (fieldName)
             {
                 case nameof(Resource.Concurrency):
-                    return FilterElementFactory.Create<long>(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Concurrency), comparer, value);
+                    return FilterElementFactory<DomInstance>.Create<long>(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Concurrency), comparer, value);
                 case nameof(Resource.State):
-                    return FilterElementFactory.Create(DomInstanceExposers.StatusId, comparer, TranslateResourceState((ResourceState)value));
+                    return FilterElementFactory<DomInstance>.Create(DomInstanceExposers.StatusId, comparer, TranslateResourceState((ResourceState)value));
                 case nameof(Resource.IsFavorite):
-                    return FilterElementFactory.Create<bool>(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Favorite), comparer, value);
+                    return FilterElementFactory<DomInstance>.Create<bool>(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Favorite), comparer, value);
             }
 
             return base.CreateFilter(fieldName, comparer, value);
@@ -695,19 +695,19 @@
         {
             if (type == typeof(UnmanagedResource))
             {
-                return FilterElementFactory.Create<int>(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Type), comparer, SlcResource_StudioIds.Enums.Type.Unmanaged);
+                return FilterElementFactory<DomInstance>.Create<int>(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Type), comparer, SlcResource_StudioIds.Enums.Type.Unmanaged);
             }
             else if (type == typeof(VirtualFunctionResource))
             {
-                return FilterElementFactory.Create<int>(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Type), comparer, SlcResource_StudioIds.Enums.Type.VirtualFunction);
+                return FilterElementFactory<DomInstance>.Create<int>(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Type), comparer, SlcResource_StudioIds.Enums.Type.VirtualFunction);
             }
             else if (type == typeof(ServiceResource))
             {
-                return FilterElementFactory.Create<int>(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Type), comparer, SlcResource_StudioIds.Enums.Type.Service);
+                return FilterElementFactory<DomInstance>.Create<int>(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Type), comparer, SlcResource_StudioIds.Enums.Type.Service);
             }
             else if (type == typeof(ElementResource))
             {
-                return FilterElementFactory.Create<int>(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Type), comparer, SlcResource_StudioIds.Enums.Type.Element);
+                return FilterElementFactory<DomInstance>.Create<int>(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Type), comparer, SlcResource_StudioIds.Enums.Type.Element);
             }
 
             return base.CreateFilter(type, comparer);

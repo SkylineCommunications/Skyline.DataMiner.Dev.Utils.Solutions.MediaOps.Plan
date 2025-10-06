@@ -7,7 +7,7 @@
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Net;
-    using CoreParameter = Skyline.DataMiner.Net.Profiles.Parameter;
+    using CoreParameter = Net.Profiles.Parameter;
 
     internal class CoreCapabilitiesHandler : ApiObjectValidator<Guid>
     {
@@ -162,7 +162,15 @@
 
             var capabilitiesToDelete = apiCapabilities.Except(newCapabilities).ToList();
 
-            planApi.CoreHelpers.ProfileProvider.TryDeleteInBatches(capabilitiesToDelete.Select(x => x.CoreParameter), out var result);
+            var coreCapabilitiesToDelete = capabilitiesToDelete.Select(x => x.CoreParameter).ToList();
+
+            var linkedTimeDependentCapabilityIds = capabilitiesToDelete.Where(x => x.IsTimeDependent).Select(x => x.LinkedTimeDependentCapabilityId);
+            if (linkedTimeDependentCapabilityIds.Any())
+            {
+                coreCapabilitiesToDelete.AddRange(planApi.CoreHelpers.ProfileProvider.GetParametersById(linkedTimeDependentCapabilityIds));
+            }
+
+            planApi.CoreHelpers.ProfileProvider.TryDeleteInBatches(coreCapabilitiesToDelete, out var result);
 
             foreach (var id in result.UnsuccessfulIds)
             {
@@ -348,7 +356,7 @@
                     Discretes = sortedDiscretes,
                     DiscreetDisplayValues = sortedDiscretes,
                     Type = Skyline.DataMiner.Net.Profiles.Parameter.ParameterType.Discrete,
-                    InterpreteType = new Skyline.DataMiner.Net.Profiles.InterpreteType
+                    InterpreteType = new Net.Profiles.InterpreteType
                     {
                         Type = Skyline.DataMiner.Net.Profiles.InterpreteType.TypeEnum.String,
                         RawType = Skyline.DataMiner.Net.Profiles.InterpreteType.RawTypeEnum.Other,

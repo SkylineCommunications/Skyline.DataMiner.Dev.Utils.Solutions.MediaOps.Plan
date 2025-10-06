@@ -3,10 +3,9 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Helper;
     using Skyline.DataMiner.Net.Profiles;
-    using CoreParameter = Skyline.DataMiner.Net.Profiles.Parameter;
+    using CoreParameter = Net.Profiles.Parameter;
 
     /// <summary>
     /// Represents a capability in the MediaOps.
@@ -19,6 +18,7 @@
         private bool isMandatory;
         private HashSet<string> discretes = new HashSet<string>();
         private bool isTimeDependent;
+        private Guid linkedTimeDependentCapabilityId;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Capability"/> class.
@@ -90,9 +90,34 @@
         /// <summary>
         /// Gets a read-only collection of discrete values.
         /// </summary>
-        public IReadOnlyCollection<string> Discretes => discretes;
+        public IReadOnlyCollection<string> Discretes
+        {
+            get => discretes;
+
+            set
+            {
+                if (value == null)
+                    throw new ArgumentNullException(nameof(value));
+
+                if (value.Any(x => String.IsNullOrWhiteSpace(x)))
+                    throw new ArgumentException(nameof(value));
+
+                if (discretes.ScrambledEquals(value))
+                    return;
+
+                discretes.Clear();
+                foreach (var option in value)
+                {
+                    discretes.Add(option);
+                }
+
+                HasChanges = true;
+            }
+        }
 
         internal CoreParameter CoreParameter => coreParameter;
+
+        internal Guid LinkedTimeDependentCapabilityId => linkedTimeDependentCapabilityId;
 
         /// <summary>
         /// Adds a discrete option to the collection if it is not already present.
@@ -106,26 +131,6 @@
 
             if (discretes.Add(option))
                 HasChanges = true;
-        }
-
-        public void SetDiscretes(IEnumerable<string> options)
-        {
-            if (options == null)
-                throw new ArgumentNullException(nameof(options));
-
-            if (options.Any(x => String.IsNullOrWhiteSpace(x)))
-                throw new ArgumentException(nameof(options));
-
-            if (discretes.ScrambledEquals(options))
-                return;
-
-            discretes.Clear();
-            foreach (var option in options)
-            {
-                discretes.Add(option);
-            }
-
-            HasChanges = true;
         }
 
         /// <summary>
@@ -151,6 +156,7 @@
             isMandatory = parameter.IsOptional == false;
             discretes = System.Linq.Enumerable.ToHashSet(parameter.Discretes);
             isTimeDependent = TimeDependentCapabilityLink.TryDeserialize(parameter.Remarks, out var timeDependentLink) && timeDependentLink.IsTimeDependent;
+            linkedTimeDependentCapabilityId = timeDependentLink?.LinkedParameterId ?? Guid.Empty;
         }
     }
 }

@@ -14,7 +14,7 @@
     using Skyline.DataMiner.Net.Helper;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Net.SRM.Capacities;
-    using CoreResource = Skyline.DataMiner.Net.Messages.Resource;
+    using CoreResource = Net.Messages.Resource;
     using DomResource = Storage.DOM.SlcResource_Studio.ResourceInstance;
 
     internal class CoreResourceHandler
@@ -28,16 +28,16 @@
 
         private readonly IReadOnlyDictionary<Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type, Func<DomResource, CoreResource, bool>> typeSyncers;
 
-        private readonly Lazy<Dictionary<Guid, Skyline.DataMiner.Net.Profiles.Parameter>> lazyCoreCapabilitiesById;
-        private readonly Lazy<Dictionary<Guid, Skyline.DataMiner.Net.Profiles.Parameter>> lazyCoreCapacitiesById;
+        private readonly Lazy<Dictionary<Guid, Net.Profiles.Parameter>> lazyCoreCapabilitiesById;
+        private readonly Lazy<Dictionary<Guid, Net.Profiles.Parameter>> lazyCoreCapacitiesById;
         private readonly Lazy<DomCapabilitiesHandler> lazyCapabilitiesHandler;
 
         private CoreResourceHandler(MediaOpsPlanApi planApi)
         {
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
 
-            lazyCoreCapabilitiesById = new Lazy<Dictionary<Guid, Skyline.DataMiner.Net.Profiles.Parameter>>(() => planApi.CoreHelpers.ProfileProvider.GetAllCapabilities().ToDictionary(x => x.ID));
-            lazyCoreCapacitiesById = new Lazy<Dictionary<Guid, Skyline.DataMiner.Net.Profiles.Parameter>>(() => planApi.CoreHelpers.ProfileProvider.GetAllCapacities().ToDictionary(x => x.ID));
+            lazyCoreCapabilitiesById = new Lazy<Dictionary<Guid, Net.Profiles.Parameter>>(() => planApi.CoreHelpers.ProfileProvider.GetAllCapabilities().ToDictionary(x => x.ID));
+            lazyCoreCapacitiesById = new Lazy<Dictionary<Guid, Net.Profiles.Parameter>>(() => planApi.CoreHelpers.ProfileProvider.GetAllCapacities().ToDictionary(x => x.ID));
             lazyCapabilitiesHandler = new Lazy<DomCapabilitiesHandler>(() => new DomCapabilitiesHandler(planApi));
 
             typeSyncers = new Dictionary<Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type, Func<DomResource, CoreResource, bool>>
@@ -49,9 +49,9 @@
             };
         }
 
-        private Dictionary<Guid, Skyline.DataMiner.Net.Profiles.Parameter> CoreCapabilitiesById => lazyCoreCapabilitiesById.Value;
+        private Dictionary<Guid, Net.Profiles.Parameter> CoreCapabilitiesById => lazyCoreCapabilitiesById.Value;
 
-        private Dictionary<Guid, Skyline.DataMiner.Net.Profiles.Parameter> CoreCapacitiesById => lazyCoreCapacitiesById.Value;
+        private Dictionary<Guid, Net.Profiles.Parameter> CoreCapacitiesById => lazyCoreCapacitiesById.Value;
 
         private DomCapabilitiesHandler CapabilitiesHandler => lazyCapabilitiesHandler.Value;
 
@@ -562,12 +562,12 @@
         {
             bool updateRequired = false;
             var resourceTypeCapability = coreResource.Capabilities.FirstOrDefault(x => x.CapabilityProfileID == CoreCapabilities.ResourceType.Id);
-            var capabilityValue = new Skyline.DataMiner.Net.Profiles.CapabilityParameterValue(new List<string> { resourceTypeValue });
+            var capabilityValue = new Net.Profiles.CapabilityParameterValue(new List<string> { resourceTypeValue });
             if (resourceTypeCapability == null)
             {
-                coreResource.Capabilities.Add(new Skyline.DataMiner.Net.SRM.Capabilities.ResourceCapability(CoreCapabilities.ResourceType.Id)
+                coreResource.Capabilities.Add(new Net.SRM.Capabilities.ResourceCapability(CoreCapabilities.ResourceType.Id)
                 {
-                    Value = new Skyline.DataMiner.Net.Profiles.CapabilityParameterValue(new List<string> { resourceTypeValue }),
+                    Value = new Net.Profiles.CapabilityParameterValue(new List<string> { resourceTypeValue }),
                 });
 
                 updateRequired = true;
@@ -964,7 +964,7 @@
                 var capacity = new MultiResourceCapacity
                 {
                     CapacityProfileID = coreCapacity.ID,
-                    Value = new Skyline.DataMiner.Net.Profiles.CapacityParameterValue
+                    Value = new Net.Profiles.CapacityParameterValue
                     {
                         MaxDecimalQuantity = (decimal)resourceCapacity.DoubleValue,
                     },
@@ -1010,11 +1010,11 @@
             return resourceHasChanges;
         }
 
-        private List<Skyline.DataMiner.Net.SRM.Capabilities.ResourceCapability> GetRequiredResourceCapabilities(DomResource domResource)
+        private List<Net.SRM.Capabilities.ResourceCapability> GetRequiredResourceCapabilities(DomResource domResource)
         {
             var domCapabilities = CapabilitiesHandler.GetExpectedCoreResourceCapabilities(domResource);
 
-            var coreCapabilities = new List<Skyline.DataMiner.Net.SRM.Capabilities.ResourceCapability>();
+            var coreCapabilities = new List<Net.SRM.Capabilities.ResourceCapability>();
             foreach (var configuredCapability in domCapabilities)
             {
                 if (!CoreCapabilitiesById.TryGetValue(configuredCapability.ProfileParameterId, out var coreCapability))
@@ -1022,9 +1022,9 @@
                     continue;
                 }
 
-                var capability = new Skyline.DataMiner.Net.SRM.Capabilities.ResourceCapability(coreCapability.ID)
+                var capability = new Net.SRM.Capabilities.ResourceCapability(coreCapability.ID)
                 {
-                    Value = new Skyline.DataMiner.Net.Profiles.CapabilityParameterValue(GetDiscretes(configuredCapability)),
+                    Value = new Net.Profiles.CapabilityParameterValue(GetDiscretes(configuredCapability)),
                 };
 
                 coreCapabilities.Add(capability);

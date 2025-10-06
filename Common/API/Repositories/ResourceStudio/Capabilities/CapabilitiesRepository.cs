@@ -3,18 +3,13 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
-    using Skyline.DataMiner.MediaOps.Plan.Exceptions;
-    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.MediaOps.Plan.ActivityHelper;
-    using Skyline.DataMiner.Net.Helper;
+    using Skyline.DataMiner.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using SLDataGateway.API.Types.Querying;
-    using Skyline.DataMiner.MediaOps.Plan.Storage.Core;
 
-    internal class CapabilitiesRepository : Repository<Capability>, ICapabilitiesRepository
+    internal class CapabilitiesRepository : ProfileParameterRepository<Capability>, ICapabilitiesRepository
     {
         public CapabilitiesRepository(MediaOpsPlanApi api) : base(api)
         {
@@ -22,7 +17,7 @@
 
         public long CountAll()
         {
-            return PlanApi.CoreHelpers.ProfileProvider.CountCapabilities();
+            return PlanApi.CoreHelpers.ProfileProvider.CountAllCapabilities();
         }
 
         public Guid Create(Capability apiObject)
@@ -136,7 +131,7 @@
 
         public IQueryable<Capability> Query()
         {
-            return new ApiRepositoryQuery<Capability>(QueryProvider);
+            return new ApiRepositoryQuery<Capability, Net.Profiles.Parameter>(QueryProvider);
         }
 
         public IQueryable<IEnumerable<Capability>> QueryPaged()
@@ -251,14 +246,74 @@
             });
         }
 
-        internal override long Count(FilterElement<DomInstance> domFilter)
+        internal override long Count(FilterElement<Net.Profiles.Parameter> filter)
         {
-            throw new NotImplementedException();
+            return PlanApi.CoreHelpers.ProfileProvider.CountCapabilities(filter);
         }
 
-        internal override IEnumerable<Capability> Read(IQuery<DomInstance> query)
+        internal override IEnumerable<Capability> Read(IQuery<Net.Profiles.Parameter> query)
         {
-            throw new NotImplementedException();
+            if (query == null)
+            {
+                throw new ArgumentNullException(nameof(query));
+            }
+
+            return PlanApi.CoreHelpers.ProfileProvider.GetCapabilities(query).Select(x => new Capability(x));
+        }
+
+        protected internal override FilterElement<Net.Profiles.Parameter> CreateFilter(string fieldName, Comparer comparer, object value)
+        {
+            switch (fieldName)
+            {
+                case nameof(Capability.IsMandatory):
+                    return FilterElementFactory<Net.Profiles.Parameter>.Create(Net.Profiles.ParameterExposers.IsOptional, comparer, !Convert.ToBoolean(value));
+                case nameof(Capability.IsTimeDependent):
+                    return IsTimeDependantFilter(comparer, Convert.ToBoolean(value));
+                case nameof(Capability.Discretes):
+                    return FilterElementFactory<Net.Profiles.Parameter>.Create(Net.Profiles.ParameterExposers.Discretes, comparer, value);
+            }
+
+            return base.CreateFilter(fieldName, comparer, value);
+        }
+
+        protected internal override IOrderByElement CreateOrderBy(string fieldName, SortOrder sortOrder, bool naturalSort = false)
+        {
+            switch (fieldName)
+            {
+                case nameof(Capability.IsMandatory):
+                    return OrderByElementFactory.Create(Net.Profiles.ParameterExposers.IsOptional, sortOrder, naturalSort);
+                case nameof(Capability.IsTimeDependent):
+                    return OrderByElementFactory.Create(Net.Profiles.ParameterExposers.Remarks, sortOrder, naturalSort);
+                case nameof(Capability.Discretes):
+                    return OrderByElementFactory.Create(Net.Profiles.ParameterExposers.Discretes, sortOrder, naturalSort);
+            }
+
+            return base.CreateOrderBy(fieldName, sortOrder, naturalSort);
+        }
+
+        private FilterElement<Net.Profiles.Parameter> IsTimeDependantFilter(Comparer comparer, bool value)
+        {
+            bool isTimeDependentCheck;
+            switch (comparer)
+            {
+                case Comparer.Equals:
+                    isTimeDependentCheck = value;
+                    break;
+                case Comparer.NotEquals:
+                    isTimeDependentCheck = !value;
+                    break;
+                default:
+                    throw new NotSupportedException($"Comparer {comparer} is not supported for boolean TimeDependency checks");
+            }
+
+            if (isTimeDependentCheck)
+            {
+                return Net.Profiles.ParameterExposers.Remarks.Contains("\"isTimeDependent\":true");
+            }
+            else
+            {
+                return Net.Profiles.ParameterExposers.Remarks.NotContains("\"isTimeDependent\":true");
+            }
         }
     }
 }

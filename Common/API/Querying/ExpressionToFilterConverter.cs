@@ -2,20 +2,20 @@
 {
     using System;
     using System.Linq.Expressions;
-    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
-    internal class ExpressionToFilterConverter<T>
+    internal class ExpressionToFilterConverter<T, TFilterElement>
         where T : ApiObject
+        where TFilterElement : DataType
     {
-        private readonly Repository<T> _repository;
+        private readonly Repository<T, TFilterElement> _repository;
 
-        private ExpressionToFilterConverter(Repository<T> repository)
+        private ExpressionToFilterConverter(Repository<T, TFilterElement> repository)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         }
 
-        public static FilterElement<DomInstance> Convert(Expression expression, Repository<T> repository)
+        public static FilterElement<TFilterElement> Convert(Expression expression, Repository<T, TFilterElement> repository)
         {
             if (expression is null)
             {
@@ -27,12 +27,12 @@
                 throw new ArgumentNullException(nameof(repository));
             }
 
-            var converter = new ExpressionToFilterConverter<T>(repository);
+            var converter = new ExpressionToFilterConverter<T, TFilterElement>(repository);
 
             return converter.ConvertInternal(expression);
         }
 
-        private FilterElement<DomInstance> ConvertInternal(Expression expr)
+        private FilterElement<TFilterElement> ConvertInternal(Expression expr)
         {
             return expr switch
             {
@@ -46,7 +46,7 @@
             };
         }
 
-        private FilterElement<DomInstance> ConvertBinary(BinaryExpression node)
+        private FilterElement<TFilterElement> ConvertBinary(BinaryExpression node)
         {
             // Handle logical combinations
             if (node.NodeType == ExpressionType.AndAlso || node.NodeType == ExpressionType.OrElse)
@@ -56,8 +56,8 @@
 
                 return node.NodeType switch
                 {
-                    ExpressionType.AndAlso => new ANDFilterElement<DomInstance>(left, right),
-                    ExpressionType.OrElse => new ORFilterElement<DomInstance>(left, right),
+                    ExpressionType.AndAlso => new ANDFilterElement<TFilterElement>(left, right),
+                    ExpressionType.OrElse => new ORFilterElement<TFilterElement>(left, right),
                     _ => throw new InvalidOperationException()
                 };
             }
@@ -73,13 +73,13 @@
             throw new NotSupportedException($"Unsupported comparison expression: {node}");
         }
 
-        private FilterElement<DomInstance> ConvertUnary(UnaryExpression node)
+        private FilterElement<TFilterElement> ConvertUnary(UnaryExpression node)
         {
             switch (node.NodeType)
             {
                 case ExpressionType.Not:
                     var operand = ConvertInternal(node.Operand);
-                    return new NOTFilterElement<DomInstance>(operand);
+                    return new NOTFilterElement<TFilterElement>(operand);
 
                 case ExpressionType.Quote:
                     return ConvertInternal(node.Operand);
@@ -89,17 +89,17 @@
             }
         }
 
-        private FilterElement<DomInstance> ConvertConstant(ConstantExpression node)
+        private FilterElement<TFilterElement> ConvertConstant(ConstantExpression node)
         {
             return node.Value switch
             {
-                true => new TRUEFilterElement<DomInstance>(),
-                false => new FALSEFilterElement<DomInstance>(),
+                true => new TRUEFilterElement<TFilterElement>(),
+                false => new FALSEFilterElement<TFilterElement>(),
                 _ => throw new NotSupportedException($"Unsupported constant: {node.Value}")
             };
         }
 
-        private FilterElement<DomInstance> ConvertMethodCall(MethodCallExpression node)
+        private FilterElement<TFilterElement> ConvertMethodCall(MethodCallExpression node)
         {
             if (node.Method.DeclaringType == typeof(String) &&
                 node.Method.Name == nameof(string.Contains) &&
@@ -121,7 +121,7 @@
             throw new NotSupportedException($"Unsupported method call: {node.Method}");
         }
 
-        private FilterElement<DomInstance> ConvertTypeBinary(TypeBinaryExpression node)
+        private FilterElement<TFilterElement> ConvertTypeBinary(TypeBinaryExpression node)
         {
             return _repository.CreateFilter(node.TypeOperand, ExpressionTypeToComparer(node.NodeType));
         }

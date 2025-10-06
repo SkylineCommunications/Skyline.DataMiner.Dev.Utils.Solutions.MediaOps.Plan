@@ -9,7 +9,7 @@
     using Skyline.DataMiner.MediaOps.Plan.Storage.Core;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
-    using CoreResourcePool = Skyline.DataMiner.Net.Messages.ResourcePool;
+    using CoreResourcePool = Net.Messages.ResourcePool;
     using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
 
     internal class CoreResourcePoolHandler

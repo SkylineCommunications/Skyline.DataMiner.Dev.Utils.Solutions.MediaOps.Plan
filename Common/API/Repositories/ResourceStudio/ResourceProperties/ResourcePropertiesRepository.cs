@@ -15,7 +15,7 @@
 
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
-    internal class ResourcePropertiesRepository : Repository<ResourceProperty>, IResourcePropertiesRepository
+    internal class ResourcePropertiesRepository : DomRepository<ResourceProperty>, IResourcePropertiesRepository
     {
         public ResourcePropertiesRepository(MediaOpsPlanApi planApi)
             : base(planApi)
@@ -141,7 +141,7 @@
 
         public IQueryable<ResourceProperty> Query()
         {
-            return new ApiRepositoryQuery<ResourceProperty>(QueryProvider);
+            return new ApiRepositoryQuery<ResourceProperty, DomInstance>(QueryProvider);
         }
 
         public IQueryable<IEnumerable<ResourceProperty>> QueryPaged()

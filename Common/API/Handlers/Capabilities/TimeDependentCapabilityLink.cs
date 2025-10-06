@@ -1,13 +1,12 @@
 ﻿namespace Skyline.DataMiner.MediaOps.Plan.API
 {
     using System;
-
     using Newtonsoft.Json;
 
     /// <summary>
     /// Represents the data required for parsing Remarks property for capabilities.
     /// </summary>
-    public class TimeDependentCapabilityLink
+    internal class TimeDependentCapabilityLink
     {
         /// <summary>
         /// Gets or sets a value indicating whether the capability is time-dependent.

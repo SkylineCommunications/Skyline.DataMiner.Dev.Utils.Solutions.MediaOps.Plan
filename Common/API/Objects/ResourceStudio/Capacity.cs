@@ -2,7 +2,7 @@
 {
     using System;
     using Skyline.DataMiner.Net.Profiles;
-    using CoreParameter = Skyline.DataMiner.Net.Profiles.Parameter;
+    using CoreParameter = Net.Profiles.Parameter;
 
     /// <summary>
     /// Represents a Capacity in the MediaOps.

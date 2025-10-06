@@ -6,8 +6,10 @@
     using Microsoft.Extensions.Logging;
 
     using Skyline.DataMiner.MediaOps.Plan.API;
+    using Skyline.DataMiner.MediaOps.Plan.Storage.Core;
     using Skyline.DataMiner.Net;
-
+    using Skyline.DataMiner.Net.Messages;
+    using Skyline.DataMiner.Net.Profiles;
     using DMConnection = Skyline.DataMiner.Net.Connection;
 
     public sealed class IntegrationTestContext : IDisposable
@@ -15,7 +17,14 @@
         private readonly ILoggerFactory factory;
         private readonly DMConnection connection;
 
+        private readonly Lazy<ResourceManagerHelper> lazyResourceManagerHelper;
+        private readonly Lazy<ProfileHelper> lazyProfileHelper;
+
         public IMediaOpsPlanApi Api { get; private set; }
+
+        public ResourceManagerHelper ResourceManagerHelper => lazyResourceManagerHelper.Value;
+
+        public ProfileHelper ProfileHelper => lazyProfileHelper.Value;
 
         public IntegrationTestContext()
         {
@@ -31,6 +40,9 @@
             var logger = factory.CreateLogger<IMediaOpsPlanApi>();
 
             Api = new MediaOpsPlanApi(connection, logger) ?? throw new NullReferenceException("Unable to create MediaOpsPlanApi");
+
+            lazyResourceManagerHelper = new Lazy<ResourceManagerHelper>(() => new ResourceManagerHelper(connection.HandleSingleResponseMessage));
+            lazyProfileHelper = new Lazy<ProfileHelper>(() => new ProfileHelper(connection.HandleMessages));
         }
 
         public void Dispose()

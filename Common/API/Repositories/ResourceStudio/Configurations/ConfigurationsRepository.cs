@@ -3,13 +3,10 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
-    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using SLDataGateway.API.Types.Querying;
 
-    internal class ConfigurationsRepository : Repository<Configuration>, IConfigurationsRepository
+    internal class ConfigurationsRepository : ProfileParameterRepository<Configuration>, IConfigurationsRepository
     {
         public ConfigurationsRepository(MediaOpsPlanApi planApi) : base(planApi)
         {
@@ -85,12 +82,12 @@
             throw new NotImplementedException();
         }
 
-        internal override long Count(FilterElement<DomInstance> domFilter)
+        internal override long Count(FilterElement<Net.Profiles.Parameter> domFilter)
         {
             throw new NotImplementedException();
         }
 
-        internal override IEnumerable<Configuration> Read(IQuery<DomInstance> query)
+        internal override IEnumerable<Configuration> Read(IQuery<Net.Profiles.Parameter> query)
         {
             throw new NotImplementedException();
         }
