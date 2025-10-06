@@ -391,7 +391,7 @@
                 {
                     foreach (var parentPool in parentPools)
                     {
-                        parentPool.RemoveResourcePoolLink(pool);
+                        parentPool.RemoveLinkedResourcePool(pool);
 
                         referencedApiResourcePoolsToUpdate.Add(parentPool);
                     }
@@ -688,7 +688,7 @@
             }
 
             var linkedResourcePoolIds = apiResourcePools
-                .SelectMany(x => x.ResourcePoolLinks)
+                .SelectMany(x => x.LinkedResourcePools)
                 .Select(x => x.LinkedResourcePoolId)
                 .Distinct()
                 .ToList();
@@ -696,7 +696,7 @@
 
             foreach (var pool in apiResourcePools)
             {
-                foreach (var link in pool.ResourcePoolLinks)
+                foreach (var link in pool.LinkedResourcePools)
                 {
                     if (link.LinkedResourcePoolId == Guid.Empty)
                     {

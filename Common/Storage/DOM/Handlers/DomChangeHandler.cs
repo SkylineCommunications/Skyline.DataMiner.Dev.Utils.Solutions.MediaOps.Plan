@@ -115,6 +115,22 @@
                 return;
             }
 
+            if (!storedSection.FieldValues.ScrambledEquals(orginalSection.FieldValues, new FieldValueComparer()))
+            {
+                results.Errors.Add(new ErrorDetails
+                {
+                    Reason = ErrorDetails.ErrorReason.ValueChanged,
+                    Message = $"Section with ID '{section.ID.Id}' has field value changes.",
+                    Details = new DomDetails
+                    {
+                        SectionDefinitionId = orginalSection.SectionDefinitionID.Id,
+                        SectionId = orginalSection.ID.Id,
+                    },
+                });
+
+                return;
+            }
+
             stored.Sections.Remove(storedSection);
 
             results.RemovedSections.Add(new DomDetails
@@ -325,5 +341,26 @@
         internal Guid SectionId { get; set; }
 
         internal Guid SectionDefinitionId { get; set; }
+    }
+
+    internal class FieldValueComparer : IEqualityComparer<FieldValue>
+    {
+        public bool Equals(FieldValue x, FieldValue y)
+        {
+            if (ReferenceEquals(x, y)) return true;
+            if (x is null || y is null) return false;
+
+            return x.FieldDescriptorID.Id == y.FieldDescriptorID.Id &&
+                   Equals(x.Value, y.Value);
+        }
+        public int GetHashCode(FieldValue obj)
+        {
+            if (obj is null) return 0;
+
+            int hashId = obj.FieldDescriptorID.Id.GetHashCode();
+            int hashValue = obj.Value?.GetHashCode() ?? 0;
+
+            return hashId ^ hashValue;
+        }
     }
 }

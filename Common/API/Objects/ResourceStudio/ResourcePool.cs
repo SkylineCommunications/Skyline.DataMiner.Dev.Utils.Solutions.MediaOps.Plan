@@ -26,7 +26,7 @@
 
         private string url;
 
-        private readonly ICollection<ResourcePoolLink> resourcepoolLinks = [];
+        private readonly ICollection<LinkedResourcePool> linkedResourcepools = [];
 
         private Guid coreResourcePoolId;
 
@@ -100,7 +100,7 @@
         /// <summary>
         /// Gets the collection of links associated with this resource pool.
         /// </summary>
-        public IReadOnlyCollection<ResourcePoolLink> ResourcePoolLinks => (IReadOnlyCollection<ResourcePoolLink>)resourcepoolLinks;
+        public IReadOnlyCollection<LinkedResourcePool> LinkedResourcePools => (IReadOnlyCollection<LinkedResourcePool>)linkedResourcepools;
 
         internal Guid CoreResourcePoolId => coreResourcePoolId;
 
@@ -109,47 +109,47 @@
         /// <summary>
         /// Adds a link to another resource pool.
         /// </summary>
-        /// <param name="resourcePoolLink">The resource pool link to add.</param>
-        public void AddResourcePoolLink(ResourcePoolLink resourcePoolLink)
+        /// <param name="linkedResourcePool">The resource pool link to add.</param>
+        public void AddLinkedResourcePool(LinkedResourcePool linkedResourcePool)
         {
-            if (resourcePoolLink == null)
+            if (linkedResourcePool == null)
             {
-                throw new ArgumentNullException(nameof(resourcePoolLink));
+                throw new ArgumentNullException(nameof(linkedResourcePool));
             }
 
-            if (!resourcePoolLink.IsNew)
+            if (!linkedResourcePool.IsNew)
             {
                 return;
             }
 
-            resourcepoolLinks.Add(resourcePoolLink);
+            linkedResourcepools.Add(linkedResourcePool);
             HasChanges = true;
         }
 
         /// <summary>
         /// Removes the specified resource pool link from the collection, if it exists.
         /// </summary>
-        /// <param name="resourcePoolLink">The resource pool link to remove.</param>
-        public void RemoveResourcePoolLink(ResourcePoolLink resourcePoolLink)
+        /// <param name="linkedResourcePool">The resource pool link to remove.</param>
+        public void RemoveLinkedResourcePool(LinkedResourcePool linkedResourcePool)
         {
-            if (resourcePoolLink == null)
+            if (linkedResourcePool == null)
             {
-                throw new ArgumentNullException(nameof(resourcePoolLink));
+                throw new ArgumentNullException(nameof(linkedResourcePool));
             }
 
-            if (resourcePoolLink.IsNew)
+            if (linkedResourcePool.IsNew)
             {
                 return;
             }
 
-            var toRemove = resourcepoolLinks.SingleOrDefault(x => x.OriginalSection.ID == resourcePoolLink.OriginalSection.ID);
-            if (toRemove != null && resourcepoolLinks.Remove(toRemove))
+            var toRemove = linkedResourcepools.SingleOrDefault(x => x.OriginalSection.ID == linkedResourcePool.OriginalSection.ID);
+            if (toRemove != null && linkedResourcepools.Remove(toRemove))
             {
                 HasChanges = true;
             }
         }
 
-        internal void RemoveResourcePoolLink(ResourcePool resourcePool)
+        internal void RemoveLinkedResourcePool(ResourcePool resourcePool)
         {
             if (resourcePool == null)
             {
@@ -161,12 +161,12 @@
                 return;
             }
 
-            var toRemove = resourcepoolLinks.Where(x => x.LinkedResourcePoolId == resourcePool.Id).ToList();
+            var toRemove = linkedResourcepools.Where(x => x.LinkedResourcePoolId == resourcePool.Id).ToList();
             if (toRemove.Count > 0)
             {
                 foreach (var item in toRemove)
                 {
-                    resourcepoolLinks.Remove(item);
+                    linkedResourcepools.Remove(item);
                     HasChanges = true;
                 }
             }
@@ -185,7 +185,7 @@
             updatedInstance.ResourcePoolOther.URL = url;
 
             updatedInstance.ResourcePoolLinks.Clear();
-            foreach (var link in resourcepoolLinks)
+            foreach (var link in linkedResourcepools)
             {
                 updatedInstance.ResourcePoolLinks.Add(link.GetSectionWithChanges());
             }
@@ -206,9 +206,9 @@
 
             foreach (var section in instance.ResourcePoolLinks)
             {
-                var link = new ResourcePoolLink(section);
+                var link = new LinkedResourcePool(section);
                 link.ValueChanged += (s, e) => { HasChanges = true; };
-                resourcepoolLinks.Add(link);
+                linkedResourcepools.Add(link);
             }
         }
     }
