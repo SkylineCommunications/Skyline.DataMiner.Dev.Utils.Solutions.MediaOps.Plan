@@ -1,8 +1,6 @@
 ﻿namespace Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio
 {
     using System;
-    using System.Collections;
-    using System.Collections.Generic;
     using System.Linq;
 
     internal partial class ResourceInstance
@@ -24,19 +22,6 @@
 
             foreach (var errorToRemove in errorsToRemove) Errors.Remove(errorToRemove);
             return true;
-        }
-
-        public IEnumerable<Guid> PoolIds
-        {
-            get
-            {
-                if (ResourceInternalProperties?.Pool_Ids == null)
-                {
-                    return Enumerable.Empty<Guid>();
-                }
-
-                return ResourceInternalProperties.Pool_Ids.Split([";"], StringSplitOptions.RemoveEmptyEntries).Select(x => Guid.Parse(x));
-            }
         }
     }
 }

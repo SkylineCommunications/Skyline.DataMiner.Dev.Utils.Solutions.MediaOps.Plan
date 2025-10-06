@@ -3,12 +3,16 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Microsoft.Extensions.Logging;
+
     using Skyline.DataMiner.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
+    using Skyline.DataMiner.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
+
     using SLDataGateway.API.Types.Querying;
 
     internal class ResourcesRepository : Repository<Resource>, IResourcesRepository
@@ -127,7 +131,7 @@
                 }
 
                 var resourceId = result.SuccessfulIds.First();
-                act.AddTag("ResourceId", resourceId);
+                act?.AddTag("ResourceId", resourceId);
 
                 return resourceId;
             });
@@ -154,7 +158,7 @@
                 }
 
                 var resourceIds = result.SuccessfulIds;
-                act.AddTag("ResourceIds", String.Join(", ", resourceIds));
+                act?.AddTag("ResourceIds", String.Join(", ", resourceIds));
 
                 return resourceIds;
             });
@@ -175,8 +179,8 @@
                 }
 
                 var resourceIds = result.SuccessfulIds;
-                act.AddTag("Created or Updated Resources", String.Join(", ", resourceIds));
-                act.AddTag("Created or Updated Resources Count", resourceIds.Count);
+                act?.AddTag("Created or Updated Resources", String.Join(", ", resourceIds));
+                act?.AddTag("Created or Updated Resources Count", resourceIds.Count);
 
                 return resourceIds;
             });
@@ -190,18 +194,6 @@
             }
 
             Delete(apiObjects.Select(x => x.Id).ToArray());
-
-            ActivityHelper.Track(nameof(ResourcesRepository), nameof(Delete), act =>
-            {
-                if (!DomResourceHandler.TryDelete(PlanApi, apiObjects, out var result))
-                {
-                    throw new MediaOpsBulkException<Guid>(result);
-                }
-
-                var resourceIds = result.SuccessfulIds;
-                act.AddTag("Removed Resources", String.Join(", ", resourceIds));
-                act.AddTag("Removed Resources Count", resourceIds.Count);
-            });
         }
 
         public void Delete(params Guid[] apiObjectIds)
@@ -213,7 +205,17 @@
 
             var resourcesToDelete = Read(apiObjectIds).Values;
 
-            Delete(resourcesToDelete.ToArray());
+            ActivityHelper.Track(nameof(ResourcesRepository), nameof(Delete), act =>
+            {
+                if (!DomResourceHandler.TryDelete(PlanApi, resourcesToDelete, out var result))
+                {
+                    throw new MediaOpsBulkException<Guid>(result);
+                }
+
+                var resourceIds = result.SuccessfulIds;
+                act?.AddTag("Removed Resources", String.Join(", ", resourceIds));
+                act?.AddTag("Removed Resources Count", resourceIds.Count);
+            });
         }
 
         public void MoveTo(Resource resource, ResourceState desiredState)
@@ -243,8 +245,8 @@
 
             ActivityHelper.Track(nameof(ResourcesRepository), nameof(MoveTo), act =>
             {
-                act.AddTag("ResourceId", resourceId);
-                act.AddTag("DesiredState", desiredState);
+                act?.AddTag("ResourceId", resourceId);
+                act?.AddTag("DesiredState", desiredState);
 
                 var actionMethods = new Dictionary<ResourceState, Action<Resource>>
                 {
@@ -276,8 +278,8 @@
 
             ActivityHelper.Track(nameof(DomResourceHandler), nameof(DomResourceHandler.TransitionToComplete), act =>
             {
-                act.AddTag("ResourceId", resource.Id);
-                act.AddTag("ResourceName", resource.Name);
+                act?.AddTag("ResourceId", resource.Id);
+                act?.AddTag("ResourceName", resource.Name);
 
                 DomResourceHandler.TransitionToComplete(PlanApi, resource);
             });
@@ -298,8 +300,8 @@
 
             ActivityHelper.Track(nameof(ResourcesRepository), nameof(HandleMoveToDeprecatedAction), act =>
             {
-                act.AddTag("ResourceId", resource.Id);
-                act.AddTag("ResourceName", resource.Name);
+                act?.AddTag("ResourceId", resource.Id);
+                act?.AddTag("ResourceName", resource.Name);
 
                 DomResourceHandler.TransitionToDeprecated(PlanApi, resource);
             });
@@ -316,7 +318,7 @@
 
             return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Read), act =>
             {
-                act.AddTag("ResourceId", id);
+                act?.AddTag("ResourceId", id);
                 var filter = DomInstanceExposers.DomDefinitionId.Equal(Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Definitions.Resource.Id)
                         .AND(DomInstanceExposers.Id.Equal(id));
                 var domResource = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(filter)
@@ -324,11 +326,11 @@
 
                 if (domResource == null)
                 {
-                    act.AddTag("Hit", false);
+                    act?.AddTag("Hit", false);
                     return null;
                 }
 
-                act.AddTag("Hit", true);
+                act?.AddTag("Hit", true);
 
                 return Resource.InstantiateResources([domResource]).First();
             });
@@ -343,8 +345,8 @@
 
             return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Read), act =>
             {
-                act.AddTag("ResourceIds", String.Join(", ", ids));
-                act.AddTag("ResourceIds Count", ids.Count());
+                act?.AddTag("ResourceIds", String.Join(", ", ids));
+                act?.AddTag("ResourceIds Count", ids.Count());
 
                 var resources = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(ids);
                 return Resource.InstantiateResources(resources).ToDictionary(x => x.Id);
@@ -505,6 +507,12 @@
 
             ActivityHelper.Track(nameof(ResourcesRepository), nameof(Update), act =>
             {
+                if (!apiObject.HasChanges)
+                {
+                    act?.AddTag("NoChanges", true);
+                    return;
+                }
+
                 if (apiObject.IsNew)
                 {
                     throw new InvalidOperationException("Not possible to use method Update for new resources. Use Create or CreateOrUpdate instead.");
@@ -516,7 +524,7 @@
                 }
 
                 var resourceId = result.SuccessfulIds.First();
-                act.AddTag("ResourceId", resourceId);
+                act?.AddTag("ResourceId", resourceId);
             });
         }
 
@@ -541,7 +549,7 @@
                 }
 
                 var resourceIds = result.SuccessfulIds;
-                act.AddTag("ResourceIds", String.Join(", ", resourceIds));
+                act?.AddTag("ResourceIds", String.Join(", ", resourceIds));
             });
         }
 
@@ -551,40 +559,99 @@
                 DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resource.Id));
         }
 
-        public IEnumerable<Resource> GetDeprecatedResourcesInPool(ResourcePool resourcePool)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IReadOnlyDictionary<ResourcePool, IEnumerable<Resource>> GetDeprecatedResourcesPerPool(IEnumerable<ResourcePool> resourcePools)
-        {
-            var resources = PlanApi.DomHelpers.SlcResourceStudioHelper.GetAllDeprecatedResourcesInPools(resourcePools.Select(x => x.Id));
-
-            var resourcesPerPool = new Dictionary<ResourcePool, IEnumerable<Resource>>();
-            foreach (var pool in resourcePools)
-            {
-                resourcesPerPool.Add(pool, Resource.InstantiateResources(resources.Where(x => x.PoolIds.Contains(pool.Id))));
-            }
-
-            return resourcesPerPool;
-        }
-
         public IEnumerable<Resource> GetResourcesInPool(ResourcePool resourcePool)
         {
+            if (resourcePool == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePool));
+            }
+
             return Resource.InstantiateResources(PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcesByPool(resourcePool.Id));
+        }
+
+        public IEnumerable<Resource> GetResourcesInPool(ResourcePool resourcePool, ResourceState state)
+        {
+            if (resourcePool == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePool));
+            }
+
+            var filter = DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.Pool_Ids)
+                .Contains(Convert.ToString(resourcePool.Id))
+                .AND(DomInstanceExposers.StatusId.Equal(SlcResource_StudioIds.Behaviors.Resource_Behavior.Statuses.ToValue(EnumExtensions.MapEnum<ResourceState, SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum>(state))));
+
+            return Resource.InstantiateResources(PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(filter));
         }
 
         public IReadOnlyDictionary<ResourcePool, IEnumerable<Resource>> GetResourcesPerPool(IEnumerable<ResourcePool> resourcePools)
         {
-            var resources = PlanApi.DomHelpers.SlcResourceStudioHelper.GetAllResourcesInPools(resourcePools.Select(x => x.Id));
-
-            var resourcesPerPool = new Dictionary<ResourcePool, IEnumerable<Resource>>();
-            foreach (var pool in resourcePools)
+            if (resourcePools == null)
             {
-                resourcesPerPool.Add(pool, Resource.InstantiateResources(resources.Where(x => x.PoolIds.Contains(pool.Id))));
+                throw new ArgumentNullException(nameof(resourcePools));
             }
 
+            var domResources = PlanApi.DomHelpers.SlcResourceStudioHelper.GetAllResourcesInPools(resourcePools.Select(x => x.Id));
+            var apiResourcesById = Resource.InstantiateResources(domResources).ToDictionary(x => x.Id);
+
+            var resourcesPerPool = resourcePools.ToDictionary(
+                pool => pool,
+                pool =>
+                    domResources
+                        .Where(x => x.ResourceInternalProperties.PoolIds.Contains(pool.Id))
+                        .Select(x => apiResourcesById[x.ID.Id])
+            );
+
             return resourcesPerPool;
+        }
+
+        public IReadOnlyDictionary<ResourcePool, IEnumerable<Resource>> GetResourcesPerPool(IEnumerable<ResourcePool> resourcePools, ResourceState state)
+        {
+            if (resourcePools == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePools));
+            }
+
+            var resourceFilters = resourcePools
+                .Select(x => DomInstanceExposers.FieldValues
+                    .DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.Pool_Ids)
+                    .Contains(Convert.ToString(x.Id)))
+                .ToArray();
+
+            var filter = new ORFilterElement<DomInstance>(resourceFilters)
+                .AND(DomInstanceExposers.StatusId.Equal(SlcResource_StudioIds.Behaviors.Resource_Behavior.Statuses.ToValue(EnumExtensions.MapEnum<ResourceState, SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum>(state))));
+
+            var domResources = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(filter);
+            var apiResourcesById = Resource.InstantiateResources(domResources).ToDictionary(x => x.Id);
+
+            var resourcesPerPool = resourcePools.ToDictionary(
+                pool => pool,
+                pool =>
+                    domResources
+                        .Where(x => x.ResourceInternalProperties.PoolIds.Contains(pool.Id))
+                        .Select(x => apiResourcesById[x.ID.Id])
+            );
+
+            return resourcesPerPool;
+        }
+
+        public IQueryable<Resource> Query()
+        {
+            return new ApiRepositoryQuery<Resource>(QueryProvider);
+        }
+
+        public IQueryable<IEnumerable<Resource>> QueryPaged()
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool HasResources(ResourcePool resourcePool)
+        {
+            throw new NotImplementedException();
+        }
+
+        public long ResourceCount(ResourcePool resourcePool)
+        {
+            throw new NotImplementedException();
         }
 
         internal override IEnumerable<Resource> Read(IQuery<DomInstance> query)
@@ -607,16 +674,6 @@
         {
             return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(
                 DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resource.Id).AND(domFilter));
-        }
-
-        public IQueryable<Resource> Query()
-        {
-            return new ApiRepositoryQuery<Resource>(QueryProvider);
-        }
-
-        public IQueryable<IEnumerable<Resource>> QueryPaged()
-        {
-            throw new NotImplementedException();
         }
 
         protected internal override FilterElement<DomInstance> CreateFilter(string fieldName, Comparer comparer, object value)

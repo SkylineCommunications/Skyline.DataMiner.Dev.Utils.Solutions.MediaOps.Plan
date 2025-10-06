@@ -3,9 +3,11 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
+
     using SLDataGateway.API.Types.Querying;
 
     internal abstract class Repository<T> where T : ApiObject

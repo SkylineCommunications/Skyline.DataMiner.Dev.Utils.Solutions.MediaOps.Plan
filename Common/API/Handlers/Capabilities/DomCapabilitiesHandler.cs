@@ -7,6 +7,7 @@
     using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
     using DomResource = Storage.DOM.SlcResource_Studio.ResourceInstance;
 
+    // Todo: Take code from MediaOps solution
     internal class DomCapabilitiesHandler
     {
         #region Fields

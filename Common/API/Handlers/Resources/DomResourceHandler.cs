@@ -100,6 +100,7 @@
 
         private void TransitionToDeprecated(Resource apiResource)
         {
+            // Todo: add checks to see if resource is in use by jobs, etc.
             CoreResourceHandler.DeprecateResource(planApi, apiResource.OriginalInstance);
             planApi.DomHelpers.SlcResourceStudioHelper.TransitionResourceToDeprecated(apiResource.Id);
         }
@@ -145,7 +146,7 @@
             var changeResults = ActivityHelper.Track(nameof(DomResourceHandler), nameof(GetResourcesWithChanges), act => GetResourcesWithChanges(toUpdate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id))));
 
             var toCreateNameValidation = toCreate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id));
-            var toUpdateNameValidation = toUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFieldDescriptorIds.Contains(SlcResource_StudioIds.Sections.ResourceInfo.Name.Id)));
+            var toUpdateNameValidation = toUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcResource_StudioIds.Sections.ResourceInfo.Name.Id)));
             ActivityHelper.Track(nameof(DomResourceHandler), nameof(ValidateNames), act => ValidateNames(toCreateNameValidation.Concat(toUpdateNameValidation)));
 
             var toCreateDomInstances = toCreate
@@ -421,8 +422,7 @@
 
             FilterElement<DomInstance> filter(string name) =>
                 DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resource.Id)
-                .AND(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Name).Equal(name)
-                .AND(DomInstanceExposers.StatusId.NotEqual(SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.Statuses.Draft)));
+                .AND(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Name).Equal(name));
 
             var domResourcesbyName = planApi.DomHelpers.SlcResourceStudioHelper.GetResources(resourcesRequiringValidation.Select(x => x.Name), filter)
                 .GroupBy(x => x.Name)
@@ -497,12 +497,12 @@
                 var changeResult = DomChangeHandler.HandleChanges(resource.OriginalInstance, resource.GetInstanceWithChanges(), stored);
                 if (changeResult.HasErrors)
                 {
-                    foreach (var errorMessage in changeResult.Errors)
+                    foreach (var errorDetails in changeResult.Errors)
                     {
                         var error = new ResourceConfigurationError
                         {
                             ErrorReason = ResourceConfigurationError.Reason.ValueAlreadyChanged,
-                            ErrorMessage = errorMessage
+                            ErrorMessage = errorDetails.Message,
                         };
 
                         ReportError(resource.Id, error);

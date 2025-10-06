@@ -1,6 +1,7 @@
 ﻿namespace MediaOps_Injector
 {
     using System;
+    using System.Collections.Generic;
     using System.Diagnostics;
     using System.Linq;
     using System.Net;
@@ -26,11 +27,13 @@
             var credentials = CredentialCache.DefaultNetworkCredentials;
 
             Console.WriteLine("Connecting to DataMiner...");
-            DMConnection connection = ConnectionSettings.GetConnection("slc-h67-g03.skyline.local");
+            DMConnection connection = ConnectionSettings.GetConnection("jensvd.skyline.local");
             connection.Authenticate(credentials.UserName, credentials.Password, credentials.Domain);
             Console.WriteLine("Connected to DataMiner\r\n");
 
-            var loggerFactory = LoggerFactory.Create(builder =>
+            TestResourcePoolRepository_DuplicateNames(new MediaOpsPlanApi(connection));
+
+            /*var loggerFactory = LoggerFactory.Create(builder =>
             {
                 builder.AddConsole();
                 builder.SetMinimumLevel(LogLevel.Information);
@@ -75,7 +78,7 @@
                 planApi.Dispose();
                 loggerFactory.Dispose();
                 tracingProvider.Dispose();
-            }
+            }*/
         }
 
         private static void TestResourcePoolRepository(IMediaOpsPlanApi planApi)
@@ -109,7 +112,7 @@
             }
 
             planApi.ResourcePools.MoveTo(createdResourcePool, ResourcePoolState.Complete);
-            Console.WriteLine($"Moved Resource Pool to state: {createdResourcePool.State}\r\n");
+            Console.WriteLine($"Moved Resource Pool to state: {ResourcePoolState.Complete}\r\n");
             Console.WriteLine($"Resource Pool ID: {createdResourcePool.Id}\r\n");
             Console.WriteLine("Press Enter to continue...");
             Console.ReadLine();
@@ -119,6 +122,33 @@
             planApi.ResourcePools.Update(movedResourcePool);
 
             Console.WriteLine($"Updated Resource Pool Name: {movedResourcePool.Name}");
+        }
+
+        private static void TestResourcePoolRepository_DuplicateNames(IMediaOpsPlanApi planApi)
+        {
+            var resourcePool1 = new ResourcePool()
+            {
+                Name = "MyResourcePool",
+            };
+            var resourcePool2 = new ResourcePool()
+            {
+                Name = "MyResourcePool1",
+            };
+            var resourcePool3 = new ResourcePool()
+            {
+                Name = "MyResourcePool1",
+            };
+
+            var resourcePoolIds = planApi.ResourcePools.Create(new List<ResourcePool> { resourcePool1, resourcePool2 });
+            Console.WriteLine($"Created Resource Pools with IDs: {string.Join(", ", resourcePoolIds)}\r\n");
+
+            Console.WriteLine("Press Enter to continue...");
+            Console.ReadLine();
+
+            planApi.ResourcePools.MoveTo(resourcePoolIds.ElementAt(0), ResourcePoolState.Complete);
+            planApi.ResourcePools.MoveTo(resourcePoolIds.ElementAt(1), ResourcePoolState.Complete);
+
+            planApi.ResourcePools.Create(resourcePool3);
         }
 
         private static void TestResourceRepository(IMediaOpsPlanApi planApi)

@@ -6,7 +6,14 @@
     public class ResourcePoolDeleteOptions
     {
         /// <summary>
-        /// Gets or sets a value indicating whether deprecated resources, part of the resource pool, should be deleted.
+        /// Gets or sets a value indicating whether draft resources should be deleted.
+        /// Resources that are part of multiple resource pools will not be deleted.
+        /// </summary>
+        public bool DeleteDraftResources { get; set; } = false;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether deprecated resources should be deleted.
+        /// Resources that are part of multiple resource pools will not be deleted.
         /// </summary>
         public bool DeleteDeprecatedResources { get; set; } = false;
 
@@ -14,6 +21,7 @@
         {
             return new ResourcePoolDeleteOptions
             {
+                DeleteDraftResources = false,
                 DeleteDeprecatedResources = false
             };
         }

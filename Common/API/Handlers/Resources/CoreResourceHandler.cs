@@ -1062,7 +1062,7 @@
 
         private bool SyncPools(DomResource domResource, CoreResource coreResource)
         {
-            var poolIds = domResource.PoolIds ?? Enumerable.Empty<Guid>();
+            var poolIds = domResource.ResourceInternalProperties?.PoolIds ?? Enumerable.Empty<Guid>();
             var pools = planApi.ResourcePools.Read(poolIds).Values;
             var corePoolIds = pools.Select(x => x.CoreResourcePoolId).Where(x => x != Guid.Empty).ToList();
 
@@ -1079,9 +1079,8 @@
 
         private sealed class ResourceMapping
         {
-            private ResourceMapping(DomResource domResource)
+            private ResourceMapping(DomResource domResource) : this(domResource, new CoreResource { ID = Guid.NewGuid() })
             {
-                DomResource = domResource ?? throw new ArgumentNullException(nameof(domResource));
             }
 
             private ResourceMapping(DomResource domResource, CoreResource coreResource)
