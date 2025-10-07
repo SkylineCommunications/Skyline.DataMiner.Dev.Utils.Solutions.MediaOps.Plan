@@ -1,38 +1,28 @@
 ﻿namespace RT_MediaOps.Plan.RST.ResourcePools
 {
     using System;
-    using System.Collections.Generic;
     using System.Linq;
 
     using RT_MediaOps.Plan.RegressionTests;
 
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
 
-    using SLDataGateway.API.Collections.Linq;
-
     [TestClass]
     [TestCategory("IntegrationTest")]
     public sealed class LinkedPoolTests : IDisposable
     {
         private readonly IntegrationTestContext testContext;
-        private readonly HashSet<Guid> createdPoolIds = new HashSet<Guid>();
+        private readonly ResourceStudioObjectCreator objectCreator;
 
         public LinkedPoolTests()
         {
             testContext = new IntegrationTestContext();
+            objectCreator = new ResourceStudioObjectCreator(testContext.Api);
         }
 
         public void Dispose()
         {
-            try
-            {
-                testContext.Api.ResourcePools.Delete(createdPoolIds.ToArray());
-            }
-            catch
-            {
-                // Ignore cleanup errors
-            }
-
+            objectCreator.Dispose();
             testContext.Dispose();
         }
 
@@ -54,11 +44,11 @@
                 Name = $"{prefix}_ResourcePool3",
             };
 
-            var poolIds = CreateResourcePools(new[] { resourcePool1, resourcePool2 }).ToArray();
+            var poolIds = objectCreator.CreateResourcePools(new[] { resourcePool1, resourcePool2 }).ToArray();
 
             // Create pool with link
             resourcePool3.AddLinkedResourcePool(new Skyline.DataMiner.MediaOps.Plan.API.LinkedResourcePool(poolIds[0]));
-            var poolId3 = CreateResourcePool(resourcePool3);
+            var poolId3 = objectCreator.CreateResourcePool(resourcePool3);
 
             resourcePool3 = testContext.Api.ResourcePools.Read(poolId3);
             Assert.AreEqual(1, resourcePool3.LinkedResourcePools.Count);
@@ -109,7 +99,7 @@
 
             try
             {
-                CreateResourcePool(resourcePool);
+                objectCreator.CreateResourcePool(resourcePool);
             }
             catch (MediaOpsException ex)
             {
@@ -139,7 +129,7 @@
                 Name = $"{prefix}_ResourcePool",
             };
 
-            var poolId = CreateResourcePool(resourcePool);
+            var poolId = objectCreator.CreateResourcePool(resourcePool);
             resourcePool = testContext.Api.ResourcePools.Read(poolId);
 
             var invalidPoolId = Guid.NewGuid();
@@ -185,12 +175,12 @@
                 Name = $"{prefix}_ResourcePool3",
             };
 
-            var poolIds = CreateResourcePools(new[] { resourcePool1, resourcePool2 }).ToArray();
+            var poolIds = objectCreator.CreateResourcePools(new[] { resourcePool1, resourcePool2 }).ToArray();
 
             // Create pool with 2 links
             resourcePool3.AddLinkedResourcePool(new Skyline.DataMiner.MediaOps.Plan.API.LinkedResourcePool(poolIds[0]));
             resourcePool3.AddLinkedResourcePool(new Skyline.DataMiner.MediaOps.Plan.API.LinkedResourcePool(poolIds[1]));
-            var poolId3 = CreateResourcePool(resourcePool3);
+            var poolId3 = objectCreator.CreateResourcePool(resourcePool3);
 
             resourcePool3 = testContext.Api.ResourcePools.Read(poolId3);
             Assert.AreEqual(2, resourcePool3.LinkedResourcePools.Count);
@@ -202,24 +192,6 @@
 
             Assert.AreEqual(Skyline.DataMiner.MediaOps.Plan.API.ResourceSelectionType.Automatic, resourcePool3.LinkedResourcePools.First().SelectionType);
             Assert.AreEqual(poolIds[1], resourcePool3.LinkedResourcePools.First().LinkedResourcePoolId);
-        }
-
-        private Guid CreateResourcePool(Skyline.DataMiner.MediaOps.Plan.API.ResourcePool resourcePool)
-        {
-            var poolId = testContext.Api.ResourcePools.Create(resourcePool);
-            createdPoolIds.Add(poolId);
-
-            return poolId;
-        }
-
-        private IEnumerable<Guid> CreateResourcePools(IEnumerable<Skyline.DataMiner.MediaOps.Plan.API.ResourcePool> resourcePools)
-        {
-            var poolIds = testContext.Api.ResourcePools.Create(resourcePools);
-            foreach (var id in poolIds)
-            {
-                createdPoolIds.Add(id);
-            }
-            return poolIds;
         }
     }
 }

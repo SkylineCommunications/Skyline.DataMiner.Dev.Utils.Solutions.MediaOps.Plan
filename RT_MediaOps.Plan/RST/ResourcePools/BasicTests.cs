@@ -3,9 +3,6 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Xml.Linq;
-
-    using Alphaleonis.Win32.Filesystem;
 
     using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -18,24 +15,17 @@
     public sealed class BasicTests : IDisposable
     {
         private readonly IntegrationTestContext testContext;
-        private readonly HashSet<Guid> createdPoolIds = new HashSet<Guid>();
+        private readonly ResourceStudioObjectCreator objectCreator;
 
         public BasicTests()
         {
             testContext = new IntegrationTestContext();
+            objectCreator = new ResourceStudioObjectCreator(testContext.Api);
         }
 
         public void Dispose()
         {
-            try
-            {
-                testContext.Api.ResourcePools.Delete(createdPoolIds.ToArray());
-            }
-            catch
-            {
-                // Ignore cleanup errors
-            }
-
+            objectCreator.Dispose();
             testContext.Dispose();
         }
 
@@ -51,7 +41,7 @@
                 Name = name,
             };
 
-            var returnedId = CreateResourcePool(resourcePool);
+            var returnedId = objectCreator.CreateResourcePool(resourcePool);
             Assert.AreEqual(poolId, returnedId);
 
             var returnedResourcePool = testContext.Api.ResourcePools.Read(poolId);
@@ -99,10 +89,10 @@
                 Name = $"{poolId}_ResourcePool_2",
             };
 
-            CreateResourcePool(resourcePool1);
+            objectCreator.CreateResourcePool(resourcePool1);
             try
             {
-                CreateResourcePool(resourcePool2);
+                objectCreator.CreateResourcePool(resourcePool2);
             }
             catch (MediaOpsException ex)
             {
@@ -138,7 +128,7 @@
 
             try
             {
-                CreateResourcePools(new[] {resourcePool1, resourcePool2});
+                objectCreator.CreateResourcePools(new[] {resourcePool1, resourcePool2});
             }
             catch (MediaOpsBulkException<Guid> ex)
             {
@@ -186,10 +176,10 @@
                 Name = $"{prefix}_ResourcePool",
             };
 
-            CreateResourcePool(resourcePool1);
+            objectCreator.CreateResourcePool(resourcePool1);
             try
             {
-                CreateResourcePool(resourcePool2);
+                objectCreator.CreateResourcePool(resourcePool2);
             }
             catch (MediaOpsException ex)
             {
@@ -225,7 +215,7 @@
 
             try
             {
-                CreateResourcePools(new[] { resourcePool1, resourcePool2 });
+                objectCreator.CreateResourcePools(new[] { resourcePool1, resourcePool2 });
             }
             catch (MediaOpsBulkException<Guid> ex)
             {
@@ -262,8 +252,8 @@
                 Name = $"{prefix}_ResourcePool_2",
             };
 
-            var id1 = CreateResourcePool(resourcePool1);
-            var id2 = CreateResourcePool(resourcePool2);
+            var id1 = objectCreator.CreateResourcePool(resourcePool1);
+            var id2 = objectCreator.CreateResourcePool(resourcePool2);
 
             var toUpdate = testContext.Api.ResourcePools.Read(id2);
             toUpdate.Name = resourcePool1.Name;
@@ -287,24 +277,6 @@
             }
 
             Assert.Fail("Exception not thrown");
-        }
-
-        private Guid CreateResourcePool(Skyline.DataMiner.MediaOps.Plan.API.ResourcePool resourcePool)
-        {
-            var poolId = testContext.Api.ResourcePools.Create(resourcePool);
-            createdPoolIds.Add(poolId);
-
-            return poolId;
-        }
-
-        private IEnumerable<Guid> CreateResourcePools(IEnumerable<Skyline.DataMiner.MediaOps.Plan.API.ResourcePool> resourcePools)
-        {
-            var poolIds = testContext.Api.ResourcePools.Create(resourcePools);
-            foreach (var id in poolIds)
-            {
-                createdPoolIds.Add(id);
-            }
-            return poolIds;
         }
     }
 }

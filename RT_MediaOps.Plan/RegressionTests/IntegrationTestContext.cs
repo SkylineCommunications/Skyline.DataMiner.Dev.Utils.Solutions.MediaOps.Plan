@@ -8,6 +8,7 @@
     using Skyline.DataMiner.Net;
 
     using DMConnection = Skyline.DataMiner.Net.Connection;
+    using Storage = Skyline.DataMiner.MediaOps.Plan.Storage;
 
     public sealed class IntegrationTestContext : IDisposable
     {
@@ -15,6 +16,8 @@
         private readonly DMConnection connection;
 
         public IMediaOpsPlanApi Api { get; private set; }
+
+        internal Storage.DOM.DomHelpers DomHelpers { get; private set; }
 
         public IntegrationTestContext()
         {
@@ -32,6 +35,7 @@
             var logger = factory.CreateLogger<IMediaOpsPlanApi>();
 
             Api = new MediaOpsPlanApi(connection, logger) ?? throw new NullReferenceException("Unable to create MediaOpsPlanApi");
+            DomHelpers = new Storage.DOM.DomHelpers(connection) ?? throw new NullReferenceException("Unable to create DomHelpers");
         }
 
         public void Dispose()
