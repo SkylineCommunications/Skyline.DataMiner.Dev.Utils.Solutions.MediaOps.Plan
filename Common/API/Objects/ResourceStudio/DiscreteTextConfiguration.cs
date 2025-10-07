@@ -13,7 +13,11 @@
         {
         }
 
-        protected internal override void InternalParseParameter(Parameter parameter)
+        internal DiscreteTextConfiguration(Net.Profiles.Parameter parameter) : base(parameter)
+        {
+        }
+
+        protected internal override void InternalParseParameter(Net.Profiles.Parameter parameter)
         {
             throw new NotImplementedException();
         }

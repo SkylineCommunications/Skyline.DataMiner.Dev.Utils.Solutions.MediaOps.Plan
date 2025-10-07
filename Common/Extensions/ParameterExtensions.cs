@@ -3,6 +3,7 @@
     using System;
     using Skyline.DataMiner.MediaOps.Plan.API;
     using Skyline.DataMiner.Net.Profiles;
+    using Parameter = Net.Profiles.Parameter;
 
     /// <summary>
     /// Provides extension methods for the <see cref="Parameter"/> class.

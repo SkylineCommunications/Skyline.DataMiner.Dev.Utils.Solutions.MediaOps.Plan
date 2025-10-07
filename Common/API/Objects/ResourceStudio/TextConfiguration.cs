@@ -1,7 +1,6 @@
 ﻿namespace Skyline.DataMiner.MediaOps.Plan.API
 {
     using System;
-    using Skyline.DataMiner.Net.Profiles;
 
     public class TextConfiguration : Configuration
     {
@@ -13,7 +12,11 @@
         {
         }
 
-        protected internal override void InternalParseParameter(Parameter parameter)
+        internal TextConfiguration(Net.Profiles.Parameter profile) : base(profile)
+        {
+        }
+
+        protected internal override void InternalParseParameter(Net.Profiles.Parameter parameter)
         {
             throw new NotImplementedException();
         }
