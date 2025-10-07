@@ -92,7 +92,7 @@
 
             var capability1 = new Capability
             {
-                Name = $"Capability_{Guid.NewGuid()}",
+                Name = $"Capability1_{Guid.NewGuid()}",
                 IsMandatory = true,
                 IsTimeDependent = true,
                 Discretes = discretes,
@@ -100,7 +100,7 @@
 
             var capability2 = new Capability
             {
-                Name = $"Capability_{Guid.NewGuid()}",
+                Name = $"Capability2_{Guid.NewGuid()}",
                 IsMandatory = true,
                 IsTimeDependent = false,
                 Discretes = discretes,
@@ -109,18 +109,33 @@
             var currentCapabilities = testContext.Api.Capabilities.ReadAll();
             var currentCapabilityCount = currentCapabilities.Count();
             var mandatoryCapabilities = currentCapabilities.Count(x => x.IsMandatory);
+            var optionalCapabilities = currentCapabilities.Count(x => !x.IsMandatory);
             var timeDependentCapabilities = currentCapabilities.Count(x => x.IsTimeDependent);
 
             testContext.Api.Capabilities.CreateOrUpdate(new[] { capability1, capability2 });
 
             Assert.AreEqual(currentCapabilityCount + 2, testContext.Api.Capabilities.Query().Count());
-            Assert.AreEqual(currentCapabilityCount + 2, testContext.Api.Capabilities.Query().Count(x => x.IsMandatory));
-            Assert.AreEqual(currentCapabilityCount + 1, testContext.Api.Capabilities.Query().Count(x => x.IsTimeDependent));
-            Assert.AreEqual(1, testContext.Api.Capabilities.Query().Count(x => x.Name.Equals(capability1.Name)));
+            Assert.AreEqual(optionalCapabilities, testContext.Api.Capabilities.Query().Count(x => !x.IsMandatory));
+            Assert.AreEqual(mandatoryCapabilities + 2, testContext.Api.Capabilities.Query().Count(x => x.IsMandatory));
+            Assert.AreEqual(mandatoryCapabilities + 2, testContext.Api.Capabilities.Query().Count(x => x.IsMandatory == true));
+            Assert.AreEqual(mandatoryCapabilities + 2, testContext.Api.Capabilities.Query().Count(x => x.IsMandatory.Equals(true)));
+            Assert.AreEqual(timeDependentCapabilities + 1, testContext.Api.Capabilities.Query().Count(x => x.IsTimeDependent == true));
+            Assert.AreEqual(1, testContext.Api.Capabilities.Query().Count(x => x.Name == capability1.Name));
             Assert.AreEqual(2, testContext.Api.Capabilities.Query().Count(x => x.Discretes.Contains(discretes[1])));
-            Assert.AreEqual(currentCapabilityCount + 2, testContext.Api.Capabilities.Query().Count(x => x.Discretes.Count > 2));
 
-            // TODO: extend this
+            testContext.Api.Capabilities.Delete(new[] { capability1, capability2 });
+        }
+
+        [TestMethod]
+        public void ReadAllPaged()
+        {
+            foreach (var page in testContext.Api.Capabilities.ReadAllPaged())
+            {
+                foreach (var capability in page)
+                {
+                    Assert.IsNotNull(capability);
+                }
+            }
         }
     }
 }

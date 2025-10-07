@@ -192,7 +192,10 @@
 
         public IEnumerable<IEnumerable<Capability>> ReadAllPaged()
         {
-            throw new NotImplementedException();
+            return ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(ReadAllPaged), act =>
+            {
+                return PlanApi.CoreHelpers.ProfileProvider.GetAllCapabilitiesPaged().Select(page => page.Select(x => new Capability(x)));
+            });
         }
 
         public void Update(Capability apiObject)
