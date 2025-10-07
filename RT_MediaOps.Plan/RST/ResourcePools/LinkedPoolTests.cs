@@ -193,5 +193,44 @@
             Assert.AreEqual(Skyline.DataMiner.MediaOps.Plan.API.ResourceSelectionType.Automatic, resourcePool3.LinkedResourcePools.First().SelectionType);
             Assert.AreEqual(poolIds[1], resourcePool3.LinkedResourcePools.First().LinkedResourcePoolId);
         }
+
+        [TestMethod]
+        public void CreateWithDifferentLinkTypes()
+        {
+            var prefix = Guid.NewGuid().ToString();
+
+            var resourcePool1 = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool()
+            {
+                Name = $"{prefix}_ResourcePool1",
+            };
+            var resourcePool2 = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool()
+            {
+                Name = $"{prefix}_ResourcePool2",
+            };
+            var resourcePool3 = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool()
+            {
+                Name = $"{prefix}_ResourcePool3",
+            };
+
+            var poolIds = objectCreator.CreateResourcePools(new[] { resourcePool1, resourcePool2 }).ToArray();
+
+            resourcePool3.AddLinkedResourcePool(new Skyline.DataMiner.MediaOps.Plan.API.LinkedResourcePool(poolIds[0]) { SelectionType = Skyline.DataMiner.MediaOps.Plan.API.ResourceSelectionType.Automatic });
+            resourcePool3.AddLinkedResourcePool(new Skyline.DataMiner.MediaOps.Plan.API.LinkedResourcePool(poolIds[1]) { SelectionType = Skyline.DataMiner.MediaOps.Plan.API.ResourceSelectionType.Manual });
+            var poolId3 = objectCreator.CreateResourcePool(resourcePool3);
+
+            resourcePool3 = testContext.Api.ResourcePools.Read(poolId3);
+            Assert.AreEqual(2, resourcePool3.LinkedResourcePools.Count);
+
+            var expectedPoolData = new Dictionary<Guid, Skyline.DataMiner.MediaOps.Plan.API.ResourceSelectionType>
+            {
+                { poolIds[0], Skyline.DataMiner.MediaOps.Plan.API.ResourceSelectionType.Automatic },
+                { poolIds[1], Skyline.DataMiner.MediaOps.Plan.API.ResourceSelectionType.Manual },
+            };
+            foreach (var link in resourcePool3.LinkedResourcePools)
+            {
+                Assert.IsTrue(expectedPoolData.TryGetValue(link.LinkedResourcePoolId, out var expectedSelectionType));
+                Assert.AreEqual(expectedSelectionType, link.SelectionType);
+            }
+        }
     }
 }

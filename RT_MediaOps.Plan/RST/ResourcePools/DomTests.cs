@@ -2,6 +2,7 @@
 {
     using System;
     using System.Linq;
+    using System.Reflection.Emit;
 
     using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -110,9 +111,9 @@
             var fdDomain = domResourcePoolInfo.FieldValues.SingleOrDefault(f => f.FieldDescriptorID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ResourcePoolInfo.Domain.Id);
             Assert.IsNull(fdDomain);
 
-            var domResourcePoolIds = domResourcePoolInternalProperties.FieldValues.SingleOrDefault(f => f.FieldDescriptorID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ResourcePoolInternalProperties.Resource_Pool_Id.Id);
-            Assert.IsNotNull(domResourcePoolIds);
-            Assert.IsTrue(Guid.TryParse(Convert.ToString(domResourcePoolIds.Value.Value), out var coreResourcePoolId));
+            var fdDomResourcePoolIds = domResourcePoolInternalProperties.FieldValues.SingleOrDefault(f => f.FieldDescriptorID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ResourcePoolInternalProperties.Resource_Pool_Id.Id);
+            Assert.IsNotNull(fdDomResourcePoolIds);
+            Assert.IsTrue(Guid.TryParse(Convert.ToString(fdDomResourcePoolIds.Value.Value), out var coreResourcePoolId));
             Assert.IsTrue(coreResourcePoolId != Guid.Empty);
         }
 
@@ -159,6 +160,63 @@
             Assert.IsNotNull(domResourcePoolIds);
             Assert.IsTrue(Guid.TryParse(Convert.ToString(domResourcePoolIds.Value.Value), out var coreResourcePoolId));
             Assert.IsTrue(coreResourcePoolId != Guid.Empty);
+        }
+
+        [TestMethod]
+        public void LinkedPoolData()
+        {
+            var prefix = Guid.NewGuid().ToString();
+
+            var resourcePool1 = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool()
+            {
+                Name = $"{prefix}_ResourcePool1",
+            };
+            var resourcePool2 = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool()
+            {
+                Name = $"{prefix}_ResourcePool2",
+            };
+            var resourcePool3 = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool()
+            {
+                Name = $"{prefix}_ResourcePool3",
+            };
+
+            var poolIds = objectCreator.CreateResourcePools(new[] { resourcePool1, resourcePool2 }).ToArray();
+
+            resourcePool3.AddLinkedResourcePool(new Skyline.DataMiner.MediaOps.Plan.API.LinkedResourcePool(poolIds[0]) { SelectionType = Skyline.DataMiner.MediaOps.Plan.API.ResourceSelectionType.Automatic });
+            resourcePool3.AddLinkedResourcePool(new Skyline.DataMiner.MediaOps.Plan.API.LinkedResourcePool(poolIds[1]) { SelectionType = Skyline.DataMiner.MediaOps.Plan.API.ResourceSelectionType.Manual });
+            var poolId3 = objectCreator.CreateResourcePool(resourcePool3);
+
+            var domResourcePool = testContext.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(poolId3)).SingleOrDefault();
+            Assert.IsNotNull(domResourcePool);
+
+            Assert.IsTrue(domResourcePool.Sections.Exists(s => s.SectionDefinitionID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ResourcePoolInfo.Id.Id));
+            Assert.IsTrue(domResourcePool.Sections.Exists(s => s.SectionDefinitionID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ResourcePoolInternalProperties.Id.Id));
+            Assert.IsFalse(domResourcePool.Sections.Exists(s => s.SectionDefinitionID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ResourcePoolCost.Id.Id));
+            Assert.IsFalse(domResourcePool.Sections.Exists(s => s.SectionDefinitionID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ResourcePoolCapabilities.Id.Id));
+            Assert.IsTrue(domResourcePool.Sections.Exists(s => s.SectionDefinitionID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ResourcePoolLinks.Id.Id));
+            Assert.IsFalse(domResourcePool.Sections.Exists(s => s.SectionDefinitionID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ExternalMetadata.Id.Id));
+            Assert.IsFalse(domResourcePool.Sections.Exists(s => s.SectionDefinitionID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ResourcePoolOther.Id.Id));
+            Assert.IsFalse(domResourcePool.Sections.Exists(s => s.SectionDefinitionID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ConfigurationInfo.Id.Id));
+            Assert.IsFalse(domResourcePool.Sections.Exists(s => s.SectionDefinitionID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.Errors.Id.Id));
+
+            var expectedSelectionData = new Dictionary<Guid, int>
+            {
+                { poolIds[0], (int)Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Resourceselectiontype.Automatic },
+                { poolIds[1], (int)Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Resourceselectiontype.Manual },
+            };
+            foreach (var resourcePoolLink in domResourcePool.Sections.Where(s => s.SectionDefinitionID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ResourcePoolLinks.Id.Id))
+            {
+                var fdLinkedPoolId = resourcePoolLink.FieldValues.SingleOrDefault(f => f.FieldDescriptorID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ResourcePoolLinks.LinkedResourcePool.Id);
+                Assert.IsNotNull(fdLinkedPoolId);
+                Assert.IsTrue(Guid.TryParse(Convert.ToString(fdLinkedPoolId.Value.Value), out var linkedPoolId));
+                Assert.IsTrue(linkedPoolId != Guid.Empty);
+
+                Assert.IsTrue(expectedSelectionData.TryGetValue(linkedPoolId, out var expectedSelectionType));
+
+                var fdSelectionType = resourcePoolLink.FieldValues.SingleOrDefault(f => f.FieldDescriptorID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ResourcePoolLinks.ResourceSelectionType.Id);
+                Assert.IsNotNull(fdSelectionType);
+                Assert.AreEqual(expectedSelectionType, Convert.ToInt32(fdSelectionType.Value.Value));
+            }
         }
     }
 }
