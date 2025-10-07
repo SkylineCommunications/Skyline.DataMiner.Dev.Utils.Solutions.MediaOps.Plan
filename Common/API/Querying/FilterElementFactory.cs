@@ -1,14 +1,14 @@
 ﻿namespace Skyline.DataMiner.MediaOps.Plan.API
 {
     using System;
-
+    using System.Collections.Generic;
     using Skyline.DataMiner.Core.DataMinerSystem.Common;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
-    internal static class FilterElementFactory
+    internal static class FilterElementFactory<TFilterElement>
     {
-        public static FilterElement<DomInstance> Create<T>(DynamicListExposer<DomInstance, T> exposer, Comparer comparer, object value)
+        public static FilterElement<TFilterElement> Create<T>(DynamicListExposer<TFilterElement, T> exposer, Comparer comparer, object value)
         {
             if (exposer == null)
             {
@@ -20,7 +20,7 @@
             return CreateFilter(exposer, comparer, filterValue);
         }
 
-        public static FilterElement<DomInstance> Create<T>(DynamicListExposer<DomInstance, object> exposer, Comparer comparer, object value)
+        public static FilterElement<TFilterElement> Create<T>(DynamicListExposer<TFilterElement, object> exposer, Comparer comparer, object value)
         {
             if (exposer == null)
             {
@@ -32,7 +32,7 @@
             return CreateFilter(exposer, comparer, filterValue);
         }
 
-        public static FilterElement<DomInstance> Create<T>(Exposer<DomInstance, T> exposer, Comparer comparer, object value)
+        public static FilterElement<TFilterElement> Create<T>(Exposer<TFilterElement, T> exposer, Comparer comparer, object value)
         {
             if (exposer == null)
             {
@@ -44,7 +44,7 @@
             return CreateFilter(exposer, comparer, filterValue);
         }
 
-        public static FilterElement<DomInstance> Create(Exposer<DomInstance, string> exposer, Comparer comparer, object value)
+        public static FilterElement<TFilterElement> Create(Exposer<TFilterElement, string> exposer, Comparer comparer, object value)
         {
             if (exposer == null)
             {
@@ -59,7 +59,28 @@
             return CreateFilter(exposer, comparer, stringValue);
         }
 
-        public static FilterElement<DomInstance> Create<T>(Exposer<DomInstance, object> exposer, Comparer comparer, object value)
+        public static FilterElement<TFilterElement> Create(Exposer<TFilterElement, List<string>> exposer, Comparer comparer, object value)
+        {
+            if (exposer == null)
+            {
+                throw new ArgumentNullException(nameof(exposer));
+            }
+
+            if (value is string stringValue)
+            {
+                return CreateFilter(exposer, comparer, stringValue);
+            }
+            else if (value is List<string> stringListValue)
+            {
+                return CreateFilter(exposer, comparer, stringListValue);
+            }
+            else
+            {
+                throw new InvalidOperationException($"Expects {nameof(value)} to be of type string or List<string>");
+            }
+        }
+
+        public static FilterElement<TFilterElement> Create<T>(Exposer<TFilterElement, object> exposer, Comparer comparer, object value)
         {
             if (exposer == null)
             {
@@ -71,7 +92,7 @@
             return CreateFilter(exposer, comparer, filterValue);
         }
 
-        private static FilterElement<DomInstance> CreateFilter<T>(DynamicListExposer<DomInstance, T> exposer, Comparer comparer, T filterValue)
+        private static FilterElement<TFilterElement> CreateFilter<T>(DynamicListExposer<TFilterElement, T> exposer, Comparer comparer, T filterValue)
         {
             switch (comparer)
             {
@@ -96,7 +117,7 @@
             }
         }
 
-        private static FilterElement<DomInstance> CreateFilter<T>(Exposer<DomInstance, T> exposer, Comparer comparer, T filterValue)
+        private static FilterElement<TFilterElement> CreateFilter<T>(Exposer<TFilterElement, T> exposer, Comparer comparer, T filterValue)
         {
             switch (comparer)
             {
@@ -117,7 +138,7 @@
             }
         }
 
-        private static FilterElement<DomInstance> CreateFilter(Exposer<DomInstance, string> exposer, Comparer comparer, string filterValue)
+        private static FilterElement<TFilterElement> CreateFilter(Exposer<TFilterElement, string> exposer, Comparer comparer, string filterValue)
         {
             switch (comparer)
             {
@@ -141,6 +162,40 @@
                     return exposer.Matches(filterValue);
                 case Comparer.NotRegex:
                     return exposer.NotMatches(filterValue);
+                default:
+                    throw new NotSupportedException("This comparer option is not supported");
+            }
+        }
+
+        private static FilterElement<TFilterElement> CreateFilter(Exposer<TFilterElement, List<string>> exposer, Comparer comparer, string filterValue)
+        {
+            switch (comparer)
+            {
+                case Comparer.Contains:
+                    return exposer.Contains(filterValue);
+                case Comparer.NotContains:
+                    return exposer.NotContains(filterValue);
+                default:
+                    throw new NotSupportedException("This comparer option is not supported");
+            }
+        }
+
+        private static FilterElement<TFilterElement> CreateFilter(Exposer<TFilterElement, List<string>> exposer, Comparer comparer, List<string> filterValue)
+        {
+            switch (comparer)
+            {
+                case Comparer.Equals:
+                    return exposer.UncheckedEqual(filterValue);
+                case Comparer.NotEquals:
+                    return exposer.UncheckedNotEqual(filterValue);
+                case Comparer.GT:
+                    return exposer.UncheckedGreaterThan(filterValue);
+                case Comparer.GTE:
+                    return exposer.UncheckedGreaterThanOrEqual(filterValue);
+                case Comparer.LT:
+                    return exposer.UncheckedLessThan(filterValue);
+                case Comparer.LTE:
+                    return exposer.UncheckedLessThanOrEqual(filterValue);
                 default:
                     throw new NotSupportedException("This comparer option is not supported");
             }

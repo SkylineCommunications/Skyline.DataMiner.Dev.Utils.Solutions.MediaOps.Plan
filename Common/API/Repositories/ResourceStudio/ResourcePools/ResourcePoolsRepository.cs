@@ -14,10 +14,9 @@
     using Skyline.DataMiner.Net.Sections;
 
     using SLDataGateway.API.Types.Querying;
-
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
-    internal class ResourcePoolsRepository : Repository<ResourcePool>, IResourcePoolsRepository
+    internal class ResourcePoolsRepository : DomRepository<ResourcePool>, IResourcePoolsRepository
     {
         public ResourcePoolsRepository(MediaOpsPlanApi planApi) : base(planApi)
         {
@@ -330,7 +329,7 @@
 
         public IQueryable<ResourcePool> Query()
         {
-            return new ApiRepositoryQuery<ResourcePool>(QueryProvider);
+            return new ApiRepositoryQuery<ResourcePool, DomInstance>(QueryProvider);
         }
 
         public IQueryable<IEnumerable<ResourcePool>> QueryPaged()
@@ -432,7 +431,7 @@
             switch (fieldName)
             {
                 case nameof(ResourcePool.State):
-                    return FilterElementFactory.Create(DomInstanceExposers.StatusId, comparer, TranslateResourcePoolState((ResourcePoolState)value));
+                    return FilterElementFactory<DomInstance>.Create(DomInstanceExposers.StatusId, comparer, TranslateResourcePoolState((ResourcePoolState)value));
             }
 
             return base.CreateFilter(fieldName, comparer, value);

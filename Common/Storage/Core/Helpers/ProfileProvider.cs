@@ -3,9 +3,14 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using Skyline.DataMiner.MediaOps.Plan.Exceptions;
+    using Skyline.DataMiner.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Net;
+    using Skyline.DataMiner.Net.Helper;
+    using Skyline.DataMiner.Net.Messages;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Net.Profiles;
+    using SLDataGateway.API.Types.Querying;
     using static Skyline.DataMiner.Net.Profiles.Parameter;
 
     /// <summary>
@@ -23,7 +28,8 @@
             ParameterExposers.Categories.Contains((int)ProfileParameterCategory.Capability)
             .AND(ParameterExposers.Categories.NotContains((int)ProfileParameterCategory.Capacity))
             .AND(ParameterExposers.Categories.NotContains((int)ProfileParameterCategory.Configuration))
-            .AND(ParameterExposers.Type.Equal((int)ParameterType.Discrete));
+            .AND(ParameterExposers.Type.Equal((int)ParameterType.Discrete))
+            .AND(ParameterExposers.Name.NotMatches(".*- Time dependent$")); // Don't include linked Time dependent capabilities.
 
         private readonly FilterElement<Net.Profiles.Parameter> AllCapacitiesFilter =
             ParameterExposers.Categories.Contains((int)ProfileParameterCategory.Capacity)
@@ -54,7 +60,7 @@
         /// </summary>
         /// <param name="id">The ID of the parameter.</param>
         /// <returns>The parameter associated with the specified ID, or <see langword="null"/> if not found.</returns>
-        public Skyline.DataMiner.Net.Profiles.Parameter GetParameterById(Guid id)
+        public Net.Profiles.Parameter GetParameterById(Guid id)
         {
             return profileHelper.ProfileParameters.Read(ParameterExposers.ID.Equal(id)).SingleOrDefault();
         }
@@ -64,14 +70,14 @@
         /// </summary>
         /// <param name="ids">The collection of parameter IDs.</param>
         /// <returns>A dictionary mapping each ID to its associated parameter.</returns>
-        public IEnumerable<Skyline.DataMiner.Net.Profiles.Parameter> GetParametersById(IEnumerable<Guid> ids)
+        public IEnumerable<Net.Profiles.Parameter> GetParametersById(IEnumerable<Guid> ids)
         {
             if (ids == null)
             {
                 throw new ArgumentNullException(nameof(ids));
             }
 
-            var filter = new ORFilterElement<Skyline.DataMiner.Net.Profiles.Parameter>(ids.Select(id => ParameterExposers.ID.Equal(id)).ToArray());
+            var filter = new ORFilterElement<Net.Profiles.Parameter>(ids.Select(id => ParameterExposers.ID.Equal(id)).ToArray());
             return profileHelper.ProfileParameters.Read(filter);
         }
 
@@ -80,7 +86,7 @@
         /// </summary>
         /// <param name="name">The name of the parameter.</param>
         /// <returns>The parameter associated with the specified name, or <see langword="null"/> if not found.</returns>
-        public Skyline.DataMiner.Net.Profiles.Parameter GetParameterByName(string name)
+        public Net.Profiles.Parameter GetParameterByName(string name)
         {
             return profileHelper.ProfileParameters.Read(ParameterExposers.Name.Equal(name)).SingleOrDefault();
         }
@@ -90,24 +96,95 @@
         /// </summary>
         /// <param name="names">The collection of parameter names.</param>
         /// <returns>A dictionary mapping each name to its associated parameter.</returns>
-        public IEnumerable<Skyline.DataMiner.Net.Profiles.Parameter> GetParametersByName(IEnumerable<string> names)
+        public IEnumerable<Net.Profiles.Parameter> GetParametersByName(IEnumerable<string> names)
         {
-            var filter = new ORFilterElement<Skyline.DataMiner.Net.Profiles.Parameter>(names.Select(name => ParameterExposers.Name.Equal(name)).ToArray());
+            var filter = new ORFilterElement<Net.Profiles.Parameter>(names.Select(name => ParameterExposers.Name.Equal(name)).ToArray());
             return profileHelper.ProfileParameters.Read(filter);
+        }
+
+        /// <summary>
+        /// Attempts to create or update the specified parameters in batches.
+        /// </summary>
+        /// <remarks>The method processes the parameters in batches of 100 to optimize performance. If any
+        /// parameters fail to be created or updated, their IDs and associated error details are included in the
+        /// <paramref name="result"/>.</remarks>
+        /// <param name="parameters">A collection of <see cref="Net.Profiles.Parameter"/> objects to be created or updated.
+        /// Cannot be <see langword="null"/>.</param>
+        /// <param name="result">When the method returns, contains a <see cref="BulkCreateOrUpdateResult{T}"/> object that provides details
+        /// about the operation, including the IDs of successfully processed parameters, IDs of failed parameters, and
+        /// any associated error trace data.</param>
+        /// <returns><see langword="true"/> if all parameters were successfully created or updated; otherwise, <see
+        /// langword="false"/>.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="parameters"/> is <see langword="null"/>.</exception>
+        public bool TryCreateOrUpdateParametersInBatches(IEnumerable<Net.Profiles.Parameter> parameters, out BulkCreateOrUpdateResult<Guid> result)
+        {
+            if (parameters == null)
+                throw new ArgumentNullException(nameof(parameters));
+
+            var successfulIds = new List<Guid>();
+            var unsuccessfulIds = new List<Guid>();
+            var traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
+
+            foreach (var batch in parameters.Batch(100))
+            {
+                var succeededParameters = profileHelper.ProfileParameters.AddOrUpdateBulk(batch.ToArray());
+
+                successfulIds.AddRange(succeededParameters.Select(x => x.ID));
+
+                var traceData = profileHelper.ProfileParameters.GetTraceDataLastCall();
+                foreach (var error in traceData.ErrorData.OfType<ProfileManagerErrorData>())
+                {
+                    if (Guid.Equals(error.ProfileParameterID, Guid.Empty))
+                    {
+                        continue;
+                    }
+
+                    if (!traceDataPerItem.TryGetValue(error.ProfileParameterID, out var mediaOpsTraceData))
+                    {
+                        mediaOpsTraceData = new MediaOpsTraceData();
+                        traceDataPerItem.Add(error.ProfileParameterID, mediaOpsTraceData);
+
+                        unsuccessfulIds.Add(error.ProfileParameterID);
+                    }
+
+                    mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = error.ToString() });
+                }
+            }
+
+            result = new BulkCreateOrUpdateResult<Guid>(successfulIds, unsuccessfulIds, traceDataPerItem);
+            return !result.HasFailures();
         }
 
         /// <summary>
         /// Retrieves all capacity parameters.
         /// </summary>
         /// <returns>A collection of capacity parameters.</returns>
-        public IReadOnlyCollection<Skyline.DataMiner.Net.Profiles.Parameter> GetAllCapacities()
+        public IReadOnlyCollection<Net.Profiles.Parameter> GetAllCapacities()
         {
             return profileHelper.ProfileParameters.Read(AllCapacitiesFilter);
         }
 
+        public IEnumerable<Net.Profiles.Parameter> GetCapacities(IQuery<Net.Profiles.Parameter> query)
+        {
+            if (query == null)
+                throw new ArgumentNullException(nameof(query));
+
+            query = query.WithFilter(AllCapacitiesFilter);
+            return profileHelper.ProfileParameters.Read(query);
+        }
+
+        /// <summary>
+        /// Total amount of capacity parameters.
+        /// </summary>
+        /// <returns>Total amount of capacity parameters.</returns>
         public long CountAllCapacities()
         {
             return profileHelper.ProfileParameters.Count(AllCapacitiesFilter);
+        }
+
+        public long CountCapacities(FilterElement<Net.Profiles.Parameter> filter)
+        {
+            return profileHelper.ProfileParameters.Count(AllCapacitiesFilter.AND(filter));
         }
 
         /// <summary>
@@ -115,7 +192,7 @@
         /// </summary>
         /// <param name="id">The ID of the capacity parameter.</param>
         /// <returns>The capacity parameter associated with the specified ID, or <see langword="null"/> if not found.</returns>
-        public Skyline.DataMiner.Net.Profiles.Parameter GetCapacityById(Guid id)
+        public Net.Profiles.Parameter GetCapacityById(Guid id)
         {
             var parameter = GetParameterById(id);
             if (parameter == null || !parameter.Categories.HasFlag(ProfileParameterCategory.Capacity))
@@ -131,9 +208,9 @@
         /// </summary>
         /// <param name="ids">The collection of capacity parameter IDs.</param>
         /// <returns>A dictionary mapping each ID to its associated capacity parameter.</returns>
-        public IDictionary<Guid, Skyline.DataMiner.Net.Profiles.Parameter> GetCapacitiesById(IEnumerable<Guid> ids)
+        public IEnumerable<Net.Profiles.Parameter> GetCapacitiesById(IEnumerable<Guid> ids)
         {
-            return GetParametersById(ids).Where(x => x.Categories.HasFlag(ProfileParameterCategory.Capacity)).ToDictionary(x => x.ID);
+            return GetParametersById(ids).Where(x => x.Categories.HasFlag(ProfileParameterCategory.Capacity));
         }
 
         /// <summary>
@@ -141,7 +218,7 @@
         /// </summary>
         /// <param name="name">The name of the capacity parameter.</param>
         /// <returns>The capacity parameter associated with the specified name, or <see langword="null"/> if not found.</returns>
-        public Skyline.DataMiner.Net.Profiles.Parameter GetCapacityByName(string name)
+        public Net.Profiles.Parameter GetCapacityByName(string name)
         {
             var parameter = GetParameterByName(name);
             if (parameter == null || !parameter.Categories.HasFlag(ProfileParameterCategory.Capacity))
@@ -157,18 +234,27 @@
         /// </summary>
         /// <param name="names">The collection of capacity parameter names.</param>
         /// <returns>A dictionary mapping each name to its associated capacity parameter.</returns>
-        public IDictionary<string, Skyline.DataMiner.Net.Profiles.Parameter> GetCapacitiesByName(IEnumerable<string> names)
+        public IEnumerable<Net.Profiles.Parameter> GetCapacitiesByName(IEnumerable<string> names)
         {
-            return GetParametersByName(names).Where(x => x.Categories.HasFlag(ProfileParameterCategory.Capacity)).ToDictionary(x => x.Name);
+            return GetParametersByName(names).Where(x => x.Categories.HasFlag(ProfileParameterCategory.Capacity));
         }
 
         /// <summary>
         /// Retrieves all configuration parameters.
         /// </summary>
         /// <returns>A collection of configuration parameters.</returns>
-        public IReadOnlyCollection<Skyline.DataMiner.Net.Profiles.Parameter> GetAllConfigurations()
+        public IReadOnlyCollection<Net.Profiles.Parameter> GetAllConfigurations()
         {
             return profileHelper.ProfileParameters.Read(AllConfigurationsFilter);
+        }
+
+        public IEnumerable<Net.Profiles.Parameter> GetConfigurations(IQuery<Net.Profiles.Parameter> query)
+        {
+            if (query == null)
+                throw new ArgumentNullException(nameof(query));
+
+            query = query.WithFilter(AllConfigurationsFilter);
+            return profileHelper.ProfileParameters.Read(query);
         }
 
         public long CountAllConfigurations()
@@ -176,12 +262,17 @@
             return profileHelper.ProfileParameters.Count(AllConfigurationsFilter);
         }
 
+        public long CountConfigurations(FilterElement<Net.Profiles.Parameter> filter)
+        {
+            return profileHelper.ProfileParameters.Count(AllConfigurationsFilter.AND(filter));
+        }
+
         /// <summary>
         /// Retrieves a configuration parameter by its ID.
         /// </summary>
         /// <param name="id">The ID of the configuration parameter.</param>
         /// <returns>The configuration parameter associated with the specified ID, or <see langword="null"/> if not found.</returns>
-        public Skyline.DataMiner.Net.Profiles.Parameter GetConfigurationById(Guid id)
+        public Net.Profiles.Parameter GetConfigurationById(Guid id)
         {
             var parameter = GetParameterById(id);
             if (parameter == null || !parameter.Categories.HasFlag(ProfileParameterCategory.Configuration))
@@ -197,9 +288,9 @@
         /// </summary>
         /// <param name="ids">The collection of configuration parameter IDs.</param>
         /// <returns>A dictionary mapping each ID to its associated configuration parameter.</returns>
-        public IDictionary<Guid, Skyline.DataMiner.Net.Profiles.Parameter> GetConfigurationsById(IEnumerable<Guid> ids)
+        public IEnumerable<Net.Profiles.Parameter> GetConfigurationsById(IEnumerable<Guid> ids)
         {
-            return GetParametersById(ids).Where(x => x.Categories.HasFlag(ProfileParameterCategory.Configuration)).ToDictionary(x => x.ID);
+            return GetParametersById(ids).Where(x => x.Categories.HasFlag(ProfileParameterCategory.Configuration));
         }
 
         /// <summary>
@@ -207,7 +298,7 @@
         /// </summary>
         /// <param name="name">The name of the configuration parameter.</param>
         /// <returns>The configuration parameter associated with the specified name, or <see langword="null"/> if not found.</returns>
-        public Skyline.DataMiner.Net.Profiles.Parameter GetConfigurationByName(string name)
+        public Net.Profiles.Parameter GetConfigurationByName(string name)
         {
             var parameter = GetParameterByName(name);
             if (parameter == null || !parameter.Categories.HasFlag(ProfileParameterCategory.Configuration))
@@ -223,21 +314,40 @@
         /// </summary>
         /// <param name="names">The collection of configuration parameter names.</param>
         /// <returns>A dictionary mapping each name to its associated configuration parameter.</returns>
-        public IDictionary<string, Skyline.DataMiner.Net.Profiles.Parameter> GetConfigurationsByName(IEnumerable<string> names)
+        public IEnumerable<Net.Profiles.Parameter> GetConfigurationsByName(IEnumerable<string> names)
         {
-            return GetParametersByName(names).Where(x => x.Categories.HasFlag(ProfileParameterCategory.Configuration)).ToDictionary(x => x.Name);
+            return GetParametersByName(names).Where(x => x.Categories.HasFlag(ProfileParameterCategory.Configuration));
         }
 
         /// <summary>
         /// Retrieves all capability parameters.
         /// </summary>
         /// <returns>A collection of capability parameters.</returns>
-        public IReadOnlyCollection<Skyline.DataMiner.Net.Profiles.Parameter> GetAllCapabilities()
+        public IReadOnlyCollection<Net.Profiles.Parameter> GetAllCapabilities()
         {
             return profileHelper.ProfileParameters.Read(AllCapabilitiesFilter);
         }
 
-        public long CountCapabilities()
+        public IEnumerable<Net.Profiles.Parameter> GetCapabilities(IQuery<Net.Profiles.Parameter> query)
+        {
+            if (query == null)
+                throw new ArgumentNullException(nameof(query));
+
+            query = query.WithFilter(AllCapabilitiesFilter);
+            return profileHelper.ProfileParameters.Read(query);
+        }
+
+        public long CountAllCapabilities()
+        {
+            return profileHelper.ProfileParameters.Count(AllCapabilitiesFilter);
+        }
+
+        public long CountCapabilities(FilterElement<Net.Profiles.Parameter> filter)
+        {
+            return profileHelper.ProfileParameters.Count(AllCapabilitiesFilter.AND(filter));
+        }
+
+        public long CountNonTimeDependentCapabilities()
         {
             return profileHelper.ProfileParameters.Count(AllCapabilitiesFilter);
         }
@@ -247,7 +357,7 @@
         /// </summary>
         /// <param name="id">The ID of the capability parameter.</param>
         /// <returns>The capability parameter associated with the specified ID, or <see langword="null"/> if not found.</returns>
-        public Skyline.DataMiner.Net.Profiles.Parameter GetCapabilityById(Guid id)
+        public Net.Profiles.Parameter GetCapabilityById(Guid id)
         {
             var parameter = GetParameterById(id);
             if (parameter == null || !parameter.Categories.HasFlag(ProfileParameterCategory.Capability))
@@ -263,9 +373,9 @@
         /// </summary>
         /// <param name="ids">The collection of capability parameter IDs.</param>
         /// <returns>A dictionary mapping each ID to its associated capability parameter.</returns>
-        public IDictionary<Guid, Skyline.DataMiner.Net.Profiles.Parameter> GetCapabilitiesById(IEnumerable<Guid> ids)
+        public IEnumerable<Net.Profiles.Parameter> GetCapabilitiesById(IEnumerable<Guid> ids)
         {
-            return GetParametersById(ids).Where(x => x.Categories.HasFlag(ProfileParameterCategory.Capability)).ToDictionary(x => x.ID);
+            return GetParametersById(ids).Where(x => x.Categories.HasFlag(ProfileParameterCategory.Capability));
         }
 
         /// <summary>
@@ -273,7 +383,7 @@
         /// </summary>
         /// <param name="name">The name of the capability parameter.</param>
         /// <returns>The capability parameter associated with the specified name, or <see langword="null"/> if not found.</returns>
-        public Skyline.DataMiner.Net.Profiles.Parameter GetCapabilityByName(string name)
+        public Net.Profiles.Parameter GetCapabilityByName(string name)
         {
             var parameter = GetParameterByName(name);
             if (parameter == null || !parameter.Categories.HasFlag(ProfileParameterCategory.Capability))
@@ -289,9 +399,48 @@
         /// </summary>
         /// <param name="names">The collection of capability parameter names.</param>
         /// <returns>A dictionary mapping each name to its associated capability parameter.</returns>
-        public IDictionary<string, Skyline.DataMiner.Net.Profiles.Parameter> GetCapabilitiesByName(IEnumerable<string> names)
+        public IEnumerable<Net.Profiles.Parameter> GetCapabilitiesByName(IEnumerable<string> names)
         {
-            return GetParametersByName(names).Where(x => x.Categories.HasFlag(ProfileParameterCategory.Capability)).ToDictionary(x => x.Name);
+            return GetParametersByName(names).Where(x => x.Categories.HasFlag(ProfileParameterCategory.Capability));
+        }
+
+        public bool TryDeleteInBatches(IEnumerable<Net.Profiles.Parameter> parameters, out Exceptions.BulkDeleteResult<Guid> result)
+        {
+            if (parameters == null)
+                throw new ArgumentNullException(nameof(parameters));
+
+            var successfulIds = new List<Guid>();
+            var unsuccessfulIds = new List<Guid>();
+            var traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
+
+            foreach (var batch in parameters.Batch(100))
+            {
+                var succeededParameters = profileHelper.ProfileParameters.RemoveBulk(batch.ToArray());
+
+                successfulIds.AddRange(succeededParameters.Select(x => x.ID));
+
+                var traceData = profileHelper.ProfileParameters.GetTraceDataLastCall();
+                foreach (var error in traceData.ErrorData.OfType<ProfileManagerErrorData>())
+                {
+                    if (Guid.Equals(error.ProfileParameterID, Guid.Empty))
+                    {
+                        continue;
+                    }
+
+                    if (!traceDataPerItem.TryGetValue(error.ProfileParameterID, out var mediaOpsTraceData))
+                    {
+                        mediaOpsTraceData = new MediaOpsTraceData();
+                        traceDataPerItem.Add(error.ProfileParameterID, mediaOpsTraceData);
+
+                        unsuccessfulIds.Add(error.ProfileParameterID);
+                    }
+
+                    mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = error.ToString() });
+                }
+            }
+
+            result = new Exceptions.BulkDeleteResult<Guid>(successfulIds, unsuccessfulIds, traceDataPerItem);
+            return !result.HasFailures();
         }
     }
 }
