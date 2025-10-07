@@ -41,7 +41,7 @@
                     throw new MediaOpsException(result.TraceDataPerItem[apiObject.Id]);
                 }
 
-                var capabilityId = result.SuccessfulIds.First(); // TODO: make sure this is the main capability and not the linked one
+                var capabilityId = apiObject.Id;
                 act?.AddTag("CapabilityId", capabilityId);
 
                 return capabilityId;
@@ -68,7 +68,7 @@
                     throw new MediaOpsBulkException<Guid>(result);
                 }
 
-                var capabilityIds = result.SuccessfulIds;
+                var capabilityIds = apiObjects.Select(x => x.Id);
                 act?.AddTag("CapabilityIds", string.Join(", ", capabilityIds));
 
                 return capabilityIds;
@@ -89,9 +89,9 @@
                     throw new MediaOpsBulkException<Guid>(result);
                 }
 
-                var capabilityIds = result.SuccessfulIds;
+                var capabilityIds = apiObjects.Select(x => x.Id);
                 act?.AddTag("Created or Updated Capabilities", String.Join(", ", capabilityIds));
-                act?.AddTag("Created or Updated Capabilities Count", capabilityIds.Count);
+                act?.AddTag("Created or Updated Capabilities Count", capabilityIds.Count());
 
                 return capabilityIds;
             });
@@ -123,9 +123,9 @@
                     throw new MediaOpsBulkException<Guid>(result);
                 }
 
-                var capabilityIds = result.SuccessfulIds;
+                var capabilityIds = apiObjectIds;
                 act?.AddTag("Removed Capabilities", String.Join(", ", capabilityIds));
-                act?.AddTag("Removed Capabilities Count", capabilityIds.Count);
+                act?.AddTag("Removed Capabilities Count", capabilityIds.Count());
             });
         }
 
@@ -219,7 +219,7 @@
                     throw new MediaOpsException(result.TraceDataPerItem[apiObject.Id]);
                 }
 
-                var capabilityId = result.SuccessfulIds.First();
+                var capabilityId = apiObject.Id;
                 act?.AddTag("CapabilityId", capabilityId);
             });
         }
@@ -244,7 +244,7 @@
                     throw new MediaOpsBulkException<Guid>(result);
                 }
 
-                var capabilityIds = result.SuccessfulIds;
+                var capabilityIds = apiObjects.Select(x => x.Id);
                 act?.AddTag("CapabilityIds", String.Join(", ", capabilityIds));
             });
         }
