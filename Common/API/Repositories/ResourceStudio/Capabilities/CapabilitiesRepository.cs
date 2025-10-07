@@ -41,7 +41,7 @@
                     throw new MediaOpsException(result.TraceDataPerItem[apiObject.Id]);
                 }
 
-                var capabilityId = result.SuccessfulIds.First();
+                var capabilityId = result.SuccessfulIds.First(); // TODO: make sure this is the main capability and not the linked one
                 act?.AddTag("CapabilityId", capabilityId);
 
                 return capabilityId;

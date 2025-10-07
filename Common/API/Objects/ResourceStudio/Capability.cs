@@ -10,12 +10,8 @@
     /// <summary>
     /// Represents a capability in the MediaOps.
     /// </summary>
-    public class Capability : ApiObject
+    public class Capability : Parameter
     {
-        private readonly CoreParameter coreParameter;
-
-        private string name;
-        private bool isMandatory;
         private HashSet<string> discretes = new HashSet<string>();
         private bool isTimeDependent;
         private Guid linkedTimeDependentCapabilityId;
@@ -25,7 +21,6 @@
         /// </summary>
         public Capability() : base()
         {
-            IsNew = true;
         }
 
         /// <summary>
@@ -34,44 +29,14 @@
         /// <param name="id">The unique identifier for the capability.</param>
         public Capability(Guid id) : base(id)
         {
-            IsNew = true;
-            HasUserDefinedId = true;
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Capability"/> class using the specified core parameter.
         /// </summary>
         /// <param name="parameter">The core parameter used to initialize the capability. Must not be <see langword="null"/>.</param>
-        internal protected Capability(CoreParameter parameter) : base(parameter.ID)
+        internal protected Capability(CoreParameter parameter) : base(parameter)
         {
-            coreParameter = parameter ?? throw new ArgumentNullException(nameof(parameter));
-            ParseParameter(parameter);
-        }
-
-        /// <summary>
-        /// Gets or sets the name of the capability.
-        /// </summary>
-        public override string Name
-        {
-            get => name;
-            set
-            {
-                HasChanges = true;
-                name = value;
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether the capability is mandatory or not.
-        /// </summary>
-        public bool IsMandatory
-        {
-            get => isMandatory;
-            set
-            {
-                HasChanges = true;
-                isMandatory = value;
-            }
         }
 
         /// <summary>
@@ -115,7 +80,7 @@
             }
         }
 
-        internal CoreParameter CoreParameter => coreParameter;
+        protected internal override ProfileParameterCategory Category => ProfileParameterCategory.Capability;
 
         internal Guid LinkedTimeDependentCapabilityId => linkedTimeDependentCapabilityId;
 
@@ -147,13 +112,8 @@
                 HasChanges = true;
         }
 
-        private void ParseParameter(CoreParameter parameter)
+        protected internal override void InternalParseParameter(CoreParameter parameter)
         {
-            if (parameter.Categories != ProfileParameterCategory.Capability)
-                throw new ArgumentException($"The provided parameter is not a {ProfileParameterCategory.Capability}.", nameof(parameter));
-
-            name = parameter.Name;
-            isMandatory = parameter.IsOptional == false;
             discretes = System.Linq.Enumerable.ToHashSet(parameter.Discretes);
             isTimeDependent = TimeDependentCapabilityLink.TryDeserialize(parameter.Remarks, out var timeDependentLink) && timeDependentLink.IsTimeDependent;
             linkedTimeDependentCapabilityId = timeDependentLink?.LinkedParameterId ?? Guid.Empty;

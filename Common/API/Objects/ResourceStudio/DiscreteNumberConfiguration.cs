@@ -1,7 +1,6 @@
 ﻿namespace Skyline.DataMiner.MediaOps.Plan.API
 {
     using System;
-    using Skyline.DataMiner.Net.Profiles;
 
     public class DiscreteNumberConfiguration : Configuration
     {
@@ -13,7 +12,11 @@
         {
         }
 
-        protected internal override void InternalParseParameter(Parameter parameter)
+        internal DiscreteNumberConfiguration(Net.Profiles.Parameter parameter) : base(parameter)
+        {
+        }
+
+        protected internal override void InternalParseParameter(Net.Profiles.Parameter parameter)
         {
             throw new NotImplementedException();
         }
