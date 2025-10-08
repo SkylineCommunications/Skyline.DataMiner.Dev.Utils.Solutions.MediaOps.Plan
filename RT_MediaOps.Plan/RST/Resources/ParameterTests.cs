@@ -52,6 +52,10 @@
             testContext.Api.ResourcePools.Delete(resourcePoolId);
             testContext.Api.Resources.Delete(resource1Id);
             testContext.Api.Capacities.Delete(capacityId);
+
+            Assert.IsNull(testContext.Api.ResourcePools.Read(resourcePoolId));
+            Assert.IsNull(testContext.Api.Resources.Read(resource1Id));
+            Assert.IsNull(testContext.Api.Capacities.Read(capacityId));
         }
 
         public void Dispose()

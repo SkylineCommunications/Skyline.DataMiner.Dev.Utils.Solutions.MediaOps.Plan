@@ -2,6 +2,7 @@
 {
     using System;
     using Newtonsoft.Json;
+    using Skyline.DataMiner.Utils.SecureCoding.SecureSerialization.Json.Newtonsoft;
 
     /// <summary>
     /// Represents the data required for parsing Remarks property for capabilities.
@@ -46,7 +47,7 @@
 
             try
             {
-                result = JsonConvert.DeserializeObject<TimeDependentCapabilityLink>(remarksJson);
+                result = SecureNewtonsoftDeserialization.DeserializeObject<TimeDependentCapabilityLink>(remarksJson);
                 return true;
             }
             catch (JsonException)

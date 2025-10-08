@@ -80,6 +80,9 @@
             }
         }
 
+        /// <summary>
+        /// Gets the category of the profile parameter, indicating its classification as a capability.
+        /// </summary>
         protected internal override ProfileParameterCategory Category => ProfileParameterCategory.Capability;
 
         internal Guid LinkedTimeDependentCapabilityId => linkedTimeDependentCapabilityId;
@@ -112,6 +115,14 @@
                 HasChanges = true;
         }
 
+        /// <summary>
+        /// Parses the provided parameter and extracts relevant information for internal processing.
+        /// </summary>
+        /// <remarks>This method processes the discrete values and determines if the parameter is
+        /// time-dependent based on its remarks. If the parameter is time-dependent, the associated linked capability ID
+        /// is extracted.</remarks>
+        /// <param name="parameter">The parameter to parse. Must contain valid discrete values and optional remarks for time-dependent
+        /// capabilities.</param>
         protected internal override void InternalParseParameter(CoreParameter parameter)
         {
             discretes = System.Linq.Enumerable.ToHashSet(parameter.Discretes);

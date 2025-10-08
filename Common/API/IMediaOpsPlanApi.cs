@@ -35,7 +35,7 @@
         /// <summary>
         /// Gets the repository for managing resource properties.
         /// </summary>
-        //IResourcePropertiesRepository Properties { get; }
+        IResourcePropertiesRepository Properties { get; }
 
     }
 }
