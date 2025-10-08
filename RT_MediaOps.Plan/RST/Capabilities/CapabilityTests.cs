@@ -8,6 +8,7 @@
 
     [TestClass]
     [TestCategory("IntegrationTest")]
+    [DoNotParallelize]
     public sealed class CapabilityTests
     {
         private readonly IntegrationTestContext testContext;
@@ -81,7 +82,7 @@
         }
 
         [TestMethod]
-        public void Querying()
+        public void QueryCount()
         {
             var discretes = new string[]
             {
@@ -124,6 +125,50 @@
             Assert.AreEqual(2, testContext.Api.Capabilities.Query().Count(x => x.Discretes.Contains(discretes[1])));
 
             testContext.Api.Capabilities.Delete(new[] { capability1, capability2 });
+        }
+
+        [TestMethod]
+        public void QueryWhere()
+        {
+            var discretes = new string[]
+{
+                Guid.NewGuid().ToString(),
+                Guid.NewGuid().ToString(),
+                Guid.NewGuid().ToString(),
+};
+
+            var capability1 = new Capability
+            {
+                Name = $"Capability1_{Guid.NewGuid()}",
+                IsMandatory = true,
+                IsTimeDependent = true,
+                Discretes = discretes,
+            };
+
+            var capability2 = new Capability
+            {
+                Name = $"Capability2_{Guid.NewGuid()}",
+                IsMandatory = true,
+                IsTimeDependent = false,
+                Discretes = discretes,
+            };
+
+            testContext.Api.Capabilities.CreateOrUpdate(new[] { capability1, capability2 });
+
+            Assert.AreEqual(2, testContext.Api.Capabilities.Query().Where(x => x.Name.Contains(capability1.Name) || x.Name.Contains(capability2.Name)).Count());
+            Assert.AreEqual(2, testContext.Api.Capabilities.Query().Where(x => x.Name == capability1.Name || x.Name == capability2.Name).Count());
+            Assert.AreEqual(2, testContext.Api.Capabilities.Query().Where(x => x.Name.Equals(capability1.Name) || x.Name.Equals(capability2.Name)).Count());
+            Assert.AreEqual(2, testContext.Api.Capabilities.Query().Where(x => String.Equals(x.Name, capability1.Name) || String.Equals(capability2.Name, x.Name)).Count());
+            Assert.AreEqual(2, testContext.Api.Capabilities.Query().Where(x => x.Name.StartsWith(capability1.Name) || x.Name.StartsWith(capability2.Name)).Count());
+            Assert.AreEqual(2, testContext.Api.Capabilities.Query().Where(x => x.Name.EndsWith(capability1.Name) || x.Name.EndsWith(capability2.Name)).Count());
+
+            Assert.AreEqual(0, testContext.Api.Capabilities.Query().Where(x => (x.Name.Equals(capability1.Name) || x.Name.Equals(capability2.Name)) && !x.IsMandatory).Count());
+            Assert.AreEqual(2, testContext.Api.Capabilities.Query().Where(x => (x.Name.Equals(capability1.Name) || x.Name.Equals(capability2.Name)) && x.IsMandatory).Count());
+            Assert.AreEqual(2, testContext.Api.Capabilities.Query().Where(x => (x.Name.Equals(capability1.Name) || x.Name.Equals(capability2.Name)) && x.IsMandatory == true).Count());
+            Assert.AreEqual(2, testContext.Api.Capabilities.Query().Where(x => (x.Name.Equals(capability1.Name) || x.Name.Equals(capability2.Name)) && x.IsMandatory.Equals(true)).Count());
+            Assert.AreEqual(1, testContext.Api.Capabilities.Query().Where(x => (x.Name.Equals(capability1.Name) || x.Name.Equals(capability2.Name)) && x.IsTimeDependent).Count());
+            Assert.AreEqual(1, testContext.Api.Capabilities.Query().Where(x => x.Name.Equals(capability1.Name)).Count());
+            Assert.AreEqual(2, testContext.Api.Capabilities.Query().Where(x => x.Discretes.Contains(discretes[1])).Count());
         }
 
         [TestMethod]

@@ -171,7 +171,7 @@
             if (query == null)
                 throw new ArgumentNullException(nameof(query));
 
-            query = query.WithFilter(AllCapacitiesFilter);
+            query = query.WithFilter(AllCapacitiesFilter.AND(query.Filter));
             return profileHelper.ProfileParameters.Read(query);
         }
 
@@ -255,7 +255,7 @@
             if (query == null)
                 throw new ArgumentNullException(nameof(query));
 
-            query = query.WithFilter(AllConfigurationsFilter);
+            query = query.WithFilter(AllConfigurationsFilter.AND(query.Filter));
             return profileHelper.ProfileParameters.Read(query);
         }
 
@@ -348,7 +348,7 @@
             if (query == null)
                 throw new ArgumentNullException(nameof(query));
 
-            query = query.WithFilter(AllCapabilitiesFilter);
+            query = query.WithFilter(AllCapabilitiesFilter.AND(query.Filter));
             return profileHelper.ProfileParameters.Read(query);
         }
 

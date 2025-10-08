@@ -111,6 +111,24 @@
                 return _repository.CreateFilter(containsMemberInfo.Name, Comparer.Contains, containsValue);
             }
 
+            // Handle .Where(x => x.Name.StartsWith("foo"))
+            if (node.Method.DeclaringType == typeof(String) &&
+                node.Method.Name == nameof(string.StartsWith) &&
+                ExpressionTools.TryGetMember(node.Object, out var startsWithMemberInfo) &&
+                ExpressionTools.TryGetValue(node.Arguments[0], out var startsWithValue))
+            {
+                return _repository.CreateFilter(startsWithMemberInfo.Name, Comparer.Regex, $"^{startsWithValue}");
+            }
+
+            // Handle .Where(x => x.Name.EndsWith("foo"))
+            if (node.Method.DeclaringType == typeof(String) &&
+                node.Method.Name == nameof(string.EndsWith) &&
+                ExpressionTools.TryGetMember(node.Object, out var endsWithMemberInfo) &&
+                ExpressionTools.TryGetValue(node.Arguments[0], out var endsWithValue))
+            {
+                return _repository.CreateFilter(endsWithMemberInfo.Name, Comparer.Regex, $"{endsWithValue}$");
+            }
+
             // Handle .Where(x => x.Discreets.Contains("option1")) 
             if (node.Method.DeclaringType == typeof(System.Linq.Enumerable) &&
                 node.Method.Name == nameof(System.Linq.Enumerable.Contains) &&
@@ -118,6 +136,26 @@
                 ExpressionTools.TryGetValue(node.Arguments[1], out var listStringValue))
             {
                 return _repository.CreateFilter(listStringMemberInfo.Name, Comparer.Contains, listStringValue);
+            }
+
+            // Handle .Where(x => String.Equals(x.Name, "foo"))
+            if (node.Method.DeclaringType == typeof(String) &&
+                node.Method.Name == nameof(object.Equals) &&
+                node.Arguments.Count == 2 &&
+                ExpressionTools.TryGetMember(node.Arguments[0], out var staticStringEqualsMember1) &&
+                ExpressionTools.TryGetValue(node.Arguments[1], out var staticStringEqualsValue1))
+            {
+                return _repository.CreateFilter(staticStringEqualsMember1.Name, Comparer.Equals, staticStringEqualsValue1);
+            }
+
+            // Handle .Where(x => String.Equals("foo", x.Name))
+            if (node.Method.DeclaringType == typeof(String) &&
+                node.Method.Name == nameof(object.Equals) &&
+                node.Arguments.Count == 2 &&
+                ExpressionTools.TryGetValue(node.Arguments[0], out var staticStringEqualsValue2) &&
+                ExpressionTools.TryGetMember(node.Arguments[1], out var staticStringEqualsMember2))
+            {
+                return _repository.CreateFilter(staticStringEqualsMember2.Name, Comparer.Equals, staticStringEqualsValue2);
             }
 
             // Handle .Where(x => x.IsActive.Equals(true))
