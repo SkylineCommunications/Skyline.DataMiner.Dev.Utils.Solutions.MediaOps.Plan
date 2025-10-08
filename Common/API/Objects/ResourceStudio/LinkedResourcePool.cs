@@ -9,7 +9,7 @@
     /// <summary>
     /// Represents a link to another resource pool.
     /// </summary>
-    public class ResourcePoolLink : TrackableObject
+    public class LinkedResourcePool : TrackableObject
     {
         private StorageResourceStudio.ResourcePoolLinksSection originalSection;
 
@@ -18,18 +18,18 @@
         private ResourceSelectionType resourceSelectionType;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ResourcePoolLink"/> class with a specific resource pool to link to.
+        /// Initializes a new instance of the <see cref="LinkedResourcePool"/> class with the linked resource pool.
         /// </summary>
-        /// <param name="resourcePool">The resource pool to link to.</param>
-        public ResourcePoolLink(ResourcePool resourcePool) : this(resourcePool?.Id ?? throw new ArgumentNullException(nameof(resourcePool)))
+        /// <param name="resourcePool">The linked resource pool.</param>
+        public LinkedResourcePool(ResourcePool resourcePool) : this(resourcePool?.Id ?? throw new ArgumentNullException(nameof(resourcePool)))
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ResourcePoolLink"/> class with a specific resource pool ID to link to.
+        /// Initializes a new instance of the <see cref="LinkedResourcePool"/> class with the linked resource pool ID.
         /// </summary>
-        /// <param name="resourcePoolId">The unique identifier of the resource pool to link to.</param>
-        public ResourcePoolLink(Guid resourcePoolId)
+        /// <param name="resourcePoolId">The unique identifier of the linked resource pool.</param>
+        public LinkedResourcePool(Guid resourcePoolId)
         {
             if (resourcePoolId == Guid.Empty)
             {
@@ -43,7 +43,7 @@
 
         internal EventHandler<EventArgs> ValueChanged;
 
-        internal ResourcePoolLink(StorageResourceStudio.ResourcePoolLinksSection section)
+        internal LinkedResourcePool(StorageResourceStudio.ResourcePoolLinksSection section)
         {
             ParseSection(section);
         }
@@ -76,6 +76,7 @@
                 updatedSection = IsNew ? new StorageResourceStudio.ResourcePoolLinksSection() : originalSection.Clone();
             }
 
+            updatedSection.LinkedResourcePool = LinkedResourcePoolId;
             updatedSection.ResourceSelectionType = EnumExtensions.MapEnum<ResourceSelectionType, StorageResourceStudio.SlcResource_StudioIds.Enums.Resourceselectiontype>(resourceSelectionType);
 
             return updatedSection;

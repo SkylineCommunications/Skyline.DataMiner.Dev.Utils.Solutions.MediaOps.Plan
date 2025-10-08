@@ -6,6 +6,8 @@
 
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
 
+    using static Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections;
+
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
     /// <summary>
@@ -13,13 +15,18 @@
     /// </summary>
     public class ResourcePool : ApiObject
     {
+        // Todo: add domain property?
         private StorageResourceStudio.ResourcepoolInstance originalInstance;
 
         private StorageResourceStudio.ResourcepoolInstance updatedInstance;
 
         private string name;
 
-        private readonly ICollection<ResourcePoolLink> resourcepoolLinks = [];
+        private string iconImage;
+
+        private string url;
+
+        private readonly ICollection<LinkedResourcePool> linkedResourcepools = [];
 
         private Guid coreResourcePoolId;
 
@@ -65,9 +72,35 @@
         public ResourcePoolState State { get; private set; }
 
         /// <summary>
+        /// Gets or sets the icon of the resource pool.
+        /// </summary>
+        public string IconImage
+        {
+            get => iconImage;
+            set
+            {
+                HasChanges = true;
+                iconImage = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the URL of the resource pool.
+        /// </summary>
+        public string Url
+        {
+            get => url;
+            set
+            {
+                HasChanges = true;
+                url = value;
+            }
+        }
+
+        /// <summary>
         /// Gets the collection of links associated with this resource pool.
         /// </summary>
-        public IReadOnlyCollection<ResourcePoolLink> ResourcePoolLinks => (IReadOnlyCollection<ResourcePoolLink>)resourcepoolLinks;
+        public IReadOnlyCollection<LinkedResourcePool> LinkedResourcePools => (IReadOnlyCollection<LinkedResourcePool>)linkedResourcepools;
 
         internal Guid CoreResourcePoolId => coreResourcePoolId;
 
@@ -76,43 +109,66 @@
         /// <summary>
         /// Adds a link to another resource pool.
         /// </summary>
-        /// <param name="resourcePoolLink">The resource pool link to add.</param>
-        public void AddResourcePoolLink(ResourcePoolLink resourcePoolLink)
+        /// <param name="linkedResourcePool">The resource pool link to add.</param>
+        public void AddLinkedResourcePool(LinkedResourcePool linkedResourcePool)
         {
-            if (resourcePoolLink == null)
+            if (linkedResourcePool == null)
             {
-                throw new ArgumentNullException(nameof(resourcePoolLink));
+                throw new ArgumentNullException(nameof(linkedResourcePool));
             }
 
-            if (!resourcePoolLink.IsNew)
+            if (!linkedResourcePool.IsNew)
             {
                 return;
             }
 
-            resourcepoolLinks.Add(resourcePoolLink);
+            linkedResourcepools.Add(linkedResourcePool);
             HasChanges = true;
         }
 
         /// <summary>
         /// Removes the specified resource pool link from the collection, if it exists.
         /// </summary>
-        /// <param name="resourcePoolLink">The resource pool link to remove.</param>
-        public void RemoveResourcePoolLink(ResourcePoolLink resourcePoolLink)
+        /// <param name="linkedResourcePool">The resource pool link to remove.</param>
+        public void RemoveLinkedResourcePool(LinkedResourcePool linkedResourcePool)
         {
-            if (resourcePoolLink == null)
+            if (linkedResourcePool == null)
             {
-                throw new ArgumentNullException(nameof(resourcePoolLink));
+                throw new ArgumentNullException(nameof(linkedResourcePool));
             }
 
-            if (resourcePoolLink.IsNew)
+            if (linkedResourcePool.IsNew)
             {
                 return;
             }
 
-            var toRemove = resourcepoolLinks.SingleOrDefault(x => x.OriginalSection.ID == resourcePoolLink.OriginalSection.ID);
-            if (toRemove != null && resourcepoolLinks.Remove(toRemove))
+            var toRemove = linkedResourcepools.SingleOrDefault(x => x.OriginalSection.ID == linkedResourcePool.OriginalSection.ID);
+            if (toRemove != null && linkedResourcepools.Remove(toRemove))
             {
                 HasChanges = true;
+            }
+        }
+
+        internal void RemoveLinkedResourcePool(ResourcePool resourcePool)
+        {
+            if (resourcePool == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePool));
+            }
+
+            if (resourcePool.IsNew)
+            {
+                return;
+            }
+
+            var toRemove = linkedResourcepools.Where(x => x.LinkedResourcePoolId == resourcePool.Id).ToList();
+            if (toRemove.Count > 0)
+            {
+                foreach (var item in toRemove)
+                {
+                    linkedResourcepools.Remove(item);
+                    HasChanges = true;
+                }
             }
         }
 
@@ -125,8 +181,11 @@
 
             updatedInstance.ResourcePoolInfo.Name = Name;
 
+            updatedInstance.ResourcePoolOther.IconImage = iconImage;
+            updatedInstance.ResourcePoolOther.URL = url;
+
             updatedInstance.ResourcePoolLinks.Clear();
-            foreach (var link in resourcepoolLinks)
+            foreach (var link in linkedResourcepools)
             {
                 updatedInstance.ResourcePoolLinks.Add(link.GetSectionWithChanges());
             }
@@ -142,11 +201,14 @@
             State = EnumExtensions.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.StatusesEnum, ResourcePoolState>(instance.Status);
             coreResourcePoolId = instance.ResourcePoolInternalProperties.ResourcePoolId;
 
+            iconImage = instance.ResourcePoolOther.IconImage;
+            url = instance.ResourcePoolOther.URL;
+
             foreach (var section in instance.ResourcePoolLinks)
             {
-                var link = new ResourcePoolLink(section);
+                var link = new LinkedResourcePool(section);
                 link.ValueChanged += (s, e) => { HasChanges = true; };
-                resourcepoolLinks.Add(link);
+                linkedResourcepools.Add(link);
             }
         }
     }

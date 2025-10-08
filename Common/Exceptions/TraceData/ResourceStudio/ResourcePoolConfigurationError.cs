@@ -51,6 +51,11 @@
             /// Represents a response status indicating that the requested resource pool was not found.
             /// </summary>
             NotFound,
+
+            /// <summary>
+            /// Indicates that the resource pool has an invalid link to another resource pool.
+            /// </summary>
+            InvalidPoolLink,
         }
 
         /// <summary>
