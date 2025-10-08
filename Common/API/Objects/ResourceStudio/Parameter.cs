@@ -40,9 +40,9 @@
         /// </summary>
         /// <param name="parameter">The core parameter used to initialize this instance. Cannot be <see langword="null"/>.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="parameter"/> is <see langword="null"/>.</exception>
-        private protected Parameter(CoreParameter parameter) : base(parameter.ID)
+        private protected Parameter(CoreParameter parameter) : base(parameter?.ID ?? throw new ArgumentNullException(nameof(parameter)))
         {
-            coreParameter = parameter ?? throw new ArgumentNullException(nameof(parameter));
+            coreParameter = parameter;
             ParseParameter();
         }
 

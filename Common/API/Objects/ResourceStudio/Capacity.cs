@@ -32,8 +32,14 @@
         {
         }
 
+        /// <summary>
+        /// Gets the category of the profile parameter, indicating its classification as a capacity.
+        /// </summary>
         protected internal override ProfileParameterCategory Category => ProfileParameterCategory.Capacity;
 
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
         protected internal override void InternalParseParameter(CoreParameter parameter)
         {
             throw new NotImplementedException();
