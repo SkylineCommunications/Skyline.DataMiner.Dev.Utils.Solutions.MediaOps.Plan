@@ -80,6 +80,9 @@
             }
         }
 
+        /// <summary>
+        /// Gets the category of the profile parameter, indicating its classification as a capability.
+        /// </summary>
         protected internal override ProfileParameterCategory Category => ProfileParameterCategory.Capability;
 
         internal Guid LinkedTimeDependentCapabilityId => linkedTimeDependentCapabilityId;
@@ -112,6 +115,9 @@
                 HasChanges = true;
         }
 
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
         protected internal override void InternalParseParameter(CoreParameter parameter)
         {
             discretes = System.Linq.Enumerable.ToHashSet(parameter.Discretes);

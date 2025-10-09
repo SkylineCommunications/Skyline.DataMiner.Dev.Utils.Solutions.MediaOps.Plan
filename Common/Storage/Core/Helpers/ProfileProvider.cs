@@ -6,10 +6,12 @@
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Net;
+    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Helper;
     using Skyline.DataMiner.Net.Messages;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Net.Profiles;
+    using Skyline.DataMiner.Utils.DOM.Extensions;
     using SLDataGateway.API.Types.Querying;
     using static Skyline.DataMiner.Net.Profiles.Parameter;
 
@@ -17,7 +19,7 @@
     /// Provides methods to manage profiles, including retrieving parameters by ID or name, filtering based on categories, 
     /// and managing capabilities and capacities.
     /// </summary>
-    public class ProfileProvider
+    internal class ProfileProvider
     {
         /// <summary>
         /// A helper to facilitate profile-related operations.
@@ -169,7 +171,7 @@
             if (query == null)
                 throw new ArgumentNullException(nameof(query));
 
-            query = query.WithFilter(AllCapacitiesFilter);
+            query = query.WithFilter(AllCapacitiesFilter.AND(query.Filter));
             return profileHelper.ProfileParameters.Read(query);
         }
 
@@ -253,7 +255,7 @@
             if (query == null)
                 throw new ArgumentNullException(nameof(query));
 
-            query = query.WithFilter(AllConfigurationsFilter);
+            query = query.WithFilter(AllConfigurationsFilter.AND(query.Filter));
             return profileHelper.ProfileParameters.Read(query);
         }
 
@@ -328,12 +330,25 @@
             return profileHelper.ProfileParameters.Read(AllCapabilitiesFilter);
         }
 
+        /// <summary>
+        /// Retrieves all capability parameters.
+        /// </summary>
+        /// <returns>A collection of capability parameters.</returns>
+        public IEnumerable<IEnumerable<Net.Profiles.Parameter>> GetAllCapabilitiesPaged(long? pageSize = null)
+        {
+            var pages = pageSize.HasValue
+                ? profileHelper.ProfileParameters.ReadPaged(AllCapabilitiesFilter, pageSize.Value)
+                : profileHelper.ProfileParameters.ReadPaged(AllCapabilitiesFilter);
+
+            return pages;
+        }
+
         public IEnumerable<Net.Profiles.Parameter> GetCapabilities(IQuery<Net.Profiles.Parameter> query)
         {
             if (query == null)
                 throw new ArgumentNullException(nameof(query));
 
-            query = query.WithFilter(AllCapabilitiesFilter);
+            query = query.WithFilter(AllCapabilitiesFilter.AND(query.Filter));
             return profileHelper.ProfileParameters.Read(query);
         }
 

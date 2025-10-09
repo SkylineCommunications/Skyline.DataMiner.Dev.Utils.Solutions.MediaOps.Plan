@@ -71,11 +71,6 @@
         public Reason ErrorReason { get; set; }
 
         /// <summary>
-        /// Gets the error message associated with the capability configuration error.
-        /// </summary>
-        public string ErrorMessage { get; set; }
-
-        /// <summary>
         /// Gets or sets the name of the capability.
         /// </summary>
         public string CapabilityName { get; set; }

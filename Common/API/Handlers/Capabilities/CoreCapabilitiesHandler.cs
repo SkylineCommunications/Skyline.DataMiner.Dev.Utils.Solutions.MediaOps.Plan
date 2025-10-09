@@ -329,8 +329,6 @@
                         ErrorReason = CapabilityConfigurationError.Reason.InvalidDiscretes,
                         ErrorMessage = "Empty discretes list is not allowed.",
                     });
-
-                    continue;
                 }
             }
         }

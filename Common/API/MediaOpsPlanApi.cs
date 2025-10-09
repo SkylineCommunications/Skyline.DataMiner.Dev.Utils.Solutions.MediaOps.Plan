@@ -25,6 +25,7 @@
         private readonly Lazy<ICapabilitiesRepository> lazyCapabilitiesRepository;
         private readonly Lazy<ICapacitiesRepository> lazyCapacitiesRepository;
         private readonly Lazy<IConfigurationsRepository> lazyConfigurationsRepository;
+        private readonly Lazy<IResourcePropertiesRepository> lazyResourcePropertiesRepository;
         private bool disposedValue;
 
         /// <summary>
@@ -46,6 +47,7 @@
             lazyCapabilitiesRepository = new Lazy<ICapabilitiesRepository>(() => new CapabilitiesRepository(this));
             lazyCapacitiesRepository = new Lazy<ICapacitiesRepository>(() => new CapacitiesRepository(this));
             lazyConfigurationsRepository = new Lazy<IConfigurationsRepository>(() => new ConfigurationsRepository(this));
+            lazyResourcePropertiesRepository = new Lazy<IResourcePropertiesRepository>(() => new ResourcePropertiesRepository(this));
         }
 
         /// <summary>
@@ -58,11 +60,25 @@
         /// </summary>
         public IResourcePoolsRepository ResourcePools => lazyResourcePoolsRepository.Value;
 
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
         public ICapabilitiesRepository Capabilities => lazyCapabilitiesRepository.Value;
 
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
         public ICapacitiesRepository Capacities => lazyCapacitiesRepository.Value;
 
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
         public IConfigurationsRepository Configurations => lazyConfigurationsRepository.Value;
+
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        public IResourcePropertiesRepository Properties => lazyResourcePropertiesRepository.Value;
 
         internal IConnection Connection => connection;
 

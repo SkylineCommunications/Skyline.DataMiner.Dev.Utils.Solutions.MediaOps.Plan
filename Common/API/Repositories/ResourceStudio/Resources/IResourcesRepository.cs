@@ -188,14 +188,14 @@
         IReadOnlyDictionary<ResourcePool, IEnumerable<Resource>> GetResourcesPerPool(IEnumerable<ResourcePool> resourcePools, ResourceState state);
 
         /// <summary>
-        /// Determines whether the specified <see cref="ResourcePool"/> contains any resources.
+        /// Determines whether the specified <see cref="ResourcePool"/> contains any resources, independent of its state.
         /// </summary>
         /// <param name="resourcePool">The resource pool to check for resources.</param>
         /// <returns><c>true</c> if the resource pool contains resources; otherwise, <c>false</c>.</returns>
         bool HasResources(ResourcePool resourcePool);
 
         /// <summary>
-        /// Gets the total number of resources in the specified <see cref="ResourcePool"/>.
+        /// Gets the total number of resources, independent of its state, in the specified <see cref="ResourcePool"/>.
         /// </summary>
         /// <param name="resourcePool">The resource pool to count resources in.</param>
         /// <returns>The count of resources in the resource pool.</returns>

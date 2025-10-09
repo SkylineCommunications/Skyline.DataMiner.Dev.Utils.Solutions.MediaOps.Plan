@@ -5,10 +5,6 @@
     using System.Diagnostics;
     using System.Linq;
     using System.Net;
-    using Microsoft.Extensions.Logging;
-    using OpenTelemetry;
-    using OpenTelemetry.Logs;
-    using OpenTelemetry.Trace;
 
     using Skyline.DataMiner.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.MediaOps.Plan.API;
