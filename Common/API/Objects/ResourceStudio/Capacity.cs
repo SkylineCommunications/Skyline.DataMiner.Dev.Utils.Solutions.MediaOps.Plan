@@ -1,7 +1,9 @@
 ﻿namespace Skyline.DataMiner.MediaOps.Plan.API
 {
     using System;
+
     using Skyline.DataMiner.Net.Profiles;
+
     using CoreParameter = Net.Profiles.Parameter;
 
     /// <summary>
@@ -9,6 +11,12 @@
     /// </summary>
     public class Capacity : Parameter
     {
+        private string units;
+        private decimal? rangeMin;
+        private decimal? rangeMax;
+        private decimal? stepSize;
+        private int? decimals;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Capacity"/> class.
         /// </summary>
@@ -33,6 +41,71 @@
         }
 
         /// <summary>
+        /// Gets or sets the units of measurement for the capacity.
+        /// </summary>
+        public string Units
+        {
+            get => units;
+            set
+            {
+                HasChanges = true;
+                units = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the minimum value for the capacity range.
+        /// </summary>
+        public decimal? RangeMin
+        {
+            get => rangeMin;
+            set
+            {
+                HasChanges = true;
+                rangeMin = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the maximum value for the capacity range.
+        /// </summary>
+        public decimal? RangeMax
+        {
+            get => rangeMax;
+            set
+            {
+                HasChanges = true;
+                rangeMax = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the step size for the capacity.
+        /// </summary>
+        public decimal? StepSize
+        {
+            get => stepSize;
+            set
+            {
+                HasChanges = true;
+                stepSize = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the number of decimal places for the capacity values.
+        /// </summary>
+        public int? Decimals
+        {
+            get => decimals;
+            set
+            {
+                HasChanges = true;
+                decimals = value;
+            }
+        }
+
+        /// <summary>
         /// Gets the category of the profile parameter, indicating its classification as a capacity.
         /// </summary>
         protected internal override ProfileParameterCategory Category => ProfileParameterCategory.Capacity;
@@ -42,7 +115,11 @@
         /// </summary>
         protected internal override void InternalParseParameter(CoreParameter parameter)
         {
-            throw new NotImplementedException();
+            units = parameter.Units ?? string.Empty;
+            rangeMin = double.IsNaN(parameter.RangeMin) ? null : (decimal)parameter.RangeMin;
+            rangeMax = double.IsNaN(parameter.RangeMax) ? null : (decimal)parameter.RangeMax;
+            stepSize = double.IsNaN(parameter.Stepsize) ? null : (decimal)parameter.Stepsize;
+            decimals = (parameter.Decimals == int.MaxValue)? null : parameter.Decimals;
         }
     }
 }

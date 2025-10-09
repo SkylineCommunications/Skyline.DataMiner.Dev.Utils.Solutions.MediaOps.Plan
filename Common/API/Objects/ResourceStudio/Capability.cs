@@ -3,8 +3,10 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Skyline.DataMiner.Net.Helper;
     using Skyline.DataMiner.Net.Profiles;
+
     using CoreParameter = Net.Profiles.Parameter;
 
     /// <summary>

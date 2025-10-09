@@ -1,7 +1,9 @@
 ﻿namespace Skyline.DataMiner.MediaOps.Plan.API
 {
     using System;
+
     using Skyline.DataMiner.Net.Profiles;
+
     using CoreParameter = Skyline.DataMiner.Net.Profiles.Parameter;
 
     /// <summary>
@@ -94,7 +96,7 @@
                 throw new InvalidOperationException($"The provided CORE parameter is not a {Category}.");
 
             name = coreParameter.Name;
-            isMandatory = coreParameter.IsOptional == null || coreParameter.IsOptional == false;
+            isMandatory = !coreParameter.IsOptional.HasValue || coreParameter.IsOptional.Value == false;
 
             InternalParseParameter(coreParameter);
         }
