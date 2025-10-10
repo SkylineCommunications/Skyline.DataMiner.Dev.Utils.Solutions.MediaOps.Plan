@@ -55,31 +55,7 @@
         /// <summary>
         /// Gets a read-only collection of discrete values.
         /// </summary>
-        public IReadOnlyCollection<string> Discretes
-        {
-            get => discretes;
-
-            set
-            {
-                if (value == null)
-                    throw new ArgumentNullException(nameof(value));
-
-                if (value.Any(x => String.IsNullOrWhiteSpace(x)))
-                    throw new ArgumentException(nameof(value));
-
-                if (discretes.ScrambledEquals(value))
-                    return;
-
-                discretes.Clear();
-                foreach (var option in value)
-                {
-                    discretes.Add(option);
-                }
-
-                HasChanges = true;
-            }
-        }
-
+        public IReadOnlyCollection<string> Discretes => discretes;
         /// <summary>
         /// Gets the category of the profile parameter, indicating its classification as a capability.
         /// </summary>
@@ -113,6 +89,33 @@
 
             if (discretes.Remove(option))
                 HasChanges = true;
+        }
+
+        /// <summary>
+        /// Updates the collection of discrete options with the specified values.
+        /// </summary>
+        /// <param name="options">A collection of non-null, non-whitespace strings representing the new discrete options.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="options"/> is <see langword="null"/>.</exception>
+        /// <exception cref="ArgumentException">Thrown if any element in <paramref name="options"/> is <see langword="null"/>, empty, or consists only of
+        /// whitespace.</exception>
+        public void SetDiscretes(IEnumerable<string> options)
+        {
+            if (options == null)
+                throw new ArgumentNullException(nameof(options));
+
+            if (options.Any(x => String.IsNullOrWhiteSpace(x)))
+                throw new ArgumentException(nameof(options));
+
+            if (discretes.ScrambledEquals(options))
+                return;
+
+            discretes.Clear();
+            foreach (var option in options)
+            {
+                discretes.Add(option);
+            }
+
+            HasChanges = true;
         }
 
         /// <summary>

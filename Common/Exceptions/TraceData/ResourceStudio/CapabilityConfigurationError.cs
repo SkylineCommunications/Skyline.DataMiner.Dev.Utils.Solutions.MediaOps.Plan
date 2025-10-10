@@ -18,11 +18,6 @@
             NameExists,
 
             /// <summary>
-            /// Indicates that a capability with the same name already exists in Core.
-            /// </summary>
-            NameExistsInCore,
-
-            /// <summary>
             /// Indicates that the name is invalid.
             /// </summary>
             InvalidName,
@@ -69,39 +64,5 @@
         /// Gets the reason for the capability configuration error.
         /// </summary>
         public Reason ErrorReason { get; set; }
-
-        /// <summary>
-        /// Gets or sets the name of the capability.
-        /// </summary>
-        public string CapabilityName { get; set; }
-
-        /// <summary>
-        /// Gets or sets the unique identifier of the existing DOM capability.
-        /// </summary>
-        public Guid ExistingDomCapabilityId { get; set; }
-
-        /// <summary>
-        /// Gets or sets the unique identifier of the existing core capability.
-        /// </summary>
-        public Guid ExistingCoreCapabilityId { get; set; }
-
-        /// <summary>
-        /// Returns a string representation of the error.
-        /// </summary>
-        /// <returns>A string that represents the current object.</returns>
-        public override string ToString()
-        {
-            switch (ErrorReason)
-            {
-                case Reason.NameExists:
-                    return $"Capability '{CapabilityName}' ({ExistingDomCapabilityId}) already exists.";
-
-                case Reason.NameExistsInCore:
-                    return $"Capability '{CapabilityName}' already exists with Core ID '{ExistingCoreCapabilityId}'.";
-
-                default:
-                    return ErrorMessage ?? base.ToString();
-            }
-        }
     }
 }

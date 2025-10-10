@@ -27,8 +27,9 @@
                 Name = name,
                 IsMandatory = true,
                 IsTimeDependent = false,
-                Discretes = new[] { "Value 1", "Value 2", "Value 3" },
             };
+
+            capability.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
 
             var capabilityId = testContext.Api.Capabilities.Create(capability);
 
@@ -52,8 +53,9 @@
                 Name = name,
                 IsMandatory = true,
                 IsTimeDependent = true,
-                Discretes = new[] { "Value 1", "Value 2", "Value 3" },
             };
+
+            capability.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
 
             var capabilityId = testContext.Api.Capabilities.Create(capability);
 
@@ -82,6 +84,29 @@
         }
 
         [TestMethod]
+        public void DuplicateDiscretes()
+        {
+            string name = $"Capability_{Guid.NewGuid()}";
+            string linkedName = $"{name} - Time Dependent";
+            var capability = new Capability
+            {
+                Name = name,
+                IsMandatory = true,
+                IsTimeDependent = true,
+            };
+
+            string discreteValue = "Value 1";
+            capability.SetDiscretes(Enumerable.Repeat(discreteValue, 10));
+
+            var capabilityId = testContext.Api.Capabilities.Create(capability);
+
+            var apiCapability = testContext.Api.Capabilities.Read(capabilityId);
+
+            Assert.AreEqual(1, apiCapability.Discretes.Count());
+            Assert.AreEqual(discreteValue, apiCapability.Discretes.Single());
+        }
+
+        [TestMethod]
         public void QueryCount()
         {
             var discretes = new string[]
@@ -96,16 +121,18 @@
                 Name = $"Capability1_{Guid.NewGuid()}",
                 IsMandatory = true,
                 IsTimeDependent = true,
-                Discretes = discretes,
             };
+
+            capability1.SetDiscretes(discretes);
 
             var capability2 = new Capability
             {
                 Name = $"Capability2_{Guid.NewGuid()}",
                 IsMandatory = true,
                 IsTimeDependent = false,
-                Discretes = discretes,
             };
+
+            capability2.SetDiscretes(discretes);
 
             var currentCapabilities = testContext.Api.Capabilities.ReadAll();
             var currentCapabilityCount = currentCapabilities.Count();
@@ -142,16 +169,20 @@
                 Name = $"Capability1_{Guid.NewGuid()}",
                 IsMandatory = true,
                 IsTimeDependent = true,
-                Discretes = discretes,
             };
+
+            capability1.SetDiscretes(discretes);
+
+            capability1.SetDiscretes(discretes);
 
             var capability2 = new Capability
             {
                 Name = $"Capability2_{Guid.NewGuid()}",
                 IsMandatory = true,
                 IsTimeDependent = false,
-                Discretes = discretes,
             };
+
+            capability2.SetDiscretes(discretes);
 
             testContext.Api.Capabilities.CreateOrUpdate(new[] { capability1, capability2 });
 
