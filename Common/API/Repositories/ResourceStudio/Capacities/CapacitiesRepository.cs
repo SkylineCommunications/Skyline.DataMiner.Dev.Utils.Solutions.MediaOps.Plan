@@ -3,7 +3,13 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
+    using Microsoft.Extensions.Logging;
+
+    using Skyline.DataMiner.MediaOps.Plan.ActivityHelper;
+    using Skyline.DataMiner.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
+
     using SLDataGateway.API.Types.Querying;
 
     internal class CapacitiesRepository : ProfileParameterRepository<Capacity>, ICapacitiesRepository
@@ -14,12 +20,35 @@
 
         public long CountAll()
         {
-            throw new NotImplementedException();
+            return PlanApi.CoreHelpers.ProfileProvider.CountAllCapacities();
         }
 
         public Guid Create(Capacity apiObject)
         {
-            throw new NotImplementedException();
+            PlanApi.Logger.LogInformation("Creating new Capacity...");
+
+            if (apiObject == null)
+            {
+                throw new ArgumentNullException(nameof(apiObject));
+            }
+
+            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Create), act =>
+            {
+                if (!apiObject.IsNew)
+                {
+                    throw new InvalidOperationException("Not possible to use method Create for an existing capacity. Use CreateOrUpdate or Update instead.");
+                }
+
+                if (!CoreCapacityHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
+                {
+                    throw new MediaOpsException(result.TraceDataPerItem[apiObject.Id]);
+                }
+
+                var capacityId = apiObject.Id;
+                act?.AddTag("CapacityId", capacityId);
+
+                return capacityId;
+            });
         }
 
         public IEnumerable<Guid> Create(IEnumerable<Capacity> apiObjects)

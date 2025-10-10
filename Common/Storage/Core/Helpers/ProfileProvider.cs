@@ -419,7 +419,7 @@
             return GetParametersByName(names).Where(x => x.Categories.HasFlag(ProfileParameterCategory.Capability));
         }
 
-        public bool TryDeleteInBatches(IEnumerable<Net.Profiles.Parameter> parameters, out Exceptions.BulkDeleteResult<Guid> result)
+        public bool TryDeleteParametersInBatches(IEnumerable<Net.Profiles.Parameter> parameters, out Exceptions.BulkDeleteResult<Guid> result)
         {
             if (parameters == null)
                 throw new ArgumentNullException(nameof(parameters));

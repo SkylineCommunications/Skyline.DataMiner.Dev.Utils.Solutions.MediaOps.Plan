@@ -121,5 +121,21 @@
             stepSize = double.IsNaN(parameter.Stepsize) ? null : (decimal)parameter.Stepsize;
             decimals = (parameter.Decimals == int.MaxValue)? null : parameter.Decimals;
         }
+
+        internal CoreParameter GetParameterWithChanges()
+        {
+            var updatedParameter = IsNew ? new CoreParameter(Id) { Categories = ProfileParameterCategory.Capacity, Type = CoreParameter.ParameterType.Number } : new CoreParameter(CoreParameter);
+
+            updatedParameter.Name = Name;
+            updatedParameter.IsOptional = !IsMandatory;
+
+            updatedParameter.Units = units;
+            updatedParameter.RangeMin = rangeMin.HasValue ? (double)rangeMin.Value : double.NaN;
+            updatedParameter.RangeMax = rangeMax.HasValue ? (double)rangeMax.Value : double.NaN;
+            updatedParameter.Stepsize = stepSize.HasValue ? (double)stepSize.Value : double.NaN;
+            updatedParameter.Decimals = decimals.HasValue ? decimals.Value : int.MaxValue;
+
+            return updatedParameter;
+        }
     }
 }
