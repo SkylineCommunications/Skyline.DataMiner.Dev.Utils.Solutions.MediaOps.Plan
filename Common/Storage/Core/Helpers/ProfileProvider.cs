@@ -166,6 +166,19 @@
             return profileHelper.ProfileParameters.Read(AllCapacitiesFilter);
         }
 
+        /// <summary>
+        /// Retrieves all capacity parameters.
+        /// </summary>
+        /// <returns>A collection of capacity parameters.</returns>
+        public IEnumerable<IEnumerable<Net.Profiles.Parameter>> GetAllCapacitiesPaged(long? pageSize = null)
+        {
+            var pages = pageSize.HasValue
+                ? profileHelper.ProfileParameters.ReadPaged(AllCapacitiesFilter, pageSize.Value)
+                : profileHelper.ProfileParameters.ReadPaged(AllCapacitiesFilter);
+
+            return pages;
+        }
+
         public IEnumerable<Net.Profiles.Parameter> GetCapacities(IQuery<Net.Profiles.Parameter> query)
         {
             if (query == null)

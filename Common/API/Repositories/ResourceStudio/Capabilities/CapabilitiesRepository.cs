@@ -239,7 +239,7 @@
                 var newCapabilities = apiObjects.Where(x => x.IsNew);
                 if (newCapabilities.Any())
                 {
-                    throw new InvalidOperationException("Not possible to use method Update for new resource properties. Use Create or CreateOrUpdate instead.");
+                    throw new InvalidOperationException("Not possible to use method Update for new capabilities. Use Create or CreateOrUpdate instead.");
                 }
 
                 if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
