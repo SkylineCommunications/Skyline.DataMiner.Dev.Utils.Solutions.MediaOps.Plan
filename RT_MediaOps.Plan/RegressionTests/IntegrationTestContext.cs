@@ -17,6 +17,8 @@
 
         public IMediaOpsPlanApi Api { get; private set; }
 
+        internal Storage.Core.CoreHelpers CoreHelpers { get; private set; }
+
         internal Storage.DOM.DomHelpers DomHelpers { get; private set; }
 
         public IntegrationTestContext()
@@ -35,6 +37,7 @@
             var logger = factory.CreateLogger<IMediaOpsPlanApi>();
 
             Api = new MediaOpsPlanApi(connection, logger) ?? throw new NullReferenceException("Unable to create MediaOpsPlanApi");
+            CoreHelpers = new Storage.Core.CoreHelpers(connection) ?? throw new NullReferenceException("Unable to create CoreHelpers");
             DomHelpers = new Storage.DOM.DomHelpers(connection) ?? throw new NullReferenceException("Unable to create DomHelpers");
         }
 
