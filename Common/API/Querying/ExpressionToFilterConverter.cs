@@ -2,20 +2,21 @@
 {
     using System;
     using System.Linq.Expressions;
-    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+    using Skyline.DataMiner.Net.Apps.UserDefinableApis.Messages;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
-    internal class ExpressionToFilterConverter<T>
+    internal class ExpressionToFilterConverter<T, TFilterElement>
         where T : ApiObject
+        where TFilterElement : DataType
     {
-        private readonly Repository<T> _repository;
+        private readonly Repository<T, TFilterElement> _repository;
 
-        private ExpressionToFilterConverter(Repository<T> repository)
+        private ExpressionToFilterConverter(Repository<T, TFilterElement> repository)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         }
 
-        public static FilterElement<DomInstance> Convert(Expression expression, Repository<T> repository)
+        public static FilterElement<TFilterElement> Convert(Expression expression, Repository<T, TFilterElement> repository)
         {
             if (expression is null)
             {
@@ -27,12 +28,12 @@
                 throw new ArgumentNullException(nameof(repository));
             }
 
-            var converter = new ExpressionToFilterConverter<T>(repository);
+            var converter = new ExpressionToFilterConverter<T, TFilterElement>(repository);
 
             return converter.ConvertInternal(expression);
         }
 
-        private FilterElement<DomInstance> ConvertInternal(Expression expr)
+        private FilterElement<TFilterElement> ConvertInternal(Expression expr)
         {
             return expr switch
             {
@@ -42,11 +43,12 @@
                 MethodCallExpression methodCall => ConvertMethodCall(methodCall),
                 LambdaExpression lambda => ConvertInternal(lambda.Body),
                 TypeBinaryExpression typeBinary => ConvertTypeBinary(typeBinary),
+                MemberExpression member => ConvertMember(member),
                 _ => throw new NotSupportedException($"Unsupported expression: {expr.NodeType} ({expr})"),
             };
         }
 
-        private FilterElement<DomInstance> ConvertBinary(BinaryExpression node)
+        private FilterElement<TFilterElement> ConvertBinary(BinaryExpression node)
         {
             // Handle logical combinations
             if (node.NodeType == ExpressionType.AndAlso || node.NodeType == ExpressionType.OrElse)
@@ -56,8 +58,8 @@
 
                 return node.NodeType switch
                 {
-                    ExpressionType.AndAlso => new ANDFilterElement<DomInstance>(left, right),
-                    ExpressionType.OrElse => new ORFilterElement<DomInstance>(left, right),
+                    ExpressionType.AndAlso => new ANDFilterElement<TFilterElement>(left, right),
+                    ExpressionType.OrElse => new ORFilterElement<TFilterElement>(left, right),
                     _ => throw new InvalidOperationException()
                 };
             }
@@ -73,13 +75,13 @@
             throw new NotSupportedException($"Unsupported comparison expression: {node}");
         }
 
-        private FilterElement<DomInstance> ConvertUnary(UnaryExpression node)
+        private FilterElement<TFilterElement> ConvertUnary(UnaryExpression node)
         {
             switch (node.NodeType)
             {
                 case ExpressionType.Not:
                     var operand = ConvertInternal(node.Operand);
-                    return new NOTFilterElement<DomInstance>(operand);
+                    return new NOTFilterElement<TFilterElement>(operand);
 
                 case ExpressionType.Quote:
                     return ConvertInternal(node.Operand);
@@ -89,24 +91,39 @@
             }
         }
 
-        private FilterElement<DomInstance> ConvertConstant(ConstantExpression node)
+        private FilterElement<TFilterElement> ConvertConstant(ConstantExpression node)
         {
             return node.Value switch
             {
-                true => new TRUEFilterElement<DomInstance>(),
-                false => new FALSEFilterElement<DomInstance>(),
+                true => new TRUEFilterElement<TFilterElement>(),
+                false => new FALSEFilterElement<TFilterElement>(),
                 _ => throw new NotSupportedException($"Unsupported constant: {node.Value}")
             };
         }
 
-        private FilterElement<DomInstance> ConvertMethodCall(MethodCallExpression node)
+        private FilterElement<TFilterElement> ConvertMethodCall(MethodCallExpression node)
         {
-            if (node.Method.DeclaringType == typeof(String) &&
-                node.Method.Name == nameof(string.Contains) &&
-                ExpressionTools.TryGetMember(node.Object, out var memberInfo) &&
-                ExpressionTools.TryGetValue(node.Arguments[0], out var value))
+            if (node.Method.DeclaringType == typeof(String) && TryConvertStringMethodCall(node, out var filter))
             {
-                return _repository.CreateFilter(memberInfo.Name, Comparer.Contains, value);
+                return filter;
+            }
+
+            // Handle .Where(x => x.Discreets.Contains("option1")) 
+            if (node.Method.DeclaringType == typeof(System.Linq.Enumerable) &&
+                node.Method.Name == nameof(System.Linq.Enumerable.Contains) &&
+                ExpressionTools.TryGetMember(node.Arguments[0], out var listStringMemberInfo) &&
+                ExpressionTools.TryGetValue(node.Arguments[1], out var listStringValue))
+            {
+                return _repository.CreateFilter(listStringMemberInfo.Name, Comparer.Contains, listStringValue);
+            }
+
+            // Handle .Where(x => x.IsActive.Equals(true))
+            // Handle .Where(x => x.Name.Equals("foo"))
+            if (node.Method.Name == nameof(object.Equals) &&
+                ExpressionTools.TryGetMember(node.Object, out var equalsMemberInfo) &&
+                ExpressionTools.TryGetValue(node.Arguments[0], out var equalsValue))
+            {
+                return _repository.CreateFilter(equalsMemberInfo.Name, Comparer.Equals, equalsValue);
             }
 
             // Handle .Where(x => x.Levels.Any(l => l.Endpoint == videoSource1))
@@ -121,9 +138,73 @@
             throw new NotSupportedException($"Unsupported method call: {node.Method}");
         }
 
-        private FilterElement<DomInstance> ConvertTypeBinary(TypeBinaryExpression node)
+        private bool TryConvertStringMethodCall(MethodCallExpression node, out FilterElement<TFilterElement> filter)
+        {
+            // Handle .Where(x => x.Name.Contains("foo"))
+            if (node.Method.Name == nameof(string.Contains) &&
+                ExpressionTools.TryGetMember(node.Object, out var containsMemberInfo) &&
+                ExpressionTools.TryGetValue(node.Arguments[0], out var containsValue))
+            {
+                filter = _repository.CreateFilter(containsMemberInfo.Name, Comparer.Contains, containsValue);
+                return true;
+            }
+
+            // Handle .Where(x => x.Name.StartsWith("foo"))
+            if (node.Method.Name == nameof(string.StartsWith) &&
+                ExpressionTools.TryGetMember(node.Object, out var startsWithMemberInfo) &&
+                ExpressionTools.TryGetValue(node.Arguments[0], out var startsWithValue))
+            {
+                filter = _repository.CreateFilter(startsWithMemberInfo.Name, Comparer.Regex, $"^{startsWithValue}");
+                return true;
+            }
+
+            // Handle .Where(x => x.Name.EndsWith("foo"))
+            if (node.Method.Name == nameof(string.EndsWith) &&
+                ExpressionTools.TryGetMember(node.Object, out var endsWithMemberInfo) &&
+                ExpressionTools.TryGetValue(node.Arguments[0], out var endsWithValue))
+            {
+                filter = _repository.CreateFilter(endsWithMemberInfo.Name, Comparer.Regex, $"{endsWithValue}$");
+                return true;
+            }
+
+            // Handle .Where(x => String.Equals(x.Name, "foo"))
+            if (node.Method.Name == nameof(string.Equals) &&
+                node.Arguments.Count == 2 &&
+                ExpressionTools.TryGetMember(node.Arguments[0], out var staticStringEqualsMember1) &&
+                ExpressionTools.TryGetValue(node.Arguments[1], out var staticStringEqualsValue1))
+            {
+                filter = _repository.CreateFilter(staticStringEqualsMember1.Name, Comparer.Equals, staticStringEqualsValue1);
+                return true;
+            }
+
+            // Handle .Where(x => String.Equals("foo", x.Name))
+            if (node.Method.Name == nameof(string.Equals) &&
+                node.Arguments.Count == 2 &&
+                ExpressionTools.TryGetValue(node.Arguments[0], out var staticStringEqualsValue2) &&
+                ExpressionTools.TryGetMember(node.Arguments[1], out var staticStringEqualsMember2))
+            {
+                filter = _repository.CreateFilter(staticStringEqualsMember2.Name, Comparer.Equals, staticStringEqualsValue2);
+                return true;
+            }
+
+            filter = null;
+            return false;
+        }
+
+        private FilterElement<TFilterElement> ConvertTypeBinary(TypeBinaryExpression node)
         {
             return _repository.CreateFilter(node.TypeOperand, ExpressionTypeToComparer(node.NodeType));
+        }
+
+        private FilterElement<TFilterElement> ConvertMember(MemberExpression node)
+        {
+            // Handle .Where(x => x.IsActive)
+            if (node.Type == typeof(Boolean))
+            {
+                return _repository.CreateFilter(node.Member.Name, Comparer.Equals, true);
+            }
+
+            throw new NotSupportedException($"Unsupported property expression: {node}");
         }
 
         private static Comparer ExpressionTypeToComparer(ExpressionType type)

@@ -1,10 +1,10 @@
 ﻿namespace Skyline.DataMiner.MediaOps.Plan.API
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Text;
-
-    public interface IConfigurationsRepository
+    /// <summary>
+    /// Defines a repository for managing <see cref="Configuration"/> entities, providing  basic CRUD operations and
+    /// additional functionality as defined by the  <see cref="ICrudRepository{T}"/> interface.
+    /// </summary>
+    public interface IConfigurationsRepository : ICrudRepository<Configuration>
     {
     }
 }

@@ -5,30 +5,30 @@
     using System.Linq;
     using System.Linq.Expressions;
 
-    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
     using SLDataGateway.API.Querying;
     using SLDataGateway.API.Types.Querying;
 
-    internal class ApiRepositoryQueryExecutor<T, TResult> : ExpressionVisitor
+    internal class ApiRepositoryQueryExecutor<T, TResult, TFilterElement> : ExpressionVisitor
         where T : ApiObject
+        where TFilterElement : DataType
     {
-        private readonly ApiRepositoryQueryProvider<T> provider;
+        private readonly ApiRepositoryQueryProvider<T, TFilterElement> provider;
 
-        private readonly List<FilterElement<DomInstance>> filters = new List<FilterElement<DomInstance>>();
+        private readonly List<FilterElement<TFilterElement>> filters = new List<FilterElement<TFilterElement>>();
         private readonly List<IOrderByElement> orderBy = new List<IOrderByElement>();
         private int? limit;
         private bool canExtendQuery = true;
 
-        private ApiRepositoryQueryExecutor(ApiRepositoryQueryProvider<T> provider)
+        private ApiRepositoryQueryExecutor(ApiRepositoryQueryProvider<T, TFilterElement> provider)
         {
             this.provider = provider ?? throw new ArgumentNullException(nameof(provider));
         }
 
-        internal static TResult Execute(ApiRepositoryQueryProvider<T> provider, Expression expression)
+        internal static TResult Execute(ApiRepositoryQueryProvider<T, TFilterElement> provider, Expression expression)
         {
-            var visitor = new ApiRepositoryQueryExecutor<T, TResult>(provider);
+            var visitor = new ApiRepositoryQueryExecutor<T, TResult, TFilterElement>(provider);
             expression = visitor.Visit(expression);
 
             var lambda = Expression.Lambda<Func<TResult>>(expression).Compile();
@@ -81,7 +81,7 @@
 
         protected override Expression VisitConstant(ConstantExpression node)
         {
-            if (node.Value is ApiRepositoryQuery<T>)
+            if (node.Value is ApiRepositoryQuery<T, TFilterElement>)
             {
                 // replace with an expression that executes the query
                 return BuildExecuteQueryExpression();
@@ -198,7 +198,7 @@
 
         private void AddFilter(Expression expression, bool invertFilter = false)
         {
-            var filter = ExpressionToFilterConverter<T>.Convert(expression, provider.Repository);
+            var filter = ExpressionToFilterConverter<T, TFilterElement>.Convert(expression, provider.Repository);
 
             if (filter == null)
             {
@@ -207,15 +207,15 @@
 
             if (invertFilter)
             {
-                filter = new NOTFilterElement<DomInstance>(filter);
+                filter = new NOTFilterElement<TFilterElement>(filter);
             }
 
             filters.Add(filter);
         }
 
-        private FilterElement<DomInstance> BuildFilter()
+        private FilterElement<TFilterElement> BuildFilter()
         {
-            FilterElement<DomInstance> filter;
+            FilterElement<TFilterElement> filter;
 
             if (filters.Count == 1)
             {
@@ -223,17 +223,17 @@
             }
             else if (filters.Count > 1)
             {
-                filter = new ANDFilterElement<DomInstance>(filters.ToArray());
+                filter = new ANDFilterElement<TFilterElement>(filters.ToArray());
             }
             else
             {
-                filter = new TRUEFilterElement<DomInstance>();
+                filter = new TRUEFilterElement<TFilterElement>();
             }
 
             return filter;
         }
 
-        private IQuery<DomInstance> BuildQuery()
+        private IQuery<TFilterElement> BuildQuery()
         {
             var query = BuildFilter().ToQuery();
 

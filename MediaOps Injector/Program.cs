@@ -5,10 +5,6 @@
     using System.Diagnostics;
     using System.Linq;
     using System.Net;
-    using Microsoft.Extensions.Logging;
-    using OpenTelemetry;
-    using OpenTelemetry.Logs;
-    using OpenTelemetry.Trace;
 
     using Skyline.DataMiner.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.MediaOps.Plan.API;
@@ -27,11 +23,17 @@
             var credentials = CredentialCache.DefaultNetworkCredentials;
 
             Console.WriteLine("Connecting to DataMiner...");
-            DMConnection connection = ConnectionSettings.GetConnection("jensvd.skyline.local");
+            DMConnection connection = ConnectionSettings.GetConnection("slc-h62-g04.skyline.local");
             connection.Authenticate(credentials.UserName, credentials.Password, credentials.Domain);
             Console.WriteLine("Connected to DataMiner\r\n");
 
-            TestResourcePoolRepository_DuplicateNames(new MediaOpsPlanApi(connection));
+            var api = new MediaOpsPlanApi(connection);
+            var capabilityCount = api.Capabilities.CountAll();
+            var capabilities = api.Capabilities.ReadAll();
+
+            capabilities.ForEach(x => Console.WriteLine(x.Name));
+
+            //TestResourcePoolRepository_DuplicateNames(new MediaOpsPlanApi(connection));
 
             /*var loggerFactory = LoggerFactory.Create(builder =>
             {

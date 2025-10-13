@@ -108,7 +108,7 @@
                     : entryPointData;
             }
 
-            var functionEntryPoint = ActivityHelper.ActivityHelper.Track<FunctionEntryPoint>(nameof(ProtocolFunctionHelper), nameof(ProtocolFunctionHelper.GetFunctionEntryPoints), act => helper.GetFunctionEntryPoints(functionDefinitionId, elementInfo.AgentId, elementInfo.ElementId).FirstOrDefault());
+            var functionEntryPoint = ActivityHelper.ActivityHelper.Track(nameof(ProtocolFunctionHelper), nameof(ProtocolFunctionHelper.GetFunctionEntryPoints), act => helper.GetFunctionEntryPoints(functionDefinitionId, elementInfo.AgentId, elementInfo.ElementId).FirstOrDefault());
             if (functionEntryPoint == null)
             {
                 entryPointDataByElementFunction.Add(key, new List<EntryPointData>());

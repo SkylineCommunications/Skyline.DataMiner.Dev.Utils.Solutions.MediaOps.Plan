@@ -2,8 +2,6 @@
 {
     using System;
     using System.Diagnostics;
-    using System.Linq;
-    using System.Reflection;
 
     /// <summary>
     /// Provides helper methods for tracking activities using OpenTelemetry.
