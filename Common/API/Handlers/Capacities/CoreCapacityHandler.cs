@@ -348,6 +348,7 @@
                     };
 
                     ReportError(capacity.Id, error);
+                    continue;
                 }
 
                 if (capacity.RangeMin.HasValue && Math.Abs(Math.Round((double)capacity.RangeMin, (int)capacity.Decimals) - (double)capacity.RangeMin) > double.Epsilon)

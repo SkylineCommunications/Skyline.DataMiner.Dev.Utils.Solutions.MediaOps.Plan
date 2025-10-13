@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Net;
@@ -12,7 +13,9 @@
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Net.Profiles;
     using Skyline.DataMiner.Utils.DOM.Extensions;
+
     using SLDataGateway.API.Types.Querying;
+
     using static Skyline.DataMiner.Net.Profiles.Parameter;
 
     /// <summary>

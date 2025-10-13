@@ -124,7 +124,7 @@
 
         internal CoreParameter GetParameterWithChanges()
         {
-            var updatedParameter = IsNew ? new CoreParameter(Id) { Categories = ProfileParameterCategory.Capacity, Type = CoreParameter.ParameterType.Number } : new CoreParameter(CoreParameter);
+            var updatedParameter = IsNew ? new CoreParameter(Id) { Categories = ProfileParameterCategory.Capacity, Type = CoreParameter.ParameterType.Number } : new CoreParameter(CoreParameter) { Categories = ProfileParameterCategory.Capacity };
 
             updatedParameter.Name = Name;
             updatedParameter.IsOptional = !IsMandatory;

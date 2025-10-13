@@ -11,7 +11,7 @@
         private readonly IConnection connection;
 
         private readonly Lazy<ResourceManagerHelper> lazyResourceManagerHelper;
-        private readonly Lazy<ProfileProvider> lazyProfileHelper;
+        private readonly Lazy<ProfileProvider> lazyProfileProvider;
 
         private readonly Lazy<ProtocolFunctionHelper> lazyProtocolFunctionHelper;
         private readonly Lazy<ProtocolFunctionHelperCache> lazyProtocolFunctionHelperCache;
@@ -24,7 +24,7 @@
             this.connection = connection ?? throw new ArgumentNullException(nameof(connection));
 
             lazyResourceManagerHelper = new Lazy<ResourceManagerHelper>(() => new ResourceManagerHelper(connection.HandleSingleResponseMessage));
-            lazyProfileHelper = new Lazy<ProfileProvider>(() => new ProfileProvider(connection));
+            lazyProfileProvider = new Lazy<ProfileProvider>(() => new ProfileProvider(connection));
 
             lazyProtocolFunctionHelper = new Lazy<ProtocolFunctionHelper>(() => new ProtocolFunctionHelper(connection.HandleMessages));
             lazyProtocolFunctionHelperCache = new Lazy<ProtocolFunctionHelperCache>(() => new ProtocolFunctionHelperCache(ProtocolFunctionHelper));
@@ -35,7 +35,7 @@
 
         public ResourceManagerHelper ResourceManagerHelper => lazyResourceManagerHelper.Value;
 
-        public ProfileProvider ProfileProvider => lazyProfileHelper.Value;
+        public ProfileProvider ProfileProvider => lazyProfileProvider.Value;
 
         public ProtocolFunctionHelper ProtocolFunctionHelper => lazyProtocolFunctionHelper.Value;
 
