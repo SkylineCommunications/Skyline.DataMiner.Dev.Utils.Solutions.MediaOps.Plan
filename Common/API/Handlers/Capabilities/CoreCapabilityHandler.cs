@@ -8,6 +8,7 @@
 
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
+    using Skyline.DataMiner.MediaOps.Plan.Storage.Core;
     using Skyline.DataMiner.Net;
 
     using CoreParameter = Net.Profiles.Parameter;
@@ -332,6 +333,23 @@
                         ErrorReason = CapabilityConfigurationError.Reason.InvalidDiscretes,
                         ErrorMessage = "Empty discretes list is not allowed.",
                     });
+                }
+                else
+                {
+                    var duplicateDiscretes = capability.Discretes
+                        .GroupBy(x => x.Trim())
+                        .Where(g => g.Count() > 1)
+                        .SelectMany(g => g)
+                        .ToList();
+
+                    if (duplicateDiscretes.Any())
+                    {
+                        ReportError(capability.Id, new CapabilityConfigurationError
+                        {
+                            ErrorReason = CapabilityConfigurationError.Reason.InvalidDiscretes,
+                            ErrorMessage = $"The capability defines the following duplicate discretes: {String.Join(", ", duplicateDiscretes)}.",
+                        });
+                    }
                 }
             }
         }

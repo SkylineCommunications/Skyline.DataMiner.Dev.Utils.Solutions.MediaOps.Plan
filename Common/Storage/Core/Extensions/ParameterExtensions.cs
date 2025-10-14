@@ -1,4 +1,4 @@
-﻿namespace Skyline.DataMiner.MediaOps.Plan.Extensions
+﻿namespace Skyline.DataMiner.MediaOps.Plan.Storage.Core
 {
     using System;
     using Skyline.DataMiner.MediaOps.Plan.API;
@@ -8,7 +8,7 @@
     /// <summary>
     /// Provides extension methods for the <see cref="Parameter"/> class.
     /// </summary>
-    public static class ParameterExtensions
+    internal static class ParameterExtensions
     {
         /// <summary>
         /// Determines whether the parameter has a default string value.
