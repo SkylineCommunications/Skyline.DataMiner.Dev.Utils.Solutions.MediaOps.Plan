@@ -3,12 +3,14 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Skyline.DataMiner.Net.Helper;
     using Skyline.DataMiner.Net.Profiles;
+
     using CoreParameter = Net.Profiles.Parameter;
 
     /// <summary>
-    /// Represents a capability in the MediaOps.
+    /// Represents a capability in the MediaOps Plan API.
     /// </summary>
     public class Capability : Parameter
     {

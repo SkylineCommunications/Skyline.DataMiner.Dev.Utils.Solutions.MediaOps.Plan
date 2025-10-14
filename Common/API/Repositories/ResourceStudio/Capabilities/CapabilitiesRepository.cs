@@ -3,15 +3,18 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Microsoft.Extensions.Logging;
+
     using Skyline.DataMiner.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
+
     using SLDataGateway.API.Types.Querying;
 
     internal class CapabilitiesRepository : ProfileParameterRepository<Capability>, ICapabilitiesRepository
     {
-        public CapabilitiesRepository(MediaOpsPlanApi api) : base(api)
+        public CapabilitiesRepository(MediaOpsPlanApi planApi) : base(planApi)
         {
         }
 
@@ -36,7 +39,7 @@
                     throw new InvalidOperationException("Not possible to use method Create for an existing capability. Use CreateOrUpdate or Update instead.");
                 }
 
-                if (!CoreCapabilitiesHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
+                if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
                 {
                     throw new MediaOpsException(result.TraceDataPerItem[apiObject.Id]);
                 }
@@ -63,7 +66,7 @@
                     throw new InvalidOperationException("Not possible to use method Create for existing capabilities. Use CreateOrUpdate or Update instead.");
                 }
 
-                if (!CoreCapabilitiesHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
+                if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
                 {
                     throw new MediaOpsBulkException<Guid>(result);
                 }
@@ -84,7 +87,7 @@
 
             return ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(CreateOrUpdate), act =>
             {
-                if (!CoreCapabilitiesHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
+                if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
                 {
                     throw new MediaOpsBulkException<Guid>(result);
                 }
@@ -118,7 +121,7 @@
 
             ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Delete), act =>
             {
-                if (!CoreCapabilitiesHandler.TryDelete(PlanApi, capabilitiesToDelete, out var result))
+                if (!CoreCapabilityHandler.TryDelete(PlanApi, capabilitiesToDelete, out var result))
                 {
                     throw new MediaOpsBulkException<Guid>(result);
                 }
@@ -214,7 +217,7 @@
                     throw new InvalidOperationException("Not possible to use method Update for new capability. Use Create or CreateOrUpdate instead.");
                 }
 
-                if (!CoreCapabilitiesHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
+                if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
                 {
                     throw new MediaOpsException(result.TraceDataPerItem[apiObject.Id]);
                 }
@@ -236,10 +239,10 @@
                 var newCapabilities = apiObjects.Where(x => x.IsNew);
                 if (newCapabilities.Any())
                 {
-                    throw new InvalidOperationException("Not possible to use method Update for new resource properties. Use Create or CreateOrUpdate instead.");
+                    throw new InvalidOperationException("Not possible to use method Update for new capabilities. Use Create or CreateOrUpdate instead.");
                 }
 
-                if (!CoreCapabilitiesHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
+                if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
                 {
                     throw new MediaOpsBulkException<Guid>(result);
                 }
@@ -268,8 +271,6 @@
         {
             switch (fieldName)
             {
-                case nameof(Capability.IsMandatory):
-                    return FilterElementFactory<Net.Profiles.Parameter>.Create(Net.Profiles.ParameterExposers.IsOptional, comparer, !Convert.ToBoolean(value));
                 case nameof(Capability.IsTimeDependent):
                     return IsTimeDependantFilter(comparer, Convert.ToBoolean(value));
                 case nameof(Capability.Discretes):
@@ -283,8 +284,6 @@
         {
             switch (fieldName)
             {
-                case nameof(Capability.IsMandatory):
-                    return OrderByElementFactory.Create(Net.Profiles.ParameterExposers.IsOptional, sortOrder, naturalSort);
                 case nameof(Capability.IsTimeDependent):
                     return OrderByElementFactory.Create(Net.Profiles.ParameterExposers.Remarks, sortOrder, naturalSort);
                 case nameof(Capability.Discretes):

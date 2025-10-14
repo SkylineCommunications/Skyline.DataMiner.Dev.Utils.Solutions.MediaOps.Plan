@@ -1,29 +1,23 @@
 ﻿namespace RT_MediaOps.Plan.RegressionTests
 {
     using System.Net;
+
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
 
     using Skyline.DataMiner.MediaOps.Plan.API;
-    using Skyline.DataMiner.MediaOps.Plan.Storage.Core;
     using Skyline.DataMiner.Net;
+    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages;
     using Skyline.DataMiner.Net.Profiles;
+
     using DMConnection = Skyline.DataMiner.Net.Connection;
+    using Storage = Skyline.DataMiner.MediaOps.Plan.Storage;
 
     public sealed class IntegrationTestContext : IDisposable
     {
         private readonly ILoggerFactory factory;
         private readonly DMConnection connection;
-
-        private readonly Lazy<ResourceManagerHelper> lazyResourceManagerHelper;
-        private readonly Lazy<ProfileHelper> lazyProfileHelper;
-
-        public IMediaOpsPlanApi Api { get; private set; }
-
-        public ResourceManagerHelper ResourceManagerHelper => lazyResourceManagerHelper.Value;
-
-        public ProfileHelper ProfileHelper => lazyProfileHelper.Value;
 
         public IntegrationTestContext()
         {
@@ -42,9 +36,19 @@
 
             Api = new MediaOpsPlanApi(connection, logger) ?? throw new NullReferenceException("Unable to create MediaOpsPlanApi");
 
-            lazyResourceManagerHelper = new Lazy<ResourceManagerHelper>(() => new ResourceManagerHelper(connection.HandleSingleResponseMessage));
-            lazyProfileHelper = new Lazy<ProfileHelper>(() => new ProfileHelper(connection.HandleMessages));
+            ResourceStudioDomHelper = new DomHelper(connection.HandleMessages, "(slc)resource_studio") ?? throw new NullReferenceException("Unable to create ResourceStudioDomHelper");
+
+            ResourceManagerHelper = new ResourceManagerHelper(connection.HandleSingleResponseMessage) ?? throw new NullReferenceException("Unable to create ResourceManagerHelper");
+            ProfileHelper = new ProfileHelper(connection.HandleMessages) ?? throw new NullReferenceException("Unable to create ProfileHelper");
         }
+
+        public IMediaOpsPlanApi Api { get; private set; }
+
+        public DomHelper ResourceStudioDomHelper { get; private set; }
+
+        public ResourceManagerHelper ResourceManagerHelper { get; private set; }
+
+        public ProfileHelper ProfileHelper { get; private set; }
 
         public void Dispose()
         {

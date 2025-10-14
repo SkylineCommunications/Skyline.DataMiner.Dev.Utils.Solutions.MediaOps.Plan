@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Net;
@@ -12,7 +13,9 @@
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Net.Profiles;
     using Skyline.DataMiner.Utils.DOM.Extensions;
+
     using SLDataGateway.API.Types.Querying;
+
     using static Skyline.DataMiner.Net.Profiles.Parameter;
 
     /// <summary>
@@ -164,6 +167,19 @@
         public IReadOnlyCollection<Net.Profiles.Parameter> GetAllCapacities()
         {
             return profileHelper.ProfileParameters.Read(AllCapacitiesFilter);
+        }
+
+        /// <summary>
+        /// Retrieves all capacity parameters.
+        /// </summary>
+        /// <returns>A collection of capacity parameters.</returns>
+        public IEnumerable<IEnumerable<Net.Profiles.Parameter>> GetAllCapacitiesPaged(long? pageSize = null)
+        {
+            var pages = pageSize.HasValue
+                ? profileHelper.ProfileParameters.ReadPaged(AllCapacitiesFilter, pageSize.Value)
+                : profileHelper.ProfileParameters.ReadPaged(AllCapacitiesFilter);
+
+            return pages;
         }
 
         public IEnumerable<Net.Profiles.Parameter> GetCapacities(IQuery<Net.Profiles.Parameter> query)
@@ -419,7 +435,7 @@
             return GetParametersByName(names).Where(x => x.Categories.HasFlag(ProfileParameterCategory.Capability));
         }
 
-        public bool TryDeleteInBatches(IEnumerable<Net.Profiles.Parameter> parameters, out Exceptions.BulkDeleteResult<Guid> result)
+        public bool TryDeleteParametersInBatches(IEnumerable<Net.Profiles.Parameter> parameters, out Exceptions.BulkDeleteResult<Guid> result)
         {
             if (parameters == null)
                 throw new ArgumentNullException(nameof(parameters));

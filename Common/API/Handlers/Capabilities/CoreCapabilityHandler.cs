@@ -3,25 +3,28 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Microsoft.Extensions.Logging;
+
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.MediaOps.Plan.Storage.Core;
     using Skyline.DataMiner.Net;
+
     using CoreParameter = Net.Profiles.Parameter;
 
-    internal class CoreCapabilitiesHandler : ApiObjectValidator<Guid>
+    internal class CoreCapabilityHandler : ApiObjectValidator<Guid>
     {
         private readonly MediaOpsPlanApi planApi;
 
-        private CoreCapabilitiesHandler(MediaOpsPlanApi planApi)
+        private CoreCapabilityHandler(MediaOpsPlanApi planApi)
         {
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
         internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, IEnumerable<Capability> apiCapabilities, out BulkCreateOrUpdateResult<Guid> result)
         {
-            var handler = new CoreCapabilitiesHandler(planApi);
+            var handler = new CoreCapabilityHandler(planApi);
             handler.CreateOrUpdate(apiCapabilities);
 
             result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
@@ -31,7 +34,7 @@
 
         internal static bool TryDelete(MediaOpsPlanApi planApi, IEnumerable<Capability> apiCapabilities, out BulkDeleteResult<Guid> result)
         {
-            var handler = new CoreCapabilitiesHandler(planApi);
+            var handler = new CoreCapabilityHandler(planApi);
             handler.Delete(apiCapabilities);
 
             result = new BulkDeleteResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
@@ -171,7 +174,7 @@
                 coreCapabilitiesToDelete.AddRange(planApi.CoreHelpers.ProfileProvider.GetParametersById(linkedTimeDependentCapabilityIds));
             }
 
-            planApi.CoreHelpers.ProfileProvider.TryDeleteInBatches(coreCapabilitiesToDelete, out var result);
+            planApi.CoreHelpers.ProfileProvider.TryDeleteParametersInBatches(coreCapabilitiesToDelete, out var result);
 
             foreach (var id in result.UnsuccessfulIds)
             {
@@ -250,7 +253,7 @@
 
             var capabilitiesRequiringValidation = apiCapabilities.ToList();
 
-            foreach (var capability in capabilitiesRequiringValidation.Where(x => !InputValidator.ValidateEmptyText(x.Name)).ToList())
+            foreach (var capability in capabilitiesRequiringValidation.Where(x => !InputValidator.ValidateEmptyText(x.Name)))
             {
                 var error = new CapabilityConfigurationError
                 {
@@ -262,12 +265,12 @@
                 capabilitiesRequiringValidation.Remove(capability);
             }
 
-            foreach (var capability in capabilitiesRequiringValidation.Where(x => !InputValidator.ValidateTextLength(x.Name)).ToList())
+            foreach (var capability in capabilitiesRequiringValidation.Where(x => !InputValidator.ValidateTextLength(x.Name)))
             {
                 var error = new CapabilityConfigurationError
                 {
                     ErrorReason = CapabilityConfigurationError.Reason.InvalidName,
-                    ErrorMessage = "Name exceeds maximum length of 150 characters.",
+                    ErrorMessage = $"Name exceeds maximum length of {InputValidator.DefaultMaxTextLength} characters.",
                 };
 
                 ReportError(capability.Id, error);
@@ -292,10 +295,10 @@
                 capabilitiesRequiringValidation.Remove(capability);
             }
 
-            var coreParametersByName = planApi.CoreHelpers.ProfileProvider.GetParametersByName(capabilitiesRequiringValidation.Select(x => x.Name));
+            var coreParameters = planApi.CoreHelpers.ProfileProvider.GetParametersByName(capabilitiesRequiringValidation.Select(x => x.Name));
             foreach (var capability in capabilitiesRequiringValidation)
             {
-                var coreParametersWithSameName = coreParametersByName.Where(x => x.Name.Equals(capability.Name));
+                var coreParametersWithSameName = coreParameters.Where(x => x.Name.Equals(capability.Name));
                 if (!coreParametersWithSameName.Any())
                 {
                     continue;

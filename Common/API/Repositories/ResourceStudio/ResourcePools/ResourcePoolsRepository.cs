@@ -14,7 +14,6 @@
     using Skyline.DataMiner.Net.Sections;
 
     using SLDataGateway.API.Types.Querying;
-    using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
     internal class ResourcePoolsRepository : DomRepository<ResourcePool>, IResourcePoolsRepository
