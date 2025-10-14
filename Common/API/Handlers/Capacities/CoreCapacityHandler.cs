@@ -351,7 +351,7 @@
                     continue;
                 }
 
-                if (capacity.RangeMin.HasValue && Math.Abs(Math.Round((double)capacity.RangeMin, (int)capacity.Decimals) - (double)capacity.RangeMin) > double.Epsilon)
+                if (capacity.RangeMin.HasValue && (Math.Round(capacity.RangeMin.Value, capacity.Decimals.Value) - capacity.RangeMin.Value) != 0)
                 {
                     var error = new CapacityConfigurationError
                     {
@@ -362,7 +362,7 @@
                     ReportError(capacity.Id, error);
                 }
 
-                if (capacity.RangeMax.HasValue && Math.Abs(Math.Round((double)capacity.RangeMax, (int)capacity.Decimals) - (double)capacity.RangeMax) > double.Epsilon)
+                if (capacity.RangeMax.HasValue && (Math.Round(capacity.RangeMax.Value, capacity.Decimals.Value) - capacity.RangeMax.Value) != 0)
                 {
                     var error = new CapacityConfigurationError
                     {
@@ -373,7 +373,7 @@
                     ReportError(capacity.Id, error);
                 }
 
-                if (capacity.StepSize.HasValue && Math.Abs(Math.Round((double)capacity.StepSize, (int)capacity.Decimals) - (double)capacity.StepSize) > double.Epsilon)
+                if (capacity.StepSize.HasValue && (Math.Round(capacity.StepSize.Value, capacity.Decimals.Value) - capacity.StepSize.Value) != 0)
                 {
                     var error = new CapacityConfigurationError
                     {

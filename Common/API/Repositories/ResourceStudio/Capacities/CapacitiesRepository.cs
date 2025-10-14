@@ -269,8 +269,6 @@
         {
             switch (fieldName)
             {
-                case nameof(Capacity.IsMandatory):
-                    return FilterElementFactory<Net.Profiles.Parameter>.Create(Net.Profiles.ParameterExposers.IsOptional, comparer, !Convert.ToBoolean(value));
                 case nameof(Capacity.Units):
                     return FilterElementFactory<Net.Profiles.Parameter>.Create(Net.Profiles.ParameterExposers.Units, comparer, value);
                 case nameof(Capacity.RangeMin):
@@ -290,8 +288,6 @@
         {
             switch (fieldName)
             {
-                case nameof(Capability.IsMandatory):
-                    return OrderByElementFactory.Create(Net.Profiles.ParameterExposers.IsOptional, sortOrder, naturalSort);
                 case nameof(Capacity.Units):
                     return OrderByElementFactory.Create(Net.Profiles.ParameterExposers.Units, sortOrder, naturalSort);
                 case nameof(Capacity.RangeMin):

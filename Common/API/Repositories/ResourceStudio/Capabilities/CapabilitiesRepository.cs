@@ -271,8 +271,6 @@
         {
             switch (fieldName)
             {
-                case nameof(Capability.IsMandatory):
-                    return FilterElementFactory<Net.Profiles.Parameter>.Create(Net.Profiles.ParameterExposers.IsOptional, comparer, !Convert.ToBoolean(value));
                 case nameof(Capability.IsTimeDependent):
                     return IsTimeDependantFilter(comparer, Convert.ToBoolean(value));
                 case nameof(Capability.Discretes):
@@ -286,8 +284,6 @@
         {
             switch (fieldName)
             {
-                case nameof(Capability.IsMandatory):
-                    return OrderByElementFactory.Create(Net.Profiles.ParameterExposers.IsOptional, sortOrder, naturalSort);
                 case nameof(Capability.IsTimeDependent):
                     return OrderByElementFactory.Create(Net.Profiles.ParameterExposers.Remarks, sortOrder, naturalSort);
                 case nameof(Capability.Discretes):
