@@ -1,6 +1,8 @@
 ﻿namespace Skyline.DataMiner.MediaOps.Plan.API
 {
     using System;
+    using System.Collections.Generic;
+    using Skyline.DataMiner.MediaOps.Plan.Storage.Core;
 
     /// <summary>
     /// Represents a configuration for discrete text settings, providing functionality to manage and parse text-based
@@ -8,6 +10,9 @@
     /// </summary>
     public class DiscreteTextConfiguration : Configuration
     {
+        private string defaultValue;
+        private Dictionary<string, string> discretes = new Dictionary<string, string>();
+
         /// <summary>
         /// Initializes a new instance of the <see cref="DiscreteTextConfiguration"/> class.
         /// </summary>
@@ -33,12 +38,40 @@
         {
         }
 
+        public string DefaultValue
+        {
+            get => defaultValue;
+            set
+            {
+                HasChanges = true;
+                defaultValue = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets a read-only dictionary of discrete values.
+        /// </summary>
+        public IReadOnlyDictionary<string, string> Discretes => discretes;
+
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
         protected internal override void InternalParseParameter(Net.Profiles.Parameter parameter)
         {
-            throw new NotImplementedException();
+            if (!parameter.HasDefaultStringValue())
+            {
+                defaultValue = null;
+            }
+            else
+            {
+                int defaultIndex = parameter.Discretes.IndexOf(parameter.DefaultValue.StringValue);
+                defaultValue = defaultIndex >= 0 ? parameter.DiscreetDisplayValues[defaultIndex] : null;
+            }
+
+            for (int i = 0; i < parameter.Discretes.Count; i++)
+            {
+                discretes.Add(parameter.DiscreetDisplayValues[i], parameter.Discretes[i]);
+            }
         }
     }
 }
