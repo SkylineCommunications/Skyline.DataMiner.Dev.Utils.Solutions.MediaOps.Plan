@@ -332,7 +332,7 @@
 
                 act?.AddTag("Hit", true);
 
-                return Resource.InstantiateResources([domResource]).First();
+                return Resource.InstantiateResources([domResource]).FirstOrDefault();
             });
         }
 
