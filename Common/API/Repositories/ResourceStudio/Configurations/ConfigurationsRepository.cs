@@ -47,11 +47,6 @@
             throw new NotImplementedException();
         }
 
-        public IQueryable<IEnumerable<Configuration>> QueryPaged()
-        {
-            throw new NotImplementedException();
-        }
-
         public Configuration Read(Guid id)
         {
             throw new NotImplementedException();

@@ -43,12 +43,6 @@
         IQueryable<T> Query();
 
         /// <summary>
-        /// Returns an <see cref="IQueryable{T}"/> of pages, where each page is an enumerable collection of API objects.
-        /// This can be used to build LINQ queries that operate on paged data.
-        /// </summary>
-        IQueryable<IEnumerable<T>> QueryPaged();
-
-        /// <summary>
         /// Gets the total number of API objects in the repository.
         /// </summary>
         /// <returns>The total count of API objects.</returns>

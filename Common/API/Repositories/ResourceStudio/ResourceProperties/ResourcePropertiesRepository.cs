@@ -144,11 +144,6 @@
             return new ApiRepositoryQuery<ResourceProperty, DomInstance>(QueryProvider);
         }
 
-        public IQueryable<IEnumerable<ResourceProperty>> QueryPaged()
-        {
-            throw new NotImplementedException();
-        }
-
         public ResourceProperty Read(Guid id)
         {
             PlanApi.Logger.LogInformation($"Reading Resource Property with ID: {id}...");
