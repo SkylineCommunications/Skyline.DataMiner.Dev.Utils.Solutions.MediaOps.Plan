@@ -230,7 +230,7 @@
             // Todo: add checks to see if resource is in use by jobs, etc.
             ValidateStateForDeprecateAction(apiResources);
 
-            // Update COE resources
+            // Update CORE resources
             var resourcesToDeprecate = apiResources.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)).ToList();
 
             CoreResourceHandler.TryDeprecate(planApi, resourcesToDeprecate.Select(x => x.OriginalInstance), out var coreResult);
