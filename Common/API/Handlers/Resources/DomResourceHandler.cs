@@ -3,16 +3,20 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Microsoft.Extensions.Logging;
+
     using Skyline.DataMiner.Core.DataMinerSystem.Common;
     using Skyline.DataMiner.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.MediaOps.Plan.Storage.DOM;
     using Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
+    using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Utils.DOM.Extensions;
+
     using DomResource = Storage.DOM.SlcResource_Studio.ResourceInstance;
 
     internal class DomResourceHandler : ApiObjectValidator<Guid>
@@ -33,6 +37,15 @@
 
             result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
+            return !result.HasFailures();
+        }
+
+        internal static bool TryDeprecate(MediaOpsPlanApi planApi, IEnumerable<Resource> apiResources, out BulkCreateOrUpdateResult<Guid> result)
+        {
+            var handler = new DomResourceHandler(planApi);
+            handler.TransitionToDeprecated(apiResources);
+
+            result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
             return !result.HasFailures();
         }
 
@@ -76,12 +89,6 @@
             handler.ConvertToElementResource(resource, configuration);
         }
 
-        internal static void TransitionToDeprecated(MediaOpsPlanApi planApi, Resource apiResource)
-        {
-            var handler = new DomResourceHandler(planApi);
-            handler.TransitionToDeprecated(apiResource);
-        }
-
         private void TransitionToComplete(Resource apiResource)
         {
             // Clear Errors
@@ -96,13 +103,6 @@
 
             // Transition DOM Resource to Complete
             planApi.DomHelpers.SlcResourceStudioHelper.TransitionResourceToComplete(apiResource.Id);
-        }
-
-        private void TransitionToDeprecated(Resource apiResource)
-        {
-            // Todo: add checks to see if resource is in use by jobs, etc.
-            CoreResourceHandler.DeprecateResource(planApi, apiResource.OriginalInstance);
-            planApi.DomHelpers.SlcResourceStudioHelper.TransitionResourceToDeprecated(apiResource.Id);
         }
 
         private void ClearErrors(MediaOpsPlanApi planApi, Resource apiResource, ErrorDefinition errorDefinition)
@@ -140,7 +140,7 @@
             }
 
             ValidateIdsNotInUse(toCreate);
-            ValidateState(toUpdate);
+            ValidateStateForUpdateAction(toUpdate);
 
             // Todo: lock DOM instances
             var changeResults = ActivityHelper.Track(nameof(DomResourceHandler), nameof(GetResourcesWithChanges), act => GetResourcesWithChanges(toUpdate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id))));
@@ -215,6 +215,52 @@
             ReportSuccess(domResult.SuccessfulIds.Select(x => x.Id));
         }
 
+        private void TransitionToDeprecated(IEnumerable<Resource> apiResources)
+        {
+            if (apiResources == null)
+            {
+                throw new ArgumentNullException(nameof(apiResources));
+            }
+
+            if (!apiResources.Any())
+            {
+                return;
+            }
+
+            // Todo: add checks to see if resource is in use by jobs, etc.
+            ValidateStateForDeprecateAction(apiResources);
+
+            // Update COE resources
+            var resourcesToDeprecate = apiResources.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)).ToList();
+
+            CoreResourceHandler.TryDeprecate(planApi, resourcesToDeprecate.Select(x => x.OriginalInstance), out var coreResult);
+
+            foreach (var id in coreResult.UnsuccessfulIds)
+            {
+                ReportError(id);
+
+                if (coreResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+                {
+                    PassTraceData(id, traceData);
+                }
+            }
+
+            // Transition DOM resources to Deprecate state
+            foreach (var id in coreResult.SuccessfulIds)
+            {
+                try
+                {
+                    planApi.DomHelpers.SlcResourceStudioHelper.TransitionResourceToDeprecated(id);
+
+                    ReportSuccess(id);
+                }
+                catch (Exception ex)
+                {
+                    ReportError(id, new MediaOpsErrorData() { ErrorMessage = ex.ToString() });
+                }
+            }
+        }
+
         private void Delete(IEnumerable<Resource> apiResources)
         {
             if (apiResources == null)
@@ -241,19 +287,9 @@
 
             apiResources = apiResources.Except(newResources).ToList();
 
-            var invalidStateResources = apiResources.Where(x => x.State != ResourceState.Draft && x.State != ResourceState.Deprecated).ToList();
-            invalidStateResources.ForEach(x =>
-            {
-                var error = new ResourceConfigurationError
-                {
-                    ErrorReason = ResourceConfigurationError.Reason.InvalidState,
-                    ErrorMessage = $"A resource in State {x.State} cannot be removed.",
-                };
+            ValidateStateForDeleteAction(apiResources);
 
-                ReportError(x.Id, error);
-            });
-
-            apiResources = apiResources.Except(invalidStateResources).ToList();
+            apiResources = apiResources.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)).ToList();
 
             var resourcesToDelete = apiResources.ToDictionary(x => x.Id);
             CoreResourceHandler.TryDelete(planApi, resourcesToDelete.Values.Select(x => x.OriginalInstance), out var coreResult);
@@ -337,7 +373,7 @@
             }
         }
 
-        private void ValidateState(IEnumerable<Resource> apiResources)
+        private void ValidateStateForUpdateAction(IEnumerable<Resource> apiResources)
         {
             if (apiResources == null)
             {
@@ -349,7 +385,7 @@
                 return;
             }
 
-            foreach (var pool in apiResources.Where(x => x.State == ResourceState.Deprecated))
+            foreach (var resource in apiResources.Where(x => x.State == ResourceState.Deprecated))
             {
                 var error = new ResourceConfigurationError
                 {
@@ -357,7 +393,76 @@
                     ErrorMessage = "Not allowed to update a resource in Deprecated state."
                 };
 
-                ReportError(pool.Id, error);
+                ReportError(resource.Id, error);
+            }
+        }
+
+        private void ValidateStateForCompleteAction(IEnumerable<Resource> apiResources)
+        {
+            if (apiResources == null)
+            {
+                throw new ArgumentNullException(nameof(apiResources));
+            }
+
+            if (!apiResources.Any())
+            {
+                return;
+            }
+
+            foreach (var resource in apiResources.Where(x => x.State != ResourceState.Draft))
+            {
+                var error = new ResourceConfigurationError
+                {
+                    ErrorReason = ResourceConfigurationError.Reason.InvalidState,
+                    ErrorMessage = "Not allowed to complete a resource that is not in Draft state."
+                };
+                ReportError(resource.Id, error);
+            }
+        }
+
+        private void ValidateStateForDeprecateAction(IEnumerable<Resource> apiResources)
+        {
+            if (apiResources == null)
+            {
+                throw new ArgumentNullException(nameof(apiResources));
+            }
+
+            if (!apiResources.Any())
+            {
+                return;
+            }
+
+            foreach (var resource in apiResources.Where(x => x.State != ResourceState.Complete))
+            {
+                var error = new ResourceConfigurationError
+                {
+                    ErrorReason = ResourceConfigurationError.Reason.InvalidState,
+                    ErrorMessage = "Not allowed to deprecate a resource that is not in Completed state."
+                };
+                ReportError(resource.Id, error);
+            }
+        }
+
+        private void ValidateStateForDeleteAction(IEnumerable<Resource> apiResources)
+        {
+            if (apiResources == null)
+            {
+                throw new ArgumentNullException(nameof(apiResources));
+            }
+
+            if (!apiResources.Any())
+            {
+                return;
+            }
+
+            foreach (var resource in apiResources.Where(x => !new[] { ResourceState.Draft, ResourceState.Deprecated }.Contains(x.State)))
+            {
+                var error = new ResourceConfigurationError
+                {
+                    ErrorReason = ResourceConfigurationError.Reason.InvalidState,
+                    ErrorMessage = "Not allowed to delete a resource that is not in Draft or Deprecated state."
+                };
+                ReportError(resource.Id, error);
             }
         }
 

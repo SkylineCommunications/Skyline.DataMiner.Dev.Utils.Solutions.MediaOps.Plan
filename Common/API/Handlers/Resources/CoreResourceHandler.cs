@@ -100,15 +100,14 @@
             return !result.HasFailures();
         }
 
-        public static void DeprecateResource(MediaOpsPlanApi planApi, DomResource domResource)
+        public static bool TryDeprecate(MediaOpsPlanApi planApi, IEnumerable<DomResource> domResources, out BulkCreateOrUpdateResult<Guid> result)
         {
-            if (domResource == null)
-            {
-                throw new ArgumentNullException(nameof(domResource));
-            }
-
             var handler = new CoreResourceHandler(planApi);
-            ActivityHelper.Track(nameof(CoreResourceHandler), nameof(DeprecateResource), act => handler.DeprecateResource(domResource));
+            handler.Deprecate(domResources);
+
+            result = new BulkCreateOrUpdateResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
+
+            return !result.HasFailures();
         }
 
         public static bool TryValidateVirtualFunctionConfiguration(MediaOpsPlanApi planApi, ResourceVirtualFunctionLinkConfiguration configuration, out ResourceConfigurationError error)
@@ -208,17 +207,79 @@
             return true;
         }
 
-        private void DeprecateResource(DomResource domResource)
+        private void Deprecate(IEnumerable<DomResource> domResources)
         {
-            var mapping = ResourceMapping.GetMappings(planApi, [domResource]).FirstOrDefault();
-            if (mapping?.CoreResource == null)
+            if (domResources == null)
+            {
+                throw new ArgumentNullException(nameof(domResources));
+            }
+
+            if (!domResources.Any())
             {
                 return;
             }
 
-            var coreResource = mapping.CoreResource;
-            coreResource.Mode = Net.Messages.ResourceMode.Unavailable;
-            ActivityHelper.Track(nameof(Net.Messages.ResourceManagerHelper), nameof(Net.Messages.ResourceManagerHelper.AddOrUpdateResources), act => planApi.CoreHelpers.ResourceManagerHelper.AddOrUpdateResources(coreResource));
+            Deprecate(ResourceMapping.GetMappings(planApi, domResources));
+        }
+
+        private void Deprecate(IEnumerable<ResourceMapping> resourceMappings)
+        {
+            if (resourceMappings == null)
+            {
+                throw new ArgumentNullException(nameof(resourceMappings));
+            }
+
+            if (!resourceMappings.Any())
+            {
+                return;
+            }
+
+            var domIdByCoreId = new Dictionary<Guid, Guid>();
+            var resourcesToDeprecate = new List<CoreResource>();
+
+            foreach (var mapping in resourceMappings)
+            {
+                if (mapping.CoreResource == null)
+                {
+                    successfulIds.Add(mapping.DomResource.ID.Id);
+
+                    continue;
+                }
+
+                mapping.CoreResource.Mode = Net.Messages.ResourceMode.Unavailable;
+
+                resourcesToDeprecate.Add(mapping.CoreResource);
+                domIdByCoreId.Add(mapping.CoreResource.ID, mapping.DomResource.ID.Id);
+            }
+
+            planApi.CoreHelpers.ResourceManagerHelper.TryCreateOrUpdateResourcesInBatches(resourcesToDeprecate, out var result);
+
+            foreach (var id in result.UnsuccessfulIds)
+            {
+                if (!domIdByCoreId.TryGetValue(id, out var domId))
+                {
+                    planApi.Logger.LogError($"Failed to find DOM ID for CORE resource ID {id}.");
+                    continue;
+                }
+
+                unsuccessfulIds.Add(domId);
+
+                if (result.TraceDataPerItem.TryGetValue(id, out var traceData))
+                {
+                    traceDataPerItem.Add(domId, traceData);
+                }
+            }
+
+            foreach (var id in result.SuccessfulIds)
+            {
+                if (!domIdByCoreId.TryGetValue(id, out var domId))
+                {
+                    planApi.Logger.LogError($"Failed to find DOM ID for CORE resource ID", id);
+                    continue;
+                }
+
+                successfulIds.Add(domId);
+            }
         }
 
         private void CreateOrUpdate(IEnumerable<DomResource> domResources)

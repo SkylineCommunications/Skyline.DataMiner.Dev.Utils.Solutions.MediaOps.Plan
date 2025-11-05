@@ -11,6 +11,7 @@
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+    using Skyline.DataMiner.Net.Messages;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
     using SLDataGateway.API.Types.Querying;
@@ -186,6 +187,26 @@
             });
         }
 
+        public void Deprecate(IEnumerable<Resource> resources)
+        {
+            if (resources == null)
+            {
+                throw new ArgumentNullException(nameof(resources));
+            }
+
+            ActivityHelper.Track(nameof(ResourcesRepository), nameof(Deprecate), act =>
+            {
+                if (!DomResourceHandler.TryDeprecate(PlanApi, resources, out var result))
+                {
+                    throw new MediaOpsBulkException<Guid>(result);
+                }
+
+                var resourceIds = result.SuccessfulIds;
+                act?.AddTag("Deprecated Resources", String.Join(", ", resourceIds));
+                act?.AddTag("Deprecated Resources Count", resourceIds.Count);
+            });
+        }
+
         public void Delete(params Resource[] apiObjects)
         {
             if (apiObjects == null)
@@ -303,7 +324,10 @@
                 act?.AddTag("ResourceId", resource.Id);
                 act?.AddTag("ResourceName", resource.Name);
 
-                DomResourceHandler.TransitionToDeprecated(PlanApi, resource);
+                if (!DomResourceHandler.TryDeprecate(PlanApi, [resource], out var result))
+                {
+                    throw new MediaOpsException(result.TraceDataPerItem[resource.Id]);
+                }
             });
         }
 
