@@ -287,7 +287,6 @@
                 catch (Exception ex)
                 {
                     ReportError(pool.Id, new MediaOpsErrorData() { ErrorMessage = ex.ToString() });
-                    throw;
                 }
             }
         }
@@ -366,17 +365,18 @@
                 resourcesToDeprecate.AddRange(poolResourcesToDeprecate);
             }
 
-            // todo: use bulk deprecate call when available in resource repository (ADO34081)
-            foreach (var resource in resourcesToDeprecate)
+            try
             {
-                try
+                planApi.Resources.Deprecate(resourcesToDeprecate);
+            }
+            catch (MediaOpsBulkException<Guid> ex)
+            {
+                foreach (var traceData in ex.Result.TraceDataPerItem)
                 {
-                    planApi.Resources.MoveTo(resource, ResourceState.Deprecated);
-                    ReportSuccess(resource.Id);
-                }
-                catch (Exception ex)
-                {
-                    ReportError(resource.Id, new MediaOpsErrorData() { ErrorMessage = ex.ToString() });
+                    foreach (var error in traceData.Value.ErrorData)
+                    {
+                        ReportError(traceData.Key, error);
+                    }
                 }
             }
         }

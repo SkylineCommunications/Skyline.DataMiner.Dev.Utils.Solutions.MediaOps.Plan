@@ -23,6 +23,12 @@
         void MoveTo(Guid resourceId, ResourceState desiredState);
 
         /// <summary>
+        /// Marks the specified resources as deprecated, indicating that they are no longer recommended for use.
+        /// </summary>
+        /// <param name="resources">A collection of resources to be marked as deprecated. Cannot be null or empty.</param>
+        void Deprecate(IEnumerable<Resource> resources);
+
+        /// <summary>
         /// Converts the specified <see cref="Resource"/> to an <see cref="UnmanagedResource"/>.
         /// </summary>
         /// <param name="resource">The resource to convert.</param>
