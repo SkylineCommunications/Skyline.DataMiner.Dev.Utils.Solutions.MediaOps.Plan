@@ -22,6 +22,26 @@
             traceDataPerItem.Add(key, traceData);
         }
 
+        internal void PassTraceData(ApiObjectValidator<T> internalValidator)
+        {
+            if (internalValidator == null) throw new ArgumentNullException(nameof(internalValidator));
+
+            // Pass items in error state
+            foreach (var itemId in internalValidator.TraceDataPerItem.Keys)
+            {
+                foreach (var traceData in internalValidator.TraceDataPerItem[itemId].ErrorData)
+                {
+                    AddValidationError(itemId, traceData);
+                }
+            }
+
+            // Pass successful items
+            foreach (var itemId in internalValidator.SuccessfulItems)
+            {
+                ReportSuccess(itemId);
+            }
+        }
+
         internal void AddValidationError(T key, MediaOpsErrorData error)
         {
             if (Object.Equals(key, default))

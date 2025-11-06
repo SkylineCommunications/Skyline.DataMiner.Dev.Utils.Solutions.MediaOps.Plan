@@ -67,6 +67,21 @@
             /// Indicates that a configuration is in a state that does not allow the requested operation.
             /// </summary>
             InvalidState,
+
+            /// <summary>
+            /// Indicates that there is an issue with the default value.
+            /// </summary>
+            InvalidDefaultValue,
+
+            /// <summary>
+            /// Indicates that there is an issue with the default discreet value.
+            /// </summary>
+            InvalidDefaultDiscreet,
+
+            /// <summary>
+            /// Indicates that there is an issue with the discreet values.
+            /// </summary>
+            InvalidDiscretes,
         }
 
         /// <summary>
