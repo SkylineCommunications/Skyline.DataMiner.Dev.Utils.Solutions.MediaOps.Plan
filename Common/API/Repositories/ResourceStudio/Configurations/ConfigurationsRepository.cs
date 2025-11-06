@@ -261,38 +261,44 @@
 
         protected internal override FilterElement<Net.Profiles.Parameter> CreateFilter(string fieldName, Comparer comparer, object value)
         {
-            //switch (fieldName)
-            //{
-            //    case nameof(Capacity.Units):
-            //        return FilterElementFactory<Net.Profiles.Parameter>.Create(Net.Profiles.ParameterExposers.Units, comparer, value);
-            //    case nameof(Capacity.RangeMin):
-            //        return FilterElementFactory<Net.Profiles.Parameter>.Create(Net.Profiles.ParameterExposers.RangeMin, comparer, Convert.ToDouble(value));
-            //    case nameof(Capacity.RangeMax):
-            //        return FilterElementFactory<Net.Profiles.Parameter>.Create(Net.Profiles.ParameterExposers.RangeMax, comparer, Convert.ToDouble(value));
-            //    case nameof(Capacity.StepSize):
-            //        return FilterElementFactory<Net.Profiles.Parameter>.Create(Net.Profiles.ParameterExposers.Stepsize, comparer, Convert.ToDouble(value));
-            //    case nameof(Capacity.Decimals):
-            //        return FilterElementFactory<Net.Profiles.Parameter>.Create(Net.Profiles.ParameterExposers.Decimals, comparer, value);
-            //}
+            switch (fieldName)
+            {
+                // DefaultValue and DisplayValues are not exposed through ParameterExposers.
+                case nameof(NumberConfiguration.Units):
+                    return FilterElementFactory<Net.Profiles.Parameter>.Create(Net.Profiles.ParameterExposers.Units, comparer, value);
+                case nameof(NumberConfiguration.RangeMin):
+                    return FilterElementFactory<Net.Profiles.Parameter>.Create(Net.Profiles.ParameterExposers.RangeMin, comparer, Convert.ToDouble(value));
+                case nameof(NumberConfiguration.RangeMax):
+                    return FilterElementFactory<Net.Profiles.Parameter>.Create(Net.Profiles.ParameterExposers.RangeMax, comparer, Convert.ToDouble(value));
+                case nameof(NumberConfiguration.StepSize):
+                    return FilterElementFactory<Net.Profiles.Parameter>.Create(Net.Profiles.ParameterExposers.Stepsize, comparer, Convert.ToDouble(value));
+                case nameof(NumberConfiguration.Decimals):
+                    return FilterElementFactory<Net.Profiles.Parameter>.Create(Net.Profiles.ParameterExposers.Decimals, comparer, value);
+                case nameof(DiscreteNumberConfiguration.Discretes.Values):
+                    return FilterElementFactory<Net.Profiles.Parameter>.Create(Net.Profiles.ParameterExposers.Discretes, comparer, value);
+            }
 
             return base.CreateFilter(fieldName, comparer, value);
         }
 
         protected internal override IOrderByElement CreateOrderBy(string fieldName, SortOrder sortOrder, bool naturalSort = false)
         {
-            //switch (fieldName)
-            //{
-            //    case nameof(Capacity.Units):
-            //        return OrderByElementFactory.Create(Net.Profiles.ParameterExposers.Units, sortOrder, naturalSort);
-            //    case nameof(Capacity.RangeMin):
-            //        return OrderByElementFactory.Create(Net.Profiles.ParameterExposers.RangeMin, sortOrder, naturalSort);
-            //    case nameof(Capacity.RangeMax):
-            //        return OrderByElementFactory.Create(Net.Profiles.ParameterExposers.RangeMax, sortOrder, naturalSort);
-            //    case nameof(Capacity.StepSize):
-            //        return OrderByElementFactory.Create(Net.Profiles.ParameterExposers.Stepsize, sortOrder, naturalSort);
-            //    case nameof(Capacity.Decimals):
-            //        return OrderByElementFactory.Create(Net.Profiles.ParameterExposers.Decimals, sortOrder, naturalSort);
-            //}
+            switch (fieldName)
+            {
+                // DefaultValue and DisplayValues are not exposed through ParameterExposers.
+                case nameof(NumberConfiguration.Units):
+                    return OrderByElementFactory.Create(Net.Profiles.ParameterExposers.Units, sortOrder, naturalSort);
+                case nameof(NumberConfiguration.RangeMin):
+                    return OrderByElementFactory.Create(Net.Profiles.ParameterExposers.RangeMin, sortOrder, naturalSort);
+                case nameof(NumberConfiguration.RangeMax):
+                    return OrderByElementFactory.Create(Net.Profiles.ParameterExposers.RangeMax, sortOrder, naturalSort);
+                case nameof(NumberConfiguration.StepSize):
+                    return OrderByElementFactory.Create(Net.Profiles.ParameterExposers.Stepsize, sortOrder, naturalSort);
+                case nameof(NumberConfiguration.Decimals):
+                    return OrderByElementFactory.Create(Net.Profiles.ParameterExposers.Decimals, sortOrder, naturalSort);
+                case nameof(DiscreteNumberConfiguration.Discretes.Values):
+                    return OrderByElementFactory.Create(Net.Profiles.ParameterExposers.Discretes, sortOrder, naturalSort);
+            }
 
             return base.CreateOrderBy(fieldName, sortOrder, naturalSort);
         }
