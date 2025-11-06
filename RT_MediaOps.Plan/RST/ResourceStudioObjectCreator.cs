@@ -14,6 +14,8 @@
 
         private readonly HashSet<Guid> createdCapacityIds = new HashSet<Guid>();
 
+        private readonly HashSet<Guid> createdConfigurationIds = new HashSet<Guid>();
+
         public ResourceStudioObjectCreator(IMediaOpsPlanApi api)
         {
             this.api = api ?? throw new ArgumentNullException(nameof(api));
@@ -102,6 +104,25 @@
             }
 
             return capacityIds;
+        }
+
+        public Guid CreateConfiguration(Configuration configuration)
+        {
+            var configurationId = api.Configurations.Create(configuration);
+            createdConfigurationIds.Add(configurationId);
+
+            return configurationId;
+        }
+
+        public IEnumerable<Guid> CreateConfigurations(IEnumerable<Configuration> configurations)
+        {
+            var configurationIds = api.Configurations.Create(configurations);
+            foreach (var id in configurationIds)
+            {
+                createdConfigurationIds.Add(id);
+            }
+
+            return configurationIds;
         }
     }
 }

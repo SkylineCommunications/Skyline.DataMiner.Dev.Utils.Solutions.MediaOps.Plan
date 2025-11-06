@@ -119,12 +119,12 @@
         /// </summary>
         protected internal override void InternalParseParameter(Net.Profiles.Parameter parameter)
         {
-            defaultValue = parameter.HasDefaultNumericValue() ? null : (decimal)parameter.DefaultValue.DoubleValue;
-            units = parameter.Units ?? string.Empty;
-            rangeMin = parameter.HasMinRange() ? null : (decimal)parameter.RangeMin;
-            rangeMax = parameter.HasMaxRange() ? null : (decimal)parameter.RangeMax;
-            stepSize = parameter.HasStepSize() ? null : (decimal)parameter.Stepsize;
-            decimals = parameter.HasDecimals() ? null : parameter.Decimals;
+            defaultValue = parameter.HasDefaultNumericValue() ? (decimal)parameter.DefaultValue.DoubleValue : null;
+            units = parameter.Units;
+            rangeMin = parameter.HasMinRange() ? (decimal)parameter.RangeMin : null;
+            rangeMax = parameter.HasMaxRange() ? (decimal)parameter.RangeMax : null;
+            stepSize = parameter.HasStepSize() ? (decimal)parameter.Stepsize : null;
+            decimals = parameter.HasDecimals() ? parameter.Decimals : null;
         }
     }
 }

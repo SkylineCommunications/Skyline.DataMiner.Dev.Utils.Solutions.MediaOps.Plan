@@ -49,8 +49,7 @@
         /// </summary>
         protected internal override void InternalParseParameter(Net.Profiles.Parameter parameter)
         {
-            bool hasDefaultValue = parameter.HasDefaultStringValue();
-            defaultValue = hasDefaultValue ? parameter.DefaultValue.StringValue : null;
+            defaultValue = parameter.HasDefaultStringValue() ? parameter.DefaultValue.StringValue : null;
         }
     }
 }

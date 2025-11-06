@@ -11,11 +11,11 @@
     [TestClass]
     [TestCategory("IntegrationTest")]
     [DoNotParallelize]
-    public sealed class CapabilityTests
+    public sealed class BasicTests
     {
         private readonly IntegrationTestContext testContext;
 
-        public CapabilityTests()
+        public BasicTests()
         {
             testContext = new IntegrationTestContext();
         }
