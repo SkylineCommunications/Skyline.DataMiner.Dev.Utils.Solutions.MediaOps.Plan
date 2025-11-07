@@ -27,11 +27,12 @@
             if (internalValidator == null) throw new ArgumentNullException(nameof(internalValidator));
 
             // Pass items in error state
-            foreach (var itemId in internalValidator.TraceDataPerItem.Keys)
+            foreach (var id in internalValidator.UnsuccessfulItems)
             {
-                foreach (var traceData in internalValidator.TraceDataPerItem[itemId].ErrorData)
+                ReportError(id);
+                if (internalValidator.TraceDataPerItem.TryGetValue(id, out var traceData))
                 {
-                    AddValidationError(itemId, traceData);
+                    PassTraceData(id, traceData);
                 }
             }
 

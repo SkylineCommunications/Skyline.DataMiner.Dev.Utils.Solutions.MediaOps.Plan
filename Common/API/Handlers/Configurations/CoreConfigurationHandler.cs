@@ -7,6 +7,7 @@
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Net;
+    using static Skyline.DataMiner.Net.Apps.Modules.ModuleIdValidator;
 
     internal class CoreConfigurationHandler : ApiObjectValidator<Guid>
     {
