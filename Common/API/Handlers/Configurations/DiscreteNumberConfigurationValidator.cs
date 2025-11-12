@@ -79,6 +79,11 @@
                 reason = $"Multiple discretes have {displayValue} as their display value";
                 return false;
             }
+            else if (!InputValidator.ValidateTextLength(displayValue))
+            {
+                reason = $"The display value of the discreet exceeds {InputValidator.DefaultMaxTextLength} characters";
+                return false;
+            }
             else
             {
                 // valid display value

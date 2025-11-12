@@ -23,10 +23,14 @@
         {
             if (textConfiguration.DefaultValue == null)
             {
+                // valid default string value
+            }
+            else if (!InputValidator.ValidateTextLength(textConfiguration.DefaultValue))
+            {
                 ReportError(textConfiguration.Id, new ConfigurationConfigurationError
                 {
                     ErrorReason = ConfigurationConfigurationError.Reason.InvalidDefaultValue,
-                    ErrorMessage = "A default value for a text configuration cannot be null",
+                    ErrorMessage = $"The default value of the text configuration exceeds {InputValidator.DefaultMaxTextLength} characters",
                 });
             }
             else

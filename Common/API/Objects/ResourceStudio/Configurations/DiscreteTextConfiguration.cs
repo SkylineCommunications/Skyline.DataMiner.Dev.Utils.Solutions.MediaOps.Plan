@@ -53,6 +53,47 @@
         /// </summary>
         public IReadOnlyDictionary<string, string> Discretes => discretes;
 
+        public void AddDiscrete(string displayValue, string value)
+        {
+            if (displayValue == null)
+                throw new ArgumentNullException(nameof(displayValue));
+
+            if (discretes.ContainsKey(displayValue))
+                throw new ArgumentException($"The configuration already defines a discreet with display value '{displayValue}'");
+
+            discretes.Add(displayValue, value);
+            HasChanges = true;
+        }
+
+        public void RemoveDiscrete(string displayValue)
+        {
+            if (displayValue == null)
+                throw new ArgumentNullException(nameof(displayValue));
+
+            if (!discretes.Remove(displayValue))
+            {
+                return;
+            }
+
+            if (String.Equals(DefaultValue, displayValue))
+            {
+                DefaultValue = null;
+            }
+
+            HasChanges = true;
+        }
+
+        public void SetDiscretes(IReadOnlyDictionary<string, string> discretes)
+        {
+            if (discretes == null)
+                throw new ArgumentNullException(nameof(discretes));
+
+            foreach (var kvp in discretes)
+            {
+                AddDiscrete(kvp.Key, kvp.Value);
+            }
+        }
+
         /// <summary>
         /// <inheritdoc/>
         /// </summary>

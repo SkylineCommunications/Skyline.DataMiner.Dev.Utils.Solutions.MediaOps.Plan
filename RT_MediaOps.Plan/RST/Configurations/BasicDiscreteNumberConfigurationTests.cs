@@ -1,9 +1,9 @@
 ﻿namespace RT_MediaOps.Plan.RST.Configurations
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
-    using System.Xml.Linq;
-
+    using Microsoft.VisualStudio.TestTools.UnitTesting;
     using RT_MediaOps.Plan.RegressionTests;
     using Skyline.DataMiner.MediaOps.Plan.API;
     using Skyline.DataMiner.MediaOps.Plan.Exceptions;
@@ -11,12 +11,12 @@
 
     [TestClass]
     [TestCategory("IntegrationTest")]
-    public sealed class BasicNumberConfigurationTests : IDisposable
+    public class BasicDiscreteNumberConfigurationTests : IDisposable
     {
         private readonly IntegrationTestContext testContext;
         private readonly ResourceStudioObjectCreator objectCreator;
 
-        public BasicNumberConfigurationTests()
+        public BasicDiscreteNumberConfigurationTests()
         {
             testContext = new IntegrationTestContext();
             objectCreator = new ResourceStudioObjectCreator(testContext.Api);
@@ -35,10 +35,14 @@
             var configurationId = Guid.NewGuid();
             var name = $"{configurationId}_Configuration";
 
-            var configuration = new Skyline.DataMiner.MediaOps.Plan.API.NumberConfiguration(configurationId)
+            var configuration = new Skyline.DataMiner.MediaOps.Plan.API.DiscreteNumberConfiguration(configurationId)
             {
                 Name = name,
             };
+
+            configuration.AddDiscrete("Low", 10);
+            configuration.AddDiscrete("Medium", 50);
+            configuration.AddDiscrete("High", 100);
 
             var returnedId = objectCreator.CreateConfiguration(configuration);
             Assert.AreEqual(configurationId, returnedId);
@@ -47,50 +51,41 @@
             Assert.IsNotNull(returnedConfiguration);
             Assert.AreEqual(name, returnedConfiguration.Name);
             Assert.AreEqual(false, returnedConfiguration.IsMandatory);
+            Assert.IsInstanceOfType(returnedConfiguration, typeof(DiscreteNumberConfiguration));
+
+            var discreteNumberConfig = (DiscreteNumberConfiguration)returnedConfiguration;
+            Assert.AreEqual(3, discreteNumberConfig.Discretes.Count);
+            Assert.IsTrue(discreteNumberConfig.Discretes.ContainsKey("Low"));
+            Assert.AreEqual(10, discreteNumberConfig.Discretes["Low"]);
 
             var coreConfiguration = testContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(configurationId)).SingleOrDefault();
             Assert.IsNotNull(coreConfiguration);
             Assert.AreEqual(name, coreConfiguration.Name);
             Assert.AreEqual(true, coreConfiguration.IsOptional);
-
-            Assert.IsNull(coreConfiguration.Remarks);
-            Assert.IsNull(coreConfiguration.DefaultValue);
             Assert.AreEqual(Skyline.DataMiner.Net.Profiles.ProfileParameterCategory.Configuration, coreConfiguration.Categories);
-            Assert.AreEqual(Skyline.DataMiner.Net.Profiles.Parameter.ParameterType.Number, coreConfiguration.Type);
-            Assert.AreEqual(Skyline.DataMiner.Net.Profiles.InterpreteType.RawTypeEnum.Undefined, coreConfiguration.InterpreteType.RawType);
-            Assert.AreEqual(Skyline.DataMiner.Net.Profiles.InterpreteType.TypeEnum.Undefined, coreConfiguration.InterpreteType.Type);
-
-            Assert.IsNull(coreConfiguration.Units);
-            Assert.AreEqual(double.NaN, coreConfiguration.RangeMin);
-            Assert.AreEqual(double.NaN, coreConfiguration.RangeMax);
-            Assert.AreEqual(double.NaN, coreConfiguration.Stepsize);
-            Assert.AreEqual(int.MaxValue, coreConfiguration.Decimals);
+            Assert.AreEqual(Skyline.DataMiner.Net.Profiles.Parameter.ParameterType.Discrete, coreConfiguration.Type);
+            Assert.AreEqual(Skyline.DataMiner.Net.Profiles.InterpreteType.TypeEnum.Double, coreConfiguration.InterpreteType.Type);
+            Assert.AreEqual(Skyline.DataMiner.Net.Profiles.InterpreteType.RawTypeEnum.NumericText, coreConfiguration.InterpreteType.RawType);
+            Assert.AreEqual(3, coreConfiguration.Discretes.Count);
 
             // Update
             var updatedName = name + "_Updated";
-            returnedConfiguration.Name = updatedName;
-            testContext.Api.Configurations.Update(returnedConfiguration);
+            discreteNumberConfig.Name = updatedName;
+            discreteNumberConfig.AddDiscrete("Critical", 200);
+            testContext.Api.Configurations.Update(discreteNumberConfig);
+
             returnedConfiguration = testContext.Api.Configurations.Read(configurationId);
             Assert.IsNotNull(returnedConfiguration);
             Assert.AreEqual(updatedName, returnedConfiguration.Name);
 
+            discreteNumberConfig = (DiscreteNumberConfiguration)returnedConfiguration;
+            Assert.AreEqual(4, discreteNumberConfig.Discretes.Count);
+            Assert.IsTrue(discreteNumberConfig.Discretes.ContainsKey("Critical"));
+
             coreConfiguration = testContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(configurationId)).SingleOrDefault();
             Assert.IsNotNull(coreConfiguration);
             Assert.AreEqual(updatedName, coreConfiguration.Name);
-            Assert.AreEqual(true, coreConfiguration.IsOptional);
-
-            Assert.IsNull(coreConfiguration.Remarks);
-            Assert.IsNull(coreConfiguration.DefaultValue);
-            Assert.AreEqual(Skyline.DataMiner.Net.Profiles.ProfileParameterCategory.Configuration, coreConfiguration.Categories);
-            Assert.AreEqual(Skyline.DataMiner.Net.Profiles.Parameter.ParameterType.Number, coreConfiguration.Type);
-            Assert.AreEqual(Skyline.DataMiner.Net.Profiles.InterpreteType.RawTypeEnum.Undefined, coreConfiguration.InterpreteType.RawType);
-            Assert.AreEqual(Skyline.DataMiner.Net.Profiles.InterpreteType.TypeEnum.Undefined, coreConfiguration.InterpreteType.Type);
-
-            Assert.IsNull(coreConfiguration.Units);
-            Assert.AreEqual(double.NaN, coreConfiguration.RangeMin);
-            Assert.AreEqual(double.NaN, coreConfiguration.RangeMax);
-            Assert.AreEqual(double.NaN, coreConfiguration.Stepsize);
-            Assert.AreEqual(int.MaxValue, coreConfiguration.Decimals);
+            Assert.AreEqual(4, coreConfiguration.Discretes.Count);
 
             // Delete
             testContext.Api.Configurations.Delete(returnedConfiguration);
@@ -106,15 +101,17 @@
         {
             var configurationId = Guid.NewGuid();
 
-            var configuration1 = new Skyline.DataMiner.MediaOps.Plan.API.NumberConfiguration(configurationId)
+            var configuration1 = new Skyline.DataMiner.MediaOps.Plan.API.DiscreteNumberConfiguration(configurationId)
             {
                 Name = $"{configurationId}_Configuration1",
             };
+            configuration1.AddDiscrete("Value1", 1);
 
-            var configuration2 = new Skyline.DataMiner.MediaOps.Plan.API.NumberConfiguration(configurationId)
+            var configuration2 = new Skyline.DataMiner.MediaOps.Plan.API.DiscreteNumberConfiguration(configurationId)
             {
                 Name = $"{configurationId}_Configuration2",
             };
+            configuration2.AddDiscrete("Value2", 2);
 
             objectCreator.CreateConfiguration(configuration1);
             try
@@ -143,15 +140,17 @@
         {
             var configurationId = Guid.NewGuid();
 
-            var configuration1 = new Skyline.DataMiner.MediaOps.Plan.API.NumberConfiguration(configurationId)
+            var configuration1 = new Skyline.DataMiner.MediaOps.Plan.API.DiscreteNumberConfiguration(configurationId)
             {
                 Name = $"{configurationId}_Configuration1",
             };
+            configuration1.AddDiscrete("Value1", 1);
 
-            var configuration2 = new Skyline.DataMiner.MediaOps.Plan.API.NumberConfiguration(configurationId)
+            var configuration2 = new Skyline.DataMiner.MediaOps.Plan.API.DiscreteNumberConfiguration(configurationId)
             {
                 Name = $"{configurationId}_Configuration2",
             };
+            configuration2.AddDiscrete("Value2", 2);
 
             try
             {
@@ -193,15 +192,17 @@
         {
             var configurationId = Guid.NewGuid();
 
-            var configuration1 = new Skyline.DataMiner.MediaOps.Plan.API.NumberConfiguration()
+            var configuration1 = new Skyline.DataMiner.MediaOps.Plan.API.DiscreteNumberConfiguration()
             {
                 Name = $"{configurationId}_Configuration",
             };
+            configuration1.AddDiscrete("Value1", 1);
 
-            var configuration2 = new Skyline.DataMiner.MediaOps.Plan.API.NumberConfiguration()
+            var configuration2 = new Skyline.DataMiner.MediaOps.Plan.API.DiscreteNumberConfiguration()
             {
                 Name = $"{configurationId}_Configuration",
             };
+            configuration2.AddDiscrete("Value2", 2);
 
             objectCreator.CreateConfiguration(configuration1);
             try
@@ -230,15 +231,17 @@
         {
             var configurationId = Guid.NewGuid();
 
-            var configuration1 = new Skyline.DataMiner.MediaOps.Plan.API.NumberConfiguration()
+            var configuration1 = new Skyline.DataMiner.MediaOps.Plan.API.DiscreteNumberConfiguration()
             {
                 Name = $"{configurationId}_Configuration",
             };
+            configuration1.AddDiscrete("Value1", 1);
 
-            var configuration2 = new Skyline.DataMiner.MediaOps.Plan.API.NumberConfiguration()
+            var configuration2 = new Skyline.DataMiner.MediaOps.Plan.API.DiscreteNumberConfiguration()
             {
                 Name = $"{configurationId}_Configuration",
             };
+            configuration2.AddDiscrete("Value2", 2);
 
             try
             {
@@ -269,15 +272,17 @@
         {
             var configurationId = Guid.NewGuid();
 
-            var configuration1 = new Skyline.DataMiner.MediaOps.Plan.API.NumberConfiguration()
+            var configuration1 = new Skyline.DataMiner.MediaOps.Plan.API.DiscreteNumberConfiguration()
             {
                 Name = $"{configurationId}_Configuration_1",
             };
+            configuration1.AddDiscrete("Value1", 1);
 
-            var configuration2 = new Skyline.DataMiner.MediaOps.Plan.API.NumberConfiguration()
+            var configuration2 = new Skyline.DataMiner.MediaOps.Plan.API.DiscreteNumberConfiguration()
             {
                 Name = $"{configurationId}_Configuration_2",
             };
+            configuration2.AddDiscrete("Value2", 2);
 
             var id1 = objectCreator.CreateConfiguration(configuration1);
             var id2 = objectCreator.CreateConfiguration(configuration2);
@@ -307,102 +312,98 @@
         }
 
         [TestMethod]
-        public void RangeValidation()
+        public void DiscreteValuesValidation()
         {
             // Create
             var configurationId = Guid.NewGuid();
 
-            var configuration = new Skyline.DataMiner.MediaOps.Plan.API.NumberConfiguration(configurationId)
+            var configuration = new Skyline.DataMiner.MediaOps.Plan.API.DiscreteNumberConfiguration(configurationId)
             {
                 Name = $"{configurationId}_Configuration",
                 IsMandatory = true,
-                Units = "MHz",
-                RangeMin = 10,
-                RangeMax = 100,
-                StepSize = 5,
-                Decimals = 2
             };
+
+            configuration.AddDiscrete("Low", 10);
+            configuration.AddDiscrete("Medium", 50);
+            configuration.AddDiscrete("High", 100);
+            configuration.DefaultValue = "Medium";
 
             objectCreator.CreateConfiguration(configuration);
 
-            configuration = testContext.Api.Configurations.Read(configurationId) as NumberConfiguration;
+            configuration = testContext.Api.Configurations.Read(configurationId) as DiscreteNumberConfiguration;
             Assert.IsNotNull(configuration);
             Assert.AreEqual(true, configuration.IsMandatory);
-
-            Assert.AreEqual("MHz", configuration.Units);
-            Assert.AreEqual(10, configuration.RangeMin);
-            Assert.AreEqual(100, configuration.RangeMax);
-            Assert.AreEqual(5, configuration.StepSize);
-            Assert.AreEqual(2, configuration.Decimals);
+            Assert.AreEqual(3, configuration.Discretes.Count);
+            Assert.AreEqual("Medium", configuration.DefaultValue);
+            Assert.AreEqual(10, configuration.Discretes["Low"]);
+            Assert.AreEqual(50, configuration.Discretes["Medium"]);
+            Assert.AreEqual(100, configuration.Discretes["High"]);
 
             var coreConfiguration = testContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(configurationId)).SingleOrDefault();
             Assert.IsNotNull(coreConfiguration);
             Assert.AreEqual(false, coreConfiguration.IsOptional);
-
-            Assert.IsNull(coreConfiguration.Remarks);
-            Assert.IsNull(coreConfiguration.DefaultValue);
             Assert.AreEqual(Skyline.DataMiner.Net.Profiles.ProfileParameterCategory.Configuration, coreConfiguration.Categories);
-            Assert.AreEqual(Skyline.DataMiner.Net.Profiles.Parameter.ParameterType.Number, coreConfiguration.Type);
-            Assert.AreEqual(Skyline.DataMiner.Net.Profiles.InterpreteType.RawTypeEnum.Undefined, coreConfiguration.InterpreteType.RawType);
-            Assert.AreEqual(Skyline.DataMiner.Net.Profiles.InterpreteType.TypeEnum.Undefined, coreConfiguration.InterpreteType.Type);
-
-            Assert.AreEqual("MHz", coreConfiguration.Units);
-            Assert.AreEqual(10, coreConfiguration.RangeMin);
-            Assert.AreEqual(100, coreConfiguration.RangeMax);
-            Assert.AreEqual(5, coreConfiguration.Stepsize);
-            Assert.AreEqual(2, coreConfiguration.Decimals);
+            Assert.AreEqual(Skyline.DataMiner.Net.Profiles.Parameter.ParameterType.Discrete, coreConfiguration.Type);
+            Assert.AreEqual(Skyline.DataMiner.Net.Profiles.InterpreteType.TypeEnum.Double, coreConfiguration.InterpreteType.Type);
+            Assert.AreEqual(Skyline.DataMiner.Net.Profiles.InterpreteType.RawTypeEnum.NumericText, coreConfiguration.InterpreteType.RawType);
+            Assert.AreEqual(3, coreConfiguration.Discretes.Count);
 
             // Update
-            configuration.Units = "kHz";
-            configuration.RangeMin = 20;
-            configuration.RangeMax = 200;
-            configuration.StepSize = 10;
-            configuration.Decimals = 1;
+            configuration.AddDiscrete("Critical", 200);
+            configuration.DefaultValue = "Critical";
 
             testContext.Api.Configurations.Update(configuration);
 
-            configuration = testContext.Api.Configurations.Read(configurationId) as NumberConfiguration;
+            configuration = testContext.Api.Configurations.Read(configurationId) as DiscreteNumberConfiguration;
             Assert.IsNotNull(configuration);
             Assert.AreEqual(true, configuration.IsMandatory);
-
-            Assert.AreEqual("kHz", configuration.Units);
-            Assert.AreEqual(20, configuration.RangeMin);
-            Assert.AreEqual(200, configuration.RangeMax);
-            Assert.AreEqual(10, configuration.StepSize);
-            Assert.AreEqual(1, configuration.Decimals);
+            Assert.AreEqual(4, configuration.Discretes.Count);
+            Assert.AreEqual("Critical", configuration.DefaultValue);
+            Assert.AreEqual(200, configuration.Discretes["Critical"]);
 
             coreConfiguration = testContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(configurationId)).SingleOrDefault();
             Assert.IsNotNull(coreConfiguration);
             Assert.AreEqual(false, coreConfiguration.IsOptional);
-
-            Assert.IsNull(coreConfiguration.Remarks);
-            Assert.IsNull(coreConfiguration.DefaultValue);
-            Assert.AreEqual(Skyline.DataMiner.Net.Profiles.ProfileParameterCategory.Configuration, coreConfiguration.Categories);
-            Assert.AreEqual(Skyline.DataMiner.Net.Profiles.Parameter.ParameterType.Number, coreConfiguration.Type);
-            Assert.AreEqual(Skyline.DataMiner.Net.Profiles.InterpreteType.RawTypeEnum.Undefined, coreConfiguration.InterpreteType.RawType);
-            Assert.AreEqual(Skyline.DataMiner.Net.Profiles.InterpreteType.TypeEnum.Undefined, coreConfiguration.InterpreteType.Type);
-
-            Assert.AreEqual("kHz", coreConfiguration.Units);
-            Assert.AreEqual(20, coreConfiguration.RangeMin);
-            Assert.AreEqual(200, coreConfiguration.RangeMax);
-            Assert.AreEqual(10, coreConfiguration.Stepsize);
-            Assert.AreEqual(1, coreConfiguration.Decimals);
+            Assert.AreEqual(4, coreConfiguration.Discretes.Count);
         }
 
         [TestMethod]
-        public void RangeValidationThrowsException()
+        public void RemoveDiscreteValue()
         {
             var configurationId = Guid.NewGuid();
 
-            var configuration = new Skyline.DataMiner.MediaOps.Plan.API.NumberConfiguration(configurationId)
+            var configuration = new Skyline.DataMiner.MediaOps.Plan.API.DiscreteNumberConfiguration(configurationId)
             {
                 Name = $"{configurationId}_Configuration",
-                IsMandatory = true,
-                Units = "MHz",
-                RangeMin = 10.123m,
-                RangeMax = 1.123m,
-                StepSize = 5.123m,
-                Decimals = 2
+            };
+
+            configuration.AddDiscrete("Low", 10);
+            configuration.AddDiscrete("Medium", 50);
+            configuration.AddDiscrete("High", 100);
+
+            objectCreator.CreateConfiguration(configuration);
+
+            configuration = testContext.Api.Configurations.Read(configurationId) as DiscreteNumberConfiguration;
+            Assert.AreEqual(3, configuration.Discretes.Count);
+
+            configuration.RemoveDiscrete("Medium");
+            testContext.Api.Configurations.Update(configuration);
+
+            configuration = testContext.Api.Configurations.Read(configurationId) as DiscreteNumberConfiguration;
+            Assert.AreEqual(2, configuration.Discretes.Count);
+            Assert.IsFalse(configuration.Discretes.ContainsKey("Medium"));
+            Assert.IsTrue(configuration.Discretes.ContainsKey("Low"));
+            Assert.IsTrue(configuration.Discretes.ContainsKey("High"));
+        }
+
+        [TestMethod]
+        public void CreateWithNoDiscretesThrowsException()
+        {
+            var configurationId = Guid.NewGuid();
+
+            var configuration = new Skyline.DataMiner.MediaOps.Plan.API.DiscreteNumberConfiguration(configurationId)
+            {
+                Name = $"{configurationId}_Configuration",
             };
 
             try
@@ -411,109 +412,19 @@
             }
             catch (MediaOpsException ex)
             {
-                Assert.AreEqual(4, ex.TraceData.ErrorData.Count);
-                var configurationConfigurationErrors = ex.TraceData.ErrorData.OfType<ConfigurationConfigurationError>();
-                Assert.AreEqual(4, configurationConfigurationErrors.Count());
-
-                var expectedErrors = new List<ErrorReasonMessageMapping>()
-                {
-                    new ErrorReasonMessageMapping { Reason = ConfigurationConfigurationError.Reason.InvalidRangeMax, Message = "RangeMax must be greater than RangeMin." },
-                    new ErrorReasonMessageMapping { Reason = ConfigurationConfigurationError.Reason.InvalidRangeMin, Message = "RangeMin has more decimal places than allowed by Decimals (2)."},
-                    new ErrorReasonMessageMapping { Reason = ConfigurationConfigurationError.Reason.InvalidRangeMax, Message = "RangeMax has more decimal places than allowed by Decimals (2)."},
-                    new ErrorReasonMessageMapping { Reason = ConfigurationConfigurationError.Reason.InvalidStepSize, Message = "StepSize has more decimal places than allowed by Decimals (2)."},
-                };
-
-                foreach (var error in configurationConfigurationErrors)
-                {
-                    var expectedError = expectedErrors.SingleOrDefault(e => e.Reason == error.ErrorReason && e.Message == error.ErrorMessage);
-                    Assert.IsNotNull(expectedError);
-                }
-
-                return;
-            }
-
-            Assert.Fail("Expected exception was not thrown.");
-        }
-
-        [TestMethod]
-        public void DecimalsValidationThrowsException()
-        {
-            var configurationId = Guid.NewGuid();
-
-            var configuration = new Skyline.DataMiner.MediaOps.Plan.API.NumberConfiguration(configurationId)
-            {
-                Name = $"{configurationId}_Configuration",
-                IsMandatory = true,
-                Units = "MHz",
-                RangeMin = 10,
-                RangeMax = 100,
-                StepSize = 5,
-                Decimals = -3
-            };
-
-            try
-            {
-                objectCreator.CreateConfiguration(configuration);
-            }
-            catch (MediaOpsException ex)
-            {
-                StringAssert.Contains(ex.Message, "Decimals must be between 0 and 15.");
+                StringAssert.Contains(ex.Message, "A discreet configuration should have at least one discreet option defined");
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
                 var configurationConfigurationError = ex.TraceData.ErrorData.OfType<ConfigurationConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(configurationConfigurationError);
 
-                Assert.AreEqual(ConfigurationConfigurationError.Reason.InvalidDecimals, configurationConfigurationError.ErrorReason);
-                Assert.AreEqual("Decimals must be between 0 and 15.", configurationConfigurationError.ErrorMessage);
+                Assert.AreEqual(ConfigurationConfigurationError.Reason.InvalidDiscretes, configurationConfigurationError.ErrorReason);
+                Assert.AreEqual("A discreet configuration should have at least one discreet option defined", configurationConfigurationError.ErrorMessage);
 
                 return;
             }
 
             Assert.Fail("Expected exception was not thrown.");
-        }
-
-        [TestMethod]
-        public void StepSizeValidationThrowsException()
-        {
-            var configurationId = Guid.NewGuid();
-
-            var configuration = new Skyline.DataMiner.MediaOps.Plan.API.NumberConfiguration(configurationId)
-            {
-                Name = $"{configurationId}_Configuration",
-                IsMandatory = true,
-                Units = "MHz",
-                RangeMin = 10,
-                RangeMax = 100,
-                StepSize = -5,
-                Decimals = 3
-            };
-
-            try
-            {
-                objectCreator.CreateConfiguration(configuration);
-            }
-            catch (MediaOpsException ex)
-            {
-                StringAssert.Contains(ex.Message, "StepSize must be greater than 0.");
-
-                Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var configurationConfigurationError = ex.TraceData.ErrorData.OfType<ConfigurationConfigurationError>().SingleOrDefault();
-                Assert.IsNotNull(configurationConfigurationError);
-
-                Assert.AreEqual(ConfigurationConfigurationError.Reason.InvalidStepSize, configurationConfigurationError.ErrorReason);
-                Assert.AreEqual("StepSize must be greater than 0.", configurationConfigurationError.ErrorMessage);
-
-                return;
-            }
-
-            Assert.Fail("Expected exception was not thrown.");
-        }
-
-        private sealed class ErrorReasonMessageMapping
-        {
-            public ConfigurationConfigurationError.Reason Reason { get; set; }
-
-            public string Message { get; set; }
         }
     }
 }
