@@ -382,13 +382,13 @@
 
             objectCreator.CreateConfiguration(configuration);
 
-            configuration = testContext.Api.Configurations.Read(configurationId) as DiscreteTextConfiguration;
+            configuration = (DiscreteTextConfiguration)testContext.Api.Configurations.Read(configurationId);
             Assert.AreEqual(3, configuration.Discretes.Count);
 
             configuration.RemoveDiscrete("Medium");
             testContext.Api.Configurations.Update(configuration);
 
-            configuration = testContext.Api.Configurations.Read(configurationId) as DiscreteTextConfiguration;
+            configuration = (DiscreteTextConfiguration)testContext.Api.Configurations.Read(configurationId);
             Assert.AreEqual(2, configuration.Discretes.Count);
             Assert.IsFalse(configuration.Discretes.ContainsKey("Medium"));
             Assert.IsTrue(configuration.Discretes.ContainsKey("Low"));

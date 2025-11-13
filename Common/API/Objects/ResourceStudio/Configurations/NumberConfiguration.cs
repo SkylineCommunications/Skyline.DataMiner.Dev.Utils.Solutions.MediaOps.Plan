@@ -39,6 +39,9 @@
         {
         }
 
+        /// <summary>
+        /// Gets or sets the default value of this <see cref="NumberConfiguration"/>.
+        /// </summary>
         public decimal? DefaultValue
         {
             get => defaultValue;
@@ -50,7 +53,7 @@
         }
 
         /// <summary>
-        /// Gets or sets the units of measurement for the capacity.
+        /// Gets or sets the units of measurement for the <see cref="NumberConfiguration"/>.
         /// </summary>
         public string Units
         {
@@ -63,7 +66,7 @@
         }
 
         /// <summary>
-        /// Gets or sets the minimum value for the capacity range.
+        /// Gets or sets the minimum value for the <see cref="NumberConfiguration"/> range.
         /// </summary>
         public decimal? RangeMin
         {
@@ -76,7 +79,7 @@
         }
 
         /// <summary>
-        /// Gets or sets the maximum value for the capacity range.
+        /// Gets or sets the maximum value for the <see cref="NumberConfiguration"/> range.
         /// </summary>
         public decimal? RangeMax
         {
@@ -89,7 +92,7 @@
         }
 
         /// <summary>
-        /// Gets or sets the step size for the capacity.
+        /// Gets or sets the step size for the <see cref="NumberConfiguration"/>.
         /// </summary>
         public decimal? StepSize
         {
@@ -102,7 +105,7 @@
         }
 
         /// <summary>
-        /// Gets or sets the number of decimal places for the capacity values.
+        /// Gets or sets the number of decimal places for the <see cref="NumberConfiguration"/> values.
         /// </summary>
         public int? Decimals
         {

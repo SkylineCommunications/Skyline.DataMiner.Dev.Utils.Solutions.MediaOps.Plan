@@ -11,7 +11,7 @@
     public class DiscreteTextConfiguration : Configuration
     {
         private string defaultValue;
-        private Dictionary<string, string> discretes = new Dictionary<string, string>();
+        private readonly Dictionary<string, string> discretes = new Dictionary<string, string>();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DiscreteTextConfiguration"/> class.
@@ -38,6 +38,9 @@
         {
         }
 
+        /// <summary>
+        /// Gets or sets the display key of the default discrete value.
+        /// </summary>
         public string DefaultValue
         {
             get => defaultValue;
@@ -53,6 +56,13 @@
         /// </summary>
         public IReadOnlyDictionary<string, string> Discretes => discretes;
 
+        /// <summary>
+        /// Adds a new discrete value with the specified display name and associated value to the configuration.
+        /// </summary>
+        /// <param name="displayValue">The display name for the discrete value to add. Cannot be null. Must be unique within the configuration.</param>
+        /// <param name="value">The value associated with the discrete display name.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="displayValue"/> is null.</exception>
+        /// <exception cref="ArgumentException">Thrown if a discrete with the specified <paramref name="displayValue"/> already exists in the configuration.</exception>
         public void AddDiscrete(string displayValue, string value)
         {
             if (displayValue == null)
@@ -65,6 +75,13 @@
             HasChanges = true;
         }
 
+        /// <summary>
+        /// Removes the discrete value with the specified display value from the collection.
+        /// </summary>
+        /// <remarks>If the specified display value is set as the default value, removing it will also
+        /// clear the default. This method has no effect if the value does not exist in the collection.</remarks>
+        /// <param name="displayValue">The display value of the discrete item to remove. Cannot be null.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="displayValue"/> is null.</exception>
         public void RemoveDiscrete(string displayValue)
         {
             if (displayValue == null)
@@ -83,6 +100,12 @@
             HasChanges = true;
         }
 
+        /// <summary>
+        /// Sets multiple discrete values by adding or updating each key-value pair in the collection.
+        /// </summary>
+        /// <param name="discretes">A read-only dictionary containing the discrete keys and their corresponding values to set. Each key-value
+        /// pair will be added or updated.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="discretes"/> is <see langword="null"/>.</exception>
         public void SetDiscretes(IReadOnlyDictionary<string, string> discretes)
         {
             if (discretes == null)

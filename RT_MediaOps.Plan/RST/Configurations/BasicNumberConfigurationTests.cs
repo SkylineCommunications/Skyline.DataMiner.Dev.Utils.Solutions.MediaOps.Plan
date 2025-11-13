@@ -11,7 +11,7 @@
 
     [TestClass]
     [TestCategory("IntegrationTest")]
-    public sealed class BasicNumberConfigurationTests : IDisposable
+    public sealed partial class BasicNumberConfigurationTests : IDisposable
     {
         private readonly IntegrationTestContext testContext;
         private readonly ResourceStudioObjectCreator objectCreator;
@@ -417,10 +417,10 @@
 
                 var expectedErrors = new List<ErrorReasonMessageMapping>()
                 {
-                    new ErrorReasonMessageMapping { Reason = ConfigurationConfigurationError.Reason.InvalidRangeMax, Message = "RangeMax must be greater than RangeMin." },
-                    new ErrorReasonMessageMapping { Reason = ConfigurationConfigurationError.Reason.InvalidRangeMin, Message = "RangeMin has more decimal places than allowed by Decimals (2)."},
-                    new ErrorReasonMessageMapping { Reason = ConfigurationConfigurationError.Reason.InvalidRangeMax, Message = "RangeMax has more decimal places than allowed by Decimals (2)."},
-                    new ErrorReasonMessageMapping { Reason = ConfigurationConfigurationError.Reason.InvalidStepSize, Message = "StepSize has more decimal places than allowed by Decimals (2)."},
+                    new ErrorReasonMessageMapping(ConfigurationConfigurationError.Reason.InvalidRangeMax, "RangeMax must be greater than RangeMin."),
+                    new ErrorReasonMessageMapping(ConfigurationConfigurationError.Reason.InvalidRangeMin, "RangeMin has more decimal places than allowed by Decimals (2)."),
+                    new ErrorReasonMessageMapping(ConfigurationConfigurationError.Reason.InvalidRangeMax, "RangeMax has more decimal places than allowed by Decimals (2)."),
+                    new ErrorReasonMessageMapping(ConfigurationConfigurationError.Reason.InvalidStepSize, "StepSize has more decimal places than allowed by Decimals (2)."),
                 };
 
                 foreach (var error in configurationConfigurationErrors)
@@ -507,13 +507,6 @@
             }
 
             Assert.Fail("Expected exception was not thrown.");
-        }
-
-        private sealed class ErrorReasonMessageMapping
-        {
-            public ConfigurationConfigurationError.Reason Reason { get; set; }
-
-            public string Message { get; set; }
         }
     }
 }

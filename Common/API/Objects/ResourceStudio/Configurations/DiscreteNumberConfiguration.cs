@@ -3,7 +3,6 @@
     using System;
     using System.Collections.Generic;
     using Skyline.DataMiner.MediaOps.Plan.Storage.Core;
-    using Skyline.DataMiner.Net;
 
     /// <summary>
     /// Represents a configuration for discrete numerical values.
@@ -11,7 +10,7 @@
     public class DiscreteNumberConfiguration : Configuration
     {
         private string defaultValue;
-        private Dictionary<string, decimal> discretes = new Dictionary<string, decimal>(); // TODO: should we use a dictionary here? This doesn't allow multiple discretes with the same key, which could make it harder when creating UIs. We could always validate when pushing the Configuration.
+        private readonly Dictionary<string, decimal> discretes = new Dictionary<string, decimal>(); // TODO: should we use a dictionary here? This doesn't allow multiple discretes with the same key, which could make it harder when creating UIs. We could always validate when pushing the Configuration.
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DiscreteNumberConfiguration"/> class.
@@ -38,6 +37,9 @@
         {
         }
 
+        /// <summary>
+        /// Gets or sets the display key of the default discrete value.
+        /// </summary>
         public string DefaultValue
         {
             get => defaultValue;
@@ -53,6 +55,14 @@
         /// </summary>
         public IReadOnlyDictionary<string, decimal> Discretes => discretes;
 
+        /// <summary>
+        /// Adds a discrete value with the specified display label and numeric value to the configuration.
+        /// </summary>
+        /// <param name="displayValue">The display label that identifies the discrete value. Cannot be null.</param>
+        /// <param name="value">The numeric value associated with the discrete. Must not be NaN or infinite.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="displayValue"/> is null.</exception>
+        /// <exception cref="ArgumentException">Thrown if <paramref name="value"/> is NaN or infinite, or if a discrete with the same display value already
+        /// exists.</exception>
         public void AddDiscrete(string displayValue, decimal value)
         {
             if (displayValue == null)
@@ -71,6 +81,13 @@
             HasChanges = true;
         }
 
+        /// <summary>
+        /// Removes the discrete value with the specified display value from the collection.
+        /// </summary>
+        /// <remarks>If the removed value is currently set as the default value, the default value is
+        /// cleared. This method has no effect if the specified value does not exist in the collection.</remarks>
+        /// <param name="displayValue">The display value of the discrete item to remove. Cannot be null.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="displayValue"/> is null.</exception>
         public void RemoveDiscrete(string displayValue)
         {
             if (displayValue == null)
@@ -89,6 +106,12 @@
             HasChanges = true;
         }
 
+        /// <summary>
+        /// Adds or updates multiple discrete values using the specified key-value pairs.
+        /// </summary>
+        /// <param name="discretes">A read-only dictionary containing the discrete names and their corresponding decimal values to add or
+        /// update. Cannot be null.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="discretes"/> is null.</exception>
         public void SetDiscretes(IReadOnlyDictionary<string, decimal> discretes)
         {
             if (discretes == null)

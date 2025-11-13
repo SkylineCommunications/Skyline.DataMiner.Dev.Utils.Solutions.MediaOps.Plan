@@ -386,12 +386,5 @@
 
             Assert.Fail("Expected exception was not thrown.");
         }
-
-        private sealed class ErrorReasonMessageMapping
-        {
-            public ConfigurationConfigurationError.Reason Reason { get; set; }
-
-            public string Message { get; set; }
-        }
     }
 }

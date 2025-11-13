@@ -34,6 +34,9 @@
         {
         }
 
+        /// <summary>
+        /// Gets or sets the default value of this <see cref="TextConfiguration"/>.
+        /// </summary>
         public string DefaultValue
         {
             get => defaultValue;
