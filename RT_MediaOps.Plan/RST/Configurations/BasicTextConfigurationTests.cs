@@ -359,7 +359,7 @@
             Assert.AreEqual(false, coreConfiguration.IsOptional);
             Assert.IsNull(coreConfiguration.Remarks);
             Assert.IsNotNull(coreConfiguration.DefaultValue);
-            Assert.AreEqual("UpdatedDefaultText", coreConfiguration.DefaultValue?.StringValue);
+            Assert.AreEqual("UpdatedDefaultText", coreConfiguration.DefaultValue.StringValue);
             Assert.AreEqual(Skyline.DataMiner.Net.Profiles.ProfileParameterCategory.Configuration, coreConfiguration.Categories);
             Assert.AreEqual(Skyline.DataMiner.Net.Profiles.Parameter.ParameterType.Text, coreConfiguration.Type);
             Assert.AreEqual(Skyline.DataMiner.Net.Profiles.InterpreteType.RawTypeEnum.Undefined, coreConfiguration.InterpreteType.RawType);
