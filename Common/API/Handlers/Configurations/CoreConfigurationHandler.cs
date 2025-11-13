@@ -408,7 +408,7 @@
                 updatedParameter.DefaultValue = new Skyline.DataMiner.Net.Profiles.ParameterValue
                 {
                     Type = Skyline.DataMiner.Net.Profiles.ParameterValue.ValueType.String,
-                    StringValue = (string)apiConfiguration.DefaultValue
+                    StringValue = apiConfiguration.DefaultValue
                 };
             }
             else

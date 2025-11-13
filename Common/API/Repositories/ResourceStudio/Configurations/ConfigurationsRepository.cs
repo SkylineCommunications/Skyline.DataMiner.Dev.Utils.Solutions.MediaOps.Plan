@@ -345,7 +345,7 @@
                 }
                 else
                 {
-                    continue;
+                    // continue
                 }
             }
         }
