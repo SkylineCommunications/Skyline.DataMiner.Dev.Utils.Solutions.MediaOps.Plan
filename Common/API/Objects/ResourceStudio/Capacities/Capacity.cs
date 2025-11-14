@@ -1,7 +1,7 @@
 ﻿namespace Skyline.DataMiner.MediaOps.Plan.API
 {
     using System;
-
+    using Skyline.DataMiner.MediaOps.Plan.Storage.Core;
     using Skyline.DataMiner.Net.Profiles;
 
     using CoreParameter = Net.Profiles.Parameter;
@@ -116,10 +116,10 @@
         protected internal override void InternalParseParameter(CoreParameter parameter)
         {
             units = parameter.Units ?? string.Empty;
-            rangeMin = double.IsNaN(parameter.RangeMin) ? null : (decimal)parameter.RangeMin;
-            rangeMax = double.IsNaN(parameter.RangeMax) ? null : (decimal)parameter.RangeMax;
-            stepSize = double.IsNaN(parameter.Stepsize) ? null : (decimal)parameter.Stepsize;
-            decimals = (parameter.Decimals == int.MaxValue)? null : parameter.Decimals;
+            rangeMin = parameter.HasMinRange() ? null : (decimal)parameter.RangeMin;
+            rangeMax = parameter.HasMaxRange() ? null : (decimal)parameter.RangeMax;
+            stepSize = parameter.HasStepSize() ? null : (decimal)parameter.Stepsize;
+            decimals = parameter.HasDecimals() ? null : parameter.Decimals;
         }
 
         internal CoreParameter GetParameterWithChanges()

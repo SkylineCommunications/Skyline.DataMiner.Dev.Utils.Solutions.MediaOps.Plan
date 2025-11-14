@@ -137,11 +137,6 @@
             return new ApiRepositoryQuery<Capability, Net.Profiles.Parameter>(QueryProvider);
         }
 
-        public IQueryable<IEnumerable<Capability>> QueryPaged()
-        {
-            throw new NotImplementedException();
-        }
-
         public Capability Read(Guid id)
         {
             PlanApi.Logger.LogInformation($"Reading Capability with ID: {id}...");

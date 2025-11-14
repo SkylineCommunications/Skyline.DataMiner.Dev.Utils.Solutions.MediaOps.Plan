@@ -72,8 +72,8 @@
         /// <exception cref="ArgumentException">Thrown if <paramref name="option"/> is <see langword="null"/> or whitespace.</exception>
         public void AddDiscrete(string option)
         {
-            if (String.IsNullOrWhiteSpace(option))
-                throw new ArgumentException(nameof(option));
+            if (option == null)
+                throw new ArgumentNullException(nameof(option));
 
             if (discretes.Add(option))
                 HasChanges = true;
@@ -105,7 +105,7 @@
             if (options == null)
                 throw new ArgumentNullException(nameof(options));
 
-            if (options.Any(x => String.IsNullOrWhiteSpace(x)))
+            if (options.Any(x => x == null))
                 throw new ArgumentException(nameof(options));
 
             if (discretes.ScrambledEquals(options))

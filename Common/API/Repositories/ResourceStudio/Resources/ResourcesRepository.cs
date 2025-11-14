@@ -356,7 +356,7 @@
 
                 act?.AddTag("Hit", true);
 
-                return Resource.InstantiateResources([domResource]).First();
+                return Resource.InstantiateResources([domResource]).FirstOrDefault();
             });
         }
 
@@ -661,11 +661,6 @@
         public IQueryable<Resource> Query()
         {
             return new ApiRepositoryQuery<Resource, DomInstance>(QueryProvider);
-        }
-
-        public IQueryable<IEnumerable<Resource>> QueryPaged()
-        {
-            throw new NotImplementedException();
         }
 
         public bool HasResources(ResourcePool resourcePool)

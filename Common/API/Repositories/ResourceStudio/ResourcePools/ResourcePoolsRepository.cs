@@ -332,11 +332,6 @@
             return new ApiRepositoryQuery<ResourcePool, DomInstance>(QueryProvider);
         }
 
-        public IQueryable<IEnumerable<ResourcePool>> QueryPaged()
-        {
-            throw new NotImplementedException();
-        }
-
         public IEnumerable<ResourcePool> GetResourcePools(Resource resource)
         {
             if (resource == null)

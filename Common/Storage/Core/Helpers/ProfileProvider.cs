@@ -266,6 +266,19 @@
             return profileHelper.ProfileParameters.Read(AllConfigurationsFilter);
         }
 
+        /// <summary>
+        /// Retrieves all configuration parameters.
+        /// </summary>
+        /// <returns>A collection of configuration parameters.</returns>
+        public IEnumerable<IEnumerable<Net.Profiles.Parameter>> GetAllConfigurationsPaged(long? pageSize = null)
+        {
+            var pages = pageSize.HasValue
+                ? profileHelper.ProfileParameters.ReadPaged(AllConfigurationsFilter, pageSize.Value)
+                : profileHelper.ProfileParameters.ReadPaged(AllConfigurationsFilter);
+
+            return pages;
+        }
+
         public IEnumerable<Net.Profiles.Parameter> GetConfigurations(IQuery<Net.Profiles.Parameter> query)
         {
             if (query == null)

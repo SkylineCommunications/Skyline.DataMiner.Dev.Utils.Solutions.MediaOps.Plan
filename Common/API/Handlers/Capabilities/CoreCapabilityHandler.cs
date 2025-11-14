@@ -207,7 +207,7 @@
             }
 
             var capabilitiesWithDuplicateIds = capabilitiesRequiringValidation
-                .GroupBy(resource => resource.Id)
+                .GroupBy(capability => capability.Id)
                 .Where(g => g.Count() > 1)
                 .SelectMany(x => x)
                 .ToList();

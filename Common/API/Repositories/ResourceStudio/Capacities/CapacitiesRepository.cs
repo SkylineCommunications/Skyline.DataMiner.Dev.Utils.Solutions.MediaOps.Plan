@@ -137,11 +137,6 @@
             return new ApiRepositoryQuery<Capacity, Net.Profiles.Parameter>(QueryProvider);
         }
 
-        public IQueryable<IEnumerable<Capacity>> QueryPaged()
-        {
-            throw new NotImplementedException();
-        }
-
         public Capacity Read(Guid id)
         {
             PlanApi.Logger.LogInformation($"Reading Capacity with ID: {id}...");

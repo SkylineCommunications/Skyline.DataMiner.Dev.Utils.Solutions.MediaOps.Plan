@@ -1,12 +1,20 @@
 ﻿namespace Skyline.DataMiner.MediaOps.Plan.API
 {
     using System;
+    using Skyline.DataMiner.MediaOps.Plan.Storage.Core;
 
     /// <summary>
     /// Represents a configuration for numeric parameters, providing functionality to manage and parse numeric-related configurations.
     /// </summary>
     public class NumberConfiguration : Configuration
     {
+        private decimal? defaultValue;
+        private string units;
+        private decimal? rangeMin;
+        private decimal? rangeMax;
+        private decimal? stepSize;
+        private int? decimals;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="NumberConfiguration"/> class.
         /// </summary>
@@ -32,11 +40,94 @@
         }
 
         /// <summary>
+        /// Gets or sets the default value of this <see cref="NumberConfiguration"/>.
+        /// </summary>
+        public decimal? DefaultValue
+        {
+            get => defaultValue;
+            set
+            {
+                HasChanges = true;
+                defaultValue = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the units of measurement for the <see cref="NumberConfiguration"/>.
+        /// </summary>
+        public string Units
+        {
+            get => units;
+            set
+            {
+                HasChanges = true;
+                units = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the minimum value for the <see cref="NumberConfiguration"/> range.
+        /// </summary>
+        public decimal? RangeMin
+        {
+            get => rangeMin;
+            set
+            {
+                HasChanges = true;
+                rangeMin = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the maximum value for the <see cref="NumberConfiguration"/> range.
+        /// </summary>
+        public decimal? RangeMax
+        {
+            get => rangeMax;
+            set
+            {
+                HasChanges = true;
+                rangeMax = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the step size for the <see cref="NumberConfiguration"/>.
+        /// </summary>
+        public decimal? StepSize
+        {
+            get => stepSize;
+            set
+            {
+                HasChanges = true;
+                stepSize = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the number of decimal places for the <see cref="NumberConfiguration"/> values.
+        /// </summary>
+        public int? Decimals
+        {
+            get => decimals;
+            set
+            {
+                HasChanges = true;
+                decimals = value;
+            }
+        }
+
+        /// <summary>
         /// <inheritdoc/>
         /// </summary>
         protected internal override void InternalParseParameter(Net.Profiles.Parameter parameter)
         {
-            throw new NotImplementedException();
+            defaultValue = parameter.HasDefaultNumericValue() ? (decimal)parameter.DefaultValue.DoubleValue : null;
+            units = parameter.Units;
+            rangeMin = parameter.HasMinRange() ? (decimal)parameter.RangeMin : null;
+            rangeMax = parameter.HasMaxRange() ? (decimal)parameter.RangeMax : null;
+            stepSize = parameter.HasStepSize() ? (decimal)parameter.Stepsize : null;
+            decimals = parameter.HasDecimals() ? parameter.Decimals : null;
         }
     }
 }

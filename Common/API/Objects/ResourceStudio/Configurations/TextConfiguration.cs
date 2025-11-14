@@ -1,12 +1,15 @@
 ﻿namespace Skyline.DataMiner.MediaOps.Plan.API
 {
     using System;
+    using Skyline.DataMiner.MediaOps.Plan.Storage.Core;
 
     /// <summary>
     /// Represents a configuration for text-based settings, providing functionality to manage and parse text-related configurations.
     /// </summary>
     public class TextConfiguration : Configuration
     {
+        private string defaultValue;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="TextConfiguration"/> class.
         /// </summary>
@@ -32,11 +35,24 @@
         }
 
         /// <summary>
+        /// Gets or sets the default value of this <see cref="TextConfiguration"/>.
+        /// </summary>
+        public string DefaultValue
+        {
+            get => defaultValue;
+            set
+            {
+                HasChanges = true;
+                defaultValue = value;
+            }
+        }
+
+        /// <summary>
         /// <inheritdoc/>
         /// </summary>
         protected internal override void InternalParseParameter(Net.Profiles.Parameter parameter)
         {
-            throw new NotImplementedException();
+            defaultValue = parameter.HasDefaultStringValue() ? parameter.DefaultValue.StringValue : null;
         }
     }
 }

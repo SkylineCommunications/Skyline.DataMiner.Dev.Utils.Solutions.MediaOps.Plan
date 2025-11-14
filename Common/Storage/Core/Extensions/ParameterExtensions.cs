@@ -77,6 +77,17 @@
         }
 
         /// <summary>
+        /// Determines whether the specified parameter is a Number parameter.
+        /// </summary>
+        /// <param name="parameter">The parameter to evaluate. Must not be <c>null</c>.</param>
+        /// <returns><see langword="true"/> if the parameter is of type <see cref="Parameter.ParameterType.Number"/>; otherwise,
+        /// <see langword="false"/>.</returns>
+        public static bool IsNumber(this Parameter parameter)
+        {
+            return parameter.Type == Parameter.ParameterType.Number;
+        }
+
+        /// <summary>
         /// Determines whether the parameter is a discrete number parameter.
         /// </summary>
         /// <param name="parameter">The parameter to check.</param>
@@ -122,7 +133,7 @@
         /// <returns><c>true</c> if the parameter is a number parameter or a discrete number parameter; otherwise, <c>false</c>.</returns>
         public static bool IsNumberParameter(this Parameter parameter)
         {
-            return parameter.Type == Parameter.ParameterType.Number || parameter.IsNumberDiscreet();
+            return parameter.IsNumber() || parameter.IsNumberDiscreet();
         }
 
         /// <summary>
@@ -132,7 +143,7 @@
         /// <returns><c>true</c> if the parameter is a text parameter or a discrete text parameter; otherwise, <c>false</c>.</returns>
         public static bool IsTextParameter(this Parameter parameter)
         {
-            return parameter.Type == Parameter.ParameterType.Text || parameter.IsTextDiscreet();
+            return parameter.IsText() || parameter.IsTextDiscreet();
         }
 
         /// <summary>
