@@ -4,7 +4,7 @@
 
     using RT_MediaOps.Plan.RegressionTests;
 
-    using Skyline.DataMiner.MediaOps.Plan.Exceptions;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
     [TestClass]
     [TestCategory("IntegrationTest")]
@@ -23,8 +23,8 @@
             // Create resource and validate result
             var id = Guid.NewGuid();
             var name = TestHelper.GetRandomName("UnmanagedResource_", id);
-            var expectedResult = new ExpectedUnmanagedResource(name, 5, true, Skyline.DataMiner.MediaOps.Plan.API.ResourceState.Draft, id);
-            var unmanagedResource = new Skyline.DataMiner.MediaOps.Plan.API.UnmanagedResource(id)
+            var expectedResult = new ExpectedUnmanagedResource(name, 5, true, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Draft, id);
+            var unmanagedResource = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource(id)
             {
                 Name = expectedResult.Name,
                 Concurrency = expectedResult.Concurrency,
@@ -38,13 +38,13 @@
             expectedResult.ValidateUnmanagedResource(returnedResource);
 
             // Set resource to complete and validate result
-            testContext.Api.Resources.MoveTo(id, Skyline.DataMiner.MediaOps.Plan.API.ResourceState.Complete);
+            testContext.Api.Resources.MoveTo(id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
             returnedResource = testContext.Api.Resources.Read(id);
-            expectedResult.State = Skyline.DataMiner.MediaOps.Plan.API.ResourceState.Complete;
+            expectedResult.State = Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete;
             expectedResult.ValidateUnmanagedResource(returnedResource);
 
             // Update resource and validate result
-            expectedResult = new ExpectedUnmanagedResource(name + "_updated", 10, false, Skyline.DataMiner.MediaOps.Plan.API.ResourceState.Complete, id);
+            expectedResult = new ExpectedUnmanagedResource(name + "_updated", 10, false, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete, id);
             returnedResource.Concurrency = expectedResult.Concurrency;
             returnedResource.IsFavorite = expectedResult.IsFavorite;
             returnedResource.Name = expectedResult.Name;
@@ -53,7 +53,7 @@
             expectedResult.ValidateUnmanagedResource(returnedResource);
 
             // Deprecate resource in order to be able to delete it
-            testContext.Api.Resources.MoveTo(id, Skyline.DataMiner.MediaOps.Plan.API.ResourceState.Deprecated);
+            testContext.Api.Resources.MoveTo(id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Deprecated);
 
             // Delete resource and validate it is gone
             testContext.Api.Resources.Delete(id);
@@ -67,14 +67,14 @@
         {
             string name = TestHelper.GetRandomName("UnmanagedResource_");
             var id = Guid.NewGuid();
-            var unmanagedResource1 = new Skyline.DataMiner.MediaOps.Plan.API.UnmanagedResource(id)
+            var unmanagedResource1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource(id)
             {
                 Name = name,
                 Concurrency = 5,
                 IsFavorite = true,
             };
 
-            var unmanagedResource2 = new Skyline.DataMiner.MediaOps.Plan.API.UnmanagedResource(id)
+            var unmanagedResource2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource(id)
             {
                 Name = name + "2",
                 Concurrency = 5,
@@ -101,13 +101,13 @@
         {
             string name = TestHelper.GetRandomName("UnmanagedResource_");
             var id = Guid.NewGuid();
-            var unmanagedResource1 = new Skyline.DataMiner.MediaOps.Plan.API.UnmanagedResource(id)
+            var unmanagedResource1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource(id)
             {
                 Name = name,
                 Concurrency = 5,
                 IsFavorite = true,
             };
-            var unmanagedResource2 = new Skyline.DataMiner.MediaOps.Plan.API.UnmanagedResource()
+            var unmanagedResource2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
             {
                 Name = name,
                 Concurrency = 5,
@@ -133,8 +133,8 @@
         {
             // Create two resources with different names and validate result
             var name1 = TestHelper.GetRandomName("UnmanagedResource_");
-            var expectedResult1 = new ExpectedUnmanagedResource(name1, 5, true, Skyline.DataMiner.MediaOps.Plan.API.ResourceState.Draft);
-            var unmanagedResource1 = new Skyline.DataMiner.MediaOps.Plan.API.UnmanagedResource()
+            var expectedResult1 = new ExpectedUnmanagedResource(name1, 5, true, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Draft);
+            var unmanagedResource1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
             {
                 Name = expectedResult1.Name,
                 Concurrency = expectedResult1.Concurrency,
@@ -142,8 +142,8 @@
             };
 
             var name2 = TestHelper.GetRandomName("UnmanagedResource_");
-            var expectedResult2 = new ExpectedUnmanagedResource(name2, 5, true, Skyline.DataMiner.MediaOps.Plan.API.ResourceState.Draft);
-            var unmanagedResource2 = new Skyline.DataMiner.MediaOps.Plan.API.UnmanagedResource()
+            var expectedResult2 = new ExpectedUnmanagedResource(name2, 5, true, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Draft);
+            var unmanagedResource2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
             {
                 Name = expectedResult2.Name,
                 Concurrency = expectedResult2.Concurrency,
@@ -180,7 +180,7 @@
 
         private struct ExpectedUnmanagedResource
         {
-            public ExpectedUnmanagedResource(string name, int concurrency, bool isFavorite, Skyline.DataMiner.MediaOps.Plan.API.ResourceState state, Guid? id = null)
+            public ExpectedUnmanagedResource(string name, int concurrency, bool isFavorite, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState state, Guid? id = null)
             {
                 Id = id;
                 Name = name;
@@ -193,9 +193,9 @@
             public string Name { get; set; }
             public int Concurrency { get; set; }
             public bool IsFavorite { get; set; }
-            public Skyline.DataMiner.MediaOps.Plan.API.ResourceState State { get; set; }
+            public Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState State { get; set; }
 
-            public void ValidateUnmanagedResource(Skyline.DataMiner.MediaOps.Plan.API.Resource resource)
+            public void ValidateUnmanagedResource(Skyline.DataMiner.Solutions.MediaOps.Plan.API.Resource resource)
             {
                 if (resource == null)
                 {

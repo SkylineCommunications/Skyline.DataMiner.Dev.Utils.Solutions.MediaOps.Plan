@@ -5,7 +5,7 @@
 
     using RT_MediaOps.Plan.RegressionTests;
 
-    using Skyline.DataMiner.MediaOps.Plan.Exceptions;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
     [TestClass]
     [TestCategory("IntegrationTest")]
@@ -31,15 +31,15 @@
         {
             var prefix = Guid.NewGuid().ToString();
 
-            var resourcePool1 = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool()
+            var resourcePool1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
             {
                 Name = $"{prefix}_ResourcePool1",
             };
-            var resourcePool2 = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool()
+            var resourcePool2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
             {
                 Name = $"{prefix}_ResourcePool2",
             };
-            var resourcePool3 = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool()
+            var resourcePool3 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
             {
                 Name = $"{prefix}_ResourcePool3",
             };
@@ -47,17 +47,17 @@
             var poolIds = objectCreator.CreateResourcePools(new[] { resourcePool1, resourcePool2 }).ToArray();
 
             // Create pool with link
-            resourcePool3.AddLinkedResourcePool(new Skyline.DataMiner.MediaOps.Plan.API.LinkedResourcePool(poolIds[0]));
+            resourcePool3.AddLinkedResourcePool(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.LinkedResourcePool(poolIds[0]));
             var poolId3 = objectCreator.CreateResourcePool(resourcePool3);
 
             resourcePool3 = testContext.Api.ResourcePools.Read(poolId3);
             Assert.AreEqual(1, resourcePool3.LinkedResourcePools.Count);
 
-            Assert.AreEqual(Skyline.DataMiner.MediaOps.Plan.API.ResourceSelectionType.Automatic, resourcePool3.LinkedResourcePools.First().SelectionType);
+            Assert.AreEqual(Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceSelectionType.Automatic, resourcePool3.LinkedResourcePools.First().SelectionType);
             Assert.AreEqual(poolIds[0], resourcePool3.LinkedResourcePools.First().LinkedResourcePoolId);
 
             // Update pool with new link
-            resourcePool3.AddLinkedResourcePool(new Skyline.DataMiner.MediaOps.Plan.API.LinkedResourcePool(poolIds[1]));
+            resourcePool3.AddLinkedResourcePool(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.LinkedResourcePool(poolIds[1]));
             testContext.Api.ResourcePools.Update(resourcePool3);
 
             resourcePool3 = testContext.Api.ResourcePools.Read(poolId3);
@@ -66,7 +66,7 @@
             var linkedPoolIds = poolIds.ToList();
             foreach (var link in resourcePool3.LinkedResourcePools)
             {
-                Assert.AreEqual(Skyline.DataMiner.MediaOps.Plan.API.ResourceSelectionType.Automatic, link.SelectionType);
+                Assert.AreEqual(Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceSelectionType.Automatic, link.SelectionType);
                 Assert.IsTrue(linkedPoolIds.Contains(link.LinkedResourcePoolId));
 
                 linkedPoolIds.Remove(link.LinkedResourcePoolId);
@@ -80,7 +80,7 @@
             resourcePool3 = testContext.Api.ResourcePools.Read(poolId3);
             Assert.AreEqual(1, resourcePool3.LinkedResourcePools.Count);
 
-            Assert.AreEqual(Skyline.DataMiner.MediaOps.Plan.API.ResourceSelectionType.Automatic, resourcePool3.LinkedResourcePools.First().SelectionType);
+            Assert.AreEqual(Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceSelectionType.Automatic, resourcePool3.LinkedResourcePools.First().SelectionType);
             Assert.AreEqual(poolIds[1], resourcePool3.LinkedResourcePools.First().LinkedResourcePoolId);
         }
 
@@ -89,13 +89,13 @@
         {
             var prefix = Guid.NewGuid().ToString();
 
-            var resourcePool = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool()
+            var resourcePool = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
             {
                 Name = $"{prefix}_ResourcePool",
             };
 
             var invalidPoolId = Guid.NewGuid();
-            resourcePool.AddLinkedResourcePool(new Skyline.DataMiner.MediaOps.Plan.API.LinkedResourcePool(invalidPoolId));
+            resourcePool.AddLinkedResourcePool(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.LinkedResourcePool(invalidPoolId));
 
             try
             {
@@ -124,7 +124,7 @@
         {
             var prefix = Guid.NewGuid().ToString();
 
-            var resourcePool = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool()
+            var resourcePool = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
             {
                 Name = $"{prefix}_ResourcePool",
             };
@@ -133,7 +133,7 @@
             resourcePool = testContext.Api.ResourcePools.Read(poolId);
 
             var invalidPoolId = Guid.NewGuid();
-            resourcePool.AddLinkedResourcePool(new Skyline.DataMiner.MediaOps.Plan.API.LinkedResourcePool(invalidPoolId));
+            resourcePool.AddLinkedResourcePool(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.LinkedResourcePool(invalidPoolId));
 
             try
             {
@@ -162,15 +162,15 @@
         {
             var prefix = Guid.NewGuid().ToString();
 
-            var resourcePool1 = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool()
+            var resourcePool1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
             {
                 Name = $"{prefix}_ResourcePool1",
             };
-            var resourcePool2 = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool()
+            var resourcePool2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
             {
                 Name = $"{prefix}_ResourcePool2",
             };
-            var resourcePool3 = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool()
+            var resourcePool3 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
             {
                 Name = $"{prefix}_ResourcePool3",
             };
@@ -178,8 +178,8 @@
             var poolIds = objectCreator.CreateResourcePools(new[] { resourcePool1, resourcePool2 }).ToArray();
 
             // Create pool with 2 links
-            resourcePool3.AddLinkedResourcePool(new Skyline.DataMiner.MediaOps.Plan.API.LinkedResourcePool(poolIds[0]));
-            resourcePool3.AddLinkedResourcePool(new Skyline.DataMiner.MediaOps.Plan.API.LinkedResourcePool(poolIds[1]));
+            resourcePool3.AddLinkedResourcePool(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.LinkedResourcePool(poolIds[0]));
+            resourcePool3.AddLinkedResourcePool(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.LinkedResourcePool(poolIds[1]));
             var poolId3 = objectCreator.CreateResourcePool(resourcePool3);
 
             resourcePool3 = testContext.Api.ResourcePools.Read(poolId3);
@@ -190,7 +190,7 @@
             resourcePool3 = testContext.Api.ResourcePools.Read(poolId3);
             Assert.AreEqual(1, resourcePool3.LinkedResourcePools.Count);
 
-            Assert.AreEqual(Skyline.DataMiner.MediaOps.Plan.API.ResourceSelectionType.Automatic, resourcePool3.LinkedResourcePools.First().SelectionType);
+            Assert.AreEqual(Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceSelectionType.Automatic, resourcePool3.LinkedResourcePools.First().SelectionType);
             Assert.AreEqual(poolIds[1], resourcePool3.LinkedResourcePools.First().LinkedResourcePoolId);
         }
 
@@ -199,32 +199,32 @@
         {
             var prefix = Guid.NewGuid().ToString();
 
-            var resourcePool1 = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool()
+            var resourcePool1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
             {
                 Name = $"{prefix}_ResourcePool1",
             };
-            var resourcePool2 = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool()
+            var resourcePool2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
             {
                 Name = $"{prefix}_ResourcePool2",
             };
-            var resourcePool3 = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool()
+            var resourcePool3 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
             {
                 Name = $"{prefix}_ResourcePool3",
             };
 
             var poolIds = objectCreator.CreateResourcePools(new[] { resourcePool1, resourcePool2 }).ToArray();
 
-            resourcePool3.AddLinkedResourcePool(new Skyline.DataMiner.MediaOps.Plan.API.LinkedResourcePool(poolIds[0]) { SelectionType = Skyline.DataMiner.MediaOps.Plan.API.ResourceSelectionType.Automatic });
-            resourcePool3.AddLinkedResourcePool(new Skyline.DataMiner.MediaOps.Plan.API.LinkedResourcePool(poolIds[1]) { SelectionType = Skyline.DataMiner.MediaOps.Plan.API.ResourceSelectionType.Manual });
+            resourcePool3.AddLinkedResourcePool(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.LinkedResourcePool(poolIds[0]) { SelectionType = Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceSelectionType.Automatic });
+            resourcePool3.AddLinkedResourcePool(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.LinkedResourcePool(poolIds[1]) { SelectionType = Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceSelectionType.Manual });
             var poolId3 = objectCreator.CreateResourcePool(resourcePool3);
 
             resourcePool3 = testContext.Api.ResourcePools.Read(poolId3);
             Assert.AreEqual(2, resourcePool3.LinkedResourcePools.Count);
 
-            var expectedPoolData = new Dictionary<Guid, Skyline.DataMiner.MediaOps.Plan.API.ResourceSelectionType>
+            var expectedPoolData = new Dictionary<Guid, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceSelectionType>
             {
-                { poolIds[0], Skyline.DataMiner.MediaOps.Plan.API.ResourceSelectionType.Automatic },
-                { poolIds[1], Skyline.DataMiner.MediaOps.Plan.API.ResourceSelectionType.Manual },
+                { poolIds[0], Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceSelectionType.Automatic },
+                { poolIds[1], Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceSelectionType.Manual },
             };
             foreach (var link in resourcePool3.LinkedResourcePools)
             {

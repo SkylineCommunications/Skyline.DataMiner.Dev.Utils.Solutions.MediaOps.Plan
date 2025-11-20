@@ -5,7 +5,7 @@
 
     using RT_MediaOps.Plan.RegressionTests;
 
-    using Skyline.DataMiner.MediaOps.Plan.API;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
     [TestClass]

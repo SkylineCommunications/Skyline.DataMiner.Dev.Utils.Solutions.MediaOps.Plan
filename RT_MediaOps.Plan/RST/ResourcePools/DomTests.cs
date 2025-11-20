@@ -10,7 +10,7 @@
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
-    using Storage = Skyline.DataMiner.MediaOps.Plan.Storage;
+    using Storage = Skyline.DataMiner.Solutions.MediaOps.Plan.Storage;
 
     [TestClass]
     [TestCategory("IntegrationTest")]
@@ -36,7 +36,7 @@
         {
             var prefix = Guid.NewGuid().ToString();
 
-            var resourcePool = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool()
+            var resourcePool = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
             {
                 Name = $"{prefix}_ResourcePool",
             };
@@ -77,13 +77,13 @@
         {
             var prefix = Guid.NewGuid().ToString();
 
-            var resourcePool = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool()
+            var resourcePool = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
             {
                 Name = $"{prefix}_ResourcePool",
             };
 
             var poolId = objectCreator.CreateResourcePool(resourcePool);
-            testContext.Api.ResourcePools.MoveTo(poolId, Skyline.DataMiner.MediaOps.Plan.API.ResourcePoolState.Complete);
+            testContext.Api.ResourcePools.MoveTo(poolId, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
 
             var domResourcePool = testContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(poolId)).SingleOrDefault();
             Assert.IsNotNull(domResourcePool);
@@ -121,14 +121,14 @@
         {
             var prefix = Guid.NewGuid().ToString();
 
-            var resourcePool = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool()
+            var resourcePool = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
             {
                 Name = $"{prefix}_ResourcePool",
             };
 
             var poolId = objectCreator.CreateResourcePool(resourcePool);
-            testContext.Api.ResourcePools.MoveTo(poolId, Skyline.DataMiner.MediaOps.Plan.API.ResourcePoolState.Complete);
-            testContext.Api.ResourcePools.MoveTo(poolId, Skyline.DataMiner.MediaOps.Plan.API.ResourcePoolState.Deprecated);
+            testContext.Api.ResourcePools.MoveTo(poolId, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
+            testContext.Api.ResourcePools.MoveTo(poolId, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Deprecated);
 
             var domResourcePool = testContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(poolId)).SingleOrDefault();
             Assert.IsNotNull(domResourcePool);
@@ -166,23 +166,23 @@
         {
             var prefix = Guid.NewGuid().ToString();
 
-            var resourcePool1 = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool()
+            var resourcePool1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
             {
                 Name = $"{prefix}_ResourcePool1",
             };
-            var resourcePool2 = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool()
+            var resourcePool2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
             {
                 Name = $"{prefix}_ResourcePool2",
             };
-            var resourcePool3 = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool()
+            var resourcePool3 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
             {
                 Name = $"{prefix}_ResourcePool3",
             };
 
             var poolIds = objectCreator.CreateResourcePools(new[] { resourcePool1, resourcePool2 }).ToArray();
 
-            resourcePool3.AddLinkedResourcePool(new Skyline.DataMiner.MediaOps.Plan.API.LinkedResourcePool(poolIds[0]) { SelectionType = Skyline.DataMiner.MediaOps.Plan.API.ResourceSelectionType.Automatic });
-            resourcePool3.AddLinkedResourcePool(new Skyline.DataMiner.MediaOps.Plan.API.LinkedResourcePool(poolIds[1]) { SelectionType = Skyline.DataMiner.MediaOps.Plan.API.ResourceSelectionType.Manual });
+            resourcePool3.AddLinkedResourcePool(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.LinkedResourcePool(poolIds[0]) { SelectionType = Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceSelectionType.Automatic });
+            resourcePool3.AddLinkedResourcePool(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.LinkedResourcePool(poolIds[1]) { SelectionType = Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceSelectionType.Manual });
             var poolId3 = objectCreator.CreateResourcePool(resourcePool3);
 
             var domResourcePool = testContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(poolId3)).SingleOrDefault();

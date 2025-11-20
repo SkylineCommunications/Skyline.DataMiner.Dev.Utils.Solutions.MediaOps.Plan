@@ -1,4 +1,4 @@
-# Skyline.DataMiner.MediaOps.Plan.GQI
+# Skyline.DataMiner.Solutions.MediaOps.Plan.GQI
 
 ## About
 

@@ -20,6 +20,6 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Common\MediaOps.Plan.csproj" />
+    <ProjectReference Include="..\Common\Skyline.DataMiner.Solutions.MediaOps.Plan.csproj" />
   </ItemGroup>
 </Project>

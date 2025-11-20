@@ -6,7 +6,7 @@
 
     using RT_MediaOps.Plan.RegressionTests;
 
-    using Skyline.DataMiner.MediaOps.Plan.Exceptions;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
     [TestClass]
@@ -35,7 +35,7 @@
             var capacityId = Guid.NewGuid();
             var name = $"{capacityId}_Capacity";
 
-            var capacity = new Skyline.DataMiner.MediaOps.Plan.API.Capacity(capacityId)
+            var capacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capacity(capacityId)
             {
                 Name = name,
             };
@@ -106,12 +106,12 @@
         {
             var capacityId = Guid.NewGuid();
 
-            var capacity1 = new Skyline.DataMiner.MediaOps.Plan.API.Capacity(capacityId)
+            var capacity1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capacity(capacityId)
             {
                 Name = $"{capacityId}_Capacity1",
             };
 
-            var capacity2 = new Skyline.DataMiner.MediaOps.Plan.API.Capacity(capacityId)
+            var capacity2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capacity(capacityId)
             {
                 Name = $"{capacityId}_Capacity2",
             };
@@ -143,12 +143,12 @@
         {
             var capacityId = Guid.NewGuid();
 
-            var capacity1 = new Skyline.DataMiner.MediaOps.Plan.API.Capacity(capacityId)
+            var capacity1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capacity(capacityId)
             {
                 Name = $"{capacityId}_Capacity1",
             };
 
-            var capacity2 = new Skyline.DataMiner.MediaOps.Plan.API.Capacity(capacityId)
+            var capacity2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capacity(capacityId)
             {
                 Name = $"{capacityId}_Capacity2",
             };
@@ -193,12 +193,12 @@
         {
             var capacityId = Guid.NewGuid();
 
-            var capacity1 = new Skyline.DataMiner.MediaOps.Plan.API.Capacity()
+            var capacity1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capacity()
             {
                 Name = $"{capacityId}_Capacity",
             };
 
-            var capacity2 = new Skyline.DataMiner.MediaOps.Plan.API.Capacity()
+            var capacity2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capacity()
             {
                 Name = $"{capacityId}_Capacity",
             };
@@ -230,12 +230,12 @@
         {
             var capacityId = Guid.NewGuid();
 
-            var capacity1 = new Skyline.DataMiner.MediaOps.Plan.API.Capacity()
+            var capacity1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capacity()
             {
                 Name = $"{capacityId}_Capacity",
             };
 
-            var capacity2 = new Skyline.DataMiner.MediaOps.Plan.API.Capacity()
+            var capacity2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capacity()
             {
                 Name = $"{capacityId}_Capacity",
             };
@@ -269,12 +269,12 @@
         {
             var capacityId = Guid.NewGuid();
 
-            var capacity1 = new Skyline.DataMiner.MediaOps.Plan.API.Capacity()
+            var capacity1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capacity()
             {
                 Name = $"{capacityId}_Capacity_1",
             };
 
-            var capacity2 = new Skyline.DataMiner.MediaOps.Plan.API.Capacity()
+            var capacity2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capacity()
             {
                 Name = $"{capacityId}_Capacity_2",
             };
@@ -312,7 +312,7 @@
             // Create
             var capacityId = Guid.NewGuid();
 
-            var capacity = new Skyline.DataMiner.MediaOps.Plan.API.Capacity(capacityId)
+            var capacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capacity(capacityId)
             {
                 Name = $"{capacityId}_Capacity",
                 IsMandatory = true,
@@ -394,7 +394,7 @@
         {
             var capacityId = Guid.NewGuid();
 
-            var capacity = new Skyline.DataMiner.MediaOps.Plan.API.Capacity(capacityId)
+            var capacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capacity(capacityId)
             {
                 Name = $"{capacityId}_Capacity",
                 IsMandatory = true,
@@ -440,7 +440,7 @@
         {
             var capacityId = Guid.NewGuid();
 
-            var capacity = new Skyline.DataMiner.MediaOps.Plan.API.Capacity(capacityId)
+            var capacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capacity(capacityId)
             {
                 Name = $"{capacityId}_Capacity",
                 IsMandatory = true,
@@ -477,7 +477,7 @@
         {
             var capacityId = Guid.NewGuid();
 
-            var capacity = new Skyline.DataMiner.MediaOps.Plan.API.Capacity(capacityId)
+            var capacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capacity(capacityId)
             {
                 Name = $"{capacityId}_Capacity",
                 IsMandatory = true,

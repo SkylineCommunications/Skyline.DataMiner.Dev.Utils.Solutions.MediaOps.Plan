@@ -1,4 +1,4 @@
-# Skyline.DataMiner.MediaOps.Plan.Protocol
+# Skyline.DataMiner.Solutions.MediaOps.Plan.Protocol
 
 ## About
 

@@ -5,8 +5,8 @@
     using System.Linq;
     using Microsoft.VisualStudio.TestTools.UnitTesting;
     using RT_MediaOps.Plan.RegressionTests;
-    using Skyline.DataMiner.MediaOps.Plan.API;
-    using Skyline.DataMiner.MediaOps.Plan.Exceptions;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
     [TestClass]
@@ -35,7 +35,7 @@
             var configurationId = Guid.NewGuid();
             var name = $"{configurationId}_Configuration";
 
-            var configuration = new Skyline.DataMiner.MediaOps.Plan.API.DiscreteNumberConfiguration(configurationId)
+            var configuration = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfiguration(configurationId)
             {
                 Name = name,
             };
@@ -101,13 +101,13 @@
         {
             var configurationId = Guid.NewGuid();
 
-            var configuration1 = new Skyline.DataMiner.MediaOps.Plan.API.DiscreteNumberConfiguration(configurationId)
+            var configuration1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfiguration(configurationId)
             {
                 Name = $"{configurationId}_Configuration1",
             };
             configuration1.AddDiscrete("Value1", 1);
 
-            var configuration2 = new Skyline.DataMiner.MediaOps.Plan.API.DiscreteNumberConfiguration(configurationId)
+            var configuration2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfiguration(configurationId)
             {
                 Name = $"{configurationId}_Configuration2",
             };
@@ -140,13 +140,13 @@
         {
             var configurationId = Guid.NewGuid();
 
-            var configuration1 = new Skyline.DataMiner.MediaOps.Plan.API.DiscreteNumberConfiguration(configurationId)
+            var configuration1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfiguration(configurationId)
             {
                 Name = $"{configurationId}_Configuration1",
             };
             configuration1.AddDiscrete("Value1", 1);
 
-            var configuration2 = new Skyline.DataMiner.MediaOps.Plan.API.DiscreteNumberConfiguration(configurationId)
+            var configuration2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfiguration(configurationId)
             {
                 Name = $"{configurationId}_Configuration2",
             };
@@ -192,13 +192,13 @@
         {
             var configurationId = Guid.NewGuid();
 
-            var configuration1 = new Skyline.DataMiner.MediaOps.Plan.API.DiscreteNumberConfiguration()
+            var configuration1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfiguration()
             {
                 Name = $"{configurationId}_Configuration",
             };
             configuration1.AddDiscrete("Value1", 1);
 
-            var configuration2 = new Skyline.DataMiner.MediaOps.Plan.API.DiscreteNumberConfiguration()
+            var configuration2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfiguration()
             {
                 Name = $"{configurationId}_Configuration",
             };
@@ -231,13 +231,13 @@
         {
             var configurationId = Guid.NewGuid();
 
-            var configuration1 = new Skyline.DataMiner.MediaOps.Plan.API.DiscreteNumberConfiguration()
+            var configuration1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfiguration()
             {
                 Name = $"{configurationId}_Configuration",
             };
             configuration1.AddDiscrete("Value1", 1);
 
-            var configuration2 = new Skyline.DataMiner.MediaOps.Plan.API.DiscreteNumberConfiguration()
+            var configuration2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfiguration()
             {
                 Name = $"{configurationId}_Configuration",
             };
@@ -272,13 +272,13 @@
         {
             var configurationId = Guid.NewGuid();
 
-            var configuration1 = new Skyline.DataMiner.MediaOps.Plan.API.DiscreteNumberConfiguration()
+            var configuration1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfiguration()
             {
                 Name = $"{configurationId}_Configuration_1",
             };
             configuration1.AddDiscrete("Value1", 1);
 
-            var configuration2 = new Skyline.DataMiner.MediaOps.Plan.API.DiscreteNumberConfiguration()
+            var configuration2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfiguration()
             {
                 Name = $"{configurationId}_Configuration_2",
             };
@@ -317,7 +317,7 @@
             // Create
             var configurationId = Guid.NewGuid();
 
-            var configuration = new Skyline.DataMiner.MediaOps.Plan.API.DiscreteNumberConfiguration(configurationId)
+            var configuration = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfiguration(configurationId)
             {
                 Name = $"{configurationId}_Configuration",
                 IsMandatory = true,
@@ -372,7 +372,7 @@
         {
             var configurationId = Guid.NewGuid();
 
-            var configuration = new Skyline.DataMiner.MediaOps.Plan.API.DiscreteNumberConfiguration(configurationId)
+            var configuration = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfiguration(configurationId)
             {
                 Name = $"{configurationId}_Configuration",
             };
@@ -401,7 +401,7 @@
         {
             var configurationId = Guid.NewGuid();
 
-            var configuration = new Skyline.DataMiner.MediaOps.Plan.API.DiscreteNumberConfiguration(configurationId)
+            var configuration = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfiguration(configurationId)
             {
                 Name = $"{configurationId}_Configuration",
             };

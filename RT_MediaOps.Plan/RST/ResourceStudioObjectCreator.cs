@@ -4,7 +4,7 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    using Skyline.DataMiner.MediaOps.Plan.API;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 
     internal class ResourceStudioObjectCreator : IDisposable
     {

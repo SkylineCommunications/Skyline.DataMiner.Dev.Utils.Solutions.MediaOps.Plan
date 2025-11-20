@@ -5,14 +5,14 @@
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
 
-    using Skyline.DataMiner.MediaOps.Plan.API;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages;
     using Skyline.DataMiner.Net.Profiles;
 
     using DMConnection = Skyline.DataMiner.Net.Connection;
-    using Storage = Skyline.DataMiner.MediaOps.Plan.Storage;
+    using Storage = Skyline.DataMiner.Solutions.MediaOps.Plan.Storage;
 
     public sealed class IntegrationTestContext : IDisposable
     {

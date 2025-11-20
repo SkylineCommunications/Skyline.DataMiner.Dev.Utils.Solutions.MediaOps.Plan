@@ -1,4 +1,4 @@
-# Skyline.DataMiner.MediaOps.Plan
+# Skyline.DataMiner.Solutions.MediaOps.Plan
 
 ## About
 
@@ -6,7 +6,7 @@
 
 ## Projects
 
-* For more information about Skyline.DataMiner.MediaOps.Plan, see [MediaOps.Plan/README.md](MediaOps.Plan/README.md).
+* For more information about Skyline.DataMiner.Solutions.MediaOps.Plan, see [MediaOps.Plan/README.md](MediaOps.Plan/README.md).
 
 ### About DataMiner
 

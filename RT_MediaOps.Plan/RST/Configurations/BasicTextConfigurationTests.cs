@@ -2,8 +2,8 @@
 {
     using Microsoft.VisualStudio.TestTools.UnitTesting;
     using RT_MediaOps.Plan.RegressionTests;
-    using Skyline.DataMiner.MediaOps.Plan.API;
-    using Skyline.DataMiner.MediaOps.Plan.Exceptions;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
     [TestClass]
@@ -113,12 +113,12 @@
         {
             var configurationId = Guid.NewGuid();
 
-            var configuration1 = new Skyline.DataMiner.MediaOps.Plan.API.TextConfiguration(configurationId)
+            var configuration1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration(configurationId)
             {
                 Name = $"{configurationId}_Configuration1",
             };
 
-            var configuration2 = new Skyline.DataMiner.MediaOps.Plan.API.TextConfiguration(configurationId)
+            var configuration2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration(configurationId)
             {
                 Name = $"{configurationId}_Configuration2",
             };
@@ -150,12 +150,12 @@
         {
             var configurationId = Guid.NewGuid();
 
-            var configuration1 = new Skyline.DataMiner.MediaOps.Plan.API.TextConfiguration(configurationId)
+            var configuration1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration(configurationId)
             {
                 Name = $"{configurationId}_Configuration1",
             };
 
-            var configuration2 = new Skyline.DataMiner.MediaOps.Plan.API.TextConfiguration(configurationId)
+            var configuration2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration(configurationId)
             {
                 Name = $"{configurationId}_Configuration2",
             };
@@ -200,12 +200,12 @@
         {
             var configurationId = Guid.NewGuid();
 
-            var configuration1 = new Skyline.DataMiner.MediaOps.Plan.API.TextConfiguration()
+            var configuration1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration()
             {
                 Name = $"{configurationId}_Configuration",
             };
 
-            var configuration2 = new Skyline.DataMiner.MediaOps.Plan.API.TextConfiguration()
+            var configuration2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration()
             {
                 Name = $"{configurationId}_Configuration",
             };
@@ -237,12 +237,12 @@
         {
             var configurationId = Guid.NewGuid();
 
-            var configuration1 = new Skyline.DataMiner.MediaOps.Plan.API.TextConfiguration()
+            var configuration1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration()
             {
                 Name = $"{configurationId}_Configuration",
             };
 
-            var configuration2 = new Skyline.DataMiner.MediaOps.Plan.API.TextConfiguration()
+            var configuration2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration()
             {
                 Name = $"{configurationId}_Configuration",
             };
@@ -276,12 +276,12 @@
         {
             var configurationId = Guid.NewGuid();
 
-            var configuration1 = new Skyline.DataMiner.MediaOps.Plan.API.TextConfiguration()
+            var configuration1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration()
             {
                 Name = $"{configurationId}_Configuration_1",
             };
 
-            var configuration2 = new Skyline.DataMiner.MediaOps.Plan.API.TextConfiguration()
+            var configuration2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration()
             {
                 Name = $"{configurationId}_Configuration_2",
             };
@@ -319,7 +319,7 @@
             // Create
             var configurationId = Guid.NewGuid();
 
-            var configuration = new Skyline.DataMiner.MediaOps.Plan.API.TextConfiguration(configurationId)
+            var configuration = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration(configurationId)
             {
                 Name = $"{configurationId}_Configuration",
                 IsMandatory = true,

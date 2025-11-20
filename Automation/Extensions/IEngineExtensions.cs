@@ -1,9 +1,9 @@
-﻿namespace Skyline.DataMiner.MediaOps.Plan.Automation
+﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Automation
 {
     using System;
     using Microsoft.Extensions.Logging;
     using Skyline.DataMiner.Automation;
-    using Skyline.DataMiner.MediaOps.Plan.API;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 
     /// <summary>
     /// Defines extension methods on the <see cref="IEngine"/> interface.

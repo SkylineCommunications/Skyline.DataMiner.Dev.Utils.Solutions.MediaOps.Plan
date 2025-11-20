@@ -8,7 +8,7 @@
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
-    using Storage = Skyline.DataMiner.MediaOps.Plan.Storage;
+    using Storage = Skyline.DataMiner.Solutions.MediaOps.Plan.Storage;
 
     [TestClass]
     [TestCategory("IntegrationTest")]
@@ -34,13 +34,13 @@
         {
             var prefix = Guid.NewGuid().ToString();
 
-            var resourcePool = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool()
+            var resourcePool = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
             {
                 Name = $"{prefix}_ResourcePool",
             };
 
             var poolId = objectCreator.CreateResourcePool(resourcePool);
-            testContext.Api.ResourcePools.MoveTo(poolId, Skyline.DataMiner.MediaOps.Plan.API.ResourcePoolState.Complete);
+            testContext.Api.ResourcePools.MoveTo(poolId, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
 
             var domResourcePool = testContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(poolId)).SingleOrDefault();
             Assert.IsNotNull(domResourcePool);
@@ -59,14 +59,14 @@
         {
             var prefix = Guid.NewGuid().ToString();
 
-            var resourcePool = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool()
+            var resourcePool = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
             {
                 Name = $"{prefix}_ResourcePool",
             };
 
             var poolId = objectCreator.CreateResourcePool(resourcePool);
-            testContext.Api.ResourcePools.MoveTo(poolId, Skyline.DataMiner.MediaOps.Plan.API.ResourcePoolState.Complete);
-            testContext.Api.ResourcePools.MoveTo(poolId, Skyline.DataMiner.MediaOps.Plan.API.ResourcePoolState.Deprecated);
+            testContext.Api.ResourcePools.MoveTo(poolId, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
+            testContext.Api.ResourcePools.MoveTo(poolId, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Deprecated);
 
             var domResourcePool = testContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(poolId)).SingleOrDefault();
             Assert.IsNotNull(domResourcePool);

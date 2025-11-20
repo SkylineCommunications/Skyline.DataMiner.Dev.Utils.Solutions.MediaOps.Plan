@@ -1,7 +1,7 @@
 ﻿namespace RT_MediaOps.Plan.RST.Configurations
 {
     using System;
-    using Skyline.DataMiner.MediaOps.Plan.Exceptions;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
     internal sealed class ErrorReasonMessageMapping
     {

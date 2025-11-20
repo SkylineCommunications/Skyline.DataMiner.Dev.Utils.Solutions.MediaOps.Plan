@@ -31,19 +31,19 @@
             // Define which parameters apply on pool level
             // Evaluate that the configuration is dropdown is limited and that the mandatory field is there and can't be removed.
 
-            var resourcePoolId = testContext.Api.ResourcePools.Create(new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool
+            var resourcePoolId = testContext.Api.ResourcePools.Create(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool
             {
                 Name = "Resource Pool 1",
             });
 
-            var resource1Id = testContext.Api.Resources.Create(new Skyline.DataMiner.MediaOps.Plan.API.UnmanagedResource(Guid.NewGuid())
+            var resource1Id = testContext.Api.Resources.Create(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource(Guid.NewGuid())
             {
                 Name = "Resource 1",
             });
 
             //testContext.Api.ResourcePools.AssignResource(resourcePoolId, resource1Id);
 
-            var capacityId = testContext.Api.Capacities.Create(new Skyline.DataMiner.MediaOps.Plan.API.Capacity
+            var capacityId = testContext.Api.Capacities.Create(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capacity
             {
                 Name = "Mandatory Capacity 1",
                 IsMandatory = true,

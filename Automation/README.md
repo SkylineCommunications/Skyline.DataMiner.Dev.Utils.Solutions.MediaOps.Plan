@@ -1,4 +1,4 @@
-# Skyline.DataMiner.MediaOps.Plan.Automation
+# Skyline.DataMiner.Solutions.MediaOps.Plan.Automation
 
 ## About
 

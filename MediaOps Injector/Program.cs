@@ -6,15 +6,15 @@
     using System.Linq;
     using System.Net;
 
-    using Skyline.DataMiner.MediaOps.Plan.ActivityHelper;
-    using Skyline.DataMiner.MediaOps.Plan.API;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Helper;
     using DMConnection = Skyline.DataMiner.Net.Connection;
 
     internal class Program
     {
-        public static readonly string OpenTelemetrySourceName = "Skyline.DataMiner.MediaOps.Plan.Injector";
+        public static readonly string OpenTelemetrySourceName = "Skyline.DataMiner.Solutions.MediaOps.Plan.Injector";
 
         private static readonly ActivitySource activitySource = new ActivitySource(OpenTelemetrySourceName);
 

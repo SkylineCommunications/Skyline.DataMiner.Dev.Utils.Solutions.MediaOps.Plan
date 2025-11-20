@@ -1,9 +1,9 @@
-﻿namespace Skyline.DataMiner.MediaOps.Plan.GQI
+﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.GQI
 {
     using System;
     using Microsoft.Extensions.Logging;
     using Skyline.DataMiner.Analytics.GenericInterface;
-    using Skyline.DataMiner.MediaOps.Plan.API;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 
     /// <summary>
     /// Defines extension methods on the <see cref="GqiDmsExtensions"/> class.

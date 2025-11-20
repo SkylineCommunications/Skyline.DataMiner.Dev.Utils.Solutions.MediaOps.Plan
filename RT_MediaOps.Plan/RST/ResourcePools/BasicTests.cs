@@ -8,7 +8,7 @@
 
     using RT_MediaOps.Plan.RegressionTests;
 
-    using Skyline.DataMiner.MediaOps.Plan.Exceptions;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
     [TestClass]
     [TestCategory("IntegrationTest")]
@@ -36,7 +36,7 @@
             var poolId = Guid.NewGuid();
             var name = $"{poolId}_ResourcePool";
 
-            var resourcePool = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool(poolId)
+            var resourcePool = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool(poolId)
             {
                 Name = name,
             };
@@ -49,10 +49,10 @@
             Assert.AreEqual(name, returnedResourcePool.Name);
 
             // Set pool to complete and validate result
-            testContext.Api.ResourcePools.MoveTo(returnedResourcePool, Skyline.DataMiner.MediaOps.Plan.API.ResourcePoolState.Complete);
+            testContext.Api.ResourcePools.MoveTo(returnedResourcePool, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
             returnedResourcePool = testContext.Api.ResourcePools.Read(poolId);
             Assert.IsNotNull(returnedResourcePool);
-            Assert.AreEqual(Skyline.DataMiner.MediaOps.Plan.API.ResourcePoolState.Complete, returnedResourcePool.State);
+            Assert.AreEqual(Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete, returnedResourcePool.State);
 
             // Update pool and validate result
             var updatedName = name + "_updated";
@@ -63,10 +63,10 @@
             Assert.AreEqual(updatedName, returnedResourcePool.Name);
 
             // Deprecate pool
-            testContext.Api.ResourcePools.MoveTo(returnedResourcePool, Skyline.DataMiner.MediaOps.Plan.API.ResourcePoolState.Deprecated);
+            testContext.Api.ResourcePools.MoveTo(returnedResourcePool, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Deprecated);
             returnedResourcePool = testContext.Api.ResourcePools.Read(poolId);
             Assert.IsNotNull(returnedResourcePool);
-            Assert.AreEqual(Skyline.DataMiner.MediaOps.Plan.API.ResourcePoolState.Deprecated, returnedResourcePool.State);
+            Assert.AreEqual(Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Deprecated, returnedResourcePool.State);
 
             // Delete pool and validate it is gone
             testContext.Api.ResourcePools.Delete(returnedResourcePool);
@@ -79,12 +79,12 @@
         {
             var poolId = Guid.NewGuid();
 
-            var resourcePool1 = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool(poolId)
+            var resourcePool1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool(poolId)
             {
                 Name = $"{poolId}_ResourcePool_1",
             };
 
-            var resourcePool2 = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool(poolId)
+            var resourcePool2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool(poolId)
             {
                 Name = $"{poolId}_ResourcePool_2",
             };
@@ -116,12 +116,12 @@
         {
             var poolId = Guid.NewGuid();
 
-            var resourcePool1 = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool(poolId)
+            var resourcePool1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool(poolId)
             {
                 Name = $"{poolId}_ResourcePool_1",
             };
 
-            var resourcePool2 = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool(poolId)
+            var resourcePool2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool(poolId)
             {
                 Name = $"{poolId}_ResourcePool_2",
             };
@@ -166,12 +166,12 @@
         {
             var prefix = Guid.NewGuid().ToString();
 
-            var resourcePool1 = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool()
+            var resourcePool1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
             {
                 Name = $"{prefix}_ResourcePool",
             };
 
-            var resourcePool2 = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool()
+            var resourcePool2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
             {
                 Name = $"{prefix}_ResourcePool",
             };
@@ -203,12 +203,12 @@
         {
             var prefix = Guid.NewGuid().ToString();
 
-            var resourcePool1 = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool()
+            var resourcePool1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
             {
                 Name = $"{prefix}_ResourcePool",
             };
 
-            var resourcePool2 = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool()
+            var resourcePool2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
             {
                 Name = $"{prefix}_ResourcePool",
             };
@@ -242,12 +242,12 @@
         {
             var prefix = Guid.NewGuid().ToString();
 
-            var resourcePool1 = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool()
+            var resourcePool1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
             {
                 Name = $"{prefix}_ResourcePool_1",
             };
 
-            var resourcePool2 = new Skyline.DataMiner.MediaOps.Plan.API.ResourcePool()
+            var resourcePool2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
             {
                 Name = $"{prefix}_ResourcePool_2",
             };

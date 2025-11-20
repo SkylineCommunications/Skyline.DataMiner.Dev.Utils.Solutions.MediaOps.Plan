@@ -1,14 +1,14 @@
-﻿namespace Skyline.DataMiner.MediaOps.Plan.Protocol
+﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Protocol
 {
     using System;
     using Microsoft.Extensions.Logging;
-    using Skyline.DataMiner.MediaOps.Plan.API;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using Skyline.DataMiner.Scripting;
 
     /// <summary>
-    /// Defines extension methods on the <see cref="SlProtocolExtensions"/> class.
+    /// Defines extension methods on the <see cref="SLProtocolExtensions"/> class.
     /// </summary>
-    public static class SlProtocolExtensions
+    public static class SLProtocolExtensions
     {
         /// <summary>
         /// Retrieves an instance of the <see cref="IMediaOpsPlanApi"/> interface."/>

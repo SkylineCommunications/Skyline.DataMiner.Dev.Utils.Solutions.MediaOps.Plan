@@ -1,4 +1,4 @@
-<Project Sdk="MSTest.Sdk/3.6.4">
+﻿<Project Sdk="MSTest.Sdk/3.6.4">
 
   <PropertyGroup>
     <TargetFramework>net48</TargetFramework>
@@ -15,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Common\MediaOps.Plan.csproj" />
+    <ProjectReference Include="..\Common\Skyline.DataMiner.Solutions.MediaOps.Plan.csproj" />
   </ItemGroup>
 
 </Project>
