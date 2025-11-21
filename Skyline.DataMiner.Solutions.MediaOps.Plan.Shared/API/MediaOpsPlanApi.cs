@@ -1,18 +1,33 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
     using System;
+    using System.Collections.Generic;
+    using System.Linq;
     using Microsoft.Extensions.Logging;
     using Skyline.DataMiner.Core.DataMinerSystem.Common;
+    using Skyline.DataMiner.Core.InterAppCalls.Common.CallBulk;
+    using Skyline.DataMiner.Net;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Logger;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Shared.Comm.InterApp.Messages;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
-    using Skyline.DataMiner.Net;
 
     /// <summary>
     /// Provides the main entry point for interacting with the MediaOps Plan API.
     /// </summary>
-    public class MediaOpsPlanApi : IMediaOpsPlanApi
+    public partial class MediaOpsPlanApi : IMediaOpsPlanApi
     {
+        private static readonly IEnumerable<Type> knownTypes = new List<Type>
+        {
+            typeof(IInterAppCall),
+            typeof(CreateResourceRequest),
+            typeof(CreateResourceResponse),
+            typeof(OperationFailedResponse),
+            typeof(MediaOpsTraceData),
+            typeof(Resource)
+        };
+
         private readonly ILogger<IMediaOpsPlanApi> logger;
         private readonly IConnection connection;
 
@@ -48,6 +63,8 @@
             lazyCapacitiesRepository = new Lazy<ICapacitiesRepository>(() => new CapacitiesRepository(this));
             lazyConfigurationsRepository = new Lazy<IConfigurationsRepository>(() => new ConfigurationsRepository(this));
             lazyResourcePropertiesRepository = new Lazy<IResourcePropertiesRepository>(() => new ResourcePropertiesRepository(this));
+
+            Init();
         }
 
         /// <summary>

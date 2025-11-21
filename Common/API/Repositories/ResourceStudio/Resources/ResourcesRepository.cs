@@ -47,7 +47,15 @@
 
         public Guid Create(Resource apiObject)
         {
-            throw new NotImplementedException("Requires InterApp implementation");
+            PlanApi.ThrownIfNotCompatible();
+
+            var request = new CreateResourceRequest
+            {
+                Resource = apiObject,
+            };
+
+            var response = PlanApi.SendMessage<CreateResourceResponse>(request);
+            return response.ResourceId;
         }
 
         public IEnumerable<Guid> Create(IEnumerable<Resource> apiObjects)
