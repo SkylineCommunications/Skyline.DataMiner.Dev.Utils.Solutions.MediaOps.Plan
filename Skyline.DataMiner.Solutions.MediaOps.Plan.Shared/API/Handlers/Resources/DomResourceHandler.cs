@@ -129,6 +129,8 @@
             var toUpdate = new List<Resource>();
             foreach (var resources in apiResources)
             {
+                planApi.Logger.LogInformation($"Processing Resource with type '{resources.GetType().Name}' and ID '{resources.Id}' for CreateOrUpdate.");
+
                 if (resources.IsNew)
                 {
                     toCreate.Add(resources);

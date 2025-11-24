@@ -8,8 +8,8 @@
     <AssemblyName>Skyline.DataMiner.Solutions.MediaOps.Plan.DevPack</AssemblyName>
     <RootNamespace>Skyline.DataMiner.Solutions.MediaOps.Plan.DevPack</RootNamespace>
 
-    <PackageVersion>1.0.1-alpha1</PackageVersion>
-    <Version>1.0.1-alpha1</Version>
+    <PackageVersion>1.0.1-alpha4</PackageVersion>
+    <Version>1.0.1-alpha4</Version>
     <PackageId>Skyline.DataMiner.Solutions.MediaOps.Plan.DevPack</PackageId>
     <PackageTags>Skyline;DataMiner</PackageTags>
     <PackageProjectUrl>https://skyline.be</PackageProjectUrl>

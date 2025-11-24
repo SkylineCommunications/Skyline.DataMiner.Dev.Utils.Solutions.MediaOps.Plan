@@ -6,8 +6,10 @@
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using Skyline.DataMiner.Core.DataMinerSystem.Common;
+    using Skyline.DataMiner.Core.DataMinerSystem.Common.Selectors;
     using Skyline.DataMiner.Core.InterAppCalls.Common.CallBulk;
     using Skyline.DataMiner.Core.InterAppCalls.Common.CallSingle;
+    using Skyline.DataMiner.Core.InterAppCalls.Common.Shared;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Shared.Comm.InterApp.Messages;
 
@@ -18,6 +20,7 @@
     {
         private const string MediaOpsProtocolName = "MediaOps Plan Manager";
         private const int InterAppReceive_ParameterId = 9000000;
+        private const int InterAppResponse_ParameterId = 9000001;
         private const int InterApp_Timeout_ParameterId = 100;
 
         private readonly string assemblyVersion = typeof(MediaOpsPlanApi).Assembly.GetName().Version.ToString();
@@ -47,7 +50,7 @@
 
             mediaOpsElement = element.First();
             mediaOpsElementVersion = mediaOpsElement.Protocol.Version;
-            if (mediaOpsElementVersion == "production")
+            if (String.Equals(mediaOpsElementVersion, "production", StringComparison.InvariantCultureIgnoreCase))
             {
                 mediaOpsElementVersion = mediaOpsElement.Protocol.ReferencedVersion;
             }
@@ -85,6 +88,11 @@
 
         internal void ThrownIfNotCompatible()
         {
+            if (!IsSolutionInstalled)
+            {
+                throw new InvalidOperationException("MediaOps Plan is not installed.");
+            }
+
             if (!IsSolutionCompatible)
             {
                 throw new InvalidOperationException($"MediaOps Plan API version {assemblyVersion} is not compatible with installed MediaOps Plan version {mediaOpsElementVersion}.");
@@ -102,6 +110,7 @@
         internal T SendMessage<T>(Message message) where T : Message
         {
             var commands = InterAppCallFactory.CreateNew();
+            commands.ReturnAddress = new ReturnAddress(mediaOpsElement.AgentId, mediaOpsElement.Id, InterAppResponse_ParameterId);
             commands.Messages.Add(message);
 
             Logger.LogInformation($"Sending InterApp Message: {JsonConvert.SerializeObject(message)}");
@@ -112,7 +121,7 @@
 
             if (response is OperationFailedResponse operationFailedResponse)
             {
-                throw new MediaOpsException(operationFailedResponse.TraceData);
+                throw operationFailedResponse.Exception;
             }
             else if (response is T castResponse)
             {

@@ -5,7 +5,6 @@
     using Skyline.DataMiner.Core.InterAppCalls.Common.CallSingle;
     using Skyline.DataMiner.Core.InterAppCalls.Common.MessageExecution;
     using Skyline.DataMiner.Net;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Shared.Comm.InterApp.Messages;
 
     internal class CreateResourceRequestExecutor : SimpleMessageExecutor<CreateResourceRequest>
@@ -27,23 +26,14 @@
                     ResourceId = resourceId,
                 };
             }
-            catch (MediaOpsException ex)
-            {
-                api.Logger.LogError(ex, "MediaOps Exception occurred: {exception}", ex.ToString());
-
-                optionalReturnMessage = new OperationFailedResponse
-                {
-                    Guid = Message.Guid,
-                    TraceData = ex.TraceData,
-                };
-            }
             catch (Exception ex)
             {
-                api.Logger.LogError(ex, "Unexpected exception occurred: {exception}", ex.ToString());
+                api.Logger.LogError(ex, "Exception occurred: {exception}", ex.ToString());
 
                 optionalReturnMessage = new OperationFailedResponse
                 {
                     Guid = Message.Guid,
+                    Exception = ex,
                 };
             }
 
