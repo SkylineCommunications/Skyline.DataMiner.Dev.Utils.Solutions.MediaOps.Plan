@@ -56,6 +56,13 @@
                 sb.AppendLine($"{batchSize}\t{String.Join("\t", creationResults.Select(r => r.ResourceCreationDuration))}");
             }
 
+            sb.AppendLine($"Move To Completed Results");
+            foreach (var batchSize in uniqueBatchSizes)
+            {
+                var moveToCompletedResults = results.Where(r => r.BatchSize == batchSize).ToList();
+                sb.AppendLine($"{batchSize}\t{String.Join("\t", moveToCompletedResults.Select(r => r.ResourceMoveToCompleteDuration))}");
+            }
+
             sb.AppendLine($"Deletion Results");
             foreach (var batchSize in uniqueBatchSizes)
             {
