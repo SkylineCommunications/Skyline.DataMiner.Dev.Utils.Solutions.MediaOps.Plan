@@ -33,6 +33,7 @@
         internal void Init()
         {
             UpdateMediaOpsElement();
+            ThrownIfNotCompatible();
         }
 
         public bool UpdateMediaOpsElement()

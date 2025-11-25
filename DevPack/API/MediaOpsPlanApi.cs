@@ -6,6 +6,8 @@
     using Newtonsoft.Json;
     using Skyline.DataMiner.Core.InterAppCalls.Common.CallBulk;
     using Skyline.DataMiner.Net;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.DevPack.InterApp;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.InterApp.Messages;
 
     /// <summary>
     /// Provides the main entry point for interacting with the MediaOps Plan API.
@@ -15,6 +17,7 @@
         private static readonly Dictionary<Type, Type> messageToExecutor = new Dictionary<Type, Type>
         {
             {typeof(CreateResourceRequest), typeof(CreateResourceRequestExecutor)},
+            {typeof(DeleteResourceRequest), typeof(DeleteResourceRequestExecutor)},
         };
 
         public void HandleInterAppRequest(string rawInterAppCall)

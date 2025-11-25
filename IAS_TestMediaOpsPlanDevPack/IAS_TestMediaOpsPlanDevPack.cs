@@ -49,7 +49,7 @@ DATE		VERSION		AUTHOR			COMMENTS
 ****************************************************************************
 */
 
-namespace IASTestMediaOpsPlanApi
+namespace IASTestMediaOpsPlanDevPack
 {
     using System;
     using System.Collections.Generic;
@@ -60,7 +60,6 @@ namespace IASTestMediaOpsPlanApi
     using IAS_TestMediaOpsPlanApi;
     using Skyline.DataMiner.Automation;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Automation;
     using Skyline.DataMiner.Utils.InteractiveAutomationScript;
     /// <summary>
     /// Represents a DataMiner Automation script.
@@ -83,7 +82,7 @@ namespace IASTestMediaOpsPlanApi
             {
                 this.engine = engine;
                 app = new InteractiveController(engine);
-                planApi = engine.GetMediaOpsPlanApi();
+                planApi = new MediaOpsPlanApi(engine.GetUserConnection());
 
                 engine.SetFlag(RunTimeFlags.NoKeyCaching);
                 engine.Timeout = TimeSpan.FromHours(10);
@@ -117,7 +116,8 @@ namespace IASTestMediaOpsPlanApi
 
         private void RunSafe()
         {
-            homeDialog = new HomeDialog(engine) { Title = "Test MediaOps Plan API" };
+            homeDialog = new HomeDialog(engine) { Title = "Test MediaOps Plan DevPack" };
+
             homeDialog.TestDraftBulkPerformanceButton.Pressed += (s, e) =>
             {
                 var results = Test.TestBulkDraftPerformance(planApi, (int)homeDialog.RunCountNumeric.Value);
@@ -129,6 +129,18 @@ namespace IASTestMediaOpsPlanApi
                 var results = Test.TestSingleDraftPerformance(planApi, (int)homeDialog.RunCountNumeric.Value);
                 homeDialog.ResultsTextBox.Text = Test.FormatResults("Single Draft Resource Performance Test", results);
             };
+
+            //homeDialog.TestCompleteBulkPerformanceButton.Pressed += (s, e) =>
+            //{
+            //    var results = Test.TestBulkDraftPerformance(planApi, (int)homeDialog.RunCountNumeric.Value);
+            //    homeDialog.ResultsTextBox.Text = Test.FormatResults("Bulk Complete Resource Performance Test", results);
+            //};
+
+            //homeDialog.TestCompleteSinglePerformanceButton.Pressed += (s, e) =>
+            //{
+            //    var results = Test.TestSingleDraftPerformance(planApi, (int)homeDialog.RunCountNumeric.Value);
+            //    homeDialog.ResultsTextBox.Text = Test.FormatResults("Single Complete Resource Performance Test", results);
+            //};
 
             app.ShowDialog(homeDialog);
         }

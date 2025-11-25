@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
-VisualStudioVersion = 18.0.11205.157 d18.0
+VisualStudioVersion = 18.0.11205.157
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{D4DFFC85-B20C-479F-84B4-AE027A8DFD5E}"
 	ProjectSection(SolutionItems) = preProject
@@ -23,11 +23,21 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{02EA681E
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RT_MediaOps.Plan", "RT_MediaOps.Plan\RT_MediaOps.Plan.csproj", "{DCD5D740-6021-4805-9475-48D75C0471D3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Skyline.DataMiner.Solutions.MediaOps.Plan.DevPack", "DevPack\Skyline.DataMiner.Solutions.MediaOps.Plan.DevPack.csproj", "{CCF6F54B-6525-D35F-39F8-BA5DF412FB38}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan", "DevPack\Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.csproj", "{CCF6F54B-6525-D35F-39F8-BA5DF412FB38}"
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Skyline.DataMiner.Solutions.MediaOps.Plan.Shared", "Skyline.DataMiner.Solutions.MediaOps.Plan.Shared\Skyline.DataMiner.Solutions.MediaOps.Plan.Shared.shproj", "{940F4038-3827-413B-9136-006F9807436A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IAS_TestMediaOpsPlanApi", "IAS_TestMediaOpsPlanApi\IAS_TestMediaOpsPlanApi.csproj", "{9F859F56-8BDD-45EA-83A1-B94EB7AEE450}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dev.Utils.Solutions.MediaOps.Plan.Tests", "MediaOps.Plan.DevPack.Tests\Dev.Utils.Solutions.MediaOps.Plan.Tests.csproj", "{2EC14D5A-73D1-FF5C-B1BD-CC0FB68D8677}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Solutions.MediaOps.Plan.Tests", "MediaOps.Plan.Tests\Solutions.MediaOps.Plan.Tests.csproj", "{227E6019-5A8B-1199-65CF-A661EC2194DB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Scripts", "Scripts", "{AD5BDCA9-DD76-4DAE-AC1E-B3D42D5215EF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IAS_TestMediaOpsPlanDevPack", "IAS_TestMediaOpsPlanDevPack\IAS_TestMediaOpsPlanDevPack.csproj", "{2D81FFCE-A863-23D1-109E-AF01D054CDC7}"
+EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "IAS_SharedLogic", "IAS_SharedLogic\IAS_SharedLogic.shproj", "{DC0DD66E-91A9-47BE-ACA3-B15A832F6F08}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -67,20 +77,40 @@ Global
 		{9F859F56-8BDD-45EA-83A1-B94EB7AEE450}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9F859F56-8BDD-45EA-83A1-B94EB7AEE450}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9F859F56-8BDD-45EA-83A1-B94EB7AEE450}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2EC14D5A-73D1-FF5C-B1BD-CC0FB68D8677}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2EC14D5A-73D1-FF5C-B1BD-CC0FB68D8677}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2EC14D5A-73D1-FF5C-B1BD-CC0FB68D8677}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2EC14D5A-73D1-FF5C-B1BD-CC0FB68D8677}.Release|Any CPU.Build.0 = Release|Any CPU
+		{227E6019-5A8B-1199-65CF-A661EC2194DB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{227E6019-5A8B-1199-65CF-A661EC2194DB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{227E6019-5A8B-1199-65CF-A661EC2194DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{227E6019-5A8B-1199-65CF-A661EC2194DB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2D81FFCE-A863-23D1-109E-AF01D054CDC7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2D81FFCE-A863-23D1-109E-AF01D054CDC7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2D81FFCE-A863-23D1-109E-AF01D054CDC7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2D81FFCE-A863-23D1-109E-AF01D054CDC7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{DCD5D740-6021-4805-9475-48D75C0471D3} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
-		{9F859F56-8BDD-45EA-83A1-B94EB7AEE450} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{9F859F56-8BDD-45EA-83A1-B94EB7AEE450} = {AD5BDCA9-DD76-4DAE-AC1E-B3D42D5215EF}
+		{2EC14D5A-73D1-FF5C-B1BD-CC0FB68D8677} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{227E6019-5A8B-1199-65CF-A661EC2194DB} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{AD5BDCA9-DD76-4DAE-AC1E-B3D42D5215EF} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{2D81FFCE-A863-23D1-109E-AF01D054CDC7} = {AD5BDCA9-DD76-4DAE-AC1E-B3D42D5215EF}
+		{DC0DD66E-91A9-47BE-ACA3-B15A832F6F08} = {AD5BDCA9-DD76-4DAE-AC1E-B3D42D5215EF}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {BDDF6818-9853-4F56-A93A-486FDD845549}
 	EndGlobalSection
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		IAS_SharedLogic\IAS_SharedLogic.projitems*{2d81ffce-a863-23d1-109e-af01d054cdc7}*SharedItemsImports = 5
 		Skyline.DataMiner.Solutions.MediaOps.Plan.Shared\Skyline.DataMiner.Solutions.MediaOps.Plan.Shared.projitems*{92dbf04a-1595-494f-bc40-d2efd35b7e81}*SharedItemsImports = 5
 		Skyline.DataMiner.Solutions.MediaOps.Plan.Shared\Skyline.DataMiner.Solutions.MediaOps.Plan.Shared.projitems*{940f4038-3827-413b-9136-006f9807436a}*SharedItemsImports = 13
+		IAS_SharedLogic\IAS_SharedLogic.projitems*{9f859f56-8bdd-45ea-83a1-b94eb7aee450}*SharedItemsImports = 5
 		Skyline.DataMiner.Solutions.MediaOps.Plan.Shared\Skyline.DataMiner.Solutions.MediaOps.Plan.Shared.projitems*{ccf6f54b-6525-d35f-39f8-ba5df412fb38}*SharedItemsImports = 5
+		IAS_SharedLogic\IAS_SharedLogic.projitems*{dc0dd66e-91a9-47be-aca3-b15a832f6f08}*SharedItemsImports = 13
 	EndGlobalSection
 EndGlobal

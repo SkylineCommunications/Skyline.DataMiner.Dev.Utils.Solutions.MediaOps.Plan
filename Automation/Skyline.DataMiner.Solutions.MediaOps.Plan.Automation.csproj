@@ -8,8 +8,8 @@
     <AssemblyName>Skyline.DataMiner.Solutions.MediaOps.Plan.Automation</AssemblyName>
     <RootNamespace>Skyline.DataMiner.Solutions.MediaOps.Plan.Automation</RootNamespace>
 
-    <PackageVersion>1.0.1-alpha4</PackageVersion>
-    <Version>1.0.1-alpha4</Version>
+    <PackageVersion>1.0.1-alpha7</PackageVersion>
+    <Version>1.0.1-alpha7</Version>
     <PackageId>Skyline.DataMiner.Solutions.MediaOps.Plan.Automation</PackageId>
     <PackageTags>Skyline;DataMiner</PackageTags>
     <PackageProjectUrl>https://skyline.be</PackageProjectUrl>

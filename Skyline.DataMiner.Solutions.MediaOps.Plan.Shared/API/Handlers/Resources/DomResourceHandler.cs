@@ -127,17 +127,17 @@
 
             var toCreate = new List<Resource>();
             var toUpdate = new List<Resource>();
-            foreach (var resources in apiResources)
+            foreach (var resource in apiResources)
             {
-                planApi.Logger.LogInformation($"Processing Resource with type '{resources.GetType().Name}' and ID '{resources.Id}' for CreateOrUpdate.");
+                planApi.Logger.LogInformation($"Processing Resource with type '{resource.GetType().Name}' '{resource.GetType().AssemblyQualifiedName}' '{resource.GetType().Assembly}' and ID '{resource.Id}' for CreateOrUpdate.");
 
-                if (resources.IsNew)
+                if (resource.IsNew)
                 {
-                    toCreate.Add(resources);
+                    toCreate.Add(resource);
                 }
                 else
                 {
-                    toUpdate.Add(resources);
+                    toUpdate.Add(resource);
                 }
             }
 

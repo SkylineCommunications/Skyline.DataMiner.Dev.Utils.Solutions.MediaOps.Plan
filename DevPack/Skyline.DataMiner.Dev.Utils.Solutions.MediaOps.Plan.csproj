@@ -1,16 +1,16 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net48</TargetFramework>
     <LangVersion>latest</LangVersion>
     <OutputType>Library</OutputType>
-    <AssemblyTitle>Skyline.DataMiner.Solutions.MediaOps.Plan.DevPack</AssemblyTitle>
-    <Product>Skyline.DataMiner.Solutions.MediaOps.Plan.DevPack</Product>
-    <AssemblyName>Skyline.DataMiner.Solutions.MediaOps.Plan.DevPack</AssemblyName>
-    <RootNamespace>Skyline.DataMiner.Solutions.MediaOps.Plan.DevPack</RootNamespace>
+    <AssemblyTitle>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan</AssemblyTitle>
+    <Product>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan</Product>
+    <AssemblyName>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan</AssemblyName>
+    <RootNamespace>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan</RootNamespace>
 
-    <PackageVersion>1.0.1-alpha4</PackageVersion>
-    <Version>1.0.1-alpha4</Version>
-    <PackageId>Skyline.DataMiner.Solutions.MediaOps.Plan.DevPack</PackageId>
+    <PackageVersion>1.0.1-alpha7</PackageVersion>
+    <Version>1.0.1-alpha7</Version>
+    <PackageId>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan</PackageId>
     <PackageTags>Skyline;DataMiner</PackageTags>
     <PackageProjectUrl>https://skyline.be</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>

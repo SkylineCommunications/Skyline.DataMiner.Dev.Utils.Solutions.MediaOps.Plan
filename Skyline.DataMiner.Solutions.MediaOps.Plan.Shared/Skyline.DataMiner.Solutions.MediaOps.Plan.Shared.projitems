@@ -86,6 +86,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Repositories\ResourceStudio\Resources\ResourcesRepository.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\TrackableObject.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Validators\InputValidator.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Comm\InterApp\Messages\ResourceStudio\Resources\DeleteResourceRequest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Comm\InterApp\Messages\ResourceStudio\Resources\DeleteResourceResponse.cs" />
     <Compile Include="..\Skyline.DataMiner.Solutions.MediaOps.Plan.Shared\Comm\InterApp\Messages\OperationFailedResponse.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Comm\InterApp\Messages\ResourceStudio\Resources\CreateResourceResponse.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Comm\InterApp\Messages\ResourceStudio\Resources\CreateResourceRequest.cs" />

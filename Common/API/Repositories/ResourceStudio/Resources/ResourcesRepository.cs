@@ -2,6 +2,8 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.InterApp.Messages;
 
     internal partial class ResourcesRepository : DomRepository<Resource>, IResourcesRepository
     {
@@ -47,20 +49,24 @@
 
         public Guid Create(Resource apiObject)
         {
-            PlanApi.ThrownIfNotCompatible();
-
             var request = new CreateResourceRequest
             {
-                Resource = apiObject,
+                Resources = new[] { apiObject },
             };
 
             var response = PlanApi.SendMessage<CreateResourceResponse>(request);
-            return response.ResourceId;
+            return response.ResourceIds.First();
         }
 
         public IEnumerable<Guid> Create(IEnumerable<Resource> apiObjects)
         {
-            throw new NotImplementedException("Requires InterApp implementation");
+            var request = new CreateResourceRequest
+            {
+                Resources = apiObjects.ToArray(),
+            };
+
+            var response = PlanApi.SendMessage<CreateResourceResponse>(request);
+            return response.ResourceIds;
         }
 
         public IEnumerable<Guid> CreateOrUpdate(IEnumerable<Resource> apiObjects)
@@ -75,12 +81,22 @@
 
         public void Delete(params Resource[] apiObjects)
         {
-            throw new NotImplementedException("Requires InterApp implementation");
+            var request = new DeleteResourceRequest
+            {
+                ResourceIds = apiObjects.Select(x => x.Id).ToArray()
+            };
+
+            var response = PlanApi.SendMessage<DeleteResourceResponse>(request);
         }
 
         public void Delete(params Guid[] apiObjectIds)
         {
-            throw new NotImplementedException("Requires InterApp implementation");
+            var request = new DeleteResourceRequest
+            {
+                ResourceIds = apiObjectIds
+            };
+
+            var response = PlanApi.SendMessage<DeleteResourceResponse>(request);
         }
 
         public void MoveTo(Resource resource, ResourceState desiredState)

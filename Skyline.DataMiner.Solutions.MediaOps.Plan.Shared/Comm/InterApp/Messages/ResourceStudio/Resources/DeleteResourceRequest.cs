@@ -3,7 +3,7 @@
     using System;
     using Skyline.DataMiner.Core.InterAppCalls.Common.CallSingle;
 
-    internal class CreateResourceResponse : Message
+    internal class DeleteResourceRequest : Message
     {
         public Guid[] ResourceIds { get; set; }
     }
