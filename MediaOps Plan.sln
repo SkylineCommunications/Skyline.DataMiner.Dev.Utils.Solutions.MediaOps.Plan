@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.4.33213.308
+# Visual Studio Version 18
+VisualStudioVersion = 18.0.11205.157
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{D4DFFC85-B20C-479F-84B4-AE027A8DFD5E}"
 	ProjectSection(SolutionItems) = preProject
@@ -9,19 +9,29 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		README.md = README.md
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediaOps.Plan", "Common\MediaOps.Plan.csproj", "{92DBF04A-1595-494F-BC40-D2EFD35B7E81}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediaOps.Plan.Automation", "Automation\MediaOps.Plan.Automation.csproj", "{BFCA0DAC-404B-423E-81E5-A5DF3A1936B1}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediaOps.Plan.Protocol", "Protocol\MediaOps.Plan.Protocol.csproj", "{0E80593B-56AF-4A04-B6E7-274741A27CC1}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediaOps.Plan.GQI", "GQI\MediaOps.Plan.GQI.csproj", "{BB96CE5E-9BF0-40DA-B6C3-02D242881AAB}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediaOps Injector", "MediaOps Injector\MediaOps Injector.csproj", "{640F00D6-A6BD-4562-8C3B-C06AE4A77203}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RT_MediaOps.Plan", "RT_MediaOps.Plan\RT_MediaOps.Plan.csproj", "{DCD5D740-6021-4805-9475-48D75C0471D3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan", "DevPack\Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.csproj", "{CCF6F54B-6525-D35F-39F8-BA5DF412FB38}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests", "DevPack.Tests\Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests.csproj", "{833E8FE7-31DF-288D-7824-4924777B0C99}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Automation", "DevPack.Automation\Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Automation.csproj", "{FB1113D3-98AE-FABA-DD48-44B496E3143D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.GQI", "DevPack.GQI\Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.GQI.csproj", "{FE348B53-15AF-05AE-2114-9727913D4200}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Protocol", "DevPack.Protocol\Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Protocol.csproj", "{6F2E2EAB-3509-CC38-E448-51DA2E65EBB6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Injector", "DevPack.Injector\Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Injector.csproj", "{AFED114A-D4DF-2243-82D5-431A27FE289C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Skyline.DataMiner.Solutions.MediaOps.Plan", "PlanAPI\Skyline.DataMiner.Solutions.MediaOps.Plan.csproj", "{DAE3532B-E349-04A0-1581-69F964B9C2F5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Skyline.DataMiner.Solutions.MediaOps.Plan.Automation", "PlanAPI.Automation\Skyline.DataMiner.Solutions.MediaOps.Plan.Automation.csproj", "{10CCD819-8AA2-EF9F-E6D2-DE82A47F3ADD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Skyline.DataMiner.Solutions.MediaOps.Plan.GQI", "PlanAPI.GQI\Skyline.DataMiner.Solutions.MediaOps.Plan.GQI.csproj", "{CB116F9B-E2BD-5870-36A7-FC3D6C3B7366}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Skyline.DataMiner.Solutions.MediaOps.Plan.Protocol", "PlanAPI.Protocol\Skyline.DataMiner.Solutions.MediaOps.Plan.Protocol.csproj", "{D6D089D7-7A27-91DD-EA4D-81B6CD666E5E}"
+EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Skyline.DataMiner.Solutions.MediaOps.Plan.Shared", "Shared\Skyline.DataMiner.Solutions.MediaOps.Plan.Shared.shproj", "{940F4038-3827-413B-9136-006F9807436A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -29,38 +39,60 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{92DBF04A-1595-494F-BC40-D2EFD35B7E81}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{92DBF04A-1595-494F-BC40-D2EFD35B7E81}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{92DBF04A-1595-494F-BC40-D2EFD35B7E81}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{92DBF04A-1595-494F-BC40-D2EFD35B7E81}.Release|Any CPU.Build.0 = Release|Any CPU
-		{BFCA0DAC-404B-423E-81E5-A5DF3A1936B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{BFCA0DAC-404B-423E-81E5-A5DF3A1936B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{BFCA0DAC-404B-423E-81E5-A5DF3A1936B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{BFCA0DAC-404B-423E-81E5-A5DF3A1936B1}.Release|Any CPU.Build.0 = Release|Any CPU
-		{0E80593B-56AF-4A04-B6E7-274741A27CC1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{0E80593B-56AF-4A04-B6E7-274741A27CC1}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{0E80593B-56AF-4A04-B6E7-274741A27CC1}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{0E80593B-56AF-4A04-B6E7-274741A27CC1}.Release|Any CPU.Build.0 = Release|Any CPU
-		{BB96CE5E-9BF0-40DA-B6C3-02D242881AAB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{BB96CE5E-9BF0-40DA-B6C3-02D242881AAB}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{BB96CE5E-9BF0-40DA-B6C3-02D242881AAB}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{BB96CE5E-9BF0-40DA-B6C3-02D242881AAB}.Release|Any CPU.Build.0 = Release|Any CPU
-		{640F00D6-A6BD-4562-8C3B-C06AE4A77203}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{640F00D6-A6BD-4562-8C3B-C06AE4A77203}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{640F00D6-A6BD-4562-8C3B-C06AE4A77203}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{640F00D6-A6BD-4562-8C3B-C06AE4A77203}.Release|Any CPU.Build.0 = Release|Any CPU
-		{DCD5D740-6021-4805-9475-48D75C0471D3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{DCD5D740-6021-4805-9475-48D75C0471D3}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{DCD5D740-6021-4805-9475-48D75C0471D3}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{DCD5D740-6021-4805-9475-48D75C0471D3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CCF6F54B-6525-D35F-39F8-BA5DF412FB38}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CCF6F54B-6525-D35F-39F8-BA5DF412FB38}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CCF6F54B-6525-D35F-39F8-BA5DF412FB38}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CCF6F54B-6525-D35F-39F8-BA5DF412FB38}.Release|Any CPU.Build.0 = Release|Any CPU
+		{833E8FE7-31DF-288D-7824-4924777B0C99}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{833E8FE7-31DF-288D-7824-4924777B0C99}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{833E8FE7-31DF-288D-7824-4924777B0C99}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{833E8FE7-31DF-288D-7824-4924777B0C99}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FB1113D3-98AE-FABA-DD48-44B496E3143D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FB1113D3-98AE-FABA-DD48-44B496E3143D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FB1113D3-98AE-FABA-DD48-44B496E3143D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FB1113D3-98AE-FABA-DD48-44B496E3143D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FE348B53-15AF-05AE-2114-9727913D4200}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FE348B53-15AF-05AE-2114-9727913D4200}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FE348B53-15AF-05AE-2114-9727913D4200}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FE348B53-15AF-05AE-2114-9727913D4200}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6F2E2EAB-3509-CC38-E448-51DA2E65EBB6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6F2E2EAB-3509-CC38-E448-51DA2E65EBB6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6F2E2EAB-3509-CC38-E448-51DA2E65EBB6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6F2E2EAB-3509-CC38-E448-51DA2E65EBB6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AFED114A-D4DF-2243-82D5-431A27FE289C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AFED114A-D4DF-2243-82D5-431A27FE289C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AFED114A-D4DF-2243-82D5-431A27FE289C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AFED114A-D4DF-2243-82D5-431A27FE289C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DAE3532B-E349-04A0-1581-69F964B9C2F5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DAE3532B-E349-04A0-1581-69F964B9C2F5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DAE3532B-E349-04A0-1581-69F964B9C2F5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DAE3532B-E349-04A0-1581-69F964B9C2F5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{10CCD819-8AA2-EF9F-E6D2-DE82A47F3ADD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{10CCD819-8AA2-EF9F-E6D2-DE82A47F3ADD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{10CCD819-8AA2-EF9F-E6D2-DE82A47F3ADD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{10CCD819-8AA2-EF9F-E6D2-DE82A47F3ADD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CB116F9B-E2BD-5870-36A7-FC3D6C3B7366}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CB116F9B-E2BD-5870-36A7-FC3D6C3B7366}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CB116F9B-E2BD-5870-36A7-FC3D6C3B7366}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CB116F9B-E2BD-5870-36A7-FC3D6C3B7366}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D6D089D7-7A27-91DD-EA4D-81B6CD666E5E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D6D089D7-7A27-91DD-EA4D-81B6CD666E5E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D6D089D7-7A27-91DD-EA4D-81B6CD666E5E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D6D089D7-7A27-91DD-EA4D-81B6CD666E5E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{DCD5D740-6021-4805-9475-48D75C0471D3} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{833E8FE7-31DF-288D-7824-4924777B0C99} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{AFED114A-D4DF-2243-82D5-431A27FE289C} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {BDDF6818-9853-4F56-A93A-486FDD845549}
+	EndGlobalSection
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		Shared\Skyline.DataMiner.Solutions.MediaOps.Plan.Shared.projitems*{940f4038-3827-413b-9136-006f9807436a}*SharedItemsImports = 13
+		Shared\Skyline.DataMiner.Solutions.MediaOps.Plan.Shared.projitems*{ccf6f54b-6525-d35f-39f8-ba5df412fb38}*SharedItemsImports = 5
+		Shared\Skyline.DataMiner.Solutions.MediaOps.Plan.Shared.projitems*{dae3532b-e349-04a0-1581-69f964b9c2f5}*SharedItemsImports = 5
 	EndGlobalSection
 EndGlobal
