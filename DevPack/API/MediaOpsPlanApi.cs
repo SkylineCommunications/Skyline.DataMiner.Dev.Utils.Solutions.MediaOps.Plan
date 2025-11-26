@@ -20,6 +20,10 @@
             {typeof(DeleteResourceRequest), typeof(DeleteResourceRequestExecutor)},
         };
 
+        /// <summary>
+        /// Handles an incoming InterApp request.
+        /// </summary>
+        /// <param name="rawInterAppCall">Serialized InterApp request message.</param>
         public void HandleInterAppRequest(string rawInterAppCall)
         {
             try

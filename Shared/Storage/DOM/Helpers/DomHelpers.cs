@@ -6,14 +6,10 @@
 
     internal class DomHelpers
     {
-        private readonly IConnection connection;
-
         private readonly Lazy<SlcResourceStudioHelper> lazySlcResourceStudioHelper;
 
         public DomHelpers(IConnection connection)
         {
-            this.connection = connection ?? throw new ArgumentNullException(nameof(connection));
-
             lazySlcResourceStudioHelper = new Lazy<SlcResourceStudioHelper>(() => new SlcResourceStudioHelper(connection));
         }
 

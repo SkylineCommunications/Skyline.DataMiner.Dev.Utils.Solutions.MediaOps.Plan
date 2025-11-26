@@ -8,8 +8,6 @@
 
     internal class CoreHelpers
     {
-        private readonly IConnection connection;
-
         private readonly Lazy<ResourceManagerHelper> lazyResourceManagerHelper;
         private readonly Lazy<ProfileProvider> lazyProfileProvider;
 
@@ -21,8 +19,6 @@
 
         public CoreHelpers(IConnection connection)
         {
-            this.connection = connection ?? throw new ArgumentNullException(nameof(connection));
-
             lazyResourceManagerHelper = new Lazy<ResourceManagerHelper>(() => new ResourceManagerHelper(connection.HandleSingleResponseMessage));
             lazyProfileProvider = new Lazy<ProfileProvider>(() => new ProfileProvider(connection));
 

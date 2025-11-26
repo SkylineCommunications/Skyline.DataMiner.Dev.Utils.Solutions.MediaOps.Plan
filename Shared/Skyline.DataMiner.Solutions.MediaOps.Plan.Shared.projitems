@@ -67,7 +67,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Repositories\ICreatorRepository.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Repositories\ICrudRepository.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Repositories\IDeleterRepository.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)API\Repositories\IQuerierRepository.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Repositories\IReaderRepository.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Repositories\IUpdaterRepository.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Repositories\ProfileParameterRepository.cs" />

@@ -34,6 +34,10 @@
             ThrownIfNotCompatible();
         }
 
+        /// <summary>
+        /// Searches the DataMiner system for a MediaOps Plan Manager element and updates the internal reference.
+        /// </summary>
+        /// <returns>True if the element was found.</returns>
         public bool UpdateMediaOpsElement()
         {
             var element = Dms.GetElements().Where(x => x.Protocol.Name.Equals(MediaOpsProtocolName, StringComparison.OrdinalIgnoreCase));
@@ -66,6 +70,9 @@
             return true;
         }
 
+        /// <summary>
+        /// Reads the configured timeout from the MediaOps Plan Manager element and updates the internal timeout value.
+        /// </summary>
         public void UpdateTimeout()
         {
             try
@@ -81,10 +88,19 @@
             }
         }
 
+        /// <summary>
+        /// Gets a value indicating if the MediaOps Plan solution is installed.
+        /// </summary>
         public bool IsSolutionInstalled => mediaOpsElement != null;
 
+        /// <summary>
+        /// Gets a value indicating if the MediaOps Plan solution element is active.
+        /// </summary>
         public bool IsSolutionElementActive => mediaOpsElement?.State == ElementState.Active;
 
+        /// <summary>
+        /// Gets a value indicating whether the referenced version of the MediaOps Plan API NuGet package is compatible with the currently deployed version of MediaOps Plan.
+        /// </summary>
         public bool IsSolutionCompatible => isCompatible;
 
         internal void ThrownIfNotCompatible()

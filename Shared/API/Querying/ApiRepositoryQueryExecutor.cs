@@ -109,10 +109,10 @@
 
             if (ExpressionTools.TryGetMember(arguments[1], out var member))
             {
-                var orderBy = provider.Repository.CreateOrderBy(member.Name, sortOrder);
-                if (orderBy != null)
+                var orderByElement = provider.Repository.CreateOrderBy(member.Name, sortOrder);
+                if (orderByElement != null)
                 {
-                    this.orderBy.Add(orderBy);
+                    orderBy.Add(orderByElement);
                 }
 
                 return BuildExecuteQueryExpression();

@@ -6,7 +6,6 @@
 
     internal static class EnumExtensions
     {
-#warning To be moved to common library NuGet
         public static TTarget MapEnum<TSource, TTarget>(this TSource sourceEnum)
         {
             if (EqualityComparer<TSource>.Default.Equals(sourceEnum, default))

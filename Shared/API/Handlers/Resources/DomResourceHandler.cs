@@ -399,28 +399,28 @@
             }
         }
 
-        private void ValidateStateForCompleteAction(IEnumerable<Resource> apiResources)
-        {
-            if (apiResources == null)
-            {
-                throw new ArgumentNullException(nameof(apiResources));
-            }
+        //private void ValidateStateForCompleteAction(IEnumerable<Resource> apiResources)
+        //{
+        //    if (apiResources == null)
+        //    {
+        //        throw new ArgumentNullException(nameof(apiResources));
+        //    }
 
-            if (!apiResources.Any())
-            {
-                return;
-            }
+        //    if (!apiResources.Any())
+        //    {
+        //        return;
+        //    }
 
-            foreach (var resource in apiResources.Where(x => x.State != ResourceState.Draft))
-            {
-                var error = new ResourceConfigurationError
-                {
-                    ErrorReason = ResourceConfigurationError.Reason.InvalidState,
-                    ErrorMessage = "Not allowed to complete a resource that is not in Draft state."
-                };
-                ReportError(resource.Id, error);
-            }
-        }
+        //    foreach (var resource in apiResources.Where(x => x.State != ResourceState.Draft))
+        //    {
+        //        var error = new ResourceConfigurationError
+        //        {
+        //            ErrorReason = ResourceConfigurationError.Reason.InvalidState,
+        //            ErrorMessage = "Not allowed to complete a resource that is not in Draft state."
+        //        };
+        //        ReportError(resource.Id, error);
+        //    }
+        //}
 
         private void ValidateStateForDeprecateAction(IEnumerable<Resource> apiResources)
         {
