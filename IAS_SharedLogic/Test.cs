@@ -81,14 +81,14 @@
             foreach (var batchSize in batchSizes)
             {
                 var creationDuration = CreateDraftResources(planApi, batchSize, out Guid[] resourceIds);
-                var moveToCompleteDuration = MoveToCompleteState(planApi, resourceIds);
+                //var moveToCompleteDuration = MoveToCompleteState(planApi, resourceIds);
                 var deletionDuration = DeleteResources(planApi, resourceIds);
 
                 results.Add(new PerformanceResult
                 {
                     BatchSize = batchSize,
                     ResourceCreationDuration = creationDuration,
-                    ResourceMoveToCompleteDuration = moveToCompleteDuration,
+                    //ResourceMoveToCompleteDuration = moveToCompleteDuration,
                     ResourceDeletionDuration = deletionDuration
                 });
             }
@@ -103,14 +103,14 @@
             foreach (var batchSize in batchSizes)
             {
                 var creationDuration = BulkCreateDraftResources(planApi, batchSize, out Guid[] resourceIds);
-                var moveToCompleteDuration = MoveToCompleteState(planApi, resourceIds);
+                //var moveToCompleteDuration = MoveToCompleteState(planApi, resourceIds);
                 var deletionDuration = BulkDeleteResources(planApi, resourceIds);
 
                 results.Add(new PerformanceResult
                 {
                     BatchSize = batchSize,
                     ResourceCreationDuration = creationDuration,
-                    ResourceMoveToCompleteDuration = moveToCompleteDuration,
+                    //ResourceMoveToCompleteDuration = moveToCompleteDuration,
                     ResourceDeletionDuration = deletionDuration
                 });
             }

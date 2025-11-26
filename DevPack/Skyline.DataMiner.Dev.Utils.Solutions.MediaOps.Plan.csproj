@@ -8,8 +8,8 @@
     <AssemblyName>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan</AssemblyName>
     <RootNamespace>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan</RootNamespace>
 
-    <PackageVersion>1.0.1-alpha7</PackageVersion>
-    <Version>1.0.1-alpha7</Version>
+    <PackageVersion>1.0.1-alpha10</PackageVersion>
+    <Version>1.0.1-alpha10</Version>
     <PackageId>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan</PackageId>
     <PackageTags>Skyline;DataMiner</PackageTags>
     <PackageProjectUrl>https://skyline.be</PackageProjectUrl>
@@ -62,7 +62,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="9.0.0" />
+    <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="8.0.0" />
   </ItemGroup>
 
   <Target Name="CopyNuGetPackage" AfterTargets="Pack" Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">

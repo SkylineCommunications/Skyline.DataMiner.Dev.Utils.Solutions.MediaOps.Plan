@@ -85,6 +85,8 @@
 
         public bool IsSolutionInstalled => mediaOpsElement != null;
 
+        public bool IsSolutionElementActive => mediaOpsElement?.State == ElementState.Active;
+
         public bool IsSolutionCompatible => isCompatible;
 
         internal void ThrownIfNotCompatible()
@@ -92,6 +94,11 @@
             if (!IsSolutionInstalled)
             {
                 throw new InvalidOperationException("MediaOps Plan is not installed.");
+            }
+
+            if (!IsSolutionElementActive)
+            {
+                throw new InvalidOperationException("MediaOps Plan Element is not active.");
             }
 
             if (!IsSolutionCompatible)

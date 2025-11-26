@@ -13,11 +13,11 @@
 
         public override Message Execute(MediaOpsPlanApi api)
         {
-            var resourceId = api.Resources.Create(Message.Resources).First();
+            var resourceIds = api.Resources.Create(Message.Resources);
             return new CreateResourceResponse
             {
                 Guid = Message.Guid,
-                ResourceIds = new[] { resourceId },
+                ResourceIds = resourceIds.ToArray(),
             };
         }
     }

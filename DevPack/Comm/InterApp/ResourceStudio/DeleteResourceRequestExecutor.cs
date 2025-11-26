@@ -9,6 +9,7 @@
         public DeleteResourceRequestExecutor(DeleteResourceRequest message) : base(message)
         {
         }
+
         public override Message Execute(MediaOpsPlanApi api)
         {
             api.Resources.Delete(Message.ResourceIds);

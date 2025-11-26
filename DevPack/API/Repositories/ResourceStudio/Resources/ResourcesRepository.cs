@@ -213,6 +213,8 @@
                 throw new ArgumentNullException(nameof(apiObjectIds));
             }
 
+            PlanApi.Logger.LogInformation("Deleting Resources {resourceIds}...", String.Join(", ", apiObjectIds));
+
             var resourcesToDelete = Read(apiObjectIds).Values;
 
             ActivityHelper.Track(nameof(ResourcesRepository), nameof(Delete), act =>

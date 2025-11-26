@@ -130,6 +130,14 @@ namespace IASTestMediaOpsPlanApi
                 homeDialog.ResultsTextBox.Text = Test.FormatResults("Single Draft Resource Performance Test", results);
             };
 
+            homeDialog.DeleteResources.Pressed += (s, e) =>
+            {
+                var resourceIds = planApi.Resources.Query().Where(x => x.Name.StartsWith("Green Resource")).ToArray();
+                homeDialog.ResultsTextBox.Text = $"Deleting {resourceIds.Length} resources...\n";
+                planApi.Resources.Delete(resourceIds);
+                homeDialog.ResultsTextBox.Text = $"Deleted {resourceIds.Length} resources.\n";
+            };
+
             app.ShowDialog(homeDialog);
         }
     }

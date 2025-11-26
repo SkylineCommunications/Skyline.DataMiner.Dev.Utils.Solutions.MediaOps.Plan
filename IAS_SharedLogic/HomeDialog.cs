@@ -13,8 +13,7 @@
             AddWidget(RunCountNumeric, row, 1);
             AddWidget(TestDraftBulkPerformanceButton, ++row, 0, 1, 2);
             AddWidget(TestDraftSinglePerformanceButton, ++row, 0, 1, 2);
-            AddWidget(TestCompleteBulkPerformanceButton, ++row, 0, 1, 2);
-            AddWidget(TestCompleteSinglePerformanceButton, ++row, 0, 1, 2);
+            AddWidget(DeleteResources, ++row, 0, 1, 2);
             AddWidget(ResultsTextBox, ++row, 0, 1, 2);
         }
 
@@ -22,9 +21,7 @@
 
         public Button TestDraftSinglePerformanceButton { get; private set; } = new Button("Create Draft Resources");
 
-        public Button TestCompleteBulkPerformanceButton { get; private set; } = new Button("Create Complete Resources in Bulk");
-
-        public Button TestCompleteSinglePerformanceButton { get; private set; } = new Button("Create Complete Resources");
+        public Button DeleteResources { get; private set; } = new Button("Delete Green Resources");
 
         public TextBox ResultsTextBox { get; private set; } = new TextBox() { IsMultiline = true, Width = 400, Height = 800 };
 
