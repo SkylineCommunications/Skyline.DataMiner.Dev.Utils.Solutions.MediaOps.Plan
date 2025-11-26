@@ -8,8 +8,9 @@
     <Product>Skyline.DataMiner.Solutions.MediaOps.Plan</Product>
     <AssemblyName>Skyline.DataMiner.Solutions.MediaOps.Plan</AssemblyName>
     <RootNamespace>Skyline.DataMiner.Solutions.MediaOps.Plan</RootNamespace>
-    <PackageVersion>1.0.1-alpha10</PackageVersion>
-    <Version>1.0.1-alpha10</Version>
+    <PackageVersion>2.0.2-alpha10</PackageVersion>
+    <Version>2.0.2-alpha10</Version>
+    <VersionPrefix>2.0</VersionPrefix>
     <PackageId>Skyline.DataMiner.Solutions.MediaOps.Plan</PackageId>
     <PackageTags>Skyline;DataMiner</PackageTags>
     <PackageProjectUrl>https://skyline.be</PackageProjectUrl>
@@ -25,7 +26,6 @@
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/SkylineCommunications/Skyline.DataMiner.MediaOps.Plan</RepositoryUrl>
     <Deterministic>false</Deterministic>
-    <VersionPrefix>1.0</VersionPrefix>
     <VersionSuffix>$([System.DateTime]::Now.ToString(`yyyy.Mdd`))</VersionSuffix>
     <Version>$(VersionPrefix).$(VersionSuffix)</Version>
     <FileVersion>$(Version)</FileVersion>

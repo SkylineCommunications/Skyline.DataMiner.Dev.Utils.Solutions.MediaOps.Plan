@@ -24,7 +24,7 @@
             typeof(CreateResourceResponse),
             typeof(OperationFailedResponse),
             typeof(MediaOpsTraceData),
-            typeof(Resource)
+            typeof(Resource),
         };
 
         private readonly ILogger<IMediaOpsPlanApi> logger;
