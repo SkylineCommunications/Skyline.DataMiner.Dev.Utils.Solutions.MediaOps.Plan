@@ -49,7 +49,7 @@
     <PackageReference Include="Skyline.DataMiner.Dev.Common" Version="10.5.12.1" />
     <PackageReference Include="Skyline.DataMiner.Utils.DOM" Version="10.5.2.3" />
     <PackageReference Include="Skyline.DataMiner.Utils.SecureCoding" Version="2.2.1" />
-    <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="8.0.1" />
+    <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="8.0.0" />
     <PackageReference Include="Skyline.DataMiner.Utils.SecureCoding.Analyzers" Version="2.2.1">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
