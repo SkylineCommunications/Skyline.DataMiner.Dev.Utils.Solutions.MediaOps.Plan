@@ -5,7 +5,7 @@
     using Skyline.DataMiner.Core.InterAppCalls.Common.CallSingle;
     using Skyline.DataMiner.Core.InterAppCalls.Common.MessageExecution;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Shared.Comm.InterApp.Messages;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.InterApp.Messages;
 
     internal abstract class MediaOpsMessageExecutor<T> : SimpleMessageExecutor<T> where T : Message
     {

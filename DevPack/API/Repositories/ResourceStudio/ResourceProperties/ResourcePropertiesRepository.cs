@@ -8,12 +8,6 @@
 
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
-    using Skyline.DataMiner.Net.Messages.SLDataGateway;
-
-    using SLDataGateway.API.Types.Querying;
-
-    using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
     internal partial class ResourcePropertiesRepository : DomRepository<ResourceProperty>, IResourcePropertiesRepository
     {

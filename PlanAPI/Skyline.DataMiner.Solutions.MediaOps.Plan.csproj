@@ -4,13 +4,13 @@
     <TargetFramework>net48</TargetFramework>
     <LangVersion>latest</LangVersion>
     <OutputType>Library</OutputType>
-    <AssemblyTitle>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan</AssemblyTitle>
-    <Product>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan</Product>
-    <AssemblyName>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan</AssemblyName>
-    <RootNamespace>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan</RootNamespace>
+    <AssemblyTitle>Skyline.DataMiner.Solutions.MediaOps.Plan</AssemblyTitle>
+    <Product>Skyline.DataMiner.Solutions.MediaOps.Plan</Product>
+    <AssemblyName>Skyline.DataMiner.Solutions.MediaOps.Plan</AssemblyName>
+    <RootNamespace>Skyline.DataMiner.Solutions.MediaOps.Plan</RootNamespace>
     <PackageVersion>1.0.1-alpha10</PackageVersion>
     <Version>1.0.1-alpha10</Version>
-    <PackageId>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan</PackageId>
+    <PackageId>Skyline.DataMiner.Solutions.MediaOps.Plan</PackageId>
     <PackageTags>Skyline;DataMiner</PackageTags>
     <PackageProjectUrl>https://skyline.be</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -21,7 +21,7 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Authors>SkylineCommunications</Authors>
     <Company>Skyline Communications</Company>
-    <Description>Provides an internal API for MediaOps Plan.</Description>
+    <Description>Provides an API for MediaOps Plan.</Description>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/SkylineCommunications/Skyline.DataMiner.MediaOps.Plan</RepositoryUrl>
     <Deterministic>false</Deterministic>
@@ -40,7 +40,10 @@
     <None Include="nuget\Icon.png" Pack="true" PackagePath="" />
   </ItemGroup>
   <ItemGroup>
-    <InternalsVisibleTo Include="Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests" />
+    <InternalsVisibleTo Include="RT_MediaOps.Plan" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="RT_MediaOps.Plan" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
@@ -49,7 +52,7 @@
     <PackageReference Include="Skyline.DataMiner.Dev.Common" Version="10.5.12.1" />
     <PackageReference Include="Skyline.DataMiner.Utils.DOM" Version="10.5.2.3" />
     <PackageReference Include="Skyline.DataMiner.Utils.SecureCoding" Version="2.2.1" />
-    <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="8.0.1" />
+    <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="8.0.0" />
     <PackageReference Include="Skyline.DataMiner.Utils.SecureCoding.Analyzers" Version="2.2.1">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
