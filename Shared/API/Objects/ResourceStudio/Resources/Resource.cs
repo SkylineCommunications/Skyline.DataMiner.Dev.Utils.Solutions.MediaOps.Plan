@@ -158,7 +158,7 @@
             this.originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
 
             name = instance.ResourceInfo.Name;
-            isFavorite = instance.ResourceInfo.Favorite.HasValue ? instance.ResourceInfo.Favorite.Value : false;
+            isFavorite = instance.ResourceInfo.Favorite ?? false;
             concurrency = instance.ResourceInfo.Concurrency.HasValue ? (int)instance.ResourceInfo.Concurrency.Value : 1;
             coreResourceId = instance.ResourceInternalProperties.Resource_Id ?? Guid.Empty;
 

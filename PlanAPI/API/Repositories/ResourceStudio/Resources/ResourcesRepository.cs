@@ -86,7 +86,7 @@
                 ResourceIds = apiObjects.Select(x => x.Id).ToArray()
             };
 
-            var response = PlanApi.SendMessage<DeleteResourceResponse>(request);
+            PlanApi.SendMessage<DeleteResourceResponse>(request);
         }
 
         public void Delete(params Guid[] apiObjectIds)
@@ -96,7 +96,7 @@
                 ResourceIds = apiObjectIds
             };
 
-            var response = PlanApi.SendMessage<DeleteResourceResponse>(request);
+            PlanApi.SendMessage<DeleteResourceResponse>(request);
         }
 
         public void MoveTo(Resource resource, ResourceState desiredState)

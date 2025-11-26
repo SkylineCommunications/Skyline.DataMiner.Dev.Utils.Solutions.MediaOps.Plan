@@ -77,7 +77,7 @@
         {
             try
             {
-                var timeoutInSeconds = mediaOpsElement.GetStandaloneParameter<double?>(InterApp_Timeout_ParameterId) ?? throw new NullReferenceException("InterApp Timeout value is null.");
+                var timeoutInSeconds = mediaOpsElement.GetStandaloneParameter<double?>(InterApp_Timeout_ParameterId) ?? throw new ParameterNotFoundException("InterApp Timeout value cannot be retrieved.");
                 timeout = TimeSpan.FromSeconds(timeoutInSeconds.GetValue().Value);
                 Logger.LogInformation($"Updated Timeout timespan: {timeout}");
             }
@@ -122,7 +122,7 @@
         }
 
         /// <summary>
-        /// 
+        /// Sends an InterApp request and expects a response of the specified type.
         /// </summary>
         /// <typeparam name="T">Type of the expected response.</typeparam>
         /// <param name="message">Message to be sent.</param>

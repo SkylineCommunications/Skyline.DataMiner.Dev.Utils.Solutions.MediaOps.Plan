@@ -96,7 +96,7 @@
                 throw new InvalidOperationException($"The provided CORE parameter is not a {Category}.");
 
             name = coreParameter.Name;
-            isMandatory = !coreParameter.IsOptional.HasValue || coreParameter.IsOptional.Value == false;
+            isMandatory = !coreParameter.IsOptional.HasValue || !coreParameter.IsOptional.Value;
 
             InternalParseParameter(coreParameter);
         }

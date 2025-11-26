@@ -20,8 +20,8 @@
 
             var api = new MediaOpsPlanApi(connection);
             var capabilityCount = api.Capabilities.CountAll();
+            Console.WriteLine($"Total Capabilities: {capabilityCount}");
             var capabilities = api.Capabilities.ReadAll();
-
             capabilities.ForEach(x => Console.WriteLine(x.Name));
         }
     }
