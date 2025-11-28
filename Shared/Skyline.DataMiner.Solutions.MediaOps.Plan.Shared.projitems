@@ -122,6 +122,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Storage\DOM\Helpers\DomModuleHelperBase.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Storage\DOM\Helpers\SlcResourceStudioHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Storage\DOM\Model\GenericGeneratedDomCode.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Storage\DOM\Model\IDomTemporaryCache.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Storage\DOM\Model\Partials\ResourceCapabilitiesSection.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Storage\DOM\Model\Partials\ResourceInstance.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Storage\DOM\Model\Partials\ResourceInternalPropertiesSection.cs" />
