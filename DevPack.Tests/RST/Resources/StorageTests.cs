@@ -105,6 +105,9 @@
         {
             var resourceInstance = new ResourceInstance();
             resourceInstance.SetCache<ResourcepoolInstance>([]);
+
+            var cachedResourcePools = resourceInstance.GetFromCache<ResourcepoolInstance>().ToList();
+            Assert.AreEqual(0, cachedResourcePools.OfType<ResourcepoolInstance>().Count());
         }
 
         [TestMethod]
@@ -246,6 +249,9 @@
         {
             var resourceInstance = new ResourceInstance();
             resourceInstance.AddToCache<ResourcepoolInstance>([]);
+
+            var cachedResourcePools = resourceInstance.GetFromCache<ResourcepoolInstance>().ToList();
+            Assert.AreEqual(0, cachedResourcePools.OfType<ResourcepoolInstance>().Count());
         }
 
         [TestMethod]

@@ -223,7 +223,10 @@
                 Name = $"{prefix}_Resource",
             };
 
-            unmanagedResource.UnassignFromPool(Guid.NewGuid());
+            var poolId = Guid.NewGuid();
+            unmanagedResource.UnassignFromPool(poolId);
+
+            Assert.IsFalse(unmanagedResource.AssignedResourcePoolIds.Contains(poolId));
         }
 
         [TestMethod]
