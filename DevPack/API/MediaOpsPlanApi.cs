@@ -1,73 +1,126 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
     using System;
-    using System.Collections.Generic;
     using Microsoft.Extensions.Logging;
-    using Newtonsoft.Json;
-    using Skyline.DataMiner.Core.InterAppCalls.Common.CallBulk;
+    using Skyline.DataMiner.Core.DataMinerSystem.Common;
     using Skyline.DataMiner.Net;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.DevPack.InterApp;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.InterApp.Messages;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Logger;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
 
     /// <summary>
     /// Provides the main entry point for interacting with the MediaOps Plan API.
     /// </summary>
-    public partial class MediaOpsPlanApi
+    public class MediaOpsPlanApi : IMediaOpsPlanApi
     {
-        private static readonly Dictionary<Type, Type> messageToExecutor = new Dictionary<Type, Type>
-        {
-            {typeof(CreateResourceRequest), typeof(CreateResourceRequestExecutor)},
-            {typeof(DeleteResourceRequest), typeof(DeleteResourceRequestExecutor)},
-        };
+        private readonly ILogger<IMediaOpsPlanApi> logger;
+        private readonly IConnection connection;
+
+        private readonly DomHelpers domHelpers;
+        private readonly CoreHelpers coreHelpers;
+
+        private readonly Lazy<IDms> lazyDms;
+        private readonly Lazy<IResourcesRepository> lazyResourceRepository;
+        private readonly Lazy<IResourcePoolsRepository> lazyResourcePoolsRepository;
+        private readonly Lazy<ICapabilitiesRepository> lazyCapabilitiesRepository;
+        private readonly Lazy<ICapacitiesRepository> lazyCapacitiesRepository;
+        private readonly Lazy<IConfigurationsRepository> lazyConfigurationsRepository;
+        private readonly Lazy<IResourcePropertiesRepository> lazyResourcePropertiesRepository;
+        private bool disposedValue;
 
         /// <summary>
-        /// Handles an incoming InterApp request.
+        /// Initializes a new instance of the <see cref="MediaOpsPlanApi"/> class.
         /// </summary>
-        /// <param name="rawInterAppCall">Serialized InterApp request message.</param>
-        public void HandleInterAppRequest(string rawInterAppCall)
+        /// <param name="connection">The connection to use for API operations.</param>
+        /// <param name="logger">The logger to use for logging operations.</param>
+        public MediaOpsPlanApi(IConnection connection, ILogger<IMediaOpsPlanApi> logger = null)
         {
-            try
+            this.connection = connection ?? throw new ArgumentNullException(nameof(connection));
+            this.logger = logger ?? new DefaultLogger();
+
+            domHelpers = new DomHelpers(connection);
+            coreHelpers = new CoreHelpers(connection);
+
+            lazyDms = new Lazy<IDms>(() => connection.GetDms());
+            lazyResourceRepository = new Lazy<IResourcesRepository>(() => new ResourcesRepository(this));
+            lazyResourcePoolsRepository = new Lazy<IResourcePoolsRepository>(() => new ResourcePoolsRepository(this));
+            lazyCapabilitiesRepository = new Lazy<ICapabilitiesRepository>(() => new CapabilitiesRepository(this));
+            lazyCapacitiesRepository = new Lazy<ICapacitiesRepository>(() => new CapacitiesRepository(this));
+            lazyConfigurationsRepository = new Lazy<IConfigurationsRepository>(() => new ConfigurationsRepository(this));
+            lazyResourcePropertiesRepository = new Lazy<IResourcePropertiesRepository>(() => new ResourcePropertiesRepository(this));
+        }
+
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        public IResourcesRepository Resources => lazyResourceRepository.Value;
+
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        public IResourcePoolsRepository ResourcePools => lazyResourcePoolsRepository.Value;
+
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        public ICapabilitiesRepository Capabilities => lazyCapabilitiesRepository.Value;
+
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        public ICapacitiesRepository Capacities => lazyCapacitiesRepository.Value;
+
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        public IConfigurationsRepository Configurations => lazyConfigurationsRepository.Value;
+
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        public IResourcePropertiesRepository Properties => lazyResourcePropertiesRepository.Value;
+
+        internal IConnection Connection => connection;
+
+        internal ILogger<IMediaOpsPlanApi> Logger => logger;
+
+        internal DomHelpers DomHelpers => domHelpers;
+
+        internal CoreHelpers CoreHelpers => coreHelpers;
+
+        internal IDms Dms => lazyDms.Value;
+
+        /// <summary>
+        /// Releases the resources used by the current instance of the class.
+        /// </summary>
+        /// <remarks>This method should be called when the instance is no longer needed to free up
+        /// resources.  If the instance holds unmanaged resources, ensure they are properly released by overriding  this
+        /// method in a derived class.</remarks>
+        /// <param name="disposing"></param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
             {
-                var receivedCall = InterAppCallFactory.CreateFromRaw(rawInterAppCall, knownTypes);
-
-                foreach (var message in receivedCall.Messages)
+                if (disposing && logger is DefaultLogger defaultLogger)
                 {
-                    using (logger.BeginScope(new Dictionary<string, object> { { "InterAppMessage.ID", message.Guid } }))
-                    {
-                        logger.LogDebug("Received InterApp message: {message}.", JsonConvert.SerializeObject(message));
-
-                        if (!message.TryExecute(null, this, messageToExecutor, out var replyMessage))
-                        {
-                            throw new InvalidOperationException($"Unable to execute incoming message");
-                        }
-
-                        if (!message.ExpectsReply)
-                        {
-                            logger.LogDebug("Message does not expect reply.");
-                            continue;
-                        }
-
-                        if (replyMessage is null)
-                        {
-                            throw new InvalidOperationException($"Unable to build reply message");
-                        }
-
-                        logger.LogDebug("Sending InterApp reply: {replymessage}.", JsonConvert.SerializeObject(replyMessage));
-
-                        message.Reply(connection, replyMessage, knownTypes);
-                    }
+                    defaultLogger.Dispose();
                 }
 
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error handling incoming inter-app message.");
+                disposedValue = true;
             }
         }
 
-        internal void Init()
+        /// <summary>
+        /// Releases the resources used by the current instance of the class.
+        /// </summary>
+        /// <remarks>This method should be called when the instance is no longer needed to free up
+        /// resources.  It suppresses finalization to optimize garbage collection. For custom cleanup logic,  override
+        /// the <c>Dispose(bool disposing)</c> method in derived classes.</remarks>
+        public void Dispose()
         {
-            // Initialization logic here
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 }
