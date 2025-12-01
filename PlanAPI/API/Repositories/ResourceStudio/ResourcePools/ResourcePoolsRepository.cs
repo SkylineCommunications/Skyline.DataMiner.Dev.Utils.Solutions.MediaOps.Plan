@@ -59,5 +59,25 @@
         {
             throw new NotImplementedException("Requires InterApp implementation");
         }
+
+        public void AssignResourcesToPool(ResourcePool resourcePool, IEnumerable<Resource> resources)
+        {
+            throw new NotImplementedException("Requires InterApp implementation");
+        }
+
+        public void AssignResourcesToPool(Guid resourcePoolId, IEnumerable<Resource> resources)
+        {
+            throw new NotImplementedException("Requires InterApp implementation");
+        }
+
+        public void UnassignResourcesFromPool(ResourcePool resourcePool, IEnumerable<Resource> resources)
+        {
+            throw new NotImplementedException("Requires InterApp implementation");
+        }
+
+        public void UnassignResourcesFromPool(Guid resourcePoolId, IEnumerable<Resource> resources)
+        {
+            throw new NotImplementedException("Requires InterApp implementation");
+        }
     }
 }

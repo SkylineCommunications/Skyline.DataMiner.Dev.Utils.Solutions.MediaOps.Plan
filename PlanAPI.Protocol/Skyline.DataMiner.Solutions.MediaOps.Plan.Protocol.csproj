@@ -51,7 +51,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Common\Skyline.DataMiner.Solutions.MediaOps.Plan.csproj" />
     <ProjectReference Include="..\PlanAPI\Skyline.DataMiner.Solutions.MediaOps.Plan.csproj" />
   </ItemGroup>
 
