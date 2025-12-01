@@ -151,8 +151,8 @@
                 Name = $"{prefix}_Resource",
             };
 
-            Assert.ThrowsException<ArgumentNullException>(() => unmanagedResource.SetPools((Guid[])null));
-            Assert.ThrowsException<ArgumentNullException>(() => unmanagedResource.SetPools((Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool[])null));
+            Assert.ThrowsException<ArgumentNullException>(() => unmanagedResource.SetPools((Guid[]?)null));
+            Assert.ThrowsException<ArgumentNullException>(() => unmanagedResource.SetPools((Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool[]?)null));
         }
 
         [TestMethod]
@@ -182,7 +182,7 @@
             };
 
             Assert.ThrowsException<ArgumentException>(() => unmanagedResource.SetPools(new Guid[] { Guid.NewGuid(), Guid.Empty }));
-            Assert.ThrowsException<ArgumentException>(() => unmanagedResource.SetPools(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool[] { new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool(), null }));
+            Assert.ThrowsException<ArgumentException>(() => unmanagedResource.SetPools(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool?[] { new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool(), null }));
         }
 
         [TestMethod]

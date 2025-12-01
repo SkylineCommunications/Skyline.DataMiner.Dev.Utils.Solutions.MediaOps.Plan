@@ -614,7 +614,7 @@
 
                 foreach (var poolId in resource.AssignedResourcePoolIds)
                 {
-                    if (!resourcePoolsById.TryGetValue(poolId, out var resourcePool))
+                    if (!resourcePoolsById.TryGetValue(poolId, out _))
                     {
                         var error = new ResourceConfigurationError
                         {

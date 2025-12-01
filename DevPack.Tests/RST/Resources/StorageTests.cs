@@ -120,7 +120,7 @@
 
             try
             {
-                resourceInstance.SetCache<ResourcepoolInstance>([resourcePool1, null, resourcePool2, null]);
+                resourceInstance.SetCache<ResourcepoolInstance?>([resourcePool1, null, resourcePool2, null]);
             }
             catch (ArgumentException)
             {
@@ -264,7 +264,7 @@
 
             try
             {
-                resourceInstance.AddToCache<ResourcepoolInstance>([resourcePool1, null, resourcePool2, null]);
+                resourceInstance.AddToCache<ResourcepoolInstance?>([resourcePool1, null, resourcePool2, null]);
             }
             catch (ArgumentException)
             {
