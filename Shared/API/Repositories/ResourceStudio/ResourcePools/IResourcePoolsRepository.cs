@@ -65,5 +65,33 @@
         /// enumerable of its parent resource pools. If a resource pool has no parents, its value will be an empty
         /// enumerable.</returns>
         IReadOnlyDictionary<ResourcePool, IEnumerable<ResourcePool>> GetParentPoolLinks(IEnumerable<ResourcePool> resourcePools);
+
+        /// <summary>
+        /// Assigns the specified resources to the given resource pool.
+        /// </summary>
+        /// <param name="resourcePool">The resource pool to which the resources will be assigned.</param>
+        /// <param name="resources">The collection of resources to assign to the pool.</param>
+        void AssignResourcesToPool(ResourcePool resourcePool, IEnumerable<Resource> resources);
+
+        /// <summary>
+        /// Assigns the specified resources to the given resource pool.
+        /// </summary>
+        /// <param name="resourcePoolId">The unique identifier of the resource pool to which the resources will be assigned.</param>
+        /// <param name="resources">The collection of resources to assign to the pool.</param>
+        void AssignResourcesToPool(Guid resourcePoolId, IEnumerable<Resource> resources);
+
+        /// <summary>
+        /// Removes the specified resources from the given resource pool.
+        /// </summary>
+        /// <param name="resourcePool">The resource pool from which the resources will be unassigned.</param>
+        /// <param name="resources">The collection of resources to remove from the pool.</param>
+        void UnassignResourcesFromPool(ResourcePool resourcePool, IEnumerable<Resource> resources);
+
+        /// <summary>
+        /// Removes the specified resources from the given resource pool.
+        /// </summary>
+        /// <param name="resourcePoolId">The unique identifier of the resource pool from which the resources will be unassigned.</param>
+        /// <param name="resources">The collection of resources to remove from the pool.</param>
+        void UnassignResourcesFromPool(Guid resourcePoolId, IEnumerable<Resource> resources);
     }
 }

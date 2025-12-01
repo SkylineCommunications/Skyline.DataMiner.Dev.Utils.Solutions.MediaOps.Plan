@@ -19,6 +19,7 @@
 
     using CoreResource = Net.Messages.Resource;
     using DomResource = Storage.DOM.SlcResource_Studio.ResourceInstance;
+    using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
 
     internal class CoreResourceHandler
     {
@@ -1127,8 +1128,13 @@
         private bool SyncPools(DomResource domResource, CoreResource coreResource)
         {
             var poolIds = domResource.ResourceInternalProperties?.PoolIds ?? Enumerable.Empty<Guid>();
-            var pools = planApi.ResourcePools.Read(poolIds).Values;
-            var corePoolIds = pools.Select(x => x.CoreResourcePoolId).Where(x => x != Guid.Empty).ToList();
+            var cachedDomPoolsById = domResource.GetFromCache<DomResourcePool>().ToDictionary(x => x.ID.Id);
+
+            var missingPoolIds = poolIds.Where(x => !cachedDomPoolsById.ContainsKey(x));
+            var domPools = planApi.ResourcePools.Read(missingPoolIds).Values.Select(x => x.OriginalInstance).ToList();
+            domPools.AddRange(cachedDomPoolsById.Values);
+
+            var corePoolIds = domPools.Select(x => x.ResourcePoolInternalProperties.ResourcePoolId).Where(x => x != Guid.Empty).ToList();
 
             if (coreResource.PoolGUIDs.ScrambledEquals(corePoolIds))
             {

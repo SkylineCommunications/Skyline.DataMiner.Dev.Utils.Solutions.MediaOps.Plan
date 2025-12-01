@@ -92,6 +92,11 @@
             /// Represents a response status indicating that the requested resource was not found.
             /// </summary>
             NotFound,
+
+            /// <summary>
+            /// Indicates that the assigned pool is invalid.
+            /// </summary>
+            InvalidAssignedPool,
         }
 
         /// <summary>

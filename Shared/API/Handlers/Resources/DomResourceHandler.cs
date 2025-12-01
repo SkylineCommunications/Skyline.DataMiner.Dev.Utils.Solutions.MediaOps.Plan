@@ -18,12 +18,15 @@
     using Skyline.DataMiner.Utils.DOM.Extensions;
 
     using DomResource = Storage.DOM.SlcResource_Studio.ResourceInstance;
+    using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
 
     internal class DomResourceHandler : ApiObjectValidator<Guid>
     {
         private readonly MediaOpsPlanApi planApi;
 
         private readonly HashSet<Guid> resourceIdsWithCoreChanges = new HashSet<Guid>();
+
+        private IDictionary<Guid, ResourcePool> resourcePoolsById = new Dictionary<Guid, ResourcePool>();
 
         private DomResourceHandler(MediaOpsPlanApi planApi)
         {
@@ -142,7 +145,6 @@
             }
 
             ValidateIdsNotInUse(toCreate);
-            ValidateStateForUpdateAction(toUpdate);
 
             // Todo: lock DOM instances
             var changeResults = ActivityHelper.Track(nameof(DomResourceHandler), nameof(GetResourcesWithChanges), act => GetResourcesWithChanges(toUpdate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id))));
@@ -150,6 +152,10 @@
             var toCreateNameValidation = toCreate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id));
             var toUpdateNameValidation = toUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcResource_StudioIds.Sections.ResourceInfo.Name.Id)));
             ActivityHelper.Track(nameof(DomResourceHandler), nameof(ValidateNames), act => ValidateNames(toCreateNameValidation.Concat(toUpdateNameValidation)));
+
+            var toCreatePoolValidation = toCreate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id));
+            var toUpdatePoolValidation = toUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcResource_StudioIds.Sections.ResourceInternalProperties.Pool_Ids.Id)));
+            ValidatePoolAssignments(toCreatePoolValidation.Concat(toUpdatePoolValidation));
 
             var toCreateDomInstances = toCreate
                 .Where(x => !TraceDataPerItem.Keys.Contains(x.Id))
@@ -186,7 +192,10 @@
 
             if (resourceIdsWithCoreChanges.Count != 0)
             {
-                CoreResourceHandler.TryCreateOrUpdate(planApi, domResources.Where(x => resourceIdsWithCoreChanges.Contains(x.ID.Id)), out var coreResult);
+                var domResourcesWithCoreChanges = domResources.Where(x => resourceIdsWithCoreChanges.Contains(x.ID.Id));
+                UpdateCaches(domResourcesWithCoreChanges);
+
+                CoreResourceHandler.TryCreateOrUpdate(planApi, domResourcesWithCoreChanges, out var coreResult);
 
                 foreach (var id in coreResult.UnsuccessfulIds)
                 {
@@ -324,6 +333,49 @@
             ReportSuccess(domResult.SuccessfulIds.Select(x => x.Id));
         }
 
+        private void UpdateCaches(IEnumerable<DomResource> domResources)
+        {
+            if (domResources == null)
+            {
+                throw new ArgumentNullException(nameof(domResources));
+            }
+
+            if (!domResources.Any())
+            {
+                return;
+            }
+
+            foreach (var domResource in domResources)
+            {
+                UpdateResourcePoolCache(domResource);
+            }
+        }
+
+        private void UpdateResourcePoolCache(DomResource domResource)
+        {
+            if (resourcePoolsById == null)
+            {
+                return;
+            }
+
+            var domResourcePools = new List<DomResourcePool>();
+            foreach (var poolId in domResource.ResourceInternalProperties.PoolIds)
+            {
+                if (!resourcePoolsById.TryGetValue(poolId, out var resourcePool))
+                {
+                    continue;
+                }
+
+                domResourcePools.Add(resourcePool.OriginalInstance);
+            }
+
+            if (domResourcePools.Count > 0)
+            {
+                domResource.SetCache(domResourcePools);
+
+            }
+        }
+
         private void ValidateIdsNotInUse(IEnumerable<Resource> apiResources)
         {
             if (apiResources == null)
@@ -372,30 +424,6 @@
                 };
 
                 ReportError(foundInstance.ID.Id, error);
-            }
-        }
-
-        private void ValidateStateForUpdateAction(IEnumerable<Resource> apiResources)
-        {
-            if (apiResources == null)
-            {
-                throw new ArgumentNullException(nameof(apiResources));
-            }
-
-            if (!apiResources.Any())
-            {
-                return;
-            }
-
-            foreach (var resource in apiResources.Where(x => x.State == ResourceState.Deprecated))
-            {
-                var error = new ResourceConfigurationError
-                {
-                    ErrorReason = ResourceConfigurationError.Reason.InvalidState,
-                    ErrorMessage = "Not allowed to update a resource in Deprecated state."
-                };
-
-                ReportError(resource.Id, error);
             }
         }
 
@@ -562,6 +590,50 @@
             }
         }
 
+        private void ValidatePoolAssignments(IEnumerable<Resource> apiResources)
+        {
+            if (apiResources == null)
+            {
+                throw new ArgumentNullException(nameof(apiResources));
+            }
+
+            if (!apiResources.Any())
+            {
+                return;
+            }
+
+            var poolIds = apiResources
+                .SelectMany(x => x.AssignedResourcePoolIds)
+                .Distinct()
+                .ToList();
+            resourcePoolsById = planApi.ResourcePools.Read(poolIds);
+
+            foreach (var resource in apiResources)
+            {
+                var hasError = false;
+
+                foreach (var poolId in resource.AssignedResourcePoolIds)
+                {
+                    if (!resourcePoolsById.TryGetValue(poolId, out _))
+                    {
+                        var error = new ResourceConfigurationError
+                        {
+                            ErrorReason = ResourceConfigurationError.Reason.InvalidAssignedPool,
+                            ErrorMessage = $"Resource Pool with ID '{poolId}' not found.",
+                        };
+
+                        ReportError(resource.Id, error);
+                        hasError = true;
+                    }
+                }
+
+                if (!hasError)
+                {
+                    MarkAsResourceWithCoreChanges(resource);
+                }
+            }
+        }
+
         private IEnumerable<DomChangeResults> GetResourcesWithChanges(IEnumerable<Resource> apiResources)
         {
             if (apiResources == null)
@@ -678,12 +750,12 @@
             }
 
             domResource.ResourceInfo.Type = SlcResource_StudioIds.Enums.Type.VirtualFunction;
-            domResource.ResourceInternalProperties.ResourceMetadata = new ResourceMetadata
+            domResource.ResourceInternalProperties.Metadata = new ResourceMetadata
             {
                 LinkedElementInfo = new DmsElementId(configuration.AgentId, configuration.ElementId).Value,
                 LinkedFunctionId = configuration.FunctionId,
                 LinkedFunctionTableIndex = configuration.FunctionTableIndex,
-            }.Serialize();
+            };
 
             CreateOrUpdate([domResource]);
         }
@@ -709,10 +781,10 @@
             }
 
             domResource.ResourceInfo.Type = SlcResource_StudioIds.Enums.Type.Service;
-            domResource.ResourceInternalProperties.ResourceMetadata = new ResourceMetadata
+            domResource.ResourceInternalProperties.Metadata = new ResourceMetadata
             {
                 LinkedServiceInfo = new DmsServiceId(configuration.AgentId, configuration.ServiceId).Value,
-            }.Serialize();
+            };
 
             CreateOrUpdate([domResource]);
         }
@@ -738,10 +810,10 @@
             }
 
             domResource.ResourceInfo.Type = SlcResource_StudioIds.Enums.Type.Element;
-            domResource.ResourceInternalProperties.ResourceMetadata = new ResourceMetadata
+            domResource.ResourceInternalProperties.Metadata = new ResourceMetadata
             {
                 LinkedElementInfo = new DmsElementId(configuration.AgentId, configuration.ElementId).Value,
-            }.Serialize();
+            };
 
             CreateOrUpdate([domResource]);
         }

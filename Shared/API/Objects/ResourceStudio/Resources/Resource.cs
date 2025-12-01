@@ -25,6 +25,8 @@
 
         private Guid coreResourceId;
 
+        private HashSet<Guid> assignedPoolIds = new HashSet<Guid>();
+
         private protected Resource() : base()
         {
             IsNew = true;
@@ -89,6 +91,120 @@
         /// </summary>
         public ResourceState State { get; private set; }
 
+        /// <summary>
+        /// Gets the collection of resource pool identifiers assigned to the resource.
+        /// </summary>
+        public IReadOnlyCollection<Guid> AssignedResourcePoolIds => (IReadOnlyCollection<Guid>)assignedPoolIds;
+
+        /// <summary>
+        /// Assigns the current resource to the specified resource pool.
+        /// </summary>
+        /// <param name="resourcePool">The resource pool to which the resource will be assigned. Cannot be null.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="resourcePool"/> is <see langword="null"/>.</exception>
+        public void AssignToPool(ResourcePool resourcePool)
+        {
+            if (resourcePool == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePool));
+            }
+
+            AssignToPool(resourcePool.Id);
+        }
+
+        /// <summary>
+        /// Assigns the current resource to the specified resource pool.
+        /// </summary>
+        /// <param name="resourcePoolId">The unique identifier of the resource pool to which the resource will be assigned. Cannot be <see
+        /// langword="Guid.Empty"/>.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="resourcePoolId"/> is <see langword="Guid.Empty"/>.</exception>
+        public void AssignToPool(Guid resourcePoolId)
+        {
+            if (resourcePoolId == Guid.Empty)
+            {
+                throw new ArgumentException(nameof(resourcePoolId));
+            }
+
+            assignedPoolIds.Add(resourcePoolId);
+            HasChanges = true;
+        }
+
+        /// <summary>
+        /// Configures the collection of resource pools to which this resource belongs.
+        /// </summary>
+        /// <param name="resourcePools">A collection of <see cref="ResourcePool"/> objects representing the resource pools to configure.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="resourcePools"/> is <see langword="null"/>.</exception>
+        /// <exception cref="ArgumentException">Thrown if <paramref name="resourcePools"/> contains a null element.</exception>
+        public void SetPools(IEnumerable<ResourcePool> resourcePools)
+        {
+            if (resourcePools == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePools));
+            }
+
+            if (resourcePools.Any(rp => rp == null))
+            {
+                throw new ArgumentException("The collection contains a null resource pool.", nameof(resourcePools));
+            }
+
+            SetPools(resourcePools.Select(rp => rp.Id));
+        }
+
+        /// <summary>
+        /// Configures the collection of resource pools to which this resource belongs.
+        /// </summary>
+        /// <param name="resourcePoolIds">A collection of <see cref="Guid"/> values representing the resource pool IDs to assign.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="resourcePoolIds"/> is <see langword="null"/>.</exception>
+        /// <exception cref="ArgumentException">Thrown if <paramref name="resourcePoolIds"/> contains an empty <see cref="Guid"/> value.</exception>
+        public void SetPools(IEnumerable<Guid> resourcePoolIds)
+        {
+            if (resourcePoolIds == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePoolIds));
+            }
+
+            if (resourcePoolIds.Any(id => id == Guid.Empty))
+            {
+                throw new ArgumentException("The collection contains an empty resource pool ID.", nameof(resourcePoolIds));
+            }
+
+            assignedPoolIds = new HashSet<Guid>(resourcePoolIds);
+            HasChanges = true;
+        }
+
+        /// <summary>
+        /// Removes the current resource from the specified resource pool.
+        /// </summary>
+        /// <param name="resourcePool">The resource pool from which the resource will be unassigned. Cannot be null.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="resourcePool"/> is <see langword="null"/>.</exception>
+        public void UnassignFromPool(ResourcePool resourcePool)
+        {
+            if (resourcePool == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePool));
+            }
+
+            UnassignFromPool(resourcePool.Id);
+        }
+
+        /// <summary>
+        /// Removes the current resource from the specified resource pool.
+        /// </summary>
+        /// <param name="resourcePoolId">The unique identifier of the resource pool to unassign from this resource. Cannot be <see
+        /// langword="Guid.Empty"/>.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="resourcePoolId"/> is <see langword="Guid.Empty"/>.</exception>
+        public void UnassignFromPool(Guid resourcePoolId)
+        {
+            if (resourcePoolId == Guid.Empty)
+            {
+                throw new ArgumentException(nameof(resourcePoolId));
+            }
+
+            if (assignedPoolIds.Remove(resourcePoolId))
+            {
+                HasChanges = true;
+            }
+        }
+
         internal abstract void ApplyChanges(StorageResourceStudio.ResourceInstance instance);
 
         internal static IEnumerable<Resource> InstantiateResources(IEnumerable<StorageResourceStudio.ResourceInstance> instances)
@@ -120,6 +236,7 @@
             updatedInstance.ResourceInfo.Name = name;
             updatedInstance.ResourceInfo.Favorite = isFavorite;
             updatedInstance.ResourceInfo.Concurrency = concurrency;
+            updatedInstance.ResourceInternalProperties.PoolIds = assignedPoolIds.ToList();
 
             ApplyChanges(updatedInstance);
 
@@ -160,6 +277,7 @@
             name = instance.ResourceInfo.Name;
             isFavorite = instance.ResourceInfo.Favorite ?? false;
             concurrency = instance.ResourceInfo.Concurrency.HasValue ? (int)instance.ResourceInfo.Concurrency.Value : 1;
+            assignedPoolIds = new HashSet<Guid>(instance.ResourceInternalProperties.PoolIds);
             coreResourceId = instance.ResourceInternalProperties.Resource_Id ?? Guid.Empty;
 
             State = EnumExtensions.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum, ResourceState>(instance.Status);

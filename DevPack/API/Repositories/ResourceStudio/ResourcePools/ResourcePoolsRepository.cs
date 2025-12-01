@@ -218,6 +218,86 @@
             }
         }
 
+        public void AssignResourcesToPool(ResourcePool resourcePool, IEnumerable<Resource> resources)
+        {
+            if (resourcePool == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePool));
+            }
+
+            AssignResourcesToPool(resourcePool.Id, resources);
+        }
+
+        public void AssignResourcesToPool(Guid resourcePoolId, IEnumerable<Resource> resources)
+        {
+            if (resourcePoolId == Guid.Empty)
+            {
+                throw new ArgumentException("Resource pool ID cannot be empty.", nameof(resourcePoolId));
+            }
+
+            if (resources == null)
+            {
+                throw new ArgumentNullException(nameof(resources));
+            }
+
+            if (!resources.Any())
+            {
+                return;
+            }
+
+            if (resources.Any(x => x == null))
+            {
+                throw new ArgumentException("The collection contains a null resource.", nameof(resources));
+            }
+
+            foreach (var resource in resources)
+            {
+                resource.AssignToPool(resourcePoolId);
+            }
+
+            PlanApi.Resources.Update(resources);
+        }
+
+        public void UnassignResourcesFromPool(ResourcePool resourcePool, IEnumerable<Resource> resources)
+        {
+            if (resourcePool == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePool));
+            }
+
+            UnassignResourcesFromPool(resourcePool.Id, resources);
+        }
+
+        public void UnassignResourcesFromPool(Guid resourcePoolId, IEnumerable<Resource> resources)
+        {
+            if (resourcePoolId == Guid.Empty)
+            {
+                throw new ArgumentException("Resource pool ID cannot be empty.", nameof(resourcePoolId));
+            }
+
+            if (resources == null)
+            {
+                throw new ArgumentNullException(nameof(resources));
+            }
+
+            if (!resources.Any())
+            {
+                return;
+            }
+
+            if (resources.Any(x => x == null))
+            {
+                throw new ArgumentException("The collection contains a null resource.", nameof(resources));
+            }
+
+            foreach (var resource in resources)
+            {
+                resource.UnassignFromPool(resourcePoolId);
+            }
+
+            PlanApi.Resources.Update(resources);
+        }
+
         private void HandleMoveToCompleteAction(Guid resourcePoolId)
         {
             if (resourcePoolId == Guid.Empty)

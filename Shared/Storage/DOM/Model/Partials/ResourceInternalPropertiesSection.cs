@@ -23,6 +23,18 @@
 
                 return Pool_Ids.Split([";"], StringSplitOptions.RemoveEmptyEntries).Select(x => Guid.Parse(x));
             }
+
+            set
+            {
+                if (value == null || !value.Any())
+                {
+                    Pool_Ids = string.Empty;
+                }
+                else
+                {
+                    Pool_Ids = string.Join(";", value.Select(x => x.ToString()));
+                }
+            }
         }
 
         internal ResourceMetadata Metadata
@@ -41,6 +53,11 @@
 
                 resourceMetadata = new ResourceMetadata();
                 return resourceMetadata;
+            }
+
+            set
+            {
+                resourceMetadata = value;
             }
         }
 

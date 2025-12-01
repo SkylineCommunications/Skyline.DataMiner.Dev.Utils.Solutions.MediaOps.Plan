@@ -19,10 +19,19 @@
             Console.WriteLine("Connected to DataMiner\r\n");
 
             var api = new MediaOpsPlanApi(connection);
-            var capabilityCount = api.Capabilities.CountAll();
-            Console.WriteLine($"Total Capabilities: {capabilityCount}");
-            var capabilities = api.Capabilities.ReadAll();
-            capabilities.ForEach(x => Console.WriteLine(x.Name));
+
+            var resource = new UnmanagedResource()
+            {
+                Name = "Injected Resource",
+                Concurrency = 1,
+            };
+
+            api.Resources.Create(resource);
+
+            var r = api.Resources.Read(resource.Id);
+            r.Name = "Updated Injected Resource";
+
+            api.Resources.Update(r);
         }
     }
 }

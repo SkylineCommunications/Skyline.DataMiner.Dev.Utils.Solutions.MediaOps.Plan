@@ -12,6 +12,8 @@
 
         private readonly HashSet<Guid> createdPoolIds = new HashSet<Guid>();
 
+        private readonly HashSet<Guid> createdResourceIds = new HashSet<Guid>();
+
         private readonly HashSet<Guid> createdCapacityIds = new HashSet<Guid>();
 
         private readonly HashSet<Guid> createdConfigurationIds = new HashSet<Guid>();
@@ -23,6 +25,15 @@
 
         public void Dispose()
         {
+            try
+            {
+                ResourcesCleanup();
+            }
+            catch (Exception)
+            {
+                // Ignore cleanup errors
+            }
+
             try
             {
                 ResourcePoolsCleanup();
@@ -40,6 +51,25 @@
             {
                 // Ignore cleanup errors
             }
+        }
+
+        private void ResourcesCleanup()
+        {
+            var resources = api.Resources.Read(createdResourceIds.ToArray()).Values;
+
+            foreach (var resource in resources.Where(r => r.State == ResourceState.Complete))
+            {
+                try
+                {
+                    api.Resources.MoveTo(resource.Id, ResourceState.Deprecated);
+                }
+                catch
+                {
+                    // Ignore cleanup errors
+                }
+            }
+
+            api.Resources.Delete(createdResourceIds.ToArray());
         }
 
         private void ResourcePoolsCleanup()
@@ -66,6 +96,25 @@
             var capacities = api.Capacities.Read(createdCapacityIds.ToArray()).Values;
 
             api.Capacities.Delete(capacities.ToArray());
+        }
+
+        public Guid CreateResource(Resource resource)
+        {
+            var resourceId = api.Resources.Create(resource);
+            createdResourceIds.Add(resourceId);
+
+            return resourceId;
+        }
+
+        public IEnumerable<Guid> CreateResources(IEnumerable<Resource> resources)
+        {
+            var resourceIds = api.Resources.Create(resources);
+            foreach (var id in resourceIds)
+            {
+                createdResourceIds.Add(id);
+            }
+
+            return resourceIds;
         }
 
         public Guid CreateResourcePool(ResourcePool resourcePool)
