@@ -14,7 +14,7 @@
             var credentials = CredentialCache.DefaultNetworkCredentials;
 
             Console.WriteLine("Connecting to DataMiner...");
-            DMConnection connection = ConnectionSettings.GetConnection("jensvd.skyline.local");
+            DMConnection connection = ConnectionSettings.GetConnection("slc-h62-g04.skyline.local");
             connection.Authenticate(credentials.UserName, credentials.Password, credentials.Domain);
             Console.WriteLine("Connected to DataMiner\r\n");
 
