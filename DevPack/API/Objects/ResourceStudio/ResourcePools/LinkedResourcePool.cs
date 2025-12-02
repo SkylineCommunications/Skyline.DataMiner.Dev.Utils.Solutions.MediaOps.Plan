@@ -33,7 +33,7 @@
         {
             if (resourcePoolId == Guid.Empty)
             {
-                throw new ArgumentNullException(nameof(resourcePoolId));
+                throw new ArgumentException(nameof(resourcePoolId));
             }
 
             LinkedResourcePoolId = resourcePoolId;
@@ -41,12 +41,12 @@
             IsNew = true;
         }
 
-        internal EventHandler<EventArgs> ValueChanged;
-
         internal LinkedResourcePool(StorageResourceStudio.ResourcePoolLinksSection section)
         {
             ParseSection(section);
         }
+
+        internal EventHandler<EventArgs> ValueChanged;
 
         /// <summary>
         /// Gets the unique identifier of the linked resource pool.

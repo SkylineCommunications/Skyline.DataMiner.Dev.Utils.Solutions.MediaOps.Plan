@@ -135,11 +135,6 @@
                 throw new ArgumentNullException(nameof(linkedResourcePool));
             }
 
-            if (linkedResourcePool.IsNew)
-            {
-                return;
-            }
-
             var toRemove = linkedResourcepools.SingleOrDefault(x => x.OriginalSection.ID == linkedResourcePool.OriginalSection.ID);
             if (toRemove != null && linkedResourcepools.Remove(toRemove))
             {

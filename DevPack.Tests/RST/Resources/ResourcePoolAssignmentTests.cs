@@ -11,12 +11,12 @@
 
     [TestClass]
     [TestCategory("IntegrationTest")]
-    public sealed class ResourcePoolAssignment : IDisposable
+    public sealed class ResourcePoolAssignmentTests : IDisposable
     {
         private readonly IntegrationTestContext testContext;
         private readonly ResourceStudioObjectCreator objectCreator;
 
-        public ResourcePoolAssignment()
+        public ResourcePoolAssignmentTests()
         {
             testContext = new IntegrationTestContext();
             objectCreator = new ResourceStudioObjectCreator(testContext.Api);

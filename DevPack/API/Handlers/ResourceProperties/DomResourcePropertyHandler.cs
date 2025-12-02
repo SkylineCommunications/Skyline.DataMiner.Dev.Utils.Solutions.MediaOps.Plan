@@ -99,7 +99,7 @@
             var changeResults = GetPropertiesWithChanges(toUpdate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)));
 
             var toCreateNameValidation = toCreate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id));
-            var toUpdateNameValidation = toUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcResource_StudioIds.Sections.ResourcePoolInfo.Name.Id)));
+            var toUpdateNameValidation = toUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcResource_StudioIds.Sections.PropertyInfo.PropertyName.Id)));
             ValidateNames(toCreateNameValidation.Concat(toUpdateNameValidation));
 
             var toCreateDomInstances = toCreate
@@ -301,7 +301,7 @@
                 .AND(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.PropertyInfo.PropertyName).Equal(name));
 
             var domPropertiesByName = planApi.DomHelpers.SlcResourceStudioHelper.GetResourceProperties(propertiesRequiringValidation.Select(x => x.Name), filter)
-                .GroupBy(x => x.Name)
+                .GroupBy(x => x.PropertyInfo.PropertyName)
                 .ToDictionary(x => x.Key, x => (IReadOnlyCollection<DomResourceProperty>)x.ToList());
 
             foreach (var property in propertiesRequiringValidation)
