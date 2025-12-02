@@ -145,6 +145,7 @@
             }
 
             ValidateIdsNotInUse(toCreate);
+            ValidateResourceProperties(apiResources.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)));
 
             // Todo: lock DOM instances
             var changeResults = ActivityHelper.Track(nameof(DomResourceHandler), nameof(GetResourcesWithChanges), act => GetResourcesWithChanges(toUpdate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id))));
@@ -630,6 +631,51 @@
                 if (!hasError)
                 {
                     MarkAsResourceWithCoreChanges(resource);
+                }
+            }
+        }
+
+        private void ValidateResourceProperties(IEnumerable<Resource> apiResources)
+        {
+            if (apiResources == null)
+            {
+                throw new ArgumentNullException(nameof(apiResources));
+            }
+
+            if (!apiResources.Any())
+            {
+                return;
+            }
+
+            var propertyIds = apiResources
+                .SelectMany(x => x.PropertyConfigurations)
+                .Select(x => x.Id)
+                .Distinct()
+                .ToList();
+            var propertiesById = planApi.Properties.Read(propertyIds);
+
+            foreach (var resource in apiResources)
+            {
+                foreach (var propertyConfiguration in resource.PropertyConfigurations)
+                {
+                    if (propertyConfiguration.Id == Guid.Empty)
+                    {
+                        var error = new InvalidResourcePropertyConfigurationError
+                        {
+                            ErrorMessage = "Property configuration ID cannot be empty.",
+                        };
+
+                        ReportError(resource.Id, error);
+                    }
+                    else if (!propertiesById.TryGetValue(propertyConfiguration.Id, out _))
+                    {
+                        var error = new InvalidResourcePropertyConfigurationError
+                        {
+                            ErrorMessage = $"Property with ID '{propertyConfiguration.Id}' not found.",
+                        };
+
+                        ReportError(resource.Id, error);
+                    }
                 }
             }
         }

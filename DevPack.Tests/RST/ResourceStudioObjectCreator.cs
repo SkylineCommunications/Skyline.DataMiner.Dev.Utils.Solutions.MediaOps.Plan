@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.Linq;
 
+    using Skyline.DataMiner.Core.InterAppCalls.Common.Shared;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 
     internal class ResourceStudioObjectCreator : IDisposable
@@ -18,6 +19,8 @@
 
         private readonly HashSet<Guid> createdConfigurationIds = new HashSet<Guid>();
 
+        private readonly HashSet<Guid> createdPropertyIds = new HashSet<Guid>();
+
         public ResourceStudioObjectCreator(IMediaOpsPlanApi api)
         {
             this.api = api ?? throw new ArgumentNullException(nameof(api));
@@ -29,7 +32,7 @@
             {
                 ResourcesCleanup();
             }
-            catch (Exception)
+            catch
             {
                 // Ignore cleanup errors
             }
@@ -38,7 +41,7 @@
             {
                 ResourcePoolsCleanup();
             }
-            catch (Exception)
+            catch
             {
                 // Ignore cleanup errors
             }
@@ -47,7 +50,25 @@
             {
                 CapacitiesCleanup();
             }
-            catch (Exception)
+            catch
+            {
+                // Ignore cleanup errors
+            }
+
+            try
+            {
+                ConfigurationsCleanup();
+            }
+            catch
+            {
+                // Ignore cleanup errors
+            }
+
+            try
+            {
+                PropertiesCleanup();
+            }
+            catch
             {
                 // Ignore cleanup errors
             }
@@ -96,6 +117,20 @@
             var capacities = api.Capacities.Read(createdCapacityIds.ToArray()).Values;
 
             api.Capacities.Delete(capacities.ToArray());
+        }
+
+        private void ConfigurationsCleanup()
+        {
+            var configurations = api.Configurations.Read(createdConfigurationIds.ToArray()).Values;
+
+            api.Configurations.Delete(configurations.ToArray());
+        }
+
+        private void PropertiesCleanup()
+        {
+            var properties = api.Properties.Read(createdPropertyIds.ToArray()).Values;
+
+            api.Properties.Delete(properties.ToArray());
         }
 
         public Guid CreateResource(Resource resource)
@@ -172,6 +207,25 @@
             }
 
             return configurationIds;
+        }
+
+        public Guid CreateProperty(ResourceProperty property)
+        {
+            var propertyId = api.Properties.Create(property);
+            createdPropertyIds.Add(propertyId);
+
+            return propertyId;
+        }
+
+        public IEnumerable<Guid> CreateProperties(IEnumerable<ResourceProperty> properties)
+        {
+            var propertyIds = api.Properties.Create(properties);
+            foreach (var id in propertyIds)
+            {
+                createdPropertyIds.Add(id);
+            }
+
+            return propertyIds;
         }
     }
 }

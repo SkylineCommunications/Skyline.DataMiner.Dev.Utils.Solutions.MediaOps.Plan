@@ -199,18 +199,6 @@
             }
 
             Delete(apiObjects.Select(x => x.Id).ToArray());
-
-            ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Delete), act =>
-            {
-                if (!DomResourcePropertyHandler.TryDelete(PlanApi, apiObjects, out var result))
-                {
-                    throw new MediaOpsBulkException<Guid>(result);
-                }
-
-                var propertyIds = result.SuccessfulIds;
-                act?.AddTag("Removed Resource Properties", String.Join(", ", propertyIds));
-                act?.AddTag("Removed Resource Properties Count", propertyIds.Count);
-            });
         }
 
         public void Delete(params Guid[] apiObjectIds)
@@ -222,7 +210,17 @@
 
             var propertiesToDelete = Read(apiObjectIds).Values;
 
-            Delete(propertiesToDelete.ToArray());
+            ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Delete), act =>
+            {
+                if (!DomResourcePropertyHandler.TryDelete(PlanApi, propertiesToDelete, out var result))
+                {
+                    throw new MediaOpsBulkException<Guid>(result);
+                }
+
+                var propertyIds = result.SuccessfulIds;
+                act?.AddTag("Removed Resource Properties", String.Join(", ", propertyIds));
+                act?.AddTag("Removed Resource Properties Count", propertyIds.Count);
+            });
         }
 
         public void Update(ResourceProperty apiObject)

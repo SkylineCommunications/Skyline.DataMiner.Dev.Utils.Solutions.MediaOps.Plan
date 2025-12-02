@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.Linq;
 
+    using Skyline.DataMiner.Core.InterAppCalls.Common.Shared;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
 
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
@@ -26,6 +27,8 @@
         private Guid coreResourceId;
 
         private HashSet<Guid> assignedPoolIds = new HashSet<Guid>();
+
+        private readonly ICollection<ResourcePropertyConfiguration> propertyConfigurations = [];
 
         private protected Resource() : base()
         {
@@ -95,6 +98,11 @@
         /// Gets the collection of resource pool identifiers assigned to the resource.
         /// </summary>
         public IReadOnlyCollection<Guid> AssignedResourcePoolIds => (IReadOnlyCollection<Guid>)assignedPoolIds;
+
+        /// <summary>
+        /// Gets the collection of property configurations associated with this resource.
+        /// </summary>
+        public IReadOnlyCollection<ResourcePropertyConfiguration> PropertyConfigurations => (IReadOnlyCollection<ResourcePropertyConfiguration>)propertyConfigurations;
 
         /// <summary>
         /// Assigns the current resource to the specified resource pool.
@@ -205,6 +213,46 @@
             }
         }
 
+        /// <summary>
+        /// Adds the specified property configuration to the resource.
+        /// </summary>
+        /// <param name="propertyConfiguration">The property configuration to add.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="propertyConfiguration"/> is <see langword="null"/>.</exception>
+        public void AddPropertyConfiguration(ResourcePropertyConfiguration propertyConfiguration)
+        {
+            if (propertyConfiguration == null)
+            {
+                throw new ArgumentNullException(nameof(propertyConfiguration));
+            }
+
+            if (!propertyConfiguration.IsNew)
+            {
+                return;
+            }
+            
+            propertyConfigurations.Add(propertyConfiguration);
+            HasChanges = true;
+        }
+
+        /// <summary>
+        /// Removes the specified property configuration from the resource.
+        /// </summary>
+        /// <param name="propertyConfiguration">The property configuration to remove.</param>
+        /// <exception cref="ArgumentNullException">Thrown if the <paramref name="propertyConfiguration"/> parameter is <see langword="null"/>.</exception>
+        public void RemovePropertyConfiguration(ResourcePropertyConfiguration propertyConfiguration)
+        {
+            if (propertyConfiguration == null)
+            {
+                throw new ArgumentNullException(nameof(propertyConfiguration));
+            }
+
+            var toRemove = propertyConfigurations.SingleOrDefault(x => x.OriginalSection.ID == propertyConfiguration.OriginalSection.ID);
+            if (toRemove != null && propertyConfigurations.Remove(toRemove))
+            {
+                HasChanges = true;
+            }
+        }
+
         internal abstract void ApplyChanges(StorageResourceStudio.ResourceInstance instance);
 
         internal static IEnumerable<Resource> InstantiateResources(IEnumerable<StorageResourceStudio.ResourceInstance> instances)
@@ -237,6 +285,12 @@
             updatedInstance.ResourceInfo.Favorite = isFavorite;
             updatedInstance.ResourceInfo.Concurrency = concurrency;
             updatedInstance.ResourceInternalProperties.PoolIds = assignedPoolIds.ToList();
+
+            updatedInstance.ResourceProperties.Clear();
+            foreach (var propertyConfiguration in propertyConfigurations)
+            {
+                updatedInstance.ResourceProperties.Add(propertyConfiguration.GetSectionWithChanges());
+            }
 
             ApplyChanges(updatedInstance);
 
@@ -281,6 +335,13 @@
             coreResourceId = instance.ResourceInternalProperties.Resource_Id ?? Guid.Empty;
 
             State = EnumExtensions.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum, ResourceState>(instance.Status);
+
+            foreach (var section in instance.ResourceProperties)
+            {
+                var propertyConfiguration = new ResourcePropertyConfiguration(section);
+                propertyConfiguration.ValueChanged += (s, e) => { HasChanges = true; };
+                propertyConfigurations.Add(propertyConfiguration);
+            }
         }
 
         // TODO: should we support this? OR should a user read the created/updated instances after pushing their changes?
