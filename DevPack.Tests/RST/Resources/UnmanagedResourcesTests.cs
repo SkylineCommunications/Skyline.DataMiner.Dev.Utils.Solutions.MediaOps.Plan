@@ -10,12 +10,11 @@
     [TestCategory("IntegrationTest")]
     public sealed class UnmanagedResourcesTests : IDisposable
     {
-        private readonly IntegrationTestContext testContext;
-
         public UnmanagedResourcesTests()
         {
-            testContext = new IntegrationTestContext();
         }
+
+        private static IntegrationTestContext TestContext => TestContextManager.SharedTestContext;
 
         [TestMethod]
         public void HappyPathCrud()
@@ -31,15 +30,15 @@
                 IsFavorite = expectedResult.IsFavorite,
             };
 
-            var returnedId = testContext.Api.Resources.Create(unmanagedResource);
+            var returnedId = TestContext.Api.Resources.Create(unmanagedResource);
             Assert.AreEqual(id, returnedId);
 
-            var returnedResource = testContext.Api.Resources.Read(id);
+            var returnedResource = TestContext.Api.Resources.Read(id);
             expectedResult.ValidateUnmanagedResource(returnedResource);
 
             // Set resource to complete and validate result
-            testContext.Api.Resources.MoveTo(id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
-            returnedResource = testContext.Api.Resources.Read(id);
+            TestContext.Api.Resources.MoveTo(id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
+            returnedResource = TestContext.Api.Resources.Read(id);
             expectedResult.State = Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete;
             expectedResult.ValidateUnmanagedResource(returnedResource);
 
@@ -48,17 +47,17 @@
             returnedResource.Concurrency = expectedResult.Concurrency;
             returnedResource.IsFavorite = expectedResult.IsFavorite;
             returnedResource.Name = expectedResult.Name;
-            testContext.Api.Resources.Update(returnedResource);
-            returnedResource = testContext.Api.Resources.Read(id);
+            TestContext.Api.Resources.Update(returnedResource);
+            returnedResource = TestContext.Api.Resources.Read(id);
             expectedResult.ValidateUnmanagedResource(returnedResource);
 
             // Deprecate resource in order to be able to delete it
-            testContext.Api.Resources.MoveTo(id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Deprecated);
+            TestContext.Api.Resources.MoveTo(id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Deprecated);
 
             // Delete resource and validate it is gone
-            testContext.Api.Resources.Delete(id);
+            TestContext.Api.Resources.Delete(id);
 
-            var retrievedResource = testContext.Api.Resources.Read(id);
+            var retrievedResource = TestContext.Api.Resources.Read(id);
             Assert.IsNull(retrievedResource);
         }
 
@@ -81,15 +80,15 @@
                 IsFavorite = true,
             };
 
-            testContext.Api.Resources.Create(unmanagedResource1);
+            TestContext.Api.Resources.Create(unmanagedResource1);
             try
             {
-                testContext.Api.Resources.Create(unmanagedResource2);
+                TestContext.Api.Resources.Create(unmanagedResource2);
             }
             catch (MediaOpsException me)
             {
                 StringAssert.Contains(me.Message, "ID is already in use.");
-                testContext.Api.Resources.Delete(unmanagedResource1);
+                TestContext.Api.Resources.Delete(unmanagedResource1);
                 return;
             }
 
@@ -113,15 +112,15 @@
                 Concurrency = 5,
                 IsFavorite = true,
             };
-            testContext.Api.Resources.Create(unmanagedResource1);
+            TestContext.Api.Resources.Create(unmanagedResource1);
             try
             {
-                testContext.Api.Resources.Create(unmanagedResource2);
+                TestContext.Api.Resources.Create(unmanagedResource2);
             }
             catch (MediaOpsException me)
             {
                 StringAssert.Contains(me.Message, "Name is already in use.");
-                testContext.Api.Resources.Delete(unmanagedResource1);
+                TestContext.Api.Resources.Delete(unmanagedResource1);
                 return;
             }
 
@@ -150,10 +149,10 @@
                 IsFavorite = expectedResult2.IsFavorite,
             };
 
-            testContext.Api.Resources.Create(unmanagedResource1);
-            testContext.Api.Resources.Create(unmanagedResource2);
-            var returnedResource1 = testContext.Api.Resources.Read(unmanagedResource1.Id);
-            var returnedResource2 = testContext.Api.Resources.Read(unmanagedResource2.Id);
+            TestContext.Api.Resources.Create(unmanagedResource1);
+            TestContext.Api.Resources.Create(unmanagedResource2);
+            var returnedResource1 = TestContext.Api.Resources.Read(unmanagedResource1.Id);
+            var returnedResource2 = TestContext.Api.Resources.Read(unmanagedResource2.Id);
             expectedResult1.ValidateUnmanagedResource(returnedResource1);
             expectedResult2.ValidateUnmanagedResource(returnedResource2);
 
@@ -162,7 +161,7 @@
             returnedResource2.Name = name1;
             try
             {
-                testContext.Api.Resources.Update(returnedResource2);
+                TestContext.Api.Resources.Update(returnedResource2);
             }
             catch (MediaOpsException e)
             {
@@ -175,7 +174,6 @@
 
         public void Dispose()
         {
-            testContext.Dispose();
         }
 
         private struct ExpectedUnmanagedResource

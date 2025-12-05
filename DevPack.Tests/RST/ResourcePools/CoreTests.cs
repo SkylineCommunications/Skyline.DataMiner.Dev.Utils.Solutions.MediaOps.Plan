@@ -14,19 +14,18 @@
     [TestCategory("IntegrationTest")]
     public sealed class CoreTests : IDisposable
     {
-        private readonly IntegrationTestContext testContext;
         private readonly ResourceStudioObjectCreator objectCreator;
 
         public CoreTests()
         {
-            testContext = new IntegrationTestContext();
-            objectCreator = new ResourceStudioObjectCreator(testContext.Api);
+            objectCreator = new ResourceStudioObjectCreator(TestContext.Api);
         }
+
+        private static IntegrationTestContext TestContext => TestContextManager.SharedTestContext;
 
         public void Dispose()
         {
             objectCreator.Dispose();
-            testContext.Dispose();
         }
 
         [TestMethod]
@@ -40,16 +39,16 @@
             };
 
             var poolId = objectCreator.CreateResourcePool(resourcePool);
-            testContext.Api.ResourcePools.MoveTo(poolId, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
+            TestContext.Api.ResourcePools.MoveTo(poolId, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
 
-            var domResourcePool = testContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(poolId)).SingleOrDefault();
+            var domResourcePool = TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(poolId)).SingleOrDefault();
             Assert.IsNotNull(domResourcePool);
 
             var domResourcePoolInternalProperties = domResourcePool.Sections.Single(s => s.SectionDefinitionID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ResourcePoolInternalProperties.Id.Id);
             var fdDomResourcePoolIds = domResourcePoolInternalProperties.FieldValues.SingleOrDefault(f => f.FieldDescriptorID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ResourcePoolInternalProperties.Resource_Pool_Id.Id);
             var coreResourcePoolId = Guid.Parse(Convert.ToString(fdDomResourcePoolIds.Value.Value));
 
-            var coreResourcePool = testContext.ResourceManagerHelper.GetResourcePool(coreResourcePoolId);
+            var coreResourcePool = TestContext.ResourceManagerHelper.GetResourcePool(coreResourcePoolId);
             Assert.IsNotNull(coreResourcePool);
             Assert.AreEqual(resourcePool.Name, coreResourcePool.Name);
         }
@@ -65,17 +64,17 @@
             };
 
             var poolId = objectCreator.CreateResourcePool(resourcePool);
-            testContext.Api.ResourcePools.MoveTo(poolId, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
-            testContext.Api.ResourcePools.MoveTo(poolId, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Deprecated);
+            TestContext.Api.ResourcePools.MoveTo(poolId, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
+            TestContext.Api.ResourcePools.MoveTo(poolId, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Deprecated);
 
-            var domResourcePool = testContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(poolId)).SingleOrDefault();
+            var domResourcePool = TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(poolId)).SingleOrDefault();
             Assert.IsNotNull(domResourcePool);
 
             var domResourcePoolInternalProperties = domResourcePool.Sections.Single(s => s.SectionDefinitionID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ResourcePoolInternalProperties.Id.Id);
             var fdDomResourcePoolIds = domResourcePoolInternalProperties.FieldValues.SingleOrDefault(f => f.FieldDescriptorID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ResourcePoolInternalProperties.Resource_Pool_Id.Id);
             var coreResourcePoolId = Guid.Parse(Convert.ToString(fdDomResourcePoolIds.Value.Value));
 
-            var coreResourcePool = testContext.ResourceManagerHelper.GetResourcePool(coreResourcePoolId);
+            var coreResourcePool = TestContext.ResourceManagerHelper.GetResourcePool(coreResourcePoolId);
             Assert.IsNotNull(coreResourcePool);
             Assert.AreEqual(resourcePool.Name, coreResourcePool.Name);
         }

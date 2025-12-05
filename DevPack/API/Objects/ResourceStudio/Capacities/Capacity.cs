@@ -116,10 +116,10 @@
         protected internal override void InternalParseParameter(CoreParameter parameter)
         {
             units = parameter.Units ?? string.Empty;
-            rangeMin = parameter.HasMinRange() ? null : (decimal)parameter.RangeMin;
-            rangeMax = parameter.HasMaxRange() ? null : (decimal)parameter.RangeMax;
-            stepSize = parameter.HasStepSize() ? null : (decimal)parameter.Stepsize;
-            decimals = parameter.HasDecimals() ? null : parameter.Decimals;
+            rangeMin = parameter.HasMinRange() ? (decimal)parameter.RangeMin : null;
+            rangeMax = parameter.HasMaxRange() ? (decimal)parameter.RangeMax : null;
+            stepSize = parameter.HasStepSize() ? (decimal)parameter.Stepsize : null;
+            decimals = parameter.HasDecimals() ? parameter.Decimals : null;
         }
 
         internal CoreParameter GetParameterWithChanges()
@@ -129,7 +129,7 @@
             updatedParameter.Name = Name;
             updatedParameter.IsOptional = !IsMandatory;
 
-            updatedParameter.Units = units;
+            updatedParameter.Units = !string.IsNullOrEmpty(units) ? units : null;
             updatedParameter.RangeMin = rangeMin.HasValue ? (double)rangeMin.Value : double.NaN;
             updatedParameter.RangeMax = rangeMax.HasValue ? (double)rangeMax.Value : double.NaN;
             updatedParameter.Stepsize = stepSize.HasValue ? (double)stepSize.Value : double.NaN;

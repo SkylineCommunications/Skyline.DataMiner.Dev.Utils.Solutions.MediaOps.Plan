@@ -3,7 +3,7 @@
     /// <summary>
     /// Represents an error that occurs when a resource property is configured with invalid or unsupported settings.
     /// </summary>
-    public class InvalidResourcePropertyConfigurationError : ResourceConfigurationError
+    public class InvalidResourcePropertySettingsError : ResourceConfigurationError
     {
     }
 }

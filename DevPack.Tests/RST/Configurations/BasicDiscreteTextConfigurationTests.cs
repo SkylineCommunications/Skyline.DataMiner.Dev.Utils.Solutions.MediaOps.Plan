@@ -3,28 +3,29 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using RT_MediaOps.Plan.RegressionTests;
+
+    using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-    using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
     [TestClass]
     [TestCategory("IntegrationTest")]
-    public class BasicDiscreteTextConfigurationTests : IDisposable
+    public sealed class BasicDiscreteTextConfigurationTests : IDisposable
     {
-        private readonly IntegrationTestContext testContext;
         private readonly ResourceStudioObjectCreator objectCreator;
 
         public BasicDiscreteTextConfigurationTests()
         {
-            testContext = new IntegrationTestContext();
-            objectCreator = new ResourceStudioObjectCreator(testContext.Api);
+            objectCreator = new ResourceStudioObjectCreator(TestContext.Api);
         }
+
+        private static IntegrationTestContext TestContext => TestContextManager.SharedTestContext;
 
         public void Dispose()
         {
             objectCreator.Dispose();
-            testContext.Dispose();
         }
 
         [TestMethod]
@@ -46,7 +47,7 @@
             var returnedId = objectCreator.CreateConfiguration(configuration);
             Assert.AreEqual(configurationId, returnedId);
 
-            var returnedConfiguration = testContext.Api.Configurations.Read(configurationId);
+            var returnedConfiguration = TestContext.Api.Configurations.Read(configurationId);
             Assert.IsNotNull(returnedConfiguration);
             Assert.AreEqual(name, returnedConfiguration.Name);
             Assert.AreEqual(false, returnedConfiguration.IsMandatory);
@@ -57,7 +58,7 @@
             Assert.IsTrue(discreteTextConfig.Discretes.ContainsKey("Low"));
             Assert.AreEqual("low_value", discreteTextConfig.Discretes["Low"]);
 
-            var coreConfiguration = testContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(configurationId)).SingleOrDefault();
+            var coreConfiguration = TestContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(configurationId)).SingleOrDefault();
             Assert.IsNotNull(coreConfiguration);
             Assert.AreEqual(name, coreConfiguration.Name);
             Assert.AreEqual(true, coreConfiguration.IsOptional);
@@ -71,9 +72,9 @@
             var updatedName = name + "_Updated";
             discreteTextConfig.Name = updatedName;
             discreteTextConfig.AddDiscrete("Critical", "critical_value");
-            testContext.Api.Configurations.Update(discreteTextConfig);
+            TestContext.Api.Configurations.Update(discreteTextConfig);
 
-            returnedConfiguration = testContext.Api.Configurations.Read(configurationId);
+            returnedConfiguration = TestContext.Api.Configurations.Read(configurationId);
             Assert.IsNotNull(returnedConfiguration);
             Assert.AreEqual(updatedName, returnedConfiguration.Name);
 
@@ -81,17 +82,17 @@
             Assert.AreEqual(4, discreteTextConfig.Discretes.Count);
             Assert.IsTrue(discreteTextConfig.Discretes.ContainsKey("Critical"));
 
-            coreConfiguration = testContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(configurationId)).SingleOrDefault();
+            coreConfiguration = TestContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(configurationId)).SingleOrDefault();
             Assert.IsNotNull(coreConfiguration);
             Assert.AreEqual(updatedName, coreConfiguration.Name);
             Assert.AreEqual(4, coreConfiguration.Discretes.Count);
 
             // Delete
-            testContext.Api.Configurations.Delete(returnedConfiguration);
-            returnedConfiguration = testContext.Api.Configurations.Read(configurationId);
+            TestContext.Api.Configurations.Delete(returnedConfiguration);
+            returnedConfiguration = TestContext.Api.Configurations.Read(configurationId);
             Assert.IsNull(returnedConfiguration);
 
-            coreConfiguration = testContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(configurationId)).SingleOrDefault();
+            coreConfiguration = TestContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(configurationId)).SingleOrDefault();
             Assert.IsNull(coreConfiguration);
         }
 
@@ -286,12 +287,12 @@
             var id1 = objectCreator.CreateConfiguration(configuration1);
             var id2 = objectCreator.CreateConfiguration(configuration2);
 
-            var toUpdate = testContext.Api.Configurations.Read(id2);
+            var toUpdate = TestContext.Api.Configurations.Read(id2);
             toUpdate.Name = configuration1.Name;
 
             try
             {
-                testContext.Api.Configurations.Update(toUpdate);
+                TestContext.Api.Configurations.Update(toUpdate);
             }
             catch (MediaOpsException ex)
             {
@@ -329,7 +330,7 @@
 
             objectCreator.CreateConfiguration(configuration);
 
-            configuration = testContext.Api.Configurations.Read(configurationId) as DiscreteTextConfiguration;
+            configuration = TestContext.Api.Configurations.Read(configurationId) as DiscreteTextConfiguration;
             Assert.IsNotNull(configuration);
             Assert.AreEqual(true, configuration.IsMandatory);
             Assert.AreEqual(3, configuration.Discretes.Count);
@@ -338,7 +339,7 @@
             Assert.AreEqual("medium_value", configuration.Discretes["Medium"]);
             Assert.AreEqual("high_value", configuration.Discretes["High"]);
 
-            var coreConfiguration = testContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(configurationId)).SingleOrDefault();
+            var coreConfiguration = TestContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(configurationId)).SingleOrDefault();
             Assert.IsNotNull(coreConfiguration);
             Assert.AreEqual(false, coreConfiguration.IsOptional);
             Assert.AreEqual(Skyline.DataMiner.Net.Profiles.ProfileParameterCategory.Configuration, coreConfiguration.Categories);
@@ -351,16 +352,16 @@
             configuration.AddDiscrete("Critical", "critical_value");
             configuration.DefaultValue = "Critical";
 
-            testContext.Api.Configurations.Update(configuration);
+            TestContext.Api.Configurations.Update(configuration);
 
-            configuration = testContext.Api.Configurations.Read(configurationId) as DiscreteTextConfiguration;
+            configuration = TestContext.Api.Configurations.Read(configurationId) as DiscreteTextConfiguration;
             Assert.IsNotNull(configuration);
             Assert.AreEqual(true, configuration.IsMandatory);
             Assert.AreEqual(4, configuration.Discretes.Count);
             Assert.AreEqual("Critical", configuration.DefaultValue);
             Assert.AreEqual("critical_value", configuration.Discretes["Critical"]);
 
-            coreConfiguration = testContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(configurationId)).SingleOrDefault();
+            coreConfiguration = TestContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(configurationId)).SingleOrDefault();
             Assert.IsNotNull(coreConfiguration);
             Assert.AreEqual(false, coreConfiguration.IsOptional);
             Assert.AreEqual(4, coreConfiguration.Discretes.Count);
@@ -382,13 +383,13 @@
 
             objectCreator.CreateConfiguration(configuration);
 
-            configuration = (DiscreteTextConfiguration)testContext.Api.Configurations.Read(configurationId);
+            configuration = (DiscreteTextConfiguration)TestContext.Api.Configurations.Read(configurationId);
             Assert.AreEqual(3, configuration.Discretes.Count);
 
             configuration.RemoveDiscrete("Medium");
-            testContext.Api.Configurations.Update(configuration);
+            TestContext.Api.Configurations.Update(configuration);
 
-            configuration = (DiscreteTextConfiguration)testContext.Api.Configurations.Read(configurationId);
+            configuration = (DiscreteTextConfiguration)TestContext.Api.Configurations.Read(configurationId);
             Assert.AreEqual(2, configuration.Discretes.Count);
             Assert.IsFalse(configuration.Discretes.ContainsKey("Medium"));
             Assert.IsTrue(configuration.Discretes.ContainsKey("Low"));

@@ -7,12 +7,11 @@
     [TestCategory("IntegrationTest")]
     public sealed class ParameterTests : IDisposable
     {
-        private readonly IntegrationTestContext testContext;
-
         public ParameterTests()
         {
-            testContext = new IntegrationTestContext();
         }
+
+        private static IntegrationTestContext TestContext => TestContextManager.SharedTestContext;
 
         [TestMethod]
         public void ValidateConfigurationParameters()
@@ -23,36 +22,37 @@
             // Define which parameters apply on pool level
             // Evaluate that the configuration is dropdown is limited and that the mandatory field is there and can't be removed.
 
-            var resourcePoolId = testContext.Api.ResourcePools.Create(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool
+            var prefix = Guid.NewGuid();
+
+            var resourcePoolId = TestContext.Api.ResourcePools.Create(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool
             {
-                Name = "Resource Pool 1",
+                Name = $"{prefix}_Resource Pool 1",
             });
 
-            var resource1Id = testContext.Api.Resources.Create(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource(Guid.NewGuid())
+            var resource1Id = TestContext.Api.Resources.Create(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource(Guid.NewGuid())
             {
-                Name = "Resource 1",
+                Name = $"{prefix}_Resource 1",
             });
 
             //testContext.Api.ResourcePools.AssignResource(resourcePoolId, resource1Id);
 
-            var capacityId = testContext.Api.Capacities.Create(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capacity
+            var capacityId = TestContext.Api.Capacities.Create(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capacity
             {
-                Name = "Mandatory Capacity 1",
+                Name = $"{prefix}_Mandatory Capacity 1",
                 IsMandatory = true,
             });
 
-            testContext.Api.ResourcePools.Delete(resourcePoolId);
-            testContext.Api.Resources.Delete(resource1Id);
-            testContext.Api.Capacities.Delete(capacityId);
+            TestContext.Api.ResourcePools.Delete(resourcePoolId);
+            TestContext.Api.Resources.Delete(resource1Id);
+            TestContext.Api.Capacities.Delete(capacityId);
 
-            Assert.IsNull(testContext.Api.ResourcePools.Read(resourcePoolId));
-            Assert.IsNull(testContext.Api.Resources.Read(resource1Id));
-            Assert.IsNull(testContext.Api.Capacities.Read(capacityId));
+            Assert.IsNull(TestContext.Api.ResourcePools.Read(resourcePoolId));
+            Assert.IsNull(TestContext.Api.Resources.Read(resource1Id));
+            Assert.IsNull(TestContext.Api.Capacities.Read(capacityId));
         }
 
         public void Dispose()
         {
-            testContext.Dispose();
         }
     }
 }

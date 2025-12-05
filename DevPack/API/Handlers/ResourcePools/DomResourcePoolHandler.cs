@@ -116,13 +116,11 @@
             ValidateIdsNotInUse(toCreate);
             ValidateStateForUpdateAction(toUpdate);
 
-            // Always validate all configured pool links
-            var toCreatePoolLinksValidation = toCreate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id));
-            var toUpdatePoolLinksValidation = toUpdate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id));
-            ValidatePoolLinks(toCreatePoolLinksValidation.Concat(toUpdatePoolLinksValidation));
+            ValidatePoolLinks(apiResourcePools.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)));
+            ValidateCapabilities(apiResourcePools.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)));
 
             // Todo: lock DOM instances
-            var changeResults = GetPoolsWithChanges(toUpdate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)));
+            var changeResults = GetPoolsWithChanges(toUpdate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id))).ToList();
 
             var toCreateNameValidation = toCreate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id));
             var toUpdateNameValidation = toUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcResource_StudioIds.Sections.ResourcePoolInfo.Name.Id)));
@@ -137,6 +135,16 @@
                 .Select(x => new DomResourcePool(x.Instance))
                 .ToList();
             CreateOrUpdate(toCreateDomInstances.Concat(toUpdateDomInstances));
+
+            // Update resource pool capabilities if needed
+            var toUpdateWithCapabilities = toUpdate.Where(x =>
+                !TraceDataPerItem.Keys.Contains(x.Id)
+                && x.State != ResourcePoolState.Draft
+                && changeResults.Any(y => y.Instance.ID.Id == x.Id
+                        && (y.AddedSections.Select(z => z.SectionDefinitionId).Contains(SlcResource_StudioIds.Sections.ResourcePoolCapabilities.Id.Id)
+                            || y.RemovedSections.Select(z => z.SectionDefinitionId).Contains(SlcResource_StudioIds.Sections.ResourcePoolCapabilities.Id.Id)
+                            || y.ChangedFields.Select(z => z.SectionDefinitionId).Contains(SlcResource_StudioIds.Sections.ResourcePoolCapabilities.Id.Id))));
+            UpdateCoreResources(toUpdateWithCapabilities);
         }
 
         private void CreateOrUpdate(IEnumerable<DomResourcePool> domResourcePools)
@@ -254,6 +262,12 @@
                     ReportError(domInstanceId.Id, new MediaOpsErrorData() { ErrorMessage = ex.ToString() });
                 }
             }
+
+            // Update CORE resources
+            var toUpdateCoreResources = apiResourcePools
+                .Where(x => !TraceDataPerItem.Keys.Contains(x.Id))
+                .ToList();
+            UpdateCoreResources(toUpdateCoreResources);
         }
 
         private void TransitionToDeprecated(IEnumerable<ResourcePool> apiResourcePools, ResourcePoolDeprecateOptions options)
@@ -436,6 +450,35 @@
         private void UnassignResourcesFromPool(IEnumerable<ResourcePool> apiResourcePools)
         {
             // todo: implement logic to unassign resources from the given resource pools
+        }
+
+        private void UpdateCoreResources(IEnumerable<ResourcePool> apiResourcePools)
+        {
+            if (apiResourcePools == null)
+            {
+                throw new ArgumentNullException(nameof(apiResourcePools));
+            }
+
+            if (!apiResourcePools.Any())
+            {
+                return;
+            }
+
+            var resources = planApi.Resources.GetResourcesPerPool(apiResourcePools, ResourceState.Complete)
+                .Values
+                .SelectMany(x => x)
+                .Distinct(new DefaultApiObjectComparer())
+                .Cast<Resource>();
+
+            CoreResourceHandler.TryCreateOrUpdate(planApi, resources.Select(x => x.OriginalInstance), out var coreResult);
+
+            foreach (var traceData in coreResult.TraceDataPerItem)
+            {
+                foreach (var error in traceData.Value.ErrorData)
+                {
+                    ReportError(traceData.Key, error);
+                }
+            }
         }
 
         private void ValidateIdsNotInUse(IEnumerable<ResourcePool> apiResourcePools)
@@ -727,6 +770,81 @@
                         };
 
                         ReportError(pool.Id, error);
+                    }
+                }
+            }
+        }
+
+        private void ValidateCapabilities(IEnumerable<ResourcePool> apiResourcePools)
+        {
+            if (apiResourcePools == null)
+            {
+                throw new ArgumentNullException(nameof(apiResourcePools));
+            }
+
+            if (!apiResourcePools.Any())
+            {
+                return;
+            }
+
+            var capabilityIds = apiResourcePools
+                .SelectMany(x => x.Capabilities)
+                .Select(x => x.Id)
+                .Distinct()
+                .ToList();
+            var capabilitiesById = planApi.Capabilities.Read(capabilityIds);
+
+            foreach (var pool in apiResourcePools)
+            {
+                foreach (var capabilitySettings in pool.Capabilities)
+                {
+                    if (capabilitySettings.Id == Guid.Empty)
+                    {
+                        var error = new InvalidResourcePoolCapabilitySettingsError
+                        {
+                            ErrorMessage = "Capability ID cannot be empty.",
+                        };
+
+                        ReportError(pool.Id, error);
+                        continue;
+                    }
+
+                    if (!capabilitiesById.TryGetValue(capabilitySettings.Id, out var capability))
+                    {
+                        var error = new InvalidResourcePoolCapabilitySettingsError
+                        {
+                            ErrorMessage = $"Capability with ID '{capabilitySettings.Id}' not found.",
+                            CapabilityId = capabilitySettings.Id,
+                        };
+
+                        ReportError(pool.Id, error);
+                        continue;
+                    }
+
+                    if (capabilitySettings.Discretes.Count == 0)
+                    {
+                        var error = new InvalidResourcePoolCapabilitySettingsError
+                        {
+                            ErrorMessage = "At least one discrete value must be specified for the capability.",
+                            CapabilityId = capabilitySettings.Id,
+                        };
+
+                        ReportError(pool.Id, error);
+                        continue;
+                    }
+
+                    foreach (var discreteValue in capabilitySettings.Discretes)
+                    {
+                        if (!capability.Discretes.Contains(discreteValue))
+                        {
+                            var error = new InvalidResourcePoolCapabilitySettingsError
+                            {
+                                ErrorMessage = $"Discrete value '{discreteValue}' is not valid for capability '{capability.Name}'.",
+                                CapabilityId = capabilitySettings.Id,
+                            };
+
+                            ReportError(pool.Id, error);
+                        }
                     }
                 }
             }

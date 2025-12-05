@@ -15,6 +15,8 @@
 
         private readonly HashSet<Guid> createdResourceIds = new HashSet<Guid>();
 
+        private readonly HashSet<Guid> createdCapabilityIds = new HashSet<Guid>();
+
         private readonly HashSet<Guid> createdCapacityIds = new HashSet<Guid>();
 
         private readonly HashSet<Guid> createdConfigurationIds = new HashSet<Guid>();
@@ -40,6 +42,15 @@
             try
             {
                 ResourcePoolsCleanup();
+            }
+            catch
+            {
+                // Ignore cleanup errors
+            }
+
+            try
+            {
+                CapabilitiesCleanup();
             }
             catch
             {
@@ -112,6 +123,13 @@
             api.ResourcePools.Delete(createdPoolIds.ToArray());
         }
 
+        private void CapabilitiesCleanup()
+        {
+            var capabilities = api.Capabilities.Read(createdCapabilityIds.ToArray()).Values;
+
+            api.Capabilities.Delete(capabilities.ToArray());
+        }
+
         private void CapacitiesCleanup()
         {
             var capacities = api.Capacities.Read(createdCapacityIds.ToArray()).Values;
@@ -169,6 +187,25 @@
             }
 
             return poolIds;
+        }
+
+        public Guid CreateCapability(Capability capability)
+        {
+            var capabilityId = api.Capabilities.Create(capability);
+            createdCapabilityIds.Add(capabilityId);
+
+            return capabilityId;
+        }
+
+        public IEnumerable<Guid> CreateCapabilities(IEnumerable<Capability> capabilities)
+        {
+            var capabilityIds = api.Capabilities.Create(capabilities);
+            foreach (var id in capabilityIds)
+            {
+                createdCapabilityIds.Add(id);
+            }
+
+            return capabilityIds;
         }
 
         public Guid CreateCapacity(Capacity capacity)

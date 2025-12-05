@@ -1045,7 +1045,11 @@
         {
             bool resourceHasChanges = false;
             var required = GetRequiredResourceCapabilities(domResource);
-            var removed = coreResource.Capabilities.Where(x => !required.Select(y => y.CapabilityProfileID).Contains(x.CapabilityProfileID)).ToList();
+            var removed = coreResource.Capabilities
+                .Where(x =>
+                    x.CapabilityProfileID != CoreCapabilities.ResourceType.Id
+                    && !required.Select(y => y.CapabilityProfileID).Contains(x.CapabilityProfileID))
+                .ToList();
 
             foreach (var resourceCapability in removed)
             {

@@ -14,19 +14,18 @@
     [TestCategory("IntegrationTest")]
     public sealed class BasicTests : IDisposable
     {
-        private readonly IntegrationTestContext testContext;
         private readonly ResourceStudioObjectCreator objectCreator;
 
         public BasicTests()
         {
-            testContext = new IntegrationTestContext();
-            objectCreator = new ResourceStudioObjectCreator(testContext.Api);
+            objectCreator = new ResourceStudioObjectCreator(TestContext.Api);
         }
+
+        private static IntegrationTestContext TestContext => TestContextManager.SharedTestContext;
 
         public void Dispose()
         {
             objectCreator.Dispose();
-            testContext.Dispose();
         }
 
         [TestMethod]
@@ -44,33 +43,33 @@
             var returnedId = objectCreator.CreateResourcePool(resourcePool);
             Assert.AreEqual(poolId, returnedId);
 
-            var returnedResourcePool = testContext.Api.ResourcePools.Read(poolId);
+            var returnedResourcePool = TestContext.Api.ResourcePools.Read(poolId);
             Assert.IsNotNull(returnedResourcePool);
             Assert.AreEqual(name, returnedResourcePool.Name);
 
             // Set pool to complete and validate result
-            testContext.Api.ResourcePools.MoveTo(returnedResourcePool, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
-            returnedResourcePool = testContext.Api.ResourcePools.Read(poolId);
+            TestContext.Api.ResourcePools.MoveTo(returnedResourcePool, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
+            returnedResourcePool = TestContext.Api.ResourcePools.Read(poolId);
             Assert.IsNotNull(returnedResourcePool);
             Assert.AreEqual(Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete, returnedResourcePool.State);
 
             // Update pool and validate result
             var updatedName = name + "_updated";
             returnedResourcePool.Name = updatedName;
-            testContext.Api.ResourcePools.Update(returnedResourcePool);
-            returnedResourcePool = testContext.Api.ResourcePools.Read(poolId);
+            TestContext.Api.ResourcePools.Update(returnedResourcePool);
+            returnedResourcePool = TestContext.Api.ResourcePools.Read(poolId);
             Assert.IsNotNull(returnedResourcePool);
             Assert.AreEqual(updatedName, returnedResourcePool.Name);
 
             // Deprecate pool
-            testContext.Api.ResourcePools.MoveTo(returnedResourcePool, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Deprecated);
-            returnedResourcePool = testContext.Api.ResourcePools.Read(poolId);
+            TestContext.Api.ResourcePools.MoveTo(returnedResourcePool, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Deprecated);
+            returnedResourcePool = TestContext.Api.ResourcePools.Read(poolId);
             Assert.IsNotNull(returnedResourcePool);
             Assert.AreEqual(Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Deprecated, returnedResourcePool.State);
 
             // Delete pool and validate it is gone
-            testContext.Api.ResourcePools.Delete(returnedResourcePool);
-            returnedResourcePool = testContext.Api.ResourcePools.Read(poolId);
+            TestContext.Api.ResourcePools.Delete(returnedResourcePool);
+            returnedResourcePool = TestContext.Api.ResourcePools.Read(poolId);
             Assert.IsNull(returnedResourcePool);
         }
 
@@ -255,12 +254,12 @@
             var id1 = objectCreator.CreateResourcePool(resourcePool1);
             var id2 = objectCreator.CreateResourcePool(resourcePool2);
 
-            var toUpdate = testContext.Api.ResourcePools.Read(id2);
+            var toUpdate = TestContext.Api.ResourcePools.Read(id2);
             toUpdate.Name = resourcePool1.Name;
 
             try
             {
-                testContext.Api.ResourcePools.Update(toUpdate);
+                TestContext.Api.ResourcePools.Update(toUpdate);
             }
             catch (MediaOpsException ex)
             {
