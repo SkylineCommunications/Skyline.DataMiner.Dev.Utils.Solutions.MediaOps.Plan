@@ -183,7 +183,18 @@
         /// <returns><c>true</c> if the parameter is time-dependent; otherwise, <c>false</c>.</returns>
         public static bool IsTimeDependent(this Parameter parameter)
         {
-            return TimeDependentCapabilityLink.TryDeserialize(parameter.Remarks, out TimeDependentCapabilityLink timeDependentCapabilityLink) && timeDependentCapabilityLink.IsTimeDependent;
+            return IsTimeDependent(parameter, out _);
+        }
+
+        public static bool IsTimeDependent(this Parameter parameter, out TimeDependentCapabilityLink timeDependentCapabilityLink)
+        {
+            if (TimeDependentCapabilityLink.TryDeserialize(parameter.Remarks, out timeDependentCapabilityLink))
+            {
+                return timeDependentCapabilityLink.IsTimeDependent;
+            }
+
+            timeDependentCapabilityLink = null;
+            return false;
         }
 
         /// <summary>

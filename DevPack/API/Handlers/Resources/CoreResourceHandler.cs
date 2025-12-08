@@ -33,6 +33,7 @@
         private readonly IReadOnlyDictionary<Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type, Func<DomResource, CoreResource, bool>> typeSyncers;
 
         private readonly Lazy<Dictionary<Guid, Net.Profiles.Parameter>> lazyCoreCapabilitiesById;
+        private readonly Lazy<Dictionary<Guid, Net.Profiles.Parameter>> lazyCoreTimeDependentCapabilitiesById;
         private readonly Lazy<Dictionary<Guid, Net.Profiles.Parameter>> lazyCoreCapacitiesById;
         private readonly Lazy<DomCapabilitiesHandler> lazyCapabilitiesHandler;
 
@@ -41,6 +42,7 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
 
             lazyCoreCapabilitiesById = new Lazy<Dictionary<Guid, Net.Profiles.Parameter>>(() => planApi.CoreHelpers.ProfileProvider.GetAllCapabilities().ToDictionary(x => x.ID));
+            lazyCoreTimeDependentCapabilitiesById = new Lazy<Dictionary<Guid, Net.Profiles.Parameter>>(() => planApi.CoreHelpers.ProfileProvider.GetAllTimeDependentCapabilities().ToDictionary(x => x.ID));
             lazyCoreCapacitiesById = new Lazy<Dictionary<Guid, Net.Profiles.Parameter>>(() => planApi.CoreHelpers.ProfileProvider.GetAllCapacities().ToDictionary(x => x.ID));
             lazyCapabilitiesHandler = new Lazy<DomCapabilitiesHandler>(() => new DomCapabilitiesHandler(planApi));
 
@@ -54,6 +56,8 @@
         }
 
         private Dictionary<Guid, Net.Profiles.Parameter> CoreCapabilitiesById => lazyCoreCapabilitiesById.Value;
+
+        private Dictionary<Guid, Net.Profiles.Parameter> CoreTimeDependentCapabilitiesById => lazyCoreTimeDependentCapabilitiesById.Value;
 
         private Dictionary<Guid, Net.Profiles.Parameter> CoreCapacitiesById => lazyCoreCapacitiesById.Value;
 
@@ -1064,7 +1068,7 @@
                 {
                     coreResource.Capabilities.Add(resourceCapability);
                 }
-                else if (!capability.Value.Discreets.Equals(resourceCapability.Value.Discreets))
+                else if (!capability.IsTimeDynamic && !capability.Value.Discreets.Equals(resourceCapability.Value.Discreets))
                 {
                     capability.Value.Discreets = resourceCapability.Value.Discreets;
                 }
@@ -1089,6 +1093,22 @@
                 if (!CoreCapabilitiesById.TryGetValue(configuredCapability.ProfileParameterId, out var coreCapability))
                 {
                     continue;
+                }
+
+                if (coreCapability.IsTimeDependent(out var timeDependentCapabilityLink))
+                {
+                    if (!CoreTimeDependentCapabilitiesById.TryGetValue(timeDependentCapabilityLink.LinkedParameterId, out var linkedCoreCapability))
+                    {
+                        continue;
+                    }
+
+                    var timeDependentCapability = new Net.SRM.Capabilities.ResourceCapability(linkedCoreCapability.ID)
+                    {
+                        Value = new Net.Profiles.CapabilityParameterValue(),
+                        IsTimeDynamic = true,
+                    };
+
+                    coreCapabilities.Add(timeDependentCapability);
                 }
 
                 var capability = new Net.SRM.Capabilities.ResourceCapability(coreCapability.ID)

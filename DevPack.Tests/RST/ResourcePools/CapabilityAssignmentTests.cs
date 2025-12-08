@@ -524,6 +524,219 @@
         }
 
         [TestMethod]
+        public void TimeDependentCapabilityCRUD()
+        {
+            var prefix = Guid.NewGuid();
+
+            var timeCapability1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capability()
+            {
+                Name = $"{prefix}_Time Capability 1",
+                IsTimeDependent = true,
+            };
+            timeCapability1.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
+            var timeCapabilityId1 = objectCreator.CreateCapability(timeCapability1);
+
+            var timeCapability2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capability()
+            {
+                Name = $"{prefix}_Time Capability 2",
+                IsTimeDependent = true,
+            };
+            timeCapability2.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
+            var timeCapabilityId2 = objectCreator.CreateCapability(timeCapability2);
+
+            var regularCapability = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capability()
+            {
+                Name = $"{prefix}_Capability"
+            };
+            regularCapability.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
+            var regularCapabilityId = objectCreator.CreateCapability(regularCapability);
+
+            var timeCapabilitySettings1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(timeCapabilityId1);
+            timeCapabilitySettings1.SetDiscretes(new[] { "Value 1", "Value 2" });
+
+            var timeCapabilitySettings2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(timeCapabilityId2);
+            timeCapabilitySettings2.SetDiscretes(new[] { "Value 2", "Value 3" });
+
+            var regularCapabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(regularCapabilityId);
+            regularCapabilitySettings.SetDiscretes(new[] { "Value 1", "Value 3" });
+
+            var unmanagedResource1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
+            {
+                Name = $"{prefix}_Resource1",
+            };
+            var unmanagedResource2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
+            {
+                Name = $"{prefix}_Resource2",
+            };
+            var unmanagedResource3 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
+            {
+                Name = $"{prefix}_Resource3",
+            };
+            var resourceIds = objectCreator.CreateResources([unmanagedResource1, unmanagedResource2, unmanagedResource3]).ToArray();
+            TestContext.Api.Resources.MoveTo(unmanagedResource1.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
+            TestContext.Api.Resources.MoveTo(unmanagedResource3.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
+
+            // Create Resource Pool with one time dependent capability assigned
+            var resourcePool = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
+            {
+                Name = $"{prefix}_Resource Pool",
+            };
+            resourcePool.AddCapability(timeCapabilitySettings1);
+            var poolId = objectCreator.CreateResourcePool(resourcePool);
+
+            // Move Resource Pool to Completed state
+            TestContext.Api.ResourcePools.MoveTo(poolId, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
+
+            var resources = TestContext.Api.Resources.Read(resourceIds).Values;
+            TestContext.Api.ResourcePools.AssignResourcesToPool(poolId, resources);
+
+            resourcePool = TestContext.Api.ResourcePools.Read(poolId);
+            Assert.AreEqual(1, resourcePool.Capabilities.Count);
+
+            var resource1 = resources.Single(r => r.Id == unmanagedResource1.Id);
+            var resource2 = resources.Single(r => r.Id == unmanagedResource2.Id);
+            var resource3 = resources.Single(r => r.Id == unmanagedResource3.Id);
+
+            var capabilities = TestContext.Api.Capabilities.Read([timeCapabilityId1, timeCapabilityId2, regularCapabilityId]).Values;
+            timeCapability1 = capabilities.Single(c => c.Id == timeCapability1.Id);
+            timeCapability2 = capabilities.Single(c => c.Id == timeCapability2.Id);
+            regularCapability = capabilities.Single(c => c.Id == regularCapability.Id);
+
+            Assert.AreNotEqual(Guid.Empty, resourcePool.CoreResourcePoolId);
+            Assert.AreEqual(Guid.Empty, resource2.CoreResourceId);
+
+            foreach (var resource in new[] { resource1, resource3 })
+            {
+                Assert.AreNotEqual(Guid.Empty, resource.CoreResourceId);
+                var coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
+
+                // Expected capabilities + 1 > RST_ResourceType
+                Assert.AreEqual(3, coreResource.Capabilities.Count);
+
+                var resourceCapability = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapabilityId1);
+                Assert.IsNotNull(resourceCapability);
+                Assert.AreEqual(2, resourceCapability.Value.Discreets.Count);
+                Assert.IsTrue(resourceCapability.Value.Discreets.Contains("Value 1"));
+                Assert.IsTrue(resourceCapability.Value.Discreets.Contains("Value 2"));
+
+                var resourceTimeDependentCapability = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapability1.LinkedTimeDependentCapabilityId);
+                Assert.IsNotNull(resourceTimeDependentCapability);
+                Assert.IsTrue(resourceTimeDependentCapability.IsTimeDynamic);
+            }
+            
+            // Update Resource Pool to add second time dependent capability
+            resourcePool.AddCapability(timeCapabilitySettings2);
+            TestContext.Api.ResourcePools.Update(resourcePool);
+
+            resourcePool = TestContext.Api.ResourcePools.Read(poolId);
+            Assert.AreEqual(2, resourcePool.Capabilities.Count);
+
+            foreach (var resource in new[] { resource1, resource3 })
+            {
+                Assert.AreNotEqual(Guid.Empty, resource.CoreResourceId);
+                var coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
+
+                // Expected capabilities + 1 > RST_ResourceType
+                Assert.AreEqual(5, coreResource.Capabilities.Count);
+
+                var resourceCapability1 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapabilityId1);
+                Assert.IsNotNull(resourceCapability1);
+                Assert.AreEqual(2, resourceCapability1.Value.Discreets.Count);
+                Assert.IsTrue(resourceCapability1.Value.Discreets.Contains("Value 1"));
+                Assert.IsTrue(resourceCapability1.Value.Discreets.Contains("Value 2"));
+
+                var resourceTimeDependentCapability1 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapability1.LinkedTimeDependentCapabilityId);
+                Assert.IsNotNull(resourceTimeDependentCapability1);
+                Assert.IsTrue(resourceTimeDependentCapability1.IsTimeDynamic);
+
+                var resourceCapability2 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapabilityId2);
+                Assert.IsNotNull(resourceCapability2);
+                Assert.AreEqual(2, resourceCapability2.Value.Discreets.Count);
+                Assert.IsTrue(resourceCapability2.Value.Discreets.Contains("Value 2"));
+                Assert.IsTrue(resourceCapability2.Value.Discreets.Contains("Value 3"));
+
+                var resourceTimeDependentCapability2 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapability2.LinkedTimeDependentCapabilityId);
+                Assert.IsNotNull(resourceTimeDependentCapability2);
+                Assert.IsTrue(resourceTimeDependentCapability2.IsTimeDynamic);
+            }
+
+            // Update Resource Pool to add regular capability
+            resourcePool.AddCapability(regularCapabilitySettings);
+            TestContext.Api.ResourcePools.Update(resourcePool);
+
+            resourcePool = TestContext.Api.ResourcePools.Read(poolId);
+            Assert.AreEqual(3, resourcePool.Capabilities.Count);
+
+            foreach (var resource in new[] { resource1, resource3 })
+            {
+                Assert.AreNotEqual(Guid.Empty, resource.CoreResourceId);
+                var coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
+
+                // Expected capabilities + 1 > RST_ResourceType
+                Assert.AreEqual(6, coreResource.Capabilities.Count);
+
+                var resourceCapability1 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapabilityId1);
+                Assert.IsNotNull(resourceCapability1);
+                Assert.AreEqual(2, resourceCapability1.Value.Discreets.Count);
+                Assert.IsTrue(resourceCapability1.Value.Discreets.Contains("Value 1"));
+                Assert.IsTrue(resourceCapability1.Value.Discreets.Contains("Value 2"));
+
+                var resourceTimeDependentCapability1 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapability1.LinkedTimeDependentCapabilityId);
+                Assert.IsNotNull(resourceTimeDependentCapability1);
+                Assert.IsTrue(resourceTimeDependentCapability1.IsTimeDynamic);
+
+                var resourceCapability2 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapabilityId2);
+                Assert.IsNotNull(resourceCapability2);
+                Assert.AreEqual(2, resourceCapability2.Value.Discreets.Count);
+                Assert.IsTrue(resourceCapability2.Value.Discreets.Contains("Value 2"));
+                Assert.IsTrue(resourceCapability2.Value.Discreets.Contains("Value 3"));
+
+                var resourceTimeDependentCapability2 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapability2.LinkedTimeDependentCapabilityId);
+                Assert.IsNotNull(resourceTimeDependentCapability2);
+                Assert.IsTrue(resourceTimeDependentCapability2.IsTimeDynamic);
+
+                var resourceCapability3 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == regularCapabilityId);
+                Assert.IsNotNull(resourceCapability3);
+                Assert.AreEqual(2, resourceCapability3.Value.Discreets.Count);
+                Assert.IsTrue(resourceCapability3.Value.Discreets.Contains("Value 1"));
+                Assert.IsTrue(resourceCapability3.Value.Discreets.Contains("Value 3"));
+            }
+
+            // Remove first time dependent capability
+            timeCapabilitySettings1 = resourcePool.Capabilities.First(x => x.Id == timeCapability1.Id);
+            resourcePool.RemoveCapability(timeCapabilitySettings1);
+            TestContext.Api.ResourcePools.Update(resourcePool);
+
+            resourcePool = TestContext.Api.ResourcePools.Read(poolId);
+            Assert.AreEqual(2, resourcePool.Capabilities.Count);
+
+            foreach (var resource in new[] { resource1, resource3 })
+            {
+                Assert.AreNotEqual(Guid.Empty, resource.CoreResourceId);
+                var coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
+
+                // Expected capabilities + 1 > RST_ResourceType
+                Assert.AreEqual(4, coreResource.Capabilities.Count);
+
+                var resourceCapability2 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapabilityId2);
+                Assert.IsNotNull(resourceCapability2);
+                Assert.AreEqual(2, resourceCapability2.Value.Discreets.Count);
+                Assert.IsTrue(resourceCapability2.Value.Discreets.Contains("Value 2"));
+                Assert.IsTrue(resourceCapability2.Value.Discreets.Contains("Value 3"));
+
+                var resourceTimeDependentCapability2 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapability2.LinkedTimeDependentCapabilityId);
+                Assert.IsNotNull(resourceTimeDependentCapability2);
+                Assert.IsTrue(resourceTimeDependentCapability2.IsTimeDynamic);
+
+                var resourceCapability3 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == regularCapabilityId);
+                Assert.IsNotNull(resourceCapability3);
+                Assert.AreEqual(2, resourceCapability3.Value.Discreets.Count);
+                Assert.IsTrue(resourceCapability3.Value.Discreets.Contains("Value 1"));
+                Assert.IsTrue(resourceCapability3.Value.Discreets.Contains("Value 3"));
+            }
+        }
+
+        [TestMethod]
         public void Dom_SinglePoolCapability()
         {
             var prefix = Guid.NewGuid();
