@@ -7,6 +7,7 @@
 
     using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
     [TestClass]
     [TestCategory("IntegrationTest")]
@@ -90,6 +91,79 @@
 
             Assert.IsNull(mainCoreCapability);
             Assert.IsNull(linkedCoreCapability);
+        }
+
+        [TestMethod]
+        public void ChangeRegularCapabilityToTimeDependentThrowsException()
+        {
+            var prefix = Guid.NewGuid().ToString();
+
+            var capability = new Capability
+            {
+                Name = $"{prefix}_Capability",
+                IsTimeDependent = false,
+            };
+            capability.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
+            var capabilityId = TestContext.Api.Capabilities.Create(capability);
+
+            capability = TestContext.Api.Capabilities.Read(capabilityId);
+            capability.IsTimeDependent = true;
+
+            try
+            {
+                TestContext.Api.Capabilities.Update(capability);
+            }
+            catch (MediaOpsException ex)
+            {
+                StringAssert.Contains(ex.Message, "Changing the time dependency of a capability is not allowed.");
+
+                Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
+                var capabilityConfigurationError = ex.TraceData.ErrorData.OfType<CapabilityConfigurationError>().SingleOrDefault();
+                Assert.IsNotNull(capabilityConfigurationError);
+
+                Assert.AreEqual(CapabilityConfigurationError.Reason.InvalidTimeDependency, capabilityConfigurationError.ErrorReason);
+                Assert.AreEqual("Changing the time dependency of a capability is not allowed.", capabilityConfigurationError.ErrorMessage);
+
+                return;
+            }
+
+            Assert.Fail("Expected exception was not thrown when changing a regular capability to time-dependent.");
+        }
+
+        [TestMethod]
+        public void ChangeTimeDependentToRegularCapabilityThrowsException()
+        {
+            var prefix = Guid.NewGuid().ToString();
+            var capability = new Capability
+            {
+                Name = $"{prefix}_Capability",
+                IsTimeDependent = true,
+            };
+            capability.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
+            var capabilityId = TestContext.Api.Capabilities.Create(capability);
+
+            capability = TestContext.Api.Capabilities.Read(capabilityId);
+            capability.IsTimeDependent = false;
+
+            try
+            {
+                TestContext.Api.Capabilities.Update(capability);
+            }
+            catch (MediaOpsException ex)
+            {
+                StringAssert.Contains(ex.Message, "Changing the time dependency of a capability is not allowed.");
+
+                Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
+                var capabilityConfigurationError = ex.TraceData.ErrorData.OfType<CapabilityConfigurationError>().SingleOrDefault();
+                Assert.IsNotNull(capabilityConfigurationError);
+
+                Assert.AreEqual(CapabilityConfigurationError.Reason.InvalidTimeDependency, capabilityConfigurationError.ErrorReason);
+                Assert.AreEqual("Changing the time dependency of a capability is not allowed.", capabilityConfigurationError.ErrorMessage);
+
+                return;
+            }
+
+            Assert.Fail("Expected exception was not thrown when changing a time-dependent capability to regular.");
         }
 
         [TestMethod]
