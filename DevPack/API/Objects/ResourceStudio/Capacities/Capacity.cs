@@ -5,22 +5,24 @@
     using Skyline.DataMiner.Net.Profiles;
 
     using CoreParameter = Net.Profiles.Parameter;
+    using System.Collections.Generic;
+    using System.Linq;
 
     /// <summary>
     /// Represents a Capacity in the MediaOps Plan API.
     /// </summary>
-    public class Capacity : Parameter
+    public abstract class Capacity : Parameter
     {
-        private string units;
-        private decimal? rangeMin;
-        private decimal? rangeMax;
-        private decimal? stepSize;
-        private int? decimals;
+        protected string units;
+        protected decimal? rangeMin;
+        protected decimal? rangeMax;
+        protected decimal? stepSize;
+        protected int? decimals;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Capacity"/> class.
         /// </summary>
-        public Capacity() : base()
+        private protected Capacity() : base()
         {
         }
 
@@ -28,7 +30,7 @@
         /// Initializes a new instance of the <see cref="Capacity"/> class with the specified unique identifier.
         /// </summary>
         /// <param name="id">The unique identifier for the capacity.</param>
-        public Capacity(Guid id) : base(id)
+        private protected Capacity(Guid id) : base(id)
         {
         }
 
@@ -36,7 +38,7 @@
         /// Initializes a new instance of the <see cref="Capacity"/> class using the specified core parameter.
         /// </summary>
         /// <param name="parameter">The core parameter used to initialize the capacity. Must not be null.</param>
-        internal protected Capacity(CoreParameter parameter) : base(parameter)
+        private protected Capacity(CoreParameter parameter) : base(parameter)
         {
         }
 
@@ -122,20 +124,45 @@
             decimals = parameter.HasDecimals() ? parameter.Decimals : null;
         }
 
-        internal CoreParameter GetParameterWithChanges()
+        internal abstract CoreParameter GetParameterWithChanges();
+
+        internal static IEnumerable<Capacity> InstantiateCapacities(IEnumerable<CoreParameter> parameters)
         {
-            var updatedParameter = IsNew ? new CoreParameter(Id) { Categories = ProfileParameterCategory.Capacity, Type = CoreParameter.ParameterType.Number } : new CoreParameter(CoreParameter) { Categories = ProfileParameterCategory.Capacity };
+            if (parameters == null)
+            {
+                throw new ArgumentNullException(nameof(parameters));
+            }
 
-            updatedParameter.Name = Name;
-            updatedParameter.IsOptional = !IsMandatory;
+            if (!parameters.Any())
+            {
+                return [];
+            }
 
-            updatedParameter.Units = !string.IsNullOrEmpty(units) ? units : null;
-            updatedParameter.RangeMin = rangeMin.HasValue ? (double)rangeMin.Value : double.NaN;
-            updatedParameter.RangeMax = rangeMax.HasValue ? (double)rangeMax.Value : double.NaN;
-            updatedParameter.Stepsize = stepSize.HasValue ? (double)stepSize.Value : double.NaN;
-            updatedParameter.Decimals = decimals.HasValue ? decimals.Value : int.MaxValue;
+            return InstantiateCapacitiesIterator(parameters);
+        }
 
-            return updatedParameter;
+        private static IEnumerable<Capacity> InstantiateCapacitiesIterator(IEnumerable<CoreParameter> parameters)
+        {
+            foreach (var parameter in parameters)
+            {
+                if (!parameter.IsCapacity())
+                {
+                    continue;
+                }
+
+                if (parameter.IsNumber())
+                {
+                    yield return new NumberCapacity(parameter);
+                }
+                else if (parameter.IsRange())
+                {
+                    yield return new RangeCapacity(parameter);
+                }
+                else
+                {
+                    // continue
+                }
+            }
         }
     }
 }
