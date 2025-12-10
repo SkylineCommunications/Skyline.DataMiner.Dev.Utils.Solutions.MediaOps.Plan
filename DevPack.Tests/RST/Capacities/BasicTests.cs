@@ -10,21 +10,20 @@
 
     [TestClass]
     [TestCategory("IntegrationTest")]
-    public sealed class BasicTests
+    public sealed class BasicTests : IDisposable
     {
-        private readonly IntegrationTestContext testContext;
         private readonly ResourceStudioObjectCreator objectCreator;
 
         public BasicTests()
         {
-            testContext = new IntegrationTestContext();
-            objectCreator = new ResourceStudioObjectCreator(testContext.Api);
+            objectCreator = new ResourceStudioObjectCreator(TestContext.Api);
         }
+
+        private static IntegrationTestContext TestContext => TestContextManager.SharedTestContext;
 
         public void Dispose()
         {
             objectCreator.Dispose();
-            testContext.Dispose();
         }
 
         [TestMethod]
@@ -42,12 +41,12 @@
             var returnedId = objectCreator.CreateCapacity(capacity);
             Assert.AreEqual(capacityId, returnedId);
 
-            var returnedCapacity = testContext.Api.Capacities.Read(capacityId);
+            var returnedCapacity = TestContext.Api.Capacities.Read(capacityId);
             Assert.IsNotNull(returnedCapacity);
             Assert.AreEqual(name, returnedCapacity.Name);
             Assert.AreEqual(false, returnedCapacity.IsMandatory);
 
-            var coreCapacity = testContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(capacityId)).SingleOrDefault();
+            var coreCapacity = TestContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(capacityId)).SingleOrDefault();
             Assert.IsNotNull(coreCapacity);
             Assert.AreEqual(name, coreCapacity.Name);
             Assert.AreEqual(true, coreCapacity.IsOptional);
@@ -68,12 +67,12 @@
             // Update
             var updatedName = name + "_Updated";
             returnedCapacity.Name = updatedName;
-            testContext.Api.Capacities.Update(returnedCapacity);
-            returnedCapacity = testContext.Api.Capacities.Read(capacityId);
+            TestContext.Api.Capacities.Update(returnedCapacity);
+            returnedCapacity = TestContext.Api.Capacities.Read(capacityId);
             Assert.IsNotNull(returnedCapacity);
             Assert.AreEqual(updatedName, returnedCapacity.Name);
 
-            coreCapacity = testContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(capacityId)).SingleOrDefault();
+            coreCapacity = TestContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(capacityId)).SingleOrDefault();
             Assert.IsNotNull(coreCapacity);
             Assert.AreEqual(updatedName, coreCapacity.Name);
             Assert.AreEqual(true, coreCapacity.IsOptional);
@@ -92,11 +91,11 @@
             Assert.AreEqual(int.MaxValue, coreCapacity.Decimals);
 
             // Delete
-            testContext.Api.Capacities.Delete(returnedCapacity);
-            returnedCapacity = testContext.Api.Capacities.Read(capacityId);
+            TestContext.Api.Capacities.Delete(returnedCapacity);
+            returnedCapacity = TestContext.Api.Capacities.Read(capacityId);
             Assert.IsNull(returnedCapacity);
 
-            coreCapacity = testContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(capacityId)).SingleOrDefault();
+            coreCapacity = TestContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(capacityId)).SingleOrDefault();
             Assert.IsNull(coreCapacity);
         }
 
@@ -281,12 +280,12 @@
             var id1 = objectCreator.CreateCapacity(capacity1);
             var id2 = objectCreator.CreateCapacity(capacity2);
 
-            var toUpdate = testContext.Api.Capacities.Read(id2);
+            var toUpdate = TestContext.Api.Capacities.Read(id2);
             toUpdate.Name = capacity1.Name;
 
             try
             {
-                testContext.Api.Capacities.Update(toUpdate);
+                TestContext.Api.Capacities.Update(toUpdate);
             }
             catch (MediaOpsException ex)
             {
@@ -324,7 +323,7 @@
 
             objectCreator.CreateCapacity(capacity);
 
-            capacity = testContext.Api.Capacities.Read(capacityId);
+            capacity = TestContext.Api.Capacities.Read(capacityId);
             Assert.IsNotNull(capacity);
             Assert.AreEqual(true, capacity.IsMandatory);
 
@@ -334,7 +333,7 @@
             Assert.AreEqual(5, capacity.StepSize);
             Assert.AreEqual(2, capacity.Decimals);
 
-            var coreCapacity = testContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(capacityId)).SingleOrDefault();
+            var coreCapacity = TestContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(capacityId)).SingleOrDefault();
             Assert.IsNotNull(coreCapacity);
             Assert.AreEqual(false, coreCapacity.IsOptional);
 
@@ -358,9 +357,9 @@
             capacity.StepSize = 10;
             capacity.Decimals = 1;
 
-            testContext.Api.Capacities.Update(capacity);
+            TestContext.Api.Capacities.Update(capacity);
 
-            capacity = testContext.Api.Capacities.Read(capacityId);
+            capacity = TestContext.Api.Capacities.Read(capacityId);
             Assert.IsNotNull(capacity);
             Assert.AreEqual(true, capacity.IsMandatory);
 
@@ -370,7 +369,7 @@
             Assert.AreEqual(10, capacity.StepSize);
             Assert.AreEqual(1, capacity.Decimals);
 
-            coreCapacity = testContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(capacityId)).SingleOrDefault();
+            coreCapacity = TestContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(capacityId)).SingleOrDefault();
             Assert.IsNotNull(coreCapacity);
             Assert.AreEqual(false, coreCapacity.IsOptional);
 

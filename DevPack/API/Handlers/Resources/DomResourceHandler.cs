@@ -648,7 +648,7 @@
             }
 
             var propertyIds = apiResources
-                .SelectMany(x => x.PropertyConfigurations)
+                .SelectMany(x => x.Properties)
                 .Select(x => x.Id)
                 .Distinct()
                 .ToList();
@@ -656,22 +656,22 @@
 
             foreach (var resource in apiResources)
             {
-                foreach (var propertyConfiguration in resource.PropertyConfigurations)
+                foreach (var propertySettings in resource.Properties)
                 {
-                    if (propertyConfiguration.Id == Guid.Empty)
+                    if (propertySettings.Id == Guid.Empty)
                     {
-                        var error = new InvalidResourcePropertyConfigurationError
+                        var error = new InvalidResourcePropertySettingsError
                         {
-                            ErrorMessage = "Property configuration ID cannot be empty.",
+                            ErrorMessage = "Property ID cannot be empty.",
                         };
 
                         ReportError(resource.Id, error);
                     }
-                    else if (!propertiesById.TryGetValue(propertyConfiguration.Id, out _))
+                    else if (!propertiesById.TryGetValue(propertySettings.Id, out _))
                     {
-                        var error = new InvalidResourcePropertyConfigurationError
+                        var error = new InvalidResourcePropertySettingsError
                         {
-                            ErrorMessage = $"Property with ID '{propertyConfiguration.Id}' not found.",
+                            ErrorMessage = $"Property with ID '{propertySettings.Id}' not found.",
                         };
 
                         ReportError(resource.Id, error);

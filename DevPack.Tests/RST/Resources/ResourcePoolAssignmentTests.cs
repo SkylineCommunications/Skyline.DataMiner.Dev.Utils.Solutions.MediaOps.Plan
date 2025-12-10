@@ -7,25 +7,25 @@
 
     using RT_MediaOps.Plan.RegressionTests;
 
+    using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
     [TestClass]
     [TestCategory("IntegrationTest")]
     public sealed class ResourcePoolAssignmentTests : IDisposable
     {
-        private readonly IntegrationTestContext testContext;
         private readonly ResourceStudioObjectCreator objectCreator;
 
         public ResourcePoolAssignmentTests()
         {
-            testContext = new IntegrationTestContext();
-            objectCreator = new ResourceStudioObjectCreator(testContext.Api);
+            objectCreator = new ResourceStudioObjectCreator(TestContext.Api);
         }
+
+        private static IntegrationTestContext TestContext => TestContextManager.SharedTestContext;
 
         public void Dispose()
         {
             objectCreator.Dispose();
-            testContext.Dispose();
         }
 
         [TestMethod]
@@ -56,16 +56,16 @@
             unmanagedResource.SetPools([resourcePool1, resourcePool2]);
             objectCreator.CreateResource(unmanagedResource);
 
-            var resource = testContext.Api.Resources.Read(unmanagedResource.Id);
+            var resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
             Assert.AreEqual(2, resource.AssignedResourcePoolIds.Count);
             Assert.IsTrue(resource.AssignedResourcePoolIds.Contains(resourcePool1.Id));
             Assert.IsTrue(resource.AssignedResourcePoolIds.Contains(resourcePool2.Id));
 
             // Update resource with additional pool assignment
             resource.AssignToPool(resourcePool3);
-            testContext.Api.Resources.Update(resource);
+            TestContext.Api.Resources.Update(resource);
 
-            resource = testContext.Api.Resources.Read(unmanagedResource.Id);
+            resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
             Assert.AreEqual(3, resource.AssignedResourcePoolIds.Count);
             Assert.IsTrue(resource.AssignedResourcePoolIds.Contains(resourcePool1.Id));
             Assert.IsTrue(resource.AssignedResourcePoolIds.Contains(resourcePool2.Id));
@@ -73,9 +73,9 @@
 
             // Remove pool
             resource.UnassignFromPool(resourcePool2);
-            testContext.Api.Resources.Update(resource);
+            TestContext.Api.Resources.Update(resource);
 
-            resource = testContext.Api.Resources.Read(unmanagedResource.Id);
+            resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
             Assert.AreEqual(2, resource.AssignedResourcePoolIds.Count);
             Assert.IsTrue(resource.AssignedResourcePoolIds.Contains(resourcePool1.Id));
             Assert.IsTrue(resource.AssignedResourcePoolIds.Contains(resourcePool3.Id));
@@ -102,8 +102,12 @@
             var poolIds = objectCreator.CreateResourcePools(new[] { resourcePool1, resourcePool2, resourcePool3 }).ToArray();
             foreach (var poolId in poolIds)
             {
-                testContext.Api.ResourcePools.MoveTo(poolId, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
+                TestContext.Api.ResourcePools.MoveTo(poolId, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
             }
+
+            resourcePool1 = TestContext.Api.ResourcePools.Read(resourcePool1.Id);
+            resourcePool2 = TestContext.Api.ResourcePools.Read(resourcePool2.Id);
+            resourcePool3 = TestContext.Api.ResourcePools.Read(resourcePool3.Id);
 
             // Create resource with 2 pools assigned
             var unmanagedResource = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
@@ -113,32 +117,49 @@
             unmanagedResource.SetPools([resourcePool1, resourcePool2]);
             objectCreator.CreateResource(unmanagedResource);
 
-            var resource = testContext.Api.Resources.Read(unmanagedResource.Id);
+            var resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
             Assert.AreEqual(2, resource.AssignedResourcePoolIds.Count);
             Assert.IsTrue(resource.AssignedResourcePoolIds.Contains(resourcePool1.Id));
             Assert.IsTrue(resource.AssignedResourcePoolIds.Contains(resourcePool2.Id));
-
+            
             // Set resource to complete
-            testContext.Api.Resources.MoveTo(resource.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
+            TestContext.Api.Resources.MoveTo(resource.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
+
+            resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
+            var coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
+            Assert.AreEqual(2, coreResource.PoolGUIDs.Count);
+            Assert.IsTrue(coreResource.PoolGUIDs.Contains(resourcePool1.CoreResourcePoolId));
+            Assert.IsTrue(coreResource.PoolGUIDs.Contains(resourcePool2.CoreResourcePoolId));
 
             // Update resource with additional pool assignment
             resource.AssignToPool(resourcePool3);
-            testContext.Api.Resources.Update(resource);
+            TestContext.Api.Resources.Update(resource);
 
-            resource = testContext.Api.Resources.Read(unmanagedResource.Id);
+            resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
             Assert.AreEqual(3, resource.AssignedResourcePoolIds.Count);
             Assert.IsTrue(resource.AssignedResourcePoolIds.Contains(resourcePool1.Id));
             Assert.IsTrue(resource.AssignedResourcePoolIds.Contains(resourcePool2.Id));
             Assert.IsTrue(resource.AssignedResourcePoolIds.Contains(resourcePool3.Id));
 
+            coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
+            Assert.AreEqual(3, coreResource.PoolGUIDs.Count);
+            Assert.IsTrue(coreResource.PoolGUIDs.Contains(resourcePool1.CoreResourcePoolId));
+            Assert.IsTrue(coreResource.PoolGUIDs.Contains(resourcePool2.CoreResourcePoolId));
+            Assert.IsTrue(coreResource.PoolGUIDs.Contains(resourcePool3.CoreResourcePoolId));
+
             // Remove pool
             resource.UnassignFromPool(resourcePool2);
-            testContext.Api.Resources.Update(resource);
+            TestContext.Api.Resources.Update(resource);
 
-            resource = testContext.Api.Resources.Read(unmanagedResource.Id);
+            resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
             Assert.AreEqual(2, resource.AssignedResourcePoolIds.Count);
             Assert.IsTrue(resource.AssignedResourcePoolIds.Contains(resourcePool1.Id));
             Assert.IsTrue(resource.AssignedResourcePoolIds.Contains(resourcePool3.Id));
+
+            coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
+            Assert.AreEqual(2, coreResource.PoolGUIDs.Count);
+            Assert.IsTrue(coreResource.PoolGUIDs.Contains(resourcePool1.CoreResourcePoolId));
+            Assert.IsTrue(coreResource.PoolGUIDs.Contains(resourcePool3.CoreResourcePoolId));
         }
 
         [TestMethod]
@@ -267,14 +288,14 @@
             };
             objectCreator.CreateResource(unmanagedResource);
 
-            var resource = testContext.Api.Resources.Read(unmanagedResource.Id);
+            var resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
 
             var poolId = Guid.NewGuid();
             resource.AssignToPool(poolId);
 
             try
             {
-                testContext.Api.Resources.Update(resource);
+                TestContext.Api.Resources.Update(resource);
             }
             catch (MediaOpsException ex)
             {

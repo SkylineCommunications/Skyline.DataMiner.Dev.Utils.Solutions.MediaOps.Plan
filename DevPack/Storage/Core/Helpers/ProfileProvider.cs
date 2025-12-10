@@ -36,6 +36,12 @@
             .AND(ParameterExposers.Type.Equal((int)ParameterType.Discrete))
             .AND(ParameterExposers.Name.NotMatches(".*- Time dependent$")); // Don't include linked Time dependent capabilities.
 
+        private readonly FilterElement<Net.Profiles.Parameter> AllTimeDependentCapabilitiesFilter =
+            ParameterExposers.Categories.Contains((int)ProfileParameterCategory.Capability)
+            .AND(ParameterExposers.Categories.NotContains((int)ProfileParameterCategory.Capacity))
+            .AND(ParameterExposers.Categories.NotContains((int)ProfileParameterCategory.Configuration))
+            .AND(ParameterExposers.Name.Matches(".*- Time dependent$"));
+
         private readonly FilterElement<Net.Profiles.Parameter> AllCapacitiesFilter =
             ParameterExposers.Categories.Contains((int)ProfileParameterCategory.Capacity)
             .AND(ParameterExposers.Categories.NotContains((int)ProfileParameterCategory.Capability))
@@ -357,6 +363,11 @@
         public IReadOnlyCollection<Net.Profiles.Parameter> GetAllCapabilities()
         {
             return profileHelper.ProfileParameters.Read(AllCapabilitiesFilter);
+        }
+
+        public IReadOnlyCollection<Net.Profiles.Parameter> GetAllTimeDependentCapabilities()
+        {
+            return profileHelper.ProfileParameters.Read(AllTimeDependentCapabilitiesFilter);
         }
 
         /// <summary>

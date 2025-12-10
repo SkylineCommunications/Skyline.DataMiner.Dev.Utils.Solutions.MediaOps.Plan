@@ -28,7 +28,7 @@
 
         private HashSet<Guid> assignedPoolIds = new HashSet<Guid>();
 
-        private readonly ICollection<ResourcePropertyConfiguration> propertyConfigurations = [];
+        private readonly ICollection<ResourcePropertySettings> propertySettings = [];
 
         private protected Resource() : base()
         {
@@ -102,7 +102,7 @@
         /// <summary>
         /// Gets the collection of property configurations associated with this resource.
         /// </summary>
-        public IReadOnlyCollection<ResourcePropertyConfiguration> PropertyConfigurations => (IReadOnlyCollection<ResourcePropertyConfiguration>)propertyConfigurations;
+        public IReadOnlyCollection<ResourcePropertySettings> Properties => (IReadOnlyCollection<ResourcePropertySettings>)propertySettings;
 
         /// <summary>
         /// Assigns the current resource to the specified resource pool.
@@ -214,40 +214,40 @@
         }
 
         /// <summary>
-        /// Adds the specified property configuration to the resource.
+        /// Adds the specified property to the resource.
         /// </summary>
-        /// <param name="propertyConfiguration">The property configuration to add.</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="propertyConfiguration"/> is <see langword="null"/>.</exception>
-        public void AddPropertyConfiguration(ResourcePropertyConfiguration propertyConfiguration)
+        /// <param name="property">The property to add.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="property"/> is <see langword="null"/>.</exception>
+        public void AddProperty(ResourcePropertySettings property)
         {
-            if (propertyConfiguration == null)
+            if (property == null)
             {
-                throw new ArgumentNullException(nameof(propertyConfiguration));
+                throw new ArgumentNullException(nameof(property));
             }
 
-            if (!propertyConfiguration.IsNew)
+            if (!property.IsNew)
             {
                 return;
             }
             
-            propertyConfigurations.Add(propertyConfiguration);
+            propertySettings.Add(property);
             HasChanges = true;
         }
 
         /// <summary>
-        /// Removes the specified property configuration from the resource.
+        /// Removes the specified property from the resource.
         /// </summary>
-        /// <param name="propertyConfiguration">The property configuration to remove.</param>
-        /// <exception cref="ArgumentNullException">Thrown if the <paramref name="propertyConfiguration"/> parameter is <see langword="null"/>.</exception>
-        public void RemovePropertyConfiguration(ResourcePropertyConfiguration propertyConfiguration)
+        /// <param name="property">The property to remove.</param>
+        /// <exception cref="ArgumentNullException">Thrown if the <paramref name="property"/> parameter is <see langword="null"/>.</exception>
+        public void RemoveProperty(ResourcePropertySettings property)
         {
-            if (propertyConfiguration == null)
+            if (property == null)
             {
-                throw new ArgumentNullException(nameof(propertyConfiguration));
+                throw new ArgumentNullException(nameof(property));
             }
 
-            var toRemove = propertyConfigurations.SingleOrDefault(x => x.OriginalSection.ID == propertyConfiguration.OriginalSection.ID);
-            if (toRemove != null && propertyConfigurations.Remove(toRemove))
+            var toRemove = propertySettings.SingleOrDefault(x => x.OriginalSection.ID == property.OriginalSection.ID);
+            if (toRemove != null && propertySettings.Remove(toRemove))
             {
                 HasChanges = true;
             }
@@ -287,9 +287,9 @@
             updatedInstance.ResourceInternalProperties.PoolIds = assignedPoolIds.ToList();
 
             updatedInstance.ResourceProperties.Clear();
-            foreach (var propertyConfiguration in propertyConfigurations)
+            foreach (var property in propertySettings)
             {
-                updatedInstance.ResourceProperties.Add(propertyConfiguration.GetSectionWithChanges());
+                updatedInstance.ResourceProperties.Add(property.GetSectionWithChanges());
             }
 
             ApplyChanges(updatedInstance);
@@ -338,9 +338,9 @@
 
             foreach (var section in instance.ResourceProperties)
             {
-                var propertyConfiguration = new ResourcePropertyConfiguration(section);
+                var propertyConfiguration = new ResourcePropertySettings(section);
                 propertyConfiguration.ValueChanged += (s, e) => { HasChanges = true; };
-                propertyConfigurations.Add(propertyConfiguration);
+                propertySettings.Add(propertyConfiguration);
             }
         }
 

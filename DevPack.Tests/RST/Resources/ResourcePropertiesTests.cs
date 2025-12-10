@@ -3,32 +3,27 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
 
     using RT_MediaOps.Plan.RegressionTests;
 
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
-    using Storage = Skyline.DataMiner.Solutions.MediaOps.Plan.Storage;
-
     [TestClass]
     [TestCategory("IntegrationTest")]
     public sealed class ResourcePropertiesTests
     {
-        private readonly IntegrationTestContext testContext;
         private readonly ResourceStudioObjectCreator objectCreator;
 
         public ResourcePropertiesTests()
         {
-            testContext = new IntegrationTestContext();
-            objectCreator = new ResourceStudioObjectCreator(testContext.Api);
+            objectCreator = new ResourceStudioObjectCreator(TestContext.Api);
         }
+
+        private static IntegrationTestContext TestContext => TestContextManager.SharedTestContext;
 
         public void Dispose()
         {
             objectCreator.Dispose();
-            testContext.Dispose();
         }
 
         [TestMethod]
@@ -52,49 +47,49 @@
             {
                 Name = $"{prefix}_Resource",
             };
-            unmanagedResource.AddPropertyConfiguration(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePropertyConfiguration(propertyIds[0])
+            unmanagedResource.AddProperty(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePropertySettings(propertyIds[0])
             {
                 Value = "Property Value 1",
             });
             var resourceId = objectCreator.CreateResource(unmanagedResource);
 
-            var resource = testContext.Api.Resources.Read(resourceId);
-            Assert.AreEqual(1, resource.PropertyConfigurations.Count);
+            var resource = TestContext.Api.Resources.Read(resourceId);
+            Assert.AreEqual(1, resource.Properties.Count);
 
-            var propertyConfiguration = resource.PropertyConfigurations.First();
+            var propertyConfiguration = resource.Properties.First();
             Assert.AreEqual(propertyIds[0], propertyConfiguration.Id);
             Assert.AreEqual("Property Value 1", propertyConfiguration.Value);
 
             // Update resource with new property configuration
-            resource.AddPropertyConfiguration(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePropertyConfiguration(propertyIds[1])
+            resource.AddProperty(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePropertySettings(propertyIds[1])
             {
                 Value = "Property Value 2",
             });
-            testContext.Api.Resources.Update(resource);
+            TestContext.Api.Resources.Update(resource);
 
-            resource = testContext.Api.Resources.Read(resourceId);
-            Assert.AreEqual(2, resource.PropertyConfigurations.Count);
+            resource = TestContext.Api.Resources.Read(resourceId);
+            Assert.AreEqual(2, resource.Properties.Count);
 
             var expectedPropertyConfigurationData = new Dictionary<Guid, string>
             {
                 { propertyIds[0], "Property Value 1" },
                 { propertyIds[1], "Property Value 2" },
             };
-            foreach (var propertyConfig in resource.PropertyConfigurations)
+            foreach (var propertyConfig in resource.Properties)
             {
                 Assert.IsTrue(expectedPropertyConfigurationData.ContainsKey(propertyConfig.Id));
                 Assert.AreEqual(expectedPropertyConfigurationData[propertyConfig.Id], propertyConfig.Value);
             }
 
             // Remove property configuration
-            var propertyConfigToRemove = resource.PropertyConfigurations.First(pc => pc.Id == propertyIds[0]);
-            resource.RemovePropertyConfiguration(propertyConfigToRemove);
-            testContext.Api.Resources.Update(resource);
+            var propertyConfigToRemove = resource.Properties.First(pc => pc.Id == propertyIds[0]);
+            resource.RemoveProperty(propertyConfigToRemove);
+            TestContext.Api.Resources.Update(resource);
 
-            resource = testContext.Api.Resources.Read(resourceId);
-            Assert.AreEqual(1, resource.PropertyConfigurations.Count);
+            resource = TestContext.Api.Resources.Read(resourceId);
+            Assert.AreEqual(1, resource.Properties.Count);
 
-            propertyConfiguration = resource.PropertyConfigurations.First();
+            propertyConfiguration = resource.Properties.First();
             Assert.AreEqual(propertyIds[1], propertyConfiguration.Id);
             Assert.AreEqual("Property Value 2", propertyConfiguration.Value);
         }
@@ -110,7 +105,7 @@
             };
 
             var invalidPeropertyId = Guid.NewGuid();
-            unmanagedResource.AddPropertyConfiguration(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePropertyConfiguration(invalidPeropertyId)
+            unmanagedResource.AddProperty(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePropertySettings(invalidPeropertyId)
             {
                 Value = "Some Value",
             });
@@ -128,7 +123,7 @@
                 var resourceConfigurationError = ex.TraceData.ErrorData.OfType<ResourceConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(resourceConfigurationError);
 
-                var invalidResourcePropertyConfigurationError = resourceConfigurationError as InvalidResourcePropertyConfigurationError;
+                var invalidResourcePropertyConfigurationError = resourceConfigurationError as InvalidResourcePropertySettingsError;
                 Assert.IsNotNull(invalidResourcePropertyConfigurationError);
                 Assert.AreEqual(errorMessage, invalidResourcePropertyConfigurationError.ErrorMessage);
 
@@ -149,17 +144,17 @@
             };
 
             var resourceId  = objectCreator.CreateResource(unmanagedResource);
-            var resource = testContext.Api.Resources.Read(resourceId);
+            var resource = TestContext.Api.Resources.Read(resourceId);
 
             var invalidPeropertyId = Guid.NewGuid();
-            resource.AddPropertyConfiguration(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePropertyConfiguration(invalidPeropertyId)
+            resource.AddProperty(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePropertySettings(invalidPeropertyId)
             {
                 Value = "Some Value",
             });
 
             try
             {
-                testContext.Api.Resources.Update(resource);
+                TestContext.Api.Resources.Update(resource);
             }
             catch (MediaOpsException ex)
             {
@@ -170,7 +165,7 @@
                 var resourceConfigurationError = ex.TraceData.ErrorData.OfType<ResourceConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(resourceConfigurationError);
 
-                var invalidResourcePropertyConfigurationError = resourceConfigurationError as InvalidResourcePropertyConfigurationError;
+                var invalidResourcePropertyConfigurationError = resourceConfigurationError as InvalidResourcePropertySettingsError;
                 Assert.IsNotNull(invalidResourcePropertyConfigurationError);
                 Assert.AreEqual(errorMessage, invalidResourcePropertyConfigurationError.ErrorMessage);
 

@@ -13,21 +13,21 @@
 
     [TestClass]
     [TestCategory("IntegrationTest")]
+    [DoNotParallelize]
     public sealed class BasicTests
     {
-        private readonly IntegrationTestContext testContext;
         private readonly ResourceStudioObjectCreator objectCreator;
 
         public BasicTests()
         {
-            testContext = new IntegrationTestContext();
-            objectCreator = new ResourceStudioObjectCreator(testContext.Api);
+            objectCreator = new ResourceStudioObjectCreator(TestContext.Api);
         }
+
+        private static IntegrationTestContext TestContext => TestContextManager.SharedTestContext;
 
         public void Dispose()
         {
             objectCreator.Dispose();
-            testContext.Dispose();
         }
 
         [TestMethod]
@@ -45,11 +45,11 @@
             var returnedId = objectCreator.CreateProperty(property);
             Assert.AreEqual(propertyId, returnedId);
 
-            var returnedProperty = testContext.Api.Properties.Read(propertyId);
+            var returnedProperty = TestContext.Api.Properties.Read(propertyId);
             Assert.IsNotNull(returnedProperty);
             Assert.AreEqual(name, returnedProperty.Name);
 
-            var domProperty = testContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(propertyId)).SingleOrDefault();
+            var domProperty = TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(propertyId)).SingleOrDefault();
             Assert.IsNotNull(domProperty);
             Assert.AreEqual(Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Definitions.Resourceproperty.Id, domProperty.DomDefinitionId.Id);
 
@@ -62,13 +62,13 @@
             // Update
             var updatedName = name + "_Updated";
             returnedProperty.Name = updatedName;
-            testContext.Api.Properties.Update(returnedProperty);
+            TestContext.Api.Properties.Update(returnedProperty);
 
-            returnedProperty = testContext.Api.Properties.Read(propertyId);
+            returnedProperty = TestContext.Api.Properties.Read(propertyId);
             Assert.IsNotNull(returnedProperty);
             Assert.AreEqual(updatedName, returnedProperty.Name);
 
-            domProperty = testContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(propertyId)).SingleOrDefault();
+            domProperty = TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(propertyId)).SingleOrDefault();
             Assert.IsNotNull(domProperty);
             Assert.AreEqual(Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Definitions.Resourceproperty.Id, domProperty.DomDefinitionId.Id);
 
@@ -79,12 +79,12 @@
             Assert.AreEqual(returnedProperty.Name, Convert.ToString(fdName.Value.Value));
 
             // Delete
-            testContext.Api.Properties.Delete(returnedProperty);
+            TestContext.Api.Properties.Delete(returnedProperty);
 
-            returnedProperty = testContext.Api.Properties.Read(propertyId);
+            returnedProperty = TestContext.Api.Properties.Read(propertyId);
             Assert.IsNull(returnedProperty);
 
-            domProperty = testContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(propertyId)).SingleOrDefault();
+            domProperty = TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(propertyId)).SingleOrDefault();
             Assert.IsNull(domProperty);
         }
 
@@ -264,12 +264,12 @@
             var id1 = objectCreator.CreateProperty(property1);
             var id2 = objectCreator.CreateProperty(property2);
 
-            var toUpdate = testContext.Api.Properties.Read(id2);
+            var toUpdate = TestContext.Api.Properties.Read(id2);
             toUpdate.Name = property1.Name;
 
             try
             {
-                testContext.Api.Properties.Update(toUpdate);
+                TestContext.Api.Properties.Update(toUpdate);
             }
             catch (MediaOpsException ex)
             {
