@@ -3,18 +3,17 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-
+    using System.Runtime.Remoting.Metadata.W3cXsd2001;
     using Microsoft.Extensions.Logging;
-
+    using Skyline.DataMiner.ConnectorAPI.SkylineLockManager.ConnectorApi.InterApp.Messages.Locking;
+    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+    using Skyline.DataMiner.Net.Messages;
+    using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
-    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
-    using Skyline.DataMiner.Net.Messages;
-    using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Utils.DOM.Extensions;
-
     using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
 
     internal class DomResourcePoolHandler : ApiObjectValidator<Guid>
@@ -99,6 +98,11 @@
                 return;
             }
 
+            planApi.LockManager.LockAndExecute(apiResourcePools.ToList(), InnerCreateOrUpdate);
+        }
+
+        private void InnerCreateOrUpdate(IEnumerable<ResourcePool> apiResourcePools)
+        {
             var toCreate = new List<ResourcePool>();
             var toUpdate = new List<ResourcePool>();
             foreach (var resourcePool in apiResourcePools)
@@ -119,7 +123,11 @@
             ValidatePoolLinks(apiResourcePools.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)));
             ValidateCapabilities(apiResourcePools.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)));
 
-            // Todo: lock DOM instances
+            if (!apiResourcePools.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)).Any())
+            {
+                return;
+            }
+
             var changeResults = GetPoolsWithChanges(toUpdate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id))).ToList();
 
             var toCreateNameValidation = toCreate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id));
@@ -134,6 +142,7 @@
                 .Where(x => !TraceDataPerItem.Keys.Contains(x.Instance.ID.Id))
                 .Select(x => new DomResourcePool(x.Instance))
                 .ToList();
+
             CreateOrUpdate(toCreateDomInstances.Concat(toUpdateDomInstances));
 
             // Update resource pool capabilities if needed

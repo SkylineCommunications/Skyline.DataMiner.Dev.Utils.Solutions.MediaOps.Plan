@@ -2,11 +2,14 @@
 {
     using System;
     using Microsoft.Extensions.Logging;
+    using Skyline.DataMiner.ConnectorAPI.SkylineLockManager.ConnectorApi;
+    using Skyline.DataMiner.ConnectorAPI.SkylineLockManager.LockManager;
     using Skyline.DataMiner.Core.DataMinerSystem.Common;
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Logger;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Tools;
 
     /// <summary>
     /// Provides the main entry point for interacting with the MediaOps Plan API.
@@ -26,6 +29,7 @@
         private readonly Lazy<ICapacitiesRepository> lazyCapacitiesRepository;
         private readonly Lazy<IConfigurationsRepository> lazyConfigurationsRepository;
         private readonly Lazy<IResourcePropertiesRepository> lazyResourcePropertiesRepository;
+        private readonly Lazy<BatchLockManager> lazyLockManager;
         private bool disposedValue;
 
         /// <summary>
@@ -48,6 +52,7 @@
             lazyCapacitiesRepository = new Lazy<ICapacitiesRepository>(() => new CapacitiesRepository(this));
             lazyConfigurationsRepository = new Lazy<IConfigurationsRepository>(() => new ConfigurationsRepository(this));
             lazyResourcePropertiesRepository = new Lazy<IResourcePropertiesRepository>(() => new ResourcePropertiesRepository(this));
+            lazyLockManager = new Lazy<BatchLockManager>(() => new BatchLockManager(this));
         }
 
         /// <summary>
@@ -89,6 +94,8 @@
         internal CoreHelpers CoreHelpers => coreHelpers;
 
         internal IDms Dms => lazyDms.Value;
+
+        internal BatchLockManager LockManager => lazyLockManager.Value;
 
         /// <summary>
         /// Releases the resources used by the current instance of the class.
