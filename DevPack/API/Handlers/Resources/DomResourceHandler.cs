@@ -655,7 +655,7 @@
                 throw new ArgumentNullException(nameof(apiResources));
             }
 
-            if (apiResources.Any())
+            if (!apiResources.Any())
             {
                 return;
             }
