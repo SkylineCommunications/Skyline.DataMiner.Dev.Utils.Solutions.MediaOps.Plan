@@ -7,32 +7,32 @@
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
     /// <summary>
-    /// Represents the capability settings for a resource pool.
+    /// Represents the capability settings for a resource.
     /// </summary>
-    public class ResourcePoolCapabilitySettings : TrackableObject
+    public class ResourceCapabilitySettings : TrackableObject
     {
-        private StorageResourceStudio.ResourcePoolCapabilitiesSection originalSection;
+        private StorageResourceStudio.ResourceCapabilitiesSection originalSection;
 
-        private StorageResourceStudio.ResourcePoolCapabilitiesSection updatedSection;
+        private StorageResourceStudio.ResourceCapabilitiesSection updatedSection;
 
         private HashSet<string> discretes = [];
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ResourcePoolCapabilitySettings"/> class using the specified capability.
+        /// Initializes a new instance of the <see cref="ResourceCapabilitySettings"/> class using the specified capability.
         /// </summary>
         /// <param name="capability">The capability to use for initializing the settings. Cannot be null.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="capability"/> is <see langword="null"/>.</exception>
-        public ResourcePoolCapabilitySettings(Capability capability)
+        public ResourceCapabilitySettings(Capability capability)
             : this(capability?.Id ?? throw new ArgumentNullException(nameof(capability)))
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ResourcePoolCapabilitySettings"/> class with the specified capability ID.
+        /// Initializes a new instance of the <see cref="ResourceCapabilitySettings"/> class with the specified capability ID.
         /// </summary>
         /// <param name="capabilityId">The unique identifier for the capability. Must not be an empty GUID.</param>
         /// <exception cref="ArgumentException">Thrown when <paramref name="capabilityId"/> is an empty GUID.</exception>
-        public ResourcePoolCapabilitySettings(Guid capabilityId)
+        public ResourceCapabilitySettings(Guid capabilityId)
         {
             if (capabilityId == Guid.Empty)
             {
@@ -44,7 +44,7 @@
             IsNew = true;
         }
 
-        internal ResourcePoolCapabilitySettings(StorageResourceStudio.ResourcePoolCapabilitiesSection section)
+        internal ResourceCapabilitySettings(StorageResourceStudio.ResourceCapabilitiesSection section)
         {
             ParseSection(section);
         }
@@ -120,13 +120,13 @@
             discretes = new HashSet<string>(values);
         }
 
-        internal StorageResourceStudio.ResourcePoolCapabilitiesSection OriginalSection => originalSection;
+        internal StorageResourceStudio.ResourceCapabilitiesSection OriginalSection => originalSection;
 
-        internal StorageResourceStudio.ResourcePoolCapabilitiesSection GetSectionWithChanges()
+        internal StorageResourceStudio.ResourceCapabilitiesSection GetSectionWithChanges()
         {
             if (updatedSection == null)
             {
-                updatedSection = IsNew ? new StorageResourceStudio.ResourcePoolCapabilitiesSection() : OriginalSection.Clone();
+                updatedSection = IsNew ? new StorageResourceStudio.ResourceCapabilitiesSection() : OriginalSection.Clone();
             }
 
             updatedSection.ProfileParameterId = Id;
@@ -135,7 +135,7 @@
             return updatedSection;
         }
 
-        private void ParseSection(StorageResourceStudio.ResourcePoolCapabilitiesSection section)
+        private void ParseSection(StorageResourceStudio.ResourceCapabilitiesSection section)
         {
             originalSection = section ?? throw new ArgumentNullException(nameof(section));
 

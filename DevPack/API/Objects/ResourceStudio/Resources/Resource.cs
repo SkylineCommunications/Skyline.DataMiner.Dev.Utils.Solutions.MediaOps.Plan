@@ -28,6 +28,8 @@
 
         private HashSet<Guid> assignedPoolIds = new HashSet<Guid>();
 
+        private readonly ICollection<ResourceCapabilitySettings> capabilitySettings = [];
+
         private readonly ICollection<ResourcePropertySettings> propertySettings = [];
 
         private protected Resource() : base()
@@ -100,7 +102,12 @@
         public IReadOnlyCollection<Guid> AssignedResourcePoolIds => (IReadOnlyCollection<Guid>)assignedPoolIds;
 
         /// <summary>
-        /// Gets the collection of property configurations associated with this resource.
+        /// Gets the collection of capabilities assigned to this pool.
+        /// </summary>
+        public IReadOnlyCollection<ResourceCapabilitySettings> Capabilities => (IReadOnlyCollection<ResourceCapabilitySettings>)capabilitySettings;
+
+        /// <summary>
+        /// Gets the collection of property settings associated with this resource.
         /// </summary>
         public IReadOnlyCollection<ResourcePropertySettings> Properties => (IReadOnlyCollection<ResourcePropertySettings>)propertySettings;
 
@@ -214,6 +221,46 @@
         }
 
         /// <summary>
+        /// Adds a new capability to the resource if it has not been previously added.
+        /// </summary>
+        /// <param name="capability">The capability settings to add. Must represent a new capability; otherwise, the method does not modify the collection.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="capability"/> is <see langword="null"/>.</exception>
+        public void AddCapability(ResourceCapabilitySettings capability)
+        {
+            if (capability == null)
+            {
+                throw new ArgumentNullException(nameof(capability));
+            }
+
+            if (!capability.IsNew)
+            {
+                return;
+            }
+
+            capabilitySettings.Add(capability);
+            HasChanges = true;
+        }
+
+        /// <summary>
+        /// Removes the specified capability from the resource.
+        /// </summary>
+        /// <param name="capability">The capability to remove from the resource. Cannot be null.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="capability"/> is <see langword="null"/>.</exception>
+        public void RemoveCapability(ResourceCapabilitySettings capability)
+        {
+            if (capability == null)
+            {
+                throw new ArgumentNullException(nameof(capability));
+            }
+
+            var toRemove = capabilitySettings.SingleOrDefault(x => x.OriginalSection.ID == capability.OriginalSection.ID);
+            if (toRemove != null && capabilitySettings.Remove(toRemove))
+            {
+                HasChanges = true;
+            }
+        }
+
+        /// <summary>
         /// Adds the specified property to the resource.
         /// </summary>
         /// <param name="property">The property to add.</param>
@@ -286,6 +333,12 @@
             updatedInstance.ResourceInfo.Concurrency = concurrency;
             updatedInstance.ResourceInternalProperties.PoolIds = assignedPoolIds.ToList();
 
+            updatedInstance.ResourceCapabilities.Clear();
+            foreach (var capability in capabilitySettings)
+            {
+                updatedInstance.ResourceCapabilities.Add(capability.GetSectionWithChanges());
+            }
+
             updatedInstance.ResourceProperties.Clear();
             foreach (var property in propertySettings)
             {
@@ -335,6 +388,13 @@
             coreResourceId = instance.ResourceInternalProperties.Resource_Id ?? Guid.Empty;
 
             State = EnumExtensions.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum, ResourceState>(instance.Status);
+
+            foreach (var section in instance.ResourceCapabilities)
+            {
+                var capability = new ResourceCapabilitySettings(section);
+                capability.ValueChanged += (s, e) => { HasChanges = true; };
+                capabilitySettings.Add(capability);
+            }
 
             foreach (var section in instance.ResourceProperties)
             {
