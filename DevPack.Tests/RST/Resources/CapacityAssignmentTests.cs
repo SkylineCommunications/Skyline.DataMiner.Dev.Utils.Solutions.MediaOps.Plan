@@ -80,13 +80,14 @@
 
             // Update capacity value
             capacitySettings1 = resource.Capacities.First(x => x.Id == capacity1.Id) as Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceNumberCapacitySettings;
-            capacitySettings1?.Value = 180;
+            Assert.IsNotNull(capacitySettings1);
+            capacitySettings1.Value = 180;
             TestContext.Api.Resources.Update(resource);
 
             resource = TestContext.Api.Resources.Read(resourceId);
             Assert.AreEqual(1, resource.Capacities.Count);
             resourceCapacity1 = resource.Capacities.Single();
-            Assert.AreEqual(capacitySettings1?.Id, resourceCapacity1.Id);
+            Assert.AreEqual(capacitySettings1.Id, resourceCapacity1.Id);
             Assert.AreEqual(180, ((Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceNumberCapacitySettings)resourceCapacity1).Value);
 
             // Update Resource to add second capacity
@@ -97,7 +98,7 @@
             Assert.AreEqual(2, resource.Capacities.Count);
 
             resourceCapacity1 = resource.Capacities.SingleOrDefault(x => x.Id == capacityId1);
-            Assert.AreEqual(capacitySettings1?.Id, resourceCapacity1.Id);
+            Assert.AreEqual(capacitySettings1.Id, resourceCapacity1.Id);
             Assert.AreEqual(180, ((Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceNumberCapacitySettings)resourceCapacity1).Value);
 
             var resourceCapacity2 = resource.Capacities.SingleOrDefault(x => x.Id == capacityId2);
@@ -173,13 +174,14 @@
 
             // Update capacity value
             capacitySettings1 = resource.Capacities.First(x => x.Id == capacity1.Id) as Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceNumberCapacitySettings;
-            capacitySettings1?.Value = 180;
+            Assert.IsNotNull(capacitySettings1);
+            capacitySettings1.Value = 180;
             TestContext.Api.Resources.Update(resource);
 
             resource = TestContext.Api.Resources.Read(resourceId);
             Assert.AreEqual(1, resource.Capacities.Count);
             resourceCapacity1 = resource.Capacities.Single();
-            Assert.AreEqual(capacitySettings1?.Id, resourceCapacity1.Id);
+            Assert.AreEqual(capacitySettings1.Id, resourceCapacity1.Id);
             Assert.AreEqual(180, ((Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceNumberCapacitySettings)resourceCapacity1).Value);
 
             Assert.AreNotEqual(Guid.Empty, resource.CoreResourceId);
@@ -197,7 +199,7 @@
             Assert.AreEqual(2, resource.Capacities.Count);
 
             resourceCapacity1 = resource.Capacities.SingleOrDefault(x => x.Id == capacityId1);
-            Assert.AreEqual(capacitySettings1?.Id, resourceCapacity1.Id);
+            Assert.AreEqual(capacitySettings1.Id, resourceCapacity1.Id);
             Assert.AreEqual(180, ((Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceNumberCapacitySettings)resourceCapacity1).Value);
 
             var resourceCapacity2 = resource.Capacities.SingleOrDefault(x => x.Id == capacityId2);
