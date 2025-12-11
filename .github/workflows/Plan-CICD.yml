@@ -15,6 +15,7 @@ jobs:
     env:
       DATAMINER_USERNAME: ${{ secrets.DATAMINER_USERNAME }}
       DATAMINER_PASSWORD: ${{ secrets.DATAMINER_PASSWORD }}
+      DATAMINER_HOST: ${{ secrets.DATAMINER_HOST }}
       CRED_PREFIX: "DATAMINER"
 
     steps:
