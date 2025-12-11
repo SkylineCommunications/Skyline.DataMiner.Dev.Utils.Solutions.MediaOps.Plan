@@ -1,0 +1,35 @@
+name: Plan CICD
+
+on:
+  workflow_dispatch:
+
+env:
+  #https://github.com/NuGet/Home/issues/7575#issuecomment-443801131
+  NUGET_RESTORE_MSBUILD_ARGS: /p:Configuration=Release
+
+jobs:
+  Integration Tests:
+    runs-on: windows-latest
+
+    env:
+      DATAMINER_USERNAME: ${{ secrets.DATAMINER_USERNAME }}
+      DATAMINER_PASSWORD: ${{ secrets.DATAMINER_PASSWORD }}
+      CRED_PREFIX: "DATAMINER"
+
+    steps:
+     - uses: actions/checkout@v4
+
+     - name: Setup dotnet
+       uses: actions/setup-dotnet@v4
+
+     - name: Setup NuGet
+       uses: NuGet/setup-nuget@v2.0.1
+
+     - name: Add NuGet source
+       run: dotnet nuget add source "https://nuget.pkg.github.com/SkylineCommunications/index.json" --name github --username USERNAME --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text
+
+     - name: Build
+       run: dotnet build -c Release -p WarningLevel=0 Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests
+       
+     - name: Run tests
+       run: dotnet test -c Release --no-build --logger "console;verbosity=detailed" SLC-AS-MediaOps.LIVE.Playwright
