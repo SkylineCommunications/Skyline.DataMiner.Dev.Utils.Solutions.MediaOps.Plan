@@ -1,23 +1,24 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
     using System;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
-    using Skyline.DataMiner.Net.Profiles;
-
-    using CoreParameter = Net.Profiles.Parameter;
     using System.Collections.Generic;
     using System.Linq;
+
+    using Skyline.DataMiner.Net.Profiles;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
+
+    using CoreParameter = Net.Profiles.Parameter;
 
     /// <summary>
     /// Represents a Capacity in the MediaOps Plan API.
     /// </summary>
     public abstract class Capacity : Parameter
     {
-        protected string units;
-        protected decimal? rangeMin;
-        protected decimal? rangeMax;
-        protected decimal? stepSize;
-        protected int? decimals;
+        internal string units;
+        internal decimal? rangeMin;
+        internal decimal? rangeMax;
+        internal decimal? stepSize;
+        internal int? decimals;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Capacity"/> class.

@@ -62,9 +62,9 @@
             get => value;
             set
             {
+                this.value = value;
                 HasChanges = true;
                 ValueChanged?.Invoke(this, EventArgs.Empty);
-                this.value = value;
             }
         }
 

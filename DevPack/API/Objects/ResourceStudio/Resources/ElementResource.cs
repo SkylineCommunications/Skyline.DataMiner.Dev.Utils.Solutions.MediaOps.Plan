@@ -30,7 +30,7 @@
         {
         }
 
-        internal ElementResource(StorageResourceStudio.ResourceInstance instance) : base(instance)
+        internal ElementResource(MediaOpsPlanApi planApi, StorageResourceStudio.ResourceInstance instance) : base(planApi, instance)
         {
             ParseInstance(instance);
         }

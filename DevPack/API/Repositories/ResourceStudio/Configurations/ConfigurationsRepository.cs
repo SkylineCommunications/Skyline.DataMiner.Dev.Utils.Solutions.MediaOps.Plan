@@ -82,7 +82,7 @@
         {
             return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(ReadAllPaged), act =>
             {
-                return PlanApi.CoreHelpers.ProfileProvider.GetAllConfigurationsPaged().Select(page => InstantiateConfigurationsIterator(page));
+                return PlanApi.CoreHelpers.ProfileProvider.GetAllConfigurationsPaged().Select(page => InstantiateConfigurations(page));
             });
         }
 
