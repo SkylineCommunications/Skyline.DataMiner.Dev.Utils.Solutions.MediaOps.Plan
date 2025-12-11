@@ -1,6 +1,7 @@
 ﻿namespace RT_MediaOps.Plan.RegressionTests
 {
     using System;
+    using System.Net;
     using System.Reflection;
 
     using Microsoft.Extensions.Configuration;
@@ -14,17 +15,32 @@
                 throw new ArgumentNullException(nameof(configuration));
             }
 
-            // To set the username locally, use the following command from the 'DevPack.Tests' folder:
-            // dotnet user-secrets set "DATAMINER_USERNAME" "your_username"
-            Username = configuration["DATAMINER_USERNAME"] ?? throw new ArgumentException("Unable to retrieve the DATAMINER_USERNAME environment variable");
+            // To set the credentials prefix locally, use the following command from the 'DevPack.Tests' folder:
+            // dotnet user-secrets set "CRED_PREFIX" "DATAMINER"
+            var prefixCredentials = configuration["CRED_PREFIX"];
 
-            // To set the password locally, use the following command from the 'DevPack.Tests' folder:
-            // dotnet user-secrets set "DATAMINER_PASSWORD" "your_password"
-            Password = configuration["DATAMINER_PASSWORD"] ?? throw new ArgumentException("Unable to retrieve the DATAMINER_PASSWORD environment variable");
+            if (prefixCredentials is null)
+            {
+                var credentials = CredentialCache.DefaultNetworkCredentials;
+                Username = credentials.UserName;
+                Password = credentials.Password;
+                Domain = credentials.Domain;
+                BaseUrl = configuration["DATAMINER_HOST"] ?? "slc-h67-g03.skyline.local";
+            }
+            else
+            {
+                // To set the username locally, use the following command from the 'DevPack.Tests' folder:
+                // dotnet user-secrets set "DATAMINER_USERNAME" "your_username"
+                Username = configuration[prefixCredentials + "_USERNAME"] ?? throw new ArgumentException("Unable to retrieve the DATAMINER_USERNAME environment variable");
 
-            Domain = configuration["DATAMINER_DOMAIN"] ?? string.Empty;
+                // To set the password locally, use the following command from the 'DevPack.Tests' folder:
+                // dotnet user-secrets set "DATAMINER_PASSWORD" "your_password"
+                Password = configuration[prefixCredentials + "_PASSWORD"] ?? throw new ArgumentException("Unable to retrieve the DATAMINER_PASSWORD environment variable");
 
-            BaseUrl = configuration["DATAMINER_HOST"] ?? "slc-h67-g03.skyline.local";
+                Domain = configuration[prefixCredentials + "_DOMAIN"] ?? string.Empty;
+
+                BaseUrl = configuration[prefixCredentials + "_HOST"] ?? "slc-h67-g03.skyline.local";
+            }
         }
 
         public string BaseUrl { get; }
