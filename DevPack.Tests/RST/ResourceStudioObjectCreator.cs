@@ -4,7 +4,6 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    using Skyline.DataMiner.Core.InterAppCalls.Common.Shared;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 
     internal class ResourceStudioObjectCreator : IDisposable

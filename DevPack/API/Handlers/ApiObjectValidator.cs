@@ -2,27 +2,29 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Tools;
 
-    internal class ApiObjectValidator<T>
+    internal class ApiObjectValidator
     {
-        private readonly Dictionary<T, MediaOpsTraceData> traceDataPerItem = new Dictionary<T, MediaOpsTraceData>();
-        private readonly HashSet<T> successfulIItems = new HashSet<T>();
-        private readonly HashSet<T> unsuccessfulItems = new HashSet<T>();
+        private readonly Dictionary<Guid, MediaOpsTraceData> traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
+        private readonly HashSet<Guid> successfulIItems = new HashSet<Guid>();
+        private readonly HashSet<Guid> unsuccessfulItems = new HashSet<Guid>();
 
-        internal IReadOnlyDictionary<T, MediaOpsTraceData> TraceDataPerItem => traceDataPerItem;
+        internal IReadOnlyDictionary<Guid, MediaOpsTraceData> TraceDataPerItem => traceDataPerItem;
 
-        internal IReadOnlyCollection<T> SuccessfulItems => successfulIItems;
+        internal IReadOnlyCollection<Guid> SuccessfulItems => successfulIItems;
 
-        internal IReadOnlyCollection<T> UnsuccessfulItems => unsuccessfulItems;
+        internal IReadOnlyCollection<Guid> UnsuccessfulItems => unsuccessfulItems;
 
-        internal void PassTraceData(T key, MediaOpsTraceData traceData)
+        internal void PassTraceData(Guid key, MediaOpsTraceData traceData)
         {
             if (traceDataPerItem.ContainsKey(key)) return;
             traceDataPerItem.Add(key, traceData);
         }
 
-        internal void PassTraceData(ApiObjectValidator<T> internalValidator)
+        internal void PassTraceData(ApiObjectValidator internalValidator)
         {
             if (internalValidator == null) throw new ArgumentNullException(nameof(internalValidator));
 
@@ -43,7 +45,7 @@
             }
         }
 
-        internal void AddValidationError(T key, MediaOpsErrorData error)
+        internal void AddValidationError(Guid key, MediaOpsErrorData error)
         {
             if (Object.Equals(key, default))
             {
@@ -64,13 +66,13 @@
             mediaOpsTraceData.Add(error);
         }
 
-        protected void ReportError(T key, MediaOpsErrorData error)
+        protected void ReportError(Guid key, MediaOpsErrorData error)
         {
             AddValidationError(key, error);
             ReportError(key);
         }
 
-        protected void ReportError(T key)
+        protected void ReportError(Guid key)
         {
             if (Object.Equals(key, default))
             {
@@ -85,7 +87,7 @@
             unsuccessfulItems.Add(key);
         }
 
-        protected void ReportError(IEnumerable<T> keys)
+        protected void ReportError(IEnumerable<Guid> keys)
         {
             foreach (var key in keys)
             {
@@ -93,7 +95,15 @@
             }
         }
 
-        protected void ReportSuccess(T key)
+        protected void ReportError<T>(LockManager.LockResult<T> result) where T : ApiObject
+        {
+            foreach (var failedToLockObject in result.FailedToLockObjects)
+            {
+                ReportError(failedToLockObject.Id, new MediaOpsErrorData() { ErrorMessage = $"Failed to lock {typeof(T)}." });
+            }
+        }
+
+        protected void ReportSuccess(Guid key)
         {
             if (Object.Equals(key, default))
             {
@@ -108,12 +118,17 @@
             successfulIItems.Add(key);
         }
 
-        protected void ReportSuccess(IEnumerable<T> keys)
+        protected void ReportSuccess(IEnumerable<Guid> keys)
         {
             foreach (var key in keys)
             {
                 ReportSuccess(key);
             }
+        }
+
+        protected bool IsValid(IIdentifiable identifiable)
+        {
+            return !TraceDataPerItem.Keys.Contains(identifiable.Id);
         }
     }
 }

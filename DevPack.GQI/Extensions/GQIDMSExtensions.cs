@@ -14,17 +14,17 @@
         /// Retrieves an instance of the <see cref="IMediaOpsPlanApi"/> interface."/>
         /// </summary>
         /// <param name="dms">The <see cref="GQIDMS"/> instance.</param>
-        /// <param name="logger">The <see cref="ILogger"/> implementation.</param>
+        /// <param name="loggerFactory">The <see cref="ILoggerFactory"/> implementation.</param>
         /// <returns>Instance of the <see cref="IMediaOpsPlanApi"/> interface.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="dms"/> is <see langword="null" />.</exception>
-        public static IMediaOpsPlanApi GetMediaOpsPlanApi(this GQIDMS dms, ILogger<IMediaOpsPlanApi> logger = null)
+        public static IMediaOpsPlanApi GetMediaOpsPlanApi(this GQIDMS dms, ILoggerFactory loggerFactory = null)
         {
             if (dms == null)
             {
                 throw new ArgumentNullException(nameof(dms));
             }
 
-            return new MediaOpsPlanApi(dms.GetConnection(), logger);
+            return new MediaOpsPlanApi(dms.GetConnection(), loggerFactory);
         }
     }
 }

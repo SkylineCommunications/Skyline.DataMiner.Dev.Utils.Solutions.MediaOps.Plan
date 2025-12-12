@@ -4,7 +4,6 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    using Skyline.DataMiner.Core.InterAppCalls.Common.Shared;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
 
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
@@ -229,7 +228,7 @@
             {
                 return;
             }
-            
+
             propertySettings.Add(property);
             HasChanges = true;
         }
@@ -342,16 +341,6 @@
                 propertyConfiguration.ValueChanged += (s, e) => { HasChanges = true; };
                 propertySettings.Add(propertyConfiguration);
             }
-        }
-
-        // TODO: should we support this? OR should a user read the created/updated instances after pushing their changes?
-        internal void UpdateInstance(StorageResourceStudio.ResourceInstance instance)
-        {
-            ParseInstance(instance);
-
-            updatedInstance = null;
-            HasChanges = false;
-            IsNew = false;
         }
     }
 }

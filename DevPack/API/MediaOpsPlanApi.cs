@@ -2,20 +2,19 @@
 {
     using System;
     using Microsoft.Extensions.Logging;
-    using Skyline.DataMiner.ConnectorAPI.SkylineLockManager.ConnectorApi;
-    using Skyline.DataMiner.ConnectorAPI.SkylineLockManager.LockManager;
+    using Microsoft.Extensions.Logging.Abstractions;
     using Skyline.DataMiner.Core.DataMinerSystem.Common;
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Logger;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Tools;
 
     /// <summary>
     /// Provides the main entry point for interacting with the MediaOps Plan API.
     /// </summary>
     public class MediaOpsPlanApi : IMediaOpsPlanApi
     {
+        private readonly ILoggerFactory loggerFactory;
         private readonly ILogger<IMediaOpsPlanApi> logger;
         private readonly IConnection connection;
 
@@ -29,18 +28,18 @@
         private readonly Lazy<ICapacitiesRepository> lazyCapacitiesRepository;
         private readonly Lazy<IConfigurationsRepository> lazyConfigurationsRepository;
         private readonly Lazy<IResourcePropertiesRepository> lazyResourcePropertiesRepository;
-        private readonly Lazy<BatchLockManager> lazyLockManager;
+        private readonly Lazy<Plan.Tools.LockManager> lazyLockManager;
         private bool disposedValue;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="MediaOpsPlanApi"/> class.
         /// </summary>
         /// <param name="connection">The connection to use for API operations.</param>
-        /// <param name="logger">The logger to use for logging operations.</param>
-        public MediaOpsPlanApi(IConnection connection, ILogger<IMediaOpsPlanApi> logger = null)
+        /// <param name="loggerFactory">The logger to use for logging operations.</param>
+        public MediaOpsPlanApi(IConnection connection, ILoggerFactory loggerFactory = null)
         {
             this.connection = connection ?? throw new ArgumentNullException(nameof(connection));
-            this.logger = logger ?? new DefaultLogger();
+            this.logger = loggerFactory?.CreateLogger<IMediaOpsPlanApi>() ?? new NullLogger<IMediaOpsPlanApi>();
 
             domHelpers = new DomHelpers(connection);
             coreHelpers = new CoreHelpers(connection);
@@ -52,7 +51,7 @@
             lazyCapacitiesRepository = new Lazy<ICapacitiesRepository>(() => new CapacitiesRepository(this));
             lazyConfigurationsRepository = new Lazy<IConfigurationsRepository>(() => new ConfigurationsRepository(this));
             lazyResourcePropertiesRepository = new Lazy<IResourcePropertiesRepository>(() => new ResourcePropertiesRepository(this));
-            lazyLockManager = new Lazy<BatchLockManager>(() => new BatchLockManager(this));
+            lazyLockManager = new Lazy<Plan.Tools.LockManager>(() => new Plan.Tools.LockManager(this));
         }
 
         /// <summary>
@@ -89,13 +88,15 @@
 
         internal ILogger<IMediaOpsPlanApi> Logger => logger;
 
+        internal ILoggerFactory LoggerFactory => loggerFactory;
+
         internal DomHelpers DomHelpers => domHelpers;
 
         internal CoreHelpers CoreHelpers => coreHelpers;
 
         internal IDms Dms => lazyDms.Value;
 
-        internal BatchLockManager LockManager => lazyLockManager.Value;
+        internal Plan.Tools.LockManager LockManager => lazyLockManager.Value;
 
         /// <summary>
         /// Releases the resources used by the current instance of the class.

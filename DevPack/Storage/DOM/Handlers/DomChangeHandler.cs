@@ -8,6 +8,7 @@
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel.General;
     using Skyline.DataMiner.Net.Helper;
     using Skyline.DataMiner.Net.Sections;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 
     internal class DomChangeHandler
     {
@@ -41,7 +42,7 @@
             {
                 return;
             }
-            
+
             HandleAddedSections(updated.Sections.ExceptBy(original.Sections, x => x.ID.Id));
             HandleRemovedSections(original.Sections.ExceptBy(updated.Sections, x => x.ID.Id));
             HandleChangedFieldValues(changes.FieldValues);
@@ -296,7 +297,7 @@
         }
     }
 
-    internal class DomChangeResults
+    internal class DomChangeResults : IIdentifiable
     {
         private readonly DomInstance instance;
 
@@ -304,6 +305,8 @@
         {
             this.instance = instance ?? throw new ArgumentNullException(nameof(instance));
         }
+
+        public Guid Id => instance.ID.Id;
 
         internal DomInstance Instance => instance;
 
@@ -331,7 +334,7 @@
 
         internal string Message { get; set; }
 
-        internal  DomDetails Details { get; set; }
+        internal DomDetails Details { get; set; }
     }
 
     internal class DomDetails

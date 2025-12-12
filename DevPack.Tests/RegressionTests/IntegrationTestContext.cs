@@ -31,9 +31,8 @@
                 .BuildServiceProvider();
 
             factory = serviceProvider.GetService<ILoggerFactory>() ?? throw new NullReferenceException("Unable to create factory logger");
-            var logger = factory.CreateLogger<IMediaOpsPlanApi>();
 
-            Api = new MediaOpsPlanApi(connection, logger) ?? throw new NullReferenceException("Unable to create MediaOpsPlanApi");
+            Api = new MediaOpsPlanApi(connection, factory) ?? throw new NullReferenceException("Unable to create MediaOpsPlanApi");
 
             ResourceStudioDomHelper = new DomHelper(connection.HandleMessages, "(slc)resource_studio") ?? throw new NullReferenceException("Unable to create ResourceStudioDomHelper");
 
