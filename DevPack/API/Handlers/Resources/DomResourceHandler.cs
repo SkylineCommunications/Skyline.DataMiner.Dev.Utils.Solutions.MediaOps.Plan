@@ -161,7 +161,7 @@
             var toUpdatePoolValidation = resourcesToUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcResource_StudioIds.Sections.ResourceInternalProperties.Pool_Ids.Id)));
             ValidatePoolAssignments(toCreatePoolValidation.Concat(toUpdatePoolValidation));
 
-            var ToUpdateWithCapabilities = resourcesToUpdate.Where(x =>
+            var resourcesWithCapabilityChanges = resourcesToUpdate.Where(x =>
                 IsValid(x)
                 && x.State != ResourceState.Deprecated
                 && changeResults.Any(y => y.Instance.ID.Id == x.Id
@@ -169,7 +169,7 @@
                 || y.RemovedSections.Select(z => z.SectionDefinitionId).Contains(SlcResource_StudioIds.Sections.ResourceCapabilities.Id.Id)
                 || y.ChangedFields.Select(z => z.SectionDefinitionId).Contains(SlcResource_StudioIds.Sections.ResourceCapabilities.Id.Id))));
 
-            foreach (var resource in ToUpdateWithCapabilities)
+            foreach (var resource in resourcesWithCapabilityChanges)
             {
                 MarkAsResourceWithCoreChanges(resource);
             }
