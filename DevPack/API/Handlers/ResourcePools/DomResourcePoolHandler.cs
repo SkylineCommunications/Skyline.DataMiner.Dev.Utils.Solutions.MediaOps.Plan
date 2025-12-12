@@ -97,19 +97,8 @@
                 return;
             }
 
-            var toCreate = new List<ResourcePool>();
-            var toUpdate = new List<ResourcePool>();
-            foreach (var resourcePool in apiResourcePools)
-            {
-                if (resourcePool.IsNew)
-                {
-                    toCreate.Add(resourcePool);
-                }
-                else
-                {
-                    toUpdate.Add(resourcePool);
-                }
-            }
+            var toCreate = apiResourcePools.Where(x => x.IsNew).ToList();
+            var toUpdate = apiResourcePools.Except(toCreate).ToList();
 
             ValidateIdsNotInUse(toCreate);
             ValidateStateForUpdateAction(toUpdate);
@@ -165,11 +154,11 @@
                 .Select(x => new DomResourcePool(x.Instance))
                 .ToList();
 
-            CreateOrUpdate(toCreateDomInstances.Concat(toUpdateDomInstances));
+            CreateOrUpdateDomResourcePools(toCreateDomInstances.Concat(toUpdateDomInstances));
             return changeResults;
         }
 
-        private void CreateOrUpdate(IEnumerable<DomResourcePool> domResourcePools)
+        private void CreateOrUpdateDomResourcePools(IEnumerable<DomResourcePool> domResourcePools)
         {
             if (domResourcePools == null)
             {

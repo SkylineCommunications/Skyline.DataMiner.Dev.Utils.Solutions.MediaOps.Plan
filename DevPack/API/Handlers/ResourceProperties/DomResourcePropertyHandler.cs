@@ -128,10 +128,10 @@
                 .Select(x => new DomResourceProperty(x.Instance))
                 .ToList();
 
-            CreateOrUpdate(toCreateDomInstances.Concat(toUpdateDomInstances));
+            CreateOrUpdateDomResourceProperties(toCreateDomInstances.Concat(toUpdateDomInstances));
         }
 
-        private void CreateOrUpdate(IEnumerable<DomResourceProperty> domResourceProperties)
+        private void CreateOrUpdateDomResourceProperties(IEnumerable<DomResourceProperty> domResourceProperties)
         {
             if (domResourceProperties == null)
             {

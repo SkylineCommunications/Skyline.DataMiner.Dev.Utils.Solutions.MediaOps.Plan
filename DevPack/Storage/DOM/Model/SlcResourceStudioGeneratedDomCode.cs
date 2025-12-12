@@ -528,6 +528,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
 
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 
     /// <summary>
     /// Represents a wrapper class for accessing a ResourcepropertyInstance DOM instance.
@@ -758,7 +759,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
     /// Represents a wrapper class for accessing a ResourcepoolInstance DOM instance.
     /// The <see cref="ResourcepoolInstance"/> class provides simplified access to the data and functionality of the underlying DOM instance, allowing for easier manipulation and retrieval of data from DOM.
     /// </summary>
-    internal partial class ResourcepoolInstance : DomInstanceBase
+    internal partial class ResourcepoolInstance : DomInstanceBase, IIdentifiable
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ResourcepoolInstance"/> class. Creates an empty <see cref="ResourcepoolInstance"/> instance with default settings.
@@ -845,6 +846,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
         /// Gets or sets the ResourcePoolCapabilities section of the DOM Instance.
         /// </summary>
         public IList<ResourcePoolCapabilitiesSection> ResourcePoolCapabilities { get; private set; }
+
+        public Guid Id => domInstance.ID.Id;
 
         public static explicit operator ResourcepoolInstance(DomInstance instance)
         {

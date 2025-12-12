@@ -99,7 +99,7 @@
             result.ThrowOnFailure();
 
             // Save link with CORE Resource
-            CreateOrUpdate([apiResource.OriginalInstance]);
+            CreateOrUpdateDomResources([apiResource.OriginalInstance]);
 
             // Transition DOM Resource to Complete
             planApi.DomHelpers.SlcResourceStudioHelper.TransitionResourceToComplete(apiResource.Id);
@@ -109,7 +109,7 @@
         {
             var domResource = planApi.DomHelpers.SlcResourceStudioHelper.GetResources([apiResource.Id]).First();
             domResource.ClearError(errorDefinition.ErrorCode);
-            CreateOrUpdate([domResource]);
+            CreateOrUpdateDomResources([domResource]);
         }
 
         private void CreateOrUpdate(IEnumerable<Resource> apiResources)
@@ -184,10 +184,10 @@
                 .Select(x => new DomResource(x.Instance))
                 .ToList();
 
-            CreateOrUpdate(toCreateDomInstances.Concat(toUpdateDomInstances));
+            CreateOrUpdateDomResources(toCreateDomInstances.Concat(toUpdateDomInstances));
         }
 
-        private void CreateOrUpdate(IEnumerable<DomResource> domResources)
+        private void CreateOrUpdateDomResources(IEnumerable<DomResource> domResources)
         {
             if (domResources == null)
             {
@@ -870,7 +870,7 @@
             domResource.ResourceInfo.Type = SlcResource_StudioIds.Enums.Type.Unmanaged;
             domResource.ResourceInternalProperties.ResourceMetadata = String.Empty;
 
-            CreateOrUpdate([domResource]);
+            CreateOrUpdateDomResources([domResource]);
         }
 
         private void ConvertToVirtualFunctionResource(Resource resource, ResourceVirtualFunctionLinkConfiguration configuration)
@@ -901,7 +901,7 @@
                 LinkedFunctionTableIndex = configuration.FunctionTableIndex,
             };
 
-            CreateOrUpdate([domResource]);
+            CreateOrUpdateDomResources([domResource]);
         }
 
         private void ConvertToServiceResource(Resource resource, ResourceServiceLinkConfiguration configuration)
@@ -930,7 +930,7 @@
                 LinkedServiceInfo = new DmsServiceId(configuration.AgentId, configuration.ServiceId).Value,
             };
 
-            CreateOrUpdate([domResource]);
+            CreateOrUpdateDomResources([domResource]);
         }
 
         private void ConvertToElementResource(Resource resource, ResourceElementLinkConfiguration configuration)
@@ -959,7 +959,7 @@
                 LinkedElementInfo = new DmsElementId(configuration.AgentId, configuration.ElementId).Value,
             };
 
-            CreateOrUpdate([domResource]);
+            CreateOrUpdateDomResources([domResource]);
         }
     }
 }

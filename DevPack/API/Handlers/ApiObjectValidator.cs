@@ -47,11 +47,6 @@
 
         internal void AddValidationError(Guid key, MediaOpsErrorData error)
         {
-            if (Object.Equals(key, default))
-            {
-                throw new ArgumentException($"Key cannot have default value {default}.", nameof(key));
-            }
-
             if (error == null)
             {
                 throw new ArgumentNullException(nameof(error));
@@ -74,11 +69,6 @@
 
         protected void ReportError(Guid key)
         {
-            if (Object.Equals(key, default))
-            {
-                throw new ArgumentException($"Key cannot have default value {default}.", nameof(key));
-            }
-
             if (successfulIItems.Contains(key))
             {
                 throw new InvalidOperationException($"An item cannot be marked as both successful and unsuccessful");
@@ -105,11 +95,6 @@
 
         protected void ReportSuccess(Guid key)
         {
-            if (Object.Equals(key, default))
-            {
-                throw new ArgumentException($"Key cannot have default value {default}.", nameof(key));
-            }
-
             if (unsuccessfulItems.Contains(key))
             {
                 throw new InvalidOperationException($"An item cannot be marked as both successful and unsuccessful");

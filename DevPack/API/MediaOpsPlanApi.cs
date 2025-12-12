@@ -39,7 +39,8 @@
         public MediaOpsPlanApi(IConnection connection, ILoggerFactory loggerFactory = null)
         {
             this.connection = connection ?? throw new ArgumentNullException(nameof(connection));
-            this.logger = loggerFactory?.CreateLogger<IMediaOpsPlanApi>() ?? new NullLogger<IMediaOpsPlanApi>();
+            this.loggerFactory = loggerFactory ?? new NullLoggerFactory();
+            this.logger = this.loggerFactory.CreateLogger<IMediaOpsPlanApi>() ?? new NullLogger<IMediaOpsPlanApi>();
 
             domHelpers = new DomHelpers(connection);
             coreHelpers = new CoreHelpers(connection);
