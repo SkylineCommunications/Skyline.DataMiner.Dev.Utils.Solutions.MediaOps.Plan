@@ -2,6 +2,7 @@
 {
     using System.Net;
 
+    using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
 
@@ -12,6 +13,7 @@
     using Skyline.DataMiner.Net.Profiles;
 
     using DMConnection = Skyline.DataMiner.Net.Connection;
+    using System.Reflection;
 
     public sealed class IntegrationTestContext : IDisposable
     {
@@ -20,12 +22,10 @@
 
         public IntegrationTestContext()
         {
-            var credentials = CredentialCache.DefaultNetworkCredentials;
-
             var config = Config.Load();
 
             connection = ConnectionSettings.GetConnection(config.BaseUrl) ?? throw new NullReferenceException("Unable to connect to DataMiner");
-            connection.Authenticate(credentials.UserName, credentials.Password, credentials.Domain);
+            connection.Authenticate(config.Username, config.Password, config.Domain);
             var serviceProvider = new ServiceCollection()
                 .AddLogging()
                 .BuildServiceProvider();

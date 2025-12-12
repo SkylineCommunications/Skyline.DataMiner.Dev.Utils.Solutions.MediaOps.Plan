@@ -128,6 +128,7 @@
             var toUpdate = apiResources.Except(toCreate).ToList();
 
             ValidateIdsNotInUse(toCreate);
+            ValidateCapabilities(apiResources);
             ValidateResourceProperties(apiResources);
             ValidateNames(apiResources);
 
@@ -160,7 +161,21 @@
             var toUpdatePoolValidation = resourcesToUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcResource_StudioIds.Sections.ResourceInternalProperties.Pool_Ids.Id)));
             ValidatePoolAssignments(toCreatePoolValidation.Concat(toUpdatePoolValidation));
 
+            var ToUpdateWithCapabilities = resourcesToUpdate.Where(x =>
+                IsValid(x)
+                && x.State != ResourceState.Deprecated
+                && changeResults.Any(y => y.Instance.ID.Id == x.Id
+                && (y.AddedSections.Select(z => z.SectionDefinitionId).Contains(SlcResource_StudioIds.Sections.ResourceCapabilities.Id.Id)
+                || y.RemovedSections.Select(z => z.SectionDefinitionId).Contains(SlcResource_StudioIds.Sections.ResourceCapabilities.Id.Id)
+                || y.ChangedFields.Select(z => z.SectionDefinitionId).Contains(SlcResource_StudioIds.Sections.ResourceCapabilities.Id.Id))));
+
+            foreach (var resource in ToUpdateWithCapabilities)
+            {
+                MarkAsResourceWithCoreChanges(resource);
+            }
+
             var toCreateDomInstances = resourcesToCreate
+                .Where(IsValid)
                 .Select(x => x.GetInstanceWithChanges())
                 .ToList();
 
@@ -639,6 +654,81 @@
                 if (!hasError)
                 {
                     MarkAsResourceWithCoreChanges(resource);
+                }
+            }
+        }
+
+        private void ValidateCapabilities(IEnumerable<Resource> apiResources)
+        {
+            if (apiResources == null)
+            {
+                throw new ArgumentNullException(nameof(apiResources));
+            }
+
+            if (!apiResources.Any())
+            {
+                return;
+            }
+
+            var capabilityIds = apiResources
+                .SelectMany(x => x.Capabilities)
+                .Select(x => x.Id)
+                .Distinct()
+                .ToList();
+            var capabilitiesById = planApi.Capabilities.Read(capabilityIds);
+
+            foreach (var resource in apiResources)
+            {
+                foreach (var capabilitySettings in resource.Capabilities)
+                {
+                    if (capabilitySettings.Id == Guid.Empty)
+                    {
+                        var error = new InvalidResourceCapabilitySettingsError
+                        {
+                            ErrorMessage = "Capability ID cannot be empty.",
+                        };
+
+                        ReportError(resource.Id, error);
+                        continue;
+                    }
+
+                    if (!capabilitiesById.TryGetValue(capabilitySettings.Id, out var capability))
+                    {
+                        var error = new InvalidResourceCapabilitySettingsError
+                        {
+                            ErrorMessage = $"Capability with ID '{capabilitySettings.Id}' not found.",
+                            CapabilityId = capabilitySettings.Id,
+                        };
+
+                        ReportError(resource.Id, error);
+                        continue;
+                    }
+
+                    if (capabilitySettings.Discretes.Count == 0)
+                    {
+                        var error = new InvalidResourceCapabilitySettingsError
+                        {
+                            ErrorMessage = "At least one discrete value must be specified for the capability.",
+                            CapabilityId = capabilitySettings.Id,
+                        };
+
+                        ReportError(resource.Id, error);
+                        continue;
+                    }
+
+                    foreach (var discreteValue in capabilitySettings.Discretes)
+                    {
+                        if (!capability.Discretes.Contains(discreteValue))
+                        {
+                            var error = new InvalidResourceCapabilitySettingsError
+                            {
+                                ErrorMessage = $"Discrete value '{discreteValue}' is not valid for capability '{capability.Name}'.",
+                                CapabilityId = capabilitySettings.Id,
+                            };
+
+                            ReportError(resource.Id, error);
+                        }
+                    }
                 }
             }
         }
