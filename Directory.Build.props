@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <!-- Import local developer configuration if it exists -->
+  <PropertyGroup>
+    <MediaOpsLocalPropsFile>$(MSBuildThisFileDirectory)MediaOps.Local.props</MediaOpsLocalPropsFile>
+    <MediaOpsHasLocalConfig Condition="Exists('$(MediaOpsLocalPropsFile)')">true</MediaOpsHasLocalConfig>
+    <MediaOpsHasLocalConfig Condition="'$(MediaOpsHasLocalConfig)' == ''">false</MediaOpsHasLocalConfig>
+  </PropertyGroup>
+  
+  <!-- Import local configuration -->
+  <Import Project="$(MediaOpsLocalPropsFile)" Condition="$(MediaOpsHasLocalConfig)" />
+  
+  <!-- Default values if local config doesn't exist -->
+  <PropertyGroup Condition="'$(MediaOpsHasLocalConfig)' != 'true'">
+    <MediaOpsLocalDevMode>false</MediaOpsLocalDevMode>
+    <MediaOpsVersion>1.0.1-alpha1</MediaOpsVersion>
+  </PropertyGroup>
+</Project>

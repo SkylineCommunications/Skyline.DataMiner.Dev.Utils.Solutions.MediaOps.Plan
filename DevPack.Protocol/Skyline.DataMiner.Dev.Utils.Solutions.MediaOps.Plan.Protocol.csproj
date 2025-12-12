@@ -1,4 +1,5 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net48</TargetFramework>
     <LangVersion>latest</LangVersion>
@@ -8,8 +9,12 @@
     <AssemblyName>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Protocol</AssemblyName>
     <RootNamespace>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Protocol</RootNamespace>
 
-    <PackageVersion>1.0.1-alpha10</PackageVersion>
-    <Version>1.0.1-alpha10</Version>
+    <!-- Use shared version from Directory.Build.props -->
+    <PackageVersion>$(MediaOpsVersion)</PackageVersion>
+    <Version>$(MediaOpsVersion)</Version>
+    <FileVersion>$(MediaOpsVersion)</FileVersion>
+    <AssemblyVersion>1.0.*</AssemblyVersion>
+
     <PackageId>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Protocol</PackageId>
     <PackageTags>Skyline;DataMiner</PackageTags>
     <PackageProjectUrl>https://skyline.be</PackageProjectUrl>
@@ -18,20 +23,14 @@
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
     <PackageIcon>Icon.png</PackageIcon>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
-    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    
     <Authors>SkylineCommunications</Authors>
     <Company>Skyline Communications</Company>
     <Description>Provides Protocol extensions to communicate with MediaOps Plan.</Description>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/SkylineCommunications/Skyline.DataMiner.MediaOps.Plan</RepositoryUrl>
-
     <Deterministic>false</Deterministic>
-    <VersionPrefix>1.0</VersionPrefix>
-    <VersionSuffix>$([System.DateTime]::Now.ToString(`yyyy.Mdd`))</VersionSuffix>
-    <Version>$(VersionPrefix).$(VersionSuffix)</Version>
-    <FileVersion>$(Version)</FileVersion>
-    <AssemblyVersion>$(VersionPrefix).*</AssemblyVersion>
-
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
   </PropertyGroup>
@@ -53,8 +52,4 @@
   <ItemGroup>
     <ProjectReference Include="..\DevPack\Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.csproj" />
   </ItemGroup>
-
-  <Target Name="CopyNuGetPackage" AfterTargets="Pack" Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <Copy SourceFiles="$(OutputPath)..\$(PackageId).$(PackageVersion).nupkg" DestinationFolder="C:\Skyline_Data\MyNugets\" />
-  </Target>
 </Project>

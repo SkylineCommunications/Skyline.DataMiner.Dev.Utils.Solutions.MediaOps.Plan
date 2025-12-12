@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <!-- Ensure MediaOpsLocalPropsFile is always defined -->
+  <PropertyGroup>
+    <MediaOpsLocalPropsFile Condition="'$(MediaOpsLocalPropsFile)' == ''">$(MSBuildThisFileDirectory)MediaOps.Local.props</MediaOpsLocalPropsFile>
+  </PropertyGroup>
+
+  <!-- List of projects that should trigger dev mode -->
+  <PropertyGroup>
+    <MediaOpsTargetProjects>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan;Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Automation;Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.GQI;Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Protocol</MediaOpsTargetProjects>
+    <IsMediaOpsTargetProject Condition="$(MediaOpsTargetProjects.Contains('$(MSBuildProjectName)'))">true</IsMediaOpsTargetProject>
+    <IsMediaOpsTargetProject Condition="'$(IsMediaOpsTargetProject)' == ''">false</IsMediaOpsTargetProject>
+  </PropertyGroup>
+
+  <!-- Detect solution build using atomic counter with file locking -->
+  <Target Name="DetectBuildType" BeforeTargets="BeforeBuild" Condition="'$(IsMediaOpsTargetProject)' == 'true'">
+    <PropertyGroup>
+      <MediaOpsBuildCounterFile>$(TEMP)\MediaOps_BuildCounter_$(SolutionName).txt</MediaOpsBuildCounterFile>
+      <MediaOpsLockFile>$(TEMP)\MediaOps_BuildLock_$(SolutionName).lock</MediaOpsLockFile>
+      <MediaOpsVersionIncrementedFile>$(TEMP)\MediaOps_VersionIncremented_$(SolutionName).txt</MediaOpsVersionIncrementedFile>
+    </PropertyGroup>
+
+    <!-- Use PowerShell to atomically increment counter with file locking -->
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;$lockFile = '$(MediaOpsLockFile)'; $counterFile = '$(MediaOpsBuildCounterFile)'; $maxRetries = 50; $retryCount = 0; while ($retryCount -lt $maxRetries) { try { $lock = [System.IO.File]::Open($lockFile, 'OpenOrCreate', 'ReadWrite', 'None'); try { if (Test-Path $counterFile) { $count = [int]([System.IO.File]::ReadAllText($counterFile).Trim()) } else { $count = 0 }; $count++; [System.IO.File]::WriteAllText($counterFile, $count.ToString()); Write-Host $count; break } finally { $lock.Close(); $lock.Dispose() } } catch { Start-Sleep -Milliseconds 100; $retryCount++ } }; if ($retryCount -ge $maxRetries) { Write-Host '1' }&quot;"
+          ConsoleToMSBuild="true"
+          IgnoreStandardErrorWarningFormat="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="NewCount" />
+    </Exec>
+
+    <PropertyGroup>
+      <NewCount>$(NewCount.Trim())</NewCount>
+      
+      <!-- Determine if this is a solution build (2 or more projects building) -->
+      <IsBuildingSolution Condition="$(NewCount) &gt;= 2">true</IsBuildingSolution>
+      <IsBuildingSolution Condition="'$(IsBuildingSolution)' == ''">false</IsBuildingSolution>
+      
+      <!-- Enable dev mode features only for solution builds in Debug -->
+      <ShouldRunMediaOpsDevMode Condition="'$(MediaOpsLocalDevMode)' == 'true' AND '$(Configuration)' == 'Debug' AND '$(IsBuildingSolution)' == 'true'">true</ShouldRunMediaOpsDevMode>
+      <ShouldRunMediaOpsDevMode Condition="'$(ShouldRunMediaOpsDevMode)' == ''">false</ShouldRunMediaOpsDevMode>
+    </PropertyGroup>
+    
+    <Message Text="🔍 Build Detection [$(MSBuildProjectName)]:" Importance="high" />
+    <Message Text="   Counter File: $(MediaOpsBuildCounterFile)" Importance="high" />
+    <Message Text="   Build Counter: $(NewCount) / 4" Importance="high" />
+    <Message Text="   IsBuildingSolution: $(IsBuildingSolution)" Importance="high" />
+    <Message Text="   ShouldRunMediaOpsDevMode: $(ShouldRunMediaOpsDevMode)" Importance="high" />
+    <Message Text="   MediaOpsVersion: $(MediaOpsVersion)" Importance="high" />
+  </Target>
+
+  <!-- Clean up counter files ONLY after last project (count = 4) -->
+  <Target Name="CleanupBuildCounterAfterLastProject" AfterTargets="AfterBuild" Condition="'$(IsMediaOpsTargetProject)' == 'true'">
+    <PropertyGroup>
+      <MediaOpsBuildCounterFile>$(TEMP)\MediaOps_BuildCounter_$(SolutionName).txt</MediaOpsBuildCounterFile>
+      <MediaOpsLockFile>$(TEMP)\MediaOps_BuildLock_$(SolutionName).lock</MediaOpsLockFile>
+      <MediaOpsVersionIncrementedFile>$(TEMP)\MediaOps_VersionIncremented_$(SolutionName).txt</MediaOpsVersionIncrementedFile>
+    </PropertyGroup>
+
+    <!-- Use PowerShell to atomically read counter and clean up if count = 4 -->
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;$lockFile = '$(MediaOpsLockFile)'; $counterFile = '$(MediaOpsBuildCounterFile)'; $versionFile = '$(MediaOpsVersionIncrementedFile)'; $maxRetries = 50; $retryCount = 0; while ($retryCount -lt $maxRetries) { try { $lock = [System.IO.File]::Open($lockFile, 'Open', 'ReadWrite', 'None'); try { if (Test-Path $counterFile) { $count = [int]([System.IO.File]::ReadAllText($counterFile).Trim()); if ($count -ge 4) { Start-Sleep -Milliseconds 500; Remove-Item -Path $counterFile,$lockFile,$versionFile -Force -ErrorAction SilentlyContinue; Write-Host 'Cleaned up' } } break } finally { $lock.Close(); $lock.Dispose() } } catch { Start-Sleep -Milliseconds 100; $retryCount++ } }&quot;"
+          IgnoreStandardErrorWarningFormat="true"
+          ContinueOnError="true" />
+  </Target>
+
+  <!-- Auto-increment version (only once per solution build) -->
+  <Target Name="IncrementMediaOpsVersion" 
+          BeforeTargets="BeforeBuild" 
+          AfterTargets="DetectBuildType"
+          Condition="'$(ShouldRunMediaOpsDevMode)' == 'true'">
+    
+    <PropertyGroup>
+      <MediaOpsVersionIncrementedFile>$(TEMP)\MediaOps_VersionIncremented_$(SolutionName).txt</MediaOpsVersionIncrementedFile>
+      <VersionAlreadyIncremented Condition="Exists('$(MediaOpsVersionIncrementedFile)')">true</VersionAlreadyIncremented>
+      <VersionAlreadyIncremented Condition="'$(VersionAlreadyIncremented)' == ''">false</VersionAlreadyIncremented>
+    </PropertyGroup>
+    
+    <CallTarget Targets="IncrementMediaOpsVersionInternal" Condition="'$(VersionAlreadyIncremented)' == 'false'" />
+  </Target>
+
+  <Target Name="IncrementMediaOpsVersionInternal">
+    <!-- Ensure all required properties are defined -->
+    <PropertyGroup>
+      <MediaOpsLocalPropsFile Condition="'$(MediaOpsLocalPropsFile)' == ''">$(MSBuildThisFileDirectory)MediaOps.Local.props</MediaOpsLocalPropsFile>
+      <MediaOpsVersionIncrementedFile Condition="'$(MediaOpsVersionIncrementedFile)' == ''">$(TEMP)\MediaOps_VersionIncremented_$(SolutionName).txt</MediaOpsVersionIncrementedFile>
+    </PropertyGroup>
+
+    <!-- Only proceed if the local props file exists -->
+    <Error Text="❌ MediaOps.Local.props file not found at: $(MediaOpsLocalPropsFile)" 
+           Condition="!Exists('$(MediaOpsLocalPropsFile)')" />
+
+    <!-- Parse current version -->
+    <PropertyGroup>
+      <CurrentVersion>$(MediaOpsVersion)</CurrentVersion>
+      <VersionMajor>$([System.Text.RegularExpressions.Regex]::Match($(CurrentVersion), '^(\d+)\.').Groups[1].Value)</VersionMajor>
+      <VersionMinor>$([System.Text.RegularExpressions.Regex]::Match($(CurrentVersion), '^\d+\.(\d+)\.').Groups[1].Value)</VersionMinor>
+      <VersionPatch>$([System.Text.RegularExpressions.Regex]::Match($(CurrentVersion), '^\d+\.\d+\.(\d+)\.').Groups[1].Value)</VersionPatch>
+      <VersionBuild>$([System.Text.RegularExpressions.Regex]::Match($(CurrentVersion), '^\d+\.\d+\.\d+\.(\d+)').Groups[1].Value)</VersionBuild>
+      
+      <!-- Increment build number -->
+      <NewVersionBuild>$([MSBuild]::Add($(VersionBuild), 1))</NewVersionBuild>
+      <NewVersion>$(VersionMajor).$(VersionMinor).$(VersionPatch).$(NewVersionBuild)</NewVersion>
+    </PropertyGroup>
+
+    <!-- Read and update the local props file -->
+    <PropertyGroup>
+      <LocalPropsContent>$([System.IO.File]::ReadAllText('$(MediaOpsLocalPropsFile)'))</LocalPropsContent>
+      <UpdatedPropsContent>$(LocalPropsContent.Replace('&lt;MediaOpsVersion&gt;$(CurrentVersion)&lt;/MediaOpsVersion&gt;', '&lt;MediaOpsVersion&gt;$(NewVersion)&lt;/MediaOpsVersion&gt;'))</UpdatedPropsContent>
+    </PropertyGroup>
+
+    <!-- Write back to file -->
+    <WriteLinesToFile File="$(MediaOpsLocalPropsFile)" 
+                      Lines="$(UpdatedPropsContent)" 
+                      Overwrite="true" 
+                      Encoding="UTF-8" />
+    
+    <!-- Create marker file to prevent duplicate increments -->
+    <WriteLinesToFile File="$(MediaOpsVersionIncrementedFile)" 
+                      Lines="$(NewVersion)" 
+                      Overwrite="true" 
+                      Encoding="UTF-8" />
+
+    <!-- Update property for current build -->
+    <PropertyGroup>
+      <MediaOpsVersion>$(NewVersion)</MediaOpsVersion>
+    </PropertyGroup>
+
+    <Message Text="🚀 MediaOps Version Incremented: $(CurrentVersion) → $(NewVersion)" Importance="high" />
+  </Target>
+
+  <!-- Disable NuGet generation for individual project builds -->
+  <Target Name="DisableNuGetForProjectBuild" 
+          BeforeTargets="GenerateNuspec"
+          Condition="'$(ShouldRunMediaOpsDevMode)' != 'true'">
+    <PropertyGroup>
+      <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+      <IsPackable>false</IsPackable>
+    </PropertyGroup>
+    <Message Text="⛔ NuGet generation disabled (individual project build or not Debug config)" Importance="high" />
+  </Target>
+
+  <!-- Copy NuGet packages after pack - ALSO copy for first project (counter=1) -->
+  <Target Name="CopyMediaOpsNuGetPackage" 
+          AfterTargets="Pack" 
+          Condition="'$(IsMediaOpsTargetProject)' == 'true' AND '$(MediaOpsNuGetOutputPath)' != '' AND ('$(ShouldRunMediaOpsDevMode)' == 'true' OR ('$(IsBuildingSolution)' == 'false' AND '$(Configuration)' == 'Debug' AND '$(MediaOpsLocalDevMode)' == 'true'))">
+    <PropertyGroup>
+      <NuGetPackageFile>$(OutputPath)..\$(PackageId).$(PackageVersion).nupkg</NuGetPackageFile>
+    </PropertyGroup>
+    
+    <MakeDir Directories="$(MediaOpsNuGetOutputPath)" Condition="!Exists('$(MediaOpsNuGetOutputPath)')" />
+    <Copy SourceFiles="$(NuGetPackageFile)" 
+          DestinationFolder="$(MediaOpsNuGetOutputPath)" 
+          Condition="Exists('$(NuGetPackageFile)')" />
+    
+    <Message Text="📦 Copied $(PackageId).$(PackageVersion).nupkg → $(MediaOpsNuGetOutputPath)" 
+             Importance="high" 
+             Condition="Exists('$(NuGetPackageFile)')" />
+  </Target>
+
+  <!-- Copy ONLY DLL files to solution repo after build (for 4 target projects only) -->
+  <Target Name="CopyMediaOpsDllsToRepo" 
+          AfterTargets="AfterBuild" 
+          Condition="'$(IsMediaOpsTargetProject)' == 'true' AND '$(MediaOpsSolutionRepoPath)' != '' AND Exists('$(MediaOpsSolutionRepoPath)') AND ('$(ShouldRunMediaOpsDevMode)' == 'true' OR ('$(IsBuildingSolution)' == 'false' AND '$(Configuration)' == 'Debug' AND '$(MediaOpsLocalDevMode)' == 'true'))">
+    
+    <PropertyGroup>
+      <DllFile>$(OutputPath)$(AssemblyName).dll</DllFile>
+      
+      <!-- Target directories -->
+      <AutomationDevPackPath>$(MediaOpsSolutionRepoPath)\SLC-AS-MediaOps\SetupContent\DevPack</AutomationDevPackPath>
+      <SolutionDevPackPath>$(MediaOpsSolutionRepoPath)\SLC-S-MediaOps\SetupContent\DevPack</SolutionDevPackPath>
+    </PropertyGroup>
+
+    <!-- Create directories if they don't exist -->
+    <MakeDir Directories="$(AutomationDevPackPath)" Condition="!Exists('$(AutomationDevPackPath)')" />
+    <MakeDir Directories="$(SolutionDevPackPath)" Condition="!Exists('$(SolutionDevPackPath)')" />
+
+    <!-- Copy ONLY DLL to SLC-AS-MediaOps -->
+    <Copy SourceFiles="$(DllFile)" 
+          DestinationFolder="$(AutomationDevPackPath)" 
+          Condition="Exists('$(DllFile)')" />
+
+    <!-- Copy ONLY DLL to SLC-S-MediaOps -->
+    <Copy SourceFiles="$(DllFile)" 
+          DestinationFolder="$(SolutionDevPackPath)" 
+          Condition="Exists('$(DllFile)')" />
+
+    <!-- Log messages -->
+    <Message Text="📚 Copied $(AssemblyName).dll:" Importance="high" Condition="Exists('$(DllFile)')" />
+    <Message Text="   → $(AutomationDevPackPath)" Importance="high" Condition="Exists('$(DllFile)')" />
+    <Message Text="   → $(SolutionDevPackPath)" Importance="high" Condition="Exists('$(DllFile)')" />
+  </Target>
+
+  <!-- Warning message if solution repo path doesn't exist -->
+  <Target Name="WarnMissingMediaOpsSolutionRepo" 
+          AfterTargets="AfterBuild" 
+          Condition="'$(ShouldRunMediaOpsDevMode)' == 'true' AND '$(MediaOpsSolutionRepoPath)' != '' AND !Exists('$(MediaOpsSolutionRepoPath)')">
+    <Warning Text="⚠️  MediaOps Solution repo path does not exist: $(MediaOpsSolutionRepoPath)" />
+    <Warning Text="⚠️  DLL files will NOT be copied to solution repo. Please update MediaOpsSolutionRepoPath in MediaOps.Local.props" />
+  </Target>
+</Project>
