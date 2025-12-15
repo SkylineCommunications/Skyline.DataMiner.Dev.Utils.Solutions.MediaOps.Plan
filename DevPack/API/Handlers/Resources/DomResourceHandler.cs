@@ -125,7 +125,6 @@
             }
 
             var toCreate = apiResources.Where(x => x.IsNew).ToList();
-            var toUpdate = apiResources.Except(toCreate).ToList();
 
             ValidateIdsNotInUse(toCreate);
             ValidateCapabilities(apiResources);
