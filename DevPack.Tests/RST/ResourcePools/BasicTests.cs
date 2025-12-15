@@ -101,7 +101,9 @@
                 var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(resourcePoolConfigurationError);
 
-                Assert.AreEqual(ResourcePoolConfigurationError.Reason.IdInUse, resourcePoolConfigurationError.ErrorReason);
+                var resourcePoolConfigurationIdInUseError = resourcePoolConfigurationError as ResourcePoolConfigurationIdInUseError;
+                Assert.IsNotNull(resourcePoolConfigurationIdInUseError);
+                Assert.AreEqual(poolId, resourcePoolConfigurationIdInUseError.Id);
                 Assert.AreEqual("ID is already in use.", resourcePoolConfigurationError.ErrorMessage);
 
                 return;
@@ -148,7 +150,9 @@
 
                 foreach (var error in resourcePoolConfigurationErrors)
                 {
-                    Assert.AreEqual(ResourcePoolConfigurationError.Reason.DuplicateId, error.ErrorReason);
+                    var resourcePoolConfigurationDuplicateIdError = error as ResourcePoolConfigurationDuplicateIdError;
+                    Assert.IsNotNull(resourcePoolConfigurationDuplicateIdError);
+                    Assert.AreEqual(poolId, resourcePoolConfigurationDuplicateIdError.Id);
                     Assert.IsTrue(errorMessages.Contains(error.ErrorMessage));
 
                     errorMessages.Remove(error.ErrorMessage);
@@ -188,7 +192,10 @@
                 var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(resourcePoolConfigurationError);
 
-                Assert.AreEqual(ResourcePoolConfigurationError.Reason.NameExists, resourcePoolConfigurationError.ErrorReason);
+                var resourcePoolConfigurationNameExistsError = resourcePoolConfigurationError as ResourcePoolConfigurationNameExistsError;
+                Assert.IsNotNull(resourcePoolConfigurationNameExistsError);
+                Assert.AreEqual(resourcePool2.Id, resourcePoolConfigurationNameExistsError.Id);
+                Assert.AreEqual(resourcePool2.Name, resourcePoolConfigurationNameExistsError.Name);
                 Assert.AreEqual("Name is already in use.", resourcePoolConfigurationError.ErrorMessage);
 
                 return;
@@ -226,7 +233,9 @@
                     var resourcePoolConfigurationError = traceData.ErrorData.OfType<ResourcePoolConfigurationError>().SingleOrDefault();
                     Assert.IsNotNull(resourcePoolConfigurationError);
 
-                    Assert.AreEqual(ResourcePoolConfigurationError.Reason.DuplicateName, resourcePoolConfigurationError.ErrorReason);
+                    var resourcePoolConfigurationDuplicateNameError = resourcePoolConfigurationError as ResourcePoolConfigurationDuplicateNameError;
+                    Assert.IsNotNull(resourcePoolConfigurationDuplicateNameError);
+                    Assert.AreEqual(resourcePool1.Name, resourcePoolConfigurationDuplicateNameError.Name);
                     Assert.AreEqual($"Resource pool '{resourcePool1.Name}' has a duplicate name.", resourcePoolConfigurationError.ErrorMessage);
                 }
 
@@ -269,7 +278,10 @@
                 var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(resourcePoolConfigurationError);
 
-                Assert.AreEqual(ResourcePoolConfigurationError.Reason.NameExists, resourcePoolConfigurationError.ErrorReason);
+                var resourcePoolConfigurationNameExistsError = resourcePoolConfigurationError as ResourcePoolConfigurationNameExistsError;
+                Assert.IsNotNull(resourcePoolConfigurationNameExistsError);
+                Assert.AreEqual(toUpdate.Id, resourcePoolConfigurationNameExistsError.Id);
+                Assert.AreEqual(toUpdate.Name, resourcePoolConfigurationNameExistsError.Name);
                 Assert.AreEqual("Name is already in use.", resourcePoolConfigurationError.ErrorMessage);
 
                 return;

@@ -507,10 +507,10 @@
 
             foreach (var pool in poolsWithDuplicateIds)
             {
-                var error = new ResourcePoolConfigurationError
+                var error = new ResourcePoolConfigurationDuplicateIdError
                 {
-                    ErrorReason = ResourcePoolConfigurationError.Reason.DuplicateId,
                     ErrorMessage = $"Resource pool '{pool.Name}' has a duplicate ID.",
+                    Id = pool.Id,
                 };
 
                 ReportError(pool.Id, error);
@@ -522,10 +522,10 @@
             {
                 planApi.Logger.LogInformation($"ID is already in use by a Resource Studio instance.", foundInstance.ID.Id);
 
-                var error = new ResourcePoolConfigurationError
+                var error = new ResourcePoolConfigurationIdInUseError
                 {
-                    ErrorReason = ResourcePoolConfigurationError.Reason.IdInUse,
                     ErrorMessage = "ID is already in use.",
+                    Id = foundInstance.ID.Id,
                 };
 
                 ReportError(foundInstance.ID.Id, error);
@@ -546,10 +546,10 @@
 
             foreach (var pool in apiResourcePools.Where(x => x.State == ResourcePoolState.Deprecated))
             {
-                var error = new ResourcePoolConfigurationError
+                var error = new ResourcePoolConfigurationInvalidStateError
                 {
-                    ErrorReason = ResourcePoolConfigurationError.Reason.InvalidState,
-                    ErrorMessage = "Not allowed to update a resource pool in Deprecated state."
+                    ErrorMessage = "Not allowed to update a resource pool in Deprecated state.",
+                    Id = pool.Id,
                 };
                 ReportError(pool.Id, error);
             }
@@ -569,10 +569,10 @@
 
             foreach (var pool in apiResourcePools.Where(x => x.State != ResourcePoolState.Draft))
             {
-                var error = new ResourcePoolConfigurationError
+                var error = new ResourcePoolConfigurationInvalidStateError
                 {
-                    ErrorReason = ResourcePoolConfigurationError.Reason.InvalidState,
-                    ErrorMessage = "Not allowed to complete a resource pool that is not in Draft state."
+                    ErrorMessage = "Not allowed to complete a resource pool that is not in Draft state.",
+                    Id = pool.Id,
                 };
                 ReportError(pool.Id, error);
             }
@@ -592,10 +592,10 @@
 
             foreach (var pool in apiResourcePools.Where(x => x.State != ResourcePoolState.Complete))
             {
-                var error = new ResourcePoolConfigurationError
+                var error = new ResourcePoolConfigurationInvalidStateError
                 {
-                    ErrorReason = ResourcePoolConfigurationError.Reason.InvalidState,
-                    ErrorMessage = "Not allowed to deprecate a resource pool that is not in Completed state."
+                    ErrorMessage = "Not allowed to deprecate a resource pool that is not in Completed state.",
+                    Id = pool.Id,
                 };
                 ReportError(pool.Id, error);
             }
@@ -615,10 +615,10 @@
 
             foreach (var pool in apiResourcePools.Where(x => !new[] { ResourcePoolState.Draft, ResourcePoolState.Deprecated }.Contains(x.State)))
             {
-                var error = new ResourcePoolConfigurationError
+                var error = new ResourcePoolConfigurationInvalidStateError
                 {
-                    ErrorReason = ResourcePoolConfigurationError.Reason.InvalidState,
-                    ErrorMessage = "Not allowed to delete a resource pool that is not in Draft or Deprecated state."
+                    ErrorMessage = "Not allowed to delete a resource pool that is not in Draft or Deprecated state.",
+                    Id = pool.Id,
                 };
                 ReportError(pool.Id, error);
             }
@@ -640,10 +640,10 @@
 
             foreach (var pool in poolsRequiringValidation.Where(x => !InputValidator.ValidateEmptyText(x.Name)))
             {
-                var error = new ResourcePoolConfigurationError
+                var error = new ResourcePoolConfigurationInvalidNameError
                 {
-                    ErrorReason = ResourcePoolConfigurationError.Reason.InvalidName,
                     ErrorMessage = "Name cannot be empty.",
+                    Id = pool.Id,
                 };
 
                 ReportError(pool.Id, error);
@@ -653,10 +653,11 @@
 
             foreach (var pool in poolsRequiringValidation.Where(x => !InputValidator.ValidateTextLength(x.Name)))
             {
-                var error = new ResourcePoolConfigurationError
+                var error = new ResourcePoolConfigurationInvalidNameError
                 {
-                    ErrorReason = ResourcePoolConfigurationError.Reason.InvalidName,
                     ErrorMessage = $"Name exceeds maximum length of {InputValidator.DefaultMaxTextLength} characters.",
+                    Id = pool.Id,
+                    Name = pool.Name,
                 };
 
                 ReportError(pool.Id, error);
@@ -672,10 +673,11 @@
 
             foreach (var pool in poolsWithDuplicateNames)
             {
-                var error = new ResourcePoolConfigurationError
+                var error = new ResourcePoolConfigurationDuplicateNameError
                 {
-                    ErrorReason = ResourcePoolConfigurationError.Reason.DuplicateName,
                     ErrorMessage = $"Resource pool '{pool.Name}' has a duplicate name.",
+                    Id = pool.Id,
+                    Name = pool.Name,
                 };
 
                 ReportError(pool.Id, error);
@@ -708,10 +710,11 @@
 
                 planApi.Logger.LogInformation($"Name '{pool.Name}' is already in use by DOM resource pool(s) with ID(s)", existingPools.Select(x => x.ID.Id).ToArray());
 
-                var error = new ResourcePoolConfigurationError
+                var error = new ResourcePoolConfigurationNameExistsError
                 {
-                    ErrorReason = ResourcePoolConfigurationError.Reason.NameExists,
                     ErrorMessage = "Name is already in use.",
+                    Id = pool.Id,
+                    Name = pool.Name,
                 };
 
                 ReportError(pool.Id, error);
@@ -743,30 +746,31 @@
                 {
                     if (link.LinkedResourcePoolId == Guid.Empty)
                     {
-                        var error = new ResourcePoolConfigurationError
+                        var error = new ResourcePoolConfigurationEmptyPoolLinkError
                         {
-                            ErrorReason = ResourcePoolConfigurationError.Reason.InvalidPoolLink,
                             ErrorMessage = "Linked resource pool ID cannot be empty.",
+                            Id = pool.Id,
                         };
 
                         ReportError(pool.Id, error);
                     }
                     else if (link.LinkedResourcePoolId == pool.Id)
                     {
-                        var error = new ResourcePoolConfigurationError
+                        var error = new ResourcePoolConfigurationSelfReferencePoolLinkError
                         {
-                            ErrorReason = ResourcePoolConfigurationError.Reason.InvalidPoolLink,
                             ErrorMessage = "A resource pool cannot link to itself.",
+                            Id = pool.Id,
                         };
 
                         ReportError(pool.Id, error);
                     }
                     else if (!domPoolsById.TryGetValue(link.LinkedResourcePoolId, out _))
                     {
-                        var error = new ResourcePoolConfigurationError
+                        var error = new ResourcePoolConfigurationNotFoundPoolLinkError
                         {
-                            ErrorReason = ResourcePoolConfigurationError.Reason.InvalidPoolLink,
                             ErrorMessage = $"Linked resource pool with ID '{link.LinkedResourcePoolId}' {(link.IsNew ? "does not exist" : "no longer exists")}.",
+                            Id = pool.Id,
+                            LinkedResourcePoolId = link.LinkedResourcePoolId,
                         };
 
                         ReportError(pool.Id, error);
@@ -800,7 +804,7 @@
                 {
                     if (capabilitySettings.Id == Guid.Empty)
                     {
-                        var error = new InvalidResourcePoolCapabilitySettingsError
+                        var error = new ResourcePoolConfigurationInvalidCapabilitySettingsError
                         {
                             ErrorMessage = "Capability ID cannot be empty.",
                         };
@@ -811,7 +815,7 @@
 
                     if (!capabilitiesById.TryGetValue(capabilitySettings.Id, out var capability))
                     {
-                        var error = new InvalidResourcePoolCapabilitySettingsError
+                        var error = new ResourcePoolConfigurationInvalidCapabilitySettingsError
                         {
                             ErrorMessage = $"Capability with ID '{capabilitySettings.Id}' not found.",
                             CapabilityId = capabilitySettings.Id,
@@ -823,7 +827,7 @@
 
                     if (capabilitySettings.Discretes.Count == 0)
                     {
-                        var error = new InvalidResourcePoolCapabilitySettingsError
+                        var error = new ResourcePoolConfigurationInvalidCapabilitySettingsError
                         {
                             ErrorMessage = "At least one discrete value must be specified for the capability.",
                             CapabilityId = capabilitySettings.Id,
@@ -837,7 +841,7 @@
                     {
                         if (!capability.Discretes.Contains(discreteValue))
                         {
-                            var error = new InvalidResourcePoolCapabilitySettingsError
+                            var error = new ResourcePoolConfigurationInvalidCapabilitySettingsError
                             {
                                 ErrorMessage = $"Discrete value '{discreteValue}' is not valid for capability '{capability.Name}'.",
                                 CapabilityId = capabilitySettings.Id,
@@ -878,10 +882,10 @@
             {
                 if (!storedDomResourcePoolsById.TryGetValue(pool.Id, out var stored))
                 {
-                    var error = new ResourcePoolConfigurationError
+                    var error = new ResourcePoolConfigurationNotFoundError
                     {
-                        ErrorReason = ResourcePoolConfigurationError.Reason.NotFound,
-                        ErrorMessage = $"Resource pool with ID '{pool.Id}' no longer exists."
+                        ErrorMessage = $"Resource pool with ID '{pool.Id}' no longer exists.",
+                        Id = pool.Id,
                     };
 
                     ReportError(pool.Id, error);
@@ -894,10 +898,10 @@
                 {
                     foreach (var errorDetails in changeResult.Errors)
                     {
-                        var error = new ResourcePoolConfigurationError
+                        var error = new ResourcePoolConfigurationValueAlreadyChangedError
                         {
-                            ErrorReason = ResourcePoolConfigurationError.Reason.ValueAlreadyChanged,
                             ErrorMessage = errorDetails.Message,
+                            Id = pool.Id,
                         };
 
                         ReportError(pool.Id, error);

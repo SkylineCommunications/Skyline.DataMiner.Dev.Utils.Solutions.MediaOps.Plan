@@ -5,7 +5,7 @@
     /// <summary>
     /// Represents an error that occurs when resource capacity settings are invalid.
     /// </summary>
-    public class InvalidResourceCapacitySettingsError : ResourceConfigurationError
+    public class ResourceConfigurationInvalidCapacitySettingsError : ResourceConfigurationError
     {
         /// <summary>
         /// Gets the unique identifier for the capacity.

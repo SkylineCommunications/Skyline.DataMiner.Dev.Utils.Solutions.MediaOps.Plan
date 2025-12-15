@@ -132,10 +132,10 @@
                 if (capability.IsTimeDependent == capability.CoreParameter.IsTimeDependent())
                     continue;
 
-                ReportError(capability.Id, new CapabilityConfigurationError
+                ReportError(capability.Id, new CapabilityConfigurationInvalidTimeDependencyError
                 {
-                    ErrorReason = CapabilityConfigurationError.Reason.InvalidTimeDependency,
                     ErrorMessage = "Changing the time dependency of a capability is not allowed.",
+                    Id = capability.Id,
                 });
             }
         }
@@ -155,10 +155,10 @@
             var newCapabilities = apiCapabilities.Where(x => x.IsNew).ToList();
             newCapabilities.ForEach(x =>
             {
-                var error = new CapabilityConfigurationError
+                var error = new CapabilityConfigurationInvalidStateError
                 {
-                    ErrorReason = CapabilityConfigurationError.Reason.InvalidState,
                     ErrorMessage = $"A capability that was not saved cannot be removed.",
+                    Id = x.Id,
                 };
 
                 ReportError(x.Id, error);
@@ -214,10 +214,10 @@
 
             foreach (var capability in capabilitiesWithDuplicateIds)
             {
-                var error = new CapabilityConfigurationError
+                var error = new CapabilityConfigurationDuplicateIdError
                 {
-                    ErrorReason = CapabilityConfigurationError.Reason.DuplicateId,
                     ErrorMessage = $"Capability '{capability.Name}' has a duplicate ID.",
+                    Id = capability.Id,
                 };
 
                 ReportError(capability.Id, error);
@@ -229,10 +229,10 @@
             {
                 planApi.Logger.LogInformation($"ID is already in use by a Profile Parameter.", foundProfileParameter.ID);
 
-                var error = new CapabilityConfigurationError
+                var error = new CapabilityConfigurationIdInUseError
                 {
-                    ErrorReason = CapabilityConfigurationError.Reason.IdInUse,
                     ErrorMessage = "ID is already in use.",
+                    Id = foundProfileParameter.ID,
                 };
 
                 ReportError(foundProfileParameter.ID, error);
@@ -255,10 +255,10 @@
 
             foreach (var capability in capabilitiesRequiringValidation.Where(x => !InputValidator.ValidateEmptyText(x.Name)))
             {
-                var error = new CapabilityConfigurationError
+                var error = new CapabilityConfigurationInvalidNameError
                 {
-                    ErrorReason = CapabilityConfigurationError.Reason.InvalidName,
                     ErrorMessage = "Name cannot be empty.",
+                    Id = capability.Id,
                 };
 
                 ReportError(capability.Id, error);
@@ -267,10 +267,11 @@
 
             foreach (var capability in capabilitiesRequiringValidation.Where(x => !InputValidator.ValidateTextLength(x.Name)))
             {
-                var error = new CapabilityConfigurationError
+                var error = new CapabilityConfigurationInvalidNameError
                 {
-                    ErrorReason = CapabilityConfigurationError.Reason.InvalidName,
                     ErrorMessage = $"Name exceeds maximum length of {InputValidator.DefaultMaxTextLength} characters.",
+                    Id = capability.Id,
+                    Name = capability.Name,
                 };
 
                 ReportError(capability.Id, error);
@@ -285,10 +286,11 @@
 
             foreach (var capability in capabilitiesWithDuplicateNames)
             {
-                var error = new CapabilityConfigurationError
+                var error = new CapabilityConfigurationDuplicateNameError
                 {
-                    ErrorReason = CapabilityConfigurationError.Reason.DuplicateName,
                     ErrorMessage = $"Capability '{capability.Name}' has a duplicate name.",
+                    Id = capability.Id,
+                    Name = capability.Name,
                 };
 
                 ReportError(capability.Id, error);
@@ -312,10 +314,11 @@
 
                 planApi.Logger.LogInformation($"Name '{capability.Name}' is already in use by Profile Parameter(s) with ID(s)", coreParametersWithSameNameAndDifferentIds.Select(x => x.ID).ToArray());
 
-                var error = new CapabilityConfigurationError
+                var error = new CapabilityConfigurationNameExistsError
                 {
-                    ErrorReason = CapabilityConfigurationError.Reason.NameExists,
                     ErrorMessage = "Name is already in use.",
+                    Id = capability.Id,
+                    Name = capability.Name,
                 };
 
                 ReportError(capability.Id, error);
@@ -328,10 +331,10 @@
             {
                 if (capability.Discretes.Count == 0)
                 {
-                    ReportError(capability.Id, new CapabilityConfigurationError
+                    ReportError(capability.Id, new CapabilityConfigurationNoDiscretesError
                     {
-                        ErrorReason = CapabilityConfigurationError.Reason.InvalidDiscretes,
                         ErrorMessage = "Empty discretes list is not allowed.",
+                        Id = capability.Id,
                     });
                 }
                 else
@@ -344,10 +347,11 @@
 
                     if (duplicateDiscretes.Any())
                     {
-                        ReportError(capability.Id, new CapabilityConfigurationError
+                        ReportError(capability.Id, new CapabilityConfigurationDuplicateDiscretesError
                         {
-                            ErrorReason = CapabilityConfigurationError.Reason.InvalidDiscretes,
                             ErrorMessage = $"The capability defines the following duplicate discretes: {String.Join(", ", duplicateDiscretes)}.",
+                            Id = capability.Id,
+                            Discretes = duplicateDiscretes,
                         });
                     }
                 }

@@ -28,10 +28,11 @@
         {
             if (numberConfiguration.RangeMin.HasValue && numberConfiguration.RangeMax.HasValue && numberConfiguration.RangeMax <= numberConfiguration.RangeMin)
             {
-                ReportError(numberConfiguration.Id, new ConfigurationConfigurationError
+                ReportError(numberConfiguration.Id, new ConfigurationConfigurationInvalidRangeError
                 {
-                    ErrorReason = ConfigurationConfigurationError.Reason.InvalidRangeMax,
                     ErrorMessage = "RangeMax must be greater than RangeMin.",
+                    RangeMin = numberConfiguration.RangeMin.Value,
+                    RangeMax = numberConfiguration.RangeMax.Value,
                 });
             }
         }
@@ -40,10 +41,10 @@
         {
             if (numberConfiguration.StepSize.HasValue && numberConfiguration.StepSize <= 0)
             {
-                ReportError(numberConfiguration.Id, new ConfigurationConfigurationError
+                ReportError(numberConfiguration.Id, new ConfigurationConfigurationInvalidStepSizeError
                 {
-                    ErrorReason = ConfigurationConfigurationError.Reason.InvalidStepSize,
                     ErrorMessage = "StepSize must be greater than 0.",
+                    StepSize = numberConfiguration.StepSize.Value,
                 });
             }
         }
@@ -52,19 +53,19 @@
         {
             if (numberConfiguration.RangeMin.HasValue && numberConfiguration.DefaultValue < numberConfiguration.RangeMin)
             {
-                ReportError(numberConfiguration.Id, new ConfigurationConfigurationError
+                ReportError(numberConfiguration.Id, new ConfigurationConfigurationInvalidDefaultValueError
                 {
-                    ErrorReason = ConfigurationConfigurationError.Reason.InvalidDefaultValue,
                     ErrorMessage = "The default value cannot be lower than the minimum allowed value",
+                    Id = numberConfiguration.Id,
                 });
             }
 
             if (numberConfiguration.RangeMax.HasValue && numberConfiguration.DefaultValue > numberConfiguration.RangeMax)
             {
-                ReportError(numberConfiguration.Id, new ConfigurationConfigurationError
+                ReportError(numberConfiguration.Id, new ConfigurationConfigurationInvalidDefaultValueError
                 {
-                    ErrorReason = ConfigurationConfigurationError.Reason.InvalidDefaultValue,
                     ErrorMessage = "The default value cannot be higher than the maximum allowed value",
+                    Id = numberConfiguration.Id,
                 });
             }
         }
@@ -78,10 +79,11 @@
 
             if (numberConfiguration.Decimals < 0 || numberConfiguration.Decimals > 15)
             {
-                ReportError(numberConfiguration.Id, new ConfigurationConfigurationError
+                ReportError(numberConfiguration.Id, new ConfigurationConfigurationInvalidDecimalsError
                 {
-                    ErrorReason = ConfigurationConfigurationError.Reason.InvalidDecimals,
                     ErrorMessage = "Decimals must be between 0 and 15.",
+                    Id = numberConfiguration.Id,
+                    Decimals = numberConfiguration.Decimals.Value,
                 });
 
                 return;
@@ -89,28 +91,31 @@
 
             if (numberConfiguration.RangeMin.HasValue && (Math.Round(numberConfiguration.RangeMin.Value, numberConfiguration.Decimals.Value) - numberConfiguration.RangeMin.Value) != 0)
             {
-                ReportError(numberConfiguration.Id, new ConfigurationConfigurationError
+                ReportError(numberConfiguration.Id, new ConfigurationConfigurationInvalidRangeMinError
                 {
-                    ErrorReason = ConfigurationConfigurationError.Reason.InvalidRangeMin,
                     ErrorMessage = $"RangeMin has more decimal places than allowed by Decimals ({numberConfiguration.Decimals}).",
+                    Id = numberConfiguration.Id,
+                    RangeMin = numberConfiguration.RangeMin.Value,
                 });
             }
 
             if (numberConfiguration.RangeMax.HasValue && (Math.Round(numberConfiguration.RangeMax.Value, numberConfiguration.Decimals.Value) - numberConfiguration.RangeMax.Value) != 0)
             {
-                ReportError(numberConfiguration.Id, new ConfigurationConfigurationError
+                ReportError(numberConfiguration.Id, new ConfigurationConfigurationInvalidRangeMaxError
                 {
-                    ErrorReason = ConfigurationConfigurationError.Reason.InvalidRangeMax,
                     ErrorMessage = $"RangeMax has more decimal places than allowed by Decimals ({numberConfiguration.Decimals}).",
+                    Id = numberConfiguration.Id,
+                    RangeMax = numberConfiguration.RangeMax.Value,
                 });
             }
 
             if (numberConfiguration.StepSize.HasValue && (Math.Round(numberConfiguration.StepSize.Value, numberConfiguration.Decimals.Value) - numberConfiguration.StepSize.Value) != 0)
             {
-                ReportError(numberConfiguration.Id, new ConfigurationConfigurationError
+                ReportError(numberConfiguration.Id, new ConfigurationConfigurationInvalidStepSizeError
                 {
-                    ErrorReason = ConfigurationConfigurationError.Reason.InvalidStepSize,
                     ErrorMessage = $"StepSize has more decimal places than allowed by Decimals ({numberConfiguration.Decimals}).",
+                    Id = numberConfiguration.Id,
+                    StepSize = numberConfiguration.StepSize.Value,
                 });
             }
         }

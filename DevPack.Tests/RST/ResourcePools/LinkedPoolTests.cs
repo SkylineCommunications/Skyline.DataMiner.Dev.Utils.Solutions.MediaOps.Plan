@@ -110,7 +110,9 @@
                 var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(resourcePoolConfigurationError);
 
-                Assert.AreEqual(ResourcePoolConfigurationError.Reason.InvalidPoolLink, resourcePoolConfigurationError.ErrorReason);
+                var resourcePoolConfigurationInvalidPoolLinkError = resourcePoolConfigurationError as ResourcePoolConfigurationNotFoundPoolLinkError;
+                Assert.IsNotNull(resourcePoolConfigurationInvalidPoolLinkError);
+                Assert.AreEqual(invalidPoolId, resourcePoolConfigurationInvalidPoolLinkError.LinkedResourcePoolId);
                 Assert.AreEqual(errorMessage, resourcePoolConfigurationError.ErrorMessage);
 
                 return;
@@ -148,7 +150,9 @@
                 var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(resourcePoolConfigurationError);
 
-                Assert.AreEqual(ResourcePoolConfigurationError.Reason.InvalidPoolLink, resourcePoolConfigurationError.ErrorReason);
+                var resourcePoolConfigurationInvalidPoolLinkError = resourcePoolConfigurationError as ResourcePoolConfigurationNotFoundPoolLinkError;
+                Assert.IsNotNull(resourcePoolConfigurationInvalidPoolLinkError);
+                Assert.AreEqual(invalidPoolId, resourcePoolConfigurationInvalidPoolLinkError.LinkedResourcePoolId);
                 Assert.AreEqual(errorMessage, resourcePoolConfigurationError.ErrorMessage);
 
                 return;

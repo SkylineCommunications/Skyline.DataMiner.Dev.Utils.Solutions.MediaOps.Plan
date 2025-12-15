@@ -3,10 +3,12 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Microsoft.Extensions.Logging;
+
+    using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
-    using Skyline.DataMiner.Net;
 
     internal class CoreConfigurationHandler : ApiObjectValidator<Guid>
     {
@@ -124,15 +126,15 @@
                 return;
             }
 
-            foreach (var capacity in apiConfigurations.Where(x => x.IsNew))
+            foreach (var configuration in apiConfigurations.Where(x => x.IsNew))
             {
-                var error = new ConfigurationConfigurationError
+                var error = new ConfigurationConfigurationInvalidStateError
                 {
-                    ErrorReason = ConfigurationConfigurationError.Reason.InvalidState,
                     ErrorMessage = "Cannot delete a configuration that does not exist.",
+                    Id = configuration.Id,
                 };
 
-                ReportError(capacity.Id, error);
+                ReportError(configuration.Id, error);
             }
 
             var coreConfigurationsToRemove = apiConfigurations
@@ -179,10 +181,10 @@
 
             foreach (var configuration in capabilitiesWithDuplicateIds)
             {
-                var error = new ConfigurationConfigurationError
+                var error = new ConfigurationConfigurationDuplicateIdError
                 {
-                    ErrorReason = ConfigurationConfigurationError.Reason.DuplicateId,
                     ErrorMessage = $"Configuration '{configuration.Name}' has a duplicate ID.",
+                    Id = configuration.Id,
                 };
 
                 ReportError(configuration.Id, error);
@@ -194,10 +196,10 @@
             {
                 planApi.Logger.LogInformation($"ID is already in use by a Profile Parameter.", foundProfileParameter.ID);
 
-                var error = new ConfigurationConfigurationError
+                var error = new ConfigurationConfigurationIdInUseError
                 {
-                    ErrorReason = ConfigurationConfigurationError.Reason.IdInUse,
                     ErrorMessage = "ID is already in use.",
+                    Id = foundProfileParameter.ID,
                 };
 
                 ReportError(foundProfileParameter.ID, error);
@@ -220,10 +222,10 @@
 
             foreach (var configuration in configurationsRequiringValidation.Where(x => !InputValidator.ValidateEmptyText(x.Name)))
             {
-                var error = new ConfigurationConfigurationError
+                var error = new ConfigurationConfigurationInvalidNameError
                 {
-                    ErrorReason = ConfigurationConfigurationError.Reason.InvalidName,
                     ErrorMessage = "Name cannot be empty.",
+                    Id = configuration.Id,
                 };
 
                 ReportError(configuration.Id, error);
@@ -232,10 +234,11 @@
 
             foreach (var configuration in configurationsRequiringValidation.Where(x => !InputValidator.ValidateTextLength(x.Name)))
             {
-                var error = new ConfigurationConfigurationError
+                var error = new ConfigurationConfigurationInvalidNameError
                 {
-                    ErrorReason = ConfigurationConfigurationError.Reason.InvalidName,
                     ErrorMessage = $"Name exceeds maximum length of {InputValidator.DefaultMaxTextLength} characters.",
+                    Id = configuration.Id,
+                    Name = configuration.Name,
                 };
 
                 ReportError(configuration.Id, error);
@@ -250,10 +253,11 @@
 
             foreach (var configuration in configurationsWithDuplicateNames)
             {
-                var error = new ConfigurationConfigurationError
+                var error = new ConfigurationConfigurationDuplicateNameError
                 {
-                    ErrorReason = ConfigurationConfigurationError.Reason.DuplicateName,
                     ErrorMessage = $"Configuration '{configuration.Name}' has a duplicate name.",
+                    Id = configuration.Id,
+                    Name = configuration.Name,
                 };
 
                 ReportError(configuration.Id, error);
@@ -277,10 +281,11 @@
 
                 planApi.Logger.LogInformation($"Name '{configuration.Name}' is already in use by Profile Parameter(s) with ID(s)", coreParametersWithSameNameAndDifferentIds.Select(x => x.ID).ToArray());
 
-                var error = new ConfigurationConfigurationError
+                var error = new ConfigurationConfigurationNameExistsError
                 {
-                    ErrorReason = ConfigurationConfigurationError.Reason.NameExists,
                     ErrorMessage = "Name is already in use.",
+                    Id = configuration.Id,
+                    Name = configuration.Name,
                 };
 
                 ReportError(configuration.Id, error);
