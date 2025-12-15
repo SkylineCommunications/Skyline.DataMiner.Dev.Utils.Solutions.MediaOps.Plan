@@ -89,7 +89,7 @@
         {
             foreach (var failedToLockObject in result.FailedToLockObjects)
             {
-                ReportError(failedToLockObject.Id, new MediaOpsErrorData() { ErrorMessage = $"Failed to lock {typeof(T)}." });
+                ReportError(failedToLockObject.Id, new MediaOpsErrorData() { ErrorMessage = $"Failed to lock {typeof(T).Name} {failedToLockObject.Id}." });
             }
         }
 

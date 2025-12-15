@@ -35,43 +35,22 @@
 
         public LockResult<T> LockAndExecute<T>(ICollection<T> apiObjects, Action<ICollection<T>> action) where T : ApiObject
         {
-            int attempts = 0;
-            List<T> remainingObjectsToHandle = new List<T>(apiObjects);
-
-            do
+            var result = LockAndExecuteInternal(apiObjects, lockedObjects =>
             {
-                var lockResult = LockObjects(remainingObjectsToHandle);
+                action(lockedObjects);
+                return (ICollection<object>)null;
+            });
 
-                try
-                {
-                    action(lockResult.LockedObjects);
-                    remainingObjectsToHandle = remainingObjectsToHandle.Except(lockResult.LockedObjects).ToList();
-                }
-                finally
-                {
-                    // Release granted locks
-                    UnlockObjects(lockResult.LockedObjects);
-                }
-
-                if (remainingObjectsToHandle.Any())
-                {
-                    // if any remaining objects to lock, wait before retrying
-                    Thread.Sleep(_sleepTime);
-                }
-
-                attempts++;
-            }
-            while (attempts < MaxLockAttempts && remainingObjectsToHandle.Any());
-
-            if (remainingObjectsToHandle.Any())
-            {
-                _logger.LogError("Failed to lock all objects after {0} attempts. Remaining objects: {1}", MaxLockAttempts, string.Join(", ", remainingObjectsToHandle.Select(x => x.Name)));
-            }
-
-            return new LockResult<T>(remainingObjectsToHandle);
+            return new LockResult<T>(result.FailedToLockObjects);
         }
 
         public LockResult<T, K> LockAndExecute<T, K>(ICollection<T> apiObjects, Func<ICollection<T>, ICollection<K>> action) where T : ApiObject
+        {
+            var result = LockAndExecuteInternal(apiObjects, action);
+            return new LockResult<T, K>(result.FailedToLockObjects, result.ActionResults);
+        }
+
+        private LockAndExecuteResult<T, K> LockAndExecuteInternal<T, K>(ICollection<T> apiObjects, Func<ICollection<T>, ICollection<K>> action) where T : ApiObject
         {
             int attempts = 0;
             List<T> remainingObjectsToHandle = new List<T>(apiObjects);
@@ -80,16 +59,23 @@
             do
             {
                 var lockResult = LockObjects(remainingObjectsToHandle);
+                if (lockResult.LockedObjects.Any())
+                {
+                    try
+                    {
+                        var actionResult = action(lockResult.LockedObjects);
+                        if (actionResult != null)
+                        {
+                            allResults.AddRange(actionResult);
+                        }
 
-                try
-                {
-                    allResults.AddRange(action(lockResult.LockedObjects));
-                    remainingObjectsToHandle = remainingObjectsToHandle.Except(lockResult.LockedObjects).ToList();
-                }
-                finally
-                {
-                    // Release granted locks
-                    UnlockObjects(lockResult.LockedObjects);
+                        remainingObjectsToHandle = remainingObjectsToHandle.Except(lockResult.LockedObjects).ToList();
+                    }
+                    finally
+                    {
+                        // Release granted locks
+                        UnlockObjects(lockResult.LockedObjects);
+                    }
                 }
 
                 if (remainingObjectsToHandle.Any())
@@ -104,10 +90,22 @@
 
             if (remainingObjectsToHandle.Any())
             {
-                _logger.LogError("Failed to lock all objects after {0} attempts. Remaining objects: {1}", MaxLockAttempts, string.Join(", ", remainingObjectsToHandle.Select(x => x.Name)));
+                _logger.LogError("Failed to lock all {0} objects after {1} attempts. Remaining objects: {2}", typeof(T).Name, MaxLockAttempts, string.Join(", ", remainingObjectsToHandle.Select(x => x.Id)));
             }
 
-            return new LockResult<T, K>(remainingObjectsToHandle, allResults);
+            return new LockAndExecuteResult<T, K>(remainingObjectsToHandle, allResults);
+        }
+
+        private class LockAndExecuteResult<T, K> where T : ApiObject
+        {
+            public LockAndExecuteResult(ICollection<T> failedToLockObjects, ICollection<K> actionResults)
+            {
+                FailedToLockObjects = failedToLockObjects;
+                ActionResults = actionResults;
+            }
+
+            public ICollection<T> FailedToLockObjects { get; }
+            public ICollection<K> ActionResults { get; }
         }
 
         private LockManagerApiResult<T> LockObjects<T>(ICollection<T> objectsToLock) where T : ApiObject
@@ -126,12 +124,16 @@
             {
                 _logger.LogWarning("This code isn't running on a DataMiner agent, unable to communicate with Lock Manager as NATS communication will fail, keeping locks in memory");
 
+                List<string> grantedObjectLocks = new List<string>();
                 foreach (var objectToLock in objectsToLock)
                 {
-                    lockedObjectIds.Add(objectToLock.LockId);
+                    if (lockedObjectIds.Add(objectToLock.LockId))
+                    {
+                        grantedObjectLocks.Add(objectToLock.LockId);
+                    }
                 }
 
-                return new LockManagerApiResult<T>(objectsToLock, lockedObjectIds);
+                return new LockManagerApiResult<T>(objectsToLock, grantedObjectLocks);
             }
         }
 
@@ -149,6 +151,8 @@
             else
             {
                 _logger.LogWarning("This code isn't running on a DataMiner agent, unable to communicate with Lock Manager as NATS communication will fail, unlocking locks from memory");
+
+                Thread.Sleep(1000); // Add some delay to simulate lock communication
 
                 foreach (var lockedObject in lockedObjects)
                 {

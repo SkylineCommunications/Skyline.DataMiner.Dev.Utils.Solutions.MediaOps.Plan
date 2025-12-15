@@ -777,7 +777,7 @@
             }
         }
 
-        private IEnumerable<DomChangeResults> GetResourcesWithChanges(IEnumerable<Resource> apiResources)
+        private ICollection<DomChangeResults> GetResourcesWithChanges(ICollection<Resource> apiResources)
         {
             if (apiResources == null)
             {
@@ -789,17 +789,13 @@
                 return [];
             }
 
-            return GetResourcesWithChangesIterator(apiResources);
-        }
-
-        private IEnumerable<DomChangeResults> GetResourcesWithChangesIterator(IEnumerable<Resource> apiResources)
-        {
             var resourcesRequiringValidation = apiResources.Where(x => !x.IsNew && x.HasChanges).ToList();
             if (resourcesRequiringValidation.Count == 0)
             {
-                yield break;
+                return Array.Empty<DomChangeResults>();
             }
 
+            List<DomChangeResults> changeResults = new List<DomChangeResults>();
             var storedDomResourcesById = planApi.DomHelpers.SlcResourceStudioHelper.GetResources(resourcesRequiringValidation.Select(x => x.Id)).ToDictionary(x => x.ID.Id);
             foreach (var resource in resourcesRequiringValidation)
             {
@@ -833,8 +829,10 @@
                     continue;
                 }
 
-                yield return changeResult;
+                changeResults.Add(changeResult);
             }
+
+            return changeResults;
         }
 
         private void MarkAsResourceWithCoreChanges(Resource resource)
