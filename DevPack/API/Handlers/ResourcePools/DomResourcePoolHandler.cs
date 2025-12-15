@@ -146,6 +146,7 @@
             ValidateDomNames(resourcePoolsToCreate.Concat(toUpdateNameValidation).ToList());
 
             var toCreateDomInstances = resourcePoolsToCreate
+                .Where(IsValid)
                 .Select(x => x.GetInstanceWithChanges())
                 .ToList();
 
