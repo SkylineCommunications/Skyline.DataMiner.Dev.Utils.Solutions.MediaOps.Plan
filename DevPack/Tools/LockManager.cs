@@ -96,18 +96,6 @@
             return new LockAndExecuteResult<T, K>(remainingObjectsToHandle, allResults);
         }
 
-        private class LockAndExecuteResult<T, K> where T : ApiObject
-        {
-            public LockAndExecuteResult(ICollection<T> failedToLockObjects, ICollection<K> actionResults)
-            {
-                FailedToLockObjects = failedToLockObjects;
-                ActionResults = actionResults;
-            }
-
-            public ICollection<T> FailedToLockObjects { get; }
-            public ICollection<K> ActionResults { get; }
-        }
-
         private LockManagerApiResult<T> LockObjects<T>(ICollection<T> objectsToLock) where T : ApiObject
         {
             if (DataMinerAgentHelper.IsRunningOnDataMinerAgent())
@@ -179,6 +167,18 @@
             {
                 ActionResults = actionResults;
             }
+            public ICollection<K> ActionResults { get; }
+        }
+
+        private sealed class LockAndExecuteResult<T, K> where T : ApiObject
+        {
+            public LockAndExecuteResult(ICollection<T> failedToLockObjects, ICollection<K> actionResults)
+            {
+                FailedToLockObjects = failedToLockObjects;
+                ActionResults = actionResults;
+            }
+
+            public ICollection<T> FailedToLockObjects { get; }
             public ICollection<K> ActionResults { get; }
         }
 
