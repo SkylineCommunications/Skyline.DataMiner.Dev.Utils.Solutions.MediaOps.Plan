@@ -127,6 +127,7 @@
             var toCreate = apiResources.Where(x => x.IsNew).ToList();
 
             ValidateIdsNotInUse(toCreate);
+            ValidateCapacities(apiResources);
             ValidateCapabilities(apiResources);
             ValidateResourceProperties(apiResources);
             ValidateNames(apiResources);
@@ -164,11 +165,24 @@
                 IsValid(x)
                 && x.State != ResourceState.Deprecated
                 && changeResults.Any(y => y.Instance.ID.Id == x.Id
-                && (y.AddedSections.Select(z => z.SectionDefinitionId).Contains(SlcResource_StudioIds.Sections.ResourceCapabilities.Id.Id)
-                || y.RemovedSections.Select(z => z.SectionDefinitionId).Contains(SlcResource_StudioIds.Sections.ResourceCapabilities.Id.Id)
-                || y.ChangedFields.Select(z => z.SectionDefinitionId).Contains(SlcResource_StudioIds.Sections.ResourceCapabilities.Id.Id))));
+                    && (y.AddedSections.Select(z => z.SectionDefinitionId).Contains(SlcResource_StudioIds.Sections.ResourceCapabilities.Id.Id)
+                            || y.RemovedSections.Select(z => z.SectionDefinitionId).Contains(SlcResource_StudioIds.Sections.ResourceCapabilities.Id.Id)
+                            || y.ChangedFields.Select(z => z.SectionDefinitionId).Contains(SlcResource_StudioIds.Sections.ResourceCapabilities.Id.Id))));
 
             foreach (var resource in resourcesWithCapabilityChanges)
+            {
+                MarkAsResourceWithCoreChanges(resource);
+            }
+
+            var resourcesWithCapacityChanges = resourcesToUpdate.Where(x =>
+                IsValid(x)
+                && x.State != ResourceState.Deprecated
+                && changeResults.Any(y => y.Instance.ID.Id == x.Id
+                && (y.AddedSections.Select(z => z.SectionDefinitionId).Contains(SlcResource_StudioIds.Sections.ResourceCapacities.Id.Id)
+                        || y.RemovedSections.Select(z => z.SectionDefinitionId).Contains(SlcResource_StudioIds.Sections.ResourceCapacities.Id.Id)
+                        || y.ChangedFields.Select(z => z.SectionDefinitionId).Contains(SlcResource_StudioIds.Sections.ResourceCapacities.Id.Id))));
+
+            foreach (var resource in resourcesWithCapacityChanges)
             {
                 MarkAsResourceWithCoreChanges(resource);
             }
@@ -653,6 +667,57 @@
                 if (!hasError)
                 {
                     MarkAsResourceWithCoreChanges(resource);
+                }
+            }
+        }
+
+        private void ValidateCapacities(IEnumerable<Resource> apiResources)
+        {
+            if (apiResources == null)
+            {
+                throw new ArgumentNullException(nameof(apiResources));
+            }
+
+            if (!apiResources.Any())
+            {
+                return;
+            }
+
+            var capacityIds = apiResources
+                .SelectMany(x => x.Capacities)
+                .Select(x => x.Id)
+                .Distinct()
+                .ToList();
+            var capacitiesById = planApi.Capacities.Read(capacityIds);
+
+            foreach (var resource in apiResources)
+            {
+                foreach (var capacitySettings in resource.Capacities)
+                {
+                    if (capacitySettings.Id == Guid.Empty)
+                    {
+                        var error = new InvalidResourceCapacitySettingsError
+                        {
+                            ErrorMessage = "Capacity ID cannot be empty.",
+                        };
+
+                        ReportError(resource.Id, error);
+                        continue;
+                    }
+
+                    if (!capacitiesById.TryGetValue(capacitySettings.Id, out var capacity))
+                    {
+                        var error = new InvalidResourceCapacitySettingsError
+                        {
+                            ErrorMessage = $"Capacity with ID '{capacitySettings.Id}' not found.",
+                            CapacityId = capacitySettings.Id,
+                        };
+
+                        ReportError(resource.Id, error);
+                        continue;
+                    }
+
+                    PassTraceData(ResourceCapacitySettingsValidator.Validate(resource.Id, capacity, capacitySettings));
                 }
             }
         }

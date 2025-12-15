@@ -24,7 +24,7 @@
         {
         }
 
-        internal UnmanagedResource(StorageResourceStudio.ResourceInstance instance) : base(instance)
+        internal UnmanagedResource(MediaOpsPlanApi planApi, StorageResourceStudio.ResourceInstance instance) : base(planApi, instance)
         {
         }
 

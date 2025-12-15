@@ -350,7 +350,7 @@
                 var dom = mapping.DomResource;
                 var core = mapping.CoreResource;
 
-                if (!SyncDomResourceWitCoreResource(dom, core))
+                if (!SyncDomResourceWithCoreResource(dom, core))
                 {
                     planApi.Logger.LogInformation($"No CORE changes for DOM resource {mapping.DomResource.ID}");
                     continue;
@@ -400,7 +400,7 @@
             }
         }
 
-        private bool SyncDomResourceWitCoreResource(DomResource dom, CoreResource core)
+        private bool SyncDomResourceWithCoreResource(DomResource dom, CoreResource core)
         {
             bool updateRequired = false;
 
@@ -999,11 +999,7 @@
                 {
                     coreResource.Capacities.Add(resourceCapacity);
                 }
-                else if (!capacity.Value.MaxDecimalQuantity.Equals(resourceCapacity.Value.MaxDecimalQuantity))
-                {
-                    capacity.Value.MaxDecimalQuantity = resourceCapacity.Value.MaxDecimalQuantity;
-                }
-                else
+                else if (!HasChangedValue(capacity, resourceCapacity))
                 {
                     continue;
                 }
@@ -1012,6 +1008,38 @@
             }
 
             return resourceHasChanges;
+
+            bool HasChangedValue(MultiResourceCapacity current, MultiResourceCapacity expected)
+            {
+                var hasChangedValue = false;
+
+                if (!CoreCapacitiesById.TryGetValue(current.CapacityProfileID, out var coreCapacity))
+                {
+                    return hasChangedValue;
+                }
+
+                if (coreCapacity.IsRange())
+                {
+                    if (!current.Value.MinDecimalQuantity.Equals(expected.Value.MinDecimalQuantity))
+                    {
+                        current.Value.MinDecimalQuantity = expected.Value.MinDecimalQuantity;
+                        hasChangedValue = true;
+                    }
+
+                    if (!current.Value.MaxDecimalQuantity.Equals(expected.Value.MaxDecimalQuantity))
+                    {
+                        current.Value.MaxDecimalQuantity = expected.Value.MaxDecimalQuantity;
+                        hasChangedValue = true;
+                    }
+                }
+                else if (!current.Value.MaxDecimalQuantity.Equals(expected.Value.MaxDecimalQuantity))
+                {
+                    current.Value.MaxDecimalQuantity = expected.Value.MaxDecimalQuantity;
+                    hasChangedValue = true;
+                }
+
+                return hasChangedValue;
+            }
         }
 
         private List<MultiResourceCapacity> GetRequiredResourceCapacities(DomResource domResource)
@@ -1033,11 +1061,23 @@
                 var capacity = new MultiResourceCapacity
                 {
                     CapacityProfileID = coreCapacity.ID,
-                    Value = new Net.Profiles.CapacityParameterValue
-                    {
-                        MaxDecimalQuantity = (decimal)resourceCapacity.DoubleValue,
-                    },
                 };
+
+                if (coreCapacity.IsRange())
+                {
+                    capacity.Value = new Net.Profiles.CapacityParameterValue
+                    {
+                        MinDecimalQuantity = (decimal)resourceCapacity.DoubleMinValue,
+                        MaxDecimalQuantity = (decimal)resourceCapacity.DoubleMaxValue,
+                    };
+                }
+                else
+                {
+                    capacity.Value = new Net.Profiles.CapacityParameterValue
+                    {
+                        MaxDecimalQuantity = (decimal)resourceCapacity.DoubleMaxValue,
+                    };
+                }
 
                 capacities.Add(capacity);
             }

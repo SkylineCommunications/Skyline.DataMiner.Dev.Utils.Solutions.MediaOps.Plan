@@ -29,6 +29,8 @@
 
         private readonly ICollection<ResourceCapabilitySettings> capabilitySettings = [];
 
+        private readonly ICollection<ResourceCapacitySettings> capacitySettings = [];
+
         private readonly ICollection<ResourcePropertySettings> propertySettings = [];
 
         private protected Resource() : base()
@@ -46,9 +48,9 @@
             SetDefaultValues();
         }
 
-        private protected Resource(StorageResourceStudio.ResourceInstance instance) : base(instance.ID.Id)
+        private protected Resource(MediaOpsPlanApi planApi, StorageResourceStudio.ResourceInstance instance) : base(instance.ID.Id)
         {
-            ParseInstance(instance);
+            ParseInstance(planApi, instance);
         }
 
         /// <summary>
@@ -104,6 +106,11 @@
         /// Gets the collection of capabilities assigned to this pool.
         /// </summary>
         public IReadOnlyCollection<ResourceCapabilitySettings> Capabilities => (IReadOnlyCollection<ResourceCapabilitySettings>)capabilitySettings;
+
+        /// <summary>
+        /// Gets the collection of capacities assigned to this pool.
+        /// </summary>
+        public IReadOnlyCollection<ResourceCapacitySettings> Capacities => (IReadOnlyCollection<ResourceCapacitySettings>)capacitySettings;
 
         /// <summary>
         /// Gets the collection of property settings associated with this resource.
@@ -260,6 +267,46 @@
         }
 
         /// <summary>
+        /// Adds a new capacity to the resource if it has not been previously added.
+        /// </summary>
+        /// <param name="capacity">The capacity settings to add. Must represent a new capacity; otherwise, the method does not modify the collection.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="capacity"/> is <see langword="null"/>.</exception>
+        public void AddCapacity(ResourceCapacitySettings capacity)
+        {
+            if (capacity == null)
+            {
+                throw new ArgumentNullException(nameof(capacity));
+            }
+
+            if (!capacity.IsNew)
+            {
+                return;
+            }
+
+            capacitySettings.Add(capacity);
+            HasChanges = true;
+        }
+
+        /// <summary>
+        /// Removes the specified capacity from the resource.
+        /// </summary>
+        /// <param name="capacity">The capacity to remove from the resource. Cannot be null.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="capacity"/> is <see langword="null"/>.</exception>
+        public void RemoveCapacity(ResourceCapacitySettings capacity)
+        {
+            if (capacity == null)
+            {
+                throw new ArgumentNullException(nameof(capacity));
+            }
+
+            var toRemove = capacitySettings.SingleOrDefault(x => x.OriginalSection.ID == capacity.OriginalSection.ID);
+            if (toRemove != null && capacitySettings.Remove(toRemove))
+            {
+                HasChanges = true;
+            }
+        }
+
+        /// <summary>
         /// Adds the specified property to the resource.
         /// </summary>
         /// <param name="property">The property to add.</param>
@@ -301,8 +348,13 @@
 
         internal abstract void ApplyChanges(StorageResourceStudio.ResourceInstance instance);
 
-        internal static IEnumerable<Resource> InstantiateResources(IEnumerable<StorageResourceStudio.ResourceInstance> instances)
+        internal static IEnumerable<Resource> InstantiateResources(MediaOpsPlanApi planApi, IEnumerable<StorageResourceStudio.ResourceInstance> instances)
         {
+            if (planApi == null)
+            {
+                throw new ArgumentNullException(nameof(planApi));
+            }
+
             if (instances == null)
             {
                 throw new ArgumentNullException(nameof(instances));
@@ -313,7 +365,7 @@
                 return [];
             }
 
-            return InstantiateResourcesIterator(instances);
+            return InstantiateResourcesIterator(planApi, instances);
         }
 
         internal StorageResourceStudio.ResourceInstance OriginalInstance => originalInstance;
@@ -338,6 +390,12 @@
                 updatedInstance.ResourceCapabilities.Add(capability.GetSectionWithChanges());
             }
 
+            updatedInstance.ResourceCapacities.Clear();
+            foreach (var capacity in capacitySettings)
+            {
+                updatedInstance.ResourceCapacities.Add(capacity.GetSectionWithChanges());
+            }
+
             updatedInstance.ResourceProperties.Clear();
             foreach (var property in propertySettings)
             {
@@ -349,7 +407,7 @@
             return updatedInstance;
         }
 
-        private static IEnumerable<Resource> InstantiateResourcesIterator(IEnumerable<StorageResourceStudio.ResourceInstance> instances)
+        private static IEnumerable<Resource> InstantiateResourcesIterator(MediaOpsPlanApi planApi, IEnumerable<StorageResourceStudio.ResourceInstance> instances)
         {
             foreach (var instance in instances)
             {
@@ -360,10 +418,10 @@
 
                 switch (instance.ResourceInfo.Type.Value)
                 {
-                    case StorageResourceStudio.SlcResource_StudioIds.Enums.Type.Unmanaged: yield return new UnmanagedResource(instance); break;
-                    case StorageResourceStudio.SlcResource_StudioIds.Enums.Type.Element: yield return new ElementResource(instance); break;
-                    case StorageResourceStudio.SlcResource_StudioIds.Enums.Type.Service: yield return new ServiceResource(instance); break;
-                    case StorageResourceStudio.SlcResource_StudioIds.Enums.Type.VirtualFunction: yield return new VirtualFunctionResource(instance); break;
+                    case StorageResourceStudio.SlcResource_StudioIds.Enums.Type.Unmanaged: yield return new UnmanagedResource(planApi, instance); break;
+                    case StorageResourceStudio.SlcResource_StudioIds.Enums.Type.Element: yield return new ElementResource(planApi, instance); break;
+                    case StorageResourceStudio.SlcResource_StudioIds.Enums.Type.Service: yield return new ServiceResource(planApi, instance); break;
+                    case StorageResourceStudio.SlcResource_StudioIds.Enums.Type.VirtualFunction: yield return new VirtualFunctionResource(planApi, instance); break;
 
                     default:
                         continue;
@@ -376,7 +434,7 @@
             concurrency = 1;
         }
 
-        private void ParseInstance(StorageResourceStudio.ResourceInstance instance)
+        private void ParseInstance(MediaOpsPlanApi planApi, StorageResourceStudio.ResourceInstance instance)
         {
             this.originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
 
@@ -400,6 +458,37 @@
                 var propertyConfiguration = new ResourcePropertySettings(section);
                 propertyConfiguration.ValueChanged += (s, e) => { HasChanges = true; };
                 propertySettings.Add(propertyConfiguration);
+            }
+
+            ParseResourceCapacities(planApi, instance.ResourceCapacities);
+        }
+
+        private void ParseResourceCapacities(MediaOpsPlanApi planApi, IList<StorageResourceStudio.ResourceCapacitiesSection> resourceCapacities)
+        {
+            if (resourceCapacities == null || resourceCapacities.Count == 0)
+            {
+                return;
+            }
+
+            var capacityIds = resourceCapacities.Select(rc => rc.ProfileParameterId).Distinct();
+            var capacityById = planApi.Capacities.Read(capacityIds);
+
+            foreach (var section in resourceCapacities)
+            {
+                ResourceCapacitySettings resourceCapacitySettings;
+
+                if (capacityById.TryGetValue(section.ProfileParameterId, out var capacity)
+                    && capacity is RangeCapacity)
+                {
+                    resourceCapacitySettings = new ResourceRangeCapacitySettings(section);
+                }
+                else
+                {
+                    resourceCapacitySettings = new ResourceNumberCapacitySettings(section);
+                }
+
+                resourceCapacitySettings.ValueChanged += (s, e) => { HasChanges = true; };
+                capacitySettings.Add(resourceCapacitySettings);
             }
         }
     }

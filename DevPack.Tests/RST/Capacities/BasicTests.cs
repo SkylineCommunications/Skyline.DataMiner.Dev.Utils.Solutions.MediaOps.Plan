@@ -27,13 +27,13 @@
         }
 
         [TestMethod]
-        public void BasicCrudActions()
+        public void BasicNumberCapacityCrudActions()
         {
             // Create
             var capacityId = Guid.NewGuid();
             var name = $"{capacityId}_Capacity";
 
-            var capacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capacity(capacityId)
+            var capacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity(capacityId)
             {
                 Name = name,
             };
@@ -43,6 +43,7 @@
 
             var returnedCapacity = TestContext.Api.Capacities.Read(capacityId);
             Assert.IsNotNull(returnedCapacity);
+            Assert.AreEqual(typeof(Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity), returnedCapacity.GetType());
             Assert.AreEqual(name, returnedCapacity.Name);
             Assert.AreEqual(false, returnedCapacity.IsMandatory);
 
@@ -100,16 +101,90 @@
         }
 
         [TestMethod]
+        public void BasicRangeCapacityCrudActions()
+        {
+            // Create
+            var capacityId = Guid.NewGuid();
+            var name = $"{capacityId}_Capacity";
+
+            var capacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.RangeCapacity(capacityId)
+            {
+                Name = name,
+            };
+
+            var returnedId = objectCreator.CreateCapacity(capacity);
+            Assert.AreEqual(capacityId, returnedId);
+
+            var returnedCapacity = TestContext.Api.Capacities.Read(capacityId);
+            Assert.IsNotNull(returnedCapacity);
+            Assert.AreEqual(typeof(Skyline.DataMiner.Solutions.MediaOps.Plan.API.RangeCapacity), returnedCapacity.GetType());
+            Assert.AreEqual(name, returnedCapacity.Name);
+            Assert.AreEqual(false, returnedCapacity.IsMandatory);
+
+            var coreCapacity = TestContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(capacityId)).SingleOrDefault();
+            Assert.IsNotNull(coreCapacity);
+            Assert.AreEqual(name, coreCapacity.Name);
+            Assert.AreEqual(true, coreCapacity.IsOptional);
+
+            Assert.IsNull(coreCapacity.Remarks);
+            Assert.IsNull(coreCapacity.DefaultValue);
+            Assert.AreEqual(Skyline.DataMiner.Net.Profiles.ProfileParameterCategory.Capacity, coreCapacity.Categories);
+            Assert.AreEqual(Skyline.DataMiner.Net.Profiles.Parameter.ParameterType.Range, coreCapacity.Type);
+            Assert.AreEqual(Skyline.DataMiner.Net.Profiles.InterpreteType.RawTypeEnum.Undefined, coreCapacity.InterpreteType.RawType);
+            Assert.AreEqual(Skyline.DataMiner.Net.Profiles.InterpreteType.TypeEnum.Undefined, coreCapacity.InterpreteType.Type);
+
+            Assert.IsNull(coreCapacity.Units);
+            Assert.AreEqual(double.NaN, coreCapacity.RangeMin);
+            Assert.AreEqual(double.NaN, coreCapacity.RangeMax);
+            Assert.AreEqual(double.NaN, coreCapacity.Stepsize);
+            Assert.AreEqual(int.MaxValue, coreCapacity.Decimals);
+
+            // Update
+            var updatedName = name + "_Updated";
+            returnedCapacity.Name = updatedName;
+            TestContext.Api.Capacities.Update(returnedCapacity);
+            returnedCapacity = TestContext.Api.Capacities.Read(capacityId);
+            Assert.IsNotNull(returnedCapacity);
+            Assert.AreEqual(updatedName, returnedCapacity.Name);
+
+            coreCapacity = TestContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(capacityId)).SingleOrDefault();
+            Assert.IsNotNull(coreCapacity);
+            Assert.AreEqual(updatedName, coreCapacity.Name);
+            Assert.AreEqual(true, coreCapacity.IsOptional);
+
+            Assert.IsNull(coreCapacity.Remarks);
+            Assert.IsNull(coreCapacity.DefaultValue);
+            Assert.AreEqual(Skyline.DataMiner.Net.Profiles.ProfileParameterCategory.Capacity, coreCapacity.Categories);
+            Assert.AreEqual(Skyline.DataMiner.Net.Profiles.Parameter.ParameterType.Range, coreCapacity.Type);
+            Assert.AreEqual(Skyline.DataMiner.Net.Profiles.InterpreteType.RawTypeEnum.Undefined, coreCapacity.InterpreteType.RawType);
+            Assert.AreEqual(Skyline.DataMiner.Net.Profiles.InterpreteType.TypeEnum.Undefined, coreCapacity.InterpreteType.Type);
+
+            Assert.IsNull(coreCapacity.Units);
+            Assert.AreEqual(double.NaN, coreCapacity.RangeMin);
+            Assert.AreEqual(double.NaN, coreCapacity.RangeMax);
+            Assert.AreEqual(double.NaN, coreCapacity.Stepsize);
+            Assert.AreEqual(int.MaxValue, coreCapacity.Decimals);
+
+            // Delete
+            TestContext.Api.Capacities.Delete(returnedCapacity);
+            returnedCapacity = TestContext.Api.Capacities.Read(capacityId);
+            Assert.IsNull(returnedCapacity);
+
+            coreCapacity = TestContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(capacityId)).SingleOrDefault();
+            Assert.IsNull(coreCapacity);
+        }
+
+        [TestMethod]
         public void CreateWithExistingIdThrowsException()
         {
             var capacityId = Guid.NewGuid();
 
-            var capacity1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capacity(capacityId)
+            var capacity1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity(capacityId)
             {
                 Name = $"{capacityId}_Capacity1",
             };
 
-            var capacity2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capacity(capacityId)
+            var capacity2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity(capacityId)
             {
                 Name = $"{capacityId}_Capacity2",
             };
@@ -141,12 +216,12 @@
         {
             var capacityId = Guid.NewGuid();
 
-            var capacity1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capacity(capacityId)
+            var capacity1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity(capacityId)
             {
                 Name = $"{capacityId}_Capacity1",
             };
 
-            var capacity2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capacity(capacityId)
+            var capacity2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity(capacityId)
             {
                 Name = $"{capacityId}_Capacity2",
             };
@@ -191,12 +266,12 @@
         {
             var capacityId = Guid.NewGuid();
 
-            var capacity1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capacity()
+            var capacity1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity()
             {
                 Name = $"{capacityId}_Capacity",
             };
 
-            var capacity2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capacity()
+            var capacity2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity()
             {
                 Name = $"{capacityId}_Capacity",
             };
@@ -228,12 +303,12 @@
         {
             var capacityId = Guid.NewGuid();
 
-            var capacity1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capacity()
+            var capacity1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity()
             {
                 Name = $"{capacityId}_Capacity",
             };
 
-            var capacity2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capacity()
+            var capacity2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity()
             {
                 Name = $"{capacityId}_Capacity",
             };
@@ -267,12 +342,12 @@
         {
             var capacityId = Guid.NewGuid();
 
-            var capacity1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capacity()
+            var capacity1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity()
             {
                 Name = $"{capacityId}_Capacity_1",
             };
 
-            var capacity2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capacity()
+            var capacity2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity()
             {
                 Name = $"{capacityId}_Capacity_2",
             };
@@ -310,7 +385,7 @@
             // Create
             var capacityId = Guid.NewGuid();
 
-            var capacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capacity(capacityId)
+            var capacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity(capacityId)
             {
                 Name = $"{capacityId}_Capacity",
                 IsMandatory = true,
@@ -323,7 +398,7 @@
 
             objectCreator.CreateCapacity(capacity);
 
-            capacity = TestContext.Api.Capacities.Read(capacityId);
+            capacity = TestContext.Api.Capacities.Read(capacityId) as Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity;
             Assert.IsNotNull(capacity);
             Assert.AreEqual(true, capacity.IsMandatory);
 
@@ -359,7 +434,7 @@
 
             TestContext.Api.Capacities.Update(capacity);
 
-            capacity = TestContext.Api.Capacities.Read(capacityId);
+            capacity = TestContext.Api.Capacities.Read(capacityId) as Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity;
             Assert.IsNotNull(capacity);
             Assert.AreEqual(true, capacity.IsMandatory);
 
@@ -392,7 +467,7 @@
         {
             var capacityId = Guid.NewGuid();
 
-            var capacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capacity(capacityId)
+            var capacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity(capacityId)
             {
                 Name = $"{capacityId}_Capacity",
                 IsMandatory = true,
@@ -438,7 +513,7 @@
         {
             var capacityId = Guid.NewGuid();
 
-            var capacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capacity(capacityId)
+            var capacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity(capacityId)
             {
                 Name = $"{capacityId}_Capacity",
                 IsMandatory = true,
@@ -475,7 +550,7 @@
         {
             var capacityId = Guid.NewGuid();
 
-            var capacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capacity(capacityId)
+            var capacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity(capacityId)
             {
                 Name = $"{capacityId}_Capacity",
                 IsMandatory = true,

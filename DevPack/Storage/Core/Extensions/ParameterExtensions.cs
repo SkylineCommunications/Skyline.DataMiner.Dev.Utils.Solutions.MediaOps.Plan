@@ -88,6 +88,17 @@
         }
 
         /// <summary>
+        /// Determines whether the specified parameter is a Range parameter.
+        /// </summary>
+        /// <param name="parameter">The parameter to evaluate. Must not be <c>null</c>.</param>
+        /// <returns><see langword="true"/> if the parameter is of type <see cref="Parameter.ParameterType.Range"/>; otherwise,
+        /// <see langword="false"/>.</returns>
+        public static bool IsRange(this Parameter parameter)
+        {
+            return parameter.Type == Parameter.ParameterType.Range;
+        }
+
+        /// <summary>
         /// Determines whether the parameter is a discrete number parameter.
         /// </summary>
         /// <param name="parameter">The parameter to check.</param>

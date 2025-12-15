@@ -20,8 +20,17 @@
 
         internal void PassTraceData(Guid key, MediaOpsTraceData traceData)
         {
-            if (traceDataPerItem.ContainsKey(key)) return;
-            traceDataPerItem.Add(key, traceData);
+            if (!traceDataPerItem.TryGetValue(key, out var existingTraceData))
+            {
+                traceDataPerItem.Add(key, traceData);
+            }
+            else
+            {
+                foreach (var error in traceData.ErrorData)
+                {
+                    existingTraceData.Add(error);
+                }
+            }
         }
 
         internal void PassTraceData(ApiObjectValidator internalValidator)

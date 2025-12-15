@@ -8,6 +8,7 @@
 
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
     using Storage = Skyline.DataMiner.Solutions.MediaOps.Plan.Storage;
 
@@ -914,6 +915,143 @@
             Assert.AreEqual(2, resourceCapability2.Value.Discreets.Count);
             Assert.IsTrue(resourceCapability2.Value.Discreets.Contains("Value 2"));
             Assert.IsTrue(resourceCapability2.Value.Discreets.Contains("Value 3"));
+        }
+
+        [TestMethod]
+        public void AssignWithEmptyIdThrowsException()
+        {
+            var prefix = Guid.NewGuid();
+
+            Assert.ThrowsException<ArgumentException>(() => new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(Guid.Empty));
+            Assert.ThrowsException<ArgumentException>(() => new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capability(Guid.Empty)));
+        }
+
+        [TestMethod]
+        public void AssignNotExistingCapabilityThrowsException()
+        {
+            var prefix = Guid.NewGuid();
+
+            var resourcePool = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
+            {
+                Name = $"{prefix}_Resource Pool",
+            };
+
+            var notExistingCapabilityId = Guid.NewGuid();
+            var capabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(notExistingCapabilityId);
+            capabilitySettings.SetDiscretes(new[] { "Value 1", "Value 2" });
+            resourcePool.AddCapability(capabilitySettings);
+
+            try
+            {
+                objectCreator.CreateResourcePool(resourcePool);
+            }
+            catch (MediaOpsException ex)
+            {
+                var errorMessage = $"Capability with ID '{notExistingCapabilityId}' not found.";
+                Assert.AreEqual(errorMessage, ex.Message);
+
+                Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
+                var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolConfigurationError>().SingleOrDefault();
+                Assert.IsNotNull(resourcePoolConfigurationError);
+
+                var invalidResourcePoolCapabilitySettingsError = resourcePoolConfigurationError as InvalidResourcePoolCapabilitySettingsError;
+                Assert.IsNotNull(invalidResourcePoolCapabilitySettingsError);
+                Assert.AreEqual(errorMessage, invalidResourcePoolCapabilitySettingsError.ErrorMessage);
+                Assert.AreEqual(notExistingCapabilityId, invalidResourcePoolCapabilitySettingsError.CapabilityId);
+
+                return;
+            }
+
+            Assert.Fail("Expected exception was not thrown.");
+        }
+
+        [TestMethod]
+        public void AssignWithNoDiscretesThrowsException()
+        {
+            var prefix = Guid.NewGuid();
+
+            var capability = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capability()
+            {
+                Name = $"{prefix}_Capability",
+            };
+            capability.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
+            var capabilityId = objectCreator.CreateCapability(capability);
+
+            var resourcePool = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
+            {
+                Name = $"{prefix}_Resource Pool",
+            };
+
+            var capabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(capabilityId);
+            resourcePool.AddCapability(capabilitySettings);
+
+            try
+            {
+                objectCreator.CreateResourcePool(resourcePool);
+            }
+            catch (MediaOpsException ex)
+            {
+                var errorMessage = "At least one discrete value must be specified for the capability.";
+                Assert.AreEqual(errorMessage, ex.Message);
+
+                Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
+                var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolConfigurationError>().SingleOrDefault();
+                Assert.IsNotNull(resourcePoolConfigurationError);
+
+                var invalidResourcePoolCapabilitySettingsError = resourcePoolConfigurationError as InvalidResourcePoolCapabilitySettingsError;
+                Assert.IsNotNull(invalidResourcePoolCapabilitySettingsError);
+                Assert.AreEqual(errorMessage, invalidResourcePoolCapabilitySettingsError.ErrorMessage);
+                Assert.AreEqual(capabilityId, invalidResourcePoolCapabilitySettingsError.CapabilityId);
+
+                return;
+            }
+
+            Assert.Fail("Expected exception was not thrown.");
+        }
+
+        [TestMethod]
+        public void AssignNotExistingDiscreteThrowsException()
+        {
+            var prefix = Guid.NewGuid();
+
+            var capability = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capability()
+            {
+                Name = $"{prefix}_Capability",
+            };
+            capability.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
+            var capabilityId = objectCreator.CreateCapability(capability);
+
+            var resourcePool = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
+            {
+                Name = $"{prefix}_Resource Pool",
+            };
+
+            var capabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(capabilityId);
+            capabilitySettings.SetDiscretes(new[] { "Value 1", "Value 5" });
+            resourcePool.AddCapability(capabilitySettings);
+
+            try
+            {
+                objectCreator.CreateResourcePool(resourcePool);
+            }
+            catch (MediaOpsException ex)
+            {
+                var errorMessage = $"Discrete value 'Value 5' is not valid for capability '{capability.Name}'.";
+                Assert.AreEqual(errorMessage, ex.Message);
+
+                Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
+                var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolConfigurationError>().SingleOrDefault();
+                Assert.IsNotNull(resourcePoolConfigurationError);
+
+                var invalidResourcePoolCapabilitySettingsError = resourcePoolConfigurationError as InvalidResourcePoolCapabilitySettingsError;
+                Assert.IsNotNull(invalidResourcePoolCapabilitySettingsError);
+                Assert.AreEqual(errorMessage, invalidResourcePoolCapabilitySettingsError.ErrorMessage);
+                Assert.AreEqual(capabilityId, invalidResourcePoolCapabilitySettingsError.CapabilityId);
+
+                return;
+            }
+
+            Assert.Fail("Expected exception was not thrown.");
         }
     }
 }
