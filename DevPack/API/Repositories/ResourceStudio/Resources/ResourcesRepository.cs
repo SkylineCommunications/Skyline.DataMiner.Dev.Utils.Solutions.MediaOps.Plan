@@ -3,14 +3,17 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Microsoft.Extensions.Logging;
+
+    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+    using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
+
     using SLDataGateway.API.Types.Querying;
-    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
-    using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
     internal class ResourcesRepository : DomRepository<Resource>, IResourcesRepository
     {
@@ -43,7 +46,7 @@
 
                 act?.AddTag("Hit", true);
 
-                return Resource.InstantiateResources([domResource]).FirstOrDefault();
+                return Resource.InstantiateResources(PlanApi, [domResource]).FirstOrDefault();
             });
         }
 
@@ -60,7 +63,7 @@
                 act?.AddTag("ResourceIds Count", ids.Count());
 
                 var resources = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(ids);
-                return Resource.InstantiateResources(resources).ToDictionary(x => x.Id);
+                return Resource.InstantiateResources(PlanApi, resources).ToDictionary(x => x.Id);
             });
         }
 
@@ -69,14 +72,14 @@
             return ActivityHelper.Track(nameof(ResourcesRepository), nameof(ReadAll), act =>
             {
                 var filter = DomInstanceExposers.DomDefinitionId.Equal(Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Definitions.Resource.Id);
-                return Resource.InstantiateResources(PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(filter));
+                return Resource.InstantiateResources(PlanApi, PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(filter));
             });
         }
 
         public IEnumerable<IEnumerable<Resource>> ReadAllPaged()
         {
             return PlanApi.DomHelpers.SlcResourceStudioHelper.GetAllResourcesPaged()
-                .Select(page => Resource.InstantiateResources(page));
+                .Select(page => Resource.InstantiateResources(PlanApi, page));
         }
 
         public bool TryConvertToElementResource(Resource resource, ResourceElementLinkConfiguration configuration, out ElementResource elementResource)
@@ -220,7 +223,7 @@
                 throw new ArgumentNullException(nameof(resourcePool));
             }
 
-            return Resource.InstantiateResources(PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcesByPool(resourcePool.Id));
+            return Resource.InstantiateResources(PlanApi, PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcesByPool(resourcePool.Id));
         }
 
         public IEnumerable<Resource> GetResourcesInPool(ResourcePool resourcePool, ResourceState state)
@@ -234,7 +237,7 @@
                 .Contains(Convert.ToString(resourcePool.Id))
                 .AND(DomInstanceExposers.StatusId.Equal(SlcResource_StudioIds.Behaviors.Resource_Behavior.Statuses.ToValue(EnumExtensions.MapEnum<ResourceState, SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum>(state))));
 
-            return Resource.InstantiateResources(PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(filter));
+            return Resource.InstantiateResources(PlanApi, PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(filter));
         }
 
         public IReadOnlyDictionary<ResourcePool, IEnumerable<Resource>> GetResourcesPerPool(IEnumerable<ResourcePool> resourcePools)
@@ -245,7 +248,7 @@
             }
 
             var domResources = PlanApi.DomHelpers.SlcResourceStudioHelper.GetAllResourcesInPools(resourcePools.Select(x => x.Id));
-            var apiResourcesById = Resource.InstantiateResources(domResources).ToDictionary(x => x.Id);
+            var apiResourcesById = Resource.InstantiateResources(PlanApi, domResources).ToDictionary(x => x.Id);
 
             var resourcesPerPool = resourcePools.ToDictionary(
                 pool => pool,
@@ -275,7 +278,7 @@
                 .AND(DomInstanceExposers.StatusId.Equal(SlcResource_StudioIds.Behaviors.Resource_Behavior.Statuses.ToValue(EnumExtensions.MapEnum<ResourceState, SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum>(state))));
 
             var domResources = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(filter);
-            var apiResourcesById = Resource.InstantiateResources(domResources).ToDictionary(x => x.Id);
+            var apiResourcesById = Resource.InstantiateResources(PlanApi, domResources).ToDictionary(x => x.Id);
 
             var resourcesPerPool = resourcePools.ToDictionary(
                 pool => pool,
@@ -316,7 +319,7 @@
 
             var domInstances = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(query);
 
-            return Resource.InstantiateResources(domInstances);
+            return Resource.InstantiateResources(PlanApi, domInstances);
         }
 
         internal override long Count(FilterElement<DomInstance> domFilter)

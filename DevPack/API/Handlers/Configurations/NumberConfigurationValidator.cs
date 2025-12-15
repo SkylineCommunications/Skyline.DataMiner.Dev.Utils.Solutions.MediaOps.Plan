@@ -87,7 +87,7 @@
                 return;
             }
 
-            if (numberConfiguration.RangeMin.HasValue && Math.Abs(Math.Round((double)numberConfiguration.RangeMin, (int)numberConfiguration.Decimals) - (double)numberConfiguration.RangeMin) > double.Epsilon)
+            if (numberConfiguration.RangeMin.HasValue && (Math.Round(numberConfiguration.RangeMin.Value, numberConfiguration.Decimals.Value) - numberConfiguration.RangeMin.Value) != 0)
             {
                 ReportError(numberConfiguration.Id, new ConfigurationConfigurationError
                 {
@@ -96,7 +96,7 @@
                 });
             }
 
-            if (numberConfiguration.RangeMax.HasValue && Math.Abs(Math.Round((double)numberConfiguration.RangeMax, (int)numberConfiguration.Decimals) - (double)numberConfiguration.RangeMax) > double.Epsilon)
+            if (numberConfiguration.RangeMax.HasValue && (Math.Round(numberConfiguration.RangeMax.Value, numberConfiguration.Decimals.Value) - numberConfiguration.RangeMax.Value) != 0)
             {
                 ReportError(numberConfiguration.Id, new ConfigurationConfigurationError
                 {
@@ -105,7 +105,7 @@
                 });
             }
 
-            if (numberConfiguration.StepSize.HasValue && Math.Abs(Math.Round((double)numberConfiguration.StepSize, (int)numberConfiguration.Decimals) - (double)numberConfiguration.StepSize) > double.Epsilon)
+            if (numberConfiguration.StepSize.HasValue && (Math.Round(numberConfiguration.StepSize.Value, numberConfiguration.Decimals.Value) - numberConfiguration.StepSize.Value) != 0)
             {
                 ReportError(numberConfiguration.Id, new ConfigurationConfigurationError
                 {

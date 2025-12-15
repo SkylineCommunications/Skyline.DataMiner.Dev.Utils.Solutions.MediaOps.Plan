@@ -34,7 +34,7 @@
         {
         }
 
-        internal VirtualFunctionResource(StorageResourceStudio.ResourceInstance instance) : base(instance)
+        internal VirtualFunctionResource(MediaOpsPlanApi planApi, StorageResourceStudio.ResourceInstance instance) : base(planApi, instance)
         {
             ParseInstance(instance);
         }

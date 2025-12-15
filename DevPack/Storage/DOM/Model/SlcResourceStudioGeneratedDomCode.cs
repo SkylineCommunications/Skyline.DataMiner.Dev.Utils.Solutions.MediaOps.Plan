@@ -163,7 +163,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
                 public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("2e079f3e-6f71-46bf-8fc8-d4203ad448a6"))
                 { ModuleId = "(slc)resource_studio" };
                 public static FieldDescriptorID ProfileParameterID { get; } = new FieldDescriptorID(new Guid("c3372c5c-d07d-4334-bab7-134711ddd0be"));
-                public static FieldDescriptorID DoubleValue { get; } = new FieldDescriptorID(new Guid("cea18270-2694-45c8-8a16-38e1edf15263"));
+                public static FieldDescriptorID DoubleMaxValue { get; } = new FieldDescriptorID(new Guid("cea18270-2694-45c8-8a16-38e1edf15263"));
+                public static FieldDescriptorID DoubleMinValue { get; } = new FieldDescriptorID(new Guid("a02e774f-1ee3-4be6-bb4f-e950a877f100"));
             }
 
             public static class OrchestrationEvents
@@ -3169,15 +3170,19 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
         {
         }
 
-        [Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
         /// <summary>
-        /// Gets the ProfileDefinitionID field of the DOM Instance.
+        /// Gets or sets the ProfileDefinitionID field of the DOM Instance.
         /// </summary>
         /// <remarks>
         /// When retrieving the value:
         /// <list type="bullet">
         /// <item>If the field has been set, it will return the value.</item>
         /// <item>If the field is not set it will return <see langword="null"/>.</item>
+        /// </list>
+        /// When setting the value:
+        /// <list type="bullet">
+        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
         /// </list>
         /// </remarks>
         public String ProfileDefinitionID
@@ -3192,6 +3197,18 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
                 else
                 {
                     return null;
+                }
+            }
+
+            set
+            {
+                if (value == null)
+                {
+                    section.RemoveFieldValueById(SlcResource_StudioIds.Sections.ConfigurationInfo.ProfileDefinitionID);
+                }
+                else
+                {
+                    section.AddOrUpdateValue(SlcResource_StudioIds.Sections.ConfigurationInfo.ProfileDefinitionID, (String)value);
                 }
             }
         }
@@ -3410,7 +3427,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
         }
 
         /// <summary>
-        /// Gets or sets the DoubleValue field of the DOM Instance.
+        /// Gets or sets the DoubleMaxValue field of the DOM Instance.
         /// </summary>
         /// <remarks>
         /// When retrieving the value:
@@ -3424,11 +3441,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
         /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
         /// </list>
         /// </remarks>
-        public Double? DoubleValue
+        public Double? DoubleMaxValue
         {
             get
             {
-                var wrapper = section.GetValue<Double>(SlcResource_StudioIds.Sections.ResourceCapacities.DoubleValue);
+                var wrapper = section.GetValue<Double>(SlcResource_StudioIds.Sections.ResourceCapacities.DoubleMaxValue);
                 if (wrapper != null)
                 {
                     return (Double?)wrapper.Value;
@@ -3443,11 +3460,54 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
             {
                 if (value == null)
                 {
-                    section.RemoveFieldValueById(SlcResource_StudioIds.Sections.ResourceCapacities.DoubleValue);
+                    section.RemoveFieldValueById(SlcResource_StudioIds.Sections.ResourceCapacities.DoubleMaxValue);
                 }
                 else
                 {
-                    section.AddOrUpdateValue(SlcResource_StudioIds.Sections.ResourceCapacities.DoubleValue, (Double)value);
+                    section.AddOrUpdateValue(SlcResource_StudioIds.Sections.ResourceCapacities.DoubleMaxValue, (Double)value);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the DoubleMinValue field of the DOM Instance.
+        /// </summary>
+        /// <remarks>
+        /// When retrieving the value:
+        /// <list type="bullet">
+        /// <item>If the field has been set, it will return the value.</item>
+        /// <item>If the field is not set it will return <see langword="null"/>.</item>
+        /// </list>
+        /// When setting the value:
+        /// <list type="bullet">
+        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+        /// </list>
+        /// </remarks>
+        public Double? DoubleMinValue
+        {
+            get
+            {
+                var wrapper = section.GetValue<Double>(SlcResource_StudioIds.Sections.ResourceCapacities.DoubleMinValue);
+                if (wrapper != null)
+                {
+                    return (Double?)wrapper.Value;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+
+            set
+            {
+                if (value == null)
+                {
+                    section.RemoveFieldValueById(SlcResource_StudioIds.Sections.ResourceCapacities.DoubleMinValue);
+                }
+                else
+                {
+                    section.AddOrUpdateValue(SlcResource_StudioIds.Sections.ResourceCapacities.DoubleMinValue, (Double)value);
                 }
             }
         }

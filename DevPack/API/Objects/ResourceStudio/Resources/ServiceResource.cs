@@ -30,7 +30,7 @@
         {
         }
 
-        internal ServiceResource(StorageResourceStudio.ResourceInstance instance) : base(instance)
+        internal ServiceResource(MediaOpsPlanApi planApi, StorageResourceStudio.ResourceInstance instance) : base(planApi, instance)
         {
             ParseInstance(instance);
         }

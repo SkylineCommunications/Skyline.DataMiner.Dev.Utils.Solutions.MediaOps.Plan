@@ -36,7 +36,7 @@
 
             //testContext.Api.ResourcePools.AssignResource(resourcePoolId, resource1Id);
 
-            var capacityId = TestContext.Api.Capacities.Create(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capacity
+            var capacityId = TestContext.Api.Capacities.Create(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity
             {
                 Name = $"{prefix}_Mandatory Capacity 1",
                 IsMandatory = true,

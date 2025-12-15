@@ -48,7 +48,7 @@
                 }
 
                 act?.AddTag("Hit", true);
-                return new Capacity(coreCapacity);
+                return Capacity.InstantiateCapacities([coreCapacity]).FirstOrDefault();
             });
         }
 
@@ -65,7 +65,7 @@
                 act?.AddTag("CapacityIds Count", ids.Count());
 
                 var capacities = PlanApi.CoreHelpers.ProfileProvider.GetCapacitiesById(ids);
-                return capacities.Select(x => new Capacity(x)).ToDictionary(x => x.Id);
+                return Capacity.InstantiateCapacities(capacities).ToDictionary(x => x.Id);
             });
         }
 
@@ -73,7 +73,7 @@
         {
             return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(ReadAll), act =>
             {
-                return PlanApi.CoreHelpers.ProfileProvider.GetAllCapacities().Select(x => new Capacity(x));
+                return Capacity.InstantiateCapacities(PlanApi.CoreHelpers.ProfileProvider.GetAllCapacities());
             });
         }
 
@@ -81,7 +81,7 @@
         {
             return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(ReadAllPaged), act =>
             {
-                return PlanApi.CoreHelpers.ProfileProvider.GetAllCapacitiesPaged().Select(page => page.Select(x => new Capacity(x)));
+                return PlanApi.CoreHelpers.ProfileProvider.GetAllCapacitiesPaged().Select(page => Capacity.InstantiateCapacities(page));
             });
         }
 
@@ -97,7 +97,7 @@
                 throw new ArgumentNullException(nameof(query));
             }
 
-            return PlanApi.CoreHelpers.ProfileProvider.GetCapacities(query).Select(x => new Capacity(x));
+            return Capacity.InstantiateCapacities(PlanApi.CoreHelpers.ProfileProvider.GetCapacities(query));
         }
 
         protected internal override FilterElement<Net.Profiles.Parameter> CreateFilter(string fieldName, Comparer comparer, object value)

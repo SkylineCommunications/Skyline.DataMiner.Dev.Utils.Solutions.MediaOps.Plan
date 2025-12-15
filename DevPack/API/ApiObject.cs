@@ -27,7 +27,7 @@
         {
             if (id == Guid.Empty)
             {
-                throw new ArgumentNullException(nameof(id));
+                throw new ArgumentException(nameof(id));
             }
 
             Id = id;
