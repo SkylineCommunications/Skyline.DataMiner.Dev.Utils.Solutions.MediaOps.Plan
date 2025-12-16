@@ -17,14 +17,9 @@
         {
         }
 
-        public long CountAll()
+        public long Count()
         {
             return PlanApi.CoreHelpers.ProfileProvider.CountAllCapabilities();
-        }
-
-        public IQueryable<Capability> Query()
-        {
-            return new ApiRepositoryQuery<Capability, Net.Profiles.Parameter>(QueryProvider);
         }
 
         public Capability Read(Guid id)
@@ -70,20 +65,70 @@
             });
         }
 
-        public IEnumerable<Capability> ReadAll()
+        public IEnumerable<Capability> Read()
         {
-            return ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(ReadAll), act =>
+            return ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Read), act =>
             {
                 return PlanApi.CoreHelpers.ProfileProvider.GetAllCapabilities().Select(x => new Capability(x));
             });
         }
 
-        public IEnumerable<IEnumerable<Capability>> ReadAllPaged()
+        public IEnumerable<IPagedResult<Capability>> ReadPaged()
         {
-            return ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(ReadAllPaged), act =>
+            int pageSize = 500;
+            var pageNumber = 0;
+            var items = PlanApi.CoreHelpers.ProfileProvider.GetAllCapabilitiesPaged(pageSize);
+            var enumerator = items.GetEnumerator();
+            var hasNext = enumerator.MoveNext();
+
+            while (hasNext)
             {
-                return PlanApi.CoreHelpers.ProfileProvider.GetAllCapabilitiesPaged().Select(page => page.Select(x => new Capability(x)));
-            });
+                var page = enumerator.Current;
+                hasNext = enumerator.MoveNext();
+                yield return new PagedResult<Capability>(page.Select(x => new Capability(x)), pageNumber++, pageSize, hasNext);
+            }
+        }
+
+        public IEnumerable<IPagedResult<Capability>> ReadPaged(FilterElement<Capability> filter)
+        {
+            int pageSize = 500;
+            var pageNumber = 0;
+            var items = PlanApi.CoreHelpers.ProfileProvider.GetAllCapabilitiesPaged(filter, pageSize);
+            var enumerator = items.GetEnumerator();
+            var hasNext = enumerator.MoveNext();
+
+            while (hasNext)
+            {
+                var page = enumerator.Current;
+                hasNext = enumerator.MoveNext();
+                yield return new PagedResult<Capability>(page.Select(x => new Capability(x)), pageNumber++, pageSize, hasNext);
+            }
+        }
+
+        public IEnumerable<IPagedResult<Capability>> ReadPaged(IQuery<Capability> query)
+        {
+            int pageSize = 500;
+            var pageNumber = 0;
+            var items = PlanApi.CoreHelpers.ProfileProvider.GetAllCapabilitiesPaged(query, pageSize);
+            var enumerator = items.GetEnumerator();
+            var hasNext = enumerator.MoveNext();
+
+            while (hasNext)
+            {
+                var page = enumerator.Current;
+                hasNext = enumerator.MoveNext();
+                yield return new PagedResult<Capability>(page.Select(x => new Capability(x)), pageNumber++, pageSize, hasNext);
+            }
+        }
+
+        public IEnumerable<IPagedResult<Capability>> ReadPaged(FilterElement<Capability> filter, int pageSize)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<Capability>> ReadPaged(IQuery<Capability> query, int pageSize)
+        {
+            throw new NotImplementedException();
         }
 
         internal override long Count(FilterElement<Net.Profiles.Parameter> filter)
@@ -99,57 +144,6 @@
             }
 
             return PlanApi.CoreHelpers.ProfileProvider.GetCapabilities(query).Select(x => new Capability(x));
-        }
-
-        protected internal override FilterElement<Net.Profiles.Parameter> CreateFilter(string fieldName, Comparer comparer, object value)
-        {
-            switch (fieldName)
-            {
-                case nameof(Capability.IsTimeDependent):
-                    return IsTimeDependantFilter(comparer, Convert.ToBoolean(value));
-                case nameof(Capability.Discretes):
-                    return FilterElementFactory<Net.Profiles.Parameter>.Create(Net.Profiles.ParameterExposers.Discretes, comparer, value);
-            }
-
-            return base.CreateFilter(fieldName, comparer, value);
-        }
-
-        protected internal override IOrderByElement CreateOrderBy(string fieldName, SortOrder sortOrder, bool naturalSort = false)
-        {
-            switch (fieldName)
-            {
-                case nameof(Capability.IsTimeDependent):
-                    return OrderByElementFactory.Create(Net.Profiles.ParameterExposers.Remarks, sortOrder, naturalSort);
-                case nameof(Capability.Discretes):
-                    return OrderByElementFactory.Create(Net.Profiles.ParameterExposers.Discretes, sortOrder, naturalSort);
-            }
-
-            return base.CreateOrderBy(fieldName, sortOrder, naturalSort);
-        }
-
-        private FilterElement<Net.Profiles.Parameter> IsTimeDependantFilter(Comparer comparer, bool value)
-        {
-            bool isTimeDependentCheck;
-            switch (comparer)
-            {
-                case Comparer.Equals:
-                    isTimeDependentCheck = value;
-                    break;
-                case Comparer.NotEquals:
-                    isTimeDependentCheck = !value;
-                    break;
-                default:
-                    throw new NotSupportedException($"Comparer {comparer} is not supported for boolean TimeDependency checks");
-            }
-
-            if (isTimeDependentCheck)
-            {
-                return Net.Profiles.ParameterExposers.Remarks.Contains("\"isTimeDependent\":true");
-            }
-            else
-            {
-                return Net.Profiles.ParameterExposers.Remarks.NotContains("\"isTimeDependent\":true");
-            }
         }
 
         public Guid Create(Capability apiObject)
@@ -310,6 +304,26 @@
                 var capabilityIds = apiObjects.Select(x => x.Id);
                 act?.AddTag("CapabilityIds", String.Join(", ", capabilityIds));
             });
+        }
+
+        public IEnumerable<Capability> Read(FilterElement<Capability> filter)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<Capability> Read(IQuery<Capability> query)
+        {
+            throw new NotImplementedException();
+        }
+
+        public long Count(FilterElement<Capability> filter)
+        {
+            throw new NotImplementedException();
+        }
+
+        public long Count(IQuery<Capability> query)
+        {
+            throw new NotImplementedException();
         }
     }
 }

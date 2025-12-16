@@ -24,7 +24,7 @@
             throw new NotImplementedException();
         }
 
-        public long CountAll()
+        public long Count()
         {
             return DomResourcePoolHandler.CountAll(PlanApi);
         }
@@ -90,9 +90,9 @@
             throw new NotImplementedException();
         }
 
-        public IEnumerable<ResourcePool> ReadAll()
+        public IEnumerable<ResourcePool> Read()
         {
-            return ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(ReadAll), act =>
+            return ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Read), act =>
             {
                 var filter = DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourcepool.Id);
                 IEnumerable<ResourcePool> Iterator()
@@ -107,7 +107,7 @@
             });
         }
 
-        public IEnumerable<IEnumerable<ResourcePool>> ReadAllPaged()
+        public IEnumerable<IEnumerable<ResourcePool>> ReadPaged()
         {
             throw new NotImplementedException();
         }
@@ -115,11 +115,6 @@
         public long ResourceCount(ResourcePool resourcePool)
         {
             throw new NotImplementedException();
-        }
-
-        public IQueryable<ResourcePool> Query()
-        {
-            return new ApiRepositoryQuery<ResourcePool, DomInstance>(QueryProvider);
         }
 
         public IEnumerable<ResourcePool> GetResourcePools(Resource resource)
@@ -209,28 +204,6 @@
             );
 
             return parentPoolsPerPool;
-        }
-
-        protected internal override FilterElement<DomInstance> CreateFilter(string fieldName, Comparer comparer, object value)
-        {
-            switch (fieldName)
-            {
-                case nameof(ResourcePool.State):
-                    return FilterElementFactory<DomInstance>.Create(DomInstanceExposers.StatusId, comparer, TranslateResourcePoolState((ResourcePoolState)value));
-            }
-
-            return base.CreateFilter(fieldName, comparer, value);
-        }
-
-        protected internal override IOrderByElement CreateOrderBy(string fieldName, SortOrder sortOrder, bool naturalSort = false)
-        {
-            switch (fieldName)
-            {
-                case nameof(ResourcePool.State):
-                    return OrderByElementFactory.Create(DomInstanceExposers.StatusId, sortOrder, naturalSort);
-            }
-
-            return base.CreateOrderBy(fieldName, sortOrder, naturalSort);
         }
 
         internal override IEnumerable<ResourcePool> Read(IQuery<DomInstance> query)

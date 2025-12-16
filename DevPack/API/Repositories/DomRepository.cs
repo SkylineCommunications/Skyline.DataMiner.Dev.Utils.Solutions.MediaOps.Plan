@@ -12,37 +12,6 @@
         {
         }
 
-        protected internal override FilterElement<DomInstance> CreateFilter(string fieldName, Comparer comparer, object value)
-        {
-            switch (fieldName)
-            {
-                case nameof(ApiObject.Id):
-                    return FilterElementFactory<DomInstance>.Create(DomInstanceExposers.Id, comparer, value);
-                case nameof(ApiObject.Name):
-                    return FilterElementFactory<DomInstance>.Create(DomInstanceExposers.Name, comparer, value);
-                default:
-                    throw new NotImplementedException();
-            }
-        }
-
-        protected internal override FilterElement<DomInstance> CreateFilter(Type type, Comparer comparer)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected internal override IOrderByElement CreateOrderBy(string fieldName, SortOrder sortOrder, bool naturalSort = false)
-        {
-            switch (fieldName)
-            {
-                case nameof(ApiObject.Id):
-                    return OrderByElementFactory.Create(DomInstanceExposers.Id, sortOrder, naturalSort);
-                case nameof(Resource.Name):
-                    return OrderByElementFactory.Create(DomInstanceExposers.Name, sortOrder, naturalSort);
-                default:
-                    throw new NotImplementedException();
-            }
-        }
-
         protected static FilterElement<DomInstance> AddDomDefinitionFilter(FilterElement<DomInstance> domFilter, DomDefinitionId domDefinitionId)
         {
             var _domDefinitionFilter = DomInstanceExposers.DomDefinitionId.Equal(domDefinitionId.Id);

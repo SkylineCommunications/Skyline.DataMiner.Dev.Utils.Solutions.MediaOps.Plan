@@ -6,7 +6,7 @@
     /// Defines methods to delete API objects or their identifiers from a repository.
     /// </summary>
     /// <typeparam name="T">The type of API object, derived from <see cref="ApiObject"/>.</typeparam>
-    public interface IDeleterRepository<in T> where T : ApiObject
+    public interface IDeletableRepository<in T> where T : ApiObject
     {
         /// <summary>
         /// Deletes the specified API objects from the repository.

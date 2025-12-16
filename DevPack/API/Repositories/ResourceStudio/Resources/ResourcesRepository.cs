@@ -67,16 +67,16 @@
             });
         }
 
-        public IEnumerable<Resource> ReadAll()
+        public IEnumerable<Resource> Read()
         {
-            return ActivityHelper.Track(nameof(ResourcesRepository), nameof(ReadAll), act =>
+            return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Read), act =>
             {
                 var filter = DomInstanceExposers.DomDefinitionId.Equal(Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Definitions.Resource.Id);
                 return Resource.InstantiateResources(PlanApi, PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(filter));
             });
         }
 
-        public IEnumerable<IEnumerable<Resource>> ReadAllPaged()
+        public IEnumerable<IEnumerable<Resource>> ReadPaged()
         {
             return PlanApi.DomHelpers.SlcResourceStudioHelper.GetAllResourcesPaged()
                 .Select(page => Resource.InstantiateResources(PlanApi, page));
@@ -210,7 +210,7 @@
             }
         }
 
-        public long CountAll()
+        public long Count()
         {
             return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(
                 DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resource.Id));
@@ -291,11 +291,6 @@
             return resourcesPerPool;
         }
 
-        public IQueryable<Resource> Query()
-        {
-            return new ApiRepositoryQuery<Resource, DomInstance>(QueryProvider);
-        }
-
         public bool HasResources(ResourcePool resourcePool)
         {
             throw new NotImplementedException();
@@ -326,75 +321,6 @@
         {
             return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(
                 DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resource.Id).AND(domFilter));
-        }
-
-        protected internal override FilterElement<DomInstance> CreateFilter(string fieldName, Comparer comparer, object value)
-        {
-            switch (fieldName)
-            {
-                case nameof(Resource.Concurrency):
-                    return FilterElementFactory<DomInstance>.Create<long>(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Concurrency), comparer, value);
-                case nameof(Resource.State):
-                    return FilterElementFactory<DomInstance>.Create(DomInstanceExposers.StatusId, comparer, TranslateResourceState((ResourceState)value));
-                case nameof(Resource.IsFavorite):
-                    return FilterElementFactory<DomInstance>.Create<bool>(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Favorite), comparer, value);
-            }
-
-            return base.CreateFilter(fieldName, comparer, value);
-        }
-
-        protected internal override FilterElement<DomInstance> CreateFilter(Type type, Comparer comparer)
-        {
-            if (type == typeof(UnmanagedResource))
-            {
-                return FilterElementFactory<DomInstance>.Create<int>(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Type), comparer, SlcResource_StudioIds.Enums.Type.Unmanaged);
-            }
-            else if (type == typeof(VirtualFunctionResource))
-            {
-                return FilterElementFactory<DomInstance>.Create<int>(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Type), comparer, SlcResource_StudioIds.Enums.Type.VirtualFunction);
-            }
-            else if (type == typeof(ServiceResource))
-            {
-                return FilterElementFactory<DomInstance>.Create<int>(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Type), comparer, SlcResource_StudioIds.Enums.Type.Service);
-            }
-            else if (type == typeof(ElementResource))
-            {
-                return FilterElementFactory<DomInstance>.Create<int>(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Type), comparer, SlcResource_StudioIds.Enums.Type.Element);
-            }
-
-            return base.CreateFilter(type, comparer);
-        }
-
-        protected internal override IOrderByElement CreateOrderBy(string fieldName, SortOrder sortOrder, bool naturalSort = false)
-        {
-            switch (fieldName)
-            {
-                case nameof(Resource.Concurrency):
-                    return OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Concurrency), sortOrder, naturalSort);
-                case nameof(Resource.State):
-                    return OrderByElementFactory.Create(DomInstanceExposers.StatusId, sortOrder, naturalSort);
-                case nameof(Resource.IsFavorite):
-                    return OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Favorite), sortOrder, naturalSort);
-            }
-
-            return base.CreateOrderBy(fieldName, sortOrder, naturalSort);
-        }
-
-        /// <summary>
-        /// Translates the ResourceState enum to the state in DOM.
-        /// </summary>
-        /// <param name="state">State to be translated.</param>
-        /// <returns></returns>
-        /// <exception cref="NotSupportedException">If the provided state is not supported.</exception>
-        private string TranslateResourceState(ResourceState state)
-        {
-            return state switch
-            {
-                ResourceState.Draft => SlcResource_StudioIds.Behaviors.Resource_Behavior.Statuses.Draft,
-                ResourceState.Complete => SlcResource_StudioIds.Behaviors.Resource_Behavior.Statuses.Complete,
-                ResourceState.Deprecated => SlcResource_StudioIds.Behaviors.Resource_Behavior.Statuses.Deprecated,
-                _ => throw new NotSupportedException($"Resource state '{state}' is not supported.")
-            };
         }
 
         public ElementResource ConvertToElementResource(Resource resource, ResourceElementLinkConfiguration configuration)

@@ -71,7 +71,7 @@
 
             var mainApiCapability = TestContext.Api.Capabilities.Read(capabilityId);
             Assert.IsNotNull(mainApiCapability);
-            Assert.IsFalse(TestContext.Api.Capabilities.ReadAll().Any(x => x.Name.Equals(linkedName))); // Linked capabilities should not be accessible from API
+            Assert.IsFalse(TestContext.Api.Capabilities.Read().Any(x => x.Name.Equals(linkedName))); // Linked capabilities should not be accessible from API
 
             var mainCoreCapability = TestContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.Name.Equal(name)).SingleOrDefault();
             Assert.IsNotNull(mainCoreCapability);
@@ -217,7 +217,7 @@
 
             capability2.SetDiscretes(discretes);
 
-            var currentCapabilities = TestContext.Api.Capabilities.ReadAll();
+            var currentCapabilities = TestContext.Api.Capabilities.Read();
             var currentCapabilityCount = currentCapabilities.Count();
             var mandatoryCapabilities = currentCapabilities.Count(x => x.IsMandatory);
             var optionalCapabilities = currentCapabilities.Count(x => !x.IsMandatory);
@@ -288,7 +288,7 @@
         [TestMethod]
         public void ReadAllPaged()
         {
-            foreach (var page in TestContext.Api.Capabilities.ReadAllPaged())
+            foreach (var page in TestContext.Api.Capabilities.ReadPaged())
             {
                 foreach (var capability in page)
                 {

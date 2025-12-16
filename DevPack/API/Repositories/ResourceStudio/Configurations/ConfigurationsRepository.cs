@@ -16,14 +16,9 @@
         {
         }
 
-        public long CountAll()
+        public long Count()
         {
             return PlanApi.CoreHelpers.ProfileProvider.CountAllConfigurations();
-        }
-
-        public IQueryable<Configuration> Query()
-        {
-            return new ApiRepositoryQuery<Configuration, Net.Profiles.Parameter>(QueryProvider);
         }
 
         public Configuration Read(Guid id)
@@ -70,17 +65,17 @@
             });
         }
 
-        public IEnumerable<Configuration> ReadAll()
+        public IEnumerable<Configuration> Read()
         {
-            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(ReadAll), act =>
+            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Read), act =>
             {
                 return InstantiateConfigurations(PlanApi.CoreHelpers.ProfileProvider.GetAllConfigurations());
             });
         }
 
-        public IEnumerable<IEnumerable<Configuration>> ReadAllPaged()
+        public IEnumerable<IEnumerable<Configuration>> ReadPaged()
         {
-            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(ReadAllPaged), act =>
+            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(ReadPaged), act =>
             {
                 return PlanApi.CoreHelpers.ProfileProvider.GetAllConfigurationsPaged().Select(page => InstantiateConfigurations(page));
             });
@@ -99,50 +94,6 @@
             }
 
             return InstantiateConfigurations(PlanApi.CoreHelpers.ProfileProvider.GetConfigurations(query));
-        }
-
-        protected internal override FilterElement<Net.Profiles.Parameter> CreateFilter(string fieldName, Comparer comparer, object value)
-        {
-            switch (fieldName)
-            {
-                // DefaultValue and DisplayValues are not exposed through ParameterExposers.
-                case nameof(NumberConfiguration.Units):
-                    return FilterElementFactory<Net.Profiles.Parameter>.Create(Net.Profiles.ParameterExposers.Units, comparer, value);
-                case nameof(NumberConfiguration.RangeMin):
-                    return FilterElementFactory<Net.Profiles.Parameter>.Create(Net.Profiles.ParameterExposers.RangeMin, comparer, Convert.ToDouble(value));
-                case nameof(NumberConfiguration.RangeMax):
-                    return FilterElementFactory<Net.Profiles.Parameter>.Create(Net.Profiles.ParameterExposers.RangeMax, comparer, Convert.ToDouble(value));
-                case nameof(NumberConfiguration.StepSize):
-                    return FilterElementFactory<Net.Profiles.Parameter>.Create(Net.Profiles.ParameterExposers.Stepsize, comparer, Convert.ToDouble(value));
-                case nameof(NumberConfiguration.Decimals):
-                    return FilterElementFactory<Net.Profiles.Parameter>.Create(Net.Profiles.ParameterExposers.Decimals, comparer, value);
-                case nameof(DiscreteNumberConfiguration.Discretes.Values):
-                    return FilterElementFactory<Net.Profiles.Parameter>.Create(Net.Profiles.ParameterExposers.Discretes, comparer, value);
-            }
-
-            return base.CreateFilter(fieldName, comparer, value);
-        }
-
-        protected internal override IOrderByElement CreateOrderBy(string fieldName, SortOrder sortOrder, bool naturalSort = false)
-        {
-            switch (fieldName)
-            {
-                // DefaultValue and DisplayValues are not exposed through ParameterExposers.
-                case nameof(NumberConfiguration.Units):
-                    return OrderByElementFactory.Create(Net.Profiles.ParameterExposers.Units, sortOrder, naturalSort);
-                case nameof(NumberConfiguration.RangeMin):
-                    return OrderByElementFactory.Create(Net.Profiles.ParameterExposers.RangeMin, sortOrder, naturalSort);
-                case nameof(NumberConfiguration.RangeMax):
-                    return OrderByElementFactory.Create(Net.Profiles.ParameterExposers.RangeMax, sortOrder, naturalSort);
-                case nameof(NumberConfiguration.StepSize):
-                    return OrderByElementFactory.Create(Net.Profiles.ParameterExposers.Stepsize, sortOrder, naturalSort);
-                case nameof(NumberConfiguration.Decimals):
-                    return OrderByElementFactory.Create(Net.Profiles.ParameterExposers.Decimals, sortOrder, naturalSort);
-                case nameof(DiscreteNumberConfiguration.Discretes.Values):
-                    return OrderByElementFactory.Create(Net.Profiles.ParameterExposers.Discretes, sortOrder, naturalSort);
-            }
-
-            return base.CreateOrderBy(fieldName, sortOrder, naturalSort);
         }
 
         internal static IEnumerable<Configuration> InstantiateConfigurations(IEnumerable<Net.Profiles.Parameter> instances)

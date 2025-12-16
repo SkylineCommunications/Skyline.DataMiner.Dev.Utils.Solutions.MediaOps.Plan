@@ -21,15 +21,10 @@
         {
         }
 
-        public long CountAll()
+        public long Count()
         {
             return PlanApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances
                 .Count(DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourceproperty.Id));
-        }
-
-        public IQueryable<ResourceProperty> Query()
-        {
-            return new ApiRepositoryQuery<ResourceProperty, DomInstance>(QueryProvider);
         }
 
         public ResourceProperty Read(Guid id)
@@ -78,16 +73,16 @@
             });
         }
 
-        public IEnumerable<ResourceProperty> ReadAll()
+        public IEnumerable<ResourceProperty> Read()
         {
-            return ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(ReadAll), act =>
+            return ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Read), act =>
             {
                 var filter = DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resource.Id);
                 return PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourceProperties(filter).Select(x => new ResourceProperty(x));
             });
         }
 
-        public IEnumerable<IEnumerable<ResourceProperty>> ReadAllPaged()
+        public IEnumerable<IEnumerable<ResourceProperty>> ReadPaged()
         {
             return PlanApi.DomHelpers.SlcResourceStudioHelper.GetAllResourcePropertiesPaged()
                 .Select(Page => Page.Select(x => new ResourceProperty(x)));

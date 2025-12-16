@@ -7,7 +7,7 @@
     /// Defines methods to create API objects in the repository.
     /// </summary>
     /// <typeparam name="T">The type of API object. Must inherit from <see cref="ApiObject"/>.</typeparam>
-    public interface ICreatorRepository<T> where T : ApiObject
+    public interface ICreateableRepository<T> where T : ApiObject
     {
         /// <summary>
         /// Creates a new API object in the repository.
