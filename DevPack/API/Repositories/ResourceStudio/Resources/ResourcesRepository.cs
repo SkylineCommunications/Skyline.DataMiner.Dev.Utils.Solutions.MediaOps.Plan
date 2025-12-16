@@ -18,7 +18,7 @@
     /// <summary>
     /// Provides repository operations for managing <see cref="Resource"/> objects.
     /// </summary>
-    internal class ResourcesRepository : DomRepository<Resource>, IResourcesRepository
+    internal class ResourcesRepository : DomRepository, IResourcesRepository
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ResourcesRepository"/> class.

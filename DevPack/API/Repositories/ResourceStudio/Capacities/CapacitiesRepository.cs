@@ -12,7 +12,7 @@
     /// <summary>
     /// Provides repository operations for managing <see cref="Capacity"/> objects.
     /// </summary>
-    internal class CapacitiesRepository : ProfileParameterRepository<Capacity>, ICapacitiesRepository
+    internal class CapacitiesRepository : ProfileParameterRepository, ICapacitiesRepository
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="CapacitiesRepository"/> class.

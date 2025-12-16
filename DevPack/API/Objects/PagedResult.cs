@@ -54,6 +54,9 @@
             HasNextPage = hasNext;
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PagedResult{T}"/> class with an empty result set.
+        /// </summary>
         internal PagedResult()
         {
             _items = new List<T>();
@@ -73,6 +76,12 @@
         /// <inheritdoc/>
         public T this[int index] { get => _items[index]; }
 
+        /// <summary>
+        /// Creates a <see cref="PagedResult{T}"/> containing all items as a single page.
+        /// </summary>
+        /// <param name="items">The items to include in the page.</param>
+        /// <returns>A <see cref="PagedResult{T}"/> containing all the items.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="items"/> is <c>null</c>.</exception>
         public static PagedResult<T> Create(IEnumerable<T> items)
         {
             var list = items?.ToList() ?? throw new ArgumentNullException(nameof(items));
@@ -85,6 +94,7 @@
         /// <param name="items">The items to include in the page.</param>
         /// <param name="pageSize">The maximum number of items per page.</param>
         /// <returns>A <see cref="PagedResult{T}"/> containing the items for the first page.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="pageSize"/> is less than or equal to 0.</exception>
         public static PagedResult<T> Create(IEnumerable<T> items, int pageSize)
         {
             return Create(items, pageSize, 0);

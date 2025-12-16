@@ -16,7 +16,7 @@
     /// <summary>
     /// Provides repository operations for managing <see cref="ResourcePool"/> objects.
     /// </summary>
-    internal class ResourcePoolsRepository : DomRepository<ResourcePool>, IResourcePoolsRepository
+    internal class ResourcePoolsRepository : DomRepository, IResourcePoolsRepository
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ResourcePoolsRepository"/> class.
@@ -787,23 +787,6 @@
             {
                 throw new MediaOpsException(result.TraceDataPerItem[resourcePool.Id]);
             }
-        }
-
-        /// <summary>
-        /// Translates the <see cref="ResourcePoolState"/> enum to the corresponding state in DOM.
-        /// </summary>
-        /// <param name="state">State to be translated.</param>
-        /// <returns>The DOM state string representation.</returns>
-        /// <exception cref="NotSupportedException">Thrown when the provided state is not supported.</exception>
-        private string TranslateResourcePoolState(ResourcePoolState state)
-        {
-            return state switch
-            {
-                ResourcePoolState.Draft => StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.Statuses.Draft,
-                ResourcePoolState.Complete => StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.Statuses.Complete,
-                ResourcePoolState.Deprecated => StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.Statuses.Deprecated,
-                _ => throw new NotSupportedException($"Resource Pool state '{state}' is not supported.")
-            };
         }
     }
 }
