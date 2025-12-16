@@ -21,6 +21,366 @@
         {
         }
 
+        public ElementResource ConvertToElementResource(Resource resource, ResourceElementLinkConfiguration configuration)
+        {
+            if (resource.State != ResourceState.Draft)
+            {
+                throw new MediaOpsException($"Resource {resource.Name} is not in Draft state. Cannot convert to ElementResource.");
+            }
+
+            if (resource is ElementResource elementResource)
+            {
+                return elementResource;
+            }
+
+            DomResourceHandler.ConvertToElementResource(PlanApi, resource, configuration);
+            return (ElementResource)Read(resource.Id);
+        }
+
+        public ElementResource ConvertToElementResource(Guid resourceId, ResourceElementLinkConfiguration configuration)
+        {
+            var resource = Read(resourceId) ?? throw new ResourceNotFoundException(resourceId);
+            return ConvertToElementResource(resource, configuration);
+        }
+
+        public ServiceResource ConvertToServiceResource(Resource resource, ResourceServiceLinkConfiguration configuration)
+        {
+            if (resource.State != ResourceState.Draft)
+            {
+                throw new MediaOpsException($"Resource {resource.Name} is not in Draft state. Cannot convert to ElementResource.");
+            }
+
+            if (resource is ServiceResource serviceResource)
+            {
+                return serviceResource;
+            }
+
+            DomResourceHandler.ConvertToServiceResource(PlanApi, resource, configuration);
+            return (ServiceResource)Read(resource.Id);
+        }
+
+        public ServiceResource ConvertToServiceResource(Guid resourceId, ResourceServiceLinkConfiguration configuration)
+        {
+            var resource = Read(resourceId) ?? throw new ResourceNotFoundException(resourceId);
+            return ConvertToServiceResource(resource, configuration);
+        }
+
+        public UnmanagedResource ConvertToUnmanagedResource(Resource resource)
+        {
+            if (resource.State != ResourceState.Draft)
+            {
+                throw new MediaOpsException($"Resource {resource.Name} is not in Draft state. Cannot convert to ElementResource.");
+            }
+
+            if (resource is UnmanagedResource unmanagedResource)
+            {
+                return unmanagedResource;
+            }
+
+            DomResourceHandler.ConvertToUnmanagedResource(PlanApi, resource);
+            return (UnmanagedResource)Read(resource.Id);
+        }
+
+        public UnmanagedResource ConvertToUnmanagedResource(Guid resourceId)
+        {
+            var resource = Read(resourceId) ?? throw new ResourceNotFoundException(resourceId);
+            return ConvertToUnmanagedResource(resource);
+        }
+
+        public VirtualFunctionResource ConvertToVirtualFunctionResource(Resource resource, ResourceVirtualFunctionLinkConfiguration configuration)
+        {
+            if (resource.State != ResourceState.Draft)
+            {
+                throw new MediaOpsException($"Resource {resource.Name} is not in Draft state. Cannot convert to ElementResource.");
+            }
+
+            if (resource is VirtualFunctionResource virtualFunctionResource)
+            {
+                return virtualFunctionResource;
+            }
+
+            DomResourceHandler.ConvertToVirtualFunctionResource(PlanApi, resource, configuration);
+            return (VirtualFunctionResource)Read(resource.Id);
+        }
+
+        public VirtualFunctionResource ConvertToVirtualFunctionResource(Guid resourceId, ResourceVirtualFunctionLinkConfiguration configuration)
+        {
+            var resource = Read(resourceId) ?? throw new ResourceNotFoundException(resourceId);
+            return ConvertToVirtualFunctionResource(resource, configuration);
+        }
+
+        public long Count()
+        {
+            return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(
+                DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resource.Id));
+        }
+
+        public long Count(FilterElement<Resource> filter)
+        {
+            throw new NotImplementedException();
+        }
+
+        public long Count(IQuery<Resource> query)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Guid Create(Resource apiObject)
+        {
+            if (apiObject == null)
+            {
+                throw new ArgumentNullException(nameof(apiObject));
+            }
+
+            PlanApi.Logger.LogInformation($"Creating new Resource {apiObject.Name}...");
+
+            return ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Create), act =>
+            {
+                if (!apiObject.IsNew)
+                {
+                    throw new InvalidOperationException("Not possible to use method Create for existing resources. Use CreateOrUpdate or Update instead.");
+                }
+
+                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
+                {
+                    throw new MediaOpsException(result.TraceDataPerItem[apiObject.Id]);
+                }
+
+                var resourceId = result.SuccessfulIds.First();
+                act?.AddTag("ResourceId", resourceId);
+
+                return resourceId;
+            });
+        }
+
+        public IEnumerable<Guid> Create(IEnumerable<Resource> apiObjects)
+        {
+            if (apiObjects == null)
+            {
+                throw new ArgumentNullException(nameof(apiObjects));
+            }
+
+            return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Create), act =>
+            {
+                var existingResources = apiObjects.Where(x => !x.IsNew);
+                if (existingResources.Any())
+                {
+                    throw new InvalidOperationException("Not possible to use method Create for existing resources. Use CreateOrUpdate or Update instead.");
+                }
+
+                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
+                {
+                    throw new MediaOpsBulkException<Guid>(result);
+                }
+
+                var resourceIds = result.SuccessfulIds;
+                act?.AddTag("ResourceIds", String.Join(", ", resourceIds));
+
+                return resourceIds;
+            });
+        }
+
+        public IEnumerable<Guid> CreateOrUpdate(IEnumerable<Resource> apiObjects)
+        {
+            if (apiObjects == null)
+            {
+                throw new ArgumentNullException(nameof(apiObjects));
+            }
+
+            return ActivityHelper.Track(nameof(ResourcesRepository), nameof(CreateOrUpdate), act =>
+            {
+                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
+                {
+                    throw new MediaOpsBulkException<Guid>(result);
+                }
+
+                var resourceIds = result.SuccessfulIds;
+                act?.AddTag("Created or Updated Resources", String.Join(", ", resourceIds));
+                act?.AddTag("Created or Updated Resources Count", resourceIds.Count);
+
+                return resourceIds;
+            });
+        }
+
+        public void Delete(params Resource[] apiObjects)
+        {
+            if (apiObjects == null)
+            {
+                throw new ArgumentNullException(nameof(apiObjects));
+            }
+
+            Delete(apiObjects.Select(x => x.Id).ToArray());
+        }
+
+        public void Delete(params Guid[] apiObjectIds)
+        {
+            if (apiObjectIds == null)
+            {
+                throw new ArgumentNullException(nameof(apiObjectIds));
+            }
+
+            PlanApi.Logger.LogInformation("Deleting Resources {resourceIds}...", String.Join(", ", apiObjectIds));
+
+            var resourcesToDelete = Read(apiObjectIds).Values;
+
+            ActivityHelper.Track(nameof(ResourcesRepository), nameof(Delete), act =>
+            {
+                if (!DomResourceHandler.TryDelete(PlanApi, resourcesToDelete, out var result))
+                {
+                    throw new MediaOpsBulkException<Guid>(result);
+                }
+
+                var resourceIds = result.SuccessfulIds;
+                act?.AddTag("Removed Resources", String.Join(", ", resourceIds));
+                act?.AddTag("Removed Resources Count", resourceIds.Count);
+            });
+        }
+
+        public void Deprecate(IEnumerable<Resource> resources)
+        {
+            if (resources == null)
+            {
+                throw new ArgumentNullException(nameof(resources));
+            }
+
+            ActivityHelper.Track(nameof(ResourcesRepository), nameof(Deprecate), act =>
+            {
+                if (!DomResourceHandler.TryDeprecate(PlanApi, resources, out var result))
+                {
+                    throw new MediaOpsBulkException<Guid>(result);
+                }
+
+                var resourceIds = result.SuccessfulIds;
+                act?.AddTag("Deprecated Resources", String.Join(", ", resourceIds));
+                act?.AddTag("Deprecated Resources Count", resourceIds.Count);
+            });
+        }
+
+        public IEnumerable<Resource> GetResourcesInPool(ResourcePool resourcePool)
+        {
+            if (resourcePool == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePool));
+            }
+
+            return Resource.InstantiateResources(PlanApi, PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcesByPool(resourcePool.Id));
+        }
+
+        public IEnumerable<Resource> GetResourcesInPool(ResourcePool resourcePool, ResourceState state)
+        {
+            if (resourcePool == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePool));
+            }
+
+            var filter = DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.Pool_Ids)
+                .Contains(Convert.ToString(resourcePool.Id))
+                .AND(DomInstanceExposers.StatusId.Equal(SlcResource_StudioIds.Behaviors.Resource_Behavior.Statuses.ToValue(EnumExtensions.MapEnum<ResourceState, SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum>(state))));
+
+            return Resource.InstantiateResources(PlanApi, PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(filter));
+        }
+
+        public IReadOnlyDictionary<ResourcePool, IEnumerable<Resource>> GetResourcesPerPool(IEnumerable<ResourcePool> resourcePools)
+        {
+            if (resourcePools == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePools));
+            }
+
+            var domResources = PlanApi.DomHelpers.SlcResourceStudioHelper.GetAllResourcesInPools(resourcePools.Select(x => x.Id));
+            var apiResourcesById = Resource.InstantiateResources(PlanApi, domResources).ToDictionary(x => x.Id);
+
+            var resourcesPerPool = resourcePools.ToDictionary(
+                pool => pool,
+                pool =>
+                    domResources
+                        .Where(x => x.ResourceInternalProperties.PoolIds.Contains(pool.Id))
+                        .Select(x => apiResourcesById[x.ID.Id])
+            );
+
+            return resourcesPerPool;
+        }
+
+        public IReadOnlyDictionary<ResourcePool, IEnumerable<Resource>> GetResourcesPerPool(IEnumerable<ResourcePool> resourcePools, ResourceState state)
+        {
+            if (resourcePools == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePools));
+            }
+
+            var resourceFilters = resourcePools
+                .Select(x => DomInstanceExposers.FieldValues
+                    .DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.Pool_Ids)
+                    .Contains(Convert.ToString(x.Id)))
+                .ToArray();
+
+            var filter = new ORFilterElement<DomInstance>(resourceFilters)
+                .AND(DomInstanceExposers.StatusId.Equal(SlcResource_StudioIds.Behaviors.Resource_Behavior.Statuses.ToValue(EnumExtensions.MapEnum<ResourceState, SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum>(state))));
+
+            var domResources = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(filter);
+            var apiResourcesById = Resource.InstantiateResources(PlanApi, domResources).ToDictionary(x => x.Id);
+
+            var resourcesPerPool = resourcePools.ToDictionary(
+                pool => pool,
+                pool =>
+                    domResources
+                        .Where(x => x.ResourceInternalProperties.PoolIds.Contains(pool.Id))
+                        .Select(x => apiResourcesById[x.ID.Id])
+            );
+
+            return resourcesPerPool;
+        }
+
+        public bool HasResources(ResourcePool resourcePool)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void MoveTo(Resource resource, ResourceState desiredState)
+        {
+            if (resource == null)
+            {
+                throw new ArgumentNullException(nameof(resource));
+            }
+
+            MoveTo(resource.Id, desiredState);
+        }
+
+        public void MoveTo(Guid resourceId, ResourceState desiredState)
+        {
+            PlanApi.Logger.LogInformation("Moving Resource {resourceId} to {desiredState}...", resourceId, desiredState);
+
+            if (resourceId == Guid.Empty)
+            {
+                throw new ArgumentException("Resource ID cannot be empty.", nameof(resourceId));
+            }
+
+            var resource = Read(resourceId);
+            if (resource == null)
+            {
+                throw new MediaOpsException($"Unable to find resource with ID {resourceId}");
+            }
+
+            ActivityHelper.Track(nameof(ResourcesRepository), nameof(MoveTo), act =>
+            {
+                act?.AddTag("ResourceId", resourceId);
+                act?.AddTag("DesiredState", desiredState);
+
+                var actionMethods = new Dictionary<ResourceState, Action<Resource>>
+                {
+                    [ResourceState.Complete] = HandleMoveToCompleteAction,
+                    [ResourceState.Deprecated] = HandleMoveToDeprecatedAction,
+                };
+
+                if (!actionMethods.TryGetValue(desiredState, out var action))
+                {
+                    throw new MediaOpsException($"Move to state '{desiredState}' is not supported.");
+                }
+
+                action(resource);
+            });
+        }
+
         public Resource Read(Guid id)
         {
             PlanApi.Logger.LogInformation($"Reading Resource with ID: {id}...");
@@ -76,10 +436,50 @@
             });
         }
 
+        public IEnumerable<Resource> Read(FilterElement<Resource> filter)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<Resource> Read(IQuery<Resource> query)
+        {
+            throw new NotImplementedException();
+        }
+
         public IEnumerable<IEnumerable<Resource>> ReadPaged()
         {
             return PlanApi.DomHelpers.SlcResourceStudioHelper.GetAllResourcesPaged()
                 .Select(page => Resource.InstantiateResources(PlanApi, page));
+        }
+
+        IEnumerable<IPagedResult<Resource>> IPageableRepository<Resource>.ReadPaged()
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<Resource>> ReadPaged(FilterElement<Resource> filter)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<Resource>> ReadPaged(IQuery<Resource> query)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<Resource>> ReadPaged(FilterElement<Resource> filter, int pageSize)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<Resource>> ReadPaged(IQuery<Resource> query, int pageSize)
+        {
+            throw new NotImplementedException();
+        }
+
+        public long ResourceCount(ResourcePool resourcePool)
+        {
+            throw new NotImplementedException();
         }
 
         public bool TryConvertToElementResource(Resource resource, ResourceElementLinkConfiguration configuration, out ElementResource elementResource)
@@ -209,409 +609,6 @@
                 return false;
             }
         }
-
-        public long Count()
-        {
-            return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(
-                DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resource.Id));
-        }
-
-        public IEnumerable<Resource> GetResourcesInPool(ResourcePool resourcePool)
-        {
-            if (resourcePool == null)
-            {
-                throw new ArgumentNullException(nameof(resourcePool));
-            }
-
-            return Resource.InstantiateResources(PlanApi, PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcesByPool(resourcePool.Id));
-        }
-
-        public IEnumerable<Resource> GetResourcesInPool(ResourcePool resourcePool, ResourceState state)
-        {
-            if (resourcePool == null)
-            {
-                throw new ArgumentNullException(nameof(resourcePool));
-            }
-
-            var filter = DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.Pool_Ids)
-                .Contains(Convert.ToString(resourcePool.Id))
-                .AND(DomInstanceExposers.StatusId.Equal(SlcResource_StudioIds.Behaviors.Resource_Behavior.Statuses.ToValue(EnumExtensions.MapEnum<ResourceState, SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum>(state))));
-
-            return Resource.InstantiateResources(PlanApi, PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(filter));
-        }
-
-        public IReadOnlyDictionary<ResourcePool, IEnumerable<Resource>> GetResourcesPerPool(IEnumerable<ResourcePool> resourcePools)
-        {
-            if (resourcePools == null)
-            {
-                throw new ArgumentNullException(nameof(resourcePools));
-            }
-
-            var domResources = PlanApi.DomHelpers.SlcResourceStudioHelper.GetAllResourcesInPools(resourcePools.Select(x => x.Id));
-            var apiResourcesById = Resource.InstantiateResources(PlanApi, domResources).ToDictionary(x => x.Id);
-
-            var resourcesPerPool = resourcePools.ToDictionary(
-                pool => pool,
-                pool =>
-                    domResources
-                        .Where(x => x.ResourceInternalProperties.PoolIds.Contains(pool.Id))
-                        .Select(x => apiResourcesById[x.ID.Id])
-            );
-
-            return resourcesPerPool;
-        }
-
-        public IReadOnlyDictionary<ResourcePool, IEnumerable<Resource>> GetResourcesPerPool(IEnumerable<ResourcePool> resourcePools, ResourceState state)
-        {
-            if (resourcePools == null)
-            {
-                throw new ArgumentNullException(nameof(resourcePools));
-            }
-
-            var resourceFilters = resourcePools
-                .Select(x => DomInstanceExposers.FieldValues
-                    .DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.Pool_Ids)
-                    .Contains(Convert.ToString(x.Id)))
-                .ToArray();
-
-            var filter = new ORFilterElement<DomInstance>(resourceFilters)
-                .AND(DomInstanceExposers.StatusId.Equal(SlcResource_StudioIds.Behaviors.Resource_Behavior.Statuses.ToValue(EnumExtensions.MapEnum<ResourceState, SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum>(state))));
-
-            var domResources = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(filter);
-            var apiResourcesById = Resource.InstantiateResources(PlanApi, domResources).ToDictionary(x => x.Id);
-
-            var resourcesPerPool = resourcePools.ToDictionary(
-                pool => pool,
-                pool =>
-                    domResources
-                        .Where(x => x.ResourceInternalProperties.PoolIds.Contains(pool.Id))
-                        .Select(x => apiResourcesById[x.ID.Id])
-            );
-
-            return resourcesPerPool;
-        }
-
-        public bool HasResources(ResourcePool resourcePool)
-        {
-            throw new NotImplementedException();
-        }
-
-        public long ResourceCount(ResourcePool resourcePool)
-        {
-            throw new NotImplementedException();
-        }
-
-        public ElementResource ConvertToElementResource(Resource resource, ResourceElementLinkConfiguration configuration)
-        {
-            if (resource.State != ResourceState.Draft)
-            {
-                throw new MediaOpsException($"Resource {resource.Name} is not in Draft state. Cannot convert to ElementResource.");
-            }
-
-            if (resource is ElementResource elementResource)
-            {
-                return elementResource;
-            }
-
-            DomResourceHandler.ConvertToElementResource(PlanApi, resource, configuration);
-            return (ElementResource)Read(resource.Id);
-        }
-
-        public ElementResource ConvertToElementResource(Guid resourceId, ResourceElementLinkConfiguration configuration)
-        {
-            var resource = Read(resourceId) ?? throw new ResourceNotFoundException(resourceId);
-            return ConvertToElementResource(resource, configuration);
-        }
-
-        public ServiceResource ConvertToServiceResource(Resource resource, ResourceServiceLinkConfiguration configuration)
-        {
-            if (resource.State != ResourceState.Draft)
-            {
-                throw new MediaOpsException($"Resource {resource.Name} is not in Draft state. Cannot convert to ElementResource.");
-            }
-
-            if (resource is ServiceResource serviceResource)
-            {
-                return serviceResource;
-            }
-
-            DomResourceHandler.ConvertToServiceResource(PlanApi, resource, configuration);
-            return (ServiceResource)Read(resource.Id);
-        }
-
-        public ServiceResource ConvertToServiceResource(Guid resourceId, ResourceServiceLinkConfiguration configuration)
-        {
-            var resource = Read(resourceId) ?? throw new ResourceNotFoundException(resourceId);
-            return ConvertToServiceResource(resource, configuration);
-        }
-
-        public UnmanagedResource ConvertToUnmanagedResource(Resource resource)
-        {
-            if (resource.State != ResourceState.Draft)
-            {
-                throw new MediaOpsException($"Resource {resource.Name} is not in Draft state. Cannot convert to ElementResource.");
-            }
-
-            if (resource is UnmanagedResource unmanagedResource)
-            {
-                return unmanagedResource;
-            }
-
-            DomResourceHandler.ConvertToUnmanagedResource(PlanApi, resource);
-            return (UnmanagedResource)Read(resource.Id);
-        }
-
-        public UnmanagedResource ConvertToUnmanagedResource(Guid resourceId)
-        {
-            var resource = Read(resourceId) ?? throw new ResourceNotFoundException(resourceId);
-            return ConvertToUnmanagedResource(resource);
-        }
-
-        public VirtualFunctionResource ConvertToVirtualFunctionResource(Resource resource, ResourceVirtualFunctionLinkConfiguration configuration)
-        {
-            if (resource.State != ResourceState.Draft)
-            {
-                throw new MediaOpsException($"Resource {resource.Name} is not in Draft state. Cannot convert to ElementResource.");
-            }
-
-            if (resource is VirtualFunctionResource virtualFunctionResource)
-            {
-                return virtualFunctionResource;
-            }
-
-            DomResourceHandler.ConvertToVirtualFunctionResource(PlanApi, resource, configuration);
-            return (VirtualFunctionResource)Read(resource.Id);
-        }
-
-        public VirtualFunctionResource ConvertToVirtualFunctionResource(Guid resourceId, ResourceVirtualFunctionLinkConfiguration configuration)
-        {
-            var resource = Read(resourceId) ?? throw new ResourceNotFoundException(resourceId);
-            return ConvertToVirtualFunctionResource(resource, configuration);
-        }
-
-        public Guid Create(Resource apiObject)
-        {
-            if (apiObject == null)
-            {
-                throw new ArgumentNullException(nameof(apiObject));
-            }
-
-            PlanApi.Logger.LogInformation($"Creating new Resource {apiObject.Name}...");
-
-            return ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Create), act =>
-            {
-                if (!apiObject.IsNew)
-                {
-                    throw new InvalidOperationException("Not possible to use method Create for existing resources. Use CreateOrUpdate or Update instead.");
-                }
-
-                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
-                {
-                    throw new MediaOpsException(result.TraceDataPerItem[apiObject.Id]);
-                }
-
-                var resourceId = result.SuccessfulIds.First();
-                act?.AddTag("ResourceId", resourceId);
-
-                return resourceId;
-            });
-        }
-
-        public IEnumerable<Guid> Create(IEnumerable<Resource> apiObjects)
-        {
-            if (apiObjects == null)
-            {
-                throw new ArgumentNullException(nameof(apiObjects));
-            }
-
-            return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Create), act =>
-            {
-                var existingResources = apiObjects.Where(x => !x.IsNew);
-                if (existingResources.Any())
-                {
-                    throw new InvalidOperationException("Not possible to use method Create for existing resources. Use CreateOrUpdate or Update instead.");
-                }
-
-                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
-                {
-                    throw new MediaOpsBulkException<Guid>(result);
-                }
-
-                var resourceIds = result.SuccessfulIds;
-                act?.AddTag("ResourceIds", String.Join(", ", resourceIds));
-
-                return resourceIds;
-            });
-        }
-
-        public IEnumerable<Guid> CreateOrUpdate(IEnumerable<Resource> apiObjects)
-        {
-            if (apiObjects == null)
-            {
-                throw new ArgumentNullException(nameof(apiObjects));
-            }
-
-            return ActivityHelper.Track(nameof(ResourcesRepository), nameof(CreateOrUpdate), act =>
-            {
-                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
-                {
-                    throw new MediaOpsBulkException<Guid>(result);
-                }
-
-                var resourceIds = result.SuccessfulIds;
-                act?.AddTag("Created or Updated Resources", String.Join(", ", resourceIds));
-                act?.AddTag("Created or Updated Resources Count", resourceIds.Count);
-
-                return resourceIds;
-            });
-        }
-
-        public void Deprecate(IEnumerable<Resource> resources)
-        {
-            if (resources == null)
-            {
-                throw new ArgumentNullException(nameof(resources));
-            }
-
-            ActivityHelper.Track(nameof(ResourcesRepository), nameof(Deprecate), act =>
-            {
-                if (!DomResourceHandler.TryDeprecate(PlanApi, resources, out var result))
-                {
-                    throw new MediaOpsBulkException<Guid>(result);
-                }
-
-                var resourceIds = result.SuccessfulIds;
-                act?.AddTag("Deprecated Resources", String.Join(", ", resourceIds));
-                act?.AddTag("Deprecated Resources Count", resourceIds.Count);
-            });
-        }
-
-        public void Delete(params Resource[] apiObjects)
-        {
-            if (apiObjects == null)
-            {
-                throw new ArgumentNullException(nameof(apiObjects));
-            }
-
-            Delete(apiObjects.Select(x => x.Id).ToArray());
-        }
-
-        public void Delete(params Guid[] apiObjectIds)
-        {
-            if (apiObjectIds == null)
-            {
-                throw new ArgumentNullException(nameof(apiObjectIds));
-            }
-
-            PlanApi.Logger.LogInformation("Deleting Resources {resourceIds}...", String.Join(", ", apiObjectIds));
-
-            var resourcesToDelete = Read(apiObjectIds).Values;
-
-            ActivityHelper.Track(nameof(ResourcesRepository), nameof(Delete), act =>
-            {
-                if (!DomResourceHandler.TryDelete(PlanApi, resourcesToDelete, out var result))
-                {
-                    throw new MediaOpsBulkException<Guid>(result);
-                }
-
-                var resourceIds = result.SuccessfulIds;
-                act?.AddTag("Removed Resources", String.Join(", ", resourceIds));
-                act?.AddTag("Removed Resources Count", resourceIds.Count);
-            });
-        }
-
-        public void MoveTo(Resource resource, ResourceState desiredState)
-        {
-            if (resource == null)
-            {
-                throw new ArgumentNullException(nameof(resource));
-            }
-
-            MoveTo(resource.Id, desiredState);
-        }
-
-        public void MoveTo(Guid resourceId, ResourceState desiredState)
-        {
-            PlanApi.Logger.LogInformation("Moving Resource {resourceId} to {desiredState}...", resourceId, desiredState);
-
-            if (resourceId == Guid.Empty)
-            {
-                throw new ArgumentException("Resource ID cannot be empty.", nameof(resourceId));
-            }
-
-            var resource = Read(resourceId);
-            if (resource == null)
-            {
-                throw new MediaOpsException($"Unable to find resource with ID {resourceId}");
-            }
-
-            ActivityHelper.Track(nameof(ResourcesRepository), nameof(MoveTo), act =>
-            {
-                act?.AddTag("ResourceId", resourceId);
-                act?.AddTag("DesiredState", desiredState);
-
-                var actionMethods = new Dictionary<ResourceState, Action<Resource>>
-                {
-                    [ResourceState.Complete] = HandleMoveToCompleteAction,
-                    [ResourceState.Deprecated] = HandleMoveToDeprecatedAction,
-                };
-
-                if (!actionMethods.TryGetValue(desiredState, out var action))
-                {
-                    throw new MediaOpsException($"Move to state '{desiredState}' is not supported.");
-                }
-
-                action(resource);
-            });
-        }
-
-        private void HandleMoveToCompleteAction(Resource resource)
-        {
-            if (resource.State == ResourceState.Complete)
-            {
-                PlanApi.Logger.LogInformation("Resource {resource.Id} is already in Complete state. No action taken.", resource.Id);
-                return;
-            }
-
-            if (resource.State != ResourceState.Draft)
-            {
-                throw new MediaOpsException("A resource can only be completed from Draft State");
-            }
-
-            ActivityHelper.Track(nameof(DomResourceHandler), nameof(DomResourceHandler.TransitionToComplete), act =>
-            {
-                act?.AddTag("ResourceId", resource.Id);
-                act?.AddTag("ResourceName", resource.Name);
-
-                DomResourceHandler.TransitionToComplete(PlanApi, resource);
-            });
-        }
-
-        private void HandleMoveToDeprecatedAction(Resource resource)
-        {
-            if (resource.State == ResourceState.Deprecated)
-            {
-                PlanApi.Logger.LogInformation("Resource {resource.Id} is already in Deprecated state. No action taken.", resource.Id);
-                return;
-            }
-
-            if (resource.State != ResourceState.Complete)
-            {
-                throw new MediaOpsException("A resource can only be deprecated from Complete State");
-            }
-
-            ActivityHelper.Track(nameof(ResourcesRepository), nameof(HandleMoveToDeprecatedAction), act =>
-            {
-                act?.AddTag("ResourceId", resource.Id);
-                act?.AddTag("ResourceName", resource.Name);
-
-                if (!DomResourceHandler.TryDeprecate(PlanApi, [resource], out var result))
-                {
-                    throw new MediaOpsException(result.TraceDataPerItem[resource.Id]);
-                }
-            });
-        }
-
         public void Update(Resource apiObject)
         {
             if (apiObject == null)
@@ -669,49 +666,51 @@
             });
         }
 
-        public IEnumerable<Resource> Read(FilterElement<Resource> filter)
+        private void HandleMoveToCompleteAction(Resource resource)
         {
-            throw new NotImplementedException();
+            if (resource.State == ResourceState.Complete)
+            {
+                PlanApi.Logger.LogInformation("Resource {resource.Id} is already in Complete state. No action taken.", resource.Id);
+                return;
+            }
+
+            if (resource.State != ResourceState.Draft)
+            {
+                throw new MediaOpsException("A resource can only be completed from Draft State");
+            }
+
+            ActivityHelper.Track(nameof(DomResourceHandler), nameof(DomResourceHandler.TransitionToComplete), act =>
+            {
+                act?.AddTag("ResourceId", resource.Id);
+                act?.AddTag("ResourceName", resource.Name);
+
+                DomResourceHandler.TransitionToComplete(PlanApi, resource);
+            });
         }
 
-        public IEnumerable<Resource> Read(IQuery<Resource> query)
+        private void HandleMoveToDeprecatedAction(Resource resource)
         {
-            throw new NotImplementedException();
-        }
+            if (resource.State == ResourceState.Deprecated)
+            {
+                PlanApi.Logger.LogInformation("Resource {resource.Id} is already in Deprecated state. No action taken.", resource.Id);
+                return;
+            }
 
-        public long Count(FilterElement<Resource> filter)
-        {
-            throw new NotImplementedException();
-        }
+            if (resource.State != ResourceState.Complete)
+            {
+                throw new MediaOpsException("A resource can only be deprecated from Complete State");
+            }
 
-        public long Count(IQuery<Resource> query)
-        {
-            throw new NotImplementedException();
-        }
+            ActivityHelper.Track(nameof(ResourcesRepository), nameof(HandleMoveToDeprecatedAction), act =>
+            {
+                act?.AddTag("ResourceId", resource.Id);
+                act?.AddTag("ResourceName", resource.Name);
 
-        IEnumerable<IPagedResult<Resource>> IPageableRepository<Resource>.ReadPaged()
-        {
-            throw new NotImplementedException();
-        }
-
-        public IEnumerable<IPagedResult<Resource>> ReadPaged(FilterElement<Resource> filter)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IEnumerable<IPagedResult<Resource>> ReadPaged(IQuery<Resource> query)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IEnumerable<IPagedResult<Resource>> ReadPaged(FilterElement<Resource> filter, int pageSize)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IEnumerable<IPagedResult<Resource>> ReadPaged(IQuery<Resource> query, int pageSize)
-        {
-            throw new NotImplementedException();
+                if (!DomResourceHandler.TryDeprecate(PlanApi, [resource], out var result))
+                {
+                    throw new MediaOpsException(result.TraceDataPerItem[resource.Id]);
+                }
+            });
         }
     }
 }

@@ -24,65 +24,14 @@
                 .Count(DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourceproperty.Id));
         }
 
-        public ResourceProperty Read(Guid id)
+        public long Count(FilterElement<ResourceProperty> filter)
         {
-            PlanApi.Logger.LogInformation($"Reading Resource Property with ID: {id}...");
-
-            if (id == Guid.Empty)
-            {
-                throw new ArgumentException(nameof(id));
-            }
-
-            return ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Read), act =>
-            {
-                act?.AddTag("ResourcePropertyId", id);
-                var filter = DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourceproperty.Id)
-                        .AND(DomInstanceExposers.Id.Equal(id));
-                var domResourceProperty = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourceProperties(filter)
-                    .FirstOrDefault();
-
-                if (domResourceProperty == null)
-                {
-                    act?.AddTag("Hit", false);
-                    return null;
-                }
-
-                act?.AddTag("Hit", true);
-
-                return new ResourceProperty(domResourceProperty);
-            });
+            throw new NotImplementedException();
         }
 
-        public IDictionary<Guid, ResourceProperty> Read(IEnumerable<Guid> ids)
+        public long Count(IQuery<ResourceProperty> query)
         {
-            if (ids == null)
-            {
-                throw new ArgumentNullException(nameof(ids));
-            }
-
-            return ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Read), act =>
-            {
-                act?.AddTag("ResourcePropertyIds", String.Join(", ", ids));
-                act?.AddTag("ResourcePropertyIds Count", ids.Count());
-
-                var properties = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourceProperties(ids);
-                return properties.Select(x => new ResourceProperty(x)).ToDictionary(x => x.Id);
-            });
-        }
-
-        public IEnumerable<ResourceProperty> Read()
-        {
-            return ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Read), act =>
-            {
-                var filter = DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resource.Id);
-                return PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourceProperties(filter).Select(x => new ResourceProperty(x));
-            });
-        }
-
-        public IEnumerable<IEnumerable<ResourceProperty>> ReadPaged()
-        {
-            return PlanApi.DomHelpers.SlcResourceStudioHelper.GetAllResourcePropertiesPaged()
-                .Select(Page => Page.Select(x => new ResourceProperty(x)));
+            throw new NotImplementedException();
         }
 
         public Guid Create(ResourceProperty apiObject)
@@ -194,6 +143,101 @@
             });
         }
 
+        public ResourceProperty Read(Guid id)
+        {
+            PlanApi.Logger.LogInformation($"Reading Resource Property with ID: {id}...");
+
+            if (id == Guid.Empty)
+            {
+                throw new ArgumentException(nameof(id));
+            }
+
+            return ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Read), act =>
+            {
+                act?.AddTag("ResourcePropertyId", id);
+                var filter = DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourceproperty.Id)
+                        .AND(DomInstanceExposers.Id.Equal(id));
+                var domResourceProperty = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourceProperties(filter)
+                    .FirstOrDefault();
+
+                if (domResourceProperty == null)
+                {
+                    act?.AddTag("Hit", false);
+                    return null;
+                }
+
+                act?.AddTag("Hit", true);
+
+                return new ResourceProperty(domResourceProperty);
+            });
+        }
+
+        public IDictionary<Guid, ResourceProperty> Read(IEnumerable<Guid> ids)
+        {
+            if (ids == null)
+            {
+                throw new ArgumentNullException(nameof(ids));
+            }
+
+            return ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Read), act =>
+            {
+                act?.AddTag("ResourcePropertyIds", String.Join(", ", ids));
+                act?.AddTag("ResourcePropertyIds Count", ids.Count());
+
+                var properties = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourceProperties(ids);
+                return properties.Select(x => new ResourceProperty(x)).ToDictionary(x => x.Id);
+            });
+        }
+
+        public IEnumerable<ResourceProperty> Read()
+        {
+            return ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Read), act =>
+            {
+                var filter = DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resource.Id);
+                return PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourceProperties(filter).Select(x => new ResourceProperty(x));
+            });
+        }
+
+        public IEnumerable<ResourceProperty> Read(FilterElement<ResourceProperty> filter)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<ResourceProperty> Read(IQuery<ResourceProperty> query)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IEnumerable<ResourceProperty>> ReadPaged()
+        {
+            return PlanApi.DomHelpers.SlcResourceStudioHelper.GetAllResourcePropertiesPaged()
+                .Select(Page => Page.Select(x => new ResourceProperty(x)));
+        }
+        IEnumerable<IPagedResult<ResourceProperty>> IPageableRepository<ResourceProperty>.ReadPaged()
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<ResourceProperty>> ReadPaged(FilterElement<ResourceProperty> filter)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<ResourceProperty>> ReadPaged(IQuery<ResourceProperty> query)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<ResourceProperty>> ReadPaged(FilterElement<ResourceProperty> filter, int pageSize)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<ResourceProperty>> ReadPaged(IQuery<ResourceProperty> query, int pageSize)
+        {
+            throw new NotImplementedException();
+        }
+
         public void Update(ResourceProperty apiObject)
         {
             if (apiObject == null)
@@ -243,51 +287,6 @@
                 var resourceIds = result.SuccessfulIds;
                 act?.AddTag("ResourcePropertyIds", String.Join(", ", resourceIds));
             });
-        }
-
-        public IEnumerable<ResourceProperty> Read(FilterElement<ResourceProperty> filter)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IEnumerable<ResourceProperty> Read(IQuery<ResourceProperty> query)
-        {
-            throw new NotImplementedException();
-        }
-
-        public long Count(FilterElement<ResourceProperty> filter)
-        {
-            throw new NotImplementedException();
-        }
-
-        public long Count(IQuery<ResourceProperty> query)
-        {
-            throw new NotImplementedException();
-        }
-
-        IEnumerable<IPagedResult<ResourceProperty>> IPageableRepository<ResourceProperty>.ReadPaged()
-        {
-            throw new NotImplementedException();
-        }
-
-        public IEnumerable<IPagedResult<ResourceProperty>> ReadPaged(FilterElement<ResourceProperty> filter)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IEnumerable<IPagedResult<ResourceProperty>> ReadPaged(IQuery<ResourceProperty> query)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IEnumerable<IPagedResult<ResourceProperty>> ReadPaged(FilterElement<ResourceProperty> filter, int pageSize)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IEnumerable<IPagedResult<ResourceProperty>> ReadPaged(IQuery<ResourceProperty> query, int pageSize)
-        {
-            throw new NotImplementedException();
         }
     }
 }

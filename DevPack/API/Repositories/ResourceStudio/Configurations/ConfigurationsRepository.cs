@@ -21,111 +21,14 @@
             return PlanApi.CoreHelpers.ProfileProvider.CountAllConfigurations();
         }
 
-        public Configuration Read(Guid id)
+        public long Count(FilterElement<Configuration> filter)
         {
-            PlanApi.Logger.LogInformation($"Reading Configuration with ID: {id}...");
-
-            if (id == Guid.Empty)
-            {
-                throw new ArgumentException(nameof(id));
-            }
-
-            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Read), act =>
-            {
-                act?.AddTag("CapacityId", id);
-                var coreConfiguration = PlanApi.CoreHelpers.ProfileProvider.GetConfigurationById(id);
-
-                if (coreConfiguration == null)
-                {
-                    act?.AddTag("Hit", false);
-                    return null;
-                }
-
-                act?.AddTag("Hit", true);
-
-                return InstantiateConfigurations([coreConfiguration]).FirstOrDefault();
-            });
+            throw new NotImplementedException();
         }
 
-        public IDictionary<Guid, Configuration> Read(IEnumerable<Guid> ids)
+        public long Count(IQuery<Configuration> query)
         {
-            if (ids == null)
-            {
-                throw new ArgumentNullException(nameof(ids));
-            }
-
-            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Read), act =>
-            {
-                act?.AddTag("ConfigurationIds", String.Join(", ", ids));
-                act?.AddTag("ConfigurationIds Count", ids.Count());
-
-                var configurations = PlanApi.CoreHelpers.ProfileProvider.GetConfigurationsById(ids);
-
-                return InstantiateConfigurations(configurations).ToDictionary(x => x.Id);
-            });
-        }
-
-        public IEnumerable<Configuration> Read()
-        {
-            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Read), act =>
-            {
-                return InstantiateConfigurations(PlanApi.CoreHelpers.ProfileProvider.GetAllConfigurations());
-            });
-        }
-
-        public IEnumerable<IEnumerable<Configuration>> ReadPaged()
-        {
-            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(ReadPaged), act =>
-            {
-                return PlanApi.CoreHelpers.ProfileProvider.GetAllConfigurationsPaged().Select(page => InstantiateConfigurations(page));
-            });
-        }
-
-        internal static IEnumerable<Configuration> InstantiateConfigurations(IEnumerable<Net.Profiles.Parameter> instances)
-        {
-            if (instances == null)
-            {
-                throw new ArgumentNullException(nameof(instances));
-            }
-
-            if (!instances.Any())
-            {
-                return [];
-            }
-
-            return InstantiateConfigurationsIterator(instances);
-        }
-
-        private static IEnumerable<Configuration> InstantiateConfigurationsIterator(IEnumerable<Net.Profiles.Parameter> instances)
-        {
-            foreach (var instance in instances)
-            {
-                if (!instance.IsConfiguration())
-                {
-                    continue;
-                }
-
-                if (instance.IsText())
-                {
-                    yield return new TextConfiguration(instance);
-                }
-                else if (instance.IsNumber())
-                {
-                    yield return new NumberConfiguration(instance);
-                }
-                else if (instance.IsTextDiscreet())
-                {
-                    yield return new DiscreteTextConfiguration(instance);
-                }
-                else if (instance.IsNumberDiscreet())
-                {
-                    yield return new DiscreteNumberConfiguration(instance);
-                }
-                else
-                {
-                    // continue
-                }
-            }
+            throw new NotImplementedException();
         }
 
         public Guid Create(Configuration apiObject)
@@ -236,6 +139,101 @@
             });
         }
 
+        public Configuration Read(Guid id)
+        {
+            PlanApi.Logger.LogInformation($"Reading Configuration with ID: {id}...");
+
+            if (id == Guid.Empty)
+            {
+                throw new ArgumentException(nameof(id));
+            }
+
+            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Read), act =>
+            {
+                act?.AddTag("CapacityId", id);
+                var coreConfiguration = PlanApi.CoreHelpers.ProfileProvider.GetConfigurationById(id);
+
+                if (coreConfiguration == null)
+                {
+                    act?.AddTag("Hit", false);
+                    return null;
+                }
+
+                act?.AddTag("Hit", true);
+
+                return InstantiateConfigurations([coreConfiguration]).FirstOrDefault();
+            });
+        }
+
+        public IDictionary<Guid, Configuration> Read(IEnumerable<Guid> ids)
+        {
+            if (ids == null)
+            {
+                throw new ArgumentNullException(nameof(ids));
+            }
+
+            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Read), act =>
+            {
+                act?.AddTag("ConfigurationIds", String.Join(", ", ids));
+                act?.AddTag("ConfigurationIds Count", ids.Count());
+
+                var configurations = PlanApi.CoreHelpers.ProfileProvider.GetConfigurationsById(ids);
+
+                return InstantiateConfigurations(configurations).ToDictionary(x => x.Id);
+            });
+        }
+
+        public IEnumerable<Configuration> Read()
+        {
+            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Read), act =>
+            {
+                return InstantiateConfigurations(PlanApi.CoreHelpers.ProfileProvider.GetAllConfigurations());
+            });
+        }
+
+        public IEnumerable<Configuration> Read(FilterElement<Configuration> filter)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<Configuration> Read(IQuery<Configuration> query)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IEnumerable<Configuration>> ReadPaged()
+        {
+            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(ReadPaged), act =>
+            {
+                return PlanApi.CoreHelpers.ProfileProvider.GetAllConfigurationsPaged().Select(page => InstantiateConfigurations(page));
+            });
+        }
+
+        IEnumerable<IPagedResult<Configuration>> IPageableRepository<Configuration>.ReadPaged()
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<Configuration>> ReadPaged(FilterElement<Configuration> filter)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<Configuration>> ReadPaged(IQuery<Configuration> query)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<Configuration>> ReadPaged(FilterElement<Configuration> filter, int pageSize)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<Configuration>> ReadPaged(IQuery<Configuration> query, int pageSize)
+        {
+            throw new NotImplementedException();
+        }
+
         public void Update(Configuration apiObject)
         {
             if (apiObject == null)
@@ -286,49 +284,51 @@
             });
         }
 
-        public IEnumerable<Configuration> Read(FilterElement<Configuration> filter)
+        internal static IEnumerable<Configuration> InstantiateConfigurations(IEnumerable<Net.Profiles.Parameter> instances)
         {
-            throw new NotImplementedException();
+            if (instances == null)
+            {
+                throw new ArgumentNullException(nameof(instances));
+            }
+
+            if (!instances.Any())
+            {
+                return [];
+            }
+
+            return InstantiateConfigurationsIterator(instances);
         }
 
-        public IEnumerable<Configuration> Read(IQuery<Configuration> query)
+        private static IEnumerable<Configuration> InstantiateConfigurationsIterator(IEnumerable<Net.Profiles.Parameter> instances)
         {
-            throw new NotImplementedException();
-        }
+            foreach (var instance in instances)
+            {
+                if (!instance.IsConfiguration())
+                {
+                    continue;
+                }
 
-        public long Count(FilterElement<Configuration> filter)
-        {
-            throw new NotImplementedException();
-        }
-
-        public long Count(IQuery<Configuration> query)
-        {
-            throw new NotImplementedException();
-        }
-
-        IEnumerable<IPagedResult<Configuration>> IPageableRepository<Configuration>.ReadPaged()
-        {
-            throw new NotImplementedException();
-        }
-
-        public IEnumerable<IPagedResult<Configuration>> ReadPaged(FilterElement<Configuration> filter)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IEnumerable<IPagedResult<Configuration>> ReadPaged(IQuery<Configuration> query)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IEnumerable<IPagedResult<Configuration>> ReadPaged(FilterElement<Configuration> filter, int pageSize)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IEnumerable<IPagedResult<Configuration>> ReadPaged(IQuery<Configuration> query, int pageSize)
-        {
-            throw new NotImplementedException();
+                if (instance.IsText())
+                {
+                    yield return new TextConfiguration(instance);
+                }
+                else if (instance.IsNumber())
+                {
+                    yield return new NumberConfiguration(instance);
+                }
+                else if (instance.IsTextDiscreet())
+                {
+                    yield return new DiscreteTextConfiguration(instance);
+                }
+                else if (instance.IsNumberDiscreet())
+                {
+                    yield return new DiscreteNumberConfiguration(instance);
+                }
+                else
+                {
+                    // continue
+                }
+            }
         }
     }
 }

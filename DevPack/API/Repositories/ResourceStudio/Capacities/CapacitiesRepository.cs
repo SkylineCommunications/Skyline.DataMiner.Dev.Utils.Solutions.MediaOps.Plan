@@ -20,62 +20,14 @@
             return PlanApi.CoreHelpers.ProfileProvider.CountAllCapacities();
         }
 
-        public Capacity Read(Guid id)
+        public long Count(FilterElement<Capacity> filter)
         {
-            PlanApi.Logger.LogInformation($"Reading Capacity with ID: {id}...");
-
-            if (id == Guid.Empty)
-            {
-                throw new ArgumentException(nameof(id));
-            }
-
-            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Read), act =>
-            {
-                act?.AddTag("CapacityId", id);
-                var coreCapacity = PlanApi.CoreHelpers.ProfileProvider.GetCapacityById(id);
-
-                if (coreCapacity == null)
-                {
-                    act?.AddTag("Hit", false);
-                    return null;
-                }
-
-                act?.AddTag("Hit", true);
-                return Capacity.InstantiateCapacities([coreCapacity]).FirstOrDefault();
-            });
+            throw new NotImplementedException();
         }
 
-        public IDictionary<Guid, Capacity> Read(IEnumerable<Guid> ids)
+        public long Count(IQuery<Capacity> query)
         {
-            if (ids == null)
-            {
-                throw new ArgumentNullException(nameof(ids));
-            }
-
-            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Read), act =>
-            {
-                act?.AddTag("CapacityIds", String.Join(", ", ids));
-                act?.AddTag("CapacityIds Count", ids.Count());
-
-                var capacities = PlanApi.CoreHelpers.ProfileProvider.GetCapacitiesById(ids);
-                return Capacity.InstantiateCapacities(capacities).ToDictionary(x => x.Id);
-            });
-        }
-
-        public IEnumerable<Capacity> Read()
-        {
-            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Read), act =>
-            {
-                return Capacity.InstantiateCapacities(PlanApi.CoreHelpers.ProfileProvider.GetAllCapacities());
-            });
-        }
-
-        public IEnumerable<IEnumerable<Capacity>> ReadPaged()
-        {
-            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(ReadPaged), act =>
-            {
-                return PlanApi.CoreHelpers.ProfileProvider.GetAllCapacitiesPaged().Select(page => Capacity.InstantiateCapacities(page));
-            });
+            throw new NotImplementedException();
         }
 
         public Guid Create(Capacity apiObject)
@@ -186,6 +138,98 @@
             });
         }
 
+        public Capacity Read(Guid id)
+        {
+            PlanApi.Logger.LogInformation($"Reading Capacity with ID: {id}...");
+
+            if (id == Guid.Empty)
+            {
+                throw new ArgumentException(nameof(id));
+            }
+
+            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Read), act =>
+            {
+                act?.AddTag("CapacityId", id);
+                var coreCapacity = PlanApi.CoreHelpers.ProfileProvider.GetCapacityById(id);
+
+                if (coreCapacity == null)
+                {
+                    act?.AddTag("Hit", false);
+                    return null;
+                }
+
+                act?.AddTag("Hit", true);
+                return Capacity.InstantiateCapacities([coreCapacity]).FirstOrDefault();
+            });
+        }
+
+        public IDictionary<Guid, Capacity> Read(IEnumerable<Guid> ids)
+        {
+            if (ids == null)
+            {
+                throw new ArgumentNullException(nameof(ids));
+            }
+
+            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Read), act =>
+            {
+                act?.AddTag("CapacityIds", String.Join(", ", ids));
+                act?.AddTag("CapacityIds Count", ids.Count());
+
+                var capacities = PlanApi.CoreHelpers.ProfileProvider.GetCapacitiesById(ids);
+                return Capacity.InstantiateCapacities(capacities).ToDictionary(x => x.Id);
+            });
+        }
+
+        public IEnumerable<Capacity> Read()
+        {
+            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Read), act =>
+            {
+                return Capacity.InstantiateCapacities(PlanApi.CoreHelpers.ProfileProvider.GetAllCapacities());
+            });
+        }
+
+        public IEnumerable<Capacity> Read(FilterElement<Capacity> filter)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<Capacity> Read(IQuery<Capacity> query)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IEnumerable<Capacity>> ReadPaged()
+        {
+            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(ReadPaged), act =>
+            {
+                return PlanApi.CoreHelpers.ProfileProvider.GetAllCapacitiesPaged().Select(page => Capacity.InstantiateCapacities(page));
+            });
+        }
+        IEnumerable<IPagedResult<Capacity>> IPageableRepository<Capacity>.ReadPaged()
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<Capacity>> ReadPaged(FilterElement<Capacity> filter)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<Capacity>> ReadPaged(IQuery<Capacity> query)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<Capacity>> ReadPaged(FilterElement<Capacity> filter, int pageSize)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<Capacity>> ReadPaged(IQuery<Capacity> query, int pageSize)
+        {
+            throw new NotImplementedException();
+        }
+
         public void Update(Capacity apiObject)
         {
             if (apiObject == null)
@@ -234,51 +278,6 @@
                 var capacityIds = apiObjects.Select(x => x.Id);
                 act?.AddTag("CapacityIds", String.Join(", ", capacityIds));
             });
-        }
-
-        public IEnumerable<Capacity> Read(FilterElement<Capacity> filter)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IEnumerable<Capacity> Read(IQuery<Capacity> query)
-        {
-            throw new NotImplementedException();
-        }
-
-        public long Count(FilterElement<Capacity> filter)
-        {
-            throw new NotImplementedException();
-        }
-
-        public long Count(IQuery<Capacity> query)
-        {
-            throw new NotImplementedException();
-        }
-
-        IEnumerable<IPagedResult<Capacity>> IPageableRepository<Capacity>.ReadPaged()
-        {
-            throw new NotImplementedException();
-        }
-
-        public IEnumerable<IPagedResult<Capacity>> ReadPaged(FilterElement<Capacity> filter)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IEnumerable<IPagedResult<Capacity>> ReadPaged(IQuery<Capacity> query)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IEnumerable<IPagedResult<Capacity>> ReadPaged(FilterElement<Capacity> filter, int pageSize)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IEnumerable<IPagedResult<Capacity>> ReadPaged(IQuery<Capacity> query, int pageSize)
-        {
-            throw new NotImplementedException();
         }
     }
 }
