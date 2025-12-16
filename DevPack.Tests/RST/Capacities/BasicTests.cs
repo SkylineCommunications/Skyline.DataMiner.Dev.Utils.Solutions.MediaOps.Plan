@@ -200,7 +200,9 @@
                 var capacityConfigurationError = ex.TraceData.ErrorData.OfType<CapacityConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(capacityConfigurationError);
 
-                Assert.AreEqual(CapacityConfigurationError.Reason.IdInUse, capacityConfigurationError.ErrorReason);
+                var capacityConfigurationIdInUseError = capacityConfigurationError as CapacityConfigurationIdInUseError;
+                Assert.IsNotNull(capacityConfigurationIdInUseError);
+                Assert.AreEqual(capacityId, capacityConfigurationIdInUseError.Id);
                 Assert.AreEqual("ID is already in use.", capacityConfigurationError.ErrorMessage);
 
                 return;
@@ -247,7 +249,9 @@
 
                 foreach (var error in capacityConfigurationErrors)
                 {
-                    Assert.AreEqual(CapacityConfigurationError.Reason.DuplicateId, error.ErrorReason);
+                    var capacityConfigurationDuplicateIdError = error as CapacityConfigurationDuplicateIdError;
+                    Assert.IsNotNull(capacityConfigurationDuplicateIdError);
+                    Assert.AreEqual(capacityId, capacityConfigurationDuplicateIdError.Id);
                     Assert.IsTrue(errorMessages.Contains(error.ErrorMessage));
 
                     errorMessages.Remove(error.ErrorMessage);
@@ -287,7 +291,10 @@
                 var capacityConfigurationError = ex.TraceData.ErrorData.OfType<CapacityConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(capacityConfigurationError);
 
-                Assert.AreEqual(CapacityConfigurationError.Reason.NameExists, capacityConfigurationError.ErrorReason);
+                var capacityConfigurationNameExistsError = capacityConfigurationError as CapacityConfigurationNameExistsError;
+                Assert.IsNotNull(capacityConfigurationNameExistsError);
+                Assert.AreEqual(capacity2.Id, capacityConfigurationNameExistsError.Id);
+                Assert.AreEqual(capacity2.Name, capacityConfigurationNameExistsError.Name);
                 Assert.AreEqual("Name is already in use.", capacityConfigurationError.ErrorMessage);
 
                 return;
@@ -325,7 +332,8 @@
                     var capacityConfigurationError = traceData.ErrorData.OfType<CapacityConfigurationError>().SingleOrDefault();
                     Assert.IsNotNull(capacityConfigurationError);
 
-                    Assert.AreEqual(CapacityConfigurationError.Reason.DuplicateName, capacityConfigurationError.ErrorReason);
+                    var capacityConfigurationDuplicateNameError = capacityConfigurationError as CapacityConfigurationDuplicateNameError;
+                    Assert.IsNotNull(capacityConfigurationDuplicateNameError);
                     Assert.AreEqual($"Capacity '{capacity1.Name}' has a duplicate name.", capacityConfigurationError.ErrorMessage);
                 }
 
@@ -368,7 +376,10 @@
                 var capacityConfigurationError = ex.TraceData.ErrorData.OfType<CapacityConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(capacityConfigurationError);
 
-                Assert.AreEqual(CapacityConfigurationError.Reason.NameExists, capacityConfigurationError.ErrorReason);
+                var capacityConfigurationNameExistsError = capacityConfigurationError as CapacityConfigurationNameExistsError;
+                Assert.IsNotNull(capacityConfigurationNameExistsError);
+                Assert.AreEqual(toUpdate.Id, capacityConfigurationNameExistsError.Id);
+                Assert.AreEqual(toUpdate.Name, capacityConfigurationNameExistsError.Name);
                 Assert.AreEqual("Name is already in use.", capacityConfigurationError.ErrorMessage);
 
                 return;
@@ -486,19 +497,30 @@
                 var capacityConfigurationErrors = ex.TraceData.ErrorData.OfType<CapacityConfigurationError>();
                 Assert.AreEqual(4, capacityConfigurationErrors.Count());
 
-                var expectedErrors = new List<ErrorReasonMessageMapping>()
-                {
-                    new ErrorReasonMessageMapping { Reason = CapacityConfigurationError.Reason.InvalidRangeMax, Message = "RangeMax must be greater than RangeMin." },
-                    new ErrorReasonMessageMapping { Reason = CapacityConfigurationError.Reason.InvalidRangeMin, Message = "RangeMin has more decimal places than allowed by Decimals (2)."},
-                    new ErrorReasonMessageMapping { Reason = CapacityConfigurationError.Reason.InvalidRangeMax, Message = "RangeMax has more decimal places than allowed by Decimals (2)."},
-                    new ErrorReasonMessageMapping { Reason = CapacityConfigurationError.Reason.InvalidStepSize, Message = "StepSize has more decimal places than allowed by Decimals (2)."},
-                };
+                var capacityConfigurationInvalidRangeError = capacityConfigurationErrors.OfType<CapacityConfigurationInvalidRangeError>().SingleOrDefault();
+                Assert.IsNotNull(capacityConfigurationInvalidRangeError);
+                Assert.AreEqual(capacityId, capacityConfigurationInvalidRangeError.Id);
+                Assert.AreEqual("RangeMax must be greater than RangeMin.", capacityConfigurationInvalidRangeError.ErrorMessage);
+                Assert.AreEqual(10.123m, capacityConfigurationInvalidRangeError.RangeMin);
+                Assert.AreEqual(1.123m, capacityConfigurationInvalidRangeError.RangeMax);
 
-                foreach (var error in capacityConfigurationErrors)
-                {
-                    var expectedError = expectedErrors.SingleOrDefault(e => e.Reason == error.ErrorReason && e.Message == error.ErrorMessage);
-                    Assert.IsNotNull(expectedError);
-                }
+                var capacityConfigurationInvalidRangeMinError = capacityConfigurationErrors.OfType<CapacityConfigurationInvalidRangeMinError>().SingleOrDefault();
+                Assert.IsNotNull(capacityConfigurationInvalidRangeMinError);
+                Assert.AreEqual(capacityId, capacityConfigurationInvalidRangeMinError.Id);
+                Assert.AreEqual("RangeMin has more decimal places than allowed by Decimals (2).", capacityConfigurationInvalidRangeMinError.ErrorMessage);
+                Assert.AreEqual(10.123m, capacityConfigurationInvalidRangeMinError.RangeMin);
+
+                var capacityConfigurationInvalidRangeMaxError = capacityConfigurationErrors.OfType<CapacityConfigurationInvalidRangeMaxError>().SingleOrDefault();
+                Assert.IsNotNull(capacityConfigurationInvalidRangeMaxError);
+                Assert.AreEqual(capacityId, capacityConfigurationInvalidRangeMaxError.Id);
+                Assert.AreEqual("RangeMax has more decimal places than allowed by Decimals (2).", capacityConfigurationInvalidRangeMaxError.ErrorMessage);
+                Assert.AreEqual(1.123m, capacityConfigurationInvalidRangeMaxError.RangeMax);
+
+                var capacityConfigurationInvalidStepSizeError = capacityConfigurationErrors.OfType<CapacityConfigurationInvalidStepSizeError>().SingleOrDefault();
+                Assert.IsNotNull(capacityConfigurationInvalidStepSizeError);
+                Assert.AreEqual(capacityId, capacityConfigurationInvalidStepSizeError.Id);
+                Assert.AreEqual("StepSize has more decimal places than allowed by Decimals (2).", capacityConfigurationInvalidStepSizeError.ErrorMessage);
+                Assert.AreEqual(5.123m, capacityConfigurationInvalidStepSizeError.StepSize);
 
                 return;
             }
@@ -534,8 +556,11 @@
                 var capacityConfigurationError = ex.TraceData.ErrorData.OfType<CapacityConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(capacityConfigurationError);
 
-                Assert.AreEqual(CapacityConfigurationError.Reason.InvalidDecimals, capacityConfigurationError.ErrorReason);
+                var capacityConfigurationInvalidDecimalsError = capacityConfigurationError as CapacityConfigurationInvalidDecimalsError;
+                Assert.IsNotNull(capacityConfigurationInvalidDecimalsError);
+                Assert.AreEqual(capacityId, capacityConfigurationInvalidDecimalsError.Id);
                 Assert.AreEqual("Decimals must be between 0 and 15.", capacityConfigurationError.ErrorMessage);
+                Assert.AreEqual(-3, capacityConfigurationInvalidDecimalsError.Decimals);
 
                 return;
             }
@@ -571,20 +596,16 @@
                 var capacityConfigurationError = ex.TraceData.ErrorData.OfType<CapacityConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(capacityConfigurationError);
 
-                Assert.AreEqual(CapacityConfigurationError.Reason.InvalidStepSize, capacityConfigurationError.ErrorReason);
+                var capacityConfigurationInvalidStepSizeError = capacityConfigurationError as CapacityConfigurationInvalidStepSizeError;
+                Assert.IsNotNull(capacityConfigurationInvalidStepSizeError);
+                Assert.AreEqual(capacityId, capacityConfigurationInvalidStepSizeError.Id);
                 Assert.AreEqual("StepSize must be greater than 0.", capacityConfigurationError.ErrorMessage);
+                Assert.AreEqual(-5m, capacityConfigurationInvalidStepSizeError.StepSize);
 
                 return;
             }
 
             Assert.Fail("Expected exception was not thrown.");
-        }
-
-        private sealed class ErrorReasonMessageMapping
-        {
-            public CapacityConfigurationError.Reason Reason { get; set; }
-
-            public string Message { get; set; } = String.Empty;
         }
     }
 }

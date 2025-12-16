@@ -135,7 +135,8 @@
                 var configurationConfigurationError = ex.TraceData.ErrorData.OfType<ConfigurationConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(configurationConfigurationError);
 
-                Assert.AreEqual(ConfigurationConfigurationError.Reason.IdInUse, configurationConfigurationError.ErrorReason);
+                var configurationConfigurationIdInUseError = configurationConfigurationError as ConfigurationConfigurationIdInUseError;
+                Assert.IsNotNull(configurationConfigurationIdInUseError);
                 Assert.AreEqual("ID is already in use.", configurationConfigurationError.ErrorMessage);
 
                 return;
@@ -182,7 +183,8 @@
 
                 foreach (var error in configurationConfigurationErrors)
                 {
-                    Assert.AreEqual(ConfigurationConfigurationError.Reason.DuplicateId, error.ErrorReason);
+                    var configurationConfigurationDuplicateIdError = error as ConfigurationConfigurationDuplicateIdError;
+                    Assert.IsNotNull(configurationConfigurationDuplicateIdError);
                     Assert.IsTrue(errorMessages.Contains(error.ErrorMessage));
 
                     errorMessages.Remove(error.ErrorMessage);
@@ -222,7 +224,8 @@
                 var configurationConfigurationError = ex.TraceData.ErrorData.OfType<ConfigurationConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(configurationConfigurationError);
 
-                Assert.AreEqual(ConfigurationConfigurationError.Reason.NameExists, configurationConfigurationError.ErrorReason);
+                var configurationConfigurationNameExistsError = configurationConfigurationError as ConfigurationConfigurationNameExistsError;
+                Assert.IsNotNull(configurationConfigurationNameExistsError);
                 Assert.AreEqual("Name is already in use.", configurationConfigurationError.ErrorMessage);
 
                 return;
@@ -260,7 +263,8 @@
                     var configurationConfigurationError = traceData.ErrorData.OfType<ConfigurationConfigurationError>().SingleOrDefault();
                     Assert.IsNotNull(configurationConfigurationError);
 
-                    Assert.AreEqual(ConfigurationConfigurationError.Reason.DuplicateName, configurationConfigurationError.ErrorReason);
+                    var configurationConfigurationDuplicateNameError = configurationConfigurationError as ConfigurationConfigurationDuplicateNameError;
+                    Assert.IsNotNull(configurationConfigurationDuplicateNameError);
                     Assert.AreEqual($"Configuration '{configuration1.Name}' has a duplicate name.", configurationConfigurationError.ErrorMessage);
                 }
 
@@ -303,7 +307,8 @@
                 var configurationConfigurationError = ex.TraceData.ErrorData.OfType<ConfigurationConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(configurationConfigurationError);
 
-                Assert.AreEqual(ConfigurationConfigurationError.Reason.NameExists, configurationConfigurationError.ErrorReason);
+                var configurationConfigurationNameExistsError = configurationConfigurationError as ConfigurationConfigurationNameExistsError;
+                Assert.IsNotNull(configurationConfigurationNameExistsError);
                 Assert.AreEqual("Name is already in use.", configurationConfigurationError.ErrorMessage);
 
                 return;
@@ -379,7 +384,8 @@
                 var configurationConfigurationError = ex.TraceData.ErrorData.OfType<ConfigurationConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(configurationConfigurationError);
 
-                Assert.AreEqual(ConfigurationConfigurationError.Reason.InvalidDefaultValue, configurationConfigurationError.ErrorReason);
+                var configurationConfigurationInvalidDefaultValueError = configurationConfigurationError as ConfigurationConfigurationInvalidDefaultValueError;
+                Assert.IsNotNull(configurationConfigurationInvalidDefaultValueError);
                 Assert.AreEqual("The default value of the text configuration exceeds 150 characters", configurationConfigurationError.ErrorMessage);
 
                 return;

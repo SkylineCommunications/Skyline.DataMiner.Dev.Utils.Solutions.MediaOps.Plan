@@ -407,7 +407,7 @@
                 var resourceConfigurationError = ex.TraceData.ErrorData.OfType<ResourceConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(resourceConfigurationError);
 
-                var invalidResourceCapacitySettingsError = resourceConfigurationError as InvalidResourceCapacitySettingsError;
+                var invalidResourceCapacitySettingsError = resourceConfigurationError as ResourceConfigurationInvalidCapacitySettingsError;
                 Assert.IsNotNull(invalidResourceCapacitySettingsError);
                 Assert.AreEqual(errorMessage, invalidResourceCapacitySettingsError.ErrorMessage);
                 Assert.AreEqual(notExistingCapacityId, invalidResourceCapacitySettingsError.CapacityId);
@@ -449,7 +449,7 @@
                 var resourceConfigurationError = ex.TraceData.ErrorData.OfType<ResourceConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(resourceConfigurationError);
 
-                var invalidResourceCapacitySettingsError = resourceConfigurationError as InvalidResourceCapacitySettingsError;
+                var invalidResourceCapacitySettingsError = resourceConfigurationError as ResourceConfigurationInvalidCapacitySettingsError;
                 Assert.IsNotNull(invalidResourceCapacitySettingsError);
                 Assert.AreEqual(errorMessage, invalidResourceCapacitySettingsError.ErrorMessage);
                 Assert.AreEqual(notExistingCapacityId, invalidResourceCapacitySettingsError.CapacityId);
@@ -508,7 +508,7 @@
                 var resourceConfigurationErrors = ex.TraceData.ErrorData.OfType<ResourceConfigurationError>();
                 Assert.AreEqual(2, resourceConfigurationErrors.Count());
 
-                var invalidResourceCapacitySettingsErrors = resourceConfigurationErrors.OfType<InvalidResourceCapacitySettingsError>();
+                var invalidResourceCapacitySettingsErrors = resourceConfigurationErrors.OfType<ResourceConfigurationInvalidCapacitySettingsError>();
                 Assert.AreEqual(2, invalidResourceCapacitySettingsErrors.Count());
 
                 var error1 = invalidResourceCapacitySettingsErrors.SingleOrDefault(e => e.CapacityId == capacityId1);
@@ -563,7 +563,7 @@
                 var resourceConfigurationError = ex.TraceData.ErrorData.OfType<ResourceConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(resourceConfigurationError);
 
-                var invalidResourceCapacitySettingsError = resourceConfigurationError as InvalidResourceCapacitySettingsError;
+                var invalidResourceCapacitySettingsError = resourceConfigurationError as ResourceConfigurationInvalidCapacitySettingsError;
                 Assert.IsNotNull(invalidResourceCapacitySettingsError);
                 Assert.AreEqual(errorMessage, invalidResourceCapacitySettingsError.ErrorMessage);
                 Assert.AreEqual(capacityId, invalidResourceCapacitySettingsError.CapacityId);
@@ -622,7 +622,7 @@
                 var resourceConfigurationErrors = ex.TraceData.ErrorData.OfType<ResourceConfigurationError>();
                 Assert.AreEqual(2, resourceConfigurationErrors.Count());
 
-                var invalidResourceCapacitySettingsErrors = resourceConfigurationErrors.OfType<InvalidResourceCapacitySettingsError>();
+                var invalidResourceCapacitySettingsErrors = resourceConfigurationErrors.OfType<ResourceConfigurationInvalidCapacitySettingsError>();
                 Assert.AreEqual(2, invalidResourceCapacitySettingsErrors.Count());
 
                 var error1 = invalidResourceCapacitySettingsErrors.SingleOrDefault(e => e.CapacityId == capacityId1);
@@ -677,7 +677,7 @@
                 var resourceConfigurationError = ex.TraceData.ErrorData.OfType<ResourceConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(resourceConfigurationError);
 
-                var invalidResourceCapacitySettingsError = resourceConfigurationError as InvalidResourceCapacitySettingsError;
+                var invalidResourceCapacitySettingsError = resourceConfigurationError as ResourceConfigurationInvalidCapacitySettingsError;
                 Assert.IsNotNull(invalidResourceCapacitySettingsError);
                 Assert.AreEqual(errorMessage, invalidResourceCapacitySettingsError.ErrorMessage);
                 Assert.AreEqual(capacityId, invalidResourceCapacitySettingsError.CapacityId);

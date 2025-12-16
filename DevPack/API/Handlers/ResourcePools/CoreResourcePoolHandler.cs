@@ -247,10 +247,10 @@
 
             foreach (var pool in poolsRequiringValidation.Where(x => !InputValidator.ValidateEmptyText(x.ResourcePoolInfo.Name)).ToList())
             {
-                var error = new ResourcePoolConfigurationError
+                var error = new ResourcePoolConfigurationInvalidNameError
                 {
-                    ErrorReason = ResourcePoolConfigurationError.Reason.InvalidName,
                     ErrorMessage = "Name cannot be empty.",
+                    Id = pool.ID.Id,
                 };
                 AddError(pool.ID.Id, error);
 
@@ -259,10 +259,11 @@
 
             foreach (var pool in poolsRequiringValidation.Where(x => !InputValidator.ValidateTextLength(x.ResourcePoolInfo.Name)).ToList())
             {
-                var error = new ResourcePoolConfigurationError
+                var error = new ResourcePoolConfigurationInvalidNameError
                 {
-                    ErrorReason = ResourcePoolConfigurationError.Reason.InvalidName,
                     ErrorMessage = "Name exceeds maximum length of 150 characters.",
+                    Id = pool.ID.Id,
+                    Name = pool.ResourcePoolInfo.Name,
                 };
                 AddError(pool.ID.Id, error);
 
@@ -276,10 +277,11 @@
                 .ToList();
             foreach (var pool in poolsWithDuplicateNames)
             {
-                var error = new ResourcePoolConfigurationError
+                var error = new ResourcePoolConfigurationDuplicateNameError
                 {
-                    ErrorReason = ResourcePoolConfigurationError.Reason.DuplicateName,
                     ErrorMessage = $"Resource pool '{pool.ResourcePoolInfo.Name}' has a duplicate name.",
+                    Id = pool.ID.Id,
+                    Name = pool.ResourcePoolInfo.Name,
                 };
                 AddError(pool.ID.Id, error);
 
@@ -303,10 +305,11 @@
 
                 planApi.Logger.LogInformation($"Name '{pool.ResourcePoolInfo.Name}' is already in use by CORE resource pool(s) with ID(s)", existingPools.Select(x => x.ID).ToArray());
 
-                var error = new ResourcePoolConfigurationError
+                var error = new ResourcePoolConfigurationNameExistsError
                 {
-                    ErrorReason = ResourcePoolConfigurationError.Reason.NameExists,
                     ErrorMessage = "Name is already in use.",
+                    Id = pool.ID.Id,
+                    Name = pool.ResourcePoolInfo.Name,
                 };
                 AddError(pool.ID.Id, error);
             }

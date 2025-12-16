@@ -123,7 +123,7 @@
                 var resourceConfigurationError = ex.TraceData.ErrorData.OfType<ResourceConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(resourceConfigurationError);
 
-                var invalidResourcePropertyConfigurationError = resourceConfigurationError as InvalidResourcePropertySettingsError;
+                var invalidResourcePropertyConfigurationError = resourceConfigurationError as ResourceConfigurationInvalidPropertySettingsError;
                 Assert.IsNotNull(invalidResourcePropertyConfigurationError);
                 Assert.AreEqual(errorMessage, invalidResourcePropertyConfigurationError.ErrorMessage);
 
@@ -165,7 +165,7 @@
                 var resourceConfigurationError = ex.TraceData.ErrorData.OfType<ResourceConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(resourceConfigurationError);
 
-                var invalidResourcePropertyConfigurationError = resourceConfigurationError as InvalidResourcePropertySettingsError;
+                var invalidResourcePropertyConfigurationError = resourceConfigurationError as ResourceConfigurationInvalidPropertySettingsError;
                 Assert.IsNotNull(invalidResourcePropertyConfigurationError);
                 Assert.AreEqual(errorMessage, invalidResourcePropertyConfigurationError.ErrorMessage);
 

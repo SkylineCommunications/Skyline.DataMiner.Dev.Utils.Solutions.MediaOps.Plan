@@ -3,9 +3,9 @@
     using System;
 
     /// <summary>
-    /// Represents an error that occurs when resource capability settings are invalid.
+    /// Represents an error that occurs when resource pool capability settings are invalid.
     /// </summary>
-    public class InvalidResourceCapabilitySettingsError : ResourceConfigurationError
+    public class ResourcePoolConfigurationInvalidCapabilitySettingsError : ResourcePoolConfigurationError
     {
         /// <summary>
         /// Gets the unique identifier for the capability.

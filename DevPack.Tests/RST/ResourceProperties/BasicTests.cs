@@ -115,7 +115,9 @@
                 var propertyConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePropertyConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(propertyConfigurationError);
 
-                Assert.ReferenceEquals(ResourcePropertyConfigurationError.Reason.IdInUse, propertyConfigurationError.ErrorReason);
+                var propertyConfigurationIdInUseError = propertyConfigurationError as ResourcePropertyConfigurationIdInUseError;
+                Assert.IsNotNull(propertyConfigurationIdInUseError);
+                Assert.AreEqual(propertyId, propertyConfigurationIdInUseError.Id);
                 Assert.AreEqual("ID is already in use.", propertyConfigurationError.ErrorMessage);
 
                 return;
@@ -161,7 +163,9 @@
 
                 foreach (var error in propertyConfigurationErrors)
                 {
-                    Assert.AreEqual(ResourcePropertyConfigurationError.Reason.DuplicateId, error.ErrorReason);
+                    var propertyConfigurationDuplicateIdError = error as ResourcePropertyConfigurationDuplicateIdError;
+                    Assert.IsNotNull(propertyConfigurationDuplicateIdError);
+                    Assert.AreEqual(propertyId, propertyConfigurationDuplicateIdError.Id);
                     Assert.IsTrue(errorMessages.Contains(error.ErrorMessage));
 
                     errorMessages.Remove(error.ErrorMessage);
@@ -200,7 +204,10 @@
                 var propertyConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePropertyConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(propertyConfigurationError);
 
-                Assert.AreEqual(ResourcePropertyConfigurationError.Reason.NameExists, propertyConfigurationError.ErrorReason);
+                var propertyConfigurationNameExistsError = propertyConfigurationError as ResourcePropertyConfigurationNameExistsError;
+                Assert.IsNotNull(propertyConfigurationNameExistsError);
+                Assert.AreEqual(property2.Id, propertyConfigurationNameExistsError.Id);
+                Assert.AreEqual(property2.Name, propertyConfigurationNameExistsError.Name);
                 Assert.AreEqual("Name is already in use.", propertyConfigurationError.ErrorMessage);
 
                 return;
@@ -237,7 +244,9 @@
                     var propertyConfigurationError = traceData.ErrorData.OfType<ResourcePropertyConfigurationError>().SingleOrDefault();
                     Assert.IsNotNull(propertyConfigurationError);
 
-                    Assert.AreEqual(ResourcePropertyConfigurationError.Reason.DuplicateName, propertyConfigurationError.ErrorReason);
+                    var propertyConfigurationDuplicateNameError = propertyConfigurationError as ResourcePropertyConfigurationDuplicateNameError;
+                    Assert.IsNotNull(propertyConfigurationDuplicateNameError);
+                    Assert.AreEqual(property2.Name, propertyConfigurationDuplicateNameError.Name);
                     Assert.AreEqual($"Resource property '{property1.Name}' has a duplicate name.", propertyConfigurationError.ErrorMessage);
                 }
 
@@ -279,7 +288,10 @@
                 var propertyConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePropertyConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(propertyConfigurationError);
 
-                Assert.AreEqual(ResourcePropertyConfigurationError.Reason.NameExists, propertyConfigurationError.ErrorReason);
+                var propertyConfigurationNameExistsError = propertyConfigurationError as ResourcePropertyConfigurationNameExistsError;
+                Assert.IsNotNull(propertyConfigurationNameExistsError);
+                Assert.AreEqual(toUpdate.Id, propertyConfigurationNameExistsError.Id);
+                Assert.AreEqual(toUpdate.Name, propertyConfigurationNameExistsError.Name);
                 Assert.AreEqual("Name is already in use.", propertyConfigurationError.ErrorMessage);
 
                 return;
