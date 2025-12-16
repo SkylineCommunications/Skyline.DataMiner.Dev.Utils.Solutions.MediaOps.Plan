@@ -81,21 +81,6 @@
             });
         }
 
-        internal override long Count(FilterElement<Net.Profiles.Parameter> filter)
-        {
-            return PlanApi.CoreHelpers.ProfileProvider.CountConfigurations(filter);
-        }
-
-        internal override IEnumerable<Configuration> Read(IQuery<Net.Profiles.Parameter> query)
-        {
-            if (query == null)
-            {
-                throw new ArgumentNullException(nameof(query));
-            }
-
-            return InstantiateConfigurations(PlanApi.CoreHelpers.ProfileProvider.GetConfigurations(query));
-        }
-
         internal static IEnumerable<Configuration> InstantiateConfigurations(IEnumerable<Net.Profiles.Parameter> instances)
         {
             if (instances == null)

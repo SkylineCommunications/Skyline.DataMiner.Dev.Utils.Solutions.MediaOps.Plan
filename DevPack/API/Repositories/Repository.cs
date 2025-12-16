@@ -22,9 +22,5 @@
         public MediaOpsPlanApi PlanApi => planApi;
 
         public MediaOpsTraceData TraceData => traceData;
-
-        internal abstract IEnumerable<T> Read(IQuery<TFilterElement> query);
-
-        internal abstract long Count(FilterElement<TFilterElement> filter);
     }
 }
