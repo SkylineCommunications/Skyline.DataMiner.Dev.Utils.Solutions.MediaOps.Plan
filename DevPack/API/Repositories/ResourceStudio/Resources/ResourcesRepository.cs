@@ -15,12 +15,26 @@
 
     using SLDataGateway.API.Types.Querying;
 
+    /// <summary>
+    /// Provides repository operations for managing <see cref="Resource"/> objects.
+    /// </summary>
     internal class ResourcesRepository : DomRepository<Resource>, IResourcesRepository
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ResourcesRepository"/> class.
+        /// </summary>
+        /// <param name="planApi">The MediaOps Plan API instance.</param>
         public ResourcesRepository(MediaOpsPlanApi planApi) : base(planApi)
         {
         }
 
+        /// <summary>
+        /// Converts the specified <see cref="Resource"/> to an <see cref="ElementResource"/>.
+        /// </summary>
+        /// <param name="resource">The resource to convert.</param>
+        /// <param name="configuration">The configuration for the element link.</param>
+        /// <returns>The converted <see cref="ElementResource"/>.</returns>
+        /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
         public ElementResource ConvertToElementResource(Resource resource, ResourceElementLinkConfiguration configuration)
         {
             if (resource.State != ResourceState.Draft)
@@ -37,12 +51,27 @@
             return (ElementResource)Read(resource.Id);
         }
 
+        /// <summary>
+        /// Converts the resource with the specified identifier to an <see cref="ElementResource"/>.
+        /// </summary>
+        /// <param name="resourceId">The unique identifier of the resource to convert.</param>
+        /// <param name="configuration">The configuration for the element link.</param>
+        /// <returns>The converted <see cref="ElementResource"/>.</returns>
+        /// <exception cref="ResourceNotFoundException">Thrown when the resource with the specified identifier is not found.</exception>
+        /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
         public ElementResource ConvertToElementResource(Guid resourceId, ResourceElementLinkConfiguration configuration)
         {
             var resource = Read(resourceId) ?? throw new ResourceNotFoundException(resourceId);
             return ConvertToElementResource(resource, configuration);
         }
 
+        /// <summary>
+        /// Converts the specified <see cref="Resource"/> to a <see cref="ServiceResource"/>.
+        /// </summary>
+        /// <param name="resource">The resource to convert.</param>
+        /// <param name="configuration">The configuration for the service link.</param>
+        /// <returns>The converted <see cref="ServiceResource"/>.</returns>
+        /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
         public ServiceResource ConvertToServiceResource(Resource resource, ResourceServiceLinkConfiguration configuration)
         {
             if (resource.State != ResourceState.Draft)
@@ -59,12 +88,26 @@
             return (ServiceResource)Read(resource.Id);
         }
 
+        /// <summary>
+        /// Converts the resource with the specified identifier to a <see cref="ServiceResource"/>.
+        /// </summary>
+        /// <param name="resourceId">The unique identifier of the resource to convert.</param>
+        /// <param name="configuration">The configuration for the service link.</param>
+        /// <returns>The converted <see cref="ServiceResource"/>.</returns>
+        /// <exception cref="ResourceNotFoundException">Thrown when the resource with the specified identifier is not found.</exception>
+        /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
         public ServiceResource ConvertToServiceResource(Guid resourceId, ResourceServiceLinkConfiguration configuration)
         {
             var resource = Read(resourceId) ?? throw new ResourceNotFoundException(resourceId);
             return ConvertToServiceResource(resource, configuration);
         }
 
+        /// <summary>
+        /// Converts the specified <see cref="Resource"/> to an <see cref="UnmanagedResource"/>.
+        /// </summary>
+        /// <param name="resource">The resource to convert.</param>
+        /// <returns>The converted <see cref="UnmanagedResource"/>.</returns>
+        /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
         public UnmanagedResource ConvertToUnmanagedResource(Resource resource)
         {
             if (resource.State != ResourceState.Draft)
@@ -81,12 +124,26 @@
             return (UnmanagedResource)Read(resource.Id);
         }
 
+        /// <summary>
+        /// Converts the resource with the specified identifier to an <see cref="UnmanagedResource"/>.
+        /// </summary>
+        /// <param name="resourceId">The unique identifier of the resource to convert.</param>
+        /// <returns>The converted <see cref="UnmanagedResource"/>.</returns>
+        /// <exception cref="ResourceNotFoundException">Thrown when the resource with the specified identifier is not found.</exception>
+        /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
         public UnmanagedResource ConvertToUnmanagedResource(Guid resourceId)
         {
             var resource = Read(resourceId) ?? throw new ResourceNotFoundException(resourceId);
             return ConvertToUnmanagedResource(resource);
         }
 
+        /// <summary>
+        /// Converts the specified <see cref="Resource"/> to a <see cref="VirtualFunctionResource"/>.
+        /// </summary>
+        /// <param name="resource">The resource to convert.</param>
+        /// <param name="configuration">The configuration for the virtual function link.</param>
+        /// <returns>The converted <see cref="VirtualFunctionResource"/>.</returns>
+        /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
         public VirtualFunctionResource ConvertToVirtualFunctionResource(Resource resource, ResourceVirtualFunctionLinkConfiguration configuration)
         {
             if (resource.State != ResourceState.Draft)
@@ -103,28 +160,60 @@
             return (VirtualFunctionResource)Read(resource.Id);
         }
 
+        /// <summary>
+        /// Converts the resource with the specified identifier to a <see cref="VirtualFunctionResource"/>.
+        /// </summary>
+        /// <param name="resourceId">The unique identifier of the resource to convert.</param>
+        /// <param name="configuration">The configuration for the virtual function link.</param>
+        /// <returns>The converted <see cref="VirtualFunctionResource"/>.</returns>
+        /// <exception cref="ResourceNotFoundException">Thrown when the resource with the specified identifier is not found.</exception>
+        /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
         public VirtualFunctionResource ConvertToVirtualFunctionResource(Guid resourceId, ResourceVirtualFunctionLinkConfiguration configuration)
         {
             var resource = Read(resourceId) ?? throw new ResourceNotFoundException(resourceId);
             return ConvertToVirtualFunctionResource(resource, configuration);
         }
 
+        /// <summary>
+        /// Gets the total number of resources in the repository.
+        /// </summary>
+        /// <returns>The total count of resources.</returns>
         public long Count()
         {
             return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(
                 DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resource.Id));
         }
 
+        /// <summary>
+        /// Gets the number of resources that match the specified filter.
+        /// </summary>
+        /// <param name="filter">The filter criteria to apply when counting resources.</param>
+        /// <returns>The count of resources matching the filter.</returns>
+        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public long Count(FilterElement<Resource> filter)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Gets the number of resources that match the specified query.
+        /// </summary>
+        /// <param name="query">The query criteria to apply when counting resources.</param>
+        /// <returns>The count of resources matching the query.</returns>
+        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public long Count(IQuery<Resource> query)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Creates a new resource in the repository.
+        /// </summary>
+        /// <param name="apiObject">The resource to create.</param>
+        /// <returns>The unique identifier of the created resource.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when attempting to create an existing resource.</exception>
+        /// <exception cref="MediaOpsException">Thrown when the creation operation fails.</exception>
         public Guid Create(Resource apiObject)
         {
             if (apiObject == null)
@@ -153,6 +242,14 @@
             });
         }
 
+        /// <summary>
+        /// Creates multiple new resources in the repository.
+        /// </summary>
+        /// <param name="apiObjects">The collection of resources to create.</param>
+        /// <returns>A collection of unique identifiers for the created resources.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when attempting to create existing resources.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk creation operation fails.</exception>
         public IEnumerable<Guid> Create(IEnumerable<Resource> apiObjects)
         {
             if (apiObjects == null)
@@ -180,6 +277,13 @@
             });
         }
 
+        /// <summary>
+        /// Creates new resources or updates existing ones in the repository.
+        /// </summary>
+        /// <param name="apiObjects">The collection of resources to create or update.</param>
+        /// <returns>A collection of unique identifiers for the created or updated resources.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk operation fails.</exception>
         public IEnumerable<Guid> CreateOrUpdate(IEnumerable<Resource> apiObjects)
         {
             if (apiObjects == null)
@@ -202,6 +306,11 @@
             });
         }
 
+        /// <summary>
+        /// Deletes the specified resources from the repository.
+        /// </summary>
+        /// <param name="apiObjects">The resources to delete.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         public void Delete(params Resource[] apiObjects)
         {
             if (apiObjects == null)
@@ -212,6 +321,12 @@
             Delete(apiObjects.Select(x => x.Id).ToArray());
         }
 
+        /// <summary>
+        /// Deletes resources with the specified identifiers from the repository.
+        /// </summary>
+        /// <param name="apiObjectIds">The unique identifiers of the resources to delete.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjectIds"/> is <c>null</c>.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk deletion operation fails.</exception>
         public void Delete(params Guid[] apiObjectIds)
         {
             if (apiObjectIds == null)
@@ -236,6 +351,12 @@
             });
         }
 
+        /// <summary>
+        /// Marks the specified resources as deprecated, indicating that they are no longer recommended for use.
+        /// </summary>
+        /// <param name="resources">A collection of resources to be marked as deprecated.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="resources"/> is <c>null</c>.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the deprecation operation fails.</exception>
         public void Deprecate(IEnumerable<Resource> resources)
         {
             if (resources == null)
@@ -256,6 +377,12 @@
             });
         }
 
+        /// <summary>
+        /// Retrieves all resources in the specified resource pool.
+        /// </summary>
+        /// <param name="resourcePool">The resource pool for which to retrieve resources.</param>
+        /// <returns>An enumerable collection of resources in the pool.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="resourcePool"/> is <c>null</c>.</exception>
         public IEnumerable<Resource> GetResourcesInPool(ResourcePool resourcePool)
         {
             if (resourcePool == null)
@@ -266,6 +393,13 @@
             return Resource.InstantiateResources(PlanApi, PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcesByPool(resourcePool.Id));
         }
 
+        /// <summary>
+        /// Retrieves all resources in the specified resource pool that are in the specified state.
+        /// </summary>
+        /// <param name="resourcePool">The resource pool for which to retrieve resources.</param>
+        /// <param name="state">The state to filter resources by.</param>
+        /// <returns>An enumerable collection of resources in the pool with the specified state.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="resourcePool"/> is <c>null</c>.</exception>
         public IEnumerable<Resource> GetResourcesInPool(ResourcePool resourcePool, ResourceState state)
         {
             if (resourcePool == null)
@@ -280,6 +414,12 @@
             return Resource.InstantiateResources(PlanApi, PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(filter));
         }
 
+        /// <summary>
+        /// Retrieves a mapping of resource pools to their contained resources.
+        /// </summary>
+        /// <param name="resourcePools">A collection of resource pools for which to retrieve resources.</param>
+        /// <returns>A read-only dictionary where each key is a resource pool and the value is an enumerable of resources in that pool.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="resourcePools"/> is <c>null</c>.</exception>
         public IReadOnlyDictionary<ResourcePool, IEnumerable<Resource>> GetResourcesPerPool(IEnumerable<ResourcePool> resourcePools)
         {
             if (resourcePools == null)
@@ -301,6 +441,13 @@
             return resourcesPerPool;
         }
 
+        /// <summary>
+        /// Retrieves a mapping of resource pools to their contained resources that are in the specified state.
+        /// </summary>
+        /// <param name="resourcePools">A collection of resource pools for which to retrieve resources.</param>
+        /// <param name="state">The state to filter resources by.</param>
+        /// <returns>A read-only dictionary where each key is a resource pool and the value is an enumerable of resources in that pool with the specified state.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="resourcePools"/> is <c>null</c>.</exception>
         public IReadOnlyDictionary<ResourcePool, IEnumerable<Resource>> GetResourcesPerPool(IEnumerable<ResourcePool> resourcePools, ResourceState state)
         {
             if (resourcePools == null)
@@ -331,11 +478,23 @@
             return resourcesPerPool;
         }
 
+        /// <summary>
+        /// Determines whether the specified resource pool contains any resources.
+        /// </summary>
+        /// <param name="resourcePool">The resource pool to check.</param>
+        /// <returns><c>true</c> if the resource pool has resources; otherwise, <c>false</c>.</returns>
+        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public bool HasResources(ResourcePool resourcePool)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Moves the specified <see cref="Resource"/> to the desired state.
+        /// </summary>
+        /// <param name="resource">The resource to move.</param>
+        /// <param name="desiredState">The state to move the resource to.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="resource"/> is <c>null</c>.</exception>
         public void MoveTo(Resource resource, ResourceState desiredState)
         {
             if (resource == null)
@@ -346,6 +505,13 @@
             MoveTo(resource.Id, desiredState);
         }
 
+        /// <summary>
+        /// Moves the resource with the specified identifier to the desired state.
+        /// </summary>
+        /// <param name="resourceId">The unique identifier of the resource to move.</param>
+        /// <param name="desiredState">The state to move the resource to.</param>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="resourceId"/> is <see cref="Guid.Empty"/>.</exception>
+        /// <exception cref="MediaOpsException">Thrown when the resource is not found, the state transition is not supported, or the operation fails.</exception>
         public void MoveTo(Guid resourceId, ResourceState desiredState)
         {
             PlanApi.Logger.LogInformation("Moving Resource {resourceId} to {desiredState}...", resourceId, desiredState);
@@ -381,6 +547,12 @@
             });
         }
 
+        /// <summary>
+        /// Reads a single resource by its unique identifier.
+        /// </summary>
+        /// <param name="id">The unique identifier of the resource.</param>
+        /// <returns>The resource with the specified identifier, or <c>null</c> if not found.</returns>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="id"/> is <see cref="Guid.Empty"/>.</exception>
         public Resource Read(Guid id)
         {
             PlanApi.Logger.LogInformation($"Reading Resource with ID: {id}...");
@@ -410,6 +582,12 @@
             });
         }
 
+        /// <summary>
+        /// Reads multiple resources by their unique identifiers.
+        /// </summary>
+        /// <param name="ids">A collection of unique identifiers.</param>
+        /// <returns>A dictionary mapping each identifier to its corresponding resource.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="ids"/> is <c>null</c>.</exception>
         public IDictionary<Guid, Resource> Read(IEnumerable<Guid> ids)
         {
             if (ids == null)
@@ -427,6 +605,10 @@
             });
         }
 
+        /// <summary>
+        /// Reads all resources from the repository.
+        /// </summary>
+        /// <returns>An enumerable collection of all resources.</returns>
         public IEnumerable<Resource> Read()
         {
             return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Read), act =>
@@ -436,52 +618,112 @@
             });
         }
 
+        /// <summary>
+        /// Reads resources that match the specified filter.
+        /// </summary>
+        /// <param name="filter">The filter criteria to apply when reading resources.</param>
+        /// <returns>An enumerable collection of resources matching the filter.</returns>
+        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<Resource> Read(FilterElement<Resource> filter)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Reads resources that match the specified query.
+        /// </summary>
+        /// <param name="query">The query criteria to apply when reading resources.</param>
+        /// <returns>An enumerable collection of resources matching the query.</returns>
+        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<Resource> Read(IQuery<Resource> query)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Reads all resources in pages.
+        /// </summary>
+        /// <returns>An enumerable collection of pages, where each page contains a collection of resources.</returns>
         public IEnumerable<IEnumerable<Resource>> ReadPaged()
         {
             return PlanApi.DomHelpers.SlcResourceStudioHelper.GetAllResourcesPaged()
                 .Select(page => Resource.InstantiateResources(PlanApi, page));
         }
 
+        /// <summary>
+        /// Reads all resources in pages.
+        /// </summary>
+        /// <returns>An enumerable collection of pages, where each page contains a collection of resources.</returns>
+        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         IEnumerable<IPagedResult<Resource>> IPageableRepository<Resource>.ReadPaged()
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Reads resources that match the specified filter in pages.
+        /// </summary>
+        /// <param name="filter">The filter criteria to apply when reading resources.</param>
+        /// <returns>An enumerable collection of pages, where each page contains resources matching the filter.</returns>
+        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Resource>> ReadPaged(FilterElement<Resource> filter)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Reads resources that match the specified query in pages.
+        /// </summary>
+        /// <param name="query">The query criteria to apply when reading resources.</param>
+        /// <returns>An enumerable collection of pages, where each page contains resources matching the query.</returns>
+        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Resource>> ReadPaged(IQuery<Resource> query)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Reads resources that match the specified filter in pages with a custom page size.
+        /// </summary>
+        /// <param name="filter">The filter criteria to apply when reading resources.</param>
+        /// <param name="pageSize">The number of items per page.</param>
+        /// <returns>An enumerable collection of pages, where each page contains up to the specified number of resources matching the filter.</returns>
+        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Resource>> ReadPaged(FilterElement<Resource> filter, int pageSize)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Reads resources that match the specified query in pages with a custom page size.
+        /// </summary>
+        /// <param name="query">The query criteria to apply when reading resources.</param>
+        /// <param name="pageSize">The number of items per page.</param>
+        /// <returns>An enumerable collection of pages, where each page contains up to the specified number of resources matching the query.</returns>
+        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Resource>> ReadPaged(IQuery<Resource> query, int pageSize)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Gets the count of resources in the specified resource pool.
+        /// </summary>
+        /// <param name="resourcePool">The resource pool for which to count resources.</param>
+        /// <returns>The number of resources in the pool.</returns>
+        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public long ResourceCount(ResourcePool resourcePool)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Attempts to convert the specified <see cref="Resource"/> to an <see cref="ElementResource"/>.
+        /// </summary>
+        /// <param name="resource">The resource to convert.</param>
+        /// <param name="configuration">The configuration for the element link.</param>
+        /// <param name="elementResource">When this method returns, contains the converted <see cref="ElementResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
+        /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
         public bool TryConvertToElementResource(Resource resource, ResourceElementLinkConfiguration configuration, out ElementResource elementResource)
         {
             elementResource = null;
@@ -498,6 +740,13 @@
             }
         }
 
+        /// <summary>
+        /// Attempts to convert the resource with the specified identifier to an <see cref="ElementResource"/>.
+        /// </summary>
+        /// <param name="resourceId">The unique identifier of the resource to convert.</param>
+        /// <param name="configuration">The configuration for the element link.</param>
+        /// <param name="elementResource">When this method returns, contains the converted <see cref="ElementResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
+        /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
         public bool TryConvertToElementResource(Guid resourceId, ResourceElementLinkConfiguration configuration, out ElementResource elementResource)
         {
             elementResource = null;
@@ -514,6 +763,13 @@
             }
         }
 
+        /// <summary>
+        /// Attempts to convert the specified <see cref="Resource"/> to a <see cref="ServiceResource"/>.
+        /// </summary>
+        /// <param name="resource">The resource to convert.</param>
+        /// <param name="configuration">The configuration for the service link.</param>
+        /// <param name="serviceResource">When this method returns, contains the converted <see cref="ServiceResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
+        /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
         public bool TryConvertToServiceResource(Resource resource, ResourceServiceLinkConfiguration configuration, out ServiceResource serviceResource)
         {
             serviceResource = null;
@@ -530,6 +786,13 @@
             }
         }
 
+        /// <summary>
+        /// Attempts to convert the resource with the specified identifier to a <see cref="ServiceResource"/>.
+        /// </summary>
+        /// <param name="resourceId">The unique identifier of the resource to convert.</param>
+        /// <param name="configuration">The configuration for the service link.</param>
+        /// <param name="serviceResource">When this method returns, contains the converted <see cref="ServiceResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
+        /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
         public bool TryConvertToServiceResource(Guid resourceId, ResourceServiceLinkConfiguration configuration, out ServiceResource serviceResource)
         {
             serviceResource = null;
@@ -546,6 +809,12 @@
             }
         }
 
+        /// <summary>
+        /// Attempts to convert the specified <see cref="Resource"/> to an <see cref="UnmanagedResource"/>.
+        /// </summary>
+        /// <param name="resource">The resource to convert.</param>
+        /// <param name="unmanagedResource">When this method returns, contains the converted <see cref="UnmanagedResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
+        /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
         public bool TryConvertToUnmanagedResource(Resource resource, out UnmanagedResource unmanagedResource)
         {
             unmanagedResource = null;
@@ -562,6 +831,12 @@
             }
         }
 
+        /// <summary>
+        /// Attempts to convert the resource with the specified identifier to an <see cref="UnmanagedResource"/>.
+        /// </summary>
+        /// <param name="resourceId">The unique identifier of the resource to convert.</param>
+        /// <param name="unmanagedResource">When this method returns, contains the converted <see cref="UnmanagedResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
+        /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
         public bool TryConvertToUnmanagedResource(Guid resourceId, out UnmanagedResource unmanagedResource)
         {
             unmanagedResource = null;
@@ -578,6 +853,13 @@
             }
         }
 
+        /// <summary>
+        /// Attempts to convert the specified <see cref="Resource"/> to a <see cref="VirtualFunctionResource"/>.
+        /// </summary>
+        /// <param name="resource">The resource to convert.</param>
+        /// <param name="configuration">The configuration for the virtual function link.</param>
+        /// <param name="virtualFunctionResource">When this method returns, contains the converted <see cref="VirtualFunctionResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
+        /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
         public bool TryConvertToVirtualFunctionResource(Resource resource, ResourceVirtualFunctionLinkConfiguration configuration, out VirtualFunctionResource virtualFunctionResource)
         {
             virtualFunctionResource = null;
@@ -594,6 +876,13 @@
             }
         }
 
+        /// <summary>
+        /// Attempts to convert the resource with the specified identifier to a <see cref="VirtualFunctionResource"/>.
+        /// </summary>
+        /// <param name="resourceId">The unique identifier of the resource to convert.</param>
+        /// <param name="configuration">The configuration for the virtual function link.</param>
+        /// <param name="virtualFunctionResource">When this method returns, contains the converted <see cref="VirtualFunctionResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
+        /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
         public bool TryConvertToVirtualFunctionResource(Guid resourceId, ResourceVirtualFunctionLinkConfiguration configuration, out VirtualFunctionResource virtualFunctionResource)
         {
             virtualFunctionResource = null;
@@ -609,6 +898,14 @@
                 return false;
             }
         }
+
+        /// <summary>
+        /// Updates an existing resource in the repository.
+        /// </summary>
+        /// <param name="apiObject">The resource to update.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when attempting to update a new resource that doesn't exist yet.</exception>
+        /// <exception cref="MediaOpsException">Thrown when the update operation fails.</exception>
         public void Update(Resource apiObject)
         {
             if (apiObject == null)
@@ -641,6 +938,12 @@
             });
         }
 
+        /// <summary>
+        /// Updates multiple existing resources in the repository.
+        /// </summary>
+        /// <param name="apiObjects">The collection of resources to update.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
+        /// <exception cref="MediaOpsException">Thrown when attempting to update new resources or when the bulk update operation fails.</exception>
         public void Update(IEnumerable<Resource> apiObjects)
         {
             if (apiObjects == null)
@@ -666,6 +969,11 @@
             });
         }
 
+        /// <summary>
+        /// Handles moving the resource to the Complete state.
+        /// </summary>
+        /// <param name="resource">The resource to transition.</param>
+        /// <exception cref="MediaOpsException">Thrown when the resource cannot be completed from its current state.</exception>
         private void HandleMoveToCompleteAction(Resource resource)
         {
             if (resource.State == ResourceState.Complete)
@@ -688,6 +996,11 @@
             });
         }
 
+        /// <summary>
+        /// Handles moving the resource to the Deprecated state.
+        /// </summary>
+        /// <param name="resource">The resource to transition.</param>
+        /// <exception cref="MediaOpsException">Thrown when the resource cannot be deprecated from its current state or the deprecation fails.</exception>
         private void HandleMoveToDeprecatedAction(Resource resource)
         {
             if (resource.State == ResourceState.Deprecated)

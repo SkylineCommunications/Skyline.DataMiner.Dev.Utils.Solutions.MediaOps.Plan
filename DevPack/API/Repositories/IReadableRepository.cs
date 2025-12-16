@@ -31,8 +31,18 @@
         /// <returns>A dictionary mapping each identifier to its corresponding API object.</returns>
         IDictionary<Guid, T> Read(IEnumerable<Guid> ids);
 
+        /// <summary>
+        /// Reads API objects that match the specified filter.
+        /// </summary>
+        /// <param name="filter">The filter criteria to apply when reading objects.</param>
+        /// <returns>An enumerable collection of API objects matching the filter.</returns>
         IEnumerable<T> Read(FilterElement<T> filter);
 
+        /// <summary>
+        /// Reads API objects that match the specified query.
+        /// </summary>
+        /// <param name="query">The query criteria to apply when reading objects.</param>
+        /// <returns>An enumerable collection of API objects matching the query.</returns>
         IEnumerable<T> Read(IQuery<T> query);
     }
 }

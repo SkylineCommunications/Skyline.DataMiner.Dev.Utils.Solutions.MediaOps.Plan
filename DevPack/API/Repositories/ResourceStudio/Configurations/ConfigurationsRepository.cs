@@ -10,27 +10,58 @@
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
     using SLDataGateway.API.Types.Querying;
 
+    /// <summary>
+    /// Provides repository operations for managing <see cref="Configuration"/> objects.
+    /// </summary>
     internal class ConfigurationsRepository : ProfileParameterRepository<Configuration>, IConfigurationsRepository
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ConfigurationsRepository"/> class.
+        /// </summary>
+        /// <param name="planApi">The MediaOps Plan API instance.</param>
         public ConfigurationsRepository(MediaOpsPlanApi planApi) : base(planApi)
         {
         }
 
+        /// <summary>
+        /// Gets the total number of configurations in the repository.
+        /// </summary>
+        /// <returns>The total count of configurations.</returns>
         public long Count()
         {
             return PlanApi.CoreHelpers.ProfileProvider.CountAllConfigurations();
         }
 
+        /// <summary>
+        /// Gets the number of configurations that match the specified filter.
+        /// </summary>
+        /// <param name="filter">The filter criteria to apply when counting configurations.</param>
+        /// <returns>The count of configurations matching the filter.</returns>
+        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public long Count(FilterElement<Configuration> filter)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Gets the number of configurations that match the specified query.
+        /// </summary>
+        /// <param name="query">The query criteria to apply when counting configurations.</param>
+        /// <returns>The count of configurations matching the query.</returns>
+        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public long Count(IQuery<Configuration> query)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Creates a new configuration in the repository.
+        /// </summary>
+        /// <param name="apiObject">The configuration to create.</param>
+        /// <returns>The unique identifier of the created configuration.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when attempting to create an existing configuration.</exception>
+        /// <exception cref="MediaOpsException">Thrown when the creation operation fails.</exception>
         public Guid Create(Configuration apiObject)
         {
             PlanApi.Logger.LogInformation("Creating new Configuration...");
@@ -59,6 +90,14 @@
             });
         }
 
+        /// <summary>
+        /// Creates multiple new configurations in the repository.
+        /// </summary>
+        /// <param name="apiObjects">The collection of configurations to create.</param>
+        /// <returns>A collection of unique identifiers for the created configurations.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when attempting to create existing configurations.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk creation operation fails.</exception>
         public IEnumerable<Guid> Create(IEnumerable<Configuration> apiObjects)
         {
             if (apiObjects == null)
@@ -85,6 +124,13 @@
             });
         }
 
+        /// <summary>
+        /// Creates new configurations or updates existing ones in the repository.
+        /// </summary>
+        /// <param name="apiObjects">The collection of configurations to create or update.</param>
+        /// <returns>A collection of unique identifiers for the created or updated configurations.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk operation fails.</exception>
         public IEnumerable<Guid> CreateOrUpdate(IEnumerable<Configuration> apiObjects)
         {
             if (apiObjects == null)
@@ -107,6 +153,11 @@
             });
         }
 
+        /// <summary>
+        /// Deletes the specified configurations from the repository.
+        /// </summary>
+        /// <param name="apiObjects">The configurations to delete.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         public void Delete(params Configuration[] apiObjects)
         {
             if (apiObjects == null)
@@ -117,6 +168,12 @@
             Delete(apiObjects.Select(x => x.Id).ToArray());
         }
 
+        /// <summary>
+        /// Deletes configurations with the specified identifiers from the repository.
+        /// </summary>
+        /// <param name="apiObjectIds">The unique identifiers of the configurations to delete.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjectIds"/> is <c>null</c>.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk deletion operation fails.</exception>
         public void Delete(params Guid[] apiObjectIds)
         {
             if (apiObjectIds == null)
@@ -139,6 +196,12 @@
             });
         }
 
+        /// <summary>
+        /// Reads a single configuration by its unique identifier.
+        /// </summary>
+        /// <param name="id">The unique identifier of the configuration.</param>
+        /// <returns>The configuration with the specified identifier, or <c>null</c> if not found.</returns>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="id"/> is <see cref="Guid.Empty"/>.</exception>
         public Configuration Read(Guid id)
         {
             PlanApi.Logger.LogInformation($"Reading Configuration with ID: {id}...");
@@ -165,6 +228,12 @@
             });
         }
 
+        /// <summary>
+        /// Reads multiple configurations by their unique identifiers.
+        /// </summary>
+        /// <param name="ids">A collection of unique identifiers.</param>
+        /// <returns>A dictionary mapping each identifier to its corresponding configuration.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="ids"/> is <c>null</c>.</exception>
         public IDictionary<Guid, Configuration> Read(IEnumerable<Guid> ids)
         {
             if (ids == null)
@@ -183,6 +252,10 @@
             });
         }
 
+        /// <summary>
+        /// Reads all configurations from the repository.
+        /// </summary>
+        /// <returns>An enumerable collection of all configurations.</returns>
         public IEnumerable<Configuration> Read()
         {
             return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Read), act =>
@@ -191,16 +264,32 @@
             });
         }
 
+        /// <summary>
+        /// Reads configurations that match the specified filter.
+        /// </summary>
+        /// <param name="filter">The filter criteria to apply when reading configurations.</param>
+        /// <returns>An enumerable collection of configurations matching the filter.</returns>
+        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<Configuration> Read(FilterElement<Configuration> filter)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Reads configurations that match the specified query.
+        /// </summary>
+        /// <param name="query">The query criteria to apply when reading configurations.</param>
+        /// <returns>An enumerable collection of configurations matching the query.</returns>
+        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<Configuration> Read(IQuery<Configuration> query)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Reads all configurations in pages.
+        /// </summary>
+        /// <returns>An enumerable collection of pages, where each page contains a collection of configurations.</returns>
         public IEnumerable<IEnumerable<Configuration>> ReadPaged()
         {
             return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(ReadPaged), act =>
@@ -209,31 +298,69 @@
             });
         }
 
+        /// <summary>
+        /// Reads all configurations in pages.
+        /// </summary>
+        /// <returns>An enumerable collection of pages, where each page contains a collection of configurations.</returns>
+        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         IEnumerable<IPagedResult<Configuration>> IPageableRepository<Configuration>.ReadPaged()
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Reads configurations that match the specified filter in pages.
+        /// </summary>
+        /// <param name="filter">The filter criteria to apply when reading configurations.</param>
+        /// <returns>An enumerable collection of pages, where each page contains configurations matching the filter.</returns>
+        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Configuration>> ReadPaged(FilterElement<Configuration> filter)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Reads configurations that match the specified query in pages.
+        /// </summary>
+        /// <param name="query">The query criteria to apply when reading configurations.</param>
+        /// <returns>An enumerable collection of pages, where each page contains configurations matching the query.</returns>
+        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Configuration>> ReadPaged(IQuery<Configuration> query)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Reads configurations that match the specified filter in pages with a custom page size.
+        /// </summary>
+        /// <param name="filter">The filter criteria to apply when reading configurations.</param>
+        /// <param name="pageSize">The number of items per page.</param>
+        /// <returns>An enumerable collection of pages, where each page contains up to the specified number of configurations matching the filter.</returns>
+        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Configuration>> ReadPaged(FilterElement<Configuration> filter, int pageSize)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Reads configurations that match the specified query in pages with a custom page size.
+        /// </summary>
+        /// <param name="query">The query criteria to apply when reading configurations.</param>
+        /// <param name="pageSize">The number of items per page.</param>
+        /// <returns>An enumerable collection of pages, where each page contains up to the specified number of configurations matching the query.</returns>
+        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Configuration>> ReadPaged(IQuery<Configuration> query, int pageSize)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Updates an existing configuration in the repository.
+        /// </summary>
+        /// <param name="apiObject">The configuration to update.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when attempting to update a new configuration that doesn't exist yet.</exception>
+        /// <exception cref="MediaOpsException">Thrown when the update operation fails.</exception>
         public void Update(Configuration apiObject)
         {
             if (apiObject == null)
@@ -260,6 +387,13 @@
             });
         }
 
+        /// <summary>
+        /// Updates multiple existing configurations in the repository.
+        /// </summary>
+        /// <param name="apiObjects">The collection of configurations to update.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when attempting to update new configurations that don't exist yet.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk update operation fails.</exception>
         public void Update(IEnumerable<Configuration> apiObjects)
         {
             if (apiObjects == null)
@@ -284,6 +418,12 @@
             });
         }
 
+        /// <summary>
+        /// Creates configuration instances from the provided collection of core parameter instances.
+        /// </summary>
+        /// <param name="instances">The collection of core parameter instances to instantiate as configurations.</param>
+        /// <returns>An enumerable collection of configuration objects created from the instances.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="instances"/> is <c>null</c>.</exception>
         internal static IEnumerable<Configuration> InstantiateConfigurations(IEnumerable<Net.Profiles.Parameter> instances)
         {
             if (instances == null)
@@ -299,6 +439,11 @@
             return InstantiateConfigurationsIterator(instances);
         }
 
+        /// <summary>
+        /// Iterator method that creates configuration instances from the provided collection of core parameter instances.
+        /// </summary>
+        /// <param name="instances">The collection of core parameter instances to process.</param>
+        /// <returns>An enumerable collection of configuration objects.</returns>
         private static IEnumerable<Configuration> InstantiateConfigurationsIterator(IEnumerable<Net.Profiles.Parameter> instances)
         {
             foreach (var instance in instances)
