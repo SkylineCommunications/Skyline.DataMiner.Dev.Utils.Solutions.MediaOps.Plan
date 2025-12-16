@@ -85,27 +85,6 @@
                 .Select(Page => Page.Select(x => new ResourceProperty(x)));
         }
 
-        internal override long Count(FilterElement<DomInstance> domFilter)
-        {
-            return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(AddDomDefinitionFilter(domFilter, StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourceproperty));
-        }
-
-        internal override IEnumerable<ResourceProperty> Read(IQuery<DomInstance> query)
-        {
-            if (query == null)
-            {
-                throw new ArgumentNullException(nameof(query));
-            }
-
-            var domFilter = AddDomDefinitionFilter(query.Filter, StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourceproperty);
-
-            query = query.WithFilter(domFilter);
-
-            var domInstances = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourceProperties(query);
-
-            return domInstances.Select(x => new ResourceProperty(x));
-        }
-
         public Guid Create(ResourceProperty apiObject)
         {
             PlanApi.Logger.LogInformation("Creating new ResourceProperty...");

@@ -206,27 +206,6 @@
             return parentPoolsPerPool;
         }
 
-        internal override IEnumerable<ResourcePool> Read(IQuery<DomInstance> query)
-        {
-            if (query == null)
-            {
-                throw new ArgumentNullException(nameof(query));
-            }
-
-            var domFilter = AddDomDefinitionFilter(query.Filter, StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourcepool);
-
-            query = query.WithFilter(domFilter);
-
-            var domInstances = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(query);
-
-            return domInstances.Select(x => new ResourcePool(x));
-        }
-
-        internal override long Count(FilterElement<DomInstance> domFilter)
-        {
-            return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(AddDomDefinitionFilter(domFilter, StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourcepool));
-        }
-
         /// <summary>
         /// Translates the ResourceState enum to the state in DOM.
         /// </summary>
