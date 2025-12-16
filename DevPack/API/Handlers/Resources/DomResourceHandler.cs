@@ -3,24 +3,21 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-
     using Microsoft.Extensions.Logging;
-
     using Skyline.DataMiner.Core.DataMinerSystem.Common;
+    using Skyline.DataMiner.Net;
+    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+    using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
-    using Skyline.DataMiner.Net;
-    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
-    using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Utils.DOM.Extensions;
-
     using DomResource = Storage.DOM.SlcResource_Studio.ResourceInstance;
     using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
 
-    internal class DomResourceHandler : ApiObjectValidator<Guid>
+    internal class DomResourceHandler : ApiObjectValidator
     {
         private readonly MediaOpsPlanApi planApi;
 
@@ -102,7 +99,7 @@
             result.ThrowOnFailure();
 
             // Save link with CORE Resource
-            CreateOrUpdate([apiResource.OriginalInstance]);
+            CreateOrUpdateDomResources([apiResource.OriginalInstance]);
 
             // Transition DOM Resource to Complete
             planApi.DomHelpers.SlcResourceStudioHelper.TransitionResourceToComplete(apiResource.Id);
@@ -112,7 +109,7 @@
         {
             var domResource = planApi.DomHelpers.SlcResourceStudioHelper.GetResources([apiResource.Id]).First();
             domResource.ClearError(errorDefinition.ErrorCode);
-            CreateOrUpdate([domResource]);
+            CreateOrUpdateDomResources([domResource]);
         }
 
         private void CreateOrUpdate(IEnumerable<Resource> apiResources)
@@ -127,76 +124,83 @@
                 return;
             }
 
-            var toCreate = new List<Resource>();
-            var toUpdate = new List<Resource>();
-            foreach (var resource in apiResources)
-            {
-                planApi.Logger.LogInformation($"Processing Resource with type '{resource.GetType().Name}' '{resource.GetType().AssemblyQualifiedName}' '{resource.GetType().Assembly}' and ID '{resource.Id}' for CreateOrUpdate.");
-
-                if (resource.IsNew)
-                {
-                    toCreate.Add(resource);
-                }
-                else
-                {
-                    toUpdate.Add(resource);
-                }
-            }
+            var toCreate = apiResources.Where(x => x.IsNew).ToList();
 
             ValidateIdsNotInUse(toCreate);
-            ValidateCapacities(apiResources.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)));
-            ValidateCapabilities(apiResources.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)));
-            ValidateResourceProperties(apiResources.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)));
+            ValidateCapacities(apiResources);
+            ValidateCapabilities(apiResources);
+            ValidateResourceProperties(apiResources);
+            ValidateNames(apiResources);
 
-            // Todo: lock DOM instances
-            var changeResults = ActivityHelper.Track(nameof(DomResourceHandler), nameof(GetResourcesWithChanges), act => GetResourcesWithChanges(toUpdate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id))).ToList());
+            var validResources = apiResources.Where(IsValid).ToList();
+            var lockResult = planApi.LockManager.LockAndExecute(validResources, CreateOrUpdateCoreResources);
+            ReportError(lockResult);
+        }
 
-            var toCreateNameValidation = toCreate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id));
-            var toUpdateNameValidation = toUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcResource_StudioIds.Sections.ResourceInfo.Name.Id)));
-            ActivityHelper.Track(nameof(DomResourceHandler), nameof(ValidateNames), act => ValidateNames(toCreateNameValidation.Concat(toUpdateNameValidation)));
+        private void CreateOrUpdateCoreResources(ICollection<Resource> resources)
+        {
+            if (resources == null)
+            {
+                throw new ArgumentNullException(nameof(resources));
+            }
 
-            var toCreatePoolValidation = toCreate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id));
-            var toUpdatePoolValidation = toUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcResource_StudioIds.Sections.ResourceInternalProperties.Pool_Ids.Id)));
+            if (resources.Any(x => !IsValid(x)))
+            {
+                throw new ArgumentException($"Not all provided resources are valid", nameof(resources));
+            }
+
+            var resourcesToCreate = resources.Where(x => x.IsNew).ToList();
+            var resourcesToUpdate = resources.Except(resourcesToCreate).ToList();
+
+            var changeResults = ActivityHelper.Track(nameof(DomResourceHandler), nameof(GetResourcesWithChanges), act => GetResourcesWithChanges(resourcesToUpdate));
+
+            var toUpdateNameValidation = resourcesToUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcResource_StudioIds.Sections.ResourceInfo.Name.Id)));
+            ActivityHelper.Track(nameof(DomResourceHandler), nameof(ValidateDomNames), act => ValidateDomNames(resourcesToCreate.Concat(toUpdateNameValidation)));
+
+            var toCreatePoolValidation = resourcesToCreate.Where(IsValid);
+            var toUpdatePoolValidation = resourcesToUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcResource_StudioIds.Sections.ResourceInternalProperties.Pool_Ids.Id)));
             ValidatePoolAssignments(toCreatePoolValidation.Concat(toUpdatePoolValidation));
 
-            var ToUpdateWithCapabilityChanges = toUpdate.Where(x =>
-                !TraceDataPerItem.Keys.Contains(x.Id)
+            var resourcesWithCapabilityChanges = resourcesToUpdate.Where(x =>
+                IsValid(x)
                 && x.State != ResourceState.Deprecated
                 && changeResults.Any(y => y.Instance.ID.Id == x.Id
                     && (y.AddedSections.Select(z => z.SectionDefinitionId).Contains(SlcResource_StudioIds.Sections.ResourceCapabilities.Id.Id)
                             || y.RemovedSections.Select(z => z.SectionDefinitionId).Contains(SlcResource_StudioIds.Sections.ResourceCapabilities.Id.Id)
                             || y.ChangedFields.Select(z => z.SectionDefinitionId).Contains(SlcResource_StudioIds.Sections.ResourceCapabilities.Id.Id))));
-            foreach (var resource in ToUpdateWithCapabilityChanges)
+
+            foreach (var resource in resourcesWithCapabilityChanges)
             {
                 MarkAsResourceWithCoreChanges(resource);
             }
 
-            var ToUpdateWithCapacityChanges = toUpdate.Where(x =>
-                !TraceDataPerItem.Keys.Contains(x.Id)
+            var resourcesWithCapacityChanges = resourcesToUpdate.Where(x =>
+                IsValid(x)
                 && x.State != ResourceState.Deprecated
                 && changeResults.Any(y => y.Instance.ID.Id == x.Id
-                    && (y.AddedSections.Select(z => z.SectionDefinitionId).Contains(SlcResource_StudioIds.Sections.ResourceCapacities.Id.Id)
-                            || y.RemovedSections.Select(z => z.SectionDefinitionId).Contains(SlcResource_StudioIds.Sections.ResourceCapacities.Id.Id)
-                            || y.ChangedFields.Select(z => z.SectionDefinitionId).Contains(SlcResource_StudioIds.Sections.ResourceCapacities.Id.Id))));
-            foreach (var resource in ToUpdateWithCapacityChanges)
+                && (y.AddedSections.Select(z => z.SectionDefinitionId).Contains(SlcResource_StudioIds.Sections.ResourceCapacities.Id.Id)
+                        || y.RemovedSections.Select(z => z.SectionDefinitionId).Contains(SlcResource_StudioIds.Sections.ResourceCapacities.Id.Id)
+                        || y.ChangedFields.Select(z => z.SectionDefinitionId).Contains(SlcResource_StudioIds.Sections.ResourceCapacities.Id.Id))));
+
+            foreach (var resource in resourcesWithCapacityChanges)
             {
                 MarkAsResourceWithCoreChanges(resource);
             }
 
-            var toCreateDomInstances = toCreate
-                .Where(x => !TraceDataPerItem.Keys.Contains(x.Id))
+            var toCreateDomInstances = resourcesToCreate
+                .Where(IsValid)
                 .Select(x => x.GetInstanceWithChanges())
                 .ToList();
 
             var toUpdateDomInstances = changeResults
-                .Where(x => !TraceDataPerItem.Keys.Contains(x.Instance.ID.Id))
+                .Where(IsValid)
                 .Select(x => new DomResource(x.Instance))
                 .ToList();
 
-            CreateOrUpdate(toCreateDomInstances.Concat(toUpdateDomInstances));
+            CreateOrUpdateDomResources(toCreateDomInstances.Concat(toUpdateDomInstances));
         }
 
-        private void CreateOrUpdate(IEnumerable<DomResource> domResources)
+        private void CreateOrUpdateDomResources(IEnumerable<DomResource> domResources)
         {
             if (domResources == null)
             {
@@ -320,10 +324,14 @@
 
             ValidateStateForDeleteAction(apiResources);
 
-            apiResources = apiResources.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)).ToList();
+            var resourcesToDelete = apiResources.Where(IsValid).ToList();
+            var lockResult = planApi.LockManager.LockAndExecute(resourcesToDelete, DeleteCoreResources);
+            ReportError(lockResult);
+        }
 
-            var resourcesToDelete = apiResources.ToDictionary(x => x.Id);
-            CoreResourceHandler.TryDelete(planApi, resourcesToDelete.Values.Select(x => x.OriginalInstance), out var coreResult);
+        private void DeleteCoreResources(ICollection<Resource> resources)
+        {
+            CoreResourceHandler.TryDelete(planApi, resources.Select(x => x.OriginalInstance), out var coreResult);
 
             foreach (var id in coreResult.UnsuccessfulIds)
             {
@@ -333,11 +341,9 @@
                 {
                     PassTraceData(id, traceData);
                 }
-
-                resourcesToDelete.Remove(id);
             }
 
-            planApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.TryDeleteInBatches(resourcesToDelete.Values.Select(x => x.OriginalInstance.ToInstance()), out var domResult);
+            planApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.TryDeleteInBatches(resources.Where(IsValid).Select(x => x.OriginalInstance.ToInstance()), out var domResult);
 
             foreach (var id in domResult.UnsuccessfulIds)
             {
@@ -571,19 +577,30 @@
                 };
 
                 ReportError(resource.Id, error);
+            }
+        }
 
-                resourcesRequiringValidation.Remove(resource);
+        private void ValidateDomNames(IEnumerable<Resource> apiResources)
+        {
+            if (apiResources == null)
+            {
+                throw new ArgumentNullException(nameof(apiResources));
+            }
+
+            if (!apiResources.Any())
+            {
+                return;
             }
 
             FilterElement<DomInstance> filter(string name) =>
                 DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resource.Id)
                 .AND(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Name).Equal(name));
 
-            var domResourcesbyName = planApi.DomHelpers.SlcResourceStudioHelper.GetResources(resourcesRequiringValidation.Select(x => x.Name), filter)
+            var domResourcesbyName = planApi.DomHelpers.SlcResourceStudioHelper.GetResources(apiResources.Select(x => x.Name), filter)
                 .GroupBy(x => x.Name)
                 .ToDictionary(x => x.Key, x => (IReadOnlyCollection<DomResource>)x.ToList());
 
-            foreach (var resource in resourcesRequiringValidation)
+            foreach (var resource in apiResources)
             {
                 if (!domResourcesbyName.TryGetValue(resource.Name, out var domResources))
                 {
@@ -825,7 +842,7 @@
             }
         }
 
-        private IEnumerable<DomChangeResults> GetResourcesWithChanges(IEnumerable<Resource> apiResources)
+        private ICollection<DomChangeResults> GetResourcesWithChanges(ICollection<Resource> apiResources)
         {
             if (apiResources == null)
             {
@@ -837,17 +854,13 @@
                 return [];
             }
 
-            return GetResourcesWithChangesIterator(apiResources);
-        }
-
-        private IEnumerable<DomChangeResults> GetResourcesWithChangesIterator(IEnumerable<Resource> apiResources)
-        {
             var resourcesRequiringValidation = apiResources.Where(x => !x.IsNew && x.HasChanges).ToList();
             if (resourcesRequiringValidation.Count == 0)
             {
-                yield break;
+                return Array.Empty<DomChangeResults>();
             }
 
+            List<DomChangeResults> changeResults = new List<DomChangeResults>();
             var storedDomResourcesById = planApi.DomHelpers.SlcResourceStudioHelper.GetResources(resourcesRequiringValidation.Select(x => x.Id)).ToDictionary(x => x.ID.Id);
             foreach (var resource in resourcesRequiringValidation)
             {
@@ -881,8 +894,10 @@
                     continue;
                 }
 
-                yield return changeResult;
+                changeResults.Add(changeResult);
             }
+
+            return changeResults;
         }
 
         private void MarkAsResourceWithCoreChanges(Resource resource)
@@ -917,7 +932,7 @@
             domResource.ResourceInfo.Type = SlcResource_StudioIds.Enums.Type.Unmanaged;
             domResource.ResourceInternalProperties.ResourceMetadata = String.Empty;
 
-            CreateOrUpdate([domResource]);
+            CreateOrUpdateDomResources([domResource]);
         }
 
         private void ConvertToVirtualFunctionResource(Resource resource, ResourceVirtualFunctionLinkConfiguration configuration)
@@ -948,7 +963,7 @@
                 LinkedFunctionTableIndex = configuration.FunctionTableIndex,
             };
 
-            CreateOrUpdate([domResource]);
+            CreateOrUpdateDomResources([domResource]);
         }
 
         private void ConvertToServiceResource(Resource resource, ResourceServiceLinkConfiguration configuration)
@@ -977,7 +992,7 @@
                 LinkedServiceInfo = new DmsServiceId(configuration.AgentId, configuration.ServiceId).Value,
             };
 
-            CreateOrUpdate([domResource]);
+            CreateOrUpdateDomResources([domResource]);
         }
 
         private void ConvertToElementResource(Resource resource, ResourceElementLinkConfiguration configuration)
@@ -1006,7 +1021,7 @@
                 LinkedElementInfo = new DmsElementId(configuration.AgentId, configuration.ElementId).Value,
             };
 
-            CreateOrUpdate([domResource]);
+            CreateOrUpdateDomResources([domResource]);
         }
     }
 }

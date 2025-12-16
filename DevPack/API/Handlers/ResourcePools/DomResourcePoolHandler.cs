@@ -3,21 +3,19 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-
     using Microsoft.Extensions.Logging;
-
+    using Skyline.DataMiner.Net;
+    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+    using Skyline.DataMiner.Net.Messages;
+    using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
-    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
-    using Skyline.DataMiner.Net.Messages;
-    using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Utils.DOM.Extensions;
-
     using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
 
-    internal class DomResourcePoolHandler : ApiObjectValidator<Guid>
+    internal class DomResourcePoolHandler : ApiObjectValidator
     {
         private readonly MediaOpsPlanApi planApi;
 
@@ -99,55 +97,69 @@
                 return;
             }
 
-            var toCreate = new List<ResourcePool>();
-            var toUpdate = new List<ResourcePool>();
-            foreach (var resourcePool in apiResourcePools)
-            {
-                if (resourcePool.IsNew)
-                {
-                    toCreate.Add(resourcePool);
-                }
-                else
-                {
-                    toUpdate.Add(resourcePool);
-                }
-            }
+            var toCreate = apiResourcePools.Where(x => x.IsNew).ToList();
+            var toUpdate = apiResourcePools.Except(toCreate).ToList();
 
             ValidateIdsNotInUse(toCreate);
             ValidateStateForUpdateAction(toUpdate);
 
-            ValidatePoolLinks(apiResourcePools.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)));
-            ValidateCapabilities(apiResourcePools.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)));
+            ValidatePoolLinks(apiResourcePools);
+            ValidateCapabilities(apiResourcePools);
+            ValidateNames(apiResourcePools);
 
-            // Todo: lock DOM instances
-            var changeResults = GetPoolsWithChanges(toUpdate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id))).ToList();
-
-            var toCreateNameValidation = toCreate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id));
-            var toUpdateNameValidation = toUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcResource_StudioIds.Sections.ResourcePoolInfo.Name.Id)));
-            ValidateNames(toCreateNameValidation.Concat(toUpdateNameValidation));
-
-            var toCreateDomInstances = toCreate
-                .Where(x => !TraceDataPerItem.Keys.Contains(x.Id))
-                .Select(x => x.GetInstanceWithChanges())
-                .ToList();
-            var toUpdateDomInstances = changeResults
-                .Where(x => !TraceDataPerItem.Keys.Contains(x.Instance.ID.Id))
-                .Select(x => new DomResourcePool(x.Instance))
-                .ToList();
-            CreateOrUpdate(toCreateDomInstances.Concat(toUpdateDomInstances));
+            // Create or update DOM resource pools
+            var validResourcePools = apiResourcePools.Where(IsValid).ToList();
+            var resourcePoolchangeResults = planApi.LockManager.LockAndExecute(validResourcePools, CreateOrUpdateCoreResourcePools);
+            ReportError(resourcePoolchangeResults);
 
             // Update resource pool capabilities if needed
-            var toUpdateWithCapabilities = toUpdate.Where(x =>
-                !TraceDataPerItem.Keys.Contains(x.Id)
-                && x.State != ResourcePoolState.Draft
-                && changeResults.Any(y => y.Instance.ID.Id == x.Id
-                        && (y.AddedSections.Select(z => z.SectionDefinitionId).Contains(SlcResource_StudioIds.Sections.ResourcePoolCapabilities.Id.Id)
-                            || y.RemovedSections.Select(z => z.SectionDefinitionId).Contains(SlcResource_StudioIds.Sections.ResourcePoolCapabilities.Id.Id)
-                            || y.ChangedFields.Select(z => z.SectionDefinitionId).Contains(SlcResource_StudioIds.Sections.ResourcePoolCapabilities.Id.Id))));
-            UpdateCoreResources(toUpdateWithCapabilities);
+            var poolsToUpdateWithCapabilities = toUpdate.Where(x =>
+            IsValid(x)
+            && x.State != ResourcePoolState.Draft
+            && resourcePoolchangeResults.ActionResults.Any(y => y.Instance.ID.Id == x.Id
+                    && (y.AddedSections.Select(z => z.SectionDefinitionId).Contains(SlcResource_StudioIds.Sections.ResourcePoolCapabilities.Id.Id)
+                        || y.RemovedSections.Select(z => z.SectionDefinitionId).Contains(SlcResource_StudioIds.Sections.ResourcePoolCapabilities.Id.Id)
+                        || y.ChangedFields.Select(z => z.SectionDefinitionId).Contains(SlcResource_StudioIds.Sections.ResourcePoolCapabilities.Id.Id)))).ToList();
+
+            var lockResult = planApi.LockManager.LockAndExecute(poolsToUpdateWithCapabilities, UpdateCoreResources);
+            ReportError(lockResult);
         }
 
-        private void CreateOrUpdate(IEnumerable<DomResourcePool> domResourcePools)
+        private ICollection<DomChangeResults> CreateOrUpdateCoreResourcePools(ICollection<ResourcePool> resourcePools)
+        {
+            if (resourcePools == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePools));
+            }
+
+            if (resourcePools.Any(x => !IsValid(x)))
+            {
+                throw new ArgumentException($"Not all provided resource pools are valid", nameof(resourcePools));
+            }
+
+            var resourcePoolsToCreate = resourcePools.Where(x => x.IsNew).ToList();
+            var resourcePoolsToUpdate = resourcePools.Except(resourcePoolsToCreate).ToList();
+
+            var changeResults = GetPoolsWithChanges(resourcePoolsToUpdate);
+
+            var toUpdateNameValidation = resourcePoolsToUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcResource_StudioIds.Sections.ResourcePoolInfo.Name.Id))).ToList();
+            ValidateDomNames(resourcePoolsToCreate.Concat(toUpdateNameValidation).ToList());
+
+            var toCreateDomInstances = resourcePoolsToCreate
+                .Where(IsValid)
+                .Select(x => x.GetInstanceWithChanges())
+                .ToList();
+
+            var toUpdateDomInstances = changeResults
+                .Where(IsValid)
+                .Select(x => new DomResourcePool(x.Instance))
+                .ToList();
+
+            CreateOrUpdateDomResourcePools(toCreateDomInstances.Concat(toUpdateDomInstances));
+            return changeResults;
+        }
+
+        private void CreateOrUpdateDomResourcePools(IEnumerable<DomResourcePool> domResourcePools)
         {
             if (domResourcePools == null)
             {
@@ -319,11 +331,20 @@
 
             ValidateStateForDeleteAction(apiResourcePools);
 
-            var poolsToDelete = apiResourcePools.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)).ToList();
+            var poolsToDelete = apiResourcePools.Where(IsValid).ToList();
             RemovePoolFromParentPoolLinks(poolsToDelete);
             HandleDeleteOptions(poolsToDelete, options);
             UnassignResourcesFromPool(poolsToDelete);
 
+            var deleteCorePoolsLockResult = planApi.LockManager.LockAndExecute(poolsToDelete, DeleteCoreResourcePools); // Returns pools that require updates after referenced pools have been removed.
+            ReportError(deleteCorePoolsLockResult);
+
+            var updateResourcePoolsLockResult = planApi.LockManager.LockAndExecute(deleteCorePoolsLockResult.ActionResults, planApi.ResourcePools.Update);
+            ReportError(updateResourcePoolsLockResult);
+        }
+
+        private ICollection<ResourcePool> DeleteCoreResourcePools(ICollection<ResourcePool> poolsToDelete)
+        {
             var domPoolsById = poolsToDelete.ToDictionary(x => x.Id, x => x.OriginalInstance);
 
             CoreResourcePoolHandler.TryDelete(planApi, domPoolsById.Values, out var coreResult);
@@ -357,8 +378,8 @@
 
             ReportSuccess(domResult.SuccessfulIds.Select(x => x.Id));
 
-            var poolsToUpdate = referencedApiResourcePoolsToUpdate.Where(x => !domResult.SuccessfulIds.Select(y => y.Id).Contains(x.Id)).ToList();
-            planApi.ResourcePools.Update(poolsToUpdate);
+            // Return affected pools that require updates
+            return referencedApiResourcePoolsToUpdate.Where(x => !domResult.SuccessfulIds.Select(y => y.Id).Contains(x.Id)).ToList();
         }
 
         private void DeprecatePoolResources(IEnumerable<ResourcePool> apiResourcePools)
@@ -452,7 +473,7 @@
             // todo: implement logic to unassign resources from the given resource pools
         }
 
-        private void UpdateCoreResources(IEnumerable<ResourcePool> apiResourcePools)
+        private void UpdateCoreResources(ICollection<ResourcePool> apiResourcePools)
         {
             if (apiResourcePools == null)
             {
@@ -682,16 +703,19 @@
 
                 poolsRequiringValidation.Remove(pool);
             }
+        }
 
+        private void ValidateDomNames(ICollection<ResourcePool> apiResourcePools)
+        {
             FilterElement<DomInstance> filter(string name) =>
                 DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resourcepool.Id)
                 .AND(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourcePoolInfo.Name).Equal(name));
 
-            var domPoolsbyName = planApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(poolsRequiringValidation.Select(x => x.Name), filter)
+            var domPoolsbyName = planApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(apiResourcePools.Select(x => x.Name), filter)
                 .GroupBy(x => x.Name)
                 .ToDictionary(x => x.Key, x => (IReadOnlyCollection<DomResourcePool>)x.ToList());
 
-            foreach (var pool in poolsRequiringValidation)
+            foreach (var pool in apiResourcePools)
             {
                 if (!domPoolsbyName.TryGetValue(pool.Name, out var domPools))
                 {
@@ -850,27 +874,23 @@
             }
         }
 
-        private IEnumerable<DomChangeResults> GetPoolsWithChanges(IEnumerable<ResourcePool> apiResourcePools)
+        private ICollection<DomChangeResults> GetPoolsWithChanges(IEnumerable<ResourcePool> apiResourcePools)
         {
             if (apiResourcePools == null)
             {
                 throw new ArgumentNullException(nameof(apiResourcePools));
             }
 
+            var changeResults = new List<DomChangeResults>();
             if (!apiResourcePools.Any())
             {
-                return [];
+                return changeResults;
             }
 
-            return GetPoolsWithChangesIterator(apiResourcePools);
-        }
-
-        private IEnumerable<DomChangeResults> GetPoolsWithChangesIterator(IEnumerable<ResourcePool> apiResourcePools)
-        {
             var poolsRequiringValidation = apiResourcePools.Where(x => !x.IsNew && x.HasChanges).ToList();
             if (poolsRequiringValidation.Count == 0)
             {
-                yield break;
+                return changeResults;
             }
 
             var storedDomResourcePoolsById = planApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(poolsRequiringValidation.Select(x => x.Id)).ToDictionary(x => x.ID.Id);
@@ -906,8 +926,10 @@
                     continue;
                 }
 
-                yield return changeResult;
+                changeResults.Add(changeResult);
             }
+
+            return changeResults;
         }
 
         private void MarkAsPoolWithCoreChanges(ResourcePool resourcePool)

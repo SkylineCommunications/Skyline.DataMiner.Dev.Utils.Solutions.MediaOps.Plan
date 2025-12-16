@@ -4,7 +4,7 @@
 
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
-    internal class ResourceCapacitySettingsValidator : ApiObjectValidator<Guid>
+    internal class ResourceCapacitySettingsValidator : ApiObjectValidator
     {
         private readonly Guid resourceId;
 
