@@ -41,7 +41,7 @@
             {
                 return;
             }
-            
+
             HandleAddedSections(updated.Sections.ExceptBy(original.Sections, x => x.ID.Id));
             HandleRemovedSections(original.Sections.ExceptBy(updated.Sections, x => x.ID.Id));
             HandleChangedFieldValues(changes.FieldValues);
@@ -331,7 +331,7 @@
 
         internal string Message { get; set; }
 
-        internal  DomDetails Details { get; set; }
+        internal DomDetails Details { get; set; }
     }
 
     internal class DomDetails

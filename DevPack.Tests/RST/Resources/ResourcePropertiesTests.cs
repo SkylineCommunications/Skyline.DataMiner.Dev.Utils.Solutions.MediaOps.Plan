@@ -143,7 +143,7 @@
                 Name = $"{prefix}_Resource",
             };
 
-            var resourceId  = objectCreator.CreateResource(unmanagedResource);
+            var resourceId = objectCreator.CreateResource(unmanagedResource);
             var resource = TestContext.Api.Resources.Read(resourceId);
 
             var invalidPeropertyId = Guid.NewGuid();

@@ -2,9 +2,9 @@
 {
     using System;
     using System.Net;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Helper;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using DMConnection = Skyline.DataMiner.Net.Connection;
 
     internal class Program

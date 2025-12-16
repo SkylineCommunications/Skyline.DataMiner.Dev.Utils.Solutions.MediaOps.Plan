@@ -3,19 +3,16 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Helper;
     using Skyline.DataMiner.Net.Messages;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Net.Profiles;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Utils.DOM.Extensions;
-
     using SLDataGateway.API.Types.Querying;
-
     using static Skyline.DataMiner.Net.Profiles.Parameter;
 
     /// <summary>

@@ -3,13 +3,11 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-
     using Microsoft.Extensions.Logging;
-
+    using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using SLDataGateway.API.Types.Querying;
-    using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
     internal class CapacitiesRepository : ProfileParameterRepository<Capacity>, ICapacitiesRepository
     {
@@ -251,6 +249,51 @@
                 var capacityIds = apiObjects.Select(x => x.Id);
                 act?.AddTag("CapacityIds", String.Join(", ", capacityIds));
             });
+        }
+
+        public IEnumerable<Capacity> Read(FilterElement<Capacity> filter)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<Capacity> Read(IQuery<Capacity> query)
+        {
+            throw new NotImplementedException();
+        }
+
+        public long Count(FilterElement<Capacity> filter)
+        {
+            throw new NotImplementedException();
+        }
+
+        public long Count(IQuery<Capacity> query)
+        {
+            throw new NotImplementedException();
+        }
+
+        IEnumerable<IPagedResult<Capacity>> IPageableRepository<Capacity>.ReadPaged()
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<Capacity>> ReadPaged(FilterElement<Capacity> filter)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<Capacity>> ReadPaged(IQuery<Capacity> query)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<Capacity>> ReadPaged(FilterElement<Capacity> filter, int pageSize)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<Capacity>> ReadPaged(IQuery<Capacity> query, int pageSize)
+        {
+            throw new NotImplementedException();
         }
     }
 }

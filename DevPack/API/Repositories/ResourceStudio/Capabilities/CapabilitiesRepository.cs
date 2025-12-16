@@ -3,13 +3,11 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-
     using Microsoft.Extensions.Logging;
-
+    using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using SLDataGateway.API.Types.Querying;
-    using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
     internal class CapabilitiesRepository : ProfileParameterRepository<Capability>, ICapabilitiesRepository
     {
@@ -91,34 +89,12 @@
 
         public IEnumerable<IPagedResult<Capability>> ReadPaged(FilterElement<Capability> filter)
         {
-            int pageSize = 500;
-            var pageNumber = 0;
-            var items = PlanApi.CoreHelpers.ProfileProvider.GetAllCapabilitiesPaged(filter, pageSize);
-            var enumerator = items.GetEnumerator();
-            var hasNext = enumerator.MoveNext();
-
-            while (hasNext)
-            {
-                var page = enumerator.Current;
-                hasNext = enumerator.MoveNext();
-                yield return new PagedResult<Capability>(page.Select(x => new Capability(x)), pageNumber++, pageSize, hasNext);
-            }
+            throw new NotImplementedException();
         }
 
         public IEnumerable<IPagedResult<Capability>> ReadPaged(IQuery<Capability> query)
         {
-            int pageSize = 500;
-            var pageNumber = 0;
-            var items = PlanApi.CoreHelpers.ProfileProvider.GetAllCapabilitiesPaged(query, pageSize);
-            var enumerator = items.GetEnumerator();
-            var hasNext = enumerator.MoveNext();
-
-            while (hasNext)
-            {
-                var page = enumerator.Current;
-                hasNext = enumerator.MoveNext();
-                yield return new PagedResult<Capability>(page.Select(x => new Capability(x)), pageNumber++, pageSize, hasNext);
-            }
+            throw new NotImplementedException();
         }
 
         public IEnumerable<IPagedResult<Capability>> ReadPaged(FilterElement<Capability> filter, int pageSize)

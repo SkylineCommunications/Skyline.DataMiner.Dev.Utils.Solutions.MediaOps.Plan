@@ -4,13 +4,13 @@
     using System.Collections.Generic;
     using System.Linq;
     using Microsoft.Extensions.Logging;
+    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+    using Skyline.DataMiner.Net.Messages.SLDataGateway;
+    using Skyline.DataMiner.Net.Sections;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using SLDataGateway.API.Types.Querying;
-    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
-    using Skyline.DataMiner.Net.Messages.SLDataGateway;
-    using Skyline.DataMiner.Net.Sections;
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
     internal class ResourcePoolsRepository : DomRepository<ResourcePool>, IResourcePoolsRepository
@@ -559,6 +559,41 @@
             {
                 throw new MediaOpsException(result.TraceDataPerItem[resourcePool.Id]);
             }
+        }
+
+        public IEnumerable<ResourcePool> Read(IQuery<ResourcePool> query)
+        {
+            throw new NotImplementedException();
+        }
+
+        public long Count(IQuery<ResourcePool> query)
+        {
+            throw new NotImplementedException();
+        }
+
+        IEnumerable<IPagedResult<ResourcePool>> IPageableRepository<ResourcePool>.ReadPaged()
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<ResourcePool>> ReadPaged(FilterElement<ResourcePool> filter)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<ResourcePool>> ReadPaged(IQuery<ResourcePool> query)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<ResourcePool>> ReadPaged(FilterElement<ResourcePool> filter, int pageSize)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<ResourcePool>> ReadPaged(IQuery<ResourcePool> query, int pageSize)
+        {
+            throw new NotImplementedException();
         }
     }
 }

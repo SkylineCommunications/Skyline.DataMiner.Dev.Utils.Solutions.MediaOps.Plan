@@ -690,5 +690,50 @@
                 act?.AddTag("ResourceIds", String.Join(", ", resourceIds));
             });
         }
+
+        public IEnumerable<Resource> Read(FilterElement<Resource> filter)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<Resource> Read(IQuery<Resource> query)
+        {
+            throw new NotImplementedException();
+        }
+
+        public long Count(FilterElement<Resource> filter)
+        {
+            throw new NotImplementedException();
+        }
+
+        public long Count(IQuery<Resource> query)
+        {
+            throw new NotImplementedException();
+        }
+
+        IEnumerable<IPagedResult<Resource>> IPageableRepository<Resource>.ReadPaged()
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<Resource>> ReadPaged(FilterElement<Resource> filter)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<Resource>> ReadPaged(IQuery<Resource> query)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<Resource>> ReadPaged(FilterElement<Resource> filter, int pageSize)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<Resource>> ReadPaged(IQuery<Resource> query, int pageSize)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

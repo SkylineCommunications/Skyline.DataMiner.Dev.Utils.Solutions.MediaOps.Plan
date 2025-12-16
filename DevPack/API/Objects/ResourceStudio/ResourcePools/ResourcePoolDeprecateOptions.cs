@@ -10,7 +10,7 @@
         /// Resources that are part of multiple resource pools will not be deprecated.
         /// </summary>
         /// <value><c>true</c> if resource deprecation is allowed; otherwise, <c>false</c>.</value>
-        public bool AllowResourceDeprecation  { get; set; } = false;
+        public bool AllowResourceDeprecation { get; set; } = false;
 
         internal static ResourcePoolDeprecateOptions GetDefaults()
         {

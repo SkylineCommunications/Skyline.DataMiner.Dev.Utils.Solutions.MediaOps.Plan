@@ -127,7 +127,7 @@
 
             try
             {
-                objectCreator.CreateResourcePools(new[] {resourcePool1, resourcePool2});
+                objectCreator.CreateResourcePools(new[] { resourcePool1, resourcePool2 });
             }
             catch (MediaOpsBulkException<Guid> ex)
             {

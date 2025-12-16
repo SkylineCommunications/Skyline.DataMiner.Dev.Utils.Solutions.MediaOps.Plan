@@ -4,9 +4,9 @@
     using System.Collections.Generic;
     using System.Linq;
     using Microsoft.Extensions.Logging;
+    using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
-    using Skyline.DataMiner.Net;
 
     internal class CoreConfigurationHandler : ApiObjectValidator<Guid>
     {

@@ -121,7 +121,7 @@
             Assert.AreEqual(2, resource.AssignedResourcePoolIds.Count);
             Assert.IsTrue(resource.AssignedResourcePoolIds.Contains(resourcePool1.Id));
             Assert.IsTrue(resource.AssignedResourcePoolIds.Contains(resourcePool2.Id));
-            
+
             // Set resource to complete
             TestContext.Api.Resources.MoveTo(resource.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
 

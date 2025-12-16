@@ -300,5 +300,50 @@
                 act?.AddTag("ConfigurationIds", String.Join(", ", configurationIds));
             });
         }
+
+        public IEnumerable<Configuration> Read(FilterElement<Configuration> filter)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<Configuration> Read(IQuery<Configuration> query)
+        {
+            throw new NotImplementedException();
+        }
+
+        public long Count(FilterElement<Configuration> filter)
+        {
+            throw new NotImplementedException();
+        }
+
+        public long Count(IQuery<Configuration> query)
+        {
+            throw new NotImplementedException();
+        }
+
+        IEnumerable<IPagedResult<Configuration>> IPageableRepository<Configuration>.ReadPaged()
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<Configuration>> ReadPaged(FilterElement<Configuration> filter)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<Configuration>> ReadPaged(IQuery<Configuration> query)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<Configuration>> ReadPaged(FilterElement<Configuration> filter, int pageSize)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<Configuration>> ReadPaged(IQuery<Configuration> query, int pageSize)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

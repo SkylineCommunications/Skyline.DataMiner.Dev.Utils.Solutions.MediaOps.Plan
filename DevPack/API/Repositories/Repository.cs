@@ -2,10 +2,8 @@
 {
     using System;
     using System.Collections.Generic;
-
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
-
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using SLDataGateway.API.Types.Querying;
 
     internal abstract class Repository<T, TFilterElement>

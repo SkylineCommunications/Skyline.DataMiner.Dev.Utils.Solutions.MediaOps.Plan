@@ -3,15 +3,12 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-
     using Microsoft.Extensions.Logging;
-
+    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+    using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using SLDataGateway.API.Types.Querying;
-    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
-    using Skyline.DataMiner.Net.Messages.SLDataGateway;
-
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
     internal class ResourcePropertiesRepository : DomRepository<ResourceProperty>, IResourcePropertiesRepository
@@ -267,6 +264,51 @@
                 var resourceIds = result.SuccessfulIds;
                 act?.AddTag("ResourcePropertyIds", String.Join(", ", resourceIds));
             });
+        }
+
+        public IEnumerable<ResourceProperty> Read(FilterElement<ResourceProperty> filter)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<ResourceProperty> Read(IQuery<ResourceProperty> query)
+        {
+            throw new NotImplementedException();
+        }
+
+        public long Count(FilterElement<ResourceProperty> filter)
+        {
+            throw new NotImplementedException();
+        }
+
+        public long Count(IQuery<ResourceProperty> query)
+        {
+            throw new NotImplementedException();
+        }
+
+        IEnumerable<IPagedResult<ResourceProperty>> IPageableRepository<ResourceProperty>.ReadPaged()
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<ResourceProperty>> ReadPaged(FilterElement<ResourceProperty> filter)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<ResourceProperty>> ReadPaged(IQuery<ResourceProperty> query)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<ResourceProperty>> ReadPaged(FilterElement<ResourceProperty> filter, int pageSize)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IPagedResult<ResourceProperty>> ReadPaged(IQuery<ResourceProperty> query, int pageSize)
+        {
+            throw new NotImplementedException();
         }
     }
 }

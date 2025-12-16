@@ -2,8 +2,8 @@
 {
     using System;
     using Microsoft.Extensions.Logging;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using Skyline.DataMiner.Scripting;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 
     /// <summary>
     /// Defines extension methods on the <see cref="SLProtocolExtensions"/> class.

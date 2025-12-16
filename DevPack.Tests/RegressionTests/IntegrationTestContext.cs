@@ -1,19 +1,16 @@
 ﻿namespace RT_MediaOps.Plan.RegressionTests
 {
     using System.Net;
-
+    using System.Reflection;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
-
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages;
     using Skyline.DataMiner.Net.Profiles;
-
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using DMConnection = Skyline.DataMiner.Net.Connection;
-    using System.Reflection;
 
     public sealed class IntegrationTestContext : IDisposable
     {
