@@ -466,7 +466,7 @@
             var prefix = Guid.NewGuid();
 
             var capacity1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity()
-                            {
+            {
                 Name = $"{prefix}_Capacity1",
                 rangeMin = 10,
                 rangeMax = 20,

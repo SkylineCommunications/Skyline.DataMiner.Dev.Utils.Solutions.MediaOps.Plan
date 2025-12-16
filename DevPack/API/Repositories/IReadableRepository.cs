@@ -2,25 +2,20 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.Linq;
+    using Skyline.DataMiner.Net.Messages.SLDataGateway;
+    using SLDataGateway.API.Types.Querying;
 
     /// <summary>
     /// Defines methods to read API objects from a data source.
     /// </summary>
     /// <typeparam name="T">The type of API object.</typeparam>
-    public interface IReaderRepository<T> where T : ApiObject
+    public interface IReadableRepository<T> where T : ApiObject
     {
         /// <summary>
         /// Reads all API objects.
         /// </summary>
         /// <returns>An enumerable collection of all API objects.</returns>
-        IEnumerable<T> ReadAll();
-
-        /// <summary>
-        /// Reads all API objects in pages.
-        /// </summary>
-        /// <returns>An enumerable collection of pages, where each page is an enumerable collection of API objects.</returns>
-        IEnumerable<IEnumerable<T>> ReadAllPaged();
+        IEnumerable<T> Read();
 
         /// <summary>
         /// Reads a single API object by its unique identifier.
@@ -37,15 +32,17 @@
         IDictionary<Guid, T> Read(IEnumerable<Guid> ids);
 
         /// <summary>
-        /// Returns an <see cref="IQueryable{T}"/> that can be used to build LINQ queries against the API objects.
+        /// Reads API objects that match the specified filter.
         /// </summary>
-        /// <returns>An <see cref="IQueryable{T}"/> for querying API objects.</returns>
-        IQueryable<T> Query();
+        /// <param name="filter">The filter criteria to apply when reading objects.</param>
+        /// <returns>An enumerable collection of API objects matching the filter.</returns>
+        IEnumerable<T> Read(FilterElement<T> filter);
 
         /// <summary>
-        /// Gets the total number of API objects in the repository.
+        /// Reads API objects that match the specified query.
         /// </summary>
-        /// <returns>The total count of API objects.</returns>
-        long CountAll();
+        /// <param name="query">The query criteria to apply when reading objects.</param>
+        /// <returns>An enumerable collection of API objects matching the query.</returns>
+        IEnumerable<T> Read(IQuery<T> query);
     }
 }

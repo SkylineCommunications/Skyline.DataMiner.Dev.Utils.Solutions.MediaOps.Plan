@@ -4,11 +4,10 @@
     using System.Collections.Generic;
     using System.Linq;
     using Microsoft.Extensions.Logging;
+    using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
-    using Skyline.DataMiner.Net.Messages.SLDataGateway;
-
     using CoreResourcePool = Net.Messages.ResourcePool;
     using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
 

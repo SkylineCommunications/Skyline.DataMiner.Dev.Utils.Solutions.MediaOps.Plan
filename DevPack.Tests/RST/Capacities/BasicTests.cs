@@ -2,11 +2,9 @@
 {
     using System;
     using System.Linq;
-
     using RT_MediaOps.Plan.RegressionTests;
-
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
     [TestClass]
     [TestCategory("IntegrationTest")]

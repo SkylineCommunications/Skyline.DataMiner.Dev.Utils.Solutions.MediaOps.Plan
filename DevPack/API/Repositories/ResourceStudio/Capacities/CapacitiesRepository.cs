@@ -3,141 +3,64 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-
     using Microsoft.Extensions.Logging;
-
+    using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using SLDataGateway.API.Types.Querying;
-    using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
-    internal class CapacitiesRepository : ProfileParameterRepository<Capacity>, ICapacitiesRepository
+    /// <summary>
+    /// Provides repository operations for managing <see cref="Capacity"/> objects.
+    /// </summary>
+    internal class CapacitiesRepository : Repository, ICapacitiesRepository
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CapacitiesRepository"/> class.
+        /// </summary>
+        /// <param name="planApi">The MediaOps Plan API instance.</param>
         public CapacitiesRepository(MediaOpsPlanApi planApi) : base(planApi)
         {
         }
 
-        public long CountAll()
+        /// <summary>
+        /// Gets the total number of capacities in the repository.
+        /// </summary>
+        /// <returns>The total count of capacities.</returns>
+        public long Count()
         {
             return PlanApi.CoreHelpers.ProfileProvider.CountAllCapacities();
         }
 
-        public IQueryable<Capacity> Query()
+        /// <summary>
+        /// Gets the number of capacities that match the specified filter.
+        /// </summary>
+        /// <param name="filter">The filter criteria to apply when counting capacities.</param>
+        /// <returns>The count of capacities matching the filter.</returns>
+        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
+        public long Count(FilterElement<Capacity> filter)
         {
-            return new ApiRepositoryQuery<Capacity, Net.Profiles.Parameter>(QueryProvider);
+            throw new NotImplementedException();
         }
 
-        public Capacity Read(Guid id)
+        /// <summary>
+        /// Gets the number of capacities that match the specified query.
+        /// </summary>
+        /// <param name="query">The query criteria to apply when counting capacities.</param>
+        /// <returns>The count of capacities matching the query.</returns>
+        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
+        public long Count(IQuery<Capacity> query)
         {
-            PlanApi.Logger.LogInformation($"Reading Capacity with ID: {id}...");
-
-            if (id == Guid.Empty)
-            {
-                throw new ArgumentException(nameof(id));
-            }
-
-            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Read), act =>
-            {
-                act?.AddTag("CapacityId", id);
-                var coreCapacity = PlanApi.CoreHelpers.ProfileProvider.GetCapacityById(id);
-
-                if (coreCapacity == null)
-                {
-                    act?.AddTag("Hit", false);
-                    return null;
-                }
-
-                act?.AddTag("Hit", true);
-                return Capacity.InstantiateCapacities([coreCapacity]).FirstOrDefault();
-            });
+            throw new NotImplementedException();
         }
 
-        public IDictionary<Guid, Capacity> Read(IEnumerable<Guid> ids)
-        {
-            if (ids == null)
-            {
-                throw new ArgumentNullException(nameof(ids));
-            }
-
-            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Read), act =>
-            {
-                act?.AddTag("CapacityIds", String.Join(", ", ids));
-                act?.AddTag("CapacityIds Count", ids.Count());
-
-                var capacities = PlanApi.CoreHelpers.ProfileProvider.GetCapacitiesById(ids);
-                return Capacity.InstantiateCapacities(capacities).ToDictionary(x => x.Id);
-            });
-        }
-
-        public IEnumerable<Capacity> ReadAll()
-        {
-            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(ReadAll), act =>
-            {
-                return Capacity.InstantiateCapacities(PlanApi.CoreHelpers.ProfileProvider.GetAllCapacities());
-            });
-        }
-
-        public IEnumerable<IEnumerable<Capacity>> ReadAllPaged()
-        {
-            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(ReadAllPaged), act =>
-            {
-                return PlanApi.CoreHelpers.ProfileProvider.GetAllCapacitiesPaged().Select(page => Capacity.InstantiateCapacities(page));
-            });
-        }
-
-        internal override long Count(FilterElement<Net.Profiles.Parameter> filter)
-        {
-            return PlanApi.CoreHelpers.ProfileProvider.CountCapacities(filter);
-        }
-
-        internal override IEnumerable<Capacity> Read(IQuery<Net.Profiles.Parameter> query)
-        {
-            if (query == null)
-            {
-                throw new ArgumentNullException(nameof(query));
-            }
-
-            return Capacity.InstantiateCapacities(PlanApi.CoreHelpers.ProfileProvider.GetCapacities(query));
-        }
-
-        protected internal override FilterElement<Net.Profiles.Parameter> CreateFilter(string fieldName, Comparer comparer, object value)
-        {
-            switch (fieldName)
-            {
-                case nameof(Capacity.Units):
-                    return FilterElementFactory<Net.Profiles.Parameter>.Create(Net.Profiles.ParameterExposers.Units, comparer, value);
-                case nameof(Capacity.RangeMin):
-                    return FilterElementFactory<Net.Profiles.Parameter>.Create(Net.Profiles.ParameterExposers.RangeMin, comparer, Convert.ToDouble(value));
-                case nameof(Capacity.RangeMax):
-                    return FilterElementFactory<Net.Profiles.Parameter>.Create(Net.Profiles.ParameterExposers.RangeMax, comparer, Convert.ToDouble(value));
-                case nameof(Capacity.StepSize):
-                    return FilterElementFactory<Net.Profiles.Parameter>.Create(Net.Profiles.ParameterExposers.Stepsize, comparer, Convert.ToDouble(value));
-                case nameof(Capacity.Decimals):
-                    return FilterElementFactory<Net.Profiles.Parameter>.Create(Net.Profiles.ParameterExposers.Decimals, comparer, value);
-            }
-
-            return base.CreateFilter(fieldName, comparer, value);
-        }
-
-        protected internal override IOrderByElement CreateOrderBy(string fieldName, SortOrder sortOrder, bool naturalSort = false)
-        {
-            switch (fieldName)
-            {
-                case nameof(Capacity.Units):
-                    return OrderByElementFactory.Create(Net.Profiles.ParameterExposers.Units, sortOrder, naturalSort);
-                case nameof(Capacity.RangeMin):
-                    return OrderByElementFactory.Create(Net.Profiles.ParameterExposers.RangeMin, sortOrder, naturalSort);
-                case nameof(Capacity.RangeMax):
-                    return OrderByElementFactory.Create(Net.Profiles.ParameterExposers.RangeMax, sortOrder, naturalSort);
-                case nameof(Capacity.StepSize):
-                    return OrderByElementFactory.Create(Net.Profiles.ParameterExposers.Stepsize, sortOrder, naturalSort);
-                case nameof(Capacity.Decimals):
-                    return OrderByElementFactory.Create(Net.Profiles.ParameterExposers.Decimals, sortOrder, naturalSort);
-            }
-
-            return base.CreateOrderBy(fieldName, sortOrder, naturalSort);
-        }
-
+        /// <summary>
+        /// Creates a new capacity in the repository.
+        /// </summary>
+        /// <param name="apiObject">The capacity to create.</param>
+        /// <returns>The unique identifier of the created capacity.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when attempting to create an existing capacity.</exception>
+        /// <exception cref="MediaOpsException">Thrown when the creation operation fails.</exception>
         public Guid Create(Capacity apiObject)
         {
             PlanApi.Logger.LogInformation("Creating new Capacity...");
@@ -166,6 +89,14 @@
             });
         }
 
+        /// <summary>
+        /// Creates multiple new capacities in the repository.
+        /// </summary>
+        /// <param name="apiObjects">The collection of capacities to create.</param>
+        /// <returns>A collection of unique identifiers for the created capacities.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when attempting to create existing capacities.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk creation operation fails.</exception>
         public IEnumerable<Guid> Create(IEnumerable<Capacity> apiObjects)
         {
             if (apiObjects == null)
@@ -192,6 +123,13 @@
             });
         }
 
+        /// <summary>
+        /// Creates new capacities or updates existing ones in the repository.
+        /// </summary>
+        /// <param name="apiObjects">The collection of capacities to create or update.</param>
+        /// <returns>A collection of unique identifiers for the created or updated capacities.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk operation fails.</exception>
         public IEnumerable<Guid> CreateOrUpdate(IEnumerable<Capacity> apiObjects)
         {
             if (apiObjects == null)
@@ -214,6 +152,11 @@
             });
         }
 
+        /// <summary>
+        /// Deletes the specified capacities from the repository.
+        /// </summary>
+        /// <param name="apiObjects">The capacities to delete.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         public void Delete(params Capacity[] apiObjects)
         {
             if (apiObjects == null)
@@ -224,6 +167,12 @@
             Delete(apiObjects.Select(x => x.Id).ToArray());
         }
 
+        /// <summary>
+        /// Deletes capacities with the specified identifiers from the repository.
+        /// </summary>
+        /// <param name="apiObjectIds">The unique identifiers of the capacities to delete.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjectIds"/> is <c>null</c>.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk deletion operation fails.</exception>
         public void Delete(params Guid[] apiObjectIds)
         {
             if (apiObjectIds == null)
@@ -246,6 +195,169 @@
             });
         }
 
+        /// <summary>
+        /// Reads a single capacity by its unique identifier.
+        /// </summary>
+        /// <param name="id">The unique identifier of the capacity.</param>
+        /// <returns>The capacity with the specified identifier, or <c>null</c> if not found.</returns>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="id"/> is <see cref="Guid.Empty"/>.</exception>
+        public Capacity Read(Guid id)
+        {
+            PlanApi.Logger.LogInformation($"Reading Capacity with ID: {id}...");
+
+            if (id == Guid.Empty)
+            {
+                throw new ArgumentException(nameof(id));
+            }
+
+            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Read), act =>
+            {
+                act?.AddTag("CapacityId", id);
+                var coreCapacity = PlanApi.CoreHelpers.ProfileProvider.GetCapacityById(id);
+
+                if (coreCapacity == null)
+                {
+                    act?.AddTag("Hit", false);
+                    return null;
+                }
+
+                act?.AddTag("Hit", true);
+                return Capacity.InstantiateCapacities([coreCapacity]).FirstOrDefault();
+            });
+        }
+
+        /// <summary>
+        /// Reads multiple capacities by their unique identifiers.
+        /// </summary>
+        /// <param name="ids">A collection of unique identifiers.</param>
+        /// <returns>A dictionary mapping each identifier to its corresponding capacity.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="ids"/> is <c>null</c>.</exception>
+        public IDictionary<Guid, Capacity> Read(IEnumerable<Guid> ids)
+        {
+            if (ids == null)
+            {
+                throw new ArgumentNullException(nameof(ids));
+            }
+
+            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Read), act =>
+            {
+                act?.AddTag("CapacityIds", String.Join(", ", ids));
+                act?.AddTag("CapacityIds Count", ids.Count());
+
+                var capacities = PlanApi.CoreHelpers.ProfileProvider.GetCapacitiesById(ids);
+                return Capacity.InstantiateCapacities(capacities).ToDictionary(x => x.Id);
+            });
+        }
+
+        /// <summary>
+        /// Reads all capacities from the repository.
+        /// </summary>
+        /// <returns>An enumerable collection of all capacities.</returns>
+        public IEnumerable<Capacity> Read()
+        {
+            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Read), act =>
+            {
+                return Capacity.InstantiateCapacities(PlanApi.CoreHelpers.ProfileProvider.GetAllCapacities());
+            });
+        }
+
+        /// <summary>
+        /// Reads capacities that match the specified filter.
+        /// </summary>
+        /// <param name="filter">The filter criteria to apply when reading capacities.</param>
+        /// <returns>An enumerable collection of capacities matching the filter.</returns>
+        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
+        public IEnumerable<Capacity> Read(FilterElement<Capacity> filter)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Reads capacities that match the specified query.
+        /// </summary>
+        /// <param name="query">The query criteria to apply when reading capacities.</param>
+        /// <returns>An enumerable collection of capacities matching the query.</returns>
+        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
+        public IEnumerable<Capacity> Read(IQuery<Capacity> query)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Reads all capacities in pages.
+        /// </summary>
+        /// <returns>An enumerable collection of pages, where each page contains a collection of capacities.</returns>
+        public IEnumerable<IEnumerable<Capacity>> ReadPaged()
+        {
+            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(ReadPaged), act =>
+            {
+                return PlanApi.CoreHelpers.ProfileProvider.GetAllCapacitiesPaged().Select(page => Capacity.InstantiateCapacities(page));
+            });
+        }
+
+        /// <summary>
+        /// Reads all capacities in pages.
+        /// </summary>
+        /// <returns>An enumerable collection of pages, where each page contains a collection of capacities.</returns>
+        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
+        IEnumerable<IPagedResult<Capacity>> IPageableRepository<Capacity>.ReadPaged()
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Reads capacities that match the specified filter in pages.
+        /// </summary>
+        /// <param name="filter">The filter criteria to apply when reading capacities.</param>
+        /// <returns>An enumerable collection of pages, where each page contains capacities matching the filter.</returns>
+        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
+        public IEnumerable<IPagedResult<Capacity>> ReadPaged(FilterElement<Capacity> filter)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Reads capacities that match the specified query in pages.
+        /// </summary>
+        /// <param name="query">The query criteria to apply when reading capacities.</param>
+        /// <returns>An enumerable collection of pages, where each page contains capacities matching the query.</returns>
+        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
+        public IEnumerable<IPagedResult<Capacity>> ReadPaged(IQuery<Capacity> query)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Reads capacities that match the specified filter in pages with a custom page size.
+        /// </summary>
+        /// <param name="filter">The filter criteria to apply when reading capacities.</param>
+        /// <param name="pageSize">The number of items per page.</param>
+        /// <returns>An enumerable collection of pages, where each page contains up to the specified number of capacities matching the filter.</returns>
+        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
+        public IEnumerable<IPagedResult<Capacity>> ReadPaged(FilterElement<Capacity> filter, int pageSize)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Reads capacities that match the specified query in pages with a custom page size.
+        /// </summary>
+        /// <param name="query">The query criteria to apply when reading capacities.</param>
+        /// <param name="pageSize">The number of items per page.</param>
+        /// <returns>An enumerable collection of pages, where each page contains up to the specified number of capacities matching the query.</returns>
+        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
+        public IEnumerable<IPagedResult<Capacity>> ReadPaged(IQuery<Capacity> query, int pageSize)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Updates an existing capacity in the repository.
+        /// </summary>
+        /// <param name="apiObject">The capacity to update.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when attempting to update a new capacity that doesn't exist yet.</exception>
+        /// <exception cref="MediaOpsException">Thrown when the update operation fails.</exception>
         public void Update(Capacity apiObject)
         {
             if (apiObject == null)
@@ -272,6 +384,13 @@
             });
         }
 
+        /// <summary>
+        /// Updates multiple existing capacities in the repository.
+        /// </summary>
+        /// <param name="apiObjects">The collection of capacities to update.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when attempting to update new capacities that don't exist yet.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk update operation fails.</exception>
         public void Update(IEnumerable<Capacity> apiObjects)
         {
             if (apiObjects == null)

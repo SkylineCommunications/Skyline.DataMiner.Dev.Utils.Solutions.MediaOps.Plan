@@ -3,19 +3,16 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Helper;
     using Skyline.DataMiner.Net.Messages;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Net.Profiles;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Utils.DOM.Extensions;
-
     using SLDataGateway.API.Types.Querying;
-
     using static Skyline.DataMiner.Net.Profiles.Parameter;
 
     /// <summary>
@@ -374,13 +371,19 @@
         /// Retrieves all capability parameters.
         /// </summary>
         /// <returns>A collection of capability parameters.</returns>
-        public IEnumerable<IEnumerable<Net.Profiles.Parameter>> GetAllCapabilitiesPaged(long? pageSize = null)
+        public IEnumerable<IEnumerable<Net.Profiles.Parameter>> GetAllCapabilitiesPaged(long pageSize = 500)
         {
-            var pages = pageSize.HasValue
-                ? profileHelper.ProfileParameters.ReadPaged(AllCapabilitiesFilter, pageSize.Value)
-                : profileHelper.ProfileParameters.ReadPaged(AllCapabilitiesFilter);
+            return profileHelper.ProfileParameters.ReadPaged(AllCapabilitiesFilter, pageSize);
+        }
 
-            return pages;
+        public IEnumerable<IEnumerable<Net.Profiles.Parameter>> GetAllCapabilitiesPaged(IQuery<Net.Profiles.Parameter> query, long pageSize = 500)
+        {
+            return profileHelper.ProfileParameters.ReadPaged(AllCapabilitiesFilter.AND(query.Filter), pageSize);
+        }
+
+        public IEnumerable<IEnumerable<Net.Profiles.Parameter>> GetAllCapabilitiesPaged(FilterElement<Net.Profiles.Parameter> filter, long pageSize = 500)
+        {
+            return profileHelper.ProfileParameters.ReadPaged(AllCapabilitiesFilter.AND(filter), pageSize);
         }
 
         public IEnumerable<Net.Profiles.Parameter> GetCapabilities(IQuery<Net.Profiles.Parameter> query)
@@ -390,6 +393,14 @@
 
             query = query.WithFilter(AllCapabilitiesFilter.AND(query.Filter));
             return profileHelper.ProfileParameters.Read(query);
+        }
+
+        public IEnumerable<Net.Profiles.Parameter> GetCapabilities(FilterElement<Net.Profiles.Parameter> filter)
+        {
+            if (filter == null)
+                throw new ArgumentNullException(nameof(filter));
+
+            return profileHelper.ProfileParameters.Read(AllCapabilitiesFilter.AND(filter));
         }
 
         public long CountAllCapabilities()

@@ -1,42 +1,35 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
     using System;
-    using System.Collections.Generic;
-
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-    using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
-    using SLDataGateway.API.Types.Querying;
-
-    internal abstract class Repository<T, TFilterElement>
-        where T : ApiObject
-        where TFilterElement : DataType
+    /// <summary>
+    /// Provides the base implementation for repository operations on API objects.
+    /// </summary>
+    internal abstract class Repository
     {
         private readonly MediaOpsPlanApi planApi;
 
         private readonly MediaOpsTraceData traceData = new MediaOpsTraceData();
-        private readonly ApiRepositoryQueryProvider<T, TFilterElement> _queryProvider;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Repository"/> class.
+        /// </summary>
+        /// <param name="planApi">The MediaOps Plan API instance.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="planApi"/> is <c>null</c>.</exception>
         protected Repository(MediaOpsPlanApi planApi)
         {
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
-            _queryProvider = new ApiRepositoryQueryProvider<T, TFilterElement>(this);
         }
 
+        /// <summary>
+        /// Gets the MediaOps Plan API instance associated with this repository.
+        /// </summary>
         public MediaOpsPlanApi PlanApi => planApi;
 
+        /// <summary>
+        /// Gets the trace data for operations performed by this repository.
+        /// </summary>
         public MediaOpsTraceData TraceData => traceData;
-
-        protected internal ApiRepositoryQueryProvider<T, TFilterElement> QueryProvider => _queryProvider;
-
-        protected internal abstract FilterElement<TFilterElement> CreateFilter(string fieldName, Comparer comparer, object value);
-
-        protected internal abstract FilterElement<TFilterElement> CreateFilter(Type type, Comparer comparer);
-
-        protected internal abstract IOrderByElement CreateOrderBy(string fieldName, SortOrder sortOrder, bool naturalSort = false);
-
-        internal abstract IEnumerable<T> Read(IQuery<TFilterElement> query);
-
-        internal abstract long Count(FilterElement<TFilterElement> filter);
     }
 }
