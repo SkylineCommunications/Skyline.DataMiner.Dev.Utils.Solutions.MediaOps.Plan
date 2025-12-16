@@ -301,6 +301,28 @@
             throw new NotImplementedException();
         }
 
+        internal override IEnumerable<Resource> Read(IQuery<DomInstance> query)
+        {
+            if (query == null)
+            {
+                throw new ArgumentNullException(nameof(query));
+            }
+
+            var domFilter = AddDomDefinitionFilter(query.Filter, SlcResource_StudioIds.Definitions.Resource);
+
+            query = query.WithFilter(domFilter);
+
+            var domInstances = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(query);
+
+            return Resource.InstantiateResources(PlanApi, domInstances);
+        }
+
+        internal override long Count(FilterElement<DomInstance> domFilter)
+        {
+            return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(
+                DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resource.Id).AND(domFilter));
+        }
+
         public ElementResource ConvertToElementResource(Resource resource, ResourceElementLinkConfiguration configuration)
         {
             if (resource.State != ResourceState.Draft)

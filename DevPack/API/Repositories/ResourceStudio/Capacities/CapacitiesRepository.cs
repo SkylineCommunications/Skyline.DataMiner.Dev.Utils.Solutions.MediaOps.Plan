@@ -78,6 +78,21 @@
             });
         }
 
+        internal override long Count(FilterElement<Net.Profiles.Parameter> filter)
+        {
+            return PlanApi.CoreHelpers.ProfileProvider.CountCapacities(filter);
+        }
+
+        internal override IEnumerable<Capacity> Read(IQuery<Net.Profiles.Parameter> query)
+        {
+            if (query == null)
+            {
+                throw new ArgumentNullException(nameof(query));
+            }
+
+            return Capacity.InstantiateCapacities(PlanApi.CoreHelpers.ProfileProvider.GetCapacities(query));
+        }
+
         public Guid Create(Capacity apiObject)
         {
             PlanApi.Logger.LogInformation("Creating new Capacity...");

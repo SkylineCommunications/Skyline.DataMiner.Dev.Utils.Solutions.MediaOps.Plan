@@ -107,6 +107,21 @@
             throw new NotImplementedException();
         }
 
+        internal override long Count(FilterElement<Net.Profiles.Parameter> filter)
+        {
+            return PlanApi.CoreHelpers.ProfileProvider.CountCapabilities(filter);
+        }
+
+        internal override IEnumerable<Capability> Read(IQuery<Net.Profiles.Parameter> query)
+        {
+            if (query == null)
+            {
+                throw new ArgumentNullException(nameof(query));
+            }
+
+            return PlanApi.CoreHelpers.ProfileProvider.GetCapabilities(query).Select(x => new Capability(x));
+        }
+
         public Guid Create(Capability apiObject)
         {
             PlanApi.Logger.LogInformation("Creating new Capability...");
