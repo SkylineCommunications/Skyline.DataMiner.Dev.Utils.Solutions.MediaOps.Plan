@@ -3,17 +3,14 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-
     using Microsoft.Extensions.Logging;
-
+    using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
-    using Skyline.DataMiner.Net;
-
     using CoreParameter = Net.Profiles.Parameter;
 
-    internal class CoreCapabilityHandler : ApiObjectValidator<Guid>
+    internal class CoreCapabilityHandler : ApiObjectValidator
     {
         private readonly MediaOpsPlanApi planApi;
 
@@ -73,6 +70,16 @@
             ValidateDiscretes(apiCapabilities);
             ValidateTimeDependency(toUpdate);
 
+            var validCapabilities = apiCapabilities.Where(IsValid).ToList();
+            var lockResult = planApi.LockManager.LockAndExecute(validCapabilities, CreateOrUpdateCoreCapabilities);
+            ReportError(lockResult);
+        }
+
+        private void CreateOrUpdateCoreCapabilities(ICollection<Capability> capabilities)
+        {
+            var toCreate = capabilities.Where(x => x.IsNew).ToList();
+            var toUpdate = capabilities.Except(toCreate).ToList();
+
             List<CoreParameter> coreParametersToCreate = new List<CoreParameter>();
             foreach (var capabilityToCreate in toCreate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)))
             {
@@ -89,14 +96,13 @@
             }
 
             var coreParametersToUpdate = toUpdate
-                .Where(x => !TraceDataPerItem.Keys.Contains(x.Id))
                 .Select(x => CreateOrUpdateCoreParameter(x, null))
                 .ToList();
 
-            CreateOrUpdate(coreParametersToCreate.Concat(coreParametersToUpdate));
+            CreateOrUpdateCoreParameters(coreParametersToCreate.Concat(coreParametersToUpdate));
         }
 
-        private void CreateOrUpdate(IEnumerable<CoreParameter> coreParameters)
+        private void CreateOrUpdateCoreParameters(IEnumerable<CoreParameter> coreParameters)
         {
             if (coreParameters == null)
             {
@@ -164,8 +170,13 @@
                 ReportError(x.Id, error);
             });
 
-            var capabilitiesToDelete = apiCapabilities.Except(newCapabilities).ToList();
+            var validCapabilities = apiCapabilities.Where(IsValid).ToList();
+            var lockResult = planApi.LockManager.LockAndExecute(validCapabilities, DeleteCoreCapabilities);
+            ReportError(lockResult);
+        }
 
+        private void DeleteCoreCapabilities(ICollection<Capability> capabilitiesToDelete)
+        {
             var coreCapabilitiesToDelete = capabilitiesToDelete.Select(x => x.CoreParameter).ToList();
 
             var linkedTimeDependentCapabilityIds = capabilitiesToDelete.Where(x => x.IsTimeDependent).Select(x => x.LinkedTimeDependentCapabilityId);

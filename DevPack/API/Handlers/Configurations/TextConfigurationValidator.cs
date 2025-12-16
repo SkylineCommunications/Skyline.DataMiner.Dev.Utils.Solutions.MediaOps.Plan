@@ -3,7 +3,7 @@
     using System;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
-    internal class TextConfigurationValidator : ApiObjectValidator<Guid>
+    internal class TextConfigurationValidator : ApiObjectValidator
     {
         private readonly TextConfiguration textConfiguration;
 

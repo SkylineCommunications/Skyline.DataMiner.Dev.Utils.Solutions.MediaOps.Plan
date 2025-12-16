@@ -529,6 +529,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
 
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 
     /// <summary>
     /// Represents a wrapper class for accessing a ResourcepropertyInstance DOM instance.

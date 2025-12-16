@@ -3,7 +3,7 @@
     using System;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
-    internal class NumberConfigurationValidator : ApiObjectValidator<Guid>
+    internal class NumberConfigurationValidator : ApiObjectValidator
     {
         private readonly NumberConfiguration numberConfiguration;
 

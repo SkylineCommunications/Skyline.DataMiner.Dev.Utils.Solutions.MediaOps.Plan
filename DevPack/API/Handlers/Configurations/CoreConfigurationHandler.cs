@@ -10,7 +10,7 @@
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
 
-    internal class CoreConfigurationHandler : ApiObjectValidator<Guid>
+    internal class CoreConfigurationHandler : ApiObjectValidator
     {
         private readonly MediaOpsPlanApi planApi;
 
@@ -73,8 +73,16 @@
             ValidateDiscreteTextConfigurations(apiConfigurations.OfType<DiscreteTextConfiguration>());
             ValidateDiscreteNumberConfigurations(apiConfigurations.OfType<DiscreteNumberConfiguration>());
 
+            var validConfigurations = apiConfigurations.Where(IsValid).ToList();
+
+            var result = planApi.LockManager.LockAndExecute(validConfigurations, CreateOrUpdateCoreConfigurations);
+            ReportError(result);
+        }
+
+        private void CreateOrUpdateCoreConfigurations(ICollection<Configuration> configurations)
+        {
             List<Net.Profiles.Parameter> coreParameters = new List<Net.Profiles.Parameter>();
-            foreach (var configurationToAddOrUpdate in apiConfigurations.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)))
+            foreach (var configurationToAddOrUpdate in configurations.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)))
             {
                 if (!TryGetParameterWithChanges(configurationToAddOrUpdate, out var coreParameter))
                 {
@@ -84,22 +92,7 @@
                 coreParameters.Add(coreParameter);
             }
 
-            CreateOrUpdate(coreParameters);
-        }
-
-        private void CreateOrUpdate(IEnumerable<Net.Profiles.Parameter> coreConfigurations)
-        {
-            if (coreConfigurations == null)
-            {
-                throw new ArgumentNullException(nameof(coreConfigurations));
-            }
-
-            if (!coreConfigurations.Any())
-            {
-                return;
-            }
-
-            planApi.CoreHelpers.ProfileProvider.TryCreateOrUpdateParametersInBatches(coreConfigurations, out var result);
+            planApi.CoreHelpers.ProfileProvider.TryCreateOrUpdateParametersInBatches(coreParameters, out var result);
 
             foreach (var id in result.UnsuccessfulIds)
             {
@@ -137,9 +130,14 @@
                 ReportError(configuration.Id, error);
             }
 
-            var coreConfigurationsToRemove = apiConfigurations
-                .Where(x => !TraceDataPerItem.Keys.Contains(x.Id))
-                .Select(x => x.CoreParameter);
+            var validConfigurations = apiConfigurations.Where(IsValid).ToList();
+            var lockResult = planApi.LockManager.LockAndExecute(validConfigurations, DeleteCoreConfigurations);
+            ReportError(lockResult);
+        }
+
+        private void DeleteCoreConfigurations(ICollection<Configuration> configurations)
+        {
+            var coreConfigurationsToRemove = configurations.Select(x => x.CoreParameter);
             planApi.CoreHelpers.ProfileProvider.TryDeleteParametersInBatches(coreConfigurationsToRemove, out var result);
 
             foreach (var id in result.UnsuccessfulIds)

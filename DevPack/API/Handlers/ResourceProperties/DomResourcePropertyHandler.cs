@@ -3,20 +3,17 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-
     using Microsoft.Extensions.Logging;
-
+    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+    using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
-    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
-    using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Utils.DOM.Extensions;
-
     using DomResourceProperty = Storage.DOM.SlcResource_Studio.ResourcepropertyInstance;
 
-    internal class DomResourcePropertyHandler : ApiObjectValidator<Guid>
+    internal class DomResourcePropertyHandler : ApiObjectValidator
     {
         private readonly MediaOpsPlanApi planApi;
 
@@ -94,28 +91,47 @@
             }
 
             ValidateIdsNotInUse(toCreate);
+            ValidateNames(apiResourceProperties);
 
-            // Todo: lock DOM instances
-            var changeResults = GetPropertiesWithChanges(toUpdate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)));
+            var validResourceProperties = apiResourceProperties.Where(IsValid).ToList();
+            var lockResult = planApi.LockManager.LockAndExecute(validResourceProperties, CreateOrUpdateCoreResourceProperties);
+            ReportError(lockResult);
+        }
 
-            var toCreateNameValidation = toCreate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id));
-            var toUpdateNameValidation = toUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcResource_StudioIds.Sections.PropertyInfo.PropertyName.Id)));
-            ValidateNames(toCreateNameValidation.Concat(toUpdateNameValidation));
+        private void CreateOrUpdateCoreResourceProperties(ICollection<ResourceProperty> validResourceProperties)
+        {
+            if (validResourceProperties == null)
+            {
+                throw new ArgumentNullException(nameof(validResourceProperties));
+            }
 
-            var toCreateDomInstances = toCreate
-                .Where(x => !TraceDataPerItem.Keys.Contains(x.Id))
+            if (validResourceProperties.Any(x => !IsValid(x)))
+            {
+                throw new ArgumentException($"Not all provided resource properties are valid", nameof(validResourceProperties));
+            }
+
+            var resourcePropertiesToCreate = validResourceProperties.Where(x => x.IsNew).ToList();
+            var resourcePropertiesToUpdate = validResourceProperties.Except(resourcePropertiesToCreate).ToList();
+
+            var changeResults = GetPropertiesWithChanges(resourcePropertiesToUpdate);
+
+            var toUpdateNameValidation = resourcePropertiesToUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcResource_StudioIds.Sections.PropertyInfo.PropertyName.Id)));
+            ValidateDomNames(resourcePropertiesToCreate.Concat(toUpdateNameValidation));
+
+            var toCreateDomInstances = resourcePropertiesToCreate
+                .Where(IsValid)
                 .Select(x => x.GetInstanceWithChanges())
                 .ToList();
 
             var toUpdateDomInstances = changeResults
-                .Where(x => !TraceDataPerItem.Keys.Contains(x.Instance.ID.Id))
+                .Where(IsValid)
                 .Select(x => new DomResourceProperty(x.Instance))
                 .ToList();
 
-            CreateOrUpdate(toCreateDomInstances.Concat(toUpdateDomInstances));
+            CreateOrUpdateDomResourceProperties(toCreateDomInstances.Concat(toUpdateDomInstances));
         }
 
-        private void CreateOrUpdate(IEnumerable<DomResourceProperty> domResourceProperties)
+        private void CreateOrUpdateDomResourceProperties(IEnumerable<DomResourceProperty> domResourceProperties)
         {
             if (domResourceProperties == null)
             {
@@ -170,6 +186,22 @@
             // Todo: add check is property is in use
 
             var propertiesToDelete = apiResourceProperties.Except(newProperties).ToList();
+            var lockResult = planApi.LockManager.LockAndExecute(propertiesToDelete, DeleteCoreResourceProperties);
+            ReportError(lockResult);
+        }
+
+        private void DeleteCoreResourceProperties(ICollection<ResourceProperty> propertiesToDelete)
+        {
+            if (propertiesToDelete == null)
+            {
+                throw new ArgumentNullException(nameof(propertiesToDelete));
+            }
+
+            if (!propertiesToDelete.Any())
+            {
+                return;
+            }
+
             planApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.TryDeleteInBatches(propertiesToDelete.Select(x => x.OriginalInstance.ToInstance()), out var domResult);
 
             foreach (var id in domResult.UnsuccessfulIds)
@@ -294,19 +326,30 @@
                 };
 
                 ReportError(property.Id, error);
+            }
+        }
 
-                propertiesRequiringValidation.Remove(property);
+        private void ValidateDomNames(IEnumerable<ResourceProperty> apiResourceProperties)
+        {
+            if (apiResourceProperties == null)
+            {
+                throw new ArgumentNullException(nameof(apiResourceProperties));
+            }
+
+            if (!apiResourceProperties.Any())
+            {
+                return;
             }
 
             FilterElement<DomInstance> filter(string name) =>
                 DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resourceproperty.Id)
                 .AND(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.PropertyInfo.PropertyName).Equal(name));
 
-            var domPropertiesByName = planApi.DomHelpers.SlcResourceStudioHelper.GetResourceProperties(propertiesRequiringValidation.Select(x => x.Name), filter)
+            var domPropertiesByName = planApi.DomHelpers.SlcResourceStudioHelper.GetResourceProperties(apiResourceProperties.Select(x => x.Name), filter)
                 .GroupBy(x => x.PropertyInfo.PropertyName)
                 .ToDictionary(x => x.Key, x => (IReadOnlyCollection<DomResourceProperty>)x.ToList());
 
-            foreach (var property in propertiesRequiringValidation)
+            foreach (var property in apiResourceProperties)
             {
                 if (!domPropertiesByName.TryGetValue(property.Name, out var domProperties))
                 {

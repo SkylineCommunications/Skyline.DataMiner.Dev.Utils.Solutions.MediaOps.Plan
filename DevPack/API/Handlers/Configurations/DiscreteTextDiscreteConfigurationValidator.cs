@@ -4,7 +4,7 @@
     using System.Linq;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
-    internal class DiscreteTextDiscreteConfigurationValidator : ApiObjectValidator<Guid>
+    internal class DiscreteTextDiscreteConfigurationValidator : ApiObjectValidator
     {
         private readonly DiscreteTextConfiguration discreteTextConfiguration;
 

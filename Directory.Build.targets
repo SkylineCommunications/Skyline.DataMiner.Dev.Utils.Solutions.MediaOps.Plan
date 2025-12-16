@@ -47,6 +47,21 @@
     <Message Text="   MediaOpsVersion: $(MediaOpsVersion)" Importance="high" />
   </Target>
 
+    <!-- Auto-increment version (only once per solution build) -->
+    <Target Name="IncrementMediaOpsVersion"
+            BeforeTargets="BeforeBuild"
+            AfterTargets="DetectBuildType"
+            Condition="'$(ShouldRunMediaOpsDevMode)' == 'true'">
+
+        <PropertyGroup>
+            <MediaOpsVersionIncrementedFile>$(TEMP)\MediaOps_VersionIncremented_$(SolutionName).txt</MediaOpsVersionIncrementedFile>
+            <VersionAlreadyIncremented Condition="Exists('$(MediaOpsVersionIncrementedFile)')">true</VersionAlreadyIncremented>
+            <VersionAlreadyIncremented Condition="'$(VersionAlreadyIncremented)' == ''">false</VersionAlreadyIncremented>
+        </PropertyGroup>
+
+        <CallTarget Targets="IncrementMediaOpsVersionInternal" Condition="'$(VersionAlreadyIncremented)' == 'false'" />
+    </Target>
+
   <!-- Clean up counter files ONLY after last project (count = 4) -->
   <Target Name="CleanupBuildCounterAfterLastProject" AfterTargets="AfterBuild" Condition="'$(IsMediaOpsTargetProject)' == 'true'">
     <PropertyGroup>
@@ -61,22 +76,7 @@
           ContinueOnError="true" />
   </Target>
 
-  <!-- Auto-increment version (only once per solution build) -->
-  <Target Name="IncrementMediaOpsVersion" 
-          BeforeTargets="BeforeBuild" 
-          AfterTargets="DetectBuildType"
-          Condition="'$(ShouldRunMediaOpsDevMode)' == 'true'">
-    
-    <PropertyGroup>
-      <MediaOpsVersionIncrementedFile>$(TEMP)\MediaOps_VersionIncremented_$(SolutionName).txt</MediaOpsVersionIncrementedFile>
-      <VersionAlreadyIncremented Condition="Exists('$(MediaOpsVersionIncrementedFile)')">true</VersionAlreadyIncremented>
-      <VersionAlreadyIncremented Condition="'$(VersionAlreadyIncremented)' == ''">false</VersionAlreadyIncremented>
-    </PropertyGroup>
-    
-    <CallTarget Targets="IncrementMediaOpsVersionInternal" Condition="'$(VersionAlreadyIncremented)' == 'false'" />
-  </Target>
-
-  <Target Name="IncrementMediaOpsVersionInternal">
+  <Target Name="IncrementMediaOpsVersionInternal" AfterTargets="AfterBuild"  Condition="'$(IsMediaOpsTargetProject)' == 'true' and $(NewCount) == '4' and '$(ShouldRunMediaOpsDevMode)' == 'true' and '$(VersionAlreadyIncremented)' == 'false'">
     <!-- Ensure all required properties are defined -->
     <PropertyGroup>
       <MediaOpsLocalPropsFile Condition="'$(MediaOpsLocalPropsFile)' == ''">$(MSBuildThisFileDirectory)MediaOps.Local.props</MediaOpsLocalPropsFile>

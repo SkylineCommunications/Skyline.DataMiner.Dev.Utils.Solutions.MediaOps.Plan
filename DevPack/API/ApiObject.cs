@@ -6,7 +6,7 @@
     /// <summary>
     /// Represents the base class for all API objects in the MediaOps Plan API.
     /// </summary>
-    public abstract class ApiObject : TrackableObject
+    public abstract class ApiObject : TrackableObject, IIdentifiable
     {
         /// <summary>
         /// Gets the unique identifier of the API object.
@@ -34,5 +34,7 @@
         }
 
         internal bool HasUserDefinedId { get; set; }
+
+        internal string LockId => $"{GetType().Name}-{Id}";
     }
 }
