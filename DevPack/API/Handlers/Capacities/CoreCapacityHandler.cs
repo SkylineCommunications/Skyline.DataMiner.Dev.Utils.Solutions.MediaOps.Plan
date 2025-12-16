@@ -11,7 +11,7 @@
 
     using CoreParameter = Net.Profiles.Parameter;
 
-    internal class CoreCapacityHandler : ApiObjectValidator<Guid>
+    internal class CoreCapacityHandler : ApiObjectValidator
     {
         private readonly MediaOpsPlanApi planApi;
 
@@ -71,23 +71,24 @@
             ValidateRangeSettings(apiCapacities);
             ValidateDecimals(apiCapacities);
 
-            CreateOrUpdate(apiCapacities
-                .Where(x => !TraceDataPerItem.Keys.Contains(x.Id))
-                .Select(x => x.GetParameterWithChanges()));
+            var validCapacities = apiCapacities.Where(IsValid).ToList();
+            var lockResult = planApi.LockManager.LockAndExecute(validCapacities, CreateOrUpdateCoreCapacities);
+            ReportError(lockResult);
         }
 
-        private void CreateOrUpdate(IEnumerable<CoreParameter> coreCapacities)
+        private void CreateOrUpdateCoreCapacities(IEnumerable<Capacity> capacities)
         {
-            if (coreCapacities == null)
+            if (capacities == null)
             {
-                throw new ArgumentNullException(nameof(coreCapacities));
+                throw new ArgumentNullException(nameof(capacities));
             }
 
-            if (!coreCapacities.Any())
+            if (!capacities.Any())
             {
                 return;
             }
 
+            var coreCapacities = capacities.Select(x => x.CoreParameter).ToList();
             planApi.CoreHelpers.ProfileProvider.TryCreateOrUpdateParametersInBatches(coreCapacities, out var result);
 
             foreach (var id in result.UnsuccessfulIds)
@@ -126,9 +127,14 @@
                 ReportError(capacity.Id, error);
             }
 
-            var coreCapacitiesToDelete = apiCapacities
-                .Where(x => !TraceDataPerItem.Keys.Contains(x.Id))
-                .Select(x => x.CoreParameter);
+            var validCapacities = apiCapacities.Where(IsValid).ToList();
+            var lockResult = planApi.LockManager.LockAndExecute(validCapacities, DeleteCoreCapacities);
+            ReportError(lockResult);
+        }
+
+        private void DeleteCoreCapacities(IEnumerable<Capacity> capacitiesToDelete)
+        {
+            var coreCapacitiesToDelete = capacitiesToDelete.Select(x => x.CoreParameter);
             planApi.CoreHelpers.ProfileProvider.TryDeleteParametersInBatches(coreCapacitiesToDelete, out var result);
 
             foreach (var id in result.UnsuccessfulIds)

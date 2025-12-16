@@ -347,7 +347,7 @@
                 var dom = mapping.DomResource;
                 var core = mapping.CoreResource;
 
-                if (!SyncDomResourceWitCoreResource(dom, core))
+                if (!SyncDomResourceWithCoreResource(dom, core))
                 {
                     planApi.Logger.LogInformation($"No CORE changes for DOM resource {mapping.DomResource.ID}");
                     continue;
@@ -397,7 +397,7 @@
             }
         }
 
-        private bool SyncDomResourceWitCoreResource(DomResource dom, CoreResource core)
+        private bool SyncDomResourceWithCoreResource(DomResource dom, CoreResource core)
         {
             bool updateRequired = false;
 
