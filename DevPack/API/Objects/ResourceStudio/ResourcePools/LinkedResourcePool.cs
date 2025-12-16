@@ -17,6 +17,8 @@
 
         private ResourceSelectionType resourceSelectionType;
 
+        private Guid linkedResourcePoolId;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="LinkedResourcePool"/> class with the linked resource pool.
         /// </summary>
@@ -36,7 +38,7 @@
                 throw new ArgumentException(nameof(resourcePoolId));
             }
 
-            LinkedResourcePoolId = resourcePoolId;
+            linkedResourcePoolId = resourcePoolId;
 
             IsNew = true;
         }
@@ -51,7 +53,21 @@
         /// <summary>
         /// Gets the unique identifier of the linked resource pool.
         /// </summary>
-        public Guid LinkedResourcePoolId { get; private set; }
+        public Guid LinkedResourcePoolId
+        {
+            get => linkedResourcePoolId;
+            set
+            {
+                if (value == Guid.Empty)
+                {
+                    throw new ArgumentException(nameof(value));
+                }
+
+                HasChanges = true;
+                ValueChanged?.Invoke(this, EventArgs.Empty);
+                linkedResourcePoolId = value;
+            }
+        }
 
         /// <summary>
         /// Gets or sets the selection type for the linked resource pool.
@@ -86,7 +102,7 @@
         {
             originalSection = section ?? throw new ArgumentNullException(nameof(section));
 
-            LinkedResourcePoolId = section.LinkedResourcePool.Value;
+            linkedResourcePoolId = section.LinkedResourcePool.Value;
             resourceSelectionType = EnumExtensions.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Enums.Resourceselectiontype, ResourceSelectionType>(section.ResourceSelectionType.Value);
         }
     }
