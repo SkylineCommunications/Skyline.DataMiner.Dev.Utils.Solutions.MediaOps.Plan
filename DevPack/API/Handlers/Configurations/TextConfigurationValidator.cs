@@ -27,9 +27,8 @@
             }
             else if (!InputValidator.ValidateTextLength(textConfiguration.DefaultValue))
             {
-                ReportError(textConfiguration.Id, new ConfigurationConfigurationError
+                ReportError(textConfiguration.Id, new ConfigurationConfigurationInvalidDefaultValueError
                 {
-                    ErrorReason = ConfigurationConfigurationError.Reason.InvalidDefaultValue,
                     ErrorMessage = $"The default value of the text configuration exceeds {InputValidator.DefaultMaxTextLength} characters",
                 });
             }

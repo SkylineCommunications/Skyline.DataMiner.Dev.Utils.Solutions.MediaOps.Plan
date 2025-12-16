@@ -121,7 +121,9 @@
                 var capabilityConfigurationError = ex.TraceData.ErrorData.OfType<CapabilityConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(capabilityConfigurationError);
 
-                Assert.AreEqual(CapabilityConfigurationError.Reason.InvalidTimeDependency, capabilityConfigurationError.ErrorReason);
+                var capabilityConfigurationInvalidTimeDependencyError = capabilityConfigurationError as CapabilityConfigurationInvalidTimeDependencyError;
+                Assert.IsNotNull(capabilityConfigurationInvalidTimeDependencyError);
+                Assert.AreEqual(capability.Id, capabilityConfigurationInvalidTimeDependencyError.Id);
                 Assert.AreEqual("Changing the time dependency of a capability is not allowed.", capabilityConfigurationError.ErrorMessage);
 
                 return;
@@ -157,7 +159,9 @@
                 var capabilityConfigurationError = ex.TraceData.ErrorData.OfType<CapabilityConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(capabilityConfigurationError);
 
-                Assert.AreEqual(CapabilityConfigurationError.Reason.InvalidTimeDependency, capabilityConfigurationError.ErrorReason);
+                var capabilityConfigurationInvalidTimeDependencyError = capabilityConfigurationError as CapabilityConfigurationInvalidTimeDependencyError;
+                Assert.IsNotNull(capabilityConfigurationInvalidTimeDependencyError);
+                Assert.AreEqual(capability.Id, capabilityConfigurationInvalidTimeDependencyError.Id);
                 Assert.AreEqual("Changing the time dependency of a capability is not allowed.", capabilityConfigurationError.ErrorMessage);
 
                 return;

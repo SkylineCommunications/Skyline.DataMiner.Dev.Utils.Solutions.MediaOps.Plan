@@ -25,10 +25,10 @@
             // Any discreet options available
             if (!discreteTextConfiguration.Discretes.Any())
             {
-                ReportError(discreteTextConfiguration.Id, new ConfigurationConfigurationError
+                ReportError(discreteTextConfiguration.Id, new ConfigurationConfigurationNoDiscretesError
                 {
-                    ErrorReason = ConfigurationConfigurationError.Reason.InvalidDiscretes,
                     ErrorMessage = "A discreet configuration should have at least one discreet option defined",
+                    Id = discreteTextConfiguration.Id,
                 });
                 return;
             }
@@ -36,10 +36,10 @@
             // Validate default discrete option
             if (!String.IsNullOrEmpty(discreteTextConfiguration.DefaultValue) && !discreteTextConfiguration.Discretes.Any(x => x.Key.Equals(discreteTextConfiguration.DefaultValue)))
             {
-                ReportError(discreteTextConfiguration.Id, new ConfigurationConfigurationError
+                ReportError(discreteTextConfiguration.Id, new ConfigurationConfigurationInvalidDefaultDiscreetError
                 {
-                    ErrorReason = ConfigurationConfigurationError.Reason.InvalidDefaultDiscreet,
                     ErrorMessage = "Default discreet should be the display value of any of the discreet options",
+                    Id = discreteTextConfiguration.Id,
                 });
             }
 
@@ -48,20 +48,20 @@
                 // Validate Display Value
                 if (!HasValidDisplayValue(discreet.Key, out string invalidDisplayNameReason))
                 {
-                    ReportError(discreteTextConfiguration.Id, new ConfigurationConfigurationError
+                    ReportError(discreteTextConfiguration.Id, new ConfigurationConfigurationInvalidDiscretesError
                     {
-                        ErrorReason = ConfigurationConfigurationError.Reason.InvalidDiscretes,
                         ErrorMessage = invalidDisplayNameReason,
+                        Id = discreteTextConfiguration.Id,
                     });
                 }
 
                 // Validate String Value
                 if (!IsValidDiscreetText(discreet.Value, out string invalidDiscreetTextReason))
                 {
-                    ReportError(discreteTextConfiguration.Id, new ConfigurationConfigurationError
+                    ReportError(discreteTextConfiguration.Id, new ConfigurationConfigurationInvalidDiscretesError
                     {
-                        ErrorReason = ConfigurationConfigurationError.Reason.InvalidDiscretes,
                         ErrorMessage = invalidDiscreetTextReason,
+                        Id = discreteTextConfiguration.Id,
                     });
                 }
             }
