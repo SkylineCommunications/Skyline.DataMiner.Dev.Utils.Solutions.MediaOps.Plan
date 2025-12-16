@@ -13,7 +13,7 @@
     /// <summary>
     /// Provides repository operations for managing <see cref="Configuration"/> objects.
     /// </summary>
-    internal class ConfigurationsRepository : ProfileParameterRepository, IConfigurationsRepository
+    internal class ConfigurationsRepository : Repository, IConfigurationsRepository
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ConfigurationsRepository"/> class.
