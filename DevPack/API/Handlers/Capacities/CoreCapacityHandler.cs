@@ -11,7 +11,7 @@
 
     using CoreParameter = Net.Profiles.Parameter;
 
-    internal class CoreCapacityHandler : ApiObjectValidator<Guid>
+    internal class CoreCapacityHandler : ApiObjectValidator
     {
         private readonly MediaOpsPlanApi planApi;
 
@@ -71,23 +71,24 @@
             ValidateRangeSettings(apiCapacities);
             ValidateDecimals(apiCapacities);
 
-            CreateOrUpdate(apiCapacities
-                .Where(x => !TraceDataPerItem.Keys.Contains(x.Id))
-                .Select(x => x.GetParameterWithChanges()));
+            var validCapacities = apiCapacities.Where(IsValid).ToList();
+            var lockResult = planApi.LockManager.LockAndExecute(validCapacities, CreateOrUpdateCoreCapacities);
+            ReportError(lockResult);
         }
 
-        private void CreateOrUpdate(IEnumerable<CoreParameter> coreCapacities)
+        private void CreateOrUpdateCoreCapacities(IEnumerable<Capacity> capacities)
         {
-            if (coreCapacities == null)
+            if (capacities == null)
             {
-                throw new ArgumentNullException(nameof(coreCapacities));
+                throw new ArgumentNullException(nameof(capacities));
             }
 
-            if (!coreCapacities.Any())
+            if (!capacities.Any())
             {
                 return;
             }
 
+            var coreCapacities = capacities.Select(x => x.CoreParameter).ToList();
             planApi.CoreHelpers.ProfileProvider.TryCreateOrUpdateParametersInBatches(coreCapacities, out var result);
 
             foreach (var id in result.UnsuccessfulIds)
@@ -117,18 +118,23 @@
 
             foreach (var capacity in apiCapacities.Where(x => x.IsNew))
             {
-                var error = new CapacityConfigurationError
+                var error = new CapacityConfigurationInvalidStateError
                 {
-                    ErrorReason = CapacityConfigurationError.Reason.InvalidState,
                     ErrorMessage = "Cannot delete a capacity that does not exist.",
+                    Id = capacity.Id,
                 };
 
                 ReportError(capacity.Id, error);
             }
 
-            var coreCapacitiesToDelete = apiCapacities
-                .Where(x => !TraceDataPerItem.Keys.Contains(x.Id))
-                .Select(x => x.CoreParameter);
+            var validCapacities = apiCapacities.Where(IsValid).ToList();
+            var lockResult = planApi.LockManager.LockAndExecute(validCapacities, DeleteCoreCapacities);
+            ReportError(lockResult);
+        }
+
+        private void DeleteCoreCapacities(IEnumerable<Capacity> capacitiesToDelete)
+        {
+            var coreCapacitiesToDelete = capacitiesToDelete.Select(x => x.CoreParameter);
             planApi.CoreHelpers.ProfileProvider.TryDeleteParametersInBatches(coreCapacitiesToDelete, out var result);
 
             foreach (var id in result.UnsuccessfulIds)
@@ -170,10 +176,10 @@
 
             foreach (var capacity in capacitiesWithDuplicateIds)
             {
-                var error = new CapacityConfigurationError
+                var error = new CapacityConfigurationDuplicateIdError
                 {
-                    ErrorReason = CapacityConfigurationError.Reason.DuplicateId,
                     ErrorMessage = $"Capacity '{capacity.Name}' has a duplicate ID.",
+                    Id = capacity.Id,
                 };
 
                 ReportError(capacity.Id, error);
@@ -185,10 +191,10 @@
             {
                 planApi.Logger.LogInformation($"ID is already in use by a Profile Parameter.", foundProfileParameter.ID);
 
-                var error = new CapacityConfigurationError
+                var error = new CapacityConfigurationIdInUseError
                 {
-                    ErrorReason = CapacityConfigurationError.Reason.IdInUse,
                     ErrorMessage = "ID is already in use.",
+                    Id = foundProfileParameter.ID,
                 };
 
                 ReportError(foundProfileParameter.ID, error);
@@ -213,10 +219,10 @@
             {
                 if (string.IsNullOrWhiteSpace(capacity.Name))
                 {
-                    var error = new CapacityConfigurationError
+                    var error = new CapacityConfigurationInvalidNameError
                     {
-                        ErrorReason = CapacityConfigurationError.Reason.InvalidName,
                         ErrorMessage = "Name cannot be empty.",
+                        Id = capacity.Id,
                     };
 
                     ReportError(capacity.Id, error);
@@ -228,10 +234,11 @@
             {
                 if (string.IsNullOrWhiteSpace(capacity.Name))
                 {
-                    var error = new CapacityConfigurationError
+                    var error = new CapacityConfigurationInvalidNameError
                     {
-                        ErrorReason = CapacityConfigurationError.Reason.InvalidName,
                         ErrorMessage = $"Name exceeds maximum length of {InputValidator.DefaultMaxTextLength} characters.",
+                        Id = capacity.Id,
+                        Name = capacity.Name,
                     };
 
                     ReportError(capacity.Id, error);
@@ -247,10 +254,11 @@
 
             foreach (var capacity in capacitiesWithDuplicateNames)
             {
-                var error = new CapacityConfigurationError
+                var error = new CapacityConfigurationDuplicateNameError
                 {
-                    ErrorReason = CapacityConfigurationError.Reason.DuplicateName,
                     ErrorMessage = $"Capacity '{capacity.Name}' has a duplicate name.",
+                    Id = capacity.Id,
+                    Name = capacity.Name,
                 };
 
                 ReportError(capacity.Id, error);
@@ -276,10 +284,11 @@
 
                 planApi.Logger.LogInformation($"Name '{capacity.Name}' is already in use by Profile Parameter(s) with ID(s)", existingParameters.Select(x => x.ID).ToArray());
 
-                var error = new CapacityConfigurationError
+                var error = new CapacityConfigurationNameExistsError
                 {
-                    ErrorReason = CapacityConfigurationError.Reason.NameExists,
                     ErrorMessage = "Name is already in use.",
+                    Id = capacity.Id,
+                    Name = capacity.Name,
                 };
 
                 ReportError(capacity.Id, error);
@@ -303,10 +312,12 @@
                 if (capacity.RangeMin.HasValue && capacity.RangeMax.HasValue
                     && capacity.RangeMax <= capacity.RangeMin)
                 {
-                    var error = new CapacityConfigurationError
+                    var error = new CapacityConfigurationInvalidRangeError
                     {
-                        ErrorReason = CapacityConfigurationError.Reason.InvalidRangeMax,
                         ErrorMessage = "RangeMax must be greater than RangeMin.",
+                        Id = capacity.Id,
+                        RangeMin = capacity.RangeMin.Value,
+                        RangeMax = capacity.RangeMax.Value,
                     };
 
                     ReportError(capacity.Id, error);
@@ -314,10 +325,11 @@
 
                 if (capacity.StepSize.HasValue && capacity.StepSize <= 0)
                 {
-                    var error = new CapacityConfigurationError
+                    var error = new CapacityConfigurationInvalidStepSizeError
                     {
-                        ErrorReason = CapacityConfigurationError.Reason.InvalidStepSize,
                         ErrorMessage = "StepSize must be greater than 0.",
+                        Id = capacity.Id,
+                        StepSize = capacity.StepSize.Value,
                     };
 
                     ReportError(capacity.Id, error);
@@ -341,10 +353,11 @@
             {
                 if (capacity.Decimals < 0 || capacity.Decimals > 15)
                 {
-                    var error = new CapacityConfigurationError
+                    var error = new CapacityConfigurationInvalidDecimalsError
                     {
-                        ErrorReason = CapacityConfigurationError.Reason.InvalidDecimals,
                         ErrorMessage = "Decimals must be between 0 and 15.",
+                        Id = capacity.Id,
+                        Decimals = capacity.Decimals.Value,
                     };
 
                     ReportError(capacity.Id, error);
@@ -353,10 +366,11 @@
 
                 if (capacity.RangeMin.HasValue && (Math.Round(capacity.RangeMin.Value, capacity.Decimals.Value) - capacity.RangeMin.Value) != 0)
                 {
-                    var error = new CapacityConfigurationError
+                    var error = new CapacityConfigurationInvalidRangeMinError
                     {
-                        ErrorReason = CapacityConfigurationError.Reason.InvalidRangeMin,
                         ErrorMessage = $"RangeMin has more decimal places than allowed by Decimals ({capacity.Decimals}).",
+                        Id = capacity.Id,
+                        RangeMin = capacity.RangeMin.Value,
                     };
 
                     ReportError(capacity.Id, error);
@@ -364,10 +378,11 @@
 
                 if (capacity.RangeMax.HasValue && (Math.Round(capacity.RangeMax.Value, capacity.Decimals.Value) - capacity.RangeMax.Value) != 0)
                 {
-                    var error = new CapacityConfigurationError
+                    var error = new CapacityConfigurationInvalidRangeMaxError
                     {
-                        ErrorReason = CapacityConfigurationError.Reason.InvalidRangeMax,
                         ErrorMessage = $"RangeMax has more decimal places than allowed by Decimals ({capacity.Decimals}).",
+                        Id = capacity.Id,
+                        RangeMax = capacity.RangeMax.Value,
                     };
 
                     ReportError(capacity.Id, error);
@@ -375,10 +390,11 @@
 
                 if (capacity.StepSize.HasValue && (Math.Round(capacity.StepSize.Value, capacity.Decimals.Value) - capacity.StepSize.Value) != 0)
                 {
-                    var error = new CapacityConfigurationError
+                    var error = new CapacityConfigurationInvalidStepSizeError
                     {
-                        ErrorReason = CapacityConfigurationError.Reason.InvalidStepSize,
                         ErrorMessage = $"StepSize has more decimal places than allowed by Decimals ({capacity.Decimals}).",
+                        Id = capacity.Id,
+                        StepSize = capacity.StepSize.Value,
                     };
 
                     ReportError(capacity.Id, error);

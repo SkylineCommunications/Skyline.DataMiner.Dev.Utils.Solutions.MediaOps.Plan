@@ -123,7 +123,7 @@
                 var resourceConfigurationError = ex.TraceData.ErrorData.OfType<ResourceConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(resourceConfigurationError);
 
-                var invalidResourcePropertyConfigurationError = resourceConfigurationError as InvalidResourcePropertySettingsError;
+                var invalidResourcePropertyConfigurationError = resourceConfigurationError as ResourceConfigurationInvalidPropertySettingsError;
                 Assert.IsNotNull(invalidResourcePropertyConfigurationError);
                 Assert.AreEqual(errorMessage, invalidResourcePropertyConfigurationError.ErrorMessage);
 
@@ -143,7 +143,7 @@
                 Name = $"{prefix}_Resource",
             };
 
-            var resourceId  = objectCreator.CreateResource(unmanagedResource);
+            var resourceId = objectCreator.CreateResource(unmanagedResource);
             var resource = TestContext.Api.Resources.Read(resourceId);
 
             var invalidPeropertyId = Guid.NewGuid();
@@ -165,7 +165,7 @@
                 var resourceConfigurationError = ex.TraceData.ErrorData.OfType<ResourceConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(resourceConfigurationError);
 
-                var invalidResourcePropertyConfigurationError = resourceConfigurationError as InvalidResourcePropertySettingsError;
+                var invalidResourcePropertyConfigurationError = resourceConfigurationError as ResourceConfigurationInvalidPropertySettingsError;
                 Assert.IsNotNull(invalidResourcePropertyConfigurationError);
                 Assert.AreEqual(errorMessage, invalidResourcePropertyConfigurationError.ErrorMessage);
 

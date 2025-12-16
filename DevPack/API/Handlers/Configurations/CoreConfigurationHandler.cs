@@ -3,12 +3,14 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Microsoft.Extensions.Logging;
+
+    using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
-    using Skyline.DataMiner.Net;
 
-    internal class CoreConfigurationHandler : ApiObjectValidator<Guid>
+    internal class CoreConfigurationHandler : ApiObjectValidator
     {
         private readonly MediaOpsPlanApi planApi;
 
@@ -71,8 +73,16 @@
             ValidateDiscreteTextConfigurations(apiConfigurations.OfType<DiscreteTextConfiguration>());
             ValidateDiscreteNumberConfigurations(apiConfigurations.OfType<DiscreteNumberConfiguration>());
 
+            var validConfigurations = apiConfigurations.Where(IsValid).ToList();
+
+            var result = planApi.LockManager.LockAndExecute(validConfigurations, CreateOrUpdateCoreConfigurations);
+            ReportError(result);
+        }
+
+        private void CreateOrUpdateCoreConfigurations(ICollection<Configuration> configurations)
+        {
             List<Net.Profiles.Parameter> coreParameters = new List<Net.Profiles.Parameter>();
-            foreach (var configurationToAddOrUpdate in apiConfigurations.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)))
+            foreach (var configurationToAddOrUpdate in configurations.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)))
             {
                 if (!TryGetParameterWithChanges(configurationToAddOrUpdate, out var coreParameter))
                 {
@@ -82,22 +92,7 @@
                 coreParameters.Add(coreParameter);
             }
 
-            CreateOrUpdate(coreParameters);
-        }
-
-        private void CreateOrUpdate(IEnumerable<Net.Profiles.Parameter> coreConfigurations)
-        {
-            if (coreConfigurations == null)
-            {
-                throw new ArgumentNullException(nameof(coreConfigurations));
-            }
-
-            if (!coreConfigurations.Any())
-            {
-                return;
-            }
-
-            planApi.CoreHelpers.ProfileProvider.TryCreateOrUpdateParametersInBatches(coreConfigurations, out var result);
+            planApi.CoreHelpers.ProfileProvider.TryCreateOrUpdateParametersInBatches(coreParameters, out var result);
 
             foreach (var id in result.UnsuccessfulIds)
             {
@@ -124,20 +119,25 @@
                 return;
             }
 
-            foreach (var capacity in apiConfigurations.Where(x => x.IsNew))
+            foreach (var configuration in apiConfigurations.Where(x => x.IsNew))
             {
-                var error = new ConfigurationConfigurationError
+                var error = new ConfigurationConfigurationInvalidStateError
                 {
-                    ErrorReason = ConfigurationConfigurationError.Reason.InvalidState,
                     ErrorMessage = "Cannot delete a configuration that does not exist.",
+                    Id = configuration.Id,
                 };
 
-                ReportError(capacity.Id, error);
+                ReportError(configuration.Id, error);
             }
 
-            var coreConfigurationsToRemove = apiConfigurations
-                .Where(x => !TraceDataPerItem.Keys.Contains(x.Id))
-                .Select(x => x.CoreParameter);
+            var validConfigurations = apiConfigurations.Where(IsValid).ToList();
+            var lockResult = planApi.LockManager.LockAndExecute(validConfigurations, DeleteCoreConfigurations);
+            ReportError(lockResult);
+        }
+
+        private void DeleteCoreConfigurations(ICollection<Configuration> configurations)
+        {
+            var coreConfigurationsToRemove = configurations.Select(x => x.CoreParameter);
             planApi.CoreHelpers.ProfileProvider.TryDeleteParametersInBatches(coreConfigurationsToRemove, out var result);
 
             foreach (var id in result.UnsuccessfulIds)
@@ -179,10 +179,10 @@
 
             foreach (var configuration in capabilitiesWithDuplicateIds)
             {
-                var error = new ConfigurationConfigurationError
+                var error = new ConfigurationConfigurationDuplicateIdError
                 {
-                    ErrorReason = ConfigurationConfigurationError.Reason.DuplicateId,
                     ErrorMessage = $"Configuration '{configuration.Name}' has a duplicate ID.",
+                    Id = configuration.Id,
                 };
 
                 ReportError(configuration.Id, error);
@@ -194,10 +194,10 @@
             {
                 planApi.Logger.LogInformation($"ID is already in use by a Profile Parameter.", foundProfileParameter.ID);
 
-                var error = new ConfigurationConfigurationError
+                var error = new ConfigurationConfigurationIdInUseError
                 {
-                    ErrorReason = ConfigurationConfigurationError.Reason.IdInUse,
                     ErrorMessage = "ID is already in use.",
+                    Id = foundProfileParameter.ID,
                 };
 
                 ReportError(foundProfileParameter.ID, error);
@@ -220,10 +220,10 @@
 
             foreach (var configuration in configurationsRequiringValidation.Where(x => !InputValidator.ValidateEmptyText(x.Name)))
             {
-                var error = new ConfigurationConfigurationError
+                var error = new ConfigurationConfigurationInvalidNameError
                 {
-                    ErrorReason = ConfigurationConfigurationError.Reason.InvalidName,
                     ErrorMessage = "Name cannot be empty.",
+                    Id = configuration.Id,
                 };
 
                 ReportError(configuration.Id, error);
@@ -232,10 +232,11 @@
 
             foreach (var configuration in configurationsRequiringValidation.Where(x => !InputValidator.ValidateTextLength(x.Name)))
             {
-                var error = new ConfigurationConfigurationError
+                var error = new ConfigurationConfigurationInvalidNameError
                 {
-                    ErrorReason = ConfigurationConfigurationError.Reason.InvalidName,
                     ErrorMessage = $"Name exceeds maximum length of {InputValidator.DefaultMaxTextLength} characters.",
+                    Id = configuration.Id,
+                    Name = configuration.Name,
                 };
 
                 ReportError(configuration.Id, error);
@@ -250,10 +251,11 @@
 
             foreach (var configuration in configurationsWithDuplicateNames)
             {
-                var error = new ConfigurationConfigurationError
+                var error = new ConfigurationConfigurationDuplicateNameError
                 {
-                    ErrorReason = ConfigurationConfigurationError.Reason.DuplicateName,
                     ErrorMessage = $"Configuration '{configuration.Name}' has a duplicate name.",
+                    Id = configuration.Id,
+                    Name = configuration.Name,
                 };
 
                 ReportError(configuration.Id, error);
@@ -277,10 +279,11 @@
 
                 planApi.Logger.LogInformation($"Name '{configuration.Name}' is already in use by Profile Parameter(s) with ID(s)", coreParametersWithSameNameAndDifferentIds.Select(x => x.ID).ToArray());
 
-                var error = new ConfigurationConfigurationError
+                var error = new ConfigurationConfigurationNameExistsError
                 {
-                    ErrorReason = ConfigurationConfigurationError.Reason.NameExists,
                     ErrorMessage = "Name is already in use.",
+                    Id = configuration.Id,
+                    Name = configuration.Name,
                 };
 
                 ReportError(configuration.Id, error);

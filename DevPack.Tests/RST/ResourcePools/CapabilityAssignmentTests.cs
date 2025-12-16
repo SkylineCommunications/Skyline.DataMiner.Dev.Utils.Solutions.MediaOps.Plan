@@ -954,7 +954,7 @@
                 var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(resourcePoolConfigurationError);
 
-                var invalidResourcePoolCapabilitySettingsError = resourcePoolConfigurationError as InvalidResourcePoolCapabilitySettingsError;
+                var invalidResourcePoolCapabilitySettingsError = resourcePoolConfigurationError as ResourcePoolConfigurationInvalidCapabilitySettingsError;
                 Assert.IsNotNull(invalidResourcePoolCapabilitySettingsError);
                 Assert.AreEqual(errorMessage, invalidResourcePoolCapabilitySettingsError.ErrorMessage);
                 Assert.AreEqual(notExistingCapabilityId, invalidResourcePoolCapabilitySettingsError.CapabilityId);
@@ -998,7 +998,7 @@
                 var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(resourcePoolConfigurationError);
 
-                var invalidResourcePoolCapabilitySettingsError = resourcePoolConfigurationError as InvalidResourcePoolCapabilitySettingsError;
+                var invalidResourcePoolCapabilitySettingsError = resourcePoolConfigurationError as ResourcePoolConfigurationInvalidCapabilitySettingsError;
                 Assert.IsNotNull(invalidResourcePoolCapabilitySettingsError);
                 Assert.AreEqual(errorMessage, invalidResourcePoolCapabilitySettingsError.ErrorMessage);
                 Assert.AreEqual(capabilityId, invalidResourcePoolCapabilitySettingsError.CapabilityId);
@@ -1043,7 +1043,7 @@
                 var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(resourcePoolConfigurationError);
 
-                var invalidResourcePoolCapabilitySettingsError = resourcePoolConfigurationError as InvalidResourcePoolCapabilitySettingsError;
+                var invalidResourcePoolCapabilitySettingsError = resourcePoolConfigurationError as ResourcePoolConfigurationInvalidCapabilitySettingsError;
                 Assert.IsNotNull(invalidResourcePoolCapabilitySettingsError);
                 Assert.AreEqual(errorMessage, invalidResourcePoolCapabilitySettingsError.ErrorMessage);
                 Assert.AreEqual(capabilityId, invalidResourcePoolCapabilitySettingsError.CapabilityId);

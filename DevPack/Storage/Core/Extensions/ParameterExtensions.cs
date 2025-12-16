@@ -1,8 +1,8 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core
 {
     using System;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using Skyline.DataMiner.Net.Profiles;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using Parameter = Net.Profiles.Parameter;
 
     /// <summary>

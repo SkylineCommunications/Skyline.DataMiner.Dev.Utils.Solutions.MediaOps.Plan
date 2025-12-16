@@ -1,16 +1,15 @@
 ﻿namespace RT_MediaOps.Plan.RegressionTests
 {
     using System.Net;
-
+    using System.Reflection;
+    using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
-
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages;
     using Skyline.DataMiner.Net.Profiles;
-
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using DMConnection = Skyline.DataMiner.Net.Connection;
 
     public sealed class IntegrationTestContext : IDisposable
@@ -20,20 +19,17 @@
 
         public IntegrationTestContext()
         {
-            var credentials = CredentialCache.DefaultNetworkCredentials;
-
             var config = Config.Load();
 
             connection = ConnectionSettings.GetConnection(config.BaseUrl) ?? throw new NullReferenceException("Unable to connect to DataMiner");
-            connection.Authenticate(credentials.UserName, credentials.Password, credentials.Domain);
+            connection.Authenticate(config.Username, config.Password, config.Domain);
             var serviceProvider = new ServiceCollection()
                 .AddLogging()
                 .BuildServiceProvider();
 
             factory = serviceProvider.GetService<ILoggerFactory>() ?? throw new NullReferenceException("Unable to create factory logger");
-            var logger = factory.CreateLogger<IMediaOpsPlanApi>();
 
-            Api = new MediaOpsPlanApi(connection, logger) ?? throw new NullReferenceException("Unable to create MediaOpsPlanApi");
+            Api = new MediaOpsPlanApi(connection, factory) ?? throw new NullReferenceException("Unable to create MediaOpsPlanApi");
 
             ResourceStudioDomHelper = new DomHelper(connection.HandleMessages, "(slc)resource_studio") ?? throw new NullReferenceException("Unable to create ResourceStudioDomHelper");
 

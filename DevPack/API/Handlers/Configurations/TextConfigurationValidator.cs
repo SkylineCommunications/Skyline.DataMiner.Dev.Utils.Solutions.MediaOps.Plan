@@ -3,7 +3,7 @@
     using System;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
-    internal class TextConfigurationValidator : ApiObjectValidator<Guid>
+    internal class TextConfigurationValidator : ApiObjectValidator
     {
         private readonly TextConfiguration textConfiguration;
 
@@ -27,9 +27,8 @@
             }
             else if (!InputValidator.ValidateTextLength(textConfiguration.DefaultValue))
             {
-                ReportError(textConfiguration.Id, new ConfigurationConfigurationError
+                ReportError(textConfiguration.Id, new ConfigurationConfigurationInvalidDefaultValueError
                 {
-                    ErrorReason = ConfigurationConfigurationError.Reason.InvalidDefaultValue,
                     ErrorMessage = $"The default value of the text configuration exceeds {InputValidator.DefaultMaxTextLength} characters",
                 });
             }

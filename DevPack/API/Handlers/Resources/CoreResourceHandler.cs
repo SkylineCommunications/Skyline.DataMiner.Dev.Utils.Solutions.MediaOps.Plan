@@ -3,20 +3,17 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-
     using Microsoft.Extensions.Logging;
-
     using Skyline.DataMiner.Core.DataMinerSystem.Common;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Helper;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Net.SRM.Capacities;
-
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
     using CoreResource = Net.Messages.Resource;
     using DomResource = Storage.DOM.SlcResource_Studio.ResourceInstance;
     using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
@@ -128,10 +125,11 @@
             var elementId = new DmsElementId(configuration.AgentId, configuration.ElementId);
             if (!handler.TryValidateElementLink(elementId, out string invalidElementInfoReason))
             {
-                error = new ResourceConfigurationError
+                error = new ResourceConfigurationInvalidElementLinkError
                 {
-                    ErrorReason = ResourceConfigurationError.Reason.InvalidElementLink,
                     ErrorMessage = invalidElementInfoReason,
+                    AgentId = configuration.AgentId,
+                    ElementId = configuration.ElementId,
                 };
 
                 return false;
@@ -139,10 +137,10 @@
 
             if (!handler.TryValidateVirtualFunctionResourceFunctionDefinition(configuration.FunctionId, out string invalidFunctionDefinitionReason))
             {
-                error = new ResourceConfigurationError
+                error = new ResourceConfigurationInvalidFunctionLinkError
                 {
-                    ErrorReason = ResourceConfigurationError.Reason.InvalidFunctionLink,
                     ErrorMessage = invalidFunctionDefinitionReason,
+                    FunctionId = configuration.FunctionId,
                 };
 
                 return false;
@@ -150,10 +148,13 @@
 
             if (!handler.TryValidateVirtualFunctionResourceTableIndex(configuration.FunctionId, elementId, configuration.FunctionTableIndex, out string invalidTableIndexReason))
             {
-                error = new ResourceConfigurationError
+                error = new ResourceConfigurationInvalidTableIndexLinkError
                 {
-                    ErrorReason = ResourceConfigurationError.Reason.InvalidTableIndexLink,
                     ErrorMessage = invalidTableIndexReason,
+                    AgentId = configuration.AgentId,
+                    ElementId = configuration.ElementId,
+                    FunctionId = configuration.FunctionId,
+                    FunctionTableIndex = configuration.FunctionTableIndex,
                 };
 
                 return false;
@@ -175,10 +176,11 @@
             var serviceId = new DmsServiceId(configuration.AgentId, configuration.ServiceId);
             if (!handler.TryValidateServiceResourceServiceLink(serviceId, out var reason))
             {
-                error = new ResourceConfigurationError
+                error = new ResourceConfigurationInvalidServiceLinkError
                 {
-                    ErrorReason = ResourceConfigurationError.Reason.InvalidServiceLink,
                     ErrorMessage = reason,
+                    AgentId = configuration.AgentId,
+                    ServiceId = configuration.ServiceId,
                 };
 
                 return false;
@@ -200,10 +202,11 @@
             var elementId = new DmsElementId(configuration.AgentId, configuration.ElementId);
             if (!handler.TryValidateElementLink(elementId, out var reason))
             {
-                error = new ResourceConfigurationError
+                error = new ResourceConfigurationInvalidElementLinkError
                 {
-                    ErrorReason = ResourceConfigurationError.Reason.InvalidElementLink,
                     ErrorMessage = reason,
+                    AgentId = configuration.AgentId,
+                    ElementId = configuration.ElementId,
                 };
 
                 return false;
@@ -350,7 +353,7 @@
                 var dom = mapping.DomResource;
                 var core = mapping.CoreResource;
 
-                if (!SyncDomResourceWitCoreResource(dom, core))
+                if (!SyncDomResourceWithCoreResource(dom, core))
                 {
                     planApi.Logger.LogInformation($"No CORE changes for DOM resource {mapping.DomResource.ID}");
                     continue;
@@ -400,7 +403,7 @@
             }
         }
 
-        private bool SyncDomResourceWitCoreResource(DomResource dom, CoreResource core)
+        private bool SyncDomResourceWithCoreResource(DomResource dom, CoreResource core)
         {
             bool updateRequired = false;
 
@@ -670,10 +673,11 @@
 
             foreach (var resource in resourcesWithDuplicateNames)
             {
-                var error = new ResourceConfigurationError
+                var error = new ResourceConfigurationDuplicateNameError
                 {
-                    ErrorReason = ResourceConfigurationError.Reason.DuplicateName,
                     ErrorMessage = $"Resource '{resource.ResourceInfo.Name}' has a duplicate name.",
+                    Id = resource.ID.Id,
+                    Name = resource.ResourceInfo.Name,
                 };
                 AddError(resource.ID.Id, error);
 
@@ -701,10 +705,11 @@
 
                 planApi.Logger.LogInformation($"Name '{resource.ResourceInfo.Name}' is already in use by CORE resource(s) with ID(s): {string.Join(" ,", existingResources.Select(x => x.ID))}");
 
-                var error = new ResourceConfigurationError
+                var error = new ResourceConfigurationNameExistsError
                 {
-                    ErrorReason = ResourceConfigurationError.Reason.NameExists,
                     ErrorMessage = "Name is already in use.",
+                    Id = resource.ID.Id,
+                    Name = resource.ResourceInfo.Name,
                 };
 
                 AddError(resource.ID.Id, error);
@@ -723,10 +728,12 @@
                 var elementId = new DmsElementId(domResource.ResourceInternalProperties.Metadata.LinkedElementInfo);
                 if (!TryValidateElementLink(elementId, out string reason))
                 {
-                    var error = new ResourceConfigurationError
+                    var error = new ResourceConfigurationInvalidElementLinkError
                     {
-                        ErrorReason = ResourceConfigurationError.Reason.InvalidElementLink,
                         ErrorMessage = reason,
+                        Id = domResource.ID.Id,
+                        AgentId = elementId.AgentId,
+                        ElementId = elementId.ElementId,
                     };
 
                     AddError(domResource.ID.Id, error);
@@ -766,10 +773,12 @@
                 var serviceId = new DmsServiceId(domResource.ResourceInternalProperties.Metadata.LinkedServiceInfo);
                 if (!TryValidateServiceResourceServiceLink(serviceId, out string reason))
                 {
-                    var error = new ResourceConfigurationError
+                    var error = new ResourceConfigurationInvalidServiceLinkError
                     {
-                        ErrorReason = ResourceConfigurationError.Reason.InvalidServiceLink,
                         ErrorMessage = reason,
+                        Id = domResource.ID.Id,
+                        AgentId = serviceId.AgentId,
+                        ServiceId = serviceId.ServiceId,
                     };
 
                     AddError(domResource.ID.Id, error);
@@ -812,10 +821,12 @@
                 var elementId = new DmsElementId(domResource.ResourceInternalProperties.Metadata.LinkedElementInfo);
                 if (!TryValidateElementLink(elementId, out string invalidElementInfoReason))
                 {
-                    var error = new ResourceConfigurationError
+                    var error = new ResourceConfigurationInvalidElementLinkError
                     {
-                        ErrorReason = ResourceConfigurationError.Reason.InvalidElementLink,
                         ErrorMessage = invalidElementInfoReason,
+                        Id = domResource.ID.Id,
+                        AgentId = elementId.AgentId,
+                        ElementId = elementId.ElementId,
                     };
 
                     AddError(domResource.ID.Id, error);
@@ -834,10 +845,10 @@
 
             foreach (var kvp in domResourcesByFunctionId.Where(x => !functionDefinitionsById.ContainsKey(x.Key)).ToList())
             {
-                var error = new ResourceConfigurationError
+                var error = new ResourceConfigurationInvalidFunctionLinkError
                 {
-                    ErrorReason = ResourceConfigurationError.Reason.InvalidFunctionLink,
                     ErrorMessage = $"No function found with ID '{kvp.Key}'.",
+                    FunctionId = kvp.Key,
                 };
 
                 AddError(kvp.Value, error);
@@ -868,10 +879,17 @@
 
                 foreach (var resource in resourcesWithSameTableIndex)
                 {
-                    var error = new ResourceConfigurationError
+                    var elementId = new DmsElementId(resource.ResourceInternalProperties.Metadata.LinkedElementInfo);
+
+                    var error = new ResourceConfigurationDuplicateTableIndexLinkError
                     {
-                        ErrorReason = ResourceConfigurationError.Reason.DuplicateTableIndexLink,
                         ErrorMessage = $"Resource '{resource.ResourceInfo.Name}' has a duplicate table index '{resource.ResourceInternalProperties.Metadata.LinkedFunctionTableIndex}'.",
+                        Id = resource.ID.Id,
+                        AgentId = elementId.AgentId,
+                        ElementId = elementId.ElementId,
+                        FunctionId = resource.ResourceInternalProperties.Metadata.LinkedFunctionId,
+                        FunctionTableIndex = resource.ResourceInternalProperties.Metadata.LinkedFunctionTableIndex,
+
                     };
 
                     AddError(resource.ID.Id, error);
@@ -882,10 +900,16 @@
                 var entryPoints = planApi.CoreHelpers.ProtocolFunctionHelperCache.GetElementFunctionEntryPoints(kvp.Key.FunctionDefinitionId, kvp.Key.ElementInfo, forceGet: true, returnAvailableOnly: true);
                 foreach (var resource in resourcesRequiringValidation.Where(x => !entryPoints.Any(y => y.IndexValue == x.ResourceInternalProperties.Metadata.LinkedFunctionTableIndex)))
                 {
-                    var error = new ResourceConfigurationError
+                    var elementId = new DmsElementId(resource.ResourceInternalProperties.Metadata.LinkedElementInfo);
+
+                    var error = new ResourceConfigurationInvalidTableIndexLinkError
                     {
-                        ErrorReason = ResourceConfigurationError.Reason.InvalidTableIndexLink,
                         ErrorMessage = $"Resource '{resource.ResourceInfo.Name}' has an invalid table index '{resource.ResourceInternalProperties.Metadata.LinkedFunctionTableIndex}'.",
+                        Id = resource.ID.Id,
+                        AgentId = elementId.AgentId,
+                        ElementId = elementId.ElementId,
+                        FunctionId = resource.ResourceInternalProperties.Metadata.LinkedFunctionId,
+                        FunctionTableIndex = resource.ResourceInternalProperties.Metadata.LinkedFunctionTableIndex,
                     };
 
                     AddError(resource.ID.Id, error);

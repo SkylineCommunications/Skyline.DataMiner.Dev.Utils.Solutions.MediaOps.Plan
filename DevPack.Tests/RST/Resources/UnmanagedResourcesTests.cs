@@ -1,7 +1,7 @@
 ﻿namespace RT_MediaOps.Plan.RST.Resources
 {
     using System;
-
+    using System.Collections.Concurrent;
     using RT_MediaOps.Plan.RegressionTests;
 
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
@@ -170,6 +170,110 @@
 
             Assert.IsTrue(me != null, "Exception not thrown");
             StringAssert.Contains(me.Message, "Name is already in use");
+        }
+
+        [TestMethod]
+        public void ConcurrentUpdatesToSameResource_ShouldExecuteSequentially()
+        {
+            var resourceName = TestHelper.GetRandomName("UnmanagedResource_");
+            var expectedResourceResult = new ExpectedUnmanagedResource(resourceName, 5, false, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Draft);
+            var resource = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
+            {
+                Name = expectedResourceResult.Name,
+                Concurrency = expectedResourceResult.Concurrency,
+                IsFavorite = expectedResourceResult.IsFavorite,
+            };
+
+            var resourceId = TestContext.Api.Resources.Create(resource);
+
+            // Create multiple rapid updates
+            var executionLog = new ConcurrentBag<(int TaskId, string Event, DateTime Timestamp, Exception? exception)>();
+            var numberOfConcurrentUpdates = 20;
+            var tasks = new List<Task>();
+
+            for (int i = 0; i < numberOfConcurrentUpdates; i++)
+            {
+                int taskId = i;
+                var task = Task.Run(() =>
+                {
+                    executionLog.Add((taskId, "Start", DateTime.UtcNow, null));
+
+                    var res = TestContext.Api.Resources.Read(resourceId);
+                    res.Name = $"{resourceName}_Resource_Task{taskId}";
+
+                    try
+                    {
+                        TestContext.Api.Resources.Update(res);
+                        executionLog.Add((taskId, "Complete", DateTime.UtcNow, null));
+                    }
+                    catch (Exception e)
+                    {
+                        executionLog.Add((taskId, "Error", DateTime.UtcNow, e));
+                    }
+                });
+
+                tasks.Add(task);
+
+                Thread.Sleep(10); // Slight delay to increase chance of overlap
+            }
+
+            // Wait for all tasks
+            Task.WaitAll(tasks.ToArray(), TimeSpan.FromSeconds(30));
+
+            // Verify all completed successfully
+            Assert.AreEqual(numberOfConcurrentUpdates * 2, executionLog.Count);
+
+            // The final resource should have at least have one of the updates
+            var finalResource = TestContext.Api.Resources.Read(resourceId);
+            Assert.IsTrue(finalResource.Name.StartsWith($"{resourceName}_Resource_Task"));
+
+            // Check that if update fail, it's because of concurrent writes or because of lock not being granted
+            var failedTasks = executionLog.Where(x => x.Event == "Error");
+            Assert.IsTrue(failedTasks.All(x => x.exception != null));
+            string[] possibleExceptionMessages = new string[]
+            {
+                "Value for field '13833c8f-6874-44e9-9aeb-9a9914e26771' has already been changed.",
+                $"Failed to lock Resource {resourceId}."
+            };
+
+            foreach (var failedTask in failedTasks)
+            {
+                Assert.IsTrue(possibleExceptionMessages.Contains(failedTask.exception!.Message));
+            }
+
+            // Check that no errors occurred (all updates completed)
+            var completedTasks = executionLog.Where(x => x.Event == "Complete").Select(x => x.TaskId).Distinct();
+            Assert.IsTrue(completedTasks.Count() > 0);
+        }
+
+        [TestMethod]
+        public void ConcurrentUpdatesAreBlocked()
+        {
+            var resourceName = TestHelper.GetRandomName("UnmanagedResource_");
+            var expectedResourceResult = new ExpectedUnmanagedResource(resourceName, 5, false, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Draft);
+            var resource = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
+            {
+                Name = expectedResourceResult.Name,
+                Concurrency = expectedResourceResult.Concurrency,
+                IsFavorite = expectedResourceResult.IsFavorite,
+            };
+
+            var resourceId = TestContext.Api.Resources.Create(resource);
+
+            var updatedResourceName1 = $"{resourceName}_Update1";
+            var updatedResourceName2 = $"{resourceName}_Update2";
+
+            var resourceForUpdate1 = TestContext.Api.Resources.Read(resourceId);
+            var resourceForUpdate2 = TestContext.Api.Resources.Read(resourceId);
+
+            resourceForUpdate1.Name = updatedResourceName1;
+            TestContext.Api.Resources.Update(resourceForUpdate1);
+
+            resourceForUpdate2.Name = updatedResourceName2;
+            Assert.ThrowsException<MediaOpsException>(() => TestContext.Api.Resources.Update(resourceForUpdate2));
+
+            var finalResource = TestContext.Api.Resources.Read(resourceId);
+            Assert.AreEqual(updatedResourceName1, finalResource.Name);
         }
 
         public void Dispose()

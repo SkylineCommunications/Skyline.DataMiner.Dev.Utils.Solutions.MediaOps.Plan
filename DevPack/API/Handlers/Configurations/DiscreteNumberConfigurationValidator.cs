@@ -4,7 +4,7 @@
     using System.Linq;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
-    internal class DiscreteNumberConfigurationValidator : ApiObjectValidator<Guid>
+    internal class DiscreteNumberConfigurationValidator : ApiObjectValidator
     {
         private readonly DiscreteNumberConfiguration discreteNumberConfiguration;
 
@@ -25,10 +25,10 @@
             // Any discreet options available
             if (!discreteNumberConfiguration.Discretes.Any())
             {
-                ReportError(discreteNumberConfiguration.Id, new ConfigurationConfigurationError
+                ReportError(discreteNumberConfiguration.Id, new ConfigurationConfigurationNoDiscretesError
                 {
-                    ErrorReason = ConfigurationConfigurationError.Reason.InvalidDiscretes,
                     ErrorMessage = "A discreet configuration should have at least one discreet option defined",
+                    Id = discreteNumberConfiguration.Id,
                 });
                 return;
             }
@@ -36,10 +36,10 @@
             // Validate default discrete option
             if (!String.IsNullOrEmpty(discreteNumberConfiguration.DefaultValue) && !discreteNumberConfiguration.Discretes.Any(x => x.Key.Equals(discreteNumberConfiguration.DefaultValue)))
             {
-                ReportError(discreteNumberConfiguration.Id, new ConfigurationConfigurationError
+                ReportError(discreteNumberConfiguration.Id, new ConfigurationConfigurationInvalidDefaultDiscreetError
                 {
-                    ErrorReason = ConfigurationConfigurationError.Reason.InvalidDefaultDiscreet,
                     ErrorMessage = "Default discreet should be the display value of any of the discreet options",
+                    Id = discreteNumberConfiguration.Id,
                 });
             }
 
@@ -48,19 +48,19 @@
                 // Validate Display Value
                 if (!HasValidDisplayValue(discreet.Key, out string invalidDisplayNameReason))
                 {
-                    ReportError(discreteNumberConfiguration.Id, new ConfigurationConfigurationError
+                    ReportError(discreteNumberConfiguration.Id, new ConfigurationConfigurationInvalidDiscretesError
                     {
-                        ErrorReason = ConfigurationConfigurationError.Reason.InvalidDiscretes,
                         ErrorMessage = invalidDisplayNameReason,
+                        Id = discreteNumberConfiguration.Id,
                     });
                 }
 
                 if (!IsValidDiscreetNumber(discreet.Value, out string invalidDiscreetNumberReason))
                 {
-                    ReportError(discreteNumberConfiguration.Id, new ConfigurationConfigurationError
+                    ReportError(discreteNumberConfiguration.Id, new ConfigurationConfigurationInvalidDiscretesError
                     {
-                        ErrorReason = ConfigurationConfigurationError.Reason.InvalidDiscretes,
                         ErrorMessage = invalidDiscreetNumberReason,
+                        Id = discreteNumberConfiguration.Id,
                     });
                 }
             }
