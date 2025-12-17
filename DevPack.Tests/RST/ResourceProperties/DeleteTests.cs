@@ -1,0 +1,112 @@
+﻿namespace RT_MediaOps.Plan.RST.ResourceProperties
+{
+    using System;
+    using System.Linq;
+
+    using RT_MediaOps.Plan.RegressionTests;
+
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+
+    [TestClass]
+    [TestCategory("IntegrationTest")]
+    public sealed class DeleteTests
+    {
+        private readonly ResourceStudioObjectCreator objectCreator;
+
+        public DeleteTests()
+        {
+            objectCreator = new ResourceStudioObjectCreator(TestContext.Api);
+        }
+
+        private static IntegrationTestContext TestContext => TestContextManager.SharedTestContext;
+
+        public void Dispose()
+        {
+            objectCreator.Dispose();
+        }
+
+        [TestMethod]
+        public void WhenAssignedToResourcesThrowsException()
+        {
+            var prefix = Guid.NewGuid();
+
+            var property1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceProperty()
+            {
+                Name = $"{prefix}_Property1",
+            };
+            var property2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceProperty()
+            {
+                Name = $"{prefix}_Property2",
+            };
+            var property3 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceProperty()
+            {
+                Name = $"{prefix}_Property3",
+            };
+
+            objectCreator.CreateProperties([property1, property2, property3]);
+
+            var unmangedResource1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
+            {
+                Name = $"{prefix}_Resource1",
+            };
+            unmangedResource1.AddProperty(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePropertySettings(property1)
+            {
+                Value = "Test",
+            });
+            unmangedResource1.AddProperty(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePropertySettings(property2)
+            {
+                Value = "Test",
+            });
+
+            var unmangedResource2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
+            {
+                Name = $"{prefix}_Resource2",
+            };
+            unmangedResource2.AddProperty(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePropertySettings(property1)
+            {
+                Value = "Test",
+            });
+
+            objectCreator.CreateResources([unmangedResource1, unmangedResource2]);
+
+            MediaOpsBulkException<Guid>? expectedException = null;
+            try
+            {
+                TestContext.Api.Properties.Delete([property1, property2, property3]);
+            }
+            catch (MediaOpsBulkException<Guid> ex)
+            {
+                expectedException = ex;
+            }
+
+            if (expectedException == null)
+            {
+                Assert.Fail("Expected exception was not thrown.");
+            }
+
+            Assert.AreEqual(1, expectedException.Result.SuccessfulIds.Count);
+            Assert.IsTrue(expectedException.Result.SuccessfulIds.Contains(property3.Id));
+
+            Assert.AreEqual(2, expectedException.Result.UnsuccessfulIds.Count);
+            Assert.IsTrue(expectedException.Result.UnsuccessfulIds.Contains(property1.Id));
+            Assert.IsTrue(expectedException.Result.UnsuccessfulIds.Contains(property2.Id));
+
+            expectedException.Result.TraceDataPerItem.TryGetValue(property1.Id, out var traceData1);
+            Assert.IsNotNull(traceData1);
+            Assert.AreEqual(1, traceData1.ErrorData.Count);
+            var resourcePropertyDeleteInUseError = traceData1.ErrorData.OfType<ResourcePropertyDeleteInUseError>().SingleOrDefault();
+            Assert.IsNotNull(resourcePropertyDeleteInUseError);
+            Assert.AreEqual(2, resourcePropertyDeleteInUseError.ResourceIds.Count);
+            Assert.IsTrue(resourcePropertyDeleteInUseError.ResourceIds.Contains(unmangedResource1.Id));
+            Assert.IsTrue(resourcePropertyDeleteInUseError.ResourceIds.Contains(unmangedResource2.Id));
+
+            expectedException.Result.TraceDataPerItem.TryGetValue(property2.Id, out var traceData2);
+            Assert.IsNotNull(traceData2);
+            Assert.AreEqual(1, traceData2.ErrorData.Count);
+            resourcePropertyDeleteInUseError = traceData2.ErrorData.OfType<ResourcePropertyDeleteInUseError>().SingleOrDefault();
+            Assert.IsNotNull(resourcePropertyDeleteInUseError);
+            Assert.AreEqual(1, resourcePropertyDeleteInUseError.ResourceIds.Count);
+            Assert.IsTrue(resourcePropertyDeleteInUseError.ResourceIds.Contains(unmangedResource1.Id));
+        }
+    }
+}

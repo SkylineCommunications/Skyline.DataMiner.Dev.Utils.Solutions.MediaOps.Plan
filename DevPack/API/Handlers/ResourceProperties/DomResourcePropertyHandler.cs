@@ -3,7 +3,9 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Microsoft.Extensions.Logging;
+
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
@@ -11,6 +13,7 @@
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
     using Skyline.DataMiner.Utils.DOM.Extensions;
+
     using DomResourceProperty = Storage.DOM.SlcResource_Studio.ResourcepropertyInstance;
 
     internal class DomResourcePropertyHandler : ApiObjectValidator
@@ -183,9 +186,10 @@
                 ReportError(x.Id, error);
             });
 
-            // Todo: add check is property is in use
+            
+            ValidatePropertiesAreNotInUse(apiResourceProperties.Except(newProperties));
 
-            var propertiesToDelete = apiResourceProperties.Except(newProperties).ToList();
+            var propertiesToDelete = apiResourceProperties.Where(IsValid).ToList();
             var lockResult = planApi.LockManager.LockAndExecute(propertiesToDelete, DeleteCoreResourceProperties);
             ReportError(lockResult);
         }
@@ -373,6 +377,33 @@
 
                 ReportError(property.Id, error);
             }
+        }
+
+        private void ValidatePropertiesAreNotInUse(IEnumerable<ResourceProperty> apiResourceProperties)
+        {
+            if (apiResourceProperties == null)
+            {
+                throw new ArgumentNullException(nameof(apiResourceProperties));
+            }
+
+            if (!apiResourceProperties.Any())
+            {
+                return;
+            }
+
+            // Todo: add check if property is in use [ADO33355]
+
+
+            /*
+             * CODE FROM SOLUTION
+             * 
+             * private List<DomApplications.Resource_Studio.Resource> FindResourcesImplementingProperty()
+		{
+			var filter = DomInstanceExposers.FieldValues.DomInstanceField(DomApplications.DomIds.SlcResource_Studio.Sections.ResourceProperties.Property).Equal(inputData.DomPropertyId);
+			return scriptData.DomResourceStudioHandler.GetResources(filter).ToList();
+		}
+             * 
+             */
         }
 
         private IEnumerable<DomChangeResults> GetPropertiesWithChanges(IEnumerable<ResourceProperty> apiResourceProperties)
