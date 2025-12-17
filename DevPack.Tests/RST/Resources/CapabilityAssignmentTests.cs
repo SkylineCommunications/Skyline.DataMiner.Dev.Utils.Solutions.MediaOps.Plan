@@ -322,7 +322,7 @@
             var resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
             Assert.AreEqual(1, resource.Capabilities.Count);
 
-            var capabilities = TestContext.Api.Capabilities.Read([timeCapability1.Id, timeCapability2.Id, regularCapability.Id]).Values;
+            var capabilities = TestContext.Api.Capabilities.Read([timeCapability1.Id, timeCapability2.Id, regularCapability.Id]);
             timeCapability1 = capabilities.Single(c => c.Id == timeCapability1.Id);
             timeCapability2 = capabilities.Single(c => c.Id == timeCapability2.Id);
             regularCapability = capabilities.Single(c => c.Id == regularCapability.Id);
@@ -522,10 +522,10 @@
                 Assert.AreEqual(errorMessage, ex.Message);
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var resourceConfigurationError = ex.TraceData.ErrorData.OfType<ResourceConfigurationError>().SingleOrDefault();
+                var resourceConfigurationError = ex.TraceData.ErrorData.OfType<ResourceError>().SingleOrDefault();
                 Assert.IsNotNull(resourceConfigurationError);
 
-                var invalidResourceCapabilitySettingsError = resourceConfigurationError as ResourceConfigurationInvalidCapabilitySettingsError;
+                var invalidResourceCapabilitySettingsError = resourceConfigurationError as ResourceInvalidCapabilitySettingsError;
                 Assert.IsNotNull(invalidResourceCapabilitySettingsError);
                 Assert.AreEqual(errorMessage, invalidResourceCapabilitySettingsError.ErrorMessage);
                 Assert.AreEqual(notExistingCapabilityId, invalidResourceCapabilitySettingsError.CapabilityId);
@@ -566,10 +566,10 @@
                 Assert.AreEqual(errorMessage, ex.Message);
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var resourceConfigurationError = ex.TraceData.ErrorData.OfType<ResourceConfigurationError>().SingleOrDefault();
+                var resourceConfigurationError = ex.TraceData.ErrorData.OfType<ResourceError>().SingleOrDefault();
                 Assert.IsNotNull(resourceConfigurationError);
 
-                var invalidResourceCapabilitySettingsError = resourceConfigurationError as ResourceConfigurationInvalidCapabilitySettingsError;
+                var invalidResourceCapabilitySettingsError = resourceConfigurationError as ResourceInvalidCapabilitySettingsError;
                 Assert.IsNotNull(invalidResourceCapabilitySettingsError);
                 Assert.AreEqual(errorMessage, invalidResourceCapabilitySettingsError.ErrorMessage);
                 Assert.AreEqual(capability.Id, invalidResourceCapabilitySettingsError.CapabilityId);
@@ -611,10 +611,10 @@
                 Assert.AreEqual(errorMessage, ex.Message);
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var resourceConfigurationError = ex.TraceData.ErrorData.OfType<ResourceConfigurationError>().SingleOrDefault();
+                var resourceConfigurationError = ex.TraceData.ErrorData.OfType<ResourceError>().SingleOrDefault();
                 Assert.IsNotNull(resourceConfigurationError);
 
-                var invalidResourceCapabilitySettingsError = resourceConfigurationError as ResourceConfigurationInvalidCapabilitySettingsError;
+                var invalidResourceCapabilitySettingsError = resourceConfigurationError as ResourceInvalidCapabilitySettingsError;
                 Assert.IsNotNull(invalidResourceCapabilitySettingsError);
                 Assert.AreEqual(errorMessage, invalidResourceCapabilitySettingsError.ErrorMessage);
                 Assert.AreEqual(capability.Id, invalidResourceCapabilitySettingsError.CapabilityId);

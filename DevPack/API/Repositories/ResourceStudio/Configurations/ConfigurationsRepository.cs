@@ -178,7 +178,7 @@
                 throw new ArgumentNullException(nameof(apiObjectIds));
             }
 
-            var configurationsToDelete = Read(apiObjectIds).Values;
+            var configurationsToDelete = Read(apiObjectIds);
 
             ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Delete), act =>
             {
@@ -229,9 +229,9 @@
         /// Reads multiple configurations by their unique identifiers.
         /// </summary>
         /// <param name="ids">A collection of unique identifiers.</param>
-        /// <returns>A dictionary mapping each identifier to its corresponding configuration.</returns>
+        /// <returns>An enumerable collection of configurations matching the specified identifiers.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="ids"/> is <c>null</c>.</exception>
-        public IDictionary<Guid, Configuration> Read(IEnumerable<Guid> ids)
+        public IEnumerable<Configuration> Read(IEnumerable<Guid> ids)
         {
             if (ids == null)
             {
@@ -245,7 +245,7 @@
 
                 var configurations = PlanApi.CoreHelpers.ProfileProvider.GetConfigurationsById(ids);
 
-                return InstantiateConfigurations(configurations).ToDictionary(x => x.Id);
+                return InstantiateConfigurations(configurations);
             });
         }
 

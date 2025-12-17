@@ -41,7 +41,7 @@
                 Name = $"{prefix}_Resource3",
             };
             objectCreator.CreateResources([unmanagedResource1, unmanagedResource2, unmanagedResource3]);
-            var resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).Values;
+            var resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).ToList();
 
             var resourcePool = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
             {
@@ -52,7 +52,7 @@
             // Assign resources to pool.
             TestContext.Api.ResourcePools.AssignResourcesToPool(resourcePool.Id, resources);
 
-            resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).Values;
+            resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).ToList();
             foreach (var resource in resources)
             {
                 Assert.AreEqual(1, resource.AssignedResourcePoolIds.Count);
@@ -63,7 +63,7 @@
             // Remove resources from pool.
             TestContext.Api.ResourcePools.UnassignResourcesFromPool(resourcePool.Id, resources.Skip(1));
 
-            resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).Values;
+            resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).ToList();
             int resourceIndex = 0;
             foreach (var resource in resources)
             {
@@ -115,14 +115,14 @@
             objectCreator.CreateResourcePool(resourcePool);
             TestContext.Api.ResourcePools.MoveTo(resourcePool.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
 
-            var resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).Values;
+            var resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).ToList();
             resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
             Assert.AreNotEqual(Guid.Empty, resourcePool.CoreResourcePoolId);
 
             // Assign resources to pool.
             TestContext.Api.ResourcePools.AssignResourcesToPool(resourcePool.Id, resources);
 
-            resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).Values;
+            resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).ToList();
             foreach (var resource in resources)
             {
                 Assert.AreNotEqual(Guid.Empty, resource.CoreResourceId);
@@ -134,7 +134,7 @@
             // Remove resources from pool.
             TestContext.Api.ResourcePools.UnassignResourcesFromPool(resourcePool.Id, resources.Skip(1));
 
-            resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).Values;
+            resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).ToList();
             int resourceIndex = 0;
             foreach (var resource in resources)
             {
@@ -183,13 +183,13 @@
             };
             objectCreator.CreateResourcePool(resourcePool);
 
-            var resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).Values;
+            var resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).ToList();
             TestContext.Api.ResourcePools.AssignResourcesToPool(resourcePool.Id, resources);
 
             // Set pool to completed.
             TestContext.Api.ResourcePools.MoveTo(resourcePool.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
 
-            resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).Values;
+            resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).ToList();
             var resource1 = resources.Single(r => r.Id == unmanagedResource1.Id);
             var resource2 = resources.Single(r => r.Id == unmanagedResource2.Id);
             var resource3 = resources.Single(r => r.Id == unmanagedResource3.Id);

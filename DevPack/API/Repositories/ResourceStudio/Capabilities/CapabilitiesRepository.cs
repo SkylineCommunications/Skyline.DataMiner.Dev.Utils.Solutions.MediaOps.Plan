@@ -178,7 +178,7 @@
                 throw new ArgumentNullException(nameof(apiObjectIds));
             }
 
-            var capabilitiesToDelete = Read(apiObjectIds).Values;
+            var capabilitiesToDelete = Read(apiObjectIds);
 
             ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Delete), act =>
             {
@@ -229,9 +229,9 @@
         /// Reads multiple capabilities by their unique identifiers.
         /// </summary>
         /// <param name="ids">A collection of unique identifiers.</param>
-        /// <returns>A dictionary mapping each identifier to its corresponding capability.</returns>
+        /// <returns>An enumerable collection of capabilities matching the specified identifiers.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="ids"/> is <c>null</c>.</exception>
-        public IDictionary<Guid, Capability> Read(IEnumerable<Guid> ids)
+        public IEnumerable<Capability> Read(IEnumerable<Guid> ids)
         {
             if (ids == null)
             {
@@ -243,8 +243,7 @@
                 act?.AddTag("CapabilityIds", String.Join(", ", ids));
                 act?.AddTag("CapabilityIds Count", ids.Count());
 
-                var capabilities = PlanApi.CoreHelpers.ProfileProvider.GetCapabilitiesById(ids);
-                return capabilities.Select(x => new Capability(x)).ToDictionary(x => x.Id);
+                return PlanApi.CoreHelpers.ProfileProvider.GetCapabilitiesById(ids).Select(x => new Capability(x));
             });
         }
 

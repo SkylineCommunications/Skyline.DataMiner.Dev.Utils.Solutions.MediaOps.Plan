@@ -123,10 +123,10 @@
                 StringAssert.Contains(ex.Message, "ID is already in use.");
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var configurationConfigurationError = ex.TraceData.ErrorData.OfType<ConfigurationConfigurationError>().SingleOrDefault();
+                var configurationConfigurationError = ex.TraceData.ErrorData.OfType<ConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(configurationConfigurationError);
 
-                var configurationConfigurationIdInUseError = configurationConfigurationError as ConfigurationConfigurationIdInUseError;
+                var configurationConfigurationIdInUseError = configurationConfigurationError as ConfigurationIdInUseError;
                 Assert.IsNotNull(configurationConfigurationIdInUseError);
                 Assert.AreEqual("ID is already in use.", configurationConfigurationError.ErrorMessage);
 
@@ -163,7 +163,7 @@
                 }
 
                 Assert.AreEqual(2, traceData.ErrorData.Count);
-                var configurationConfigurationErrors = traceData.ErrorData.OfType<ConfigurationConfigurationError>().ToList();
+                var configurationConfigurationErrors = traceData.ErrorData.OfType<ConfigurationError>().ToList();
                 Assert.AreEqual(2, configurationConfigurationErrors.Count());
 
                 var errorMessages = new List<string>
@@ -174,7 +174,7 @@
 
                 foreach (var error in configurationConfigurationErrors)
                 {
-                    var configurationConfigurationDuplicateIdError = error as ConfigurationConfigurationDuplicateIdError;
+                    var configurationConfigurationDuplicateIdError = error as ConfigurationDuplicateIdError;
                     Assert.IsNotNull(configurationConfigurationDuplicateIdError);
                     Assert.IsTrue(errorMessages.Contains(error.ErrorMessage));
 
@@ -212,10 +212,10 @@
                 StringAssert.Contains(ex.Message, "Name is already in use.");
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var configurationConfigurationError = ex.TraceData.ErrorData.OfType<ConfigurationConfigurationError>().SingleOrDefault();
+                var configurationConfigurationError = ex.TraceData.ErrorData.OfType<ConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(configurationConfigurationError);
 
-                var configurationConfigurationNameExistsError = configurationConfigurationError as ConfigurationConfigurationNameExistsError;
+                var configurationConfigurationNameExistsError = configurationConfigurationError as ConfigurationNameExistsError;
                 Assert.IsNotNull(configurationConfigurationNameExistsError);
                 Assert.AreEqual("Name is already in use.", configurationConfigurationError.ErrorMessage);
 
@@ -251,10 +251,10 @@
                 foreach (var traceData in ex.Result.TraceDataPerItem.Values)
                 {
                     Assert.AreEqual(1, traceData.ErrorData.Count);
-                    var configurationConfigurationError = traceData.ErrorData.OfType<ConfigurationConfigurationError>().SingleOrDefault();
+                    var configurationConfigurationError = traceData.ErrorData.OfType<ConfigurationError>().SingleOrDefault();
                     Assert.IsNotNull(configurationConfigurationError);
 
-                    var configurationConfigurationDuplicateNameError = configurationConfigurationError as ConfigurationConfigurationDuplicateNameError;
+                    var configurationConfigurationDuplicateNameError = configurationConfigurationError as ConfigurationDuplicateNameError;
                     Assert.IsNotNull(configurationConfigurationDuplicateNameError);
                     Assert.AreEqual($"Configuration '{configuration1.Name}' has a duplicate name.", configurationConfigurationError.ErrorMessage);
                 }
@@ -295,10 +295,10 @@
                 StringAssert.Contains(ex.Message, "Name is already in use.");
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var configurationConfigurationError = ex.TraceData.ErrorData.OfType<ConfigurationConfigurationError>().SingleOrDefault();
+                var configurationConfigurationError = ex.TraceData.ErrorData.OfType<ConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(configurationConfigurationError);
 
-                var configurationConfigurationNameExistsError = configurationConfigurationError as ConfigurationConfigurationNameExistsError;
+                var configurationConfigurationNameExistsError = configurationConfigurationError as ConfigurationNameExistsError;
                 Assert.IsNotNull(configurationConfigurationNameExistsError);
                 Assert.AreEqual("Name is already in use.", configurationConfigurationError.ErrorMessage);
 
@@ -414,26 +414,26 @@
             catch (MediaOpsException ex)
             {
                 Assert.AreEqual(4, ex.TraceData.ErrorData.Count);
-                var configurationConfigurationErrors = ex.TraceData.ErrorData.OfType<ConfigurationConfigurationError>();
+                var configurationConfigurationErrors = ex.TraceData.ErrorData.OfType<ConfigurationError>();
                 Assert.AreEqual(4, configurationConfigurationErrors.Count());
 
-                var configurationConfigurationInvalidRangeError = configurationConfigurationErrors.OfType<ConfigurationConfigurationInvalidRangeError>().SingleOrDefault();
+                var configurationConfigurationInvalidRangeError = configurationConfigurationErrors.OfType<ConfigurationInvalidRangeError>().SingleOrDefault();
                 Assert.IsNotNull(configurationConfigurationInvalidRangeError);
                 Assert.AreEqual("RangeMax must be greater than RangeMin.", configurationConfigurationInvalidRangeError.ErrorMessage);
                 Assert.AreEqual(10.123m, configurationConfigurationInvalidRangeError.RangeMin);
                 Assert.AreEqual(1.123m, configurationConfigurationInvalidRangeError.RangeMax);
 
-                var configurationConfigurationInvalidRangeMinError = configurationConfigurationErrors.OfType<ConfigurationConfigurationInvalidRangeMinError>().SingleOrDefault();
+                var configurationConfigurationInvalidRangeMinError = configurationConfigurationErrors.OfType<ConfigurationInvalidRangeMinError>().SingleOrDefault();
                 Assert.IsNotNull(configurationConfigurationInvalidRangeMinError);
                 Assert.AreEqual("RangeMin has more decimal places than allowed by Decimals (2).", configurationConfigurationInvalidRangeMinError.ErrorMessage);
                 Assert.AreEqual(10.123m, configurationConfigurationInvalidRangeMinError.RangeMin);
 
-                var configurationConfigurationInvalidRangeMaxError = configurationConfigurationErrors.OfType<ConfigurationConfigurationInvalidRangeMaxError>().SingleOrDefault();
+                var configurationConfigurationInvalidRangeMaxError = configurationConfigurationErrors.OfType<ConfigurationInvalidRangeMaxError>().SingleOrDefault();
                 Assert.IsNotNull(configurationConfigurationInvalidRangeMaxError);
                 Assert.AreEqual("RangeMax has more decimal places than allowed by Decimals (2).", configurationConfigurationInvalidRangeMaxError.ErrorMessage);
                 Assert.AreEqual(1.123m, configurationConfigurationInvalidRangeMaxError.RangeMax);
 
-                var configurationConfigurationInvalidStepSizeError = configurationConfigurationErrors.OfType<ConfigurationConfigurationInvalidStepSizeError>().SingleOrDefault();
+                var configurationConfigurationInvalidStepSizeError = configurationConfigurationErrors.OfType<ConfigurationInvalidStepSizeError>().SingleOrDefault();
                 Assert.IsNotNull(configurationConfigurationInvalidStepSizeError);
                 Assert.AreEqual("StepSize has more decimal places than allowed by Decimals (2).", configurationConfigurationInvalidStepSizeError.ErrorMessage);
                 Assert.AreEqual(5.123m, configurationConfigurationInvalidStepSizeError.StepSize);
@@ -469,10 +469,10 @@
                 StringAssert.Contains(ex.Message, "Decimals must be between 0 and 15.");
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var configurationConfigurationError = ex.TraceData.ErrorData.OfType<ConfigurationConfigurationError>().SingleOrDefault();
+                var configurationConfigurationError = ex.TraceData.ErrorData.OfType<ConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(configurationConfigurationError);
 
-                var configurationConfigurationInvalidDecimalsError = configurationConfigurationError as ConfigurationConfigurationInvalidDecimalsError;
+                var configurationConfigurationInvalidDecimalsError = configurationConfigurationError as ConfigurationInvalidDecimalsError;
                 Assert.IsNotNull(configurationConfigurationInvalidDecimalsError);
                 Assert.AreEqual("Decimals must be between 0 and 15.", configurationConfigurationError.ErrorMessage);
 
@@ -507,10 +507,10 @@
                 StringAssert.Contains(ex.Message, "StepSize must be greater than 0.");
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var configurationConfigurationError = ex.TraceData.ErrorData.OfType<ConfigurationConfigurationError>().SingleOrDefault();
+                var configurationConfigurationError = ex.TraceData.ErrorData.OfType<ConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(configurationConfigurationError);
 
-                var configurationConfigurationInvalidStepSizeError = configurationConfigurationError as ConfigurationConfigurationInvalidStepSizeError;
+                var configurationConfigurationInvalidStepSizeError = configurationConfigurationError as ConfigurationInvalidStepSizeError;
                 Assert.IsNotNull(configurationConfigurationInvalidStepSizeError);
                 Assert.AreEqual("StepSize must be greater than 0.", configurationConfigurationError.ErrorMessage);
 

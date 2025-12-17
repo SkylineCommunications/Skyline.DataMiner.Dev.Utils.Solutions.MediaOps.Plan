@@ -404,10 +404,10 @@
                 Assert.AreEqual(errorMessage, ex.Message);
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var resourceConfigurationError = ex.TraceData.ErrorData.OfType<ResourceConfigurationError>().SingleOrDefault();
+                var resourceConfigurationError = ex.TraceData.ErrorData.OfType<ResourceError>().SingleOrDefault();
                 Assert.IsNotNull(resourceConfigurationError);
 
-                var invalidResourceCapacitySettingsError = resourceConfigurationError as ResourceConfigurationInvalidCapacitySettingsError;
+                var invalidResourceCapacitySettingsError = resourceConfigurationError as ResourceInvalidCapacitySettingsError;
                 Assert.IsNotNull(invalidResourceCapacitySettingsError);
                 Assert.AreEqual(errorMessage, invalidResourceCapacitySettingsError.ErrorMessage);
                 Assert.AreEqual(notExistingCapacityId, invalidResourceCapacitySettingsError.CapacityId);
@@ -446,10 +446,10 @@
                 Assert.AreEqual(errorMessage, ex.Message);
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var resourceConfigurationError = ex.TraceData.ErrorData.OfType<ResourceConfigurationError>().SingleOrDefault();
+                var resourceConfigurationError = ex.TraceData.ErrorData.OfType<ResourceError>().SingleOrDefault();
                 Assert.IsNotNull(resourceConfigurationError);
 
-                var invalidResourceCapacitySettingsError = resourceConfigurationError as ResourceConfigurationInvalidCapacitySettingsError;
+                var invalidResourceCapacitySettingsError = resourceConfigurationError as ResourceInvalidCapacitySettingsError;
                 Assert.IsNotNull(invalidResourceCapacitySettingsError);
                 Assert.AreEqual(errorMessage, invalidResourceCapacitySettingsError.ErrorMessage);
                 Assert.AreEqual(notExistingCapacityId, invalidResourceCapacitySettingsError.CapacityId);
@@ -505,10 +505,10 @@
             catch (MediaOpsException ex)
             {
                 Assert.AreEqual(2, ex.TraceData.ErrorData.Count);
-                var resourceConfigurationErrors = ex.TraceData.ErrorData.OfType<ResourceConfigurationError>();
+                var resourceConfigurationErrors = ex.TraceData.ErrorData.OfType<ResourceError>();
                 Assert.AreEqual(2, resourceConfigurationErrors.Count());
 
-                var invalidResourceCapacitySettingsErrors = resourceConfigurationErrors.OfType<ResourceConfigurationInvalidCapacitySettingsError>();
+                var invalidResourceCapacitySettingsErrors = resourceConfigurationErrors.OfType<ResourceInvalidCapacitySettingsError>();
                 Assert.AreEqual(2, invalidResourceCapacitySettingsErrors.Count());
 
                 var error1 = invalidResourceCapacitySettingsErrors.SingleOrDefault(e => e.CapacityId == capacity1.Id);
@@ -560,10 +560,10 @@
                 Assert.AreEqual(errorMessage, ex.Message);
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var resourceConfigurationError = ex.TraceData.ErrorData.OfType<ResourceConfigurationError>().SingleOrDefault();
+                var resourceConfigurationError = ex.TraceData.ErrorData.OfType<ResourceError>().SingleOrDefault();
                 Assert.IsNotNull(resourceConfigurationError);
 
-                var invalidResourceCapacitySettingsError = resourceConfigurationError as ResourceConfigurationInvalidCapacitySettingsError;
+                var invalidResourceCapacitySettingsError = resourceConfigurationError as ResourceInvalidCapacitySettingsError;
                 Assert.IsNotNull(invalidResourceCapacitySettingsError);
                 Assert.AreEqual(errorMessage, invalidResourceCapacitySettingsError.ErrorMessage);
                 Assert.AreEqual(capacity.Id, invalidResourceCapacitySettingsError.CapacityId);
@@ -619,10 +619,10 @@
             catch (MediaOpsException ex)
             {
                 Assert.AreEqual(2, ex.TraceData.ErrorData.Count);
-                var resourceConfigurationErrors = ex.TraceData.ErrorData.OfType<ResourceConfigurationError>();
+                var resourceConfigurationErrors = ex.TraceData.ErrorData.OfType<ResourceError>();
                 Assert.AreEqual(2, resourceConfigurationErrors.Count());
 
-                var invalidResourceCapacitySettingsErrors = resourceConfigurationErrors.OfType<ResourceConfigurationInvalidCapacitySettingsError>();
+                var invalidResourceCapacitySettingsErrors = resourceConfigurationErrors.OfType<ResourceInvalidCapacitySettingsError>();
                 Assert.AreEqual(2, invalidResourceCapacitySettingsErrors.Count());
 
                 var error1 = invalidResourceCapacitySettingsErrors.SingleOrDefault(e => e.CapacityId == capacity1.Id);
@@ -674,10 +674,10 @@
                 Assert.AreEqual(errorMessage, ex.Message);
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var resourceConfigurationError = ex.TraceData.ErrorData.OfType<ResourceConfigurationError>().SingleOrDefault();
+                var resourceConfigurationError = ex.TraceData.ErrorData.OfType<ResourceError>().SingleOrDefault();
                 Assert.IsNotNull(resourceConfigurationError);
 
-                var invalidResourceCapacitySettingsError = resourceConfigurationError as ResourceConfigurationInvalidCapacitySettingsError;
+                var invalidResourceCapacitySettingsError = resourceConfigurationError as ResourceInvalidCapacitySettingsError;
                 Assert.IsNotNull(invalidResourceCapacitySettingsError);
                 Assert.AreEqual(errorMessage, invalidResourceCapacitySettingsError.ErrorMessage);
                 Assert.AreEqual(capacity.Id, invalidResourceCapacitySettingsError.CapacityId);

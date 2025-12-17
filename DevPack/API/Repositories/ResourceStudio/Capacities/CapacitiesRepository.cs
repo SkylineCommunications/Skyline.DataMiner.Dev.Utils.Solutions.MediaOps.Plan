@@ -177,7 +177,7 @@
                 throw new ArgumentNullException(nameof(apiObjectIds));
             }
 
-            var capacitiesToDelete = Read(apiObjectIds).Values;
+            var capacitiesToDelete = Read(apiObjectIds);
 
             ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Delete), act =>
             {
@@ -227,9 +227,9 @@
         /// Reads multiple capacities by their unique identifiers.
         /// </summary>
         /// <param name="ids">A collection of unique identifiers.</param>
-        /// <returns>A dictionary mapping each identifier to its corresponding capacity.</returns>
+        /// <returns>An enumerable collection of capacities matching the specified identifiers.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="ids"/> is <c>null</c>.</exception>
-        public IDictionary<Guid, Capacity> Read(IEnumerable<Guid> ids)
+        public IEnumerable<Capacity> Read(IEnumerable<Guid> ids)
         {
             if (ids == null)
             {
@@ -242,7 +242,7 @@
                 act?.AddTag("CapacityIds Count", ids.Count());
 
                 var capacities = PlanApi.CoreHelpers.ProfileProvider.GetCapacitiesById(ids);
-                return Capacity.InstantiateCapacities(capacities).ToDictionary(x => x.Id);
+                return Capacity.InstantiateCapacities(capacities);
             });
         }
 

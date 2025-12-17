@@ -275,6 +275,14 @@
             Assert.AreEqual(updatedResourceName1, finalResource.Name);
         }
 
+        [TestMethod]
+        public void ReadWithEmptyListReturnsEmptyList()
+        {
+            var resources = TestContext.Api.Resources.Read(new List<Guid>());
+            Assert.IsNotNull(resources);
+            Assert.AreEqual(0, resources.Count());
+        }
+
         public void Dispose()
         {
         }

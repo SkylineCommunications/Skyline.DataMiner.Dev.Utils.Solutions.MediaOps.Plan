@@ -118,7 +118,7 @@
 
             foreach (var capacity in apiCapacities.Where(x => x.IsNew))
             {
-                var error = new CapacityConfigurationInvalidStateError
+                var error = new CapacityInvalidStateError
                 {
                     ErrorMessage = "Cannot delete a capacity that does not exist.",
                     Id = capacity.Id,
@@ -176,7 +176,7 @@
 
             foreach (var capacity in capacitiesWithDuplicateIds)
             {
-                var error = new CapacityConfigurationDuplicateIdError
+                var error = new CapacityDuplicateIdError
                 {
                     ErrorMessage = $"Capacity '{capacity.Name}' has a duplicate ID.",
                     Id = capacity.Id,
@@ -191,7 +191,7 @@
             {
                 planApi.Logger.LogInformation($"ID is already in use by a Profile Parameter.", foundProfileParameter.ID);
 
-                var error = new CapacityConfigurationIdInUseError
+                var error = new CapacityIdInUseError
                 {
                     ErrorMessage = "ID is already in use.",
                     Id = foundProfileParameter.ID,
@@ -219,7 +219,7 @@
             {
                 if (string.IsNullOrWhiteSpace(capacity.Name))
                 {
-                    var error = new CapacityConfigurationInvalidNameError
+                    var error = new CapacityInvalidNameError
                     {
                         ErrorMessage = "Name cannot be empty.",
                         Id = capacity.Id,
@@ -234,7 +234,7 @@
             {
                 if (string.IsNullOrWhiteSpace(capacity.Name))
                 {
-                    var error = new CapacityConfigurationInvalidNameError
+                    var error = new CapacityInvalidNameError
                     {
                         ErrorMessage = $"Name exceeds maximum length of {InputValidator.DefaultMaxTextLength} characters.",
                         Id = capacity.Id,
@@ -254,7 +254,7 @@
 
             foreach (var capacity in capacitiesWithDuplicateNames)
             {
-                var error = new CapacityConfigurationDuplicateNameError
+                var error = new CapacityDuplicateNameError
                 {
                     ErrorMessage = $"Capacity '{capacity.Name}' has a duplicate name.",
                     Id = capacity.Id,
@@ -284,7 +284,7 @@
 
                 planApi.Logger.LogInformation($"Name '{capacity.Name}' is already in use by Profile Parameter(s) with ID(s)", existingParameters.Select(x => x.ID).ToArray());
 
-                var error = new CapacityConfigurationNameExistsError
+                var error = new CapacityNameExistsError
                 {
                     ErrorMessage = "Name is already in use.",
                     Id = capacity.Id,
@@ -312,7 +312,7 @@
                 if (capacity.RangeMin.HasValue && capacity.RangeMax.HasValue
                     && capacity.RangeMax <= capacity.RangeMin)
                 {
-                    var error = new CapacityConfigurationInvalidRangeError
+                    var error = new CapacityInvalidRangeError
                     {
                         ErrorMessage = "RangeMax must be greater than RangeMin.",
                         Id = capacity.Id,
@@ -325,7 +325,7 @@
 
                 if (capacity.StepSize.HasValue && capacity.StepSize <= 0)
                 {
-                    var error = new CapacityConfigurationInvalidStepSizeError
+                    var error = new CapacityInvalidStepSizeError
                     {
                         ErrorMessage = "StepSize must be greater than 0.",
                         Id = capacity.Id,
@@ -353,7 +353,7 @@
             {
                 if (capacity.Decimals < 0 || capacity.Decimals > 15)
                 {
-                    var error = new CapacityConfigurationInvalidDecimalsError
+                    var error = new CapacityInvalidDecimalsError
                     {
                         ErrorMessage = "Decimals must be between 0 and 15.",
                         Id = capacity.Id,
@@ -366,7 +366,7 @@
 
                 if (capacity.RangeMin.HasValue && (Math.Round(capacity.RangeMin.Value, capacity.Decimals.Value) - capacity.RangeMin.Value) != 0)
                 {
-                    var error = new CapacityConfigurationInvalidRangeMinError
+                    var error = new CapacityInvalidRangeMinError
                     {
                         ErrorMessage = $"RangeMin has more decimal places than allowed by Decimals ({capacity.Decimals}).",
                         Id = capacity.Id,
@@ -378,7 +378,7 @@
 
                 if (capacity.RangeMax.HasValue && (Math.Round(capacity.RangeMax.Value, capacity.Decimals.Value) - capacity.RangeMax.Value) != 0)
                 {
-                    var error = new CapacityConfigurationInvalidRangeMaxError
+                    var error = new CapacityInvalidRangeMaxError
                     {
                         ErrorMessage = $"RangeMax has more decimal places than allowed by Decimals ({capacity.Decimals}).",
                         Id = capacity.Id,
@@ -390,7 +390,7 @@
 
                 if (capacity.StepSize.HasValue && (Math.Round(capacity.StepSize.Value, capacity.Decimals.Value) - capacity.StepSize.Value) != 0)
                 {
-                    var error = new CapacityConfigurationInvalidStepSizeError
+                    var error = new CapacityInvalidStepSizeError
                     {
                         ErrorMessage = $"StepSize has more decimal places than allowed by Decimals ({capacity.Decimals}).",
                         Id = capacity.Id,

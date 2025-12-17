@@ -87,7 +87,7 @@
 
         private void ResourcesCleanup()
         {
-            var resources = api.Resources.Read(createdResourceIds.ToArray()).Values;
+            var resources = api.Resources.Read(createdResourceIds.ToArray());
 
             foreach (var resource in resources.Where(r => r.State == ResourceState.Complete))
             {
@@ -106,7 +106,7 @@
 
         private void ResourcePoolsCleanup()
         {
-            var pools = api.ResourcePools.Read(createdPoolIds.ToArray()).Values;
+            var pools = api.ResourcePools.Read(createdPoolIds.ToArray());
 
             foreach (var pool in pools.Where(p => p.State == ResourcePoolState.Complete))
             {
@@ -125,28 +125,28 @@
 
         private void CapabilitiesCleanup()
         {
-            var capabilities = api.Capabilities.Read(createdCapabilityIds.ToArray()).Values;
+            var capabilities = api.Capabilities.Read(createdCapabilityIds.ToArray());
 
             api.Capabilities.Delete(capabilities.ToArray());
         }
 
         private void CapacitiesCleanup()
         {
-            var capacities = api.Capacities.Read(createdCapacityIds.ToArray()).Values;
+            var capacities = api.Capacities.Read(createdCapacityIds.ToArray());
 
             api.Capacities.Delete(capacities.ToArray());
         }
 
         private void ConfigurationsCleanup()
         {
-            var configurations = api.Configurations.Read(createdConfigurationIds.ToArray()).Values;
+            var configurations = api.Configurations.Read(createdConfigurationIds.ToArray());
 
             api.Configurations.Delete(configurations.ToArray());
         }
 
         private void PropertiesCleanup()
         {
-            var properties = api.Properties.Read(createdPropertyIds.ToArray()).Values;
+            var properties = api.Properties.Read(createdPropertyIds.ToArray());
 
             api.Properties.Delete(properties.ToArray());
         }

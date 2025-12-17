@@ -231,7 +231,7 @@
                 throw new ArgumentNullException(nameof(apiObjectIds));
             }
 
-            var resourcePoolsToDelete = Read(apiObjectIds).Values;
+            var resourcePoolsToDelete = Read(apiObjectIds);
 
             if (!DomResourcePoolHandler.TryDelete(PlanApi, resourcePoolsToDelete, out var result))
             {
@@ -487,9 +487,9 @@
         /// Reads multiple resource pools by their unique identifiers.
         /// </summary>
         /// <param name="ids">A collection of unique identifiers.</param>
-        /// <returns>A dictionary mapping each identifier to its corresponding resource pool.</returns>
+        /// <returns>An enumerable collection of resource pools matching the specified identifiers.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="ids"/> is <c>null</c>.</exception>
-        public IDictionary<Guid, ResourcePool> Read(IEnumerable<Guid> ids)
+        public IEnumerable<ResourcePool> Read(IEnumerable<Guid> ids)
         {
             if (ids == null)
             {
@@ -502,12 +502,12 @@
 
                 if (!ids.Any())
                 {
-                    return new Dictionary<Guid, ResourcePool>();
+                    return Array.Empty<ResourcePool>();
                 }
 
-                var retrievedPools = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(ids).SafeToDictionary(x => x.ID.Id, x => new ResourcePool(x));
+                var retrievedPools = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(ids).Select(x => new ResourcePool(x));
 
-                act?.AddTag("RetrievedResourcePoolCount", retrievedPools.Count);
+                act?.AddTag("RetrievedResourcePoolCount", retrievedPools.Count());
                 return retrievedPools;
             });
         }

@@ -138,7 +138,7 @@
                 if (capability.IsTimeDependent == capability.CoreParameter.IsTimeDependent())
                     continue;
 
-                ReportError(capability.Id, new CapabilityConfigurationInvalidTimeDependencyError
+                ReportError(capability.Id, new CapabilityInvalidTimeDependencyError
                 {
                     ErrorMessage = "Changing the time dependency of a capability is not allowed.",
                     Id = capability.Id,
@@ -161,7 +161,7 @@
             var newCapabilities = apiCapabilities.Where(x => x.IsNew).ToList();
             newCapabilities.ForEach(x =>
             {
-                var error = new CapabilityConfigurationInvalidStateError
+                var error = new CapabilityInvalidStateError
                 {
                     ErrorMessage = $"A capability that was not saved cannot be removed.",
                     Id = x.Id,
@@ -225,7 +225,7 @@
 
             foreach (var capability in capabilitiesWithDuplicateIds)
             {
-                var error = new CapabilityConfigurationDuplicateIdError
+                var error = new CapabilityDuplicateIdError
                 {
                     ErrorMessage = $"Capability '{capability.Name}' has a duplicate ID.",
                     Id = capability.Id,
@@ -240,7 +240,7 @@
             {
                 planApi.Logger.LogInformation($"ID is already in use by a Profile Parameter.", foundProfileParameter.ID);
 
-                var error = new CapabilityConfigurationIdInUseError
+                var error = new CapabilityIdInUseError
                 {
                     ErrorMessage = "ID is already in use.",
                     Id = foundProfileParameter.ID,
@@ -266,7 +266,7 @@
 
             foreach (var capability in capabilitiesRequiringValidation.Where(x => !InputValidator.ValidateEmptyText(x.Name)))
             {
-                var error = new CapabilityConfigurationInvalidNameError
+                var error = new CapabilityInvalidNameError
                 {
                     ErrorMessage = "Name cannot be empty.",
                     Id = capability.Id,
@@ -278,7 +278,7 @@
 
             foreach (var capability in capabilitiesRequiringValidation.Where(x => !InputValidator.ValidateTextLength(x.Name)))
             {
-                var error = new CapabilityConfigurationInvalidNameError
+                var error = new CapabilityInvalidNameError
                 {
                     ErrorMessage = $"Name exceeds maximum length of {InputValidator.DefaultMaxTextLength} characters.",
                     Id = capability.Id,
@@ -297,7 +297,7 @@
 
             foreach (var capability in capabilitiesWithDuplicateNames)
             {
-                var error = new CapabilityConfigurationDuplicateNameError
+                var error = new CapabilityDuplicateNameError
                 {
                     ErrorMessage = $"Capability '{capability.Name}' has a duplicate name.",
                     Id = capability.Id,
@@ -325,7 +325,7 @@
 
                 planApi.Logger.LogInformation($"Name '{capability.Name}' is already in use by Profile Parameter(s) with ID(s)", coreParametersWithSameNameAndDifferentIds.Select(x => x.ID).ToArray());
 
-                var error = new CapabilityConfigurationNameExistsError
+                var error = new CapabilityNameExistsError
                 {
                     ErrorMessage = "Name is already in use.",
                     Id = capability.Id,
@@ -342,7 +342,7 @@
             {
                 if (capability.Discretes.Count == 0)
                 {
-                    ReportError(capability.Id, new CapabilityConfigurationNoDiscretesError
+                    ReportError(capability.Id, new CapabilityNoDiscretesError
                     {
                         ErrorMessage = "Empty discretes list is not allowed.",
                         Id = capability.Id,
@@ -358,7 +358,7 @@
 
                     if (duplicateDiscretes.Any())
                     {
-                        ReportError(capability.Id, new CapabilityConfigurationDuplicateDiscretesError
+                        ReportError(capability.Id, new CapabilityDuplicateDiscretesError
                         {
                             ErrorMessage = $"The capability defines the following duplicate discretes: {String.Join(", ", duplicateDiscretes)}.",
                             Id = capability.Id,

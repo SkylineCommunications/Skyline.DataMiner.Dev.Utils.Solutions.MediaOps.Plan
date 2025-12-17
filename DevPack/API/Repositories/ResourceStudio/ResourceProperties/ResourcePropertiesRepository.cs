@@ -183,7 +183,7 @@
                 throw new ArgumentNullException(nameof(apiObjectIds));
             }
 
-            var propertiesToDelete = Read(apiObjectIds).Values;
+            var propertiesToDelete = Read(apiObjectIds);
 
             ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Delete), act =>
             {
@@ -237,9 +237,9 @@
         /// Reads multiple resource properties by their unique identifiers.
         /// </summary>
         /// <param name="ids">A collection of unique identifiers.</param>
-        /// <returns>A dictionary mapping each identifier to its corresponding resource property.</returns>
+        /// <returns>An enumerable collection of resource properties matching the specified identifiers.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="ids"/> is <c>null</c>.</exception>
-        public IDictionary<Guid, ResourceProperty> Read(IEnumerable<Guid> ids)
+        public IEnumerable<ResourceProperty> Read(IEnumerable<Guid> ids)
         {
             if (ids == null)
             {
@@ -252,7 +252,7 @@
                 act?.AddTag("ResourcePropertyIds Count", ids.Count());
 
                 var properties = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourceProperties(ids);
-                return properties.Select(x => new ResourceProperty(x)).ToDictionary(x => x.Id);
+                return properties.Select(x => new ResourceProperty(x));
             });
         }
 

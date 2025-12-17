@@ -107,10 +107,10 @@
                 Assert.AreEqual(errorMessage, ex.Message);
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolConfigurationError>().SingleOrDefault();
+                var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolError>().SingleOrDefault();
                 Assert.IsNotNull(resourcePoolConfigurationError);
 
-                var resourcePoolConfigurationInvalidPoolLinkError = resourcePoolConfigurationError as ResourcePoolConfigurationNotFoundPoolLinkError;
+                var resourcePoolConfigurationInvalidPoolLinkError = resourcePoolConfigurationError as ResourcePoolNotFoundPoolLinkError;
                 Assert.IsNotNull(resourcePoolConfigurationInvalidPoolLinkError);
                 Assert.AreEqual(invalidPoolId, resourcePoolConfigurationInvalidPoolLinkError.LinkedResourcePoolId);
                 Assert.AreEqual(errorMessage, resourcePoolConfigurationError.ErrorMessage);
@@ -147,10 +147,10 @@
                 Assert.AreEqual(errorMessage, ex.Message);
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolConfigurationError>().SingleOrDefault();
+                var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolError>().SingleOrDefault();
                 Assert.IsNotNull(resourcePoolConfigurationError);
 
-                var resourcePoolConfigurationInvalidPoolLinkError = resourcePoolConfigurationError as ResourcePoolConfigurationNotFoundPoolLinkError;
+                var resourcePoolConfigurationInvalidPoolLinkError = resourcePoolConfigurationError as ResourcePoolNotFoundPoolLinkError;
                 Assert.IsNotNull(resourcePoolConfigurationInvalidPoolLinkError);
                 Assert.AreEqual(invalidPoolId, resourcePoolConfigurationInvalidPoolLinkError.LinkedResourcePoolId);
                 Assert.AreEqual(errorMessage, resourcePoolConfigurationError.ErrorMessage);

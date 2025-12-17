@@ -250,7 +250,7 @@
             };
             objectCreator.CreateResourcePool(resourcePool);
 
-            var resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).Values;
+            var resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]);
             TestContext.Api.ResourcePools.AssignResourcesToPool(resourcePool.Id, resources);
 
             // Assign capability to pool
@@ -312,7 +312,7 @@
             objectCreator.CreateResourcePool(resourcePool);
             TestContext.Api.ResourcePools.MoveTo(resourcePool.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
 
-            var resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).Values;
+            var resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).ToList();
             TestContext.Api.ResourcePools.AssignResourcesToPool(resourcePool.Id, resources);
 
             // Assign capability to pool
@@ -418,7 +418,7 @@
             };
             objectCreator.CreateResourcePool(resourcePool);
 
-            var resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).Values;
+            var resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).ToList();
             TestContext.Api.ResourcePools.AssignResourcesToPool(resourcePool.Id, resources);
 
             resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
@@ -489,7 +489,7 @@
             objectCreator.CreateResourcePool(resourcePool);
             TestContext.Api.ResourcePools.MoveTo(resourcePool.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
 
-            var resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).Values;
+            var resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).ToList();
             TestContext.Api.ResourcePools.AssignResourcesToPool(resourcePool.Id, resources);
 
             resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
@@ -501,7 +501,7 @@
             TestContext.Api.Resources.MoveTo(unmanagedResource1.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
             TestContext.Api.Resources.MoveTo(unmanagedResource3.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
 
-            resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).Values;
+            resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).ToList();
             var resource1 = resources.Single(r => r.Id == unmanagedResource1.Id);
             var resource2 = resources.Single(r => r.Id == unmanagedResource2.Id);
             var resource3 = resources.Single(r => r.Id == unmanagedResource3.Id);
@@ -588,7 +588,7 @@
             // Move Resource Pool to Completed state
             TestContext.Api.ResourcePools.MoveTo(resourcePool.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
 
-            var resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).Values;
+            var resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).ToList();
             TestContext.Api.ResourcePools.AssignResourcesToPool(resourcePool.Id, resources);
 
             resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
@@ -598,7 +598,7 @@
             var resource2 = resources.Single(r => r.Id == unmanagedResource2.Id);
             var resource3 = resources.Single(r => r.Id == unmanagedResource3.Id);
 
-            var capabilities = TestContext.Api.Capabilities.Read([timeCapability1.Id, timeCapability2.Id, regularCapability.Id]).Values;
+            var capabilities = TestContext.Api.Capabilities.Read([timeCapability1.Id, timeCapability2.Id, regularCapability.Id]);
             timeCapability1 = capabilities.Single(c => c.Id == timeCapability1.Id);
             timeCapability2 = capabilities.Single(c => c.Id == timeCapability2.Id);
             regularCapability = capabilities.Single(c => c.Id == regularCapability.Id);
@@ -951,10 +951,10 @@
                 Assert.AreEqual(errorMessage, ex.Message);
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolConfigurationError>().SingleOrDefault();
+                var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolError>().SingleOrDefault();
                 Assert.IsNotNull(resourcePoolConfigurationError);
 
-                var invalidResourcePoolCapabilitySettingsError = resourcePoolConfigurationError as ResourcePoolConfigurationInvalidCapabilitySettingsError;
+                var invalidResourcePoolCapabilitySettingsError = resourcePoolConfigurationError as ResourcePoolInvalidCapabilitySettingsError;
                 Assert.IsNotNull(invalidResourcePoolCapabilitySettingsError);
                 Assert.AreEqual(errorMessage, invalidResourcePoolCapabilitySettingsError.ErrorMessage);
                 Assert.AreEqual(notExistingCapabilityId, invalidResourcePoolCapabilitySettingsError.CapabilityId);
@@ -995,10 +995,10 @@
                 Assert.AreEqual(errorMessage, ex.Message);
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolConfigurationError>().SingleOrDefault();
+                var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolError>().SingleOrDefault();
                 Assert.IsNotNull(resourcePoolConfigurationError);
 
-                var invalidResourcePoolCapabilitySettingsError = resourcePoolConfigurationError as ResourcePoolConfigurationInvalidCapabilitySettingsError;
+                var invalidResourcePoolCapabilitySettingsError = resourcePoolConfigurationError as ResourcePoolInvalidCapabilitySettingsError;
                 Assert.IsNotNull(invalidResourcePoolCapabilitySettingsError);
                 Assert.AreEqual(errorMessage, invalidResourcePoolCapabilitySettingsError.ErrorMessage);
                 Assert.AreEqual(capability.Id, invalidResourcePoolCapabilitySettingsError.CapabilityId);
@@ -1040,10 +1040,10 @@
                 Assert.AreEqual(errorMessage, ex.Message);
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolConfigurationError>().SingleOrDefault();
+                var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolError>().SingleOrDefault();
                 Assert.IsNotNull(resourcePoolConfigurationError);
 
-                var invalidResourcePoolCapabilitySettingsError = resourcePoolConfigurationError as ResourcePoolConfigurationInvalidCapabilitySettingsError;
+                var invalidResourcePoolCapabilitySettingsError = resourcePoolConfigurationError as ResourcePoolInvalidCapabilitySettingsError;
                 Assert.IsNotNull(invalidResourcePoolCapabilitySettingsError);
                 Assert.AreEqual(errorMessage, invalidResourcePoolCapabilitySettingsError.ErrorMessage);
                 Assert.AreEqual(capability.Id, invalidResourcePoolCapabilitySettingsError.CapabilityId);

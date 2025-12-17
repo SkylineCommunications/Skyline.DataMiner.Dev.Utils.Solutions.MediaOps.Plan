@@ -61,7 +61,8 @@
         /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
         public ElementResource ConvertToElementResource(Guid resourceId, ResourceElementLinkConfiguration configuration)
         {
-            var resource = Read(resourceId) ?? throw new ResourceNotFoundException(resourceId);
+            var resource = Read(resourceId) ?? throw new MediaOpsException($"Unable to find resource with ID {resourceId}");
+
             return ConvertToElementResource(resource, configuration);
         }
 
@@ -98,7 +99,8 @@
         /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
         public ServiceResource ConvertToServiceResource(Guid resourceId, ResourceServiceLinkConfiguration configuration)
         {
-            var resource = Read(resourceId) ?? throw new ResourceNotFoundException(resourceId);
+            var resource = Read(resourceId) ?? throw new MediaOpsException($"Unable to find resource with ID {resourceId}");
+
             return ConvertToServiceResource(resource, configuration);
         }
 
@@ -133,7 +135,8 @@
         /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
         public UnmanagedResource ConvertToUnmanagedResource(Guid resourceId)
         {
-            var resource = Read(resourceId) ?? throw new ResourceNotFoundException(resourceId);
+            var resource = Read(resourceId) ?? throw new MediaOpsException($"Unable to find resource with ID {resourceId}");
+
             return ConvertToUnmanagedResource(resource);
         }
 
@@ -170,7 +173,8 @@
         /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
         public VirtualFunctionResource ConvertToVirtualFunctionResource(Guid resourceId, ResourceVirtualFunctionLinkConfiguration configuration)
         {
-            var resource = Read(resourceId) ?? throw new ResourceNotFoundException(resourceId);
+            var resource = Read(resourceId) ?? throw new MediaOpsException($"Unable to find resource with ID {resourceId}");
+
             return ConvertToVirtualFunctionResource(resource, configuration);
         }
 
@@ -330,7 +334,7 @@
 
             PlanApi.Logger.LogInformation("Deleting Resources {resourceIds}...", String.Join(", ", apiObjectIds));
 
-            var resourcesToDelete = Read(apiObjectIds).Values;
+            var resourcesToDelete = Read(apiObjectIds);
 
             ActivityHelper.Track(nameof(ResourcesRepository), nameof(Delete), act =>
             {
@@ -580,9 +584,9 @@
         /// Reads multiple resources by their unique identifiers.
         /// </summary>
         /// <param name="ids">A collection of unique identifiers.</param>
-        /// <returns>A dictionary mapping each identifier to its corresponding resource.</returns>
+        /// <returns>An enumerable collection of resources matching the specified identifiers.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="ids"/> is <c>null</c>.</exception>
-        public IDictionary<Guid, Resource> Read(IEnumerable<Guid> ids)
+        public IEnumerable<Resource> Read(IEnumerable<Guid> ids)
         {
             if (ids == null)
             {
@@ -595,7 +599,7 @@
                 act?.AddTag("ResourceIds Count", ids.Count());
 
                 var resources = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(ids);
-                return Resource.InstantiateResources(PlanApi, resources).ToDictionary(x => x.Id);
+                return Resource.InstantiateResources(PlanApi, resources);
             });
         }
 
