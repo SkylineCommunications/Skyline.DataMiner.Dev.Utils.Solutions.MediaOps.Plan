@@ -639,7 +639,7 @@
             {
                 coreResource.Capabilities.Add(new Net.SRM.Capabilities.ResourceCapability(CoreCapabilities.ResourceType.Id)
                 {
-                    Value = new Net.Profiles.CapabilityParameterValue(new List<string> { resourceTypeValue }),
+                    Value = capabilityValue,
                 });
 
                 updateRequired = true;
@@ -647,6 +647,7 @@
             else if (!resourceTypeCapability.Value.Equals(capabilityValue))
             {
                 resourceTypeCapability.Value = capabilityValue;
+                updateRequired = true;
             }
 
             return updateRequired;
