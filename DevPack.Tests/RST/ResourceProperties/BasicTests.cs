@@ -42,8 +42,7 @@
                 Name = name,
             };
 
-            var returnedId = objectCreator.CreateProperty(property);
-            Assert.AreEqual(propertyId, returnedId);
+            objectCreator.CreateProperty(property);
 
             var returnedProperty = TestContext.Api.Properties.Read(propertyId);
             Assert.IsNotNull(returnedProperty);
@@ -270,10 +269,10 @@
                 Name = $"{propertyId}_Property_2",
             };
 
-            var id1 = objectCreator.CreateProperty(property1);
-            var id2 = objectCreator.CreateProperty(property2);
+            objectCreator.CreateProperty(property1);
+            objectCreator.CreateProperty(property2);
 
-            var toUpdate = TestContext.Api.Properties.Read(id2);
+            var toUpdate = TestContext.Api.Properties.Read(property2.Id);
             toUpdate.Name = property1.Name;
 
             try

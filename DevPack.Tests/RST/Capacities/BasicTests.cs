@@ -3,6 +3,8 @@
     using System;
     using System.Linq;
     using RT_MediaOps.Plan.RegressionTests;
+
+    using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
@@ -36,8 +38,7 @@
                 Name = name,
             };
 
-            var returnedId = objectCreator.CreateCapacity(capacity);
-            Assert.AreEqual(capacityId, returnedId);
+            objectCreator.CreateCapacity(capacity);
 
             var returnedCapacity = TestContext.Api.Capacities.Read(capacityId);
             Assert.IsNotNull(returnedCapacity);
@@ -110,8 +111,7 @@
                 Name = name,
             };
 
-            var returnedId = objectCreator.CreateCapacity(capacity);
-            Assert.AreEqual(capacityId, returnedId);
+            objectCreator.CreateCapacity(capacity);
 
             var returnedCapacity = TestContext.Api.Capacities.Read(capacityId);
             Assert.IsNotNull(returnedCapacity);
@@ -346,22 +346,22 @@
         [TestMethod]
         public void UpdateToSameNameThrowsException()
         {
-            var capacityId = Guid.NewGuid();
+            var prefix = Guid.NewGuid();
 
             var capacity1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity()
             {
-                Name = $"{capacityId}_Capacity_1",
+                Name = $"{prefix}_Capacity_1",
             };
 
             var capacity2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity()
             {
-                Name = $"{capacityId}_Capacity_2",
+                Name = $"{prefix}_Capacity_2",
             };
 
-            var id1 = objectCreator.CreateCapacity(capacity1);
-            var id2 = objectCreator.CreateCapacity(capacity2);
+            objectCreator.CreateCapacity(capacity1);
+            objectCreator.CreateCapacity(capacity2);
 
-            var toUpdate = TestContext.Api.Capacities.Read(id2);
+            var toUpdate = TestContext.Api.Capacities.Read(capacity2.Id);
             toUpdate.Name = capacity1.Name;
 
             try

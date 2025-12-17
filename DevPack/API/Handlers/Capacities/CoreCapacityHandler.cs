@@ -88,7 +88,7 @@
                 return;
             }
 
-            var coreCapacities = capacities.Select(x => x.CoreParameter).ToList();
+            var coreCapacities = capacities.Select(x => x.GetParameterWithChanges()).ToList();
             planApi.CoreHelpers.ProfileProvider.TryCreateOrUpdateParametersInBatches(coreCapacities, out var result);
 
             foreach (var id in result.UnsuccessfulIds)

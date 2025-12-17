@@ -214,7 +214,7 @@
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create an existing resource.</exception>
         /// <exception cref="MediaOpsException">Thrown when the creation operation fails.</exception>
-        public Guid Create(Resource apiObject)
+        public void Create(Resource apiObject)
         {
             if (apiObject == null)
             {
@@ -223,7 +223,7 @@
 
             PlanApi.Logger.LogInformation($"Creating new Resource {apiObject.Name}...");
 
-            return ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Create), act =>
+            ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Create), act =>
             {
                 if (!apiObject.IsNew)
                 {
@@ -237,8 +237,6 @@
 
                 var resourceId = result.SuccessfulIds.First();
                 act?.AddTag("ResourceId", resourceId);
-
-                return resourceId;
             });
         }
 
@@ -250,14 +248,14 @@
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create existing resources.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk creation operation fails.</exception>
-        public IEnumerable<Guid> Create(IEnumerable<Resource> apiObjects)
+        public void Create(IEnumerable<Resource> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
-            return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Create), act =>
+            ActivityHelper.Track(nameof(ResourcesRepository), nameof(Create), act =>
             {
                 var existingResources = apiObjects.Where(x => !x.IsNew);
                 if (existingResources.Any())
@@ -272,8 +270,6 @@
 
                 var resourceIds = result.SuccessfulIds;
                 act?.AddTag("ResourceIds", String.Join(", ", resourceIds));
-
-                return resourceIds;
             });
         }
 
@@ -284,14 +280,14 @@
         /// <returns>A collection of unique identifiers for the created or updated resources.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk operation fails.</exception>
-        public IEnumerable<Guid> CreateOrUpdate(IEnumerable<Resource> apiObjects)
+        public void CreateOrUpdate(IEnumerable<Resource> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
-            return ActivityHelper.Track(nameof(ResourcesRepository), nameof(CreateOrUpdate), act =>
+            ActivityHelper.Track(nameof(ResourcesRepository), nameof(CreateOrUpdate), act =>
             {
                 if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
                 {
@@ -301,8 +297,6 @@
                 var resourceIds = result.SuccessfulIds;
                 act?.AddTag("Created or Updated Resources", String.Join(", ", resourceIds));
                 act?.AddTag("Created or Updated Resources Count", resourceIds.Count);
-
-                return resourceIds;
             });
         }
 

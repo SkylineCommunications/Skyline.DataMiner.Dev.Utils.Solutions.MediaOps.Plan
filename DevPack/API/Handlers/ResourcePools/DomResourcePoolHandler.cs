@@ -339,8 +339,7 @@
             var deleteCorePoolsLockResult = planApi.LockManager.LockAndExecute(poolsToDelete, DeleteCoreResourcePools); // Returns pools that require updates after referenced pools have been removed.
             ReportError(deleteCorePoolsLockResult);
 
-            var updateResourcePoolsLockResult = planApi.LockManager.LockAndExecute(deleteCorePoolsLockResult.ActionResults, planApi.ResourcePools.Update);
-            ReportError(updateResourcePoolsLockResult);
+            planApi.ResourcePools.Update(deleteCorePoolsLockResult.ActionResults);
         }
 
         private ICollection<ResourcePool> DeleteCoreResourcePools(ICollection<ResourcePool> poolsToDelete)

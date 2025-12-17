@@ -7,7 +7,6 @@
     using RT_MediaOps.Plan.RegressionTests;
 
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
     [TestClass]
@@ -44,16 +43,15 @@
             configuration.AddDiscrete("Medium", 50);
             configuration.AddDiscrete("High", 100);
 
-            var returnedId = objectCreator.CreateConfiguration(configuration);
-            Assert.AreEqual(configurationId, returnedId);
+            objectCreator.CreateConfiguration(configuration);
 
             var returnedConfiguration = TestContext.Api.Configurations.Read(configurationId);
             Assert.IsNotNull(returnedConfiguration);
             Assert.AreEqual(name, returnedConfiguration.Name);
             Assert.AreEqual(false, returnedConfiguration.IsMandatory);
-            Assert.IsInstanceOfType(returnedConfiguration, typeof(DiscreteNumberConfiguration));
+            Assert.IsInstanceOfType(returnedConfiguration, typeof(Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfiguration));
 
-            var discreteNumberConfig = (DiscreteNumberConfiguration)returnedConfiguration;
+            var discreteNumberConfig = (Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfiguration)returnedConfiguration;
             Assert.AreEqual(3, discreteNumberConfig.Discretes.Count);
             Assert.IsTrue(discreteNumberConfig.Discretes.ContainsKey("Low"));
             Assert.AreEqual(10, discreteNumberConfig.Discretes["Low"]);
@@ -78,7 +76,7 @@
             Assert.IsNotNull(returnedConfiguration);
             Assert.AreEqual(updatedName, returnedConfiguration.Name);
 
-            discreteNumberConfig = (DiscreteNumberConfiguration)returnedConfiguration;
+            discreteNumberConfig = (Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfiguration)returnedConfiguration;
             Assert.AreEqual(4, discreteNumberConfig.Discretes.Count);
             Assert.IsTrue(discreteNumberConfig.Discretes.ContainsKey("Critical"));
 
@@ -274,24 +272,24 @@
         [TestMethod]
         public void UpdateToSameNameThrowsException()
         {
-            var configurationId = Guid.NewGuid();
+            var prefix = Guid.NewGuid();
 
             var configuration1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfiguration()
             {
-                Name = $"{configurationId}_Configuration_1",
+                Name = $"{prefix}_Configuration_1",
             };
             configuration1.AddDiscrete("Value1", 1);
 
             var configuration2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfiguration()
             {
-                Name = $"{configurationId}_Configuration_2",
+                Name = $"{prefix}_Configuration_2",
             };
             configuration2.AddDiscrete("Value2", 2);
 
-            var id1 = objectCreator.CreateConfiguration(configuration1);
-            var id2 = objectCreator.CreateConfiguration(configuration2);
+            objectCreator.CreateConfiguration(configuration1);
+            objectCreator.CreateConfiguration(configuration2);
 
-            var toUpdate = TestContext.Api.Configurations.Read(id2);
+            var toUpdate = TestContext.Api.Configurations.Read(configuration2.Id);
             toUpdate.Name = configuration1.Name;
 
             try
@@ -335,7 +333,7 @@
 
             objectCreator.CreateConfiguration(configuration);
 
-            configuration = TestContext.Api.Configurations.Read(configurationId) as DiscreteNumberConfiguration;
+            configuration = TestContext.Api.Configurations.Read(configurationId) as Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfiguration;
             Assert.IsNotNull(configuration);
             Assert.AreEqual(true, configuration.IsMandatory);
             Assert.AreEqual(3, configuration.Discretes.Count);
@@ -359,7 +357,7 @@
 
             TestContext.Api.Configurations.Update(configuration);
 
-            configuration = TestContext.Api.Configurations.Read(configurationId) as DiscreteNumberConfiguration;
+            configuration = TestContext.Api.Configurations.Read(configurationId) as Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfiguration;
             Assert.IsNotNull(configuration);
             Assert.AreEqual(true, configuration.IsMandatory);
             Assert.AreEqual(4, configuration.Discretes.Count);
@@ -388,13 +386,13 @@
 
             objectCreator.CreateConfiguration(configuration);
 
-            configuration = (DiscreteNumberConfiguration)TestContext.Api.Configurations.Read(configurationId);
+            configuration = (Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfiguration)TestContext.Api.Configurations.Read(configurationId);
             Assert.AreEqual(3, configuration.Discretes.Count);
 
             configuration.RemoveDiscrete("Medium");
             TestContext.Api.Configurations.Update(configuration);
 
-            configuration = (DiscreteNumberConfiguration)TestContext.Api.Configurations.Read(configurationId);
+            configuration = (Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfiguration)TestContext.Api.Configurations.Read(configurationId);
             Assert.AreEqual(2, configuration.Discretes.Count);
             Assert.IsFalse(configuration.Discretes.ContainsKey("Medium"));
             Assert.IsTrue(configuration.Discretes.ContainsKey("Low"));

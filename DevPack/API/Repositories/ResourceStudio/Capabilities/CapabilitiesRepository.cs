@@ -3,10 +3,13 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Microsoft.Extensions.Logging;
+
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+
     using SLDataGateway.API.Types.Querying;
 
     /// <summary>
@@ -61,7 +64,7 @@
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create an existing capability.</exception>
         /// <exception cref="MediaOpsException">Thrown when the creation operation fails.</exception>
-        public Guid Create(Capability apiObject)
+        public void Create(Capability apiObject)
         {
             PlanApi.Logger.LogInformation("Creating new Capability...");
 
@@ -70,7 +73,7 @@
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
-            return ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Create), act =>
+            ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Create), act =>
             {
                 if (!apiObject.IsNew)
                 {
@@ -84,8 +87,6 @@
 
                 var capabilityId = apiObject.Id;
                 act?.AddTag("CapabilityId", capabilityId);
-
-                return capabilityId;
             });
         }
 
@@ -97,14 +98,14 @@
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create existing capabilities.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk creation operation fails.</exception>
-        public IEnumerable<Guid> Create(IEnumerable<Capability> apiObjects)
+        public void Create(IEnumerable<Capability> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
-            return ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Create), act =>
+            ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Create), act =>
             {
                 var existingCapabilities = apiObjects.Where(x => !x.IsNew);
                 if (existingCapabilities.Any())
@@ -119,8 +120,6 @@
 
                 var capabilityIds = apiObjects.Select(x => x.Id);
                 act?.AddTag("CapabilityIds", string.Join(", ", capabilityIds));
-
-                return capabilityIds;
             });
         }
 
@@ -131,14 +130,14 @@
         /// <returns>A collection of unique identifiers for the created or updated capabilities.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk operation fails.</exception>
-        public IEnumerable<Guid> CreateOrUpdate(IEnumerable<Capability> apiObjects)
+        public void CreateOrUpdate(IEnumerable<Capability> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
-            return ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(CreateOrUpdate), act =>
+            ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(CreateOrUpdate), act =>
             {
                 if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
                 {
@@ -148,8 +147,6 @@
                 var capabilityIds = apiObjects.Select(x => x.Id);
                 act?.AddTag("Created or Updated Capabilities", String.Join(", ", capabilityIds));
                 act?.AddTag("Created or Updated Capabilities Count", capabilityIds.Count());
-
-                return capabilityIds;
             });
         }
 

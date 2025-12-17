@@ -1,6 +1,5 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
-    using System;
     using System.Collections.Generic;
 
     /// <summary>
@@ -14,6 +13,6 @@
         /// </summary>
         /// <param name="apiObjects">The collection of API objects to create or update.</param>
         /// <returns>A collection of unique identifiers for the created or updated API objects.</returns>
-        IEnumerable<Guid> CreateOrUpdate(IEnumerable<T> apiObjects);
+        void CreateOrUpdate(IEnumerable<T> apiObjects);
     }
 }

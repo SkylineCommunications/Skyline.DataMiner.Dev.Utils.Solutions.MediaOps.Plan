@@ -30,8 +30,7 @@
                 IsFavorite = expectedResult.IsFavorite,
             };
 
-            var returnedId = TestContext.Api.Resources.Create(unmanagedResource);
-            Assert.AreEqual(id, returnedId);
+            TestContext.Api.Resources.Create(unmanagedResource);
 
             var returnedResource = TestContext.Api.Resources.Read(id);
             expectedResult.ValidateUnmanagedResource(returnedResource);
@@ -184,7 +183,7 @@
                 IsFavorite = expectedResourceResult.IsFavorite,
             };
 
-            var resourceId = TestContext.Api.Resources.Create(resource);
+            TestContext.Api.Resources.Create(resource);
 
             // Create multiple rapid updates
             var executionLog = new ConcurrentBag<(int TaskId, string Event, DateTime Timestamp, Exception? exception)>();
@@ -198,7 +197,7 @@
                 {
                     executionLog.Add((taskId, "Start", DateTime.UtcNow, null));
 
-                    var res = TestContext.Api.Resources.Read(resourceId);
+                    var res = TestContext.Api.Resources.Read(resource.Id);
                     res.Name = $"{resourceName}_Resource_Task{taskId}";
 
                     try
@@ -224,7 +223,7 @@
             Assert.AreEqual(numberOfConcurrentUpdates * 2, executionLog.Count);
 
             // The final resource should have at least have one of the updates
-            var finalResource = TestContext.Api.Resources.Read(resourceId);
+            var finalResource = TestContext.Api.Resources.Read(resource.Id);
             Assert.IsTrue(finalResource.Name.StartsWith($"{resourceName}_Resource_Task"));
 
             // Check that if update fail, it's because of concurrent writes or because of lock not being granted
@@ -233,7 +232,7 @@
             string[] possibleExceptionMessages = new string[]
             {
                 "Value for field '13833c8f-6874-44e9-9aeb-9a9914e26771' has already been changed.",
-                $"Failed to lock Resource {resourceId}."
+                $"Failed to lock Resource {resource.Id}."
             };
 
             foreach (var failedTask in failedTasks)
@@ -258,13 +257,13 @@
                 IsFavorite = expectedResourceResult.IsFavorite,
             };
 
-            var resourceId = TestContext.Api.Resources.Create(resource);
+            TestContext.Api.Resources.Create(resource);
 
             var updatedResourceName1 = $"{resourceName}_Update1";
             var updatedResourceName2 = $"{resourceName}_Update2";
 
-            var resourceForUpdate1 = TestContext.Api.Resources.Read(resourceId);
-            var resourceForUpdate2 = TestContext.Api.Resources.Read(resourceId);
+            var resourceForUpdate1 = TestContext.Api.Resources.Read(resource.Id);
+            var resourceForUpdate2 = TestContext.Api.Resources.Read(resource.Id);
 
             resourceForUpdate1.Name = updatedResourceName1;
             TestContext.Api.Resources.Update(resourceForUpdate1);
@@ -272,7 +271,7 @@
             resourceForUpdate2.Name = updatedResourceName2;
             Assert.ThrowsException<MediaOpsException>(() => TestContext.Api.Resources.Update(resourceForUpdate2));
 
-            var finalResource = TestContext.Api.Resources.Read(resourceId);
+            var finalResource = TestContext.Api.Resources.Read(resource.Id);
             Assert.AreEqual(updatedResourceName1, finalResource.Name);
         }
 

@@ -40,8 +40,7 @@
                 Name = name,
             };
 
-            var returnedId = objectCreator.CreateResourcePool(resourcePool);
-            Assert.AreEqual(poolId, returnedId);
+            objectCreator.CreateResourcePool(resourcePool);
 
             var returnedResourcePool = TestContext.Api.ResourcePools.Read(poolId);
             Assert.IsNotNull(returnedResourcePool);
@@ -260,10 +259,10 @@
                 Name = $"{prefix}_ResourcePool_2",
             };
 
-            var id1 = objectCreator.CreateResourcePool(resourcePool1);
-            var id2 = objectCreator.CreateResourcePool(resourcePool2);
+            objectCreator.CreateResourcePool(resourcePool1);
+            objectCreator.CreateResourcePool(resourcePool2);
 
-            var toUpdate = TestContext.Api.ResourcePools.Read(id2);
+            var toUpdate = TestContext.Api.ResourcePools.Read(resourcePool2.Id);
             toUpdate.Name = resourcePool1.Name;
 
             try

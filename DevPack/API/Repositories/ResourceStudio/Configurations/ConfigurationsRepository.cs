@@ -3,11 +3,14 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Microsoft.Extensions.Logging;
+
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
+
     using SLDataGateway.API.Types.Querying;
 
     /// <summary>
@@ -62,7 +65,7 @@
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create an existing configuration.</exception>
         /// <exception cref="MediaOpsException">Thrown when the creation operation fails.</exception>
-        public Guid Create(Configuration apiObject)
+        public void Create(Configuration apiObject)
         {
             PlanApi.Logger.LogInformation("Creating new Configuration...");
 
@@ -71,7 +74,7 @@
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
-            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Create), act =>
+            ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Create), act =>
             {
                 if (!apiObject.IsNew)
                 {
@@ -85,8 +88,6 @@
 
                 var configurationId = apiObject.Id;
                 act?.AddTag("CapacityId", configurationId);
-
-                return configurationId;
             });
         }
 
@@ -98,14 +99,14 @@
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create existing configurations.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk creation operation fails.</exception>
-        public IEnumerable<Guid> Create(IEnumerable<Configuration> apiObjects)
+        public void Create(IEnumerable<Configuration> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
-            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Create), act =>
+            ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Create), act =>
             {
                 if (apiObjects.Any(x => !x.IsNew))
                 {
@@ -119,8 +120,6 @@
 
                 var configurationIds = apiObjects.Select(x => x.Id);
                 act?.AddTag("ConfigurationIds", string.Join(", ", configurationIds));
-
-                return configurationIds;
             });
         }
 
@@ -131,14 +130,14 @@
         /// <returns>A collection of unique identifiers for the created or updated configurations.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk operation fails.</exception>
-        public IEnumerable<Guid> CreateOrUpdate(IEnumerable<Configuration> apiObjects)
+        public void CreateOrUpdate(IEnumerable<Configuration> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
-            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(CreateOrUpdate), act =>
+            ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(CreateOrUpdate), act =>
             {
                 if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
                 {
@@ -148,8 +147,6 @@
                 var configurationIds = apiObjects.Select(x => x.Id);
                 act?.AddTag("Created or Updated Configurations", String.Join(", ", configurationIds));
                 act?.AddTag("Created or Updated Configurations Count", configurationIds.Count());
-
-                return configurationIds;
             });
         }
 

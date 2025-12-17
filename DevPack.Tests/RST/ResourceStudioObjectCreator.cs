@@ -5,6 +5,7 @@
     using System.Linq;
 
     using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
     internal class ResourceStudioObjectCreator : IDisposable
     {
@@ -150,118 +151,142 @@
             api.Properties.Delete(properties.ToArray());
         }
 
-        public Guid CreateResource(Resource resource)
+        public void CreateResource(Resource resource)
         {
-            var resourceId = api.Resources.Create(resource);
-            createdResourceIds.Add(resourceId);
-
-            return resourceId;
+            api.Resources.Create(resource);
+            createdResourceIds.Add(resource.Id);
         }
 
-        public IEnumerable<Guid> CreateResources(IEnumerable<Resource> resources)
+        public void CreateResources(IEnumerable<Resource> resources)
         {
-            var resourceIds = api.Resources.Create(resources);
-            foreach (var id in resourceIds)
+            try
             {
-                createdResourceIds.Add(id);
+                api.Resources.Create(resources);
             }
-
-            return resourceIds;
-        }
-
-        public Guid CreateResourcePool(ResourcePool resourcePool)
-        {
-            var poolId = api.ResourcePools.Create(resourcePool);
-            createdPoolIds.Add(poolId);
-
-            return poolId;
-        }
-
-        public IEnumerable<Guid> CreateResourcePools(IEnumerable<ResourcePool> resourcePools)
-        {
-            var poolIds = api.ResourcePools.Create(resourcePools);
-            foreach (var id in poolIds)
+            catch (MediaOpsBulkException<Guid> bulkException)
             {
-                createdPoolIds.Add(id);
+                foreach (var id in bulkException.Result.SuccessfulIds)
+                {
+                    createdResourceIds.Add(id);
+                }
+
+                throw;
             }
-
-            return poolIds;
         }
 
-        public Guid CreateCapability(Capability capability)
+        public void CreateResourcePool(ResourcePool resourcePool)
         {
-            var capabilityId = api.Capabilities.Create(capability);
-            createdCapabilityIds.Add(capabilityId);
-
-            return capabilityId;
+            api.ResourcePools.Create(resourcePool);
+            createdPoolIds.Add(resourcePool.Id);
         }
 
-        public IEnumerable<Guid> CreateCapabilities(IEnumerable<Capability> capabilities)
+        public void CreateResourcePools(IEnumerable<ResourcePool> resourcePools)
         {
-            var capabilityIds = api.Capabilities.Create(capabilities);
-            foreach (var id in capabilityIds)
+            try
             {
-                createdCapabilityIds.Add(id);
+                api.ResourcePools.Create(resourcePools);
             }
-
-            return capabilityIds;
-        }
-
-        public Guid CreateCapacity(Capacity capacity)
-        {
-            var capacityId = api.Capacities.Create(capacity);
-            createdCapacityIds.Add(capacityId);
-
-            return capacityId;
-        }
-
-        public IEnumerable<Guid> CreateCapacities(IEnumerable<Capacity> capacities)
-        {
-            var capacityIds = api.Capacities.Create(capacities);
-            foreach (var id in capacityIds)
+            catch (MediaOpsBulkException<Guid> bulkException)
             {
-                createdCapacityIds.Add(id);
+                foreach (var id in bulkException.Result.SuccessfulIds)
+                {
+                    createdPoolIds.Add(id);
+                }
+
+                throw;
             }
-
-            return capacityIds;
         }
 
-        public Guid CreateConfiguration(Configuration configuration)
+        public void CreateCapability(Capability capability)
         {
-            var configurationId = api.Configurations.Create(configuration);
-            createdConfigurationIds.Add(configurationId);
-
-            return configurationId;
+            api.Capabilities.Create(capability);
+            createdCapabilityIds.Add(capability.Id);
         }
 
-        public IEnumerable<Guid> CreateConfigurations(IEnumerable<Configuration> configurations)
+        public void CreateCapabilities(IEnumerable<Capability> capabilities)
         {
-            var configurationIds = api.Configurations.Create(configurations);
-            foreach (var id in configurationIds)
+            try
             {
-                createdConfigurationIds.Add(id);
+                api.Capabilities.Create(capabilities);
             }
-
-            return configurationIds;
-        }
-
-        public Guid CreateProperty(ResourceProperty property)
-        {
-            var propertyId = api.Properties.Create(property);
-            createdPropertyIds.Add(propertyId);
-
-            return propertyId;
-        }
-
-        public IEnumerable<Guid> CreateProperties(IEnumerable<ResourceProperty> properties)
-        {
-            var propertyIds = api.Properties.Create(properties);
-            foreach (var id in propertyIds)
+            catch (MediaOpsBulkException<Guid> bulkException)
             {
-                createdPropertyIds.Add(id);
-            }
+                foreach (var id in bulkException.Result.SuccessfulIds)
+                {
+                    createdCapabilityIds.Add(id);
+                }
 
-            return propertyIds;
+                throw;
+            }
+        }
+
+        public void CreateCapacity(Capacity capacity)
+        {
+            api.Capacities.Create(capacity);
+            createdCapacityIds.Add(capacity.Id);
+        }
+
+        public void CreateCapacities(IEnumerable<Capacity> capacities)
+        {
+            try
+            {
+                api.Capacities.Create(capacities);
+            }
+            catch (MediaOpsBulkException<Guid> bulkException)
+            {
+                foreach (var id in bulkException.Result.SuccessfulIds)
+                {
+                    createdCapacityIds.Add(id);
+                }
+
+                throw;
+            }
+        }
+
+        public void CreateConfiguration(Configuration configuration)
+        {
+            api.Configurations.Create(configuration);
+            createdConfigurationIds.Add(configuration.Id);
+        }
+
+        public void CreateConfigurations(IEnumerable<Configuration> configurations)
+        {
+            try
+            {
+                api.Configurations.Create(configurations);
+            }
+            catch (MediaOpsBulkException<Guid> bulkException)
+            {
+                foreach (var id in bulkException.Result.SuccessfulIds)
+                {
+                    createdConfigurationIds.Add(id);
+                }
+
+                throw;
+            }
+        }
+
+        public void CreateProperty(ResourceProperty property)
+        {
+            api.Properties.Create(property);
+            createdPropertyIds.Add(property.Id);
+        }
+
+        public void CreateProperties(IEnumerable<ResourceProperty> properties)
+        {
+            try
+            {
+                api.Properties.Create(properties);
+            }
+            catch (MediaOpsBulkException<Guid> bulkException)
+            {
+                foreach (var id in bulkException.Result.SuccessfulIds)
+                {
+                    createdPropertyIds.Add(id);
+                }
+
+                throw;
+            }
         }
     }
 }

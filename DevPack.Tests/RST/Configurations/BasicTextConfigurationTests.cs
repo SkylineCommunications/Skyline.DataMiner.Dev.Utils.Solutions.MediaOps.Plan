@@ -3,7 +3,6 @@
     using RT_MediaOps.Plan.RegressionTests;
 
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
     [TestClass]
@@ -27,7 +26,7 @@
         [TestMethod]
         public void TestDefaultValues()
         {
-            var configuration = new TextConfiguration();
+            var configuration = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration();
             Assert.IsNull(configuration.DefaultValue);
             Assert.IsNull(configuration.Name);
             Assert.AreNotEqual(Guid.Empty, configuration.Id);
@@ -41,13 +40,12 @@
             var configurationId = Guid.NewGuid();
             var name = $"{configurationId}_Configuration";
 
-            var configuration = new TextConfiguration(configurationId)
+            var configuration = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration(configurationId)
             {
                 Name = name,
             };
 
-            var returnedId = objectCreator.CreateConfiguration(configuration);
-            Assert.AreEqual(configurationId, returnedId);
+            objectCreator.CreateConfiguration(configuration);
 
             var returnedConfiguration = TestContext.Api.Configurations.Read(configurationId);
             Assert.IsNotNull(returnedConfiguration);
@@ -289,10 +287,10 @@
                 Name = $"{configurationId}_Configuration_2",
             };
 
-            var id1 = objectCreator.CreateConfiguration(configuration1);
-            var id2 = objectCreator.CreateConfiguration(configuration2);
+            objectCreator.CreateConfiguration(configuration1);
+            objectCreator.CreateConfiguration(configuration2);
 
-            var toUpdate = TestContext.Api.Configurations.Read(id2);
+            var toUpdate = TestContext.Api.Configurations.Read(configuration2.Id);
             toUpdate.Name = configuration1.Name;
 
             try
@@ -332,7 +330,7 @@
 
             objectCreator.CreateConfiguration(configuration);
 
-            configuration = TestContext.Api.Configurations.Read(configurationId) as TextConfiguration;
+            configuration = TestContext.Api.Configurations.Read(configurationId) as Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration;
             Assert.IsNotNull(configuration);
             Assert.AreEqual(true, configuration.IsMandatory);
             Assert.AreEqual("DefaultText", configuration.DefaultValue);
@@ -353,7 +351,7 @@
 
             TestContext.Api.Configurations.Update(configuration);
 
-            configuration = TestContext.Api.Configurations.Read(configurationId) as TextConfiguration;
+            configuration = TestContext.Api.Configurations.Read(configurationId) as Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration;
             Assert.IsNotNull(configuration);
             Assert.AreEqual(true, configuration.IsMandatory);
             Assert.AreEqual("UpdatedDefaultText", configuration.DefaultValue);

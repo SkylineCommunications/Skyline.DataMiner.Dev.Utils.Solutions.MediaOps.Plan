@@ -39,16 +39,16 @@
 
             capability.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
 
-            var capabilityId = TestContext.Api.Capabilities.Create(capability);
+            TestContext.Api.Capabilities.Create(capability);
 
-            var createdCapability = TestContext.Api.Capabilities.Read(capabilityId);
+            var createdCapability = TestContext.Api.Capabilities.Read(capability.Id);
             Assert.IsNotNull(createdCapability);
             Assert.AreEqual(name, createdCapability.Name);
             Assert.IsTrue(createdCapability.IsMandatory);
             CollectionAssert.AreEquivalent(new List<string> { "Value 1", "Value 2", "Value 3" }, createdCapability.Discretes.ToList());
             Assert.IsFalse(createdCapability.IsTimeDependent);
 
-            TestContext.Api.Capabilities.Delete(capabilityId);
+            TestContext.Api.Capabilities.Delete(capability.Id);
         }
 
         [TestMethod]
@@ -65,9 +65,9 @@
 
             capability.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
 
-            var capabilityId = TestContext.Api.Capabilities.Create(capability);
+            objectCreator.CreateCapability(capability);
 
-            var mainApiCapability = TestContext.Api.Capabilities.Read(capabilityId);
+            var mainApiCapability = TestContext.Api.Capabilities.Read(capability.Id);
             Assert.IsNotNull(mainApiCapability);
             Assert.IsFalse(TestContext.Api.Capabilities.Read().Any(x => x.Name.Equals(linkedName))); // Linked capabilities should not be accessible from API
 
@@ -81,7 +81,7 @@
             Assert.IsTrue(linkedResult.IsTimeDependent);
             Assert.AreEqual(linkedCoreCapability.ID, linkedResult.LinkedParameterId);
 
-            TestContext.Api.Capabilities.Delete(capabilityId);
+            TestContext.Api.Capabilities.Delete(capability.Id);
 
             // Verify whether both parameters were removed
             mainCoreCapability = TestContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.Name.Equal(name)).SingleOrDefault();
@@ -102,9 +102,9 @@
                 IsTimeDependent = false,
             };
             capability.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
-            var capabilityId = TestContext.Api.Capabilities.Create(capability);
+            TestContext.Api.Capabilities.Create(capability);
 
-            capability = TestContext.Api.Capabilities.Read(capabilityId);
+            capability = TestContext.Api.Capabilities.Read(capability.Id);
             capability.IsTimeDependent = true;
 
             try
@@ -140,9 +140,9 @@
                 IsTimeDependent = true,
             };
             capability.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
-            var capabilityId = TestContext.Api.Capabilities.Create(capability);
+            TestContext.Api.Capabilities.Create(capability);
 
-            capability = TestContext.Api.Capabilities.Read(capabilityId);
+            capability = TestContext.Api.Capabilities.Read(capability.Id);
             capability.IsTimeDependent = false;
 
             try
@@ -183,9 +183,9 @@
             string discreteValue = "Value 1";
             capability.SetDiscretes(Enumerable.Repeat(discreteValue, 10));
 
-            var capabilityId = TestContext.Api.Capabilities.Create(capability);
+            TestContext.Api.Capabilities.Create(capability);
 
-            var apiCapability = TestContext.Api.Capabilities.Read(capabilityId);
+            var apiCapability = TestContext.Api.Capabilities.Read(capability.Id);
 
             Assert.AreEqual(1, apiCapability.Discretes.Count());
             Assert.AreEqual(discreteValue, apiCapability.Discretes.Single());
