@@ -29,7 +29,7 @@ jobs:
        run: dotnet tool install -g dotnet-consolidate
 
      - name: Run dotnet consolidate
-       run: dotnet consolidate -s SLC-S-MediaOps.sln
+       run: dotnet consolidate -s 'MediaOps Plan.sln'
 
   integration_tests:
     name: Integration Tests
