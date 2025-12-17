@@ -2,15 +2,42 @@ name: Plan CICD
 
 on:
   workflow_dispatch:
+  push:
+    branches: 
+     - 'main'
+     - '*.*.X'
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+"
+      - "[0-9]+.[0-9]+.[0-9]+-**"
+  pull_request:
+    branches: 
+     - '**'
 
 env:
   #https://github.com/NuGet/Home/issues/7575#issuecomment-443801131
   NUGET_RESTORE_MSBUILD_ARGS: /p:Configuration=Release
 
 jobs:
-  Integration_Tests:
+  nuget_validation:
+    name: Validate NuGets
+    runs-on: ubuntu-latest
+    
+    steps:
+     - uses: actions/checkout@v4
+
+     - name: Install dotnet-consolidate
+       run: dotnet tool install -g dotnet-consolidate
+
+     - name: Run dotnet consolidate
+       run: dotnet consolidate -s 'MediaOps Plan.sln'
+
+  integration_tests:
     name: Integration Tests
+    if: github.ref == 'refs/heads/main'
     runs-on: windows-latest
+    needs: nuget_validation
+    concurrency:
+      group: reg-${{github.ref}}
 
     env:
       DATAMINER_USERNAME: ${{ secrets.DATAMINER_USERNAME }}
@@ -35,3 +62,13 @@ jobs:
        
      - name: Run tests
        run: dotnet test -c Release --no-build --logger "console;verbosity=detailed" DevPack.Tests
+
+  internal_release:
+    name: Internal Release
+    if: github.ref_type == 'tag' && contains(github.ref, '-') #Prerelease tags (e.g. 1.2.3-something)
+    needs: nuget_validation
+    uses: SkylineCommunications/_ReusableWorkflows/.github/workflows/Internal NuGet Solution Master Workflow.yml@main
+    with:
+      sonarCloudProjectName: SkylineCommunications_Skyline.DataMiner.MediaOps.API
+    secrets:
+      nugetApiKey: ${{ secrets.NUGETAPIKEY_GITHUB }}
