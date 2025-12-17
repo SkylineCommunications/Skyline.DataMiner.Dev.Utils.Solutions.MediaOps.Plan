@@ -1,4 +1,4 @@
-﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API.Repositories.ResourceStudio.Resources
+﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
     using System;
     using System.Collections;
@@ -33,7 +33,7 @@
         /// <summary>
         /// Gets an exposer for the <see cref="Resource.State"/> property.
         /// </summary>
-        public static readonly Exposer<Resource, ResourceState> State = new Exposer<Resource, ResourceState>((obj) => obj.State, "State");
+        public static readonly Exposer<Resource, int> State = new Exposer<Resource, int>((obj) => (int)obj.State, "State");
 
         /// <summary>
         /// Gets a dynamic list exposer for the <see cref="Resource.AssignedResourcePoolIds"/> property.
@@ -65,6 +65,8 @@
             /// Gets a dynamic list exposer for capacity IDs.
             /// </summary>
             public static readonly DynamicListExposer<Resource, Guid> Id = DynamicListExposer<Resource, Guid>.CreateFromListExposer(new Exposer<Resource, IEnumerable>((obj) => obj.Capacities.Where(x => x != null).Select(x => x.Id).Where(x => x != null), "Capacities.Id"));
+
+            // TODO: should we support Min/Max exposers here for RangeCapacities and Value exposers for NumberCapacities?
         }
 
         /// <summary>
@@ -94,14 +96,14 @@
         /// </summary>
         public static readonly Exposer<Resource, int> AgentId = new SettableExposer<Resource, int>((Func<Resource, int>)((Resource x) => (!(x is ElementResource elementResource)) ? -1 : elementResource.AgentId), (Action<Resource, int>)delegate
         {
-        }, new string[1] { "AgentId" });
+        }, ["AgentId"]);
 
         /// <summary>
         /// Gets an exposer for the <see cref="ElementResource.ElementId"/> property.
         /// </summary>
         public static readonly Exposer<Resource, int> ElementId = new SettableExposer<Resource, int>((Func<Resource, int>)((Resource x) => (!(x is ElementResource elementResource)) ? -1 : elementResource.ElementId), (Action<Resource, int>)delegate
         {
-        }, new string[1] { "ElementId" });
+        }, ["ElementId"]);
     }
 
     /// <summary>
@@ -114,14 +116,14 @@
         /// </summary>
         public static readonly Exposer<Resource, int> AgentId = new SettableExposer<Resource, int>((Func<Resource, int>)((Resource x) => (!(x is ServiceResource serviceResource)) ? -1 : serviceResource.AgentId), (Action<Resource, int>)delegate
         {
-        }, new string[1] { "AgentId" });
+        }, ["AgentId"]);
 
         /// <summary>
         /// Gets an exposer for the <see cref="ServiceResource.ServiceId"/> property.
         /// </summary>
         public static readonly Exposer<Resource, int> ServiceId = new SettableExposer<Resource, int>((Func<Resource, int>)((Resource x) => (!(x is ServiceResource serviceResource)) ? -1 : serviceResource.ServiceId), (Action<Resource, int>)delegate
         {
-        }, new string[1] { "ServiceId" });
+        }, ["ServiceId"]);
     }
 
     /// <summary>
@@ -134,27 +136,27 @@
         /// </summary>
         public static readonly Exposer<Resource, int> AgentId = new SettableExposer<Resource, int>((Func<Resource, int>)((Resource x) => (!(x is VirtualFunctionResource virtualFunctionResource)) ? -1 : virtualFunctionResource.AgentId), (Action<Resource, int>)delegate
         {
-        }, new string[1] { "AgentId" });
+        }, ["AgentId"]);
 
         /// <summary>
         /// Gets an exposer for the <see cref="VirtualFunctionResource.ElementId"/> property.
         /// </summary>
         public static readonly Exposer<Resource, int> ElementId = new SettableExposer<Resource, int>((Func<Resource, int>)((Resource x) => (!(x is VirtualFunctionResource virtualFunctionResource)) ? -1 : virtualFunctionResource.ElementId), (Action<Resource, int>)delegate
         {
-        }, new string[1] { "ElementId" });
+        }, ["ElementId"]);
 
         /// <summary>
         /// Gets an exposer for the <see cref="VirtualFunctionResource.FunctionId"/> property.
         /// </summary>
         public static readonly Exposer<Resource, Guid> FunctionId = new SettableExposer<Resource, Guid>((Func<Resource, Guid>)((Resource x) => (!(x is VirtualFunctionResource virtualFunctionResource)) ? Guid.Empty : virtualFunctionResource.FunctionId), (Action<Resource, Guid>)delegate
         {
-        }, new string[1] { "AgentId" });
+        }, ["AgentId"]);
 
         /// <summary>
         /// Gets an exposer for the <see cref="VirtualFunctionResource.FunctionTableIndex"/> property.
         /// </summary>
         public static readonly Exposer<Resource, string> FunctionTableIndex = new SettableExposer<Resource, string>((Func<Resource, string>)((Resource x) => (!(x is VirtualFunctionResource virtualFunctionResource)) ? null : virtualFunctionResource.FunctionTableIndex), (Action<Resource, string>)delegate
         {
-        }, new string[1] { "FunctionTableIndex" });
+        }, ["FunctionTableIndex"]);
     }
 }

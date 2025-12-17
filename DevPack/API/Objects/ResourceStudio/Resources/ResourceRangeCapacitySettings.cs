@@ -7,7 +7,7 @@
     /// <summary>
     /// Represents the range capacity settings for a resource.
     /// </summary>
-    internal class ResourceRangeCapacitySettings : ResourceCapacitySettings
+    public class ResourceRangeCapacitySettings : ResourceCapacitySettings
     {
         private decimal minValue;
         private decimal maxValue;

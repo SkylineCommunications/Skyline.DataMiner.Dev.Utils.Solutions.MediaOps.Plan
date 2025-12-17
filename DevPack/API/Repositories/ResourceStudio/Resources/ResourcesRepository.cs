@@ -20,6 +20,8 @@
     /// </summary>
     internal class ResourcesRepository : Repository, IResourcesRepository
     {
+        private readonly FilterElement<DomInstance> resourceDomFilter = DomInstanceExposers.DomDefinitionId.Equal(Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Definitions.Resource.Id);
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ResourcesRepository"/> class.
         /// </summary>
@@ -565,8 +567,7 @@
             return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Read), act =>
             {
                 act?.AddTag("ResourceId", id);
-                var filter = DomInstanceExposers.DomDefinitionId.Equal(Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Definitions.Resource.Id)
-                        .AND(DomInstanceExposers.Id.Equal(id));
+                var filter = DomInstanceExposers.Id.Equal(id).AND(resourceDomFilter);
                 var domResource = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(filter)
                     .FirstOrDefault();
 
@@ -613,8 +614,7 @@
         {
             return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Read), act =>
             {
-                var filter = DomInstanceExposers.DomDefinitionId.Equal(Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Definitions.Resource.Id);
-                return Resource.InstantiateResources(PlanApi, PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(filter));
+                return Resource.InstantiateResources(PlanApi, PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(resourceDomFilter));
             });
         }
 
@@ -626,7 +626,11 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<Resource> Read(FilterElement<Resource> filter)
         {
-            throw new NotImplementedException();
+            return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Read), act =>
+            {
+                var domFilter = ResourceFilterTranslator.TranslateFullFilter(filter).AND(resourceDomFilter);
+                return Resource.InstantiateResources(PlanApi, PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(domFilter));
+            });
         }
 
         /// <summary>
@@ -644,20 +648,12 @@
         /// Reads all resources in pages.
         /// </summary>
         /// <returns>An enumerable collection of pages, where each page contains a collection of resources.</returns>
-        public IEnumerable<IEnumerable<Resource>> ReadPaged()
-        {
-            return PlanApi.DomHelpers.SlcResourceStudioHelper.GetAllResourcesPaged()
-                .Select(page => Resource.InstantiateResources(PlanApi, page));
-        }
-
-        /// <summary>
-        /// Reads all resources in pages.
-        /// </summary>
-        /// <returns>An enumerable collection of pages, where each page contains a collection of resources.</returns>
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         IEnumerable<IPagedResult<Resource>> IPageableRepository<Resource>.ReadPaged()
         {
             throw new NotImplementedException();
+            //return PlanApi.DomHelpers.SlcResourceStudioHelper.GetAllResourcesPaged()
+            //    .Select(page => Resource.InstantiateResources(PlanApi, page));
         }
 
         /// <summary>
