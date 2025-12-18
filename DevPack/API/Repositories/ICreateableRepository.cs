@@ -12,14 +12,12 @@
         /// Creates a new API object in the repository.
         /// </summary>
         /// <param name="apiObject">The API object to create.</param>
-        /// <returns>The unique identifier of the created API object.</returns>
         void Create(T apiObject);
 
         /// <summary>
         /// Creates multiple new API objects in the repository.
         /// </summary>
         /// <param name="apiObjects">The collection of API objects to create.</param>
-        /// <returns>A collection of unique identifiers for the created API objects.</returns>
         void Create(IEnumerable<T> apiObjects);
     }
 }

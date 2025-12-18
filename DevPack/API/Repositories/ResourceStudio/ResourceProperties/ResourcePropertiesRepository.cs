@@ -65,7 +65,6 @@
         /// Creates a new resource property in the repository.
         /// </summary>
         /// <param name="apiObject">The resource property to create.</param>
-        /// <returns>The unique identifier of the created resource property.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create an existing resource property.</exception>
         /// <exception cref="MediaOpsException">Thrown when the creation operation fails.</exception>
@@ -99,7 +98,6 @@
         /// Creates multiple new resource properties in the repository.
         /// </summary>
         /// <param name="apiObjects">The collection of resource properties to create.</param>
-        /// <returns>A collection of unique identifiers for the created resource properties.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create existing resource properties.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk creation operation fails.</exception>
@@ -132,7 +130,6 @@
         /// Creates new resource properties or updates existing ones in the repository.
         /// </summary>
         /// <param name="apiObjects">The collection of resource properties to create or update.</param>
-        /// <returns>A collection of unique identifiers for the created or updated resource properties.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk operation fails.</exception>
         public void CreateOrUpdate(IEnumerable<ResourceProperty> apiObjects)

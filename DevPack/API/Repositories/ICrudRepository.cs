@@ -12,7 +12,6 @@
         /// Creates new API objects or updates existing ones in the repository.
         /// </summary>
         /// <param name="apiObjects">The collection of API objects to create or update.</param>
-        /// <returns>A collection of unique identifiers for the created or updated API objects.</returns>
         void CreateOrUpdate(IEnumerable<T> apiObjects);
     }
 }

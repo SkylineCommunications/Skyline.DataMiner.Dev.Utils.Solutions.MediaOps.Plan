@@ -162,6 +162,11 @@
             try
             {
                 api.Resources.Create(resources);
+
+                foreach (var id in resources.Select(x => x.Id))
+                {
+                    createdResourceIds.Add(id);
+                }
             }
             catch (MediaOpsBulkException<Guid> bulkException)
             {
@@ -185,6 +190,11 @@
             try
             {
                 api.ResourcePools.Create(resourcePools);
+
+                foreach (var id in resourcePools.Select(x => x.Id))
+                {
+                    createdPoolIds.Add(id);
+                }
             }
             catch (MediaOpsBulkException<Guid> bulkException)
             {
@@ -208,6 +218,11 @@
             try
             {
                 api.Capabilities.Create(capabilities);
+
+                foreach (var id in capabilities.Select(x => x.Id))
+                {
+                    createdCapabilityIds.Add(id);
+                }
             }
             catch (MediaOpsBulkException<Guid> bulkException)
             {
@@ -231,6 +246,11 @@
             try
             {
                 api.Capacities.Create(capacities);
+
+                foreach (var id in capacities.Select(x => x.Id))
+                {
+                    createdCapacityIds.Add(id);
+                }
             }
             catch (MediaOpsBulkException<Guid> bulkException)
             {
@@ -254,6 +274,11 @@
             try
             {
                 api.Configurations.Create(configurations);
+
+                foreach (var id in configurations.Select(x => x.Id))
+                {
+                    createdConfigurationIds.Add(id);
+                }
             }
             catch (MediaOpsBulkException<Guid> bulkException)
             {
@@ -277,6 +302,11 @@
             try
             {
                 api.Properties.Create(properties);
+
+                foreach (var id in properties.Select(x => x.Id))
+                {
+                    createdPropertyIds.Add(id); 
+                }
             }
             catch (MediaOpsBulkException<Guid> bulkException)
             {
