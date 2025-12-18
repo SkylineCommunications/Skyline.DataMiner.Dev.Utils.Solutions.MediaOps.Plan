@@ -311,7 +311,7 @@
             var newResources = apiResources.Where(x => x.IsNew).ToList();
             newResources.ForEach(x =>
             {
-                var error = new ResourceConfigurationInvalidStateError
+                var error = new ResourceInvalidStateError
                 {
                     ErrorMessage = $"A resource that was not saved cannot be removed.",
                     Id = x.Id,
@@ -428,7 +428,7 @@
 
             foreach (var resource in resourcesWithDuplicateIds)
             {
-                var error = new ResourceConfigurationDuplicateIdError
+                var error = new ResourceDuplicateIdError
                 {
                     ErrorMessage = $"Resource '{resource.Name}' has a duplicate ID.",
                     Id = resource.Id,
@@ -443,7 +443,7 @@
             {
                 planApi.Logger.LogInformation($"ID is already in use by a Resource Studio instance.", foundInstance.ID.Id);
 
-                var error = new ResourceConfigurationIdInUseError
+                var error = new ResourceIdInUseError
                 {
                     ErrorMessage = "ID is already in use.",
                     Id = foundInstance.ID.Id,
@@ -490,7 +490,7 @@
 
             foreach (var resource in apiResources.Where(x => x.State != ResourceState.Complete))
             {
-                var error = new ResourceConfigurationInvalidStateError
+                var error = new ResourceInvalidStateError
                 {
                     ErrorMessage = "Not allowed to deprecate a resource that is not in Completed state.",
                     Id = resource.Id,
@@ -513,7 +513,7 @@
 
             foreach (var resource in apiResources.Where(x => !new[] { ResourceState.Draft, ResourceState.Deprecated }.Contains(x.State)))
             {
-                var error = new ResourceConfigurationInvalidStateError
+                var error = new ResourceInvalidStateError
                 {
                     ErrorMessage = "Not allowed to delete a resource that is not in Draft or Deprecated state.",
                     Id = resource.Id,
@@ -538,7 +538,7 @@
 
             foreach (var resource in resourcesRequiringValidation.Where(x => !InputValidator.ValidateEmptyText(x.Name)))
             {
-                var error = new ResourceConfigurationInvalidNameError
+                var error = new ResourceInvalidNameError
                 {
                     ErrorMessage = "Name cannot be empty.",
                     Id = resource.Id,
@@ -551,7 +551,7 @@
 
             foreach (var resource in resourcesRequiringValidation.Where(x => !InputValidator.ValidateTextLength(x.Name)))
             {
-                var error = new ResourceConfigurationInvalidNameError
+                var error = new ResourceInvalidNameError
                 {
                     ErrorMessage = $"Name exceeds maximum length of {InputValidator.DefaultMaxTextLength} characters.",
                     Id = resource.Id,
@@ -571,7 +571,7 @@
 
             foreach (var resource in resourcesWithDuplicateNames)
             {
-                var error = new ResourceConfigurationDuplicateNameError
+                var error = new ResourceDuplicateNameError
                 {
                     ErrorMessage = $"Resource '{resource.Name}' has a duplicate name.",
                     Id = resource.Id,
@@ -619,7 +619,7 @@
 
                 planApi.Logger.LogInformation($"Name '{resource.Name}' is already in use by DOM resource(s) with ID(s)", existingResources.Select(x => x.ID.Id).ToArray());
 
-                var error = new ResourceConfigurationNameExistsError
+                var error = new ResourceNameExistsError
                 {
                     ErrorMessage = "Name is already in use.",
                     Id = resource.Id,
@@ -646,7 +646,7 @@
                 .SelectMany(x => x.AssignedResourcePoolIds)
                 .Distinct()
                 .ToList();
-            resourcePoolsById = planApi.ResourcePools.Read(poolIds);
+            resourcePoolsById = planApi.ResourcePools.Read(poolIds).ToDictionary(x => x.Id);
 
             foreach (var resource in apiResources)
             {
@@ -656,7 +656,7 @@
                 {
                     if (!resourcePoolsById.TryGetValue(poolId, out _))
                     {
-                        var error = new ResourceConfigurationInvalidAssignedPoolError
+                        var error = new ResourceInvalidAssignedPoolError
                         {
                             ErrorMessage = $"Resource Pool with ID '{poolId}' not found.",
                             Id = resource.Id,
@@ -692,7 +692,7 @@
                 .Select(x => x.Id)
                 .Distinct()
                 .ToList();
-            var capacitiesById = planApi.Capacities.Read(capacityIds);
+            var capacitiesById = planApi.Capacities.Read(capacityIds).ToDictionary(x => x.Id);
 
             foreach (var resource in apiResources)
             {
@@ -700,7 +700,7 @@
                 {
                     if (capacitySettings.Id == Guid.Empty)
                     {
-                        var error = new ResourceConfigurationInvalidCapacitySettingsError
+                        var error = new ResourceInvalidCapacitySettingsError
                         {
                             ErrorMessage = "Capacity ID cannot be empty.",
                         };
@@ -711,7 +711,7 @@
 
                     if (!capacitiesById.TryGetValue(capacitySettings.Id, out var capacity))
                     {
-                        var error = new ResourceConfigurationInvalidCapacitySettingsError
+                        var error = new ResourceInvalidCapacitySettingsError
                         {
                             ErrorMessage = $"Capacity with ID '{capacitySettings.Id}' not found.",
                             CapacityId = capacitySettings.Id,
@@ -743,7 +743,7 @@
                 .Select(x => x.Id)
                 .Distinct()
                 .ToList();
-            var capabilitiesById = planApi.Capabilities.Read(capabilityIds);
+            var capabilitiesById = planApi.Capabilities.Read(capabilityIds).ToDictionary(x => x.Id);
 
             foreach (var resource in apiResources)
             {
@@ -751,7 +751,7 @@
                 {
                     if (capabilitySettings.Id == Guid.Empty)
                     {
-                        var error = new ResourceConfigurationInvalidCapabilitySettingsError
+                        var error = new ResourceInvalidCapabilitySettingsError
                         {
                             ErrorMessage = "Capability ID cannot be empty.",
                         };
@@ -762,7 +762,7 @@
 
                     if (!capabilitiesById.TryGetValue(capabilitySettings.Id, out var capability))
                     {
-                        var error = new ResourceConfigurationInvalidCapabilitySettingsError
+                        var error = new ResourceInvalidCapabilitySettingsError
                         {
                             ErrorMessage = $"Capability with ID '{capabilitySettings.Id}' not found.",
                             CapabilityId = capabilitySettings.Id,
@@ -774,7 +774,7 @@
 
                     if (capabilitySettings.Discretes.Count == 0)
                     {
-                        var error = new ResourceConfigurationInvalidCapabilitySettingsError
+                        var error = new ResourceInvalidCapabilitySettingsError
                         {
                             ErrorMessage = "At least one discrete value must be specified for the capability.",
                             CapabilityId = capabilitySettings.Id,
@@ -788,7 +788,7 @@
                     {
                         if (!capability.Discretes.Contains(discreteValue))
                         {
-                            var error = new ResourceConfigurationInvalidCapabilitySettingsError
+                            var error = new ResourceInvalidCapabilitySettingsError
                             {
                                 ErrorMessage = $"Discrete value '{discreteValue}' is not valid for capability '{capability.Name}'.",
                                 CapabilityId = capabilitySettings.Id,
@@ -818,7 +818,7 @@
                 .Select(x => x.Id)
                 .Distinct()
                 .ToList();
-            var propertiesById = planApi.Properties.Read(propertyIds);
+            var propertiesById = planApi.Properties.Read(propertyIds).ToDictionary(x => x.Id);
 
             foreach (var resource in apiResources)
             {
@@ -826,7 +826,7 @@
                 {
                     if (propertySettings.Id == Guid.Empty)
                     {
-                        var error = new ResourceConfigurationInvalidPropertySettingsError
+                        var error = new ResourceInvalidPropertySettingsError
                         {
                             ErrorMessage = "Property ID cannot be empty.",
                         };
@@ -835,7 +835,7 @@
                     }
                     else if (!propertiesById.TryGetValue(propertySettings.Id, out _))
                     {
-                        var error = new ResourceConfigurationInvalidPropertySettingsError
+                        var error = new ResourceInvalidPropertySettingsError
                         {
                             ErrorMessage = $"Property with ID '{propertySettings.Id}' not found.",
                         };
@@ -870,7 +870,7 @@
             {
                 if (!storedDomResourcesById.TryGetValue(resource.Id, out var stored))
                 {
-                    var error = new ResourceConfigurationNotFoundError
+                    var error = new ResourceNotFoundError
                     {
                         ErrorMessage = $"Resource with ID '{resource.Id}' no longer exists.",
                         Id = resource.Id,
@@ -886,7 +886,7 @@
                 {
                     foreach (var errorDetails in changeResult.Errors)
                     {
-                        var error = new ResourceConfigurationValueAlreadyChangedError
+                        var error = new ResourceValueAlreadyChangedError
                         {
                             ErrorMessage = errorDetails.Message,
                             Id = resource.Id,
@@ -924,7 +924,7 @@
             var domResource = planApi.DomHelpers.SlcResourceStudioHelper.GetResources([resource.Id]).FirstOrDefault();
             if (domResource == null)
             {
-                ReportError(resource.Id, new ResourceConfigurationNotFoundError
+                ReportError(resource.Id, new ResourceNotFoundError
                 {
                     ErrorMessage = $"Resource with ID '{resource.Id}' not found.",
                     Id = resource.Id,
@@ -951,7 +951,7 @@
             var domResource = planApi.DomHelpers.SlcResourceStudioHelper.GetResources([resource.Id]).FirstOrDefault();
             if (domResource == null)
             {
-                ReportError(resource.Id, new ResourceConfigurationNotFoundError
+                ReportError(resource.Id, new ResourceNotFoundError
                 {
                     ErrorMessage = $"Resource with ID '{resource.Id}' not found.",
                     Id = resource.Id,
@@ -983,7 +983,7 @@
             var domResource = planApi.DomHelpers.SlcResourceStudioHelper.GetResources([resource.Id]).FirstOrDefault();
             if (domResource == null)
             {
-                ReportError(resource.Id, new ResourceConfigurationNotFoundError
+                ReportError(resource.Id, new ResourceNotFoundError
                 {
                     ErrorMessage = $"Resource with ID '{resource.Id}' not found.",
                     Id = resource.Id,
@@ -1013,7 +1013,7 @@
             var domResource = planApi.DomHelpers.SlcResourceStudioHelper.GetResources([resource.Id]).FirstOrDefault();
             if (domResource == null)
             {
-                ReportError(resource.Id, new ResourceConfigurationNotFoundError
+                ReportError(resource.Id, new ResourceNotFoundError
                 {
                     ErrorMessage = $"Resource with ID '{resource.Id}' not found.",
                     Id = resource.Id,

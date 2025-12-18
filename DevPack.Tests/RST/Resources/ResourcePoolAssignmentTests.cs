@@ -46,7 +46,7 @@
                 Name = $"{prefix}_ResourcePool3",
             };
 
-            var poolIds = objectCreator.CreateResourcePools(new[] { resourcePool1, resourcePool2, resourcePool3 }).ToArray();
+            objectCreator.CreateResourcePools(new[] { resourcePool1, resourcePool2, resourcePool3 });
 
             // Create resource with 2 pools assigned
             var unmanagedResource = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
@@ -99,11 +99,10 @@
                 Name = $"{prefix}_ResourcePool3",
             };
 
-            var poolIds = objectCreator.CreateResourcePools(new[] { resourcePool1, resourcePool2, resourcePool3 }).ToArray();
-            foreach (var poolId in poolIds)
-            {
-                TestContext.Api.ResourcePools.MoveTo(poolId, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
-            }
+            objectCreator.CreateResourcePools(new[] { resourcePool1, resourcePool2, resourcePool3 });
+            TestContext.Api.ResourcePools.MoveTo(resourcePool1.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
+            TestContext.Api.ResourcePools.MoveTo(resourcePool2.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
+            TestContext.Api.ResourcePools.MoveTo(resourcePool3.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
 
             resourcePool1 = TestContext.Api.ResourcePools.Read(resourcePool1.Id);
             resourcePool2 = TestContext.Api.ResourcePools.Read(resourcePool2.Id);

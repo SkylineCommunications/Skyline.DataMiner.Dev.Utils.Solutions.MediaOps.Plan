@@ -7,7 +7,6 @@
     using RT_MediaOps.Plan.RegressionTests;
 
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
     [TestClass]
@@ -44,16 +43,15 @@
             configuration.AddDiscrete("Medium", "medium_value");
             configuration.AddDiscrete("High", "high_value");
 
-            var returnedId = objectCreator.CreateConfiguration(configuration);
-            Assert.AreEqual(configurationId, returnedId);
+            objectCreator.CreateConfiguration(configuration);
 
             var returnedConfiguration = TestContext.Api.Configurations.Read(configurationId);
             Assert.IsNotNull(returnedConfiguration);
             Assert.AreEqual(name, returnedConfiguration.Name);
             Assert.AreEqual(false, returnedConfiguration.IsMandatory);
-            Assert.IsInstanceOfType(returnedConfiguration, typeof(DiscreteTextConfiguration));
+            Assert.IsInstanceOfType(returnedConfiguration, typeof(Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteTextConfiguration));
 
-            var discreteTextConfig = (DiscreteTextConfiguration)returnedConfiguration;
+            var discreteTextConfig = (Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteTextConfiguration)returnedConfiguration;
             Assert.AreEqual(3, discreteTextConfig.Discretes.Count);
             Assert.IsTrue(discreteTextConfig.Discretes.ContainsKey("Low"));
             Assert.AreEqual("low_value", discreteTextConfig.Discretes["Low"]);
@@ -78,7 +76,7 @@
             Assert.IsNotNull(returnedConfiguration);
             Assert.AreEqual(updatedName, returnedConfiguration.Name);
 
-            discreteTextConfig = (DiscreteTextConfiguration)returnedConfiguration;
+            discreteTextConfig = (Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteTextConfiguration)returnedConfiguration;
             Assert.AreEqual(4, discreteTextConfig.Discretes.Count);
             Assert.IsTrue(discreteTextConfig.Discretes.ContainsKey("Critical"));
 
@@ -123,10 +121,10 @@
                 StringAssert.Contains(ex.Message, "ID is already in use.");
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var configurationConfigurationError = ex.TraceData.ErrorData.OfType<ConfigurationConfigurationError>().SingleOrDefault();
+                var configurationConfigurationError = ex.TraceData.ErrorData.OfType<ConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(configurationConfigurationError);
 
-                var configurationConfigurationIdInUseError = configurationConfigurationError as ConfigurationConfigurationIdInUseError;
+                var configurationConfigurationIdInUseError = configurationConfigurationError as ConfigurationIdInUseError;
                 Assert.IsNotNull(configurationConfigurationIdInUseError);
                 Assert.AreEqual("ID is already in use.", configurationConfigurationError.ErrorMessage);
 
@@ -165,7 +163,7 @@
                 }
 
                 Assert.AreEqual(2, traceData.ErrorData.Count);
-                var configurationConfigurationErrors = traceData.ErrorData.OfType<ConfigurationConfigurationError>().ToList();
+                var configurationConfigurationErrors = traceData.ErrorData.OfType<ConfigurationError>().ToList();
                 Assert.AreEqual(2, configurationConfigurationErrors.Count());
 
                 var errorMessages = new List<string>
@@ -176,7 +174,7 @@
 
                 foreach (var error in configurationConfigurationErrors)
                 {
-                    var configurationConfigurationDuplicateIdError = error as ConfigurationConfigurationDuplicateIdError;
+                    var configurationConfigurationDuplicateIdError = error as ConfigurationDuplicateIdError;
                     Assert.IsNotNull(configurationConfigurationDuplicateIdError);
                     Assert.IsTrue(errorMessages.Contains(error.ErrorMessage));
 
@@ -216,10 +214,10 @@
                 StringAssert.Contains(ex.Message, "Name is already in use.");
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var configurationConfigurationError = ex.TraceData.ErrorData.OfType<ConfigurationConfigurationError>().SingleOrDefault();
+                var configurationConfigurationError = ex.TraceData.ErrorData.OfType<ConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(configurationConfigurationError);
 
-                var configurationConfigurationNameExistsError = configurationConfigurationError as ConfigurationConfigurationNameExistsError;
+                var configurationConfigurationNameExistsError = configurationConfigurationError as ConfigurationNameExistsError;
                 Assert.IsNotNull(configurationConfigurationNameExistsError);
                 Assert.AreEqual("Name is already in use.", configurationConfigurationError.ErrorMessage);
 
@@ -257,10 +255,10 @@
                 foreach (var traceData in ex.Result.TraceDataPerItem.Values)
                 {
                     Assert.AreEqual(1, traceData.ErrorData.Count);
-                    var configurationConfigurationError = traceData.ErrorData.OfType<ConfigurationConfigurationError>().SingleOrDefault();
+                    var configurationConfigurationError = traceData.ErrorData.OfType<ConfigurationError>().SingleOrDefault();
                     Assert.IsNotNull(configurationConfigurationError);
 
-                    var configurationConfigurationDuplicateNameError = configurationConfigurationError as ConfigurationConfigurationDuplicateNameError;
+                    var configurationConfigurationDuplicateNameError = configurationConfigurationError as ConfigurationDuplicateNameError;
                     Assert.IsNotNull(configurationConfigurationDuplicateNameError);
                     Assert.AreEqual($"Configuration '{configuration1.Name}' has a duplicate name.", configurationConfigurationError.ErrorMessage);
                 }
@@ -288,10 +286,10 @@
             };
             configuration2.AddDiscrete("Value2", "value_2");
 
-            var id1 = objectCreator.CreateConfiguration(configuration1);
-            var id2 = objectCreator.CreateConfiguration(configuration2);
+            objectCreator.CreateConfiguration(configuration1);
+            objectCreator.CreateConfiguration(configuration2);
 
-            var toUpdate = TestContext.Api.Configurations.Read(id2);
+            var toUpdate = TestContext.Api.Configurations.Read(configuration2.Id);
             toUpdate.Name = configuration1.Name;
 
             try
@@ -303,10 +301,10 @@
                 StringAssert.Contains(ex.Message, "Name is already in use.");
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var configurationConfigurationError = ex.TraceData.ErrorData.OfType<ConfigurationConfigurationError>().SingleOrDefault();
+                var configurationConfigurationError = ex.TraceData.ErrorData.OfType<ConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(configurationConfigurationError);
 
-                var configurationConfigurationNameExistsError = configurationConfigurationError as ConfigurationConfigurationNameExistsError;
+                var configurationConfigurationNameExistsError = configurationConfigurationError as ConfigurationNameExistsError;
                 Assert.IsNotNull(configurationConfigurationNameExistsError);
                 Assert.AreEqual("Name is already in use.", configurationConfigurationError.ErrorMessage);
 
@@ -335,7 +333,7 @@
 
             objectCreator.CreateConfiguration(configuration);
 
-            configuration = TestContext.Api.Configurations.Read(configurationId) as DiscreteTextConfiguration;
+            configuration = TestContext.Api.Configurations.Read(configurationId) as Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteTextConfiguration;
             Assert.IsNotNull(configuration);
             Assert.AreEqual(true, configuration.IsMandatory);
             Assert.AreEqual(3, configuration.Discretes.Count);
@@ -359,7 +357,7 @@
 
             TestContext.Api.Configurations.Update(configuration);
 
-            configuration = TestContext.Api.Configurations.Read(configurationId) as DiscreteTextConfiguration;
+            configuration = TestContext.Api.Configurations.Read(configurationId) as Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteTextConfiguration;
             Assert.IsNotNull(configuration);
             Assert.AreEqual(true, configuration.IsMandatory);
             Assert.AreEqual(4, configuration.Discretes.Count);
@@ -388,13 +386,13 @@
 
             objectCreator.CreateConfiguration(configuration);
 
-            configuration = (DiscreteTextConfiguration)TestContext.Api.Configurations.Read(configurationId);
+            configuration = (Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteTextConfiguration)TestContext.Api.Configurations.Read(configurationId);
             Assert.AreEqual(3, configuration.Discretes.Count);
 
             configuration.RemoveDiscrete("Medium");
             TestContext.Api.Configurations.Update(configuration);
 
-            configuration = (DiscreteTextConfiguration)TestContext.Api.Configurations.Read(configurationId);
+            configuration = (Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteTextConfiguration)TestContext.Api.Configurations.Read(configurationId);
             Assert.AreEqual(2, configuration.Discretes.Count);
             Assert.IsFalse(configuration.Discretes.ContainsKey("Medium"));
             Assert.IsTrue(configuration.Discretes.ContainsKey("Low"));
@@ -420,10 +418,10 @@
                 StringAssert.Contains(ex.Message, "A discreet configuration should have at least one discreet option defined");
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var configurationConfigurationError = ex.TraceData.ErrorData.OfType<ConfigurationConfigurationError>().SingleOrDefault();
+                var configurationConfigurationError = ex.TraceData.ErrorData.OfType<ConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(configurationConfigurationError);
 
-                var configurationConfigurationInvalidDiscretesError = configurationConfigurationError as ConfigurationConfigurationInvalidDiscretesError;
+                var configurationConfigurationInvalidDiscretesError = configurationConfigurationError as ConfigurationInvalidDiscretesError;
                 Assert.IsNotNull(configurationConfigurationInvalidDiscretesError);
                 Assert.AreEqual("A discreet configuration should have at least one discreet option defined", configurationConfigurationError.ErrorMessage);
 

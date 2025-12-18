@@ -63,7 +63,7 @@
         /// <param name="value">The value associated with the discrete display name.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="displayValue"/> is null.</exception>
         /// <exception cref="ArgumentException">Thrown if a discrete with the specified <paramref name="displayValue"/> already exists in the configuration.</exception>
-        public void AddDiscrete(string displayValue, string value)
+        public DiscreteTextConfiguration AddDiscrete(string displayValue, string value)
         {
             if (displayValue == null)
                 throw new ArgumentNullException(nameof(displayValue));
@@ -73,6 +73,8 @@
 
             discretes.Add(displayValue, value);
             HasChanges = true;
+
+            return this;
         }
 
         /// <summary>
@@ -82,14 +84,14 @@
         /// clear the default. This method has no effect if the value does not exist in the collection.</remarks>
         /// <param name="displayValue">The display value of the discrete item to remove. Cannot be null.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="displayValue"/> is null.</exception>
-        public void RemoveDiscrete(string displayValue)
+        public DiscreteTextConfiguration RemoveDiscrete(string displayValue)
         {
             if (displayValue == null)
                 throw new ArgumentNullException(nameof(displayValue));
 
             if (!discretes.Remove(displayValue))
             {
-                return;
+                return this;
             }
 
             if (String.Equals(DefaultValue, displayValue))
@@ -98,23 +100,28 @@
             }
 
             HasChanges = true;
+
+            return this;
         }
 
         /// <summary>
-        /// Sets multiple discrete values by adding or updating each key-value pair in the collection.
+        /// Sets multiple discrete values using the specified key-value pairs.
         /// </summary>
         /// <param name="discretes">A read-only dictionary containing the discrete keys and their corresponding values to set. Each key-value
         /// pair will be added or updated.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="discretes"/> is <see langword="null"/>.</exception>
-        public void SetDiscretes(IReadOnlyDictionary<string, string> discretes)
+        public DiscreteTextConfiguration SetDiscretes(IReadOnlyDictionary<string, string> discretes)
         {
             if (discretes == null)
                 throw new ArgumentNullException(nameof(discretes));
 
+            this.discretes.Clear();
             foreach (var kvp in discretes)
             {
                 AddDiscrete(kvp.Key, kvp.Value);
             }
+
+            return this;
         }
 
         /// <summary>

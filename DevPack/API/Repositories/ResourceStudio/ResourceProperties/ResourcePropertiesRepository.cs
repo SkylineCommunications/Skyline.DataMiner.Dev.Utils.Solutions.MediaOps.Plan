@@ -3,12 +3,16 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Microsoft.Extensions.Logging;
+
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+
     using SLDataGateway.API.Types.Querying;
+
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
     /// <summary>
@@ -61,11 +65,10 @@
         /// Creates a new resource property in the repository.
         /// </summary>
         /// <param name="apiObject">The resource property to create.</param>
-        /// <returns>The unique identifier of the created resource property.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create an existing resource property.</exception>
         /// <exception cref="MediaOpsException">Thrown when the creation operation fails.</exception>
-        public Guid Create(ResourceProperty apiObject)
+        public void Create(ResourceProperty apiObject)
         {
             PlanApi.Logger.LogInformation("Creating new ResourceProperty...");
 
@@ -74,7 +77,7 @@
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
-            return ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Create), act =>
+            ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Create), act =>
             {
                 if (!apiObject.IsNew)
                 {
@@ -88,8 +91,6 @@
 
                 var resourcePropertyId = result.SuccessfulIds.First();
                 act?.AddTag("ResourcePropertyId", resourcePropertyId);
-
-                return resourcePropertyId;
             });
         }
 
@@ -97,18 +98,17 @@
         /// Creates multiple new resource properties in the repository.
         /// </summary>
         /// <param name="apiObjects">The collection of resource properties to create.</param>
-        /// <returns>A collection of unique identifiers for the created resource properties.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create existing resource properties.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk creation operation fails.</exception>
-        public IEnumerable<Guid> Create(IEnumerable<ResourceProperty> apiObjects)
+        public void Create(IEnumerable<ResourceProperty> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
-            return ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Create), act =>
+            ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Create), act =>
             {
                 var existingProperties = apiObjects.Where(x => !x.IsNew);
                 if (existingProperties.Any())
@@ -123,8 +123,6 @@
 
                 var propertyIds = result.SuccessfulIds;
                 act?.AddTag("ResourcePropertyIds", string.Join(", ", propertyIds));
-
-                return propertyIds;
             });
         }
 
@@ -132,17 +130,16 @@
         /// Creates new resource properties or updates existing ones in the repository.
         /// </summary>
         /// <param name="apiObjects">The collection of resource properties to create or update.</param>
-        /// <returns>A collection of unique identifiers for the created or updated resource properties.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk operation fails.</exception>
-        public IEnumerable<Guid> CreateOrUpdate(IEnumerable<ResourceProperty> apiObjects)
+        public void CreateOrUpdate(IEnumerable<ResourceProperty> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
-            return ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(CreateOrUpdate), act =>
+            ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(CreateOrUpdate), act =>
             {
                 if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
                 {
@@ -152,8 +149,6 @@
                 var propertyIds = result.SuccessfulIds;
                 act?.AddTag("Created or Updated Resource Properties", String.Join(", ", propertyIds));
                 act?.AddTag("Created or Updated Resource Properties Count", propertyIds.Count);
-
-                return propertyIds;
             });
         }
 
@@ -185,7 +180,7 @@
                 throw new ArgumentNullException(nameof(apiObjectIds));
             }
 
-            var propertiesToDelete = Read(apiObjectIds).Values;
+            var propertiesToDelete = Read(apiObjectIds);
 
             ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Delete), act =>
             {
@@ -239,9 +234,9 @@
         /// Reads multiple resource properties by their unique identifiers.
         /// </summary>
         /// <param name="ids">A collection of unique identifiers.</param>
-        /// <returns>A dictionary mapping each identifier to its corresponding resource property.</returns>
+        /// <returns>An enumerable collection of resource properties matching the specified identifiers.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="ids"/> is <c>null</c>.</exception>
-        public IDictionary<Guid, ResourceProperty> Read(IEnumerable<Guid> ids)
+        public IEnumerable<ResourceProperty> Read(IEnumerable<Guid> ids)
         {
             if (ids == null)
             {
@@ -254,7 +249,7 @@
                 act?.AddTag("ResourcePropertyIds Count", ids.Count());
 
                 var properties = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourceProperties(ids);
-                return properties.Select(x => new ResourceProperty(x)).ToDictionary(x => x.Id);
+                return properties.Select(x => new ResourceProperty(x));
             });
         }
 

@@ -23,9 +23,9 @@
             var api = new MediaOpsPlanApi(connection);
 
             var resource = new UnmanagedResource { Name = $"Green Resource [{Guid.NewGuid()}]" };
-            var resourceId = api.Resources.Create(resource);
-            Assert.AreNotEqual(Guid.Empty, resourceId);
-            Assert.AreEqual(resource.Id, resourceId);
+            api.Resources.Create(resource);
+            Assert.AreNotEqual(Guid.Empty, resource.Id);
+            Assert.AreEqual(resource.Id, resource.Id);
         }
     }
 }

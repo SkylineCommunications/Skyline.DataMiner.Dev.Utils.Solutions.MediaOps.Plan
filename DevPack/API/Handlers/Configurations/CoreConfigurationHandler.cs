@@ -121,7 +121,7 @@
 
             foreach (var configuration in apiConfigurations.Where(x => x.IsNew))
             {
-                var error = new ConfigurationConfigurationInvalidStateError
+                var error = new ConfigurationInvalidStateError
                 {
                     ErrorMessage = "Cannot delete a configuration that does not exist.",
                     Id = configuration.Id,
@@ -179,7 +179,7 @@
 
             foreach (var configuration in capabilitiesWithDuplicateIds)
             {
-                var error = new ConfigurationConfigurationDuplicateIdError
+                var error = new ConfigurationDuplicateIdError
                 {
                     ErrorMessage = $"Configuration '{configuration.Name}' has a duplicate ID.",
                     Id = configuration.Id,
@@ -194,7 +194,7 @@
             {
                 planApi.Logger.LogInformation($"ID is already in use by a Profile Parameter.", foundProfileParameter.ID);
 
-                var error = new ConfigurationConfigurationIdInUseError
+                var error = new ConfigurationIdInUseError
                 {
                     ErrorMessage = "ID is already in use.",
                     Id = foundProfileParameter.ID,
@@ -220,7 +220,7 @@
 
             foreach (var configuration in configurationsRequiringValidation.Where(x => !InputValidator.ValidateEmptyText(x.Name)))
             {
-                var error = new ConfigurationConfigurationInvalidNameError
+                var error = new ConfigurationInvalidNameError
                 {
                     ErrorMessage = "Name cannot be empty.",
                     Id = configuration.Id,
@@ -232,7 +232,7 @@
 
             foreach (var configuration in configurationsRequiringValidation.Where(x => !InputValidator.ValidateTextLength(x.Name)))
             {
-                var error = new ConfigurationConfigurationInvalidNameError
+                var error = new ConfigurationInvalidNameError
                 {
                     ErrorMessage = $"Name exceeds maximum length of {InputValidator.DefaultMaxTextLength} characters.",
                     Id = configuration.Id,
@@ -251,7 +251,7 @@
 
             foreach (var configuration in configurationsWithDuplicateNames)
             {
-                var error = new ConfigurationConfigurationDuplicateNameError
+                var error = new ConfigurationDuplicateNameError
                 {
                     ErrorMessage = $"Configuration '{configuration.Name}' has a duplicate name.",
                     Id = configuration.Id,
@@ -279,7 +279,7 @@
 
                 planApi.Logger.LogInformation($"Name '{configuration.Name}' is already in use by Profile Parameter(s) with ID(s)", coreParametersWithSameNameAndDifferentIds.Select(x => x.ID).ToArray());
 
-                var error = new ConfigurationConfigurationNameExistsError
+                var error = new ConfigurationNameExistsError
                 {
                     ErrorMessage = "Name is already in use.",
                     Id = configuration.Id,
