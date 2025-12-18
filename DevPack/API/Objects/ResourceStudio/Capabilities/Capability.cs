@@ -70,13 +70,15 @@
         /// </summary>
         /// <param name="option">The discrete option to add. Cannot be <see langword="null"/> or whitespace.</param>
         /// <exception cref="ArgumentException">Thrown if <paramref name="option"/> is <see langword="null"/> or whitespace.</exception>
-        public void AddDiscrete(string option)
+        public Capability AddDiscrete(string option)
         {
             if (option == null)
                 throw new ArgumentNullException(nameof(option));
 
             if (discretes.Add(option))
                 HasChanges = true;
+
+            return this;
         }
 
         /// <summary>
@@ -84,13 +86,15 @@
         /// </summary>
         /// <param name="option">The option to remove. Cannot be <see langword="null"/>.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="option"/> is <see langword="null"/>.</exception>
-        public void RemoveDiscrete(string option)
+        public Capability RemoveDiscrete(string option)
         {
             if (option == null)
                 throw new ArgumentNullException(nameof(option));
 
             if (discretes.Remove(option))
                 HasChanges = true;
+
+            return this;
         }
 
         /// <summary>
@@ -100,7 +104,7 @@
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="options"/> is <see langword="null"/>.</exception>
         /// <exception cref="ArgumentException">Thrown if any element in <paramref name="options"/> is <see langword="null"/>, empty, or consists only of
         /// whitespace.</exception>
-        public void SetDiscretes(IEnumerable<string> options)
+        public Capability SetDiscretes(IEnumerable<string> options)
         {
             if (options == null)
                 throw new ArgumentNullException(nameof(options));
@@ -109,7 +113,7 @@
                 throw new ArgumentException(nameof(options));
 
             if (discretes.ScrambledEquals(options))
-                return;
+                return this;
 
             discretes.Clear();
             foreach (var option in options)
@@ -118,6 +122,8 @@
             }
 
             HasChanges = true;
+
+            return this;
         }
 
         /// <summary>
