@@ -168,7 +168,7 @@
                 throw new InvalidOperationException("Not possible to use method Create for existing resource pools. Use CreateOrUpdate or Update instead.");
             }
 
-            if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, apiObjects?.ToList(), out var result))
+            if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
             {
                 throw new MediaOpsBulkException<Guid>(result);
             }
@@ -742,7 +742,7 @@
                 throw new InvalidOperationException("Not possible to use method Update for new resource pools. Use Create or CreateOrUpdate instead.");
             }
 
-            if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, apiObjects?.ToList(), out var result))
+            if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
             {
                 throw new MediaOpsBulkException<Guid>(result);
             }
