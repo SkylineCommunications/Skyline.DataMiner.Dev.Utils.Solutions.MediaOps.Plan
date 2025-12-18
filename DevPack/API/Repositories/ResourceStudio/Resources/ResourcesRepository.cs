@@ -274,7 +274,7 @@
 
             PlanApi.Logger.LogInformation($"Creating new Resource {apiObject.Name}...");
 
-            ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Create), act =>
+            ActivityHelper.Track(nameof(ResourcesRepository), nameof(Create), act =>
             {
                 if (!apiObject.IsNew)
                 {
