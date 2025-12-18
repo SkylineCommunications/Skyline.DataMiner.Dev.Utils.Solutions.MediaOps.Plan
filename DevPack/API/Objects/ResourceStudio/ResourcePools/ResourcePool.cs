@@ -20,6 +20,8 @@
 
         private string name;
 
+        private bool isExternallyManaged;
+
         private string iconImage;
 
         private string url;
@@ -63,6 +65,19 @@
             {
                 HasChanges = true;
                 name = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the resource pool is managed by an external system.
+        /// </summary>
+        public bool IsExternallyManaged
+        {
+            get => isExternallyManaged;
+            set
+            {
+                HasChanges |= isExternallyManaged != value;
+                isExternallyManaged = value;
             }
         }
 
@@ -230,7 +245,7 @@
             }
 
             updatedInstance.ResourcePoolInfo.Name = Name;
-
+            updatedInstance.ExternalMetadata.ExternallyManaged = IsExternallyManaged;
             updatedInstance.ResourcePoolOther.IconImage = iconImage;
             updatedInstance.ResourcePoolOther.URL = url;
 
@@ -254,6 +269,7 @@
             this.originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
 
             name = instance.ResourcePoolInfo.Name;
+            isExternallyManaged = instance.ExternalMetadata?.ExternallyManaged ?? false;
             State = EnumExtensions.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.StatusesEnum, ResourcePoolState>(instance.Status);
             coreResourcePoolId = instance.ResourcePoolInternalProperties.ResourcePoolId;
 

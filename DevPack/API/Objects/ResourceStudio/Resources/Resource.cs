@@ -21,6 +21,8 @@
 
         private bool isFavorite;
 
+        private bool isExternallyManaged;
+
         private int concurrency;
 
         private Guid coreResourceId;
@@ -76,6 +78,19 @@
             {
                 HasChanges |= isFavorite != value;
                 isFavorite = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the resource is managed by an external system.
+        /// </summary>
+        public bool IsExternallyManaged
+        {
+            get => isExternallyManaged;
+            set
+            {
+                HasChanges |= isExternallyManaged != value;
+                isExternallyManaged = value;
             }
         }
 
@@ -401,6 +416,7 @@
             updatedInstance.ResourceInfo.Favorite = isFavorite;
             updatedInstance.ResourceInfo.Concurrency = concurrency;
             updatedInstance.ResourceInternalProperties.PoolIds = assignedPoolIds.ToList();
+            updatedInstance.ExternalMetadata.ExternallyManaged = isExternallyManaged;
 
             updatedInstance.ResourceCapabilities.Clear();
             foreach (var capability in capabilitySettings)
@@ -461,6 +477,7 @@
             concurrency = instance.ResourceInfo.Concurrency.HasValue ? (int)instance.ResourceInfo.Concurrency.Value : 1;
             assignedPoolIds = new HashSet<Guid>(instance.ResourceInternalProperties.PoolIds);
             coreResourceId = instance.ResourceInternalProperties.Resource_Id ?? Guid.Empty;
+            isExternallyManaged = instance.ExternalMetadata?.ExternallyManaged ?? false;
 
             State = EnumExtensions.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum, ResourceState>(instance.Status);
 
