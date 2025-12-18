@@ -247,7 +247,7 @@
 
             foreach (var pool in poolsRequiringValidation.Where(x => !InputValidator.ValidateEmptyText(x.ResourcePoolInfo.Name)).ToList())
             {
-                var error = new ResourcePoolConfigurationInvalidNameError
+                var error = new ResourcePoolInvalidNameError
                 {
                     ErrorMessage = "Name cannot be empty.",
                     Id = pool.ID.Id,
@@ -259,7 +259,7 @@
 
             foreach (var pool in poolsRequiringValidation.Where(x => !InputValidator.ValidateTextLength(x.ResourcePoolInfo.Name)).ToList())
             {
-                var error = new ResourcePoolConfigurationInvalidNameError
+                var error = new ResourcePoolInvalidNameError
                 {
                     ErrorMessage = "Name exceeds maximum length of 150 characters.",
                     Id = pool.ID.Id,
@@ -277,7 +277,7 @@
                 .ToList();
             foreach (var pool in poolsWithDuplicateNames)
             {
-                var error = new ResourcePoolConfigurationDuplicateNameError
+                var error = new ResourcePoolDuplicateNameError
                 {
                     ErrorMessage = $"Resource pool '{pool.ResourcePoolInfo.Name}' has a duplicate name.",
                     Id = pool.ID.Id,
@@ -305,7 +305,7 @@
 
                 planApi.Logger.LogInformation($"Name '{pool.ResourcePoolInfo.Name}' is already in use by CORE resource pool(s) with ID(s)", existingPools.Select(x => x.ID).ToArray());
 
-                var error = new ResourcePoolConfigurationNameExistsError
+                var error = new ResourcePoolNameExistsError
                 {
                     ErrorMessage = "Name is already in use.",
                     Id = pool.ID.Id,

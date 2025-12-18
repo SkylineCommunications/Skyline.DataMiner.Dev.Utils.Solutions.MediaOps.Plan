@@ -3,10 +3,13 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Microsoft.Extensions.Logging;
+
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+
     using SLDataGateway.API.Types.Querying;
 
     /// <summary>
@@ -57,11 +60,10 @@
         /// Creates a new capacity in the repository.
         /// </summary>
         /// <param name="apiObject">The capacity to create.</param>
-        /// <returns>The unique identifier of the created capacity.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create an existing capacity.</exception>
         /// <exception cref="MediaOpsException">Thrown when the creation operation fails.</exception>
-        public Guid Create(Capacity apiObject)
+        public void Create(Capacity apiObject)
         {
             PlanApi.Logger.LogInformation("Creating new Capacity...");
 
@@ -70,7 +72,7 @@
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
-            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Create), act =>
+            ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Create), act =>
             {
                 if (!apiObject.IsNew)
                 {
@@ -84,8 +86,6 @@
 
                 var capacityId = apiObject.Id;
                 act?.AddTag("CapacityId", capacityId);
-
-                return capacityId;
             });
         }
 
@@ -93,18 +93,17 @@
         /// Creates multiple new capacities in the repository.
         /// </summary>
         /// <param name="apiObjects">The collection of capacities to create.</param>
-        /// <returns>A collection of unique identifiers for the created capacities.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create existing capacities.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk creation operation fails.</exception>
-        public IEnumerable<Guid> Create(IEnumerable<Capacity> apiObjects)
+        public void Create(IEnumerable<Capacity> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
-            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Create), act =>
+            ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Create), act =>
             {
                 if (apiObjects.Any(x => !x.IsNew))
                 {
@@ -118,8 +117,6 @@
 
                 var capacityIds = apiObjects.Select(x => x.Id);
                 act?.AddTag("CapacityIds", string.Join(", ", capacityIds));
-
-                return capacityIds;
             });
         }
 
@@ -127,17 +124,16 @@
         /// Creates new capacities or updates existing ones in the repository.
         /// </summary>
         /// <param name="apiObjects">The collection of capacities to create or update.</param>
-        /// <returns>A collection of unique identifiers for the created or updated capacities.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk operation fails.</exception>
-        public IEnumerable<Guid> CreateOrUpdate(IEnumerable<Capacity> apiObjects)
+        public void CreateOrUpdate(IEnumerable<Capacity> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
-            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(CreateOrUpdate), act =>
+            ActivityHelper.Track(nameof(CapacitiesRepository), nameof(CreateOrUpdate), act =>
             {
                 if (!CoreCapacityHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
                 {
@@ -147,8 +143,6 @@
                 var capacityIds = apiObjects.Select(x => x.Id);
                 act?.AddTag("Created or Updated Capacities", String.Join(", ", capacityIds));
                 act?.AddTag("Created or Updated Capacities Count", capacityIds.Count());
-
-                return capacityIds;
             });
         }
 
@@ -180,7 +174,7 @@
                 throw new ArgumentNullException(nameof(apiObjectIds));
             }
 
-            var capacitiesToDelete = Read(apiObjectIds).Values;
+            var capacitiesToDelete = Read(apiObjectIds);
 
             ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Delete), act =>
             {
@@ -230,9 +224,9 @@
         /// Reads multiple capacities by their unique identifiers.
         /// </summary>
         /// <param name="ids">A collection of unique identifiers.</param>
-        /// <returns>A dictionary mapping each identifier to its corresponding capacity.</returns>
+        /// <returns>An enumerable collection of capacities matching the specified identifiers.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="ids"/> is <c>null</c>.</exception>
-        public IDictionary<Guid, Capacity> Read(IEnumerable<Guid> ids)
+        public IEnumerable<Capacity> Read(IEnumerable<Guid> ids)
         {
             if (ids == null)
             {
@@ -245,7 +239,7 @@
                 act?.AddTag("CapacityIds Count", ids.Count());
 
                 var capacities = PlanApi.CoreHelpers.ProfileProvider.GetCapacitiesById(ids);
-                return Capacity.InstantiateCapacities(capacities).ToDictionary(x => x.Id);
+                return Capacity.InstantiateCapacities(capacities);
             });
         }
 

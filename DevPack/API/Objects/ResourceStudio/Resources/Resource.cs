@@ -471,7 +471,7 @@
             }
 
             var capacityIds = resourceCapacities.Select(rc => rc.ProfileParameterId).Distinct();
-            var capacityById = planApi.Capacities.Read(capacityIds);
+            var capacityById = planApi.Capacities.Read(capacityIds).ToDictionary(x => x.Id);
 
             foreach (var section in resourceCapacities)
             {

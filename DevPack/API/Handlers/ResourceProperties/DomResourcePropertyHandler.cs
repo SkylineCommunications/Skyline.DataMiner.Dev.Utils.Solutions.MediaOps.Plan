@@ -174,7 +174,7 @@
             var newProperties = apiResourceProperties.Where(x => x.IsNew).ToList();
             newProperties.ForEach(x =>
             {
-                var error = new ResourcePropertyConfigurationInvalidStateError
+                var error = new ResourcePropertyInvalidStateError
                 {
                     ErrorMessage = $"A resource that was not saved cannot be removed.",
                     Id = x.Id,
@@ -244,7 +244,7 @@
 
             foreach (var property in propertiesWithDuplicateIds)
             {
-                var error = new ResourcePropertyConfigurationDuplicateIdError
+                var error = new ResourcePropertyDuplicateIdError
                 {
                     ErrorMessage = $"Resource property '{property.Name}' has a duplicate ID.",
                     Id = property.Id,
@@ -259,7 +259,7 @@
             {
                 planApi.Logger.LogInformation($"ID is already in use by a Resource Studio instance.", foundInstance.ID.Id);
 
-                var error = new ResourcePropertyConfigurationIdInUseError
+                var error = new ResourcePropertyIdInUseError
                 {
                     ErrorMessage = "ID is already in use.",
                     Id = foundInstance.ID.Id,
@@ -285,7 +285,7 @@
 
             foreach (var property in propertiesRequiringValidation.Where(x => !InputValidator.ValidateEmptyText(x.Name)))
             {
-                var error = new ResourcePropertyConfigurationInvalidNameError
+                var error = new ResourcePropertyInvalidNameError
                 {
                     ErrorMessage = "Name cannot be empty.",
                     Id = property.Id,
@@ -298,7 +298,7 @@
 
             foreach (var property in propertiesRequiringValidation.Where(x => !InputValidator.ValidateTextLength(x.Name)))
             {
-                var error = new ResourcePropertyConfigurationInvalidNameError
+                var error = new ResourcePropertyInvalidNameError
                 {
                     ErrorMessage = $"Name exceeds maximum length of {InputValidator.DefaultMaxTextLength} characters.",
                     Id = property.Id,
@@ -318,7 +318,7 @@
 
             foreach (var property in propertiesWithDuplicateNames)
             {
-                var error = new ResourcePropertyConfigurationDuplicateNameError
+                var error = new ResourcePropertyDuplicateNameError
                 {
                     ErrorMessage = $"Resource property '{property.Name}' has a duplicate name.",
                     Id = property.Id,
@@ -364,7 +364,7 @@
 
                 planApi.Logger.LogInformation($"Name '{property.Name}' is already ins use by DOM resource property/properties with ID(s)", existingProperties.Select(x => x.ID.Id).ToArray());
 
-                var error = new ResourcePropertyConfigurationNameExistsError
+                var error = new ResourcePropertyNameExistsError
                 {
                     ErrorMessage = "Name is already in use.",
                     Id = property.Id,
@@ -403,7 +403,7 @@
             {
                 if (!storedDomReesourcePropertiesById.TryGetValue(property.Id, out var stored))
                 {
-                    var error = new ResourcePropertyConfigurationNotFoundError
+                    var error = new ResourcePropertyNotFoundError
                     {
                         ErrorMessage = $"Resource property with ID '{property.Id}' no longer exists.",
                         Id = property.Id,
@@ -419,7 +419,7 @@
                 {
                     foreach (var errorDetails in changeResult.Errors)
                     {
-                        var error = new ResourcePropertyConfigurationValueAlreadyChangedError
+                        var error = new ResourcePropertyValueAlreadyChangedError
                         {
                             ErrorMessage = errorDetails.Message,
                             Id = property.Id,

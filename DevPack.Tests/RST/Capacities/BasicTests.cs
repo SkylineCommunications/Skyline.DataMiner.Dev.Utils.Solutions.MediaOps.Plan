@@ -2,7 +2,9 @@
 {
     using System;
     using System.Linq;
+
     using RT_MediaOps.Plan.RegressionTests;
+
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
@@ -36,8 +38,7 @@
                 Name = name,
             };
 
-            var returnedId = objectCreator.CreateCapacity(capacity);
-            Assert.AreEqual(capacityId, returnedId);
+            objectCreator.CreateCapacity(capacity);
 
             var returnedCapacity = TestContext.Api.Capacities.Read(capacityId);
             Assert.IsNotNull(returnedCapacity);
@@ -110,8 +111,7 @@
                 Name = name,
             };
 
-            var returnedId = objectCreator.CreateCapacity(capacity);
-            Assert.AreEqual(capacityId, returnedId);
+            objectCreator.CreateCapacity(capacity);
 
             var returnedCapacity = TestContext.Api.Capacities.Read(capacityId);
             Assert.IsNotNull(returnedCapacity);
@@ -197,10 +197,10 @@
                 StringAssert.Contains(ex.Message, "ID is already in use.");
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var capacityConfigurationError = ex.TraceData.ErrorData.OfType<CapacityConfigurationError>().SingleOrDefault();
+                var capacityConfigurationError = ex.TraceData.ErrorData.OfType<CapacityError>().SingleOrDefault();
                 Assert.IsNotNull(capacityConfigurationError);
 
-                var capacityConfigurationIdInUseError = capacityConfigurationError as CapacityConfigurationIdInUseError;
+                var capacityConfigurationIdInUseError = capacityConfigurationError as CapacityIdInUseError;
                 Assert.IsNotNull(capacityConfigurationIdInUseError);
                 Assert.AreEqual(capacityId, capacityConfigurationIdInUseError.Id);
                 Assert.AreEqual("ID is already in use.", capacityConfigurationError.ErrorMessage);
@@ -238,7 +238,7 @@
                 }
 
                 Assert.AreEqual(2, traceData.ErrorData.Count);
-                var capacityConfigurationErrors = traceData.ErrorData.OfType<CapacityConfigurationError>().ToList();
+                var capacityConfigurationErrors = traceData.ErrorData.OfType<CapacityError>().ToList();
                 Assert.AreEqual(2, capacityConfigurationErrors.Count());
 
                 var errorMessages = new List<string>
@@ -249,7 +249,7 @@
 
                 foreach (var error in capacityConfigurationErrors)
                 {
-                    var capacityConfigurationDuplicateIdError = error as CapacityConfigurationDuplicateIdError;
+                    var capacityConfigurationDuplicateIdError = error as CapacityDuplicateIdError;
                     Assert.IsNotNull(capacityConfigurationDuplicateIdError);
                     Assert.AreEqual(capacityId, capacityConfigurationDuplicateIdError.Id);
                     Assert.IsTrue(errorMessages.Contains(error.ErrorMessage));
@@ -288,10 +288,10 @@
                 StringAssert.Contains(ex.Message, "Name is already in use.");
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var capacityConfigurationError = ex.TraceData.ErrorData.OfType<CapacityConfigurationError>().SingleOrDefault();
+                var capacityConfigurationError = ex.TraceData.ErrorData.OfType<CapacityError>().SingleOrDefault();
                 Assert.IsNotNull(capacityConfigurationError);
 
-                var capacityConfigurationNameExistsError = capacityConfigurationError as CapacityConfigurationNameExistsError;
+                var capacityConfigurationNameExistsError = capacityConfigurationError as CapacityNameExistsError;
                 Assert.IsNotNull(capacityConfigurationNameExistsError);
                 Assert.AreEqual(capacity2.Id, capacityConfigurationNameExistsError.Id);
                 Assert.AreEqual(capacity2.Name, capacityConfigurationNameExistsError.Name);
@@ -329,10 +329,10 @@
                 foreach (var traceData in ex.Result.TraceDataPerItem.Values)
                 {
                     Assert.AreEqual(1, traceData.ErrorData.Count);
-                    var capacityConfigurationError = traceData.ErrorData.OfType<CapacityConfigurationError>().SingleOrDefault();
+                    var capacityConfigurationError = traceData.ErrorData.OfType<CapacityError>().SingleOrDefault();
                     Assert.IsNotNull(capacityConfigurationError);
 
-                    var capacityConfigurationDuplicateNameError = capacityConfigurationError as CapacityConfigurationDuplicateNameError;
+                    var capacityConfigurationDuplicateNameError = capacityConfigurationError as CapacityDuplicateNameError;
                     Assert.IsNotNull(capacityConfigurationDuplicateNameError);
                     Assert.AreEqual($"Capacity '{capacity1.Name}' has a duplicate name.", capacityConfigurationError.ErrorMessage);
                 }
@@ -346,22 +346,22 @@
         [TestMethod]
         public void UpdateToSameNameThrowsException()
         {
-            var capacityId = Guid.NewGuid();
+            var prefix = Guid.NewGuid();
 
             var capacity1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity()
             {
-                Name = $"{capacityId}_Capacity_1",
+                Name = $"{prefix}_Capacity_1",
             };
 
             var capacity2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity()
             {
-                Name = $"{capacityId}_Capacity_2",
+                Name = $"{prefix}_Capacity_2",
             };
 
-            var id1 = objectCreator.CreateCapacity(capacity1);
-            var id2 = objectCreator.CreateCapacity(capacity2);
+            objectCreator.CreateCapacity(capacity1);
+            objectCreator.CreateCapacity(capacity2);
 
-            var toUpdate = TestContext.Api.Capacities.Read(id2);
+            var toUpdate = TestContext.Api.Capacities.Read(capacity2.Id);
             toUpdate.Name = capacity1.Name;
 
             try
@@ -373,10 +373,10 @@
                 StringAssert.Contains(ex.Message, "Name is already in use.");
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var capacityConfigurationError = ex.TraceData.ErrorData.OfType<CapacityConfigurationError>().SingleOrDefault();
+                var capacityConfigurationError = ex.TraceData.ErrorData.OfType<CapacityError>().SingleOrDefault();
                 Assert.IsNotNull(capacityConfigurationError);
 
-                var capacityConfigurationNameExistsError = capacityConfigurationError as CapacityConfigurationNameExistsError;
+                var capacityConfigurationNameExistsError = capacityConfigurationError as CapacityNameExistsError;
                 Assert.IsNotNull(capacityConfigurationNameExistsError);
                 Assert.AreEqual(toUpdate.Id, capacityConfigurationNameExistsError.Id);
                 Assert.AreEqual(toUpdate.Name, capacityConfigurationNameExistsError.Name);
@@ -494,29 +494,29 @@
             catch (MediaOpsException ex)
             {
                 Assert.AreEqual(4, ex.TraceData.ErrorData.Count);
-                var capacityConfigurationErrors = ex.TraceData.ErrorData.OfType<CapacityConfigurationError>();
+                var capacityConfigurationErrors = ex.TraceData.ErrorData.OfType<CapacityError>();
                 Assert.AreEqual(4, capacityConfigurationErrors.Count());
 
-                var capacityConfigurationInvalidRangeError = capacityConfigurationErrors.OfType<CapacityConfigurationInvalidRangeError>().SingleOrDefault();
+                var capacityConfigurationInvalidRangeError = capacityConfigurationErrors.OfType<CapacityInvalidRangeError>().SingleOrDefault();
                 Assert.IsNotNull(capacityConfigurationInvalidRangeError);
                 Assert.AreEqual(capacityId, capacityConfigurationInvalidRangeError.Id);
                 Assert.AreEqual("RangeMax must be greater than RangeMin.", capacityConfigurationInvalidRangeError.ErrorMessage);
                 Assert.AreEqual(10.123m, capacityConfigurationInvalidRangeError.RangeMin);
                 Assert.AreEqual(1.123m, capacityConfigurationInvalidRangeError.RangeMax);
 
-                var capacityConfigurationInvalidRangeMinError = capacityConfigurationErrors.OfType<CapacityConfigurationInvalidRangeMinError>().SingleOrDefault();
+                var capacityConfigurationInvalidRangeMinError = capacityConfigurationErrors.OfType<CapacityInvalidRangeMinError>().SingleOrDefault();
                 Assert.IsNotNull(capacityConfigurationInvalidRangeMinError);
                 Assert.AreEqual(capacityId, capacityConfigurationInvalidRangeMinError.Id);
                 Assert.AreEqual("RangeMin has more decimal places than allowed by Decimals (2).", capacityConfigurationInvalidRangeMinError.ErrorMessage);
                 Assert.AreEqual(10.123m, capacityConfigurationInvalidRangeMinError.RangeMin);
 
-                var capacityConfigurationInvalidRangeMaxError = capacityConfigurationErrors.OfType<CapacityConfigurationInvalidRangeMaxError>().SingleOrDefault();
+                var capacityConfigurationInvalidRangeMaxError = capacityConfigurationErrors.OfType<CapacityInvalidRangeMaxError>().SingleOrDefault();
                 Assert.IsNotNull(capacityConfigurationInvalidRangeMaxError);
                 Assert.AreEqual(capacityId, capacityConfigurationInvalidRangeMaxError.Id);
                 Assert.AreEqual("RangeMax has more decimal places than allowed by Decimals (2).", capacityConfigurationInvalidRangeMaxError.ErrorMessage);
                 Assert.AreEqual(1.123m, capacityConfigurationInvalidRangeMaxError.RangeMax);
 
-                var capacityConfigurationInvalidStepSizeError = capacityConfigurationErrors.OfType<CapacityConfigurationInvalidStepSizeError>().SingleOrDefault();
+                var capacityConfigurationInvalidStepSizeError = capacityConfigurationErrors.OfType<CapacityInvalidStepSizeError>().SingleOrDefault();
                 Assert.IsNotNull(capacityConfigurationInvalidStepSizeError);
                 Assert.AreEqual(capacityId, capacityConfigurationInvalidStepSizeError.Id);
                 Assert.AreEqual("StepSize has more decimal places than allowed by Decimals (2).", capacityConfigurationInvalidStepSizeError.ErrorMessage);
@@ -553,10 +553,10 @@
                 StringAssert.Contains(ex.Message, "Decimals must be between 0 and 15.");
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var capacityConfigurationError = ex.TraceData.ErrorData.OfType<CapacityConfigurationError>().SingleOrDefault();
+                var capacityConfigurationError = ex.TraceData.ErrorData.OfType<CapacityError>().SingleOrDefault();
                 Assert.IsNotNull(capacityConfigurationError);
 
-                var capacityConfigurationInvalidDecimalsError = capacityConfigurationError as CapacityConfigurationInvalidDecimalsError;
+                var capacityConfigurationInvalidDecimalsError = capacityConfigurationError as CapacityInvalidDecimalsError;
                 Assert.IsNotNull(capacityConfigurationInvalidDecimalsError);
                 Assert.AreEqual(capacityId, capacityConfigurationInvalidDecimalsError.Id);
                 Assert.AreEqual("Decimals must be between 0 and 15.", capacityConfigurationError.ErrorMessage);
@@ -593,10 +593,10 @@
                 StringAssert.Contains(ex.Message, "StepSize must be greater than 0.");
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var capacityConfigurationError = ex.TraceData.ErrorData.OfType<CapacityConfigurationError>().SingleOrDefault();
+                var capacityConfigurationError = ex.TraceData.ErrorData.OfType<CapacityError>().SingleOrDefault();
                 Assert.IsNotNull(capacityConfigurationError);
 
-                var capacityConfigurationInvalidStepSizeError = capacityConfigurationError as CapacityConfigurationInvalidStepSizeError;
+                var capacityConfigurationInvalidStepSizeError = capacityConfigurationError as CapacityInvalidStepSizeError;
                 Assert.IsNotNull(capacityConfigurationInvalidStepSizeError);
                 Assert.AreEqual(capacityId, capacityConfigurationInvalidStepSizeError.Id);
                 Assert.AreEqual("StepSize must be greater than 0.", capacityConfigurationError.ErrorMessage);
@@ -606,6 +606,14 @@
             }
 
             Assert.Fail("Expected exception was not thrown.");
+        }
+
+        [TestMethod]
+        public void ReadWithEmptyListReturnsEmptyList()
+        {
+            var capacities = TestContext.Api.Capacities.Read(new List<Guid>());
+            Assert.IsNotNull(capacities);
+            Assert.AreEqual(0, capacities.Count());
         }
     }
 }

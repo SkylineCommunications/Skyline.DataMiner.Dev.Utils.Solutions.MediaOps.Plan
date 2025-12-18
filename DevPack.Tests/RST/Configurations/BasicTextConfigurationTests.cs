@@ -3,7 +3,6 @@
     using RT_MediaOps.Plan.RegressionTests;
 
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
     [TestClass]
@@ -27,7 +26,7 @@
         [TestMethod]
         public void TestDefaultValues()
         {
-            var configuration = new TextConfiguration();
+            var configuration = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration();
             Assert.IsNull(configuration.DefaultValue);
             Assert.IsNull(configuration.Name);
             Assert.AreNotEqual(Guid.Empty, configuration.Id);
@@ -41,13 +40,12 @@
             var configurationId = Guid.NewGuid();
             var name = $"{configurationId}_Configuration";
 
-            var configuration = new TextConfiguration(configurationId)
+            var configuration = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration(configurationId)
             {
                 Name = name,
             };
 
-            var returnedId = objectCreator.CreateConfiguration(configuration);
-            Assert.AreEqual(configurationId, returnedId);
+            objectCreator.CreateConfiguration(configuration);
 
             var returnedConfiguration = TestContext.Api.Configurations.Read(configurationId);
             Assert.IsNotNull(returnedConfiguration);
@@ -132,10 +130,10 @@
                 StringAssert.Contains(ex.Message, "ID is already in use.");
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var configurationConfigurationError = ex.TraceData.ErrorData.OfType<ConfigurationConfigurationError>().SingleOrDefault();
+                var configurationConfigurationError = ex.TraceData.ErrorData.OfType<ConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(configurationConfigurationError);
 
-                var configurationConfigurationIdInUseError = configurationConfigurationError as ConfigurationConfigurationIdInUseError;
+                var configurationConfigurationIdInUseError = configurationConfigurationError as ConfigurationIdInUseError;
                 Assert.IsNotNull(configurationConfigurationIdInUseError);
                 Assert.AreEqual("ID is already in use.", configurationConfigurationError.ErrorMessage);
 
@@ -172,7 +170,7 @@
                 }
 
                 Assert.AreEqual(2, traceData.ErrorData.Count);
-                var configurationConfigurationErrors = traceData.ErrorData.OfType<ConfigurationConfigurationError>().ToList();
+                var configurationConfigurationErrors = traceData.ErrorData.OfType<ConfigurationError>().ToList();
                 Assert.AreEqual(2, configurationConfigurationErrors.Count());
 
                 var errorMessages = new List<string>
@@ -183,7 +181,7 @@
 
                 foreach (var error in configurationConfigurationErrors)
                 {
-                    var configurationConfigurationDuplicateIdError = error as ConfigurationConfigurationDuplicateIdError;
+                    var configurationConfigurationDuplicateIdError = error as ConfigurationDuplicateIdError;
                     Assert.IsNotNull(configurationConfigurationDuplicateIdError);
                     Assert.IsTrue(errorMessages.Contains(error.ErrorMessage));
 
@@ -221,10 +219,10 @@
                 StringAssert.Contains(ex.Message, "Name is already in use.");
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var configurationConfigurationError = ex.TraceData.ErrorData.OfType<ConfigurationConfigurationError>().SingleOrDefault();
+                var configurationConfigurationError = ex.TraceData.ErrorData.OfType<ConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(configurationConfigurationError);
 
-                var configurationConfigurationNameExistsError = configurationConfigurationError as ConfigurationConfigurationNameExistsError;
+                var configurationConfigurationNameExistsError = configurationConfigurationError as ConfigurationNameExistsError;
                 Assert.IsNotNull(configurationConfigurationNameExistsError);
                 Assert.AreEqual("Name is already in use.", configurationConfigurationError.ErrorMessage);
 
@@ -260,10 +258,10 @@
                 foreach (var traceData in ex.Result.TraceDataPerItem.Values)
                 {
                     Assert.AreEqual(1, traceData.ErrorData.Count);
-                    var configurationConfigurationError = traceData.ErrorData.OfType<ConfigurationConfigurationError>().SingleOrDefault();
+                    var configurationConfigurationError = traceData.ErrorData.OfType<ConfigurationError>().SingleOrDefault();
                     Assert.IsNotNull(configurationConfigurationError);
 
-                    var configurationConfigurationDuplicateNameError = configurationConfigurationError as ConfigurationConfigurationDuplicateNameError;
+                    var configurationConfigurationDuplicateNameError = configurationConfigurationError as ConfigurationDuplicateNameError;
                     Assert.IsNotNull(configurationConfigurationDuplicateNameError);
                     Assert.AreEqual($"Configuration '{configuration1.Name}' has a duplicate name.", configurationConfigurationError.ErrorMessage);
                 }
@@ -289,10 +287,10 @@
                 Name = $"{configurationId}_Configuration_2",
             };
 
-            var id1 = objectCreator.CreateConfiguration(configuration1);
-            var id2 = objectCreator.CreateConfiguration(configuration2);
+            objectCreator.CreateConfiguration(configuration1);
+            objectCreator.CreateConfiguration(configuration2);
 
-            var toUpdate = TestContext.Api.Configurations.Read(id2);
+            var toUpdate = TestContext.Api.Configurations.Read(configuration2.Id);
             toUpdate.Name = configuration1.Name;
 
             try
@@ -304,10 +302,10 @@
                 StringAssert.Contains(ex.Message, "Name is already in use.");
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var configurationConfigurationError = ex.TraceData.ErrorData.OfType<ConfigurationConfigurationError>().SingleOrDefault();
+                var configurationConfigurationError = ex.TraceData.ErrorData.OfType<ConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(configurationConfigurationError);
 
-                var configurationConfigurationNameExistsError = configurationConfigurationError as ConfigurationConfigurationNameExistsError;
+                var configurationConfigurationNameExistsError = configurationConfigurationError as ConfigurationNameExistsError;
                 Assert.IsNotNull(configurationConfigurationNameExistsError);
                 Assert.AreEqual("Name is already in use.", configurationConfigurationError.ErrorMessage);
 
@@ -332,7 +330,7 @@
 
             objectCreator.CreateConfiguration(configuration);
 
-            configuration = TestContext.Api.Configurations.Read(configurationId) as TextConfiguration;
+            configuration = TestContext.Api.Configurations.Read(configurationId) as Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration;
             Assert.IsNotNull(configuration);
             Assert.AreEqual(true, configuration.IsMandatory);
             Assert.AreEqual("DefaultText", configuration.DefaultValue);
@@ -353,7 +351,7 @@
 
             TestContext.Api.Configurations.Update(configuration);
 
-            configuration = TestContext.Api.Configurations.Read(configurationId) as TextConfiguration;
+            configuration = TestContext.Api.Configurations.Read(configurationId) as Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration;
             Assert.IsNotNull(configuration);
             Assert.AreEqual(true, configuration.IsMandatory);
             Assert.AreEqual("UpdatedDefaultText", configuration.DefaultValue);
@@ -381,10 +379,10 @@
                 StringAssert.Contains(ex.Message, "The default value of the text configuration exceeds 150 characters");
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var configurationConfigurationError = ex.TraceData.ErrorData.OfType<ConfigurationConfigurationError>().SingleOrDefault();
+                var configurationConfigurationError = ex.TraceData.ErrorData.OfType<ConfigurationError>().SingleOrDefault();
                 Assert.IsNotNull(configurationConfigurationError);
 
-                var configurationConfigurationInvalidDefaultValueError = configurationConfigurationError as ConfigurationConfigurationInvalidDefaultValueError;
+                var configurationConfigurationInvalidDefaultValueError = configurationConfigurationError as ConfigurationInvalidDefaultValueError;
                 Assert.IsNotNull(configurationConfigurationInvalidDefaultValueError);
                 Assert.AreEqual("The default value of the text configuration exceeds 150 characters", configurationConfigurationError.ErrorMessage);
 

@@ -3,14 +3,18 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Microsoft.Extensions.Logging;
+
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Net.Sections;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
+
     using SLDataGateway.API.Types.Querying;
+
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
     /// <summary>
@@ -115,11 +119,10 @@
         /// Creates a new resource pool in the repository.
         /// </summary>
         /// <param name="apiObject">The resource pool to create.</param>
-        /// <returns>The unique identifier of the created resource pool.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create an existing resource pool.</exception>
         /// <exception cref="MediaOpsException">Thrown when the creation operation fails.</exception>
-        public Guid Create(ResourcePool apiObject)
+        public void Create(ResourcePool apiObject)
         {
             PlanApi.Logger.LogInformation("Creating new ResourcePool...");
 
@@ -128,7 +131,7 @@
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
-            return ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Create), act =>
+            ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Create), act =>
             {
                 if (!apiObject.IsNew)
                 {
@@ -142,8 +145,6 @@
 
                 var resourcePoolId = result.SuccessfulIds.First();
                 act?.AddTag("ResourcePoolId", resourcePoolId);
-
-                return resourcePoolId;
             });
         }
 
@@ -151,11 +152,10 @@
         /// Creates multiple new resource pools in the repository.
         /// </summary>
         /// <param name="apiObjects">The collection of resource pools to create.</param>
-        /// <returns>A collection of unique identifiers for the created resource pools.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create existing resource pools.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk creation operation fails.</exception>
-        public IEnumerable<Guid> Create(IEnumerable<ResourcePool> apiObjects)
+        public void Create(IEnumerable<ResourcePool> apiObjects)
         {
             if (apiObjects == null)
             {
@@ -172,25 +172,22 @@
             {
                 throw new MediaOpsBulkException<Guid>(result);
             }
-
-            return result.SuccessfulIds;
         }
 
         /// <summary>
         /// Creates new resource pools or updates existing ones in the repository.
         /// </summary>
         /// <param name="apiObjects">The collection of resource pools to create or update.</param>
-        /// <returns>A collection of unique identifiers for the created or updated resource pools.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk operation fails.</exception>
-        public IEnumerable<Guid> CreateOrUpdate(IEnumerable<ResourcePool> apiObjects)
+        public void CreateOrUpdate(IEnumerable<ResourcePool> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
-            return ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(CreateOrUpdate), act =>
+            ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(CreateOrUpdate), act =>
             {
                 if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
                 {
@@ -200,8 +197,6 @@
                 var resourceIds = result.SuccessfulIds;
                 act?.AddTag("Created Resource Pools", String.Join(", ", resourceIds));
                 act?.AddTag("Created Resource Pools Count", resourceIds.Count);
-
-                return resourceIds;
             });
         }
 
@@ -233,7 +228,7 @@
                 throw new ArgumentNullException(nameof(apiObjectIds));
             }
 
-            var resourcePoolsToDelete = Read(apiObjectIds).Values;
+            var resourcePoolsToDelete = Read(apiObjectIds);
 
             if (!DomResourcePoolHandler.TryDelete(PlanApi, resourcePoolsToDelete, out var result))
             {
@@ -489,9 +484,9 @@
         /// Reads multiple resource pools by their unique identifiers.
         /// </summary>
         /// <param name="ids">A collection of unique identifiers.</param>
-        /// <returns>A dictionary mapping each identifier to its corresponding resource pool.</returns>
+        /// <returns>An enumerable collection of resource pools matching the specified identifiers.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="ids"/> is <c>null</c>.</exception>
-        public IDictionary<Guid, ResourcePool> Read(IEnumerable<Guid> ids)
+        public IEnumerable<ResourcePool> Read(IEnumerable<Guid> ids)
         {
             if (ids == null)
             {
@@ -504,12 +499,12 @@
 
                 if (!ids.Any())
                 {
-                    return new Dictionary<Guid, ResourcePool>();
+                    return Array.Empty<ResourcePool>();
                 }
 
-                var retrievedPools = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(ids).SafeToDictionary(x => x.ID.Id, x => new ResourcePool(x));
+                var retrievedPools = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(ids).Select(x => new ResourcePool(x));
 
-                act?.AddTag("RetrievedResourcePoolCount", retrievedPools.Count);
+                act?.AddTag("RetrievedResourcePoolCount", retrievedPools.Count());
                 return retrievedPools;
             });
         }
