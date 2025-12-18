@@ -439,7 +439,13 @@
 
                 if (!actionMethods.TryGetValue(desiredState, out var action))
                 {
-                    throw new MediaOpsException($"Move to state '{desiredState}' is not supported.");
+                    var error = new ResourcePoolInvalidStateError
+                    {
+                        ErrorMessage = $"Move to state '{desiredState}' is not supported.",
+                        Id = resourcePoolId,
+                    };
+
+                    throw new MediaOpsException(error);
                 }
 
                 action(resourcePoolId);
@@ -755,7 +761,13 @@
                 throw new ArgumentException("Resource pool ID cannot be empty.", nameof(resourcePoolId));
             }
 
-            var resourcePool = Read(resourcePoolId) ?? throw new MediaOpsException($"Resource pool with ID '{resourcePoolId}' does not exist.");
+            var resourcePool = Read(resourcePoolId)
+                ?? throw new MediaOpsException(
+                    new ResourcePoolNotFoundError()
+                    {
+                        ErrorMessage = $"Resource pool with ID '{resourcePoolId}' does not exist.",
+                        Id = resourcePoolId
+                    });
 
             if (!DomResourcePoolHandler.TryComplete(PlanApi, [resourcePool], out var result))
             {
@@ -776,7 +788,13 @@
                 throw new ArgumentException("Resource pool ID cannot be empty.", nameof(resourcePoolId));
             }
 
-            var resourcePool = Read(resourcePoolId) ?? throw new MediaOpsException($"Resource pool with ID '{resourcePoolId}' does not exist.");
+            var resourcePool = Read(resourcePoolId)
+                ?? throw new MediaOpsException(
+                    new ResourcePoolNotFoundError()
+                    {
+                        ErrorMessage = $"Resource pool with ID '{resourcePoolId}' does not exist.",
+                        Id = resourcePoolId
+                    });
 
             if (!DomResourcePoolHandler.TryDeprecate(PlanApi, [resourcePool], out var result))
             {

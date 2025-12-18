@@ -39,7 +39,13 @@
         {
             if (resource.State != ResourceState.Draft)
             {
-                throw new MediaOpsException($"Resource {resource.Name} is not in Draft state. Cannot convert to ElementResource.");
+                var error = new ResourceInvalidStateError()
+                {
+                    ErrorMessage = $"Resource {resource.Name} is not in Draft state. Cannot convert to ElementResource.",
+                    Id = resource.Id,
+                };
+
+                throw new MediaOpsException(error);
             }
 
             if (resource is ElementResource elementResource)
@@ -61,7 +67,13 @@
         /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
         public ElementResource ConvertToElementResource(Guid resourceId, ResourceElementLinkConfiguration configuration)
         {
-            var resource = Read(resourceId) ?? throw new MediaOpsException($"Unable to find resource with ID {resourceId}");
+            var resource = Read(resourceId)
+                ?? throw new MediaOpsException(
+                    new ResourceNotFoundError()
+                    {
+                        ErrorMessage = $"Unable to find resource with ID {resourceId}",
+                        Id = resourceId,
+                    });
 
             return ConvertToElementResource(resource, configuration);
         }
@@ -77,7 +89,13 @@
         {
             if (resource.State != ResourceState.Draft)
             {
-                throw new MediaOpsException($"Resource {resource.Name} is not in Draft state. Cannot convert to ElementResource.");
+                var error = new ResourceInvalidStateError()
+                {
+                    ErrorMessage = $"Resource {resource.Name} is not in Draft state. Cannot convert to ServiceResource.",
+                    Id = resource.Id,
+                };
+
+                throw new MediaOpsException(error);
             }
 
             if (resource is ServiceResource serviceResource)
@@ -99,7 +117,13 @@
         /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
         public ServiceResource ConvertToServiceResource(Guid resourceId, ResourceServiceLinkConfiguration configuration)
         {
-            var resource = Read(resourceId) ?? throw new MediaOpsException($"Unable to find resource with ID {resourceId}");
+            var resource = Read(resourceId)
+                ?? throw new MediaOpsException(
+                    new ResourceNotFoundError()
+                    {
+                        ErrorMessage = $"Unable to find resource with ID {resourceId}",
+                        Id = resourceId
+                    });
 
             return ConvertToServiceResource(resource, configuration);
         }
@@ -114,7 +138,13 @@
         {
             if (resource.State != ResourceState.Draft)
             {
-                throw new MediaOpsException($"Resource {resource.Name} is not in Draft state. Cannot convert to ElementResource.");
+                var error = new ResourceInvalidStateError()
+                {
+                    ErrorMessage = $"Resource {resource.Name} is not in Draft state. Cannot convert to UnmanagedResource.",
+                    Id = resource.Id,
+                };
+
+                throw new MediaOpsException(error);
             }
 
             if (resource is UnmanagedResource unmanagedResource)
@@ -135,7 +165,13 @@
         /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
         public UnmanagedResource ConvertToUnmanagedResource(Guid resourceId)
         {
-            var resource = Read(resourceId) ?? throw new MediaOpsException($"Unable to find resource with ID {resourceId}");
+            var resource = Read(resourceId)
+                ?? throw new MediaOpsException(
+                    new ResourceNotFoundError()
+                    {
+                        ErrorMessage = $"Unable to find resource with ID {resourceId}",
+                        Id = resourceId,
+                    });
 
             return ConvertToUnmanagedResource(resource);
         }
@@ -151,7 +187,13 @@
         {
             if (resource.State != ResourceState.Draft)
             {
-                throw new MediaOpsException($"Resource {resource.Name} is not in Draft state. Cannot convert to ElementResource.");
+                var error = new ResourceInvalidStateError()
+                {
+                    ErrorMessage = $"Resource {resource.Name} is not in Draft state. Cannot convert to VirtualFunctionResource.",
+                    Id = resource.Id,
+                };
+
+                throw new MediaOpsException(error);
             }
 
             if (resource is VirtualFunctionResource virtualFunctionResource)
@@ -173,7 +215,13 @@
         /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
         public VirtualFunctionResource ConvertToVirtualFunctionResource(Guid resourceId, ResourceVirtualFunctionLinkConfiguration configuration)
         {
-            var resource = Read(resourceId) ?? throw new MediaOpsException($"Unable to find resource with ID {resourceId}");
+            var resource = Read(resourceId)
+                ?? throw new MediaOpsException(
+                    new ResourceNotFoundError()
+                    {
+                        ErrorMessage = $"Unable to find resource with ID {resourceId}",
+                        Id = resourceId
+                    });
 
             return ConvertToVirtualFunctionResource(resource, configuration);
         }
@@ -519,7 +567,12 @@
             var resource = Read(resourceId);
             if (resource == null)
             {
-                throw new MediaOpsException($"Unable to find resource with ID {resourceId}");
+                throw new MediaOpsException(
+                    new ResourceNotFoundError()
+                    {
+                        ErrorMessage = $"Unable to find resource with ID {resourceId}",
+                        Id = resourceId
+                    });
             }
 
             ActivityHelper.Track(nameof(ResourcesRepository), nameof(MoveTo), act =>
@@ -535,7 +588,13 @@
 
                 if (!actionMethods.TryGetValue(desiredState, out var action))
                 {
-                    throw new MediaOpsException($"Move to state '{desiredState}' is not supported.");
+                    var error = new ResourceInvalidStateError()
+                    {
+                        ErrorMessage = $"Move to state '{desiredState}' is not supported.",
+                        Id = resource.Id,
+                    };
+
+                    throw new MediaOpsException(error);
                 }
 
                 action(resource);
@@ -951,7 +1010,7 @@
                 var newResources = apiObjects.Where(x => x.IsNew);
                 if (newResources.Any())
                 {
-                    throw new MediaOpsException("Not possible to use method Update for new resources. Use Create or CreateOrUpdate instead.");
+                    throw new InvalidOperationException("Not possible to use method Update for new resources. Use Create or CreateOrUpdate instead.");
                 }
 
                 if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
@@ -979,7 +1038,13 @@
 
             if (resource.State != ResourceState.Draft)
             {
-                throw new MediaOpsException("A resource can only be completed from Draft State");
+                var error = new ResourceInvalidStateError()
+                {
+                    ErrorMessage = "A resource can only be completed from Draft State.",
+                    Id = resource.Id,
+                };
+
+                throw new MediaOpsException(error);
             }
 
             ActivityHelper.Track(nameof(DomResourceHandler), nameof(DomResourceHandler.TransitionToComplete), act =>
@@ -1006,7 +1071,13 @@
 
             if (resource.State != ResourceState.Complete)
             {
-                throw new MediaOpsException("A resource can only be deprecated from Complete State");
+                var error = new ResourceInvalidStateError()
+                {
+                    ErrorMessage = "A resource can only be deprecated from Complete State.",
+                    Id = resource.Id,
+                };
+
+                throw new MediaOpsException(error);
             }
 
             ActivityHelper.Track(nameof(ResourcesRepository), nameof(HandleMoveToDeprecatedAction), act =>
