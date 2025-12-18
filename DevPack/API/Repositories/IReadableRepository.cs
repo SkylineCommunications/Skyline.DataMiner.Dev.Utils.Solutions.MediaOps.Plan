@@ -28,8 +28,8 @@
         /// Reads multiple API objects by their unique identifiers.
         /// </summary>
         /// <param name="ids">A collection of unique identifiers.</param>
-        /// <returns>A dictionary mapping each identifier to its corresponding API object.</returns>
-        IDictionary<Guid, T> Read(IEnumerable<Guid> ids);
+        /// <returns>An enumerable collection of API objects matching the specified identifiers.</returns>
+        IEnumerable<T> Read(IEnumerable<Guid> ids);
 
         /// <summary>
         /// Reads API objects that match the specified filter.

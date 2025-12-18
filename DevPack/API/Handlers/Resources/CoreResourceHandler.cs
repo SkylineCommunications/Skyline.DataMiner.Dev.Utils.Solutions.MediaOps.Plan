@@ -112,7 +112,7 @@
             return !result.HasFailures();
         }
 
-        public static bool TryValidateVirtualFunctionConfiguration(MediaOpsPlanApi planApi, ResourceVirtualFunctionLinkConfiguration configuration, out ResourceConfigurationError error)
+        public static bool TryValidateVirtualFunctionConfiguration(MediaOpsPlanApi planApi, ResourceVirtualFunctionLinkConfiguration configuration, out ResourceError error)
         {
             error = null;
 
@@ -125,7 +125,7 @@
             var elementId = new DmsElementId(configuration.AgentId, configuration.ElementId);
             if (!handler.TryValidateElementLink(elementId, out string invalidElementInfoReason))
             {
-                error = new ResourceConfigurationInvalidElementLinkError
+                error = new ResourceInvalidElementLinkError
                 {
                     ErrorMessage = invalidElementInfoReason,
                     AgentId = configuration.AgentId,
@@ -137,7 +137,7 @@
 
             if (!handler.TryValidateVirtualFunctionResourceFunctionDefinition(configuration.FunctionId, out string invalidFunctionDefinitionReason))
             {
-                error = new ResourceConfigurationInvalidFunctionLinkError
+                error = new ResourceInvalidFunctionLinkError
                 {
                     ErrorMessage = invalidFunctionDefinitionReason,
                     FunctionId = configuration.FunctionId,
@@ -148,7 +148,7 @@
 
             if (!handler.TryValidateVirtualFunctionResourceTableIndex(configuration.FunctionId, elementId, configuration.FunctionTableIndex, out string invalidTableIndexReason))
             {
-                error = new ResourceConfigurationInvalidTableIndexLinkError
+                error = new ResourceInvalidTableIndexLinkError
                 {
                     ErrorMessage = invalidTableIndexReason,
                     AgentId = configuration.AgentId,
@@ -163,7 +163,7 @@
             return true;
         }
 
-        public static bool TryValidateServiceConfiguration(MediaOpsPlanApi planApi, ResourceServiceLinkConfiguration configuration, out ResourceConfigurationError error)
+        public static bool TryValidateServiceConfiguration(MediaOpsPlanApi planApi, ResourceServiceLinkConfiguration configuration, out ResourceError error)
         {
             error = null;
 
@@ -176,7 +176,7 @@
             var serviceId = new DmsServiceId(configuration.AgentId, configuration.ServiceId);
             if (!handler.TryValidateServiceResourceServiceLink(serviceId, out var reason))
             {
-                error = new ResourceConfigurationInvalidServiceLinkError
+                error = new ResourceInvalidServiceLinkError
                 {
                     ErrorMessage = reason,
                     AgentId = configuration.AgentId,
@@ -189,7 +189,7 @@
             return true;
         }
 
-        public static bool TryValidateElementConfiguration(MediaOpsPlanApi planApi, ResourceElementLinkConfiguration configuration, out ResourceConfigurationError error)
+        public static bool TryValidateElementConfiguration(MediaOpsPlanApi planApi, ResourceElementLinkConfiguration configuration, out ResourceError error)
         {
             error = null;
 
@@ -202,7 +202,7 @@
             var elementId = new DmsElementId(configuration.AgentId, configuration.ElementId);
             if (!handler.TryValidateElementLink(elementId, out var reason))
             {
-                error = new ResourceConfigurationInvalidElementLinkError
+                error = new ResourceInvalidElementLinkError
                 {
                     ErrorMessage = reason,
                     AgentId = configuration.AgentId,
@@ -647,6 +647,7 @@
             else if (!resourceTypeCapability.Value.Equals(capabilityValue))
             {
                 resourceTypeCapability.Value = capabilityValue;
+
                 updateRequired = true;
             }
 
@@ -674,7 +675,7 @@
 
             foreach (var resource in resourcesWithDuplicateNames)
             {
-                var error = new ResourceConfigurationDuplicateNameError
+                var error = new ResourceDuplicateNameError
                 {
                     ErrorMessage = $"Resource '{resource.ResourceInfo.Name}' has a duplicate name.",
                     Id = resource.ID.Id,
@@ -706,7 +707,7 @@
 
                 planApi.Logger.LogInformation($"Name '{resource.ResourceInfo.Name}' is already in use by CORE resource(s) with ID(s): {string.Join(" ,", existingResources.Select(x => x.ID))}");
 
-                var error = new ResourceConfigurationNameExistsError
+                var error = new ResourceNameExistsError
                 {
                     ErrorMessage = "Name is already in use.",
                     Id = resource.ID.Id,
@@ -729,7 +730,7 @@
                 var elementId = new DmsElementId(domResource.ResourceInternalProperties.Metadata.LinkedElementInfo);
                 if (!TryValidateElementLink(elementId, out string reason))
                 {
-                    var error = new ResourceConfigurationInvalidElementLinkError
+                    var error = new ResourceInvalidElementLinkError
                     {
                         ErrorMessage = reason,
                         Id = domResource.ID.Id,
@@ -774,7 +775,7 @@
                 var serviceId = new DmsServiceId(domResource.ResourceInternalProperties.Metadata.LinkedServiceInfo);
                 if (!TryValidateServiceResourceServiceLink(serviceId, out string reason))
                 {
-                    var error = new ResourceConfigurationInvalidServiceLinkError
+                    var error = new ResourceInvalidServiceLinkError
                     {
                         ErrorMessage = reason,
                         Id = domResource.ID.Id,
@@ -822,7 +823,7 @@
                 var elementId = new DmsElementId(domResource.ResourceInternalProperties.Metadata.LinkedElementInfo);
                 if (!TryValidateElementLink(elementId, out string invalidElementInfoReason))
                 {
-                    var error = new ResourceConfigurationInvalidElementLinkError
+                    var error = new ResourceInvalidElementLinkError
                     {
                         ErrorMessage = invalidElementInfoReason,
                         Id = domResource.ID.Id,
@@ -846,7 +847,7 @@
 
             foreach (var kvp in domResourcesByFunctionId.Where(x => !functionDefinitionsById.ContainsKey(x.Key)).ToList())
             {
-                var error = new ResourceConfigurationInvalidFunctionLinkError
+                var error = new ResourceInvalidFunctionLinkError
                 {
                     ErrorMessage = $"No function found with ID '{kvp.Key}'.",
                     FunctionId = kvp.Key,
@@ -882,7 +883,7 @@
                 {
                     var elementId = new DmsElementId(resource.ResourceInternalProperties.Metadata.LinkedElementInfo);
 
-                    var error = new ResourceConfigurationDuplicateTableIndexLinkError
+                    var error = new ResourceDuplicateTableIndexLinkError
                     {
                         ErrorMessage = $"Resource '{resource.ResourceInfo.Name}' has a duplicate table index '{resource.ResourceInternalProperties.Metadata.LinkedFunctionTableIndex}'.",
                         Id = resource.ID.Id,
@@ -903,7 +904,7 @@
                 {
                     var elementId = new DmsElementId(resource.ResourceInternalProperties.Metadata.LinkedElementInfo);
 
-                    var error = new ResourceConfigurationInvalidTableIndexLinkError
+                    var error = new ResourceInvalidTableIndexLinkError
                     {
                         ErrorMessage = $"Resource '{resource.ResourceInfo.Name}' has an invalid table index '{resource.ResourceInternalProperties.Metadata.LinkedFunctionTableIndex}'.",
                         Id = resource.ID.Id,
@@ -1220,7 +1221,7 @@
             var cachedDomPoolsById = domResource.GetFromCache<DomResourcePool>().ToDictionary(x => x.ID.Id);
 
             var missingPoolIds = poolIds.Where(x => !cachedDomPoolsById.ContainsKey(x));
-            var domPools = planApi.ResourcePools.Read(missingPoolIds).Values.Select(x => x.OriginalInstance).ToList();
+            var domPools = planApi.ResourcePools.Read(missingPoolIds).Select(x => x.OriginalInstance).ToList();
             domPools.AddRange(cachedDomPoolsById.Values);
 
             var corePoolIds = domPools.Select(x => x.ResourcePoolInternalProperties.ResourcePoolId).Where(x => x != Guid.Empty).ToList();

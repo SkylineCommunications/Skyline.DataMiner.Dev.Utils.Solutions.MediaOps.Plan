@@ -40,19 +40,19 @@
                 Name = $"{prefix}_Capability 1",
             };
             capability1.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
-            var capabilityId1 = objectCreator.CreateCapability(capability1);
+            objectCreator.CreateCapability(capability1);
 
             var capability2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capability()
             {
                 Name = $"{prefix}_Capability 2",
             };
             capability2.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
-            var capabilityId2 = objectCreator.CreateCapability(capability2);
+            objectCreator.CreateCapability(capability2);
 
-            var capabilitySettings1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(capabilityId1);
+            var capabilitySettings1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(capability1.Id);
             capabilitySettings1.SetDiscretes(new[] { "Value 1", "Value 2" });
 
-            var capabilitySettings2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(capabilityId2);
+            var capabilitySettings2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(capability2.Id);
             capabilitySettings2.SetDiscretes(new[] { "Value 2", "Value 3" });
 
             // Create Resource Pool with one capability assigned
@@ -61,12 +61,12 @@
                 Name = $"{prefix}_Resource Pool",
             };
             resourcePool.AddCapability(capabilitySettings1);
-            var poolId = objectCreator.CreateResourcePool(resourcePool);
+            objectCreator.CreateResourcePool(resourcePool);
 
-            resourcePool = TestContext.Api.ResourcePools.Read(poolId);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
             Assert.AreEqual(1, resourcePool.Capabilities.Count);
             var resourceCapbility = resourcePool.Capabilities.Single();
-            Assert.AreEqual(capabilityId1, resourceCapbility.Id);
+            Assert.AreEqual(capability1.Id, resourceCapbility.Id);
             Assert.AreEqual(2, resourceCapbility.Discretes.Count);
             Assert.IsTrue(resourceCapbility.Discretes.Contains("Value 1"));
             Assert.IsTrue(resourceCapbility.Discretes.Contains("Value 2"));
@@ -76,10 +76,10 @@
             capabilitySettings1.RemoveDiscrete("Value 1");
             TestContext.Api.ResourcePools.Update(resourcePool);
 
-            resourcePool = TestContext.Api.ResourcePools.Read(poolId);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
             Assert.AreEqual(1, resourcePool.Capabilities.Count);
             resourceCapbility = resourcePool.Capabilities.Single();
-            Assert.AreEqual(capabilityId1, resourceCapbility.Id);
+            Assert.AreEqual(capability1.Id, resourceCapbility.Id);
             Assert.AreEqual(1, resourceCapbility.Discretes.Count);
             Assert.IsTrue(resourceCapbility.Discretes.Contains("Value 2"));
 
@@ -87,12 +87,12 @@
             resourcePool.AddCapability(capabilitySettings2);
             TestContext.Api.ResourcePools.Update(resourcePool);
 
-            resourcePool = TestContext.Api.ResourcePools.Read(poolId);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
             Assert.AreEqual(2, resourcePool.Capabilities.Count);
             var expectedCapabilityData = new Dictionary<Guid, List<string>>()
             {
-                { capabilityId1, new List<string> { "Value 2" } },
-                { capabilityId2, new List<string> { "Value 2", "Value 3" } },
+                { capability1.Id, new List<string> { "Value 2" } },
+                { capability2.Id, new List<string> { "Value 2", "Value 3" } },
             };
             foreach (var capability in resourcePool.Capabilities)
             {
@@ -107,14 +107,14 @@
             }
 
             // Update Resource Pool to remove first capability
-            var capabilitySettingToRemove = resourcePool.Capabilities.First(c => c.Id == capabilityId1);
+            var capabilitySettingToRemove = resourcePool.Capabilities.First(c => c.Id == capability1.Id);
             resourcePool.RemoveCapability(capabilitySettingToRemove);
             TestContext.Api.ResourcePools.Update(resourcePool);
 
-            resourcePool = TestContext.Api.ResourcePools.Read(poolId);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
             Assert.AreEqual(1, resourcePool.Capabilities.Count);
             resourceCapbility = resourcePool.Capabilities.Single();
-            Assert.AreEqual(capabilityId2, resourceCapbility.Id);
+            Assert.AreEqual(capability2.Id, resourceCapbility.Id);
             Assert.AreEqual(2, resourceCapbility.Discretes.Count);
             Assert.IsTrue(resourceCapbility.Discretes.Contains("Value 2"));
             Assert.IsTrue(resourceCapbility.Discretes.Contains("Value 3"));
@@ -130,19 +130,19 @@
                 Name = $"{prefix}_Capability 1",
             };
             capability1.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
-            var capabilityId1 = objectCreator.CreateCapability(capability1);
+            objectCreator.CreateCapability(capability1);
 
             var capability2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capability()
             {
                 Name = $"{prefix}_Capability 2",
             };
             capability2.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
-            var capabilityId2 = objectCreator.CreateCapability(capability2);
+            objectCreator.CreateCapability(capability2);
 
-            var capabilitySettings1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(capabilityId1);
+            var capabilitySettings1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(capability1.Id);
             capabilitySettings1.SetDiscretes(new[] { "Value 1", "Value 2" });
 
-            var capabilitySettings2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(capabilityId2);
+            var capabilitySettings2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(capability2.Id);
             capabilitySettings2.SetDiscretes(new[] { "Value 2", "Value 3" });
 
             // Create Resource Pool with one capability assigned
@@ -151,15 +151,15 @@
                 Name = $"{prefix}_Resource Pool",
             };
             resourcePool.AddCapability(capabilitySettings1);
-            var poolId = objectCreator.CreateResourcePool(resourcePool);
+            objectCreator.CreateResourcePool(resourcePool);
 
             // Move Resource Pool to Completed state
-            TestContext.Api.ResourcePools.MoveTo(poolId, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
+            TestContext.Api.ResourcePools.MoveTo(resourcePool.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
 
-            resourcePool = TestContext.Api.ResourcePools.Read(poolId);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
             Assert.AreEqual(1, resourcePool.Capabilities.Count);
             var resourceCapbility = resourcePool.Capabilities.Single();
-            Assert.AreEqual(capabilityId1, resourceCapbility.Id);
+            Assert.AreEqual(capability1.Id, resourceCapbility.Id);
             Assert.AreEqual(2, resourceCapbility.Discretes.Count);
             Assert.IsTrue(resourceCapbility.Discretes.Contains("Value 1"));
             Assert.IsTrue(resourceCapbility.Discretes.Contains("Value 2"));
@@ -169,10 +169,10 @@
             capabilitySettings1.RemoveDiscrete("Value 1");
             TestContext.Api.ResourcePools.Update(resourcePool);
 
-            resourcePool = TestContext.Api.ResourcePools.Read(poolId);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
             Assert.AreEqual(1, resourcePool.Capabilities.Count);
             resourceCapbility = resourcePool.Capabilities.Single();
-            Assert.AreEqual(capabilityId1, resourceCapbility.Id);
+            Assert.AreEqual(capability1.Id, resourceCapbility.Id);
             Assert.AreEqual(1, resourceCapbility.Discretes.Count);
             Assert.IsTrue(resourceCapbility.Discretes.Contains("Value 2"));
 
@@ -180,12 +180,12 @@
             resourcePool.AddCapability(capabilitySettings2);
             TestContext.Api.ResourcePools.Update(resourcePool);
 
-            resourcePool = TestContext.Api.ResourcePools.Read(poolId);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
             Assert.AreEqual(2, resourcePool.Capabilities.Count);
             var expectedCapabilityData = new Dictionary<Guid, List<string>>()
             {
-                { capabilityId1, new List<string> { "Value 2" } },
-                { capabilityId2, new List<string> { "Value 2", "Value 3" } },
+                { capability1.Id, new List<string> { "Value 2" } },
+                { capability2.Id, new List<string> { "Value 2", "Value 3" } },
             };
             foreach (var capability in resourcePool.Capabilities)
             {
@@ -200,14 +200,14 @@
             }
 
             // Update Resource Pool to remove first capability
-            var capabilitySettingToRemove = resourcePool.Capabilities.First(c => c.Id == capabilityId1);
+            var capabilitySettingToRemove = resourcePool.Capabilities.First(c => c.Id == capability1.Id);
             resourcePool.RemoveCapability(capabilitySettingToRemove);
             TestContext.Api.ResourcePools.Update(resourcePool);
 
-            resourcePool = TestContext.Api.ResourcePools.Read(poolId);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
             Assert.AreEqual(1, resourcePool.Capabilities.Count);
             resourceCapbility = resourcePool.Capabilities.Single();
-            Assert.AreEqual(capabilityId2, resourceCapbility.Id);
+            Assert.AreEqual(capability2.Id, resourceCapbility.Id);
             Assert.AreEqual(2, resourceCapbility.Discretes.Count);
             Assert.IsTrue(resourceCapbility.Discretes.Contains("Value 2"));
             Assert.IsTrue(resourceCapbility.Discretes.Contains("Value 3"));
@@ -223,9 +223,9 @@
                 Name = $"{prefix}_Capability",
             };
             capability.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
-            var capabilityId = objectCreator.CreateCapability(capability);
+            objectCreator.CreateCapability(capability);
 
-            var capabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(capabilityId);
+            var capabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(capability.Id);
             capabilitySettings.SetDiscretes(new[] { "Value 2", "Value 3" });
 
             var unmanagedResource1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
@@ -240,7 +240,7 @@
             {
                 Name = $"{prefix}_Resource3",
             };
-            var resourceIds = objectCreator.CreateResources([unmanagedResource1, unmanagedResource2, unmanagedResource3]).ToArray();
+            objectCreator.CreateResources([unmanagedResource1, unmanagedResource2, unmanagedResource3]);
             TestContext.Api.Resources.MoveTo(unmanagedResource1.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
             TestContext.Api.Resources.MoveTo(unmanagedResource3.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
 
@@ -248,13 +248,13 @@
             {
                 Name = $"{prefix}_Resource Pool",
             };
-            var poolId = objectCreator.CreateResourcePool(resourcePool);
+            objectCreator.CreateResourcePool(resourcePool);
 
-            var resources = TestContext.Api.Resources.Read(resourceIds).Values;
-            TestContext.Api.ResourcePools.AssignResourcesToPool(poolId, resources);
+            var resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]);
+            TestContext.Api.ResourcePools.AssignResourcesToPool(resourcePool.Id, resources);
 
             // Assign capability to pool
-            resourcePool = TestContext.Api.ResourcePools.Read(poolId);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
             resourcePool.AddCapability(capabilitySettings);
             TestContext.Api.ResourcePools.Update(resourcePool);
 
@@ -269,7 +269,7 @@
             {
                 Assert.AreNotEqual(Guid.Empty, resource.CoreResourceId);
                 var coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
-                var resourceCapability = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == capabilityId);
+                var resourceCapability = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == capability.Id);
                 Assert.IsNull(resourceCapability);
             }
         }
@@ -284,9 +284,9 @@
                 Name = $"{prefix}_Capability",
             };
             capability.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
-            var capabilityId = objectCreator.CreateCapability(capability);
+            objectCreator.CreateCapability(capability);
 
-            var capabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(capabilityId);
+            var capabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(capability.Id);
             capabilitySettings.SetDiscretes(new[] { "Value 2", "Value 3" });
 
             var unmanagedResource1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
@@ -301,7 +301,7 @@
             {
                 Name = $"{prefix}_Resource3",
             };
-            var resourceIds = objectCreator.CreateResources([unmanagedResource1, unmanagedResource2, unmanagedResource3]).ToArray();
+            objectCreator.CreateResources([unmanagedResource1, unmanagedResource2, unmanagedResource3]);
             TestContext.Api.Resources.MoveTo(unmanagedResource1.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
             TestContext.Api.Resources.MoveTo(unmanagedResource3.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
 
@@ -309,14 +309,14 @@
             {
                 Name = $"{prefix}_Resource Pool",
             };
-            var poolId = objectCreator.CreateResourcePool(resourcePool);
-            TestContext.Api.ResourcePools.MoveTo(poolId, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
+            objectCreator.CreateResourcePool(resourcePool);
+            TestContext.Api.ResourcePools.MoveTo(resourcePool.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
 
-            var resources = TestContext.Api.Resources.Read(resourceIds).Values;
-            TestContext.Api.ResourcePools.AssignResourcesToPool(poolId, resources);
+            var resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).ToList();
+            TestContext.Api.ResourcePools.AssignResourcesToPool(resourcePool.Id, resources);
 
             // Assign capability to pool
-            resourcePool = TestContext.Api.ResourcePools.Read(poolId);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
             resourcePool.AddCapability(capabilitySettings);
             TestContext.Api.ResourcePools.Update(resourcePool);
 
@@ -335,7 +335,7 @@
                 // Expected capabilities + 1 > RST_ResourceType
                 Assert.AreEqual(2, coreResource.Capabilities.Count);
 
-                var resourceCapability = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == capabilityId);
+                var resourceCapability = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == capability.Id);
                 Assert.IsNotNull(resourceCapability);
                 Assert.AreEqual(2, resourceCapability.Value.Discreets.Count);
                 Assert.IsTrue(resourceCapability.Value.Discreets.Contains("Value 2"));
@@ -343,7 +343,7 @@
             }
 
             // Update pool capability discretes
-            resourcePool = TestContext.Api.ResourcePools.Read(poolId);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
             capabilitySettings = resourcePool.Capabilities.First(x => x.Id == capability.Id);
             capabilitySettings.RemoveDiscrete("Value 3");
             TestContext.Api.ResourcePools.Update(resourcePool);
@@ -356,14 +356,14 @@
                 // Expected capabilities + 1 > RST_ResourceType
                 Assert.AreEqual(2, coreResource.Capabilities.Count);
 
-                var resourceCapability = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == capabilityId);
+                var resourceCapability = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == capability.Id);
                 Assert.IsNotNull(resourceCapability);
                 Assert.AreEqual(1, resourceCapability.Value.Discreets.Count);
                 Assert.IsTrue(resourceCapability.Value.Discreets.Contains("Value 2"));
             }
 
             // Remove capability from pool
-            resourcePool = TestContext.Api.ResourcePools.Read(poolId);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
             capabilitySettings = resourcePool.Capabilities.First(x => x.Id == capability.Id);
             resourcePool.RemoveCapability(capabilitySettings);
             TestContext.Api.ResourcePools.Update(resourcePool);
@@ -376,7 +376,7 @@
                 // Expected capabilities + 1 > RST_ResourceType
                 Assert.AreEqual(1, coreResource.Capabilities.Count);
 
-                var resourceCapability = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == capabilityId);
+                var resourceCapability = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == capability.Id);
                 Assert.IsNull(resourceCapability);
             }
         }
@@ -391,9 +391,9 @@
                 Name = $"{prefix}_Capability",
             };
             capability.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
-            var capabilityId = objectCreator.CreateCapability(capability);
+            objectCreator.CreateCapability(capability);
 
-            var capabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(capabilityId);
+            var capabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(capability.Id);
             capabilitySettings.SetDiscretes(new[] { "Value 2", "Value 3" });
 
             var unmanagedResource1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
@@ -408,7 +408,7 @@
             {
                 Name = $"{prefix}_Resource3",
             };
-            var resourceIds = objectCreator.CreateResources([unmanagedResource1, unmanagedResource2, unmanagedResource3]).ToArray();
+            objectCreator.CreateResources([unmanagedResource1, unmanagedResource2, unmanagedResource3]);
             TestContext.Api.Resources.MoveTo(unmanagedResource1.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
             TestContext.Api.Resources.MoveTo(unmanagedResource3.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
 
@@ -416,24 +416,24 @@
             {
                 Name = $"{prefix}_Resource Pool",
             };
-            var poolId = objectCreator.CreateResourcePool(resourcePool);
+            objectCreator.CreateResourcePool(resourcePool);
 
-            var resources = TestContext.Api.Resources.Read(resourceIds).Values;
-            TestContext.Api.ResourcePools.AssignResourcesToPool(poolId, resources);
+            var resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).ToList();
+            TestContext.Api.ResourcePools.AssignResourcesToPool(resourcePool.Id, resources);
 
-            resourcePool = TestContext.Api.ResourcePools.Read(poolId);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
             Assert.AreEqual(Guid.Empty, resourcePool.CoreResourcePoolId);
 
             resourcePool.AddCapability(capabilitySettings);
             TestContext.Api.ResourcePools.Update(resourcePool);
 
-            TestContext.Api.ResourcePools.MoveTo(poolId, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
+            TestContext.Api.ResourcePools.MoveTo(resourcePool.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
 
             var resource1 = resources.Single(r => r.Id == unmanagedResource1.Id);
             var resource2 = resources.Single(r => r.Id == unmanagedResource2.Id);
             var resource3 = resources.Single(r => r.Id == unmanagedResource3.Id);
 
-            resourcePool = TestContext.Api.ResourcePools.Read(poolId);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
             Assert.AreNotEqual(Guid.Empty, resourcePool.CoreResourcePoolId);
             Assert.AreEqual(Guid.Empty, resource2.CoreResourceId);
 
@@ -445,7 +445,7 @@
                 // Expected capabilities + 1 > RST_ResourceType
                 Assert.AreEqual(2, coreResource.Capabilities.Count);
 
-                var resourceCapability = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == capabilityId);
+                var resourceCapability = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == capability.Id);
                 Assert.IsNotNull(resourceCapability);
                 Assert.AreEqual(2, resourceCapability.Value.Discreets.Count);
                 Assert.IsTrue(resourceCapability.Value.Discreets.Contains("Value 2"));
@@ -463,9 +463,9 @@
                 Name = $"{prefix}_Capability",
             };
             capability.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
-            var capabilityId = objectCreator.CreateCapability(capability);
+            objectCreator.CreateCapability(capability);
 
-            var capabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(capabilityId);
+            var capabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(capability.Id);
             capabilitySettings.SetDiscretes(new[] { "Value 2", "Value 3" });
 
             var unmanagedResource1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
@@ -480,19 +480,19 @@
             {
                 Name = $"{prefix}_Resource3",
             };
-            var resourceIds = objectCreator.CreateResources([unmanagedResource1, unmanagedResource2, unmanagedResource3]).ToArray();
+            objectCreator.CreateResources([unmanagedResource1, unmanagedResource2, unmanagedResource3]);
 
             var resourcePool = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
             {
                 Name = $"{prefix}_Resource Pool",
             };
-            var poolId = objectCreator.CreateResourcePool(resourcePool);
-            TestContext.Api.ResourcePools.MoveTo(poolId, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
+            objectCreator.CreateResourcePool(resourcePool);
+            TestContext.Api.ResourcePools.MoveTo(resourcePool.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
 
-            var resources = TestContext.Api.Resources.Read(resourceIds).Values;
-            TestContext.Api.ResourcePools.AssignResourcesToPool(poolId, resources);
+            var resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).ToList();
+            TestContext.Api.ResourcePools.AssignResourcesToPool(resourcePool.Id, resources);
 
-            resourcePool = TestContext.Api.ResourcePools.Read(poolId);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
             Assert.AreNotEqual(Guid.Empty, resourcePool.CoreResourcePoolId);
 
             resourcePool.AddCapability(capabilitySettings);
@@ -501,7 +501,7 @@
             TestContext.Api.Resources.MoveTo(unmanagedResource1.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
             TestContext.Api.Resources.MoveTo(unmanagedResource3.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
 
-            resources = TestContext.Api.Resources.Read(resourceIds).Values;
+            resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).ToList();
             var resource1 = resources.Single(r => r.Id == unmanagedResource1.Id);
             var resource2 = resources.Single(r => r.Id == unmanagedResource2.Id);
             var resource3 = resources.Single(r => r.Id == unmanagedResource3.Id);
@@ -516,7 +516,7 @@
                 // Expected capabilities + 1 > RST_ResourceType
                 Assert.AreEqual(2, coreResource.Capabilities.Count);
 
-                var resourceCapability = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == capabilityId);
+                var resourceCapability = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == capability.Id);
                 Assert.IsNotNull(resourceCapability);
                 Assert.AreEqual(2, resourceCapability.Value.Discreets.Count);
                 Assert.IsTrue(resourceCapability.Value.Discreets.Contains("Value 2"));
@@ -535,7 +535,7 @@
                 IsTimeDependent = true,
             };
             timeCapability1.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
-            var timeCapabilityId1 = objectCreator.CreateCapability(timeCapability1);
+            objectCreator.CreateCapability(timeCapability1);
 
             var timeCapability2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capability()
             {
@@ -543,22 +543,22 @@
                 IsTimeDependent = true,
             };
             timeCapability2.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
-            var timeCapabilityId2 = objectCreator.CreateCapability(timeCapability2);
+            objectCreator.CreateCapability(timeCapability2);
 
             var regularCapability = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capability()
             {
                 Name = $"{prefix}_Capability"
             };
             regularCapability.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
-            var regularCapabilityId = objectCreator.CreateCapability(regularCapability);
+            objectCreator.CreateCapability(regularCapability);
 
-            var timeCapabilitySettings1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(timeCapabilityId1);
+            var timeCapabilitySettings1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(timeCapability1.Id);
             timeCapabilitySettings1.SetDiscretes(new[] { "Value 1", "Value 2" });
 
-            var timeCapabilitySettings2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(timeCapabilityId2);
+            var timeCapabilitySettings2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(timeCapability2.Id);
             timeCapabilitySettings2.SetDiscretes(new[] { "Value 2", "Value 3" });
 
-            var regularCapabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(regularCapabilityId);
+            var regularCapabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(regularCapability.Id);
             regularCapabilitySettings.SetDiscretes(new[] { "Value 1", "Value 3" });
 
             var unmanagedResource1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
@@ -573,7 +573,7 @@
             {
                 Name = $"{prefix}_Resource3",
             };
-            var resourceIds = objectCreator.CreateResources([unmanagedResource1, unmanagedResource2, unmanagedResource3]).ToArray();
+            objectCreator.CreateResources([unmanagedResource1, unmanagedResource2, unmanagedResource3]);
             TestContext.Api.Resources.MoveTo(unmanagedResource1.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
             TestContext.Api.Resources.MoveTo(unmanagedResource3.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
 
@@ -583,22 +583,22 @@
                 Name = $"{prefix}_Resource Pool",
             };
             resourcePool.AddCapability(timeCapabilitySettings1);
-            var poolId = objectCreator.CreateResourcePool(resourcePool);
+            objectCreator.CreateResourcePool(resourcePool);
 
             // Move Resource Pool to Completed state
-            TestContext.Api.ResourcePools.MoveTo(poolId, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
+            TestContext.Api.ResourcePools.MoveTo(resourcePool.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
 
-            var resources = TestContext.Api.Resources.Read(resourceIds).Values;
-            TestContext.Api.ResourcePools.AssignResourcesToPool(poolId, resources);
+            var resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).ToList();
+            TestContext.Api.ResourcePools.AssignResourcesToPool(resourcePool.Id, resources);
 
-            resourcePool = TestContext.Api.ResourcePools.Read(poolId);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
             Assert.AreEqual(1, resourcePool.Capabilities.Count);
 
             var resource1 = resources.Single(r => r.Id == unmanagedResource1.Id);
             var resource2 = resources.Single(r => r.Id == unmanagedResource2.Id);
             var resource3 = resources.Single(r => r.Id == unmanagedResource3.Id);
 
-            var capabilities = TestContext.Api.Capabilities.Read([timeCapabilityId1, timeCapabilityId2, regularCapabilityId]).Values;
+            var capabilities = TestContext.Api.Capabilities.Read([timeCapability1.Id, timeCapability2.Id, regularCapability.Id]);
             timeCapability1 = capabilities.Single(c => c.Id == timeCapability1.Id);
             timeCapability2 = capabilities.Single(c => c.Id == timeCapability2.Id);
             regularCapability = capabilities.Single(c => c.Id == regularCapability.Id);
@@ -614,7 +614,7 @@
                 // Expected capabilities + 1 > RST_ResourceType
                 Assert.AreEqual(3, coreResource.Capabilities.Count);
 
-                var resourceCapability = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapabilityId1);
+                var resourceCapability = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapability1.Id);
                 Assert.IsNotNull(resourceCapability);
                 Assert.AreEqual(2, resourceCapability.Value.Discreets.Count);
                 Assert.IsTrue(resourceCapability.Value.Discreets.Contains("Value 1"));
@@ -629,7 +629,7 @@
             resourcePool.AddCapability(timeCapabilitySettings2);
             TestContext.Api.ResourcePools.Update(resourcePool);
 
-            resourcePool = TestContext.Api.ResourcePools.Read(poolId);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
             Assert.AreEqual(2, resourcePool.Capabilities.Count);
 
             foreach (var resource in new[] { resource1, resource3 })
@@ -640,7 +640,7 @@
                 // Expected capabilities + 1 > RST_ResourceType
                 Assert.AreEqual(5, coreResource.Capabilities.Count);
 
-                var resourceCapability1 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapabilityId1);
+                var resourceCapability1 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapability1.Id);
                 Assert.IsNotNull(resourceCapability1);
                 Assert.AreEqual(2, resourceCapability1.Value.Discreets.Count);
                 Assert.IsTrue(resourceCapability1.Value.Discreets.Contains("Value 1"));
@@ -650,7 +650,7 @@
                 Assert.IsNotNull(resourceTimeDependentCapability1);
                 Assert.IsTrue(resourceTimeDependentCapability1.IsTimeDynamic);
 
-                var resourceCapability2 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapabilityId2);
+                var resourceCapability2 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapability2.Id);
                 Assert.IsNotNull(resourceCapability2);
                 Assert.AreEqual(2, resourceCapability2.Value.Discreets.Count);
                 Assert.IsTrue(resourceCapability2.Value.Discreets.Contains("Value 2"));
@@ -665,7 +665,7 @@
             resourcePool.AddCapability(regularCapabilitySettings);
             TestContext.Api.ResourcePools.Update(resourcePool);
 
-            resourcePool = TestContext.Api.ResourcePools.Read(poolId);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
             Assert.AreEqual(3, resourcePool.Capabilities.Count);
 
             foreach (var resource in new[] { resource1, resource3 })
@@ -676,7 +676,7 @@
                 // Expected capabilities + 1 > RST_ResourceType
                 Assert.AreEqual(6, coreResource.Capabilities.Count);
 
-                var resourceCapability1 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapabilityId1);
+                var resourceCapability1 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapability1.Id);
                 Assert.IsNotNull(resourceCapability1);
                 Assert.AreEqual(2, resourceCapability1.Value.Discreets.Count);
                 Assert.IsTrue(resourceCapability1.Value.Discreets.Contains("Value 1"));
@@ -686,7 +686,7 @@
                 Assert.IsNotNull(resourceTimeDependentCapability1);
                 Assert.IsTrue(resourceTimeDependentCapability1.IsTimeDynamic);
 
-                var resourceCapability2 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapabilityId2);
+                var resourceCapability2 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapability2.Id);
                 Assert.IsNotNull(resourceCapability2);
                 Assert.AreEqual(2, resourceCapability2.Value.Discreets.Count);
                 Assert.IsTrue(resourceCapability2.Value.Discreets.Contains("Value 2"));
@@ -696,7 +696,7 @@
                 Assert.IsNotNull(resourceTimeDependentCapability2);
                 Assert.IsTrue(resourceTimeDependentCapability2.IsTimeDynamic);
 
-                var resourceCapability3 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == regularCapabilityId);
+                var resourceCapability3 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == regularCapability.Id);
                 Assert.IsNotNull(resourceCapability3);
                 Assert.AreEqual(2, resourceCapability3.Value.Discreets.Count);
                 Assert.IsTrue(resourceCapability3.Value.Discreets.Contains("Value 1"));
@@ -708,7 +708,7 @@
             resourcePool.RemoveCapability(timeCapabilitySettings1);
             TestContext.Api.ResourcePools.Update(resourcePool);
 
-            resourcePool = TestContext.Api.ResourcePools.Read(poolId);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
             Assert.AreEqual(2, resourcePool.Capabilities.Count);
 
             foreach (var resource in new[] { resource1, resource3 })
@@ -719,7 +719,7 @@
                 // Expected capabilities + 1 > RST_ResourceType
                 Assert.AreEqual(4, coreResource.Capabilities.Count);
 
-                var resourceCapability2 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapabilityId2);
+                var resourceCapability2 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapability2.Id);
                 Assert.IsNotNull(resourceCapability2);
                 Assert.AreEqual(2, resourceCapability2.Value.Discreets.Count);
                 Assert.IsTrue(resourceCapability2.Value.Discreets.Contains("Value 2"));
@@ -729,7 +729,7 @@
                 Assert.IsNotNull(resourceTimeDependentCapability2);
                 Assert.IsTrue(resourceTimeDependentCapability2.IsTimeDynamic);
 
-                var resourceCapability3 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == regularCapabilityId);
+                var resourceCapability3 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == regularCapability.Id);
                 Assert.IsNotNull(resourceCapability3);
                 Assert.AreEqual(2, resourceCapability3.Value.Discreets.Count);
                 Assert.IsTrue(resourceCapability3.Value.Discreets.Contains("Value 1"));
@@ -747,9 +747,9 @@
                 Name = $"{prefix}_Capability 1",
             };
             capability1.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
-            var capabilityId1 = objectCreator.CreateCapability(capability1);
+            objectCreator.CreateCapability(capability1);
 
-            var capabilitySettings1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(capabilityId1);
+            var capabilitySettings1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(capability1.Id);
             capabilitySettings1.SetDiscretes(new[] { "Value 1", "Value 2" });
 
             var resourcePool = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
@@ -757,9 +757,9 @@
                 Name = $"{prefix}_Resource Pool",
             };
             resourcePool.AddCapability(capabilitySettings1);
-            var poolId = objectCreator.CreateResourcePool(resourcePool);
+            objectCreator.CreateResourcePool(resourcePool);
 
-            var domResourcePool = TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(poolId)).SingleOrDefault();
+            var domResourcePool = TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(resourcePool.Id)).SingleOrDefault();
             Assert.IsTrue(domResourcePool.Sections.Exists(s => s.SectionDefinitionID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ResourcePoolCapabilities.Id.Id));
 
             var domResourcePoolCapabilitiesSections = domResourcePool.Sections.Where(s => s.SectionDefinitionID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ResourcePoolCapabilities.Id.Id).ToList();
@@ -769,7 +769,7 @@
             var fdProfileParameterId = domResourcePoolCapability.FieldValues.SingleOrDefault(f => f.FieldDescriptorID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ResourcePoolCapabilities.ProfileParameterID.Id);
             Assert.IsNotNull(fdProfileParameterId);
             Assert.IsTrue(Guid.TryParse(Convert.ToString(fdProfileParameterId.Value.Value), out var profileParameterId));
-            Assert.AreEqual(capabilityId1, profileParameterId);
+            Assert.AreEqual(capability1.Id, profileParameterId);
 
             var fdStringValue = domResourcePoolCapability.FieldValues.SingleOrDefault(f => f.FieldDescriptorID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ResourcePoolCapabilities.StringValue.Id);
             Assert.IsNotNull(fdStringValue);
@@ -789,22 +789,22 @@
                 Name = $"{prefix}_Capability 1",
             };
             capability1.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
-            var capabilityId1 = objectCreator.CreateCapability(capability1);
+            objectCreator.CreateCapability(capability1);
 
             var capability2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capability()
             {
                 Name = $"{prefix}_Capability 2",
             };
             capability2.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
-            var capabilityId2 = objectCreator.CreateCapability(capability2);
+            objectCreator.CreateCapability(capability2);
 
-            var capabilityResourceSettings1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceCapabilitySettings(capabilityId1);
+            var capabilityResourceSettings1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceCapabilitySettings(capability1.Id);
             capabilityResourceSettings1.SetDiscretes(new[] { "Value 1", "Value 2" });
 
-            var capabilityResourceSettings2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceCapabilitySettings(capabilityId2);
+            var capabilityResourceSettings2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceCapabilitySettings(capability2.Id);
             capabilityResourceSettings2.SetDiscretes(new[] { "Value 2", "Value 3" });
 
-            var capabilityPoolSettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(capabilityId2);
+            var capabilityPoolSettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(capability2.Id);
             capabilityPoolSettings.SetDiscretes(new[] { "Value 1", "Value 2" });
 
             var resourcePool = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
@@ -812,22 +812,22 @@
                 Name = $"{prefix}_Resource Pool",
             };
             resourcePool.AddCapability(capabilityPoolSettings);
-            var poolId = objectCreator.CreateResourcePool(resourcePool);
-            TestContext.Api.ResourcePools.MoveTo(poolId, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
+            objectCreator.CreateResourcePool(resourcePool);
+            TestContext.Api.ResourcePools.MoveTo(resourcePool.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
 
             var unmanagedResource = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
             {
                 Name = $"{prefix}_Resource",
             };
-            unmanagedResource.AssignToPool(poolId);
+            unmanagedResource.AssignToPool(resourcePool.Id);
             unmanagedResource.AddCapability(capabilityResourceSettings1);
-            var resourceId = objectCreator.CreateResource(unmanagedResource);
-            TestContext.Api.Resources.MoveTo(resourceId, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
+            objectCreator.CreateResource(unmanagedResource);
+            TestContext.Api.Resources.MoveTo(unmanagedResource.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
 
             // Validate capabilities on core resource
-            resourcePool = TestContext.Api.ResourcePools.Read(poolId);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
             Assert.AreEqual(1, resourcePool.Capabilities.Count);
-            var resource = TestContext.Api.Resources.Read(resourceId);
+            var resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
             Assert.AreEqual(1, resource.Capabilities.Count);
 
             Assert.AreNotEqual(Guid.Empty, resource.CoreResourceId);
@@ -836,13 +836,13 @@
             // Expected capabilities + 1 > RST_ResourceType
             Assert.AreEqual(3, coreResource.Capabilities.Count);
 
-            var resourceCapability1 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == capabilityId1);
+            var resourceCapability1 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == capability1.Id);
             Assert.IsNotNull(resourceCapability1);
             Assert.AreEqual(2, resourceCapability1.Value.Discreets.Count);
             Assert.IsTrue(resourceCapability1.Value.Discreets.Contains("Value 1"));
             Assert.IsTrue(resourceCapability1.Value.Discreets.Contains("Value 2"));
 
-            var resourceCapability2 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == capabilityId2);
+            var resourceCapability2 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == capability2.Id);
             Assert.IsNotNull(resourceCapability2);
             Assert.AreEqual(2, resourceCapability2.Value.Discreets.Count);
             Assert.IsTrue(resourceCapability2.Value.Discreets.Contains("Value 1"));
@@ -852,7 +852,7 @@
             resource.AddCapability(capabilityResourceSettings2);
             TestContext.Api.Resources.Update(resource);
 
-            resource = TestContext.Api.Resources.Read(resourceId);
+            resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
             Assert.AreEqual(2, resource.Capabilities.Count);
 
             Assert.AreNotEqual(Guid.Empty, resource.CoreResourceId);
@@ -861,13 +861,13 @@
             // Expected capabilities + 1 > RST_ResourceType
             Assert.AreEqual(3, coreResource.Capabilities.Count);
 
-            resourceCapability1 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == capabilityId1);
+            resourceCapability1 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == capability1.Id);
             Assert.IsNotNull(resourceCapability1);
             Assert.AreEqual(2, resourceCapability1.Value.Discreets.Count);
             Assert.IsTrue(resourceCapability1.Value.Discreets.Contains("Value 1"));
             Assert.IsTrue(resourceCapability1.Value.Discreets.Contains("Value 2"));
 
-            resourceCapability2 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == capabilityId2);
+            resourceCapability2 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == capability2.Id);
             Assert.IsNotNull(resourceCapability2);
             Assert.AreEqual(3, resourceCapability2.Value.Discreets.Count);
             Assert.IsTrue(resourceCapability2.Value.Discreets.Contains("Value 1"));
@@ -875,20 +875,20 @@
             Assert.IsTrue(resourceCapability2.Value.Discreets.Contains("Value 3"));
 
             // Update pool capability discrete value
-            capabilityPoolSettings = resourcePool.Capabilities.SingleOrDefault(x => x.Id == capabilityId2);
+            capabilityPoolSettings = resourcePool.Capabilities.SingleOrDefault(x => x.Id == capability2.Id);
             capabilityPoolSettings.RemoveDiscrete("Value 2");
             TestContext.Api.ResourcePools.Update(resourcePool);
 
             // Expected capabilities + 1 > RST_ResourceType
             coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
 
-            resourceCapability1 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == capabilityId1);
+            resourceCapability1 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == capability1.Id);
             Assert.IsNotNull(resourceCapability1);
             Assert.AreEqual(2, resourceCapability1.Value.Discreets.Count);
             Assert.IsTrue(resourceCapability1.Value.Discreets.Contains("Value 1"));
             Assert.IsTrue(resourceCapability1.Value.Discreets.Contains("Value 2"));
 
-            resourceCapability2 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == capabilityId2);
+            resourceCapability2 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == capability2.Id);
             Assert.IsNotNull(resourceCapability2);
             Assert.AreEqual(3, resourceCapability2.Value.Discreets.Count);
             Assert.IsTrue(resourceCapability2.Value.Discreets.Contains("Value 1"));
@@ -896,21 +896,21 @@
             Assert.IsTrue(resourceCapability2.Value.Discreets.Contains("Value 3"));
 
             // Remove pool capability
-            resourcePool = TestContext.Api.ResourcePools.Read(poolId);
-            capabilityPoolSettings = resourcePool.Capabilities.SingleOrDefault(x => x.Id == capabilityId2);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
+            capabilityPoolSettings = resourcePool.Capabilities.SingleOrDefault(x => x.Id == capability2.Id);
             resourcePool.RemoveCapability(capabilityPoolSettings);
             TestContext.Api.ResourcePools.Update(resourcePool);
 
             // Expected capabilities + 1 > RST_ResourceType
             coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
 
-            resourceCapability1 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == capabilityId1);
+            resourceCapability1 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == capability1.Id);
             Assert.IsNotNull(resourceCapability1);
             Assert.AreEqual(2, resourceCapability1.Value.Discreets.Count);
             Assert.IsTrue(resourceCapability1.Value.Discreets.Contains("Value 1"));
             Assert.IsTrue(resourceCapability1.Value.Discreets.Contains("Value 2"));
 
-            resourceCapability2 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == capabilityId2);
+            resourceCapability2 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == capability2.Id);
             Assert.IsNotNull(resourceCapability2);
             Assert.AreEqual(2, resourceCapability2.Value.Discreets.Count);
             Assert.IsTrue(resourceCapability2.Value.Discreets.Contains("Value 2"));
@@ -951,10 +951,10 @@
                 Assert.AreEqual(errorMessage, ex.Message);
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolConfigurationError>().SingleOrDefault();
+                var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolError>().SingleOrDefault();
                 Assert.IsNotNull(resourcePoolConfigurationError);
 
-                var invalidResourcePoolCapabilitySettingsError = resourcePoolConfigurationError as ResourcePoolConfigurationInvalidCapabilitySettingsError;
+                var invalidResourcePoolCapabilitySettingsError = resourcePoolConfigurationError as ResourcePoolInvalidCapabilitySettingsError;
                 Assert.IsNotNull(invalidResourcePoolCapabilitySettingsError);
                 Assert.AreEqual(errorMessage, invalidResourcePoolCapabilitySettingsError.ErrorMessage);
                 Assert.AreEqual(notExistingCapabilityId, invalidResourcePoolCapabilitySettingsError.CapabilityId);
@@ -975,14 +975,14 @@
                 Name = $"{prefix}_Capability",
             };
             capability.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
-            var capabilityId = objectCreator.CreateCapability(capability);
+            objectCreator.CreateCapability(capability);
 
             var resourcePool = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
             {
                 Name = $"{prefix}_Resource Pool",
             };
 
-            var capabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(capabilityId);
+            var capabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(capability.Id);
             resourcePool.AddCapability(capabilitySettings);
 
             try
@@ -995,13 +995,13 @@
                 Assert.AreEqual(errorMessage, ex.Message);
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolConfigurationError>().SingleOrDefault();
+                var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolError>().SingleOrDefault();
                 Assert.IsNotNull(resourcePoolConfigurationError);
 
-                var invalidResourcePoolCapabilitySettingsError = resourcePoolConfigurationError as ResourcePoolConfigurationInvalidCapabilitySettingsError;
+                var invalidResourcePoolCapabilitySettingsError = resourcePoolConfigurationError as ResourcePoolInvalidCapabilitySettingsError;
                 Assert.IsNotNull(invalidResourcePoolCapabilitySettingsError);
                 Assert.AreEqual(errorMessage, invalidResourcePoolCapabilitySettingsError.ErrorMessage);
-                Assert.AreEqual(capabilityId, invalidResourcePoolCapabilitySettingsError.CapabilityId);
+                Assert.AreEqual(capability.Id, invalidResourcePoolCapabilitySettingsError.CapabilityId);
 
                 return;
             }
@@ -1019,14 +1019,14 @@
                 Name = $"{prefix}_Capability",
             };
             capability.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
-            var capabilityId = objectCreator.CreateCapability(capability);
+            objectCreator.CreateCapability(capability);
 
             var resourcePool = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
             {
                 Name = $"{prefix}_Resource Pool",
             };
 
-            var capabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(capabilityId);
+            var capabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolCapabilitySettings(capability.Id);
             capabilitySettings.SetDiscretes(new[] { "Value 1", "Value 5" });
             resourcePool.AddCapability(capabilitySettings);
 
@@ -1040,13 +1040,13 @@
                 Assert.AreEqual(errorMessage, ex.Message);
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolConfigurationError>().SingleOrDefault();
+                var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolError>().SingleOrDefault();
                 Assert.IsNotNull(resourcePoolConfigurationError);
 
-                var invalidResourcePoolCapabilitySettingsError = resourcePoolConfigurationError as ResourcePoolConfigurationInvalidCapabilitySettingsError;
+                var invalidResourcePoolCapabilitySettingsError = resourcePoolConfigurationError as ResourcePoolInvalidCapabilitySettingsError;
                 Assert.IsNotNull(invalidResourcePoolCapabilitySettingsError);
                 Assert.AreEqual(errorMessage, invalidResourcePoolCapabilitySettingsError.ErrorMessage);
-                Assert.AreEqual(capabilityId, invalidResourcePoolCapabilitySettingsError.CapabilityId);
+                Assert.AreEqual(capability.Id, invalidResourcePoolCapabilitySettingsError.CapabilityId);
 
                 return;
             }

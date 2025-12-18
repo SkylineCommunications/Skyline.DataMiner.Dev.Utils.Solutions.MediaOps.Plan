@@ -21,6 +21,8 @@
 
         private bool isFavorite;
 
+        private bool isExternallyManaged;
+
         private int concurrency;
 
         private Guid coreResourceId;
@@ -80,6 +82,19 @@
         }
 
         /// <summary>
+        /// Gets or sets a value indicating whether the resource is managed by an external system.
+        /// </summary>
+        public bool IsExternallyManaged
+        {
+            get => isExternallyManaged;
+            set
+            {
+                HasChanges |= isExternallyManaged != value;
+                isExternallyManaged = value;
+            }
+        }
+
+        /// <summary>
         /// Gets or sets the concurrency of the resource.
         /// </summary>
         public int Concurrency
@@ -122,14 +137,14 @@
         /// </summary>
         /// <param name="resourcePool">The resource pool to which the resource will be assigned. Cannot be null.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="resourcePool"/> is <see langword="null"/>.</exception>
-        public void AssignToPool(ResourcePool resourcePool)
+        public Resource AssignToPool(ResourcePool resourcePool)
         {
             if (resourcePool == null)
             {
                 throw new ArgumentNullException(nameof(resourcePool));
             }
 
-            AssignToPool(resourcePool.Id);
+            return AssignToPool(resourcePool.Id);
         }
 
         /// <summary>
@@ -138,7 +153,7 @@
         /// <param name="resourcePoolId">The unique identifier of the resource pool to which the resource will be assigned. Cannot be <see
         /// langword="Guid.Empty"/>.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="resourcePoolId"/> is <see langword="Guid.Empty"/>.</exception>
-        public void AssignToPool(Guid resourcePoolId)
+        public Resource AssignToPool(Guid resourcePoolId)
         {
             if (resourcePoolId == Guid.Empty)
             {
@@ -147,6 +162,8 @@
 
             assignedPoolIds.Add(resourcePoolId);
             HasChanges = true;
+
+            return this;
         }
 
         /// <summary>
@@ -155,7 +172,7 @@
         /// <param name="resourcePools">A collection of <see cref="ResourcePool"/> objects representing the resource pools to configure.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="resourcePools"/> is <see langword="null"/>.</exception>
         /// <exception cref="ArgumentException">Thrown if <paramref name="resourcePools"/> contains a null element.</exception>
-        public void SetPools(IEnumerable<ResourcePool> resourcePools)
+        public Resource SetPools(IEnumerable<ResourcePool> resourcePools)
         {
             if (resourcePools == null)
             {
@@ -167,7 +184,7 @@
                 throw new ArgumentException("The collection contains a null resource pool.", nameof(resourcePools));
             }
 
-            SetPools(resourcePools.Select(rp => rp.Id));
+            return SetPools(resourcePools.Select(rp => rp.Id));
         }
 
         /// <summary>
@@ -176,7 +193,7 @@
         /// <param name="resourcePoolIds">A collection of <see cref="Guid"/> values representing the resource pool IDs to assign.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="resourcePoolIds"/> is <see langword="null"/>.</exception>
         /// <exception cref="ArgumentException">Thrown if <paramref name="resourcePoolIds"/> contains an empty <see cref="Guid"/> value.</exception>
-        public void SetPools(IEnumerable<Guid> resourcePoolIds)
+        public Resource SetPools(IEnumerable<Guid> resourcePoolIds)
         {
             if (resourcePoolIds == null)
             {
@@ -190,6 +207,8 @@
 
             assignedPoolIds = new HashSet<Guid>(resourcePoolIds);
             HasChanges = true;
+
+            return this;
         }
 
         /// <summary>
@@ -197,14 +216,14 @@
         /// </summary>
         /// <param name="resourcePool">The resource pool from which the resource will be unassigned. Cannot be null.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="resourcePool"/> is <see langword="null"/>.</exception>
-        public void UnassignFromPool(ResourcePool resourcePool)
+        public Resource UnassignFromPool(ResourcePool resourcePool)
         {
             if (resourcePool == null)
             {
                 throw new ArgumentNullException(nameof(resourcePool));
             }
 
-            UnassignFromPool(resourcePool.Id);
+            return UnassignFromPool(resourcePool.Id);
         }
 
         /// <summary>
@@ -213,7 +232,7 @@
         /// <param name="resourcePoolId">The unique identifier of the resource pool to unassign from this resource. Cannot be <see
         /// langword="Guid.Empty"/>.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="resourcePoolId"/> is <see langword="Guid.Empty"/>.</exception>
-        public void UnassignFromPool(Guid resourcePoolId)
+        public Resource UnassignFromPool(Guid resourcePoolId)
         {
             if (resourcePoolId == Guid.Empty)
             {
@@ -224,6 +243,8 @@
             {
                 HasChanges = true;
             }
+
+            return this;
         }
 
         /// <summary>
@@ -231,7 +252,7 @@
         /// </summary>
         /// <param name="capability">The capability settings to add. Must represent a new capability; otherwise, the method does not modify the collection.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="capability"/> is <see langword="null"/>.</exception>
-        public void AddCapability(ResourceCapabilitySettings capability)
+        public Resource AddCapability(ResourceCapabilitySettings capability)
         {
             if (capability == null)
             {
@@ -240,11 +261,13 @@
 
             if (!capability.IsNew)
             {
-                return;
+                return this;
             }
 
             capabilitySettings.Add(capability);
             HasChanges = true;
+
+            return this;
         }
 
         /// <summary>
@@ -252,7 +275,7 @@
         /// </summary>
         /// <param name="capability">The capability to remove from the resource. Cannot be null.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="capability"/> is <see langword="null"/>.</exception>
-        public void RemoveCapability(ResourceCapabilitySettings capability)
+        public Resource RemoveCapability(ResourceCapabilitySettings capability)
         {
             if (capability == null)
             {
@@ -264,6 +287,8 @@
             {
                 HasChanges = true;
             }
+
+            return this;
         }
 
         /// <summary>
@@ -271,7 +296,7 @@
         /// </summary>
         /// <param name="capacity">The capacity settings to add. Must represent a new capacity; otherwise, the method does not modify the collection.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="capacity"/> is <see langword="null"/>.</exception>
-        public void AddCapacity(ResourceCapacitySettings capacity)
+        public Resource AddCapacity(ResourceCapacitySettings capacity)
         {
             if (capacity == null)
             {
@@ -280,11 +305,13 @@
 
             if (!capacity.IsNew)
             {
-                return;
+                return this;
             }
 
             capacitySettings.Add(capacity);
             HasChanges = true;
+
+            return this;
         }
 
         /// <summary>
@@ -292,7 +319,7 @@
         /// </summary>
         /// <param name="capacity">The capacity to remove from the resource. Cannot be null.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="capacity"/> is <see langword="null"/>.</exception>
-        public void RemoveCapacity(ResourceCapacitySettings capacity)
+        public Resource RemoveCapacity(ResourceCapacitySettings capacity)
         {
             if (capacity == null)
             {
@@ -304,6 +331,8 @@
             {
                 HasChanges = true;
             }
+
+            return this;
         }
 
         /// <summary>
@@ -311,7 +340,7 @@
         /// </summary>
         /// <param name="property">The property to add.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="property"/> is <see langword="null"/>.</exception>
-        public void AddProperty(ResourcePropertySettings property)
+        public Resource AddProperty(ResourcePropertySettings property)
         {
             if (property == null)
             {
@@ -320,11 +349,13 @@
 
             if (!property.IsNew)
             {
-                return;
+                return this;
             }
 
             propertySettings.Add(property);
             HasChanges = true;
+
+            return this;
         }
 
         /// <summary>
@@ -332,7 +363,7 @@
         /// </summary>
         /// <param name="property">The property to remove.</param>
         /// <exception cref="ArgumentNullException">Thrown if the <paramref name="property"/> parameter is <see langword="null"/>.</exception>
-        public void RemoveProperty(ResourcePropertySettings property)
+        public Resource RemoveProperty(ResourcePropertySettings property)
         {
             if (property == null)
             {
@@ -344,6 +375,8 @@
             {
                 HasChanges = true;
             }
+
+            return this;
         }
 
         internal abstract void ApplyChanges(StorageResourceStudio.ResourceInstance instance);
@@ -383,6 +416,7 @@
             updatedInstance.ResourceInfo.Favorite = isFavorite;
             updatedInstance.ResourceInfo.Concurrency = concurrency;
             updatedInstance.ResourceInternalProperties.PoolIds = assignedPoolIds.ToList();
+            updatedInstance.ExternalMetadata.ExternallyManaged = isExternallyManaged;
 
             updatedInstance.ResourceCapabilities.Clear();
             foreach (var capability in capabilitySettings)
@@ -443,6 +477,7 @@
             concurrency = instance.ResourceInfo.Concurrency.HasValue ? (int)instance.ResourceInfo.Concurrency.Value : 1;
             assignedPoolIds = new HashSet<Guid>(instance.ResourceInternalProperties.PoolIds);
             coreResourceId = instance.ResourceInternalProperties.Resource_Id ?? Guid.Empty;
+            isExternallyManaged = instance.ExternalMetadata?.ExternallyManaged ?? false;
 
             State = EnumExtensions.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum, ResourceState>(instance.Status);
 
@@ -471,7 +506,7 @@
             }
 
             var capacityIds = resourceCapacities.Select(rc => rc.ProfileParameterId).Distinct();
-            var capacityById = planApi.Capacities.Read(capacityIds);
+            var capacityById = planApi.Capacities.Read(capacityIds).ToDictionary(x => x.Id);
 
             foreach (var section in resourceCapacities)
             {

@@ -42,8 +42,7 @@
                 Name = name,
             };
 
-            var returnedId = objectCreator.CreateProperty(property);
-            Assert.AreEqual(propertyId, returnedId);
+            objectCreator.CreateProperty(property);
 
             var returnedProperty = TestContext.Api.Properties.Read(propertyId);
             Assert.IsNotNull(returnedProperty);
@@ -112,10 +111,10 @@
                 StringAssert.Contains(ex.Message, "ID is already in use.");
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var propertyConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePropertyConfigurationError>().SingleOrDefault();
+                var propertyConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePropertyError>().SingleOrDefault();
                 Assert.IsNotNull(propertyConfigurationError);
 
-                var propertyConfigurationIdInUseError = propertyConfigurationError as ResourcePropertyConfigurationIdInUseError;
+                var propertyConfigurationIdInUseError = propertyConfigurationError as ResourcePropertyIdInUseError;
                 Assert.IsNotNull(propertyConfigurationIdInUseError);
                 Assert.AreEqual(propertyId, propertyConfigurationIdInUseError.Id);
                 Assert.AreEqual("ID is already in use.", propertyConfigurationError.ErrorMessage);
@@ -152,7 +151,7 @@
                 }
 
                 Assert.AreEqual(2, traceData.ErrorData.Count);
-                var propertyConfigurationErrors = traceData.ErrorData.OfType<ResourcePropertyConfigurationError>().ToList();
+                var propertyConfigurationErrors = traceData.ErrorData.OfType<ResourcePropertyError>().ToList();
                 Assert.AreEqual(2, propertyConfigurationErrors.Count());
 
                 var errorMessages = new List<string>
@@ -163,7 +162,7 @@
 
                 foreach (var error in propertyConfigurationErrors)
                 {
-                    var propertyConfigurationDuplicateIdError = error as ResourcePropertyConfigurationDuplicateIdError;
+                    var propertyConfigurationDuplicateIdError = error as ResourcePropertyDuplicateIdError;
                     Assert.IsNotNull(propertyConfigurationDuplicateIdError);
                     Assert.AreEqual(propertyId, propertyConfigurationDuplicateIdError.Id);
                     Assert.IsTrue(errorMessages.Contains(error.ErrorMessage));
@@ -201,10 +200,10 @@
                 StringAssert.Contains(ex.Message, "Name is already in use.");
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var propertyConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePropertyConfigurationError>().SingleOrDefault();
+                var propertyConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePropertyError>().SingleOrDefault();
                 Assert.IsNotNull(propertyConfigurationError);
 
-                var propertyConfigurationNameExistsError = propertyConfigurationError as ResourcePropertyConfigurationNameExistsError;
+                var propertyConfigurationNameExistsError = propertyConfigurationError as ResourcePropertyNameExistsError;
                 Assert.IsNotNull(propertyConfigurationNameExistsError);
                 Assert.AreEqual(property2.Id, propertyConfigurationNameExistsError.Id);
                 Assert.AreEqual(property2.Name, propertyConfigurationNameExistsError.Name);
@@ -241,10 +240,10 @@
                 foreach (var traceData in ex.Result.TraceDataPerItem.Values)
                 {
                     Assert.AreEqual(1, traceData.ErrorData.Count);
-                    var propertyConfigurationError = traceData.ErrorData.OfType<ResourcePropertyConfigurationError>().SingleOrDefault();
+                    var propertyConfigurationError = traceData.ErrorData.OfType<ResourcePropertyError>().SingleOrDefault();
                     Assert.IsNotNull(propertyConfigurationError);
 
-                    var propertyConfigurationDuplicateNameError = propertyConfigurationError as ResourcePropertyConfigurationDuplicateNameError;
+                    var propertyConfigurationDuplicateNameError = propertyConfigurationError as ResourcePropertyDuplicateNameError;
                     Assert.IsNotNull(propertyConfigurationDuplicateNameError);
                     Assert.AreEqual(property2.Name, propertyConfigurationDuplicateNameError.Name);
                     Assert.AreEqual($"Resource property '{property1.Name}' has a duplicate name.", propertyConfigurationError.ErrorMessage);
@@ -270,10 +269,10 @@
                 Name = $"{propertyId}_Property_2",
             };
 
-            var id1 = objectCreator.CreateProperty(property1);
-            var id2 = objectCreator.CreateProperty(property2);
+            objectCreator.CreateProperty(property1);
+            objectCreator.CreateProperty(property2);
 
-            var toUpdate = TestContext.Api.Properties.Read(id2);
+            var toUpdate = TestContext.Api.Properties.Read(property2.Id);
             toUpdate.Name = property1.Name;
 
             try
@@ -285,10 +284,10 @@
                 StringAssert.Contains(ex.Message, "Name is already in use.");
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var propertyConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePropertyConfigurationError>().SingleOrDefault();
+                var propertyConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePropertyError>().SingleOrDefault();
                 Assert.IsNotNull(propertyConfigurationError);
 
-                var propertyConfigurationNameExistsError = propertyConfigurationError as ResourcePropertyConfigurationNameExistsError;
+                var propertyConfigurationNameExistsError = propertyConfigurationError as ResourcePropertyNameExistsError;
                 Assert.IsNotNull(propertyConfigurationNameExistsError);
                 Assert.AreEqual(toUpdate.Id, propertyConfigurationNameExistsError.Id);
                 Assert.AreEqual(toUpdate.Name, propertyConfigurationNameExistsError.Name);
@@ -298,6 +297,14 @@
             }
 
             Assert.Fail("Expected exception was not thrown.");
+        }
+
+        [TestMethod]
+        public void ReadWithEmptyListReturnsEmptyList()
+        {
+            var properties = TestContext.Api.Properties.Read(new List<Guid>());
+            Assert.IsNotNull(properties);
+            Assert.AreEqual(0, properties.Count());
         }
     }
 }

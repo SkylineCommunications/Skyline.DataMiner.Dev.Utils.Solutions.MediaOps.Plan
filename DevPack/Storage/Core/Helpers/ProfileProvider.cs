@@ -85,6 +85,11 @@
                 throw new ArgumentNullException(nameof(ids));
             }
 
+            if (!ids.Any())
+            {
+                return Array.Empty<Net.Profiles.Parameter>();
+            }
+
             var filter = new ORFilterElement<Net.Profiles.Parameter>(ids.Select(id => ParameterExposers.ID.Equal(id)).ToArray());
             return profileHelper.ProfileParameters.Read(filter);
         }

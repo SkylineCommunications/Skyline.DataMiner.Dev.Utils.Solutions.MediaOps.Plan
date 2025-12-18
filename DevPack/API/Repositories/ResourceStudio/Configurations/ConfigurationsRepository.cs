@@ -3,11 +3,14 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Microsoft.Extensions.Logging;
+
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
+
     using SLDataGateway.API.Types.Querying;
 
     /// <summary>
@@ -58,11 +61,10 @@
         /// Creates a new configuration in the repository.
         /// </summary>
         /// <param name="apiObject">The configuration to create.</param>
-        /// <returns>The unique identifier of the created configuration.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create an existing configuration.</exception>
         /// <exception cref="MediaOpsException">Thrown when the creation operation fails.</exception>
-        public Guid Create(Configuration apiObject)
+        public void Create(Configuration apiObject)
         {
             PlanApi.Logger.LogInformation("Creating new Configuration...");
 
@@ -71,7 +73,7 @@
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
-            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Create), act =>
+            ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Create), act =>
             {
                 if (!apiObject.IsNew)
                 {
@@ -85,8 +87,6 @@
 
                 var configurationId = apiObject.Id;
                 act?.AddTag("CapacityId", configurationId);
-
-                return configurationId;
             });
         }
 
@@ -94,18 +94,17 @@
         /// Creates multiple new configurations in the repository.
         /// </summary>
         /// <param name="apiObjects">The collection of configurations to create.</param>
-        /// <returns>A collection of unique identifiers for the created configurations.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create existing configurations.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk creation operation fails.</exception>
-        public IEnumerable<Guid> Create(IEnumerable<Configuration> apiObjects)
+        public void Create(IEnumerable<Configuration> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
-            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Create), act =>
+            ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Create), act =>
             {
                 if (apiObjects.Any(x => !x.IsNew))
                 {
@@ -119,8 +118,6 @@
 
                 var configurationIds = apiObjects.Select(x => x.Id);
                 act?.AddTag("ConfigurationIds", string.Join(", ", configurationIds));
-
-                return configurationIds;
             });
         }
 
@@ -128,17 +125,16 @@
         /// Creates new configurations or updates existing ones in the repository.
         /// </summary>
         /// <param name="apiObjects">The collection of configurations to create or update.</param>
-        /// <returns>A collection of unique identifiers for the created or updated configurations.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk operation fails.</exception>
-        public IEnumerable<Guid> CreateOrUpdate(IEnumerable<Configuration> apiObjects)
+        public void CreateOrUpdate(IEnumerable<Configuration> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
-            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(CreateOrUpdate), act =>
+            ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(CreateOrUpdate), act =>
             {
                 if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
                 {
@@ -148,8 +144,6 @@
                 var configurationIds = apiObjects.Select(x => x.Id);
                 act?.AddTag("Created or Updated Configurations", String.Join(", ", configurationIds));
                 act?.AddTag("Created or Updated Configurations Count", configurationIds.Count());
-
-                return configurationIds;
             });
         }
 
@@ -181,7 +175,7 @@
                 throw new ArgumentNullException(nameof(apiObjectIds));
             }
 
-            var configurationsToDelete = Read(apiObjectIds).Values;
+            var configurationsToDelete = Read(apiObjectIds);
 
             ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Delete), act =>
             {
@@ -232,9 +226,9 @@
         /// Reads multiple configurations by their unique identifiers.
         /// </summary>
         /// <param name="ids">A collection of unique identifiers.</param>
-        /// <returns>A dictionary mapping each identifier to its corresponding configuration.</returns>
+        /// <returns>An enumerable collection of configurations matching the specified identifiers.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="ids"/> is <c>null</c>.</exception>
-        public IDictionary<Guid, Configuration> Read(IEnumerable<Guid> ids)
+        public IEnumerable<Configuration> Read(IEnumerable<Guid> ids)
         {
             if (ids == null)
             {
@@ -248,7 +242,7 @@
 
                 var configurations = PlanApi.CoreHelpers.ProfileProvider.GetConfigurationsById(ids);
 
-                return InstantiateConfigurations(configurations).ToDictionary(x => x.Id);
+                return InstantiateConfigurations(configurations);
             });
         }
 
