@@ -20,7 +20,7 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, IEnumerable<Capacity> apiCapacities, out BulkCreateOrUpdateResult<Guid> result)
+        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Capacity> apiCapacities, out BulkCreateOrUpdateResult<Guid> result)
         {
             var handler = new CoreCapacityHandler(planApi);
             handler.CreateOrUpdate(apiCapacities);
@@ -30,7 +30,7 @@
             return !result.HasFailures();
         }
 
-        internal static bool TryDelete(MediaOpsPlanApi planApi, IEnumerable<Capacity> apiCapacities, out BulkDeleteResult<Guid> result)
+        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<Capacity> apiCapacities, out BulkDeleteResult<Guid> result)
         {
             var handler = new CoreCapacityHandler(planApi);
             handler.Delete(apiCapacities);
@@ -40,14 +40,14 @@
             return !result.HasFailures();
         }
 
-        private void CreateOrUpdate(IEnumerable<Capacity> apiCapacities)
+        private void CreateOrUpdate(ICollection<Capacity> apiCapacities)
         {
             if (apiCapacities == null)
             {
                 throw new ArgumentNullException(nameof(apiCapacities));
             }
 
-            if (!apiCapacities.Any())
+            if (apiCapacities.Count == 0)
             {
                 return;
             }
@@ -76,14 +76,14 @@
             ReportError(lockResult);
         }
 
-        private void CreateOrUpdateCoreCapacities(IEnumerable<Capacity> capacities)
+        private void CreateOrUpdateCoreCapacities(ICollection<Capacity> capacities)
         {
             if (capacities == null)
             {
                 throw new ArgumentNullException(nameof(capacities));
             }
 
-            if (!capacities.Any())
+            if (capacities.Count == 0)
             {
                 return;
             }
@@ -104,14 +104,14 @@
             ReportSuccess(result.SuccessfulIds);
         }
 
-        private void Delete(IEnumerable<Capacity> apiCapacities)
+        private void Delete(ICollection<Capacity> apiCapacities)
         {
             if (apiCapacities == null)
             {
                 throw new ArgumentNullException(nameof(apiCapacities));
             }
 
-            if (!apiCapacities.Any())
+            if (apiCapacities.Count == 0)
             {
                 return;
             }
@@ -132,7 +132,7 @@
             ReportError(lockResult);
         }
 
-        private void DeleteCoreCapacities(IEnumerable<Capacity> capacitiesToDelete)
+        private void DeleteCoreCapacities(ICollection<Capacity> capacitiesToDelete)
         {
             var coreCapacitiesToDelete = capacitiesToDelete.Select(x => x.CoreParameter);
             planApi.CoreHelpers.ProfileProvider.TryDeleteParametersInBatches(coreCapacitiesToDelete, out var result);
@@ -150,14 +150,14 @@
             ReportSuccess(result.SuccessfulIds);
         }
 
-        private void ValidateIdsNotInUse(IEnumerable<Capacity> apiCapacities)
+        private void ValidateIdsNotInUse(ICollection<Capacity> apiCapacities)
         {
             if (apiCapacities == null)
             {
                 throw new ArgumentNullException(nameof(apiCapacities));
             }
 
-            if (!apiCapacities.Any())
+            if (apiCapacities.Count == 0)
             {
                 return;
             }
@@ -201,14 +201,14 @@
             }
         }
 
-        private void ValidateNames(IEnumerable<Capacity> apiCapacities)
+        private void ValidateNames(ICollection<Capacity> apiCapacities)
         {
             if (apiCapacities == null)
             {
                 throw new ArgumentNullException(nameof(apiCapacities));
             }
 
-            if (!apiCapacities.Any())
+            if (apiCapacities.Count == 0)
             {
                 return;
             }
@@ -295,14 +295,14 @@
             }
         }
 
-        private void ValidateRangeSettings(IEnumerable<Capacity> apiCapacities)
+        private void ValidateRangeSettings(ICollection<Capacity> apiCapacities)
         {
             if (apiCapacities == null)
             {
                 throw new ArgumentNullException(nameof(apiCapacities));
             }
 
-            if (!apiCapacities.Any())
+            if (apiCapacities.Count == 0)
             {
                 return;
             }
@@ -337,14 +337,14 @@
             }
         }
 
-        private void ValidateDecimals(IEnumerable<Capacity> apiCapacities)
+        private void ValidateDecimals(ICollection<Capacity> apiCapacities)
         {
             if (apiCapacities == null)
             {
                 throw new ArgumentNullException(nameof(apiCapacities));
             }
 
-            if (!apiCapacities.Any())
+            if (apiCapacities.Count == 0)
             {
                 return;
             }
