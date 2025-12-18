@@ -66,7 +66,7 @@
         /// </summary>
         /// <param name="value">The discrete value to add to the collection. Cannot be null or empty.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="value"/> is <see langword="null"/> or empty.</exception>
-        public void AddDiscrete(string value)
+        public ResourcePoolCapabilitySettings AddDiscrete(string value)
         {
             if (string.IsNullOrEmpty(value))
             {
@@ -78,6 +78,8 @@
                 HasChanges = true;
                 ValueChanged?.Invoke(this, EventArgs.Empty);
             }
+
+            return this;
         }
 
         /// <summary>
@@ -85,7 +87,7 @@
         /// </summary>
         /// <param name="value">The discrete value to remove from the collection. Cannot be null or empty.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="value"/> is <see langword="null"/> or empty.</exception>
-        public void RemoveDiscrete(string value)
+        public ResourcePoolCapabilitySettings RemoveDiscrete(string value)
         {
             if (string.IsNullOrEmpty(value))
             {
@@ -97,6 +99,8 @@
                 HasChanges = true;
                 ValueChanged?.Invoke(this, EventArgs.Empty);
             }
+
+            return this;
         }
 
         /// <summary>
@@ -105,7 +109,7 @@
         /// <param name="values">A collection of non-null, non-empty strings representing the discrete values to set.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="values"/> is <see langword="null"/>.</exception>
         /// <exception cref="ArgumentException">Thrown if <paramref name="values"/> contains a <see langword="null"/> or empty string.</exception>
-        public void SetDiscretes(ICollection<string> values)
+        public ResourcePoolCapabilitySettings SetDiscretes(ICollection<string> values)
         {
             if (values == null)
             {
@@ -118,6 +122,11 @@
             }
 
             discretes = new HashSet<string>(values);
+
+            HasChanges = true;
+            ValueChanged?.Invoke(this, EventArgs.Empty);
+
+            return this;
         }
 
         internal StorageResourceStudio.ResourcePoolCapabilitiesSection OriginalSection => originalSection;

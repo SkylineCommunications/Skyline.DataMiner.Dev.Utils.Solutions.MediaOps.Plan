@@ -115,7 +115,7 @@
         /// Adds a link to another resource pool.
         /// </summary>
         /// <param name="linkedResourcePool">The resource pool link to add.</param>
-        public void AddLinkedResourcePool(LinkedResourcePool linkedResourcePool)
+        public ResourcePool AddLinkedResourcePool(LinkedResourcePool linkedResourcePool)
         {
             if (linkedResourcePool == null)
             {
@@ -124,18 +124,20 @@
 
             if (!linkedResourcePool.IsNew)
             {
-                return;
+                return this;
             }
 
             linkedResourcepools.Add(linkedResourcePool);
             HasChanges = true;
+
+            return this;
         }
 
         /// <summary>
         /// Removes the specified resource pool link from the collection, if it exists.
         /// </summary>
         /// <param name="linkedResourcePool">The resource pool link to remove.</param>
-        public void RemoveLinkedResourcePool(LinkedResourcePool linkedResourcePool)
+        public ResourcePool RemoveLinkedResourcePool(LinkedResourcePool linkedResourcePool)
         {
             if (linkedResourcePool == null)
             {
@@ -147,6 +149,8 @@
             {
                 HasChanges = true;
             }
+
+            return this;
         }
 
         /// <summary>
@@ -154,7 +158,7 @@
         /// </summary>
         /// <param name="capability">The capability settings to add. Must represent a new capability; otherwise, the method does not modify the collection.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="capability"/> is <see langword="null"/>.</exception>
-        public void AddCapability(ResourcePoolCapabilitySettings capability)
+        public ResourcePool AddCapability(ResourcePoolCapabilitySettings capability)
         {
             if (capability == null)
             {
@@ -163,11 +167,13 @@
 
             if (!capability.IsNew)
             {
-                return;
+                return this;
             }
 
             capabilitySettings.Add(capability);
             HasChanges = true;
+
+            return this;
         }
 
         /// <summary>
@@ -175,7 +181,7 @@
         /// </summary>
         /// <param name="capability">The capability to remove from the resource pool. Cannot be null.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="capability"/> is <see langword="null"/>.</exception>
-        public void RemoveCapability(ResourcePoolCapabilitySettings capability)
+        public ResourcePool RemoveCapability(ResourcePoolCapabilitySettings capability)
         {
             if (capability == null)
             {
@@ -187,9 +193,11 @@
             {
                 HasChanges = true;
             }
+
+            return this;
         }
 
-        internal void RemoveLinkedResourcePool(ResourcePool resourcePool)
+        internal ResourcePool RemoveLinkedResourcePool(ResourcePool resourcePool)
         {
             if (resourcePool == null)
             {
@@ -198,7 +206,7 @@
 
             if (resourcePool.IsNew)
             {
-                return;
+                return this;
             }
 
             var toRemove = linkedResourcepools.Where(x => x.LinkedResourcePoolId == resourcePool.Id).ToList();
@@ -210,6 +218,8 @@
                     HasChanges = true;
                 }
             }
+
+            return this;
         }
 
         internal StorageResourceStudio.ResourcepoolInstance GetInstanceWithChanges()
