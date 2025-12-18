@@ -20,7 +20,7 @@
     /// </summary>
     internal class ResourcesRepository : Repository, IResourcesRepository
     {
-        private readonly FilterElement<DomInstance> resourceDomFilter = DomInstanceExposers.DomDefinitionId.Equal(Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Definitions.Resource.Id);
+        private readonly ResourceFilterTranslator resourceFilterTranslator = new ResourceFilterTranslator();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ResourcesRepository"/> class.
@@ -567,11 +567,9 @@
             return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Read), act =>
             {
                 act?.AddTag("ResourceId", id);
-                var filter = DomInstanceExposers.Id.Equal(id).AND(resourceDomFilter);
-                var domResource = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(filter)
-                    .FirstOrDefault();
+                var resource = Read(ResourceExposers.Id.Equal(id)).FirstOrDefault();
 
-                if (domResource == null)
+                if (resource == null)
                 {
                     act?.AddTag("Hit", false);
                     return null;
@@ -579,7 +577,7 @@
 
                 act?.AddTag("Hit", true);
 
-                return Resource.InstantiateResources(PlanApi, [domResource]).FirstOrDefault();
+                return resource;
             });
         }
 
@@ -614,7 +612,7 @@
         {
             return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Read), act =>
             {
-                return Resource.InstantiateResources(PlanApi, PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(resourceDomFilter));
+                return Resource.InstantiateResources(PlanApi, PlanApi.DomHelpers.SlcResourceStudioHelper.GetAllResources());
             });
         }
 
@@ -628,7 +626,7 @@
         {
             return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Read), act =>
             {
-                var domFilter = ResourceFilterTranslator.TranslateFullFilter(filter).AND(resourceDomFilter);
+                var domFilter = resourceFilterTranslator.Translate(filter);
                 return Resource.InstantiateResources(PlanApi, PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(domFilter));
             });
         }

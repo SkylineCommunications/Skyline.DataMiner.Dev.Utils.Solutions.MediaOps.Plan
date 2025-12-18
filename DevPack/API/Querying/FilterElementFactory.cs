@@ -1,10 +1,7 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
     using System;
-    using System.Collections.Generic;
     using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
     internal static class FilterElementFactory

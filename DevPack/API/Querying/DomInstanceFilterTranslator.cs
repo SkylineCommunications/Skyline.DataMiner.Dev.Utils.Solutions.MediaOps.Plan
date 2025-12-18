@@ -3,20 +3,25 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
-    internal class DomFilterTranslator
+    internal abstract class DomInstanceFilterTranslator<T> : FilterTranslator<T, DomInstance> where T : ApiObject
     {
-        protected DomFilterTranslator()
+        protected DomInstanceFilterTranslator()
         {
         }
 
         protected static FilterElement<DomInstance> HandleGuid(Comparer comparer, object value)
         {
             return FilterElementFactory.Create(DomInstanceExposers.Id, comparer, (Guid)value);
+        }
+
+        protected abstract FilterElement<DomInstance> DomDefinitionFilter { get; }
+
+        public override FilterElement<DomInstance> Translate(FilterElement<T> filter)
+        {
+            return base.Translate(filter).AND(DomDefinitionFilter);
         }
     }
 }
