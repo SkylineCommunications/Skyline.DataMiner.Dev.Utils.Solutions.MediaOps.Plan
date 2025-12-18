@@ -20,7 +20,7 @@
     /// </summary>
     internal class ResourcesRepository : Repository, IResourcesRepository
     {
-        private readonly ResourceFilterTranslator resourceFilterTranslator = new ResourceFilterTranslator();
+        private readonly ResourceFilterTranslator filterTranslator = new ResourceFilterTranslator();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ResourcesRepository"/> class.
@@ -65,7 +65,6 @@
         /// <param name="resourceId">The unique identifier of the resource to convert.</param>
         /// <param name="configuration">The configuration for the element link.</param>
         /// <returns>The converted <see cref="ElementResource"/>.</returns>
-        /// <exception cref="ResourceNotFoundException">Thrown when the resource with the specified identifier is not found.</exception>
         /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
         public ElementResource ConvertToElementResource(Guid resourceId, ResourceElementLinkConfiguration configuration)
         {
@@ -234,8 +233,7 @@
         /// <returns>The total count of resources.</returns>
         public long Count()
         {
-            return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(
-                DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resource.Id));
+            return Count(new TRUEFilterElement<Resource>());
         }
 
         /// <summary>
@@ -246,7 +244,8 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public long Count(FilterElement<Resource> filter)
         {
-            throw new NotImplementedException();
+            var domFilter = filterTranslator.Translate(filter);
+            return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(domFilter);
         }
 
         /// <summary>
@@ -666,7 +665,7 @@
         {
             return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Read), act =>
             {
-                return Resource.InstantiateResources(PlanApi, PlanApi.DomHelpers.SlcResourceStudioHelper.GetAllResources());
+                return Read(new TRUEFilterElement<Resource>());
             });
         }
 
@@ -680,7 +679,7 @@
         {
             return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Read), act =>
             {
-                var domFilter = resourceFilterTranslator.Translate(filter);
+                var domFilter = filterTranslator.Translate(filter);
                 return Resource.InstantiateResources(PlanApi, PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(domFilter));
             });
         }

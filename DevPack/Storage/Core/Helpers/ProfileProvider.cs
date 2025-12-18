@@ -26,25 +26,25 @@
         /// </summary>
         private readonly ProfileHelper profileHelper;
 
-        private readonly FilterElement<Net.Profiles.Parameter> AllCapabilitiesFilter =
+        private static readonly FilterElement<Net.Profiles.Parameter> AllTimeDependentCapabilitiesFilter =
+            ParameterExposers.Categories.Contains((int)ProfileParameterCategory.Capability)
+            .AND(ParameterExposers.Categories.NotContains((int)ProfileParameterCategory.Capacity))
+            .AND(ParameterExposers.Categories.NotContains((int)ProfileParameterCategory.Configuration))
+            .AND(ParameterExposers.Name.Matches(".*- Time dependent$"));
+
+        internal static readonly FilterElement<Net.Profiles.Parameter> AllCapabilitiesFilter =
             ParameterExposers.Categories.Contains((int)ProfileParameterCategory.Capability)
             .AND(ParameterExposers.Categories.NotContains((int)ProfileParameterCategory.Capacity))
             .AND(ParameterExposers.Categories.NotContains((int)ProfileParameterCategory.Configuration))
             .AND(ParameterExposers.Type.Equal((int)ParameterType.Discrete))
             .AND(ParameterExposers.Name.NotMatches(".*- Time dependent$")); // Don't include linked Time dependent capabilities.
 
-        private readonly FilterElement<Net.Profiles.Parameter> AllTimeDependentCapabilitiesFilter =
-            ParameterExposers.Categories.Contains((int)ProfileParameterCategory.Capability)
-            .AND(ParameterExposers.Categories.NotContains((int)ProfileParameterCategory.Capacity))
-            .AND(ParameterExposers.Categories.NotContains((int)ProfileParameterCategory.Configuration))
-            .AND(ParameterExposers.Name.Matches(".*- Time dependent$"));
-
-        private readonly FilterElement<Net.Profiles.Parameter> AllCapacitiesFilter =
+        internal static readonly FilterElement<Net.Profiles.Parameter> AllCapacitiesFilter =
             ParameterExposers.Categories.Contains((int)ProfileParameterCategory.Capacity)
             .AND(ParameterExposers.Categories.NotContains((int)ProfileParameterCategory.Capability))
             .AND(ParameterExposers.Categories.NotContains((int)ProfileParameterCategory.Configuration));
 
-        private readonly FilterElement<Net.Profiles.Parameter> AllConfigurationsFilter =
+        internal static readonly FilterElement<Net.Profiles.Parameter> AllConfigurationsFilter =
             ParameterExposers.Categories.Contains((int)ProfileParameterCategory.Configuration)
             .AND(ParameterExposers.Categories.NotContains((int)ProfileParameterCategory.Capability))
             .AND(ParameterExposers.Categories.NotContains((int)ProfileParameterCategory.Capacity));

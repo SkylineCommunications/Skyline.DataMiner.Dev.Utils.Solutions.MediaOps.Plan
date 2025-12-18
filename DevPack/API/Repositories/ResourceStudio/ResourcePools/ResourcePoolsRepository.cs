@@ -11,8 +11,6 @@
     using Skyline.DataMiner.Net.Sections;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
-
     using SLDataGateway.API.Types.Querying;
 
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
@@ -22,6 +20,8 @@
     /// </summary>
     internal class ResourcePoolsRepository : Repository, IResourcePoolsRepository
     {
+        private readonly ResourcePoolPoolFilterTranslator filterTranslator = new ResourcePoolPoolFilterTranslator();
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ResourcePoolsRepository"/> class.
         /// </summary>
@@ -92,7 +92,8 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public long Count(FilterElement<ResourcePool> filter)
         {
-            throw new NotImplementedException();
+            var domFilter = filterTranslator.Translate(filter);
+            return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(domFilter);
         }
 
         /// <summary>
@@ -101,7 +102,7 @@
         /// <returns>The total count of resource pools.</returns>
         public long Count()
         {
-            return DomResourcePoolHandler.CountAll(PlanApi);
+            return Count(new TRUEFilterElement<ResourcePool>());
         }
 
         /// <summary>
@@ -112,7 +113,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public long Count(IQuery<ResourcePool> query)
         {
-            throw new NotImplementedException();
+            return Count(query.Filter);
         }
 
         /// <summary>
@@ -470,19 +471,16 @@
             return ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Read), act =>
             {
                 act?.AddTag("ResourcePoolId", id);
-                var filter = DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourcepool.Id)
-                        .AND(DomInstanceExposers.Id.Equal(id));
-                var domResourcePool = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(filter)
-                    .FirstOrDefault();
+                var resourcePool = Read(ResourcePoolExposers.Id.Equal(id)).FirstOrDefault();
 
-                if (domResourcePool == null)
+                if (resourcePool == null)
                 {
                     act?.AddTag("Hit", false);
                     return null;
                 }
 
                 act?.AddTag("Hit", true);
-                return new ResourcePool(domResourcePool);
+                return resourcePool;
             });
         }
 
@@ -523,7 +521,24 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<ResourcePool> Read(FilterElement<ResourcePool> filter)
         {
-            throw new NotImplementedException();
+            if (filter == null)
+            {
+                throw new ArgumentNullException(nameof(filter));
+            }
+
+            return ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Read), act =>
+            {
+                var domFilter = filterTranslator.Translate(filter);
+                IEnumerable<ResourcePool> Iterator()
+                {
+                    foreach (var domResourcePool in PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(domFilter))
+                    {
+                        yield return new ResourcePool(domResourcePool);
+                    }
+                }
+
+                return Iterator();
+            });
         }
 
         /// <summary>
@@ -555,7 +570,15 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<ResourcePool> Read(IQuery<ResourcePool> query)
         {
-            throw new NotImplementedException();
+            if (query == null)
+            {
+                throw new ArgumentNullException(nameof(query));
+            }
+
+            return ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Read), act =>
+            {
+                return Read(query.Filter);
+            });
         }
 
         /// <summary>
@@ -634,6 +657,7 @@
         {
             throw new NotImplementedException();
         }
+
         /// <summary>
         /// Removes the specified resources from the given resource pool.
         /// </summary>

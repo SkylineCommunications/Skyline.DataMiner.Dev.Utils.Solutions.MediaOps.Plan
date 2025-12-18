@@ -24,13 +24,23 @@
         public static readonly Exposer<Capacity, string> Name = new Exposer<Capacity, string>((obj) => obj.Name, "Name");
 
         /// <summary>
-        /// Gets an exposer for the <see cref="Capacity.Units"/> property.
+        /// Gets an exposer for the <see cref="Capacity.RangeMin"/> property.
         /// </summary>
-        public static readonly Exposer<Capacity, string> Units = new Exposer<Capacity, string>((obj) => obj.Units, "Units");
+        public static readonly Exposer<Capacity, decimal?> RangeMin = new Exposer<Capacity, decimal?>((obj) => obj.RangeMin, "RangeMin");
 
         /// <summary>
-        /// Gets an exposer for the <see cref="Capacity.Category"/> property.
+        /// Gets an exposer for the <see cref="Capacity.RangeMax"/> property.
         /// </summary>
-        public static readonly Exposer<Capacity, Net.Profiles.ProfileParameterCategory> Category = new Exposer<Capacity, Net.Profiles.ProfileParameterCategory>((obj) => obj.Category, "Category");
+        public static readonly Exposer<Capacity, decimal?> RangeMax = new Exposer<Capacity, decimal?>((obj) => obj.RangeMax, "RangeMax");
+
+        /// <summary>
+        /// Gets an exposer for the <see cref="Capacity.StepSize"/> property.
+        /// </summary>
+        public static readonly Exposer<Capacity, decimal?> StepSize = new Exposer<Capacity, decimal?>((obj) => obj.StepSize, "StepSize");
+
+        /// <summary>
+        /// Gets an exposer for the <see cref="Capacity.Decimals"/> property.
+        /// </summary>
+        public static readonly Exposer<Capacity, int?> Decimals = new Exposer<Capacity, int?>((obj) => obj.Decimals, "Decimals");
     }
 }

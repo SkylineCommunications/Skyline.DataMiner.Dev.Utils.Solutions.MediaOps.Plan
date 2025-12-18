@@ -79,12 +79,6 @@
             return !result.HasFailures();
         }
 
-        internal static long CountAll(MediaOpsPlanApi planApi)
-        {
-            var handler = new DomResourcePoolHandler(planApi);
-            return handler.CountAll();
-        }
-
         private void CreateOrUpdate(IEnumerable<ResourcePool> apiResourcePools)
         {
             if (apiResourcePools == null)
@@ -948,12 +942,6 @@
             }
 
             poolIdsWithCoreChanges.Add(resourcePool.Id);
-        }
-
-        private long CountAll()
-        {
-            return planApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances
-                .Count(DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resourcepool.Id));
         }
     }
 }

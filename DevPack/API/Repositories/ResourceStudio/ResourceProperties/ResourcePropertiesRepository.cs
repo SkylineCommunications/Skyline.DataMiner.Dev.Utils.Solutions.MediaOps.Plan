@@ -13,13 +13,13 @@
 
     using SLDataGateway.API.Types.Querying;
 
-    using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
-
     /// <summary>
     /// Provides repository operations for managing <see cref="ResourceProperty"/> objects.
     /// </summary>
     internal class ResourcePropertiesRepository : Repository, IResourcePropertiesRepository
     {
+        private readonly ResourcePropertyFilterTranslator filterTranslator = new ResourcePropertyFilterTranslator();
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ResourcePropertiesRepository"/> class.
         /// </summary>
@@ -35,8 +35,7 @@
         /// <returns>The total count of resource properties.</returns>
         public long Count()
         {
-            return PlanApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances
-                .Count(DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourceproperty.Id));
+            return Count(new TRUEFilterElement<ResourceProperty>());
         }
 
         /// <summary>
@@ -47,7 +46,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public long Count(FilterElement<ResourceProperty> filter)
         {
-            throw new NotImplementedException();
+            return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(filterTranslator.Translate(filter));
         }
 
         /// <summary>
@@ -58,7 +57,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public long Count(IQuery<ResourceProperty> query)
         {
-            throw new NotImplementedException();
+            return Count(query.Filter);
         }
 
         /// <summary>
@@ -213,12 +212,9 @@
             return ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Read), act =>
             {
                 act?.AddTag("ResourcePropertyId", id);
-                var filter = DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourceproperty.Id)
-                        .AND(DomInstanceExposers.Id.Equal(id));
-                var domResourceProperty = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourceProperties(filter)
-                    .FirstOrDefault();
+                var property = Read(ResourcePropertyExposers.Id.Equal(id)).FirstOrDefault();
 
-                if (domResourceProperty == null)
+                if (property == null)
                 {
                     act?.AddTag("Hit", false);
                     return null;
@@ -226,7 +222,7 @@
 
                 act?.AddTag("Hit", true);
 
-                return new ResourceProperty(domResourceProperty);
+                return property;
             });
         }
 
@@ -261,8 +257,7 @@
         {
             return ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Read), act =>
             {
-                var filter = DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resource.Id);
-                return PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourceProperties(filter).Select(x => new ResourceProperty(x));
+                return Read(new TRUEFilterElement<ResourceProperty>());
             });
         }
 
@@ -274,7 +269,16 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<ResourceProperty> Read(FilterElement<ResourceProperty> filter)
         {
-            throw new NotImplementedException();
+            if (filter == null)
+            {
+                throw new ArgumentNullException(nameof(filter));
+            }
+
+            return ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Read), act =>
+            {
+                var properties = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourceProperties(filterTranslator.Translate(filter));
+                return properties.Select(x => new ResourceProperty(x));
+            });
         }
 
         /// <summary>
@@ -285,18 +289,17 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<ResourceProperty> Read(IQuery<ResourceProperty> query)
         {
-            throw new NotImplementedException();
+            if (query == null)
+            {
+                throw new ArgumentNullException(nameof(query));
+            }
+
+            return ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Read), act =>
+            {
+                return Read(query.Filter);
+            });
         }
 
-        /// <summary>
-        /// Reads all resource properties in pages.
-        /// </summary>
-        /// <returns>An enumerable collection of pages, where each page contains a collection of resource properties.</returns>
-        public IEnumerable<IEnumerable<ResourceProperty>> ReadPaged()
-        {
-            return PlanApi.DomHelpers.SlcResourceStudioHelper.GetAllResourcePropertiesPaged()
-                .Select(Page => Page.Select(x => new ResourceProperty(x)));
-        }
         /// <summary>
         /// Reads all resource properties in pages.
         /// </summary>
@@ -305,6 +308,9 @@
         IEnumerable<IPagedResult<ResourceProperty>> IPageableRepository<ResourceProperty>.ReadPaged()
         {
             throw new NotImplementedException();
+
+            //return PlanApi.DomHelpers.SlcResourceStudioHelper.GetAllResourcePropertiesPaged()
+            //    .Select(Page => Page.Select(x => new ResourceProperty(x)));
         }
 
         /// <summary>

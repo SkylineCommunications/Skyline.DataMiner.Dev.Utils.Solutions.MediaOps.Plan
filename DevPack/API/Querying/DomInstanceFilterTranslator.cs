@@ -1,8 +1,6 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API.Querying
 {
     using System;
-    using System.Collections.Generic;
-    using System.Linq;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
