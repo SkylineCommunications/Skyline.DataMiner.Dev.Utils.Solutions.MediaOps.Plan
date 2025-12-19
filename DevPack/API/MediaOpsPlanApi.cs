@@ -31,6 +31,8 @@
         private readonly Lazy<Plan.Tools.LockManager> lazyLockManager;
         private bool disposedValue;
 
+        internal static readonly int DefaultPageSize = 200;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="MediaOpsPlanApi"/> class.
         /// </summary>

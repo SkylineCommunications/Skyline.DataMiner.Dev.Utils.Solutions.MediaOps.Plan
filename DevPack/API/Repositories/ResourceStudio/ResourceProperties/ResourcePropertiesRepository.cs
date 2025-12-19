@@ -239,14 +239,7 @@
                 throw new ArgumentNullException(nameof(ids));
             }
 
-            return ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Read), act =>
-            {
-                act?.AddTag("ResourcePropertyIds", String.Join(", ", ids));
-                act?.AddTag("ResourcePropertyIds Count", ids.Count());
-
-                var properties = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourceProperties(ids);
-                return properties.Select(x => new ResourceProperty(x));
-            });
+            return Read(new ORFilterElement<ResourceProperty>(ids.Select(x => ResourcePropertyExposers.Id.Equal(x)).ToArray()));
         }
 
         /// <summary>
@@ -307,10 +300,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         IEnumerable<IPagedResult<ResourceProperty>> IPageableRepository<ResourceProperty>.ReadPaged()
         {
-            throw new NotImplementedException();
-
-            //return PlanApi.DomHelpers.SlcResourceStudioHelper.GetAllResourcePropertiesPaged()
-            //    .Select(Page => Page.Select(x => new ResourceProperty(x)));
+            return ReadPaged(new TRUEFilterElement<ResourceProperty>());
         }
 
         /// <summary>
@@ -321,7 +311,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<ResourceProperty>> ReadPaged(FilterElement<ResourceProperty> filter)
         {
-            throw new NotImplementedException();
+            return ReadPaged(filter, MediaOpsPlanApi.DefaultPageSize);
         }
 
         /// <summary>
@@ -332,7 +322,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<ResourceProperty>> ReadPaged(IQuery<ResourceProperty> query)
         {
-            throw new NotImplementedException();
+            return ReadPaged(query.Filter);
         }
 
         /// <summary>
@@ -344,7 +334,18 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<ResourceProperty>> ReadPaged(FilterElement<ResourceProperty> filter, int pageSize)
         {
-            throw new NotImplementedException();
+            var pageNumber = 0;
+            var paramFilter = filterTranslator.Translate(filter);
+            var items = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePropertiesPaged(paramFilter, pageSize);
+            var enumerator = items.GetEnumerator();
+            var hasNext = enumerator.MoveNext();
+
+            while (hasNext)
+            {
+                var page = enumerator.Current;
+                hasNext = enumerator.MoveNext();
+                yield return new PagedResult<ResourceProperty>(page.Select(x => new ResourceProperty(x)), pageNumber++, pageSize, hasNext);
+            }
         }
 
         /// <summary>
@@ -356,7 +357,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<ResourceProperty>> ReadPaged(IQuery<ResourceProperty> query, int pageSize)
         {
-            throw new NotImplementedException();
+            return ReadPaged(query.Filter, pageSize);
         }
 
         /// <summary>

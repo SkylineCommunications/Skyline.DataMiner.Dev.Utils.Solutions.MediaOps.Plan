@@ -256,7 +256,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public long Count(IQuery<Resource> query)
         {
-            throw new NotImplementedException();
+            return Count(query.Filter);
         }
 
         /// <summary>
@@ -434,7 +434,7 @@
                 throw new ArgumentNullException(nameof(resourcePool));
             }
 
-            return Resource.InstantiateResources(PlanApi, PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcesByPool(resourcePool.Id));
+            return Read(ResourceExposers.AssignedResourcePoolIds.Contains(resourcePool.Id));
         }
 
         /// <summary>
@@ -451,11 +451,7 @@
                 throw new ArgumentNullException(nameof(resourcePool));
             }
 
-            var filter = DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.Pool_Ids)
-                .Contains(Convert.ToString(resourcePool.Id))
-                .AND(DomInstanceExposers.StatusId.Equal(SlcResource_StudioIds.Behaviors.Resource_Behavior.Statuses.ToValue(EnumExtensions.MapEnum<ResourceState, SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum>(state))));
-
-            return Resource.InstantiateResources(PlanApi, PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(filter));
+            return Read(ResourceExposers.AssignedResourcePoolIds.Contains(resourcePool.Id).AND(ResourceExposers.State.Equal((int)state)));
         }
 
         /// <summary>
@@ -663,10 +659,7 @@
         /// <returns>An enumerable collection of all resources.</returns>
         public IEnumerable<Resource> Read()
         {
-            return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Read), act =>
-            {
-                return Read(new TRUEFilterElement<Resource>());
-            });
+            return Read(new TRUEFilterElement<Resource>());
         }
 
         /// <summary>
@@ -692,7 +685,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<Resource> Read(IQuery<Resource> query)
         {
-            throw new NotImplementedException();
+            return Read(query.Filter);
         }
 
         /// <summary>
@@ -702,9 +695,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         IEnumerable<IPagedResult<Resource>> IPageableRepository<Resource>.ReadPaged()
         {
-            throw new NotImplementedException();
-            //return PlanApi.DomHelpers.SlcResourceStudioHelper.GetAllResourcesPaged()
-            //    .Select(page => Resource.InstantiateResources(PlanApi, page));
+            return ReadPaged(new TRUEFilterElement<Resource>());
         }
 
         /// <summary>
@@ -715,7 +706,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Resource>> ReadPaged(FilterElement<Resource> filter)
         {
-            throw new NotImplementedException();
+            return ReadPaged(filter, MediaOpsPlanApi.DefaultPageSize);
         }
 
         /// <summary>
@@ -726,7 +717,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Resource>> ReadPaged(IQuery<Resource> query)
         {
-            throw new NotImplementedException();
+            return ReadPaged(query.Filter);
         }
 
         /// <summary>
@@ -738,7 +729,18 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Resource>> ReadPaged(FilterElement<Resource> filter, int pageSize)
         {
-            throw new NotImplementedException();
+            var pageNumber = 0;
+            var paramFilter = filterTranslator.Translate(filter);
+            var items = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcesPaged(paramFilter, pageSize);
+            var enumerator = items.GetEnumerator();
+            var hasNext = enumerator.MoveNext();
+
+            while (hasNext)
+            {
+                var page = enumerator.Current;
+                hasNext = enumerator.MoveNext();
+                yield return new PagedResult<Resource>(Resource.InstantiateResources(PlanApi, page), pageNumber++, pageSize, hasNext);
+            }
         }
 
         /// <summary>

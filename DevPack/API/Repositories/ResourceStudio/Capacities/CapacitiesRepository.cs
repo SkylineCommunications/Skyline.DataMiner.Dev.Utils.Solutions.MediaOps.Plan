@@ -17,6 +17,8 @@
     /// </summary>
     internal class CapacitiesRepository : Repository, ICapacitiesRepository
     {
+        private readonly CapacityFilterTranslator filterTranslator = new CapacityFilterTranslator();
+
         /// <summary>
         /// Initializes a new instance of the <see cref="CapacitiesRepository"/> class.
         /// </summary>
@@ -31,7 +33,7 @@
         /// <returns>The total count of capacities.</returns>
         public long Count()
         {
-            return PlanApi.CoreHelpers.ProfileProvider.CountAllCapacities();
+            return Count(new TRUEFilterElement<Capacity>());
         }
 
         /// <summary>
@@ -42,7 +44,11 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public long Count(FilterElement<Capacity> filter)
         {
-            throw new NotImplementedException();
+            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Count), act =>
+            {
+                var paramFilter = filterTranslator.Translate(filter);
+                return PlanApi.CoreHelpers.ProfileProvider.CountCapacities(paramFilter);
+            });
         }
 
         /// <summary>
@@ -53,7 +59,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public long Count(IQuery<Capacity> query)
         {
-            throw new NotImplementedException();
+            return Count(query.Filter);
         }
 
         /// <summary>
@@ -204,20 +210,7 @@
                 throw new ArgumentException(nameof(id));
             }
 
-            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Read), act =>
-            {
-                act?.AddTag("CapacityId", id);
-                var coreCapacity = PlanApi.CoreHelpers.ProfileProvider.GetCapacityById(id);
-
-                if (coreCapacity == null)
-                {
-                    act?.AddTag("Hit", false);
-                    return null;
-                }
-
-                act?.AddTag("Hit", true);
-                return Capacity.InstantiateCapacities([coreCapacity]).FirstOrDefault();
-            });
+            return Read(CapacityExposers.Id.Equal(id)).FirstOrDefault();
         }
 
         /// <summary>
@@ -233,14 +226,7 @@
                 throw new ArgumentNullException(nameof(ids));
             }
 
-            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Read), act =>
-            {
-                act?.AddTag("CapacityIds", String.Join(", ", ids));
-                act?.AddTag("CapacityIds Count", ids.Count());
-
-                var capacities = PlanApi.CoreHelpers.ProfileProvider.GetCapacitiesById(ids);
-                return Capacity.InstantiateCapacities(capacities);
-            });
+            return Read(new ORFilterElement<Capacity>(ids.Select(x => CapacityExposers.Id.Equal(x)).ToArray()));
         }
 
         /// <summary>
@@ -249,10 +235,7 @@
         /// <returns>An enumerable collection of all capacities.</returns>
         public IEnumerable<Capacity> Read()
         {
-            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Read), act =>
-            {
-                return Capacity.InstantiateCapacities(PlanApi.CoreHelpers.ProfileProvider.GetAllCapacities());
-            });
+            return Read(new TRUEFilterElement<Capacity>());
         }
 
         /// <summary>
@@ -263,7 +246,16 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<Capacity> Read(FilterElement<Capacity> filter)
         {
-            throw new NotImplementedException();
+            if (filter == null)
+            {
+                throw new ArgumentNullException(nameof(filter));
+            }
+
+            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Update), act =>
+            {
+                var coreCapacities = PlanApi.CoreHelpers.ProfileProvider.GetCapacities(filterTranslator.Translate(filter));
+                return Capacity.InstantiateCapacities(coreCapacities);
+            });
         }
 
         /// <summary>
@@ -274,19 +266,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<Capacity> Read(IQuery<Capacity> query)
         {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Reads all capacities in pages.
-        /// </summary>
-        /// <returns>An enumerable collection of pages, where each page contains a collection of capacities.</returns>
-        public IEnumerable<IEnumerable<Capacity>> ReadPaged()
-        {
-            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(ReadPaged), act =>
-            {
-                return PlanApi.CoreHelpers.ProfileProvider.GetAllCapacitiesPaged().Select(page => Capacity.InstantiateCapacities(page));
-            });
+            return Read(query.Filter);
         }
 
         /// <summary>
@@ -294,9 +274,9 @@
         /// </summary>
         /// <returns>An enumerable collection of pages, where each page contains a collection of capacities.</returns>
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
-        IEnumerable<IPagedResult<Capacity>> IPageableRepository<Capacity>.ReadPaged()
+        public IEnumerable<IPagedResult<Capacity>> ReadPaged()
         {
-            throw new NotImplementedException();
+            return ReadPaged(new TRUEFilterElement<Capacity>());
         }
 
         /// <summary>
@@ -307,7 +287,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Capacity>> ReadPaged(FilterElement<Capacity> filter)
         {
-            throw new NotImplementedException();
+            return ReadPaged(filter, MediaOpsPlanApi.DefaultPageSize);
         }
 
         /// <summary>
@@ -318,7 +298,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Capacity>> ReadPaged(IQuery<Capacity> query)
         {
-            throw new NotImplementedException();
+            return ReadPaged(query.Filter);
         }
 
         /// <summary>
@@ -330,7 +310,18 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Capacity>> ReadPaged(FilterElement<Capacity> filter, int pageSize)
         {
-            throw new NotImplementedException();
+            var pageNumber = 0;
+            var paramFilter = filterTranslator.Translate(filter);
+            var items = PlanApi.CoreHelpers.ProfileProvider.GetCapacitiesPaged(paramFilter, pageSize);
+            var enumerator = items.GetEnumerator();
+            var hasNext = enumerator.MoveNext();
+
+            while (hasNext)
+            {
+                var page = enumerator.Current;
+                hasNext = enumerator.MoveNext();
+                yield return new PagedResult<Capacity>(Capacity.InstantiateCapacities(page), pageNumber++, pageSize, hasNext);
+            }
         }
 
         /// <summary>
@@ -342,7 +333,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Capacity>> ReadPaged(IQuery<Capacity> query, int pageSize)
         {
-            throw new NotImplementedException();
+            return ReadPaged(query.Filter, pageSize);
         }
 
         /// <summary>

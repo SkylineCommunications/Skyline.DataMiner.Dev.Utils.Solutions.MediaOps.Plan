@@ -12,7 +12,6 @@
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Utils.DOM.Extensions;
-    using SLDataGateway.API.Types.Querying;
     using static Skyline.DataMiner.Net.Profiles.Parameter;
 
     /// <summary>
@@ -64,16 +63,6 @@
         }
 
         /// <summary>
-        /// Retrieves a parameter by its ID.
-        /// </summary>
-        /// <param name="id">The ID of the parameter.</param>
-        /// <returns>The parameter associated with the specified ID, or <see langword="null"/> if not found.</returns>
-        public Net.Profiles.Parameter GetParameterById(Guid id)
-        {
-            return profileHelper.ProfileParameters.Read(ParameterExposers.ID.Equal(id)).SingleOrDefault();
-        }
-
-        /// <summary>
         /// Retrieves multiple parameters by their IDs.
         /// </summary>
         /// <param name="ids">The collection of parameter IDs.</param>
@@ -91,17 +80,7 @@
             }
 
             var filter = new ORFilterElement<Net.Profiles.Parameter>(ids.Select(id => ParameterExposers.ID.Equal(id)).ToArray());
-            return profileHelper.ProfileParameters.Read(filter);
-        }
-
-        /// <summary>
-        /// Retrieves a parameter by its name.
-        /// </summary>
-        /// <param name="name">The name of the parameter.</param>
-        /// <returns>The parameter associated with the specified name, or <see langword="null"/> if not found.</returns>
-        public Net.Profiles.Parameter GetParameterByName(string name)
-        {
-            return profileHelper.ProfileParameters.Read(ParameterExposers.Name.Equal(name)).SingleOrDefault();
+            return GetParameters(filter);
         }
 
         /// <summary>
@@ -111,7 +90,27 @@
         /// <returns>A dictionary mapping each name to its associated parameter.</returns>
         public IEnumerable<Net.Profiles.Parameter> GetParametersByName(IEnumerable<string> names)
         {
+            if (names == null)
+            {
+                throw new ArgumentNullException(nameof(names));
+            }
+
+            if (!names.Any())
+            {
+                return Array.Empty<Net.Profiles.Parameter>();
+            }
+
             var filter = new ORFilterElement<Net.Profiles.Parameter>(names.Select(name => ParameterExposers.Name.Equal(name)).ToArray());
+            return GetParameters(filter);
+        }
+
+        public IEnumerable<Net.Profiles.Parameter> GetParameters(FilterElement<Net.Profiles.Parameter> filter)
+        {
+            if (filter == null)
+            {
+                throw new ArgumentNullException(nameof(filter));
+            }
+
             return profileHelper.ProfileParameters.Read(filter);
         }
 
@@ -172,40 +171,9 @@
         /// Retrieves all capacity parameters.
         /// </summary>
         /// <returns>A collection of capacity parameters.</returns>
-        public IReadOnlyCollection<Net.Profiles.Parameter> GetAllCapacities()
+        public IEnumerable<IEnumerable<Net.Profiles.Parameter>> GetCapacitiesPaged(FilterElement<Net.Profiles.Parameter> filter, long pageSize = 500)
         {
-            return profileHelper.ProfileParameters.Read(AllCapacitiesFilter);
-        }
-
-        /// <summary>
-        /// Retrieves all capacity parameters.
-        /// </summary>
-        /// <returns>A collection of capacity parameters.</returns>
-        public IEnumerable<IEnumerable<Net.Profiles.Parameter>> GetAllCapacitiesPaged(long? pageSize = null)
-        {
-            var pages = pageSize.HasValue
-                ? profileHelper.ProfileParameters.ReadPaged(AllCapacitiesFilter, pageSize.Value)
-                : profileHelper.ProfileParameters.ReadPaged(AllCapacitiesFilter);
-
-            return pages;
-        }
-
-        public IEnumerable<Net.Profiles.Parameter> GetCapacities(IQuery<Net.Profiles.Parameter> query)
-        {
-            if (query == null)
-                throw new ArgumentNullException(nameof(query));
-
-            query = query.WithFilter(AllCapacitiesFilter.AND(query.Filter));
-            return profileHelper.ProfileParameters.Read(query);
-        }
-
-        /// <summary>
-        /// Total amount of capacity parameters.
-        /// </summary>
-        /// <returns>Total amount of capacity parameters.</returns>
-        public long CountAllCapacities()
-        {
-            return profileHelper.ProfileParameters.Count(AllCapacitiesFilter);
+            return profileHelper.ProfileParameters.ReadPaged(AllCapacitiesFilter.AND(filter), pageSize);
         }
 
         public long CountCapacities(FilterElement<Net.Profiles.Parameter> filter)
@@ -214,91 +182,12 @@
         }
 
         /// <summary>
-        /// Retrieves a capacity parameter by its ID.
-        /// </summary>
-        /// <param name="id">The ID of the capacity parameter.</param>
-        /// <returns>The capacity parameter associated with the specified ID, or <see langword="null"/> if not found.</returns>
-        public Net.Profiles.Parameter GetCapacityById(Guid id)
-        {
-            var parameter = GetParameterById(id);
-            if (parameter == null || !parameter.Categories.HasFlag(ProfileParameterCategory.Capacity))
-            {
-                return null;
-            }
-
-            return parameter;
-        }
-
-        /// <summary>
-        /// Retrieves multiple capacity parameters by their IDs.
-        /// </summary>
-        /// <param name="ids">The collection of capacity parameter IDs.</param>
-        /// <returns>A dictionary mapping each ID to its associated capacity parameter.</returns>
-        public IEnumerable<Net.Profiles.Parameter> GetCapacitiesById(IEnumerable<Guid> ids)
-        {
-            return GetParametersById(ids).Where(x => x.Categories.HasFlag(ProfileParameterCategory.Capacity));
-        }
-
-        /// <summary>
-        /// Retrieves a capacity parameter by its name.
-        /// </summary>
-        /// <param name="name">The name of the capacity parameter.</param>
-        /// <returns>The capacity parameter associated with the specified name, or <see langword="null"/> if not found.</returns>
-        public Net.Profiles.Parameter GetCapacityByName(string name)
-        {
-            var parameter = GetParameterByName(name);
-            if (parameter == null || !parameter.Categories.HasFlag(ProfileParameterCategory.Capacity))
-            {
-                return null;
-            }
-
-            return parameter;
-        }
-
-        /// <summary>
-        /// Retrieves multiple capacity parameters by their names.
-        /// </summary>
-        /// <param name="names">The collection of capacity parameter names.</param>
-        /// <returns>A dictionary mapping each name to its associated capacity parameter.</returns>
-        public IEnumerable<Net.Profiles.Parameter> GetCapacitiesByName(IEnumerable<string> names)
-        {
-            return GetParametersByName(names).Where(x => x.Categories.HasFlag(ProfileParameterCategory.Capacity));
-        }
-
-        /// <summary>
         /// Retrieves all configuration parameters.
         /// </summary>
         /// <returns>A collection of configuration parameters.</returns>
-        public IReadOnlyCollection<Net.Profiles.Parameter> GetAllConfigurations()
+        public IEnumerable<IEnumerable<Net.Profiles.Parameter>> GetConfigurationsPaged(FilterElement<Net.Profiles.Parameter> filter, long pageSize = 500)
         {
-            return profileHelper.ProfileParameters.Read(AllConfigurationsFilter);
-        }
-
-        /// <summary>
-        /// Retrieves all configuration parameters.
-        /// </summary>
-        /// <returns>A collection of configuration parameters.</returns>
-        public IEnumerable<IEnumerable<Net.Profiles.Parameter>> GetAllConfigurationsPaged(long? pageSize = null)
-        {
-            var pages = pageSize.HasValue
-                ? profileHelper.ProfileParameters.ReadPaged(AllConfigurationsFilter, pageSize.Value)
-                : profileHelper.ProfileParameters.ReadPaged(AllConfigurationsFilter);
-
-            return pages;
-        }
-
-        public IEnumerable<Net.Profiles.Parameter> GetConfigurations(IQuery<Net.Profiles.Parameter> query)
-        {
-            if (query == null)
-                throw new ArgumentNullException(nameof(query));
-
-            query = query.WithFilter(AllConfigurationsFilter.AND(query.Filter));
-            return profileHelper.ProfileParameters.Read(query);
-        }
-
-        public long CountAllConfigurations()
-        {
-            return profileHelper.ProfileParameters.Count(AllConfigurationsFilter);
+            return profileHelper.ProfileParameters.ReadPaged(AllConfigurationsFilter.AND(filter), pageSize);
         }
 
         public long CountConfigurations(FilterElement<Net.Profiles.Parameter> filter)
@@ -306,98 +195,19 @@
             return profileHelper.ProfileParameters.Count(AllConfigurationsFilter.AND(filter));
         }
 
-        /// <summary>
-        /// Retrieves a configuration parameter by its ID.
-        /// </summary>
-        /// <param name="id">The ID of the configuration parameter.</param>
-        /// <returns>The configuration parameter associated with the specified ID, or <see langword="null"/> if not found.</returns>
-        public Net.Profiles.Parameter GetConfigurationById(Guid id)
+        public IReadOnlyCollection<Net.Profiles.Parameter> GetTimeDependentCapabilities(FilterElement<Net.Profiles.Parameter> filter)
         {
-            var parameter = GetParameterById(id);
-            if (parameter == null || !parameter.Categories.HasFlag(ProfileParameterCategory.Configuration))
-            {
-                return null;
-            }
-
-            return parameter;
+            return profileHelper.ProfileParameters.Read(AllTimeDependentCapabilitiesFilter.AND(filter));
         }
 
-        /// <summary>
-        /// Retrieves multiple configuration parameters by their IDs.
-        /// </summary>
-        /// <param name="ids">The collection of configuration parameter IDs.</param>
-        /// <returns>A dictionary mapping each ID to its associated configuration parameter.</returns>
-        public IEnumerable<Net.Profiles.Parameter> GetConfigurationsById(IEnumerable<Guid> ids)
+        public long CountNonTimeDependentCapabilities()
         {
-            return GetParametersById(ids).Where(x => x.Categories.HasFlag(ProfileParameterCategory.Configuration));
+            return profileHelper.ProfileParameters.Count(AllCapabilitiesFilter);
         }
 
-        /// <summary>
-        /// Retrieves a configuration parameter by its name.
-        /// </summary>
-        /// <param name="name">The name of the configuration parameter.</param>
-        /// <returns>The configuration parameter associated with the specified name, or <see langword="null"/> if not found.</returns>
-        public Net.Profiles.Parameter GetConfigurationByName(string name)
-        {
-            var parameter = GetParameterByName(name);
-            if (parameter == null || !parameter.Categories.HasFlag(ProfileParameterCategory.Configuration))
-            {
-                return null;
-            }
-
-            return parameter;
-        }
-
-        /// <summary>
-        /// Retrieves multiple configuration parameters by their names.
-        /// </summary>
-        /// <param name="names">The collection of configuration parameter names.</param>
-        /// <returns>A dictionary mapping each name to its associated configuration parameter.</returns>
-        public IEnumerable<Net.Profiles.Parameter> GetConfigurationsByName(IEnumerable<string> names)
-        {
-            return GetParametersByName(names).Where(x => x.Categories.HasFlag(ProfileParameterCategory.Configuration));
-        }
-
-        /// <summary>
-        /// Retrieves all capability parameters.
-        /// </summary>
-        /// <returns>A collection of capability parameters.</returns>
-        public IReadOnlyCollection<Net.Profiles.Parameter> GetAllCapabilities()
-        {
-            return profileHelper.ProfileParameters.Read(AllCapabilitiesFilter);
-        }
-
-        public IReadOnlyCollection<Net.Profiles.Parameter> GetAllTimeDependentCapabilities()
-        {
-            return profileHelper.ProfileParameters.Read(AllTimeDependentCapabilitiesFilter);
-        }
-
-        /// <summary>
-        /// Retrieves all capability parameters.
-        /// </summary>
-        /// <returns>A collection of capability parameters.</returns>
-        public IEnumerable<IEnumerable<Net.Profiles.Parameter>> GetAllCapabilitiesPaged(long pageSize = 500)
-        {
-            return profileHelper.ProfileParameters.ReadPaged(AllCapabilitiesFilter, pageSize);
-        }
-
-        public IEnumerable<IEnumerable<Net.Profiles.Parameter>> GetAllCapabilitiesPaged(IQuery<Net.Profiles.Parameter> query, long pageSize = 500)
-        {
-            return profileHelper.ProfileParameters.ReadPaged(AllCapabilitiesFilter.AND(query.Filter), pageSize);
-        }
-
-        public IEnumerable<IEnumerable<Net.Profiles.Parameter>> GetAllCapabilitiesPaged(FilterElement<Net.Profiles.Parameter> filter, long pageSize = 500)
+        public IEnumerable<IEnumerable<Net.Profiles.Parameter>> GetCapabilitiesPaged(FilterElement<Net.Profiles.Parameter> filter, long pageSize = 500)
         {
             return profileHelper.ProfileParameters.ReadPaged(AllCapabilitiesFilter.AND(filter), pageSize);
-        }
-
-        public IEnumerable<Net.Profiles.Parameter> GetCapabilities(IQuery<Net.Profiles.Parameter> query)
-        {
-            if (query == null)
-                throw new ArgumentNullException(nameof(query));
-
-            query = query.WithFilter(AllCapabilitiesFilter.AND(query.Filter));
-            return profileHelper.ProfileParameters.Read(query);
         }
 
         public IEnumerable<Net.Profiles.Parameter> GetCapabilities(FilterElement<Net.Profiles.Parameter> filter)
@@ -408,71 +218,25 @@
             return profileHelper.ProfileParameters.Read(AllCapabilitiesFilter.AND(filter));
         }
 
-        public long CountAllCapabilities()
+        public IEnumerable<Net.Profiles.Parameter> GetCapacities(FilterElement<Net.Profiles.Parameter> filter)
         {
-            return profileHelper.ProfileParameters.Count(AllCapabilitiesFilter);
+            if (filter == null)
+                throw new ArgumentNullException(nameof(filter));
+
+            return profileHelper.ProfileParameters.Read(AllCapacitiesFilter.AND(filter));
+        }
+
+        public IEnumerable<Net.Profiles.Parameter> GetConfigurations(FilterElement<Net.Profiles.Parameter> filter)
+        {
+            if (filter == null)
+                throw new ArgumentNullException(nameof(filter));
+
+            return profileHelper.ProfileParameters.Read(AllConfigurationsFilter.AND(filter));
         }
 
         public long CountCapabilities(FilterElement<Net.Profiles.Parameter> filter)
         {
             return profileHelper.ProfileParameters.Count(AllCapabilitiesFilter.AND(filter));
-        }
-
-        public long CountNonTimeDependentCapabilities()
-        {
-            return profileHelper.ProfileParameters.Count(AllCapabilitiesFilter);
-        }
-
-        /// <summary>
-        /// Retrieves a capability parameter by its ID.
-        /// </summary>
-        /// <param name="id">The ID of the capability parameter.</param>
-        /// <returns>The capability parameter associated with the specified ID, or <see langword="null"/> if not found.</returns>
-        public Net.Profiles.Parameter GetCapabilityById(Guid id)
-        {
-            var parameter = GetParameterById(id);
-            if (parameter == null || !parameter.Categories.HasFlag(ProfileParameterCategory.Capability))
-            {
-                return null;
-            }
-
-            return parameter;
-        }
-
-        /// <summary>
-        /// Retrieves multiple capability parameters by their IDs.
-        /// </summary>
-        /// <param name="ids">The collection of capability parameter IDs.</param>
-        /// <returns>A dictionary mapping each ID to its associated capability parameter.</returns>
-        public IEnumerable<Net.Profiles.Parameter> GetCapabilitiesById(IEnumerable<Guid> ids)
-        {
-            return GetParametersById(ids).Where(x => x.Categories.HasFlag(ProfileParameterCategory.Capability));
-        }
-
-        /// <summary>
-        /// Retrieves a capability parameter by its name.
-        /// </summary>
-        /// <param name="name">The name of the capability parameter.</param>
-        /// <returns>The capability parameter associated with the specified name, or <see langword="null"/> if not found.</returns>
-        public Net.Profiles.Parameter GetCapabilityByName(string name)
-        {
-            var parameter = GetParameterByName(name);
-            if (parameter == null || !parameter.Categories.HasFlag(ProfileParameterCategory.Capability))
-            {
-                return null;
-            }
-
-            return parameter;
-        }
-
-        /// <summary>
-        /// Retrieves multiple capability parameters by their names.
-        /// </summary>
-        /// <param name="names">The collection of capability parameter names.</param>
-        /// <returns>A dictionary mapping each name to its associated capability parameter.</returns>
-        public IEnumerable<Net.Profiles.Parameter> GetCapabilitiesByName(IEnumerable<string> names)
-        {
-            return GetParametersByName(names).Where(x => x.Categories.HasFlag(ProfileParameterCategory.Capability));
         }
 
         public bool TryDeleteParametersInBatches(IEnumerable<Net.Profiles.Parameter> parameters, out Exceptions.BulkDeleteResult<Guid> result)
