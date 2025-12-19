@@ -631,7 +631,7 @@
                 throw new ArgumentNullException(nameof(resourcePool));
             }
 
-            return PlanApi.Resources.Count(ResourceExposers.AssignedResourcePoolIds.Contains(resourcePool.Id));
+            return PlanApi.Resources.Count(ResourceExposers.ResourcePoolIds.Contains(resourcePool.Id));
         }
 
         /// <summary>

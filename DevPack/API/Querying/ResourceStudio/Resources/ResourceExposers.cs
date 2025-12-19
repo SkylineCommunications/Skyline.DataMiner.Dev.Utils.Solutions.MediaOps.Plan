@@ -11,7 +11,7 @@
     public class ResourceExposers
     {
         /// <summary>
-        /// Gets an exposer for the <see cref="Resource.Id"/> property.
+        /// Gets an exposer for the <see cref="ApiObject.Id"/> property.
         /// </summary>
         public static readonly Exposer<Resource, Guid> Id = new Exposer<Resource, Guid>((obj) => obj.Id, "Id");
 
@@ -38,7 +38,7 @@
         /// <summary>
         /// Gets a dynamic list exposer for the <see cref="Resource.AssignedResourcePoolIds"/> property.
         /// </summary>
-        public static readonly DynamicListExposer<Resource, Guid> AssignedResourcePoolIds = DynamicListExposer<Resource, Guid>.CreateFromListExposer(new Exposer<Resource, IEnumerable>((obj) => obj.AssignedResourcePoolIds.Where(x => x != null), "AssignedResourcePoolIds"));
+        public static readonly DynamicListExposer<Resource, Guid> ResourcePoolIds = DynamicListExposer<Resource, Guid>.CreateFromListExposer(new Exposer<Resource, IEnumerable>((obj) => obj.AssignedResourcePoolIds.Where(x => x != null), "AssignedResourcePoolIds"));
 
         /// <summary>
         /// Provides exposers for querying and filtering resource capabilities.
@@ -48,7 +48,7 @@
             /// <summary>
             /// Gets a dynamic list exposer for capability IDs.
             /// </summary>
-            public static readonly DynamicListExposer<Resource, Guid> Id = DynamicListExposer<Resource, Guid>.CreateFromListExposer(new Exposer<Resource, IEnumerable>((obj) => obj.Capabilities.Where(x => x != null).Select(x => x.Id).Where(x => x != null), "Capabilities.Id"));
+            public static readonly DynamicListExposer<Resource, Guid> CapabilityId = DynamicListExposer<Resource, Guid>.CreateFromListExposer(new Exposer<Resource, IEnumerable>((obj) => obj.Capabilities.Where(x => x != null).Select(x => x.Id).Where(x => x != null), "Capabilities.Id"));
 
             /// <summary>
             /// Gets a dynamic list exposer for capability discrete values.
@@ -64,9 +64,7 @@
             /// <summary>
             /// Gets a dynamic list exposer for capacity IDs.
             /// </summary>
-            public static readonly DynamicListExposer<Resource, Guid> Id = DynamicListExposer<Resource, Guid>.CreateFromListExposer(new Exposer<Resource, IEnumerable>((obj) => obj.Capacities.Where(x => x != null).Select(x => x.Id).Where(x => x != null), "Capacities.Id"));
-
-            // TODO: should we support Min/Max exposers here for RangeCapacities and Value exposers for NumberCapacities?
+            public static readonly DynamicListExposer<Resource, Guid> CapacityId = DynamicListExposer<Resource, Guid>.CreateFromListExposer(new Exposer<Resource, IEnumerable>((obj) => obj.Capacities.Where(x => x != null).Select(x => x.Id).Where(x => x != null), "Capacities.Id"));
         }
 
         /// <summary>
@@ -77,7 +75,7 @@
             /// <summary>
             /// Gets a dynamic list exposer for property IDs.
             /// </summary>
-            public static readonly DynamicListExposer<Resource, Guid> Id = DynamicListExposer<Resource, Guid>.CreateFromListExposer(new Exposer<Resource, IEnumerable>((obj) => obj.Properties.Where(x => x != null).Select(x => x.Id).Where(x => x != null), "Properties.Id"));
+            public static readonly DynamicListExposer<Resource, Guid> PropertyId = DynamicListExposer<Resource, Guid>.CreateFromListExposer(new Exposer<Resource, IEnumerable>((obj) => obj.Properties.Where(x => x != null).Select(x => x.Id).Where(x => x != null), "Properties.Id"));
 
             /// <summary>
             /// Gets a dynamic list exposer for property values.

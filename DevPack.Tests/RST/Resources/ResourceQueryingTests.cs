@@ -43,24 +43,60 @@
             Assert.AreEqual(2, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.State.Equal((int)ResourceState.Complete))).Count());
             Assert.AreEqual(0, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.State.Equal((int)ResourceState.Deprecated))).Count());
 
-            Assert.AreEqual(2, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.AssignedResourcePoolIds.Contains(setup.ResourcePool1.Id))).Count());
-            Assert.AreEqual(3, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.AssignedResourcePoolIds.Contains(setup.ResourcePool2.Id))).Count());
-            Assert.AreEqual(0, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.AssignedResourcePoolIds.Contains(setup.ResourcePool3.Id))).Count());
+            Assert.AreEqual(2, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.ResourcePoolIds.Contains(setup.ResourcePool1!.Id))).Count());
+            Assert.AreEqual(3, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.ResourcePoolIds.Contains(setup.ResourcePool2!.Id))).Count());
+            Assert.AreEqual(0, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.ResourcePoolIds.Contains(setup.ResourcePool3!.Id))).Count());
 
-            Assert.AreEqual(1, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.Capabilities.Id.Equal(setup.Location.Id))).Count());
+            Assert.AreEqual(1, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.Capabilities.CapabilityId.Equal(setup.Location!.Id))).Count());
             Assert.AreEqual(1, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.Capabilities.Discretes.Contains("USA"))).Count());
-            Assert.AreEqual(1, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.Capabilities.Id.Equal(setup.Location.Id)).AND(ResourceExposers.Capabilities.Discretes.Contains("USA"))).Count());
+            Assert.AreEqual(1, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.Capabilities.CapabilityId.Equal(setup.Location.Id)).AND(ResourceExposers.Capabilities.Discretes.Contains("USA"))).Count());
 
-            Assert.AreEqual(3, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.Capacities.Id.Equal(setup.Frequency.Id))).Count());
-            Assert.AreEqual(2, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.Capacities.Id.Equal(setup.Bandwidth.Id))).Count());
+            Assert.AreEqual(3, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.Capacities.CapacityId.Equal(setup.Frequency!.Id))).Count());
+            Assert.AreEqual(2, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.Capacities.CapacityId.Equal(setup.Bandwidth!.Id))).Count());
 
-            Assert.AreEqual(4, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.Properties.Id.Equal(setup.Format.Id))).Count());
+            Assert.AreEqual(4, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.Properties.PropertyId.Equal(setup.Format!.Id))).Count());
             Assert.AreEqual(4, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.Properties.Value.Equal("16:9"))).Count());
 
-            Assert.AreEqual(2, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.Properties.Id.Equal(setup.Channel.Id))).Count());
+            Assert.AreEqual(2, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.Properties.PropertyId.Equal(setup.Channel!.Id))).Count());
             Assert.AreEqual(2, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.Properties.Value.Equal("VRT"))).Count());
 
-            Assert.AreEqual(0, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.Properties.Id.Equal(setup.Color.Id))).Count());
+            Assert.AreEqual(0, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.Properties.PropertyId.Equal(setup.Color!.Id))).Count());
+        }
+
+        [TestMethod]
+        public void CountResourcesWithFilter()
+        {
+            var resourceFilter = new ORFilterElement<Resource>(setup.Resources.Select(x => ResourceExposers.Id.Equal(x.Id)).ToArray());
+            Assert.AreEqual(5, TestContext.Api.Resources.Count(resourceFilter));
+
+            Assert.AreEqual(3, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.Name.Contains("Resource_Draft"))));
+
+            Assert.AreEqual(3, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.Concurrency.GreaterThan(6))));
+
+            Assert.AreEqual(3, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.IsFavorite.Equal(true))));
+
+            Assert.AreEqual(3, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.State.Equal((int)ResourceState.Draft))));
+            Assert.AreEqual(2, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.State.Equal((int)ResourceState.Complete))));
+            Assert.AreEqual(0, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.State.Equal((int)ResourceState.Deprecated))));
+
+            Assert.AreEqual(2, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.ResourcePoolIds.Contains(setup.ResourcePool1!.Id))));
+            Assert.AreEqual(3, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.ResourcePoolIds.Contains(setup.ResourcePool2!.Id))));
+            Assert.AreEqual(0, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.ResourcePoolIds.Contains(setup.ResourcePool3!.Id))));
+
+            Assert.AreEqual(1, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.Capabilities.CapabilityId.Equal(setup.Location!.Id))));
+            Assert.AreEqual(1, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.Capabilities.Discretes.Contains("USA"))));
+            Assert.AreEqual(1, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.Capabilities.CapabilityId.Equal(setup.Location.Id)).AND(ResourceExposers.Capabilities.Discretes.Contains("USA"))));
+
+            Assert.AreEqual(3, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.Capacities.CapacityId.Equal(setup.Frequency!.Id))));
+            Assert.AreEqual(2, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.Capacities.CapacityId.Equal(setup.Bandwidth!.Id))));
+
+            Assert.AreEqual(4, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.Properties.PropertyId.Equal(setup.Format!.Id))));
+            Assert.AreEqual(4, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.Properties.Value.Equal("16:9"))));
+
+            Assert.AreEqual(2, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.Properties.PropertyId.Equal(setup.Channel!.Id))));
+            Assert.AreEqual(2, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.Properties.Value.Equal("VRT"))));
+
+            Assert.AreEqual(0, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.Properties.PropertyId.Equal(setup.Color!.Id))));
         }
 
         [TestMethod]

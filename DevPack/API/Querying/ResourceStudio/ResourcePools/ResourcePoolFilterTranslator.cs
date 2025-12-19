@@ -20,7 +20,7 @@
             [ResourcePoolExposers.Url.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourcePoolOther.URL), comparer, (string)value),
             [ResourcePoolExposers.LinkedResourcePools.LinkedResourcePoolId.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourcePoolLinks.LinkedResourcePool), comparer, Convert.ToString(value)),
             [ResourcePoolExposers.LinkedResourcePools.SelectionType.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourcePoolLinks.ResourceSelectionType), comparer, ConvertResourceSelectionType((ResourceSelectionType)value)),
-            [ResourcePoolExposers.Capabilities.Id.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourcePoolCapabilities.ProfileParameterID), comparer, Convert.ToString(value)),
+            [ResourcePoolExposers.Capabilities.CapabilityId.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourcePoolCapabilities.ProfileParameterID), comparer, Convert.ToString(value)),
             [ResourcePoolExposers.Capabilities.Discretes.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourcePoolCapabilities.StringValue), comparer, Convert.ToString(value)),
         };
 

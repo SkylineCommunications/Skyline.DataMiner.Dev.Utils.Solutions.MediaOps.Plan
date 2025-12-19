@@ -11,17 +11,17 @@
     public class CapabilityExposers
     {
         /// <summary>
-        /// Gets an exposer for the <see cref="Capability.Id"/> property.
+        /// Gets an exposer for the <see cref="ApiObject.Id"/> property.
         /// </summary>
         public static readonly Exposer<Capability, Guid> Id = new Exposer<Capability, Guid>((obj) => obj.Id, "Id");
 
         /// <summary>
-        /// Gets an exposer for the <see cref="Capability.Name"/> property.
+        /// Gets an exposer for the <see cref="Parameter.Name"/> property.
         /// </summary>
         public static readonly Exposer<Capability, string> Name = new Exposer<Capability, string>((obj) => obj.Name, "Name");
 
         /// <summary>
-        /// Gets an exposer for the <see cref="Capability.IsMandatory"/> property.
+        /// Gets an exposer for the <see cref="Parameter.IsMandatory"/> property.
         /// </summary>
         public static readonly Exposer<Capability, bool> IsMandatory = new Exposer<Capability, bool>((obj) => obj.IsMandatory, "IsMandatory");
 

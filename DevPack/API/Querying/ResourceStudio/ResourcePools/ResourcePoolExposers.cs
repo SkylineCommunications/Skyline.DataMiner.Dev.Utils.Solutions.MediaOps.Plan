@@ -11,7 +11,7 @@
     public class ResourcePoolExposers
     {
         /// <summary>
-        /// Gets an exposer for the <see cref="ResourcePool.Id"/> property.
+        /// Gets an exposer for the <see cref="ApiObject.Id"/> property.
         /// </summary>
         public static readonly Exposer<ResourcePool, Guid> Id = new Exposer<ResourcePool, Guid>((obj) => obj.Id, "Id");
 
@@ -48,7 +48,7 @@
             /// <summary>
             /// Gets a dynamic list exposer for resource selection types.
             /// </summary>
-            public static readonly DynamicListExposer<ResourcePool, ResourceSelectionType> SelectionType = DynamicListExposer<ResourcePool, ResourceSelectionType>.CreateFromListExposer(new Exposer<ResourcePool, IEnumerable>((obj) => obj.LinkedResourcePools.Where(x => x != null).Select(x => x.SelectionType).Where(x => x != null), "LinkedResourcePools.SelectionType"));
+            public static readonly DynamicListExposer<ResourcePool, ResourceSelectionType> SelectionType = DynamicListExposer<ResourcePool, ResourceSelectionType>.CreateFromListExposer(new Exposer<ResourcePool, IEnumerable>((obj) => obj.LinkedResourcePools.Where(x => x != null).Select(x => x.SelectionType), "LinkedResourcePools.SelectionType"));
         }
 
         /// <summary>
@@ -59,7 +59,7 @@
             /// <summary>
             /// Gets a dynamic list exposer for capability IDs.
             /// </summary>
-            public static readonly DynamicListExposer<ResourcePool, Guid> Id = DynamicListExposer<ResourcePool, Guid>.CreateFromListExposer(new Exposer<ResourcePool, IEnumerable>((obj) => obj.Capabilities.Where(x => x != null).Select(x => x.Id).Where(x => x != null), "Capabilities.Id"));
+            public static readonly DynamicListExposer<ResourcePool, Guid> CapabilityId = DynamicListExposer<ResourcePool, Guid>.CreateFromListExposer(new Exposer<ResourcePool, IEnumerable>((obj) => obj.Capabilities.Where(x => x != null).Select(x => x.Id).Where(x => x != null), "Capabilities.Id"));
 
             /// <summary>
             /// Gets a dynamic list exposer for capability discrete values.

@@ -434,7 +434,7 @@
                 throw new ArgumentNullException(nameof(resourcePool));
             }
 
-            return Read(ResourceExposers.AssignedResourcePoolIds.Contains(resourcePool.Id));
+            return Read(ResourceExposers.ResourcePoolIds.Contains(resourcePool.Id));
         }
 
         /// <summary>
@@ -451,7 +451,7 @@
                 throw new ArgumentNullException(nameof(resourcePool));
             }
 
-            return Read(ResourceExposers.AssignedResourcePoolIds.Contains(resourcePool.Id).AND(ResourceExposers.State.Equal((int)state)));
+            return Read(ResourceExposers.ResourcePoolIds.Contains(resourcePool.Id).AND(ResourceExposers.State.Equal((int)state)));
         }
 
         /// <summary>

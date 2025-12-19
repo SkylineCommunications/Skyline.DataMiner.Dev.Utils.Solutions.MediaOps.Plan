@@ -17,7 +17,6 @@
         /// <summary>
         /// Translates a filter element of type <typeparamref name="T"/> into a filter element for <see cref="DomInstance"/>.
         /// </summary>
-        /// <typeparam name="T">The type of the filter element to translate. Must be a class.</typeparam>
         /// <param name="filter">The filter element to translate.</param>
         /// <returns>A <see cref="FilterElement{DomInstance}"/> representing the translated filter.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="filter"/> is null.</exception>
