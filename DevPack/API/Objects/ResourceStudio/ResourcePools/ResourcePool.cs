@@ -245,9 +245,11 @@
             }
 
             updatedInstance.ResourcePoolInfo.Name = Name;
-            updatedInstance.ExternalMetadata.ExternallyManaged = IsExternallyManaged;
             updatedInstance.ResourcePoolOther.IconImage = iconImage;
             updatedInstance.ResourcePoolOther.URL = url;
+
+            // Setting to null will not create a DOM section in storage.
+            updatedInstance.ExternalMetadata.ExternallyManaged = IsExternallyManaged ? true : null;
 
             updatedInstance.ResourcePoolLinks.Clear();
             foreach (var link in linkedResourcepools)
