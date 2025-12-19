@@ -134,6 +134,7 @@
             ValidateCapabilities(apiResources);
             ValidateResourceProperties(apiResources);
             ValidateNames(apiResources);
+            ValidateConnectionManagement(apiResources);
 
             var validResources = apiResources.Where(IsValid).ToList();
             var lockResult = planApi.LockManager.LockAndExecute(validResources, CreateOrUpdateCoreResources);
@@ -845,6 +846,54 @@
 
                         ReportError(resource.Id, error);
                     }
+                }
+            }
+        }
+
+        private void ValidateConnectionManagement(ICollection<Resource> apiResources)
+        {
+
+            if (apiResources == null)
+            {
+                throw new ArgumentNullException(nameof(apiResources));
+            }
+
+            if (apiResources.Count == 0)
+            {
+                return;
+            }
+
+            var virtualSignalGroupIds = apiResources
+                .SelectMany(x => new[] { x.VirtualSignalGroupInputId, x.VirtualSignalGroupOutputId })
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+            var virtualSignalGroupsById = planApi.LiveApi.VirtualSignalGroups.Read(virtualSignalGroupIds);
+
+            foreach (var resource in apiResources)
+            {
+                if (resource.VirtualSignalGroupInputId != Guid.Empty && !virtualSignalGroupsById.TryGetValue(resource.VirtualSignalGroupInputId, out _))
+                {
+                    var error = new ResourceInvalidVirtualSignalGroupError
+                    {
+                        ErrorMessage = $"Virtual Signal Group with ID '{resource.VirtualSignalGroupInputId}' not found.",
+                        Id = resource.Id,
+                        VirtualSignalGroupId = resource.VirtualSignalGroupInputId,
+                    };
+
+                    ReportError(resource.Id, error);
+                }
+
+                if (resource.VirtualSignalGroupOutputId != Guid.Empty && !virtualSignalGroupsById.TryGetValue(resource.VirtualSignalGroupOutputId, out _))
+                {
+                    var error = new ResourceInvalidVirtualSignalGroupError
+                    {
+                        ErrorMessage = $"Virtual Signal Group with ID '{resource.VirtualSignalGroupOutputId}' not found.",
+                        Id = resource.Id,
+                        VirtualSignalGroupId = resource.VirtualSignalGroupOutputId,
+                    };
+
+                    ReportError(resource.Id, error);
                 }
             }
         }
