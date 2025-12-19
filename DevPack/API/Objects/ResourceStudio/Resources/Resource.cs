@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.Linq;
 
+    using Skyline.DataMiner.Net.Sections;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
 
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
@@ -26,6 +27,10 @@
         private int concurrency;
 
         private Guid coreResourceId;
+
+        private Guid virtualSignalGroupInputId;
+
+        private Guid virtualSignalGroupOutputId;
 
         private HashSet<Guid> assignedPoolIds = new HashSet<Guid>();
 
@@ -131,6 +136,33 @@
         /// Gets the collection of property settings associated with this resource.
         /// </summary>
         public IReadOnlyCollection<ResourcePropertySettings> Properties => (IReadOnlyCollection<ResourcePropertySettings>)propertySettings;
+
+        /// <summary>
+        /// Gets or sets the unique identifier for the Live virtual signal group input associated with the resource.
+        /// </summary>
+        public Guid VirtualSignalGroupInputId
+        {
+            get => virtualSignalGroupInputId;
+            set
+            {
+                HasChanges |= virtualSignalGroupInputId != value;
+                virtualSignalGroupInputId = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the unique identifier for the Live virtual signal group output associated with the resource.
+        /// </summary>
+        public Guid VirtualSignalGroupOutputId
+        {
+            get => virtualSignalGroupOutputId;
+            set
+            {
+                HasChanges |= virtualSignalGroupOutputId != value;
+                virtualSignalGroupOutputId = value;
+            }
+
+        }
 
         /// <summary>
         /// Assigns the current resource to the specified resource pool.
@@ -416,7 +448,12 @@
             updatedInstance.ResourceInfo.Favorite = isFavorite;
             updatedInstance.ResourceInfo.Concurrency = concurrency;
             updatedInstance.ResourceInternalProperties.PoolIds = assignedPoolIds.ToList();
-            updatedInstance.ExternalMetadata.ExternallyManaged = isExternallyManaged;
+
+            // Setting to null will not create a DOM section in storage.
+            updatedInstance.ExternalMetadata.ExternallyManaged = isExternallyManaged ? true : null;
+
+            updatedInstance.ResourceConnectionManagement.VirtualSignalGroupInputId = virtualSignalGroupInputId;
+            updatedInstance.ResourceConnectionManagement.VirtualSignalGroupOutputId = virtualSignalGroupOutputId;
 
             updatedInstance.ResourceCapabilities.Clear();
             foreach (var capability in capabilitySettings)
@@ -478,6 +515,8 @@
             assignedPoolIds = new HashSet<Guid>(instance.ResourceInternalProperties.PoolIds);
             coreResourceId = instance.ResourceInternalProperties.Resource_Id ?? Guid.Empty;
             isExternallyManaged = instance.ExternalMetadata?.ExternallyManaged ?? false;
+            virtualSignalGroupInputId = instance.ResourceConnectionManagement.VirtualSignalGroupInputId;
+            virtualSignalGroupOutputId = instance.ResourceConnectionManagement.VirtualSignalGroupOutputId;
 
             State = EnumExtensions.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum, ResourceState>(instance.Status);
 

@@ -19,7 +19,7 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, IEnumerable<Configuration> apiConfigurations, out BulkCreateOrUpdateResult<Guid> result)
+        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Configuration> apiConfigurations, out BulkCreateOrUpdateResult<Guid> result)
         {
             var handler = new CoreConfigurationHandler(planApi);
             handler.CreateOrUpdate(apiConfigurations);
@@ -29,7 +29,7 @@
             return !result.HasFailures();
         }
 
-        internal static bool TryDelete(MediaOpsPlanApi planApi, IEnumerable<Configuration> apiConfigurations, out BulkDeleteResult<Guid> result)
+        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<Configuration> apiConfigurations, out BulkDeleteResult<Guid> result)
         {
             var handler = new CoreConfigurationHandler(planApi);
             handler.Delete(apiConfigurations);
@@ -39,14 +39,14 @@
             return !result.HasFailures();
         }
 
-        private void CreateOrUpdate(IEnumerable<Configuration> apiConfigurations)
+        private void CreateOrUpdate(ICollection<Configuration> apiConfigurations)
         {
             if (apiConfigurations == null)
             {
                 throw new ArgumentNullException(nameof(apiConfigurations));
             }
 
-            if (!apiConfigurations.Any())
+            if (apiConfigurations.Count == 0)
             {
                 return;
             }
@@ -68,10 +68,10 @@
             ValidateIdsNotInUse(toCreate);
             ValidateNames(apiConfigurations);
 
-            ValidateTextConfigurations(apiConfigurations.OfType<TextConfiguration>());
-            ValidateNumberConfigurations(apiConfigurations.OfType<NumberConfiguration>());
-            ValidateDiscreteTextConfigurations(apiConfigurations.OfType<DiscreteTextConfiguration>());
-            ValidateDiscreteNumberConfigurations(apiConfigurations.OfType<DiscreteNumberConfiguration>());
+            ValidateTextConfigurations(apiConfigurations.OfType<TextConfiguration>().ToList());
+            ValidateNumberConfigurations(apiConfigurations.OfType<NumberConfiguration>().ToList());
+            ValidateDiscreteTextConfigurations(apiConfigurations.OfType<DiscreteTextConfiguration>().ToList());
+            ValidateDiscreteNumberConfigurations(apiConfigurations.OfType<DiscreteNumberConfiguration>().ToList());
 
             var validConfigurations = apiConfigurations.Where(IsValid).ToList();
 
@@ -107,14 +107,14 @@
             ReportSuccess(result.SuccessfulIds);
         }
 
-        private void Delete(IEnumerable<Configuration> apiConfigurations)
+        private void Delete(ICollection<Configuration> apiConfigurations)
         {
             if (apiConfigurations == null)
             {
                 throw new ArgumentNullException(nameof(apiConfigurations));
             }
 
-            if (!apiConfigurations.Any())
+            if (apiConfigurations.Count == 0)
             {
                 return;
             }
@@ -153,14 +153,14 @@
             ReportSuccess(result.SuccessfulIds);
         }
 
-        private void ValidateIdsNotInUse(IEnumerable<Configuration> apiConfigurations)
+        private void ValidateIdsNotInUse(ICollection<Configuration> apiConfigurations)
         {
             if (apiConfigurations == null)
             {
                 throw new ArgumentNullException(nameof(apiConfigurations));
             }
 
-            if (!apiConfigurations.Any())
+            if (apiConfigurations.Count == 0)
             {
                 return;
             }
@@ -204,14 +204,14 @@
             }
         }
 
-        private void ValidateNames(IEnumerable<Configuration> apiConfigurations)
+        private void ValidateNames(ICollection<Configuration> apiConfigurations)
         {
             if (apiConfigurations == null)
             {
                 throw new ArgumentNullException(nameof(apiConfigurations));
             }
 
-            if (!apiConfigurations.Any())
+            if (apiConfigurations.Count == 0)
             {
                 return;
             }
@@ -290,7 +290,7 @@
             }
         }
 
-        private void ValidateNumberConfigurations(IEnumerable<NumberConfiguration> apiConfigurations)
+        private void ValidateNumberConfigurations(ICollection<NumberConfiguration> apiConfigurations)
         {
             foreach (var apiConfiguration in apiConfigurations)
             {
@@ -298,7 +298,7 @@
             }
         }
 
-        private void ValidateTextConfigurations(IEnumerable<TextConfiguration> apiConfigurations)
+        private void ValidateTextConfigurations(ICollection<TextConfiguration> apiConfigurations)
         {
             foreach (var apiConfiguration in apiConfigurations)
             {
@@ -306,7 +306,7 @@
             }
         }
 
-        private void ValidateDiscreteNumberConfigurations(IEnumerable<DiscreteNumberConfiguration> apiConfigurations)
+        private void ValidateDiscreteNumberConfigurations(ICollection<DiscreteNumberConfiguration> apiConfigurations)
         {
             foreach (var discreteNumberConfiguration in apiConfigurations)
             {
@@ -314,7 +314,7 @@
             }
         }
 
-        private void ValidateDiscreteTextConfigurations(IEnumerable<DiscreteTextConfiguration> apiConfigurations)
+        private void ValidateDiscreteTextConfigurations(ICollection<DiscreteTextConfiguration> apiConfigurations)
         {
             foreach (var discreteTextConfiguration in apiConfigurations)
             {

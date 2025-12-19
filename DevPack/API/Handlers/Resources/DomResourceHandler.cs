@@ -3,7 +3,9 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Microsoft.Extensions.Logging;
+
     using Skyline.DataMiner.Core.DataMinerSystem.Common;
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
@@ -14,6 +16,7 @@
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
     using Skyline.DataMiner.Utils.DOM.Extensions;
+
     using DomResource = Storage.DOM.SlcResource_Studio.ResourceInstance;
     using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
 
@@ -30,7 +33,7 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, IEnumerable<Resource> apiResources, out BulkCreateOrUpdateResult<Guid> result)
+        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Resource> apiResources, out BulkCreateOrUpdateResult<Guid> result)
         {
             var handler = new DomResourceHandler(planApi);
             handler.CreateOrUpdate(apiResources);
@@ -40,7 +43,7 @@
             return !result.HasFailures();
         }
 
-        internal static bool TryDeprecate(MediaOpsPlanApi planApi, IEnumerable<Resource> apiResources, out BulkCreateOrUpdateResult<Guid> result)
+        internal static bool TryDeprecate(MediaOpsPlanApi planApi, ICollection<Resource> apiResources, out BulkCreateOrUpdateResult<Guid> result)
         {
             var handler = new DomResourceHandler(planApi);
             handler.TransitionToDeprecated(apiResources);
@@ -49,7 +52,7 @@
             return !result.HasFailures();
         }
 
-        internal static bool TryDelete(MediaOpsPlanApi planApi, IEnumerable<Resource> apiResources, out BulkDeleteResult<Guid> result)
+        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<Resource> apiResources, out BulkDeleteResult<Guid> result)
         {
             var handler = new DomResourceHandler(planApi);
             handler.Delete(apiResources);
@@ -112,14 +115,14 @@
             CreateOrUpdateDomResources([domResource]);
         }
 
-        private void CreateOrUpdate(IEnumerable<Resource> apiResources)
+        private void CreateOrUpdate(ICollection<Resource> apiResources)
         {
             if (apiResources == null)
             {
                 throw new ArgumentNullException(nameof(apiResources));
             }
 
-            if (!apiResources.Any())
+            if (apiResources.Count == 0)
             {
                 return;
             }
@@ -131,6 +134,7 @@
             ValidateCapabilities(apiResources);
             ValidateResourceProperties(apiResources);
             ValidateNames(apiResources);
+            ValidateConnectionManagement(apiResources);
 
             var validResources = apiResources.Where(IsValid).ToList();
             var lockResult = planApi.LockManager.LockAndExecute(validResources, CreateOrUpdateCoreResources);
@@ -155,11 +159,11 @@
             var changeResults = ActivityHelper.Track(nameof(DomResourceHandler), nameof(GetResourcesWithChanges), act => GetResourcesWithChanges(resourcesToUpdate));
 
             var toUpdateNameValidation = resourcesToUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcResource_StudioIds.Sections.ResourceInfo.Name.Id)));
-            ActivityHelper.Track(nameof(DomResourceHandler), nameof(ValidateDomNames), act => ValidateDomNames(resourcesToCreate.Concat(toUpdateNameValidation)));
+            ActivityHelper.Track(nameof(DomResourceHandler), nameof(ValidateDomNames), act => ValidateDomNames(resourcesToCreate.Concat(toUpdateNameValidation).ToList()));
 
             var toCreatePoolValidation = resourcesToCreate.Where(IsValid);
             var toUpdatePoolValidation = resourcesToUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcResource_StudioIds.Sections.ResourceInternalProperties.Pool_Ids.Id)));
-            ValidatePoolAssignments(toCreatePoolValidation.Concat(toUpdatePoolValidation));
+            ValidatePoolAssignments(toCreatePoolValidation.Concat(toUpdatePoolValidation).ToList());
 
             var resourcesWithCapabilityChanges = resourcesToUpdate.Where(x =>
                 IsValid(x)
@@ -197,17 +201,17 @@
                 .Select(x => new DomResource(x.Instance))
                 .ToList();
 
-            CreateOrUpdateDomResources(toCreateDomInstances.Concat(toUpdateDomInstances));
+            CreateOrUpdateDomResources(toCreateDomInstances.Concat(toUpdateDomInstances).ToList());
         }
 
-        private void CreateOrUpdateDomResources(IEnumerable<DomResource> domResources)
+        private void CreateOrUpdateDomResources(ICollection<DomResource> domResources)
         {
             if (domResources == null)
             {
                 throw new ArgumentNullException(nameof(domResources));
             }
 
-            if (!domResources.Any())
+            if (domResources.Count == 0)
             {
                 return;
             }
@@ -216,7 +220,7 @@
 
             if (resourceIdsWithCoreChanges.Count != 0)
             {
-                var domResourcesWithCoreChanges = domResources.Where(x => resourceIdsWithCoreChanges.Contains(x.ID.Id));
+                var domResourcesWithCoreChanges = domResources.Where(x => resourceIdsWithCoreChanges.Contains(x.ID.Id)).ToList();
                 UpdateCaches(domResourcesWithCoreChanges);
 
                 CoreResourceHandler.TryCreateOrUpdate(planApi, domResourcesWithCoreChanges, out var coreResult);
@@ -250,14 +254,14 @@
             ReportSuccess(domResult.SuccessfulIds.Select(x => x.Id));
         }
 
-        private void TransitionToDeprecated(IEnumerable<Resource> apiResources)
+        private void TransitionToDeprecated(ICollection<Resource> apiResources)
         {
             if (apiResources == null)
             {
                 throw new ArgumentNullException(nameof(apiResources));
             }
 
-            if (!apiResources.Any())
+            if (apiResources.Count == 0)
             {
                 return;
             }
@@ -268,7 +272,7 @@
             // Update CORE resources
             var resourcesToDeprecate = apiResources.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)).ToList();
 
-            CoreResourceHandler.TryDeprecate(planApi, resourcesToDeprecate.Select(x => x.OriginalInstance), out var coreResult);
+            CoreResourceHandler.TryDeprecate(planApi, resourcesToDeprecate.Select(x => x.OriginalInstance).ToList(), out var coreResult);
 
             foreach (var id in coreResult.UnsuccessfulIds)
             {
@@ -296,14 +300,14 @@
             }
         }
 
-        private void Delete(IEnumerable<Resource> apiResources)
+        private void Delete(ICollection<Resource> apiResources)
         {
             if (apiResources == null)
             {
                 throw new ArgumentNullException(nameof(apiResources));
             }
 
-            if (!apiResources.Any())
+            if (apiResources.Count == 0)
             {
                 return;
             }
@@ -331,7 +335,7 @@
 
         private void DeleteCoreResources(ICollection<Resource> resources)
         {
-            CoreResourceHandler.TryDelete(planApi, resources.Select(x => x.OriginalInstance), out var coreResult);
+            CoreResourceHandler.TryDelete(planApi, resources.Select(x => x.OriginalInstance).ToList(), out var coreResult);
 
             foreach (var id in coreResult.UnsuccessfulIds)
             {
@@ -359,14 +363,14 @@
             ReportSuccess(domResult.SuccessfulIds.Select(x => x.Id));
         }
 
-        private void UpdateCaches(IEnumerable<DomResource> domResources)
+        private void UpdateCaches(ICollection<DomResource> domResources)
         {
             if (domResources == null)
             {
                 throw new ArgumentNullException(nameof(domResources));
             }
 
-            if (!domResources.Any())
+            if (domResources.Count == 0)
             {
                 return;
             }
@@ -402,14 +406,14 @@
             }
         }
 
-        private void ValidateIdsNotInUse(IEnumerable<Resource> apiResources)
+        private void ValidateIdsNotInUse(ICollection<Resource> apiResources)
         {
             if (apiResources == null)
             {
                 throw new ArgumentNullException(nameof(apiResources));
             }
 
-            if (!apiResources.Any())
+            if (apiResources.Count == 0)
             {
                 return;
             }
@@ -476,14 +480,14 @@
         //    }
         //}
 
-        private void ValidateStateForDeprecateAction(IEnumerable<Resource> apiResources)
+        private void ValidateStateForDeprecateAction(ICollection<Resource> apiResources)
         {
             if (apiResources == null)
             {
                 throw new ArgumentNullException(nameof(apiResources));
             }
 
-            if (!apiResources.Any())
+            if (apiResources.Count == 0)
             {
                 return;
             }
@@ -499,14 +503,14 @@
             }
         }
 
-        private void ValidateStateForDeleteAction(IEnumerable<Resource> apiResources)
+        private void ValidateStateForDeleteAction(ICollection<Resource> apiResources)
         {
             if (apiResources == null)
             {
                 throw new ArgumentNullException(nameof(apiResources));
             }
 
-            if (!apiResources.Any())
+            if (apiResources.Count == 0)
             {
                 return;
             }
@@ -522,14 +526,14 @@
             }
         }
 
-        private void ValidateNames(IEnumerable<Resource> apiResources)
+        private void ValidateNames(ICollection<Resource> apiResources)
         {
             if (apiResources == null)
             {
                 throw new ArgumentNullException(nameof(apiResources));
             }
 
-            if (!apiResources.Any())
+            if (apiResources.Count == 0)
             {
                 return;
             }
@@ -582,14 +586,14 @@
             }
         }
 
-        private void ValidateDomNames(IEnumerable<Resource> apiResources)
+        private void ValidateDomNames(ICollection<Resource> apiResources)
         {
             if (apiResources == null)
             {
                 throw new ArgumentNullException(nameof(apiResources));
             }
 
-            if (!apiResources.Any())
+            if (apiResources.Count == 0)
             {
                 return;
             }
@@ -630,14 +634,14 @@
             }
         }
 
-        private void ValidatePoolAssignments(IEnumerable<Resource> apiResources)
+        private void ValidatePoolAssignments(ICollection<Resource> apiResources)
         {
             if (apiResources == null)
             {
                 throw new ArgumentNullException(nameof(apiResources));
             }
 
-            if (!apiResources.Any())
+            if (apiResources.Count == 0)
             {
                 return;
             }
@@ -675,14 +679,14 @@
             }
         }
 
-        private void ValidateCapacities(IEnumerable<Resource> apiResources)
+        private void ValidateCapacities(ICollection<Resource> apiResources)
         {
             if (apiResources == null)
             {
                 throw new ArgumentNullException(nameof(apiResources));
             }
 
-            if (!apiResources.Any())
+            if (apiResources.Count == 0)
             {
                 return;
             }
@@ -726,14 +730,14 @@
             }
         }
 
-        private void ValidateCapabilities(IEnumerable<Resource> apiResources)
+        private void ValidateCapabilities(ICollection<Resource> apiResources)
         {
             if (apiResources == null)
             {
                 throw new ArgumentNullException(nameof(apiResources));
             }
 
-            if (!apiResources.Any())
+            if (apiResources.Count == 0)
             {
                 return;
             }
@@ -801,14 +805,14 @@
             }
         }
 
-        private void ValidateResourceProperties(IEnumerable<Resource> apiResources)
+        private void ValidateResourceProperties(ICollection<Resource> apiResources)
         {
             if (apiResources == null)
             {
                 throw new ArgumentNullException(nameof(apiResources));
             }
 
-            if (!apiResources.Any())
+            if (apiResources.Count == 0)
             {
                 return;
             }
@@ -846,6 +850,54 @@
             }
         }
 
+        private void ValidateConnectionManagement(ICollection<Resource> apiResources)
+        {
+
+            if (apiResources == null)
+            {
+                throw new ArgumentNullException(nameof(apiResources));
+            }
+
+            if (apiResources.Count == 0)
+            {
+                return;
+            }
+
+            var virtualSignalGroupIds = apiResources
+                .SelectMany(x => new[] { x.VirtualSignalGroupInputId, x.VirtualSignalGroupOutputId })
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+            var virtualSignalGroupsById = planApi.LiveApi.VirtualSignalGroups.Read(virtualSignalGroupIds);
+
+            foreach (var resource in apiResources)
+            {
+                if (resource.VirtualSignalGroupInputId != Guid.Empty && !virtualSignalGroupsById.TryGetValue(resource.VirtualSignalGroupInputId, out _))
+                {
+                    var error = new ResourceInvalidVirtualSignalGroupError
+                    {
+                        ErrorMessage = $"Virtual Signal Group with ID '{resource.VirtualSignalGroupInputId}' not found.",
+                        Id = resource.Id,
+                        VirtualSignalGroupId = resource.VirtualSignalGroupInputId,
+                    };
+
+                    ReportError(resource.Id, error);
+                }
+
+                if (resource.VirtualSignalGroupOutputId != Guid.Empty && !virtualSignalGroupsById.TryGetValue(resource.VirtualSignalGroupOutputId, out _))
+                {
+                    var error = new ResourceInvalidVirtualSignalGroupError
+                    {
+                        ErrorMessage = $"Virtual Signal Group with ID '{resource.VirtualSignalGroupOutputId}' not found.",
+                        Id = resource.Id,
+                        VirtualSignalGroupId = resource.VirtualSignalGroupOutputId,
+                    };
+
+                    ReportError(resource.Id, error);
+                }
+            }
+        }
+
         private ICollection<DomChangeResults> GetResourcesWithChanges(ICollection<Resource> apiResources)
         {
             if (apiResources == null)
@@ -853,7 +905,7 @@
                 throw new ArgumentNullException(nameof(apiResources));
             }
 
-            if (!apiResources.Any())
+            if (apiResources.Count == 0)
             {
                 return [];
             }

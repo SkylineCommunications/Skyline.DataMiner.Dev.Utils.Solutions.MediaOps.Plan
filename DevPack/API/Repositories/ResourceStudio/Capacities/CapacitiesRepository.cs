@@ -116,7 +116,7 @@
                     throw new InvalidOperationException("Not possible to use method Create for existing capacities. Use CreateOrUpdate or Update instead.");
                 }
 
-                if (!CoreCapacityHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
+                if (!CoreCapacityHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
                 {
                     throw new MediaOpsBulkException<Guid>(result);
                 }
@@ -141,7 +141,7 @@
 
             ActivityHelper.Track(nameof(CapacitiesRepository), nameof(CreateOrUpdate), act =>
             {
-                if (!CoreCapacityHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
+                if (!CoreCapacityHandler.TryCreateOrUpdate(PlanApi, apiObjects?.ToList(), out var result))
                 {
                     throw new MediaOpsBulkException<Guid>(result);
                 }
@@ -184,7 +184,7 @@
 
             ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Delete), act =>
             {
-                if (!CoreCapacityHandler.TryDelete(PlanApi, capacitiesToDelete, out var result))
+                if (!CoreCapacityHandler.TryDelete(PlanApi, capacitiesToDelete?.ToList(), out var result))
                 {
                     throw new MediaOpsBulkException<Guid>(result);
                 }
@@ -390,7 +390,7 @@
                     throw new InvalidOperationException("Not possible to use method Update for new capacities. Use Create or CreateOrUpdate instead.");
                 }
 
-                if (!CoreCapacityHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
+                if (!CoreCapacityHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
                 {
                     throw new MediaOpsBulkException<Guid>(result);
                 }

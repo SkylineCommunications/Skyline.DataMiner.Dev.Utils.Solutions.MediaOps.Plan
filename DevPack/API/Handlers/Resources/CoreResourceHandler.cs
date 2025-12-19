@@ -3,7 +3,9 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Microsoft.Extensions.Logging;
+
     using Skyline.DataMiner.Core.DataMinerSystem.Common;
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
@@ -14,6 +16,7 @@
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
+
     using CoreResource = Net.Messages.Resource;
     using DomResource = Storage.DOM.SlcResource_Studio.ResourceInstance;
     using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
@@ -60,7 +63,7 @@
 
         private DomCapabilitiesHandler CapabilitiesHandler => lazyCapabilitiesHandler.Value;
 
-        public static BulkCreateOrUpdateResult<Guid> CreateOrUpdate(MediaOpsPlanApi planApi, IEnumerable<DomResource> domResources)
+        public static BulkCreateOrUpdateResult<Guid> CreateOrUpdate(MediaOpsPlanApi planApi, ICollection<DomResource> domResources)
         {
             var handler = new CoreResourceHandler(planApi);
             handler.CreateOrUpdate(domResources);
@@ -71,7 +74,7 @@
             return result;
         }
 
-        public static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, IEnumerable<DomResource> domResources, out BulkCreateOrUpdateResult<Guid> result)
+        public static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out BulkCreateOrUpdateResult<Guid> result)
         {
             var handler = new CoreResourceHandler(planApi);
             ActivityHelper.Track(nameof(CoreResourceHandler), nameof(CreateOrUpdate), act => handler.CreateOrUpdate(domResources));
@@ -81,7 +84,7 @@
             return !result.HasFailures();
         }
 
-        public static BulkDeleteResult<Guid> Delete(MediaOpsPlanApi planApi, IEnumerable<DomResource> domResources)
+        public static BulkDeleteResult<Guid> Delete(MediaOpsPlanApi planApi, ICollection<DomResource> domResources)
         {
             var handler = new CoreResourceHandler(planApi);
             ActivityHelper.Track(nameof(CoreResourceHandler), nameof(Delete), act => handler.Delete(domResources));
@@ -92,7 +95,7 @@
             return result;
         }
 
-        public static bool TryDelete(MediaOpsPlanApi planApi, IEnumerable<DomResource> domResources, out BulkDeleteResult<Guid> result)
+        public static bool TryDelete(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out BulkDeleteResult<Guid> result)
         {
             var handler = new CoreResourceHandler(planApi);
             ActivityHelper.Track(nameof(CoreResourceHandler), nameof(Delete), act => handler.Delete(domResources));
@@ -102,7 +105,7 @@
             return !result.HasFailures();
         }
 
-        public static bool TryDeprecate(MediaOpsPlanApi planApi, IEnumerable<DomResource> domResources, out BulkCreateOrUpdateResult<Guid> result)
+        public static bool TryDeprecate(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out BulkCreateOrUpdateResult<Guid> result)
         {
             var handler = new CoreResourceHandler(planApi);
             handler.Deprecate(domResources);
@@ -215,29 +218,29 @@
             return true;
         }
 
-        private void Deprecate(IEnumerable<DomResource> domResources)
+        private void Deprecate(ICollection<DomResource> domResources)
         {
             if (domResources == null)
             {
                 throw new ArgumentNullException(nameof(domResources));
             }
 
-            if (!domResources.Any())
+            if (domResources.Count == 0)
             {
                 return;
             }
 
-            Deprecate(ResourceMapping.GetMappings(planApi, domResources));
+            Deprecate(ResourceMapping.GetMappings(planApi, domResources).ToList());
         }
 
-        private void Deprecate(IEnumerable<ResourceMapping> resourceMappings)
+        private void Deprecate(ICollection<ResourceMapping> resourceMappings)
         {
             if (resourceMappings == null)
             {
                 throw new ArgumentNullException(nameof(resourceMappings));
             }
 
-            if (!resourceMappings.Any())
+            if (resourceMappings.Count == 0)
             {
                 return;
             }
@@ -290,14 +293,14 @@
             }
         }
 
-        private void CreateOrUpdate(IEnumerable<DomResource> domResources)
+        private void CreateOrUpdate(ICollection<DomResource> domResources)
         {
             if (domResources == null)
             {
                 throw new ArgumentNullException(nameof(domResources));
             }
 
-            if (!domResources.Any())
+            if (domResources.Count == 0)
             {
                 return;
             }
@@ -327,19 +330,19 @@
             ValidateElementResources(elementResourcesToValidate);
             ValidateServiceResources(serviceResourcesToValidate);
             ValidateVirtualFunctionResources(virtualFunctionResourcesToValidate);
-            ValidateNames(resourceMappingByDomId.Where(x => !traceDataPerItem.Keys.Contains(x.Key) && x.Value.NeedsNameValidation).Select(x => x.Value.DomResource));
+            ValidateNames(resourceMappingByDomId.Where(x => !traceDataPerItem.Keys.Contains(x.Key) && x.Value.NeedsNameValidation).Select(x => x.Value.DomResource).ToList());
 
-            CreateOrUpdate(resourceMappingByDomId.Where(x => !traceDataPerItem.Keys.Contains(x.Key)).Select(x => x.Value));
+            CreateOrUpdate(resourceMappingByDomId.Where(x => !traceDataPerItem.Keys.Contains(x.Key)).Select(x => x.Value).ToList());
         }
 
-        private void CreateOrUpdate(IEnumerable<ResourceMapping> resourceMappings)
+        private void CreateOrUpdate(ICollection<ResourceMapping> resourceMappings)
         {
             if (resourceMappings == null)
             {
                 throw new ArgumentNullException(nameof(resourceMappings));
             }
 
-            if (!resourceMappings.Any())
+            if (resourceMappings.Count == 0)
             {
                 return;
             }
@@ -423,14 +426,14 @@
             return updateRequired;
         }
 
-        private void Delete(IEnumerable<DomResource> domResources)
+        private void Delete(ICollection<DomResource> domResources)
         {
             if (domResources == null)
             {
                 throw new ArgumentNullException(nameof(domResources));
             }
 
-            if (!domResources.Any())
+            if (domResources.Count == 0)
             {
                 return;
             }
@@ -639,7 +642,7 @@
             {
                 coreResource.Capabilities.Add(new Net.SRM.Capabilities.ResourceCapability(CoreCapabilities.ResourceType.Id)
                 {
-                    Value = new Net.Profiles.CapabilityParameterValue(new List<string> { resourceTypeValue }),
+                    Value = capabilityValue,
                 });
 
                 updateRequired = true;
@@ -654,14 +657,14 @@
             return updateRequired;
         }
 
-        private void ValidateNames(IEnumerable<DomResource> domResources)
+        private void ValidateNames(ICollection<DomResource> domResources)
         {
             if (domResources == null)
             {
                 throw new ArgumentNullException(nameof(domResources));
             }
 
-            if (!domResources.Any())
+            if (domResources.Count == 0)
             {
                 return;
             }
@@ -718,7 +721,7 @@
             }
         }
 
-        private void ValidateElementResources(IEnumerable<DomResource> domResources)
+        private void ValidateElementResources(ICollection<DomResource> domResources)
         {
             if (domResources == null)
             {
@@ -763,7 +766,7 @@
             return true;
         }
 
-        private void ValidateServiceResources(IEnumerable<DomResource> domResources)
+        private void ValidateServiceResources(ICollection<DomResource> domResources)
         {
             if (domResources == null)
             {
@@ -803,14 +806,14 @@
             return true;
         }
 
-        private void ValidateVirtualFunctionResources(IEnumerable<DomResource> domResources)
+        private void ValidateVirtualFunctionResources(ICollection<DomResource> domResources)
         {
             if (domResources == null)
             {
                 throw new ArgumentNullException(nameof(domResources));
             }
 
-            if (!domResources.Any())
+            if (domResources.Count == 0)
             {
                 return;
             }
@@ -948,14 +951,14 @@
             return true;
         }
 
-        private void AddError(IEnumerable<DomResource> domResources, MediaOpsErrorData error)
+        private void AddError(ICollection<DomResource> domResources, MediaOpsErrorData error)
         {
             if (domResources == null)
             {
                 throw new ArgumentNullException(nameof(domResources));
             }
 
-            if (!domResources.Any())
+            if (domResources.Count == 0)
             {
                 return;
             }
@@ -1257,7 +1260,7 @@
                 CoreResource == null
                 || DomResource.ResourceInfo.Name != CoreResource.Name;
 
-            public static IEnumerable<ResourceMapping> GetMappings(MediaOpsPlanApi planApi, IEnumerable<DomResource> domResources)
+            public static IEnumerable<ResourceMapping> GetMappings(MediaOpsPlanApi planApi, ICollection<DomResource> domResources)
             {
                 if (planApi == null)
                 {
@@ -1269,7 +1272,7 @@
                     throw new ArgumentNullException(nameof(domResources));
                 }
 
-                if (!domResources.Any())
+                if (domResources.Count == 0)
                 {
                     return [];
                 }
@@ -1277,7 +1280,7 @@
                 return GetMappingsIterator(planApi, domResources);
             }
 
-            private static IEnumerable<ResourceMapping> GetMappingsIterator(MediaOpsPlanApi planApi, IEnumerable<DomResource> domResources)
+            private static IEnumerable<ResourceMapping> GetMappingsIterator(MediaOpsPlanApi planApi, ICollection<DomResource> domResources)
             {
                 var coreResourceIds = domResources
                     .Where(x => x.ResourceInternalProperties.Resource_Id.HasValue && x.ResourceInternalProperties.Resource_Id.Value != Guid.Empty)

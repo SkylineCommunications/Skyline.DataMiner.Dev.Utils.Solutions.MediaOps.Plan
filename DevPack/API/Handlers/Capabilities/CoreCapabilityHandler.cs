@@ -3,11 +3,14 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Microsoft.Extensions.Logging;
+
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
+
     using CoreParameter = Net.Profiles.Parameter;
 
     internal class CoreCapabilityHandler : ApiObjectValidator
@@ -19,7 +22,7 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, IEnumerable<Capability> apiCapabilities, out BulkCreateOrUpdateResult<Guid> result)
+        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Capability> apiCapabilities, out BulkCreateOrUpdateResult<Guid> result)
         {
             var handler = new CoreCapabilityHandler(planApi);
             handler.CreateOrUpdate(apiCapabilities);
@@ -29,7 +32,7 @@
             return !result.HasFailures();
         }
 
-        internal static bool TryDelete(MediaOpsPlanApi planApi, IEnumerable<Capability> apiCapabilities, out BulkDeleteResult<Guid> result)
+        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<Capability> apiCapabilities, out BulkDeleteResult<Guid> result)
         {
             var handler = new CoreCapabilityHandler(planApi);
             handler.Delete(apiCapabilities);
@@ -39,14 +42,14 @@
             return !result.HasFailures();
         }
 
-        private void CreateOrUpdate(IEnumerable<Capability> apiCapabilities)
+        private void CreateOrUpdate(ICollection<Capability> apiCapabilities)
         {
             if (apiCapabilities == null)
             {
                 throw new ArgumentNullException(nameof(apiCapabilities));
             }
 
-            if (!apiCapabilities.Any())
+            if (apiCapabilities.Count == 0)
             {
                 return;
             }
@@ -99,17 +102,17 @@
                 .Select(x => CreateOrUpdateCoreParameter(x, null))
                 .ToList();
 
-            CreateOrUpdateCoreParameters(coreParametersToCreate.Concat(coreParametersToUpdate));
+            CreateOrUpdateCoreParameters(coreParametersToCreate.Concat(coreParametersToUpdate).ToList());
         }
 
-        private void CreateOrUpdateCoreParameters(IEnumerable<CoreParameter> coreParameters)
+        private void CreateOrUpdateCoreParameters(ICollection<CoreParameter> coreParameters)
         {
             if (coreParameters == null)
             {
                 throw new ArgumentNullException(nameof(coreParameters));
             }
 
-            if (!coreParameters.Any())
+            if (coreParameters.Count == 0)
             {
                 return;
             }
@@ -128,7 +131,7 @@
             ReportSuccess(result.SuccessfulIds);
         }
 
-        private void ValidateTimeDependency(List<Capability> apiCapabilities)
+        private void ValidateTimeDependency(ICollection<Capability> apiCapabilities)
         {
             foreach (var capability in apiCapabilities)
             {
@@ -146,14 +149,14 @@
             }
         }
 
-        private void Delete(IEnumerable<Capability> apiCapabilities)
+        private void Delete(ICollection<Capability> apiCapabilities)
         {
             if (apiCapabilities == null)
             {
                 throw new ArgumentNullException(nameof(apiCapabilities));
             }
 
-            if (!apiCapabilities.Any())
+            if (apiCapabilities.Count == 0)
             {
                 return;
             }
@@ -199,14 +202,14 @@
             ReportSuccess(result.SuccessfulIds);
         }
 
-        private void ValidateIdsNotInUse(IEnumerable<Capability> apiCapabilities)
+        private void ValidateIdsNotInUse(ICollection<Capability> apiCapabilities)
         {
             if (apiCapabilities == null)
             {
                 throw new ArgumentNullException(nameof(apiCapabilities));
             }
 
-            if (!apiCapabilities.Any())
+            if (apiCapabilities.Count == 0)
             {
                 return;
             }
@@ -250,14 +253,14 @@
             }
         }
 
-        private void ValidateNames(IEnumerable<Capability> apiCapabilities)
+        private void ValidateNames(ICollection<Capability> apiCapabilities)
         {
             if (apiCapabilities == null)
             {
                 throw new ArgumentNullException(nameof(apiCapabilities));
             }
 
-            if (!apiCapabilities.Any())
+            if (apiCapabilities.Count == 0)
             {
                 return;
             }
@@ -336,7 +339,7 @@
             }
         }
 
-        private void ValidateDiscretes(IEnumerable<Capability> apiCapabilities)
+        private void ValidateDiscretes(ICollection<Capability> apiCapabilities)
         {
             foreach (var capability in apiCapabilities)
             {
@@ -356,7 +359,7 @@
                         .SelectMany(g => g)
                         .ToList();
 
-                    if (duplicateDiscretes.Any())
+                    if (duplicateDiscretes.Count != 0)
                     {
                         ReportError(capability.Id, new CapabilityDuplicateDiscretesError
                         {
@@ -430,7 +433,7 @@
             return uniqueDiscretes;
         }
 
-        private List<string> GetCleanInputDiscretes(IEnumerable<string> discretes)
+        private List<string> GetCleanInputDiscretes(IReadOnlyCollection<string> discretes)
         {
             return discretes.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).Distinct().ToList();
         }

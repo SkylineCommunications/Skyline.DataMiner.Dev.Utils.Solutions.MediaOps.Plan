@@ -2,6 +2,7 @@
 {
     using System;
     using System.Linq;
+    using System.Xml.Linq;
 
     using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -216,6 +217,46 @@
                 Assert.IsNotNull(fdSelectionType);
                 Assert.AreEqual(expectedSelectionType, Convert.ToInt32(fdSelectionType.Value.Value));
             }
+        }
+
+        [TestMethod]
+        public void ExternallyManagedData()
+        {
+            var prefix = Guid.NewGuid().ToString();
+
+            var resourcePool = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
+            {
+                Name = $"{prefix}_ResourcePool",
+            };
+
+            objectCreator.CreateResourcePool(resourcePool);
+
+            var domResourcePool = TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(resourcePool.Id)).SingleOrDefault();
+            Assert.IsNotNull(domResourcePool);
+            Assert.IsFalse(domResourcePool.Sections.Exists(s => s.SectionDefinitionID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ExternalMetadata.Id.Id));
+
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
+            resourcePool.IsExternallyManaged = true;
+            TestContext.Api.ResourcePools.Update(resourcePool);
+
+            domResourcePool = TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(resourcePool.Id)).SingleOrDefault();
+            Assert.IsNotNull(domResourcePool);
+            Assert.IsTrue(domResourcePool.Sections.Exists(s => s.SectionDefinitionID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ExternalMetadata.Id.Id));
+
+            var domExternalMetadata = domResourcePool.Sections.Single(s => s.SectionDefinitionID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ExternalMetadata.Id.Id);
+            Assert.IsNotNull(domExternalMetadata);
+
+            var fdExternallyManaged = domExternalMetadata.FieldValues.SingleOrDefault(f => f.FieldDescriptorID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ExternalMetadata.ExternallyManaged.Id);
+            Assert.IsNotNull(fdExternallyManaged);
+            Assert.AreEqual(true, Convert.ToBoolean(fdExternallyManaged.Value.Value));
+
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
+            resourcePool.IsExternallyManaged = false;
+            TestContext.Api.ResourcePools.Update(resourcePool);
+
+            domResourcePool = TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(resourcePool.Id)).SingleOrDefault();
+            Assert.IsNotNull(domResourcePool);
+            Assert.IsFalse(domResourcePool.Sections.Exists(s => s.SectionDefinitionID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ExternalMetadata.Id.Id));
         }
     }
 }

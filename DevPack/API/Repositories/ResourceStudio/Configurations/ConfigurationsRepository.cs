@@ -119,7 +119,7 @@
                     throw new InvalidOperationException("Not possible to use method Create for existing configurations. Use CreateOrUpdate or Update instead.");
                 }
 
-                if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
+                if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
                 {
                     throw new MediaOpsBulkException<Guid>(result);
                 }
@@ -144,7 +144,7 @@
 
             ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(CreateOrUpdate), act =>
             {
-                if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
+                if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, apiObjects?.ToList(), out var result))
                 {
                     throw new MediaOpsBulkException<Guid>(result);
                 }
@@ -187,7 +187,7 @@
 
             ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Delete), act =>
             {
-                if (!CoreConfigurationHandler.TryDelete(PlanApi, configurationsToDelete, out var result))
+                if (!CoreConfigurationHandler.TryDelete(PlanApi, configurationsToDelete?.ToList(), out var result))
                 {
                     throw new MediaOpsBulkException<Guid>(result);
                 }
@@ -388,7 +388,7 @@
                     throw new InvalidOperationException("Not possible to use method Update for new configurations. Use Create or CreateOrUpdate instead.");
                 }
 
-                if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
+                if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
                 {
                     throw new MediaOpsBulkException<Guid>(result);
                 }

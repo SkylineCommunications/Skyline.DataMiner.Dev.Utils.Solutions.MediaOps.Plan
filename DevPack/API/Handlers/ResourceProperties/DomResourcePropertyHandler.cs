@@ -3,7 +3,9 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Microsoft.Extensions.Logging;
+
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
@@ -11,6 +13,7 @@
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
     using Skyline.DataMiner.Utils.DOM.Extensions;
+
     using DomResourceProperty = Storage.DOM.SlcResource_Studio.ResourcepropertyInstance;
 
     internal class DomResourcePropertyHandler : ApiObjectValidator
@@ -22,7 +25,7 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        internal static BulkCreateOrUpdateResult<Guid> CreateOrUpdate(MediaOpsPlanApi planApi, IEnumerable<ResourceProperty> apiResourceProperties)
+        internal static BulkCreateOrUpdateResult<Guid> CreateOrUpdate(MediaOpsPlanApi planApi, ICollection<ResourceProperty> apiResourceProperties)
         {
             var handler = new DomResourcePropertyHandler(planApi);
             handler.CreateOrUpdate(apiResourceProperties);
@@ -33,7 +36,7 @@
             return result;
         }
 
-        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, IEnumerable<ResourceProperty> apiResourceProperties, out BulkCreateOrUpdateResult<Guid> result)
+        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<ResourceProperty> apiResourceProperties, out BulkCreateOrUpdateResult<Guid> result)
         {
             var handler = new DomResourcePropertyHandler(planApi);
             handler.CreateOrUpdate(apiResourceProperties);
@@ -43,7 +46,7 @@
             return !result.HasFailures();
         }
 
-        internal static BulkDeleteResult<Guid> Delete(MediaOpsPlanApi planApi, IEnumerable<ResourceProperty> apiResourceProperties)
+        internal static BulkDeleteResult<Guid> Delete(MediaOpsPlanApi planApi, ICollection<ResourceProperty> apiResourceProperties)
         {
             var handler = new DomResourcePropertyHandler(planApi);
             handler.Delete(apiResourceProperties);
@@ -54,7 +57,7 @@
             return result;
         }
 
-        internal static bool TryDelete(MediaOpsPlanApi planApi, IEnumerable<ResourceProperty> apiResourceProperties, out BulkDeleteResult<Guid> result)
+        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<ResourceProperty> apiResourceProperties, out BulkDeleteResult<Guid> result)
         {
             var handler = new DomResourcePropertyHandler(planApi);
             handler.Delete(apiResourceProperties);
@@ -64,14 +67,14 @@
             return !result.HasFailures();
         }
 
-        private void CreateOrUpdate(IEnumerable<ResourceProperty> apiResourceProperties)
+        private void CreateOrUpdate(ICollection<ResourceProperty> apiResourceProperties)
         {
             if (apiResourceProperties == null)
             {
                 throw new ArgumentNullException(nameof(apiResourceProperties));
             }
 
-            if (!apiResourceProperties.Any())
+            if (apiResourceProperties.Count == 0)
             {
                 return;
             }
@@ -116,7 +119,7 @@
             var changeResults = GetPropertiesWithChanges(resourcePropertiesToUpdate);
 
             var toUpdateNameValidation = resourcePropertiesToUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcResource_StudioIds.Sections.PropertyInfo.PropertyName.Id)));
-            ValidateDomNames(resourcePropertiesToCreate.Concat(toUpdateNameValidation));
+            ValidateDomNames(resourcePropertiesToCreate.Concat(toUpdateNameValidation).ToList());
 
             var toCreateDomInstances = resourcePropertiesToCreate
                 .Where(IsValid)
@@ -128,17 +131,17 @@
                 .Select(x => new DomResourceProperty(x.Instance))
                 .ToList();
 
-            CreateOrUpdateDomResourceProperties(toCreateDomInstances.Concat(toUpdateDomInstances));
+            CreateOrUpdateDomResourceProperties(toCreateDomInstances.Concat(toUpdateDomInstances).ToList());
         }
 
-        private void CreateOrUpdateDomResourceProperties(IEnumerable<DomResourceProperty> domResourceProperties)
+        private void CreateOrUpdateDomResourceProperties(ICollection<DomResourceProperty> domResourceProperties)
         {
             if (domResourceProperties == null)
             {
                 throw new ArgumentNullException(nameof(domResourceProperties));
             }
 
-            if (!domResourceProperties.Any())
+            if (domResourceProperties.Count == 0)
             {
                 return;
             }
@@ -159,14 +162,14 @@
             ReportSuccess(domResult.SuccessfulIds.Select(x => x.Id));
         }
 
-        private void Delete(IEnumerable<ResourceProperty> apiResourceProperties)
+        private void Delete(ICollection<ResourceProperty> apiResourceProperties)
         {
             if (apiResourceProperties == null)
             {
                 throw new ArgumentNullException(nameof(apiResourceProperties));
             }
 
-            if (!apiResourceProperties.Any())
+            if (apiResourceProperties.Count == 0)
             {
                 return;
             }
@@ -197,7 +200,7 @@
                 throw new ArgumentNullException(nameof(propertiesToDelete));
             }
 
-            if (!propertiesToDelete.Any())
+            if (propertiesToDelete.Count == 0)
             {
                 return;
             }
@@ -218,14 +221,14 @@
             ReportSuccess(domResult.SuccessfulIds.Select(x => x.Id));
         }
 
-        private void ValidateIdsNotInUse(IEnumerable<ResourceProperty> apiResourceProperties)
+        private void ValidateIdsNotInUse(ICollection<ResourceProperty> apiResourceProperties)
         {
             if (apiResourceProperties == null)
             {
                 throw new ArgumentNullException(nameof(apiResourceProperties));
             }
 
-            if (!apiResourceProperties.Any())
+            if (apiResourceProperties.Count == 0)
             {
                 return;
             }
@@ -269,14 +272,14 @@
             }
         }
 
-        private void ValidateNames(IEnumerable<ResourceProperty> apiResourceProperties)
+        private void ValidateNames(ICollection<ResourceProperty> apiResourceProperties)
         {
             if (apiResourceProperties == null)
             {
                 throw new ArgumentNullException(nameof(apiResourceProperties));
             }
 
-            if (!apiResourceProperties.Any())
+            if (apiResourceProperties.Count == 0)
             {
                 return;
             }
@@ -329,14 +332,14 @@
             }
         }
 
-        private void ValidateDomNames(IEnumerable<ResourceProperty> apiResourceProperties)
+        private void ValidateDomNames(ICollection<ResourceProperty> apiResourceProperties)
         {
             if (apiResourceProperties == null)
             {
                 throw new ArgumentNullException(nameof(apiResourceProperties));
             }
 
-            if (!apiResourceProperties.Any())
+            if (apiResourceProperties.Count == 0)
             {
                 return;
             }
@@ -375,14 +378,14 @@
             }
         }
 
-        private IEnumerable<DomChangeResults> GetPropertiesWithChanges(IEnumerable<ResourceProperty> apiResourceProperties)
+        private IEnumerable<DomChangeResults> GetPropertiesWithChanges(ICollection<ResourceProperty> apiResourceProperties)
         {
             if (apiResourceProperties == null)
             {
                 throw new ArgumentNullException(nameof(apiResourceProperties));
             }
 
-            if (!apiResourceProperties.Any())
+            if (apiResourceProperties.Count == 0)
             {
                 return [];
             }
@@ -390,7 +393,7 @@
             return GetPropertiesWithChangesIterator(apiResourceProperties);
         }
 
-        private IEnumerable<DomChangeResults> GetPropertiesWithChangesIterator(IEnumerable<ResourceProperty> apiResourceProperties)
+        private IEnumerable<DomChangeResults> GetPropertiesWithChangesIterator(ICollection<ResourceProperty> apiResourceProperties)
         {
             var propertiesRequiringValidation = apiResourceProperties.Where(x => !x.IsNew && x.HasChanges).ToList();
             if (propertiesRequiringValidation.Count == 0)
