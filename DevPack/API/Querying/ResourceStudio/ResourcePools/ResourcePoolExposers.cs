@@ -23,7 +23,7 @@
         /// <summary>
         /// Gets an exposer for the <see cref="ResourcePool.State"/> property.
         /// </summary>
-        public static readonly Exposer<ResourcePool, ResourcePoolState> State = new Exposer<ResourcePool, ResourcePoolState>((obj) => obj.State, "State");
+        public static readonly Exposer<ResourcePool, int> State = new Exposer<ResourcePool, int>((obj) => (int)obj.State, "State");
 
         /// <summary>
         /// Gets an exposer for the <see cref="ResourcePool.IconImage"/> property.

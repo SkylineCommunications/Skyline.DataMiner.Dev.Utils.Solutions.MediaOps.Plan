@@ -1,129 +1,15 @@
-﻿namespace RT_MediaOps.Plan.RST.Resources
+﻿namespace RT_MediaOps.Plan.RST.Querying
 {
     using System;
-    using System.Linq;
     using RT_MediaOps.Plan.RegressionTests;
-    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
-    using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 
-    [TestClass]
-    [TestCategory("IntegrationTest")]
-    public sealed class ResourceQueryingTests : IDisposable
-    {
-        private readonly ResourceStudioObjectCreator objectCreator;
-        private readonly ResourceFilteringSetup setup;
-
-        public ResourceQueryingTests()
-        {
-            objectCreator = new ResourceStudioObjectCreator(TestContext.Api);
-            setup = new ResourceFilteringSetup(objectCreator, TestContext);
-        }
-
-        private static IntegrationTestContext TestContext => TestContextManager.SharedTestContext;
-
-        public void Dispose()
-        {
-            objectCreator.Dispose();
-        }
-
-        [TestMethod]
-        public void ReadResourcesWithFilter()
-        {
-            var resourceFilter = new ORFilterElement<Resource>(setup.Resources.Select(x => ResourceExposers.Id.Equal(x.Id)).ToArray());
-            Assert.AreEqual(5, TestContext.Api.Resources.Read(resourceFilter).Count());
-
-            Assert.AreEqual(3, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.Name.Contains("Resource_Draft"))).Count());
-
-            Assert.AreEqual(3, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.Concurrency.GreaterThan(6))).Count());
-
-            Assert.AreEqual(3, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.IsFavorite.Equal(true))).Count());
-
-            Assert.AreEqual(3, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.State.Equal((int)ResourceState.Draft))).Count());
-            Assert.AreEqual(2, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.State.Equal((int)ResourceState.Complete))).Count());
-            Assert.AreEqual(0, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.State.Equal((int)ResourceState.Deprecated))).Count());
-
-            Assert.AreEqual(2, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.ResourcePoolIds.Contains(setup.ResourcePool1!.Id))).Count());
-            Assert.AreEqual(3, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.ResourcePoolIds.Contains(setup.ResourcePool2!.Id))).Count());
-            Assert.AreEqual(0, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.ResourcePoolIds.Contains(setup.ResourcePool3!.Id))).Count());
-
-            Assert.AreEqual(1, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.Capabilities.CapabilityId.Equal(setup.Location!.Id))).Count());
-            Assert.AreEqual(1, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.Capabilities.Discretes.Contains("USA"))).Count());
-            Assert.AreEqual(1, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.Capabilities.CapabilityId.Equal(setup.Location.Id)).AND(ResourceExposers.Capabilities.Discretes.Contains("USA"))).Count());
-
-            Assert.AreEqual(3, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.Capacities.CapacityId.Equal(setup.Frequency!.Id))).Count());
-            Assert.AreEqual(2, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.Capacities.CapacityId.Equal(setup.Bandwidth!.Id))).Count());
-
-            Assert.AreEqual(4, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.Properties.PropertyId.Equal(setup.Format!.Id))).Count());
-            Assert.AreEqual(4, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.Properties.Value.Equal("16:9"))).Count());
-
-            Assert.AreEqual(2, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.Properties.PropertyId.Equal(setup.Channel!.Id))).Count());
-            Assert.AreEqual(2, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.Properties.Value.Equal("VRT"))).Count());
-
-            Assert.AreEqual(0, TestContext.Api.Resources.Read(resourceFilter.AND(ResourceExposers.Properties.PropertyId.Equal(setup.Color!.Id))).Count());
-        }
-
-        [TestMethod]
-        public void CountResourcesWithFilter()
-        {
-            var resourceFilter = new ORFilterElement<Resource>(setup.Resources.Select(x => ResourceExposers.Id.Equal(x.Id)).ToArray());
-            Assert.AreEqual(5, TestContext.Api.Resources.Count(resourceFilter));
-
-            Assert.AreEqual(3, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.Name.Contains("Resource_Draft"))));
-
-            Assert.AreEqual(3, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.Concurrency.GreaterThan(6))));
-
-            Assert.AreEqual(3, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.IsFavorite.Equal(true))));
-
-            Assert.AreEqual(3, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.State.Equal((int)ResourceState.Draft))));
-            Assert.AreEqual(2, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.State.Equal((int)ResourceState.Complete))));
-            Assert.AreEqual(0, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.State.Equal((int)ResourceState.Deprecated))));
-
-            Assert.AreEqual(2, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.ResourcePoolIds.Contains(setup.ResourcePool1!.Id))));
-            Assert.AreEqual(3, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.ResourcePoolIds.Contains(setup.ResourcePool2!.Id))));
-            Assert.AreEqual(0, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.ResourcePoolIds.Contains(setup.ResourcePool3!.Id))));
-
-            Assert.AreEqual(1, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.Capabilities.CapabilityId.Equal(setup.Location!.Id))));
-            Assert.AreEqual(1, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.Capabilities.Discretes.Contains("USA"))));
-            Assert.AreEqual(1, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.Capabilities.CapabilityId.Equal(setup.Location.Id)).AND(ResourceExposers.Capabilities.Discretes.Contains("USA"))));
-
-            Assert.AreEqual(3, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.Capacities.CapacityId.Equal(setup.Frequency!.Id))));
-            Assert.AreEqual(2, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.Capacities.CapacityId.Equal(setup.Bandwidth!.Id))));
-
-            Assert.AreEqual(4, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.Properties.PropertyId.Equal(setup.Format!.Id))));
-            Assert.AreEqual(4, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.Properties.Value.Equal("16:9"))));
-
-            Assert.AreEqual(2, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.Properties.PropertyId.Equal(setup.Channel!.Id))));
-            Assert.AreEqual(2, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.Properties.Value.Equal("VRT"))));
-
-            Assert.AreEqual(0, TestContext.Api.Resources.Count(resourceFilter.AND(ResourceExposers.Properties.PropertyId.Equal(setup.Color!.Id))));
-        }
-
-        [TestMethod]
-        public void ReadResourceWithQuery()
-        {
-            Assert.Fail();
-        }
-
-        [TestMethod]
-        public void ReadResourcesPagedWithFilter()
-        {
-            Assert.Fail();
-        }
-
-        [TestMethod]
-        public void ReadResourcesPagedWithQuery()
-        {
-            Assert.Fail();
-        }
-    }
-
-    internal sealed class ResourceFilteringSetup
+    internal sealed class ResourceQueryingSetup
     {
         private readonly ResourceStudioObjectCreator objectCreator;
         private readonly IntegrationTestContext TestContext;
 
-        public ResourceFilteringSetup(ResourceStudioObjectCreator objectCreator, IntegrationTestContext TestContext)
+        public ResourceQueryingSetup(ResourceStudioObjectCreator objectCreator, IntegrationTestContext TestContext)
         {
             this.objectCreator = objectCreator;
             this.TestContext = TestContext;
@@ -146,6 +32,15 @@
             CompleteResource5!,
         };
 
+        public ResourcePool[] ResourcePools => new ResourcePool[]
+        {
+            ResourcePool1,
+            ResourcePool2,
+            ResourcePool3,
+            ResourcePool4,
+            ResourcePool5,
+        };
+
         public UnmanagedResource? DraftResource1 { get; private set; }
 
         public UnmanagedResource? DraftResource2 { get; private set; }
@@ -161,6 +56,10 @@
         public ResourcePool? ResourcePool2 { get; private set; } // Contains Resource 3, 4, and 5
 
         public ResourcePool? ResourcePool3 { get; private set; } // Contains no resources
+
+        public ResourcePool? ResourcePool4 { get; private set; } // Contains no resources
+
+        public ResourcePool? ResourcePool5 { get; private set; } // Contains no resources
 
         public Capability? Location { get; private set; }
 
@@ -461,38 +360,63 @@
         {
             ResourcePool1 = new ResourcePool
             {
-                Name = $"ResourcePool_1_{Guid.NewGuid()}",
+                Name = $"ResourcePool_Draft_1_{Guid.NewGuid()}",
                 IconImage = "icon_1.png",
-            };
+            }
+            .AddCapability(new ResourcePoolCapabilitySettings(Location!.Id).SetDiscretes(["Belgium"]))
+            .AddCapability(new ResourcePoolCapabilitySettings(Priority!.Id).SetDiscretes(["Low", "Medium", "High"]));
 
             ResourcePool2 = new ResourcePool
             {
-                Name = $"ResourcePool_2_{Guid.NewGuid()}",
+                Name = $"ResourcePool_Complete_2_{Guid.NewGuid()}",
                 IconImage = "icon_2.png",
-            };
+            }
+            .AddCapability(new ResourcePoolCapabilitySettings(Location.Id).SetDiscretes(["Belgium"]))
+            .AddCapability(new ResourcePoolCapabilitySettings(Priority.Id).SetDiscretes(["Low", "Medium", "High"]));
 
             ResourcePool3 = new ResourcePool
             {
-                Name = $"ResourcePool_3_{Guid.NewGuid()}",
+                Name = $"ResourcePool_Complete_3_{Guid.NewGuid()}",
                 IconImage = "icon_3.png",
-            };
-
-            var resourcePools = new ResourcePool[]
-            {
-                ResourcePool1,
-                ResourcePool2,
-                ResourcePool3,
-            };
-
-            foreach (var pool in resourcePools)
-            {
-                objectCreator.CreateResourcePool(pool);
-                TestContext.Api.ResourcePools.MoveTo(pool, ResourcePoolState.Complete);
             }
+            .AddCapability(new ResourcePoolCapabilitySettings(Resolution!.Id).SetDiscretes(["4K"]))
+            .AddCapability(new ResourcePoolCapabilitySettings(Priority.Id).SetDiscretes(["Medium"]));
+
+            ResourcePool4 = new ResourcePool
+            {
+                Name = $"ResourcePool_Complete_4_{Guid.NewGuid()}",
+                IconImage = "icon_4.jpeg",
+            }
+            .AddLinkedResourcePool(new LinkedResourcePool(ResourcePool1) { SelectionType = ResourceSelectionType.Automatic })
+            .AddLinkedResourcePool(new LinkedResourcePool(ResourcePool2) { SelectionType = ResourceSelectionType.Automatic });
+
+            ResourcePool5 = new ResourcePool
+            {
+                Name = $"ResourcePool_Complete_5_{Guid.NewGuid()}",
+                IconImage = "icon_5.jpeg",
+            }
+            .AddLinkedResourcePool(new LinkedResourcePool(ResourcePool1) { SelectionType = ResourceSelectionType.Manual })
+            .AddLinkedResourcePool(new LinkedResourcePool(ResourcePool2) { SelectionType = ResourceSelectionType.Automatic });
+
+            objectCreator.CreateResourcePool(ResourcePool1); // Draft pool
+
+            objectCreator.CreateResourcePool(ResourcePool2);
+            TestContext.Api.ResourcePools.MoveTo(ResourcePool2, ResourcePoolState.Complete);
+
+            objectCreator.CreateResourcePool(ResourcePool3);
+            TestContext.Api.ResourcePools.MoveTo(ResourcePool3, ResourcePoolState.Complete);
+
+            objectCreator.CreateResourcePool(ResourcePool4);
+            TestContext.Api.ResourcePools.MoveTo(ResourcePool4, ResourcePoolState.Complete);
+
+            objectCreator.CreateResourcePool(ResourcePool5);
+            TestContext.Api.ResourcePools.MoveTo(ResourcePool5, ResourcePoolState.Complete);
 
             ResourcePool1 = TestContext.Api.ResourcePools.Read(ResourcePool1.Id);
             ResourcePool2 = TestContext.Api.ResourcePools.Read(ResourcePool2.Id);
             ResourcePool3 = TestContext.Api.ResourcePools.Read(ResourcePool3.Id);
+            ResourcePool4 = TestContext.Api.ResourcePools.Read(ResourcePool4.Id);
+            ResourcePool5 = TestContext.Api.ResourcePools.Read(ResourcePool5.Id);
         }
     }
 }
