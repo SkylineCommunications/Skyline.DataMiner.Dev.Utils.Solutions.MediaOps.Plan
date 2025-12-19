@@ -313,7 +313,7 @@
                     throw new InvalidOperationException("Not possible to use method Create for existing resources. Use CreateOrUpdate or Update instead.");
                 }
 
-                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
+                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
                 {
                     throw new MediaOpsBulkException<Guid>(result);
                 }
@@ -338,7 +338,7 @@
 
             ActivityHelper.Track(nameof(ResourcesRepository), nameof(CreateOrUpdate), act =>
             {
-                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
+                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, apiObjects?.ToList(), out var result))
                 {
                     throw new MediaOpsBulkException<Guid>(result);
                 }
@@ -383,7 +383,7 @@
 
             ActivityHelper.Track(nameof(ResourcesRepository), nameof(Delete), act =>
             {
-                if (!DomResourceHandler.TryDelete(PlanApi, resourcesToDelete, out var result))
+                if (!DomResourceHandler.TryDelete(PlanApi, resourcesToDelete?.ToList(), out var result))
                 {
                     throw new MediaOpsBulkException<Guid>(result);
                 }
@@ -409,7 +409,7 @@
 
             ActivityHelper.Track(nameof(ResourcesRepository), nameof(Deprecate), act =>
             {
-                if (!DomResourceHandler.TryDeprecate(PlanApi, resources, out var result))
+                if (!DomResourceHandler.TryDeprecate(PlanApi, resources?.ToList(), out var result))
                 {
                     throw new MediaOpsBulkException<Guid>(result);
                 }
@@ -1013,7 +1013,7 @@
                     throw new InvalidOperationException("Not possible to use method Update for new resources. Use Create or CreateOrUpdate instead.");
                 }
 
-                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
+                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
                 {
                     throw new MediaOpsBulkException<Guid>(result);
                 }

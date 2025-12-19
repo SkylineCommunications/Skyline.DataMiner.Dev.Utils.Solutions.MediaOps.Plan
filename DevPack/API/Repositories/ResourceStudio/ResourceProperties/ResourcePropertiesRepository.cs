@@ -116,7 +116,7 @@
                     throw new InvalidOperationException("Not possible to use method Create for existing resource properties. Use CreateOrUpdate or Update instead.");
                 }
 
-                if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
+                if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
                 {
                     throw new MediaOpsBulkException<Guid>(result);
                 }
@@ -141,7 +141,7 @@
 
             ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(CreateOrUpdate), act =>
             {
-                if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
+                if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, apiObjects?.ToList(), out var result))
                 {
                     throw new MediaOpsBulkException<Guid>(result);
                 }
@@ -184,7 +184,7 @@
 
             ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Delete), act =>
             {
-                if (!DomResourcePropertyHandler.TryDelete(PlanApi, propertiesToDelete, out var result))
+                if (!DomResourcePropertyHandler.TryDelete(PlanApi, propertiesToDelete?.ToList(), out var result))
                 {
                     throw new MediaOpsBulkException<Guid>(result);
                 }
@@ -408,7 +408,7 @@
                     throw new InvalidOperationException("Not possible to use method Update for new resource properties. Use Create or CreateOrUpdate instead.");
                 }
 
-                if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
+                if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
                 {
                     throw new MediaOpsBulkException<Guid>(result);
                 }
