@@ -24,6 +24,10 @@
 
         private bool isExternallyManaged;
 
+        private string iconImage;
+
+        private string url;
+
         private int concurrency;
 
         private Guid coreResourceId;
@@ -116,6 +120,32 @@
         /// Gets the state of the resource.
         /// </summary>
         public ResourceState State { get; private set; }
+
+        /// <summary>
+        /// Gets or sets the icon of the resource.
+        /// </summary>
+        public string IconImage
+        {
+            get => iconImage;
+            set
+            {
+                HasChanges = true;
+                iconImage = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the URL of the resource.
+        /// </summary>
+        public string Url
+        {
+            get => url;
+            set
+            {
+                HasChanges = true;
+                url = value;
+            }
+        }
 
         /// <summary>
         /// Gets the collection of resource pool identifiers assigned to the resource.
@@ -448,6 +478,8 @@
             updatedInstance.ResourceInfo.Favorite = isFavorite;
             updatedInstance.ResourceInfo.Concurrency = concurrency;
             updatedInstance.ResourceInternalProperties.PoolIds = assignedPoolIds.ToList();
+            updatedInstance.ResourceOther.IconImage = iconImage;
+            updatedInstance.ResourceOther.URL = url;
 
             // Setting to null will not create a DOM section in storage.
             updatedInstance.ExternalMetadata.ExternallyManaged = isExternallyManaged ? true : null;
@@ -515,6 +547,8 @@
             assignedPoolIds = new HashSet<Guid>(instance.ResourceInternalProperties.PoolIds);
             coreResourceId = instance.ResourceInternalProperties.Resource_Id ?? Guid.Empty;
             isExternallyManaged = instance.ExternalMetadata?.ExternallyManaged ?? false;
+            iconImage = instance.ResourceOther.IconImage;
+            url = instance.ResourceOther.URL;
             virtualSignalGroupInputId = instance.ResourceConnectionManagement.VirtualSignalGroupInputId;
             virtualSignalGroupOutputId = instance.ResourceConnectionManagement.VirtualSignalGroupOutputId;
 
