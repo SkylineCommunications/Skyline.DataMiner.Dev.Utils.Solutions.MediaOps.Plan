@@ -198,7 +198,7 @@
                 if (objectsToLock == null) throw new ArgumentNullException(nameof(objectsToLock));
                 if (result == null) throw new ArgumentNullException(nameof(result));
 
-                LockedObjects = objectsToLock.Where(x => result.LockInfosPerObjectId.TryGetValue(x.Id.ToString(), out var lockInfo) && lockInfo.IsGranted).ToList();
+                LockedObjects = objectsToLock.Where(x => result.LockInfosPerObjectId.TryGetValue(x.LockId.ToString(), out var lockInfo) && lockInfo.IsGranted).ToList();
                 FailedToLockObjects = objectsToLock.Except(LockedObjects).ToList();
             }
 
