@@ -28,6 +28,7 @@
         {
         }
 
+        /// <inheritdoc/>
         protected internal override CoreParameter.ParameterType ParameterType => CoreParameter.ParameterType.Number;
     }
 }

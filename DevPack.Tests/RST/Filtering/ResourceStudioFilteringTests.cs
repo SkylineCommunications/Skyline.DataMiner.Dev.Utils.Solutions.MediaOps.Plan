@@ -25,7 +25,7 @@
             setup = new ResourceFilteringSetup(objectCreator, TestContext);
         }
 
-        [ClassCleanup]
+        [ClassCleanup(ClassCleanupBehavior.EndOfClass)]
         public static void ClassCleanup()
         {
             objectCreator?.Dispose();

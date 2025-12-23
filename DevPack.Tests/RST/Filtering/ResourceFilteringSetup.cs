@@ -71,10 +71,10 @@
 
         public Configuration[] Configurations => new Configuration[]
         {
-            Region,
-            Distance,
-            ResolutionConfig,
-            PriorityConfig,
+            Region!,
+            Distance!,
+            ResolutionConfig!,
+            PriorityConfig!,
         };
 
         public UnmanagedResource? DraftResource1 { get; private set; }
