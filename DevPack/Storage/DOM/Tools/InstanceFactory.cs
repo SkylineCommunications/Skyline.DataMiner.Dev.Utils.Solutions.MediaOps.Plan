@@ -58,6 +58,11 @@
                 throw new ArgumentNullException(nameof(createInstance));
             }
 
+            return CreateInstancesPagedIterator(pages, createInstance);
+        }
+
+        private static IEnumerable<IEnumerable<T>> CreateInstancesPagedIterator<T>(IEnumerable<IEnumerable<DomInstance>> pages, Func<DomInstance, T> createInstance) where T : DomInstanceBase
+        {
             foreach (var page in pages)
             {
                 yield return CreateInstancesIterator(page, createInstance);

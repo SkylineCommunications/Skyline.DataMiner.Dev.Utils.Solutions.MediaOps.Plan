@@ -6,7 +6,6 @@
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
     using Skyline.DataMiner.Utils.DOM.Extensions;
     using SLDataGateway.API.Types.Querying;
@@ -373,19 +372,6 @@
         private IEnumerable<ResourcepropertyInstance> GetResourcePropertyIterator(FilterElement<DomInstance> filter)
         {
             return InstanceFactory.ReadAndCreateInstances(DomHelper, filter, instance => new ResourcepropertyInstance(instance));
-        }
-
-        private IEnumerable<ResourcepropertyInstance> GetResourcePropertyIterator(IEnumerable<DomInstance> instances)
-        {
-            foreach (var instance in instances)
-            {
-                if (instance == null || instance.DomDefinitionId.Id != SlcResource_StudioIds.Definitions.Resourceproperty.Id)
-                {
-                    continue;
-                }
-
-                yield return InstanceFactory.CreateInstance(instance, instance => new ResourcepropertyInstance(instance));
-            }
         }
     }
 }
