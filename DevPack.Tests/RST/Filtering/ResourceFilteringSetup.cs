@@ -22,6 +22,9 @@
 
             CreateDraftResources();
             CreateCompleteResources();
+            CreateElementResources();
+            CreateServiceResources();
+            CreateVirtualFunctionResources();
         }
 
         public Resource[] Resources => new Resource[]
@@ -31,6 +34,9 @@
             DraftResource3!,
             CompleteResource4!,
             CompleteResource5!,
+            ElementResource1!,
+            ServiceResource1!,
+            VirtualFunctionResource1!,
         };
 
         public ResourcePool[] ResourcePools => new ResourcePool[]
@@ -81,9 +87,15 @@
 
         public UnmanagedResource? CompleteResource5 { get; private set; }
 
+        public ElementResource? ElementResource1 { get; private set; }
+
+        public ServiceResource? ServiceResource1 { get; private set; }
+
+        public VirtualFunctionResource? VirtualFunctionResource1 { get; private set; }
+
         public ResourcePool? ResourcePool1 { get; private set; } // Contains Resource 1 & 2
 
-        public ResourcePool? ResourcePool2 { get; private set; } // Contains Resource 3, 4, and 5
+        public ResourcePool? ResourcePool2 { get; private set; } // Contains Resource 3, 4, and 5, VF1
 
         public ResourcePool? ResourcePool3 { get; private set; } // Contains no resources
 
@@ -323,6 +335,61 @@
 
             CompleteResource4 = (UnmanagedResource)TestContext.Api.Resources.Read(CompleteResource4.Id);
             CompleteResource5 = (UnmanagedResource)TestContext.Api.Resources.Read(CompleteResource5.Id);
+        }
+
+        private void CreateElementResources()
+        {
+            ElementResource1 = new ElementResource
+            {
+                Name = $"ElementResource_1_{Guid.NewGuid()}",
+                IsFavorite = false,
+                Concurrency = 4,
+                AgentId = 100,
+                ElementId = 200,
+            };
+
+            objectCreator.CreateResource(ElementResource1);
+            ElementResource1 = (ElementResource)TestContext.Api.Resources.Read(ElementResource1.Id);
+        }
+
+        private void CreateServiceResources()
+        {
+            ServiceResource1 = new ServiceResource
+            {
+                Name = $"ServiceResource_1_{Guid.NewGuid()}",
+                IsFavorite = true,
+                Concurrency = 2,
+                AgentId = 100,
+                ServiceId = 20,
+            };
+
+            objectCreator.CreateResource(ServiceResource1);
+
+            ServiceResource1 = (ServiceResource)TestContext.Api.Resources.Read(ServiceResource1.Id);
+        }
+
+        private void CreateVirtualFunctionResources()
+        {
+            VirtualFunctionResource1 = new VirtualFunctionResource
+            {
+                Name = $"VirtualFunction_1_{Guid.NewGuid()}",
+                IsFavorite = true,
+                Concurrency = 3,
+                AgentId = 100,
+                ElementId = 200,
+                FunctionId = Guid.NewGuid(),
+                FunctionTableIndex = "VF_Table_1",
+            };
+
+            var capabilitySettings1 = new ResourceCapabilitySettings(Resolution);
+            capabilitySettings1.SetDiscretes(new[] { "720p", "1080p", "4K" });
+
+            VirtualFunctionResource1.AddCapability(capabilitySettings1);
+            VirtualFunctionResource1.AssignToPool(ResourcePool2);
+
+            objectCreator.CreateResource(VirtualFunctionResource1);
+
+            VirtualFunctionResource1 = (VirtualFunctionResource)TestContext.Api.Resources.Read(VirtualFunctionResource1.Id);
         }
 
         private void CreateCapacities()

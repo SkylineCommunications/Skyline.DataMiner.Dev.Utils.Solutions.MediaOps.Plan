@@ -23,10 +23,13 @@
             [ResourceExposers.Capacities.CapacityId.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceCapacities.ProfileParameterID), comparer, Convert.ToString(value)),
             [ResourceExposers.Properties.PropertyId.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceProperties.Property), comparer, Convert.ToString(value)),
             [ResourceExposers.Properties.Value.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceProperties.PropertyValue), comparer, Convert.ToString(value)),
-            [ServiceResourceExposers.ServiceId.fieldName] = (comparer, value) => CreateServiceIdFilter(comparer, Convert.ToString(value)).AND(FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Type), Comparer.Equals, (int)SlcResource_StudioIds.Enums.Type.Service)),
-            [ElementResourceExposers.ElementId.fieldName] = (comparer, value) => CreateElementIdFilter(comparer, Convert.ToString(value)).AND(FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Type), Comparer.Equals, (int)SlcResource_StudioIds.Enums.Type.Element)),
-            [VirtualFunctionResourceExposers.ElementId.fieldName] = (comparer, value) => CreateElementIdFilter(comparer, Convert.ToString(value)).AND(FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Type), Comparer.Equals, (int)SlcResource_StudioIds.Enums.Type.VirtualFunction)),
-            [VirtualFunctionResourceExposers.FunctionId.fieldName] = (comparer, value) => CreateFunctionIdFilter(comparer, Convert.ToString(value)).AND(FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Type), Comparer.Equals, (int)SlcResource_StudioIds.Enums.Type.VirtualFunction)),
+            [ServiceResourceExposers.AgentId.fieldName] = (comparer, value) => CreateAgentIdFilter(comparer, (int)value).AND(FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Type), Comparer.Equals, (int)SlcResource_StudioIds.Enums.Type.Service)),
+            [ServiceResourceExposers.ServiceId.fieldName] = (comparer, value) => CreateElementOrServiceIdFilter(comparer, (int)value).AND(FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Type), Comparer.Equals, (int)SlcResource_StudioIds.Enums.Type.Service)),
+            [ElementResourceExposers.AgentId.fieldName] = (comparer, value) => CreateAgentIdFilter(comparer, (int)value).AND(FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Type), Comparer.Equals, (int)SlcResource_StudioIds.Enums.Type.Element)),
+            [ElementResourceExposers.ElementId.fieldName] = (comparer, value) => CreateElementOrServiceIdFilter(comparer, (int)value).AND(FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Type), Comparer.Equals, (int)SlcResource_StudioIds.Enums.Type.Element)),
+            [VirtualFunctionResourceExposers.AgentId.fieldName] = (comparer, value) => CreateAgentIdFilter(comparer, (int)value).AND(FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Type), Comparer.Equals, (int)SlcResource_StudioIds.Enums.Type.VirtualFunction)),
+            [VirtualFunctionResourceExposers.ElementId.fieldName] = (comparer, value) => CreateElementOrServiceIdFilter(comparer, (int)value).AND(FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Type), Comparer.Equals, (int)SlcResource_StudioIds.Enums.Type.VirtualFunction)),
+            [VirtualFunctionResourceExposers.FunctionId.fieldName] = (comparer, value) => CreateFunctionIdFilter(comparer, (Guid)value).AND(FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Type), Comparer.Equals, (int)SlcResource_StudioIds.Enums.Type.VirtualFunction)),
             [VirtualFunctionResourceExposers.FunctionTableIndex.fieldName] = (comparer, value) => CreateFunctionTableIndexFilter(comparer, Convert.ToString(value)).AND(FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Type), Comparer.Equals, (int)SlcResource_StudioIds.Enums.Type.VirtualFunction)),
         };
 
@@ -49,111 +52,67 @@
             }
         }
 
-        private static FilterElement<DomInstance> CreateServiceIdFilter(Comparer comparer, string serviceId)
+        private static FilterElement<DomInstance> CreateAgentIdFilter(Comparer comparer, int agentId)
         {
-            bool checkContains;
+            // Service: {"LinkedElementInfo":null,"LinkedServiceInfo":"78/140467","LinkedFunctionId":"00000000-0000-0000-0000-000000000000","LinkedFunctionTableIndex":null}
+            // Element: {"LinkedElementInfo":"78/137485","LinkedServiceInfo":null,"LinkedFunctionId":"00000000-0000-0000-0000-000000000000","LinkedFunctionTableIndex":null}
+            // VF:      {"LinkedElementInfo":"78/140461","LinkedServiceInfo":null,"LinkedFunctionId":"7bd8d399-b503-4fd9-9b2e-8dc188d591b8","LinkedFunctionTableIndex":"1"}
+
             switch (comparer)
             {
                 case Comparer.Equals:
-                case Comparer.Contains:
-                    checkContains = true;
-                    break;
+                    return CreateResourceMetaDataFilter(Comparer.Equals, $"\"LinkedServiceInfo\":\"{agentId}/").OR(CreateResourceMetaDataFilter(Comparer.Equals, $"\"LinkedElementInfo\":\"{agentId}/"));
                 case Comparer.NotEquals:
-                case Comparer.NotContains:
-                    checkContains = false;
-                    break;
+                    return CreateResourceMetaDataFilter(Comparer.NotEquals, $"\"LinkedServiceInfo\":\"{agentId}/").AND(CreateResourceMetaDataFilter(Comparer.NotEquals, $"\"LinkedElementInfo\":\"{agentId}/"));
                 default:
-                    throw new NotSupportedException($"Comparer {comparer} is not supported for ServiceId checks");
-            }
-
-            if (checkContains)
-            {
-                return DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.ResourceMetadata).Contains($"\"LinkedServiceInfo\":\"{serviceId}\"");
-            }
-            else
-            {
-                return DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.ResourceMetadata).NotContains($"\"LinkedServiceInfo\":\"{serviceId}\"");
+                    throw new NotSupportedException("Comparer {comparer} is not supported for AgentId checks");
             }
         }
 
-        private static FilterElement<DomInstance> CreateElementIdFilter(Comparer comparer, string elementId)
+        private static FilterElement<DomInstance> CreateElementOrServiceIdFilter(Comparer comparer, int elementOrServiceId)
         {
-            bool checkContains;
-            switch (comparer)
-            {
-                case Comparer.Equals:
-                case Comparer.Contains:
-                    checkContains = true;
-                    break;
-                case Comparer.NotEquals:
-                case Comparer.NotContains:
-                    checkContains = false;
-                    break;
-                default:
-                    throw new NotSupportedException($"Comparer {comparer} is not supported for ElementId checks");
-            }
-
-            if (checkContains)
-            {
-                return DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.ResourceMetadata).Contains($"\"LinkedElementInfo\":\"{elementId}\"");
-            }
-            else
-            {
-                return DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.ResourceMetadata).NotContains($"\"LinkedElementInfo\":\"{elementId}\"");
-            }
+            // Service: {"LinkedElementInfo":null,"LinkedServiceInfo":"78/140467","LinkedFunctionId":"00000000-0000-0000-0000-000000000000","LinkedFunctionTableIndex":null}
+            // Element: {"LinkedElementInfo":"78/137485","LinkedServiceInfo":null,"LinkedFunctionId":"00000000-0000-0000-0000-000000000000","LinkedFunctionTableIndex":null}
+            // VF:      {"LinkedElementInfo":"78/140461","LinkedServiceInfo":null,"LinkedFunctionId":"7bd8d399-b503-4fd9-9b2e-8dc188d591b8","LinkedFunctionTableIndex":"1"}
+            return CreateResourceMetaDataFilter(comparer, $"/{elementOrServiceId}\"");
         }
 
-        private static FilterElement<DomInstance> CreateFunctionIdFilter(Comparer comparer, string functionId)
+        private static FilterElement<DomInstance> CreateFunctionIdFilter(Comparer comparer, Guid functionId)
         {
-            bool checkContains;
-            switch (comparer)
-            {
-                case Comparer.Equals:
-                case Comparer.Contains:
-                    checkContains = true;
-                    break;
-                case Comparer.NotEquals:
-                case Comparer.NotContains:
-                    checkContains = false;
-                    break;
-                default:
-                    throw new NotSupportedException($"Comparer {comparer} is not supported for FunctionId checks");
-            }
-
-            if (checkContains)
-            {
-                return DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.ResourceMetadata).Contains($"\"LinkedFunctionId\":\"{functionId}\"");
-            }
-            else
-            {
-                return DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.ResourceMetadata).NotContains($"\"LinkedFunctionId\":\"{functionId}\"");
-            }
+            // VF:      {"LinkedElementInfo":"78/140461","LinkedServiceInfo":null,"LinkedFunctionId":"7bd8d399-b503-4fd9-9b2e-8dc188d591b8","LinkedFunctionTableIndex":"1"}
+            return CreateResourceMetaDataFilter(comparer, $"\"LinkedFunctionId\":\"{functionId}\"");
         }
 
         private static FilterElement<DomInstance> CreateFunctionTableIndexFilter(Comparer comparer, string functionTableIndex)
         {
+            // VF:      {"LinkedElementInfo":"78/140461","LinkedServiceInfo":null,"LinkedFunctionId":"7bd8d399-b503-4fd9-9b2e-8dc188d591b8","LinkedFunctionTableIndex":"1"}
+            return CreateResourceMetaDataFilter(comparer, $"\"LinkedFunctionTableIndex\":\"{functionTableIndex}\"");
+        }
+
+        private static FilterElement<DomInstance> CreateResourceMetaDataFilter(Comparer comparer, string filterValue)
+        {
             bool checkContains;
             switch (comparer)
             {
                 case Comparer.Equals:
-                case Comparer.Contains:
                     checkContains = true;
                     break;
                 case Comparer.NotEquals:
-                case Comparer.NotContains:
                     checkContains = false;
                     break;
                 default:
-                    throw new NotSupportedException($"Comparer {comparer} is not supported for FunctionTableIndex checks");
+                    throw new NotSupportedException($"Comparer {comparer} is not supported for ResourceMetaData checks");
             }
 
             if (checkContains)
             {
-                return DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.ResourceMetadata).Contains($"\"LinkedFunctionTableIndex\":\"{functionTableIndex}\"");
+                //return DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.ResourceMetadata).Matches(regexPattern);
+
+                return DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.ResourceMetadata).Contains(filterValue);
             }
             else
             {
-                return DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.ResourceMetadata).NotContains($"\"LinkedFunctionTableIndex\":\"{functionTableIndex}\"");
+                return DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.ResourceMetadata).NotContains(filterValue);
             }
         }
     }

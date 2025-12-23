@@ -90,9 +90,16 @@
     public class ElementResourceExposers
     {
         /// <summary>
+        /// Gets an exposer for the <see cref="ElementResource.AgentId"/> property.
+        /// </summary>
+        public static readonly Exposer<Resource, int> AgentId = new SettableExposer<Resource, int>((Func<Resource, int>)((Resource x) => (!(x is ElementResource elementResource)) ? -1 : elementResource.AgentId), (Action<Resource, int>)delegate
+        {
+        }, ["ElementResource.AgentId"]);
+
+        /// <summary>
         /// Gets an exposer for the <see cref="ElementResource.ElementId"/> property.
         /// </summary>
-        public static readonly Exposer<Resource, string> ElementId = new SettableExposer<Resource, string>((Func<Resource, string>)((Resource x) => (!(x is ElementResource elementResource)) ? "-1/-1" : $"{elementResource.AgentId}/{elementResource.ElementId}"), (Action<Resource, string>)delegate
+        public static readonly Exposer<Resource, int> ElementId = new SettableExposer<Resource, int>((Func<Resource, int>)((Resource x) => (!(x is ElementResource elementResource)) ? -1 : elementResource.ElementId), (Action<Resource, int>)delegate
         {
         }, ["ElementResource.ElementId"]);
     }
@@ -103,9 +110,16 @@
     public class ServiceResourceExposers
     {
         /// <summary>
+        /// Gets an exposer for the <see cref="ServiceResource.AgentId"/> property.
+        /// </summary>
+        public static readonly Exposer<Resource, int> AgentId = new SettableExposer<Resource, int>((Func<Resource, int>)((Resource x) => (!(x is ServiceResource serviceResource)) ? -1 : serviceResource.AgentId), (Action<Resource, int>)delegate
+        {
+        }, ["ServiceResource.AgentId"]);
+
+        /// <summary>
         /// Gets an exposer for the <see cref="ServiceResource.ServiceId"/> property.
         /// </summary>
-        public static readonly Exposer<Resource, string> ServiceId = new SettableExposer<Resource, string>((Func<Resource, string>)((Resource x) => (!(x is ServiceResource serviceResource)) ? "-1/-1" : $"{serviceResource.AgentId}/{serviceResource.ServiceId}"), (Action<Resource, string>)delegate
+        public static readonly Exposer<Resource, int> ServiceId = new SettableExposer<Resource, int>((Func<Resource, int>)((Resource x) => (!(x is ServiceResource serviceResource)) ? -1 : serviceResource.ServiceId), (Action<Resource, int>)delegate
         {
         }, ["ServiceResource.ServiceId"]);
     }
@@ -116,9 +130,16 @@
     public class VirtualFunctionResourceExposers
     {
         /// <summary>
+        /// Gets an exposer for the <see cref="VirtualFunctionResource.AgentId"/> property.
+        /// </summary>
+        public static readonly Exposer<Resource, int> AgentId = new SettableExposer<Resource, int>((Func<Resource, int>)((Resource x) => (!(x is VirtualFunctionResource virtualFunctionResource)) ? -1 : virtualFunctionResource.AgentId), (Action<Resource, int>)delegate
+        {
+        }, ["VirtualFunctionResource.AgentId"]);
+
+        /// <summary>
         /// Gets an exposer for the <see cref="VirtualFunctionResource.ElementId"/> property.
         /// </summary>
-        public static readonly Exposer<Resource, string> ElementId = new SettableExposer<Resource, string>((Func<Resource, string>)((Resource x) => (!(x is VirtualFunctionResource virtualFunctionResource)) ? "-1/-1" : $"{virtualFunctionResource.AgentId}/{virtualFunctionResource.ElementId}"), (Action<Resource, string>)delegate
+        public static readonly Exposer<Resource, int> ElementId = new SettableExposer<Resource, int>((Func<Resource, int>)((Resource x) => (!(x is VirtualFunctionResource virtualFunctionResource)) ? -1 : virtualFunctionResource.ElementId), (Action<Resource, int>)delegate
         {
         }, ["VirtualFunctionResource.ElementId"]);
 
