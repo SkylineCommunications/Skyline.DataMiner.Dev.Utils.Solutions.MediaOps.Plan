@@ -38,11 +38,13 @@
 
         private HashSet<Guid> assignedPoolIds = new HashSet<Guid>();
 
-        private readonly ICollection<ResourceCapabilitySettings> capabilitySettings = [];
+        private readonly List<ResourceCapabilitySetting> capabilitySettings = [];
 
-        private readonly ICollection<ResourceCapacitySettings> capacitySettings = [];
+        private readonly List<ResourceNumberCapacitySetting> numberCapacitySettings = [];
 
-        private readonly ICollection<ResourcePropertySettings> propertySettings = [];
+        private readonly List<ResourceRangeCapacitySetting> rangeCapacitySettings = [];
+
+        private readonly List<ResourcePropertySettings> propertySettings = [];
 
         private protected Resource() : base()
         {
@@ -150,22 +152,22 @@
         /// <summary>
         /// Gets the collection of resource pool identifiers assigned to the resource.
         /// </summary>
-        public IReadOnlyCollection<Guid> AssignedResourcePoolIds => (IReadOnlyCollection<Guid>)assignedPoolIds;
+        public IReadOnlyCollection<Guid> AssignedResourcePoolIds => assignedPoolIds;
 
         /// <summary>
-        /// Gets the collection of capabilities assigned to this pool.
+        /// Gets the collection of capabilities assigned to this resource.
         /// </summary>
-        public IReadOnlyCollection<ResourceCapabilitySettings> Capabilities => (IReadOnlyCollection<ResourceCapabilitySettings>)capabilitySettings;
+        public IReadOnlyCollection<CapabilitySetting> Capabilities => capabilitySettings;
 
         /// <summary>
-        /// Gets the collection of capacities assigned to this pool.
+        /// Gets the collection of capacities assigned to this resource.
         /// </summary>
-        public IReadOnlyCollection<ResourceCapacitySettings> Capacities => (IReadOnlyCollection<ResourceCapacitySettings>)capacitySettings;
+        public IReadOnlyCollection<CapacitySetting> Capacities => numberCapacitySettings.Concat<CapacitySetting>(rangeCapacitySettings).ToList();
 
         /// <summary>
         /// Gets the collection of property settings associated with this resource.
         /// </summary>
-        public IReadOnlyCollection<ResourcePropertySettings> Properties => (IReadOnlyCollection<ResourcePropertySettings>)propertySettings;
+        public IReadOnlyCollection<ResourcePropertySettings> Properties => propertySettings;
 
         /// <summary>
         /// Gets or sets the unique identifier for the Live virtual signal group input associated with the resource.
@@ -310,23 +312,18 @@
         }
 
         /// <summary>
-        /// Adds a new capability to the resource if it has not been previously added.
+        /// Adds a new capability to the resource.
         /// </summary>
-        /// <param name="capability">The capability settings to add. Must represent a new capability; otherwise, the method does not modify the collection.</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="capability"/> is <see langword="null"/>.</exception>
-        public Resource AddCapability(ResourceCapabilitySettings capability)
+        /// <param name="capabilitySetting">The capability setting to add.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="capabilitySetting"/> is <see langword="null"/>.</exception>
+        public Resource AddCapability(CapabilitySetting capabilitySetting)
         {
-            if (capability == null)
+            if (capabilitySetting == null)
             {
-                throw new ArgumentNullException(nameof(capability));
+                throw new ArgumentNullException(nameof(capabilitySetting));
             }
 
-            if (!capability.IsNew)
-            {
-                return this;
-            }
-
-            capabilitySettings.Add(capability);
+            capabilitySettings.Add(new ResourceCapabilitySetting(capabilitySetting));
             HasChanges = true;
 
             return this;
@@ -335,16 +332,21 @@
         /// <summary>
         /// Removes the specified capability from the resource.
         /// </summary>
-        /// <param name="capability">The capability to remove from the resource. Cannot be null.</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="capability"/> is <see langword="null"/>.</exception>
-        public Resource RemoveCapability(ResourceCapabilitySettings capability)
+        /// <param name="capabilitySetting">The capability to remove from the resource. Cannot be null.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="capabilitySetting"/> is <see langword="null"/>.</exception>
+        public Resource RemoveCapability(CapabilitySetting capabilitySetting)
         {
-            if (capability == null)
+            if (capabilitySetting == null)
             {
-                throw new ArgumentNullException(nameof(capability));
+                throw new ArgumentNullException(nameof(capabilitySetting));
             }
 
-            var toRemove = capabilitySettings.SingleOrDefault(x => x.OriginalSection.ID == capability.OriginalSection.ID);
+            if (capabilitySetting.OriginalSection == null)
+            {
+                return this;
+            }
+
+            var toRemove = capabilitySettings.SingleOrDefault(x => x.OriginalSection.ID == capabilitySetting.OriginalSection.ID);
             if (toRemove != null && capabilitySettings.Remove(toRemove))
             {
                 HasChanges = true;
@@ -354,23 +356,30 @@
         }
 
         /// <summary>
-        /// Adds a new capacity to the resource if it has not been previously added.
+        /// Adds a new capacity to the resource.
         /// </summary>
-        /// <param name="capacity">The capacity settings to add. Must represent a new capacity; otherwise, the method does not modify the collection.</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="capacity"/> is <see langword="null"/>.</exception>
-        public Resource AddCapacity(ResourceCapacitySettings capacity)
+        /// <param name="capacitySetting">The capacity settings to add.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="capacitySetting"/> is <see langword="null"/>.</exception>
+        public Resource AddCapacity(CapacitySetting capacitySetting)
         {
-            if (capacity == null)
+            if (capacitySetting == null)
             {
-                throw new ArgumentNullException(nameof(capacity));
+                throw new ArgumentNullException(nameof(capacitySetting));
             }
 
-            if (!capacity.IsNew)
+            if (capacitySetting is NumberCapacitySetting numberCapacity)
             {
-                return this;
+                numberCapacitySettings.Add(new ResourceNumberCapacitySetting(numberCapacity));
+            }
+            else if (capacitySetting is RangeCapacitySetting rangeCapacity)
+            {
+                rangeCapacitySettings.Add(new ResourceRangeCapacitySetting(rangeCapacity));
+            }
+            else
+            {
+                throw new ArgumentException("The capacity setting type is not supported.", nameof(capacitySetting));
             }
 
-            capacitySettings.Add(capacity);
             HasChanges = true;
 
             return this;
@@ -379,19 +388,37 @@
         /// <summary>
         /// Removes the specified capacity from the resource.
         /// </summary>
-        /// <param name="capacity">The capacity to remove from the resource. Cannot be null.</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="capacity"/> is <see langword="null"/>.</exception>
-        public Resource RemoveCapacity(ResourceCapacitySettings capacity)
+        /// <param name="capacitySetting">The capacity to remove from the resource. Cannot be null.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="capacitySetting"/> is <see langword="null"/>.</exception>
+        public Resource RemoveCapacity(CapacitySetting capacitySetting)
         {
-            if (capacity == null)
+            if (capacitySetting == null)
             {
-                throw new ArgumentNullException(nameof(capacity));
+                throw new ArgumentNullException(nameof(capacitySetting));
             }
 
-            var toRemove = capacitySettings.SingleOrDefault(x => x.OriginalSection.ID == capacity.OriginalSection.ID);
-            if (toRemove != null && capacitySettings.Remove(toRemove))
+            if (capacitySetting.OriginalSection == null)
             {
-                HasChanges = true;
+                return this;
+            }
+
+            if (capacitySetting is NumberCapacitySetting)
+            {
+                var toRemoveNumber = numberCapacitySettings.SingleOrDefault(x => x.OriginalSection.ID == capacitySetting.OriginalSection.ID);
+                if (toRemoveNumber != null && numberCapacitySettings.Remove(toRemoveNumber))
+                {
+                    HasChanges = true;
+                    return this;
+                }
+            }
+            else if (capacitySetting is RangeCapacitySetting)
+            {
+                var toRemoveRange = rangeCapacitySettings.SingleOrDefault(x => x.OriginalSection.ID == capacitySetting.OriginalSection.ID);
+                if (toRemoveRange != null && rangeCapacitySettings.Remove(toRemoveRange))
+                {
+                    HasChanges = true;
+                    return this;
+                }
             }
 
             return this;
@@ -494,7 +521,11 @@
             }
 
             updatedInstance.ResourceCapacities.Clear();
-            foreach (var capacity in capacitySettings)
+            foreach (var capacity in numberCapacitySettings)
+            {
+                updatedInstance.ResourceCapacities.Add(capacity.GetSectionWithChanges());
+            }
+            foreach (var capacity in rangeCapacitySettings)
             {
                 updatedInstance.ResourceCapacities.Add(capacity.GetSectionWithChanges());
             }
@@ -556,7 +587,7 @@
 
             foreach (var section in instance.ResourceCapabilities)
             {
-                var capability = new ResourceCapabilitySettings(section);
+                var capability = new ResourceCapabilitySetting(section);
                 capability.ValueChanged += (s, e) => { HasChanges = true; };
                 capabilitySettings.Add(capability);
             }
@@ -583,20 +614,19 @@
 
             foreach (var section in resourceCapacities)
             {
-                ResourceCapacitySettings resourceCapacitySettings;
-
                 if (capacityById.TryGetValue(section.ProfileParameterId, out var capacity)
                     && capacity is RangeCapacity)
                 {
-                    resourceCapacitySettings = new ResourceRangeCapacitySettings(section);
+                    var resourceCapacitySetting = new ResourceRangeCapacitySetting(section);
+                    resourceCapacitySetting.ValueChanged += (s, e) => { HasChanges = true; };
+                    rangeCapacitySettings.Add(resourceCapacitySetting);
                 }
                 else
                 {
-                    resourceCapacitySettings = new ResourceNumberCapacitySettings(section);
+                    var resourceCapacitySetting = new ResourceNumberCapacitySetting(section);
+                    resourceCapacitySetting.ValueChanged += (s, e) => { HasChanges = true; };
+                    numberCapacitySettings.Add(resourceCapacitySetting);
                 }
-
-                resourceCapacitySettings.ValueChanged += (s, e) => { HasChanges = true; };
-                capacitySettings.Add(resourceCapacitySettings);
             }
         }
     }

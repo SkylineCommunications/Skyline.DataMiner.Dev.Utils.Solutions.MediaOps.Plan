@@ -4,35 +4,29 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
-
     /// <summary>
-    /// Represents the capability settings for a resource pool.
+    /// Represents a configurable set of discrete values associated with a specific capability.
     /// </summary>
-    public class ResourcePoolCapabilitySettings : TrackableObject
+    public class CapabilitySetting : TrackableObject
     {
-        private StorageResourceStudio.ResourcePoolCapabilitiesSection originalSection;
-
-        private StorageResourceStudio.ResourcePoolCapabilitiesSection updatedSection;
-
-        private HashSet<string> discretes = [];
+        internal HashSet<string> discretes = [];
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ResourcePoolCapabilitySettings"/> class using the specified capability.
+        /// Initializes a new instance of the <see cref="CapabilitySetting"/> class using the specified capability.
         /// </summary>
         /// <param name="capability">The capability to use for initializing the settings. Cannot be null.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="capability"/> is <see langword="null"/>.</exception>
-        public ResourcePoolCapabilitySettings(Capability capability)
+        public CapabilitySetting(Capability capability)
             : this(capability?.Id ?? throw new ArgumentNullException(nameof(capability)))
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ResourcePoolCapabilitySettings"/> class with the specified capability ID.
+        /// Initializes a new instance of the <see cref="CapabilitySetting"/> class with the specified capability ID.
         /// </summary>
         /// <param name="capabilityId">The unique identifier for the capability. Must not be an empty GUID.</param>
         /// <exception cref="ArgumentException">Thrown when <paramref name="capabilityId"/> is an empty GUID.</exception>
-        public ResourcePoolCapabilitySettings(Guid capabilityId)
+        public CapabilitySetting(Guid capabilityId)
         {
             if (capabilityId == Guid.Empty)
             {
@@ -44,9 +38,16 @@
             IsNew = true;
         }
 
-        internal ResourcePoolCapabilitySettings(StorageResourceStudio.ResourcePoolCapabilitiesSection section)
+        internal CapabilitySetting()
         {
-            ParseSection(section);
+        }
+
+        internal CapabilitySetting(CapabilitySetting capabilitySetting)
+        {
+            Id = capabilitySetting.Id;
+            discretes = new HashSet<string>(capabilitySetting.Discretes);
+
+            IsNew = capabilitySetting.IsNew;
         }
 
         internal EventHandler<EventArgs> ValueChanged;
@@ -54,19 +55,21 @@
         /// <summary>
         /// Gets the unique identifier of the capability.
         /// </summary>
-        public Guid Id { get; private set; }
+        public Guid Id { get; internal set; }
 
         /// <summary>
         /// Gets the collection of discrete values.
         /// </summary>
         public IReadOnlyCollection<string> Discretes => discretes;
 
+        internal virtual Storage.DOM.DomSectionBase OriginalSection { get; }
+
         /// <summary>
         /// Adds a discrete value to the collection if it is not already present.
         /// </summary>
         /// <param name="value">The discrete value to add to the collection. Cannot be null or empty.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="value"/> is <see langword="null"/> or empty.</exception>
-        public ResourcePoolCapabilitySettings AddDiscrete(string value)
+        public CapabilitySetting AddDiscrete(string value)
         {
             if (string.IsNullOrEmpty(value))
             {
@@ -87,7 +90,7 @@
         /// </summary>
         /// <param name="value">The discrete value to remove from the collection. Cannot be null or empty.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="value"/> is <see langword="null"/> or empty.</exception>
-        public ResourcePoolCapabilitySettings RemoveDiscrete(string value)
+        public CapabilitySetting RemoveDiscrete(string value)
         {
             if (string.IsNullOrEmpty(value))
             {
@@ -109,7 +112,7 @@
         /// <param name="values">A collection of non-null, non-empty strings representing the discrete values to set.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="values"/> is <see langword="null"/>.</exception>
         /// <exception cref="ArgumentException">Thrown if <paramref name="values"/> contains a <see langword="null"/> or empty string.</exception>
-        public ResourcePoolCapabilitySettings SetDiscretes(ICollection<string> values)
+        public CapabilitySetting SetDiscretes(ICollection<string> values)
         {
             if (values == null)
             {
@@ -127,29 +130,6 @@
             ValueChanged?.Invoke(this, EventArgs.Empty);
 
             return this;
-        }
-
-        internal StorageResourceStudio.ResourcePoolCapabilitiesSection OriginalSection => originalSection;
-
-        internal StorageResourceStudio.ResourcePoolCapabilitiesSection GetSectionWithChanges()
-        {
-            if (updatedSection == null)
-            {
-                updatedSection = IsNew ? new StorageResourceStudio.ResourcePoolCapabilitiesSection() : OriginalSection.Clone();
-            }
-
-            updatedSection.ProfileParameterId = Id;
-            updatedSection.DiscreteValues = discretes;
-
-            return updatedSection;
-        }
-
-        private void ParseSection(StorageResourceStudio.ResourcePoolCapabilitiesSection section)
-        {
-            originalSection = section ?? throw new ArgumentNullException(nameof(section));
-
-            Id = section.ProfileParameterId;
-            discretes = new HashSet<string>(section.DiscreteValues);
         }
     }
 }

@@ -26,9 +26,9 @@
 
         private string url;
 
-        private readonly ICollection<LinkedResourcePool> linkedResourcepools = [];
+        private readonly List<LinkedResourcePool> linkedResourcepools = [];
 
-        private readonly ICollection<ResourcePoolCapabilitySettings> capabilitySettings = [];
+        private readonly List<ResourcePoolCapabilitySetting> capabilitySettings = [];
 
         private Guid coreResourcePoolId;
 
@@ -115,12 +115,12 @@
         /// <summary>
         /// Gets the collection of links associated with this resource pool.
         /// </summary>
-        public IReadOnlyCollection<LinkedResourcePool> LinkedResourcePools => (IReadOnlyCollection<LinkedResourcePool>)linkedResourcepools;
+        public IReadOnlyCollection<LinkedResourcePool> LinkedResourcePools => linkedResourcepools;
 
         /// <summary>
         /// Gets the collection of capabilities assigned to this resource pool.
         /// </summary>
-        public IReadOnlyCollection<ResourcePoolCapabilitySettings> Capabilities => (IReadOnlyCollection<ResourcePoolCapabilitySettings>)capabilitySettings;
+        public IReadOnlyCollection<CapabilitySetting> Capabilities => capabilitySettings;
 
         internal Guid CoreResourcePoolId => coreResourcePoolId;
 
@@ -169,23 +169,18 @@
         }
 
         /// <summary>
-        /// Adds a new capability to the resource pool if it has not been previously added.
+        /// Adds a new capability to the resource pool.
         /// </summary>
-        /// <param name="capability">The capability settings to add. Must represent a new capability; otherwise, the method does not modify the collection.</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="capability"/> is <see langword="null"/>.</exception>
-        public ResourcePool AddCapability(ResourcePoolCapabilitySettings capability)
+        /// <param name="capabilitySetting">The capability setting to add.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="capabilitySetting"/> is <see langword="null"/>.</exception>
+        public ResourcePool AddCapability(CapabilitySetting capabilitySetting)
         {
-            if (capability == null)
+            if (capabilitySetting == null)
             {
-                throw new ArgumentNullException(nameof(capability));
+                throw new ArgumentNullException(nameof(capabilitySetting));
             }
 
-            if (!capability.IsNew)
-            {
-                return this;
-            }
-
-            capabilitySettings.Add(capability);
+            capabilitySettings.Add(new ResourcePoolCapabilitySetting(capabilitySetting));
             HasChanges = true;
 
             return this;
@@ -194,16 +189,21 @@
         /// <summary>
         /// Removes the specified capability from the resource pool.
         /// </summary>
-        /// <param name="capability">The capability to remove from the resource pool. Cannot be null.</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="capability"/> is <see langword="null"/>.</exception>
-        public ResourcePool RemoveCapability(ResourcePoolCapabilitySettings capability)
+        /// <param name="capabilitySetting">The capability to remove from the resource pool. Cannot be null.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="capabilitySetting"/> is <see langword="null"/>.</exception>
+        public ResourcePool RemoveCapability(CapabilitySetting capabilitySetting)
         {
-            if (capability == null)
+            if (capabilitySetting == null)
             {
-                throw new ArgumentNullException(nameof(capability));
+                throw new ArgumentNullException(nameof(capabilitySetting));
             }
 
-            var toRemove = capabilitySettings.SingleOrDefault(x => x.OriginalSection.ID == capability.OriginalSection.ID);
+            if (capabilitySetting.OriginalSection == null)
+            {
+                return this;
+            }
+
+            var toRemove = capabilitySettings.SingleOrDefault(x => x.OriginalSection.ID == capabilitySetting.OriginalSection.ID);
             if (toRemove != null && capabilitySettings.Remove(toRemove))
             {
                 HasChanges = true;
@@ -287,7 +287,7 @@
 
             foreach (var section in instance.ResourcePoolCapabilities)
             {
-                var capability = new ResourcePoolCapabilitySettings(section);
+                var capability = new ResourcePoolCapabilitySetting(section);
                 capability.ValueChanged += (s, e) => { HasChanges = true; };
                 capabilitySettings.Add(capability);
             }

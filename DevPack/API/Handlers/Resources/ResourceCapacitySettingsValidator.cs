@@ -10,9 +10,9 @@
 
         private readonly Capacity capacity;
 
-        private readonly ResourceCapacitySettings resourceCapacitySettings;
+        private readonly CapacitySetting resourceCapacitySettings;
 
-        private ResourceCapacitySettingsValidator(Guid resourceId, Capacity capacity, ResourceCapacitySettings resourceCapacitySettings)
+        private ResourceCapacitySettingsValidator(Guid resourceId, Capacity capacity, CapacitySetting resourceCapacitySettings)
         {
             if (resourceId == Guid.Empty)
             {
@@ -24,7 +24,7 @@
             this.resourceCapacitySettings = resourceCapacitySettings ?? throw new ArgumentNullException(nameof(resourceCapacitySettings));
         }
 
-        public static ResourceCapacitySettingsValidator Validate(Guid resourceId, Capacity apiCapacity, ResourceCapacitySettings apiCapacitySettings)
+        public static ResourceCapacitySettingsValidator Validate(Guid resourceId, Capacity apiCapacity, CapacitySetting apiCapacitySettings)
         {
             var validator = new ResourceCapacitySettingsValidator(resourceId, apiCapacity, apiCapacitySettings);
             validator.Validate();
@@ -34,11 +34,11 @@
 
         private void Validate()
         {
-            if (resourceCapacitySettings is ResourceNumberCapacitySettings numberCapacitySettings)
+            if (resourceCapacitySettings is ResourceNumberCapacitySetting numberCapacitySettings)
             {
                 ValidateValue(numberCapacitySettings.Value);
             }
-            else if (resourceCapacitySettings is ResourceRangeCapacitySettings rangeCapacitySettings)
+            else if (resourceCapacitySettings is ResourceRangeCapacitySetting rangeCapacitySettings)
             {
                 var validMinValue = ValidateValue(rangeCapacitySettings.MinValue);
                 var validMaxValue = ValidateValue(rangeCapacitySettings.MaxValue);
