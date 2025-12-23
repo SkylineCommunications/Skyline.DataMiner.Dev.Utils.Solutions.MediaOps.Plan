@@ -38,11 +38,11 @@
             IsNew = true;
         }
 
-        internal CapacitySetting()
+        private protected CapacitySetting()
         {
         }
 
-        internal CapacitySetting(CapacitySetting capacitySetting)
+        private protected CapacitySetting(CapacitySetting capacitySetting)
         {
             Id = capacitySetting.Id;
 
