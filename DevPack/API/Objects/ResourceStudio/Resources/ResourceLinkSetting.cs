@@ -5,7 +5,7 @@
     /// <summary>
     /// Represents the base configuration for a resource link.
     /// </summary>
-    public abstract class ResourceLinkSettings
+    public abstract class ResourceLinkSetting
     {
         /// <summary>
         /// Gets or sets the agent ID associated with the resource link.
@@ -16,7 +16,7 @@
     /// <summary>
     /// Represents the configuration for a resource element link.
     /// </summary>
-    public class ResourceElementLinkConfiguration : ResourceLinkSettings
+    public class ResourceElementLinkConfiguration : ResourceLinkSetting
     {
         /// <summary>
         /// Gets or sets the element ID associated with the resource link.
@@ -27,7 +27,7 @@
     /// <summary>
     /// Represents the configuration for a resource service link.
     /// </summary>
-    public class ResourceServiceLinkConfiguration : ResourceLinkSettings
+    public class ResourceServiceLinkConfiguration : ResourceLinkSetting
     {
         /// <summary>
         /// Gets or sets the service ID associated with the resource link.
@@ -38,7 +38,7 @@
     /// <summary>
     /// Represents the configuration for a resource virtual function link.
     /// </summary>
-    public class ResourceVirtualFunctionLinkConfiguration : ResourceLinkSettings
+    public class ResourceVirtualFunctionLinkConfiguration : ResourceLinkSetting
     {
         /// <summary>
         /// Gets or sets the element ID associated with the resource link.

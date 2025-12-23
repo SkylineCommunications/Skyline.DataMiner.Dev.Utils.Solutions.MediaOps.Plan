@@ -180,18 +180,18 @@
                 Concurrency = 5,
             };
 
-            var locationResource1 = new ResourceCapabilitySettings(Location);
+            var locationResource1 = new CapabilitySetting(Location);
             locationResource1.SetDiscretes(["USA", "Belgium"]);
 
-            var priorityResource1 = new ResourceCapabilitySettings(Priority);
+            var priorityResource1 = new CapabilitySetting(Priority);
             priorityResource1.SetDiscretes(["Low"]);
 
-            var frequencyCapacity1 = new ResourceNumberCapacitySettings(Frequency)
+            var frequencyCapacity1 = new NumberCapacitySetting(Frequency)
             {
                 Value = 20
             };
 
-            var bandwidthCapacity1 = new ResourceRangeCapacitySettings(Bandwidth)
+            var bandwidthCapacity1 = new RangeCapacitySetting(Bandwidth)
             {
                 MinValue = 5000,
                 MaxValue = 7500
@@ -220,12 +220,12 @@
                 Value = "16:9"
             };
 
-            var frequencyCapacity2 = new ResourceNumberCapacitySettings(Frequency)
+            var frequencyCapacity2 = new NumberCapacitySetting(Frequency)
             {
                 Value = 20
             };
 
-            var bandwidthCapacity2 = new ResourceRangeCapacitySettings(Bandwidth)
+            var bandwidthCapacity2 = new RangeCapacitySetting(Bandwidth)
             {
                 MinValue = 5000,
                 MaxValue = 7500
@@ -244,7 +244,7 @@
                 Concurrency = 15,
             };
 
-            var resolutionResource3 = new ResourceCapabilitySettings(Resolution);
+            var resolutionResource3 = new CapabilitySetting(Resolution);
             resolutionResource3.SetDiscretes(["1080p", "4K"]);
 
             var formatProperty3 = new ResourcePropertySettings(Format)
@@ -282,7 +282,7 @@
                 Concurrency = 5,
             };
 
-            var resolutionResource4 = new ResourceCapabilitySettings(Resolution);
+            var resolutionResource4 = new CapabilitySetting(Resolution);
             resolutionResource4.SetDiscretes(["1080p", "4K"]);
 
             var formatProperty4 = new ResourcePropertySettings(Format)
@@ -290,7 +290,7 @@
                 Value = "16:9"
             };
 
-            var frequencyCapacity4 = new ResourceNumberCapacitySettings(Frequency)
+            var frequencyCapacity4 = new NumberCapacitySetting(Frequency)
             {
                 Value = 20
             };
@@ -381,7 +381,7 @@
                 FunctionTableIndex = "VF_Table_1",
             };
 
-            var capabilitySettings1 = new ResourceCapabilitySettings(Resolution);
+            var capabilitySettings1 = new CapabilitySetting(Resolution);
             capabilitySettings1.SetDiscretes(new[] { "720p", "1080p", "4K" });
 
             VirtualFunctionResource1.AddCapability(capabilitySettings1);
@@ -537,24 +537,24 @@
                 Name = $"ResourcePool_Draft_1_{Guid.NewGuid()}",
                 IconImage = "icon_1.png",
             }
-            .AddCapability(new ResourcePoolCapabilitySettings(Location!.Id).SetDiscretes(["Belgium"]))
-            .AddCapability(new ResourcePoolCapabilitySettings(Priority!.Id).SetDiscretes(["Low", "Medium", "High"]));
+            .AddCapability(new CapabilitySetting(Location!.Id).SetDiscretes(["Belgium"]))
+            .AddCapability(new CapabilitySetting(Priority!.Id).SetDiscretes(["Low", "Medium", "High"]));
 
             ResourcePool2 = new ResourcePool
             {
                 Name = $"ResourcePool_Complete_2_{Guid.NewGuid()}",
                 IconImage = "icon_2.png",
             }
-            .AddCapability(new ResourcePoolCapabilitySettings(Location.Id).SetDiscretes(["Belgium"]))
-            .AddCapability(new ResourcePoolCapabilitySettings(Priority.Id).SetDiscretes(["Low", "Medium", "High"]));
+            .AddCapability(new CapabilitySetting(Location.Id).SetDiscretes(["Belgium"]))
+            .AddCapability(new CapabilitySetting(Priority.Id).SetDiscretes(["Low", "Medium", "High"]));
 
             ResourcePool3 = new ResourcePool
             {
                 Name = $"ResourcePool_Complete_3_{Guid.NewGuid()}",
                 IconImage = "icon_3.png",
             }
-            .AddCapability(new ResourcePoolCapabilitySettings(Resolution!.Id).SetDiscretes(["4K"]))
-            .AddCapability(new ResourcePoolCapabilitySettings(Priority.Id).SetDiscretes(["Medium"]));
+            .AddCapability(new CapabilitySetting(Resolution!.Id).SetDiscretes(["4K"]))
+            .AddCapability(new CapabilitySetting(Priority.Id).SetDiscretes(["Medium"]));
 
             ResourcePool4 = new ResourcePool
             {
