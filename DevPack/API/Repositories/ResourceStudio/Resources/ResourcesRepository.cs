@@ -162,7 +162,6 @@
         /// </summary>
         /// <param name="resourceId">The unique identifier of the resource to convert.</param>
         /// <returns>The converted <see cref="UnmanagedResource"/>.</returns>
-        /// <exception cref="ResourceNotFoundException">Thrown when the resource with the specified identifier is not found.</exception>
         /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
         public UnmanagedResource ConvertToUnmanagedResource(Guid resourceId)
         {
@@ -212,7 +211,6 @@
         /// <param name="resourceId">The unique identifier of the resource to convert.</param>
         /// <param name="configuration">The configuration for the virtual function link.</param>
         /// <returns>The converted <see cref="VirtualFunctionResource"/>.</returns>
-        /// <exception cref="ResourceNotFoundException">Thrown when the resource with the specified identifier is not found.</exception>
         /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
         public VirtualFunctionResource ConvertToVirtualFunctionResource(Guid resourceId, ResourceVirtualFunctionLinkConfiguration configuration)
         {

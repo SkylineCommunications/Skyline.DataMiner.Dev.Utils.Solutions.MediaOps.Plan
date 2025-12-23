@@ -239,6 +239,11 @@
                 throw new ArgumentNullException(nameof(ids));
             }
 
+            if (!ids.Any())
+            {
+                return Array.Empty<ResourceProperty>();
+            }
+
             return Read(new ORFilterElement<ResourceProperty>(ids.Select(x => ResourcePropertyExposers.Id.Equal(x)).ToArray()));
         }
 

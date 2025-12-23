@@ -495,6 +495,11 @@
                 throw new ArgumentNullException(nameof(ids));
             }
 
+            if (!ids.Any())
+            {
+                return Array.Empty<ResourcePool>();
+            }
+
             return Read(new ORFilterElement<ResourcePool>(ids.Select(x => ResourcePoolExposers.Id.Equal(x)).ToArray()));
         }
 

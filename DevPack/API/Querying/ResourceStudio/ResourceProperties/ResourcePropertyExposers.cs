@@ -9,7 +9,7 @@
     public class ResourcePropertyExposers
     {
         /// <summary>
-        /// Gets an exposer for the <see cref="ResourceProperty.Id"/> property.
+        /// Gets an exposer for the <see cref="ApiObject.Id"/> property.
         /// </summary>
         public static readonly Exposer<ResourceProperty, Guid> Id = new Exposer<ResourceProperty, Guid>((obj) => obj.Id, "Id");
 

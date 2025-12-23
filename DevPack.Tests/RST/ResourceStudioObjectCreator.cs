@@ -305,7 +305,7 @@
 
                 foreach (var id in properties.Select(x => x.Id))
                 {
-                    createdPropertyIds.Add(id); 
+                    createdPropertyIds.Add(id);
                 }
             }
             catch (MediaOpsBulkException<Guid> bulkException)

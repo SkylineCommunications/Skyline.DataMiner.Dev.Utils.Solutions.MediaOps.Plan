@@ -23,7 +23,7 @@
         /// <summary>
         /// Gets an exposer for the <see cref="ResourcePool.State"/> property.
         /// </summary>
-        public static readonly Exposer<ResourcePool, int> State = new Exposer<ResourcePool, int>((obj) => (int)obj.State, "State");
+        public static readonly Exposer<ResourcePool, int> State = new Exposer<ResourcePool, int>((obj) => (int)obj.State, "State"); // TODO: check if these can be enum instead of int
 
         /// <summary>
         /// Gets an exposer for the <see cref="ResourcePool.IconImage"/> property.
@@ -31,9 +31,19 @@
         public static readonly Exposer<ResourcePool, string> IconImage = new Exposer<ResourcePool, string>((obj) => obj.IconImage, "IconImage");
 
         /// <summary>
+        /// Gets an exposer for the <see cref="ResourcePool.IconImage"/> property.
+        /// </summary>
+        public static readonly Exposer<ResourcePool, bool> HasIconImage = new Exposer<ResourcePool, bool>("HasIconImage");
+
+        /// <summary>
         /// Gets an exposer for the <see cref="ResourcePool.Url"/> property.
         /// </summary>
         public static readonly Exposer<ResourcePool, string> Url = new Exposer<ResourcePool, string>((obj) => obj.Url, "Url");
+
+        /// <summary>
+        /// Gets an exposer for the <see cref="ResourcePool.Url"/> property.
+        /// </summary>
+        public static readonly Exposer<ResourcePool, bool> HasUrl = new Exposer<ResourcePool, bool>("HasUrl");
 
         /// <summary>
         /// Provides exposers for querying and filtering linked resource pools.

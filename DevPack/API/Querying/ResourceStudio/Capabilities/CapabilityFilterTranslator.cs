@@ -17,7 +17,7 @@
             [CapabilityExposers.Id.fieldName] = HandleGuid,
             [CapabilityExposers.Name.fieldName] = HandleName,
             [CapabilityExposers.IsMandatory.fieldName] = HandleIsMandatory,
-            [CapabilityExposers.Discretes.fieldName] = (comparer, value) => FilterElementFactory.Create(ParameterExposers.Discretes, comparer, (List<string>)value).AND(ParameterExposers.Type.Equal((int)ParameterType.Discrete)),
+            [CapabilityExposers.Discretes.fieldName] = (comparer, value) => FilterElementFactory.Create(ParameterExposers.Discretes, comparer, (string)value).AND(ParameterExposers.Type.Equal((int)ParameterType.Discrete)),
             [CapabilityExposers.IsTimeDependent.fieldName] = (comparer, value) => IsTimeDependantFilter(comparer, (bool)value),
         };
 

@@ -229,6 +229,11 @@
                 throw new ArgumentNullException(nameof(ids));
             }
 
+            if (!ids.Any())
+            {
+                return Array.Empty<Configuration>();
+            }
+
             return Read(new ORFilterElement<Configuration>(ids.Select(x => ConfigurationExposers.Id.Equal(x)).ToArray()));
         }
 

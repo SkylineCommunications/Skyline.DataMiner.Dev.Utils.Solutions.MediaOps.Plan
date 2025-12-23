@@ -226,6 +226,11 @@
                 throw new ArgumentNullException(nameof(ids));
             }
 
+            if (!ids.Any())
+            {
+                return Array.Empty<Capacity>();
+            }
+
             return Read(new ORFilterElement<Capacity>(ids.Select(x => CapacityExposers.Id.Equal(x)).ToArray()));
         }
 

@@ -3,7 +3,6 @@
     using System;
     using System.Collections.Generic;
     using System.Globalization;
-    using System.Linq;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Net.Profiles;
@@ -18,8 +17,8 @@
             [ConfigurationExposers.Id.fieldName] = HandleGuid,
             [ConfigurationExposers.Name.fieldName] = HandleName,
             [ConfigurationExposers.IsMandatory.fieldName] = HandleIsMandatory,
-            [DiscreteTextConfigurationExposers.Discretes.fieldName] = (comparer, value) => FilterElementFactory.Create(ParameterExposers.Discretes, comparer, (List<string>)value).AND(ParameterExposers.Type.Equal((int)ParameterType.Discrete)),
-            [DiscreteNumberConfigurationExposers.Discretes.fieldName] = (comparer, value) => FilterElementFactory.Create(ParameterExposers.Discretes, comparer, ((List<decimal>)value).Select(x => Convert.ToString(x, CultureInfo.InvariantCulture)).ToList()).AND(ParameterExposers.Type.Equal((int)ParameterType.Discrete)),
+            [DiscreteTextConfigurationExposers.Discretes.fieldName] = (comparer, value) => FilterElementFactory.Create(ParameterExposers.Discretes, comparer, (string)value).AND(ParameterExposers.Type.Equal((int)ParameterType.Discrete)),
+            [DiscreteNumberConfigurationExposers.Discretes.fieldName] = (comparer, value) => FilterElementFactory.Create(ParameterExposers.Discretes, comparer, Convert.ToString((decimal)value, CultureInfo.InvariantCulture)).AND(ParameterExposers.Type.Equal((int)ParameterType.Discrete)),
         };
 
         protected override Dictionary<string, Func<Comparer, object, FilterElement<Net.Profiles.Parameter>>> Handlers => handlers;

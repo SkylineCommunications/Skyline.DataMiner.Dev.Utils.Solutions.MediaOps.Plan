@@ -1,21 +1,22 @@
-﻿namespace RT_MediaOps.Plan.RST.Querying
+﻿namespace RT_MediaOps.Plan.RST.Filtering
 {
     using System;
     using RT_MediaOps.Plan.RegressionTests;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 
-    internal sealed class ResourceQueryingSetup
+    internal sealed class ResourceFilteringSetup
     {
         private readonly ResourceStudioObjectCreator objectCreator;
         private readonly IntegrationTestContext TestContext;
 
-        public ResourceQueryingSetup(ResourceStudioObjectCreator objectCreator, IntegrationTestContext TestContext)
+        public ResourceFilteringSetup(ResourceStudioObjectCreator objectCreator, IntegrationTestContext TestContext)
         {
             this.objectCreator = objectCreator;
             this.TestContext = TestContext;
 
             CreateCapabilities();
             CreateCapacities();
+            CreateConfigurations();
             CreateProperties();
             CreateResourcePools();
 
@@ -34,11 +35,40 @@
 
         public ResourcePool[] ResourcePools => new ResourcePool[]
         {
-            ResourcePool1,
-            ResourcePool2,
-            ResourcePool3,
-            ResourcePool4,
-            ResourcePool5,
+            ResourcePool1!,
+            ResourcePool2!,
+            ResourcePool3!,
+            ResourcePool4!,
+            ResourcePool5!,
+        };
+
+        public Capability[] Capabilities => new Capability[]
+        {
+            Location!,
+            Priority!,
+            Resolution!,
+        };
+
+        public Capacity[] Capacities => new Capacity[]
+        {
+            Frequency!,
+            Bandwidth!,
+            Reach!,
+        };
+
+        public ResourceProperty[] Properties => new ResourceProperty[]
+        {
+            Channel!,
+            Color!,
+            Format!,
+        };
+
+        public Configuration[] Configurations => new Configuration[]
+        {
+            Region,
+            Distance,
+            ResolutionConfig,
+            PriorityConfig,
         };
 
         public UnmanagedResource? DraftResource1 { get; private set; }
@@ -69,6 +99,8 @@
 
         public NumberCapacity? Frequency { get; private set; }
 
+        public NumberCapacity? Reach { get; private set; }
+
         public RangeCapacity? Bandwidth { get; private set; }
 
         public ResourceProperty? Channel { get; private set; }
@@ -76,6 +108,14 @@
         public ResourceProperty? Color { get; private set; }
 
         public ResourceProperty? Format { get; private set; }
+
+        public TextConfiguration? Region { get; private set; }
+
+        public NumberConfiguration? Distance { get; private set; }
+
+        public DiscreteTextConfiguration? ResolutionConfig { get; private set; }
+
+        public DiscreteNumberConfiguration? PriorityConfig { get; private set; }
 
         private void CreateCapabilities()
         {
@@ -307,10 +347,16 @@
                 Decimals = 2,
             };
 
+            Reach = new NumberCapacity
+            {
+                Name = $"Reach _{Guid.NewGuid()}",
+            };
+
             var capacities = new Capacity[]
             {
                 Frequency,
                 Bandwidth,
+                Reach,
             };
 
             foreach (var capacity in capacities)
@@ -320,6 +366,67 @@
 
             Frequency = (NumberCapacity)TestContext.Api.Capacities.Read(Frequency.Id);
             Bandwidth = (RangeCapacity)TestContext.Api.Capacities.Read(Bandwidth.Id);
+            Reach = (NumberCapacity)TestContext.Api.Capacities.Read(Reach.Id);
+        }
+
+        private void CreateConfigurations()
+        {
+            Region = new TextConfiguration
+            {
+                Name = $"Region_{Guid.NewGuid()}",
+                IsMandatory = false,
+                DefaultValue = "BEL",
+            };
+
+            Distance = new NumberConfiguration
+            {
+                Name = $"Distance_{Guid.NewGuid()}",
+                IsMandatory = true,
+                Units = "m",
+                RangeMin = 0,
+                RangeMax = 1000,
+                StepSize = 1,
+                Decimals = 0,
+                DefaultValue = 100,
+            };
+
+            ResolutionConfig = new DiscreteTextConfiguration
+            {
+                Name = $"Resolution_{Guid.NewGuid()}",
+                IsMandatory = false,
+            };
+            ResolutionConfig.AddDiscrete("SD", "720p");
+            ResolutionConfig.AddDiscrete("HD", "1080p");
+            ResolutionConfig.AddDiscrete("UHD", "4K");
+            ResolutionConfig.DefaultValue = "HD";
+
+            PriorityConfig = new DiscreteNumberConfiguration
+            {
+                Name = $"Priority_{Guid.NewGuid()}",
+                IsMandatory = false,
+            };
+            PriorityConfig.AddDiscrete("Low", 10);
+            PriorityConfig.AddDiscrete("Medium", 50);
+            PriorityConfig.AddDiscrete("High", 100);
+            PriorityConfig.DefaultValue = "Medium";
+
+            var configurations = new Configuration[]
+            {
+                Region,
+                Distance,
+                ResolutionConfig,
+                PriorityConfig,
+            };
+
+            foreach (var configuration in configurations)
+            {
+                objectCreator.CreateConfiguration(configuration);
+            }
+
+            Region = (TextConfiguration)TestContext.Api.Configurations.Read(Region.Id);
+            Distance = (NumberConfiguration)TestContext.Api.Configurations.Read(Distance.Id);
+            ResolutionConfig = (DiscreteTextConfiguration)TestContext.Api.Configurations.Read(ResolutionConfig.Id);
+            PriorityConfig = (DiscreteNumberConfiguration)TestContext.Api.Configurations.Read(PriorityConfig.Id);
         }
 
         private void CreateProperties()
@@ -385,7 +492,6 @@
             ResourcePool4 = new ResourcePool
             {
                 Name = $"ResourcePool_Complete_4_{Guid.NewGuid()}",
-                IconImage = "icon_4.jpeg",
             }
             .AddLinkedResourcePool(new LinkedResourcePool(ResourcePool1) { SelectionType = ResourceSelectionType.Automatic })
             .AddLinkedResourcePool(new LinkedResourcePool(ResourcePool2) { SelectionType = ResourceSelectionType.Automatic });

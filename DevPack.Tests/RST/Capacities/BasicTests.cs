@@ -58,7 +58,7 @@
             Assert.AreEqual(Skyline.DataMiner.Net.Profiles.InterpreteType.RawTypeEnum.Undefined, coreCapacity.InterpreteType.RawType);
             Assert.AreEqual(Skyline.DataMiner.Net.Profiles.InterpreteType.TypeEnum.Undefined, coreCapacity.InterpreteType.Type);
 
-            Assert.IsNull(coreCapacity.Units);
+            Assert.AreEqual(String.Empty, coreCapacity.Units); // Verified that this is in line with the current solution
             Assert.AreEqual(double.NaN, coreCapacity.RangeMin);
             Assert.AreEqual(double.NaN, coreCapacity.RangeMax);
             Assert.AreEqual(double.NaN, coreCapacity.Stepsize);
@@ -84,7 +84,7 @@
             Assert.AreEqual(Skyline.DataMiner.Net.Profiles.InterpreteType.RawTypeEnum.Undefined, coreCapacity.InterpreteType.RawType);
             Assert.AreEqual(Skyline.DataMiner.Net.Profiles.InterpreteType.TypeEnum.Undefined, coreCapacity.InterpreteType.Type);
 
-            Assert.IsNull(coreCapacity.Units);
+            Assert.AreEqual(String.Empty, coreCapacity.Units); // Verified that this is in line with the current solution
             Assert.AreEqual(double.NaN, coreCapacity.RangeMin);
             Assert.AreEqual(double.NaN, coreCapacity.RangeMax);
             Assert.AreEqual(double.NaN, coreCapacity.Stepsize);
@@ -131,7 +131,7 @@
             Assert.AreEqual(Skyline.DataMiner.Net.Profiles.InterpreteType.RawTypeEnum.Undefined, coreCapacity.InterpreteType.RawType);
             Assert.AreEqual(Skyline.DataMiner.Net.Profiles.InterpreteType.TypeEnum.Undefined, coreCapacity.InterpreteType.Type);
 
-            Assert.IsNull(coreCapacity.Units);
+            Assert.AreEqual(String.Empty, coreCapacity.Units); // Verified that this is in line with the current solution
             Assert.AreEqual(double.NaN, coreCapacity.RangeMin);
             Assert.AreEqual(double.NaN, coreCapacity.RangeMax);
             Assert.AreEqual(double.NaN, coreCapacity.Stepsize);
@@ -157,7 +157,7 @@
             Assert.AreEqual(Skyline.DataMiner.Net.Profiles.InterpreteType.RawTypeEnum.Undefined, coreCapacity.InterpreteType.RawType);
             Assert.AreEqual(Skyline.DataMiner.Net.Profiles.InterpreteType.TypeEnum.Undefined, coreCapacity.InterpreteType.Type);
 
-            Assert.IsNull(coreCapacity.Units);
+            Assert.AreEqual(String.Empty, coreCapacity.Units);
             Assert.AreEqual(double.NaN, coreCapacity.RangeMin);
             Assert.AreEqual(double.NaN, coreCapacity.RangeMax);
             Assert.AreEqual(double.NaN, coreCapacity.Stepsize);

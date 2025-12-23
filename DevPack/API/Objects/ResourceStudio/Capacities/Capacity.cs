@@ -114,6 +114,11 @@
         protected internal override ProfileParameterCategory Category => ProfileParameterCategory.Capacity;
 
         /// <summary>
+        /// Gets the internal type of the parameter.
+        /// </summary>
+        protected internal abstract CoreParameter.ParameterType ParameterType { get; }
+
+        /// <summary>
         /// <inheritdoc/>
         /// </summary>
         protected internal override void InternalParseParameter(CoreParameter parameter)
@@ -125,7 +130,23 @@
             decimals = parameter.HasDecimals() ? parameter.Decimals : null;
         }
 
-        internal abstract CoreParameter GetParameterWithChanges();
+        internal virtual CoreParameter GetParameterWithChanges()
+        {
+            var updatedParameter = IsNew ?
+                new CoreParameter(Id) { Categories = ProfileParameterCategory.Capacity, Type = ParameterType } :
+                new CoreParameter(CoreParameter) { Categories = ProfileParameterCategory.Capacity };
+
+            updatedParameter.Name = Name;
+            updatedParameter.IsOptional = !IsMandatory;
+
+            updatedParameter.Units = units ?? String.Empty;
+            updatedParameter.RangeMin = rangeMin.HasValue ? (double)rangeMin.Value : double.NaN;
+            updatedParameter.RangeMax = rangeMax.HasValue ? (double)rangeMax.Value : double.NaN;
+            updatedParameter.Stepsize = stepSize.HasValue ? (double)stepSize.Value : double.NaN;
+            updatedParameter.Decimals = decimals.HasValue ? decimals.Value : int.MaxValue;
+
+            return updatedParameter;
+        }
 
         internal static IEnumerable<Capacity> InstantiateCapacities(IEnumerable<CoreParameter> parameters)
         {

@@ -1,6 +1,7 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
@@ -19,9 +20,12 @@
                 {
                     case Comparer.Contains:
                         return stringExposer.Contains(value?.ToString());
-
-                    case Comparer.NotEquals:
+                    case Comparer.NotContains:
                         return stringExposer.NotContains(value?.ToString());
+                    case Comparer.Regex:
+                        return stringExposer.Matches(value?.ToString());
+                    case Comparer.NotRegex:
+                        return stringExposer.NotMatches(value?.ToString());
                 }
             }
 
@@ -31,7 +35,7 @@
                     {
                         return new ManagedFilter<T, TValue>(
                             exposer,
-                            Comparer.Equals,
+                            comparer,
                             value,
                             a => UniversalComparer.Equals(exposer.internalFunc(a), value));
                     }
@@ -40,7 +44,7 @@
                     {
                         return new ManagedFilter<T, TValue>(
                             exposer,
-                            Comparer.Equals,
+                            comparer,
                             value,
                             a => !UniversalComparer.Equals(exposer.internalFunc(a), value));
                     }
@@ -49,7 +53,7 @@
                     {
                         return new ManagedFilter<T, TValue>(
                             exposer,
-                            Comparer.LT,
+                            comparer,
                             value,
                             a => UniversalComparer.Compare(exposer.internalFunc(a), value) > 0);
                     }
@@ -58,7 +62,7 @@
                     {
                         return new ManagedFilter<T, TValue>(
                             exposer,
-                            Comparer.LT,
+                            comparer,
                             value,
                             a => UniversalComparer.Compare(exposer.internalFunc(a), value) > 0);
                     }
@@ -67,7 +71,7 @@
                     {
                         return new ManagedFilter<T, TValue>(
                             exposer,
-                            Comparer.LT,
+                            comparer,
                             value,
                             a => UniversalComparer.Compare(exposer.internalFunc(a), value) < 0);
                     }
@@ -76,10 +80,30 @@
                     {
                         return new ManagedFilter<T, TValue>(
                             exposer,
-                            Comparer.LT,
+                            comparer,
                             value,
                             a => UniversalComparer.Compare(exposer.internalFunc(a), value) <= 0);
                     }
+
+                default:
+                    throw new NotSupportedException("This comparer option is not supported");
+            }
+        }
+
+        public static FilterElement<T> Create<T>(Exposer<T, List<string>> exposer, Comparer comparer, string value)
+        {
+            if (exposer is null)
+            {
+                throw new ArgumentNullException(nameof(exposer));
+            }
+
+            switch (comparer)
+            {
+                case Comparer.Contains:
+                    return exposer.Contains(value);
+
+                case Comparer.NotContains:
+                    return exposer.NotContains(value);
 
                 default:
                     throw new NotSupportedException("This comparer option is not supported");
