@@ -24,6 +24,8 @@
             [ResourcePoolExposers.LinkedResourcePools.SelectionType.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourcePoolLinks.ResourceSelectionType), comparer, ConvertResourceSelectionType((ResourceSelectionType)value)),
             [ResourcePoolExposers.Capabilities.CapabilityId.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourcePoolCapabilities.ProfileParameterID), comparer, Convert.ToString(value)),
             [ResourcePoolExposers.Capabilities.Discretes.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourcePoolCapabilities.StringValue), comparer, Convert.ToString(value)),
+            [ResourcePoolExposers.CategoryId.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourcePoolInfo.Category), comparer, (string)value),
+            [ResourcePoolExposers.HasCategory.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.KeyExists(SlcResource_StudioIds.Sections.ResourcePoolInfo.Category.Id.ToString()), comparer, (bool)value),
         };
 
         protected override Dictionary<string, Func<Comparer, object, FilterElement<DomInstance>>> Handlers => handlers;
