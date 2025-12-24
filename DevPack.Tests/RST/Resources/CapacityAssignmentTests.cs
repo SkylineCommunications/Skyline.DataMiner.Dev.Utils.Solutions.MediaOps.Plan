@@ -19,11 +19,11 @@
     [TestCategory("IntegrationTest")]
     public sealed class CapacityAssignmentTests : IDisposable
     {
-        private readonly ResourceStudioObjectCreator objectCreator;
+        private readonly TestObjectCreator objectCreator;
 
         public CapacityAssignmentTests()
         {
-            objectCreator = new ResourceStudioObjectCreator(TestContext.Api, TestContext.CategoriesApi);
+            objectCreator = new TestObjectCreator(TestContext);
         }
 
         private static IntegrationTestContext TestContext => TestContextManager.SharedTestContext;

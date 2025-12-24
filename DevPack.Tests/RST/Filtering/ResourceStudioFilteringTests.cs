@@ -11,7 +11,7 @@
     [TestCategory("IntegrationTest")]
     public sealed class ResourceStudioFilteringTests
     {
-        private static ResourceStudioObjectCreator? objectCreator;
+        private static TestObjectCreator? objectCreator;
         private static ResourceFilteringSetup? setup;
 
         private static IntegrationTestContext TestContext => TestContextManager.SharedTestContext;
@@ -19,7 +19,7 @@
         [ClassInitialize]
         public static void ClassInitialize(TestContext _)
         {
-            objectCreator = new ResourceStudioObjectCreator(TestContext.Api, TestContext.CategoriesApi);
+            objectCreator = new TestObjectCreator(TestContext);
             setup = new ResourceFilteringSetup(objectCreator, TestContext);
         }
 

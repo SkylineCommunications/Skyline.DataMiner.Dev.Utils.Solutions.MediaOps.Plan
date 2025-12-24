@@ -3,13 +3,13 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-
+    using RT_MediaOps.Plan.RegressionTests;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Utils.Categories.API;
     using Skyline.DataMiner.Utils.Categories.API.Objects;
 
-    internal class ResourceStudioObjectCreator : IDisposable
+    internal class TestObjectCreator : IDisposable
     {
         private readonly IMediaOpsPlanApi api;
         private readonly CategoriesApi catagoriesApi;
@@ -28,10 +28,15 @@
 
         private readonly HashSet<Guid> createdCategoryIds = new HashSet<Guid>();
 
-        public ResourceStudioObjectCreator(IMediaOpsPlanApi api, CategoriesApi categoriesApi)
+        public TestObjectCreator(IntegrationTestContext testContext)
         {
-            this.api = api ?? throw new ArgumentNullException(nameof(api));
-            this.catagoriesApi = categoriesApi ?? throw new ArgumentNullException(nameof(categoriesApi));
+            if (testContext == null)
+            {
+                throw new ArgumentNullException(nameof(testContext));
+            }
+
+            this.api = testContext.Api;
+            this.catagoriesApi = testContext.CategoriesApi;
         }
 
         public void Dispose()

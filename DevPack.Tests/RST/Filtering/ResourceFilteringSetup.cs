@@ -6,10 +6,10 @@
 
     internal sealed class ResourceFilteringSetup
     {
-        private readonly ResourceStudioObjectCreator objectCreator;
+        private readonly TestObjectCreator objectCreator;
         private readonly IntegrationTestContext TestContext;
 
-        public ResourceFilteringSetup(ResourceStudioObjectCreator objectCreator, IntegrationTestContext TestContext)
+        public ResourceFilteringSetup(TestObjectCreator objectCreator, IntegrationTestContext TestContext)
         {
             this.objectCreator = objectCreator;
             this.TestContext = TestContext;

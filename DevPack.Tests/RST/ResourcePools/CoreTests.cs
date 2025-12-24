@@ -14,11 +14,11 @@
     [TestCategory("IntegrationTest")]
     public sealed class CoreTests : IDisposable
     {
-        private readonly ResourceStudioObjectCreator objectCreator;
+        private readonly TestObjectCreator objectCreator;
 
         public CoreTests()
         {
-            objectCreator = new ResourceStudioObjectCreator(TestContext.Api, TestContext.CategoriesApi);
+            objectCreator = new TestObjectCreator(TestContext);
         }
 
         private static IntegrationTestContext TestContext => TestContextManager.SharedTestContext;
