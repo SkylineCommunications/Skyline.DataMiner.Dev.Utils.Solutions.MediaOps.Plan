@@ -25,7 +25,7 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        internal static BulkCreateOrUpdateResult<Guid> CreateOrUpdate(MediaOpsPlanApi planApi, IEnumerable<ResourceProperty> apiResourceProperties)
+        internal static BulkCreateOrUpdateResult<Guid> CreateOrUpdate(MediaOpsPlanApi planApi, ICollection<ResourceProperty> apiResourceProperties)
         {
             var handler = new DomResourcePropertyHandler(planApi);
             handler.CreateOrUpdate(apiResourceProperties);
@@ -36,7 +36,7 @@
             return result;
         }
 
-        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, IEnumerable<ResourceProperty> apiResourceProperties, out BulkCreateOrUpdateResult<Guid> result)
+        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<ResourceProperty> apiResourceProperties, out BulkCreateOrUpdateResult<Guid> result)
         {
             var handler = new DomResourcePropertyHandler(planApi);
             handler.CreateOrUpdate(apiResourceProperties);
@@ -46,7 +46,7 @@
             return !result.HasFailures();
         }
 
-        internal static BulkDeleteResult<Guid> Delete(MediaOpsPlanApi planApi, IEnumerable<ResourceProperty> apiResourceProperties)
+        internal static BulkDeleteResult<Guid> Delete(MediaOpsPlanApi planApi, ICollection<ResourceProperty> apiResourceProperties)
         {
             var handler = new DomResourcePropertyHandler(planApi);
             handler.Delete(apiResourceProperties);
@@ -57,7 +57,7 @@
             return result;
         }
 
-        internal static bool TryDelete(MediaOpsPlanApi planApi, IEnumerable<ResourceProperty> apiResourceProperties, out BulkDeleteResult<Guid> result)
+        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<ResourceProperty> apiResourceProperties, out BulkDeleteResult<Guid> result)
         {
             var handler = new DomResourcePropertyHandler(planApi);
             handler.Delete(apiResourceProperties);
@@ -67,14 +67,14 @@
             return !result.HasFailures();
         }
 
-        private void CreateOrUpdate(IEnumerable<ResourceProperty> apiResourceProperties)
+        private void CreateOrUpdate(ICollection<ResourceProperty> apiResourceProperties)
         {
             if (apiResourceProperties == null)
             {
                 throw new ArgumentNullException(nameof(apiResourceProperties));
             }
 
-            if (!apiResourceProperties.Any())
+            if (apiResourceProperties.Count == 0)
             {
                 return;
             }
@@ -119,7 +119,7 @@
             var changeResults = GetPropertiesWithChanges(resourcePropertiesToUpdate);
 
             var toUpdateNameValidation = resourcePropertiesToUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcResource_StudioIds.Sections.PropertyInfo.PropertyName.Id)));
-            ValidateDomNames(resourcePropertiesToCreate.Concat(toUpdateNameValidation));
+            ValidateDomNames(resourcePropertiesToCreate.Concat(toUpdateNameValidation).ToList());
 
             var toCreateDomInstances = resourcePropertiesToCreate
                 .Where(IsValid)
@@ -131,17 +131,17 @@
                 .Select(x => new DomResourceProperty(x.Instance))
                 .ToList();
 
-            CreateOrUpdateDomResourceProperties(toCreateDomInstances.Concat(toUpdateDomInstances));
+            CreateOrUpdateDomResourceProperties(toCreateDomInstances.Concat(toUpdateDomInstances).ToList());
         }
 
-        private void CreateOrUpdateDomResourceProperties(IEnumerable<DomResourceProperty> domResourceProperties)
+        private void CreateOrUpdateDomResourceProperties(ICollection<DomResourceProperty> domResourceProperties)
         {
             if (domResourceProperties == null)
             {
                 throw new ArgumentNullException(nameof(domResourceProperties));
             }
 
-            if (!domResourceProperties.Any())
+            if (domResourceProperties.Count == 0)
             {
                 return;
             }
@@ -162,14 +162,14 @@
             ReportSuccess(domResult.SuccessfulIds.Select(x => x.Id));
         }
 
-        private void Delete(IEnumerable<ResourceProperty> apiResourceProperties)
+        private void Delete(ICollection<ResourceProperty> apiResourceProperties)
         {
             if (apiResourceProperties == null)
             {
                 throw new ArgumentNullException(nameof(apiResourceProperties));
             }
 
-            if (!apiResourceProperties.Any())
+            if (apiResourceProperties.Count == 0)
             {
                 return;
             }
@@ -177,7 +177,7 @@
             var newProperties = apiResourceProperties.Where(x => x.IsNew).ToList();
             newProperties.ForEach(x =>
             {
-                var error = new ResourcePropertyConfigurationInvalidStateError
+                var error = new ResourcePropertyInvalidStateError
                 {
                     ErrorMessage = $"A resource that was not saved cannot be removed.",
                     Id = x.Id,
@@ -201,7 +201,7 @@
                 throw new ArgumentNullException(nameof(propertiesToDelete));
             }
 
-            if (!propertiesToDelete.Any())
+            if (propertiesToDelete.Count == 0)
             {
                 return;
             }
@@ -222,14 +222,14 @@
             ReportSuccess(domResult.SuccessfulIds.Select(x => x.Id));
         }
 
-        private void ValidateIdsNotInUse(IEnumerable<ResourceProperty> apiResourceProperties)
+        private void ValidateIdsNotInUse(ICollection<ResourceProperty> apiResourceProperties)
         {
             if (apiResourceProperties == null)
             {
                 throw new ArgumentNullException(nameof(apiResourceProperties));
             }
 
-            if (!apiResourceProperties.Any())
+            if (apiResourceProperties.Count == 0)
             {
                 return;
             }
@@ -248,7 +248,7 @@
 
             foreach (var property in propertiesWithDuplicateIds)
             {
-                var error = new ResourcePropertyConfigurationDuplicateIdError
+                var error = new ResourcePropertyDuplicateIdError
                 {
                     ErrorMessage = $"Resource property '{property.Name}' has a duplicate ID.",
                     Id = property.Id,
@@ -263,7 +263,7 @@
             {
                 planApi.Logger.LogInformation($"ID is already in use by a Resource Studio instance.", foundInstance.ID.Id);
 
-                var error = new ResourcePropertyConfigurationIdInUseError
+                var error = new ResourcePropertyIdInUseError
                 {
                     ErrorMessage = "ID is already in use.",
                     Id = foundInstance.ID.Id,
@@ -273,14 +273,14 @@
             }
         }
 
-        private void ValidateNames(IEnumerable<ResourceProperty> apiResourceProperties)
+        private void ValidateNames(ICollection<ResourceProperty> apiResourceProperties)
         {
             if (apiResourceProperties == null)
             {
                 throw new ArgumentNullException(nameof(apiResourceProperties));
             }
 
-            if (!apiResourceProperties.Any())
+            if (apiResourceProperties.Count == 0)
             {
                 return;
             }
@@ -289,7 +289,7 @@
 
             foreach (var property in propertiesRequiringValidation.Where(x => !InputValidator.ValidateEmptyText(x.Name)))
             {
-                var error = new ResourcePropertyConfigurationInvalidNameError
+                var error = new ResourcePropertyInvalidNameError
                 {
                     ErrorMessage = "Name cannot be empty.",
                     Id = property.Id,
@@ -302,7 +302,7 @@
 
             foreach (var property in propertiesRequiringValidation.Where(x => !InputValidator.ValidateTextLength(x.Name)))
             {
-                var error = new ResourcePropertyConfigurationInvalidNameError
+                var error = new ResourcePropertyInvalidNameError
                 {
                     ErrorMessage = $"Name exceeds maximum length of {InputValidator.DefaultMaxTextLength} characters.",
                     Id = property.Id,
@@ -322,7 +322,7 @@
 
             foreach (var property in propertiesWithDuplicateNames)
             {
-                var error = new ResourcePropertyConfigurationDuplicateNameError
+                var error = new ResourcePropertyDuplicateNameError
                 {
                     ErrorMessage = $"Resource property '{property.Name}' has a duplicate name.",
                     Id = property.Id,
@@ -333,14 +333,14 @@
             }
         }
 
-        private void ValidateDomNames(IEnumerable<ResourceProperty> apiResourceProperties)
+        private void ValidateDomNames(ICollection<ResourceProperty> apiResourceProperties)
         {
             if (apiResourceProperties == null)
             {
                 throw new ArgumentNullException(nameof(apiResourceProperties));
             }
 
-            if (!apiResourceProperties.Any())
+            if (apiResourceProperties.Count == 0)
             {
                 return;
             }
@@ -368,7 +368,7 @@
 
                 planApi.Logger.LogInformation($"Name '{property.Name}' is already ins use by DOM resource property/properties with ID(s)", existingProperties.Select(x => x.ID.Id).ToArray());
 
-                var error = new ResourcePropertyConfigurationNameExistsError
+                var error = new ResourcePropertyNameExistsError
                 {
                     ErrorMessage = "Name is already in use.",
                     Id = property.Id,
@@ -406,14 +406,14 @@
              */
         }
 
-        private IEnumerable<DomChangeResults> GetPropertiesWithChanges(IEnumerable<ResourceProperty> apiResourceProperties)
+        private IEnumerable<DomChangeResults> GetPropertiesWithChanges(ICollection<ResourceProperty> apiResourceProperties)
         {
             if (apiResourceProperties == null)
             {
                 throw new ArgumentNullException(nameof(apiResourceProperties));
             }
 
-            if (!apiResourceProperties.Any())
+            if (apiResourceProperties.Count == 0)
             {
                 return [];
             }
@@ -421,7 +421,7 @@
             return GetPropertiesWithChangesIterator(apiResourceProperties);
         }
 
-        private IEnumerable<DomChangeResults> GetPropertiesWithChangesIterator(IEnumerable<ResourceProperty> apiResourceProperties)
+        private IEnumerable<DomChangeResults> GetPropertiesWithChangesIterator(ICollection<ResourceProperty> apiResourceProperties)
         {
             var propertiesRequiringValidation = apiResourceProperties.Where(x => !x.IsNew && x.HasChanges).ToList();
             if (propertiesRequiringValidation.Count == 0)
@@ -434,7 +434,7 @@
             {
                 if (!storedDomReesourcePropertiesById.TryGetValue(property.Id, out var stored))
                 {
-                    var error = new ResourcePropertyConfigurationNotFoundError
+                    var error = new ResourcePropertyNotFoundError
                     {
                         ErrorMessage = $"Resource property with ID '{property.Id}' no longer exists.",
                         Id = property.Id,
@@ -450,7 +450,7 @@
                 {
                     foreach (var errorDetails in changeResult.Errors)
                     {
-                        var error = new ResourcePropertyConfigurationValueAlreadyChangedError
+                        var error = new ResourcePropertyValueAlreadyChangedError
                         {
                             ErrorMessage = errorDetails.Message,
                             Id = property.Id,

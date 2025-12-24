@@ -40,8 +40,7 @@
                 Name = name,
             };
 
-            var returnedId = objectCreator.CreateResourcePool(resourcePool);
-            Assert.AreEqual(poolId, returnedId);
+            objectCreator.CreateResourcePool(resourcePool);
 
             var returnedResourcePool = TestContext.Api.ResourcePools.Read(poolId);
             Assert.IsNotNull(returnedResourcePool);
@@ -98,10 +97,10 @@
                 StringAssert.Contains(ex.Message, "ID is already in use.");
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolConfigurationError>().SingleOrDefault();
+                var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolError>().SingleOrDefault();
                 Assert.IsNotNull(resourcePoolConfigurationError);
 
-                var resourcePoolConfigurationIdInUseError = resourcePoolConfigurationError as ResourcePoolConfigurationIdInUseError;
+                var resourcePoolConfigurationIdInUseError = resourcePoolConfigurationError as ResourcePoolIdInUseError;
                 Assert.IsNotNull(resourcePoolConfigurationIdInUseError);
                 Assert.AreEqual(poolId, resourcePoolConfigurationIdInUseError.Id);
                 Assert.AreEqual("ID is already in use.", resourcePoolConfigurationError.ErrorMessage);
@@ -139,7 +138,7 @@
                 }
 
                 Assert.AreEqual(2, traceData.ErrorData.Count);
-                var resourcePoolConfigurationErrors = traceData.ErrorData.OfType<ResourcePoolConfigurationError>();
+                var resourcePoolConfigurationErrors = traceData.ErrorData.OfType<ResourcePoolError>();
                 Assert.AreEqual(2, resourcePoolConfigurationErrors.Count());
 
                 var errorMessages = new List<string>
@@ -150,7 +149,7 @@
 
                 foreach (var error in resourcePoolConfigurationErrors)
                 {
-                    var resourcePoolConfigurationDuplicateIdError = error as ResourcePoolConfigurationDuplicateIdError;
+                    var resourcePoolConfigurationDuplicateIdError = error as ResourcePoolDuplicateIdError;
                     Assert.IsNotNull(resourcePoolConfigurationDuplicateIdError);
                     Assert.AreEqual(poolId, resourcePoolConfigurationDuplicateIdError.Id);
                     Assert.IsTrue(errorMessages.Contains(error.ErrorMessage));
@@ -189,10 +188,10 @@
                 StringAssert.Contains(ex.Message, "Name is already in use.");
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolConfigurationError>().SingleOrDefault();
+                var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolError>().SingleOrDefault();
                 Assert.IsNotNull(resourcePoolConfigurationError);
 
-                var resourcePoolConfigurationNameExistsError = resourcePoolConfigurationError as ResourcePoolConfigurationNameExistsError;
+                var resourcePoolConfigurationNameExistsError = resourcePoolConfigurationError as ResourcePoolNameExistsError;
                 Assert.IsNotNull(resourcePoolConfigurationNameExistsError);
                 Assert.AreEqual(resourcePool2.Id, resourcePoolConfigurationNameExistsError.Id);
                 Assert.AreEqual(resourcePool2.Name, resourcePoolConfigurationNameExistsError.Name);
@@ -230,10 +229,10 @@
                 foreach (var traceData in ex.Result.TraceDataPerItem.Values)
                 {
                     Assert.AreEqual(1, traceData.ErrorData.Count);
-                    var resourcePoolConfigurationError = traceData.ErrorData.OfType<ResourcePoolConfigurationError>().SingleOrDefault();
+                    var resourcePoolConfigurationError = traceData.ErrorData.OfType<ResourcePoolError>().SingleOrDefault();
                     Assert.IsNotNull(resourcePoolConfigurationError);
 
-                    var resourcePoolConfigurationDuplicateNameError = resourcePoolConfigurationError as ResourcePoolConfigurationDuplicateNameError;
+                    var resourcePoolConfigurationDuplicateNameError = resourcePoolConfigurationError as ResourcePoolDuplicateNameError;
                     Assert.IsNotNull(resourcePoolConfigurationDuplicateNameError);
                     Assert.AreEqual(resourcePool1.Name, resourcePoolConfigurationDuplicateNameError.Name);
                     Assert.AreEqual($"Resource pool '{resourcePool1.Name}' has a duplicate name.", resourcePoolConfigurationError.ErrorMessage);
@@ -260,10 +259,10 @@
                 Name = $"{prefix}_ResourcePool_2",
             };
 
-            var id1 = objectCreator.CreateResourcePool(resourcePool1);
-            var id2 = objectCreator.CreateResourcePool(resourcePool2);
+            objectCreator.CreateResourcePool(resourcePool1);
+            objectCreator.CreateResourcePool(resourcePool2);
 
-            var toUpdate = TestContext.Api.ResourcePools.Read(id2);
+            var toUpdate = TestContext.Api.ResourcePools.Read(resourcePool2.Id);
             toUpdate.Name = resourcePool1.Name;
 
             try
@@ -275,10 +274,10 @@
                 StringAssert.Contains(ex.Message, "Name is already in use.");
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolConfigurationError>().SingleOrDefault();
+                var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolError>().SingleOrDefault();
                 Assert.IsNotNull(resourcePoolConfigurationError);
 
-                var resourcePoolConfigurationNameExistsError = resourcePoolConfigurationError as ResourcePoolConfigurationNameExistsError;
+                var resourcePoolConfigurationNameExistsError = resourcePoolConfigurationError as ResourcePoolNameExistsError;
                 Assert.IsNotNull(resourcePoolConfigurationNameExistsError);
                 Assert.AreEqual(toUpdate.Id, resourcePoolConfigurationNameExistsError.Id);
                 Assert.AreEqual(toUpdate.Name, resourcePoolConfigurationNameExistsError.Name);
@@ -288,6 +287,14 @@
             }
 
             Assert.Fail("Expected exception was not thrown.");
+        }
+
+        [TestMethod]
+        public void ReadWithEmptyListReturnsEmptyList()
+        {
+            var resourcePools = TestContext.Api.ResourcePools.Read(new List<Guid>());
+            Assert.IsNotNull(resourcePools);
+            Assert.AreEqual(0, resourcePools.Count());
         }
     }
 }

@@ -20,13 +20,15 @@
 
         private string name;
 
+        private bool isExternallyManaged;
+
         private string iconImage;
 
         private string url;
 
-        private readonly ICollection<LinkedResourcePool> linkedResourcepools = [];
+        private readonly List<LinkedResourcePool> linkedResourcepools = [];
 
-        private readonly ICollection<ResourcePoolCapabilitySettings> capabilitySettings = [];
+        private readonly List<ResourcePoolCapabilitySetting> capabilitySettings = [];
 
         private Guid coreResourcePoolId;
 
@@ -67,6 +69,19 @@
         }
 
         /// <summary>
+        /// Gets or sets a value indicating whether the resource pool is managed by an external system.
+        /// </summary>
+        public bool IsExternallyManaged
+        {
+            get => isExternallyManaged;
+            set
+            {
+                HasChanges |= isExternallyManaged != value;
+                isExternallyManaged = value;
+            }
+        }
+
+        /// <summary>
         /// Gets the state of the resource pool.
         /// </summary>
         public ResourcePoolState State { get; private set; }
@@ -100,12 +115,12 @@
         /// <summary>
         /// Gets the collection of links associated with this resource pool.
         /// </summary>
-        public IReadOnlyCollection<LinkedResourcePool> LinkedResourcePools => (IReadOnlyCollection<LinkedResourcePool>)linkedResourcepools;
+        public IReadOnlyCollection<LinkedResourcePool> LinkedResourcePools => linkedResourcepools;
 
         /// <summary>
         /// Gets the collection of capabilities assigned to this resource pool.
         /// </summary>
-        public IReadOnlyCollection<ResourcePoolCapabilitySettings> Capabilities => (IReadOnlyCollection<ResourcePoolCapabilitySettings>)capabilitySettings;
+        public IReadOnlyCollection<CapabilitySetting> Capabilities => capabilitySettings;
 
         internal Guid CoreResourcePoolId => coreResourcePoolId;
 
@@ -115,7 +130,7 @@
         /// Adds a link to another resource pool.
         /// </summary>
         /// <param name="linkedResourcePool">The resource pool link to add.</param>
-        public void AddLinkedResourcePool(LinkedResourcePool linkedResourcePool)
+        public ResourcePool AddLinkedResourcePool(LinkedResourcePool linkedResourcePool)
         {
             if (linkedResourcePool == null)
             {
@@ -124,18 +139,20 @@
 
             if (!linkedResourcePool.IsNew)
             {
-                return;
+                return this;
             }
 
             linkedResourcepools.Add(linkedResourcePool);
             HasChanges = true;
+
+            return this;
         }
 
         /// <summary>
         /// Removes the specified resource pool link from the collection, if it exists.
         /// </summary>
         /// <param name="linkedResourcePool">The resource pool link to remove.</param>
-        public void RemoveLinkedResourcePool(LinkedResourcePool linkedResourcePool)
+        public ResourcePool RemoveLinkedResourcePool(LinkedResourcePool linkedResourcePool)
         {
             if (linkedResourcePool == null)
             {
@@ -147,49 +164,55 @@
             {
                 HasChanges = true;
             }
+
+            return this;
         }
 
         /// <summary>
-        /// Adds a new capability to the resource pool if it has not been previously added.
+        /// Adds a new capability to the resource pool.
         /// </summary>
-        /// <param name="capability">The capability settings to add. Must represent a new capability; otherwise, the method does not modify the collection.</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="capability"/> is <see langword="null"/>.</exception>
-        public void AddCapability(ResourcePoolCapabilitySettings capability)
+        /// <param name="capabilitySetting">The capability setting to add.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="capabilitySetting"/> is <see langword="null"/>.</exception>
+        public ResourcePool AddCapability(CapabilitySetting capabilitySetting)
         {
-            if (capability == null)
+            if (capabilitySetting == null)
             {
-                throw new ArgumentNullException(nameof(capability));
+                throw new ArgumentNullException(nameof(capabilitySetting));
             }
 
-            if (!capability.IsNew)
-            {
-                return;
-            }
-
-            capabilitySettings.Add(capability);
+            capabilitySettings.Add(new ResourcePoolCapabilitySetting(capabilitySetting));
             HasChanges = true;
+
+            return this;
         }
 
         /// <summary>
         /// Removes the specified capability from the resource pool.
         /// </summary>
-        /// <param name="capability">The capability to remove from the resource pool. Cannot be null.</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="capability"/> is <see langword="null"/>.</exception>
-        public void RemoveCapability(ResourcePoolCapabilitySettings capability)
+        /// <param name="capabilitySetting">The capability to remove from the resource pool. Cannot be null.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="capabilitySetting"/> is <see langword="null"/>.</exception>
+        public ResourcePool RemoveCapability(CapabilitySetting capabilitySetting)
         {
-            if (capability == null)
+            if (capabilitySetting == null)
             {
-                throw new ArgumentNullException(nameof(capability));
+                throw new ArgumentNullException(nameof(capabilitySetting));
             }
 
-            var toRemove = capabilitySettings.SingleOrDefault(x => x.OriginalSection.ID == capability.OriginalSection.ID);
+            if (capabilitySetting.OriginalSection == null)
+            {
+                return this;
+            }
+
+            var toRemove = capabilitySettings.SingleOrDefault(x => x.OriginalSection.ID == capabilitySetting.OriginalSection.ID);
             if (toRemove != null && capabilitySettings.Remove(toRemove))
             {
                 HasChanges = true;
             }
+
+            return this;
         }
 
-        internal void RemoveLinkedResourcePool(ResourcePool resourcePool)
+        internal ResourcePool RemoveLinkedResourcePool(ResourcePool resourcePool)
         {
             if (resourcePool == null)
             {
@@ -198,7 +221,7 @@
 
             if (resourcePool.IsNew)
             {
-                return;
+                return this;
             }
 
             var toRemove = linkedResourcepools.Where(x => x.LinkedResourcePoolId == resourcePool.Id).ToList();
@@ -210,6 +233,8 @@
                     HasChanges = true;
                 }
             }
+
+            return this;
         }
 
         internal StorageResourceStudio.ResourcepoolInstance GetInstanceWithChanges()
@@ -220,9 +245,11 @@
             }
 
             updatedInstance.ResourcePoolInfo.Name = Name;
-
             updatedInstance.ResourcePoolOther.IconImage = iconImage;
             updatedInstance.ResourcePoolOther.URL = url;
+
+            // Setting to null will not create a DOM section in storage.
+            updatedInstance.ExternalMetadata.ExternallyManaged = IsExternallyManaged ? true : null;
 
             updatedInstance.ResourcePoolLinks.Clear();
             foreach (var link in linkedResourcepools)
@@ -244,6 +271,7 @@
             this.originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
 
             name = instance.ResourcePoolInfo.Name;
+            isExternallyManaged = instance.ExternalMetadata?.ExternallyManaged ?? false;
             State = EnumExtensions.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.StatusesEnum, ResourcePoolState>(instance.Status);
             coreResourcePoolId = instance.ResourcePoolInternalProperties.ResourcePoolId;
 
@@ -259,7 +287,7 @@
 
             foreach (var section in instance.ResourcePoolCapabilities)
             {
-                var capability = new ResourcePoolCapabilitySettings(section);
+                var capability = new ResourcePoolCapabilitySetting(section);
                 capability.ValueChanged += (s, e) => { HasChanges = true; };
                 capabilitySettings.Add(capability);
             }

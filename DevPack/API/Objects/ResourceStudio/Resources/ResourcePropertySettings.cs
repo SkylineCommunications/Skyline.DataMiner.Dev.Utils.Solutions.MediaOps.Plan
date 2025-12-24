@@ -87,7 +87,7 @@
         {
             originalSection = section ?? throw new ArgumentNullException(nameof(section));
 
-            Id = section.Property.Value;
+            Id = section.Property.HasValue ? section.Property.Value : Guid.Empty;
             value = section.PropertyValue;
         }
     }

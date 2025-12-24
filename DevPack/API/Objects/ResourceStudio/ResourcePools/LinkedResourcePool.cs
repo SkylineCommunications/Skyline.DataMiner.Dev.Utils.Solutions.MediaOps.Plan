@@ -86,8 +86,8 @@
         {
             originalSection = section ?? throw new ArgumentNullException(nameof(section));
 
-            LinkedResourcePoolId = section.LinkedResourcePool.Value;
-            resourceSelectionType = EnumExtensions.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Enums.Resourceselectiontype, ResourceSelectionType>(section.ResourceSelectionType.Value);
+            LinkedResourcePoolId = section.LinkedResourcePool.HasValue ? section.LinkedResourcePool.Value : Guid.Empty;
+            resourceSelectionType = section.ResourceSelectionType.HasValue ? EnumExtensions.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Enums.Resourceselectiontype, ResourceSelectionType>(section.ResourceSelectionType.Value) : ResourceSelectionType.Manual;
         }
     }
 }

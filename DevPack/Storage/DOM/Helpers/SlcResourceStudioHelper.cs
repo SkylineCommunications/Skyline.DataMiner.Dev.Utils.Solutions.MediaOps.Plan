@@ -26,22 +26,61 @@
             return DomHelper.DomInstances.Count(filter);
         }
 
-        public IEnumerable<DomInstance> GetResourceStudioInstances(IEnumerable<Guid> ids)
+        /// <summary>
+        /// Returns resources that are included in any of the provided pools.
+        /// </summary>
+        public IEnumerable<ResourceInstance> GetAllResourcesInPools(IEnumerable<Guid> poolIds)
         {
-            if (ids == null)
+            if (poolIds == null)
             {
-                throw new ArgumentNullException(nameof(ids));
+                throw new ArgumentNullException(nameof(poolIds));
             }
 
-            if (!ids.Any())
+            var filters = poolIds
+                .Select(x => DomInstanceExposers.FieldValues
+                    .DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.Pool_Ids)
+                    .Contains(Convert.ToString(x)))
+                .ToArray();
+
+            if (filters.Length == 0)
             {
-                return Enumerable.Empty<DomInstance>();
+                return Enumerable.Empty<ResourceInstance>();
             }
 
-            return FilterQueryExecutor.RetrieveFilteredItems(
-                ids.Distinct(),
-                x => DomInstanceExposers.Id.Equal(x),
-                x => DomHelper.DomInstances.Read(x));
+            var filter = new ORFilterElement<DomInstance>(filters);
+
+            return GetResourceIterator(filter);
+        }
+
+        public IEnumerable<IEnumerable<ResourceInstance>> GetAllResourcesPaged(long? pageSize = null)
+        {
+            var filter = DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resource.Id);
+
+            var pages = pageSize.HasValue
+                ? DomHelper.DomInstances.ReadPaged(filter, pageSize.Value)
+                : DomHelper.DomInstances.ReadPaged(filter);
+
+            return pages.Select(p => GetResourceIterator(p));
+        }
+
+        public IEnumerable<ResourcepoolInstance> GetPoolsByResource(ResourceInstance resource)
+        {
+            if (resource == null)
+            {
+                throw new ArgumentNullException(nameof(resource));
+            }
+
+            return GetResourcePools(resource.ResourceInternalProperties.PoolIds);
+        }
+
+        public IEnumerable<ResourcepoolInstance> GetPoolsByResource(Guid id)
+        {
+            if (id == Guid.Empty)
+            {
+                throw new ArgumentNullException(nameof(id));
+            }
+
+            return GetPoolsByResource(GetResources([id]).FirstOrDefault());
         }
 
         public IEnumerable<ResourcepoolInstance> GetResourcePools(FilterElement<DomInstance> filter)
@@ -52,11 +91,6 @@
             }
 
             return GetResourcePoolIterator(filter);
-        }
-
-        internal IEnumerable<ResourcepoolInstance> GetResourcePools(IQuery<DomInstance> query)
-        {
-            return InstanceFactory.ReadAndCreateInstances(DomHelper, query, instance => new ResourcepoolInstance(instance));
         }
 
         public IEnumerable<ResourcepoolInstance> GetResourcePools(IEnumerable<Guid> ids)
@@ -97,216 +131,6 @@
                 values.Distinct(),
                 x => filter(x),
                 x => GetResourcePoolIterator(x));
-        }
-
-        public IEnumerable<ResourcepoolInstance> GetPoolsByResource(ResourceInstance resource)
-        {
-            if (resource == null)
-            {
-                throw new ArgumentNullException(nameof(resource));
-            }
-
-            return GetResourcePools(resource.ResourceInternalProperties.PoolIds);
-        }
-
-        public IEnumerable<ResourcepoolInstance> GetPoolsByResource(Guid id)
-        {
-            if (id == Guid.Empty)
-            {
-                throw new ArgumentNullException(nameof(id));
-            }
-
-            return GetPoolsByResource(GetResources([id]).FirstOrDefault());
-        }
-
-        public IEnumerable<ResourcepoolInstance> GetAllPoolsForResources(IEnumerable<ResourceInstance> resources)
-        {
-            if (resources == null)
-            {
-                throw new ArgumentNullException(nameof(resources));
-            }
-
-            var poolIds = resources
-                .Where(x => x != null)
-                .SelectMany(x => x.ResourceInternalProperties.PoolIds)
-                .Distinct()
-                .ToArray();
-
-            return GetResourcePools(poolIds);
-        }
-
-        public IEnumerable<ResourcepoolInstance> GetAllPoolsForResources(IEnumerable<Guid> resourceIds)
-        {
-            if (resourceIds == null)
-            {
-                throw new ArgumentNullException(nameof(resourceIds));
-            }
-
-            return GetAllPoolsForResources(GetResources(resourceIds));
-        }
-
-        public IEnumerable<ResourceInstance> GetAllResources()
-        {
-            var filter = DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resource.Id);
-            return GetResourceIterator(filter);
-        }
-
-        public IEnumerable<IEnumerable<ResourceInstance>> GetAllResourcesPaged(long? pageSize = null)
-        {
-            var filter = DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resource.Id);
-
-            var pages = pageSize.HasValue
-                ? DomHelper.DomInstances.ReadPaged(filter, pageSize.Value)
-                : DomHelper.DomInstances.ReadPaged(filter);
-
-            return pages.Select(p => GetResourceIterator(p));
-        }
-
-        public IEnumerable<ResourceInstance> GetResources(FilterElement<DomInstance> filter)
-        {
-            if (filter == null)
-            {
-                throw new ArgumentNullException(nameof(filter));
-            }
-
-            return GetResourceIterator(filter);
-        }
-
-        public IEnumerable<ResourceInstance> GetResources<T>(IEnumerable<T> values, Func<T, FilterElement<DomInstance>> filter)
-        {
-            if (values == null)
-            {
-                throw new ArgumentNullException(nameof(values));
-            }
-
-            if (filter == null)
-            {
-                throw new ArgumentNullException(nameof(filter));
-            }
-
-            return FilterQueryExecutor.RetrieveFilteredItems(
-                values.Distinct(),
-                x => filter(x),
-                x => GetResourceIterator(x));
-        }
-
-        internal IEnumerable<ResourceInstance> GetResources(IQuery<DomInstance> query)
-        {
-            return InstanceFactory.ReadAndCreateInstances(DomHelper, query, instance => new ResourceInstance(instance));
-        }
-
-        public IEnumerable<ResourceInstance> GetResources(IEnumerable<Guid> ids)
-        {
-            if (ids == null)
-            {
-                throw new ArgumentNullException(nameof(ids));
-            }
-
-            if (!ids.Any())
-            {
-                return Enumerable.Empty<ResourceInstance>();
-            }
-
-            FilterElement<DomInstance> filter(Guid id) =>
-                DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resource.Id)
-                .AND(DomInstanceExposers.Id.Equal(id));
-
-            return FilterQueryExecutor.RetrieveFilteredItems(
-                ids.Distinct(),
-                x => filter(x),
-                x => GetResourceIterator(x));
-        }
-
-        public IEnumerable<ResourceInstance> GetResourcesByPool(ResourcepoolInstance resourcePool)
-        {
-            if (resourcePool == null)
-            {
-                throw new ArgumentNullException(nameof(resourcePool));
-            }
-
-            return GetResourcesByPool(resourcePool.ID.Id);
-        }
-
-        public IEnumerable<ResourceInstance> GetResourcesByPool(Guid id)
-        {
-            if (id == Guid.Empty)
-            {
-                throw new ArgumentNullException(nameof(id));
-            }
-
-            var filter = DomInstanceExposers.FieldValues
-                .DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.Pool_Ids)
-                .Contains(Convert.ToString(id));
-
-            return GetResourceIterator(filter);
-        }
-
-        /// <summary>
-        /// Returns resources that are included in any of the provided pools.
-        /// </summary>
-        public IEnumerable<ResourceInstance> GetAllResourcesInPools(IEnumerable<ResourcepoolInstance> pools)
-        {
-            if (pools == null)
-            {
-                throw new ArgumentNullException(nameof(pools));
-            }
-
-            return GetAllResourcesInPools(pools.Select(x => x.ID.Id));
-        }
-
-        /// <summary>
-        /// Returns resources that are included in any of the provided pools.
-        /// </summary>
-        public IEnumerable<ResourceInstance> GetAllResourcesInPools(IEnumerable<Guid> poolIds)
-        {
-            if (poolIds == null)
-            {
-                throw new ArgumentNullException(nameof(poolIds));
-            }
-
-            var filters = poolIds
-                .Select(x => DomInstanceExposers.FieldValues
-                    .DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.Pool_Ids)
-                    .Contains(Convert.ToString(x)))
-                .ToArray();
-
-            if (filters.Length == 0)
-            {
-                return Enumerable.Empty<ResourceInstance>();
-            }
-
-            var filter = new ORFilterElement<DomInstance>(filters);
-
-            return GetResourceIterator(filter);
-        }
-
-        public void TransitionResourceToComplete(Guid resourceId)
-        {
-            var transitionId = SlcResource_StudioIds.Behaviors.Resource_Behavior.Transitions.Draft_To_Complete;
-            DomHelper.DomInstances.DoStatusTransition(new DomInstanceId(resourceId), transitionId);
-        }
-
-        public void TransitionResourceToDeprecated(Guid resourceId)
-        {
-            var transitionId = SlcResource_StudioIds.Behaviors.Resource_Behavior.Transitions.Complete_To_Deprecated;
-            DomHelper.DomInstances.DoStatusTransition(new DomInstanceId(resourceId), transitionId);
-        }
-
-        public IEnumerable<ResourcepropertyInstance> GetAllResourceProperties()
-        {
-            var filter = DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resourceproperty.Id);
-            return GetResourcePropertyIterator(filter);
-        }
-
-        public IEnumerable<IEnumerable<ResourcepropertyInstance>> GetAllResourcePropertiesPaged(long? pageSize = null)
-        {
-            var filter = DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resourceproperty.Id);
-
-            var pages = pageSize.HasValue
-                ? DomHelper.DomInstances.ReadPaged(filter, pageSize.Value)
-                : DomHelper.DomInstances.ReadPaged(filter);
-
-            return pages.Select(p => GetResourcePropertyIterator(p));
         }
 
         public IEnumerable<ResourcepropertyInstance> GetResourceProperties(FilterElement<DomInstance> filter)
@@ -359,16 +183,170 @@
                 x => GetResourcePropertyIterator(x));
         }
 
+        public IEnumerable<ResourceInstance> GetResources(FilterElement<DomInstance> filter)
+        {
+            if (filter == null)
+            {
+                throw new ArgumentNullException(nameof(filter));
+            }
+
+            return GetResourceIterator(filter);
+        }
+
+        public IEnumerable<ResourceInstance> GetResources<T>(IEnumerable<T> values, Func<T, FilterElement<DomInstance>> filter)
+        {
+            if (values == null)
+            {
+                throw new ArgumentNullException(nameof(values));
+            }
+
+            if (filter == null)
+            {
+                throw new ArgumentNullException(nameof(filter));
+            }
+
+            return FilterQueryExecutor.RetrieveFilteredItems(
+                values.Distinct(),
+                x => filter(x),
+                x => GetResourceIterator(x));
+        }
+
+        public IEnumerable<ResourceInstance> GetResources(IEnumerable<Guid> ids)
+        {
+            if (ids == null)
+            {
+                throw new ArgumentNullException(nameof(ids));
+            }
+
+            if (!ids.Any())
+            {
+                return Enumerable.Empty<ResourceInstance>();
+            }
+
+            FilterElement<DomInstance> filter(Guid id) =>
+                DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resource.Id)
+                .AND(DomInstanceExposers.Id.Equal(id));
+
+            return FilterQueryExecutor.RetrieveFilteredItems(
+                ids.Distinct(),
+                x => filter(x),
+                x => GetResourceIterator(x));
+        }
+
+        public IEnumerable<ResourceInstance> GetResourcesByPool(ResourcepoolInstance resourcePool)
+        {
+            if (resourcePool == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePool));
+            }
+
+            return GetResourcesByPool(resourcePool.ID.Id);
+        }
+
+        public IEnumerable<ResourceInstance> GetResourcesByPool(Guid id)
+        {
+            if (id == Guid.Empty)
+            {
+                throw new ArgumentNullException(nameof(id));
+            }
+
+            var filter = DomInstanceExposers.FieldValues
+                .DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.Pool_Ids)
+                .Contains(Convert.ToString(id));
+
+            return GetResourceIterator(filter);
+        }
+
+        public IEnumerable<DomInstance> GetResourceStudioInstances(IEnumerable<Guid> ids)
+        {
+            if (ids == null)
+            {
+                throw new ArgumentNullException(nameof(ids));
+            }
+
+            if (!ids.Any())
+            {
+                return Enumerable.Empty<DomInstance>();
+            }
+
+            return FilterQueryExecutor.RetrieveFilteredItems(
+                ids.Distinct(),
+                x => DomInstanceExposers.Id.Equal(x),
+                x => DomHelper.DomInstances.Read(x));
+        }
+        public void TransitionResourceToComplete(Guid resourceId)
+        {
+            var transitionId = SlcResource_StudioIds.Behaviors.Resource_Behavior.Transitions.Draft_To_Complete;
+            DomHelper.DomInstances.DoStatusTransition(new DomInstanceId(resourceId), transitionId);
+        }
+
+        public void TransitionResourceToDeprecated(Guid resourceId)
+        {
+            var transitionId = SlcResource_StudioIds.Behaviors.Resource_Behavior.Transitions.Complete_To_Deprecated;
+            DomHelper.DomInstances.DoStatusTransition(new DomInstanceId(resourceId), transitionId);
+        }
+
+        internal IEnumerable<ResourcepoolInstance> GetResourcePools(IQuery<DomInstance> query)
+        {
+            return InstanceFactory.ReadAndCreateInstances(DomHelper, query, instance => new ResourcepoolInstance(instance));
+        }
+        internal IEnumerable<IEnumerable<ResourcepoolInstance>> GetResourcePoolsPaged(FilterElement<DomInstance> paramFilter, int pageSize)
+        {
+            if (paramFilter == null)
+            {
+                throw new ArgumentNullException(nameof(paramFilter));
+            }
+
+            if (pageSize <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(pageSize));
+            }
+
+            var pages = DomHelper.DomInstances.ReadPaged(paramFilter, pageSize);
+            return InstanceFactory.CreateInstances(pages, instance => new ResourcepoolInstance(instance));
+        }
+
         internal IEnumerable<ResourcepropertyInstance> GetResourceProperties(IQuery<DomInstance> query)
         {
             return InstanceFactory.ReadAndCreateInstances(DomHelper, query, instance => new ResourcepropertyInstance(instance));
         }
 
-        private IEnumerable<ResourcepoolInstance> GetResourcePoolIterator(FilterElement<DomInstance> filter)
+        internal IEnumerable<IEnumerable<ResourcepropertyInstance>> GetResourcePropertiesPaged(FilterElement<DomInstance> paramFilter, int pageSize)
         {
-            return InstanceFactory.ReadAndCreateInstances(DomHelper, filter, instance => new ResourcepoolInstance(instance));
+            if (paramFilter == null)
+            {
+                throw new ArgumentNullException(nameof(paramFilter));
+            }
+
+            if (pageSize <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(pageSize));
+            }
+
+            var pages = DomHelper.DomInstances.ReadPaged(paramFilter, pageSize);
+            return InstanceFactory.CreateInstances(pages, instance => new ResourcepropertyInstance(instance));
         }
 
+        internal IEnumerable<ResourceInstance> GetResources(IQuery<DomInstance> query)
+        {
+            return InstanceFactory.ReadAndCreateInstances(DomHelper, query, instance => new ResourceInstance(instance));
+        }
+
+        internal IEnumerable<IEnumerable<ResourceInstance>> GetResourcesPaged(FilterElement<DomInstance> paramFilter, int pageSize)
+        {
+            if (paramFilter == null)
+            {
+                throw new ArgumentNullException(nameof(paramFilter));
+            }
+
+            if (pageSize <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(pageSize));
+            }
+
+            var pages = DomHelper.DomInstances.ReadPaged(paramFilter, pageSize);
+            return InstanceFactory.CreateInstances(pages, instance => new ResourceInstance(instance));
+        }
         private IEnumerable<ResourceInstance> GetResourceIterator(IEnumerable<DomInstance> instances)
         {
             foreach (var instance in instances)
@@ -387,22 +365,13 @@
             return InstanceFactory.ReadAndCreateInstances(DomHelper, filter, instance => new ResourceInstance(instance));
         }
 
+        private IEnumerable<ResourcepoolInstance> GetResourcePoolIterator(FilterElement<DomInstance> filter)
+        {
+            return InstanceFactory.ReadAndCreateInstances(DomHelper, filter, instance => new ResourcepoolInstance(instance));
+        }
         private IEnumerable<ResourcepropertyInstance> GetResourcePropertyIterator(FilterElement<DomInstance> filter)
         {
             return InstanceFactory.ReadAndCreateInstances(DomHelper, filter, instance => new ResourcepropertyInstance(instance));
-        }
-
-        private IEnumerable<ResourcepropertyInstance> GetResourcePropertyIterator(IEnumerable<DomInstance> instances)
-        {
-            foreach (var instance in instances)
-            {
-                if (instance == null || instance.DomDefinitionId.Id != SlcResource_StudioIds.Definitions.Resourceproperty.Id)
-                {
-                    continue;
-                }
-
-                yield return InstanceFactory.CreateInstance(instance, instance => new ResourcepropertyInstance(instance));
-            }
         }
     }
 }

@@ -3,7 +3,9 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Microsoft.Extensions.Logging;
+
     using Skyline.DataMiner.Core.DataMinerSystem.Common;
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
@@ -14,6 +16,7 @@
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
+
     using CoreResource = Net.Messages.Resource;
     using DomResource = Storage.DOM.SlcResource_Studio.ResourceInstance;
     using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
@@ -38,9 +41,9 @@
         {
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
 
-            lazyCoreCapabilitiesById = new Lazy<Dictionary<Guid, Net.Profiles.Parameter>>(() => planApi.CoreHelpers.ProfileProvider.GetAllCapabilities().ToDictionary(x => x.ID));
-            lazyCoreTimeDependentCapabilitiesById = new Lazy<Dictionary<Guid, Net.Profiles.Parameter>>(() => planApi.CoreHelpers.ProfileProvider.GetAllTimeDependentCapabilities().ToDictionary(x => x.ID));
-            lazyCoreCapacitiesById = new Lazy<Dictionary<Guid, Net.Profiles.Parameter>>(() => planApi.CoreHelpers.ProfileProvider.GetAllCapacities().ToDictionary(x => x.ID));
+            lazyCoreCapabilitiesById = new Lazy<Dictionary<Guid, Net.Profiles.Parameter>>(() => planApi.CoreHelpers.ProfileProvider.GetCapabilities(new TRUEFilterElement<Net.Profiles.Parameter>()).ToDictionary(x => x.ID));
+            lazyCoreTimeDependentCapabilitiesById = new Lazy<Dictionary<Guid, Net.Profiles.Parameter>>(() => planApi.CoreHelpers.ProfileProvider.GetTimeDependentCapabilities(new TRUEFilterElement<Net.Profiles.Parameter>()).ToDictionary(x => x.ID));
+            lazyCoreCapacitiesById = new Lazy<Dictionary<Guid, Net.Profiles.Parameter>>(() => planApi.CoreHelpers.ProfileProvider.GetCapacities(new TRUEFilterElement<Net.Profiles.Parameter>()).ToDictionary(x => x.ID));
             lazyCapabilitiesHandler = new Lazy<DomCapabilitiesHandler>(() => new DomCapabilitiesHandler(planApi));
 
             typeSyncers = new Dictionary<Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type, Func<DomResource, CoreResource, bool>>
@@ -60,7 +63,7 @@
 
         private DomCapabilitiesHandler CapabilitiesHandler => lazyCapabilitiesHandler.Value;
 
-        public static BulkCreateOrUpdateResult<Guid> CreateOrUpdate(MediaOpsPlanApi planApi, IEnumerable<DomResource> domResources)
+        public static BulkCreateOrUpdateResult<Guid> CreateOrUpdate(MediaOpsPlanApi planApi, ICollection<DomResource> domResources)
         {
             var handler = new CoreResourceHandler(planApi);
             handler.CreateOrUpdate(domResources);
@@ -71,7 +74,7 @@
             return result;
         }
 
-        public static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, IEnumerable<DomResource> domResources, out BulkCreateOrUpdateResult<Guid> result)
+        public static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out BulkCreateOrUpdateResult<Guid> result)
         {
             var handler = new CoreResourceHandler(planApi);
             ActivityHelper.Track(nameof(CoreResourceHandler), nameof(CreateOrUpdate), act => handler.CreateOrUpdate(domResources));
@@ -81,7 +84,7 @@
             return !result.HasFailures();
         }
 
-        public static BulkDeleteResult<Guid> Delete(MediaOpsPlanApi planApi, IEnumerable<DomResource> domResources)
+        public static BulkDeleteResult<Guid> Delete(MediaOpsPlanApi planApi, ICollection<DomResource> domResources)
         {
             var handler = new CoreResourceHandler(planApi);
             ActivityHelper.Track(nameof(CoreResourceHandler), nameof(Delete), act => handler.Delete(domResources));
@@ -92,7 +95,7 @@
             return result;
         }
 
-        public static bool TryDelete(MediaOpsPlanApi planApi, IEnumerable<DomResource> domResources, out BulkDeleteResult<Guid> result)
+        public static bool TryDelete(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out BulkDeleteResult<Guid> result)
         {
             var handler = new CoreResourceHandler(planApi);
             ActivityHelper.Track(nameof(CoreResourceHandler), nameof(Delete), act => handler.Delete(domResources));
@@ -102,7 +105,7 @@
             return !result.HasFailures();
         }
 
-        public static bool TryDeprecate(MediaOpsPlanApi planApi, IEnumerable<DomResource> domResources, out BulkCreateOrUpdateResult<Guid> result)
+        public static bool TryDeprecate(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out BulkCreateOrUpdateResult<Guid> result)
         {
             var handler = new CoreResourceHandler(planApi);
             handler.Deprecate(domResources);
@@ -112,7 +115,7 @@
             return !result.HasFailures();
         }
 
-        public static bool TryValidateVirtualFunctionConfiguration(MediaOpsPlanApi planApi, ResourceVirtualFunctionLinkConfiguration configuration, out ResourceConfigurationError error)
+        public static bool TryValidateVirtualFunctionConfiguration(MediaOpsPlanApi planApi, ResourceVirtualFunctionLinkConfiguration configuration, out ResourceError error)
         {
             error = null;
 
@@ -125,7 +128,7 @@
             var elementId = new DmsElementId(configuration.AgentId, configuration.ElementId);
             if (!handler.TryValidateElementLink(elementId, out string invalidElementInfoReason))
             {
-                error = new ResourceConfigurationInvalidElementLinkError
+                error = new ResourceInvalidElementLinkError
                 {
                     ErrorMessage = invalidElementInfoReason,
                     AgentId = configuration.AgentId,
@@ -137,7 +140,7 @@
 
             if (!handler.TryValidateVirtualFunctionResourceFunctionDefinition(configuration.FunctionId, out string invalidFunctionDefinitionReason))
             {
-                error = new ResourceConfigurationInvalidFunctionLinkError
+                error = new ResourceInvalidFunctionLinkError
                 {
                     ErrorMessage = invalidFunctionDefinitionReason,
                     FunctionId = configuration.FunctionId,
@@ -148,7 +151,7 @@
 
             if (!handler.TryValidateVirtualFunctionResourceTableIndex(configuration.FunctionId, elementId, configuration.FunctionTableIndex, out string invalidTableIndexReason))
             {
-                error = new ResourceConfigurationInvalidTableIndexLinkError
+                error = new ResourceInvalidTableIndexLinkError
                 {
                     ErrorMessage = invalidTableIndexReason,
                     AgentId = configuration.AgentId,
@@ -163,7 +166,7 @@
             return true;
         }
 
-        public static bool TryValidateServiceConfiguration(MediaOpsPlanApi planApi, ResourceServiceLinkConfiguration configuration, out ResourceConfigurationError error)
+        public static bool TryValidateServiceConfiguration(MediaOpsPlanApi planApi, ResourceServiceLinkConfiguration configuration, out ResourceError error)
         {
             error = null;
 
@@ -176,7 +179,7 @@
             var serviceId = new DmsServiceId(configuration.AgentId, configuration.ServiceId);
             if (!handler.TryValidateServiceResourceServiceLink(serviceId, out var reason))
             {
-                error = new ResourceConfigurationInvalidServiceLinkError
+                error = new ResourceInvalidServiceLinkError
                 {
                     ErrorMessage = reason,
                     AgentId = configuration.AgentId,
@@ -189,7 +192,7 @@
             return true;
         }
 
-        public static bool TryValidateElementConfiguration(MediaOpsPlanApi planApi, ResourceElementLinkConfiguration configuration, out ResourceConfigurationError error)
+        public static bool TryValidateElementConfiguration(MediaOpsPlanApi planApi, ResourceElementLinkConfiguration configuration, out ResourceError error)
         {
             error = null;
 
@@ -202,7 +205,7 @@
             var elementId = new DmsElementId(configuration.AgentId, configuration.ElementId);
             if (!handler.TryValidateElementLink(elementId, out var reason))
             {
-                error = new ResourceConfigurationInvalidElementLinkError
+                error = new ResourceInvalidElementLinkError
                 {
                     ErrorMessage = reason,
                     AgentId = configuration.AgentId,
@@ -215,29 +218,29 @@
             return true;
         }
 
-        private void Deprecate(IEnumerable<DomResource> domResources)
+        private void Deprecate(ICollection<DomResource> domResources)
         {
             if (domResources == null)
             {
                 throw new ArgumentNullException(nameof(domResources));
             }
 
-            if (!domResources.Any())
+            if (domResources.Count == 0)
             {
                 return;
             }
 
-            Deprecate(ResourceMapping.GetMappings(planApi, domResources));
+            Deprecate(ResourceMapping.GetMappings(planApi, domResources).ToList());
         }
 
-        private void Deprecate(IEnumerable<ResourceMapping> resourceMappings)
+        private void Deprecate(ICollection<ResourceMapping> resourceMappings)
         {
             if (resourceMappings == null)
             {
                 throw new ArgumentNullException(nameof(resourceMappings));
             }
 
-            if (!resourceMappings.Any())
+            if (resourceMappings.Count == 0)
             {
                 return;
             }
@@ -290,14 +293,14 @@
             }
         }
 
-        private void CreateOrUpdate(IEnumerable<DomResource> domResources)
+        private void CreateOrUpdate(ICollection<DomResource> domResources)
         {
             if (domResources == null)
             {
                 throw new ArgumentNullException(nameof(domResources));
             }
 
-            if (!domResources.Any())
+            if (domResources.Count == 0)
             {
                 return;
             }
@@ -327,19 +330,19 @@
             ValidateElementResources(elementResourcesToValidate);
             ValidateServiceResources(serviceResourcesToValidate);
             ValidateVirtualFunctionResources(virtualFunctionResourcesToValidate);
-            ValidateNames(resourceMappingByDomId.Where(x => !traceDataPerItem.Keys.Contains(x.Key) && x.Value.NeedsNameValidation).Select(x => x.Value.DomResource));
+            ValidateNames(resourceMappingByDomId.Where(x => !traceDataPerItem.Keys.Contains(x.Key) && x.Value.NeedsNameValidation).Select(x => x.Value.DomResource).ToList());
 
-            CreateOrUpdate(resourceMappingByDomId.Where(x => !traceDataPerItem.Keys.Contains(x.Key)).Select(x => x.Value));
+            CreateOrUpdate(resourceMappingByDomId.Where(x => !traceDataPerItem.Keys.Contains(x.Key)).Select(x => x.Value).ToList());
         }
 
-        private void CreateOrUpdate(IEnumerable<ResourceMapping> resourceMappings)
+        private void CreateOrUpdate(ICollection<ResourceMapping> resourceMappings)
         {
             if (resourceMappings == null)
             {
                 throw new ArgumentNullException(nameof(resourceMappings));
             }
 
-            if (!resourceMappings.Any())
+            if (resourceMappings.Count == 0)
             {
                 return;
             }
@@ -423,14 +426,14 @@
             return updateRequired;
         }
 
-        private void Delete(IEnumerable<DomResource> domResources)
+        private void Delete(ICollection<DomResource> domResources)
         {
             if (domResources == null)
             {
                 throw new ArgumentNullException(nameof(domResources));
             }
 
-            if (!domResources.Any())
+            if (domResources.Count == 0)
             {
                 return;
             }
@@ -639,7 +642,7 @@
             {
                 coreResource.Capabilities.Add(new Net.SRM.Capabilities.ResourceCapability(CoreCapabilities.ResourceType.Id)
                 {
-                    Value = new Net.Profiles.CapabilityParameterValue(new List<string> { resourceTypeValue }),
+                    Value = capabilityValue,
                 });
 
                 updateRequired = true;
@@ -647,19 +650,21 @@
             else if (!resourceTypeCapability.Value.Equals(capabilityValue))
             {
                 resourceTypeCapability.Value = capabilityValue;
+
+                updateRequired = true;
             }
 
             return updateRequired;
         }
 
-        private void ValidateNames(IEnumerable<DomResource> domResources)
+        private void ValidateNames(ICollection<DomResource> domResources)
         {
             if (domResources == null)
             {
                 throw new ArgumentNullException(nameof(domResources));
             }
 
-            if (!domResources.Any())
+            if (domResources.Count == 0)
             {
                 return;
             }
@@ -673,7 +678,7 @@
 
             foreach (var resource in resourcesWithDuplicateNames)
             {
-                var error = new ResourceConfigurationDuplicateNameError
+                var error = new ResourceDuplicateNameError
                 {
                     ErrorMessage = $"Resource '{resource.ResourceInfo.Name}' has a duplicate name.",
                     Id = resource.ID.Id,
@@ -705,7 +710,7 @@
 
                 planApi.Logger.LogInformation($"Name '{resource.ResourceInfo.Name}' is already in use by CORE resource(s) with ID(s): {string.Join(" ,", existingResources.Select(x => x.ID))}");
 
-                var error = new ResourceConfigurationNameExistsError
+                var error = new ResourceNameExistsError
                 {
                     ErrorMessage = "Name is already in use.",
                     Id = resource.ID.Id,
@@ -716,7 +721,7 @@
             }
         }
 
-        private void ValidateElementResources(IEnumerable<DomResource> domResources)
+        private void ValidateElementResources(ICollection<DomResource> domResources)
         {
             if (domResources == null)
             {
@@ -728,7 +733,7 @@
                 var elementId = new DmsElementId(domResource.ResourceInternalProperties.Metadata.LinkedElementInfo);
                 if (!TryValidateElementLink(elementId, out string reason))
                 {
-                    var error = new ResourceConfigurationInvalidElementLinkError
+                    var error = new ResourceInvalidElementLinkError
                     {
                         ErrorMessage = reason,
                         Id = domResource.ID.Id,
@@ -761,7 +766,7 @@
             return true;
         }
 
-        private void ValidateServiceResources(IEnumerable<DomResource> domResources)
+        private void ValidateServiceResources(ICollection<DomResource> domResources)
         {
             if (domResources == null)
             {
@@ -773,7 +778,7 @@
                 var serviceId = new DmsServiceId(domResource.ResourceInternalProperties.Metadata.LinkedServiceInfo);
                 if (!TryValidateServiceResourceServiceLink(serviceId, out string reason))
                 {
-                    var error = new ResourceConfigurationInvalidServiceLinkError
+                    var error = new ResourceInvalidServiceLinkError
                     {
                         ErrorMessage = reason,
                         Id = domResource.ID.Id,
@@ -801,14 +806,14 @@
             return true;
         }
 
-        private void ValidateVirtualFunctionResources(IEnumerable<DomResource> domResources)
+        private void ValidateVirtualFunctionResources(ICollection<DomResource> domResources)
         {
             if (domResources == null)
             {
                 throw new ArgumentNullException(nameof(domResources));
             }
 
-            if (!domResources.Any())
+            if (domResources.Count == 0)
             {
                 return;
             }
@@ -821,7 +826,7 @@
                 var elementId = new DmsElementId(domResource.ResourceInternalProperties.Metadata.LinkedElementInfo);
                 if (!TryValidateElementLink(elementId, out string invalidElementInfoReason))
                 {
-                    var error = new ResourceConfigurationInvalidElementLinkError
+                    var error = new ResourceInvalidElementLinkError
                     {
                         ErrorMessage = invalidElementInfoReason,
                         Id = domResource.ID.Id,
@@ -845,7 +850,7 @@
 
             foreach (var kvp in domResourcesByFunctionId.Where(x => !functionDefinitionsById.ContainsKey(x.Key)).ToList())
             {
-                var error = new ResourceConfigurationInvalidFunctionLinkError
+                var error = new ResourceInvalidFunctionLinkError
                 {
                     ErrorMessage = $"No function found with ID '{kvp.Key}'.",
                     FunctionId = kvp.Key,
@@ -881,7 +886,7 @@
                 {
                     var elementId = new DmsElementId(resource.ResourceInternalProperties.Metadata.LinkedElementInfo);
 
-                    var error = new ResourceConfigurationDuplicateTableIndexLinkError
+                    var error = new ResourceDuplicateTableIndexLinkError
                     {
                         ErrorMessage = $"Resource '{resource.ResourceInfo.Name}' has a duplicate table index '{resource.ResourceInternalProperties.Metadata.LinkedFunctionTableIndex}'.",
                         Id = resource.ID.Id,
@@ -902,7 +907,7 @@
                 {
                     var elementId = new DmsElementId(resource.ResourceInternalProperties.Metadata.LinkedElementInfo);
 
-                    var error = new ResourceConfigurationInvalidTableIndexLinkError
+                    var error = new ResourceInvalidTableIndexLinkError
                     {
                         ErrorMessage = $"Resource '{resource.ResourceInfo.Name}' has an invalid table index '{resource.ResourceInternalProperties.Metadata.LinkedFunctionTableIndex}'.",
                         Id = resource.ID.Id,
@@ -946,14 +951,14 @@
             return true;
         }
 
-        private void AddError(IEnumerable<DomResource> domResources, MediaOpsErrorData error)
+        private void AddError(ICollection<DomResource> domResources, MediaOpsErrorData error)
         {
             if (domResources == null)
             {
                 throw new ArgumentNullException(nameof(domResources));
             }
 
-            if (!domResources.Any())
+            if (domResources.Count == 0)
             {
                 return;
             }
@@ -1219,7 +1224,7 @@
             var cachedDomPoolsById = domResource.GetFromCache<DomResourcePool>().ToDictionary(x => x.ID.Id);
 
             var missingPoolIds = poolIds.Where(x => !cachedDomPoolsById.ContainsKey(x));
-            var domPools = planApi.ResourcePools.Read(missingPoolIds).Values.Select(x => x.OriginalInstance).ToList();
+            var domPools = planApi.ResourcePools.Read(missingPoolIds).Select(x => x.OriginalInstance).ToList();
             domPools.AddRange(cachedDomPoolsById.Values);
 
             var corePoolIds = domPools.Select(x => x.ResourcePoolInternalProperties.ResourcePoolId).Where(x => x != Guid.Empty).ToList();
@@ -1255,7 +1260,7 @@
                 CoreResource == null
                 || DomResource.ResourceInfo.Name != CoreResource.Name;
 
-            public static IEnumerable<ResourceMapping> GetMappings(MediaOpsPlanApi planApi, IEnumerable<DomResource> domResources)
+            public static IEnumerable<ResourceMapping> GetMappings(MediaOpsPlanApi planApi, ICollection<DomResource> domResources)
             {
                 if (planApi == null)
                 {
@@ -1267,7 +1272,7 @@
                     throw new ArgumentNullException(nameof(domResources));
                 }
 
-                if (!domResources.Any())
+                if (domResources.Count == 0)
                 {
                     return [];
                 }
@@ -1275,7 +1280,7 @@
                 return GetMappingsIterator(planApi, domResources);
             }
 
-            private static IEnumerable<ResourceMapping> GetMappingsIterator(MediaOpsPlanApi planApi, IEnumerable<DomResource> domResources)
+            private static IEnumerable<ResourceMapping> GetMappingsIterator(MediaOpsPlanApi planApi, ICollection<DomResource> domResources)
             {
                 var coreResourceIds = domResources
                     .Where(x => x.ResourceInternalProperties.Resource_Id.HasValue && x.ResourceInternalProperties.Resource_Id.Value != Guid.Empty)

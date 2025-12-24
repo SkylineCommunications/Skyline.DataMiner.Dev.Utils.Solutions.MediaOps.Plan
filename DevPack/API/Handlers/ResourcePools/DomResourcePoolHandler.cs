@@ -3,7 +3,9 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Microsoft.Extensions.Logging;
+
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages;
@@ -13,6 +15,7 @@
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
     using Skyline.DataMiner.Utils.DOM.Extensions;
+
     using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
 
     internal class DomResourcePoolHandler : ApiObjectValidator
@@ -28,7 +31,7 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        internal static BulkCreateOrUpdateResult<Guid> CreateOrUpdate(MediaOpsPlanApi planApi, IEnumerable<ResourcePool> apiResourcePools)
+        internal static BulkCreateOrUpdateResult<Guid> CreateOrUpdate(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools)
         {
             var handler = new DomResourcePoolHandler(planApi);
             handler.CreateOrUpdate(apiResourcePools);
@@ -39,7 +42,7 @@
             return result;
         }
 
-        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, IEnumerable<ResourcePool> apiResourcePools, out BulkCreateOrUpdateResult<Guid> result)
+        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out BulkCreateOrUpdateResult<Guid> result)
         {
             var handler = new DomResourcePoolHandler(planApi);
             handler.CreateOrUpdate(apiResourcePools);
@@ -49,7 +52,7 @@
             return !result.HasFailures();
         }
 
-        internal static bool TryComplete(MediaOpsPlanApi planApi, IEnumerable<ResourcePool> apiResourcePools, out BulkCreateOrUpdateResult<Guid> result)
+        internal static bool TryComplete(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out BulkCreateOrUpdateResult<Guid> result)
         {
             var handler = new DomResourcePoolHandler(planApi);
             handler.TransitionToCompleted(apiResourcePools);
@@ -59,7 +62,7 @@
             return !result.HasFailures();
         }
 
-        internal static bool TryDeprecate(MediaOpsPlanApi planApi, IEnumerable<ResourcePool> apiResourcePools, out BulkCreateOrUpdateResult<Guid> result, ResourcePoolDeprecateOptions options = null)
+        internal static bool TryDeprecate(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out BulkCreateOrUpdateResult<Guid> result, ResourcePoolDeprecateOptions options = null)
         {
             var handler = new DomResourcePoolHandler(planApi);
             handler.TransitionToDeprecated(apiResourcePools, options ?? ResourcePoolDeprecateOptions.GetDefaults());
@@ -69,7 +72,7 @@
             return !result.HasFailures();
         }
 
-        internal static bool TryDelete(MediaOpsPlanApi planApi, IEnumerable<ResourcePool> apiResourcePools, out BulkCreateOrUpdateResult<Guid> result, ResourcePoolDeleteOptions options = null)
+        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out BulkCreateOrUpdateResult<Guid> result, ResourcePoolDeleteOptions options = null)
         {
             var handler = new DomResourcePoolHandler(planApi);
             handler.Delete(apiResourcePools, options ?? ResourcePoolDeleteOptions.GetDefaults());
@@ -79,20 +82,14 @@
             return !result.HasFailures();
         }
 
-        internal static long CountAll(MediaOpsPlanApi planApi)
-        {
-            var handler = new DomResourcePoolHandler(planApi);
-            return handler.CountAll();
-        }
-
-        private void CreateOrUpdate(IEnumerable<ResourcePool> apiResourcePools)
+        private void CreateOrUpdate(ICollection<ResourcePool> apiResourcePools)
         {
             if (apiResourcePools == null)
             {
                 throw new ArgumentNullException(nameof(apiResourcePools));
             }
 
-            if (!apiResourcePools.Any())
+            if (apiResourcePools.Count == 0)
             {
                 return;
             }
@@ -155,18 +152,18 @@
                 .Select(x => new DomResourcePool(x.Instance))
                 .ToList();
 
-            CreateOrUpdateDomResourcePools(toCreateDomInstances.Concat(toUpdateDomInstances));
+            CreateOrUpdateDomResourcePools(toCreateDomInstances.Concat(toUpdateDomInstances).ToList());
             return changeResults;
         }
 
-        private void CreateOrUpdateDomResourcePools(IEnumerable<DomResourcePool> domResourcePools)
+        private void CreateOrUpdateDomResourcePools(ICollection<DomResourcePool> domResourcePools)
         {
             if (domResourcePools == null)
             {
                 throw new ArgumentNullException(nameof(domResourcePools));
             }
 
-            if (!domResourcePools.Any())
+            if (domResourcePools.Count == 0)
             {
                 return;
             }
@@ -175,7 +172,7 @@
 
             if (poolIdsWithCoreChanges.Count != 0)
             {
-                CoreResourcePoolHandler.TryCreateOrUpdate(planApi, domResourcePools.Where(x => poolIdsWithCoreChanges.Contains(x.ID.Id)), out var coreResult);
+                CoreResourcePoolHandler.TryCreateOrUpdate(planApi, domResourcePools.Where(x => poolIdsWithCoreChanges.Contains(x.ID.Id)).ToList(), out var coreResult);
 
                 foreach (var id in coreResult.UnsuccessfulIds)
                 {
@@ -208,20 +205,20 @@
             ReportSuccess(domResult.SuccessfulIds.Select(x => x.Id));
         }
 
-        private void TransitionToCompleted(IEnumerable<ResourcePool> apiResourcePools)
+        private void TransitionToCompleted(ICollection<ResourcePool> apiResourcePools)
         {
             if (apiResourcePools == null)
             {
                 throw new ArgumentNullException(nameof(apiResourcePools));
             }
 
-            if (!apiResourcePools.Any())
+            if (apiResourcePools.Count == 0)
             {
                 return;
             }
 
             ValidateStateForCompleteAction(apiResourcePools);
-            ValidateNames(apiResourcePools.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)));
+            ValidateNames(apiResourcePools.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)).ToList());
 
             // Create CORE resource pools
             var poolsToCreate = apiResourcePools
@@ -282,14 +279,14 @@
             UpdateCoreResources(toUpdateCoreResources);
         }
 
-        private void TransitionToDeprecated(IEnumerable<ResourcePool> apiResourcePools, ResourcePoolDeprecateOptions options)
+        private void TransitionToDeprecated(ICollection<ResourcePool> apiResourcePools, ResourcePoolDeprecateOptions options)
         {
             if (apiResourcePools == null)
             {
                 throw new ArgumentNullException(nameof(apiResourcePools));
             }
 
-            if (!apiResourcePools.Any())
+            if (apiResourcePools.Count == 0)
             {
                 return;
             }
@@ -317,14 +314,14 @@
             }
         }
 
-        private void Delete(IEnumerable<ResourcePool> apiResourcePools, ResourcePoolDeleteOptions options)
+        private void Delete(ICollection<ResourcePool> apiResourcePools, ResourcePoolDeleteOptions options)
         {
             if (apiResourcePools == null)
             {
                 throw new ArgumentNullException(nameof(apiResourcePools));
             }
 
-            if (!apiResourcePools.Any())
+            if (apiResourcePools.Count == 0)
             {
                 return;
             }
@@ -339,8 +336,7 @@
             var deleteCorePoolsLockResult = planApi.LockManager.LockAndExecute(poolsToDelete, DeleteCoreResourcePools); // Returns pools that require updates after referenced pools have been removed.
             ReportError(deleteCorePoolsLockResult);
 
-            var updateResourcePoolsLockResult = planApi.LockManager.LockAndExecute(deleteCorePoolsLockResult.ActionResults, planApi.ResourcePools.Update);
-            ReportError(updateResourcePoolsLockResult);
+            planApi.ResourcePools.Update(deleteCorePoolsLockResult.ActionResults);
         }
 
         private ICollection<ResourcePool> DeleteCoreResourcePools(ICollection<ResourcePool> poolsToDelete)
@@ -382,7 +378,7 @@
             return referencedApiResourcePoolsToUpdate.Where(x => !domResult.SuccessfulIds.Select(y => y.Id).Contains(x.Id)).ToList();
         }
 
-        private void DeprecatePoolResources(IEnumerable<ResourcePool> apiResourcePools)
+        private void DeprecatePoolResources(ICollection<ResourcePool> apiResourcePools)
         {
             var resourcesPerPoolCollection = planApi.Resources.GetResourcesPerPool(apiResourcePools, ResourceState.Complete);
             var poolsPerResourceCollection = planApi.ResourcePools.GetPoolsPerResource(resourcesPerPoolCollection.Values.SelectMany(x => x).Distinct(new DefaultApiObjectComparer()).Cast<Resource>());
@@ -416,7 +412,7 @@
             }
         }
 
-        private void RemovePoolFromParentPoolLinks(IEnumerable<ResourcePool> apiResourcePools)
+        private void RemovePoolFromParentPoolLinks(ICollection<ResourcePool> apiResourcePools)
         {
             var parentLinksPerPoolCollection = planApi.ResourcePools.GetParentPoolLinks(apiResourcePools);
 
@@ -434,7 +430,7 @@
             }
         }
 
-        private void HandleDeleteOptions(IEnumerable<ResourcePool> apiResourcePools, ResourcePoolDeleteOptions options)
+        private void HandleDeleteOptions(ICollection<ResourcePool> apiResourcePools, ResourcePoolDeleteOptions options)
         {
             if (options.DeleteDraftResources)
             {
@@ -447,7 +443,7 @@
             }
         }
 
-        private void DeletePoolResources(IEnumerable<ResourcePool> apiResourcePools, ResourceState state)
+        private void DeletePoolResources(ICollection<ResourcePool> apiResourcePools, ResourceState state)
         {
             var resourcesPerPoolCollection = planApi.Resources.GetResourcesPerPool(apiResourcePools, state);
             var poolsPerResourceCollection = planApi.ResourcePools.GetPoolsPerResource(resourcesPerPoolCollection.Values.SelectMany(x => x).Distinct(new DefaultApiObjectComparer()).Cast<Resource>());
@@ -468,7 +464,7 @@
             planApi.Resources.Delete(resourcesToDelete.Select(x => x.Id).ToArray());
         }
 
-        private void UnassignResourcesFromPool(IEnumerable<ResourcePool> apiResourcePools)
+        private void UnassignResourcesFromPool(ICollection<ResourcePool> apiResourcePools)
         {
             // todo: implement logic to unassign resources from the given resource pools
         }
@@ -480,7 +476,7 @@
                 throw new ArgumentNullException(nameof(apiResourcePools));
             }
 
-            if (!apiResourcePools.Any())
+            if (apiResourcePools.Count == 0)
             {
                 return;
             }
@@ -491,7 +487,7 @@
                 .Distinct(new DefaultApiObjectComparer())
                 .Cast<Resource>();
 
-            CoreResourceHandler.TryCreateOrUpdate(planApi, resources.Select(x => x.OriginalInstance), out var coreResult);
+            CoreResourceHandler.TryCreateOrUpdate(planApi, resources.Select(x => x.OriginalInstance).ToList(), out var coreResult);
 
             foreach (var traceData in coreResult.TraceDataPerItem)
             {
@@ -502,14 +498,14 @@
             }
         }
 
-        private void ValidateIdsNotInUse(IEnumerable<ResourcePool> apiResourcePools)
+        private void ValidateIdsNotInUse(ICollection<ResourcePool> apiResourcePools)
         {
             if (apiResourcePools == null)
             {
                 throw new ArgumentNullException(nameof(apiResourcePools));
             }
 
-            if (!apiResourcePools.Any())
+            if (apiResourcePools.Count == 0)
             {
                 return;
             }
@@ -528,7 +524,7 @@
 
             foreach (var pool in poolsWithDuplicateIds)
             {
-                var error = new ResourcePoolConfigurationDuplicateIdError
+                var error = new ResourcePoolDuplicateIdError
                 {
                     ErrorMessage = $"Resource pool '{pool.Name}' has a duplicate ID.",
                     Id = pool.Id,
@@ -543,7 +539,7 @@
             {
                 planApi.Logger.LogInformation($"ID is already in use by a Resource Studio instance.", foundInstance.ID.Id);
 
-                var error = new ResourcePoolConfigurationIdInUseError
+                var error = new ResourcePoolIdInUseError
                 {
                     ErrorMessage = "ID is already in use.",
                     Id = foundInstance.ID.Id,
@@ -553,21 +549,21 @@
             }
         }
 
-        private void ValidateStateForUpdateAction(IEnumerable<ResourcePool> apiResourcePools)
+        private void ValidateStateForUpdateAction(ICollection<ResourcePool> apiResourcePools)
         {
             if (apiResourcePools == null)
             {
                 throw new ArgumentNullException(nameof(apiResourcePools));
             }
 
-            if (!apiResourcePools.Any())
+            if (apiResourcePools.Count == 0)
             {
                 return;
             }
 
             foreach (var pool in apiResourcePools.Where(x => x.State == ResourcePoolState.Deprecated))
             {
-                var error = new ResourcePoolConfigurationInvalidStateError
+                var error = new ResourcePoolInvalidStateError
                 {
                     ErrorMessage = "Not allowed to update a resource pool in Deprecated state.",
                     Id = pool.Id,
@@ -576,21 +572,21 @@
             }
         }
 
-        private void ValidateStateForCompleteAction(IEnumerable<ResourcePool> apiResourcePools)
+        private void ValidateStateForCompleteAction(ICollection<ResourcePool> apiResourcePools)
         {
             if (apiResourcePools == null)
             {
                 throw new ArgumentNullException(nameof(apiResourcePools));
             }
 
-            if (!apiResourcePools.Any())
+            if (apiResourcePools.Count == 0)
             {
                 return;
             }
 
             foreach (var pool in apiResourcePools.Where(x => x.State != ResourcePoolState.Draft))
             {
-                var error = new ResourcePoolConfigurationInvalidStateError
+                var error = new ResourcePoolInvalidStateError
                 {
                     ErrorMessage = "Not allowed to complete a resource pool that is not in Draft state.",
                     Id = pool.Id,
@@ -599,21 +595,21 @@
             }
         }
 
-        private void ValidateStateForDeprecateAction(IEnumerable<ResourcePool> apiResourcePools)
+        private void ValidateStateForDeprecateAction(ICollection<ResourcePool> apiResourcePools)
         {
             if (apiResourcePools == null)
             {
                 throw new ArgumentNullException(nameof(apiResourcePools));
             }
 
-            if (!apiResourcePools.Any())
+            if (apiResourcePools.Count == 0)
             {
                 return;
             }
 
             foreach (var pool in apiResourcePools.Where(x => x.State != ResourcePoolState.Complete))
             {
-                var error = new ResourcePoolConfigurationInvalidStateError
+                var error = new ResourcePoolInvalidStateError
                 {
                     ErrorMessage = "Not allowed to deprecate a resource pool that is not in Completed state.",
                     Id = pool.Id,
@@ -622,21 +618,21 @@
             }
         }
 
-        private void ValidateStateForDeleteAction(IEnumerable<ResourcePool> apiResourcePools)
+        private void ValidateStateForDeleteAction(ICollection<ResourcePool> apiResourcePools)
         {
             if (apiResourcePools == null)
             {
                 throw new ArgumentNullException(nameof(apiResourcePools));
             }
 
-            if (!apiResourcePools.Any())
+            if (apiResourcePools.Count == 0)
             {
                 return;
             }
 
             foreach (var pool in apiResourcePools.Where(x => !new[] { ResourcePoolState.Draft, ResourcePoolState.Deprecated }.Contains(x.State)))
             {
-                var error = new ResourcePoolConfigurationInvalidStateError
+                var error = new ResourcePoolInvalidStateError
                 {
                     ErrorMessage = "Not allowed to delete a resource pool that is not in Draft or Deprecated state.",
                     Id = pool.Id,
@@ -645,14 +641,14 @@
             }
         }
 
-        private void ValidateNames(IEnumerable<ResourcePool> apiResourcePools)
+        private void ValidateNames(ICollection<ResourcePool> apiResourcePools)
         {
             if (apiResourcePools == null)
             {
                 throw new ArgumentNullException(nameof(apiResourcePools));
             }
 
-            if (!apiResourcePools.Any())
+            if (apiResourcePools.Count == 0)
             {
                 return;
             }
@@ -661,7 +657,7 @@
 
             foreach (var pool in poolsRequiringValidation.Where(x => !InputValidator.ValidateEmptyText(x.Name)))
             {
-                var error = new ResourcePoolConfigurationInvalidNameError
+                var error = new ResourcePoolInvalidNameError
                 {
                     ErrorMessage = "Name cannot be empty.",
                     Id = pool.Id,
@@ -674,7 +670,7 @@
 
             foreach (var pool in poolsRequiringValidation.Where(x => !InputValidator.ValidateTextLength(x.Name)))
             {
-                var error = new ResourcePoolConfigurationInvalidNameError
+                var error = new ResourcePoolInvalidNameError
                 {
                     ErrorMessage = $"Name exceeds maximum length of {InputValidator.DefaultMaxTextLength} characters.",
                     Id = pool.Id,
@@ -694,7 +690,7 @@
 
             foreach (var pool in poolsWithDuplicateNames)
             {
-                var error = new ResourcePoolConfigurationDuplicateNameError
+                var error = new ResourcePoolDuplicateNameError
                 {
                     ErrorMessage = $"Resource pool '{pool.Name}' has a duplicate name.",
                     Id = pool.Id,
@@ -734,7 +730,7 @@
 
                 planApi.Logger.LogInformation($"Name '{pool.Name}' is already in use by DOM resource pool(s) with ID(s)", existingPools.Select(x => x.ID.Id).ToArray());
 
-                var error = new ResourcePoolConfigurationNameExistsError
+                var error = new ResourcePoolNameExistsError
                 {
                     ErrorMessage = "Name is already in use.",
                     Id = pool.Id,
@@ -745,14 +741,14 @@
             }
         }
 
-        private void ValidatePoolLinks(IEnumerable<ResourcePool> apiResourcePools)
+        private void ValidatePoolLinks(ICollection<ResourcePool> apiResourcePools)
         {
             if (apiResourcePools == null)
             {
                 throw new ArgumentNullException(nameof(apiResourcePools));
             }
 
-            if (!apiResourcePools.Any())
+            if (apiResourcePools.Count == 0)
             {
                 return;
             }
@@ -770,7 +766,7 @@
                 {
                     if (link.LinkedResourcePoolId == Guid.Empty)
                     {
-                        var error = new ResourcePoolConfigurationEmptyPoolLinkError
+                        var error = new ResourcePoolEmptyPoolLinkError
                         {
                             ErrorMessage = "Linked resource pool ID cannot be empty.",
                             Id = pool.Id,
@@ -780,7 +776,7 @@
                     }
                     else if (link.LinkedResourcePoolId == pool.Id)
                     {
-                        var error = new ResourcePoolConfigurationSelfReferencePoolLinkError
+                        var error = new ResourcePoolSelfReferencePoolLinkError
                         {
                             ErrorMessage = "A resource pool cannot link to itself.",
                             Id = pool.Id,
@@ -790,7 +786,7 @@
                     }
                     else if (!domPoolsById.TryGetValue(link.LinkedResourcePoolId, out _))
                     {
-                        var error = new ResourcePoolConfigurationNotFoundPoolLinkError
+                        var error = new ResourcePoolNotFoundPoolLinkError
                         {
                             ErrorMessage = $"Linked resource pool with ID '{link.LinkedResourcePoolId}' {(link.IsNew ? "does not exist" : "no longer exists")}.",
                             Id = pool.Id,
@@ -803,14 +799,14 @@
             }
         }
 
-        private void ValidateCapabilities(IEnumerable<ResourcePool> apiResourcePools)
+        private void ValidateCapabilities(ICollection<ResourcePool> apiResourcePools)
         {
             if (apiResourcePools == null)
             {
                 throw new ArgumentNullException(nameof(apiResourcePools));
             }
 
-            if (!apiResourcePools.Any())
+            if (apiResourcePools.Count == 0)
             {
                 return;
             }
@@ -820,7 +816,7 @@
                 .Select(x => x.Id)
                 .Distinct()
                 .ToList();
-            var capabilitiesById = planApi.Capabilities.Read(capabilityIds);
+            var capabilitiesById = planApi.Capabilities.Read(capabilityIds).ToDictionary(x => x.Id);
 
             foreach (var pool in apiResourcePools)
             {
@@ -828,7 +824,7 @@
                 {
                     if (capabilitySettings.Id == Guid.Empty)
                     {
-                        var error = new ResourcePoolConfigurationInvalidCapabilitySettingsError
+                        var error = new ResourcePoolInvalidCapabilitySettingsError
                         {
                             ErrorMessage = "Capability ID cannot be empty.",
                         };
@@ -839,7 +835,7 @@
 
                     if (!capabilitiesById.TryGetValue(capabilitySettings.Id, out var capability))
                     {
-                        var error = new ResourcePoolConfigurationInvalidCapabilitySettingsError
+                        var error = new ResourcePoolInvalidCapabilitySettingsError
                         {
                             ErrorMessage = $"Capability with ID '{capabilitySettings.Id}' not found.",
                             CapabilityId = capabilitySettings.Id,
@@ -851,7 +847,7 @@
 
                     if (capabilitySettings.Discretes.Count == 0)
                     {
-                        var error = new ResourcePoolConfigurationInvalidCapabilitySettingsError
+                        var error = new ResourcePoolInvalidCapabilitySettingsError
                         {
                             ErrorMessage = "At least one discrete value must be specified for the capability.",
                             CapabilityId = capabilitySettings.Id,
@@ -865,7 +861,7 @@
                     {
                         if (!capability.Discretes.Contains(discreteValue))
                         {
-                            var error = new ResourcePoolConfigurationInvalidCapabilitySettingsError
+                            var error = new ResourcePoolInvalidCapabilitySettingsError
                             {
                                 ErrorMessage = $"Discrete value '{discreteValue}' is not valid for capability '{capability.Name}'.",
                                 CapabilityId = capabilitySettings.Id,
@@ -878,7 +874,7 @@
             }
         }
 
-        private ICollection<DomChangeResults> GetPoolsWithChanges(IEnumerable<ResourcePool> apiResourcePools)
+        private ICollection<DomChangeResults> GetPoolsWithChanges(ICollection<ResourcePool> apiResourcePools)
         {
             if (apiResourcePools == null)
             {
@@ -886,7 +882,7 @@
             }
 
             var changeResults = new List<DomChangeResults>();
-            if (!apiResourcePools.Any())
+            if (apiResourcePools.Count == 0)
             {
                 return changeResults;
             }
@@ -902,7 +898,7 @@
             {
                 if (!storedDomResourcePoolsById.TryGetValue(pool.Id, out var stored))
                 {
-                    var error = new ResourcePoolConfigurationNotFoundError
+                    var error = new ResourcePoolNotFoundError
                     {
                         ErrorMessage = $"Resource pool with ID '{pool.Id}' no longer exists.",
                         Id = pool.Id,
@@ -918,7 +914,7 @@
                 {
                     foreach (var errorDetails in changeResult.Errors)
                     {
-                        var error = new ResourcePoolConfigurationValueAlreadyChangedError
+                        var error = new ResourcePoolValueAlreadyChangedError
                         {
                             ErrorMessage = errorDetails.Message,
                             Id = pool.Id,
@@ -949,12 +945,6 @@
             }
 
             poolIdsWithCoreChanges.Add(resourcePool.Id);
-        }
-
-        private long CountAll()
-        {
-            return planApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances
-                .Count(DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resourcepool.Id));
         }
     }
 }

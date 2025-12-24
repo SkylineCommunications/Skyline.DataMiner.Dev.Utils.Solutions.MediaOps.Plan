@@ -3,11 +3,14 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Microsoft.Extensions.Logging;
+
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
+
     using CoreParameter = Net.Profiles.Parameter;
 
     internal class CoreCapabilityHandler : ApiObjectValidator
@@ -19,7 +22,7 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, IEnumerable<Capability> apiCapabilities, out BulkCreateOrUpdateResult<Guid> result)
+        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Capability> apiCapabilities, out BulkCreateOrUpdateResult<Guid> result)
         {
             var handler = new CoreCapabilityHandler(planApi);
             handler.CreateOrUpdate(apiCapabilities);
@@ -29,7 +32,7 @@
             return !result.HasFailures();
         }
 
-        internal static bool TryDelete(MediaOpsPlanApi planApi, IEnumerable<Capability> apiCapabilities, out BulkDeleteResult<Guid> result)
+        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<Capability> apiCapabilities, out BulkDeleteResult<Guid> result)
         {
             var handler = new CoreCapabilityHandler(planApi);
             handler.Delete(apiCapabilities);
@@ -39,14 +42,14 @@
             return !result.HasFailures();
         }
 
-        private void CreateOrUpdate(IEnumerable<Capability> apiCapabilities)
+        private void CreateOrUpdate(ICollection<Capability> apiCapabilities)
         {
             if (apiCapabilities == null)
             {
                 throw new ArgumentNullException(nameof(apiCapabilities));
             }
 
-            if (!apiCapabilities.Any())
+            if (apiCapabilities.Count == 0)
             {
                 return;
             }
@@ -99,17 +102,17 @@
                 .Select(x => CreateOrUpdateCoreParameter(x, null))
                 .ToList();
 
-            CreateOrUpdateCoreParameters(coreParametersToCreate.Concat(coreParametersToUpdate));
+            CreateOrUpdateCoreParameters(coreParametersToCreate.Concat(coreParametersToUpdate).ToList());
         }
 
-        private void CreateOrUpdateCoreParameters(IEnumerable<CoreParameter> coreParameters)
+        private void CreateOrUpdateCoreParameters(ICollection<CoreParameter> coreParameters)
         {
             if (coreParameters == null)
             {
                 throw new ArgumentNullException(nameof(coreParameters));
             }
 
-            if (!coreParameters.Any())
+            if (coreParameters.Count == 0)
             {
                 return;
             }
@@ -128,7 +131,7 @@
             ReportSuccess(result.SuccessfulIds);
         }
 
-        private void ValidateTimeDependency(List<Capability> apiCapabilities)
+        private void ValidateTimeDependency(ICollection<Capability> apiCapabilities)
         {
             foreach (var capability in apiCapabilities)
             {
@@ -138,7 +141,7 @@
                 if (capability.IsTimeDependent == capability.CoreParameter.IsTimeDependent())
                     continue;
 
-                ReportError(capability.Id, new CapabilityConfigurationInvalidTimeDependencyError
+                ReportError(capability.Id, new CapabilityInvalidTimeDependencyError
                 {
                     ErrorMessage = "Changing the time dependency of a capability is not allowed.",
                     Id = capability.Id,
@@ -146,14 +149,14 @@
             }
         }
 
-        private void Delete(IEnumerable<Capability> apiCapabilities)
+        private void Delete(ICollection<Capability> apiCapabilities)
         {
             if (apiCapabilities == null)
             {
                 throw new ArgumentNullException(nameof(apiCapabilities));
             }
 
-            if (!apiCapabilities.Any())
+            if (apiCapabilities.Count == 0)
             {
                 return;
             }
@@ -161,7 +164,7 @@
             var newCapabilities = apiCapabilities.Where(x => x.IsNew).ToList();
             newCapabilities.ForEach(x =>
             {
-                var error = new CapabilityConfigurationInvalidStateError
+                var error = new CapabilityInvalidStateError
                 {
                     ErrorMessage = $"A capability that was not saved cannot be removed.",
                     Id = x.Id,
@@ -199,14 +202,14 @@
             ReportSuccess(result.SuccessfulIds);
         }
 
-        private void ValidateIdsNotInUse(IEnumerable<Capability> apiCapabilities)
+        private void ValidateIdsNotInUse(ICollection<Capability> apiCapabilities)
         {
             if (apiCapabilities == null)
             {
                 throw new ArgumentNullException(nameof(apiCapabilities));
             }
 
-            if (!apiCapabilities.Any())
+            if (apiCapabilities.Count == 0)
             {
                 return;
             }
@@ -225,7 +228,7 @@
 
             foreach (var capability in capabilitiesWithDuplicateIds)
             {
-                var error = new CapabilityConfigurationDuplicateIdError
+                var error = new CapabilityDuplicateIdError
                 {
                     ErrorMessage = $"Capability '{capability.Name}' has a duplicate ID.",
                     Id = capability.Id,
@@ -240,7 +243,7 @@
             {
                 planApi.Logger.LogInformation($"ID is already in use by a Profile Parameter.", foundProfileParameter.ID);
 
-                var error = new CapabilityConfigurationIdInUseError
+                var error = new CapabilityIdInUseError
                 {
                     ErrorMessage = "ID is already in use.",
                     Id = foundProfileParameter.ID,
@@ -250,14 +253,14 @@
             }
         }
 
-        private void ValidateNames(IEnumerable<Capability> apiCapabilities)
+        private void ValidateNames(ICollection<Capability> apiCapabilities)
         {
             if (apiCapabilities == null)
             {
                 throw new ArgumentNullException(nameof(apiCapabilities));
             }
 
-            if (!apiCapabilities.Any())
+            if (apiCapabilities.Count == 0)
             {
                 return;
             }
@@ -266,7 +269,7 @@
 
             foreach (var capability in capabilitiesRequiringValidation.Where(x => !InputValidator.ValidateEmptyText(x.Name)))
             {
-                var error = new CapabilityConfigurationInvalidNameError
+                var error = new CapabilityInvalidNameError
                 {
                     ErrorMessage = "Name cannot be empty.",
                     Id = capability.Id,
@@ -278,7 +281,7 @@
 
             foreach (var capability in capabilitiesRequiringValidation.Where(x => !InputValidator.ValidateTextLength(x.Name)))
             {
-                var error = new CapabilityConfigurationInvalidNameError
+                var error = new CapabilityInvalidNameError
                 {
                     ErrorMessage = $"Name exceeds maximum length of {InputValidator.DefaultMaxTextLength} characters.",
                     Id = capability.Id,
@@ -297,7 +300,7 @@
 
             foreach (var capability in capabilitiesWithDuplicateNames)
             {
-                var error = new CapabilityConfigurationDuplicateNameError
+                var error = new CapabilityDuplicateNameError
                 {
                     ErrorMessage = $"Capability '{capability.Name}' has a duplicate name.",
                     Id = capability.Id,
@@ -325,7 +328,7 @@
 
                 planApi.Logger.LogInformation($"Name '{capability.Name}' is already in use by Profile Parameter(s) with ID(s)", coreParametersWithSameNameAndDifferentIds.Select(x => x.ID).ToArray());
 
-                var error = new CapabilityConfigurationNameExistsError
+                var error = new CapabilityNameExistsError
                 {
                     ErrorMessage = "Name is already in use.",
                     Id = capability.Id,
@@ -336,13 +339,13 @@
             }
         }
 
-        private void ValidateDiscretes(IEnumerable<Capability> apiCapabilities)
+        private void ValidateDiscretes(ICollection<Capability> apiCapabilities)
         {
             foreach (var capability in apiCapabilities)
             {
                 if (capability.Discretes.Count == 0)
                 {
-                    ReportError(capability.Id, new CapabilityConfigurationNoDiscretesError
+                    ReportError(capability.Id, new CapabilityNoDiscretesError
                     {
                         ErrorMessage = "Empty discretes list is not allowed.",
                         Id = capability.Id,
@@ -356,9 +359,9 @@
                         .SelectMany(g => g)
                         .ToList();
 
-                    if (duplicateDiscretes.Any())
+                    if (duplicateDiscretes.Count != 0)
                     {
-                        ReportError(capability.Id, new CapabilityConfigurationDuplicateDiscretesError
+                        ReportError(capability.Id, new CapabilityDuplicateDiscretesError
                         {
                             ErrorMessage = $"The capability defines the following duplicate discretes: {String.Join(", ", duplicateDiscretes)}.",
                             Id = capability.Id,
@@ -430,7 +433,7 @@
             return uniqueDiscretes;
         }
 
-        private List<string> GetCleanInputDiscretes(IEnumerable<string> discretes)
+        private List<string> GetCleanInputDiscretes(IReadOnlyCollection<string> discretes)
         {
             return discretes.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).Distinct().ToList();
         }

@@ -3,7 +3,9 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Microsoft.Extensions.Logging;
+
     using Skyline.DataMiner.Core.DataMinerSystem.Common;
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
@@ -14,6 +16,7 @@
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
     using Skyline.DataMiner.Utils.DOM.Extensions;
+
     using DomResource = Storage.DOM.SlcResource_Studio.ResourceInstance;
     using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
 
@@ -30,7 +33,7 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, IEnumerable<Resource> apiResources, out BulkCreateOrUpdateResult<Guid> result)
+        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Resource> apiResources, out BulkCreateOrUpdateResult<Guid> result)
         {
             var handler = new DomResourceHandler(planApi);
             handler.CreateOrUpdate(apiResources);
@@ -40,7 +43,7 @@
             return !result.HasFailures();
         }
 
-        internal static bool TryDeprecate(MediaOpsPlanApi planApi, IEnumerable<Resource> apiResources, out BulkCreateOrUpdateResult<Guid> result)
+        internal static bool TryDeprecate(MediaOpsPlanApi planApi, ICollection<Resource> apiResources, out BulkCreateOrUpdateResult<Guid> result)
         {
             var handler = new DomResourceHandler(planApi);
             handler.TransitionToDeprecated(apiResources);
@@ -49,7 +52,7 @@
             return !result.HasFailures();
         }
 
-        internal static bool TryDelete(MediaOpsPlanApi planApi, IEnumerable<Resource> apiResources, out BulkDeleteResult<Guid> result)
+        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<Resource> apiResources, out BulkDeleteResult<Guid> result)
         {
             var handler = new DomResourceHandler(planApi);
             handler.Delete(apiResources);
@@ -112,14 +115,14 @@
             CreateOrUpdateDomResources([domResource]);
         }
 
-        private void CreateOrUpdate(IEnumerable<Resource> apiResources)
+        private void CreateOrUpdate(ICollection<Resource> apiResources)
         {
             if (apiResources == null)
             {
                 throw new ArgumentNullException(nameof(apiResources));
             }
 
-            if (!apiResources.Any())
+            if (apiResources.Count == 0)
             {
                 return;
             }
@@ -131,6 +134,7 @@
             ValidateCapabilities(apiResources);
             ValidateResourceProperties(apiResources);
             ValidateNames(apiResources);
+            ValidateConnectionManagement(apiResources);
 
             var validResources = apiResources.Where(IsValid).ToList();
             var lockResult = planApi.LockManager.LockAndExecute(validResources, CreateOrUpdateCoreResources);
@@ -155,11 +159,11 @@
             var changeResults = ActivityHelper.Track(nameof(DomResourceHandler), nameof(GetResourcesWithChanges), act => GetResourcesWithChanges(resourcesToUpdate));
 
             var toUpdateNameValidation = resourcesToUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcResource_StudioIds.Sections.ResourceInfo.Name.Id)));
-            ActivityHelper.Track(nameof(DomResourceHandler), nameof(ValidateDomNames), act => ValidateDomNames(resourcesToCreate.Concat(toUpdateNameValidation)));
+            ActivityHelper.Track(nameof(DomResourceHandler), nameof(ValidateDomNames), act => ValidateDomNames(resourcesToCreate.Concat(toUpdateNameValidation).ToList()));
 
             var toCreatePoolValidation = resourcesToCreate.Where(IsValid);
             var toUpdatePoolValidation = resourcesToUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcResource_StudioIds.Sections.ResourceInternalProperties.Pool_Ids.Id)));
-            ValidatePoolAssignments(toCreatePoolValidation.Concat(toUpdatePoolValidation));
+            ValidatePoolAssignments(toCreatePoolValidation.Concat(toUpdatePoolValidation).ToList());
 
             var resourcesWithCapabilityChanges = resourcesToUpdate.Where(x =>
                 IsValid(x)
@@ -197,17 +201,17 @@
                 .Select(x => new DomResource(x.Instance))
                 .ToList();
 
-            CreateOrUpdateDomResources(toCreateDomInstances.Concat(toUpdateDomInstances));
+            CreateOrUpdateDomResources(toCreateDomInstances.Concat(toUpdateDomInstances).ToList());
         }
 
-        private void CreateOrUpdateDomResources(IEnumerable<DomResource> domResources)
+        private void CreateOrUpdateDomResources(ICollection<DomResource> domResources)
         {
             if (domResources == null)
             {
                 throw new ArgumentNullException(nameof(domResources));
             }
 
-            if (!domResources.Any())
+            if (domResources.Count == 0)
             {
                 return;
             }
@@ -216,7 +220,7 @@
 
             if (resourceIdsWithCoreChanges.Count != 0)
             {
-                var domResourcesWithCoreChanges = domResources.Where(x => resourceIdsWithCoreChanges.Contains(x.ID.Id));
+                var domResourcesWithCoreChanges = domResources.Where(x => resourceIdsWithCoreChanges.Contains(x.ID.Id)).ToList();
                 UpdateCaches(domResourcesWithCoreChanges);
 
                 CoreResourceHandler.TryCreateOrUpdate(planApi, domResourcesWithCoreChanges, out var coreResult);
@@ -250,14 +254,14 @@
             ReportSuccess(domResult.SuccessfulIds.Select(x => x.Id));
         }
 
-        private void TransitionToDeprecated(IEnumerable<Resource> apiResources)
+        private void TransitionToDeprecated(ICollection<Resource> apiResources)
         {
             if (apiResources == null)
             {
                 throw new ArgumentNullException(nameof(apiResources));
             }
 
-            if (!apiResources.Any())
+            if (apiResources.Count == 0)
             {
                 return;
             }
@@ -268,7 +272,7 @@
             // Update CORE resources
             var resourcesToDeprecate = apiResources.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)).ToList();
 
-            CoreResourceHandler.TryDeprecate(planApi, resourcesToDeprecate.Select(x => x.OriginalInstance), out var coreResult);
+            CoreResourceHandler.TryDeprecate(planApi, resourcesToDeprecate.Select(x => x.OriginalInstance).ToList(), out var coreResult);
 
             foreach (var id in coreResult.UnsuccessfulIds)
             {
@@ -296,14 +300,14 @@
             }
         }
 
-        private void Delete(IEnumerable<Resource> apiResources)
+        private void Delete(ICollection<Resource> apiResources)
         {
             if (apiResources == null)
             {
                 throw new ArgumentNullException(nameof(apiResources));
             }
 
-            if (!apiResources.Any())
+            if (apiResources.Count == 0)
             {
                 return;
             }
@@ -311,7 +315,7 @@
             var newResources = apiResources.Where(x => x.IsNew).ToList();
             newResources.ForEach(x =>
             {
-                var error = new ResourceConfigurationInvalidStateError
+                var error = new ResourceInvalidStateError
                 {
                     ErrorMessage = $"A resource that was not saved cannot be removed.",
                     Id = x.Id,
@@ -331,7 +335,7 @@
 
         private void DeleteCoreResources(ICollection<Resource> resources)
         {
-            CoreResourceHandler.TryDelete(planApi, resources.Select(x => x.OriginalInstance), out var coreResult);
+            CoreResourceHandler.TryDelete(planApi, resources.Select(x => x.OriginalInstance).ToList(), out var coreResult);
 
             foreach (var id in coreResult.UnsuccessfulIds)
             {
@@ -359,14 +363,14 @@
             ReportSuccess(domResult.SuccessfulIds.Select(x => x.Id));
         }
 
-        private void UpdateCaches(IEnumerable<DomResource> domResources)
+        private void UpdateCaches(ICollection<DomResource> domResources)
         {
             if (domResources == null)
             {
                 throw new ArgumentNullException(nameof(domResources));
             }
 
-            if (!domResources.Any())
+            if (domResources.Count == 0)
             {
                 return;
             }
@@ -402,14 +406,14 @@
             }
         }
 
-        private void ValidateIdsNotInUse(IEnumerable<Resource> apiResources)
+        private void ValidateIdsNotInUse(ICollection<Resource> apiResources)
         {
             if (apiResources == null)
             {
                 throw new ArgumentNullException(nameof(apiResources));
             }
 
-            if (!apiResources.Any())
+            if (apiResources.Count == 0)
             {
                 return;
             }
@@ -428,7 +432,7 @@
 
             foreach (var resource in resourcesWithDuplicateIds)
             {
-                var error = new ResourceConfigurationDuplicateIdError
+                var error = new ResourceDuplicateIdError
                 {
                     ErrorMessage = $"Resource '{resource.Name}' has a duplicate ID.",
                     Id = resource.Id,
@@ -443,7 +447,7 @@
             {
                 planApi.Logger.LogInformation($"ID is already in use by a Resource Studio instance.", foundInstance.ID.Id);
 
-                var error = new ResourceConfigurationIdInUseError
+                var error = new ResourceIdInUseError
                 {
                     ErrorMessage = "ID is already in use.",
                     Id = foundInstance.ID.Id,
@@ -476,21 +480,21 @@
         //    }
         //}
 
-        private void ValidateStateForDeprecateAction(IEnumerable<Resource> apiResources)
+        private void ValidateStateForDeprecateAction(ICollection<Resource> apiResources)
         {
             if (apiResources == null)
             {
                 throw new ArgumentNullException(nameof(apiResources));
             }
 
-            if (!apiResources.Any())
+            if (apiResources.Count == 0)
             {
                 return;
             }
 
             foreach (var resource in apiResources.Where(x => x.State != ResourceState.Complete))
             {
-                var error = new ResourceConfigurationInvalidStateError
+                var error = new ResourceInvalidStateError
                 {
                     ErrorMessage = "Not allowed to deprecate a resource that is not in Completed state.",
                     Id = resource.Id,
@@ -499,21 +503,21 @@
             }
         }
 
-        private void ValidateStateForDeleteAction(IEnumerable<Resource> apiResources)
+        private void ValidateStateForDeleteAction(ICollection<Resource> apiResources)
         {
             if (apiResources == null)
             {
                 throw new ArgumentNullException(nameof(apiResources));
             }
 
-            if (!apiResources.Any())
+            if (apiResources.Count == 0)
             {
                 return;
             }
 
             foreach (var resource in apiResources.Where(x => !new[] { ResourceState.Draft, ResourceState.Deprecated }.Contains(x.State)))
             {
-                var error = new ResourceConfigurationInvalidStateError
+                var error = new ResourceInvalidStateError
                 {
                     ErrorMessage = "Not allowed to delete a resource that is not in Draft or Deprecated state.",
                     Id = resource.Id,
@@ -522,14 +526,14 @@
             }
         }
 
-        private void ValidateNames(IEnumerable<Resource> apiResources)
+        private void ValidateNames(ICollection<Resource> apiResources)
         {
             if (apiResources == null)
             {
                 throw new ArgumentNullException(nameof(apiResources));
             }
 
-            if (!apiResources.Any())
+            if (apiResources.Count == 0)
             {
                 return;
             }
@@ -538,7 +542,7 @@
 
             foreach (var resource in resourcesRequiringValidation.Where(x => !InputValidator.ValidateEmptyText(x.Name)))
             {
-                var error = new ResourceConfigurationInvalidNameError
+                var error = new ResourceInvalidNameError
                 {
                     ErrorMessage = "Name cannot be empty.",
                     Id = resource.Id,
@@ -551,7 +555,7 @@
 
             foreach (var resource in resourcesRequiringValidation.Where(x => !InputValidator.ValidateTextLength(x.Name)))
             {
-                var error = new ResourceConfigurationInvalidNameError
+                var error = new ResourceInvalidNameError
                 {
                     ErrorMessage = $"Name exceeds maximum length of {InputValidator.DefaultMaxTextLength} characters.",
                     Id = resource.Id,
@@ -571,7 +575,7 @@
 
             foreach (var resource in resourcesWithDuplicateNames)
             {
-                var error = new ResourceConfigurationDuplicateNameError
+                var error = new ResourceDuplicateNameError
                 {
                     ErrorMessage = $"Resource '{resource.Name}' has a duplicate name.",
                     Id = resource.Id,
@@ -582,14 +586,14 @@
             }
         }
 
-        private void ValidateDomNames(IEnumerable<Resource> apiResources)
+        private void ValidateDomNames(ICollection<Resource> apiResources)
         {
             if (apiResources == null)
             {
                 throw new ArgumentNullException(nameof(apiResources));
             }
 
-            if (!apiResources.Any())
+            if (apiResources.Count == 0)
             {
                 return;
             }
@@ -619,7 +623,7 @@
 
                 planApi.Logger.LogInformation($"Name '{resource.Name}' is already in use by DOM resource(s) with ID(s)", existingResources.Select(x => x.ID.Id).ToArray());
 
-                var error = new ResourceConfigurationNameExistsError
+                var error = new ResourceNameExistsError
                 {
                     ErrorMessage = "Name is already in use.",
                     Id = resource.Id,
@@ -630,14 +634,14 @@
             }
         }
 
-        private void ValidatePoolAssignments(IEnumerable<Resource> apiResources)
+        private void ValidatePoolAssignments(ICollection<Resource> apiResources)
         {
             if (apiResources == null)
             {
                 throw new ArgumentNullException(nameof(apiResources));
             }
 
-            if (!apiResources.Any())
+            if (apiResources.Count == 0)
             {
                 return;
             }
@@ -646,7 +650,7 @@
                 .SelectMany(x => x.AssignedResourcePoolIds)
                 .Distinct()
                 .ToList();
-            resourcePoolsById = planApi.ResourcePools.Read(poolIds);
+            resourcePoolsById = planApi.ResourcePools.Read(poolIds).ToDictionary(x => x.Id);
 
             foreach (var resource in apiResources)
             {
@@ -656,7 +660,7 @@
                 {
                     if (!resourcePoolsById.TryGetValue(poolId, out _))
                     {
-                        var error = new ResourceConfigurationInvalidAssignedPoolError
+                        var error = new ResourceInvalidAssignedPoolError
                         {
                             ErrorMessage = $"Resource Pool with ID '{poolId}' not found.",
                             Id = resource.Id,
@@ -675,14 +679,14 @@
             }
         }
 
-        private void ValidateCapacities(IEnumerable<Resource> apiResources)
+        private void ValidateCapacities(ICollection<Resource> apiResources)
         {
             if (apiResources == null)
             {
                 throw new ArgumentNullException(nameof(apiResources));
             }
 
-            if (!apiResources.Any())
+            if (apiResources.Count == 0)
             {
                 return;
             }
@@ -692,7 +696,7 @@
                 .Select(x => x.Id)
                 .Distinct()
                 .ToList();
-            var capacitiesById = planApi.Capacities.Read(capacityIds);
+            var capacitiesById = planApi.Capacities.Read(capacityIds).ToDictionary(x => x.Id);
 
             foreach (var resource in apiResources)
             {
@@ -700,7 +704,7 @@
                 {
                     if (capacitySettings.Id == Guid.Empty)
                     {
-                        var error = new ResourceConfigurationInvalidCapacitySettingsError
+                        var error = new ResourceInvalidCapacitySettingsError
                         {
                             ErrorMessage = "Capacity ID cannot be empty.",
                         };
@@ -711,7 +715,7 @@
 
                     if (!capacitiesById.TryGetValue(capacitySettings.Id, out var capacity))
                     {
-                        var error = new ResourceConfigurationInvalidCapacitySettingsError
+                        var error = new ResourceInvalidCapacitySettingsError
                         {
                             ErrorMessage = $"Capacity with ID '{capacitySettings.Id}' not found.",
                             CapacityId = capacitySettings.Id,
@@ -726,14 +730,14 @@
             }
         }
 
-        private void ValidateCapabilities(IEnumerable<Resource> apiResources)
+        private void ValidateCapabilities(ICollection<Resource> apiResources)
         {
             if (apiResources == null)
             {
                 throw new ArgumentNullException(nameof(apiResources));
             }
 
-            if (!apiResources.Any())
+            if (apiResources.Count == 0)
             {
                 return;
             }
@@ -743,7 +747,7 @@
                 .Select(x => x.Id)
                 .Distinct()
                 .ToList();
-            var capabilitiesById = planApi.Capabilities.Read(capabilityIds);
+            var capabilitiesById = planApi.Capabilities.Read(capabilityIds).ToDictionary(x => x.Id);
 
             foreach (var resource in apiResources)
             {
@@ -751,7 +755,7 @@
                 {
                     if (capabilitySettings.Id == Guid.Empty)
                     {
-                        var error = new ResourceConfigurationInvalidCapabilitySettingsError
+                        var error = new ResourceInvalidCapabilitySettingsError
                         {
                             ErrorMessage = "Capability ID cannot be empty.",
                         };
@@ -762,7 +766,7 @@
 
                     if (!capabilitiesById.TryGetValue(capabilitySettings.Id, out var capability))
                     {
-                        var error = new ResourceConfigurationInvalidCapabilitySettingsError
+                        var error = new ResourceInvalidCapabilitySettingsError
                         {
                             ErrorMessage = $"Capability with ID '{capabilitySettings.Id}' not found.",
                             CapabilityId = capabilitySettings.Id,
@@ -774,7 +778,7 @@
 
                     if (capabilitySettings.Discretes.Count == 0)
                     {
-                        var error = new ResourceConfigurationInvalidCapabilitySettingsError
+                        var error = new ResourceInvalidCapabilitySettingsError
                         {
                             ErrorMessage = "At least one discrete value must be specified for the capability.",
                             CapabilityId = capabilitySettings.Id,
@@ -788,7 +792,7 @@
                     {
                         if (!capability.Discretes.Contains(discreteValue))
                         {
-                            var error = new ResourceConfigurationInvalidCapabilitySettingsError
+                            var error = new ResourceInvalidCapabilitySettingsError
                             {
                                 ErrorMessage = $"Discrete value '{discreteValue}' is not valid for capability '{capability.Name}'.",
                                 CapabilityId = capabilitySettings.Id,
@@ -801,14 +805,14 @@
             }
         }
 
-        private void ValidateResourceProperties(IEnumerable<Resource> apiResources)
+        private void ValidateResourceProperties(ICollection<Resource> apiResources)
         {
             if (apiResources == null)
             {
                 throw new ArgumentNullException(nameof(apiResources));
             }
 
-            if (!apiResources.Any())
+            if (apiResources.Count == 0)
             {
                 return;
             }
@@ -818,7 +822,7 @@
                 .Select(x => x.Id)
                 .Distinct()
                 .ToList();
-            var propertiesById = planApi.Properties.Read(propertyIds);
+            var propertiesById = planApi.Properties.Read(propertyIds).ToDictionary(x => x.Id);
 
             foreach (var resource in apiResources)
             {
@@ -826,7 +830,7 @@
                 {
                     if (propertySettings.Id == Guid.Empty)
                     {
-                        var error = new ResourceConfigurationInvalidPropertySettingsError
+                        var error = new ResourceInvalidPropertySettingsError
                         {
                             ErrorMessage = "Property ID cannot be empty.",
                         };
@@ -835,13 +839,61 @@
                     }
                     else if (!propertiesById.TryGetValue(propertySettings.Id, out _))
                     {
-                        var error = new ResourceConfigurationInvalidPropertySettingsError
+                        var error = new ResourceInvalidPropertySettingsError
                         {
                             ErrorMessage = $"Property with ID '{propertySettings.Id}' not found.",
                         };
 
                         ReportError(resource.Id, error);
                     }
+                }
+            }
+        }
+
+        private void ValidateConnectionManagement(ICollection<Resource> apiResources)
+        {
+
+            if (apiResources == null)
+            {
+                throw new ArgumentNullException(nameof(apiResources));
+            }
+
+            if (apiResources.Count == 0)
+            {
+                return;
+            }
+
+            var virtualSignalGroupIds = apiResources
+                .SelectMany(x => new[] { x.VirtualSignalGroupInputId, x.VirtualSignalGroupOutputId })
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+            var virtualSignalGroupsById = planApi.LiveApi.VirtualSignalGroups.Read(virtualSignalGroupIds);
+
+            foreach (var resource in apiResources)
+            {
+                if (resource.VirtualSignalGroupInputId != Guid.Empty && !virtualSignalGroupsById.TryGetValue(resource.VirtualSignalGroupInputId, out _))
+                {
+                    var error = new ResourceInvalidVirtualSignalGroupError
+                    {
+                        ErrorMessage = $"Virtual Signal Group with ID '{resource.VirtualSignalGroupInputId}' not found.",
+                        Id = resource.Id,
+                        VirtualSignalGroupId = resource.VirtualSignalGroupInputId,
+                    };
+
+                    ReportError(resource.Id, error);
+                }
+
+                if (resource.VirtualSignalGroupOutputId != Guid.Empty && !virtualSignalGroupsById.TryGetValue(resource.VirtualSignalGroupOutputId, out _))
+                {
+                    var error = new ResourceInvalidVirtualSignalGroupError
+                    {
+                        ErrorMessage = $"Virtual Signal Group with ID '{resource.VirtualSignalGroupOutputId}' not found.",
+                        Id = resource.Id,
+                        VirtualSignalGroupId = resource.VirtualSignalGroupOutputId,
+                    };
+
+                    ReportError(resource.Id, error);
                 }
             }
         }
@@ -853,7 +905,7 @@
                 throw new ArgumentNullException(nameof(apiResources));
             }
 
-            if (!apiResources.Any())
+            if (apiResources.Count == 0)
             {
                 return [];
             }
@@ -870,7 +922,7 @@
             {
                 if (!storedDomResourcesById.TryGetValue(resource.Id, out var stored))
                 {
-                    var error = new ResourceConfigurationNotFoundError
+                    var error = new ResourceNotFoundError
                     {
                         ErrorMessage = $"Resource with ID '{resource.Id}' no longer exists.",
                         Id = resource.Id,
@@ -886,7 +938,7 @@
                 {
                     foreach (var errorDetails in changeResult.Errors)
                     {
-                        var error = new ResourceConfigurationValueAlreadyChangedError
+                        var error = new ResourceValueAlreadyChangedError
                         {
                             ErrorMessage = errorDetails.Message,
                             Id = resource.Id,
@@ -924,7 +976,7 @@
             var domResource = planApi.DomHelpers.SlcResourceStudioHelper.GetResources([resource.Id]).FirstOrDefault();
             if (domResource == null)
             {
-                ReportError(resource.Id, new ResourceConfigurationNotFoundError
+                ReportError(resource.Id, new ResourceNotFoundError
                 {
                     ErrorMessage = $"Resource with ID '{resource.Id}' not found.",
                     Id = resource.Id,
@@ -951,7 +1003,7 @@
             var domResource = planApi.DomHelpers.SlcResourceStudioHelper.GetResources([resource.Id]).FirstOrDefault();
             if (domResource == null)
             {
-                ReportError(resource.Id, new ResourceConfigurationNotFoundError
+                ReportError(resource.Id, new ResourceNotFoundError
                 {
                     ErrorMessage = $"Resource with ID '{resource.Id}' not found.",
                     Id = resource.Id,
@@ -983,7 +1035,7 @@
             var domResource = planApi.DomHelpers.SlcResourceStudioHelper.GetResources([resource.Id]).FirstOrDefault();
             if (domResource == null)
             {
-                ReportError(resource.Id, new ResourceConfigurationNotFoundError
+                ReportError(resource.Id, new ResourceNotFoundError
                 {
                     ErrorMessage = $"Resource with ID '{resource.Id}' not found.",
                     Id = resource.Id,
@@ -1013,7 +1065,7 @@
             var domResource = planApi.DomHelpers.SlcResourceStudioHelper.GetResources([resource.Id]).FirstOrDefault();
             if (domResource == null)
             {
-                ReportError(resource.Id, new ResourceConfigurationNotFoundError
+                ReportError(resource.Id, new ResourceNotFoundError
                 {
                     ErrorMessage = $"Resource with ID '{resource.Id}' not found.",
                     Id = resource.Id,

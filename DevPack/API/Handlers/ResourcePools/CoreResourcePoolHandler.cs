@@ -3,11 +3,14 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Microsoft.Extensions.Logging;
+
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
+
     using CoreResourcePool = Net.Messages.ResourcePool;
     using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
 
@@ -24,7 +27,7 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        public static BulkCreateOrUpdateResult<Guid> CreateOrUpdate(MediaOpsPlanApi planApi, IEnumerable<DomResourcePool> domResourcePools)
+        public static BulkCreateOrUpdateResult<Guid> CreateOrUpdate(MediaOpsPlanApi planApi, ICollection<DomResourcePool> domResourcePools)
         {
             var handler = new CoreResourcePoolHandler(planApi);
             handler.CreateOrUpdate(domResourcePools);
@@ -35,7 +38,7 @@
             return result;
         }
 
-        public static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, IEnumerable<DomResourcePool> domResourcePools, out BulkCreateOrUpdateResult<Guid> result)
+        public static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<DomResourcePool> domResourcePools, out BulkCreateOrUpdateResult<Guid> result)
         {
             var handler = new CoreResourcePoolHandler(planApi);
             handler.CreateOrUpdate(domResourcePools);
@@ -45,7 +48,7 @@
             return !result.HasFailures();
         }
 
-        public static BulkDeleteResult<Guid> Delete(MediaOpsPlanApi planApi, IEnumerable<DomResourcePool> domResourcePools)
+        public static BulkDeleteResult<Guid> Delete(MediaOpsPlanApi planApi, ICollection<DomResourcePool> domResourcePools)
         {
             var handler = new CoreResourcePoolHandler(planApi);
             handler.Delete(domResourcePools);
@@ -56,7 +59,7 @@
             return result;
         }
 
-        public static bool TryDelete(MediaOpsPlanApi planApi, IEnumerable<DomResourcePool> domResourcePools, out BulkDeleteResult<Guid> result)
+        public static bool TryDelete(MediaOpsPlanApi planApi, ICollection<DomResourcePool> domResourcePools, out BulkDeleteResult<Guid> result)
         {
             var handler = new CoreResourcePoolHandler(planApi);
             handler.Delete(domResourcePools);
@@ -66,32 +69,32 @@
             return !result.HasFailures();
         }
 
-        private void CreateOrUpdate(IEnumerable<DomResourcePool> domResourcePools)
+        private void CreateOrUpdate(ICollection<DomResourcePool> domResourcePools)
         {
             if (domResourcePools == null)
             {
                 throw new ArgumentNullException(nameof(domResourcePools));
             }
 
-            if (!domResourcePools.Any())
+            if (domResourcePools.Count == 0)
             {
                 return;
             }
 
             var resourcePoolMappingByDomId = ResourcePoolMapping.GetMappings(planApi, domResourcePools).ToDictionary(x => x.DomResourcePool.ID.Id);
 
-            ValidateNames(resourcePoolMappingByDomId.Values.Where(x => x.NeedsNameValidation).Select(x => x.DomResourcePool));
-            CreateOrUpdate(resourcePoolMappingByDomId.Where(x => !traceDataPerItem.Keys.Contains(x.Key)).Select(x => x.Value));
+            ValidateNames(resourcePoolMappingByDomId.Values.Where(x => x.NeedsNameValidation).Select(x => x.DomResourcePool).ToList());
+            CreateOrUpdate(resourcePoolMappingByDomId.Where(x => !traceDataPerItem.Keys.Contains(x.Key)).Select(x => x.Value).ToList());
         }
 
-        private void CreateOrUpdate(IEnumerable<ResourcePoolMapping> resourcePoolMappings)
+        private void CreateOrUpdate(ICollection<ResourcePoolMapping> resourcePoolMappings)
         {
             if (resourcePoolMappings == null)
             {
                 throw new ArgumentNullException(nameof(resourcePoolMappings));
             }
 
-            if (!resourcePoolMappings.Any())
+            if (resourcePoolMappings.Count == 0)
             {
                 return;
             }
@@ -145,19 +148,19 @@
             }
         }
 
-        private void Delete(IEnumerable<DomResourcePool> domResourcePools)
+        private void Delete(ICollection<DomResourcePool> domResourcePools)
         {
             if (domResourcePools == null)
             {
                 throw new ArgumentNullException(nameof(domResourcePools));
             }
 
-            if (!domResourcePools.Any())
+            if (domResourcePools.Count == 0)
             {
                 return;
             }
 
-            Delete(ResourcePoolMapping.GetMappings(planApi, domResourcePools));
+            Delete(ResourcePoolMapping.GetMappings(planApi, domResourcePools).ToList());
 
             /* Todo: Define how pool and resource deletion should work > see loop for more details
              * 
@@ -181,14 +184,14 @@
             }*/
         }
 
-        private void Delete(IEnumerable<ResourcePoolMapping> resourcePoolMappings)
+        private void Delete(ICollection<ResourcePoolMapping> resourcePoolMappings)
         {
             if (resourcePoolMappings == null)
             {
                 throw new ArgumentNullException(nameof(resourcePoolMappings));
             }
 
-            if (!resourcePoolMappings.Any())
+            if (resourcePoolMappings.Count == 0)
             {
                 return;
             }
@@ -231,14 +234,14 @@
             successfulIds.AddRange(result.SuccessfulIds);
         }
 
-        private void ValidateNames(IEnumerable<DomResourcePool> domResourcePools)
+        private void ValidateNames(ICollection<DomResourcePool> domResourcePools)
         {
             if (domResourcePools == null)
             {
                 throw new ArgumentNullException(nameof(domResourcePools));
             }
 
-            if (!domResourcePools.Any())
+            if (domResourcePools.Count == 0)
             {
                 return;
             }
@@ -247,7 +250,7 @@
 
             foreach (var pool in poolsRequiringValidation.Where(x => !InputValidator.ValidateEmptyText(x.ResourcePoolInfo.Name)).ToList())
             {
-                var error = new ResourcePoolConfigurationInvalidNameError
+                var error = new ResourcePoolInvalidNameError
                 {
                     ErrorMessage = "Name cannot be empty.",
                     Id = pool.ID.Id,
@@ -259,7 +262,7 @@
 
             foreach (var pool in poolsRequiringValidation.Where(x => !InputValidator.ValidateTextLength(x.ResourcePoolInfo.Name)).ToList())
             {
-                var error = new ResourcePoolConfigurationInvalidNameError
+                var error = new ResourcePoolInvalidNameError
                 {
                     ErrorMessage = "Name exceeds maximum length of 150 characters.",
                     Id = pool.ID.Id,
@@ -277,7 +280,7 @@
                 .ToList();
             foreach (var pool in poolsWithDuplicateNames)
             {
-                var error = new ResourcePoolConfigurationDuplicateNameError
+                var error = new ResourcePoolDuplicateNameError
                 {
                     ErrorMessage = $"Resource pool '{pool.ResourcePoolInfo.Name}' has a duplicate name.",
                     Id = pool.ID.Id,
@@ -305,7 +308,7 @@
 
                 planApi.Logger.LogInformation($"Name '{pool.ResourcePoolInfo.Name}' is already in use by CORE resource pool(s) with ID(s)", existingPools.Select(x => x.ID).ToArray());
 
-                var error = new ResourcePoolConfigurationNameExistsError
+                var error = new ResourcePoolNameExistsError
                 {
                     ErrorMessage = "Name is already in use.",
                     Id = pool.ID.Id,
@@ -359,7 +362,7 @@
                 CoreResourcePool == null
                 || DomResourcePool.ResourcePoolInfo.Name != CoreResourcePool.Name;
 
-            public static IEnumerable<ResourcePoolMapping> GetMappings(MediaOpsPlanApi planApi, IEnumerable<DomResourcePool> domResourcePools)
+            public static IEnumerable<ResourcePoolMapping> GetMappings(MediaOpsPlanApi planApi, ICollection<DomResourcePool> domResourcePools)
             {
                 if (planApi == null)
                 {
@@ -371,7 +374,7 @@
                     throw new ArgumentNullException(nameof(domResourcePools));
                 }
 
-                if (!domResourcePools.Any())
+                if (domResourcePools.Count == 0)
                 {
                     return [];
                 }
@@ -379,7 +382,7 @@
                 return GetMappingsIterator(planApi, domResourcePools);
             }
 
-            private static IEnumerable<ResourcePoolMapping> GetMappingsIterator(MediaOpsPlanApi planApi, IEnumerable<DomResourcePool> domResourcePools)
+            private static IEnumerable<ResourcePoolMapping> GetMappingsIterator(MediaOpsPlanApi planApi, ICollection<DomResourcePool> domResourcePools)
             {
                 var coreResourcePoolsById = planApi.CoreHelpers.ResourceManagerHelper.GetResourcePoolsInBatches(domResourcePools
                .Where(x => x.ResourcePoolInternalProperties.ResourcePoolId != Guid.Empty)

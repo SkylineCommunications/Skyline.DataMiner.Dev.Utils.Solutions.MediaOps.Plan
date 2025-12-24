@@ -10,9 +10,9 @@
 
         private readonly Capacity capacity;
 
-        private readonly ResourceCapacitySettings resourceCapacitySettings;
+        private readonly CapacitySetting resourceCapacitySettings;
 
-        private ResourceCapacitySettingsValidator(Guid resourceId, Capacity capacity, ResourceCapacitySettings resourceCapacitySettings)
+        private ResourceCapacitySettingsValidator(Guid resourceId, Capacity capacity, CapacitySetting resourceCapacitySettings)
         {
             if (resourceId == Guid.Empty)
             {
@@ -24,7 +24,7 @@
             this.resourceCapacitySettings = resourceCapacitySettings ?? throw new ArgumentNullException(nameof(resourceCapacitySettings));
         }
 
-        public static ResourceCapacitySettingsValidator Validate(Guid resourceId, Capacity apiCapacity, ResourceCapacitySettings apiCapacitySettings)
+        public static ResourceCapacitySettingsValidator Validate(Guid resourceId, Capacity apiCapacity, CapacitySetting apiCapacitySettings)
         {
             var validator = new ResourceCapacitySettingsValidator(resourceId, apiCapacity, apiCapacitySettings);
             validator.Validate();
@@ -34,11 +34,11 @@
 
         private void Validate()
         {
-            if (resourceCapacitySettings is ResourceNumberCapacitySettings numberCapacitySettings)
+            if (resourceCapacitySettings is ResourceNumberCapacitySetting numberCapacitySettings)
             {
                 ValidateValue(numberCapacitySettings.Value);
             }
-            else if (resourceCapacitySettings is ResourceRangeCapacitySettings rangeCapacitySettings)
+            else if (resourceCapacitySettings is ResourceRangeCapacitySetting rangeCapacitySettings)
             {
                 var validMinValue = ValidateValue(rangeCapacitySettings.MinValue);
                 var validMaxValue = ValidateValue(rangeCapacitySettings.MaxValue);
@@ -54,7 +54,7 @@
         {
             if (capacity.rangeMin.HasValue && capacityValue < capacity.rangeMin.Value)
             {
-                ReportError(resourceId, new ResourceConfigurationInvalidCapacitySettingsError
+                ReportError(resourceId, new ResourceInvalidCapacitySettingsError
                 {
                     ErrorMessage = $"Value '{capacityValue}' must be greater than or equal to '{capacity.RangeMin}'.",
                     CapacityId = resourceCapacitySettings.Id,
@@ -65,7 +65,7 @@
 
             if (capacity.rangeMax.HasValue && capacityValue > capacity.rangeMax.Value)
             {
-                ReportError(resourceId, new ResourceConfigurationInvalidCapacitySettingsError
+                ReportError(resourceId, new ResourceInvalidCapacitySettingsError
                 {
                     ErrorMessage = $"Value '{capacityValue}' must be lower than or equal to '{capacity.RangeMax}'.",
                     CapacityId = resourceCapacitySettings.Id,
@@ -81,7 +81,7 @@
 
             if (capacity.decimals.HasValue && (Math.Round(capacityValue, capacity.Decimals.Value) - capacityValue) != 0)
             {
-                ReportError(resourceId, new ResourceConfigurationInvalidCapacitySettingsError
+                ReportError(resourceId, new ResourceInvalidCapacitySettingsError
                 {
                     ErrorMessage = $"Value '{capacityValue}' must contain less than '{capacity.Decimals}' decimals.",
                     CapacityId = resourceCapacitySettings.Id,
@@ -116,7 +116,7 @@
 
             if ((valueToCheck % capacity.stepSize.Value) != 0)
             {
-                ReportError(resourceId, new ResourceConfigurationInvalidCapacitySettingsError
+                ReportError(resourceId, new ResourceInvalidCapacitySettingsError
                 {
                     ErrorMessage = $"Value '{capacityValue}' must align with the step size of '{capacity.StepSize}'.",
                     CapacityId = resourceCapacitySettings.Id,
@@ -132,7 +132,7 @@
         {
             if (maxValue <= minValue)
             {
-                ReportError(resourceId, new ResourceConfigurationInvalidCapacitySettingsError
+                ReportError(resourceId, new ResourceInvalidCapacitySettingsError
                 {
                     ErrorMessage = $"Max value '{maxValue}' must be greater than min value '{minValue}'.",
                     CapacityId = resourceCapacitySettings.Id,

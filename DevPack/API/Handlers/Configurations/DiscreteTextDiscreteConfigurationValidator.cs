@@ -25,7 +25,7 @@
             // Any discreet options available
             if (!discreteTextConfiguration.Discretes.Any())
             {
-                ReportError(discreteTextConfiguration.Id, new ConfigurationConfigurationNoDiscretesError
+                ReportError(discreteTextConfiguration.Id, new ConfigurationNoDiscretesError
                 {
                     ErrorMessage = "A discreet configuration should have at least one discreet option defined",
                     Id = discreteTextConfiguration.Id,
@@ -36,7 +36,7 @@
             // Validate default discrete option
             if (!String.IsNullOrEmpty(discreteTextConfiguration.DefaultValue) && !discreteTextConfiguration.Discretes.Any(x => x.Key.Equals(discreteTextConfiguration.DefaultValue)))
             {
-                ReportError(discreteTextConfiguration.Id, new ConfigurationConfigurationInvalidDefaultDiscreetError
+                ReportError(discreteTextConfiguration.Id, new ConfigurationInvalidDefaultDiscreetError
                 {
                     ErrorMessage = "Default discreet should be the display value of any of the discreet options",
                     Id = discreteTextConfiguration.Id,
@@ -48,7 +48,7 @@
                 // Validate Display Value
                 if (!HasValidDisplayValue(discreet.Key, out string invalidDisplayNameReason))
                 {
-                    ReportError(discreteTextConfiguration.Id, new ConfigurationConfigurationInvalidDiscretesError
+                    ReportError(discreteTextConfiguration.Id, new ConfigurationInvalidDiscretesError
                     {
                         ErrorMessage = invalidDisplayNameReason,
                         Id = discreteTextConfiguration.Id,
@@ -58,7 +58,7 @@
                 // Validate String Value
                 if (!IsValidDiscreetText(discreet.Value, out string invalidDiscreetTextReason))
                 {
-                    ReportError(discreteTextConfiguration.Id, new ConfigurationConfigurationInvalidDiscretesError
+                    ReportError(discreteTextConfiguration.Id, new ConfigurationInvalidDiscretesError
                     {
                         ErrorMessage = invalidDiscreetTextReason,
                         Id = discreteTextConfiguration.Id,

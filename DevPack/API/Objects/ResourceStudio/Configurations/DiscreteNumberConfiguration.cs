@@ -1,4 +1,6 @@
-﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+﻿using Skyline.DataMiner.Net.Helper;
+
+namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
     using System;
     using System.Collections.Generic;
@@ -63,7 +65,7 @@
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="displayValue"/> is null.</exception>
         /// <exception cref="ArgumentException">Thrown if <paramref name="value"/> is NaN or infinite, or if a discrete with the same display value already
         /// exists.</exception>
-        public void AddDiscrete(string displayValue, decimal value)
+        public DiscreteNumberConfiguration AddDiscrete(string displayValue, decimal value)
         {
             if (displayValue == null)
                 throw new ArgumentNullException(nameof(displayValue));
@@ -79,6 +81,8 @@
 
             discretes.Add(displayValue, value);
             HasChanges = true;
+
+            return this;
         }
 
         /// <summary>
@@ -88,14 +92,14 @@
         /// cleared. This method has no effect if the specified value does not exist in the collection.</remarks>
         /// <param name="displayValue">The display value of the discrete item to remove. Cannot be null.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="displayValue"/> is null.</exception>
-        public void RemoveDiscrete(string displayValue)
+        public DiscreteNumberConfiguration RemoveDiscrete(string displayValue)
         {
             if (displayValue == null)
                 throw new ArgumentNullException(nameof(displayValue));
 
             if (!discretes.Remove(displayValue))
             {
-                return;
+                return this;
             }
 
             if (String.Equals(DefaultValue, displayValue))
@@ -104,23 +108,27 @@
             }
 
             HasChanges = true;
+
+            return this;
         }
 
         /// <summary>
-        /// Adds or updates multiple discrete values using the specified key-value pairs.
+        /// Sets multiple discrete values using the specified key-value pairs.
         /// </summary>
-        /// <param name="discretes">A read-only dictionary containing the discrete names and their corresponding decimal values to add or
-        /// update. Cannot be null.</param>
+        /// <param name="discretes">A read-only dictionary containing the discrete names and their corresponding decimal values to set. Cannot be null.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="discretes"/> is null.</exception>
-        public void SetDiscretes(IReadOnlyDictionary<string, decimal> discretes)
+        public DiscreteNumberConfiguration SetDiscretes(IReadOnlyDictionary<string, decimal> discretes)
         {
             if (discretes == null)
                 throw new ArgumentNullException(nameof(discretes));
 
+            this.discretes.Clear();
             foreach (var kvp in discretes)
             {
                 AddDiscrete(kvp.Key, kvp.Value);
             }
+
+            return this;
         }
 
         /// <summary>

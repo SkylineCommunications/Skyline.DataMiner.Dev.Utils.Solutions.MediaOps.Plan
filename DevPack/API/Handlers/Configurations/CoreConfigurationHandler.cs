@@ -19,7 +19,7 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, IEnumerable<Configuration> apiConfigurations, out BulkCreateOrUpdateResult<Guid> result)
+        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Configuration> apiConfigurations, out BulkCreateOrUpdateResult<Guid> result)
         {
             var handler = new CoreConfigurationHandler(planApi);
             handler.CreateOrUpdate(apiConfigurations);
@@ -29,7 +29,7 @@
             return !result.HasFailures();
         }
 
-        internal static bool TryDelete(MediaOpsPlanApi planApi, IEnumerable<Configuration> apiConfigurations, out BulkDeleteResult<Guid> result)
+        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<Configuration> apiConfigurations, out BulkDeleteResult<Guid> result)
         {
             var handler = new CoreConfigurationHandler(planApi);
             handler.Delete(apiConfigurations);
@@ -39,14 +39,14 @@
             return !result.HasFailures();
         }
 
-        private void CreateOrUpdate(IEnumerable<Configuration> apiConfigurations)
+        private void CreateOrUpdate(ICollection<Configuration> apiConfigurations)
         {
             if (apiConfigurations == null)
             {
                 throw new ArgumentNullException(nameof(apiConfigurations));
             }
 
-            if (!apiConfigurations.Any())
+            if (apiConfigurations.Count == 0)
             {
                 return;
             }
@@ -68,10 +68,10 @@
             ValidateIdsNotInUse(toCreate);
             ValidateNames(apiConfigurations);
 
-            ValidateTextConfigurations(apiConfigurations.OfType<TextConfiguration>());
-            ValidateNumberConfigurations(apiConfigurations.OfType<NumberConfiguration>());
-            ValidateDiscreteTextConfigurations(apiConfigurations.OfType<DiscreteTextConfiguration>());
-            ValidateDiscreteNumberConfigurations(apiConfigurations.OfType<DiscreteNumberConfiguration>());
+            ValidateTextConfigurations(apiConfigurations.OfType<TextConfiguration>().ToList());
+            ValidateNumberConfigurations(apiConfigurations.OfType<NumberConfiguration>().ToList());
+            ValidateDiscreteTextConfigurations(apiConfigurations.OfType<DiscreteTextConfiguration>().ToList());
+            ValidateDiscreteNumberConfigurations(apiConfigurations.OfType<DiscreteNumberConfiguration>().ToList());
 
             var validConfigurations = apiConfigurations.Where(IsValid).ToList();
 
@@ -107,21 +107,21 @@
             ReportSuccess(result.SuccessfulIds);
         }
 
-        private void Delete(IEnumerable<Configuration> apiConfigurations)
+        private void Delete(ICollection<Configuration> apiConfigurations)
         {
             if (apiConfigurations == null)
             {
                 throw new ArgumentNullException(nameof(apiConfigurations));
             }
 
-            if (!apiConfigurations.Any())
+            if (apiConfigurations.Count == 0)
             {
                 return;
             }
 
             foreach (var configuration in apiConfigurations.Where(x => x.IsNew))
             {
-                var error = new ConfigurationConfigurationInvalidStateError
+                var error = new ConfigurationInvalidStateError
                 {
                     ErrorMessage = "Cannot delete a configuration that does not exist.",
                     Id = configuration.Id,
@@ -153,14 +153,14 @@
             ReportSuccess(result.SuccessfulIds);
         }
 
-        private void ValidateIdsNotInUse(IEnumerable<Configuration> apiConfigurations)
+        private void ValidateIdsNotInUse(ICollection<Configuration> apiConfigurations)
         {
             if (apiConfigurations == null)
             {
                 throw new ArgumentNullException(nameof(apiConfigurations));
             }
 
-            if (!apiConfigurations.Any())
+            if (apiConfigurations.Count == 0)
             {
                 return;
             }
@@ -179,7 +179,7 @@
 
             foreach (var configuration in capabilitiesWithDuplicateIds)
             {
-                var error = new ConfigurationConfigurationDuplicateIdError
+                var error = new ConfigurationDuplicateIdError
                 {
                     ErrorMessage = $"Configuration '{configuration.Name}' has a duplicate ID.",
                     Id = configuration.Id,
@@ -194,7 +194,7 @@
             {
                 planApi.Logger.LogInformation($"ID is already in use by a Profile Parameter.", foundProfileParameter.ID);
 
-                var error = new ConfigurationConfigurationIdInUseError
+                var error = new ConfigurationIdInUseError
                 {
                     ErrorMessage = "ID is already in use.",
                     Id = foundProfileParameter.ID,
@@ -204,14 +204,14 @@
             }
         }
 
-        private void ValidateNames(IEnumerable<Configuration> apiConfigurations)
+        private void ValidateNames(ICollection<Configuration> apiConfigurations)
         {
             if (apiConfigurations == null)
             {
                 throw new ArgumentNullException(nameof(apiConfigurations));
             }
 
-            if (!apiConfigurations.Any())
+            if (apiConfigurations.Count == 0)
             {
                 return;
             }
@@ -220,7 +220,7 @@
 
             foreach (var configuration in configurationsRequiringValidation.Where(x => !InputValidator.ValidateEmptyText(x.Name)))
             {
-                var error = new ConfigurationConfigurationInvalidNameError
+                var error = new ConfigurationInvalidNameError
                 {
                     ErrorMessage = "Name cannot be empty.",
                     Id = configuration.Id,
@@ -232,7 +232,7 @@
 
             foreach (var configuration in configurationsRequiringValidation.Where(x => !InputValidator.ValidateTextLength(x.Name)))
             {
-                var error = new ConfigurationConfigurationInvalidNameError
+                var error = new ConfigurationInvalidNameError
                 {
                     ErrorMessage = $"Name exceeds maximum length of {InputValidator.DefaultMaxTextLength} characters.",
                     Id = configuration.Id,
@@ -251,7 +251,7 @@
 
             foreach (var configuration in configurationsWithDuplicateNames)
             {
-                var error = new ConfigurationConfigurationDuplicateNameError
+                var error = new ConfigurationDuplicateNameError
                 {
                     ErrorMessage = $"Configuration '{configuration.Name}' has a duplicate name.",
                     Id = configuration.Id,
@@ -279,7 +279,7 @@
 
                 planApi.Logger.LogInformation($"Name '{configuration.Name}' is already in use by Profile Parameter(s) with ID(s)", coreParametersWithSameNameAndDifferentIds.Select(x => x.ID).ToArray());
 
-                var error = new ConfigurationConfigurationNameExistsError
+                var error = new ConfigurationNameExistsError
                 {
                     ErrorMessage = "Name is already in use.",
                     Id = configuration.Id,
@@ -290,7 +290,7 @@
             }
         }
 
-        private void ValidateNumberConfigurations(IEnumerable<NumberConfiguration> apiConfigurations)
+        private void ValidateNumberConfigurations(ICollection<NumberConfiguration> apiConfigurations)
         {
             foreach (var apiConfiguration in apiConfigurations)
             {
@@ -298,7 +298,7 @@
             }
         }
 
-        private void ValidateTextConfigurations(IEnumerable<TextConfiguration> apiConfigurations)
+        private void ValidateTextConfigurations(ICollection<TextConfiguration> apiConfigurations)
         {
             foreach (var apiConfiguration in apiConfigurations)
             {
@@ -306,7 +306,7 @@
             }
         }
 
-        private void ValidateDiscreteNumberConfigurations(IEnumerable<DiscreteNumberConfiguration> apiConfigurations)
+        private void ValidateDiscreteNumberConfigurations(ICollection<DiscreteNumberConfiguration> apiConfigurations)
         {
             foreach (var discreteNumberConfiguration in apiConfigurations)
             {
@@ -314,7 +314,7 @@
             }
         }
 
-        private void ValidateDiscreteTextConfigurations(IEnumerable<DiscreteTextConfiguration> apiConfigurations)
+        private void ValidateDiscreteTextConfigurations(ICollection<DiscreteTextConfiguration> apiConfigurations)
         {
             foreach (var discreteTextConfiguration in apiConfigurations)
             {

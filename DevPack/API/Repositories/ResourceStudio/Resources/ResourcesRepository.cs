@@ -20,6 +20,8 @@
     /// </summary>
     internal class ResourcesRepository : Repository, IResourcesRepository
     {
+        private readonly ResourceFilterTranslator filterTranslator = new ResourceFilterTranslator();
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ResourcesRepository"/> class.
         /// </summary>
@@ -39,7 +41,13 @@
         {
             if (resource.State != ResourceState.Draft)
             {
-                throw new MediaOpsException($"Resource {resource.Name} is not in Draft state. Cannot convert to ElementResource.");
+                var error = new ResourceInvalidStateError()
+                {
+                    ErrorMessage = $"Resource {resource.Name} is not in Draft state. Cannot convert to ElementResource.",
+                    Id = resource.Id,
+                };
+
+                throw new MediaOpsException(error);
             }
 
             if (resource is ElementResource elementResource)
@@ -57,11 +65,17 @@
         /// <param name="resourceId">The unique identifier of the resource to convert.</param>
         /// <param name="configuration">The configuration for the element link.</param>
         /// <returns>The converted <see cref="ElementResource"/>.</returns>
-        /// <exception cref="ResourceNotFoundException">Thrown when the resource with the specified identifier is not found.</exception>
         /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
         public ElementResource ConvertToElementResource(Guid resourceId, ResourceElementLinkConfiguration configuration)
         {
-            var resource = Read(resourceId) ?? throw new ResourceNotFoundException(resourceId);
+            var resource = Read(resourceId)
+                ?? throw new MediaOpsException(
+                    new ResourceNotFoundError()
+                    {
+                        ErrorMessage = $"Unable to find resource with ID {resourceId}",
+                        Id = resourceId,
+                    });
+
             return ConvertToElementResource(resource, configuration);
         }
 
@@ -76,7 +90,13 @@
         {
             if (resource.State != ResourceState.Draft)
             {
-                throw new MediaOpsException($"Resource {resource.Name} is not in Draft state. Cannot convert to ElementResource.");
+                var error = new ResourceInvalidStateError()
+                {
+                    ErrorMessage = $"Resource {resource.Name} is not in Draft state. Cannot convert to ServiceResource.",
+                    Id = resource.Id,
+                };
+
+                throw new MediaOpsException(error);
             }
 
             if (resource is ServiceResource serviceResource)
@@ -98,7 +118,14 @@
         /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
         public ServiceResource ConvertToServiceResource(Guid resourceId, ResourceServiceLinkConfiguration configuration)
         {
-            var resource = Read(resourceId) ?? throw new ResourceNotFoundException(resourceId);
+            var resource = Read(resourceId)
+                ?? throw new MediaOpsException(
+                    new ResourceNotFoundError()
+                    {
+                        ErrorMessage = $"Unable to find resource with ID {resourceId}",
+                        Id = resourceId
+                    });
+
             return ConvertToServiceResource(resource, configuration);
         }
 
@@ -112,7 +139,13 @@
         {
             if (resource.State != ResourceState.Draft)
             {
-                throw new MediaOpsException($"Resource {resource.Name} is not in Draft state. Cannot convert to ElementResource.");
+                var error = new ResourceInvalidStateError()
+                {
+                    ErrorMessage = $"Resource {resource.Name} is not in Draft state. Cannot convert to UnmanagedResource.",
+                    Id = resource.Id,
+                };
+
+                throw new MediaOpsException(error);
             }
 
             if (resource is UnmanagedResource unmanagedResource)
@@ -129,11 +162,17 @@
         /// </summary>
         /// <param name="resourceId">The unique identifier of the resource to convert.</param>
         /// <returns>The converted <see cref="UnmanagedResource"/>.</returns>
-        /// <exception cref="ResourceNotFoundException">Thrown when the resource with the specified identifier is not found.</exception>
         /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
         public UnmanagedResource ConvertToUnmanagedResource(Guid resourceId)
         {
-            var resource = Read(resourceId) ?? throw new ResourceNotFoundException(resourceId);
+            var resource = Read(resourceId)
+                ?? throw new MediaOpsException(
+                    new ResourceNotFoundError()
+                    {
+                        ErrorMessage = $"Unable to find resource with ID {resourceId}",
+                        Id = resourceId,
+                    });
+
             return ConvertToUnmanagedResource(resource);
         }
 
@@ -148,7 +187,13 @@
         {
             if (resource.State != ResourceState.Draft)
             {
-                throw new MediaOpsException($"Resource {resource.Name} is not in Draft state. Cannot convert to ElementResource.");
+                var error = new ResourceInvalidStateError()
+                {
+                    ErrorMessage = $"Resource {resource.Name} is not in Draft state. Cannot convert to VirtualFunctionResource.",
+                    Id = resource.Id,
+                };
+
+                throw new MediaOpsException(error);
             }
 
             if (resource is VirtualFunctionResource virtualFunctionResource)
@@ -166,11 +211,17 @@
         /// <param name="resourceId">The unique identifier of the resource to convert.</param>
         /// <param name="configuration">The configuration for the virtual function link.</param>
         /// <returns>The converted <see cref="VirtualFunctionResource"/>.</returns>
-        /// <exception cref="ResourceNotFoundException">Thrown when the resource with the specified identifier is not found.</exception>
         /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
         public VirtualFunctionResource ConvertToVirtualFunctionResource(Guid resourceId, ResourceVirtualFunctionLinkConfiguration configuration)
         {
-            var resource = Read(resourceId) ?? throw new ResourceNotFoundException(resourceId);
+            var resource = Read(resourceId)
+                ?? throw new MediaOpsException(
+                    new ResourceNotFoundError()
+                    {
+                        ErrorMessage = $"Unable to find resource with ID {resourceId}",
+                        Id = resourceId
+                    });
+
             return ConvertToVirtualFunctionResource(resource, configuration);
         }
 
@@ -180,8 +231,7 @@
         /// <returns>The total count of resources.</returns>
         public long Count()
         {
-            return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(
-                DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resource.Id));
+            return Count(new TRUEFilterElement<Resource>());
         }
 
         /// <summary>
@@ -192,7 +242,8 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public long Count(FilterElement<Resource> filter)
         {
-            throw new NotImplementedException();
+            var domFilter = filterTranslator.Translate(filter);
+            return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(domFilter);
         }
 
         /// <summary>
@@ -203,18 +254,17 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public long Count(IQuery<Resource> query)
         {
-            throw new NotImplementedException();
+            return Count(query.Filter);
         }
 
         /// <summary>
         /// Creates a new resource in the repository.
         /// </summary>
         /// <param name="apiObject">The resource to create.</param>
-        /// <returns>The unique identifier of the created resource.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create an existing resource.</exception>
         /// <exception cref="MediaOpsException">Thrown when the creation operation fails.</exception>
-        public Guid Create(Resource apiObject)
+        public void Create(Resource apiObject)
         {
             if (apiObject == null)
             {
@@ -223,7 +273,7 @@
 
             PlanApi.Logger.LogInformation($"Creating new Resource {apiObject.Name}...");
 
-            return ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Create), act =>
+            ActivityHelper.Track(nameof(ResourcesRepository), nameof(Create), act =>
             {
                 if (!apiObject.IsNew)
                 {
@@ -237,8 +287,6 @@
 
                 var resourceId = result.SuccessfulIds.First();
                 act?.AddTag("ResourceId", resourceId);
-
-                return resourceId;
             });
         }
 
@@ -246,18 +294,17 @@
         /// Creates multiple new resources in the repository.
         /// </summary>
         /// <param name="apiObjects">The collection of resources to create.</param>
-        /// <returns>A collection of unique identifiers for the created resources.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create existing resources.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk creation operation fails.</exception>
-        public IEnumerable<Guid> Create(IEnumerable<Resource> apiObjects)
+        public void Create(IEnumerable<Resource> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
-            return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Create), act =>
+            ActivityHelper.Track(nameof(ResourcesRepository), nameof(Create), act =>
             {
                 var existingResources = apiObjects.Where(x => !x.IsNew);
                 if (existingResources.Any())
@@ -265,15 +312,13 @@
                     throw new InvalidOperationException("Not possible to use method Create for existing resources. Use CreateOrUpdate or Update instead.");
                 }
 
-                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
+                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
                 {
                     throw new MediaOpsBulkException<Guid>(result);
                 }
 
                 var resourceIds = result.SuccessfulIds;
                 act?.AddTag("ResourceIds", String.Join(", ", resourceIds));
-
-                return resourceIds;
             });
         }
 
@@ -281,19 +326,18 @@
         /// Creates new resources or updates existing ones in the repository.
         /// </summary>
         /// <param name="apiObjects">The collection of resources to create or update.</param>
-        /// <returns>A collection of unique identifiers for the created or updated resources.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk operation fails.</exception>
-        public IEnumerable<Guid> CreateOrUpdate(IEnumerable<Resource> apiObjects)
+        public void CreateOrUpdate(IEnumerable<Resource> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
-            return ActivityHelper.Track(nameof(ResourcesRepository), nameof(CreateOrUpdate), act =>
+            ActivityHelper.Track(nameof(ResourcesRepository), nameof(CreateOrUpdate), act =>
             {
-                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
+                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, apiObjects?.ToList(), out var result))
                 {
                     throw new MediaOpsBulkException<Guid>(result);
                 }
@@ -301,8 +345,6 @@
                 var resourceIds = result.SuccessfulIds;
                 act?.AddTag("Created or Updated Resources", String.Join(", ", resourceIds));
                 act?.AddTag("Created or Updated Resources Count", resourceIds.Count);
-
-                return resourceIds;
             });
         }
 
@@ -336,11 +378,11 @@
 
             PlanApi.Logger.LogInformation("Deleting Resources {resourceIds}...", String.Join(", ", apiObjectIds));
 
-            var resourcesToDelete = Read(apiObjectIds).Values;
+            var resourcesToDelete = Read(apiObjectIds);
 
             ActivityHelper.Track(nameof(ResourcesRepository), nameof(Delete), act =>
             {
-                if (!DomResourceHandler.TryDelete(PlanApi, resourcesToDelete, out var result))
+                if (!DomResourceHandler.TryDelete(PlanApi, resourcesToDelete?.ToList(), out var result))
                 {
                     throw new MediaOpsBulkException<Guid>(result);
                 }
@@ -366,7 +408,7 @@
 
             ActivityHelper.Track(nameof(ResourcesRepository), nameof(Deprecate), act =>
             {
-                if (!DomResourceHandler.TryDeprecate(PlanApi, resources, out var result))
+                if (!DomResourceHandler.TryDeprecate(PlanApi, resources?.ToList(), out var result))
                 {
                     throw new MediaOpsBulkException<Guid>(result);
                 }
@@ -390,7 +432,7 @@
                 throw new ArgumentNullException(nameof(resourcePool));
             }
 
-            return Resource.InstantiateResources(PlanApi, PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcesByPool(resourcePool.Id));
+            return Read(ResourceExposers.ResourcePoolIds.Contains(resourcePool.Id));
         }
 
         /// <summary>
@@ -407,11 +449,7 @@
                 throw new ArgumentNullException(nameof(resourcePool));
             }
 
-            var filter = DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.Pool_Ids)
-                .Contains(Convert.ToString(resourcePool.Id))
-                .AND(DomInstanceExposers.StatusId.Equal(SlcResource_StudioIds.Behaviors.Resource_Behavior.Statuses.ToValue(EnumExtensions.MapEnum<ResourceState, SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum>(state))));
-
-            return Resource.InstantiateResources(PlanApi, PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(filter));
+            return Read(ResourceExposers.ResourcePoolIds.Contains(resourcePool.Id).AND(ResourceExposers.State.Equal((int)state)));
         }
 
         /// <summary>
@@ -524,7 +562,12 @@
             var resource = Read(resourceId);
             if (resource == null)
             {
-                throw new MediaOpsException($"Unable to find resource with ID {resourceId}");
+                throw new MediaOpsException(
+                    new ResourceNotFoundError()
+                    {
+                        ErrorMessage = $"Unable to find resource with ID {resourceId}",
+                        Id = resourceId
+                    });
             }
 
             ActivityHelper.Track(nameof(ResourcesRepository), nameof(MoveTo), act =>
@@ -540,7 +583,13 @@
 
                 if (!actionMethods.TryGetValue(desiredState, out var action))
                 {
-                    throw new MediaOpsException($"Move to state '{desiredState}' is not supported.");
+                    var error = new ResourceInvalidStateError()
+                    {
+                        ErrorMessage = $"Move to state '{desiredState}' is not supported.",
+                        Id = resource.Id,
+                    };
+
+                    throw new MediaOpsException(error);
                 }
 
                 action(resource);
@@ -565,12 +614,9 @@
             return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Read), act =>
             {
                 act?.AddTag("ResourceId", id);
-                var filter = DomInstanceExposers.DomDefinitionId.Equal(Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Definitions.Resource.Id)
-                        .AND(DomInstanceExposers.Id.Equal(id));
-                var domResource = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(filter)
-                    .FirstOrDefault();
+                var resource = Read(ResourceExposers.Id.Equal(id)).FirstOrDefault();
 
-                if (domResource == null)
+                if (resource == null)
                 {
                     act?.AddTag("Hit", false);
                     return null;
@@ -578,7 +624,7 @@
 
                 act?.AddTag("Hit", true);
 
-                return Resource.InstantiateResources(PlanApi, [domResource]).FirstOrDefault();
+                return resource;
             });
         }
 
@@ -586,9 +632,9 @@
         /// Reads multiple resources by their unique identifiers.
         /// </summary>
         /// <param name="ids">A collection of unique identifiers.</param>
-        /// <returns>A dictionary mapping each identifier to its corresponding resource.</returns>
+        /// <returns>An enumerable collection of resources matching the specified identifiers.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="ids"/> is <c>null</c>.</exception>
-        public IDictionary<Guid, Resource> Read(IEnumerable<Guid> ids)
+        public IEnumerable<Resource> Read(IEnumerable<Guid> ids)
         {
             if (ids == null)
             {
@@ -601,7 +647,7 @@
                 act?.AddTag("ResourceIds Count", ids.Count());
 
                 var resources = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(ids);
-                return Resource.InstantiateResources(PlanApi, resources).ToDictionary(x => x.Id);
+                return Resource.InstantiateResources(PlanApi, resources);
             });
         }
 
@@ -611,11 +657,7 @@
         /// <returns>An enumerable collection of all resources.</returns>
         public IEnumerable<Resource> Read()
         {
-            return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Read), act =>
-            {
-                var filter = DomInstanceExposers.DomDefinitionId.Equal(Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Definitions.Resource.Id);
-                return Resource.InstantiateResources(PlanApi, PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(filter));
-            });
+            return Read(new TRUEFilterElement<Resource>());
         }
 
         /// <summary>
@@ -626,7 +668,11 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<Resource> Read(FilterElement<Resource> filter)
         {
-            throw new NotImplementedException();
+            return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Read), act =>
+            {
+                var domFilter = filterTranslator.Translate(filter);
+                return Resource.InstantiateResources(PlanApi, PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(domFilter));
+            });
         }
 
         /// <summary>
@@ -637,17 +683,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<Resource> Read(IQuery<Resource> query)
         {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Reads all resources in pages.
-        /// </summary>
-        /// <returns>An enumerable collection of pages, where each page contains a collection of resources.</returns>
-        public IEnumerable<IEnumerable<Resource>> ReadPaged()
-        {
-            return PlanApi.DomHelpers.SlcResourceStudioHelper.GetAllResourcesPaged()
-                .Select(page => Resource.InstantiateResources(PlanApi, page));
+            return Read(query.Filter);
         }
 
         /// <summary>
@@ -657,7 +693,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         IEnumerable<IPagedResult<Resource>> IPageableRepository<Resource>.ReadPaged()
         {
-            throw new NotImplementedException();
+            return ReadPaged(new TRUEFilterElement<Resource>());
         }
 
         /// <summary>
@@ -668,7 +704,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Resource>> ReadPaged(FilterElement<Resource> filter)
         {
-            throw new NotImplementedException();
+            return ReadPaged(filter, MediaOpsPlanApi.DefaultPageSize);
         }
 
         /// <summary>
@@ -679,7 +715,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Resource>> ReadPaged(IQuery<Resource> query)
         {
-            throw new NotImplementedException();
+            return ReadPaged(query.Filter);
         }
 
         /// <summary>
@@ -691,7 +727,18 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Resource>> ReadPaged(FilterElement<Resource> filter, int pageSize)
         {
-            throw new NotImplementedException();
+            var pageNumber = 0;
+            var paramFilter = filterTranslator.Translate(filter);
+            var items = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcesPaged(paramFilter, pageSize);
+            var enumerator = items.GetEnumerator();
+            var hasNext = enumerator.MoveNext();
+
+            while (hasNext)
+            {
+                var page = enumerator.Current;
+                hasNext = enumerator.MoveNext();
+                yield return new PagedResult<Resource>(Resource.InstantiateResources(PlanApi, page), pageNumber++, pageSize, hasNext);
+            }
         }
 
         /// <summary>
@@ -956,10 +1003,10 @@
                 var newResources = apiObjects.Where(x => x.IsNew);
                 if (newResources.Any())
                 {
-                    throw new MediaOpsException("Not possible to use method Update for new resources. Use Create or CreateOrUpdate instead.");
+                    throw new InvalidOperationException("Not possible to use method Update for new resources. Use Create or CreateOrUpdate instead.");
                 }
 
-                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
+                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
                 {
                     throw new MediaOpsBulkException<Guid>(result);
                 }
@@ -984,7 +1031,13 @@
 
             if (resource.State != ResourceState.Draft)
             {
-                throw new MediaOpsException("A resource can only be completed from Draft State");
+                var error = new ResourceInvalidStateError()
+                {
+                    ErrorMessage = "A resource can only be completed from Draft State.",
+                    Id = resource.Id,
+                };
+
+                throw new MediaOpsException(error);
             }
 
             ActivityHelper.Track(nameof(DomResourceHandler), nameof(DomResourceHandler.TransitionToComplete), act =>
@@ -1011,7 +1064,13 @@
 
             if (resource.State != ResourceState.Complete)
             {
-                throw new MediaOpsException("A resource can only be deprecated from Complete State");
+                var error = new ResourceInvalidStateError()
+                {
+                    ErrorMessage = "A resource can only be deprecated from Complete State.",
+                    Id = resource.Id,
+                };
+
+                throw new MediaOpsException(error);
             }
 
             ActivityHelper.Track(nameof(ResourcesRepository), nameof(HandleMoveToDeprecatedAction), act =>

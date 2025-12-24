@@ -1,9 +1,13 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
     using System;
+
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Logging.Abstractions;
+
     using Skyline.DataMiner.Core.DataMinerSystem.Common;
+    using Skyline.DataMiner.MediaOps.Live.API;
+    using Skyline.DataMiner.MediaOps.Live.API.Extensions;
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Logger;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
@@ -22,6 +26,7 @@
         private readonly CoreHelpers coreHelpers;
 
         private readonly Lazy<IDms> lazyDms;
+        private readonly Lazy<MediaOpsLiveApi> lazyLiveApi;
         private readonly Lazy<IResourcesRepository> lazyResourceRepository;
         private readonly Lazy<IResourcePoolsRepository> lazyResourcePoolsRepository;
         private readonly Lazy<ICapabilitiesRepository> lazyCapabilitiesRepository;
@@ -30,6 +35,8 @@
         private readonly Lazy<IResourcePropertiesRepository> lazyResourcePropertiesRepository;
         private readonly Lazy<Plan.Tools.LockManager> lazyLockManager;
         private bool disposedValue;
+
+        internal static readonly int DefaultPageSize = 200;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="MediaOpsPlanApi"/> class.
@@ -44,8 +51,9 @@
 
             domHelpers = new DomHelpers(connection);
             coreHelpers = new CoreHelpers(connection);
-
+            
             lazyDms = new Lazy<IDms>(() => connection.GetDms());
+            lazyLiveApi = new Lazy<MediaOpsLiveApi>(() => connection.GetMediaOpsLiveApi());
             lazyResourceRepository = new Lazy<IResourcesRepository>(() => new ResourcesRepository(this));
             lazyResourcePoolsRepository = new Lazy<IResourcePoolsRepository>(() => new ResourcePoolsRepository(this));
             lazyCapabilitiesRepository = new Lazy<ICapabilitiesRepository>(() => new CapabilitiesRepository(this));
@@ -96,6 +104,8 @@
         internal CoreHelpers CoreHelpers => coreHelpers;
 
         internal IDms Dms => lazyDms.Value;
+
+        internal MediaOpsLiveApi LiveApi => lazyLiveApi.Value;
 
         internal Plan.Tools.LockManager LockManager => lazyLockManager.Value;
 

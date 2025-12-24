@@ -24,31 +24,34 @@
 
             var prefix = Guid.NewGuid();
 
-            var resourcePoolId = TestContext.Api.ResourcePools.Create(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool
+            var resourcePool = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool
             {
                 Name = $"{prefix}_Resource Pool 1",
-            });
-
-            var resource1Id = TestContext.Api.Resources.Create(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource(Guid.NewGuid())
+            };
+            var unmanagedResource = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource(Guid.NewGuid())
             {
                 Name = $"{prefix}_Resource 1",
-            });
-
-            //testContext.Api.ResourcePools.AssignResource(resourcePoolId, resource1Id);
-
-            var capacityId = TestContext.Api.Capacities.Create(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity
+            };
+            var capacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity
             {
                 Name = $"{prefix}_Mandatory Capacity 1",
                 IsMandatory = true,
-            });
+            };
 
-            TestContext.Api.ResourcePools.Delete(resourcePoolId);
-            TestContext.Api.Resources.Delete(resource1Id);
-            TestContext.Api.Capacities.Delete(capacityId);
+            TestContext.Api.ResourcePools.Create(resourcePool);
+            TestContext.Api.Resources.Create(unmanagedResource);
 
-            Assert.IsNull(TestContext.Api.ResourcePools.Read(resourcePoolId));
-            Assert.IsNull(TestContext.Api.Resources.Read(resource1Id));
-            Assert.IsNull(TestContext.Api.Capacities.Read(capacityId));
+            //testContext.Api.ResourcePools.AssignResource(resourcePoolId, resource1Id);
+
+            TestContext.Api.Capacities.Create(capacity); ;
+
+            TestContext.Api.ResourcePools.Delete(resourcePool.Id);
+            TestContext.Api.Resources.Delete(unmanagedResource.Id);
+            TestContext.Api.Capacities.Delete(capacity.Id);
+
+            Assert.IsNull(TestContext.Api.ResourcePools.Read(resourcePool.Id));
+            Assert.IsNull(TestContext.Api.Resources.Read(unmanagedResource.Id));
+            Assert.IsNull(TestContext.Api.Capacities.Read(capacity.Id));
         }
 
         public void Dispose()

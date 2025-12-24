@@ -3,19 +3,23 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Microsoft.Extensions.Logging;
+
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+
     using SLDataGateway.API.Types.Querying;
-    using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
     /// <summary>
     /// Provides repository operations for managing <see cref="ResourceProperty"/> objects.
     /// </summary>
     internal class ResourcePropertiesRepository : Repository, IResourcePropertiesRepository
     {
+        private readonly ResourcePropertyFilterTranslator filterTranslator = new ResourcePropertyFilterTranslator();
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ResourcePropertiesRepository"/> class.
         /// </summary>
@@ -31,8 +35,7 @@
         /// <returns>The total count of resource properties.</returns>
         public long Count()
         {
-            return PlanApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances
-                .Count(DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourceproperty.Id));
+            return Count(new TRUEFilterElement<ResourceProperty>());
         }
 
         /// <summary>
@@ -43,7 +46,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public long Count(FilterElement<ResourceProperty> filter)
         {
-            throw new NotImplementedException();
+            return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(filterTranslator.Translate(filter));
         }
 
         /// <summary>
@@ -54,18 +57,17 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public long Count(IQuery<ResourceProperty> query)
         {
-            throw new NotImplementedException();
+            return Count(query.Filter);
         }
 
         /// <summary>
         /// Creates a new resource property in the repository.
         /// </summary>
         /// <param name="apiObject">The resource property to create.</param>
-        /// <returns>The unique identifier of the created resource property.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create an existing resource property.</exception>
         /// <exception cref="MediaOpsException">Thrown when the creation operation fails.</exception>
-        public Guid Create(ResourceProperty apiObject)
+        public void Create(ResourceProperty apiObject)
         {
             PlanApi.Logger.LogInformation("Creating new ResourceProperty...");
 
@@ -74,7 +76,7 @@
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
-            return ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Create), act =>
+            ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Create), act =>
             {
                 if (!apiObject.IsNew)
                 {
@@ -88,8 +90,6 @@
 
                 var resourcePropertyId = result.SuccessfulIds.First();
                 act?.AddTag("ResourcePropertyId", resourcePropertyId);
-
-                return resourcePropertyId;
             });
         }
 
@@ -97,18 +97,17 @@
         /// Creates multiple new resource properties in the repository.
         /// </summary>
         /// <param name="apiObjects">The collection of resource properties to create.</param>
-        /// <returns>A collection of unique identifiers for the created resource properties.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create existing resource properties.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk creation operation fails.</exception>
-        public IEnumerable<Guid> Create(IEnumerable<ResourceProperty> apiObjects)
+        public void Create(IEnumerable<ResourceProperty> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
-            return ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Create), act =>
+            ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Create), act =>
             {
                 var existingProperties = apiObjects.Where(x => !x.IsNew);
                 if (existingProperties.Any())
@@ -116,15 +115,13 @@
                     throw new InvalidOperationException("Not possible to use method Create for existing resource properties. Use CreateOrUpdate or Update instead.");
                 }
 
-                if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
+                if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
                 {
                     throw new MediaOpsBulkException<Guid>(result);
                 }
 
                 var propertyIds = result.SuccessfulIds;
                 act?.AddTag("ResourcePropertyIds", string.Join(", ", propertyIds));
-
-                return propertyIds;
             });
         }
 
@@ -132,19 +129,18 @@
         /// Creates new resource properties or updates existing ones in the repository.
         /// </summary>
         /// <param name="apiObjects">The collection of resource properties to create or update.</param>
-        /// <returns>A collection of unique identifiers for the created or updated resource properties.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk operation fails.</exception>
-        public IEnumerable<Guid> CreateOrUpdate(IEnumerable<ResourceProperty> apiObjects)
+        public void CreateOrUpdate(IEnumerable<ResourceProperty> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
-            return ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(CreateOrUpdate), act =>
+            ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(CreateOrUpdate), act =>
             {
-                if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
+                if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, apiObjects?.ToList(), out var result))
                 {
                     throw new MediaOpsBulkException<Guid>(result);
                 }
@@ -152,8 +148,6 @@
                 var propertyIds = result.SuccessfulIds;
                 act?.AddTag("Created or Updated Resource Properties", String.Join(", ", propertyIds));
                 act?.AddTag("Created or Updated Resource Properties Count", propertyIds.Count);
-
-                return propertyIds;
             });
         }
 
@@ -185,11 +179,11 @@
                 throw new ArgumentNullException(nameof(apiObjectIds));
             }
 
-            var propertiesToDelete = Read(apiObjectIds).Values;
+            var propertiesToDelete = Read(apiObjectIds);
 
             ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Delete), act =>
             {
-                if (!DomResourcePropertyHandler.TryDelete(PlanApi, propertiesToDelete, out var result))
+                if (!DomResourcePropertyHandler.TryDelete(PlanApi, propertiesToDelete?.ToList(), out var result))
                 {
                     throw new MediaOpsBulkException<Guid>(result);
                 }
@@ -218,12 +212,9 @@
             return ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Read), act =>
             {
                 act?.AddTag("ResourcePropertyId", id);
-                var filter = DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourceproperty.Id)
-                        .AND(DomInstanceExposers.Id.Equal(id));
-                var domResourceProperty = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourceProperties(filter)
-                    .FirstOrDefault();
+                var property = Read(ResourcePropertyExposers.Id.Equal(id)).FirstOrDefault();
 
-                if (domResourceProperty == null)
+                if (property == null)
                 {
                     act?.AddTag("Hit", false);
                     return null;
@@ -231,7 +222,7 @@
 
                 act?.AddTag("Hit", true);
 
-                return new ResourceProperty(domResourceProperty);
+                return property;
             });
         }
 
@@ -239,23 +230,21 @@
         /// Reads multiple resource properties by their unique identifiers.
         /// </summary>
         /// <param name="ids">A collection of unique identifiers.</param>
-        /// <returns>A dictionary mapping each identifier to its corresponding resource property.</returns>
+        /// <returns>An enumerable collection of resource properties matching the specified identifiers.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="ids"/> is <c>null</c>.</exception>
-        public IDictionary<Guid, ResourceProperty> Read(IEnumerable<Guid> ids)
+        public IEnumerable<ResourceProperty> Read(IEnumerable<Guid> ids)
         {
             if (ids == null)
             {
                 throw new ArgumentNullException(nameof(ids));
             }
 
-            return ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Read), act =>
+            if (!ids.Any())
             {
-                act?.AddTag("ResourcePropertyIds", String.Join(", ", ids));
-                act?.AddTag("ResourcePropertyIds Count", ids.Count());
+                return Array.Empty<ResourceProperty>();
+            }
 
-                var properties = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourceProperties(ids);
-                return properties.Select(x => new ResourceProperty(x)).ToDictionary(x => x.Id);
-            });
+            return Read(new ORFilterElement<ResourceProperty>(ids.Select(x => ResourcePropertyExposers.Id.Equal(x)).ToArray()));
         }
 
         /// <summary>
@@ -266,8 +255,7 @@
         {
             return ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Read), act =>
             {
-                var filter = DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resource.Id);
-                return PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourceProperties(filter).Select(x => new ResourceProperty(x));
+                return Read(new TRUEFilterElement<ResourceProperty>());
             });
         }
 
@@ -279,7 +267,16 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<ResourceProperty> Read(FilterElement<ResourceProperty> filter)
         {
-            throw new NotImplementedException();
+            if (filter == null)
+            {
+                throw new ArgumentNullException(nameof(filter));
+            }
+
+            return ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Read), act =>
+            {
+                var properties = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourceProperties(filterTranslator.Translate(filter));
+                return properties.Select(x => new ResourceProperty(x));
+            });
         }
 
         /// <summary>
@@ -290,18 +287,17 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<ResourceProperty> Read(IQuery<ResourceProperty> query)
         {
-            throw new NotImplementedException();
+            if (query == null)
+            {
+                throw new ArgumentNullException(nameof(query));
+            }
+
+            return ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Read), act =>
+            {
+                return Read(query.Filter);
+            });
         }
 
-        /// <summary>
-        /// Reads all resource properties in pages.
-        /// </summary>
-        /// <returns>An enumerable collection of pages, where each page contains a collection of resource properties.</returns>
-        public IEnumerable<IEnumerable<ResourceProperty>> ReadPaged()
-        {
-            return PlanApi.DomHelpers.SlcResourceStudioHelper.GetAllResourcePropertiesPaged()
-                .Select(Page => Page.Select(x => new ResourceProperty(x)));
-        }
         /// <summary>
         /// Reads all resource properties in pages.
         /// </summary>
@@ -309,7 +305,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         IEnumerable<IPagedResult<ResourceProperty>> IPageableRepository<ResourceProperty>.ReadPaged()
         {
-            throw new NotImplementedException();
+            return ReadPaged(new TRUEFilterElement<ResourceProperty>());
         }
 
         /// <summary>
@@ -320,7 +316,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<ResourceProperty>> ReadPaged(FilterElement<ResourceProperty> filter)
         {
-            throw new NotImplementedException();
+            return ReadPaged(filter, MediaOpsPlanApi.DefaultPageSize);
         }
 
         /// <summary>
@@ -331,7 +327,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<ResourceProperty>> ReadPaged(IQuery<ResourceProperty> query)
         {
-            throw new NotImplementedException();
+            return ReadPaged(query.Filter);
         }
 
         /// <summary>
@@ -343,7 +339,18 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<ResourceProperty>> ReadPaged(FilterElement<ResourceProperty> filter, int pageSize)
         {
-            throw new NotImplementedException();
+            var pageNumber = 0;
+            var paramFilter = filterTranslator.Translate(filter);
+            var items = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePropertiesPaged(paramFilter, pageSize);
+            var enumerator = items.GetEnumerator();
+            var hasNext = enumerator.MoveNext();
+
+            while (hasNext)
+            {
+                var page = enumerator.Current;
+                hasNext = enumerator.MoveNext();
+                yield return new PagedResult<ResourceProperty>(page.Select(x => new ResourceProperty(x)), pageNumber++, pageSize, hasNext);
+            }
         }
 
         /// <summary>
@@ -355,7 +362,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<ResourceProperty>> ReadPaged(IQuery<ResourceProperty> query, int pageSize)
         {
-            throw new NotImplementedException();
+            return ReadPaged(query.Filter, pageSize);
         }
 
         /// <summary>
@@ -413,7 +420,7 @@
                     throw new InvalidOperationException("Not possible to use method Update for new resource properties. Use Create or CreateOrUpdate instead.");
                 }
 
-                if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, apiObjects, out var result))
+                if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
                 {
                     throw new MediaOpsBulkException<Guid>(result);
                 }
