@@ -6,10 +6,13 @@
 
     using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+    using Skyline.DataMiner.Utils.Categories.API;
+    using Skyline.DataMiner.Utils.Categories.API.Objects;
 
     internal class ResourceStudioObjectCreator : IDisposable
     {
         private readonly IMediaOpsPlanApi api;
+        private readonly CategoriesApi catagoriesApi;
 
         private readonly HashSet<Guid> createdPoolIds = new HashSet<Guid>();
 
@@ -23,9 +26,12 @@
 
         private readonly HashSet<Guid> createdPropertyIds = new HashSet<Guid>();
 
-        public ResourceStudioObjectCreator(IMediaOpsPlanApi api)
+        private readonly HashSet<Guid> createdCategoryIds = new HashSet<Guid>();
+
+        public ResourceStudioObjectCreator(IMediaOpsPlanApi api, CategoriesApi categoriesApi)
         {
             this.api = api ?? throw new ArgumentNullException(nameof(api));
+            this.catagoriesApi = categoriesApi ?? throw new ArgumentNullException(nameof(categoriesApi));
         }
 
         public void Dispose()
@@ -78,6 +84,15 @@
             try
             {
                 PropertiesCleanup();
+            }
+            catch
+            {
+                // Ignore cleanup errors
+            }
+
+            try
+            {
+                CategoriesCleanup();
             }
             catch
             {
@@ -149,6 +164,12 @@
             var properties = api.Properties.Read(createdPropertyIds.ToArray());
 
             api.Properties.Delete(properties.ToArray());
+        }
+
+        private void CategoriesCleanup()
+        {
+            var categories = catagoriesApi.Categories.Read(createdCategoryIds.ToArray()).Values;
+            catagoriesApi.Categories.Delete(categories);
         }
 
         public void CreateResource(Resource resource)
@@ -317,6 +338,13 @@
 
                 throw;
             }
+        }
+
+        public Category CreateCategory(Category category)
+        {
+            category = catagoriesApi.Categories.Create(category);
+            createdCategoryIds.Add(category.ID);
+            return category;
         }
     }
 }

@@ -9,6 +9,8 @@
     using RT_MediaOps.Plan.RegressionTests;
 
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+    using Skyline.DataMiner.Utils.Categories.API.Objects;
+    using SLLoggerUtil.LoggerCategoryUtil.DataGateway;
 
     [TestClass]
     [TestCategory("IntegrationTest")]
@@ -18,7 +20,7 @@
 
         public BasicTests()
         {
-            objectCreator = new ResourceStudioObjectCreator(TestContext.Api);
+            objectCreator = new ResourceStudioObjectCreator(TestContext.Api, TestContext.CategoriesApi);
         }
 
         private static IntegrationTestContext TestContext => TestContextManager.SharedTestContext;
@@ -295,6 +297,59 @@
             var resourcePools = TestContext.Api.ResourcePools.Read(new List<Guid>());
             Assert.IsNotNull(resourcePools);
             Assert.AreEqual(0, resourcePools.Count());
+        }
+
+        [TestMethod]
+        public void CreatePoolWithCategory()
+        {
+            var resourcePoolsScope = TestContext.CategoriesApi.Scopes.Read("Resource Pools") ?? throw new InvalidOperationException("Category Scope 'Resource Pools' is not available");
+
+            var category = objectCreator.CreateCategory(new Category
+            {
+                Name = $"ResourcePoolCategory_{Guid.NewGuid()}",
+                Scope = resourcePoolsScope,
+            });
+
+            var resourcePool1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
+            {
+                Name = $"ResourcePool_1_{Guid.NewGuid()}",
+                CategoryId = category.ID.ToString(),
+            };
+
+            objectCreator.CreateResourcePool(resourcePool1);
+        }
+
+        [TestMethod]
+        public void CreatePoolWithNonExistingCategoryThrowsException()
+        {
+            var resourcePool1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
+            {
+                Name = $"ResourcePool_1_{Guid.NewGuid()}",
+                CategoryId = Guid.NewGuid().ToString(),
+            };
+
+            try
+            {
+                objectCreator.CreateResourcePool(resourcePool1);
+            }
+            catch (MediaOpsException ex)
+            {
+                StringAssert.Contains(ex.Message, $"Category with ID '{resourcePool1.CategoryId}' could not found in Scope 'Resource Pools'.");
+
+                Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
+                var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolError>().SingleOrDefault();
+                Assert.IsNotNull(resourcePoolConfigurationError);
+
+                var resourcePoolConfigurationNameExistsError = resourcePoolConfigurationError as ResourcePoolCategoryNotFoundError;
+                Assert.IsNotNull(resourcePoolConfigurationNameExistsError);
+                Assert.AreEqual(resourcePool1.Id, resourcePoolConfigurationNameExistsError.Id);
+                Assert.AreEqual(resourcePool1.CategoryId, resourcePoolConfigurationNameExistsError.CategoryId);
+                Assert.AreEqual($"Category with ID '{resourcePool1.CategoryId}' could not found in Scope 'Resource Pools'.", resourcePoolConfigurationError.ErrorMessage);
+
+                return;
+            }
+
+            Assert.Fail("Expected exception was not thrown.");
         }
     }
 }

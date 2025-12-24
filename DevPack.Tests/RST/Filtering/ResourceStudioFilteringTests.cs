@@ -19,7 +19,7 @@
         [ClassInitialize]
         public static void ClassInitialize(TestContext _)
         {
-            objectCreator = new ResourceStudioObjectCreator(TestContext.Api);
+            objectCreator = new ResourceStudioObjectCreator(TestContext.Api, TestContext.CategoriesApi);
             setup = new ResourceFilteringSetup(objectCreator, TestContext);
         }
 

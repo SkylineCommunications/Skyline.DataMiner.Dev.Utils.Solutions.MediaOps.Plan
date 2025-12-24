@@ -22,7 +22,7 @@
 
         public DomTests()
         {
-            objectCreator = new ResourceStudioObjectCreator(TestContext.Api);
+            objectCreator = new ResourceStudioObjectCreator(TestContext.Api, TestContext.CategoriesApi);
         }
 
         private static IntegrationTestContext TestContext => TestContextManager.SharedTestContext;
