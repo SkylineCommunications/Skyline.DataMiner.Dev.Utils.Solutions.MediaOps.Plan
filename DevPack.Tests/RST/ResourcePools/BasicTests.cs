@@ -317,6 +317,9 @@
             };
 
             objectCreator.CreateResourcePool(resourcePool1);
+
+            var readPool = TestContext.Api.ResourcePools.Read(resourcePool1.Id);
+            Assert.AreEqual(resourcePool1.CategoryId, readPool.CategoryId);
         }
 
         [TestMethod]
