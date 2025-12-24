@@ -6,7 +6,7 @@
     /// <summary>
     /// Represents an error that occurs when attempting to delete a resource property that is currently in use.
     /// </summary>
-    public class ResourcePropertyDeleteInUseError : ResourcePropertyDeleteError
+    public class ResourcePropertyInUseError : ResourcePropertyError
     {
         /// <summary>
         /// Gets or sets the collection of unique identifiers of the resources having the resource property implemented.

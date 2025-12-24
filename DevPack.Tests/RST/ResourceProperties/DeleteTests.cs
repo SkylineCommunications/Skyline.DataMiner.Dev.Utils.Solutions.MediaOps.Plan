@@ -9,7 +9,7 @@
 
     [TestClass]
     [TestCategory("IntegrationTest")]
-    public sealed class DeleteTests
+    public sealed class DeleteTests : IDisposable
     {
         private readonly ResourceStudioObjectCreator objectCreator;
 
@@ -91,11 +91,15 @@
             Assert.IsTrue(expectedException.Result.UnsuccessfulIds.Contains(property1.Id));
             Assert.IsTrue(expectedException.Result.UnsuccessfulIds.Contains(property2.Id));
 
+            property3 = TestContext.Api.Properties.Read(property3.Id);
+            Assert.IsNull(property3);
+
             expectedException.Result.TraceDataPerItem.TryGetValue(property1.Id, out var traceData1);
             Assert.IsNotNull(traceData1);
             Assert.AreEqual(1, traceData1.ErrorData.Count);
-            var resourcePropertyDeleteInUseError = traceData1.ErrorData.OfType<ResourcePropertyDeleteInUseError>().SingleOrDefault();
+            var resourcePropertyDeleteInUseError = traceData1.ErrorData.OfType<ResourcePropertyInUseError>().SingleOrDefault();
             Assert.IsNotNull(resourcePropertyDeleteInUseError);
+            Assert.AreEqual($"Resource property '{property1.Name}' is in use by 2 resource(s) and cannot be deleted.", resourcePropertyDeleteInUseError.ErrorMessage);
             Assert.AreEqual(2, resourcePropertyDeleteInUseError.ResourceIds.Count);
             Assert.IsTrue(resourcePropertyDeleteInUseError.ResourceIds.Contains(unmangedResource1.Id));
             Assert.IsTrue(resourcePropertyDeleteInUseError.ResourceIds.Contains(unmangedResource2.Id));
@@ -103,8 +107,9 @@
             expectedException.Result.TraceDataPerItem.TryGetValue(property2.Id, out var traceData2);
             Assert.IsNotNull(traceData2);
             Assert.AreEqual(1, traceData2.ErrorData.Count);
-            resourcePropertyDeleteInUseError = traceData2.ErrorData.OfType<ResourcePropertyDeleteInUseError>().SingleOrDefault();
+            resourcePropertyDeleteInUseError = traceData2.ErrorData.OfType<ResourcePropertyInUseError>().SingleOrDefault();
             Assert.IsNotNull(resourcePropertyDeleteInUseError);
+            Assert.AreEqual($"Resource property '{property2.Name}' is in use by 1 resource(s) and cannot be deleted.", resourcePropertyDeleteInUseError.ErrorMessage);
             Assert.AreEqual(1, resourcePropertyDeleteInUseError.ResourceIds.Count);
             Assert.IsTrue(resourcePropertyDeleteInUseError.ResourceIds.Contains(unmangedResource1.Id));
         }

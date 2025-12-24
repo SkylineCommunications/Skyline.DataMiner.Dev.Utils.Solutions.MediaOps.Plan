@@ -186,8 +186,7 @@
                 ReportError(x.Id, error);
             });
 
-            
-            ValidatePropertiesAreNotInUse(apiResourceProperties.Except(newProperties));
+            ValidatePropertiesAreNotInUse(apiResourceProperties.Except(newProperties).ToList());
 
             var propertiesToDelete = apiResourceProperties.Where(IsValid).ToList();
             var lockResult = planApi.LockManager.LockAndExecute(propertiesToDelete, DeleteCoreResourceProperties);
@@ -379,31 +378,45 @@
             }
         }
 
-        private void ValidatePropertiesAreNotInUse(IEnumerable<ResourceProperty> apiResourceProperties)
+        private void ValidatePropertiesAreNotInUse(ICollection<ResourceProperty> apiResourceProperties)
         {
             if (apiResourceProperties == null)
             {
                 throw new ArgumentNullException(nameof(apiResourceProperties));
             }
 
-            if (!apiResourceProperties.Any())
+            if (apiResourceProperties.Count == 0)
             {
                 return;
             }
 
-            // Todo: add check if property is in use [ADO33355]
+            var filter = new ORFilterElement<Resource>(apiResourceProperties
+                .Select(x => ResourceExposers.Properties.PropertyId.Equal(x.Id))
+                .ToArray());
 
+            var resourcesImplementingProperties = planApi.Resources.Read(filter);
 
-            /*
-             * CODE FROM SOLUTION
-             * 
-             * private List<DomApplications.Resource_Studio.Resource> FindResourcesImplementingProperty()
-		{
-			var filter = DomInstanceExposers.FieldValues.DomInstanceField(DomApplications.DomIds.SlcResource_Studio.Sections.ResourceProperties.Property).Equal(inputData.DomPropertyId);
-			return scriptData.DomResourceStudioHandler.GetResources(filter).ToList();
-		}
-             * 
-             */
+            var resourcesByPropertyId = resourcesImplementingProperties
+                .SelectMany(r => r.Properties.Select(p => new { propertyId = p.Id, Resource = r}))
+                .GroupBy(x => x.propertyId)
+                .ToDictionary(x => x.Key, x => x.Select(y => y.Resource).ToList());
+
+            foreach (var property in apiResourceProperties)
+            {
+                if (!resourcesByPropertyId.TryGetValue(property.Id, out var resources))
+                {
+                    continue;
+                }
+
+                var error = new ResourcePropertyInUseError
+                {
+                    ErrorMessage = $"Resource property '{property.Name}' is in use by {resources.Count} resource(s) and cannot be deleted.",
+                    Id = property.Id,
+                    ResourceIds = resources.Select(x => x.Id).ToList(),
+                };
+
+                ReportError(property.Id, error);
+            }
         }
 
         private IEnumerable<DomChangeResults> GetPropertiesWithChanges(ICollection<ResourceProperty> apiResourceProperties)
