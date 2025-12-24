@@ -397,8 +397,8 @@
             var resourcesImplementingProperties = planApi.Resources.Read(filter);
 
             var resourcesByPropertyId = resourcesImplementingProperties
-                .SelectMany(r => r.Properties.Select(p => new { propertyId = p.Id, Resource = r}))
-                .GroupBy(x => x.propertyId)
+                .SelectMany(r => r.Properties.Select(p => new { PropertyId = p.Id, Resource = r}))
+                .GroupBy(x => x.PropertyId)
                 .ToDictionary(x => x.Key, x => x.Select(y => y.Resource).ToList());
 
             foreach (var property in apiResourceProperties)
