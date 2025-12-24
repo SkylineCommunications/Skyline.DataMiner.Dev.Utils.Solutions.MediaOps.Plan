@@ -179,7 +179,7 @@
             {
                 var error = new ResourcePropertyInvalidStateError
                 {
-                    ErrorMessage = $"A resource that was not saved cannot be removed.",
+                    ErrorMessage = $"A resource property that was not saved cannot be removed.",
                     Id = x.Id,
                 };
 
