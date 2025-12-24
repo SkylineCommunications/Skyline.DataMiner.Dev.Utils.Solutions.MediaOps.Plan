@@ -7,7 +7,9 @@
     using Microsoft.Extensions.Logging;
 
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
+    using Skyline.DataMiner.Net.SLConfiguration;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.API.Querying;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
 
@@ -18,6 +20,8 @@
     /// </summary>
     internal class ConfigurationsRepository : Repository, IConfigurationsRepository
     {
+        private readonly ConfigurationFilterTranslator filterTranslator = new ConfigurationFilterTranslator();
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ConfigurationsRepository"/> class.
         /// </summary>
@@ -32,7 +36,7 @@
         /// <returns>The total count of configurations.</returns>
         public long Count()
         {
-            return PlanApi.CoreHelpers.ProfileProvider.CountAllConfigurations();
+            return Count(new TRUEFilterElement<Configuration>());
         }
 
         /// <summary>
@@ -43,7 +47,11 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public long Count(FilterElement<Configuration> filter)
         {
-            throw new NotImplementedException();
+            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Count), act =>
+            {
+                var paramFilter = filterTranslator.Translate(filter);
+                return PlanApi.CoreHelpers.ProfileProvider.CountConfigurations(paramFilter);
+            });
         }
 
         /// <summary>
@@ -54,7 +62,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public long Count(IQuery<Configuration> query)
         {
-            throw new NotImplementedException();
+            return Count(query.Filter);
         }
 
         /// <summary>
@@ -205,21 +213,7 @@
                 throw new ArgumentException(nameof(id));
             }
 
-            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Read), act =>
-            {
-                act?.AddTag("CapacityId", id);
-                var coreConfiguration = PlanApi.CoreHelpers.ProfileProvider.GetConfigurationById(id);
-
-                if (coreConfiguration == null)
-                {
-                    act?.AddTag("Hit", false);
-                    return null;
-                }
-
-                act?.AddTag("Hit", true);
-
-                return InstantiateConfigurations([coreConfiguration]).FirstOrDefault();
-            });
+            return Read(ConfigurationExposers.Id.Equal(id)).FirstOrDefault();
         }
 
         /// <summary>
@@ -235,15 +229,12 @@
                 throw new ArgumentNullException(nameof(ids));
             }
 
-            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Read), act =>
+            if (!ids.Any())
             {
-                act?.AddTag("ConfigurationIds", String.Join(", ", ids));
-                act?.AddTag("ConfigurationIds Count", ids.Count());
+                return Array.Empty<Configuration>();
+            }
 
-                var configurations = PlanApi.CoreHelpers.ProfileProvider.GetConfigurationsById(ids);
-
-                return InstantiateConfigurations(configurations);
-            });
+            return Read(new ORFilterElement<Configuration>(ids.Select(x => ConfigurationExposers.Id.Equal(x)).ToArray()));
         }
 
         /// <summary>
@@ -252,10 +243,7 @@
         /// <returns>An enumerable collection of all configurations.</returns>
         public IEnumerable<Configuration> Read()
         {
-            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Read), act =>
-            {
-                return InstantiateConfigurations(PlanApi.CoreHelpers.ProfileProvider.GetAllConfigurations());
-            });
+            return Read(new TRUEFilterElement<Configuration>());
         }
 
         /// <summary>
@@ -266,7 +254,11 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<Configuration> Read(FilterElement<Configuration> filter)
         {
-            throw new NotImplementedException();
+            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Read), act =>
+            {
+                var configurations = PlanApi.CoreHelpers.ProfileProvider.GetConfigurations(filterTranslator.Translate(filter));
+                return Configuration.InstantiateConfigurations(configurations);
+            });
         }
 
         /// <summary>
@@ -277,19 +269,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<Configuration> Read(IQuery<Configuration> query)
         {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Reads all configurations in pages.
-        /// </summary>
-        /// <returns>An enumerable collection of pages, where each page contains a collection of configurations.</returns>
-        public IEnumerable<IEnumerable<Configuration>> ReadPaged()
-        {
-            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(ReadPaged), act =>
-            {
-                return PlanApi.CoreHelpers.ProfileProvider.GetAllConfigurationsPaged().Select(page => InstantiateConfigurations(page));
-            });
+            return Read(query.Filter);
         }
 
         /// <summary>
@@ -297,9 +277,9 @@
         /// </summary>
         /// <returns>An enumerable collection of pages, where each page contains a collection of configurations.</returns>
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
-        IEnumerable<IPagedResult<Configuration>> IPageableRepository<Configuration>.ReadPaged()
+        public IEnumerable<IPagedResult<Configuration>> ReadPaged()
         {
-            throw new NotImplementedException();
+            return ReadPaged(new TRUEFilterElement<Configuration>());
         }
 
         /// <summary>
@@ -310,7 +290,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Configuration>> ReadPaged(FilterElement<Configuration> filter)
         {
-            throw new NotImplementedException();
+            return ReadPaged(filter, MediaOpsPlanApi.DefaultPageSize);
         }
 
         /// <summary>
@@ -321,7 +301,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Configuration>> ReadPaged(IQuery<Configuration> query)
         {
-            throw new NotImplementedException();
+            return ReadPaged(query.Filter);
         }
 
         /// <summary>
@@ -333,7 +313,18 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Configuration>> ReadPaged(FilterElement<Configuration> filter, int pageSize)
         {
-            throw new NotImplementedException();
+            var pageNumber = 0;
+            var paramFilter = filterTranslator.Translate(filter);
+            var items = PlanApi.CoreHelpers.ProfileProvider.GetConfigurationsPaged(paramFilter, pageSize);
+            var enumerator = items.GetEnumerator();
+            var hasNext = enumerator.MoveNext();
+
+            while (hasNext)
+            {
+                var page = enumerator.Current;
+                hasNext = enumerator.MoveNext();
+                yield return new PagedResult<Configuration>(Configuration.InstantiateConfigurations(page), pageNumber++, pageSize, hasNext);
+            }
         }
 
         /// <summary>
@@ -410,64 +401,6 @@
                 var configurationIds = apiObjects.Select(x => x.Id);
                 act?.AddTag("ConfigurationIds", String.Join(", ", configurationIds));
             });
-        }
-
-        /// <summary>
-        /// Creates configuration instances from the provided collection of core parameter instances.
-        /// </summary>
-        /// <param name="instances">The collection of core parameter instances to instantiate as configurations.</param>
-        /// <returns>An enumerable collection of configuration objects created from the instances.</returns>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="instances"/> is <c>null</c>.</exception>
-        internal static IEnumerable<Configuration> InstantiateConfigurations(IEnumerable<Net.Profiles.Parameter> instances)
-        {
-            if (instances == null)
-            {
-                throw new ArgumentNullException(nameof(instances));
-            }
-
-            if (!instances.Any())
-            {
-                return [];
-            }
-
-            return InstantiateConfigurationsIterator(instances);
-        }
-
-        /// <summary>
-        /// Iterator method that creates configuration instances from the provided collection of core parameter instances.
-        /// </summary>
-        /// <param name="instances">The collection of core parameter instances to process.</param>
-        /// <returns>An enumerable collection of configuration objects.</returns>
-        private static IEnumerable<Configuration> InstantiateConfigurationsIterator(IEnumerable<Net.Profiles.Parameter> instances)
-        {
-            foreach (var instance in instances)
-            {
-                if (!instance.IsConfiguration())
-                {
-                    continue;
-                }
-
-                if (instance.IsText())
-                {
-                    yield return new TextConfiguration(instance);
-                }
-                else if (instance.IsNumber())
-                {
-                    yield return new NumberConfiguration(instance);
-                }
-                else if (instance.IsTextDiscreet())
-                {
-                    yield return new DiscreteTextConfiguration(instance);
-                }
-                else if (instance.IsNumberDiscreet())
-                {
-                    yield return new DiscreteNumberConfiguration(instance);
-                }
-                else
-                {
-                    // continue
-                }
-            }
         }
     }
 }

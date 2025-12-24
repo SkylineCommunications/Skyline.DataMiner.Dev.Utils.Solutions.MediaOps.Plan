@@ -20,6 +20,8 @@
     /// </summary>
     internal class ResourcesRepository : Repository, IResourcesRepository
     {
+        private readonly ResourceFilterTranslator filterTranslator = new ResourceFilterTranslator();
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ResourcesRepository"/> class.
         /// </summary>
@@ -63,7 +65,6 @@
         /// <param name="resourceId">The unique identifier of the resource to convert.</param>
         /// <param name="configuration">The configuration for the element link.</param>
         /// <returns>The converted <see cref="ElementResource"/>.</returns>
-        /// <exception cref="ResourceNotFoundException">Thrown when the resource with the specified identifier is not found.</exception>
         /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
         public ElementResource ConvertToElementResource(Guid resourceId, ResourceElementLinkConfiguration configuration)
         {
@@ -161,7 +162,6 @@
         /// </summary>
         /// <param name="resourceId">The unique identifier of the resource to convert.</param>
         /// <returns>The converted <see cref="UnmanagedResource"/>.</returns>
-        /// <exception cref="ResourceNotFoundException">Thrown when the resource with the specified identifier is not found.</exception>
         /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
         public UnmanagedResource ConvertToUnmanagedResource(Guid resourceId)
         {
@@ -211,7 +211,6 @@
         /// <param name="resourceId">The unique identifier of the resource to convert.</param>
         /// <param name="configuration">The configuration for the virtual function link.</param>
         /// <returns>The converted <see cref="VirtualFunctionResource"/>.</returns>
-        /// <exception cref="ResourceNotFoundException">Thrown when the resource with the specified identifier is not found.</exception>
         /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
         public VirtualFunctionResource ConvertToVirtualFunctionResource(Guid resourceId, ResourceVirtualFunctionLinkConfiguration configuration)
         {
@@ -232,8 +231,7 @@
         /// <returns>The total count of resources.</returns>
         public long Count()
         {
-            return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(
-                DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resource.Id));
+            return Count(new TRUEFilterElement<Resource>());
         }
 
         /// <summary>
@@ -244,7 +242,8 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public long Count(FilterElement<Resource> filter)
         {
-            throw new NotImplementedException();
+            var domFilter = filterTranslator.Translate(filter);
+            return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(domFilter);
         }
 
         /// <summary>
@@ -255,7 +254,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public long Count(IQuery<Resource> query)
         {
-            throw new NotImplementedException();
+            return Count(query.Filter);
         }
 
         /// <summary>
@@ -433,7 +432,7 @@
                 throw new ArgumentNullException(nameof(resourcePool));
             }
 
-            return Resource.InstantiateResources(PlanApi, PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcesByPool(resourcePool.Id));
+            return Read(ResourceExposers.ResourcePoolIds.Contains(resourcePool.Id));
         }
 
         /// <summary>
@@ -450,11 +449,7 @@
                 throw new ArgumentNullException(nameof(resourcePool));
             }
 
-            var filter = DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.Pool_Ids)
-                .Contains(Convert.ToString(resourcePool.Id))
-                .AND(DomInstanceExposers.StatusId.Equal(SlcResource_StudioIds.Behaviors.Resource_Behavior.Statuses.ToValue(EnumExtensions.MapEnum<ResourceState, SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum>(state))));
-
-            return Resource.InstantiateResources(PlanApi, PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(filter));
+            return Read(ResourceExposers.ResourcePoolIds.Contains(resourcePool.Id).AND(ResourceExposers.State.Equal((int)state)));
         }
 
         /// <summary>
@@ -619,12 +614,9 @@
             return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Read), act =>
             {
                 act?.AddTag("ResourceId", id);
-                var filter = DomInstanceExposers.DomDefinitionId.Equal(Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Definitions.Resource.Id)
-                        .AND(DomInstanceExposers.Id.Equal(id));
-                var domResource = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(filter)
-                    .FirstOrDefault();
+                var resource = Read(ResourceExposers.Id.Equal(id)).FirstOrDefault();
 
-                if (domResource == null)
+                if (resource == null)
                 {
                     act?.AddTag("Hit", false);
                     return null;
@@ -632,7 +624,7 @@
 
                 act?.AddTag("Hit", true);
 
-                return Resource.InstantiateResources(PlanApi, [domResource]).FirstOrDefault();
+                return resource;
             });
         }
 
@@ -665,11 +657,7 @@
         /// <returns>An enumerable collection of all resources.</returns>
         public IEnumerable<Resource> Read()
         {
-            return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Read), act =>
-            {
-                var filter = DomInstanceExposers.DomDefinitionId.Equal(Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Definitions.Resource.Id);
-                return Resource.InstantiateResources(PlanApi, PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(filter));
-            });
+            return Read(new TRUEFilterElement<Resource>());
         }
 
         /// <summary>
@@ -680,7 +668,11 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<Resource> Read(FilterElement<Resource> filter)
         {
-            throw new NotImplementedException();
+            return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Read), act =>
+            {
+                var domFilter = filterTranslator.Translate(filter);
+                return Resource.InstantiateResources(PlanApi, PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(domFilter));
+            });
         }
 
         /// <summary>
@@ -691,17 +683,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<Resource> Read(IQuery<Resource> query)
         {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Reads all resources in pages.
-        /// </summary>
-        /// <returns>An enumerable collection of pages, where each page contains a collection of resources.</returns>
-        public IEnumerable<IEnumerable<Resource>> ReadPaged()
-        {
-            return PlanApi.DomHelpers.SlcResourceStudioHelper.GetAllResourcesPaged()
-                .Select(page => Resource.InstantiateResources(PlanApi, page));
+            return Read(query.Filter);
         }
 
         /// <summary>
@@ -711,7 +693,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         IEnumerable<IPagedResult<Resource>> IPageableRepository<Resource>.ReadPaged()
         {
-            throw new NotImplementedException();
+            return ReadPaged(new TRUEFilterElement<Resource>());
         }
 
         /// <summary>
@@ -722,7 +704,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Resource>> ReadPaged(FilterElement<Resource> filter)
         {
-            throw new NotImplementedException();
+            return ReadPaged(filter, MediaOpsPlanApi.DefaultPageSize);
         }
 
         /// <summary>
@@ -733,7 +715,7 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Resource>> ReadPaged(IQuery<Resource> query)
         {
-            throw new NotImplementedException();
+            return ReadPaged(query.Filter);
         }
 
         /// <summary>
@@ -745,7 +727,18 @@
         /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Resource>> ReadPaged(FilterElement<Resource> filter, int pageSize)
         {
-            throw new NotImplementedException();
+            var pageNumber = 0;
+            var paramFilter = filterTranslator.Translate(filter);
+            var items = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcesPaged(paramFilter, pageSize);
+            var enumerator = items.GetEnumerator();
+            var hasNext = enumerator.MoveNext();
+
+            while (hasNext)
+            {
+                var page = enumerator.Current;
+                hasNext = enumerator.MoveNext();
+                yield return new PagedResult<Resource>(Resource.InstantiateResources(PlanApi, page), pageNumber++, pageSize, hasNext);
+            }
         }
 
         /// <summary>

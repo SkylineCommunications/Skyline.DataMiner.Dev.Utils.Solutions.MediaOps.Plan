@@ -14,7 +14,7 @@
     [TestClass]
     [TestCategory("IntegrationTest")]
     [DoNotParallelize]
-    public sealed class BasicTests
+    public sealed class BasicTests : IDisposable
     {
         private readonly ResourceStudioObjectCreator objectCreator;
 

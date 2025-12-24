@@ -41,9 +41,9 @@
         {
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
 
-            lazyCoreCapabilitiesById = new Lazy<Dictionary<Guid, Net.Profiles.Parameter>>(() => planApi.CoreHelpers.ProfileProvider.GetAllCapabilities().ToDictionary(x => x.ID));
-            lazyCoreTimeDependentCapabilitiesById = new Lazy<Dictionary<Guid, Net.Profiles.Parameter>>(() => planApi.CoreHelpers.ProfileProvider.GetAllTimeDependentCapabilities().ToDictionary(x => x.ID));
-            lazyCoreCapacitiesById = new Lazy<Dictionary<Guid, Net.Profiles.Parameter>>(() => planApi.CoreHelpers.ProfileProvider.GetAllCapacities().ToDictionary(x => x.ID));
+            lazyCoreCapabilitiesById = new Lazy<Dictionary<Guid, Net.Profiles.Parameter>>(() => planApi.CoreHelpers.ProfileProvider.GetCapabilities(new TRUEFilterElement<Net.Profiles.Parameter>()).ToDictionary(x => x.ID));
+            lazyCoreTimeDependentCapabilitiesById = new Lazy<Dictionary<Guid, Net.Profiles.Parameter>>(() => planApi.CoreHelpers.ProfileProvider.GetTimeDependentCapabilities(new TRUEFilterElement<Net.Profiles.Parameter>()).ToDictionary(x => x.ID));
+            lazyCoreCapacitiesById = new Lazy<Dictionary<Guid, Net.Profiles.Parameter>>(() => planApi.CoreHelpers.ProfileProvider.GetCapacities(new TRUEFilterElement<Net.Profiles.Parameter>()).ToDictionary(x => x.ID));
             lazyCapabilitiesHandler = new Lazy<DomCapabilitiesHandler>(() => new DomCapabilitiesHandler(planApi));
 
             typeSyncers = new Dictionary<Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type, Func<DomResource, CoreResource, bool>>

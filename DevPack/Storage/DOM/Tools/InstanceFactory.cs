@@ -45,8 +45,32 @@
             return CreateInstancesIterator(domInstances, createInstance);
         }
 
-        public static IEnumerable<T> ReadAndCreateInstances<T>(DomHelper domHelper, FilterElement<DomInstance> filter, Func<DomInstance, T> createInstance)
+        public static IEnumerable<IEnumerable<T>> CreateInstances<T>(IEnumerable<IEnumerable<DomInstance>> pages, Func<DomInstance, T> createInstance)
             where T : DomInstanceBase
+        {
+            if (pages == null)
+            {
+                throw new ArgumentNullException(nameof(pages));
+            }
+
+            if (createInstance == null)
+            {
+                throw new ArgumentNullException(nameof(createInstance));
+            }
+
+            return CreateInstancesPagedIterator(pages, createInstance);
+        }
+
+        private static IEnumerable<IEnumerable<T>> CreateInstancesPagedIterator<T>(IEnumerable<IEnumerable<DomInstance>> pages, Func<DomInstance, T> createInstance) where T : DomInstanceBase
+        {
+            foreach (var page in pages)
+            {
+                yield return CreateInstancesIterator(page, createInstance);
+            }
+        }
+
+        public static IEnumerable<T> ReadAndCreateInstances<T>(DomHelper domHelper, FilterElement<DomInstance> filter, Func<DomInstance, T> createInstance)
+                            where T : DomInstanceBase
         {
             if (domHelper == null)
             {

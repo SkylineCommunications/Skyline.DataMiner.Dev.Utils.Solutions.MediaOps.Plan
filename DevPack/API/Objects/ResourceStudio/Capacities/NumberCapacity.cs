@@ -2,8 +2,6 @@
 {
     using System;
 
-    using Skyline.DataMiner.Net.Profiles;
-
     using CoreParameter = Net.Profiles.Parameter;
 
     /// <summary>
@@ -30,20 +28,7 @@
         {
         }
 
-        internal override CoreParameter GetParameterWithChanges()
-        {
-            var updatedParameter = IsNew ? new CoreParameter(Id) { Categories = ProfileParameterCategory.Capacity, Type = CoreParameter.ParameterType.Number } : new CoreParameter(CoreParameter) { Categories = ProfileParameterCategory.Capacity };
-
-            updatedParameter.Name = Name;
-            updatedParameter.IsOptional = !IsMandatory;
-
-            updatedParameter.Units = !string.IsNullOrEmpty(units) ? units : null;
-            updatedParameter.RangeMin = rangeMin.HasValue ? (double)rangeMin.Value : double.NaN;
-            updatedParameter.RangeMax = rangeMax.HasValue ? (double)rangeMax.Value : double.NaN;
-            updatedParameter.Stepsize = stepSize.HasValue ? (double)stepSize.Value : double.NaN;
-            updatedParameter.Decimals = decimals.HasValue ? decimals.Value : int.MaxValue;
-
-            return updatedParameter;
-        }
+        /// <inheritdoc/>
+        protected internal override CoreParameter.ParameterType ParameterType => CoreParameter.ParameterType.Number;
     }
 }
