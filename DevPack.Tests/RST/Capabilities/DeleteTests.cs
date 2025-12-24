@@ -5,7 +5,6 @@
 
     using RT_MediaOps.Plan.RegressionTests;
 
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
     [TestClass]

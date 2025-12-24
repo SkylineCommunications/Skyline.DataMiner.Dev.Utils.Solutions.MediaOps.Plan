@@ -158,8 +158,8 @@
 
             ValidateCapabilitiesAreNotInUse(apiCapabilities.Except(newCapabilities).ToList());
 
-            var validCapabilities = apiCapabilities.Where(IsValid).ToList();
-            var lockResult = planApi.LockManager.LockAndExecute(validCapabilities, DeleteCoreCapabilities);
+            var CapabilitiesToDelete = apiCapabilities.Where(IsValid).ToList();
+            var lockResult = planApi.LockManager.LockAndExecute(CapabilitiesToDelete, DeleteCoreCapabilities);
             ReportError(lockResult);
         }
 
