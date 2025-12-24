@@ -58,7 +58,7 @@
         /// <summary>
         /// Provides exposers for querying and filtering linked resource pools.
         /// </summary>
-        public static partial class LinkedResourcePools
+        public static class LinkedResourcePools
         {
             /// <summary>
             /// Gets a dynamic list exposer for linked resource pool IDs.
@@ -74,7 +74,7 @@
         /// <summary>
         /// Provides exposers for querying and filtering resource pool capabilities.
         /// </summary>
-        public static partial class Capabilities
+        public static class Capabilities
         {
             /// <summary>
             /// Gets a dynamic list exposer for capability IDs.

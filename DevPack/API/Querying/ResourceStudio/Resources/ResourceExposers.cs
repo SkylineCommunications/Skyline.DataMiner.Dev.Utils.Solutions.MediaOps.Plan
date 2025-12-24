@@ -43,7 +43,7 @@
         /// <summary>
         /// Provides exposers for querying and filtering resource capabilities.
         /// </summary>
-        public static partial class Capabilities
+        public static class Capabilities
         {
             /// <summary>
             /// Gets a dynamic list exposer for capability IDs.
@@ -59,7 +59,7 @@
         /// <summary>
         /// Provides exposers for querying and filtering resource capacities.
         /// </summary>
-        public static partial class Capacities
+        public static class Capacities
         {
             /// <summary>
             /// Gets a dynamic list exposer for capacity IDs.
@@ -70,7 +70,7 @@
         /// <summary>
         /// Provides exposers for querying and filtering resource properties.
         /// </summary>
-        public static partial class Properties
+        public static class Properties
         {
             /// <summary>
             /// Gets a dynamic list exposer for property IDs.
