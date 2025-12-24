@@ -11,11 +11,11 @@
     [TestCategory("IntegrationTest")]
     public sealed class DeleteTests : IDisposable
     {
-        private readonly ResourceStudioObjectCreator objectCreator;
+        private readonly TestObjectCreator objectCreator;
 
         public DeleteTests()
         {
-            objectCreator = new ResourceStudioObjectCreator(TestContext.Api);
+            objectCreator = new TestObjectCreator(TestContext);
         }
 
         private static IntegrationTestContext TestContext => TestContextManager.SharedTestContext;
