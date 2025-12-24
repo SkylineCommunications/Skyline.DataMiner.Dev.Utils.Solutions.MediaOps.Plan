@@ -142,6 +142,8 @@
             var toUpdateNameValidation = resourcePoolsToUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcResource_StudioIds.Sections.ResourcePoolInfo.Name.Id))).ToList();
             ValidateDomNames(resourcePoolsToCreate.Concat(toUpdateNameValidation).ToList());
 
+            ValidateCategories(resourcePools.Where(IsValid).ToList());
+
             var toCreateDomInstances = resourcePoolsToCreate
                 .Where(IsValid)
                 .Select(x => x.GetInstanceWithChanges())
@@ -870,6 +872,59 @@
                             ReportError(pool.Id, error);
                         }
                     }
+                }
+            }
+        }
+
+        private void ValidateCategories(ICollection<ResourcePool> apiResourcePools)
+        {
+            if (apiResourcePools == null)
+            {
+                throw new ArgumentNullException(nameof(apiResourcePools));
+            }
+
+            if (apiResourcePools.Count == 0 || apiResourcePools.All(x => x.CategoryId == null))
+            {
+                return;
+            }
+
+            var resourcePoolScope = planApi.Categories.Scopes.Read("Resource Pools");
+            if (resourcePoolScope == null)
+            {
+                foreach (var pool in apiResourcePools)
+                {
+                    if (pool.CategoryId != null)
+                    {
+                        var error = new ResourcePoolCategoryScopeNotFoundError
+                        {
+                            ErrorMessage = "Category scope 'Resource Pools' could not found.",
+                        };
+
+                        ReportError(pool.Id, error);
+                    }
+                }
+
+                return;
+            }
+
+            var categoryIds = Enumerable.ToHashSet(planApi.Categories.Categories.GetByScope(resourcePoolScope).Select(x => x.ID.ToString()));
+
+            foreach (var pool in apiResourcePools)
+            {
+                if (pool.CategoryId == null)
+                {
+                    continue;
+                }
+
+                if (!categoryIds.Contains(pool.CategoryId))
+                {
+                    var error = new ResourcePoolCategoryNotFoundError
+                    {
+                        ErrorMessage = $"Category with ID '{pool.CategoryId}' could not found.",
+                        CategoryId = pool.CategoryId,
+                    };
+
+                    ReportError(pool.Id, error);
                 }
             }
         }

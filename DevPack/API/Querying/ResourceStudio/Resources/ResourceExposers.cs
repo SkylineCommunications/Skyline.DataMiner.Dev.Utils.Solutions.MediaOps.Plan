@@ -36,9 +36,9 @@
         public static readonly Exposer<Resource, int> State = new Exposer<Resource, int>((obj) => (int)obj.State, "State");
 
         /// <summary>
-        /// Gets a dynamic list exposer for the <see cref="Resource.AssignedResourcePoolIds"/> property.
+        /// Gets a dynamic list exposer for the <see cref="Resource.ResourcePoolIds"/> property.
         /// </summary>
-        public static readonly DynamicListExposer<Resource, Guid> ResourcePoolIds = DynamicListExposer<Resource, Guid>.CreateFromListExposer(new Exposer<Resource, IEnumerable>((obj) => obj.AssignedResourcePoolIds.Where(x => x != null), "AssignedResourcePoolIds"));
+        public static readonly DynamicListExposer<Resource, Guid> ResourcePoolIds = DynamicListExposer<Resource, Guid>.CreateFromListExposer(new Exposer<Resource, IEnumerable>((obj) => obj.ResourcePoolIds.Where(x => x != null), "ResourcePoolIds"));
 
         /// <summary>
         /// Provides exposers for querying and filtering resource capabilities.
