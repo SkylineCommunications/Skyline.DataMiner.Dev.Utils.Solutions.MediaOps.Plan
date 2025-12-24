@@ -3,13 +3,16 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-
+    using RT_MediaOps.Plan.RegressionTests;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+    using Skyline.DataMiner.Utils.Categories.API;
+    using Skyline.DataMiner.Utils.Categories.API.Objects;
 
-    internal class ResourceStudioObjectCreator : IDisposable
+    internal class TestObjectCreator : IDisposable
     {
         private readonly IMediaOpsPlanApi api;
+        private readonly CategoriesApi catagoriesApi;
 
         private readonly HashSet<Guid> createdPoolIds = new HashSet<Guid>();
 
@@ -23,9 +26,17 @@
 
         private readonly HashSet<Guid> createdPropertyIds = new HashSet<Guid>();
 
-        public ResourceStudioObjectCreator(IMediaOpsPlanApi api)
+        private readonly HashSet<Guid> createdCategoryIds = new HashSet<Guid>();
+
+        public TestObjectCreator(IntegrationTestContext testContext)
         {
-            this.api = api ?? throw new ArgumentNullException(nameof(api));
+            if (testContext == null)
+            {
+                throw new ArgumentNullException(nameof(testContext));
+            }
+
+            this.api = testContext.Api;
+            this.catagoriesApi = testContext.CategoriesApi;
         }
 
         public void Dispose()
@@ -78,6 +89,15 @@
             try
             {
                 PropertiesCleanup();
+            }
+            catch
+            {
+                // Ignore cleanup errors
+            }
+
+            try
+            {
+                CategoriesCleanup();
             }
             catch
             {
@@ -149,6 +169,12 @@
             var properties = api.Properties.Read(createdPropertyIds.ToArray());
 
             api.Properties.Delete(properties.ToArray());
+        }
+
+        private void CategoriesCleanup()
+        {
+            var categories = catagoriesApi.Categories.Read(createdCategoryIds.ToArray()).Values;
+            catagoriesApi.Categories.Delete(categories);
         }
 
         public void CreateResource(Resource resource)
@@ -317,6 +343,13 @@
 
                 throw;
             }
+        }
+
+        public Category CreateCategory(Category category)
+        {
+            category = catagoriesApi.Categories.Create(category);
+            createdCategoryIds.Add(category.ID);
+            return category;
         }
     }
 }

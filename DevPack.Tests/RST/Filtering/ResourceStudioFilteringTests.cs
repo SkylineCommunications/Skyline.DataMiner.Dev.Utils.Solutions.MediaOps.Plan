@@ -5,15 +5,13 @@
     using RT_MediaOps.Plan.RegressionTests;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
-    using Skyline.DataMiner.Net.Profiles;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
 
     [TestClass]
     [TestCategory("IntegrationTest")]
     public sealed class ResourceStudioFilteringTests
     {
-        private static ResourceStudioObjectCreator? objectCreator;
+        private static TestObjectCreator? objectCreator;
         private static ResourceFilteringSetup? setup;
 
         private static IntegrationTestContext TestContext => TestContextManager.SharedTestContext;
@@ -21,7 +19,7 @@
         [ClassInitialize]
         public static void ClassInitialize(TestContext _)
         {
-            objectCreator = new ResourceStudioObjectCreator(TestContext.Api);
+            objectCreator = new TestObjectCreator(TestContext);
             setup = new ResourceFilteringSetup(objectCreator, TestContext);
         }
 

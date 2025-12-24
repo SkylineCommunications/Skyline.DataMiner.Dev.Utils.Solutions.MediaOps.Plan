@@ -46,6 +46,16 @@
         public static readonly Exposer<ResourcePool, bool> HasUrl = new Exposer<ResourcePool, bool>("HasUrl");
 
         /// <summary>
+        /// Gets an exposer for the <see cref="ResourcePool.CategoryId"/> property.
+        /// </summary>
+        public static readonly Exposer<ResourcePool, string> CategoryId = new Exposer<ResourcePool, string>((obj) => obj.CategoryId, "CategoryId");
+
+        /// <summary>
+        /// Gets an exposer for the <see cref="ResourcePool.CategoryId"/> property.
+        /// </summary>
+        public static readonly Exposer<ResourcePool, bool> HasCategory = new Exposer<ResourcePool, bool>("HasCategory");
+
+        /// <summary>
         /// Provides exposers for querying and filtering linked resource pools.
         /// </summary>
         public static partial class LinkedResourcePools
