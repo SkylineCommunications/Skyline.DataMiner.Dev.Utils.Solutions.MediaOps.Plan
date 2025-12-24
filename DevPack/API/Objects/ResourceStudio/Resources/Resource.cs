@@ -36,7 +36,7 @@
 
         private Guid virtualSignalGroupOutputId;
 
-        private HashSet<Guid> assignedPoolIds = new HashSet<Guid>();
+        private HashSet<Guid> resourcePoolIds = new HashSet<Guid>();
 
         private readonly List<ResourceCapabilitySetting> capabilitySettings = [];
 
@@ -152,7 +152,7 @@
         /// <summary>
         /// Gets the collection of resource pool identifiers assigned to the resource.
         /// </summary>
-        public IReadOnlyCollection<Guid> AssignedResourcePoolIds => assignedPoolIds;
+        public IReadOnlyCollection<Guid> ResourcePoolIds => resourcePoolIds;
 
         /// <summary>
         /// Gets the collection of capabilities assigned to this resource.
@@ -224,7 +224,7 @@
                 throw new ArgumentException(nameof(resourcePoolId));
             }
 
-            assignedPoolIds.Add(resourcePoolId);
+            resourcePoolIds.Add(resourcePoolId);
             HasChanges = true;
 
             return this;
@@ -269,7 +269,7 @@
                 throw new ArgumentException("The collection contains an empty resource pool ID.", nameof(resourcePoolIds));
             }
 
-            assignedPoolIds = new HashSet<Guid>(resourcePoolIds);
+            this.resourcePoolIds = new HashSet<Guid>(resourcePoolIds);
             HasChanges = true;
 
             return this;
@@ -303,7 +303,7 @@
                 throw new ArgumentException(nameof(resourcePoolId));
             }
 
-            if (assignedPoolIds.Remove(resourcePoolId))
+            if (resourcePoolIds.Remove(resourcePoolId))
             {
                 HasChanges = true;
             }
@@ -504,7 +504,7 @@
             updatedInstance.ResourceInfo.Name = name;
             updatedInstance.ResourceInfo.Favorite = isFavorite;
             updatedInstance.ResourceInfo.Concurrency = concurrency;
-            updatedInstance.ResourceInternalProperties.PoolIds = assignedPoolIds.ToList();
+            updatedInstance.ResourceInternalProperties.PoolIds = resourcePoolIds.ToList();
             updatedInstance.ResourceOther.IconImage = iconImage;
             updatedInstance.ResourceOther.URL = url;
 
@@ -575,7 +575,7 @@
             name = instance.ResourceInfo.Name;
             isFavorite = instance.ResourceInfo.Favorite ?? false;
             concurrency = instance.ResourceInfo.Concurrency.HasValue ? (int)instance.ResourceInfo.Concurrency.Value : 1;
-            assignedPoolIds = new HashSet<Guid>(instance.ResourceInternalProperties.PoolIds);
+            resourcePoolIds = new HashSet<Guid>(instance.ResourceInternalProperties.PoolIds);
             coreResourceId = instance.ResourceInternalProperties.Resource_Id ?? Guid.Empty;
             isExternallyManaged = instance.ExternalMetadata?.ExternallyManaged ?? false;
             iconImage = instance.ResourceOther.IconImage;
