@@ -16,11 +16,11 @@
     [TestCategory("IntegrationTest")]
     public sealed class CapabilityAssignmentTests : IDisposable
     {
-        private readonly ResourceStudioObjectCreator objectCreator;
+        private readonly TestObjectCreator objectCreator;
 
         public CapabilityAssignmentTests()
         {
-            objectCreator = new ResourceStudioObjectCreator(TestContext.Api);
+            objectCreator = new TestObjectCreator(TestContext);
         }
 
         private static IntegrationTestContext TestContext => TestContextManager.SharedTestContext;

@@ -12,6 +12,7 @@
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Logger;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
+    using Skyline.DataMiner.Utils.Categories.API;
 
     /// <summary>
     /// Provides the main entry point for interacting with the MediaOps Plan API.
@@ -34,6 +35,7 @@
         private readonly Lazy<IConfigurationsRepository> lazyConfigurationsRepository;
         private readonly Lazy<IResourcePropertiesRepository> lazyResourcePropertiesRepository;
         private readonly Lazy<Plan.Tools.LockManager> lazyLockManager;
+        private readonly Lazy<CategoriesApi> lazyCategoriesApi;
         private bool disposedValue;
 
         internal static readonly int DefaultPageSize = 200;
@@ -51,7 +53,7 @@
 
             domHelpers = new DomHelpers(connection);
             coreHelpers = new CoreHelpers(connection);
-            
+
             lazyDms = new Lazy<IDms>(() => connection.GetDms());
             lazyLiveApi = new Lazy<MediaOpsLiveApi>(() => connection.GetMediaOpsLiveApi());
             lazyResourceRepository = new Lazy<IResourcesRepository>(() => new ResourcesRepository(this));
@@ -61,6 +63,7 @@
             lazyConfigurationsRepository = new Lazy<IConfigurationsRepository>(() => new ConfigurationsRepository(this));
             lazyResourcePropertiesRepository = new Lazy<IResourcePropertiesRepository>(() => new ResourcePropertiesRepository(this));
             lazyLockManager = new Lazy<Plan.Tools.LockManager>(() => new Plan.Tools.LockManager(this));
+            lazyCategoriesApi = new Lazy<CategoriesApi>(() => new CategoriesApi(connection));
         }
 
         /// <summary>
@@ -108,6 +111,8 @@
         internal MediaOpsLiveApi LiveApi => lazyLiveApi.Value;
 
         internal Plan.Tools.LockManager LockManager => lazyLockManager.Value;
+
+        internal CategoriesApi Categories => lazyCategoriesApi.Value;
 
         /// <summary>
         /// Releases the resources used by the current instance of the class.

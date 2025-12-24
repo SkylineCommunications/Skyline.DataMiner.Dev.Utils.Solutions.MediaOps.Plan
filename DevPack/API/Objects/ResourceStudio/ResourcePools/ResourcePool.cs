@@ -13,23 +13,17 @@
     /// </summary>
     public class ResourcePool : ApiObject
     {
-        // Todo: add domain property?
-        private StorageResourceStudio.ResourcepoolInstance originalInstance;
+        private readonly List<LinkedResourcePool> linkedResourcepools = [];
+        private readonly List<ResourcePoolCapabilitySetting> capabilitySettings = [];
 
+        private StorageResourceStudio.ResourcepoolInstance originalInstance;
         private StorageResourceStudio.ResourcepoolInstance updatedInstance;
 
         private string name;
-
         private bool isExternallyManaged;
-
         private string iconImage;
-
         private string url;
-
-        private readonly List<LinkedResourcePool> linkedResourcepools = [];
-
-        private readonly List<ResourcePoolCapabilitySetting> capabilitySettings = [];
-
+        private string categoryId;
         private Guid coreResourcePoolId;
 
         /// <summary>
@@ -109,6 +103,19 @@
             {
                 HasChanges = true;
                 url = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the unique identifier of the associated category.
+        /// </summary>
+        public string CategoryId
+        {
+            get => categoryId;
+            set
+            {
+                HasChanges = true;
+                categoryId = value;
             }
         }
 
@@ -245,6 +252,7 @@
             }
 
             updatedInstance.ResourcePoolInfo.Name = Name;
+            updatedInstance.ResourcePoolInfo.Category = categoryId;
             updatedInstance.ResourcePoolOther.IconImage = iconImage;
             updatedInstance.ResourcePoolOther.URL = url;
 
@@ -271,6 +279,7 @@
             this.originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
 
             name = instance.ResourcePoolInfo.Name;
+            categoryId = instance.ResourcePoolInfo.Category;
             isExternallyManaged = instance.ExternalMetadata?.ExternallyManaged ?? false;
             State = EnumExtensions.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.StatusesEnum, ResourcePoolState>(instance.Status);
             coreResourcePoolId = instance.ResourcePoolInternalProperties.ResourcePoolId;

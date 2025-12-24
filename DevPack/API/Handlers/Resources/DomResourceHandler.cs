@@ -647,7 +647,7 @@
             }
 
             var poolIds = apiResources
-                .SelectMany(x => x.AssignedResourcePoolIds)
+                .SelectMany(x => x.ResourcePoolIds)
                 .Distinct()
                 .ToList();
             resourcePoolsById = planApi.ResourcePools.Read(poolIds).ToDictionary(x => x.Id);
@@ -656,7 +656,7 @@
             {
                 var hasError = false;
 
-                foreach (var poolId in resource.AssignedResourcePoolIds)
+                foreach (var poolId in resource.ResourcePoolIds)
                 {
                     if (!resourcePoolsById.TryGetValue(poolId, out _))
                     {

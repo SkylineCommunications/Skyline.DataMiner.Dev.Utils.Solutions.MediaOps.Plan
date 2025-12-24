@@ -9,11 +9,11 @@
     [TestCategory("IntegrationTest")]
     public sealed class ResourceAssignmentTests : IDisposable
     {
-        private readonly ResourceStudioObjectCreator objectCreator;
+        private readonly TestObjectCreator objectCreator;
 
         public ResourceAssignmentTests()
         {
-            objectCreator = new ResourceStudioObjectCreator(TestContext.Api);
+            objectCreator = new TestObjectCreator(TestContext);
         }
 
         private static IntegrationTestContext TestContext => TestContextManager.SharedTestContext;
@@ -55,8 +55,8 @@
             resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).ToList();
             foreach (var resource in resources)
             {
-                Assert.AreEqual(1, resource.AssignedResourcePoolIds.Count);
-                Assert.IsTrue(resource.AssignedResourcePoolIds.Contains(resourcePool.Id));
+                Assert.AreEqual(1, resource.ResourcePoolIds.Count);
+                Assert.IsTrue(resource.ResourcePoolIds.Contains(resourcePool.Id));
                 Assert.AreEqual(Guid.Empty, resource.CoreResourceId);
             }
 
@@ -69,13 +69,13 @@
             {
                 if (resourceIndex == 0)
                 {
-                    Assert.AreEqual(1, resource.AssignedResourcePoolIds.Count);
-                    Assert.IsTrue(resource.AssignedResourcePoolIds.Contains(resourcePool.Id));
+                    Assert.AreEqual(1, resource.ResourcePoolIds.Count);
+                    Assert.IsTrue(resource.ResourcePoolIds.Contains(resourcePool.Id));
                 }
                 else
                 {
-                    Assert.AreEqual(0, resource.AssignedResourcePoolIds.Count);
-                    Assert.IsFalse(resource.AssignedResourcePoolIds.Contains(resourcePool.Id));
+                    Assert.AreEqual(0, resource.ResourcePoolIds.Count);
+                    Assert.IsFalse(resource.ResourcePoolIds.Contains(resourcePool.Id));
                 }
 
                 Assert.AreEqual(Guid.Empty, resource.CoreResourceId);

@@ -10,11 +10,11 @@
     [TestCategory("IntegrationTest")]
     public sealed class BasicTests : IDisposable
     {
-        private readonly ResourceStudioObjectCreator objectCreator;
+        private readonly TestObjectCreator objectCreator;
 
         public BasicTests()
         {
-            objectCreator = new ResourceStudioObjectCreator(TestContext.Api);
+            objectCreator = new TestObjectCreator(TestContext);
         }
 
         private static IntegrationTestContext TestContext => TestContextManager.SharedTestContext;

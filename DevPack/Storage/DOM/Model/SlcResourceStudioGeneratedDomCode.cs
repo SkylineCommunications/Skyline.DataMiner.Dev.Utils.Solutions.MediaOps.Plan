@@ -8,7 +8,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
 {
     using System;
     using System.ComponentModel;
-
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Sections;
 
@@ -110,6 +109,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
                 { ModuleId = "(slc)resource_studio" };
                 public static FieldDescriptorID Name { get; } = new FieldDescriptorID(new Guid("2cebe78f-be32-455d-8daf-86f815aa3b82"));
                 public static FieldDescriptorID Domain { get; } = new FieldDescriptorID(new Guid("7d851fc5-7804-48e8-b6fd-286b3f33602f"));
+                public static FieldDescriptorID Category { get; } = new FieldDescriptorID(new Guid("9b535736-1fcb-4fec-acfc-dd8570eb5016"));
             }
 
             public static class Errors
@@ -526,10 +526,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
     using System;
     using System.Collections.Generic;
     using System.Linq;
-
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 
     /// <summary>
     /// Represents a wrapper class for accessing a ResourcepropertyInstance DOM instance.
@@ -1289,7 +1287,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.Linq;
-
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Apps.Sections.Sections;
     using Skyline.DataMiner.Net.Messages;
@@ -2656,6 +2653,49 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
                 else
                 {
                     section.AddOrUpdateValue(SlcResource_StudioIds.Sections.ResourcePoolInfo.Domain, (Guid)value);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the Category field of the DOM Instance.
+        /// </summary>
+        /// <remarks>
+        /// When retrieving the value:
+        /// <list type="bullet">
+        /// <item>If the field has been set, it will return the value.</item>
+        /// <item>If the field is not set it will return <see langword="null"/>.</item>
+        /// </list>
+        /// When setting the value:
+        /// <list type="bullet">
+        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+        /// </list>
+        /// </remarks>
+        public String Category
+        {
+            get
+            {
+                var wrapper = section.GetValue<String>(SlcResource_StudioIds.Sections.ResourcePoolInfo.Category);
+                if (wrapper != null)
+                {
+                    return (String)wrapper.Value;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+
+            set
+            {
+                if (value == null)
+                {
+                    section.RemoveFieldValueById(SlcResource_StudioIds.Sections.ResourcePoolInfo.Category);
+                }
+                else
+                {
+                    section.AddOrUpdateValue(SlcResource_StudioIds.Sections.ResourcePoolInfo.Category, (String)value);
                 }
             }
         }
