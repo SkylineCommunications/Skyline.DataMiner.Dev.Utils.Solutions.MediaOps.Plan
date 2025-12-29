@@ -94,6 +94,22 @@
         }
 
         /// <summary>
+        /// Determines whether the specified object is equal to the current Parameter instance.
+        /// </summary>
+        /// <param name="obj">The object to compare with the current Parameter instance.</param>
+        /// <returns>true if the specified object is a Parameter and has the same Id, Name, and IsMandatory values as the current
+        /// instance; otherwise, false.</returns>
+        public override bool Equals(object obj)
+        {
+            if (obj is not Parameter other)
+                return false;
+
+            return Id == other.Id &&
+                   Name == other.Name &&
+                   IsMandatory == other.IsMandatory;
+        }
+
+        /// <summary>
         /// Parses the specified parameter and applies any necessary transformations or validations.
         /// </summary>
         /// <remarks>This method is intended to be implemented by derived classes to handle

@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using Skyline.DataMiner.Net.Messages;
 
     /// <summary>
     /// Represents a configurable set of discrete values associated with a specific capability.
@@ -128,13 +129,29 @@
                 int hash = 17;
                 hash = (hash * 23) + Id.GetHashCode();
                 hash = (hash * 23) + (OriginalSection != null ? OriginalSection.ID.Id.GetHashCode() : 0);
-                foreach (var discreet in discretes.OrderBy(x => x))
+                foreach (var discreet in discretes.OrderBy(x => x).ToArray())
                 {
                     hash = (hash * 23) + (discreet != null ? discreet.GetHashCode() : 0);
                 }
 
                 return hash;
             }
+        }
+
+        /// <summary>
+        /// Determines whether the specified object is equal to the current CapabilitySetting instance.
+        /// </summary>
+        /// <param name="obj">The object to compare with the current CapabilitySetting instance.</param>
+        /// <returns>true if the specified object is a CapabilitySetting and has the same Id and discrete values as the current
+        /// instance; otherwise, false.</returns>
+        public override bool Equals(object obj)
+        {
+            if (obj is not CapabilitySetting other)
+            {
+                return false;
+            }
+
+            return Id == other.Id && discretes.SetEquals(other.discretes);
         }
     }
 }

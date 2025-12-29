@@ -461,28 +461,97 @@
                 hash = (hash * 23) + VirtualSignalGroupInputId.GetHashCode();
                 hash = (hash * 23) + VirtualSignalGroupOutputId.GetHashCode();
 
-                foreach (var poolId in ResourcePoolIds.OrderBy(x => x))
+                foreach (var poolId in ResourcePoolIds.OrderBy(x => x).ToArray())
                 {
                     hash = (hash * 23) + poolId.GetHashCode();
                 }
 
-                foreach (var setting in Capabilities.OrderBy(x => x.Id))
+                foreach (var setting in Capabilities.OrderBy(x => x.Id).ToArray())
                 {
                     hash = (hash * 23) + setting.GetHashCode();
                 }
 
-                foreach (var setting in Capacities.OrderBy(x => x.Id))
+                foreach (var setting in Capacities.OrderBy(x => x.Id).ToArray())
                 {
                     hash = (hash * 23) + setting.GetHashCode();
                 }
 
-                foreach (var setting in Properties.OrderBy(x => x.Id))
+                foreach (var setting in Properties.OrderBy(x => x.Id).ToArray())
                 {
                     hash = (hash * 23) + setting.GetHashCode();
                 }
 
                 return hash;
             }
+        }
+
+        /// <summary>
+        /// Determines whether the specified object is equal to the current Resource instance.
+        /// </summary>
+        /// <remarks>Equality is determined by comparing the values of all significant properties and
+        /// collections of the Resource. This method performs a deep comparison, including the contents of collections
+        /// such as Capabilities, Capacities, Properties, and resourcePoolIds.</remarks>
+        /// <param name="obj">The object to compare with the current Resource instance.</param>
+        /// <returns>true if the specified object is a Resource and has the same values for all relevant properties and
+        /// collections; otherwise, false.</returns>
+        public override bool Equals(object obj)
+        {
+            if (obj is not Resource other)
+            {
+                return false;
+            }
+
+            if (Id != other.Id ||
+                Name != other.Name ||
+                IsExternallyManaged != other.IsExternallyManaged ||
+                IconImage != other.IconImage ||
+                Url != other.Url ||
+                Concurrency != other.Concurrency ||
+                State != other.State ||
+                IsFavorite != other.IsFavorite ||
+                VirtualSignalGroupInputId != other.VirtualSignalGroupInputId ||
+                VirtualSignalGroupOutputId != other.VirtualSignalGroupOutputId)
+            {
+                return false;
+            }
+
+            if (!resourcePoolIds.SetEquals(other.resourcePoolIds))
+            {
+                return false;
+            }
+
+            if (Capabilities.Count != other.Capabilities.Count ||
+                Capacities.Count != other.Capacities.Count ||
+                Properties.Count != other.Properties.Count)
+            {
+                return false;
+            }
+
+            foreach (var capability in Capabilities)
+            {
+                if (!other.Capabilities.Contains(capability))
+                {
+                    return false;
+                }
+            }
+
+            foreach (var capacity in Capacities)
+            {
+                if (!other.Capacities.Contains(capacity))
+                {
+                    return false;
+                }
+            }
+
+            foreach (var property in Properties)
+            {
+                if (!other.Properties.Contains(property))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         internal abstract void ApplyChanges(StorageResourceStudio.ResourceInstance instance);

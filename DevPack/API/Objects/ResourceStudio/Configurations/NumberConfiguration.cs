@@ -128,6 +128,22 @@
             }
         }
 
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (obj is not NumberConfiguration other)
+            {
+                return false;
+            }
+
+            return base.Equals(other)
+                && string.Equals(Units, other.Units, StringComparison.Ordinal)
+                && RangeMin == other.RangeMin
+                && RangeMax == other.RangeMax
+                && StepSize == other.StepSize
+                && Decimals == other.Decimals;
+        }
+
         /// <summary>
         /// <inheritdoc/>
         /// </summary>

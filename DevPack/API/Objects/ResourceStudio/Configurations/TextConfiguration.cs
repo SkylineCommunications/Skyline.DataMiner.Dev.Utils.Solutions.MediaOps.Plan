@@ -59,6 +59,17 @@
             }
         }
 
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (obj is not TextConfiguration other)
+            {
+                return false;
+            }
+
+            return base.Equals(other) && DefaultValue == other.DefaultValue;
+        }
+
         /// <summary>
         /// <inheritdoc/>
         /// </summary>

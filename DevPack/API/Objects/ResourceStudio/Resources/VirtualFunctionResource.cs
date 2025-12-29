@@ -103,6 +103,26 @@
             }
         }
 
+        /// <summary>
+        /// Determines whether the specified object is equal to the current VirtualFunctionResource instance.
+        /// </summary>
+        /// <param name="obj">The object to compare with the current VirtualFunctionResource instance.</param>
+        /// <returns>true if the specified object is a VirtualFunctionResource and has the same values for all relevant fields;
+        /// otherwise, false.</returns>
+        public override bool Equals(object obj)
+        {
+            if (obj is not VirtualFunctionResource other)
+            {
+                return false;
+            }
+
+            return base.Equals(other)
+                   && agentId == other.agentId
+                   && elementId == other.elementId
+                   && functionId == other.functionId
+                   && functionTableIndex == other.functionTableIndex;
+        }
+
         internal override void ApplyChanges(StorageResourceStudio.ResourceInstance instance)
         {
             instance.ResourceInfo.Type = StorageResourceStudio.SlcResource_StudioIds.Enums.Type.VirtualFunction;

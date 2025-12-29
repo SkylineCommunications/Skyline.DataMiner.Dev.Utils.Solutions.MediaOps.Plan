@@ -62,6 +62,16 @@
             }
         }
 
+        public override bool Equals(object obj)
+        {
+            if (obj is not ResourceProperty other)
+            {
+                return false;
+            }
+
+            return Id == other.Id && Name == other.Name;
+        }
+
         internal StorageResourceStudio.ResourcepropertyInstance GetInstanceWithChanges()
         {
             if (updatedInstance == null)

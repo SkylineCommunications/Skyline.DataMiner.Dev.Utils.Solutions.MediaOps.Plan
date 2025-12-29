@@ -79,6 +79,22 @@
             }
         }
 
+        /// <summary>
+        /// Determines whether the specified object is equal to the current ResourcePropertySettings instance.
+        /// </summary>
+        /// <param name="obj">The object to compare with the current ResourcePropertySettings instance.</param>
+        /// <returns>true if the specified object is a ResourcePropertySettings instance and has the same Id and Value as the
+        /// current instance; otherwise, false.</returns>
+        public override bool Equals(object obj)
+        {
+            if (obj is not ResourcePropertySettings other)
+            {
+                return false;
+            }
+
+            return Id == other.Id && Value == other.Value;
+        }
+
         internal StorageResourceStudio.ResourcePropertiesSection GetSectionWithChanges()
         {
             if (updatedSection == null)

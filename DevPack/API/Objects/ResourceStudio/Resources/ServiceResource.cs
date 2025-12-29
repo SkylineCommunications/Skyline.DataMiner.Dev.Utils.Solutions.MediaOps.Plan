@@ -73,6 +73,24 @@
             }
         }
 
+        /// <summary>
+        /// Determines whether the specified object is equal to the current ServiceResource instance.
+        /// </summary>
+        /// <param name="obj">The object to compare with the current ServiceResource instance.</param>
+        /// <returns>true if the specified object is a ServiceResource and has the same values for all compared fields;
+        /// otherwise, false.</returns>
+        public override bool Equals(object obj)
+        {
+            if (obj is not ServiceResource other)
+            {
+                return false;
+            }
+
+            return base.Equals(other)
+                && agentId == other.agentId
+                && serviceId == other.serviceId;
+        }
+
         internal override void ApplyChanges(StorageResourceStudio.ResourceInstance instance)
         {
             instance.ResourceInfo.Type = StorageResourceStudio.SlcResource_StudioIds.Enums.Type.Service;

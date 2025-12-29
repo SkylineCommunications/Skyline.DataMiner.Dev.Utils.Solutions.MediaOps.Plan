@@ -129,13 +129,22 @@
             {
                 int hash = base.GetHashCode();
                 hash = (hash * 23) + IsTimeDependent.GetHashCode();
-                foreach (var discreet in discretes.OrderBy(x => x))
+                foreach (var discreet in discretes.OrderBy(x => x).ToArray())
                 {
                     hash = (hash * 23) + (discreet != null ? discreet.GetHashCode() : 0);
                 }
 
                 return hash;
             }
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (obj is not Capability other)
+                return false;
+
+            return base.Equals(other) && IsTimeDependent == other.IsTimeDependent && discretes.ScrambledEquals(other.discretes);
         }
 
         /// <summary>

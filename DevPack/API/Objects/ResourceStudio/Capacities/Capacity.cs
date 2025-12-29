@@ -129,6 +129,22 @@
             }
         }
 
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (obj is not Capacity other)
+            {
+                return false;
+            }
+
+            return base.Equals(other)
+                && Units == other.Units
+                && RangeMin == other.RangeMin
+                && RangeMax == other.RangeMax
+                && StepSize == other.StepSize
+                && Decimals == other.Decimals;
+        }
+
         /// <summary>
         /// <inheritdoc/>
         /// </summary>

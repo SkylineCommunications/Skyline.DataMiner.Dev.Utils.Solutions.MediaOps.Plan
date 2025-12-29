@@ -128,7 +128,7 @@
             {
                 int hash = base.GetHashCode();
                 hash = (hash * 23) + (DefaultValue != null ? DefaultValue.GetHashCode() : 0);
-                foreach (var discreet in discretes.OrderBy(x => x.Key))
+                foreach (var discreet in discretes.OrderBy(x => x.Key).ToArray())
                 {
                     hash = (hash * 23) + (discreet.Key != null ? discreet.Key.GetHashCode() : 0);
                     hash = (hash * 23) + (discreet.Value != null ? discreet.Value.GetHashCode() : 0);
@@ -136,6 +136,44 @@
 
                 return hash;
             }
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (obj is not DiscreteTextConfiguration other)
+            {
+                return false;
+            }
+
+            if (!base.Equals(other))
+            {
+                return false;
+            }
+
+            if (!String.Equals(DefaultValue, other.DefaultValue))
+            {
+                return false;
+            }
+
+            if (discretes.Count != other.discretes.Count)
+            {
+                return false;
+            }
+
+            foreach (var kvp in discretes)
+            {
+                if (!other.discretes.TryGetValue(kvp.Key, out var otherValue))
+                {
+                    return false;
+                }
+                if (!String.Equals(kvp.Value, otherValue))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>

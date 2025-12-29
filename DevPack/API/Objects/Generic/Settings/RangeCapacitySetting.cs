@@ -57,6 +57,19 @@
             }
         }
 
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (obj is not RangeCapacitySetting other)
+            {
+                return false;
+            }
+
+            return Id == other.Id &&
+                   minValue == other.minValue &&
+                   maxValue == other.maxValue;
+        }
+
         /// <summary>
         /// Gets or sets the minimum capacity value.
         /// </summary>

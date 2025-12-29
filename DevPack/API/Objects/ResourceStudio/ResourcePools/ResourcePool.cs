@@ -139,18 +139,36 @@
                 hash = (hash * 23) + (CategoryId != null ? CategoryId.GetHashCode() : 0);
                 hash = (hash * 23) + State.GetHashCode();
 
-                foreach (var linkedResourcePool in LinkedResourcePools.OrderBy(x => x.LinkedResourcePoolId))
+                foreach (var linkedResourcePool in LinkedResourcePools.OrderBy(x => x.LinkedResourcePoolId).ToArray())
                 {
                     hash = (hash * 23) + linkedResourcePool.GetHashCode();
                 }
 
-                foreach (var setting in Capabilities.OrderBy(x => x.Id))
+                foreach (var setting in Capabilities.OrderBy(x => x.Id).ToArray())
                 {
                     hash = (hash * 23) + setting.GetHashCode();
                 }
 
                 return hash;
             }
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is not ResourcePool other)
+            {
+                return false;
+            }
+
+            return Id == other.Id &&
+                   Name == other.Name &&
+                   IsExternallyManaged == other.IsExternallyManaged &&
+                   IconImage == other.IconImage &&
+                   Url == other.Url &&
+                   CategoryId == other.CategoryId &&
+                   State == other.State &&
+                   LinkedResourcePools.SequenceEqual(other.LinkedResourcePools) &&
+                   Capabilities.SequenceEqual(other.Capabilities);
         }
 
         internal Guid CoreResourcePoolId => coreResourcePoolId;

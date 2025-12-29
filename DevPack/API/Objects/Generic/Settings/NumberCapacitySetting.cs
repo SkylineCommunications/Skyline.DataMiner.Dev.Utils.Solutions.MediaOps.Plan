@@ -65,5 +65,16 @@
                 return hash;
             }
         }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (obj is not NumberCapacitySetting other)
+            {
+                return false;
+            }
+
+            return Id == other.Id && Value == other.Value;
+        }
     }
 }
