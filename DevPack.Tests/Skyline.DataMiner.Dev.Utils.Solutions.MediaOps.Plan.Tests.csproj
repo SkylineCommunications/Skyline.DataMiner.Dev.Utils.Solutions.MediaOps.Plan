@@ -10,6 +10,10 @@
     <RootNamespace>RT_MediaOps.Plan</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.1" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.1" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
