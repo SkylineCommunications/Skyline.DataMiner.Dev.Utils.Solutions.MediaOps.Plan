@@ -58,6 +58,7 @@
         /// Gets a read-only collection of discrete values.
         /// </summary>
         public IReadOnlyCollection<string> Discretes => discretes;
+
         /// <summary>
         /// Gets the category of the profile parameter, indicating its classification as a capability.
         /// </summary>

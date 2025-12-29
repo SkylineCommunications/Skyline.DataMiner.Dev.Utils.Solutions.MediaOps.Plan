@@ -1,8 +1,5 @@
 ﻿namespace RT_MediaOps.Plan.RegressionTests
 {
-    using System.Net;
-    using System.Reflection;
-    using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Skyline.DataMiner.Net;
