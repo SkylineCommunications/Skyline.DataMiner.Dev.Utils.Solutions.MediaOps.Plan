@@ -37,16 +37,16 @@
             var capacity1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity()
             {
                 Name = $"{prefix}_Capacity1",
-                rangeMin = 100,
-                rangeMax = 200,
-                stepSize = 5,
+                RangeMin = 100,
+                RangeMax = 200,
+                StepSize = 5,
             };
             objectCreator.CreateCapacity(capacity1);
 
             var capacity2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity()
             {
                 Name = $"{prefix}_Capacity2",
-                decimals = 3,
+                Decimals = 3,
             };
             objectCreator.CreateCapacity(capacity2);
 
@@ -121,16 +121,16 @@
             var capacity1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity()
             {
                 Name = $"{prefix}_Capacity1",
-                rangeMin = 100,
-                rangeMax = 200,
-                stepSize = 5,
+                RangeMin = 100,
+                RangeMax = 200,
+                StepSize = 5,
             };
             objectCreator.CreateCapacity(capacity1);
 
             var capacity2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity()
             {
                 Name = $"{prefix}_Capacity2",
-                decimals = 3,
+                Decimals = 3,
             };
             objectCreator.CreateCapacity(capacity2);
 
@@ -464,16 +464,16 @@
             var capacity1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity()
             {
                 Name = $"{prefix}_Capacity1",
-                rangeMin = 10,
-                rangeMax = 20,
+                RangeMin = 10,
+                RangeMax = 20,
             };
             objectCreator.CreateCapacity(capacity1);
 
             var capacity2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity()
             {
                 Name = $"{prefix}_Capacity2",
-                rangeMin = 10,
-                rangeMax = 20,
+                RangeMin = 10,
+                RangeMax = 20,
             };
             objectCreator.CreateCapacity(capacity2);
 
@@ -529,9 +529,9 @@
             var capacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity()
             {
                 Name = $"{prefix}_Capacity",
-                rangeMin = 10,
-                rangeMax = 20,
-                decimals = 3,
+                RangeMin = 10,
+                RangeMax = 20,
+                Decimals = 3,
             };
             objectCreator.CreateCapacity(capacity);
 
@@ -578,16 +578,16 @@
             var capacity1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity()
             {
                 Name = $"{prefix}_Capacity 1",
-                rangeMin = 10,
-                stepSize = 3,
+                RangeMin = 10,
+                StepSize = 3,
             };
             objectCreator.CreateCapacity(capacity1);
 
             var capacity2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity()
             {
                 Name = $"{prefix}_Capacity 2",
-                rangeMax = 20,
-                stepSize = 3,
+                RangeMax = 20,
+                StepSize = 3,
             };
             objectCreator.CreateCapacity(capacity2);
 
@@ -643,8 +643,8 @@
             var capacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.RangeCapacity()
             {
                 Name = $"{prefix}_Capacity",
-                rangeMin = 10,
-                rangeMax = 20,
+                RangeMin = 10,
+                RangeMax = 20,
             };
             objectCreator.CreateCapacity(capacity);
 
