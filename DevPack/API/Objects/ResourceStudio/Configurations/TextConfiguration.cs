@@ -32,6 +32,7 @@
         /// <param name="profile">The profile containing parameters used to configure the text settings.</param>
         internal TextConfiguration(Net.Profiles.Parameter profile) : base(profile)
         {
+            InitTracking();
         }
 
         /// <summary>
@@ -42,8 +43,19 @@
             get => defaultValue;
             set
             {
-                HasChanges = true;
                 defaultValue = value;
+            }
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = base.GetHashCode();
+                hash = (hash * 23) + (DefaultValue != null ? DefaultValue.GetHashCode() : 0);
+
+                return hash;
             }
         }
 

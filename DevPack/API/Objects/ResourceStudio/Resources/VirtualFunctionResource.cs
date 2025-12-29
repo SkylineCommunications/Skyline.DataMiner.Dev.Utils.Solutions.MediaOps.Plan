@@ -37,6 +37,7 @@
         internal VirtualFunctionResource(MediaOpsPlanApi planApi, StorageResourceStudio.ResourceInstance instance) : base(planApi, instance)
         {
             ParseInstance(instance);
+            InitTracking();
         }
 
         /// <summary>
@@ -47,7 +48,6 @@
             get => agentId;
             set
             {
-                HasChanges = true;
                 agentId = value;
             }
         }
@@ -60,7 +60,6 @@
             get => elementId;
             set
             {
-                HasChanges = true;
                 elementId = value;
             }
         }
@@ -73,7 +72,6 @@
             get => functionId;
             set
             {
-                HasChanges = true;
                 functionId = value;
             }
         }
@@ -86,8 +84,22 @@
             get => functionTableIndex;
             set
             {
-                HasChanges = true;
                 functionTableIndex = value;
+            }
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                var hash = base.GetHashCode();
+                hash = (hash * 23) + agentId.GetHashCode();
+                hash = (hash * 23) + elementId.GetHashCode();
+                hash = (hash * 23) + functionId.GetHashCode();
+                hash = (hash * 23) + (functionTableIndex != null ? functionTableIndex.GetHashCode() : 0);
+
+                return hash;
             }
         }
 

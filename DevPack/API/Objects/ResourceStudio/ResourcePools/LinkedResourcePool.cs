@@ -44,9 +44,8 @@
         internal LinkedResourcePool(StorageResourceStudio.ResourcePoolLinksSection section)
         {
             ParseSection(section);
+            InitTracking();
         }
-
-        internal EventHandler<EventArgs> ValueChanged;
 
         /// <summary>
         /// Gets the unique identifier of the linked resource pool.
@@ -61,13 +60,24 @@
             get => resourceSelectionType;
             set
             {
-                HasChanges = true;
-                ValueChanged?.Invoke(this, EventArgs.Empty);
                 resourceSelectionType = value;
             }
         }
 
         internal StorageResourceStudio.ResourcePoolLinksSection OriginalSection => originalSection;
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = 17;
+                hash = (hash * 23) + LinkedResourcePoolId.GetHashCode();
+                hash = (hash * 23) + resourceSelectionType.GetHashCode();
+                hash = (hash * 23) + (originalSection != null ? originalSection.ID.Id.GetHashCode() : 0);
+                return hash;
+            }
+        }
 
         internal StorageResourceStudio.ResourcePoolLinksSection GetSectionWithChanges()
         {

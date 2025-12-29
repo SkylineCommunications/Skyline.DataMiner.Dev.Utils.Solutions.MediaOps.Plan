@@ -39,6 +39,7 @@
         /// <param name="parameter">The core parameter used to initialize the capability. Must not be <see langword="null"/>.</param>
         internal protected Capability(CoreParameter parameter) : base(parameter)
         {
+            InitTracking();
         }
 
         /// <summary>
@@ -49,7 +50,6 @@
             get => isTimeDependent;
             set
             {
-                HasChanges = true;
                 isTimeDependent = value;
             }
         }
@@ -75,8 +75,7 @@
             if (option == null)
                 throw new ArgumentNullException(nameof(option));
 
-            if (discretes.Add(option))
-                HasChanges = true;
+            discretes.Add(option);
 
             return this;
         }
@@ -91,8 +90,7 @@
             if (option == null)
                 throw new ArgumentNullException(nameof(option));
 
-            if (discretes.Remove(option))
-                HasChanges = true;
+            discretes.Remove(option);
 
             return this;
         }
@@ -121,9 +119,23 @@
                 discretes.Add(option);
             }
 
-            HasChanges = true;
-
             return this;
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = base.GetHashCode();
+                hash = (hash * 23) + IsTimeDependent.GetHashCode();
+                foreach (var discreet in discretes.OrderBy(x => x))
+                {
+                    hash = (hash * 23) + (discreet != null ? discreet.GetHashCode() : 0);
+                }
+
+                return hash;
+            }
         }
 
         /// <summary>

@@ -7,8 +7,8 @@
     /// </summary>
     public class RangeCapacitySetting : CapacitySetting
     {
-       internal decimal minValue;
-       internal decimal maxValue;
+        internal decimal minValue;
+        internal decimal maxValue;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RangeCapacitySetting"/> class using the specified capacity.
@@ -39,6 +39,22 @@
         {
             minValue = rangeCapacitySetting.minValue;
             maxValue = rangeCapacitySetting.maxValue;
+            InitTracking();
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                var hash = 17;
+                hash = (hash * 23) + Id.GetHashCode();
+                hash = (hash * 23) + minValue.GetHashCode();
+                hash = (hash * 23) + maxValue.GetHashCode();
+                hash = (hash * 23) + (OriginalSection != null ? OriginalSection.ID.Id.GetHashCode() : 0);
+
+                return hash;
+            }
         }
 
         /// <summary>
@@ -50,8 +66,6 @@
             set
             {
                 minValue = value;
-                HasChanges = true;
-                ValueChanged?.Invoke(this, EventArgs.Empty);
             }
         }
 
@@ -64,8 +78,6 @@
             set
             {
                 maxValue = value;
-                HasChanges = true;
-                ValueChanged?.Invoke(this, EventArgs.Empty);
             }
         }
     }

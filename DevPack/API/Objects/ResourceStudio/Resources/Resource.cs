@@ -4,7 +4,6 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    using Skyline.DataMiner.Net.Sections;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
 
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
@@ -74,7 +73,6 @@
             get => name;
             set
             {
-                HasChanges |= !String.Equals(name, value);
                 name = value;
             }
         }
@@ -87,7 +85,6 @@
             get => isFavorite;
             set
             {
-                HasChanges |= isFavorite != value;
                 isFavorite = value;
             }
         }
@@ -100,7 +97,6 @@
             get => isExternallyManaged;
             set
             {
-                HasChanges |= isExternallyManaged != value;
                 isExternallyManaged = value;
             }
         }
@@ -113,7 +109,6 @@
             get => concurrency;
             set
             {
-                HasChanges |= concurrency != value;
                 concurrency = value;
             }
         }
@@ -131,7 +126,6 @@
             get => iconImage;
             set
             {
-                HasChanges = true;
                 iconImage = value;
             }
         }
@@ -144,7 +138,6 @@
             get => url;
             set
             {
-                HasChanges = true;
                 url = value;
             }
         }
@@ -177,7 +170,6 @@
             get => virtualSignalGroupInputId;
             set
             {
-                HasChanges |= virtualSignalGroupInputId != value;
                 virtualSignalGroupInputId = value;
             }
         }
@@ -190,7 +182,6 @@
             get => virtualSignalGroupOutputId;
             set
             {
-                HasChanges |= virtualSignalGroupOutputId != value;
                 virtualSignalGroupOutputId = value;
             }
 
@@ -225,8 +216,6 @@
             }
 
             resourcePoolIds.Add(resourcePoolId);
-            HasChanges = true;
-
             return this;
         }
 
@@ -270,8 +259,6 @@
             }
 
             this.resourcePoolIds = new HashSet<Guid>(resourcePoolIds);
-            HasChanges = true;
-
             return this;
         }
 
@@ -303,11 +290,7 @@
                 throw new ArgumentException(nameof(resourcePoolId));
             }
 
-            if (resourcePoolIds.Remove(resourcePoolId))
-            {
-                HasChanges = true;
-            }
-
+            resourcePoolIds.Remove(resourcePoolId);
             return this;
         }
 
@@ -324,8 +307,6 @@
             }
 
             capabilitySettings.Add(new ResourceCapabilitySetting(capabilitySetting));
-            HasChanges = true;
-
             return this;
         }
 
@@ -347,11 +328,12 @@
             }
 
             var toRemove = capabilitySettings.SingleOrDefault(x => x.OriginalSection.ID == capabilitySetting.OriginalSection.ID);
-            if (toRemove != null && capabilitySettings.Remove(toRemove))
+            if (toRemove == null)
             {
-                HasChanges = true;
+                return this;
             }
 
+            capabilitySettings.Remove(toRemove);
             return this;
         }
 
@@ -380,8 +362,6 @@
                 throw new ArgumentException("The capacity setting type is not supported.", nameof(capacitySetting));
             }
 
-            HasChanges = true;
-
             return this;
         }
 
@@ -405,19 +385,17 @@
             if (capacitySetting is NumberCapacitySetting)
             {
                 var toRemoveNumber = numberCapacitySettings.SingleOrDefault(x => x.OriginalSection.ID == capacitySetting.OriginalSection.ID);
-                if (toRemoveNumber != null && numberCapacitySettings.Remove(toRemoveNumber))
+                if (toRemoveNumber != null)
                 {
-                    HasChanges = true;
-                    return this;
+                    numberCapacitySettings.Remove(toRemoveNumber);
                 }
             }
             else if (capacitySetting is RangeCapacitySetting)
             {
                 var toRemoveRange = rangeCapacitySettings.SingleOrDefault(x => x.OriginalSection.ID == capacitySetting.OriginalSection.ID);
-                if (toRemoveRange != null && rangeCapacitySettings.Remove(toRemoveRange))
+                if (toRemoveRange != null)
                 {
-                    HasChanges = true;
-                    return this;
+                    rangeCapacitySettings.Remove(toRemoveRange);
                 }
             }
 
@@ -442,8 +420,6 @@
             }
 
             propertySettings.Add(property);
-            HasChanges = true;
-
             return this;
         }
 
@@ -460,12 +436,53 @@
             }
 
             var toRemove = propertySettings.SingleOrDefault(x => x.OriginalSection.ID == property.OriginalSection.ID);
-            if (toRemove != null && propertySettings.Remove(toRemove))
+            if (toRemove != null)
             {
-                HasChanges = true;
+                propertySettings.Remove(toRemove);
             }
 
             return this;
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = 17;
+                hash = (hash * 23) + Id.GetHashCode();
+                hash = (hash * 23) + (Name != null ? Name.GetHashCode() : 0);
+                hash = (hash * 23) + IsExternallyManaged.GetHashCode();
+                hash = (hash * 23) + (IconImage != null ? iconImage.GetHashCode() : 0);
+                hash = (hash * 23) + (Url != null ? Url.GetHashCode() : 0);
+                hash = (hash * 23) + Concurrency.GetHashCode();
+                hash = (hash * 23) + State.GetHashCode();
+                hash = (hash * 23) + IsFavorite.GetHashCode();
+                hash = (hash * 23) + VirtualSignalGroupInputId.GetHashCode();
+                hash = (hash * 23) + VirtualSignalGroupOutputId.GetHashCode();
+
+                foreach (var poolId in ResourcePoolIds.OrderBy(x => x))
+                {
+                    hash = (hash * 23) + poolId.GetHashCode();
+                }
+
+                foreach (var setting in Capabilities.OrderBy(x => x.Id))
+                {
+                    hash = (hash * 23) + setting.GetHashCode();
+                }
+
+                foreach (var setting in Capacities.OrderBy(x => x.Id))
+                {
+                    hash = (hash * 23) + setting.GetHashCode();
+                }
+
+                foreach (var setting in Properties.OrderBy(x => x.Id))
+                {
+                    hash = (hash * 23) + setting.GetHashCode();
+                }
+
+                return hash;
+            }
         }
 
         internal abstract void ApplyChanges(StorageResourceStudio.ResourceInstance instance);
@@ -588,14 +605,12 @@
             foreach (var section in instance.ResourceCapabilities)
             {
                 var capability = new ResourceCapabilitySetting(section);
-                capability.ValueChanged += (s, e) => { HasChanges = true; };
                 capabilitySettings.Add(capability);
             }
 
             foreach (var section in instance.ResourceProperties)
             {
                 var propertyConfiguration = new ResourcePropertySettings(section);
-                propertyConfiguration.ValueChanged += (s, e) => { HasChanges = true; };
                 propertySettings.Add(propertyConfiguration);
             }
 
@@ -618,13 +633,11 @@
                     && capacity is RangeCapacity)
                 {
                     var resourceCapacitySetting = new ResourceRangeCapacitySetting(section);
-                    resourceCapacitySetting.ValueChanged += (s, e) => { HasChanges = true; };
                     rangeCapacitySettings.Add(resourceCapacitySetting);
                 }
                 else
                 {
                     var resourceCapacitySetting = new ResourceNumberCapacitySetting(section);
-                    resourceCapacitySetting.ValueChanged += (s, e) => { HasChanges = true; };
                     numberCapacitySettings.Add(resourceCapacitySetting);
                 }
             }

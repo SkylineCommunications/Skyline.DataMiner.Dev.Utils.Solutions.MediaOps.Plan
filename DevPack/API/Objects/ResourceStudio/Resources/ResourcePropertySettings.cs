@@ -45,9 +45,8 @@
         internal ResourcePropertySettings(StorageResourceStudio.ResourcePropertiesSection section)
         {
             ParseSection(section);
+            InitTracking();
         }
-
-        internal EventHandler<EventArgs> ValueChanged;
 
         /// <summary>
         /// Gets the unique identifier of the resource property.
@@ -63,12 +62,22 @@
             set
             {
                 this.value = value;
-                HasChanges = true;
-                ValueChanged?.Invoke(this, EventArgs.Empty);
             }
         }
 
         internal StorageResourceStudio.ResourcePropertiesSection OriginalSection => originalSection;
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = 17;
+                hash = (hash * 23) + Id.GetHashCode();
+                hash = (hash * 23) + (Value != null ? Value.GetHashCode() : 0);
+                return hash;
+            }
+        }
 
         internal StorageResourceStudio.ResourcePropertiesSection GetSectionWithChanges()
         {

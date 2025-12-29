@@ -1,7 +1,6 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
     using System;
-
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
     /// <summary>
@@ -10,9 +9,7 @@
     public class ResourceProperty : ApiObject
     {
         private StorageResourceStudio.ResourcepropertyInstance originalInstance;
-
         private StorageResourceStudio.ResourcepropertyInstance updatedInstance;
-
         private string name;
 
         /// <summary>
@@ -36,6 +33,7 @@
         internal ResourceProperty(StorageResourceStudio.ResourcepropertyInstance instance) : base(instance.ID.Id)
         {
             ParseInstance(instance);
+            InitTracking();
         }
 
         /// <summary>
@@ -46,12 +44,23 @@
             get => name;
             set
             {
-                HasChanges = true;
                 name = value;
             }
         }
 
         internal StorageResourceStudio.ResourcepropertyInstance OriginalInstance => originalInstance;
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = 17;
+                hash = (hash * 23) + Id.GetHashCode();
+                hash = (hash * 23) + (Name != null ? Name.GetHashCode() : 0);
+                return hash;
+            }
+        }
 
         internal StorageResourceStudio.ResourcepropertyInstance GetInstanceWithChanges()
         {
@@ -70,7 +79,6 @@
             ParseInstance(instance);
 
             updatedInstance = null;
-            HasChanges = false;
             IsNew = false;
         }
 

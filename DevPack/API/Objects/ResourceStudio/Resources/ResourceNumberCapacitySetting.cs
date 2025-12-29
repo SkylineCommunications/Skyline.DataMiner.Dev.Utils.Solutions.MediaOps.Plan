@@ -17,6 +17,7 @@
         internal ResourceNumberCapacitySetting(StorageResourceStudio.ResourceCapacitiesSection section)
         {
             ParseSection(section);
+            InitTracking();
         }
 
         internal override Storage.DOM.DomSectionBase OriginalSection => originalSection;

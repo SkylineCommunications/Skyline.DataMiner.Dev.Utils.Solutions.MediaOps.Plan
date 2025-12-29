@@ -47,6 +47,7 @@
         internal ResourcePool(StorageResourceStudio.ResourcepoolInstance instance) : base(instance.ID.Id)
         {
             ParseInstance(instance);
+            InitTracking();
         }
 
         /// <summary>
@@ -57,7 +58,6 @@
             get => name;
             set
             {
-                HasChanges = true;
                 name = value;
             }
         }
@@ -70,7 +70,6 @@
             get => isExternallyManaged;
             set
             {
-                HasChanges |= isExternallyManaged != value;
                 isExternallyManaged = value;
             }
         }
@@ -88,7 +87,6 @@
             get => iconImage;
             set
             {
-                HasChanges = true;
                 iconImage = value;
             }
         }
@@ -101,7 +99,6 @@
             get => url;
             set
             {
-                HasChanges = true;
                 url = value;
             }
         }
@@ -114,7 +111,6 @@
             get => categoryId;
             set
             {
-                HasChanges = true;
                 categoryId = value;
             }
         }
@@ -128,6 +124,34 @@
         /// Gets the collection of capabilities assigned to this resource pool.
         /// </summary>
         public IReadOnlyCollection<CapabilitySetting> Capabilities => capabilitySettings;
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = 17;
+                hash = (hash * 23) + Id.GetHashCode();
+                hash = (hash * 23) + (Name != null ? Name.GetHashCode() : 0);
+                hash = (hash * 23) + IsExternallyManaged.GetHashCode();
+                hash = (hash * 23) + (IconImage != null ? iconImage.GetHashCode() : 0);
+                hash = (hash * 23) + (Url != null ? Url.GetHashCode() : 0);
+                hash = (hash * 23) + (CategoryId != null ? CategoryId.GetHashCode() : 0);
+                hash = (hash * 23) + State.GetHashCode();
+
+                foreach (var linkedResourcePool in LinkedResourcePools.OrderBy(x => x.LinkedResourcePoolId))
+                {
+                    hash = (hash * 23) + linkedResourcePool.GetHashCode();
+                }
+
+                foreach (var setting in Capabilities.OrderBy(x => x.Id))
+                {
+                    hash = (hash * 23) + setting.GetHashCode();
+                }
+
+                return hash;
+            }
+        }
 
         internal Guid CoreResourcePoolId => coreResourcePoolId;
 
@@ -150,7 +174,6 @@
             }
 
             linkedResourcepools.Add(linkedResourcePool);
-            HasChanges = true;
 
             return this;
         }
@@ -167,11 +190,12 @@
             }
 
             var toRemove = linkedResourcepools.SingleOrDefault(x => x.OriginalSection.ID == linkedResourcePool.OriginalSection.ID);
-            if (toRemove != null && linkedResourcepools.Remove(toRemove))
+            if (toRemove == null)
             {
-                HasChanges = true;
+                return this;
             }
 
+            linkedResourcepools.Remove(linkedResourcePool);
             return this;
         }
 
@@ -188,7 +212,6 @@
             }
 
             capabilitySettings.Add(new ResourcePoolCapabilitySetting(capabilitySetting));
-            HasChanges = true;
 
             return this;
         }
@@ -211,11 +234,12 @@
             }
 
             var toRemove = capabilitySettings.SingleOrDefault(x => x.OriginalSection.ID == capabilitySetting.OriginalSection.ID);
-            if (toRemove != null && capabilitySettings.Remove(toRemove))
+            if (toRemove == null)
             {
-                HasChanges = true;
+                return this;
             }
 
+            capabilitySettings.Remove(toRemove);
             return this;
         }
 
@@ -237,7 +261,6 @@
                 foreach (var item in toRemove)
                 {
                     linkedResourcepools.Remove(item);
-                    HasChanges = true;
                 }
             }
 
@@ -290,14 +313,12 @@
             foreach (var section in instance.ResourcePoolLinks)
             {
                 var link = new LinkedResourcePool(section);
-                link.ValueChanged += (s, e) => { HasChanges = true; };
                 linkedResourcepools.Add(link);
             }
 
             foreach (var section in instance.ResourcePoolCapabilities)
             {
                 var capability = new ResourcePoolCapabilitySetting(section);
-                capability.ValueChanged += (s, e) => { HasChanges = true; };
                 capabilitySettings.Add(capability);
             }
         }

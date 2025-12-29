@@ -26,6 +26,7 @@
 
         internal NumberCapacity(CoreParameter parameter) : base(parameter)
         {
+            InitTracking();
         }
 
         /// <inheritdoc/>

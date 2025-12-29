@@ -37,6 +37,7 @@
         /// <param name="parameter">The parameter used to configure the number settings.</param>
         internal NumberConfiguration(Net.Profiles.Parameter parameter) : base(parameter)
         {
+            InitTracking();
         }
 
         /// <summary>
@@ -47,7 +48,6 @@
             get => defaultValue;
             set
             {
-                HasChanges = true;
                 defaultValue = value;
             }
         }
@@ -60,7 +60,6 @@
             get => units;
             set
             {
-                HasChanges = true;
                 units = value;
             }
         }
@@ -73,7 +72,6 @@
             get => rangeMin;
             set
             {
-                HasChanges = true;
                 rangeMin = value;
             }
         }
@@ -86,7 +84,6 @@
             get => rangeMax;
             set
             {
-                HasChanges = true;
                 rangeMax = value;
             }
         }
@@ -99,7 +96,6 @@
             get => stepSize;
             set
             {
-                HasChanges = true;
                 stepSize = value;
             }
         }
@@ -112,8 +108,23 @@
             get => decimals;
             set
             {
-                HasChanges = true;
                 decimals = value;
+            }
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = base.GetHashCode();
+                hash = (hash * 23) + (Units != null ? Units.GetHashCode() : 0);
+                hash = (hash * 23) + (RangeMin.HasValue ? RangeMin.Value.GetHashCode() : 0);
+                hash = (hash * 23) + (RangeMax.HasValue ? RangeMax.Value.GetHashCode() : 0);
+                hash = (hash * 23) + (StepSize.HasValue ? StepSize.Value.GetHashCode() : 0);
+                hash = (hash * 23) + (Decimals.HasValue ? Decimals.Value.GetHashCode() : 0);
+
+                return hash;
             }
         }
 

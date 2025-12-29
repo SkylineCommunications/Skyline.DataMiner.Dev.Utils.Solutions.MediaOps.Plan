@@ -51,7 +51,6 @@
             get => units;
             set
             {
-                HasChanges = true;
                 units = value;
             }
         }
@@ -64,7 +63,6 @@
             get => rangeMin;
             set
             {
-                HasChanges = true;
                 rangeMin = value;
             }
         }
@@ -77,7 +75,6 @@
             get => rangeMax;
             set
             {
-                HasChanges = true;
                 rangeMax = value;
             }
         }
@@ -90,7 +87,6 @@
             get => stepSize;
             set
             {
-                HasChanges = true;
                 stepSize = value;
             }
         }
@@ -103,7 +99,6 @@
             get => decimals;
             set
             {
-                HasChanges = true;
                 decimals = value;
             }
         }
@@ -117,6 +112,22 @@
         /// Gets the internal type of the parameter.
         /// </summary>
         protected internal abstract CoreParameter.ParameterType ParameterType { get; }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = base.GetHashCode();
+                hash = (hash * 23) + (Units != null ? Units.GetHashCode() : 0);
+                hash = (hash * 23) + (RangeMin.HasValue ? RangeMin.Value.GetHashCode() : 0);
+                hash = (hash * 23) + (RangeMax.HasValue ? RangeMax.Value.GetHashCode() : 0);
+                hash = (hash * 23) + (StepSize.HasValue ? StepSize.Value.GetHashCode() : 0);
+                hash = (hash * 23) + (Decimals.HasValue ? Decimals.Value.GetHashCode() : 0);
+
+                return hash;
+            }
+        }
 
         /// <summary>
         /// <inheritdoc/>

@@ -48,9 +48,8 @@
             discretes = new HashSet<string>(capabilitySetting.Discretes);
 
             IsNew = capabilitySetting.IsNew;
+            InitTracking();
         }
-
-        internal EventHandler<EventArgs> ValueChanged;
 
         /// <summary>
         /// Gets the unique identifier of the capability.
@@ -76,12 +75,7 @@
                 throw new ArgumentNullException(nameof(value));
             }
 
-            if (discretes.Add(value))
-            {
-                HasChanges = true;
-                ValueChanged?.Invoke(this, EventArgs.Empty);
-            }
-
+            discretes.Add(value);
             return this;
         }
 
@@ -97,12 +91,7 @@
                 throw new ArgumentNullException(nameof(value));
             }
 
-            if (discretes.Remove(value))
-            {
-                HasChanges = true;
-                ValueChanged?.Invoke(this, EventArgs.Empty);
-            }
-
+            discretes.Remove(value);
             return this;
         }
 
@@ -125,11 +114,27 @@
             }
 
             discretes = new HashSet<string>(values);
-
-            HasChanges = true;
-            ValueChanged?.Invoke(this, EventArgs.Empty);
-
             return this;
+        }
+
+        /// <summary>
+        /// Generates the hash code for the object.
+        /// </summary>
+        /// <returns>Hash code representing the current object.</returns>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = 17;
+                hash = (hash * 23) + Id.GetHashCode();
+                hash = (hash * 23) + (OriginalSection != null ? OriginalSection.ID.Id.GetHashCode() : 0);
+                foreach (var discreet in discretes.OrderBy(x => x))
+                {
+                    hash = (hash * 23) + (discreet != null ? discreet.GetHashCode() : 0);
+                }
+
+                return hash;
+            }
         }
     }
 }

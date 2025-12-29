@@ -1,9 +1,8 @@
-﻿using Skyline.DataMiner.Net.Helper;
-
-namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
 
     /// <summary>
@@ -37,6 +36,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
         /// <param name="parameter">The parameter used to configure the discrete number settings.</param>
         internal DiscreteNumberConfiguration(Net.Profiles.Parameter parameter) : base(parameter)
         {
+            InitTracking();
         }
 
         /// <summary>
@@ -47,7 +47,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
             get => defaultValue;
             set
             {
-                HasChanges = true;
                 defaultValue = value;
             }
         }
@@ -80,7 +79,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
                 throw new ArgumentException($"The configuration already defines a discreet with display value '{displayValue}'");
 
             discretes.Add(displayValue, value);
-            HasChanges = true;
 
             return this;
         }
@@ -107,8 +105,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
                 DefaultValue = null;
             }
 
-            HasChanges = true;
-
             return this;
         }
 
@@ -129,6 +125,23 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
             }
 
             return this;
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = base.GetHashCode();
+                hash = (hash * 23) + (DefaultValue != null ? DefaultValue.GetHashCode() : 0);
+                foreach (var discreet in discretes.OrderBy(x => x.Key))
+                {
+                    hash = (hash * 23) + (discreet.Key != null ? discreet.Key.GetHashCode() : 0);
+                    hash = (hash * 23) + discreet.Value.GetHashCode();
+                }
+
+                return hash;
+            }
         }
 
         /// <summary>

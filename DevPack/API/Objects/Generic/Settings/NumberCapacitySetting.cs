@@ -37,6 +37,7 @@
             : base(numberCapacitySetting)
         {
             value = numberCapacitySetting.value;
+            InitTracking();
         }
 
         /// <summary>
@@ -48,8 +49,20 @@
             set
             {
                 this.value = value;
-                HasChanges = true;
-                ValueChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                var hash = 17;
+                hash = (hash * 23) + Id.GetHashCode();
+                hash = (hash * 23) + Value.GetHashCode();
+                hash = (hash * 23) + (OriginalSection != null ? OriginalSection.ID.Id.GetHashCode() : 0);
+
+                return hash;
             }
         }
     }

@@ -57,7 +57,6 @@
             // Service: {"LinkedElementInfo":null,"LinkedServiceInfo":"78/140467","LinkedFunctionId":"00000000-0000-0000-0000-000000000000","LinkedFunctionTableIndex":null}
             // Element: {"LinkedElementInfo":"78/137485","LinkedServiceInfo":null,"LinkedFunctionId":"00000000-0000-0000-0000-000000000000","LinkedFunctionTableIndex":null}
             // VF:      {"LinkedElementInfo":"78/140461","LinkedServiceInfo":null,"LinkedFunctionId":"7bd8d399-b503-4fd9-9b2e-8dc188d591b8","LinkedFunctionTableIndex":"1"}
-
             switch (comparer)
             {
                 case Comparer.Equals:
@@ -106,8 +105,6 @@
 
             if (checkContains)
             {
-                //return DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.ResourceMetadata).Matches(regexPattern);
-
                 return DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.ResourceMetadata).Contains(filterValue);
             }
             else

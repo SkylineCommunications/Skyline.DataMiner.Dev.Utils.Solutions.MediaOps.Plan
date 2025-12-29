@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
 
     /// <summary>
@@ -36,6 +37,7 @@
         /// <param name="parameter">The parameter used to configure the discrete text settings.</param>
         internal DiscreteTextConfiguration(Net.Profiles.Parameter parameter) : base(parameter)
         {
+            InitTracking();
         }
 
         /// <summary>
@@ -46,7 +48,6 @@
             get => defaultValue;
             set
             {
-                HasChanges = true;
                 defaultValue = value;
             }
         }
@@ -72,8 +73,6 @@
                 throw new ArgumentException($"The configuration already defines a discreet with display value '{displayValue}'");
 
             discretes.Add(displayValue, value);
-            HasChanges = true;
-
             return this;
         }
 
@@ -99,8 +98,6 @@
                 DefaultValue = null;
             }
 
-            HasChanges = true;
-
             return this;
         }
 
@@ -122,6 +119,23 @@
             }
 
             return this;
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = base.GetHashCode();
+                hash = (hash * 23) + (DefaultValue != null ? DefaultValue.GetHashCode() : 0);
+                foreach (var discreet in discretes.OrderBy(x => x.Key))
+                {
+                    hash = (hash * 23) + (discreet.Key != null ? discreet.Key.GetHashCode() : 0);
+                    hash = (hash * 23) + (discreet.Value != null ? discreet.Value.GetHashCode() : 0);
+                }
+
+                return hash;
+            }
         }
 
         /// <summary>

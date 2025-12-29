@@ -18,6 +18,7 @@
         internal ResourcePoolCapabilitySetting(StorageResourceStudio.ResourcePoolCapabilitiesSection section)
         {
             ParseSection(section);
+            InitTracking();
         }
 
         internal override Storage.DOM.DomSectionBase OriginalSection => originalSection;

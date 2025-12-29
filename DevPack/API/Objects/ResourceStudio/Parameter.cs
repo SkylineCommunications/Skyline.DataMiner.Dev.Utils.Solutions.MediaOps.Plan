@@ -61,7 +61,6 @@
             get => name;
             set
             {
-                HasChanges = true;
                 name = value;
             }
         }
@@ -74,12 +73,25 @@
             get => isMandatory;
             set
             {
-                HasChanges = true;
                 isMandatory = value;
             }
         }
 
         internal CoreParameter CoreParameter => coreParameter;
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = 17;
+                hash = (hash * 23) + Id.GetHashCode();
+                hash = (hash * 23) + (Name != null ? Name.GetHashCode() : 0);
+                hash = (hash * 23) + IsMandatory.GetHashCode();
+
+                return hash;
+            }
+        }
 
         /// <summary>
         /// Parses the specified parameter and applies any necessary transformations or validations.

@@ -26,6 +26,7 @@
 
         internal UnmanagedResource(MediaOpsPlanApi planApi, StorageResourceStudio.ResourceInstance instance) : base(planApi, instance)
         {
+            InitTracking();
         }
 
         internal override void ApplyChanges(StorageResourceStudio.ResourceInstance instance)
