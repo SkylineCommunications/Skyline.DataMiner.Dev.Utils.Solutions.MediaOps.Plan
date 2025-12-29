@@ -55,8 +55,8 @@
             })
             .AddCapacity(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.RangeCapacitySetting(capacity2)
             {
-                minValue = 20,
-                maxValue = 30,
+                MinValue = 20,
+                MaxValue = 30,
             });
 
             var unmangedResource2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
@@ -65,7 +65,7 @@
             }
             .AddCapacity(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacitySetting(capacity1)
             {
-                value = 50,
+                Value = 50,
             });
 
             objectCreator.CreateResources([unmangedResource1, unmangedResource2]);
