@@ -146,7 +146,7 @@
             var initialHash = resourcePool.GetHashCode();
 
             // Edit the existing capability setting
-            capabilitySetting.AddDiscrete("Value 2");
+            resourcePool.Capabilities.First(x => x.Id.Equals(capability.Id)).AddDiscrete("Value 2");
 
             var updatedHash = resourcePool.GetHashCode();
 
