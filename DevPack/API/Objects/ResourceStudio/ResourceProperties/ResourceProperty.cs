@@ -30,9 +30,9 @@
             HasUserDefinedId = true;
         }
 
-        internal ResourceProperty(StorageResourceStudio.ResourcepropertyInstance instance) : base(instance.ID.Id)
+        internal ResourceProperty(StorageResourceStudio.ResourcepropertyInstance instance) : base(instance == null ? throw new ArgumentNullException(nameof(instance)) : instance.ID.Id)
         {
-            originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
+            originalInstance = instance;
 
             ParseInstance();
             InitTracking();
