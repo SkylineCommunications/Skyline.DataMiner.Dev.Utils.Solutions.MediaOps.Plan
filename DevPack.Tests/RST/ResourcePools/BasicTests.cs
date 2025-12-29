@@ -353,5 +353,34 @@
 
             Assert.Fail("Expected exception was not thrown.");
         }
+
+        [TestMethod]
+        public void ResourcePoolWithEmptyNameThrowsExceptionOnCreate()
+        {
+            var resourcePool = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
+            {
+                Name = string.Empty,
+            };
+
+            try
+            {
+                objectCreator.CreateResourcePool(resourcePool);
+            }
+            catch (MediaOpsException ex)
+            {
+                StringAssert.Contains(ex.Message, "Name cannot be empty.");
+                Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
+                var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolError>().SingleOrDefault();
+                Assert.IsNotNull(resourcePoolConfigurationError);
+
+                var resourcePoolConfigurationNameEmptyError = resourcePoolConfigurationError as ResourcePoolInvalidNameError;
+                Assert.IsNotNull(resourcePoolConfigurationNameEmptyError);
+                Assert.AreEqual(resourcePool.Id, resourcePoolConfigurationNameEmptyError.Id);
+                Assert.AreEqual("Name cannot be empty.", resourcePoolConfigurationError.ErrorMessage);
+                return;
+            }
+
+            Assert.Fail("Expected exception was not thrown.");
+        }
     }
 }

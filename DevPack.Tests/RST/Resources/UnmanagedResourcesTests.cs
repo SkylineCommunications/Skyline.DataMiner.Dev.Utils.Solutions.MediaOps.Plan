@@ -283,6 +283,30 @@
             Assert.AreEqual(0, resources.Count());
         }
 
+        [TestMethod]
+        public void ResourceWithEmptyNameThrowsExceptionOnCreate()
+        {
+            var unmanagedResource = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
+            {
+                Concurrency = 5,
+                IsFavorite = true,
+                Name = string.Empty,
+            };
+
+            MediaOpsException? me = null;
+            try
+            {
+                TestContext.Api.Resources.Create(unmanagedResource);
+            }
+            catch (MediaOpsException e)
+            {
+                me = e;
+            }
+
+            Assert.IsTrue(me != null, "Exception not thrown");
+            StringAssert.Contains(me.Message, "Name cannot be empty.");
+        }
+
         public void Dispose()
         {
         }
