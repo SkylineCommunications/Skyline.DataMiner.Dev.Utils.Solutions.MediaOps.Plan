@@ -11,10 +11,6 @@
     /// </summary>
     public class ServiceResource : Resource
     {
-        private int agentId;
-
-        private int serviceId;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="ServiceResource"/> class.
         /// </summary>
@@ -39,26 +35,12 @@
         /// <summary>
         /// Gets or sets the agent ID associated with the resource link.
         /// </summary>
-        public int AgentId
-        {
-            get => agentId;
-            set
-            {
-                agentId = value;
-            }
-        }
+        public int AgentId { get; set; }
 
         /// <summary>
         /// Gets or sets the service ID associated with the resource link.
         /// </summary>
-        public int ServiceId
-        {
-            get => serviceId;
-            set
-            {
-                serviceId = value;
-            }
-        }
+        public int ServiceId { get; set; }
 
         /// <inheritdoc/>
         public override int GetHashCode()
@@ -66,8 +48,8 @@
             unchecked
             {
                 var hash = base.GetHashCode();
-                hash = (hash * 23) + agentId.GetHashCode();
-                hash = (hash * 23) + serviceId.GetHashCode();
+                hash = (hash * 23) + AgentId.GetHashCode();
+                hash = (hash * 23) + ServiceId.GetHashCode();
 
                 return hash;
             }
@@ -87,14 +69,14 @@
             }
 
             return base.Equals(other)
-                && agentId == other.agentId
-                && serviceId == other.serviceId;
+                && AgentId == other.AgentId
+                && ServiceId == other.ServiceId;
         }
 
         internal override void ApplyChanges(StorageResourceStudio.ResourceInstance instance)
         {
             instance.ResourceInfo.Type = StorageResourceStudio.SlcResource_StudioIds.Enums.Type.Service;
-            instance.ResourceInternalProperties.Metadata.LinkedServiceInfo = new DmsServiceId(agentId, serviceId).Value;
+            instance.ResourceInternalProperties.Metadata.LinkedServiceInfo = new DmsServiceId(AgentId, ServiceId).Value;
         }
 
         private void ParseInstance(StorageResourceStudio.ResourceInstance instance)
@@ -102,8 +84,8 @@
             if (!string.IsNullOrWhiteSpace(instance.ResourceInternalProperties.Metadata.LinkedServiceInfo))
             {
                 var serviceInfo = new DmsServiceId(instance.ResourceInternalProperties.Metadata.LinkedServiceInfo);
-                agentId = serviceInfo.AgentId;
-                serviceId = serviceInfo.ServiceId;
+                AgentId = serviceInfo.AgentId;
+                ServiceId = serviceInfo.ServiceId;
             }
         }
     }

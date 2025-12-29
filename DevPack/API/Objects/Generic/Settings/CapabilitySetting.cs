@@ -3,14 +3,13 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using Skyline.DataMiner.Net.Messages;
 
     /// <summary>
     /// Represents a configurable set of discrete values associated with a specific capability.
     /// </summary>
     public class CapabilitySetting : TrackableObject
     {
-        internal HashSet<string> discretes = [];
+        internal readonly HashSet<string> discretes = [];
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CapabilitySetting"/> class using the specified capability.
@@ -114,7 +113,12 @@
                 throw new ArgumentException("The collection contains null or empty values.", nameof(values));
             }
 
-            discretes = new HashSet<string>(values);
+            discretes.Clear();
+            foreach (var value in values)
+            {
+                discretes.Add(value);
+            }
+
             return this;
         }
 

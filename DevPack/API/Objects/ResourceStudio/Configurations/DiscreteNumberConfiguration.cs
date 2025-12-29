@@ -10,7 +10,6 @@
     /// </summary>
     public class DiscreteNumberConfiguration : Configuration
     {
-        private string defaultValue;
         private readonly Dictionary<string, decimal> discretes = new Dictionary<string, decimal>(); // TODO: should we use a dictionary here? This doesn't allow multiple discretes with the same key, which could make it harder when creating UIs. We could always validate when pushing the Configuration.
 
         /// <summary>
@@ -42,14 +41,7 @@
         /// <summary>
         /// Gets or sets the display key of the default discrete value.
         /// </summary>
-        public string DefaultValue
-        {
-            get => defaultValue;
-            set
-            {
-                defaultValue = value;
-            }
-        }
+        public string DefaultValue { get; set; }
 
         /// <summary>
         /// Gets a read-only dictionary of discrete values.

@@ -7,9 +7,6 @@
     /// </summary>
     public class RangeCapacitySetting : CapacitySetting
     {
-        internal decimal minValue;
-        internal decimal maxValue;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="RangeCapacitySetting"/> class using the specified capacity.
         /// </summary>
@@ -37,8 +34,8 @@
         internal RangeCapacitySetting(RangeCapacitySetting rangeCapacitySetting)
             : base(rangeCapacitySetting)
         {
-            minValue = rangeCapacitySetting.minValue;
-            maxValue = rangeCapacitySetting.maxValue;
+            MinValue = rangeCapacitySetting.MinValue;
+            MaxValue = rangeCapacitySetting.MaxValue;
             InitTracking();
         }
 
@@ -49,8 +46,8 @@
             {
                 var hash = 17;
                 hash = (hash * 23) + Id.GetHashCode();
-                hash = (hash * 23) + minValue.GetHashCode();
-                hash = (hash * 23) + maxValue.GetHashCode();
+                hash = (hash * 23) + MinValue.GetHashCode();
+                hash = (hash * 23) + MaxValue.GetHashCode();
                 hash = (hash * 23) + (OriginalSection != null ? OriginalSection.ID.Id.GetHashCode() : 0);
 
                 return hash;
@@ -66,32 +63,18 @@
             }
 
             return Id == other.Id &&
-                   minValue == other.minValue &&
-                   maxValue == other.maxValue;
+                   MinValue == other.MinValue &&
+                   MaxValue == other.MaxValue;
         }
 
         /// <summary>
         /// Gets or sets the minimum capacity value.
         /// </summary>
-        public decimal MinValue
-        {
-            get => minValue;
-            set
-            {
-                minValue = value;
-            }
-        }
+        public decimal MinValue { get; set; }
 
         /// <summary>
         /// Gets or sets the maximum capacity value.
         /// </summary>
-        public decimal MaxValue
-        {
-            get => maxValue;
-            set
-            {
-                maxValue = value;
-            }
-        }
+        public decimal MaxValue { get; set; }
     }
 }

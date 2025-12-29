@@ -7,8 +7,6 @@
     /// </summary>
     public class NumberCapacitySetting : CapacitySetting
     {
-        internal decimal value;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="NumberCapacitySetting"/> class using the specified capacity.
         /// </summary>
@@ -36,21 +34,14 @@
         internal NumberCapacitySetting(NumberCapacitySetting numberCapacitySetting)
             : base(numberCapacitySetting)
         {
-            value = numberCapacitySetting.value;
+            Value = numberCapacitySetting.Value;
             InitTracking();
         }
 
         /// <summary>
         /// Gets or sets the capacity value.
         /// </summary>
-        public decimal Value
-        {
-            get => value;
-            set
-            {
-                this.value = value;
-            }
-        }
+        public decimal Value { get; set; }
 
         /// <inheritdoc/>
         public override int GetHashCode()

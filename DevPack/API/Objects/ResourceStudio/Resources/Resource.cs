@@ -17,23 +17,7 @@
 
         private StorageResourceStudio.ResourceInstance updatedInstance;
 
-        private string name;
-
-        private bool isFavorite;
-
-        private bool isExternallyManaged;
-
-        private string iconImage;
-
-        private string url;
-
-        private int concurrency;
-
         private Guid coreResourceId;
-
-        private Guid virtualSignalGroupInputId;
-
-        private Guid virtualSignalGroupOutputId;
 
         private HashSet<Guid> resourcePoolIds = new HashSet<Guid>();
 
@@ -68,50 +52,22 @@
         /// <summary>
         /// Gets or sets the name of the resource.
         /// </summary>
-        public override string Name
-        {
-            get => name;
-            set
-            {
-                name = value;
-            }
-        }
+        public override string Name { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the resource is a favorite.
         /// </summary>
-        public bool IsFavorite
-        {
-            get => isFavorite;
-            set
-            {
-                isFavorite = value;
-            }
-        }
+        public bool IsFavorite { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the resource is managed by an external system.
         /// </summary>
-        public bool IsExternallyManaged
-        {
-            get => isExternallyManaged;
-            set
-            {
-                isExternallyManaged = value;
-            }
-        }
+        public bool IsExternallyManaged { get; set; }
 
         /// <summary>
         /// Gets or sets the concurrency of the resource.
         /// </summary>
-        public int Concurrency
-        {
-            get => concurrency;
-            set
-            {
-                concurrency = value;
-            }
-        }
+        public int Concurrency { get; set; }
 
         /// <summary>
         /// Gets the state of the resource.
@@ -121,26 +77,12 @@
         /// <summary>
         /// Gets or sets the icon of the resource.
         /// </summary>
-        public string IconImage
-        {
-            get => iconImage;
-            set
-            {
-                iconImage = value;
-            }
-        }
+        public string IconImage { get; set; }
 
         /// <summary>
         /// Gets or sets the URL of the resource.
         /// </summary>
-        public string Url
-        {
-            get => url;
-            set
-            {
-                url = value;
-            }
-        }
+        public string Url { get; set; }
 
         /// <summary>
         /// Gets the collection of resource pool identifiers assigned to the resource.
@@ -165,27 +107,12 @@
         /// <summary>
         /// Gets or sets the unique identifier for the Live virtual signal group input associated with the resource.
         /// </summary>
-        public Guid VirtualSignalGroupInputId
-        {
-            get => virtualSignalGroupInputId;
-            set
-            {
-                virtualSignalGroupInputId = value;
-            }
-        }
+        public Guid VirtualSignalGroupInputId { get; set; }
 
         /// <summary>
         /// Gets or sets the unique identifier for the Live virtual signal group output associated with the resource.
         /// </summary>
-        public Guid VirtualSignalGroupOutputId
-        {
-            get => virtualSignalGroupOutputId;
-            set
-            {
-                virtualSignalGroupOutputId = value;
-            }
-
-        }
+        public Guid VirtualSignalGroupOutputId { get; set; }
 
         /// <summary>
         /// Assigns the current resource to the specified resource pool.
@@ -453,7 +380,7 @@
                 hash = (hash * 23) + Id.GetHashCode();
                 hash = (hash * 23) + (Name != null ? Name.GetHashCode() : 0);
                 hash = (hash * 23) + IsExternallyManaged.GetHashCode();
-                hash = (hash * 23) + (IconImage != null ? iconImage.GetHashCode() : 0);
+                hash = (hash * 23) + (IconImage != null ? IconImage.GetHashCode() : 0);
                 hash = (hash * 23) + (Url != null ? Url.GetHashCode() : 0);
                 hash = (hash * 23) + Concurrency.GetHashCode();
                 hash = (hash * 23) + State.GetHashCode();
@@ -587,18 +514,18 @@
                 updatedInstance = IsNew ? new StorageResourceStudio.ResourceInstance(Id) : originalInstance.Clone();
             }
 
-            updatedInstance.ResourceInfo.Name = name;
-            updatedInstance.ResourceInfo.Favorite = isFavorite;
-            updatedInstance.ResourceInfo.Concurrency = concurrency;
+            updatedInstance.ResourceInfo.Name = Name;
+            updatedInstance.ResourceInfo.Favorite = IsFavorite;
+            updatedInstance.ResourceInfo.Concurrency = Concurrency;
             updatedInstance.ResourceInternalProperties.PoolIds = resourcePoolIds.ToList();
-            updatedInstance.ResourceOther.IconImage = iconImage;
-            updatedInstance.ResourceOther.URL = url;
+            updatedInstance.ResourceOther.IconImage = IconImage;
+            updatedInstance.ResourceOther.URL = Url;
 
             // Setting to null will not create a DOM section in storage.
-            updatedInstance.ExternalMetadata.ExternallyManaged = isExternallyManaged ? true : null;
+            updatedInstance.ExternalMetadata.ExternallyManaged = IsExternallyManaged ? true : null;
 
-            updatedInstance.ResourceConnectionManagement.VirtualSignalGroupInputId = virtualSignalGroupInputId;
-            updatedInstance.ResourceConnectionManagement.VirtualSignalGroupOutputId = virtualSignalGroupOutputId;
+            updatedInstance.ResourceConnectionManagement.VirtualSignalGroupInputId = VirtualSignalGroupInputId;
+            updatedInstance.ResourceConnectionManagement.VirtualSignalGroupOutputId = VirtualSignalGroupOutputId;
 
             updatedInstance.ResourceCapabilities.Clear();
             foreach (var capability in capabilitySettings)
@@ -651,23 +578,23 @@
 
         private void SetDefaultValues()
         {
-            concurrency = 1;
+            Concurrency = 1;
         }
 
         private void ParseInstance(MediaOpsPlanApi planApi, StorageResourceStudio.ResourceInstance instance)
         {
             this.originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
 
-            name = instance.ResourceInfo.Name;
-            isFavorite = instance.ResourceInfo.Favorite ?? false;
-            concurrency = instance.ResourceInfo.Concurrency.HasValue ? (int)instance.ResourceInfo.Concurrency.Value : 1;
+            Name = instance.ResourceInfo.Name;
+            IsFavorite = instance.ResourceInfo.Favorite ?? false;
+            Concurrency = instance.ResourceInfo.Concurrency.HasValue ? (int)instance.ResourceInfo.Concurrency.Value : 1;
             resourcePoolIds = new HashSet<Guid>(instance.ResourceInternalProperties.PoolIds);
             coreResourceId = instance.ResourceInternalProperties.Resource_Id ?? Guid.Empty;
-            isExternallyManaged = instance.ExternalMetadata?.ExternallyManaged ?? false;
-            iconImage = instance.ResourceOther.IconImage;
-            url = instance.ResourceOther.URL;
-            virtualSignalGroupInputId = instance.ResourceConnectionManagement.VirtualSignalGroupInputId;
-            virtualSignalGroupOutputId = instance.ResourceConnectionManagement.VirtualSignalGroupOutputId;
+            IsExternallyManaged = instance.ExternalMetadata?.ExternallyManaged ?? false;
+            IconImage = instance.ResourceOther.IconImage;
+            Url = instance.ResourceOther.URL;
+            VirtualSignalGroupInputId = instance.ResourceConnectionManagement.VirtualSignalGroupInputId;
+            VirtualSignalGroupOutputId = instance.ResourceConnectionManagement.VirtualSignalGroupOutputId;
 
             State = EnumExtensions.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum, ResourceState>(instance.Status);
 

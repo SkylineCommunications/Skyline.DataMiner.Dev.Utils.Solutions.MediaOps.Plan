@@ -8,9 +8,9 @@
     /// </summary>
     public class ResourceProperty : ApiObject
     {
-        private StorageResourceStudio.ResourcepropertyInstance originalInstance;
+        private readonly StorageResourceStudio.ResourcepropertyInstance originalInstance;
+
         private StorageResourceStudio.ResourcepropertyInstance updatedInstance;
-        private string name;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ResourceProperty"/> class.
@@ -32,21 +32,16 @@
 
         internal ResourceProperty(StorageResourceStudio.ResourcepropertyInstance instance) : base(instance.ID.Id)
         {
-            ParseInstance(instance);
+            originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
+
+            ParseInstance();
             InitTracking();
         }
 
         /// <summary>
         /// Gets or sets the name of the resource property.
         /// </summary>
-        public override string Name
-        {
-            get => name;
-            set
-            {
-                name = value;
-            }
-        }
+        public override string Name { get; set; }
 
         internal StorageResourceStudio.ResourcepropertyInstance OriginalInstance => originalInstance;
 
@@ -62,6 +57,12 @@
             }
         }
 
+        /// <summary>
+        /// Determines whether the specified object is equal to the current ResourceProperty instance.
+        /// </summary>
+        /// <param name="obj">The object to compare with the current ResourceProperty instance.</param>
+        /// <returns>true if the specified object is a ResourceProperty and has the same Id and Name as the current instance;
+        /// otherwise, false.</returns>
         public override bool Equals(object obj)
         {
             if (obj is not ResourceProperty other)
@@ -79,24 +80,14 @@
                 updatedInstance = IsNew ? new StorageResourceStudio.ResourcepropertyInstance(Id) : originalInstance.Clone();
             }
 
-            updatedInstance.PropertyInfo.PropertyName = name;
+            updatedInstance.PropertyInfo.PropertyName = Name;
 
             return updatedInstance;
         }
 
-        internal void UpdateInstance(StorageResourceStudio.ResourcepropertyInstance instance)
+        private void ParseInstance()
         {
-            ParseInstance(instance);
-
-            updatedInstance = null;
-            IsNew = false;
-        }
-
-        private void ParseInstance(StorageResourceStudio.ResourcepropertyInstance instance)
-        {
-            this.originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
-
-            name = instance.PropertyInfo.PropertyName;
+            Name = OriginalInstance.PropertyInfo.PropertyName;
         }
     }
 }

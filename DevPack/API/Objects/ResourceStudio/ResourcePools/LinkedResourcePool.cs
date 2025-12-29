@@ -9,11 +9,9 @@
     /// </summary>
     public class LinkedResourcePool : TrackableObject
     {
-        private StorageResourceStudio.ResourcePoolLinksSection originalSection;
+        private readonly StorageResourceStudio.ResourcePoolLinksSection originalSection;
 
         private StorageResourceStudio.ResourcePoolLinksSection updatedSection;
-
-        private ResourceSelectionType resourceSelectionType;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LinkedResourcePool"/> class with the linked resource pool.
@@ -41,7 +39,9 @@
 
         internal LinkedResourcePool(StorageResourceStudio.ResourcePoolLinksSection section)
         {
-            ParseSection(section);
+            originalSection = section ?? throw new ArgumentNullException(nameof(section));
+
+            ParseSection();
             InitTracking();
         }
 
@@ -53,14 +53,7 @@
         /// <summary>
         /// Gets or sets the selection type for the linked resource pool.
         /// </summary>
-        public ResourceSelectionType SelectionType
-        {
-            get => resourceSelectionType;
-            set
-            {
-                resourceSelectionType = value;
-            }
-        }
+        public ResourceSelectionType SelectionType { get; set; }
 
         internal StorageResourceStudio.ResourcePoolLinksSection OriginalSection => originalSection;
 
@@ -71,7 +64,7 @@
             {
                 int hash = 17;
                 hash = (hash * 23) + LinkedResourcePoolId.GetHashCode();
-                hash = (hash * 23) + resourceSelectionType.GetHashCode();
+                hash = (hash * 23) + SelectionType.GetHashCode();
                 hash = (hash * 23) + (originalSection != null ? originalSection.ID.Id.GetHashCode() : 0);
                 return hash;
             }
@@ -91,7 +84,7 @@
             }
 
             return LinkedResourcePoolId == other.LinkedResourcePoolId &&
-                   resourceSelectionType == other.resourceSelectionType;
+                   SelectionType == other.SelectionType;
         }
 
         internal StorageResourceStudio.ResourcePoolLinksSection GetSectionWithChanges()
@@ -102,17 +95,15 @@
             }
 
             updatedSection.LinkedResourcePool = LinkedResourcePoolId;
-            updatedSection.ResourceSelectionType = EnumExtensions.MapEnum<ResourceSelectionType, StorageResourceStudio.SlcResource_StudioIds.Enums.Resourceselectiontype>(resourceSelectionType);
+            updatedSection.ResourceSelectionType = EnumExtensions.MapEnum<ResourceSelectionType, StorageResourceStudio.SlcResource_StudioIds.Enums.Resourceselectiontype>(SelectionType);
 
             return updatedSection;
         }
 
-        private void ParseSection(StorageResourceStudio.ResourcePoolLinksSection section)
+        private void ParseSection()
         {
-            originalSection = section ?? throw new ArgumentNullException(nameof(section));
-
-            LinkedResourcePoolId = section.LinkedResourcePool.HasValue ? section.LinkedResourcePool.Value : Guid.Empty;
-            resourceSelectionType = section.ResourceSelectionType.HasValue ? EnumExtensions.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Enums.Resourceselectiontype, ResourceSelectionType>(section.ResourceSelectionType.Value) : ResourceSelectionType.Manual;
+            LinkedResourcePoolId = originalSection.LinkedResourcePool.HasValue ? originalSection.LinkedResourcePool.Value : Guid.Empty;
+            SelectionType = originalSection.ResourceSelectionType.HasValue ? EnumExtensions.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Enums.Resourceselectiontype, ResourceSelectionType>(originalSection.ResourceSelectionType.Value) : ResourceSelectionType.Manual;
         }
     }
 }

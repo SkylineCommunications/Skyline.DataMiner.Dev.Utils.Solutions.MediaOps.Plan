@@ -19,11 +19,6 @@
         private StorageResourceStudio.ResourcepoolInstance originalInstance;
         private StorageResourceStudio.ResourcepoolInstance updatedInstance;
 
-        private string name;
-        private bool isExternallyManaged;
-        private string iconImage;
-        private string url;
-        private string categoryId;
         private Guid coreResourcePoolId;
 
         /// <summary>
@@ -53,26 +48,12 @@
         /// <summary>
         /// Gets or sets the name of the resource pool.
         /// </summary>
-        public override string Name
-        {
-            get => name;
-            set
-            {
-                name = value;
-            }
-        }
+        public override string Name { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the resource pool is managed by an external system.
         /// </summary>
-        public bool IsExternallyManaged
-        {
-            get => isExternallyManaged;
-            set
-            {
-                isExternallyManaged = value;
-            }
-        }
+        public bool IsExternallyManaged { get; set; }
 
         /// <summary>
         /// Gets the state of the resource pool.
@@ -82,38 +63,17 @@
         /// <summary>
         /// Gets or sets the icon of the resource pool.
         /// </summary>
-        public string IconImage
-        {
-            get => iconImage;
-            set
-            {
-                iconImage = value;
-            }
-        }
+        public string IconImage { get; set; }
 
         /// <summary>
         /// Gets or sets the URL of the resource pool.
         /// </summary>
-        public string Url
-        {
-            get => url;
-            set
-            {
-                url = value;
-            }
-        }
+        public string Url { get; set; }
 
         /// <summary>
         /// Gets or sets the unique identifier of the associated category.
         /// </summary>
-        public string CategoryId
-        {
-            get => categoryId;
-            set
-            {
-                categoryId = value;
-            }
-        }
+        public string CategoryId { get; set; }
 
         /// <summary>
         /// Gets the collection of links associated with this resource pool.
@@ -134,7 +94,7 @@
                 hash = (hash * 23) + Id.GetHashCode();
                 hash = (hash * 23) + (Name != null ? Name.GetHashCode() : 0);
                 hash = (hash * 23) + IsExternallyManaged.GetHashCode();
-                hash = (hash * 23) + (IconImage != null ? iconImage.GetHashCode() : 0);
+                hash = (hash * 23) + (IconImage != null ? IconImage.GetHashCode() : 0);
                 hash = (hash * 23) + (Url != null ? Url.GetHashCode() : 0);
                 hash = (hash * 23) + (CategoryId != null ? CategoryId.GetHashCode() : 0);
                 hash = (hash * 23) + State.GetHashCode();
@@ -153,6 +113,15 @@
             }
         }
 
+        /// <summary>
+        /// Determines whether the specified object is equal to the current ResourcePool instance.
+        /// </summary>
+        /// <remarks>Equality is determined by comparing the Id, Name, IsExternallyManaged, IconImage,
+        /// Url, CategoryId, State, LinkedResourcePools, and Capabilities properties. Two ResourcePool instances are
+        /// considered equal if all these properties are equal.</remarks>
+        /// <param name="obj">The object to compare with the current ResourcePool instance.</param>
+        /// <returns>true if the specified object is a ResourcePool and has the same values for all properties as the current
+        /// instance; otherwise, false.</returns>
         public override bool Equals(object obj)
         {
             if (obj is not ResourcePool other)
@@ -293,9 +262,9 @@
             }
 
             updatedInstance.ResourcePoolInfo.Name = Name;
-            updatedInstance.ResourcePoolInfo.Category = categoryId;
-            updatedInstance.ResourcePoolOther.IconImage = iconImage;
-            updatedInstance.ResourcePoolOther.URL = url;
+            updatedInstance.ResourcePoolInfo.Category = CategoryId;
+            updatedInstance.ResourcePoolOther.IconImage = IconImage;
+            updatedInstance.ResourcePoolOther.URL = Url;
 
             // Setting to null will not create a DOM section in storage.
             updatedInstance.ExternalMetadata.ExternallyManaged = IsExternallyManaged ? true : null;
@@ -319,14 +288,14 @@
         {
             this.originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
 
-            name = instance.ResourcePoolInfo.Name;
-            categoryId = instance.ResourcePoolInfo.Category;
-            isExternallyManaged = instance.ExternalMetadata?.ExternallyManaged ?? false;
+            Name = instance.ResourcePoolInfo.Name;
+            CategoryId = instance.ResourcePoolInfo.Category;
+            IsExternallyManaged = instance.ExternalMetadata?.ExternallyManaged ?? false;
             State = EnumExtensions.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.StatusesEnum, ResourcePoolState>(instance.Status);
             coreResourcePoolId = instance.ResourcePoolInternalProperties.ResourcePoolId;
 
-            iconImage = instance.ResourcePoolOther.IconImage;
-            url = instance.ResourcePoolOther.URL;
+            IconImage = instance.ResourcePoolOther.IconImage;
+            Url = instance.ResourcePoolOther.URL;
 
             foreach (var section in instance.ResourcePoolLinks)
             {

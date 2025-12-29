@@ -8,8 +8,6 @@
     /// </summary>
     public class TextConfiguration : Configuration
     {
-        private string defaultValue;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="TextConfiguration"/> class.
         /// </summary>
@@ -38,14 +36,7 @@
         /// <summary>
         /// Gets or sets the default value of this <see cref="TextConfiguration"/>.
         /// </summary>
-        public string DefaultValue
-        {
-            get => defaultValue;
-            set
-            {
-                defaultValue = value;
-            }
-        }
+        public string DefaultValue { get; set; }
 
         /// <inheritdoc/>
         public override int GetHashCode()
@@ -75,7 +66,7 @@
         /// </summary>
         protected internal override void InternalParseParameter(Net.Profiles.Parameter parameter)
         {
-            defaultValue = parameter.HasDefaultStringValue() ? parameter.DefaultValue.StringValue : null;
+            DefaultValue = parameter.HasDefaultStringValue() ? parameter.DefaultValue.StringValue : null;
         }
     }
 }

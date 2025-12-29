@@ -9,11 +9,9 @@
     /// </summary>
     public class ResourcePropertySettings : TrackableObject
     {
-        private StorageResourceStudio.ResourcePropertiesSection originalSection;
+        private readonly StorageResourceStudio.ResourcePropertiesSection originalSection;
 
         private StorageResourceStudio.ResourcePropertiesSection updatedSection;
-
-        private string value;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ResourcePropertySettings"/> class using the specified resource property.
@@ -44,7 +42,9 @@
 
         internal ResourcePropertySettings(StorageResourceStudio.ResourcePropertiesSection section)
         {
-            ParseSection(section);
+            originalSection = section ?? throw new ArgumentNullException(nameof(section));
+
+            ParseSection();
             InitTracking();
         }
 
@@ -56,14 +56,7 @@
         /// <summary>
         /// Gets or sets the property value.
         /// </summary>
-        public string Value
-        {
-            get => value;
-            set
-            {
-                this.value = value;
-            }
-        }
+        public string Value { get; set; }
 
         internal StorageResourceStudio.ResourcePropertiesSection OriginalSection => originalSection;
 
@@ -103,17 +96,15 @@
             }
 
             updatedSection.Property = Id;
-            updatedSection.PropertyValue = value;
+            updatedSection.PropertyValue = Value;
 
             return updatedSection;
         }
 
-        private void ParseSection(StorageResourceStudio.ResourcePropertiesSection section)
+        private void ParseSection()
         {
-            originalSection = section ?? throw new ArgumentNullException(nameof(section));
-
-            Id = section.Property.HasValue ? section.Property.Value : Guid.Empty;
-            value = section.PropertyValue;
+            Id = originalSection.Property.HasValue ? originalSection.Property.Value : Guid.Empty;
+            Value = originalSection.PropertyValue;
         }
     }
 }

@@ -11,14 +11,6 @@
     /// </summary>
     public class VirtualFunctionResource : Resource
     {
-        private int agentId;
-
-        private int elementId;
-
-        private Guid functionId;
-
-        private string functionTableIndex;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="VirtualFunctionResource"/> class.
         /// </summary>
@@ -43,50 +35,22 @@
         /// <summary>
         /// Gets or sets the agent ID associated with the resource link.
         /// </summary>
-        public int AgentId
-        {
-            get => agentId;
-            set
-            {
-                agentId = value;
-            }
-        }
+        public int AgentId { get; set; }
 
         /// <summary>
         /// Gets or sets the element ID associated with the resource link.
         /// </summary>
-        public int ElementId
-        {
-            get => elementId;
-            set
-            {
-                elementId = value;
-            }
-        }
+        public int ElementId { get; set; }
 
         /// <summary>
         /// Gets or sets the function ID associated with the resource link.
         /// </summary>
-        public Guid FunctionId
-        {
-            get => functionId;
-            set
-            {
-                functionId = value;
-            }
-        }
+        public Guid FunctionId { get; set; }
 
         /// <summary>
         /// Gets or sets the function table index associated with the resource link.
         /// </summary>
-        public string FunctionTableIndex
-        {
-            get => functionTableIndex;
-            set
-            {
-                functionTableIndex = value;
-            }
-        }
+        public string FunctionTableIndex { get; set; }
 
         /// <inheritdoc/>
         public override int GetHashCode()
@@ -94,10 +58,10 @@
             unchecked
             {
                 var hash = base.GetHashCode();
-                hash = (hash * 23) + agentId.GetHashCode();
-                hash = (hash * 23) + elementId.GetHashCode();
-                hash = (hash * 23) + functionId.GetHashCode();
-                hash = (hash * 23) + (functionTableIndex != null ? functionTableIndex.GetHashCode() : 0);
+                hash = (hash * 23) + AgentId.GetHashCode();
+                hash = (hash * 23) + ElementId.GetHashCode();
+                hash = (hash * 23) + FunctionId.GetHashCode();
+                hash = (hash * 23) + (FunctionTableIndex != null ? FunctionTableIndex.GetHashCode() : 0);
 
                 return hash;
             }
@@ -117,18 +81,18 @@
             }
 
             return base.Equals(other)
-                   && agentId == other.agentId
-                   && elementId == other.elementId
-                   && functionId == other.functionId
-                   && functionTableIndex == other.functionTableIndex;
+                   && AgentId == other.AgentId
+                   && ElementId == other.ElementId
+                   && FunctionId == other.FunctionId
+                   && FunctionTableIndex == other.FunctionTableIndex;
         }
 
         internal override void ApplyChanges(StorageResourceStudio.ResourceInstance instance)
         {
             instance.ResourceInfo.Type = StorageResourceStudio.SlcResource_StudioIds.Enums.Type.VirtualFunction;
-            instance.ResourceInternalProperties.Metadata.LinkedElementInfo = new DmsElementId(agentId, elementId).Value;
-            instance.ResourceInternalProperties.Metadata.LinkedFunctionId = functionId;
-            instance.ResourceInternalProperties.Metadata.LinkedFunctionTableIndex = functionTableIndex;
+            instance.ResourceInternalProperties.Metadata.LinkedElementInfo = new DmsElementId(AgentId, ElementId).Value;
+            instance.ResourceInternalProperties.Metadata.LinkedFunctionId = FunctionId;
+            instance.ResourceInternalProperties.Metadata.LinkedFunctionTableIndex = FunctionTableIndex;
         }
 
         private void ParseInstance(StorageResourceStudio.ResourceInstance instance)
@@ -136,12 +100,12 @@
             if (!string.IsNullOrWhiteSpace(instance.ResourceInternalProperties.Metadata.LinkedElementInfo))
             {
                 var elementInfo = new DmsElementId(instance.ResourceInternalProperties.Metadata.LinkedElementInfo);
-                agentId = elementInfo.AgentId;
-                elementId = elementInfo.ElementId;
+                AgentId = elementInfo.AgentId;
+                ElementId = elementInfo.ElementId;
             }
 
-            functionId = instance.ResourceInternalProperties.Metadata.LinkedFunctionId;
-            functionTableIndex = instance.ResourceInternalProperties.Metadata.LinkedFunctionTableIndex;
+            FunctionId = instance.ResourceInternalProperties.Metadata.LinkedFunctionId;
+            FunctionTableIndex = instance.ResourceInternalProperties.Metadata.LinkedFunctionTableIndex;
         }
     }
 }

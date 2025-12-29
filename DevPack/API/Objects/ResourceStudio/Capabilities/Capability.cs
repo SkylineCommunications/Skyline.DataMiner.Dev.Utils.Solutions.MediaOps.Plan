@@ -14,8 +14,7 @@
     /// </summary>
     public class Capability : Parameter
     {
-        private HashSet<string> discretes = new HashSet<string>();
-        private bool isTimeDependent;
+        private readonly HashSet<string> discretes = new HashSet<string>();
         private Guid linkedTimeDependentCapabilityId;
 
         /// <summary>
@@ -45,14 +44,7 @@
         /// <summary>
         /// Gets or sets a value indicating whether the capability is time-dependent or not.
         /// </summary>
-        public bool IsTimeDependent
-        {
-            get => isTimeDependent;
-            set
-            {
-                isTimeDependent = value;
-            }
-        }
+        public bool IsTimeDependent { get; set; }
 
         /// <summary>
         /// Gets a read-only collection of discrete values.
@@ -153,7 +145,12 @@
         /// </summary>
         protected internal override void InternalParseParameter(CoreParameter parameter)
         {
-            discretes = System.Linq.Enumerable.ToHashSet(parameter.Discretes);
+            discretes.Clear();
+            foreach (var discreet in parameter.Discretes)
+            {
+                discretes.Add(discreet);
+            }
+
             isTimeDependent = TimeDependentCapabilityLink.TryDeserialize(parameter.Remarks, out var timeDependentLink) && timeDependentLink.IsTimeDependent;
             linkedTimeDependentCapabilityId = timeDependentLink?.LinkedParameterId ?? Guid.Empty;
         }

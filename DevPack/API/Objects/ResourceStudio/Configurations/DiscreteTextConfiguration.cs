@@ -11,7 +11,6 @@
     /// </summary>
     public class DiscreteTextConfiguration : Configuration
     {
-        private string defaultValue;
         private readonly Dictionary<string, string> discretes = new Dictionary<string, string>();
 
         /// <summary>
@@ -43,14 +42,7 @@
         /// <summary>
         /// Gets or sets the display key of the default discrete value.
         /// </summary>
-        public string DefaultValue
-        {
-            get => defaultValue;
-            set
-            {
-                defaultValue = value;
-            }
-        }
+        public string DefaultValue { get; set; }
 
         /// <summary>
         /// Gets a read-only dictionary of discrete values.
@@ -183,12 +175,12 @@
         {
             if (!parameter.HasDefaultStringValue())
             {
-                defaultValue = null;
+                DefaultValue = null;
             }
             else
             {
                 int defaultIndex = parameter.Discretes.IndexOf(parameter.DefaultValue.StringValue);
-                defaultValue = defaultIndex >= 0 ? parameter.DiscreetDisplayValues[defaultIndex] : null;
+                DefaultValue = defaultIndex >= 0 ? parameter.DiscreetDisplayValues[defaultIndex] : null;
             }
 
             for (int i = 0; i < parameter.Discretes.Count; i++)

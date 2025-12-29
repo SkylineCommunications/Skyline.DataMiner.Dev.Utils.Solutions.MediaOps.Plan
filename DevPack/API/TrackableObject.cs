@@ -18,7 +18,7 @@
         /// </summary>
         /// <remarks>This constructor is protected internal, allowing access from derived classes or
         /// classes within the same assembly.</remarks>
-        protected internal TrackableObject()
+        private protected TrackableObject()
         {
         }
 
@@ -41,12 +41,6 @@
                 return initialHashCode != GetHashCode();
             }
         }
-
-        /// <summary>
-        /// Generates the hash code for the object.
-        /// </summary>
-        /// <returns>Hash code representing the current object.</returns>
-        public abstract override int GetHashCode();
 
         internal void InitTracking()
         {

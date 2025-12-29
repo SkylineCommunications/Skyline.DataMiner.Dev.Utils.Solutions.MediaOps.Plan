@@ -16,8 +16,6 @@
     public abstract class Parameter : ApiObject
     {
         private readonly CoreParameter coreParameter;
-        private string name;
-        private bool isMandatory;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Configuration"/> class.
@@ -56,26 +54,12 @@
         /// <summary>
         /// Gets or sets the name of the configuration.
         /// </summary>
-        public sealed override string Name
-        {
-            get => name;
-            set
-            {
-                name = value;
-            }
-        }
+        public sealed override string Name { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the parameter is mandatory.
         /// </summary>
-        public bool IsMandatory
-        {
-            get => isMandatory;
-            set
-            {
-                isMandatory = value;
-            }
-        }
+        public bool IsMandatory { get; set; }
 
         internal CoreParameter CoreParameter => coreParameter;
 
@@ -123,8 +107,8 @@
             if (!coreParameter.Categories.HasFlag(Category))
                 throw new InvalidOperationException($"The provided CORE parameter is not a {Category}.");
 
-            name = coreParameter.Name;
-            isMandatory = !coreParameter.IsOptional.HasValue || !coreParameter.IsOptional.Value;
+            Name = coreParameter.Name;
+            IsMandatory = !coreParameter.IsOptional.HasValue || !coreParameter.IsOptional.Value;
 
             InternalParseParameter(coreParameter);
         }

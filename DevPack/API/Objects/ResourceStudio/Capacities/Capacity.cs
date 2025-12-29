@@ -14,12 +14,6 @@
     /// </summary>
     public abstract class Capacity : Parameter
     {
-        internal string units;
-        internal decimal? rangeMin;
-        internal decimal? rangeMax;
-        internal decimal? stepSize;
-        internal int? decimals;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="Capacity"/> class.
         /// </summary>
@@ -46,62 +40,27 @@
         /// <summary>
         /// Gets or sets the units of measurement for the capacity.
         /// </summary>
-        public string Units
-        {
-            get => units;
-            set
-            {
-                units = value;
-            }
-        }
+        public string Units { get; set; }
 
         /// <summary>
         /// Gets or sets the minimum value for the capacity range.
         /// </summary>
-        public decimal? RangeMin
-        {
-            get => rangeMin;
-            set
-            {
-                rangeMin = value;
-            }
-        }
+        public decimal? RangeMin { get; set; }
 
         /// <summary>
         /// Gets or sets the maximum value for the capacity range.
         /// </summary>
-        public decimal? RangeMax
-        {
-            get => rangeMax;
-            set
-            {
-                rangeMax = value;
-            }
-        }
+        public decimal? RangeMax { get; set; }
 
         /// <summary>
         /// Gets or sets the step size for the capacity.
         /// </summary>
-        public decimal? StepSize
-        {
-            get => stepSize;
-            set
-            {
-                stepSize = value;
-            }
-        }
+        public decimal? StepSize { get; set; }
 
         /// <summary>
         /// Gets or sets the number of decimal places for the capacity values.
         /// </summary>
-        public int? Decimals
-        {
-            get => decimals;
-            set
-            {
-                decimals = value;
-            }
-        }
+        public int? Decimals { get; set; }
 
         /// <summary>
         /// Gets the category of the profile parameter, indicating its classification as a capacity.
@@ -150,11 +109,11 @@
         /// </summary>
         protected internal override void InternalParseParameter(CoreParameter parameter)
         {
-            units = parameter.Units ?? string.Empty;
-            rangeMin = parameter.HasMinRange() ? (decimal)parameter.RangeMin : null;
-            rangeMax = parameter.HasMaxRange() ? (decimal)parameter.RangeMax : null;
-            stepSize = parameter.HasStepSize() ? (decimal)parameter.Stepsize : null;
-            decimals = parameter.HasDecimals() ? parameter.Decimals : null;
+            Units = parameter.Units ?? string.Empty;
+            RangeMin = parameter.HasMinRange() ? (decimal)parameter.RangeMin : null;
+            RangeMax = parameter.HasMaxRange() ? (decimal)parameter.RangeMax : null;
+            StepSize = parameter.HasStepSize() ? (decimal)parameter.Stepsize : null;
+            Decimals = parameter.HasDecimals() ? parameter.Decimals : null;
         }
 
         internal virtual CoreParameter GetParameterWithChanges()
@@ -166,11 +125,11 @@
             updatedParameter.Name = Name;
             updatedParameter.IsOptional = !IsMandatory;
 
-            updatedParameter.Units = units ?? String.Empty;
-            updatedParameter.RangeMin = rangeMin.HasValue ? (double)rangeMin.Value : double.NaN;
-            updatedParameter.RangeMax = rangeMax.HasValue ? (double)rangeMax.Value : double.NaN;
-            updatedParameter.Stepsize = stepSize.HasValue ? (double)stepSize.Value : double.NaN;
-            updatedParameter.Decimals = decimals.HasValue ? decimals.Value : int.MaxValue;
+            updatedParameter.Units = Units ?? String.Empty;
+            updatedParameter.RangeMin = RangeMin.HasValue ? (double)RangeMin.Value : double.NaN;
+            updatedParameter.RangeMax = RangeMax.HasValue ? (double)RangeMax.Value : double.NaN;
+            updatedParameter.Stepsize = StepSize.HasValue ? (double)StepSize.Value : double.NaN;
+            updatedParameter.Decimals = Decimals.HasValue ? Decimals.Value : int.MaxValue;
 
             return updatedParameter;
         }
