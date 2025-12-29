@@ -179,16 +179,16 @@
             {
                 var error = new ResourcePropertyInvalidStateError
                 {
-                    ErrorMessage = $"A resource that was not saved cannot be removed.",
+                    ErrorMessage = $"A resource property that was not saved cannot be removed.",
                     Id = x.Id,
                 };
 
                 ReportError(x.Id, error);
             });
 
-            // Todo: add check is property is in use
+            ValidatePropertiesAreNotInUse(apiResourceProperties.Except(newProperties).ToList());
 
-            var propertiesToDelete = apiResourceProperties.Except(newProperties).ToList();
+            var propertiesToDelete = apiResourceProperties.Where(IsValid).ToList();
             var lockResult = planApi.LockManager.LockAndExecute(propertiesToDelete, DeleteCoreResourceProperties);
             ReportError(lockResult);
         }
@@ -372,6 +372,47 @@
                     ErrorMessage = "Name is already in use.",
                     Id = property.Id,
                     Name = property.Name,
+                };
+
+                ReportError(property.Id, error);
+            }
+        }
+
+        private void ValidatePropertiesAreNotInUse(ICollection<ResourceProperty> apiResourceProperties)
+        {
+            if (apiResourceProperties == null)
+            {
+                throw new ArgumentNullException(nameof(apiResourceProperties));
+            }
+
+            if (apiResourceProperties.Count == 0)
+            {
+                return;
+            }
+
+            var filter = new ORFilterElement<Resource>(apiResourceProperties
+                .Select(x => ResourceExposers.Properties.PropertyId.Equal(x.Id))
+                .ToArray());
+
+            var resourcesImplementingProperties = planApi.Resources.Read(filter);
+
+            var resourcesByPropertyId = resourcesImplementingProperties
+                .SelectMany(r => r.Properties.Select(p => new { PropertyId = p.Id, Resource = r}))
+                .GroupBy(x => x.PropertyId)
+                .ToDictionary(x => x.Key, x => x.Select(y => y.Resource).ToList());
+
+            foreach (var property in apiResourceProperties)
+            {
+                if (!resourcesByPropertyId.TryGetValue(property.Id, out var resources))
+                {
+                    continue;
+                }
+
+                var error = new ResourcePropertyInUseError
+                {
+                    ErrorMessage = $"Resource property '{property.Name}' is in use by {resources.Count} resource(s) and cannot be deleted.",
+                    Id = property.Id,
+                    ResourceIds = resources.Select(x => x.Id).ToList(),
                 };
 
                 ReportError(property.Id, error);

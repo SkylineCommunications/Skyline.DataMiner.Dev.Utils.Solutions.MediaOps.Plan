@@ -6,6 +6,7 @@
 
     using Microsoft.Extensions.Logging;
 
+    using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
 
@@ -116,19 +117,22 @@
                 return;
             }
 
-            foreach (var capacity in apiCapacities.Where(x => x.IsNew))
+            var newCapacities =  apiCapacities.Where(x => x.IsNew).ToList();
+            newCapacities.ForEach(x =>
             {
                 var error = new CapacityInvalidStateError
                 {
-                    ErrorMessage = "Cannot delete a capacity that does not exist.",
-                    Id = capacity.Id,
+                    ErrorMessage = $"A capacity that was not saved cannot be removed.",
+                    Id = x.Id,
                 };
 
-                ReportError(capacity.Id, error);
-            }
+                ReportError(x.Id, error);
+            });
 
-            var validCapacities = apiCapacities.Where(IsValid).ToList();
-            var lockResult = planApi.LockManager.LockAndExecute(validCapacities, DeleteCoreCapacities);
+            ValidateCapacitiesAreNotInUse(apiCapacities.Except(newCapacities).ToList());
+
+            var capacitiesToDelete = apiCapacities.Where(IsValid).ToList();
+            var lockResult = planApi.LockManager.LockAndExecute(capacitiesToDelete, DeleteCoreCapacities);
             ReportError(lockResult);
         }
 
@@ -399,6 +403,47 @@
 
                     ReportError(capacity.Id, error);
                 }
+            }
+        }
+
+        private void ValidateCapacitiesAreNotInUse(ICollection<Capacity> apiCapacities)
+        {
+            if (apiCapacities == null)
+            {
+                throw new ArgumentNullException(nameof(apiCapacities));
+            }
+
+            if (apiCapacities.Count == 0)
+            {
+                return;
+            }
+
+            var filter = new ORFilterElement<Resource>(apiCapacities
+                .Select(x => ResourceExposers.Capacities.CapacityId.Equal(x.Id))
+                .ToArray());
+
+            var resourcesImplementingCapacities = planApi.Resources.Read(filter);
+
+            var recourcesByCapacityId = resourcesImplementingCapacities
+                .SelectMany(r => r.Capacities.Select(c => new { CapacityId = c.Id, Resource = r }))
+                .GroupBy(x => x.CapacityId)
+                .ToDictionary(x => x.Key, x => x.Select(y => y.Resource).ToList());
+
+            foreach (var capacity in apiCapacities)
+            {
+                if (!recourcesByCapacityId.TryGetValue(capacity.Id, out var resources))
+                    {
+                    continue;
+                }
+
+                var error = new CapacityInUseError
+                {
+                    ErrorMessage = $"Capacity '{capacity.Name}' is in use by {resources.Count} resource(s) and cannot be deleted.",
+                    Id = capacity.Id,
+                    ResourceIds = resources.Select(x => x.Id).ToList(),
+                };
+
+                ReportError(capacity.Id, error);
             }
         }
     }
