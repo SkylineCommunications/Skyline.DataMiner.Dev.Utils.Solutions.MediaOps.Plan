@@ -546,7 +546,12 @@
         /// <returns><c>true</c> if the resource pool has resources; otherwise, <c>false</c>.</returns>
         public bool HasResources(ResourcePool resourcePool)
         {
-            throw new NotImplementedException();
+            if (resourcePool == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePool));
+            }
+
+            return Count(ResourceExposers.ResourcePoolIds.Contains(resourcePool.Id)) > 0;
         }
 
         /// <summary>
@@ -795,7 +800,12 @@
         /// <returns>The number of resources in the pool.</returns>
         public long ResourceCount(ResourcePool resourcePool)
         {
-            throw new NotImplementedException();
+            if (resourcePool == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePool));
+            }
+
+            return Count(ResourceExposers.ResourcePoolIds.Contains(resourcePool.Id));
         }
 
         /// <summary>

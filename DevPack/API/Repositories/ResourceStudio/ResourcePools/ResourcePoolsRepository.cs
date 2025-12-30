@@ -419,7 +419,12 @@
         /// <returns><c>true</c> if the resource pool has resources; otherwise, <c>false</c>.</returns>
         public bool HasResources(ResourcePool resourcePool)
         {
-            throw new NotImplementedException();
+            if (resourcePool == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePool));
+            }
+
+            return PlanApi.Resources.Count(ResourceExposers.ResourcePoolIds.Contains(resourcePool.Id)) > 0;
         }
 
         /// <summary>
