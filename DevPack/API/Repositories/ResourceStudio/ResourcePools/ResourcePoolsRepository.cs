@@ -239,7 +239,7 @@
 
                 var capabilityIds = result.SuccessfulIds;
                 act?.AddTag("Removed Capabilities", String.Join(", ", capabilityIds));
-                act?.AddTag("Removed Capabilities Count", capabilityIds.Count());
+                act?.AddTag("Removed Capabilities Count", capabilityIds.Count);
             });
         }
 
@@ -635,18 +635,7 @@
                 throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size must be greater than zero.");
             }
 
-            var pageNumber = 0;
-            var paramFilter = filterTranslator.Translate(filter);
-            var items = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePoolsPaged(paramFilter, pageSize);
-            var enumerator = items.GetEnumerator();
-            var hasNext = enumerator.MoveNext();
-
-            while (hasNext)
-            {
-                var page = enumerator.Current;
-                hasNext = enumerator.MoveNext();
-                yield return new PagedResult<ResourcePool>(page.Select(x => new ResourcePool(x)), pageNumber++, pageSize, hasNext);
-            }
+            return ReadPagedIterator(filter, pageSize);
         }
 
         /// <summary>
@@ -670,6 +659,21 @@
             return ReadPaged(new TRUEFilterElement<ResourcePool>(), MediaOpsPlanApi.DefaultPageSize);
         }
 
+        public IEnumerable<IPagedResult<ResourcePool>> ReadPagedIterator(FilterElement<ResourcePool> filter, int pageSize)
+        {
+            var pageNumber = 0;
+            var paramFilter = filterTranslator.Translate(filter);
+            var items = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePoolsPaged(paramFilter, pageSize);
+            var enumerator = items.GetEnumerator();
+            var hasNext = enumerator.MoveNext();
+
+            while (hasNext)
+            {
+                var page = enumerator.Current;
+                hasNext = enumerator.MoveNext();
+                yield return new PagedResult<ResourcePool>(page.Select(x => new ResourcePool(x)), pageNumber++, pageSize, hasNext);
+            }
+        }
         /// <summary>
         /// Gets the count of resources in the specified resource pool.
         /// </summary>
