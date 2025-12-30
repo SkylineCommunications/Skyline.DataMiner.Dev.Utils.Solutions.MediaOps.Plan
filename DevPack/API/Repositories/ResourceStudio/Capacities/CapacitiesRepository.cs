@@ -7,6 +7,7 @@
     using Microsoft.Extensions.Logging;
 
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
+    using Skyline.DataMiner.SDM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
@@ -41,7 +42,6 @@
         /// </summary>
         /// <param name="filter">The filter criteria to apply when counting capacities.</param>
         /// <returns>The count of capacities matching the filter.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public long Count(FilterElement<Capacity> filter)
         {
             return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Count), act =>
@@ -56,7 +56,6 @@
         /// </summary>
         /// <param name="query">The query criteria to apply when counting capacities.</param>
         /// <returns>The count of capacities matching the query.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public long Count(IQuery<Capacity> query)
         {
             return Count(query.Filter);
@@ -146,7 +145,7 @@
                     throw new MediaOpsBulkException<Guid>(result);
                 }
 
-                var capacityIds = apiObjects.Select(x => x.Id);
+                var capacityIds = result.SuccessfulIds;
                 act?.AddTag("Created or Updated Capacities", String.Join(", ", capacityIds));
                 act?.AddTag("Created or Updated Capacities Count", capacityIds.Count());
             });
@@ -157,7 +156,7 @@
         /// </summary>
         /// <param name="apiObjects">The capacities to delete.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
-        public void Delete(params Capacity[] apiObjects)
+        public void Delete(IEnumerable<Capacity> apiObjects)
         {
             if (apiObjects == null)
             {
@@ -173,14 +172,14 @@
         /// <param name="apiObjectIds">The unique identifiers of the capacities to delete.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjectIds"/> is <c>null</c>.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk deletion operation fails.</exception>
-        public void Delete(params Guid[] apiObjectIds)
+        public void Delete(IEnumerable<Guid> apiObjectIds)
         {
             if (apiObjectIds == null)
             {
                 throw new ArgumentNullException(nameof(apiObjectIds));
             }
 
-            var capacitiesToDelete = Read(apiObjectIds);
+            var capacitiesToDelete = Read(apiObjectIds.ToArray());
 
             ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Delete), act =>
             {
@@ -189,10 +188,34 @@
                     throw new MediaOpsBulkException<Guid>(result);
                 }
 
-                var capacityIds = apiObjectIds;
+                var capacityIds = capacitiesToDelete.Select(x => x.Id);
                 act?.AddTag("Removed Capacities", String.Join(", ", capacityIds));
                 act?.AddTag("Removed Capacities Count", capacityIds.Count());
             });
+        }
+
+        /// <summary>
+        /// Deletes the specified capacity from the repository.
+        /// </summary>
+        /// <param name="oToDelete">The capacity to delete.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="oToDelete"/> is <c>null</c>.</exception>
+        public void Delete(Capacity oToDelete)
+        {
+            if (oToDelete == null)
+            {
+                throw new ArgumentNullException(nameof(oToDelete));
+            }
+
+            Delete([oToDelete]);
+        }
+
+        /// <summary>
+        /// Deletes the specified capacity from the repository.
+        /// </summary>
+        /// <param name="apiObjectId">The unique identifier of the capacity to delete.</param>
+        public void Delete(Guid apiObjectId)
+        {
+            Delete([apiObjectId]);
         }
 
         /// <summary>
@@ -248,7 +271,6 @@
         /// </summary>
         /// <param name="filter">The filter criteria to apply when reading capacities.</param>
         /// <returns>An enumerable collection of capacities matching the filter.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<Capacity> Read(FilterElement<Capacity> filter)
         {
             if (filter == null)
@@ -268,7 +290,6 @@
         /// </summary>
         /// <param name="query">The query criteria to apply when reading capacities.</param>
         /// <returns>An enumerable collection of capacities matching the query.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<Capacity> Read(IQuery<Capacity> query)
         {
             return Read(query.Filter);
@@ -278,7 +299,6 @@
         /// Reads all capacities in pages.
         /// </summary>
         /// <returns>An enumerable collection of pages, where each page contains a collection of capacities.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Capacity>> ReadPaged()
         {
             return ReadPaged(new TRUEFilterElement<Capacity>());
@@ -289,7 +309,6 @@
         /// </summary>
         /// <param name="filter">The filter criteria to apply when reading capacities.</param>
         /// <returns>An enumerable collection of pages, where each page contains capacities matching the filter.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Capacity>> ReadPaged(FilterElement<Capacity> filter)
         {
             return ReadPaged(filter, MediaOpsPlanApi.DefaultPageSize);
@@ -300,7 +319,6 @@
         /// </summary>
         /// <param name="query">The query criteria to apply when reading capacities.</param>
         /// <returns>An enumerable collection of pages, where each page contains capacities matching the query.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Capacity>> ReadPaged(IQuery<Capacity> query)
         {
             return ReadPaged(query.Filter);
@@ -312,9 +330,18 @@
         /// <param name="filter">The filter criteria to apply when reading capacities.</param>
         /// <param name="pageSize">The number of items per page.</param>
         /// <returns>An enumerable collection of pages, where each page contains up to the specified number of capacities matching the filter.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Capacity>> ReadPaged(FilterElement<Capacity> filter, int pageSize)
         {
+            if (filter == null)
+            {
+                throw new ArgumentNullException(nameof(filter));
+            }
+
+            if (pageSize <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size must be greater than zero.");
+            }
+
             var pageNumber = 0;
             var paramFilter = filterTranslator.Translate(filter);
             var items = PlanApi.CoreHelpers.ProfileProvider.GetCapacitiesPaged(paramFilter, pageSize);
@@ -335,10 +362,19 @@
         /// <param name="query">The query criteria to apply when reading capacities.</param>
         /// <param name="pageSize">The number of items per page.</param>
         /// <returns>An enumerable collection of pages, where each page contains up to the specified number of capacities matching the query.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Capacity>> ReadPaged(IQuery<Capacity> query, int pageSize)
         {
             return ReadPaged(query.Filter, pageSize);
+        }
+
+        /// <summary>
+        /// Reads all capacities in pages.
+        /// </summary>
+        /// <param name="pageSize">The number of items per page.</param>
+        /// <returns>An enumerable collection of pages, where each page contains a collection of capacities.</returns>
+        public IEnumerable<IPagedResult<Capacity>> ReadPaged(int pageSize)
+        {
+            return ReadPaged(new TRUEFilterElement<Capacity>(), MediaOpsPlanApi.DefaultPageSize);
         }
 
         /// <summary>

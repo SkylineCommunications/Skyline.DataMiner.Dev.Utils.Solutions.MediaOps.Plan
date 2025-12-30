@@ -2,9 +2,9 @@
 {
     /// <summary>
     /// Defines a repository for managing <see cref="Configuration"/> entities, providing  basic CRUD operations and
-    /// additional functionality as defined by the  <see cref="ICrudRepository{T}"/> interface.
+    /// additional functionality as defined by the  <see cref="IRepository{T}"/> interfaces.
     /// </summary>
-    public interface IConfigurationsRepository : ICrudRepository<Configuration>
+    public interface IConfigurationsRepository : IRepository<Configuration>
     {
     }
 }

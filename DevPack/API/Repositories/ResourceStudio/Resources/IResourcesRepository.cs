@@ -6,7 +6,7 @@
     /// <summary>
     /// Defines methods for managing <see cref="Resource"/> objects.
     /// </summary>
-    public interface IResourcesRepository : ICrudRepository<Resource>
+    public interface IResourcesRepository : IRepository<Resource>
     {
         /// <summary>
         /// Moves the specified <see cref="Resource"/> to the desired state.
