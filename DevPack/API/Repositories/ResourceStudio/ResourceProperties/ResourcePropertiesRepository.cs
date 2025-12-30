@@ -366,18 +366,7 @@
                 throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size must be greater than zero.");
             }
 
-            var pageNumber = 0;
-            var paramFilter = filterTranslator.Translate(filter);
-            var items = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePropertiesPaged(paramFilter, pageSize);
-            var enumerator = items.GetEnumerator();
-            var hasNext = enumerator.MoveNext();
-
-            while (hasNext)
-            {
-                var page = enumerator.Current;
-                hasNext = enumerator.MoveNext();
-                yield return new PagedResult<ResourceProperty>(page.Select(x => new ResourceProperty(x)), pageNumber++, pageSize, hasNext);
-            }
+            return ReadPagedIterator(filter, pageSize);
         }
 
         /// <summary>
@@ -401,6 +390,21 @@
             return ReadPaged(new TRUEFilterElement<ResourceProperty>(), MediaOpsPlanApi.DefaultPageSize);
         }
 
+        public IEnumerable<IPagedResult<ResourceProperty>> ReadPagedIterator(FilterElement<ResourceProperty> filter, int pageSize)
+        {
+            var pageNumber = 0;
+            var paramFilter = filterTranslator.Translate(filter);
+            var items = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePropertiesPaged(paramFilter, pageSize);
+            var enumerator = items.GetEnumerator();
+            var hasNext = enumerator.MoveNext();
+
+            while (hasNext)
+            {
+                var page = enumerator.Current;
+                hasNext = enumerator.MoveNext();
+                yield return new PagedResult<ResourceProperty>(page.Select(x => new ResourceProperty(x)), pageNumber++, pageSize, hasNext);
+            }
+        }
         /// <summary>
         /// Updates an existing resource property in the repository.
         /// </summary>

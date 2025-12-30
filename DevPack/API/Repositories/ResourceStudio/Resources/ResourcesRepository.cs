@@ -758,18 +758,7 @@
                 throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size must be greater than zero.");
             }
 
-            var pageNumber = 0;
-            var paramFilter = filterTranslator.Translate(filter);
-            var items = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcesPaged(paramFilter, pageSize);
-            var enumerator = items.GetEnumerator();
-            var hasNext = enumerator.MoveNext();
-
-            while (hasNext)
-            {
-                var page = enumerator.Current;
-                hasNext = enumerator.MoveNext();
-                yield return new PagedResult<Resource>(Resource.InstantiateResources(PlanApi, page), pageNumber++, pageSize, hasNext);
-            }
+            return ReadPagedIterator(filter, pageSize);
         }
 
         /// <summary>
@@ -1127,6 +1116,22 @@
                     throw new MediaOpsException(result.TraceDataPerItem[resource.Id]);
                 }
             });
+        }
+
+        private IEnumerable<IPagedResult<Resource>> ReadPagedIterator(FilterElement<Resource> filter, int pageSize)
+        {
+            var pageNumber = 0;
+            var paramFilter = filterTranslator.Translate(filter);
+            var items = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcesPaged(paramFilter, pageSize);
+            var enumerator = items.GetEnumerator();
+            var hasNext = enumerator.MoveNext();
+
+            while (hasNext)
+            {
+                var page = enumerator.Current;
+                hasNext = enumerator.MoveNext();
+                yield return new PagedResult<Resource>(Resource.InstantiateResources(PlanApi, page), pageNumber++, pageSize, hasNext);
+            }
         }
     }
 }

@@ -7,7 +7,7 @@
     /// <summary>
     /// Defines a repository for MediaOps Plan.
     /// </summary>
-    public interface IRepository<T> : SDM.IRepository<T>, IBulkRepository<T>
+    public interface IRepository<T> : IBulkRepository<T>
     {
         /// <summary>
         /// Gets the total number of API objects in the repository.

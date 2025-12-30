@@ -147,7 +147,7 @@
 
                 var capacityIds = result.SuccessfulIds;
                 act?.AddTag("Created or Updated Capacities", String.Join(", ", capacityIds));
-                act?.AddTag("Created or Updated Capacities Count", capacityIds.Count());
+                act?.AddTag("Created or Updated Capacities Count", capacityIds.Count);
             });
         }
 
@@ -342,18 +342,7 @@
                 throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size must be greater than zero.");
             }
 
-            var pageNumber = 0;
-            var paramFilter = filterTranslator.Translate(filter);
-            var items = PlanApi.CoreHelpers.ProfileProvider.GetCapacitiesPaged(paramFilter, pageSize);
-            var enumerator = items.GetEnumerator();
-            var hasNext = enumerator.MoveNext();
-
-            while (hasNext)
-            {
-                var page = enumerator.Current;
-                hasNext = enumerator.MoveNext();
-                yield return new PagedResult<Capacity>(Capacity.InstantiateCapacities(page), pageNumber++, pageSize, hasNext);
-            }
+            return ReadPagedIterator(filter, pageSize);
         }
 
         /// <summary>
@@ -377,6 +366,21 @@
             return ReadPaged(new TRUEFilterElement<Capacity>(), MediaOpsPlanApi.DefaultPageSize);
         }
 
+        public IEnumerable<IPagedResult<Capacity>> ReadPagedIterator(FilterElement<Capacity> filter, int pageSize)
+        {
+            var pageNumber = 0;
+            var paramFilter = filterTranslator.Translate(filter);
+            var items = PlanApi.CoreHelpers.ProfileProvider.GetCapacitiesPaged(paramFilter, pageSize);
+            var enumerator = items.GetEnumerator();
+            var hasNext = enumerator.MoveNext();
+
+            while (hasNext)
+            {
+                var page = enumerator.Current;
+                hasNext = enumerator.MoveNext();
+                yield return new PagedResult<Capacity>(Capacity.InstantiateCapacities(page), pageNumber++, pageSize, hasNext);
+            }
+        }
         /// <summary>
         /// Updates an existing capacity in the repository.
         /// </summary>

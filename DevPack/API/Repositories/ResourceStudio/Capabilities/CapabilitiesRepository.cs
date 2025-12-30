@@ -176,7 +176,7 @@
 
                 var capabilityIds = result.SuccessfulIds;
                 act?.AddTag("Removed Capabilities", String.Join(", ", capabilityIds));
-                act?.AddTag("Removed Capabilities Count", capabilityIds.Count());
+                act?.AddTag("Removed Capabilities Count", capabilityIds.Count);
             });
         }
 
@@ -338,18 +338,7 @@
                 throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size must be greater than zero.");
             }
 
-            var pageNumber = 0;
-            var paramFilter = filterTranslator.Translate(filter);
-            var items = PlanApi.CoreHelpers.ProfileProvider.GetCapabilitiesPaged(paramFilter, pageSize);
-            var enumerator = items.GetEnumerator();
-            var hasNext = enumerator.MoveNext();
-
-            while (hasNext)
-            {
-                var page = enumerator.Current;
-                hasNext = enumerator.MoveNext();
-                yield return new PagedResult<Capability>(page.Select(x => new Capability(x)), pageNumber++, pageSize, hasNext);
-            }
+            return ReadPagedIterator(filter, pageSize);
         }
 
         /// <summary>
@@ -436,6 +425,22 @@
                 var capabilityIds = apiObjects.Select(x => x.Id);
                 act?.AddTag("CapabilityIds", String.Join(", ", capabilityIds));
             });
+        }
+
+        private IEnumerable<IPagedResult<Capability>> ReadPagedIterator(FilterElement<Capability> filter, int pageSize)
+        {
+            var pageNumber = 0;
+            var paramFilter = filterTranslator.Translate(filter);
+            var items = PlanApi.CoreHelpers.ProfileProvider.GetCapabilitiesPaged(paramFilter, pageSize);
+            var enumerator = items.GetEnumerator();
+            var hasNext = enumerator.MoveNext();
+
+            while (hasNext)
+            {
+                var page = enumerator.Current;
+                hasNext = enumerator.MoveNext();
+                yield return new PagedResult<Capability>(page.Select(x => new Capability(x)), pageNumber++, pageSize, hasNext);
+            }
         }
     }
 }
