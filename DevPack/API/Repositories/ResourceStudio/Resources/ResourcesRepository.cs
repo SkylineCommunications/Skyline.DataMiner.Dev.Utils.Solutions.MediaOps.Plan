@@ -488,15 +488,14 @@
                 throw new ArgumentNullException(nameof(resourcePools));
             }
 
-            var domResources = PlanApi.DomHelpers.SlcResourceStudioHelper.GetAllResourcesInPools(resourcePools.Select(x => x.Id));
-            var apiResourcesById = Resource.InstantiateResources(PlanApi, domResources).ToDictionary(x => x.Id);
+            var resourcePoolIds = resourcePools.Select(x => x.Id).Distinct();
+            var resourcesInPoolsFilter = new ORFilterElement<Resource>(resourcePoolIds.Select(x => ResourceExposers.ResourcePoolIds.Contains(x)).ToArray());
+
+            var resources = PlanApi.Resources.Read(resourcesInPoolsFilter);
 
             var resourcesPerPool = resourcePools.ToDictionary(
                 pool => pool,
-                pool =>
-                    domResources
-                        .Where(x => x.ResourceInternalProperties.PoolIds.Contains(pool.Id))
-                        .Select(x => apiResourcesById[x.ID.Id])
+                pool => resources.Where(x => x.ResourcePoolIds.Contains(pool.Id))
             );
 
             return resourcesPerPool;
@@ -516,24 +515,15 @@
                 throw new ArgumentNullException(nameof(resourcePools));
             }
 
-            var resourceFilters = resourcePools
-                .Select(x => DomInstanceExposers.FieldValues
-                    .DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.Pool_Ids)
-                    .Contains(Convert.ToString(x.Id)))
-                .ToArray();
+            var resourcePoolIds = resourcePools.Select(x => x.Id).Distinct();
+            var resourcesInPoolsFilter = new ORFilterElement<Resource>(resourcePoolIds.Select(x => ResourceExposers.ResourcePoolIds.Contains(x)).ToArray());
+            var resourceStateFilter = ResourceExposers.State.Equal((int)state);
 
-            var filter = new ORFilterElement<DomInstance>(resourceFilters)
-                .AND(DomInstanceExposers.StatusId.Equal(SlcResource_StudioIds.Behaviors.Resource_Behavior.Statuses.ToValue(EnumExtensions.MapEnum<ResourceState, SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum>(state))));
-
-            var domResources = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(filter);
-            var apiResourcesById = Resource.InstantiateResources(PlanApi, domResources).ToDictionary(x => x.Id);
+            var resources = PlanApi.Resources.Read(resourcesInPoolsFilter.AND(resourceStateFilter));
 
             var resourcesPerPool = resourcePools.ToDictionary(
                 pool => pool,
-                pool =>
-                    domResources
-                        .Where(x => x.ResourceInternalProperties.PoolIds.Contains(pool.Id))
-                        .Select(x => apiResourcesById[x.ID.Id])
+                pool => resources.Where(x => x.ResourcePoolIds.Contains(pool.Id))
             );
 
             return resourcesPerPool;
