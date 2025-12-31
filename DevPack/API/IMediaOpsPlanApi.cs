@@ -35,7 +35,7 @@
         /// <summary>
         /// Gets the repository for managing resource properties.
         /// </summary>
-        IResourcePropertiesRepository Properties { get; }
+        IResourcePropertiesRepository Properties { get; } // TODO: should we rename this to ResourceProperties? Just to not run into issues if we introduce other kinds of properties in the future.
 
     }
 }

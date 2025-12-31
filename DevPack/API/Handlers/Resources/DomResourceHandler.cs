@@ -540,7 +540,7 @@
 
             var resourcesRequiringValidation = apiResources.ToList();
 
-            foreach (var resource in resourcesRequiringValidation.Where(x => !InputValidator.ValidateEmptyText(x.Name)))
+            foreach (var resource in resourcesRequiringValidation.Where(x => !InputValidator.IsNonEmptyText(x.Name)))
             {
                 var error = new ResourceInvalidNameError
                 {
@@ -553,7 +553,7 @@
                 resourcesRequiringValidation.Remove(resource);
             }
 
-            foreach (var resource in resourcesRequiringValidation.Where(x => !InputValidator.ValidateTextLength(x.Name)))
+            foreach (var resource in resourcesRequiringValidation.Where(x => !InputValidator.HasValidTextLength(x.Name)))
             {
                 var error = new ResourceInvalidNameError
                 {
@@ -826,22 +826,41 @@
 
             foreach (var resource in apiResources)
             {
-                foreach (var propertySettings in resource.Properties)
+                foreach (var propertySetting in resource.Properties)
                 {
-                    if (propertySettings.Id == Guid.Empty)
+                    if (propertySetting.Id == Guid.Empty)
                     {
                         var error = new ResourceInvalidPropertySettingsError
                         {
+                            Id = resource.Id,
+                            PropertyId = propertySetting.Id,
                             ErrorMessage = "Property ID cannot be empty.",
                         };
 
                         ReportError(resource.Id, error);
+                        continue;
                     }
-                    else if (!propertiesById.TryGetValue(propertySettings.Id, out _))
+
+                    if (!propertiesById.TryGetValue(propertySetting.Id, out _))
                     {
                         var error = new ResourceInvalidPropertySettingsError
                         {
-                            ErrorMessage = $"Property with ID '{propertySettings.Id}' not found.",
+                            Id = resource.Id,
+                            PropertyId = propertySetting.Id,
+                            ErrorMessage = $"Property with ID '{propertySetting.Id}' not found.",
+                        };
+
+                        ReportError(resource.Id, error);
+                        continue;
+                    }
+
+                    if (!InputValidator.HasValidTextLength(propertySetting.Value))
+                    {
+                        var error = new ResourceInvalidPropertySettingsError
+                        {
+                            Id = resource.Id,
+                            PropertyId = propertySetting.Id,
+                            ErrorMessage = $"Property value length is limited to {InputValidator.DefaultMaxTextLength} characters.",
                         };
 
                         ReportError(resource.Id, error);

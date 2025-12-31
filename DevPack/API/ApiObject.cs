@@ -18,6 +18,11 @@
         /// </summary>
         public abstract string Name { get; set; }
 
+        /// <summary>
+        /// Gets the display name of the API object.
+        /// </summary>
+        public virtual string DisplayName => Name;
+
         private protected ApiObject()
             : this(Guid.NewGuid())
         {

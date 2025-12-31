@@ -25,7 +25,7 @@
             {
                 // valid default string value
             }
-            else if (!InputValidator.ValidateTextLength(textConfiguration.DefaultValue))
+            else if (!InputValidator.HasValidTextLength(textConfiguration.DefaultValue))
             {
                 ReportError(textConfiguration.Id, new ConfigurationInvalidDefaultValueError
                 {

@@ -17,6 +17,7 @@
         private HashSet<string> discretes = new HashSet<string>();
         private bool isTimeDependent;
         private Guid linkedTimeDependentCapabilityId;
+        private string displayName;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Capability"/> class.
@@ -40,6 +41,9 @@
         internal protected Capability(CoreParameter parameter) : base(parameter)
         {
         }
+
+        /// <inheritdoc />
+        public override string DisplayName => displayName;
 
         /// <summary>
         /// Gets or sets a value indicating whether the capability is time-dependent or not.
@@ -134,6 +138,15 @@
             discretes = System.Linq.Enumerable.ToHashSet(parameter.Discretes);
             isTimeDependent = TimeDependentCapabilityLink.TryDeserialize(parameter.Remarks, out var timeDependentLink) && timeDependentLink.IsTimeDependent;
             linkedTimeDependentCapabilityId = timeDependentLink?.LinkedParameterId ?? Guid.Empty;
+
+            if (IsTimeDependent)
+            {
+                displayName = $"🕘 {parameter.Name}";
+            }
+            else
+            {
+                displayName = parameter.Name;
+            }
         }
     }
 }
