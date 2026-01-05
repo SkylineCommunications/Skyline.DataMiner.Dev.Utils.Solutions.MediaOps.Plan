@@ -218,7 +218,7 @@
 
             var configurationsRequiringValidation = apiConfigurations.ToList();
 
-            foreach (var configuration in configurationsRequiringValidation.Where(x => !InputValidator.ValidateEmptyText(x.Name)))
+            foreach (var configuration in configurationsRequiringValidation.Where(x => !InputValidator.IsNonEmptyText(x.Name)))
             {
                 var error = new ConfigurationInvalidNameError
                 {
@@ -230,7 +230,7 @@
                 configurationsRequiringValidation.Remove(configuration);
             }
 
-            foreach (var configuration in configurationsRequiringValidation.Where(x => !InputValidator.ValidateTextLength(x.Name)))
+            foreach (var configuration in configurationsRequiringValidation.Where(x => !InputValidator.HasValidTextLength(x.Name)))
             {
                 var error = new ConfigurationInvalidNameError
                 {

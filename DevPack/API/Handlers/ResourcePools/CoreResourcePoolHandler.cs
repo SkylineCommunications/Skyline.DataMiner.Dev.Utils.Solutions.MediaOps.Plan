@@ -248,7 +248,7 @@
 
             var poolsRequiringValidation = domResourcePools.ToList();
 
-            foreach (var pool in poolsRequiringValidation.Where(x => !InputValidator.ValidateEmptyText(x.ResourcePoolInfo.Name)).ToList())
+            foreach (var pool in poolsRequiringValidation.Where(x => !InputValidator.IsNonEmptyText(x.ResourcePoolInfo.Name)).ToList())
             {
                 var error = new ResourcePoolInvalidNameError
                 {
@@ -260,7 +260,7 @@
                 poolsRequiringValidation.Remove(pool);
             }
 
-            foreach (var pool in poolsRequiringValidation.Where(x => !InputValidator.ValidateTextLength(x.ResourcePoolInfo.Name)).ToList())
+            foreach (var pool in poolsRequiringValidation.Where(x => !InputValidator.HasValidTextLength(x.ResourcePoolInfo.Name)).ToList())
             {
                 var error = new ResourcePoolInvalidNameError
                 {
