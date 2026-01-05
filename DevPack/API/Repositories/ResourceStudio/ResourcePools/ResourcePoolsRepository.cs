@@ -408,8 +408,8 @@
                 throw new ArgumentNullException(nameof(resource));
             }
 
-            return PlanApi.DomHelpers.SlcResourceStudioHelper.GetPoolsByResource(resource.Id)
-                .Select(x => new ResourcePool(x));
+            var resourcePoolFilter = new ORFilterElement<ResourcePool>(resource.ResourcePoolIds.Select(x => ResourcePoolExposers.Id.Equal(x)).ToArray());
+            return PlanApi.ResourcePools.Read(resourcePoolFilter);
         }
 
         /// <summary>
