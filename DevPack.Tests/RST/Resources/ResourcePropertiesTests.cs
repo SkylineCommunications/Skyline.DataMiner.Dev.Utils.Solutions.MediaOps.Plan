@@ -104,8 +104,8 @@
                 Name = $"{prefix}_Resource",
             };
 
-            var invalidPeropertyId = Guid.NewGuid();
-            unmanagedResource.AddProperty(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePropertySettings(invalidPeropertyId)
+            var invalidPropertyId = Guid.NewGuid();
+            unmanagedResource.AddProperty(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePropertySettings(invalidPropertyId)
             {
                 Value = "Some Value",
             });
@@ -116,7 +116,7 @@
             }
             catch (MediaOpsException ex)
             {
-                var errorMessage = $"Property with ID '{invalidPeropertyId}' not found.";
+                var errorMessage = $"Property with ID '{invalidPropertyId}' not found.";
                 Assert.AreEqual(errorMessage, ex.Message);
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
@@ -126,6 +126,8 @@
                 var invalidResourcePropertyConfigurationError = resourceConfigurationError as ResourceInvalidPropertySettingsError;
                 Assert.IsNotNull(invalidResourcePropertyConfigurationError);
                 Assert.AreEqual(errorMessage, invalidResourcePropertyConfigurationError.ErrorMessage);
+                Assert.AreEqual(invalidPropertyId, invalidResourcePropertyConfigurationError.PropertyId);
+                Assert.AreEqual(unmanagedResource.Id, invalidResourcePropertyConfigurationError.Id);
 
                 return;
             }
@@ -146,8 +148,8 @@
             objectCreator.CreateResource(unmanagedResource);
             var resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
 
-            var invalidPeropertyId = Guid.NewGuid();
-            resource.AddProperty(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePropertySettings(invalidPeropertyId)
+            var invalidPropertyId = Guid.NewGuid();
+            resource.AddProperty(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePropertySettings(invalidPropertyId)
             {
                 Value = "Some Value",
             });
@@ -158,7 +160,7 @@
             }
             catch (MediaOpsException ex)
             {
-                var errorMessage = $"Property with ID '{invalidPeropertyId}' not found.";
+                var errorMessage = $"Property with ID '{invalidPropertyId}' not found.";
                 Assert.AreEqual(errorMessage, ex.Message);
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
@@ -168,10 +170,99 @@
                 var invalidResourcePropertyConfigurationError = resourceConfigurationError as ResourceInvalidPropertySettingsError;
                 Assert.IsNotNull(invalidResourcePropertyConfigurationError);
                 Assert.AreEqual(errorMessage, invalidResourcePropertyConfigurationError.ErrorMessage);
+                Assert.AreEqual(invalidPropertyId, invalidResourcePropertyConfigurationError.PropertyId);
+                Assert.AreEqual(resource.Id, invalidResourcePropertyConfigurationError.Id);
 
                 return;
             }
 
+            Assert.Fail("Exception not thrown");
+        }
+
+        [TestMethod]
+        public void CreateWithInvalidPropertyValueLengthThrowsException()
+        {
+            var prefix = Guid.NewGuid();
+            var property = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceProperty()
+            {
+                Name = $"{prefix}_Property",
+            };
+            objectCreator.CreateProperties(new[] { property });
+
+            var unmanagedResource = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
+            {
+                Name = $"{prefix}_Resource",
+            };
+
+            unmanagedResource.AddProperty(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePropertySettings(property.Id)
+            {
+                Value = new string('A', 151), // Assuming max length is 150
+            });
+
+            try
+            {
+                objectCreator.CreateResource(unmanagedResource);
+            }
+            catch (MediaOpsException ex)
+            {
+                var errorMessage = $"Property value length is limited to 150 characters.";
+                Assert.AreEqual(errorMessage, ex.Message);
+                Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
+
+                var resourceConfigurationError = ex.TraceData.ErrorData.OfType<ResourceError>().SingleOrDefault();
+                Assert.IsNotNull(resourceConfigurationError);
+
+                var invalidResourcePropertyConfigurationError = resourceConfigurationError as ResourceInvalidPropertySettingsError;
+                Assert.IsNotNull(invalidResourcePropertyConfigurationError);
+                Assert.AreEqual(errorMessage, invalidResourcePropertyConfigurationError.ErrorMessage);
+                Assert.AreEqual(property.Id, invalidResourcePropertyConfigurationError.PropertyId);
+                Assert.AreEqual(unmanagedResource.Id, invalidResourcePropertyConfigurationError.Id);
+                return;
+            }
+
+            Assert.Fail("Exception not thrown");
+        }
+
+        [TestMethod]
+        public void UpdateWithInvalidPropertyValueLengthThrowsException()
+        {
+            var prefix = Guid.NewGuid();
+            var property = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceProperty()
+            {
+                Name = $"{prefix}_Property",
+            };
+            objectCreator.CreateProperties(new[] { property });
+
+            var unmanagedResource = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
+            {
+                Name = $"{prefix}_Resource",
+            };
+            objectCreator.CreateResource(unmanagedResource);
+
+            var resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
+            resource.AddProperty(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePropertySettings(property.Id)
+            {
+                Value = new string('A', 151), // Assuming max length is 150
+            });
+
+            try
+            {
+                TestContext.Api.Resources.Update(resource);
+            }
+            catch (MediaOpsException ex)
+            {
+                var errorMessage = $"Property value length is limited to 150 characters.";
+                Assert.AreEqual(errorMessage, ex.Message);
+                Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
+                var resourceConfigurationError = ex.TraceData.ErrorData.OfType<ResourceError>().SingleOrDefault();
+                Assert.IsNotNull(resourceConfigurationError);
+                var invalidResourcePropertyConfigurationError = resourceConfigurationError as ResourceInvalidPropertySettingsError;
+                Assert.IsNotNull(invalidResourcePropertyConfigurationError);
+                Assert.AreEqual(errorMessage, invalidResourcePropertyConfigurationError.ErrorMessage);
+                Assert.AreEqual(property.Id, invalidResourcePropertyConfigurationError.PropertyId);
+                Assert.AreEqual(resource.Id, invalidResourcePropertyConfigurationError.Id);
+                return;
+            }
             Assert.Fail("Exception not thrown");
         }
     }

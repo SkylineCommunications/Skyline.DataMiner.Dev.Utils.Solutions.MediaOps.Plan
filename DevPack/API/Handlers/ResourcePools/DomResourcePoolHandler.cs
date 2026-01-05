@@ -657,7 +657,7 @@
 
             var poolsRequiringValidation = apiResourcePools.ToList();
 
-            foreach (var pool in poolsRequiringValidation.Where(x => !InputValidator.ValidateEmptyText(x.Name)).ToArray())
+            foreach (var pool in poolsRequiringValidation.Where(x => !InputValidator.IsNonEmptyText(x.Name)).ToArray())
             {
                 var error = new ResourcePoolInvalidNameError
                 {
@@ -670,7 +670,7 @@
                 poolsRequiringValidation.Remove(pool);
             }
 
-            foreach (var pool in poolsRequiringValidation.Where(x => !InputValidator.ValidateTextLength(x.Name)).ToArray())
+            foreach (var pool in poolsRequiringValidation.Where(x => !InputValidator.HasValidTextLength(x.Name)).ToArray())
             {
                 var error = new ResourcePoolInvalidNameError
                 {
