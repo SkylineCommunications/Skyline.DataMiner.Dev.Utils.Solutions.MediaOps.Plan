@@ -286,7 +286,7 @@
 
             var propertiesRequiringValidation = apiResourceProperties.ToList();
 
-            foreach (var property in propertiesRequiringValidation.Where(x => !InputValidator.ValidateEmptyText(x.Name)))
+            foreach (var property in propertiesRequiringValidation.Where(x => !InputValidator.IsNonEmptyText(x.Name)))
             {
                 var error = new ResourcePropertyInvalidNameError
                 {
@@ -299,7 +299,7 @@
                 propertiesRequiringValidation.Remove(property);
             }
 
-            foreach (var property in propertiesRequiringValidation.Where(x => !InputValidator.ValidateTextLength(x.Name)))
+            foreach (var property in propertiesRequiringValidation.Where(x => !InputValidator.HasValidTextLength(x.Name)))
             {
                 var error = new ResourcePropertyInvalidNameError
                 {
@@ -397,7 +397,7 @@
             var resourcesImplementingProperties = planApi.Resources.Read(filter);
 
             var resourcesByPropertyId = resourcesImplementingProperties
-                .SelectMany(r => r.Properties.Select(p => new { PropertyId = p.Id, Resource = r}))
+                .SelectMany(r => r.Properties.Select(p => new { PropertyId = p.Id, Resource = r }))
                 .GroupBy(x => x.PropertyId)
                 .ToDictionary(x => x.Key, x => x.Select(y => y.Resource).ToList());
 

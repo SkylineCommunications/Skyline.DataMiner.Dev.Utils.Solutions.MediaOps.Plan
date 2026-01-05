@@ -252,7 +252,7 @@
 
             var capabilitiesRequiringValidation = apiCapabilities.ToList();
 
-            foreach (var capability in capabilitiesRequiringValidation.Where(x => !InputValidator.ValidateEmptyText(x.Name)))
+            foreach (var capability in capabilitiesRequiringValidation.Where(x => !InputValidator.IsNonEmptyText(x.Name)))
             {
                 var error = new CapabilityInvalidNameError
                 {
@@ -264,7 +264,7 @@
                 capabilitiesRequiringValidation.Remove(capability);
             }
 
-            foreach (var capability in capabilitiesRequiringValidation.Where(x => !InputValidator.ValidateTextLength(x.Name)))
+            foreach (var capability in capabilitiesRequiringValidation.Where(x => !InputValidator.HasValidTextLength(x.Name)))
             {
                 var error = new CapabilityInvalidNameError
                 {

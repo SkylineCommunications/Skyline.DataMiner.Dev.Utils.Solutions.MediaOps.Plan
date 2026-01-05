@@ -219,7 +219,7 @@
 
             var capacitiesRequiringValidation = apiCapacities.ToList();
 
-            foreach (var capacity in capacitiesRequiringValidation.Where(x => !InputValidator.ValidateEmptyText(x.Name)))
+            foreach (var capacity in capacitiesRequiringValidation.Where(x => !InputValidator.IsNonEmptyText(x.Name)))
             {
                 if (string.IsNullOrWhiteSpace(capacity.Name))
                 {
@@ -234,7 +234,7 @@
                 }
             }
 
-            foreach (var capacity in capacitiesRequiringValidation.Where(x => !InputValidator.ValidateTextLength(x.Name)))
+            foreach (var capacity in capacitiesRequiringValidation.Where(x => !InputValidator.HasValidTextLength(x.Name)))
             {
                 if (string.IsNullOrWhiteSpace(capacity.Name))
                 {
