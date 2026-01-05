@@ -7,11 +7,9 @@
     using Microsoft.Extensions.Logging;
 
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
-    using Skyline.DataMiner.Net.SLConfiguration;
+    using Skyline.DataMiner.SDM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.API.Querying;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
 
     using SLDataGateway.API.Types.Querying;
 
@@ -44,7 +42,6 @@
         /// </summary>
         /// <param name="filter">The filter criteria to apply when counting configurations.</param>
         /// <returns>The count of configurations matching the filter.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public long Count(FilterElement<Configuration> filter)
         {
             return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Count), act =>
@@ -59,7 +56,6 @@
         /// </summary>
         /// <param name="query">The query criteria to apply when counting configurations.</param>
         /// <returns>The count of configurations matching the query.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public long Count(IQuery<Configuration> query)
         {
             return Count(query.Filter);
@@ -149,9 +145,9 @@
                     throw new MediaOpsBulkException<Guid>(result);
                 }
 
-                var configurationIds = apiObjects.Select(x => x.Id);
+                var configurationIds = result.SuccessfulIds;
                 act?.AddTag("Created or Updated Configurations", String.Join(", ", configurationIds));
-                act?.AddTag("Created or Updated Configurations Count", configurationIds.Count());
+                act?.AddTag("Created or Updated Configurations Count", configurationIds.Count);
             });
         }
 
@@ -160,7 +156,7 @@
         /// </summary>
         /// <param name="apiObjects">The configurations to delete.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
-        public void Delete(params Configuration[] apiObjects)
+        public void Delete(IEnumerable<Configuration> apiObjects)
         {
             if (apiObjects == null)
             {
@@ -176,14 +172,14 @@
         /// <param name="apiObjectIds">The unique identifiers of the configurations to delete.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjectIds"/> is <c>null</c>.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk deletion operation fails.</exception>
-        public void Delete(params Guid[] apiObjectIds)
+        public void Delete(IEnumerable<Guid> apiObjectIds)
         {
             if (apiObjectIds == null)
             {
                 throw new ArgumentNullException(nameof(apiObjectIds));
             }
 
-            var configurationsToDelete = Read(apiObjectIds);
+            var configurationsToDelete = Read(apiObjectIds.ToArray());
 
             ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Delete), act =>
             {
@@ -192,10 +188,34 @@
                     throw new MediaOpsBulkException<Guid>(result);
                 }
 
-                var configurationIds = apiObjectIds;
+                var configurationIds = result.SuccessfulIds;
                 act?.AddTag("Removed Configurations", String.Join(", ", configurationIds));
-                act?.AddTag("Removed Configurations Count", configurationIds.Count());
+                act?.AddTag("Removed Configurations Count", configurationIds.Count);
             });
+        }
+
+        /// <summary>
+        /// Deletes the specified configuration from the repository.
+        /// </summary>
+        /// <param name="oToDelete">The configuration to delete.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="oToDelete"/> is <c>null</c>.</exception>
+        public void Delete(Configuration oToDelete)
+        {
+            if (oToDelete == null)
+            {
+                throw new ArgumentNullException(nameof(oToDelete));
+            }
+
+            Delete([oToDelete]);
+        }
+
+        /// <summary>
+        /// Deletes the specified configuration from the repository.
+        /// </summary>
+        /// <param name="apiObjectId">The unique identifier of the configuration to delete.</param>
+        public void Delete(Guid apiObjectId)
+        {
+            Delete([apiObjectId]);
         }
 
         /// <summary>
@@ -251,7 +271,6 @@
         /// </summary>
         /// <param name="filter">The filter criteria to apply when reading configurations.</param>
         /// <returns>An enumerable collection of configurations matching the filter.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<Configuration> Read(FilterElement<Configuration> filter)
         {
             return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Read), act =>
@@ -266,7 +285,6 @@
         /// </summary>
         /// <param name="query">The query criteria to apply when reading configurations.</param>
         /// <returns>An enumerable collection of configurations matching the query.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<Configuration> Read(IQuery<Configuration> query)
         {
             return Read(query.Filter);
@@ -276,7 +294,6 @@
         /// Reads all configurations in pages.
         /// </summary>
         /// <returns>An enumerable collection of pages, where each page contains a collection of configurations.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Configuration>> ReadPaged()
         {
             return ReadPaged(new TRUEFilterElement<Configuration>());
@@ -287,7 +304,6 @@
         /// </summary>
         /// <param name="filter">The filter criteria to apply when reading configurations.</param>
         /// <returns>An enumerable collection of pages, where each page contains configurations matching the filter.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Configuration>> ReadPaged(FilterElement<Configuration> filter)
         {
             return ReadPaged(filter, MediaOpsPlanApi.DefaultPageSize);
@@ -298,7 +314,6 @@
         /// </summary>
         /// <param name="query">The query criteria to apply when reading configurations.</param>
         /// <returns>An enumerable collection of pages, where each page contains configurations matching the query.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Configuration>> ReadPaged(IQuery<Configuration> query)
         {
             return ReadPaged(query.Filter);
@@ -310,21 +325,19 @@
         /// <param name="filter">The filter criteria to apply when reading configurations.</param>
         /// <param name="pageSize">The number of items per page.</param>
         /// <returns>An enumerable collection of pages, where each page contains up to the specified number of configurations matching the filter.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Configuration>> ReadPaged(FilterElement<Configuration> filter, int pageSize)
         {
-            var pageNumber = 0;
-            var paramFilter = filterTranslator.Translate(filter);
-            var items = PlanApi.CoreHelpers.ProfileProvider.GetConfigurationsPaged(paramFilter, pageSize);
-            var enumerator = items.GetEnumerator();
-            var hasNext = enumerator.MoveNext();
-
-            while (hasNext)
+            if (filter == null)
             {
-                var page = enumerator.Current;
-                hasNext = enumerator.MoveNext();
-                yield return new PagedResult<Configuration>(Configuration.InstantiateConfigurations(page), pageNumber++, pageSize, hasNext);
+                throw new ArgumentNullException(nameof(filter));
             }
+
+            if (pageSize <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size must be greater than zero.");
+            }
+
+            return ReadPagedIterator(filter, pageSize);
         }
 
         /// <summary>
@@ -333,10 +346,19 @@
         /// <param name="query">The query criteria to apply when reading configurations.</param>
         /// <param name="pageSize">The number of items per page.</param>
         /// <returns>An enumerable collection of pages, where each page contains up to the specified number of configurations matching the query.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Configuration>> ReadPaged(IQuery<Configuration> query, int pageSize)
         {
-            throw new NotImplementedException();
+            return ReadPaged(query.Filter, pageSize);
+        }
+
+        /// <summary>
+        /// Reads all configurations in pages.
+        /// </summary>
+        /// <param name="pageSize">The number of items per page.</param>
+        /// <returns>An enumerable collection of pages, where each page contains a collection of configurations.</returns>
+        public IEnumerable<IPagedResult<Configuration>> ReadPaged(int pageSize)
+        {
+            return ReadPaged(new TRUEFilterElement<Configuration>(), MediaOpsPlanApi.DefaultPageSize);
         }
 
         /// <summary>
@@ -401,6 +423,22 @@
                 var configurationIds = apiObjects.Select(x => x.Id);
                 act?.AddTag("ConfigurationIds", String.Join(", ", configurationIds));
             });
+        }
+
+        private IEnumerable<IPagedResult<Configuration>> ReadPagedIterator(FilterElement<Configuration> filter, int pageSize)
+        {
+            var pageNumber = 0;
+            var paramFilter = filterTranslator.Translate(filter);
+            var items = PlanApi.CoreHelpers.ProfileProvider.GetConfigurationsPaged(paramFilter, pageSize);
+            var enumerator = items.GetEnumerator();
+            var hasNext = enumerator.MoveNext();
+
+            while (hasNext)
+            {
+                var page = enumerator.Current;
+                hasNext = enumerator.MoveNext();
+                yield return new PagedResult<Configuration>(Configuration.InstantiateConfigurations(page), pageNumber++, pageSize, hasNext);
+            }
         }
     }
 }

@@ -7,6 +7,7 @@
     using Microsoft.Extensions.Logging;
 
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
+    using Skyline.DataMiner.SDM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
@@ -41,7 +42,6 @@
         /// </summary>
         /// <param name="filter">The filter criteria to apply when counting capabilities.</param>
         /// <returns>The count of capabilities matching the filter.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public long Count(FilterElement<Capability> filter)
         {
             return ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Count), act =>
@@ -56,7 +56,6 @@
         /// </summary>
         /// <param name="query">The query criteria to apply when counting capabilities.</param>
         /// <returns>The count of capabilities matching the query.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public long Count(IQuery<Capability> query)
         {
             return Count(query.Filter);
@@ -154,34 +153,19 @@
         }
 
         /// <summary>
-        /// Deletes the specified capabilities from the repository.
-        /// </summary>
-        /// <param name="apiObjects">The capabilities to delete.</param>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
-        public void Delete(params Capability[] apiObjects)
-        {
-            if (apiObjects == null)
-            {
-                throw new ArgumentNullException(nameof(apiObjects));
-            }
-
-            Delete(apiObjects.Select(x => x.Id).ToArray());
-        }
-
-        /// <summary>
         /// Deletes capabilities with the specified identifiers from the repository.
         /// </summary>
         /// <param name="apiObjectIds">The unique identifiers of the capabilities to delete.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjectIds"/> is <c>null</c>.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk deletion operation fails.</exception>
-        public void Delete(params Guid[] apiObjectIds)
+        public void Delete(IEnumerable<Guid> apiObjectIds)
         {
             if (apiObjectIds == null)
             {
                 throw new ArgumentNullException(nameof(apiObjectIds));
             }
 
-            var capabilitiesToDelete = Read(apiObjectIds);
+            var capabilitiesToDelete = Read(apiObjectIds.ToArray());
 
             ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Delete), act =>
             {
@@ -190,10 +174,49 @@
                     throw new MediaOpsBulkException<Guid>(result);
                 }
 
-                var capabilityIds = apiObjectIds;
+                var capabilityIds = result.SuccessfulIds;
                 act?.AddTag("Removed Capabilities", String.Join(", ", capabilityIds));
-                act?.AddTag("Removed Capabilities Count", capabilityIds.Count());
+                act?.AddTag("Removed Capabilities Count", capabilityIds.Count);
             });
+        }
+
+        /// <summary>
+        /// Deletes the specified capabilities from the repository.
+        /// </summary>
+        /// <param name="oToDelete">The capabilities to delete.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="oToDelete"/> is <c>null</c>.</exception>
+        public void Delete(IEnumerable<Capability> oToDelete)
+        {
+            if (oToDelete == null)
+            {
+                throw new ArgumentNullException(nameof(oToDelete));
+            }
+
+            Delete(oToDelete.Select(x => x.Id).ToArray());
+        }
+
+        /// <summary>
+        /// Deletes the specified capability from the repository.
+        /// </summary>
+        /// <param name="oToDelete">The capability to delete.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="oToDelete"/> is <c>null</c>.</exception>
+        public void Delete(Capability oToDelete)
+        {
+            if (oToDelete == null)
+            {
+                throw new ArgumentNullException(nameof(oToDelete));
+            }
+
+            Delete([oToDelete]);
+        }
+
+        /// <summary>
+        /// Deletes the specified capability from the repository.
+        /// </summary>
+        /// <param name="apiObjectId">The unique identifier of the capability to delete.</param>
+        public void Delete(Guid apiObjectId)
+        {
+            Delete([apiObjectId]);
         }
 
         /// <summary>
@@ -249,7 +272,6 @@
         /// </summary>
         /// <param name="filter">The filter criteria to apply when reading capabilities.</param>
         /// <returns>An enumerable collection of capabilities matching the filter.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<Capability> Read(FilterElement<Capability> filter)
         {
             return ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Read), act =>
@@ -264,7 +286,6 @@
         /// </summary>
         /// <param name="query">The query criteria to apply when reading capabilities.</param>
         /// <returns>An enumerable collection of capabilities matching the query.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<Capability> Read(IQuery<Capability> query)
         {
             return Read(query.Filter);
@@ -284,7 +305,6 @@
         /// </summary>
         /// <param name="filter">The filter criteria to apply when reading capabilities.</param>
         /// <returns>An enumerable collection of pages, where each page contains capabilities matching the filter.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Capability>> ReadPaged(FilterElement<Capability> filter)
         {
             return ReadPaged(filter, MediaOpsPlanApi.DefaultPageSize);
@@ -295,7 +315,6 @@
         /// </summary>
         /// <param name="query">The query criteria to apply when reading capabilities.</param>
         /// <returns>An enumerable collection of pages, where each page contains capabilities matching the query.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Capability>> ReadPaged(IQuery<Capability> query)
         {
             return ReadPaged(query.Filter);
@@ -307,21 +326,19 @@
         /// <param name="filter">The filter criteria to apply when reading capabilities.</param>
         /// <param name="pageSize">The number of items per page.</param>
         /// <returns>An enumerable collection of pages, where each page contains up to the specified number of capabilities matching the filter.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Capability>> ReadPaged(FilterElement<Capability> filter, int pageSize)
         {
-            var pageNumber = 0;
-            var paramFilter = filterTranslator.Translate(filter);
-            var items = PlanApi.CoreHelpers.ProfileProvider.GetCapabilitiesPaged(paramFilter, pageSize);
-            var enumerator = items.GetEnumerator();
-            var hasNext = enumerator.MoveNext();
-
-            while (hasNext)
+            if (filter == null)
             {
-                var page = enumerator.Current;
-                hasNext = enumerator.MoveNext();
-                yield return new PagedResult<Capability>(page.Select(x => new Capability(x)), pageNumber++, pageSize, hasNext);
+                throw new ArgumentNullException(nameof(filter));
             }
+
+            if (pageSize <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size must be greater than zero.");
+            }
+
+            return ReadPagedIterator(filter, pageSize);
         }
 
         /// <summary>
@@ -330,10 +347,19 @@
         /// <param name="query">The query criteria to apply when reading capabilities.</param>
         /// <param name="pageSize">The number of items per page.</param>
         /// <returns>An enumerable collection of pages, where each page contains up to the specified number of capabilities matching the query.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<Capability>> ReadPaged(IQuery<Capability> query, int pageSize)
         {
             return ReadPaged(query.Filter, pageSize);
+        }
+
+        /// <summary>
+        /// Reads all capabilities in pages.
+        /// </summary>
+        /// <param name="pageSize">The number of items per page.</param>
+        /// <returns>An enumerable collection of pages, where each page contains a collection of capabilities.</returns>
+        public IEnumerable<IPagedResult<Capability>> ReadPaged(int pageSize)
+        {
+            return ReadPaged(new TRUEFilterElement<Capability>(), MediaOpsPlanApi.DefaultPageSize);
         }
 
         /// <summary>
@@ -399,6 +425,22 @@
                 var capabilityIds = apiObjects.Select(x => x.Id);
                 act?.AddTag("CapabilityIds", String.Join(", ", capabilityIds));
             });
+        }
+
+        private IEnumerable<IPagedResult<Capability>> ReadPagedIterator(FilterElement<Capability> filter, int pageSize)
+        {
+            var pageNumber = 0;
+            var paramFilter = filterTranslator.Translate(filter);
+            var items = PlanApi.CoreHelpers.ProfileProvider.GetCapabilitiesPaged(paramFilter, pageSize);
+            var enumerator = items.GetEnumerator();
+            var hasNext = enumerator.MoveNext();
+
+            while (hasNext)
+            {
+                var page = enumerator.Current;
+                hasNext = enumerator.MoveNext();
+                yield return new PagedResult<Capability>(page.Select(x => new Capability(x)), pageNumber++, pageSize, hasNext);
+            }
         }
     }
 }

@@ -4,6 +4,7 @@
     using System.Collections;
     using System.Collections.Generic;
     using System.Linq;
+    using Skyline.DataMiner.SDM;
 
     /// <summary>
     /// Represents a paged result set for a collection of items.
@@ -138,7 +139,9 @@
         /// <inheritdoc/>
         public IEnumerator<T> GetEnumerator() => _items.GetEnumerator();
 
-        /// <inheritdoc/>
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
     }
 }
