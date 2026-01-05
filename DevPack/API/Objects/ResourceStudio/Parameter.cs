@@ -16,8 +16,6 @@
     public abstract class Parameter : ApiObject
     {
         private readonly CoreParameter coreParameter;
-        private string name;
-        private bool isMandatory;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Configuration"/> class.
@@ -56,30 +54,44 @@
         /// <summary>
         /// Gets or sets the name of the configuration.
         /// </summary>
-        public sealed override string Name
-        {
-            get => name;
-            set
-            {
-                HasChanges = true;
-                name = value;
-            }
-        }
+        public sealed override string Name { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the parameter is mandatory.
         /// </summary>
-        public bool IsMandatory
+        public bool IsMandatory { get; set; }
+
+        internal CoreParameter CoreParameter => coreParameter;
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
         {
-            get => isMandatory;
-            set
+            unchecked
             {
-                HasChanges = true;
-                isMandatory = value;
+                int hash = 17;
+                hash = (hash * 23) + Id.GetHashCode();
+                hash = (hash * 23) + (Name != null ? Name.GetHashCode() : 0);
+                hash = (hash * 23) + IsMandatory.GetHashCode();
+
+                return hash;
             }
         }
 
-        internal CoreParameter CoreParameter => coreParameter;
+        /// <summary>
+        /// Determines whether the specified object is equal to the current Parameter instance.
+        /// </summary>
+        /// <param name="obj">The object to compare with the current Parameter instance.</param>
+        /// <returns>true if the specified object is a Parameter and has the same Id, Name, and IsMandatory values as the current
+        /// instance; otherwise, false.</returns>
+        public override bool Equals(object obj)
+        {
+            if (obj is not Parameter other)
+                return false;
+
+            return Id == other.Id &&
+                   Name == other.Name &&
+                   IsMandatory == other.IsMandatory;
+        }
 
         /// <summary>
         /// Parses the specified parameter and applies any necessary transformations or validations.
@@ -95,8 +107,8 @@
             if (!coreParameter.Categories.HasFlag(Category))
                 throw new InvalidOperationException($"The provided CORE parameter is not a {Category}.");
 
-            name = coreParameter.Name;
-            isMandatory = !coreParameter.IsOptional.HasValue || !coreParameter.IsOptional.Value;
+            Name = coreParameter.Name;
+            IsMandatory = !coreParameter.IsOptional.HasValue || !coreParameter.IsOptional.Value;
 
             InternalParseParameter(coreParameter);
         }

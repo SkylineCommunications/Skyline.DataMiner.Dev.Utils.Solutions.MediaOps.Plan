@@ -2,7 +2,6 @@
 {
     using System;
 
-
     /// <summary>
     /// Represents the base class for all API objects in the MediaOps Plan API.
     /// </summary>

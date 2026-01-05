@@ -1,7 +1,6 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
     using System;
-    using System.Collections.Generic;
 
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
@@ -18,6 +17,7 @@
         internal ResourcePoolCapabilitySetting(StorageResourceStudio.ResourcePoolCapabilitiesSection section)
         {
             ParseSection(section);
+            InitTracking();
         }
 
         internal override Storage.DOM.DomSectionBase OriginalSection => originalSection;
@@ -40,7 +40,12 @@
             originalSection = section ?? throw new ArgumentNullException(nameof(section));
 
             Id = section.ProfileParameterId;
-            discretes = new HashSet<string>(section.DiscreteValues);
+
+            discretes.Clear();
+            foreach (var discreteValue in section.DiscreteValues)
+            {
+                discretes.Add(discreteValue);
+            }
         }
     }
 }

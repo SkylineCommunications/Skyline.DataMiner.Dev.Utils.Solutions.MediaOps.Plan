@@ -8,6 +8,7 @@
 
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
+    using Skyline.DataMiner.SDM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
@@ -43,7 +44,6 @@
         /// </summary>
         /// <param name="filter">The filter criteria to apply when counting resource properties.</param>
         /// <returns>The count of resource properties matching the filter.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public long Count(FilterElement<ResourceProperty> filter)
         {
             return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(filterTranslator.Translate(filter));
@@ -54,7 +54,6 @@
         /// </summary>
         /// <param name="query">The query criteria to apply when counting resource properties.</param>
         /// <returns>The count of resource properties matching the query.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public long Count(IQuery<ResourceProperty> query)
         {
             return Count(query.Filter);
@@ -156,7 +155,7 @@
         /// </summary>
         /// <param name="apiObjects">The resource properties to delete.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
-        public void Delete(params ResourceProperty[] apiObjects)
+        public void Delete(IEnumerable<ResourceProperty> apiObjects)
         {
             if (apiObjects == null)
             {
@@ -172,14 +171,14 @@
         /// <param name="apiObjectIds">The unique identifiers of the resource properties to delete.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjectIds"/> is <c>null</c>.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk deletion operation fails.</exception>
-        public void Delete(params Guid[] apiObjectIds)
+        public void Delete(IEnumerable<Guid> apiObjectIds)
         {
             if (apiObjectIds == null)
             {
                 throw new ArgumentNullException(nameof(apiObjectIds));
             }
 
-            var propertiesToDelete = Read(apiObjectIds);
+            var propertiesToDelete = Read(apiObjectIds.ToArray());
 
             ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Delete), act =>
             {
@@ -192,6 +191,30 @@
                 act?.AddTag("Removed Resource Properties", String.Join(", ", propertyIds));
                 act?.AddTag("Removed Resource Properties Count", propertyIds.Count);
             });
+        }
+
+        /// <summary>
+        /// Deletes the specified resource property from the repository.
+        /// </summary>
+        /// <param name="oToDelete">The resource property to delete.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="oToDelete"/> is <c>null</c>.</exception>
+        public void Delete(ResourceProperty oToDelete)
+        {
+            if (oToDelete == null)
+            {
+                throw new ArgumentNullException(nameof(oToDelete));
+            }
+
+            Delete([oToDelete.Id]);
+        }
+
+        /// <summary>
+        /// Deletes the specified resource property from the repository.
+        /// </summary>
+        /// <param name="apiObjectId">The unique identifier of the resource property to delete.</param>
+        public void Delete(Guid apiObjectId)
+        {
+            Delete([apiObjectId]);
         }
 
         /// <summary>
@@ -264,7 +287,6 @@
         /// </summary>
         /// <param name="filter">The filter criteria to apply when reading resource properties.</param>
         /// <returns>An enumerable collection of resource properties matching the filter.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<ResourceProperty> Read(FilterElement<ResourceProperty> filter)
         {
             if (filter == null)
@@ -284,7 +306,6 @@
         /// </summary>
         /// <param name="query">The query criteria to apply when reading resource properties.</param>
         /// <returns>An enumerable collection of resource properties matching the query.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<ResourceProperty> Read(IQuery<ResourceProperty> query)
         {
             if (query == null)
@@ -302,8 +323,7 @@
         /// Reads all resource properties in pages.
         /// </summary>
         /// <returns>An enumerable collection of pages, where each page contains a collection of resource properties.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
-        IEnumerable<IPagedResult<ResourceProperty>> IPageableRepository<ResourceProperty>.ReadPaged()
+        public IEnumerable<IPagedResult<ResourceProperty>> ReadPaged()
         {
             return ReadPaged(new TRUEFilterElement<ResourceProperty>());
         }
@@ -313,7 +333,6 @@
         /// </summary>
         /// <param name="filter">The filter criteria to apply when reading resource properties.</param>
         /// <returns>An enumerable collection of pages, where each page contains resource properties matching the filter.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<ResourceProperty>> ReadPaged(FilterElement<ResourceProperty> filter)
         {
             return ReadPaged(filter, MediaOpsPlanApi.DefaultPageSize);
@@ -324,7 +343,6 @@
         /// </summary>
         /// <param name="query">The query criteria to apply when reading resource properties.</param>
         /// <returns>An enumerable collection of pages, where each page contains resource properties matching the query.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<ResourceProperty>> ReadPaged(IQuery<ResourceProperty> query)
         {
             return ReadPaged(query.Filter);
@@ -336,8 +354,43 @@
         /// <param name="filter">The filter criteria to apply when reading resource properties.</param>
         /// <param name="pageSize">The number of items per page.</param>
         /// <returns>An enumerable collection of pages, where each page contains up to the specified number of resource properties matching the filter.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<ResourceProperty>> ReadPaged(FilterElement<ResourceProperty> filter, int pageSize)
+        {
+            if (filter == null)
+            {
+                throw new ArgumentNullException(nameof(filter));
+            }
+
+            if (pageSize <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size must be greater than zero.");
+            }
+
+            return ReadPagedIterator(filter, pageSize);
+        }
+
+        /// <summary>
+        /// Reads resource properties that match the specified query in pages with a custom page size.
+        /// </summary>
+        /// <param name="query">The query criteria to apply when reading resource properties.</param>
+        /// <param name="pageSize">The number of items per page.</param>
+        /// <returns>An enumerable collection of pages, where each page contains up to the specified number of resource properties matching the query.</returns>
+        public IEnumerable<IPagedResult<ResourceProperty>> ReadPaged(IQuery<ResourceProperty> query, int pageSize)
+        {
+            return ReadPaged(query.Filter, pageSize);
+        }
+
+        /// <summary>
+        /// Reads all resource properties in pages.
+        /// </summary>
+        /// <param name="pageSize">The number of items per page.</param>
+        /// <returns>An enumerable collection of pages, where each page contains a collection of resource properties.</returns>
+        public IEnumerable<IPagedResult<ResourceProperty>> ReadPaged(int pageSize)
+        {
+            return ReadPaged(new TRUEFilterElement<ResourceProperty>(), MediaOpsPlanApi.DefaultPageSize);
+        }
+
+        public IEnumerable<IPagedResult<ResourceProperty>> ReadPagedIterator(FilterElement<ResourceProperty> filter, int pageSize)
         {
             var pageNumber = 0;
             var paramFilter = filterTranslator.Translate(filter);
@@ -352,19 +405,6 @@
                 yield return new PagedResult<ResourceProperty>(page.Select(x => new ResourceProperty(x)), pageNumber++, pageSize, hasNext);
             }
         }
-
-        /// <summary>
-        /// Reads resource properties that match the specified query in pages with a custom page size.
-        /// </summary>
-        /// <param name="query">The query criteria to apply when reading resource properties.</param>
-        /// <param name="pageSize">The number of items per page.</param>
-        /// <returns>An enumerable collection of pages, where each page contains up to the specified number of resource properties matching the query.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
-        public IEnumerable<IPagedResult<ResourceProperty>> ReadPaged(IQuery<ResourceProperty> query, int pageSize)
-        {
-            return ReadPaged(query.Filter, pageSize);
-        }
-
         /// <summary>
         /// Updates an existing resource property in the repository.
         /// </summary>

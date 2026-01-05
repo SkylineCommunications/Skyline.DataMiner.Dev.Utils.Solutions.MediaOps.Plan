@@ -10,7 +10,6 @@
 
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Utils.Categories.API.Objects;
-    using SLLoggerUtil.LoggerCategoryUtil.DataGateway;
 
     [TestClass]
     [TestCategory("IntegrationTest")]

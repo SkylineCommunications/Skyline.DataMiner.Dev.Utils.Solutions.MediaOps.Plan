@@ -9,7 +9,7 @@
     /// </summary>
     public class CapabilitySetting : TrackableObject
     {
-        internal HashSet<string> discretes = [];
+        internal readonly HashSet<string> discretes = [];
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CapabilitySetting"/> class using the specified capability.
@@ -48,9 +48,8 @@
             discretes = new HashSet<string>(capabilitySetting.Discretes);
 
             IsNew = capabilitySetting.IsNew;
+            InitTracking();
         }
-
-        internal EventHandler<EventArgs> ValueChanged;
 
         /// <summary>
         /// Gets the unique identifier of the capability.
@@ -76,12 +75,7 @@
                 throw new ArgumentNullException(nameof(value));
             }
 
-            if (discretes.Add(value))
-            {
-                HasChanges = true;
-                ValueChanged?.Invoke(this, EventArgs.Empty);
-            }
-
+            discretes.Add(value);
             return this;
         }
 
@@ -97,12 +91,7 @@
                 throw new ArgumentNullException(nameof(value));
             }
 
-            if (discretes.Remove(value))
-            {
-                HasChanges = true;
-                ValueChanged?.Invoke(this, EventArgs.Empty);
-            }
-
+            discretes.Remove(value);
             return this;
         }
 
@@ -124,12 +113,49 @@
                 throw new ArgumentException("The collection contains null or empty values.", nameof(values));
             }
 
-            discretes = new HashSet<string>(values);
-
-            HasChanges = true;
-            ValueChanged?.Invoke(this, EventArgs.Empty);
+            discretes.Clear();
+            foreach (var value in values)
+            {
+                discretes.Add(value);
+            }
 
             return this;
+        }
+
+        /// <summary>
+        /// Generates the hash code for the object.
+        /// </summary>
+        /// <returns>Hash code representing the current object.</returns>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = 17;
+                hash = (hash * 23) + Id.GetHashCode();
+                hash = (hash * 23) + (OriginalSection != null ? OriginalSection.ID.Id.GetHashCode() : 0);
+                foreach (var discreet in discretes.OrderBy(x => x).ToArray())
+                {
+                    hash = (hash * 23) + (discreet != null ? discreet.GetHashCode() : 0);
+                }
+
+                return hash;
+            }
+        }
+
+        /// <summary>
+        /// Determines whether the specified object is equal to the current CapabilitySetting instance.
+        /// </summary>
+        /// <param name="obj">The object to compare with the current CapabilitySetting instance.</param>
+        /// <returns>true if the specified object is a CapabilitySetting and has the same Id and discrete values as the current
+        /// instance; otherwise, false.</returns>
+        public override bool Equals(object obj)
+        {
+            if (obj is not CapabilitySetting other)
+            {
+                return false;
+            }
+
+            return Id == other.Id && discretes.SetEquals(other.discretes);
         }
     }
 }

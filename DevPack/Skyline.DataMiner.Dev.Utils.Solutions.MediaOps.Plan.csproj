@@ -51,6 +51,7 @@
     <PackageReference Include="Skyline.DataMiner.Core.InterAppCalls.Common" Version="1.1.1.1" />
     <PackageReference Include="Skyline.DataMiner.Dev.Common" Version="10.5.9.2" />
     <PackageReference Include="Skyline.DataMiner.MediaOps.Live" Version="1.0.1-alpha160" />
+    <PackageReference Include="Skyline.DataMiner.SDM.Abstractions" Version="0.2.2" />
     <PackageReference Include="Skyline.DataMiner.Utils.Categories" Version="1.0.5" />
     <PackageReference Include="Skyline.DataMiner.Utils.DOM" Version="10.5.2.5" />
     <PackageReference Include="Skyline.DataMiner.Utils.SecureCoding" Version="2.2.1" />

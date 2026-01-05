@@ -6,7 +6,7 @@
     {
         internal const int DefaultMaxTextLength = 150;
 
-        public static bool ValidateEmptyText(string text)
+        public static bool IsNonEmptyText(string text)
         {
             if (text == null)
             {
@@ -21,7 +21,7 @@
             return true;
         }
 
-        public static bool ValidateTextLength(string text, int maxCharacters = DefaultMaxTextLength)
+        public static bool HasValidTextLength(string text, int maxCharacters = DefaultMaxTextLength)
         {
             if (text == null)
             {

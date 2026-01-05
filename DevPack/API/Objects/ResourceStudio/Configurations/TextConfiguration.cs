@@ -8,8 +8,6 @@
     /// </summary>
     public class TextConfiguration : Configuration
     {
-        private string defaultValue;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="TextConfiguration"/> class.
         /// </summary>
@@ -32,19 +30,35 @@
         /// <param name="profile">The profile containing parameters used to configure the text settings.</param>
         internal TextConfiguration(Net.Profiles.Parameter profile) : base(profile)
         {
+            InitTracking();
         }
 
         /// <summary>
         /// Gets or sets the default value of this <see cref="TextConfiguration"/>.
         /// </summary>
-        public string DefaultValue
+        public string DefaultValue { get; set; }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
         {
-            get => defaultValue;
-            set
+            unchecked
             {
-                HasChanges = true;
-                defaultValue = value;
+                int hash = base.GetHashCode();
+                hash = (hash * 23) + (DefaultValue != null ? DefaultValue.GetHashCode() : 0);
+
+                return hash;
             }
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (obj is not TextConfiguration other)
+            {
+                return false;
+            }
+
+            return base.Equals(other) && DefaultValue == other.DefaultValue;
         }
 
         /// <summary>
@@ -52,7 +66,7 @@
         /// </summary>
         protected internal override void InternalParseParameter(Net.Profiles.Parameter parameter)
         {
-            defaultValue = parameter.HasDefaultStringValue() ? parameter.DefaultValue.StringValue : null;
+            DefaultValue = parameter.HasDefaultStringValue() ? parameter.DefaultValue.StringValue : null;
         }
     }
 }

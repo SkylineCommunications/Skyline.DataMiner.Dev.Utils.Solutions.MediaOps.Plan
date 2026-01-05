@@ -9,6 +9,7 @@
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Net.Sections;
+    using Skyline.DataMiner.SDM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using SLDataGateway.API.Types.Querying;
@@ -89,7 +90,6 @@
         /// </summary>
         /// <param name="filter">The filter criteria to apply when counting resource pools.</param>
         /// <returns>The count of resource pools matching the filter.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public long Count(FilterElement<ResourcePool> filter)
         {
             var domFilter = filterTranslator.Translate(filter);
@@ -110,7 +110,6 @@
         /// </summary>
         /// <param name="query">The query criteria to apply when counting resource pools.</param>
         /// <returns>The count of resource pools matching the query.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public long Count(IQuery<ResourcePool> query)
         {
             return Count(query.Filter);
@@ -206,7 +205,7 @@
         /// </summary>
         /// <param name="apiObjects">The resource pools to delete.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
-        public void Delete(params ResourcePool[] apiObjects)
+        public void Delete(IEnumerable<ResourcePool> apiObjects)
         {
             if (apiObjects == null)
             {
@@ -222,7 +221,7 @@
         /// <param name="apiObjectIds">The unique identifiers of the resource pools to delete.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjectIds"/> is <c>null</c>.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk deletion operation fails.</exception>
-        public void Delete(params Guid[] apiObjectIds)
+        public void Delete(IEnumerable<Guid> apiObjectIds)
         {
             if (apiObjectIds == null)
             {
@@ -231,10 +230,17 @@
 
             var resourcePoolsToDelete = Read(apiObjectIds);
 
-            if (!DomResourcePoolHandler.TryDelete(PlanApi, resourcePoolsToDelete?.ToList(), out var result))
+            ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Delete), act =>
             {
-                throw new MediaOpsBulkException<Guid>(result);
-            }
+                if (!DomResourcePoolHandler.TryDelete(PlanApi, resourcePoolsToDelete?.ToList(), out var result))
+                {
+                    throw new MediaOpsBulkException<Guid>(result);
+                }
+
+                var capabilityIds = result.SuccessfulIds;
+                act?.AddTag("Removed Capabilities", String.Join(", ", capabilityIds));
+                act?.AddTag("Removed Capabilities Count", capabilityIds.Count);
+            });
         }
 
         /// <summary>
@@ -255,6 +261,30 @@
             {
                 throw new MediaOpsException(result.TraceDataPerItem[resourcePool.Id]);
             }
+        }
+
+        /// <summary>
+        /// Deletes the specified resource pool from the repository.
+        /// </summary>
+        /// <param name="oToDelete">The resource pool to delete.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="oToDelete"/> is <c>null</c>.</exception>
+        public void Delete(ResourcePool oToDelete)
+        {
+            if (oToDelete == null)
+            {
+                throw new ArgumentNullException(nameof(oToDelete));
+            }
+
+            Delete([oToDelete]);
+        }
+
+        /// <summary>
+        /// Deletes the specified resource pool from the repository.
+        /// </summary>
+        /// <param name="apiObjectId">The unique identifier of the resource pool to delete.</param>
+        public void Delete(Guid apiObjectId)
+        {
+            Delete([apiObjectId]);
         }
 
         /// <summary>
@@ -387,10 +417,14 @@
         /// </summary>
         /// <param name="resourcePool">The resource pool to check.</param>
         /// <returns><c>true</c> if the resource pool has resources; otherwise, <c>false</c>.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public bool HasResources(ResourcePool resourcePool)
         {
-            throw new NotImplementedException();
+            if (resourcePool == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePool));
+            }
+
+            return PlanApi.Resources.Count(ResourceExposers.ResourcePoolIds.Contains(resourcePool.Id)) > 0;
         }
 
         /// <summary>
@@ -508,7 +542,6 @@
         /// </summary>
         /// <param name="filter">The filter criteria to apply when reading resource pools.</param>
         /// <returns>An enumerable collection of resource pools matching the filter.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<ResourcePool> Read(FilterElement<ResourcePool> filter)
         {
             if (filter == null)
@@ -545,7 +578,6 @@
         /// </summary>
         /// <param name="query">The query criteria to apply when reading resource pools.</param>
         /// <returns>An enumerable collection of resource pools matching the query.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<ResourcePool> Read(IQuery<ResourcePool> query)
         {
             if (query == null)
@@ -560,7 +592,6 @@
         /// Reads all resource pools in pages.
         /// </summary>
         /// <returns>An enumerable collection of pages, where each page contains a collection of resource pools.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<ResourcePool>> ReadPaged()
         {
             return ReadPaged(new TRUEFilterElement<ResourcePool>());
@@ -571,7 +602,6 @@
         /// </summary>
         /// <param name="filter">The filter criteria to apply when reading resource pools.</param>
         /// <returns>An enumerable collection of pages, where each page contains resource pools matching the filter.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<ResourcePool>> ReadPaged(FilterElement<ResourcePool> filter)
         {
             return ReadPaged(filter, MediaOpsPlanApi.DefaultPageSize);
@@ -582,7 +612,6 @@
         /// </summary>
         /// <param name="query">The query criteria to apply when reading resource pools.</param>
         /// <returns>An enumerable collection of pages, where each page contains resource pools matching the query.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<ResourcePool>> ReadPaged(IQuery<ResourcePool> query)
         {
             return ReadPaged(query.Filter);
@@ -594,8 +623,43 @@
         /// <param name="filter">The filter criteria to apply when reading resource pools.</param>
         /// <param name="pageSize">The number of items per page.</param>
         /// <returns>An enumerable collection of pages, where each page contains up to the specified number of resource pools matching the filter.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public IEnumerable<IPagedResult<ResourcePool>> ReadPaged(FilterElement<ResourcePool> filter, int pageSize)
+        {
+            if (filter == null)
+            {
+                throw new ArgumentNullException(nameof(filter));
+            }
+
+            if (pageSize <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size must be greater than zero.");
+            }
+
+            return ReadPagedIterator(filter, pageSize);
+        }
+
+        /// <summary>
+        /// Reads resource pools that match the specified query in pages with a custom page size.
+        /// </summary>
+        /// <param name="query">The query criteria to apply when reading resource pools.</param>
+        /// <param name="pageSize">The number of items per page.</param>
+        /// <returns>An enumerable collection of pages, where each page contains up to the specified number of resource pools matching the query.</returns>
+        public IEnumerable<IPagedResult<ResourcePool>> ReadPaged(IQuery<ResourcePool> query, int pageSize)
+        {
+            return ReadPaged(query.Filter, pageSize);
+        }
+
+        /// <summary>
+        /// Reads all resource pools in pages.
+        /// </summary>
+        /// <param name="pageSize">The number of items per page.</param>
+        /// <returns>An enumerable collection of pages, where each page contains a collection of resource pools.</returns>
+        public IEnumerable<IPagedResult<ResourcePool>> ReadPaged(int pageSize)
+        {
+            return ReadPaged(new TRUEFilterElement<ResourcePool>(), MediaOpsPlanApi.DefaultPageSize);
+        }
+
+        public IEnumerable<IPagedResult<ResourcePool>> ReadPagedIterator(FilterElement<ResourcePool> filter, int pageSize)
         {
             var pageNumber = 0;
             var paramFilter = filterTranslator.Translate(filter);
@@ -610,25 +674,11 @@
                 yield return new PagedResult<ResourcePool>(page.Select(x => new ResourcePool(x)), pageNumber++, pageSize, hasNext);
             }
         }
-
-        /// <summary>
-        /// Reads resource pools that match the specified query in pages with a custom page size.
-        /// </summary>
-        /// <param name="query">The query criteria to apply when reading resource pools.</param>
-        /// <param name="pageSize">The number of items per page.</param>
-        /// <returns>An enumerable collection of pages, where each page contains up to the specified number of resource pools matching the query.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
-        public IEnumerable<IPagedResult<ResourcePool>> ReadPaged(IQuery<ResourcePool> query, int pageSize)
-        {
-            return ReadPaged(query.Filter, pageSize);
-        }
-
         /// <summary>
         /// Gets the count of resources in the specified resource pool.
         /// </summary>
         /// <param name="resourcePool">The resource pool for which to count resources.</param>
         /// <returns>The number of resources in the pool.</returns>
-        /// <exception cref="NotImplementedException">This method is not yet implemented.</exception>
         public long ResourceCount(ResourcePool resourcePool)
         {
             if (resourcePool == null)

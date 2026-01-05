@@ -26,6 +26,24 @@
 
         internal UnmanagedResource(MediaOpsPlanApi planApi, StorageResourceStudio.ResourceInstance instance) : base(planApi, instance)
         {
+            InitTracking();
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (obj is not UnmanagedResource unmanagedResource)
+            {
+                return false;
+            }
+
+            return base.Equals(unmanagedResource);
         }
 
         internal override void ApplyChanges(StorageResourceStudio.ResourceInstance instance)

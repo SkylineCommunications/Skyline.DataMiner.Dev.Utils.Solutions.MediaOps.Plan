@@ -17,6 +17,7 @@
         internal ResourceRangeCapacitySetting(StorageResourceStudio.ResourceCapacitiesSection section)
         {
             ParseSection(section);
+            InitTracking();
         }
 
         internal override Storage.DOM.DomSectionBase OriginalSection => originalSection;
@@ -29,8 +30,8 @@
             }
 
             updatedSection.ProfileParameterId = Id;
-            updatedSection.DoubleMinValue = (double)minValue;
-            updatedSection.DoubleMaxValue = (double)maxValue;
+            updatedSection.DoubleMinValue = (double)MinValue;
+            updatedSection.DoubleMaxValue = (double)MaxValue;
 
             return updatedSection;
         }
@@ -40,8 +41,8 @@
             originalSection = section ?? throw new ArgumentNullException(nameof(section));
 
             Id = section.ProfileParameterId;
-            minValue = (decimal)section.DoubleMinValue.Value;
-            maxValue = (decimal)section.DoubleMaxValue.Value;
+            MinValue = (decimal)section.DoubleMinValue.Value;
+            MaxValue = (decimal)section.DoubleMaxValue.Value;
         }
     }
 }

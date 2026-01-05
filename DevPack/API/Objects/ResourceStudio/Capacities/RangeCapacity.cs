@@ -2,8 +2,6 @@
 {
     using System;
 
-    using Skyline.DataMiner.Net.Profiles;
-
     using CoreParameter = Net.Profiles.Parameter;
 
     /// <summary>
@@ -28,6 +26,7 @@
 
         internal RangeCapacity(CoreParameter parameter) : base(parameter)
         {
+            InitTracking();
         }
 
         /// <inheritdoc/>
