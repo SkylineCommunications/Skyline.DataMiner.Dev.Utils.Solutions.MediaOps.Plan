@@ -540,7 +540,7 @@
 
             var resourcesRequiringValidation = apiResources.ToList();
 
-            foreach (var resource in resourcesRequiringValidation.Where(x => !InputValidator.IsNonEmptyText(x.Name)))
+            foreach (var resource in resourcesRequiringValidation.Where(x => !InputValidator.IsNonEmptyText(x.Name)).ToArray())
             {
                 var error = new ResourceInvalidNameError
                 {
@@ -553,7 +553,7 @@
                 resourcesRequiringValidation.Remove(resource);
             }
 
-            foreach (var resource in resourcesRequiringValidation.Where(x => !InputValidator.HasValidTextLength(x.Name)))
+            foreach (var resource in resourcesRequiringValidation.Where(x => !InputValidator.HasValidTextLength(x.Name)).ToArray())
             {
                 var error = new ResourceInvalidNameError
                 {

@@ -1,9 +1,7 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
     using System;
-
     using Skyline.DataMiner.Core.DataMinerSystem.Common;
-
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
     /// <summary>
@@ -11,10 +9,6 @@
     /// </summary>
     public class ElementResource : Resource
     {
-        private int agentId;
-
-        private int elementId;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="ElementResource"/> class.
         /// </summary>
@@ -33,38 +27,49 @@
         internal ElementResource(MediaOpsPlanApi planApi, StorageResourceStudio.ResourceInstance instance) : base(planApi, instance)
         {
             ParseInstance(instance);
+            InitTracking();
         }
 
         /// <summary>
         /// Gets or sets the agent ID associated with the resource link.
         /// </summary>
-        public int AgentId
-        {
-            get => agentId;
-            set
-            {
-                HasChanges = true;
-                agentId = value;
-            }
-        }
+        public int AgentId { get; set; }
 
         /// <summary>
         /// Gets or sets the element ID associated with the resource link.
         /// </summary>
-        public int ElementId
+        public int ElementId { get; set; }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
         {
-            get => elementId;
-            set
+            unchecked
             {
-                HasChanges = true;
-                elementId = value;
+                var hash = base.GetHashCode();
+                hash = (hash * 23) + AgentId.GetHashCode();
+                hash = (hash * 23) + ElementId.GetHashCode();
+
+                return hash;
             }
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (obj is not ElementResource other)
+            {
+                return false;
+            }
+
+            return base.Equals(other) &&
+                   AgentId == other.AgentId &&
+                   ElementId == other.ElementId;
         }
 
         internal override void ApplyChanges(StorageResourceStudio.ResourceInstance instance)
         {
             instance.ResourceInfo.Type = StorageResourceStudio.SlcResource_StudioIds.Enums.Type.Element;
-            instance.ResourceInternalProperties.Metadata.LinkedElementInfo = new DmsElementId(agentId, elementId).Value;
+            instance.ResourceInternalProperties.Metadata.LinkedElementInfo = new DmsElementId(AgentId, ElementId).Value;
         }
 
         private void ParseInstance(StorageResourceStudio.ResourceInstance instance)
@@ -73,14 +78,14 @@
             if (!string.IsNullOrEmpty(instance.ResourceInternalProperties?.Metadata?.LinkedElementInfo))
             {
                 elementInfo = new DmsElementId(instance.ResourceInternalProperties.Metadata.LinkedElementInfo);
-                agentId = elementInfo.AgentId;
-                elementId = elementInfo.ElementId;
+                AgentId = elementInfo.AgentId;
+                ElementId = elementInfo.ElementId;
             }
             else if (!string.IsNullOrEmpty(instance.ResourceInfo?.Element))
             {
                 elementInfo = new DmsElementId(instance.ResourceInfo.Element);
-                agentId = elementInfo.AgentId;
-                elementId = elementInfo.ElementId;
+                AgentId = elementInfo.AgentId;
+                ElementId = elementInfo.ElementId;
             }
         }
     }

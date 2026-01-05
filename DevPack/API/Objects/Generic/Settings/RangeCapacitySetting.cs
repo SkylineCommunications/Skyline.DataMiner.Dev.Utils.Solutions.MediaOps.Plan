@@ -7,9 +7,6 @@
     /// </summary>
     public class RangeCapacitySetting : CapacitySetting
     {
-       internal decimal minValue;
-       internal decimal maxValue;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="RangeCapacitySetting"/> class using the specified capacity.
         /// </summary>
@@ -37,36 +34,47 @@
         internal RangeCapacitySetting(RangeCapacitySetting rangeCapacitySetting)
             : base(rangeCapacitySetting)
         {
-            minValue = rangeCapacitySetting.minValue;
-            maxValue = rangeCapacitySetting.maxValue;
+            MinValue = rangeCapacitySetting.MinValue;
+            MaxValue = rangeCapacitySetting.MaxValue;
+            InitTracking();
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                var hash = 17;
+                hash = (hash * 23) + Id.GetHashCode();
+                hash = (hash * 23) + MinValue.GetHashCode();
+                hash = (hash * 23) + MaxValue.GetHashCode();
+                hash = (hash * 23) + (OriginalSection != null ? OriginalSection.ID.Id.GetHashCode() : 0);
+
+                return hash;
+            }
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (obj is not RangeCapacitySetting other)
+            {
+                return false;
+            }
+
+            return Id == other.Id &&
+                   MinValue == other.MinValue &&
+                   MaxValue == other.MaxValue;
         }
 
         /// <summary>
         /// Gets or sets the minimum capacity value.
         /// </summary>
-        public decimal MinValue
-        {
-            get => minValue;
-            set
-            {
-                minValue = value;
-                HasChanges = true;
-                ValueChanged?.Invoke(this, EventArgs.Empty);
-            }
-        }
+        public decimal MinValue { get; set; }
 
         /// <summary>
         /// Gets or sets the maximum capacity value.
         /// </summary>
-        public decimal MaxValue
-        {
-            get => maxValue;
-            set
-            {
-                maxValue = value;
-                HasChanges = true;
-                ValueChanged?.Invoke(this, EventArgs.Empty);
-            }
-        }
+        public decimal MaxValue { get; set; }
     }
 }

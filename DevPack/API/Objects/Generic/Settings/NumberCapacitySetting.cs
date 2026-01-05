@@ -7,8 +7,6 @@
     /// </summary>
     public class NumberCapacitySetting : CapacitySetting
     {
-        internal decimal value;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="NumberCapacitySetting"/> class using the specified capacity.
         /// </summary>
@@ -36,21 +34,38 @@
         internal NumberCapacitySetting(NumberCapacitySetting numberCapacitySetting)
             : base(numberCapacitySetting)
         {
-            value = numberCapacitySetting.value;
+            Value = numberCapacitySetting.Value;
+            InitTracking();
         }
 
         /// <summary>
         /// Gets or sets the capacity value.
         /// </summary>
-        public decimal Value
+        public decimal Value { get; set; }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
         {
-            get => value;
-            set
+            unchecked
             {
-                this.value = value;
-                HasChanges = true;
-                ValueChanged?.Invoke(this, EventArgs.Empty);
+                var hash = 17;
+                hash = (hash * 23) + Id.GetHashCode();
+                hash = (hash * 23) + Value.GetHashCode();
+                hash = (hash * 23) + (OriginalSection != null ? OriginalSection.ID.Id.GetHashCode() : 0);
+
+                return hash;
             }
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (obj is not NumberCapacitySetting other)
+            {
+                return false;
+            }
+
+            return Id == other.Id && Value == other.Value;
         }
     }
 }

@@ -8,13 +8,6 @@
     /// </summary>
     public class NumberConfiguration : Configuration
     {
-        private decimal? defaultValue;
-        private string units;
-        private decimal? rangeMin;
-        private decimal? rangeMax;
-        private decimal? stepSize;
-        private int? decimals;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="NumberConfiguration"/> class.
         /// </summary>
@@ -37,84 +30,69 @@
         /// <param name="parameter">The parameter used to configure the number settings.</param>
         internal NumberConfiguration(Net.Profiles.Parameter parameter) : base(parameter)
         {
+            InitTracking();
         }
 
         /// <summary>
         /// Gets or sets the default value of this <see cref="NumberConfiguration"/>.
         /// </summary>
-        public decimal? DefaultValue
-        {
-            get => defaultValue;
-            set
-            {
-                HasChanges = true;
-                defaultValue = value;
-            }
-        }
+        public decimal? DefaultValue { get; set; }
 
         /// <summary>
         /// Gets or sets the units of measurement for the <see cref="NumberConfiguration"/>.
         /// </summary>
-        public string Units
-        {
-            get => units;
-            set
-            {
-                HasChanges = true;
-                units = value;
-            }
-        }
+        public string Units { get; set; }
 
         /// <summary>
         /// Gets or sets the minimum value for the <see cref="NumberConfiguration"/> range.
         /// </summary>
-        public decimal? RangeMin
-        {
-            get => rangeMin;
-            set
-            {
-                HasChanges = true;
-                rangeMin = value;
-            }
-        }
+        public decimal? RangeMin { get; set; }
 
         /// <summary>
         /// Gets or sets the maximum value for the <see cref="NumberConfiguration"/> range.
         /// </summary>
-        public decimal? RangeMax
-        {
-            get => rangeMax;
-            set
-            {
-                HasChanges = true;
-                rangeMax = value;
-            }
-        }
+        public decimal? RangeMax { get; set; }
 
         /// <summary>
         /// Gets or sets the step size for the <see cref="NumberConfiguration"/>.
         /// </summary>
-        public decimal? StepSize
-        {
-            get => stepSize;
-            set
-            {
-                HasChanges = true;
-                stepSize = value;
-            }
-        }
+        public decimal? StepSize { get; set; }
 
         /// <summary>
         /// Gets or sets the number of decimal places for the <see cref="NumberConfiguration"/> values.
         /// </summary>
-        public int? Decimals
+        public int? Decimals { get; set; }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
         {
-            get => decimals;
-            set
+            unchecked
             {
-                HasChanges = true;
-                decimals = value;
+                int hash = base.GetHashCode();
+                hash = (hash * 23) + (Units != null ? Units.GetHashCode() : 0);
+                hash = (hash * 23) + (RangeMin.HasValue ? RangeMin.Value.GetHashCode() : 0);
+                hash = (hash * 23) + (RangeMax.HasValue ? RangeMax.Value.GetHashCode() : 0);
+                hash = (hash * 23) + (StepSize.HasValue ? StepSize.Value.GetHashCode() : 0);
+                hash = (hash * 23) + (Decimals.HasValue ? Decimals.Value.GetHashCode() : 0);
+
+                return hash;
             }
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (obj is not NumberConfiguration other)
+            {
+                return false;
+            }
+
+            return base.Equals(other)
+                && string.Equals(Units, other.Units, StringComparison.Ordinal)
+                && RangeMin == other.RangeMin
+                && RangeMax == other.RangeMax
+                && StepSize == other.StepSize
+                && Decimals == other.Decimals;
         }
 
         /// <summary>
@@ -122,12 +100,12 @@
         /// </summary>
         protected internal override void InternalParseParameter(Net.Profiles.Parameter parameter)
         {
-            defaultValue = parameter.HasDefaultNumericValue() ? (decimal)parameter.DefaultValue.DoubleValue : null;
-            units = parameter.Units;
-            rangeMin = parameter.HasMinRange() ? (decimal)parameter.RangeMin : null;
-            rangeMax = parameter.HasMaxRange() ? (decimal)parameter.RangeMax : null;
-            stepSize = parameter.HasStepSize() ? (decimal)parameter.Stepsize : null;
-            decimals = parameter.HasDecimals() ? parameter.Decimals : null;
+            DefaultValue = parameter.HasDefaultNumericValue() ? (decimal)parameter.DefaultValue.DoubleValue : null;
+            Units = parameter.Units;
+            RangeMin = parameter.HasMinRange() ? (decimal)parameter.RangeMin : null;
+            RangeMax = parameter.HasMaxRange() ? (decimal)parameter.RangeMax : null;
+            StepSize = parameter.HasStepSize() ? (decimal)parameter.Stepsize : null;
+            Decimals = parameter.HasDecimals() ? parameter.Decimals : null;
         }
     }
 }

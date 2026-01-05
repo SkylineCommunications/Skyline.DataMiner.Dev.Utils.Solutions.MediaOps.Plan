@@ -1,10 +1,6 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
     using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
 
     /// <summary>
     /// Represents an abstract base class for settings associated with a specific capacity.
@@ -45,11 +41,8 @@
         private protected CapacitySetting(CapacitySetting capacitySetting)
         {
             Id = capacitySetting.Id;
-
             IsNew = capacitySetting.IsNew;
         }
-
-        internal EventHandler<EventArgs> ValueChanged;
 
         /// <summary>
         /// Gets the unique identifier of the capacity.

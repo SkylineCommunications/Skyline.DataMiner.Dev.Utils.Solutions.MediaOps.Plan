@@ -14,8 +14,7 @@
     /// </summary>
     public class Capability : Parameter
     {
-        private HashSet<string> discretes = new HashSet<string>();
-        private bool isTimeDependent;
+        private readonly HashSet<string> discretes = new HashSet<string>();
         private Guid linkedTimeDependentCapabilityId;
 
         /// <summary>
@@ -39,25 +38,19 @@
         /// <param name="parameter">The core parameter used to initialize the capability. Must not be <see langword="null"/>.</param>
         internal protected Capability(CoreParameter parameter) : base(parameter)
         {
+            InitTracking();
         }
 
         /// <summary>
         /// Gets or sets a value indicating whether the capability is time-dependent or not.
         /// </summary>
-        public bool IsTimeDependent
-        {
-            get => isTimeDependent;
-            set
-            {
-                HasChanges = true;
-                isTimeDependent = value;
-            }
-        }
+        public bool IsTimeDependent { get; set; }
 
         /// <summary>
         /// Gets a read-only collection of discrete values.
         /// </summary>
         public IReadOnlyCollection<string> Discretes => discretes;
+
         /// <summary>
         /// Gets the category of the profile parameter, indicating its classification as a capability.
         /// </summary>
@@ -75,8 +68,7 @@
             if (option == null)
                 throw new ArgumentNullException(nameof(option));
 
-            if (discretes.Add(option))
-                HasChanges = true;
+            discretes.Add(option);
 
             return this;
         }
@@ -91,8 +83,7 @@
             if (option == null)
                 throw new ArgumentNullException(nameof(option));
 
-            if (discretes.Remove(option))
-                HasChanges = true;
+            discretes.Remove(option);
 
             return this;
         }
@@ -121,9 +112,32 @@
                 discretes.Add(option);
             }
 
-            HasChanges = true;
-
             return this;
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = base.GetHashCode();
+                hash = (hash * 23) + IsTimeDependent.GetHashCode();
+                foreach (var discreet in discretes.OrderBy(x => x).ToArray())
+                {
+                    hash = (hash * 23) + (discreet != null ? discreet.GetHashCode() : 0);
+                }
+
+                return hash;
+            }
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (obj is not Capability other)
+                return false;
+
+            return base.Equals(other) && IsTimeDependent == other.IsTimeDependent && discretes.ScrambledEquals(other.discretes);
         }
 
         /// <summary>
@@ -131,8 +145,13 @@
         /// </summary>
         protected internal override void InternalParseParameter(CoreParameter parameter)
         {
-            discretes = System.Linq.Enumerable.ToHashSet(parameter.Discretes);
-            isTimeDependent = TimeDependentCapabilityLink.TryDeserialize(parameter.Remarks, out var timeDependentLink) && timeDependentLink.IsTimeDependent;
+            discretes.Clear();
+            foreach (var discreet in parameter.Discretes)
+            {
+                discretes.Add(discreet);
+            }
+
+            IsTimeDependent = TimeDependentCapabilityLink.TryDeserialize(parameter.Remarks, out var timeDependentLink) && timeDependentLink.IsTimeDependent;
             linkedTimeDependentCapabilityId = timeDependentLink?.LinkedParameterId ?? Guid.Empty;
         }
     }

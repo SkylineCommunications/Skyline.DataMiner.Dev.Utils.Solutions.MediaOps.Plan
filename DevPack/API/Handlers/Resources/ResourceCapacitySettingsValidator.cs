@@ -52,7 +52,7 @@
 
         private bool ValidateValue(decimal capacityValue)
         {
-            if (capacity.rangeMin.HasValue && capacityValue < capacity.rangeMin.Value)
+            if (capacity.RangeMin.HasValue && capacityValue < capacity.RangeMin.Value)
             {
                 ReportError(resourceId, new ResourceInvalidCapacitySettingsError
                 {
@@ -63,7 +63,7 @@
                 return false;
             }
 
-            if (capacity.rangeMax.HasValue && capacityValue > capacity.rangeMax.Value)
+            if (capacity.RangeMax.HasValue && capacityValue > capacity.RangeMax.Value)
             {
                 ReportError(resourceId, new ResourceInvalidCapacitySettingsError
                 {
@@ -74,12 +74,12 @@
                 return false;
             }
 
-            if (capacity.stepSize.HasValue && !ValidateValueStepSize(capacityValue))
+            if (capacity.StepSize.HasValue && !ValidateValueStepSize(capacityValue))
             {
                 return false;
             }
 
-            if (capacity.decimals.HasValue && (Math.Round(capacityValue, capacity.Decimals.Value) - capacityValue) != 0)
+            if (capacity.Decimals.HasValue && (Math.Round(capacityValue, capacity.Decimals.Value) - capacityValue) != 0)
             {
                 ReportError(resourceId, new ResourceInvalidCapacitySettingsError
                 {
@@ -95,26 +95,26 @@
 
         private bool ValidateValueStepSize(decimal capacityValue)
         {
-            if (capacity.stepSize - 0.0m == 0)
+            if (capacity.StepSize - 0.0m == 0)
             {
                 return true;
             }
 
             var valueToCheck = capacityValue;
-            if (capacity.rangeMin.HasValue)
+            if (capacity.RangeMin.HasValue)
             {
-                valueToCheck = capacityValue - capacity.rangeMin.Value;
+                valueToCheck = capacityValue - capacity.RangeMin.Value;
             }
-            else if (capacity.rangeMax.HasValue)
+            else if (capacity.RangeMax.HasValue)
             {
-                valueToCheck = capacity.rangeMax.Value - capacityValue;
+                valueToCheck = capacity.RangeMax.Value - capacityValue;
             }
             else
             {
                 // no range defined
             }
 
-            if ((valueToCheck % capacity.stepSize.Value) != 0)
+            if ((valueToCheck % capacity.StepSize.Value) != 0)
             {
                 ReportError(resourceId, new ResourceInvalidCapacitySettingsError
                 {

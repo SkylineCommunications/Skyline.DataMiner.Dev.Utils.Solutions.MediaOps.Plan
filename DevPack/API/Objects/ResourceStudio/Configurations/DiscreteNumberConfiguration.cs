@@ -1,9 +1,8 @@
-﻿using Skyline.DataMiner.Net.Helper;
-
-namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
 
     /// <summary>
@@ -11,7 +10,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
     /// </summary>
     public class DiscreteNumberConfiguration : Configuration
     {
-        private string defaultValue;
         private readonly Dictionary<string, decimal> discretes = new Dictionary<string, decimal>(); // TODO: should we use a dictionary here? This doesn't allow multiple discretes with the same key, which could make it harder when creating UIs. We could always validate when pushing the Configuration.
 
         /// <summary>
@@ -37,20 +35,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
         /// <param name="parameter">The parameter used to configure the discrete number settings.</param>
         internal DiscreteNumberConfiguration(Net.Profiles.Parameter parameter) : base(parameter)
         {
+            InitTracking();
         }
 
         /// <summary>
         /// Gets or sets the display key of the default discrete value.
         /// </summary>
-        public string DefaultValue
-        {
-            get => defaultValue;
-            set
-            {
-                HasChanges = true;
-                defaultValue = value;
-            }
-        }
+        public string DefaultValue { get; set; }
 
         /// <summary>
         /// Gets a read-only dictionary of discrete values.
@@ -80,7 +71,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
                 throw new ArgumentException($"The configuration already defines a discreet with display value '{displayValue}'");
 
             discretes.Add(displayValue, value);
-            HasChanges = true;
 
             return this;
         }
@@ -107,8 +97,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
                 DefaultValue = null;
             }
 
-            HasChanges = true;
-
             return this;
         }
 
@@ -129,6 +117,62 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
             }
 
             return this;
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = base.GetHashCode();
+                hash = (hash * 23) + (DefaultValue != null ? DefaultValue.GetHashCode() : 0);
+                foreach (var discreet in discretes.OrderBy(x => x.Key).ToArray())
+                {
+                    hash = (hash * 23) + (discreet.Key != null ? discreet.Key.GetHashCode() : 0);
+                    hash = (hash * 23) + discreet.Value.GetHashCode();
+                }
+
+                return hash;
+            }
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (obj is not DiscreteNumberConfiguration other)
+            {
+                return false;
+            }
+
+            if (!base.Equals(other))
+            {
+                return false;
+            }
+
+            if (!String.Equals(DefaultValue, other.DefaultValue))
+            {
+                return false;
+            }
+
+            if (discretes.Count != other.discretes.Count)
+            {
+                return false;
+            }
+
+            foreach (var kvp in discretes)
+            {
+                if (!other.discretes.TryGetValue(kvp.Key, out decimal otherValue))
+                {
+                    return false;
+                }
+
+                if (kvp.Value != otherValue)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>

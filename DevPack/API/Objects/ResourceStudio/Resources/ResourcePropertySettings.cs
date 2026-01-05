@@ -9,11 +9,9 @@
     /// </summary>
     public class ResourcePropertySettings : TrackableObject
     {
-        private StorageResourceStudio.ResourcePropertiesSection originalSection;
+        private readonly StorageResourceStudio.ResourcePropertiesSection originalSection;
 
         private StorageResourceStudio.ResourcePropertiesSection updatedSection;
-
-        private string value;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ResourcePropertySettings"/> class using the specified resource property.
@@ -44,10 +42,11 @@
 
         internal ResourcePropertySettings(StorageResourceStudio.ResourcePropertiesSection section)
         {
-            ParseSection(section);
-        }
+            originalSection = section ?? throw new ArgumentNullException(nameof(section));
 
-        internal EventHandler<EventArgs> ValueChanged;
+            ParseSection();
+            InitTracking();
+        }
 
         /// <summary>
         /// Gets the unique identifier of the resource property.
@@ -57,18 +56,37 @@
         /// <summary>
         /// Gets or sets the property value.
         /// </summary>
-        public string Value
+        public string Value { get; set; }
+
+        internal StorageResourceStudio.ResourcePropertiesSection OriginalSection => originalSection;
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
         {
-            get => value;
-            set
+            unchecked
             {
-                this.value = value;
-                HasChanges = true;
-                ValueChanged?.Invoke(this, EventArgs.Empty);
+                int hash = 17;
+                hash = (hash * 23) + Id.GetHashCode();
+                hash = (hash * 23) + (Value != null ? Value.GetHashCode() : 0);
+                return hash;
             }
         }
 
-        internal StorageResourceStudio.ResourcePropertiesSection OriginalSection => originalSection;
+        /// <summary>
+        /// Determines whether the specified object is equal to the current ResourcePropertySettings instance.
+        /// </summary>
+        /// <param name="obj">The object to compare with the current ResourcePropertySettings instance.</param>
+        /// <returns>true if the specified object is a ResourcePropertySettings instance and has the same Id and Value as the
+        /// current instance; otherwise, false.</returns>
+        public override bool Equals(object obj)
+        {
+            if (obj is not ResourcePropertySettings other)
+            {
+                return false;
+            }
+
+            return Id == other.Id && Value == other.Value;
+        }
 
         internal StorageResourceStudio.ResourcePropertiesSection GetSectionWithChanges()
         {
@@ -78,17 +96,15 @@
             }
 
             updatedSection.Property = Id;
-            updatedSection.PropertyValue = value;
+            updatedSection.PropertyValue = Value;
 
             return updatedSection;
         }
 
-        private void ParseSection(StorageResourceStudio.ResourcePropertiesSection section)
+        private void ParseSection()
         {
-            originalSection = section ?? throw new ArgumentNullException(nameof(section));
-
-            Id = section.Property.HasValue ? section.Property.Value : Guid.Empty;
-            value = section.PropertyValue;
+            Id = originalSection.Property.HasValue ? originalSection.Property.Value : Guid.Empty;
+            Value = originalSection.PropertyValue;
         }
     }
 }

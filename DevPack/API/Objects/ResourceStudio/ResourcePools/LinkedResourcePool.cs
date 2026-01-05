@@ -1,9 +1,7 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
     using System;
-
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
-
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
     /// <summary>
@@ -11,11 +9,9 @@
     /// </summary>
     public class LinkedResourcePool : TrackableObject
     {
-        private StorageResourceStudio.ResourcePoolLinksSection originalSection;
+        private readonly StorageResourceStudio.ResourcePoolLinksSection originalSection;
 
         private StorageResourceStudio.ResourcePoolLinksSection updatedSection;
-
-        private ResourceSelectionType resourceSelectionType;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LinkedResourcePool"/> class with the linked resource pool.
@@ -43,10 +39,11 @@
 
         internal LinkedResourcePool(StorageResourceStudio.ResourcePoolLinksSection section)
         {
-            ParseSection(section);
-        }
+            originalSection = section ?? throw new ArgumentNullException(nameof(section));
 
-        internal EventHandler<EventArgs> ValueChanged;
+            ParseSection();
+            InitTracking();
+        }
 
         /// <summary>
         /// Gets the unique identifier of the linked resource pool.
@@ -56,18 +53,39 @@
         /// <summary>
         /// Gets or sets the selection type for the linked resource pool.
         /// </summary>
-        public ResourceSelectionType SelectionType
+        public ResourceSelectionType SelectionType { get; set; }
+
+        internal StorageResourceStudio.ResourcePoolLinksSection OriginalSection => originalSection;
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
         {
-            get => resourceSelectionType;
-            set
+            unchecked
             {
-                HasChanges = true;
-                ValueChanged?.Invoke(this, EventArgs.Empty);
-                resourceSelectionType = value;
+                int hash = 17;
+                hash = (hash * 23) + LinkedResourcePoolId.GetHashCode();
+                hash = (hash * 23) + SelectionType.GetHashCode();
+                hash = (hash * 23) + (originalSection != null ? originalSection.ID.Id.GetHashCode() : 0);
+                return hash;
             }
         }
 
-        internal StorageResourceStudio.ResourcePoolLinksSection OriginalSection => originalSection;
+        /// <summary>
+        /// Determines whether the specified object is equal to the current LinkedResourcePool instance.
+        /// </summary>
+        /// <param name="obj">The object to compare with the current LinkedResourcePool instance.</param>
+        /// <returns>true if the specified object is a LinkedResourcePool and has the same LinkedResourcePoolId and resource
+        /// selection type as the current instance; otherwise, false.</returns>
+        public override bool Equals(object obj)
+        {
+            if (obj is not LinkedResourcePool other)
+            {
+                return false;
+            }
+
+            return LinkedResourcePoolId == other.LinkedResourcePoolId &&
+                   SelectionType == other.SelectionType;
+        }
 
         internal StorageResourceStudio.ResourcePoolLinksSection GetSectionWithChanges()
         {
@@ -77,17 +95,15 @@
             }
 
             updatedSection.LinkedResourcePool = LinkedResourcePoolId;
-            updatedSection.ResourceSelectionType = EnumExtensions.MapEnum<ResourceSelectionType, StorageResourceStudio.SlcResource_StudioIds.Enums.Resourceselectiontype>(resourceSelectionType);
+            updatedSection.ResourceSelectionType = EnumExtensions.MapEnum<ResourceSelectionType, StorageResourceStudio.SlcResource_StudioIds.Enums.Resourceselectiontype>(SelectionType);
 
             return updatedSection;
         }
 
-        private void ParseSection(StorageResourceStudio.ResourcePoolLinksSection section)
+        private void ParseSection()
         {
-            originalSection = section ?? throw new ArgumentNullException(nameof(section));
-
-            LinkedResourcePoolId = section.LinkedResourcePool.HasValue ? section.LinkedResourcePool.Value : Guid.Empty;
-            resourceSelectionType = section.ResourceSelectionType.HasValue ? EnumExtensions.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Enums.Resourceselectiontype, ResourceSelectionType>(section.ResourceSelectionType.Value) : ResourceSelectionType.Manual;
+            LinkedResourcePoolId = originalSection.LinkedResourcePool.HasValue ? originalSection.LinkedResourcePool.Value : Guid.Empty;
+            SelectionType = originalSection.ResourceSelectionType.HasValue ? EnumExtensions.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Enums.Resourceselectiontype, ResourceSelectionType>(originalSection.ResourceSelectionType.Value) : ResourceSelectionType.Manual;
         }
     }
 }
