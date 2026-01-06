@@ -67,7 +67,7 @@
         /// </summary>
         /// <param name="other">The <see cref="Discreet{T}"/> object to compare with the current instance.</param>
         /// <returns>true if the display name and value of both objects are equal; otherwise, false.</returns>
-        public bool Equals(Discreet<T> other)
+        public virtual bool Equals(Discreet<T> other)
         {
             return String.Equals(DisplayName, other.DisplayName) && EqualityComparer<T>.Default.Equals(Value, other.Value);
         }
