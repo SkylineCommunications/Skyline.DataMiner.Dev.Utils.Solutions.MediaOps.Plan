@@ -2,15 +2,20 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
     using System.Linq;
+    using Skyline.DataMiner.Net.Helper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
 
     /// <summary>
-    /// Represents a configuration for discrete numerical values.
+    /// Represents a configuration for discrete numeric values.
     /// </summary>
     public class DiscreteNumberConfiguration : Configuration
     {
-        private readonly Dictionary<string, decimal> discretes = new Dictionary<string, decimal>(); // TODO: should we use a dictionary here? This doesn't allow multiple discretes with the same key, which could make it harder when creating UIs. We could always validate when pushing the Configuration.
+        /// <summary>
+        /// The backing collection that stores the configured discrete numeric values.
+        /// </summary>
+        private readonly List<NumberDiscreet> discretes = new List<NumberDiscreet>();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DiscreteNumberConfiguration"/> class.
@@ -39,82 +44,67 @@
         }
 
         /// <summary>
-        /// Gets or sets the display key of the default discrete value.
+        /// Gets or sets the default discrete numeric value to use when no explicit value is provided.
         /// </summary>
-        public string DefaultValue { get; set; }
+        public NumberDiscreet DefaultValue { get; set; }
 
         /// <summary>
-        /// Gets a read-only dictionary of discrete values.
+        /// Gets a read-only collection of configured discrete numeric values.
         /// </summary>
-        public IReadOnlyDictionary<string, decimal> Discretes => discretes;
+        public IReadOnlyCollection<NumberDiscreet> Discretes => discretes;
 
         /// <summary>
-        /// Adds a discrete value with the specified display label and numeric value to the configuration.
+        /// Adds a discrete number configuration to the current collection.
         /// </summary>
-        /// <param name="displayValue">The display label that identifies the discrete value. Cannot be null.</param>
-        /// <param name="value">The numeric value associated with the discrete. Must not be NaN or infinite.</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="displayValue"/> is null.</exception>
-        /// <exception cref="ArgumentException">Thrown if <paramref name="value"/> is NaN or infinite, or if a discrete with the same display value already
-        /// exists.</exception>
-        public DiscreteNumberConfiguration AddDiscrete(string displayValue, decimal value)
+        /// <param name="discreet">The discrete number configuration to add. Cannot be <see langword="null"/>.</param>
+        /// <returns>
+        /// The current <see cref="DiscreteNumberConfiguration"/> instance, enabling fluent configuration.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="discreet"/> is <see langword="null"/>.</exception>
+        public DiscreteNumberConfiguration AddDiscrete(NumberDiscreet discreet)
         {
-            if (displayValue == null)
-                throw new ArgumentNullException(nameof(displayValue));
+            if (discreet == null)
+                throw new ArgumentNullException(nameof(discreet));
 
-            if (Double.IsNaN((double)value))
-                throw new ArgumentException($"{nameof(value)} cannot be NaN");
+            discretes.Add(discreet);
+            return this;
+        }
 
-            if (Double.IsInfinity((double)value))
-                throw new ArgumentException($"{nameof(value)} cannot be an infinite");
+        /// <summary>
+        /// Removes all occurrences of the specified discrete numeric value from the configuration.
+        /// </summary>
+        /// <param name="discreet">The discrete numeric value to remove. Cannot be <see langword="null"/>.</param>
+        /// <returns>
+        /// The current <see cref="DiscreteNumberConfiguration"/> instance, enabling fluent configuration.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="discreet"/> is <see langword="null"/>.</exception>
+        public DiscreteNumberConfiguration RemoveDiscrete(NumberDiscreet discreet)
+        {
+            if (discreet == null)
+                throw new ArgumentNullException(nameof(discreet));
 
-            if (discretes.ContainsKey(displayValue))
-                throw new ArgumentException($"The configuration already defines a discreet with display value '{displayValue}'");
-
-            discretes.Add(displayValue, value);
+            discretes.RemoveAll(x => x.Equals(discreet));
 
             return this;
         }
 
         /// <summary>
-        /// Removes the discrete value with the specified display value from the collection.
+        /// Replaces the current discrete values with the specified collection.
         /// </summary>
-        /// <remarks>If the removed value is currently set as the default value, the default value is
-        /// cleared. This method has no effect if the specified value does not exist in the collection.</remarks>
-        /// <param name="displayValue">The display value of the discrete item to remove. Cannot be null.</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="displayValue"/> is null.</exception>
-        public DiscreteNumberConfiguration RemoveDiscrete(string displayValue)
-        {
-            if (displayValue == null)
-                throw new ArgumentNullException(nameof(displayValue));
-
-            if (!discretes.Remove(displayValue))
-            {
-                return this;
-            }
-
-            if (String.Equals(DefaultValue, displayValue))
-            {
-                DefaultValue = null;
-            }
-
-            return this;
-        }
-
-        /// <summary>
-        /// Sets multiple discrete values using the specified key-value pairs.
-        /// </summary>
-        /// <param name="discretes">A read-only dictionary containing the discrete names and their corresponding decimal values to set. Cannot be null.</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="discretes"/> is null.</exception>
-        public DiscreteNumberConfiguration SetDiscretes(IReadOnlyDictionary<string, decimal> discretes)
+        /// <param name="discretes">
+        /// A collection containing the discrete values to set. Cannot be <see langword="null"/>.
+        /// </param>
+        /// <returns>
+        /// The current <see cref="DiscreteNumberConfiguration"/> instance, enabling fluent configuration.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="discretes"/> is <see langword="null"/>.</exception>
+        public DiscreteNumberConfiguration SetDiscretes(ICollection<NumberDiscreet> discretes)
         {
             if (discretes == null)
                 throw new ArgumentNullException(nameof(discretes));
 
             this.discretes.Clear();
-            foreach (var kvp in discretes)
-            {
-                AddDiscrete(kvp.Key, kvp.Value);
-            }
+            this.discretes.AddRange(discretes);
 
             return this;
         }
@@ -126,17 +116,25 @@
             {
                 int hash = base.GetHashCode();
                 hash = (hash * 23) + (DefaultValue != null ? DefaultValue.GetHashCode() : 0);
-                foreach (var discreet in discretes.OrderBy(x => x.Key).ToArray())
+
+                foreach (var discreet in discretes.OrderBy(x => x.DisplayName).ToArray())
                 {
-                    hash = (hash * 23) + (discreet.Key != null ? discreet.Key.GetHashCode() : 0);
-                    hash = (hash * 23) + discreet.Value.GetHashCode();
+                    hash = (hash * 23) + discreet.GetHashCode();
                 }
 
                 return hash;
             }
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Determines whether the specified object is equal to the current <see cref="DiscreteNumberConfiguration"/> instance.
+        /// </summary>
+        /// <param name="obj">The object to compare with the current instance.</param>
+        /// <returns>
+        /// <see langword="true"/> if the specified object is a <see cref="DiscreteNumberConfiguration"/> and has
+        /// the same base configuration, default value, and discrete values (irrespective of order);
+        /// otherwise, <see langword="false"/>.
+        /// </returns>
         public override bool Equals(object obj)
         {
             if (obj is not DiscreteNumberConfiguration other)
@@ -149,50 +147,57 @@
                 return false;
             }
 
-            if (!String.Equals(DefaultValue, other.DefaultValue))
+            if (DefaultValue != other.DefaultValue)
             {
                 return false;
             }
 
-            if (discretes.Count != other.discretes.Count)
+            if (!discretes.ScrambledEquals(other.Discretes))
             {
                 return false;
-            }
-
-            foreach (var kvp in discretes)
-            {
-                if (!other.discretes.TryGetValue(kvp.Key, out decimal otherValue))
-                {
-                    return false;
-                }
-
-                if (kvp.Value != otherValue)
-                {
-                    return false;
-                }
             }
 
             return true;
         }
 
         /// <summary>
-        /// <inheritdoc/>
+        /// Parses the specified profile parameter and updates this configuration with its discrete numeric values.
         /// </summary>
+        /// <param name="parameter">The core profile parameter to parse.</param>
+        /// <remarks>
+        /// When the parameter does not contain discrete values, the internal collection and the default value
+        /// are cleared. If discrete values and display values are present but their counts differ, an
+        /// <see cref="InvalidOperationException"/> is thrown.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown when the number of discrete values does not match the number of display values.
+        /// </exception>
         protected internal override void InternalParseParameter(Net.Profiles.Parameter parameter)
         {
+            if (parameter.Discretes == null || parameter.DiscreetDisplayValues == null)
+            {
+                discretes.Clear();
+                DefaultValue = null;
+                return;
+            }
+
+            if (parameter.Discretes.Count != parameter.DiscreetDisplayValues.Count)
+            {
+                throw new InvalidOperationException($"Profile parameter {parameter.Name} [{parameter.ID}] has an inconsistent number of discrete values ({parameter.Discretes.Count} vs {parameter.DiscreetDisplayValues.Count}).");
+            }
+
+            for (int i = 0; i < parameter.Discretes.Count; i++)
+            {
+                discretes.Add(new NumberDiscreet(Decimal.Parse(parameter.Discretes[i]), parameter.DiscreetDisplayValues[i]));
+            }
+
             if (!parameter.HasDefaultStringValue())
             {
                 DefaultValue = null;
             }
             else
             {
-                int defaultIndex = parameter.Discretes.IndexOf(parameter.DefaultValue.StringValue);
-                DefaultValue = defaultIndex >= 0 ? parameter.DiscreetDisplayValues[defaultIndex] : null;
-            }
-
-            for (int i = 0; i < parameter.Discretes.Count; i++)
-            {
-                discretes.Add(parameter.DiscreetDisplayValues[i], Decimal.Parse(parameter.Discretes[i]));
+                DefaultValue = discretes.FirstOrDefault(x => x.Value.ToString(CultureInfo.InvariantCulture).Equals(parameter.DefaultValue.StringValue));
             }
         }
     }

@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using Skyline.DataMiner.Net.Helper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
 
     /// <summary>
@@ -11,7 +12,7 @@
     /// </summary>
     public class DiscreteTextConfiguration : Configuration
     {
-        private readonly Dictionary<string, string> discretes = new Dictionary<string, string>();
+        private readonly List<TextDiscreet> discretes = new List<TextDiscreet>();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DiscreteTextConfiguration"/> class.
@@ -40,75 +41,66 @@
         }
 
         /// <summary>
-        /// Gets or sets the display key of the default discrete value.
+        /// Gets or sets the default value to use when no explicit value is provided.
         /// </summary>
-        public string DefaultValue { get; set; }
+        public TextDiscreet DefaultValue { get; set; }
 
         /// <summary>
-        /// Gets a read-only dictionary of discrete values.
+        /// Gets a read-only collection of discrete text values.
         /// </summary>
-        public IReadOnlyDictionary<string, string> Discretes => discretes;
+        public IReadOnlyCollection<TextDiscreet> Discretes => discretes;
 
         /// <summary>
-        /// Adds a new discrete value with the specified display name and associated value to the configuration.
+        /// Adds the specified discrete text configuration to the current collection.
         /// </summary>
-        /// <param name="displayValue">The display name for the discrete value to add. Cannot be null. Must be unique within the configuration.</param>
-        /// <param name="value">The value associated with the discrete display name.</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="displayValue"/> is null.</exception>
-        /// <exception cref="ArgumentException">Thrown if a discrete with the specified <paramref name="displayValue"/> already exists in the configuration.</exception>
-        public DiscreteTextConfiguration AddDiscrete(string displayValue, string value)
+        /// <param name="discreet">The discrete text configuration to add. Cannot be null.</param>
+        /// <returns>
+        /// The current <see cref="DiscreteTextConfiguration"/> instance with the added discrete text configuration,
+        /// enabling fluent configuration.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="discreet"/> is null.</exception>
+        public DiscreteTextConfiguration AddDiscrete(TextDiscreet discreet)
         {
-            if (displayValue == null)
-                throw new ArgumentNullException(nameof(displayValue));
+            if (discreet == null)
+                throw new ArgumentNullException(nameof(discreet));
 
-            if (discretes.ContainsKey(displayValue))
-                throw new ArgumentException($"The configuration already defines a discreet with display value '{displayValue}'");
-
-            discretes.Add(displayValue, value);
+            discretes.Add(discreet);
             return this;
         }
 
         /// <summary>
-        /// Removes the discrete value with the specified display value from the collection.
+        /// Removes the specified discrete value from the configuration.
         /// </summary>
-        /// <remarks>If the specified display value is set as the default value, removing it will also
-        /// clear the default. This method has no effect if the value does not exist in the collection.</remarks>
-        /// <param name="displayValue">The display value of the discrete item to remove. Cannot be null.</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="displayValue"/> is null.</exception>
-        public DiscreteTextConfiguration RemoveDiscrete(string displayValue)
+        /// <param name="discreet">The discrete value to remove from the configuration. Cannot be null.</param>
+        /// <returns>
+        /// The current <see cref="DiscreteTextConfiguration"/> instance, allowing method chaining.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="discreet"/> is null.</exception>
+        public DiscreteTextConfiguration RemoveDiscrete(TextDiscreet discreet)
         {
-            if (displayValue == null)
-                throw new ArgumentNullException(nameof(displayValue));
+            if (discreet == null)
+                throw new ArgumentNullException(nameof(discreet));
 
-            if (!discretes.Remove(displayValue))
-            {
-                return this;
-            }
-
-            if (String.Equals(DefaultValue, displayValue))
-            {
-                DefaultValue = null;
-            }
+            discretes.RemoveAll(x => x.Equals(discreet));
 
             return this;
         }
 
         /// <summary>
-        /// Sets multiple discrete values using the specified key-value pairs.
+        /// Replaces the current collection of discrete text values with the specified collection.
         /// </summary>
-        /// <param name="discretes">A read-only dictionary containing the discrete keys and their corresponding values to set. Each key-value
-        /// pair will be added or updated.</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="discretes"/> is <see langword="null"/>.</exception>
-        public DiscreteTextConfiguration SetDiscretes(IReadOnlyDictionary<string, string> discretes)
+        /// <param name="discretes">The collection of discrete text values to set. Cannot be null.</param>
+        /// <returns>
+        /// The current <see cref="DiscreteTextConfiguration"/> instance, allowing method chaining.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="discretes"/> is null.</exception>
+        public DiscreteTextConfiguration SetDiscretes(ICollection<TextDiscreet> discretes)
         {
             if (discretes == null)
                 throw new ArgumentNullException(nameof(discretes));
 
             this.discretes.Clear();
-            foreach (var kvp in discretes)
-            {
-                AddDiscrete(kvp.Key, kvp.Value);
-            }
+            this.discretes.AddRange(discretes);
 
             return this;
         }
@@ -120,10 +112,9 @@
             {
                 int hash = base.GetHashCode();
                 hash = (hash * 23) + (DefaultValue != null ? DefaultValue.GetHashCode() : 0);
-                foreach (var discreet in discretes.OrderBy(x => x.Key).ToArray())
+                foreach (var discreet in discretes.OrderBy(x => x.DisplayName).ToArray())
                 {
-                    hash = (hash * 23) + (discreet.Key != null ? discreet.Key.GetHashCode() : 0);
-                    hash = (hash * 23) + (discreet.Value != null ? discreet.Value.GetHashCode() : 0);
+                    hash = (hash * 23) + discreet.GetHashCode();
                 }
 
                 return hash;
@@ -143,49 +134,57 @@
                 return false;
             }
 
-            if (!String.Equals(DefaultValue, other.DefaultValue))
+            if (DefaultValue != other.DefaultValue)
             {
                 return false;
             }
 
-            if (discretes.Count != other.discretes.Count)
+            if (!discretes.ScrambledEquals(other.Discretes))
             {
                 return false;
-            }
-
-            foreach (var kvp in discretes)
-            {
-                if (!other.discretes.TryGetValue(kvp.Key, out var otherValue))
-                {
-                    return false;
-                }
-                if (!String.Equals(kvp.Value, otherValue))
-                {
-                    return false;
-                }
             }
 
             return true;
         }
 
         /// <summary>
-        /// <inheritdoc/>
+        /// Parses the specified profile parameter and updates this configuration with its discrete numeric values.
         /// </summary>
+        /// <param name="parameter">The core profile parameter to parse.</param>
+        /// <remarks>
+        /// When the parameter does not contain discrete values, the internal collection and the default value
+        /// are cleared. If discrete values and display values are present but their counts differ, an
+        /// <see cref="InvalidOperationException"/> is thrown.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown when the number of discrete values does not match the number of display values.
+        /// </exception>
         protected internal override void InternalParseParameter(Net.Profiles.Parameter parameter)
         {
+            if (parameter.Discretes == null || parameter.DiscreetDisplayValues == null)
+            {
+                discretes.Clear();
+                DefaultValue = null;
+                return;
+            }
+
+            if (parameter.Discretes.Count != parameter.DiscreetDisplayValues.Count)
+            {
+                throw new InvalidOperationException($"Profile parameter {parameter.Name} [{parameter.ID}] has an inconsistent number of discrete values ({parameter.Discretes.Count} vs {parameter.DiscreetDisplayValues.Count}).");
+            }
+
+            for (int i = 0; i < parameter.Discretes.Count; i++)
+            {
+                discretes.Add(new TextDiscreet(parameter.Discretes[i], parameter.DiscreetDisplayValues[i]));
+            }
+
             if (!parameter.HasDefaultStringValue())
             {
                 DefaultValue = null;
             }
             else
             {
-                int defaultIndex = parameter.Discretes.IndexOf(parameter.DefaultValue.StringValue);
-                DefaultValue = defaultIndex >= 0 ? parameter.DiscreetDisplayValues[defaultIndex] : null;
-            }
-
-            for (int i = 0; i < parameter.Discretes.Count; i++)
-            {
-                discretes.Add(parameter.DiscreetDisplayValues[i], parameter.Discretes[i]);
+                DefaultValue = discretes.FirstOrDefault(x => x.Value.Equals(parameter.DefaultValue.StringValue));
             }
         }
     }
