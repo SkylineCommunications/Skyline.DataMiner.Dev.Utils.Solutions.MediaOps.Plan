@@ -267,7 +267,7 @@
         /// <summary>
         /// Adds a new capacity to the resource.
         /// </summary>
-        /// <param name="capacitySetting">The capacity settings to add.</param>
+        /// <param name="capacitySetting">The capacity setting to add.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="capacitySetting"/> is <see langword="null"/>.</exception>
         public Resource AddCapacity(CapacitySetting capacitySetting)
         {
