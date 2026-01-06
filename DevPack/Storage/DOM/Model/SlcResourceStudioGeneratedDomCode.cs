@@ -8,6 +8,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
 {
     using System;
     using System.ComponentModel;
+
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Sections;
 
@@ -99,7 +100,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
                 { ModuleId = "(slc)resource_studio" };
                 public static FieldDescriptorID ProfileParameterID { get; } = new FieldDescriptorID(new Guid("80f66794-6915-4634-a79f-b3fe80f460fe"));
                 public static FieldDescriptorID StringValue { get; } = new FieldDescriptorID(new Guid("664591e2-598f-48f2-ab4a-7bba49124015"));
-                public static FieldDescriptorID DoubleValue { get; } = new FieldDescriptorID(new Guid("2ecda765-f024-45a9-ac8a-ef6cbf205421"));
+                public static FieldDescriptorID DoubleMaxValue { get; } = new FieldDescriptorID(new Guid("2ecda765-f024-45a9-ac8a-ef6cbf205421"));
+                public static FieldDescriptorID DobuleMinValue { get; } = new FieldDescriptorID(new Guid("ff7de433-0ab0-4f85-8fe7-21db9ac59966"));
                 public static FieldDescriptorID ReferenceID { get; } = new FieldDescriptorID(new Guid("9c61edc3-c0b8-4b09-a204-7e98c6ba8cbf"));
             }
 
@@ -526,6 +528,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages;
 
@@ -1287,6 +1290,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.Linq;
+
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Apps.Sections.Sections;
     using Skyline.DataMiner.Net.Messages;
@@ -2436,7 +2440,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
         }
 
         /// <summary>
-        /// Gets or sets the DoubleValue field of the DOM Instance.
+        /// Gets or sets the DoubleMaxValue field of the DOM Instance.
         /// </summary>
         /// <remarks>
         /// When retrieving the value:
@@ -2450,11 +2454,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
         /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
         /// </list>
         /// </remarks>
-        public Double? DoubleValue
+        public Double? DoubleMaxValue
         {
             get
             {
-                var wrapper = section.GetValue<Double>(SlcResource_StudioIds.Sections.ProfileParameterValues.DoubleValue);
+                var wrapper = section.GetValue<Double>(SlcResource_StudioIds.Sections.ProfileParameterValues.DoubleMaxValue);
                 if (wrapper != null)
                 {
                     return (Double?)wrapper.Value;
@@ -2469,11 +2473,54 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
             {
                 if (value == null)
                 {
-                    section.RemoveFieldValueById(SlcResource_StudioIds.Sections.ProfileParameterValues.DoubleValue);
+                    section.RemoveFieldValueById(SlcResource_StudioIds.Sections.ProfileParameterValues.DoubleMaxValue);
                 }
                 else
                 {
-                    section.AddOrUpdateValue(SlcResource_StudioIds.Sections.ProfileParameterValues.DoubleValue, (Double)value);
+                    section.AddOrUpdateValue(SlcResource_StudioIds.Sections.ProfileParameterValues.DoubleMaxValue, (Double)value);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the DobuleMinValue field of the DOM Instance.
+        /// </summary>
+        /// <remarks>
+        /// When retrieving the value:
+        /// <list type="bullet">
+        /// <item>If the field has been set, it will return the value.</item>
+        /// <item>If the field is not set it will return <see langword="null"/>.</item>
+        /// </list>
+        /// When setting the value:
+        /// <list type="bullet">
+        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+        /// </list>
+        /// </remarks>
+        public Double? DoubleMinValue
+        {
+            get
+            {
+                var wrapper = section.GetValue<Double>(SlcResource_StudioIds.Sections.ProfileParameterValues.DobuleMinValue);
+                if (wrapper != null)
+                {
+                    return (Double?)wrapper.Value;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+
+            set
+            {
+                if (value == null)
+                {
+                    section.RemoveFieldValueById(SlcResource_StudioIds.Sections.ProfileParameterValues.DobuleMinValue);
+                }
+                else
+                {
+                    section.AddOrUpdateValue(SlcResource_StudioIds.Sections.ProfileParameterValues.DobuleMinValue, (Double)value);
                 }
             }
         }

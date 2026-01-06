@@ -108,15 +108,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM
         /// <summary>
         /// Gets the datetime when the DOM Instance was created in UTC.
         /// </summary>
-        public DateTime? CreatedAt
+        public DateTimeOffset CreatedAt
         {
             get
             {
-                var createdAt = ((ITrackCreatedAt)domInstance).CreatedAt;
-                if (createdAt == null)
-                    return null;
-                else
-                    return createdAt.ToUniversalTime();
+                return ((ITrackCreatedAt)domInstance).CreatedAt;
             }
         }
 
@@ -134,15 +130,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM
         /// <summary>
         /// Gets the datetime when the DOM Instance was last modified in UTC.
         /// </summary>
-        public DateTime? LastModified
+        public DateTimeOffset LastModified
         {
             get
             {
-                var lastModified = ((ITrackLastModified)domInstance).LastModified;
-                if (lastModified == null)
-                    return null;
-                else
-                    return lastModified.ToUniversalTime();
+                return ((ITrackLastModified)domInstance).LastModified;
             }
         }
 
