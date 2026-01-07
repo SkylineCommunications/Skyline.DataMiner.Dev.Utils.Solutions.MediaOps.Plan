@@ -156,9 +156,9 @@
 
             var capabilities = new Capability[]
             {
-                    Location,
-                    Priority,
-                    Resolution,
+                Location,
+                Priority,
+                Resolution,
             };
 
             foreach (var capability in capabilities)
@@ -258,9 +258,9 @@
 
             var resourcesToCreate = new Resource[]
             {
-                    DraftResource1,
-                    DraftResource2,
-                    DraftResource3,
+                DraftResource1,
+                DraftResource2,
+                DraftResource3,
             };
 
             foreach (var resource in resourcesToCreate)
@@ -323,8 +323,8 @@
 
             var resourcesToCreate = new Resource[]
             {
-                    CompleteResource4,
-                    CompleteResource5,
+                CompleteResource4,
+                CompleteResource5,
             };
 
             foreach (var resource in resourcesToCreate)
@@ -462,20 +462,20 @@
                 Name = $"Resolution_{Guid.NewGuid()}",
                 IsMandatory = false,
             };
-            ResolutionConfig.AddDiscrete("SD", "720p");
-            ResolutionConfig.AddDiscrete("HD", "1080p");
-            ResolutionConfig.AddDiscrete("UHD", "4K");
-            ResolutionConfig.DefaultValue = "HD";
+            ResolutionConfig.AddDiscrete(new TextDiscreet("720p", "SD"));
+            ResolutionConfig.AddDiscrete(new TextDiscreet("1080p", "HD"));
+            ResolutionConfig.AddDiscrete(new TextDiscreet("4K", "UHD"));
+            ResolutionConfig.DefaultValue = new TextDiscreet("1080p", "HD");
 
             PriorityConfig = new DiscreteNumberConfiguration
             {
                 Name = $"Priority_{Guid.NewGuid()}",
                 IsMandatory = false,
             };
-            PriorityConfig.AddDiscrete("Low", 10);
-            PriorityConfig.AddDiscrete("Medium", 50);
-            PriorityConfig.AddDiscrete("High", 100);
-            PriorityConfig.DefaultValue = "Medium";
+            PriorityConfig.AddDiscrete(new NumberDiscreet(10, "Low"));
+            PriorityConfig.AddDiscrete(new NumberDiscreet(50, "Medium"));
+            PriorityConfig.AddDiscrete(new NumberDiscreet(100, "High"));
+            PriorityConfig.DefaultValue = new NumberDiscreet(50, "Medium");
 
             var configurations = new Configuration[]
             {
@@ -525,9 +525,9 @@
                 objectCreator.CreateProperty(property);
             }
 
-            Channel = TestContext.Api.Properties.Read(Channel.Id);
-            Color = TestContext.Api.Properties.Read(Color.Id);
-            Format = TestContext.Api.Properties.Read(Format.Id);
+            Channel = TestContext.Api.ResourceProperties.Read(Channel.Id);
+            Color = TestContext.Api.ResourceProperties.Read(Color.Id);
+            Format = TestContext.Api.ResourceProperties.Read(Format.Id);
         }
 
         private void CreateResourcePools()

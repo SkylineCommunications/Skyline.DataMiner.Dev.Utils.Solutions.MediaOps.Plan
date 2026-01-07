@@ -39,9 +39,9 @@
                 Name = name,
             };
 
-            configuration.AddDiscrete("Low", 10);
-            configuration.AddDiscrete("Medium", 50);
-            configuration.AddDiscrete("High", 100);
+            configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(10, "Low"));
+            configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(50, "Medium"));
+            configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(100, "High"));
 
             objectCreator.CreateConfiguration(configuration);
 
@@ -53,8 +53,8 @@
 
             var discreteNumberConfig = (Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfiguration)returnedConfiguration;
             Assert.AreEqual(3, discreteNumberConfig.Discretes.Count);
-            Assert.IsTrue(discreteNumberConfig.Discretes.ContainsKey("Low"));
-            Assert.AreEqual(10, discreteNumberConfig.Discretes["Low"]);
+            Assert.IsTrue(discreteNumberConfig.Discretes.Any(x => x.DisplayName == "Low"));
+            Assert.AreEqual(10, discreteNumberConfig.Discretes.First(x => x.DisplayName == "Low").Value);
 
             var coreConfiguration = TestContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(configurationId)).SingleOrDefault();
             Assert.IsNotNull(coreConfiguration);
@@ -69,7 +69,7 @@
             // Update
             var updatedName = name + "_Updated";
             discreteNumberConfig.Name = updatedName;
-            discreteNumberConfig.AddDiscrete("Critical", 200);
+            discreteNumberConfig.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(200, "Critical"));
             TestContext.Api.Configurations.Update(discreteNumberConfig);
 
             returnedConfiguration = TestContext.Api.Configurations.Read(configurationId);
@@ -78,7 +78,7 @@
 
             discreteNumberConfig = (Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfiguration)returnedConfiguration;
             Assert.AreEqual(4, discreteNumberConfig.Discretes.Count);
-            Assert.IsTrue(discreteNumberConfig.Discretes.ContainsKey("Critical"));
+            Assert.IsTrue(discreteNumberConfig.Discretes.Any(x => x.DisplayName == "Critical"));
 
             coreConfiguration = TestContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(configurationId)).SingleOrDefault();
             Assert.IsNotNull(coreConfiguration);
@@ -103,13 +103,13 @@
             {
                 Name = $"{configurationId}_Configuration1",
             };
-            configuration1.AddDiscrete("Value1", 1);
+            configuration1.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(1, "Value1"));
 
             var configuration2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfiguration(configurationId)
             {
                 Name = $"{configurationId}_Configuration2",
             };
-            configuration2.AddDiscrete("Value2", 2);
+            configuration2.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(2, "Value2"));
 
             objectCreator.CreateConfiguration(configuration1);
             try
@@ -143,13 +143,13 @@
             {
                 Name = $"{configurationId}_Configuration1",
             };
-            configuration1.AddDiscrete("Value1", 1);
+            configuration1.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(1, "Value1"));
 
             var configuration2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfiguration(configurationId)
             {
                 Name = $"{configurationId}_Configuration2",
             };
-            configuration2.AddDiscrete("Value2", 2);
+            configuration2.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(2, "Value2"));
 
             try
             {
@@ -196,13 +196,13 @@
             {
                 Name = $"{configurationId}_Configuration",
             };
-            configuration1.AddDiscrete("Value1", 1);
+            configuration1.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(1, "Value1"));
 
             var configuration2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfiguration()
             {
                 Name = $"{configurationId}_Configuration",
             };
-            configuration2.AddDiscrete("Value2", 2);
+            configuration2.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(2, "Value2"));
 
             objectCreator.CreateConfiguration(configuration1);
             try
@@ -236,13 +236,13 @@
             {
                 Name = $"{configurationId}_Configuration",
             };
-            configuration1.AddDiscrete("Value1", 1);
+            configuration1.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(1, "Value1"));
 
             var configuration2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfiguration()
             {
                 Name = $"{configurationId}_Configuration",
             };
-            configuration2.AddDiscrete("Value2", 2);
+            configuration2.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(2, "Value2"));
 
             try
             {
@@ -278,13 +278,13 @@
             {
                 Name = $"{prefix}_Configuration_1",
             };
-            configuration1.AddDiscrete("Value1", 1);
+            configuration1.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(1, "Value1"));
 
             var configuration2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfiguration()
             {
                 Name = $"{prefix}_Configuration_2",
             };
-            configuration2.AddDiscrete("Value2", 2);
+            configuration2.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(2, "Value2"));
 
             objectCreator.CreateConfiguration(configuration1);
             objectCreator.CreateConfiguration(configuration2);
@@ -326,10 +326,10 @@
                 IsMandatory = true,
             };
 
-            configuration.AddDiscrete("Low", 10);
-            configuration.AddDiscrete("Medium", 50);
-            configuration.AddDiscrete("High", 100);
-            configuration.DefaultValue = "Medium";
+            configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(10, "Low"));
+            configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(50, "Medium"));
+            configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(100, "High"));
+            configuration.DefaultValue = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(50, "Medium");
 
             objectCreator.CreateConfiguration(configuration);
 
@@ -337,10 +337,10 @@
             Assert.IsNotNull(configuration);
             Assert.AreEqual(true, configuration.IsMandatory);
             Assert.AreEqual(3, configuration.Discretes.Count);
-            Assert.AreEqual("Medium", configuration.DefaultValue);
-            Assert.AreEqual(10, configuration.Discretes["Low"]);
-            Assert.AreEqual(50, configuration.Discretes["Medium"]);
-            Assert.AreEqual(100, configuration.Discretes["High"]);
+            Assert.AreEqual("Medium", configuration.DefaultValue.DisplayName);
+            Assert.AreEqual(10, configuration.Discretes.First(x => x.DisplayName == "Low").Value);
+            Assert.AreEqual(50, configuration.Discretes.First(x => x.DisplayName == "Medium").Value);
+            Assert.AreEqual(100, configuration.Discretes.First(x => x.DisplayName == "High").Value);
 
             var coreConfiguration = TestContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(configurationId)).SingleOrDefault();
             Assert.IsNotNull(coreConfiguration);
@@ -352,8 +352,8 @@
             Assert.AreEqual(3, coreConfiguration.Discretes.Count);
 
             // Update
-            configuration.AddDiscrete("Critical", 200);
-            configuration.DefaultValue = "Critical";
+            configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(200, "Critical"));
+            configuration.DefaultValue = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(200, "Critical");
 
             TestContext.Api.Configurations.Update(configuration);
 
@@ -361,8 +361,8 @@
             Assert.IsNotNull(configuration);
             Assert.AreEqual(true, configuration.IsMandatory);
             Assert.AreEqual(4, configuration.Discretes.Count);
-            Assert.AreEqual("Critical", configuration.DefaultValue);
-            Assert.AreEqual(200, configuration.Discretes["Critical"]);
+            Assert.AreEqual("Critical", configuration.DefaultValue.DisplayName);
+            Assert.AreEqual(200, configuration.Discretes.First(x => x.DisplayName == "Critical").Value);
 
             coreConfiguration = TestContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(configurationId)).SingleOrDefault();
             Assert.IsNotNull(coreConfiguration);
@@ -380,23 +380,23 @@
                 Name = $"{configurationId}_Configuration",
             };
 
-            configuration.AddDiscrete("Low", 10);
-            configuration.AddDiscrete("Medium", 50);
-            configuration.AddDiscrete("High", 100);
+            configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(10, "Low"));
+            configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(50, "Medium"));
+            configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(100, "High"));
 
             objectCreator.CreateConfiguration(configuration);
 
             configuration = (Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfiguration)TestContext.Api.Configurations.Read(configurationId);
             Assert.AreEqual(3, configuration.Discretes.Count);
 
-            configuration.RemoveDiscrete("Medium");
+            configuration.RemoveDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(50, "Medium"));
             TestContext.Api.Configurations.Update(configuration);
 
             configuration = (Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfiguration)TestContext.Api.Configurations.Read(configurationId);
             Assert.AreEqual(2, configuration.Discretes.Count);
-            Assert.IsFalse(configuration.Discretes.ContainsKey("Medium"));
-            Assert.IsTrue(configuration.Discretes.ContainsKey("Low"));
-            Assert.IsTrue(configuration.Discretes.ContainsKey("High"));
+            Assert.IsFalse(configuration.Discretes.Contains(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(50, "Medium")));
+            Assert.IsTrue(configuration.Discretes.Contains(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(10, "Low")));
+            Assert.IsTrue(configuration.Discretes.Contains(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(100, "High")));
         }
 
         [TestMethod]

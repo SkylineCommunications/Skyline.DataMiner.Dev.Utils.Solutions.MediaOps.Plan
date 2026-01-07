@@ -94,7 +94,7 @@
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
-        public IResourcePropertiesRepository Properties => lazyResourcePropertiesRepository.Value;
+        public IResourcePropertiesRepository ResourceProperties => lazyResourcePropertiesRepository.Value;
 
         internal IConnection Connection => connection;
 

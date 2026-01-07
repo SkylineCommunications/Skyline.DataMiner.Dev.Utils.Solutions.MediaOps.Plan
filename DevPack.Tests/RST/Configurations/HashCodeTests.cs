@@ -13,7 +13,7 @@
                 Name = $"{Guid.NewGuid()}_Configuration",
             };
 
-            configuration.AddDiscrete("Low", 10);
+            configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(10, "Low"));
 
             var initialHash = configuration.GetHashCode();
 
@@ -33,7 +33,7 @@
                 IsMandatory = false,
             };
 
-            configuration.AddDiscrete("Low", 10);
+            configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(10, "Low"));
 
             var initialHash = configuration.GetHashCode();
 
@@ -52,13 +52,13 @@
                 Name = $"{Guid.NewGuid()}_Configuration",
             };
 
-            configuration.AddDiscrete("Low", 10);
-            configuration.AddDiscrete("Medium", 20);
-            configuration.DefaultValue = "Low";
+            configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(10, "Low"));
+            configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(20, "Medium"));
+            configuration.DefaultValue = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(10, "Low");
 
             var initialHash = configuration.GetHashCode();
 
-            configuration.DefaultValue = "Medium";
+            configuration.DefaultValue = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(20, "Medium");
 
             var updatedHash = configuration.GetHashCode();
 
@@ -73,11 +73,11 @@
                 Name = $"{Guid.NewGuid()}_Configuration",
             };
 
-            configuration.AddDiscrete("Low", 10);
+            configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(10, "Low"));
 
             var initialHash = configuration.GetHashCode();
 
-            configuration.AddDiscrete("Medium", 20);
+            configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(20, "Medium"));
 
             var updatedHash = configuration.GetHashCode();
 
@@ -92,7 +92,7 @@
                 Name = $"{Guid.NewGuid()}_Configuration",
             };
 
-            configuration.AddDiscrete("Low", "low_value");
+            configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextDiscreet("Low", "low_value"));
 
             var initialHash = configuration.GetHashCode();
 
@@ -112,7 +112,7 @@
                 IsMandatory = false,
             };
 
-            configuration.AddDiscrete("Low", "low_value");
+            configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextDiscreet("Low", "low_value"));
 
             var initialHash = configuration.GetHashCode();
 
@@ -131,13 +131,13 @@
                 Name = $"{Guid.NewGuid()}_Configuration",
             };
 
-            configuration.AddDiscrete("Low", "low_value");
-            configuration.AddDiscrete("Medium", "medium_value");
-            configuration.DefaultValue = "Low";
+            configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextDiscreet("Low", "low_value"));
+            configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextDiscreet("Medium", "medium_value"));
+            configuration.DefaultValue = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextDiscreet("Low", "low_value");
 
             var initialHash = configuration.GetHashCode();
 
-            configuration.DefaultValue = "Medium";
+            configuration.DefaultValue = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextDiscreet("Medium", "medium_value");
 
             var updatedHash = configuration.GetHashCode();
 
@@ -152,11 +152,11 @@
                 Name = $"{Guid.NewGuid()}_Configuration",
             };
 
-            configuration.AddDiscrete("Low", "low_value");
+            configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextDiscreet("Low", "low_value"));
 
             var initialHash = configuration.GetHashCode();
 
-            configuration.AddDiscrete("Medium", "medium_value");
+            configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextDiscreet("Medium", "medium_value"));
 
             var updatedHash = configuration.GetHashCode();
 

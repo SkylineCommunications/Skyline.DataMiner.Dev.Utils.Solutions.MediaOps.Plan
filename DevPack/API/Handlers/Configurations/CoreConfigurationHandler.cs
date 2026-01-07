@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
     using System.Linq;
 
     using Microsoft.Extensions.Logging;
@@ -449,7 +450,7 @@
                 updatedParameter.DefaultValue = new Skyline.DataMiner.Net.Profiles.ParameterValue
                 {
                     Type = Skyline.DataMiner.Net.Profiles.ParameterValue.ValueType.String,
-                    StringValue = Convert.ToString(apiConfiguration.Discretes.Single(x => x.Key.Equals(apiConfiguration.DefaultValue)).Value)
+                    StringValue = Convert.ToString(apiConfiguration.DefaultValue.Value, CultureInfo.InvariantCulture)
                 };
             }
             else
@@ -463,8 +464,8 @@
             updatedParameter.Units = null;
             updatedParameter.Decimals = int.MaxValue;
 
-            updatedParameter.Discretes = apiConfiguration.Discretes.Values.Select(x => Convert.ToString((double)x)).ToList();
-            updatedParameter.DiscreetDisplayValues = apiConfiguration.Discretes.Keys.ToList();
+            updatedParameter.Discretes = apiConfiguration.Discretes.Select(x => Convert.ToString((double)x.Value)).ToList();
+            updatedParameter.DiscreetDisplayValues = apiConfiguration.Discretes.Select(x => x.DisplayName).ToList();
 
             return updatedParameter;
         }
@@ -488,7 +489,7 @@
                 updatedParameter.DefaultValue = new Skyline.DataMiner.Net.Profiles.ParameterValue
                 {
                     Type = Skyline.DataMiner.Net.Profiles.ParameterValue.ValueType.String,
-                    StringValue = Convert.ToString(apiConfiguration.Discretes.Single(x => x.Key.Equals(apiConfiguration.DefaultValue)).Value)
+                    StringValue = apiConfiguration.DefaultValue.Value
                 };
             }
             else
@@ -502,8 +503,8 @@
             updatedParameter.Units = null;
             updatedParameter.Decimals = int.MaxValue;
 
-            updatedParameter.Discretes = apiConfiguration.Discretes.Values.ToList();
-            updatedParameter.DiscreetDisplayValues = apiConfiguration.Discretes.Keys.ToList();
+            updatedParameter.Discretes = apiConfiguration.Discretes.Select(x => x.Value).ToList();
+            updatedParameter.DiscreetDisplayValues = apiConfiguration.Discretes.Select(x => x.DisplayName).ToList();
 
             return updatedParameter;
         }

@@ -166,9 +166,9 @@
 
         private void PropertiesCleanup()
         {
-            var properties = api.Properties.Read(createdPropertyIds.ToArray());
+            var properties = api.ResourceProperties.Read(createdPropertyIds.ToArray());
 
-            api.Properties.Delete(properties.ToArray());
+            api.ResourceProperties.Delete(properties.ToArray());
         }
 
         private void CategoriesCleanup()
@@ -319,7 +319,7 @@
 
         public void CreateProperty(ResourceProperty property)
         {
-            api.Properties.Create(property);
+            api.ResourceProperties.Create(property);
             createdPropertyIds.Add(property.Id);
         }
 
@@ -327,7 +327,7 @@
         {
             try
             {
-                api.Properties.Create(properties);
+                api.ResourceProperties.Create(properties);
 
                 foreach (var id in properties.Select(x => x.Id))
                 {
