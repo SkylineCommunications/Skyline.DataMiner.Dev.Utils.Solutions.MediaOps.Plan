@@ -822,7 +822,7 @@
                 .Select(x => x.Id)
                 .Distinct()
                 .ToList();
-            var propertiesById = planApi.Properties.Read(propertyIds).ToDictionary(x => x.Id);
+            var propertiesById = planApi.ResourceProperties.Read(propertyIds).ToDictionary(x => x.Id);
 
             foreach (var resource in apiResources)
             {

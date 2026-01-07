@@ -44,7 +44,7 @@
 
             objectCreator.CreateProperty(property);
 
-            var returnedProperty = TestContext.Api.Properties.Read(propertyId);
+            var returnedProperty = TestContext.Api.ResourceProperties.Read(propertyId);
             Assert.IsNotNull(returnedProperty);
             Assert.AreEqual(name, returnedProperty.Name);
 
@@ -61,9 +61,9 @@
             // Update
             var updatedName = name + "_Updated";
             returnedProperty.Name = updatedName;
-            TestContext.Api.Properties.Update(returnedProperty);
+            TestContext.Api.ResourceProperties.Update(returnedProperty);
 
-            returnedProperty = TestContext.Api.Properties.Read(propertyId);
+            returnedProperty = TestContext.Api.ResourceProperties.Read(propertyId);
             Assert.IsNotNull(returnedProperty);
             Assert.AreEqual(updatedName, returnedProperty.Name);
 
@@ -78,9 +78,9 @@
             Assert.AreEqual(returnedProperty.Name, Convert.ToString(fdName.Value.Value));
 
             // Delete
-            TestContext.Api.Properties.Delete(returnedProperty);
+            TestContext.Api.ResourceProperties.Delete(returnedProperty);
 
-            returnedProperty = TestContext.Api.Properties.Read(propertyId);
+            returnedProperty = TestContext.Api.ResourceProperties.Read(propertyId);
             Assert.IsNull(returnedProperty);
 
             domProperty = TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(propertyId)).SingleOrDefault();
@@ -272,12 +272,12 @@
             objectCreator.CreateProperty(property1);
             objectCreator.CreateProperty(property2);
 
-            var toUpdate = TestContext.Api.Properties.Read(property2.Id);
+            var toUpdate = TestContext.Api.ResourceProperties.Read(property2.Id);
             toUpdate.Name = property1.Name;
 
             try
             {
-                TestContext.Api.Properties.Update(toUpdate);
+                TestContext.Api.ResourceProperties.Update(toUpdate);
             }
             catch (MediaOpsException ex)
             {
@@ -302,7 +302,7 @@
         [TestMethod]
         public void ReadWithEmptyListReturnsEmptyList()
         {
-            var properties = TestContext.Api.Properties.Read(new List<Guid>());
+            var properties = TestContext.Api.ResourceProperties.Read(new List<Guid>());
             Assert.IsNotNull(properties);
             Assert.AreEqual(0, properties.Count());
         }
