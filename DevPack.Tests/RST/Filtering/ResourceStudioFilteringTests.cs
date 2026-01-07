@@ -455,7 +455,7 @@
             foreach (var (expectedObjects, filter) in PropertyFilterTestCases)
             {
                 var expectedIds = expectedObjects.Select(x => x.Id).OrderBy(x => x).ToList();
-                var actualIds = TestContext.Api.Properties.Read(filter).Select(x => x.Id).OrderBy(x => x).ToList();
+                var actualIds = TestContext.Api.ResourceProperties.Read(filter).Select(x => x.Id).OrderBy(x => x).ToList();
 
                 Assert.IsTrue(expectedIds.SequenceEqual(actualIds), filter.ToString());
             }
@@ -466,7 +466,7 @@
         {
             foreach (var (expectedObjects, filter) in PropertyFilterTestCases)
             {
-                Assert.AreEqual(expectedObjects.Length, TestContext.Api.Properties.Count(filter), filter.ToString());
+                Assert.AreEqual(expectedObjects.Length, TestContext.Api.ResourceProperties.Count(filter), filter.ToString());
             }
         }
 
@@ -476,7 +476,7 @@
             foreach (var (expectedObjects, filter) in PropertyFilterTestCases)
             {
                 var expectedIds = expectedObjects.Select(x => x.Id).OrderBy(x => x).ToList();
-                var pages = TestContext.Api.Properties.ReadPaged(filter).ToList();
+                var pages = TestContext.Api.ResourceProperties.ReadPaged(filter).ToList();
                 var actualIds = pages.SelectMany(x => x).Select(x => x.Id).OrderBy(x => x).ToList();
 
                 Assert.AreEqual(1, pages.Count(), filter.ToString());
@@ -490,7 +490,7 @@
             foreach (var (expectedObjects, filter) in PropertyFilterTestCases)
             {
                 var expectedIds = expectedObjects.Select(x => x.Id).OrderBy(x => x).ToList();
-                var pages = TestContext.Api.Properties.ReadPaged(filter, 2).ToList();
+                var pages = TestContext.Api.ResourceProperties.ReadPaged(filter, 2).ToList();
                 var actualIds = pages.SelectMany(x => x).Select(x => x.Id).OrderBy(x => x).ToList();
 
                 Assert.IsTrue(expectedIds.SequenceEqual(actualIds), filter.ToString());

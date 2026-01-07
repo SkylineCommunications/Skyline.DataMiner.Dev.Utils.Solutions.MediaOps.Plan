@@ -72,7 +72,7 @@
             MediaOpsBulkException<Guid>? expectedException = null;
             try
             {
-                TestContext.Api.Properties.Delete([property1, property2, property3]);
+                TestContext.Api.ResourceProperties.Delete([property1, property2, property3]);
             }
             catch (MediaOpsBulkException<Guid> ex)
             {
@@ -91,7 +91,7 @@
             Assert.IsTrue(expectedException.Result.UnsuccessfulIds.Contains(property1.Id));
             Assert.IsTrue(expectedException.Result.UnsuccessfulIds.Contains(property2.Id));
 
-            property3 = TestContext.Api.Properties.Read(property3.Id);
+            property3 = TestContext.Api.ResourceProperties.Read(property3.Id);
             Assert.IsNull(property3);
 
             expectedException.Result.TraceDataPerItem.TryGetValue(property1.Id, out var traceData1);

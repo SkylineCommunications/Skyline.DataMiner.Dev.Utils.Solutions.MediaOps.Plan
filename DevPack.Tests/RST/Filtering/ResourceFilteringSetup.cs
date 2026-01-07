@@ -525,9 +525,9 @@
                 objectCreator.CreateProperty(property);
             }
 
-            Channel = TestContext.Api.Properties.Read(Channel.Id);
-            Color = TestContext.Api.Properties.Read(Color.Id);
-            Format = TestContext.Api.Properties.Read(Format.Id);
+            Channel = TestContext.Api.ResourceProperties.Read(Channel.Id);
+            Color = TestContext.Api.ResourceProperties.Read(Color.Id);
+            Format = TestContext.Api.ResourceProperties.Read(Format.Id);
         }
 
         private void CreateResourcePools()
