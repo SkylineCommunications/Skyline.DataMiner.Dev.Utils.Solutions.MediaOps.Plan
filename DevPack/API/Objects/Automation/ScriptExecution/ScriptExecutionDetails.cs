@@ -11,7 +11,7 @@
     /// </summary>
     public class ScriptExecutionDetails
     {
-        private readonly List<ScriptDummySetting> scriptDummySettings = [];
+        private readonly List<ScriptElementSetting> scriptElementSettings = [];
 
         private readonly List<ScriptParameterSetting> scriptParameterSettings = [];
 
@@ -40,9 +40,9 @@
         public string ScriptName { get; internal set; }
 
         /// <summary>
-        /// Gets the collection of script dummy settings.
+        /// Gets the collection of script element settings.
         /// </summary>
-        public IReadOnlyCollection<ScriptDummySetting> ScriptDummySettings => scriptDummySettings;
+        public IReadOnlyCollection<ScriptElementSetting> ScriptElementSettings => scriptElementSettings;
 
         /// <summary>
         /// Gets the collection of script parameter settings.
@@ -69,14 +69,14 @@
         /// </summary>
         /// <param name="scriptDummySetting">The script dummy to add.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="scriptDummySetting"/> is <see langword="null"/>.</exception>
-        public ScriptExecutionDetails AddScriptDummy(ScriptDummySetting scriptDummySetting)
+        public ScriptExecutionDetails AddScriptDummy(ScriptElementSetting scriptDummySetting)
         {
             if (scriptDummySetting == null)
             {
                 throw new ArgumentNullException(nameof(scriptDummySetting));
             }
 
-            scriptDummySettings.Add(scriptDummySetting);
+            scriptElementSettings.Add(scriptDummySetting);
             return this;
         }
 
@@ -85,14 +85,14 @@
         /// </summary>
         /// <param name="scriptDummySetting">The script dummy to remove.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="scriptDummySetting"/> is <see langword="null"/>.</exception>
-        public ScriptExecutionDetails RemoveScriptDummy(ScriptDummySetting scriptDummySetting)
+        public ScriptExecutionDetails RemoveScriptDummy(ScriptElementSetting scriptDummySetting)
         {
             if (scriptDummySetting == null)
             {
                 throw new ArgumentNullException(nameof(scriptDummySetting));
             }
 
-            scriptDummySettings.Remove(scriptDummySetting);
+            scriptElementSettings.Remove(scriptDummySetting);
             return this;
         }
 

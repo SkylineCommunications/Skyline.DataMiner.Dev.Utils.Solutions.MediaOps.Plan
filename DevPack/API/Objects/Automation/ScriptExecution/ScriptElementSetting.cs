@@ -7,14 +7,14 @@
     /// <summary>
     /// Represents a script dummy that can be assigned to an automation script.
     /// </summary>
-    public class ScriptDummySetting
+    public class ScriptElementSetting
     {
         /// <summary>
         /// Initializes a new instance of the ScriptDummy class.
         /// </summary>
         /// <param name="name">The name of the ScriptDummy. Cannot be null or empty.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="name"/> is null or empty.</exception>
-        public ScriptDummySetting(string name)
+        public ScriptElementSetting(string name)
         {
             if (string.IsNullOrEmpty(name))
             {
