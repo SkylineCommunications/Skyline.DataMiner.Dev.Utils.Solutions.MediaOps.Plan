@@ -15,7 +15,7 @@
     <Version>$(MediaOpsVersion)</Version>
     <FileVersion>$(MediaOpsVersion)</FileVersion>
     <AssemblyVersion>1.0.*</AssemblyVersion>
-    
+
     <PackageId>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan</PackageId>
     <PackageTags>Skyline;DataMiner</PackageTags>
     <PackageProjectUrl>https://skyline.be</PackageProjectUrl>
@@ -25,7 +25,7 @@
     <PackageIcon>Icon.png</PackageIcon>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    
+
     <Authors>SkylineCommunications</Authors>
     <Company>Skyline Communications</Company>
     <Description>Provides an internal API for MediaOps Plan.</Description>
@@ -50,7 +50,7 @@
     <PackageReference Include="Skyline.DataMiner.Core.DataMinerSystem.Common" Version="1.1.3.6" />
     <PackageReference Include="Skyline.DataMiner.Core.InterAppCalls.Common" Version="1.1.1.1" />
     <PackageReference Include="Skyline.DataMiner.Dev.Common" Version="10.5.9.2" />
-    <PackageReference Include="Skyline.DataMiner.MediaOps.Live" Version="1.0.1-alpha160" />
+    <PackageReference Include="Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Live" Version="1.0.1-alpha174" />
     <PackageReference Include="Skyline.DataMiner.SDM.Abstractions" Version="0.2.2" />
     <PackageReference Include="Skyline.DataMiner.Utils.Categories" Version="1.0.5" />
     <PackageReference Include="Skyline.DataMiner.Utils.DOM" Version="10.5.2.5" />
