@@ -38,9 +38,9 @@
         }
 
         /// <summary>
-        /// Gets or sets the raw configuration value.
+        /// Gets or sets the configuration value.
         /// </summary>
-        public string Value { get; set; }
+        public TextDiscreet Value { get; set; }
 
         /// <inheritdoc/>
         public override int GetHashCode()
@@ -59,7 +59,7 @@
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            if (obj is not TextConfigurationSetting other)
+            if (obj is not DiscreteTextConfigurationSetting other)
             {
                 return false;
             }

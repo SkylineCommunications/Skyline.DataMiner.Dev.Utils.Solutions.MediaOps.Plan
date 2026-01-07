@@ -1,6 +1,7 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
     using System;
+    using System.Linq;
 
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
@@ -13,9 +14,9 @@
         {
         }
 
-        internal ResourceStudioDiscreteTextConfigurationSetting(StorageResourceStudio.ProfileParameterValuesSection section)
+        internal ResourceStudioDiscreteTextConfigurationSetting(DiscreteTextConfiguration configuration, StorageResourceStudio.ProfileParameterValuesSection section)
         {
-            ParseSection(section);
+            ParseSection(configuration, section);
             InitTracking();
         }
 
@@ -29,17 +30,22 @@
             }
 
             updatedSection.ProfileParameterId = Id;
-            updatedSection.StringValue = Value;
+            updatedSection.StringValue = Value.Value;
 
             return updatedSection;
         }
 
-        private void ParseSection(StorageResourceStudio.ProfileParameterValuesSection section)
+        private void ParseSection(DiscreteTextConfiguration configuration, StorageResourceStudio.ProfileParameterValuesSection section)
         {
             originalSection = section ?? throw new ArgumentNullException(nameof(section));
 
             Id = section.ProfileParameterId;
-            Value = section.StringValue;
+
+            var discreteValue = configuration.Discretes.FirstOrDefault(dv => dv.Value == section.StringValue);
+            if (discreteValue != null)
+            {
+                Value = discreteValue;
+            }
         }
     }
 }

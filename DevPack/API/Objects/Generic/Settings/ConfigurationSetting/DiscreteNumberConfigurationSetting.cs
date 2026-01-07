@@ -38,9 +38,9 @@
         }
 
         /// <summary>
-        /// Gets or sets the raw configuration value.
+        /// Gets or sets the configuration value.
         /// </summary>
-        public decimal Value { get; set; }
+        public NumberDiscreet Value { get; set; }
 
         /// <inheritdoc/>
         public override int GetHashCode()
@@ -58,7 +58,7 @@
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            if (obj is not NumberConfigurationSetting other)
+            if (obj is not DiscreteNumberConfigurationSetting other)
             {
                 return false;
             }

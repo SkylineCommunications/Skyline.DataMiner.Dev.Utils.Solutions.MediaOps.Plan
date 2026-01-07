@@ -297,11 +297,11 @@
             }
             else if (profileParameter.IsTextDiscreet())
             {
-                discreteTextConfigurationSettings.Add(new ResourceStudioDiscreteTextConfigurationSetting(section));
+                discreteTextConfigurationSettings.Add(new ResourceStudioDiscreteTextConfigurationSetting(new DiscreteTextConfiguration(profileParameter), section));
             }
             else if (profileParameter.IsNumberDiscreet())
             {
-                discreteNumberConfigurationSettings.Add(new ResourceStudioDiscreteNumberConfigurationSetting(section));
+                discreteNumberConfigurationSettings.Add(new ResourceStudioDiscreteNumberConfigurationSetting(new DiscreteNumberConfiguration(profileParameter), section));
             }
         }
     }
