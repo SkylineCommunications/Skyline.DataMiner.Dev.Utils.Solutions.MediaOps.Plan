@@ -12,8 +12,6 @@
     /// </summary>
     public abstract class OrchestrationSettings : ApiObject
     {
-        private string name;
-
         private protected OrchestrationSettings() : base()
         {
             IsNew = true;
@@ -27,11 +25,7 @@
         /// <summary>
         /// Gets or sets the name.
         /// </summary>
-        public override string Name
-        {
-            get => name;
-            set => name = value;
-        }
+        public override string Name { get; set; }
 
         /// <summary>
         /// Gets the collection of capability settings.
@@ -108,13 +102,5 @@
         /// <param name="orchestrationEvent">The orchestration event to remove. Cannot be null.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="orchestrationEvent"/> is <see langword="null"/>.</exception>
         public abstract OrchestrationSettings RemoveOrchestrationEvent(OrchestrationEvent orchestrationEvent);
-    }
-
-    /// <summary>
-    /// Represents an orchestration event.
-    /// </summary>
-    public class OrchestrationEvent : TrackableObject
-    {
-        internal virtual Storage.DOM.DomSectionBase OriginalSection { get; }
     }
 }

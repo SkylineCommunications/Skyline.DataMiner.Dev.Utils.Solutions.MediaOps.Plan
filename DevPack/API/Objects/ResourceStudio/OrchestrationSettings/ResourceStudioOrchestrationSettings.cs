@@ -6,6 +6,8 @@
     using System.Text;
     using System.Threading.Tasks;
 
+    using Microsoft.Extensions.Logging;
+
     using Skyline.DataMiner.Net.Messages;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
 
@@ -252,6 +254,7 @@
             {
                 if (!parametersById.TryGetValue(section.ProfileParameterId, out var profileParameter))
                 {
+                    planApi.Logger.LogInformation($"ResourceStudioOrchestrationSettings > ParseParameterValues > Profile parameter with ID '{section.ProfileParameterId}' not found.");
                     continue;
                 }
 
