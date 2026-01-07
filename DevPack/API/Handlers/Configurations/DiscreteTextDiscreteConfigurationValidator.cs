@@ -34,11 +34,11 @@
             }
 
             // Validate default discrete option
-            if (!String.IsNullOrEmpty(discreteTextConfiguration.DefaultValue) && !discreteTextConfiguration.Discretes.Any(x => x.Key.Equals(discreteTextConfiguration.DefaultValue)))
+            if (discreteTextConfiguration.DefaultValue != null && !discreteTextConfiguration.Discretes.Any(x => discreteTextConfiguration.DefaultValue == x))
             {
                 ReportError(discreteTextConfiguration.Id, new ConfigurationInvalidDefaultDiscreetError
                 {
-                    ErrorMessage = "Default discreet should be the display value of any of the discreet options",
+                    ErrorMessage = "Default discreet should any of the discreet options",
                     Id = discreteTextConfiguration.Id,
                 });
             }
@@ -46,7 +46,7 @@
             foreach (var discreet in discreteTextConfiguration.Discretes)
             {
                 // Validate Display Value
-                if (!HasValidDisplayValue(discreet.Key, out string invalidDisplayNameReason))
+                if (!HasValidDisplayValue(discreet.DisplayName, out string invalidDisplayNameReason))
                 {
                     ReportError(discreteTextConfiguration.Id, new ConfigurationInvalidDiscretesError
                     {
@@ -75,7 +75,7 @@
                 reason = "The display value of a discreet cannot be empty";
                 return false;
             }
-            else if (discreteTextConfiguration.Discretes.Count(x => x.Key.Equals(displayValue)) > 1)
+            else if (discreteTextConfiguration.Discretes.Count(x => x.DisplayName.Equals(displayValue)) > 1)
             {
                 reason = $"Multiple discretes have {displayValue} as their display value";
                 return false;
