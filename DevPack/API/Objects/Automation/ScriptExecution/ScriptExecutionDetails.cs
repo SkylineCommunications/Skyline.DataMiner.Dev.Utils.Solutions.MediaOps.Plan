@@ -384,7 +384,7 @@
                     scriptElementSetting.ElementName = kvp.Value;
                 }
 
-                AddScriptDummy(scriptElementSetting);
+                AddScriptElement(scriptElementSetting);
             }
         }
 
