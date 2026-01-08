@@ -6,6 +6,7 @@
 
     using Microsoft.Extensions.Logging;
 
+    using Skyline.DataMiner.Core.DataMinerSystem.Common;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
 
@@ -329,7 +330,7 @@
 
             foreach (var scriptElementSetting in scriptElementSettings)
             {
-                storageScriptExecutionDetails.Dummies.Add(scriptElementSetting.Name, (scriptElementSetting.DmsElementId == null) ? scriptElementSetting.ElementName : scriptElementSetting.DmsElementId.Value);
+                storageScriptExecutionDetails.Dummies.Add(scriptElementSetting.Name, (scriptElementSetting.DmsElementId == default) ? scriptElementSetting.ElementName : scriptElementSetting.DmsElementId.Value);
             }
 
             foreach (var scriptParameterSetting in scriptParameterSettings)
@@ -377,7 +378,7 @@
 
                 if (kvp.Value.Contains('/'))
                 {
-                    scriptElementSetting.DmsElementId = new Core.DataMinerSystem.Common.DmsElementId(kvp.Value);
+                    scriptElementSetting.DmsElementId = new DmsElementId(kvp.Value);
                 }
                 else
                 {
