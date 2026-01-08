@@ -1,8 +1,6 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
     using System;
-    using System.Collections.Generic;
-    using System.Linq;
 
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 

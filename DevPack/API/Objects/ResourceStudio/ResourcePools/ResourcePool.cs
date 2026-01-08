@@ -15,6 +15,7 @@
     {
         private readonly List<LinkedResourcePool> linkedResourcepools = [];
         private readonly List<ResourcePoolCapabilitySetting> capabilitySettings = [];
+        private Lazy<ResourceStudioOrchestrationSettings> lazyOrchestrationSettings;
 
         private StorageResourceStudio.ResourcepoolInstance originalInstance;
         private StorageResourceStudio.ResourcepoolInstance updatedInstance;
@@ -27,6 +28,11 @@
         public ResourcePool() : base()
         {
             IsNew = true;
+
+            lazyOrchestrationSettings = new Lazy<ResourceStudioOrchestrationSettings>(() =>
+            {
+                return new ResourceStudioOrchestrationSettings();
+            });
         }
 
         /// <summary>
@@ -37,11 +43,16 @@
         {
             IsNew = true;
             HasUserDefinedId = true;
+
+            lazyOrchestrationSettings = new Lazy<ResourceStudioOrchestrationSettings>(() =>
+            {
+                return new ResourceStudioOrchestrationSettings();
+            });
         }
 
-        internal ResourcePool(StorageResourceStudio.ResourcepoolInstance instance) : base(instance.ID.Id)
+        internal ResourcePool(MediaOpsPlanApi planApi, StorageResourceStudio.ResourcepoolInstance instance) : base(instance.ID.Id)
         {
-            ParseInstance(instance);
+            ParseInstance(planApi, instance);
             InitTracking();
         }
 
@@ -84,6 +95,15 @@
         /// Gets the collection of capabilities assigned to this resource pool.
         /// </summary>
         public IReadOnlyCollection<CapabilitySetting> Capabilities => capabilitySettings;
+
+        /// <summary>
+        /// Gets the orchestration settings assigned to this resource pool.
+        /// </summary>
+        public OrchestrationSettings OrchestrationSettings => lazyOrchestrationSettings.Value;
+
+        internal Guid CoreResourcePoolId => coreResourcePoolId;
+
+        internal StorageResourceStudio.ResourcepoolInstance OriginalInstance => originalInstance;
 
         /// <inheritdoc/>
         public override int GetHashCode()
@@ -139,10 +159,6 @@
                    LinkedResourcePools.SequenceEqual(other.LinkedResourcePools) &&
                    Capabilities.SequenceEqual(other.Capabilities);
         }
-
-        internal Guid CoreResourcePoolId => coreResourcePoolId;
-
-        internal StorageResourceStudio.ResourcepoolInstance OriginalInstance => originalInstance;
 
         /// <summary>
         /// Adds a link to another resource pool.
@@ -284,7 +300,7 @@
             return updatedInstance;
         }
 
-        private void ParseInstance(StorageResourceStudio.ResourcepoolInstance instance)
+        private void ParseInstance(MediaOpsPlanApi planApi, StorageResourceStudio.ResourcepoolInstance instance)
         {
             this.originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
 
@@ -308,6 +324,22 @@
                 var capability = new ResourcePoolCapabilitySetting(section);
                 capabilitySettings.Add(capability);
             }
+
+            lazyOrchestrationSettings = new Lazy<ResourceStudioOrchestrationSettings>(() =>
+            {
+                if (instance.ConfigurationInfo.PoolConfiguration == Guid.Empty)
+                {
+                    return new ResourceStudioOrchestrationSettings();
+                }
+
+                var domConfiguration = planApi.DomHelpers.SlcResourceStudioHelper.GetConfigurations([instance.ConfigurationInfo.PoolConfiguration.Value]).FirstOrDefault();
+                if (domConfiguration != null)
+                {
+                    return new ResourceStudioOrchestrationSettings(planApi, domConfiguration);
+                }
+
+                return new ResourceStudioOrchestrationSettings();
+            });
         }
     }
 }

@@ -332,7 +332,7 @@
                 .AND(DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourcepool.Id));
 
             var domPools = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(filter);
-            var parentApiPoolsById = domPools.Select(x => new ResourcePool(x)).ToDictionary(x => x.Id);
+            var parentApiPoolsById = domPools.Select(x => new ResourcePool(PlanApi, x)).ToDictionary(x => x.Id);
 
             var parentPoolsPerPool = resourcePools.ToDictionary(
                 pool => pool,
@@ -556,7 +556,7 @@
                 {
                     foreach (var domResourcePool in PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(domFilter))
                     {
-                        yield return new ResourcePool(domResourcePool);
+                        yield return new ResourcePool(PlanApi, domResourcePool);
                     }
                 }
 
@@ -671,7 +671,7 @@
             {
                 var page = enumerator.Current;
                 hasNext = enumerator.MoveNext();
-                yield return new PagedResult<ResourcePool>(page.Select(x => new ResourcePool(x)), pageNumber++, pageSize, hasNext);
+                yield return new PagedResult<ResourcePool>(page.Select(x => new ResourcePool(PlanApi, x)), pageNumber++, pageSize, hasNext);
             }
         }
         /// <summary>

@@ -3,8 +3,10 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Skyline.DataMiner.Net.Profiles;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
+
     using CoreParameter = Net.Profiles.Parameter;
 
     /// <summary>
@@ -34,6 +36,15 @@
         private protected Configuration(CoreParameter parameter) : base(parameter)
         {
         }
+
+        /// <summary>
+        /// Converts a Configuration instance to its unique identifier as a Guid.
+        /// </summary>
+        /// <remarks>This operator enables a Configuration object to be used wherever a Guid is expected,
+        /// returning the value of its Id property. If the Configuration instance is null, a NullReferenceException will be
+        /// thrown.</remarks>
+        /// <param name="configuration">The Configuration instance to convert to a Guid.</param>
+        public static implicit operator Guid(Configuration configuration) => configuration.Id;
 
         /// <summary>
         /// Gets the category of the profile parameter, indicating its classification as a configuration.

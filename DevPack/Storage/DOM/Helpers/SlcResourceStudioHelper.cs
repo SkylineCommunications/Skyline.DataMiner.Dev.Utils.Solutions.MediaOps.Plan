@@ -230,6 +230,56 @@
             DomHelper.DomInstances.DoStatusTransition(new DomInstanceId(resourceId), transitionId);
         }
 
+        public IEnumerable<ConfigurationInstance> GetConfigurations(FilterElement<DomInstance> filter)
+        {
+            if (filter == null)
+            {
+                throw new ArgumentNullException(nameof(filter));
+            }
+
+            return GetConfigurationIterator(filter);
+        }
+
+        public IEnumerable<ConfigurationInstance> GetConfigurations(IEnumerable<Guid> ids)
+        {
+            if (ids == null)
+            {
+                throw new ArgumentNullException(nameof(ids));
+            }
+
+            if (!ids.Any())
+            {
+                return Enumerable.Empty<ConfigurationInstance>();
+            }
+
+            FilterElement<DomInstance> filter(Guid id) =>
+                DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Configuration.Id)
+                .AND(DomInstanceExposers.Id.Equal(id));
+
+            return FilterQueryExecutor.RetrieveFilteredItems(
+                ids.Distinct(),
+                x => filter(x),
+                x => GetConfigurationIterator(x));
+        }
+
+        public IEnumerable<ConfigurationInstance> GetConfigurations<T>(IEnumerable<T> values, Func<T, FilterElement<DomInstance>> filter)
+        {
+            if (values == null)
+            {
+                throw new ArgumentNullException(nameof(values));
+            }
+
+            if (filter == null)
+            {
+                throw new ArgumentNullException(nameof(filter));
+            }
+
+            return FilterQueryExecutor.RetrieveFilteredItems(
+                values.Distinct(),
+                x => filter(x),
+                x => GetConfigurationIterator(x));
+        }
+
         internal IEnumerable<ResourcepoolInstance> GetResourcePools(IQuery<DomInstance> query)
         {
             return InstanceFactory.ReadAndCreateInstances(DomHelper, query, instance => new ResourcepoolInstance(instance));
@@ -305,6 +355,11 @@
         private IEnumerable<ResourcepropertyInstance> GetResourcePropertyIterator(FilterElement<DomInstance> filter)
         {
             return InstanceFactory.ReadAndCreateInstances(DomHelper, filter, instance => new ResourcepropertyInstance(instance));
+        }
+
+        private IEnumerable<ConfigurationInstance> GetConfigurationIterator(FilterElement<DomInstance> filter)
+        {
+            return InstanceFactory.ReadAndCreateInstances(DomHelper, filter, instance => new ConfigurationInstance(instance));
         }
     }
 }
