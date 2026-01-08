@@ -86,34 +86,34 @@
         }
 
         /// <summary>
-        /// Adds a new script dummy.
+        /// Adds a new script element.
         /// </summary>
-        /// <param name="scriptDummySetting">The script dummy to add.</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="scriptDummySetting"/> is <see langword="null"/>.</exception>
-        public ScriptExecutionDetails AddScriptDummy(ScriptElementSetting scriptDummySetting)
+        /// <param name="scriptElementSetting">The script element to add.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="scriptElementSetting"/> is <see langword="null"/>.</exception>
+        public ScriptExecutionDetails AddScriptElement(ScriptElementSetting scriptElementSetting)
         {
-            if (scriptDummySetting == null)
+            if (scriptElementSetting == null)
             {
-                throw new ArgumentNullException(nameof(scriptDummySetting));
+                throw new ArgumentNullException(nameof(scriptElementSetting));
             }
 
-            scriptElementSettings.Add(scriptDummySetting);
+            scriptElementSettings.Add(scriptElementSetting);
             return this;
         }
 
         /// <summary>
-        /// Removes the specified script dummy.
+        /// Removes the specified script element.
         /// </summary>
-        /// <param name="scriptDummySetting">The script dummy to remove.</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="scriptDummySetting"/> is <see langword="null"/>.</exception>
-        public ScriptExecutionDetails RemoveScriptDummy(ScriptElementSetting scriptDummySetting)
+        /// <param name="scriptElementSetting">The script element to remove.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="scriptElementSetting"/> is <see langword="null"/>.</exception>
+        public ScriptExecutionDetails RemoveScriptElement(ScriptElementSetting scriptElementSetting)
         {
-            if (scriptDummySetting == null)
+            if (scriptElementSetting == null)
             {
-                throw new ArgumentNullException(nameof(scriptDummySetting));
+                throw new ArgumentNullException(nameof(scriptElementSetting));
             }
 
-            scriptElementSettings.Remove(scriptDummySetting);
+            scriptElementSettings.Remove(scriptElementSetting);
             return this;
         }
 
