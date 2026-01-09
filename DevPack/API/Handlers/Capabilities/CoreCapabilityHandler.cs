@@ -23,24 +23,24 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Capability> apiCapabilities, out BulkCreateOrUpdateResult<Guid> result)
+        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Capability> apiCapabilities, out BulkOperationResult<Guid> result)
         {
             var handler = new CoreCapabilityHandler(planApi);
             handler.CreateOrUpdate(apiCapabilities);
 
-            result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
-            return !result.HasFailures();
+            return !result.HasFailures;
         }
 
-        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<Capability> apiCapabilities, out BulkDeleteResult<Guid> result)
+        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<Capability> apiCapabilities, out BulkOperationResult<Guid> result)
         {
             var handler = new CoreCapabilityHandler(planApi);
             handler.Delete(apiCapabilities);
 
-            result = new BulkDeleteResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
-            return !result.HasFailures();
+            return !result.HasFailures;
         }
 
         private void CreateOrUpdate(ICollection<Capability> apiCapabilities)

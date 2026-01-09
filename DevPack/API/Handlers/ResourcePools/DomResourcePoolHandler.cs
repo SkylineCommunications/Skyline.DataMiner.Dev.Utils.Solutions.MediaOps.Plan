@@ -8,10 +8,8 @@
 
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
-    using Skyline.DataMiner.Net.Messages;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
     using Skyline.DataMiner.Utils.DOM.Extensions;
@@ -31,55 +29,44 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        internal static BulkCreateOrUpdateResult<Guid> CreateOrUpdate(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools)
+        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out BulkOperationResult<Guid> result)
         {
             var handler = new DomResourcePoolHandler(planApi);
             handler.CreateOrUpdate(apiResourcePools);
 
-            var result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
-            result.ThrowOnFailure();
+            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
-            return result;
+            return !result.HasFailures;
         }
 
-        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out BulkCreateOrUpdateResult<Guid> result)
-        {
-            var handler = new DomResourcePoolHandler(planApi);
-            handler.CreateOrUpdate(apiResourcePools);
-
-            result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
-
-            return !result.HasFailures();
-        }
-
-        internal static bool TryComplete(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out BulkCreateOrUpdateResult<Guid> result)
+        internal static bool TryComplete(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out BulkOperationResult<Guid> result)
         {
             var handler = new DomResourcePoolHandler(planApi);
             handler.TransitionToCompleted(apiResourcePools);
 
-            result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
-            return !result.HasFailures();
+            return !result.HasFailures;
         }
 
-        internal static bool TryDeprecate(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out BulkCreateOrUpdateResult<Guid> result, ResourcePoolDeprecateOptions options = null)
+        internal static bool TryDeprecate(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out BulkOperationResult<Guid> result, ResourcePoolDeprecateOptions options = null)
         {
             var handler = new DomResourcePoolHandler(planApi);
             handler.TransitionToDeprecated(apiResourcePools, options ?? ResourcePoolDeprecateOptions.GetDefaults());
 
-            result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
-            return !result.HasFailures();
+            return !result.HasFailures;
         }
 
-        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out BulkCreateOrUpdateResult<Guid> result, ResourcePoolDeleteOptions options = null)
+        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out BulkOperationResult<Guid> result, ResourcePoolDeleteOptions options = null)
         {
             var handler = new DomResourcePoolHandler(planApi);
             handler.Delete(apiResourcePools, options ?? ResourcePoolDeleteOptions.GetDefaults());
 
-            result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
-            return !result.HasFailures();
+            return !result.HasFailures;
         }
 
         private void CreateOrUpdate(ICollection<ResourcePool> apiResourcePools)

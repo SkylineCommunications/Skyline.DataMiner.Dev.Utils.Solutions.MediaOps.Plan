@@ -260,7 +260,7 @@
         /// <param name="apiObject">The resource to create.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create an existing resource.</exception>
-        /// <exception cref="MediaOpsException">Thrown when the creation operation fails.</exception>
+        /// <exception cref="MediaOpsException">Thrown when the creation operation fails for the specified resource.</exception>
         public void Create(Resource apiObject)
         {
             if (apiObject == null)
@@ -279,7 +279,7 @@
 
                 if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
                 {
-                    throw new MediaOpsException(result.TraceDataPerItem[apiObject.Id]);
+                    result.ThrowSingleException(apiObject.Id);
                 }
 
                 var resourceId = result.SuccessfulIds.First();
@@ -293,7 +293,7 @@
         /// <param name="apiObjects">The collection of resources to create.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create existing resources.</exception>
-        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk creation operation fails.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk creation operation fails for one or more resources.</exception>
         public void Create(IEnumerable<Resource> apiObjects)
         {
             if (apiObjects == null)
@@ -311,7 +311,7 @@
 
                 if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
                 {
-                    throw new MediaOpsBulkException<Guid>(result);
+                    result.ThrowBulkException();
                 }
 
                 var resourceIds = result.SuccessfulIds;
@@ -324,7 +324,7 @@
         /// </summary>
         /// <param name="apiObjects">The collection of resources to create or update.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
-        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk operation fails.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk create or update operation fails for one or more resources.</exception>
         public void CreateOrUpdate(IEnumerable<Resource> apiObjects)
         {
             if (apiObjects == null)
@@ -336,7 +336,7 @@
             {
                 if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, apiObjects?.ToList(), out var result))
                 {
-                    throw new MediaOpsBulkException<Guid>(result);
+                    result.ThrowBulkException();
                 }
 
                 var resourceIds = result.SuccessfulIds;
@@ -365,7 +365,7 @@
         /// </summary>
         /// <param name="apiObjectIds">The unique identifiers of the resources to delete.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjectIds"/> is <c>null</c>.</exception>
-        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk deletion operation fails.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk deletion operation fails for one or more resources.</exception>
         public void Delete(IEnumerable<Guid> apiObjectIds)
         {
             if (apiObjectIds == null)
@@ -381,7 +381,7 @@
             {
                 if (!DomResourceHandler.TryDelete(PlanApi, resourcesToDelete?.ToList(), out var result))
                 {
-                    throw new MediaOpsBulkException<Guid>(result);
+                    result.ThrowBulkException();
                 }
 
                 var resourceIds = result.SuccessfulIds;
@@ -395,6 +395,7 @@
         /// </summary>
         /// <param name="oToDelete">The resource to delete.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="oToDelete"/> is <c>null</c>.</exception>
+        /// <exception cref="MediaOpsException">Thrown when the deletion operation fails for the specified resource.</exception>
         public void Delete(Resource oToDelete)
         {
             if (oToDelete == null)
@@ -402,16 +403,32 @@
                 throw new ArgumentNullException(nameof(oToDelete));
             }
 
-            Delete([oToDelete]);
+            Delete(oToDelete.Id);
         }
 
         /// <summary>
         /// Deletes the specified resource from the repository.
         /// </summary>
         /// <param name="apiObjectId">The unique identifier of the resource to delete.</param>
+        /// <exception cref="MediaOpsException">Thrown when the deletion operation fails for the specified resource.</exception>
         public void Delete(Guid apiObjectId)
         {
-            Delete([apiObjectId]);
+            var resourceToDelete = Read(apiObjectId);
+            if (resourceToDelete == null)
+            {
+                return;
+            }
+
+            ActivityHelper.Track(nameof(ResourcesRepository), nameof(Delete), act =>
+            {
+                if (!DomResourceHandler.TryDelete(PlanApi, [resourceToDelete], out var result))
+                {
+                    result.ThrowSingleException(apiObjectId);
+                }
+
+                var resourceId = result.SuccessfulIds.First();
+                act?.AddTag("ResourceId", resourceId);
+            });
         }
 
         /// <summary>
@@ -419,7 +436,7 @@
         /// </summary>
         /// <param name="resources">A collection of resources to be marked as deprecated.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="resources"/> is <c>null</c>.</exception>
-        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the deprecation operation fails.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk deprecation operation fails for one or more resources.</exception>
         public void Deprecate(IEnumerable<Resource> resources)
         {
             if (resources == null)
@@ -431,7 +448,7 @@
             {
                 if (!DomResourceHandler.TryDeprecate(PlanApi, resources?.ToList(), out var result))
                 {
-                    throw new MediaOpsBulkException<Guid>(result);
+                    result.ThrowBulkException();
                 }
 
                 var resourceIds = result.SuccessfulIds;
@@ -973,7 +990,7 @@
         /// <param name="apiObject">The resource to update.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to update a new resource that doesn't exist yet.</exception>
-        /// <exception cref="MediaOpsException">Thrown when the update operation fails.</exception>
+        /// <exception cref="MediaOpsException">Thrown when the update operation fails for the specified resource.</exception>
         public void Update(Resource apiObject)
         {
             if (apiObject == null)
@@ -998,7 +1015,7 @@
 
                 if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
                 {
-                    throw new MediaOpsException(result.TraceDataPerItem[apiObject.Id]);
+                    result.ThrowSingleException(apiObject.Id);
                 }
 
                 var resourceId = result.SuccessfulIds.First();
@@ -1012,6 +1029,7 @@
         /// <param name="apiObjects">The collection of resources to update.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="MediaOpsException">Thrown when attempting to update new resources or when the bulk update operation fails.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk update operation fails for one or more resources.</exception>
         public void Update(IEnumerable<Resource> apiObjects)
         {
             if (apiObjects == null)
@@ -1029,7 +1047,7 @@
 
                 if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
                 {
-                    throw new MediaOpsBulkException<Guid>(result);
+                    result.ThrowBulkException();
                 }
 
                 var resourceIds = result.SuccessfulIds;
@@ -1101,7 +1119,7 @@
 
                 if (!DomResourceHandler.TryDeprecate(PlanApi, [resource], out var result))
                 {
-                    throw new MediaOpsException(result.TraceDataPerItem[resource.Id]);
+                    result.ThrowSingleException(resource.Id);
                 }
             });
         }
