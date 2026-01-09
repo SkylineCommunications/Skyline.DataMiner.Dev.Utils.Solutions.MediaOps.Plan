@@ -3,7 +3,7 @@
     /// <summary>
     /// Represents an error that occurs when orchestration settings are not found in Resource Studio.
     /// </summary>
-    public class ResourceStudioOrchestrationSettingsNotFoundError : ResourceStudioOrchestrationSettingsError
+    public class OrchestrationSettingsNotFoundError : OrchestrationSettingsError
     {
     }
 }
