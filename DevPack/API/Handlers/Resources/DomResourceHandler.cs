@@ -98,8 +98,10 @@
             ClearErrors(planApi, apiResource, ResourceErrors.ExecuteAction_MarkCompleteException);
 
             // Create CORE Resource
-            var result = CoreResourceHandler.CreateOrUpdate(planApi, [apiResource.OriginalInstance]);
-            result.ThrowOnFailure();
+            if (!CoreResourceHandler.TryCreateOrUpdate(planApi, [apiResource.OriginalInstance], out var result))
+            {
+                result.ThrowSingleException(apiResource.Id);
+            }
 
             // Save link with CORE Resource
             CreateOrUpdateDomResources([apiResource.OriginalInstance]);

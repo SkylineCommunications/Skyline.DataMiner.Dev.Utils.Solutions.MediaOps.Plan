@@ -40,12 +40,14 @@
             }
         }
 
-        internal void ThrowOnFailure()
+        internal void ThrowBulkException()
         {
-            if (HasFailures)
-            {
-                throw new MediaOpsBulkException<K>(this);
-            }
+            throw new MediaOpsBulkException<K>(this);
+        }
+
+        internal void ThrowSingleException(K key)
+        {
+            throw new MediaOpsException(TraceDataPerItem[key]);
         }
     }
 }

@@ -67,7 +67,7 @@
         /// <param name="apiObject">The capability to create.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create an existing capability.</exception>
-        /// <exception cref="MediaOpsException">Thrown when the creation operation fails.</exception>
+        /// <exception cref="MediaOpsException">Thrown when the creation operation fails for the specified capability.</exception>
         public void Create(Capability apiObject)
         {
             PlanApi.Logger.LogInformation("Creating new Capability...");
@@ -86,7 +86,7 @@
 
                 if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
                 {
-                    throw new MediaOpsException(result.TraceDataPerItem[apiObject.Id]);
+                    result.ThrowSingleException(apiObject.Id);
                 }
 
                 var capabilityId = apiObject.Id;
@@ -100,7 +100,7 @@
         /// <param name="apiObjects">The collection of capabilities to create.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create existing capabilities.</exception>
-        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk creation operation fails.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk creation operation fails for one or more capabilities.</exception>
         public void Create(IEnumerable<Capability> apiObjects)
         {
             if (apiObjects == null)
@@ -118,7 +118,7 @@
 
                 if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
                 {
-                    throw new MediaOpsBulkException<Guid>(result);
+                    result.ThrowBulkException();
                 }
 
                 var capabilityIds = apiObjects.Select(x => x.Id);
@@ -131,7 +131,7 @@
         /// </summary>
         /// <param name="apiObjects">The collection of capabilities to create or update.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
-        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk operation fails.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk create or update operation fails for one or more capabilities.</exception>
         public void CreateOrUpdate(IEnumerable<Capability> apiObjects)
         {
             if (apiObjects == null)
@@ -143,7 +143,7 @@
             {
                 if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, apiObjects?.ToList(), out var result))
                 {
-                    throw new MediaOpsBulkException<Guid>(result);
+                    result.ThrowBulkException();
                 }
 
                 var capabilityIds = apiObjects.Select(x => x.Id);
@@ -157,7 +157,7 @@
         /// </summary>
         /// <param name="apiObjectIds">The unique identifiers of the capabilities to delete.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjectIds"/> is <c>null</c>.</exception>
-        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk deletion operation fails.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk deletion operation fails for one or more capabilities.</exception>
         public void Delete(IEnumerable<Guid> apiObjectIds)
         {
             if (apiObjectIds == null)
@@ -171,7 +171,7 @@
             {
                 if (!CoreCapabilityHandler.TryDelete(PlanApi, capabilitiesToDelete?.ToList(), out var result))
                 {
-                    throw new MediaOpsBulkException<Guid>(result);
+                    result.ThrowBulkException();
                 }
 
                 var capabilityIds = result.SuccessfulIds;
@@ -200,6 +200,7 @@
         /// </summary>
         /// <param name="oToDelete">The capability to delete.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="oToDelete"/> is <c>null</c>.</exception>
+        /// <exception cref="MediaOpsException">Thrown when the deletion operation fails for the specified capability.</exception>
         public void Delete(Capability oToDelete)
         {
             if (oToDelete == null)
@@ -207,16 +208,32 @@
                 throw new ArgumentNullException(nameof(oToDelete));
             }
 
-            Delete([oToDelete]);
+            Delete(oToDelete.Id);
         }
 
         /// <summary>
         /// Deletes the specified capability from the repository.
         /// </summary>
         /// <param name="apiObjectId">The unique identifier of the capability to delete.</param>
+        /// <exception cref="MediaOpsException">Thrown when the deletion operation fails for the specified capability.</exception>
         public void Delete(Guid apiObjectId)
         {
-            Delete([apiObjectId]);
+            var capabilityToDelete = Read(apiObjectId);
+            if (capabilityToDelete == null)
+            {
+                return;
+            }
+
+            ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Delete), act =>
+            {
+                if (!CoreCapabilityHandler.TryDelete(PlanApi, [capabilityToDelete], out var result))
+                {
+                    result.ThrowSingleException(apiObjectId);
+                }
+
+                var capabilityId = result.SuccessfulIds.First();
+                act?.AddTag("CapabilityId", capabilityId);
+            });
         }
 
         /// <summary>
@@ -368,7 +385,7 @@
         /// <param name="apiObject">The capability to update.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to update a new capability that doesn't exist yet.</exception>
-        /// <exception cref="MediaOpsException">Thrown when the update operation fails.</exception>
+        /// <exception cref="MediaOpsException">Thrown when the update operation fails for the specified capability.</exception>
         public void Update(Capability apiObject)
         {
             if (apiObject == null)
@@ -387,7 +404,7 @@
 
                 if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
                 {
-                    throw new MediaOpsException(result.TraceDataPerItem[apiObject.Id]);
+                    result.ThrowSingleException(apiObject.Id);
                 }
 
                 var capabilityId = apiObject.Id;
@@ -401,7 +418,7 @@
         /// <param name="apiObjects">The collection of capabilities to update.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to update new capabilities that don't exist yet.</exception>
-        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk update operation fails.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk update operation fails for one or more capabilities.</exception>
         public void Update(IEnumerable<Capability> apiObjects)
         {
             if (apiObjects == null)
@@ -419,7 +436,7 @@
 
                 if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
                 {
-                    throw new MediaOpsBulkException<Guid>(result);
+                    result.ThrowBulkException();
                 }
 
                 var capabilityIds = apiObjects.Select(x => x.Id);

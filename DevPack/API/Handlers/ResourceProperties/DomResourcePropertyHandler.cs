@@ -9,7 +9,6 @@
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
     using Skyline.DataMiner.Utils.DOM.Extensions;
@@ -25,17 +24,6 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        internal static BulkOperationResult<Guid> CreateOrUpdate(MediaOpsPlanApi planApi, ICollection<ResourceProperty> apiResourceProperties)
-        {
-            var handler = new DomResourcePropertyHandler(planApi);
-            handler.CreateOrUpdate(apiResourceProperties);
-
-            var result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
-            result.ThrowOnFailure();
-
-            return result;
-        }
-
         internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<ResourceProperty> apiResourceProperties, out BulkOperationResult<Guid> result)
         {
             var handler = new DomResourcePropertyHandler(planApi);
@@ -46,15 +34,14 @@
             return !result.HasFailures;
         }
 
-        internal static BulkOperationResult<Guid> Delete(MediaOpsPlanApi planApi, ICollection<ResourceProperty> apiResourceProperties)
+        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<ResourceProperty> apiResourceProperties, out BulkOperationResult<Guid> result)
         {
             var handler = new DomResourcePropertyHandler(planApi);
             handler.Delete(apiResourceProperties);
 
-            var result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
-            result.ThrowOnFailure();
+            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
-            return result;
+            return !result.HasFailures;
         }
 
         private void CreateOrUpdate(ICollection<ResourceProperty> apiResourceProperties)

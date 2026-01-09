@@ -63,42 +63,20 @@
 
         private DomCapabilitiesHandler CapabilitiesHandler => lazyCapabilitiesHandler.Value;
 
-        public static BulkOperationResult<Guid> CreateOrUpdate(MediaOpsPlanApi planApi, ICollection<DomResource> domResources)
-        {
-            var handler = new CoreResourceHandler(planApi);
-            handler.CreateOrUpdate(domResources);
-
-            var result = new BulkOperationResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
-            result.ThrowOnFailure();
-
-            return result;
-        }
-
         public static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out BulkOperationResult<Guid> result)
         {
             var handler = new CoreResourceHandler(planApi);
-            ActivityHelper.Track(nameof(CoreResourceHandler), nameof(CreateOrUpdate), act => handler.CreateOrUpdate(domResources));
+            ActivityHelper.Track(nameof(CoreResourceHandler), nameof(TryCreateOrUpdate), act => handler.CreateOrUpdate(domResources));
 
             result = new BulkOperationResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
 
             return !result.HasFailures;
         }
 
-        public static BulkOperationResult<Guid> Delete(MediaOpsPlanApi planApi, ICollection<DomResource> domResources)
-        {
-            var handler = new CoreResourceHandler(planApi);
-            ActivityHelper.Track(nameof(CoreResourceHandler), nameof(Delete), act => handler.Delete(domResources));
-
-            var result = new BulkOperationResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
-            result.ThrowOnFailure();
-
-            return result;
-        }
-
         public static bool TryDelete(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out BulkOperationResult<Guid> result)
         {
             var handler = new CoreResourceHandler(planApi);
-            ActivityHelper.Track(nameof(CoreResourceHandler), nameof(Delete), act => handler.Delete(domResources));
+            ActivityHelper.Track(nameof(CoreResourceHandler), nameof(TryDelete), act => handler.Delete(domResources));
 
             result = new BulkOperationResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
 

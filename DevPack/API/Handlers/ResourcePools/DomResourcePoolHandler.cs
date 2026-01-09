@@ -8,10 +8,8 @@
 
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
-    using Skyline.DataMiner.Net.Messages;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
     using Skyline.DataMiner.Utils.DOM.Extensions;
@@ -29,17 +27,6 @@
         private DomResourcePoolHandler(MediaOpsPlanApi planApi)
         {
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
-        }
-
-        internal static BulkOperationResult<Guid> CreateOrUpdate(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools)
-        {
-            var handler = new DomResourcePoolHandler(planApi);
-            handler.CreateOrUpdate(apiResourcePools);
-
-            var result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
-            result.ThrowOnFailure();
-
-            return result;
         }
 
         internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out BulkOperationResult<Guid> result)

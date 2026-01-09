@@ -8,7 +8,6 @@
 
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
 
     using CoreResourcePool = Net.Messages.ResourcePool;
@@ -27,17 +26,6 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        public static BulkOperationResult<Guid> CreateOrUpdate(MediaOpsPlanApi planApi, ICollection<DomResourcePool> domResourcePools)
-        {
-            var handler = new CoreResourcePoolHandler(planApi);
-            handler.CreateOrUpdate(domResourcePools);
-
-            var result = new BulkOperationResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
-            result.ThrowOnFailure();
-
-            return result;
-        }
-
         public static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<DomResourcePool> domResourcePools, out BulkOperationResult<Guid> result)
         {
             var handler = new CoreResourcePoolHandler(planApi);
@@ -46,17 +34,6 @@
             result = new BulkOperationResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
 
             return !result.HasFailures;
-        }
-
-        public static BulkOperationResult<Guid> Delete(MediaOpsPlanApi planApi, ICollection<DomResourcePool> domResourcePools)
-        {
-            var handler = new CoreResourcePoolHandler(planApi);
-            handler.Delete(domResourcePools);
-
-            var result = new BulkOperationResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
-            result.ThrowOnFailure();
-
-            return result;
         }
 
         public static bool TryDelete(MediaOpsPlanApi planApi, ICollection<DomResourcePool> domResourcePools, out BulkOperationResult<Guid> result)

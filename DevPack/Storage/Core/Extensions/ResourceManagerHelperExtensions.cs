@@ -80,7 +80,7 @@
             }
 
             var result = InnerCreateOrUpdateResourcePoolsInBatches(helper, resourcePools);
-            result.ThrowOnFailure();
+            result.ThrowBulkException();
 
             return result;
         }
@@ -115,7 +115,7 @@
             }
 
             var result = InnerDeleteResourcePoolsInBatches(helper, resourcePools);
-            result.ThrowOnFailure();
+            result.ThrowBulkException();
 
             return result;
         }
@@ -173,7 +173,7 @@
             }
 
             var result = InnerCreateOrUpdateResourcesInBatches(helper, resources, out _);
-            result.ThrowOnFailure();
+            result.ThrowBulkException();
 
             return result;
         }
@@ -191,7 +191,7 @@
             }
 
             var result = InnerCreateOrUpdateResourcesInBatches(helper, resources, out createdOrUpdatedResources);
-            result.ThrowOnFailure();
+            result.ThrowBulkException();
 
             return result;
         }
@@ -249,7 +249,7 @@
             }
 
             var result = InnerDeleteResourcesInBatches(helper, resources, options);
-            result.ThrowOnFailure();
+            result.ThrowBulkException();
 
             return result;
         }
