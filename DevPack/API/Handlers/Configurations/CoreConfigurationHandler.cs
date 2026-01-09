@@ -8,6 +8,7 @@
     using Microsoft.Extensions.Logging;
 
     using Skyline.DataMiner.Net;
+    using Skyline.DataMiner.Net.AppPackages;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
 
@@ -120,16 +121,7 @@
                 return;
             }
 
-            foreach (var configuration in apiConfigurations.Where(x => x.IsNew))
-            {
-                var error = new ConfigurationInvalidStateError
-                {
-                    ErrorMessage = "Cannot delete a configuration that does not exist.",
-                    Id = configuration.Id,
-                };
-
-                ReportError(configuration.Id, error);
-            }
+            ValidateExistence(apiConfigurations);
 
             var validConfigurations = apiConfigurations.Where(IsValid).ToList();
             var lockResult = planApi.LockManager.LockAndExecute(validConfigurations, DeleteCoreConfigurations);
@@ -351,6 +343,25 @@
 
             parameter = null;
             return false;
+        }
+
+        private void ValidateExistence(ICollection<Configuration> apiConfigurations)
+        {
+            foreach (var configuration in apiConfigurations.Where(x => x.IsNew))
+            {
+                var error = new ConfigurationInvalidStateError
+                {
+                    ErrorMessage = "Cannot delete a configuration that does not exist.",
+                    Id = configuration.Id,
+                };
+
+                ReportError(configuration.Id, error);
+            }
+        }
+
+        private void ValidateUsage(ICollection<Configuration> apiConfigurations)
+        {
+            planApi.Resources.Read(ResourceExposers.)
         }
 
         private Net.Profiles.Parameter GetNumberConfigurationWithChanges(NumberConfiguration apiConfiguration)
