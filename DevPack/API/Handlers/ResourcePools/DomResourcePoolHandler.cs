@@ -31,55 +31,55 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        internal static BulkCreateOrUpdateResult<Guid> CreateOrUpdate(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools)
+        internal static BulkOperationResult<Guid> CreateOrUpdate(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools)
         {
             var handler = new DomResourcePoolHandler(planApi);
             handler.CreateOrUpdate(apiResourcePools);
 
-            var result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            var result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
             result.ThrowOnFailure();
 
             return result;
         }
 
-        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out BulkCreateOrUpdateResult<Guid> result)
+        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out BulkOperationResult<Guid> result)
         {
             var handler = new DomResourcePoolHandler(planApi);
             handler.CreateOrUpdate(apiResourcePools);
 
-            result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
-            return !result.HasFailures();
+            return !result.HasFailures;
         }
 
-        internal static bool TryComplete(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out BulkCreateOrUpdateResult<Guid> result)
+        internal static bool TryComplete(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out BulkOperationResult<Guid> result)
         {
             var handler = new DomResourcePoolHandler(planApi);
             handler.TransitionToCompleted(apiResourcePools);
 
-            result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
-            return !result.HasFailures();
+            return !result.HasFailures;
         }
 
-        internal static bool TryDeprecate(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out BulkCreateOrUpdateResult<Guid> result, ResourcePoolDeprecateOptions options = null)
+        internal static bool TryDeprecate(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out BulkOperationResult<Guid> result, ResourcePoolDeprecateOptions options = null)
         {
             var handler = new DomResourcePoolHandler(planApi);
             handler.TransitionToDeprecated(apiResourcePools, options ?? ResourcePoolDeprecateOptions.GetDefaults());
 
-            result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
-            return !result.HasFailures();
+            return !result.HasFailures;
         }
 
-        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out BulkCreateOrUpdateResult<Guid> result, ResourcePoolDeleteOptions options = null)
+        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out BulkOperationResult<Guid> result, ResourcePoolDeleteOptions options = null)
         {
             var handler = new DomResourcePoolHandler(planApi);
             handler.Delete(apiResourcePools, options ?? ResourcePoolDeleteOptions.GetDefaults());
 
-            result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
-            return !result.HasFailures();
+            return !result.HasFailures;
         }
 
         private void CreateOrUpdate(ICollection<ResourcePool> apiResourcePools)

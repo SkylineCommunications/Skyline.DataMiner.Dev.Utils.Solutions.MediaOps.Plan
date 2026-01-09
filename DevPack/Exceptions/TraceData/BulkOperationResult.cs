@@ -7,10 +7,10 @@
     /// Contains the successfully created or updated items and the <see cref="MediaOpsTraceData"/> per item.
     /// </summary>
     /// <typeparam name="K">The ID of an item.</typeparam>
-    public class BulkCreateOrUpdateResult<K> : IBulkOperationResult<K>
+    public class BulkOperationResult<K> : IBulkOperationResult<K>
         where K : IEquatable<K>
     {
-        internal BulkCreateOrUpdateResult(IReadOnlyCollection<K> successfulIds, IReadOnlyCollection<K> unsuccessfulIds, IReadOnlyDictionary<K, MediaOpsTraceData> traceDataPerItem)
+        internal BulkOperationResult(IReadOnlyCollection<K> successfulIds, IReadOnlyCollection<K> unsuccessfulIds, IReadOnlyDictionary<K, MediaOpsTraceData> traceDataPerItem)
         {
             SuccessfulIds = successfulIds ?? throw new ArgumentNullException(nameof(successfulIds));
             UnsuccessfulIds = unsuccessfulIds ?? throw new ArgumentNullException(nameof(unsuccessfulIds));
@@ -31,5 +31,21 @@
         /// Gets a list of IDs of the items that could not get created or updated.
         /// </summary>
         public IReadOnlyCollection<K> UnsuccessfulIds { get; }
+
+        internal bool HasFailures
+        {
+            get
+            {
+                return UnsuccessfulIds.Count > 0;
+            }
+        }
+
+        internal void ThrowOnFailure()
+        {
+            if (HasFailures)
+            {
+                throw new MediaOpsBulkException<K>(this);
+            }
+        }
     }
 }

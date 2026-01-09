@@ -25,46 +25,36 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        internal static BulkCreateOrUpdateResult<Guid> CreateOrUpdate(MediaOpsPlanApi planApi, ICollection<ResourceProperty> apiResourceProperties)
+        internal static BulkOperationResult<Guid> CreateOrUpdate(MediaOpsPlanApi planApi, ICollection<ResourceProperty> apiResourceProperties)
         {
             var handler = new DomResourcePropertyHandler(planApi);
             handler.CreateOrUpdate(apiResourceProperties);
 
-            var result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            var result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
             result.ThrowOnFailure();
 
             return result;
         }
 
-        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<ResourceProperty> apiResourceProperties, out BulkCreateOrUpdateResult<Guid> result)
+        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<ResourceProperty> apiResourceProperties, out BulkOperationResult<Guid> result)
         {
             var handler = new DomResourcePropertyHandler(planApi);
             handler.CreateOrUpdate(apiResourceProperties);
 
-            result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
-            return !result.HasFailures();
+            return !result.HasFailures;
         }
 
-        internal static BulkDeleteResult<Guid> Delete(MediaOpsPlanApi planApi, ICollection<ResourceProperty> apiResourceProperties)
+        internal static BulkOperationResult<Guid> Delete(MediaOpsPlanApi planApi, ICollection<ResourceProperty> apiResourceProperties)
         {
             var handler = new DomResourcePropertyHandler(planApi);
             handler.Delete(apiResourceProperties);
 
-            var result = new BulkDeleteResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            var result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
             result.ThrowOnFailure();
 
             return result;
-        }
-
-        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<ResourceProperty> apiResourceProperties, out BulkDeleteResult<Guid> result)
-        {
-            var handler = new DomResourcePropertyHandler(planApi);
-            handler.Delete(apiResourceProperties);
-
-            result = new BulkDeleteResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
-
-            return !result.HasFailures();
         }
 
         private void CreateOrUpdate(ICollection<ResourceProperty> apiResourceProperties)

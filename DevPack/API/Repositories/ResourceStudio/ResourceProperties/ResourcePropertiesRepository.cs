@@ -182,10 +182,7 @@
 
             ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Delete), act =>
             {
-                if (!DomResourcePropertyHandler.TryDelete(PlanApi, propertiesToDelete?.ToList(), out var result))
-                {
-                    throw new MediaOpsBulkException<Guid>(result);
-                }
+                var result = DomResourcePropertyHandler.Delete(PlanApi, propertiesToDelete?.ToList());
 
                 var propertyIds = result.SuccessfulIds;
                 act?.AddTag("Removed Resource Properties", String.Join(", ", propertyIds));

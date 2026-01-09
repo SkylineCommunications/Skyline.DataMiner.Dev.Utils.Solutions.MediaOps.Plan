@@ -63,56 +63,56 @@
 
         private DomCapabilitiesHandler CapabilitiesHandler => lazyCapabilitiesHandler.Value;
 
-        public static BulkCreateOrUpdateResult<Guid> CreateOrUpdate(MediaOpsPlanApi planApi, ICollection<DomResource> domResources)
+        public static BulkOperationResult<Guid> CreateOrUpdate(MediaOpsPlanApi planApi, ICollection<DomResource> domResources)
         {
             var handler = new CoreResourceHandler(planApi);
             handler.CreateOrUpdate(domResources);
 
-            var result = new BulkCreateOrUpdateResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
+            var result = new BulkOperationResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
             result.ThrowOnFailure();
 
             return result;
         }
 
-        public static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out BulkCreateOrUpdateResult<Guid> result)
+        public static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out BulkOperationResult<Guid> result)
         {
             var handler = new CoreResourceHandler(planApi);
             ActivityHelper.Track(nameof(CoreResourceHandler), nameof(CreateOrUpdate), act => handler.CreateOrUpdate(domResources));
 
-            result = new BulkCreateOrUpdateResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
+            result = new BulkOperationResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
 
-            return !result.HasFailures();
+            return !result.HasFailures;
         }
 
-        public static BulkDeleteResult<Guid> Delete(MediaOpsPlanApi planApi, ICollection<DomResource> domResources)
+        public static BulkOperationResult<Guid> Delete(MediaOpsPlanApi planApi, ICollection<DomResource> domResources)
         {
             var handler = new CoreResourceHandler(planApi);
             ActivityHelper.Track(nameof(CoreResourceHandler), nameof(Delete), act => handler.Delete(domResources));
 
-            var result = new BulkDeleteResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
+            var result = new BulkOperationResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
             result.ThrowOnFailure();
 
             return result;
         }
 
-        public static bool TryDelete(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out BulkDeleteResult<Guid> result)
+        public static bool TryDelete(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out BulkOperationResult<Guid> result)
         {
             var handler = new CoreResourceHandler(planApi);
             ActivityHelper.Track(nameof(CoreResourceHandler), nameof(Delete), act => handler.Delete(domResources));
 
-            result = new BulkDeleteResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
+            result = new BulkOperationResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
 
-            return !result.HasFailures();
+            return !result.HasFailures;
         }
 
-        public static bool TryDeprecate(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out BulkCreateOrUpdateResult<Guid> result)
+        public static bool TryDeprecate(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out BulkOperationResult<Guid> result)
         {
             var handler = new CoreResourceHandler(planApi);
             handler.Deprecate(domResources);
 
-            result = new BulkCreateOrUpdateResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
+            result = new BulkOperationResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
 
-            return !result.HasFailures();
+            return !result.HasFailures;
         }
 
         public static bool TryValidateVirtualFunctionConfiguration(MediaOpsPlanApi planApi, ResourceVirtualFunctionLinkConfiguration configuration, out ResourceError error)

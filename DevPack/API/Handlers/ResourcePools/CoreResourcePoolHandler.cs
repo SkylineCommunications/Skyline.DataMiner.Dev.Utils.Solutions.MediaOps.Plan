@@ -27,46 +27,46 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        public static BulkCreateOrUpdateResult<Guid> CreateOrUpdate(MediaOpsPlanApi planApi, ICollection<DomResourcePool> domResourcePools)
+        public static BulkOperationResult<Guid> CreateOrUpdate(MediaOpsPlanApi planApi, ICollection<DomResourcePool> domResourcePools)
         {
             var handler = new CoreResourcePoolHandler(planApi);
             handler.CreateOrUpdate(domResourcePools);
 
-            var result = new BulkCreateOrUpdateResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
+            var result = new BulkOperationResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
             result.ThrowOnFailure();
 
             return result;
         }
 
-        public static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<DomResourcePool> domResourcePools, out BulkCreateOrUpdateResult<Guid> result)
+        public static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<DomResourcePool> domResourcePools, out BulkOperationResult<Guid> result)
         {
             var handler = new CoreResourcePoolHandler(planApi);
             handler.CreateOrUpdate(domResourcePools);
 
-            result = new BulkCreateOrUpdateResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
+            result = new BulkOperationResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
 
-            return !result.HasFailures();
+            return !result.HasFailures;
         }
 
-        public static BulkDeleteResult<Guid> Delete(MediaOpsPlanApi planApi, ICollection<DomResourcePool> domResourcePools)
+        public static BulkOperationResult<Guid> Delete(MediaOpsPlanApi planApi, ICollection<DomResourcePool> domResourcePools)
         {
             var handler = new CoreResourcePoolHandler(planApi);
             handler.Delete(domResourcePools);
 
-            var result = new BulkDeleteResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
+            var result = new BulkOperationResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
             result.ThrowOnFailure();
 
             return result;
         }
 
-        public static bool TryDelete(MediaOpsPlanApi planApi, ICollection<DomResourcePool> domResourcePools, out BulkDeleteResult<Guid> result)
+        public static bool TryDelete(MediaOpsPlanApi planApi, ICollection<DomResourcePool> domResourcePools, out BulkOperationResult<Guid> result)
         {
             var handler = new CoreResourcePoolHandler(planApi);
             handler.Delete(domResourcePools);
 
-            result = new BulkDeleteResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
+            result = new BulkOperationResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
 
-            return !result.HasFailures();
+            return !result.HasFailures;
         }
 
         private void CreateOrUpdate(ICollection<DomResourcePool> domResourcePools)
