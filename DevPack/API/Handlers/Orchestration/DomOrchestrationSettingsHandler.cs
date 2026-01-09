@@ -57,7 +57,7 @@
             ValidateCapabilities(apiOrchestrationSettings);
             ValidateConfigurations(apiOrchestrationSettings);
 
-            var lockResult = planApi.LockManager.LockAndExecute(apiOrchestrationSettings, CreateOrUpdateDomInstances);
+            var lockResult = planApi.LockManager.LockAndExecute(apiOrchestrationSettings.Where(IsValid).ToList(), CreateOrUpdateDomInstances);
             ReportError(lockResult);
         }
 
