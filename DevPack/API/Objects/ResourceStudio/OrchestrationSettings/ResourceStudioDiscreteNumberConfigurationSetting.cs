@@ -30,7 +30,7 @@
             }
 
             updatedSection.ProfileParameterId = Id;
-            updatedSection.DoubleMaxValue = (double)Value.Value;
+            updatedSection.DoubleMaxValue = (Value != null) ? (double)Value.Value : null;
 
             return updatedSection;
         }
@@ -41,10 +41,13 @@
 
             Id = section.ProfileParameterId;
 
-            var discreteValue = configuration.Discretes.FirstOrDefault(dv => dv.Value == (decimal)section.DoubleMaxValue);
-            if (discreteValue != null)
+            if (section.DoubleMaxValue != null)
             {
-                Value = discreteValue;
+                var discreteValue = configuration.Discretes.FirstOrDefault(dv => dv.Value == (decimal)section.DoubleMaxValue);
+                if (discreteValue != null)
+                {
+                    Value = discreteValue;
+                }
             }
         }
     }

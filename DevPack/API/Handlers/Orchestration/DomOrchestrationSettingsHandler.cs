@@ -20,21 +20,20 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        internal static BulkCreateOrUpdateResult<Guid> CreateOrUpdate(MediaOpsPlanApi planApi, ICollection<OrchestrationSettings> apiOrchestrationSettings)
-        {
-            var handler = new DomOrchestrationSettingsHandler(planApi);
-            handler.CreateOrUpdate(apiOrchestrationSettings);
-
-            var result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
-            result.ThrowOnFailure();
-
-            return result;
-        }
-
         internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<OrchestrationSettings> apiOrchestrationSettings, out BulkCreateOrUpdateResult<Guid> result)
         {
             var handler = new DomOrchestrationSettingsHandler(planApi);
             handler.CreateOrUpdate(apiOrchestrationSettings);
+
+            result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+
+            return !result.HasFailures();
+        }
+
+        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<OrchestrationSettings> apiOrchestrationSettings, out BulkCreateOrUpdateResult<Guid> result)
+        {
+            var handler = new DomOrchestrationSettingsHandler(planApi);
+            handler.Delete(apiOrchestrationSettings);
 
             result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
@@ -177,6 +176,67 @@
             }
 
             return changeResults;
+        }
+
+        private void Delete(ICollection<OrchestrationSettings> apiOrchestrationSettings)
+        {
+            if (apiOrchestrationSettings == null)
+            {
+                throw new ArgumentNullException(nameof(apiOrchestrationSettings));
+            }
+
+            if (apiOrchestrationSettings.Count == 0)
+            {
+                return;
+            }
+
+            var lockResult = planApi.LockManager.LockAndExecute(apiOrchestrationSettings.Where(x => !x.IsNew && IsValid(x)).ToList(), DeleteDomInstances);
+            ReportError(lockResult);
+        }
+
+        private void DeleteDomInstances(ICollection<OrchestrationSettings> apiOrchestrationSettings)
+        {
+            if (apiOrchestrationSettings == null)
+            {
+                throw new ArgumentNullException(nameof(apiOrchestrationSettings));
+            }
+
+            if (apiOrchestrationSettings.Any(x => !IsValid(x)))
+            {
+                throw new ArgumentException($"Not all provided orchestration settings are valid", nameof(apiOrchestrationSettings));
+            }
+
+            DeleteDomResourceStudioInstances(apiOrchestrationSettings.OfType<ResourceStudioOrchestrationSettings>().Select(x => x.OriginalInstance).ToList());
+        }
+
+        private void DeleteDomResourceStudioInstances(ICollection<DomResourceStudioOrchestrationSetting> domResourceStudioOrchestrationSettings)
+        {
+            if (domResourceStudioOrchestrationSettings == null)
+            {
+                throw new ArgumentNullException(nameof(domResourceStudioOrchestrationSettings));
+            }
+
+            if (domResourceStudioOrchestrationSettings.Count == 0)
+            {
+                return;
+            }
+
+            planApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.TryDeleteInBatches(domResourceStudioOrchestrationSettings.Select(x => x.ToInstance()), out var domResult);
+
+            foreach (var id in domResult.UnsuccessfulIds)
+            {
+                ReportError(id.Id);
+
+                if (domResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+                {
+                    var mediaOpsTraceData = new MediaOpsTraceData();
+                    mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = traceData.ToString() });
+
+                    PassTraceData(id.Id, mediaOpsTraceData);
+                }
+            }
+
+            ReportSuccess(domResult.SuccessfulIds.Select(x => x.Id));
         }
 
         private void ValidateCapacities(ICollection<OrchestrationSettings> apiOrchestrationSettings)
