@@ -4,7 +4,7 @@
     using System.Collections.Generic;
 
     /// <summary>
-    /// Contains the successfully created or updated items and the <see cref="MediaOpsTraceData"/> per item.
+    /// Contains the successfully handled items and the <see cref="MediaOpsTraceData"/> per item.
     /// </summary>
     /// <typeparam name="K">The ID of an item.</typeparam>
     public class BulkOperationResult<K> : IBulkOperationResult<K>
@@ -18,17 +18,17 @@
         }
 
         /// <summary>
-        /// Gets a list of IDs of successfully created or updated items.
+        /// Gets a list of IDs of successfully handled items.
         /// </summary>
         public IReadOnlyCollection<K> SuccessfulIds { get; }
 
         /// <summary>
-        /// Gets the <see cref="MediaOpsTraceData"/> per created or updated item.
+        /// Gets the <see cref="MediaOpsTraceData"/> per successfully handled item.
         /// </summary>
         public IReadOnlyDictionary<K, MediaOpsTraceData> TraceDataPerItem { get; }
 
         /// <summary>
-        /// Gets a list of IDs of the items that could not get created or updated.
+        /// Gets a list of IDs of the items that could not get handled.
         /// </summary>
         public IReadOnlyCollection<K> UnsuccessfulIds { get; }
 
