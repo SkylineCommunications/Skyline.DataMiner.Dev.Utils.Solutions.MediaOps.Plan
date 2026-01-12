@@ -9,6 +9,7 @@
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.API.Handlers.Orchestration;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
@@ -131,6 +132,8 @@
 
             ValidateCategories(resourcePools.Where(IsValid).ToList());
 
+            CreateOrUpdateOrchestrationSettings(resourcePools.Where(IsValid).ToList());
+
             var toCreateDomInstances = resourcePoolsToCreate
                 .Where(IsValid)
                 .Select(x => x.GetInstanceWithChanges())
@@ -143,6 +146,39 @@
 
             CreateOrUpdateDomResourcePools(toCreateDomInstances.Concat(toUpdateDomInstances).ToList());
             return changeResults;
+        }
+
+        private void CreateOrUpdateOrchestrationSettings(ICollection<ResourcePool> resourcePools)
+        {
+            if (resourcePools == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePools));
+            }
+
+            if (resourcePools.Any(x => !IsValid(x)))
+            {
+                throw new ArgumentException($"Not all provided resource pools are valid", nameof(resourcePools));
+            }
+
+            var resourcePoolIdByOrchestrationSettingsId = resourcePools.ToDictionary(x => x.OrchestrationSettings.Id, x => x.Id);
+
+            DomOrchestrationSettingsHandler.TryCreateOrUpdate(planApi, resourcePools.Select(x => x.OrchestrationSettings).ToList(), out var domResult);
+
+            foreach (var id in domResult.UnsuccessfulIds)
+            {
+                if (!resourcePoolIdByOrchestrationSettingsId.TryGetValue(id, out var resourcePoolId))
+                {
+                    planApi.Logger.LogError($"Failed to find resource pool ID for orchestration settings ID", id);
+                    continue;
+                }
+
+                ReportError(resourcePoolId);
+
+                if (domResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+                {
+                    PassTraceData(resourcePoolId, traceData);
+                }
+            }
         }
 
         private void CreateOrUpdateDomResourcePools(ICollection<DomResourcePool> domResourcePools)
@@ -330,6 +366,8 @@
 
         private ICollection<ResourcePool> DeleteCoreResourcePools(ICollection<ResourcePool> poolsToDelete)
         {
+            DeleteOrchestrationSettings(poolsToDelete.Where(IsValid).ToList());
+
             var domPoolsById = poolsToDelete.ToDictionary(x => x.Id, x => x.OriginalInstance);
 
             CoreResourcePoolHandler.TryDelete(planApi, domPoolsById.Values, out var coreResult);
@@ -365,6 +403,21 @@
 
             // Return affected pools that require updates
             return referencedApiResourcePoolsToUpdate.Where(x => !domResult.SuccessfulIds.Select(y => y.Id).Contains(x.Id)).ToList();
+        }
+
+        private void DeleteOrchestrationSettings(ICollection<ResourcePool> resourcePools)
+        {
+            if (resourcePools == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePools));
+            }
+
+            if (resourcePools.Any(x => !IsValid(x)))
+            {
+                throw new ArgumentException($"Not all provided resource pools are valid", nameof(resourcePools));
+            }
+
+            DomOrchestrationSettingsHandler.TryDelete(planApi, resourcePools.Select(x => x.OrchestrationSettings).ToList(), out _);
         }
 
         private void DeprecatePoolResources(ICollection<ResourcePool> apiResourcePools)

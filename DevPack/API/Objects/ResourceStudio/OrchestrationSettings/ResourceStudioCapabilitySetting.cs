@@ -60,6 +60,7 @@
         private void ParseSection(StorageResourceStudio.ProfileParameterValuesSection section)
         {
             originalSection = section ?? throw new ArgumentNullException(nameof(section));
+
             Id = section.ProfileParameterId;
             discretes.Clear();
             foreach (var discreteValue in GetDiscreteValues(section))
