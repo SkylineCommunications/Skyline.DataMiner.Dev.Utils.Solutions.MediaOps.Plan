@@ -49,7 +49,7 @@
             {
                 var hash = 17;
                 hash = (hash * 23) + Id.GetHashCode();
-                hash = (hash * 23) + Value.GetHashCode();
+                hash = (hash * 23) + (Value != null ? Value.GetHashCode() : 0);
                 hash = (hash * 23) + (OriginalSection != null ? OriginalSection.ID.Id.GetHashCode() : 0);
                 return hash;
             }

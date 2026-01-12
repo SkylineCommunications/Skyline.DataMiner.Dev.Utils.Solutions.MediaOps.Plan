@@ -702,9 +702,9 @@
 
             foreach (var resource in apiResources)
             {
-                foreach (var capacitySettings in resource.Capacities)
+                foreach (var capacitySetting in resource.Capacities)
                 {
-                    if (capacitySettings.Id == Guid.Empty)
+                    if (capacitySetting.Id == Guid.Empty)
                     {
                         var error = new ResourceInvalidCapacitySettingsError
                         {
@@ -715,19 +715,19 @@
                         continue;
                     }
 
-                    if (!capacitiesById.TryGetValue(capacitySettings.Id, out var capacity))
+                    if (!capacitiesById.TryGetValue(capacitySetting.Id, out var capacity))
                     {
                         var error = new ResourceInvalidCapacitySettingsError
                         {
-                            ErrorMessage = $"Capacity with ID '{capacitySettings.Id}' not found.",
-                            CapacityId = capacitySettings.Id,
+                            ErrorMessage = $"Capacity with ID '{capacitySetting.Id}' not found.",
+                            CapacityId = capacitySetting.Id,
                         };
 
                         ReportError(resource.Id, error);
                         continue;
                     }
 
-                    PassTraceData(ResourceCapacitySettingsValidator.Validate(resource.Id, capacity, capacitySettings));
+                    PassTraceData(ResourceCapacitySettingValidator.Validate(resource.Id, capacity, capacitySetting));
                 }
             }
         }
@@ -753,9 +753,9 @@
 
             foreach (var resource in apiResources)
             {
-                foreach (var capabilitySettings in resource.Capabilities)
+                foreach (var capabilitySetting in resource.Capabilities)
                 {
-                    if (capabilitySettings.Id == Guid.Empty)
+                    if (capabilitySetting.Id == Guid.Empty)
                     {
                         var error = new ResourceInvalidCapabilitySettingsError
                         {
@@ -766,38 +766,38 @@
                         continue;
                     }
 
-                    if (!capabilitiesById.TryGetValue(capabilitySettings.Id, out var capability))
+                    if (!capabilitiesById.TryGetValue(capabilitySetting.Id, out var capability))
                     {
                         var error = new ResourceInvalidCapabilitySettingsError
                         {
-                            ErrorMessage = $"Capability with ID '{capabilitySettings.Id}' not found.",
-                            CapabilityId = capabilitySettings.Id,
+                            ErrorMessage = $"Capability with ID '{capabilitySetting.Id}' not found.",
+                            CapabilityId = capabilitySetting.Id,
                         };
 
                         ReportError(resource.Id, error);
                         continue;
                     }
 
-                    if (capabilitySettings.Discretes.Count == 0)
+                    if (capabilitySetting.Discretes.Count == 0)
                     {
                         var error = new ResourceInvalidCapabilitySettingsError
                         {
                             ErrorMessage = "At least one discrete value must be specified for the capability.",
-                            CapabilityId = capabilitySettings.Id,
+                            CapabilityId = capabilitySetting.Id,
                         };
 
                         ReportError(resource.Id, error);
                         continue;
                     }
 
-                    foreach (var discreteValue in capabilitySettings.Discretes)
+                    foreach (var discreteValue in capabilitySetting.Discretes)
                     {
                         if (!capability.Discretes.Contains(discreteValue))
                         {
                             var error = new ResourceInvalidCapabilitySettingsError
                             {
                                 ErrorMessage = $"Discrete value '{discreteValue}' is not valid for capability '{capability.Name}'.",
-                                CapabilityId = capabilitySettings.Id,
+                                CapabilityId = capabilitySetting.Id,
                             };
 
                             ReportError(resource.Id, error);

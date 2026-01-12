@@ -15,7 +15,6 @@
     {
         private readonly List<LinkedResourcePool> linkedResourcepools = [];
         private readonly List<ResourcePoolCapabilitySetting> capabilitySettings = [];
-        private Lazy<ResourceStudioOrchestrationSettings> lazyOrchestrationSettings;
 
         private StorageResourceStudio.ResourcepoolInstance originalInstance;
         private StorageResourceStudio.ResourcepoolInstance updatedInstance;
@@ -29,10 +28,7 @@
         {
             IsNew = true;
 
-            lazyOrchestrationSettings = new Lazy<ResourceStudioOrchestrationSettings>(() =>
-            {
-                return new ResourceStudioOrchestrationSettings();
-            });
+            OrchestrationSettings = new ResourceStudioOrchestrationSettings();
         }
 
         /// <summary>
@@ -44,10 +40,7 @@
             IsNew = true;
             HasUserDefinedId = true;
 
-            lazyOrchestrationSettings = new Lazy<ResourceStudioOrchestrationSettings>(() =>
-            {
-                return new ResourceStudioOrchestrationSettings();
-            });
+            OrchestrationSettings = new ResourceStudioOrchestrationSettings();
         }
 
         internal ResourcePool(MediaOpsPlanApi planApi, StorageResourceStudio.ResourcepoolInstance instance) : base(instance.ID.Id)
@@ -99,7 +92,7 @@
         /// <summary>
         /// Gets the orchestration settings assigned to this resource pool.
         /// </summary>
-        public OrchestrationSettings OrchestrationSettings => lazyOrchestrationSettings.Value;
+        public OrchestrationSettings OrchestrationSettings { get; set; }
 
         internal Guid CoreResourcePoolId => coreResourcePoolId;
 
@@ -282,6 +275,8 @@
             updatedInstance.ResourcePoolOther.IconImage = IconImage;
             updatedInstance.ResourcePoolOther.URL = Url;
 
+            updatedInstance.ConfigurationInfo.PoolConfiguration = OrchestrationSettings.Id;
+
             // Setting to null will not create a DOM section in storage.
             updatedInstance.ExternalMetadata.ExternallyManaged = IsExternallyManaged ? true : null;
 
@@ -325,21 +320,22 @@
                 capabilitySettings.Add(capability);
             }
 
-            lazyOrchestrationSettings = new Lazy<ResourceStudioOrchestrationSettings>(() =>
+            if (instance.ConfigurationInfo.PoolConfiguration == Guid.Empty)
             {
-                if (instance.ConfigurationInfo.PoolConfiguration == Guid.Empty)
-                {
-                    return new ResourceStudioOrchestrationSettings();
-                }
-
+                OrchestrationSettings = new ResourceStudioOrchestrationSettings();
+            }
+            else
+            {
                 var domConfiguration = planApi.DomHelpers.SlcResourceStudioHelper.GetConfigurations([instance.ConfigurationInfo.PoolConfiguration.Value]).FirstOrDefault();
                 if (domConfiguration != null)
                 {
-                    return new ResourceStudioOrchestrationSettings(planApi, domConfiguration);
+                    OrchestrationSettings = new ResourceStudioOrchestrationSettings(planApi, domConfiguration);
                 }
-
-                return new ResourceStudioOrchestrationSettings();
-            });
+                else
+                {
+                    OrchestrationSettings = new ResourceStudioOrchestrationSettings();
+                }
+            }
         }
     }
 }

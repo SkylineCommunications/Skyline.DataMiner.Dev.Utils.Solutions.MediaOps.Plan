@@ -3,18 +3,19 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
 
     using Microsoft.Extensions.Logging;
 
-    using Skyline.DataMiner.Net.Messages;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
 
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
     internal class ResourceStudioOrchestrationSettings : OrchestrationSettings
     {
+        private StorageResourceStudio.ConfigurationInstance originalInstance;
+
+        private StorageResourceStudio.ConfigurationInstance updatedInstance;
+
         private readonly List<ResourceStudioCapabilitySetting> capabilitySettings = [];
 
         private readonly List<ResourceStudioNumberCapacitySetting> numberCapacitySettings = [];
@@ -57,6 +58,8 @@
                     .ToList();
             }
         }
+
+        internal StorageResourceStudio.ConfigurationInstance OriginalInstance => originalInstance;
 
         public override OrchestrationSettings AddCapability(CapabilitySetting capabilitySetting)
         {
@@ -125,7 +128,13 @@
 
         public override OrchestrationSettings AddOrchestrationEvent(OrchestrationEvent orchestrationEvent)
         {
-            throw new NotImplementedException();
+            if (orchestrationEvent == null)
+            {
+                throw new ArgumentNullException(nameof(orchestrationEvent));
+            }
+
+            orchestrationEvents.Add(new ResourceStudioOrchestrationEvent(orchestrationEvent));
+            return this;
         }
 
         public override OrchestrationSettings RemoveCapability(CapabilitySetting capabilitySetting)
@@ -232,12 +241,78 @@
 
         public override OrchestrationSettings RemoveOrchestrationEvent(OrchestrationEvent orchestrationEvent)
         {
-            throw new NotImplementedException();
+            if (orchestrationEvent == null)
+            {
+                throw new ArgumentNullException(nameof(orchestrationEvent));
+            }
+
+            if (orchestrationEvent.OriginalSection == null)
+            {
+                return this;
+            }
+
+            var toRemove = orchestrationEvents.SingleOrDefault(x => x.OriginalSection.ID == orchestrationEvent.OriginalSection.ID);
+            if (toRemove == null)
+            {
+                return this;
+            }
+
+            orchestrationEvents.Remove(toRemove);
+            return this;
+        }
+
+        internal StorageResourceStudio.ConfigurationInstance GetInstanceWithChanges()
+        {
+            if (updatedInstance == null)
+            {
+                updatedInstance = IsNew ? new StorageResourceStudio.ConfigurationInstance(Id) : originalInstance.Clone();
+            }
+
+            updatedInstance.ProfileParameterValues.Clear();
+            foreach (var capability in capabilitySettings)
+            {
+                updatedInstance.ProfileParameterValues.Add(capability.GetSectionWithChanges());
+            }
+            foreach (var capacity in numberCapacitySettings)
+            {
+                updatedInstance.ProfileParameterValues.Add(capacity.GetSectionWithChanges());
+            }
+            foreach (var capacity in rangeCapacitySettings)
+            {
+                updatedInstance.ProfileParameterValues.Add(capacity.GetSectionWithChanges());
+            }
+            foreach (var configuration in textConfigurationSettings)
+            {
+                updatedInstance.ProfileParameterValues.Add(configuration.GetSectionWithChanges());
+            }
+            foreach (var configuration in numberConfigurationSettings)
+            {
+                updatedInstance.ProfileParameterValues.Add(configuration.GetSectionWithChanges());
+            }
+            foreach (var configuration in discreteTextConfigurationSettings)
+            {
+                updatedInstance.ProfileParameterValues.Add(configuration.GetSectionWithChanges());
+            }
+            foreach (var configuration in discreteNumberConfigurationSettings)
+            {
+                updatedInstance.ProfileParameterValues.Add(configuration.GetSectionWithChanges());
+            }
+
+            updatedInstance.OrchestrationEvents.Clear();
+            foreach (var orchestrationEvent in orchestrationEvents)
+            {
+                updatedInstance.OrchestrationEvents.Add(orchestrationEvent.GetSectionWithChanges());
+            }
+
+            return updatedInstance;
         }
 
         private void ParseInstance(MediaOpsPlanApi planApi, StorageResourceStudio.ConfigurationInstance instance)
         {
+            originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
+
             ParseParameterValues(planApi, instance.ProfileParameterValues);
+            ParseOrchestrationEvents(planApi, instance.OrchestrationEvents);
         }
 
         private void ParseParameterValues(MediaOpsPlanApi planApi, IList<StorageResourceStudio.ProfileParameterValuesSection> parameterValues)
@@ -302,6 +377,19 @@
             else if (profileParameter.IsNumberDiscreet())
             {
                 discreteNumberConfigurationSettings.Add(new ResourceStudioDiscreteNumberConfigurationSetting(new DiscreteNumberConfiguration(profileParameter), section));
+            }
+        }
+
+        private void ParseOrchestrationEvents(MediaOpsPlanApi planApi, IList<StorageResourceStudio.OrchestrationEventsSection> orchestrationEvents)
+        {
+            if (orchestrationEvents == null || orchestrationEvents.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var orchestrationEvent in orchestrationEvents)
+            {
+                this.orchestrationEvents.Add(new ResourceStudioOrchestrationEvent(planApi, orchestrationEvent));
             }
         }
     }

@@ -30,7 +30,7 @@
             }
 
             updatedSection.ProfileParameterId = Id;
-            updatedSection.StringValue = Value.Value;
+            updatedSection.StringValue = Value?.Value;
 
             return updatedSection;
         }
@@ -41,10 +41,13 @@
 
             Id = section.ProfileParameterId;
 
-            var discreteValue = configuration.Discretes.FirstOrDefault(dv => dv.Value == section.StringValue);
-            if (discreteValue != null)
+            if (!string.IsNullOrEmpty(section.StringValue))
             {
-                Value = discreteValue;
+                var discreteValue = configuration.Discretes.FirstOrDefault(dv => dv.Value == section.StringValue);
+                if (discreteValue != null)
+                {
+                    Value = discreteValue;
+                }
             }
         }
     }
