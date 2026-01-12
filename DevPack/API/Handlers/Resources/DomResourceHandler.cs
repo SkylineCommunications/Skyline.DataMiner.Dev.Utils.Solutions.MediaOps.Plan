@@ -74,22 +74,22 @@
             handler.ConvertToUnmanagedResource(resource);
         }
 
-        internal static void ConvertToVirtualFunctionResource(MediaOpsPlanApi planApi, Resource resource, ResourceVirtualFunctionLinkConfiguration configuration)
+        internal static void ConvertToVirtualFunctionResource(MediaOpsPlanApi planApi, Resource resource, ResourceVirtualFunctionLinkSetting setting)
         {
             var handler = new DomResourceHandler(planApi);
-            handler.ConvertToVirtualFunctionResource(resource, configuration);
+            handler.ConvertToVirtualFunctionResource(resource, setting);
         }
 
-        internal static void ConvertToServiceResource(MediaOpsPlanApi planApi, Resource resource, ResourceServiceLinkConfiguration configuration)
+        internal static void ConvertToServiceResource(MediaOpsPlanApi planApi, Resource resource, ResourceServiceLinkSetting setting)
         {
             var handler = new DomResourceHandler(planApi);
-            handler.ConvertToServiceResource(resource, configuration);
+            handler.ConvertToServiceResource(resource, setting);
         }
 
-        internal static void ConvertToElementResource(MediaOpsPlanApi planApi, Resource resource, ResourceElementLinkConfiguration configuration)
+        internal static void ConvertToElementResource(MediaOpsPlanApi planApi, Resource resource, ResourceElementLinkSetting setting)
         {
             var handler = new DomResourceHandler(planApi);
-            handler.ConvertToElementResource(resource, configuration);
+            handler.ConvertToElementResource(resource, setting);
         }
 
         private void TransitionToComplete(Resource apiResource)
@@ -1036,9 +1036,9 @@
             CreateOrUpdateDomResources([domResource]);
         }
 
-        private void ConvertToVirtualFunctionResource(Resource resource, ResourceVirtualFunctionLinkConfiguration configuration)
+        private void ConvertToVirtualFunctionResource(Resource resource, ResourceVirtualFunctionLinkSetting setting)
         {
-            if (!CoreResourceHandler.TryValidateVirtualFunctionConfiguration(planApi, configuration, out var error))
+            if (!CoreResourceHandler.TryValidateVirtualFunctionConfiguration(planApi, setting, out var error))
             {
                 error.Id = resource.Id;
                 ReportError(resource.Id, error);
@@ -1060,17 +1060,17 @@
             domResource.ResourceInfo.Type = SlcResource_StudioIds.Enums.Type.VirtualFunction;
             domResource.ResourceInternalProperties.Metadata = new ResourceMetadata
             {
-                LinkedElementInfo = new DmsElementId(configuration.AgentId, configuration.ElementId).Value,
-                LinkedFunctionId = configuration.FunctionId,
-                LinkedFunctionTableIndex = configuration.FunctionTableIndex,
+                LinkedElementInfo = new DmsElementId(setting.AgentId, setting.ElementId).Value,
+                LinkedFunctionId = setting.FunctionId,
+                LinkedFunctionTableIndex = setting.FunctionTableIndex,
             };
 
             CreateOrUpdateDomResources([domResource]);
         }
 
-        private void ConvertToServiceResource(Resource resource, ResourceServiceLinkConfiguration configuration)
+        private void ConvertToServiceResource(Resource resource, ResourceServiceLinkSetting setting)
         {
-            if (!CoreResourceHandler.TryValidateServiceConfiguration(planApi, configuration, out var error))
+            if (!CoreResourceHandler.TryValidateServiceConfiguration(planApi, setting, out var error))
             {
                 error.Id = resource.Id;
                 ReportError(resource.Id, error);
@@ -1092,15 +1092,15 @@
             domResource.ResourceInfo.Type = SlcResource_StudioIds.Enums.Type.Service;
             domResource.ResourceInternalProperties.Metadata = new ResourceMetadata
             {
-                LinkedServiceInfo = new DmsServiceId(configuration.AgentId, configuration.ServiceId).Value,
+                LinkedServiceInfo = new DmsServiceId(setting.AgentId, setting.ServiceId).Value,
             };
 
             CreateOrUpdateDomResources([domResource]);
         }
 
-        private void ConvertToElementResource(Resource resource, ResourceElementLinkConfiguration configuration)
+        private void ConvertToElementResource(Resource resource, ResourceElementLinkSetting setting)
         {
-            if (!CoreResourceHandler.TryValidateElementConfiguration(planApi, configuration, out var error))
+            if (!CoreResourceHandler.TryValidateElementConfiguration(planApi, setting, out var error))
             {
                 error.Id = resource.Id;
                 ReportError(resource.Id, error);
@@ -1122,7 +1122,7 @@
             domResource.ResourceInfo.Type = SlcResource_StudioIds.Enums.Type.Element;
             domResource.ResourceInternalProperties.Metadata = new ResourceMetadata
             {
-                LinkedElementInfo = new DmsElementId(configuration.AgentId, configuration.ElementId).Value,
+                LinkedElementInfo = new DmsElementId(setting.AgentId, setting.ElementId).Value,
             };
 
             CreateOrUpdateDomResources([domResource]);

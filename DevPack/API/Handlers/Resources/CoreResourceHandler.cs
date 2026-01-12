@@ -93,49 +93,49 @@
             return !result.HasFailures;
         }
 
-        public static bool TryValidateVirtualFunctionConfiguration(MediaOpsPlanApi planApi, ResourceVirtualFunctionLinkConfiguration configuration, out ResourceError error)
+        public static bool TryValidateVirtualFunctionConfiguration(MediaOpsPlanApi planApi, ResourceVirtualFunctionLinkSetting setting, out ResourceError error)
         {
             error = null;
 
             var handler = new CoreResourceHandler(planApi);
-            if (configuration == null)
+            if (setting == null)
             {
-                throw new ArgumentNullException(nameof(configuration));
+                throw new ArgumentNullException(nameof(setting));
             }
 
-            var elementId = new DmsElementId(configuration.AgentId, configuration.ElementId);
+            var elementId = new DmsElementId(setting.AgentId, setting.ElementId);
             if (!handler.TryValidateElementLink(elementId, out string invalidElementInfoReason))
             {
                 error = new ResourceInvalidElementLinkError
                 {
                     ErrorMessage = invalidElementInfoReason,
-                    AgentId = configuration.AgentId,
-                    ElementId = configuration.ElementId,
+                    AgentId = setting.AgentId,
+                    ElementId = setting.ElementId,
                 };
 
                 return false;
             }
 
-            if (!handler.TryValidateVirtualFunctionResourceFunctionDefinition(configuration.FunctionId, out string invalidFunctionDefinitionReason))
+            if (!handler.TryValidateVirtualFunctionResourceFunctionDefinition(setting.FunctionId, out string invalidFunctionDefinitionReason))
             {
                 error = new ResourceInvalidFunctionLinkError
                 {
                     ErrorMessage = invalidFunctionDefinitionReason,
-                    FunctionId = configuration.FunctionId,
+                    FunctionId = setting.FunctionId,
                 };
 
                 return false;
             }
 
-            if (!handler.TryValidateVirtualFunctionResourceTableIndex(configuration.FunctionId, elementId, configuration.FunctionTableIndex, out string invalidTableIndexReason))
+            if (!handler.TryValidateVirtualFunctionResourceTableIndex(setting.FunctionId, elementId, setting.FunctionTableIndex, out string invalidTableIndexReason))
             {
                 error = new ResourceInvalidTableIndexLinkError
                 {
                     ErrorMessage = invalidTableIndexReason,
-                    AgentId = configuration.AgentId,
-                    ElementId = configuration.ElementId,
-                    FunctionId = configuration.FunctionId,
-                    FunctionTableIndex = configuration.FunctionTableIndex,
+                    AgentId = setting.AgentId,
+                    ElementId = setting.ElementId,
+                    FunctionId = setting.FunctionId,
+                    FunctionTableIndex = setting.FunctionTableIndex,
                 };
 
                 return false;
@@ -144,24 +144,24 @@
             return true;
         }
 
-        public static bool TryValidateServiceConfiguration(MediaOpsPlanApi planApi, ResourceServiceLinkConfiguration configuration, out ResourceError error)
+        public static bool TryValidateServiceConfiguration(MediaOpsPlanApi planApi, ResourceServiceLinkSetting setting, out ResourceError error)
         {
             error = null;
 
             var handler = new CoreResourceHandler(planApi);
-            if (configuration == null)
+            if (setting == null)
             {
-                throw new ArgumentNullException(nameof(configuration));
+                throw new ArgumentNullException(nameof(setting));
             }
 
-            var serviceId = new DmsServiceId(configuration.AgentId, configuration.ServiceId);
+            var serviceId = new DmsServiceId(setting.AgentId, setting.ServiceId);
             if (!handler.TryValidateServiceResourceServiceLink(serviceId, out var reason))
             {
                 error = new ResourceInvalidServiceLinkError
                 {
                     ErrorMessage = reason,
-                    AgentId = configuration.AgentId,
-                    ServiceId = configuration.ServiceId,
+                    AgentId = setting.AgentId,
+                    ServiceId = setting.ServiceId,
                 };
 
                 return false;
@@ -170,24 +170,24 @@
             return true;
         }
 
-        public static bool TryValidateElementConfiguration(MediaOpsPlanApi planApi, ResourceElementLinkConfiguration configuration, out ResourceError error)
+        public static bool TryValidateElementConfiguration(MediaOpsPlanApi planApi, ResourceElementLinkSetting setting, out ResourceError error)
         {
             error = null;
 
             var handler = new CoreResourceHandler(planApi);
-            if (configuration == null)
+            if (setting == null)
             {
-                throw new ArgumentNullException(nameof(configuration));
+                throw new ArgumentNullException(nameof(setting));
             }
 
-            var elementId = new DmsElementId(configuration.AgentId, configuration.ElementId);
+            var elementId = new DmsElementId(setting.AgentId, setting.ElementId);
             if (!handler.TryValidateElementLink(elementId, out var reason))
             {
                 error = new ResourceInvalidElementLinkError
                 {
                     ErrorMessage = reason,
-                    AgentId = configuration.AgentId,
-                    ElementId = configuration.ElementId,
+                    AgentId = setting.AgentId,
+                    ElementId = setting.ElementId,
                 };
 
                 return false;

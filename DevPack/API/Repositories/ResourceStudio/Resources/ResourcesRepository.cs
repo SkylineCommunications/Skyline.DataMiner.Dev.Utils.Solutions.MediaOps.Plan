@@ -33,10 +33,10 @@
         /// Converts the specified <see cref="Resource"/> to an <see cref="ElementResource"/>.
         /// </summary>
         /// <param name="resource">The resource to convert.</param>
-        /// <param name="configuration">The configuration for the element link.</param>
+        /// <param name="setting">The configuration for the element link.</param>
         /// <returns>The converted <see cref="ElementResource"/>.</returns>
         /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
-        public ElementResource ConvertToElementResource(Resource resource, ResourceElementLinkConfiguration configuration)
+        public ElementResource ConvertToElementResource(Resource resource, ResourceElementLinkSetting setting)
         {
             if (resource.State != ResourceState.Draft)
             {
@@ -54,7 +54,7 @@
                 return elementResource;
             }
 
-            DomResourceHandler.ConvertToElementResource(PlanApi, resource, configuration);
+            DomResourceHandler.ConvertToElementResource(PlanApi, resource, setting);
             return (ElementResource)Read(resource.Id);
         }
 
@@ -62,10 +62,10 @@
         /// Converts the resource with the specified identifier to an <see cref="ElementResource"/>.
         /// </summary>
         /// <param name="resourceId">The unique identifier of the resource to convert.</param>
-        /// <param name="configuration">The configuration for the element link.</param>
+        /// <param name="setting">The configuration for the element link.</param>
         /// <returns>The converted <see cref="ElementResource"/>.</returns>
         /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
-        public ElementResource ConvertToElementResource(Guid resourceId, ResourceElementLinkConfiguration configuration)
+        public ElementResource ConvertToElementResource(Guid resourceId, ResourceElementLinkSetting setting)
         {
             var resource = Read(resourceId)
                 ?? throw new MediaOpsException(
@@ -75,17 +75,17 @@
                         Id = resourceId,
                     });
 
-            return ConvertToElementResource(resource, configuration);
+            return ConvertToElementResource(resource, setting);
         }
 
         /// <summary>
         /// Converts the specified <see cref="Resource"/> to a <see cref="ServiceResource"/>.
         /// </summary>
         /// <param name="resource">The resource to convert.</param>
-        /// <param name="configuration">The configuration for the service link.</param>
+        /// <param name="setting">The configuration for the service link.</param>
         /// <returns>The converted <see cref="ServiceResource"/>.</returns>
         /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
-        public ServiceResource ConvertToServiceResource(Resource resource, ResourceServiceLinkConfiguration configuration)
+        public ServiceResource ConvertToServiceResource(Resource resource, ResourceServiceLinkSetting setting)
         {
             if (resource.State != ResourceState.Draft)
             {
@@ -103,7 +103,7 @@
                 return serviceResource;
             }
 
-            DomResourceHandler.ConvertToServiceResource(PlanApi, resource, configuration);
+            DomResourceHandler.ConvertToServiceResource(PlanApi, resource, setting);
             return (ServiceResource)Read(resource.Id);
         }
 
@@ -111,11 +111,11 @@
         /// Converts the resource with the specified identifier to a <see cref="ServiceResource"/>.
         /// </summary>
         /// <param name="resourceId">The unique identifier of the resource to convert.</param>
-        /// <param name="configuration">The configuration for the service link.</param>
+        /// <param name="setting">The configuration for the service link.</param>
         /// <returns>The converted <see cref="ServiceResource"/>.</returns>
         /// <exception cref="ResourceNotFoundException">Thrown when the resource with the specified identifier is not found.</exception>
         /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
-        public ServiceResource ConvertToServiceResource(Guid resourceId, ResourceServiceLinkConfiguration configuration)
+        public ServiceResource ConvertToServiceResource(Guid resourceId, ResourceServiceLinkSetting setting)
         {
             var resource = Read(resourceId)
                 ?? throw new MediaOpsException(
@@ -125,7 +125,7 @@
                         Id = resourceId
                     });
 
-            return ConvertToServiceResource(resource, configuration);
+            return ConvertToServiceResource(resource, setting);
         }
 
         /// <summary>
@@ -179,10 +179,10 @@
         /// Converts the specified <see cref="Resource"/> to a <see cref="VirtualFunctionResource"/>.
         /// </summary>
         /// <param name="resource">The resource to convert.</param>
-        /// <param name="configuration">The configuration for the virtual function link.</param>
+        /// <param name="setting">The configuration for the virtual function link.</param>
         /// <returns>The converted <see cref="VirtualFunctionResource"/>.</returns>
         /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
-        public VirtualFunctionResource ConvertToVirtualFunctionResource(Resource resource, ResourceVirtualFunctionLinkConfiguration configuration)
+        public VirtualFunctionResource ConvertToVirtualFunctionResource(Resource resource, ResourceVirtualFunctionLinkSetting setting)
         {
             if (resource.State != ResourceState.Draft)
             {
@@ -200,7 +200,7 @@
                 return virtualFunctionResource;
             }
 
-            DomResourceHandler.ConvertToVirtualFunctionResource(PlanApi, resource, configuration);
+            DomResourceHandler.ConvertToVirtualFunctionResource(PlanApi, resource, setting);
             return (VirtualFunctionResource)Read(resource.Id);
         }
 
@@ -208,10 +208,10 @@
         /// Converts the resource with the specified identifier to a <see cref="VirtualFunctionResource"/>.
         /// </summary>
         /// <param name="resourceId">The unique identifier of the resource to convert.</param>
-        /// <param name="configuration">The configuration for the virtual function link.</param>
+        /// <param name="setting">The configuration for the virtual function link.</param>
         /// <returns>The converted <see cref="VirtualFunctionResource"/>.</returns>
         /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
-        public VirtualFunctionResource ConvertToVirtualFunctionResource(Guid resourceId, ResourceVirtualFunctionLinkConfiguration configuration)
+        public VirtualFunctionResource ConvertToVirtualFunctionResource(Guid resourceId, ResourceVirtualFunctionLinkSetting setting)
         {
             var resource = Read(resourceId)
                 ?? throw new MediaOpsException(
@@ -221,7 +221,7 @@
                         Id = resourceId
                     });
 
-            return ConvertToVirtualFunctionResource(resource, configuration);
+            return ConvertToVirtualFunctionResource(resource, setting);
         }
 
         /// <summary>
@@ -831,16 +831,16 @@
         /// Attempts to convert the specified <see cref="Resource"/> to an <see cref="ElementResource"/>.
         /// </summary>
         /// <param name="resource">The resource to convert.</param>
-        /// <param name="configuration">The configuration for the element link.</param>
+        /// <param name="setting">The configuration for the element link.</param>
         /// <param name="elementResource">When this method returns, contains the converted <see cref="ElementResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
         /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
-        public bool TryConvertToElementResource(Resource resource, ResourceElementLinkConfiguration configuration, out ElementResource elementResource)
+        public bool TryConvertToElementResource(Resource resource, ResourceElementLinkSetting setting, out ElementResource elementResource)
         {
             elementResource = null;
 
             try
             {
-                elementResource = ConvertToElementResource(resource, configuration);
+                elementResource = ConvertToElementResource(resource, setting);
                 return true;
             }
             catch (Exception e)
@@ -854,16 +854,16 @@
         /// Attempts to convert the resource with the specified identifier to an <see cref="ElementResource"/>.
         /// </summary>
         /// <param name="resourceId">The unique identifier of the resource to convert.</param>
-        /// <param name="configuration">The configuration for the element link.</param>
+        /// <param name="setting">The configuration for the element link.</param>
         /// <param name="elementResource">When this method returns, contains the converted <see cref="ElementResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
         /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
-        public bool TryConvertToElementResource(Guid resourceId, ResourceElementLinkConfiguration configuration, out ElementResource elementResource)
+        public bool TryConvertToElementResource(Guid resourceId, ResourceElementLinkSetting setting, out ElementResource elementResource)
         {
             elementResource = null;
 
             try
             {
-                elementResource = ConvertToElementResource(resourceId, configuration);
+                elementResource = ConvertToElementResource(resourceId, setting);
                 return true;
             }
             catch (Exception e)
@@ -877,16 +877,16 @@
         /// Attempts to convert the specified <see cref="Resource"/> to a <see cref="ServiceResource"/>.
         /// </summary>
         /// <param name="resource">The resource to convert.</param>
-        /// <param name="configuration">The configuration for the service link.</param>
+        /// <param name="setting">The configuration for the service link.</param>
         /// <param name="serviceResource">When this method returns, contains the converted <see cref="ServiceResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
         /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
-        public bool TryConvertToServiceResource(Resource resource, ResourceServiceLinkConfiguration configuration, out ServiceResource serviceResource)
+        public bool TryConvertToServiceResource(Resource resource, ResourceServiceLinkSetting setting, out ServiceResource serviceResource)
         {
             serviceResource = null;
 
             try
             {
-                serviceResource = ConvertToServiceResource(resource, configuration);
+                serviceResource = ConvertToServiceResource(resource, setting);
                 return true;
             }
             catch (Exception e)
@@ -900,16 +900,16 @@
         /// Attempts to convert the resource with the specified identifier to a <see cref="ServiceResource"/>.
         /// </summary>
         /// <param name="resourceId">The unique identifier of the resource to convert.</param>
-        /// <param name="configuration">The configuration for the service link.</param>
+        /// <param name="setting">The configuration for the service link.</param>
         /// <param name="serviceResource">When this method returns, contains the converted <see cref="ServiceResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
         /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
-        public bool TryConvertToServiceResource(Guid resourceId, ResourceServiceLinkConfiguration configuration, out ServiceResource serviceResource)
+        public bool TryConvertToServiceResource(Guid resourceId, ResourceServiceLinkSetting setting, out ServiceResource serviceResource)
         {
             serviceResource = null;
 
             try
             {
-                serviceResource = ConvertToServiceResource(resourceId, configuration);
+                serviceResource = ConvertToServiceResource(resourceId, setting);
                 return true;
             }
             catch (Exception e)
@@ -967,16 +967,16 @@
         /// Attempts to convert the specified <see cref="Resource"/> to a <see cref="VirtualFunctionResource"/>.
         /// </summary>
         /// <param name="resource">The resource to convert.</param>
-        /// <param name="configuration">The configuration for the virtual function link.</param>
+        /// <param name="setting">The configuration for the virtual function link.</param>
         /// <param name="virtualFunctionResource">When this method returns, contains the converted <see cref="VirtualFunctionResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
         /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
-        public bool TryConvertToVirtualFunctionResource(Resource resource, ResourceVirtualFunctionLinkConfiguration configuration, out VirtualFunctionResource virtualFunctionResource)
+        public bool TryConvertToVirtualFunctionResource(Resource resource, ResourceVirtualFunctionLinkSetting setting, out VirtualFunctionResource virtualFunctionResource)
         {
             virtualFunctionResource = null;
 
             try
             {
-                virtualFunctionResource = ConvertToVirtualFunctionResource(resource, configuration);
+                virtualFunctionResource = ConvertToVirtualFunctionResource(resource, setting);
                 return true;
             }
             catch (Exception e)
@@ -990,16 +990,16 @@
         /// Attempts to convert the resource with the specified identifier to a <see cref="VirtualFunctionResource"/>.
         /// </summary>
         /// <param name="resourceId">The unique identifier of the resource to convert.</param>
-        /// <param name="configuration">The configuration for the virtual function link.</param>
+        /// <param name="setting">The configuration for the virtual function link.</param>
         /// <param name="virtualFunctionResource">When this method returns, contains the converted <see cref="VirtualFunctionResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
         /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
-        public bool TryConvertToVirtualFunctionResource(Guid resourceId, ResourceVirtualFunctionLinkConfiguration configuration, out VirtualFunctionResource virtualFunctionResource)
+        public bool TryConvertToVirtualFunctionResource(Guid resourceId, ResourceVirtualFunctionLinkSetting setting, out VirtualFunctionResource virtualFunctionResource)
         {
             virtualFunctionResource = null;
 
             try
             {
-                virtualFunctionResource = ConvertToVirtualFunctionResource(resourceId, configuration);
+                virtualFunctionResource = ConvertToVirtualFunctionResource(resourceId, setting);
                 return true;
             }
             catch (Exception e)
