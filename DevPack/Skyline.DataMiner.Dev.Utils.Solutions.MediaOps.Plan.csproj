@@ -37,11 +37,6 @@
     <UserSecretsId>8b63d789-daa9-4f00-ade9-5791180385c7</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="Storage\DOM\Model\Objects\Settings\**" />
-    <EmbeddedResource Remove="Storage\DOM\Model\Objects\Settings\**" />
-    <None Remove="Storage\DOM\Model\Objects\Settings\**" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="" />
     <None Include="LICENSE.txt" Pack="true" PackagePath="" />
     <None Include="nuget\Icon.png" Pack="true" PackagePath="" />
