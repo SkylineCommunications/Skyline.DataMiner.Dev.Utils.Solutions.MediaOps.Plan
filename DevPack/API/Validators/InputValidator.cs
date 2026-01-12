@@ -8,11 +8,6 @@
 
         public static bool IsNonEmptyText(string text)
         {
-            if (text == null)
-            {
-                throw new ArgumentNullException(nameof(text));
-            }
-
             if (string.IsNullOrWhiteSpace(text))
             {
                 return false;
