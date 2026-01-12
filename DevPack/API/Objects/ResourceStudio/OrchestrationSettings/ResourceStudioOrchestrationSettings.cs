@@ -39,6 +39,7 @@
         internal ResourceStudioOrchestrationSettings(MediaOpsPlanApi planApi, StorageResourceStudio.ConfigurationInstance instance) : base(instance.ID.Id)
         {
             ParseInstance(planApi, instance);
+            InitTracking();
         }
 
         public override IReadOnlyCollection<OrchestrationEvent> OrchestrationEvents => orchestrationEvents;
