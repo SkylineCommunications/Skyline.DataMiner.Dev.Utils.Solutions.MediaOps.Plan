@@ -418,8 +418,6 @@
             return referencedApiResourcePoolsToUpdate.Where(x => !domResult.SuccessfulIds.Select(y => y.Id).Contains(x.Id)).ToList();
         }
 
-
-
         private void DeleteOrchestrationSettings(ICollection<ResourcePool> resourcePools)
         {
             if (resourcePools == null)
@@ -432,9 +430,7 @@
                 throw new ArgumentException($"Not all provided resource pools are valid", nameof(resourcePools));
             }
 
-            var resourcePoolIdByOrchestrationSettingsId = resourcePools.ToDictionary(x => x.OrchestrationSettings.Id, x => x.Id);
-
-            DomOrchestrationSettingsHandler.TryDelete(planApi, resourcePools.Select(x => x.OrchestrationSettings).ToList(), out var domResult);
+            DomOrchestrationSettingsHandler.TryDelete(planApi, resourcePools.Select(x => x.OrchestrationSettings).ToList(), out _);
         }
 
         private void DeprecatePoolResources(ICollection<ResourcePool> apiResourcePools)

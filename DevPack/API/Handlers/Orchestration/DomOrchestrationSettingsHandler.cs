@@ -273,7 +273,7 @@
                         continue;
                     }
 
-                    if (!capacitiesById.TryGetValue(capacitySetting.Id, out var capacity))
+                    if (!capacitiesById.TryGetValue(capacitySetting.Id, out _))
                     {
                         var error = new OrchestrationSettingsInvalidCapacitySettingsError
                         {
@@ -282,7 +282,6 @@
                         };
 
                         ReportError(orchestrationSettings.Id, error);
-                        continue;
                     }
 
                     // Not needed as long as there are no values assigned
@@ -325,7 +324,7 @@
                         continue;
                     }
 
-                    if (!capabilitiesById.TryGetValue(capabilitySetting.Id, out var capability))
+                    if (!capabilitiesById.TryGetValue(capabilitySetting.Id, out _))
                     {
                         var error = new OrchestrationSettingsInvalidCapabilitySettingsError
                         {
@@ -334,7 +333,7 @@
                         };
 
                         ReportError(capabilitySetting.Id, error);
-                        continue;
+                        //continue;
                     }
 
                     // Not needed as long as there are no values assigned
@@ -384,6 +383,7 @@
                 .Select(x => x.Id)
                 .Distinct()
                 .ToList();
+
             var configurationsById = planApi.Configurations.Read(configurationIds).ToDictionary(x => x.Id);
 
             foreach (var orchestrationSettings in apiOrchestrationSettings)
@@ -401,7 +401,7 @@
                         continue;
                     }
 
-                    if (!configurationsById.TryGetValue(configurationSetting.Id, out var configuration))
+                    if (!configurationsById.TryGetValue(configurationSetting.Id, out _))
                     {
                         var error = new OrchestrationSettingsInvalidConfigurationSettingsError
                         {
@@ -410,7 +410,7 @@
                         };
 
                         ReportError(configurationSetting.Id, error);
-                        continue;
+                        //continue;
                     }
 
                     // Add dedicated validation for configuration setting values here if needed
