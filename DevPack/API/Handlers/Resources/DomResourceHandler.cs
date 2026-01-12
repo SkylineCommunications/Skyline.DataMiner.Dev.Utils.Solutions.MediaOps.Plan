@@ -136,6 +136,7 @@
             ValidateCapabilities(apiResources);
             ValidateResourceProperties(apiResources);
             ValidateNames(apiResources);
+            ValidateConcurrency(apiResources);
             ValidateConnectionManagement(apiResources);
 
             var validResources = apiResources.Where(IsValid).ToList();
@@ -636,6 +637,28 @@
             }
         }
 
+        private void ValidateConcurrency(ICollection<Resource> apiResources)
+        {
+            if (apiResources == null)
+            {
+                throw new ArgumentNullException(nameof(apiResources));
+            }
+
+            foreach (var apiResource in apiResources)
+            {
+                if (apiResource.Concurrency < 1)
+                {
+                    var error = new ResourceInvalidConcurrencyError
+                    {
+                        ErrorMessage = "Concurrency must be greater than or equal to 1.",
+                        Id = apiResource.Id,
+                    };
+
+                    ReportError(apiResource.Id, error);
+                }
+            }
+        }
+
         private void ValidatePoolAssignments(ICollection<Resource> apiResources)
         {
             if (apiResources == null)
@@ -889,6 +912,7 @@
                 .Where(x => x != Guid.Empty)
                 .Distinct()
                 .ToList();
+
             var virtualSignalGroupsById = planApi.LiveApi.VirtualSignalGroups.Read(virtualSignalGroupIds);
 
             foreach (var resource in apiResources)

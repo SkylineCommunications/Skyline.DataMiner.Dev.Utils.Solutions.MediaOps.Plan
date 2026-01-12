@@ -432,6 +432,31 @@
         }
 
         /// <summary>
+        /// Marks the specified resource as deprecated, indicating that it is no longer recommended for use.
+        /// </summary>
+        /// <param name="resource">The resource to be marked as deprecated.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="resource"/> is <c>null</c>.</exception>
+        /// <exception cref="MediaOpsException">Thrown when the deprecation operation fails for the specified resource.</exception>
+        public void Deprecate(Resource resource)
+        {
+            if (resource == null)
+            {
+                throw new ArgumentNullException(nameof(resource));
+            }
+
+            ActivityHelper.Track(nameof(ResourcesRepository), nameof(Deprecate), act =>
+            {
+                if (!DomResourceHandler.TryDeprecate(PlanApi, [resource], out var result))
+                {
+                    result.ThrowSingleException(resource.Id);
+                }
+
+                var resourceId = result.SuccessfulIds.First();
+                act?.AddTag("Deprecated Resource", resourceId);
+            });
+        }
+
+        /// <summary>
         /// Marks the specified resources as deprecated, indicating that they are no longer recommended for use.
         /// </summary>
         /// <param name="resources">A collection of resources to be marked as deprecated.</param>
