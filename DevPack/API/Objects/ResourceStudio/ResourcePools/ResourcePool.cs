@@ -320,7 +320,7 @@
                 capabilitySettings.Add(capability);
             }
 
-            if (instance.ConfigurationInfo.PoolConfiguration == Guid.Empty)
+            if (instance.ConfigurationInfo.PoolConfiguration == null || instance.ConfigurationInfo.PoolConfiguration == Guid.Empty)
             {
                 OrchestrationSettings = new ResourceStudioOrchestrationSettings();
             }
