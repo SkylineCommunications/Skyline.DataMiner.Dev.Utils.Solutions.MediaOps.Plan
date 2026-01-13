@@ -12,6 +12,7 @@
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Logger;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Tools;
     using Skyline.DataMiner.Utils.Categories.API;
 
     /// <summary>
@@ -23,6 +24,7 @@
         private readonly ILogger<IMediaOpsPlanApi> logger;
         private readonly IConnection connection;
 
+        private readonly InstalledAppPackageCache installedAppPackages;
         private readonly DomHelpers domHelpers;
         private readonly CoreHelpers coreHelpers;
 
@@ -50,6 +52,8 @@
             this.connection = connection ?? throw new ArgumentNullException(nameof(connection));
             this.loggerFactory = loggerFactory ?? new NullLoggerFactory();
             this.logger = this.loggerFactory.CreateLogger<IMediaOpsPlanApi>() ?? new NullLogger<IMediaOpsPlanApi>();
+
+            installedAppPackages = new InstalledAppPackageCache(connection);
 
             domHelpers = new DomHelpers(connection);
             coreHelpers = new CoreHelpers(connection);
@@ -113,6 +117,34 @@
         internal Plan.Tools.LockManager LockManager => lazyLockManager.Value;
 
         internal CategoriesApi Categories => lazyCategoriesApi.Value;
+
+        /// <summary>
+        /// Determines whether the MediaOps.PLAN application is installed on the DataMiner System.
+        /// </summary>
+        /// <param name="version">
+        /// When this method returns <c>true</c>, contains the version of the installed application;
+        /// otherwise, <c>null</c>.
+        /// </param>
+        /// <returns>
+        /// <c>true</c> if the application is installed; otherwise, <c>false</c>.
+        /// </returns>
+        public bool IsInstalled(out string version)
+        {
+            var isInstalled = installedAppPackages.IsInstalled("SLC-S-MediaOps", out var installedAppInfo);
+            version = isInstalled ? installedAppInfo?.AppInfo?.Version : null;
+            return isInstalled;
+        }
+
+        /// <summary>
+        /// Determines whether the MediaOps.PLAN application is installed on the DataMiner System.
+        /// </summary>
+        /// <returns>
+        /// <c>true</c> if the application is installed; otherwise, <c>false</c>.
+        /// </returns>
+        public bool IsInstalled()
+        {
+            return IsInstalled(out _);
+        }
 
         /// <summary>
         /// Releases the resources used by the current instance of the class.
