@@ -65,7 +65,7 @@
         /// <param name="apiObject">The resource property to create.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create an existing resource property.</exception>
-        /// <exception cref="MediaOpsException">Thrown when the creation operation fails.</exception>
+        /// <exception cref="MediaOpsException">Thrown when the creation operation fails for the specified resource property.</exception>
         public void Create(ResourceProperty apiObject)
         {
             PlanApi.Logger.LogInformation("Creating new ResourceProperty...");
@@ -84,7 +84,7 @@
 
                 if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
                 {
-                    throw new MediaOpsException(result.TraceDataPerItem[apiObject.Id]);
+                    result.ThrowSingleException(apiObject.Id);
                 }
 
                 var resourcePropertyId = result.SuccessfulIds.First();
@@ -98,7 +98,7 @@
         /// <param name="apiObjects">The collection of resource properties to create.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create existing resource properties.</exception>
-        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk creation operation fails.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk creation operation fails for one or more resource properties.</exception>
         public void Create(IEnumerable<ResourceProperty> apiObjects)
         {
             if (apiObjects == null)
@@ -116,7 +116,7 @@
 
                 if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
                 {
-                    throw new MediaOpsBulkException<Guid>(result);
+                    result.ThrowBulkException();
                 }
 
                 var propertyIds = result.SuccessfulIds;
@@ -129,7 +129,7 @@
         /// </summary>
         /// <param name="apiObjects">The collection of resource properties to create or update.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
-        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk operation fails.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk create or update operation fails for one or more resource properties.</exception>
         public void CreateOrUpdate(IEnumerable<ResourceProperty> apiObjects)
         {
             if (apiObjects == null)
@@ -141,7 +141,7 @@
             {
                 if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, apiObjects?.ToList(), out var result))
                 {
-                    throw new MediaOpsBulkException<Guid>(result);
+                    result.ThrowBulkException();
                 }
 
                 var propertyIds = result.SuccessfulIds;
@@ -170,7 +170,7 @@
         /// </summary>
         /// <param name="apiObjectIds">The unique identifiers of the resource properties to delete.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjectIds"/> is <c>null</c>.</exception>
-        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk deletion operation fails.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk deletion operation fails for one or more resource properties.</exception>
         public void Delete(IEnumerable<Guid> apiObjectIds)
         {
             if (apiObjectIds == null)
@@ -184,7 +184,7 @@
             {
                 if (!DomResourcePropertyHandler.TryDelete(PlanApi, propertiesToDelete?.ToList(), out var result))
                 {
-                    throw new MediaOpsBulkException<Guid>(result);
+                    result.ThrowBulkException();
                 }
 
                 var propertyIds = result.SuccessfulIds;
@@ -198,6 +198,7 @@
         /// </summary>
         /// <param name="oToDelete">The resource property to delete.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="oToDelete"/> is <c>null</c>.</exception>
+        /// <exception cref="MediaOpsException">Thrown when the deletion operation fails for the specified resource property.</exception>
         public void Delete(ResourceProperty oToDelete)
         {
             if (oToDelete == null)
@@ -205,16 +206,32 @@
                 throw new ArgumentNullException(nameof(oToDelete));
             }
 
-            Delete([oToDelete.Id]);
+            Delete(oToDelete.Id);
         }
 
         /// <summary>
         /// Deletes the specified resource property from the repository.
         /// </summary>
         /// <param name="apiObjectId">The unique identifier of the resource property to delete.</param>
+        /// <exception cref="MediaOpsException">Thrown when the deletion operation fails for the specified resource property.</exception>
         public void Delete(Guid apiObjectId)
         {
-            Delete([apiObjectId]);
+            var propertyToDelete = Read(apiObjectId);
+            if (propertyToDelete == null)
+            {
+                return;
+            }
+
+            ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Delete), act =>
+            {
+                if (!DomResourcePropertyHandler.TryDelete(PlanApi, [propertyToDelete], out var result))
+                {
+                    result.ThrowSingleException(propertyToDelete.Id);
+                }
+
+                var resourcePropertyId = result.SuccessfulIds.First();
+                act?.AddTag("ResourcePropertyId", resourcePropertyId);
+            });
         }
 
         /// <summary>
@@ -411,7 +428,7 @@
         /// <param name="apiObject">The resource property to update.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to update a new resource property that doesn't exist yet.</exception>
-        /// <exception cref="MediaOpsException">Thrown when the update operation fails.</exception>
+        /// <exception cref="MediaOpsException">Thrown when the update operation fails for the specified resource property.</exception>
         public void Update(ResourceProperty apiObject)
         {
             if (apiObject == null)
@@ -430,7 +447,7 @@
 
                 if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
                 {
-                    throw new MediaOpsException(result.TraceDataPerItem[apiObject.Id]);
+                    result.ThrowSingleException(apiObject.Id);
                 }
 
                 var resourceId = result.SuccessfulIds.First();
@@ -444,7 +461,7 @@
         /// <param name="apiObjects">The collection of resource properties to update.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to update new resource properties that don't exist yet.</exception>
-        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk update operation fails.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk update operation fails for one or more resource properties.</exception>
         public void Update(IEnumerable<ResourceProperty> apiObjects)
         {
             if (apiObjects == null)
@@ -462,7 +479,7 @@
 
                 if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
                 {
-                    throw new MediaOpsBulkException<Guid>(result);
+                    result.ThrowBulkException();
                 }
 
                 var resourceIds = result.SuccessfulIds;

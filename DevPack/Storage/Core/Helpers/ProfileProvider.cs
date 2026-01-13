@@ -122,13 +122,13 @@
         /// <paramref name="result"/>.</remarks>
         /// <param name="parameters">A collection of <see cref="Net.Profiles.Parameter"/> objects to be created or updated.
         /// Cannot be <see langword="null"/>.</param>
-        /// <param name="result">When the method returns, contains a <see cref="BulkCreateOrUpdateResult{T}"/> object that provides details
+        /// <param name="result">When the method returns, contains a <see cref="BulkOperationResult{T}"/> object that provides details
         /// about the operation, including the IDs of successfully processed parameters, IDs of failed parameters, and
         /// any associated error trace data.</param>
         /// <returns><see langword="true"/> if all parameters were successfully created or updated; otherwise, <see
         /// langword="false"/>.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="parameters"/> is <see langword="null"/>.</exception>
-        public bool TryCreateOrUpdateParametersInBatches(IEnumerable<Net.Profiles.Parameter> parameters, out BulkCreateOrUpdateResult<Guid> result)
+        public bool TryCreateOrUpdateParametersInBatches(IEnumerable<Net.Profiles.Parameter> parameters, out BulkOperationResult<Guid> result)
         {
             if (parameters == null)
                 throw new ArgumentNullException(nameof(parameters));
@@ -163,8 +163,8 @@
                 }
             }
 
-            result = new BulkCreateOrUpdateResult<Guid>(successfulIds, unsuccessfulIds, traceDataPerItem);
-            return !result.HasFailures();
+            result = new BulkOperationResult<Guid>(successfulIds, unsuccessfulIds, traceDataPerItem);
+            return !result.HasFailures;
         }
 
         /// <summary>
@@ -239,7 +239,7 @@
             return profileHelper.ProfileParameters.Count(AllCapabilitiesFilter.AND(filter));
         }
 
-        public bool TryDeleteParametersInBatches(IEnumerable<Net.Profiles.Parameter> parameters, out Exceptions.BulkDeleteResult<Guid> result)
+        public bool TryDeleteParametersInBatches(IEnumerable<Net.Profiles.Parameter> parameters, out Exceptions.BulkOperationResult<Guid> result)
         {
             if (parameters == null)
                 throw new ArgumentNullException(nameof(parameters));
@@ -274,8 +274,8 @@
                 }
             }
 
-            result = new Exceptions.BulkDeleteResult<Guid>(successfulIds, unsuccessfulIds, traceDataPerItem);
-            return !result.HasFailures();
+            result = new Exceptions.BulkOperationResult<Guid>(successfulIds, unsuccessfulIds, traceDataPerItem);
+            return !result.HasFailures;
         }
     }
 }

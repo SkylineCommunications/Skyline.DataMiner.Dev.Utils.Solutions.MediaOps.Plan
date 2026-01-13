@@ -1,0 +1,45 @@
+﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+{
+    using System;
+    using System.Linq;
+
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
+
+    internal class StorageDiscreteNumberConfigurationSetting : DiscreteNumberConfigurationSetting
+    {
+        internal StorageDiscreteNumberConfigurationSetting(DiscreteNumberConfigurationSetting discreteNumberConfigurationSetting) : base(discreteNumberConfigurationSetting)
+        {
+        }
+
+        internal StorageDiscreteNumberConfigurationSetting(DiscreteNumberConfiguration configuration, ProfileParameterValue profileParameterValue)
+        {
+            ParseProfileParameterValue(configuration, profileParameterValue);
+            InitTracking();
+        }
+
+        internal ProfileParameterValue GetProfileParameterValueWithChanges()
+        {
+            return new ProfileParameterValue
+            {
+                ProfileParameterId = Id,
+                DoubleMaxValue = (double)Value.Value,
+            };
+        }
+
+        private void ParseProfileParameterValue(DiscreteNumberConfiguration configuration, ProfileParameterValue profileParameterValue)
+        {
+            if (profileParameterValue == null)
+            {
+                throw new ArgumentNullException(nameof(profileParameterValue));
+            }
+
+            Id = profileParameterValue.ProfileParameterId;
+
+            var discreteValue = configuration.Discretes.FirstOrDefault(dv => dv.Value == (decimal)profileParameterValue.DoubleMaxValue);
+            if (discreteValue != null)
+            {
+                Value = discreteValue;
+            }
+        }
+    }
+}

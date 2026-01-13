@@ -3,8 +3,12 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
+
+    using Microsoft.Extensions.Logging;
+
+    using Skyline.DataMiner.Core.DataMinerSystem.Common;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
 
     /// <summary>
     /// Represents the configuration and settings required to execute a script.
@@ -15,11 +19,19 @@
 
         private readonly List<ScriptParameterSetting> scriptParameterSettings = [];
 
-        private readonly List<CapabilitySetting> capabilitySettings = [];
+        private readonly List<StorageCapabilitySetting> capabilitySettings = [];
 
-        private readonly List<CapacitySetting> capacitySettings = [];
+        private readonly List<StorageNumberCapacitySetting> numberCapacitySettings = [];
 
-        private readonly List<ConfigurationSetting> configurationSettings = [];
+        private readonly List<StorageRangeCapacitySetting> rangeCapacitySettings = [];
+
+        private readonly List<StorageTextConfigurationSetting> textConfigurationSettings = [];
+
+        private readonly List<StorageNumberConfigurationSetting> numberConfigurationSettings = [];
+
+        private readonly List<StorageDiscreteTextConfigurationSetting> discreteTextConfigurationSettings = [];
+
+        private readonly List<StorageDiscreteNumberConfigurationSetting> discreteNumberConfigurationSettings = [];
 
         /// <summary>
         /// Initializes a new instance of the ScriptExecutionDetails class with the specified script name.
@@ -57,12 +69,22 @@
         /// <summary>
         /// Gets the collection of capacity settings.
         /// </summary>
-        public IReadOnlyCollection<CapacitySetting> CapacitySettings => capacitySettings;
+        public IReadOnlyCollection<CapacitySetting> CapacitySettings => numberCapacitySettings.Concat<CapacitySetting>(rangeCapacitySettings).ToList();
 
         /// <summary>
         /// Gets the collection of configuration settings.
         /// </summary>
-        public IReadOnlyCollection<ConfigurationSetting> ConfigurationSettings => configurationSettings;
+        public IReadOnlyCollection<ConfigurationSetting> ConfigurationSettings
+        {
+            get
+            {
+                return textConfigurationSettings
+                    .Concat<ConfigurationSetting>(numberConfigurationSettings)
+                    .Concat(discreteTextConfigurationSettings)
+                    .Concat(discreteNumberConfigurationSettings)
+                    .ToList();
+            }
+        }
 
         /// <summary>
         /// Adds a new script element.
@@ -140,7 +162,7 @@
                 throw new ArgumentNullException(nameof(capabilitySetting));
             }
 
-            capabilitySettings.Add(capabilitySetting);
+            capabilitySettings.Add(new StorageCapabilitySetting(capabilitySetting));
             return this;
         }
 
@@ -156,7 +178,11 @@
                 throw new ArgumentNullException(nameof(capabilitySetting));
             }
 
-            capabilitySettings.Remove(capabilitySetting);
+            if (capabilitySetting is StorageCapabilitySetting storageCapabilitySetting)
+            {
+                capabilitySettings.Remove(storageCapabilitySetting);
+            }
+
             return this;
         }
 
@@ -172,7 +198,19 @@
                 throw new ArgumentNullException(nameof(capacitySetting));
             }
 
-            capacitySettings.Add(capacitySetting);
+            if (capacitySetting is NumberCapacitySetting numberCapacity)
+            {
+                numberCapacitySettings.Add(new StorageNumberCapacitySetting(numberCapacity));
+            }
+            else if (capacitySetting is RangeCapacitySetting rangeCapacity)
+            {
+                rangeCapacitySettings.Add(new StorageRangeCapacitySetting(rangeCapacity));
+            }
+            else
+            {
+                throw new ArgumentException("The capacity setting type is not supported.", nameof(capacitySetting));
+            }
+
             return this;
         }
 
@@ -188,7 +226,15 @@
                 throw new ArgumentNullException(nameof(capacitySetting));
             }
 
-            capacitySettings.Remove(capacitySetting);
+            if (capacitySetting is StorageNumberCapacitySetting storageNumberCapacitySetting)
+            {
+                numberCapacitySettings.Remove(storageNumberCapacitySetting);
+            }
+            else if (capacitySetting is StorageRangeCapacitySetting storageRangeCapacitySetting)
+            {
+                rangeCapacitySettings.Remove(storageRangeCapacitySetting);
+            }
+
             return this;
         }
 
@@ -204,7 +250,27 @@
                 throw new ArgumentNullException(nameof(configurationSetting));
             }
 
-            configurationSettings.Add(configurationSetting);
+            if (configurationSetting is TextConfigurationSetting textConfiguration)
+            {
+                textConfigurationSettings.Add(new StorageTextConfigurationSetting(textConfiguration));
+            }
+            else if (configurationSetting is NumberConfigurationSetting numberConfiguration)
+            {
+                numberConfigurationSettings.Add(new StorageNumberConfigurationSetting(numberConfiguration));
+            }
+            else if (configurationSetting is DiscreteTextConfigurationSetting discreteTextConfiguration)
+            {
+                discreteTextConfigurationSettings.Add(new StorageDiscreteTextConfigurationSetting(discreteTextConfiguration));
+            }
+            else if (configurationSetting is DiscreteNumberConfigurationSetting discreteNumberConfiguration)
+            {
+                discreteNumberConfigurationSettings.Add(new StorageDiscreteNumberConfigurationSetting(discreteNumberConfiguration));
+            }
+            else
+            {
+                throw new ArgumentException("The configuration setting type is not supported.", nameof(configurationSetting));
+            }
+
             return this;
         }
 
@@ -220,8 +286,185 @@
                 throw new ArgumentNullException(nameof(configurationSetting));
             }
 
-            configurationSettings.Remove(configurationSetting);
+            if (configurationSetting is StorageTextConfigurationSetting storageTextConfigurationSetting)
+            {
+                textConfigurationSettings.Remove(storageTextConfigurationSetting);
+            }
+            else if (configurationSetting is StorageNumberConfigurationSetting storageNumberConfigurationSetting)
+            {
+                numberConfigurationSettings.Remove(storageNumberConfigurationSetting);
+            }
+            else if (configurationSetting is StorageDiscreteTextConfigurationSetting storageDiscreteTextConfigurationSetting)
+            {
+                discreteTextConfigurationSettings.Remove(storageDiscreteTextConfigurationSetting);
+            }
+            else if (configurationSetting is StorageDiscreteNumberConfigurationSetting storageDiscreteNumberConfigurationSetting)
+            {
+                discreteNumberConfigurationSettings.Remove(storageDiscreteNumberConfigurationSetting);
+            }
             return this;
+        }
+
+        internal static ScriptExecutionDetails FromStorage(MediaOpsPlanApi planApi, Storage.DOM.ScriptExecutionDetails storageScriptExecutionDetails)
+        {
+            if (storageScriptExecutionDetails == null)
+            {
+                throw new ArgumentNullException(nameof(storageScriptExecutionDetails));
+            }
+
+            var scriptExecutionDetails = new ScriptExecutionDetails(storageScriptExecutionDetails.ScriptName);
+
+            scriptExecutionDetails.ParseStorageDummies(storageScriptExecutionDetails.Dummies);
+            scriptExecutionDetails.ParseStorageParameters(storageScriptExecutionDetails.Parameters);
+            scriptExecutionDetails.ParseStorageProfileParameterValues(planApi, storageScriptExecutionDetails.ProfileParameterValues);
+
+            return scriptExecutionDetails;
+        }
+
+        internal Storage.DOM.ScriptExecutionDetails ToStorage()
+        {
+            var storageScriptExecutionDetails = new Storage.DOM.ScriptExecutionDetails
+            {
+                ScriptName = ScriptName,
+            };
+
+            foreach (var scriptElementSetting in scriptElementSettings)
+            {
+                storageScriptExecutionDetails.Dummies.Add(scriptElementSetting.Name, (scriptElementSetting.DmsElementId == default) ? scriptElementSetting.ElementName : scriptElementSetting.DmsElementId.Value);
+            }
+
+            foreach (var scriptParameterSetting in scriptParameterSettings)
+            {
+                storageScriptExecutionDetails.Parameters.Add(scriptParameterSetting.Name, scriptParameterSetting.Value);
+            }
+
+            foreach (var capabilitySetting in capabilitySettings)
+            {
+                storageScriptExecutionDetails.ProfileParameterValues.Add(capabilitySetting.GetProfileParameterValueWithChanges());
+            }
+            foreach (var capacitySetting in numberCapacitySettings)
+            {
+                storageScriptExecutionDetails.ProfileParameterValues.Add(capacitySetting.GetProfileParameterValueWithChanges());
+            }
+            foreach (var capacitySetting in rangeCapacitySettings)
+            {
+                storageScriptExecutionDetails.ProfileParameterValues.Add(capacitySetting.GetProfileParameterValueWithChanges());
+            }
+            foreach (var configurationSetting in textConfigurationSettings)
+            {
+                storageScriptExecutionDetails.ProfileParameterValues.Add(configurationSetting.GetProfileParameterValueWithChanges());
+            }
+            foreach (var configurationSetting in numberConfigurationSettings)
+            {
+                storageScriptExecutionDetails.ProfileParameterValues.Add(configurationSetting.GetProfileParameterValueWithChanges());
+            }
+            foreach (var configurationSetting in discreteTextConfigurationSettings)
+            {
+                storageScriptExecutionDetails.ProfileParameterValues.Add(configurationSetting.GetProfileParameterValueWithChanges());
+            }
+            foreach (var configurationSetting in discreteNumberConfigurationSettings)
+            {
+                storageScriptExecutionDetails.ProfileParameterValues.Add(configurationSetting.GetProfileParameterValueWithChanges());
+            }
+
+            return storageScriptExecutionDetails;
+        }
+
+        private void ParseStorageDummies(Dictionary<string, string> storageDummies)
+        {
+            foreach (var kvp in storageDummies)
+            {
+                var scriptElementSetting = new ScriptElementSetting(kvp.Key);
+
+                if (kvp.Value.Contains('/'))
+                {
+                    scriptElementSetting.DmsElementId = new DmsElementId(kvp.Value);
+                }
+                else
+                {
+                    scriptElementSetting.ElementName = kvp.Value;
+                }
+
+                AddScriptElement(scriptElementSetting);
+            }
+        }
+
+        private void ParseStorageParameters(Dictionary<string, string> storageParameters)
+        {
+            foreach (var kvp in storageParameters)
+            {
+                var scriptParameterSetting = new ScriptParameterSetting(kvp.Key)
+                {
+                    Value = kvp.Value
+                };
+
+                AddScriptParameter(scriptParameterSetting);
+            }
+        }
+
+        private void ParseStorageProfileParameterValues(MediaOpsPlanApi planApi, List<ProfileParameterValue> profileParameterValues)
+        {
+            if (profileParameterValues == null || profileParameterValues.Count == 0)
+            {
+                return;
+            }
+
+            var parameterIds = profileParameterValues.Select(ppv => ppv.ProfileParameterId).Distinct();
+            var parametersById = planApi.CoreHelpers.ProfileProvider.GetParametersById(parameterIds).ToDictionary(x => x.ID);
+
+            foreach (var profileParameterValue in profileParameterValues)
+            {
+                if (!parametersById.TryGetValue(profileParameterValue.ProfileParameterId, out var profileParameter))
+                {
+                    planApi.Logger.LogInformation($"ScriptExecutionDetails > ParseStorageProfileParameterValues > Profile parameter with ID '{profileParameterValue.ProfileParameterId}' not found.");
+                    continue;
+                }
+
+                if (profileParameter.IsCapability())
+                {
+                    capabilitySettings.Add(new StorageCapabilitySetting(profileParameterValue));
+                }
+                else if (profileParameter.IsCapacity())
+                {
+                    ParseStorageProfileParameterValues_Capacity(profileParameter, profileParameterValue);
+                }
+                else if (profileParameter.IsConfiguration())
+                {
+                    ParseStorageProfileParameterValues_Configuration(profileParameter, profileParameterValue);
+                }
+            }
+        }
+
+        private void ParseStorageProfileParameterValues_Capacity(Net.Profiles.Parameter profileParameter, ProfileParameterValue profileParameterValue)
+        {
+            if (profileParameter.IsRange())
+            {
+                rangeCapacitySettings.Add(new StorageRangeCapacitySetting(profileParameterValue));
+            }
+            else
+            {
+                numberCapacitySettings.Add(new StorageNumberCapacitySetting(profileParameterValue));
+            }
+        }
+
+        private void ParseStorageProfileParameterValues_Configuration(Net.Profiles.Parameter profileParameter, ProfileParameterValue profileParameterValue)
+        {
+            if (profileParameter.IsText())
+            {
+                textConfigurationSettings.Add(new StorageTextConfigurationSetting(profileParameterValue));
+            }
+            else if (profileParameter.IsNumber())
+            {
+                numberConfigurationSettings.Add(new StorageNumberConfigurationSetting(profileParameterValue));
+            }
+            else if (profileParameter.IsTextDiscreet())
+            {
+                discreteTextConfigurationSettings.Add(new StorageDiscreteTextConfigurationSetting(new DiscreteTextConfiguration(profileParameter), profileParameterValue));
+            }
+            else if (profileParameter.IsNumberDiscreet())
+            {
+                discreteNumberConfigurationSettings.Add(new StorageDiscreteNumberConfigurationSetting(new DiscreteNumberConfiguration(profileParameter), profileParameterValue));
+            }
         }
     }
 }

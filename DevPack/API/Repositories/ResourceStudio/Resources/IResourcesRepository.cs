@@ -23,6 +23,12 @@
         void MoveTo(Guid resourceId, ResourceState desiredState);
 
         /// <summary>
+        /// Marks the specified resource as deprecated, indicating that it is no longer recommended for use.
+        /// </summary>
+        /// <param name="resource">The resource to be marked as deprecated. Cannot be null.</param>
+        void Deprecate(Resource resource);
+
+        /// <summary>
         /// Marks the specified resources as deprecated, indicating that they are no longer recommended for use.
         /// </summary>
         /// <param name="resources">A collection of resources to be marked as deprecated. Cannot be null or empty.</param>
@@ -61,103 +67,103 @@
         /// Converts the specified <see cref="Resource"/> to an <see cref="ElementResource"/> using the provided configuration.
         /// </summary>
         /// <param name="resource">The resource to convert.</param>
-        /// <param name="configuration">The configuration for the element link.</param>
+        /// <param name="setting">The configuration for the element link.</param>
         /// <returns>The converted <see cref="ElementResource"/>.</returns>
-        ElementResource ConvertToElementResource(Resource resource, ResourceElementLinkConfiguration configuration);
+        ElementResource ConvertToElementResource(Resource resource, ResourceElementLinkSetting setting);
 
         /// <summary>
         /// Converts the resource with the specified identifier to an <see cref="ElementResource"/> using the provided configuration.
         /// </summary>
         /// <param name="resourceId">The unique identifier of the resource to convert.</param>
-        /// <param name="configuration">The configuration for the element link.</param>
+        /// <param name="setting">The configuration for the element link.</param>
         /// <returns>The converted <see cref="ElementResource"/>.</returns>
-        ElementResource ConvertToElementResource(Guid resourceId, ResourceElementLinkConfiguration configuration);
+        ElementResource ConvertToElementResource(Guid resourceId, ResourceElementLinkSetting setting);
 
         /// <summary>
         /// Attempts to convert the specified <see cref="Resource"/> to an <see cref="ElementResource"/> using the provided configuration.
         /// </summary>
         /// <param name="resource">The resource to convert.</param>
-        /// <param name="configuration">The configuration for the element link.</param>
+        /// <param name="setting">The configuration for the element link.</param>
         /// <param name="elementResource">When this method returns, contains the converted <see cref="ElementResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
         /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
-        bool TryConvertToElementResource(Resource resource, ResourceElementLinkConfiguration configuration, out ElementResource elementResource);
+        bool TryConvertToElementResource(Resource resource, ResourceElementLinkSetting setting, out ElementResource elementResource);
 
         /// <summary>
         /// Attempts to convert the resource with the specified identifier to an <see cref="ElementResource"/> using the provided configuration.
         /// </summary>
         /// <param name="resourceId">The unique identifier of the resource to convert.</param>
-        /// <param name="configuration">The configuration for the element link.</param>
+        /// <param name="setting">The configuration for the element link.</param>
         /// <param name="elementResource">When this method returns, contains the converted <see cref="ElementResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
         /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
-        bool TryConvertToElementResource(Guid resourceId, ResourceElementLinkConfiguration configuration, out ElementResource elementResource);
+        bool TryConvertToElementResource(Guid resourceId, ResourceElementLinkSetting setting, out ElementResource elementResource);
 
         /// <summary>
         /// Converts the specified <see cref="Resource"/> to a <see cref="ServiceResource"/> using the provided configuration.
         /// </summary>
         /// <param name="resource">The resource to convert.</param>
-        /// <param name="configuration">The configuration for the service link.</param>
+        /// <param name="setting">The configuration for the service link.</param>
         /// <returns>The converted <see cref="ServiceResource"/>.</returns>
-        ServiceResource ConvertToServiceResource(Resource resource, ResourceServiceLinkConfiguration configuration);
+        ServiceResource ConvertToServiceResource(Resource resource, ResourceServiceLinkSetting setting);
 
         /// <summary>
         /// Converts the resource with the specified identifier to a <see cref="ServiceResource"/> using the provided configuration.
         /// </summary>
         /// <param name="resourceId">The unique identifier of the resource to convert.</param>
-        /// <param name="configuration">The configuration for the service link.</param>
+        /// <param name="setting">The configuration for the service link.</param>
         /// <returns>The converted <see cref="ServiceResource"/>.</returns>
-        ServiceResource ConvertToServiceResource(Guid resourceId, ResourceServiceLinkConfiguration configuration);
+        ServiceResource ConvertToServiceResource(Guid resourceId, ResourceServiceLinkSetting setting);
 
         /// <summary>
         /// Attempts to convert the specified <see cref="Resource"/> to a <see cref="ServiceResource"/> using the provided configuration.
         /// </summary>
         /// <param name="resource">The resource to convert.</param>
-        /// <param name="configuration">The configuration for the service link.</param>
+        /// <param name="setting">The configuration for the service link.</param>
         /// <param name="serviceResource">When this method returns, contains the converted <see cref="ServiceResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
         /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
-        bool TryConvertToServiceResource(Resource resource, ResourceServiceLinkConfiguration configuration, out ServiceResource serviceResource);
+        bool TryConvertToServiceResource(Resource resource, ResourceServiceLinkSetting setting, out ServiceResource serviceResource);
 
         /// <summary>
         /// Attempts to convert the resource with the specified identifier to a <see cref="ServiceResource"/> using the provided configuration.
         /// </summary>
         /// <param name="resourceId">The unique identifier of the resource to convert.</param>
-        /// <param name="configuration">The configuration for the service link.</param>
+        /// <param name="setting">The configuration for the service link.</param>
         /// <param name="serviceResource">When this method returns, contains the converted <see cref="ServiceResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
         /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
-        bool TryConvertToServiceResource(Guid resourceId, ResourceServiceLinkConfiguration configuration, out ServiceResource serviceResource);
+        bool TryConvertToServiceResource(Guid resourceId, ResourceServiceLinkSetting setting, out ServiceResource serviceResource);
 
         /// <summary>
         /// Converts the specified <see cref="Resource"/> to a <see cref="VirtualFunctionResource"/> using the provided configuration.
         /// </summary>
         /// <param name="resource">The resource to convert.</param>
-        /// <param name="configuration">The configuration for the virtual function link.</param>
+        /// <param name="setting">The configuration for the virtual function link.</param>
         /// <returns>The converted <see cref="VirtualFunctionResource"/>.</returns>
-        VirtualFunctionResource ConvertToVirtualFunctionResource(Resource resource, ResourceVirtualFunctionLinkConfiguration configuration);
+        VirtualFunctionResource ConvertToVirtualFunctionResource(Resource resource, ResourceVirtualFunctionLinkSetting setting);
 
         /// <summary>
         /// Converts the resource with the specified identifier to a <see cref="VirtualFunctionResource"/> using the provided configuration.
         /// </summary>
         /// <param name="resourceId">The unique identifier of the resource to convert.</param>
-        /// <param name="configuration">The configuration for the virtual function link.</param>
+        /// <param name="setting">The configuration for the virtual function link.</param>
         /// <returns>The converted <see cref="VirtualFunctionResource"/>.</returns>
-        VirtualFunctionResource ConvertToVirtualFunctionResource(Guid resourceId, ResourceVirtualFunctionLinkConfiguration configuration);
+        VirtualFunctionResource ConvertToVirtualFunctionResource(Guid resourceId, ResourceVirtualFunctionLinkSetting setting);
 
         /// <summary>
         /// Attempts to convert the specified <see cref="Resource"/> to a <see cref="VirtualFunctionResource"/> using the provided configuration.
         /// </summary>
         /// <param name="resource">The resource to convert.</param>
-        /// <param name="configuration">The configuration for the virtual function link.</param>
+        /// <param name="setting">The configuration for the virtual function link.</param>
         /// <param name="virtualFunctionResource">When this method returns, contains the converted <see cref="VirtualFunctionResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
         /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
-        bool TryConvertToVirtualFunctionResource(Resource resource, ResourceVirtualFunctionLinkConfiguration configuration, out VirtualFunctionResource virtualFunctionResource);
+        bool TryConvertToVirtualFunctionResource(Resource resource, ResourceVirtualFunctionLinkSetting setting, out VirtualFunctionResource virtualFunctionResource);
 
         /// <summary>
         /// Attempts to convert the resource with the specified identifier to a <see cref="VirtualFunctionResource"/> using the provided configuration.
         /// </summary>
         /// <param name="resourceId">The unique identifier of the resource to convert.</param>
-        /// <param name="configuration">The configuration for the virtual function link.</param>
+        /// <param name="setting">The configuration for the virtual function link.</param>
         /// <param name="virtualFunctionResource">When this method returns, contains the converted <see cref="VirtualFunctionResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
         /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
-        bool TryConvertToVirtualFunctionResource(Guid resourceId, ResourceVirtualFunctionLinkConfiguration configuration, out VirtualFunctionResource virtualFunctionResource);
+        bool TryConvertToVirtualFunctionResource(Guid resourceId, ResourceVirtualFunctionLinkSetting setting, out VirtualFunctionResource virtualFunctionResource);
 
         /// <summary>
         /// Gets all resources in the specified resource pool.

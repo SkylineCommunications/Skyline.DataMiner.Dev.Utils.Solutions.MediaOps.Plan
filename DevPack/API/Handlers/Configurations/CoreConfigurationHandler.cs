@@ -10,7 +10,6 @@
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.AppPackages;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
 
     internal class CoreConfigurationHandler : ApiObjectValidator
     {
@@ -21,24 +20,24 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Configuration> apiConfigurations, out BulkCreateOrUpdateResult<Guid> result)
+        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Configuration> apiConfigurations, out BulkOperationResult<Guid> result)
         {
             var handler = new CoreConfigurationHandler(planApi);
             handler.CreateOrUpdate(apiConfigurations);
 
-            result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
-            return !result.HasFailures();
+            return !result.HasFailures;
         }
 
-        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<Configuration> apiConfigurations, out BulkDeleteResult<Guid> result)
+        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<Configuration> apiConfigurations, out BulkOperationResult<Guid> result)
         {
             var handler = new CoreConfigurationHandler(planApi);
             handler.Delete(apiConfigurations);
 
-            result = new BulkDeleteResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
-            return !result.HasFailures();
+            return !result.HasFailures;
         }
 
         private void CreateOrUpdate(ICollection<Configuration> apiConfigurations)

@@ -33,33 +33,33 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Resource> apiResources, out BulkCreateOrUpdateResult<Guid> result)
+        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Resource> apiResources, out BulkOperationResult<Guid> result)
         {
             var handler = new DomResourceHandler(planApi);
             handler.CreateOrUpdate(apiResources);
 
-            result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
-            return !result.HasFailures();
+            return !result.HasFailures;
         }
 
-        internal static bool TryDeprecate(MediaOpsPlanApi planApi, ICollection<Resource> apiResources, out BulkCreateOrUpdateResult<Guid> result)
+        internal static bool TryDeprecate(MediaOpsPlanApi planApi, ICollection<Resource> apiResources, out BulkOperationResult<Guid> result)
         {
             var handler = new DomResourceHandler(planApi);
             handler.TransitionToDeprecated(apiResources);
 
-            result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
-            return !result.HasFailures();
+            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            return !result.HasFailures;
         }
 
-        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<Resource> apiResources, out BulkDeleteResult<Guid> result)
+        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<Resource> apiResources, out BulkOperationResult<Guid> result)
         {
             var handler = new DomResourceHandler(planApi);
             handler.Delete(apiResources);
 
-            result = new BulkDeleteResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
-            return !result.HasFailures();
+            return !result.HasFailures;
         }
 
         internal static void TransitionToComplete(MediaOpsPlanApi planApi, Resource apiResource)
@@ -74,22 +74,22 @@
             handler.ConvertToUnmanagedResource(resource);
         }
 
-        internal static void ConvertToVirtualFunctionResource(MediaOpsPlanApi planApi, Resource resource, ResourceVirtualFunctionLinkConfiguration configuration)
+        internal static void ConvertToVirtualFunctionResource(MediaOpsPlanApi planApi, Resource resource, ResourceVirtualFunctionLinkSetting setting)
         {
             var handler = new DomResourceHandler(planApi);
-            handler.ConvertToVirtualFunctionResource(resource, configuration);
+            handler.ConvertToVirtualFunctionResource(resource, setting);
         }
 
-        internal static void ConvertToServiceResource(MediaOpsPlanApi planApi, Resource resource, ResourceServiceLinkConfiguration configuration)
+        internal static void ConvertToServiceResource(MediaOpsPlanApi planApi, Resource resource, ResourceServiceLinkSetting setting)
         {
             var handler = new DomResourceHandler(planApi);
-            handler.ConvertToServiceResource(resource, configuration);
+            handler.ConvertToServiceResource(resource, setting);
         }
 
-        internal static void ConvertToElementResource(MediaOpsPlanApi planApi, Resource resource, ResourceElementLinkConfiguration configuration)
+        internal static void ConvertToElementResource(MediaOpsPlanApi planApi, Resource resource, ResourceElementLinkSetting setting)
         {
             var handler = new DomResourceHandler(planApi);
-            handler.ConvertToElementResource(resource, configuration);
+            handler.ConvertToElementResource(resource, setting);
         }
 
         private void TransitionToComplete(Resource apiResource)
@@ -98,8 +98,10 @@
             ClearErrors(planApi, apiResource, ResourceErrors.ExecuteAction_MarkCompleteException);
 
             // Create CORE Resource
-            var result = CoreResourceHandler.CreateOrUpdate(planApi, [apiResource.OriginalInstance]);
-            result.ThrowOnFailure();
+            if (!CoreResourceHandler.TryCreateOrUpdate(planApi, [apiResource.OriginalInstance], out var result))
+            {
+                result.ThrowSingleException(apiResource.Id);
+            }
 
             // Save link with CORE Resource
             CreateOrUpdateDomResources([apiResource.OriginalInstance]);
@@ -134,6 +136,7 @@
             ValidateCapabilities(apiResources);
             ValidateResourceProperties(apiResources);
             ValidateNames(apiResources);
+            ValidateConcurrency(apiResources);
             ValidateConnectionManagement(apiResources);
             // TODO: validate concurrency
             // TODO: validate pool ids
@@ -639,6 +642,28 @@
             }
         }
 
+        private void ValidateConcurrency(ICollection<Resource> apiResources)
+        {
+            if (apiResources == null)
+            {
+                throw new ArgumentNullException(nameof(apiResources));
+            }
+
+            foreach (var apiResource in apiResources)
+            {
+                if (apiResource.Concurrency < 1)
+                {
+                    var error = new ResourceInvalidConcurrencyError
+                    {
+                        ErrorMessage = "Concurrency must be greater than or equal to 1.",
+                        Id = apiResource.Id,
+                    };
+
+                    ReportError(apiResource.Id, error);
+                }
+            }
+        }
+
         private void ValidatePoolAssignments(ICollection<Resource> apiResources)
         {
             if (apiResources == null)
@@ -705,9 +730,9 @@
 
             foreach (var resource in apiResources)
             {
-                foreach (var capacitySettings in resource.Capacities)
+                foreach (var capacitySetting in resource.Capacities)
                 {
-                    if (capacitySettings.Id == Guid.Empty)
+                    if (capacitySetting.Id == Guid.Empty)
                     {
                         var error = new ResourceInvalidCapacitySettingsError
                         {
@@ -718,19 +743,19 @@
                         continue;
                     }
 
-                    if (!capacitiesById.TryGetValue(capacitySettings.Id, out var capacity))
+                    if (!capacitiesById.TryGetValue(capacitySetting.Id, out var capacity))
                     {
                         var error = new ResourceInvalidCapacitySettingsError
                         {
-                            ErrorMessage = $"Capacity with ID '{capacitySettings.Id}' not found.",
-                            CapacityId = capacitySettings.Id,
+                            ErrorMessage = $"Capacity with ID '{capacitySetting.Id}' not found.",
+                            CapacityId = capacitySetting.Id,
                         };
 
                         ReportError(resource.Id, error);
                         continue;
                     }
 
-                    PassTraceData(ResourceCapacitySettingsValidator.Validate(resource.Id, capacity, capacitySettings));
+                    PassTraceData(ResourceCapacitySettingValidator.Validate(resource.Id, capacity, capacitySetting));
                 }
             }
         }
@@ -756,9 +781,9 @@
 
             foreach (var resource in apiResources)
             {
-                foreach (var capabilitySettings in resource.Capabilities)
+                foreach (var capabilitySetting in resource.Capabilities)
                 {
-                    if (capabilitySettings.Id == Guid.Empty)
+                    if (capabilitySetting.Id == Guid.Empty)
                     {
                         var error = new ResourceInvalidCapabilitySettingsError
                         {
@@ -769,38 +794,38 @@
                         continue;
                     }
 
-                    if (!capabilitiesById.TryGetValue(capabilitySettings.Id, out var capability))
+                    if (!capabilitiesById.TryGetValue(capabilitySetting.Id, out var capability))
                     {
                         var error = new ResourceInvalidCapabilitySettingsError
                         {
-                            ErrorMessage = $"Capability with ID '{capabilitySettings.Id}' not found.",
-                            CapabilityId = capabilitySettings.Id,
+                            ErrorMessage = $"Capability with ID '{capabilitySetting.Id}' not found.",
+                            CapabilityId = capabilitySetting.Id,
                         };
 
                         ReportError(resource.Id, error);
                         continue;
                     }
 
-                    if (capabilitySettings.Discretes.Count == 0)
+                    if (capabilitySetting.Discretes.Count == 0)
                     {
                         var error = new ResourceInvalidCapabilitySettingsError
                         {
                             ErrorMessage = "At least one discrete value must be specified for the capability.",
-                            CapabilityId = capabilitySettings.Id,
+                            CapabilityId = capabilitySetting.Id,
                         };
 
                         ReportError(resource.Id, error);
                         continue;
                     }
 
-                    foreach (var discreteValue in capabilitySettings.Discretes)
+                    foreach (var discreteValue in capabilitySetting.Discretes)
                     {
                         if (!capability.Discretes.Contains(discreteValue))
                         {
                             var error = new ResourceInvalidCapabilitySettingsError
                             {
                                 ErrorMessage = $"Discrete value '{discreteValue}' is not valid for capability '{capability.Name}'.",
-                                CapabilityId = capabilitySettings.Id,
+                                CapabilityId = capabilitySetting.Id,
                             };
 
                             ReportError(resource.Id, error);
@@ -892,6 +917,7 @@
                 .Where(x => x != Guid.Empty)
                 .Distinct()
                 .ToList();
+
             var virtualSignalGroupsById = planApi.LiveApi.VirtualSignalGroups.Read(virtualSignalGroupIds);
 
             foreach (var resource in apiResources)
@@ -1015,9 +1041,9 @@
             CreateOrUpdateDomResources([domResource]);
         }
 
-        private void ConvertToVirtualFunctionResource(Resource resource, ResourceVirtualFunctionLinkConfiguration configuration)
+        private void ConvertToVirtualFunctionResource(Resource resource, ResourceVirtualFunctionLinkSetting setting)
         {
-            if (!CoreResourceHandler.TryValidateVirtualFunctionConfiguration(planApi, configuration, out var error))
+            if (!CoreResourceHandler.TryValidateVirtualFunctionConfiguration(planApi, setting, out var error))
             {
                 error.Id = resource.Id;
                 ReportError(resource.Id, error);
@@ -1039,17 +1065,17 @@
             domResource.ResourceInfo.Type = SlcResource_StudioIds.Enums.Type.VirtualFunction;
             domResource.ResourceInternalProperties.Metadata = new ResourceMetadata
             {
-                LinkedElementInfo = new DmsElementId(configuration.AgentId, configuration.ElementId).Value,
-                LinkedFunctionId = configuration.FunctionId,
-                LinkedFunctionTableIndex = configuration.FunctionTableIndex,
+                LinkedElementInfo = new DmsElementId(setting.AgentId, setting.ElementId).Value,
+                LinkedFunctionId = setting.FunctionId,
+                LinkedFunctionTableIndex = setting.FunctionTableIndex,
             };
 
             CreateOrUpdateDomResources([domResource]);
         }
 
-        private void ConvertToServiceResource(Resource resource, ResourceServiceLinkConfiguration configuration)
+        private void ConvertToServiceResource(Resource resource, ResourceServiceLinkSetting setting)
         {
-            if (!CoreResourceHandler.TryValidateServiceConfiguration(planApi, configuration, out var error))
+            if (!CoreResourceHandler.TryValidateServiceConfiguration(planApi, setting, out var error))
             {
                 error.Id = resource.Id;
                 ReportError(resource.Id, error);
@@ -1071,15 +1097,15 @@
             domResource.ResourceInfo.Type = SlcResource_StudioIds.Enums.Type.Service;
             domResource.ResourceInternalProperties.Metadata = new ResourceMetadata
             {
-                LinkedServiceInfo = new DmsServiceId(configuration.AgentId, configuration.ServiceId).Value,
+                LinkedServiceInfo = new DmsServiceId(setting.AgentId, setting.ServiceId).Value,
             };
 
             CreateOrUpdateDomResources([domResource]);
         }
 
-        private void ConvertToElementResource(Resource resource, ResourceElementLinkConfiguration configuration)
+        private void ConvertToElementResource(Resource resource, ResourceElementLinkSetting setting)
         {
-            if (!CoreResourceHandler.TryValidateElementConfiguration(planApi, configuration, out var error))
+            if (!CoreResourceHandler.TryValidateElementConfiguration(planApi, setting, out var error))
             {
                 error.Id = resource.Id;
                 ReportError(resource.Id, error);
@@ -1101,7 +1127,7 @@
             domResource.ResourceInfo.Type = SlcResource_StudioIds.Enums.Type.Element;
             domResource.ResourceInternalProperties.Metadata = new ResourceMetadata
             {
-                LinkedElementInfo = new DmsElementId(configuration.AgentId, configuration.ElementId).Value,
+                LinkedElementInfo = new DmsElementId(setting.AgentId, setting.ElementId).Value,
             };
 
             CreateOrUpdateDomResources([domResource]);
