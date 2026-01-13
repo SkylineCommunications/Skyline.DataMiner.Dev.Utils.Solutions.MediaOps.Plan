@@ -387,7 +387,8 @@
         [TestMethod]
         public void QueryResourcePoolsBasedOnStateDoesNotThrowException()
         {
-            var _ = TestContext.Api.ResourcePools.Read(ResourcePoolExposers.State.Equal((int)ResourcePoolState.Complete)).ToList();
+            var resourcePools = TestContext.Api.ResourcePools.Read(ResourcePoolExposers.State.Equal((int)ResourcePoolState.Complete)).ToList();
+            Assert.IsNotNull(resourcePools);
         }
     }
 }
