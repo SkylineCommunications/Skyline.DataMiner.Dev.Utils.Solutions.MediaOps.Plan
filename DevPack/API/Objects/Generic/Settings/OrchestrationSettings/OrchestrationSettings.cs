@@ -124,7 +124,7 @@
         public abstract OrchestrationSettings AddOrchestrationEvent(OrchestrationEvent orchestrationEvent);
 
         /// <summary>
-        /// Removes the specified orchestration event .
+        /// Removes the specified orchestration event.
         /// </summary>
         /// <param name="orchestrationEvent">The orchestration event to remove. Cannot be null.</param>
         /// <returns>The current <see cref="OrchestrationSettings"/> instance.</returns>
