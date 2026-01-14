@@ -255,7 +255,7 @@
             this.capabilitySettings.Clear();
             foreach (var setting in capabilitySettings)
             {
-                this.capabilitySettings.Add(new ResourcePoolCapabilitySetting(setting));
+                AddCapability(setting);
             }
 
             return this;
