@@ -1053,5 +1053,108 @@
 
             Assert.Fail("Expected exception was not thrown.");
         }
+
+        [TestMethod]
+        public void CreateWithDuplicateSettingsThrowsException()
+        {
+            var prefix = Guid.NewGuid();
+
+            var capability1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capability()
+            {
+                Name = $"{prefix}_Capability1",
+            }
+            .SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
+            var capability2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capability()
+            {
+                Name = $"{prefix}_Capability2",
+            }
+            .SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
+            objectCreator.CreateCapabilities([capability1, capability2]);
+
+            var resourcePool = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
+            {
+                Name = $"{prefix}_Resource Pool",
+            }
+            .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(capability1.Id).AddDiscrete("Value 1"))
+            .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(capability2.Id).AddDiscrete("Value 2"))
+            .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(capability1.Id).AddDiscrete("Value 3"));
+
+            try
+            {
+                objectCreator.CreateResourcePool(resourcePool);
+            }
+            catch (MediaOpsException ex)
+            {
+                var errorMessage = $"Capability with ID '{capability1.Id}' is defined 2 times. Duplicate capability settings are not allowed.";
+                Assert.AreEqual(errorMessage, ex.Message);
+                Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
+
+                var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolError>().SingleOrDefault();
+                Assert.IsNotNull(resourcePoolConfigurationError);
+
+                var invalidResourcePoolCapabilitySettingsError = resourcePoolConfigurationError as ResourcePoolInvalidCapabilitySettingsError;
+                Assert.IsNotNull(invalidResourcePoolCapabilitySettingsError);
+                Assert.AreEqual(errorMessage, invalidResourcePoolCapabilitySettingsError.ErrorMessage);
+                Assert.AreEqual(capability1.Id, invalidResourcePoolCapabilitySettingsError.CapabilityId);
+                Assert.AreEqual(resourcePool.Id, invalidResourcePoolCapabilitySettingsError.Id);
+
+                return;
+            }
+
+            Assert.Fail("Exception not thrown");
+        }
+
+        [TestMethod]
+        public void UpdateWithDuplicateSettingsThrowsException()
+        {
+            var prefix = Guid.NewGuid();
+
+            var capability1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capability()
+            {
+                Name = $"{prefix}_Capability1",
+            }
+            .SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
+            var capability2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capability()
+            {
+                Name = $"{prefix}_Capability2",
+            }
+            .SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
+            objectCreator.CreateCapabilities([capability1, capability2]);
+
+            var resourcePool = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
+            {
+                Name = $"{prefix}_Resource Pool",
+            }
+            .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(capability1.Id).AddDiscrete("Value 1"))
+            .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(capability2.Id).AddDiscrete("Value 2"));
+            objectCreator.CreateResourcePool(resourcePool);
+
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
+            resourcePool.AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(capability1.Id).AddDiscrete("Value 3"));
+
+            try
+            {
+                TestContext.Api.ResourcePools.Update(resourcePool);
+            }
+            catch (MediaOpsException ex)
+            {
+                var errorMessage = $"Capability with ID '{capability1.Id}' is defined 2 times. Duplicate capability settings are not allowed.";
+                Assert.AreEqual(errorMessage, ex.Message);
+                Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
+
+                var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolError>().SingleOrDefault();
+                Assert.IsNotNull(resourcePoolConfigurationError);
+
+                var invalidResourcePoolCapabilitySettingsError = resourcePoolConfigurationError as ResourcePoolInvalidCapabilitySettingsError;
+                Assert.IsNotNull(invalidResourcePoolCapabilitySettingsError);
+                Assert.AreEqual(errorMessage, invalidResourcePoolCapabilitySettingsError.ErrorMessage);
+                Assert.AreEqual(capability1.Id, invalidResourcePoolCapabilitySettingsError.CapabilityId);
+                Assert.AreEqual(resourcePool.Id, invalidResourcePoolCapabilitySettingsError.Id);
+
+                return;
+            }
+
+            Assert.Fail("Exception not thrown");
+        }
     }
 }
