@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Configuration;
     using System.Linq;
 
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
@@ -270,6 +271,8 @@
                     var error = new OrchestrationSettingsInvalidCapacitySettingsError
                     {
                         ErrorMessage = $"Capacity with ID '{kvp.Key}' is defined {kvp.Value} times. Duplicate capacity settings are not allowed.",
+                        CapacityId = kvp.Key,
+                        Id = orchestrationSettings.Id,
                     };
 
                     ReportError(orchestrationSettings.Id, error);
@@ -287,6 +290,8 @@
                         var error = new OrchestrationSettingsInvalidCapacitySettingsError
                         {
                             ErrorMessage = "Capacity ID cannot be empty.",
+                            CapacityId = capacitySetting.Id,
+                            Id = orchestrationSettings.Id,
                         };
 
                         ReportError(orchestrationSettings.Id, error);
@@ -299,6 +304,7 @@
                         {
                             ErrorMessage = $"Capacity with ID '{capacitySetting.Id}' not found.",
                             CapacityId = capacitySetting.Id,
+                            Id = orchestrationSettings.Id,
                         };
 
                         ReportError(orchestrationSettings.Id, error);
@@ -341,6 +347,8 @@
                     var error = new OrchestrationSettingsInvalidCapabilitySettingsError
                     {
                         ErrorMessage = $"Capability with ID '{kvp.Key}' is defined {kvp.Value} times. Duplicate capability settings are not allowed.",
+                        CapabilityId = kvp.Key,
+                        Id = orchestrationSettings.Id,
                     };
 
                     ReportError(orchestrationSettings.Id, error);
@@ -358,6 +366,8 @@
                         var error = new OrchestrationSettingsInvalidCapabilitySettingsError
                         {
                             ErrorMessage = "Capability ID cannot be empty.",
+                            CapabilityId = capabilitySetting.Id,
+                            Id = orchestrationSettings.Id,
                         };
 
                         ReportError(capabilitySetting.Id, error);
@@ -370,6 +380,7 @@
                         {
                             ErrorMessage = $"Capability with ID '{capabilitySetting.Id}' not found.",
                             CapabilityId = capabilitySetting.Id,
+                            Id = orchestrationSettings.Id,
                         };
 
                         ReportError(capabilitySetting.Id, error);
@@ -438,6 +449,8 @@
                     var error = new OrchestrationSettingsInvalidConfigurationSettingsError
                     {
                         ErrorMessage = $"Configuration with ID '{kvp.Key}' is defined {kvp.Value} times. Duplicate configuration settings are not allowed.",
+                        ConfigurationId = kvp.Key,
+                        Id = orchestrationSettings.Id,
                     };
 
                     ReportError(orchestrationSettings.Id, error);
@@ -455,6 +468,8 @@
                         var error = new OrchestrationSettingsInvalidConfigurationSettingsError
                         {
                             ErrorMessage = "Configuration ID cannot be empty.",
+                            ConfigurationId = configurationSetting.Id,
+                            Id = orchestrationSettings.Id,
                         };
 
                         ReportError(configurationSetting.Id, error);
@@ -467,6 +482,7 @@
                         {
                             ErrorMessage = $"Configuration with ID '{configurationSetting.Id}' not found.",
                             ConfigurationId = configurationSetting.Id,
+                            Id = orchestrationSettings.Id,
                         };
 
                         ReportError(configurationSetting.Id, error);
