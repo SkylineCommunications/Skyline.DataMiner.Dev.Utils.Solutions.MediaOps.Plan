@@ -2,10 +2,6 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.Configuration;
-    using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
 
     /// <summary>
     /// Represents the base class for orchestration settings.
@@ -62,6 +58,13 @@
         public abstract OrchestrationSettings RemoveCapability(CapabilitySetting capabilitySetting);
 
         /// <summary>
+        /// Sets the specified collection of capability settings.
+        /// </summary>
+        /// <param name="capabilitySettings">The capability settings to set. Cannot be null.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="capabilitySettings"/> is <see langword="null"/></exception>
+        public abstract OrchestrationSettings SetCapabilities(IEnumerable<CapabilitySetting> capabilitySettings);
+
+        /// <summary>
         /// Adds a new capacity.
         /// </summary>
         /// <param name="capacitySetting">The capacity setting to add.</param>
@@ -74,6 +77,13 @@
         /// <param name="capacitySetting">The capacity to remove. Cannot be null.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="capacitySetting"/> is <see langword="null"/>.</exception>
         public abstract OrchestrationSettings RemoveCapacity(CapacitySetting capacitySetting);
+
+        /// <summary>
+        /// Sets the specified collection of capacity settings.
+        /// </summary>
+        /// <param name="capacitySettings">The capacity settings to set. Cannot be null.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="capacitySettings"/> is <see langword="null"/></exception>
+        public abstract OrchestrationSettings SetCapacities(IEnumerable<CapacitySetting> capacitySettings);
 
         /// <summary>
         /// Adds a new configuration.
@@ -90,6 +100,13 @@
         public abstract OrchestrationSettings RemoveConfiguration(ConfigurationSetting configurationSetting);
 
         /// <summary>
+        /// Sets the specified collection of configuration settings.
+        /// </summary>
+        /// <param name="configurationSettings">The configuration settings to set. Cannot be null.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="configurationSettings"/> is <see langword="null"/></exception>
+        public abstract OrchestrationSettings SetConfigurations(IEnumerable<ConfigurationSetting> configurationSettings);
+
+        /// <summary>
         /// Adds a new orchestration event.
         /// </summary>
         /// <param name="orchestrationEvent">The orchestration event to add.</param>
@@ -102,5 +119,12 @@
         /// <param name="orchestrationEvent">The orchestration event to remove. Cannot be null.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="orchestrationEvent"/> is <see langword="null"/>.</exception>
         public abstract OrchestrationSettings RemoveOrchestrationEvent(OrchestrationEvent orchestrationEvent);
+
+        /// <summary>
+        /// Sets the specified collection of orchestration events.
+        /// </summary>
+        /// <param name="orchestrationEvents">The orchestration events to set. Cannot be null.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="orchestrationEvents"/> is <see langword="null"/></exception>
+        public abstract OrchestrationSettings SetOrchestrationEvents(IEnumerable<OrchestrationEvent> orchestrationEvents);
     }
 }

@@ -265,6 +265,28 @@
         }
 
         /// <summary>
+        /// Sets the specified collection of capability settings on the resource.
+        /// </summary>
+        /// <param name="capabilitySettings">The capability settings to apply on the resource. Cannot be null.</param>
+        /// <returns>Resource with updated capability settings.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="capabilitySettings"/> is <see langword="null"/></exception>
+        public Resource SetCapabilities(IEnumerable<CapabilitySetting> capabilitySettings)
+        {
+            if (capabilitySettings == null)
+            {
+                throw new ArgumentNullException(nameof(capabilitySettings));
+            }
+
+            this.capabilitySettings.Clear();
+            foreach (var setting in capabilitySettings)
+            {
+                AddCapability(setting);
+            }
+
+            return this;
+        }
+
+        /// <summary>
         /// Adds a new capacity to the resource.
         /// </summary>
         /// <param name="capacitySetting">The capacity setting to add.</param>
@@ -330,6 +352,29 @@
         }
 
         /// <summary>
+        /// Sets the specified collection of capacity settings on the resource.
+        /// </summary>
+        /// <param name="capacitySettings">The capacity settings to apply on the resource. Cannot be null.</param>
+        /// <returns>Resource with updated capacity settings.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="capacitySettings"/> is <see langword="null"/></exception>
+        public Resource SetCapacities(IEnumerable<CapacitySetting> capacitySettings)
+        {
+            if (capacitySettings == null)
+            {
+                throw new ArgumentNullException(nameof(capacitySettings));
+            }
+
+            this.numberCapacitySettings.Clear();
+            this.rangeCapacitySettings.Clear();
+            foreach (var setting in capacitySettings)
+            {
+                AddCapacity(setting);
+            }
+
+            return this;
+        }
+
+        /// <summary>
         /// Adds the specified property to the resource.
         /// </summary>
         /// <param name="property">The property to add.</param>
@@ -366,6 +411,28 @@
             if (toRemove != null)
             {
                 propertySettings.Remove(toRemove);
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the specified collection of properties on the resource.
+        /// </summary>
+        /// <param name="properties">The properties to apply on the resource. Cannot be null.</param>
+        /// <returns>Resource with updated properties.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="properties"/> is <see langword="null"/></exception>
+        public Resource SetProperties(IEnumerable<ResourcePropertySettings> properties)
+        {
+            if (properties == null)
+            {
+                throw new ArgumentNullException(nameof(properties));
+            }
+
+            this.propertySettings.Clear();
+            foreach (var property in properties)
+            {
+                AddProperty(property);
             }
 
             return this;
