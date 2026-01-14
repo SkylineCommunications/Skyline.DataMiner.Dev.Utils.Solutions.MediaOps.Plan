@@ -40,7 +40,7 @@
         /// <summary>
         /// Gets or sets the configuration value.
         /// </summary>
-        public decimal Value { get; set; }
+        public decimal? Value { get; set; }
 
         /// <inheritdoc/>
         public override int GetHashCode()

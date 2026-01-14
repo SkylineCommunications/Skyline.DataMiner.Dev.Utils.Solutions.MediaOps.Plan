@@ -22,7 +22,7 @@
             return new ProfileParameterValue
             {
                 ProfileParameterId = Id,
-                DoubleMaxValue = (double)Value.Value,
+                DoubleMaxValue = (Value != null) ? (double)Value.Value : null,
             };
         }
 

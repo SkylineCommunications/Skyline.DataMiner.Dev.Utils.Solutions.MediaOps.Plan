@@ -41,13 +41,19 @@
 
                 if (validMinValue && validMaxValue)
                 {
-                    ValidateRange(rangeCapacitySettings.MinValue, rangeCapacitySettings.MaxValue);
+                    ValidateRange(rangeCapacitySettings.MinValue.Value, rangeCapacitySettings.MaxValue.Value);
                 }
             }
         }
 
-        private bool ValidateValue(decimal capacityValue)
+        private bool ValidateValue(decimal? capacityValue)
         {
+            if (!capacityValue.HasValue)
+            {
+                ReportError(apiObjectId, ComposeCapacitySettingError(capacitySetting.Id, "Value cannot be null."));
+                return false;
+            }
+
             if (capacity.RangeMin.HasValue && capacityValue < capacity.RangeMin.Value)
             {
                 ReportError(apiObjectId, ComposeCapacitySettingError(capacitySetting.Id, $"Value '{capacityValue}' must be greater than or equal to '{capacity.RangeMin}'."));
@@ -62,12 +68,12 @@
                 return false;
             }
 
-            if (capacity.StepSize.HasValue && !ValidateValueStepSize(capacityValue))
+            if (capacity.StepSize.HasValue && !ValidateValueStepSize(capacityValue.Value))
             {
                 return false;
             }
 
-            if (capacity.Decimals.HasValue && (Math.Round(capacityValue, capacity.Decimals.Value) - capacityValue) != 0)
+            if (capacity.Decimals.HasValue && (Math.Round(capacityValue.Value, capacity.Decimals.Value) - capacityValue) != 0)
             {
                 ReportError(apiObjectId, ComposeCapacitySettingError(capacitySetting.Id, $"Value '{capacityValue}' must contain less than '{capacity.Decimals}' decimals."));
 

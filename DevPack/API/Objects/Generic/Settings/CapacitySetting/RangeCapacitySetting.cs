@@ -70,11 +70,11 @@
         /// <summary>
         /// Gets or sets the minimum capacity value.
         /// </summary>
-        public decimal MinValue { get; set; }
+        public decimal? MinValue { get; set; }
 
         /// <summary>
         /// Gets or sets the maximum capacity value.
         /// </summary>
-        public decimal MaxValue { get; set; }
+        public decimal? MaxValue { get; set; }
     }
 }

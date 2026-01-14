@@ -21,8 +21,8 @@
             return new ProfileParameterValue
             {
                 ProfileParameterId = Id,
-                DoubleMinValue = (double)MinValue,
-                DoubleMaxValue = (double)MaxValue,
+                DoubleMinValue = MinValue.HasValue ? (double)MinValue : null,
+                DoubleMaxValue = MaxValue.HasValue ? (double)MaxValue : null,
             };
         }
 
@@ -34,8 +34,8 @@
             }
 
             Id = profileParameterValue.ProfileParameterId;
-            MinValue = (decimal)profileParameterValue.DoubleMinValue;
-            MaxValue = (decimal)profileParameterValue.DoubleMaxValue;
+            MinValue = profileParameterValue.DoubleMinValue.HasValue ? (decimal)profileParameterValue.DoubleMinValue : null;
+            MaxValue = profileParameterValue.DoubleMaxValue.HasValue ? (decimal)profileParameterValue.DoubleMaxValue : null;
         }
     }
 }

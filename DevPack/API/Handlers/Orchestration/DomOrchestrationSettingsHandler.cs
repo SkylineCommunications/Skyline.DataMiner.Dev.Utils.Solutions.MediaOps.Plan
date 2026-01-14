@@ -260,6 +260,26 @@
 
             foreach (var orchestrationSettings in apiOrchestrationSettings)
             {
+                var duplicateSettings = orchestrationSettings.Capacities
+                    .GroupBy(x => x.Id)
+                    .Where(g => g.Count() > 1)
+                    .ToDictionary(x => x.Key, x => x.Count());
+
+                foreach (var kvp in duplicateSettings)
+                {
+                    var error = new OrchestrationSettingsInvalidCapacitySettingsError
+                    {
+                        ErrorMessage = $"Capacity with ID '{kvp.Key}' is defined {kvp.Value} times. Duplicate capacity settings are not allowed.",
+                    };
+
+                    ReportError(orchestrationSettings.Id, error);
+                }
+
+                if (duplicateSettings.Count > 0)
+                {
+                    continue;
+                }
+
                 foreach (var capacitySetting in orchestrationSettings.Capacities)
                 {
                     if (capacitySetting.Id == Guid.Empty)
@@ -311,6 +331,26 @@
 
             foreach (var orchestrationSettings in apiOrchestrationSettings)
             {
+                var duplicateSettings = orchestrationSettings.Capabilities
+                    .GroupBy(x => x.Id)
+                    .Where(g => g.Count() > 1)
+                    .ToDictionary(x => x.Key, x => x.Count());
+
+                foreach (var kvp in duplicateSettings)
+                {
+                    var error = new OrchestrationSettingsInvalidCapabilitySettingsError
+                    {
+                        ErrorMessage = $"Capability with ID '{kvp.Key}' is defined {kvp.Value} times. Duplicate capability settings are not allowed.",
+                    };
+
+                    ReportError(orchestrationSettings.Id, error);
+                }
+
+                if (duplicateSettings.Count > 0)
+                {
+                    continue;
+                }
+
                 foreach (var capabilitySetting in orchestrationSettings.Capabilities)
                 {
                     if (capabilitySetting.Id == Guid.Empty)
@@ -388,6 +428,26 @@
 
             foreach (var orchestrationSettings in apiOrchestrationSettings)
             {
+                var duplicateSettings = orchestrationSettings.Configurations
+                    .GroupBy(x => x.Id)
+                    .Where(g => g.Count() > 1)
+                    .ToDictionary(x => x.Key, x => x.Count());
+
+                foreach (var kvp in duplicateSettings)
+                {
+                    var error = new OrchestrationSettingsInvalidConfigurationSettingsError
+                    {
+                        ErrorMessage = $"Configuration with ID '{kvp.Key}' is defined {kvp.Value} times. Duplicate configuration settings are not allowed.",
+                    };
+
+                    ReportError(orchestrationSettings.Id, error);
+                }
+
+                if (duplicateSettings.Count > 0)
+                {
+                    continue;
+                }
+
                 foreach (var configurationSetting in orchestrationSettings.Configurations)
                 {
                     if (configurationSetting.Id == Guid.Empty)
