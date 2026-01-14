@@ -725,6 +725,28 @@
 
             foreach (var resource in apiResources)
             {
+                var duplicateSettings = resource.Capacities
+                    .GroupBy(x => x.Id)
+                    .Where(g => g.Count() > 1)
+                    .ToDictionary(x => x.Key, x => x.Count());
+
+                foreach (var kvp in duplicateSettings)
+                {
+                    var error = new ResourceInvalidCapacitySettingsError
+                    {
+                        Id = resource.Id,
+                        CapacityId = kvp.Key,
+                        ErrorMessage = $"Capacity with ID '{kvp.Key}' is defined {kvp.Value} times. Duplicate capacity settings are not allowed.",
+                    };
+
+                    ReportError(resource.Id, error);
+                }
+
+                if (duplicateSettings.Count > 0)
+                {
+                    continue;
+                }
+
                 foreach (var capacitySetting in resource.Capacities)
                 {
                     if (capacitySetting.Id == Guid.Empty)
