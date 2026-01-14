@@ -385,7 +385,6 @@
             {
                 this.orchestrationEvents.Add(new ResourceStudioOrchestrationEvent(planApi, orchestrationEvent));
             }
-
         }
 
         private void ParseParameterValues(MediaOpsPlanApi planApi, IList<StorageResourceStudio.ProfileParameterValuesSection> parameterValues)
