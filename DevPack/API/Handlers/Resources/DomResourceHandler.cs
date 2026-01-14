@@ -851,6 +851,28 @@
 
             foreach (var resource in apiResources)
             {
+                var duplicateSettings = resource.Properties
+                    .GroupBy(x => x.Id)
+                    .Where(g => g.Count() > 1)
+                    .ToDictionary(x => x.Key, x => x.Count());
+
+                foreach (var kvp in duplicateSettings)
+                {
+                    var error = new ResourceInvalidPropertySettingsError
+                    {
+                        Id = resource.Id,
+                        PropertyId = kvp.Key,
+                        ErrorMessage = $"Property with ID '{kvp.Key}' is defined {kvp.Value} times. Duplicate property settings are not allowed.",
+                    };
+
+                    ReportError(resource.Id, error);
+                }
+
+                if (duplicateSettings.Count > 0)
+                {
+                    continue;
+                }
+
                 foreach (var propertySetting in resource.Properties)
                 {
                     if (propertySetting.Id == Guid.Empty)
