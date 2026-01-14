@@ -42,6 +42,16 @@
             return GetJobIterator(filter);
         }
 
+        public IEnumerable<RecurringJobsInstance> GetRecurringJobs(FilterElement<DomInstance> filter)
+        {
+            if (filter == null)
+            {
+                throw new ArgumentNullException(nameof(filter));
+            }
+
+            return GetRecurringJobIterator(filter);
+        }
+
         public IEnumerable<WorkflowsInstance> GetWorkflows(FilterElement<DomInstance> filter)
         {
             if (filter == null)
@@ -59,6 +69,11 @@
         private IEnumerable<JobsInstance> GetJobIterator(FilterElement<DomInstance> filter)
         {
             return InstanceFactory.ReadAndCreateInstances(DomHelper, filter, instance => new JobsInstance(instance));
+        }
+
+        private IEnumerable<RecurringJobsInstance> GetRecurringJobIterator(FilterElement<DomInstance> filter)
+        {
+            return InstanceFactory.ReadAndCreateInstances(DomHelper, filter, instance => new RecurringJobsInstance(instance));
         }
 
         private IEnumerable<WorkflowsInstance> GetWorkflowIterator(FilterElement<DomInstance> filter)

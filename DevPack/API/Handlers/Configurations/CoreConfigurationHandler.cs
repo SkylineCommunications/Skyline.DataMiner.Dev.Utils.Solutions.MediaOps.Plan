@@ -8,6 +8,7 @@
     using Microsoft.Extensions.Logging;
 
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+    using Skyline.DataMiner.Net.Helper;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
@@ -123,8 +124,9 @@
 
             ValidateExistence(apiConfigurations);
             ValidateResourcePoolParametersUsage(apiConfigurations.Where(IsValid).ToArray());
+            ValidateWorkflowUsage(apiConfigurations.Where(IsValid).ToArray());
 
-            var validConfigurations = apiConfigurations.Where(IsValid).ToList();
+            var validConfigurations = apiConfigurations.Where(IsValid).ToArray();
             var lockResult = planApi.LockManager.LockAndExecute(validConfigurations, DeleteCoreConfigurations);
             ReportError(lockResult);
         }
@@ -367,7 +369,7 @@
             if (!resourcePoolConfigurations.Any())
                 return;
 
-            var resourcePools = GetResourcePoolsReferencingConfiguration(resourcePoolConfigurations);
+            var resourcePools = GetResourcePoolsReferencingConfigurations(resourcePoolConfigurations);
 
             foreach (var apiConfiguration in apiConfigurations)
             {
@@ -391,15 +393,6 @@
                     ResourcePoolIds = poolsUsingThisConfiguration.Select(x => x.ID.Id).ToArray(),
                 });
             }
-        }
-
-        private ICollection<ResourcepoolInstance> GetResourcePoolsReferencingConfiguration(ICollection<ConfigurationInstance> resourcePoolConfigurations)
-        {
-            var resourcePoolFilter = DomInstanceExposers.DomDefinitionId.Equal(Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Definitions.Resourcepool.Id);
-            var distinctResourcePoolConfigurationIds = resourcePoolConfigurations.Select(x => x.ID.Id).Distinct().ToList();
-            resourcePoolFilter.AND(new ORFilterElement<DomInstance>(distinctResourcePoolConfigurationIds.Select(x => DomInstanceExposers.FieldValues.DomInstanceField(Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ConfigurationInfo.PoolConfiguration).Equal(x)).ToArray()));
-
-            return planApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(resourcePoolFilter).ToArray();
         }
 
         private ICollection<ConfigurationInstance> GetResourceConfigurationsReferencingParameters(HashSet<Guid> apiParameterIds)
@@ -444,6 +437,15 @@
             return resourcePoolConfigurations;
         }
 
+        private ICollection<ResourcepoolInstance> GetResourcePoolsReferencingConfigurations(ICollection<ConfigurationInstance> resourcePoolConfigurations)
+        {
+            var resourcePoolFilter = DomInstanceExposers.DomDefinitionId.Equal(Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Definitions.Resourcepool.Id);
+            var distinctResourcePoolConfigurationIds = resourcePoolConfigurations.Select(x => x.ID.Id).Distinct().ToList();
+            resourcePoolFilter.AND(new ORFilterElement<DomInstance>(distinctResourcePoolConfigurationIds.Select(x => DomInstanceExposers.FieldValues.DomInstanceField(Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ConfigurationInfo.PoolConfiguration).Equal(x)).ToArray()));
+
+            return planApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(resourcePoolFilter).ToArray();
+        }
+
         private void ValidateWorkflowUsage(ICollection<Configuration> apiConfigurations)
         {
             var workflowConfigurations = GetWorkflowConfigurationsReferencingParameters(apiConfigurations.Select(x => x.Id).ToHashSet());
@@ -451,15 +453,14 @@
             if (!workflowConfigurations.Any())
                 return;
 
-            // TODO: check Jobs
-            // TODO: check job nodes
-            // TODO: check workflows
-            // TODO: check workflow nodes
-            // TODO: check recurring jobs
-            // TODO: check recurring job nodes
+            var jobsReferencingConfigurations = GetJobsReferencingConfigurations(workflowConfigurations);
+
+
+            var recurringJobsReferencingConfigurations = GetRecurringJobsReferencingConfigurations(workflowConfigurations);
+            var workflowsReferencingConfigurations = GetWorkflowsReferencingConfigurations(workflowConfigurations);
         }
 
-        private ICollection<Storage.DOM.SlcWorkflow.ConfigurationInstance> GetWorkflowConfigurationsReferencingParameters(HashSet<Guid> apiParameterIds)
+        private List<Storage.DOM.SlcWorkflow.ConfigurationInstance> GetWorkflowConfigurationsReferencingParameters(HashSet<Guid> apiParameterIds)
         {
             var configurationFilter = DomInstanceExposers.DomDefinitionId.Equal(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Definitions.Configuration.Id);
             configurationFilter.AND(new ORFilterElement<DomInstance>(apiParameterIds.Select(x =>
@@ -499,6 +500,45 @@
             }
 
             return workflowConfigurations;
+        }
+
+        private ICollection<Storage.DOM.SlcWorkflow.JobsInstance> GetJobsReferencingConfigurations(ICollection<Storage.DOM.SlcWorkflow.ConfigurationInstance> workflowConfigurations)
+        {
+            var distinctWorkflowConfigurationIds = workflowConfigurations.Select(x => x.ID.Id).Distinct().ToArray();
+
+            var jobFilter = DomInstanceExposers.DomDefinitionId.Equal(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Definitions.Jobs.Id);
+            var jobConfigurationFilter = new ORFilterElement<DomInstance>(distinctWorkflowConfigurationIds.Select(x => DomInstanceExposers.FieldValues.DomInstanceField(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.JobExecution.JobConfiguration).Equal(x)).ToArray());
+            var nodeConfigurationFilter = new ORFilterElement<DomInstance>(distinctWorkflowConfigurationIds.Select(x => DomInstanceExposers.FieldValues.DomInstanceField(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.Nodes.NodeConfiguration).Equal(x)).ToArray());
+
+            var jobInstances = planApi.DomHelpers.SlcWorkflowHelper.GetJobs(jobFilter.AND(jobConfigurationFilter.OR(nodeConfigurationFilter))).DistinctBy(x => x.ID);
+
+            return jobInstances.ToArray();
+        }
+
+        private ICollection<Storage.DOM.SlcWorkflow.RecurringJobsInstance> GetRecurringJobsReferencingConfigurations(ICollection<Storage.DOM.SlcWorkflow.ConfigurationInstance> workflowConfigurations)
+        {
+            var distinctWorkflowConfigurationIds = workflowConfigurations.Select(x => x.ID.Id).Distinct().ToArray();
+
+            var recurringJobFilter = DomInstanceExposers.DomDefinitionId.Equal(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Definitions.RecurringJobs.Id);
+            var jobConfigurationFilter = new ORFilterElement<DomInstance>(distinctWorkflowConfigurationIds.Select(x => DomInstanceExposers.FieldValues.DomInstanceField(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.JobExecution.JobConfiguration).Equal(x)).ToArray());
+            var nodeConfigurationFilter = new ORFilterElement<DomInstance>(distinctWorkflowConfigurationIds.Select(x => DomInstanceExposers.FieldValues.DomInstanceField(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.Nodes.NodeConfiguration).Equal(x)).ToArray());
+
+            var recurringJobInstances = planApi.DomHelpers.SlcWorkflowHelper.GetRecurringJobs(recurringJobFilter.AND(jobConfigurationFilter.OR(nodeConfigurationFilter))).DistinctBy(x => x.ID);
+
+            return recurringJobInstances.ToArray();
+        }
+
+        private ICollection<Storage.DOM.SlcWorkflow.WorkflowsInstance> GetWorkflowsReferencingConfigurations(ICollection<Storage.DOM.SlcWorkflow.ConfigurationInstance> workflowConfigurations)
+        {
+            var distinctWorkflowConfigurationIds = workflowConfigurations.Select(x => x.ID.Id).Distinct().ToArray();
+
+            var workflowFilter = DomInstanceExposers.DomDefinitionId.Equal(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Definitions.Workflows.Id);
+            var workflowConfigurationFilter = new ORFilterElement<DomInstance>(distinctWorkflowConfigurationIds.Select(x => DomInstanceExposers.FieldValues.DomInstanceField(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.WorkflowExecution.WorkflowConfiguration).Equal(x)).ToArray());
+            var nodeConfigurationFilter = new ORFilterElement<DomInstance>(distinctWorkflowConfigurationIds.Select(x => DomInstanceExposers.FieldValues.DomInstanceField(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.Nodes.NodeConfiguration).Equal(x)).ToArray());
+
+            var workflowInstances = planApi.DomHelpers.SlcWorkflowHelper.GetWorkflows(workflowFilter.AND(workflowConfigurationFilter.OR(nodeConfigurationFilter))).DistinctBy(x => x.ID);
+
+            return workflowInstances.ToArray();
         }
 
         private Net.Profiles.Parameter GetNumberConfigurationWithChanges(NumberConfiguration apiConfiguration)
