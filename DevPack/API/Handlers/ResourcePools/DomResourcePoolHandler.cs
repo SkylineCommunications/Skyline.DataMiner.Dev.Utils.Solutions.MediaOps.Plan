@@ -316,6 +316,7 @@
                 return;
             }
 
+            // Todo: add checks to see if resource pool is in use by jobs, etc.
             ValidateStateForDeprecateAction(apiResourcePools);
 
             var poolsToDeprecate = apiResourcePools.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)).ToList();
