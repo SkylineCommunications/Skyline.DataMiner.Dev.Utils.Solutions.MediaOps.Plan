@@ -61,6 +61,7 @@
         /// Sets the specified collection of capability settings.
         /// </summary>
         /// <param name="capabilitySettings">The capability settings to set. Cannot be null.</param>
+        /// <returns>Orchestration settings with updated capability settings.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="capabilitySettings"/> is <see langword="null"/></exception>
         public abstract OrchestrationSettings SetCapabilities(IEnumerable<CapabilitySetting> capabilitySettings);
 
@@ -82,6 +83,7 @@
         /// Sets the specified collection of capacity settings.
         /// </summary>
         /// <param name="capacitySettings">The capacity settings to set. Cannot be null.</param>
+        /// <returns>Orchestration settings with updated capacity settings.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="capacitySettings"/> is <see langword="null"/></exception>
         public abstract OrchestrationSettings SetCapacities(IEnumerable<CapacitySetting> capacitySettings);
 
@@ -103,6 +105,7 @@
         /// Sets the specified collection of configuration settings.
         /// </summary>
         /// <param name="configurationSettings">The configuration settings to set. Cannot be null.</param>
+        /// <returns>Orchestration settings with updated configuration settings.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="configurationSettings"/> is <see langword="null"/></exception>
         public abstract OrchestrationSettings SetConfigurations(IEnumerable<ConfigurationSetting> configurationSettings);
 
@@ -124,6 +127,7 @@
         /// Sets the specified collection of orchestration events.
         /// </summary>
         /// <param name="orchestrationEvents">The orchestration events to set. Cannot be null.</param>
+        /// <returns>Orchestration settings with updated orchestration events.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="orchestrationEvents"/> is <see langword="null"/></exception>
         public abstract OrchestrationSettings SetOrchestrationEvents(IEnumerable<OrchestrationEvent> orchestrationEvents);
     }
