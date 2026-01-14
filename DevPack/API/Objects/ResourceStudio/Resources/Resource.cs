@@ -150,6 +150,7 @@
         /// Configures the collection of resource pools to which this resource belongs.
         /// </summary>
         /// <param name="resourcePools">A collection of <see cref="ResourcePool"/> objects representing the resource pools to configure.</param>
+        /// <returns>The current <see cref="Resource"/> instance with updated resource pools.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="resourcePools"/> is <see langword="null"/>.</exception>
         /// <exception cref="ArgumentException">Thrown if <paramref name="resourcePools"/> contains a null element.</exception>
         public Resource SetPools(IEnumerable<ResourcePool> resourcePools)
@@ -171,6 +172,7 @@
         /// Configures the collection of resource pools to which this resource belongs.
         /// </summary>
         /// <param name="resourcePoolIds">A collection of <see cref="Guid"/> values representing the resource pool IDs to assign.</param>
+        /// <returns>The current <see cref="Resource"/> instance with updated resource pools.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="resourcePoolIds"/> is <see langword="null"/>.</exception>
         /// <exception cref="ArgumentException">Thrown if <paramref name="resourcePoolIds"/> contains an empty <see cref="Guid"/> value.</exception>
         public Resource SetPools(IEnumerable<Guid> resourcePoolIds)
