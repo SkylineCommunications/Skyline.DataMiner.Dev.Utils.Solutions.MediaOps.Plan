@@ -1125,7 +1125,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
         /// <summary>
         /// Gets or sets the NodeRelationships section of the DOM Instance.
         /// </summary>
-        public NodeRelationshipsSection NodeRelationships { get; set; }
+        public IList<NodeRelationshipsSection> NodeRelationships { get; private set; }
 
         /// <summary>
         /// Gets or sets the RecurringInfo section of the DOM Instance.
@@ -1140,22 +1140,22 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
         /// <summary>
         /// Gets or sets the Errors section of the DOM Instance.
         /// </summary>
-        public ErrorsSection Errors { get; set; }
+        public IList<ErrorsSection> Errors { get; private set; }
 
         /// <summary>
         /// Gets or sets the Connections section of the DOM Instance.
         /// </summary>
-        public ConnectionsSection Connections { get; set; }
+        public IList<ConnectionsSection> Connections { get; private set; }
 
         /// <summary>
         /// Gets or sets the CostingAndBilling section of the DOM Instance.
         /// </summary>
-        public CostingAndBillingSection CostingAndBilling { get; set; }
+        public IList<CostingAndBillingSection> CostingAndBilling { get; private set; }
 
         /// <summary>
         /// Gets or sets the Nodes section of the DOM Instance.
         /// </summary>
-        public NodesSection Nodes { get; set; }
+        public IList<NodesSection> Nodes { get; private set; }
 
         /// <summary>
         /// Gets or sets the JobExecution section of the DOM Instance.
@@ -1202,13 +1202,33 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
         protected sealed override DomInstance InternalToInstance()
         {
             domInstance.Sections.Clear();
-            domInstance.Sections.Add(NodeRelationships.ToSection());
+            foreach (var item in NodeRelationships)
+            {
+                domInstance.Sections.Add(item.ToSection());
+            }
+
             domInstance.Sections.Add(RecurringInfo.ToSection());
             domInstance.Sections.Add(MonitoringSettings.ToSection());
-            domInstance.Sections.Add(Errors.ToSection());
-            domInstance.Sections.Add(Connections.ToSection());
-            domInstance.Sections.Add(CostingAndBilling.ToSection());
-            domInstance.Sections.Add(Nodes.ToSection());
+            foreach (var item in Errors)
+            {
+                domInstance.Sections.Add(item.ToSection());
+            }
+
+            foreach (var item in Connections)
+            {
+                domInstance.Sections.Add(item.ToSection());
+            }
+
+            foreach (var item in CostingAndBilling)
+            {
+                domInstance.Sections.Add(item.ToSection());
+            }
+
+            foreach (var item in Nodes)
+            {
+                domInstance.Sections.Add(item.ToSection());
+            }
+
             domInstance.Sections.Add(JobExecution.ToSection());
             domInstance.Sections.Add(JobInfo.ToSection());
             return domInstance;
@@ -1231,16 +1251,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 
         protected sealed override void InitializeProperties()
         {
-            var _nodeRelationships = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.NodeRelationships.Id));
-            if (_nodeRelationships is null)
-            {
-                NodeRelationships = new NodeRelationshipsSection();
-            }
-            else
-            {
-                NodeRelationships = new NodeRelationshipsSection(_nodeRelationships);
-            }
-
+            NodeRelationships = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.NodeRelationships.Id)).Select(section => new NodeRelationshipsSection(section)).ToList();
             var _recurringInfo = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.RecurringInfo.Id));
             if (_recurringInfo is null)
             {
@@ -1261,46 +1272,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
                 MonitoringSettings = new MonitoringSettingsSection(_monitoringSettings);
             }
 
-            var _errors = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.Errors.Id));
-            if (_errors is null)
-            {
-                Errors = new ErrorsSection();
-            }
-            else
-            {
-                Errors = new ErrorsSection(_errors);
-            }
-
-            var _connections = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.Connections.Id));
-            if (_connections is null)
-            {
-                Connections = new ConnectionsSection();
-            }
-            else
-            {
-                Connections = new ConnectionsSection(_connections);
-            }
-
-            var _costingAndBilling = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.CostingAndBilling.Id));
-            if (_costingAndBilling is null)
-            {
-                CostingAndBilling = new CostingAndBillingSection();
-            }
-            else
-            {
-                CostingAndBilling = new CostingAndBillingSection(_costingAndBilling);
-            }
-
-            var _nodes = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.Nodes.Id));
-            if (_nodes is null)
-            {
-                Nodes = new NodesSection();
-            }
-            else
-            {
-                Nodes = new NodesSection(_nodes);
-            }
-
+            Errors = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.Errors.Id)).Select(section => new ErrorsSection(section)).ToList();
+            Connections = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.Connections.Id)).Select(section => new ConnectionsSection(section)).ToList();
+            CostingAndBilling = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.CostingAndBilling.Id)).Select(section => new CostingAndBillingSection(section)).ToList();
+            Nodes = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.Nodes.Id)).Select(section => new NodesSection(section)).ToList();
             var _jobExecution = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.JobExecution.Id));
             if (_jobExecution is null)
             {
@@ -8662,3 +8637,4 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
         }
     }
 }
+
