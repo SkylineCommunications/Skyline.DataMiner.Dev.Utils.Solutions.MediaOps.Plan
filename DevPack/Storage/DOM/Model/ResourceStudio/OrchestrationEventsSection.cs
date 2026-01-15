@@ -1,38 +1,32 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio
 {
+    using System;
+
     internal partial class OrchestrationEventsSection
     {
-        private ScriptExecutionDetails scriptExecutionDetails;
-        private bool isScriptExecutionDetailsLoaded = false;
+        internal ScriptExecutionDetails ScriptExecutionDetails { get; set; }
 
-        internal ScriptExecutionDetails ScriptExecutionDetails
+        protected override void BeforeToSection()
         {
-            get
+            if (ScriptExecutionDetails != null)
             {
-                if (!isScriptExecutionDetailsLoaded)
-                {
-                    ScriptExecutionDetails.TryDeserialize(ScriptInput, out scriptExecutionDetails);
-                    isScriptExecutionDetailsLoaded = true;
-                }
-
-
-                return scriptExecutionDetails;
-            }
-            set
-            {
-                scriptExecutionDetails = value;
-            }
-        }
-
-        internal void ApplyChanges()
-        {
-            if (scriptExecutionDetails != null)
-            {
-                ScriptInput = scriptExecutionDetails.Serialize();
+                ScriptInput = ScriptExecutionDetails.Serialize();
             }
             else
             {
                 ScriptInput = null;
+            }
+        }
+
+        protected override void AfterLoad()
+        {
+            if (!String.IsNullOrEmpty(ScriptInput) && ScriptExecutionDetails.TryDeserialize(ScriptInput, out var details))
+            {
+                ScriptExecutionDetails = details;
+            }
+            else
+            {
+                ScriptExecutionDetails = null;
             }
         }
     }

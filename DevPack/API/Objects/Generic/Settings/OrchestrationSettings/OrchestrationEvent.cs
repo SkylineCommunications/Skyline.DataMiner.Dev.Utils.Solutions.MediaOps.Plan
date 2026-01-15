@@ -41,7 +41,7 @@
 		public string Metadata { get; set; }
 
         /// <summary>
-        /// Checks if the provided object is an OrchestrationEvent and compares its properties to determine equality.
+        /// Checks if the provided object is an OrchestrationEvent instance and compares its properties to determine equality.
         /// </summary>
         /// <param name="obj">Object to compare.</param>
         /// <returns>True, if properties match, else false.</returns>

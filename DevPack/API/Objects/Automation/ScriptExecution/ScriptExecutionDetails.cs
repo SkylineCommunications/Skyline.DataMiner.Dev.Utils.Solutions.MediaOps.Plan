@@ -7,6 +7,7 @@
     using Microsoft.Extensions.Logging;
 
     using Skyline.DataMiner.Core.DataMinerSystem.Common;
+    using Skyline.DataMiner.Net.Helper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
 
@@ -303,6 +304,87 @@
                 discreteNumberConfigurationSettings.Remove(storageDiscreteNumberConfigurationSetting);
             }
             return this;
+        }
+
+        /// <summary>
+        /// Checks if the provided object is an ScriptExecutionDetails instance and compares its properties to determine equality.
+        /// </summary>
+        /// <param name="obj">Object to compare.</param>
+        /// <returns>True, if properties match, else false.</returns>
+        public override bool Equals(object obj)
+        {
+            if (obj is not ScriptExecutionDetails other)
+            {
+                return false;
+            }
+
+            return ScriptName == other.ScriptName &&
+                     scriptElementSettings.ScrambledEquals(other.scriptElementSettings) &&
+                     scriptParameterSettings.ScrambledEquals(other.scriptParameterSettings) &&
+                     capabilitySettings.ScrambledEquals(other.capabilitySettings) &&
+                     numberCapacitySettings.ScrambledEquals(other.numberCapacitySettings) &&
+                     rangeCapacitySettings.ScrambledEquals(other.rangeCapacitySettings) &&
+                     textConfigurationSettings.ScrambledEquals(other.textConfigurationSettings) &&
+                     numberConfigurationSettings.ScrambledEquals(other.numberConfigurationSettings) &&
+                     discreteTextConfigurationSettings.ScrambledEquals(other.discreteTextConfigurationSettings) &&
+                     discreteNumberConfigurationSettings.ScrambledEquals(other.discreteNumberConfigurationSettings);
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = 17;
+                hash = (hash * 23) + (ScriptName != null ? ScriptName.GetHashCode() : 0);
+
+                foreach (var elementSettings in scriptElementSettings.OrderBy(x => x.Name))
+                {
+                    hash = (hash * 23) + elementSettings.GetHashCode();
+                }
+
+                foreach (var parameterSettings in scriptParameterSettings.OrderBy(x => x.Name))
+                {
+                    hash = (hash * 23) + parameterSettings.GetHashCode();
+                }
+
+                foreach (var capabilitySetting in capabilitySettings.OrderBy(x => x.Id))
+                {
+                    hash = (hash * 23) + capabilitySetting.GetHashCode();
+                }
+
+                foreach (var capacitySetting in numberCapacitySettings.OrderBy(x => x.Id))
+                {
+                    hash = (hash * 23) + capacitySetting.GetHashCode();
+                }
+
+                foreach (var capacitySetting in rangeCapacitySettings.OrderBy(x => x.Id))
+                {
+                    hash = (hash * 23) + capacitySetting.GetHashCode();
+                }
+
+                foreach (var configurationSetting in textConfigurationSettings.OrderBy(x => x.Id))
+                {
+                    hash = (hash * 23) + configurationSetting.GetHashCode();
+                }
+
+                foreach (var configurationSetting in numberConfigurationSettings.OrderBy(x => x.Id))
+                {
+                    hash = (hash * 23) + configurationSetting.GetHashCode();
+                }
+
+                foreach (var configurationSetting in discreteTextConfigurationSettings.OrderBy(x => x.Id))
+                {
+                    hash = (hash * 23) + configurationSetting.GetHashCode();
+                }
+
+                foreach (var configurationSetting in discreteNumberConfigurationSettings.OrderBy(x => x.Id))
+                {
+                    hash = (hash * 23) + configurationSetting.GetHashCode();
+                }
+
+                return hash;
+            }
         }
 
         internal static ScriptExecutionDetails FromStorage(MediaOpsPlanApi planApi, Storage.DOM.ScriptExecutionDetails storageScriptExecutionDetails)

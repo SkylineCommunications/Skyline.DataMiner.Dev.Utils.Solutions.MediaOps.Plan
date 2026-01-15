@@ -2,11 +2,9 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.Configuration;
     using System.Linq;
 
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
     using Skyline.DataMiner.Utils.DOM.Extensions;
 
@@ -104,7 +102,8 @@
                 return;
             }
 
-            planApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.TryCreateOrUpdateInBatches(domResourceStudioOrchestrationSettings.Select(x => x.ToInstance()), out var domResult);
+            var instancesToCreateOrUpdate = domResourceStudioOrchestrationSettings.Select(x => x.ToInstance()).ToList();
+            planApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.TryCreateOrUpdateInBatches(instancesToCreateOrUpdate, out var domResult);
 
             foreach (var id in domResult.UnsuccessfulIds)
             {
