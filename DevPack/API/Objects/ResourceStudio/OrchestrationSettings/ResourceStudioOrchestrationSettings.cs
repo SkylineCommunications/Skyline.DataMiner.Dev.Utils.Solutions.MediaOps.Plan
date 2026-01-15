@@ -235,18 +235,7 @@
                 throw new ArgumentNullException(nameof(orchestrationEvent));
             }
 
-            if (orchestrationEvent.OriginalSection == null)
-            {
-                return this;
-            }
-
-            var toRemove = orchestrationEvents.SingleOrDefault(x => x.OriginalSection.ID == orchestrationEvent.OriginalSection.ID);
-            if (toRemove == null)
-            {
-                return this;
-            }
-
-            orchestrationEvents.Remove(toRemove);
+            orchestrationEvents.RemoveAll(x => x.Equals(orchestrationEvent));
             return this;
         }
 
