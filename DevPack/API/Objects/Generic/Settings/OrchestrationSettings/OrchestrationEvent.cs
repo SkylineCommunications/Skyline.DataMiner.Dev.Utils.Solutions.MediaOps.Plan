@@ -12,6 +12,7 @@
         /// </summary>
         public OrchestrationEvent()
         {
+            IsNew = true;
         }
 
         internal OrchestrationEvent(OrchestrationEvent orchestrationEvent)
