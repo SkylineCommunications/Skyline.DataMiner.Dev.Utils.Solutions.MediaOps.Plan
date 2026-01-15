@@ -5,6 +5,8 @@
 
     using RT_MediaOps.Plan.RegressionTests;
 
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+
     [TestClass]
     [TestCategory("IntegrationTest")]
     public sealed class OrchestrationSettingsTests : IDisposable
@@ -98,6 +100,73 @@
             Assert.IsTrue(configurationIds.Contains(numberConfiguration.Id));
             Assert.IsTrue(configurationIds.Contains(discreteTextConfiguration.Id));
             Assert.IsTrue(configurationIds.Contains(discreteNumberConfiguration.Id));
+        }
+
+        [TestMethod]
+        public void CreateWithDuplicateSettingsThrowsException()
+        {
+            var prefix = Guid.NewGuid();
+
+            var capability = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capability
+            {
+                Name = $"{prefix}_Capability",
+            }
+            .SetDiscretes(["Value 1", "Value 2"]);
+            objectCreator.CreateCapability(capability);
+
+            var numberCapacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity
+            {
+                Name = $"{prefix}_NumberCapacity",
+            };
+            objectCreator.CreateCapacity(numberCapacity);
+
+            var textConfiguration = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration
+            {
+                Name = $"{prefix}_TextConfiguration",
+            };
+            objectCreator.CreateConfiguration(textConfiguration);
+
+            var resourcePool = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool
+            {
+                Name = $"{prefix}_ResourcePool",
+            };
+            resourcePool.OrchestrationSettings
+                .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(capability))
+                .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(capability))
+                .AddCapacity(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacitySetting(numberCapacity))
+                .AddCapacity(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacitySetting(numberCapacity))
+                .AddConfiguration(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfigurationSetting(textConfiguration))
+                .AddConfiguration(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfigurationSetting(textConfiguration));
+
+            try
+            {
+                objectCreator.CreateResourcePool(resourcePool);
+            }
+            catch (MediaOpsException ex)
+            {
+                Assert.AreEqual(3, ex.TraceData.ErrorData.Count);
+
+                var orchestrationSettingsErrors = ex.TraceData.ErrorData.OfType<OrchestrationSettingsError>();
+                Assert.AreEqual(3, orchestrationSettingsErrors.Count());
+
+                var invalidCapacitySettingsError = orchestrationSettingsErrors.OfType<OrchestrationSettingsInvalidCapacitySettingsError>().SingleOrDefault();
+                Assert.IsNotNull(invalidCapacitySettingsError);
+                Assert.AreEqual($"Capacity with ID '{numberCapacity.Id}' is defined 2 times. Duplicate capacity settings are not allowed.", invalidCapacitySettingsError.ErrorMessage);
+                Assert.AreEqual(numberCapacity.Id, invalidCapacitySettingsError.CapacityId);
+                Assert.AreEqual(resourcePool.OrchestrationSettings.Id, invalidCapacitySettingsError.Id);
+
+                var invalidCapabilitySettingsError = orchestrationSettingsErrors.OfType<OrchestrationSettingsInvalidCapabilitySettingsError>().SingleOrDefault();
+                Assert.IsNotNull(invalidCapabilitySettingsError);
+                Assert.AreEqual($"Capability with ID '{capability.Id}' is defined 2 times. Duplicate capability settings are not allowed.", invalidCapabilitySettingsError.ErrorMessage);
+                Assert.AreEqual(capability.Id, invalidCapabilitySettingsError.CapabilityId);
+                Assert.AreEqual(resourcePool.OrchestrationSettings.Id, invalidCapabilitySettingsError.Id);
+
+                var invalidConfigurationSettingsError = orchestrationSettingsErrors.OfType<OrchestrationSettingsInvalidConfigurationSettingsError>().SingleOrDefault();
+                Assert.IsNotNull(invalidConfigurationSettingsError);
+                Assert.AreEqual($"Configuration with ID '{textConfiguration.Id}' is defined 2 times. Duplicate configuration settings are not allowed.", invalidConfigurationSettingsError.ErrorMessage);
+                Assert.AreEqual(textConfiguration.Id, invalidConfigurationSettingsError.ConfigurationId);
+                Assert.AreEqual(resourcePool.OrchestrationSettings.Id, invalidConfigurationSettingsError.Id);
+            }
         }
     }
 }

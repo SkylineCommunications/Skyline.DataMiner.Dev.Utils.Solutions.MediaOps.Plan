@@ -316,6 +316,7 @@
                 return;
             }
 
+            // Todo: add checks to see if resource pool is in use by jobs, etc.
             ValidateStateForDeprecateAction(apiResourcePools);
 
             var poolsToDeprecate = apiResourcePools.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)).ToList();
@@ -862,6 +863,28 @@
 
             foreach (var pool in apiResourcePools)
             {
+                var duplicateSettings = pool.Capabilities
+                    .GroupBy(x => x.Id)
+                    .Where(g => g.Count() > 1)
+                    .ToDictionary(x => x.Key, x => x.Count());
+
+                foreach (var kvp in duplicateSettings)
+                {
+                    var error = new ResourcePoolInvalidCapabilitySettingsError
+                    {
+                        Id = pool.Id,
+                        CapabilityId = kvp.Key,
+                        ErrorMessage = $"Capability with ID '{kvp.Key}' is defined {kvp.Value} times. Duplicate capability settings are not allowed.",
+                    };
+
+                    ReportError(pool.Id, error);
+                }
+
+                if (duplicateSettings.Count > 0)
+                {
+                    continue;
+                }
+
                 foreach (var capabilitySettings in pool.Capabilities)
                 {
                     if (capabilitySettings.Id == Guid.Empty)

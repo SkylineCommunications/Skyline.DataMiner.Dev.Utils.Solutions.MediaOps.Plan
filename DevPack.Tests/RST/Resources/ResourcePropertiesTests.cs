@@ -265,5 +265,118 @@
             }
             Assert.Fail("Exception not thrown");
         }
+
+        [TestMethod]
+        public void CreateWithDuplicateSettingsThrowsException()
+        {
+            var prefix = Guid.NewGuid();
+            var property1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceProperty()
+            {
+                Name = $"{prefix}_Property1",
+            };
+            var property2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceProperty()
+            {
+                Name = $"{prefix}_Property2",
+            };
+            objectCreator.CreateProperties([property1, property2]);
+
+            var unmanagedResource = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
+            {
+                Name = $"{prefix}_Resource",
+            }
+            .AddProperty(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePropertySettings(property1.Id)
+            {
+                Value = "A",
+            })
+            .AddProperty(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePropertySettings(property2.Id)
+            {
+                Value = "B",
+            })
+            .AddProperty(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePropertySettings(property1.Id)
+            {
+                Value = "C",
+            });
+
+            try
+            {
+                objectCreator.CreateResource(unmanagedResource);
+            }
+            catch (MediaOpsException ex)
+            {
+                var errorMessage = $"Property with ID '{property1.Id}' is defined 2 times. Duplicate property settings are not allowed.";
+                Assert.AreEqual(errorMessage, ex.Message);
+                Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
+
+                var resourceConfigurationError = ex.TraceData.ErrorData.OfType<ResourceError>().SingleOrDefault();
+                Assert.IsNotNull(resourceConfigurationError);
+
+                var invalidResourcePropertyConfigurationError = resourceConfigurationError as ResourceInvalidPropertySettingsError;
+                Assert.IsNotNull(invalidResourcePropertyConfigurationError);
+                Assert.AreEqual(errorMessage, invalidResourcePropertyConfigurationError.ErrorMessage);
+                Assert.AreEqual(property1.Id, invalidResourcePropertyConfigurationError.PropertyId);
+                Assert.AreEqual(unmanagedResource.Id, invalidResourcePropertyConfigurationError.Id);
+                return;
+            }
+
+            Assert.Fail("Exception not thrown");
+        }
+
+        [TestMethod]
+        public void UpdateWithDuplicateSettingsThrowsException()
+        {
+            var prefix = Guid.NewGuid();
+            var property1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceProperty()
+            {
+                Name = $"{prefix}_Property1",
+            };
+            var property2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceProperty()
+            {
+                Name = $"{prefix}_Property2",
+            };
+            objectCreator.CreateProperties([property1, property2]);
+
+            var unmanagedResource = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
+            {
+                Name = $"{prefix}_Resource",
+            }
+            .AddProperty(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePropertySettings(property1.Id)
+            {
+                Value = "A",
+            })
+            .AddProperty(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePropertySettings(property2.Id)
+            {
+                Value = "B",
+            });
+            objectCreator.CreateResource(unmanagedResource);
+
+            var resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
+            resource.AddProperty(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePropertySettings(property1.Id)
+             {
+                 Value = "C",
+             });
+
+            try
+            {
+                TestContext.Api.Resources.Update(resource);
+            }
+            catch (MediaOpsException ex)
+            {
+                var errorMessage = $"Property with ID '{property1.Id}' is defined 2 times. Duplicate property settings are not allowed.";
+                Assert.AreEqual(errorMessage, ex.Message);
+                Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
+
+                var resourceConfigurationError = ex.TraceData.ErrorData.OfType<ResourceError>().SingleOrDefault();
+                Assert.IsNotNull(resourceConfigurationError);
+
+                var invalidResourcePropertyConfigurationError = resourceConfigurationError as ResourceInvalidPropertySettingsError;
+                Assert.IsNotNull(invalidResourcePropertyConfigurationError);
+                Assert.AreEqual(errorMessage, invalidResourcePropertyConfigurationError.ErrorMessage);
+                Assert.AreEqual(property1.Id, invalidResourcePropertyConfigurationError.PropertyId);
+                Assert.AreEqual(unmanagedResource.Id, invalidResourcePropertyConfigurationError.Id);
+                return;
+            }
+
+            Assert.Fail("Exception not thrown");
+        }
     }
 }

@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Configuration;
     using System.Linq;
 
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
@@ -260,6 +261,28 @@
 
             foreach (var orchestrationSettings in apiOrchestrationSettings)
             {
+                var duplicateSettings = orchestrationSettings.Capacities
+                    .GroupBy(x => x.Id)
+                    .Where(g => g.Count() > 1)
+                    .ToDictionary(x => x.Key, x => x.Count());
+
+                foreach (var kvp in duplicateSettings)
+                {
+                    var error = new OrchestrationSettingsInvalidCapacitySettingsError
+                    {
+                        ErrorMessage = $"Capacity with ID '{kvp.Key}' is defined {kvp.Value} times. Duplicate capacity settings are not allowed.",
+                        CapacityId = kvp.Key,
+                        Id = orchestrationSettings.Id,
+                    };
+
+                    ReportError(orchestrationSettings.Id, error);
+                }
+
+                if (duplicateSettings.Count > 0)
+                {
+                    continue;
+                }
+
                 foreach (var capacitySetting in orchestrationSettings.Capacities)
                 {
                     if (capacitySetting.Id == Guid.Empty)
@@ -267,6 +290,8 @@
                         var error = new OrchestrationSettingsInvalidCapacitySettingsError
                         {
                             ErrorMessage = "Capacity ID cannot be empty.",
+                            CapacityId = capacitySetting.Id,
+                            Id = orchestrationSettings.Id,
                         };
 
                         ReportError(orchestrationSettings.Id, error);
@@ -279,6 +304,7 @@
                         {
                             ErrorMessage = $"Capacity with ID '{capacitySetting.Id}' not found.",
                             CapacityId = capacitySetting.Id,
+                            Id = orchestrationSettings.Id,
                         };
 
                         ReportError(orchestrationSettings.Id, error);
@@ -311,6 +337,28 @@
 
             foreach (var orchestrationSettings in apiOrchestrationSettings)
             {
+                var duplicateSettings = orchestrationSettings.Capabilities
+                    .GroupBy(x => x.Id)
+                    .Where(g => g.Count() > 1)
+                    .ToDictionary(x => x.Key, x => x.Count());
+
+                foreach (var kvp in duplicateSettings)
+                {
+                    var error = new OrchestrationSettingsInvalidCapabilitySettingsError
+                    {
+                        ErrorMessage = $"Capability with ID '{kvp.Key}' is defined {kvp.Value} times. Duplicate capability settings are not allowed.",
+                        CapabilityId = kvp.Key,
+                        Id = orchestrationSettings.Id,
+                    };
+
+                    ReportError(orchestrationSettings.Id, error);
+                }
+
+                if (duplicateSettings.Count > 0)
+                {
+                    continue;
+                }
+
                 foreach (var capabilitySetting in orchestrationSettings.Capabilities)
                 {
                     if (capabilitySetting.Id == Guid.Empty)
@@ -318,6 +366,8 @@
                         var error = new OrchestrationSettingsInvalidCapabilitySettingsError
                         {
                             ErrorMessage = "Capability ID cannot be empty.",
+                            CapabilityId = capabilitySetting.Id,
+                            Id = orchestrationSettings.Id,
                         };
 
                         ReportError(capabilitySetting.Id, error);
@@ -330,6 +380,7 @@
                         {
                             ErrorMessage = $"Capability with ID '{capabilitySetting.Id}' not found.",
                             CapabilityId = capabilitySetting.Id,
+                            Id = orchestrationSettings.Id,
                         };
 
                         ReportError(capabilitySetting.Id, error);
@@ -388,6 +439,28 @@
 
             foreach (var orchestrationSettings in apiOrchestrationSettings)
             {
+                var duplicateSettings = orchestrationSettings.Configurations
+                    .GroupBy(x => x.Id)
+                    .Where(g => g.Count() > 1)
+                    .ToDictionary(x => x.Key, x => x.Count());
+
+                foreach (var kvp in duplicateSettings)
+                {
+                    var error = new OrchestrationSettingsInvalidConfigurationSettingsError
+                    {
+                        ErrorMessage = $"Configuration with ID '{kvp.Key}' is defined {kvp.Value} times. Duplicate configuration settings are not allowed.",
+                        ConfigurationId = kvp.Key,
+                        Id = orchestrationSettings.Id,
+                    };
+
+                    ReportError(orchestrationSettings.Id, error);
+                }
+
+                if (duplicateSettings.Count > 0)
+                {
+                    continue;
+                }
+
                 foreach (var configurationSetting in orchestrationSettings.Configurations)
                 {
                     if (configurationSetting.Id == Guid.Empty)
@@ -395,6 +468,8 @@
                         var error = new OrchestrationSettingsInvalidConfigurationSettingsError
                         {
                             ErrorMessage = "Configuration ID cannot be empty.",
+                            ConfigurationId = configurationSetting.Id,
+                            Id = orchestrationSettings.Id,
                         };
 
                         ReportError(configurationSetting.Id, error);
@@ -407,6 +482,7 @@
                         {
                             ErrorMessage = $"Configuration with ID '{configurationSetting.Id}' not found.",
                             ConfigurationId = configurationSetting.Id,
+                            Id = orchestrationSettings.Id,
                         };
 
                         ReportError(configurationSetting.Id, error);

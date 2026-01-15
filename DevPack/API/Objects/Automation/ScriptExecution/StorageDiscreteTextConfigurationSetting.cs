@@ -22,7 +22,7 @@
             return new ProfileParameterValue
             {
                 ProfileParameterId = Id,
-                StringValue = Value.Value,
+                StringValue = Value?.Value,
             };
         }
 
@@ -34,7 +34,6 @@
             }
 
             Id = profileParameterValue.ProfileParameterId;
-
 
             var discreteValue = configuration.Discretes.FirstOrDefault(dv => dv.Value == profileParameterValue.StringValue);
             if (discreteValue != null)

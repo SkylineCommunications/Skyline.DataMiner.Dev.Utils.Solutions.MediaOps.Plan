@@ -28,8 +28,8 @@
             }
 
             updatedSection.ProfileParameterId = Id;
-            updatedSection.DoubleMinValue = (double)MinValue;
-            updatedSection.DoubleMaxValue = (double)MaxValue;
+            updatedSection.DoubleMinValue = MinValue.HasValue ? (double)MinValue : null;
+            updatedSection.DoubleMaxValue = MaxValue.HasValue ? (double)MaxValue : null;
 
             return updatedSection;
         }
@@ -39,8 +39,8 @@
             originalSection = section ?? throw new ArgumentNullException(nameof(section));
 
             Id = section.ProfileParameterId;
-            MinValue = (decimal)section.DoubleMinValue.Value;
-            MaxValue = (decimal)section.DoubleMaxValue.Value;
+            MinValue = section.DoubleMinValue.HasValue ? (decimal)section.DoubleMinValue.Value : null;
+            MaxValue = section.DoubleMaxValue.HasValue ? (decimal)section.DoubleMaxValue.Value : null;
         }
     }
 }

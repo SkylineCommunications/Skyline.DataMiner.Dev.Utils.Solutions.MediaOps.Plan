@@ -239,6 +239,28 @@
             return this;
         }
 
+        /// <summary>
+        /// Sets the specified collection of capability settings on the resource pool.
+        /// </summary>
+        /// <param name="capabilitySettings">The capability settings to apply on the resource pool. Cannot be null.</param>
+        /// <returns>Resource pool with updated capability settings.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="capabilitySettings"/> is <see langword="null"/></exception>
+        public ResourcePool SetCapabilities(IEnumerable<CapabilitySetting> capabilitySettings)
+        {
+            if (capabilitySettings == null)
+            {
+                throw new ArgumentNullException(nameof(capabilitySettings));
+            }
+
+            this.capabilitySettings.Clear();
+            foreach (var setting in capabilitySettings)
+            {
+                AddCapability(setting);
+            }
+
+            return this;
+        }
+
         internal ResourcePool RemoveLinkedResourcePool(ResourcePool resourcePool)
         {
             if (resourcePool == null)

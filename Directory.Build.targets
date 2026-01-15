@@ -154,45 +154,4 @@
              Importance="high" 
              Condition="Exists('$(NuGetPackageFile)')" />
   </Target>
-
-  <!-- Copy ONLY DLL files to solution repo after build (for 4 target projects only) -->
-  <Target Name="CopyMediaOpsDllsToRepo" 
-          AfterTargets="AfterBuild" 
-          Condition="'$(IsMediaOpsTargetProject)' == 'true' AND '$(MediaOpsSolutionRepoPath)' != '' AND Exists('$(MediaOpsSolutionRepoPath)') AND ('$(ShouldRunMediaOpsDevMode)' == 'true' OR ('$(IsBuildingSolution)' == 'false' AND '$(Configuration)' == 'Debug' AND '$(MediaOpsLocalDevMode)' == 'true'))">
-    
-    <PropertyGroup>
-      <DllFile>$(OutputPath)$(AssemblyName).dll</DllFile>
-      
-      <!-- Target directories -->
-      <AutomationDevPackPath>$(MediaOpsSolutionRepoPath)\SLC-AS-MediaOps\SetupContent\DevPack</AutomationDevPackPath>
-      <SolutionDevPackPath>$(MediaOpsSolutionRepoPath)\SLC-S-MediaOps\SetupContent\DevPack</SolutionDevPackPath>
-    </PropertyGroup>
-
-    <!-- Create directories if they don't exist -->
-    <MakeDir Directories="$(AutomationDevPackPath)" Condition="!Exists('$(AutomationDevPackPath)')" />
-    <MakeDir Directories="$(SolutionDevPackPath)" Condition="!Exists('$(SolutionDevPackPath)')" />
-
-    <!-- Copy ONLY DLL to SLC-AS-MediaOps -->
-    <Copy SourceFiles="$(DllFile)" 
-          DestinationFolder="$(AutomationDevPackPath)" 
-          Condition="Exists('$(DllFile)')" />
-
-    <!-- Copy ONLY DLL to SLC-S-MediaOps -->
-    <Copy SourceFiles="$(DllFile)" 
-          DestinationFolder="$(SolutionDevPackPath)" 
-          Condition="Exists('$(DllFile)')" />
-
-    <!-- Log messages -->
-    <Message Text="📚 Copied $(AssemblyName).dll:" Importance="high" Condition="Exists('$(DllFile)')" />
-    <Message Text="   → $(AutomationDevPackPath)" Importance="high" Condition="Exists('$(DllFile)')" />
-    <Message Text="   → $(SolutionDevPackPath)" Importance="high" Condition="Exists('$(DllFile)')" />
-  </Target>
-
-  <!-- Warning message if solution repo path doesn't exist -->
-  <Target Name="WarnMissingMediaOpsSolutionRepo" 
-          AfterTargets="AfterBuild" 
-          Condition="'$(ShouldRunMediaOpsDevMode)' == 'true' AND '$(MediaOpsSolutionRepoPath)' != '' AND !Exists('$(MediaOpsSolutionRepoPath)')">
-    <Warning Text="⚠️  MediaOps Solution repo path does not exist: $(MediaOpsSolutionRepoPath)" />
-    <Warning Text="⚠️  DLL files will NOT be copied to solution repo. Please update MediaOpsSolutionRepoPath in MediaOps.Local.props" />
-  </Target>
 </Project>
