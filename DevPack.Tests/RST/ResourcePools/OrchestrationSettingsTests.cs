@@ -4,7 +4,7 @@
     using System.Linq;
 
     using RT_MediaOps.Plan.RegressionTests;
-
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
     [TestClass]
@@ -30,55 +30,55 @@
         {
             var prefix = Guid.NewGuid();
 
-            var capability = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capability
+            var capability = new Capability
             {
                 Name = $"{prefix}_Capability",
             }
             .SetDiscretes(["Value 1", "Value 2"]);
             objectCreator.CreateCapability(capability);
 
-            var numberCapacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity
+            var numberCapacity = new NumberCapacity
             {
                 Name = $"{prefix}_NumberCapacity",
             };
-            var rangeCapacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.RangeCapacity
+            var rangeCapacity = new RangeCapacity
             {
                 Name = $"{prefix}_RangeCapacity",
             };
             objectCreator.CreateCapacities([numberCapacity, rangeCapacity]);
 
-            var textConfiguration = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration
+            var textConfiguration = new TextConfiguration
             {
                 Name = $"{prefix}_TextConfiguration",
             };
-            var numberConfiguration = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberConfiguration
+            var numberConfiguration = new NumberConfiguration
             {
                 Name = $"{prefix}_NumberConfiguration",
             };
-            var discreteTextConfiguration = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteTextConfiguration
+            var discreteTextConfiguration = new DiscreteTextConfiguration
             {
                 Name = $"{prefix}_DiscreteTextConfiguration",
             }
-            .AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextDiscreet("A", "A"));
-            var discreteNumberConfiguration = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfiguration
+            .AddDiscrete(new TextDiscreet("A", "A"));
+            var discreteNumberConfiguration = new DiscreteNumberConfiguration
             {
                 Name = $"{prefix}_DiscreteNumberConfiguration",
             }
-            .AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(1, "A"));
+            .AddDiscrete(new NumberDiscreet(1, "A"));
             objectCreator.CreateConfigurations([textConfiguration, numberConfiguration, discreteTextConfiguration, discreteNumberConfiguration]);
 
-            var resourcePool = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool
+            var resourcePool = new ResourcePool
             {
                 Name = $"{prefix}_ResourcePool",
             };
             resourcePool.OrchestrationSettings
-                .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(capability))
-                .AddCapacity(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacitySetting(numberCapacity))
-                .AddCapacity(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.RangeCapacitySetting(rangeCapacity))
-                .AddConfiguration(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfigurationSetting(textConfiguration))
-                .AddConfiguration(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberConfigurationSetting(numberConfiguration))
-                .AddConfiguration(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteTextConfigurationSetting(discreteTextConfiguration))
-                .AddConfiguration(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfigurationSetting(discreteNumberConfiguration));
+                .AddCapability(new CapabilitySetting(capability))
+                .AddCapacity(new NumberCapacitySetting(numberCapacity))
+                .AddCapacity(new RangeCapacitySetting(rangeCapacity))
+                .AddConfiguration(new TextConfigurationSetting(textConfiguration))
+                .AddConfiguration(new NumberConfigurationSetting(numberConfiguration))
+                .AddConfiguration(new DiscreteTextConfigurationSetting(discreteTextConfiguration))
+                .AddConfiguration(new DiscreteNumberConfigurationSetting(discreteNumberConfiguration));
             objectCreator.CreateResourcePool(resourcePool);
 
             resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
@@ -107,36 +107,36 @@
         {
             var prefix = Guid.NewGuid();
 
-            var capability = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capability
+            var capability = new Capability
             {
                 Name = $"{prefix}_Capability",
             }
             .SetDiscretes(["Value 1", "Value 2"]);
             objectCreator.CreateCapability(capability);
 
-            var numberCapacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity
+            var numberCapacity = new NumberCapacity
             {
                 Name = $"{prefix}_NumberCapacity",
             };
             objectCreator.CreateCapacity(numberCapacity);
 
-            var textConfiguration = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration
+            var textConfiguration = new TextConfiguration
             {
                 Name = $"{prefix}_TextConfiguration",
             };
             objectCreator.CreateConfiguration(textConfiguration);
 
-            var resourcePool = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool
+            var resourcePool = new ResourcePool
             {
                 Name = $"{prefix}_ResourcePool",
             };
             resourcePool.OrchestrationSettings
-                .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(capability))
-                .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(capability))
-                .AddCapacity(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacitySetting(numberCapacity))
-                .AddCapacity(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacitySetting(numberCapacity))
-                .AddConfiguration(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfigurationSetting(textConfiguration))
-                .AddConfiguration(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfigurationSetting(textConfiguration));
+                .AddCapability(new CapabilitySetting(capability))
+                .AddCapability(new CapabilitySetting(capability))
+                .AddCapacity(new NumberCapacitySetting(numberCapacity))
+                .AddCapacity(new NumberCapacitySetting(numberCapacity))
+                .AddConfiguration(new TextConfigurationSetting(textConfiguration))
+                .AddConfiguration(new TextConfigurationSetting(textConfiguration));
 
             try
             {
@@ -167,6 +167,98 @@
                 Assert.AreEqual(textConfiguration.Id, invalidConfigurationSettingsError.ConfigurationId);
                 Assert.AreEqual(resourcePool.OrchestrationSettings.Id, invalidConfigurationSettingsError.Id);
             }
+        }
+
+        [TestMethod]
+        public void CreatePoolWithOrchestrationEvents()
+        {
+            // Create Configuration
+            var prefix = Guid.NewGuid();
+            var textConfiguration = new TextConfiguration
+            {
+                Name = $"{prefix}_TextConfiguration",
+            };
+
+            objectCreator.CreateConfigurations([textConfiguration]);
+
+            // Create new pool with Orchestration Setting referencing the created configuration
+            var resourcePool = new ResourcePool
+            {
+                Name = $"{prefix}_ResourcePool",
+            };
+
+            resourcePool.OrchestrationSettings.SetOrchestrationEvents(new List<OrchestrationEvent>
+            {
+                new OrchestrationEvent
+                {
+                    EventType = OrchestrationEventType.PrerollStart,
+                    ExecutionDetails = new ScriptExecutionDetails("SomeScript").AddConfiguration(new TextConfigurationSetting(textConfiguration) { Value = "HelloWorld" })
+                },
+            });
+
+            Assert.IsNull(resourcePool.OrchestrationSettings.OrchestrationEvents.First().ExecutionDetails.ConfigurationSettings.First().OriginalSection);
+            Assert.IsTrue(resourcePool.OrchestrationSettings.OrchestrationEvents.First().ExecutionDetails.ConfigurationSettings.First().IsNew);
+            Assert.IsFalse(resourcePool.OrchestrationSettings.OrchestrationEvents.First().ExecutionDetails.ConfigurationSettings.First().HasChanges);
+
+            objectCreator.CreateResourcePool(resourcePool);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
+
+            Assert.IsNotNull(resourcePool.OrchestrationSettings);
+            Assert.IsNotNull(resourcePool.OrchestrationSettings.OrchestrationEvents);
+            Assert.AreEqual(1, resourcePool.OrchestrationSettings.OrchestrationEvents.Count);
+
+            Assert.AreEqual(OrchestrationEventType.PrerollStart, resourcePool.OrchestrationSettings.OrchestrationEvents.First().EventType);
+            Assert.IsNotNull(resourcePool.OrchestrationSettings.OrchestrationEvents.First().ExecutionDetails);
+            Assert.AreEqual("SomeScript", resourcePool.OrchestrationSettings.OrchestrationEvents.First().ExecutionDetails.ScriptName);
+
+            Assert.IsNotNull(resourcePool.OrchestrationSettings.OrchestrationEvents.First().ExecutionDetails.CapabilitySettings);
+            Assert.IsNotNull(resourcePool.OrchestrationSettings.OrchestrationEvents.First().ExecutionDetails.CapacitySettings);
+            Assert.IsNotNull(resourcePool.OrchestrationSettings.OrchestrationEvents.First().ExecutionDetails.ConfigurationSettings);
+
+            Assert.AreEqual(0, resourcePool.OrchestrationSettings.OrchestrationEvents.First().ExecutionDetails.CapabilitySettings.Count);
+            Assert.AreEqual(0, resourcePool.OrchestrationSettings.OrchestrationEvents.First().ExecutionDetails.CapacitySettings.Count);
+            Assert.AreEqual(1, resourcePool.OrchestrationSettings.OrchestrationEvents.First().ExecutionDetails.ConfigurationSettings.Count);
+
+            Assert.IsNull(resourcePool.OrchestrationSettings.OrchestrationEvents.First().ExecutionDetails.ConfigurationSettings.First().OriginalSection); // No original section as this data isn't coming from DOM Section but from JSON
+            Assert.IsFalse(resourcePool.OrchestrationSettings.OrchestrationEvents.First().ExecutionDetails.ConfigurationSettings.First().IsNew);
+            Assert.IsFalse(resourcePool.OrchestrationSettings.OrchestrationEvents.First().ExecutionDetails.ConfigurationSettings.First().HasChanges);
+
+            var textConfigurationSetting = resourcePool.OrchestrationSettings.OrchestrationEvents.First().ExecutionDetails.ConfigurationSettings.First() as TextConfigurationSetting;
+            Assert.IsNotNull(textConfigurationSetting);
+            Assert.AreEqual(textConfiguration.Id, textConfigurationSetting.Id);
+            Assert.AreEqual("HelloWorld", textConfigurationSetting.Value);
+        }
+
+        [TestMethod]
+        public void UpdatePoolWithOrchestrationEvents()
+        {
+            var prefix = Guid.NewGuid();
+            var resourcePool = new ResourcePool
+            {
+                Name = $"{prefix}_ResourcePool",
+            };
+
+            objectCreator.CreateResourcePool(resourcePool);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
+
+
+        }
+
+        [TestMethod]
+        public void UpdateOrchestrationEvents()
+        {
+
+        }
+
+        [TestMethod]
+        public void CreatePoolWithDuplicateOrchestrationEventsThrowsException()
+        {
+        }
+
+        [TestMethod]
+        public void UpdatePoolWithDuplicateOrchestrationEventsThrowsException()
+        {
+
         }
     }
 }

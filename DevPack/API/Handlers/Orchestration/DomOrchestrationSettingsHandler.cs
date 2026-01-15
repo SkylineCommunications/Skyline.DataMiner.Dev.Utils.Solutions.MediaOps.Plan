@@ -83,6 +83,7 @@
                 .Where(IsValid)
                 .Select(x => x.GetInstanceWithChanges())
                 .ToList();
+
             var resourceStudioToUpdateDomInstances = resourceStudioChangeResults
                 .Where(IsValid)
                 .Select(x => new DomResourceStudioOrchestrationSetting(x.Instance))
