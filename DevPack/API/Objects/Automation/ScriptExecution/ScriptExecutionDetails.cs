@@ -312,6 +312,11 @@
                 throw new ArgumentNullException(nameof(storageScriptExecutionDetails));
             }
 
+            if (string.IsNullOrEmpty(storageScriptExecutionDetails.ScriptName))
+            {
+                return null;
+            }
+
             var scriptExecutionDetails = new ScriptExecutionDetails(storageScriptExecutionDetails.ScriptName);
 
             scriptExecutionDetails.ParseStorageDummies(storageScriptExecutionDetails.Dummies);

@@ -3,22 +3,19 @@
     internal partial class OrchestrationEventsSection
     {
         private ScriptExecutionDetails scriptExecutionDetails;
+        private bool isScriptExecutionDetailsLoaded = false;
 
         internal ScriptExecutionDetails ScriptExecutionDetails
         {
             get
             {
-                if (scriptExecutionDetails != null)
+                if (!isScriptExecutionDetailsLoaded)
                 {
-                    return scriptExecutionDetails;
+                    ScriptExecutionDetails.TryDeserialize(ScriptInput, out scriptExecutionDetails);
+                    isScriptExecutionDetailsLoaded = true;
                 }
 
-                if (ScriptExecutionDetails.TryDeserialize(ScriptInput, out scriptExecutionDetails))
-                {
-                    return scriptExecutionDetails;
-                }
 
-                scriptExecutionDetails = null;
                 return scriptExecutionDetails;
             }
             set
@@ -32,6 +29,10 @@
             if (scriptExecutionDetails != null)
             {
                 ScriptInput = scriptExecutionDetails.Serialize();
+            }
+            else
+            {
+                ScriptInput = null;
             }
         }
     }

@@ -38,7 +38,7 @@
             else
             {
                 updatedSection.Script = null;
-                updatedSection.ScriptInput = null;
+                updatedSection.ScriptExecutionDetails = null;
             }
 
             return updatedSection;
