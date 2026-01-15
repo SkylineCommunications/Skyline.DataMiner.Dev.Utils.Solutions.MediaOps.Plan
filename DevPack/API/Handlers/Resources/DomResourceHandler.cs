@@ -138,7 +138,6 @@
             ValidateNames(apiResources);
             ValidateConcurrency(apiResources);
             ValidateConnectionManagement(apiResources);
-            // TODO: validate concurrency
             // TODO: validate pool ids
             // TODO: validate element settings
             // TODO: validate service settings

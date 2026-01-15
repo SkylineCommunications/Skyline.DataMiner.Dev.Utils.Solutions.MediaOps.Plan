@@ -123,6 +123,8 @@
             }
 
             ValidateExistence(apiConfigurations);
+
+            // TODO: move this to separate ParameterUsageValidator class
             ValidateResourcePoolParametersUsage(apiConfigurations.Where(IsValid).ToArray());
             ValidateWorkflowUsage(apiConfigurations.Where(IsValid).ToArray());
 
@@ -448,20 +450,133 @@
 
         private void ValidateWorkflowUsage(ICollection<Configuration> apiConfigurations)
         {
-            var workflowConfigurations = GetWorkflowConfigurationsReferencingParameters(apiConfigurations.Select(x => x.Id).ToHashSet());
+            var workflowConfigurations = GetWorkflowConfigurationsPerParameter(apiConfigurations.Select(x => x.Id).ToHashSet());
 
             if (!workflowConfigurations.Any())
                 return;
 
-            var jobsReferencingConfigurations = GetJobsReferencingConfigurations(workflowConfigurations);
+            var referencedWorkflowConfigurationsToValidate = workflowConfigurations.SelectMany(x => x.Value).Distinct().ToHashSet();
 
+            var jobsReferencingConfigurations = GetJobsReferencingConfigurations(referencedWorkflowConfigurationsToValidate);
+            foreach (var apiConfiguration in apiConfigurations)
+            {
+                HashSet<Guid> referencedJobIds = new HashSet<Guid>();
+                if (!workflowConfigurations.TryGetValue(apiConfiguration.Id, out var referencedWorkflowConfigurationIds))
+                {
+                    continue;
+                }
 
-            var recurringJobsReferencingConfigurations = GetRecurringJobsReferencingConfigurations(workflowConfigurations);
-            var workflowsReferencingConfigurations = GetWorkflowsReferencingConfigurations(workflowConfigurations);
+                // Parameter is referenced by workflow configuration instances.
+                foreach (var referencedWorkflowConfigurationId in referencedWorkflowConfigurationIds)
+                {
+                    if (!jobsReferencingConfigurations.TryGetValue(referencedWorkflowConfigurationId, out var jobIds))
+                    {
+                        // Workflow configuration is not referenced by any job.
+                        continue;
+                    }
+
+                    foreach (var jobId in jobIds)
+                        referencedJobIds.Add(jobId);
+                }
+
+                if (referencedJobIds.Any())
+                {
+                    ReportError(apiConfiguration.Id, new ConfigurationInUseByJobsError
+                    {
+                        Id = apiConfiguration.Id,
+                        ErrorMessage = $"Configuration '{apiConfiguration.Name}' is in use by Jobs.",
+                        JobIds = referencedJobIds.ToArray(),
+                    });
+
+                    referencedWorkflowConfigurationsToValidate.Remove(apiConfiguration.Id);
+                }
+            }
+
+            var recurringJobsReferencingConfigurations = GetRecurringJobsReferencingConfigurations(referencedWorkflowConfigurationsToValidate);
+            foreach (var apiConfiguration in apiConfigurations)
+            {
+                HashSet<Guid> referencedRecurringJobIds = new HashSet<Guid>();
+                if (!workflowConfigurations.TryGetValue(apiConfiguration.Id, out var referencedWorkflowConfigurationIds))
+                {
+                    continue;
+                }
+
+                // Parameter is referenced by workflow configuration instances.
+                foreach (var referencedWorkflowConfigurationId in referencedWorkflowConfigurationIds)
+                {
+                    if (!recurringJobsReferencingConfigurations.TryGetValue(referencedWorkflowConfigurationId, out var jobIds))
+                    {
+                        // Workflow configuration is not referenced by any job.
+                        continue;
+                    }
+
+                    foreach (var jobId in jobIds)
+                        referencedRecurringJobIds.Add(jobId);
+                }
+
+                if (referencedRecurringJobIds.Any())
+                {
+                    ReportError(apiConfiguration.Id, new ConfigurationInUseByRecurringJobsError
+                    {
+                        Id = apiConfiguration.Id,
+                        ErrorMessage = $"Configuration '{apiConfiguration.Name}' is in use by Recurring Jobs.",
+                        RecurringJobIds = referencedRecurringJobIds.ToArray(),
+                    });
+
+                    referencedWorkflowConfigurationsToValidate.Remove(apiConfiguration.Id);
+                }
+            }
+
+            var workflowsReferencingConfigurations = GetWorkflowsReferencingConfigurations(referencedWorkflowConfigurationsToValidate);
+            foreach (var apiConfiguration in apiConfigurations)
+            {
+                HashSet<Guid> referencedWorkflowIds = new HashSet<Guid>();
+                if (!workflowConfigurations.TryGetValue(apiConfiguration.Id, out var referencedWorkflowConfigurationIds))
+                {
+                    continue;
+                }
+
+                // Parameter is referenced by workflow configuration instances.
+                foreach (var referencedWorkflowConfigurationId in referencedWorkflowConfigurationIds)
+                {
+                    if (!workflowsReferencingConfigurations.TryGetValue(referencedWorkflowConfigurationId, out var jobIds))
+                    {
+                        // Workflow configuration is not referenced by any job.
+                        continue;
+                    }
+
+                    foreach (var jobId in jobIds)
+                        referencedWorkflowIds.Add(jobId);
+                }
+
+                if (referencedWorkflowIds.Any())
+                {
+                    ReportError(apiConfiguration.Id, new ConfigurationInUseByWorkflowsError
+                    {
+                        Id = apiConfiguration.Id,
+                        ErrorMessage = $"Configuration '{apiConfiguration.Name}' is in use by Workflows.",
+                        WorkflowIds = referencedWorkflowIds.ToArray(),
+                    });
+
+                    referencedWorkflowConfigurationsToValidate.Remove(apiConfiguration.Id);
+                }
+            }
         }
 
-        private List<Storage.DOM.SlcWorkflow.ConfigurationInstance> GetWorkflowConfigurationsReferencingParameters(HashSet<Guid> apiParameterIds)
+        /// <summary>
+        /// Returns a mapping of API Parameter IDs to the Configuration Instance IDs that reference them.
+        /// </summary>
+        /// <param name="apiParameterIds">Ids of the API parameters to check.</param>
+        /// <returns>A dictionary where the key is the Configuration Instance ID and the value is the list of referenced Parameter IDs.</returns>
+        private Dictionary<Guid, List<Guid>> GetWorkflowConfigurationsPerParameter(HashSet<Guid> apiParameterIds)
         {
+            var result = new Dictionary<Guid, List<Guid>>();
+
+            if (apiParameterIds == null || apiParameterIds.Count == 0)
+            {
+                return result;
+            }
+
             var configurationFilter = DomInstanceExposers.DomDefinitionId.Equal(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Definitions.Configuration.Id);
             configurationFilter.AND(new ORFilterElement<DomInstance>(apiParameterIds.Select(x =>
                 DomInstanceExposers.FieldValues.DomInstanceField(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.ProfileParameterValues.ProfileParameterID).Equal(x).OR(
@@ -469,19 +584,38 @@
                 .ToArray()));
 
             var possibleWorkflowConfigurations = planApi.DomHelpers.SlcWorkflowHelper.GetConfigurations(configurationFilter);
-
-            List<Storage.DOM.SlcWorkflow.ConfigurationInstance> workflowConfigurations = new List<Storage.DOM.SlcWorkflow.ConfigurationInstance>();
             if (!possibleWorkflowConfigurations.Any())
-                return workflowConfigurations;
+            {
+                return result;
+            }
 
             foreach (var possibleWorkflowConfiguration in possibleWorkflowConfigurations)
             {
-                if (possibleWorkflowConfiguration.ProfileParameterValues.Any(x => Guid.TryParse(x.ProfileParameterID, out Guid profileParameterGuid) && apiParameterIds.Contains(profileParameterGuid)))
+                var configurationId = possibleWorkflowConfiguration.ID.Id;
+
+                // ProfileParameterValues section
+                foreach (var profileParameterValue in possibleWorkflowConfiguration.ProfileParameterValues)
                 {
-                    workflowConfigurations.Add(possibleWorkflowConfiguration);
-                    continue;
+                    Guid profileParameterGuid;
+                    if (!String.IsNullOrEmpty(profileParameterValue.ProfileParameterID) &&
+                        Guid.TryParse(profileParameterValue.ProfileParameterID, out profileParameterGuid) &&
+                        apiParameterIds.Contains(profileParameterGuid))
+                    {
+                        List<Guid> configurationIds;
+                        if (!result.TryGetValue(profileParameterGuid, out configurationIds))
+                        {
+                            configurationIds = new List<Guid>();
+                            result[profileParameterGuid] = configurationIds;
+                        }
+
+                        if (!configurationIds.Contains(configurationId))
+                        {
+                            configurationIds.Add(configurationId);
+                        }
+                    }
                 }
 
+                // OrchestrationEvents section
                 foreach (var section in possibleWorkflowConfiguration.OrchestrationEvents)
                 {
                     if (section.ScriptExecutionDetails?.ProfileParameterValues == null)
@@ -489,56 +623,262 @@
                         continue;
                     }
 
-                    if (!section.ScriptExecutionDetails.ProfileParameterValues.Any(x => apiParameterIds.Contains(x.ProfileParameterId)))
+                    foreach (var profileParameterValue in section.ScriptExecutionDetails.ProfileParameterValues)
+                    {
+                        var profileParameterGuid = profileParameterValue.ProfileParameterId;
+                        if (!apiParameterIds.Contains(profileParameterGuid))
+                        {
+                            continue;
+                        }
+
+                        List<Guid> configurationIds;
+                        if (!result.TryGetValue(profileParameterGuid, out configurationIds))
+                        {
+                            configurationIds = new List<Guid>();
+                            result[profileParameterGuid] = configurationIds;
+                        }
+
+                        if (!configurationIds.Contains(configurationId))
+                        {
+                            configurationIds.Add(configurationId);
+                        }
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        private Dictionary<Guid, List<Guid>> GetJobsReferencingConfigurations(HashSet<Guid> configurationIds)
+        {
+            var result = new Dictionary<Guid, List<Guid>>();
+
+            if (configurationIds == null || configurationIds.Count == 0)
+            {
+                return result;
+            }
+
+            var jobFilter = DomInstanceExposers.DomDefinitionId.Equal(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Definitions.Jobs.Id);
+            var jobConfigurationFilter = new ORFilterElement<DomInstance>(configurationIds
+                .Select(id => DomInstanceExposers.FieldValues
+                    .DomInstanceField(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.JobExecution.JobConfiguration)
+                    .Equal(id))
+                .ToArray());
+            var nodeConfigurationFilter = new ORFilterElement<DomInstance>(configurationIds
+                .Select(id => DomInstanceExposers.FieldValues
+                    .DomInstanceField(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.Nodes.NodeConfiguration)
+                    .Equal(id))
+                .ToArray());
+
+            var jobs = planApi.DomHelpers.SlcWorkflowHelper
+                .GetJobs(jobFilter.AND(jobConfigurationFilter.OR(nodeConfigurationFilter)))
+                .DistinctBy(x => x.ID);
+
+            foreach (var job in jobs)
+            {
+                var jobId = job.ID.Id;
+
+                if (job.JobExecution.JobConfiguration.HasValue)
+                {
+                    var jobConfigurationId = job.JobExecution.JobConfiguration.Value;
+                    if (configurationIds.Contains(jobConfigurationId))
+                    {
+                        List<Guid> jobIds;
+                        if (!result.TryGetValue(jobConfigurationId, out jobIds))
+                        {
+                            jobIds = new List<Guid>();
+                            result[jobConfigurationId] = jobIds;
+                        }
+
+                        if (!jobIds.Contains(jobId))
+                        {
+                            jobIds.Add(jobId);
+                        }
+                    }
+                }
+
+                foreach (var node in job.Nodes)
+                {
+                    if (node.NodeConfiguration.HasValue)
+                    {
+                        var nodeConfigurationId = node.NodeConfiguration.Value;
+                        if (!configurationIds.Contains(nodeConfigurationId))
+                        {
+                            continue;
+                        }
+
+                        List<Guid> jobIds;
+                        if (!result.TryGetValue(nodeConfigurationId, out jobIds))
+                        {
+                            jobIds = new List<Guid>();
+                            result[nodeConfigurationId] = jobIds;
+                        }
+
+                        if (!jobIds.Contains(jobId))
+                        {
+                            jobIds.Add(jobId);
+                        }
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        private Dictionary<Guid, List<Guid>> GetRecurringJobsReferencingConfigurations(HashSet<Guid> configurationIds)
+        {
+            var result = new Dictionary<Guid, List<Guid>>();
+
+            if (configurationIds == null || configurationIds.Count == 0)
+            {
+                return result;
+            }
+
+            var recurringJobFilter = DomInstanceExposers.DomDefinitionId.Equal(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Definitions.RecurringJobs.Id);
+            var jobConfigurationFilter = new ORFilterElement<DomInstance>(configurationIds
+                .Select(id => DomInstanceExposers.FieldValues
+                    .DomInstanceField(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.JobExecution.JobConfiguration)
+                    .Equal(id))
+                .ToArray());
+            var nodeConfigurationFilter = new ORFilterElement<DomInstance>(configurationIds
+                .Select(id => DomInstanceExposers.FieldValues
+                    .DomInstanceField(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.Nodes.NodeConfiguration)
+                    .Equal(id))
+                .ToArray());
+
+            var recurringJobInstances = planApi.DomHelpers.SlcWorkflowHelper
+                .GetRecurringJobs(recurringJobFilter.AND(jobConfigurationFilter.OR(nodeConfigurationFilter)))
+                .DistinctBy(x => x.ID);
+
+            foreach (var recurringJob in recurringJobInstances)
+            {
+                var recurringJobId = recurringJob.ID.Id;
+
+                if (recurringJob.JobExecution.JobConfiguration.HasValue)
+                {
+                    var jobConfigurationId = recurringJob.JobExecution.JobConfiguration.Value;
+                    if (configurationIds.Contains(jobConfigurationId))
+                    {
+                        List<Guid> jobIds;
+                        if (!result.TryGetValue(jobConfigurationId, out jobIds))
+                        {
+                            jobIds = new List<Guid>();
+                            result[jobConfigurationId] = jobIds;
+                        }
+
+                        if (!jobIds.Contains(recurringJobId))
+                        {
+                            jobIds.Add(recurringJobId);
+                        }
+                    }
+                }
+
+                foreach (var node in recurringJob.Nodes)
+                {
+                    if (!node.NodeConfiguration.HasValue)
                     {
                         continue;
                     }
 
-                    workflowConfigurations.Add(possibleWorkflowConfiguration);
-                    break;
+                    var nodeConfigurationId = node.NodeConfiguration.Value;
+                    if (!configurationIds.Contains(nodeConfigurationId))
+                    {
+                        continue;
+                    }
+
+                    List<Guid> jobIds;
+                    if (!result.TryGetValue(nodeConfigurationId, out jobIds))
+                    {
+                        jobIds = new List<Guid>();
+                        result[nodeConfigurationId] = jobIds;
+                    }
+
+                    if (!jobIds.Contains(recurringJobId))
+                    {
+                        jobIds.Add(recurringJobId);
+                    }
                 }
             }
 
-            return workflowConfigurations;
+            return result;
         }
 
-        private ICollection<Storage.DOM.SlcWorkflow.JobsInstance> GetJobsReferencingConfigurations(ICollection<Storage.DOM.SlcWorkflow.ConfigurationInstance> workflowConfigurations)
+        private Dictionary<Guid, List<Guid>> GetWorkflowsReferencingConfigurations(HashSet<Guid> configurationIds)
         {
-            var distinctWorkflowConfigurationIds = workflowConfigurations.Select(x => x.ID.Id).Distinct().ToArray();
+            var result = new Dictionary<Guid, List<Guid>>();
 
-            var jobFilter = DomInstanceExposers.DomDefinitionId.Equal(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Definitions.Jobs.Id);
-            var jobConfigurationFilter = new ORFilterElement<DomInstance>(distinctWorkflowConfigurationIds.Select(x => DomInstanceExposers.FieldValues.DomInstanceField(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.JobExecution.JobConfiguration).Equal(x)).ToArray());
-            var nodeConfigurationFilter = new ORFilterElement<DomInstance>(distinctWorkflowConfigurationIds.Select(x => DomInstanceExposers.FieldValues.DomInstanceField(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.Nodes.NodeConfiguration).Equal(x)).ToArray());
-
-            var jobInstances = planApi.DomHelpers.SlcWorkflowHelper.GetJobs(jobFilter.AND(jobConfigurationFilter.OR(nodeConfigurationFilter))).DistinctBy(x => x.ID);
-
-            return jobInstances.ToArray();
-        }
-
-        private ICollection<Storage.DOM.SlcWorkflow.RecurringJobsInstance> GetRecurringJobsReferencingConfigurations(ICollection<Storage.DOM.SlcWorkflow.ConfigurationInstance> workflowConfigurations)
-        {
-            var distinctWorkflowConfigurationIds = workflowConfigurations.Select(x => x.ID.Id).Distinct().ToArray();
-
-            var recurringJobFilter = DomInstanceExposers.DomDefinitionId.Equal(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Definitions.RecurringJobs.Id);
-            var jobConfigurationFilter = new ORFilterElement<DomInstance>(distinctWorkflowConfigurationIds.Select(x => DomInstanceExposers.FieldValues.DomInstanceField(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.JobExecution.JobConfiguration).Equal(x)).ToArray());
-            var nodeConfigurationFilter = new ORFilterElement<DomInstance>(distinctWorkflowConfigurationIds.Select(x => DomInstanceExposers.FieldValues.DomInstanceField(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.Nodes.NodeConfiguration).Equal(x)).ToArray());
-
-            var recurringJobInstances = planApi.DomHelpers.SlcWorkflowHelper.GetRecurringJobs(recurringJobFilter.AND(jobConfigurationFilter.OR(nodeConfigurationFilter))).DistinctBy(x => x.ID);
-
-            return recurringJobInstances.ToArray();
-        }
-
-        private ICollection<Storage.DOM.SlcWorkflow.WorkflowsInstance> GetWorkflowsReferencingConfigurations(ICollection<Storage.DOM.SlcWorkflow.ConfigurationInstance> workflowConfigurations)
-        {
-            var distinctWorkflowConfigurationIds = workflowConfigurations.Select(x => x.ID.Id).Distinct().ToArray();
+            if (configurationIds == null || configurationIds.Count == 0)
+            {
+                return result;
+            }
 
             var workflowFilter = DomInstanceExposers.DomDefinitionId.Equal(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Definitions.Workflows.Id);
-            var workflowConfigurationFilter = new ORFilterElement<DomInstance>(distinctWorkflowConfigurationIds.Select(x => DomInstanceExposers.FieldValues.DomInstanceField(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.WorkflowExecution.WorkflowConfiguration).Equal(x)).ToArray());
-            var nodeConfigurationFilter = new ORFilterElement<DomInstance>(distinctWorkflowConfigurationIds.Select(x => DomInstanceExposers.FieldValues.DomInstanceField(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.Nodes.NodeConfiguration).Equal(x)).ToArray());
+            var workflowConfigurationFilter = new ORFilterElement<DomInstance>(configurationIds
+                .Select(id => DomInstanceExposers.FieldValues
+                    .DomInstanceField(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.WorkflowExecution.WorkflowConfiguration)
+                    .Equal(id))
+                .ToArray());
+            var nodeConfigurationFilter = new ORFilterElement<DomInstance>(configurationIds
+                .Select(id => DomInstanceExposers.FieldValues
+                    .DomInstanceField(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.Nodes.NodeConfiguration)
+                    .Equal(id))
+                .ToArray());
 
-            var workflowInstances = planApi.DomHelpers.SlcWorkflowHelper.GetWorkflows(workflowFilter.AND(workflowConfigurationFilter.OR(nodeConfigurationFilter))).DistinctBy(x => x.ID);
+            var workflowInstances = planApi.DomHelpers.SlcWorkflowHelper
+                .GetWorkflows(workflowFilter.AND(workflowConfigurationFilter.OR(nodeConfigurationFilter)))
+                .DistinctBy(x => x.ID);
 
-            return workflowInstances.ToArray();
+            foreach (var workflow in workflowInstances)
+            {
+                var workflowId = workflow.ID.Id;
+
+                if (workflow.WorkflowExecution.WorkflowConfiguration.HasValue)
+                {
+                    var workflowConfigurationId = workflow.WorkflowExecution.WorkflowConfiguration.Value;
+                    if (configurationIds.Contains(workflowConfigurationId))
+                    {
+                        List<Guid> workflowIds;
+                        if (!result.TryGetValue(workflowConfigurationId, out workflowIds))
+                        {
+                            workflowIds = new List<Guid>();
+                            result[workflowConfigurationId] = workflowIds;
+                        }
+
+                        if (!workflowIds.Contains(workflowId))
+                        {
+                            workflowIds.Add(workflowId);
+                        }
+                    }
+                }
+
+                foreach (var node in workflow.Nodes)
+                {
+                    if (!node.NodeConfiguration.HasValue)
+                    {
+                        continue;
+                    }
+
+                    var nodeConfigurationId = node.NodeConfiguration.Value;
+                    if (!configurationIds.Contains(nodeConfigurationId))
+                    {
+                        continue;
+                    }
+
+                    List<Guid> workflowIds;
+                    if (!result.TryGetValue(nodeConfigurationId, out workflowIds))
+                    {
+                        workflowIds = new List<Guid>();
+                        result[nodeConfigurationId] = workflowIds;
+                    }
+
+                    if (!workflowIds.Contains(workflowId))
+                    {
+                        workflowIds.Add(workflowId);
+                    }
+                }
+            }
+
+            return result;
         }
 
         private Net.Profiles.Parameter GetNumberConfigurationWithChanges(NumberConfiguration apiConfiguration)
