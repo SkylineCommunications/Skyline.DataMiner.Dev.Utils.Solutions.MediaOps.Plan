@@ -23,11 +23,11 @@
                 throw new ArgumentNullException(nameof(configurations));
 
             var validator = new ParameterResourceUsageValidator(planApi);
-            validator.ValidateResourcePoolParametersUsage(configurations);
+            validator.ValidateConfigurations(configurations);
             return validator;
         }
 
-        private void ValidateResourcePoolParametersUsage(ICollection<Configuration> apiConfigurations)
+        private void ValidateConfigurations(ICollection<Configuration> apiConfigurations)
         {
             var resourcePoolConfigurations = GetResourceConfigurationsReferencingParameters(apiConfigurations.Select(x => x.Id).ToHashSet());
 

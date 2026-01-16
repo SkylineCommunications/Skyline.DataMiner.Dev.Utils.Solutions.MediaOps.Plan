@@ -2,26 +2,30 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.ComponentModel;
     using System.Linq;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Helper;
     using Skyline.DataMiner.Net.Jobs;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow;
 
     internal class ParameterWorkflowUsageValidator : ApiObjectValidator
     {
         private readonly MediaOpsPlanApi planApi;
         private readonly IReadOnlyCollection<Parameter> parametersToValidate;
+        private readonly HashSet<Guid> parameterIdsToValidate;
 
-        private HashSet<Guid> referencedWorkflowConfigurationsToValidate;
+        private HashSet<Guid> workflowConfigurationIds;
         private Dictionary<Guid, List<Guid>> WorkflowConfigurationsPerParameter;
 
         private ParameterWorkflowUsageValidator(MediaOpsPlanApi planApi, IReadOnlyCollection<Parameter> parametersToValidate)
         {
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
             this.parametersToValidate = parametersToValidate ?? throw new ArgumentNullException(nameof(parametersToValidate));
+            parameterIdsToValidate = parametersToValidate.Select(x => x.Id).ToHashSet();
         }
 
         public static ApiObjectValidator Validate(MediaOpsPlanApi planApi, ICollection<Configuration> configurationsToValidate)
@@ -61,7 +65,7 @@
             if (!WorkflowConfigurationsPerParameter.Any())
                 return;
 
-            referencedWorkflowConfigurationsToValidate = WorkflowConfigurationsPerParameter.SelectMany(x => x.Value).Distinct().ToHashSet();
+            workflowConfigurationIds = WorkflowConfigurationsPerParameter.SelectMany(x => x.Value).Distinct().ToHashSet();
 
             ValidateConfigurationJobUsage();
             ValidateConfigurationRecurringJobUsage();
@@ -101,7 +105,7 @@
                         JobIds = referencedJobIds.ToArray(),
                     });
 
-                    referencedWorkflowConfigurationsToValidate.Remove(configurationParameter.Id);
+                    workflowConfigurationIds.Remove(configurationParameter.Id);
                 }
             }
         }
@@ -139,7 +143,7 @@
                         RecurringJobIds = referencedRecurringJobIds.ToArray(),
                     });
 
-                    referencedWorkflowConfigurationsToValidate.Remove(configurationParameter.Id);
+                    workflowConfigurationIds.Remove(configurationParameter.Id);
                 }
             }
         }
@@ -177,7 +181,7 @@
                         WorkflowIds = referencedWorkflowIds.ToArray(),
                     });
 
-                    referencedWorkflowConfigurationsToValidate.Remove(apiConfiguration.Id);
+                    workflowConfigurationIds.Remove(apiConfiguration.Id);
                 }
             }
         }
@@ -206,17 +210,7 @@
                 return result;
             }
 
-            var configurationFilter = DomInstanceExposers.DomDefinitionId.Equal(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Definitions.Configuration.Id);
-            configurationFilter.AND(new ORFilterElement<DomInstance>(apiParameterIds.Select(x =>
-                DomInstanceExposers.FieldValues.DomInstanceField(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.ProfileParameterValues.ProfileParameterID).Equal(x).OR(
-                DomInstanceExposers.FieldValues.DomInstanceField(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.OrchestrationEvents.ScriptInputValues).Contains(x.ToString())))
-                .ToArray()));
-
-            var possibleWorkflowConfigurations = planApi.DomHelpers.SlcWorkflowHelper.GetConfigurations(configurationFilter);
-            if (!possibleWorkflowConfigurations.Any())
-            {
-                return result;
-            }
+            var possibleWorkflowConfigurations = GetWorkflowConfigurations(apiParameterIds);
 
             foreach (var possibleWorkflowConfiguration in possibleWorkflowConfigurations)
             {
@@ -225,64 +219,85 @@
                 // ProfileParameterValues section
                 foreach (var profileParameterValue in possibleWorkflowConfiguration.ProfileParameterValues)
                 {
-                    Guid profileParameterGuid;
-                    if (!String.IsNullOrEmpty(profileParameterValue.ProfileParameterID) &&
-                        Guid.TryParse(profileParameterValue.ProfileParameterID, out profileParameterGuid) &&
-                        apiParameterIds.Contains(profileParameterGuid))
-                    {
-                        List<Guid> configurationIds;
-                        if (!result.TryGetValue(profileParameterGuid, out configurationIds))
-                        {
-                            configurationIds = new List<Guid>();
-                            result[profileParameterGuid] = configurationIds;
-                        }
-
-                        if (!configurationIds.Contains(configurationId))
-                        {
-                            configurationIds.Add(configurationId);
-                        }
-                    }
+                    ValidateProfileParameterValuesSection(result, configurationId, profileParameterValue);
                 }
 
                 // OrchestrationEvents section
                 foreach (var section in possibleWorkflowConfiguration.OrchestrationEvents)
                 {
-                    if (section.ScriptExecutionDetails?.ProfileParameterValues == null)
-                    {
-                        continue;
-                    }
-
-                    foreach (var profileParameterValue in section.ScriptExecutionDetails.ProfileParameterValues)
-                    {
-                        var profileParameterGuid = profileParameterValue.ProfileParameterId;
-                        if (!apiParameterIds.Contains(profileParameterGuid))
-                        {
-                            continue;
-                        }
-
-                        List<Guid> configurationIds;
-                        if (!result.TryGetValue(profileParameterGuid, out configurationIds))
-                        {
-                            configurationIds = new List<Guid>();
-                            result[profileParameterGuid] = configurationIds;
-                        }
-
-                        if (!configurationIds.Contains(configurationId))
-                        {
-                            configurationIds.Add(configurationId);
-                        }
-                    }
+                    ValidateOrchestrationEventsSection(result, configurationId, section);
                 }
             }
 
             return result;
         }
 
+        private IEnumerable<ConfigurationInstance> GetWorkflowConfigurations(HashSet<Guid> apiParameterIds)
+        {
+            var configurationFilter = DomInstanceExposers.DomDefinitionId.Equal(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Definitions.Configuration.Id);
+            configurationFilter.AND(new ORFilterElement<DomInstance>(apiParameterIds.Select(x =>
+                DomInstanceExposers.FieldValues.DomInstanceField(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.ProfileParameterValues.ProfileParameterID).Equal(x).OR(
+                DomInstanceExposers.FieldValues.DomInstanceField(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.OrchestrationEvents.ScriptInputValues).Contains(x.ToString())))
+                .ToArray()));
+
+            return planApi.DomHelpers.SlcWorkflowHelper.GetConfigurations(configurationFilter);
+        }
+
+        private void ValidateProfileParameterValuesSection(Dictionary<Guid, List<Guid>> result, Guid configurationId, ProfileParameterValuesSection profileParameterValue)
+        {
+            Guid profileParameterGuid;
+            if (!String.IsNullOrEmpty(profileParameterValue.ProfileParameterID) &&
+                Guid.TryParse(profileParameterValue.ProfileParameterID, out profileParameterGuid) &&
+                parameterIdsToValidate.Contains(profileParameterGuid))
+            {
+                List<Guid> configurationIds;
+                if (!result.TryGetValue(profileParameterGuid, out configurationIds))
+                {
+                    configurationIds = new List<Guid>();
+                    result[profileParameterGuid] = configurationIds;
+                }
+
+                if (!configurationIds.Contains(configurationId))
+                {
+                    configurationIds.Add(configurationId);
+                }
+            }
+        }
+
+        private void ValidateOrchestrationEventsSection(Dictionary<Guid, List<Guid>> result, Guid configurationId, OrchestrationEventsSection orchestrationEventsSection)
+        {
+            if (orchestrationEventsSection.ScriptExecutionDetails?.ProfileParameterValues == null)
+            {
+                return;
+            }
+
+            foreach (var profileParameterValue in orchestrationEventsSection.ScriptExecutionDetails.ProfileParameterValues)
+            {
+                var profileParameterGuid = profileParameterValue.ProfileParameterId;
+                if (!parameterIdsToValidate.Contains(profileParameterGuid))
+                {
+                    continue;
+                }
+
+                List<Guid> configurationIds;
+                if (!result.TryGetValue(profileParameterGuid, out configurationIds))
+                {
+                    configurationIds = new List<Guid>();
+                    result[profileParameterGuid] = configurationIds;
+                }
+
+                if (!configurationIds.Contains(configurationId))
+                {
+                    configurationIds.Add(configurationId);
+                }
+            }
+        }
+
         private Dictionary<Guid, List<Guid>> GetJobsReferencingConfigurations()
         {
             var result = new Dictionary<Guid, List<Guid>>();
 
-            if (referencedWorkflowConfigurationsToValidate == null || referencedWorkflowConfigurationsToValidate.Count == 0)
+            if (workflowConfigurationIds == null || workflowConfigurationIds.Count == 0)
             {
                 return result;
             }
@@ -304,13 +319,13 @@
         private IEnumerable<JobsInstance> GetJobInstancesReferencingConfigurations()
         {
             var jobFilter = DomInstanceExposers.DomDefinitionId.Equal(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Definitions.Jobs.Id);
-            var jobConfigurationFilter = new ORFilterElement<DomInstance>(referencedWorkflowConfigurationsToValidate
+            var jobConfigurationFilter = new ORFilterElement<DomInstance>(workflowConfigurationIds
                 .Select(id => DomInstanceExposers.FieldValues
                     .DomInstanceField(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.JobExecution.JobConfiguration)
                     .Equal(id))
                 .ToArray());
 
-            var nodeConfigurationFilter = new ORFilterElement<DomInstance>(referencedWorkflowConfigurationsToValidate
+            var nodeConfigurationFilter = new ORFilterElement<DomInstance>(workflowConfigurationIds
                 .Select(id => DomInstanceExposers.FieldValues
                     .DomInstanceField(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.Nodes.NodeConfiguration)
                     .Equal(id))
@@ -329,7 +344,7 @@
                 return;
 
             var jobConfigurationId = jobExecutionSection.JobConfiguration.Value;
-            if (!referencedWorkflowConfigurationsToValidate.Contains(jobConfigurationId))
+            if (!workflowConfigurationIds.Contains(jobConfigurationId))
                 return;
 
             List<Guid> jobIds;
@@ -351,7 +366,7 @@
                 return;
 
             var nodeConfigurationId = nodesSection.NodeConfiguration.Value;
-            if (!referencedWorkflowConfigurationsToValidate.Contains(nodeConfigurationId))
+            if (!workflowConfigurationIds.Contains(nodeConfigurationId))
             {
                 return;
             }
@@ -373,7 +388,7 @@
         {
             var result = new Dictionary<Guid, List<Guid>>();
 
-            if (referencedWorkflowConfigurationsToValidate.Count == 0)
+            if (workflowConfigurationIds.Count == 0)
             {
                 return result;
             }
@@ -395,13 +410,13 @@
         private IEnumerable<RecurringJobsInstance> GetRecurringJobInstancesReferencingConfigurations()
         {
             var recurringJobFilter = DomInstanceExposers.DomDefinitionId.Equal(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Definitions.RecurringJobs.Id);
-            var jobConfigurationFilter = new ORFilterElement<DomInstance>(referencedWorkflowConfigurationsToValidate
+            var jobConfigurationFilter = new ORFilterElement<DomInstance>(workflowConfigurationIds
                 .Select(id => DomInstanceExposers.FieldValues
                     .DomInstanceField(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.JobExecution.JobConfiguration)
                     .Equal(id))
                 .ToArray());
 
-            var nodeConfigurationFilter = new ORFilterElement<DomInstance>(referencedWorkflowConfigurationsToValidate
+            var nodeConfigurationFilter = new ORFilterElement<DomInstance>(workflowConfigurationIds
                 .Select(id => DomInstanceExposers.FieldValues
                     .DomInstanceField(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.Nodes.NodeConfiguration)
                     .Equal(id))
@@ -418,7 +433,7 @@
         {
             var result = new Dictionary<Guid, List<Guid>>();
 
-            if (referencedWorkflowConfigurationsToValidate.Count == 0)
+            if (workflowConfigurationIds.Count == 0)
             {
                 return result;
             }
@@ -441,13 +456,13 @@
         private IEnumerable<WorkflowsInstance> GetWorkflowInstancesReferencingConfigurations()
         {
             var workflowFilter = DomInstanceExposers.DomDefinitionId.Equal(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Definitions.Workflows.Id);
-            var workflowConfigurationFilter = new ORFilterElement<DomInstance>(referencedWorkflowConfigurationsToValidate
+            var workflowConfigurationFilter = new ORFilterElement<DomInstance>(workflowConfigurationIds
                 .Select(id => DomInstanceExposers.FieldValues
                     .DomInstanceField(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.WorkflowExecution.WorkflowConfiguration)
                     .Equal(id))
                 .ToArray());
 
-            var nodeConfigurationFilter = new ORFilterElement<DomInstance>(referencedWorkflowConfigurationsToValidate
+            var nodeConfigurationFilter = new ORFilterElement<DomInstance>(workflowConfigurationIds
                 .Select(id => DomInstanceExposers.FieldValues
                     .DomInstanceField(Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.Nodes.NodeConfiguration)
                     .Equal(id))
@@ -466,7 +481,7 @@
                 return;
 
             var workflowConfigurationId = workflowExecutionSection.WorkflowConfiguration.Value;
-            if (!referencedWorkflowConfigurationsToValidate.Contains(workflowConfigurationId))
+            if (!workflowConfigurationIds.Contains(workflowConfigurationId))
                 return;
 
             List<Guid> workflowIds;
