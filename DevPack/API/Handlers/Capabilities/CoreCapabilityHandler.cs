@@ -9,7 +9,6 @@
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
 
     using CoreParameter = Net.Profiles.Parameter;
@@ -144,22 +143,12 @@
                 return;
             }
 
-            var newCapabilities = apiCapabilities.Where(x => x.IsNew).ToList();
-            newCapabilities.ForEach(x =>
-            {
-                var error = new CapabilityInvalidStateError
-                {
-                    ErrorMessage = $"A capability that was not saved cannot be removed.",
-                    Id = x.Id,
-                };
+            ValidateExistence(apiCapabilities);
+            ValidateResourceStudioUsage(apiCapabilities);
+            ValidateWorkflowUsage(apiCapabilities);
 
-                ReportError(x.Id, error);
-            });
-
-            ValidateCapabilitiesAreNotInUse(apiCapabilities.Except(newCapabilities).ToList());
-
-            var CapabilitiesToDelete = apiCapabilities.Where(IsValid).ToList();
-            var lockResult = planApi.LockManager.LockAndExecute(CapabilitiesToDelete, DeleteCoreCapabilities);
+            var validCapabilitiesToDelete = apiCapabilities.Where(IsValid).ToList();
+            var lockResult = planApi.LockManager.LockAndExecute(validCapabilitiesToDelete, DeleteCoreCapabilities);
             ReportError(lockResult);
         }
 
@@ -375,80 +364,29 @@
             }
         }
 
-        private void ValidateCapabilitiesAreNotInUse(ICollection<Capability> apiCapabilities)
+        private void ValidateExistence(ICollection<Capability> capabilities)
         {
-            if (apiCapabilities == null)
+            var newCapabilities = capabilities.Where(x => x.IsNew).ToList();
+            newCapabilities.ForEach(x =>
             {
-                throw new ArgumentNullException(nameof(apiCapabilities));
-            }
-
-            if (apiCapabilities.Count == 0)
-            {
-                return;
-            }
-
-            var resourceFilter = new ORFilterElement<Resource>(apiCapabilities
-                .Select(x => ResourceExposers.Capabilities.CapabilityId.Equal(x.Id))
-                .ToArray());
-            var resourcePoolFilter = new ORFilterElement<ResourcePool>(apiCapabilities
-                .Select(x => ResourcePoolExposers.Capabilities.CapabilityId.Equal(x.Id))
-                .ToArray());
-
-            var resourcesImplementingCapabilities = planApi.Resources.Read(resourceFilter);
-            var resourcePoolsImplementingCapabilities = planApi.ResourcePools.Read(resourcePoolFilter);
-
-            var resourcesByCapabilityId = resourcesImplementingCapabilities
-                .SelectMany(r => r.Capabilities.Select(c => new { CapabilityId = c.Id, Resource = r }))
-                .GroupBy(x => x.CapabilityId)
-                .ToDictionary(x => x.Key, x => x.Select(y => y.Resource).ToList());
-            var resourcePoolsByCapabilityId = resourcePoolsImplementingCapabilities
-                .SelectMany(p => p.Capabilities.Select(c => new { CapabilityId = c.Id, ResourcePool = p }))
-                .GroupBy(x => x.CapabilityId)
-                .ToDictionary(x => x.Key, x => x.Select(y => y.ResourcePool).ToList());
-
-            foreach (var capability in apiCapabilities)
-            {
-                var hasResourcesInUse = false;
-                var hasPoolsInUse = false;
-
-                if (resourcesByCapabilityId.TryGetValue(capability.Id, out var resources))
+                var error = new CapabilityInvalidStateError
                 {
-                    hasResourcesInUse = true;
-                }
-                if (resourcePoolsByCapabilityId.TryGetValue(capability.Id, out var pools))
-                {
-                    hasPoolsInUse = true;
-                }
-
-                if (!hasPoolsInUse && !hasResourcesInUse)
-                {
-                    continue;
-                }
-
-                var error = new CapabilityInUseError
-                {
-                    Id = capability.Id,
+                    ErrorMessage = $"A capability that was not saved cannot be removed.",
+                    Id = x.Id,
                 };
 
-                if (hasResourcesInUse && hasPoolsInUse)
-                {
-                    error.ErrorMessage = $"Capability '{capability.Name}' is in use by {resources.Count} resource(s) and {pools.Count} resource pool(s) and cannot be deleted.";
-                    error.ResourceIds = resources.Select(x => x.Id).ToList();
-                    error.ResourcePoolIds = pools.Select(x => x.Id).ToList();
-                }
-                else if (hasResourcesInUse)
-                {
-                    error.ErrorMessage = $"Capability '{capability.Name}' is in use by {resources.Count} resource(s) and cannot be deleted.";
-                    error.ResourceIds = resources.Select(x => x.Id).ToList();
-                }
-                else
-                {
-                    error.ErrorMessage = $"Capability '{capability.Name}' is in use by {pools.Count} resource pool(s) and cannot be deleted.";
-                    error.ResourcePoolIds = pools.Select(x => x.Id).ToList();
-                }
+                ReportError(x.Id, error);
+            });
+        }
 
-                ReportError(capability.Id, error);
-            }
+        private void ValidateWorkflowUsage(ICollection<Capability> capabilities)
+        {
+            PassTraceData(SlcWorkflowParameterUsageValidator.Validate(planApi, capabilities));
+        }
+
+        private void ValidateResourceStudioUsage(ICollection<Capability> capabilities)
+        {
+            PassTraceData(SlcResourceStudioParameterUsageValidator.Validate(planApi, capabilities));
         }
 
         private CoreParameter CreateOrUpdateCoreParameter(Capability capability, Guid? linkedTimedependantCapabilityId)

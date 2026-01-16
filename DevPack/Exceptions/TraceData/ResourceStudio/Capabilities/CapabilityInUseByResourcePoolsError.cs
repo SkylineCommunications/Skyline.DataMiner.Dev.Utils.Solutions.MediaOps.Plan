@@ -4,12 +4,12 @@
     using System.Collections.Generic;
 
     /// <summary>
-    /// Represents an error that occurs when a configuration is in use by one or multiple Resource Pools.
+    /// Represents an error that occurs when a capability is in use by one or multiple Resource Pools.
     /// </summary>
-    public class ConfigurationInUseByResourcePoolsError : ConfigurationInUseError
+    public class CapabilityInUseByResourcePoolsError : CapabilityInUseError
     {
         /// <summary>
-        /// Ids of the resource pools referencing the configuration.
+        /// Ids of the resource pools referencing the capability.
         /// </summary>
         public IReadOnlyCollection<Guid> ResourcePoolIds { get; internal set; } = new List<Guid>();
     }

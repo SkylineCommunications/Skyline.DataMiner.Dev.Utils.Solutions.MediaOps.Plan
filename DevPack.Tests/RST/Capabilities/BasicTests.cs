@@ -210,5 +210,54 @@
             Assert.IsNotNull(capabilities);
             Assert.AreEqual(0, capabilities.Count());
         }
+
+        [TestMethod]
+        public void DeleteCapability_PartOfResourcePoolConfiguration_ThrowsException()
+        {
+            var prefix = Guid.NewGuid();
+            var capability = new Capability
+            {
+                Name = $"{prefix}_Capability",
+            }.SetDiscretes(["A", "B", "C"]);
+
+            objectCreator.CreateCapabilities([capability]);
+
+            var resourcePool = new ResourcePool
+            {
+                Name = $"{prefix}_ResourcePool",
+            };
+
+            resourcePool.OrchestrationSettings.SetCapabilities([new CapabilitySetting(capability)]);
+            objectCreator.CreateResourcePool(resourcePool);
+
+            try
+            {
+                TestContext.Api.Configurations.Delete(capability);
+            }
+            catch (MediaOpsException ex)
+            {
+                var errorMessage = $"Capability '{capability.Name}' is in use by Resource Pools.";
+                Assert.AreEqual(errorMessage, ex.Message);
+
+                Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
+
+                var capabilityInUseError = ex.TraceData.ErrorData.Single() as CapacityInUseByResourcePoolsError;
+                Assert.IsNotNull(capabilityInUseError);
+                Assert.AreEqual(errorMessage, capabilityInUseError.ErrorMessage);
+                Assert.IsNotNull(capabilityInUseError.ResourcePoolIds);
+                Assert.AreEqual(1, capabilityInUseError.ResourcePoolIds.Count());
+                Assert.AreEqual(resourcePool.Id, capabilityInUseError.ResourcePoolIds.Single());
+
+                return;
+            }
+
+            Assert.Fail();
+        }
+
+        [TestMethod]
+        public void DeleteCapability_PartOfResourcePoolOrchestrationEvents_ThrowsException()
+        {
+
+        }
     }
 }

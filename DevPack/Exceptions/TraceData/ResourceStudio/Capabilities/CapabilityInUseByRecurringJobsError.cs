@@ -4,12 +4,12 @@
     using System.Collections.Generic;
 
     /// <summary>
-    /// Represents an error that occurs when a configuration is referenced by one or multiple Recurring Jobs.
+    /// Represents an error that occurs when a capability is referenced by one or multiple Recurring Jobs.
     /// </summary>
-    public class ConfigurationInUseByRecurringJobsError : ConfigurationInUseError
+    public class CapabilityInUseByRecurringJobsError : CapabilityInUseError
     {
         /// <summary>
-        /// Ids of the recurring jobs referencing the configuration.
+        /// Ids of the recurring jobs referencing the capability.
         /// </summary>
         public IReadOnlyCollection<Guid> RecurringJobIds { get; internal set; } = new List<Guid>();
     }

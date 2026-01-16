@@ -4,12 +4,12 @@
     using System.Collections.Generic;
 
     /// <summary>
-    /// Represents an error that occurs when a configuration is referenced by one or multiple workflows.
+    /// Represents an error that occurs when a capability is referenced by one or multiple workflows.
     /// </summary>
-    public class ConfigurationInUseByWorkflowsError : ConfigurationInUseError
+    public class CapabilityInUseByWorkflowsError : CapabilityInUseError
     {
         /// <summary>
-        /// Ids of the workflows referencing the configuration.
+        /// Ids of the workflows referencing the capability.
         /// </summary>
         public IReadOnlyCollection<Guid> WorkflowIds { get; internal set; } = new List<Guid>();
     }

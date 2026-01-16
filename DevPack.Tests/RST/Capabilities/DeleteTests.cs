@@ -91,10 +91,9 @@
             expectedException.Result.TraceDataPerItem.TryGetValue(capability1.Id, out var traceData1);
             Assert.IsNotNull(traceData1);
             Assert.AreEqual(1, traceData1.ErrorData.Count);
-            var capabilityInUseError = traceData1.ErrorData.OfType<CapabilityInUseError>().SingleOrDefault();
+            var capabilityInUseError = traceData1.ErrorData.OfType<CapacityInUseByResourcesError>().SingleOrDefault();
             Assert.IsNotNull(capabilityInUseError);
             Assert.AreEqual($"Capability '{capability1.Name}' is in use by 2 resource(s) and cannot be deleted.", capabilityInUseError.ErrorMessage);
-            Assert.AreEqual(0, capabilityInUseError.ResourcePoolIds.Count);
             Assert.AreEqual(2, capabilityInUseError.ResourceIds.Count);
             Assert.IsTrue(capabilityInUseError.ResourceIds.Contains(unmangedResource1.Id));
             Assert.IsTrue(capabilityInUseError.ResourceIds.Contains(unmangedResource2.Id));
@@ -102,10 +101,9 @@
             expectedException.Result.TraceDataPerItem.TryGetValue(capability2.Id, out var traceData2);
             Assert.IsNotNull(traceData2);
             Assert.AreEqual(1, traceData2.ErrorData.Count);
-            capabilityInUseError = traceData2.ErrorData.OfType<CapabilityInUseError>().SingleOrDefault();
+            capabilityInUseError = traceData2.ErrorData.OfType<CapacityInUseByResourcesError>().SingleOrDefault();
             Assert.IsNotNull(capabilityInUseError);
             Assert.AreEqual($"Capability '{capability2.Name}' is in use by 1 resource(s) and cannot be deleted.", capabilityInUseError.ErrorMessage);
-            Assert.AreEqual(0, capabilityInUseError.ResourcePoolIds.Count);
             Assert.AreEqual(1, capabilityInUseError.ResourceIds.Count);
             Assert.IsTrue(capabilityInUseError.ResourceIds.Contains(unmangedResource1.Id));
         }
@@ -176,10 +174,9 @@
             expectedException.Result.TraceDataPerItem.TryGetValue(capability1.Id, out var traceData1);
             Assert.IsNotNull(traceData1);
             Assert.AreEqual(1, traceData1.ErrorData.Count);
-            var capabilityInUseError = traceData1.ErrorData.OfType<CapabilityInUseError>().SingleOrDefault();
+            var capabilityInUseError = traceData1.ErrorData.OfType<CapacityInUseByResourcePoolsError>().SingleOrDefault();
             Assert.IsNotNull(capabilityInUseError);
             Assert.AreEqual($"Capability '{capability1.Name}' is in use by 2 resource pool(s) and cannot be deleted.", capabilityInUseError.ErrorMessage);
-            Assert.AreEqual(0, capabilityInUseError.ResourceIds.Count);
             Assert.AreEqual(2, capabilityInUseError.ResourcePoolIds.Count);
             Assert.IsTrue(capabilityInUseError.ResourcePoolIds.Contains(pool1.Id));
             Assert.IsTrue(capabilityInUseError.ResourcePoolIds.Contains(pool2.Id));
@@ -187,10 +184,9 @@
             expectedException.Result.TraceDataPerItem.TryGetValue(capability2.Id, out var traceData2);
             Assert.IsNotNull(traceData2);
             Assert.AreEqual(1, traceData2.ErrorData.Count);
-            capabilityInUseError = traceData2.ErrorData.OfType<CapabilityInUseError>().SingleOrDefault();
+            capabilityInUseError = traceData2.ErrorData.OfType<CapacityInUseByResourcePoolsError>().SingleOrDefault();
             Assert.IsNotNull(capabilityInUseError);
             Assert.AreEqual($"Capability '{capability2.Name}' is in use by 1 resource pool(s) and cannot be deleted.", capabilityInUseError.ErrorMessage);
-            Assert.AreEqual(0, capabilityInUseError.ResourceIds.Count);
             Assert.AreEqual(1, capabilityInUseError.ResourcePoolIds.Count);
             Assert.IsTrue(capabilityInUseError.ResourcePoolIds.Contains(pool1.Id));
         }
@@ -260,26 +256,45 @@
             capability3 = TestContext.Api.Capabilities.Read(capability3.Id);
             Assert.IsNull(capability3);
 
+            // Capability 1
             expectedException.Result.TraceDataPerItem.TryGetValue(capability1.Id, out var traceData1);
             Assert.IsNotNull(traceData1);
-            Assert.AreEqual(1, traceData1.ErrorData.Count);
-            var capabilityInUseError = traceData1.ErrorData.OfType<CapabilityInUseError>().SingleOrDefault();
-            Assert.IsNotNull(capabilityInUseError);
-            Assert.AreEqual($"Capability '{capability1.Name}' is in use by 1 resource(s) and 1 resource pool(s) and cannot be deleted.", capabilityInUseError.ErrorMessage);
-            Assert.AreEqual(1, capabilityInUseError.ResourceIds.Count);
-            Assert.IsTrue(capabilityInUseError.ResourceIds.Contains(unmangedResource.Id));
-            Assert.AreEqual(1, capabilityInUseError.ResourcePoolIds.Count);
-            Assert.IsTrue(capabilityInUseError.ResourcePoolIds.Contains(pool.Id));
+            Assert.AreEqual(2, traceData1.ErrorData.Count);
 
+            var capabillity1InUseErrors = traceData1.ErrorData.OfType<CapabilityInUseError>().ToList();
+            Assert.AreEqual(2, capabillity1InUseErrors.Count);
+
+            var capabilityInUseByPoolError = capabillity1InUseErrors.OfType<CapacityInUseByResourcePoolsError>().SingleOrDefault();
+            Assert.IsNotNull(capabilityInUseByPoolError);
+            Assert.AreEqual($"Capability '{capability1.Name}' is in use by 1 resource pool(s) and cannot be deleted.", capabilityInUseByPoolError.ErrorMessage);
+            Assert.AreEqual(1, capabilityInUseByPoolError.ResourcePoolIds.Count);
+            Assert.IsTrue(capabilityInUseByPoolError.ResourcePoolIds.Contains(pool.Id));
+
+            var capabilityInUseByResourceError = capabillity1InUseErrors.OfType<CapacityInUseByResourcesError>().SingleOrDefault();
+            Assert.IsNotNull(capabilityInUseByResourceError);
+            Assert.AreEqual($"Capability '{capability1.Name}' is in use by 1 resource(s) and cannot be deleted.", capabilityInUseByResourceError.ErrorMessage);
+            Assert.AreEqual(1, capabilityInUseByResourceError.ResourceIds.Count);
+            Assert.IsTrue(capabilityInUseByResourceError.ResourceIds.Contains(unmangedResource.Id));
+
+            // Capability 2
             expectedException.Result.TraceDataPerItem.TryGetValue(capability2.Id, out var traceData2);
             Assert.IsNotNull(traceData2);
-            Assert.AreEqual(1, traceData2.ErrorData.Count);
-            capabilityInUseError = traceData2.ErrorData.OfType<CapabilityInUseError>().SingleOrDefault();
-            Assert.IsNotNull(capabilityInUseError);
-            Assert.AreEqual($"Capability '{capability2.Name}' is in use by 1 resource(s) and cannot be deleted.", capabilityInUseError.ErrorMessage);
-            Assert.AreEqual(0, capabilityInUseError.ResourcePoolIds.Count);
-            Assert.AreEqual(1, capabilityInUseError.ResourceIds.Count);
-            Assert.IsTrue(capabilityInUseError.ResourceIds.Contains(unmangedResource.Id));
+            Assert.AreEqual(2, traceData2.ErrorData.Count);
+
+            var capabillity2InUseErrors = traceData2.ErrorData.OfType<CapabilityInUseError>().ToList();
+            Assert.AreEqual(2, capabillity2InUseErrors.Count);
+
+            capabilityInUseByPoolError = capabillity1InUseErrors.OfType<CapacityInUseByResourcePoolsError>().SingleOrDefault();
+            Assert.IsNotNull(capabilityInUseByPoolError);
+            Assert.AreEqual($"Capability '{capability1.Name}' is in use by 1 resource pool(s) and cannot be deleted.", capabilityInUseByPoolError.ErrorMessage);
+            Assert.AreEqual(1, capabilityInUseByPoolError.ResourcePoolIds.Count);
+            Assert.IsTrue(capabilityInUseByPoolError.ResourcePoolIds.Contains(pool.Id));
+
+            capabilityInUseByResourceError = capabillity1InUseErrors.OfType<CapacityInUseByResourcesError>().SingleOrDefault();
+            Assert.IsNotNull(capabilityInUseByResourceError);
+            Assert.AreEqual($"Capability '{capability1.Name}' is in use by 1 resource(s) and cannot be deleted.", capabilityInUseByResourceError.ErrorMessage);
+            Assert.AreEqual(1, capabilityInUseByResourceError.ResourceIds.Count);
+            Assert.IsTrue(capabilityInUseByResourceError.ResourceIds.Contains(unmangedResource.Id));
         }
     }
 }

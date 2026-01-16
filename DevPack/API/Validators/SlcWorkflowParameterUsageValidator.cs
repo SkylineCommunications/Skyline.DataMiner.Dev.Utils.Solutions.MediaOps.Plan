@@ -2,26 +2,24 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.ComponentModel;
     using System.Linq;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Helper;
     using Skyline.DataMiner.Net.Jobs;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow;
 
-    internal class ParameterWorkflowUsageValidator : ApiObjectValidator
+    internal class SlcWorkflowParameterUsageValidator : ApiObjectValidator
     {
         private readonly MediaOpsPlanApi planApi;
         private readonly IReadOnlyCollection<Parameter> parametersToValidate;
         private readonly HashSet<Guid> parameterIdsToValidate;
 
         private HashSet<Guid> workflowConfigurationIds;
-        private Dictionary<Guid, List<Guid>> WorkflowConfigurationsPerParameter;
+        private Dictionary<Guid, List<Guid>> workflowConfigurationsPerParameter;
 
-        private ParameterWorkflowUsageValidator(MediaOpsPlanApi planApi, IReadOnlyCollection<Parameter> parametersToValidate)
+        private SlcWorkflowParameterUsageValidator(MediaOpsPlanApi planApi, IReadOnlyCollection<Parameter> parametersToValidate)
         {
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
             this.parametersToValidate = parametersToValidate ?? throw new ArgumentNullException(nameof(parametersToValidate));
@@ -33,19 +31,52 @@
             if (configurationsToValidate == null)
                 throw new ArgumentNullException(nameof(configurationsToValidate));
 
-            var validator = new ParameterWorkflowUsageValidator(planApi, configurationsToValidate.ToList<Parameter>());
+            var validator = new SlcWorkflowParameterUsageValidator(planApi, configurationsToValidate.ToList<Parameter>());
             validator.ValidateConfigurations();
             return validator;
         }
 
-        public static ApiObjectValidator Validate(MediaOpsPlanApi planApi, ICollection<Capacity> capacitiesToValidate)
+        private void ValidateConfigurations()
         {
-            if (capacitiesToValidate == null)
-                throw new ArgumentNullException(nameof(capacitiesToValidate));
+            if (!parameterIdsToValidate.Any())
+            {
+                return;
+            }
 
-            var validator = new ParameterWorkflowUsageValidator(planApi, capacitiesToValidate.ToList<Parameter>());
-            validator.ValidateCapacities();
-            return validator;
+            workflowConfigurationsPerParameter = GetWorkflowConfigurationsPerParameter(parametersToValidate.Select(x => x.Id).ToHashSet());
+            workflowConfigurationIds = workflowConfigurationsPerParameter.SelectMany(x => x.Value).Distinct().ToHashSet();
+
+            ValidateJobUsage((parameter, ids) =>
+            {
+                return new ConfigurationInUseByJobsError
+                {
+                    Id = parameter.Id,
+                    ErrorMessage = $"Configuration '{parameter.Name}' is in use by Jobs.",
+                    JobIds = ids.ToArray(),
+                };
+            });
+
+
+            ValidateRecurringJobUsage((parameter, ids) =>
+            {
+                return new ConfigurationInUseByRecurringJobsError
+                {
+                    Id = parameter.Id,
+                    ErrorMessage = $"Configuration '{parameter.Name}' is in use by Recurring Jobs.",
+                    RecurringJobIds = ids.ToArray(),
+                };
+            });
+
+
+            ValidateWorkflowUsage((parameter, ids) =>
+            {
+                return new ConfigurationInUseByWorkflowsError
+                {
+                    Id = parameter.Id,
+                    ErrorMessage = $"Configuration '{parameter.Name}' is in use by Workflows.",
+                    WorkflowIds = ids.ToArray(),
+                };
+            });
         }
 
         public static ApiObjectValidator Validate(MediaOpsPlanApi planApi, ICollection<Capability> capabilitiesToValidate)
@@ -53,32 +84,114 @@
             if (capabilitiesToValidate == null)
                 throw new ArgumentNullException(nameof(capabilitiesToValidate));
 
-            var validator = new ParameterWorkflowUsageValidator(planApi, capabilitiesToValidate.ToList<Parameter>());
+            var validator = new SlcWorkflowParameterUsageValidator(planApi, capabilitiesToValidate.ToList<Parameter>());
             validator.ValidateCapabilities();
             return validator;
         }
 
-        private void ValidateConfigurations()
+        private void ValidateCapabilities()
         {
-            WorkflowConfigurationsPerParameter = GetWorkflowConfigurationsPerParameter(parametersToValidate.Select(x => x.Id).ToHashSet());
-
-            if (!WorkflowConfigurationsPerParameter.Any())
+            if (!parameterIdsToValidate.Any())
+            {
                 return;
+            }
 
-            workflowConfigurationIds = WorkflowConfigurationsPerParameter.SelectMany(x => x.Value).Distinct().ToHashSet();
+            workflowConfigurationsPerParameter = GetWorkflowConfigurationsPerParameter(parametersToValidate.Select(x => x.Id).ToHashSet());
+            workflowConfigurationIds = workflowConfigurationsPerParameter.SelectMany(x => x.Value).Distinct().ToHashSet();
 
-            ValidateConfigurationJobUsage();
-            ValidateConfigurationRecurringJobUsage();
-            ValidateConfigurationWorkflowUsage();
+            ValidateJobUsage((parameter, ids) =>
+            {
+                return new CapabilityInUseByJobsError
+                {
+                    Id = parameter.Id,
+                    ErrorMessage = $"Capability '{parameter.Name}' is in use by Jobs.",
+                    JobIds = ids.ToArray(),
+                };
+            });
+
+
+            ValidateRecurringJobUsage((parameter, ids) =>
+            {
+                return new CapabilityInUseByRecurringJobsError
+                {
+                    Id = parameter.Id,
+                    ErrorMessage = $"Capability '{parameter.Name}' is in use by Recurring Jobs.",
+                    RecurringJobIds = ids.ToArray(),
+                };
+            });
+
+
+            ValidateWorkflowUsage((parameter, ids) =>
+            {
+                return new CapabilityInUseByWorkflowsError
+                {
+                    Id = parameter.Id,
+                    ErrorMessage = $"Capability '{parameter.Name}' is in use by Workflows.",
+                    WorkflowIds = ids.ToArray(),
+                };
+            });
         }
 
-        private void ValidateConfigurationJobUsage()
+        public static ApiObjectValidator Validate(MediaOpsPlanApi planApi, ICollection<Capacity> capacitiesToValidate)
+        {
+            if (capacitiesToValidate == null)
+                throw new ArgumentNullException(nameof(capacitiesToValidate));
+
+            var validator = new SlcWorkflowParameterUsageValidator(planApi, capacitiesToValidate.ToList<Parameter>());
+            validator.ValidateCapacities();
+            return validator;
+        }
+
+        private void ValidateCapacities()
+        {
+            if (!parameterIdsToValidate.Any())
+            {
+                return;
+            }
+
+            workflowConfigurationsPerParameter = GetWorkflowConfigurationsPerParameter(parametersToValidate.Select(x => x.Id).ToHashSet());
+            workflowConfigurationIds = workflowConfigurationsPerParameter.SelectMany(x => x.Value).Distinct().ToHashSet();
+
+            ValidateJobUsage((parameter, ids) =>
+            {
+                return new CapacityInUseByJobsError
+                {
+                    Id = parameter.Id,
+                    ErrorMessage = $"Capacity '{parameter.Name}' is in use by Jobs.",
+                    JobIds = ids.ToArray(),
+                };
+            });
+
+
+            ValidateRecurringJobUsage((parameter, ids) =>
+            {
+                return new CapacityInUseByRecurringJobsError
+                {
+                    Id = parameter.Id,
+                    ErrorMessage = $"Capacity '{parameter.Name}' is in use by Recurring Jobs.",
+                    RecurringJobIds = ids.ToArray(),
+                };
+            });
+
+
+            ValidateWorkflowUsage((parameter, ids) =>
+            {
+                return new CapacityInUseByWorkflowsError
+                {
+                    Id = parameter.Id,
+                    ErrorMessage = $"Capacity '{parameter.Name}' is in use by Workflows.",
+                    WorkflowIds = ids.ToArray(),
+                };
+            });
+        }
+
+        private void ValidateJobUsage(Func<Parameter, List<Guid>, MediaOpsErrorData> createJobsError)
         {
             var jobsReferencingConfigurations = GetJobsReferencingConfigurations();
-            foreach (var configurationParameter in parametersToValidate)
+            foreach (var parameter in parametersToValidate)
             {
                 HashSet<Guid> referencedJobIds = new HashSet<Guid>();
-                if (!WorkflowConfigurationsPerParameter.TryGetValue(configurationParameter.Id, out var referencedWorkflowConfigurationIds))
+                if (!workflowConfigurationsPerParameter.TryGetValue(parameter.Id, out var referencedWorkflowConfigurationIds))
                 {
                     continue;
                 }
@@ -98,25 +211,23 @@
 
                 if (referencedJobIds.Any())
                 {
-                    ReportError(configurationParameter.Id, new ConfigurationInUseByJobsError
+                    ReportError(parameter.Id, new ConfigurationInUseByJobsError
                     {
-                        Id = configurationParameter.Id,
-                        ErrorMessage = $"Configuration '{configurationParameter.Name}' is in use by Jobs.",
+                        Id = parameter.Id,
+                        ErrorMessage = $"Configuration '{parameter.Name}' is in use by Jobs.",
                         JobIds = referencedJobIds.ToArray(),
                     });
-
-                    workflowConfigurationIds.Remove(configurationParameter.Id);
                 }
             }
         }
 
-        private void ValidateConfigurationRecurringJobUsage()
+        private void ValidateRecurringJobUsage(Func<Parameter, List<Guid>, MediaOpsErrorData> createRecurringJobsError)
         {
             var recurringJobsReferencingConfigurations = GetRecurringJobsReferencingConfigurations();
             foreach (var configurationParameter in parametersToValidate)
             {
                 HashSet<Guid> referencedRecurringJobIds = new HashSet<Guid>();
-                if (!WorkflowConfigurationsPerParameter.TryGetValue(configurationParameter.Id, out var referencedWorkflowConfigurationIds))
+                if (!workflowConfigurationsPerParameter.TryGetValue(configurationParameter.Id, out var referencedWorkflowConfigurationIds))
                 {
                     continue;
                 }
@@ -142,19 +253,17 @@
                         ErrorMessage = $"Configuration '{configurationParameter.Name}' is in use by Recurring Jobs.",
                         RecurringJobIds = referencedRecurringJobIds.ToArray(),
                     });
-
-                    workflowConfigurationIds.Remove(configurationParameter.Id);
                 }
             }
         }
 
-        private void ValidateConfigurationWorkflowUsage()
+        private void ValidateWorkflowUsage(Func<Parameter, ICollection<Guid>, MediaOpsErrorData> createWorkflowsError)
         {
             var workflowsReferencingConfigurations = GetWorkflowsReferencingConfigurations();
-            foreach (var apiConfiguration in parametersToValidate)
+            foreach (var configurationParameter in parametersToValidate)
             {
                 HashSet<Guid> referencedWorkflowIds = new HashSet<Guid>();
-                if (!WorkflowConfigurationsPerParameter.TryGetValue(apiConfiguration.Id, out var referencedWorkflowConfigurationIds))
+                if (!workflowConfigurationsPerParameter.TryGetValue(configurationParameter.Id, out var referencedWorkflowConfigurationIds))
                 {
                     continue;
                 }
@@ -174,43 +283,26 @@
 
                 if (referencedWorkflowIds.Any())
                 {
-                    ReportError(apiConfiguration.Id, new ConfigurationInUseByWorkflowsError
-                    {
-                        Id = apiConfiguration.Id,
-                        ErrorMessage = $"Configuration '{apiConfiguration.Name}' is in use by Workflows.",
-                        WorkflowIds = referencedWorkflowIds.ToArray(),
-                    });
-
-                    workflowConfigurationIds.Remove(apiConfiguration.Id);
+                    ReportError(configurationParameter.Id, createWorkflowsError.Invoke(configurationParameter, referencedWorkflowIds));
                 }
             }
-        }
-
-        private void ValidateCapacities()
-        {
-            throw new NotImplementedException();
-        }
-
-        private void ValidateCapabilities()
-        {
-            throw new NotImplementedException();
         }
 
         /// <summary>
         /// Returns a mapping of API Parameter IDs to the Configuration Instance IDs that reference them.
         /// </summary>
-        /// <param name="apiParameterIds">Ids of the API parameters to check.</param>
+        /// <param name="parameterIds">Ids of the API parameters to check.</param>
         /// <returns>A dictionary where the key is the Configuration Instance ID and the value is the list of referenced Parameter IDs.</returns>
-        private Dictionary<Guid, List<Guid>> GetWorkflowConfigurationsPerParameter(HashSet<Guid> apiParameterIds)
+        private Dictionary<Guid, List<Guid>> GetWorkflowConfigurationsPerParameter(HashSet<Guid> parameterIds)
         {
             var result = new Dictionary<Guid, List<Guid>>();
 
-            if (apiParameterIds == null || apiParameterIds.Count == 0)
+            if (parameterIds == null || parameterIds.Count == 0)
             {
                 return result;
             }
 
-            var possibleWorkflowConfigurations = GetWorkflowConfigurations(apiParameterIds);
+            var possibleWorkflowConfigurations = GetWorkflowConfigurations(parameterIds);
 
             foreach (var possibleWorkflowConfiguration in possibleWorkflowConfigurations)
             {
@@ -296,12 +388,6 @@
         private Dictionary<Guid, List<Guid>> GetJobsReferencingConfigurations()
         {
             var result = new Dictionary<Guid, List<Guid>>();
-
-            if (workflowConfigurationIds == null || workflowConfigurationIds.Count == 0)
-            {
-                return result;
-            }
-
             var jobs = GetJobInstancesReferencingConfigurations();
 
             foreach (var job in jobs)
@@ -387,12 +473,6 @@
         private Dictionary<Guid, List<Guid>> GetRecurringJobsReferencingConfigurations()
         {
             var result = new Dictionary<Guid, List<Guid>>();
-
-            if (workflowConfigurationIds.Count == 0)
-            {
-                return result;
-            }
-
             var recurringJobInstances = GetRecurringJobInstancesReferencingConfigurations();
 
             foreach (var recurringJob in recurringJobInstances)
@@ -432,12 +512,6 @@
         private Dictionary<Guid, List<Guid>> GetWorkflowsReferencingConfigurations()
         {
             var result = new Dictionary<Guid, List<Guid>>();
-
-            if (workflowConfigurationIds.Count == 0)
-            {
-                return result;
-            }
-
             var workflowInstances = GetWorkflowInstancesReferencingConfigurations();
 
             foreach (var workflow in workflowInstances)
