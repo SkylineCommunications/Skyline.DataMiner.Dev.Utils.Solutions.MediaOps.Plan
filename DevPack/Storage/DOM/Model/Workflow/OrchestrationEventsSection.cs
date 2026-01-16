@@ -2,36 +2,29 @@
 {
     internal partial class OrchestrationEventsSection
     {
-        private ScriptExecutionDetails scriptExecutionDetails;
+        internal ScriptExecutionDetails ScriptExecutionDetails { get; set; }
 
-        internal ScriptExecutionDetails ScriptExecutionDetails
+        protected override void BeforeToSection()
         {
-            get
+            if (ScriptExecutionDetails != null)
             {
-                if (scriptExecutionDetails != null)
-                {
-                    return scriptExecutionDetails;
-                }
-
-                if (ScriptExecutionDetails.TryDeserialize(ScriptInputValues, out scriptExecutionDetails))
-                {
-                    return scriptExecutionDetails;
-                }
-
-                scriptExecutionDetails = null;
-                return scriptExecutionDetails;
+                ScriptInputValues = ScriptExecutionDetails.Serialize();
             }
-            set
+            else
             {
-                scriptExecutionDetails = value;
+                ScriptInputValues = null;
             }
         }
 
-        internal void ApplyChanges()
+        protected override void AfterLoad()
         {
-            if (scriptExecutionDetails != null)
+            if (!string.IsNullOrEmpty(ScriptInputValues) && ScriptExecutionDetails.TryDeserialize(ScriptInputValues, out var details))
             {
-                ScriptInputValues = scriptExecutionDetails.Serialize();
+                ScriptExecutionDetails = details;
+            }
+            else
+            {
+                ScriptExecutionDetails = null;
             }
         }
     }
