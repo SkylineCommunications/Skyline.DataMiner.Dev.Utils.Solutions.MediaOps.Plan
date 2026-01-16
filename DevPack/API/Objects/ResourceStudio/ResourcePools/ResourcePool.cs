@@ -111,6 +111,7 @@
                 hash = (hash * 23) + (Url != null ? Url.GetHashCode() : 0);
                 hash = (hash * 23) + (CategoryId != null ? CategoryId.GetHashCode() : 0);
                 hash = (hash * 23) + State.GetHashCode();
+                hash = (hash * 23) + (OrchestrationSettings != null ? OrchestrationSettings.GetHashCode() : 0);
 
                 foreach (var linkedResourcePool in LinkedResourcePools.OrderBy(x => x.LinkedResourcePoolId).ToArray())
                 {

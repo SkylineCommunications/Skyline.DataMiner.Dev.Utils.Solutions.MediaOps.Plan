@@ -2,6 +2,8 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
+    using Skyline.DataMiner.Net.Helper;
 
     /// <summary>
     /// Represents the base class for orchestration settings.
@@ -138,5 +140,58 @@
         /// <returns>The current <see cref="OrchestrationSettings"/> instance.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="orchestrationEvents"/> is <see langword="null"/></exception>
         public abstract OrchestrationSettings SetOrchestrationEvents(IEnumerable<OrchestrationEvent> orchestrationEvents);
+
+        /// <summary>
+        /// Checks if the provided object is an OrchestrationEvent instance and compares its properties to determine equality.
+        /// </summary>
+        /// <param name="obj">Object to compare.</param>
+        /// <returns>True, if properties match, else false.</returns>
+        public override bool Equals(object obj)
+        {
+            if (obj is not OrchestrationSettings other)
+            {
+                return false;
+            }
+
+            return Id == other.Id &&
+                Name == other.Name &&
+                Capabilities.ScrambledEquals(other.Capabilities) &&
+                Capacities.ScrambledEquals(other.Capacities) &&
+                Configurations.ScrambledEquals(other.Configurations) &&
+                OrchestrationEvents.ScrambledEquals(other.OrchestrationEvents);
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = 17;
+                hash = (hash * 23) + Id.GetHashCode();
+                hash = (hash * 23) + (Name != null ? Name.GetHashCode() : 0);
+
+                foreach (var capability in Capabilities.OrderBy(x => x.Id))
+                {
+                    hash = (hash * 23) + capability.GetHashCode();
+                }
+
+                foreach (var capacity in Capacities.OrderBy(x => x.Id))
+                {
+                    hash = (hash * 23) + capacity.GetHashCode();
+                }
+
+                foreach (var configuration in Configurations.OrderBy(x => x.Id))
+                {
+                    hash = (hash * 23) + configuration.GetHashCode();
+                }
+
+                foreach (var orchestrationEvent in OrchestrationEvents.OrderBy(x => x.EventType))
+                {
+                    hash = (hash * 23) + orchestrationEvent.GetHashCode();
+                }
+
+                return hash;
+            }
+        }
     }
 }

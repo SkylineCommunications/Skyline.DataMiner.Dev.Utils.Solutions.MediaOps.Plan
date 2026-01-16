@@ -7,8 +7,11 @@
 
     using Microsoft.Extensions.Logging;
 
-    using Skyline.DataMiner.Net;
+    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+    using Skyline.DataMiner.Net.Helper;
+    using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
 
     internal class CoreConfigurationHandler : ApiObjectValidator
     {
@@ -119,18 +122,11 @@
                 return;
             }
 
-            foreach (var configuration in apiConfigurations.Where(x => x.IsNew))
-            {
-                var error = new ConfigurationInvalidStateError
-                {
-                    ErrorMessage = "Cannot delete a configuration that does not exist.",
-                    Id = configuration.Id,
-                };
+            ValidateExistence(apiConfigurations);
+            ValidateResourcePoolParametersUsage(apiConfigurations.Where(IsValid).ToArray());
+            ValidateWorkflowUsage(apiConfigurations.Where(IsValid).ToArray());
 
-                ReportError(configuration.Id, error);
-            }
-
-            var validConfigurations = apiConfigurations.Where(IsValid).ToList();
+            var validConfigurations = apiConfigurations.Where(IsValid).ToArray();
             var lockResult = planApi.LockManager.LockAndExecute(validConfigurations, DeleteCoreConfigurations);
             ReportError(lockResult);
         }
@@ -350,6 +346,30 @@
 
             parameter = null;
             return false;
+        }
+
+        private void ValidateExistence(ICollection<Configuration> apiConfigurations)
+        {
+            foreach (var configuration in apiConfigurations.Where(x => x.IsNew))
+            {
+                var error = new ConfigurationInvalidStateError
+                {
+                    ErrorMessage = "Cannot delete a configuration that does not exist.",
+                    Id = configuration.Id,
+                };
+
+                ReportError(configuration.Id, error);
+            }
+        }
+
+        private void ValidateWorkflowUsage(ICollection<Configuration> configurations)
+        {
+            PassTraceData(ParameterWorkflowUsageValidator.Validate(planApi, configurations));
+        }
+
+        private void ValidateResourcePoolParametersUsage(ICollection<Configuration> configurations)
+        {
+            PassTraceData(ParameterResourceUsageValidator.Validate(planApi, configurations));
         }
 
         private Net.Profiles.Parameter GetNumberConfigurationWithChanges(NumberConfiguration apiConfiguration)
