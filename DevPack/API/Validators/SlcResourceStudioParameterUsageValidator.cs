@@ -398,21 +398,7 @@
                 HashSet<Guid> referencingResourcePoolIds = new HashSet<Guid>();
 
                 // Verify references by Resource Studio configuration instances
-                if (resourceStudioConfigurationsPerParameter.TryGetValue(parameter.Id, out var referencedWorkflowConfigurationIds))
-                {
-                    // Parameter is referenced by resource studio configuration instances.
-                    foreach (var referencedWorkflowConfigurationId in referencedWorkflowConfigurationIds)
-                    {
-                        if (!resourcePoolsReferencingConfigurations.TryGetValue(referencedWorkflowConfigurationId, out var resourcePoolIds))
-                        {
-                            // Resource Studio configuration is not referenced by any Resource Pool.
-                            continue;
-                        }
-
-                        foreach (var resourcePoolId in resourcePoolIds)
-                            referencingResourcePoolIds.Add(resourcePoolId);
-                    }
-                }
+                ValidateResourcePoolConfigurationUsage(parameter, referencingResourcePoolIds);
 
                 // Verify references by Resource Pools via Resource Pool Capabilities section
                 if (resourcePoolsPerCapability.TryGetValue(parameter.Id, out var resourcePoolIdsReferencingCapability))
@@ -438,23 +424,7 @@
             foreach (var parameter in parametersToValidate)
             {
                 HashSet<Guid> referencingResourcePoolIds = new HashSet<Guid>();
-
-                // Verify references by Resource Studio configuration instances
-                if (resourceStudioConfigurationsPerParameter.TryGetValue(parameter.Id, out var referencedWorkflowConfigurationIds))
-                {
-                    // Parameter is referenced by resource studio configuration instances.
-                    foreach (var referencedWorkflowConfigurationId in referencedWorkflowConfigurationIds)
-                    {
-                        if (!resourcePoolsReferencingConfigurations.TryGetValue(referencedWorkflowConfigurationId, out var resourcePoolIds))
-                        {
-                            // Resource Studio configuration is not referenced by any Resource Pool.
-                            continue;
-                        }
-
-                        foreach (var resourcePoolId in resourcePoolIds)
-                            referencingResourcePoolIds.Add(resourcePoolId);
-                    }
-                }
+                ValidateResourcePoolConfigurationUsage(parameter, referencingResourcePoolIds);
 
                 if (referencingResourcePoolIds.Any())
                 {
@@ -467,16 +437,30 @@
                 }
             }
         }
+
         private void ValidateResourcePoolConfigurationUsage()
         {
             foreach (var parameter in parametersToValidate)
             {
                 HashSet<Guid> referencedResourcePoolIds = new HashSet<Guid>();
-                if (!resourceStudioConfigurationsPerParameter.TryGetValue(parameter.Id, out var referencedWorkflowConfigurationIds))
-                {
-                    continue;
-                }
+                ValidateResourcePoolConfigurationUsage(parameter, referencedResourcePoolIds);
 
+                if (referencedResourcePoolIds.Any())
+                {
+                    ReportError(parameter.Id, new ConfigurationInUseByResourcePoolsError
+                    {
+                        Id = parameter.Id,
+                        ErrorMessage = $"Configuration '{parameter.Name}' is in use by {referencedResourcePoolIds.Count} resource pool(s).",
+                        ResourcePoolIds = referencedResourcePoolIds.ToArray(),
+                    });
+                }
+            }
+        }
+
+        private void ValidateResourcePoolConfigurationUsage(Parameter parameter, HashSet<Guid> referencingResourcePoolIds)
+        {
+            if (resourceStudioConfigurationsPerParameter.TryGetValue(parameter.Id, out var referencedWorkflowConfigurationIds))
+            {
                 // Parameter is referenced by resource studio configuration instances.
                 foreach (var referencedWorkflowConfigurationId in referencedWorkflowConfigurationIds)
                 {
@@ -487,17 +471,7 @@
                     }
 
                     foreach (var resourcePoolId in resourcePoolIds)
-                        referencedResourcePoolIds.Add(resourcePoolId);
-                }
-
-                if (referencedResourcePoolIds.Any())
-                {
-                    ReportError(parameter.Id, new ConfigurationInUseByResourcePoolsError
-                    {
-                        Id = parameter.Id,
-                        ErrorMessage = $"Configuration '{parameter.Name}' is in use by {referencedResourcePoolIds.Count} resource pool(s).",
-                        ResourcePoolIds = referencedResourcePoolIds.ToArray(),
-                    });
+                        referencingResourcePoolIds.Add(resourcePoolId);
                 }
             }
         }
