@@ -37,5 +37,24 @@
         /// </summary>
         IResourcePropertiesRepository ResourceProperties { get; }
 
+        /// <summary>
+        /// Determines whether the MediaOps.PLAN application is installed on the DataMiner System.
+        /// </summary>
+        /// <param name="version">
+        /// When this method returns <c>true</c>, contains the version of the installed application;
+        /// otherwise, <c>null</c>.
+        /// </param>
+        /// <returns>
+        /// <c>true</c> if the application is installed; otherwise, <c>false</c>.
+        /// </returns>
+        bool IsInstalled(out string version);
+
+        /// <summary>
+        /// Determines whether the MediaOps.PLAN application is installed on the DataMiner System.
+        /// </summary>
+        /// <returns>
+        /// <c>true</c> if the application is installed; otherwise, <c>false</c>.
+        /// </returns>
+        bool IsInstalled();
     }
 }

@@ -118,16 +118,7 @@
 
         internal CategoriesApi Categories => lazyCategoriesApi.Value;
 
-        /// <summary>
-        /// Determines whether the MediaOps.PLAN application is installed on the DataMiner System.
-        /// </summary>
-        /// <param name="version">
-        /// When this method returns <c>true</c>, contains the version of the installed application;
-        /// otherwise, <c>null</c>.
-        /// </param>
-        /// <returns>
-        /// <c>true</c> if the application is installed; otherwise, <c>false</c>.
-        /// </returns>
+        /// <inheritdoc/>
         public bool IsInstalled(out string version)
         {
             var isInstalled = installedAppPackages.IsInstalled("SLC-S-MediaOps", out var installedAppInfo);
@@ -135,12 +126,7 @@
             return isInstalled;
         }
 
-        /// <summary>
-        /// Determines whether the MediaOps.PLAN application is installed on the DataMiner System.
-        /// </summary>
-        /// <returns>
-        /// <c>true</c> if the application is installed; otherwise, <c>false</c>.
-        /// </returns>
+        /// <inheritdoc/>
         public bool IsInstalled()
         {
             return IsInstalled(out _);
