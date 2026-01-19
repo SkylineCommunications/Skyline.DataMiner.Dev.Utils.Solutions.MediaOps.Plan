@@ -70,16 +70,22 @@
             {
                 var configurationId = possibleResourcePoolConfiguration.ID.Id;
 
-                // ProfileParameterValues section
-                foreach (var profileParameterValue in possibleResourcePoolConfiguration.ProfileParameterValues)
+                if (possibleResourcePoolConfiguration.ProfileParameterValues != null)
                 {
-                    ValidateProfileParameterValuesSection(result, configurationId, profileParameterValue);
+                    // ProfileParameterValues section
+                    foreach (var profileParameterValue in possibleResourcePoolConfiguration.ProfileParameterValues)
+                    {
+                        ValidateProfileParameterValuesSection(result, configurationId, profileParameterValue);
+                    }
                 }
 
-                // OrchestrationEvents section
-                foreach (var section in possibleResourcePoolConfiguration.OrchestrationEvents)
+                if (possibleResourcePoolConfiguration.OrchestrationEvents != null)
                 {
-                    ValidateOrchestrationEventsSection(result, configurationId, section);
+                    // OrchestrationEvents section
+                    foreach (var section in possibleResourcePoolConfiguration.OrchestrationEvents)
+                    {
+                        ValidateOrchestrationEventsSection(result, configurationId, section);
+                    }
                 }
             }
 
@@ -351,10 +357,10 @@
 
                 if (resourceIdsReferencingCapability.Any())
                 {
-                    ReportError(parameter.Id, new CapacityInUseByResourcesError
+                    ReportError(parameter.Id, new CapabilityInUseByResourcesError
                     {
                         Id = parameter.Id,
-                        ErrorMessage = $"Capability '{parameter.Name}' is in use by Resources.",
+                        ErrorMessage = $"Capability '{parameter.Name}' is in use by {resourceIdsReferencingCapability.Count} resource(s).",
                         ResourceIds = resourceIdsReferencingCapability.ToArray(),
                     });
                 }
@@ -376,7 +382,7 @@
                     ReportError(parameter.Id, new CapacityInUseByResourcesError
                     {
                         Id = parameter.Id,
-                        ErrorMessage = $"Capacity '{parameter.Name}' is in use by Resources.",
+                        ErrorMessage = $"Capacity '{parameter.Name}' is in use by {resourceIdsReferencingCapacity.Count} resource(s).",
                         ResourceIds = resourceIdsReferencingCapacity.ToArray(),
                     });
                 }
@@ -417,10 +423,10 @@
 
                 if (referencingResourcePoolIds.Any())
                 {
-                    ReportError(parameter.Id, new CapacityInUseByResourcePoolsError
+                    ReportError(parameter.Id, new CapabilityInUseByResourcePoolsError
                     {
                         Id = parameter.Id,
-                        ErrorMessage = $"Capability '{parameter.Name}' is in use by Resource Pools.",
+                        ErrorMessage = $"Capability '{parameter.Name}' is in use by {referencingResourcePoolIds.Count} resource pool(s).",
                         ResourcePoolIds = referencingResourcePoolIds.ToArray(),
                     });
                 }
@@ -455,7 +461,7 @@
                     ReportError(parameter.Id, new CapacityInUseByResourcePoolsError
                     {
                         Id = parameter.Id,
-                        ErrorMessage = $"Capacity '{parameter.Name}' is in use by Resource Pools.",
+                        ErrorMessage = $"Capacity '{parameter.Name}' is in use by {referencingResourcePoolIds.Count} resource pool(s).",
                         ResourcePoolIds = referencingResourcePoolIds.ToArray(),
                     });
                 }
@@ -489,7 +495,7 @@
                     ReportError(parameter.Id, new ConfigurationInUseByResourcePoolsError
                     {
                         Id = parameter.Id,
-                        ErrorMessage = $"Configuration '{parameter.Name}' is in use by Resource Pools.",
+                        ErrorMessage = $"Configuration '{parameter.Name}' is in use by {referencedResourcePoolIds.Count} resource pool(s).",
                         ResourcePoolIds = referencedResourcePoolIds.ToArray(),
                     });
                 }

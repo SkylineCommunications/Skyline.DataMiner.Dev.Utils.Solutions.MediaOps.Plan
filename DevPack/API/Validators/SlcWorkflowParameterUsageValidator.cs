@@ -394,9 +394,16 @@
             {
                 var jobId = job.ID.Id;
 
-                ValidateJobExecutionSection(result, jobId, job.JobExecution);
-                foreach (var nodeSection in job.Nodes)
-                    ValidateNodeSection(result, jobId, nodeSection);
+                if (job.JobExecution != null)
+                {
+                    ValidateJobExecutionSection(result, jobId, job.JobExecution);
+                }
+
+                if (job.Nodes != null)
+                {
+                    foreach (var nodeSection in job.Nodes)
+                        ValidateNodeSection(result, jobId, nodeSection);
+                }
             }
 
             return result;
@@ -479,9 +486,16 @@
             {
                 var recurringJobId = recurringJob.ID.Id;
 
-                ValidateJobExecutionSection(result, recurringJobId, recurringJob.JobExecution);
-                foreach (var nodeSection in recurringJob.Nodes)
-                    ValidateNodeSection(result, recurringJobId, nodeSection);
+                if (recurringJob.JobExecution != null)
+                {
+                    ValidateJobExecutionSection(result, recurringJobId, recurringJob.JobExecution);
+                }
+
+                if (recurringJob.Nodes != null)
+                {
+                    foreach (var nodeSection in recurringJob.Nodes)
+                        ValidateNodeSection(result, recurringJobId, nodeSection);
+                }
             }
 
             return result;
@@ -518,10 +532,16 @@
             {
                 var workflowId = workflow.ID.Id;
 
-                ValidateWorkflowExecutionSection(result, workflowId, workflow.WorkflowExecution);
+                if (workflow.WorkflowExecution != null)
+                {
+                    ValidateWorkflowExecutionSection(result, workflowId, workflow.WorkflowExecution);
+                }
 
-                foreach (var nodeSection in workflow.Nodes)
-                    ValidateNodeSection(result, workflowId, nodeSection);
+                if (workflow.Nodes != null)
+                {
+                    foreach (var nodeSection in workflow.Nodes)
+                        ValidateNodeSection(result, workflowId, nodeSection);
+                }
             }
 
             return result;

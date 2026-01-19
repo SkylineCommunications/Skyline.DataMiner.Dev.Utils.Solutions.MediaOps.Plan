@@ -59,7 +59,7 @@
             }
             catch (MediaOpsException ex)
             {
-                var errorMessage = $"Configuration '{textConfiguration.Name}' is in use by Resource Pools.";
+                var errorMessage = $"Configuration '{textConfiguration.Name}' is in use by 1 resource pool(s).";
                 Assert.AreEqual(errorMessage, ex.Message);
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
@@ -102,7 +102,7 @@
             }
             catch (MediaOpsException ex)
             {
-                var errorMessage = $"Configuration '{numberConfiguration.Name}' is in use by Resource Pools.";
+                var errorMessage = $"Configuration '{numberConfiguration.Name}' is in use by 1 resource pool(s).";
                 Assert.AreEqual(errorMessage, ex.Message);
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
@@ -145,7 +145,7 @@
             }
             catch (MediaOpsException ex)
             {
-                var errorMessage = $"Configuration '{discreteTextConfiguration.Name}' is in use by Resource Pools.";
+                var errorMessage = $"Configuration '{discreteTextConfiguration.Name}' is in use by 1 resource pool(s).";
                 Assert.AreEqual(errorMessage, ex.Message);
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
@@ -188,7 +188,7 @@
             }
             catch (MediaOpsException ex)
             {
-                var errorMessage = $"Configuration '{discreteNumberConfiguration.Name}' is in use by Resource Pools.";
+                var errorMessage = $"Configuration '{discreteNumberConfiguration.Name}' is in use by 1 resource pool(s).";
                 Assert.AreEqual(errorMessage, ex.Message);
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
@@ -238,7 +238,7 @@
             }
             catch (MediaOpsException ex)
             {
-                var errorMessage = $"Configuration '{textConfiguration.Name}' is in use by Resource Pools.";
+                var errorMessage = $"Configuration '{textConfiguration.Name}' is in use by 1 resource pool(s).";
                 Assert.AreEqual(errorMessage, ex.Message);
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
@@ -288,7 +288,7 @@
             }
             catch (MediaOpsException ex)
             {
-                var errorMessage = $"Configuration '{numberConfiguration.Name}' is in use by Resource Pools.";
+                var errorMessage = $"Configuration '{numberConfiguration.Name}' is in use by 1 resource pool(s).";
                 Assert.AreEqual(errorMessage, ex.Message);
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
@@ -338,7 +338,7 @@
             }
             catch (MediaOpsException ex)
             {
-                var errorMessage = $"Configuration '{discreteTextConfiguration.Name}' is in use by Resource Pools.";
+                var errorMessage = $"Configuration '{discreteTextConfiguration.Name}' is in use by 1 resource pool(s).";
                 Assert.AreEqual(errorMessage, ex.Message);
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
@@ -388,7 +388,7 @@
             }
             catch (MediaOpsException ex)
             {
-                var errorMessage = $"Configuration '{discreteNumberConfiguration.Name}' is in use by Resource Pools.";
+                var errorMessage = $"Configuration '{discreteNumberConfiguration.Name}' is in use by 1 resource pool(s).";
                 Assert.AreEqual(errorMessage, ex.Message);
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
