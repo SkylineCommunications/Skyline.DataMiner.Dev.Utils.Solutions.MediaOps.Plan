@@ -3,6 +3,8 @@
     using System;
     using System.Collections.Generic;
 
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+
     /// <summary>
     /// Defines methods for managing <see cref="ResourcePool"/> objects, including state transitions.
     /// </summary>
@@ -34,7 +36,35 @@
         /// </summary>
         /// <param name="resourcePool">The resource pool to delete.</param>
         /// <param name="options">Options specifying how the resource pool and its resources should be deleted.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="resourcePool"/> is <c>null</c>.</exception>
+        /// <exception cref="MediaOpsException">Thrown when the deletion operation fails for the specified resource pool.</exception>
         void Delete(ResourcePool resourcePool, ResourcePoolDeleteOptions options);
+
+        /// <summary>
+        /// Deletes the specified resource pool from the repository using the provided <see cref="ResourcePoolDeleteOptions"/>.
+        /// </summary>
+        /// <param name="resourcePoolId">The unique identifier of the resource pool to delete.</param>
+        /// <param name="options">Options specifying how the resource pool and its resources should be deleted.</param>
+        /// <exception cref="MediaOpsException">Thrown when the deletion operation fails for the specified resource pool.</exception>
+        void Delete(Guid resourcePoolId, ResourcePoolDeleteOptions options);
+
+        /// <summary>
+        /// Deletes the specified resource pools from the repository using the provided <see cref="ResourcePoolDeleteOptions"/>.
+        /// </summary>
+        /// <param name="resourcePools">The resource pools to delete.</param>
+        /// <param name="options">Options specifying how the resource pools and its resources should be deleted.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="resourcePools"/> is <c>null</c>.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk deletion operation fails for one or more resource pools.</exception>
+        void Delete(IEnumerable<ResourcePool> resourcePools, ResourcePoolDeleteOptions options);
+
+        /// <summary>
+        /// Deletes resource pools with the specified identifiers from the repository using the provided <see cref="ResourcePoolDeleteOptions"/>.
+        /// </summary>
+        /// <param name="resourcePoolIds">The unique identifiers of the resource pools to delete.</param>
+        /// <param name="options">Options specifying how the resource pools and its resources should be deleted.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="resourcePoolIds"/> is <c>null</c>.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk deletion operation fails for one or more resource pools.</exception>
+        void Delete(IEnumerable<Guid> resourcePoolIds, ResourcePoolDeleteOptions options);
 
         /// <summary>
         /// Retrieves a collection of resource pools associated with the specified resource.
