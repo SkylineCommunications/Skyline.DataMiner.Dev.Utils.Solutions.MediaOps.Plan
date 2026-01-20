@@ -8,14 +8,5 @@
     /// </summary>
     public class CapabilityInUseError : CapabilityError
     {
-        /// <summary>
-        /// Gets or sets the collection of unique identifiers of the resources having the capability implemented.
-        /// </summary>
-        public List<Guid> ResourceIds { get; set; } = [];
-
-        /// <summary>
-        /// Gets or sets the collection of unique identifiers of the resource pools having the capability implemented.
-        /// </summary>
-        public List<Guid> ResourcePoolIds { get; set; } = [];
     }
 }

@@ -123,11 +123,11 @@
             }
 
             ValidateExistence(apiConfigurations);
-            ValidateResourcePoolParametersUsage(apiConfigurations.Where(IsValid).ToArray());
-            ValidateWorkflowUsage(apiConfigurations.Where(IsValid).ToArray());
+            ValidateResourceStudioUsage(apiConfigurations);
+            ValidateWorkflowUsage(apiConfigurations);
 
-            var validConfigurations = apiConfigurations.Where(IsValid).ToArray();
-            var lockResult = planApi.LockManager.LockAndExecute(validConfigurations, DeleteCoreConfigurations);
+            var validConfigurationsToDelete = apiConfigurations.Where(IsValid).ToArray();
+            var lockResult = planApi.LockManager.LockAndExecute(validConfigurationsToDelete, DeleteCoreConfigurations);
             ReportError(lockResult);
         }
 
@@ -364,12 +364,12 @@
 
         private void ValidateWorkflowUsage(ICollection<Configuration> configurations)
         {
-            PassTraceData(ParameterWorkflowUsageValidator.Validate(planApi, configurations));
+            PassTraceData(SlcWorkflowParameterUsageValidator.Validate(planApi, configurations));
         }
 
-        private void ValidateResourcePoolParametersUsage(ICollection<Configuration> configurations)
+        private void ValidateResourceStudioUsage(ICollection<Configuration> configurations)
         {
-            PassTraceData(ParameterResourceUsageValidator.Validate(planApi, configurations));
+            PassTraceData(SlcResourceStudioParameterUsageValidator.Validate(planApi, configurations));
         }
 
         private Net.Profiles.Parameter GetNumberConfigurationWithChanges(NumberConfiguration apiConfiguration)

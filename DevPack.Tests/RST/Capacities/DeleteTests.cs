@@ -98,21 +98,23 @@
             expectedException.Result.TraceDataPerItem.TryGetValue(capacity1.Id, out var traceData1);
             Assert.IsNotNull(traceData1);
             Assert.AreEqual(1, traceData1.ErrorData.Count);
-            var capacityInUseError = traceData1.ErrorData.OfType<CapacityInUseError>().SingleOrDefault();
-            Assert.IsNotNull(capacityInUseError);
-            Assert.AreEqual($"Capacity '{capacity1.Name}' is in use by 2 resource(s) and cannot be deleted.", capacityInUseError.ErrorMessage);
-            Assert.AreEqual(2, capacityInUseError.ResourceIds.Count);
-            Assert.IsTrue(capacityInUseError.ResourceIds.Contains(unmangedResource1.Id));
-            Assert.IsTrue(capacityInUseError.ResourceIds.Contains(unmangedResource2.Id));
+
+            var capacityInUseByResourcesError = traceData1.ErrorData.OfType<CapacityInUseByResourcesError>().SingleOrDefault();
+            Assert.IsNotNull(capacityInUseByResourcesError);
+            Assert.AreEqual($"Capacity '{capacity1.Name}' is in use by 2 resource(s).", capacityInUseByResourcesError.ErrorMessage);
+            Assert.AreEqual(2, capacityInUseByResourcesError.ResourceIds.Count);
+            Assert.IsTrue(capacityInUseByResourcesError.ResourceIds.Contains(unmangedResource1.Id));
+            Assert.IsTrue(capacityInUseByResourcesError.ResourceIds.Contains(unmangedResource2.Id));
 
             expectedException.Result.TraceDataPerItem.TryGetValue(capacity2.Id, out var traceData2);
             Assert.IsNotNull(traceData2);
             Assert.AreEqual(1, traceData2.ErrorData.Count);
-            capacityInUseError = traceData2.ErrorData.OfType<CapacityInUseError>().SingleOrDefault();
-            Assert.IsNotNull(capacityInUseError);
-            Assert.AreEqual($"Capacity '{capacity2.Name}' is in use by 1 resource(s) and cannot be deleted.", capacityInUseError.ErrorMessage);
-            Assert.AreEqual(1, capacityInUseError.ResourceIds.Count);
-            Assert.IsTrue(capacityInUseError.ResourceIds.Contains(unmangedResource1.Id));
+
+            capacityInUseByResourcesError = traceData2.ErrorData.OfType<CapacityInUseByResourcesError>().SingleOrDefault();
+            Assert.IsNotNull(capacityInUseByResourcesError);
+            Assert.AreEqual($"Capacity '{capacity2.Name}' is in use by 1 resource(s).", capacityInUseByResourcesError.ErrorMessage);
+            Assert.AreEqual(1, capacityInUseByResourcesError.ResourceIds.Count);
+            Assert.IsTrue(capacityInUseByResourcesError.ResourceIds.Contains(unmangedResource1.Id));
         }
     }
 }

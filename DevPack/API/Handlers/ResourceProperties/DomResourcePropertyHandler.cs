@@ -387,7 +387,7 @@
 
                 var error = new ResourcePropertyInUseError
                 {
-                    ErrorMessage = $"Resource property '{property.Name}' is in use by {resources.Count} resource(s) and cannot be deleted.",
+                    ErrorMessage = $"Resource property '{property.Name}' is in use by {resources.Count} resource(s).",
                     Id = property.Id,
                     ResourceIds = resources.Select(x => x.Id).ToList(),
                 };
