@@ -55,27 +55,33 @@
         /// <summary>
         /// Gets the collection of script element settings.
         /// </summary>
-        public IReadOnlyCollection<ScriptElementSetting> ScriptElementSettings => scriptElementSettings;
+        public IReadOnlyCollection<ScriptElementSetting> ScriptElements => scriptElementSettings;
 
         /// <summary>
         /// Gets the collection of script parameter settings.
         /// </summary>
-        public IReadOnlyCollection<ScriptParameterSetting> ScriptParameterSettings => scriptParameterSettings;
+        public IReadOnlyCollection<ScriptParameterSetting> ScriptParameters => scriptParameterSettings;
 
         /// <summary>
         /// Gets the collection of capability settings.
         /// </summary>
-        public IReadOnlyCollection<CapabilitySetting> CapabilitySettings => capabilitySettings;
+        public IReadOnlyCollection<CapabilitySetting> Capabilities => capabilitySettings;
 
         /// <summary>
         /// Gets the collection of capacity settings.
         /// </summary>
-        public IReadOnlyCollection<CapacitySetting> CapacitySettings => numberCapacitySettings.Concat<CapacitySetting>(rangeCapacitySettings).ToList();
+        public IReadOnlyCollection<CapacitySetting> Capacities
+        {
+            get
+            {
+                return numberCapacitySettings.Concat<CapacitySetting>(rangeCapacitySettings).ToList();
+            }
+        }
 
         /// <summary>
         /// Gets the collection of configuration settings.
         /// </summary>
-        public IReadOnlyCollection<ConfigurationSetting> ConfigurationSettings
+        public IReadOnlyCollection<ConfigurationSetting> Configurations
         {
             get
             {
@@ -188,6 +194,27 @@
         }
 
         /// <summary>
+        /// Configures the script execution capabilities using the specified collection of capability settings.
+        /// </summary>
+        /// <param name="capabilitySettings">A collection of <see cref="CapabilitySetting"/> objects that define the capabilities to be applied. Cannot
+        /// be null.</param>
+        /// <returns>The current <see cref="ScriptExecutionDetails"/> instance with the updated capability settings.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="capabilitySettings"/> is null.</exception>
+        public ScriptExecutionDetails SetCapabilities(IEnumerable<CapabilitySetting> capabilitySettings)
+        {
+            if (capabilitySettings == null)
+            {
+                throw new ArgumentNullException(nameof(capabilitySettings));
+            }
+
+            this.capabilitySettings.Clear();
+            foreach (var setting in capabilitySettings)
+                AddCapability(setting);
+
+            return this;
+        }
+
+        /// <summary>
         /// Adds a new capacity.
         /// </summary>
         /// <param name="capacitySetting">The capacity setting to add.</param>
@@ -235,6 +262,29 @@
             {
                 rangeCapacitySettings.Remove(storageRangeCapacitySetting);
             }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Configures the script execution capacities using the specified collection of capacity settings.
+        /// </summary>
+        /// <param name="capacitySettings">A collection of <see cref="CapacitySetting"/> objects that define the capacities to be applied. Cannot
+        /// be null.</param>
+        /// <returns>The current <see cref="ScriptExecutionDetails"/> instance with the updated capacity settings.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="capacitySettings"/> is null.</exception>
+        public ScriptExecutionDetails SetCapacities(IEnumerable<CapacitySetting> capacitySettings)
+        {
+            if (capacitySettings == null)
+            {
+                throw new ArgumentNullException(nameof(capacitySettings));
+            }
+
+            this.numberCapacitySettings.Clear();
+            this.rangeCapacitySettings.Clear();
+
+            foreach (var setting in capacitySettings)
+                AddCapacity(setting);
 
             return this;
         }
@@ -303,6 +353,31 @@
             {
                 discreteNumberConfigurationSettings.Remove(storageDiscreteNumberConfigurationSetting);
             }
+            return this;
+        }
+
+        /// <summary>
+        /// Configures the script execution configurations using the specified collection of configuration settings.
+        /// </summary>
+        /// <param name="configurationSettings">A collection of <see cref="ConfigurationSetting"/> objects that define the configurations to be applied. Cannot
+        /// be null.</param>
+        /// <returns>The current <see cref="ScriptExecutionDetails"/> instance with the updated configuration settings.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="configurationSettings"/> is null.</exception>
+        public ScriptExecutionDetails SetConfigurations(IEnumerable<ConfigurationSetting> configurationSettings)
+        {
+            if (configurationSettings == null)
+            {
+                throw new ArgumentNullException(nameof(configurationSettings));
+            }
+
+            this.textConfigurationSettings.Clear();
+            this.numberConfigurationSettings.Clear();
+            this.discreteTextConfigurationSettings.Clear();
+            this.discreteNumberConfigurationSettings.Clear();
+
+            foreach (var setting in configurationSettings)
+                AddConfiguration(setting);
+
             return this;
         }
 

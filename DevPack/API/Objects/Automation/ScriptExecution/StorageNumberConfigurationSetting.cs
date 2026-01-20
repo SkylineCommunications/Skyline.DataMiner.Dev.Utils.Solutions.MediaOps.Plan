@@ -21,7 +21,7 @@
             return new ProfileParameterValue
             {
                 ProfileParameterId = Id,
-                DoubleMaxValue = (double)Value,
+                DoubleMaxValue = Value.HasValue ? (double)Value : null,
             };
         }
 
@@ -33,7 +33,7 @@
             }
 
             Id = profileParameterValue.ProfileParameterId;
-            Value = (decimal)profileParameterValue.DoubleMaxValue;
+            Value = profileParameterValue.DoubleMaxValue.HasValue ? (decimal)profileParameterValue.DoubleMaxValue.Value : null;
         }
     }
 }
