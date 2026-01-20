@@ -70,7 +70,13 @@
         /// <summary>
         /// Gets the collection of capacity settings.
         /// </summary>
-        public IReadOnlyCollection<CapacitySetting> Capacities => numberCapacitySettings.Concat<CapacitySetting>(rangeCapacitySettings).ToList();
+        public IReadOnlyCollection<CapacitySetting> Capacities
+        {
+            get
+            {
+                return numberCapacitySettings.Concat<CapacitySetting>(rangeCapacitySettings).ToList();
+            }
+        }
 
         /// <summary>
         /// Gets the collection of configuration settings.
