@@ -334,7 +334,8 @@
             foreach (var section in instance.ResourcePoolLinks)
             {
                 var link = new LinkedResourcePool(section);
-                linkedResourcepools.Add(link);
+                if (link.LinkedResourcePoolId != Guid.Empty)
+                    linkedResourcepools.Add(link);
             }
 
             foreach (var section in instance.ResourcePoolCapabilities)

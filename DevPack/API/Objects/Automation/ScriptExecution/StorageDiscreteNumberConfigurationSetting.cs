@@ -35,10 +35,13 @@
 
             Id = profileParameterValue.ProfileParameterId;
 
-            var discreteValue = configuration.Discretes.FirstOrDefault(dv => dv.Value == (decimal)profileParameterValue.DoubleMaxValue);
-            if (discreteValue != null)
+            if (profileParameterValue.DoubleMaxValue.HasValue)
             {
-                Value = discreteValue;
+                var discreteValue = configuration.Discretes.FirstOrDefault(dv => dv.Value == (decimal)profileParameterValue.DoubleMaxValue.Value);
+                if (discreteValue != null)
+                {
+                    Value = discreteValue;
+                }
             }
         }
     }
