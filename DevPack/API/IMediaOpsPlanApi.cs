@@ -38,6 +38,21 @@
         IResourcePropertiesRepository ResourceProperties { get; }
 
         /// <summary>
+        /// Gets the repository for managing jobs.
+        /// </summary>
+        IJobsRepository Jobs { get; }
+
+        /// <summary>
+        /// Gets the repository for managing workflows.
+        /// </summary>
+        IWorkflowsRepository Workflows { get; }
+
+        /// <summary>
+        /// Gets the repository for managing recurring jobs.
+        /// </summary>
+        IRecurringJobsRepository RecurringJobs { get; }
+
+        /// <summary>
         /// Determines whether the MediaOps.PLAN application is installed on the DataMiner System.
         /// </summary>
         /// <param name="version">
