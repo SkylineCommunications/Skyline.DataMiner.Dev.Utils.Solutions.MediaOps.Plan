@@ -36,6 +36,9 @@
         private readonly Lazy<ICapacitiesRepository> lazyCapacitiesRepository;
         private readonly Lazy<IConfigurationsRepository> lazyConfigurationsRepository;
         private readonly Lazy<IResourcePropertiesRepository> lazyResourcePropertiesRepository;
+        private readonly Lazy<IJobsRepository> lazyJobsRepository;
+        private readonly Lazy<IWorkflowsRepository> lazyWorkflowsRepository;
+        private readonly Lazy<IRecurringJobsRepository> lazyRecurringJobsRepository;
         private readonly Lazy<Plan.Tools.LockManager> lazyLockManager;
         private readonly Lazy<CategoriesApi> lazyCategoriesApi;
         private bool disposedValue;
@@ -66,6 +69,9 @@
             lazyCapacitiesRepository = new Lazy<ICapacitiesRepository>(() => new CapacitiesRepository(this));
             lazyConfigurationsRepository = new Lazy<IConfigurationsRepository>(() => new ConfigurationsRepository(this));
             lazyResourcePropertiesRepository = new Lazy<IResourcePropertiesRepository>(() => new ResourcePropertiesRepository(this));
+            lazyJobsRepository = new Lazy<IJobsRepository>(() => new JobsRepository(this));
+            lazyWorkflowsRepository = new Lazy<IWorkflowsRepository>(() => new WorkflowsRepository(this));
+            lazyRecurringJobsRepository = new Lazy<IRecurringJobsRepository>(() => new RecurringJobsRepository(this));
             lazyLockManager = new Lazy<Plan.Tools.LockManager>(() => new Plan.Tools.LockManager(this));
             lazyCategoriesApi = new Lazy<CategoriesApi>(() => new CategoriesApi(connection));
         }
@@ -99,6 +105,21 @@
         /// <inheritdoc/>
         /// </summary>
         public IResourcePropertiesRepository ResourceProperties => lazyResourcePropertiesRepository.Value;
+
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        public IJobsRepository Jobs => lazyJobsRepository.Value;
+
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        public IWorkflowsRepository Workflows => lazyWorkflowsRepository.Value;
+
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        public IRecurringJobsRepository RecurringJobs => lazyRecurringJobsRepository.Value;
 
         internal IConnection Connection => connection;
 
