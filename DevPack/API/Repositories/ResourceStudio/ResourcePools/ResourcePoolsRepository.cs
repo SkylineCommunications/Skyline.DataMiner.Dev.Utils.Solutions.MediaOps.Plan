@@ -237,9 +237,9 @@
                     result.ThrowBulkException();
                 }
 
-                var capabilityIds = result.SuccessfulIds;
-                act?.AddTag("Removed Capabilities", String.Join(", ", capabilityIds));
-                act?.AddTag("Removed Capabilities Count", capabilityIds.Count);
+                var resourcePoolIds = result.SuccessfulIds;
+                act?.AddTag("Removed Resource Pools", String.Join(", ", resourcePoolIds));
+                act?.AddTag("Removed Resource Pools Count", resourcePoolIds.Count);
             });
         }
 
@@ -295,6 +295,49 @@
 
             var defaultOptions = new ResourcePoolDeleteOptions();
             Delete(poolToDelete, defaultOptions);
+        }
+
+        public void Delete(Guid resourcePoolId, ResourcePoolDeleteOptions options)
+        {
+            var poolToDelete = Read(resourcePoolId);
+            if (poolToDelete == null)
+            {
+                return;
+            }
+
+            Delete(poolToDelete, options);
+        }
+
+        public void Delete(IEnumerable<ResourcePool> resourcePools, ResourcePoolDeleteOptions options)
+        {
+            if (resourcePools == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePools));
+            }
+
+            Delete(resourcePools.Select(x => x.Id).ToArray(), options);
+        }
+
+        public void Delete(IEnumerable<Guid> resourcePoolIds, ResourcePoolDeleteOptions options)
+        {
+            if (resourcePoolIds == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePoolIds));
+            }
+
+            var resourcePoolsToDelete = Read(resourcePoolIds);
+
+            ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Delete), act =>
+            {
+                if (!DomResourcePoolHandler.TryDelete(PlanApi, resourcePoolsToDelete?.ToList(), out var result, options))
+                {
+                    result.ThrowBulkException();
+                }
+
+                var resourcePoolIds = result.SuccessfulIds;
+                act?.AddTag("Removed Resource Pools", String.Join(", ", resourcePoolIds));
+                act?.AddTag("Removed Resource Pools Count", resourcePoolIds.Count);
+            });
         }
 
         /// <summary>
