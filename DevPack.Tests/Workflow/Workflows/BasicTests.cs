@@ -15,18 +15,15 @@
         [TestMethod]
         public void ReadAllWorkflows()
         {
-            Exception exception = null;
-
             try
             {
                 TestContext.Api.Workflows.Read().ToArray();
+                return;
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                exception = e;
+                Assert.Fail();
             }
-
-            Assert.IsNull(exception);
         }
 
         [TestMethod]

@@ -15,18 +15,15 @@
         [TestMethod]
         public void ReadAllRecurringJobs()
         {
-            Exception exception = null;
-
             try
             {
                 TestContext.Api.RecurringJobs.Read().ToArray();
+                return;
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                exception = e;
+                Assert.Fail();
             }
-
-            Assert.IsNull(exception);
         }
 
         [TestMethod]
