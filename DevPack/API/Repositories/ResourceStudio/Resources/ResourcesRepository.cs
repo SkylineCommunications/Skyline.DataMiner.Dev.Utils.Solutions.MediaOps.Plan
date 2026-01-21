@@ -11,6 +11,7 @@
     using Skyline.DataMiner.SDM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
 
     using SLDataGateway.API.Types.Querying;
 
@@ -512,7 +513,7 @@
                 throw new ArgumentNullException(nameof(resourcePool));
             }
 
-            return Read(ResourceExposers.ResourcePoolIds.Contains(resourcePool.Id).AND(ResourceExposers.State.Equal((int)state)));
+            return Read(ResourceExposers.ResourcePoolIds.Contains(resourcePool.Id).AND(ResourceExposers.State.Equal(state)));
         }
 
         /// <summary>
@@ -557,7 +558,7 @@
 
             var resourcePoolIds = resourcePools.Select(x => x.Id).Distinct();
             var resourcesInPoolsFilter = new ORFilterElement<Resource>(resourcePoolIds.Select(x => ResourceExposers.ResourcePoolIds.Contains(x)).ToArray());
-            var resourceStateFilter = ResourceExposers.State.Equal((int)state);
+            var resourceStateFilter = ResourceExposers.State.Equal(state);
 
             var resources = PlanApi.Resources.Read(resourcesInPoolsFilter.AND(resourceStateFilter));
 

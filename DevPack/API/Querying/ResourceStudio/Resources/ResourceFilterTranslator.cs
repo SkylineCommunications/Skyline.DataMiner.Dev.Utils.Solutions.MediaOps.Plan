@@ -18,6 +18,7 @@
             [ResourceExposers.Concurrency.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Concurrency), comparer, (int)value),
             [ResourceExposers.State.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.StatusId, comparer, ConvertResourceState((ResourceState)value)),
             [ResourceExposers.ResourcePoolIds.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.Pool_Ids), comparer, Convert.ToString(value)),
+            [ResourceExposers.Type.fieldName] = (comparer, value) => CreateTypeFilter(comparer, (Type)value),
             [ResourceExposers.Capabilities.CapabilityId.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceCapabilities.ProfileParameterID), comparer, Convert.ToString(value)),
             [ResourceExposers.Capabilities.Discretes.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceCapabilities.StringValue), comparer, Convert.ToString(value)),
             [ResourceExposers.Capacities.CapacityId.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceCapacities.ProfileParameterID), comparer, Convert.ToString(value)),
@@ -52,6 +53,35 @@
             }
         }
 
+        private static FilterElement<DomInstance> CreateTypeFilter(Comparer comparer, Type type)
+        {
+            if (comparer != Comparer.Equals && comparer != Comparer.NotEquals)
+            {
+                throw new NotSupportedException($"Comparer {comparer} is not supported for Type checks");
+            }
+
+            if (type == typeof(UnmanagedResource))
+            {
+                return FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Type), comparer, (int)SlcResource_StudioIds.Enums.Type.Unmanaged);
+            }
+            else if (type == typeof(ElementResource))
+            {
+                return FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Type), comparer, (int)SlcResource_StudioIds.Enums.Type.Element);
+            }
+            else if (type == typeof(ServiceResource))
+            {
+                return FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Type), comparer, (int)SlcResource_StudioIds.Enums.Type.Service);
+            }
+            else if (type == typeof(VirtualFunctionResource))
+            {
+                return FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Type), comparer, (int)SlcResource_StudioIds.Enums.Type.VirtualFunction);
+            }
+            else
+            {
+                throw new NotSupportedException($"Type {type} is no valid Resource type");
+            }
+        }
+
         private static FilterElement<DomInstance> CreateAgentIdFilter(Comparer comparer, int agentId)
         {
             // Service: {"LinkedElementInfo":null,"LinkedServiceInfo":"78/140467","LinkedFunctionId":"00000000-0000-0000-0000-000000000000","LinkedFunctionTableIndex":null}
@@ -64,7 +94,7 @@
                 case Comparer.NotEquals:
                     return CreateResourceMetaDataFilter(Comparer.NotEquals, $"\"LinkedServiceInfo\":\"{agentId}/").AND(CreateResourceMetaDataFilter(Comparer.NotEquals, $"\"LinkedElementInfo\":\"{agentId}/"));
                 default:
-                    throw new NotSupportedException("Comparer {comparer} is not supported for AgentId checks");
+                    throw new NotSupportedException($"Comparer {comparer} is not supported for AgentId checks");
             }
         }
 
