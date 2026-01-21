@@ -273,11 +273,11 @@
                 return;
             }
 
-            // Todo: add checks to see if resource is in use by jobs, etc.
             ValidateStateForDeprecateAction(apiResources);
+            ValidateWorkflowUsage(apiResources.Where(IsValid).ToArray());
 
             // Update CORE resources
-            var resourcesToDeprecate = apiResources.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)).ToList();
+            var resourcesToDeprecate = apiResources.Where(IsValid).ToList();
 
             CoreResourceHandler.TryDeprecate(planApi, resourcesToDeprecate.Select(x => x.OriginalInstance).ToList(), out var coreResult);
 
@@ -1011,6 +1011,11 @@
                     ReportError(resource.Id, error);
                 }
             }
+        }
+
+        private void ValidateWorkflowUsage(ICollection<Resource> apiResources)
+        {
+            PassTraceData(SlcWorkflowResourceUsageValidator.Validate(planApi, apiResources));
         }
 
         private ICollection<DomChangeResults> GetResourcesWithChanges(ICollection<Resource> apiResources)

@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Helper;
     using Skyline.DataMiner.Net.Jobs;
@@ -368,6 +369,7 @@
                 };
             });
         }
+
         private void ValidateJobExecutionSection(Dictionary<Guid, List<Guid>> result, Guid jobId, JobExecutionSection jobExecutionSection)
         {
             if (!jobExecutionSection.JobConfiguration.HasValue)

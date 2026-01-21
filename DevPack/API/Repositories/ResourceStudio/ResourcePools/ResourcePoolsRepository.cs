@@ -297,6 +297,7 @@
             Delete(poolToDelete, defaultOptions);
         }
 
+        /// <inheritdoc/>
         public void Delete(Guid resourcePoolId, ResourcePoolDeleteOptions options)
         {
             var poolToDelete = Read(resourcePoolId);
@@ -308,6 +309,7 @@
             Delete(poolToDelete, options);
         }
 
+        /// <inheritdoc/>
         public void Delete(IEnumerable<ResourcePool> resourcePools, ResourcePoolDeleteOptions options)
         {
             if (resourcePools == null)
@@ -318,6 +320,7 @@
             Delete(resourcePools.Select(x => x.Id).ToArray(), options);
         }
 
+        /// <inheritdoc/>
         public void Delete(IEnumerable<Guid> resourcePoolIds, ResourcePoolDeleteOptions options)
         {
             if (resourcePoolIds == null)
