@@ -12,6 +12,7 @@
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Logger;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Tools;
     using Skyline.DataMiner.Utils.Categories.API;
 
     /// <summary>
@@ -23,6 +24,7 @@
         private readonly ILogger<IMediaOpsPlanApi> logger;
         private readonly IConnection connection;
 
+        private readonly InstalledAppPackageCache installedAppPackages;
         private readonly DomHelpers domHelpers;
         private readonly CoreHelpers coreHelpers;
 
@@ -34,6 +36,9 @@
         private readonly Lazy<ICapacitiesRepository> lazyCapacitiesRepository;
         private readonly Lazy<IConfigurationsRepository> lazyConfigurationsRepository;
         private readonly Lazy<IResourcePropertiesRepository> lazyResourcePropertiesRepository;
+        private readonly Lazy<IJobsRepository> lazyJobsRepository;
+        private readonly Lazy<IWorkflowsRepository> lazyWorkflowsRepository;
+        private readonly Lazy<IRecurringJobsRepository> lazyRecurringJobsRepository;
         private readonly Lazy<Plan.Tools.LockManager> lazyLockManager;
         private readonly Lazy<CategoriesApi> lazyCategoriesApi;
         private bool disposedValue;
@@ -51,6 +56,8 @@
             this.loggerFactory = loggerFactory ?? new NullLoggerFactory();
             this.logger = this.loggerFactory.CreateLogger<IMediaOpsPlanApi>() ?? new NullLogger<IMediaOpsPlanApi>();
 
+            installedAppPackages = new InstalledAppPackageCache(connection);
+
             domHelpers = new DomHelpers(connection);
             coreHelpers = new CoreHelpers(connection);
 
@@ -62,6 +69,9 @@
             lazyCapacitiesRepository = new Lazy<ICapacitiesRepository>(() => new CapacitiesRepository(this));
             lazyConfigurationsRepository = new Lazy<IConfigurationsRepository>(() => new ConfigurationsRepository(this));
             lazyResourcePropertiesRepository = new Lazy<IResourcePropertiesRepository>(() => new ResourcePropertiesRepository(this));
+            lazyJobsRepository = new Lazy<IJobsRepository>(() => new JobsRepository(this));
+            lazyWorkflowsRepository = new Lazy<IWorkflowsRepository>(() => new WorkflowsRepository(this));
+            lazyRecurringJobsRepository = new Lazy<IRecurringJobsRepository>(() => new RecurringJobsRepository(this));
             lazyLockManager = new Lazy<Plan.Tools.LockManager>(() => new Plan.Tools.LockManager(this));
             lazyCategoriesApi = new Lazy<CategoriesApi>(() => new CategoriesApi(connection));
         }
@@ -96,6 +106,21 @@
         /// </summary>
         public IResourcePropertiesRepository ResourceProperties => lazyResourcePropertiesRepository.Value;
 
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        public IJobsRepository Jobs => lazyJobsRepository.Value;
+
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        public IWorkflowsRepository Workflows => lazyWorkflowsRepository.Value;
+
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        public IRecurringJobsRepository RecurringJobs => lazyRecurringJobsRepository.Value;
+
         internal IConnection Connection => connection;
 
         internal ILogger<IMediaOpsPlanApi> Logger => logger;
@@ -113,6 +138,20 @@
         internal Plan.Tools.LockManager LockManager => lazyLockManager.Value;
 
         internal CategoriesApi Categories => lazyCategoriesApi.Value;
+
+        /// <inheritdoc/>
+        public bool IsInstalled(out string version)
+        {
+            var isInstalled = installedAppPackages.IsInstalled("SLC-S-MediaOps", out var installedAppInfo);
+            version = isInstalled ? installedAppInfo?.AppInfo?.Version : null;
+            return isInstalled;
+        }
+
+        /// <inheritdoc/>
+        public bool IsInstalled()
+        {
+            return IsInstalled(out _);
+        }
 
         /// <summary>
         /// Releases the resources used by the current instance of the class.

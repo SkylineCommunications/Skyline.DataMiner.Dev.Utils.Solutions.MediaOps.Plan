@@ -7,7 +7,8 @@
     using Microsoft.VisualStudio.TestTools.UnitTesting;
 
     using RT_MediaOps.Plan.RegressionTests;
-
+    using Skyline.DataMiner.Net.Messages.SLDataGateway;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Utils.Categories.API.Objects;
 
@@ -381,6 +382,13 @@
             }
 
             Assert.Fail("Expected exception was not thrown.");
+        }
+
+        [TestMethod]
+        public void QueryResourcePoolsBasedOnStateDoesNotThrowException()
+        {
+            var resourcePools = TestContext.Api.ResourcePools.Read(ResourcePoolExposers.State.Equal((int)ResourcePoolState.Complete)).ToList();
+            Assert.IsNotNull(resourcePools);
         }
     }
 }

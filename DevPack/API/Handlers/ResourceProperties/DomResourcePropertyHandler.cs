@@ -9,7 +9,6 @@
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
     using Skyline.DataMiner.Utils.DOM.Extensions;
@@ -25,46 +24,24 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        internal static BulkCreateOrUpdateResult<Guid> CreateOrUpdate(MediaOpsPlanApi planApi, ICollection<ResourceProperty> apiResourceProperties)
+        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<ResourceProperty> apiResourceProperties, out BulkOperationResult<Guid> result)
         {
             var handler = new DomResourcePropertyHandler(planApi);
             handler.CreateOrUpdate(apiResourceProperties);
 
-            var result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
-            result.ThrowOnFailure();
+            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
-            return result;
+            return !result.HasFailures;
         }
 
-        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<ResourceProperty> apiResourceProperties, out BulkCreateOrUpdateResult<Guid> result)
-        {
-            var handler = new DomResourcePropertyHandler(planApi);
-            handler.CreateOrUpdate(apiResourceProperties);
-
-            result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
-
-            return !result.HasFailures();
-        }
-
-        internal static BulkDeleteResult<Guid> Delete(MediaOpsPlanApi planApi, ICollection<ResourceProperty> apiResourceProperties)
+        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<ResourceProperty> apiResourceProperties, out BulkOperationResult<Guid> result)
         {
             var handler = new DomResourcePropertyHandler(planApi);
             handler.Delete(apiResourceProperties);
 
-            var result = new BulkDeleteResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
-            result.ThrowOnFailure();
+            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
-            return result;
-        }
-
-        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<ResourceProperty> apiResourceProperties, out BulkDeleteResult<Guid> result)
-        {
-            var handler = new DomResourcePropertyHandler(planApi);
-            handler.Delete(apiResourceProperties);
-
-            result = new BulkDeleteResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
-
-            return !result.HasFailures();
+            return !result.HasFailures;
         }
 
         private void CreateOrUpdate(ICollection<ResourceProperty> apiResourceProperties)
@@ -410,7 +387,7 @@
 
                 var error = new ResourcePropertyInUseError
                 {
-                    ErrorMessage = $"Resource property '{property.Name}' is in use by {resources.Count} resource(s) and cannot be deleted.",
+                    ErrorMessage = $"Resource property '{property.Name}' is in use by {resources.Count} resource(s).",
                     Id = property.Id,
                     ResourceIds = resources.Select(x => x.Id).ToList(),
                 };

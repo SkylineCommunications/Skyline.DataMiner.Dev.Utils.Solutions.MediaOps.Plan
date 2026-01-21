@@ -121,7 +121,7 @@
         /// <param name="apiObject">The resource pool to create.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create an existing resource pool.</exception>
-        /// <exception cref="MediaOpsException">Thrown when the creation operation fails.</exception>
+        /// <exception cref="MediaOpsException">Thrown when the creation operation fails for the specified resource pool.</exception>
         public void Create(ResourcePool apiObject)
         {
             PlanApi.Logger.LogInformation("Creating new ResourcePool...");
@@ -140,7 +140,7 @@
 
                 if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
                 {
-                    throw new MediaOpsException(result.TraceDataPerItem[apiObject.Id]);
+                    result.ThrowSingleException(apiObject.Id);
                 }
 
                 var resourcePoolId = result.SuccessfulIds.First();
@@ -154,7 +154,7 @@
         /// <param name="apiObjects">The collection of resource pools to create.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create existing resource pools.</exception>
-        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk creation operation fails.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk creation operation fails for one or more resource pools.</exception>
         public void Create(IEnumerable<ResourcePool> apiObjects)
         {
             if (apiObjects == null)
@@ -170,7 +170,7 @@
 
             if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
             {
-                throw new MediaOpsBulkException<Guid>(result);
+                result.ThrowBulkException();
             }
         }
 
@@ -179,7 +179,7 @@
         /// </summary>
         /// <param name="apiObjects">The collection of resource pools to create or update.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
-        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk operation fails.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk create or update operation fails for one or more resource pools.</exception>
         public void CreateOrUpdate(IEnumerable<ResourcePool> apiObjects)
         {
             if (apiObjects == null)
@@ -191,7 +191,7 @@
             {
                 if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, apiObjects?.ToList(), out var result))
                 {
-                    throw new MediaOpsBulkException<Guid>(result);
+                    result.ThrowBulkException();
                 }
 
                 var resourceIds = result.SuccessfulIds;
@@ -220,7 +220,7 @@
         /// </summary>
         /// <param name="apiObjectIds">The unique identifiers of the resource pools to delete.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjectIds"/> is <c>null</c>.</exception>
-        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk deletion operation fails.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk deletion operation fails for one or more resource pools.</exception>
         public void Delete(IEnumerable<Guid> apiObjectIds)
         {
             if (apiObjectIds == null)
@@ -234,12 +234,12 @@
             {
                 if (!DomResourcePoolHandler.TryDelete(PlanApi, resourcePoolsToDelete?.ToList(), out var result))
                 {
-                    throw new MediaOpsBulkException<Guid>(result);
+                    result.ThrowBulkException();
                 }
 
-                var capabilityIds = result.SuccessfulIds;
-                act?.AddTag("Removed Capabilities", String.Join(", ", capabilityIds));
-                act?.AddTag("Removed Capabilities Count", capabilityIds.Count);
+                var resourcePoolIds = result.SuccessfulIds;
+                act?.AddTag("Removed Resource Pools", String.Join(", ", resourcePoolIds));
+                act?.AddTag("Removed Resource Pools Count", resourcePoolIds.Count);
             });
         }
 
@@ -249,7 +249,7 @@
         /// <param name="resourcePool">The resource pool to delete.</param>
         /// <param name="options">Options specifying how the resource pool and its resources should be deleted.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="resourcePool"/> is <c>null</c>.</exception>
-        /// <exception cref="MediaOpsException">Thrown when the deletion operation fails.</exception>
+        /// <exception cref="MediaOpsException">Thrown when the deletion operation fails for the specified resource pool.</exception>
         public void Delete(ResourcePool resourcePool, ResourcePoolDeleteOptions options)
         {
             if (resourcePool == null)
@@ -259,7 +259,7 @@
 
             if (!DomResourcePoolHandler.TryDelete(PlanApi, [resourcePool], out var result, options))
             {
-                throw new MediaOpsException(result.TraceDataPerItem[resourcePool.Id]);
+                result.ThrowSingleException(resourcePool.Id);
             }
         }
 
@@ -268,6 +268,7 @@
         /// </summary>
         /// <param name="oToDelete">The resource pool to delete.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="oToDelete"/> is <c>null</c>.</exception>
+        /// <exception cref="MediaOpsException">Thrown when the deletion operation fails for the specified resource pool.</exception>
         public void Delete(ResourcePool oToDelete)
         {
             if (oToDelete == null)
@@ -275,16 +276,71 @@
                 throw new ArgumentNullException(nameof(oToDelete));
             }
 
-            Delete([oToDelete]);
+            var defaultOptions = new ResourcePoolDeleteOptions();
+            Delete(oToDelete, defaultOptions);
         }
 
         /// <summary>
         /// Deletes the specified resource pool from the repository.
         /// </summary>
         /// <param name="apiObjectId">The unique identifier of the resource pool to delete.</param>
+        /// <exception cref="MediaOpsException">Thrown when the deletion operation fails for the specified resource pool.</exception>
         public void Delete(Guid apiObjectId)
         {
-            Delete([apiObjectId]);
+            var poolToDelete = Read(apiObjectId);
+            if (poolToDelete == null)
+            {
+                return;
+            }
+
+            var defaultOptions = new ResourcePoolDeleteOptions();
+            Delete(poolToDelete, defaultOptions);
+        }
+
+        /// <inheritdoc/>
+        public void Delete(Guid resourcePoolId, ResourcePoolDeleteOptions options)
+        {
+            var poolToDelete = Read(resourcePoolId);
+            if (poolToDelete == null)
+            {
+                return;
+            }
+
+            Delete(poolToDelete, options);
+        }
+
+        /// <inheritdoc/>
+        public void Delete(IEnumerable<ResourcePool> resourcePools, ResourcePoolDeleteOptions options)
+        {
+            if (resourcePools == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePools));
+            }
+
+            Delete(resourcePools.Select(x => x.Id).ToArray(), options);
+        }
+
+        /// <inheritdoc/>
+        public void Delete(IEnumerable<Guid> resourcePoolIds, ResourcePoolDeleteOptions options)
+        {
+            if (resourcePoolIds == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePoolIds));
+            }
+
+            var resourcePoolsToDelete = Read(resourcePoolIds);
+
+            ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Delete), act =>
+            {
+                if (!DomResourcePoolHandler.TryDelete(PlanApi, resourcePoolsToDelete?.ToList(), out var result, options))
+                {
+                    result.ThrowBulkException();
+                }
+
+                var resourcePoolIds = result.SuccessfulIds;
+                act?.AddTag("Removed Resource Pools", String.Join(", ", resourcePoolIds));
+                act?.AddTag("Removed Resource Pools Count", resourcePoolIds.Count);
+            });
         }
 
         /// <summary>
@@ -293,7 +349,7 @@
         /// <param name="resourcePool">The resource pool to deprecate.</param>
         /// <param name="options">Options specifying how the resource pool and its resources should be deprecated.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="resourcePool"/> is <c>null</c>.</exception>
-        /// <exception cref="MediaOpsException">Thrown when the deprecation operation fails.</exception>
+        /// <exception cref="MediaOpsException">Thrown when the deprecation operation fails for the specified resource pool.</exception>
         public void Deprecate(ResourcePool resourcePool, ResourcePoolDeprecateOptions options)
         {
             if (resourcePool == null)
@@ -303,7 +359,7 @@
 
             if (!DomResourcePoolHandler.TryDeprecate(PlanApi, [resourcePool], out var result, options))
             {
-                throw new MediaOpsException(result.TraceDataPerItem[resourcePool.Id]);
+                result.ThrowSingleException(resourcePool.Id);
             }
         }
 
@@ -749,7 +805,7 @@
         /// <param name="apiObject">The resource pool to update.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to update a new resource pool that doesn't exist yet.</exception>
-        /// <exception cref="MediaOpsException">Thrown when the update operation fails.</exception>
+        /// <exception cref="MediaOpsException">Thrown when the update operation fails for the specified resource pool.</exception>
         public void Update(ResourcePool apiObject)
         {
             if (apiObject == null)
@@ -772,7 +828,7 @@
 
                 if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
                 {
-                    throw new MediaOpsException(result.TraceDataPerItem[apiObject.Id]);
+                    result.ThrowSingleException(apiObject.Id);
                 }
             });
         }
@@ -783,7 +839,7 @@
         /// <param name="apiObjects">The collection of resource pools to update.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to update new resource pools that don't exist yet.</exception>
-        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk update operation fails.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk update operation fails for one or more resource pools.</exception>
         public void Update(IEnumerable<ResourcePool> apiObjects)
         {
             if (apiObjects == null)
@@ -799,7 +855,7 @@
 
             if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
             {
-                throw new MediaOpsBulkException<Guid>(result);
+                result.ThrowBulkException();
             }
         }
 
@@ -826,7 +882,7 @@
 
             if (!DomResourcePoolHandler.TryComplete(PlanApi, [resourcePool], out var result))
             {
-                throw new MediaOpsException(result.TraceDataPerItem[resourcePool.Id]);
+                result.ThrowSingleException(resourcePool.Id);
             }
         }
 
@@ -853,7 +909,7 @@
 
             if (!DomResourcePoolHandler.TryDeprecate(PlanApi, [resourcePool], out var result))
             {
-                throw new MediaOpsException(result.TraceDataPerItem[resourcePool.Id]);
+                result.ThrowSingleException(resourcePool.Id);
             }
         }
     }

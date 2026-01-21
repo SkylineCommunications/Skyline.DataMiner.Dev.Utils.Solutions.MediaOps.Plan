@@ -3,12 +3,9 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
 
     using Microsoft.Extensions.Logging;
 
-    using Skyline.DataMiner.Net.Messages;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
 
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
@@ -16,21 +13,16 @@
     internal class ResourceStudioOrchestrationSettings : OrchestrationSettings
     {
         private readonly List<ResourceStudioCapabilitySetting> capabilitySettings = [];
-
-        private readonly List<ResourceStudioNumberCapacitySetting> numberCapacitySettings = [];
-
-        private readonly List<ResourceStudioRangeCapacitySetting> rangeCapacitySettings = [];
-
-        private readonly List<ResourceStudioTextConfigurationSetting> textConfigurationSettings = [];
-
-        private readonly List<ResourceStudioNumberConfigurationSetting> numberConfigurationSettings = [];
-
-        private readonly List<ResourceStudioDiscreteTextConfigurationSetting> discreteTextConfigurationSettings = [];
-
         private readonly List<ResourceStudioDiscreteNumberConfigurationSetting> discreteNumberConfigurationSettings = [];
-
+        private readonly List<ResourceStudioDiscreteTextConfigurationSetting> discreteTextConfigurationSettings = [];
+        private readonly List<ResourceStudioNumberCapacitySetting> numberCapacitySettings = [];
+        private readonly List<ResourceStudioNumberConfigurationSetting> numberConfigurationSettings = [];
         private readonly List<ResourceStudioOrchestrationEvent> orchestrationEvents = [];
+        private readonly List<ResourceStudioRangeCapacitySetting> rangeCapacitySettings = [];
+        private readonly List<ResourceStudioTextConfigurationSetting> textConfigurationSettings = [];
+        private StorageResourceStudio.ConfigurationInstance originalInstance;
 
+        private StorageResourceStudio.ConfigurationInstance updatedInstance;
         internal ResourceStudioOrchestrationSettings() : base()
         {
         }
@@ -38,14 +30,11 @@
         internal ResourceStudioOrchestrationSettings(MediaOpsPlanApi planApi, StorageResourceStudio.ConfigurationInstance instance) : base(instance.ID.Id)
         {
             ParseInstance(planApi, instance);
+            InitTracking();
         }
 
-        public override IReadOnlyCollection<OrchestrationEvent> OrchestrationEvents => orchestrationEvents;
-
         public override IReadOnlyCollection<CapabilitySetting> Capabilities => capabilitySettings;
-
         public override IReadOnlyCollection<CapacitySetting> Capacities => numberCapacitySettings.Concat<CapacitySetting>(rangeCapacitySettings).ToList();
-
         public override IReadOnlyCollection<ConfigurationSetting> Configurations
         {
             get
@@ -57,6 +46,9 @@
                     .ToList();
             }
         }
+
+        public override IReadOnlyCollection<OrchestrationEvent> OrchestrationEvents => orchestrationEvents;
+        internal StorageResourceStudio.ConfigurationInstance OriginalInstance => originalInstance;
 
         public override OrchestrationSettings AddCapability(CapabilitySetting capabilitySetting)
         {
@@ -125,7 +117,13 @@
 
         public override OrchestrationSettings AddOrchestrationEvent(OrchestrationEvent orchestrationEvent)
         {
-            throw new NotImplementedException();
+            if (orchestrationEvent == null)
+            {
+                throw new ArgumentNullException(nameof(orchestrationEvent));
+            }
+
+            orchestrationEvents.Add(new ResourceStudioOrchestrationEvent(orchestrationEvent));
+            return this;
         }
 
         public override OrchestrationSettings RemoveCapability(CapabilitySetting capabilitySetting)
@@ -232,12 +230,150 @@
 
         public override OrchestrationSettings RemoveOrchestrationEvent(OrchestrationEvent orchestrationEvent)
         {
-            throw new NotImplementedException();
+            if (orchestrationEvent == null)
+            {
+                throw new ArgumentNullException(nameof(orchestrationEvent));
+            }
+
+            orchestrationEvents.RemoveAll(x => x.Equals(orchestrationEvent));
+            return this;
+        }
+
+        public override OrchestrationSettings SetCapabilities(IEnumerable<CapabilitySetting> capabilitySettings)
+        {
+            if (capabilitySettings == null)
+            {
+                throw new ArgumentNullException(nameof(capabilitySettings));
+            }
+
+            this.capabilitySettings.Clear();
+            foreach (var capabilitySetting in capabilitySettings)
+            {
+                AddCapability(capabilitySetting);
+            }
+
+            return this;
+        }
+
+        public override OrchestrationSettings SetCapacities(IEnumerable<CapacitySetting> capacitySettings)
+        {
+            if (capacitySettings == null)
+            {
+                throw new ArgumentNullException(nameof(capacitySettings));
+            }
+
+            this.numberCapacitySettings.Clear();
+            this.rangeCapacitySettings.Clear();
+
+            foreach (var capacitySetting in capacitySettings)
+            {
+                AddCapacity(capacitySetting);
+            }
+
+            return this;
+        }
+
+        public override OrchestrationSettings SetConfigurations(IEnumerable<ConfigurationSetting> configurationSettings)
+        {
+            if (configurationSettings == null)
+            {
+                throw new ArgumentNullException(nameof(configurationSettings));
+            }
+
+            this.textConfigurationSettings.Clear();
+            this.numberConfigurationSettings.Clear();
+            this.discreteTextConfigurationSettings.Clear();
+            this.discreteNumberConfigurationSettings.Clear();
+
+            foreach (var configurationSetting in configurationSettings)
+            {
+                AddConfiguration(configurationSetting);
+            }
+
+            return this;
+        }
+
+        public override OrchestrationSettings SetOrchestrationEvents(IEnumerable<OrchestrationEvent> orchestrationEvents)
+        {
+            if (orchestrationEvents == null)
+            {
+                throw new ArgumentNullException(nameof(orchestrationEvents));
+            }
+
+            this.orchestrationEvents.Clear();
+            foreach (var orchestrationEvent in orchestrationEvents)
+            {
+                AddOrchestrationEvent(orchestrationEvent);
+            }
+
+            return this;
+        }
+
+        internal StorageResourceStudio.ConfigurationInstance GetInstanceWithChanges()
+        {
+            if (updatedInstance == null)
+            {
+                updatedInstance = IsNew ? new StorageResourceStudio.ConfigurationInstance(Id) : originalInstance.Clone();
+            }
+
+            updatedInstance.ProfileParameterValues.Clear();
+            foreach (var capability in capabilitySettings)
+            {
+                updatedInstance.ProfileParameterValues.Add(capability.GetSectionWithChanges());
+            }
+            foreach (var capacity in numberCapacitySettings)
+            {
+                updatedInstance.ProfileParameterValues.Add(capacity.GetSectionWithChanges());
+            }
+            foreach (var capacity in rangeCapacitySettings)
+            {
+                updatedInstance.ProfileParameterValues.Add(capacity.GetSectionWithChanges());
+            }
+            foreach (var configuration in textConfigurationSettings)
+            {
+                updatedInstance.ProfileParameterValues.Add(configuration.GetSectionWithChanges());
+            }
+            foreach (var configuration in numberConfigurationSettings)
+            {
+                updatedInstance.ProfileParameterValues.Add(configuration.GetSectionWithChanges());
+            }
+            foreach (var configuration in discreteTextConfigurationSettings)
+            {
+                updatedInstance.ProfileParameterValues.Add(configuration.GetSectionWithChanges());
+            }
+            foreach (var configuration in discreteNumberConfigurationSettings)
+            {
+                updatedInstance.ProfileParameterValues.Add(configuration.GetSectionWithChanges());
+            }
+
+            updatedInstance.OrchestrationEvents.Clear();
+            foreach (var orchestrationEvent in orchestrationEvents)
+            {
+                updatedInstance.OrchestrationEvents.Add(orchestrationEvent.GetSectionWithChanges());
+            }
+
+            return updatedInstance;
         }
 
         private void ParseInstance(MediaOpsPlanApi planApi, StorageResourceStudio.ConfigurationInstance instance)
         {
+            originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
+
             ParseParameterValues(planApi, instance.ProfileParameterValues);
+            ParseOrchestrationEvents(planApi, instance.OrchestrationEvents);
+        }
+
+        private void ParseOrchestrationEvents(MediaOpsPlanApi planApi, IList<StorageResourceStudio.OrchestrationEventsSection> orchestrationEvents)
+        {
+            if (orchestrationEvents == null || orchestrationEvents.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var orchestrationEvent in orchestrationEvents)
+            {
+                this.orchestrationEvents.Add(new ResourceStudioOrchestrationEvent(planApi, orchestrationEvent));
+            }
         }
 
         private void ParseParameterValues(MediaOpsPlanApi planApi, IList<StorageResourceStudio.ProfileParameterValuesSection> parameterValues)

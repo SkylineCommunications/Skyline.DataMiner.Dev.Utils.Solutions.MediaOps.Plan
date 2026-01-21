@@ -7,9 +7,11 @@
 
     using Microsoft.Extensions.Logging;
 
-    using Skyline.DataMiner.Net;
+    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+    using Skyline.DataMiner.Net.Helper;
+    using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
 
     internal class CoreConfigurationHandler : ApiObjectValidator
     {
@@ -20,24 +22,24 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Configuration> apiConfigurations, out BulkCreateOrUpdateResult<Guid> result)
+        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Configuration> apiConfigurations, out BulkOperationResult<Guid> result)
         {
             var handler = new CoreConfigurationHandler(planApi);
             handler.CreateOrUpdate(apiConfigurations);
 
-            result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
-            return !result.HasFailures();
+            return !result.HasFailures;
         }
 
-        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<Configuration> apiConfigurations, out BulkDeleteResult<Guid> result)
+        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<Configuration> apiConfigurations, out BulkOperationResult<Guid> result)
         {
             var handler = new CoreConfigurationHandler(planApi);
             handler.Delete(apiConfigurations);
 
-            result = new BulkDeleteResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
-            return !result.HasFailures();
+            return !result.HasFailures;
         }
 
         private void CreateOrUpdate(ICollection<Configuration> apiConfigurations)
@@ -120,19 +122,12 @@
                 return;
             }
 
-            foreach (var configuration in apiConfigurations.Where(x => x.IsNew))
-            {
-                var error = new ConfigurationInvalidStateError
-                {
-                    ErrorMessage = "Cannot delete a configuration that does not exist.",
-                    Id = configuration.Id,
-                };
+            ValidateExistence(apiConfigurations);
+            ValidateResourceStudioUsage(apiConfigurations);
+            ValidateWorkflowUsage(apiConfigurations);
 
-                ReportError(configuration.Id, error);
-            }
-
-            var validConfigurations = apiConfigurations.Where(IsValid).ToList();
-            var lockResult = planApi.LockManager.LockAndExecute(validConfigurations, DeleteCoreConfigurations);
+            var validConfigurationsToDelete = apiConfigurations.Where(IsValid).ToArray();
+            var lockResult = planApi.LockManager.LockAndExecute(validConfigurationsToDelete, DeleteCoreConfigurations);
             ReportError(lockResult);
         }
 
@@ -351,6 +346,30 @@
 
             parameter = null;
             return false;
+        }
+
+        private void ValidateExistence(ICollection<Configuration> apiConfigurations)
+        {
+            foreach (var configuration in apiConfigurations.Where(x => x.IsNew))
+            {
+                var error = new ConfigurationInvalidStateError
+                {
+                    ErrorMessage = "Cannot delete a configuration that does not exist.",
+                    Id = configuration.Id,
+                };
+
+                ReportError(configuration.Id, error);
+            }
+        }
+
+        private void ValidateWorkflowUsage(ICollection<Configuration> configurations)
+        {
+            PassTraceData(SlcWorkflowParameterUsageValidator.Validate(planApi, configurations));
+        }
+
+        private void ValidateResourceStudioUsage(ICollection<Configuration> configurations)
+        {
+            PassTraceData(SlcResourceStudioParameterUsageValidator.Validate(planApi, configurations));
         }
 
         private Net.Profiles.Parameter GetNumberConfigurationWithChanges(NumberConfiguration apiConfiguration)

@@ -21,24 +21,24 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Capacity> apiCapacities, out BulkCreateOrUpdateResult<Guid> result)
+        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Capacity> apiCapacities, out BulkOperationResult<Guid> result)
         {
             var handler = new CoreCapacityHandler(planApi);
             handler.CreateOrUpdate(apiCapacities);
 
-            result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
-            return !result.HasFailures();
+            return !result.HasFailures;
         }
 
-        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<Capacity> apiCapacities, out BulkDeleteResult<Guid> result)
+        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<Capacity> apiCapacities, out BulkOperationResult<Guid> result)
         {
             var handler = new CoreCapacityHandler(planApi);
             handler.Delete(apiCapacities);
 
-            result = new BulkDeleteResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
-            return !result.HasFailures();
+            return !result.HasFailures;
         }
 
         private void CreateOrUpdate(ICollection<Capacity> apiCapacities)
@@ -117,19 +117,9 @@
                 return;
             }
 
-            var newCapacities =  apiCapacities.Where(x => x.IsNew).ToList();
-            newCapacities.ForEach(x =>
-            {
-                var error = new CapacityInvalidStateError
-                {
-                    ErrorMessage = $"A capacity that was not saved cannot be removed.",
-                    Id = x.Id,
-                };
-
-                ReportError(x.Id, error);
-            });
-
-            ValidateCapacitiesAreNotInUse(apiCapacities.Except(newCapacities).ToList());
+            ValidateExistence(apiCapacities);
+            ValidateResourceStudioUsage(apiCapacities);
+            ValidateWorkflowUsage(apiCapacities);
 
             var capacitiesToDelete = apiCapacities.Where(IsValid).ToList();
             var lockResult = planApi.LockManager.LockAndExecute(capacitiesToDelete, DeleteCoreCapacities);
@@ -406,45 +396,29 @@
             }
         }
 
-        private void ValidateCapacitiesAreNotInUse(ICollection<Capacity> apiCapacities)
+        private void ValidateExistence(ICollection<Capacity> capacities)
         {
-            if (apiCapacities == null)
+            var newCapabilities = capacities.Where(x => x.IsNew).ToList();
+            newCapabilities.ForEach(x =>
             {
-                throw new ArgumentNullException(nameof(apiCapacities));
-            }
-
-            if (apiCapacities.Count == 0)
-            {
-                return;
-            }
-
-            var filter = new ORFilterElement<Resource>(apiCapacities
-                .Select(x => ResourceExposers.Capacities.CapacityId.Equal(x.Id))
-                .ToArray());
-
-            var resourcesImplementingCapacities = planApi.Resources.Read(filter);
-
-            var recourcesByCapacityId = resourcesImplementingCapacities
-                .SelectMany(r => r.Capacities.Select(c => new { CapacityId = c.Id, Resource = r }))
-                .GroupBy(x => x.CapacityId)
-                .ToDictionary(x => x.Key, x => x.Select(y => y.Resource).ToList());
-
-            foreach (var capacity in apiCapacities)
-            {
-                if (!recourcesByCapacityId.TryGetValue(capacity.Id, out var resources))
-                    {
-                    continue;
-                }
-
-                var error = new CapacityInUseError
+                var error = new CapacityInvalidStateError
                 {
-                    ErrorMessage = $"Capacity '{capacity.Name}' is in use by {resources.Count} resource(s) and cannot be deleted.",
-                    Id = capacity.Id,
-                    ResourceIds = resources.Select(x => x.Id).ToList(),
+                    ErrorMessage = $"A capacity that was not saved cannot be removed.",
+                    Id = x.Id,
                 };
 
-                ReportError(capacity.Id, error);
-            }
+                ReportError(x.Id, error);
+            });
+        }
+
+        private void ValidateWorkflowUsage(ICollection<Capacity> capacities)
+        {
+            PassTraceData(SlcWorkflowParameterUsageValidator.Validate(planApi, capacities));
+        }
+
+        private void ValidateResourceStudioUsage(ICollection<Capacity> capacities)
+        {
+            PassTraceData(SlcResourceStudioParameterUsageValidator.Validate(planApi, capacities));
         }
     }
 }

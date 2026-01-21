@@ -9,13 +9,12 @@
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
     /// <summary>
-    /// Represents a resource pool in the MediaOps.
+    /// Represents a resource pool in MediaOps Plan.
     /// </summary>
     public class ResourcePool : ApiObject
     {
         private readonly List<LinkedResourcePool> linkedResourcepools = [];
         private readonly List<ResourcePoolCapabilitySetting> capabilitySettings = [];
-        private Lazy<ResourceStudioOrchestrationSettings> lazyOrchestrationSettings;
 
         private StorageResourceStudio.ResourcepoolInstance originalInstance;
         private StorageResourceStudio.ResourcepoolInstance updatedInstance;
@@ -29,10 +28,7 @@
         {
             IsNew = true;
 
-            lazyOrchestrationSettings = new Lazy<ResourceStudioOrchestrationSettings>(() =>
-            {
-                return new ResourceStudioOrchestrationSettings();
-            });
+            OrchestrationSettings = new ResourceStudioOrchestrationSettings();
         }
 
         /// <summary>
@@ -44,10 +40,7 @@
             IsNew = true;
             HasUserDefinedId = true;
 
-            lazyOrchestrationSettings = new Lazy<ResourceStudioOrchestrationSettings>(() =>
-            {
-                return new ResourceStudioOrchestrationSettings();
-            });
+            OrchestrationSettings = new ResourceStudioOrchestrationSettings();
         }
 
         internal ResourcePool(MediaOpsPlanApi planApi, StorageResourceStudio.ResourcepoolInstance instance) : base(instance.ID.Id)
@@ -99,7 +92,7 @@
         /// <summary>
         /// Gets the orchestration settings assigned to this resource pool.
         /// </summary>
-        public OrchestrationSettings OrchestrationSettings => lazyOrchestrationSettings.Value;
+        public OrchestrationSettings OrchestrationSettings { get; set; }
 
         internal Guid CoreResourcePoolId => coreResourcePoolId;
 
@@ -118,6 +111,7 @@
                 hash = (hash * 23) + (Url != null ? Url.GetHashCode() : 0);
                 hash = (hash * 23) + (CategoryId != null ? CategoryId.GetHashCode() : 0);
                 hash = (hash * 23) + State.GetHashCode();
+                hash = (hash * 23) + (OrchestrationSettings != null ? OrchestrationSettings.GetHashCode() : 0);
 
                 foreach (var linkedResourcePool in LinkedResourcePools.OrderBy(x => x.LinkedResourcePoolId).ToArray())
                 {
@@ -246,6 +240,28 @@
             return this;
         }
 
+        /// <summary>
+        /// Sets the specified collection of capability settings on the resource pool.
+        /// </summary>
+        /// <param name="capabilitySettings">The capability settings to apply on the resource pool. Cannot be null.</param>
+        /// <returns>Resource pool with updated capability settings.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="capabilitySettings"/> is <see langword="null"/></exception>
+        public ResourcePool SetCapabilities(IEnumerable<CapabilitySetting> capabilitySettings)
+        {
+            if (capabilitySettings == null)
+            {
+                throw new ArgumentNullException(nameof(capabilitySettings));
+            }
+
+            this.capabilitySettings.Clear();
+            foreach (var setting in capabilitySettings)
+            {
+                AddCapability(setting);
+            }
+
+            return this;
+        }
+
         internal ResourcePool RemoveLinkedResourcePool(ResourcePool resourcePool)
         {
             if (resourcePool == null)
@@ -282,6 +298,8 @@
             updatedInstance.ResourcePoolOther.IconImage = IconImage;
             updatedInstance.ResourcePoolOther.URL = Url;
 
+            updatedInstance.ConfigurationInfo.PoolConfiguration = OrchestrationSettings.Id;
+
             // Setting to null will not create a DOM section in storage.
             updatedInstance.ExternalMetadata.ExternallyManaged = IsExternallyManaged ? true : null;
 
@@ -316,7 +334,8 @@
             foreach (var section in instance.ResourcePoolLinks)
             {
                 var link = new LinkedResourcePool(section);
-                linkedResourcepools.Add(link);
+                if (link.LinkedResourcePoolId != Guid.Empty)
+                    linkedResourcepools.Add(link);
             }
 
             foreach (var section in instance.ResourcePoolCapabilities)
@@ -325,21 +344,22 @@
                 capabilitySettings.Add(capability);
             }
 
-            lazyOrchestrationSettings = new Lazy<ResourceStudioOrchestrationSettings>(() =>
+            if (instance.ConfigurationInfo.PoolConfiguration == null || instance.ConfigurationInfo.PoolConfiguration == Guid.Empty)
             {
-                if (instance.ConfigurationInfo.PoolConfiguration == Guid.Empty)
-                {
-                    return new ResourceStudioOrchestrationSettings();
-                }
-
+                OrchestrationSettings = new ResourceStudioOrchestrationSettings();
+            }
+            else
+            {
                 var domConfiguration = planApi.DomHelpers.SlcResourceStudioHelper.GetConfigurations([instance.ConfigurationInfo.PoolConfiguration.Value]).FirstOrDefault();
                 if (domConfiguration != null)
                 {
-                    return new ResourceStudioOrchestrationSettings(planApi, domConfiguration);
+                    OrchestrationSettings = new ResourceStudioOrchestrationSettings(planApi, domConfiguration);
                 }
-
-                return new ResourceStudioOrchestrationSettings();
-            });
+                else
+                {
+                    OrchestrationSettings = new ResourceStudioOrchestrationSettings();
+                }
+            }
         }
     }
 }

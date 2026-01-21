@@ -8,10 +8,9 @@
 
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
-    using Skyline.DataMiner.Net.Messages;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.API.Handlers.Orchestration;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
     using Skyline.DataMiner.Utils.DOM.Extensions;
@@ -31,55 +30,44 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        internal static BulkCreateOrUpdateResult<Guid> CreateOrUpdate(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools)
+        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out BulkOperationResult<Guid> result)
         {
             var handler = new DomResourcePoolHandler(planApi);
             handler.CreateOrUpdate(apiResourcePools);
 
-            var result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
-            result.ThrowOnFailure();
+            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
-            return result;
+            return !result.HasFailures;
         }
 
-        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out BulkCreateOrUpdateResult<Guid> result)
-        {
-            var handler = new DomResourcePoolHandler(planApi);
-            handler.CreateOrUpdate(apiResourcePools);
-
-            result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
-
-            return !result.HasFailures();
-        }
-
-        internal static bool TryComplete(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out BulkCreateOrUpdateResult<Guid> result)
+        internal static bool TryComplete(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out BulkOperationResult<Guid> result)
         {
             var handler = new DomResourcePoolHandler(planApi);
             handler.TransitionToCompleted(apiResourcePools);
 
-            result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
-            return !result.HasFailures();
+            return !result.HasFailures;
         }
 
-        internal static bool TryDeprecate(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out BulkCreateOrUpdateResult<Guid> result, ResourcePoolDeprecateOptions options = null)
+        internal static bool TryDeprecate(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out BulkOperationResult<Guid> result, ResourcePoolDeprecateOptions options = null)
         {
             var handler = new DomResourcePoolHandler(planApi);
             handler.TransitionToDeprecated(apiResourcePools, options ?? ResourcePoolDeprecateOptions.GetDefaults());
 
-            result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
-            return !result.HasFailures();
+            return !result.HasFailures;
         }
 
-        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out BulkCreateOrUpdateResult<Guid> result, ResourcePoolDeleteOptions options = null)
+        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out BulkOperationResult<Guid> result, ResourcePoolDeleteOptions options = null)
         {
             var handler = new DomResourcePoolHandler(planApi);
             handler.Delete(apiResourcePools, options ?? ResourcePoolDeleteOptions.GetDefaults());
 
-            result = new BulkCreateOrUpdateResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
-            return !result.HasFailures();
+            return !result.HasFailures;
         }
 
         private void CreateOrUpdate(ICollection<ResourcePool> apiResourcePools)
@@ -144,6 +132,8 @@
 
             ValidateCategories(resourcePools.Where(IsValid).ToList());
 
+            CreateOrUpdateOrchestrationSettings(resourcePools.Where(IsValid).ToList());
+
             var toCreateDomInstances = resourcePoolsToCreate
                 .Where(IsValid)
                 .Select(x => x.GetInstanceWithChanges())
@@ -156,6 +146,39 @@
 
             CreateOrUpdateDomResourcePools(toCreateDomInstances.Concat(toUpdateDomInstances).ToList());
             return changeResults;
+        }
+
+        private void CreateOrUpdateOrchestrationSettings(ICollection<ResourcePool> resourcePools)
+        {
+            if (resourcePools == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePools));
+            }
+
+            if (resourcePools.Any(x => !IsValid(x)))
+            {
+                throw new ArgumentException($"Not all provided resource pools are valid", nameof(resourcePools));
+            }
+
+            var resourcePoolIdByOrchestrationSettingsId = resourcePools.ToDictionary(x => x.OrchestrationSettings.Id, x => x.Id);
+
+            DomOrchestrationSettingsHandler.TryCreateOrUpdate(planApi, resourcePools.Select(x => x.OrchestrationSettings).ToList(), out var domResult);
+
+            foreach (var id in domResult.UnsuccessfulIds)
+            {
+                if (!resourcePoolIdByOrchestrationSettingsId.TryGetValue(id, out var resourcePoolId))
+                {
+                    planApi.Logger.LogError($"Failed to find resource pool ID for orchestration settings ID", id);
+                    continue;
+                }
+
+                ReportError(resourcePoolId);
+
+                if (domResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+                {
+                    PassTraceData(resourcePoolId, traceData);
+                }
+            }
         }
 
         private void CreateOrUpdateDomResourcePools(ICollection<DomResourcePool> domResourcePools)
@@ -293,6 +316,7 @@
                 return;
             }
 
+            // Todo: add checks to see if resource pool is in use by jobs, etc.
             ValidateStateForDeprecateAction(apiResourcePools);
 
             var poolsToDeprecate = apiResourcePools.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)).ToList();
@@ -343,6 +367,8 @@
 
         private ICollection<ResourcePool> DeleteCoreResourcePools(ICollection<ResourcePool> poolsToDelete)
         {
+            DeleteOrchestrationSettings(poolsToDelete.Where(IsValid).ToList());
+
             var domPoolsById = poolsToDelete.ToDictionary(x => x.Id, x => x.OriginalInstance);
 
             CoreResourcePoolHandler.TryDelete(planApi, domPoolsById.Values, out var coreResult);
@@ -378,6 +404,21 @@
 
             // Return affected pools that require updates
             return referencedApiResourcePoolsToUpdate.Where(x => !domResult.SuccessfulIds.Select(y => y.Id).Contains(x.Id)).ToList();
+        }
+
+        private void DeleteOrchestrationSettings(ICollection<ResourcePool> resourcePools)
+        {
+            if (resourcePools == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePools));
+            }
+
+            if (resourcePools.Any(x => !IsValid(x)))
+            {
+                throw new ArgumentException($"Not all provided resource pools are valid", nameof(resourcePools));
+            }
+
+            DomOrchestrationSettingsHandler.TryDelete(planApi, resourcePools.Select(x => x.OrchestrationSettings).ToList(), out _);
         }
 
         private void DeprecatePoolResources(ICollection<ResourcePool> apiResourcePools)
@@ -822,6 +863,28 @@
 
             foreach (var pool in apiResourcePools)
             {
+                var duplicateSettings = pool.Capabilities
+                    .GroupBy(x => x.Id)
+                    .Where(g => g.Count() > 1)
+                    .ToDictionary(x => x.Key, x => x.Count());
+
+                foreach (var kvp in duplicateSettings)
+                {
+                    var error = new ResourcePoolInvalidCapabilitySettingsError
+                    {
+                        Id = pool.Id,
+                        CapabilityId = kvp.Key,
+                        ErrorMessage = $"Capability with ID '{kvp.Key}' is defined {kvp.Value} times. Duplicate capability settings are not allowed.",
+                    };
+
+                    ReportError(pool.Id, error);
+                }
+
+                if (duplicateSettings.Count > 0)
+                {
+                    continue;
+                }
+
                 foreach (var capabilitySettings in pool.Capabilities)
                 {
                     if (capabilitySettings.Id == Guid.Empty)

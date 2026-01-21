@@ -33,10 +33,10 @@
         /// Converts the specified <see cref="Resource"/> to an <see cref="ElementResource"/>.
         /// </summary>
         /// <param name="resource">The resource to convert.</param>
-        /// <param name="configuration">The configuration for the element link.</param>
+        /// <param name="setting">The configuration for the element link.</param>
         /// <returns>The converted <see cref="ElementResource"/>.</returns>
         /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
-        public ElementResource ConvertToElementResource(Resource resource, ResourceElementLinkConfiguration configuration)
+        public ElementResource ConvertToElementResource(Resource resource, ResourceElementLinkSetting setting)
         {
             if (resource.State != ResourceState.Draft)
             {
@@ -54,7 +54,7 @@
                 return elementResource;
             }
 
-            DomResourceHandler.ConvertToElementResource(PlanApi, resource, configuration);
+            DomResourceHandler.ConvertToElementResource(PlanApi, resource, setting);
             return (ElementResource)Read(resource.Id);
         }
 
@@ -62,10 +62,10 @@
         /// Converts the resource with the specified identifier to an <see cref="ElementResource"/>.
         /// </summary>
         /// <param name="resourceId">The unique identifier of the resource to convert.</param>
-        /// <param name="configuration">The configuration for the element link.</param>
+        /// <param name="setting">The configuration for the element link.</param>
         /// <returns>The converted <see cref="ElementResource"/>.</returns>
         /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
-        public ElementResource ConvertToElementResource(Guid resourceId, ResourceElementLinkConfiguration configuration)
+        public ElementResource ConvertToElementResource(Guid resourceId, ResourceElementLinkSetting setting)
         {
             var resource = Read(resourceId)
                 ?? throw new MediaOpsException(
@@ -75,17 +75,17 @@
                         Id = resourceId,
                     });
 
-            return ConvertToElementResource(resource, configuration);
+            return ConvertToElementResource(resource, setting);
         }
 
         /// <summary>
         /// Converts the specified <see cref="Resource"/> to a <see cref="ServiceResource"/>.
         /// </summary>
         /// <param name="resource">The resource to convert.</param>
-        /// <param name="configuration">The configuration for the service link.</param>
+        /// <param name="setting">The configuration for the service link.</param>
         /// <returns>The converted <see cref="ServiceResource"/>.</returns>
         /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
-        public ServiceResource ConvertToServiceResource(Resource resource, ResourceServiceLinkConfiguration configuration)
+        public ServiceResource ConvertToServiceResource(Resource resource, ResourceServiceLinkSetting setting)
         {
             if (resource.State != ResourceState.Draft)
             {
@@ -103,7 +103,7 @@
                 return serviceResource;
             }
 
-            DomResourceHandler.ConvertToServiceResource(PlanApi, resource, configuration);
+            DomResourceHandler.ConvertToServiceResource(PlanApi, resource, setting);
             return (ServiceResource)Read(resource.Id);
         }
 
@@ -111,11 +111,11 @@
         /// Converts the resource with the specified identifier to a <see cref="ServiceResource"/>.
         /// </summary>
         /// <param name="resourceId">The unique identifier of the resource to convert.</param>
-        /// <param name="configuration">The configuration for the service link.</param>
+        /// <param name="setting">The configuration for the service link.</param>
         /// <returns>The converted <see cref="ServiceResource"/>.</returns>
         /// <exception cref="ResourceNotFoundException">Thrown when the resource with the specified identifier is not found.</exception>
         /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
-        public ServiceResource ConvertToServiceResource(Guid resourceId, ResourceServiceLinkConfiguration configuration)
+        public ServiceResource ConvertToServiceResource(Guid resourceId, ResourceServiceLinkSetting setting)
         {
             var resource = Read(resourceId)
                 ?? throw new MediaOpsException(
@@ -125,7 +125,7 @@
                         Id = resourceId
                     });
 
-            return ConvertToServiceResource(resource, configuration);
+            return ConvertToServiceResource(resource, setting);
         }
 
         /// <summary>
@@ -179,10 +179,10 @@
         /// Converts the specified <see cref="Resource"/> to a <see cref="VirtualFunctionResource"/>.
         /// </summary>
         /// <param name="resource">The resource to convert.</param>
-        /// <param name="configuration">The configuration for the virtual function link.</param>
+        /// <param name="setting">The configuration for the virtual function link.</param>
         /// <returns>The converted <see cref="VirtualFunctionResource"/>.</returns>
         /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
-        public VirtualFunctionResource ConvertToVirtualFunctionResource(Resource resource, ResourceVirtualFunctionLinkConfiguration configuration)
+        public VirtualFunctionResource ConvertToVirtualFunctionResource(Resource resource, ResourceVirtualFunctionLinkSetting setting)
         {
             if (resource.State != ResourceState.Draft)
             {
@@ -200,7 +200,7 @@
                 return virtualFunctionResource;
             }
 
-            DomResourceHandler.ConvertToVirtualFunctionResource(PlanApi, resource, configuration);
+            DomResourceHandler.ConvertToVirtualFunctionResource(PlanApi, resource, setting);
             return (VirtualFunctionResource)Read(resource.Id);
         }
 
@@ -208,10 +208,10 @@
         /// Converts the resource with the specified identifier to a <see cref="VirtualFunctionResource"/>.
         /// </summary>
         /// <param name="resourceId">The unique identifier of the resource to convert.</param>
-        /// <param name="configuration">The configuration for the virtual function link.</param>
+        /// <param name="setting">The configuration for the virtual function link.</param>
         /// <returns>The converted <see cref="VirtualFunctionResource"/>.</returns>
         /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
-        public VirtualFunctionResource ConvertToVirtualFunctionResource(Guid resourceId, ResourceVirtualFunctionLinkConfiguration configuration)
+        public VirtualFunctionResource ConvertToVirtualFunctionResource(Guid resourceId, ResourceVirtualFunctionLinkSetting setting)
         {
             var resource = Read(resourceId)
                 ?? throw new MediaOpsException(
@@ -221,7 +221,7 @@
                         Id = resourceId
                     });
 
-            return ConvertToVirtualFunctionResource(resource, configuration);
+            return ConvertToVirtualFunctionResource(resource, setting);
         }
 
         /// <summary>
@@ -260,7 +260,7 @@
         /// <param name="apiObject">The resource to create.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create an existing resource.</exception>
-        /// <exception cref="MediaOpsException">Thrown when the creation operation fails.</exception>
+        /// <exception cref="MediaOpsException">Thrown when the creation operation fails for the specified resource.</exception>
         public void Create(Resource apiObject)
         {
             if (apiObject == null)
@@ -279,7 +279,7 @@
 
                 if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
                 {
-                    throw new MediaOpsException(result.TraceDataPerItem[apiObject.Id]);
+                    result.ThrowSingleException(apiObject.Id);
                 }
 
                 var resourceId = result.SuccessfulIds.First();
@@ -293,7 +293,7 @@
         /// <param name="apiObjects">The collection of resources to create.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create existing resources.</exception>
-        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk creation operation fails.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk creation operation fails for one or more resources.</exception>
         public void Create(IEnumerable<Resource> apiObjects)
         {
             if (apiObjects == null)
@@ -311,7 +311,7 @@
 
                 if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
                 {
-                    throw new MediaOpsBulkException<Guid>(result);
+                    result.ThrowBulkException();
                 }
 
                 var resourceIds = result.SuccessfulIds;
@@ -324,7 +324,7 @@
         /// </summary>
         /// <param name="apiObjects">The collection of resources to create or update.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
-        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk operation fails.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk create or update operation fails for one or more resources.</exception>
         public void CreateOrUpdate(IEnumerable<Resource> apiObjects)
         {
             if (apiObjects == null)
@@ -336,7 +336,7 @@
             {
                 if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, apiObjects?.ToList(), out var result))
                 {
-                    throw new MediaOpsBulkException<Guid>(result);
+                    result.ThrowBulkException();
                 }
 
                 var resourceIds = result.SuccessfulIds;
@@ -365,7 +365,7 @@
         /// </summary>
         /// <param name="apiObjectIds">The unique identifiers of the resources to delete.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjectIds"/> is <c>null</c>.</exception>
-        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk deletion operation fails.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk deletion operation fails for one or more resources.</exception>
         public void Delete(IEnumerable<Guid> apiObjectIds)
         {
             if (apiObjectIds == null)
@@ -381,7 +381,7 @@
             {
                 if (!DomResourceHandler.TryDelete(PlanApi, resourcesToDelete?.ToList(), out var result))
                 {
-                    throw new MediaOpsBulkException<Guid>(result);
+                    result.ThrowBulkException();
                 }
 
                 var resourceIds = result.SuccessfulIds;
@@ -395,6 +395,7 @@
         /// </summary>
         /// <param name="oToDelete">The resource to delete.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="oToDelete"/> is <c>null</c>.</exception>
+        /// <exception cref="MediaOpsException">Thrown when the deletion operation fails for the specified resource.</exception>
         public void Delete(Resource oToDelete)
         {
             if (oToDelete == null)
@@ -402,16 +403,57 @@
                 throw new ArgumentNullException(nameof(oToDelete));
             }
 
-            Delete([oToDelete]);
+            Delete(oToDelete.Id);
         }
 
         /// <summary>
         /// Deletes the specified resource from the repository.
         /// </summary>
         /// <param name="apiObjectId">The unique identifier of the resource to delete.</param>
+        /// <exception cref="MediaOpsException">Thrown when the deletion operation fails for the specified resource.</exception>
         public void Delete(Guid apiObjectId)
         {
-            Delete([apiObjectId]);
+            var resourceToDelete = Read(apiObjectId);
+            if (resourceToDelete == null)
+            {
+                return;
+            }
+
+            ActivityHelper.Track(nameof(ResourcesRepository), nameof(Delete), act =>
+            {
+                if (!DomResourceHandler.TryDelete(PlanApi, [resourceToDelete], out var result))
+                {
+                    result.ThrowSingleException(apiObjectId);
+                }
+
+                var resourceId = result.SuccessfulIds.First();
+                act?.AddTag("ResourceId", resourceId);
+            });
+        }
+
+        /// <summary>
+        /// Marks the specified resource as deprecated, indicating that it is no longer recommended for use.
+        /// </summary>
+        /// <param name="resource">The resource to be marked as deprecated.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="resource"/> is <c>null</c>.</exception>
+        /// <exception cref="MediaOpsException">Thrown when the deprecation operation fails for the specified resource.</exception>
+        public void Deprecate(Resource resource)
+        {
+            if (resource == null)
+            {
+                throw new ArgumentNullException(nameof(resource));
+            }
+
+            ActivityHelper.Track(nameof(ResourcesRepository), nameof(Deprecate), act =>
+            {
+                if (!DomResourceHandler.TryDeprecate(PlanApi, [resource], out var result))
+                {
+                    result.ThrowSingleException(resource.Id);
+                }
+
+                var resourceId = result.SuccessfulIds.First();
+                act?.AddTag("Deprecated Resource", resourceId);
+            });
         }
 
         /// <summary>
@@ -419,7 +461,7 @@
         /// </summary>
         /// <param name="resources">A collection of resources to be marked as deprecated.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="resources"/> is <c>null</c>.</exception>
-        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the deprecation operation fails.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk deprecation operation fails for one or more resources.</exception>
         public void Deprecate(IEnumerable<Resource> resources)
         {
             if (resources == null)
@@ -431,7 +473,7 @@
             {
                 if (!DomResourceHandler.TryDeprecate(PlanApi, resources?.ToList(), out var result))
                 {
-                    throw new MediaOpsBulkException<Guid>(result);
+                    result.ThrowBulkException();
                 }
 
                 var resourceIds = result.SuccessfulIds;
@@ -789,16 +831,16 @@
         /// Attempts to convert the specified <see cref="Resource"/> to an <see cref="ElementResource"/>.
         /// </summary>
         /// <param name="resource">The resource to convert.</param>
-        /// <param name="configuration">The configuration for the element link.</param>
+        /// <param name="setting">The configuration for the element link.</param>
         /// <param name="elementResource">When this method returns, contains the converted <see cref="ElementResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
         /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
-        public bool TryConvertToElementResource(Resource resource, ResourceElementLinkConfiguration configuration, out ElementResource elementResource)
+        public bool TryConvertToElementResource(Resource resource, ResourceElementLinkSetting setting, out ElementResource elementResource)
         {
             elementResource = null;
 
             try
             {
-                elementResource = ConvertToElementResource(resource, configuration);
+                elementResource = ConvertToElementResource(resource, setting);
                 return true;
             }
             catch (Exception e)
@@ -812,16 +854,16 @@
         /// Attempts to convert the resource with the specified identifier to an <see cref="ElementResource"/>.
         /// </summary>
         /// <param name="resourceId">The unique identifier of the resource to convert.</param>
-        /// <param name="configuration">The configuration for the element link.</param>
+        /// <param name="setting">The configuration for the element link.</param>
         /// <param name="elementResource">When this method returns, contains the converted <see cref="ElementResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
         /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
-        public bool TryConvertToElementResource(Guid resourceId, ResourceElementLinkConfiguration configuration, out ElementResource elementResource)
+        public bool TryConvertToElementResource(Guid resourceId, ResourceElementLinkSetting setting, out ElementResource elementResource)
         {
             elementResource = null;
 
             try
             {
-                elementResource = ConvertToElementResource(resourceId, configuration);
+                elementResource = ConvertToElementResource(resourceId, setting);
                 return true;
             }
             catch (Exception e)
@@ -835,16 +877,16 @@
         /// Attempts to convert the specified <see cref="Resource"/> to a <see cref="ServiceResource"/>.
         /// </summary>
         /// <param name="resource">The resource to convert.</param>
-        /// <param name="configuration">The configuration for the service link.</param>
+        /// <param name="setting">The configuration for the service link.</param>
         /// <param name="serviceResource">When this method returns, contains the converted <see cref="ServiceResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
         /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
-        public bool TryConvertToServiceResource(Resource resource, ResourceServiceLinkConfiguration configuration, out ServiceResource serviceResource)
+        public bool TryConvertToServiceResource(Resource resource, ResourceServiceLinkSetting setting, out ServiceResource serviceResource)
         {
             serviceResource = null;
 
             try
             {
-                serviceResource = ConvertToServiceResource(resource, configuration);
+                serviceResource = ConvertToServiceResource(resource, setting);
                 return true;
             }
             catch (Exception e)
@@ -858,16 +900,16 @@
         /// Attempts to convert the resource with the specified identifier to a <see cref="ServiceResource"/>.
         /// </summary>
         /// <param name="resourceId">The unique identifier of the resource to convert.</param>
-        /// <param name="configuration">The configuration for the service link.</param>
+        /// <param name="setting">The configuration for the service link.</param>
         /// <param name="serviceResource">When this method returns, contains the converted <see cref="ServiceResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
         /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
-        public bool TryConvertToServiceResource(Guid resourceId, ResourceServiceLinkConfiguration configuration, out ServiceResource serviceResource)
+        public bool TryConvertToServiceResource(Guid resourceId, ResourceServiceLinkSetting setting, out ServiceResource serviceResource)
         {
             serviceResource = null;
 
             try
             {
-                serviceResource = ConvertToServiceResource(resourceId, configuration);
+                serviceResource = ConvertToServiceResource(resourceId, setting);
                 return true;
             }
             catch (Exception e)
@@ -925,16 +967,16 @@
         /// Attempts to convert the specified <see cref="Resource"/> to a <see cref="VirtualFunctionResource"/>.
         /// </summary>
         /// <param name="resource">The resource to convert.</param>
-        /// <param name="configuration">The configuration for the virtual function link.</param>
+        /// <param name="setting">The configuration for the virtual function link.</param>
         /// <param name="virtualFunctionResource">When this method returns, contains the converted <see cref="VirtualFunctionResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
         /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
-        public bool TryConvertToVirtualFunctionResource(Resource resource, ResourceVirtualFunctionLinkConfiguration configuration, out VirtualFunctionResource virtualFunctionResource)
+        public bool TryConvertToVirtualFunctionResource(Resource resource, ResourceVirtualFunctionLinkSetting setting, out VirtualFunctionResource virtualFunctionResource)
         {
             virtualFunctionResource = null;
 
             try
             {
-                virtualFunctionResource = ConvertToVirtualFunctionResource(resource, configuration);
+                virtualFunctionResource = ConvertToVirtualFunctionResource(resource, setting);
                 return true;
             }
             catch (Exception e)
@@ -948,16 +990,16 @@
         /// Attempts to convert the resource with the specified identifier to a <see cref="VirtualFunctionResource"/>.
         /// </summary>
         /// <param name="resourceId">The unique identifier of the resource to convert.</param>
-        /// <param name="configuration">The configuration for the virtual function link.</param>
+        /// <param name="setting">The configuration for the virtual function link.</param>
         /// <param name="virtualFunctionResource">When this method returns, contains the converted <see cref="VirtualFunctionResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
         /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
-        public bool TryConvertToVirtualFunctionResource(Guid resourceId, ResourceVirtualFunctionLinkConfiguration configuration, out VirtualFunctionResource virtualFunctionResource)
+        public bool TryConvertToVirtualFunctionResource(Guid resourceId, ResourceVirtualFunctionLinkSetting setting, out VirtualFunctionResource virtualFunctionResource)
         {
             virtualFunctionResource = null;
 
             try
             {
-                virtualFunctionResource = ConvertToVirtualFunctionResource(resourceId, configuration);
+                virtualFunctionResource = ConvertToVirtualFunctionResource(resourceId, setting);
                 return true;
             }
             catch (Exception e)
@@ -973,7 +1015,7 @@
         /// <param name="apiObject">The resource to update.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to update a new resource that doesn't exist yet.</exception>
-        /// <exception cref="MediaOpsException">Thrown when the update operation fails.</exception>
+        /// <exception cref="MediaOpsException">Thrown when the update operation fails for the specified resource.</exception>
         public void Update(Resource apiObject)
         {
             if (apiObject == null)
@@ -998,7 +1040,7 @@
 
                 if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
                 {
-                    throw new MediaOpsException(result.TraceDataPerItem[apiObject.Id]);
+                    result.ThrowSingleException(apiObject.Id);
                 }
 
                 var resourceId = result.SuccessfulIds.First();
@@ -1012,6 +1054,7 @@
         /// <param name="apiObjects">The collection of resources to update.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="MediaOpsException">Thrown when attempting to update new resources or when the bulk update operation fails.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk update operation fails for one or more resources.</exception>
         public void Update(IEnumerable<Resource> apiObjects)
         {
             if (apiObjects == null)
@@ -1029,7 +1072,7 @@
 
                 if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
                 {
-                    throw new MediaOpsBulkException<Guid>(result);
+                    result.ThrowBulkException();
                 }
 
                 var resourceIds = result.SuccessfulIds;
@@ -1101,7 +1144,7 @@
 
                 if (!DomResourceHandler.TryDeprecate(PlanApi, [resource], out var result))
                 {
-                    throw new MediaOpsException(result.TraceDataPerItem[resource.Id]);
+                    result.ThrowSingleException(resource.Id);
                 }
             });
         }

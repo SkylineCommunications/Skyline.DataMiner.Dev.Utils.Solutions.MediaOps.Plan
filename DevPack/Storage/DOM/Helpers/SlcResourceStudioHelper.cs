@@ -284,6 +284,7 @@
         {
             return InstanceFactory.ReadAndCreateInstances(DomHelper, query, instance => new ResourcepoolInstance(instance));
         }
+
         internal IEnumerable<IEnumerable<ResourcepoolInstance>> GetResourcePoolsPaged(FilterElement<DomInstance> paramFilter, int pageSize)
         {
             if (paramFilter == null)

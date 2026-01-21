@@ -63,101 +63,79 @@
 
         private DomCapabilitiesHandler CapabilitiesHandler => lazyCapabilitiesHandler.Value;
 
-        public static BulkCreateOrUpdateResult<Guid> CreateOrUpdate(MediaOpsPlanApi planApi, ICollection<DomResource> domResources)
+        public static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out BulkOperationResult<Guid> result)
         {
             var handler = new CoreResourceHandler(planApi);
-            handler.CreateOrUpdate(domResources);
+            ActivityHelper.Track(nameof(CoreResourceHandler), nameof(TryCreateOrUpdate), act => handler.CreateOrUpdate(domResources));
 
-            var result = new BulkCreateOrUpdateResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
-            result.ThrowOnFailure();
+            result = new BulkOperationResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
 
-            return result;
+            return !result.HasFailures;
         }
 
-        public static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out BulkCreateOrUpdateResult<Guid> result)
+        public static bool TryDelete(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out BulkOperationResult<Guid> result)
         {
             var handler = new CoreResourceHandler(planApi);
-            ActivityHelper.Track(nameof(CoreResourceHandler), nameof(CreateOrUpdate), act => handler.CreateOrUpdate(domResources));
+            ActivityHelper.Track(nameof(CoreResourceHandler), nameof(TryDelete), act => handler.Delete(domResources));
 
-            result = new BulkCreateOrUpdateResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
+            result = new BulkOperationResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
 
-            return !result.HasFailures();
+            return !result.HasFailures;
         }
 
-        public static BulkDeleteResult<Guid> Delete(MediaOpsPlanApi planApi, ICollection<DomResource> domResources)
-        {
-            var handler = new CoreResourceHandler(planApi);
-            ActivityHelper.Track(nameof(CoreResourceHandler), nameof(Delete), act => handler.Delete(domResources));
-
-            var result = new BulkDeleteResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
-            result.ThrowOnFailure();
-
-            return result;
-        }
-
-        public static bool TryDelete(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out BulkDeleteResult<Guid> result)
-        {
-            var handler = new CoreResourceHandler(planApi);
-            ActivityHelper.Track(nameof(CoreResourceHandler), nameof(Delete), act => handler.Delete(domResources));
-
-            result = new BulkDeleteResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
-
-            return !result.HasFailures();
-        }
-
-        public static bool TryDeprecate(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out BulkCreateOrUpdateResult<Guid> result)
+        public static bool TryDeprecate(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out BulkOperationResult<Guid> result)
         {
             var handler = new CoreResourceHandler(planApi);
             handler.Deprecate(domResources);
 
-            result = new BulkCreateOrUpdateResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
+            result = new BulkOperationResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
 
-            return !result.HasFailures();
+            return !result.HasFailures;
         }
 
-        public static bool TryValidateVirtualFunctionConfiguration(MediaOpsPlanApi planApi, ResourceVirtualFunctionLinkConfiguration configuration, out ResourceError error)
+        public static bool TryValidateVirtualFunctionConfiguration(MediaOpsPlanApi planApi, ResourceVirtualFunctionLinkSetting setting, out ResourceError error)
         {
             error = null;
 
             var handler = new CoreResourceHandler(planApi);
-            if (configuration == null)
+            if (setting == null)
             {
-                throw new ArgumentNullException(nameof(configuration));
+                throw new ArgumentNullException(nameof(setting));
             }
 
-            var elementId = new DmsElementId(configuration.AgentId, configuration.ElementId);
+            var elementId = new DmsElementId(setting.AgentId, setting.ElementId);
             if (!handler.TryValidateElementLink(elementId, out string invalidElementInfoReason))
             {
                 error = new ResourceInvalidElementLinkError
                 {
                     ErrorMessage = invalidElementInfoReason,
-                    AgentId = configuration.AgentId,
-                    ElementId = configuration.ElementId,
+                    AgentId = setting.AgentId,
+                    ElementId = setting.ElementId,
                 };
 
                 return false;
             }
 
-            if (!handler.TryValidateVirtualFunctionResourceFunctionDefinition(configuration.FunctionId, out string invalidFunctionDefinitionReason))
+            if (!handler.TryValidateVirtualFunctionResourceFunctionDefinition(setting.FunctionId, out string invalidFunctionDefinitionReason))
             {
                 error = new ResourceInvalidFunctionLinkError
                 {
                     ErrorMessage = invalidFunctionDefinitionReason,
-                    FunctionId = configuration.FunctionId,
+                    FunctionId = setting.FunctionId,
                 };
 
                 return false;
             }
 
-            if (!handler.TryValidateVirtualFunctionResourceTableIndex(configuration.FunctionId, elementId, configuration.FunctionTableIndex, out string invalidTableIndexReason))
+            if (!handler.TryValidateVirtualFunctionResourceTableIndex(setting.FunctionId, elementId, setting.FunctionTableIndex, out string invalidTableIndexReason))
             {
                 error = new ResourceInvalidTableIndexLinkError
                 {
                     ErrorMessage = invalidTableIndexReason,
-                    AgentId = configuration.AgentId,
-                    ElementId = configuration.ElementId,
-                    FunctionId = configuration.FunctionId,
-                    FunctionTableIndex = configuration.FunctionTableIndex,
+                    AgentId = setting.AgentId,
+                    ElementId = setting.ElementId,
+                    FunctionId = setting.FunctionId,
+                    FunctionTableIndex = setting.FunctionTableIndex,
                 };
 
                 return false;
@@ -166,24 +144,24 @@
             return true;
         }
 
-        public static bool TryValidateServiceConfiguration(MediaOpsPlanApi planApi, ResourceServiceLinkConfiguration configuration, out ResourceError error)
+        public static bool TryValidateServiceConfiguration(MediaOpsPlanApi planApi, ResourceServiceLinkSetting setting, out ResourceError error)
         {
             error = null;
 
             var handler = new CoreResourceHandler(planApi);
-            if (configuration == null)
+            if (setting == null)
             {
-                throw new ArgumentNullException(nameof(configuration));
+                throw new ArgumentNullException(nameof(setting));
             }
 
-            var serviceId = new DmsServiceId(configuration.AgentId, configuration.ServiceId);
+            var serviceId = new DmsServiceId(setting.AgentId, setting.ServiceId);
             if (!handler.TryValidateServiceResourceServiceLink(serviceId, out var reason))
             {
                 error = new ResourceInvalidServiceLinkError
                 {
                     ErrorMessage = reason,
-                    AgentId = configuration.AgentId,
-                    ServiceId = configuration.ServiceId,
+                    AgentId = setting.AgentId,
+                    ServiceId = setting.ServiceId,
                 };
 
                 return false;
@@ -192,24 +170,24 @@
             return true;
         }
 
-        public static bool TryValidateElementConfiguration(MediaOpsPlanApi planApi, ResourceElementLinkConfiguration configuration, out ResourceError error)
+        public static bool TryValidateElementConfiguration(MediaOpsPlanApi planApi, ResourceElementLinkSetting setting, out ResourceError error)
         {
             error = null;
 
             var handler = new CoreResourceHandler(planApi);
-            if (configuration == null)
+            if (setting == null)
             {
-                throw new ArgumentNullException(nameof(configuration));
+                throw new ArgumentNullException(nameof(setting));
             }
 
-            var elementId = new DmsElementId(configuration.AgentId, configuration.ElementId);
+            var elementId = new DmsElementId(setting.AgentId, setting.ElementId);
             if (!handler.TryValidateElementLink(elementId, out var reason))
             {
                 error = new ResourceInvalidElementLinkError
                 {
                     ErrorMessage = reason,
-                    AgentId = configuration.AgentId,
-                    ElementId = configuration.ElementId,
+                    AgentId = setting.AgentId,
+                    ElementId = setting.ElementId,
                 };
 
                 return false;

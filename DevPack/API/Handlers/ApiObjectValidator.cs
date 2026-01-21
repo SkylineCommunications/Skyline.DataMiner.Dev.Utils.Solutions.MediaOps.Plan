@@ -54,22 +54,6 @@
             }
         }
 
-        internal void AddValidationError(Guid key, MediaOpsErrorData error)
-        {
-            if (error == null)
-            {
-                throw new ArgumentNullException(nameof(error));
-            }
-
-            if (!traceDataPerItem.TryGetValue(key, out var mediaOpsTraceData))
-            {
-                mediaOpsTraceData = new MediaOpsTraceData();
-                traceDataPerItem.Add(key, mediaOpsTraceData);
-            }
-
-            mediaOpsTraceData.Add(error);
-        }
-
         protected void ReportError(Guid key, MediaOpsErrorData error)
         {
             AddValidationError(key, error);
@@ -84,14 +68,6 @@
             }
 
             unsuccessfulItems.Add(key);
-        }
-
-        protected void ReportError(IEnumerable<Guid> keys)
-        {
-            foreach (var key in keys)
-            {
-                ReportError(key);
-            }
         }
 
         protected void ReportError<T>(LockManager.LockResult<T> result) where T : ApiObject
@@ -123,6 +99,22 @@
         protected bool IsValid(IIdentifiable identifiable)
         {
             return !TraceDataPerItem.Keys.Contains(identifiable.Id);
+        }
+
+        private void AddValidationError(Guid key, MediaOpsErrorData error)
+        {
+            if (error == null)
+            {
+                throw new ArgumentNullException(nameof(error));
+            }
+
+            if (!traceDataPerItem.TryGetValue(key, out var mediaOpsTraceData))
+            {
+                mediaOpsTraceData = new MediaOpsTraceData();
+                traceDataPerItem.Add(key, mediaOpsTraceData);
+            }
+
+            mediaOpsTraceData.Add(error);
         }
     }
 }

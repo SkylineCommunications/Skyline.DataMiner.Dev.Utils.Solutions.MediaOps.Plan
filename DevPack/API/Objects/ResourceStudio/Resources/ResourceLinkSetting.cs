@@ -16,7 +16,7 @@
     /// <summary>
     /// Represents the configuration for a resource element link.
     /// </summary>
-    public class ResourceElementLinkConfiguration : ResourceLinkSetting
+    public class ResourceElementLinkSetting : ResourceLinkSetting
     {
         /// <summary>
         /// Gets or sets the element ID associated with the resource link.
@@ -27,7 +27,7 @@
     /// <summary>
     /// Represents the configuration for a resource service link.
     /// </summary>
-    public class ResourceServiceLinkConfiguration : ResourceLinkSetting
+    public class ResourceServiceLinkSetting : ResourceLinkSetting
     {
         /// <summary>
         /// Gets or sets the service ID associated with the resource link.
@@ -38,7 +38,7 @@
     /// <summary>
     /// Represents the configuration for a resource virtual function link.
     /// </summary>
-    public class ResourceVirtualFunctionLinkConfiguration : ResourceLinkSetting
+    public class ResourceVirtualFunctionLinkSetting : ResourceLinkSetting
     {
         /// <summary>
         /// Gets or sets the element ID associated with the resource link.
