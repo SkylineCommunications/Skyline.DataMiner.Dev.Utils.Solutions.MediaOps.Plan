@@ -99,7 +99,7 @@
             {
                 if (!domIdByCoreId.TryGetValue(id, out var domId))
                 {
-                    planApi.Logger.LogError($"Failed to find DOM ID for CORE resource pool ID", id);
+                    planApi.Logger.LogError(this, $"Failed to find DOM ID for CORE resource pool ID", id);
                     continue;
                 }
 
@@ -115,7 +115,7 @@
             {
                 if (!domIdByCoreId.TryGetValue(id, out var domId))
                 {
-                    planApi.Logger.LogError($"Failed to find DOM ID for CORE resource pool ID", id);
+                    planApi.Logger.LogError(this, $"Failed to find DOM ID for CORE resource pool ID", id);
                     continue;
                 }
 
@@ -196,7 +196,7 @@
             {
                 if (!domIdByCoreId.TryGetValue(id, out var domId))
                 {
-                    planApi.Logger.LogError($"Failed to find DOM ID for CORE resource pool ID", id);
+                    planApi.Logger.LogError(this, $"Failed to find DOM ID for CORE resource pool ID", id);
                     continue;
                 }
 
@@ -283,7 +283,7 @@
                     continue;
                 }
 
-                planApi.Logger.LogInformation($"Name '{pool.ResourcePoolInfo.Name}' is already in use by CORE resource pool(s) with ID(s)", existingPools.Select(x => x.ID).ToArray());
+                planApi.Logger.LogInformation(this, $"Name '{pool.ResourcePoolInfo.Name}' is already in use by CORE resource pool(s) with ID(s)", existingPools.Select(x => x.ID).ToArray());
 
                 var error = new ResourcePoolNameExistsError
                 {

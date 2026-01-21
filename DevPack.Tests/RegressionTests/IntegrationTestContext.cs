@@ -48,7 +48,6 @@
 
         public void Dispose()
         {
-            Api.Dispose();
             factory.Dispose();
             connection.Dispose();
         }
