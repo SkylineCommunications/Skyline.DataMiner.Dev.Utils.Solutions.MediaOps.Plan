@@ -150,9 +150,9 @@
             new Tuple<ResourcePool[], FilterElement<ResourcePool>>([], ResourcePoolFilter.AND(ResourcePoolExposers.IconImage.Contains(".gif"))),
             new Tuple<ResourcePool[], FilterElement<ResourcePool>>([Setup.ResourcePool4!], ResourcePoolFilter.AND(ResourcePoolExposers.HasIconImage.Equal(false))),
 
-            new Tuple<ResourcePool[], FilterElement<ResourcePool>>([Setup.ResourcePool1!], ResourcePoolFilter.AND(ResourcePoolExposers.State.Equal((int)ResourcePoolState.Draft))),
-            new Tuple<ResourcePool[], FilterElement<ResourcePool>>([Setup.ResourcePool2!, Setup.ResourcePool3!, Setup.ResourcePool4!, Setup.ResourcePool5!], ResourcePoolFilter.AND(ResourcePoolExposers.State.Equal((int)ResourcePoolState.Complete))),
-            new Tuple<ResourcePool[], FilterElement<ResourcePool>>([], ResourcePoolFilter.AND(ResourcePoolExposers.State.Equal((int)ResourcePoolState.Deprecated))),
+            new Tuple<ResourcePool[], FilterElement<ResourcePool>>([Setup.ResourcePool1!], ResourcePoolFilter.AND(ResourcePoolExposers.State.Equal(ResourcePoolState.Draft))),
+            new Tuple<ResourcePool[], FilterElement<ResourcePool>>([Setup.ResourcePool2!, Setup.ResourcePool3!, Setup.ResourcePool4!, Setup.ResourcePool5!], ResourcePoolFilter.AND(ResourcePoolExposers.State.Equal(ResourcePoolState.Complete))),
+            new Tuple<ResourcePool[], FilterElement<ResourcePool>>([], ResourcePoolFilter.AND(ResourcePoolExposers.State.Equal(ResourcePoolState.Deprecated))),
 
             new Tuple<ResourcePool[], FilterElement<ResourcePool>>([], ResourcePoolFilter.AND(ResourcePoolExposers.HasUrl.Equal(true).AND(ResourcePoolExposers.Url.Equal("skyline.be")))),
             new Tuple<ResourcePool[], FilterElement<ResourcePool>>(Setup.ResourcePools!, ResourcePoolFilter.AND(ResourcePoolExposers.HasUrl.Equal(false))),
