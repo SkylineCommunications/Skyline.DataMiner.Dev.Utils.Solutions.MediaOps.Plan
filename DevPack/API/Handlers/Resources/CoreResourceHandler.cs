@@ -856,7 +856,7 @@
                     continue;
                 }
 
-                if (functionDefinition.EntryPoints == null || functionDefinition.EntryPoints.Count() == 0)
+                if (functionDefinition.EntryPoints == null || !functionDefinition.EntryPoints.Any())
                 {
                     continue;
                 }
