@@ -207,7 +207,7 @@
             public ICollection<T> FailedToLockObjects { get; private set; }
         }
 
-        private class LockManagerLoggerFactory : ILoggerFactory
+        private sealed class LockManagerLoggerFactory : ILoggerFactory
         {
             private readonly ILogger _logger;
 
