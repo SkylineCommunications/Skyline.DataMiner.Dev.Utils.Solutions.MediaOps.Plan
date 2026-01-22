@@ -14,17 +14,17 @@
         /// Retrieves an instance of the <see cref="IMediaOpsPlanApi"/> interface."/>
         /// </summary>
         /// <param name="engine">The <see cref="IEngine"/> implementation.</param>
-        /// <param name="loggerFactory">The <see cref="ILoggerFactory"/> implementation.</param>
+        /// <param name="logger">The <see cref="ILogger"/> implementation.</param>
         /// <returns>Instance of the <see cref="IMediaOpsPlanApi"/> interface.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="engine"/> is <see langword="null" />.</exception>
-        public static IMediaOpsPlanApi GetMediaOpsPlanApi(this IEngine engine, ILoggerFactory loggerFactory = null)
+        public static IMediaOpsPlanApi GetMediaOpsPlanApi(this IEngine engine, ILogger logger = null)
         {
             if (engine == null)
             {
                 throw new ArgumentNullException(nameof(engine));
             }
 
-            return new MediaOpsPlanApi(engine.GetUserConnection(), loggerFactory);
+            return new MediaOpsPlanApi(engine.GetUserConnection(), logger);
         }
     }
 }
