@@ -12,6 +12,7 @@
     using Skyline.DataMiner.SDM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using SLDataGateway.API.Types.Querying;
 
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
@@ -124,7 +125,7 @@
         /// <exception cref="MediaOpsException">Thrown when the creation operation fails for the specified resource pool.</exception>
         public void Create(ResourcePool apiObject)
         {
-            PlanApi.Logger.LogInformation("Creating new ResourcePool...");
+            PlanApi.Logger.LogInformation(this, "Creating new ResourcePool...");
 
             if (apiObject == null)
             {
@@ -508,7 +509,7 @@
         /// <exception cref="MediaOpsException">Thrown when the state transition is not supported or fails.</exception>
         public void MoveTo(Guid resourcePoolId, ResourcePoolState desiredState)
         {
-            PlanApi.Logger.LogInformation("Moving ResourcePool {resourcePoolId} to {desiredState}...", resourcePoolId, desiredState);
+            PlanApi.Logger.LogInformation(this, "Moving ResourcePool {resourcePoolId} to {desiredState}...", [resourcePoolId, desiredState]);
 
             if (resourcePoolId == Guid.Empty)
             {
@@ -549,7 +550,7 @@
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="id"/> is <see cref="Guid.Empty"/>.</exception>
         public ResourcePool Read(Guid id)
         {
-            PlanApi.Logger.LogInformation("Reading ResourcePool with ID: {id}...", id);
+            PlanApi.Logger.LogInformation(this, "Reading ResourcePool with ID: {id}...", id);
 
             if (id == Guid.Empty)
             {

@@ -269,7 +269,7 @@
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
-            PlanApi.Logger.LogInformation($"Creating new Resource {apiObject.Name}...");
+            PlanApi.Logger.LogInformation(this, $"Creating new Resource {apiObject.Name}...");
 
             ActivityHelper.Track(nameof(ResourcesRepository), nameof(Create), act =>
             {
@@ -374,7 +374,7 @@
                 throw new ArgumentNullException(nameof(apiObjectIds));
             }
 
-            PlanApi.Logger.LogInformation("Deleting Resources {resourceIds}...", String.Join(", ", apiObjectIds));
+            PlanApi.Logger.LogInformation(this, "Deleting Resources {resourceIds}...", String.Join(", ", apiObjectIds));
 
             var resourcesToDelete = Read(apiObjectIds.ToArray());
 
@@ -610,7 +610,7 @@
         /// <exception cref="MediaOpsException">Thrown when the resource is not found, the state transition is not supported, or the operation fails.</exception>
         public void MoveTo(Guid resourceId, ResourceState desiredState)
         {
-            PlanApi.Logger.LogInformation("Moving Resource {resourceId} to {desiredState}...", resourceId, desiredState);
+            PlanApi.Logger.LogInformation(this, "Moving Resource {resourceId} to {desiredState}...", [resourceId, desiredState]);
 
             if (resourceId == Guid.Empty)
             {
@@ -662,7 +662,7 @@
         /// <exception cref="ArgumentException">Thrown when <paramref name="id"/> is <see cref="Guid.Empty"/>.</exception>
         public Resource Read(Guid id)
         {
-            PlanApi.Logger.LogInformation($"Reading Resource with ID: {id}...");
+            PlanApi.Logger.LogInformation(this, $"Reading Resource with ID: {id}...");
 
             if (id == Guid.Empty)
             {
@@ -846,7 +846,7 @@
             }
             catch (Exception e)
             {
-                PlanApi.Logger.LogWarning($"Unable to convert Resource {resource.Name} [{resource.Id}] to an Element Resource because of: {e}");
+                PlanApi.Logger.LogWarning(this, $"Unable to convert Resource {resource.Name} [{resource.Id}] to an Element Resource because of: {e}");
                 return false;
             }
         }
@@ -869,7 +869,7 @@
             }
             catch (Exception e)
             {
-                PlanApi.Logger.LogWarning($"Unable to convert Resource with ID {resourceId} to an Element Resource because of: {e}");
+                PlanApi.Logger.LogWarning(this, $"Unable to convert Resource with ID {resourceId} to an Element Resource because of: {e}");
                 return false;
             }
         }
@@ -892,7 +892,7 @@
             }
             catch (Exception e)
             {
-                PlanApi.Logger.LogWarning($"Unable to convert Resource {resource.Name} [{resource.Id}] to a Service Resource because of: {e}");
+                PlanApi.Logger.LogWarning(this, $"Unable to convert Resource {resource.Name} [{resource.Id}] to a Service Resource because of: {e}");
                 return false;
             }
         }
@@ -915,7 +915,7 @@
             }
             catch (Exception e)
             {
-                PlanApi.Logger.LogWarning($"Unable to convert Resource with ID {resourceId} to a Service Resource because of: {e}");
+                PlanApi.Logger.LogWarning(this, $"Unable to convert Resource with ID {resourceId} to a Service Resource because of: {e}");
                 return false;
             }
         }
@@ -937,7 +937,7 @@
             }
             catch (Exception e)
             {
-                PlanApi.Logger.LogWarning($"Unable to convert Resource {resource.Name} [{resource.Id}] to an Unmanaged Resource because of: {e}");
+                PlanApi.Logger.LogWarning(this, $"Unable to convert Resource {resource.Name} [{resource.Id}] to an Unmanaged Resource because of: {e}");
                 return false;
             }
         }
@@ -959,7 +959,7 @@
             }
             catch (Exception e)
             {
-                PlanApi.Logger.LogWarning($"Unable to convert Resource with ID {resourceId} to an Unmanaged Resource because of: {e}");
+                PlanApi.Logger.LogWarning(this, $"Unable to convert Resource with ID {resourceId} to an Unmanaged Resource because of: {e}");
                 return false;
             }
         }
@@ -982,7 +982,7 @@
             }
             catch (Exception e)
             {
-                PlanApi.Logger.LogWarning($"Unable to convert Resource {resource.Name} [{resource.Id}] to a Virtual Function Resource because of: {e}");
+                PlanApi.Logger.LogWarning(this, $"Unable to convert Resource {resource.Name} [{resource.Id}] to a Virtual Function Resource because of: {e}");
                 return false;
             }
         }
@@ -1005,7 +1005,7 @@
             }
             catch (Exception e)
             {
-                PlanApi.Logger.LogWarning($"Unable to convert Resource with ID {resourceId} to a Virtual Function Resource because of: {e}");
+                PlanApi.Logger.LogWarning(this, $"Unable to convert Resource with ID {resourceId} to a Virtual Function Resource because of: {e}");
                 return false;
             }
         }
@@ -1024,7 +1024,7 @@
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
-            PlanApi.Logger.LogInformation($"Updating existing Resource {apiObject.Name}...");
+            PlanApi.Logger.LogInformation(this, $"Updating existing Resource {apiObject.Name}...");
 
             ActivityHelper.Track(nameof(ResourcesRepository), nameof(Update), act =>
             {
@@ -1090,7 +1090,7 @@
         {
             if (resource.State == ResourceState.Complete)
             {
-                PlanApi.Logger.LogInformation("Resource {resource.Id} is already in Complete state. No action taken.", resource.Id);
+                PlanApi.Logger.LogInformation(this, "Resource {resource.Id} is already in Complete state. No action taken.", resource.Id);
                 return;
             }
 
@@ -1123,7 +1123,7 @@
         {
             if (resource.State == ResourceState.Deprecated)
             {
-                PlanApi.Logger.LogInformation("Resource {resource.Id} is already in Deprecated state. No action taken.", resource.Id);
+                PlanApi.Logger.LogInformation(this, "Resource {resource.Id} is already in Deprecated state. No action taken.", resource.Id);
                 return;
             }
 

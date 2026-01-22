@@ -247,7 +247,7 @@
             {
                 if (!domIdByCoreId.TryGetValue(id, out var domId))
                 {
-                    planApi.Logger.LogError($"Failed to find DOM ID for CORE resource ID {id}.");
+                    planApi.Logger.LogError(this, $"Failed to find DOM ID for CORE resource ID {id}.");
                     continue;
                 }
 
@@ -263,7 +263,7 @@
             {
                 if (!domIdByCoreId.TryGetValue(id, out var domId))
                 {
-                    planApi.Logger.LogError($"Failed to find DOM ID for CORE resource ID", id);
+                    planApi.Logger.LogError(this, $"Failed to find DOM ID for CORE resource ID", id);
                     continue;
                 }
 
@@ -336,7 +336,7 @@
 
                 if (!SyncDomResourceWithCoreResource(dom, core))
                 {
-                    planApi.Logger.LogInformation($"No CORE changes for DOM resource {mapping.DomResource.ID}");
+                    planApi.Logger.LogInformation(this, $"No CORE changes for DOM resource {mapping.DomResource.ID}");
                     continue;
                 }
 
@@ -352,7 +352,7 @@
             {
                 if (!domIdByCoreId.TryGetValue(id, out var domId))
                 {
-                    planApi.Logger.LogError($"Failed to find DOM ID for CORE resource ID {id}.");
+                    planApi.Logger.LogError(this, $"Failed to find DOM ID for CORE resource ID {id}.");
                     continue;
                 }
 
@@ -369,7 +369,7 @@
             {
                 if (!domIdByCoreId.TryGetValue(id, out var domId))
                 {
-                    planApi.Logger.LogError($"Failed to find DOM ID for CORE resource pool ID {id}.");
+                    planApi.Logger.LogError(this, $"Failed to find DOM ID for CORE resource pool ID {id}.");
                     continue;
                 }
 
@@ -454,7 +454,7 @@
             {
                 if (!domIdByCoreId.TryGetValue(id, out var domId))
                 {
-                    planApi.Logger.LogError($"Failed to find DOM ID for CORE resource ID {id}.");
+                    planApi.Logger.LogError(this, $"Failed to find DOM ID for CORE resource ID {id}.");
                     continue;
                 }
 
@@ -470,7 +470,7 @@
             {
                 if (!domIdByCoreId.TryGetValue(id, out var domId))
                 {
-                    planApi.Logger.LogError("Failed to find DOM ID for CORE resource ID {id}.");
+                    planApi.Logger.LogError(this, "Failed to find DOM ID for CORE resource ID {id}.");
                     continue;
                 }
 
@@ -686,7 +686,7 @@
                     continue;
                 }
 
-                planApi.Logger.LogInformation($"Name '{resource.ResourceInfo.Name}' is already in use by CORE resource(s) with ID(s): {string.Join(" ,", existingResources.Select(x => x.ID))}");
+                planApi.Logger.LogInformation(this, $"Name '{resource.ResourceInfo.Name}' is already in use by CORE resource(s) with ID(s): {string.Join(" ,", existingResources.Select(x => x.ID))}");
 
                 var error = new ResourceNameExistsError
                 {
@@ -1056,7 +1056,7 @@
             {
                 if (!Guid.TryParse(resourceCapacity.ProfileParameterID, out Guid profileParameterId))
                 {
-                    planApi.Logger.LogWarning($"Invalid ProfileParameterID '{resourceCapacity.ProfileParameterID}' for resource '{domResource.ResourceInfo.Name}'. Skipping capacity sync.");
+                    planApi.Logger.LogWarning(this, $"Invalid ProfileParameterID '{resourceCapacity.ProfileParameterID}' for resource '{domResource.ResourceInfo.Name}'. Skipping capacity sync.");
                     continue;
                 }
 

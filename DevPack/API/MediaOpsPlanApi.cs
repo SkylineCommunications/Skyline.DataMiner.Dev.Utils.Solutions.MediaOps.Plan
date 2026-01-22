@@ -9,7 +9,6 @@
     using Skyline.DataMiner.MediaOps.Live.API;
     using Skyline.DataMiner.MediaOps.Live.API.Extensions;
     using Skyline.DataMiner.Net;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Logger;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Tools;
@@ -41,7 +40,6 @@
         private readonly Lazy<IRecurringJobsRepository> lazyRecurringJobsRepository;
         private readonly Lazy<Plan.Tools.LockManager> lazyLockManager;
         private readonly Lazy<CategoriesApi> lazyCategoriesApi;
-        private bool disposedValue;
 
         internal static readonly int DefaultPageSize = 200;
 
@@ -151,39 +149,6 @@
         public bool IsInstalled()
         {
             return IsInstalled(out _);
-        }
-
-        /// <summary>
-        /// Releases the resources used by the current instance of the class.
-        /// </summary>
-        /// <remarks>This method should be called when the instance is no longer needed to free up
-        /// resources.  If the instance holds unmanaged resources, ensure they are properly released by overriding  this
-        /// method in a derived class.</remarks>
-        /// <param name="disposing"></param>
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
-                if (disposing && logger is DefaultLogger defaultLogger)
-                {
-                    defaultLogger.Dispose();
-                }
-
-                disposedValue = true;
-            }
-        }
-
-        /// <summary>
-        /// Releases the resources used by the current instance of the class.
-        /// </summary>
-        /// <remarks>This method should be called when the instance is no longer needed to free up
-        /// resources.  It suppresses finalization to optimize garbage collection. For custom cleanup logic,  override
-        /// the <c>Dispose(bool disposing)</c> method in derived classes.</remarks>
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
         }
     }
 }
