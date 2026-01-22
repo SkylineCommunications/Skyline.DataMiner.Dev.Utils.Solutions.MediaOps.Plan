@@ -5,7 +5,7 @@
     using System.Linq;
 
     using Microsoft.Extensions.Logging;
-
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
 
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
@@ -390,7 +390,7 @@
             {
                 if (!parametersById.TryGetValue(section.ProfileParameterId, out var profileParameter))
                 {
-                    planApi.Logger.LogInformation($"ResourceStudioOrchestrationSettings > ParseParameterValues > Profile parameter with ID '{section.ProfileParameterId}' not found.");
+                    planApi.Logger.LogInformation(this, $"ResourceStudioOrchestrationSettings > ParseParameterValues > Profile parameter with ID '{section.ProfileParameterId}' not found.");
                     continue;
                 }
 

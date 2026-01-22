@@ -8,6 +8,7 @@
 
     using Skyline.DataMiner.Core.DataMinerSystem.Common;
     using Skyline.DataMiner.Net.Helper;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
 
@@ -578,7 +579,7 @@
             {
                 if (!parametersById.TryGetValue(profileParameterValue.ProfileParameterId, out var profileParameter))
                 {
-                    planApi.Logger.LogInformation($"ScriptExecutionDetails > ParseStorageProfileParameterValues > Profile parameter with ID '{profileParameterValue.ProfileParameterId}' not found.");
+                    planApi.Logger.LogInformation(this, $"ScriptExecutionDetails > ParseStorageProfileParameterValues > Profile parameter with ID '{profileParameterValue.ProfileParameterId}' not found.");
                     continue;
                 }
 

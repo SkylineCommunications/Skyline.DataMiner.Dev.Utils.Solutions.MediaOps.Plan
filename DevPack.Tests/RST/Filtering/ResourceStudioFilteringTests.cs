@@ -6,6 +6,7 @@
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
 
     [TestClass]
     [TestCategory("IntegrationTest")]
@@ -45,6 +46,9 @@
 
         private FilterElement<Configuration> ConfigurationFilter => new ORFilterElement<Configuration>(Setup.Configurations.Select(x => ConfigurationExposers.Id.Equal(x.Id)).ToArray());
 
+        /// <summary>
+        /// Expected objects - filter
+        /// </summary>
         private Tuple<Resource[], FilterElement<Resource>>[] ResourceFilterTestCases => new[]
         {
             new Tuple<Resource[], FilterElement<Resource>>(Setup.Resources!, ResourceFilter),
@@ -53,9 +57,9 @@
             new Tuple<Resource[], FilterElement<Resource>>([Setup.DraftResource2!, Setup.DraftResource3!, Setup.CompleteResource5!], ResourceFilter.AND(ResourceExposers.Concurrency.GreaterThan(6))),
             new Tuple<Resource[], FilterElement<Resource>>([Setup.DraftResource1!, Setup.DraftResource3!, Setup.CompleteResource4!, Setup.ServiceResource1!, Setup.VirtualFunctionResource1!], ResourceFilter.AND(ResourceExposers.IsFavorite.Equal(true))),
 
-            new Tuple<Resource[], FilterElement<Resource>>([Setup.DraftResource1!, Setup.DraftResource2!, Setup.DraftResource3!, Setup.ElementResource1!, Setup.ServiceResource1!, Setup.VirtualFunctionResource1!], ResourceFilter.AND(ResourceExposers.State.Equal((int)ResourceState.Draft))),
-            new Tuple<Resource[], FilterElement<Resource>>([Setup.CompleteResource4!, Setup.CompleteResource5!], ResourceFilter.AND(ResourceExposers.State.Equal((int)ResourceState.Complete))),
-            new Tuple<Resource[], FilterElement<Resource>>([], ResourceFilter.AND(ResourceExposers.State.Equal((int)ResourceState.Deprecated))),
+            new Tuple<Resource[], FilterElement<Resource>>([Setup.DraftResource1!, Setup.DraftResource2!, Setup.DraftResource3!, Setup.ElementResource1!, Setup.ServiceResource1!, Setup.VirtualFunctionResource1!], ResourceFilter.AND(ResourceExposers.State.Equal(ResourceState.Draft))),
+            new Tuple<Resource[], FilterElement<Resource>>([Setup.CompleteResource4!, Setup.CompleteResource5!], ResourceFilter.AND(ResourceExposers.State.Equal(ResourceState.Complete))),
+            new Tuple<Resource[], FilterElement<Resource>>([], ResourceFilter.AND(ResourceExposers.State.Equal(ResourceState.Deprecated))),
 
             new Tuple<Resource[], FilterElement<Resource>>([Setup.DraftResource1!, Setup.DraftResource2!], ResourceFilter.AND(ResourceExposers.ResourcePoolIds.Contains(Setup.ResourcePool1!.Id))),
             new Tuple<Resource[], FilterElement<Resource>>([Setup.DraftResource3!, Setup.CompleteResource4!, Setup.CompleteResource5!, Setup.VirtualFunctionResource1!], ResourceFilter.AND(ResourceExposers.ResourcePoolIds.Contains(Setup.ResourcePool2!.Id))),
@@ -89,6 +93,16 @@
             new Tuple<Resource[], FilterElement<Resource>>([Setup.VirtualFunctionResource1!], ResourceFilter.AND(VirtualFunctionResourceExposers.ElementId.Equal(200))),
             new Tuple<Resource[], FilterElement<Resource>>([Setup.VirtualFunctionResource1!], ResourceFilter.AND(VirtualFunctionResourceExposers.FunctionId.Equal(Setup.VirtualFunctionResource1!.FunctionId))),
             new Tuple<Resource[], FilterElement<Resource>>([Setup.VirtualFunctionResource1!], ResourceFilter.AND(VirtualFunctionResourceExposers.FunctionTableIndex.Equal("VF_Table_1"))),
+
+            new Tuple<Resource[], FilterElement<Resource>>([Setup.DraftResource1!, Setup.DraftResource2!, Setup.DraftResource3!, Setup.CompleteResource4!, Setup.CompleteResource5!], ResourceFilter.AND(ResourceExposers.Type.Equal(typeof(UnmanagedResource)))),
+            new Tuple<Resource[], FilterElement<Resource>>([Setup.ElementResource1!], ResourceFilter.AND(ResourceExposers.Type.Equal(typeof(ElementResource)))),
+            new Tuple<Resource[], FilterElement<Resource>>([Setup.ServiceResource1!], ResourceFilter.AND(ResourceExposers.Type.Equal(typeof(ServiceResource)))),
+            new Tuple<Resource[], FilterElement<Resource>>([Setup.VirtualFunctionResource1!], ResourceFilter.AND(ResourceExposers.Type.Equal(typeof(VirtualFunctionResource)))),
+
+            new Tuple<Resource[], FilterElement<Resource>>([Setup.ElementResource1!, Setup.ServiceResource1!, Setup.VirtualFunctionResource1!], ResourceFilter.AND(ResourceExposers.Type.NotEqual(typeof(UnmanagedResource)))),
+            new Tuple<Resource[], FilterElement<Resource>>([Setup.DraftResource1!, Setup.DraftResource2!, Setup.DraftResource3!, Setup.CompleteResource4!, Setup.CompleteResource5!, Setup.ServiceResource1!, Setup.VirtualFunctionResource1!], ResourceFilter.AND(ResourceExposers.Type.NotEqual(typeof(ElementResource)))),
+            new Tuple<Resource[], FilterElement<Resource>>([Setup.DraftResource1!, Setup.DraftResource2!, Setup.DraftResource3!, Setup.CompleteResource4!, Setup.CompleteResource5!, Setup.ElementResource1!, Setup.VirtualFunctionResource1!], ResourceFilter.AND(ResourceExposers.Type.NotEqual(typeof(ServiceResource)))),
+            new Tuple<Resource[], FilterElement<Resource>>([Setup.DraftResource1!, Setup.DraftResource2!, Setup.DraftResource3!, Setup.CompleteResource4!, Setup.CompleteResource5!, Setup.ElementResource1!, Setup.ServiceResource1!], ResourceFilter.AND(ResourceExposers.Type.NotEqual(typeof(VirtualFunctionResource)))),
         };
 
         private Tuple<Capability[], FilterElement<Capability>>[] CapabilityFilterTestCases => new[]
@@ -136,9 +150,9 @@
             new Tuple<ResourcePool[], FilterElement<ResourcePool>>([], ResourcePoolFilter.AND(ResourcePoolExposers.IconImage.Contains(".gif"))),
             new Tuple<ResourcePool[], FilterElement<ResourcePool>>([Setup.ResourcePool4!], ResourcePoolFilter.AND(ResourcePoolExposers.HasIconImage.Equal(false))),
 
-            new Tuple<ResourcePool[], FilterElement<ResourcePool>>([Setup.ResourcePool1!], ResourcePoolFilter.AND(ResourcePoolExposers.State.Equal((int)ResourcePoolState.Draft))),
-            new Tuple<ResourcePool[], FilterElement<ResourcePool>>([Setup.ResourcePool2!, Setup.ResourcePool3!, Setup.ResourcePool4!, Setup.ResourcePool5!], ResourcePoolFilter.AND(ResourcePoolExposers.State.Equal((int)ResourcePoolState.Complete))),
-            new Tuple<ResourcePool[], FilterElement<ResourcePool>>([], ResourcePoolFilter.AND(ResourcePoolExposers.State.Equal((int)ResourcePoolState.Deprecated))),
+            new Tuple<ResourcePool[], FilterElement<ResourcePool>>([Setup.ResourcePool1!], ResourcePoolFilter.AND(ResourcePoolExposers.State.Equal(ResourcePoolState.Draft))),
+            new Tuple<ResourcePool[], FilterElement<ResourcePool>>([Setup.ResourcePool2!, Setup.ResourcePool3!, Setup.ResourcePool4!, Setup.ResourcePool5!], ResourcePoolFilter.AND(ResourcePoolExposers.State.Equal(ResourcePoolState.Complete))),
+            new Tuple<ResourcePool[], FilterElement<ResourcePool>>([], ResourcePoolFilter.AND(ResourcePoolExposers.State.Equal(ResourcePoolState.Deprecated))),
 
             new Tuple<ResourcePool[], FilterElement<ResourcePool>>([], ResourcePoolFilter.AND(ResourcePoolExposers.HasUrl.Equal(true).AND(ResourcePoolExposers.Url.Equal("skyline.be")))),
             new Tuple<ResourcePool[], FilterElement<ResourcePool>>(Setup.ResourcePools!, ResourcePoolFilter.AND(ResourcePoolExposers.HasUrl.Equal(false))),

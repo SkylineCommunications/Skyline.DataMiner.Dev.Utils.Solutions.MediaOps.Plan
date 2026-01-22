@@ -9,6 +9,7 @@
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
     using Skyline.DataMiner.Utils.DOM.Extensions;
@@ -237,7 +238,7 @@
 
             foreach (var foundInstance in planApi.DomHelpers.SlcResourceStudioHelper.GetResourceStudioInstances(propertiesRequiringValidation.Select(x => x.Id)))
             {
-                planApi.Logger.LogInformation($"ID is already in use by a Resource Studio instance.", foundInstance.ID.Id);
+                planApi.Logger.LogInformation(this, $"ID is already in use by a Resource Studio instance.", foundInstance.ID.Id);
 
                 var error = new ResourcePropertyIdInUseError
                 {
@@ -342,7 +343,7 @@
                     continue;
                 }
 
-                planApi.Logger.LogInformation($"Name '{property.Name}' is already ins use by DOM resource property/properties with ID(s)", existingProperties.Select(x => x.ID.Id).ToArray());
+                planApi.Logger.LogInformation(this, $"Name '{property.Name}' is already ins use by DOM resource property/properties with ID(s)", existingProperties.Select(x => x.ID.Id).ToArray());
 
                 var error = new ResourcePropertyNameExistsError
                 {
