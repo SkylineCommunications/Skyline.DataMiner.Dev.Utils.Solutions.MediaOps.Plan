@@ -46,10 +46,10 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
-    <PackageReference Include="Skyline.DataMiner.ConnectorAPI.SkylineLockManager" Version="1.3.3" />
+    <PackageReference Include="Skyline.DataMiner.ConnectorAPI.SkylineLockManager" Version="1.3.4" />
     <PackageReference Include="Skyline.DataMiner.Core.DataMinerSystem.Common" Version="1.1.3.6" />
     <PackageReference Include="Skyline.DataMiner.Core.InterAppCalls.Common" Version="1.1.1.1" />
-    <PackageReference Include="Skyline.DataMiner.Dev.Common" Version="10.5.9.2" />
+    <PackageReference Include="Skyline.DataMiner.Dev.Common" Version="10.5.11.1" />
     <PackageReference Include="Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Live" Version="1.0.1-alpha177" />
     <PackageReference Include="Skyline.DataMiner.SDM.Abstractions" Version="0.2.2" />
     <PackageReference Include="Skyline.DataMiner.Utils.Categories" Version="1.0.5" />

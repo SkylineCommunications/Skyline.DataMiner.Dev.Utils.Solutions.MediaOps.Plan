@@ -8,9 +8,9 @@
 
     [TestClass]
     [TestCategory("IntegrationTest")]
-    public sealed class UnmanagedResourcesTests : IDisposable
+    public sealed class UnmanagedResourceTests : IDisposable
     {
-        public UnmanagedResourcesTests()
+        public UnmanagedResourceTests()
         {
         }
 
