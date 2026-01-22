@@ -183,7 +183,7 @@
 
             foreach (var foundProfileParameter in planApi.CoreHelpers.ProfileProvider.GetParametersById(capacitiesRequiringValidation.Select(x => x.Id)))
             {
-                planApi.Logger.LogInformation($"ID is already in use by a Profile Parameter.", foundProfileParameter.ID);
+                planApi.Logger.LogInformation(this, $"ID is already in use by a Profile Parameter.", foundProfileParameter.ID);
 
                 var error = new CapacityIdInUseError
                 {
@@ -276,7 +276,7 @@
                     continue;
                 }
 
-                planApi.Logger.LogInformation($"Name '{capacity.Name}' is already in use by Profile Parameter(s) with ID(s)", existingParameters.Select(x => x.ID).ToArray());
+                planApi.Logger.LogInformation(this, $"Name '{capacity.Name}' is already in use by Profile Parameter(s) with ID(s)", existingParameters.Select(x => x.ID).ToArray());
 
                 var error = new CapacityNameExistsError
                 {

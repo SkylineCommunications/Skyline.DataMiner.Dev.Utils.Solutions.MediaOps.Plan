@@ -10,7 +10,7 @@
     using Skyline.DataMiner.SDM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using SLDataGateway.API.Types.Querying;
 
     /// <summary>
@@ -70,7 +70,7 @@
         /// <exception cref="MediaOpsException">Thrown when the creation operation fails for the specified capacity.</exception>
         public void Create(Capacity apiObject)
         {
-            PlanApi.Logger.LogInformation("Creating new Capacity...");
+            PlanApi.Logger.LogInformation(this, "Creating new Capacity...");
 
             if (apiObject == null)
             {
@@ -243,7 +243,7 @@
         /// <exception cref="ArgumentException">Thrown when <paramref name="id"/> is <see cref="Guid.Empty"/>.</exception>
         public Capacity Read(Guid id)
         {
-            PlanApi.Logger.LogInformation($"Reading Capacity with ID: {id}...");
+            PlanApi.Logger.LogInformation(this, $"Reading Capacity with ID: {id}...");
 
             if (id == Guid.Empty)
             {
@@ -412,7 +412,7 @@
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
-            PlanApi.Logger.LogInformation($"Updating existing capacity {apiObject.Name}...");
+            PlanApi.Logger.LogInformation(this, $"Updating existing capacity {apiObject.Name}...");
 
             ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Update), act =>
             {

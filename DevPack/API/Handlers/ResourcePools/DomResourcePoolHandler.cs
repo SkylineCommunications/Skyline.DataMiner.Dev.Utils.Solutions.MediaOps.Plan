@@ -11,6 +11,7 @@
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.API.Handlers.Orchestration;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
     using Skyline.DataMiner.Utils.DOM.Extensions;
@@ -168,7 +169,7 @@
             {
                 if (!resourcePoolIdByOrchestrationSettingsId.TryGetValue(id, out var resourcePoolId))
                 {
-                    planApi.Logger.LogError($"Failed to find resource pool ID for orchestration settings ID", id);
+                    planApi.Logger.LogError(this, $"Failed to find resource pool ID for orchestration settings ID", id);
                     continue;
                 }
 
@@ -580,7 +581,7 @@
 
             foreach (var foundInstance in planApi.DomHelpers.SlcResourceStudioHelper.GetResourceStudioInstances(poolsRequiringValidation.Select(x => x.Id)))
             {
-                planApi.Logger.LogInformation($"ID is already in use by a Resource Studio instance.", foundInstance.ID.Id);
+                planApi.Logger.LogInformation(this, $"ID is already in use by a Resource Studio instance.", foundInstance.ID.Id);
 
                 var error = new ResourcePoolIdInUseError
                 {
@@ -771,7 +772,7 @@
                     continue;
                 }
 
-                planApi.Logger.LogInformation($"Name '{pool.Name}' is already in use by DOM resource pool(s) with ID(s)", existingPools.Select(x => x.ID.Id).ToArray());
+                planApi.Logger.LogInformation(this, $"Name '{pool.Name}' is already in use by DOM resource pool(s) with ID(s)", existingPools.Select(x => x.ID.Id).ToArray());
 
                 var error = new ResourcePoolNameExistsError
                 {
