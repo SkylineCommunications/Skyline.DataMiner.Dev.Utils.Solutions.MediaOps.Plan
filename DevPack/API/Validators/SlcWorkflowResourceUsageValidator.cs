@@ -146,11 +146,11 @@
                 .Select(id =>
                 {
                     var resourceNodeFilter = new ANDFilterElement<DomInstance>(
-                        DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeType).Equal(SlcWorkflowIds.Enums.Nodetype.Resource),
-                        DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeParentReferenceID).Equal(id)
+                        DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeType).Equal((int)SlcWorkflowIds.Enums.Nodetype.Resource),
+                        DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeReferenceID).Equal(id.ToString())
                     );
 
-                    return new ORFilterElement<DomInstance>(resourceNodeFilter);
+                    return resourceNodeFilter;
                 })
                 .ToArray();
 
@@ -193,11 +193,11 @@
                 .Select(id =>
                 {
                     var resourceNodeFilter = new ANDFilterElement<DomInstance>(
-                        DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeType).Equal(SlcWorkflowIds.Enums.Nodetype.Resource),
-                        DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeParentReferenceID).Equal(id)
+                        DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeType).Equal((int)SlcWorkflowIds.Enums.Nodetype.Resource),
+                        DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeParentReferenceID).Equal(id.ToString())
                     );
 
-                    return new ORFilterElement<DomInstance>(resourceNodeFilter);
+                    return resourceNodeFilter;
                 })
                 .ToArray();
 
@@ -240,11 +240,11 @@
                 .Select(id =>
                 {
                     var resourceNodeFilter = new ANDFilterElement<DomInstance>(
-                        DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeType).Equal(SlcWorkflowIds.Enums.Nodetype.Resource),
-                        DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeParentReferenceID).Equal(id)
+                        DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeType).Equal((int)SlcWorkflowIds.Enums.Nodetype.Resource),
+                        DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeParentReferenceID).Equal(id.ToString())
                     );
 
-                    return new ORFilterElement<DomInstance>(resourceNodeFilter);
+                    return resourceNodeFilter;
                 })
                 .ToArray();
 
