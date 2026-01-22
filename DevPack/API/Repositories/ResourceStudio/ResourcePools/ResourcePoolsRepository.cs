@@ -39,7 +39,7 @@
         /// <param name="resources">The collection of resources to assign to the pool.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="resourcePool"/> or <paramref name="resources"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException">Thrown when the resources collection contains a <c>null</c> resource.</exception>
-        public void AssignResourcesToPool(ResourcePool resourcePool, IEnumerable<Resource> resources)
+        public void AssignResourcesToPool(ResourcePool resourcePool, ICollection<Resource> resources)
         {
             if (resourcePool == null)
             {
@@ -56,7 +56,7 @@
         /// <param name="resources">The collection of resources to assign to the pool.</param>
         /// <exception cref="ArgumentException">Thrown when <paramref name="resourcePoolId"/> is <see cref="Guid.Empty"/> or when the resources collection contains a <c>null</c> resource.</exception>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="resources"/> is <c>null</c>.</exception>
-        public void AssignResourcesToPool(Guid resourcePoolId, IEnumerable<Resource> resources)
+        public void AssignResourcesToPool(Guid resourcePoolId, ICollection<Resource> resources)
         {
             if (resourcePoolId == Guid.Empty)
             {
@@ -753,7 +753,7 @@
         /// <param name="resources">The collection of resources to remove from the pool.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="resourcePool"/> or <paramref name="resources"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException">Thrown when the resources collection contains a <c>null</c> resource.</exception>
-        public void UnassignResourcesFromPool(ResourcePool resourcePool, IEnumerable<Resource> resources)
+        public void UnassignResourcesFromPool(ResourcePool resourcePool, ICollection<Resource> resources)
         {
             if (resourcePool == null)
             {
@@ -770,7 +770,7 @@
         /// <param name="resources">The collection of resources to remove from the pool.</param>
         /// <exception cref="ArgumentException">Thrown when <paramref name="resourcePoolId"/> is <see cref="Guid.Empty"/> or when the resources collection contains a <c>null</c> resource.</exception>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="resources"/> is <c>null</c>.</exception>
-        public void UnassignResourcesFromPool(Guid resourcePoolId, IEnumerable<Resource> resources)
+        public void UnassignResourcesFromPool(Guid resourcePoolId, ICollection<Resource> resources)
         {
             if (resourcePoolId == Guid.Empty)
             {
