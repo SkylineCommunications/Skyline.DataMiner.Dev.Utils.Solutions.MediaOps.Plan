@@ -19,8 +19,7 @@
     /// </summary>
     public class MediaOpsPlanApi : IMediaOpsPlanApi
     {
-        private readonly ILoggerFactory loggerFactory;
-        private readonly ILogger<IMediaOpsPlanApi> logger;
+        private readonly ILogger logger;
         private readonly IConnection connection;
 
         private readonly InstalledAppPackageCache installedAppPackages;
@@ -47,12 +46,11 @@
         /// Initializes a new instance of the <see cref="MediaOpsPlanApi"/> class.
         /// </summary>
         /// <param name="connection">The connection to use for API operations.</param>
-        /// <param name="loggerFactory">The logger to use for logging operations.</param>
-        public MediaOpsPlanApi(IConnection connection, ILoggerFactory loggerFactory = null)
+        /// <param name="logger">The logger to use for logging operations.</param>
+        public MediaOpsPlanApi(IConnection connection, ILogger logger = null)
         {
             this.connection = connection ?? throw new ArgumentNullException(nameof(connection));
-            this.loggerFactory = loggerFactory ?? new NullLoggerFactory();
-            this.logger = this.loggerFactory.CreateLogger<IMediaOpsPlanApi>() ?? new NullLogger<IMediaOpsPlanApi>();
+            this.logger = logger ?? NullLogger.Instance;
 
             installedAppPackages = new InstalledAppPackageCache(connection);
 
@@ -121,9 +119,7 @@
 
         internal IConnection Connection => connection;
 
-        internal ILogger<IMediaOpsPlanApi> Logger => logger;
-
-        internal ILoggerFactory LoggerFactory => loggerFactory;
+        internal ILogger Logger => logger;
 
         internal DomHelpers DomHelpers => domHelpers;
 

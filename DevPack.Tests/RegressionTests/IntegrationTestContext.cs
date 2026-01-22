@@ -1,7 +1,5 @@
 ﻿namespace RT_MediaOps.Plan.RegressionTests
 {
-    using Microsoft.Extensions.DependencyInjection;
-    using Microsoft.Extensions.Logging;
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages;
@@ -12,7 +10,6 @@
 
     public sealed class IntegrationTestContext : IDisposable
     {
-        private readonly ILoggerFactory factory;
         private readonly DMConnection connection;
 
         public IntegrationTestContext()
@@ -21,13 +18,8 @@
 
             connection = ConnectionSettings.GetConnection(config.BaseUrl) ?? throw new NullReferenceException("Unable to connect to DataMiner");
             connection.Authenticate(config.Username, config.Password, config.Domain);
-            var serviceProvider = new ServiceCollection()
-                .AddLogging()
-                .BuildServiceProvider();
 
-            factory = serviceProvider.GetService<ILoggerFactory>() ?? throw new NullReferenceException("Unable to create factory logger");
-
-            Api = new MediaOpsPlanApi(connection, factory) ?? throw new NullReferenceException("Unable to create MediaOpsPlanApi");
+            Api = new MediaOpsPlanApi(connection) ?? throw new NullReferenceException("Unable to create MediaOpsPlanApi");
 
             ResourceStudioDomHelper = new DomHelper(connection.HandleMessages, "(slc)resource_studio") ?? throw new NullReferenceException("Unable to create ResourceStudioDomHelper");
 
@@ -48,7 +40,6 @@
 
         public void Dispose()
         {
-            factory.Dispose();
             connection.Dispose();
         }
     }

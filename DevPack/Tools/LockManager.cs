@@ -29,7 +29,7 @@
                 throw new ArgumentNullException(nameof(planApi));
             }
 
-            _lockapi = new SkylineLockManagerConnectorApi(planApi.Connection, LockManagerElementName, planApi.LoggerFactory);
+            _lockapi = new SkylineLockManagerConnectorApi(planApi.Connection, LockManagerElementName, new LockManagerLoggerFactory(planApi.Logger));
             _logger = planApi.Logger;
         }
 
@@ -205,6 +205,32 @@
             public ICollection<T> LockedObjects { get; private set; }
 
             public ICollection<T> FailedToLockObjects { get; private set; }
+        }
+
+        private class LockManagerLoggerFactory : ILoggerFactory
+        {
+            private readonly ILogger _logger;
+
+            public LockManagerLoggerFactory(ILogger logger)
+            {
+                _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            }
+
+            public void AddProvider(ILoggerProvider provider)
+            {
+                // No-op: logging is delegated to the existing _logger instance.
+            }
+
+            public ILogger CreateLogger(string categoryName)
+            {
+                // Always return the existing logger so all logging goes through _logger.
+                return _logger;
+            }
+
+            public void Dispose()
+            {
+                // Nothing to dispose.
+            }
         }
     }
 }
