@@ -14,10 +14,10 @@
     using Skyline.DataMiner.Net.SRM.Capacities;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
 
     using CoreResource = Net.Messages.Resource;
+    using CoreFunctionResource = Net.ResourceManager.Objects.FunctionResource;
     using DomResource = Storage.DOM.SlcResource_Studio.ResourceInstance;
     using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
 
@@ -543,7 +543,7 @@
 
         private bool ApplyVirtualFunctionResourceConfig(DomResource domResource, CoreResource coreResource)
         {
-            if (coreResource is not Net.ResourceManager.Objects.FunctionResource functionResource)
+            if (coreResource is not CoreFunctionResource functionResource)
             {
                 throw new InvalidOperationException($"Core Resource {coreResource.Name} ({coreResource.ID}) is not a FunctionResource.");
             }
@@ -850,6 +850,17 @@
 
             foreach (var kvp in domResourcesByElementFunction)
             {
+                if (!functionDefinitionsById.TryGetValue(kvp.Key.FunctionDefinitionId, out var functionDefinition))
+                {
+                    // This should not happen as we have already filtered invalid function IDs
+                    continue;
+                }
+
+                if (functionDefinition.EntryPoints == null || functionDefinition.EntryPoints.Count() == 0)
+                {
+                    continue;
+                }
+
                 var resourcesRequiringValidation = kvp.Value.ToList();
 
                 // Check for duplicate table indexes
@@ -1220,7 +1231,7 @@
 
         private sealed class ResourceMapping
         {
-            private ResourceMapping(DomResource domResource) : this(domResource, new CoreResource { ID = Guid.NewGuid() })
+            private ResourceMapping(DomResource domResource) : this(domResource, domResource.ResourceInfo.Type == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type.VirtualFunction ? new CoreFunctionResource { ID = Guid.NewGuid() } : new CoreResource { ID = Guid.NewGuid() })
             {
             }
 
