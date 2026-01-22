@@ -4,6 +4,8 @@
     using System.Collections.Generic;
     using System.Linq;
     using RT_MediaOps.Plan.RegressionTests;
+
+    using Skyline.DataMiner.Core.DataMinerSystem.Common;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Utils.Categories.API;
@@ -11,8 +13,7 @@
 
     internal class TestObjectCreator : IDisposable
     {
-        private readonly IMediaOpsPlanApi api;
-        private readonly CategoriesApi catagoriesApi;
+        private readonly IntegrationTestContext testContext;
 
         private readonly HashSet<Guid> createdPoolIds = new HashSet<Guid>();
 
@@ -28,16 +29,18 @@
 
         private readonly HashSet<Guid> createdCategoryIds = new HashSet<Guid>();
 
+        private readonly HashSet<DmsElementId> createdElementIds = new HashSet<DmsElementId>();
+
         public TestObjectCreator(IntegrationTestContext testContext)
         {
-            if (testContext == null)
-            {
-                throw new ArgumentNullException(nameof(testContext));
-            }
-
-            this.api = testContext.Api;
-            this.catagoriesApi = testContext.CategoriesApi;
+            this.testContext = testContext ?? throw new ArgumentNullException(nameof(testContext));
         }
+
+        private IMediaOpsPlanApi PlanApi => testContext.Api;
+
+        private CategoriesApi CatagoriesApi => testContext.CategoriesApi;
+
+        private IDms Dms => testContext.Dms;
 
         public void Dispose()
         {
@@ -103,17 +106,26 @@
             {
                 // Ignore cleanup errors
             }
+
+            try
+            {
+                ElementsCleanup();
+            }
+            catch
+            {
+                // Ignore cleanup errors
+            }
         }
 
         private void ResourcesCleanup()
         {
-            var resources = api.Resources.Read(createdResourceIds.ToArray());
+            var resources = PlanApi.Resources.Read(createdResourceIds.ToArray());
 
             foreach (var resource in resources.Where(r => r.State == ResourceState.Complete))
             {
                 try
                 {
-                    api.Resources.MoveTo(resource.Id, ResourceState.Deprecated);
+                    PlanApi.Resources.MoveTo(resource.Id, ResourceState.Deprecated);
                 }
                 catch
                 {
@@ -121,18 +133,18 @@
                 }
             }
 
-            api.Resources.Delete(createdResourceIds.ToArray());
+            PlanApi.Resources.Delete(createdResourceIds.ToArray());
         }
 
         private void ResourcePoolsCleanup()
         {
-            var pools = api.ResourcePools.Read(createdPoolIds.ToArray());
+            var pools = PlanApi.ResourcePools.Read(createdPoolIds.ToArray());
 
             foreach (var pool in pools.Where(p => p.State == ResourcePoolState.Complete))
             {
                 try
                 {
-                    api.ResourcePools.MoveTo(pool.Id, ResourcePoolState.Deprecated);
+                    PlanApi.ResourcePools.MoveTo(pool.Id, ResourcePoolState.Deprecated);
                 }
                 catch
                 {
@@ -140,46 +152,60 @@
                 }
             }
 
-            api.ResourcePools.Delete(createdPoolIds.ToArray());
+            PlanApi.ResourcePools.Delete(createdPoolIds.ToArray());
         }
 
         private void CapabilitiesCleanup()
         {
-            var capabilities = api.Capabilities.Read(createdCapabilityIds.ToArray());
+            var capabilities = PlanApi.Capabilities.Read(createdCapabilityIds.ToArray());
 
-            api.Capabilities.Delete(capabilities.ToArray());
+            PlanApi.Capabilities.Delete(capabilities.ToArray());
         }
 
         private void CapacitiesCleanup()
         {
-            var capacities = api.Capacities.Read(createdCapacityIds.ToArray());
+            var capacities = PlanApi.Capacities.Read(createdCapacityIds.ToArray());
 
-            api.Capacities.Delete(capacities.ToArray());
+            PlanApi.Capacities.Delete(capacities.ToArray());
         }
 
         private void ConfigurationsCleanup()
         {
-            var configurations = api.Configurations.Read(createdConfigurationIds.ToArray());
+            var configurations = PlanApi.Configurations.Read(createdConfigurationIds.ToArray());
 
-            api.Configurations.Delete(configurations.ToArray());
+            PlanApi.Configurations.Delete(configurations.ToArray());
         }
 
         private void PropertiesCleanup()
         {
-            var properties = api.ResourceProperties.Read(createdPropertyIds.ToArray());
+            var properties = PlanApi.ResourceProperties.Read(createdPropertyIds.ToArray());
 
-            api.ResourceProperties.Delete(properties.ToArray());
+            PlanApi.ResourceProperties.Delete(properties.ToArray());
         }
 
         private void CategoriesCleanup()
         {
-            var categories = catagoriesApi.Categories.Read(createdCategoryIds.ToArray()).Values;
-            catagoriesApi.Categories.Delete(categories);
+            var categories = CatagoriesApi.Categories.Read(createdCategoryIds.ToArray()).Values;
+            CatagoriesApi.Categories.Delete(categories);
+        }
+
+        private void ElementsCleanup()
+        {
+            foreach (var elementId in createdElementIds)
+            {
+                if (!Dms.ElementExists(elementId))
+                {
+                    continue;
+                }
+
+                var element = Dms.GetElement(elementId);
+                element.Delete();
+            }
         }
 
         public void CreateResource(Resource resource)
         {
-            api.Resources.Create(resource);
+            PlanApi.Resources.Create(resource);
             createdResourceIds.Add(resource.Id);
         }
 
@@ -187,7 +213,7 @@
         {
             try
             {
-                api.Resources.Create(resources);
+                PlanApi.Resources.Create(resources);
 
                 foreach (var id in resources.Select(x => x.Id))
                 {
@@ -207,7 +233,7 @@
 
         public void CreateResourcePool(ResourcePool resourcePool)
         {
-            api.ResourcePools.Create(resourcePool);
+            PlanApi.ResourcePools.Create(resourcePool);
             createdPoolIds.Add(resourcePool.Id);
         }
 
@@ -215,7 +241,7 @@
         {
             try
             {
-                api.ResourcePools.Create(resourcePools);
+                PlanApi.ResourcePools.Create(resourcePools);
 
                 foreach (var id in resourcePools.Select(x => x.Id))
                 {
@@ -235,7 +261,7 @@
 
         public void CreateCapability(Capability capability)
         {
-            api.Capabilities.Create(capability);
+            PlanApi.Capabilities.Create(capability);
             createdCapabilityIds.Add(capability.Id);
         }
 
@@ -243,7 +269,7 @@
         {
             try
             {
-                api.Capabilities.Create(capabilities);
+                PlanApi.Capabilities.Create(capabilities);
 
                 foreach (var id in capabilities.Select(x => x.Id))
                 {
@@ -263,7 +289,7 @@
 
         public void CreateCapacity(Capacity capacity)
         {
-            api.Capacities.Create(capacity);
+            PlanApi.Capacities.Create(capacity);
             createdCapacityIds.Add(capacity.Id);
         }
 
@@ -271,7 +297,7 @@
         {
             try
             {
-                api.Capacities.Create(capacities);
+                PlanApi.Capacities.Create(capacities);
 
                 foreach (var id in capacities.Select(x => x.Id))
                 {
@@ -291,7 +317,7 @@
 
         public void CreateConfiguration(Configuration configuration)
         {
-            api.Configurations.Create(configuration);
+            PlanApi.Configurations.Create(configuration);
             createdConfigurationIds.Add(configuration.Id);
         }
 
@@ -299,7 +325,7 @@
         {
             try
             {
-                api.Configurations.Create(configurations);
+                PlanApi.Configurations.Create(configurations);
 
                 foreach (var id in configurations.Select(x => x.Id))
                 {
@@ -319,7 +345,7 @@
 
         public void CreateProperty(ResourceProperty property)
         {
-            api.ResourceProperties.Create(property);
+            PlanApi.ResourceProperties.Create(property);
             createdPropertyIds.Add(property.Id);
         }
 
@@ -327,7 +353,7 @@
         {
             try
             {
-                api.ResourceProperties.Create(properties);
+                PlanApi.ResourceProperties.Create(properties);
 
                 foreach (var id in properties.Select(x => x.Id))
                 {
@@ -347,9 +373,18 @@
 
         public Category CreateCategory(Category category)
         {
-            category = catagoriesApi.Categories.Create(category);
+            category = CatagoriesApi.Categories.Create(category);
             createdCategoryIds.Add(category.ID);
             return category;
+        }
+
+        public DmsElementId CreateElement(ElementConfiguration configuration)
+        {
+            var agent = Dms.GetAgents().First();
+            var elementId = agent.CreateElement(configuration);
+
+            createdElementIds.Add(elementId);
+            return elementId;
         }
     }
 }

@@ -33,12 +33,23 @@
         /// <summary>
         /// Gets an exposer for the <see cref="Resource.State"/> property.
         /// </summary>
-        public static readonly Exposer<Resource, int> State = new Exposer<Resource, int>((obj) => (int)obj.State, "State");
+        /// <remarks>
+        /// You may need to reference <see cref="Plan.Extensions.EnumFilterExtensions"/> in order to use this exposer in filters.
+        /// </remarks>
+        public static readonly Exposer<Resource, ResourceState> State = new Exposer<Resource, ResourceState>((obj) => obj.State, "State");
 
         /// <summary>
         /// Gets a dynamic list exposer for the <see cref="Resource.ResourcePoolIds"/> property.
         /// </summary>
         public static readonly DynamicListExposer<Resource, Guid> ResourcePoolIds = DynamicListExposer<Resource, Guid>.CreateFromListExposer(new Exposer<Resource, IEnumerable>((obj) => obj.ResourcePoolIds.Where(x => x != null), "ResourcePoolIds"));
+
+        /// <summary>
+        /// Gets an exposer to match the type of <see cref="Resource"/>.
+        /// </summary>
+        /// <remarks>
+        /// You may need to reference <see cref="Plan.Extensions.TypeFilterExtensions"/> in order to use this exposer in filters.
+        /// </remarks>
+        public static readonly Exposer<Resource, Type> Type = new Exposer<Resource, Type>((obj) => obj.GetType(), "Type");
 
         /// <summary>
         /// Provides exposers for querying and filtering resource capabilities.
