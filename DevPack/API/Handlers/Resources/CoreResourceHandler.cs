@@ -389,12 +389,6 @@
         {
             bool updateRequired = false;
 
-            if (core == null)
-            {
-                core = BuildCoreResource(dom.ResourceInfo.Type.Value);
-                updateRequired = true;
-            }
-
             updateRequired |= SyncName(dom, core);
             updateRequired |= SyncType(dom, core);
             updateRequired |= SyncCapacities(dom, core);
@@ -477,19 +471,6 @@
 
                 successfulIds.Add(domId);
             }
-        }
-
-        private CoreResource BuildCoreResource(Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type resourceType)
-        {
-            if (resourceType == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type.VirtualFunction)
-            {
-                return new CoreFunctionResource()
-                {
-                    ID = Guid.NewGuid(),
-                };
-            }
-
-            return new CoreResource(Guid.NewGuid());
         }
 
         private bool ApplyUnmanagedResourceConfig(DomResource domResource, CoreResource coreResource)
@@ -1233,8 +1214,8 @@
         private sealed class ResourceMapping
         {
             private ResourceMapping(DomResource domResource)
+                : this (domResource, BuildCoreResource(domResource.ResourceInfo.Type.Value))
             {
-                DomResource = domResource ?? throw new ArgumentNullException(nameof(domResource));
             }
 
             private ResourceMapping(DomResource domResource, CoreResource coreResource)
@@ -1291,6 +1272,19 @@
 
                     yield return new ResourceMapping(domResource);
                 }
+            }
+
+            private static CoreResource BuildCoreResource(Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type resourceType)
+            {
+                if (resourceType == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type.VirtualFunction)
+                {
+                    return new CoreFunctionResource()
+                    {
+                        ID = Guid.NewGuid(),
+                    };
+                }
+
+                return new CoreResource(Guid.NewGuid());
             }
         }
 
