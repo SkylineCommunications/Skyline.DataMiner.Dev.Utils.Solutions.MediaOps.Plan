@@ -250,7 +250,7 @@
             };
             objectCreator.CreateResourcePool(resourcePool);
 
-            var resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]);
+            var resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).ToArray();
             TestContext.Api.ResourcePools.AssignResourcesToPool(resourcePool.Id, resources);
 
             // Assign capability to pool
