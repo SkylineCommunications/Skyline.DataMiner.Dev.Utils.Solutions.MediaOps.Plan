@@ -14,6 +14,7 @@
     using Skyline.DataMiner.Net.SRM.Capacities;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
 
     using CoreResource = Net.Messages.Resource;
@@ -482,7 +483,7 @@
         {
             if (resourceType == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type.VirtualFunction)
             {
-                return new Net.ResourceManager.Objects.FunctionResource()
+                return new CoreFunctionResource()
                 {
                     ID = Guid.NewGuid(),
                 };
@@ -1231,8 +1232,9 @@
 
         private sealed class ResourceMapping
         {
-            private ResourceMapping(DomResource domResource) : this(domResource, domResource.ResourceInfo.Type == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type.VirtualFunction ? new CoreFunctionResource { ID = Guid.NewGuid() } : new CoreResource { ID = Guid.NewGuid() })
+            private ResourceMapping(DomResource domResource)
             {
+                DomResource = domResource ?? throw new ArgumentNullException(nameof(domResource));
             }
 
             private ResourceMapping(DomResource domResource, CoreResource coreResource)
