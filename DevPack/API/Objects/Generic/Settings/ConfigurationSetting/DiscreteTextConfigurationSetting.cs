@@ -43,6 +43,9 @@
         public TextDiscreet Value { get; set; }
 
         /// <inheritdoc/>
+        public override bool HasValue => Value != null && !string.IsNullOrWhiteSpace(Value.Value);
+
+        /// <inheritdoc/>
         public override int GetHashCode()
         {
             unchecked

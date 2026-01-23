@@ -39,6 +39,11 @@
         /// </summary>
         public Guid Id { get; internal set; }
 
+        /// <summary>
+        /// Gets a value indicating whether this setting is fully defined.
+        /// </summary>
+        public abstract bool HasValue { get; }
+
         internal virtual Storage.DOM.DomSectionBase OriginalSection { get; }
     }
 }

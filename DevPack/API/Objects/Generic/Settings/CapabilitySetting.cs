@@ -61,6 +61,11 @@
         /// </summary>
         public IReadOnlyCollection<string> Discretes => discretes;
 
+        /// <summary>
+        /// Gets a value indicating whether this setting has at least one discrete value defined.
+        /// </summary>
+        public bool HasValue => discretes.Any();
+
         internal virtual Storage.DOM.DomSectionBase OriginalSection { get; }
 
         /// <summary>
