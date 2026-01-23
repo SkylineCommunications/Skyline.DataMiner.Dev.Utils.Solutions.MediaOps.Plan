@@ -33,8 +33,6 @@
         /// <summary>
         /// Gets an exposer for the <see cref="Resource.State"/> property.
         /// </summary>
-        /// <remarks>
-        /// </remarks>
         public static readonly Exposer<Resource, ResourceState> State = new Exposer<Resource, ResourceState>((obj) => obj.State, "State");
 
         /// <summary>
@@ -45,8 +43,6 @@
         /// <summary>
         /// Gets an exposer to match the type of <see cref="Resource"/>.
         /// </summary>
-        /// <remarks>
-        /// </remarks>
         public static readonly Exposer<Resource, Type> Type = new Exposer<Resource, Type>((obj) => obj.GetType(), "Type");
 
         /// <summary>
