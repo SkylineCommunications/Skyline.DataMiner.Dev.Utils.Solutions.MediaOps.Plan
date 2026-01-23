@@ -76,5 +76,8 @@
         /// Gets or sets the maximum capacity value.
         /// </summary>
         public decimal? MaxValue { get; set; }
+
+        /// <inheritdoc/>
+        public override bool HasValue => MinValue.HasValue && MaxValue.HasValue;
     }
 }

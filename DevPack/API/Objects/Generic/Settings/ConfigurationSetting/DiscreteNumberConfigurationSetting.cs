@@ -43,6 +43,9 @@
         public NumberDiscreet Value { get; set; }
 
         /// <inheritdoc/>
+        public override bool HasValue => Value != null && !string.IsNullOrWhiteSpace(Value.DisplayName);
+
+        /// <inheritdoc/>
         public override int GetHashCode()
         {
             unchecked

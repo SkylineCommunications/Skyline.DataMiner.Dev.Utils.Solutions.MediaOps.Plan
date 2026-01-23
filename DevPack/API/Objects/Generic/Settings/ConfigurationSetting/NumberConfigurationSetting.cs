@@ -43,6 +43,9 @@
         public decimal? Value { get; set; }
 
         /// <inheritdoc/>
+        public override bool HasValue => Value.HasValue;
+
+        /// <inheritdoc/>
         public override int GetHashCode()
         {
             unchecked

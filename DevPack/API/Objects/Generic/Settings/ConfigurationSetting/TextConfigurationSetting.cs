@@ -43,6 +43,9 @@
         public string Value { get; set; }
 
         /// <inheritdoc/>
+        public override bool HasValue => !string.IsNullOrEmpty(Value);
+
+        /// <inheritdoc/>
         public override int GetHashCode()
         {
             unchecked
