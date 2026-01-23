@@ -33,9 +33,6 @@
         /// <summary>
         /// Gets an exposer for the <see cref="Resource.State"/> property.
         /// </summary>
-        /// <remarks>
-        /// You may need to reference <see cref="Plan.Extensions.EnumFilterExtensions"/> in order to use this exposer in filters.
-        /// </remarks>
         public static readonly Exposer<Resource, ResourceState> State = new Exposer<Resource, ResourceState>((obj) => obj.State, "State");
 
         /// <summary>
@@ -46,9 +43,6 @@
         /// <summary>
         /// Gets an exposer to match the type of <see cref="Resource"/>.
         /// </summary>
-        /// <remarks>
-        /// You may need to reference <see cref="Plan.Extensions.TypeFilterExtensions"/> in order to use this exposer in filters.
-        /// </remarks>
         public static readonly Exposer<Resource, Type> Type = new Exposer<Resource, Type>((obj) => obj.GetType(), "Type");
 
         /// <summary>
