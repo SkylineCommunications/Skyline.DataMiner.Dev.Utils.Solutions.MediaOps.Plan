@@ -1156,5 +1156,39 @@
 
             Assert.Fail("Exception not thrown");
         }
+
+        [TestMethod]
+        public void AssignCapabilityFromExistingResourcePoolToNewResourcePool()
+        {
+            var prefix = Guid.NewGuid();
+
+            var capability = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capability()
+            {
+                Name = $"{prefix}_Capability",
+            };
+            capability.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
+            objectCreator.CreateCapability(capability);
+
+            var resourcePool1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
+            {
+                Name = $"{prefix}_ResourcePool1",
+            }
+            .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(capability.Id).AddDiscrete("Value 2"));
+
+            objectCreator.CreateResourcePool(resourcePool1);
+            resourcePool1 = TestContext.Api.ResourcePools.Read(resourcePool1.Id);
+
+            var resourcePool2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
+            {
+                Name = $"{prefix}_ResourcePool2",
+            };
+
+            foreach (var capabilitySetting in resourcePool1.Capabilities)
+            {
+                resourcePool2.AddCapability(capabilitySetting);
+            }
+
+            objectCreator.CreateResourcePool(resourcePool2);
+        }
     }
 }

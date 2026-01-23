@@ -618,5 +618,88 @@
             Assert.AreEqual(discreteNumberConfiguration.Id, discreteConfigurationSetting.Id);
             Assert.AreEqual(new NumberDiscreet(2, "Two"), discreteConfigurationSetting.Value);
         }
+
+        [TestMethod]
+        public void AssignParameterFromExistingResourcePoolToNewResourcePool()
+        {
+            var prefix = Guid.NewGuid();
+
+            var capability = new Capability
+            {
+                Name = $"{prefix}_Capability",
+            }
+            .SetDiscretes(["Value 1", "Value 2"]);
+            objectCreator.CreateCapability(capability);
+
+            var numberCapacity = new NumberCapacity
+            {
+                Name = $"{prefix}_NumberCapacity",
+            };
+            var rangeCapacity = new RangeCapacity
+            {
+                Name = $"{prefix}_RangeCapacity",
+            };
+            objectCreator.CreateCapacities([numberCapacity, rangeCapacity]);
+
+            var textConfiguration = new TextConfiguration
+            {
+                Name = $"{prefix}_TextConfiguration",
+            };
+            var numberConfiguration = new NumberConfiguration
+            {
+                Name = $"{prefix}_NumberConfiguration",
+            };
+            var discreteTextConfiguration = new DiscreteTextConfiguration
+            {
+                Name = $"{prefix}_DiscreteTextConfiguration",
+            }
+            .AddDiscrete(new TextDiscreet("A", "A"));
+            var discreteNumberConfiguration = new DiscreteNumberConfiguration
+            {
+                Name = $"{prefix}_DiscreteNumberConfiguration",
+            }
+            .AddDiscrete(new NumberDiscreet(1, "A"));
+            objectCreator.CreateConfigurations([textConfiguration, numberConfiguration, discreteTextConfiguration, discreteNumberConfiguration]);
+
+            var resourcePool1 = new ResourcePool
+            {
+                Name = $"{prefix}_ResourcePool1",
+            };
+
+            resourcePool1.OrchestrationSettings
+                .SetCapabilities([new CapabilitySetting(capability)])
+                .SetCapacities([new NumberCapacitySetting(numberCapacity), new RangeCapacitySetting(rangeCapacity)])
+                .SetConfigurations([
+                    new TextConfigurationSetting(textConfiguration),
+                    new NumberConfigurationSetting(numberConfiguration),
+                    new DiscreteTextConfigurationSetting(discreteTextConfiguration),
+                    new DiscreteNumberConfigurationSetting(discreteNumberConfiguration)
+                ]);
+
+            objectCreator.CreateResourcePool(resourcePool1);
+            resourcePool1 = TestContext.Api.ResourcePools.Read(resourcePool1.Id);
+
+            var resourcePool2 = new ResourcePool
+            {
+                Name = $"{prefix}_ResourcePool2",
+            };
+
+            foreach (var capacitySetting in resourcePool1.OrchestrationSettings.Capacities)
+            {
+                resourcePool2.OrchestrationSettings.AddCapacity(capacitySetting);
+            }
+
+            foreach (var capabilitySetting in resourcePool1.OrchestrationSettings.Capabilities)
+            {
+                resourcePool2.OrchestrationSettings.AddCapability(capabilitySetting);
+            }
+
+            foreach (var configurationSetting in resourcePool1.OrchestrationSettings.Configurations)
+            {
+                resourcePool2.OrchestrationSettings.AddConfiguration(configurationSetting);
+            }
+
+            objectCreator.CreateResourcePool(resourcePool2);
+        }
     }
 }
