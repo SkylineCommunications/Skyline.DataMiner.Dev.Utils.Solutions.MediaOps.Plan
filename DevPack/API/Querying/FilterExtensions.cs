@@ -1,4 +1,4 @@
-﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions
+﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
     using System;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
