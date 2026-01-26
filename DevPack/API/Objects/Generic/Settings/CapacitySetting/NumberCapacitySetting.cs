@@ -35,7 +35,6 @@
             : base(numberCapacitySetting)
         {
             Value = numberCapacitySetting.Value;
-            InitTracking();
         }
 
         /// <summary>

@@ -36,7 +36,6 @@
         {
             MinValue = rangeCapacitySetting.MinValue;
             MaxValue = rangeCapacitySetting.MaxValue;
-            InitTracking();
         }
 
         /// <inheritdoc/>

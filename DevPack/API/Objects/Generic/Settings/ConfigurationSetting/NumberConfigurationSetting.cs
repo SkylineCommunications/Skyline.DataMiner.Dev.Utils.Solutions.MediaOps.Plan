@@ -34,7 +34,6 @@
             : base(numberConfigurationSetting)
         {
             Value = numberConfigurationSetting.Value;
-            InitTracking();
         }
 
         /// <summary>

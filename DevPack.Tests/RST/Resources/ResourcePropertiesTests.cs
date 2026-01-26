@@ -10,7 +10,7 @@
 
     [TestClass]
     [TestCategory("IntegrationTest")]
-    public sealed class ResourcePropertiesTests
+    public sealed class ResourcePropertiesTests : IDisposable
     {
         private readonly TestObjectCreator objectCreator;
 

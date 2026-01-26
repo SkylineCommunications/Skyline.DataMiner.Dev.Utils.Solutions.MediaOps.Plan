@@ -31,7 +31,7 @@
         private protected ConfigurationSetting(ConfigurationSetting configurationSetting)
         {
             Id = configurationSetting.Id;
-            IsNew = configurationSetting.IsNew;
+            IsNew = true;
         }
 
         /// <summary>
