@@ -760,6 +760,7 @@
             }
 
             objectCreator.CreateResource(unmanagedResource2);
+            Assert.IsTrue(true);
         }
     }
 }

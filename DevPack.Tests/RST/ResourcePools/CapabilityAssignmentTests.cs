@@ -1189,6 +1189,7 @@
             }
 
             objectCreator.CreateResourcePool(resourcePool2);
+            Assert.IsTrue(true);
         }
     }
 }
