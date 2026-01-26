@@ -1157,19 +1157,19 @@
             }
         }
 
-        private void HandleMoveToDeprecateAction(Resource resource)
-        {
-            if (!DomResourceHandler.TryDeprecate(PlanApi, [resource], out var result))
-            {
-                result.ThrowSingleException(resource.Id);
-            }
-        }
-
         private void HandleMoveToCompleteAction(ICollection<Resource> resources)
         {
             if (!DomResourceHandler.TryComplete(PlanApi, resources, out var result))
             {
                 result.ThrowBulkException();
+            }
+        }
+
+        private void HandleMoveToDeprecateAction(Resource resource)
+        {
+            if (!DomResourceHandler.TryDeprecate(PlanApi, [resource], out var result))
+            {
+                result.ThrowSingleException(resource.Id);
             }
         }
 

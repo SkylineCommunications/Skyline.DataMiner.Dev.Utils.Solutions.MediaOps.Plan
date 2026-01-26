@@ -974,19 +974,19 @@
             }
         }
 
-        private void HandleMoveToDeprecateAction(ResourcePool resourcePool)
-        {
-            if (!DomResourcePoolHandler.TryDeprecate(PlanApi, [resourcePool], out var result))
-            {
-                result.ThrowSingleException(resourcePool.Id);
-            }
-        }
-
         private void HandleMoveToCompleteAction(ICollection<ResourcePool> resourcePools)
         {
             if (!DomResourcePoolHandler.TryComplete(PlanApi, resourcePools, out var result))
             {
                 result.ThrowBulkException();
+            }
+        }
+
+        private void HandleMoveToDeprecateAction(ResourcePool resourcePool)
+        {
+            if (!DomResourcePoolHandler.TryDeprecate(PlanApi, [resourcePool], out var result))
+            {
+                result.ThrowSingleException(resourcePool.Id);
             }
         }
 
