@@ -700,7 +700,9 @@
             }
 
             objectCreator.CreateResourcePool(resourcePool2);
-            Assert.IsTrue(true);
+
+            resourcePool2 = TestContext.Api.ResourcePools.Read(resourcePool2.Id);
+            Assert.IsNotNull(resourcePool2);
         }
     }
 }

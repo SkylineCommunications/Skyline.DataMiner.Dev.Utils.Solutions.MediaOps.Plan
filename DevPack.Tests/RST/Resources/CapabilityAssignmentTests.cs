@@ -760,7 +760,9 @@
             }
 
             objectCreator.CreateResource(unmanagedResource2);
-            Assert.IsTrue(true);
+
+            var resource2 = TestContext.Api.Resources.Read(unmanagedResource2.Id);
+            Assert.IsNotNull(resource2);
         }
     }
 }
