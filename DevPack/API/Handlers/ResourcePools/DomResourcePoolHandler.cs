@@ -317,10 +317,10 @@
                 return;
             }
 
-            // Todo: add checks to see if resource pool is in use by jobs, etc.
             ValidateStateForDeprecateAction(apiResourcePools);
+            ValidateWorkflowUsage(apiResourcePools.Where(IsValid).ToArray());
 
-            var poolsToDeprecate = apiResourcePools.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)).ToList();
+            var poolsToDeprecate = apiResourcePools.Where(IsValid).ToList();
             if (options.AllowResourceDeprecation)
             {
                 DeprecatePoolResources(poolsToDeprecate);
@@ -992,6 +992,11 @@
                     ReportError(pool.Id, error);
                 }
             }
+        }
+
+        private void ValidateWorkflowUsage(ICollection<ResourcePool> apiResourcePools)
+        {
+            PassTraceData(SlcWorkflowResourcePoolUsageValidator.Validate(planApi, apiResourcePools));
         }
 
         private ICollection<DomChangeResults> GetPoolsWithChanges(ICollection<ResourcePool> apiResourcePools)
