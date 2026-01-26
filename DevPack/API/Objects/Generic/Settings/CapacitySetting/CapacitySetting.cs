@@ -41,7 +41,7 @@
         private protected CapacitySetting(CapacitySetting capacitySetting)
         {
             Id = capacitySetting.Id;
-            IsNew = capacitySetting.IsNew;
+            IsNew = true;
         }
 
         /// <summary>

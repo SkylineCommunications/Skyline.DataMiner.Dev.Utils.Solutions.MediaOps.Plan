@@ -1,17 +1,12 @@
 ﻿namespace RT_MediaOps.Plan.RST.Resources
 {
     using System;
-    using System.Collections.Generic;
     using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
 
     using RT_MediaOps.Plan.RegressionTests;
 
     using Skyline.DataMiner.Core.DataMinerSystem.Common;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
-
-    using Storage = Skyline.DataMiner.Solutions.MediaOps.Plan.Storage;
 
     [TestClass]
     [TestCategory("IntegrationTest")]

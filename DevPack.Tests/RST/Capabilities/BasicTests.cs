@@ -39,7 +39,7 @@
 
             capability.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
 
-            TestContext.Api.Capabilities.Create(capability);
+            objectCreator.CreateCapability(capability);
 
             var createdCapability = TestContext.Api.Capabilities.Read(capability.Id);
             Assert.IsNotNull(createdCapability);
@@ -102,7 +102,7 @@
                 IsTimeDependent = false,
             };
             capability.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
-            TestContext.Api.Capabilities.Create(capability);
+            objectCreator.CreateCapability(capability);
 
             capability = TestContext.Api.Capabilities.Read(capability.Id);
             capability.IsTimeDependent = true;
@@ -140,7 +140,7 @@
                 IsTimeDependent = true,
             };
             capability.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
-            TestContext.Api.Capabilities.Create(capability);
+            objectCreator.CreateCapability(capability);
 
             capability = TestContext.Api.Capabilities.Read(capability.Id);
             capability.IsTimeDependent = false;
@@ -183,7 +183,7 @@
             string discreteValue = "Value 1";
             capability.SetDiscretes(Enumerable.Repeat(discreteValue, 10));
 
-            TestContext.Api.Capabilities.Create(capability);
+            objectCreator.CreateCapability(capability);
 
             var apiCapability = TestContext.Api.Capabilities.Read(capability.Id);
 

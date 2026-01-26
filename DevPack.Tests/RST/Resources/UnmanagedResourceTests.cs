@@ -10,11 +10,19 @@
     [TestCategory("IntegrationTest")]
     public sealed class UnmanagedResourceTests : IDisposable
     {
+        private readonly TestObjectCreator objectCreator;
+
         public UnmanagedResourceTests()
         {
+            objectCreator = new TestObjectCreator(TestContext);
         }
 
         private static IntegrationTestContext TestContext => TestContextManager.SharedTestContext;
+
+        public void Dispose()
+        {
+            objectCreator.Dispose();
+        }
 
         [TestMethod]
         public void HappyPathCrud()
@@ -30,7 +38,7 @@
                 IsFavorite = expectedResult.IsFavorite,
             };
 
-            TestContext.Api.Resources.Create(unmanagedResource);
+            objectCreator.CreateResource(unmanagedResource);
 
             var returnedResource = TestContext.Api.Resources.Read(id);
             expectedResult.ValidateUnmanagedResource(returnedResource);
@@ -79,10 +87,10 @@
                 IsFavorite = true,
             };
 
-            TestContext.Api.Resources.Create(unmanagedResource1);
+            objectCreator.CreateResource(unmanagedResource1);
             try
             {
-                TestContext.Api.Resources.Create(unmanagedResource2);
+                objectCreator.CreateResource(unmanagedResource2);
             }
             catch (MediaOpsException me)
             {
@@ -111,10 +119,10 @@
                 Concurrency = 5,
                 IsFavorite = true,
             };
-            TestContext.Api.Resources.Create(unmanagedResource1);
+            objectCreator.CreateResource(unmanagedResource1);
             try
             {
-                TestContext.Api.Resources.Create(unmanagedResource2);
+                objectCreator.CreateResource(unmanagedResource2);
             }
             catch (MediaOpsException me)
             {
@@ -148,8 +156,8 @@
                 IsFavorite = expectedResult2.IsFavorite,
             };
 
-            TestContext.Api.Resources.Create(unmanagedResource1);
-            TestContext.Api.Resources.Create(unmanagedResource2);
+            objectCreator.CreateResource(unmanagedResource1);
+            objectCreator.CreateResource(unmanagedResource2);
             var returnedResource1 = TestContext.Api.Resources.Read(unmanagedResource1.Id);
             var returnedResource2 = TestContext.Api.Resources.Read(unmanagedResource2.Id);
             expectedResult1.ValidateUnmanagedResource(returnedResource1);
@@ -183,7 +191,7 @@
                 IsFavorite = expectedResourceResult.IsFavorite,
             };
 
-            TestContext.Api.Resources.Create(resource);
+            objectCreator.CreateResource(resource);
 
             // Create multiple rapid updates
             var executionLog = new ConcurrentBag<(int TaskId, string Event, DateTime Timestamp, Exception? exception)>();
@@ -257,7 +265,7 @@
                 IsFavorite = expectedResourceResult.IsFavorite,
             };
 
-            TestContext.Api.Resources.Create(resource);
+            objectCreator.CreateResource(resource);
 
             var updatedResourceName1 = $"{resourceName}_Update1";
             var updatedResourceName2 = $"{resourceName}_Update2";
@@ -296,7 +304,7 @@
             MediaOpsException? me = null;
             try
             {
-                TestContext.Api.Resources.Create(unmanagedResource);
+                objectCreator.CreateResource(unmanagedResource);
             }
             catch (MediaOpsException e)
             {
@@ -305,10 +313,6 @@
 
             Assert.IsTrue(me != null, "Exception not thrown");
             StringAssert.Contains(me.Message, "Name cannot be empty.");
-        }
-
-        public void Dispose()
-        {
         }
 
         private struct ExpectedUnmanagedResource

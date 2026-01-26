@@ -34,7 +34,6 @@
             : base(textConfigurationSetting)
         {
             Value = textConfigurationSetting.Value;
-            InitTracking();
         }
 
         /// <summary>

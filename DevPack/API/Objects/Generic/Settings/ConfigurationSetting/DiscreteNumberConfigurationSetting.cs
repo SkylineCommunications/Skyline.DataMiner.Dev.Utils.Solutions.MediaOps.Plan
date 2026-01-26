@@ -34,7 +34,6 @@
             : base(discreteNumberConfigurationSetting)
         {
             Value = discreteNumberConfigurationSetting.Value;
-            InitTracking();
         }
 
         /// <summary>

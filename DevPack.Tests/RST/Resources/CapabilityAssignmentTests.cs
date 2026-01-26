@@ -727,5 +727,42 @@
 
             Assert.Fail("Exception not thrown");
         }
+
+        [TestMethod]
+        public void AssignCapabilityFromExistingResourceToNewResource()
+        {
+            var prefix = Guid.NewGuid();
+
+            var capability = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capability()
+            {
+                Name = $"{prefix}_Capability",
+            };
+            capability.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
+            objectCreator.CreateCapability(capability);
+
+            var unmanagedResource1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
+            {
+                Name = $"{prefix}_Resource1",
+            }
+            .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(capability.Id).AddDiscrete("Value 2"));
+
+            objectCreator.CreateResource(unmanagedResource1);
+            var resource1 = TestContext.Api.Resources.Read(unmanagedResource1.Id);
+
+            var unmanagedResource2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
+            {
+                Name = $"{prefix}_Resourc2",
+            };
+
+            foreach (var capabilitySetting in resource1.Capabilities)
+            {
+                unmanagedResource2.AddCapability(capabilitySetting);
+            }
+
+            objectCreator.CreateResource(unmanagedResource2);
+
+            var resource2 = TestContext.Api.Resources.Read(unmanagedResource2.Id);
+            Assert.IsNotNull(resource2);
+        }
     }
 }

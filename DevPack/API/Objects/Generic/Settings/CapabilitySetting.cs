@@ -47,8 +47,7 @@
             Id = capabilitySetting.Id;
             discretes = new HashSet<string>(capabilitySetting.Discretes);
 
-            IsNew = capabilitySetting.IsNew;
-            InitTracking();
+            IsNew = true;
         }
 
         /// <summary>
