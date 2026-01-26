@@ -23,16 +23,42 @@
         void MoveTo(Guid resourceId, ResourceState desiredState);
 
         /// <summary>
+        /// Moves the specified <see cref="Resource"/> to the desired state.
+        /// </summary>
+        /// <param name="resources">The resources to move.</param>
+        /// <param name="desiredState">The state to move the resources to.</param>
+        void MoveTo(IEnumerable<Resource> resources, ResourceState desiredState);
+
+        /// <summary>
+        /// Moves the resources with the specified identifiers to the desired state.
+        /// </summary>
+        /// <param name="resourceIds">The unique identifier of the resources to move.</param>
+        /// <param name="desiredState">The state to move the resources to.</param>
+        void MoveTo(IEnumerable<Guid> resourceIds, ResourceState desiredState);
+
+        /// <summary>
         /// Marks the specified resource as deprecated, indicating that it is no longer recommended for use.
         /// </summary>
         /// <param name="resource">The resource to be marked as deprecated. Cannot be null.</param>
         void Deprecate(Resource resource);
 
         /// <summary>
+        /// Marks the specified resource as deprecated, indicating that it is no longer recommended for use.
+        /// </summary>
+        /// <param name="resourceId">The unique identifier of the resource to deprecate.</param>
+        void Deprecate(Guid resourceId);
+
+        /// <summary>
         /// Marks the specified resources as deprecated, indicating that they are no longer recommended for use.
         /// </summary>
         /// <param name="resources">A collection of resources to be marked as deprecated. Cannot be null or empty.</param>
         void Deprecate(IEnumerable<Resource> resources);
+
+        /// <summary>
+        /// Marks the specified resources as deprecated, indicating that they are no longer recommended for use.
+        /// </summary>
+        /// <param name="resourceIds">The unique identifiers of the resources to deprecate.</param>
+        void Deprecate(IEnumerable<Guid> resourceIds);
 
         /// <summary>
         /// Converts the specified <see cref="Resource"/> to an <see cref="UnmanagedResource"/>.

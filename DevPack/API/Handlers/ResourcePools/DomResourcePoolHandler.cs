@@ -244,7 +244,6 @@
             }
 
             ValidateStateForCompleteAction(apiResourcePools);
-            ValidateNames(apiResourcePools.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)).ToList());
 
             // Create CORE resource pools
             var poolsToCreate = apiResourcePools

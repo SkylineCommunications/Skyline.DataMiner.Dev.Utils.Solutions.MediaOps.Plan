@@ -445,6 +445,18 @@
                 throw new ArgumentNullException(nameof(resource));
             }
 
+            Deprecate(resource.Id);
+        }
+
+        /// <inheritdoc/>
+        public void Deprecate(Guid resourceId)
+        {
+            var resource = Read(resourceId);
+            if (resource == null)
+            {
+                return;
+            }
+
             ActivityHelper.Track(nameof(ResourcesRepository), nameof(Deprecate), act =>
             {
                 if (!DomResourceHandler.TryDeprecate(PlanApi, [resource], out var result))
@@ -469,6 +481,19 @@
             {
                 throw new ArgumentNullException(nameof(resources));
             }
+
+            Deprecate(resources.Select(x => x.Id).ToArray());
+        }
+
+        /// <inheritdoc/>
+        public void Deprecate(IEnumerable<Guid> resourceIds)
+        {
+            if (resourceIds == null)
+            {
+                throw new ArgumentNullException(nameof(resourceIds));
+            }
+
+            var resources = Read(resourceIds.ToArray());
 
             ActivityHelper.Track(nameof(ResourcesRepository), nameof(Deprecate), act =>
             {
@@ -636,7 +661,7 @@
                 var actionMethods = new Dictionary<ResourceState, Action<Resource>>
                 {
                     [ResourceState.Complete] = HandleMoveToCompleteAction,
-                    [ResourceState.Deprecated] = HandleMoveToDeprecatedAction,
+                    [ResourceState.Deprecated] = HandleMoveToDeprecateAction,
                 };
 
                 if (!actionMethods.TryGetValue(desiredState, out var action))
@@ -651,6 +676,49 @@
                 }
 
                 action(resource);
+            });
+        }
+
+        /// <inheritdoc/>
+        public void MoveTo(IEnumerable<Resource> resources, ResourceState desiredState)
+        {
+            if (resources == null)
+            {
+                throw new ArgumentNullException(nameof(resources));
+            }
+
+            MoveTo(resources.Select(x => x.Id).ToArray(), desiredState);
+        }
+
+        /// <inheritdoc/>
+        public void MoveTo(IEnumerable<Guid> resourceIds, ResourceState desiredState)
+        {
+            if (resourceIds == null)
+            {
+                throw new ArgumentNullException(nameof(resourceIds));
+            }
+
+            var resources = Read(resourceIds.ToArray());
+
+            ActivityHelper.Track(nameof(ResourcesRepository), nameof(MoveTo), act =>
+            {
+                var actionMethods = new Dictionary<ResourceState, Action<ICollection<Resource>>>
+                {
+                    [ResourceState.Complete] = HandleMoveToCompleteAction,
+                    [ResourceState.Deprecated] = HandleMoveToDeprecateAction,
+                };
+
+                if (!actionMethods.TryGetValue(desiredState, out var action))
+                {
+                    var error = new ResourceInvalidStateError()
+                    {
+                        ErrorMessage = $"Move to state '{desiredState}' is not supported.",
+                    };
+
+                    throw new MediaOpsException(error);
+                }
+
+                action(resources.ToArray());
             });
         }
 
@@ -1081,73 +1149,36 @@
             });
         }
 
-        /// <summary>
-        /// Handles moving the resource to the Complete state.
-        /// </summary>
-        /// <param name="resource">The resource to transition.</param>
-        /// <exception cref="MediaOpsException">Thrown when the resource cannot be completed from its current state.</exception>
         private void HandleMoveToCompleteAction(Resource resource)
         {
-            if (resource.State == ResourceState.Complete)
+            if (!DomResourceHandler.TryComplete(PlanApi, [resource], out var result))
             {
-                PlanApi.Logger.LogInformation(this, "Resource {resource.Id} is already in Complete state. No action taken.", resource.Id);
-                return;
+                result.ThrowSingleException(resource.Id);
             }
-
-            if (resource.State != ResourceState.Draft)
-            {
-                var error = new ResourceInvalidStateError()
-                {
-                    ErrorMessage = "A resource can only be completed from Draft State.",
-                    Id = resource.Id,
-                };
-
-                throw new MediaOpsException(error);
-            }
-
-            ActivityHelper.Track(nameof(DomResourceHandler), nameof(DomResourceHandler.TransitionToComplete), act =>
-            {
-                act?.AddTag("ResourceId", resource.Id);
-                act?.AddTag("ResourceName", resource.Name);
-
-                DomResourceHandler.TransitionToComplete(PlanApi, resource);
-            });
         }
 
-        /// <summary>
-        /// Handles moving the resource to the Deprecated state.
-        /// </summary>
-        /// <param name="resource">The resource to transition.</param>
-        /// <exception cref="MediaOpsException">Thrown when the resource cannot be deprecated from its current state or the deprecation fails.</exception>
-        private void HandleMoveToDeprecatedAction(Resource resource)
+        private void HandleMoveToDeprecateAction(Resource resource)
         {
-            if (resource.State == ResourceState.Deprecated)
+            if (!DomResourceHandler.TryDeprecate(PlanApi, [resource], out var result))
             {
-                PlanApi.Logger.LogInformation(this, "Resource {resource.Id} is already in Deprecated state. No action taken.", resource.Id);
-                return;
+                result.ThrowSingleException(resource.Id);
             }
+        }
 
-            if (resource.State != ResourceState.Complete)
+        private void HandleMoveToCompleteAction(ICollection<Resource> resources)
+        {
+            if (!DomResourceHandler.TryComplete(PlanApi, resources, out var result))
             {
-                var error = new ResourceInvalidStateError()
-                {
-                    ErrorMessage = "A resource can only be deprecated from Complete State.",
-                    Id = resource.Id,
-                };
-
-                throw new MediaOpsException(error);
+                result.ThrowBulkException();
             }
+        }
 
-            ActivityHelper.Track(nameof(ResourcesRepository), nameof(HandleMoveToDeprecatedAction), act =>
+        private void HandleMoveToDeprecateAction(ICollection<Resource> resources)
+        {
+            if (!DomResourceHandler.TryDeprecate(PlanApi, resources, out var result))
             {
-                act?.AddTag("ResourceId", resource.Id);
-                act?.AddTag("ResourceName", resource.Name);
-
-                if (!DomResourceHandler.TryDeprecate(PlanApi, [resource], out var result))
-                {
-                    result.ThrowSingleException(resource.Id);
-                }
-            });
+                result.ThrowBulkException();
+            }
         }
 
         private IEnumerable<IPagedResult<Resource>> ReadPagedIterator(FilterElement<Resource> filter, int pageSize)
