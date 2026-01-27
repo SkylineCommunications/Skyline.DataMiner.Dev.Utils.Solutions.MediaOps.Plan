@@ -72,6 +72,7 @@
             ValidateIdsNotInUse(toCreate);
             ValidateNames(apiCapabilities);
             ValidateDiscretes(apiCapabilities);
+            ValidateDiscreteValueChanges(toUpdate.Where(IsValid).ToArray());
             ValidateTimeDependency(toUpdate);
 
             var validCapabilities = apiCapabilities.Where(IsValid).ToList();
@@ -345,6 +346,31 @@
                     }
                 }
             }
+        }
+
+        private void ValidateDiscreteValueChanges(ICollection<Capability> apiCapabilities)
+        {
+            if (apiCapabilities == null)
+            {
+                throw new ArgumentNullException(nameof(apiCapabilities));
+            }
+
+            if (apiCapabilities.Any())
+            {
+                return;
+            }
+
+            var capabilityDiscreteValuesToVerify = apiCapabilities
+                .Select(x => new { ParameterId = x.Id, RemovedDisretes = x.CoreParameter.Discretes.Except(x.Discretes).ToList() })
+                .Where(x => x.RemovedDisretes.Any())
+                .SelectMany(x => x.RemovedDisretes.Select(y => new ParameterDiscreteValue<string>
+                    {
+                        ParameterId = x.ParameterId,
+                        DiscreteValue = y,
+                    }))
+                .ToList();
+
+            PassTraceData(SlcResourceStudioParameterDiscreteValueUsageValidator.Validate(planApi, capabilityDiscreteValuesToVerify));
         }
 
         private void ValidateTimeDependency(ICollection<Capability> apiCapabilities)
