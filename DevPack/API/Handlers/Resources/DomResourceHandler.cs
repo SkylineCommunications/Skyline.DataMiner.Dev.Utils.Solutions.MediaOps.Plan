@@ -43,6 +43,15 @@
             return !result.HasFailures;
         }
 
+        internal static bool TryComplete(MediaOpsPlanApi planApi, ICollection<Resource> apiResources, out BulkOperationResult<Guid> result)
+        {
+            var handler = new DomResourceHandler(planApi);
+            handler.TransitionToCompleted(apiResources);
+
+            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            return !result.HasFailures;
+        }
+
         internal static bool TryDeprecate(MediaOpsPlanApi planApi, ICollection<Resource> apiResources, out BulkOperationResult<Guid> result)
         {
             var handler = new DomResourceHandler(planApi);
@@ -60,12 +69,6 @@
             result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
             return !result.HasFailures;
-        }
-
-        internal static void TransitionToComplete(MediaOpsPlanApi planApi, Resource apiResource)
-        {
-            var handler = new DomResourceHandler(planApi);
-            handler.TransitionToComplete(apiResource);
         }
 
         internal static void ConvertToUnmanagedResource(MediaOpsPlanApi planApi, Resource resource)
@@ -92,29 +95,22 @@
             handler.ConvertToElementResource(resource, setting);
         }
 
-        private void TransitionToComplete(Resource apiResource)
+        private void ClearErrors(ICollection<DomResource> domResources, ErrorDefinition errorDefinition)
         {
-            // Clear Errors
-            ClearErrors(planApi, apiResource, ResourceErrors.ExecuteAction_MarkCompleteException);
-
-            // Create CORE Resource
-            if (!CoreResourceHandler.TryCreateOrUpdate(planApi, [apiResource.OriginalInstance], out var result))
+            if (domResources == null)
             {
-                result.ThrowSingleException(apiResource.Id);
+                throw new ArgumentNullException(nameof(domResources));
             }
 
-            // Save link with CORE Resource
-            CreateOrUpdateDomResources([apiResource.OriginalInstance]);
+            if (domResources.Count == 0)
+            {
+                return;
+            }
 
-            // Transition DOM Resource to Complete
-            planApi.DomHelpers.SlcResourceStudioHelper.TransitionResourceToComplete(apiResource.Id);
-        }
-
-        private void ClearErrors(MediaOpsPlanApi planApi, Resource apiResource, ErrorDefinition errorDefinition)
-        {
-            var domResource = planApi.DomHelpers.SlcResourceStudioHelper.GetResources([apiResource.Id]).First();
-            domResource.ClearError(errorDefinition.ErrorCode);
-            CreateOrUpdateDomResources([domResource]);
+            foreach (var domResource in domResources)
+            {
+                domResource.ClearError(errorDefinition.ErrorCode);
+            }
         }
 
         private void CreateOrUpdate(ICollection<Resource> apiResources)
@@ -259,6 +255,75 @@
             }
 
             ReportSuccess(domResult.SuccessfulIds.Select(x => x.Id));
+        }
+
+        private void TransitionToCompleted(ICollection<Resource> apiResources)
+        {
+            if (apiResources == null)
+            {
+                throw new ArgumentNullException(nameof(apiResources));
+            }
+
+            if (apiResources.Count == 0)
+            {
+                return;
+            }
+
+            ValidateStateForCompleteAction(apiResources);
+
+
+            // Create CORE Resources
+            var resourcesToCreate = apiResources
+                .Where(IsValid)
+                .Select(x => x.OriginalInstance)
+                .ToList();
+            if (resourcesToCreate.Count == 0)
+            {
+                return;
+            }
+
+            ClearErrors(resourcesToCreate, ResourceErrors.ExecuteAction_MarkCompleteException);
+            CoreResourceHandler.TryCreateOrUpdate(planApi, resourcesToCreate, out var coreResult);
+            foreach (var id in coreResult.UnsuccessfulIds)
+            {
+                ReportError(id);
+
+                if (coreResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+                {
+                    PassTraceData(id, traceData);
+                }
+            }
+
+            // Save link with CORE Resources
+            var resourcesToSave = resourcesToCreate.Where(x => coreResult.SuccessfulIds.Contains(x.ID.Id)).ToList();
+            planApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.TryCreateOrUpdateInBatches(resourcesToSave.Select(x => x.ToInstance()), out var domResult);
+            foreach (var id in domResult.UnsuccessfulIds)
+            {
+                ReportError(id.Id);
+
+                if (domResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+                {
+                    var mediaOpsTraceData = new MediaOpsTraceData();
+                    mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = traceData.ToString() });
+
+                    PassTraceData(id.Id, mediaOpsTraceData);
+                }
+            }
+
+            // Transition DOM resources to Complete state
+            foreach (var domInstanceId in domResult.SuccessfulIds)
+            {
+                try
+                {
+                    planApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.DoStatusTransition(domInstanceId, SlcResource_StudioIds.Behaviors.Resource_Behavior.Transitions.Draft_To_Complete);
+
+                    ReportSuccess(domInstanceId.Id);
+                }
+                catch (Exception ex)
+                {
+                    ReportError(domInstanceId.Id, new MediaOpsErrorData() { ErrorMessage = ex.ToString() });
+                }
+            }
         }
 
         private void TransitionToDeprecated(ICollection<Resource> apiResources)
@@ -464,28 +529,28 @@
             }
         }
 
-        //private void ValidateStateForCompleteAction(IEnumerable<Resource> apiResources)
-        //{
-        //    if (apiResources == null)
-        //    {
-        //        throw new ArgumentNullException(nameof(apiResources));
-        //    }
+        private void ValidateStateForCompleteAction(IEnumerable<Resource> apiResources)
+        {
+            if (apiResources == null)
+            {
+                throw new ArgumentNullException(nameof(apiResources));
+            }
 
-        //    if (!apiResources.Any())
-        //    {
-        //        return;
-        //    }
+            if (!apiResources.Any())
+            {
+                return;
+            }
 
-        //    foreach (var resource in apiResources.Where(x => x.State != ResourceState.Draft))
-        //    {
-        //        var error = new ResourceConfigurationError
-        //        {
-        //            ErrorReason = ResourceConfigurationError.Reason.InvalidState,
-        //            ErrorMessage = "Not allowed to complete a resource that is not in Draft state."
-        //        };
-        //        ReportError(resource.Id, error);
-        //    }
-        //}
+            foreach (var resource in apiResources.Where(x => x.State != ResourceState.Draft))
+            {
+                var error = new ResourceInvalidStateError
+                {
+                    ErrorMessage = "Not allowed to complete a resource that is not in Draft state.",
+                    Id = resource.Id,
+                };
+                ReportError(resource.Id, error);
+            }
+        }
 
         private void ValidateStateForDeprecateAction(ICollection<Resource> apiResources)
         {
