@@ -579,7 +579,7 @@
             {
                 if (!parametersById.TryGetValue(profileParameterValue.ProfileParameterId, out var profileParameter))
                 {
-                    planApi.Logger.LogInformation(this, $"ScriptExecutionDetails > ParseStorageProfileParameterValues > Profile parameter with ID '{profileParameterValue.ProfileParameterId}' not found.");
+                    planApi.Logger.Information(this, $"ScriptExecutionDetails > ParseStorageProfileParameterValues > Profile parameter with ID '{profileParameterValue.ProfileParameterId}' not found.");
                     continue;
                 }
 

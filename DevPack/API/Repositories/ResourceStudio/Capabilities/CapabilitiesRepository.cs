@@ -70,7 +70,7 @@
         /// <exception cref="MediaOpsException">Thrown when the creation operation fails for the specified capability.</exception>
         public void Create(Capability apiObject)
         {
-            PlanApi.Logger.LogInformation(this, "Creating new Capability...");
+            PlanApi.Logger.Information(this, "Creating new Capability...");
 
             if (apiObject == null)
             {
@@ -244,7 +244,7 @@
         /// <exception cref="ArgumentException">Thrown when <paramref name="id"/> is <see cref="Guid.Empty"/>.</exception>
         public Capability Read(Guid id)
         {
-            PlanApi.Logger.LogInformation(this, $"Reading Capability with ID: {id}...");
+            PlanApi.Logger.Information(this, $"Reading Capability with ID: {id}...");
 
             if (id == Guid.Empty)
             {
@@ -393,7 +393,7 @@
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
-            PlanApi.Logger.LogInformation(this, $"Updating existing capability {apiObject.Name}...");
+            PlanApi.Logger.Information(this, $"Updating existing capability {apiObject.Name}...");
 
             ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Update), act =>
             {

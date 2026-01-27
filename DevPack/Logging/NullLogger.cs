@@ -4,42 +4,42 @@
 
     internal class NullLogger : ILogger
     {
-        public void LogDebug(object callerInstance, string message, object[] args = null, [CallerMemberName] string methodName = "")
+        public void Debug(object callerInstance, string message, object[] args = null, [CallerMemberName] string methodName = "")
         {
             // nothing to do
         }
 
-        public void LogDebug(string message)
+        public void Debug(string message)
         {
             // nothing to do
         }
 
-        public void LogError(object callerInstance, string message, object[] args = null, [CallerMemberName] string methodName = "")
+        public void Error(object callerInstance, string message, object[] args = null, [CallerMemberName] string methodName = "")
         {
             // nothing to do
         }
 
-        public void LogError(string message)
+        public void Error(string message)
         {
             // nothing to do
         }
 
-        public void LogInformation(object callerInstance, string message, object[] args = null, [CallerMemberName] string methodName = "")
+        public void Information(object callerInstance, string message, object[] args = null, [CallerMemberName] string methodName = "")
         {
             // nothing to do
         }
 
-        public void LogInformation(string message)
+        public void Information(string message)
         {
             // nothing to do
         }
 
-        public void LogWarning(object callerInstance, string message, object[] args = null, [CallerMemberName] string methodName = "")
+        public void Warning(object callerInstance, string message, object[] args = null, [CallerMemberName] string methodName = "")
         {
             // nothing to do
         }
 
-        public void LogWarning(string message)
+        public void Warning(string message)
         {
             // nothing to do
         }

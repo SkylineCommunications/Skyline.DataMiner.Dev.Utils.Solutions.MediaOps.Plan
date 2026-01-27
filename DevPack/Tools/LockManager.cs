@@ -90,7 +90,7 @@
 
             if (remainingObjectsToHandle.Any())
             {
-                _logger.LogError(this, "Failed to lock all {0} objects after {1} attempts. Remaining objects: {2}", [typeof(T).Name, MaxLockAttempts, string.Join(", ", remainingObjectsToHandle.Select(x => x.Id))]);
+                _logger.Error(this, "Failed to lock all {0} objects after {1} attempts. Remaining objects: {2}", [typeof(T).Name, MaxLockAttempts, string.Join(", ", remainingObjectsToHandle.Select(x => x.Id))]);
             }
 
             return new LockAndExecuteResult<T, K>(remainingObjectsToHandle, allResults);
@@ -110,7 +110,7 @@
             }
             else
             {
-                _logger.LogWarning(this, "This code isn't running on a DataMiner agent, unable to communicate with Lock Manager as NATS communication will fail, keeping locks in memory");
+                _logger.Warning(this, "This code isn't running on a DataMiner agent, unable to communicate with Lock Manager as NATS communication will fail, keeping locks in memory");
 
                 List<string> grantedObjectLocks = new List<string>();
                 foreach (var objectToLock in objectsToLock)
@@ -138,7 +138,7 @@
             }
             else
             {
-                _logger.LogWarning(this, "This code isn't running on a DataMiner agent, unable to communicate with Lock Manager as NATS communication will fail, unlocking locks from memory");
+                _logger.Warning(this, "This code isn't running on a DataMiner agent, unable to communicate with Lock Manager as NATS communication will fail, unlocking locks from memory");
 
                 Thread.Sleep(1000); // Add some delay to simulate lock communication
 
@@ -271,17 +271,17 @@
                     {
                         case Microsoft.Extensions.Logging.LogLevel.Trace:
                         case Microsoft.Extensions.Logging.LogLevel.Debug:
-                            logger.LogDebug(message);
+                            logger.Debug(message);
                             break;
                         case Microsoft.Extensions.Logging.LogLevel.Information:
-                            logger.LogInformation(message);
+                            logger.Information(message);
                             break;
                         case Microsoft.Extensions.Logging.LogLevel.Warning:
-                            logger.LogWarning(message);
+                            logger.Warning(message);
                             break;
                         case Microsoft.Extensions.Logging.LogLevel.Critical:
                         case Microsoft.Extensions.Logging.LogLevel.Error:
-                            logger.LogError(message);
+                            logger.Error(message);
                             break;
                         default:
                             // Don't log anything for LogLevel.None

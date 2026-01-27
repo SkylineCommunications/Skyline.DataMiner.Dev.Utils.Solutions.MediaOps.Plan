@@ -68,7 +68,7 @@
         /// <exception cref="MediaOpsException">Thrown when the creation operation fails for the specified resource property.</exception>
         public void Create(ResourceProperty apiObject)
         {
-            PlanApi.Logger.LogInformation(this, "Creating new ResourceProperty...");
+            PlanApi.Logger.Information(this, "Creating new ResourceProperty...");
 
             if (apiObject == null)
             {
@@ -242,7 +242,7 @@
         /// <exception cref="ArgumentException">Thrown when <paramref name="id"/> is <see cref="Guid.Empty"/>.</exception>
         public ResourceProperty Read(Guid id)
         {
-            PlanApi.Logger.LogInformation(this, $"Reading Resource Property with ID: {id}...");
+            PlanApi.Logger.Information(this, $"Reading Resource Property with ID: {id}...");
 
             if (id == Guid.Empty)
             {
@@ -436,7 +436,7 @@
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
-            PlanApi.Logger.LogInformation(this, $"Updating existing Resource Property {apiObject.Name}...");
+            PlanApi.Logger.Information(this, $"Updating existing Resource Property {apiObject.Name}...");
 
             ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Update), act =>
             {

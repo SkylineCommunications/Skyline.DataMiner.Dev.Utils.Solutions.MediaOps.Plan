@@ -390,7 +390,7 @@
             {
                 if (!parametersById.TryGetValue(section.ProfileParameterId, out var profileParameter))
                 {
-                    planApi.Logger.LogInformation(this, $"ResourceStudioOrchestrationSettings > ParseParameterValues > Profile parameter with ID '{section.ProfileParameterId}' not found.");
+                    planApi.Logger.Information(this, $"ResourceStudioOrchestrationSettings > ParseParameterValues > Profile parameter with ID '{section.ProfileParameterId}' not found.");
                     continue;
                 }
 

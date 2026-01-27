@@ -216,7 +216,7 @@
 
             foreach (var foundProfileParameter in planApi.CoreHelpers.ProfileProvider.GetParametersById(capabilitiesRequiringValidation.Select(x => x.Id)))
             {
-                planApi.Logger.LogInformation(this, $"ID is already in use by a Profile Parameter.", [foundProfileParameter.ID]);
+                planApi.Logger.Information(this, $"ID is already in use by a Profile Parameter.", [foundProfileParameter.ID]);
 
                 var error = new CapabilityIdInUseError
                 {
@@ -301,7 +301,7 @@
                     continue;
                 }
 
-                planApi.Logger.LogInformation(this, $"Name '{capability.Name}' is already in use by Profile Parameter(s) with ID(s)", [coreParametersWithSameNameAndDifferentIds.Select(x => x.ID).ToArray()]);
+                planApi.Logger.Information(this, $"Name '{capability.Name}' is already in use by Profile Parameter(s) with ID(s)", [coreParametersWithSameNameAndDifferentIds.Select(x => x.ID).ToArray()]);
 
                 var error = new CapabilityNameExistsError
                 {
