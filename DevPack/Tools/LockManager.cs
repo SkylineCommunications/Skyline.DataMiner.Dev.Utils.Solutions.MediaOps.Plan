@@ -4,7 +4,7 @@
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
-    using Microsoft.Extensions.Logging;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
     using Skyline.DataMiner.ConnectorAPI.SkylineLockManager.ConnectorApi;
     using Skyline.DataMiner.ConnectorAPI.SkylineLockManager.ConnectorApi.InterApp.Messages.Locking;
     using Skyline.DataMiner.ConnectorAPI.SkylineLockManager.ConnectorApi.InterApp.Messages.Unlocking;
@@ -90,7 +90,7 @@
 
             if (remainingObjectsToHandle.Any())
             {
-                _logger.LogError("Failed to lock all {0} objects after {1} attempts. Remaining objects: {2}", typeof(T).Name, MaxLockAttempts, string.Join(", ", remainingObjectsToHandle.Select(x => x.Id)));
+                _logger.Error(this, "Failed to lock all {0} objects after {1} attempts. Remaining objects: {2}", [typeof(T).Name, MaxLockAttempts, string.Join(", ", remainingObjectsToHandle.Select(x => x.Id))]);
             }
 
             return new LockAndExecuteResult<T, K>(remainingObjectsToHandle, allResults);
@@ -110,7 +110,7 @@
             }
             else
             {
-                _logger.LogWarning("This code isn't running on a DataMiner agent, unable to communicate with Lock Manager as NATS communication will fail, keeping locks in memory");
+                _logger.Warning(this, "This code isn't running on a DataMiner agent, unable to communicate with Lock Manager as NATS communication will fail, keeping locks in memory");
 
                 List<string> grantedObjectLocks = new List<string>();
                 foreach (var objectToLock in objectsToLock)
@@ -138,7 +138,7 @@
             }
             else
             {
-                _logger.LogWarning("This code isn't running on a DataMiner agent, unable to communicate with Lock Manager as NATS communication will fail, unlocking locks from memory");
+                _logger.Warning(this, "This code isn't running on a DataMiner agent, unable to communicate with Lock Manager as NATS communication will fail, unlocking locks from memory");
 
                 Thread.Sleep(1000); // Add some delay to simulate lock communication
 
@@ -207,7 +207,7 @@
             public ICollection<T> FailedToLockObjects { get; private set; }
         }
 
-        private sealed class LockManagerLoggerFactory : ILoggerFactory
+        private sealed class LockManagerLoggerFactory : Microsoft.Extensions.Logging.ILoggerFactory
         {
             private readonly ILogger _logger;
 
@@ -216,20 +216,102 @@
                 _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             }
 
-            public void AddProvider(ILoggerProvider provider)
+            public void AddProvider(Microsoft.Extensions.Logging.ILoggerProvider provider)
             {
                 // No-op: logging is delegated to the existing _logger instance.
             }
 
-            public ILogger CreateLogger(string categoryName)
+            public Microsoft.Extensions.Logging.ILogger CreateLogger(string categoryName)
             {
                 // Always return the existing logger so all logging goes through _logger.
-                return _logger;
+                return new ApiLogger(_logger);
             }
 
             public void Dispose()
             {
                 // Nothing to dispose.
+            }
+
+            private sealed class ApiLogger : Microsoft.Extensions.Logging.ILogger
+            {
+                private readonly ILogger logger;
+
+                public ApiLogger(ILogger logger)
+                {
+                    this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
+                }
+
+                public void Log<TState>(Microsoft.Extensions.Logging.LogLevel logLevel, Microsoft.Extensions.Logging.EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
+                {
+                    if (!IsEnabled(logLevel))
+                    {
+                        return;
+                    }
+
+                    if (formatter == null)
+                    {
+                        throw new ArgumentNullException(nameof(formatter));
+                    }
+
+                    string message = formatter(state, exception);
+
+                    if (string.IsNullOrEmpty(message) && exception == null)
+                    {
+                        return;
+                    }
+
+                    if (exception != null)
+                    {
+                        message = string.IsNullOrEmpty(message)
+                            ? $"Exception: {exception}"
+                            : $"{message} with exception:{Environment.NewLine}{exception}";
+                    }
+
+                    switch (logLevel)
+                    {
+                        case Microsoft.Extensions.Logging.LogLevel.Trace:
+                        case Microsoft.Extensions.Logging.LogLevel.Debug:
+                            logger.Debug(message);
+                            break;
+                        case Microsoft.Extensions.Logging.LogLevel.Information:
+                            logger.Information(message);
+                            break;
+                        case Microsoft.Extensions.Logging.LogLevel.Warning:
+                            logger.Warning(message);
+                            break;
+                        case Microsoft.Extensions.Logging.LogLevel.Critical:
+                        case Microsoft.Extensions.Logging.LogLevel.Error:
+                            logger.Error(message);
+                            break;
+                        default:
+                            // Don't log anything for LogLevel.None
+                            break;
+                    }
+                }
+
+                public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel)
+                {
+                    return logLevel != Microsoft.Extensions.Logging.LogLevel.None;
+                }
+
+                public IDisposable BeginScope<TState>(TState state)
+                {
+                    return NullScope.Instance;
+                }
+
+                private sealed class NullScope : IDisposable
+                {
+                    private NullScope()
+                    {
+                    }
+
+                    public static NullScope Instance { get; } = new NullScope();
+
+
+                    public void Dispose()
+                    {
+                    }
+                }
             }
         }
     }

@@ -1,7 +1,7 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Protocol
 {
     using System;
-    using Microsoft.Extensions.Logging;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
     using Skyline.DataMiner.Scripting;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 

@@ -4,7 +4,7 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    using Microsoft.Extensions.Logging;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
 
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.SDM;
@@ -70,7 +70,7 @@
         /// <exception cref="MediaOpsException">Thrown when the creation operation fails for the specified configuration.</exception>
         public void Create(Configuration apiObject)
         {
-            PlanApi.Logger.LogInformation(this, "Creating new Configuration...");
+            PlanApi.Logger.Information(this, "Creating new Configuration...");
 
             if (apiObject == null)
             {
@@ -243,7 +243,7 @@
         /// <exception cref="ArgumentException">Thrown when <paramref name="id"/> is <see cref="Guid.Empty"/>.</exception>
         public Configuration Read(Guid id)
         {
-            PlanApi.Logger.LogInformation(this, $"Reading Configuration with ID: {id}...");
+            PlanApi.Logger.Information(this, $"Reading Configuration with ID: {id}...");
 
             if (id == Guid.Empty)
             {
@@ -392,7 +392,7 @@
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
-            PlanApi.Logger.LogInformation(this, $"Updating existing configuration {apiObject.Name}...");
+            PlanApi.Logger.Information(this, $"Updating existing configuration {apiObject.Name}...");
 
             ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Update), act =>
             {
