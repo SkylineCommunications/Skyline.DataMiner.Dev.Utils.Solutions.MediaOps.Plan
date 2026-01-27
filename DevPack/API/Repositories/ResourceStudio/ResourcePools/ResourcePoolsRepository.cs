@@ -4,7 +4,7 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    using Microsoft.Extensions.Logging;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
 
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
@@ -125,7 +125,7 @@
         /// <exception cref="MediaOpsException">Thrown when the creation operation fails for the specified resource pool.</exception>
         public void Create(ResourcePool apiObject)
         {
-            PlanApi.Logger.LogInformation(this, "Creating new ResourcePool...");
+            PlanApi.Logger.Information(this, "Creating new ResourcePool...");
 
             if (apiObject == null)
             {
@@ -561,7 +561,7 @@
         /// <exception cref="MediaOpsException">Thrown when the state transition is not supported or fails.</exception>
         public void MoveTo(Guid resourcePoolId, ResourcePoolState desiredState)
         {
-            PlanApi.Logger.LogInformation(this, "Moving ResourcePool {resourcePoolId} to {desiredState}...", [resourcePoolId, desiredState]);
+            PlanApi.Logger.Information(this, "Moving ResourcePool {resourcePoolId} to {desiredState}...", [resourcePoolId, desiredState]);
 
             if (resourcePoolId == Guid.Empty)
             {
@@ -656,7 +656,7 @@
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="id"/> is <see cref="Guid.Empty"/>.</exception>
         public ResourcePool Read(Guid id)
         {
-            PlanApi.Logger.LogInformation(this, "Reading ResourcePool with ID: {id}...", id);
+            PlanApi.Logger.Information(this, "Reading ResourcePool with ID: {id}...", [id]);
 
             if (id == Guid.Empty)
             {
