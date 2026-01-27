@@ -4,7 +4,7 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    using Microsoft.Extensions.Logging;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
 
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
@@ -550,7 +550,7 @@
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="id"/> is <see cref="Guid.Empty"/>.</exception>
         public ResourcePool Read(Guid id)
         {
-            PlanApi.Logger.LogInformation(this, "Reading ResourcePool with ID: {id}...", id);
+            PlanApi.Logger.LogInformation(this, "Reading ResourcePool with ID: {id}...", [id]);
 
             if (id == Guid.Empty)
             {

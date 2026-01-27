@@ -4,7 +4,7 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    using Microsoft.Extensions.Logging;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
 
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
@@ -374,7 +374,7 @@
                 throw new ArgumentNullException(nameof(apiObjectIds));
             }
 
-            PlanApi.Logger.LogInformation(this, "Deleting Resources {resourceIds}...", String.Join(", ", apiObjectIds));
+            PlanApi.Logger.LogInformation(this, "Deleting Resources {resourceIds}...", [String.Join(", ", apiObjectIds)]);
 
             var resourcesToDelete = Read(apiObjectIds.ToArray());
 
@@ -1090,7 +1090,7 @@
         {
             if (resource.State == ResourceState.Complete)
             {
-                PlanApi.Logger.LogInformation(this, "Resource {resource.Id} is already in Complete state. No action taken.", resource.Id);
+                PlanApi.Logger.LogInformation(this, "Resource {resource.Id} is already in Complete state. No action taken.", [resource.Id]);
                 return;
             }
 
@@ -1123,7 +1123,7 @@
         {
             if (resource.State == ResourceState.Deprecated)
             {
-                PlanApi.Logger.LogInformation(this, "Resource {resource.Id} is already in Deprecated state. No action taken.", resource.Id);
+                PlanApi.Logger.LogInformation(this, "Resource {resource.Id} is already in Deprecated state. No action taken.", [resource.Id]);
                 return;
             }
 

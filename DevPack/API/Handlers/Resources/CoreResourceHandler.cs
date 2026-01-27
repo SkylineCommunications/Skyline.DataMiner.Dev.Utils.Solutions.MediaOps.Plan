@@ -4,7 +4,7 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    using Microsoft.Extensions.Logging;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
 
     using Skyline.DataMiner.Core.DataMinerSystem.Common;
     using Skyline.DataMiner.Net;
@@ -264,7 +264,7 @@
             {
                 if (!domIdByCoreId.TryGetValue(id, out var domId))
                 {
-                    planApi.Logger.LogError(this, $"Failed to find DOM ID for CORE resource ID", id);
+                    planApi.Logger.LogError(this, $"Failed to find DOM ID for CORE resource ID", [id]);
                     continue;
                 }
 
@@ -465,7 +465,7 @@
             {
                 if (!domIdByCoreId.TryGetValue(id, out var domId))
                 {
-                    planApi.Logger.LogError(this, "Failed to find DOM ID for CORE resource ID {id}.");
+                    planApi.Logger.LogError(this, $"Failed to find DOM ID for CORE resource ID {id}.");
                     continue;
                 }
 
@@ -1214,7 +1214,7 @@
         private sealed class ResourceMapping
         {
             private ResourceMapping(DomResource domResource)
-                : this (domResource, BuildCoreResource(domResource.ResourceInfo.Type.Value))
+                : this(domResource, BuildCoreResource(domResource.ResourceInfo.Type.Value))
             {
             }
 

@@ -4,7 +4,7 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    using Microsoft.Extensions.Logging;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
 
     using Skyline.DataMiner.Core.DataMinerSystem.Common;
     using Skyline.DataMiner.Net;
@@ -452,7 +452,7 @@
 
             foreach (var foundInstance in planApi.DomHelpers.SlcResourceStudioHelper.GetResourceStudioInstances(resourcesRequiringValidation.Select(x => x.Id)))
             {
-                planApi.Logger.LogInformation(this, $"ID is already in use by a Resource Studio instance.", foundInstance.ID.Id);
+                planApi.Logger.LogInformation(this, $"ID is already in use by a Resource Studio instance.", [foundInstance.ID.Id]);
 
                 var error = new ResourceIdInUseError
                 {
@@ -628,7 +628,7 @@
                     continue;
                 }
 
-                planApi.Logger.LogInformation(this, $"Name '{resource.Name}' is already in use by DOM resource(s) with ID(s)", existingResources.Select(x => x.ID.Id).ToArray());
+                planApi.Logger.LogInformation(this, $"Name '{resource.Name}' is already in use by DOM resource(s) with ID(s)", [existingResources.Select(x => x.ID.Id).ToArray()]);
 
                 var error = new ResourceNameExistsError
                 {

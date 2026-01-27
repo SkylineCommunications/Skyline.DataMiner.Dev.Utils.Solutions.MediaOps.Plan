@@ -5,7 +5,7 @@
     using System.Globalization;
     using System.Linq;
 
-    using Microsoft.Extensions.Logging;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
 
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Helper;
@@ -189,7 +189,7 @@
 
             foreach (var foundProfileParameter in planApi.CoreHelpers.ProfileProvider.GetParametersById(configurationsRequiringValidation.Select(x => x.Id)))
             {
-                planApi.Logger.LogInformation(this, $"ID is already in use by a Profile Parameter.", foundProfileParameter.ID);
+                planApi.Logger.LogInformation(this, $"ID is already in use by a Profile Parameter.", [foundProfileParameter.ID]);
 
                 var error = new ConfigurationIdInUseError
                 {
@@ -274,7 +274,7 @@
                     continue;
                 }
 
-                planApi.Logger.LogInformation(this, $"Name '{configuration.Name}' is already in use by Profile Parameter(s) with ID(s)", coreParametersWithSameNameAndDifferentIds.Select(x => x.ID).ToArray());
+                planApi.Logger.LogInformation(this, $"Name '{configuration.Name}' is already in use by Profile Parameter(s) with ID(s)", [coreParametersWithSameNameAndDifferentIds.Select(x => x.ID).ToArray()]);
 
                 var error = new ConfigurationNameExistsError
                 {

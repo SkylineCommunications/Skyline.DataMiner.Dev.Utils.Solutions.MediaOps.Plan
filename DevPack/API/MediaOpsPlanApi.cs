@@ -2,8 +2,7 @@
 {
     using System;
 
-    using Microsoft.Extensions.Logging;
-    using Microsoft.Extensions.Logging.Abstractions;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
 
     using Skyline.DataMiner.Core.DataMinerSystem.Common;
     using Skyline.DataMiner.MediaOps.Live.API;
@@ -50,7 +49,7 @@
         public MediaOpsPlanApi(IConnection connection, ILogger logger = null)
         {
             this.connection = connection ?? throw new ArgumentNullException(nameof(connection));
-            this.logger = logger ?? NullLogger.Instance;
+            this.logger = logger ?? new NullLogger();
 
             installedAppPackages = new InstalledAppPackageCache(connection);
 
