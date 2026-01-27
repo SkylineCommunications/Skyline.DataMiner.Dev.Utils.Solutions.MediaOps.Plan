@@ -1,13 +1,16 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
     using System;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow;
+
+    using StorageWorkflow = Storage.DOM.SlcWorkflow;
 
     /// <summary>
     /// Represents a job in MediaOps Plan.
     /// </summary>
     public class Job : ApiObject
     {
+        private StorageWorkflow.JobsInstance originalInstance;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Job"/> class.
         /// </summary>
@@ -25,7 +28,7 @@
             HasUserDefinedId = true;
         }
 
-        internal Job(JobsInstance instance) : base(instance.ID.Id)
+        internal Job(StorageWorkflow.JobsInstance instance) : base(instance.ID.Id)
         {
             ParseInstance(instance);
             InitTracking();
@@ -35,6 +38,8 @@
         /// Gets or sets the name of the job.
         /// </summary>
         public override string Name { get; set; }
+
+        internal StorageWorkflow.JobsInstance OriginalInstance => originalInstance;
 
         /// <inheritdoc/>
         public override int GetHashCode()
@@ -66,8 +71,10 @@
                    Name == other.Name;
         }
 
-        private void ParseInstance(JobsInstance instance)
+        private void ParseInstance(StorageWorkflow.JobsInstance instance)
         {
+            this.originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
+
             Name = instance.JobInfo.JobName;
         }
     }
