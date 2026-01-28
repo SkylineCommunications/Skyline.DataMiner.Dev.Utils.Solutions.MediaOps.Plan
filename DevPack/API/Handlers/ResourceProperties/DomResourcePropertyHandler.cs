@@ -264,7 +264,7 @@
 
             var propertiesRequiringValidation = apiResourceProperties.ToList();
 
-            foreach (var property in propertiesRequiringValidation.Where(x => !InputValidator.IsNonEmptyText(x.Name)))
+            foreach (var property in propertiesRequiringValidation.Where(x => !InputValidator.IsNonEmptyText(x.Name)).ToArray())
             {
                 var error = new ResourcePropertyInvalidNameError
                 {
@@ -277,7 +277,7 @@
                 propertiesRequiringValidation.Remove(property);
             }
 
-            foreach (var property in propertiesRequiringValidation.Where(x => !InputValidator.HasValidTextLength(x.Name)))
+            foreach (var property in propertiesRequiringValidation.Where(x => !InputValidator.HasValidTextLength(x.Name)).ToArray())
             {
                 var error = new ResourcePropertyInvalidNameError
                 {

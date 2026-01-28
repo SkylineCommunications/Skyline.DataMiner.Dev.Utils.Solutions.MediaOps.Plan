@@ -306,5 +306,50 @@
             Assert.IsNotNull(properties);
             Assert.AreEqual(0, properties.Count());
         }
+
+        [TestMethod]
+        public void CreateWithNullNameThrowsException()
+        {
+            var property = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceProperty()
+            {
+                Name = null,
+            };
+
+            try
+            {
+                objectCreator.CreateProperty(property);
+            }
+            catch (MediaOpsException ex)
+            {
+                var invalidNameError = ex.TraceData.ErrorData.OfType<ResourcePropertyInvalidNameError>().SingleOrDefault();
+                Assert.IsNotNull(invalidNameError);
+                Assert.AreEqual("Name cannot be empty.", invalidNameError.ErrorMessage);
+                return;
+            }
+
+            Assert.Fail("Expected exception was not thrown.");
+        }
+
+        [TestMethod]
+        public void CreateWithEmptyNameThrowsException()
+        {
+            var property = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceProperty()
+            {
+                Name = string.Empty,
+            };
+            try
+            {
+                objectCreator.CreateProperty(property);
+            }
+            catch (MediaOpsException ex)
+            {
+                var invalidNameError = ex.TraceData.ErrorData.OfType<ResourcePropertyInvalidNameError>().SingleOrDefault();
+                Assert.IsNotNull(invalidNameError);
+                Assert.AreEqual("Name cannot be empty.", invalidNameError.ErrorMessage);
+                return;
+            }
+
+            Assert.Fail("Expected exception was not thrown.");
+        }
     }
 }
