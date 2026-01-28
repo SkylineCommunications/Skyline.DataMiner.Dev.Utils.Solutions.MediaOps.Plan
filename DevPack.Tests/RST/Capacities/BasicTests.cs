@@ -615,5 +615,50 @@
             Assert.IsNotNull(capacities);
             Assert.AreEqual(0, capacities.Count());
         }
+
+        [TestMethod]
+        public void CreateWithNullNameThrowsException()
+        {
+            var capacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity()
+            {
+                Name = null,
+            };
+
+            try
+            {
+                objectCreator.CreateCapacity(capacity);
+            }
+            catch (MediaOpsException ex)
+            {
+                var invalidNameError = ex.TraceData.ErrorData.OfType<CapacityInvalidNameError>().SingleOrDefault();
+                Assert.IsNotNull(invalidNameError);
+                Assert.AreEqual("Name cannot be empty.", invalidNameError.ErrorMessage);
+                return;
+            }
+
+            Assert.Fail("Expected exception was not thrown.");
+        }
+
+        [TestMethod]
+        public void CreateWithEmptyNameThrowsException()
+        {
+            var capacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity()
+            {
+                Name = string.Empty,
+            };
+            try
+            {
+                objectCreator.CreateCapacity(capacity);
+            }
+            catch (MediaOpsException ex)
+            {
+                var invalidNameError = ex.TraceData.ErrorData.OfType<CapacityInvalidNameError>().SingleOrDefault();
+                Assert.IsNotNull(invalidNameError);
+                Assert.AreEqual("Name cannot be empty.", invalidNameError.ErrorMessage);
+                return;
+            }
+
+            Assert.Fail("Expected exception was not thrown.");
+        }
     }
 }

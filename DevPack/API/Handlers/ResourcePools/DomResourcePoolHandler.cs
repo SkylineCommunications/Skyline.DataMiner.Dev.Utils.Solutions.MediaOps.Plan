@@ -4,7 +4,7 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    using Microsoft.Extensions.Logging;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
 
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
@@ -168,7 +168,7 @@
             {
                 if (!resourcePoolIdByOrchestrationSettingsId.TryGetValue(id, out var resourcePoolId))
                 {
-                    planApi.Logger.LogError(this, $"Failed to find resource pool ID for orchestration settings ID", id);
+                    planApi.Logger.Error(this, $"Failed to find resource pool ID for orchestration settings ID", [id]);
                     continue;
                 }
 
@@ -315,10 +315,10 @@
                 return;
             }
 
-            // Todo: add checks to see if resource pool is in use by jobs, etc.
             ValidateStateForDeprecateAction(apiResourcePools);
+            ValidateWorkflowUsage(apiResourcePools.Where(IsValid).ToArray());
 
-            var poolsToDeprecate = apiResourcePools.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)).ToList();
+            var poolsToDeprecate = apiResourcePools.Where(IsValid).ToList();
             if (options.AllowResourceDeprecation)
             {
                 DeprecatePoolResources(poolsToDeprecate);
@@ -579,7 +579,7 @@
 
             foreach (var foundInstance in planApi.DomHelpers.SlcResourceStudioHelper.GetResourceStudioInstances(poolsRequiringValidation.Select(x => x.Id)))
             {
-                planApi.Logger.LogInformation(this, $"ID is already in use by a Resource Studio instance.", foundInstance.ID.Id);
+                planApi.Logger.Information(this, $"ID is already in use by a Resource Studio instance.", [foundInstance.ID.Id]);
 
                 var error = new ResourcePoolIdInUseError
                 {
@@ -770,7 +770,7 @@
                     continue;
                 }
 
-                planApi.Logger.LogInformation(this, $"Name '{pool.Name}' is already in use by DOM resource pool(s) with ID(s)", existingPools.Select(x => x.ID.Id).ToArray());
+                planApi.Logger.Information(this, $"Name '{pool.Name}' is already in use by DOM resource pool(s) with ID(s)", [existingPools.Select(x => x.ID.Id).ToArray()]);
 
                 var error = new ResourcePoolNameExistsError
                 {
@@ -990,6 +990,11 @@
                     ReportError(pool.Id, error);
                 }
             }
+        }
+
+        private void ValidateWorkflowUsage(ICollection<ResourcePool> apiResourcePools)
+        {
+            PassTraceData(SlcWorkflowResourcePoolUsageValidator.Validate(planApi, apiResourcePools));
         }
 
         private ICollection<DomChangeResults> GetPoolsWithChanges(ICollection<ResourcePool> apiResourcePools)

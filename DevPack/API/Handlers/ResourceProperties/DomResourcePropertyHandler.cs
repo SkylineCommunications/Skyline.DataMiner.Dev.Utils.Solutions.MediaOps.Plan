@@ -4,7 +4,7 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    using Microsoft.Extensions.Logging;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
 
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
@@ -238,7 +238,7 @@
 
             foreach (var foundInstance in planApi.DomHelpers.SlcResourceStudioHelper.GetResourceStudioInstances(propertiesRequiringValidation.Select(x => x.Id)))
             {
-                planApi.Logger.LogInformation(this, $"ID is already in use by a Resource Studio instance.", foundInstance.ID.Id);
+                planApi.Logger.Information(this, $"ID is already in use by a Resource Studio instance.", [foundInstance.ID.Id]);
 
                 var error = new ResourcePropertyIdInUseError
                 {
@@ -264,7 +264,7 @@
 
             var propertiesRequiringValidation = apiResourceProperties.ToList();
 
-            foreach (var property in propertiesRequiringValidation.Where(x => !InputValidator.IsNonEmptyText(x.Name)))
+            foreach (var property in propertiesRequiringValidation.Where(x => !InputValidator.IsNonEmptyText(x.Name)).ToArray())
             {
                 var error = new ResourcePropertyInvalidNameError
                 {
@@ -277,7 +277,7 @@
                 propertiesRequiringValidation.Remove(property);
             }
 
-            foreach (var property in propertiesRequiringValidation.Where(x => !InputValidator.HasValidTextLength(x.Name)))
+            foreach (var property in propertiesRequiringValidation.Where(x => !InputValidator.HasValidTextLength(x.Name)).ToArray())
             {
                 var error = new ResourcePropertyInvalidNameError
                 {
@@ -343,7 +343,7 @@
                     continue;
                 }
 
-                planApi.Logger.LogInformation(this, $"Name '{property.Name}' is already ins use by DOM resource property/properties with ID(s)", existingProperties.Select(x => x.ID.Id).ToArray());
+                planApi.Logger.Information(this, $"Name '{property.Name}' is already in use by DOM resource property/properties with ID(s)", [existingProperties.Select(x => x.ID.Id).ToArray()]);
 
                 var error = new ResourcePropertyNameExistsError
                 {

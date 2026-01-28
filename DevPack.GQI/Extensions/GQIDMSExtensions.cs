@@ -1,7 +1,7 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.GQI
 {
     using System;
-    using Microsoft.Extensions.Logging;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
     using Skyline.DataMiner.Analytics.GenericInterface;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 

@@ -4,15 +4,8 @@
     using System.Collections.Generic;
     using System.Globalization;
     using System.Linq;
-
-    using Microsoft.Extensions.Logging;
-
-    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
-    using Skyline.DataMiner.Net.Helper;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
 
     internal class CoreConfigurationHandler : ApiObjectValidator
     {
@@ -189,7 +182,7 @@
 
             foreach (var foundProfileParameter in planApi.CoreHelpers.ProfileProvider.GetParametersById(configurationsRequiringValidation.Select(x => x.Id)))
             {
-                planApi.Logger.LogInformation(this, $"ID is already in use by a Profile Parameter.", foundProfileParameter.ID);
+                planApi.Logger.Information(this, $"ID is already in use by a Profile Parameter.", [foundProfileParameter.ID]);
 
                 var error = new ConfigurationIdInUseError
                 {
@@ -215,7 +208,7 @@
 
             var configurationsRequiringValidation = apiConfigurations.ToList();
 
-            foreach (var configuration in configurationsRequiringValidation.Where(x => !InputValidator.IsNonEmptyText(x.Name)))
+            foreach (var configuration in configurationsRequiringValidation.Where(x => !InputValidator.IsNonEmptyText(x.Name)).ToArray())
             {
                 var error = new ConfigurationInvalidNameError
                 {
@@ -227,7 +220,7 @@
                 configurationsRequiringValidation.Remove(configuration);
             }
 
-            foreach (var configuration in configurationsRequiringValidation.Where(x => !InputValidator.HasValidTextLength(x.Name)))
+            foreach (var configuration in configurationsRequiringValidation.Where(x => !InputValidator.HasValidTextLength(x.Name)).ToArray())
             {
                 var error = new ConfigurationInvalidNameError
                 {
@@ -274,7 +267,7 @@
                     continue;
                 }
 
-                planApi.Logger.LogInformation(this, $"Name '{configuration.Name}' is already in use by Profile Parameter(s) with ID(s)", coreParametersWithSameNameAndDifferentIds.Select(x => x.ID).ToArray());
+                planApi.Logger.Information(this, $"Name '{configuration.Name}' is already in use by Profile Parameter(s) with ID(s)", [coreParametersWithSameNameAndDifferentIds.Select(x => x.ID).ToArray()]);
 
                 var error = new ConfigurationNameExistsError
                 {

@@ -4,7 +4,7 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    using Microsoft.Extensions.Logging;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
 
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
@@ -182,7 +182,7 @@
 
             foreach (var foundProfileParameter in planApi.CoreHelpers.ProfileProvider.GetParametersById(capacitiesRequiringValidation.Select(x => x.Id)))
             {
-                planApi.Logger.LogInformation(this, $"ID is already in use by a Profile Parameter.", foundProfileParameter.ID);
+                planApi.Logger.Information(this, $"ID is already in use by a Profile Parameter.", [foundProfileParameter.ID]);
 
                 var error = new CapacityIdInUseError
                 {
@@ -208,7 +208,7 @@
 
             var capacitiesRequiringValidation = apiCapacities.ToList();
 
-            foreach (var capacity in capacitiesRequiringValidation.Where(x => !InputValidator.IsNonEmptyText(x.Name)))
+            foreach (var capacity in capacitiesRequiringValidation.Where(x => !InputValidator.IsNonEmptyText(x.Name)).ToArray())
             {
                 if (string.IsNullOrWhiteSpace(capacity.Name))
                 {
@@ -223,7 +223,7 @@
                 }
             }
 
-            foreach (var capacity in capacitiesRequiringValidation.Where(x => !InputValidator.HasValidTextLength(x.Name)))
+            foreach (var capacity in capacitiesRequiringValidation.Where(x => !InputValidator.HasValidTextLength(x.Name)).ToArray())
             {
                 if (string.IsNullOrWhiteSpace(capacity.Name))
                 {
@@ -275,7 +275,7 @@
                     continue;
                 }
 
-                planApi.Logger.LogInformation(this, $"Name '{capacity.Name}' is already in use by Profile Parameter(s) with ID(s)", existingParameters.Select(x => x.ID).ToArray());
+                planApi.Logger.Information(this, $"Name '{capacity.Name}' is already in use by Profile Parameter(s) with ID(s)", [existingParameters.Select(x => x.ID).ToArray()]);
 
                 var error = new CapacityNameExistsError
                 {
