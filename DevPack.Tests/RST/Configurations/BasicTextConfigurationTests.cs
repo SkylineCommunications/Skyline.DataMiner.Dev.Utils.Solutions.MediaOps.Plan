@@ -395,5 +395,51 @@
 
             Assert.Fail("Expected exception was not thrown.");
         }
+
+        [TestMethod]
+        public void CreateWithNullNameThrowsException()
+        {
+            var configuration = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration()
+            {
+                Name = null,
+            };
+
+            try
+            {
+                objectCreator.CreateConfiguration(configuration);
+            }
+            catch (MediaOpsException ex)
+            {
+                var invalidNameError = ex.TraceData.ErrorData.OfType<ConfigurationInvalidNameError>().SingleOrDefault();
+                Assert.IsNotNull(invalidNameError);
+                Assert.AreEqual("Name cannot be empty.", invalidNameError.ErrorMessage);
+                return;
+            }
+
+            Assert.Fail("Expected exception was not thrown.");
+        }
+
+        [TestMethod]
+        public void CreateWithEmptyNameThrowsException()
+        {
+            var configuration = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration()
+            {
+                Name = string.Empty,
+            };
+
+            try
+            {
+                objectCreator.CreateConfiguration(configuration);
+            }
+            catch (MediaOpsException ex)
+            {
+                var invalidNameError = ex.TraceData.ErrorData.OfType<ConfigurationInvalidNameError>().SingleOrDefault();
+                Assert.IsNotNull(invalidNameError);
+                Assert.AreEqual("Name cannot be empty.", invalidNameError.ErrorMessage);
+                return;
+            }
+
+            Assert.Fail("Expected exception was not thrown.");
+        }
     }
 }
