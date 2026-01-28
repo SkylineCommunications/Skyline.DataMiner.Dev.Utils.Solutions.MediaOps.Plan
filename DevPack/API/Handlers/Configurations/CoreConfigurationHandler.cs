@@ -317,6 +317,8 @@
             {
                 PassTraceData(DiscreteTextDiscreteConfigurationValidator.Validate(discreteTextConfiguration));
             }
+
+            
         }
 
         private bool TryGetParameterWithChanges(Configuration apiConfiguration, out Net.Profiles.Parameter parameter)

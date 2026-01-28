@@ -1,4 +1,4 @@
-﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API.Handlers.Orchestration
+﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
     using System;
     using System.Collections.Generic;

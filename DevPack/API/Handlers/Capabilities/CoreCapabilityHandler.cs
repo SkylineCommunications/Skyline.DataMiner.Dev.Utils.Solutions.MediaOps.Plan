@@ -361,9 +361,9 @@
             }
 
             var capabilityDiscreteValuesToVerify = apiCapabilities
-                .Select(x => new { ParameterId = x.Id, RemovedDisretes = x.CoreParameter.Discretes.Except(x.Discretes).ToList() })
-                .Where(x => x.RemovedDisretes.Any())
-                .SelectMany(x => x.RemovedDisretes.Select(y => new ParameterDiscreteValue<string>
+                .Select(x => new { ParameterId = x.Id, RemovedDiscretes = x.CoreParameter.Discretes.Except(x.Discretes).ToList() })
+                .Where(x => x.RemovedDiscretes.Any())
+                .SelectMany(x => x.RemovedDiscretes.Select(y => new ParameterDiscreteValue<string>
                     {
                         ParameterId = x.ParameterId,
                         DiscreteValue = y,
@@ -371,6 +371,7 @@
                 .ToList();
 
             PassTraceData(SlcResourceStudioParameterDiscreteValueUsageValidator.Validate(planApi, capabilityDiscreteValuesToVerify));
+            PassTraceData(SlcWorkflowParameterDiscreteValueUsageValidator.Validate(planApi, capabilityDiscreteValuesToVerify));
         }
 
         private void ValidateTimeDependency(ICollection<Capability> apiCapabilities)

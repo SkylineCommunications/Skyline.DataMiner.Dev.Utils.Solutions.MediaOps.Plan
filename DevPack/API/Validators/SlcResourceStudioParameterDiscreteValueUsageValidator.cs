@@ -33,14 +33,26 @@
 
         public static ApiObjectValidator Validate(MediaOpsPlanApi planApi, ICollection<ParameterDiscreteValue<TextDiscreet>> configurationTextDiscreteValues)
         {
+            if (configurationTextDiscreteValues == null)
+            {
+                throw new ArgumentNullException(nameof(configurationTextDiscreteValues));
+            }
+
             var validator = new SlcResourceStudioParameterDiscreteValueUsageValidator(planApi);
+            validator.ValidateConfigurationTextDiscreteValues(configurationTextDiscreteValues);
 
             return validator;
         }
 
         public static ApiObjectValidator Validate(MediaOpsPlanApi planApi, ICollection<ParameterDiscreteValue<NumberDiscreet>> configurationNumberDiscreteValues)
         {
+            if (configurationNumberDiscreteValues == null)
+            {
+                throw new ArgumentNullException(nameof(configurationNumberDiscreteValues));
+            }
+
             var validator = new SlcResourceStudioParameterDiscreteValueUsageValidator(planApi);
+            validator.ValidateConfigurationNumberDiscreteValues(configurationNumberDiscreteValues);
 
             return validator;
         }
@@ -182,6 +194,8 @@
                     if (orchestrationSetting.Capabilities.Any(x => x.Id == capabilityDiscreteValue.ParameterId && x.Discretes.Contains(capabilityDiscreteValue.DiscreteValue)))
                     {
                         orchestrationSettingsIds.Add(orchestrationSetting.Id);
+
+                        // Not needed to check further if found in capabilities.
                         continue;
                     }
 
@@ -200,6 +214,76 @@
             return result;
         }
 
+        private Dictionary<ParameterDiscreteValue<TextDiscreet>, ICollection<Guid>> GetOrchestrationSettingsPerConfigurationTextDiscreteValue(ICollection<ParameterDiscreteValue<TextDiscreet>> configurationTextDiscreteValues)
+        {
+            var result = new Dictionary<ParameterDiscreteValue<TextDiscreet>, ICollection<Guid>>();
+
+            var parameterIds = configurationTextDiscreteValues.Select(x => x.ParameterId).ToHashSet();
+            var orchestrationSettings = GetOrchestrationSettings(parameterIds);
+
+            foreach (var configurationTextDiscreteValue in configurationTextDiscreteValues)
+            {
+                HashSet<Guid> orchestrationSettingsIds = new HashSet<Guid>();
+                foreach (var orchestrationSetting in orchestrationSettings)
+                {
+                    if (orchestrationSetting.Configurations.OfType<DiscreteTextConfigurationSetting>().Any(x => x.Id == configurationTextDiscreteValue.ParameterId && x.Value.Value.Equals(configurationTextDiscreteValue.DiscreteValue.Value)))
+                    {
+                        orchestrationSettingsIds.Add(orchestrationSetting.Id);
+
+                        // Not needed to check further if found in configurations.
+                        continue;
+                    }
+
+                    if (orchestrationSetting.OrchestrationEvents.Any(x => x.ExecutionDetails.Configurations.OfType<DiscreteTextConfigurationSetting>().Any(y => y.Id == configurationTextDiscreteValue.ParameterId && y.Value.Value.Equals(configurationTextDiscreteValue.DiscreteValue.Value))))
+                    {
+                        orchestrationSettingsIds.Add(orchestrationSetting.Id);
+                    }
+                }
+
+                if (orchestrationSettingsIds.Any())
+                {
+                    result.Add(configurationTextDiscreteValue, orchestrationSettingsIds);
+                }
+            }
+
+            return result;
+        }
+
+        private Dictionary<ParameterDiscreteValue<NumberDiscreet>, ICollection<Guid>> GetOrchestrationSettingsPerConfigurationNumberDiscreteValue(ICollection<ParameterDiscreteValue<NumberDiscreet>> configurationNumberDiscreteValues)
+        {
+            var result = new Dictionary<ParameterDiscreteValue<NumberDiscreet>, ICollection<Guid>>();
+
+            var parameterIds = configurationNumberDiscreteValues.Select(x => x.ParameterId).ToHashSet();
+            var orchestrationSettings = GetOrchestrationSettings(parameterIds);
+
+            foreach (var configurationNumberDiscreteValue in configurationNumberDiscreteValues)
+            {
+                HashSet<Guid> orchestrationSettingsIds = new HashSet<Guid>();
+                foreach (var orchestrationSetting in orchestrationSettings)
+                {
+                    if (orchestrationSetting.Configurations.OfType<DiscreteNumberConfigurationSetting>().Any(x => x.Id == configurationNumberDiscreteValue.ParameterId && x.Value.Value.Equals(configurationNumberDiscreteValue.DiscreteValue.Value)))
+                    {
+                        orchestrationSettingsIds.Add(orchestrationSetting.Id);
+
+                        // Not needed to check further if found in configurations.
+                        continue;
+                    }
+
+                    if (orchestrationSetting.OrchestrationEvents.Any(x => x.ExecutionDetails.Configurations.OfType<DiscreteNumberConfigurationSetting>().Any(y => y.Id == configurationNumberDiscreteValue.ParameterId && y.Value.Value.Equals(configurationNumberDiscreteValue.DiscreteValue.Value))))
+                    {
+                        orchestrationSettingsIds.Add(orchestrationSetting.Id);
+                    }
+                }
+
+                if (orchestrationSettingsIds.Any())
+                {
+                    result.Add(configurationNumberDiscreteValue, orchestrationSettingsIds);
+                }
+            }
+
+            return result;
+        }
+
         private void ValidateCapabilityDiscreteValues(ICollection<ParameterDiscreteValue<string>> capabilityDiscreteValues)
         {
             if (capabilityDiscreteValues.Any())
@@ -211,13 +295,32 @@
             ValidateResourceCapabilityDiscreteValueUsage(capabilityDiscreteValues);
         }
 
+        private void ValidateConfigurationTextDiscreteValues(ICollection<ParameterDiscreteValue<TextDiscreet>> configurationTextDiscreteValues)
+        {
+            if (configurationTextDiscreteValues.Any())
+            {
+                return;
+            }
+
+            ValidateResourcePoolConfigurationTextDiscreteValueUsage(configurationTextDiscreteValues);
+        }
+
+        private void ValidateConfigurationNumberDiscreteValues(ICollection<ParameterDiscreteValue<NumberDiscreet>> configurationNumberDiscreteValues)
+        {
+            if (configurationNumberDiscreteValues.Any())
+            {
+                return;
+            }
+
+            ValidateResourcePoolConfigurationNumberDiscreteValueUsage(configurationNumberDiscreteValues);
+        }
+
         private void ValidateResourceCapabilityDiscreteValueUsage(ICollection<ParameterDiscreteValue<string>> capabilityDiscreteValues)
         {
             var resourcesPerCapabilityDiscreteValue = GetResourcesPerCapabilityDiscreteValue(capabilityDiscreteValues);
 
             foreach (var capabilityDisreteValue in capabilityDiscreteValues)
             {
-                // Verify references by Resource via Resource Capacities section
                 if (!resourcesPerCapabilityDiscreteValue.TryGetValue(capabilityDisreteValue, out var resourceIds))
                 {
                     continue;
@@ -247,6 +350,7 @@
             foreach (var capabilityDisreteValue in capabilityDiscreteValues)
             {
                 var referencingResourcePoolIds = new HashSet<Guid>();
+
                 if (resourcePoolsPerCapabilityDiscreteValue.TryGetValue(capabilityDisreteValue, out var poolIds))
                 {
                     referencingResourcePoolIds.UnionWith(poolIds);
@@ -274,12 +378,69 @@
                 }
             }
         }
-    }
 
-    internal class ParameterDiscreteValue<T>
-    {
-        public Guid ParameterId { get; set; }
+        private void ValidateResourcePoolConfigurationTextDiscreteValueUsage(ICollection<ParameterDiscreteValue<TextDiscreet>> configurationTextDiscreteValues)
+        {
+            var orchestrationSettingsPerConfigurationTextDiscreteValue = GetOrchestrationSettingsPerConfigurationTextDiscreteValue(configurationTextDiscreteValues);
 
-        public T DiscreteValue { get; set; }
+            var orchestrationSettingIds = orchestrationSettingsPerConfigurationTextDiscreteValue.Values.SelectMany(x => x).ToHashSet();
+            var resourcePoolsPerOrchestrationSettings = GetResourcePoolsPerOrchestrationSettings(orchestrationSettingIds);
+
+            foreach (var configurationTextDiscreteValue in configurationTextDiscreteValues)
+            {
+                if (!orchestrationSettingsPerConfigurationTextDiscreteValue.TryGetValue(configurationTextDiscreteValue, out var orchestrationSettingsIds))
+                {
+                    continue;
+                }
+
+                var orchestrationSettingsPoolIds = resourcePoolsPerOrchestrationSettings
+                    .Where(x => orchestrationSettingsIds.Contains(x.Key))
+                    .SelectMany(x => x.Value)
+                    .ToHashSet();
+
+                if (orchestrationSettingsPoolIds.Any())
+                {
+                    ReportError(configurationTextDiscreteValue.ParameterId, new ConfigurationTextDiscreteValueInUseByResourcePoolsError
+                    {
+                        Id = configurationTextDiscreteValue.ParameterId,
+                        DiscreteValue = configurationTextDiscreteValue.DiscreteValue,
+                        ErrorMessage = $"Discrete value '{configurationTextDiscreteValue.DiscreteValue.Value}' ({configurationTextDiscreteValue.DiscreteValue.DisplayName}) from Configuration with ID '{configurationTextDiscreteValue.ParameterId}' is in use by {orchestrationSettingsPoolIds.Count} resource pool(s).",
+                        ResourcePoolIds = orchestrationSettingsPoolIds.ToArray(),
+                    });
+                }
+            }
+        }
+
+        private void ValidateResourcePoolConfigurationNumberDiscreteValueUsage(ICollection<ParameterDiscreteValue<NumberDiscreet>> configurationNumberDiscreteValues)
+        {
+            var orchestrationSettingsPerConfigurationNumberDiscreteValue = GetOrchestrationSettingsPerConfigurationNumberDiscreteValue(configurationNumberDiscreteValues);
+
+            var orchestrationSettingIds = orchestrationSettingsPerConfigurationNumberDiscreteValue.Values.SelectMany(x => x).ToHashSet();
+            var resourcePoolsPerOrchestrationSettings = GetResourcePoolsPerOrchestrationSettings(orchestrationSettingIds);
+
+            foreach (var configurationNumberDiscreteValue in configurationNumberDiscreteValues)
+            {
+                if (!orchestrationSettingsPerConfigurationNumberDiscreteValue.TryGetValue(configurationNumberDiscreteValue, out var orchestrationSettingsIds))
+                {
+                    continue;
+                }
+
+                var orchestrationSettingsPoolIds = resourcePoolsPerOrchestrationSettings
+                    .Where(x => orchestrationSettingsIds.Contains(x.Key))
+                    .SelectMany(x => x.Value)
+                    .ToHashSet();
+
+                if (orchestrationSettingsPoolIds.Any())
+                {
+                    ReportError(configurationNumberDiscreteValue.ParameterId, new ConfigurationNumberDiscreteValueInUseByResourcePoolsError
+                    {
+                        Id = configurationNumberDiscreteValue.ParameterId,
+                        DiscreteValue = configurationNumberDiscreteValue.DiscreteValue,
+                        ErrorMessage = $"Discrete value '{configurationNumberDiscreteValue.DiscreteValue.Value}' ({configurationNumberDiscreteValue.DiscreteValue.DisplayName}) from Configuration with ID '{configurationNumberDiscreteValue.ParameterId}' is in use by {orchestrationSettingsPoolIds.Count} resource pool(s).",
+                        ResourcePoolIds = orchestrationSettingsPoolIds.ToArray(),
+                    });
+                }
+            }
+        }
     }
 }
