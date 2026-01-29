@@ -14,5 +14,10 @@
   <PropertyGroup Condition="'$(MediaOpsHasLocalConfig)' != 'true'">
     <MediaOpsLocalDevMode>false</MediaOpsLocalDevMode>
     <MediaOpsVersion>1.0.1-alpha1</MediaOpsVersion>
-  </PropertyGroup>
+  </PropertyGroup>	
+<ItemGroup>
+	<SonarQubeSetting Include="sonar.cpd.exclusions">
+		<Value>**/*</Value>
+	</SonarQubeSetting>
+</ItemGroup>
 </Project>
