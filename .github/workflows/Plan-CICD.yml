@@ -40,6 +40,7 @@ jobs:
       group: reg-${{github.ref}}
 
     env:
+      CI: "true"
       DATAMINER_USERNAME: ${{ secrets.DATAMINER_USERNAME }}
       DATAMINER_PASSWORD: ${{ secrets.DATAMINER_PASSWORD }}
       DATAMINER_HOST: ${{ vars.DATAMINER_HOST }}
@@ -58,7 +59,7 @@ jobs:
        run: dotnet nuget add source "https://nuget.pkg.github.com/SkylineCommunications/index.json" --name github --username USERNAME --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text
 
      - name: Build
-       run: dotnet build -c Release -p WarningLevel=0 DevPack.Tests
+       run: dotnet build -c Release -p WarningLevel=0 -p:DefineConstants=CI DevPack.Tests
        
      - name: Run tests
        run: dotnet test -c Release --no-build --settings DevPack.Tests.runsettings --logger "console;verbosity=detailed" DevPack.Tests
