@@ -305,7 +305,7 @@
             {
                 PassTraceData(DiscreteNumberConfigurationValidator.Validate(discreteNumberConfiguration));
 
-                if (!IsValid(discreteNumberConfiguration))
+                if (discreteNumberConfiguration.IsNew || !IsValid(discreteNumberConfiguration))
                 {
                     continue;
                 }
@@ -341,7 +341,7 @@
             {
                 PassTraceData(DiscreteTextDiscreteConfigurationValidator.Validate(discreteTextConfiguration));
 
-                if (!IsValid(discreteTextConfiguration))
+                if (discreteTextConfiguration.IsNew || !IsValid(discreteTextConfiguration))
                 {
                     continue;
                 }

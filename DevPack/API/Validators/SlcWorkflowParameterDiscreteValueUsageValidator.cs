@@ -325,7 +325,7 @@
 
         private void ValidateCapabilityDiscreteValues(ICollection<ParameterDiscreteValue<string>> capabilityDiscreteValues)
         {
-            if (capabilityDiscreteValues.Any())
+            if (!capabilityDiscreteValues.Any())
             {
                 return;
             }
@@ -339,7 +339,7 @@
 
         private void ValidateConfigurationTextDiscreteValues(ICollection<ParameterDiscreteValue<TextDiscreet>> configurationTextDiscreteValues)
         {
-            if (configurationTextDiscreteValues.Any())
+            if (!configurationTextDiscreteValues.Any())
             {
                 return;
             }
@@ -353,7 +353,7 @@
 
         private void ValidateConfigurationNumberDiscreteValues(ICollection<ParameterDiscreteValue<NumberDiscreet>> configurationNumberDiscreteValues)
         {
-            if (configurationNumberDiscreteValues.Any())
+            if (!configurationNumberDiscreteValues.Any())
             {
                 return;
             }
