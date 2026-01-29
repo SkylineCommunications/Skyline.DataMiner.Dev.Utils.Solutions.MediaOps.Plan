@@ -4,15 +4,14 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
-
+    using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Net.Sections;
     using Skyline.DataMiner.SDM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
+
     using SLDataGateway.API.Types.Querying;
 
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
@@ -213,7 +212,8 @@
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
-            Delete(apiObjects.Select(x => x.Id).ToArray());
+            var defaultOptions = new ResourcePoolDeleteOptions();
+            Delete(apiObjects.Select(x => x.Id).ToArray(), defaultOptions);
         }
 
         /// <summary>
@@ -229,19 +229,8 @@
                 throw new ArgumentNullException(nameof(apiObjectIds));
             }
 
-            var resourcePoolsToDelete = Read(apiObjectIds);
-
-            ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Delete), act =>
-            {
-                if (!DomResourcePoolHandler.TryDelete(PlanApi, resourcePoolsToDelete?.ToList(), out var result))
-                {
-                    result.ThrowBulkException();
-                }
-
-                var resourcePoolIds = result.SuccessfulIds;
-                act?.AddTag("Removed Resource Pools", String.Join(", ", resourcePoolIds));
-                act?.AddTag("Removed Resource Pools Count", resourcePoolIds.Count);
-            });
+            var defaultOptions = new ResourcePoolDeleteOptions();
+            Delete(apiObjectIds, defaultOptions);
         }
 
         /// <summary>
@@ -258,10 +247,7 @@
                 throw new ArgumentNullException(nameof(resourcePool));
             }
 
-            if (!DomResourcePoolHandler.TryDelete(PlanApi, [resourcePool], out var result, options))
-            {
-                result.ThrowSingleException(resourcePool.Id);
-            }
+            Delete(resourcePool.Id, options);
         }
 
         /// <summary>
@@ -278,7 +264,7 @@
             }
 
             var defaultOptions = new ResourcePoolDeleteOptions();
-            Delete(oToDelete, defaultOptions);
+            Delete(oToDelete.Id, defaultOptions);
         }
 
         /// <summary>
@@ -288,14 +274,8 @@
         /// <exception cref="MediaOpsException">Thrown when the deletion operation fails for the specified resource pool.</exception>
         public void Delete(Guid apiObjectId)
         {
-            var poolToDelete = Read(apiObjectId);
-            if (poolToDelete == null)
-            {
-                return;
-            }
-
             var defaultOptions = new ResourcePoolDeleteOptions();
-            Delete(poolToDelete, defaultOptions);
+            Delete(apiObjectId, defaultOptions);
         }
 
         /// <inheritdoc/>
@@ -307,7 +287,10 @@
                 return;
             }
 
-            Delete(poolToDelete, options);
+            if (!DomResourcePoolHandler.TryDelete(PlanApi, [poolToDelete], out var result, options))
+            {
+                result.ThrowSingleException(poolToDelete.Id);
+            }
         }
 
         /// <inheritdoc/>
@@ -342,6 +325,96 @@
                 act?.AddTag("Removed Resource Pools", String.Join(", ", resourcePoolIds));
                 act?.AddTag("Removed Resource Pools Count", resourcePoolIds.Count);
             });
+        }
+
+        public void Complete(ResourcePool resourcePool)
+        {
+            if (resourcePool == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePool));
+            }
+
+            Complete(resourcePool.Id);
+        }
+
+        public void Complete(Guid resourcePoolId)
+        {
+            var resourcePool = Read(resourcePoolId);
+            if (resourcePool == null)
+            {
+                return;
+            }
+
+            if (!DomResourcePoolHandler.TryComplete(PlanApi, [resourcePool], out var result))
+            {
+                result.ThrowSingleException(resourcePool.Id);
+            }
+        }
+
+        public void Complete(IEnumerable<ResourcePool> resourcePools)
+        {
+            if (resourcePools == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePools));
+            }
+
+            Complete(resourcePools.Select(x => x.Id).ToArray());
+        }
+
+        public void Complete(IEnumerable<Guid> resourcePoolIds)
+        {
+            if (resourcePoolIds == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePoolIds));
+            }
+
+            var resourcePools = Read(resourcePoolIds);
+            if (!DomResourcePoolHandler.TryComplete(PlanApi, resourcePools?.ToList(), out var result))
+            {
+                result.ThrowBulkException();
+            }
+        }
+
+        public void Deprecate(ResourcePool resourcePool)
+        {
+            if (resourcePool == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePool));
+            }
+
+            var defaultOptions = ResourcePoolDeprecateOptions.GetDefaults();
+            Deprecate(resourcePool.Id, defaultOptions);
+        }
+
+        /// <inheritdoc/>
+        public void Deprecate(Guid resourcePoolId)
+        {
+            var defaultOptions = ResourcePoolDeprecateOptions.GetDefaults();
+            Deprecate(resourcePoolId, defaultOptions);
+        }
+
+        /// <inheritdoc/>
+        public void Deprecate(IEnumerable<ResourcePool> resourcePools)
+        {
+            if (resourcePools == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePools));
+            }
+
+            var defaultOptions = ResourcePoolDeprecateOptions.GetDefaults();
+            Deprecate(resourcePools.Select(x => x.Id).ToArray(), defaultOptions);
+        }
+
+        /// <inheritdoc/>
+        public void Deprecate(IEnumerable<Guid> resourcePoolIds)
+        {
+            if (resourcePoolIds == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePoolIds));
+            }
+
+            var defaultOptions = ResourcePoolDeprecateOptions.GetDefaults();
+            Deprecate(resourcePoolIds, defaultOptions);
         }
 
         /// <summary>
@@ -534,118 +607,6 @@
             }
 
             return PlanApi.Resources.Count(ResourceExposers.ResourcePoolIds.Contains(resourcePool.Id)) > 0;
-        }
-
-        /// <summary>
-        /// Moves the specified <see cref="ResourcePool"/> to the desired state.
-        /// </summary>
-        /// <param name="resourcePool">The resource pool to move.</param>
-        /// <param name="desiredState">The state to move the resource pool to.</param>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="resourcePool"/> is <c>null</c>.</exception>
-        public void MoveTo(ResourcePool resourcePool, ResourcePoolState desiredState)
-        {
-            if (resourcePool == null)
-            {
-                throw new ArgumentNullException(nameof(resourcePool));
-            }
-
-            MoveTo(resourcePool.Id, desiredState);
-        }
-
-        /// <summary>
-        /// Moves the resource pool with the specified identifier to the desired state.
-        /// </summary>
-        /// <param name="resourcePoolId">The unique identifier of the resource pool to move.</param>
-        /// <param name="desiredState">The state to move the resource pool to.</param>
-        /// <exception cref="ArgumentException">Thrown when <paramref name="resourcePoolId"/> is <see cref="Guid.Empty"/>.</exception>
-        /// <exception cref="MediaOpsException">Thrown when the state transition is not supported or fails.</exception>
-        public void MoveTo(Guid resourcePoolId, ResourcePoolState desiredState)
-        {
-            PlanApi.Logger.Information(this, "Moving ResourcePool {resourcePoolId} to {desiredState}...", [resourcePoolId, desiredState]);
-
-            if (resourcePoolId == Guid.Empty)
-            {
-                throw new ArgumentException("Resource pool ID cannot be empty.", nameof(resourcePoolId));
-            }
-
-            var resourcePool = Read(resourcePoolId);
-            if (resourcePool == null)
-            {
-                throw new MediaOpsException(
-                    new ResourcePoolNotFoundError()
-                    {
-                        ErrorMessage = $"Unable to find resource pool with ID {resourcePoolId}",
-                        Id = resourcePoolId
-                    });
-            }
-
-            ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(MoveTo), act =>
-            {
-                act?.AddTag("ResourcePoolId", resourcePoolId);
-                act?.AddTag("DesiredState", desiredState);
-
-                var actionMethods = new Dictionary<ResourcePoolState, Action<ResourcePool>>
-                {
-                    [ResourcePoolState.Complete] = HandleMoveToCompleteAction,
-                    [ResourcePoolState.Deprecated] = HandleMoveToDeprecateAction,
-                };
-
-                if (!actionMethods.TryGetValue(desiredState, out var action))
-                {
-                    var error = new ResourcePoolInvalidStateError
-                    {
-                        ErrorMessage = $"Move to state '{desiredState}' is not supported.",
-                        Id = resourcePool.Id,
-                    };
-
-                    throw new MediaOpsException(error);
-                }
-
-                action(resourcePool);
-            });
-        }
-
-        /// <inheritdoc/>
-        public void MoveTo(IEnumerable<ResourcePool> resourcePools, ResourcePoolState desiredState)
-        {
-            if (resourcePools == null)
-            {
-                throw new ArgumentNullException(nameof(resourcePools));
-            }
-
-            MoveTo(resourcePools.Select(x => x.Id).ToArray(), desiredState);
-        }
-
-        /// <inheritdoc/>
-        public void MoveTo(IEnumerable<Guid> resourcePoolIds, ResourcePoolState desiredState)
-        {
-            if (resourcePoolIds == null)
-            {
-                throw new ArgumentNullException(nameof(resourcePoolIds));
-            }
-
-            var resourcePools = Read(resourcePoolIds.ToArray());
-
-            ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(MoveTo), act =>
-            {
-                var actionMethods = new Dictionary<ResourcePoolState, Action<ICollection<ResourcePool>>>
-                {
-                    [ResourcePoolState.Complete] = HandleMoveToCompleteAction,
-                    [ResourcePoolState.Deprecated] = HandleMoveToDeprecateAction,
-                };
-
-                if (!actionMethods.TryGetValue(desiredState, out var action))
-                {
-                    var error = new ResourcePoolInvalidStateError()
-                    {
-                        ErrorMessage = $"Move to state '{desiredState}' is not supported.",
-                    };
-
-                    throw new MediaOpsException(error);
-                }
-
-                action(resourcePools.ToArray());
-            });
         }
 
         /// <summary>
@@ -961,38 +922,6 @@
             }
 
             if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
-            {
-                result.ThrowBulkException();
-            }
-        }
-
-        private void HandleMoveToCompleteAction(ResourcePool resourcePool)
-        {
-            if (!DomResourcePoolHandler.TryComplete(PlanApi, [resourcePool], out var result))
-            {
-                result.ThrowSingleException(resourcePool.Id);
-            }
-        }
-
-        private void HandleMoveToCompleteAction(ICollection<ResourcePool> resourcePools)
-        {
-            if (!DomResourcePoolHandler.TryComplete(PlanApi, resourcePools, out var result))
-            {
-                result.ThrowBulkException();
-            }
-        }
-
-        private void HandleMoveToDeprecateAction(ResourcePool resourcePool)
-        {
-            if (!DomResourcePoolHandler.TryDeprecate(PlanApi, [resourcePool], out var result))
-            {
-                result.ThrowSingleException(resourcePool.Id);
-            }
-        }
-
-        private void HandleMoveToDeprecateAction(ICollection<ResourcePool> resourcePools)
-        {
-            if (!DomResourcePoolHandler.TryDeprecate(PlanApi, resourcePools, out var result))
             {
                 result.ThrowBulkException();
             }

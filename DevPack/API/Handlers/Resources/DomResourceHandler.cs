@@ -46,7 +46,7 @@
         internal static bool TryComplete(MediaOpsPlanApi planApi, ICollection<Resource> apiResources, out BulkOperationResult<Guid> result)
         {
             var handler = new DomResourceHandler(planApi);
-            handler.TransitionToCompleted(apiResources);
+            handler.TransitionToCompleteFromDraft(apiResources);
 
             result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
             return !result.HasFailures;
@@ -56,6 +56,15 @@
         {
             var handler = new DomResourceHandler(planApi);
             handler.TransitionToDeprecated(apiResources);
+
+            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            return !result.HasFailures;
+        }
+
+        internal static bool TryRestore(MediaOpsPlanApi planApi, ICollection<Resource> apiResources, out BulkOperationResult<Guid> result)
+        {
+            var handler = new DomResourceHandler(planApi);
+            handler.TransitionToCompleteFromDeprecated(apiResources);
 
             result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
             return !result.HasFailures;
@@ -257,7 +266,7 @@
             ReportSuccess(domResult.SuccessfulIds.Select(x => x.Id));
         }
 
-        private void TransitionToCompleted(ICollection<Resource> apiResources)
+        private void TransitionToCompleteFromDraft(ICollection<Resource> apiResources)
         {
             if (apiResources == null)
             {
@@ -269,8 +278,7 @@
                 return;
             }
 
-            ValidateStateForCompleteAction(apiResources);
-
+            ValidateStateForCompleteFromDraftAction(apiResources);
 
             // Create CORE Resources
             var resourcesToCreate = apiResources
@@ -322,6 +330,51 @@
                 catch (Exception ex)
                 {
                     ReportError(domInstanceId.Id, new MediaOpsErrorData() { ErrorMessage = ex.ToString() });
+                }
+            }
+        }
+
+        private void TransitionToCompleteFromDeprecated(ICollection<Resource> apiResources)
+        {
+            if (apiResources == null)
+            {
+                throw new ArgumentNullException(nameof(apiResources));
+            }
+
+            if (apiResources.Count == 0)
+            {
+                return;
+            }
+
+            ValidateStateForCompleteFromDeprecatedAction(apiResources);
+
+            // Update CORE resources
+            var resourcesToRestore = apiResources.Where(IsValid).ToList();
+
+            CoreResourceHandler.TryRestore(planApi, resourcesToRestore.Select(x => x.OriginalInstance).ToList(), out var coreResult);
+
+            foreach (var id in coreResult.UnsuccessfulIds)
+            {
+                ReportError(id);
+
+                if (coreResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+                {
+                    PassTraceData(id, traceData);
+                }
+            }
+
+            // Transition DOM resources to Complete state
+            foreach (var id in coreResult.SuccessfulIds)
+            {
+                try
+                {
+                    planApi.DomHelpers.SlcResourceStudioHelper.TransitionResourceToCompleteFromDeprecated(id);
+
+                    ReportSuccess(id);
+                }
+                catch (Exception ex)
+                {
+                    ReportError(id, new MediaOpsErrorData() { ErrorMessage = ex.ToString() });
                 }
             }
         }
@@ -529,7 +582,7 @@
             }
         }
 
-        private void ValidateStateForCompleteAction(IEnumerable<Resource> apiResources)
+        private void ValidateStateForCompleteFromDraftAction(IEnumerable<Resource> apiResources)
         {
             if (apiResources == null)
             {
@@ -546,6 +599,29 @@
                 var error = new ResourceInvalidStateError
                 {
                     ErrorMessage = "Not allowed to complete a resource that is not in Draft state.",
+                    Id = resource.Id,
+                };
+                ReportError(resource.Id, error);
+            }
+        }
+
+        private void ValidateStateForCompleteFromDeprecatedAction(IEnumerable<Resource> apiResources)
+        {
+            if (apiResources == null)
+            {
+                throw new ArgumentNullException(nameof(apiResources));
+            }
+
+            if (!apiResources.Any())
+            {
+                return;
+            }
+
+            foreach (var resource in apiResources.Where(x => x.State != ResourceState.Deprecated))
+            {
+                var error = new ResourceInvalidStateError
+                {
+                    ErrorMessage = "Not allowed to restore a resource that is not in Deprecated state.",
                     Id = resource.Id,
                 };
                 ReportError(resource.Id, error);

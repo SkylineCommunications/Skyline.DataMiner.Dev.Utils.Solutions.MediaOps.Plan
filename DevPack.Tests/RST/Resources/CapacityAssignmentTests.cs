@@ -154,7 +154,7 @@
             objectCreator.CreateResource(unmanagedResource);
 
             // Move Resource to Completed state
-            TestContext.Api.Resources.MoveTo(unmanagedResource.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
+            TestContext.Api.Resources.Complete(unmanagedResource.Id);
 
             var resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
             Assert.AreEqual(1, resource.Capacities.Count);
@@ -348,7 +348,7 @@
             };
             unmanagedResource.AddCapacity(capacitySettings);
             objectCreator.CreateResource(unmanagedResource);
-            TestContext.Api.Resources.MoveTo(unmanagedResource.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
+            TestContext.Api.Resources.Complete(unmanagedResource.Id);
 
             var resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
             Assert.AreNotEqual(Guid.Empty, resource.CoreResourceId);

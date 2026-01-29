@@ -154,7 +154,7 @@
             objectCreator.CreateResourcePool(resourcePool);
 
             // Move Resource Pool to Completed state
-            TestContext.Api.ResourcePools.MoveTo(resourcePool.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
+            TestContext.Api.ResourcePools.Complete(resourcePool.Id);
 
             resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
             Assert.AreEqual(1, resourcePool.Capabilities.Count);
@@ -241,8 +241,8 @@
                 Name = $"{prefix}_Resource3",
             };
             objectCreator.CreateResources([unmanagedResource1, unmanagedResource2, unmanagedResource3]);
-            TestContext.Api.Resources.MoveTo(unmanagedResource1.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
-            TestContext.Api.Resources.MoveTo(unmanagedResource3.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
+            TestContext.Api.Resources.Complete(unmanagedResource1.Id);
+            TestContext.Api.Resources.Complete(unmanagedResource3.Id);
 
             var resourcePool = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
             {
@@ -302,15 +302,15 @@
                 Name = $"{prefix}_Resource3",
             };
             objectCreator.CreateResources([unmanagedResource1, unmanagedResource2, unmanagedResource3]);
-            TestContext.Api.Resources.MoveTo(unmanagedResource1.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
-            TestContext.Api.Resources.MoveTo(unmanagedResource3.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
+            TestContext.Api.Resources.Complete(unmanagedResource1.Id);
+            TestContext.Api.Resources.Complete(unmanagedResource3.Id);
 
             var resourcePool = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
             {
                 Name = $"{prefix}_Resource Pool",
             };
             objectCreator.CreateResourcePool(resourcePool);
-            TestContext.Api.ResourcePools.MoveTo(resourcePool.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
+            TestContext.Api.ResourcePools.Complete(resourcePool.Id);
 
             var resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).ToList();
             TestContext.Api.ResourcePools.AssignResourcesToPool(resourcePool.Id, resources);
@@ -409,8 +409,8 @@
                 Name = $"{prefix}_Resource3",
             };
             objectCreator.CreateResources([unmanagedResource1, unmanagedResource2, unmanagedResource3]);
-            TestContext.Api.Resources.MoveTo(unmanagedResource1.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
-            TestContext.Api.Resources.MoveTo(unmanagedResource3.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
+            TestContext.Api.Resources.Complete(unmanagedResource1.Id);
+            TestContext.Api.Resources.Complete(unmanagedResource3.Id);
 
             var resourcePool = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
             {
@@ -427,7 +427,7 @@
             resourcePool.AddCapability(capabilitySettings);
             TestContext.Api.ResourcePools.Update(resourcePool);
 
-            TestContext.Api.ResourcePools.MoveTo(resourcePool.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
+            TestContext.Api.ResourcePools.Complete(resourcePool.Id);
 
             var resource1 = resources.Single(r => r.Id == unmanagedResource1.Id);
             var resource2 = resources.Single(r => r.Id == unmanagedResource2.Id);
@@ -487,7 +487,7 @@
                 Name = $"{prefix}_Resource Pool",
             };
             objectCreator.CreateResourcePool(resourcePool);
-            TestContext.Api.ResourcePools.MoveTo(resourcePool.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
+            TestContext.Api.ResourcePools.Complete(resourcePool.Id);
 
             var resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).ToList();
             TestContext.Api.ResourcePools.AssignResourcesToPool(resourcePool.Id, resources);
@@ -498,8 +498,8 @@
             resourcePool.AddCapability(capabilitySettings);
             TestContext.Api.ResourcePools.Update(resourcePool);
 
-            TestContext.Api.Resources.MoveTo(unmanagedResource1.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
-            TestContext.Api.Resources.MoveTo(unmanagedResource3.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
+            TestContext.Api.Resources.Complete(unmanagedResource1.Id);
+            TestContext.Api.Resources.Complete(unmanagedResource3.Id);
 
             resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).ToList();
             var resource1 = resources.Single(r => r.Id == unmanagedResource1.Id);
@@ -574,8 +574,8 @@
                 Name = $"{prefix}_Resource3",
             };
             objectCreator.CreateResources([unmanagedResource1, unmanagedResource2, unmanagedResource3]);
-            TestContext.Api.Resources.MoveTo(unmanagedResource1.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
-            TestContext.Api.Resources.MoveTo(unmanagedResource3.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
+            TestContext.Api.Resources.Complete(unmanagedResource1.Id);
+            TestContext.Api.Resources.Complete(unmanagedResource3.Id);
 
             // Create Resource Pool with one time dependent capability assigned
             var resourcePool = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
@@ -586,7 +586,7 @@
             objectCreator.CreateResourcePool(resourcePool);
 
             // Move Resource Pool to Completed state
-            TestContext.Api.ResourcePools.MoveTo(resourcePool.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
+            TestContext.Api.ResourcePools.Complete(resourcePool.Id);
 
             var resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).ToList();
             TestContext.Api.ResourcePools.AssignResourcesToPool(resourcePool.Id, resources);
@@ -813,7 +813,7 @@
             };
             resourcePool.AddCapability(capabilityPoolSettings);
             objectCreator.CreateResourcePool(resourcePool);
-            TestContext.Api.ResourcePools.MoveTo(resourcePool.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
+            TestContext.Api.ResourcePools.Complete(resourcePool.Id);
 
             var unmanagedResource = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
             {
@@ -822,7 +822,7 @@
             unmanagedResource.AssignToPool(resourcePool.Id);
             unmanagedResource.AddCapability(capabilityResourceSettings1);
             objectCreator.CreateResource(unmanagedResource);
-            TestContext.Api.Resources.MoveTo(unmanagedResource.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
+            TestContext.Api.Resources.Complete(unmanagedResource.Id);
 
             // Validate capabilities on core resource
             resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);

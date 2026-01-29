@@ -4,6 +4,7 @@
     using System.Collections.Concurrent;
     using RT_MediaOps.Plan.RegressionTests;
 
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
     [TestClass]
@@ -44,7 +45,7 @@
             expectedResult.ValidateUnmanagedResource(returnedResource);
 
             // Set resource to complete and validate result
-            TestContext.Api.Resources.MoveTo(id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
+            TestContext.Api.Resources.Complete(id);
             returnedResource = TestContext.Api.Resources.Read(id);
             expectedResult.State = Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete;
             expectedResult.ValidateUnmanagedResource(returnedResource);
@@ -59,7 +60,7 @@
             expectedResult.ValidateUnmanagedResource(returnedResource);
 
             // Deprecate resource in order to be able to delete it
-            TestContext.Api.Resources.MoveTo(id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Deprecated);
+            TestContext.Api.Resources.Deprecate(id);
 
             // Delete resource and validate it is gone
             TestContext.Api.Resources.Delete(id);
@@ -313,6 +314,49 @@
 
             Assert.IsTrue(me != null, "Exception not thrown");
             StringAssert.Contains(me.Message, "Name cannot be empty.");
+        }
+
+        [TestMethod]
+        public void RestoreDeprecatedResource()
+        {
+            var prefix = Guid.NewGuid();
+
+            var unmanagedResource = new UnmanagedResource
+            {
+                Name = $"{prefix}_resource",
+            };
+            objectCreator.CreateResource(unmanagedResource);
+
+            TestContext.Api.Resources.Complete(unmanagedResource.Id);
+
+            var resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
+            Assert.IsNotNull(resource);
+            Assert.AreEqual(ResourceState.Complete, resource.State);
+            Assert.AreNotEqual(Guid.Empty, resource.CoreResourceId);
+
+            var coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
+            Assert.IsNotNull(coreResource);
+            Assert.AreEqual(Skyline.DataMiner.Net.Messages.ResourceMode.Available, coreResource.Mode);
+
+            TestContext.Api.Resources.Deprecate(unmanagedResource.Id);
+            resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
+            Assert.IsNotNull(resource);
+            Assert.AreEqual(ResourceState.Deprecated, resource.State);
+            Assert.AreNotEqual(Guid.Empty, resource.CoreResourceId);
+
+            coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
+            Assert.IsNotNull(coreResource);
+            Assert.AreEqual(Skyline.DataMiner.Net.Messages.ResourceMode.Unavailable, coreResource.Mode);
+
+            TestContext.Api.Resources.Restore(unmanagedResource.Id);
+            resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
+            Assert.IsNotNull(resource);
+            Assert.AreEqual(ResourceState.Complete, resource.State);
+            Assert.AreNotEqual(Guid.Empty, resource.CoreResourceId);
+
+            coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
+            Assert.IsNotNull(coreResource);
+            Assert.AreEqual(Skyline.DataMiner.Net.Messages.ResourceMode.Available, coreResource.Mode);
         }
 
         private struct ExpectedUnmanagedResource

@@ -330,7 +330,7 @@
             foreach (var resource in resourcesToCreate)
             {
                 objectCreator.CreateResource(resource);
-                TestContext.Api.Resources.MoveTo(resource, ResourceState.Complete);
+                TestContext.Api.Resources.Complete(resource);
             }
 
             CompleteResource4 = (UnmanagedResource)TestContext.Api.Resources.Read(CompleteResource4.Id);
@@ -574,16 +574,16 @@
             objectCreator.CreateResourcePool(ResourcePool1); // Draft pool
 
             objectCreator.CreateResourcePool(ResourcePool2);
-            TestContext.Api.ResourcePools.MoveTo(ResourcePool2, ResourcePoolState.Complete);
+            TestContext.Api.ResourcePools.Complete(ResourcePool2);
 
             objectCreator.CreateResourcePool(ResourcePool3);
-            TestContext.Api.ResourcePools.MoveTo(ResourcePool3, ResourcePoolState.Complete);
+            TestContext.Api.ResourcePools.Complete(ResourcePool3);
 
             objectCreator.CreateResourcePool(ResourcePool4);
-            TestContext.Api.ResourcePools.MoveTo(ResourcePool4, ResourcePoolState.Complete);
+            TestContext.Api.ResourcePools.Complete(ResourcePool4);
 
             objectCreator.CreateResourcePool(ResourcePool5);
-            TestContext.Api.ResourcePools.MoveTo(ResourcePool5, ResourcePoolState.Complete);
+            TestContext.Api.ResourcePools.Complete(ResourcePool5);
 
             ResourcePool1 = TestContext.Api.ResourcePools.Read(ResourcePool1.Id);
             ResourcePool2 = TestContext.Api.ResourcePools.Read(ResourcePool2.Id);
