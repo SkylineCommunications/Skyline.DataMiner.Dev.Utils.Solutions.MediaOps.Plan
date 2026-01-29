@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Jobs;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
@@ -273,6 +274,7 @@
 
             ValidateResourcePoolConfigurationUsage();
         }
+
         private void ValidateOrchestrationEventsSection(Dictionary<Guid, List<Guid>> result, Guid configurationId, OrchestrationEventsSection orchestrationEventsSection)
         {
             if (orchestrationEventsSection.ScriptExecutionDetails?.ProfileParameterValues == null)
@@ -302,7 +304,7 @@
             }
         }
 
-        private void ValidatePoolConfigurationInfoSection(Dictionary<Guid, List<Guid>> result, Guid jobId, ConfigurationInfoSection poolConfigurationSection)
+        private void ValidatePoolConfigurationInfoSection(Dictionary<Guid, List<Guid>> result, Guid poolId, ConfigurationInfoSection poolConfigurationSection)
         {
             if (!poolConfigurationSection.PoolConfiguration.HasValue)
                 return;
@@ -318,9 +320,9 @@
                 result[poolConfigurationId] = resourcePoolIds;
             }
 
-            if (!resourcePoolIds.Contains(jobId))
+            if (!resourcePoolIds.Contains(poolId))
             {
-                resourcePoolIds.Add(jobId);
+                resourcePoolIds.Add(poolId);
             }
         }
 

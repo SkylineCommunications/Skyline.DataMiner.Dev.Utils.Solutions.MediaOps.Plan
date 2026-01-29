@@ -2,7 +2,9 @@
 {
     using System.Collections.Generic;
     using System.Linq;
+
     using RT_MediaOps.Plan.RegressionTests;
+
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;

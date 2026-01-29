@@ -4,31 +4,31 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
 
-    using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
+    using StorageWorkflow = Storage.DOM.SlcWorkflow;
 
-    internal class ResourceStudioOrchestrationSettings : OrchestrationSettings
+    internal class WorkflowOrchestrationSettings : OrchestrationSettings
     {
-        private readonly List<ResourceStudioCapabilitySetting> capabilitySettings = [];
-        private readonly List<ResourceStudioDiscreteNumberConfigurationSetting> discreteNumberConfigurationSettings = [];
-        private readonly List<ResourceStudioDiscreteTextConfigurationSetting> discreteTextConfigurationSettings = [];
-        private readonly List<ResourceStudioNumberCapacitySetting> numberCapacitySettings = [];
-        private readonly List<ResourceStudioNumberConfigurationSetting> numberConfigurationSettings = [];
-        private readonly List<ResourceStudioOrchestrationEvent> orchestrationEvents = [];
-        private readonly List<ResourceStudioRangeCapacitySetting> rangeCapacitySettings = [];
-        private readonly List<ResourceStudioTextConfigurationSetting> textConfigurationSettings = [];
+        private readonly List<WorkflowCapabilitySetting> capabilitySettings = [];
+        private readonly List<WorkflowDiscreteNumberConfigurationSetting> discreteNumberConfigurationSettings = [];
+        private readonly List<WorkflowDiscreteTextConfigurationSetting> discreteTextConfigurationSettings = [];
+        private readonly List<WorkflowNumberCapacitySetting> numberCapacitySettings = [];
+        private readonly List<WorkflowNumberConfigurationSetting> numberConfigurationSettings = [];
+        private readonly List<WorkflowOrchestrationEvent> orchestrationEvents = [];
+        private readonly List<WorkflowRangeCapacitySetting> rangeCapacitySettings = [];
+        private readonly List<WorkflowTextConfigurationSetting> textConfigurationSettings = [];
 
-        private StorageResourceStudio.ConfigurationInstance originalInstance;
+        private StorageWorkflow.ConfigurationInstance originalInstance;
 
-        private StorageResourceStudio.ConfigurationInstance updatedInstance;
-        internal ResourceStudioOrchestrationSettings() : base()
+        private StorageWorkflow.ConfigurationInstance updatedInstance;
+
+        internal WorkflowOrchestrationSettings() : base()
         {
         }
 
-        internal ResourceStudioOrchestrationSettings(MediaOpsPlanApi planApi, StorageResourceStudio.ConfigurationInstance instance) : base(instance.ID.Id)
+        internal WorkflowOrchestrationSettings(MediaOpsPlanApi planApi, StorageWorkflow.ConfigurationInstance instance) : base(instance.ID.Id)
         {
             ParseInstance(planApi, instance);
             InitTracking();
@@ -50,7 +50,7 @@
 
         public override IReadOnlyCollection<OrchestrationEvent> OrchestrationEvents => orchestrationEvents;
 
-        internal StorageResourceStudio.ConfigurationInstance OriginalInstance => originalInstance;
+        internal StorageWorkflow.ConfigurationInstance OriginalInstance => originalInstance;
 
         public override OrchestrationSettings AddCapability(CapabilitySetting capabilitySetting)
         {
@@ -59,7 +59,7 @@
                 throw new ArgumentNullException(nameof(capabilitySetting));
             }
 
-            capabilitySettings.Add(new ResourceStudioCapabilitySetting(capabilitySetting));
+            capabilitySettings.Add(new WorkflowCapabilitySetting(capabilitySetting));
             return this;
         }
 
@@ -72,11 +72,11 @@
 
             if (capacitySetting is NumberCapacitySetting numberCapacity)
             {
-                numberCapacitySettings.Add(new ResourceStudioNumberCapacitySetting(numberCapacity));
+                numberCapacitySettings.Add(new WorkflowNumberCapacitySetting(numberCapacity));
             }
             else if (capacitySetting is RangeCapacitySetting rangeCapacity)
             {
-                rangeCapacitySettings.Add(new ResourceStudioRangeCapacitySetting(rangeCapacity));
+                rangeCapacitySettings.Add(new WorkflowRangeCapacitySetting(rangeCapacity));
             }
             else
             {
@@ -95,19 +95,19 @@
 
             if (configurationSetting is TextConfigurationSetting textConfiguration)
             {
-                textConfigurationSettings.Add(new ResourceStudioTextConfigurationSetting(textConfiguration));
+                textConfigurationSettings.Add(new WorkflowTextConfigurationSetting(textConfiguration));
             }
             else if (configurationSetting is NumberConfigurationSetting numberConfiguration)
             {
-                numberConfigurationSettings.Add(new ResourceStudioNumberConfigurationSetting(numberConfiguration));
+                numberConfigurationSettings.Add(new WorkflowNumberConfigurationSetting(numberConfiguration));
             }
             else if (configurationSetting is DiscreteTextConfigurationSetting discreteTextConfiguration)
             {
-                discreteTextConfigurationSettings.Add(new ResourceStudioDiscreteTextConfigurationSetting(discreteTextConfiguration));
+                discreteTextConfigurationSettings.Add(new WorkflowDiscreteTextConfigurationSetting(discreteTextConfiguration));
             }
             else if (configurationSetting is DiscreteNumberConfigurationSetting discreteNumberConfiguration)
             {
-                discreteNumberConfigurationSettings.Add(new ResourceStudioDiscreteNumberConfigurationSetting(discreteNumberConfiguration));
+                discreteNumberConfigurationSettings.Add(new WorkflowDiscreteNumberConfigurationSetting(discreteNumberConfiguration));
             }
             else
             {
@@ -124,7 +124,7 @@
                 throw new ArgumentNullException(nameof(orchestrationEvent));
             }
 
-            orchestrationEvents.Add(new ResourceStudioOrchestrationEvent(orchestrationEvent));
+            orchestrationEvents.Add(new WorkflowOrchestrationEvent(orchestrationEvent));
             return this;
         }
 
@@ -311,11 +311,11 @@
             return this;
         }
 
-        internal StorageResourceStudio.ConfigurationInstance GetInstanceWithChanges()
+        internal StorageWorkflow.ConfigurationInstance GetInstanceWithChanges()
         {
             if (updatedInstance == null)
             {
-                updatedInstance = IsNew ? new StorageResourceStudio.ConfigurationInstance(Id) : originalInstance.Clone();
+                updatedInstance = IsNew ? new StorageWorkflow.ConfigurationInstance(Id) : originalInstance.Clone();
             }
 
             updatedInstance.ProfileParameterValues.Clear();
@@ -357,7 +357,7 @@
             return updatedInstance;
         }
 
-        private void ParseInstance(MediaOpsPlanApi planApi, StorageResourceStudio.ConfigurationInstance instance)
+        private void ParseInstance(MediaOpsPlanApi planApi, StorageWorkflow.ConfigurationInstance instance)
         {
             originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
 
@@ -365,7 +365,7 @@
             ParseOrchestrationEvents(planApi, instance.OrchestrationEvents);
         }
 
-        private void ParseOrchestrationEvents(MediaOpsPlanApi planApi, IList<StorageResourceStudio.OrchestrationEventsSection> orchestrationEvents)
+        private void ParseOrchestrationEvents(MediaOpsPlanApi planApi, IList<StorageWorkflow.OrchestrationEventsSection> orchestrationEvents)
         {
             if (orchestrationEvents == null || orchestrationEvents.Count == 0)
             {
@@ -374,11 +374,11 @@
 
             foreach (var orchestrationEvent in orchestrationEvents)
             {
-                this.orchestrationEvents.Add(new ResourceStudioOrchestrationEvent(planApi, orchestrationEvent));
+                this.orchestrationEvents.Add(new WorkflowOrchestrationEvent(planApi, orchestrationEvent));
             }
         }
 
-        private void ParseParameterValues(MediaOpsPlanApi planApi, IList<StorageResourceStudio.ProfileParameterValuesSection> parameterValues)
+        private void ParseParameterValues(MediaOpsPlanApi planApi, IList<StorageWorkflow.ProfileParameterValuesSection> parameterValues)
         {
             if (parameterValues == null || parameterValues.Count == 0)
             {
@@ -392,13 +392,13 @@
             {
                 if (!parametersById.TryGetValue(section.ProfileParameterId, out var profileParameter))
                 {
-                    planApi.Logger.Information(this, $"ResourceStudioOrchestrationSettings > ParseParameterValues > Profile parameter with ID '{section.ProfileParameterId}' not found.");
+                    planApi.Logger.Information(this, $"WorkflowOrchestrationSettings > ParseParameterValues > Profile parameter with ID '{section.ProfileParameterId}' not found.");
                     continue;
                 }
 
                 if (profileParameter.IsCapability())
                 {
-                    capabilitySettings.Add(new ResourceStudioCapabilitySetting(section));
+                    capabilitySettings.Add(new WorkflowCapabilitySetting(section));
                 }
                 else if (profileParameter.IsCapacity())
                 {
@@ -411,35 +411,35 @@
             }
         }
 
-        private void ParseParameterValues_Capacity(Net.Profiles.Parameter profileParameter, StorageResourceStudio.ProfileParameterValuesSection section)
+        private void ParseParameterValues_Capacity(Net.Profiles.Parameter profileParameter, StorageWorkflow.ProfileParameterValuesSection section)
         {
             if (profileParameter.IsRange())
             {
-                rangeCapacitySettings.Add(new ResourceStudioRangeCapacitySetting(section));
+                rangeCapacitySettings.Add(new WorkflowRangeCapacitySetting(section));
             }
             else
             {
-                numberCapacitySettings.Add(new ResourceStudioNumberCapacitySetting(section));
+                numberCapacitySettings.Add(new WorkflowNumberCapacitySetting(section));
             }
         }
 
-        private void ParseParameterValues_Configuration(Net.Profiles.Parameter profileParameter, StorageResourceStudio.ProfileParameterValuesSection section)
+        private void ParseParameterValues_Configuration(Net.Profiles.Parameter profileParameter, StorageWorkflow.ProfileParameterValuesSection section)
         {
             if (profileParameter.IsText())
             {
-                textConfigurationSettings.Add(new ResourceStudioTextConfigurationSetting(section));
+                textConfigurationSettings.Add(new WorkflowTextConfigurationSetting(section));
             }
             else if (profileParameter.IsNumber())
             {
-                numberConfigurationSettings.Add(new ResourceStudioNumberConfigurationSetting(section));
+                numberConfigurationSettings.Add(new WorkflowNumberConfigurationSetting(section));
             }
             else if (profileParameter.IsTextDiscreet())
             {
-                discreteTextConfigurationSettings.Add(new ResourceStudioDiscreteTextConfigurationSetting(new DiscreteTextConfiguration(profileParameter), section));
+                discreteTextConfigurationSettings.Add(new WorkflowDiscreteTextConfigurationSetting(new DiscreteTextConfiguration(profileParameter), section));
             }
             else if (profileParameter.IsNumberDiscreet())
             {
-                discreteNumberConfigurationSettings.Add(new ResourceStudioDiscreteNumberConfigurationSetting(new DiscreteNumberConfiguration(profileParameter), section));
+                discreteNumberConfigurationSettings.Add(new WorkflowDiscreteNumberConfigurationSetting(new DiscreteNumberConfiguration(profileParameter), section));
             }
         }
     }

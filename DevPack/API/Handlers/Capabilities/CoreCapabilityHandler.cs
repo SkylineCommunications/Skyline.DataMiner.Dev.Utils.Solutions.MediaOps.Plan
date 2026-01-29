@@ -4,12 +4,9 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
-
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
 
     using CoreParameter = Net.Profiles.Parameter;
@@ -72,6 +69,7 @@
             ValidateIdsNotInUse(toCreate);
             ValidateNames(apiCapabilities);
             ValidateDiscretes(apiCapabilities);
+            ValidateDiscreteValueChanges(toUpdate.Where(IsValid).ToArray());
             ValidateTimeDependency(toUpdate);
 
             var validCapabilities = apiCapabilities.Where(IsValid).ToList();
@@ -345,6 +343,32 @@
                     }
                 }
             }
+        }
+
+        private void ValidateDiscreteValueChanges(ICollection<Capability> apiCapabilities)
+        {
+            if (apiCapabilities == null)
+            {
+                throw new ArgumentNullException(nameof(apiCapabilities));
+            }
+
+            if (!apiCapabilities.Any())
+            {
+                return;
+            }
+
+            var capabilityDiscreteValuesToVerify = apiCapabilities
+                .Select(x => new { ParameterId = x.Id, RemovedDiscretes = x.CoreParameter.Discretes.Except(x.Discretes).ToList() })
+                .Where(x => x.RemovedDiscretes.Any())
+                .SelectMany(x => x.RemovedDiscretes.Select(y => new ParameterDiscreteValue<string>
+                    {
+                        ParameterId = x.ParameterId,
+                        DiscreteValue = y,
+                    }))
+                .ToList();
+
+            PassTraceData(SlcResourceStudioParameterDiscreteValueUsageValidator.Validate(planApi, capabilityDiscreteValuesToVerify));
+            PassTraceData(SlcWorkflowParameterDiscreteValueUsageValidator.Validate(planApi, capabilityDiscreteValuesToVerify));
         }
 
         private void ValidateTimeDependency(ICollection<Capability> apiCapabilities)
