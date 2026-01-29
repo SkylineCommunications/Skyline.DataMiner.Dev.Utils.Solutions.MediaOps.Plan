@@ -115,13 +115,10 @@
             var jobFilter = DomInstanceExposers.DomDefinitionId.Equal(SlcWorkflowIds.Definitions.Jobs.Id);
 
             var configurationFilters = orchestrationSettingsIds
-                .Select(id =>
+                .SelectMany(id => new[]
                 {
-                    var jobConfigurationFilter = DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobExecution.JobConfiguration).Equal(id);
-
-                    var nodeConfigurationFilter = DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeConfiguration).Equal(id);
-
-                    return new ORFilterElement<DomInstance>(jobConfigurationFilter, nodeConfigurationFilter);
+                    DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobExecution.JobConfiguration).Equal(id),
+                    DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeConfiguration).Equal(id)
                 })
                 .ToArray();
 
@@ -158,13 +155,10 @@
             var recurringJobFilter = DomInstanceExposers.DomDefinitionId.Equal(SlcWorkflowIds.Definitions.RecurringJobs.Id);
 
             var configurationFilters = orchestrationSettingsIds
-                .Select(id =>
+                .SelectMany(id => new[]
                 {
-                    var recurringJobConfigurationFilter = DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobExecution.JobConfiguration).Equal(id);
-
-                    var nodeConfigurationFilter = DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeConfiguration).Equal(id);
-
-                    return new ORFilterElement<DomInstance>(recurringJobConfigurationFilter, nodeConfigurationFilter);
+                    DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobExecution.JobConfiguration).Equal(id),
+                    DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeConfiguration).Equal(id),
                 })
                 .ToArray();
 
@@ -201,13 +195,10 @@
             var workflowFilter = DomInstanceExposers.DomDefinitionId.Equal(SlcWorkflowIds.Definitions.Workflows.Id);
 
             var configurationFilters = orchestrationSettingsIds
-                .Select(id =>
+                .SelectMany(id => new[]
                 {
-                    var workflowConfigurationFilter = DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.WorkflowExecution.WorkflowConfiguration).Equal(id);
-
-                    var nodeConfigurationFilter = DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeConfiguration).Equal(id);
-
-                    return new ORFilterElement<DomInstance>(workflowConfigurationFilter, nodeConfigurationFilter);
+                    DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.WorkflowExecution.WorkflowConfiguration).Equal(id),
+                    DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeConfiguration).Equal(id),
                 })
                 .ToArray();
 

@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.Globalization;
     using System.Linq;
+
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
@@ -298,20 +299,74 @@
 
         private void ValidateDiscreteNumberConfigurations(ICollection<DiscreteNumberConfiguration> apiConfigurations)
         {
+            var discreteValuesToVerify = new List<ParameterDiscreteValue<NumberDiscreet>>();
+
             foreach (var discreteNumberConfiguration in apiConfigurations)
             {
                 PassTraceData(DiscreteNumberConfigurationValidator.Validate(discreteNumberConfiguration));
+
+                if (!IsValid(discreteNumberConfiguration))
+                {
+                    continue;
+                }
+
+                var removedDiscretesToAdd = discreteNumberConfiguration.CoreParameter.GetDiscreets()
+                    .Where(x => !discreteNumberConfiguration.Discretes.Any(y => Convert.ToString(y.Value) == x.RawValue))
+                    .Select(removedDiscrete => new ParameterDiscreteValue<NumberDiscreet>
+                    {
+                        ParameterId = discreteNumberConfiguration.Id,
+                        DiscreteValue = new NumberDiscreet
+                        {
+                            Value = Convert.ToDecimal(removedDiscrete.RawValue),
+                            DisplayName = removedDiscrete.DisplayValue,
+                        },
+                    })
+                    .ToList();
+
+                discreteValuesToVerify.AddRange(removedDiscretesToAdd);
+            }
+
+            if (discreteValuesToVerify.Count > 0)
+            {
+                PassTraceData(SlcResourceStudioParameterDiscreteValueUsageValidator.Validate(planApi, discreteValuesToVerify));
+                PassTraceData(SlcWorkflowParameterDiscreteValueUsageValidator.Validate(planApi, discreteValuesToVerify));
             }
         }
 
         private void ValidateDiscreteTextConfigurations(ICollection<DiscreteTextConfiguration> apiConfigurations)
         {
+            var discreteValuesToVerify = new List<ParameterDiscreteValue<TextDiscreet>>();
+
             foreach (var discreteTextConfiguration in apiConfigurations)
             {
                 PassTraceData(DiscreteTextDiscreteConfigurationValidator.Validate(discreteTextConfiguration));
+
+                if (!IsValid(discreteTextConfiguration))
+                {
+                    continue;
+                }
+
+                var removedDiscretesToAdd = discreteTextConfiguration.CoreParameter.GetDiscreets()
+                    .Where(x => !discreteTextConfiguration.Discretes.Any(y => y.Value == x.RawValue))
+                    .Select(removedDiscrete => new ParameterDiscreteValue<TextDiscreet>
+                    {
+                        ParameterId = discreteTextConfiguration.Id,
+                        DiscreteValue = new TextDiscreet
+                        {
+                            Value = removedDiscrete.RawValue,
+                            DisplayName = removedDiscrete.DisplayValue,
+                        },
+                    })
+                    .ToList();
+
+                discreteValuesToVerify.AddRange(removedDiscretesToAdd);
             }
 
-            
+            if (discreteValuesToVerify.Count > 0)
+            {
+                PassTraceData(SlcResourceStudioParameterDiscreteValueUsageValidator.Validate(planApi, discreteValuesToVerify));
+                PassTraceData(SlcWorkflowParameterDiscreteValueUsageValidator.Validate(planApi, discreteValuesToVerify));
+            }
         }
 
         private bool TryGetParameterWithChanges(Configuration apiConfiguration, out Net.Profiles.Parameter parameter)
