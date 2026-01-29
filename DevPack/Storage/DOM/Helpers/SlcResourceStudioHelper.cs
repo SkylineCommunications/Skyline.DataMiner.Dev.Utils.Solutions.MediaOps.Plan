@@ -230,6 +230,12 @@
             DomHelper.DomInstances.DoStatusTransition(new DomInstanceId(resourceId), transitionId);
         }
 
+        public void TransitionResourceToCompleteFromDeprecated(Guid resourceId)
+        {
+            var transitionId = SlcResource_StudioIds.Behaviors.Resource_Behavior.Transitions.Deprecated_To_Complete;
+            DomHelper.DomInstances.DoStatusTransition(new DomInstanceId(resourceId), transitionId);
+        }
+
         public IEnumerable<ConfigurationInstance> GetConfigurations(FilterElement<DomInstance> filter)
         {
             if (filter == null)

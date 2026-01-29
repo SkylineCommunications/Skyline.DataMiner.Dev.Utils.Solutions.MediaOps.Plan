@@ -44,7 +44,7 @@
             expectedResult.ValidateUnmanagedResource(returnedResource);
 
             // Set resource to complete and validate result
-            TestContext.Api.Resources.MoveTo(id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete);
+            TestContext.Api.Resources.Complete(id);
             returnedResource = TestContext.Api.Resources.Read(id);
             expectedResult.State = Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Complete;
             expectedResult.ValidateUnmanagedResource(returnedResource);
@@ -59,7 +59,7 @@
             expectedResult.ValidateUnmanagedResource(returnedResource);
 
             // Deprecate resource in order to be able to delete it
-            TestContext.Api.Resources.MoveTo(id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState.Deprecated);
+            TestContext.Api.Resources.Deprecate(id);
 
             // Delete resource and validate it is gone
             TestContext.Api.Resources.Delete(id);

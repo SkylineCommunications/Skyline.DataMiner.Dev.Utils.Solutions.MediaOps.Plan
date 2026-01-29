@@ -39,7 +39,7 @@
             };
 
             objectCreator.CreateResourcePool(resourcePool);
-            TestContext.Api.ResourcePools.MoveTo(resourcePool.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
+            TestContext.Api.ResourcePools.Complete(resourcePool.Id);
 
             var domResourcePool = TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(resourcePool.Id)).SingleOrDefault();
             Assert.IsNotNull(domResourcePool);
@@ -64,8 +64,8 @@
             };
 
             objectCreator.CreateResourcePool(resourcePool);
-            TestContext.Api.ResourcePools.MoveTo(resourcePool.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Complete);
-            TestContext.Api.ResourcePools.MoveTo(resourcePool.Id, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePoolState.Deprecated);
+            TestContext.Api.ResourcePools.Complete(resourcePool.Id);
+            TestContext.Api.ResourcePools.Deprecate(resourcePool.Id);
 
             var domResourcePool = TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(resourcePool.Id)).SingleOrDefault();
             Assert.IsNotNull(domResourcePool);

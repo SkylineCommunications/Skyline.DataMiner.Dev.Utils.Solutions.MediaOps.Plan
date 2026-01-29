@@ -4,14 +4,11 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
-
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.API.Handlers.Orchestration;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
     using Skyline.DataMiner.Utils.DOM.Extensions;

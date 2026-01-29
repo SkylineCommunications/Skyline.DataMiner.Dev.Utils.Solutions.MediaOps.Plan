@@ -11,32 +11,52 @@
     public interface IResourcePoolsRepository : IRepository<ResourcePool>
     {
         /// <summary>
-        /// Moves the specified <see cref="ResourcePool"/> to the desired state.
+        /// Moves the specified <see cref="ResourcePool"/> from draft to complete state.
         /// </summary>
         /// <param name="resourcePool">The resource pool to move.</param>
-        /// <param name="desiredState">The state to move the resource pool to.</param>
-        void MoveTo(ResourcePool resourcePool, ResourcePoolState desiredState);
+        void Complete(ResourcePool resourcePool);
 
         /// <summary>
-        /// Moves the resource pool with the specified identifier to the desired state.
+        /// Moves the specified resource pool from draft to complete state.
         /// </summary>
         /// <param name="resourcePoolId">The unique identifier of the resource pool to move.</param>
-        /// <param name="desiredState">The state to move the resource pool to.</param>
-        void MoveTo(Guid resourcePoolId, ResourcePoolState desiredState);
+        void Complete(Guid resourcePoolId);
 
         /// <summary>
-        /// Moves the specified <see cref="ResourcePool"/> to the desired state.
+        /// Moves the specified resource pools from draft to complete state.
         /// </summary>
         /// <param name="resourcePools">The resource pools to move.</param>
-        /// <param name="desiredState">The state to move the resource pools to.</param>
-        void MoveTo(IEnumerable<ResourcePool> resourcePools, ResourcePoolState desiredState);
+        void Complete(IEnumerable<ResourcePool> resourcePools);
 
         /// <summary>
-        /// Moves the resource pools with the specified identifiers to the desired state.
+        /// Moves the specified resource pools from draft to complete state.
         /// </summary>
-        /// <param name="resourcePoolIds">The unique identifier of the resource pools to move.</param>
-        /// <param name="desiredState">The state to move the resource pools to.</param>
-        void MoveTo(IEnumerable<Guid> resourcePoolIds, ResourcePoolState desiredState);
+        /// <param name="resourcePoolIds">The unique identifiers of the resource pools.</param>
+        void Complete(IEnumerable<Guid> resourcePoolIds);
+
+        /// <summary>
+        /// Deprecates the specified <see cref="ResourcePool"/>.
+        /// </summary>
+        /// <param name="resourcePool">The resource pool to deprecate.</param>
+        void Deprecate(ResourcePool resourcePool);
+
+        /// <summary>
+        /// Deprecates the specified resource pool.
+        /// </summary>
+        /// <param name="resourcePoolId">The unique identifier of the resource pool to deprecate.</param>
+        void Deprecate(Guid resourcePoolId);
+
+        /// <summary>
+        /// Deprecates the specified resource pools.
+        /// </summary>
+        /// <param name="resourcePools">The resource pools to deprecate.</param>
+        void Deprecate(IEnumerable<ResourcePool> resourcePools);
+
+        /// <summary>
+        /// Deprecates resource pools with the specified identifiers.
+        /// </summary>
+        /// <param name="resourcePoolIds">The unique identifiers of the resource pools to deprecate.</param>
+        void Deprecate(IEnumerable<Guid> resourcePoolIds);
 
         /// <summary>
         /// Deprecates the specified <see cref="ResourcePool"/> using the provided <see cref="ResourcePoolDeprecateOptions"/>.

@@ -125,7 +125,7 @@
             {
                 try
                 {
-                    PlanApi.Resources.MoveTo(resource.Id, ResourceState.Deprecated);
+                    PlanApi.Resources.Deprecate(resource.Id);
                 }
                 catch
                 {
@@ -144,7 +144,7 @@
             {
                 try
                 {
-                    PlanApi.ResourcePools.MoveTo(pool.Id, ResourcePoolState.Deprecated);
+                    PlanApi.ResourcePools.Deprecate(pool.Id);
                 }
                 catch
                 {

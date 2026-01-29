@@ -4,14 +4,14 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
-
+    using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.SDM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
 
     using SLDataGateway.API.Types.Querying;
 
@@ -432,6 +432,102 @@
             });
         }
 
+        public void Complete(Resource resource)
+        {
+            if (resource == null)
+            {
+                throw new ArgumentNullException(nameof(resource));
+            }
+
+            Complete(resource.Id);
+        }
+
+        public void Complete(Guid resourceId)
+        {
+            var resource = Read(resourceId);
+            if (resource == null)
+            {
+                return;
+            }
+
+            if (!DomResourceHandler.TryComplete(PlanApi, [resource], out var result))
+            {
+                result.ThrowSingleException(resource.Id);
+            }
+        }
+
+        public void Complete(IEnumerable<Resource> resources)
+        {
+            if (resources == null)
+            {
+                throw new ArgumentNullException(nameof(resources));
+            }
+
+            Complete(resources.Select(x => x.Id).ToArray());
+        }
+
+        public void Complete(IEnumerable<Guid> resourceIds)
+        {
+            if (resourceIds == null)
+            {
+                throw new ArgumentNullException(nameof(resourceIds));
+            }
+
+            var resources = Read(resourceIds);
+            if (!DomResourceHandler.TryComplete(PlanApi, resources?.ToList(), out var result))
+            {
+                result.ThrowBulkException();
+            }
+        }
+
+        public void Restore(Resource resource)
+        {
+            if (resource == null)
+            {
+                throw new ArgumentNullException(nameof(resource));
+            }
+
+            Restore(resource.Id);
+        }
+
+        public void Restore(Guid resourceId)
+        {
+            var resource = Read(resourceId);
+            if (resource == null)
+            {
+                return;
+            }
+
+            if (!DomResourceHandler.TryRestore(PlanApi, [resource], out var result))
+            {
+                result.ThrowSingleException(resource.Id);
+            }
+        }
+
+        public void Restore(IEnumerable<Resource> resources)
+        {
+            if (resources == null)
+            {
+                throw new ArgumentNullException(nameof(resources));
+            }
+
+            Restore(resources.Select(x => x.Id).ToArray());
+        }
+
+        public void Restore(IEnumerable<Guid> resourceIds)
+        {
+            if (resourceIds == null)
+            {
+                throw new ArgumentNullException(nameof(resourceIds));
+            }
+
+            var resources = Read(resourceIds);
+            if (!DomResourceHandler.TryRestore(PlanApi, resources?.ToList(), out var result))
+            {
+                result.ThrowBulkException();
+            }
+        }
+
         /// <summary>
         /// Marks the specified resource as deprecated, indicating that it is no longer recommended for use.
         /// </summary>
@@ -608,118 +704,6 @@
             }
 
             return Count(ResourceExposers.ResourcePoolIds.Contains(resourcePool.Id)) > 0;
-        }
-
-        /// <summary>
-        /// Moves the specified <see cref="Resource"/> to the desired state.
-        /// </summary>
-        /// <param name="resource">The resource to move.</param>
-        /// <param name="desiredState">The state to move the resource to.</param>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="resource"/> is <c>null</c>.</exception>
-        public void MoveTo(Resource resource, ResourceState desiredState)
-        {
-            if (resource == null)
-            {
-                throw new ArgumentNullException(nameof(resource));
-            }
-
-            MoveTo(resource.Id, desiredState);
-        }
-
-        /// <summary>
-        /// Moves the resource with the specified identifier to the desired state.
-        /// </summary>
-        /// <param name="resourceId">The unique identifier of the resource to move.</param>
-        /// <param name="desiredState">The state to move the resource to.</param>
-        /// <exception cref="ArgumentException">Thrown when <paramref name="resourceId"/> is <see cref="Guid.Empty"/>.</exception>
-        /// <exception cref="MediaOpsException">Thrown when the resource is not found, the state transition is not supported, or the operation fails.</exception>
-        public void MoveTo(Guid resourceId, ResourceState desiredState)
-        {
-            PlanApi.Logger.Information(this, "Moving Resource {resourceId} to {desiredState}...", [resourceId, desiredState]);
-
-            if (resourceId == Guid.Empty)
-            {
-                throw new ArgumentException("Resource ID cannot be empty.", nameof(resourceId));
-            }
-
-            var resource = Read(resourceId);
-            if (resource == null)
-            {
-                throw new MediaOpsException(
-                    new ResourceNotFoundError()
-                    {
-                        ErrorMessage = $"Unable to find resource with ID {resourceId}",
-                        Id = resourceId
-                    });
-            }
-
-            ActivityHelper.Track(nameof(ResourcesRepository), nameof(MoveTo), act =>
-            {
-                act?.AddTag("ResourceId", resourceId);
-                act?.AddTag("DesiredState", desiredState);
-
-                var actionMethods = new Dictionary<ResourceState, Action<Resource>>
-                {
-                    [ResourceState.Complete] = HandleMoveToCompleteAction,
-                    [ResourceState.Deprecated] = HandleMoveToDeprecateAction,
-                };
-
-                if (!actionMethods.TryGetValue(desiredState, out var action))
-                {
-                    var error = new ResourceInvalidStateError()
-                    {
-                        ErrorMessage = $"Move to state '{desiredState}' is not supported.",
-                        Id = resource.Id,
-                    };
-
-                    throw new MediaOpsException(error);
-                }
-
-                action(resource);
-            });
-        }
-
-        /// <inheritdoc/>
-        public void MoveTo(IEnumerable<Resource> resources, ResourceState desiredState)
-        {
-            if (resources == null)
-            {
-                throw new ArgumentNullException(nameof(resources));
-            }
-
-            MoveTo(resources.Select(x => x.Id).ToArray(), desiredState);
-        }
-
-        /// <inheritdoc/>
-        public void MoveTo(IEnumerable<Guid> resourceIds, ResourceState desiredState)
-        {
-            if (resourceIds == null)
-            {
-                throw new ArgumentNullException(nameof(resourceIds));
-            }
-
-            var resources = Read(resourceIds.ToArray());
-
-            ActivityHelper.Track(nameof(ResourcesRepository), nameof(MoveTo), act =>
-            {
-                var actionMethods = new Dictionary<ResourceState, Action<ICollection<Resource>>>
-                {
-                    [ResourceState.Complete] = HandleMoveToCompleteAction,
-                    [ResourceState.Deprecated] = HandleMoveToDeprecateAction,
-                };
-
-                if (!actionMethods.TryGetValue(desiredState, out var action))
-                {
-                    var error = new ResourceInvalidStateError()
-                    {
-                        ErrorMessage = $"Move to state '{desiredState}' is not supported.",
-                    };
-
-                    throw new MediaOpsException(error);
-                }
-
-                action(resources.ToArray());
-            });
         }
 
         /// <summary>
@@ -1147,38 +1131,6 @@
                 var resourceIds = result.SuccessfulIds;
                 act?.AddTag("ResourceIds", String.Join(", ", resourceIds));
             });
-        }
-
-        private void HandleMoveToCompleteAction(Resource resource)
-        {
-            if (!DomResourceHandler.TryComplete(PlanApi, [resource], out var result))
-            {
-                result.ThrowSingleException(resource.Id);
-            }
-        }
-
-        private void HandleMoveToCompleteAction(ICollection<Resource> resources)
-        {
-            if (!DomResourceHandler.TryComplete(PlanApi, resources, out var result))
-            {
-                result.ThrowBulkException();
-            }
-        }
-
-        private void HandleMoveToDeprecateAction(Resource resource)
-        {
-            if (!DomResourceHandler.TryDeprecate(PlanApi, [resource], out var result))
-            {
-                result.ThrowSingleException(resource.Id);
-            }
-        }
-
-        private void HandleMoveToDeprecateAction(ICollection<Resource> resources)
-        {
-            if (!DomResourceHandler.TryDeprecate(PlanApi, resources, out var result))
-            {
-                result.ThrowBulkException();
-            }
         }
 
         private IEnumerable<IPagedResult<Resource>> ReadPagedIterator(FilterElement<Resource> filter, int pageSize)

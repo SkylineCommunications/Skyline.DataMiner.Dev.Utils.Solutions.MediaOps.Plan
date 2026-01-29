@@ -50,7 +50,7 @@
             Assert.AreEqual(name, returnedResourcePool.Name);
 
             // Set pool to complete and validate result
-            TestContext.Api.ResourcePools.MoveTo(returnedResourcePool, ResourcePoolState.Complete);
+            TestContext.Api.ResourcePools.Complete(returnedResourcePool);
             returnedResourcePool = TestContext.Api.ResourcePools.Read(poolId);
             Assert.IsNotNull(returnedResourcePool);
             Assert.AreEqual(ResourcePoolState.Complete, returnedResourcePool.State);
@@ -64,7 +64,7 @@
             Assert.AreEqual(updatedName, returnedResourcePool.Name);
 
             // Deprecate pool
-            TestContext.Api.ResourcePools.MoveTo(returnedResourcePool, ResourcePoolState.Deprecated);
+            TestContext.Api.ResourcePools.Deprecate(returnedResourcePool);
             returnedResourcePool = TestContext.Api.ResourcePools.Read(poolId);
             Assert.IsNotNull(returnedResourcePool);
             Assert.AreEqual(ResourcePoolState.Deprecated, returnedResourcePool.State);

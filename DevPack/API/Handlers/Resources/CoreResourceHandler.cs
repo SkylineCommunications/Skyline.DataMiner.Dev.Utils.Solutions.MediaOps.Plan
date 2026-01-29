@@ -4,8 +4,6 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
-
     using Skyline.DataMiner.Core.DataMinerSystem.Common;
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
@@ -14,11 +12,10 @@
     using Skyline.DataMiner.Net.SRM.Capacities;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
 
-    using CoreResource = Net.Messages.Resource;
     using CoreFunctionResource = Net.ResourceManager.Objects.FunctionResource;
+    using CoreResource = Net.Messages.Resource;
     using DomResource = Storage.DOM.SlcResource_Studio.ResourceInstance;
     using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
 
@@ -88,6 +85,16 @@
         {
             var handler = new CoreResourceHandler(planApi);
             handler.Deprecate(domResources);
+
+            result = new BulkOperationResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
+
+            return !result.HasFailures;
+        }
+
+        public static bool TryRestore(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out BulkOperationResult<Guid> result)
+        {
+            var handler = new CoreResourceHandler(planApi);
+            handler.Restore(domResources);
 
             result = new BulkOperationResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
 
@@ -231,7 +238,7 @@
             {
                 if (mapping.CoreResource == null)
                 {
-                    successfulIds.Add(mapping.DomResource.ID.Id);
+                    unsuccessfulIds.Add(mapping.DomResource.ID.Id);
 
                     continue;
                 }
@@ -243,6 +250,81 @@
             }
 
             planApi.CoreHelpers.ResourceManagerHelper.TryCreateOrUpdateResourcesInBatches(resourcesToDeprecate, out var result);
+
+            foreach (var id in result.UnsuccessfulIds)
+            {
+                if (!domIdByCoreId.TryGetValue(id, out var domId))
+                {
+                    planApi.Logger.Error(this, $"Failed to find DOM ID for CORE resource ID {id}.");
+                    continue;
+                }
+
+                unsuccessfulIds.Add(domId);
+
+                if (result.TraceDataPerItem.TryGetValue(id, out var traceData))
+                {
+                    traceDataPerItem.Add(domId, traceData);
+                }
+            }
+
+            foreach (var id in result.SuccessfulIds)
+            {
+                if (!domIdByCoreId.TryGetValue(id, out var domId))
+                {
+                    planApi.Logger.Error(this, $"Failed to find DOM ID for CORE resource ID", [id]);
+                    continue;
+                }
+
+                successfulIds.Add(domId);
+            }
+        }
+
+        private void Restore(ICollection<DomResource> domResources)
+        {
+            if (domResources == null)
+            {
+                throw new ArgumentNullException(nameof(domResources));
+            }
+
+            if (domResources.Count == 0)
+            {
+                return;
+            }
+
+            Restore(ResourceMapping.GetMappings(planApi, domResources).ToList());
+        }
+
+        private void Restore(ICollection<ResourceMapping> resourceMappings)
+        {
+            if (resourceMappings == null)
+            {
+                throw new ArgumentNullException(nameof(resourceMappings));
+            }
+
+            if (resourceMappings.Count == 0)
+            {
+                return;
+            }
+
+            var domIdByCoreId = new Dictionary<Guid, Guid>();
+            var resourcesToRestore = new List<CoreResource>();
+
+            foreach (var mapping in resourceMappings)
+            {
+                if (mapping.CoreResource == null)
+                {
+                    unsuccessfulIds.Add(mapping.DomResource.ID.Id);
+
+                    continue;
+                }
+
+                mapping.CoreResource.Mode = Net.Messages.ResourceMode.Available;
+
+                resourcesToRestore.Add(mapping.CoreResource);
+                domIdByCoreId.Add(mapping.CoreResource.ID, mapping.DomResource.ID.Id);
+            }
+
+            planApi.CoreHelpers.ResourceManagerHelper.TryCreateOrUpdateResourcesInBatches(resourcesToRestore, out var result);
 
             foreach (var id in result.UnsuccessfulIds)
             {

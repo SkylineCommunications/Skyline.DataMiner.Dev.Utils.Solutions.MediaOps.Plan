@@ -9,32 +9,28 @@
     public interface IResourcesRepository : IRepository<Resource>
     {
         /// <summary>
-        /// Moves the specified <see cref="Resource"/> to the desired state.
+        /// Moves the specified <see cref="Resource"/> from draft to complete state.
         /// </summary>
         /// <param name="resource">The resource to move.</param>
-        /// <param name="desiredState">The state to move the resource to.</param>
-        void MoveTo(Resource resource, ResourceState desiredState);
+        void Complete(Resource resource);
 
         /// <summary>
-        /// Moves the resource with the specified identifier to the desired state.
+        /// Moves the specified resource from draft to complete state.
         /// </summary>
         /// <param name="resourceId">The unique identifier of the resource to move.</param>
-        /// <param name="desiredState">The state to move the resource to.</param>
-        void MoveTo(Guid resourceId, ResourceState desiredState);
+        void Complete(Guid resourceId);
 
         /// <summary>
-        /// Moves the specified <see cref="Resource"/> to the desired state.
+        /// Moves the specified resources from draft to complete state.
         /// </summary>
         /// <param name="resources">The resources to move.</param>
-        /// <param name="desiredState">The state to move the resources to.</param>
-        void MoveTo(IEnumerable<Resource> resources, ResourceState desiredState);
+        void Complete(IEnumerable<Resource> resources);
 
         /// <summary>
-        /// Moves the resources with the specified identifiers to the desired state.
+        /// Moves the specified resources from draft to complete state.
         /// </summary>
-        /// <param name="resourceIds">The unique identifier of the resources to move.</param>
-        /// <param name="desiredState">The state to move the resources to.</param>
-        void MoveTo(IEnumerable<Guid> resourceIds, ResourceState desiredState);
+        /// <param name="resourceIds">The unique identifiers of the resources.</param>
+        void Complete(IEnumerable<Guid> resourceIds);
 
         /// <summary>
         /// Marks the specified resource as deprecated, indicating that it is no longer recommended for use.
@@ -59,6 +55,30 @@
         /// </summary>
         /// <param name="resourceIds">The unique identifiers of the resources to deprecate.</param>
         void Deprecate(IEnumerable<Guid> resourceIds);
+
+        /// <summary>
+        /// Moves the specified <see cref="Resource"/> from deprecated to complete state.
+        /// </summary>
+        /// <param name="resource">The resource to move.</param>
+        void Restore(Resource resource);
+
+        /// <summary>
+        /// Moves the specified resource from deprecated to complete state.
+        /// </summary>
+        /// <param name="resourceId">The unique identifier of the resource to move.</param>
+        void Restore(Guid resourceId);
+
+        /// <summary>
+        /// Moves the specified resources from deprecated to complete state.
+        /// </summary>
+        /// <param name="resources">The resources to move.</param>
+        void Restore(IEnumerable<Resource> resources);
+
+        /// <summary>
+        /// Moves the specified resources from deprecated to complete state.
+        /// </summary>
+        /// <param name="resourceIds">The unique identifiers of the resources.</param>
+        void Restore(IEnumerable<Guid> resourceIds);
 
         /// <summary>
         /// Converts the specified <see cref="Resource"/> to an <see cref="UnmanagedResource"/>.
