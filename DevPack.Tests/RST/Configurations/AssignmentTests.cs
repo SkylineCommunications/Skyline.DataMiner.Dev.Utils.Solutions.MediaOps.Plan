@@ -88,7 +88,7 @@
 
             configuration.RemoveDiscrete(configuration.Discretes.First(d => d.Value == "2"));
 
-            MediaOpsException expectedException = null;
+            MediaOpsException? expectedException = null;
             try
             {
                 TestContext.Api.Configurations.Update(configuration);
@@ -178,7 +178,7 @@
 
             configuration.RemoveDiscrete(configuration.Discretes.First(d => d.Value == 2));
 
-            MediaOpsException expectedException = null;
+            MediaOpsException? expectedException = null;
             try
             {
                 TestContext.Api.Configurations.Update(configuration);

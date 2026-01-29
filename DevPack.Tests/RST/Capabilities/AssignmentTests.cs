@@ -91,7 +91,7 @@
             capability = TestContext.Api.Capabilities.Read(capability.Id);
             capability.RemoveDiscrete("Value 2");
 
-            MediaOpsException expectedException = null;
+            MediaOpsException? expectedException = null;
             try
             {
                 TestContext.Api.Capabilities.Update(capability);
