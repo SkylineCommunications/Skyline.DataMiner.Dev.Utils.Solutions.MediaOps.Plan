@@ -61,7 +61,7 @@ jobs:
        run: dotnet build -c Release -p WarningLevel=0 DevPack.Tests
        
      - name: Run tests
-       run: dotnet test -c Release --no-build --logger "console;verbosity=detailed" DevPack.Tests
+       run: dotnet test -c Release --no-build --settings DevPack.Tests.runsettings --logger "console;verbosity=detailed" DevPack.Tests
 
   internal_release:
     name: Internal Release
