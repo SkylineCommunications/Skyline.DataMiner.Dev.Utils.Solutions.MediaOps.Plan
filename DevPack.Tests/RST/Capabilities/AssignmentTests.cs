@@ -37,12 +37,12 @@
             .SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
             objectCreator.CreateCapability(capability);
 
-            var unmagendResource = new UnmanagedResource()
+            var unmanagedResource = new UnmanagedResource()
             {
                 Name = $"{prefix}_Resource",
             }
             .AddCapability(new CapabilitySetting(capability.Id).SetDiscretes(new[] { "Value 1", "Value 2" }));
-            objectCreator.CreateResource(unmagendResource);
+            objectCreator.CreateResource(unmanagedResource);
 
             var resourcePool1 = new ResourcePool()
             {
@@ -114,7 +114,7 @@
             Assert.IsNotNull(capabilityDiscreteValueInUseByResourceError);
             Assert.AreEqual("Value 2", capabilityDiscreteValueInUseByResourceError.DiscreteValue);
             Assert.AreEqual(1, capabilityDiscreteValueInUseByResourceError.ResourceIds.Count);
-            Assert.IsTrue(capabilityDiscreteValueInUseByResourceError.ResourceIds.Contains(unmagendResource.Id));
+            Assert.IsTrue(capabilityDiscreteValueInUseByResourceError.ResourceIds.Contains(unmanagedResource.Id));
 
             var capabilityDiscreteValueInUseByResourcePoolError = capabilityDiscreteValueInUseErrors.OfType<CapabilityDiscreteValueInUseByResourcePoolsError>().SingleOrDefault();
             Assert.IsNotNull(capabilityDiscreteValueInUseByResourcePoolError);
