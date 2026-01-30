@@ -5,8 +5,8 @@
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
 
     using Skyline.DataMiner.Core.DataMinerSystem.Common;
-    using Skyline.DataMiner.MediaOps.Live.API;
-    using Skyline.DataMiner.MediaOps.Live.API.Extensions;
+    using Skyline.DataMiner.Solutions.MediaOps.Live.API;
+    using Skyline.DataMiner.Solutions.MediaOps.Live.API.Extensions;
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;

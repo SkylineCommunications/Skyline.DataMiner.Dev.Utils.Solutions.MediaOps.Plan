@@ -4,7 +4,6 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    using Skyline.DataMiner.MediaOps.Live.Orchestration.Scheduling;
     using Skyline.DataMiner.Net.Helper;
     using Skyline.DataMiner.Net.Profiles;
 
