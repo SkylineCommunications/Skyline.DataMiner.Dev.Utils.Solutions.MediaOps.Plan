@@ -26,7 +26,7 @@
         private readonly CoreHelpers coreHelpers;
 
         private readonly Lazy<IDms> lazyDms;
-        private readonly Lazy<MediaOpsLiveApi> lazyLiveApi;
+        private readonly Lazy<IMediaOpsLiveApi> lazyLiveApi;
         private readonly Lazy<IResourcesRepository> lazyResourceRepository;
         private readonly Lazy<IResourcePoolsRepository> lazyResourcePoolsRepository;
         private readonly Lazy<ICapabilitiesRepository> lazyCapabilitiesRepository;
@@ -57,7 +57,7 @@
             coreHelpers = new CoreHelpers(connection);
 
             lazyDms = new Lazy<IDms>(() => connection.GetDms());
-            lazyLiveApi = new Lazy<MediaOpsLiveApi>(() => connection.GetMediaOpsLiveApi());
+            lazyLiveApi = new Lazy<IMediaOpsLiveApi>(() => connection.GetMediaOpsLiveApi());
             lazyResourceRepository = new Lazy<IResourcesRepository>(() => new ResourcesRepository(this));
             lazyResourcePoolsRepository = new Lazy<IResourcePoolsRepository>(() => new ResourcePoolsRepository(this));
             lazyCapabilitiesRepository = new Lazy<ICapabilitiesRepository>(() => new CapabilitiesRepository(this));
@@ -126,7 +126,7 @@
 
         internal IDms Dms => lazyDms.Value;
 
-        internal MediaOpsLiveApi LiveApi => lazyLiveApi.Value;
+        internal IMediaOpsLiveApi LiveApi => lazyLiveApi.Value;
 
         internal Plan.Tools.LockManager LockManager => lazyLockManager.Value;
 
