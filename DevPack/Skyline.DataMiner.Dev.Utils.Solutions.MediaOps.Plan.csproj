@@ -46,7 +46,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Skyline.DataMiner.ConnectorAPI.SkylineLockManager" Version="1.3.4" />
-    <PackageReference Include="Skyline.DataMiner.Core.DataMinerSystem.Common" Version="1.1.3.7" />
+    <PackageReference Include="Skyline.DataMiner.Core.DataMinerSystem.Common" Version="1.1.3.6" />
     <PackageReference Include="Skyline.DataMiner.Dev.Common" Version="10.5.11.1" />
     <PackageReference Include="Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Live" Version="1.0.1-alpha190" />
     <PackageReference Include="Skyline.DataMiner.SDM.Abstractions" Version="0.2.2" />
