@@ -28,7 +28,7 @@
         /// <summary>
         /// Gets the collection of capability settings.
         /// </summary>
-        public abstract IReadOnlyCollection<CapabilitySetting> Capabilities { get; }
+        public abstract IReadOnlyCollection<CapabilitySettings> Capabilities { get; }
 
         /// <summary>
         /// Gets the collection of capacity settings.
@@ -51,7 +51,7 @@
         /// <param name="capabilitySetting">The capability setting to add.</param>
         /// <returns>The current <see cref="OrchestrationSettings"/> instance.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="capabilitySetting"/> is <see langword="null"/>.</exception>
-        public abstract OrchestrationSettings AddCapability(CapabilitySetting capabilitySetting);
+        public abstract OrchestrationSettings AddCapability(CapabilitySettings capabilitySetting);
 
         /// <summary>
         /// Removes the specified capability.
@@ -59,7 +59,7 @@
         /// <param name="capabilitySetting">The capability to remove. Cannot be null.</param>
         /// <returns>The current <see cref="OrchestrationSettings"/> instance.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="capabilitySetting"/> is <see langword="null"/>.</exception>
-        public abstract OrchestrationSettings RemoveCapability(CapabilitySetting capabilitySetting);
+        public abstract OrchestrationSettings RemoveCapability(CapabilitySettings capabilitySetting);
 
         /// <summary>
         /// Sets the specified collection of capability settings.
@@ -67,7 +67,7 @@
         /// <param name="capabilitySettings">The capability settings to set. Cannot be null.</param>
         /// <returns>The current <see cref="OrchestrationSettings"/> instance.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="capabilitySettings"/> is <see langword="null"/></exception>
-        public abstract OrchestrationSettings SetCapabilities(IEnumerable<CapabilitySetting> capabilitySettings);
+        public abstract OrchestrationSettings SetCapabilities(IEnumerable<CapabilitySettings> capabilitySettings);
 
         /// <summary>
         /// Adds a new capacity.

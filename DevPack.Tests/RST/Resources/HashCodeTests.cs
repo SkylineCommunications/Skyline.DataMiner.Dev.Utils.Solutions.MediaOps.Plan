@@ -184,7 +184,7 @@
                 Name = $"Capability_{Guid.NewGuid()}",
             };
             capability.SetDiscretes(new[] { "A", "B" });
-            var capabilitySetting = new CapabilitySetting(capability.Id);
+            var capabilitySetting = new CapabilitySettings(capability.Id);
             capabilitySetting.SetDiscretes(new[] { "A" });
 
             var initialHash = resource.GetHashCode();

@@ -34,7 +34,7 @@
             InitTracking();
         }
 
-        public override IReadOnlyCollection<CapabilitySetting> Capabilities => capabilitySettings;
+        public override IReadOnlyCollection<CapabilitySettings> Capabilities => capabilitySettings;
         public override IReadOnlyCollection<CapacitySetting> Capacities => numberCapacitySettings.Concat<CapacitySetting>(rangeCapacitySettings).ToList();
         public override IReadOnlyCollection<ConfigurationSetting> Configurations
         {
@@ -52,7 +52,7 @@
 
         internal StorageResourceStudio.ConfigurationInstance OriginalInstance => originalInstance;
 
-        public override OrchestrationSettings AddCapability(CapabilitySetting capabilitySetting)
+        public override OrchestrationSettings AddCapability(CapabilitySettings capabilitySetting)
         {
             if (capabilitySetting == null)
             {
@@ -128,7 +128,7 @@
             return this;
         }
 
-        public override OrchestrationSettings RemoveCapability(CapabilitySetting capabilitySetting)
+        public override OrchestrationSettings RemoveCapability(CapabilitySettings capabilitySetting)
         {
             if (capabilitySetting == null)
             {
@@ -241,7 +241,7 @@
             return this;
         }
 
-        public override OrchestrationSettings SetCapabilities(IEnumerable<CapabilitySetting> capabilitySettings)
+        public override OrchestrationSettings SetCapabilities(IEnumerable<CapabilitySettings> capabilitySettings)
         {
             if (capabilitySettings == null)
             {

@@ -92,7 +92,7 @@
         /// <summary>
         /// Gets the collection of capabilities assigned to this resource.
         /// </summary>
-        public IReadOnlyCollection<CapabilitySetting> Capabilities => capabilitySettings;
+        public IReadOnlyCollection<CapabilitySettings> Capabilities => capabilitySettings;
 
         /// <summary>
         /// Gets the collection of capacities assigned to this resource.
@@ -228,7 +228,7 @@
         /// </summary>
         /// <param name="capabilitySetting">The capability setting to add.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="capabilitySetting"/> is <see langword="null"/>.</exception>
-        public Resource AddCapability(CapabilitySetting capabilitySetting)
+        public Resource AddCapability(CapabilitySettings capabilitySetting)
         {
             if (capabilitySetting == null)
             {
@@ -244,7 +244,7 @@
         /// </summary>
         /// <param name="capabilitySetting">The capability to remove from the resource. Cannot be null.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="capabilitySetting"/> is <see langword="null"/>.</exception>
-        public Resource RemoveCapability(CapabilitySetting capabilitySetting)
+        public Resource RemoveCapability(CapabilitySettings capabilitySetting)
         {
             if (capabilitySetting == null)
             {
@@ -272,7 +272,7 @@
         /// <param name="capabilitySettings">The capability settings to apply on the resource. Cannot be null.</param>
         /// <returns>Resource with updated capability settings.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="capabilitySettings"/> is <see langword="null"/></exception>
-        public Resource SetCapabilities(IEnumerable<CapabilitySetting> capabilitySettings)
+        public Resource SetCapabilities(IEnumerable<CapabilitySettings> capabilitySettings)
         {
             if (capabilitySettings == null)
             {

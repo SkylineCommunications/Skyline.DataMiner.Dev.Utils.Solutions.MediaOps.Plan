@@ -52,14 +52,14 @@
             {
                 Name = $"{prefix}_Resource1",
             }
-            .AddCapability(new CapabilitySetting(capability1).AddDiscrete("Option1"))
-            .AddCapability(new CapabilitySetting(capability2).AddDiscrete("Option2"));
+            .AddCapability(new CapabilitySettings(capability1).AddDiscrete("Option1"))
+            .AddCapability(new CapabilitySettings(capability2).AddDiscrete("Option2"));
 
             var unmangedResource2 = new UnmanagedResource()
             {
                 Name = $"{prefix}_Resource2",
             }
-            .AddCapability(new CapabilitySetting(capability1).AddDiscrete("Option2"));
+            .AddCapability(new CapabilitySettings(capability1).AddDiscrete("Option2"));
 
             objectCreator.CreateResources([unmangedResource1, unmangedResource2]);
 
@@ -135,14 +135,14 @@
             {
                 Name = $"{prefix}_ResourcePool1",
             }
-            .AddCapability(new CapabilitySetting(capability1).AddDiscrete("Option1"))
-            .AddCapability(new CapabilitySetting(capability2).AddDiscrete("Option2"));
+            .AddCapability(new CapabilitySettings(capability1).AddDiscrete("Option1"))
+            .AddCapability(new CapabilitySettings(capability2).AddDiscrete("Option2"));
 
             var pool2 = new ResourcePool()
             {
                 Name = $"{prefix}_ResourcePool2",
             }
-            .AddCapability(new CapabilitySetting(capability1).AddDiscrete("Option2"));
+            .AddCapability(new CapabilitySettings(capability1).AddDiscrete("Option2"));
 
             objectCreator.CreateResourcePools([pool1, pool2]);
 
@@ -218,8 +218,8 @@
             {
                 Name = $"{prefix}_Resource",
             }
-            .AddCapability(new CapabilitySetting(capability1).AddDiscrete("Option1"))
-            .AddCapability(new CapabilitySetting(capability2).AddDiscrete("Option2"));
+            .AddCapability(new CapabilitySettings(capability1).AddDiscrete("Option1"))
+            .AddCapability(new CapabilitySettings(capability2).AddDiscrete("Option2"));
 
             objectCreator.CreateResource(unmangedResource);
 
@@ -227,7 +227,7 @@
             {
                 Name = $"{prefix}_ResourcePool",
             }
-            .AddCapability(new CapabilitySetting(capability1).AddDiscrete("Option2"));
+            .AddCapability(new CapabilitySettings(capability1).AddDiscrete("Option2"));
 
             objectCreator.CreateResourcePool(pool);
 
@@ -307,7 +307,7 @@
                 Name = $"{prefix}_ResourcePool",
             };
 
-            resourcePool.OrchestrationSettings.SetCapabilities([new CapabilitySetting(capability)]);
+            resourcePool.OrchestrationSettings.SetCapabilities([new CapabilitySettings(capability)]);
             objectCreator.CreateResourcePool(resourcePool);
 
             try
@@ -355,7 +355,7 @@
                 new OrchestrationEvent
                 {
                     EventType = OrchestrationEventType.PrerollStart,
-                    ExecutionDetails = new ScriptExecutionDetails("SomeScript").AddCapability(new CapabilitySetting(capability).SetDiscretes([capability.Discretes.First()]))
+                    ExecutionDetails = new ScriptExecutionDetails("SomeScript").AddCapability(new CapabilitySettings(capability).SetDiscretes([capability.Discretes.First()]))
                 },
             });
             objectCreator.CreateResourcePool(resourcePool);

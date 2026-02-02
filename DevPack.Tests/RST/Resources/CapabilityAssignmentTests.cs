@@ -49,10 +49,10 @@
             capability2.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
             objectCreator.CreateCapability(capability2);
 
-            var capabilitySettings1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(capability1.Id);
+            var capabilitySettings1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability1.Id);
             capabilitySettings1.SetDiscretes(new[] { "Value 1", "Value 2" });
 
-            var capabilitySettings2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(capability2.Id);
+            var capabilitySettings2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability2.Id);
             capabilitySettings2.SetDiscretes(new[] { "Value 2", "Value 3" });
 
             // Create Resource with one capability assigned
@@ -139,10 +139,10 @@
             capability2.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
             objectCreator.CreateCapability(capability2);
 
-            var capabilitySettings1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(capability1.Id);
+            var capabilitySettings1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability1.Id);
             capabilitySettings1.SetDiscretes(new[] { "Value 1", "Value 2" });
 
-            var capabilitySettings2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(capability2.Id);
+            var capabilitySettings2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability2.Id);
             capabilitySettings2.SetDiscretes(new[] { "Value 2", "Value 3" });
 
             // Create Resource with one capability assigned
@@ -299,13 +299,13 @@
             regularCapability.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
             objectCreator.CreateCapability(regularCapability);
 
-            var timeCapabilitySettings1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(timeCapability1.Id);
+            var timeCapabilitySettings1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(timeCapability1.Id);
             timeCapabilitySettings1.SetDiscretes(new[] { "Value 1", "Value 2" });
 
-            var timeCapabilitySettings2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(timeCapability2.Id);
+            var timeCapabilitySettings2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(timeCapability2.Id);
             timeCapabilitySettings2.SetDiscretes(new[] { "Value 2", "Value 3" });
 
-            var regularCapabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(regularCapability.Id);
+            var regularCapabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(regularCapability.Id);
             regularCapabilitySettings.SetDiscretes(new[] { "Value 1", "Value 3" });
 
             // Create Resource with one time capability assigned
@@ -458,7 +458,7 @@
             capability.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
             objectCreator.CreateCapability(capability);
 
-            var capabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(capability.Id);
+            var capabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability.Id);
             capabilitySettings.SetDiscretes(new[] { "Value 1", "Value 2" });
 
             var unmanagedResource = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
@@ -493,8 +493,8 @@
         {
             var prefix = Guid.NewGuid();
 
-            Assert.ThrowsException<ArgumentException>(() => new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(Guid.Empty));
-            Assert.ThrowsException<ArgumentException>(() => new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capability(Guid.Empty)));
+            Assert.ThrowsException<ArgumentException>(() => new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(Guid.Empty));
+            Assert.ThrowsException<ArgumentException>(() => new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capability(Guid.Empty)));
         }
 
         [TestMethod]
@@ -508,7 +508,7 @@
             };
 
             var notExistingCapabilityId = Guid.NewGuid();
-            var capabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(notExistingCapabilityId);
+            var capabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(notExistingCapabilityId);
             capabilitySettings.SetDiscretes(new[] { "Value 1", "Value 2" });
             unmanagedResource.AddCapability(capabilitySettings);
 
@@ -553,7 +553,7 @@
                 Name = $"{prefix}_Resource",
             };
 
-            var capabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(capability.Id);
+            var capabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability.Id);
             unmanagedResource.AddCapability(capabilitySettings);
 
             try
@@ -597,7 +597,7 @@
                 Name = $"{prefix}_Resource",
             };
 
-            var capabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(capability.Id);
+            var capabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability.Id);
             capabilitySettings.SetDiscretes(new[] { "Value 2", "Value 5" });
             unmanagedResource.AddCapability(capabilitySettings);
 
@@ -646,9 +646,9 @@
             {
                 Name = $"{prefix}_Resource",
             }
-            .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(capability1.Id).AddDiscrete("Value 1"))
-            .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(capability2.Id).AddDiscrete("Value 2"))
-            .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(capability1.Id).AddDiscrete("Value 3"));
+            .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability1.Id).AddDiscrete("Value 1"))
+            .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability2.Id).AddDiscrete("Value 2"))
+            .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability1.Id).AddDiscrete("Value 3"));
 
             try
             {
@@ -696,12 +696,12 @@
             {
                 Name = $"{prefix}_Resource",
             }
-            .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(capability1.Id).AddDiscrete("Value 1"))
-            .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(capability2.Id).AddDiscrete("Value 2"));
+            .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability1.Id).AddDiscrete("Value 1"))
+            .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability2.Id).AddDiscrete("Value 2"));
             objectCreator.CreateResource(unmanagedResource);
 
             var resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
-            resource.AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(capability1.Id).AddDiscrete("Value 3"));
+            resource.AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability1.Id).AddDiscrete("Value 3"));
 
             try
             {
@@ -744,7 +744,7 @@
             {
                 Name = $"{prefix}_Resource1",
             }
-            .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(capability.Id).AddDiscrete("Value 2"));
+            .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability.Id).AddDiscrete("Value 2"));
 
             objectCreator.CreateResource(unmanagedResource1);
             var resource1 = TestContext.Api.Resources.Read(unmanagedResource1.Id);

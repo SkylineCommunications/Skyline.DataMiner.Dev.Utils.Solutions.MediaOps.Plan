@@ -72,7 +72,7 @@
                 Name = $"{prefix}_ResourcePool",
             };
             resourcePool.OrchestrationSettings
-                .AddCapability(new CapabilitySetting(capability))
+                .AddCapability(new CapabilitySettings(capability))
                 .AddCapacity(new NumberCapacitySetting(numberCapacity))
                 .AddCapacity(new RangeCapacitySetting(rangeCapacity))
                 .AddConfiguration(new TextConfigurationSetting(textConfiguration))
@@ -153,7 +153,7 @@
             resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
 
             resourcePool.OrchestrationSettings
-                .AddCapability(new CapabilitySetting(capability))
+                .AddCapability(new CapabilitySettings(capability))
                 .AddCapacity(new NumberCapacitySetting(numberCapacity))
                 .AddCapacity(new RangeCapacitySetting(rangeCapacity))
                 .AddConfiguration(new TextConfigurationSetting(textConfiguration))
@@ -238,7 +238,7 @@
             {
                 EventType = OrchestrationEventType.PrerollStart,
                 ExecutionDetails = new ScriptExecutionDetails("InitialScript")
-                .SetCapabilities([new CapabilitySetting(capability)])
+                .SetCapabilities([new CapabilitySettings(capability)])
                 .SetCapacities([new NumberCapacitySetting(numberCapacity), new RangeCapacitySetting(rangeCapacity)])
                 .SetConfigurations([
                     new TextConfigurationSetting(textConfiguration),
@@ -332,8 +332,8 @@
                 Name = $"{prefix}_ResourcePool",
             };
             resourcePool.OrchestrationSettings
-                .AddCapability(new CapabilitySetting(capability))
-                .AddCapability(new CapabilitySetting(capability))
+                .AddCapability(new CapabilitySettings(capability))
+                .AddCapability(new CapabilitySettings(capability))
                 .AddCapacity(new NumberCapacitySetting(numberCapacity))
                 .AddCapacity(new NumberCapacitySetting(numberCapacity))
                 .AddConfiguration(new TextConfigurationSetting(textConfiguration))
@@ -667,7 +667,7 @@
             };
 
             resourcePool1.OrchestrationSettings
-                .SetCapabilities([new CapabilitySetting(capability)])
+                .SetCapabilities([new CapabilitySettings(capability)])
                 .SetCapacities([new NumberCapacitySetting(numberCapacity), new RangeCapacitySetting(rangeCapacity)])
                 .SetConfigurations([
                     new TextConfigurationSetting(textConfiguration),

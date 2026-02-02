@@ -6,12 +6,12 @@
 
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
-    internal class ResourceStudioCapabilitySetting : CapabilitySetting
+    internal class ResourceStudioCapabilitySetting : CapabilitySettings
     {
         internal StorageResourceStudio.ProfileParameterValuesSection originalSection;
         internal StorageResourceStudio.ProfileParameterValuesSection updatedSection;
 
-        internal ResourceStudioCapabilitySetting(CapabilitySetting capabilitySetting) : base(capabilitySetting)
+        internal ResourceStudioCapabilitySetting(CapabilitySettings capabilitySetting) : base(capabilitySetting)
         {
         }
 

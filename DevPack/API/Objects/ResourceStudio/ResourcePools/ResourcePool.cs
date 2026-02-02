@@ -87,7 +87,7 @@
         /// <summary>
         /// Gets the collection of capabilities assigned to this resource pool.
         /// </summary>
-        public IReadOnlyCollection<CapabilitySetting> Capabilities => capabilitySettings;
+        public IReadOnlyCollection<CapabilitySettings> Capabilities => capabilitySettings;
 
         /// <summary>
         /// Gets the orchestration settings assigned to this resource pool.
@@ -201,7 +201,7 @@
         /// </summary>
         /// <param name="capabilitySetting">The capability setting to add.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="capabilitySetting"/> is <see langword="null"/>.</exception>
-        public ResourcePool AddCapability(CapabilitySetting capabilitySetting)
+        public ResourcePool AddCapability(CapabilitySettings capabilitySetting)
         {
             if (capabilitySetting == null)
             {
@@ -218,7 +218,7 @@
         /// </summary>
         /// <param name="capabilitySetting">The capability to remove from the resource pool. Cannot be null.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="capabilitySetting"/> is <see langword="null"/>.</exception>
-        public ResourcePool RemoveCapability(CapabilitySetting capabilitySetting)
+        public ResourcePool RemoveCapability(CapabilitySettings capabilitySetting)
         {
             if (capabilitySetting == null)
             {
@@ -246,7 +246,7 @@
         /// <param name="capabilitySettings">The capability settings to apply on the resource pool. Cannot be null.</param>
         /// <returns>Resource pool with updated capability settings.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="capabilitySettings"/> is <see langword="null"/></exception>
-        public ResourcePool SetCapabilities(IEnumerable<CapabilitySetting> capabilitySettings)
+        public ResourcePool SetCapabilities(IEnumerable<CapabilitySettings> capabilitySettings)
         {
             if (capabilitySettings == null)
             {

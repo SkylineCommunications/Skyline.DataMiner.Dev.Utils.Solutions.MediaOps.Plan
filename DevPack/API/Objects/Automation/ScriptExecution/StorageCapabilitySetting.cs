@@ -6,9 +6,9 @@
 
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
 
-    internal class StorageCapabilitySetting : CapabilitySetting
+    internal class StorageCapabilitySetting : CapabilitySettings
     {
-        internal StorageCapabilitySetting(CapabilitySetting capabilitySetting)
+        internal StorageCapabilitySetting(CapabilitySettings capabilitySetting)
             : base(capabilitySetting)
         {
         }

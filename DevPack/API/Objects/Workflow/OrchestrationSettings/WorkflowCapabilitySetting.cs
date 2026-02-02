@@ -6,12 +6,12 @@
 
     using StorageWorkflow = Storage.DOM.SlcWorkflow;
 
-    internal class WorkflowCapabilitySetting : CapabilitySetting
+    internal class WorkflowCapabilitySetting : CapabilitySettings
     {
         internal StorageWorkflow.ProfileParameterValuesSection originalSection;
         internal StorageWorkflow.ProfileParameterValuesSection updatedSection;
 
-        internal WorkflowCapabilitySetting(CapabilitySetting capabilitySetting) : base(capabilitySetting)
+        internal WorkflowCapabilitySetting(CapabilitySettings capabilitySetting) : base(capabilitySetting)
         {
         }
 
