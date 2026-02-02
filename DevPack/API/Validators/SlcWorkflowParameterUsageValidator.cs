@@ -58,7 +58,12 @@
 
         private IEnumerable<JobsInstance> GetJobInstancesReferencingConfigurations()
         {
-            var jobFilter = DomInstanceExposers.DomDefinitionId.Equal(SlcWorkflowIds.Definitions.Jobs.Id);
+            var jobFilter = new ANDFilterElement<DomInstance>(
+                    DomInstanceExposers.DomDefinitionId.Equal(SlcWorkflowIds.Definitions.Jobs.Id),
+                    DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.Postroll).GreaterThan(DateTimeOffset.UtcNow),
+                    DomInstanceExposers.StatusId.NotEqual(SlcWorkflowIds.Behaviors.Job_Behavior.Statuses.ToValue(SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Canceled))
+                );
+
             var jobConfigurationFilter = new ORFilterElement<DomInstance>(workflowConfigurationIds
                 .Select(id => DomInstanceExposers.FieldValues
                     .DomInstanceField(SlcWorkflowIds.Sections.JobExecution.JobConfiguration)
@@ -104,7 +109,11 @@
 
         private IEnumerable<RecurringJobsInstance> GetRecurringJobInstancesReferencingConfigurations()
         {
-            var recurringJobFilter = DomInstanceExposers.DomDefinitionId.Equal(SlcWorkflowIds.Definitions.RecurringJobs.Id);
+            var recurringJobFilter = new ANDFilterElement<DomInstance>(
+                    DomInstanceExposers.DomDefinitionId.Equal(SlcWorkflowIds.Definitions.RecurringJobs.Id),
+                    DomInstanceExposers.StatusId.Equal(SlcWorkflowIds.Behaviors.Recurringjob_Behavior.Statuses.ToValue(SlcWorkflowIds.Behaviors.Recurringjob_Behavior.StatusesEnum.Active))
+                );
+
             var jobConfigurationFilter = new ORFilterElement<DomInstance>(workflowConfigurationIds
                 .Select(id => DomInstanceExposers.FieldValues
                     .DomInstanceField(SlcWorkflowIds.Sections.JobExecution.JobConfiguration)

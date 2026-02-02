@@ -149,7 +149,11 @@
 
         private IEnumerable<JobsInstance> GetJobInstancesReferencingResourcePools()
         {
-            var jobFilter = DomInstanceExposers.DomDefinitionId.Equal(SlcWorkflowIds.Definitions.Jobs.Id);
+            var jobFilter = new ANDFilterElement<DomInstance>(
+                    DomInstanceExposers.DomDefinitionId.Equal(SlcWorkflowIds.Definitions.Jobs.Id),
+                    DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.Postroll).GreaterThan(DateTimeOffset.UtcNow),
+                    DomInstanceExposers.StatusId.NotEqual(SlcWorkflowIds.Behaviors.Job_Behavior.Statuses.ToValue(SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Canceled))
+                );
 
             var nodeFilters = resourcePoolIdsToValidate
                 .Select(id =>
@@ -201,7 +205,10 @@
 
         private IEnumerable<RecurringJobsInstance> GetRecurringJobInstancesReferencingResourcePools()
         {
-            var recurringJobFilter = DomInstanceExposers.DomDefinitionId.Equal(SlcWorkflowIds.Definitions.RecurringJobs.Id);
+            var recurringJobFilter = new ANDFilterElement<DomInstance>(
+                    DomInstanceExposers.DomDefinitionId.Equal(SlcWorkflowIds.Definitions.RecurringJobs.Id),
+                    DomInstanceExposers.StatusId.Equal(SlcWorkflowIds.Behaviors.Recurringjob_Behavior.Statuses.ToValue(SlcWorkflowIds.Behaviors.Recurringjob_Behavior.StatusesEnum.Active))
+                );
 
             var nodeFilters = resourcePoolIdsToValidate
                 .Select(id =>
