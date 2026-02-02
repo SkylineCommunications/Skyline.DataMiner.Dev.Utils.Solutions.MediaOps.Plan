@@ -4,6 +4,7 @@
     using System.Linq;
 
     using RT_MediaOps.Plan.RegressionTests;
+
     using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
@@ -355,7 +356,7 @@
                 new OrchestrationEvent
                 {
                     EventType = OrchestrationEventType.PrerollStart,
-                    ExecutionDetails = new ScriptExecutionDetails("SomeScript").AddCapability(new CapabilitySettings(capability).SetDiscretes([capability.Discretes.First()]))
+                    ExecutionDetails = new ScriptExecutionDetails("SomeScript").AddCapability(new CapabilitySetting(capability) { Value = capability.Discretes.First() })
                 },
             });
             objectCreator.CreateResourcePool(resourcePool);

@@ -4,11 +4,8 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
-
     using Skyline.DataMiner.Core.DataMinerSystem.Common;
     using Skyline.DataMiner.Net.Helper;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
 
@@ -66,7 +63,7 @@
         /// <summary>
         /// Gets the collection of capability settings.
         /// </summary>
-        public IReadOnlyCollection<CapabilitySettings> Capabilities => capabilitySettings;
+        public IReadOnlyCollection<CapabilitySetting> Capabilities => capabilitySettings;
 
         /// <summary>
         /// Gets the collection of capacity settings.
@@ -163,7 +160,7 @@
         /// </summary>
         /// <param name="capabilitySetting">The capability setting to add.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="capabilitySetting"/> is <see langword="null"/>.</exception>
-        public ScriptExecutionDetails AddCapability(CapabilitySettings capabilitySetting)
+        public ScriptExecutionDetails AddCapability(CapabilitySetting capabilitySetting)
         {
             if (capabilitySetting == null)
             {
@@ -179,7 +176,7 @@
         /// </summary>
         /// <param name="capabilitySetting">The capability to remove. Cannot be null.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="capabilitySetting"/> is <see langword="null"/>.</exception>
-        public ScriptExecutionDetails RemoveCapability(CapabilitySettings capabilitySetting)
+        public ScriptExecutionDetails RemoveCapability(CapabilitySetting capabilitySetting)
         {
             if (capabilitySetting == null)
             {
@@ -197,11 +194,11 @@
         /// <summary>
         /// Configures the script execution capabilities using the specified collection of capability settings.
         /// </summary>
-        /// <param name="capabilitySettings">A collection of <see cref="CapabilitySettings"/> objects that define the capabilities to be applied. Cannot
+        /// <param name="capabilitySettings">A collection of <see cref="CapabilitySetting"/> objects that define the capabilities to be applied. Cannot
         /// be null.</param>
         /// <returns>The current <see cref="ScriptExecutionDetails"/> instance with the updated capability settings.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="capabilitySettings"/> is null.</exception>
-        public ScriptExecutionDetails SetCapabilities(IEnumerable<CapabilitySettings> capabilitySettings)
+        public ScriptExecutionDetails SetCapabilities(IEnumerable<CapabilitySetting> capabilitySettings)
         {
             if (capabilitySettings == null)
             {

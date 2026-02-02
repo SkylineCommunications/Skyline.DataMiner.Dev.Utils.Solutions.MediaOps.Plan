@@ -131,7 +131,7 @@
 
             foreach (var job in planApi.DomHelpers.SlcWorkflowHelper.GetJobs(fullFilter))
             {
-                AddObjectOrchestration(result ,job.ID.Id, job.JobExecution.JobConfiguration);
+                AddObjectOrchestration(result, job.ID.Id, job.JobExecution.JobConfiguration);
 
                 foreach (var node in job.Nodes)
                 {
@@ -245,7 +245,7 @@
                         continue;
                     }
 
-                    if (orchestrationSetting.OrchestrationEvents.Any(x => x.ExecutionDetails.Capabilities.Any(y => y.Id == capabilityDiscreteValue.ParameterId && y.Discretes.Contains(capabilityDiscreteValue.DiscreteValue))))
+                    if (orchestrationSetting.OrchestrationEvents.Any(x => x.ExecutionDetails.Capabilities.Any(y => y.Id == capabilityDiscreteValue.ParameterId && y.Value == capabilityDiscreteValue.DiscreteValue)))
                     {
                         orchestrationSettingsIds.Add(orchestrationSetting.Id);
                     }

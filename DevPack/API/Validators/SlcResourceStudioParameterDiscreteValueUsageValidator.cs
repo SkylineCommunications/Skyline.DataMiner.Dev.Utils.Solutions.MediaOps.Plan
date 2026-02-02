@@ -199,7 +199,7 @@
                         continue;
                     }
 
-                    if (orchestrationSetting.OrchestrationEvents.Any(x => x.ExecutionDetails.Capabilities.Any(y => y.Id == capabilityDiscreteValue.ParameterId && y.Discretes.Contains(capabilityDiscreteValue.DiscreteValue))))
+                    if (orchestrationSetting.OrchestrationEvents.Any(x => x.ExecutionDetails.Capabilities.Any(y => y.Id == capabilityDiscreteValue.ParameterId && y.Value == capabilityDiscreteValue.DiscreteValue)))
                     {
                         orchestrationSettingsIds.Add(orchestrationSetting.Id);
                     }

@@ -4,6 +4,7 @@
     using System.Linq;
 
     using RT_MediaOps.Plan.RegressionTests;
+
     using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
@@ -238,7 +239,7 @@
             {
                 EventType = OrchestrationEventType.PrerollStart,
                 ExecutionDetails = new ScriptExecutionDetails("InitialScript")
-                .SetCapabilities([new CapabilitySettings(capability)])
+                .SetCapabilities([new CapabilitySetting(capability)])
                 .SetCapacities([new NumberCapacitySetting(numberCapacity), new RangeCapacitySetting(rangeCapacity)])
                 .SetConfigurations([
                     new TextConfigurationSetting(textConfiguration),
@@ -264,8 +265,8 @@
 
             var capabilityIds = orchestrationEvent.ExecutionDetails.Capabilities.Select(c => c.Id).ToList();
             Assert.IsTrue(capabilityIds.Contains(capability.Id));
-            Assert.IsNotNull(orchestrationEvent.ExecutionDetails.Capabilities.First().Discretes);
-            Assert.AreEqual(0, orchestrationEvent.ExecutionDetails.Capabilities.First().Discretes.Count);
+            Assert.IsNotNull(orchestrationEvent.ExecutionDetails.Capabilities.First());
+            Assert.IsNull(orchestrationEvent.ExecutionDetails.Capabilities.First().Value);
 
             var capacityIds = orchestrationEvent.ExecutionDetails.Capacities.Select(c => c.Id).ToList();
             Assert.IsTrue(capacityIds.Contains(numberCapacity.Id));
