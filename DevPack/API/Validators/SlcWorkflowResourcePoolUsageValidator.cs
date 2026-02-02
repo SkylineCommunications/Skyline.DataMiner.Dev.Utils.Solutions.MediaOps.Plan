@@ -120,16 +120,25 @@
 
         private void ValidateNodeSection(Dictionary<Guid, List<Guid>> result, Guid domInstanceId, NodesSection nodesSection)
         {
-            if ((nodesSection.NodeType == SlcWorkflowIds.Enums.Nodetype.ResourcePool && (nodesSection.ReferenceId == Guid.Empty || !resourcePoolIdsToValidate.Contains(nodesSection.ReferenceId)))
-                || (nodesSection.NodeType == SlcWorkflowIds.Enums.Nodetype.Resource && (nodesSection.ParentReferenceId == Guid.Empty || !resourcePoolIdsToValidate.Contains(nodesSection.ParentReferenceId))))
+            var resourcePoolId = Guid.Empty;
+            if (nodesSection.NodeType == SlcWorkflowIds.Enums.Nodetype.ResourcePool && nodesSection.ReferenceId != Guid.Empty && resourcePoolIdsToValidate.Contains(nodesSection.ReferenceId))
+            {
+                resourcePoolId = nodesSection.ReferenceId;
+            }
+            else if (nodesSection.NodeType == SlcWorkflowIds.Enums.Nodetype.Resource && nodesSection.ParentReferenceId != Guid.Empty && resourcePoolIdsToValidate.Contains(nodesSection.ParentReferenceId))
+            {
+                resourcePoolId = nodesSection.ParentReferenceId;
+            }
+
+            if (resourcePoolId == Guid.Empty)
             {
                 return;
             }
 
-            if (!result.TryGetValue(nodesSection.ReferenceId, out var jobIds))
+            if (!result.TryGetValue(resourcePoolId, out var jobIds))
             {
                 jobIds = new List<Guid>();
-                result[nodesSection.ReferenceId] = jobIds;
+                result[resourcePoolId] = jobIds;
             }
 
             if (!jobIds.Contains(domInstanceId))
@@ -228,13 +237,13 @@
 
             foreach (var recurringJob in recurringJobs)
             {
-                var jobId = recurringJob.ID.Id;
+                var recurringJobId = recurringJob.ID.Id;
 
                 if (recurringJob.Nodes != null)
                 {
                     foreach (var nodeSection in recurringJob.Nodes)
                     {
-                        ValidateNodeSection(result, jobId, nodeSection);
+                        ValidateNodeSection(result, recurringJobId, nodeSection);
                     }
                 }
             }
@@ -280,13 +289,13 @@
 
             foreach (var workflow in workflows)
             {
-                var jobId = workflow.ID.Id;
+                var workflowId = workflow.ID.Id;
 
                 if (workflow.Nodes != null)
                 {
                     foreach (var nodeSection in workflow.Nodes)
                     {
-                        ValidateNodeSection(result, jobId, nodeSection);
+                        ValidateNodeSection(result, workflowId, nodeSection);
                     }
                 }
             }
