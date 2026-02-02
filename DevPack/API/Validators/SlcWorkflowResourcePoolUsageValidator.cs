@@ -121,7 +121,7 @@
         private void ValidateNodeSection(Dictionary<Guid, List<Guid>> result, Guid domInstanceId, NodesSection nodesSection)
         {
             var resourcePoolId = Guid.Empty;
-            if (nodesSection.NodeType == SlcWorkflowIds.Enums.Nodetype.ResourcePool && nodesSection.ReferenceId != Guid.Empty & resourcePoolIdsToValidate.Contains(nodesSection.ReferenceId))
+            if (nodesSection.NodeType == SlcWorkflowIds.Enums.Nodetype.ResourcePool && nodesSection.ReferenceId != Guid.Empty && resourcePoolIdsToValidate.Contains(nodesSection.ReferenceId))
             {
                 resourcePoolId = nodesSection.ReferenceId;
             }
