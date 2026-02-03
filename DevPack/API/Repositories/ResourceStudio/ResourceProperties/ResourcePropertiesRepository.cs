@@ -73,6 +73,7 @@
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
+            Guid resourcePropertyId = Guid.Empty;
             ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Create), act =>
             {
                 if (!apiObject.IsNew)
@@ -85,11 +86,11 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                var resourcePropertyId = apiObject.Id;
+                resourcePropertyId = apiObject.Id;
                 act?.AddTag("ResourcePropertyId", resourcePropertyId);
             });
 
-            return apiObject;
+            return Read(resourcePropertyId);
         }
 
         /// <summary>
@@ -108,6 +109,7 @@
 
             var list = apiObjects.ToList();
 
+            BulkOperationResult<Guid> result = null;
             ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Create), act =>
             {
                 var existingProperties = list.Where(x => !x.IsNew);
@@ -116,7 +118,7 @@
                     throw new InvalidOperationException("Not possible to use method Create for existing resource properties. Use CreateOrUpdate or Update instead.");
                 }
 
-                if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, list, out var result))
+                if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, list, out result))
                 {
                     result.ThrowBulkException();
                 }
@@ -125,7 +127,7 @@
                 act?.AddTag("ResourcePropertyIds", string.Join(", ", propertyIds));
             });
 
-            return list;
+            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
 
         /// <summary>
@@ -143,9 +145,10 @@
 
             var list = apiObjects.ToList();
 
+            BulkOperationResult<Guid> result = null;
             ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(CreateOrUpdate), act =>
             {
-                if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, list, out var result))
+                if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, list, out result))
                 {
                     result.ThrowBulkException();
                 }
@@ -155,7 +158,7 @@
                 act?.AddTag("Created or Updated Resource Properties Count", propertyIds.Count());
             });
 
-            return list;
+            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
 
         /// <summary>
@@ -446,6 +449,7 @@
 
             PlanApi.Logger.Information(this, $"Updating existing Resource Property {apiObject.Name}...");
 
+            Guid resourcePropertyId = Guid.Empty;
             ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Update), act =>
             {
                 if (apiObject.IsNew)
@@ -458,11 +462,11 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                var resourcePropertyId = apiObject.Id;
+                resourcePropertyId = apiObject.Id;
                 act?.AddTag("ResourcePropertyId", resourcePropertyId);
             });
 
-            return apiObject;
+            return Read(resourcePropertyId);
         }
 
         /// <summary>
@@ -481,6 +485,7 @@
 
             var list = apiObjects.ToList();
 
+            BulkOperationResult<Guid> result = null;
             ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Update), act =>
             {
                 var newProperties = list.Where(x => x.IsNew);
@@ -489,7 +494,7 @@
                     throw new InvalidOperationException("Not possible to use method Update for new resource properties. Use Create or CreateOrUpdate instead.");
                 }
 
-                if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, list, out var result))
+                if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, list, out result))
                 {
                     result.ThrowBulkException();
                 }
@@ -498,7 +503,7 @@
                 act?.AddTag("ResourcePropertyIds", String.Join(", ", resourcePropertyIds));
             });
 
-            return list;
+            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
     }
 }

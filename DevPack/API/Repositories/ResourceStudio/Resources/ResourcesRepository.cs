@@ -112,7 +112,6 @@
         /// <param name="resourceId">The unique identifier of the resource to convert.</param>
         /// <param name="setting">The configuration for the service link.</param>
         /// <returns>The converted <see cref="ServiceResource"/>.</returns>
-        /// <exception cref="ResourceNotFoundException">Thrown when the resource with the specified identifier is not found.</exception>
         /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
         public ServiceResource ConvertToServiceResource(Guid resourceId, ResourceServiceLinkSetting setting)
         {
@@ -269,6 +268,7 @@
 
             PlanApi.Logger.Information(this, $"Creating new Resource {apiObject.Name}...");
 
+            Guid resourceId = Guid.Empty;
             ActivityHelper.Track(nameof(ResourcesRepository), nameof(Create), act =>
             {
                 if (!apiObject.IsNew)
@@ -276,16 +276,16 @@
                     throw new InvalidOperationException("Not possible to use method Create for existing resources. Use CreateOrUpdate or Update instead.");
                 }
 
-                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
+                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, new[] { apiObject }, out var result))
                 {
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                var resourceId = result.SuccessfulIds.First();
+                resourceId = apiObject.Id;
                 act?.AddTag("ResourceId", resourceId);
             });
 
-            return apiObject;
+            return Read(resourceId);
         }
 
         /// <summary>
@@ -304,6 +304,7 @@
 
             var list = apiObjects.ToList();
 
+            BulkOperationResult<Guid> result = null;
             ActivityHelper.Track(nameof(ResourcesRepository), nameof(Create), act =>
             {
                 var existingResources = list.Where(x => !x.IsNew);
@@ -312,7 +313,7 @@
                     throw new InvalidOperationException("Not possible to use method Create for existing resources. Use CreateOrUpdate or Update instead.");
                 }
 
-                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, list, out var result))
+                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, list, out result))
                 {
                     result.ThrowBulkException();
                 }
@@ -321,7 +322,7 @@
                 act?.AddTag("ResourceIds", String.Join(", ", resourceIds));
             });
 
-            return list;
+            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
 
         /// <summary>
@@ -339,9 +340,10 @@
 
             var list = apiObjects.ToList();
 
+            BulkOperationResult<Guid> result = null;
             ActivityHelper.Track(nameof(ResourcesRepository), nameof(CreateOrUpdate), act =>
             {
-                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, list, out var result))
+                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, list, out result))
                 {
                     result.ThrowBulkException();
                 }
@@ -351,7 +353,7 @@
                 act?.AddTag("Created or Updated Resources Count", resourceIds.Count());
             });
 
-            return list;
+            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
 
         /// <summary>
@@ -1086,6 +1088,7 @@
 
             PlanApi.Logger.Information(this, $"Updating existing Resource {apiObject.Name}...");
 
+            Guid resourceId = Guid.Empty;
             ActivityHelper.Track(nameof(ResourcesRepository), nameof(Update), act =>
             {
                 if (!apiObject.HasChanges)
@@ -1099,16 +1102,22 @@
                     throw new InvalidOperationException("Not possible to use method Update for new resources. Use Create or CreateOrUpdate instead.");
                 }
 
-                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
+                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, new[] { apiObject }, out var result))
                 {
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                var resourceId = result.SuccessfulIds.First();
+                resourceId = apiObject.Id;
                 act?.AddTag("ResourceId", resourceId);
             });
 
-            return apiObject;
+            // When there were no changes, we did not touch storage, so just return the instance.
+            if (resourceId == Guid.Empty)
+            {
+                return apiObject;
+            }
+
+            return Read(resourceId);
         }
 
         /// <summary>
@@ -1127,6 +1136,7 @@
 
             var list = apiObjects.ToList();
 
+            BulkOperationResult<Guid> result = null;
             ActivityHelper.Track(nameof(ResourcesRepository), nameof(Update), act =>
             {
                 var newResources = list.Where(x => x.IsNew);
@@ -1135,7 +1145,7 @@
                     throw new InvalidOperationException("Not possible to use method Update for new resources. Use Create or CreateOrUpdate instead.");
                 }
 
-                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, list, out var result))
+                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, list, out result))
                 {
                     result.ThrowBulkException();
                 }
@@ -1144,7 +1154,7 @@
                 act?.AddTag("ResourceIds", String.Join(", ", resourceIds));
             });
 
-            return list;
+            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
 
         private IEnumerable<IPagedResult<Resource>> ReadPagedIterator(FilterElement<Resource> filter, int pageSize)

@@ -75,6 +75,7 @@
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
+            Guid configurationId = Guid.Empty;
             ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Create), act =>
             {
                 if (!apiObject.IsNew)
@@ -87,11 +88,11 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                var configurationId = apiObject.Id;
+                configurationId = apiObject.Id;
                 act?.AddTag("ConfigurationId", configurationId);
             });
 
-            return apiObject;
+            return Read(configurationId);
         }
 
         /// <summary>
@@ -110,6 +111,7 @@
 
             var list = apiObjects.ToList();
 
+            BulkOperationResult<Guid> result = null;
             ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Create), act =>
             {
                 var existingConfigurations = list.Where(x => !x.IsNew);
@@ -118,7 +120,7 @@
                     throw new InvalidOperationException("Not possible to use method Create for existing configurations. Use CreateOrUpdate or Update instead.");
                 }
 
-                if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, list, out var result))
+                if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, list, out result))
                 {
                     result.ThrowBulkException();
                 }
@@ -127,7 +129,7 @@
                 act?.AddTag("ConfigurationIds", string.Join(", ", configurationIds));
             });
 
-            return list;
+            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
 
         /// <summary>
@@ -145,9 +147,10 @@
 
             var list = apiObjects.ToList();
 
+            BulkOperationResult<Guid> result = null;
             ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(CreateOrUpdate), act =>
             {
-                if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, list, out var result))
+                if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, list, out result))
                 {
                     result.ThrowBulkException();
                 }
@@ -157,7 +160,7 @@
                 act?.AddTag("Created or Updated Configurations Count", configurationIds.Count());
             });
 
-            return list;
+            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
 
         /// <summary>
@@ -403,6 +406,7 @@
 
             PlanApi.Logger.Information(this, $"Updating existing configuration {apiObject.Name}...");
 
+            Guid configurationId = Guid.Empty;
             ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Update), act =>
             {
                 if (apiObject.IsNew)
@@ -415,11 +419,11 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                var configurationId = apiObject.Id;
+                configurationId = apiObject.Id;
                 act?.AddTag("ConfigurationId", configurationId);
             });
 
-            return apiObject;
+            return Read(configurationId);
         }
 
         /// <summary>
@@ -438,6 +442,7 @@
 
             var list = apiObjects.ToList();
 
+            BulkOperationResult<Guid> result = null;
             ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Update), act =>
             {
                 var newConfigurations = list.Where(x => x.IsNew);
@@ -446,7 +451,7 @@
                     throw new InvalidOperationException("Not possible to use method Update for new configurations. Use Create or CreateOrUpdate instead.");
                 }
 
-                if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, list, out var result))
+                if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, list, out result))
                 {
                     result.ThrowBulkException();
                 }
@@ -455,7 +460,7 @@
                 act?.AddTag("ConfigurationIds", String.Join(", ", configurationIds));
             });
 
-            return list;
+            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
 
         private IEnumerable<IPagedResult<Configuration>> ReadPagedIterator(FilterElement<Configuration> filter, int pageSize)

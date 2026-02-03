@@ -75,6 +75,7 @@
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
+            Guid capabilityId = Guid.Empty;
             ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Create), act =>
             {
                 if (!apiObject.IsNew)
@@ -87,11 +88,11 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                var capabilityId = apiObject.Id;
+                capabilityId = apiObject.Id;
                 act?.AddTag("CapabilityId", capabilityId);
             });
 
-            return apiObject;
+            return Read(capabilityId);
         }
 
         /// <summary>
@@ -110,6 +111,7 @@
 
             var list = apiObjects.ToList();
 
+            BulkOperationResult<Guid> result = null;
             ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Create), act =>
             {
                 var existingCapabilities = list.Where(x => !x.IsNew);
@@ -118,7 +120,7 @@
                     throw new InvalidOperationException("Not possible to use method Create for existing capabilities. Use CreateOrUpdate or Update instead.");
                 }
 
-                if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, list, out var result))
+                if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, list, out result))
                 {
                     result.ThrowBulkException();
                 }
@@ -127,7 +129,7 @@
                 act?.AddTag("CapabilityIds", string.Join(", ", capabilityIds));
             });
 
-            return list;
+            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
 
         /// <summary>
@@ -145,9 +147,10 @@
 
             var list = apiObjects.ToList();
 
+            BulkOperationResult<Guid> result = null;
             ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(CreateOrUpdate), act =>
             {
-                if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, list, out var result))
+                if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, list, out result))
                 {
                     result.ThrowBulkException();
                 }
@@ -157,7 +160,7 @@
                 act?.AddTag("Created or Updated Capabilities Count", capabilityIds.Count());
             });
 
-            return list;
+            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
 
         /// <summary>

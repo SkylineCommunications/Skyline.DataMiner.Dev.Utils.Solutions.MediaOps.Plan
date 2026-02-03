@@ -131,6 +131,7 @@
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
+            Guid resourcePoolId = Guid.Empty;
             ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Create), act =>
             {
                 if (!apiObject.IsNew)
@@ -143,11 +144,11 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                var resourcePoolId = result.SuccessfulIds.First();
+                resourcePoolId = apiObject.Id;
                 act?.AddTag("ResourcePoolId", resourcePoolId);
             });
 
-            return apiObject;
+            return Read(resourcePoolId);
         }
 
         /// <summary>
@@ -166,6 +167,7 @@
 
             var list = apiObjects.ToList();
 
+            BulkOperationResult<Guid> result = null;
             ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Create), act =>
             {
                 var existingResourcePools = list.Where(x => !x.IsNew);
@@ -174,7 +176,7 @@
                     throw new InvalidOperationException("Not possible to use method Create for existing resource pools. Use CreateOrUpdate or Update instead.");
                 }
 
-                if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, list, out var result))
+                if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, list, out result))
                 {
                     result.ThrowBulkException();
                 }
@@ -183,7 +185,7 @@
                 act?.AddTag("ResourcePoolIds", String.Join(", ", resourcePoolIds));
             });
 
-            return list;
+            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
 
         /// <summary>
@@ -201,9 +203,10 @@
 
             var list = apiObjects.ToList();
 
+            BulkOperationResult<Guid> result = null;
             ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(CreateOrUpdate), act =>
             {
-                if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, list, out var result))
+                if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, list, out result))
                 {
                     result.ThrowBulkException();
                 }
@@ -213,7 +216,7 @@
                 act?.AddTag("Created or Updated Resource Pools Count", resourcePoolIds.Count);
             });
 
-            return list;
+            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
 
         /// <summary>
@@ -897,6 +900,7 @@
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
+            Guid resourcePoolId = Guid.Empty;
             ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Update), act =>
             {
                 if (!apiObject.HasChanges)
@@ -915,11 +919,17 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                var resourcePoolId = apiObject.Id;
+                resourcePoolId = apiObject.Id;
                 act?.AddTag("ResourcePoolId", resourcePoolId);
             });
 
-            return apiObject;
+            if (resourcePoolId == Guid.Empty)
+            {
+                // No changes were applied, just return the passed instance
+                return apiObject;
+            }
+
+            return Read(resourcePoolId);
         }
 
         /// <summary>
@@ -938,6 +948,7 @@
 
             var list = apiObjects.ToList();
 
+            BulkOperationResult<Guid> result = null;
             ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Update), act =>
             {
                 var newResourcePools = list.Where(x => x.IsNew);
@@ -946,7 +957,7 @@
                     throw new InvalidOperationException("Not possible to use method Update for new resource pools. Use Create or CreateOrUpdate instead.");
                 }
 
-                if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, list, out var result))
+                if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, list, out result))
                 {
                     result.ThrowBulkException();
                 }
@@ -955,7 +966,7 @@
                 act?.AddTag("ResourcePoolIds", String.Join(", ", resourcePoolIds));
             });
 
-            return list;
+            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
     }
 }

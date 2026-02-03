@@ -75,6 +75,7 @@
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
+            Guid capacityId = Guid.Empty;
             ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Create), act =>
             {
                 if (!apiObject.IsNew)
@@ -82,16 +83,16 @@
                     throw new InvalidOperationException("Not possible to use method Create for an existing capacity. Use CreateOrUpdate or Update instead.");
                 }
 
-                if (!CoreCapacityHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
+                if (!CoreCapacityHandler.TryCreateOrUpdate(PlanApi, new[] { apiObject }, out var result))
                 {
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                var capacityId = apiObject.Id;
+                capacityId = apiObject.Id;
                 act?.AddTag("CapacityId", capacityId);
             });
 
-            return apiObject;
+            return Read(capacityId);
         }
 
         /// <summary>
@@ -110,6 +111,7 @@
 
             var list = apiObjects.ToList();
 
+            BulkOperationResult<Guid> result = null;
             ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Create), act =>
             {
                 var existingCapacities = list.Where(x => !x.IsNew);
@@ -118,7 +120,7 @@
                     throw new InvalidOperationException("Not possible to use method Create for existing capacities. Use CreateOrUpdate or Update instead.");
                 }
 
-                if (!CoreCapacityHandler.TryCreateOrUpdate(PlanApi, list, out var result))
+                if (!CoreCapacityHandler.TryCreateOrUpdate(PlanApi, list, out result))
                 {
                     result.ThrowBulkException();
                 }
@@ -127,7 +129,7 @@
                 act?.AddTag("CapacityIds", string.Join(", ", capacityIds));
             });
 
-            return list;
+            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
 
         /// <summary>
@@ -145,9 +147,10 @@
 
             var list = apiObjects.ToList();
 
+            BulkOperationResult<Guid> result = null;
             ActivityHelper.Track(nameof(CapacitiesRepository), nameof(CreateOrUpdate), act =>
             {
-                if (!CoreCapacityHandler.TryCreateOrUpdate(PlanApi, list, out var result))
+                if (!CoreCapacityHandler.TryCreateOrUpdate(PlanApi, list, out result))
                 {
                     result.ThrowBulkException();
                 }
@@ -157,7 +160,7 @@
                 act?.AddTag("Created or Updated Capacities Count", capacityIds.Count());
             });
 
-            return list;
+            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
 
         /// <summary>
@@ -423,6 +426,7 @@
 
             PlanApi.Logger.Information(this, $"Updating existing capacity {apiObject.Name}...");
 
+            Guid capacityId = Guid.Empty;
             ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Update), act =>
             {
                 if (apiObject.IsNew)
@@ -430,16 +434,16 @@
                     throw new InvalidOperationException("Not possible to use method Update for new capacity. Use Create or CreateOrUpdate instead.");
                 }
 
-                if (!CoreCapacityHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
+                if (!CoreCapacityHandler.TryCreateOrUpdate(PlanApi, new[] { apiObject }, out var result))
                 {
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                var capacityId = apiObject.Id;
+                capacityId = apiObject.Id;
                 act?.AddTag("CapacityId", capacityId);
             });
 
-            return apiObject;
+            return Read(capacityId);
         }
 
         /// <summary>
@@ -458,6 +462,7 @@
 
             var list = apiObjects.ToList();
 
+            BulkOperationResult<Guid> result = null;
             ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Update), act =>
             {
                 var newCapacities = list.Where(x => x.IsNew);
@@ -466,7 +471,7 @@
                     throw new InvalidOperationException("Not possible to use method Update for new capacities. Use Create or CreateOrUpdate instead.");
                 }
 
-                if (!CoreCapacityHandler.TryCreateOrUpdate(PlanApi, list, out var result))
+                if (!CoreCapacityHandler.TryCreateOrUpdate(PlanApi, list, out result))
                 {
                     result.ThrowBulkException();
                 }
@@ -475,7 +480,7 @@
                 act?.AddTag("CapacityIds", String.Join(", ", capacityIds));
             });
 
-            return list;
+            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
     }
 }
