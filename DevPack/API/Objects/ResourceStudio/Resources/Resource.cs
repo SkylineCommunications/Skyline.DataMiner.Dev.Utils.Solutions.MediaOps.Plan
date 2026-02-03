@@ -388,12 +388,7 @@
                 throw new ArgumentNullException(nameof(property));
             }
 
-            if (!property.IsNew)
-            {
-                return this;
-            }
-
-            propertySettings.Add(property);
+            propertySettings.Add(new ResourcePropertySettings(property));
             return this;
         }
 
