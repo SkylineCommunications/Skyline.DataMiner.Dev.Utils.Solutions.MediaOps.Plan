@@ -157,7 +157,7 @@
 
                 var configurationIds = result.SuccessfulIds;
                 act?.AddTag("Created or Updated Configurations", String.Join(", ", configurationIds));
-                act?.AddTag("Created or Updated Configurations Count", configurationIds.Count());
+                act?.AddTag("Created or Updated Configurations Count", configurationIds.Count);
             });
 
             return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();

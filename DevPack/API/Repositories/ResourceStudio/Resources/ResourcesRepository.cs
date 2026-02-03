@@ -350,7 +350,7 @@
 
                 var resourceIds = result.SuccessfulIds;
                 act?.AddTag("Created or Updated Resources", String.Join(", ", resourceIds));
-                act?.AddTag("Created or Updated Resources Count", resourceIds.Count());
+                act?.AddTag("Created or Updated Resources Count", resourceIds.Count);
             });
 
             return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();

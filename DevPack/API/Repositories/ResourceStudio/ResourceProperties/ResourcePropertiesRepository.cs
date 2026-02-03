@@ -155,7 +155,7 @@
 
                 var propertyIds = result.SuccessfulIds;
                 act?.AddTag("Created or Updated Resource Properties", String.Join(", ", propertyIds));
-                act?.AddTag("Created or Updated Resource Properties Count", propertyIds.Count());
+                act?.AddTag("Created or Updated Resource Properties Count", propertyIds.Count);
             });
 
             return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();

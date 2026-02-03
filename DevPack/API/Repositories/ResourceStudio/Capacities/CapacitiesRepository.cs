@@ -157,7 +157,7 @@
 
                 var capacityIds = result.SuccessfulIds;
                 act?.AddTag("Created or Updated Capacities", String.Join(", ", capacityIds));
-                act?.AddTag("Created or Updated Capacities Count", capacityIds.Count());
+                act?.AddTag("Created or Updated Capacities Count", capacityIds.Count);
             });
 
             return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
