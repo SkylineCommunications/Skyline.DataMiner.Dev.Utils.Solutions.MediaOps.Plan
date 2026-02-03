@@ -191,7 +191,7 @@
                 HashSet<Guid> orchestrationSettingsIds = new HashSet<Guid>();
                 foreach (var orchestrationSetting in orchestrationSettings)
                 {
-                    if (orchestrationSetting.Capabilities.Any(x => x.Id == capabilityDiscreteValue.ParameterId && x.Discretes.Contains(capabilityDiscreteValue.DiscreteValue)))
+                    if (orchestrationSetting.Capabilities.Any(x => x.Id == capabilityDiscreteValue.ParameterId && x.Value == capabilityDiscreteValue.DiscreteValue))
                     {
                         orchestrationSettingsIds.Add(orchestrationSetting.Id);
 

@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Skyline.DataMiner.Net.Helper;
 
     /// <summary>
@@ -28,7 +29,7 @@
         /// <summary>
         /// Gets the collection of capability settings.
         /// </summary>
-        public abstract IReadOnlyCollection<CapabilitySettings> Capabilities { get; }
+        public abstract IReadOnlyCollection<CapabilitySetting> Capabilities { get; }
 
         /// <summary>
         /// Gets the collection of capacity settings.
@@ -51,7 +52,7 @@
         /// <param name="capabilitySetting">The capability setting to add.</param>
         /// <returns>The current <see cref="OrchestrationSettings"/> instance.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="capabilitySetting"/> is <see langword="null"/>.</exception>
-        public abstract OrchestrationSettings AddCapability(CapabilitySettings capabilitySetting);
+        public abstract OrchestrationSettings AddCapability(CapabilitySetting capabilitySetting);
 
         /// <summary>
         /// Removes the specified capability.
@@ -59,7 +60,7 @@
         /// <param name="capabilitySetting">The capability to remove. Cannot be null.</param>
         /// <returns>The current <see cref="OrchestrationSettings"/> instance.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="capabilitySetting"/> is <see langword="null"/>.</exception>
-        public abstract OrchestrationSettings RemoveCapability(CapabilitySettings capabilitySetting);
+        public abstract OrchestrationSettings RemoveCapability(CapabilitySetting capabilitySetting);
 
         /// <summary>
         /// Sets the specified collection of capability settings.
@@ -67,7 +68,7 @@
         /// <param name="capabilitySettings">The capability settings to set. Cannot be null.</param>
         /// <returns>The current <see cref="OrchestrationSettings"/> instance.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="capabilitySettings"/> is <see langword="null"/></exception>
-        public abstract OrchestrationSettings SetCapabilities(IEnumerable<CapabilitySettings> capabilitySettings);
+        public abstract OrchestrationSettings SetCapabilities(IEnumerable<CapabilitySetting> capabilitySettings);
 
         /// <summary>
         /// Adds a new capacity.

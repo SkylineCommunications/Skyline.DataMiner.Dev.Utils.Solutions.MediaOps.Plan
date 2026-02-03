@@ -50,7 +50,7 @@
             }
             .AddCapability(new CapabilitySettings(capability.Id).SetDiscretes(new[] { "Value 1" }));
             resourcePool1.OrchestrationSettings
-                .AddCapability(new CapabilitySettings(capability.Id).SetDiscretes(new[] { "Value 2" }))
+                .AddCapability(new CapabilitySetting(capability.Id) { Value = "Value 2" })
                 .AddOrchestrationEvent(new OrchestrationEvent()
                 {
                     EventType = OrchestrationEventType.PrerollStart,
@@ -64,7 +64,7 @@
             }
             .AddCapability(new CapabilitySettings(capability.Id).SetDiscretes(new[] { "Value 2" }));
             resourcePool2.OrchestrationSettings
-                .AddCapability(new CapabilitySettings(capability.Id).SetDiscretes(new[] { "Value 3" }))
+                .AddCapability(new CapabilitySetting(capability.Id) { Value = "Value 3" })
                     .AddOrchestrationEvent(new OrchestrationEvent()
                     {
                         EventType = OrchestrationEventType.PrerollStart,
@@ -78,7 +78,7 @@
             }
             .AddCapability(new CapabilitySettings(capability.Id).SetDiscretes(new[] { "Value 3" }));
             resourcePool3.OrchestrationSettings
-                .AddCapability(new CapabilitySettings(capability.Id).SetDiscretes(new[] { "Value 1" }))
+                .AddCapability(new CapabilitySetting(capability.Id) { Value = "Value 1" })
                         .AddOrchestrationEvent(new OrchestrationEvent()
                         {
                             EventType = OrchestrationEventType.PrerollStart,

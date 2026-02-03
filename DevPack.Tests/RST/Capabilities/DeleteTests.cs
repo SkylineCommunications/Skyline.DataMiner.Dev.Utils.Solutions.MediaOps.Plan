@@ -308,7 +308,7 @@
                 Name = $"{prefix}_ResourcePool",
             };
 
-            resourcePool.OrchestrationSettings.SetCapabilities([new CapabilitySettings(capability)]);
+            resourcePool.OrchestrationSettings.SetCapabilities([new CapabilitySetting(capability)]);
             objectCreator.CreateResourcePool(resourcePool);
 
             try

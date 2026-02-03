@@ -4,8 +4,6 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
 
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
@@ -34,8 +32,10 @@
             InitTracking();
         }
 
-        public override IReadOnlyCollection<CapabilitySettings> Capabilities => capabilitySettings;
+        public override IReadOnlyCollection<CapabilitySetting> Capabilities => capabilitySettings;
+
         public override IReadOnlyCollection<CapacitySetting> Capacities => numberCapacitySettings.Concat<CapacitySetting>(rangeCapacitySettings).ToList();
+
         public override IReadOnlyCollection<ConfigurationSetting> Configurations
         {
             get
@@ -52,7 +52,7 @@
 
         internal StorageResourceStudio.ConfigurationInstance OriginalInstance => originalInstance;
 
-        public override OrchestrationSettings AddCapability(CapabilitySettings capabilitySetting)
+        public override OrchestrationSettings AddCapability(CapabilitySetting capabilitySetting)
         {
             if (capabilitySetting == null)
             {
@@ -128,13 +128,14 @@
             return this;
         }
 
-        public override OrchestrationSettings RemoveCapability(CapabilitySettings capabilitySetting)
+        public override OrchestrationSettings RemoveCapability(CapabilitySetting capabilitySetting)
         {
             if (capabilitySetting == null)
             {
                 throw new ArgumentNullException(nameof(capabilitySetting));
             }
 
+            // TODO: review this, you should be able to remove by ID even if OriginalSection is null
             if (capabilitySetting.OriginalSection == null)
             {
                 return this;
@@ -157,6 +158,7 @@
                 throw new ArgumentNullException(nameof(capacitySetting));
             }
 
+            // TODO: review this, you should be able to remove by ID even if OriginalSection is null
             if (capacitySetting.OriginalSection == null)
             {
                 return this;
@@ -189,6 +191,7 @@
                 throw new ArgumentNullException(nameof(configurationSetting));
             }
 
+            // TODO: review this, you should be able to remove by ID even if OriginalSection is null
             if (configurationSetting.OriginalSection == null)
             {
                 return this;
@@ -241,7 +244,7 @@
             return this;
         }
 
-        public override OrchestrationSettings SetCapabilities(IEnumerable<CapabilitySettings> capabilitySettings)
+        public override OrchestrationSettings SetCapabilities(IEnumerable<CapabilitySetting> capabilitySettings)
         {
             if (capabilitySettings == null)
             {

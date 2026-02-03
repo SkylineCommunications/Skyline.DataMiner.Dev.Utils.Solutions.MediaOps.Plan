@@ -1,7 +1,5 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
-    using System;
-
     /// <summary>
     /// Defines the contract for the MediaOps Plan API.
     /// </summary>

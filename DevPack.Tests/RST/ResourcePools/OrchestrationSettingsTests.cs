@@ -73,7 +73,7 @@
                 Name = $"{prefix}_ResourcePool",
             };
             resourcePool.OrchestrationSettings
-                .AddCapability(new CapabilitySettings(capability))
+                .AddCapability(new CapabilitySetting(capability))
                 .AddCapacity(new NumberCapacitySetting(numberCapacity))
                 .AddCapacity(new RangeCapacitySetting(rangeCapacity))
                 .AddConfiguration(new TextConfigurationSetting(textConfiguration))
@@ -154,7 +154,7 @@
             resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
 
             resourcePool.OrchestrationSettings
-                .AddCapability(new CapabilitySettings(capability))
+                .AddCapability(new CapabilitySetting(capability))
                 .AddCapacity(new NumberCapacitySetting(numberCapacity))
                 .AddCapacity(new RangeCapacitySetting(rangeCapacity))
                 .AddConfiguration(new TextConfigurationSetting(textConfiguration))
@@ -333,8 +333,8 @@
                 Name = $"{prefix}_ResourcePool",
             };
             resourcePool.OrchestrationSettings
-                .AddCapability(new CapabilitySettings(capability))
-                .AddCapability(new CapabilitySettings(capability))
+                .AddCapability(new CapabilitySetting(capability))
+                .AddCapability(new CapabilitySetting(capability))
                 .AddCapacity(new NumberCapacitySetting(numberCapacity))
                 .AddCapacity(new NumberCapacitySetting(numberCapacity))
                 .AddConfiguration(new TextConfigurationSetting(textConfiguration))
@@ -668,7 +668,7 @@
             };
 
             resourcePool1.OrchestrationSettings
-                .SetCapabilities([new CapabilitySettings(capability)])
+                .SetCapabilities([new CapabilitySetting(capability)])
                 .SetCapacities([new NumberCapacitySetting(numberCapacity), new RangeCapacitySetting(rangeCapacity)])
                 .SetConfigurations([
                     new TextConfigurationSetting(textConfiguration),
