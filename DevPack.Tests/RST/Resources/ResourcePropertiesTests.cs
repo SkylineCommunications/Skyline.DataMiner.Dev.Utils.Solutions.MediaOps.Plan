@@ -378,5 +378,45 @@
 
             Assert.Fail("Exception not thrown");
         }
+
+        [TestMethod]
+        public void AssignPropertyFromExistingResourceToNewResource()
+        {
+            var prefix = Guid.NewGuid();
+
+            var property = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceProperty()
+            {
+                Name = $"{prefix}_Property",
+            };
+            objectCreator.CreateProperty(property);
+
+            var unmanagedResource1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
+            {
+                Name = $"{prefix}_Resource1",
+            }
+            .AddProperty(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePropertySettings(property.Id)
+            {
+                Value = "A",
+            });
+
+            objectCreator.CreateResource(unmanagedResource1);
+            var resource1 = TestContext.Api.Resources.Read(unmanagedResource1.Id);
+
+            var unmanagedResource2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
+            {
+                Name = $"{prefix}_Resource2",
+            };
+
+            foreach (var propertySetting in resource1.Properties)
+            {
+                unmanagedResource2.AddProperty(propertySetting);
+            }
+
+            objectCreator.CreateResource(unmanagedResource2);
+
+            var resource2 = TestContext.Api.Resources.Read(unmanagedResource2.Id);
+            Assert.IsNotNull(resource2);
+            Assert.AreEqual(1, resource2.Properties.Count);
+        }
     }
 }

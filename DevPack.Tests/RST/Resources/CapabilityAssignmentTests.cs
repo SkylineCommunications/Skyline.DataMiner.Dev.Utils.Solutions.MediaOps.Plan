@@ -751,7 +751,7 @@
 
             var unmanagedResource2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
             {
-                Name = $"{prefix}_Resourc2",
+                Name = $"{prefix}_Resource2",
             };
 
             foreach (var capabilitySetting in resource1.Capabilities)
