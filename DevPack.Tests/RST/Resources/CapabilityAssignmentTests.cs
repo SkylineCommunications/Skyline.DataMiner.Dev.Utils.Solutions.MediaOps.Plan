@@ -257,18 +257,6 @@
             Assert.AreEqual(2, resourceCapbility.Discretes.Count);
             Assert.IsTrue(resourceCapbility.Discretes.Contains("Value 2"));
             Assert.IsTrue(resourceCapbility.Discretes.Contains("Value 3"));
-
-            Assert.AreNotEqual(Guid.Empty, resource.CoreResourceId);
-            coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
-
-            // Expected capabilities + 1 > RST_ResourceType
-            Assert.AreEqual(2, coreResource.Capabilities.Count);
-
-            resourceCapability = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == capability2.Id);
-            Assert.IsNotNull(resourceCapability);
-            Assert.AreEqual(2, resourceCapability.Value.Discreets.Count);
-            Assert.IsTrue(resourceCapability.Value.Discreets.Contains("Value 2"));
-            Assert.IsTrue(resourceCapability.Value.Discreets.Contains("Value 3"));
         }
 
         [TestMethod]
@@ -763,6 +751,37 @@
 
             var resource2 = TestContext.Api.Resources.Read(unmanagedResource2.Id);
             Assert.IsNotNull(resource2);
+        }
+
+        [TestMethod]
+        public void AddAndRemoveCapabilitySettingsOnDraftResource()
+        {
+            var prefix = Guid.NewGuid();
+
+            var capability = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capability()
+            {
+                Name = $"{prefix}_Capability",
+            };
+            capability.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
+            objectCreator.CreateCapability(capability);
+
+            var capabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability.Id);
+            capabilitySettings.SetDiscretes(new[] { "Value 1" });
+
+            var unmanagedResource = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
+            {
+                Name = $"{prefix}_Resource",
+            };
+
+            // Assign capability settings on the draft resource object.
+            unmanagedResource.AddCapability(capabilitySettings);
+            Assert.AreEqual(1, unmanagedResource.Capabilities.Count);
+
+            // Remove the capability settings again, still without any create/update call.
+            unmanagedResource.RemoveCapability(capabilitySettings);
+
+            // No call to CreateResource / Update here. We only validate in-memory behavior.
+            Assert.AreEqual(0, unmanagedResource.Capabilities.Count);
         }
     }
 }

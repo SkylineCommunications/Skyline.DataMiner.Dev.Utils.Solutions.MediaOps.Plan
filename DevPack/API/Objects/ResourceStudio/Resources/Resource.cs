@@ -251,18 +251,7 @@
                 throw new ArgumentNullException(nameof(capabilitySetting));
             }
 
-            if (capabilitySetting.OriginalSection == null)
-            {
-                return this;
-            }
-
-            var toRemove = capabilitySettings.SingleOrDefault(x => x.OriginalSection.ID == capabilitySetting.OriginalSection.ID);
-            if (toRemove == null)
-            {
-                return this;
-            }
-
-            capabilitySettings.Remove(toRemove);
+            capabilitySettings.RemoveAll(x => x.Equals(capabilitySetting));
             return this;
         }
 
@@ -328,26 +317,13 @@
                 throw new ArgumentNullException(nameof(capacitySetting));
             }
 
-            if (capacitySetting.OriginalSection == null)
-            {
-                return this;
-            }
-
             if (capacitySetting is NumberCapacitySetting)
             {
-                var toRemoveNumber = numberCapacitySettings.SingleOrDefault(x => x.OriginalSection.ID == capacitySetting.OriginalSection.ID);
-                if (toRemoveNumber != null)
-                {
-                    numberCapacitySettings.Remove(toRemoveNumber);
-                }
+                numberCapacitySettings.RemoveAll(x => x.Equals(capacitySetting));
             }
             else if (capacitySetting is RangeCapacitySetting)
             {
-                var toRemoveRange = rangeCapacitySettings.SingleOrDefault(x => x.OriginalSection.ID == capacitySetting.OriginalSection.ID);
-                if (toRemoveRange != null)
-                {
-                    rangeCapacitySettings.Remove(toRemoveRange);
-                }
+                rangeCapacitySettings.RemoveAll(x => x.Equals(capacitySetting));
             }
 
             return this;
@@ -409,12 +385,7 @@
                 throw new ArgumentNullException(nameof(property));
             }
 
-            var toRemove = propertySettings.SingleOrDefault(x => x.OriginalSection.ID == property.OriginalSection.ID);
-            if (toRemove != null)
-            {
-                propertySettings.Remove(toRemove);
-            }
-
+            propertySettings.RemoveAll(x => x.Equals(property));
             return this;
         }
 

@@ -351,9 +351,9 @@
 
             var resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
             resource.AddProperty(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePropertySettings(property1.Id)
-             {
-                 Value = "C",
-             });
+            {
+                Value = "C",
+            });
 
             try
             {
@@ -377,6 +377,38 @@
             }
 
             Assert.Fail("Exception not thrown");
+        }
+
+        [TestMethod]
+        public void AddAndRemovePropertySettingsOnDraftResource()
+        {
+            var prefix = Guid.NewGuid();
+
+            var property = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceProperty()
+            {
+                Name = $"{prefix}_Property",
+            };
+            objectCreator.CreateProperties(new[] { property });
+
+            var propertySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePropertySettings(property.Id)
+            {
+                Value = "Some Value",
+            };
+
+            var unmanagedResource = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
+            {
+                Name = $"{prefix}_Resource",
+            };
+
+            // Assign property settings on the draft resource object.
+            unmanagedResource.AddProperty(propertySettings);
+            Assert.AreEqual(1, unmanagedResource.Properties.Count);
+
+            // Remove the property settings again, still without any create/update call.
+            unmanagedResource.RemoveProperty(propertySettings);
+
+            // No call to CreateResource / Update here. We only validate in-memory behavior.
+            Assert.AreEqual(0, unmanagedResource.Properties.Count);
         }
     }
 }

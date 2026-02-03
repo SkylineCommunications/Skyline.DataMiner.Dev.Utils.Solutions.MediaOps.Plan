@@ -841,5 +841,72 @@
             Assert.IsNotNull(resource2);
         }
 
+        [TestMethod]
+        public void AddAndRemoveNumberCapacitySettingsOnDraftResource()
+        {
+            var prefix = Guid.NewGuid();
+
+            var capacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity()
+            {
+                Name = $"{prefix}_Capacity",
+                RangeMin = 0,
+                RangeMax = 100,
+                StepSize = 1,
+            };
+            objectCreator.CreateCapacity(capacity);
+
+            var capacitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacitySetting(capacity.Id)
+            {
+                Value = 10,
+            };
+
+            var unmanagedResource = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
+            {
+                Name = $"{prefix}_Resource",
+            };
+
+            // Assign capacity settings on the draft resource object.
+            unmanagedResource.AddCapacity(capacitySettings);
+            Assert.AreEqual(1, unmanagedResource.Capacities.Count);
+
+            // Remove the capacity settings again, still without any create/update call.
+            unmanagedResource.RemoveCapacity(capacitySettings);
+
+            // No call to CreateResource / Update here. We only validate in-memory behavior.
+            Assert.AreEqual(0, unmanagedResource.Capacities.Count);
+        }
+
+        [TestMethod]
+        public void AddAndRemoveRangeCapacitySettingsOnDraftResource()
+        {
+            var prefix = Guid.NewGuid();
+
+            var capacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.RangeCapacity()
+            {
+                Name = $"{prefix}_Capacity",
+            };
+            objectCreator.CreateCapacity(capacity);
+
+            var capacitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.RangeCapacitySetting(capacity.Id)
+            {
+                MinValue = 5,
+                MaxValue = 15,
+            };
+
+            var unmanagedResource = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
+            {
+                Name = $"{prefix}_Resource",
+            };
+
+            // Assign capacity settings on the draft resource object.
+            unmanagedResource.AddCapacity(capacitySettings);
+            Assert.AreEqual(1, unmanagedResource.Capacities.Count);
+
+            // Remove the capacity settings again, still without any create/update call.
+            unmanagedResource.RemoveCapacity(capacitySettings);
+
+            // No call to CreateResource / Update here. We only validate in-memory behavior.
+            Assert.AreEqual(0, unmanagedResource.Capacities.Count);
+        }
     }
 }

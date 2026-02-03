@@ -225,18 +225,7 @@
                 throw new ArgumentNullException(nameof(capabilitySetting));
             }
 
-            if (capabilitySetting.OriginalSection == null)
-            {
-                return this;
-            }
-
-            var toRemove = capabilitySettings.SingleOrDefault(x => x.OriginalSection.ID == capabilitySetting.OriginalSection.ID);
-            if (toRemove == null)
-            {
-                return this;
-            }
-
-            capabilitySettings.Remove(toRemove);
+            capabilitySettings.RemoveAll(x => x.Equals(capabilitySetting));
             return this;
         }
 
