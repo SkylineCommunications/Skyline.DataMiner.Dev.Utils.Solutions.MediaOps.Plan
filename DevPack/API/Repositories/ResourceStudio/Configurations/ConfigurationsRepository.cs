@@ -4,13 +4,11 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
-
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.SDM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
+
     using SLDataGateway.API.Types.Querying;
 
     /// <summary>
@@ -68,7 +66,7 @@
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create an existing configuration.</exception>
         /// <exception cref="MediaOpsException">Thrown when the creation operation fails for the specified configuration.</exception>
-        public void Create(Configuration apiObject)
+        public Configuration Create(Configuration apiObject)
         {
             PlanApi.Logger.Information(this, "Creating new Configuration...");
 
@@ -77,6 +75,7 @@
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
+            Guid configurationId = Guid.Empty;
             ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Create), act =>
             {
                 if (!apiObject.IsNew)
@@ -89,9 +88,11 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                var configurationId = apiObject.Id;
-                act?.AddTag("CapacityId", configurationId);
+                configurationId = apiObject.Id;
+                act?.AddTag("ConfigurationId", configurationId);
             });
+
+            return Read(configurationId);
         }
 
         /// <summary>
@@ -101,28 +102,34 @@
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create existing configurations.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk creation operation fails for one or more configurations.</exception>
-        public void Create(IEnumerable<Configuration> apiObjects)
+        public IReadOnlyCollection<Configuration> Create(IEnumerable<Configuration> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
+            var list = apiObjects.ToList();
+
+            BulkOperationResult<Guid> result = null;
             ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Create), act =>
             {
-                if (apiObjects.Any(x => !x.IsNew))
+                var existingConfigurations = list.Where(x => !x.IsNew);
+                if (existingConfigurations.Any())
                 {
                     throw new InvalidOperationException("Not possible to use method Create for existing configurations. Use CreateOrUpdate or Update instead.");
                 }
 
-                if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
+                if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, list, out result))
                 {
                     result.ThrowBulkException();
                 }
 
-                var configurationIds = apiObjects.Select(x => x.Id);
+                var configurationIds = result.SuccessfulIds;
                 act?.AddTag("ConfigurationIds", string.Join(", ", configurationIds));
             });
+
+            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
 
         /// <summary>
@@ -131,16 +138,19 @@
         /// <param name="apiObjects">The collection of configurations to create or update.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk create or update operation fails for one or more configurations.</exception>
-        public void CreateOrUpdate(IEnumerable<Configuration> apiObjects)
+        public IReadOnlyCollection<Configuration> CreateOrUpdate(IEnumerable<Configuration> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
+            var list = apiObjects.ToList();
+
+            BulkOperationResult<Guid> result = null;
             ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(CreateOrUpdate), act =>
             {
-                if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, apiObjects?.ToList(), out var result))
+                if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, list, out result))
                 {
                     result.ThrowBulkException();
                 }
@@ -149,6 +159,8 @@
                 act?.AddTag("Created or Updated Configurations", String.Join(", ", configurationIds));
                 act?.AddTag("Created or Updated Configurations Count", configurationIds.Count);
             });
+
+            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
 
         /// <summary>
@@ -385,7 +397,7 @@
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to update a new configuration that doesn't exist yet.</exception>
         /// <exception cref="MediaOpsException">Thrown when the update operation fails for the specified configuration.</exception>
-        public void Update(Configuration apiObject)
+        public Configuration Update(Configuration apiObject)
         {
             if (apiObject == null)
             {
@@ -394,6 +406,7 @@
 
             PlanApi.Logger.Information(this, $"Updating existing configuration {apiObject.Name}...");
 
+            Guid configurationId = Guid.Empty;
             ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Update), act =>
             {
                 if (apiObject.IsNew)
@@ -406,9 +419,11 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                var configurationId = apiObject.Id;
+                configurationId = apiObject.Id;
                 act?.AddTag("ConfigurationId", configurationId);
             });
+
+            return Read(configurationId);
         }
 
         /// <summary>
@@ -418,28 +433,34 @@
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to update new configurations that don't exist yet.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk update operation fails for one or more configurations.</exception>
-        public void Update(IEnumerable<Configuration> apiObjects)
+        public IReadOnlyCollection<Configuration> Update(IEnumerable<Configuration> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
+            var list = apiObjects.ToList();
+
+            BulkOperationResult<Guid> result = null;
             ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Update), act =>
             {
-                if (apiObjects.Any(x => x.IsNew))
+                var newConfigurations = list.Where(x => x.IsNew);
+                if (newConfigurations.Any())
                 {
                     throw new InvalidOperationException("Not possible to use method Update for new configurations. Use Create or CreateOrUpdate instead.");
                 }
 
-                if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
+                if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, list, out result))
                 {
                     result.ThrowBulkException();
                 }
 
-                var configurationIds = apiObjects.Select(x => x.Id);
+                var configurationIds = result.SuccessfulIds;
                 act?.AddTag("ConfigurationIds", String.Join(", ", configurationIds));
             });
+
+            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
 
         private IEnumerable<IPagedResult<Configuration>> ReadPagedIterator(FilterElement<Configuration> filter, int pageSize)

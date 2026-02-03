@@ -8,6 +8,7 @@
     /// Defines a repository for MediaOps Plan.
     /// </summary>
     public interface IRepository<T> : IBulkRepository<T>
+        where T : class
     {
         /// <summary>
         /// Gets the total number of API objects in the repository.

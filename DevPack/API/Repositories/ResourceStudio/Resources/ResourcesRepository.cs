@@ -10,8 +10,6 @@
     using Skyline.DataMiner.SDM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
 
     using SLDataGateway.API.Types.Querying;
 
@@ -114,7 +112,6 @@
         /// <param name="resourceId">The unique identifier of the resource to convert.</param>
         /// <param name="setting">The configuration for the service link.</param>
         /// <returns>The converted <see cref="ServiceResource"/>.</returns>
-        /// <exception cref="ResourceNotFoundException">Thrown when the resource with the specified identifier is not found.</exception>
         /// <exception cref="MediaOpsException">Thrown when the resource is not in Draft state or conversion fails.</exception>
         public ServiceResource ConvertToServiceResource(Guid resourceId, ResourceServiceLinkSetting setting)
         {
@@ -262,7 +259,7 @@
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create an existing resource.</exception>
         /// <exception cref="MediaOpsException">Thrown when the creation operation fails for the specified resource.</exception>
-        public void Create(Resource apiObject)
+        public Resource Create(Resource apiObject)
         {
             if (apiObject == null)
             {
@@ -271,6 +268,7 @@
 
             PlanApi.Logger.Information(this, $"Creating new Resource {apiObject.Name}...");
 
+            Guid resourceId = Guid.Empty;
             ActivityHelper.Track(nameof(ResourcesRepository), nameof(Create), act =>
             {
                 if (!apiObject.IsNew)
@@ -278,14 +276,16 @@
                     throw new InvalidOperationException("Not possible to use method Create for existing resources. Use CreateOrUpdate or Update instead.");
                 }
 
-                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
+                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, new[] { apiObject }, out var result))
                 {
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                var resourceId = result.SuccessfulIds.First();
+                resourceId = apiObject.Id;
                 act?.AddTag("ResourceId", resourceId);
             });
+
+            return Read(resourceId);
         }
 
         /// <summary>
@@ -295,22 +295,25 @@
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create existing resources.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk creation operation fails for one or more resources.</exception>
-        public void Create(IEnumerable<Resource> apiObjects)
+        public IReadOnlyCollection<Resource> Create(IEnumerable<Resource> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
+            var list = apiObjects.ToList();
+
+            BulkOperationResult<Guid> result = null;
             ActivityHelper.Track(nameof(ResourcesRepository), nameof(Create), act =>
             {
-                var existingResources = apiObjects.Where(x => !x.IsNew);
+                var existingResources = list.Where(x => !x.IsNew);
                 if (existingResources.Any())
                 {
                     throw new InvalidOperationException("Not possible to use method Create for existing resources. Use CreateOrUpdate or Update instead.");
                 }
 
-                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
+                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, list, out result))
                 {
                     result.ThrowBulkException();
                 }
@@ -318,6 +321,8 @@
                 var resourceIds = result.SuccessfulIds;
                 act?.AddTag("ResourceIds", String.Join(", ", resourceIds));
             });
+
+            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
 
         /// <summary>
@@ -326,16 +331,19 @@
         /// <param name="apiObjects">The collection of resources to create or update.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk create or update operation fails for one or more resources.</exception>
-        public void CreateOrUpdate(IEnumerable<Resource> apiObjects)
+        public IReadOnlyCollection<Resource> CreateOrUpdate(IEnumerable<Resource> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
+            var list = apiObjects.ToList();
+
+            BulkOperationResult<Guid> result = null;
             ActivityHelper.Track(nameof(ResourcesRepository), nameof(CreateOrUpdate), act =>
             {
-                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, apiObjects?.ToList(), out var result))
+                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, list, out result))
                 {
                     result.ThrowBulkException();
                 }
@@ -344,6 +352,8 @@
                 act?.AddTag("Created or Updated Resources", String.Join(", ", resourceIds));
                 act?.AddTag("Created or Updated Resources Count", resourceIds.Count);
             });
+
+            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
 
         /// <summary>
@@ -1069,7 +1079,7 @@
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to update a new resource that doesn't exist yet.</exception>
         /// <exception cref="MediaOpsException">Thrown when the update operation fails for the specified resource.</exception>
-        public void Update(Resource apiObject)
+        public Resource Update(Resource apiObject)
         {
             if (apiObject == null)
             {
@@ -1078,6 +1088,7 @@
 
             PlanApi.Logger.Information(this, $"Updating existing Resource {apiObject.Name}...");
 
+            Guid resourceId = Guid.Empty;
             ActivityHelper.Track(nameof(ResourcesRepository), nameof(Update), act =>
             {
                 if (!apiObject.HasChanges)
@@ -1091,14 +1102,22 @@
                     throw new InvalidOperationException("Not possible to use method Update for new resources. Use Create or CreateOrUpdate instead.");
                 }
 
-                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
+                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, new[] { apiObject }, out var result))
                 {
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                var resourceId = result.SuccessfulIds.First();
+                resourceId = apiObject.Id;
                 act?.AddTag("ResourceId", resourceId);
             });
+
+            // When there were no changes, we did not touch storage, so just return the instance.
+            if (resourceId == Guid.Empty)
+            {
+                return apiObject;
+            }
+
+            return Read(resourceId);
         }
 
         /// <summary>
@@ -1108,22 +1127,25 @@
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="MediaOpsException">Thrown when attempting to update new resources or when the bulk update operation fails.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk update operation fails for one or more resources.</exception>
-        public void Update(IEnumerable<Resource> apiObjects)
+        public IReadOnlyCollection<Resource> Update(IEnumerable<Resource> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
+            var list = apiObjects.ToList();
+
+            BulkOperationResult<Guid> result = null;
             ActivityHelper.Track(nameof(ResourcesRepository), nameof(Update), act =>
             {
-                var newResources = apiObjects.Where(x => x.IsNew);
+                var newResources = list.Where(x => x.IsNew);
                 if (newResources.Any())
                 {
                     throw new InvalidOperationException("Not possible to use method Update for new resources. Use Create or CreateOrUpdate instead.");
                 }
 
-                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
+                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, list, out result))
                 {
                     result.ThrowBulkException();
                 }
@@ -1131,6 +1153,8 @@
                 var resourceIds = result.SuccessfulIds;
                 act?.AddTag("ResourceIds", String.Join(", ", resourceIds));
             });
+
+            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
 
         private IEnumerable<IPagedResult<Resource>> ReadPagedIterator(FilterElement<Resource> filter, int pageSize)

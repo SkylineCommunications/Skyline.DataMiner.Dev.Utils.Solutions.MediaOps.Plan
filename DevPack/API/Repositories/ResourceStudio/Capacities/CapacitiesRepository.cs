@@ -4,13 +4,11 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
-
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.SDM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
+
     using SLDataGateway.API.Types.Querying;
 
     /// <summary>
@@ -68,7 +66,7 @@
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create an existing capacity.</exception>
         /// <exception cref="MediaOpsException">Thrown when the creation operation fails for the specified capacity.</exception>
-        public void Create(Capacity apiObject)
+        public Capacity Create(Capacity apiObject)
         {
             PlanApi.Logger.Information(this, "Creating new Capacity...");
 
@@ -77,6 +75,7 @@
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
+            Guid capacityId = Guid.Empty;
             ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Create), act =>
             {
                 if (!apiObject.IsNew)
@@ -84,14 +83,16 @@
                     throw new InvalidOperationException("Not possible to use method Create for an existing capacity. Use CreateOrUpdate or Update instead.");
                 }
 
-                if (!CoreCapacityHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
+                if (!CoreCapacityHandler.TryCreateOrUpdate(PlanApi, new[] { apiObject }, out var result))
                 {
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                var capacityId = apiObject.Id;
+                capacityId = apiObject.Id;
                 act?.AddTag("CapacityId", capacityId);
             });
+
+            return Read(capacityId);
         }
 
         /// <summary>
@@ -101,28 +102,34 @@
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create existing capacities.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk creation operation fails for one or more capacities.</exception>
-        public void Create(IEnumerable<Capacity> apiObjects)
+        public IReadOnlyCollection<Capacity> Create(IEnumerable<Capacity> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
+            var list = apiObjects.ToList();
+
+            BulkOperationResult<Guid> result = null;
             ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Create), act =>
             {
-                if (apiObjects.Any(x => !x.IsNew))
+                var existingCapacities = list.Where(x => !x.IsNew);
+                if (existingCapacities.Any())
                 {
                     throw new InvalidOperationException("Not possible to use method Create for existing capacities. Use CreateOrUpdate or Update instead.");
                 }
 
-                if (!CoreCapacityHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
+                if (!CoreCapacityHandler.TryCreateOrUpdate(PlanApi, list, out result))
                 {
                     result.ThrowBulkException();
                 }
 
-                var capacityIds = apiObjects.Select(x => x.Id);
+                var capacityIds = result.SuccessfulIds;
                 act?.AddTag("CapacityIds", string.Join(", ", capacityIds));
             });
+
+            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
 
         /// <summary>
@@ -131,16 +138,19 @@
         /// <param name="apiObjects">The collection of capacities to create or update.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk create or update operation fails for one or more capacities.</exception>
-        public void CreateOrUpdate(IEnumerable<Capacity> apiObjects)
+        public IReadOnlyCollection<Capacity> CreateOrUpdate(IEnumerable<Capacity> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
+            var list = apiObjects.ToList();
+
+            BulkOperationResult<Guid> result = null;
             ActivityHelper.Track(nameof(CapacitiesRepository), nameof(CreateOrUpdate), act =>
             {
-                if (!CoreCapacityHandler.TryCreateOrUpdate(PlanApi, apiObjects?.ToList(), out var result))
+                if (!CoreCapacityHandler.TryCreateOrUpdate(PlanApi, list, out result))
                 {
                     result.ThrowBulkException();
                 }
@@ -149,6 +159,8 @@
                 act?.AddTag("Created or Updated Capacities", String.Join(", ", capacityIds));
                 act?.AddTag("Created or Updated Capacities Count", capacityIds.Count);
             });
+
+            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
 
         /// <summary>
@@ -295,7 +307,7 @@
                 throw new ArgumentNullException(nameof(filter));
             }
 
-            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Update), act =>
+            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Read), act =>
             {
                 var coreCapacities = PlanApi.CoreHelpers.ProfileProvider.GetCapacities(filterTranslator.Translate(filter));
                 return Capacity.InstantiateCapacities(coreCapacities);
@@ -383,7 +395,7 @@
             return ReadPaged(new TRUEFilterElement<Capacity>(), MediaOpsPlanApi.DefaultPageSize);
         }
 
-        public IEnumerable<IPagedResult<Capacity>> ReadPagedIterator(FilterElement<Capacity> filter, int pageSize)
+        private IEnumerable<IPagedResult<Capacity>> ReadPagedIterator(FilterElement<Capacity> filter, int pageSize)
         {
             var pageNumber = 0;
             var paramFilter = filterTranslator.Translate(filter);
@@ -405,7 +417,7 @@
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to update a new capacity that doesn't exist yet.</exception>
         /// <exception cref="MediaOpsException">Thrown when the update operation fails for the specified capacity.</exception>
-        public void Update(Capacity apiObject)
+        public Capacity Update(Capacity apiObject)
         {
             if (apiObject == null)
             {
@@ -414,6 +426,7 @@
 
             PlanApi.Logger.Information(this, $"Updating existing capacity {apiObject.Name}...");
 
+            Guid capacityId = Guid.Empty;
             ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Update), act =>
             {
                 if (apiObject.IsNew)
@@ -421,14 +434,16 @@
                     throw new InvalidOperationException("Not possible to use method Update for new capacity. Use Create or CreateOrUpdate instead.");
                 }
 
-                if (!CoreCapacityHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
+                if (!CoreCapacityHandler.TryCreateOrUpdate(PlanApi, new[] { apiObject }, out var result))
                 {
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                var capacityId = apiObject.Id;
+                capacityId = apiObject.Id;
                 act?.AddTag("CapacityId", capacityId);
             });
+
+            return Read(capacityId);
         }
 
         /// <summary>
@@ -438,28 +453,34 @@
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to update new capacities that don't exist yet.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk update operation fails for one or more capacities.</exception>
-        public void Update(IEnumerable<Capacity> apiObjects)
+        public IReadOnlyCollection<Capacity> Update(IEnumerable<Capacity> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
+            var list = apiObjects.ToList();
+
+            BulkOperationResult<Guid> result = null;
             ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Update), act =>
             {
-                if (apiObjects.Any(x => x.IsNew))
+                var newCapacities = list.Where(x => x.IsNew);
+                if (newCapacities.Any())
                 {
                     throw new InvalidOperationException("Not possible to use method Update for new capacities. Use Create or CreateOrUpdate instead.");
                 }
 
-                if (!CoreCapacityHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
+                if (!CoreCapacityHandler.TryCreateOrUpdate(PlanApi, list, out result))
                 {
                     result.ThrowBulkException();
                 }
 
-                var capacityIds = apiObjects.Select(x => x.Id);
+                var capacityIds = result.SuccessfulIds;
                 act?.AddTag("CapacityIds", String.Join(", ", capacityIds));
             });
+
+            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
     }
 }
