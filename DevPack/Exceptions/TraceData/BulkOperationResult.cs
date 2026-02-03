@@ -7,7 +7,7 @@
     /// Contains the successfully handled items and the <see cref="MediaOpsTraceData"/> per item.
     /// </summary>
     /// <typeparam name="K">The ID of an item.</typeparam>
-    public class BulkOperationResult<K> : IBulkOperationResult<K>
+    internal class BulkOperationResult<K> : IBulkOperationResult<K>
         where K : IEquatable<K>
     {
         internal BulkOperationResult(IReadOnlyCollection<K> successfulIds, IReadOnlyCollection<K> unsuccessfulIds, IReadOnlyDictionary<K, MediaOpsTraceData> traceDataPerItem)

@@ -66,7 +66,7 @@
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create an existing capability.</exception>
         /// <exception cref="MediaOpsException">Thrown when the creation operation fails for the specified capability.</exception>
-        public void Create(Capability apiObject)
+        public Capability Create(Capability apiObject)
         {
             PlanApi.Logger.Information(this, "Creating new Capability...");
 
@@ -75,6 +75,7 @@
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
+            Guid capabilityId = Guid.Empty;
             ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Create), act =>
             {
                 if (!apiObject.IsNew)
@@ -87,9 +88,11 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                var capabilityId = apiObject.Id;
+                capabilityId = apiObject.Id;
                 act?.AddTag("CapabilityId", capabilityId);
             });
+
+            return Read(capabilityId);
         }
 
         /// <summary>
@@ -99,29 +102,34 @@
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create existing capabilities.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk creation operation fails for one or more capabilities.</exception>
-        public void Create(IEnumerable<Capability> apiObjects)
+        public IReadOnlyCollection<Capability> Create(IEnumerable<Capability> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
+            var list = apiObjects.ToList();
+
+            BulkOperationResult<Guid> result = null;
             ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Create), act =>
             {
-                var existingCapabilities = apiObjects.Where(x => !x.IsNew);
+                var existingCapabilities = list.Where(x => !x.IsNew);
                 if (existingCapabilities.Any())
                 {
                     throw new InvalidOperationException("Not possible to use method Create for existing capabilities. Use CreateOrUpdate or Update instead.");
                 }
 
-                if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
+                if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, list, out result))
                 {
                     result.ThrowBulkException();
                 }
 
-                var capabilityIds = apiObjects.Select(x => x.Id);
+                var capabilityIds = result.SuccessfulIds;
                 act?.AddTag("CapabilityIds", string.Join(", ", capabilityIds));
             });
+
+            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
 
         /// <summary>
@@ -130,24 +138,29 @@
         /// <param name="apiObjects">The collection of capabilities to create or update.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk create or update operation fails for one or more capabilities.</exception>
-        public void CreateOrUpdate(IEnumerable<Capability> apiObjects)
+        public IReadOnlyCollection<Capability> CreateOrUpdate(IEnumerable<Capability> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
+            var list = apiObjects.ToList();
+
+            BulkOperationResult<Guid> result = null;
             ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(CreateOrUpdate), act =>
             {
-                if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, apiObjects?.ToList(), out var result))
+                if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, list, out result))
                 {
                     result.ThrowBulkException();
                 }
 
-                var capabilityIds = apiObjects.Select(x => x.Id);
+                var capabilityIds = result.SuccessfulIds;
                 act?.AddTag("Created or Updated Capabilities", String.Join(", ", capabilityIds));
-                act?.AddTag("Created or Updated Capabilities Count", capabilityIds.Count());
+                act?.AddTag("Created or Updated Capabilities Count", capabilityIds.Count);
             });
+
+            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
 
         /// <summary>
@@ -384,7 +397,7 @@
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to update a new capability that doesn't exist yet.</exception>
         /// <exception cref="MediaOpsException">Thrown when the update operation fails for the specified capability.</exception>
-        public void Update(Capability apiObject)
+        public Capability Update(Capability apiObject)
         {
             if (apiObject == null)
             {
@@ -393,6 +406,7 @@
 
             PlanApi.Logger.Information(this, $"Updating existing capability {apiObject.Name}...");
 
+            Guid capabilityId = Guid.Empty;
             ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Update), act =>
             {
                 if (apiObject.IsNew)
@@ -400,14 +414,16 @@
                     throw new InvalidOperationException("Not possible to use method Update for new capability. Use Create or CreateOrUpdate instead.");
                 }
 
-                if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
+                if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, new[] { apiObject }, out var result))
                 {
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                var capabilityId = apiObject.Id;
+                capabilityId = apiObject.Id;
                 act?.AddTag("CapabilityId", capabilityId);
             });
+
+            return Read(capabilityId);
         }
 
         /// <summary>
@@ -417,29 +433,34 @@
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to update new capabilities that don't exist yet.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk update operation fails for one or more capabilities.</exception>
-        public void Update(IEnumerable<Capability> apiObjects)
+        public IReadOnlyCollection<Capability> Update(IEnumerable<Capability> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
+            var list = apiObjects.ToList();
+
+            BulkOperationResult<Guid> result = null;
             ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Update), act =>
             {
-                var newCapabilities = apiObjects.Where(x => x.IsNew);
+                var newCapabilities = list.Where(x => x.IsNew);
                 if (newCapabilities.Any())
                 {
                     throw new InvalidOperationException("Not possible to use method Update for new capabilities. Use Create or CreateOrUpdate instead.");
                 }
 
-                if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
+                if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, list, out result))
                 {
                     result.ThrowBulkException();
                 }
 
-                var capabilityIds = apiObjects.Select(x => x.Id);
+                var capabilityIds = result.SuccessfulIds;
                 act?.AddTag("CapabilityIds", String.Join(", ", capabilityIds));
             });
+
+            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
 
         private IEnumerable<IPagedResult<Capability>> ReadPagedIterator(FilterElement<Capability> filter, int pageSize)

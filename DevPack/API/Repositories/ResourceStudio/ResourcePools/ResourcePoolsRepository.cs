@@ -122,7 +122,7 @@
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create an existing resource pool.</exception>
         /// <exception cref="MediaOpsException">Thrown when the creation operation fails for the specified resource pool.</exception>
-        public void Create(ResourcePool apiObject)
+        public ResourcePool Create(ResourcePool apiObject)
         {
             PlanApi.Logger.Information(this, "Creating new ResourcePool...");
 
@@ -131,6 +131,7 @@
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
+            Guid resourcePoolId = Guid.Empty;
             ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Create), act =>
             {
                 if (!apiObject.IsNew)
@@ -143,9 +144,11 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                var resourcePoolId = result.SuccessfulIds.First();
+                resourcePoolId = apiObject.Id;
                 act?.AddTag("ResourcePoolId", resourcePoolId);
             });
+
+            return Read(resourcePoolId);
         }
 
         /// <summary>
@@ -155,23 +158,34 @@
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create existing resource pools.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk creation operation fails for one or more resource pools.</exception>
-        public void Create(IEnumerable<ResourcePool> apiObjects)
+        public IReadOnlyCollection<ResourcePool> Create(IEnumerable<ResourcePool> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
-            var existingResourcePools = apiObjects.Where(x => !x.IsNew).ToList();
-            if (existingResourcePools.Any())
-            {
-                throw new InvalidOperationException("Not possible to use method Create for existing resource pools. Use CreateOrUpdate or Update instead.");
-            }
+            var list = apiObjects.ToList();
 
-            if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
+            BulkOperationResult<Guid> result = null;
+            ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Create), act =>
             {
-                result.ThrowBulkException();
-            }
+                var existingResourcePools = list.Where(x => !x.IsNew);
+                if (existingResourcePools.Any())
+                {
+                    throw new InvalidOperationException("Not possible to use method Create for existing resource pools. Use CreateOrUpdate or Update instead.");
+                }
+
+                if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, list, out result))
+                {
+                    result.ThrowBulkException();
+                }
+
+                var resourcePoolIds = result.SuccessfulIds;
+                act?.AddTag("ResourcePoolIds", String.Join(", ", resourcePoolIds));
+            });
+
+            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
 
         /// <summary>
@@ -180,24 +194,29 @@
         /// <param name="apiObjects">The collection of resource pools to create or update.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk create or update operation fails for one or more resource pools.</exception>
-        public void CreateOrUpdate(IEnumerable<ResourcePool> apiObjects)
+        public IReadOnlyCollection<ResourcePool> CreateOrUpdate(IEnumerable<ResourcePool> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
+            var list = apiObjects.ToList();
+
+            BulkOperationResult<Guid> result = null;
             ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(CreateOrUpdate), act =>
             {
-                if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, apiObjects?.ToList(), out var result))
+                if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, list, out result))
                 {
                     result.ThrowBulkException();
                 }
 
-                var resourceIds = result.SuccessfulIds;
-                act?.AddTag("Created Resource Pools", String.Join(", ", resourceIds));
-                act?.AddTag("Created Resource Pools Count", resourceIds.Count);
+                var resourcePoolIds = result.SuccessfulIds;
+                act?.AddTag("Created or Updated Resource Pools", String.Join(", ", resourcePoolIds));
+                act?.AddTag("Created or Updated Resource Pools Count", resourcePoolIds.Count);
             });
+
+            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
 
         /// <summary>
@@ -783,7 +802,7 @@
             return ReadPaged(new TRUEFilterElement<ResourcePool>(), MediaOpsPlanApi.DefaultPageSize);
         }
 
-        public IEnumerable<IPagedResult<ResourcePool>> ReadPagedIterator(FilterElement<ResourcePool> filter, int pageSize)
+        private IEnumerable<IPagedResult<ResourcePool>> ReadPagedIterator(FilterElement<ResourcePool> filter, int pageSize)
         {
             var pageNumber = 0;
             var paramFilter = filterTranslator.Translate(filter);
@@ -874,13 +893,14 @@
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to update a new resource pool that doesn't exist yet.</exception>
         /// <exception cref="MediaOpsException">Thrown when the update operation fails for the specified resource pool.</exception>
-        public void Update(ResourcePool apiObject)
+        public ResourcePool Update(ResourcePool apiObject)
         {
             if (apiObject == null)
             {
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
+            Guid resourcePoolId = Guid.Empty;
             ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Update), act =>
             {
                 if (!apiObject.HasChanges)
@@ -898,7 +918,18 @@
                 {
                     result.ThrowSingleException(apiObject.Id);
                 }
+
+                resourcePoolId = apiObject.Id;
+                act?.AddTag("ResourcePoolId", resourcePoolId);
             });
+
+            if (resourcePoolId == Guid.Empty)
+            {
+                // No changes were applied, just return the passed instance
+                return apiObject;
+            }
+
+            return Read(resourcePoolId);
         }
 
         /// <summary>
@@ -908,23 +939,34 @@
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to update new resource pools that don't exist yet.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk update operation fails for one or more resource pools.</exception>
-        public void Update(IEnumerable<ResourcePool> apiObjects)
+        public IReadOnlyCollection<ResourcePool> Update(IEnumerable<ResourcePool> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
-            var newResourcePools = apiObjects.Where(x => x.IsNew);
-            if (newResourcePools.Any())
-            {
-                throw new InvalidOperationException("Not possible to use method Update for new resource pools. Use Create or CreateOrUpdate instead.");
-            }
+            var list = apiObjects.ToList();
 
-            if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
+            BulkOperationResult<Guid> result = null;
+            ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Update), act =>
             {
-                result.ThrowBulkException();
-            }
+                var newResourcePools = list.Where(x => x.IsNew);
+                if (newResourcePools.Any())
+                {
+                    throw new InvalidOperationException("Not possible to use method Update for new resource pools. Use Create or CreateOrUpdate instead.");
+                }
+
+                if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, list, out result))
+                {
+                    result.ThrowBulkException();
+                }
+
+                var resourcePoolIds = result.SuccessfulIds;
+                act?.AddTag("ResourcePoolIds", String.Join(", ", resourcePoolIds));
+            });
+
+            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
     }
 }
