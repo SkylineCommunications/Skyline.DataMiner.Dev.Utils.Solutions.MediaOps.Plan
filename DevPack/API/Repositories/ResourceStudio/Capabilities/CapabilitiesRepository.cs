@@ -406,6 +406,7 @@
 
             PlanApi.Logger.Information(this, $"Updating existing capability {apiObject.Name}...");
 
+            Guid capabilityId = Guid.Empty;
             ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Update), act =>
             {
                 if (apiObject.IsNew)
@@ -413,16 +414,16 @@
                     throw new InvalidOperationException("Not possible to use method Update for new capability. Use Create or CreateOrUpdate instead.");
                 }
 
-                if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
+                if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, new[] { apiObject }, out var result))
                 {
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                var capabilityId = apiObject.Id;
+                capabilityId = apiObject.Id;
                 act?.AddTag("CapabilityId", capabilityId);
             });
 
-            return apiObject;
+            return Read(capabilityId);
         }
 
         /// <summary>
@@ -441,6 +442,7 @@
 
             var list = apiObjects.ToList();
 
+            BulkOperationResult<Guid> result = null;
             ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Update), act =>
             {
                 var newCapabilities = list.Where(x => x.IsNew);
@@ -449,7 +451,7 @@
                     throw new InvalidOperationException("Not possible to use method Update for new capabilities. Use Create or CreateOrUpdate instead.");
                 }
 
-                if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, list, out var result))
+                if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, list, out result))
                 {
                     result.ThrowBulkException();
                 }
@@ -458,7 +460,7 @@
                 act?.AddTag("CapabilityIds", String.Join(", ", capabilityIds));
             });
 
-            return list;
+            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
 
         private IEnumerable<IPagedResult<Capability>> ReadPagedIterator(FilterElement<Capability> filter, int pageSize)

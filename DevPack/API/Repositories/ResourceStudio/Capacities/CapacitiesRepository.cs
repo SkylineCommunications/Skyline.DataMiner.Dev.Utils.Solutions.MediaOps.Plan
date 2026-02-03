@@ -307,7 +307,7 @@
                 throw new ArgumentNullException(nameof(filter));
             }
 
-            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Update), act =>
+            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Read), act =>
             {
                 var coreCapacities = PlanApi.CoreHelpers.ProfileProvider.GetCapacities(filterTranslator.Translate(filter));
                 return Capacity.InstantiateCapacities(coreCapacities);
