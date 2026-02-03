@@ -4,14 +4,12 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
-
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.SDM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
+
     using SLDataGateway.API.Types.Querying;
 
     /// <summary>
@@ -66,7 +64,7 @@
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create an existing resource property.</exception>
         /// <exception cref="MediaOpsException">Thrown when the creation operation fails for the specified resource property.</exception>
-        public void Create(ResourceProperty apiObject)
+        public ResourceProperty Create(ResourceProperty apiObject)
         {
             PlanApi.Logger.Information(this, "Creating new ResourceProperty...");
 
@@ -87,9 +85,11 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                var resourcePropertyId = result.SuccessfulIds.First();
+                var resourcePropertyId = apiObject.Id;
                 act?.AddTag("ResourcePropertyId", resourcePropertyId);
             });
+
+            return apiObject;
         }
 
         /// <summary>
@@ -99,22 +99,24 @@
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create existing resource properties.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk creation operation fails for one or more resource properties.</exception>
-        public void Create(IEnumerable<ResourceProperty> apiObjects)
+        public IReadOnlyCollection<ResourceProperty> Create(IEnumerable<ResourceProperty> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
+            var list = apiObjects.ToList();
+
             ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Create), act =>
             {
-                var existingProperties = apiObjects.Where(x => !x.IsNew);
+                var existingProperties = list.Where(x => !x.IsNew);
                 if (existingProperties.Any())
                 {
                     throw new InvalidOperationException("Not possible to use method Create for existing resource properties. Use CreateOrUpdate or Update instead.");
                 }
 
-                if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
+                if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, list, out var result))
                 {
                     result.ThrowBulkException();
                 }
@@ -122,6 +124,8 @@
                 var propertyIds = result.SuccessfulIds;
                 act?.AddTag("ResourcePropertyIds", string.Join(", ", propertyIds));
             });
+
+            return list;
         }
 
         /// <summary>
@@ -130,24 +134,28 @@
         /// <param name="apiObjects">The collection of resource properties to create or update.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk create or update operation fails for one or more resource properties.</exception>
-        public void CreateOrUpdate(IEnumerable<ResourceProperty> apiObjects)
+        public IReadOnlyCollection<ResourceProperty> CreateOrUpdate(IEnumerable<ResourceProperty> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
+            var list = apiObjects.ToList();
+
             ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(CreateOrUpdate), act =>
             {
-                if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, apiObjects?.ToList(), out var result))
+                if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, list, out var result))
                 {
                     result.ThrowBulkException();
                 }
 
                 var propertyIds = result.SuccessfulIds;
                 act?.AddTag("Created or Updated Resource Properties", String.Join(", ", propertyIds));
-                act?.AddTag("Created or Updated Resource Properties Count", propertyIds.Count);
+                act?.AddTag("Created or Updated Resource Properties Count", propertyIds.Count());
             });
+
+            return list;
         }
 
         /// <summary>
@@ -407,7 +415,7 @@
             return ReadPaged(new TRUEFilterElement<ResourceProperty>(), MediaOpsPlanApi.DefaultPageSize);
         }
 
-        public IEnumerable<IPagedResult<ResourceProperty>> ReadPagedIterator(FilterElement<ResourceProperty> filter, int pageSize)
+        private IEnumerable<IPagedResult<ResourceProperty>> ReadPagedIterator(FilterElement<ResourceProperty> filter, int pageSize)
         {
             var pageNumber = 0;
             var paramFilter = filterTranslator.Translate(filter);
@@ -429,7 +437,7 @@
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to update a new resource property that doesn't exist yet.</exception>
         /// <exception cref="MediaOpsException">Thrown when the update operation fails for the specified resource property.</exception>
-        public void Update(ResourceProperty apiObject)
+        public ResourceProperty Update(ResourceProperty apiObject)
         {
             if (apiObject == null)
             {
@@ -450,9 +458,11 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                var resourceId = result.SuccessfulIds.First();
-                act?.AddTag("ResourcePropertyId", resourceId);
+                var resourcePropertyId = apiObject.Id;
+                act?.AddTag("ResourcePropertyId", resourcePropertyId);
             });
+
+            return apiObject;
         }
 
         /// <summary>
@@ -462,29 +472,33 @@
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to update new resource properties that don't exist yet.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk update operation fails for one or more resource properties.</exception>
-        public void Update(IEnumerable<ResourceProperty> apiObjects)
+        public IReadOnlyCollection<ResourceProperty> Update(IEnumerable<ResourceProperty> apiObjects)
         {
             if (apiObjects == null)
             {
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
+            var list = apiObjects.ToList();
+
             ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Update), act =>
             {
-                var newProperties = apiObjects.Where(x => x.IsNew);
+                var newProperties = list.Where(x => x.IsNew);
                 if (newProperties.Any())
                 {
                     throw new InvalidOperationException("Not possible to use method Update for new resource properties. Use Create or CreateOrUpdate instead.");
                 }
 
-                if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
+                if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, list, out var result))
                 {
                     result.ThrowBulkException();
                 }
 
-                var resourceIds = result.SuccessfulIds;
-                act?.AddTag("ResourcePropertyIds", String.Join(", ", resourceIds));
+                var resourcePropertyIds = result.SuccessfulIds;
+                act?.AddTag("ResourcePropertyIds", String.Join(", ", resourcePropertyIds));
             });
+
+            return list;
         }
     }
 }
