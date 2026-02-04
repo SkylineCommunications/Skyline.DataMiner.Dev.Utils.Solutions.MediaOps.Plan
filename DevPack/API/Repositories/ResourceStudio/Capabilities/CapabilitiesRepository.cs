@@ -24,7 +24,10 @@
         /// <param name="planApi">The MediaOps Plan API instance.</param>
         public CapabilitiesRepository(MediaOpsPlanApi planApi) : base(planApi)
         {
+            SystemCapabilities = new SystemCapabilities(planApi);
         }
+
+        public SystemCapabilities SystemCapabilities { get; private set; }
 
         /// <summary>
         /// Gets the total number of capabilities in the repository.
