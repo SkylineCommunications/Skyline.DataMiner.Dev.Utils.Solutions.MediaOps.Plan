@@ -7,9 +7,9 @@
     /// </summary>
     public class SystemCapabilities
     {
-        private MediaOpsPlanApi planApi;
+        private readonly MediaOpsPlanApi planApi;
 
-        private Lazy<Capability> lazyResourceType;
+        private readonly Lazy<Capability> lazyResourceType;
 
         internal SystemCapabilities(MediaOpsPlanApi planApi)
         {
