@@ -4,13 +4,13 @@
 
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
-    internal class ResourcePoolCapabilitySetting : CapabilitySetting
+    internal class ResourcePoolCapabilitySetting : CapabilitySettings
     {
         private StorageResourceStudio.ResourcePoolCapabilitiesSection originalSection;
 
         private StorageResourceStudio.ResourcePoolCapabilitiesSection updatedSection;
 
-        internal ResourcePoolCapabilitySetting(CapabilitySetting capabilitySetting) : base(capabilitySetting)
+        internal ResourcePoolCapabilitySetting(CapabilitySettings capabilitySetting) : base(capabilitySetting)
         {
         }
 

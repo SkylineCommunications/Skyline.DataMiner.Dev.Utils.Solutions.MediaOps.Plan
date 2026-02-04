@@ -4,8 +4,6 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
 
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
@@ -35,7 +33,9 @@
         }
 
         public override IReadOnlyCollection<CapabilitySetting> Capabilities => capabilitySettings;
+
         public override IReadOnlyCollection<CapacitySetting> Capacities => numberCapacitySettings.Concat<CapacitySetting>(rangeCapacitySettings).ToList();
+
         public override IReadOnlyCollection<ConfigurationSetting> Configurations
         {
             get
@@ -135,18 +135,7 @@
                 throw new ArgumentNullException(nameof(capabilitySetting));
             }
 
-            if (capabilitySetting.OriginalSection == null)
-            {
-                return this;
-            }
-
-            var toRemove = capabilitySettings.SingleOrDefault(x => x.OriginalSection.ID == capabilitySetting.OriginalSection.ID);
-            if (toRemove == null)
-            {
-                return this;
-            }
-
-            capabilitySettings.Remove(toRemove);
+            capabilitySettings.RemoveAll(x => x.Equals(capabilitySetting));
             return this;
         }
 
@@ -157,26 +146,13 @@
                 throw new ArgumentNullException(nameof(capacitySetting));
             }
 
-            if (capacitySetting.OriginalSection == null)
-            {
-                return this;
-            }
-
             if (capacitySetting is NumberCapacitySetting)
             {
-                var toRemoveNumber = numberCapacitySettings.SingleOrDefault(x => x.OriginalSection.ID == capacitySetting.OriginalSection.ID);
-                if (toRemoveNumber != null)
-                {
-                    numberCapacitySettings.Remove(toRemoveNumber);
-                }
+                numberCapacitySettings.RemoveAll(x => x.Equals(capacitySetting));
             }
             else if (capacitySetting is RangeCapacitySetting)
             {
-                var toRemoveRange = rangeCapacitySettings.SingleOrDefault(x => x.OriginalSection.ID == capacitySetting.OriginalSection.ID);
-                if (toRemoveRange != null)
-                {
-                    rangeCapacitySettings.Remove(toRemoveRange);
-                }
+                rangeCapacitySettings.RemoveAll(x => x.Equals(capacitySetting));
             }
 
             return this;
@@ -189,42 +165,21 @@
                 throw new ArgumentNullException(nameof(configurationSetting));
             }
 
-            if (configurationSetting.OriginalSection == null)
-            {
-                return this;
-            }
-
             if (configurationSetting is TextConfigurationSetting)
             {
-                var toRemove = textConfigurationSettings.SingleOrDefault(x => x.OriginalSection.ID == configurationSetting.OriginalSection.ID);
-                if (toRemove != null)
-                {
-                    textConfigurationSettings.Remove(toRemove);
-                }
+                textConfigurationSettings.RemoveAll(x => x.Equals(configurationSetting));
             }
             else if (configurationSetting is NumberConfigurationSetting)
             {
-                var toRemove = numberConfigurationSettings.SingleOrDefault(x => x.OriginalSection.ID == configurationSetting.OriginalSection.ID);
-                if (toRemove != null)
-                {
-                    numberConfigurationSettings.Remove(toRemove);
-                }
+                numberConfigurationSettings.RemoveAll(x => x.Equals(configurationSetting));
             }
             else if (configurationSetting is DiscreteTextConfigurationSetting)
             {
-                var toRemove = discreteTextConfigurationSettings.SingleOrDefault(x => x.OriginalSection.ID == configurationSetting.OriginalSection.ID);
-                if (toRemove != null)
-                {
-                    discreteTextConfigurationSettings.Remove(toRemove);
-                }
+                discreteTextConfigurationSettings.RemoveAll(x => x.Equals(configurationSetting));
             }
             else if (configurationSetting is DiscreteNumberConfigurationSetting)
             {
-                var toRemove = discreteNumberConfigurationSettings.SingleOrDefault(x => x.OriginalSection.ID == configurationSetting.OriginalSection.ID);
-                if (toRemove != null)
-                {
-                    discreteNumberConfigurationSettings.Remove(toRemove);
-                }
+                discreteNumberConfigurationSettings.RemoveAll(x => x.Equals(configurationSetting));
             }
 
             return this;

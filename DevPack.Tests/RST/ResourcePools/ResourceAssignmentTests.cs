@@ -24,6 +24,37 @@
         }
 
         [TestMethod]
+        public void AddAndRemoveCapabilitySettingsOnDraftResourcePool()
+        {
+            var prefix = Guid.NewGuid();
+
+            var capability = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.Capability()
+            {
+                Name = $"{prefix}_Capability",
+            };
+            capability.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
+            objectCreator.CreateCapability(capability);
+
+            var capabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability.Id);
+            capabilitySettings.SetDiscretes(new[] { "Value 1", "Value 2" });
+
+            var resourcePool = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
+            {
+                Name = $"{prefix}_ResourcePool",
+            };
+
+            // Assign capability settings on the draft resource pool object.
+            resourcePool.AddCapability(capabilitySettings);
+            Assert.AreEqual(1, resourcePool.Capabilities.Count);
+
+            // Remove the capability settings again, still without any create/update call.
+            resourcePool.RemoveCapability(capabilitySettings);
+
+            // No call to CreateResourcePool / Update here. We only validate in-memory behavior.
+            Assert.AreEqual(0, resourcePool.Capabilities.Count);
+        }
+
+        [TestMethod]
         public void HappyPathWithDraftObjects()
         {
             var prefix = Guid.NewGuid();

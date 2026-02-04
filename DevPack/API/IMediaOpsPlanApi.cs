@@ -1,7 +1,5 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
-    using System;
-
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
 
     /// <summary>

@@ -1,7 +1,6 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
     using System;
-    using System.Collections.Generic;
     using System.Linq;
 
     using StorageWorkflow = Storage.DOM.SlcWorkflow;
@@ -31,30 +30,9 @@
             }
 
             updatedSection.ProfileParameterId = Id;
-            SetDiscreteValues(updatedSection, discretes);
+            updatedSection.StringValue = Value;
 
             return updatedSection;
-        }
-
-        private static IEnumerable<string> GetDiscreteValues(StorageWorkflow.ProfileParameterValuesSection section)
-        {
-            if (string.IsNullOrWhiteSpace(section.StringValue))
-            {
-                return Array.Empty<string>();
-            }
-
-            return section.StringValue.Split([";"], StringSplitOptions.RemoveEmptyEntries);
-        }
-
-        private static void SetDiscreteValues(StorageWorkflow.ProfileParameterValuesSection section, IEnumerable<string> discretes)
-        {
-            if (discretes == null || !discretes.Any())
-            {
-                section.StringValue = string.Empty;
-                return;
-            }
-
-            section.StringValue = string.Join(";", discretes);
         }
 
         private void ParseSection(StorageWorkflow.ProfileParameterValuesSection section)
@@ -62,10 +40,10 @@
             originalSection = section ?? throw new ArgumentNullException(nameof(section));
 
             Id = section.ProfileParameterId;
-            discretes.Clear();
-            foreach (var discreteValue in GetDiscreteValues(section))
+            Value = section.StringValue;
+            if (!String.IsNullOrEmpty(Value) && Value.Contains(';'))
             {
-                discretes.Add(discreteValue);
+                Value = Value.Split([";"], StringSplitOptions.RemoveEmptyEntries).First();
             }
         }
     }

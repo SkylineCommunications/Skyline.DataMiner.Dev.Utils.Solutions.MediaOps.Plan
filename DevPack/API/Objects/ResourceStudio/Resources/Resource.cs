@@ -92,7 +92,7 @@
         /// <summary>
         /// Gets the collection of capabilities assigned to this resource.
         /// </summary>
-        public IReadOnlyCollection<CapabilitySetting> Capabilities => capabilitySettings;
+        public IReadOnlyCollection<CapabilitySettings> Capabilities => capabilitySettings;
 
         /// <summary>
         /// Gets the collection of capacities assigned to this resource.
@@ -228,7 +228,7 @@
         /// </summary>
         /// <param name="capabilitySetting">The capability setting to add.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="capabilitySetting"/> is <see langword="null"/>.</exception>
-        public Resource AddCapability(CapabilitySetting capabilitySetting)
+        public Resource AddCapability(CapabilitySettings capabilitySetting)
         {
             if (capabilitySetting == null)
             {
@@ -244,25 +244,14 @@
         /// </summary>
         /// <param name="capabilitySetting">The capability to remove from the resource. Cannot be null.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="capabilitySetting"/> is <see langword="null"/>.</exception>
-        public Resource RemoveCapability(CapabilitySetting capabilitySetting)
+        public Resource RemoveCapability(CapabilitySettings capabilitySetting)
         {
             if (capabilitySetting == null)
             {
                 throw new ArgumentNullException(nameof(capabilitySetting));
             }
 
-            if (capabilitySetting.OriginalSection == null)
-            {
-                return this;
-            }
-
-            var toRemove = capabilitySettings.SingleOrDefault(x => x.OriginalSection.ID == capabilitySetting.OriginalSection.ID);
-            if (toRemove == null)
-            {
-                return this;
-            }
-
-            capabilitySettings.Remove(toRemove);
+            capabilitySettings.RemoveAll(x => x.Equals(capabilitySetting));
             return this;
         }
 
@@ -272,7 +261,7 @@
         /// <param name="capabilitySettings">The capability settings to apply on the resource. Cannot be null.</param>
         /// <returns>Resource with updated capability settings.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="capabilitySettings"/> is <see langword="null"/></exception>
-        public Resource SetCapabilities(IEnumerable<CapabilitySetting> capabilitySettings)
+        public Resource SetCapabilities(IEnumerable<CapabilitySettings> capabilitySettings)
         {
             if (capabilitySettings == null)
             {
@@ -328,26 +317,13 @@
                 throw new ArgumentNullException(nameof(capacitySetting));
             }
 
-            if (capacitySetting.OriginalSection == null)
-            {
-                return this;
-            }
-
             if (capacitySetting is NumberCapacitySetting)
             {
-                var toRemoveNumber = numberCapacitySettings.SingleOrDefault(x => x.OriginalSection.ID == capacitySetting.OriginalSection.ID);
-                if (toRemoveNumber != null)
-                {
-                    numberCapacitySettings.Remove(toRemoveNumber);
-                }
+                numberCapacitySettings.RemoveAll(x => x.Equals(capacitySetting));
             }
             else if (capacitySetting is RangeCapacitySetting)
             {
-                var toRemoveRange = rangeCapacitySettings.SingleOrDefault(x => x.OriginalSection.ID == capacitySetting.OriginalSection.ID);
-                if (toRemoveRange != null)
-                {
-                    rangeCapacitySettings.Remove(toRemoveRange);
-                }
+                rangeCapacitySettings.RemoveAll(x => x.Equals(capacitySetting));
             }
 
             return this;
@@ -404,12 +380,7 @@
                 throw new ArgumentNullException(nameof(property));
             }
 
-            var toRemove = propertySettings.SingleOrDefault(x => x.OriginalSection.ID == property.OriginalSection.ID);
-            if (toRemove != null)
-            {
-                propertySettings.Remove(toRemove);
-            }
-
+            propertySettings.RemoveAll(x => x.Equals(property));
             return this;
         }
 

@@ -1,7 +1,6 @@
 ﻿namespace RT_MediaOps.Plan.RST.Resources
 {
     using System;
-    using System.Collections.Generic;
     using System.Linq;
 
     using RT_MediaOps.Plan.RegressionTests;

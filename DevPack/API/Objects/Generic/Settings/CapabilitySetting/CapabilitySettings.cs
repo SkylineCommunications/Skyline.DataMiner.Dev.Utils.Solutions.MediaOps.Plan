@@ -7,26 +7,26 @@
     /// <summary>
     /// Represents a configurable set of discrete values associated with a specific capability.
     /// </summary>
-    public class CapabilitySetting : TrackableObject
+    public class CapabilitySettings : TrackableObject
     {
         internal readonly HashSet<string> discretes = [];
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CapabilitySetting"/> class using the specified capability.
+        /// Initializes a new instance of the <see cref="CapabilitySettings"/> class using the specified capability.
         /// </summary>
         /// <param name="capability">The capability to use for initializing the settings. Cannot be null.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="capability"/> is <see langword="null"/>.</exception>
-        public CapabilitySetting(Capability capability)
+        public CapabilitySettings(Capability capability)
             : this(capability?.Id ?? throw new ArgumentNullException(nameof(capability)))
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CapabilitySetting"/> class with the specified capability ID.
+        /// Initializes a new instance of the <see cref="CapabilitySettings"/> class with the specified capability ID.
         /// </summary>
         /// <param name="capabilityId">The unique identifier for the capability. Must not be an empty GUID.</param>
         /// <exception cref="ArgumentException">Thrown when <paramref name="capabilityId"/> is an empty GUID.</exception>
-        public CapabilitySetting(Guid capabilityId)
+        public CapabilitySettings(Guid capabilityId)
         {
             if (capabilityId == Guid.Empty)
             {
@@ -38,11 +38,11 @@
             IsNew = true;
         }
 
-        internal CapabilitySetting()
+        internal CapabilitySettings()
         {
         }
 
-        internal CapabilitySetting(CapabilitySetting capabilitySetting)
+        internal CapabilitySettings(CapabilitySettings capabilitySetting)
         {
             Id = capabilitySetting.Id;
             discretes = new HashSet<string>(capabilitySetting.Discretes);
@@ -72,7 +72,7 @@
         /// </summary>
         /// <param name="value">The discrete value to add to the collection. Cannot be null or empty.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="value"/> is <see langword="null"/> or empty.</exception>
-        public CapabilitySetting AddDiscrete(string value)
+        public CapabilitySettings AddDiscrete(string value)
         {
             if (string.IsNullOrEmpty(value))
             {
@@ -88,7 +88,7 @@
         /// </summary>
         /// <param name="value">The discrete value to remove from the collection. Cannot be null or empty.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="value"/> is <see langword="null"/> or empty.</exception>
-        public CapabilitySetting RemoveDiscrete(string value)
+        public CapabilitySettings RemoveDiscrete(string value)
         {
             if (string.IsNullOrEmpty(value))
             {
@@ -105,7 +105,7 @@
         /// <param name="values">A collection of non-null, non-empty strings representing the discrete values to set.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="values"/> is <see langword="null"/>.</exception>
         /// <exception cref="ArgumentException">Thrown if <paramref name="values"/> contains a <see langword="null"/> or empty string.</exception>
-        public CapabilitySetting SetDiscretes(ICollection<string> values)
+        public CapabilitySettings SetDiscretes(ICollection<string> values)
         {
             if (values == null)
             {
@@ -154,7 +154,7 @@
         /// instance; otherwise, false.</returns>
         public override bool Equals(object obj)
         {
-            if (obj is not CapabilitySetting other)
+            if (obj is not CapabilitySettings other)
             {
                 return false;
             }

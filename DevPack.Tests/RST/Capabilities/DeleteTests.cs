@@ -4,6 +4,7 @@
     using System.Linq;
 
     using RT_MediaOps.Plan.RegressionTests;
+
     using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
@@ -52,14 +53,14 @@
             {
                 Name = $"{prefix}_Resource1",
             }
-            .AddCapability(new CapabilitySetting(capability1).AddDiscrete("Option1"))
-            .AddCapability(new CapabilitySetting(capability2).AddDiscrete("Option2"));
+            .AddCapability(new CapabilitySettings(capability1).AddDiscrete("Option1"))
+            .AddCapability(new CapabilitySettings(capability2).AddDiscrete("Option2"));
 
             var unmangedResource2 = new UnmanagedResource()
             {
                 Name = $"{prefix}_Resource2",
             }
-            .AddCapability(new CapabilitySetting(capability1).AddDiscrete("Option2"));
+            .AddCapability(new CapabilitySettings(capability1).AddDiscrete("Option2"));
 
             objectCreator.CreateResources([unmangedResource1, unmangedResource2]);
 
@@ -135,14 +136,14 @@
             {
                 Name = $"{prefix}_ResourcePool1",
             }
-            .AddCapability(new CapabilitySetting(capability1).AddDiscrete("Option1"))
-            .AddCapability(new CapabilitySetting(capability2).AddDiscrete("Option2"));
+            .AddCapability(new CapabilitySettings(capability1).AddDiscrete("Option1"))
+            .AddCapability(new CapabilitySettings(capability2).AddDiscrete("Option2"));
 
             var pool2 = new ResourcePool()
             {
                 Name = $"{prefix}_ResourcePool2",
             }
-            .AddCapability(new CapabilitySetting(capability1).AddDiscrete("Option2"));
+            .AddCapability(new CapabilitySettings(capability1).AddDiscrete("Option2"));
 
             objectCreator.CreateResourcePools([pool1, pool2]);
 
@@ -218,8 +219,8 @@
             {
                 Name = $"{prefix}_Resource",
             }
-            .AddCapability(new CapabilitySetting(capability1).AddDiscrete("Option1"))
-            .AddCapability(new CapabilitySetting(capability2).AddDiscrete("Option2"));
+            .AddCapability(new CapabilitySettings(capability1).AddDiscrete("Option1"))
+            .AddCapability(new CapabilitySettings(capability2).AddDiscrete("Option2"));
 
             objectCreator.CreateResource(unmangedResource);
 
@@ -227,7 +228,7 @@
             {
                 Name = $"{prefix}_ResourcePool",
             }
-            .AddCapability(new CapabilitySetting(capability1).AddDiscrete("Option2"));
+            .AddCapability(new CapabilitySettings(capability1).AddDiscrete("Option2"));
 
             objectCreator.CreateResourcePool(pool);
 
@@ -355,7 +356,7 @@
                 new OrchestrationEvent
                 {
                     EventType = OrchestrationEventType.PrerollStart,
-                    ExecutionDetails = new ScriptExecutionDetails("SomeScript").AddCapability(new CapabilitySetting(capability).SetDiscretes([capability.Discretes.First()]))
+                    ExecutionDetails = new ScriptExecutionDetails("SomeScript").AddCapability(new CapabilitySetting(capability) { Value = capability.Discretes.First() })
                 },
             });
             objectCreator.CreateResourcePool(resourcePool);
