@@ -102,7 +102,7 @@
             return !result.HasFailures;
         }
 
-        public static Exceptions.BulkOperationResult<Guid> DeleteResourcePoolsInBatches(this ResourceManagerHelper helper, IEnumerable<ResourcePool> resourcePools)
+        public static BulkOperationResult<Guid> DeleteResourcePoolsInBatches(this ResourceManagerHelper helper, IEnumerable<ResourcePool> resourcePools)
         {
             if (helper == null)
             {
@@ -120,7 +120,7 @@
             return result;
         }
 
-        public static bool TryDeleteResourcePoolsInBatches(this ResourceManagerHelper helper, IEnumerable<ResourcePool> resourcePools, out Exceptions.BulkOperationResult<Guid> result)
+        public static bool TryDeleteResourcePoolsInBatches(this ResourceManagerHelper helper, IEnumerable<ResourcePool> resourcePools, out BulkOperationResult<Guid> result)
         {
             if (helper == null)
             {
@@ -231,7 +231,7 @@
             return !result.HasFailures;
         }
 
-        public static Exceptions.BulkOperationResult<Guid> DeleteResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources, ResourceDeleteOptions options)
+        public static BulkOperationResult<Guid> DeleteResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources, ResourceDeleteOptions options)
         {
             if (helper == null)
             {
@@ -254,7 +254,7 @@
             return result;
         }
 
-        public static bool TryDeleteResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources, ResourceDeleteOptions options, out Exceptions.BulkOperationResult<Guid> result)
+        public static bool TryDeleteResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources, ResourceDeleteOptions options, out BulkOperationResult<Guid> result)
         {
             if (helper == null)
             {
@@ -311,7 +311,7 @@
             return new BulkOperationResult<Guid>(successfulIds, unsuccessfulIds, traceDataPerItem);
         }
 
-        private static Exceptions.BulkOperationResult<Guid> InnerDeleteResourcePoolsInBatches(ResourceManagerHelper helper, IEnumerable<ResourcePool> resourcePools)
+        private static BulkOperationResult<Guid> InnerDeleteResourcePoolsInBatches(ResourceManagerHelper helper, IEnumerable<ResourcePool> resourcePools)
         {
             var successfulIds = new List<Guid>();
             var unsuccessfulIds = new List<Guid>();
@@ -392,7 +392,7 @@
             return new BulkOperationResult<Guid>(successfulIds, unsuccessfulIds, traceDataPerItem);
         }
 
-        private static Exceptions.BulkOperationResult<Guid> InnerDeleteResourcesInBatches(ResourceManagerHelper helper, IEnumerable<Resource> resources, ResourceDeleteOptions options)
+        private static BulkOperationResult<Guid> InnerDeleteResourcesInBatches(ResourceManagerHelper helper, IEnumerable<Resource> resources, ResourceDeleteOptions options)
         {
             var successfulIds = new List<Guid>();
             var unsuccessfulIds = new List<Guid>();
@@ -427,7 +427,7 @@
                 }
             });
 
-            return new Exceptions.BulkOperationResult<Guid>(successfulIds, unsuccessfulIds, traceDataPerItem);
+            return new BulkOperationResult<Guid>(successfulIds, unsuccessfulIds, traceDataPerItem);
         }
     }
 }

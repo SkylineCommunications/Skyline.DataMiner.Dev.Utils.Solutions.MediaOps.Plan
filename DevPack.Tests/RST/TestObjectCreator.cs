@@ -3,6 +3,9 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
+    using Alphaleonis.Win32.Filesystem;
+
     using RT_MediaOps.Plan.RegressionTests;
 
     using Skyline.DataMiner.Core.DataMinerSystem.Common;
@@ -10,6 +13,9 @@
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Utils.Categories.API;
     using Skyline.DataMiner.Utils.Categories.API.Objects;
+
+    using CoreResource = Skyline.DataMiner.Net.Messages.Resource;
+    using CoreResourcePool = Skyline.DataMiner.Net.Messages.ResourcePool;
 
     internal class TestObjectCreator : IDisposable
     {
@@ -30,6 +36,12 @@
         private readonly HashSet<Guid> createdCategoryIds = new HashSet<Guid>();
 
         private readonly HashSet<DmsElementId> createdElementIds = new HashSet<DmsElementId>();
+
+        private readonly HashSet<DmsServiceId> createdServiceIds = new HashSet<DmsServiceId>();
+
+        private readonly HashSet<Guid> createdCoreResourcePoolIds = new HashSet<Guid>();
+
+        private readonly HashSet<Guid> createdCoreResourceIds = new HashSet<Guid>();
 
         public TestObjectCreator(IntegrationTestContext testContext)
         {
@@ -101,6 +113,33 @@
             try
             {
                 CategoriesCleanup();
+            }
+            catch
+            {
+                // Ignore cleanup errors
+            }
+
+            try
+            {
+                CoreResourcesCleanup();
+            }
+            catch
+            {
+                // Ignore cleanup errors
+            }
+
+            try
+            {
+                CoreResourcePoolsCleanup();
+            }
+            catch
+            {
+                // Ignore cleanup errors
+            }
+
+            try
+            {
+                ServicesCleanup();
             }
             catch
             {
@@ -203,6 +242,40 @@
             }
         }
 
+        private void ServicesCleanup()
+        {
+            foreach (var serviceId in createdServiceIds)
+            {
+                if (!Dms.ServiceExists(serviceId))
+                {
+                    continue;
+                }
+
+                var service = Dms.GetService(serviceId);
+                service.Delete();
+            }
+        }
+
+        private void CoreResourcesCleanup()
+        {
+            if (createdCoreResourceIds.Count == 0)
+            {
+                return;
+            }
+
+            testContext.ResourceManagerHelper.RemoveResources(createdCoreResourceIds.Select(x => new CoreResource(x)).ToArray());
+        }
+
+        private void CoreResourcePoolsCleanup()
+        {
+            if (createdCoreResourcePoolIds.Count == 0)
+            {
+                return;
+            }
+
+            testContext.ResourceManagerHelper.RemoveResourcePools(createdCoreResourcePoolIds.Select(x => new CoreResourcePool(x)).ToArray());
+        }
+
         public void CreateResource(Resource resource)
         {
             PlanApi.Resources.Create(resource);
@@ -231,6 +304,19 @@
             }
         }
 
+        public void StoreResourceIds(IEnumerable<Guid> ids)
+        {
+            if (ids == null)
+            {
+                return;
+            }
+
+            foreach (var id in ids.Where(x => x != Guid.Empty))
+            {
+                createdResourceIds.Add(id);
+            }
+        }
+
         public void CreateResourcePool(ResourcePool resourcePool)
         {
             PlanApi.ResourcePools.Create(resourcePool);
@@ -256,6 +342,19 @@
                 }
 
                 throw;
+            }
+        }
+
+        public void StoreResourcePoolIds(IEnumerable<Guid> ids)
+        {
+            if (ids == null)
+            {
+                return;
+            }
+
+            foreach (var id in ids.Where(x => x != Guid.Empty))
+            {
+                createdPoolIds.Add(id);
             }
         }
 
@@ -385,6 +484,47 @@
 
             createdElementIds.Add(elementId);
             return elementId;
+        }
+
+        public DmsServiceId CreateService(ServiceConfiguration configuration)
+        {
+            var agent = Dms.GetAgents().First();
+            var serviceId = agent.CreateService(configuration);
+
+            createdServiceIds.Add(serviceId);
+            return serviceId;
+        }
+
+        public void CreateCoreResource(CoreResource resource)
+        {
+            foreach (var created in testContext.ResourceManagerHelper.AddOrUpdateResources(resource))
+            {
+                createdCoreResourceIds.Add(created.ID);
+            }
+        }
+
+        public void CreateCoreResources(IEnumerable<CoreResource> resources)
+        {
+            foreach (var created in testContext.ResourceManagerHelper.AddOrUpdateResources(resources.ToArray()))
+            {
+                createdCoreResourceIds.Add(created.ID);
+            }
+        }
+
+        public void CreateCoreResourcePool(CoreResourcePool resourcePool)
+        {
+            foreach (var created in testContext.ResourceManagerHelper.AddOrUpdateResourcePools(resourcePool))
+            {
+                createdCoreResourcePoolIds.Add(created.ID);
+            }
+        }
+
+        public void CreateCoreResourcePools(IEnumerable<CoreResourcePool> resourcePools)
+        {
+            foreach (var created in testContext.ResourceManagerHelper.AddOrUpdateResourcePools(resourcePools.ToArray()))
+            {
+                createdCoreResourcePoolIds.Add(created.ID);
+            }
         }
     }
 }

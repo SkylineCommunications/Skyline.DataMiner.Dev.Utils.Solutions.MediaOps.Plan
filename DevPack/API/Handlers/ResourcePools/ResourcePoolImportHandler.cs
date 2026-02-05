@@ -61,7 +61,11 @@
             planApi.CoreHelpers.ResourceManagerHelper.TryCreateOrUpdateResourcesInBatches(resourceMappings.Select(x => x.Core), out var coreResult);
 
             var domResourcesToCreate = resourceMappings.Where(x => coreResult.SuccessfulIds.Contains(x.Core.ID)).Select(x => x.Dom).ToList();
-            planApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.CreateOrUpdateInBatches(domResourcesToCreate.Select(x => x.ToInstance()));
+            planApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.TryCreateOrUpdateInBatches(domResourcesToCreate.Select(x => x.ToInstance()), out var domResult);
+            foreach (var domInstanceId in domResult.SuccessfulIds)
+            {
+                planApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.DoStatusTransition(domInstanceId, SlcResource_StudioIds.Behaviors.Resource_Behavior.Transitions.Draft_To_Complete);
+            }
         }
 
         private IEnumerable<ResourcePoolMapping> GetOrCreateDomResourcePools(ICollection<CoreResourcePool> coreResourcePools)
@@ -235,7 +239,7 @@
             if (coreResource is Net.ResourceManager.Objects.FunctionResource functionResource)
             {
                 domResource.ResourceInfo.Type = SlcResource_StudioIds.Enums.Type.VirtualFunction;
-                domResource.ResourceInternalProperties.Metadata.LinkedElementInfo = new DmsElementId(coreResource.DmaID, coreResource.ElementID).Value;
+                domResource.ResourceInternalProperties.Metadata.LinkedElementInfo = new DmsElementId(functionResource.MainDVEDmaID, functionResource.MainDVEElementID).Value;
                 domResource.ResourceInternalProperties.Metadata.LinkedFunctionId = functionResource.FunctionGUID;
                 if (functionResource.LinkerTableEntries.Any())
                 {
