@@ -178,5 +178,11 @@
         /// <param name="resourcePoolId">The unique identifier of the resource pool from which the resources will be unassigned.</param>
         /// <param name="resources">The collection of resources to remove from the pool.</param>
         void UnassignResourcesFromPool(Guid resourcePoolId, ICollection<Resource> resources);
+
+        /// <summary>
+        /// Imports the specified SRM resource pool with its resources in Resource Studio.
+        /// </summary>
+        /// <param name="resourcePool">The resource pool to import. Cannot be null.</param>
+        void Import(Skyline.DataMiner.Net.Messages.ResourcePool resourcePool);
     }
 }

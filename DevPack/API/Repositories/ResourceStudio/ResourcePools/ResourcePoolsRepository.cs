@@ -968,5 +968,16 @@
 
             return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
+
+        /// <inheritdoc/>
+        public void Import(Net.Messages.ResourcePool resourcePool)
+        {
+            if (resourcePool == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePool));
+            }
+
+            ResourcePoolImportHandler.Import(PlanApi, [resourcePool]);
+        }
     }
 }
