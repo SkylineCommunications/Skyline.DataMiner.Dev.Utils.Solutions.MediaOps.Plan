@@ -6,5 +6,9 @@
     /// </summary>
     public interface ICapabilitiesRepository : IRepository<Capability>
     {
+        /// <summary>
+        /// Gets the system-level capabilities.
+        /// </summary>
+        public SystemCapabilities SystemCapabilities { get; }
     }
 }

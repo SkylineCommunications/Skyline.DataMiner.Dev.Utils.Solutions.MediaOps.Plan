@@ -18,7 +18,6 @@
     /// </summary>
     public class MediaOpsPlanApi : IMediaOpsPlanApi
     {
-        private readonly ILogger logger;
         private readonly IConnection connection;
 
         private readonly InstalledAppPackageCache installedAppPackages;
@@ -41,15 +40,16 @@
 
         internal static readonly int DefaultPageSize = 200;
 
+        private ILogger logger;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="MediaOpsPlanApi"/> class.
         /// </summary>
         /// <param name="connection">The connection to use for API operations.</param>
-        /// <param name="logger">The logger to use for logging operations.</param>
-        public MediaOpsPlanApi(IConnection connection, ILogger logger = null)
+        public MediaOpsPlanApi(IConnection connection)
         {
             this.connection = connection ?? throw new ArgumentNullException(nameof(connection));
-            this.logger = logger ?? new NullLogger();
+            this.logger = new NullLogger();
 
             installedAppPackages = new InstalledAppPackageCache(connection);
 
@@ -144,6 +144,12 @@
         public bool IsInstalled()
         {
             return IsInstalled(out _);
+        }
+
+        /// <inheritdoc/>
+        public void SetLogger(ILogger logger)
+        {
+            this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
     }
 }

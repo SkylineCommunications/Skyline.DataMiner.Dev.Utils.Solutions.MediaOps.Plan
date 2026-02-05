@@ -7,10 +7,10 @@
     using Microsoft.VisualStudio.TestTools.UnitTesting;
 
     using RT_MediaOps.Plan.RegressionTests;
+
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Utils.Categories.API.Objects;
 
     [TestClass]

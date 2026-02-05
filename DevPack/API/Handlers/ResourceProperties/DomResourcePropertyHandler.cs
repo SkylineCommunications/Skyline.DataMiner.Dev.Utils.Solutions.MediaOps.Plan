@@ -4,19 +4,16 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
-
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
     using Skyline.DataMiner.Utils.DOM.Extensions;
 
     using DomResourceProperty = Storage.DOM.SlcResource_Studio.ResourcepropertyInstance;
 
-    internal class DomResourcePropertyHandler : DomInstanceApiObjectValidator
+    internal class DomResourcePropertyHandler : DomInstanceApiObjectValidator<DomResourceProperty>
     {
         private readonly MediaOpsPlanApi planApi;
 
@@ -25,22 +22,22 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<ResourceProperty> apiResourceProperties, out DomInstanceBulkOperationResult result)
+        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<ResourceProperty> apiResourceProperties, out DomInstanceBulkOperationResult<DomResourceProperty> result)
         {
             var handler = new DomResourcePropertyHandler(planApi);
             handler.CreateOrUpdate(apiResourceProperties);
 
-            result = new DomInstanceBulkOperationResult(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new DomInstanceBulkOperationResult<DomResourceProperty>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
             return !result.HasFailures;
         }
 
-        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<ResourceProperty> apiResourceProperties, out DomInstanceBulkOperationResult result)
+        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<ResourceProperty> apiResourceProperties, out DomInstanceBulkOperationResult<DomResourceProperty> result)
         {
             var handler = new DomResourcePropertyHandler(planApi);
             handler.Delete(apiResourceProperties);
 
-            result = new DomInstanceBulkOperationResult(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new DomInstanceBulkOperationResult<DomResourceProperty>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
             return !result.HasFailures;
         }
@@ -137,7 +134,7 @@
                 }
             }
 
-            ReportSuccess(domResult.SuccessfulItems);
+            ReportSuccess(domResult.SuccessfulItems.Select(x => new DomResourceProperty(x)));
         }
 
         private void Delete(ICollection<ResourceProperty> apiResourceProperties)
@@ -197,7 +194,7 @@
                 }
             }
 
-            ReportSuccess(instancesToDelete.Where(x => domResult.SuccessfulIds.Contains(x.ID)));
+            ReportSuccess(instancesToDelete.Where(x => domResult.SuccessfulIds.Contains(x.ID)).Select(x => new DomResourceProperty(x)));
         }
 
         private void ValidateIdsNotInUse(ICollection<ResourceProperty> apiResourceProperties)

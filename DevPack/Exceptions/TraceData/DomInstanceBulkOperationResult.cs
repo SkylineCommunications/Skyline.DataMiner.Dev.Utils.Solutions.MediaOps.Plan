@@ -4,11 +4,11 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
 
-    internal class DomInstanceBulkOperationResult : BulkOperationResult<DomInstance>
+    internal class DomInstanceBulkOperationResult<T> : BulkOperationResult<T> where T : DomInstanceBase
     {
-        public DomInstanceBulkOperationResult(IReadOnlyCollection<DomInstance> successItems, IReadOnlyCollection<Guid> unsuccessfulIds, IReadOnlyDictionary<Guid, MediaOpsTraceData> traceDataPerItem) : base(successItems, unsuccessfulIds, traceDataPerItem)
+        public DomInstanceBulkOperationResult(IReadOnlyCollection<T> successItems, IReadOnlyCollection<Guid> unsuccessfulIds, IReadOnlyDictionary<Guid, MediaOpsTraceData> traceDataPerItem) : base(successItems, unsuccessfulIds, traceDataPerItem)
         {
         }
 

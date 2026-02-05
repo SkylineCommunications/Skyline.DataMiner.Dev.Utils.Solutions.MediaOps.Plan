@@ -1,23 +1,16 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
 
-    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
 
-    internal class DomInstanceApiObjectValidator : ApiObjectValidator<DomInstance>
+    internal class DomInstanceApiObjectValidator<T> : ApiObjectValidator<T> where T : DomInstanceBase
     {
-        protected override void ReportError(Guid key)
-        {
-            if (successfulIItems.Any(x => x.ID.Id == key))
-            {
-                throw new InvalidOperationException($"An item cannot be marked as both successful and unsuccessful");
-            }
+        internal override IReadOnlyCollection<Guid> SuccessfulIds => successfulIItems.Select(x => x.ID.Id).ToList();
 
-            unsuccessfulItems.Add(key);
-        }
-
-        protected override void ReportSuccess(DomInstance item)
+        protected override void ReportSuccess(T item)
         {
             if (unsuccessfulItems.Contains(item.ID.Id))
             {

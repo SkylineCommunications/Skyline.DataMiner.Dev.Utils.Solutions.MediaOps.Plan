@@ -8,7 +8,6 @@
     using Skyline.DataMiner.ConnectorAPI.SkylineLockManager.ConnectorApi;
     using Skyline.DataMiner.ConnectorAPI.SkylineLockManager.ConnectorApi.InterApp.Messages.Locking;
     using Skyline.DataMiner.ConnectorAPI.SkylineLockManager.ConnectorApi.InterApp.Messages.Unlocking;
-    using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 
     internal class LockManager

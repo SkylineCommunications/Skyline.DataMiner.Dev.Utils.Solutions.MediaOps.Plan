@@ -102,7 +102,7 @@
                 }
             }
 
-            ReportSuccess(result.SuccessfulIds);
+            ReportSuccess(result.SuccessfulItems);
         }
 
         private void Delete(ICollection<Configuration> apiConfigurations)
@@ -141,7 +141,7 @@
                 }
             }
 
-            ReportSuccess(result.SuccessfulIds);
+            ReportSuccess(result.SuccessfulItems);
         }
 
         private void ValidateIdsNotInUse(ICollection<Configuration> apiConfigurations)

@@ -11,6 +11,7 @@
     /// </summary>
     /// <typeparam name="T">The type of the items in the result set.</typeparam>
     public class PagedResult<T> : IPagedResult<T>
+        where T : class
     {
         /// <summary>
         /// Gets an empty <see cref="PagedResult{T}"/> instance.

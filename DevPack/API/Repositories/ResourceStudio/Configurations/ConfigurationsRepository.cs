@@ -1,467 +1,471 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Linq;
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
 
-	using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
+    using Skyline.DataMiner.Net.Messages.SLDataGateway;
+    using Skyline.DataMiner.SDM;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
-	using Skyline.DataMiner.Net.Messages.SLDataGateway;
-	using Skyline.DataMiner.SDM;
-	using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
-	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-	using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
-	using SLDataGateway.API.Types.Querying;
+    using SLDataGateway.API.Types.Querying;
 
-	/// <summary>
-	/// Provides repository operations for managing <see cref="Configuration"/> objects.
-	/// </summary>
-	internal class ConfigurationsRepository : Repository, IConfigurationsRepository
-	{
-		private readonly ConfigurationFilterTranslator filterTranslator = new ConfigurationFilterTranslator();
+    /// <summary>
+    /// Provides repository operations for managing <see cref="Configuration"/> objects.
+    /// </summary>
+    internal class ConfigurationsRepository : Repository, IConfigurationsRepository
+    {
+        private readonly ConfigurationFilterTranslator filterTranslator = new ConfigurationFilterTranslator();
 
-		/// <summary>
-		/// Initializes a new instance of the <see cref="ConfigurationsRepository"/> class.
-		/// </summary>
-		/// <param name="planApi">The MediaOps Plan API instance.</param>
-		public ConfigurationsRepository(MediaOpsPlanApi planApi) : base(planApi)
-		{
-		}
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ConfigurationsRepository"/> class.
+        /// </summary>
+        /// <param name="planApi">The MediaOps Plan API instance.</param>
+        public ConfigurationsRepository(MediaOpsPlanApi planApi) : base(planApi)
+        {
+        }
 
-		/// <summary>
-		/// Gets the total number of configurations in the repository.
-		/// </summary>
-		/// <returns>The total count of configurations.</returns>
-		public long Count()
-		{
-			return Count(new TRUEFilterElement<Configuration>());
-		}
+        /// <summary>
+        /// Gets the total number of configurations in the repository.
+        /// </summary>
+        /// <returns>The total count of configurations.</returns>
+        public long Count()
+        {
+            return Count(new TRUEFilterElement<Configuration>());
+        }
 
-		/// <summary>
-		/// Gets the number of configurations that match the specified filter.
-		/// </summary>
-		/// <param name="filter">The filter criteria to apply when counting configurations.</param>
-		/// <returns>The count of configurations matching the filter.</returns>
-		public long Count(FilterElement<Configuration> filter)
-		{
-			return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Count), act =>
-			{
-				var paramFilter = filterTranslator.Translate(filter);
-				return PlanApi.CoreHelpers.ProfileProvider.CountConfigurations(paramFilter);
-			});
-		}
+        /// <summary>
+        /// Gets the number of configurations that match the specified filter.
+        /// </summary>
+        /// <param name="filter">The filter criteria to apply when counting configurations.</param>
+        /// <returns>The count of configurations matching the filter.</returns>
+        public long Count(FilterElement<Configuration> filter)
+        {
+            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Count), act =>
+            {
+                var paramFilter = filterTranslator.Translate(filter);
+                return PlanApi.CoreHelpers.ProfileProvider.CountConfigurations(paramFilter);
+            });
+        }
 
-		/// <summary>
-		/// Gets the number of configurations that match the specified query.
-		/// </summary>
-		/// <param name="query">The query criteria to apply when counting configurations.</param>
-		/// <returns>The count of configurations matching the query.</returns>
-		public long Count(IQuery<Configuration> query)
-		{
-			return Count(query.Filter);
-		}
+        /// <summary>
+        /// Gets the number of configurations that match the specified query.
+        /// </summary>
+        /// <param name="query">The query criteria to apply when counting configurations.</param>
+        /// <returns>The count of configurations matching the query.</returns>
+        public long Count(IQuery<Configuration> query)
+        {
+            return Count(query.Filter);
+        }
 
-		/// <summary>
-		/// Creates a new configuration in the repository.
-		/// </summary>
-		/// <param name="apiObject">The configuration to create.</param>
-		/// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
-		/// <exception cref="InvalidOperationException">Thrown when attempting to create an existing configuration.</exception>
-		/// <exception cref="MediaOpsException">Thrown when the creation operation fails for the specified configuration.</exception>
-		public void Create(Configuration apiObject)
-		{
-			PlanApi.Logger.Information(this, "Creating new Configuration...");
+        /// <summary>
+        /// Creates a new configuration in the repository.
+        /// </summary>
+        /// <param name="apiObject">The configuration to create.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when attempting to create an existing configuration.</exception>
+        /// <exception cref="MediaOpsException">Thrown when the creation operation fails for the specified configuration.</exception>
+        public Configuration Create(Configuration apiObject)
+        {
+            PlanApi.Logger.Information(this, "Creating new Configuration...");
 
-			if (apiObject == null)
-			{
-				throw new ArgumentNullException(nameof(apiObject));
-			}
+            if (apiObject == null)
+            {
+                throw new ArgumentNullException(nameof(apiObject));
+            }
 
-			ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Create), act =>
-			{
-				if (!apiObject.IsNew)
-				{
-					throw new InvalidOperationException("Not possible to use method Create for an existing configuration. Use CreateOrUpdate or Update instead.");
-				}
+            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Create), act =>
+            {
+                if (!apiObject.IsNew)
+                {
+                    throw new InvalidOperationException("Not possible to use method Create for an existing configuration. Use CreateOrUpdate or Update instead.");
+                }
 
-				if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
-				{
-					result.ThrowSingleException(apiObject.Id);
-				}
+                if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
+                {
+                    result.ThrowSingleException(apiObject.Id);
+                }
 
-				var configurationId = apiObject.Id;
-				act?.AddTag("CapacityId", configurationId);
-			});
-		}
+                act?.AddTag("ConfigurationId", result.SuccessfulIds.First());
 
-		/// <summary>
-		/// Creates multiple new configurations in the repository.
-		/// </summary>
-		/// <param name="apiObjects">The collection of configurations to create.</param>
-		/// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
-		/// <exception cref="InvalidOperationException">Thrown when attempting to create existing configurations.</exception>
-		/// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk creation operation fails for one or more configurations.</exception>
-		public void Create(IEnumerable<Configuration> apiObjects)
-		{
-			if (apiObjects == null)
-			{
-				throw new ArgumentNullException(nameof(apiObjects));
-			}
+                return Configuration.InstantiateConfigurations(result.SuccessfulItems).First();
+            });
+        }
 
-			BulkOperationResult result = null;
-			ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Create), act =>
-			{
-				if (apiObjects.Any(x => !x.IsNew))
-				{
-					throw new InvalidOperationException("Not possible to use method Create for existing configurations. Use CreateOrUpdate or Update instead.");
-				}
+        /// <summary>
+        /// Creates multiple new configurations in the repository.
+        /// </summary>
+        /// <param name="apiObjects">The collection of configurations to create.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when attempting to create existing configurations.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk creation operation fails for one or more configurations.</exception>
+        public IReadOnlyCollection<Configuration> Create(IEnumerable<Configuration> apiObjects)
+        {
+            if (apiObjects == null)
+            {
+                throw new ArgumentNullException(nameof(apiObjects));
+            }
 
-				if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
-				{
-					result.ThrowBulkException();
-				}
+            var list = apiObjects.ToList();
 
-				act?.AddTag("ConfigurationIds", string.Join(", ", result.SuccessfulIds));
-			});
-		}
+            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Create), act =>
+            {
+                var existingConfigurations = list.Where(x => !x.IsNew);
+                if (existingConfigurations.Any())
+                {
+                    throw new InvalidOperationException("Not possible to use method Create for existing configurations. Use CreateOrUpdate or Update instead.");
+                }
 
-		/// <summary>
-		/// Creates new configurations or updates existing ones in the repository.
-		/// </summary>
-		/// <param name="apiObjects">The collection of configurations to create or update.</param>
-		/// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
-		/// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk create or update operation fails for one or more configurations.</exception>
-		public void CreateOrUpdate(IEnumerable<Configuration> apiObjects)
-		{
-			if (apiObjects == null)
-			{
-				throw new ArgumentNullException(nameof(apiObjects));
-			}
+                if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, list, out var result))
+                {
+                    result.ThrowBulkException();
+                }
 
-			var list = apiObjects.ToList();
+                act?.AddTag("ConfigurationIds", string.Join(", ", result.SuccessfulIds));
 
-			BulkOperationResult<Guid> result = null;
-			ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(CreateOrUpdate), act =>
-			{
-				if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, apiObjects?.ToList(), out var result))
-				{
-					result.ThrowBulkException();
-				}
+                return Configuration.InstantiateConfigurations(result.SuccessfulItems).ToList();
+            });
+        }
 
-				var configurationIds = result.SuccessfulIds;
-				act?.AddTag("Created or Updated Configurations", String.Join(", ", configurationIds));
-				act?.AddTag("Created or Updated Configurations Count", configurationIds.Count);
-			});
-		}
+        /// <summary>
+        /// Creates new configurations or updates existing ones in the repository.
+        /// </summary>
+        /// <param name="apiObjects">The collection of configurations to create or update.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk create or update operation fails for one or more configurations.</exception>
+        public IReadOnlyCollection<Configuration> CreateOrUpdate(IEnumerable<Configuration> apiObjects)
+        {
+            if (apiObjects == null)
+            {
+                throw new ArgumentNullException(nameof(apiObjects));
+            }
 
-		/// <summary>
-		/// Deletes the specified configurations from the repository.
-		/// </summary>
-		/// <param name="apiObjects">The configurations to delete.</param>
-		/// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
-		public void Delete(IEnumerable<Configuration> apiObjects)
-		{
-			if (apiObjects == null)
-			{
-				throw new ArgumentNullException(nameof(apiObjects));
-			}
+            var list = apiObjects.ToList();
 
-			Delete(apiObjects.Select(x => x.Id).ToArray());
-		}
+            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(CreateOrUpdate), act =>
+            {
+                if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, list, out var result))
+                {
+                    result.ThrowBulkException();
+                }
 
-		/// <summary>
-		/// Deletes configurations with the specified identifiers from the repository.
-		/// </summary>
-		/// <param name="apiObjectIds">The unique identifiers of the configurations to delete.</param>
-		/// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjectIds"/> is <c>null</c>.</exception>
-		/// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk deletion operation fails for one or more configurations.</exception>
-		public void Delete(IEnumerable<Guid> apiObjectIds)
-		{
-			if (apiObjectIds == null)
-			{
-				throw new ArgumentNullException(nameof(apiObjectIds));
-			}
+                act?.AddTag("Created or Updated Configurations", String.Join(", ", result.SuccessfulIds));
+                act?.AddTag("Created or Updated Configurations Count", result.SuccessfulIds.Count);
 
-			var configurationsToDelete = Read(apiObjectIds.ToArray());
+                return Configuration.InstantiateConfigurations(result.SuccessfulItems).ToList();
+            });
+        }
 
-			ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Delete), act =>
-			{
-				if (!CoreConfigurationHandler.TryDelete(PlanApi, configurationsToDelete?.ToList(), out var result))
-				{
-					result.ThrowBulkException();
-				}
+        /// <summary>
+        /// Deletes the specified configurations from the repository.
+        /// </summary>
+        /// <param name="apiObjects">The configurations to delete.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
+        public void Delete(IEnumerable<Configuration> apiObjects)
+        {
+            if (apiObjects == null)
+            {
+                throw new ArgumentNullException(nameof(apiObjects));
+            }
 
-				var configurationIds = result.SuccessfulIds;
-				act?.AddTag("Removed Configurations", String.Join(", ", configurationIds));
-				act?.AddTag("Removed Configurations Count", configurationIds.Count);
-			});
-		}
+            Delete(apiObjects.Select(x => x.Id).ToArray());
+        }
 
-		/// <summary>
-		/// Deletes the specified configuration from the repository.
-		/// </summary>
-		/// <param name="oToDelete">The configuration to delete.</param>
-		/// <exception cref="ArgumentNullException">Thrown when <paramref name="oToDelete"/> is <c>null</c>.</exception>
-		/// <exception cref="MediaOpsException">Thrown when the deletion operation fails for the specified configuration.</exception>
-		public void Delete(Configuration oToDelete)
-		{
-			if (oToDelete == null)
-			{
-				throw new ArgumentNullException(nameof(oToDelete));
-			}
+        /// <summary>
+        /// Deletes configurations with the specified identifiers from the repository.
+        /// </summary>
+        /// <param name="apiObjectIds">The unique identifiers of the configurations to delete.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjectIds"/> is <c>null</c>.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk deletion operation fails for one or more configurations.</exception>
+        public void Delete(IEnumerable<Guid> apiObjectIds)
+        {
+            if (apiObjectIds == null)
+            {
+                throw new ArgumentNullException(nameof(apiObjectIds));
+            }
 
-			Delete(oToDelete.Id);
-		}
+            var configurationsToDelete = Read(apiObjectIds.ToArray());
 
-		/// <summary>
-		/// Deletes the specified configuration from the repository.
-		/// </summary>
-		/// <param name="apiObjectId">The unique identifier of the configuration to delete.</param>
-		/// <exception cref="MediaOpsException">Thrown when the deletion operation fails for the specified configuration.</exception>
-		public void Delete(Guid apiObjectId)
-		{
-			var configurationToDelete = Read(apiObjectId);
-			if (configurationToDelete == null)
-			{
-				return;
-			}
+            ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Delete), act =>
+            {
+                if (!CoreConfigurationHandler.TryDelete(PlanApi, configurationsToDelete?.ToList(), out var result))
+                {
+                    result.ThrowBulkException();
+                }
 
-			ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Delete), act =>
-			{
-				if (!CoreConfigurationHandler.TryDelete(PlanApi, [configurationToDelete], out var result))
-				{
-					result.ThrowSingleException(apiObjectId);
-				}
+                act?.AddTag("Removed Configurations", String.Join(", ", result.SuccessfulIds));
+                act?.AddTag("Removed Configurations Count", result.SuccessfulIds.Count);
+            });
+        }
 
-				var configurationId = result.SuccessfulIds.First();
-				act?.AddTag("ConfigurationId", configurationId);
-			});
-		}
+        /// <summary>
+        /// Deletes the specified configuration from the repository.
+        /// </summary>
+        /// <param name="oToDelete">The configuration to delete.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="oToDelete"/> is <c>null</c>.</exception>
+        /// <exception cref="MediaOpsException">Thrown when the deletion operation fails for the specified configuration.</exception>
+        public void Delete(Configuration oToDelete)
+        {
+            if (oToDelete == null)
+            {
+                throw new ArgumentNullException(nameof(oToDelete));
+            }
 
-		/// <summary>
-		/// Reads a single configuration by its unique identifier.
-		/// </summary>
-		/// <param name="id">The unique identifier of the configuration.</param>
-		/// <returns>The configuration with the specified identifier, or <c>null</c> if not found.</returns>
-		/// <exception cref="ArgumentException">Thrown when <paramref name="id"/> is <see cref="Guid.Empty"/>.</exception>
-		public Configuration Read(Guid id)
-		{
-			PlanApi.Logger.Information(this, $"Reading Configuration with ID: {id}...");
+            Delete(oToDelete.Id);
+        }
 
-			if (id == Guid.Empty)
-			{
-				throw new ArgumentException(nameof(id));
-			}
+        /// <summary>
+        /// Deletes the specified configuration from the repository.
+        /// </summary>
+        /// <param name="apiObjectId">The unique identifier of the configuration to delete.</param>
+        /// <exception cref="MediaOpsException">Thrown when the deletion operation fails for the specified configuration.</exception>
+        public void Delete(Guid apiObjectId)
+        {
+            var configurationToDelete = Read(apiObjectId);
+            if (configurationToDelete == null)
+            {
+                return;
+            }
 
-			return Read(ConfigurationExposers.Id.Equal(id)).FirstOrDefault();
-		}
+            ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Delete), act =>
+            {
+                if (!CoreConfigurationHandler.TryDelete(PlanApi, [configurationToDelete], out var result))
+                {
+                    result.ThrowSingleException(apiObjectId);
+                }
 
-		/// <summary>
-		/// Reads multiple configurations by their unique identifiers.
-		/// </summary>
-		/// <param name="ids">A collection of unique identifiers.</param>
-		/// <returns>An enumerable collection of configurations matching the specified identifiers.</returns>
-		/// <exception cref="ArgumentNullException">Thrown when <paramref name="ids"/> is <c>null</c>.</exception>
-		public IEnumerable<Configuration> Read(IEnumerable<Guid> ids)
-		{
-			if (ids == null)
-			{
-				throw new ArgumentNullException(nameof(ids));
-			}
+                act?.AddTag("ConfigurationId", result.SuccessfulIds.First());
+            });
+        }
 
-			if (!ids.Any())
-			{
-				return Array.Empty<Configuration>();
-			}
+        /// <summary>
+        /// Reads a single configuration by its unique identifier.
+        /// </summary>
+        /// <param name="id">The unique identifier of the configuration.</param>
+        /// <returns>The configuration with the specified identifier, or <c>null</c> if not found.</returns>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="id"/> is <see cref="Guid.Empty"/>.</exception>
+        public Configuration Read(Guid id)
+        {
+            PlanApi.Logger.Information(this, $"Reading Configuration with ID: {id}...");
 
-			return Read(new ORFilterElement<Configuration>(ids.Select(x => ConfigurationExposers.Id.Equal(x)).ToArray()));
-		}
+            if (id == Guid.Empty)
+            {
+                throw new ArgumentException(nameof(id));
+            }
 
-		/// <summary>
-		/// Reads all configurations from the repository.
-		/// </summary>
-		/// <returns>An enumerable collection of all configurations.</returns>
-		public IEnumerable<Configuration> Read()
-		{
-			return Read(new TRUEFilterElement<Configuration>());
-		}
+            return Read(ConfigurationExposers.Id.Equal(id)).FirstOrDefault();
+        }
 
-		/// <summary>
-		/// Reads configurations that match the specified filter.
-		/// </summary>
-		/// <param name="filter">The filter criteria to apply when reading configurations.</param>
-		/// <returns>An enumerable collection of configurations matching the filter.</returns>
-		public IEnumerable<Configuration> Read(FilterElement<Configuration> filter)
-		{
-			return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Read), act =>
-			{
-				var configurations = PlanApi.CoreHelpers.ProfileProvider.GetConfigurations(filterTranslator.Translate(filter));
-				return Configuration.InstantiateConfigurations(configurations);
-			});
-		}
+        /// <summary>
+        /// Reads multiple configurations by their unique identifiers.
+        /// </summary>
+        /// <param name="ids">A collection of unique identifiers.</param>
+        /// <returns>An enumerable collection of configurations matching the specified identifiers.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="ids"/> is <c>null</c>.</exception>
+        public IEnumerable<Configuration> Read(IEnumerable<Guid> ids)
+        {
+            if (ids == null)
+            {
+                throw new ArgumentNullException(nameof(ids));
+            }
 
-		/// <summary>
-		/// Reads configurations that match the specified query.
-		/// </summary>
-		/// <param name="query">The query criteria to apply when reading configurations.</param>
-		/// <returns>An enumerable collection of configurations matching the query.</returns>
-		public IEnumerable<Configuration> Read(IQuery<Configuration> query)
-		{
-			return Read(query.Filter);
-		}
+            if (!ids.Any())
+            {
+                return Array.Empty<Configuration>();
+            }
 
-		/// <summary>
-		/// Reads all configurations in pages.
-		/// </summary>
-		/// <returns>An enumerable collection of pages, where each page contains a collection of configurations.</returns>
-		public IEnumerable<IPagedResult<Configuration>> ReadPaged()
-		{
-			return ReadPaged(new TRUEFilterElement<Configuration>());
-		}
+            return Read(new ORFilterElement<Configuration>(ids.Select(x => ConfigurationExposers.Id.Equal(x)).ToArray()));
+        }
 
-		/// <summary>
-		/// Reads configurations that match the specified filter in pages.
-		/// </summary>
-		/// <param name="filter">The filter criteria to apply when reading configurations.</param>
-		/// <returns>An enumerable collection of pages, where each page contains configurations matching the filter.</returns>
-		public IEnumerable<IPagedResult<Configuration>> ReadPaged(FilterElement<Configuration> filter)
-		{
-			return ReadPaged(filter, MediaOpsPlanApi.DefaultPageSize);
-		}
+        /// <summary>
+        /// Reads all configurations from the repository.
+        /// </summary>
+        /// <returns>An enumerable collection of all configurations.</returns>
+        public IEnumerable<Configuration> Read()
+        {
+            return Read(new TRUEFilterElement<Configuration>());
+        }
 
-		/// <summary>
-		/// Reads configurations that match the specified query in pages.
-		/// </summary>
-		/// <param name="query">The query criteria to apply when reading configurations.</param>
-		/// <returns>An enumerable collection of pages, where each page contains configurations matching the query.</returns>
-		public IEnumerable<IPagedResult<Configuration>> ReadPaged(IQuery<Configuration> query)
-		{
-			return ReadPaged(query.Filter);
-		}
+        /// <summary>
+        /// Reads configurations that match the specified filter.
+        /// </summary>
+        /// <param name="filter">The filter criteria to apply when reading configurations.</param>
+        /// <returns>An enumerable collection of configurations matching the filter.</returns>
+        public IEnumerable<Configuration> Read(FilterElement<Configuration> filter)
+        {
+            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Read), act =>
+            {
+                var configurations = PlanApi.CoreHelpers.ProfileProvider.GetConfigurations(filterTranslator.Translate(filter));
+                return Configuration.InstantiateConfigurations(configurations);
+            });
+        }
 
-		/// <summary>
-		/// Reads configurations that match the specified filter in pages with a custom page size.
-		/// </summary>
-		/// <param name="filter">The filter criteria to apply when reading configurations.</param>
-		/// <param name="pageSize">The number of items per page.</param>
-		/// <returns>An enumerable collection of pages, where each page contains up to the specified number of configurations matching the filter.</returns>
-		public IEnumerable<IPagedResult<Configuration>> ReadPaged(FilterElement<Configuration> filter, int pageSize)
-		{
-			if (filter == null)
-			{
-				throw new ArgumentNullException(nameof(filter));
-			}
+        /// <summary>
+        /// Reads configurations that match the specified query.
+        /// </summary>
+        /// <param name="query">The query criteria to apply when reading configurations.</param>
+        /// <returns>An enumerable collection of configurations matching the query.</returns>
+        public IEnumerable<Configuration> Read(IQuery<Configuration> query)
+        {
+            return Read(query.Filter);
+        }
 
-			if (pageSize <= 0)
-			{
-				throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size must be greater than zero.");
-			}
+        /// <summary>
+        /// Reads all configurations in pages.
+        /// </summary>
+        /// <returns>An enumerable collection of pages, where each page contains a collection of configurations.</returns>
+        public IEnumerable<IPagedResult<Configuration>> ReadPaged()
+        {
+            return ReadPaged(new TRUEFilterElement<Configuration>());
+        }
 
-			return ReadPagedIterator(filter, pageSize);
-		}
+        /// <summary>
+        /// Reads configurations that match the specified filter in pages.
+        /// </summary>
+        /// <param name="filter">The filter criteria to apply when reading configurations.</param>
+        /// <returns>An enumerable collection of pages, where each page contains configurations matching the filter.</returns>
+        public IEnumerable<IPagedResult<Configuration>> ReadPaged(FilterElement<Configuration> filter)
+        {
+            return ReadPaged(filter, MediaOpsPlanApi.DefaultPageSize);
+        }
 
-		/// <summary>
-		/// Reads configurations that match the specified query in pages with a custom page size.
-		/// </summary>
-		/// <param name="query">The query criteria to apply when reading configurations.</param>
-		/// <param name="pageSize">The number of items per page.</param>
-		/// <returns>An enumerable collection of pages, where each page contains up to the specified number of configurations matching the query.</returns>
-		public IEnumerable<IPagedResult<Configuration>> ReadPaged(IQuery<Configuration> query, int pageSize)
-		{
-			return ReadPaged(query.Filter, pageSize);
-		}
+        /// <summary>
+        /// Reads configurations that match the specified query in pages.
+        /// </summary>
+        /// <param name="query">The query criteria to apply when reading configurations.</param>
+        /// <returns>An enumerable collection of pages, where each page contains configurations matching the query.</returns>
+        public IEnumerable<IPagedResult<Configuration>> ReadPaged(IQuery<Configuration> query)
+        {
+            return ReadPaged(query.Filter);
+        }
 
-		/// <summary>
-		/// Reads all configurations in pages.
-		/// </summary>
-		/// <param name="pageSize">The number of items per page.</param>
-		/// <returns>An enumerable collection of pages, where each page contains a collection of configurations.</returns>
-		public IEnumerable<IPagedResult<Configuration>> ReadPaged(int pageSize)
-		{
-			return ReadPaged(new TRUEFilterElement<Configuration>(), MediaOpsPlanApi.DefaultPageSize);
-		}
+        /// <summary>
+        /// Reads configurations that match the specified filter in pages with a custom page size.
+        /// </summary>
+        /// <param name="filter">The filter criteria to apply when reading configurations.</param>
+        /// <param name="pageSize">The number of items per page.</param>
+        /// <returns>An enumerable collection of pages, where each page contains up to the specified number of configurations matching the filter.</returns>
+        public IEnumerable<IPagedResult<Configuration>> ReadPaged(FilterElement<Configuration> filter, int pageSize)
+        {
+            if (filter == null)
+            {
+                throw new ArgumentNullException(nameof(filter));
+            }
 
-		/// <summary>
-		/// Updates an existing configuration in the repository.
-		/// </summary>
-		/// <param name="apiObject">The configuration to update.</param>
-		/// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
-		/// <exception cref="InvalidOperationException">Thrown when attempting to update a new configuration that doesn't exist yet.</exception>
-		/// <exception cref="MediaOpsException">Thrown when the update operation fails for the specified configuration.</exception>
-		public void Update(Configuration apiObject)
-		{
-			if (apiObject == null)
-			{
-				throw new ArgumentNullException(nameof(apiObject));
-			}
+            if (pageSize <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size must be greater than zero.");
+            }
 
-			PlanApi.Logger.Information(this, $"Updating existing configuration {apiObject.Name}...");
+            return ReadPagedIterator(filter, pageSize);
+        }
 
-			ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Update), act =>
-			{
-				if (apiObject.IsNew)
-				{
-					throw new InvalidOperationException("Not possible to use method Update for new configuration. Use Create or CreateOrUpdate instead.");
-				}
+        /// <summary>
+        /// Reads configurations that match the specified query in pages with a custom page size.
+        /// </summary>
+        /// <param name="query">The query criteria to apply when reading configurations.</param>
+        /// <param name="pageSize">The number of items per page.</param>
+        /// <returns>An enumerable collection of pages, where each page contains up to the specified number of configurations matching the query.</returns>
+        public IEnumerable<IPagedResult<Configuration>> ReadPaged(IQuery<Configuration> query, int pageSize)
+        {
+            return ReadPaged(query.Filter, pageSize);
+        }
 
-				if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
-				{
-					result.ThrowSingleException(apiObject.Id);
-				}
+        /// <summary>
+        /// Reads all configurations in pages.
+        /// </summary>
+        /// <param name="pageSize">The number of items per page.</param>
+        /// <returns>An enumerable collection of pages, where each page contains a collection of configurations.</returns>
+        public IEnumerable<IPagedResult<Configuration>> ReadPaged(int pageSize)
+        {
+            return ReadPaged(new TRUEFilterElement<Configuration>(), MediaOpsPlanApi.DefaultPageSize);
+        }
 
-				var configurationId = apiObject.Id;
-				act?.AddTag("ConfigurationId", configurationId);
-			});
-		}
+        /// <summary>
+        /// Updates an existing configuration in the repository.
+        /// </summary>
+        /// <param name="apiObject">The configuration to update.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when attempting to update a new configuration that doesn't exist yet.</exception>
+        /// <exception cref="MediaOpsException">Thrown when the update operation fails for the specified configuration.</exception>
+        public Configuration Update(Configuration apiObject)
+        {
+            if (apiObject == null)
+            {
+                throw new ArgumentNullException(nameof(apiObject));
+            }
 
-		/// <summary>
-		/// Updates multiple existing configurations in the repository.
-		/// </summary>
-		/// <param name="apiObjects">The collection of configurations to update.</param>
-		/// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
-		/// <exception cref="InvalidOperationException">Thrown when attempting to update new configurations that don't exist yet.</exception>
-		/// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk update operation fails for one or more configurations.</exception>
-		public void Update(IEnumerable<Configuration> apiObjects)
-		{
-			if (apiObjects == null)
-			{
-				throw new ArgumentNullException(nameof(apiObjects));
-			}
+            PlanApi.Logger.Information(this, $"Updating existing configuration {apiObject.Name}...");
 
-			var list = apiObjects.ToList();
+            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Update), act =>
+            {
+                if (apiObject.IsNew)
+                {
+                    throw new InvalidOperationException("Not possible to use method Update for new configuration. Use Create or CreateOrUpdate instead.");
+                }
 
-			BulkOperationResult<Guid> result = null;
-			ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Update), act =>
-			{
-				if (apiObjects.Any(x => x.IsNew))
-				{
-					throw new InvalidOperationException("Not possible to use method Update for new configurations. Use Create or CreateOrUpdate instead.");
-				}
+                if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
+                {
+                    result.ThrowSingleException(apiObject.Id);
+                }
 
-				if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, apiObjects.ToList(), out var result))
-				{
-					result.ThrowBulkException();
-				}
+                act?.AddTag("ConfigurationId", result.SuccessfulIds.First());
 
-				var configurationIds = apiObjects.Select(x => x.Id);
-				act?.AddTag("ConfigurationIds", String.Join(", ", configurationIds));
-			});
-		}
+                var updated = result.SuccessfulItems.First();
+                return Configuration.InstantiateConfigurations(result.SuccessfulItems).First();
+            });
+        }
 
-		private IEnumerable<IPagedResult<Configuration>> ReadPagedIterator(FilterElement<Configuration> filter, int pageSize)
-		{
-			var pageNumber = 0;
-			var paramFilter = filterTranslator.Translate(filter);
-			var items = PlanApi.CoreHelpers.ProfileProvider.GetConfigurationsPaged(paramFilter, pageSize);
-			var enumerator = items.GetEnumerator();
-			var hasNext = enumerator.MoveNext();
+        /// <summary>
+        /// Updates multiple existing configurations in the repository.
+        /// </summary>
+        /// <param name="apiObjects">The collection of configurations to update.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when attempting to update new configurations that don't exist yet.</exception>
+        /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk update operation fails for one or more configurations.</exception>
+        public IReadOnlyCollection<Configuration> Update(IEnumerable<Configuration> apiObjects)
+        {
+            if (apiObjects == null)
+            {
+                throw new ArgumentNullException(nameof(apiObjects));
+            }
 
-			while (hasNext)
-			{
-				var page = enumerator.Current;
-				hasNext = enumerator.MoveNext();
-				yield return new PagedResult<Configuration>(Configuration.InstantiateConfigurations(page), pageNumber++, pageSize, hasNext);
-			}
-		}
-	}
+            var list = apiObjects.ToList();
+
+            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Update), act =>
+            {
+                var newConfigurations = list.Where(x => x.IsNew);
+                if (newConfigurations.Any())
+                {
+                    throw new InvalidOperationException("Not possible to use method Update for new configurations. Use Create or CreateOrUpdate instead.");
+                }
+
+                if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, list, out var result))
+                {
+                    result.ThrowBulkException();
+                }
+
+                act?.AddTag("ConfigurationIds", String.Join(", ", result.SuccessfulIds));
+
+                return Configuration.InstantiateConfigurations(result.SuccessfulItems).ToList();
+            });
+        }
+
+        private IEnumerable<IPagedResult<Configuration>> ReadPagedIterator(FilterElement<Configuration> filter, int pageSize)
+        {
+            var pageNumber = 0;
+            var paramFilter = filterTranslator.Translate(filter);
+            var items = PlanApi.CoreHelpers.ProfileProvider.GetConfigurationsPaged(paramFilter, pageSize);
+            var enumerator = items.GetEnumerator();
+            var hasNext = enumerator.MoveNext();
+
+            while (hasNext)
+            {
+                var page = enumerator.Current;
+                hasNext = enumerator.MoveNext();
+                yield return new PagedResult<Configuration>(Configuration.InstantiateConfigurations(page), pageNumber++, pageSize, hasNext);
+            }
+        }
+    }
 }

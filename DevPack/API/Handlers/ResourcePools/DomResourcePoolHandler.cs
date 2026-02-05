@@ -14,7 +14,7 @@
 
     using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
 
-    internal class DomResourcePoolHandler : DomInstanceApiObjectValidator
+    internal class DomResourcePoolHandler : DomInstanceApiObjectValidator<DomResourcePool>
     {
         private readonly MediaOpsPlanApi planApi;
 
@@ -27,42 +27,42 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out DomInstanceBulkOperationResult result)
+        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out DomInstanceBulkOperationResult<DomResourcePool> result)
         {
             var handler = new DomResourcePoolHandler(planApi);
             handler.CreateOrUpdate(apiResourcePools);
 
-            result = new DomInstanceBulkOperationResult(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new DomInstanceBulkOperationResult<DomResourcePool>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
             return !result.HasFailures;
         }
 
-        internal static bool TryComplete(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out DomInstanceBulkOperationResult result)
+        internal static bool TryComplete(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out DomInstanceBulkOperationResult<DomResourcePool> result)
         {
             var handler = new DomResourcePoolHandler(planApi);
             handler.TransitionToCompleted(apiResourcePools);
 
-            result = new DomInstanceBulkOperationResult(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new DomInstanceBulkOperationResult<DomResourcePool>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
             return !result.HasFailures;
         }
 
-        internal static bool TryDeprecate(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out DomInstanceBulkOperationResult result, ResourcePoolDeprecateOptions options = null)
+        internal static bool TryDeprecate(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out DomInstanceBulkOperationResult<DomResourcePool> result, ResourcePoolDeprecateOptions options = null)
         {
             var handler = new DomResourcePoolHandler(planApi);
             handler.TransitionToDeprecated(apiResourcePools, options ?? ResourcePoolDeprecateOptions.GetDefaults());
 
-            result = new DomInstanceBulkOperationResult(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new DomInstanceBulkOperationResult<DomResourcePool>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
             return !result.HasFailures;
         }
 
-        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out DomInstanceBulkOperationResult result, ResourcePoolDeleteOptions options = null)
+        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out DomInstanceBulkOperationResult<DomResourcePool> result, ResourcePoolDeleteOptions options = null)
         {
             var handler = new DomResourcePoolHandler(planApi);
             handler.Delete(apiResourcePools, options ?? ResourcePoolDeleteOptions.GetDefaults());
 
-            result = new DomInstanceBulkOperationResult(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new DomInstanceBulkOperationResult<DomResourcePool>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
             return !result.HasFailures;
         }
@@ -224,7 +224,7 @@
                 }
             }
 
-            ReportSuccess(domResult.SuccessfulItems);
+            ReportSuccess(domResult.SuccessfulItems.Select(x => new DomResourcePool(x)));
         }
 
         private void TransitionToCompleted(ICollection<ResourcePool> apiResourcePools)
@@ -284,7 +284,7 @@
                 try
                 {
                     var transitionedInstance = planApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.DoStatusTransition(domInstanceId, SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.Transitions.Draft_To_Complete);
-                    ReportSuccess(transitionedInstance);
+                    ReportSuccess(new DomResourcePool(transitionedInstance));
                 }
                 catch (Exception ex)
                 {
@@ -325,7 +325,7 @@
                 try
                 {
                     var transitionedInstance = planApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.DoStatusTransition(pool.OriginalInstance.ID, SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.Transitions.Complete_To_Deprecated);
-                    ReportSuccess(transitionedInstance);
+                    ReportSuccess(new DomResourcePool(transitionedInstance));
                 }
                 catch (Exception ex)
                 {
@@ -395,7 +395,7 @@
                 }
             }
 
-            ReportSuccess(instancesToDelete.Where(x => domResult.SuccessfulIds.Contains(x.ID)).ToArray());
+            ReportSuccess(instancesToDelete.Where(x => domResult.SuccessfulIds.Contains(x.ID)).Select(x => new DomResourcePool(x)).ToArray());
 
             // Return affected pools that require updates
             return referencedApiResourcePoolsToUpdate.Where(x => !domResult.SuccessfulIds.Select(y => y.Id).Contains(x.Id)).ToList();

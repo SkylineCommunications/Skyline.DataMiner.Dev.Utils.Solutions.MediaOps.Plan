@@ -1,9 +1,11 @@
 ﻿namespace RT_MediaOps.Plan.RST.ResourcePools
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
 
     using RT_MediaOps.Plan.RegressionTests;
+
     using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
@@ -23,6 +25,257 @@
         public void Dispose()
         {
             objectCreator.Dispose();
+        }
+
+        [TestMethod]
+        public void ResourceStudioOrchestrationSettings_AddAndRemoveCapability_NoPersistence()
+        {
+            var prefix = Guid.NewGuid();
+
+            var capability = new Capability
+            {
+                Name = $"{prefix}_Capability",
+            }
+            .SetDiscretes(["Value 1", "Value 2"]);
+            objectCreator.CreateCapability(capability);
+
+            var resourcePool = new ResourcePool
+            {
+                Name = $"{prefix}_ResourcePool",
+            };
+
+            var orchestrationSettings = resourcePool.OrchestrationSettings;
+
+            // Add
+            orchestrationSettings.AddCapability(new CapabilitySetting(capability));
+            Assert.AreEqual(1, orchestrationSettings.Capabilities.Count);
+            Assert.AreEqual(capability.Id, orchestrationSettings.Capabilities.Single().Id);
+
+            orchestrationSettings.RemoveCapability(orchestrationSettings.Capabilities.Single());
+            Assert.AreEqual(0, orchestrationSettings.Capabilities.Count);
+        }
+
+        [TestMethod]
+        public void ResourceStudioOrchestrationSettings_AddAndRemoveCapacities_NoPersistence()
+        {
+            var prefix = Guid.NewGuid();
+
+            var numberCapacity = new NumberCapacity
+            {
+                Name = $"{prefix}_NumberCapacity",
+            };
+            var rangeCapacity = new RangeCapacity
+            {
+                Name = $"{prefix}_RangeCapacity",
+            };
+            objectCreator.CreateCapacities([numberCapacity, rangeCapacity]);
+
+            var resourcePool = new ResourcePool
+            {
+                Name = $"{prefix}_ResourcePool",
+            };
+
+            var orchestrationSettings = resourcePool.OrchestrationSettings;
+
+            // Add
+            orchestrationSettings
+                .AddCapacity(new NumberCapacitySetting(numberCapacity))
+                .AddCapacity(new RangeCapacitySetting(rangeCapacity));
+
+            Assert.AreEqual(2, orchestrationSettings.Capacities.Count);
+            Assert.IsTrue(orchestrationSettings.Capacities.Any(c => c.Id == numberCapacity.Id));
+            Assert.IsTrue(orchestrationSettings.Capacities.Any(c => c.Id == rangeCapacity.Id));
+
+            foreach (var capacity in orchestrationSettings.Capacities.ToList())
+            {
+                orchestrationSettings.RemoveCapacity(capacity);
+            }
+
+            Assert.AreEqual(0, orchestrationSettings.Capacities.Count);
+        }
+
+        [TestMethod]
+        public void ResourceStudioOrchestrationSettings_AddAndRemoveConfigurations_NoPersistence()
+        {
+            var prefix = Guid.NewGuid();
+
+            var textConfiguration = new TextConfiguration
+            {
+                Name = $"{prefix}_TextConfiguration",
+            };
+            var numberConfiguration = new NumberConfiguration
+            {
+                Name = $"{prefix}_NumberConfiguration",
+            };
+            var discreteTextConfiguration = new DiscreteTextConfiguration
+            {
+                Name = $"{prefix}_DiscreteTextConfiguration",
+            }
+            .AddDiscrete(new TextDiscreet("A", "A"));
+            var discreteNumberConfiguration = new DiscreteNumberConfiguration
+            {
+                Name = $"{prefix}_DiscreteNumberConfiguration",
+            }
+            .AddDiscrete(new NumberDiscreet(1, "One"));
+            objectCreator.CreateConfigurations([textConfiguration, numberConfiguration, discreteTextConfiguration, discreteNumberConfiguration]);
+
+            var resourcePool = new ResourcePool
+            {
+                Name = $"{prefix}_ResourcePool",
+            };
+
+            var orchestrationSettings = resourcePool.OrchestrationSettings;
+
+            // Add
+            orchestrationSettings
+                .AddConfiguration(new TextConfigurationSetting(textConfiguration))
+                .AddConfiguration(new NumberConfigurationSetting(numberConfiguration))
+                .AddConfiguration(new DiscreteTextConfigurationSetting(discreteTextConfiguration))
+                .AddConfiguration(new DiscreteNumberConfigurationSetting(discreteNumberConfiguration));
+
+            Assert.AreEqual(4, orchestrationSettings.Configurations.Count);
+            var configurationIds = orchestrationSettings.Configurations.Select(c => c.Id).ToList();
+            Assert.IsTrue(configurationIds.Contains(textConfiguration.Id));
+            Assert.IsTrue(configurationIds.Contains(numberConfiguration.Id));
+            Assert.IsTrue(configurationIds.Contains(discreteTextConfiguration.Id));
+            Assert.IsTrue(configurationIds.Contains(discreteNumberConfiguration.Id));
+
+            foreach (var configuration in orchestrationSettings.Configurations.ToList())
+            {
+                orchestrationSettings.RemoveConfiguration(configuration);
+            }
+
+            Assert.AreEqual(0, orchestrationSettings.Configurations.Count);
+        }
+
+        [TestMethod]
+        public void ResourceStudioOrchestrationSettings_AddAndRemoveCapability_WithPersistence()
+        {
+            var prefix = Guid.NewGuid();
+
+            var capability = new Capability
+            {
+                Name = $"{prefix}_Capability",
+            }
+            .SetDiscretes(["Value 1", "Value 2"]);
+            objectCreator.CreateCapability(capability);
+
+            var resourcePool = new ResourcePool
+            {
+                Name = $"{prefix}_ResourcePool",
+            };
+
+            var orchestrationSettings = resourcePool.OrchestrationSettings;
+
+            // Add
+            orchestrationSettings.AddCapability(new CapabilitySetting(capability));
+            Assert.AreEqual(1, orchestrationSettings.Capabilities.Count);
+            Assert.AreEqual(capability.Id, orchestrationSettings.Capabilities.Single().Id);
+
+            objectCreator.CreateResourcePool(resourcePool);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
+
+            resourcePool.OrchestrationSettings.RemoveCapability(orchestrationSettings.Capabilities.Single());
+            Assert.AreEqual(0, resourcePool.OrchestrationSettings.Capabilities.Count);
+        }
+
+        [TestMethod]
+        public void ResourceStudioOrchestrationSettings_AddAndRemoveCapacities_WithPersistence()
+        {
+            var prefix = Guid.NewGuid();
+
+            var numberCapacity = new NumberCapacity
+            {
+                Name = $"{prefix}_NumberCapacity",
+            };
+            var rangeCapacity = new RangeCapacity
+            {
+                Name = $"{prefix}_RangeCapacity",
+            };
+            objectCreator.CreateCapacities([numberCapacity, rangeCapacity]);
+
+            var resourcePool = new ResourcePool
+            {
+                Name = $"{prefix}_ResourcePool",
+            };
+
+            var orchestrationSettings = resourcePool.OrchestrationSettings;
+
+            // Add
+            orchestrationSettings
+                .AddCapacity(new NumberCapacitySetting(numberCapacity))
+                .AddCapacity(new RangeCapacitySetting(rangeCapacity));
+
+            Assert.AreEqual(2, orchestrationSettings.Capacities.Count);
+            Assert.IsTrue(orchestrationSettings.Capacities.Any(c => c.Id == numberCapacity.Id));
+            Assert.IsTrue(orchestrationSettings.Capacities.Any(c => c.Id == rangeCapacity.Id));
+
+            objectCreator.CreateResourcePool(resourcePool);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
+
+            foreach (var capacity in orchestrationSettings.Capacities.ToList())
+            {
+                resourcePool.OrchestrationSettings.RemoveCapacity(capacity);
+            }
+
+            Assert.AreEqual(0, resourcePool.OrchestrationSettings.Capacities.Count);
+        }
+
+        [TestMethod]
+        public void ResourceStudioOrchestrationSettings_AddAndRemoveConfigurations_WithPersistence()
+        {
+            var prefix = Guid.NewGuid();
+
+            var textConfiguration = new TextConfiguration
+            {
+                Name = $"{prefix}_TextConfiguration",
+            };
+            var numberConfiguration = new NumberConfiguration
+            {
+                Name = $"{prefix}_NumberConfiguration",
+            };
+            var discreteTextConfiguration = new DiscreteTextConfiguration
+            {
+                Name = $"{prefix}_DiscreteTextConfiguration",
+            }
+            .AddDiscrete(new TextDiscreet("A", "A"));
+            var discreteNumberConfiguration = new DiscreteNumberConfiguration
+            {
+                Name = $"{prefix}_DiscreteNumberConfiguration",
+            }
+            .AddDiscrete(new NumberDiscreet(1, "One"));
+            objectCreator.CreateConfigurations([textConfiguration, numberConfiguration, discreteTextConfiguration, discreteNumberConfiguration]);
+
+            var resourcePool = new ResourcePool
+            {
+                Name = $"{prefix}_ResourcePool",
+            };
+
+            var orchestrationSettings = resourcePool.OrchestrationSettings;
+
+            // Add
+            orchestrationSettings
+                .AddConfiguration(new TextConfigurationSetting(textConfiguration))
+                .AddConfiguration(new NumberConfigurationSetting(numberConfiguration))
+                .AddConfiguration(new DiscreteTextConfigurationSetting(discreteTextConfiguration))
+                .AddConfiguration(new DiscreteNumberConfigurationSetting(discreteNumberConfiguration));
+
+            Assert.AreEqual(4, orchestrationSettings.Configurations.Count);
+            var configurationIds = orchestrationSettings.Configurations.Select(c => c.Id).ToList();
+            Assert.IsTrue(configurationIds.Contains(textConfiguration.Id));
+            Assert.IsTrue(configurationIds.Contains(numberConfiguration.Id));
+            Assert.IsTrue(configurationIds.Contains(discreteTextConfiguration.Id));
+            Assert.IsTrue(configurationIds.Contains(discreteNumberConfiguration.Id));
+
+            objectCreator.CreateResourcePool(resourcePool);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
+
+            foreach (var configuration in orchestrationSettings.Configurations.ToList())
+            {
+                resourcePool.OrchestrationSettings.RemoveConfiguration(configuration);
+            }
+
+            Assert.AreEqual(0, resourcePool.OrchestrationSettings.Configurations.Count);
         }
 
         [TestMethod]
@@ -99,6 +352,8 @@
             Assert.IsTrue(configurationIds.Contains(textConfiguration.Id));
             Assert.IsTrue(configurationIds.Contains(numberConfiguration.Id));
             Assert.IsTrue(configurationIds.Contains(discreteTextConfiguration.Id));
+
+            // Discrete number configuration contains two discrete values, only one is added as configuration references the existing object
             Assert.IsTrue(configurationIds.Contains(discreteNumberConfiguration.Id));
         }
 
@@ -264,8 +519,8 @@
 
             var capabilityIds = orchestrationEvent.ExecutionDetails.Capabilities.Select(c => c.Id).ToList();
             Assert.IsTrue(capabilityIds.Contains(capability.Id));
-            Assert.IsNotNull(orchestrationEvent.ExecutionDetails.Capabilities.First().Discretes);
-            Assert.AreEqual(0, orchestrationEvent.ExecutionDetails.Capabilities.First().Discretes.Count);
+            Assert.IsNotNull(orchestrationEvent.ExecutionDetails.Capabilities.First());
+            Assert.IsNull(orchestrationEvent.ExecutionDetails.Capabilities.First().Value);
 
             var capacityIds = orchestrationEvent.ExecutionDetails.Capacities.Select(c => c.Id).ToList();
             Assert.IsTrue(capacityIds.Contains(numberCapacity.Id));

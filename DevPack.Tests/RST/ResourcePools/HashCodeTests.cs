@@ -110,7 +110,7 @@
             };
             capability.SetDiscretes(new[] { "Value 1", "Value 2" });
 
-            var capabilitySetting = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(capability.Id);
+            var capabilitySetting = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability.Id);
             capabilitySetting.SetDiscretes(new[] { "Value 1" });
 
             var initialHash = resourcePool.GetHashCode();
@@ -138,7 +138,7 @@
             };
             capability.SetDiscretes(new[] { "Value 1", "Value 2" });
 
-            var capabilitySetting = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySetting(capability.Id);
+            var capabilitySetting = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability.Id);
             capabilitySetting.SetDiscretes(new[] { "Value 1" });
 
             resourcePool.AddCapability(capabilitySetting);

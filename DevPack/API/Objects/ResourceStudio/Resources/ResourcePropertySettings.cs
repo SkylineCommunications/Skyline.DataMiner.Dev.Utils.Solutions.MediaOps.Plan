@@ -40,6 +40,14 @@
             IsNew = true;
         }
 
+        internal ResourcePropertySettings(ResourcePropertySettings resourcePropertySettings)
+        {
+            Id = resourcePropertySettings.Id;
+            Value = resourcePropertySettings.Value;
+
+            IsNew = true;
+        }
+
         internal ResourcePropertySettings(StorageResourceStudio.ResourcePropertiesSection section)
         {
             originalSection = section ?? throw new ArgumentNullException(nameof(section));
