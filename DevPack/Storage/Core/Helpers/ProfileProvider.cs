@@ -128,7 +128,7 @@
         /// <returns><see langword="true"/> if all parameters were successfully created or updated; otherwise, <see
         /// langword="false"/>.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="parameters"/> is <see langword="null"/>.</exception>
-        public bool TryCreateOrUpdateParametersInBatches(IEnumerable<Net.Profiles.Parameter> parameters, out BulkOperationResult<Guid> result)
+        public bool TryCreateOrUpdateParametersInBatches(IEnumerable<Net.Profiles.Parameter> parameters, out BulkOperationResult result)
         {
             if (parameters == null)
                 throw new ArgumentNullException(nameof(parameters));
@@ -163,7 +163,7 @@
                 }
             }
 
-            result = new BulkOperationResult<Guid>(successfulIds, unsuccessfulIds, traceDataPerItem);
+            result = new BulkOperationResult(successfulIds, unsuccessfulIds, traceDataPerItem);
             return !result.HasFailures;
         }
 
@@ -239,7 +239,7 @@
             return profileHelper.ProfileParameters.Count(AllCapabilitiesFilter.AND(filter));
         }
 
-        public bool TryDeleteParametersInBatches(IEnumerable<Net.Profiles.Parameter> parameters, out Exceptions.BulkOperationResult<Guid> result)
+        public bool TryDeleteParametersInBatches(IEnumerable<Net.Profiles.Parameter> parameters, out Exceptions.BulkOperationResult result)
         {
             if (parameters == null)
                 throw new ArgumentNullException(nameof(parameters));
@@ -274,7 +274,7 @@
                 }
             }
 
-            result = new Exceptions.BulkOperationResult<Guid>(successfulIds, unsuccessfulIds, traceDataPerItem);
+            result = new Exceptions.BulkOperationResult(successfulIds, unsuccessfulIds, traceDataPerItem);
             return !result.HasFailures;
         }
     }

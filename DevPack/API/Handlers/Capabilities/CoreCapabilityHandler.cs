@@ -11,7 +11,7 @@
 
     using CoreParameter = Net.Profiles.Parameter;
 
-    internal class CoreCapabilityHandler : ApiObjectValidator
+    internal class CoreCapabilityHandler : ParameterApiObjectValidator
     {
         private readonly MediaOpsPlanApi planApi;
 
@@ -20,22 +20,22 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Capability> apiCapabilities, out BulkOperationResult<Guid> result)
+        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Capability> apiCapabilities, out ParameterBulkOperationResult result)
         {
             var handler = new CoreCapabilityHandler(planApi);
             handler.CreateOrUpdate(apiCapabilities);
 
-            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new ParameterBulkOperationResult(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
             return !result.HasFailures;
         }
 
-        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<Capability> apiCapabilities, out BulkOperationResult<Guid> result)
+        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<Capability> apiCapabilities, out ParameterBulkOperationResult result)
         {
             var handler = new CoreCapabilityHandler(planApi);
             handler.Delete(apiCapabilities);
 
-            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new ParameterBulkOperationResult(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
             return !result.HasFailures;
         }
@@ -361,10 +361,10 @@
                 .Select(x => new { ParameterId = x.Id, RemovedDiscretes = x.CoreParameter.Discretes.Except(x.Discretes).ToList() })
                 .Where(x => x.RemovedDiscretes.Any())
                 .SelectMany(x => x.RemovedDiscretes.Select(y => new ParameterDiscreteValue<string>
-                    {
-                        ParameterId = x.ParameterId,
-                        DiscreteValue = y,
-                    }))
+                {
+                    ParameterId = x.ParameterId,
+                    DiscreteValue = y,
+                }))
                 .ToList();
 
             PassTraceData(SlcResourceStudioParameterDiscreteValueUsageValidator.Validate(planApi, capabilityDiscreteValuesToVerify));

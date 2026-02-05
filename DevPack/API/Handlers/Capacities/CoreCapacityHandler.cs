@@ -11,7 +11,7 @@
 
     using CoreParameter = Net.Profiles.Parameter;
 
-    internal class CoreCapacityHandler : ApiObjectValidator
+    internal class CoreCapacityHandler : ParameterApiObjectValidator
     {
         private readonly MediaOpsPlanApi planApi;
 
@@ -20,22 +20,22 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Capacity> apiCapacities, out BulkOperationResult<Guid> result)
+        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Capacity> apiCapacities, out ParameterBulkOperationResult result)
         {
             var handler = new CoreCapacityHandler(planApi);
             handler.CreateOrUpdate(apiCapacities);
 
-            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new ParameterBulkOperationResult(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
             return !result.HasFailures;
         }
 
-        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<Capacity> apiCapacities, out BulkOperationResult<Guid> result)
+        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<Capacity> apiCapacities, out ParameterBulkOperationResult result)
         {
             var handler = new CoreCapacityHandler(planApi);
             handler.Delete(apiCapacities);
 
-            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new ParameterBulkOperationResult(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
             return !result.HasFailures;
         }

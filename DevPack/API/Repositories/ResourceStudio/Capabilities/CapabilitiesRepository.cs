@@ -4,13 +4,11 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
-
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.SDM;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
+
     using SLDataGateway.API.Types.Querying;
 
     /// <summary>
@@ -108,6 +106,7 @@
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
+            ParameterBulkOperationResult result = null;
             ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Create), act =>
             {
                 var existingCapabilities = apiObjects.Where(x => !x.IsNew);
@@ -121,9 +120,10 @@
                     result.ThrowBulkException();
                 }
 
-                var capabilityIds = apiObjects.Select(x => x.Id);
-                act?.AddTag("CapabilityIds", string.Join(", ", capabilityIds));
+                act?.AddTag("CapabilityIds", string.Join(", ", result.SuccessfulIds));
             });
+
+            return result.SuccessfulItems.Select(x => new Capability(x)).ToList();
         }
 
         /// <summary>
@@ -139,6 +139,9 @@
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
+            var list = apiObjects.ToList();
+
+            BulkOperationResult<Guid> result = null;
             ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(CreateOrUpdate), act =>
             {
                 if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, apiObjects?.ToList(), out var result))
@@ -395,6 +398,7 @@
 
             PlanApi.Logger.Information(this, $"Updating existing capability {apiObject.Name}...");
 
+            Guid capabilityId = Guid.Empty;
             ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Update), act =>
             {
                 if (apiObject.IsNew)
@@ -407,9 +411,11 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                var capabilityId = apiObject.Id;
+                capabilityId = apiObject.Id;
                 act?.AddTag("CapabilityId", capabilityId);
             });
+
+            return Read(capabilityId);
         }
 
         /// <summary>
@@ -426,6 +432,9 @@
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
+            var list = apiObjects.ToList();
+
+            BulkOperationResult<Guid> result = null;
             ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Update), act =>
             {
                 var newCapabilities = apiObjects.Where(x => x.IsNew);
@@ -442,6 +451,8 @@
                 var capabilityIds = apiObjects.Select(x => x.Id);
                 act?.AddTag("CapabilityIds", String.Join(", ", capabilityIds));
             });
+
+            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
 
         private IEnumerable<IPagedResult<Capability>> ReadPagedIterator(FilterElement<Capability> filter, int pageSize)

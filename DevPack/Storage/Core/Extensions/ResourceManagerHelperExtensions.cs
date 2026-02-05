@@ -67,7 +67,7 @@
                 .ToDictionary(x => x.Key, x => (IReadOnlyCollection<ResourcePool>)x.ToList());
         }
 
-        public static BulkOperationResult<Guid> CreateOrUpdateResourcePoolsInBatches(this ResourceManagerHelper helper, IEnumerable<ResourcePool> resourcePools)
+        public static ResourcePoolBulkOperationResult CreateOrUpdateResourcePoolsInBatches(this ResourceManagerHelper helper, IEnumerable<ResourcePool> resourcePools)
         {
             if (helper == null)
             {
@@ -85,7 +85,7 @@
             return result;
         }
 
-        public static bool TryCreateOrUpdateResourcePoolsInBatches(this ResourceManagerHelper helper, IEnumerable<ResourcePool> resourcePools, out BulkOperationResult<Guid> result)
+        public static bool TryCreateOrUpdateResourcePoolsInBatches(this ResourceManagerHelper helper, IEnumerable<ResourcePool> resourcePools, out ResourcePoolBulkOperationResult result)
         {
             if (helper == null)
             {
@@ -102,7 +102,7 @@
             return !result.HasFailures;
         }
 
-        public static Exceptions.BulkOperationResult<Guid> DeleteResourcePoolsInBatches(this ResourceManagerHelper helper, IEnumerable<ResourcePool> resourcePools)
+        public static ResourcePoolBulkOperationResult DeleteResourcePoolsInBatches(this ResourceManagerHelper helper, IEnumerable<ResourcePool> resourcePools)
         {
             if (helper == null)
             {
@@ -120,7 +120,7 @@
             return result;
         }
 
-        public static bool TryDeleteResourcePoolsInBatches(this ResourceManagerHelper helper, IEnumerable<ResourcePool> resourcePools, out Exceptions.BulkOperationResult<Guid> result)
+        public static bool TryDeleteResourcePoolsInBatches(this ResourceManagerHelper helper, IEnumerable<ResourcePool> resourcePools, out ResourcePoolBulkOperationResult result)
         {
             if (helper == null)
             {
@@ -160,7 +160,7 @@
                 x => helper.GetResources(x));
         }
 
-        public static BulkOperationResult<Guid> CreateOrUpdateResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources)
+        public static ResourceBulkOperationResult CreateOrUpdateResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources)
         {
             if (helper == null)
             {
@@ -178,7 +178,7 @@
             return result;
         }
 
-        public static BulkOperationResult<Guid> CreateOrUpdateResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources, out IEnumerable<Resource> createdOrUpdatedResources)
+        public static ResourceBulkOperationResult CreateOrUpdateResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources, out IEnumerable<Resource> createdOrUpdatedResources)
         {
             if (helper == null)
             {
@@ -196,7 +196,7 @@
             return result;
         }
 
-        public static bool TryCreateOrUpdateResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources, out BulkOperationResult<Guid> result)
+        public static bool TryCreateOrUpdateResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources, out ResourceBulkOperationResult result)
         {
             if (helper == null)
             {
@@ -213,8 +213,7 @@
             return !result.HasFailures;
         }
 
-        // Todo: Needs refactoring to avoid 2 out parameters???
-        public static bool TryCreateOrUpdateResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources, out BulkOperationResult<Guid> result, out IEnumerable<Resource> createdOrUpdatedResources)
+        public static bool TryCreateOrUpdateResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources, out ResourceBulkOperationResult result, out IEnumerable<Resource> createdOrUpdatedResources)
         {
             if (helper == null)
             {
@@ -231,7 +230,7 @@
             return !result.HasFailures;
         }
 
-        public static Exceptions.BulkOperationResult<Guid> DeleteResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources, ResourceDeleteOptions options)
+        public static ResourceBulkOperationResult DeleteResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources, ResourceDeleteOptions options)
         {
             if (helper == null)
             {
@@ -254,7 +253,7 @@
             return result;
         }
 
-        public static bool TryDeleteResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources, ResourceDeleteOptions options, out Exceptions.BulkOperationResult<Guid> result)
+        public static bool TryDeleteResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources, ResourceDeleteOptions options, out ResourceBulkOperationResult result)
         {
             if (helper == null)
             {
@@ -276,9 +275,9 @@
             return !result.HasFailures;
         }
 
-        private static BulkOperationResult<Guid> InnerCreateOrUpdateResourcePoolsInBatches(ResourceManagerHelper helper, IEnumerable<ResourcePool> resourcePools)
+        private static ResourcePoolBulkOperationResult InnerCreateOrUpdateResourcePoolsInBatches(ResourceManagerHelper helper, IEnumerable<ResourcePool> resourcePools)
         {
-            var successfulIds = new List<Guid>();
+            var successfulItems = new List<ResourcePool>();
             var unsuccessfulIds = new List<Guid>();
             var traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
 
@@ -286,7 +285,7 @@
             {
                 var pools = helper.AddOrUpdateResourcePools(batch.ToArray());
 
-                successfulIds.AddRange(pools.Select(x => x.ID));
+                successfulItems.AddRange(pools);
 
                 var traceData = helper.GetTraceDataLastCall();
                 foreach (var error in traceData.ErrorData.OfType<ResourceManagerErrorData>())
@@ -308,12 +307,12 @@
                 }
             }
 
-            return new BulkOperationResult<Guid>(successfulIds, unsuccessfulIds, traceDataPerItem);
+            return new ResourcePoolBulkOperationResult(successfulItems, unsuccessfulIds, traceDataPerItem);
         }
 
-        private static Exceptions.BulkOperationResult<Guid> InnerDeleteResourcePoolsInBatches(ResourceManagerHelper helper, IEnumerable<ResourcePool> resourcePools)
+        private static ResourcePoolBulkOperationResult InnerDeleteResourcePoolsInBatches(ResourceManagerHelper helper, IEnumerable<ResourcePool> resourcePools)
         {
-            var successfulIds = new List<Guid>();
+            var successfulItems = new List<ResourcePool>();
             var unsuccessfulIds = new List<Guid>();
             var traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
 
@@ -323,7 +322,7 @@
                 {
                     var res = helper.RemoveResourcePools(batch.ToArray());
 
-                    successfulIds.AddRange(res.Select(x => x.ID));
+                    successfulItems.AddRange(res);
 
                     var traceData = helper.GetTraceDataLastCall();
                     foreach (var error in traceData.ErrorData.OfType<ResourceManagerErrorData>())
@@ -346,12 +345,12 @@
                 }
             });
 
-            return new Exceptions.BulkOperationResult<Guid>(successfulIds, unsuccessfulIds, traceDataPerItem);
+            return new ResourcePoolBulkOperationResult(successfulItems, unsuccessfulIds, traceDataPerItem);
         }
 
-        private static BulkOperationResult<Guid> InnerCreateOrUpdateResourcesInBatches(ResourceManagerHelper helper, IEnumerable<Resource> resources, out IEnumerable<Resource> createdOrUpdatedResources)
+        private static ResourceBulkOperationResult InnerCreateOrUpdateResourcesInBatches(ResourceManagerHelper helper, IEnumerable<Resource> resources, out IEnumerable<Resource> createdOrUpdatedResources)
         {
-            var successfulIds = new List<Guid>();
+            var successfulItems = new List<Resource>();
             var unsuccessfulIds = new List<Guid>();
             var traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
 
@@ -364,7 +363,7 @@
                     var res = helper.AddOrUpdateResources(batch.ToArray());
 
                     createdOrUpdated.AddRange(res);
-                    successfulIds.AddRange(res.Select(x => x.ID));
+                    successfulItems.AddRange(res);
 
                     var traceData = helper.GetTraceDataLastCall();
                     foreach (var error in traceData.ErrorData.OfType<ResourceManagerErrorData>())
@@ -389,12 +388,12 @@
 
             createdOrUpdatedResources = createdOrUpdated;
 
-            return new BulkOperationResult<Guid>(successfulIds, unsuccessfulIds, traceDataPerItem);
+            return new ResourceBulkOperationResult(successfulItems, unsuccessfulIds, traceDataPerItem);
         }
 
-        private static Exceptions.BulkOperationResult<Guid> InnerDeleteResourcesInBatches(ResourceManagerHelper helper, IEnumerable<Resource> resources, ResourceDeleteOptions options)
+        private static ResourceBulkOperationResult InnerDeleteResourcesInBatches(ResourceManagerHelper helper, IEnumerable<Resource> resources, ResourceDeleteOptions options)
         {
-            var successfulIds = new List<Guid>();
+            var successfulItems = new List<Resource>();
             var unsuccessfulIds = new List<Guid>();
             var traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
 
@@ -404,7 +403,7 @@
                 {
                     var res = helper.RemoveResources(batch.ToArray(), options);
 
-                    successfulIds.AddRange(res.Select(x => x.ID));
+                    successfulItems.AddRange(res);
 
                     var traceData = helper.GetTraceDataLastCall();
                     foreach (var error in traceData.ErrorData.OfType<ResourceManagerErrorData>())
@@ -427,7 +426,7 @@
                 }
             });
 
-            return new Exceptions.BulkOperationResult<Guid>(successfulIds, unsuccessfulIds, traceDataPerItem);
+            return new ResourceBulkOperationResult(successfulItems, unsuccessfulIds, traceDataPerItem);
         }
     }
 }

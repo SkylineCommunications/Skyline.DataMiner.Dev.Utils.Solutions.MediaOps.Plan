@@ -61,42 +61,42 @@
 
         private DomCapabilitiesHandler CapabilitiesHandler => lazyCapabilitiesHandler.Value;
 
-        public static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out BulkOperationResult<Guid> result)
+        public static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out DomInstanceBulkOperationResult result)
         {
             var handler = new CoreResourceHandler(planApi);
             ActivityHelper.Track(nameof(CoreResourceHandler), nameof(TryCreateOrUpdate), act => handler.CreateOrUpdate(domResources));
 
-            result = new BulkOperationResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
+            result = new DomInstanceBulkOperationResult(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
 
             return !result.HasFailures;
         }
 
-        public static bool TryDelete(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out BulkOperationResult<Guid> result)
+        public static bool TryDelete(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out DomInstanceBulkOperationResult result)
         {
             var handler = new CoreResourceHandler(planApi);
             ActivityHelper.Track(nameof(CoreResourceHandler), nameof(TryDelete), act => handler.Delete(domResources));
 
-            result = new BulkOperationResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
+            result = new DomInstanceBulkOperationResult(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
 
             return !result.HasFailures;
         }
 
-        public static bool TryDeprecate(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out BulkOperationResult<Guid> result)
+        public static bool TryDeprecate(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out DomInstanceBulkOperationResult result)
         {
             var handler = new CoreResourceHandler(planApi);
             handler.Deprecate(domResources);
 
-            result = new BulkOperationResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
+            result = new DomInstanceBulkOperationResult(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
 
             return !result.HasFailures;
         }
 
-        public static bool TryRestore(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out BulkOperationResult<Guid> result)
+        public static bool TryRestore(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out DomInstanceBulkOperationResult result)
         {
             var handler = new CoreResourceHandler(planApi);
             handler.Restore(domResources);
 
-            result = new BulkOperationResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
+            result = new DomInstanceBulkOperationResult(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
 
             return !result.HasFailures;
         }

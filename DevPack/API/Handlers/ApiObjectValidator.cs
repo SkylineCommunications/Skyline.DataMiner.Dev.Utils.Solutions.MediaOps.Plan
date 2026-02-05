@@ -3,18 +3,19 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Tools;
 
-    internal class ApiObjectValidator
+    internal abstract class ApiObjectValidator<T>
     {
         private readonly Dictionary<Guid, MediaOpsTraceData> traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
-        private readonly HashSet<Guid> successfulIItems = new HashSet<Guid>();
-        private readonly HashSet<Guid> unsuccessfulItems = new HashSet<Guid>();
+        protected readonly HashSet<T> successfulIItems = new HashSet<T>();
+        protected readonly HashSet<Guid> unsuccessfulItems = new HashSet<Guid>();
 
         internal IReadOnlyDictionary<Guid, MediaOpsTraceData> TraceDataPerItem => traceDataPerItem;
 
-        internal IReadOnlyCollection<Guid> SuccessfulItems => successfulIItems;
+        internal IReadOnlyCollection<T> SuccessfulItems => successfulIItems;
 
         internal IReadOnlyCollection<Guid> UnsuccessfulItems => unsuccessfulItems;
 
@@ -33,7 +34,7 @@
             }
         }
 
-        internal void PassTraceData(ApiObjectValidator internalValidator)
+        internal void PassTraceData(ApiObjectValidator<T> internalValidator)
         {
             if (internalValidator == null) throw new ArgumentNullException(nameof(internalValidator));
 
@@ -60,17 +61,9 @@
             ReportError(key);
         }
 
-        protected void ReportError(Guid key)
-        {
-            if (successfulIItems.Contains(key))
-            {
-                throw new InvalidOperationException($"An item cannot be marked as both successful and unsuccessful");
-            }
+        protected abstract void ReportError(Guid key);
 
-            unsuccessfulItems.Add(key);
-        }
-
-        protected void ReportError<T>(LockManager.LockResult<T> result) where T : ApiObject
+        protected void ReportError<K>(LockManager.LockResult<K> result) where K : ApiObject
         {
             foreach (var failedToLockObject in result.FailedToLockObjects)
             {
@@ -78,19 +71,11 @@
             }
         }
 
-        protected void ReportSuccess(Guid key)
-        {
-            if (unsuccessfulItems.Contains(key))
-            {
-                throw new InvalidOperationException($"An item cannot be marked as both successful and unsuccessful");
-            }
+        protected abstract void ReportSuccess(T item);
 
-            successfulIItems.Add(key);
-        }
-
-        protected void ReportSuccess(IEnumerable<Guid> keys)
+        protected void ReportSuccess(IEnumerable<T> items)
         {
-            foreach (var key in keys)
+            foreach (var key in items)
             {
                 ReportSuccess(key);
             }

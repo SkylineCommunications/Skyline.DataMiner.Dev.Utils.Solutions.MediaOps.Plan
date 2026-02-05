@@ -4,7 +4,7 @@
 
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
-    internal abstract class CapacitySettingValidator : ApiObjectValidator
+    internal abstract class CapacitySettingValidator : DomInstanceApiObjectValidator
     {
         private readonly Guid apiObjectId;
 
