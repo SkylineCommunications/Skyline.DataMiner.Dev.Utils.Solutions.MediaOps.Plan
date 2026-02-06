@@ -87,9 +87,9 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                act?.AddTag("ConfigurationId", result.SuccessfulIds.First());
+                act?.AddTag("ConfigurationId", result.SuccessfulIds.Single());
 
-                return Configuration.InstantiateConfigurations(result.SuccessfulItems).First();
+                return Configuration.InstantiateConfiguration(result.SuccessfulItems.Single());
             });
         }
 
@@ -410,10 +410,9 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                act?.AddTag("ConfigurationId", result.SuccessfulIds.First());
+                act?.AddTag("ConfigurationId", result.SuccessfulIds.Single());
 
-                var updated = result.SuccessfulItems.First();
-                return Configuration.InstantiateConfigurations(result.SuccessfulItems).First();
+                return Configuration.InstantiateConfiguration(result.SuccessfulItems.Single());
             });
         }
 

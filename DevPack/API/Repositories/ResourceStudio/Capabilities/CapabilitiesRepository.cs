@@ -90,9 +90,9 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                act?.AddTag("CapabilityId", result.SuccessfulItems.First());
+                act?.AddTag("CapabilityId", result.SuccessfulItems.Single());
 
-                return new Capability(result.SuccessfulItems.First());
+                return new Capability(result.SuccessfulItems.Single());
             });
         }
 
@@ -411,9 +411,9 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                act?.AddTag("CapabilityId", result.SuccessfulIds.First());
+                act?.AddTag("CapabilityId", result.SuccessfulIds.Single());
 
-                return new Capability(result.SuccessfulItems.First());
+                return new Capability(result.SuccessfulItems.Single());
             });
         }
 

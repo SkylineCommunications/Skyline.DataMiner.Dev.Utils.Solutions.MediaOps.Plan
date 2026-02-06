@@ -87,9 +87,9 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                act?.AddTag("CapacityId", result.SuccessfulIds.First());
+                act?.AddTag("CapacityId", result.SuccessfulIds.Single());
 
-                return Capacity.InstantiateCapacities(result.SuccessfulItems).First();
+                return Capacity.InstantiateCapacity(result.SuccessfulItems.Single());
             });
         }
 
@@ -431,9 +431,9 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                act?.AddTag("CapacityId", result.SuccessfulIds.First());
+                act?.AddTag("CapacityId", result.SuccessfulIds.Single());
 
-                return Capacity.InstantiateCapacities(result.SuccessfulItems).First();
+                return Capacity.InstantiateCapacity(result.SuccessfulItems.Single());
             });
         }
 

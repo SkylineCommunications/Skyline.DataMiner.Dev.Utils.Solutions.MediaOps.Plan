@@ -143,9 +143,9 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                act?.AddTag("ResourcePoolId", result.SuccessfulIds.First());
+                act?.AddTag("ResourcePoolId", result.SuccessfulIds.Single());
 
-                return new ResourcePool(PlanApi, result.SuccessfulItems.First());
+                return new ResourcePool(PlanApi, result.SuccessfulItems.Single());
             });
         }
 
@@ -912,9 +912,9 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                act?.AddTag("ResourcePoolId", result.SuccessfulIds.First());
+                act?.AddTag("ResourcePoolId", result.SuccessfulIds.Single());
 
-                return new ResourcePool(PlanApi, result.SuccessfulItems.First());
+                return new ResourcePool(PlanApi, result.SuccessfulItems.Single());
             });
         }
 

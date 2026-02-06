@@ -85,9 +85,9 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                act?.AddTag("ResourcePropertyId", result.SuccessfulIds.First());
+                act?.AddTag("ResourcePropertyId", result.SuccessfulIds.Single());
 
-                return new ResourceProperty(result.SuccessfulItems.First());
+                return new ResourceProperty(result.SuccessfulItems.Single());
             });
         }
 
@@ -453,9 +453,9 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                act?.AddTag("ResourcePropertyId", apiObject.Id);
+                act?.AddTag("ResourcePropertyId", result.SuccessfulIds.Single());
 
-                return new ResourceProperty(result.SuccessfulItems.First());
+                return new ResourceProperty(result.SuccessfulItems.Single());
             });
         }
 

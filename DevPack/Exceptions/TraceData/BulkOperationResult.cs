@@ -10,13 +10,12 @@
     internal abstract class BulkOperationResult<T> : IBulkOperationResult<Guid>
         where T : class
     {
-        internal BulkOperationResult(IReadOnlyCollection<T> successItems, IReadOnlyCollection<Guid> unsuccessfulIds, IReadOnlyDictionary<Guid, MediaOpsTraceData> traceDataPerItem)
+        private protected BulkOperationResult(IReadOnlyCollection<T> successItems, IReadOnlyCollection<Guid> successfulIds, IReadOnlyCollection<Guid> unsuccessfulIds, IReadOnlyDictionary<Guid, MediaOpsTraceData> traceDataPerItem)
         {
             SuccessfulItems = successItems ?? throw new ArgumentNullException(nameof(successItems));
+            SuccessfulIds = successfulIds ?? throw new ArgumentNullException(nameof(successfulIds));
             UnsuccessfulIds = unsuccessfulIds ?? throw new ArgumentNullException(nameof(unsuccessfulIds));
             TraceDataPerItem = traceDataPerItem ?? throw new ArgumentNullException(nameof(traceDataPerItem));
-
-            SuccessfulIds = GetSuccessfulIds(successItems) ?? throw new ArgumentException("Successful IDs cannot be null.", nameof(successItems));
         }
 
         /// <summary>
@@ -35,8 +34,6 @@
         /// Gets a list of IDs of the items that could not get handled.
         /// </summary>
         public IReadOnlyCollection<Guid> UnsuccessfulIds { get; }
-
-        protected abstract IReadOnlyCollection<Guid> GetSuccessfulIds(IReadOnlyCollection<T> successItems);
 
         internal bool HasFailures
         {
