@@ -59,7 +59,7 @@
                 result.ThrowBulkException();
             }
 
-            return (ElementResource)Resource.InstantiateResources(PlanApi, result.SuccessfulItems).First();
+            return (ElementResource)Resource.InstantiateResource(PlanApi, result.SuccessfulItems.Single());
         }
 
         /// <summary>
@@ -112,7 +112,7 @@
                 result.ThrowBulkException();
             }
 
-            return (ServiceResource)Resource.InstantiateResources(PlanApi, result.SuccessfulItems).First();
+            return (ServiceResource)Resource.InstantiateResource(PlanApi, result.SuccessfulItems.Single());
         }
 
         /// <summary>
@@ -164,7 +164,7 @@
                 result.ThrowBulkException();
             }
 
-            return (UnmanagedResource)Resource.InstantiateResources(PlanApi, result.SuccessfulItems).First();
+            return (UnmanagedResource)Resource.InstantiateResource(PlanApi, result.SuccessfulItems.Single());
         }
 
         /// <summary>
@@ -216,7 +216,7 @@
                 result.ThrowBulkException();
             }
 
-            return (VirtualFunctionResource)Resource.InstantiateResources(PlanApi, result.SuccessfulItems).First();
+            return (VirtualFunctionResource)Resource.InstantiateResource(PlanApi, result.SuccessfulItems.Single());
         }
 
         /// <summary>

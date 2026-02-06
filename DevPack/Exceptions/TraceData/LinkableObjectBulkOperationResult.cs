@@ -8,7 +8,7 @@
 
     internal abstract class LinkableObjectBulkOperationResult<T> : BulkOperationResult<LinkableObject> where T : LinkableObject
     {
-        public LinkableObjectBulkOperationResult(IReadOnlyCollection<T> successItems, IReadOnlyCollection<Guid> unsuccessfulIds, IReadOnlyDictionary<Guid, MediaOpsTraceData> traceDataPerItem) : base(successItems, successItems.Select(x => x.ID).ToList(), unsuccessfulIds, traceDataPerItem)
+        protected LinkableObjectBulkOperationResult(IReadOnlyCollection<T> successItems, IReadOnlyCollection<Guid> unsuccessfulIds, IReadOnlyDictionary<Guid, MediaOpsTraceData> traceDataPerItem) : base(successItems, successItems.Select(x => x.ID).ToList(), unsuccessfulIds, traceDataPerItem)
         {
         }
     }
