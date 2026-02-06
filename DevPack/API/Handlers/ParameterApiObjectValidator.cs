@@ -2,11 +2,12 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.Linq;
 
     internal class ParameterApiObjectValidator : ApiObjectValidator<Net.Profiles.Parameter>
     {
-        internal override IReadOnlyCollection<Guid> SuccessfulIds => successfulIItems.Select(x => x.ID).ToList();
+        private readonly List<Guid> successfulIds = new List<Guid>();
+
+        internal override IReadOnlyCollection<Guid> SuccessfulIds => successfulIds;
 
         protected override void ReportSuccess(Net.Profiles.Parameter item)
         {
@@ -15,7 +16,8 @@
                 throw new InvalidOperationException($"An item cannot be marked as both successful and unsuccessful");
             }
 
-            successfulIItems.Add(item);
+            successfulIds.Add(item.ID);
+            successfulItems.Add(item);
         }
     }
 }

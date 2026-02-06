@@ -9,9 +9,9 @@
 
     internal abstract class ApiObjectValidator<T> : ApiObjectValidator
     {
-        protected readonly HashSet<T> successfulIItems = new HashSet<T>();
+        protected readonly HashSet<T> successfulItems = new HashSet<T>();
 
-        internal IReadOnlyCollection<T> SuccessfulItems => successfulIItems;
+        internal IReadOnlyCollection<T> SuccessfulItems => successfulItems;
 
         internal abstract IReadOnlyCollection<Guid> SuccessfulIds { get; }
 
@@ -58,9 +58,9 @@
 
         protected void ReportSuccess(IEnumerable<T> items)
         {
-            foreach (var key in items)
+            foreach (var item in items)
             {
-                ReportSuccess(key);
+                ReportSuccess(item);
             }
         }
     }

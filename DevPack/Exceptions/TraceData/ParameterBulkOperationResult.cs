@@ -12,6 +12,9 @@
         {
         }
 
-        public override IReadOnlyCollection<Guid> SuccessfulIds => SuccessfulItems.Select(item => item.ID).ToList();
+        protected override IReadOnlyCollection<Guid> GetSuccessfulIds(IReadOnlyCollection<Parameter> successItems)
+        {
+            return successItems.Select(item => item.ID).ToList();
+        }
     }
 }

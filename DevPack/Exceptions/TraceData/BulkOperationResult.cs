@@ -15,12 +15,14 @@
             SuccessfulItems = successItems ?? throw new ArgumentNullException(nameof(successItems));
             UnsuccessfulIds = unsuccessfulIds ?? throw new ArgumentNullException(nameof(unsuccessfulIds));
             TraceDataPerItem = traceDataPerItem ?? throw new ArgumentNullException(nameof(traceDataPerItem));
+
+            SuccessfulIds = GetSuccessfulIds(successItems) ?? throw new ArgumentException("Successful IDs cannot be null.", nameof(successItems));
         }
 
         /// <summary>
         /// Gets a list of IDs of successfully handled items.
         /// </summary>
-        public abstract IReadOnlyCollection<Guid> SuccessfulIds { get; }
+        public IReadOnlyCollection<Guid> SuccessfulIds { get; }
 
         public IReadOnlyCollection<T> SuccessfulItems { get; }
 
@@ -33,6 +35,8 @@
         /// Gets a list of IDs of the items that could not get handled.
         /// </summary>
         public IReadOnlyCollection<Guid> UnsuccessfulIds { get; }
+
+        protected abstract IReadOnlyCollection<Guid> GetSuccessfulIds(IReadOnlyCollection<T> successItems);
 
         internal bool HasFailures
         {
