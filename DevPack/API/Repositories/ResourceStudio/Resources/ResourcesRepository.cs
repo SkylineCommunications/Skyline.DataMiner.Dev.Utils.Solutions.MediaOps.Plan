@@ -29,6 +29,58 @@
         {
         }
 
+        public Resource Complete(Resource resource)
+        {
+            if (resource == null)
+            {
+                throw new ArgumentNullException(nameof(resource));
+            }
+
+            return Complete(resource.Id);
+        }
+
+        public Resource Complete(Guid resourceId)
+        {
+            var resource = Read(resourceId);
+            if (resource == null)
+            {
+                return null;
+            }
+
+            if (!DomResourceHandler.TryComplete(PlanApi, [resource], out var result))
+            {
+                result.ThrowSingleException(resource.Id);
+            }
+
+            return Resource.InstantiateResource(PlanApi, result.SuccessfulItems.Single());
+        }
+
+        public IReadOnlyCollection<Resource> Complete(IEnumerable<Resource> resources)
+        {
+            if (resources == null)
+            {
+                throw new ArgumentNullException(nameof(resources));
+            }
+
+            return Complete(resources.Select(x => x.Id).ToArray());
+        }
+
+        public IReadOnlyCollection<Resource> Complete(IEnumerable<Guid> resourceIds)
+        {
+            if (resourceIds == null)
+            {
+                throw new ArgumentNullException(nameof(resourceIds));
+            }
+
+            var resources = Read(resourceIds);
+            if (!DomResourceHandler.TryComplete(PlanApi, resources?.ToList(), out var result))
+            {
+                result.ThrowBulkException();
+            }
+
+            return Resource.InstantiateResources(PlanApi, result.SuccessfulItems).ToList();
+        }
+
         /// <summary>
         /// Converts the specified <see cref="Resource"/> to an <see cref="ElementResource"/>.
         /// </summary>
@@ -451,136 +503,41 @@
             });
         }
 
-        public void Complete(Resource resource)
-        {
-            if (resource == null)
-            {
-                throw new ArgumentNullException(nameof(resource));
-            }
-
-            Complete(resource.Id);
-        }
-
-        public void Complete(Guid resourceId)
-        {
-            var resource = Read(resourceId);
-            if (resource == null)
-            {
-                return;
-            }
-
-            if (!DomResourceHandler.TryComplete(PlanApi, [resource], out var result))
-            {
-                result.ThrowSingleException(resource.Id);
-            }
-        }
-
-        public void Complete(IEnumerable<Resource> resources)
-        {
-            if (resources == null)
-            {
-                throw new ArgumentNullException(nameof(resources));
-            }
-
-            Complete(resources.Select(x => x.Id).ToArray());
-        }
-
-        public void Complete(IEnumerable<Guid> resourceIds)
-        {
-            if (resourceIds == null)
-            {
-                throw new ArgumentNullException(nameof(resourceIds));
-            }
-
-            var resources = Read(resourceIds);
-            if (!DomResourceHandler.TryComplete(PlanApi, resources?.ToList(), out var result))
-            {
-                result.ThrowBulkException();
-            }
-        }
-
-        public void Restore(Resource resource)
-        {
-            if (resource == null)
-            {
-                throw new ArgumentNullException(nameof(resource));
-            }
-
-            Restore(resource.Id);
-        }
-
-        public void Restore(Guid resourceId)
-        {
-            var resource = Read(resourceId);
-            if (resource == null)
-            {
-                return;
-            }
-
-            if (!DomResourceHandler.TryRestore(PlanApi, [resource], out var result))
-            {
-                result.ThrowSingleException(resource.Id);
-            }
-        }
-
-        public void Restore(IEnumerable<Resource> resources)
-        {
-            if (resources == null)
-            {
-                throw new ArgumentNullException(nameof(resources));
-            }
-
-            Restore(resources.Select(x => x.Id).ToArray());
-        }
-
-        public void Restore(IEnumerable<Guid> resourceIds)
-        {
-            if (resourceIds == null)
-            {
-                throw new ArgumentNullException(nameof(resourceIds));
-            }
-
-            var resources = Read(resourceIds);
-            if (!DomResourceHandler.TryRestore(PlanApi, resources?.ToList(), out var result))
-            {
-                result.ThrowBulkException();
-            }
-        }
-
         /// <summary>
         /// Marks the specified resource as deprecated, indicating that it is no longer recommended for use.
         /// </summary>
         /// <param name="resource">The resource to be marked as deprecated.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="resource"/> is <c>null</c>.</exception>
         /// <exception cref="MediaOpsException">Thrown when the deprecation operation fails for the specified resource.</exception>
-        public void Deprecate(Resource resource)
+        public Resource Deprecate(Resource resource)
         {
             if (resource == null)
             {
                 throw new ArgumentNullException(nameof(resource));
             }
 
-            Deprecate(resource.Id);
+            return Deprecate(resource.Id);
         }
 
         /// <inheritdoc/>
-        public void Deprecate(Guid resourceId)
+        public Resource Deprecate(Guid resourceId)
         {
             var resource = Read(resourceId);
             if (resource == null)
             {
-                return;
+                return null;
             }
 
-            ActivityHelper.Track(nameof(ResourcesRepository), nameof(Deprecate), act =>
+            return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Deprecate), act =>
             {
                 if (!DomResourceHandler.TryDeprecate(PlanApi, [resource], out var result))
                 {
                     result.ThrowSingleException(resource.Id);
                 }
 
-                var resourceId = result.SuccessfulIds.First();
-                act?.AddTag("Deprecated Resource", resourceId);
+                act?.AddTag("Deprecated Resource", result.SuccessfulIds.Single());
+
+                return Resource.InstantiateResource(PlanApi, result.SuccessfulItems.Single());
             });
         }
 
@@ -590,18 +547,18 @@
         /// <param name="resources">A collection of resources to be marked as deprecated.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="resources"/> is <c>null</c>.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk deprecation operation fails for one or more resources.</exception>
-        public void Deprecate(IEnumerable<Resource> resources)
+        public IReadOnlyCollection<Resource> Deprecate(IEnumerable<Resource> resources)
         {
             if (resources == null)
             {
                 throw new ArgumentNullException(nameof(resources));
             }
 
-            Deprecate(resources.Select(x => x.Id).ToArray());
+            return Deprecate(resources.Select(x => x.Id).ToArray());
         }
 
         /// <inheritdoc/>
-        public void Deprecate(IEnumerable<Guid> resourceIds)
+        public IReadOnlyCollection<Resource> Deprecate(IEnumerable<Guid> resourceIds)
         {
             if (resourceIds == null)
             {
@@ -610,16 +567,17 @@
 
             var resources = Read(resourceIds.ToArray());
 
-            ActivityHelper.Track(nameof(ResourcesRepository), nameof(Deprecate), act =>
+            return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Deprecate), act =>
             {
                 if (!DomResourceHandler.TryDeprecate(PlanApi, resources?.ToList(), out var result))
                 {
                     result.ThrowBulkException();
                 }
 
-                var resourceIds = result.SuccessfulIds;
-                act?.AddTag("Deprecated Resources", String.Join(", ", resourceIds));
-                act?.AddTag("Deprecated Resources Count", resourceIds.Count);
+                act?.AddTag("Deprecated Resources", String.Join(", ", result.SuccessfulIds));
+                act?.AddTag("Deprecated Resources Count", result.SuccessfulIds.Count);
+
+                return Resource.InstantiateResources(PlanApi, result.SuccessfulItems).ToList();
             });
         }
 
@@ -897,6 +855,61 @@
             }
 
             return Count(ResourceExposers.ResourcePoolIds.Contains(resourcePool.Id));
+        }
+
+        public Resource Restore(Resource resource)
+        {
+            if (resource == null)
+            {
+                throw new ArgumentNullException(nameof(resource));
+            }
+
+            return Restore(resource.Id);
+        }
+
+        /// <inheritdoc/>
+        public Resource Restore(Guid resourceId)
+        {
+            var resource = Read(resourceId);
+            if (resource == null)
+            {
+                return null;
+            }
+
+            if (!DomResourceHandler.TryRestore(PlanApi, [resource], out var result))
+            {
+                result.ThrowSingleException(resource.Id);
+            }
+
+            return Resource.InstantiateResource(PlanApi, result.SuccessfulItems.Single());
+        }
+
+        /// <inheritdoc/>
+        public IReadOnlyCollection<Resource> Restore(IEnumerable<Resource> resources)
+        {
+            if (resources == null)
+            {
+                throw new ArgumentNullException(nameof(resources));
+            }
+
+            return Restore(resources.Select(x => x.Id).ToArray());
+        }
+
+        /// <inheritdoc/>
+        public IReadOnlyCollection<Resource> Restore(IEnumerable<Guid> resourceIds)
+        {
+            if (resourceIds == null)
+            {
+                throw new ArgumentNullException(nameof(resourceIds));
+            }
+
+            var resources = Read(resourceIds);
+            if (!DomResourceHandler.TryRestore(PlanApi, resources?.ToList(), out var result))
+            {
+                result.ThrowBulkException();
+            }
+
+            return Resource.InstantiateResources(PlanApi, result.SuccessfulItems).ToList();
         }
 
         /// <summary>

@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using RT_MediaOps.Plan.RegressionTests;
 
     using Skyline.DataMiner.Core.DataMinerSystem.Common;
@@ -203,22 +204,25 @@
             }
         }
 
-        public void CreateResource(Resource resource)
+        public T CreateResource<T>(T resource) where T : Resource
         {
-            PlanApi.Resources.Create(resource);
-            createdResourceIds.Add(resource.Id);
+            var createdResource = PlanApi.Resources.Create(resource);
+            createdResourceIds.Add(createdResource.Id);
+            return createdResource;
         }
 
-        public void CreateResources(IEnumerable<Resource> resources)
+        public IReadOnlyCollection<Resource> CreateResources(IEnumerable<Resource> resources)
         {
             try
             {
-                PlanApi.Resources.Create(resources);
+                var createdResources = PlanApi.Resources.Create(resources);
 
                 foreach (var id in resources.Select(x => x.Id))
                 {
                     createdResourceIds.Add(id);
                 }
+
+                return createdResources;
             }
             catch (MediaOpsBulkException<Guid> bulkException)
             {
@@ -231,22 +235,25 @@
             }
         }
 
-        public void CreateResourcePool(ResourcePool resourcePool)
+        public ResourcePool CreateResourcePool(ResourcePool resourcePool)
         {
-            PlanApi.ResourcePools.Create(resourcePool);
-            createdPoolIds.Add(resourcePool.Id);
+            var createdPool = PlanApi.ResourcePools.Create(resourcePool);
+            createdPoolIds.Add(createdPool.Id);
+            return createdPool;
         }
 
-        public void CreateResourcePools(IEnumerable<ResourcePool> resourcePools)
+        public IReadOnlyCollection<ResourcePool> CreateResourcePools(IEnumerable<ResourcePool> resourcePools)
         {
             try
             {
-                PlanApi.ResourcePools.Create(resourcePools);
+                var createdPools = PlanApi.ResourcePools.Create(resourcePools);
 
                 foreach (var id in resourcePools.Select(x => x.Id))
                 {
                     createdPoolIds.Add(id);
                 }
+
+                return createdPools;
             }
             catch (MediaOpsBulkException<Guid> bulkException)
             {
@@ -259,22 +266,25 @@
             }
         }
 
-        public void CreateCapability(Capability capability)
+        public Capability CreateCapability(Capability capability)
         {
-            PlanApi.Capabilities.Create(capability);
-            createdCapabilityIds.Add(capability.Id);
+            var createdCapability = PlanApi.Capabilities.Create(capability);
+            createdCapabilityIds.Add(createdCapability.Id);
+            return createdCapability;
         }
 
-        public void CreateCapabilities(IEnumerable<Capability> capabilities)
+        public IReadOnlyCollection<Capability> CreateCapabilities(IEnumerable<Capability> capabilities)
         {
             try
             {
-                PlanApi.Capabilities.Create(capabilities);
+                var createdCapabilities = PlanApi.Capabilities.Create(capabilities);
 
                 foreach (var id in capabilities.Select(x => x.Id))
                 {
                     createdCapabilityIds.Add(id);
                 }
+
+                return createdCapabilities;
             }
             catch (MediaOpsBulkException<Guid> bulkException)
             {
@@ -287,22 +297,25 @@
             }
         }
 
-        public void CreateCapacity(Capacity capacity)
+        public Capacity CreateCapacity(Capacity capacity)
         {
-            PlanApi.Capacities.Create(capacity);
-            createdCapacityIds.Add(capacity.Id);
+            var createdCapacity = PlanApi.Capacities.Create(capacity);
+            createdCapacityIds.Add(createdCapacity.Id);
+            return createdCapacity;
         }
 
-        public void CreateCapacities(IEnumerable<Capacity> capacities)
+        public IReadOnlyCollection<Capacity> CreateCapacities(IEnumerable<Capacity> capacities)
         {
             try
             {
-                PlanApi.Capacities.Create(capacities);
+                var createdCapacities = PlanApi.Capacities.Create(capacities);
 
                 foreach (var id in capacities.Select(x => x.Id))
                 {
                     createdCapacityIds.Add(id);
                 }
+
+                return createdCapacities;
             }
             catch (MediaOpsBulkException<Guid> bulkException)
             {
@@ -315,22 +328,25 @@
             }
         }
 
-        public void CreateConfiguration(Configuration configuration)
+        public Configuration CreateConfiguration(Configuration configuration)
         {
-            PlanApi.Configurations.Create(configuration);
-            createdConfigurationIds.Add(configuration.Id);
+            var createdConfiguration = PlanApi.Configurations.Create(configuration);
+            createdConfigurationIds.Add(createdConfiguration.Id);
+            return createdConfiguration;
         }
 
-        public void CreateConfigurations(IEnumerable<Configuration> configurations)
+        public IReadOnlyCollection<Configuration> CreateConfigurations(IEnumerable<Configuration> configurations)
         {
             try
             {
-                PlanApi.Configurations.Create(configurations);
+                var createdConfigurations = PlanApi.Configurations.Create(configurations);
 
                 foreach (var id in configurations.Select(x => x.Id))
                 {
                     createdConfigurationIds.Add(id);
                 }
+
+                return createdConfigurations;
             }
             catch (MediaOpsBulkException<Guid> bulkException)
             {
@@ -343,22 +359,25 @@
             }
         }
 
-        public void CreateProperty(ResourceProperty property)
+        public ResourceProperty CreateProperty(ResourceProperty property)
         {
-            PlanApi.ResourceProperties.Create(property);
-            createdPropertyIds.Add(property.Id);
+            var createdProperty = PlanApi.ResourceProperties.Create(property);
+            createdPropertyIds.Add(createdProperty.Id);
+            return createdProperty;
         }
 
-        public void CreateProperties(IEnumerable<ResourceProperty> properties)
+        public IReadOnlyCollection<ResourceProperty> CreateProperties(IEnumerable<ResourceProperty> properties)
         {
             try
             {
-                PlanApi.ResourceProperties.Create(properties);
+                var createdProperties = PlanApi.ResourceProperties.Create(properties);
 
                 foreach (var id in properties.Select(x => x.Id))
                 {
                     createdPropertyIds.Add(id);
                 }
+
+                return createdProperties;
             }
             catch (MediaOpsBulkException<Guid> bulkException)
             {

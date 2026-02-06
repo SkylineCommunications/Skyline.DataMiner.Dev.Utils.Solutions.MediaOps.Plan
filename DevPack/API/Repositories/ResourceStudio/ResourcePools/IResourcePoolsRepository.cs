@@ -14,77 +14,77 @@
         /// Moves the specified <see cref="ResourcePool"/> from draft to complete state.
         /// </summary>
         /// <param name="resourcePool">The resource pool to move.</param>
-        void Complete(ResourcePool resourcePool);
+        ResourcePool Complete(ResourcePool resourcePool);
 
         /// <summary>
         /// Moves the specified resource pool from draft to complete state.
         /// </summary>
         /// <param name="resourcePoolId">The unique identifier of the resource pool to move.</param>
-        void Complete(Guid resourcePoolId);
+        ResourcePool Complete(Guid resourcePoolId);
 
         /// <summary>
         /// Moves the specified resource pools from draft to complete state.
         /// </summary>
         /// <param name="resourcePools">The resource pools to move.</param>
-        void Complete(IEnumerable<ResourcePool> resourcePools);
+        IReadOnlyCollection<ResourcePool> Complete(IEnumerable<ResourcePool> resourcePools);
 
         /// <summary>
         /// Moves the specified resource pools from draft to complete state.
         /// </summary>
         /// <param name="resourcePoolIds">The unique identifiers of the resource pools.</param>
-        void Complete(IEnumerable<Guid> resourcePoolIds);
+        IReadOnlyCollection<ResourcePool> Complete(IEnumerable<Guid> resourcePoolIds);
 
         /// <summary>
         /// Deprecates the specified <see cref="ResourcePool"/>.
         /// </summary>
         /// <param name="resourcePool">The resource pool to deprecate.</param>
-        void Deprecate(ResourcePool resourcePool);
+        ResourcePool Deprecate(ResourcePool resourcePool);
 
         /// <summary>
         /// Deprecates the specified resource pool.
         /// </summary>
         /// <param name="resourcePoolId">The unique identifier of the resource pool to deprecate.</param>
-        void Deprecate(Guid resourcePoolId);
+        ResourcePool Deprecate(Guid resourcePoolId);
 
         /// <summary>
         /// Deprecates the specified resource pools.
         /// </summary>
         /// <param name="resourcePools">The resource pools to deprecate.</param>
-        void Deprecate(IEnumerable<ResourcePool> resourcePools);
+        IReadOnlyCollection<ResourcePool> Deprecate(IEnumerable<ResourcePool> resourcePools);
 
         /// <summary>
         /// Deprecates resource pools with the specified identifiers.
         /// </summary>
         /// <param name="resourcePoolIds">The unique identifiers of the resource pools to deprecate.</param>
-        void Deprecate(IEnumerable<Guid> resourcePoolIds);
+        IReadOnlyCollection<ResourcePool> Deprecate(IEnumerable<Guid> resourcePoolIds);
 
         /// <summary>
         /// Deprecates the specified <see cref="ResourcePool"/> using the provided <see cref="ResourcePoolDeprecateOptions"/>.
         /// </summary>
         /// <param name="resourcePool">The resource pool to deprecate.</param>
         /// <param name="options">Options specifying how the resource pool and its resources should be deprecated.</param>
-        void Deprecate(ResourcePool resourcePool, ResourcePoolDeprecateOptions options);
+        ResourcePool Deprecate(ResourcePool resourcePool, ResourcePoolDeprecateOptions options);
 
         /// <summary>
         /// Deprecates the specified resource pool using the provided <see cref="ResourcePoolDeprecateOptions"/>.
         /// </summary>
         /// <param name="resourcePoolId">The unique identifier of the resource pool to deprecate.</param>
         /// <param name="options">Options specifying how the resource pool and its resources should be deprecated.</param>
-        void Deprecate(Guid resourcePoolId, ResourcePoolDeprecateOptions options);
+        ResourcePool Deprecate(Guid resourcePoolId, ResourcePoolDeprecateOptions options);
 
         /// <summary>
         /// Deprecates the specified resource pools using the provided <see cref="ResourcePoolDeprecateOptions"/>.
         /// </summary>
         /// <param name="resourcePools">The resource pools to deprecate.</param>
         /// <param name="options">Options specifying how the resource pools and its resources should be deprecated.</param>
-        void Deprecate(IEnumerable<ResourcePool> resourcePools, ResourcePoolDeprecateOptions options);
+        IReadOnlyCollection<ResourcePool> Deprecate(IEnumerable<ResourcePool> resourcePools, ResourcePoolDeprecateOptions options);
 
         /// <summary>
         /// Deprecates resource pools with the specified identifiers using the provided <see cref="ResourcePoolDeprecateOptions"/>.
         /// </summary>
         /// <param name="resourcePoolIds">The unique identifiers of the resource pools to deprecate.</param>
         /// <param name="options">Options specifying how the resource pools and its resources should be deprecated.</param>
-        void Deprecate(IEnumerable<Guid> resourcePoolIds, ResourcePoolDeprecateOptions options);
+        IReadOnlyCollection<ResourcePool> Deprecate(IEnumerable<Guid> resourcePoolIds, ResourcePoolDeprecateOptions options);
 
         /// <summary>
         /// Deletes the specified <see cref="ResourcePool"/> using the provided <see cref="ResourcePoolDeleteOptions"/>.

@@ -1,7 +1,9 @@
 ﻿namespace RT_MediaOps.Plan.RST.Filtering
 {
     using System;
+
     using RT_MediaOps.Plan.RegressionTests;
+
     using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 
     internal sealed class ResourceFilteringSetup
@@ -263,14 +265,9 @@
                 DraftResource3,
             };
 
-            foreach (var resource in resourcesToCreate)
-            {
-                objectCreator.CreateResource(resource);
-            }
-
-            DraftResource1 = (UnmanagedResource)TestContext.Api.Resources.Read(DraftResource1.Id);
-            DraftResource2 = (UnmanagedResource)TestContext.Api.Resources.Read(DraftResource2.Id);
-            DraftResource3 = (UnmanagedResource)TestContext.Api.Resources.Read(DraftResource3.Id);
+            DraftResource1 = (UnmanagedResource)objectCreator.CreateResource(DraftResource1);
+            DraftResource2 = (UnmanagedResource)objectCreator.CreateResource(DraftResource2);
+            DraftResource3 = (UnmanagedResource)objectCreator.CreateResource(DraftResource3);
         }
 
         private void CreateCompleteResources()
@@ -321,20 +318,13 @@
             CompleteResource5.AddProperty(formatProperty5);
             CompleteResource5.AssignToPool(ResourcePool2);
 
-            var resourcesToCreate = new Resource[]
-            {
-                CompleteResource4,
-                CompleteResource5,
-            };
+            // Create using objectCreator and keep returned instances
+            CompleteResource4 = (UnmanagedResource)objectCreator.CreateResource(CompleteResource4);
+            CompleteResource5 = (UnmanagedResource)objectCreator.CreateResource(CompleteResource5);
 
-            foreach (var resource in resourcesToCreate)
-            {
-                objectCreator.CreateResource(resource);
-                TestContext.Api.Resources.Complete(resource);
-            }
-
-            CompleteResource4 = (UnmanagedResource)TestContext.Api.Resources.Read(CompleteResource4.Id);
-            CompleteResource5 = (UnmanagedResource)TestContext.Api.Resources.Read(CompleteResource5.Id);
+            // Mark as complete
+            TestContext.Api.Resources.Complete(CompleteResource4);
+            TestContext.Api.Resources.Complete(CompleteResource5);
         }
 
         private void CreateElementResources()
@@ -348,8 +338,7 @@
                 ElementId = 200,
             };
 
-            objectCreator.CreateResource(ElementResource1);
-            ElementResource1 = (ElementResource)TestContext.Api.Resources.Read(ElementResource1.Id);
+            ElementResource1 = (ElementResource)objectCreator.CreateResource(ElementResource1);
         }
 
         private void CreateServiceResources()
@@ -363,9 +352,7 @@
                 ServiceId = 20,
             };
 
-            objectCreator.CreateResource(ServiceResource1);
-
-            ServiceResource1 = (ServiceResource)TestContext.Api.Resources.Read(ServiceResource1.Id);
+            ServiceResource1 = (ServiceResource)objectCreator.CreateResource(ServiceResource1);
         }
 
         private void CreateVirtualFunctionResources()
@@ -387,9 +374,7 @@
             VirtualFunctionResource1.AddCapability(capabilitySettings1);
             VirtualFunctionResource1.AssignToPool(ResourcePool2);
 
-            objectCreator.CreateResource(VirtualFunctionResource1);
-
-            VirtualFunctionResource1 = (VirtualFunctionResource)TestContext.Api.Resources.Read(VirtualFunctionResource1.Id);
+            VirtualFunctionResource1 = (VirtualFunctionResource)objectCreator.CreateResource(VirtualFunctionResource1);
         }
 
         private void CreateCapacities()

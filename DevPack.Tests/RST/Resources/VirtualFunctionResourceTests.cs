@@ -79,15 +79,14 @@
                 AgentId = elementId.AgentId,
                 ElementId = elementId.ElementId,
             };
-            objectCreator.CreateResource(functionResource);
 
-            var resource = TestContext.Api.Resources.Read(functionResource.Id);
+            var resource = objectCreator.CreateResource(functionResource);
             Assert.IsNotNull(resource);
             Assert.AreEqual(Guid.Empty, resource.CoreResourceId);
             Assert.IsTrue(resource is VirtualFunctionResource);
 
             TestContext.Api.Resources.Complete(resource.Id);
-            resource = TestContext.Api.Resources.Read(functionResource.Id);
+            resource = (VirtualFunctionResource)TestContext.Api.Resources.Read(functionResource.Id);
             Assert.IsTrue(resource.CoreResourceId != Guid.Empty);
 
             // todo: add more validation
