@@ -335,6 +335,13 @@
             return createdConfiguration;
         }
 
+        public T CreateConfiguration<T>(T configuration) where T : Configuration
+        {
+            var createdConfiguration = PlanApi.Configurations.Create(configuration);
+            createdConfigurationIds.Add(createdConfiguration.Id);
+            return (T)createdConfiguration;
+        }
+
         public IReadOnlyCollection<Configuration> CreateConfigurations(IEnumerable<Configuration> configurations)
         {
             try
