@@ -4,8 +4,6 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    using Alphaleonis.Win32.Filesystem;
-
     using RT_MediaOps.Plan.RegressionTests;
 
     using Skyline.DataMiner.Core.DataMinerSystem.Common;
