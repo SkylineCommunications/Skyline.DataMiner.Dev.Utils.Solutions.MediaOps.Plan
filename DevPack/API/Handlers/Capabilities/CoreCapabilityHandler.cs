@@ -83,6 +83,7 @@
             var toUpdate = capabilities.Except(toCreate).ToList();
 
             List<CoreParameter> coreParametersToCreate = new List<CoreParameter>();
+            HashSet<Guid> linkedTimeDependentCapabilityIdsToCreate = new HashSet<Guid>();
             foreach (var capabilityToCreate in toCreate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)))
             {
                 if (capabilityToCreate.IsTimeDependent)
@@ -90,6 +91,7 @@
                     var timeDependentCapability = CreateLinkedTimeDependentCapability(capabilityToCreate);
                     coreParametersToCreate.Add(CreateOrUpdateCoreParameter(capabilityToCreate, timeDependentCapability.ID));
                     coreParametersToCreate.Add(timeDependentCapability);
+                    linkedTimeDependentCapabilityIdsToCreate.Add(timeDependentCapability.ID);
                 }
                 else
                 {
@@ -101,10 +103,13 @@
                 .Select(x => CreateOrUpdateCoreParameter(x, null))
                 .ToList();
 
-            CreateOrUpdateCoreParameters(coreParametersToCreate.Concat(coreParametersToUpdate).ToList());
+            var createdParameters = CreateOrUpdateCoreParameters(coreParametersToCreate.Concat(coreParametersToUpdate).ToList());
+
+            // Only report the originally requested capabilities as successful, not the linked time-dependent capabilities created in the same batch.
+            ReportSuccess(createdParameters.Where(x => !linkedTimeDependentCapabilityIdsToCreate.Contains(x.ID)));
         }
 
-        private void CreateOrUpdateCoreParameters(ICollection<CoreParameter> coreParameters)
+        private IReadOnlyCollection<CoreParameter> CreateOrUpdateCoreParameters(ICollection<CoreParameter> coreParameters)
         {
             if (coreParameters == null)
             {
@@ -113,7 +118,7 @@
 
             if (coreParameters.Count == 0)
             {
-                return;
+                return Array.Empty<CoreParameter>();
             }
 
             planApi.CoreHelpers.ProfileProvider.TryCreateOrUpdateParametersInBatches(coreParameters, out var result);
@@ -127,7 +132,7 @@
                 }
             }
 
-            ReportSuccess(result.SuccessfulItems);
+            return result.SuccessfulItems;
         }
 
         private void Delete(ICollection<Capability> apiCapabilities)

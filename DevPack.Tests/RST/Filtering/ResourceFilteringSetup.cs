@@ -265,9 +265,9 @@
                 DraftResource3,
             };
 
-            DraftResource1 = (UnmanagedResource)objectCreator.CreateResource(DraftResource1);
-            DraftResource2 = (UnmanagedResource)objectCreator.CreateResource(DraftResource2);
-            DraftResource3 = (UnmanagedResource)objectCreator.CreateResource(DraftResource3);
+            DraftResource1 = objectCreator.CreateResource(DraftResource1);
+            DraftResource2 = objectCreator.CreateResource(DraftResource2);
+            DraftResource3 = objectCreator.CreateResource(DraftResource3);
         }
 
         private void CreateCompleteResources()

@@ -206,7 +206,7 @@
 
         public T CreateResource<T>(T resource) where T : Resource
         {
-            var createdResource = PlanApi.Resources.Create(resource);
+            var createdResource = (T)PlanApi.Resources.Create(resource);
             createdResourceIds.Add(createdResource.Id);
             return createdResource;
         }

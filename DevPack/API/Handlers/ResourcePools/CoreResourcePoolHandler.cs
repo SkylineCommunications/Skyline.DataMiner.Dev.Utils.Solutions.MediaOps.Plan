@@ -174,24 +174,23 @@
             }
 
             var domIdByCoreId = new Dictionary<Guid, Guid>();
-            var poolsToDelete = new List<CoreResourcePool>();
+            var corePoolsToDelete = new List<CoreResourcePool>();
 
             foreach (var mapping in resourcePoolMappings)
             {
                 if (mapping.CoreResourcePool == null)
                 {
                     // DOM resource pools without a CORE can be removed.
-                    successfulItems.Add(mapping.DomResourcePool);
-
                     continue;
                 }
 
-                poolsToDelete.Add(mapping.CoreResourcePool);
+                corePoolsToDelete.Add(mapping.CoreResourcePool);
                 domIdByCoreId.Add(mapping.CoreResourcePool.ID, mapping.DomResourcePool.ID.Id);
             }
 
-            planApi.CoreHelpers.ResourceManagerHelper.TryDeleteResourcePoolsInBatches(poolsToDelete, out var result);
+            planApi.CoreHelpers.ResourceManagerHelper.TryDeleteResourcePoolsInBatches(corePoolsToDelete, out var result);
 
+            // Mark unsuccessful deletions.
             foreach (var id in result.UnsuccessfulIds)
             {
                 if (!domIdByCoreId.TryGetValue(id, out var domId))
@@ -208,7 +207,20 @@
                 }
             }
 
-            successfulItems.AddRange(resourcePoolMappings.Where(x => result.SuccessfulIds.Contains(x.CoreResourcePool.ID)).Select(x => x.DomResourcePool));
+            // Mark successful deletions.
+            foreach (var item in resourcePoolMappings)
+            {
+                if (item.CoreResourcePool == null)
+                {
+                    successfulItems.Add(item.DomResourcePool);
+                    continue;
+                }
+
+                if (result.SuccessfulIds.Contains(item.CoreResourcePool.ID))
+                {
+                    successfulItems.Add(item.DomResourcePool);
+                }
+            }
         }
 
         private void ValidateNames(ICollection<DomResourcePool> domResourcePools)
