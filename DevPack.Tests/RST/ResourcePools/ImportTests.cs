@@ -332,7 +332,7 @@
                 Name = $"{prefix}_API_Resource3",
             }
             .AssignToPool(apiResourcePool.Id);
-            objectCreator.CreateResources([apiResource1, apiResource2 , apiResource3]);
+            objectCreator.CreateResources([apiResource1, apiResource2, apiResource3]);
             TestContext.Api.Resources.Complete([apiResource1.Id, apiResource2.Id, apiResource3.Id]);
 
             apiResourcePool = TestContext.Api.ResourcePools.Read(apiResourcePool.Id);
