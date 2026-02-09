@@ -151,10 +151,6 @@
             ValidateNames(apiResources);
             ValidateConcurrency(apiResources);
             ValidateConnectionManagement(apiResources);
-            // TODO: validate pool ids
-            // TODO: validate element settings
-            // TODO: validate service settings
-            // TODO: validate virtual function settings
 
             var validResources = apiResources.Where(IsValid).ToList();
             var lockResult = planApi.LockManager.LockAndExecute(validResources, CreateOrUpdateCoreResources);
