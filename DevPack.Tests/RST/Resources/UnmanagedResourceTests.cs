@@ -358,6 +358,68 @@
             Assert.AreEqual(Skyline.DataMiner.Net.Messages.ResourceMode.Available, coreResource.Mode);
         }
 
+        [TestMethod]
+        public void RenameResource()
+        {
+            var prefix = Guid.NewGuid();
+
+            var unmanagedResource = new UnmanagedResource
+            {
+                Name = $"{prefix}_resource",
+            };
+            objectCreator.CreateResource(unmanagedResource);
+            TestContext.Api.Resources.Complete(unmanagedResource.Id);
+
+            // Verify initial name
+            var resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
+            Assert.IsNotNull(resource);
+            Assert.AreEqual($"{prefix}_resource", resource.Name);
+
+            Assert.AreNotEqual(Guid.Empty, resource.CoreResourceId);
+            var coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
+            Assert.IsNotNull(coreResource);
+            Assert.AreEqual($"{prefix}_resource", coreResource.Name);
+
+            // Rename resource and verify
+            resource.Name = $"{prefix}_resource_renamed";
+            TestContext.Api.Resources.Update(resource);
+
+            resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
+            Assert.IsNotNull(resource);
+            Assert.AreEqual($"{prefix}_resource_renamed", resource.Name);
+
+            Assert.AreNotEqual(Guid.Empty, resource.CoreResourceId);
+            coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
+            Assert.IsNotNull(coreResource);
+            Assert.AreEqual($"{prefix}_resource_renamed", coreResource.Name);
+
+            // Rename resource and verify
+            resource.Name = $"{prefix}_renamed_resource";
+            TestContext.Api.Resources.Update(resource);
+
+            resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
+            Assert.IsNotNull(resource);
+            Assert.AreEqual($"{prefix}_renamed_resource", resource.Name);
+
+            Assert.AreNotEqual(Guid.Empty, resource.CoreResourceId);
+            coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
+            Assert.IsNotNull(coreResource);
+            Assert.AreEqual($"{prefix}_renamed_resource", coreResource.Name);
+
+            // Rename resource back to original name and verify
+            resource.Name = $"{prefix}_resource";
+            TestContext.Api.Resources.Update(resource);
+
+            resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
+            Assert.IsNotNull(resource);
+            Assert.AreEqual($"{prefix}_resource", resource.Name);
+
+            Assert.AreNotEqual(Guid.Empty, resource.CoreResourceId);
+            coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
+            Assert.IsNotNull(coreResource);
+            Assert.AreEqual($"{prefix}_resource", coreResource.Name);
+        }
+
         private struct ExpectedUnmanagedResource
         {
             public ExpectedUnmanagedResource(string name, int concurrency, bool isFavorite, Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceState state, Guid? id = null)
