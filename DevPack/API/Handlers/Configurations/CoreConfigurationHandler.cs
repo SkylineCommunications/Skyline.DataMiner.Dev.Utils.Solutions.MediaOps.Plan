@@ -8,7 +8,7 @@
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
-    internal class CoreConfigurationHandler : ApiObjectValidator
+    internal class CoreConfigurationHandler : ParameterApiObjectValidator
     {
         private readonly MediaOpsPlanApi planApi;
 
@@ -17,22 +17,22 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Configuration> apiConfigurations, out BulkOperationResult<Guid> result)
+        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Configuration> apiConfigurations, out ParameterBulkOperationResult result)
         {
             var handler = new CoreConfigurationHandler(planApi);
             handler.CreateOrUpdate(apiConfigurations);
 
-            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new ParameterBulkOperationResult(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
             return !result.HasFailures;
         }
 
-        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<Configuration> apiConfigurations, out BulkOperationResult<Guid> result)
+        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<Configuration> apiConfigurations, out ParameterBulkOperationResult result)
         {
             var handler = new CoreConfigurationHandler(planApi);
             handler.Delete(apiConfigurations);
 
-            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new ParameterBulkOperationResult(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
             return !result.HasFailures;
         }
@@ -102,7 +102,7 @@
                 }
             }
 
-            ReportSuccess(result.SuccessfulIds);
+            ReportSuccess(result.SuccessfulItems);
         }
 
         private void Delete(ICollection<Configuration> apiConfigurations)
@@ -141,7 +141,7 @@
                 }
             }
 
-            ReportSuccess(result.SuccessfulIds);
+            ReportSuccess(result.SuccessfulItems);
         }
 
         private void ValidateIdsNotInUse(ICollection<Configuration> apiConfigurations)

@@ -10,7 +10,7 @@
         /// <summary>
         /// Gets the unique identifier of the API object.
         /// </summary>
-        public Guid Id { get; private set; } // Should this be a Guid, could be a string?
+        public Guid Id { get; private set; }
 
         /// <summary>
         /// Gets the name of the API object.

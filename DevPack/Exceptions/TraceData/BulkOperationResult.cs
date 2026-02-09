@@ -6,12 +6,13 @@
     /// <summary>
     /// Contains the successfully handled items and the <see cref="MediaOpsTraceData"/> per item.
     /// </summary>
-    /// <typeparam name="K">The ID of an item.</typeparam>
-    internal class BulkOperationResult<K> : IBulkOperationResult<K>
-        where K : IEquatable<K>
+    /// <typeparam name="T">The type of objects that were processed.</typeparam>
+    internal abstract class BulkOperationResult<T> : IBulkOperationResult<Guid>
+        where T : class
     {
-        internal BulkOperationResult(IReadOnlyCollection<K> successfulIds, IReadOnlyCollection<K> unsuccessfulIds, IReadOnlyDictionary<K, MediaOpsTraceData> traceDataPerItem)
+        private protected BulkOperationResult(IReadOnlyCollection<T> successItems, IReadOnlyCollection<Guid> successfulIds, IReadOnlyCollection<Guid> unsuccessfulIds, IReadOnlyDictionary<Guid, MediaOpsTraceData> traceDataPerItem)
         {
+            SuccessfulItems = successItems ?? throw new ArgumentNullException(nameof(successItems));
             SuccessfulIds = successfulIds ?? throw new ArgumentNullException(nameof(successfulIds));
             UnsuccessfulIds = unsuccessfulIds ?? throw new ArgumentNullException(nameof(unsuccessfulIds));
             TraceDataPerItem = traceDataPerItem ?? throw new ArgumentNullException(nameof(traceDataPerItem));
@@ -20,17 +21,19 @@
         /// <summary>
         /// Gets a list of IDs of successfully handled items.
         /// </summary>
-        public IReadOnlyCollection<K> SuccessfulIds { get; }
+        public IReadOnlyCollection<Guid> SuccessfulIds { get; }
+
+        public IReadOnlyCollection<T> SuccessfulItems { get; }
 
         /// <summary>
         /// Gets the <see cref="MediaOpsTraceData"/> per successfully handled item.
         /// </summary>
-        public IReadOnlyDictionary<K, MediaOpsTraceData> TraceDataPerItem { get; }
+        public IReadOnlyDictionary<Guid, MediaOpsTraceData> TraceDataPerItem { get; }
 
         /// <summary>
         /// Gets a list of IDs of the items that could not get handled.
         /// </summary>
-        public IReadOnlyCollection<K> UnsuccessfulIds { get; }
+        public IReadOnlyCollection<Guid> UnsuccessfulIds { get; }
 
         internal bool HasFailures
         {
@@ -42,10 +45,10 @@
 
         internal void ThrowBulkException()
         {
-            throw new MediaOpsBulkException<K>(this);
+            throw new MediaOpsBulkException<Guid>(this);
         }
 
-        internal void ThrowSingleException(K key)
+        internal void ThrowSingleException(Guid key)
         {
             throw new MediaOpsException(TraceDataPerItem[key]);
         }
