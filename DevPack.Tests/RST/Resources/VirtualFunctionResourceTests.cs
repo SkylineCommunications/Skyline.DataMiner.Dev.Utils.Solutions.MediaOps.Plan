@@ -89,6 +89,13 @@
             resource = (VirtualFunctionResource)TestContext.Api.Resources.Read(functionResource.Id);
             Assert.IsTrue(resource.CoreResourceId != Guid.Empty);
 
+            var coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
+            Assert.IsNotNull(coreResource);
+
+            var coreFunctionResource = coreResource as Skyline.DataMiner.Net.ResourceManager.Objects.FunctionResource;
+            Assert.IsNotNull(coreFunctionResource);
+            Assert.AreEqual(activeFunctionVersion.FunctionDefinitions.First().GUID, coreFunctionResource.FunctionGUID);
+
             // todo: add more validation
         }
     }

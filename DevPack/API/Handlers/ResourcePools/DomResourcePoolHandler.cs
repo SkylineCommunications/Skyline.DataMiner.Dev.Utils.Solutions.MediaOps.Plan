@@ -504,7 +504,19 @@
 
         private void UnassignResourcesFromPool(ICollection<ResourcePool> apiResourcePools)
         {
-            // todo: implement logic to unassign resources from the given resource pools
+            var resourcesPerPoolCollection = planApi.Resources.GetResourcesPerPool(apiResourcePools);
+
+            foreach (var resourcesPerPool in resourcesPerPoolCollection)
+            {
+                foreach (var resource in resourcesPerPool.Value)
+                {
+                    resource.UnassignFromPool(resourcesPerPool.Key.Id);
+                }
+            }
+
+            var resourcesToUpdate = resourcesPerPoolCollection.Values.SelectMany(x => x).Distinct(new DefaultApiObjectComparer()).Cast<Resource>().ToList();
+
+            planApi.Resources.Update(resourcesToUpdate);
         }
 
         private void UpdateCoreResources(ICollection<ResourcePool> apiResourcePools)
