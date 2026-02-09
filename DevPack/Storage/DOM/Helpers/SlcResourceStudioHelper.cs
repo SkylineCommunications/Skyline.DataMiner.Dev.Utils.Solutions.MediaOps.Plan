@@ -3,11 +3,13 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
     using Skyline.DataMiner.Utils.DOM.Extensions;
+
     using SLDataGateway.API.Types.Querying;
 
     internal class SlcResourceStudioHelper : DomModuleHelperBase
@@ -218,22 +220,22 @@
                 x => DomHelper.DomInstances.Read(x));
         }
 
-        public void TransitionResourceToComplete(Guid resourceId)
+        public DomInstance TransitionResourceToComplete(Guid resourceId)
         {
             var transitionId = SlcResource_StudioIds.Behaviors.Resource_Behavior.Transitions.Draft_To_Complete;
-            DomHelper.DomInstances.DoStatusTransition(new DomInstanceId(resourceId), transitionId);
+            return DomHelper.DomInstances.DoStatusTransition(new DomInstanceId(resourceId), transitionId);
         }
 
-        public void TransitionResourceToDeprecated(Guid resourceId)
+        public DomInstance TransitionResourceToDeprecated(Guid resourceId)
         {
             var transitionId = SlcResource_StudioIds.Behaviors.Resource_Behavior.Transitions.Complete_To_Deprecated;
-            DomHelper.DomInstances.DoStatusTransition(new DomInstanceId(resourceId), transitionId);
+            return DomHelper.DomInstances.DoStatusTransition(new DomInstanceId(resourceId), transitionId);
         }
 
-        public void TransitionResourceToCompleteFromDeprecated(Guid resourceId)
+        public DomInstance TransitionResourceToCompleteFromDeprecated(Guid resourceId)
         {
             var transitionId = SlcResource_StudioIds.Behaviors.Resource_Behavior.Transitions.Deprecated_To_Complete;
-            DomHelper.DomInstances.DoStatusTransition(new DomInstanceId(resourceId), transitionId);
+            return DomHelper.DomInstances.DoStatusTransition(new DomInstanceId(resourceId), transitionId);
         }
 
         public IEnumerable<ConfigurationInstance> GetConfigurations(FilterElement<DomInstance> filter)

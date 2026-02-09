@@ -9,6 +9,7 @@
     using Skyline.DataMiner.ConnectorAPI.SkylineLockManager.ConnectorApi.InterApp.Messages.Locking;
     using Skyline.DataMiner.ConnectorAPI.SkylineLockManager.ConnectorApi.InterApp.Messages.Unlocking;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+    using Skyline.DataMiner.Net.ToolsSpace.Collections;
 
     internal class LockManager
     {
@@ -19,7 +20,7 @@
         private readonly SkylineLockManagerConnectorApi _lockapi;
         private readonly ILogger _logger;
 
-        private readonly HashSet<string> lockedObjectIds = new HashSet<string>(); // Only used for Integration Testing outside of a DataMiner Agent
+        private readonly ConcurrentHashSet<string> lockedObjectIds = new ConcurrentHashSet<string>(); // Only used for Integration Testing outside of a DataMiner Agent
 
         public LockManager(MediaOpsPlanApi planApi)
         {
@@ -114,7 +115,7 @@
                 List<string> grantedObjectLocks = new List<string>();
                 foreach (var objectToLock in objectsToLock)
                 {
-                    if (lockedObjectIds.Add(objectToLock.LockId))
+                    if (lockedObjectIds.TryAdd(objectToLock.LockId))
                     {
                         grantedObjectLocks.Add(objectToLock.LockId);
                     }
@@ -143,7 +144,7 @@
 
                 foreach (var lockedObject in lockedObjects)
                 {
-                    lockedObjectIds.Remove(lockedObject.LockId);
+                    lockedObjectIds.TryRemove(lockedObject.LockId);
                 }
             }
         }

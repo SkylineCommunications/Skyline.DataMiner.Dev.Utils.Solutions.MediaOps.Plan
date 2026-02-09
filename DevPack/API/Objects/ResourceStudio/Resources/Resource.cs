@@ -518,6 +518,21 @@
 
         internal abstract void ApplyChanges(StorageResourceStudio.ResourceInstance instance);
 
+        internal static Resource InstantiateResource(MediaOpsPlanApi planApi, StorageResourceStudio.ResourceInstance instance)
+        {
+            if (planApi == null)
+            {
+                throw new ArgumentNullException(nameof(planApi));
+            }
+
+            if (instance == null)
+            {
+                throw new ArgumentNullException(nameof(instance));
+            }
+
+            return InstantiateResourcesIterator(planApi, [instance]).FirstOrDefault();
+        }
+
         internal static IEnumerable<Resource> InstantiateResources(MediaOpsPlanApi planApi, IEnumerable<StorageResourceStudio.ResourceInstance> instances)
         {
             if (planApi == null)

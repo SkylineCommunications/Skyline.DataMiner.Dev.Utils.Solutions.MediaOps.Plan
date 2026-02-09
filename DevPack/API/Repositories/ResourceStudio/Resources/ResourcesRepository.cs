@@ -1,6 +1,7 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
     using System;
+    using System.Collections;
     using System.Collections.Generic;
     using System.Linq;
 
@@ -28,6 +29,58 @@
         {
         }
 
+        public Resource Complete(Resource resource)
+        {
+            if (resource == null)
+            {
+                throw new ArgumentNullException(nameof(resource));
+            }
+
+            return Complete(resource.Id);
+        }
+
+        public Resource Complete(Guid resourceId)
+        {
+            var resource = Read(resourceId);
+            if (resource == null)
+            {
+                return null;
+            }
+
+            if (!DomResourceHandler.TryComplete(PlanApi, [resource], out var result))
+            {
+                result.ThrowSingleException(resource.Id);
+            }
+
+            return Resource.InstantiateResource(PlanApi, result.SuccessfulItems.Single());
+        }
+
+        public IReadOnlyCollection<Resource> Complete(IEnumerable<Resource> resources)
+        {
+            if (resources == null)
+            {
+                throw new ArgumentNullException(nameof(resources));
+            }
+
+            return Complete(resources.Select(x => x.Id).ToArray());
+        }
+
+        public IReadOnlyCollection<Resource> Complete(IEnumerable<Guid> resourceIds)
+        {
+            if (resourceIds == null)
+            {
+                throw new ArgumentNullException(nameof(resourceIds));
+            }
+
+            var resources = Read(resourceIds);
+            if (!DomResourceHandler.TryComplete(PlanApi, resources?.ToList(), out var result))
+            {
+                result.ThrowBulkException();
+            }
+
+            return Resource.InstantiateResources(PlanApi, result.SuccessfulItems).ToList();
+        }
+
         /// <summary>
         /// Converts the specified <see cref="Resource"/> to an <see cref="ElementResource"/>.
         /// </summary>
@@ -53,8 +106,12 @@
                 return elementResource;
             }
 
-            DomResourceHandler.ConvertToElementResource(PlanApi, resource, setting);
-            return (ElementResource)Read(resource.Id);
+            if (!DomResourceHandler.TryConvertToElementResource(PlanApi, resource, setting, out var result))
+            {
+                result.ThrowBulkException();
+            }
+
+            return (ElementResource)Resource.InstantiateResource(PlanApi, result.SuccessfulItems.Single());
         }
 
         /// <summary>
@@ -102,8 +159,12 @@
                 return serviceResource;
             }
 
-            DomResourceHandler.ConvertToServiceResource(PlanApi, resource, setting);
-            return (ServiceResource)Read(resource.Id);
+            if (!DomResourceHandler.TryConvertToServiceResource(PlanApi, resource, setting, out var result))
+            {
+                result.ThrowBulkException();
+            }
+
+            return (ServiceResource)Resource.InstantiateResource(PlanApi, result.SuccessfulItems.Single());
         }
 
         /// <summary>
@@ -150,8 +211,12 @@
                 return unmanagedResource;
             }
 
-            DomResourceHandler.ConvertToUnmanagedResource(PlanApi, resource);
-            return (UnmanagedResource)Read(resource.Id);
+            if (!DomResourceHandler.TryConvertToUnmanagedResource(PlanApi, resource, out var result))
+            {
+                result.ThrowBulkException();
+            }
+
+            return (UnmanagedResource)Resource.InstantiateResource(PlanApi, result.SuccessfulItems.Single());
         }
 
         /// <summary>
@@ -198,8 +263,12 @@
                 return virtualFunctionResource;
             }
 
-            DomResourceHandler.ConvertToVirtualFunctionResource(PlanApi, resource, setting);
-            return (VirtualFunctionResource)Read(resource.Id);
+            if (!DomResourceHandler.TryConvertToVirtualFunctionResource(PlanApi, resource, setting, out var result))
+            {
+                result.ThrowBulkException();
+            }
+
+            return (VirtualFunctionResource)Resource.InstantiateResource(PlanApi, result.SuccessfulItems.Single());
         }
 
         /// <summary>
@@ -268,8 +337,7 @@
 
             PlanApi.Logger.Information(this, $"Creating new Resource {apiObject.Name}...");
 
-            Guid resourceId = Guid.Empty;
-            ActivityHelper.Track(nameof(ResourcesRepository), nameof(Create), act =>
+            return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Create), act =>
             {
                 if (!apiObject.IsNew)
                 {
@@ -281,11 +349,10 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                resourceId = apiObject.Id;
-                act?.AddTag("ResourceId", resourceId);
-            });
+                act?.AddTag("ResourceId", result.SuccessfulIds.Single());
 
-            return Read(resourceId);
+                return Resource.InstantiateResource(PlanApi, result.SuccessfulItems.Single());
+            });
         }
 
         /// <summary>
@@ -304,8 +371,7 @@
 
             var list = apiObjects.ToList();
 
-            BulkOperationResult<Guid> result = null;
-            ActivityHelper.Track(nameof(ResourcesRepository), nameof(Create), act =>
+            return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Create), act =>
             {
                 var existingResources = list.Where(x => !x.IsNew);
                 if (existingResources.Any())
@@ -313,16 +379,15 @@
                     throw new InvalidOperationException("Not possible to use method Create for existing resources. Use CreateOrUpdate or Update instead.");
                 }
 
-                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, list, out result))
+                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, list, out var result))
                 {
                     result.ThrowBulkException();
                 }
 
-                var resourceIds = result.SuccessfulIds;
-                act?.AddTag("ResourceIds", String.Join(", ", resourceIds));
-            });
+                act?.AddTag("ResourceIds", String.Join(", ", result.SuccessfulIds));
 
-            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
+                return Resource.InstantiateResources(PlanApi, result.SuccessfulItems).ToList();
+            });
         }
 
         /// <summary>
@@ -340,20 +405,18 @@
 
             var list = apiObjects.ToList();
 
-            BulkOperationResult<Guid> result = null;
-            ActivityHelper.Track(nameof(ResourcesRepository), nameof(CreateOrUpdate), act =>
+            return ActivityHelper.Track(nameof(ResourcesRepository), nameof(CreateOrUpdate), act =>
             {
-                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, list, out result))
+                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, list, out var result))
                 {
                     result.ThrowBulkException();
                 }
 
-                var resourceIds = result.SuccessfulIds;
-                act?.AddTag("Created or Updated Resources", String.Join(", ", resourceIds));
-                act?.AddTag("Created or Updated Resources Count", resourceIds.Count);
-            });
+                act?.AddTag("Created or Updated Resources", String.Join(", ", result.SuccessfulIds));
+                act?.AddTag("Created or Updated Resources Count", result.SuccessfulIds.Count);
 
-            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
+                return Resource.InstantiateResources(PlanApi, result.SuccessfulItems).ToList();
+            });
         }
 
         /// <summary>
@@ -395,9 +458,8 @@
                     result.ThrowBulkException();
                 }
 
-                var resourceIds = result.SuccessfulIds;
-                act?.AddTag("Removed Resources", String.Join(", ", resourceIds));
-                act?.AddTag("Removed Resources Count", resourceIds.Count);
+                act?.AddTag("Removed Resources", String.Join(", ", result.SuccessfulIds));
+                act?.AddTag("Removed Resources Count", result.SuccessfulIds.Count);
             });
         }
 
@@ -437,105 +499,8 @@
                     result.ThrowSingleException(apiObjectId);
                 }
 
-                var resourceId = result.SuccessfulIds.First();
-                act?.AddTag("ResourceId", resourceId);
+                act?.AddTag("ResourceId", result.SuccessfulIds.First());
             });
-        }
-
-        public void Complete(Resource resource)
-        {
-            if (resource == null)
-            {
-                throw new ArgumentNullException(nameof(resource));
-            }
-
-            Complete(resource.Id);
-        }
-
-        public void Complete(Guid resourceId)
-        {
-            var resource = Read(resourceId);
-            if (resource == null)
-            {
-                return;
-            }
-
-            if (!DomResourceHandler.TryComplete(PlanApi, [resource], out var result))
-            {
-                result.ThrowSingleException(resource.Id);
-            }
-        }
-
-        public void Complete(IEnumerable<Resource> resources)
-        {
-            if (resources == null)
-            {
-                throw new ArgumentNullException(nameof(resources));
-            }
-
-            Complete(resources.Select(x => x.Id).ToArray());
-        }
-
-        public void Complete(IEnumerable<Guid> resourceIds)
-        {
-            if (resourceIds == null)
-            {
-                throw new ArgumentNullException(nameof(resourceIds));
-            }
-
-            var resources = Read(resourceIds);
-            if (!DomResourceHandler.TryComplete(PlanApi, resources?.ToList(), out var result))
-            {
-                result.ThrowBulkException();
-            }
-        }
-
-        public void Restore(Resource resource)
-        {
-            if (resource == null)
-            {
-                throw new ArgumentNullException(nameof(resource));
-            }
-
-            Restore(resource.Id);
-        }
-
-        public void Restore(Guid resourceId)
-        {
-            var resource = Read(resourceId);
-            if (resource == null)
-            {
-                return;
-            }
-
-            if (!DomResourceHandler.TryRestore(PlanApi, [resource], out var result))
-            {
-                result.ThrowSingleException(resource.Id);
-            }
-        }
-
-        public void Restore(IEnumerable<Resource> resources)
-        {
-            if (resources == null)
-            {
-                throw new ArgumentNullException(nameof(resources));
-            }
-
-            Restore(resources.Select(x => x.Id).ToArray());
-        }
-
-        public void Restore(IEnumerable<Guid> resourceIds)
-        {
-            if (resourceIds == null)
-            {
-                throw new ArgumentNullException(nameof(resourceIds));
-            }
-
-            var resources = Read(resourceIds);
-            if (!DomResourceHandler.TryRestore(PlanApi, resources?.ToList(), out var result))
-            {
-                result.ThrowBulkException();
-            }
         }
 
         /// <summary>
@@ -544,34 +509,35 @@
         /// <param name="resource">The resource to be marked as deprecated.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="resource"/> is <c>null</c>.</exception>
         /// <exception cref="MediaOpsException">Thrown when the deprecation operation fails for the specified resource.</exception>
-        public void Deprecate(Resource resource)
+        public Resource Deprecate(Resource resource)
         {
             if (resource == null)
             {
                 throw new ArgumentNullException(nameof(resource));
             }
 
-            Deprecate(resource.Id);
+            return Deprecate(resource.Id);
         }
 
         /// <inheritdoc/>
-        public void Deprecate(Guid resourceId)
+        public Resource Deprecate(Guid resourceId)
         {
             var resource = Read(resourceId);
             if (resource == null)
             {
-                return;
+                return null;
             }
 
-            ActivityHelper.Track(nameof(ResourcesRepository), nameof(Deprecate), act =>
+            return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Deprecate), act =>
             {
                 if (!DomResourceHandler.TryDeprecate(PlanApi, [resource], out var result))
                 {
                     result.ThrowSingleException(resource.Id);
                 }
 
-                var resourceId = result.SuccessfulIds.First();
-                act?.AddTag("Deprecated Resource", resourceId);
+                act?.AddTag("Deprecated Resource", result.SuccessfulIds.Single());
+
+                return Resource.InstantiateResource(PlanApi, result.SuccessfulItems.Single());
             });
         }
 
@@ -581,18 +547,18 @@
         /// <param name="resources">A collection of resources to be marked as deprecated.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="resources"/> is <c>null</c>.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk deprecation operation fails for one or more resources.</exception>
-        public void Deprecate(IEnumerable<Resource> resources)
+        public IReadOnlyCollection<Resource> Deprecate(IEnumerable<Resource> resources)
         {
             if (resources == null)
             {
                 throw new ArgumentNullException(nameof(resources));
             }
 
-            Deprecate(resources.Select(x => x.Id).ToArray());
+            return Deprecate(resources.Select(x => x.Id).ToArray());
         }
 
         /// <inheritdoc/>
-        public void Deprecate(IEnumerable<Guid> resourceIds)
+        public IReadOnlyCollection<Resource> Deprecate(IEnumerable<Guid> resourceIds)
         {
             if (resourceIds == null)
             {
@@ -601,16 +567,17 @@
 
             var resources = Read(resourceIds.ToArray());
 
-            ActivityHelper.Track(nameof(ResourcesRepository), nameof(Deprecate), act =>
+            return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Deprecate), act =>
             {
                 if (!DomResourceHandler.TryDeprecate(PlanApi, resources?.ToList(), out var result))
                 {
                     result.ThrowBulkException();
                 }
 
-                var resourceIds = result.SuccessfulIds;
-                act?.AddTag("Deprecated Resources", String.Join(", ", resourceIds));
-                act?.AddTag("Deprecated Resources Count", resourceIds.Count);
+                act?.AddTag("Deprecated Resources", String.Join(", ", result.SuccessfulIds));
+                act?.AddTag("Deprecated Resources Count", result.SuccessfulIds.Count);
+
+                return Resource.InstantiateResources(PlanApi, result.SuccessfulItems).ToList();
             });
         }
 
@@ -890,6 +857,61 @@
             return Count(ResourceExposers.ResourcePoolIds.Contains(resourcePool.Id));
         }
 
+        public Resource Restore(Resource resource)
+        {
+            if (resource == null)
+            {
+                throw new ArgumentNullException(nameof(resource));
+            }
+
+            return Restore(resource.Id);
+        }
+
+        /// <inheritdoc/>
+        public Resource Restore(Guid resourceId)
+        {
+            var resource = Read(resourceId);
+            if (resource == null)
+            {
+                return null;
+            }
+
+            if (!DomResourceHandler.TryRestore(PlanApi, [resource], out var result))
+            {
+                result.ThrowSingleException(resource.Id);
+            }
+
+            return Resource.InstantiateResource(PlanApi, result.SuccessfulItems.Single());
+        }
+
+        /// <inheritdoc/>
+        public IReadOnlyCollection<Resource> Restore(IEnumerable<Resource> resources)
+        {
+            if (resources == null)
+            {
+                throw new ArgumentNullException(nameof(resources));
+            }
+
+            return Restore(resources.Select(x => x.Id).ToArray());
+        }
+
+        /// <inheritdoc/>
+        public IReadOnlyCollection<Resource> Restore(IEnumerable<Guid> resourceIds)
+        {
+            if (resourceIds == null)
+            {
+                throw new ArgumentNullException(nameof(resourceIds));
+            }
+
+            var resources = Read(resourceIds);
+            if (!DomResourceHandler.TryRestore(PlanApi, resources?.ToList(), out var result))
+            {
+                result.ThrowBulkException();
+            }
+
+            return Resource.InstantiateResources(PlanApi, result.SuccessfulItems).ToList();
+        }
+
         /// <summary>
         /// Attempts to convert the specified <see cref="Resource"/> to an <see cref="ElementResource"/>.
         /// </summary>
@@ -1088,13 +1110,12 @@
 
             PlanApi.Logger.Information(this, $"Updating existing Resource {apiObject.Name}...");
 
-            Guid resourceId = Guid.Empty;
-            ActivityHelper.Track(nameof(ResourcesRepository), nameof(Update), act =>
+            return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Update), act =>
             {
                 if (!apiObject.HasChanges)
                 {
                     act?.AddTag("NoChanges", true);
-                    return;
+                    return apiObject;
                 }
 
                 if (apiObject.IsNew)
@@ -1107,17 +1128,10 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                resourceId = apiObject.Id;
-                act?.AddTag("ResourceId", resourceId);
+                act?.AddTag("ResourceId", result.SuccessfulIds.Single());
+
+                return Resource.InstantiateResource(PlanApi, result.SuccessfulItems.Single());
             });
-
-            // When there were no changes, we did not touch storage, so just return the instance.
-            if (resourceId == Guid.Empty)
-            {
-                return apiObject;
-            }
-
-            return Read(resourceId);
         }
 
         /// <summary>
@@ -1136,8 +1150,7 @@
 
             var list = apiObjects.ToList();
 
-            BulkOperationResult<Guid> result = null;
-            ActivityHelper.Track(nameof(ResourcesRepository), nameof(Update), act =>
+            return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Update), act =>
             {
                 var newResources = list.Where(x => x.IsNew);
                 if (newResources.Any())
@@ -1145,16 +1158,15 @@
                     throw new InvalidOperationException("Not possible to use method Update for new resources. Use Create or CreateOrUpdate instead.");
                 }
 
-                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, list, out result))
+                if (!DomResourceHandler.TryCreateOrUpdate(PlanApi, list, out var result))
                 {
                     result.ThrowBulkException();
                 }
 
-                var resourceIds = result.SuccessfulIds;
-                act?.AddTag("ResourceIds", String.Join(", ", resourceIds));
-            });
+                act?.AddTag("ResourceIds", String.Join(", ", result.SuccessfulIds));
 
-            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
+                return Resource.InstantiateResources(PlanApi, result.SuccessfulItems).ToList();
+            });
         }
 
         private IEnumerable<IPagedResult<Resource>> ReadPagedIterator(FilterElement<Resource> filter, int pageSize)

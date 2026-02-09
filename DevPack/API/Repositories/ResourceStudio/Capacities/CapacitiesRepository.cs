@@ -75,8 +75,7 @@
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
-            Guid capacityId = Guid.Empty;
-            ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Create), act =>
+            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Create), act =>
             {
                 if (!apiObject.IsNew)
                 {
@@ -88,11 +87,10 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                capacityId = apiObject.Id;
-                act?.AddTag("CapacityId", capacityId);
-            });
+                act?.AddTag("CapacityId", result.SuccessfulIds.Single());
 
-            return Read(capacityId);
+                return Capacity.InstantiateCapacity(result.SuccessfulItems.Single());
+            });
         }
 
         /// <summary>
@@ -111,8 +109,7 @@
 
             var list = apiObjects.ToList();
 
-            BulkOperationResult<Guid> result = null;
-            ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Create), act =>
+            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Create), act =>
             {
                 var existingCapacities = list.Where(x => !x.IsNew);
                 if (existingCapacities.Any())
@@ -120,16 +117,15 @@
                     throw new InvalidOperationException("Not possible to use method Create for existing capacities. Use CreateOrUpdate or Update instead.");
                 }
 
-                if (!CoreCapacityHandler.TryCreateOrUpdate(PlanApi, list, out result))
+                if (!CoreCapacityHandler.TryCreateOrUpdate(PlanApi, list, out var result))
                 {
                     result.ThrowBulkException();
                 }
 
-                var capacityIds = result.SuccessfulIds;
-                act?.AddTag("CapacityIds", string.Join(", ", capacityIds));
-            });
+                act?.AddTag("CapacityIds", string.Join(", ", result.SuccessfulIds));
 
-            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
+                return Capacity.InstantiateCapacities(result.SuccessfulItems).ToList();
+            });
         }
 
         /// <summary>
@@ -147,20 +143,18 @@
 
             var list = apiObjects.ToList();
 
-            BulkOperationResult<Guid> result = null;
-            ActivityHelper.Track(nameof(CapacitiesRepository), nameof(CreateOrUpdate), act =>
+            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(CreateOrUpdate), act =>
             {
-                if (!CoreCapacityHandler.TryCreateOrUpdate(PlanApi, list, out result))
+                if (!CoreCapacityHandler.TryCreateOrUpdate(PlanApi, list, out var result))
                 {
                     result.ThrowBulkException();
                 }
 
-                var capacityIds = result.SuccessfulIds;
-                act?.AddTag("Created or Updated Capacities", String.Join(", ", capacityIds));
-                act?.AddTag("Created or Updated Capacities Count", capacityIds.Count);
-            });
+                act?.AddTag("Created or Updated Capacities", String.Join(", ", result.SuccessfulIds));
+                act?.AddTag("Created or Updated Capacities Count", result.SuccessfulIds.Count);
 
-            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
+                return Capacity.InstantiateCapacities(result.SuccessfulItems).ToList();
+            });
         }
 
         /// <summary>
@@ -200,9 +194,8 @@
                     result.ThrowBulkException();
                 }
 
-                var capacityIds = capacitiesToDelete.Select(x => x.Id);
-                act?.AddTag("Removed Capacities", String.Join(", ", capacityIds));
-                act?.AddTag("Removed Capacities Count", capacityIds.Count());
+                act?.AddTag("Removed Capacities", String.Join(", ", result.SuccessfulIds));
+                act?.AddTag("Removed Capacities Count", result.SuccessfulIds.Count);
             });
         }
 
@@ -237,13 +230,12 @@
 
             ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Delete), act =>
             {
-                if (!CoreCapacityHandler.TryDelete(PlanApi, [capacityToDelete], out var result))
+                if (!CoreCapacityHandler.TryDelete(PlanApi, new[] { capacityToDelete }, out var result))
                 {
                     result.ThrowSingleException(apiObjectId);
                 }
 
-                var capacityId = result.SuccessfulIds.First();
-                act?.AddTag("CapacityId", capacityId);
+                act?.AddTag("CapacityId", result.SuccessfulIds.First());
             });
         }
 
@@ -410,6 +402,7 @@
                 yield return new PagedResult<Capacity>(Capacity.InstantiateCapacities(page), pageNumber++, pageSize, hasNext);
             }
         }
+
         /// <summary>
         /// Updates an existing capacity in the repository.
         /// </summary>
@@ -426,8 +419,7 @@
 
             PlanApi.Logger.Information(this, $"Updating existing capacity {apiObject.Name}...");
 
-            Guid capacityId = Guid.Empty;
-            ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Update), act =>
+            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Update), act =>
             {
                 if (apiObject.IsNew)
                 {
@@ -439,11 +431,10 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                capacityId = apiObject.Id;
-                act?.AddTag("CapacityId", capacityId);
-            });
+                act?.AddTag("CapacityId", result.SuccessfulIds.Single());
 
-            return Read(capacityId);
+                return Capacity.InstantiateCapacity(result.SuccessfulItems.Single());
+            });
         }
 
         /// <summary>
@@ -462,8 +453,7 @@
 
             var list = apiObjects.ToList();
 
-            BulkOperationResult<Guid> result = null;
-            ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Update), act =>
+            return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Update), act =>
             {
                 var newCapacities = list.Where(x => x.IsNew);
                 if (newCapacities.Any())
@@ -471,16 +461,15 @@
                     throw new InvalidOperationException("Not possible to use method Update for new capacities. Use Create or CreateOrUpdate instead.");
                 }
 
-                if (!CoreCapacityHandler.TryCreateOrUpdate(PlanApi, list, out result))
+                if (!CoreCapacityHandler.TryCreateOrUpdate(PlanApi, list, out var result))
                 {
                     result.ThrowBulkException();
                 }
 
-                var capacityIds = result.SuccessfulIds;
-                act?.AddTag("CapacityIds", String.Join(", ", capacityIds));
-            });
+                act?.AddTag("CapacityIds", String.Join(", ", result.SuccessfulIds));
 
-            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
+                return Capacity.InstantiateCapacities(result.SuccessfulItems).ToList();
+            });
         }
     }
 }

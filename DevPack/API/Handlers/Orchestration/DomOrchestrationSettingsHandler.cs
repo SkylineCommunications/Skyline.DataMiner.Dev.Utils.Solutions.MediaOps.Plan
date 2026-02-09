@@ -10,7 +10,7 @@
 
     using DomResourceStudioOrchestrationSetting = Storage.DOM.SlcResource_Studio.ConfigurationInstance;
 
-    internal class DomOrchestrationSettingsHandler : ApiObjectValidator
+    internal class DomOrchestrationSettingsHandler : DomInstanceApiObjectValidator<DomResourceStudioOrchestrationSetting>
     {
         private readonly MediaOpsPlanApi planApi;
 
@@ -19,22 +19,22 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<OrchestrationSettings> apiOrchestrationSettings, out BulkOperationResult<Guid> result)
+        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<OrchestrationSettings> apiOrchestrationSettings, out DomInstanceBulkOperationResult<DomResourceStudioOrchestrationSetting> result)
         {
             var handler = new DomOrchestrationSettingsHandler(planApi);
             handler.CreateOrUpdate(apiOrchestrationSettings);
 
-            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new DomInstanceBulkOperationResult<DomResourceStudioOrchestrationSetting>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
             return !result.HasFailures;
         }
 
-        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<OrchestrationSettings> apiOrchestrationSettings, out BulkOperationResult<Guid> result)
+        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<OrchestrationSettings> apiOrchestrationSettings, out DomInstanceBulkOperationResult<DomResourceStudioOrchestrationSetting> result)
         {
             var handler = new DomOrchestrationSettingsHandler(planApi);
             handler.Delete(apiOrchestrationSettings);
 
-            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new DomInstanceBulkOperationResult<DomResourceStudioOrchestrationSetting>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
             return !result.HasFailures;
         }
@@ -118,7 +118,7 @@
                 }
             }
 
-            ReportSuccess(domResult.SuccessfulIds.Select(x => x.Id));
+            ReportSuccess(domResult.SuccessfulItems.Select(x => new DomResourceStudioOrchestrationSetting(x)));
         }
 
         private ICollection<DomChangeResults> GetResourceStudioOrchestrationSettingsWithChanges(ICollection<ResourceStudioOrchestrationSettings> apiOrchestrationSettings)
@@ -222,7 +222,8 @@
                 return;
             }
 
-            planApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.TryDeleteInBatches(domResourceStudioOrchestrationSettings.Select(x => x.ToInstance()), out var domResult);
+            var instancesToDelete = domResourceStudioOrchestrationSettings.Select(x => x.ToInstance()).ToList();
+            planApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.TryDeleteInBatches(instancesToDelete, out var domResult);
 
             foreach (var id in domResult.UnsuccessfulIds)
             {
@@ -237,7 +238,7 @@
                 }
             }
 
-            ReportSuccess(domResult.SuccessfulIds.Select(x => x.Id));
+            ReportSuccess(instancesToDelete.Where(x => domResult.SuccessfulIds.Contains(x.ID)).Select(x => new DomResourceStudioOrchestrationSetting(x)).ToArray());
         }
 
         private void ValidateCapacities(ICollection<OrchestrationSettings> apiOrchestrationSettings)

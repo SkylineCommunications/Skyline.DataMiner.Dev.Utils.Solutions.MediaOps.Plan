@@ -78,8 +78,7 @@
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
-            Guid capabilityId = Guid.Empty;
-            ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Create), act =>
+            return ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Create), act =>
             {
                 if (!apiObject.IsNew)
                 {
@@ -91,11 +90,10 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                capabilityId = apiObject.Id;
-                act?.AddTag("CapabilityId", capabilityId);
-            });
+                act?.AddTag("CapabilityId", result.SuccessfulItems.Single());
 
-            return Read(capabilityId);
+                return new Capability(result.SuccessfulItems.Single());
+            });
         }
 
         /// <summary>
@@ -113,9 +111,7 @@
             }
 
             var list = apiObjects.ToList();
-
-            BulkOperationResult<Guid> result = null;
-            ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Create), act =>
+            return ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Create), act =>
             {
                 var existingCapabilities = list.Where(x => !x.IsNew);
                 if (existingCapabilities.Any())
@@ -123,16 +119,15 @@
                     throw new InvalidOperationException("Not possible to use method Create for existing capabilities. Use CreateOrUpdate or Update instead.");
                 }
 
-                if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, list, out result))
+                if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, list, out var result))
                 {
                     result.ThrowBulkException();
                 }
 
-                var capabilityIds = result.SuccessfulIds;
-                act?.AddTag("CapabilityIds", string.Join(", ", capabilityIds));
-            });
+                act?.AddTag("CapabilityIds", string.Join(", ", result.SuccessfulIds));
 
-            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
+                return result.SuccessfulItems.Select(x => new Capability(x)).ToList();
+            });
         }
 
         /// <summary>
@@ -149,21 +144,18 @@
             }
 
             var list = apiObjects.ToList();
-
-            BulkOperationResult<Guid> result = null;
-            ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(CreateOrUpdate), act =>
+            return ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(CreateOrUpdate), act =>
             {
-                if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, list, out result))
+                if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, list, out var result))
                 {
                     result.ThrowBulkException();
                 }
 
-                var capabilityIds = result.SuccessfulIds;
-                act?.AddTag("Created or Updated Capabilities", String.Join(", ", capabilityIds));
-                act?.AddTag("Created or Updated Capabilities Count", capabilityIds.Count);
-            });
+                act?.AddTag("Created or Updated Capabilities", String.Join(", ", result.SuccessfulIds));
+                act?.AddTag("Created or Updated Capabilities Count", result.SuccessfulIds.Count);
 
-            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
+                return result.SuccessfulItems.Select(x => new Capability(x)).ToList();
+            });
         }
 
         /// <summary>
@@ -188,9 +180,8 @@
                     result.ThrowBulkException();
                 }
 
-                var capabilityIds = result.SuccessfulIds;
-                act?.AddTag("Removed Capabilities", String.Join(", ", capabilityIds));
-                act?.AddTag("Removed Capabilities Count", capabilityIds.Count);
+                act?.AddTag("Removed Capabilities", String.Join(", ", result.SuccessfulIds));
+                act?.AddTag("Removed Capabilities Count", result.SuccessfulIds.Count);
             });
         }
 
@@ -245,8 +236,7 @@
                     result.ThrowSingleException(apiObjectId);
                 }
 
-                var capabilityId = result.SuccessfulIds.First();
-                act?.AddTag("CapabilityId", capabilityId);
+                act?.AddTag("CapabilityId", result.SuccessfulIds.First());
             });
         }
 
@@ -409,8 +399,7 @@
 
             PlanApi.Logger.Information(this, $"Updating existing capability {apiObject.Name}...");
 
-            Guid capabilityId = Guid.Empty;
-            ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Update), act =>
+            return ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Update), act =>
             {
                 if (apiObject.IsNew)
                 {
@@ -422,11 +411,10 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                capabilityId = apiObject.Id;
-                act?.AddTag("CapabilityId", capabilityId);
-            });
+                act?.AddTag("CapabilityId", result.SuccessfulIds.Single());
 
-            return Read(capabilityId);
+                return new Capability(result.SuccessfulItems.Single());
+            });
         }
 
         /// <summary>
@@ -444,9 +432,7 @@
             }
 
             var list = apiObjects.ToList();
-
-            BulkOperationResult<Guid> result = null;
-            ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Update), act =>
+            return ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Update), act =>
             {
                 var newCapabilities = list.Where(x => x.IsNew);
                 if (newCapabilities.Any())
@@ -454,16 +440,15 @@
                     throw new InvalidOperationException("Not possible to use method Update for new capabilities. Use Create or CreateOrUpdate instead.");
                 }
 
-                if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, list, out result))
+                if (!CoreCapabilityHandler.TryCreateOrUpdate(PlanApi, list, out var result))
                 {
                     result.ThrowBulkException();
                 }
 
-                var capabilityIds = result.SuccessfulIds;
-                act?.AddTag("CapabilityIds", String.Join(", ", capabilityIds));
-            });
+                act?.AddTag("CapabilityIds", String.Join(", ", result.SuccessfulIds));
 
-            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
+                return result.SuccessfulItems.Select(x => new Capability(x)).ToList();
+            });
         }
 
         private IEnumerable<IPagedResult<Capability>> ReadPagedIterator(FilterElement<Capability> filter, int pageSize)

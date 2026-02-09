@@ -3,37 +3,19 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Tools;
 
-    internal class ApiObjectValidator
+    internal abstract class ApiObjectValidator<T> : ApiObjectValidator
     {
-        private readonly Dictionary<Guid, MediaOpsTraceData> traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
-        private readonly HashSet<Guid> successfulIItems = new HashSet<Guid>();
-        private readonly HashSet<Guid> unsuccessfulItems = new HashSet<Guid>();
+        protected readonly HashSet<T> successfulItems = new HashSet<T>();
 
-        internal IReadOnlyDictionary<Guid, MediaOpsTraceData> TraceDataPerItem => traceDataPerItem;
+        internal IReadOnlyCollection<T> SuccessfulItems => successfulItems;
 
-        internal IReadOnlyCollection<Guid> SuccessfulItems => successfulIItems;
+        internal abstract IReadOnlyCollection<Guid> SuccessfulIds { get; }
 
-        internal IReadOnlyCollection<Guid> UnsuccessfulItems => unsuccessfulItems;
-
-        internal void PassTraceData(Guid key, MediaOpsTraceData traceData)
-        {
-            if (!traceDataPerItem.TryGetValue(key, out var existingTraceData))
-            {
-                traceDataPerItem.Add(key, traceData);
-            }
-            else
-            {
-                foreach (var error in traceData.ErrorData)
-                {
-                    existingTraceData.Add(error);
-                }
-            }
-        }
-
-        internal void PassTraceData(ApiObjectValidator internalValidator)
+        internal void PassTraceData(ApiObjectValidator<T> internalValidator)
         {
             if (internalValidator == null) throw new ArgumentNullException(nameof(internalValidator));
 
@@ -54,15 +36,9 @@
             }
         }
 
-        protected void ReportError(Guid key, MediaOpsErrorData error)
+        protected override void ReportError(Guid key)
         {
-            AddValidationError(key, error);
-            ReportError(key);
-        }
-
-        protected void ReportError(Guid key)
-        {
-            if (successfulIItems.Contains(key))
+            if (SuccessfulIds.Contains(key))
             {
                 throw new InvalidOperationException($"An item cannot be marked as both successful and unsuccessful");
             }
@@ -70,7 +46,7 @@
             unsuccessfulItems.Add(key);
         }
 
-        protected void ReportError<T>(LockManager.LockResult<T> result) where T : ApiObject
+        protected void ReportError<K>(LockManager.LockResult<K> result) where K : ApiObject
         {
             foreach (var failedToLockObject in result.FailedToLockObjects)
             {
@@ -78,22 +54,69 @@
             }
         }
 
-        protected void ReportSuccess(Guid key)
-        {
-            if (unsuccessfulItems.Contains(key))
-            {
-                throw new InvalidOperationException($"An item cannot be marked as both successful and unsuccessful");
-            }
+        protected abstract void ReportSuccess(T item);
 
-            successfulIItems.Add(key);
+        protected void ReportSuccess(IEnumerable<T> items)
+        {
+            foreach (var item in items)
+            {
+                ReportSuccess(item);
+            }
+        }
+    }
+
+    internal class ApiObjectValidator
+    {
+        private readonly Dictionary<Guid, MediaOpsTraceData> traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
+        protected readonly HashSet<Guid> unsuccessfulItems = new HashSet<Guid>();
+
+        internal IReadOnlyDictionary<Guid, MediaOpsTraceData> TraceDataPerItem => traceDataPerItem;
+
+        internal IReadOnlyCollection<Guid> UnsuccessfulItems => unsuccessfulItems;
+
+        protected ApiObjectValidator()
+        {
         }
 
-        protected void ReportSuccess(IEnumerable<Guid> keys)
+        internal void PassTraceData(ApiObjectValidator internalValidator)
         {
-            foreach (var key in keys)
+            if (internalValidator == null) throw new ArgumentNullException(nameof(internalValidator));
+
+            // Pass items in error state
+            foreach (var id in internalValidator.UnsuccessfulItems)
             {
-                ReportSuccess(key);
+                ReportError(id);
+                if (internalValidator.TraceDataPerItem.TryGetValue(id, out var traceData))
+                {
+                    PassTraceData(id, traceData);
+                }
             }
+        }
+
+        internal void PassTraceData(Guid key, MediaOpsTraceData traceData)
+        {
+            if (!traceDataPerItem.TryGetValue(key, out var existingTraceData))
+            {
+                traceDataPerItem.Add(key, traceData);
+            }
+            else
+            {
+                foreach (var error in traceData.ErrorData)
+                {
+                    existingTraceData.Add(error);
+                }
+            }
+        }
+
+        protected void ReportError(Guid key, MediaOpsErrorData error)
+        {
+            AddValidationError(key, error);
+            ReportError(key);
+        }
+
+        protected virtual void ReportError(Guid key)
+        {
+            unsuccessfulItems.Add(key);
         }
 
         protected bool IsValid(IIdentifiable identifiable)

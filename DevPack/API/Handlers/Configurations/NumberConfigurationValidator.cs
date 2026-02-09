@@ -1,9 +1,10 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
     using System;
+
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
-    internal class NumberConfigurationValidator : ApiObjectValidator
+    internal class NumberConfigurationValidator : ParameterApiObjectValidator
     {
         private readonly NumberConfiguration numberConfiguration;
 

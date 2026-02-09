@@ -51,13 +51,23 @@
         /// </summary>
         protected internal override ProfileParameterCategory Category => ProfileParameterCategory.Configuration;
 
+        internal static Configuration InstantiateConfiguration(CoreParameter instance)
+        {
+            if (instance == null)
+            {
+                throw new ArgumentNullException(nameof(instance));
+            }
+
+            return InstantiateConfigurations([instance]).FirstOrDefault();
+        }
+
         /// <summary>
         /// Creates configuration instances from the provided collection of core parameter instances.
         /// </summary>
         /// <param name="instances">The collection of core parameter instances to instantiate as configurations.</param>
         /// <returns>An enumerable collection of configuration objects created from the instances.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="instances"/> is <c>null</c>.</exception>
-        internal static IEnumerable<Configuration> InstantiateConfigurations(IEnumerable<Net.Profiles.Parameter> instances)
+        internal static IEnumerable<Configuration> InstantiateConfigurations(IEnumerable<CoreParameter> instances)
         {
             if (instances == null)
             {
@@ -77,7 +87,7 @@
         /// </summary>
         /// <param name="instances">The collection of core parameter instances to process.</param>
         /// <returns>An enumerable collection of configuration objects.</returns>
-        private static IEnumerable<Configuration> InstantiateConfigurationsIterator(IEnumerable<Net.Profiles.Parameter> instances)
+        private static IEnumerable<Configuration> InstantiateConfigurationsIterator(IEnumerable<CoreParameter> instances)
         {
             foreach (var instance in instances)
             {

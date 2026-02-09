@@ -2,9 +2,10 @@
 {
     using System;
     using System.Linq;
+
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
-    internal class DiscreteTextDiscreteConfigurationValidator : ApiObjectValidator
+    internal class DiscreteTextDiscreteConfigurationValidator : ParameterApiObjectValidator
     {
         private readonly DiscreteTextConfiguration discreteTextConfiguration;
 

@@ -143,6 +143,16 @@
             return updatedParameter;
         }
 
+        internal static Capacity InstantiateCapacity(CoreParameter parameter)
+        {
+            if (parameter == null)
+            {
+                throw new ArgumentNullException(nameof(parameter));
+            }
+
+            return InstantiateCapacities([parameter]).FirstOrDefault();
+        }
+
         internal static IEnumerable<Capacity> InstantiateCapacities(IEnumerable<CoreParameter> parameters)
         {
             if (parameters == null)

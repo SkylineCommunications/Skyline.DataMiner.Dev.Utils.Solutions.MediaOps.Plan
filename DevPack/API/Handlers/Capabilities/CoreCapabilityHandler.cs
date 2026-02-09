@@ -11,7 +11,7 @@
 
     using CoreParameter = Net.Profiles.Parameter;
 
-    internal class CoreCapabilityHandler : ApiObjectValidator
+    internal class CoreCapabilityHandler : ParameterApiObjectValidator
     {
         private readonly MediaOpsPlanApi planApi;
 
@@ -20,22 +20,22 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Capability> apiCapabilities, out BulkOperationResult<Guid> result)
+        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Capability> apiCapabilities, out ParameterBulkOperationResult result)
         {
             var handler = new CoreCapabilityHandler(planApi);
             handler.CreateOrUpdate(apiCapabilities);
 
-            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new ParameterBulkOperationResult(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
             return !result.HasFailures;
         }
 
-        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<Capability> apiCapabilities, out BulkOperationResult<Guid> result)
+        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<Capability> apiCapabilities, out ParameterBulkOperationResult result)
         {
             var handler = new CoreCapabilityHandler(planApi);
             handler.Delete(apiCapabilities);
 
-            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new ParameterBulkOperationResult(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
             return !result.HasFailures;
         }
@@ -83,6 +83,7 @@
             var toUpdate = capabilities.Except(toCreate).ToList();
 
             List<CoreParameter> coreParametersToCreate = new List<CoreParameter>();
+            HashSet<Guid> linkedTimeDependentCapabilityIdsToCreate = new HashSet<Guid>();
             foreach (var capabilityToCreate in toCreate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)))
             {
                 if (capabilityToCreate.IsTimeDependent)
@@ -90,6 +91,7 @@
                     var timeDependentCapability = CreateLinkedTimeDependentCapability(capabilityToCreate);
                     coreParametersToCreate.Add(CreateOrUpdateCoreParameter(capabilityToCreate, timeDependentCapability.ID));
                     coreParametersToCreate.Add(timeDependentCapability);
+                    linkedTimeDependentCapabilityIdsToCreate.Add(timeDependentCapability.ID);
                 }
                 else
                 {
@@ -101,10 +103,13 @@
                 .Select(x => CreateOrUpdateCoreParameter(x, null))
                 .ToList();
 
-            CreateOrUpdateCoreParameters(coreParametersToCreate.Concat(coreParametersToUpdate).ToList());
+            var createdParameters = CreateOrUpdateCoreParameters(coreParametersToCreate.Concat(coreParametersToUpdate).ToList());
+
+            // Only report the originally requested capabilities as successful, not the linked time-dependent capabilities created in the same batch.
+            ReportSuccess(createdParameters.Where(x => !linkedTimeDependentCapabilityIdsToCreate.Contains(x.ID)));
         }
 
-        private void CreateOrUpdateCoreParameters(ICollection<CoreParameter> coreParameters)
+        private IReadOnlyCollection<CoreParameter> CreateOrUpdateCoreParameters(ICollection<CoreParameter> coreParameters)
         {
             if (coreParameters == null)
             {
@@ -113,7 +118,7 @@
 
             if (coreParameters.Count == 0)
             {
-                return;
+                return Array.Empty<CoreParameter>();
             }
 
             planApi.CoreHelpers.ProfileProvider.TryCreateOrUpdateParametersInBatches(coreParameters, out var result);
@@ -127,7 +132,7 @@
                 }
             }
 
-            ReportSuccess(result.SuccessfulIds);
+            return result.SuccessfulItems;
         }
 
         private void Delete(ICollection<Capability> apiCapabilities)
@@ -172,7 +177,7 @@
                 }
             }
 
-            ReportSuccess(result.SuccessfulIds);
+            ReportSuccess(result.SuccessfulItems);
         }
 
         private void ValidateIdsNotInUse(ICollection<Capability> apiCapabilities)
@@ -361,10 +366,10 @@
                 .Select(x => new { ParameterId = x.Id, RemovedDiscretes = x.CoreParameter.Discretes.Except(x.Discretes).ToList() })
                 .Where(x => x.RemovedDiscretes.Any())
                 .SelectMany(x => x.RemovedDiscretes.Select(y => new ParameterDiscreteValue<string>
-                    {
-                        ParameterId = x.ParameterId,
-                        DiscreteValue = y,
-                    }))
+                {
+                    ParameterId = x.ParameterId,
+                    DiscreteValue = y,
+                }))
                 .ToList();
 
             PassTraceData(SlcResourceStudioParameterDiscreteValueUsageValidator.Validate(planApi, capabilityDiscreteValuesToVerify));
