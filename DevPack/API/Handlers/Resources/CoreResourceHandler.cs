@@ -1047,7 +1047,7 @@
 
         private bool SyncName(DomResource domResource, CoreResource coreResource)
         {
-            if (String.Equals(domResource.Name, coreResource.Name))
+            if (String.Equals(domResource.ResourceInfo.Name, coreResource.Name))
             {
                 return false;
             }
