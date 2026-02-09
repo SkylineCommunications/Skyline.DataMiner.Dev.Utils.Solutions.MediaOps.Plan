@@ -959,5 +959,16 @@
                 return result.SuccessfulItems.Select(x => new ResourcePool(PlanApi, x)).ToList();
             });
         }
+
+        /// <inheritdoc/>
+        public void Import(Net.Messages.ResourcePool resourcePool)
+        {
+            if (resourcePool == null)
+            {
+                throw new ArgumentNullException(nameof(resourcePool));
+            }
+
+            ResourcePoolImportHandler.Import(PlanApi, [resourcePool]);
+        }
     }
 }
