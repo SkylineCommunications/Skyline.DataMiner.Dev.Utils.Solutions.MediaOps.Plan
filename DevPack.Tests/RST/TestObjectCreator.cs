@@ -274,12 +274,12 @@
 			testContext.ResourceManagerHelper.RemoveResourcePools(createdCoreResourcePoolIds.Select(x => new CoreResourcePool(x)).ToArray());
 		}
 
-		public T CreateResource<T>(T resource) where T : Resource
-		{
-			var createdResource = (T)PlanApi.Resources.Create(resource);
-			createdResourceIds.Add(createdResource.Id);
-			return createdResource;
-		}
+        public T CreateResource<T>(T resource) where T : Resource
+        {
+            var createdResource = (T)PlanApi.Resources.Create(resource);
+            createdResourceIds.Add(createdResource.Id);
+            return createdResource;
+        }
 
 		public IReadOnlyCollection<Resource> CreateResources(IEnumerable<Resource> resources)
 		{
@@ -318,12 +318,12 @@
 			}
 		}
 
-		public ResourcePool CreateResourcePool(ResourcePool resourcePool)
-		{
-			var createdPool = PlanApi.ResourcePools.Create(resourcePool);
-			createdPoolIds.Add(createdPool.Id);
-			return createdPool;
-		}
+        public ResourcePool CreateResourcePool(ResourcePool resourcePool)
+        {
+            var createdPool = PlanApi.ResourcePools.Create(resourcePool);
+            createdPoolIds.Add(createdPool.Id);
+            return createdPool;
+        }
 
 		public IReadOnlyCollection<ResourcePool> CreateResourcePools(IEnumerable<ResourcePool> resourcePools)
 		{
@@ -349,12 +349,12 @@
 			}
 		}
 
-		public void StoreResourcePoolIds(IEnumerable<Guid> ids)
-		{
-			if (ids == null)
-			{
-				return;
-			}
+        public void StoreResourcePoolIds(IEnumerable<Guid> ids)
+        {
+            if (ids == null)
+            {
+                return;
+            }
 
 			foreach (var id in ids.Where(x => x != Guid.Empty))
 			{
@@ -362,12 +362,12 @@
 			}
 		}
 
-		public Capability CreateCapability(Capability capability)
-		{
-			var createdCapability = PlanApi.Capabilities.Create(capability);
-			createdCapabilityIds.Add(createdCapability.Id);
-			return createdCapability;
-		}
+        public Capability CreateCapability(Capability capability)
+        {
+            var createdCapability = PlanApi.Capabilities.Create(capability);
+            createdCapabilityIds.Add(createdCapability.Id);
+            return createdCapability;
+        }
 
 		public IReadOnlyCollection<Capability> CreateCapabilities(IEnumerable<Capability> capabilities)
 		{
