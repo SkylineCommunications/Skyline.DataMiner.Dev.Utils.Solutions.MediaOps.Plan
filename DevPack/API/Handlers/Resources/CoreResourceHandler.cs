@@ -23,7 +23,7 @@
     {
         private readonly MediaOpsPlanApi planApi;
 
-        private readonly List<Guid> successfulIds = new List<Guid>();
+        private readonly List<DomResource> successfulItems = new List<DomResource>();
         private readonly List<Guid> unsuccessfulIds = new List<Guid>();
         private readonly Dictionary<Guid, MediaOpsTraceData> traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
         private readonly Dictionary<Guid, Action<CoreResource>> EnableDveActionByCoreId = new Dictionary<Guid, Action<CoreResource>>();
@@ -61,42 +61,42 @@
 
         private DomCapabilitiesHandler CapabilitiesHandler => lazyCapabilitiesHandler.Value;
 
-        public static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out BulkOperationResult<Guid> result)
+        public static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out DomInstanceBulkOperationResult<DomResource> result)
         {
             var handler = new CoreResourceHandler(planApi);
             ActivityHelper.Track(nameof(CoreResourceHandler), nameof(TryCreateOrUpdate), act => handler.CreateOrUpdate(domResources));
 
-            result = new BulkOperationResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
+            result = new DomInstanceBulkOperationResult<DomResource>(handler.successfulItems, handler.unsuccessfulIds, handler.traceDataPerItem);
 
             return !result.HasFailures;
         }
 
-        public static bool TryDelete(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out BulkOperationResult<Guid> result)
+        public static bool TryDelete(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out DomInstanceBulkOperationResult<DomResource> result)
         {
             var handler = new CoreResourceHandler(planApi);
             ActivityHelper.Track(nameof(CoreResourceHandler), nameof(TryDelete), act => handler.Delete(domResources));
 
-            result = new BulkOperationResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
+            result = new DomInstanceBulkOperationResult<DomResource>(handler.successfulItems, handler.unsuccessfulIds, handler.traceDataPerItem);
 
             return !result.HasFailures;
         }
 
-        public static bool TryDeprecate(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out BulkOperationResult<Guid> result)
+        public static bool TryDeprecate(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out DomInstanceBulkOperationResult<DomResource> result)
         {
             var handler = new CoreResourceHandler(planApi);
             handler.Deprecate(domResources);
 
-            result = new BulkOperationResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
+            result = new DomInstanceBulkOperationResult<DomResource>(handler.successfulItems, handler.unsuccessfulIds, handler.traceDataPerItem);
 
             return !result.HasFailures;
         }
 
-        public static bool TryRestore(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out BulkOperationResult<Guid> result)
+        public static bool TryRestore(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out DomInstanceBulkOperationResult<DomResource> result)
         {
             var handler = new CoreResourceHandler(planApi);
             handler.Restore(domResources);
 
-            result = new BulkOperationResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
+            result = new DomInstanceBulkOperationResult<DomResource>(handler.successfulItems, handler.unsuccessfulIds, handler.traceDataPerItem);
 
             return !result.HasFailures;
         }
@@ -231,7 +231,7 @@
                 return;
             }
 
-            var domIdByCoreId = new Dictionary<Guid, Guid>();
+            var domInstanceByCoreId = new Dictionary<Guid, DomInstance>();
             var resourcesToDeprecate = new List<CoreResource>();
 
             foreach (var mapping in resourceMappings)
@@ -246,36 +246,36 @@
                 mapping.CoreResource.Mode = Net.Messages.ResourceMode.Unavailable;
 
                 resourcesToDeprecate.Add(mapping.CoreResource);
-                domIdByCoreId.Add(mapping.CoreResource.ID, mapping.DomResource.ID.Id);
+                domInstanceByCoreId.Add(mapping.CoreResource.ID, mapping.DomResource);
             }
 
             planApi.CoreHelpers.ResourceManagerHelper.TryCreateOrUpdateResourcesInBatches(resourcesToDeprecate, out var result);
 
             foreach (var id in result.UnsuccessfulIds)
             {
-                if (!domIdByCoreId.TryGetValue(id, out var domId))
+                if (!domInstanceByCoreId.TryGetValue(id, out var domInstance))
                 {
                     planApi.Logger.Error(this, $"Failed to find DOM ID for CORE resource ID {id}.");
                     continue;
                 }
 
-                unsuccessfulIds.Add(domId);
+                unsuccessfulIds.Add(domInstance.ID.Id);
 
                 if (result.TraceDataPerItem.TryGetValue(id, out var traceData))
                 {
-                    traceDataPerItem.Add(domId, traceData);
+                    traceDataPerItem.Add(domInstance.ID.Id, traceData);
                 }
             }
 
             foreach (var id in result.SuccessfulIds)
             {
-                if (!domIdByCoreId.TryGetValue(id, out var domId))
+                if (!domInstanceByCoreId.TryGetValue(id, out var domInstance))
                 {
                     planApi.Logger.Error(this, $"Failed to find DOM ID for CORE resource ID", [id]);
                     continue;
                 }
 
-                successfulIds.Add(domId);
+                successfulItems.Add(new DomResource(domInstance));
             }
         }
 
@@ -306,7 +306,7 @@
                 return;
             }
 
-            var domIdByCoreId = new Dictionary<Guid, Guid>();
+            var domResourceByCoreId = new Dictionary<Guid, DomResource>();
             var resourcesToRestore = new List<CoreResource>();
 
             foreach (var mapping in resourceMappings)
@@ -321,36 +321,36 @@
                 mapping.CoreResource.Mode = Net.Messages.ResourceMode.Available;
 
                 resourcesToRestore.Add(mapping.CoreResource);
-                domIdByCoreId.Add(mapping.CoreResource.ID, mapping.DomResource.ID.Id);
+                domResourceByCoreId.Add(mapping.CoreResource.ID, mapping.DomResource);
             }
 
             planApi.CoreHelpers.ResourceManagerHelper.TryCreateOrUpdateResourcesInBatches(resourcesToRestore, out var result);
 
             foreach (var id in result.UnsuccessfulIds)
             {
-                if (!domIdByCoreId.TryGetValue(id, out var domId))
+                if (!domResourceByCoreId.TryGetValue(id, out var domResource))
                 {
                     planApi.Logger.Error(this, $"Failed to find DOM ID for CORE resource ID {id}.");
                     continue;
                 }
 
-                unsuccessfulIds.Add(domId);
+                unsuccessfulIds.Add(domResource.ID.Id);
 
                 if (result.TraceDataPerItem.TryGetValue(id, out var traceData))
                 {
-                    traceDataPerItem.Add(domId, traceData);
+                    traceDataPerItem.Add(domResource.ID.Id, traceData);
                 }
             }
 
             foreach (var id in result.SuccessfulIds)
             {
-                if (!domIdByCoreId.TryGetValue(id, out var domId))
+                if (!domResourceByCoreId.TryGetValue(id, out var domResource))
                 {
                     planApi.Logger.Error(this, $"Failed to find DOM ID for CORE resource ID", [id]);
                     continue;
                 }
 
-                successfulIds.Add(domId);
+                successfulItems.Add(domResource);
             }
         }
 
@@ -409,7 +409,7 @@
             }
 
             var domResourcesById = new Dictionary<Guid, DomResource>();
-            var domIdByCoreId = new Dictionary<Guid, Guid>();
+            var domResourceByCoreId = new Dictionary<Guid, DomResource>();
 
             var resourcesToCreateOrUpdate = new List<CoreResource>();
             foreach (var mapping in resourceMappings)
@@ -426,44 +426,44 @@
                 resourcesToCreateOrUpdate.Add(core);
 
                 domResourcesById.Add(dom.ID.Id, dom);
-                domIdByCoreId.Add(core.ID, dom.ID.Id);
+                domResourceByCoreId.Add(core.ID, dom);
             }
 
             planApi.CoreHelpers.ResourceManagerHelper.TryCreateOrUpdateResourcesInBatches(resourcesToCreateOrUpdate, out var result, out var createdOrUpdatedResources);
 
             foreach (var id in result.UnsuccessfulIds)
             {
-                if (!domIdByCoreId.TryGetValue(id, out var domId))
+                if (!domResourceByCoreId.TryGetValue(id, out var domResource))
                 {
                     planApi.Logger.Error(this, $"Failed to find DOM ID for CORE resource ID {id}.");
                     continue;
                 }
 
-                unsuccessfulIds.Add(domId);
+                unsuccessfulIds.Add(domResource.ID.Id);
 
                 if (result.TraceDataPerItem.TryGetValue(id, out var traceData))
                 {
-                    traceDataPerItem.Add(domId, traceData);
+                    traceDataPerItem.Add(domResource.ID.Id, traceData);
                 }
             }
 
             var createdOrUpdatedResourcesByCoreId = createdOrUpdatedResources?.ToDictionary(x => x.ID) ?? new Dictionary<Guid, CoreResource>();
             foreach (var id in result.SuccessfulIds)
             {
-                if (!domIdByCoreId.TryGetValue(id, out var domId))
+                if (!domResourceByCoreId.TryGetValue(id, out var domResource))
                 {
                     planApi.Logger.Error(this, $"Failed to find DOM ID for CORE resource pool ID {id}.");
                     continue;
                 }
 
-                domResourcesById[domId].ResourceInternalProperties.Resource_Id = id;
+                domResourcesById[domResource.ID.Id].ResourceInternalProperties.Resource_Id = id;
 
                 if (EnableDveActionByCoreId.TryGetValue(id, out var enableDveAction))
                 {
                     enableDveAction?.Invoke(createdOrUpdatedResourcesByCoreId[id]);
                 }
 
-                successfulIds.Add(domId);
+                successfulItems.Add(domResource);
             }
         }
 
@@ -494,7 +494,7 @@
             }
 
             var domResourcesById = new Dictionary<Guid, DomResource>();
-            var domIdByCoreId = new Dictionary<Guid, Guid>();
+            var domResourcesByCoreId = new Dictionary<Guid, DomResource>();
 
             foreach (var domResource in domResources)
             {
@@ -506,18 +506,17 @@
                     continue;
                 }
 
-                domIdByCoreId.Add(domResource.ResourceInternalProperties.Resource_Id.Value, domResource.ID.Id);
+                domResourcesByCoreId.Add(domResource.ResourceInternalProperties.Resource_Id.Value, domResource);
             }
 
             FilterElement<CoreResource> filter(Guid resourceId) => Skyline.DataMiner.Net.Messages.ResourceExposers.ID.Equal(resourceId);
-            var coreResourceById = planApi.CoreHelpers.ResourceManagerHelper.GetResources(domIdByCoreId.Keys, filter).ToDictionary(x => x.ID);
+            var coreResourceById = planApi.CoreHelpers.ResourceManagerHelper.GetResources(domResourcesByCoreId.Keys, filter).ToDictionary(x => x.ID);
 
             // DOM resources without a CORE can be removed.
-            successfulIds.AddRange(domResources
+            successfulItems.AddRange(domResources
                 .Where(x => !x.ResourceInternalProperties.Resource_Id.HasValue
                 || x.ResourceInternalProperties.Resource_Id.Value == Guid.Empty
-                || !coreResourceById.ContainsKey(x.ResourceInternalProperties.Resource_Id.Value))
-                .Select(x => x.ID.Id));
+                || !coreResourceById.ContainsKey(x.ResourceInternalProperties.Resource_Id.Value)));
 
             var options = new Net.Messages.ResourceDeleteOptions
             {
@@ -529,29 +528,29 @@
 
             foreach (var id in result.UnsuccessfulIds)
             {
-                if (!domIdByCoreId.TryGetValue(id, out var domId))
+                if (!domResourcesByCoreId.TryGetValue(id, out var domResource))
                 {
                     planApi.Logger.Error(this, $"Failed to find DOM ID for CORE resource ID {id}.");
                     continue;
                 }
 
-                unsuccessfulIds.Add(domId);
+                unsuccessfulIds.Add(domResource.ID.Id);
 
                 if (result.TraceDataPerItem.TryGetValue(id, out var traceData))
                 {
-                    traceDataPerItem.Add(domId, traceData);
+                    traceDataPerItem.Add(domResource.ID.Id, traceData);
                 }
             }
 
             foreach (var id in result.SuccessfulIds)
             {
-                if (!domIdByCoreId.TryGetValue(id, out var domId))
+                if (!domResourcesByCoreId.TryGetValue(id, out var domResource))
                 {
                     planApi.Logger.Error(this, $"Failed to find DOM ID for CORE resource ID {id}.");
                     continue;
                 }
 
-                successfulIds.Add(domId);
+                successfulItems.Add(domResource);
             }
         }
 

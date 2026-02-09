@@ -128,12 +128,12 @@
         /// <returns><see langword="true"/> if all parameters were successfully created or updated; otherwise, <see
         /// langword="false"/>.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="parameters"/> is <see langword="null"/>.</exception>
-        public bool TryCreateOrUpdateParametersInBatches(IEnumerable<Net.Profiles.Parameter> parameters, out BulkOperationResult<Guid> result)
+        public bool TryCreateOrUpdateParametersInBatches(IEnumerable<Net.Profiles.Parameter> parameters, out ParameterBulkOperationResult result)
         {
             if (parameters == null)
                 throw new ArgumentNullException(nameof(parameters));
 
-            var successfulIds = new List<Guid>();
+            var successfulItems = new List<Net.Profiles.Parameter>();
             var unsuccessfulIds = new List<Guid>();
             var traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
 
@@ -141,7 +141,7 @@
             {
                 var succeededParameters = profileHelper.ProfileParameters.AddOrUpdateBulk(batch.ToArray());
 
-                successfulIds.AddRange(succeededParameters.Select(x => x.ID));
+                successfulItems.AddRange(succeededParameters);
 
                 var traceData = profileHelper.ProfileParameters.GetTraceDataLastCall();
                 foreach (var error in traceData.ErrorData.OfType<ProfileManagerErrorData>())
@@ -163,7 +163,7 @@
                 }
             }
 
-            result = new BulkOperationResult<Guid>(successfulIds, unsuccessfulIds, traceDataPerItem);
+            result = new ParameterBulkOperationResult(successfulItems, unsuccessfulIds, traceDataPerItem);
             return !result.HasFailures;
         }
 
@@ -239,12 +239,12 @@
             return profileHelper.ProfileParameters.Count(AllCapabilitiesFilter.AND(filter));
         }
 
-        public bool TryDeleteParametersInBatches(IEnumerable<Net.Profiles.Parameter> parameters, out Exceptions.BulkOperationResult<Guid> result)
+        public bool TryDeleteParametersInBatches(IEnumerable<Net.Profiles.Parameter> parameters, out ParameterBulkOperationResult result)
         {
             if (parameters == null)
                 throw new ArgumentNullException(nameof(parameters));
 
-            var successfulIds = new List<Guid>();
+            var successfulItems = new List<Net.Profiles.Parameter>();
             var unsuccessfulIds = new List<Guid>();
             var traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
 
@@ -252,7 +252,7 @@
             {
                 var succeededParameters = profileHelper.ProfileParameters.RemoveBulk(batch.ToArray());
 
-                successfulIds.AddRange(succeededParameters.Select(x => x.ID));
+                successfulItems.AddRange(succeededParameters);
 
                 var traceData = profileHelper.ProfileParameters.GetTraceDataLastCall();
                 foreach (var error in traceData.ErrorData.OfType<ProfileManagerErrorData>())
@@ -274,7 +274,7 @@
                 }
             }
 
-            result = new Exceptions.BulkOperationResult<Guid>(successfulIds, unsuccessfulIds, traceDataPerItem);
+            result = new ParameterBulkOperationResult(successfulItems, unsuccessfulIds, traceDataPerItem);
             return !result.HasFailures;
         }
     }

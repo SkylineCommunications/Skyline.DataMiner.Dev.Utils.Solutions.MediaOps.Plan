@@ -73,8 +73,7 @@
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
-            Guid resourcePropertyId = Guid.Empty;
-            ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Create), act =>
+            return ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Create), act =>
             {
                 if (!apiObject.IsNew)
                 {
@@ -86,11 +85,10 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                resourcePropertyId = apiObject.Id;
-                act?.AddTag("ResourcePropertyId", resourcePropertyId);
-            });
+                act?.AddTag("ResourcePropertyId", result.SuccessfulIds.Single());
 
-            return Read(resourcePropertyId);
+                return new ResourceProperty(result.SuccessfulItems.Single());
+            });
         }
 
         /// <summary>
@@ -109,8 +107,7 @@
 
             var list = apiObjects.ToList();
 
-            BulkOperationResult<Guid> result = null;
-            ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Create), act =>
+            return ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Create), act =>
             {
                 var existingProperties = list.Where(x => !x.IsNew);
                 if (existingProperties.Any())
@@ -118,16 +115,15 @@
                     throw new InvalidOperationException("Not possible to use method Create for existing resource properties. Use CreateOrUpdate or Update instead.");
                 }
 
-                if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, list, out result))
+                if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, list, out var result))
                 {
                     result.ThrowBulkException();
                 }
 
-                var propertyIds = result.SuccessfulIds;
-                act?.AddTag("ResourcePropertyIds", string.Join(", ", propertyIds));
-            });
+                act?.AddTag("ResourcePropertyIds", string.Join(", ", result.SuccessfulIds));
 
-            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
+                return result.SuccessfulItems.Select(x => new ResourceProperty(x)).ToList();
+            });
         }
 
         /// <summary>
@@ -145,20 +141,18 @@
 
             var list = apiObjects.ToList();
 
-            BulkOperationResult<Guid> result = null;
-            ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(CreateOrUpdate), act =>
+            return ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(CreateOrUpdate), act =>
             {
-                if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, list, out result))
+                if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, list, out var result))
                 {
                     result.ThrowBulkException();
                 }
 
-                var propertyIds = result.SuccessfulIds;
-                act?.AddTag("Created or Updated Resource Properties", String.Join(", ", propertyIds));
-                act?.AddTag("Created or Updated Resource Properties Count", propertyIds.Count);
-            });
+                act?.AddTag("Created or Updated Resource Properties", String.Join(", ", result.SuccessfulIds));
+                act?.AddTag("Created or Updated Resource Properties Count", result.SuccessfulIds.Count);
 
-            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
+                return result.SuccessfulItems.Select(x => new ResourceProperty(x)).ToList();
+            });
         }
 
         /// <summary>
@@ -198,9 +192,8 @@
                     result.ThrowBulkException();
                 }
 
-                var propertyIds = result.SuccessfulIds;
-                act?.AddTag("Removed Resource Properties", String.Join(", ", propertyIds));
-                act?.AddTag("Removed Resource Properties Count", propertyIds.Count);
+                act?.AddTag("Removed Resource Properties", String.Join(", ", result.SuccessfulIds));
+                act?.AddTag("Removed Resource Properties Count", result.SuccessfulIds.Count);
             });
         }
 
@@ -240,8 +233,7 @@
                     result.ThrowSingleException(propertyToDelete.Id);
                 }
 
-                var resourcePropertyId = result.SuccessfulIds.First();
-                act?.AddTag("ResourcePropertyId", resourcePropertyId);
+                act?.AddTag("ResourcePropertyId", result.SuccessfulIds.First());
             });
         }
 
@@ -449,8 +441,7 @@
 
             PlanApi.Logger.Information(this, $"Updating existing Resource Property {apiObject.Name}...");
 
-            Guid resourcePropertyId = Guid.Empty;
-            ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Update), act =>
+            return ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Update), act =>
             {
                 if (apiObject.IsNew)
                 {
@@ -462,11 +453,10 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                resourcePropertyId = apiObject.Id;
-                act?.AddTag("ResourcePropertyId", resourcePropertyId);
-            });
+                act?.AddTag("ResourcePropertyId", result.SuccessfulIds.Single());
 
-            return Read(resourcePropertyId);
+                return new ResourceProperty(result.SuccessfulItems.Single());
+            });
         }
 
         /// <summary>
@@ -485,8 +475,7 @@
 
             var list = apiObjects.ToList();
 
-            BulkOperationResult<Guid> result = null;
-            ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Update), act =>
+            return ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Update), act =>
             {
                 var newProperties = list.Where(x => x.IsNew);
                 if (newProperties.Any())
@@ -494,16 +483,16 @@
                     throw new InvalidOperationException("Not possible to use method Update for new resource properties. Use Create or CreateOrUpdate instead.");
                 }
 
-                if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, list, out result))
+                if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, list, out var result))
                 {
                     result.ThrowBulkException();
                 }
 
                 var resourcePropertyIds = result.SuccessfulIds;
                 act?.AddTag("ResourcePropertyIds", String.Join(", ", resourcePropertyIds));
-            });
 
-            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
+                return result.SuccessfulItems.Select(x => new ResourceProperty(x)).ToList();
+            });
         }
     }
 }

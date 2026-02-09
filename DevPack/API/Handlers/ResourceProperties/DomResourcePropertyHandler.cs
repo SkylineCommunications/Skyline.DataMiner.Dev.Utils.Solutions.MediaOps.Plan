@@ -13,7 +13,7 @@
 
     using DomResourceProperty = Storage.DOM.SlcResource_Studio.ResourcepropertyInstance;
 
-    internal class DomResourcePropertyHandler : ApiObjectValidator
+    internal class DomResourcePropertyHandler : DomInstanceApiObjectValidator<DomResourceProperty>
     {
         private readonly MediaOpsPlanApi planApi;
 
@@ -22,22 +22,22 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<ResourceProperty> apiResourceProperties, out BulkOperationResult<Guid> result)
+        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<ResourceProperty> apiResourceProperties, out DomInstanceBulkOperationResult<DomResourceProperty> result)
         {
             var handler = new DomResourcePropertyHandler(planApi);
             handler.CreateOrUpdate(apiResourceProperties);
 
-            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new DomInstanceBulkOperationResult<DomResourceProperty>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
             return !result.HasFailures;
         }
 
-        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<ResourceProperty> apiResourceProperties, out BulkOperationResult<Guid> result)
+        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<ResourceProperty> apiResourceProperties, out DomInstanceBulkOperationResult<DomResourceProperty> result)
         {
             var handler = new DomResourcePropertyHandler(planApi);
             handler.Delete(apiResourceProperties);
 
-            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new DomInstanceBulkOperationResult<DomResourceProperty>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
             return !result.HasFailures;
         }
@@ -134,7 +134,7 @@
                 }
             }
 
-            ReportSuccess(domResult.SuccessfulIds.Select(x => x.Id));
+            ReportSuccess(domResult.SuccessfulItems.Select(x => new DomResourceProperty(x)));
         }
 
         private void Delete(ICollection<ResourceProperty> apiResourceProperties)
@@ -180,7 +180,8 @@
                 return;
             }
 
-            planApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.TryDeleteInBatches(propertiesToDelete.Select(x => x.OriginalInstance.ToInstance()), out var domResult);
+            var instancesToDelete = propertiesToDelete.Select(x => x.OriginalInstance.ToInstance());
+            planApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.TryDeleteInBatches(instancesToDelete, out var domResult);
 
             foreach (var id in domResult.UnsuccessfulIds)
             {
@@ -193,7 +194,7 @@
                 }
             }
 
-            ReportSuccess(domResult.SuccessfulIds.Select(x => x.Id));
+            ReportSuccess(instancesToDelete.Where(x => domResult.SuccessfulIds.Contains(x.ID)).Select(x => new DomResourceProperty(x)));
         }
 
         private void ValidateIdsNotInUse(ICollection<ResourceProperty> apiResourceProperties)

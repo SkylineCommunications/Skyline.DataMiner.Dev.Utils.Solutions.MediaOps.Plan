@@ -17,7 +17,7 @@
     using DomResource = Storage.DOM.SlcResource_Studio.ResourceInstance;
     using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
 
-    internal class DomResourceHandler : ApiObjectValidator
+    internal class DomResourceHandler : DomInstanceApiObjectValidator<DomResource>
     {
         private readonly MediaOpsPlanApi planApi;
 
@@ -30,75 +30,86 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Resource> apiResources, out BulkOperationResult<Guid> result)
+        internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Resource> apiResources, out DomInstanceBulkOperationResult<DomResource> result)
         {
             var handler = new DomResourceHandler(planApi);
             handler.CreateOrUpdate(apiResources);
 
-            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new DomInstanceBulkOperationResult<DomResource>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
             return !result.HasFailures;
         }
 
-        internal static bool TryComplete(MediaOpsPlanApi planApi, ICollection<Resource> apiResources, out BulkOperationResult<Guid> result)
+        internal static bool TryComplete(MediaOpsPlanApi planApi, ICollection<Resource> apiResources, out DomInstanceBulkOperationResult<DomResource> result)
         {
             var handler = new DomResourceHandler(planApi);
             handler.TransitionToCompleteFromDraft(apiResources);
 
-            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new DomInstanceBulkOperationResult<DomResource>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
             return !result.HasFailures;
         }
 
-        internal static bool TryDeprecate(MediaOpsPlanApi planApi, ICollection<Resource> apiResources, out BulkOperationResult<Guid> result)
+        internal static bool TryDeprecate(MediaOpsPlanApi planApi, ICollection<Resource> apiResources, out DomInstanceBulkOperationResult<DomResource> result)
         {
             var handler = new DomResourceHandler(planApi);
             handler.TransitionToDeprecated(apiResources);
 
-            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new DomInstanceBulkOperationResult<DomResource>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
             return !result.HasFailures;
         }
 
-        internal static bool TryRestore(MediaOpsPlanApi planApi, ICollection<Resource> apiResources, out BulkOperationResult<Guid> result)
+        internal static bool TryRestore(MediaOpsPlanApi planApi, ICollection<Resource> apiResources, out DomInstanceBulkOperationResult<DomResource> result)
         {
             var handler = new DomResourceHandler(planApi);
             handler.TransitionToCompleteFromDeprecated(apiResources);
 
-            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            result = new DomInstanceBulkOperationResult<DomResource>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
             return !result.HasFailures;
         }
 
-        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<Resource> apiResources, out BulkOperationResult<Guid> result)
+        internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<Resource> apiResources, out DomInstanceBulkOperationResult<DomResource> result)
         {
             var handler = new DomResourceHandler(planApi);
             handler.Delete(apiResources);
 
-            result = new BulkOperationResult<Guid>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
-
+            result = new DomInstanceBulkOperationResult<DomResource>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
             return !result.HasFailures;
         }
 
-        internal static void ConvertToUnmanagedResource(MediaOpsPlanApi planApi, Resource resource)
+        internal static bool TryConvertToUnmanagedResource(MediaOpsPlanApi planApi, Resource resource, out DomInstanceBulkOperationResult<DomResource> result)
         {
             var handler = new DomResourceHandler(planApi);
             handler.ConvertToUnmanagedResource(resource);
+
+            result = new DomInstanceBulkOperationResult<DomResource>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            return !result.HasFailures;
         }
 
-        internal static void ConvertToVirtualFunctionResource(MediaOpsPlanApi planApi, Resource resource, ResourceVirtualFunctionLinkSetting setting)
+        internal static bool TryConvertToVirtualFunctionResource(MediaOpsPlanApi planApi, Resource resource, ResourceVirtualFunctionLinkSetting setting, out DomInstanceBulkOperationResult<DomResource> result)
         {
             var handler = new DomResourceHandler(planApi);
             handler.ConvertToVirtualFunctionResource(resource, setting);
+
+            result = new DomInstanceBulkOperationResult<DomResource>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            return !result.HasFailures;
         }
 
-        internal static void ConvertToServiceResource(MediaOpsPlanApi planApi, Resource resource, ResourceServiceLinkSetting setting)
+        internal static bool TryConvertToServiceResource(MediaOpsPlanApi planApi, Resource resource, ResourceServiceLinkSetting setting, out DomInstanceBulkOperationResult<DomResource> result)
         {
             var handler = new DomResourceHandler(planApi);
             handler.ConvertToServiceResource(resource, setting);
+
+            result = new DomInstanceBulkOperationResult<DomResource>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            return !result.HasFailures;
         }
 
-        internal static void ConvertToElementResource(MediaOpsPlanApi planApi, Resource resource, ResourceElementLinkSetting setting)
+        internal static bool TryConvertToElementResource(MediaOpsPlanApi planApi, Resource resource, ResourceElementLinkSetting setting, out DomInstanceBulkOperationResult<DomResource> result)
         {
             var handler = new DomResourceHandler(planApi);
             handler.ConvertToElementResource(resource, setting);
+
+            result = new DomInstanceBulkOperationResult<DomResource>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+            return !result.HasFailures;
         }
 
         private void ClearErrors(ICollection<DomResource> domResources, ErrorDefinition errorDefinition)
@@ -260,7 +271,7 @@
                 }
             }
 
-            ReportSuccess(domResult.SuccessfulIds.Select(x => x.Id));
+            ReportSuccess(domResult.SuccessfulItems.Select(x => new DomResource(x)));
         }
 
         private void TransitionToCompleteFromDraft(ICollection<Resource> apiResources)
@@ -320,9 +331,8 @@
             {
                 try
                 {
-                    planApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.DoStatusTransition(domInstanceId, SlcResource_StudioIds.Behaviors.Resource_Behavior.Transitions.Draft_To_Complete);
-
-                    ReportSuccess(domInstanceId.Id);
+                    var transitionedInstance = planApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.DoStatusTransition(domInstanceId, SlcResource_StudioIds.Behaviors.Resource_Behavior.Transitions.Draft_To_Complete);
+                    ReportSuccess(new DomResource(transitionedInstance));
                 }
                 catch (Exception ex)
                 {
@@ -365,9 +375,8 @@
             {
                 try
                 {
-                    planApi.DomHelpers.SlcResourceStudioHelper.TransitionResourceToCompleteFromDeprecated(id);
-
-                    ReportSuccess(id);
+                    var transitionedInstance = planApi.DomHelpers.SlcResourceStudioHelper.TransitionResourceToCompleteFromDeprecated(id);
+                    ReportSuccess(new DomResource(transitionedInstance));
                 }
                 catch (Exception ex)
                 {
@@ -411,9 +420,8 @@
             {
                 try
                 {
-                    planApi.DomHelpers.SlcResourceStudioHelper.TransitionResourceToDeprecated(id);
-
-                    ReportSuccess(id);
+                    var transitionedInstance = planApi.DomHelpers.SlcResourceStudioHelper.TransitionResourceToDeprecated(id);
+                    ReportSuccess(new DomResource(transitionedInstance));
                 }
                 catch (Exception ex)
                 {
@@ -469,7 +477,8 @@
                 }
             }
 
-            planApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.TryDeleteInBatches(resources.Where(IsValid).Select(x => x.OriginalInstance.ToInstance()), out var domResult);
+            var resourceInstancesToDelete = resources.Where(IsValid).Select(x => x.OriginalInstance.ToInstance()).ToList();
+            planApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.TryDeleteInBatches(resourceInstancesToDelete, out var domResult);
 
             foreach (var id in domResult.UnsuccessfulIds)
             {
@@ -482,7 +491,7 @@
                 }
             }
 
-            ReportSuccess(domResult.SuccessfulIds.Select(x => x.Id));
+            ReportSuccess(resourceInstancesToDelete.Where(x => domResult.SuccessfulIds.Contains(x.ID)).Select(x => new DomResource(x)));
         }
 
         private void UpdateCaches(ICollection<DomResource> domResources)

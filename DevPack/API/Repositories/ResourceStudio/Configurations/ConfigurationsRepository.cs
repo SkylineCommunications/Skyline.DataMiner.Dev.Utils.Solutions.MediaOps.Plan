@@ -75,8 +75,7 @@
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
-            Guid configurationId = Guid.Empty;
-            ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Create), act =>
+            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Create), act =>
             {
                 if (!apiObject.IsNew)
                 {
@@ -88,11 +87,10 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                configurationId = apiObject.Id;
-                act?.AddTag("ConfigurationId", configurationId);
-            });
+                act?.AddTag("ConfigurationId", result.SuccessfulIds.Single());
 
-            return Read(configurationId);
+                return Configuration.InstantiateConfiguration(result.SuccessfulItems.Single());
+            });
         }
 
         /// <summary>
@@ -111,8 +109,7 @@
 
             var list = apiObjects.ToList();
 
-            BulkOperationResult<Guid> result = null;
-            ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Create), act =>
+            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Create), act =>
             {
                 var existingConfigurations = list.Where(x => !x.IsNew);
                 if (existingConfigurations.Any())
@@ -120,16 +117,15 @@
                     throw new InvalidOperationException("Not possible to use method Create for existing configurations. Use CreateOrUpdate or Update instead.");
                 }
 
-                if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, list, out result))
+                if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, list, out var result))
                 {
                     result.ThrowBulkException();
                 }
 
-                var configurationIds = result.SuccessfulIds;
-                act?.AddTag("ConfigurationIds", string.Join(", ", configurationIds));
-            });
+                act?.AddTag("ConfigurationIds", string.Join(", ", result.SuccessfulIds));
 
-            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
+                return Configuration.InstantiateConfigurations(result.SuccessfulItems).ToList();
+            });
         }
 
         /// <summary>
@@ -147,20 +143,18 @@
 
             var list = apiObjects.ToList();
 
-            BulkOperationResult<Guid> result = null;
-            ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(CreateOrUpdate), act =>
+            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(CreateOrUpdate), act =>
             {
-                if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, list, out result))
+                if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, list, out var result))
                 {
                     result.ThrowBulkException();
                 }
 
-                var configurationIds = result.SuccessfulIds;
-                act?.AddTag("Created or Updated Configurations", String.Join(", ", configurationIds));
-                act?.AddTag("Created or Updated Configurations Count", configurationIds.Count);
-            });
+                act?.AddTag("Created or Updated Configurations", String.Join(", ", result.SuccessfulIds));
+                act?.AddTag("Created or Updated Configurations Count", result.SuccessfulIds.Count);
 
-            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
+                return Configuration.InstantiateConfigurations(result.SuccessfulItems).ToList();
+            });
         }
 
         /// <summary>
@@ -200,9 +194,8 @@
                     result.ThrowBulkException();
                 }
 
-                var configurationIds = result.SuccessfulIds;
-                act?.AddTag("Removed Configurations", String.Join(", ", configurationIds));
-                act?.AddTag("Removed Configurations Count", configurationIds.Count);
+                act?.AddTag("Removed Configurations", String.Join(", ", result.SuccessfulIds));
+                act?.AddTag("Removed Configurations Count", result.SuccessfulIds.Count);
             });
         }
 
@@ -242,8 +235,7 @@
                     result.ThrowSingleException(apiObjectId);
                 }
 
-                var configurationId = result.SuccessfulIds.First();
-                act?.AddTag("ConfigurationId", configurationId);
+                act?.AddTag("ConfigurationId", result.SuccessfulIds.First());
             });
         }
 
@@ -406,8 +398,7 @@
 
             PlanApi.Logger.Information(this, $"Updating existing configuration {apiObject.Name}...");
 
-            Guid configurationId = Guid.Empty;
-            ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Update), act =>
+            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Update), act =>
             {
                 if (apiObject.IsNew)
                 {
@@ -419,11 +410,10 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                configurationId = apiObject.Id;
-                act?.AddTag("ConfigurationId", configurationId);
-            });
+                act?.AddTag("ConfigurationId", result.SuccessfulIds.Single());
 
-            return Read(configurationId);
+                return Configuration.InstantiateConfiguration(result.SuccessfulItems.Single());
+            });
         }
 
         /// <summary>
@@ -442,8 +432,7 @@
 
             var list = apiObjects.ToList();
 
-            BulkOperationResult<Guid> result = null;
-            ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Update), act =>
+            return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Update), act =>
             {
                 var newConfigurations = list.Where(x => x.IsNew);
                 if (newConfigurations.Any())
@@ -451,16 +440,15 @@
                     throw new InvalidOperationException("Not possible to use method Update for new configurations. Use Create or CreateOrUpdate instead.");
                 }
 
-                if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, list, out result))
+                if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, list, out var result))
                 {
                     result.ThrowBulkException();
                 }
 
-                var configurationIds = result.SuccessfulIds;
-                act?.AddTag("ConfigurationIds", String.Join(", ", configurationIds));
-            });
+                act?.AddTag("ConfigurationIds", String.Join(", ", result.SuccessfulIds));
 
-            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
+                return Configuration.InstantiateConfigurations(result.SuccessfulItems).ToList();
+            });
         }
 
         private IEnumerable<IPagedResult<Configuration>> ReadPagedIterator(FilterElement<Configuration> filter, int pageSize)

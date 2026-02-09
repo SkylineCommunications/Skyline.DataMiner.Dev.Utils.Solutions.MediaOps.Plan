@@ -12,102 +12,25 @@
         /// Moves the specified <see cref="Resource"/> from draft to complete state.
         /// </summary>
         /// <param name="resource">The resource to move.</param>
-        void Complete(Resource resource);
+        Resource Complete(Resource resource);
 
         /// <summary>
         /// Moves the specified resource from draft to complete state.
         /// </summary>
         /// <param name="resourceId">The unique identifier of the resource to move.</param>
-        void Complete(Guid resourceId);
+        Resource Complete(Guid resourceId);
 
         /// <summary>
         /// Moves the specified resources from draft to complete state.
         /// </summary>
         /// <param name="resources">The resources to move.</param>
-        void Complete(IEnumerable<Resource> resources);
+        IReadOnlyCollection<Resource> Complete(IEnumerable<Resource> resources);
 
         /// <summary>
         /// Moves the specified resources from draft to complete state.
         /// </summary>
         /// <param name="resourceIds">The unique identifiers of the resources.</param>
-        void Complete(IEnumerable<Guid> resourceIds);
-
-        /// <summary>
-        /// Marks the specified resource as deprecated, indicating that it is no longer recommended for use.
-        /// </summary>
-        /// <param name="resource">The resource to be marked as deprecated. Cannot be null.</param>
-        void Deprecate(Resource resource);
-
-        /// <summary>
-        /// Marks the specified resource as deprecated, indicating that it is no longer recommended for use.
-        /// </summary>
-        /// <param name="resourceId">The unique identifier of the resource to deprecate.</param>
-        void Deprecate(Guid resourceId);
-
-        /// <summary>
-        /// Marks the specified resources as deprecated, indicating that they are no longer recommended for use.
-        /// </summary>
-        /// <param name="resources">A collection of resources to be marked as deprecated. Cannot be null or empty.</param>
-        void Deprecate(IEnumerable<Resource> resources);
-
-        /// <summary>
-        /// Marks the specified resources as deprecated, indicating that they are no longer recommended for use.
-        /// </summary>
-        /// <param name="resourceIds">The unique identifiers of the resources to deprecate.</param>
-        void Deprecate(IEnumerable<Guid> resourceIds);
-
-        /// <summary>
-        /// Moves the specified <see cref="Resource"/> from deprecated to complete state.
-        /// </summary>
-        /// <param name="resource">The resource to move.</param>
-        void Restore(Resource resource);
-
-        /// <summary>
-        /// Moves the specified resource from deprecated to complete state.
-        /// </summary>
-        /// <param name="resourceId">The unique identifier of the resource to move.</param>
-        void Restore(Guid resourceId);
-
-        /// <summary>
-        /// Moves the specified resources from deprecated to complete state.
-        /// </summary>
-        /// <param name="resources">The resources to move.</param>
-        void Restore(IEnumerable<Resource> resources);
-
-        /// <summary>
-        /// Moves the specified resources from deprecated to complete state.
-        /// </summary>
-        /// <param name="resourceIds">The unique identifiers of the resources.</param>
-        void Restore(IEnumerable<Guid> resourceIds);
-
-        /// <summary>
-        /// Converts the specified <see cref="Resource"/> to an <see cref="UnmanagedResource"/>.
-        /// </summary>
-        /// <param name="resource">The resource to convert.</param>
-        /// <returns>The converted <see cref="UnmanagedResource"/>.</returns>
-        UnmanagedResource ConvertToUnmanagedResource(Resource resource);
-
-        /// <summary>
-        /// Converts the resource with the specified identifier to an <see cref="UnmanagedResource"/>.
-        /// </summary>
-        /// <param name="resourceId">The unique identifier of the resource to convert.</param>
-        /// <returns>The converted <see cref="UnmanagedResource"/>.</returns>
-        UnmanagedResource ConvertToUnmanagedResource(Guid resourceId);
-
-        /// <summary>
-        /// Attempts to convert the specified <see cref="Resource"/> to an <see cref="UnmanagedResource"/>.
-        /// </summary>
-        /// <param name="resource">The resource to convert.</param>
-        /// <param name="unmanagedResource">When this method returns, contains the converted <see cref="UnmanagedResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
-        /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
-        bool TryConvertToUnmanagedResource(Resource resource, out UnmanagedResource unmanagedResource);
-
-        /// <summary>
-        /// Attempts to convert the resource with the specified identifier to an <see cref="UnmanagedResource"/>.
-        /// </summary>
-        /// <param name="resourceId">The unique identifier of the resource to convert.</param>
-        /// <param name="unmanagedResource">When this method returns, contains the converted <see cref="UnmanagedResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
-        bool TryConvertToUnmanagedResource(Guid resourceId, out UnmanagedResource unmanagedResource);
+        IReadOnlyCollection<Resource> Complete(IEnumerable<Guid> resourceIds);
 
         /// <summary>
         /// Converts the specified <see cref="Resource"/> to an <see cref="ElementResource"/> using the provided configuration.
@@ -126,24 +49,6 @@
         ElementResource ConvertToElementResource(Guid resourceId, ResourceElementLinkSetting setting);
 
         /// <summary>
-        /// Attempts to convert the specified <see cref="Resource"/> to an <see cref="ElementResource"/> using the provided configuration.
-        /// </summary>
-        /// <param name="resource">The resource to convert.</param>
-        /// <param name="setting">The configuration for the element link.</param>
-        /// <param name="elementResource">When this method returns, contains the converted <see cref="ElementResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
-        /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
-        bool TryConvertToElementResource(Resource resource, ResourceElementLinkSetting setting, out ElementResource elementResource);
-
-        /// <summary>
-        /// Attempts to convert the resource with the specified identifier to an <see cref="ElementResource"/> using the provided configuration.
-        /// </summary>
-        /// <param name="resourceId">The unique identifier of the resource to convert.</param>
-        /// <param name="setting">The configuration for the element link.</param>
-        /// <param name="elementResource">When this method returns, contains the converted <see cref="ElementResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
-        /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
-        bool TryConvertToElementResource(Guid resourceId, ResourceElementLinkSetting setting, out ElementResource elementResource);
-
-        /// <summary>
         /// Converts the specified <see cref="Resource"/> to a <see cref="ServiceResource"/> using the provided configuration.
         /// </summary>
         /// <param name="resource">The resource to convert.</param>
@@ -160,22 +65,18 @@
         ServiceResource ConvertToServiceResource(Guid resourceId, ResourceServiceLinkSetting setting);
 
         /// <summary>
-        /// Attempts to convert the specified <see cref="Resource"/> to a <see cref="ServiceResource"/> using the provided configuration.
+        /// Converts the specified <see cref="Resource"/> to an <see cref="UnmanagedResource"/>.
         /// </summary>
         /// <param name="resource">The resource to convert.</param>
-        /// <param name="setting">The configuration for the service link.</param>
-        /// <param name="serviceResource">When this method returns, contains the converted <see cref="ServiceResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
-        /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
-        bool TryConvertToServiceResource(Resource resource, ResourceServiceLinkSetting setting, out ServiceResource serviceResource);
+        /// <returns>The converted <see cref="UnmanagedResource"/>.</returns>
+        UnmanagedResource ConvertToUnmanagedResource(Resource resource);
 
         /// <summary>
-        /// Attempts to convert the resource with the specified identifier to a <see cref="ServiceResource"/> using the provided configuration.
+        /// Converts the resource with the specified identifier to an <see cref="UnmanagedResource"/>.
         /// </summary>
         /// <param name="resourceId">The unique identifier of the resource to convert.</param>
-        /// <param name="setting">The configuration for the service link.</param>
-        /// <param name="serviceResource">When this method returns, contains the converted <see cref="ServiceResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
-        /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
-        bool TryConvertToServiceResource(Guid resourceId, ResourceServiceLinkSetting setting, out ServiceResource serviceResource);
+        /// <returns>The converted <see cref="UnmanagedResource"/>.</returns>
+        UnmanagedResource ConvertToUnmanagedResource(Guid resourceId);
 
         /// <summary>
         /// Converts the specified <see cref="Resource"/> to a <see cref="VirtualFunctionResource"/> using the provided configuration.
@@ -194,22 +95,28 @@
         VirtualFunctionResource ConvertToVirtualFunctionResource(Guid resourceId, ResourceVirtualFunctionLinkSetting setting);
 
         /// <summary>
-        /// Attempts to convert the specified <see cref="Resource"/> to a <see cref="VirtualFunctionResource"/> using the provided configuration.
+        /// Marks the specified resource as deprecated, indicating that it is no longer recommended for use.
         /// </summary>
-        /// <param name="resource">The resource to convert.</param>
-        /// <param name="setting">The configuration for the virtual function link.</param>
-        /// <param name="virtualFunctionResource">When this method returns, contains the converted <see cref="VirtualFunctionResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
-        /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
-        bool TryConvertToVirtualFunctionResource(Resource resource, ResourceVirtualFunctionLinkSetting setting, out VirtualFunctionResource virtualFunctionResource);
+        /// <param name="resource">The resource to be marked as deprecated. Cannot be null.</param>
+        Resource Deprecate(Resource resource);
 
         /// <summary>
-        /// Attempts to convert the resource with the specified identifier to a <see cref="VirtualFunctionResource"/> using the provided configuration.
+        /// Marks the specified resource as deprecated, indicating that it is no longer recommended for use.
         /// </summary>
-        /// <param name="resourceId">The unique identifier of the resource to convert.</param>
-        /// <param name="setting">The configuration for the virtual function link.</param>
-        /// <param name="virtualFunctionResource">When this method returns, contains the converted <see cref="VirtualFunctionResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
-        /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
-        bool TryConvertToVirtualFunctionResource(Guid resourceId, ResourceVirtualFunctionLinkSetting setting, out VirtualFunctionResource virtualFunctionResource);
+        /// <param name="resourceId">The unique identifier of the resource to deprecate.</param>
+        Resource Deprecate(Guid resourceId);
+
+        /// <summary>
+        /// Marks the specified resources as deprecated, indicating that they are no longer recommended for use.
+        /// </summary>
+        /// <param name="resources">A collection of resources to be marked as deprecated. Cannot be null or empty.</param>
+        IReadOnlyCollection<Resource> Deprecate(IEnumerable<Resource> resources);
+
+        /// <summary>
+        /// Marks the specified resources as deprecated, indicating that they are no longer recommended for use.
+        /// </summary>
+        /// <param name="resourceIds">The unique identifiers of the resources to deprecate.</param>
+        IReadOnlyCollection<Resource> Deprecate(IEnumerable<Guid> resourceIds);
 
         /// <summary>
         /// Gets all resources in the specified resource pool.
@@ -258,5 +165,99 @@
         /// <param name="resourcePool">The resource pool to count resources in.</param>
         /// <returns>The count of resources in the resource pool.</returns>
         long ResourceCount(ResourcePool resourcePool);
+
+        /// <summary>
+        /// Moves the specified <see cref="Resource"/> from deprecated to complete state.
+        /// </summary>
+        /// <param name="resource">The resource to move.</param>
+        Resource Restore(Resource resource);
+
+        /// <summary>
+        /// Moves the specified resource from deprecated to complete state.
+        /// </summary>
+        /// <param name="resourceId">The unique identifier of the resource to move.</param>
+        Resource Restore(Guid resourceId);
+
+        /// <summary>
+        /// Moves the specified resources from deprecated to complete state.
+        /// </summary>
+        /// <param name="resources">The resources to move.</param>
+        IReadOnlyCollection<Resource> Restore(IEnumerable<Resource> resources);
+
+        /// <summary>
+        /// Moves the specified resources from deprecated to complete state.
+        /// </summary>
+        /// <param name="resourceIds">The unique identifiers of the resources.</param>
+        IReadOnlyCollection<Resource> Restore(IEnumerable<Guid> resourceIds);
+
+        /// <summary>
+        /// Attempts to convert the specified <see cref="Resource"/> to an <see cref="ElementResource"/> using the provided configuration.
+        /// </summary>
+        /// <param name="resource">The resource to convert.</param>
+        /// <param name="setting">The configuration for the element link.</param>
+        /// <param name="elementResource">When this method returns, contains the converted <see cref="ElementResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
+        /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
+        bool TryConvertToElementResource(Resource resource, ResourceElementLinkSetting setting, out ElementResource elementResource);
+
+        /// <summary>
+        /// Attempts to convert the resource with the specified identifier to an <see cref="ElementResource"/> using the provided configuration.
+        /// </summary>
+        /// <param name="resourceId">The unique identifier of the resource to convert.</param>
+        /// <param name="setting">The configuration for the element link.</param>
+        /// <param name="elementResource">When this method returns, contains the converted <see cref="ElementResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
+        /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
+        bool TryConvertToElementResource(Guid resourceId, ResourceElementLinkSetting setting, out ElementResource elementResource);
+
+        /// <summary>
+        /// Attempts to convert the specified <see cref="Resource"/> to a <see cref="ServiceResource"/> using the provided configuration.
+        /// </summary>
+        /// <param name="resource">The resource to convert.</param>
+        /// <param name="setting">The configuration for the service link.</param>
+        /// <param name="serviceResource">When this method returns, contains the converted <see cref="ServiceResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
+        /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
+        bool TryConvertToServiceResource(Resource resource, ResourceServiceLinkSetting setting, out ServiceResource serviceResource);
+
+        /// <summary>
+        /// Attempts to convert the resource with the specified identifier to a <see cref="ServiceResource"/> using the provided configuration.
+        /// </summary>
+        /// <param name="resourceId">The unique identifier of the resource to convert.</param>
+        /// <param name="setting">The configuration for the service link.</param>
+        /// <param name="serviceResource">When this method returns, contains the converted <see cref="ServiceResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
+        /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
+        bool TryConvertToServiceResource(Guid resourceId, ResourceServiceLinkSetting setting, out ServiceResource serviceResource);
+
+        /// <summary>
+        /// Attempts to convert the specified <see cref="Resource"/> to an <see cref="UnmanagedResource"/>.
+        /// </summary>
+        /// <param name="resource">The resource to convert.</param>
+        /// <param name="unmanagedResource">When this method returns, contains the converted <see cref="UnmanagedResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
+        /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
+        bool TryConvertToUnmanagedResource(Resource resource, out UnmanagedResource unmanagedResource);
+
+        /// <summary>
+        /// Attempts to convert the resource with the specified identifier to an <see cref="UnmanagedResource"/>.
+        /// </summary>
+        /// <param name="resourceId">The unique identifier of the resource to convert.</param>
+        /// <param name="unmanagedResource">When this method returns, contains the converted <see cref="UnmanagedResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
+        bool TryConvertToUnmanagedResource(Guid resourceId, out UnmanagedResource unmanagedResource);
+
+        /// <summary>
+        /// Attempts to convert the specified <see cref="Resource"/> to a <see cref="VirtualFunctionResource"/> using the provided configuration.
+        /// </summary>
+        /// <param name="resource">The resource to convert.</param>
+        /// <param name="setting">The configuration for the virtual function link.</param>
+        /// <param name="virtualFunctionResource">When this method returns, contains the converted <see cref="VirtualFunctionResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
+        /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
+        bool TryConvertToVirtualFunctionResource(Resource resource, ResourceVirtualFunctionLinkSetting setting, out VirtualFunctionResource virtualFunctionResource);
+
+        /// <summary>
+        /// Attempts to convert the resource with the specified identifier to a <see cref="VirtualFunctionResource"/> using the provided configuration.
+        /// </summary>
+        /// <param name="resourceId">The unique identifier of the resource to convert.</param>
+        /// <param name="setting">The configuration for the virtual function link.</param>
+        /// <param name="virtualFunctionResource">When this method returns, contains the converted <see cref="VirtualFunctionResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
+        /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
+        bool TryConvertToVirtualFunctionResource(Guid resourceId, ResourceVirtualFunctionLinkSetting setting, out VirtualFunctionResource virtualFunctionResource);
+
     }
 }

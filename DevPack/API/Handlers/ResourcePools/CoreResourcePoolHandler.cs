@@ -4,6 +4,8 @@
     using System.Collections.Generic;
     using System.Linq;
 
+    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+
     using Skyline.DataMiner.Net.Messages.SLDataGateway;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
@@ -15,7 +17,7 @@
     {
         private readonly MediaOpsPlanApi planApi;
 
-        private readonly List<Guid> successfulIds = new List<Guid>();
+        private readonly List<DomResourcePool> successfulItems = new List<DomResourcePool>();
         private readonly List<Guid> unsuccessfulIds = new List<Guid>();
         private readonly Dictionary<Guid, MediaOpsTraceData> traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
 
@@ -24,22 +26,22 @@
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
 
-        public static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<DomResourcePool> domResourcePools, out BulkOperationResult<Guid> result)
+        public static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<DomResourcePool> domResourcePools, out DomInstanceBulkOperationResult<DomResourcePool> result)
         {
             var handler = new CoreResourcePoolHandler(planApi);
             handler.CreateOrUpdate(domResourcePools);
 
-            result = new BulkOperationResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
+            result = new DomInstanceBulkOperationResult<DomResourcePool>(handler.successfulItems, handler.unsuccessfulIds, handler.traceDataPerItem);
 
             return !result.HasFailures;
         }
 
-        public static bool TryDelete(MediaOpsPlanApi planApi, ICollection<DomResourcePool> domResourcePools, out BulkOperationResult<Guid> result)
+        public static bool TryDelete(MediaOpsPlanApi planApi, ICollection<DomResourcePool> domResourcePools, out DomInstanceBulkOperationResult<DomResourcePool> result)
         {
             var handler = new CoreResourcePoolHandler(planApi);
             handler.Delete(domResourcePools);
 
-            result = new BulkOperationResult<Guid>(handler.successfulIds, handler.unsuccessfulIds, handler.traceDataPerItem);
+            result = new DomInstanceBulkOperationResult<DomResourcePool>(handler.successfulItems, handler.unsuccessfulIds, handler.traceDataPerItem);
 
             return !result.HasFailures;
         }
@@ -119,7 +121,7 @@
 
                 domPoolsById[domId].ResourcePoolInternalProperties.ResourcePoolId = id;
 
-                successfulIds.Add(domId);
+                successfulItems.Add(domPoolsById[domId]);
             }
         }
 
@@ -172,24 +174,23 @@
             }
 
             var domIdByCoreId = new Dictionary<Guid, Guid>();
-            var poolsToDelete = new List<CoreResourcePool>();
+            var corePoolsToDelete = new List<CoreResourcePool>();
 
             foreach (var mapping in resourcePoolMappings)
             {
                 if (mapping.CoreResourcePool == null)
                 {
                     // DOM resource pools without a CORE can be removed.
-                    successfulIds.Add(mapping.DomResourcePool.ID.Id);
-
                     continue;
                 }
 
-                poolsToDelete.Add(mapping.CoreResourcePool);
+                corePoolsToDelete.Add(mapping.CoreResourcePool);
                 domIdByCoreId.Add(mapping.CoreResourcePool.ID, mapping.DomResourcePool.ID.Id);
             }
 
-            planApi.CoreHelpers.ResourceManagerHelper.TryDeleteResourcePoolsInBatches(poolsToDelete, out var result);
+            planApi.CoreHelpers.ResourceManagerHelper.TryDeleteResourcePoolsInBatches(corePoolsToDelete, out var result);
 
+            // Mark unsuccessful deletions.
             foreach (var id in result.UnsuccessfulIds)
             {
                 if (!domIdByCoreId.TryGetValue(id, out var domId))
@@ -206,7 +207,20 @@
                 }
             }
 
-            successfulIds.AddRange(result.SuccessfulIds);
+            // Mark successful deletions.
+            foreach (var item in resourcePoolMappings)
+            {
+                if (item.CoreResourcePool == null)
+                {
+                    successfulItems.Add(item.DomResourcePool);
+                    continue;
+                }
+
+                if (result.SuccessfulIds.Contains(item.CoreResourcePool.ID))
+                {
+                    successfulItems.Add(item.DomResourcePool);
+                }
+            }
         }
 
         private void ValidateNames(ICollection<DomResourcePool> domResourcePools)

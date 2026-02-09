@@ -14,6 +14,8 @@
 
     using SLDataGateway.API.Types.Querying;
 
+    using static Skyline.DataMiner.Net.Apps.Modules.ModuleIdValidator;
+
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
     /// <summary>
@@ -131,8 +133,7 @@
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
-            Guid resourcePoolId = Guid.Empty;
-            ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Create), act =>
+            return ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Create), act =>
             {
                 if (!apiObject.IsNew)
                 {
@@ -144,11 +145,10 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                resourcePoolId = apiObject.Id;
-                act?.AddTag("ResourcePoolId", resourcePoolId);
-            });
+                act?.AddTag("ResourcePoolId", result.SuccessfulIds.Single());
 
-            return Read(resourcePoolId);
+                return new ResourcePool(PlanApi, result.SuccessfulItems.Single());
+            });
         }
 
         /// <summary>
@@ -166,9 +166,7 @@
             }
 
             var list = apiObjects.ToList();
-
-            BulkOperationResult<Guid> result = null;
-            ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Create), act =>
+            return ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Create), act =>
             {
                 var existingResourcePools = list.Where(x => !x.IsNew);
                 if (existingResourcePools.Any())
@@ -176,16 +174,15 @@
                     throw new InvalidOperationException("Not possible to use method Create for existing resource pools. Use CreateOrUpdate or Update instead.");
                 }
 
-                if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, list, out result))
+                if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, list, out var result))
                 {
                     result.ThrowBulkException();
                 }
 
-                var resourcePoolIds = result.SuccessfulIds;
-                act?.AddTag("ResourcePoolIds", String.Join(", ", resourcePoolIds));
-            });
+                act?.AddTag("ResourcePoolIds", String.Join(", ", result.SuccessfulIds));
 
-            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
+                return result.SuccessfulItems.Select(x => new ResourcePool(PlanApi, x)).ToList();
+            });
         }
 
         /// <summary>
@@ -203,10 +200,9 @@
 
             var list = apiObjects.ToList();
 
-            BulkOperationResult<Guid> result = null;
-            ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(CreateOrUpdate), act =>
+            return ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(CreateOrUpdate), act =>
             {
-                if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, list, out result))
+                if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, list, out var result))
                 {
                     result.ThrowBulkException();
                 }
@@ -214,9 +210,9 @@
                 var resourcePoolIds = result.SuccessfulIds;
                 act?.AddTag("Created or Updated Resource Pools", String.Join(", ", resourcePoolIds));
                 act?.AddTag("Created or Updated Resource Pools Count", resourcePoolIds.Count);
-            });
 
-            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
+                return result.SuccessfulItems.Select(x => new ResourcePool(PlanApi, x)).ToList();
+            });
         }
 
         /// <summary>
@@ -346,41 +342,43 @@
             });
         }
 
-        public void Complete(ResourcePool resourcePool)
+        public ResourcePool Complete(ResourcePool resourcePool)
         {
             if (resourcePool == null)
             {
                 throw new ArgumentNullException(nameof(resourcePool));
             }
 
-            Complete(resourcePool.Id);
+            return Complete(resourcePool.Id);
         }
 
-        public void Complete(Guid resourcePoolId)
+        public ResourcePool Complete(Guid resourcePoolId)
         {
             var resourcePool = Read(resourcePoolId);
             if (resourcePool == null)
             {
-                return;
+                return null;
             }
 
             if (!DomResourcePoolHandler.TryComplete(PlanApi, [resourcePool], out var result))
             {
                 result.ThrowSingleException(resourcePool.Id);
             }
+
+            return new ResourcePool(PlanApi, result.SuccessfulItems.Single());
         }
 
-        public void Complete(IEnumerable<ResourcePool> resourcePools)
+        public IReadOnlyCollection<ResourcePool> Complete(IEnumerable<ResourcePool> resourcePools)
         {
             if (resourcePools == null)
             {
                 throw new ArgumentNullException(nameof(resourcePools));
             }
 
-            Complete(resourcePools.Select(x => x.Id).ToArray());
+            return Complete(resourcePools.Select(x => x.Id).ToArray());
         }
 
-        public void Complete(IEnumerable<Guid> resourcePoolIds)
+        public IReadOnlyCollection<ResourcePool> Complete(IEnumerable<Guid> resourcePoolIds)
         {
             if (resourcePoolIds == null)
             {
@@ -392,9 +390,11 @@
             {
                 result.ThrowBulkException();
             }
+
+            return result.SuccessfulItems.Select(x => new ResourcePool(PlanApi, x)).ToList();
         }
 
-        public void Deprecate(ResourcePool resourcePool)
+        public ResourcePool Deprecate(ResourcePool resourcePool)
         {
             if (resourcePool == null)
             {
@@ -402,18 +402,18 @@
             }
 
             var defaultOptions = ResourcePoolDeprecateOptions.GetDefaults();
-            Deprecate(resourcePool.Id, defaultOptions);
+            return Deprecate(resourcePool.Id, defaultOptions);
         }
 
         /// <inheritdoc/>
-        public void Deprecate(Guid resourcePoolId)
+        public ResourcePool Deprecate(Guid resourcePoolId)
         {
             var defaultOptions = ResourcePoolDeprecateOptions.GetDefaults();
-            Deprecate(resourcePoolId, defaultOptions);
+            return Deprecate(resourcePoolId, defaultOptions);
         }
 
         /// <inheritdoc/>
-        public void Deprecate(IEnumerable<ResourcePool> resourcePools)
+        public IReadOnlyCollection<ResourcePool> Deprecate(IEnumerable<ResourcePool> resourcePools)
         {
             if (resourcePools == null)
             {
@@ -421,11 +421,11 @@
             }
 
             var defaultOptions = ResourcePoolDeprecateOptions.GetDefaults();
-            Deprecate(resourcePools.Select(x => x.Id).ToArray(), defaultOptions);
+            return Deprecate(resourcePools.Select(x => x.Id).ToArray(), defaultOptions);
         }
 
         /// <inheritdoc/>
-        public void Deprecate(IEnumerable<Guid> resourcePoolIds)
+        public IReadOnlyCollection<ResourcePool> Deprecate(IEnumerable<Guid> resourcePoolIds)
         {
             if (resourcePoolIds == null)
             {
@@ -433,7 +433,7 @@
             }
 
             var defaultOptions = ResourcePoolDeprecateOptions.GetDefaults();
-            Deprecate(resourcePoolIds, defaultOptions);
+            return Deprecate(resourcePoolIds, defaultOptions);
         }
 
         /// <summary>
@@ -443,50 +443,51 @@
         /// <param name="options">Options specifying how the resource pool and its resources should be deprecated.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="resourcePool"/> is <c>null</c>.</exception>
         /// <exception cref="MediaOpsException">Thrown when the deprecation operation fails for the specified resource pool.</exception>
-        public void Deprecate(ResourcePool resourcePool, ResourcePoolDeprecateOptions options)
+        public ResourcePool Deprecate(ResourcePool resourcePool, ResourcePoolDeprecateOptions options)
         {
             if (resourcePool == null)
             {
                 throw new ArgumentNullException(nameof(resourcePool));
             }
 
-            Deprecate(resourcePool.Id, options);
+            return Deprecate(resourcePool.Id, options);
         }
 
         /// <inheritdoc/>
-        public void Deprecate(Guid resourcePoolId, ResourcePoolDeprecateOptions options)
+        public ResourcePool Deprecate(Guid resourcePoolId, ResourcePoolDeprecateOptions options)
         {
             var resourcePool = Read(resourcePoolId);
             if (resourcePool == null)
             {
-                return;
+                return null;
             }
 
-            ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Deprecate), act =>
+            return ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Deprecate), act =>
             {
                 if (!DomResourcePoolHandler.TryDeprecate(PlanApi, [resourcePool], out var result, options))
                 {
                     result.ThrowSingleException(resourcePool.Id);
                 }
 
-                var resourcePoolId = result.SuccessfulIds.First();
-                act?.AddTag("Deprecated Resource pool", resourcePoolId);
+                act?.AddTag("Deprecated Resource pool", result.SuccessfulIds.Single());
+
+                return new ResourcePool(PlanApi, result.SuccessfulItems.Single());
             });
         }
 
         /// <inheritdoc/>
-        public void Deprecate(IEnumerable<ResourcePool> resourcePools, ResourcePoolDeprecateOptions options)
+        public IReadOnlyCollection<ResourcePool> Deprecate(IEnumerable<ResourcePool> resourcePools, ResourcePoolDeprecateOptions options)
         {
             if (resourcePools == null)
             {
                 throw new ArgumentNullException(nameof(resourcePools));
             }
 
-            Deprecate(resourcePools.Select(x => x.Id).ToArray(), options);
+            return Deprecate(resourcePools.Select(x => x.Id).ToArray(), options);
         }
 
         /// <inheritdoc/>
-        public void Deprecate(IEnumerable<Guid> resourcePoolIds, ResourcePoolDeprecateOptions options)
+        public IReadOnlyCollection<ResourcePool> Deprecate(IEnumerable<Guid> resourcePoolIds, ResourcePoolDeprecateOptions options)
         {
             if (resourcePoolIds == null)
             {
@@ -495,16 +496,17 @@
 
             var resourcePools = Read(resourcePoolIds.ToArray());
 
-            ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Deprecate), act =>
+            return ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Deprecate), act =>
             {
                 if (!DomResourcePoolHandler.TryDeprecate(PlanApi, resourcePools?.ToList(), out var result))
                 {
                     result.ThrowBulkException();
                 }
 
-                var resourcePoolIds = result.SuccessfulIds;
-                act?.AddTag("Deprecated Resource Pools", String.Join(", ", resourcePoolIds));
-                act?.AddTag("Deprecated Resource Pools Count", resourcePoolIds.Count);
+                act?.AddTag("Deprecated Resource Pools", String.Join(", ", result.SuccessfulIds));
+                act?.AddTag("Deprecated Resource Pools Count", result.SuccessfulIds.Count);
+
+                return result.SuccessfulItems.Select(x => new ResourcePool(PlanApi, x)).ToList();
             });
         }
 
@@ -900,13 +902,12 @@
                 throw new ArgumentNullException(nameof(apiObject));
             }
 
-            Guid resourcePoolId = Guid.Empty;
-            ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Update), act =>
+            return ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Update), act =>
             {
                 if (!apiObject.HasChanges)
                 {
                     act?.AddTag("NoChanges", true);
-                    return;
+                    return apiObject;
                 }
 
                 if (apiObject.IsNew)
@@ -919,17 +920,10 @@
                     result.ThrowSingleException(apiObject.Id);
                 }
 
-                resourcePoolId = apiObject.Id;
-                act?.AddTag("ResourcePoolId", resourcePoolId);
+                act?.AddTag("ResourcePoolId", result.SuccessfulIds.Single());
+
+                return new ResourcePool(PlanApi, result.SuccessfulItems.Single());
             });
-
-            if (resourcePoolId == Guid.Empty)
-            {
-                // No changes were applied, just return the passed instance
-                return apiObject;
-            }
-
-            return Read(resourcePoolId);
         }
 
         /// <summary>
@@ -948,8 +942,7 @@
 
             var list = apiObjects.ToList();
 
-            BulkOperationResult<Guid> result = null;
-            ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Update), act =>
+            return ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Update), act =>
             {
                 var newResourcePools = list.Where(x => x.IsNew);
                 if (newResourcePools.Any())
@@ -957,16 +950,14 @@
                     throw new InvalidOperationException("Not possible to use method Update for new resource pools. Use Create or CreateOrUpdate instead.");
                 }
 
-                if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, list, out result))
+                if (!DomResourcePoolHandler.TryCreateOrUpdate(PlanApi, list, out var result))
                 {
                     result.ThrowBulkException();
                 }
 
-                var resourcePoolIds = result.SuccessfulIds;
-                act?.AddTag("ResourcePoolIds", String.Join(", ", resourcePoolIds));
+                act?.AddTag("ResourcePoolIds", String.Join(", ", result.SuccessfulIds));
+                return result.SuccessfulItems.Select(x => new ResourcePool(PlanApi, x)).ToList();
             });
-
-            return Read(result?.SuccessfulIds ?? Array.Empty<Guid>()).ToList();
         }
 
         /// <inheritdoc/>
