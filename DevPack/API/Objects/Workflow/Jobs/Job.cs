@@ -2,7 +2,9 @@
 {
     using System;
 
-    using StorageWorkflow = Storage.DOM.SlcWorkflow;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
+
+	using StorageWorkflow = Storage.DOM.SlcWorkflow;
 
     /// <summary>
     /// Represents a job in MediaOps Plan.
@@ -39,7 +41,27 @@
         /// </summary>
         public override string Name { get; set; }
 
-        internal StorageWorkflow.JobsInstance OriginalInstance => originalInstance;
+		/// <summary>
+		/// Gets or sets the description of the job.
+		/// </summary>
+		public string Description { get; set; }
+
+		/// <summary>
+		/// Gets or sets the priority of the job.
+		/// </summary>
+		public JobPriority Priority { get; set; } = JobPriority.Normal;
+
+		/// <summary>
+		/// Gets or sets the notes or additional information.
+		/// </summary>
+		public string Notes { get; set; }
+
+		/// <summary>
+		/// Gets or sets the workflow ID associated with the job.
+		/// </summary>
+		public Guid WorkflowId { get; set; }
+
+		internal StorageWorkflow.JobsInstance OriginalInstance => originalInstance;
 
         /// <inheritdoc/>
         public override int GetHashCode()
@@ -76,6 +98,13 @@
             this.originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
 
             Name = instance.JobInfo.JobName;
-        }
+			Description = instance.JobInfo.JobDescription;
+			Notes = instance.JobInfo.JobNotes;
+			WorkflowId = instance.JobInfo.Workflow ?? Guid.Empty;
+
+			Priority = instance.JobInfo.JobPriority.HasValue
+				? EnumExtensions.MapEnum<StorageWorkflow.SlcWorkflowIds.Enums.Jobpriority, JobPriority>(instance.JobInfo.JobPriority.Value)
+				: JobPriority.Normal;
+		}
     }
 }
