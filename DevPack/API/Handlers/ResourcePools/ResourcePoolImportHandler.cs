@@ -241,7 +241,7 @@
                 domResource.ResourceInfo.Type = SlcResource_StudioIds.Enums.Type.VirtualFunction;
                 domResource.ResourceInternalProperties.Metadata.LinkedElementInfo = new DmsElementId(functionResource.MainDVEDmaID, functionResource.MainDVEElementID).Value;
                 domResource.ResourceInternalProperties.Metadata.LinkedFunctionId = functionResource.FunctionGUID;
-                if (functionResource.LinkerTableEntries.Any())
+                if (functionResource.HasValidLinks() && functionResource.LinkerTableEntries.Any())
                 {
                     domResource.ResourceInternalProperties.Metadata.LinkedFunctionTableIndex = functionResource.LinkerTableEntries.First().Item2;
                 }
