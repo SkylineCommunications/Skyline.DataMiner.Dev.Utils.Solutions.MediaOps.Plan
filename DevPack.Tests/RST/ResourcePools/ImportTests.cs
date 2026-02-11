@@ -200,7 +200,7 @@
         }
 
         [TestMethod]
-        public void FunctionResourceImport()
+        public void FunctionResourceWithElementLinkImport()
         {
             var prefix = Guid.NewGuid();
 
@@ -230,7 +230,6 @@
             if (activeFunctionVersion == null)
             {
                 Assert.Fail("Connector 'Generic Camera' has no active function version available on the system. Cannot proceed with the test.");
-
             }
 
             // Initial setup
