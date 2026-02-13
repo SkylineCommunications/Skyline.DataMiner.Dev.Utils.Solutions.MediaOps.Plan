@@ -20,7 +20,9 @@
     {
         private readonly MediaOpsPlanApi planApi;
 
-        private ResourcePoolImportHandler(MediaOpsPlanApi planApi)
+		private Dictionary<Guid, Net.Messages.FunctionDefinition> functionDefinitionsById;
+
+		private ResourcePoolImportHandler(MediaOpsPlanApi planApi)
         {
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
         }
@@ -194,13 +196,21 @@
                 planApi.Logger.Information(this, $"Name '{resource.Name}' is already in use by DOM resource(s) with ID(s)", [domResources.Select(x => x.ID.Id).ToArray()]);
             }
 
-            return toCreateDomNameValidation
-                .Where(x => coreResourcesById.ContainsKey(x.ID))
-                .Select(x => new ResourceMapping
-                {
-                    Core = x,
-                    Dom = BuildDomResource(x),
-                });
+			var functionDefinitionIds = toCreateDomNameValidation.OfType<Net.ResourceManager.Objects.FunctionResource>().Select(x => x.FunctionGUID).Distinct().ToList();
+			functionDefinitionsById = planApi.CoreHelpers.ProtocolFunctionHelper.GetFunctionDefinitions(functionDefinitionIds.Select(x => new Net.FunctionDefinitionID(x)).ToList(), false).OfType<Net.Messages.FunctionDefinition>().ToDictionary(x => x.GUID);
+
+            foreach (var coreResource in toCreateDomNameValidation.Where(x => coreResourcesById.ContainsKey(x.ID)))
+			{
+				var domResource = BuildDomResource(coreResource);
+				if (domResource != null)
+				{
+					yield return new ResourceMapping
+					{
+						Core = coreResource,
+						Dom = domResource,
+					};
+				}
+			}
         }
 
         private DomResource BuildDomResource(CoreResource coreResource)
@@ -229,22 +239,40 @@
                 });
             }
 
-            ApplyResourceTypeSpecifics(domResource, coreResource);
+            if (!TryApplyResourceTypeSpecifics(domResource, coreResource))
+			{
+				return null;
+			}
 
             return domResource;
         }
 
-        private void ApplyResourceTypeSpecifics(DomResource domResource, CoreResource coreResource)
+        private bool TryApplyResourceTypeSpecifics(DomResource domResource, CoreResource coreResource)
         {
             if (coreResource is Net.ResourceManager.Objects.FunctionResource functionResource)
             {
                 domResource.ResourceInfo.Type = SlcResource_StudioIds.Enums.Type.VirtualFunction;
                 domResource.ResourceInternalProperties.Metadata.LinkedElementInfo = new DmsElementId(functionResource.MainDVEDmaID, functionResource.MainDVEElementID).Value;
                 domResource.ResourceInternalProperties.Metadata.LinkedFunctionId = functionResource.FunctionGUID;
-                if (functionResource.HasValidLinks() && functionResource.LinkerTableEntries.Any())
-                {
-                    domResource.ResourceInternalProperties.Metadata.LinkedFunctionTableIndex = functionResource.LinkerTableEntries.First().Item2;
-                }
+
+				if (!functionDefinitionsById.TryGetValue(functionResource.FunctionGUID, out var functionDefinition))
+				{
+					planApi.Logger.Error($"No function definition found with ID '{functionResource.FunctionGUID}'. Skip import resource {coreResource.Name} ({coreResource.ID}).");
+					return false;
+				}
+
+				if (functionDefinition.EntryPoints.Any())
+				{
+					if (functionResource.HasValidLinks() && functionResource.LinkerTableEntries.Any())
+					{
+						domResource.ResourceInternalProperties.Metadata.LinkedFunctionTableIndex = functionResource.LinkerTableEntries.First().Item2;
+					}
+					else
+					{
+						planApi.Logger.Error($"No valid table link found. Skip import resource {coreResource.Name} ({coreResource.ID}).");
+						return false;
+					}
+				}
 
                 SetResourceType(coreResource, "Virtual Function");
             }
@@ -261,6 +289,8 @@
 
                 SetResourceType(coreResource, "Unlinked Resource");
             }
+
+			return true;
         }
 
         private void SetResourceType(CoreResource coreResource, string resourceTypeValue)
