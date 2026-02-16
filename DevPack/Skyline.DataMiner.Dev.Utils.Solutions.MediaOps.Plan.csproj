@@ -1,61 +1,62 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFramework>net48</TargetFramework>
-    <PlatformTarget>anycpu</PlatformTarget>
-    <LangVersion>latest</LangVersion>
-    <OutputType>Library</OutputType>
-    <AssemblyTitle>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan</AssemblyTitle>
-    <Product>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan</Product>
-    <AssemblyName>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan</AssemblyName>
-    <RootNamespace>Skyline.DataMiner.Solutions.MediaOps.Plan</RootNamespace>
+	<PropertyGroup>
+		<TargetFramework>net48</TargetFramework>
+		<PlatformTarget>anycpu</PlatformTarget>
+		<LangVersion>latest</LangVersion>
+		<OutputType>Library</OutputType>
+		<AssemblyTitle>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan</AssemblyTitle>
+		<Product>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan</Product>
+		<AssemblyName>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan</AssemblyName>
+		<RootNamespace>Skyline.DataMiner.Solutions.MediaOps.Plan</RootNamespace>
 
-    <!-- Use shared version from Directory.Build.props -->
-    <PackageVersion>$(MediaOpsVersion)</PackageVersion>
-    <Version>$(MediaOpsVersion)</Version>
-    <FileVersion>$(MediaOpsVersion)</FileVersion>
-    <AssemblyVersion>1.0.*</AssemblyVersion>
+		<!-- Use shared version from Directory.Build.props -->
+		<PackageVersion>$(MediaOpsVersion)</PackageVersion>
+		<Version>$(MediaOpsVersion)</Version>
+		<FileVersion>$(MediaOpsVersion)</FileVersion>
+		<AssemblyVersion>1.0.*</AssemblyVersion>
 
-    <PackageId>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan</PackageId>
-    <PackageTags>Skyline;DataMiner</PackageTags>
-    <PackageProjectUrl>https://skyline.be</PackageProjectUrl>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-    <PackageIcon>Icon.png</PackageIcon>
-    <GenerateDocumentationFile>True</GenerateDocumentationFile>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<PackageId>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan</PackageId>
+		<PackageTags>Skyline;DataMiner</PackageTags>
+		<PackageProjectUrl>https://skyline.be</PackageProjectUrl>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+		<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+		<PackageIcon>Icon.png</PackageIcon>
+		<GenerateDocumentationFile>True</GenerateDocumentationFile>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 
-    <Authors>SkylineCommunications</Authors>
-    <Company>Skyline Communications</Company>
-    <Description>Provides an internal API for MediaOps Plan.</Description>
-    <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/SkylineCommunications/Skyline.DataMiner.MediaOps.Plan</RepositoryUrl>
-    <Deterministic>false</Deterministic>
-    <ImplicitUsings>disable</ImplicitUsings>
-    <Nullable>disable</Nullable>
-    <UserSecretsId>8b63d789-daa9-4f00-ade9-5791180385c7</UserSecretsId>
-  </PropertyGroup>
-  <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="" />
-    <None Include="LICENSE.txt" Pack="true" PackagePath="" />
-    <None Include="nuget\Icon.png" Pack="true" PackagePath="" />
-  </ItemGroup>
-  <ItemGroup>
-    <InternalsVisibleTo Include="Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="Skyline.DataMiner.ConnectorAPI.SkylineLockManager" Version="1.3.4" />
-    <PackageReference Include="Skyline.DataMiner.Core.DataMinerSystem.Common" Version="1.1.3.7" />
-    <PackageReference Include="Skyline.DataMiner.Dev.Common" Version="10.5.11.1" />
-    <PackageReference Include="Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Live" Version="1.0.1-alpha193" />
-    <PackageReference Include="Skyline.DataMiner.SDM.Abstractions" Version="0.3.1" />
-    <PackageReference Include="Skyline.DataMiner.Utils.Categories" Version="1.0.5" />
-    <PackageReference Include="Skyline.DataMiner.Utils.DOM" Version="10.5.2.5" />
-    <PackageReference Include="Skyline.DataMiner.Utils.SecureCoding" Version="2.2.1" />
-    <PackageReference Include="Skyline.DataMiner.Utils.SecureCoding.Analyzers" Version="2.2.1">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-  </ItemGroup>
+		<Authors>SkylineCommunications</Authors>
+		<Company>Skyline Communications</Company>
+		<Description>Provides an internal API for MediaOps Plan.</Description>
+		<RepositoryType>git</RepositoryType>
+		<RepositoryUrl>https://github.com/SkylineCommunications/Skyline.DataMiner.MediaOps.Plan</RepositoryUrl>
+		<Deterministic>false</Deterministic>
+		<ImplicitUsings>disable</ImplicitUsings>
+		<Nullable>disable</Nullable>
+		<UserSecretsId>8b63d789-daa9-4f00-ade9-5791180385c7</UserSecretsId>
+	</PropertyGroup>
+	<ItemGroup>
+		<None Include="README.md" Pack="true" PackagePath="" />
+		<None Include="LICENSE.txt" Pack="true" PackagePath="" />
+		<None Include="nuget\Icon.png" Pack="true" PackagePath="" />
+	</ItemGroup>
+	<ItemGroup>
+		<InternalsVisibleTo Include="Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests" />
+	</ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Skyline.DataMiner.ConnectorAPI.SkylineLockManager" Version="1.3.4" />
+		<PackageReference Include="Skyline.DataMiner.Core.DataMinerSystem.Common" Version="1.1.3.7" />
+		<PackageReference Include="Skyline.DataMiner.Dev.Common" Version="10.5.11.1" />
+		<PackageReference Include="Skyline.DataMiner.Dev.Utils.Solutions.Categories" Version="0.1.0-alpha006" />
+		<!--<PackageReference Include="Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Live" Version="1.0.1-alpha195" />-->
+		<PackageReference Include="Skyline.DataMiner.Dev.Utils.SDM.Abstractions" Version="1.0.1" />
+		<PackageReference Include="Skyline.DataMiner.SDM.Registration.Common" Version="2.0.0" />
+		<PackageReference Include="Skyline.DataMiner.Utils.DOM" Version="10.5.2.5" />
+		<PackageReference Include="Skyline.DataMiner.Utils.SecureCoding" Version="2.2.1" />
+		<PackageReference Include="Skyline.DataMiner.Utils.SecureCoding.Analyzers" Version="2.2.1">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
 </Project>
