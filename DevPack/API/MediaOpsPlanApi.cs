@@ -140,7 +140,7 @@
 		public bool IsInstalled(out string version)
 		{
 			var registrar = Connection.GetSdmRegistrar();
-			var categoriesRegistration = registrar.Solutions.Read(SolutionRegistrationExposers.DisplayName.Equal("MediaOps.Plan")).First();
+			var categoriesRegistration = registrar.Solutions.Read(SolutionRegistrationExposers.ID.Equal("standard_solution_mediaops_plan")).FirstOrDefault();
 			if (categoriesRegistration == null)
 			{
 				version = String.Empty;
