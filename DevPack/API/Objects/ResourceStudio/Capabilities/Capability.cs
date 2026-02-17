@@ -48,7 +48,7 @@
         /// returning the value of its Id property. If the Capability instance is null, a NullReferenceException will be
         /// thrown.</remarks>
         /// <param name="capability">The Capability instance to convert to a Guid.</param>
-        public static implicit operator Guid(Capability capability) => capability.Id;
+        public static implicit operator Guid(Capability capability) => capability.ID;
 
         /// <summary>
         /// Gets or sets a value indicating whether the capability is time-dependent or not.

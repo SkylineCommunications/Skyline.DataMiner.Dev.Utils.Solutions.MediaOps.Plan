@@ -69,7 +69,7 @@
             unchecked
             {
                 int hash = 17;
-                hash = (hash * 23) + Id.GetHashCode();
+                hash = (hash * 23) + ID.GetHashCode();
                 hash = (hash * 23) + (Name != null ? Name.GetHashCode() : 0);
 
                 return hash;
@@ -89,7 +89,7 @@
                 return false;
             }
 
-            return Id == other.Id &&
+            return ID == other.ID &&
                    Name == other.Name;
         }
 

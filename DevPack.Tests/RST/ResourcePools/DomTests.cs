@@ -43,7 +43,7 @@
 
             objectCreator.CreateResourcePool(resourcePool);
 
-            var domResourcePool = TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(resourcePool.Id)).SingleOrDefault();
+            var domResourcePool = TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(resourcePool.ID)).SingleOrDefault();
             Assert.IsNotNull(domResourcePool);
             Assert.AreEqual(Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Definitions.Resourcepool.Id, domResourcePool.DomDefinitionId.Id);
             Assert.AreEqual(Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Behaviors.Resource_Behavior.Statuses.Draft, domResourcePool.StatusId);
@@ -83,9 +83,9 @@
             };
 
             objectCreator.CreateResourcePool(resourcePool);
-            TestContext.Api.ResourcePools.Complete(resourcePool.Id);
+            TestContext.Api.ResourcePools.Complete(resourcePool.ID);
 
-            var domResourcePool = TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(resourcePool.Id)).SingleOrDefault();
+            var domResourcePool = TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(resourcePool.ID)).SingleOrDefault();
             Assert.IsNotNull(domResourcePool);
             Assert.AreEqual(Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Definitions.Resourcepool.Id, domResourcePool.DomDefinitionId.Id);
             Assert.AreEqual(Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Behaviors.Resource_Behavior.Statuses.Complete, domResourcePool.StatusId);
@@ -127,10 +127,10 @@
             };
 
             objectCreator.CreateResourcePool(resourcePool);
-            TestContext.Api.ResourcePools.Complete(resourcePool.Id);
-            TestContext.Api.ResourcePools.Deprecate(resourcePool.Id);
+            TestContext.Api.ResourcePools.Complete(resourcePool.ID);
+            TestContext.Api.ResourcePools.Deprecate(resourcePool.ID);
 
-            var domResourcePool = TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(resourcePool.Id)).SingleOrDefault();
+            var domResourcePool = TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(resourcePool.ID)).SingleOrDefault();
             Assert.IsNotNull(domResourcePool);
             Assert.AreEqual(Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Definitions.Resourcepool.Id, domResourcePool.DomDefinitionId.Id);
             Assert.AreEqual(Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Behaviors.Resource_Behavior.Statuses.Deprecated, domResourcePool.StatusId);
@@ -181,11 +181,11 @@
 
             objectCreator.CreateResourcePools(new[] { resourcePool1, resourcePool2 });
 
-            resourcePool3.AddLinkedResourcePool(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.LinkedResourcePool(resourcePool1.Id) { SelectionType = Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceSelectionType.Automatic });
-            resourcePool3.AddLinkedResourcePool(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.LinkedResourcePool(resourcePool2.Id) { SelectionType = Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceSelectionType.Manual });
+            resourcePool3.AddLinkedResourcePool(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.LinkedResourcePool(resourcePool1.ID) { SelectionType = Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceSelectionType.Automatic });
+            resourcePool3.AddLinkedResourcePool(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.LinkedResourcePool(resourcePool2.ID) { SelectionType = Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceSelectionType.Manual });
             objectCreator.CreateResourcePool(resourcePool3);
 
-            var domResourcePool = TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(resourcePool3.Id)).SingleOrDefault();
+            var domResourcePool = TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(resourcePool3.ID)).SingleOrDefault();
             Assert.IsNotNull(domResourcePool);
 
             Assert.IsTrue(domResourcePool.Sections.Exists(s => s.SectionDefinitionID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ResourcePoolInfo.Id.Id));
@@ -200,8 +200,8 @@
 
             var expectedSelectionData = new Dictionary<Guid, int>
             {
-                { resourcePool1.Id, (int)Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Resourceselectiontype.Automatic },
-                { resourcePool2.Id, (int)Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Resourceselectiontype.Manual },
+                { resourcePool1.ID, (int)Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Resourceselectiontype.Automatic },
+                { resourcePool2.ID, (int)Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Resourceselectiontype.Manual },
             };
             foreach (var resourcePoolLink in domResourcePool.Sections.Where(s => s.SectionDefinitionID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ResourcePoolLinks.Id.Id))
             {
@@ -230,15 +230,15 @@
 
             objectCreator.CreateResourcePool(resourcePool);
 
-            var domResourcePool = TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(resourcePool.Id)).SingleOrDefault();
+            var domResourcePool = TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(resourcePool.ID)).SingleOrDefault();
             Assert.IsNotNull(domResourcePool);
             Assert.IsFalse(domResourcePool.Sections.Exists(s => s.SectionDefinitionID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ExternalMetadata.Id.Id));
 
-            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.ID);
             resourcePool.IsExternallyManaged = true;
             TestContext.Api.ResourcePools.Update(resourcePool);
 
-            domResourcePool = TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(resourcePool.Id)).SingleOrDefault();
+            domResourcePool = TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(resourcePool.ID)).SingleOrDefault();
             Assert.IsNotNull(domResourcePool);
             Assert.IsTrue(domResourcePool.Sections.Exists(s => s.SectionDefinitionID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ExternalMetadata.Id.Id));
 
@@ -249,11 +249,11 @@
             Assert.IsNotNull(fdExternallyManaged);
             Assert.AreEqual(true, Convert.ToBoolean(fdExternallyManaged.Value.Value));
 
-            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.ID);
             resourcePool.IsExternallyManaged = false;
             TestContext.Api.ResourcePools.Update(resourcePool);
 
-            domResourcePool = TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(resourcePool.Id)).SingleOrDefault();
+            domResourcePool = TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(resourcePool.ID)).SingleOrDefault();
             Assert.IsNotNull(domResourcePool);
             Assert.IsFalse(domResourcePool.Sections.Exists(s => s.SectionDefinitionID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ExternalMetadata.Id.Id));
         }

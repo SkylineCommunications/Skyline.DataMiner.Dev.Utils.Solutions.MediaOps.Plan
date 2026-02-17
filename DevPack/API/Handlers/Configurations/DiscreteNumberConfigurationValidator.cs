@@ -26,10 +26,10 @@
             // Any discreet options available
             if (!discreteNumberConfiguration.Discretes.Any())
             {
-                ReportError(discreteNumberConfiguration.Id, new ConfigurationNoDiscretesError
+                ReportError(discreteNumberConfiguration.ID, new ConfigurationNoDiscretesError
                 {
                     ErrorMessage = "A discreet configuration should have at least one discreet option defined",
-                    Id = discreteNumberConfiguration.Id,
+                    Id = discreteNumberConfiguration.ID,
                 });
                 return;
             }
@@ -37,10 +37,10 @@
             // Validate default discrete option
             if (discreteNumberConfiguration.DefaultValue != null && !discreteNumberConfiguration.Discretes.Any(x => discreteNumberConfiguration.DefaultValue == x))
             {
-                ReportError(discreteNumberConfiguration.Id, new ConfigurationInvalidDefaultDiscreetError
+                ReportError(discreteNumberConfiguration.ID, new ConfigurationInvalidDefaultDiscreetError
                 {
                     ErrorMessage = "Default discreet should any of the discreet options",
-                    Id = discreteNumberConfiguration.Id,
+                    Id = discreteNumberConfiguration.ID,
                 });
             }
 
@@ -49,19 +49,19 @@
                 // Validate Display Value
                 if (!HasValidDisplayValue(discreet.DisplayName, out string invalidDisplayNameReason))
                 {
-                    ReportError(discreteNumberConfiguration.Id, new ConfigurationInvalidDiscretesError
+                    ReportError(discreteNumberConfiguration.ID, new ConfigurationInvalidDiscretesError
                     {
                         ErrorMessage = invalidDisplayNameReason,
-                        Id = discreteNumberConfiguration.Id,
+                        Id = discreteNumberConfiguration.ID,
                     });
                 }
 
                 if (!IsValidDiscreetNumber(discreet.Value, out string invalidDiscreetNumberReason))
                 {
-                    ReportError(discreteNumberConfiguration.Id, new ConfigurationInvalidDiscretesError
+                    ReportError(discreteNumberConfiguration.ID, new ConfigurationInvalidDiscretesError
                     {
                         ErrorMessage = invalidDiscreetNumberReason,
-                        Id = discreteNumberConfiguration.Id,
+                        Id = discreteNumberConfiguration.ID,
                     });
                 }
             }

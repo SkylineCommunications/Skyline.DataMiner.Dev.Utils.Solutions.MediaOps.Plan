@@ -35,7 +35,7 @@
             if (firstJob == null)
                 return;
 
-            var jobToVerify = TestContext.Api.Jobs.Read(firstJob.Id);
+            var jobToVerify = TestContext.Api.Jobs.Read(firstJob.ID);
 
             Assert.AreEqual(firstJob, jobToVerify);
         }

@@ -71,7 +71,7 @@
             // Verify API resource pool
             var apiResourcePool = TestContext.Api.ResourcePools.Read(ResourcePoolExposers.Name.Equal(corePool.Name)).SingleOrDefault();
             Assert.IsNotNull(apiResourcePool);
-            objectCreator.StoreResourcePoolIds([apiResourcePool.Id]);
+            objectCreator.StoreResourcePoolIds([apiResourcePool.ID]);
 
             Assert.AreEqual(ResourcePoolState.Complete, apiResourcePool.State);
             Assert.AreEqual(corePool.ID, apiResourcePool.CoreResourcePoolId);
@@ -81,7 +81,7 @@
                 .Where(x => x.Name.StartsWith($"{prefix}_Resource"))
                 .ToList();
             Assert.AreEqual(3, apiResources.Count);
-            objectCreator.StoreResourceIds(apiResources.Select(x => x.Id));
+            objectCreator.StoreResourceIds(apiResources.Select(x => x.ID));
 
             foreach (var coreResource in new[] { coreResource1, coreResource2, coreResource3 })
             {
@@ -91,7 +91,7 @@
                 Assert.AreEqual(ResourceState.Complete, apiResource.State);
                 Assert.AreEqual(coreResource.ID, apiResource.CoreResourceId);
                 Assert.AreEqual(1, apiResource.ResourcePoolIds.Count);
-                Assert.IsTrue(apiResource.ResourcePoolIds.Contains(apiResourcePool.Id));
+                Assert.IsTrue(apiResource.ResourcePoolIds.Contains(apiResourcePool.ID));
                 Assert.IsTrue(apiResource is UnmanagedResource);
             }
 
@@ -108,7 +108,7 @@
                 Assert.AreEqual(1, coreResource.Capabilities.Count);
                 var resourceCapability = coreResource.Capabilities.FirstOrDefault();
                 Assert.IsNotNull(resourceCapability);
-                Assert.AreEqual(TestContext.Api.Capabilities.SystemCapabilities.ResourceType.Id, resourceCapability.CapabilityProfileID);
+                Assert.AreEqual(TestContext.Api.Capabilities.SystemCapabilities.ResourceType.ID, resourceCapability.CapabilityProfileID);
                 Assert.AreEqual(1, resourceCapability.Value.Discreets.Count);
                 Assert.IsTrue(resourceCapability.Value.Discreets.Contains("Unlinked Resource"));
             }
@@ -166,7 +166,7 @@
             // Verify API resource pool
             var apiResourcePool = TestContext.Api.ResourcePools.Read(ResourcePoolExposers.Name.Equal(corePool.Name)).SingleOrDefault();
             Assert.IsNotNull(apiResourcePool);
-            objectCreator.StoreResourcePoolIds([apiResourcePool.Id]);
+            objectCreator.StoreResourcePoolIds([apiResourcePool.ID]);
 
             Assert.AreEqual(ResourcePoolState.Complete, apiResourcePool.State);
             Assert.AreEqual(corePool.ID, apiResourcePool.CoreResourcePoolId);
@@ -174,14 +174,14 @@
             // Verify API resource
             var apiResource = TestContext.Api.Resources.Read(ResourceExposers.Name.Equal(coreResource.Name)).SingleOrDefault();
             Assert.IsNotNull(apiResource);
-            objectCreator.StoreResourceIds([apiResource.Id]);
+            objectCreator.StoreResourceIds([apiResource.ID]);
 
             Assert.IsNotNull(apiResource);
             Assert.AreEqual(coreResource.MaxConcurrency, apiResource.Concurrency);
             Assert.AreEqual(ResourceState.Complete, apiResource.State);
             Assert.AreEqual(coreResource.ID, apiResource.CoreResourceId);
             Assert.AreEqual(1, apiResource.ResourcePoolIds.Count);
-            Assert.IsTrue(apiResource.ResourcePoolIds.Contains(apiResourcePool.Id));
+            Assert.IsTrue(apiResource.ResourcePoolIds.Contains(apiResourcePool.ID));
             var apiElementResource = apiResource as ElementResource;
             Assert.IsNotNull(apiElementResource);
             Assert.AreEqual(elementId.AgentId, apiElementResource.AgentId);
@@ -194,7 +194,7 @@
             Assert.AreEqual(1, coreResource.Capabilities.Count);
             var resourceCapability = coreResource.Capabilities.FirstOrDefault();
             Assert.IsNotNull(resourceCapability);
-            Assert.AreEqual(TestContext.Api.Capabilities.SystemCapabilities.ResourceType.Id, resourceCapability.CapabilityProfileID);
+            Assert.AreEqual(TestContext.Api.Capabilities.SystemCapabilities.ResourceType.ID, resourceCapability.CapabilityProfileID);
             Assert.AreEqual(1, resourceCapability.Value.Discreets.Count);
             Assert.IsTrue(resourceCapability.Value.Discreets.Contains("Element"));
         }
@@ -269,7 +269,7 @@
             // Verify API resource pool
             var apiResourcePool = TestContext.Api.ResourcePools.Read(ResourcePoolExposers.Name.Equal(corePool.Name)).SingleOrDefault();
             Assert.IsNotNull(apiResourcePool);
-            objectCreator.StoreResourcePoolIds([apiResourcePool.Id]);
+            objectCreator.StoreResourcePoolIds([apiResourcePool.ID]);
 
             Assert.AreEqual(ResourcePoolState.Complete, apiResourcePool.State);
             Assert.AreEqual(corePool.ID, apiResourcePool.CoreResourcePoolId);
@@ -277,14 +277,14 @@
             // Verify API resource
             var apiResource = TestContext.Api.Resources.Read(ResourceExposers.Name.Equal(coreResource.Name)).SingleOrDefault();
             Assert.IsNotNull(apiResource);
-            objectCreator.StoreResourceIds([apiResource.Id]);
+            objectCreator.StoreResourceIds([apiResource.ID]);
 
             Assert.IsNotNull(apiResource);
             Assert.AreEqual(coreResource.MaxConcurrency, apiResource.Concurrency);
             Assert.AreEqual(ResourceState.Complete, apiResource.State);
             Assert.AreEqual(coreResource.ID, apiResource.CoreResourceId);
             Assert.AreEqual(1, apiResource.ResourcePoolIds.Count);
-            Assert.IsTrue(apiResource.ResourcePoolIds.Contains(apiResourcePool.Id));
+            Assert.IsTrue(apiResource.ResourcePoolIds.Contains(apiResourcePool.ID));
             var apiFunctionResource = apiResource as VirtualFunctionResource;
             Assert.IsNotNull(apiFunctionResource);
             Assert.AreEqual(elementId.AgentId, apiFunctionResource.AgentId);
@@ -298,7 +298,7 @@
             Assert.AreEqual(1, coreResource.Capabilities.Count);
             var resourceCapability = coreResource.Capabilities.FirstOrDefault();
             Assert.IsNotNull(resourceCapability);
-            Assert.AreEqual(TestContext.Api.Capabilities.SystemCapabilities.ResourceType.Id, resourceCapability.CapabilityProfileID);
+            Assert.AreEqual(TestContext.Api.Capabilities.SystemCapabilities.ResourceType.ID, resourceCapability.CapabilityProfileID);
             Assert.AreEqual(1, resourceCapability.Value.Discreets.Count);
             Assert.IsTrue(resourceCapability.Value.Discreets.Contains("Virtual Function"));
         }
@@ -314,27 +314,27 @@
                 Name = $"{prefix}_API_ResourcePool",
             };
             objectCreator.CreateResourcePool(apiResourcePool);
-            TestContext.Api.ResourcePools.Complete(apiResourcePool.Id);
+            TestContext.Api.ResourcePools.Complete(apiResourcePool.ID);
 
             var apiResource1 = new UnmanagedResource
             {
                 Name = $"{prefix}_API_Resource1",
             }
-            .AssignToPool(apiResourcePool.Id);
+            .AssignToPool(apiResourcePool.ID);
             var apiResource2 = new UnmanagedResource
             {
                 Name = $"{prefix}_API_Resource2",
             }
-            .AssignToPool(apiResourcePool.Id);
+            .AssignToPool(apiResourcePool.ID);
             var apiResource3 = new UnmanagedResource
             {
                 Name = $"{prefix}_API_Resource3",
             }
-            .AssignToPool(apiResourcePool.Id);
+            .AssignToPool(apiResourcePool.ID);
             objectCreator.CreateResources([apiResource1, apiResource2, apiResource3]);
-            TestContext.Api.Resources.Complete([apiResource1.Id, apiResource2.Id, apiResource3.Id]);
+            TestContext.Api.Resources.Complete([apiResource1.ID, apiResource2.ID, apiResource3.ID]);
 
-            apiResourcePool = TestContext.Api.ResourcePools.Read(apiResourcePool.Id);
+            apiResourcePool = TestContext.Api.ResourcePools.Read(apiResourcePool.ID);
             Assert.IsNotNull(apiResourcePool);
             Assert.AreNotEqual(Guid.Empty, apiResourcePool.CoreResourcePoolId);
 
@@ -368,7 +368,7 @@
             // Verify API resources after import
             apiResources = TestContext.Api.Resources.GetResourcesInPool(apiResourcePool).ToList();
             Assert.AreEqual(6, apiResources.Count);
-            objectCreator.StoreResourceIds(apiResources.Select(x => x.Id));
+            objectCreator.StoreResourceIds(apiResources.Select(x => x.ID));
         }
 
         [TestMethod]
@@ -406,7 +406,7 @@
                 MaxConcurrency = 1,
                 Capabilities = new List<Skyline.DataMiner.Net.SRM.Capabilities.ResourceCapability>
                 {
-                    new Skyline.DataMiner.Net.SRM.Capabilities.ResourceCapability(capability.Id)
+                    new Skyline.DataMiner.Net.SRM.Capabilities.ResourceCapability(capability.ID)
                     {
                         Value = new Skyline.DataMiner.Net.Profiles.CapabilityParameterValue(["Value 2"]),
                     },
@@ -415,7 +415,7 @@
                 {
                     new Skyline.DataMiner.Net.SRM.Capacities.MultiResourceCapacity
                     {
-                        CapacityProfileID = numberCapacity.Id,
+                        CapacityProfileID = numberCapacity.ID,
                         Value = new Skyline.DataMiner.Net.Profiles.CapacityParameterValue
                         {
                             MaxDecimalQuantity = 10,
@@ -423,7 +423,7 @@
                     },
                     new Skyline.DataMiner.Net.SRM.Capacities.MultiResourceCapacity
                     {
-                        CapacityProfileID = rangeCapacity.Id,
+                        CapacityProfileID = rangeCapacity.ID,
                         Value = new Skyline.DataMiner.Net.Profiles.CapacityParameterValue
                         {
                             MinDecimalQuantity = 10,
@@ -441,28 +441,28 @@
             // Verify API resource pool
             var apiResourcePool = TestContext.Api.ResourcePools.Read(ResourcePoolExposers.Name.Equal(corePool.Name)).SingleOrDefault();
             Assert.IsNotNull(apiResourcePool);
-            objectCreator.StoreResourcePoolIds([apiResourcePool.Id]);
+            objectCreator.StoreResourcePoolIds([apiResourcePool.ID]);
 
             // Verify API resource
             var apiResource = TestContext.Api.Resources.Read(ResourceExposers.Name.Equal(coreResource.Name)).SingleOrDefault();
             Assert.IsNotNull(apiResource);
-            objectCreator.StoreResourceIds([apiResource.Id]);
+            objectCreator.StoreResourceIds([apiResource.ID]);
 
             Assert.AreEqual(1, apiResource.Capabilities.Count);
             var capabilitySetting = apiResource.Capabilities.First();
-            Assert.AreEqual(capability.Id, capabilitySetting.Id);
+            Assert.AreEqual(capability.ID, capabilitySetting.Id);
             Assert.AreEqual(1, capabilitySetting.Discretes.Count);
             Assert.IsTrue(capabilitySetting.Discretes.Contains("Value 2"));
 
             Assert.AreEqual(2, apiResource.Capacities.Count);
             var numberCapacitySetting = apiResource.Capacities.OfType<NumberCapacitySetting>().SingleOrDefault();
             Assert.IsNotNull(numberCapacitySetting);
-            Assert.AreEqual(numberCapacity.Id, numberCapacitySetting.Id);
+            Assert.AreEqual(numberCapacity.ID, numberCapacitySetting.Id);
             Assert.AreEqual(10m, numberCapacitySetting.Value);
 
             var rangeCapacitySetting = apiResource.Capacities.OfType<RangeCapacitySetting>().SingleOrDefault();
             Assert.IsNotNull(rangeCapacitySetting);
-            Assert.AreEqual(rangeCapacity.Id, rangeCapacitySetting.Id);
+            Assert.AreEqual(rangeCapacity.ID, rangeCapacitySetting.Id);
             Assert.AreEqual(10m, rangeCapacitySetting.MinValue);
             Assert.AreEqual(20m, rangeCapacitySetting.MaxValue);
 

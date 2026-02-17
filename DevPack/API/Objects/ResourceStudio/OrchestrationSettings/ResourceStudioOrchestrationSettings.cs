@@ -270,7 +270,7 @@
         {
             if (updatedInstance == null)
             {
-                updatedInstance = IsNew ? new StorageResourceStudio.ConfigurationInstance(Id) : originalInstance.Clone();
+                updatedInstance = IsNew ? new StorageResourceStudio.ConfigurationInstance(ID) : originalInstance.Clone();
             }
 
             updatedInstance.ProfileParameterValues.Clear();

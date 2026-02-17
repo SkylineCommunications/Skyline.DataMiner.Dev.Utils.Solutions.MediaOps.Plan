@@ -13,7 +13,7 @@
         /// <param name="capacity">The capacity to use for initializing the settings. Cannot be null.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="capacity"/> is <see langword="null"/>.</exception>
         private protected CapacitySetting(Capacity capacity)
-            : this(capacity?.Id ?? throw new ArgumentNullException(nameof(capacity)))
+            : this(capacity?.ID ?? throw new ArgumentNullException(nameof(capacity)))
         {
         }
 

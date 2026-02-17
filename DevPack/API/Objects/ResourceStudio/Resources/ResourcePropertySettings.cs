@@ -19,7 +19,7 @@
         /// <param name="resourceProperty">The resource property to use for configuration. Cannot be null.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="resourceProperty"/> is <see langword="null"/>.</exception>
         public ResourcePropertySettings(ResourceProperty resourceProperty)
-            : this(resourceProperty?.Id ?? throw new ArgumentNullException(nameof(resourceProperty)))
+            : this(resourceProperty?.ID ?? throw new ArgumentNullException(nameof(resourceProperty)))
         {
         }
 

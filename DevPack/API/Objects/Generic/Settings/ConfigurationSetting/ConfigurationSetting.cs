@@ -8,7 +8,7 @@
     public abstract class ConfigurationSetting : TrackableObject
     {
         private protected ConfigurationSetting(Configuration configuration)
-            : this(configuration?.Id ?? throw new ArgumentNullException(nameof(configuration)))
+            : this(configuration?.ID ?? throw new ArgumentNullException(nameof(configuration)))
         {
         }
 

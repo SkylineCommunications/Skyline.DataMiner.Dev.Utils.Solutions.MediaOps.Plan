@@ -44,7 +44,7 @@
         /// returning the value of its Id property. If the Configuration instance is null, a NullReferenceException will be
         /// thrown.</remarks>
         /// <param name="configuration">The Configuration instance to convert to a Guid.</param>
-        public static implicit operator Guid(Configuration configuration) => configuration.Id;
+        public static implicit operator Guid(Configuration configuration) => configuration.ID;
 
         /// <summary>
         /// Gets the category of the profile parameter, indicating its classification as a configuration.

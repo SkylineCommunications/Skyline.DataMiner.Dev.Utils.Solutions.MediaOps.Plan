@@ -17,7 +17,7 @@
         /// Initializes a new instance of the <see cref="LinkedResourcePool"/> class with the linked resource pool.
         /// </summary>
         /// <param name="resourcePool">The linked resource pool.</param>
-        public LinkedResourcePool(ResourcePool resourcePool) : this(resourcePool?.Id ?? throw new ArgumentNullException(nameof(resourcePool)))
+        public LinkedResourcePool(ResourcePool resourcePool) : this(resourcePool?.ID ?? throw new ArgumentNullException(nameof(resourcePool)))
         {
         }
 

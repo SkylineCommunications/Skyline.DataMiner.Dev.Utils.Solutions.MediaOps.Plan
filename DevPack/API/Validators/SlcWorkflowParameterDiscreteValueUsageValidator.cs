@@ -239,7 +239,7 @@
                 {
                     if (orchestrationSetting.Capabilities.Any(x => x.Id == capabilityDiscreteValue.ParameterId && x.Value == capabilityDiscreteValue.DiscreteValue))
                     {
-                        orchestrationSettingsIds.Add(orchestrationSetting.Id);
+                        orchestrationSettingsIds.Add(orchestrationSetting.ID);
 
                         // Not needed to check further if found in capabilities.
                         continue;
@@ -247,7 +247,7 @@
 
                     if (orchestrationSetting.OrchestrationEvents.Any(x => x.ExecutionDetails.Capabilities.Any(y => y.Id == capabilityDiscreteValue.ParameterId && y.Value == capabilityDiscreteValue.DiscreteValue)))
                     {
-                        orchestrationSettingsIds.Add(orchestrationSetting.Id);
+                        orchestrationSettingsIds.Add(orchestrationSetting.ID);
                     }
                 }
 
@@ -274,7 +274,7 @@
                 {
                     if (orchestrationSetting.Configurations.OfType<DiscreteTextConfigurationSetting>().Any(x => x.Id == configurationTextDiscreteValue.ParameterId && x.Value.Value.Equals(configurationTextDiscreteValue.DiscreteValue.Value)))
                     {
-                        orchestrationSettingsIds.Add(orchestrationSetting.Id);
+                        orchestrationSettingsIds.Add(orchestrationSetting.ID);
 
                         // Not needed to check further if found in configurations.
                         continue;
@@ -282,7 +282,7 @@
 
                     if (orchestrationSetting.OrchestrationEvents.Any(x => x.ExecutionDetails.Configurations.OfType<DiscreteTextConfigurationSetting>().Any(y => y.Id == configurationTextDiscreteValue.ParameterId && y.Value.Value.Equals(configurationTextDiscreteValue.DiscreteValue.Value))))
                     {
-                        orchestrationSettingsIds.Add(orchestrationSetting.Id);
+                        orchestrationSettingsIds.Add(orchestrationSetting.ID);
                     }
                 }
 
@@ -309,7 +309,7 @@
                 {
                     if (orchestrationSetting.Configurations.OfType<DiscreteNumberConfigurationSetting>().Any(x => x.Id == configurationNumberDiscreteValue.ParameterId && x.Value.Value.Equals(configurationNumberDiscreteValue.DiscreteValue.Value)))
                     {
-                        orchestrationSettingsIds.Add(orchestrationSetting.Id);
+                        orchestrationSettingsIds.Add(orchestrationSetting.ID);
 
                         // Not needed to check further if found in configurations.
                         continue;
@@ -317,7 +317,7 @@
 
                     if (orchestrationSetting.OrchestrationEvents.Any(x => x.ExecutionDetails.Configurations.OfType<DiscreteNumberConfigurationSetting>().Any(y => y.Id == configurationNumberDiscreteValue.ParameterId && y.Value.Value.Equals(configurationNumberDiscreteValue.DiscreteValue.Value))))
                     {
-                        orchestrationSettingsIds.Add(orchestrationSetting.Id);
+                        orchestrationSettingsIds.Add(orchestrationSetting.ID);
                     }
                 }
 

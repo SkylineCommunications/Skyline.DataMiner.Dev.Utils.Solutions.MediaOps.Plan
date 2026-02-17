@@ -6,6 +6,7 @@
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+	using Skyline.DataMiner.Net.Sections;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API.Querying;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
 
@@ -21,9 +22,6 @@
 			[ResourceExposers.State.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.StatusId, comparer, ConvertResourceState((ResourceState)value)),
 			[ResourceExposers.ResourcePoolIds.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.Pool_Ids), comparer, Convert.ToString(value)),
 			[ResourceExposers.Type.fieldName] = (comparer, value) => CreateTypeFilter(comparer, (Type)value),
-			[ResourceExposers.IconImage.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceOther.IconImage), comparer, (string)value),
-			[ResourceExposers.Url.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceOther.URL), comparer, (string)value),
-			[ResourceExposers.IsExternallyManaged.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ExternalMetadata.ExternallyManaged), comparer, (bool)value),
 			[ResourceExposers.VirtualSignalGroupInputId.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceConnectionManagement.InputReference), comparer, Convert.ToString(value)),
 			[ResourceExposers.VirtualSignalGroupOutputId.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceConnectionManagement.OutputReference), comparer, Convert.ToString(value)),
 			[ResourceExposers.Capabilities.CapabilityId.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceCapabilities.ProfileParameterID), comparer, Convert.ToString(value)),

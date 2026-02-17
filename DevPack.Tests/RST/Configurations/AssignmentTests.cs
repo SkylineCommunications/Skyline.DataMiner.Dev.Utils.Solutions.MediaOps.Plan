@@ -48,7 +48,7 @@
                 Name = $"{prefix}_ResourcePool1",
             };
             resourcePool1.OrchestrationSettings
-                .AddConfiguration(new DiscreteTextConfigurationSetting(configuration.Id)
+                .AddConfiguration(new DiscreteTextConfigurationSetting(configuration.ID)
                 {
                     Value = configuration.Discretes.First(d => d.Value == "1"),
                 })
@@ -56,7 +56,7 @@
                 {
                     EventType = OrchestrationEventType.PrerollStart,
                     ExecutionDetails = new ScriptExecutionDetails("script 1")
-                        .AddConfiguration(new DiscreteTextConfigurationSetting(configuration.Id)
+                        .AddConfiguration(new DiscreteTextConfigurationSetting(configuration.ID)
                         {
                             Value = configuration.Discretes.First(d => d.Value == "2"),
                         }),
@@ -67,7 +67,7 @@
                 Name = $"{prefix}_ResourcePool2",
             };
             resourcePool2.OrchestrationSettings
-                .AddConfiguration(new DiscreteTextConfigurationSetting(configuration.Id)
+                .AddConfiguration(new DiscreteTextConfigurationSetting(configuration.ID)
                 {
                     Value = configuration.Discretes.First(d => d.Value == "2"),
                 })
@@ -75,7 +75,7 @@
                 {
                     EventType = OrchestrationEventType.PrerollStart,
                     ExecutionDetails = new ScriptExecutionDetails("script 1")
-                        .AddConfiguration(new DiscreteTextConfigurationSetting(configuration.Id)
+                        .AddConfiguration(new DiscreteTextConfigurationSetting(configuration.ID)
                         {
                             Value = configuration.Discretes.First(d => d.Value == "1"),
                         }),
@@ -83,7 +83,7 @@
 
             objectCreator.CreateResourcePools([resourcePool1, resourcePool2]);
 
-            configuration = TestContext.Api.Configurations.Read(configuration.Id) as DiscreteTextConfiguration;
+            configuration = TestContext.Api.Configurations.Read(configuration.ID) as DiscreteTextConfiguration;
             Assert.IsNotNull(configuration);
 
             configuration.RemoveDiscrete(configuration.Discretes.First(d => d.Value == "2"));
@@ -112,8 +112,8 @@
             Assert.AreEqual("2", configurationTextDiscreteValueInUseByResourcePoolError.DiscreteValue.Value);
             Assert.AreEqual("Value 2", configurationTextDiscreteValueInUseByResourcePoolError.DiscreteValue.DisplayName);
             Assert.AreEqual(2, configurationTextDiscreteValueInUseByResourcePoolError.ResourcePoolIds.Count);
-            Assert.IsTrue(configurationTextDiscreteValueInUseByResourcePoolError.ResourcePoolIds.Contains(resourcePool1.Id));
-            Assert.IsTrue(configurationTextDiscreteValueInUseByResourcePoolError.ResourcePoolIds.Contains(resourcePool2.Id));
+            Assert.IsTrue(configurationTextDiscreteValueInUseByResourcePoolError.ResourcePoolIds.Contains(resourcePool1.ID));
+            Assert.IsTrue(configurationTextDiscreteValueInUseByResourcePoolError.ResourcePoolIds.Contains(resourcePool2.ID));
         }
 
         [TestMethod]
@@ -138,7 +138,7 @@
                 Name = $"{prefix}_ResourcePool1",
             };
             resourcePool1.OrchestrationSettings
-                .AddConfiguration(new DiscreteNumberConfigurationSetting(configuration.Id)
+                .AddConfiguration(new DiscreteNumberConfigurationSetting(configuration.ID)
                 {
                     Value = configuration.Discretes.First(d => d.Value == 1),
                 })
@@ -146,7 +146,7 @@
                 {
                     EventType = OrchestrationEventType.PrerollStart,
                     ExecutionDetails = new ScriptExecutionDetails("script 1")
-                        .AddConfiguration(new DiscreteNumberConfigurationSetting(configuration.Id)
+                        .AddConfiguration(new DiscreteNumberConfigurationSetting(configuration.ID)
                         {
                             Value = configuration.Discretes.First(d => d.Value == 2),
                         }),
@@ -157,7 +157,7 @@
                 Name = $"{prefix}_ResourcePool2",
             };
             resourcePool2.OrchestrationSettings
-                .AddConfiguration(new DiscreteNumberConfigurationSetting(configuration.Id)
+                .AddConfiguration(new DiscreteNumberConfigurationSetting(configuration.ID)
                 {
                     Value = configuration.Discretes.First(d => d.Value == 2),
                 })
@@ -165,7 +165,7 @@
                 {
                     EventType = OrchestrationEventType.PrerollStart,
                     ExecutionDetails = new ScriptExecutionDetails("script 1")
-                        .AddConfiguration(new DiscreteNumberConfigurationSetting(configuration.Id)
+                        .AddConfiguration(new DiscreteNumberConfigurationSetting(configuration.ID)
                         {
                             Value = configuration.Discretes.First(d => d.Value == 1),
                         }),
@@ -173,7 +173,7 @@
 
             objectCreator.CreateResourcePools([resourcePool1, resourcePool2]);
 
-            configuration = TestContext.Api.Configurations.Read(configuration.Id) as DiscreteNumberConfiguration;
+            configuration = TestContext.Api.Configurations.Read(configuration.ID) as DiscreteNumberConfiguration;
             Assert.IsNotNull(configuration);
 
             configuration.RemoveDiscrete(configuration.Discretes.First(d => d.Value == 2));
@@ -202,8 +202,8 @@
             Assert.AreEqual(2, configurationNumberDiscreteValueInUseByResourcePoolError.DiscreteValue.Value);
             Assert.AreEqual("Value 2", configurationNumberDiscreteValueInUseByResourcePoolError.DiscreteValue.DisplayName);
             Assert.AreEqual(2, configurationNumberDiscreteValueInUseByResourcePoolError.ResourcePoolIds.Count);
-            Assert.IsTrue(configurationNumberDiscreteValueInUseByResourcePoolError.ResourcePoolIds.Contains(resourcePool1.Id));
-            Assert.IsTrue(configurationNumberDiscreteValueInUseByResourcePoolError.ResourcePoolIds.Contains(resourcePool2.Id));
+            Assert.IsTrue(configurationNumberDiscreteValueInUseByResourcePoolError.ResourcePoolIds.Contains(resourcePool1.ID));
+            Assert.IsTrue(configurationNumberDiscreteValueInUseByResourcePoolError.ResourcePoolIds.Contains(resourcePool2.ID));
         }
     }
 }

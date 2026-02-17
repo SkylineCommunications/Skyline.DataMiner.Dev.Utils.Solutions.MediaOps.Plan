@@ -17,7 +17,7 @@
         /// <param name="capability">The capability to use for initializing the settings. Cannot be null.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="capability"/> is <see langword="null"/>.</exception>
         public CapabilitySettings(Capability capability)
-            : this(capability?.Id ?? throw new ArgumentNullException(nameof(capability)))
+            : this(capability?.ID ?? throw new ArgumentNullException(nameof(capability)))
         {
         }
 

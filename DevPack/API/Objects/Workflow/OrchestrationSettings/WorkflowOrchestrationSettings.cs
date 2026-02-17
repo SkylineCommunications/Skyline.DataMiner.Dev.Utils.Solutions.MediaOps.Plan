@@ -271,7 +271,7 @@
         {
             if (updatedInstance == null)
             {
-                updatedInstance = IsNew ? new StorageWorkflow.ConfigurationInstance(Id) : originalInstance.Clone();
+                updatedInstance = IsNew ? new StorageWorkflow.ConfigurationInstance(ID) : originalInstance.Clone();
             }
 
             updatedInstance.ProfileParameterValues.Clear();

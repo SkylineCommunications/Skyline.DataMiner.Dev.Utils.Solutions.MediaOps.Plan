@@ -80,33 +80,33 @@
             }
 
             Assert.AreEqual(1, expectedException.Result.SuccessfulIds.Count);
-            Assert.IsTrue(expectedException.Result.SuccessfulIds.Contains(capability3.Id));
+            Assert.IsTrue(expectedException.Result.SuccessfulIds.Contains(capability3.ID));
 
             Assert.AreEqual(2, expectedException.Result.UnsuccessfulIds.Count);
-            Assert.IsTrue(expectedException.Result.UnsuccessfulIds.Contains(capability1.Id));
-            Assert.IsTrue(expectedException.Result.UnsuccessfulIds.Contains(capability2.Id));
+            Assert.IsTrue(expectedException.Result.UnsuccessfulIds.Contains(capability1.ID));
+            Assert.IsTrue(expectedException.Result.UnsuccessfulIds.Contains(capability2.ID));
 
-            capability3 = TestContext.Api.Capabilities.Read(capability3.Id);
+            capability3 = TestContext.Api.Capabilities.Read(capability3.ID);
             Assert.IsNull(capability3);
 
-            expectedException.Result.TraceDataPerItem.TryGetValue(capability1.Id, out var traceData1);
+            expectedException.Result.TraceDataPerItem.TryGetValue(capability1.ID, out var traceData1);
             Assert.IsNotNull(traceData1);
             Assert.AreEqual(1, traceData1.ErrorData.Count);
             var capabilityInUseError = traceData1.ErrorData.OfType<CapabilityInUseByResourcesError>().SingleOrDefault();
             Assert.IsNotNull(capabilityInUseError);
             Assert.AreEqual($"Capability '{capability1.Name}' is in use by 2 resource(s).", capabilityInUseError.ErrorMessage);
             Assert.AreEqual(2, capabilityInUseError.ResourceIds.Count);
-            Assert.IsTrue(capabilityInUseError.ResourceIds.Contains(unmangedResource1.Id));
-            Assert.IsTrue(capabilityInUseError.ResourceIds.Contains(unmangedResource2.Id));
+            Assert.IsTrue(capabilityInUseError.ResourceIds.Contains(unmangedResource1.ID));
+            Assert.IsTrue(capabilityInUseError.ResourceIds.Contains(unmangedResource2.ID));
 
-            expectedException.Result.TraceDataPerItem.TryGetValue(capability2.Id, out var traceData2);
+            expectedException.Result.TraceDataPerItem.TryGetValue(capability2.ID, out var traceData2);
             Assert.IsNotNull(traceData2);
             Assert.AreEqual(1, traceData2.ErrorData.Count);
             capabilityInUseError = traceData2.ErrorData.OfType<CapabilityInUseByResourcesError>().SingleOrDefault();
             Assert.IsNotNull(capabilityInUseError);
             Assert.AreEqual($"Capability '{capability2.Name}' is in use by 1 resource(s).", capabilityInUseError.ErrorMessage);
             Assert.AreEqual(1, capabilityInUseError.ResourceIds.Count);
-            Assert.IsTrue(capabilityInUseError.ResourceIds.Contains(unmangedResource1.Id));
+            Assert.IsTrue(capabilityInUseError.ResourceIds.Contains(unmangedResource1.ID));
         }
 
         [TestMethod]
@@ -163,33 +163,33 @@
             }
 
             Assert.AreEqual(1, expectedException.Result.SuccessfulIds.Count);
-            Assert.IsTrue(expectedException.Result.SuccessfulIds.Contains(capability3.Id));
+            Assert.IsTrue(expectedException.Result.SuccessfulIds.Contains(capability3.ID));
 
             Assert.AreEqual(2, expectedException.Result.UnsuccessfulIds.Count);
-            Assert.IsTrue(expectedException.Result.UnsuccessfulIds.Contains(capability1.Id));
-            Assert.IsTrue(expectedException.Result.UnsuccessfulIds.Contains(capability2.Id));
+            Assert.IsTrue(expectedException.Result.UnsuccessfulIds.Contains(capability1.ID));
+            Assert.IsTrue(expectedException.Result.UnsuccessfulIds.Contains(capability2.ID));
 
-            capability3 = TestContext.Api.Capabilities.Read(capability3.Id);
+            capability3 = TestContext.Api.Capabilities.Read(capability3.ID);
             Assert.IsNull(capability3);
 
-            expectedException.Result.TraceDataPerItem.TryGetValue(capability1.Id, out var traceData1);
+            expectedException.Result.TraceDataPerItem.TryGetValue(capability1.ID, out var traceData1);
             Assert.IsNotNull(traceData1);
             Assert.AreEqual(1, traceData1.ErrorData.Count);
             var capabilityInUseError = traceData1.ErrorData.OfType<CapabilityInUseByResourcePoolsError>().SingleOrDefault();
             Assert.IsNotNull(capabilityInUseError);
             Assert.AreEqual($"Capability '{capability1.Name}' is in use by 2 resource pool(s).", capabilityInUseError.ErrorMessage);
             Assert.AreEqual(2, capabilityInUseError.ResourcePoolIds.Count);
-            Assert.IsTrue(capabilityInUseError.ResourcePoolIds.Contains(pool1.Id));
-            Assert.IsTrue(capabilityInUseError.ResourcePoolIds.Contains(pool2.Id));
+            Assert.IsTrue(capabilityInUseError.ResourcePoolIds.Contains(pool1.ID));
+            Assert.IsTrue(capabilityInUseError.ResourcePoolIds.Contains(pool2.ID));
 
-            expectedException.Result.TraceDataPerItem.TryGetValue(capability2.Id, out var traceData2);
+            expectedException.Result.TraceDataPerItem.TryGetValue(capability2.ID, out var traceData2);
             Assert.IsNotNull(traceData2);
             Assert.AreEqual(1, traceData2.ErrorData.Count);
             capabilityInUseError = traceData2.ErrorData.OfType<CapabilityInUseByResourcePoolsError>().SingleOrDefault();
             Assert.IsNotNull(capabilityInUseError);
             Assert.AreEqual($"Capability '{capability2.Name}' is in use by 1 resource pool(s).", capabilityInUseError.ErrorMessage);
             Assert.AreEqual(1, capabilityInUseError.ResourcePoolIds.Count);
-            Assert.IsTrue(capabilityInUseError.ResourcePoolIds.Contains(pool1.Id));
+            Assert.IsTrue(capabilityInUseError.ResourcePoolIds.Contains(pool1.ID));
         }
 
         [TestMethod]
@@ -248,17 +248,17 @@
             }
 
             Assert.AreEqual(1, expectedException.Result.SuccessfulIds.Count);
-            Assert.IsTrue(expectedException.Result.SuccessfulIds.Contains(capability3.Id));
+            Assert.IsTrue(expectedException.Result.SuccessfulIds.Contains(capability3.ID));
 
             Assert.AreEqual(2, expectedException.Result.UnsuccessfulIds.Count);
-            Assert.IsTrue(expectedException.Result.UnsuccessfulIds.Contains(capability1.Id));
-            Assert.IsTrue(expectedException.Result.UnsuccessfulIds.Contains(capability2.Id));
+            Assert.IsTrue(expectedException.Result.UnsuccessfulIds.Contains(capability1.ID));
+            Assert.IsTrue(expectedException.Result.UnsuccessfulIds.Contains(capability2.ID));
 
-            capability3 = TestContext.Api.Capabilities.Read(capability3.Id);
+            capability3 = TestContext.Api.Capabilities.Read(capability3.ID);
             Assert.IsNull(capability3);
 
             // Capability 1
-            expectedException.Result.TraceDataPerItem.TryGetValue(capability1.Id, out var traceData1);
+            expectedException.Result.TraceDataPerItem.TryGetValue(capability1.ID, out var traceData1);
             Assert.IsNotNull(traceData1);
             Assert.AreEqual(2, traceData1.ErrorData.Count);
 
@@ -269,16 +269,16 @@
             Assert.IsNotNull(capabilityInUseByPoolError);
             Assert.AreEqual($"Capability '{capability1.Name}' is in use by 1 resource pool(s).", capabilityInUseByPoolError.ErrorMessage);
             Assert.AreEqual(1, capabilityInUseByPoolError.ResourcePoolIds.Count);
-            Assert.IsTrue(capabilityInUseByPoolError.ResourcePoolIds.Contains(pool.Id));
+            Assert.IsTrue(capabilityInUseByPoolError.ResourcePoolIds.Contains(pool.ID));
 
             var capability1InUseByResourceError = capabillity1InUseErrors.OfType<CapabilityInUseByResourcesError>().SingleOrDefault();
             Assert.IsNotNull(capability1InUseByResourceError);
             Assert.AreEqual($"Capability '{capability1.Name}' is in use by 1 resource(s).", capability1InUseByResourceError.ErrorMessage);
             Assert.AreEqual(1, capability1InUseByResourceError.ResourceIds.Count);
-            Assert.IsTrue(capability1InUseByResourceError.ResourceIds.Contains(unmangedResource.Id));
+            Assert.IsTrue(capability1InUseByResourceError.ResourceIds.Contains(unmangedResource.ID));
 
             // Capability 2
-            expectedException.Result.TraceDataPerItem.TryGetValue(capability2.Id, out var traceData2);
+            expectedException.Result.TraceDataPerItem.TryGetValue(capability2.ID, out var traceData2);
             Assert.IsNotNull(traceData2);
             Assert.AreEqual(1, traceData2.ErrorData.Count);
 
@@ -289,7 +289,7 @@
             Assert.IsNotNull(capability2InUseByResourceError);
             Assert.AreEqual($"Capability '{capability2.Name}' is in use by 1 resource(s).", capability2InUseByResourceError.ErrorMessage);
             Assert.AreEqual(1, capability2InUseByResourceError.ResourceIds.Count);
-            Assert.IsTrue(capability2InUseByResourceError.ResourceIds.Contains(unmangedResource.Id));
+            Assert.IsTrue(capability2InUseByResourceError.ResourceIds.Contains(unmangedResource.ID));
         }
 
         [TestMethod]
@@ -327,7 +327,7 @@
                 Assert.AreEqual(errorMessage, capabilityInUseError.ErrorMessage);
                 Assert.IsNotNull(capabilityInUseError.ResourcePoolIds);
                 Assert.AreEqual(1, capabilityInUseError.ResourcePoolIds.Count());
-                Assert.AreEqual(resourcePool.Id, capabilityInUseError.ResourcePoolIds.Single());
+                Assert.AreEqual(resourcePool.ID, capabilityInUseError.ResourcePoolIds.Single());
 
                 return;
             }
@@ -377,7 +377,7 @@
                 Assert.AreEqual(errorMessage, capabilityUseError.ErrorMessage);
                 Assert.IsNotNull(capabilityUseError.ResourcePoolIds);
                 Assert.AreEqual(1, capabilityUseError.ResourcePoolIds.Count());
-                Assert.AreEqual(resourcePool.Id, capabilityUseError.ResourcePoolIds.Single());
+                Assert.AreEqual(resourcePool.ID, capabilityUseError.ResourcePoolIds.Single());
 
                 return;
             }

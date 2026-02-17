@@ -283,7 +283,7 @@
             objectCreator.CreateConfiguration(configuration1);
             objectCreator.CreateConfiguration(configuration2);
 
-            var toUpdate = TestContext.Api.Configurations.Read(configuration2.Id);
+            var toUpdate = TestContext.Api.Configurations.Read(configuration2.ID);
             toUpdate.Name = configuration1.Name;
 
             try

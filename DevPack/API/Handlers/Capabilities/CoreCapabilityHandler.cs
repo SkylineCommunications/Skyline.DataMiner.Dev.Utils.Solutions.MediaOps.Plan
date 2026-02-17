@@ -84,7 +84,7 @@
 
             List<CoreParameter> coreParametersToCreate = new List<CoreParameter>();
             HashSet<Guid> linkedTimeDependentCapabilityIdsToCreate = new HashSet<Guid>();
-            foreach (var capabilityToCreate in toCreate.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)))
+            foreach (var capabilityToCreate in toCreate.Where(x => !TraceDataPerItem.Keys.Contains(x.ID)))
             {
                 if (capabilityToCreate.IsTimeDependent)
                 {
@@ -199,7 +199,7 @@
             }
 
             var capabilitiesWithDuplicateIds = capabilitiesRequiringValidation
-                .GroupBy(capability => capability.Id)
+                .GroupBy(capability => capability.ID)
                 .Where(g => g.Count() > 1)
                 .SelectMany(x => x)
                 .ToList();
@@ -209,15 +209,15 @@
                 var error = new CapabilityDuplicateIdError
                 {
                     ErrorMessage = $"Capability '{capability.Name}' has a duplicate ID.",
-                    Id = capability.Id,
+                    Id = capability.ID,
                 };
 
-                ReportError(capability.Id, error);
+                ReportError(capability.ID, error);
 
                 capabilitiesRequiringValidation.Remove(capability);
             }
 
-            foreach (var foundProfileParameter in planApi.CoreHelpers.ProfileProvider.GetParametersById(capabilitiesRequiringValidation.Select(x => x.Id)))
+            foreach (var foundProfileParameter in planApi.CoreHelpers.ProfileProvider.GetParametersById(capabilitiesRequiringValidation.Select(x => x.ID)))
             {
                 planApi.Logger.Information(this, $"ID is already in use by a Profile Parameter.", [foundProfileParameter.ID]);
 
@@ -250,10 +250,10 @@
                 var error = new CapabilityInvalidNameError
                 {
                     ErrorMessage = "Name cannot be empty.",
-                    Id = capability.Id,
+                    Id = capability.ID,
                 };
 
-                ReportError(capability.Id, error);
+                ReportError(capability.ID, error);
                 capabilitiesRequiringValidation.Remove(capability);
             }
 
@@ -262,11 +262,11 @@
                 var error = new CapabilityInvalidNameError
                 {
                     ErrorMessage = $"Name exceeds maximum length of {InputValidator.DefaultMaxTextLength} characters.",
-                    Id = capability.Id,
+                    Id = capability.ID,
                     Name = capability.Name,
                 };
 
-                ReportError(capability.Id, error);
+                ReportError(capability.ID, error);
                 capabilitiesRequiringValidation.Remove(capability);
             }
 
@@ -281,11 +281,11 @@
                 var error = new CapabilityDuplicateNameError
                 {
                     ErrorMessage = $"Capability '{capability.Name}' has a duplicate name.",
-                    Id = capability.Id,
+                    Id = capability.ID,
                     Name = capability.Name,
                 };
 
-                ReportError(capability.Id, error);
+                ReportError(capability.ID, error);
                 capabilitiesRequiringValidation.Remove(capability);
             }
 
@@ -298,7 +298,7 @@
                     continue;
                 }
 
-                var coreParametersWithSameNameAndDifferentIds = coreParametersWithSameName.Where(x => x.ID != capability.Id).ToList();
+                var coreParametersWithSameNameAndDifferentIds = coreParametersWithSameName.Where(x => x.ID != capability.ID).ToList();
                 if (coreParametersWithSameNameAndDifferentIds.Count == 0)
                 {
                     continue;
@@ -309,11 +309,11 @@
                 var error = new CapabilityNameExistsError
                 {
                     ErrorMessage = "Name is already in use.",
-                    Id = capability.Id,
+                    Id = capability.ID,
                     Name = capability.Name,
                 };
 
-                ReportError(capability.Id, error);
+                ReportError(capability.ID, error);
             }
         }
 
@@ -323,10 +323,10 @@
             {
                 if (capability.Discretes.Count == 0)
                 {
-                    ReportError(capability.Id, new CapabilityNoDiscretesError
+                    ReportError(capability.ID, new CapabilityNoDiscretesError
                     {
                         ErrorMessage = "Empty discretes list is not allowed.",
-                        Id = capability.Id,
+                        Id = capability.ID,
                     });
                 }
                 else
@@ -339,10 +339,10 @@
 
                     if (duplicateDiscretes.Count != 0)
                     {
-                        ReportError(capability.Id, new CapabilityDuplicateDiscretesError
+                        ReportError(capability.ID, new CapabilityDuplicateDiscretesError
                         {
                             ErrorMessage = $"The capability defines the following duplicate discretes: {String.Join(", ", duplicateDiscretes)}.",
-                            Id = capability.Id,
+                            Id = capability.ID,
                             Discretes = duplicateDiscretes,
                         });
                     }
@@ -363,7 +363,7 @@
             }
 
             var capabilityDiscreteValuesToVerify = apiCapabilities
-                .Select(x => new { ParameterId = x.Id, RemovedDiscretes = x.CoreParameter.Discretes.Except(x.Discretes).ToList() })
+                .Select(x => new { ParameterId = x.ID, RemovedDiscretes = x.CoreParameter.Discretes.Except(x.Discretes).ToList() })
                 .Where(x => x.RemovedDiscretes.Any())
                 .SelectMany(x => x.RemovedDiscretes.Select(y => new ParameterDiscreteValue<string>
                 {
@@ -386,10 +386,10 @@
                 if (capability.IsTimeDependent == capability.CoreParameter.IsTimeDependent())
                     continue;
 
-                ReportError(capability.Id, new CapabilityInvalidTimeDependencyError
+                ReportError(capability.ID, new CapabilityInvalidTimeDependencyError
                 {
                     ErrorMessage = "Changing the time dependency of a capability is not allowed.",
-                    Id = capability.Id,
+                    Id = capability.ID,
                 });
             }
         }
@@ -402,10 +402,10 @@
                 var error = new CapabilityInvalidStateError
                 {
                     ErrorMessage = $"A capability that was not saved cannot be removed.",
-                    Id = x.Id,
+                    Id = x.ID,
                 };
 
-                ReportError(x.Id, error);
+                ReportError(x.ID, error);
             });
         }
 
@@ -432,7 +432,7 @@
 
                 return new CoreParameter
                 {
-                    ID = capability.Id,
+                    ID = capability.ID,
                     Name = capability.Name,
                     Remarks = capability.IsTimeDependent ? new TimeDependentCapabilityLink { IsTimeDependent = true, LinkedParameterId = linkedTimedependantCapabilityId.Value }.Serialize() : String.Empty,
                     Categories = Skyline.DataMiner.Net.Profiles.ProfileParameterCategory.Capability,

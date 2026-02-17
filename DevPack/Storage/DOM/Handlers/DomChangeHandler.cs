@@ -306,7 +306,7 @@
             this.instance = instance ?? throw new ArgumentNullException(nameof(instance));
         }
 
-        public Guid Id => instance.ID.Id;
+        public Guid ID => instance.ID.Id;
 
         internal DomInstance Instance => instance;
 

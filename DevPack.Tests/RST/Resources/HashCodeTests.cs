@@ -184,7 +184,7 @@
                 Name = $"Capability_{Guid.NewGuid()}",
             };
             capability.SetDiscretes(new[] { "A", "B" });
-            var capabilitySetting = new CapabilitySettings(capability.Id);
+            var capabilitySetting = new CapabilitySettings(capability.ID);
             capabilitySetting.SetDiscretes(new[] { "A" });
 
             var initialHash = resource.GetHashCode();
@@ -208,7 +208,7 @@
             {
                 Name = $"Capacity_{Guid.NewGuid()}",
             };
-            var numberCapacitySetting = new NumberCapacitySetting(numberCapacity.Id)
+            var numberCapacitySetting = new NumberCapacitySetting(numberCapacity.ID)
             {
                 Value = 1,
             };
@@ -234,7 +234,7 @@
             {
                 Name = $"Property_{Guid.NewGuid()}",
             };
-            var propertySettings = new ResourcePropertySettings(property.Id)
+            var propertySettings = new ResourcePropertySettings(property.ID)
             {
                 Value = "X",
             };

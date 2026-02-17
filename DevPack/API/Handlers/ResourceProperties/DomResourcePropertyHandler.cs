@@ -93,7 +93,7 @@
 
             var changeResults = GetPropertiesWithChanges(resourcePropertiesToUpdate);
 
-            var toUpdateNameValidation = resourcePropertiesToUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcResource_StudioIds.Sections.PropertyInfo.PropertyName.Id)));
+            var toUpdateNameValidation = resourcePropertiesToUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.ID && y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcResource_StudioIds.Sections.PropertyInfo.PropertyName.Id)));
             ValidateDomNames(resourcePropertiesToCreate.Concat(toUpdateNameValidation).ToList());
 
             var toCreateDomInstances = resourcePropertiesToCreate
@@ -155,10 +155,10 @@
                 var error = new ResourcePropertyInvalidStateError
                 {
                     ErrorMessage = $"A resource property that was not saved cannot be removed.",
-                    Id = x.Id,
+                    Id = x.ID,
                 };
 
-                ReportError(x.Id, error);
+                ReportError(x.ID, error);
             });
 
             ValidatePropertiesAreNotInUse(apiResourceProperties.Except(newProperties).ToList());
@@ -216,7 +216,7 @@
             }
 
             var propertiesWithDuplicateIds = propertiesRequiringValidation
-                .GroupBy(property => property.Id)
+                .GroupBy(property => property.ID)
                 .Where(g => g.Count() > 1)
                 .SelectMany(x => x)
                 .ToList();
@@ -226,15 +226,15 @@
                 var error = new ResourcePropertyDuplicateIdError
                 {
                     ErrorMessage = $"Resource property '{property.Name}' has a duplicate ID.",
-                    Id = property.Id,
+                    Id = property.ID,
                 };
 
-                ReportError(property.Id, error);
+                ReportError(property.ID, error);
 
                 propertiesRequiringValidation.Remove(property);
             }
 
-            foreach (var foundInstance in planApi.DomHelpers.SlcResourceStudioHelper.GetResourceStudioInstances(propertiesRequiringValidation.Select(x => x.Id)))
+            foreach (var foundInstance in planApi.DomHelpers.SlcResourceStudioHelper.GetResourceStudioInstances(propertiesRequiringValidation.Select(x => x.ID)))
             {
                 planApi.Logger.Information(this, $"ID is already in use by a Resource Studio instance.", [foundInstance.ID.Id]);
 
@@ -267,10 +267,10 @@
                 var error = new ResourcePropertyInvalidNameError
                 {
                     ErrorMessage = "Name cannot be empty.",
-                    Id = property.Id,
+                    Id = property.ID,
                 };
 
-                ReportError(property.Id, error);
+                ReportError(property.ID, error);
 
                 propertiesRequiringValidation.Remove(property);
             }
@@ -280,11 +280,11 @@
                 var error = new ResourcePropertyInvalidNameError
                 {
                     ErrorMessage = $"Name exceeds maximum length of {InputValidator.DefaultMaxTextLength} characters.",
-                    Id = property.Id,
+                    Id = property.ID,
                     Name = property.Name,
                 };
 
-                ReportError(property.Id, error);
+                ReportError(property.ID, error);
 
                 propertiesRequiringValidation.Remove(property);
             }
@@ -300,11 +300,11 @@
                 var error = new ResourcePropertyDuplicateNameError
                 {
                     ErrorMessage = $"Resource property '{property.Name}' has a duplicate name.",
-                    Id = property.Id,
+                    Id = property.ID,
                     Name = property.Name,
                 };
 
-                ReportError(property.Id, error);
+                ReportError(property.ID, error);
             }
         }
 
@@ -335,7 +335,7 @@
                     continue;
                 }
 
-                var existingProperties = domProperties.Where(x => x.ID.Id != property.Id).ToList();
+                var existingProperties = domProperties.Where(x => x.ID.Id != property.ID).ToList();
                 if (existingProperties.Count == 0)
                 {
                     continue;
@@ -346,11 +346,11 @@
                 var error = new ResourcePropertyNameExistsError
                 {
                     ErrorMessage = "Name is already in use.",
-                    Id = property.Id,
+                    Id = property.ID,
                     Name = property.Name,
                 };
 
-                ReportError(property.Id, error);
+                ReportError(property.ID, error);
             }
         }
 
@@ -367,7 +367,7 @@
             }
 
             var filter = new ORFilterElement<Resource>(apiResourceProperties
-                .Select(x => ResourceExposers.Properties.PropertyId.Equal(x.Id))
+                .Select(x => ResourceExposers.Properties.PropertyId.Equal(x.ID))
                 .ToArray());
 
             var resourcesImplementingProperties = planApi.Resources.Read(filter);
@@ -379,7 +379,7 @@
 
             foreach (var property in apiResourceProperties)
             {
-                if (!resourcesByPropertyId.TryGetValue(property.Id, out var resources))
+                if (!resourcesByPropertyId.TryGetValue(property.ID, out var resources))
                 {
                     continue;
                 }
@@ -387,11 +387,11 @@
                 var error = new ResourcePropertyInUseError
                 {
                     ErrorMessage = $"Resource property '{property.Name}' is in use by {resources.Count} resource(s).",
-                    Id = property.Id,
-                    ResourceIds = resources.Select(x => x.Id).ToList(),
+                    Id = property.ID,
+                    ResourceIds = resources.Select(x => x.ID).ToList(),
                 };
 
-                ReportError(property.Id, error);
+                ReportError(property.ID, error);
             }
         }
 
@@ -418,18 +418,18 @@
                 yield break;
             }
 
-            var storedDomReesourcePropertiesById = planApi.DomHelpers.SlcResourceStudioHelper.GetResourceProperties(propertiesRequiringValidation.Select(x => x.Id)).ToDictionary(x => x.ID.Id);
+            var storedDomReesourcePropertiesById = planApi.DomHelpers.SlcResourceStudioHelper.GetResourceProperties(propertiesRequiringValidation.Select(x => x.ID)).ToDictionary(x => x.ID.Id);
             foreach (var property in propertiesRequiringValidation)
             {
-                if (!storedDomReesourcePropertiesById.TryGetValue(property.Id, out var stored))
+                if (!storedDomReesourcePropertiesById.TryGetValue(property.ID, out var stored))
                 {
                     var error = new ResourcePropertyNotFoundError
                     {
-                        ErrorMessage = $"Resource property with ID '{property.Id}' no longer exists.",
-                        Id = property.Id,
+                        ErrorMessage = $"Resource property with ID '{property.ID}' no longer exists.",
+                        Id = property.ID,
                     };
 
-                    ReportError(property.Id, error);
+                    ReportError(property.ID, error);
 
                     continue;
                 }
@@ -442,10 +442,10 @@
                         var error = new ResourcePropertyValueAlreadyChangedError
                         {
                             ErrorMessage = errorDetails.Message,
-                            Id = property.Id,
+                            Id = property.ID,
                         };
 
-                        ReportError(property.Id, error);
+                        ReportError(property.ID, error);
                     }
                 }
 

@@ -159,7 +159,7 @@
             }
 
             var capacitiesWithDuplicateIds = capacitiesRequiringValidation
-                .GroupBy(resource => resource.Id)
+                .GroupBy(resource => resource.ID)
                 .Where(g => g.Count() > 1)
                 .SelectMany(x => x)
                 .ToList();
@@ -169,15 +169,15 @@
                 var error = new CapacityDuplicateIdError
                 {
                     ErrorMessage = $"Capacity '{capacity.Name}' has a duplicate ID.",
-                    Id = capacity.Id,
+                    Id = capacity.ID,
                 };
 
-                ReportError(capacity.Id, error);
+                ReportError(capacity.ID, error);
 
                 capacitiesRequiringValidation.Remove(capacity);
             }
 
-            foreach (var foundProfileParameter in planApi.CoreHelpers.ProfileProvider.GetParametersById(capacitiesRequiringValidation.Select(x => x.Id)))
+            foreach (var foundProfileParameter in planApi.CoreHelpers.ProfileProvider.GetParametersById(capacitiesRequiringValidation.Select(x => x.ID)))
             {
                 planApi.Logger.Information(this, $"ID is already in use by a Profile Parameter.", [foundProfileParameter.ID]);
 
@@ -212,10 +212,10 @@
                     var error = new CapacityInvalidNameError
                     {
                         ErrorMessage = "Name cannot be empty.",
-                        Id = capacity.Id,
+                        Id = capacity.ID,
                     };
 
-                    ReportError(capacity.Id, error);
+                    ReportError(capacity.ID, error);
                     capacitiesRequiringValidation.Remove(capacity);
                 }
             }
@@ -227,11 +227,11 @@
                     var error = new CapacityInvalidNameError
                     {
                         ErrorMessage = $"Name exceeds maximum length of {InputValidator.DefaultMaxTextLength} characters.",
-                        Id = capacity.Id,
+                        Id = capacity.ID,
                         Name = capacity.Name,
                     };
 
-                    ReportError(capacity.Id, error);
+                    ReportError(capacity.ID, error);
                     capacitiesRequiringValidation.Remove(capacity);
                 }
             }
@@ -247,11 +247,11 @@
                 var error = new CapacityDuplicateNameError
                 {
                     ErrorMessage = $"Capacity '{capacity.Name}' has a duplicate name.",
-                    Id = capacity.Id,
+                    Id = capacity.ID,
                     Name = capacity.Name,
                 };
 
-                ReportError(capacity.Id, error);
+                ReportError(capacity.ID, error);
                 capacitiesRequiringValidation.Remove(capacity);
             }
 
@@ -266,7 +266,7 @@
                     continue;
                 }
 
-                var existingParameters = coreParameters.Where(x => x.ID != capacity.Id).ToList();
+                var existingParameters = coreParameters.Where(x => x.ID != capacity.ID).ToList();
                 if (existingParameters.Count == 0)
                 {
                     continue;
@@ -277,11 +277,11 @@
                 var error = new CapacityNameExistsError
                 {
                     ErrorMessage = "Name is already in use.",
-                    Id = capacity.Id,
+                    Id = capacity.ID,
                     Name = capacity.Name,
                 };
 
-                ReportError(capacity.Id, error);
+                ReportError(capacity.ID, error);
             }
         }
 
@@ -305,12 +305,12 @@
                     var error = new CapacityInvalidRangeError
                     {
                         ErrorMessage = "RangeMax must be greater than RangeMin.",
-                        Id = capacity.Id,
+                        Id = capacity.ID,
                         RangeMin = capacity.RangeMin.Value,
                         RangeMax = capacity.RangeMax.Value,
                     };
 
-                    ReportError(capacity.Id, error);
+                    ReportError(capacity.ID, error);
                 }
 
                 if (capacity.StepSize.HasValue && capacity.StepSize <= 0)
@@ -318,11 +318,11 @@
                     var error = new CapacityInvalidStepSizeError
                     {
                         ErrorMessage = "StepSize must be greater than 0.",
-                        Id = capacity.Id,
+                        Id = capacity.ID,
                         StepSize = capacity.StepSize.Value,
                     };
 
-                    ReportError(capacity.Id, error);
+                    ReportError(capacity.ID, error);
                 }
             }
         }
@@ -346,11 +346,11 @@
                     var error = new CapacityInvalidDecimalsError
                     {
                         ErrorMessage = "Decimals must be between 0 and 15.",
-                        Id = capacity.Id,
+                        Id = capacity.ID,
                         Decimals = capacity.Decimals.Value,
                     };
 
-                    ReportError(capacity.Id, error);
+                    ReportError(capacity.ID, error);
                     continue;
                 }
 
@@ -359,11 +359,11 @@
                     var error = new CapacityInvalidRangeMinError
                     {
                         ErrorMessage = $"RangeMin has more decimal places than allowed by Decimals ({capacity.Decimals}).",
-                        Id = capacity.Id,
+                        Id = capacity.ID,
                         RangeMin = capacity.RangeMin.Value,
                     };
 
-                    ReportError(capacity.Id, error);
+                    ReportError(capacity.ID, error);
                 }
 
                 if (capacity.RangeMax.HasValue && (Math.Round(capacity.RangeMax.Value, capacity.Decimals.Value) - capacity.RangeMax.Value) != 0)
@@ -371,11 +371,11 @@
                     var error = new CapacityInvalidRangeMaxError
                     {
                         ErrorMessage = $"RangeMax has more decimal places than allowed by Decimals ({capacity.Decimals}).",
-                        Id = capacity.Id,
+                        Id = capacity.ID,
                         RangeMax = capacity.RangeMax.Value,
                     };
 
-                    ReportError(capacity.Id, error);
+                    ReportError(capacity.ID, error);
                 }
 
                 if (capacity.StepSize.HasValue && (Math.Round(capacity.StepSize.Value, capacity.Decimals.Value) - capacity.StepSize.Value) != 0)
@@ -383,11 +383,11 @@
                     var error = new CapacityInvalidStepSizeError
                     {
                         ErrorMessage = $"StepSize has more decimal places than allowed by Decimals ({capacity.Decimals}).",
-                        Id = capacity.Id,
+                        Id = capacity.ID,
                         StepSize = capacity.StepSize.Value,
                     };
 
-                    ReportError(capacity.Id, error);
+                    ReportError(capacity.ID, error);
                 }
             }
         }
@@ -400,10 +400,10 @@
                 var error = new CapacityInvalidStateError
                 {
                     ErrorMessage = $"A capacity that was not saved cannot be removed.",
-                    Id = x.Id,
+                    Id = x.ID,
                 };
 
-                ReportError(x.Id, error);
+                ReportError(x.ID, error);
             });
         }
 

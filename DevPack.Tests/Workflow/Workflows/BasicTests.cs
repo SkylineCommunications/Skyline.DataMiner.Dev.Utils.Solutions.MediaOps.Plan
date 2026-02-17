@@ -30,7 +30,7 @@
         public void ReadWorkflowById()
         {
             var firstWorkflow = TestContext.Api.Workflows.Read().First();
-            var jobToVerify = TestContext.Api.Workflows.Read(firstWorkflow.Id);
+            var jobToVerify = TestContext.Api.Workflows.Read(firstWorkflow.ID);
 
             Assert.AreEqual(firstWorkflow, jobToVerify);
         }

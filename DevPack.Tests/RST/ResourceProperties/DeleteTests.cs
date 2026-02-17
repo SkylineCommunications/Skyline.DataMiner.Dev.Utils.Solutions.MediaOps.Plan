@@ -85,33 +85,33 @@
             }
 
             Assert.AreEqual(1, expectedException.Result.SuccessfulIds.Count);
-            Assert.IsTrue(expectedException.Result.SuccessfulIds.Contains(property3.Id));
+            Assert.IsTrue(expectedException.Result.SuccessfulIds.Contains(property3.ID));
 
             Assert.AreEqual(2, expectedException.Result.UnsuccessfulIds.Count);
-            Assert.IsTrue(expectedException.Result.UnsuccessfulIds.Contains(property1.Id));
-            Assert.IsTrue(expectedException.Result.UnsuccessfulIds.Contains(property2.Id));
+            Assert.IsTrue(expectedException.Result.UnsuccessfulIds.Contains(property1.ID));
+            Assert.IsTrue(expectedException.Result.UnsuccessfulIds.Contains(property2.ID));
 
-            property3 = TestContext.Api.ResourceProperties.Read(property3.Id);
+            property3 = TestContext.Api.ResourceProperties.Read(property3.ID);
             Assert.IsNull(property3);
 
-            expectedException.Result.TraceDataPerItem.TryGetValue(property1.Id, out var traceData1);
+            expectedException.Result.TraceDataPerItem.TryGetValue(property1.ID, out var traceData1);
             Assert.IsNotNull(traceData1);
             Assert.AreEqual(1, traceData1.ErrorData.Count);
             var resourcePropertyInUseError = traceData1.ErrorData.OfType<ResourcePropertyInUseError>().SingleOrDefault();
             Assert.IsNotNull(resourcePropertyInUseError);
             Assert.AreEqual($"Resource property '{property1.Name}' is in use by 2 resource(s).", resourcePropertyInUseError.ErrorMessage);
             Assert.AreEqual(2, resourcePropertyInUseError.ResourceIds.Count);
-            Assert.IsTrue(resourcePropertyInUseError.ResourceIds.Contains(unmangedResource1.Id));
-            Assert.IsTrue(resourcePropertyInUseError.ResourceIds.Contains(unmangedResource2.Id));
+            Assert.IsTrue(resourcePropertyInUseError.ResourceIds.Contains(unmangedResource1.ID));
+            Assert.IsTrue(resourcePropertyInUseError.ResourceIds.Contains(unmangedResource2.ID));
 
-            expectedException.Result.TraceDataPerItem.TryGetValue(property2.Id, out var traceData2);
+            expectedException.Result.TraceDataPerItem.TryGetValue(property2.ID, out var traceData2);
             Assert.IsNotNull(traceData2);
             Assert.AreEqual(1, traceData2.ErrorData.Count);
             resourcePropertyInUseError = traceData2.ErrorData.OfType<ResourcePropertyInUseError>().SingleOrDefault();
             Assert.IsNotNull(resourcePropertyInUseError);
             Assert.AreEqual($"Resource property '{property2.Name}' is in use by 1 resource(s).", resourcePropertyInUseError.ErrorMessage);
             Assert.AreEqual(1, resourcePropertyInUseError.ResourceIds.Count);
-            Assert.IsTrue(resourcePropertyInUseError.ResourceIds.Contains(unmangedResource1.Id));
+            Assert.IsTrue(resourcePropertyInUseError.ResourceIds.Contains(unmangedResource1.ID));
         }
     }
 }

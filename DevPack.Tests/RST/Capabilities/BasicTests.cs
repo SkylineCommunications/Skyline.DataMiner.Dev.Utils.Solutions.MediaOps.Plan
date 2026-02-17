@@ -43,14 +43,14 @@
 
             objectCreator.CreateCapability(capability);
 
-            var createdCapability = TestContext.Api.Capabilities.Read(capability.Id);
+            var createdCapability = TestContext.Api.Capabilities.Read(capability.ID);
             Assert.IsNotNull(createdCapability);
             Assert.AreEqual(name, createdCapability.Name);
             Assert.IsTrue(createdCapability.IsMandatory);
             CollectionAssert.AreEquivalent(new List<string> { "Value 1", "Value 2", "Value 3" }, createdCapability.Discretes.ToList());
             Assert.IsFalse(createdCapability.IsTimeDependent);
 
-            TestContext.Api.Capabilities.Delete(capability.Id);
+            TestContext.Api.Capabilities.Delete(capability.ID);
         }
 
         [TestMethod]
@@ -69,7 +69,7 @@
 
             objectCreator.CreateCapability(capability);
 
-            var mainApiCapability = TestContext.Api.Capabilities.Read(capability.Id);
+            var mainApiCapability = TestContext.Api.Capabilities.Read(capability.ID);
             Assert.IsNotNull(mainApiCapability);
             Assert.IsFalse(TestContext.Api.Capabilities.Read().Any(x => x.Name.Equals(linkedName))); // Linked capabilities should not be accessible from API
 
@@ -83,7 +83,7 @@
             Assert.IsTrue(linkedResult.IsTimeDependent);
             Assert.AreEqual(linkedCoreCapability.ID, linkedResult.LinkedParameterId);
 
-            TestContext.Api.Capabilities.Delete(capability.Id);
+            TestContext.Api.Capabilities.Delete(capability.ID);
 
             // Verify whether both parameters were removed
             mainCoreCapability = TestContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.Name.Equal(name)).SingleOrDefault();
@@ -106,7 +106,7 @@
             capability.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
             objectCreator.CreateCapability(capability);
 
-            capability = TestContext.Api.Capabilities.Read(capability.Id);
+            capability = TestContext.Api.Capabilities.Read(capability.ID);
             capability.IsTimeDependent = true;
 
             try
@@ -123,7 +123,7 @@
 
                 var capabilityConfigurationInvalidTimeDependencyError = capabilityConfigurationError as CapabilityInvalidTimeDependencyError;
                 Assert.IsNotNull(capabilityConfigurationInvalidTimeDependencyError);
-                Assert.AreEqual(capability.Id, capabilityConfigurationInvalidTimeDependencyError.Id);
+                Assert.AreEqual(capability.ID, capabilityConfigurationInvalidTimeDependencyError.Id);
                 Assert.AreEqual("Changing the time dependency of a capability is not allowed.", capabilityConfigurationError.ErrorMessage);
 
                 return;
@@ -144,7 +144,7 @@
             capability.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
             objectCreator.CreateCapability(capability);
 
-            capability = TestContext.Api.Capabilities.Read(capability.Id);
+            capability = TestContext.Api.Capabilities.Read(capability.ID);
             capability.IsTimeDependent = false;
 
             try
@@ -161,7 +161,7 @@
 
                 var capabilityConfigurationInvalidTimeDependencyError = capabilityConfigurationError as CapabilityInvalidTimeDependencyError;
                 Assert.IsNotNull(capabilityConfigurationInvalidTimeDependencyError);
-                Assert.AreEqual(capability.Id, capabilityConfigurationInvalidTimeDependencyError.Id);
+                Assert.AreEqual(capability.ID, capabilityConfigurationInvalidTimeDependencyError.Id);
                 Assert.AreEqual("Changing the time dependency of a capability is not allowed.", capabilityConfigurationError.ErrorMessage);
 
                 return;
@@ -187,7 +187,7 @@
 
             objectCreator.CreateCapability(capability);
 
-            var apiCapability = TestContext.Api.Capabilities.Read(capability.Id);
+            var apiCapability = TestContext.Api.Capabilities.Read(capability.ID);
 
             Assert.AreEqual(1, apiCapability.Discretes.Count());
             Assert.AreEqual(discreteValue, apiCapability.Discretes.Single());

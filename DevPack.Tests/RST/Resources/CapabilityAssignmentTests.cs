@@ -49,10 +49,10 @@
             capability2.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
             objectCreator.CreateCapability(capability2);
 
-            var capabilitySettings1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability1.Id);
+            var capabilitySettings1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability1.ID);
             capabilitySettings1.SetDiscretes(new[] { "Value 1", "Value 2" });
 
-            var capabilitySettings2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability2.Id);
+            var capabilitySettings2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability2.ID);
             capabilitySettings2.SetDiscretes(new[] { "Value 2", "Value 3" });
 
             // Create Resource with one capability assigned
@@ -63,23 +63,23 @@
             unmanagedResource.AddCapability(capabilitySettings1);
             objectCreator.CreateResource(unmanagedResource);
 
-            var resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
+            var resource = TestContext.Api.Resources.Read(unmanagedResource.ID);
             Assert.AreEqual(1, resource.Capabilities.Count);
             var resourceCapbility = resource.Capabilities.Single();
-            Assert.AreEqual(capability1.Id, resourceCapbility.Id);
+            Assert.AreEqual(capability1.ID, resourceCapbility.Id);
             Assert.AreEqual(2, resourceCapbility.Discretes.Count);
             Assert.IsTrue(resourceCapbility.Discretes.Contains("Value 1"));
             Assert.IsTrue(resourceCapbility.Discretes.Contains("Value 2"));
 
             // Update resource capability discretes
-            capabilitySettings1 = resource.Capabilities.First(x => x.Id == capability1.Id);
+            capabilitySettings1 = resource.Capabilities.First(x => x.Id == capability1.ID);
             capabilitySettings1.RemoveDiscrete("Value 1");
             TestContext.Api.Resources.Update(resource);
 
-            resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
+            resource = TestContext.Api.Resources.Read(unmanagedResource.ID);
             Assert.AreEqual(1, resource.Capabilities.Count);
             resourceCapbility = resource.Capabilities.Single();
-            Assert.AreEqual(capability1.Id, resourceCapbility.Id);
+            Assert.AreEqual(capability1.ID, resourceCapbility.Id);
             Assert.AreEqual(1, resourceCapbility.Discretes.Count);
             Assert.IsTrue(resourceCapbility.Discretes.Contains("Value 2"));
 
@@ -87,12 +87,12 @@
             resource.AddCapability(capabilitySettings2);
             TestContext.Api.Resources.Update(resource);
 
-            resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
+            resource = TestContext.Api.Resources.Read(unmanagedResource.ID);
             Assert.AreEqual(2, resource.Capabilities.Count);
             var expectedCapabilityData = new Dictionary<Guid, List<string>>()
             {
-                { capability1.Id, new List<string> { "Value 2" } },
-                { capability2.Id, new List<string> { "Value 2", "Value 3" } },
+                { capability1.ID, new List<string> { "Value 2" } },
+                { capability2.ID, new List<string> { "Value 2", "Value 3" } },
             };
             foreach (var capability in resource.Capabilities)
             {
@@ -107,14 +107,14 @@
             }
 
             // Update Resource to remove first capability
-            var capabilitySettingToRemove = resource.Capabilities.First(c => c.Id == capability1.Id);
+            var capabilitySettingToRemove = resource.Capabilities.First(c => c.Id == capability1.ID);
             resource.RemoveCapability(capabilitySettingToRemove);
             TestContext.Api.Resources.Update(resource);
 
-            resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
+            resource = TestContext.Api.Resources.Read(unmanagedResource.ID);
             Assert.AreEqual(1, resource.Capabilities.Count);
             resourceCapbility = resource.Capabilities.Single();
-            Assert.AreEqual(capability2.Id, resourceCapbility.Id);
+            Assert.AreEqual(capability2.ID, resourceCapbility.Id);
             Assert.AreEqual(2, resourceCapbility.Discretes.Count);
             Assert.IsTrue(resourceCapbility.Discretes.Contains("Value 2"));
             Assert.IsTrue(resourceCapbility.Discretes.Contains("Value 3"));
@@ -139,10 +139,10 @@
             capability2.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
             objectCreator.CreateCapability(capability2);
 
-            var capabilitySettings1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability1.Id);
+            var capabilitySettings1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability1.ID);
             capabilitySettings1.SetDiscretes(new[] { "Value 1", "Value 2" });
 
-            var capabilitySettings2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability2.Id);
+            var capabilitySettings2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability2.ID);
             capabilitySettings2.SetDiscretes(new[] { "Value 2", "Value 3" });
 
             // Create Resource with one capability assigned
@@ -154,12 +154,12 @@
             objectCreator.CreateResource(unmanagedResource);
 
             // Move Resource to Completed state
-            TestContext.Api.Resources.Complete(unmanagedResource.Id);
+            TestContext.Api.Resources.Complete(unmanagedResource.ID);
 
-            var resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
+            var resource = TestContext.Api.Resources.Read(unmanagedResource.ID);
             Assert.AreEqual(1, resource.Capabilities.Count);
             var resourceCapbility = resource.Capabilities.Single();
-            Assert.AreEqual(capability1.Id, resourceCapbility.Id);
+            Assert.AreEqual(capability1.ID, resourceCapbility.Id);
             Assert.AreEqual(2, resourceCapbility.Discretes.Count);
             Assert.IsTrue(resourceCapbility.Discretes.Contains("Value 1"));
             Assert.IsTrue(resourceCapbility.Discretes.Contains("Value 2"));
@@ -170,21 +170,21 @@
             // Expected capabilities + 1 > RST_ResourceType
             Assert.AreEqual(2, coreResource.Capabilities.Count);
 
-            var resourceCapability = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == capability1.Id);
+            var resourceCapability = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == capability1.ID);
             Assert.IsNotNull(resourceCapability);
             Assert.AreEqual(2, resourceCapability.Value.Discreets.Count);
             Assert.IsTrue(resourceCapability.Value.Discreets.Contains("Value 1"));
             Assert.IsTrue(resourceCapability.Value.Discreets.Contains("Value 2"));
 
             // Update capability discretes
-            capabilitySettings1 = resource.Capabilities.First(x => x.Id == capability1.Id);
+            capabilitySettings1 = resource.Capabilities.First(x => x.Id == capability1.ID);
             capabilitySettings1.RemoveDiscrete("Value 1");
             TestContext.Api.Resources.Update(resource);
 
-            resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
+            resource = TestContext.Api.Resources.Read(unmanagedResource.ID);
             Assert.AreEqual(1, resource.Capabilities.Count);
             resourceCapbility = resource.Capabilities.Single();
-            Assert.AreEqual(capability1.Id, resourceCapbility.Id);
+            Assert.AreEqual(capability1.ID, resourceCapbility.Id);
             Assert.AreEqual(1, resourceCapbility.Discretes.Count);
             Assert.IsTrue(resourceCapbility.Discretes.Contains("Value 2"));
 
@@ -194,7 +194,7 @@
             // Expected capabilities + 1 > RST_ResourceType
             Assert.AreEqual(2, coreResource.Capabilities.Count);
 
-            resourceCapability = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == capability1.Id);
+            resourceCapability = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == capability1.ID);
             Assert.IsNotNull(resourceCapability);
             Assert.AreEqual(1, resourceCapability.Value.Discreets.Count);
             Assert.IsTrue(resourceCapability.Value.Discreets.Contains("Value 2"));
@@ -203,12 +203,12 @@
             resource.AddCapability(capabilitySettings2);
             TestContext.Api.Resources.Update(resource);
 
-            resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
+            resource = TestContext.Api.Resources.Read(unmanagedResource.ID);
             Assert.AreEqual(2, resource.Capabilities.Count);
             var expectedCapabilityData = new Dictionary<Guid, List<string>>()
             {
-                { capability1.Id, new List<string> { "Value 2" } },
-                { capability2.Id, new List<string> { "Value 2", "Value 3" } },
+                { capability1.ID, new List<string> { "Value 2" } },
+                { capability2.ID, new List<string> { "Value 2", "Value 3" } },
             };
             foreach (var capability in resource.Capabilities)
             {
@@ -246,14 +246,14 @@
             }
 
             // Update Resource to remove first capability
-            var capabilitySettingToRemove = resource.Capabilities.First(c => c.Id == capability1.Id);
+            var capabilitySettingToRemove = resource.Capabilities.First(c => c.Id == capability1.ID);
             resource.RemoveCapability(capabilitySettingToRemove);
             TestContext.Api.Resources.Update(resource);
 
-            resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
+            resource = TestContext.Api.Resources.Read(unmanagedResource.ID);
             Assert.AreEqual(1, resource.Capabilities.Count);
             resourceCapbility = resource.Capabilities.Single();
-            Assert.AreEqual(capability2.Id, resourceCapbility.Id);
+            Assert.AreEqual(capability2.ID, resourceCapbility.Id);
             Assert.AreEqual(2, resourceCapbility.Discretes.Count);
             Assert.IsTrue(resourceCapbility.Discretes.Contains("Value 2"));
             Assert.IsTrue(resourceCapbility.Discretes.Contains("Value 3"));
@@ -287,13 +287,13 @@
             regularCapability.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
             objectCreator.CreateCapability(regularCapability);
 
-            var timeCapabilitySettings1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(timeCapability1.Id);
+            var timeCapabilitySettings1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(timeCapability1.ID);
             timeCapabilitySettings1.SetDiscretes(new[] { "Value 1", "Value 2" });
 
-            var timeCapabilitySettings2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(timeCapability2.Id);
+            var timeCapabilitySettings2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(timeCapability2.ID);
             timeCapabilitySettings2.SetDiscretes(new[] { "Value 2", "Value 3" });
 
-            var regularCapabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(regularCapability.Id);
+            var regularCapabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(regularCapability.ID);
             regularCapabilitySettings.SetDiscretes(new[] { "Value 1", "Value 3" });
 
             // Create Resource with one time capability assigned
@@ -305,15 +305,15 @@
             objectCreator.CreateResource(unmanagedResource);
 
             // Move Resource to Completed state
-            TestContext.Api.Resources.Complete(unmanagedResource.Id);
+            TestContext.Api.Resources.Complete(unmanagedResource.ID);
 
-            var resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
+            var resource = TestContext.Api.Resources.Read(unmanagedResource.ID);
             Assert.AreEqual(1, resource.Capabilities.Count);
 
-            var capabilities = TestContext.Api.Capabilities.Read([timeCapability1.Id, timeCapability2.Id, regularCapability.Id]);
-            timeCapability1 = capabilities.Single(c => c.Id == timeCapability1.Id);
-            timeCapability2 = capabilities.Single(c => c.Id == timeCapability2.Id);
-            regularCapability = capabilities.Single(c => c.Id == regularCapability.Id);
+            var capabilities = TestContext.Api.Capabilities.Read([timeCapability1.ID, timeCapability2.ID, regularCapability.ID]);
+            timeCapability1 = capabilities.Single(c => c.ID == timeCapability1.ID);
+            timeCapability2 = capabilities.Single(c => c.ID == timeCapability2.ID);
+            regularCapability = capabilities.Single(c => c.ID == regularCapability.ID);
 
             Assert.AreNotEqual(Guid.Empty, resource.CoreResourceId);
             var coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
@@ -321,7 +321,7 @@
             // Expected capabilities + 1 > RST_ResourceType
             Assert.AreEqual(3, coreResource.Capabilities.Count);
 
-            var resourceCapability1 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapability1.Id);
+            var resourceCapability1 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapability1.ID);
             Assert.IsNotNull(resourceCapability1);
             Assert.AreEqual(2, resourceCapability1.Value.Discreets.Count);
             Assert.IsTrue(resourceCapability1.Value.Discreets.Contains("Value 1"));
@@ -335,7 +335,7 @@
             resource.AddCapability(timeCapabilitySettings2);
             TestContext.Api.Resources.Update(resource);
 
-            resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
+            resource = TestContext.Api.Resources.Read(unmanagedResource.ID);
             Assert.AreEqual(2, resource.Capabilities.Count);
 
             Assert.AreNotEqual(Guid.Empty, resource.CoreResourceId);
@@ -344,7 +344,7 @@
             // Expected capabilities + 1 > RST_ResourceType
             Assert.AreEqual(5, coreResource.Capabilities.Count);
 
-            resourceCapability1 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapability1.Id);
+            resourceCapability1 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapability1.ID);
             Assert.IsNotNull(resourceCapability1);
             Assert.AreEqual(2, resourceCapability1.Value.Discreets.Count);
             Assert.IsTrue(resourceCapability1.Value.Discreets.Contains("Value 1"));
@@ -354,7 +354,7 @@
             Assert.IsNotNull(resourceTimeDependentCapability1);
             Assert.IsTrue(resourceTimeDependentCapability1.IsTimeDynamic);
 
-            var resourceCapability2 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapability2.Id);
+            var resourceCapability2 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapability2.ID);
             Assert.IsNotNull(resourceCapability2);
             Assert.AreEqual(2, resourceCapability2.Value.Discreets.Count);
             Assert.IsTrue(resourceCapability2.Value.Discreets.Contains("Value 2"));
@@ -368,7 +368,7 @@
             resource.AddCapability(regularCapabilitySettings);
             TestContext.Api.Resources.Update(resource);
 
-            resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
+            resource = TestContext.Api.Resources.Read(unmanagedResource.ID);
             Assert.AreEqual(3, resource.Capabilities.Count);
 
             Assert.AreNotEqual(Guid.Empty, resource.CoreResourceId);
@@ -377,7 +377,7 @@
             // Expected capabilities + 1 > RST_ResourceType
             Assert.AreEqual(6, coreResource.Capabilities.Count);
 
-            resourceCapability1 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapability1.Id);
+            resourceCapability1 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapability1.ID);
             Assert.IsNotNull(resourceCapability1);
             Assert.AreEqual(2, resourceCapability1.Value.Discreets.Count);
             Assert.IsTrue(resourceCapability1.Value.Discreets.Contains("Value 1"));
@@ -387,7 +387,7 @@
             Assert.IsNotNull(resourceTimeDependentCapability1);
             Assert.IsTrue(resourceTimeDependentCapability1.IsTimeDynamic);
 
-            resourceCapability2 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapability2.Id);
+            resourceCapability2 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapability2.ID);
             Assert.IsNotNull(resourceCapability2);
             Assert.AreEqual(2, resourceCapability2.Value.Discreets.Count);
             Assert.IsTrue(resourceCapability2.Value.Discreets.Contains("Value 2"));
@@ -397,18 +397,18 @@
             Assert.IsNotNull(resourceTimeDependentCapability2);
             Assert.IsTrue(resourceTimeDependentCapability2.IsTimeDynamic);
 
-            var resourceCapability3 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == regularCapability.Id);
+            var resourceCapability3 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == regularCapability.ID);
             Assert.IsNotNull(resourceCapability3);
             Assert.AreEqual(2, resourceCapability3.Value.Discreets.Count);
             Assert.IsTrue(resourceCapability3.Value.Discreets.Contains("Value 1"));
             Assert.IsTrue(resourceCapability3.Value.Discreets.Contains("Value 3"));
 
             // Update Resource to remove first capability
-            var capabilitySettingToRemove = resource.Capabilities.First(c => c.Id == timeCapability1.Id);
+            var capabilitySettingToRemove = resource.Capabilities.First(c => c.Id == timeCapability1.ID);
             resource.RemoveCapability(capabilitySettingToRemove);
             TestContext.Api.Resources.Update(resource);
 
-            resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
+            resource = TestContext.Api.Resources.Read(unmanagedResource.ID);
             Assert.AreEqual(2, resource.Capabilities.Count);
 
             Assert.AreNotEqual(Guid.Empty, resource.CoreResourceId);
@@ -417,7 +417,7 @@
             // Expected capabilities + 1 > RST_ResourceType
             Assert.AreEqual(4, coreResource.Capabilities.Count);
 
-            resourceCapability2 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapability2.Id);
+            resourceCapability2 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == timeCapability2.ID);
             Assert.IsNotNull(resourceCapability2);
             Assert.AreEqual(2, resourceCapability2.Value.Discreets.Count);
             Assert.IsTrue(resourceCapability2.Value.Discreets.Contains("Value 2"));
@@ -427,7 +427,7 @@
             Assert.IsNotNull(resourceTimeDependentCapability2);
             Assert.IsTrue(resourceTimeDependentCapability2.IsTimeDynamic);
 
-            resourceCapability3 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == regularCapability.Id);
+            resourceCapability3 = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == regularCapability.ID);
             Assert.IsNotNull(resourceCapability3);
             Assert.AreEqual(2, resourceCapability3.Value.Discreets.Count);
             Assert.IsTrue(resourceCapability3.Value.Discreets.Contains("Value 1"));
@@ -446,7 +446,7 @@
             capability.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
             objectCreator.CreateCapability(capability);
 
-            var capabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability.Id);
+            var capabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability.ID);
             capabilitySettings.SetDiscretes(new[] { "Value 1", "Value 2" });
 
             var unmanagedResource = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
@@ -456,7 +456,7 @@
             unmanagedResource.AddCapability(capabilitySettings);
             objectCreator.CreateResource(unmanagedResource);
 
-            var domResource = TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(unmanagedResource.Id)).SingleOrDefault();
+            var domResource = TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(unmanagedResource.ID)).SingleOrDefault();
             Assert.IsTrue(domResource.Sections.Exists(s => s.SectionDefinitionID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ResourceCapabilities.Id.Id));
 
             var domResourceCapabilitiesSections = domResource.Sections.Where(s => s.SectionDefinitionID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ResourceCapabilities.Id.Id).ToList();
@@ -466,7 +466,7 @@
             var fdProfileParameterId = domResourceCapability.FieldValues.SingleOrDefault(f => f.FieldDescriptorID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ResourceCapabilities.ProfileParameterID.Id);
             Assert.IsNotNull(fdProfileParameterId);
             Assert.IsTrue(Guid.TryParse(Convert.ToString(fdProfileParameterId.Value.Value), out var profileParameterId));
-            Assert.AreEqual(capability.Id, profileParameterId);
+            Assert.AreEqual(capability.ID, profileParameterId);
 
             var fdStringValue = domResourceCapability.FieldValues.SingleOrDefault(f => f.FieldDescriptorID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ResourceCapabilities.StringValue.Id);
             Assert.IsNotNull(fdStringValue);
@@ -541,7 +541,7 @@
                 Name = $"{prefix}_Resource",
             };
 
-            var capabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability.Id);
+            var capabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability.ID);
             unmanagedResource.AddCapability(capabilitySettings);
 
             try
@@ -560,7 +560,7 @@
                 var invalidResourceCapabilitySettingsError = resourceConfigurationError as ResourceInvalidCapabilitySettingsError;
                 Assert.IsNotNull(invalidResourceCapabilitySettingsError);
                 Assert.AreEqual(errorMessage, invalidResourceCapabilitySettingsError.ErrorMessage);
-                Assert.AreEqual(capability.Id, invalidResourceCapabilitySettingsError.CapabilityId);
+                Assert.AreEqual(capability.ID, invalidResourceCapabilitySettingsError.CapabilityId);
 
                 return;
             }
@@ -585,7 +585,7 @@
                 Name = $"{prefix}_Resource",
             };
 
-            var capabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability.Id);
+            var capabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability.ID);
             capabilitySettings.SetDiscretes(new[] { "Value 2", "Value 5" });
             unmanagedResource.AddCapability(capabilitySettings);
 
@@ -605,7 +605,7 @@
                 var invalidResourceCapabilitySettingsError = resourceConfigurationError as ResourceInvalidCapabilitySettingsError;
                 Assert.IsNotNull(invalidResourceCapabilitySettingsError);
                 Assert.AreEqual(errorMessage, invalidResourceCapabilitySettingsError.ErrorMessage);
-                Assert.AreEqual(capability.Id, invalidResourceCapabilitySettingsError.CapabilityId);
+                Assert.AreEqual(capability.ID, invalidResourceCapabilitySettingsError.CapabilityId);
 
                 return;
             }
@@ -634,9 +634,9 @@
             {
                 Name = $"{prefix}_Resource",
             }
-            .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability1.Id).AddDiscrete("Value 1"))
-            .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability2.Id).AddDiscrete("Value 2"))
-            .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability1.Id).AddDiscrete("Value 3"));
+            .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability1.ID).AddDiscrete("Value 1"))
+            .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability2.ID).AddDiscrete("Value 2"))
+            .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability1.ID).AddDiscrete("Value 3"));
 
             try
             {
@@ -644,7 +644,7 @@
             }
             catch (MediaOpsException ex)
             {
-                var errorMessage = $"Capability with ID '{capability1.Id}' is defined 2 times. Duplicate capability settings are not allowed.";
+                var errorMessage = $"Capability with ID '{capability1.ID}' is defined 2 times. Duplicate capability settings are not allowed.";
                 Assert.AreEqual(errorMessage, ex.Message);
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
 
@@ -654,8 +654,8 @@
                 var invalidResourceCapabilitySettingsError = resourceConfigurationError as ResourceInvalidCapabilitySettingsError;
                 Assert.IsNotNull(invalidResourceCapabilitySettingsError);
                 Assert.AreEqual(errorMessage, invalidResourceCapabilitySettingsError.ErrorMessage);
-                Assert.AreEqual(capability1.Id, invalidResourceCapabilitySettingsError.CapabilityId);
-                Assert.AreEqual(unmanagedResource.Id, invalidResourceCapabilitySettingsError.Id);
+                Assert.AreEqual(capability1.ID, invalidResourceCapabilitySettingsError.CapabilityId);
+                Assert.AreEqual(unmanagedResource.ID, invalidResourceCapabilitySettingsError.Id);
 
                 return;
             }
@@ -684,12 +684,12 @@
             {
                 Name = $"{prefix}_Resource",
             }
-            .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability1.Id).AddDiscrete("Value 1"))
-            .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability2.Id).AddDiscrete("Value 2"));
+            .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability1.ID).AddDiscrete("Value 1"))
+            .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability2.ID).AddDiscrete("Value 2"));
             objectCreator.CreateResource(unmanagedResource);
 
-            var resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
-            resource.AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability1.Id).AddDiscrete("Value 3"));
+            var resource = TestContext.Api.Resources.Read(unmanagedResource.ID);
+            resource.AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability1.ID).AddDiscrete("Value 3"));
 
             try
             {
@@ -697,7 +697,7 @@
             }
             catch (MediaOpsException ex)
             {
-                var errorMessage = $"Capability with ID '{capability1.Id}' is defined 2 times. Duplicate capability settings are not allowed.";
+                var errorMessage = $"Capability with ID '{capability1.ID}' is defined 2 times. Duplicate capability settings are not allowed.";
                 Assert.AreEqual(errorMessage, ex.Message);
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
 
@@ -707,8 +707,8 @@
                 var invalidResourceCapabilitySettingsError = resourceConfigurationError as ResourceInvalidCapabilitySettingsError;
                 Assert.IsNotNull(invalidResourceCapabilitySettingsError);
                 Assert.AreEqual(errorMessage, invalidResourceCapabilitySettingsError.ErrorMessage);
-                Assert.AreEqual(capability1.Id, invalidResourceCapabilitySettingsError.CapabilityId);
-                Assert.AreEqual(unmanagedResource.Id, invalidResourceCapabilitySettingsError.Id);
+                Assert.AreEqual(capability1.ID, invalidResourceCapabilitySettingsError.CapabilityId);
+                Assert.AreEqual(unmanagedResource.ID, invalidResourceCapabilitySettingsError.Id);
 
                 return;
             }
@@ -732,10 +732,10 @@
             {
                 Name = $"{prefix}_Resource1",
             }
-            .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability.Id).AddDiscrete("Value 2"));
+            .AddCapability(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability.ID).AddDiscrete("Value 2"));
 
             objectCreator.CreateResource(unmanagedResource1);
-            var resource1 = TestContext.Api.Resources.Read(unmanagedResource1.Id);
+            var resource1 = TestContext.Api.Resources.Read(unmanagedResource1.ID);
 
             var unmanagedResource2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
             {
@@ -749,7 +749,7 @@
 
             objectCreator.CreateResource(unmanagedResource2);
 
-            var resource2 = TestContext.Api.Resources.Read(unmanagedResource2.Id);
+            var resource2 = TestContext.Api.Resources.Read(unmanagedResource2.ID);
             Assert.IsNotNull(resource2);
         }
 
@@ -765,7 +765,7 @@
             capability.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
             objectCreator.CreateCapability(capability);
 
-            var capabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability.Id);
+            var capabilitySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.CapabilitySettings(capability.ID);
             capabilitySettings.SetDiscretes(new[] { "Value 1" });
 
             var unmanagedResource = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()

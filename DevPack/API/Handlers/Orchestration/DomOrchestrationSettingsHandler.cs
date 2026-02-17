@@ -140,18 +140,18 @@
                 return changeResults;
             }
 
-            var storedDomConfigurationsById = planApi.DomHelpers.SlcResourceStudioHelper.GetConfigurations(orchestrationSettingsRequiringValidation.Select(x => x.Id)).ToDictionary(x => x.ID.Id);
+            var storedDomConfigurationsById = planApi.DomHelpers.SlcResourceStudioHelper.GetConfigurations(orchestrationSettingsRequiringValidation.Select(x => x.ID)).ToDictionary(x => x.ID.Id);
             foreach (var orchestrationSetting in orchestrationSettingsRequiringValidation)
             {
-                if (!storedDomConfigurationsById.TryGetValue(orchestrationSetting.Id, out var stored))
+                if (!storedDomConfigurationsById.TryGetValue(orchestrationSetting.ID, out var stored))
                 {
                     var error = new OrchestrationSettingsNotFoundError
                     {
-                        ErrorMessage = $"Resource studio orchestration setting with ID '{orchestrationSetting.Id}' no longer exists.",
-                        Id = orchestrationSetting.Id,
+                        ErrorMessage = $"Resource studio orchestration setting with ID '{orchestrationSetting.ID}' no longer exists.",
+                        Id = orchestrationSetting.ID,
                     };
 
-                    ReportError(orchestrationSetting.Id, error);
+                    ReportError(orchestrationSetting.ID, error);
 
                     continue;
                 }
@@ -164,10 +164,10 @@
                         var error = new OrchestrationSettingsValueAlreadyChangedError
                         {
                             ErrorMessage = errorDetails.Message,
-                            Id = orchestrationSetting.Id,
+                            Id = orchestrationSetting.ID,
                         };
 
-                        ReportError(orchestrationSetting.Id, error);
+                        ReportError(orchestrationSetting.ID, error);
                     }
 
                     continue;
@@ -258,7 +258,7 @@
                 .Select(x => x.Id)
                 .Distinct()
                 .ToList();
-            var capacitiesById = planApi.Capacities.Read(capacityIds).ToDictionary(x => x.Id);
+            var capacitiesById = planApi.Capacities.Read(capacityIds).ToDictionary(x => x.ID);
 
             foreach (var orchestrationSettings in apiOrchestrationSettings)
             {
@@ -273,10 +273,10 @@
                     {
                         ErrorMessage = $"Capacity with ID '{kvp.Key}' is defined {kvp.Value} times. Duplicate capacity settings are not allowed.",
                         CapacityId = kvp.Key,
-                        Id = orchestrationSettings.Id,
+                        Id = orchestrationSettings.ID,
                     };
 
-                    ReportError(orchestrationSettings.Id, error);
+                    ReportError(orchestrationSettings.ID, error);
                 }
 
                 if (duplicateSettings.Count > 0)
@@ -292,10 +292,10 @@
                         {
                             ErrorMessage = "Capacity ID cannot be empty.",
                             CapacityId = capacitySetting.Id,
-                            Id = orchestrationSettings.Id,
+                            Id = orchestrationSettings.ID,
                         };
 
-                        ReportError(orchestrationSettings.Id, error);
+                        ReportError(orchestrationSettings.ID, error);
                         continue;
                     }
 
@@ -305,10 +305,10 @@
                         {
                             ErrorMessage = $"Capacity with ID '{capacitySetting.Id}' not found.",
                             CapacityId = capacitySetting.Id,
-                            Id = orchestrationSettings.Id,
+                            Id = orchestrationSettings.ID,
                         };
 
-                        ReportError(orchestrationSettings.Id, error);
+                        ReportError(orchestrationSettings.ID, error);
                     }
 
                     // Not needed as long as there are no values assigned
@@ -334,7 +334,7 @@
                 .Select(x => x.Id)
                 .Distinct()
                 .ToList();
-            var capabilitiesById = planApi.Capabilities.Read(capabilityIds).ToDictionary(x => x.Id);
+            var capabilitiesById = planApi.Capabilities.Read(capabilityIds).ToDictionary(x => x.ID);
 
             foreach (var orchestrationSettings in apiOrchestrationSettings)
             {
@@ -349,10 +349,10 @@
                     {
                         ErrorMessage = $"Capability with ID '{kvp.Key}' is defined {kvp.Value} times. Duplicate capability settings are not allowed.",
                         CapabilityId = kvp.Key,
-                        Id = orchestrationSettings.Id,
+                        Id = orchestrationSettings.ID,
                     };
 
-                    ReportError(orchestrationSettings.Id, error);
+                    ReportError(orchestrationSettings.ID, error);
                 }
 
                 if (duplicateSettings.Count > 0)
@@ -368,7 +368,7 @@
                         {
                             ErrorMessage = "Capability ID cannot be empty.",
                             CapabilityId = capabilitySetting.Id,
-                            Id = orchestrationSettings.Id,
+                            Id = orchestrationSettings.ID,
                         };
 
                         ReportError(capabilitySetting.Id, error);
@@ -381,7 +381,7 @@
                         {
                             ErrorMessage = $"Capability with ID '{capabilitySetting.Id}' not found.",
                             CapabilityId = capabilitySetting.Id,
-                            Id = orchestrationSettings.Id,
+                            Id = orchestrationSettings.ID,
                         };
 
                         ReportError(capabilitySetting.Id, error);
@@ -436,7 +436,7 @@
                 .Distinct()
                 .ToList();
 
-            var configurationsById = planApi.Configurations.Read(configurationIds).ToDictionary(x => x.Id);
+            var configurationsById = planApi.Configurations.Read(configurationIds).ToDictionary(x => x.ID);
 
             foreach (var orchestrationSettings in apiOrchestrationSettings)
             {
@@ -451,10 +451,10 @@
                     {
                         ErrorMessage = $"Configuration with ID '{kvp.Key}' is defined {kvp.Value} times. Duplicate configuration settings are not allowed.",
                         ConfigurationId = kvp.Key,
-                        Id = orchestrationSettings.Id,
+                        Id = orchestrationSettings.ID,
                     };
 
-                    ReportError(orchestrationSettings.Id, error);
+                    ReportError(orchestrationSettings.ID, error);
                 }
 
                 if (duplicateSettings.Count > 0)
@@ -470,7 +470,7 @@
                         {
                             ErrorMessage = "Configuration ID cannot be empty.",
                             ConfigurationId = configurationSetting.Id,
-                            Id = orchestrationSettings.Id,
+                            Id = orchestrationSettings.ID,
                         };
 
                         ReportError(configurationSetting.Id, error);
@@ -483,7 +483,7 @@
                         {
                             ErrorMessage = $"Configuration with ID '{configurationSetting.Id}' not found.",
                             ConfigurationId = configurationSetting.Id,
-                            Id = orchestrationSettings.Id,
+                            Id = orchestrationSettings.ID,
                         };
 
                         ReportError(configurationSetting.Id, error);

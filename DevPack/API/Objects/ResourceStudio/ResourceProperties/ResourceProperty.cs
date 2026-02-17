@@ -51,7 +51,7 @@
             unchecked
             {
                 int hash = 17;
-                hash = (hash * 23) + Id.GetHashCode();
+                hash = (hash * 23) + ID.GetHashCode();
                 hash = (hash * 23) + (Name != null ? Name.GetHashCode() : 0);
                 return hash;
             }
@@ -70,14 +70,14 @@
                 return false;
             }
 
-            return Id == other.Id && Name == other.Name;
+            return ID == other.ID && Name == other.Name;
         }
 
         internal StorageResourceStudio.ResourcepropertyInstance GetInstanceWithChanges()
         {
             if (updatedInstance == null)
             {
-                updatedInstance = IsNew ? new StorageResourceStudio.ResourcepropertyInstance(Id) : originalInstance.Clone();
+                updatedInstance = IsNew ? new StorageResourceStudio.ResourcepropertyInstance(ID) : originalInstance.Clone();
             }
 
             updatedInstance.PropertyInfo.PropertyName = Name;

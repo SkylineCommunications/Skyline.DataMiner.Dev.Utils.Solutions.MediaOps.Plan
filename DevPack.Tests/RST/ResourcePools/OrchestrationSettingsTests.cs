@@ -49,7 +49,7 @@
             // Add
             orchestrationSettings.AddCapability(new CapabilitySetting(capability));
             Assert.AreEqual(1, orchestrationSettings.Capabilities.Count);
-            Assert.AreEqual(capability.Id, orchestrationSettings.Capabilities.Single().Id);
+            Assert.AreEqual(capability.ID, orchestrationSettings.Capabilities.Single().Id);
 
             orchestrationSettings.RemoveCapability(orchestrationSettings.Capabilities.Single());
             Assert.AreEqual(0, orchestrationSettings.Capabilities.Count);
@@ -83,8 +83,8 @@
                 .AddCapacity(new RangeCapacitySetting(rangeCapacity));
 
             Assert.AreEqual(2, orchestrationSettings.Capacities.Count);
-            Assert.IsTrue(orchestrationSettings.Capacities.Any(c => c.Id == numberCapacity.Id));
-            Assert.IsTrue(orchestrationSettings.Capacities.Any(c => c.Id == rangeCapacity.Id));
+            Assert.IsTrue(orchestrationSettings.Capacities.Any(c => c.Id == numberCapacity.ID));
+            Assert.IsTrue(orchestrationSettings.Capacities.Any(c => c.Id == rangeCapacity.ID));
 
             foreach (var capacity in orchestrationSettings.Capacities.ToList())
             {
@@ -135,10 +135,10 @@
 
             Assert.AreEqual(4, orchestrationSettings.Configurations.Count);
             var configurationIds = orchestrationSettings.Configurations.Select(c => c.Id).ToList();
-            Assert.IsTrue(configurationIds.Contains(textConfiguration.Id));
-            Assert.IsTrue(configurationIds.Contains(numberConfiguration.Id));
-            Assert.IsTrue(configurationIds.Contains(discreteTextConfiguration.Id));
-            Assert.IsTrue(configurationIds.Contains(discreteNumberConfiguration.Id));
+            Assert.IsTrue(configurationIds.Contains(textConfiguration.ID));
+            Assert.IsTrue(configurationIds.Contains(numberConfiguration.ID));
+            Assert.IsTrue(configurationIds.Contains(discreteTextConfiguration.ID));
+            Assert.IsTrue(configurationIds.Contains(discreteNumberConfiguration.ID));
 
             foreach (var configuration in orchestrationSettings.Configurations.ToList())
             {
@@ -170,10 +170,10 @@
             // Add
             orchestrationSettings.AddCapability(new CapabilitySetting(capability));
             Assert.AreEqual(1, orchestrationSettings.Capabilities.Count);
-            Assert.AreEqual(capability.Id, orchestrationSettings.Capabilities.Single().Id);
+            Assert.AreEqual(capability.ID, orchestrationSettings.Capabilities.Single().Id);
 
             objectCreator.CreateResourcePool(resourcePool);
-            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.ID);
 
             resourcePool.OrchestrationSettings.RemoveCapability(orchestrationSettings.Capabilities.Single());
             Assert.AreEqual(0, resourcePool.OrchestrationSettings.Capabilities.Count);
@@ -207,11 +207,11 @@
                 .AddCapacity(new RangeCapacitySetting(rangeCapacity));
 
             Assert.AreEqual(2, orchestrationSettings.Capacities.Count);
-            Assert.IsTrue(orchestrationSettings.Capacities.Any(c => c.Id == numberCapacity.Id));
-            Assert.IsTrue(orchestrationSettings.Capacities.Any(c => c.Id == rangeCapacity.Id));
+            Assert.IsTrue(orchestrationSettings.Capacities.Any(c => c.Id == numberCapacity.ID));
+            Assert.IsTrue(orchestrationSettings.Capacities.Any(c => c.Id == rangeCapacity.ID));
 
             objectCreator.CreateResourcePool(resourcePool);
-            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.ID);
 
             foreach (var capacity in orchestrationSettings.Capacities.ToList())
             {
@@ -262,13 +262,13 @@
 
             Assert.AreEqual(4, orchestrationSettings.Configurations.Count);
             var configurationIds = orchestrationSettings.Configurations.Select(c => c.Id).ToList();
-            Assert.IsTrue(configurationIds.Contains(textConfiguration.Id));
-            Assert.IsTrue(configurationIds.Contains(numberConfiguration.Id));
-            Assert.IsTrue(configurationIds.Contains(discreteTextConfiguration.Id));
-            Assert.IsTrue(configurationIds.Contains(discreteNumberConfiguration.Id));
+            Assert.IsTrue(configurationIds.Contains(textConfiguration.ID));
+            Assert.IsTrue(configurationIds.Contains(numberConfiguration.ID));
+            Assert.IsTrue(configurationIds.Contains(discreteTextConfiguration.ID));
+            Assert.IsTrue(configurationIds.Contains(discreteNumberConfiguration.ID));
 
             objectCreator.CreateResourcePool(resourcePool);
-            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.ID);
 
             foreach (var configuration in orchestrationSettings.Configurations.ToList())
             {
@@ -334,7 +334,7 @@
                 .AddConfiguration(new DiscreteNumberConfigurationSetting(discreteNumberConfiguration));
             objectCreator.CreateResourcePool(resourcePool);
 
-            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.ID);
             Assert.IsNotNull(resourcePool);
             Assert.IsNotNull(resourcePool.OrchestrationSettings);
             Assert.AreEqual(1, resourcePool.OrchestrationSettings.Capabilities.Count);
@@ -342,19 +342,19 @@
             Assert.AreEqual(4, resourcePool.OrchestrationSettings.Configurations.Count);
 
             var capabilityIds = resourcePool.OrchestrationSettings.Capabilities.Select(c => c.Id).ToList();
-            Assert.IsTrue(capabilityIds.Contains(capability.Id));
+            Assert.IsTrue(capabilityIds.Contains(capability.ID));
 
             var capacityIds = resourcePool.OrchestrationSettings.Capacities.Select(c => c.Id).ToList();
-            Assert.IsTrue(capacityIds.Contains(numberCapacity.Id));
-            Assert.IsTrue(capacityIds.Contains(rangeCapacity.Id));
+            Assert.IsTrue(capacityIds.Contains(numberCapacity.ID));
+            Assert.IsTrue(capacityIds.Contains(rangeCapacity.ID));
 
             var configurationIds = resourcePool.OrchestrationSettings.Configurations.Select(c => c.Id).ToList();
-            Assert.IsTrue(configurationIds.Contains(textConfiguration.Id));
-            Assert.IsTrue(configurationIds.Contains(numberConfiguration.Id));
-            Assert.IsTrue(configurationIds.Contains(discreteTextConfiguration.Id));
+            Assert.IsTrue(configurationIds.Contains(textConfiguration.ID));
+            Assert.IsTrue(configurationIds.Contains(numberConfiguration.ID));
+            Assert.IsTrue(configurationIds.Contains(discreteTextConfiguration.ID));
 
             // Discrete number configuration contains two discrete values, only one is added as configuration references the existing object
-            Assert.IsTrue(configurationIds.Contains(discreteNumberConfiguration.Id));
+            Assert.IsTrue(configurationIds.Contains(discreteNumberConfiguration.ID));
         }
 
         [TestMethod]
@@ -405,7 +405,7 @@
             };
 
             objectCreator.CreateResourcePool(resourcePool);
-            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.ID);
 
             resourcePool.OrchestrationSettings
                 .AddCapability(new CapabilitySetting(capability))
@@ -417,7 +417,7 @@
                 .AddConfiguration(new DiscreteNumberConfigurationSetting(discreteNumberConfiguration));
 
             TestContext.Api.ResourcePools.Update(resourcePool);
-            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.ID);
 
             Assert.IsNotNull(resourcePool);
             Assert.IsNotNull(resourcePool.OrchestrationSettings);
@@ -426,17 +426,17 @@
             Assert.AreEqual(4, resourcePool.OrchestrationSettings.Configurations.Count);
 
             var capabilityIds = resourcePool.OrchestrationSettings.Capabilities.Select(c => c.Id).ToList();
-            Assert.IsTrue(capabilityIds.Contains(capability.Id));
+            Assert.IsTrue(capabilityIds.Contains(capability.ID));
 
             var capacityIds = resourcePool.OrchestrationSettings.Capacities.Select(c => c.Id).ToList();
-            Assert.IsTrue(capacityIds.Contains(numberCapacity.Id));
-            Assert.IsTrue(capacityIds.Contains(rangeCapacity.Id));
+            Assert.IsTrue(capacityIds.Contains(numberCapacity.ID));
+            Assert.IsTrue(capacityIds.Contains(rangeCapacity.ID));
 
             var configurationIds = resourcePool.OrchestrationSettings.Configurations.Select(c => c.Id).ToList();
-            Assert.IsTrue(configurationIds.Contains(textConfiguration.Id));
-            Assert.IsTrue(configurationIds.Contains(numberConfiguration.Id));
-            Assert.IsTrue(configurationIds.Contains(discreteTextConfiguration.Id));
-            Assert.IsTrue(configurationIds.Contains(discreteNumberConfiguration.Id));
+            Assert.IsTrue(configurationIds.Contains(textConfiguration.ID));
+            Assert.IsTrue(configurationIds.Contains(numberConfiguration.ID));
+            Assert.IsTrue(configurationIds.Contains(discreteTextConfiguration.ID));
+            Assert.IsTrue(configurationIds.Contains(discreteNumberConfiguration.ID));
         }
 
         [TestMethod]
@@ -487,7 +487,7 @@
             };
 
             objectCreator.CreateResourcePool(resourcePool);
-            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.ID);
 
             resourcePool.OrchestrationSettings.AddOrchestrationEvent(new OrchestrationEvent
             {
@@ -504,7 +504,7 @@
             });
 
             TestContext.Api.ResourcePools.Update(resourcePool);
-            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.ID);
 
             Assert.IsNotNull(resourcePool);
             Assert.IsNotNull(resourcePool.OrchestrationSettings);
@@ -518,42 +518,42 @@
             Assert.AreEqual(4, orchestrationEvent.ExecutionDetails.Configurations.Count);
 
             var capabilityIds = orchestrationEvent.ExecutionDetails.Capabilities.Select(c => c.Id).ToList();
-            Assert.IsTrue(capabilityIds.Contains(capability.Id));
+            Assert.IsTrue(capabilityIds.Contains(capability.ID));
             Assert.IsNotNull(orchestrationEvent.ExecutionDetails.Capabilities.First());
             Assert.IsNull(orchestrationEvent.ExecutionDetails.Capabilities.First().Value);
 
             var capacityIds = orchestrationEvent.ExecutionDetails.Capacities.Select(c => c.Id).ToList();
-            Assert.IsTrue(capacityIds.Contains(numberCapacity.Id));
-            Assert.IsTrue(capacityIds.Contains(rangeCapacity.Id));
+            Assert.IsTrue(capacityIds.Contains(numberCapacity.ID));
+            Assert.IsTrue(capacityIds.Contains(rangeCapacity.ID));
 
-            var numberCapacitySetting = orchestrationEvent.ExecutionDetails.Capacities.First(c => c.Id == numberCapacity.Id) as NumberCapacitySetting;
+            var numberCapacitySetting = orchestrationEvent.ExecutionDetails.Capacities.First(c => c.Id == numberCapacity.ID) as NumberCapacitySetting;
             Assert.IsNotNull(numberCapacitySetting);
             Assert.IsNull(numberCapacitySetting.Value);
 
-            var rangeCapacitySetting = orchestrationEvent.ExecutionDetails.Capacities.First(c => c.Id == rangeCapacity.Id) as RangeCapacitySetting;
+            var rangeCapacitySetting = orchestrationEvent.ExecutionDetails.Capacities.First(c => c.Id == rangeCapacity.ID) as RangeCapacitySetting;
             Assert.IsNotNull(rangeCapacitySetting);
             Assert.IsNull(rangeCapacitySetting.MinValue);
             Assert.IsNull(rangeCapacitySetting.MaxValue);
 
             var configurationIds = orchestrationEvent.ExecutionDetails.Configurations.Select(c => c.Id).ToList();
-            Assert.IsTrue(configurationIds.Contains(textConfiguration.Id));
-            Assert.IsTrue(configurationIds.Contains(numberConfiguration.Id));
-            Assert.IsTrue(configurationIds.Contains(discreteTextConfiguration.Id));
-            Assert.IsTrue(configurationIds.Contains(discreteNumberConfiguration.Id));
+            Assert.IsTrue(configurationIds.Contains(textConfiguration.ID));
+            Assert.IsTrue(configurationIds.Contains(numberConfiguration.ID));
+            Assert.IsTrue(configurationIds.Contains(discreteTextConfiguration.ID));
+            Assert.IsTrue(configurationIds.Contains(discreteNumberConfiguration.ID));
 
-            var textConfigurationSetting = orchestrationEvent.ExecutionDetails.Configurations.First(c => c.Id == textConfiguration.Id) as TextConfigurationSetting;
+            var textConfigurationSetting = orchestrationEvent.ExecutionDetails.Configurations.First(c => c.Id == textConfiguration.ID) as TextConfigurationSetting;
             Assert.IsNotNull(textConfigurationSetting);
             Assert.IsNull(textConfigurationSetting.Value);
 
-            var numberConfigurationSetting = orchestrationEvent.ExecutionDetails.Configurations.First(c => c.Id == numberConfiguration.Id) as NumberConfigurationSetting;
+            var numberConfigurationSetting = orchestrationEvent.ExecutionDetails.Configurations.First(c => c.Id == numberConfiguration.ID) as NumberConfigurationSetting;
             Assert.IsNotNull(numberConfigurationSetting);
             Assert.IsNull(numberConfigurationSetting.Value);
 
-            var discreteTextConfigurationSetting = orchestrationEvent.ExecutionDetails.Configurations.First(c => c.Id == discreteTextConfiguration.Id) as DiscreteTextConfigurationSetting;
+            var discreteTextConfigurationSetting = orchestrationEvent.ExecutionDetails.Configurations.First(c => c.Id == discreteTextConfiguration.ID) as DiscreteTextConfigurationSetting;
             Assert.IsNotNull(discreteTextConfigurationSetting);
             Assert.IsNull(discreteTextConfigurationSetting.Value);
 
-            var discreteNumberConfigurationSetting = orchestrationEvent.ExecutionDetails.Configurations.First(c => c.Id == discreteNumberConfiguration.Id) as DiscreteNumberConfigurationSetting;
+            var discreteNumberConfigurationSetting = orchestrationEvent.ExecutionDetails.Configurations.First(c => c.Id == discreteNumberConfiguration.ID) as DiscreteNumberConfigurationSetting;
             Assert.IsNotNull(discreteNumberConfigurationSetting);
             Assert.IsNull(discreteNumberConfigurationSetting.Value);
         }
@@ -607,21 +607,21 @@
 
                 var invalidCapacitySettingsError = orchestrationSettingsErrors.OfType<OrchestrationSettingsInvalidCapacitySettingsError>().SingleOrDefault();
                 Assert.IsNotNull(invalidCapacitySettingsError);
-                Assert.AreEqual($"Capacity with ID '{numberCapacity.Id}' is defined 2 times. Duplicate capacity settings are not allowed.", invalidCapacitySettingsError.ErrorMessage);
-                Assert.AreEqual(numberCapacity.Id, invalidCapacitySettingsError.CapacityId);
-                Assert.AreEqual(resourcePool.OrchestrationSettings.Id, invalidCapacitySettingsError.Id);
+                Assert.AreEqual($"Capacity with ID '{numberCapacity.ID}' is defined 2 times. Duplicate capacity settings are not allowed.", invalidCapacitySettingsError.ErrorMessage);
+                Assert.AreEqual(numberCapacity.ID, invalidCapacitySettingsError.CapacityId);
+                Assert.AreEqual(resourcePool.OrchestrationSettings.ID, invalidCapacitySettingsError.Id);
 
                 var invalidCapabilitySettingsError = orchestrationSettingsErrors.OfType<OrchestrationSettingsInvalidCapabilitySettingsError>().SingleOrDefault();
                 Assert.IsNotNull(invalidCapabilitySettingsError);
-                Assert.AreEqual($"Capability with ID '{capability.Id}' is defined 2 times. Duplicate capability settings are not allowed.", invalidCapabilitySettingsError.ErrorMessage);
-                Assert.AreEqual(capability.Id, invalidCapabilitySettingsError.CapabilityId);
-                Assert.AreEqual(resourcePool.OrchestrationSettings.Id, invalidCapabilitySettingsError.Id);
+                Assert.AreEqual($"Capability with ID '{capability.ID}' is defined 2 times. Duplicate capability settings are not allowed.", invalidCapabilitySettingsError.ErrorMessage);
+                Assert.AreEqual(capability.ID, invalidCapabilitySettingsError.CapabilityId);
+                Assert.AreEqual(resourcePool.OrchestrationSettings.ID, invalidCapabilitySettingsError.Id);
 
                 var invalidConfigurationSettingsError = orchestrationSettingsErrors.OfType<OrchestrationSettingsInvalidConfigurationSettingsError>().SingleOrDefault();
                 Assert.IsNotNull(invalidConfigurationSettingsError);
-                Assert.AreEqual($"Configuration with ID '{textConfiguration.Id}' is defined 2 times. Duplicate configuration settings are not allowed.", invalidConfigurationSettingsError.ErrorMessage);
-                Assert.AreEqual(textConfiguration.Id, invalidConfigurationSettingsError.ConfigurationId);
-                Assert.AreEqual(resourcePool.OrchestrationSettings.Id, invalidConfigurationSettingsError.Id);
+                Assert.AreEqual($"Configuration with ID '{textConfiguration.ID}' is defined 2 times. Duplicate configuration settings are not allowed.", invalidConfigurationSettingsError.ErrorMessage);
+                Assert.AreEqual(textConfiguration.ID, invalidConfigurationSettingsError.ConfigurationId);
+                Assert.AreEqual(resourcePool.OrchestrationSettings.ID, invalidConfigurationSettingsError.Id);
             }
         }
 
@@ -657,7 +657,7 @@
             Assert.IsFalse(resourcePool.OrchestrationSettings.OrchestrationEvents.First().ExecutionDetails.Configurations.First().HasChanges);
 
             objectCreator.CreateResourcePool(resourcePool);
-            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.ID);
 
             Assert.IsNotNull(resourcePool.OrchestrationSettings);
             Assert.IsNotNull(resourcePool.OrchestrationSettings.OrchestrationEvents);
@@ -681,7 +681,7 @@
 
             var textConfigurationSetting = resourcePool.OrchestrationSettings.OrchestrationEvents.First().ExecutionDetails.Configurations.First() as TextConfigurationSetting;
             Assert.IsNotNull(textConfigurationSetting);
-            Assert.AreEqual(textConfiguration.Id, textConfigurationSetting.Id);
+            Assert.AreEqual(textConfiguration.ID, textConfigurationSetting.Id);
             Assert.AreEqual("HelloWorld", textConfigurationSetting.Value);
         }
 
@@ -695,7 +695,7 @@
             };
 
             objectCreator.CreateResourcePool(resourcePool);
-            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.ID);
 
             // Create Configuration
             var textConfiguration = new TextConfiguration
@@ -715,7 +715,7 @@
             });
 
             TestContext.Api.ResourcePools.Update(resourcePool);
-            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.ID);
 
             Assert.IsNotNull(resourcePool.OrchestrationSettings);
             Assert.IsNotNull(resourcePool.OrchestrationSettings.OrchestrationEvents);
@@ -739,7 +739,7 @@
 
             var textConfigurationSetting = resourcePool.OrchestrationSettings.OrchestrationEvents.First().ExecutionDetails.Configurations.First() as TextConfigurationSetting;
             Assert.IsNotNull(textConfigurationSetting);
-            Assert.AreEqual(textConfiguration.Id, textConfigurationSetting.Id);
+            Assert.AreEqual(textConfiguration.ID, textConfigurationSetting.Id);
             Assert.AreEqual("HelloWorld", textConfigurationSetting.Value);
         }
 
@@ -781,7 +781,7 @@
             });
 
             objectCreator.CreateResourcePool(resourcePool);
-            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.ID);
 
             Assert.IsNotNull(resourcePool.OrchestrationSettings);
             Assert.IsNotNull(resourcePool.OrchestrationSettings.OrchestrationEvents);
@@ -799,7 +799,7 @@
 
             var prerollStartTextConfigurationSetting = prerollStartEvent.ExecutionDetails.Configurations.First() as TextConfigurationSetting;
             Assert.IsNotNull(prerollStartTextConfigurationSetting);
-            Assert.AreEqual(textConfiguration.Id, prerollStartTextConfigurationSetting.Id);
+            Assert.AreEqual(textConfiguration.ID, prerollStartTextConfigurationSetting.Id);
             Assert.AreEqual("HelloWorld", prerollStartTextConfigurationSetting.Value);
 
             var postrollStartEvent = resourcePool.OrchestrationSettings.OrchestrationEvents.FirstOrDefault(e => e.EventType == OrchestrationEventType.PostrollStart);
@@ -814,7 +814,7 @@
 
             var postrollDiscreteConfigurationSetting = postrollStartEvent.ExecutionDetails.Configurations.First() as DiscreteNumberConfigurationSetting;
             Assert.IsNotNull(postrollDiscreteConfigurationSetting);
-            Assert.AreEqual(discreteNumberConfiguration.Id, postrollDiscreteConfigurationSetting.Id);
+            Assert.AreEqual(discreteNumberConfiguration.ID, postrollDiscreteConfigurationSetting.Id);
             Assert.AreEqual(new NumberDiscreet(3, "Three"), postrollDiscreteConfigurationSetting.Value);
 
             // Remove PrerollStart Event
@@ -834,7 +834,7 @@
             });
 
             TestContext.Api.ResourcePools.Update(resourcePool);
-            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
+            resourcePool = TestContext.Api.ResourcePools.Read(resourcePool.ID);
 
             Assert.IsNotNull(resourcePool.OrchestrationSettings);
             Assert.IsNotNull(resourcePool.OrchestrationSettings.OrchestrationEvents);
@@ -855,7 +855,7 @@
 
             var prerollStopTextConfigurationSetting = prerollStopEvent.ExecutionDetails.Configurations.First() as TextConfigurationSetting;
             Assert.IsNotNull(prerollStopTextConfigurationSetting);
-            Assert.AreEqual(textConfiguration.Id, prerollStopTextConfigurationSetting.Id);
+            Assert.AreEqual(textConfiguration.ID, prerollStopTextConfigurationSetting.Id);
             Assert.AreEqual("HelloWorld", prerollStopTextConfigurationSetting.Value);
 
             var updatedPostrollStartEvent = resourcePool.OrchestrationSettings.OrchestrationEvents.FirstOrDefault(e => e.EventType == OrchestrationEventType.PostrollStart);
@@ -870,7 +870,7 @@
 
             var discreteConfigurationSetting = updatedPostrollStartEvent.ExecutionDetails.Configurations.First() as DiscreteNumberConfigurationSetting;
             Assert.IsNotNull(discreteConfigurationSetting);
-            Assert.AreEqual(discreteNumberConfiguration.Id, discreteConfigurationSetting.Id);
+            Assert.AreEqual(discreteNumberConfiguration.ID, discreteConfigurationSetting.Id);
             Assert.AreEqual(new NumberDiscreet(2, "Two"), discreteConfigurationSetting.Value);
         }
 
@@ -932,7 +932,7 @@
                 ]);
 
             objectCreator.CreateResourcePool(resourcePool1);
-            resourcePool1 = TestContext.Api.ResourcePools.Read(resourcePool1.Id);
+            resourcePool1 = TestContext.Api.ResourcePools.Read(resourcePool1.ID);
 
             var resourcePool2 = new ResourcePool
             {
@@ -956,7 +956,7 @@
 
             objectCreator.CreateResourcePool(resourcePool2);
 
-            resourcePool2 = TestContext.Api.ResourcePools.Read(resourcePool2.Id);
+            resourcePool2 = TestContext.Api.ResourcePools.Read(resourcePool2.ID);
             Assert.IsNotNull(resourcePool2);
         }
     }

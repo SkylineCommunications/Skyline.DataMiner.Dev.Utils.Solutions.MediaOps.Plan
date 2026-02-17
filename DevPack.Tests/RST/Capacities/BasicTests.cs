@@ -293,7 +293,7 @@
 
                 var capacityConfigurationNameExistsError = capacityConfigurationError as CapacityNameExistsError;
                 Assert.IsNotNull(capacityConfigurationNameExistsError);
-                Assert.AreEqual(capacity2.Id, capacityConfigurationNameExistsError.Id);
+                Assert.AreEqual(capacity2.ID, capacityConfigurationNameExistsError.Id);
                 Assert.AreEqual(capacity2.Name, capacityConfigurationNameExistsError.Name);
                 Assert.AreEqual("Name is already in use.", capacityConfigurationError.ErrorMessage);
 
@@ -361,7 +361,7 @@
             objectCreator.CreateCapacity(capacity1);
             objectCreator.CreateCapacity(capacity2);
 
-            var toUpdate = TestContext.Api.Capacities.Read(capacity2.Id);
+            var toUpdate = TestContext.Api.Capacities.Read(capacity2.ID);
             toUpdate.Name = capacity1.Name;
 
             try
@@ -378,7 +378,7 @@
 
                 var capacityConfigurationNameExistsError = capacityConfigurationError as CapacityNameExistsError;
                 Assert.IsNotNull(capacityConfigurationNameExistsError);
-                Assert.AreEqual(toUpdate.Id, capacityConfigurationNameExistsError.Id);
+                Assert.AreEqual(toUpdate.ID, capacityConfigurationNameExistsError.Id);
                 Assert.AreEqual(toUpdate.Name, capacityConfigurationNameExistsError.Name);
                 Assert.AreEqual("Name is already in use.", capacityConfigurationError.ErrorMessage);
 

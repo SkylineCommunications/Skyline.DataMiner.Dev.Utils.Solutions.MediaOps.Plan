@@ -23,7 +23,7 @@
         {
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
             this.parametersToValidate = parametersToValidate ?? throw new ArgumentNullException(nameof(parametersToValidate));
-            parameterIdsToValidate = parametersToValidate.Select(x => x.Id).ToHashSet();
+            parameterIdsToValidate = parametersToValidate.Select(x => x.ID).ToHashSet();
         }
 
         public static ApiObjectValidator Validate(MediaOpsPlanApi planApi, ICollection<Configuration> configurationsToValidate)
@@ -257,14 +257,14 @@
                 return;
             }
 
-            workflowConfigurationsPerParameter = GetWorkflowConfigurationsPerParameter(parametersToValidate.Select(x => x.Id).ToHashSet());
+            workflowConfigurationsPerParameter = GetWorkflowConfigurationsPerParameter(parametersToValidate.Select(x => x.ID).ToHashSet());
             workflowConfigurationIds = workflowConfigurationsPerParameter.SelectMany(x => x.Value).Distinct().ToHashSet();
 
             ValidateJobUsage((parameter, ids) =>
             {
                 return new CapabilityInUseByJobsError
                 {
-                    Id = parameter.Id,
+                    Id = parameter.ID,
                     ErrorMessage = $"Capability '{parameter.Name}' is in use by {ids.Count} job(s).",
                     JobIds = ids.ToArray(),
                 };
@@ -275,7 +275,7 @@
             {
                 return new CapabilityInUseByRecurringJobsError
                 {
-                    Id = parameter.Id,
+                    Id = parameter.ID,
                     ErrorMessage = $"Capability '{parameter.Name}' is in use by {ids.Count} recurrence(s).",
                     RecurringJobIds = ids.ToArray(),
                 };
@@ -286,7 +286,7 @@
             {
                 return new CapabilityInUseByWorkflowsError
                 {
-                    Id = parameter.Id,
+                    Id = parameter.ID,
                     ErrorMessage = $"Capability '{parameter.Name}' is in use by {ids.Count} workflow(s).",
                     WorkflowIds = ids.ToArray(),
                 };
@@ -300,14 +300,14 @@
                 return;
             }
 
-            workflowConfigurationsPerParameter = GetWorkflowConfigurationsPerParameter(parametersToValidate.Select(x => x.Id).ToHashSet());
+            workflowConfigurationsPerParameter = GetWorkflowConfigurationsPerParameter(parametersToValidate.Select(x => x.ID).ToHashSet());
             workflowConfigurationIds = workflowConfigurationsPerParameter.SelectMany(x => x.Value).Distinct().ToHashSet();
 
             ValidateJobUsage((parameter, ids) =>
             {
                 return new CapacityInUseByJobsError
                 {
-                    Id = parameter.Id,
+                    Id = parameter.ID,
                     ErrorMessage = $"Capacity '{parameter.Name}' is in use by {ids.Count} job(s).",
                     JobIds = ids.ToArray(),
                 };
@@ -318,7 +318,7 @@
             {
                 return new CapacityInUseByRecurringJobsError
                 {
-                    Id = parameter.Id,
+                    Id = parameter.ID,
                     ErrorMessage = $"Capacity '{parameter.Name}' is in use by {ids.Count} recurrence(s).",
                     RecurringJobIds = ids.ToArray(),
                 };
@@ -329,7 +329,7 @@
             {
                 return new CapacityInUseByWorkflowsError
                 {
-                    Id = parameter.Id,
+                    Id = parameter.ID,
                     ErrorMessage = $"Capacity '{parameter.Name}' is in use by {ids.Count} workflow(s).",
                     WorkflowIds = ids.ToArray(),
                 };
@@ -343,14 +343,14 @@
                 return;
             }
 
-            workflowConfigurationsPerParameter = GetWorkflowConfigurationsPerParameter(parametersToValidate.Select(x => x.Id).ToHashSet());
+            workflowConfigurationsPerParameter = GetWorkflowConfigurationsPerParameter(parametersToValidate.Select(x => x.ID).ToHashSet());
             workflowConfigurationIds = workflowConfigurationsPerParameter.SelectMany(x => x.Value).Distinct().ToHashSet();
 
             ValidateJobUsage((parameter, ids) =>
             {
                 return new ConfigurationInUseByJobsError
                 {
-                    Id = parameter.Id,
+                    Id = parameter.ID,
                     ErrorMessage = $"Configuration '{parameter.Name}' is in use by {ids.Count} job(s).",
                     JobIds = ids.ToArray(),
                 };
@@ -361,7 +361,7 @@
             {
                 return new ConfigurationInUseByRecurringJobsError
                 {
-                    Id = parameter.Id,
+                    Id = parameter.ID,
                     ErrorMessage = $"Configuration '{parameter.Name}' is in use by {ids.Count} recurrence(s).",
                     RecurringJobIds = ids.ToArray(),
                 };
@@ -372,7 +372,7 @@
             {
                 return new ConfigurationInUseByWorkflowsError
                 {
-                    Id = parameter.Id,
+                    Id = parameter.ID,
                     ErrorMessage = $"Configuration '{parameter.Name}' is in use by {ids.Count} workflow(s).",
                     WorkflowIds = ids.ToArray(),
                 };
@@ -407,7 +407,7 @@
             foreach (var parameter in parametersToValidate)
             {
                 HashSet<Guid> referencedJobIds = new HashSet<Guid>();
-                if (!workflowConfigurationsPerParameter.TryGetValue(parameter.Id, out var referencedWorkflowConfigurationIds))
+                if (!workflowConfigurationsPerParameter.TryGetValue(parameter.ID, out var referencedWorkflowConfigurationIds))
                 {
                     continue;
                 }
@@ -427,7 +427,7 @@
 
                 if (referencedJobIds.Any())
                 {
-                    ReportError(parameter.Id, createJobsError(parameter, referencedJobIds));
+                    ReportError(parameter.ID, createJobsError(parameter, referencedJobIds));
                 }
             }
         }
@@ -512,7 +512,7 @@
             foreach (var parameter in parametersToValidate)
             {
                 HashSet<Guid> referencedRecurringJobIds = new HashSet<Guid>();
-                if (!workflowConfigurationsPerParameter.TryGetValue(parameter.Id, out var referencedWorkflowConfigurationIds))
+                if (!workflowConfigurationsPerParameter.TryGetValue(parameter.ID, out var referencedWorkflowConfigurationIds))
                 {
                     continue;
                 }
@@ -532,7 +532,7 @@
 
                 if (referencedRecurringJobIds.Any())
                 {
-                    ReportError(parameter.Id, createRecurringJobsError(parameter, referencedRecurringJobIds));
+                    ReportError(parameter.ID, createRecurringJobsError(parameter, referencedRecurringJobIds));
                 }
             }
         }
@@ -565,7 +565,7 @@
             foreach (var configurationParameter in parametersToValidate)
             {
                 HashSet<Guid> referencedWorkflowIds = new HashSet<Guid>();
-                if (!workflowConfigurationsPerParameter.TryGetValue(configurationParameter.Id, out var referencedWorkflowConfigurationIds))
+                if (!workflowConfigurationsPerParameter.TryGetValue(configurationParameter.ID, out var referencedWorkflowConfigurationIds))
                 {
                     continue;
                 }
@@ -585,7 +585,7 @@
 
                 if (referencedWorkflowIds.Any())
                 {
-                    ReportError(configurationParameter.Id, createWorkflowsError.Invoke(configurationParameter, referencedWorkflowIds));
+                    ReportError(configurationParameter.ID, createWorkflowsError.Invoke(configurationParameter, referencedWorkflowIds));
                 }
             }
         }

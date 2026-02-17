@@ -26,10 +26,10 @@
             // Any discreet options available
             if (!discreteTextConfiguration.Discretes.Any())
             {
-                ReportError(discreteTextConfiguration.Id, new ConfigurationNoDiscretesError
+                ReportError(discreteTextConfiguration.ID, new ConfigurationNoDiscretesError
                 {
                     ErrorMessage = "A discreet configuration should have at least one discreet option defined",
-                    Id = discreteTextConfiguration.Id,
+                    Id = discreteTextConfiguration.ID,
                 });
                 return;
             }
@@ -37,10 +37,10 @@
             // Validate default discrete option
             if (discreteTextConfiguration.DefaultValue != null && !discreteTextConfiguration.Discretes.Any(x => discreteTextConfiguration.DefaultValue == x))
             {
-                ReportError(discreteTextConfiguration.Id, new ConfigurationInvalidDefaultDiscreetError
+                ReportError(discreteTextConfiguration.ID, new ConfigurationInvalidDefaultDiscreetError
                 {
                     ErrorMessage = "Default discreet should any of the discreet options",
-                    Id = discreteTextConfiguration.Id,
+                    Id = discreteTextConfiguration.ID,
                 });
             }
 
@@ -49,20 +49,20 @@
                 // Validate Display Value
                 if (!HasValidDisplayValue(discreet.DisplayName, out string invalidDisplayNameReason))
                 {
-                    ReportError(discreteTextConfiguration.Id, new ConfigurationInvalidDiscretesError
+                    ReportError(discreteTextConfiguration.ID, new ConfigurationInvalidDiscretesError
                     {
                         ErrorMessage = invalidDisplayNameReason,
-                        Id = discreteTextConfiguration.Id,
+                        Id = discreteTextConfiguration.ID,
                     });
                 }
 
                 // Validate String Value
                 if (!IsValidDiscreetText(discreet.Value, out string invalidDiscreetTextReason))
                 {
-                    ReportError(discreteTextConfiguration.Id, new ConfigurationInvalidDiscretesError
+                    ReportError(discreteTextConfiguration.ID, new ConfigurationInvalidDiscretesError
                     {
                         ErrorMessage = invalidDiscreetTextReason,
-                        Id = discreteTextConfiguration.Id,
+                        Id = discreteTextConfiguration.ID,
                     });
                 }
             }

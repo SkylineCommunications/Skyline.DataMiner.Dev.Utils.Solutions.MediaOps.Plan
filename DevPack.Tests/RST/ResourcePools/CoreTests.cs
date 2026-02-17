@@ -39,9 +39,9 @@
             };
 
             objectCreator.CreateResourcePool(resourcePool);
-            TestContext.Api.ResourcePools.Complete(resourcePool.Id);
+            TestContext.Api.ResourcePools.Complete(resourcePool.ID);
 
-            var domResourcePool = TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(resourcePool.Id)).SingleOrDefault();
+            var domResourcePool = TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(resourcePool.ID)).SingleOrDefault();
             Assert.IsNotNull(domResourcePool);
 
             var domResourcePoolInternalProperties = domResourcePool.Sections.Single(s => s.SectionDefinitionID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ResourcePoolInternalProperties.Id.Id);
@@ -64,10 +64,10 @@
             };
 
             objectCreator.CreateResourcePool(resourcePool);
-            TestContext.Api.ResourcePools.Complete(resourcePool.Id);
-            TestContext.Api.ResourcePools.Deprecate(resourcePool.Id);
+            TestContext.Api.ResourcePools.Complete(resourcePool.ID);
+            TestContext.Api.ResourcePools.Deprecate(resourcePool.ID);
 
-            var domResourcePool = TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(resourcePool.Id)).SingleOrDefault();
+            var domResourcePool = TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(resourcePool.ID)).SingleOrDefault();
             Assert.IsNotNull(domResourcePool);
 
             var domResourcePoolInternalProperties = domResourcePool.Sections.Single(s => s.SectionDefinitionID.Id == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections.ResourcePoolInternalProperties.Id.Id);

@@ -86,16 +86,16 @@
             }
 
             Assert.AreEqual(1, expectedException.Result.SuccessfulIds.Count);
-            Assert.IsTrue(expectedException.Result.SuccessfulIds.Contains(capacity3.Id));
+            Assert.IsTrue(expectedException.Result.SuccessfulIds.Contains(capacity3.ID));
 
             Assert.AreEqual(2, expectedException.Result.UnsuccessfulIds.Count);
-            Assert.IsTrue(expectedException.Result.UnsuccessfulIds.Contains(capacity1.Id));
-            Assert.IsTrue(expectedException.Result.UnsuccessfulIds.Contains(capacity2.Id));
+            Assert.IsTrue(expectedException.Result.UnsuccessfulIds.Contains(capacity1.ID));
+            Assert.IsTrue(expectedException.Result.UnsuccessfulIds.Contains(capacity2.ID));
 
-            var storedCapacity3 = TestContext.Api.Capacities.Read(capacity3.Id);
+            var storedCapacity3 = TestContext.Api.Capacities.Read(capacity3.ID);
             Assert.IsNull(storedCapacity3);
 
-            expectedException.Result.TraceDataPerItem.TryGetValue(capacity1.Id, out var traceData1);
+            expectedException.Result.TraceDataPerItem.TryGetValue(capacity1.ID, out var traceData1);
             Assert.IsNotNull(traceData1);
             Assert.AreEqual(1, traceData1.ErrorData.Count);
 
@@ -103,10 +103,10 @@
             Assert.IsNotNull(capacityInUseByResourcesError);
             Assert.AreEqual($"Capacity '{capacity1.Name}' is in use by 2 resource(s).", capacityInUseByResourcesError.ErrorMessage);
             Assert.AreEqual(2, capacityInUseByResourcesError.ResourceIds.Count);
-            Assert.IsTrue(capacityInUseByResourcesError.ResourceIds.Contains(unmangedResource1.Id));
-            Assert.IsTrue(capacityInUseByResourcesError.ResourceIds.Contains(unmangedResource2.Id));
+            Assert.IsTrue(capacityInUseByResourcesError.ResourceIds.Contains(unmangedResource1.ID));
+            Assert.IsTrue(capacityInUseByResourcesError.ResourceIds.Contains(unmangedResource2.ID));
 
-            expectedException.Result.TraceDataPerItem.TryGetValue(capacity2.Id, out var traceData2);
+            expectedException.Result.TraceDataPerItem.TryGetValue(capacity2.ID, out var traceData2);
             Assert.IsNotNull(traceData2);
             Assert.AreEqual(1, traceData2.ErrorData.Count);
 
@@ -114,7 +114,7 @@
             Assert.IsNotNull(capacityInUseByResourcesError);
             Assert.AreEqual($"Capacity '{capacity2.Name}' is in use by 1 resource(s).", capacityInUseByResourcesError.ErrorMessage);
             Assert.AreEqual(1, capacityInUseByResourcesError.ResourceIds.Count);
-            Assert.IsTrue(capacityInUseByResourcesError.ResourceIds.Contains(unmangedResource1.Id));
+            Assert.IsTrue(capacityInUseByResourcesError.ResourceIds.Contains(unmangedResource1.ID));
         }
     }
 }

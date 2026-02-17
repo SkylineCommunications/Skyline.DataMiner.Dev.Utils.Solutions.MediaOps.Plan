@@ -12,9 +12,9 @@
     public class ConfigurationExposers
     {
         /// <summary>
-        /// Gets an exposer for the <see cref="ApiObject.Id"/> property.
+        /// Gets an exposer for the <see cref="ApiObject.ID"/> property.
         /// </summary>
-        public static readonly Exposer<Configuration, Guid> Id = new Exposer<Configuration, Guid>((obj) => obj.Id, "Id");
+        public static readonly Exposer<Configuration, Guid> Id = new Exposer<Configuration, Guid>((obj) => obj.ID, "Id");
 
         /// <summary>
         /// Gets an exposer for the <see cref="Parameter.IsMandatory"/> property.

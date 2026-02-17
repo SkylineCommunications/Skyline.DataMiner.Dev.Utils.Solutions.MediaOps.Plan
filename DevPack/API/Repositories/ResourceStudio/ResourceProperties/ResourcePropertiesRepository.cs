@@ -82,7 +82,7 @@
 
                 if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
                 {
-                    result.ThrowSingleException(apiObject.Id);
+                    result.ThrowSingleException(apiObject.ID);
                 }
 
                 act?.AddTag("ResourcePropertyId", result.SuccessfulIds.Single());
@@ -167,7 +167,7 @@
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
-            Delete(apiObjects.Select(x => x.Id).ToArray());
+            Delete(apiObjects.Select(x => x.ID).ToArray());
         }
 
         /// <summary>
@@ -210,7 +210,7 @@
                 throw new ArgumentNullException(nameof(oToDelete));
             }
 
-            Delete(oToDelete.Id);
+            Delete(oToDelete.ID);
         }
 
         /// <summary>
@@ -230,7 +230,7 @@
             {
                 if (!DomResourcePropertyHandler.TryDelete(PlanApi, [propertyToDelete], out var result))
                 {
-                    result.ThrowSingleException(propertyToDelete.Id);
+                    result.ThrowSingleException(propertyToDelete.ID);
                 }
 
                 act?.AddTag("ResourcePropertyId", result.SuccessfulIds.First());
@@ -450,7 +450,7 @@
 
                 if (!DomResourcePropertyHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
                 {
-                    result.ThrowSingleException(apiObject.Id);
+                    result.ThrowSingleException(apiObject.ID);
                 }
 
                 act?.AddTag("ResourcePropertyId", result.SuccessfulIds.Single());

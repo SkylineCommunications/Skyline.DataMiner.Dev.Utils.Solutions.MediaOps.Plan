@@ -84,7 +84,7 @@
 
                 if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
                 {
-                    result.ThrowSingleException(apiObject.Id);
+                    result.ThrowSingleException(apiObject.ID);
                 }
 
                 act?.AddTag("ConfigurationId", result.SuccessfulIds.Single());
@@ -169,7 +169,7 @@
                 throw new ArgumentNullException(nameof(apiObjects));
             }
 
-            Delete(apiObjects.Select(x => x.Id).ToArray());
+            Delete(apiObjects.Select(x => x.ID).ToArray());
         }
 
         /// <summary>
@@ -212,7 +212,7 @@
                 throw new ArgumentNullException(nameof(oToDelete));
             }
 
-            Delete(oToDelete.Id);
+            Delete(oToDelete.ID);
         }
 
         /// <summary>
@@ -407,7 +407,7 @@
 
                 if (!CoreConfigurationHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
                 {
-                    result.ThrowSingleException(apiObject.Id);
+                    result.ThrowSingleException(apiObject.ID);
                 }
 
                 act?.AddTag("ConfigurationId", result.SuccessfulIds.Single());

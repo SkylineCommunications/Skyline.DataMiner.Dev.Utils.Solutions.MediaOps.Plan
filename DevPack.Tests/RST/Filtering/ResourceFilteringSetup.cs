@@ -4,6 +4,7 @@
 
 	using RT_MediaOps.Plan.RegressionTests;
 
+	using Skyline.DataMiner.Solutions.MediaOps.Live.API.Objects.ConnectivityManagement;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 
 	internal sealed class ResourceFilteringSetup
@@ -21,6 +22,7 @@
 			CreateConfigurations();
 			CreateProperties();
 			CreateResourcePools();
+			CreateVirtualSignalGroups();
 
 			CreateDraftResources();
 			CreateCompleteResources();
@@ -78,6 +80,10 @@
 			ResolutionConfig!,
 			PriorityConfig!,
 		};
+
+		public Guid VirtualSignalInputId { get; private set; }
+
+		public Guid VirtualSignalOutputId { get; private set; }
 
 		public UnmanagedResource? DraftResource1 { get; private set; }
 
@@ -168,9 +174,9 @@
 				objectCreator.CreateCapability(capability);
 			}
 
-			Location = TestContext.Api.Capabilities.Read(Location.Id);
-			Priority = TestContext.Api.Capabilities.Read(Priority.Id);
-			Resolution = TestContext.Api.Capabilities.Read(Resolution.Id);
+			Location = TestContext.Api.Capabilities.Read(Location.ID);
+			Priority = TestContext.Api.Capabilities.Read(Priority.ID);
+			Resolution = TestContext.Api.Capabilities.Read(Resolution.ID);
 		}
 
 		private void CreateDraftResources()
@@ -180,6 +186,11 @@
 				Name = $"Resource_Draft_1_{Guid.NewGuid()}",
 				IsFavorite = true,
 				Concurrency = 5,
+				IsExternallyManaged = true,
+				Url = "skyline.be",
+				IconImage = "icon.png",
+				VirtualSignalGroupInputId = VirtualSignalInputId,
+				VirtualSignalGroupOutputId = VirtualSignalOutputId,
 			};
 
 			var locationResource1 = new CapabilitySettings(Location);
@@ -210,6 +221,11 @@
 				Name = $"Resource_Draft_2_{Guid.NewGuid()}",
 				IsFavorite = false,
 				Concurrency = 10,
+				IsExternallyManaged = true,
+				Url = "skyline.be",
+				IconImage = "icon.png",
+				VirtualSignalGroupInputId = VirtualSignalInputId,
+				VirtualSignalGroupOutputId = VirtualSignalOutputId,
 			};
 
 			var channelProperty2 = new ResourcePropertySettings(Channel)
@@ -416,9 +432,9 @@
 				objectCreator.CreateCapacity(capacity);
 			}
 
-			Frequency = (NumberCapacity)TestContext.Api.Capacities.Read(Frequency.Id);
-			Bandwidth = (RangeCapacity)TestContext.Api.Capacities.Read(Bandwidth.Id);
-			Reach = (NumberCapacity)TestContext.Api.Capacities.Read(Reach.Id);
+			Frequency = (NumberCapacity)TestContext.Api.Capacities.Read(Frequency.ID);
+			Bandwidth = (RangeCapacity)TestContext.Api.Capacities.Read(Bandwidth.ID);
+			Reach = (NumberCapacity)TestContext.Api.Capacities.Read(Reach.ID);
 		}
 
 		private void CreateConfigurations()
@@ -512,24 +528,24 @@
 				Name = $"ResourcePool_Draft_1_{Guid.NewGuid()}",
 				IconImage = "icon_1.png",
 			}
-			.AddCapability(new CapabilitySettings(Location!.Id).SetDiscretes(["Belgium"]))
-			.AddCapability(new CapabilitySettings(Priority!.Id).SetDiscretes(["Low", "Medium", "High"]));
+			.AddCapability(new CapabilitySettings(Location!.ID).SetDiscretes(["Belgium"]))
+			.AddCapability(new CapabilitySettings(Priority!.ID).SetDiscretes(["Low", "Medium", "High"]));
 
 			ResourcePool2 = new ResourcePool
 			{
 				Name = $"ResourcePool_Complete_2_{Guid.NewGuid()}",
 				IconImage = "icon_2.png",
 			}
-			.AddCapability(new CapabilitySettings(Location.Id).SetDiscretes(["Belgium"]))
-			.AddCapability(new CapabilitySettings(Priority.Id).SetDiscretes(["Low", "Medium", "High"]));
+			.AddCapability(new CapabilitySettings(Location.ID).SetDiscretes(["Belgium"]))
+			.AddCapability(new CapabilitySettings(Priority.ID).SetDiscretes(["Low", "Medium", "High"]));
 
 			ResourcePool3 = new ResourcePool
 			{
 				Name = $"ResourcePool_Complete_3_{Guid.NewGuid()}",
 				IconImage = "icon_3.png",
 			}
-			.AddCapability(new CapabilitySettings(Resolution!.Id).SetDiscretes(["4K"]))
-			.AddCapability(new CapabilitySettings(Priority.Id).SetDiscretes(["Medium"]));
+			.AddCapability(new CapabilitySettings(Resolution!.ID).SetDiscretes(["4K"]))
+			.AddCapability(new CapabilitySettings(Priority.ID).SetDiscretes(["Medium"]));
 
 			ResourcePool4 = new ResourcePool
 			{
@@ -559,6 +575,39 @@
 
 			ResourcePool5 = objectCreator.CreateResourcePool(ResourcePool5);
 			ResourcePool5 = TestContext.Api.ResourcePools.Complete(ResourcePool5);
+		}
+
+		private void CreateVirtualSignalGroups()
+		{
+			var virtualSignalGroup1 = new VirtualSignalGroup
+			{
+				Name = $"VirtualSignalGroup_1_{Guid.NewGuid()}",
+				Role = Skyline.DataMiner.Solutions.MediaOps.Live.API.Enums.EndpointRole.Source,
+			};
+
+			var virtualSignalGroup2 = new VirtualSignalGroup
+			{
+				Name = $"VirtualSignalGroup_2_{Guid.NewGuid()}",
+				Role = Skyline.DataMiner.Solutions.MediaOps.Live.API.Enums.EndpointRole.Destination,
+			};
+
+			if (objectCreator.TryCreateVirtualSignalGroup(virtualSignalGroup1))
+			{
+				VirtualSignalInputId = virtualSignalGroup1.ID;
+			}
+			else
+			{
+				VirtualSignalInputId = Guid.NewGuid();
+			}
+
+			if (objectCreator.TryCreateVirtualSignalGroup(virtualSignalGroup2))
+			{
+				VirtualSignalOutputId = virtualSignalGroup2.ID;
+			}
+			else
+			{
+				VirtualSignalOutputId = Guid.NewGuid();
+			}
 		}
 	}
 }

@@ -8,12 +8,12 @@
         {
             if (ReferenceEquals(x, y)) return true;
             if (x is null || y is null) return false;
-            return x.Id == y.Id; // Compare by unique ID
+            return x.ID == y.ID; // Compare by unique ID
         }
 
         public int GetHashCode(ApiObject obj)
         {
-            return obj?.Id.GetHashCode() ?? 0;
+            return obj?.ID.GetHashCode() ?? 0;
         }
     }
 }

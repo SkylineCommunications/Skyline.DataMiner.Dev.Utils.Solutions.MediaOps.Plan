@@ -90,7 +90,7 @@
 
             if (remainingObjectsToHandle.Any())
             {
-                _logger.Error(this, "Failed to lock all {0} objects after {1} attempts. Remaining objects: {2}", [typeof(T).Name, MaxLockAttempts, string.Join(", ", remainingObjectsToHandle.Select(x => x.Id))]);
+                _logger.Error(this, "Failed to lock all {0} objects after {1} attempts. Remaining objects: {2}", [typeof(T).Name, MaxLockAttempts, string.Join(", ", remainingObjectsToHandle.Select(x => x.ID))]);
             }
 
             return new LockAndExecuteResult<T, K>(remainingObjectsToHandle, allResults);

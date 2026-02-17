@@ -80,7 +80,7 @@
         private void CreateOrUpdateCoreConfigurations(ICollection<Configuration> configurations)
         {
             List<Net.Profiles.Parameter> coreParameters = new List<Net.Profiles.Parameter>();
-            foreach (var configurationToAddOrUpdate in configurations.Where(x => !TraceDataPerItem.Keys.Contains(x.Id)))
+            foreach (var configurationToAddOrUpdate in configurations.Where(x => !TraceDataPerItem.Keys.Contains(x.ID)))
             {
                 if (!TryGetParameterWithChanges(configurationToAddOrUpdate, out var coreParameter))
                 {
@@ -163,7 +163,7 @@
             }
 
             var capabilitiesWithDuplicateIds = configurationsRequiringValidation
-                .GroupBy(configuration => configuration.Id)
+                .GroupBy(configuration => configuration.ID)
                 .Where(g => g.Count() > 1)
                 .SelectMany(x => x)
                 .ToList();
@@ -173,15 +173,15 @@
                 var error = new ConfigurationDuplicateIdError
                 {
                     ErrorMessage = $"Configuration '{configuration.Name}' has a duplicate ID.",
-                    Id = configuration.Id,
+                    Id = configuration.ID,
                 };
 
-                ReportError(configuration.Id, error);
+                ReportError(configuration.ID, error);
 
                 configurationsRequiringValidation.Remove(configuration);
             }
 
-            foreach (var foundProfileParameter in planApi.CoreHelpers.ProfileProvider.GetParametersById(configurationsRequiringValidation.Select(x => x.Id)))
+            foreach (var foundProfileParameter in planApi.CoreHelpers.ProfileProvider.GetParametersById(configurationsRequiringValidation.Select(x => x.ID)))
             {
                 planApi.Logger.Information(this, $"ID is already in use by a Profile Parameter.", [foundProfileParameter.ID]);
 
@@ -214,10 +214,10 @@
                 var error = new ConfigurationInvalidNameError
                 {
                     ErrorMessage = "Name cannot be empty.",
-                    Id = configuration.Id,
+                    Id = configuration.ID,
                 };
 
-                ReportError(configuration.Id, error);
+                ReportError(configuration.ID, error);
                 configurationsRequiringValidation.Remove(configuration);
             }
 
@@ -226,11 +226,11 @@
                 var error = new ConfigurationInvalidNameError
                 {
                     ErrorMessage = $"Name exceeds maximum length of {InputValidator.DefaultMaxTextLength} characters.",
-                    Id = configuration.Id,
+                    Id = configuration.ID,
                     Name = configuration.Name,
                 };
 
-                ReportError(configuration.Id, error);
+                ReportError(configuration.ID, error);
                 configurationsRequiringValidation.Remove(configuration);
             }
 
@@ -245,11 +245,11 @@
                 var error = new ConfigurationDuplicateNameError
                 {
                     ErrorMessage = $"Configuration '{configuration.Name}' has a duplicate name.",
-                    Id = configuration.Id,
+                    Id = configuration.ID,
                     Name = configuration.Name,
                 };
 
-                ReportError(configuration.Id, error);
+                ReportError(configuration.ID, error);
                 configurationsRequiringValidation.Remove(configuration);
             }
 
@@ -262,7 +262,7 @@
                     continue;
                 }
 
-                var coreParametersWithSameNameAndDifferentIds = coreParametersWithSameName.Where(x => x.ID != configuration.Id).ToList();
+                var coreParametersWithSameNameAndDifferentIds = coreParametersWithSameName.Where(x => x.ID != configuration.ID).ToList();
                 if (coreParametersWithSameNameAndDifferentIds.Count == 0)
                 {
                     continue;
@@ -273,11 +273,11 @@
                 var error = new ConfigurationNameExistsError
                 {
                     ErrorMessage = "Name is already in use.",
-                    Id = configuration.Id,
+                    Id = configuration.ID,
                     Name = configuration.Name,
                 };
 
-                ReportError(configuration.Id, error);
+                ReportError(configuration.ID, error);
             }
         }
 
@@ -314,7 +314,7 @@
                     .Where(x => !discreteNumberConfiguration.Discretes.Any(y => Convert.ToString(y.Value) == x.RawValue))
                     .Select(removedDiscrete => new ParameterDiscreteValue<NumberDiscreet>
                     {
-                        ParameterId = discreteNumberConfiguration.Id,
+                        ParameterId = discreteNumberConfiguration.ID,
                         DiscreteValue = new NumberDiscreet
                         {
                             Value = Convert.ToDecimal(removedDiscrete.RawValue),
@@ -350,7 +350,7 @@
                     .Where(x => !discreteTextConfiguration.Discretes.Any(y => y.Value == x.RawValue))
                     .Select(removedDiscrete => new ParameterDiscreteValue<TextDiscreet>
                     {
-                        ParameterId = discreteTextConfiguration.Id,
+                        ParameterId = discreteTextConfiguration.ID,
                         DiscreteValue = new TextDiscreet
                         {
                             Value = removedDiscrete.RawValue,
@@ -406,10 +406,10 @@
                 var error = new ConfigurationInvalidStateError
                 {
                     ErrorMessage = "Cannot delete a configuration that does not exist.",
-                    Id = configuration.Id,
+                    Id = configuration.ID,
                 };
 
-                ReportError(configuration.Id, error);
+                ReportError(configuration.ID, error);
             }
         }
 
@@ -425,7 +425,7 @@
 
         private Net.Profiles.Parameter GetNumberConfigurationWithChanges(NumberConfiguration apiConfiguration)
         {
-            Net.Profiles.Parameter updatedParameter = apiConfiguration.IsNew ? new Net.Profiles.Parameter(apiConfiguration.Id) : new Net.Profiles.Parameter(apiConfiguration.CoreParameter);
+            Net.Profiles.Parameter updatedParameter = apiConfiguration.IsNew ? new Net.Profiles.Parameter(apiConfiguration.ID) : new Net.Profiles.Parameter(apiConfiguration.CoreParameter);
 
             updatedParameter.Categories = Skyline.DataMiner.Net.Profiles.ProfileParameterCategory.Configuration;
             updatedParameter.Type = Skyline.DataMiner.Net.Profiles.Parameter.ParameterType.Number;
@@ -464,7 +464,7 @@
 
         private Net.Profiles.Parameter GetTextConfigurationWithChanges(TextConfiguration apiConfiguration)
         {
-            Net.Profiles.Parameter updatedParameter = apiConfiguration.IsNew ? new Net.Profiles.Parameter(apiConfiguration.Id) : new Net.Profiles.Parameter(apiConfiguration.CoreParameter);
+            Net.Profiles.Parameter updatedParameter = apiConfiguration.IsNew ? new Net.Profiles.Parameter(apiConfiguration.ID) : new Net.Profiles.Parameter(apiConfiguration.CoreParameter);
 
             updatedParameter.Categories = Skyline.DataMiner.Net.Profiles.ProfileParameterCategory.Configuration;
             updatedParameter.Type = Skyline.DataMiner.Net.Profiles.Parameter.ParameterType.Text;
@@ -503,7 +503,7 @@
 
         private Net.Profiles.Parameter GetParameterWithChanges(DiscreteNumberConfiguration apiConfiguration)
         {
-            Net.Profiles.Parameter updatedParameter = apiConfiguration.IsNew ? new Net.Profiles.Parameter(apiConfiguration.Id) : new Net.Profiles.Parameter(apiConfiguration.CoreParameter);
+            Net.Profiles.Parameter updatedParameter = apiConfiguration.IsNew ? new Net.Profiles.Parameter(apiConfiguration.ID) : new Net.Profiles.Parameter(apiConfiguration.CoreParameter);
 
             updatedParameter.Categories = Skyline.DataMiner.Net.Profiles.ProfileParameterCategory.Configuration;
             updatedParameter.Type = Skyline.DataMiner.Net.Profiles.Parameter.ParameterType.Discrete;
@@ -542,7 +542,7 @@
 
         private Net.Profiles.Parameter GetParameterWithChanges(DiscreteTextConfiguration apiConfiguration)
         {
-            Net.Profiles.Parameter updatedParameter = apiConfiguration.IsNew ? new Net.Profiles.Parameter(apiConfiguration.Id) : new Net.Profiles.Parameter(apiConfiguration.CoreParameter);
+            Net.Profiles.Parameter updatedParameter = apiConfiguration.IsNew ? new Net.Profiles.Parameter(apiConfiguration.ID) : new Net.Profiles.Parameter(apiConfiguration.CoreParameter);
 
             updatedParameter.Categories = Skyline.DataMiner.Net.Profiles.ProfileParameterCategory.Configuration;
             updatedParameter.Type = Skyline.DataMiner.Net.Profiles.Parameter.ParameterType.Discrete;

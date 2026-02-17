@@ -1,36 +1,39 @@
 ﻿namespace MediaOps_Injector
 {
-    using System;
-    using System.Net;
-    using Skyline.DataMiner.Net;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
-    using DMConnection = Skyline.DataMiner.Net.Connection;
+	using System;
+	using System.Net;
 
-    internal class Program
-    {
-        static void Main(string[] args)
-        {
-            var credentials = CredentialCache.DefaultNetworkCredentials;
+	using Skyline.DataMiner.Net;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.API.Extensions;
 
-            Console.WriteLine("Connecting to DataMiner...");
-            DMConnection connection = ConnectionSettings.GetConnection("slc-h62-g04.skyline.local");
-            connection.Authenticate(credentials.UserName, credentials.Password, credentials.Domain);
-            Console.WriteLine("Connected to DataMiner\r\n");
+	using DMConnection = Skyline.DataMiner.Net.Connection;
 
-            var api = new MediaOpsPlanApi(connection);
+	internal class Program
+	{
+		static void Main(string[] args)
+		{
+			var credentials = CredentialCache.DefaultNetworkCredentials;
 
-            var resource = new UnmanagedResource()
-            {
-                Name = "Injected Resource",
-                Concurrency = 1,
-            };
+			Console.WriteLine("Connecting to DataMiner...");
+			DMConnection connection = ConnectionSettings.GetConnection("slc-h62-g04.skyline.local");
+			connection.Authenticate(credentials.UserName, credentials.Password, credentials.Domain);
+			Console.WriteLine("Connected to DataMiner\r\n");
 
-            api.Resources.Create(resource);
+			var api = connection.GetMediaOpsPlanApi();
 
-            var r = api.Resources.Read(resource.Id);
-            r.Name = "Updated Injected Resource";
+			var resource = new UnmanagedResource()
+			{
+				Name = "Injected Resource",
+				Concurrency = 1,
+			};
 
-            api.Resources.Update(r);
-        }
-    }
+			api.Resources.Create(resource);
+
+			var r = api.Resources.Read(resource.ID);
+			r.Name = "Updated Injected Resource";
+
+			api.Resources.Update(r);
+		}
+	}
 }

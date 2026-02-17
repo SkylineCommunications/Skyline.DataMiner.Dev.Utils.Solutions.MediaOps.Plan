@@ -33,7 +33,7 @@
             var configuration = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration();
             Assert.IsNull(configuration.DefaultValue);
             Assert.IsNull(configuration.Name);
-            Assert.AreNotEqual(Guid.Empty, configuration.Id);
+            Assert.AreNotEqual(Guid.Empty, configuration.ID);
         }
 
 
@@ -294,7 +294,7 @@
             objectCreator.CreateConfiguration(configuration1);
             objectCreator.CreateConfiguration(configuration2);
 
-            var toUpdate = TestContext.Api.Configurations.Read(configuration2.Id);
+            var toUpdate = TestContext.Api.Configurations.Read(configuration2.ID);
             toUpdate.Name = configuration1.Name;
 
             try

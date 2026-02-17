@@ -50,7 +50,7 @@
         {
             foreach (var failedToLockObject in result.FailedToLockObjects)
             {
-                ReportError(failedToLockObject.Id, new MediaOpsErrorData() { ErrorMessage = $"Failed to lock {typeof(T).Name} {failedToLockObject.Id}." });
+                ReportError(failedToLockObject.ID, new MediaOpsErrorData() { ErrorMessage = $"Failed to lock {typeof(T).Name} {failedToLockObject.ID}." });
             }
         }
 
@@ -121,7 +121,7 @@
 
         protected bool IsValid(IIdentifiable identifiable)
         {
-            return !TraceDataPerItem.Keys.Contains(identifiable.Id);
+            return !TraceDataPerItem.Keys.Contains(identifiable.ID);
         }
 
         private void AddValidationError(Guid key, MediaOpsErrorData error)

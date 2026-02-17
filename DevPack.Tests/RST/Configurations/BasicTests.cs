@@ -69,7 +69,7 @@
                 Assert.AreEqual(errorMessage, configurationInUseError.ErrorMessage);
                 Assert.IsNotNull(configurationInUseError.ResourcePoolIds);
                 Assert.AreEqual(1, configurationInUseError.ResourcePoolIds.Count());
-                Assert.AreEqual(resourcePool.Id, configurationInUseError.ResourcePoolIds.Single());
+                Assert.AreEqual(resourcePool.ID, configurationInUseError.ResourcePoolIds.Single());
 
                 return;
             }
@@ -112,7 +112,7 @@
                 Assert.AreEqual(errorMessage, configurationInUseError.ErrorMessage);
                 Assert.IsNotNull(configurationInUseError.ResourcePoolIds);
                 Assert.AreEqual(1, configurationInUseError.ResourcePoolIds.Count());
-                Assert.AreEqual(resourcePool.Id, configurationInUseError.ResourcePoolIds.Single());
+                Assert.AreEqual(resourcePool.ID, configurationInUseError.ResourcePoolIds.Single());
 
                 return;
             }
@@ -155,7 +155,7 @@
                 Assert.AreEqual(errorMessage, configurationInUseError.ErrorMessage);
                 Assert.IsNotNull(configurationInUseError.ResourcePoolIds);
                 Assert.AreEqual(1, configurationInUseError.ResourcePoolIds.Count());
-                Assert.AreEqual(resourcePool.Id, configurationInUseError.ResourcePoolIds.Single());
+                Assert.AreEqual(resourcePool.ID, configurationInUseError.ResourcePoolIds.Single());
 
                 return;
             }
@@ -198,7 +198,7 @@
                 Assert.AreEqual(errorMessage, configurationInUseError.ErrorMessage);
                 Assert.IsNotNull(configurationInUseError.ResourcePoolIds);
                 Assert.AreEqual(1, configurationInUseError.ResourcePoolIds.Count());
-                Assert.AreEqual(resourcePool.Id, configurationInUseError.ResourcePoolIds.Single());
+                Assert.AreEqual(resourcePool.ID, configurationInUseError.ResourcePoolIds.Single());
 
                 return;
             }
@@ -248,7 +248,7 @@
                 Assert.AreEqual(errorMessage, configurationInUseError.ErrorMessage);
                 Assert.IsNotNull(configurationInUseError.ResourcePoolIds);
                 Assert.AreEqual(1, configurationInUseError.ResourcePoolIds.Count());
-                Assert.AreEqual(resourcePool.Id, configurationInUseError.ResourcePoolIds.Single());
+                Assert.AreEqual(resourcePool.ID, configurationInUseError.ResourcePoolIds.Single());
 
                 return;
             }
@@ -298,7 +298,7 @@
                 Assert.AreEqual(errorMessage, configurationInUseError.ErrorMessage);
                 Assert.IsNotNull(configurationInUseError.ResourcePoolIds);
                 Assert.AreEqual(1, configurationInUseError.ResourcePoolIds.Count());
-                Assert.AreEqual(resourcePool.Id, configurationInUseError.ResourcePoolIds.Single());
+                Assert.AreEqual(resourcePool.ID, configurationInUseError.ResourcePoolIds.Single());
 
                 return;
             }
@@ -348,7 +348,7 @@
                 Assert.AreEqual(errorMessage, configurationInUseError.ErrorMessage);
                 Assert.IsNotNull(configurationInUseError.ResourcePoolIds);
                 Assert.AreEqual(1, configurationInUseError.ResourcePoolIds.Count());
-                Assert.AreEqual(resourcePool.Id, configurationInUseError.ResourcePoolIds.Single());
+                Assert.AreEqual(resourcePool.ID, configurationInUseError.ResourcePoolIds.Single());
 
                 return;
             }
@@ -398,7 +398,7 @@
                 Assert.AreEqual(errorMessage, configurationInUseError.ErrorMessage);
                 Assert.IsNotNull(configurationInUseError.ResourcePoolIds);
                 Assert.AreEqual(1, configurationInUseError.ResourcePoolIds.Count());
-                Assert.AreEqual(resourcePool.Id, configurationInUseError.ResourcePoolIds.Single());
+                Assert.AreEqual(resourcePool.ID, configurationInUseError.ResourcePoolIds.Single());
 
                 return;
             }

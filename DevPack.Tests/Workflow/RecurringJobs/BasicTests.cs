@@ -30,7 +30,7 @@
         public void ReadRecurringJobById()
         {
             var firstRecurringJob = TestContext.Api.RecurringJobs.Read().First();
-            var jobToVerify = TestContext.Api.RecurringJobs.Read(firstRecurringJob.Id);
+            var jobToVerify = TestContext.Api.RecurringJobs.Read(firstRecurringJob.ID);
 
             Assert.AreEqual(firstRecurringJob, jobToVerify);
         }

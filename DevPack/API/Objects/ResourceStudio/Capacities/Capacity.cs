@@ -44,7 +44,7 @@
         /// returning the value of its Id property. If the Capacity instance is null, a NullReferenceException will be
         /// thrown.</remarks>
         /// <param name="capacity">The Capacity instance to convert to a Guid.</param>
-        public static implicit operator Guid(Capacity capacity) => capacity.Id;
+        public static implicit operator Guid(Capacity capacity) => capacity.ID;
 
         /// <summary>
         /// Gets or sets the units of measurement for the capacity.
@@ -128,7 +128,7 @@
         internal virtual CoreParameter GetParameterWithChanges()
         {
             var updatedParameter = IsNew ?
-                new CoreParameter(Id) { Categories = ProfileParameterCategory.Capacity, Type = ParameterType } :
+                new CoreParameter(ID) { Categories = ProfileParameterCategory.Capacity, Type = ParameterType } :
                 new CoreParameter(CoreParameter) { Categories = ProfileParameterCategory.Capacity };
 
             updatedParameter.Name = Name;

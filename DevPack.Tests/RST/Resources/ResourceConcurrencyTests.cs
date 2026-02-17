@@ -67,7 +67,7 @@
 
             objectCreator.CreateResource(unmanagedResource);
 
-            var resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
+            var resource = TestContext.Api.Resources.Read(unmanagedResource.ID);
             resource.Concurrency = -10; // Invalid concurrency
 
             try

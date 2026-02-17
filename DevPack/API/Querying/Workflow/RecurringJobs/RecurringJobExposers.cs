@@ -9,9 +9,9 @@
     public class RecurringJobExposers
     {
         /// <summary>
-        /// Gets an exposer for the <see cref="ApiObject.Id"/> property.
+        /// Gets an exposer for the <see cref="ApiObject.ID"/> property.
         /// </summary>
-        public static readonly Exposer<RecurringJob, Guid> Id = new Exposer<RecurringJob, Guid>((obj) => obj.Id, "Id");
+        public static readonly Exposer<RecurringJob, Guid> Id = new Exposer<RecurringJob, Guid>((obj) => obj.ID, "Id");
 
         /// <summary>
         /// Gets an exposer for the <see cref="ApiObject.Name"/> property.

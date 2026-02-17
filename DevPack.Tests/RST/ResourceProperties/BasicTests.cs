@@ -205,7 +205,7 @@
 
                 var propertyConfigurationNameExistsError = propertyConfigurationError as ResourcePropertyNameExistsError;
                 Assert.IsNotNull(propertyConfigurationNameExistsError);
-                Assert.AreEqual(property2.Id, propertyConfigurationNameExistsError.Id);
+                Assert.AreEqual(property2.ID, propertyConfigurationNameExistsError.Id);
                 Assert.AreEqual(property2.Name, propertyConfigurationNameExistsError.Name);
                 Assert.AreEqual("Name is already in use.", propertyConfigurationError.ErrorMessage);
 
@@ -272,7 +272,7 @@
             objectCreator.CreateProperty(property1);
             objectCreator.CreateProperty(property2);
 
-            var toUpdate = TestContext.Api.ResourceProperties.Read(property2.Id);
+            var toUpdate = TestContext.Api.ResourceProperties.Read(property2.ID);
             toUpdate.Name = property1.Name;
 
             try
@@ -289,7 +289,7 @@
 
                 var propertyConfigurationNameExistsError = propertyConfigurationError as ResourcePropertyNameExistsError;
                 Assert.IsNotNull(propertyConfigurationNameExistsError);
-                Assert.AreEqual(toUpdate.Id, propertyConfigurationNameExistsError.Id);
+                Assert.AreEqual(toUpdate.ID, propertyConfigurationNameExistsError.Id);
                 Assert.AreEqual(toUpdate.Name, propertyConfigurationNameExistsError.Name);
                 Assert.AreEqual("Name is already in use.", propertyConfigurationError.ErrorMessage);
 

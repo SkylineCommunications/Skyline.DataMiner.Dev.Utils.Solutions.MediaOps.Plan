@@ -154,7 +154,7 @@
                 return false;
             }
 
-            return Id == other.Id &&
+            return ID == other.ID &&
                 Name == other.Name &&
                 Capabilities.ScrambledEquals(other.Capabilities) &&
                 Capacities.ScrambledEquals(other.Capacities) &&
@@ -168,7 +168,7 @@
             unchecked
             {
                 int hash = 17;
-                hash = (hash * 23) + Id.GetHashCode();
+                hash = (hash * 23) + ID.GetHashCode();
                 hash = (hash * 23) + (Name != null ? Name.GetHashCode() : 0);
 
                 foreach (var capability in Capabilities.OrderBy(x => x.Id))

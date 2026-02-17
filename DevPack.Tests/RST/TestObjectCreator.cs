@@ -7,6 +7,8 @@
 	using RT_MediaOps.Plan.RegressionTests;
 
 	using Skyline.DataMiner.Core.DataMinerSystem.Common;
+	using Skyline.DataMiner.Solutions.MediaOps.Live.API;
+	using Skyline.DataMiner.Solutions.MediaOps.Live.API.Objects.ConnectivityManagement;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 	using Skyline.DataMiner.Utils.Categories.API;
@@ -41,12 +43,16 @@
 
 		private readonly HashSet<Guid> createdCoreResourceIds = new HashSet<Guid>();
 
+		private readonly HashSet<Guid> createdVirtualSignalGroupIds = new HashSet<Guid>();
+
 		public TestObjectCreator(IntegrationTestContext testContext)
 		{
 			this.testContext = testContext ?? throw new ArgumentNullException(nameof(testContext));
 		}
 
 		private IMediaOpsPlanApi PlanApi => testContext.Api;
+
+		private IMediaOpsLiveApi LiveApi => testContext.LiveApi;
 
 		private CategoriesApi CatagoriesApi => testContext.CategoriesApi;
 
@@ -152,6 +158,15 @@
 			{
 				// Ignore cleanup errors
 			}
+
+			try
+			{
+				VirtualSignalGroupsCleanup();
+			}
+			catch
+			{
+				// Ignore cleanup errors
+			}
 		}
 
 		private void ResourcesCleanup()
@@ -162,7 +177,7 @@
 			{
 				try
 				{
-					PlanApi.Resources.Deprecate(resource.Id);
+					PlanApi.Resources.Deprecate(resource.ID);
 				}
 				catch
 				{
@@ -181,7 +196,7 @@
 			{
 				try
 				{
-					PlanApi.ResourcePools.Deprecate(pool.Id);
+					PlanApi.ResourcePools.Deprecate(pool.ID);
 				}
 				catch
 				{
@@ -274,12 +289,23 @@
 			testContext.ResourceManagerHelper.RemoveResourcePools(createdCoreResourcePoolIds.Select(x => new CoreResourcePool(x)).ToArray());
 		}
 
-        public T CreateResource<T>(T resource) where T : Resource
-        {
-            var createdResource = (T)PlanApi.Resources.Create(resource);
-            createdResourceIds.Add(createdResource.Id);
-            return createdResource;
-        }
+		private void VirtualSignalGroupsCleanup()
+		{
+			if (createdVirtualSignalGroupIds.Count == 0)
+			{
+				return;
+			}
+
+			var existingVirtualSignalGroups = LiveApi.VirtualSignalGroups.Read(createdVirtualSignalGroupIds).Values;
+			LiveApi.VirtualSignalGroups.Delete(existingVirtualSignalGroups);
+		}
+
+		public T CreateResource<T>(T resource) where T : Resource
+		{
+			var createdResource = (T)PlanApi.Resources.Create(resource);
+			createdResourceIds.Add(createdResource.ID);
+			return createdResource;
+		}
 
 		public IReadOnlyCollection<Resource> CreateResources(IEnumerable<Resource> resources)
 		{
@@ -287,7 +313,7 @@
 			{
 				var createdResources = PlanApi.Resources.Create(resources);
 
-				foreach (var id in resources.Select(x => x.Id))
+				foreach (var id in resources.Select(x => x.ID))
 				{
 					createdResourceIds.Add(id);
 				}
@@ -318,12 +344,12 @@
 			}
 		}
 
-        public ResourcePool CreateResourcePool(ResourcePool resourcePool)
-        {
-            var createdPool = PlanApi.ResourcePools.Create(resourcePool);
-            createdPoolIds.Add(createdPool.Id);
-            return createdPool;
-        }
+		public ResourcePool CreateResourcePool(ResourcePool resourcePool)
+		{
+			var createdPool = PlanApi.ResourcePools.Create(resourcePool);
+			createdPoolIds.Add(createdPool.ID);
+			return createdPool;
+		}
 
 		public IReadOnlyCollection<ResourcePool> CreateResourcePools(IEnumerable<ResourcePool> resourcePools)
 		{
@@ -331,7 +357,7 @@
 			{
 				var createdPools = PlanApi.ResourcePools.Create(resourcePools);
 
-				foreach (var id in resourcePools.Select(x => x.Id))
+				foreach (var id in resourcePools.Select(x => x.ID))
 				{
 					createdPoolIds.Add(id);
 				}
@@ -349,12 +375,12 @@
 			}
 		}
 
-        public void StoreResourcePoolIds(IEnumerable<Guid> ids)
-        {
-            if (ids == null)
-            {
-                return;
-            }
+		public void StoreResourcePoolIds(IEnumerable<Guid> ids)
+		{
+			if (ids == null)
+			{
+				return;
+			}
 
 			foreach (var id in ids.Where(x => x != Guid.Empty))
 			{
@@ -362,12 +388,12 @@
 			}
 		}
 
-        public Capability CreateCapability(Capability capability)
-        {
-            var createdCapability = PlanApi.Capabilities.Create(capability);
-            createdCapabilityIds.Add(createdCapability.Id);
-            return createdCapability;
-        }
+		public Capability CreateCapability(Capability capability)
+		{
+			var createdCapability = PlanApi.Capabilities.Create(capability);
+			createdCapabilityIds.Add(createdCapability.ID);
+			return createdCapability;
+		}
 
 		public IReadOnlyCollection<Capability> CreateCapabilities(IEnumerable<Capability> capabilities)
 		{
@@ -375,7 +401,7 @@
 			{
 				var createdCapabilities = PlanApi.Capabilities.Create(capabilities);
 
-				foreach (var id in capabilities.Select(x => x.Id))
+				foreach (var id in capabilities.Select(x => x.ID))
 				{
 					createdCapabilityIds.Add(id);
 				}
@@ -396,7 +422,7 @@
 		public Capacity CreateCapacity(Capacity capacity)
 		{
 			var createdCapacity = PlanApi.Capacities.Create(capacity);
-			createdCapacityIds.Add(createdCapacity.Id);
+			createdCapacityIds.Add(createdCapacity.ID);
 			return createdCapacity;
 		}
 
@@ -406,7 +432,7 @@
 			{
 				var createdCapacities = PlanApi.Capacities.Create(capacities);
 
-				foreach (var id in capacities.Select(x => x.Id))
+				foreach (var id in capacities.Select(x => x.ID))
 				{
 					createdCapacityIds.Add(id);
 				}
@@ -427,14 +453,14 @@
 		public Configuration CreateConfiguration(Configuration configuration)
 		{
 			var createdConfiguration = PlanApi.Configurations.Create(configuration);
-			createdConfigurationIds.Add(createdConfiguration.Id);
+			createdConfigurationIds.Add(createdConfiguration.ID);
 			return createdConfiguration;
 		}
 
 		public T CreateConfiguration<T>(T configuration) where T : Configuration
 		{
 			var createdConfiguration = PlanApi.Configurations.Create(configuration);
-			createdConfigurationIds.Add(createdConfiguration.Id);
+			createdConfigurationIds.Add(createdConfiguration.ID);
 			return (T)createdConfiguration;
 		}
 
@@ -444,7 +470,7 @@
 			{
 				var createdConfigurations = PlanApi.Configurations.Create(configurations);
 
-				foreach (var id in configurations.Select(x => x.Id))
+				foreach (var id in configurations.Select(x => x.ID))
 				{
 					createdConfigurationIds.Add(id);
 				}
@@ -465,7 +491,7 @@
 		public ResourceProperty CreateProperty(ResourceProperty property)
 		{
 			var createdProperty = PlanApi.ResourceProperties.Create(property);
-			createdPropertyIds.Add(createdProperty.Id);
+			createdPropertyIds.Add(createdProperty.ID);
 			return createdProperty;
 		}
 
@@ -475,7 +501,7 @@
 			{
 				var createdProperties = PlanApi.ResourceProperties.Create(properties);
 
-				foreach (var id in properties.Select(x => x.Id))
+				foreach (var id in properties.Select(x => x.ID))
 				{
 					createdPropertyIds.Add(id);
 				}
@@ -548,6 +574,18 @@
 			{
 				createdCoreResourcePoolIds.Add(created.ID);
 			}
+		}
+
+		public bool TryCreateVirtualSignalGroup(VirtualSignalGroup virtualSignalGroup)
+		{
+			if (!LiveApi.IsInstalled())
+			{
+				return false;
+			}
+
+			LiveApi.VirtualSignalGroups.Create(virtualSignalGroup);
+			createdVirtualSignalGroupIds.Add(virtualSignalGroup.ID);
+			return true;
 		}
 	}
 }

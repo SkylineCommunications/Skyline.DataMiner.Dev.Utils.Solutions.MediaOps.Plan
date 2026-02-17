@@ -20,7 +20,7 @@
         {
             this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
             this.resourcePoolsToValidate = resourcePoolsToValidate ?? throw new ArgumentNullException(nameof(resourcePoolsToValidate));
-            resourcePoolIdsToValidate = resourcePoolsToValidate.Select(x => x.Id).ToHashSet();
+            resourcePoolIdsToValidate = resourcePoolsToValidate.Select(x => x.ID).ToHashSet();
         }
 
         public static ApiObjectValidator Validate(MediaOpsPlanApi planApi, ICollection<ResourcePool> resourcePoolsToValidate)
@@ -47,7 +47,7 @@
             {
                 return new ResourcePoolInUseByJobsError
                 {
-                    Id = resourcePool.Id,
+                    Id = resourcePool.ID,
                     ErrorMessage = $"Resource pool '{resourcePool.Name}' is in use by {ids.Count} job(s).",
                     JobIds = ids.ToArray(),
                 };
@@ -58,7 +58,7 @@
             {
                 return new ResourcePoolInUseByRecurringJobsError
                 {
-                    Id = resourcePool.Id,
+                    Id = resourcePool.ID,
                     ErrorMessage = $"Resource pool '{resourcePool.Name}' is in use by {ids.Count} recurrence(s).",
                     RecurringJobIds = ids.ToArray(),
                 };
@@ -69,7 +69,7 @@
             {
                 return new ResourcePoolInUseByWorkflowsError
                 {
-                    Id = resourcePool.Id,
+                    Id = resourcePool.ID,
                     ErrorMessage = $"Resource pool '{resourcePool.Name}' is in use by {ids.Count} workflow(s).",
                     WorkflowIds = ids.ToArray(),
                 };
@@ -81,12 +81,12 @@
             var jobsReferencingResourcePools = GetJobsReferencingResourcePools();
             foreach (var resourcePool in resourcePoolsToValidate)
             {
-                if (!jobsReferencingResourcePools.TryGetValue(resourcePool.Id, out var jobIds))
+                if (!jobsReferencingResourcePools.TryGetValue(resourcePool.ID, out var jobIds))
                 {
                     continue;
                 }
 
-                ReportError(resourcePool.Id, createJobsError(resourcePool, jobIds));
+                ReportError(resourcePool.ID, createJobsError(resourcePool, jobIds));
             }
         }
 
@@ -95,12 +95,12 @@
             var recurringJobsReferencingResourcePools = GetRecurringJobsReferencingResourcePools();
             foreach (var resourcePool in resourcePoolsToValidate)
             {
-                if (!recurringJobsReferencingResourcePools.TryGetValue(resourcePool.Id, out var recurringJobIds))
+                if (!recurringJobsReferencingResourcePools.TryGetValue(resourcePool.ID, out var recurringJobIds))
                 {
                     continue;
                 }
 
-                ReportError(resourcePool.Id, createRecurringJobsError(resourcePool, recurringJobIds));
+                ReportError(resourcePool.ID, createRecurringJobsError(resourcePool, recurringJobIds));
             }
         }
 
@@ -109,12 +109,12 @@
             var workflowsReferencingResourcePools = GetWorkflowsReferencingResourcePools();
             foreach (var resourcePool in resourcePoolsToValidate)
             {
-                if (!workflowsReferencingResourcePools.TryGetValue(resourcePool.Id, out var jobIds))
+                if (!workflowsReferencingResourcePools.TryGetValue(resourcePool.ID, out var jobIds))
                 {
                     continue;
                 }
 
-                ReportError(resourcePool.Id, createWorkflowsError(resourcePool, jobIds));
+                ReportError(resourcePool.ID, createWorkflowsError(resourcePool, jobIds));
             }
         }
 

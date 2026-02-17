@@ -12,9 +12,9 @@
 	public class ResourceExposers
 	{
 		/// <summary>
-		/// Gets an exposer for the <see cref="ApiObject.Id"/> property.
+		/// Gets an exposer for the <see cref="ApiObject.ID"/> property.
 		/// </summary>
-		public static readonly Exposer<Resource, Guid> Id = new Exposer<Resource, Guid>((obj) => obj.Id, "Id");
+		public static readonly Exposer<Resource, Guid> Id = new Exposer<Resource, Guid>((obj) => obj.ID, "Id");
 
 		/// <summary>
 		/// Gets an exposer for the <see cref="Resource.Name"/> property.
@@ -30,21 +30,6 @@
 		/// Gets an exposer for the <see cref="Resource.Concurrency"/> property.
 		/// </summary>
 		public static readonly Exposer<Resource, int> Concurrency = new Exposer<Resource, int>((obj) => obj.Concurrency, "Concurrency");
-
-		/// <summary>
-		/// Gets an exposer for the <see cref="Resource.IsExternallyManaged"/> property.
-		/// </summary>
-		public static readonly Exposer<Resource, bool> IsExternallyManaged = new Exposer<Resource, bool>((obj) => obj.IsExternallyManaged, "IsExternallyManaged");
-
-		/// <summary>
-		/// Gets an exposer for the <see cref="Resource.Url"/> property.
-		/// </summary>
-		public static readonly Exposer<Resource, string> Url = new Exposer<Resource, string>((obj) => obj.Url, "Url");
-
-		/// <summary>
-		/// Gets an exposer for the <see cref="Resource.IconImage"/> property.
-		/// </summary>
-		public static readonly Exposer<Resource, string> IconImage = new Exposer<Resource, string>((obj) => obj.IconImage, "IconImage");
 
 		/// <summary>
 		/// Gets an exposer for the <see cref="Resource.State"/> property.

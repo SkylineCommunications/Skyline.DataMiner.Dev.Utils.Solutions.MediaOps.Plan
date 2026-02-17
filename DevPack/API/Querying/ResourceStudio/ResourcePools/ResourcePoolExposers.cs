@@ -11,9 +11,9 @@
     public class ResourcePoolExposers
     {
         /// <summary>
-        /// Gets an exposer for the <see cref="ApiObject.Id"/> property.
+        /// Gets an exposer for the <see cref="ApiObject.ID"/> property.
         /// </summary>
-        public static readonly Exposer<ResourcePool, Guid> Id = new Exposer<ResourcePool, Guid>((obj) => obj.Id, "Id");
+        public static readonly Exposer<ResourcePool, Guid> Id = new Exposer<ResourcePool, Guid>((obj) => obj.ID, "Id");
 
         /// <summary>
         /// Gets an exposer for the <see cref="ResourcePool.Name"/> property.

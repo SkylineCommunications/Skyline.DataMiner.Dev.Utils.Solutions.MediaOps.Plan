@@ -9,7 +9,7 @@
     public class CapacityExposers
     {
         /// <summary>
-        /// Gets an exposer for the <see cref="ApiObject.Id"/> property.
+        /// Gets an exposer for the <see cref="ApiObject.ID"/> property.
         /// </summary>
         public static readonly Exposer<Capacity, Guid> Id = new Exposer<Capacity, Guid>("Id");
 
