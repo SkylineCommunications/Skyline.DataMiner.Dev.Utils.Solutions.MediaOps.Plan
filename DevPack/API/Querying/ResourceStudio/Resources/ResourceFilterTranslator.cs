@@ -24,8 +24,8 @@
 			[ResourceExposers.IconImage.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceOther.IconImage), comparer, (string)value),
 			[ResourceExposers.Url.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceOther.URL), comparer, (string)value),
 			[ResourceExposers.IsExternallyManaged.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ExternalMetadata.ExternallyManaged), comparer, (bool)value),
-			[ResourceExposers.VirtualSignalGroupInputId.fieldName] = (comparer, value) => CreateVirtualSignalGroupInputIdFilter(comparer, (Guid)value),
-			[ResourceExposers.VirtualSignalGroupOutputId.fieldName] = (comparer, value) => CreateVirtualSignalGroupOutputIdFilter(comparer, (Guid)value),
+			[ResourceExposers.VirtualSignalGroupInputId.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceConnectionManagement.InputReference), comparer, Convert.ToString(value)),
+			[ResourceExposers.VirtualSignalGroupOutputId.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceConnectionManagement.OutputReference), comparer, Convert.ToString(value)),
 			[ResourceExposers.Capabilities.CapabilityId.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceCapabilities.ProfileParameterID), comparer, Convert.ToString(value)),
 			[ResourceExposers.Capabilities.Discretes.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceCapabilities.StringValue), comparer, Convert.ToString(value)),
 			[ResourceExposers.Capacities.CapacityId.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceCapacities.ProfileParameterID), comparer, Convert.ToString(value)),
@@ -86,36 +86,6 @@
 			else
 			{
 				throw new NotSupportedException($"Type {type} is no valid Resource type");
-			}
-		}
-
-		private static FilterElement<DomInstance> CreateVirtualSignalGroupInputIdFilter(Comparer comparer, Guid virtualSignalGroupId)
-		{
-			string filterValue = $"\"LinkedServiceInfo\":\"{virtualSignalGroupId}/";
-
-			switch (comparer)
-			{
-				case Comparer.Equals:
-					return DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceConnectionManagement.InputReference).Contains(filterValue);
-				case Comparer.NotEquals:
-					return DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceConnectionManagement.InputReference).NotContains(filterValue);
-				default:
-					throw new NotSupportedException($"Comparer {comparer} is not supported for VirtualSignalGroupInputId checks");
-			}
-		}
-
-		private static FilterElement<DomInstance> CreateVirtualSignalGroupOutputIdFilter(Comparer comparer, Guid virtualSignalGroupId)
-		{
-			string filterValue = $"\"LinkedServiceInfo\":\"{virtualSignalGroupId}/";
-
-			switch (comparer)
-			{
-				case Comparer.Equals:
-					return DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceConnectionManagement.OutputReference).Contains(filterValue);
-				case Comparer.NotEquals:
-					return DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceConnectionManagement.OutputReference).NotContains(filterValue);
-				default:
-					throw new NotSupportedException($"Comparer {comparer} is not supported for VirtualSignalGroupOutputId checks");
 			}
 		}
 
