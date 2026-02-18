@@ -8,8 +8,8 @@
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.SDM.Registration;
 	using Skyline.DataMiner.Solutions.Categories.API;
-	//using Skyline.DataMiner.Solutions.MediaOps.Live.API;
-	//using Skyline.DataMiner.Solutions.MediaOps.Live.API.Extensions;
+	using Skyline.DataMiner.Solutions.MediaOps.Live.API;
+	using Skyline.DataMiner.Solutions.MediaOps.Live.API.Extensions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
@@ -19,13 +19,15 @@
 	/// </summary>
 	public class MediaOpsPlanApi : IMediaOpsPlanApi
 	{
+		private const string CatalogItemId = "1b67a623-4ca6-4d25-8b3d-ed4e39496a75";
+
 		private readonly IConnection connection;
 
 		private readonly DomHelpers domHelpers;
 		private readonly CoreHelpers coreHelpers;
 
 		private readonly Lazy<IDms> lazyDms;
-		//private readonly Lazy<IMediaOpsLiveApi> lazyLiveApi;
+		private readonly Lazy<IMediaOpsLiveApi> lazyLiveApi;
 		private readonly Lazy<IResourcesRepository> lazyResourceRepository;
 		private readonly Lazy<IResourcePoolsRepository> lazyResourcePoolsRepository;
 		private readonly Lazy<ICapabilitiesRepository> lazyCapabilitiesRepository;
@@ -55,7 +57,7 @@
 			coreHelpers = new CoreHelpers(connection);
 
 			lazyDms = new Lazy<IDms>(() => connection.GetDms());
-			//lazyLiveApi = new Lazy<IMediaOpsLiveApi>(() => connection.GetMediaOpsLiveApi());
+			lazyLiveApi = new Lazy<IMediaOpsLiveApi>(() => connection.GetMediaOpsLiveApi());
 			lazyResourceRepository = new Lazy<IResourcesRepository>(() => new ResourcesRepository(this));
 			lazyResourcePoolsRepository = new Lazy<IResourcePoolsRepository>(() => new ResourcePoolsRepository(this));
 			lazyCapabilitiesRepository = new Lazy<ICapabilitiesRepository>(() => new CapabilitiesRepository(this));
@@ -124,7 +126,7 @@
 
 		internal IDms Dms => lazyDms.Value;
 
-		//internal IMediaOpsLiveApi LiveApi => lazyLiveApi.Value;
+		internal IMediaOpsLiveApi LiveApi => lazyLiveApi.Value;
 
 		internal Plan.Tools.LockManager LockManager => lazyLockManager.Value;
 
@@ -140,14 +142,14 @@
 		public bool IsInstalled(out string version)
 		{
 			var registrar = Connection.GetSdmRegistrar();
-			var categoriesRegistration = registrar.Solutions.Read(SolutionRegistrationExposers.ID.Equal("standard_solution_mediaops_plan")).FirstOrDefault();
-			if (categoriesRegistration == null)
+			var mediaOpsPlanRegistration = registrar.Solutions.Read(SolutionRegistrationExposers.ID.Equal(CatalogItemId)).FirstOrDefault();
+			if (mediaOpsPlanRegistration == null)
 			{
-				version = String.Empty;
+				version = null;
 				return false;
 			}
 
-			version = categoriesRegistration.Version;
+			version = mediaOpsPlanRegistration.Version;
 			return true;
 		}
 
