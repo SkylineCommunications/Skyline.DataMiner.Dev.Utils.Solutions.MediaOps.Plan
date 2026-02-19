@@ -1131,6 +1131,11 @@
 				.Distinct()
 				.ToList();
 
+			if (virtualSignalGroupIds.Count == 0)
+			{
+				return;
+			}
+
 			var virtualSignalGroupsById = planApi.LiveApi.VirtualSignalGroups.Read(virtualSignalGroupIds);
 
 			foreach (var resource in apiResources)
