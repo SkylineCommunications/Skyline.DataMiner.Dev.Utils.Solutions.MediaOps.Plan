@@ -30,7 +30,7 @@
     <Company>Skyline Communications</Company>
     <Description>Provides GQI extensions to communicate with MediaOps Plan.</Description>
     <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/SkylineCommunications/Skyline.DataMiner.MediaOps.Plan</RepositoryUrl>
+    <RepositoryUrl>https://github.com/SkylineCommunications/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan</RepositoryUrl>
     <Deterministic>false</Deterministic>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
