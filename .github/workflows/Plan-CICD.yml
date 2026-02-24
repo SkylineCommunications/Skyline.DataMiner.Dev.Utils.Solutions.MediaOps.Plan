@@ -66,10 +66,22 @@ jobs:
 
   internal_release:
     name: Internal Release
-    if: github.ref_type == 'tag' && contains(github.ref, '-') #Prerelease tags (e.g. 1.2.3-something)
+    if: github.ref_type == 'tag' && contains(github.ref_name, '-') #Prerelease tags (e.g. 1.2.3-something)
     needs: nuget_validation
     uses: SkylineCommunications/_ReusableWorkflows/.github/workflows/Internal NuGet Solution Master Workflow.yml@main
     with:
       sonarCloudProjectName: SkylineCommunications_Skyline.DataMiner.MediaOps.API
     secrets:
       nugetApiKey: ${{ secrets.NUGETAPIKEY_GITHUB }}
+
+  public_release:
+    name: Public Release
+    if: github.ref_type == 'tag' && !contains(github.ref_name, '-') #Stable tags (e.g. 1.2.3)
+    needs: nuget_validation
+    permissions:
+      contents: read
+    uses: SkylineCommunications/_ReusableWorkflows/.github/workflows/NuGet Solution Master Workflow.yml@main
+    with:
+      sonarCloudProjectName: SkylineCommunications_Skyline.DataMiner.MediaOps.API
+    secrets:
+      nugetApiKey: ${{ secrets.NUGETAPIKEY }}

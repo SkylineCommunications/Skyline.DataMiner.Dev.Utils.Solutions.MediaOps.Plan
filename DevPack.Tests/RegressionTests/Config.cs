@@ -25,7 +25,7 @@
                 Username = credentials.UserName;
                 Password = credentials.Password;
                 Domain = credentials.Domain;
-                BaseUrl = configuration["DATAMINER_HOST"] ?? "slc-h67-g03.skyline.local";
+                BaseUrl = configuration["DATAMINER_HOST"] ?? "localhost";
             }
             else
             {
@@ -39,7 +39,7 @@
 
                 Domain = configuration[prefixCredentials + "_DOMAIN"] ?? string.Empty;
 
-                BaseUrl = configuration[prefixCredentials + "_HOST"] ?? "slc-h67-g03.skyline.local";
+                BaseUrl = configuration[prefixCredentials + "_HOST"] ?? "localhost";
             }
         }
 
