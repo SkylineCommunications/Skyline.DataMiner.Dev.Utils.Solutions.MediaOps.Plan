@@ -13,7 +13,7 @@
   <!-- Default values if local config doesn't exist -->
   <PropertyGroup Condition="'$(MediaOpsHasLocalConfig)' != 'true'">
     <MediaOpsLocalDevMode>false</MediaOpsLocalDevMode>
-    <MediaOpsVersion>1.0.1</MediaOpsVersion>
+    <MediaOpsVersion>1.0.1-alpha1</MediaOpsVersion>
   </PropertyGroup>	
 <ItemGroup>
 	<SonarQubeSetting Include="sonar.cpd.exclusions">
