@@ -673,7 +673,6 @@
             return updateRequired;
         }
 
-        // TODO should this move to CoreCapabilitiesHandler?
         private bool SetResourceType(CoreResource coreResource, string resourceTypeValue)
         {
             bool updateRequired = false;
