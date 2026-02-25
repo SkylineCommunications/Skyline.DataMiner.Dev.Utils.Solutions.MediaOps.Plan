@@ -8,13 +8,18 @@ Resources and resource pools follow a lifecycle with three states: **Draft**, **
 
 ### Resource State Transitions
 
+```mermaid
+stateDiagram-v2
+  direction LR
+  Draft --> Complete
+  Complete --> Deprecated
+  Deprecated --> Complete
 ```
-Draft ──► Complete ──► Deprecated
-                  ◄──
-```
+Resources are created in the **Draft** state. Once fully configured, they can be transitioned to **Complete** state to make them available for planning. A completed resource can be **Deprecated** when it is no longer needed, and restored back to **Complete** if required again.
 
 ```csharp
 using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+using Skyline.DataMiner.Solutions.MediaOps.Plan.Automation;
 
 var api = engine.GetMediaOpsPlanApi();
 
@@ -44,6 +49,9 @@ var restored = api.Resources.Restore(resource);
 State transitions can be performed on multiple resources at once:
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+using Skyline.DataMiner.Solutions.MediaOps.Plan.Automation;
+
 // Complete multiple resources
 var completedResources = api.Resources.Complete(new[] { resource1, resource2, resource3 });
 
@@ -59,6 +67,9 @@ var restoredResources = api.Resources.Restore(new[] { resource1, resource2 });
 Resource pools follow the same lifecycle:
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+using Skyline.DataMiner.Solutions.MediaOps.Plan.Automation;
+
 // Complete a pool
 var completed = api.ResourcePools.Complete(pool);
 
@@ -82,6 +93,9 @@ var restored = api.ResourcePools.Restore(pool);
 When deleting a resource pool, you can control what happens to its resources:
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+using Skyline.DataMiner.Solutions.MediaOps.Plan.Automation;
+
 api.ResourcePools.Delete(pool, new ResourcePoolDeleteOptions
 {
     DeleteDraftResources = true,      // Delete resources in Draft state
@@ -92,6 +106,9 @@ api.ResourcePools.Delete(pool, new ResourcePoolDeleteOptions
 ### Deprecate Options
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+using Skyline.DataMiner.Solutions.MediaOps.Plan.Automation;
+
 api.ResourcePools.Deprecate(pool, new ResourcePoolDeprecateOptions
 {
     AllowResourceDeprecation = true, // Also deprecate resources assigned to this pool
@@ -105,6 +122,8 @@ Orchestration settings define automation behavior for resource pools and workflo
 ### Resource Pool Orchestration Settings
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.Automation;
+
 var pool = api.ResourcePools.Read(poolId);
 
 // Access orchestration settings
@@ -128,6 +147,8 @@ var events = orchestrationSettings.OrchestrationEvents;
 Orchestration events define scripts that are executed at specific points during the orchestration lifecycle:
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
 // Available event types:
 // - OrchestrationEventType.PrerollStart
 // - OrchestrationEventType.PrerollStop
@@ -140,6 +161,9 @@ Orchestration events define scripts that are executed at specific points during 
 After an orchestration event has been executed, the job state can be updated:
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+using Skyline.DataMiner.Solutions.MediaOps.Plan.Automation;
+
 api.Jobs.SetOrchestrationState(jobId, new OrchestrationUpdateDetails
 {
     Event = OrchestrationEventType.PrerollStart,
@@ -163,61 +187,13 @@ The API supports custom logging through the `ILogger` interface.
 ### Setting a Logger
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.Automation;
 using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
 
 var api = engine.GetMediaOpsPlanApi();
 
 // Set a custom logger
 api.SetLogger(myLogger);
-```
-
-### Implementing a Custom Logger
-
-Create your own logger by implementing `ILogger`:
-
-```csharp
-public class MyCustomLogger : ILogger
-{
-    public void Debug(object callerInstance, string message, object[] args = null, string methodName = "")
-    {
-        Console.WriteLine($"[DEBUG] [{callerInstance?.GetType().Name}::{methodName}] {message}");
-    }
-
-    public void Debug(string message)
-    {
-        Console.WriteLine($"[DEBUG] {message}");
-    }
-
-    public void Information(object callerInstance, string message, object[] args = null, string methodName = "")
-    {
-        Console.WriteLine($"[INFO] [{callerInstance?.GetType().Name}::{methodName}] {message}");
-    }
-
-    public void Information(string message)
-    {
-        Console.WriteLine($"[INFO] {message}");
-    }
-
-    public void Warning(object callerInstance, string message, object[] args = null, string methodName = "")
-    {
-        Console.WriteLine($"[WARNING] [{callerInstance?.GetType().Name}::{methodName}] {message}");
-    }
-
-    public void Warning(string message)
-    {
-        Console.WriteLine($"[WARNING] {message}");
-    }
-
-    public void Error(object callerInstance, string message, object[] args = null, string methodName = "")
-    {
-        Console.Error.WriteLine($"[ERROR] [{callerInstance?.GetType().Name}::{methodName}] {message}");
-    }
-
-    public void Error(string message)
-    {
-        Console.Error.WriteLine($"[ERROR] {message}");
-    }
-}
 ```
 
 ## Installation and Setup
@@ -227,6 +203,8 @@ public class MyCustomLogger : ILogger
 Verify that the MediaOps.PLAN application is installed:
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.Automation;
+
 var api = engine.GetMediaOpsPlanApi();
 
 if (!api.IsInstalled())
@@ -240,6 +218,8 @@ if (!api.IsInstalled())
 Retrieve the version of the installed application:
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.Automation;
+
 var api = engine.GetMediaOpsPlanApi();
 
 if (api.IsInstalled(out string version))
@@ -253,6 +233,8 @@ if (api.IsInstalled(out string version))
 The API provides access to built-in system capabilities:
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.Automation;
+
 // Access the Resource Type system capability
 var resourceType = api.Capabilities.SystemCapabilities.ResourceType;
 
