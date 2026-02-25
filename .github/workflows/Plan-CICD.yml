@@ -78,8 +78,6 @@ jobs:
     name: Public Release
     if: github.ref_type == 'tag' && !contains(github.ref_name, '-') #Stable tags (e.g. 1.2.3)
     needs: nuget_validation
-    permissions:
-      contents: read
     uses: SkylineCommunications/_ReusableWorkflows/.github/workflows/NuGet Solution Master Workflow.yml@main
     with:
       sonarCloudProjectName: SkylineCommunications_Skyline.DataMiner.MediaOps.API
