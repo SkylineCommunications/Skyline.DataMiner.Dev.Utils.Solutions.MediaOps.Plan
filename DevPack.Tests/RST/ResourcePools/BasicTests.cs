@@ -338,7 +338,7 @@
 			}
 			catch (MediaOpsException ex)
 			{
-				StringAssert.Contains(ex.Message, $"Category with ID '{resourcePool1.CategoryId}' could not found in Scope 'Resource Pools'.");
+				StringAssert.Contains(ex.Message, $"Category with ID '{resourcePool1.CategoryId}' not found in Scope 'Resource Pools'.");
 
 				Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
 				var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolError>().SingleOrDefault();
@@ -348,7 +348,7 @@
 				Assert.IsNotNull(resourcePoolConfigurationNameExistsError);
 				Assert.AreEqual(resourcePool1.Id, resourcePoolConfigurationNameExistsError.Id);
 				Assert.AreEqual(resourcePool1.CategoryId, resourcePoolConfigurationNameExistsError.CategoryId);
-				Assert.AreEqual($"Category with ID '{resourcePool1.CategoryId}' could not found in Scope 'Resource Pools'.", resourcePoolConfigurationError.ErrorMessage);
+				Assert.AreEqual($"Category with ID '{resourcePool1.CategoryId}' not found in Scope 'Resource Pools'.", resourcePoolConfigurationError.ErrorMessage);
 
 				return;
 			}
