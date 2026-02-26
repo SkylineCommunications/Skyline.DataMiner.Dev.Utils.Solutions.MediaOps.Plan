@@ -248,7 +248,7 @@
                 {
                     var resourceNodeFilter = new ANDFilterElement<DomInstance>(
                         DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeType).Equal((int)SlcWorkflowIds.Enums.Nodetype.Resource),
-                        DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeParentReferenceID).Equal(id.ToString())
+                        DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeReferenceID).Equal(id.ToString())
                     );
 
                     return resourceNodeFilter;
