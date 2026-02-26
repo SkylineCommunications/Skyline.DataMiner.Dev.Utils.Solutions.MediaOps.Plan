@@ -20,7 +20,7 @@
 			connection = Skyline.DataMiner.Net.ConnectionSettings.GetConnection(config.BaseUrl) ?? throw new NullReferenceException("Unable to connect to DataMiner");
 			connection.Authenticate(config.Username, config.Password, config.Domain);
 
-			Api = new MediaOpsPlanApi(connection) ?? throw new NullReferenceException("Unable to create MediaOpsPlanApi");
+			Api = connection.GetMediaOpsPlanApi() ?? throw new NullReferenceException("Unable to create MediaOpsPlanApi");
 			Dms = connection.GetDms() ?? throw new NullReferenceException("Unable to get DMS");
 
 			ResourceStudioDomHelper = new DomHelper(connection.HandleMessages, "(slc)resource_studio") ?? throw new NullReferenceException("Unable to create ResourceStudioDomHelper");

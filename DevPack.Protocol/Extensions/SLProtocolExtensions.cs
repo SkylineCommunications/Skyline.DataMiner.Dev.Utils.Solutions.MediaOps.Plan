@@ -23,7 +23,7 @@
                 throw new ArgumentNullException(nameof(protocol));
             }
 
-            return new MediaOpsPlanApi(protocol.GetUserConnection());
+            return protocol.GetUserConnection().GetMediaOpsPlanApi();
         }
     }
 }
