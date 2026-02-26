@@ -584,14 +584,14 @@
 			}
 		}
 
-		private void ValidateStateForCompleteFromDraftAction(IEnumerable<Resource> apiResources)
+		private void ValidateStateForCompleteFromDraftAction(ICollection<Resource> apiResources)
 		{
 			if (apiResources == null)
 			{
 				throw new ArgumentNullException(nameof(apiResources));
 			}
 
-			if (!apiResources.Any())
+			if (apiResources.Count == 0)
 			{
 				return;
 			}
@@ -607,14 +607,14 @@
 			}
 		}
 
-		private void ValidateStateForCompleteFromDeprecatedAction(IEnumerable<Resource> apiResources)
+		private void ValidateStateForCompleteFromDeprecatedAction(ICollection<Resource> apiResources)
 		{
 			if (apiResources == null)
 			{
 				throw new ArgumentNullException(nameof(apiResources));
 			}
 
-			if (!apiResources.Any())
+			if (apiResources.Count == 0)
 			{
 				return;
 			}

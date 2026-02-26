@@ -968,7 +968,7 @@
 					{
 						var error = new ResourcePoolCategoryScopeNotFoundError
 						{
-							ErrorMessage = "Category scope 'Resource Pools' could not found.",
+							ErrorMessage = "Category with scope 'Resource Pools' not found.",
 						};
 
 						ReportError(pool.Id, error);
@@ -991,7 +991,7 @@
 				{
 					var error = new ResourcePoolCategoryNotFoundError
 					{
-						ErrorMessage = $"Category with ID '{pool.CategoryId}' could not found in Scope 'Resource Pools'.",
+						ErrorMessage = $"Category with ID '{pool.CategoryId}' not found in Scope 'Resource Pools'.",
 						CategoryId = pool.CategoryId,
 						Id = pool.Id,
 					};
