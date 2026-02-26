@@ -48,7 +48,7 @@
 		/// Initializes a new instance of the <see cref="MediaOpsPlanApi"/> class.
 		/// </summary>
 		/// <param name="connection">The connection to use for API operations.</param>
-		public MediaOpsPlanApi(IConnection connection)
+		internal MediaOpsPlanApi(IConnection connection)
 		{
 			this.connection = connection ?? throw new ArgumentNullException(nameof(connection));
 			this.logger = new NullLogger();

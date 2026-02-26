@@ -20,7 +20,7 @@
             connection.Authenticate(credentials.UserName, credentials.Password, credentials.Domain);
             Console.WriteLine("Connected to DataMiner\r\n");
 
-            var api = new MediaOpsPlanApi(connection);
+            var api = connection.GetMediaOpsPlanApi();
 
             var resource = new UnmanagedResource()
             {

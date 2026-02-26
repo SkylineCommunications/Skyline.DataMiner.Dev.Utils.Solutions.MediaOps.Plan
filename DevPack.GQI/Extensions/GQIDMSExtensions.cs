@@ -23,7 +23,7 @@
                 throw new ArgumentNullException(nameof(dms));
             }
 
-            return new MediaOpsPlanApi(dms.GetConnection());
+            return dms.GetConnection().GetMediaOpsPlanApi();
         }
     }
 }

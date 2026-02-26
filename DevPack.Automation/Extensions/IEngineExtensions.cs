@@ -23,7 +23,7 @@
                 throw new ArgumentNullException(nameof(engine));
             }
 
-            return new MediaOpsPlanApi(engine.GetUserConnection());
+            return engine.GetUserConnection().GetMediaOpsPlanApi();
         }
     }
 }
