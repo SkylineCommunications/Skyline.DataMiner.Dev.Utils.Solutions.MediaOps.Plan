@@ -42,7 +42,7 @@
         public string Value { get; set; }
 
         /// <inheritdoc/>
-        public override bool HasValue => !string.IsNullOrEmpty(Value);
+        public override bool HasValue => Value != null;
 
         /// <inheritdoc/>
         public override int GetHashCode()
