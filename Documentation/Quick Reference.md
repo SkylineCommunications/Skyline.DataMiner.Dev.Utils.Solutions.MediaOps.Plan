@@ -27,6 +27,8 @@ Repositories are the primary way to interact with stored objects.
 - State transitions
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
 var resourcesRepo = api.Resources;
 var poolsRepo = api.ResourcePools;
 var capabilitiesRepo = api.Capabilities;
@@ -43,6 +45,8 @@ var recurringJobsRepo = api.RecurringJobs;
 ### Basic Reading
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
 // By ID
 var resource = api.Resources.Read(id);
 
@@ -58,26 +62,33 @@ var allResources = api.Resources.Read();
 For large datasets, use paged reading to process data in batches:
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
 // Read all resources in pages (default page size)
 foreach (var page in api.Resources.ReadPaged())
 {
     foreach (var resource in page)
     {
-        // Process resource
-        Console.WriteLine(resource.Name);
+        // Logic for processing resource
     }
 }
 
 // Read with custom page size
 foreach (var page in api.Resources.ReadPaged(pageSize: 50))
 {
-    ProcessBatch(page);
+    // Logic for processing each resource in page
+    foreach (var resource in page)
+	{
+		// Logic for processing resource
+	}
 }
 ```
 
 ### Counting
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
 // Count all resources
 var totalCount = api.Resources.Count();
 ```
@@ -87,6 +98,8 @@ var totalCount = api.Resources.Count();
 ### Resources
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
 // Unmanaged resource
 var resource = api.Resources.Create(new UnmanagedResource
 {
@@ -135,6 +148,8 @@ api.Resources.Delete(new[] { id1, id2, id3 });
 ### Resource Pools
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
 // Create a resource pool
 var pool = api.ResourcePools.Create(new ResourcePool
 {
@@ -175,6 +190,8 @@ long count = api.Resources.ResourceCount(pool);
 ### Capabilities
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
 // Create a capability
 var capability = api.Capabilities.Create(new Capability
 {
@@ -201,6 +218,8 @@ var resourceType = api.Capabilities.SystemCapabilities.ResourceType;
 ### Capacities
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
 // Create a number capacity
 var numberCapacity = api.Capacities.Create(new NumberCapacity
 {
@@ -225,6 +244,8 @@ var rangeCapacity = api.Capacities.Create(new RangeCapacity
 ### Configurations
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
 // Text configuration
 var textConfig = api.Configurations.Create(new TextConfiguration
 {
@@ -271,6 +292,8 @@ var discreteNumberConfig = api.Configurations.Create(
 ### Resource Properties
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
 // Create a resource property
 var property = api.ResourceProperties.Create(new ResourceProperty
 {
@@ -283,6 +306,8 @@ var property = api.ResourceProperties.Create(new ResourceProperty
 ### Assign Capabilities to a Resource
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
 var resource = api.Resources.Read(resourceId);
 
 // Add a capability setting with discrete values
@@ -302,6 +327,8 @@ resource = api.Resources.Update(resource);
 ### Assign Capacities to a Resource
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
 // Number capacity setting
 resource.AddCapacity(new NumberCapacitySetting(bandwidthCapacity.Id)
 {
@@ -321,6 +348,8 @@ resource = api.Resources.Update(resource);
 ### Assign Properties to a Resource
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
 resource.AddProperty(new ResourcePropertySettings(locationProperty.Id)
 {
     Value = "Studio A",
@@ -332,6 +361,8 @@ resource = api.Resources.Update(resource);
 ### Pool Management on Resources
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
 // Assign to a pool
 resource.AssignToPool(pool);
 resource = api.Resources.Update(resource);
@@ -350,6 +381,8 @@ resource = api.Resources.Update(resource);
 Resources can be converted between types using the resources repository:
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
 // Convert to element resource
 var elementResource = api.Resources.ConvertToElementResource(
     resource,
@@ -392,6 +425,8 @@ if (api.Resources.TryConvertToElementResource(resource, linkSetting, out var con
 ## Pool Relationships
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
 // Get pools for a resource
 var pools = api.ResourcePools.GetResourcePools(resource);
 
@@ -407,9 +442,10 @@ var parentLinks = api.ResourcePools.GetParentPoolLinks(new[] { pool1, pool2 });
 Jobs and workflows are read-only through the API:
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
 // Read a job
 var job = api.Jobs.Read(jobId);
-Console.WriteLine($"Job: {job.Name}, Priority: {job.Priority}");
 
 // Read all jobs
 var allJobs = api.Jobs.Read();
@@ -437,6 +473,8 @@ api.Jobs.SetOrchestrationState(jobId, new OrchestrationUpdateDetails
 ### Resource Pool Delete Options
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
 // Delete a pool with options
 api.ResourcePools.Delete(pool, new ResourcePoolDeleteOptions
 {

@@ -50,6 +50,8 @@ var api = gqiDms.GetMediaOpsPlanApi();
 On other places the instance can also be created starting from an `IConnection` object:
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
 IConnection connection;
 var api = new MediaOpsPlanApi(connection);
 ```
@@ -66,6 +68,8 @@ Resources represent physical or virtual assets that can be planned and scheduled
 - **VirtualFunctionResource** – linked to a virtual function.
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
 var resource = api.Resources.Create(new UnmanagedResource
 {
     Name = "My Resource",
@@ -78,6 +82,8 @@ var resource = api.Resources.Create(new UnmanagedResource
 Resource Pools group related resources together and can define shared capabilities.
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
 var pool = api.ResourcePools.Create(new ResourcePool
 {
     Name = "Camera Pool",
@@ -89,6 +95,8 @@ var pool = api.ResourcePools.Create(new ResourcePool
 Capabilities define what a resource or resource pool can do (e.g., resolution, codec support). They can contain a set of discrete values.
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
 var capability = api.Capabilities.Create(new Capability
 {
     Name = "Resolution",
@@ -104,6 +112,8 @@ Capacities define measurable quantities a resource can provide (e.g., bandwidth,
 - **RangeCapacity** – a range with minimum and maximum values.
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
 var capacity = api.Capacities.Create(new NumberCapacity
 {
     Name = "Bandwidth",
@@ -123,6 +133,8 @@ Configurations define settings that can be applied to resources during orchestra
 - **DiscreteNumberConfiguration** – a value selected from a set of numeric options.
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
 var config = api.Configurations.Create(new TextConfiguration
 {
     Name = "Output Format",
@@ -134,6 +146,8 @@ var config = api.Configurations.Create(new TextConfiguration
 Resource Properties are custom metadata fields that can be attached to resources.
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
 var property = api.ResourceProperties.Create(new ResourceProperty
 {
     Name = "Location",
@@ -145,6 +159,8 @@ var property = api.ResourceProperties.Create(new ResourceProperty
 Jobs represent scheduled work that references a workflow and contains planning details.
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
 var job = api.Jobs.Read(jobId);
 ```
 
@@ -153,6 +169,8 @@ var job = api.Jobs.Read(jobId);
 Workflows define reusable planning templates.
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
 var workflows = api.Workflows.Read();
 ```
 
@@ -161,6 +179,8 @@ var workflows = api.Workflows.Read();
 Recurring Jobs represent jobs that repeat on a schedule.
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
 var recurringJob = api.RecurringJobs.Read(recurringJobId);
 ```
 
@@ -171,6 +191,8 @@ Once you have an instance of the `MediaOpsPlanApi` class, you can start using it
 ### Creating Objects
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
 // Create a capability with discrete values
 var resolution = api.Capabilities.Create(new Capability
 {
@@ -210,6 +232,8 @@ api.Resources.Update(resource);
 ### Reading Objects
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
 // Read all resources
 var resources = api.Resources.Read();
 
@@ -229,6 +253,8 @@ var workflows = api.Workflows.Read();
 ### Updating Objects
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
 // Update a resource name
 resource.Name = "Camera 1 Updated";
 api.Resources.Update(resource);
@@ -242,6 +268,8 @@ api.Resources.Update(resource);
 ### Deleting Objects
 
 ```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
 // Delete a resource
 api.Resources.Delete(resource.Id);
 
