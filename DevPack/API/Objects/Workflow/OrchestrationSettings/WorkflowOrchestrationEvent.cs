@@ -1,58 +1,61 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
-    using System;
+	using System;
 
-    using StorageWorkflow = Storage.DOM.SlcWorkflow;
+	using StorageWorkflow = Storage.DOM.SlcWorkflow;
 
-    internal class WorkflowOrchestrationEvent : OrchestrationEvent
-    {
-        internal StorageWorkflow.OrchestrationEventsSection originalSection;
-        internal StorageWorkflow.OrchestrationEventsSection updatedSection;
+	internal class WorkflowOrchestrationEvent : OrchestrationEvent
+	{
+		internal StorageWorkflow.OrchestrationEventsSection originalSection;
+		internal StorageWorkflow.OrchestrationEventsSection updatedSection;
 
-        internal WorkflowOrchestrationEvent(OrchestrationEvent orchestrationEvent) : base(orchestrationEvent)
-        {
-        }
+		internal WorkflowOrchestrationEvent(OrchestrationEvent orchestrationEvent) : base(orchestrationEvent)
+		{
+		}
 
-        internal WorkflowOrchestrationEvent(MediaOpsPlanApi planApi, StorageWorkflow.OrchestrationEventsSection section)
-        {
-            ParseSection(planApi, section);
-            InitTracking();
-        }
+		internal WorkflowOrchestrationEvent(MediaOpsPlanApi planApi, StorageWorkflow.OrchestrationEventsSection section)
+		{
+			ParseSection(planApi, section);
+			InitTracking();
+		}
 
-        internal override Storage.DOM.DomSectionBase OriginalSection => originalSection;
+		internal override Storage.DOM.DomSectionBase OriginalSection => originalSection;
 
-        internal StorageWorkflow.OrchestrationEventsSection GetSectionWithChanges()
-        {
-            if (updatedSection == null)
-            {
-                updatedSection = IsNew ? new StorageWorkflow.OrchestrationEventsSection() : originalSection.Clone();
-            }
+		internal StorageWorkflow.OrchestrationEventsSection GetSectionWithChanges()
+		{
+			if (updatedSection == null)
+			{
+				updatedSection = IsNew ? new StorageWorkflow.OrchestrationEventsSection() : originalSection.Clone();
+			}
 
-            updatedSection.Name = TranslateEventType(EventType);
+			updatedSection.Name = TranslateEventType(EventType);
+			updatedSection.Metadata = Metadata;
 
-            if (ExecutionDetails != null)
-            {
-                updatedSection.Script = ExecutionDetails.ScriptName;
-                updatedSection.ScriptExecutionDetails = ExecutionDetails.ToStorage();
-            }
-            else
-            {
-                updatedSection.Script = null;
-                updatedSection.ScriptExecutionDetails = null;
-            }
+			if (ExecutionDetails != null)
+			{
+				updatedSection.Script = ExecutionDetails.ScriptName;
+				updatedSection.ScriptExecutionDetails = ExecutionDetails.ToStorage();
+			}
+			else
+			{
+				updatedSection.Script = null;
+				updatedSection.ScriptExecutionDetails = null;
+			}
 
-            return updatedSection;
-        }
+			return updatedSection;
+		}
 
-        private void ParseSection(MediaOpsPlanApi planApi, StorageWorkflow.OrchestrationEventsSection section)
-        {
-            originalSection = section ?? throw new ArgumentNullException(nameof(section));
+		private void ParseSection(MediaOpsPlanApi planApi, StorageWorkflow.OrchestrationEventsSection section)
+		{
+			originalSection = section ?? throw new ArgumentNullException(nameof(section));
 
-            EventType = TranslateEventType(section.Name);
-            if (section.ScriptExecutionDetails != null)
-            {
-                ExecutionDetails = ScriptExecutionDetails.FromStorage(planApi, section.ScriptExecutionDetails);
-            }
-        }
-    }
+			EventType = TranslateEventType(section.Name);
+			Metadata = section.Metadata;
+
+			if (section.ScriptExecutionDetails != null)
+			{
+				ExecutionDetails = ScriptExecutionDetails.FromStorage(planApi, section.ScriptExecutionDetails);
+			}
+		}
+	}
 }
