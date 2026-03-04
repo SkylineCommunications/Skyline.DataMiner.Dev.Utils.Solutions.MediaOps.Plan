@@ -76,11 +76,7 @@ foreach (var page in api.Resources.ReadPaged())
 // Read with custom page size
 foreach (var page in api.Resources.ReadPaged(pageSize: 50))
 {
-    // Logic for processing each resource in page
-    foreach (var resource in page)
-	{
-		// Logic for processing resource
-	}
+    ProcessBatch(page);
 }
 ```
 
