@@ -10,12 +10,6 @@
 		<AssemblyName>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan</AssemblyName>
 		<RootNamespace>Skyline.DataMiner.Solutions.MediaOps.Plan</RootNamespace>
 
-		<!-- Use shared version from Directory.Build.props -->
-		<PackageVersion>$(MediaOpsVersion)</PackageVersion>
-		<Version>$(MediaOpsVersion)</Version>
-		<FileVersion>$(MediaOpsVersion)</FileVersion>
-		<AssemblyVersion>1.0.*</AssemblyVersion>
-
 		<PackageId>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan</PackageId>
 		<PackageTags>Skyline;DataMiner</PackageTags>
 		<PackageProjectUrl>https://skyline.be</PackageProjectUrl>
