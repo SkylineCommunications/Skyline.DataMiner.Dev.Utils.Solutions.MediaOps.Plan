@@ -1,23 +1,24 @@
-<?xml version="1.0" encoding="utf-8"?>
 <Project>
-  <!-- Import local developer configuration if it exists -->
-  <PropertyGroup>
-    <MediaOpsLocalPropsFile>$(MSBuildThisFileDirectory)MediaOps.Local.props</MediaOpsLocalPropsFile>
-    <MediaOpsHasLocalConfig Condition="Exists('$(MediaOpsLocalPropsFile)')">true</MediaOpsHasLocalConfig>
-    <MediaOpsHasLocalConfig Condition="'$(MediaOpsHasLocalConfig)' == ''">false</MediaOpsHasLocalConfig>
-  </PropertyGroup>
-  
-  <!-- Import local configuration -->
-  <Import Project="$(MediaOpsLocalPropsFile)" Condition="$(MediaOpsHasLocalConfig)" />
-  
-  <!-- Default values if local config doesn't exist -->
-  <PropertyGroup Condition="'$(MediaOpsHasLocalConfig)' != 'true'">
-    <MediaOpsLocalDevMode>false</MediaOpsLocalDevMode>
-    <MediaOpsVersion>1.0.1-alpha1</MediaOpsVersion>
-  </PropertyGroup>	
-<ItemGroup>
-	<SonarQubeSetting Include="sonar.cpd.exclusions">
-		<Value>**/*</Value>
-	</SonarQubeSetting>
-</ItemGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+		<DebugType>full</DebugType>
+		<CodeAnalysisRuleSet>..\Internal\Code Analysis\qaction-debug.ruleset</CodeAnalysisRuleSet>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+		<DebugType>pdbonly</DebugType>
+		<CodeAnalysisRuleSet>..\Internal\Code Analysis\qaction-release.ruleset</CodeAnalysisRuleSet>
+	</PropertyGroup>
+	<ItemGroup>
+		<AdditionalFiles Include="..\Internal\Code Analysis\stylecop.json">
+			<Link>Properties\stylecop.json</Link>
+		</AdditionalFiles>
+		<Content Include="..\.editorconfig">
+			<Link>Properties\.editorconfig</Link>
+		</Content>
+	</ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
 </Project>
