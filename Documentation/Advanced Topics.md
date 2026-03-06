@@ -119,7 +119,7 @@ api.ResourcePools.Deprecate(pool, new ResourcePoolDeprecateOptions
 
 Orchestration settings define automation behavior for resource pools and workflows. They contain capability, capacity, configuration, and orchestration event settings.
 
-For a broader overview of orchestration concepts in MediaOps Live, see the official [Orchestration documentation](https://docs.dataminer.services/solutions/standard_solutions/MediaOps%20Live/MediaOps.Live/Orchestration.html).
+For a broader overview of orchestration concepts in MediaOps Live, see the official [Orchestration documentation](https://docs.dataminer.services/solutions/standard_solutions/MediaOps%20Live/Apps/MO_Orchestration_Events.html).
 
 ### Resource Pool Orchestration Settings
 
