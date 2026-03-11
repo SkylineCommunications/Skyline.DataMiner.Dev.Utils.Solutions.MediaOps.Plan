@@ -1,51 +1,51 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
-    using System;
+	using System;
 
-    using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
+	using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
-    internal class ResourceCapabilitySetting : CapabilitySettings
-    {
-        private StorageResourceStudio.ResourceCapabilitiesSection originalSection;
+	internal class ResourceCapabilitySetting : CapabilitySettings
+	{
+		private StorageResourceStudio.ResourceCapabilitiesSection originalSection;
 
-        private StorageResourceStudio.ResourceCapabilitiesSection updatedSection;
+		private StorageResourceStudio.ResourceCapabilitiesSection updatedSection;
 
-        internal ResourceCapabilitySetting(CapabilitySettings capabilitySetting) : base(capabilitySetting)
-        {
-        }
+		internal ResourceCapabilitySetting(CapabilitySettings capabilitySetting) : base(capabilitySetting)
+		{
+		}
 
-        internal ResourceCapabilitySetting(StorageResourceStudio.ResourceCapabilitiesSection section)
-        {
-            ParseSection(section);
-            InitTracking();
-        }
+		internal ResourceCapabilitySetting(StorageResourceStudio.ResourceCapabilitiesSection section)
+		{
+			ParseSection(section);
+			InitTracking();
+		}
 
-        internal override Storage.DOM.DomSectionBase OriginalSection => originalSection;
+		internal override Storage.DOM.DomSectionBase OriginalSection => originalSection;
 
-        internal StorageResourceStudio.ResourceCapabilitiesSection GetSectionWithChanges()
-        {
-            if (updatedSection == null)
-            {
-                updatedSection = IsNew ? new StorageResourceStudio.ResourceCapabilitiesSection() : originalSection.Clone();
-            }
+		internal StorageResourceStudio.ResourceCapabilitiesSection GetSectionWithChanges()
+		{
+			if (updatedSection == null)
+			{
+				updatedSection = IsNew ? new StorageResourceStudio.ResourceCapabilitiesSection() : originalSection.Clone();
+			}
 
-            updatedSection.ProfileParameterId = Id;
-            updatedSection.DiscreteValues = discretes;
+			updatedSection.ProfileParameterId = Id;
+			updatedSection.DiscreteValues = discretes;
 
-            return updatedSection;
-        }
+			return updatedSection;
+		}
 
-        private void ParseSection(StorageResourceStudio.ResourceCapabilitiesSection section)
-        {
-            originalSection = section ?? throw new ArgumentNullException(nameof(section));
+		private void ParseSection(StorageResourceStudio.ResourceCapabilitiesSection section)
+		{
+			originalSection = section ?? throw new ArgumentNullException(nameof(section));
 
-            Id = section.ProfileParameterId;
+			Id = section.ProfileParameterId;
 
-            discretes.Clear();
-            foreach (var discreteValue in section.DiscreteValues)
-            {
-                discretes.Add(discreteValue);
-            }
-        }
-    }
+			discretes.Clear();
+			foreach (var discreteValue in section.DiscreteValues)
+			{
+				discretes.Add(discreteValue);
+			}
+		}
+	}
 }

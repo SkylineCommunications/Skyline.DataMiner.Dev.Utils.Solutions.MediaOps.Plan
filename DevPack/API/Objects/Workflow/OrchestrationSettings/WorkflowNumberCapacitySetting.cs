@@ -1,46 +1,45 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
-    using System;
+	using System;
 
-    using StorageWorkflow = Storage.DOM.SlcWorkflow;
+	using StorageWorkflow = Storage.DOM.SlcWorkflow;
 
-    internal class WorkflowNumberCapacitySetting : NumberCapacitySetting
-    {
-        internal StorageWorkflow.ProfileParameterValuesSection originalSection;
-        internal StorageWorkflow.ProfileParameterValuesSection updatedSection;
+	internal class WorkflowNumberCapacitySetting : NumberCapacitySetting
+	{
+		private StorageWorkflow.ProfileParameterValuesSection originalSection;
+		private StorageWorkflow.ProfileParameterValuesSection updatedSection;
 
-        internal WorkflowNumberCapacitySetting(NumberCapacitySetting numberCapacitySetting) : base(numberCapacitySetting)
-        {
-        }
+		internal WorkflowNumberCapacitySetting(NumberCapacitySetting numberCapacitySetting) : base(numberCapacitySetting)
+		{
+		}
 
-        internal WorkflowNumberCapacitySetting(StorageWorkflow.ProfileParameterValuesSection section)
-        {
-            ParseSection(section);
-            InitTracking();
-        }
+		internal WorkflowNumberCapacitySetting(StorageWorkflow.ProfileParameterValuesSection section)
+		{
+			ParseSection(section);
+			InitTracking();
+		}
 
-        internal override Storage.DOM.DomSectionBase OriginalSection => originalSection;
+		internal override Storage.DOM.DomSectionBase OriginalSection => originalSection;
 
-        internal StorageWorkflow.ProfileParameterValuesSection GetSectionWithChanges()
-        {
-            if (updatedSection == null)
-            {
-                updatedSection = IsNew ? new StorageWorkflow.ProfileParameterValuesSection() : originalSection.Clone();
-            }
+		internal StorageWorkflow.ProfileParameterValuesSection GetSectionWithChanges()
+		{
+			if (updatedSection == null)
+			{
+				updatedSection = IsNew ? new StorageWorkflow.ProfileParameterValuesSection() : originalSection.Clone();
+			}
 
-            updatedSection.ProfileParameterId = Id;
-            updatedSection.DoubleMaxValue = Value.HasValue ? (double)Value : null;
+			updatedSection.ProfileParameterId = Id;
+			updatedSection.DoubleMaxValue = Value.HasValue ? (double)Value : null;
 
-            return updatedSection;
+			return updatedSection;
+		}
 
-        }
+		private void ParseSection(StorageWorkflow.ProfileParameterValuesSection section)
+		{
+			originalSection = section ?? throw new ArgumentNullException(nameof(section));
 
-        private void ParseSection(StorageWorkflow.ProfileParameterValuesSection section)
-        {
-            originalSection = section ?? throw new ArgumentNullException(nameof(section));
-
-            Id = section.ProfileParameterId;
-            Value = section.DoubleMaxValue.HasValue ? (decimal)section.DoubleMaxValue.Value : null;
-        }
-    }
+			Id = section.ProfileParameterId;
+			Value = section.DoubleMaxValue.HasValue ? (decimal)section.DoubleMaxValue.Value : null;
+		}
+	}
 }

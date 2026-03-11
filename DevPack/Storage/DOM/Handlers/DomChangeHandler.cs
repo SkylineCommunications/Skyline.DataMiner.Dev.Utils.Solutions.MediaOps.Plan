@@ -356,6 +356,7 @@
             return x.FieldDescriptorID.Id == y.FieldDescriptorID.Id &&
                    Equals(x.Value, y.Value);
         }
+
         public int GetHashCode(FieldValue obj)
         {
             if (obj is null) return 0;

@@ -63,6 +63,7 @@
         /// Creates a new configuration in the repository.
         /// </summary>
         /// <param name="apiObject">The configuration to create.</param>
+        /// <returns>The created configuration.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create an existing configuration.</exception>
         /// <exception cref="MediaOpsException">Thrown when the creation operation fails for the specified configuration.</exception>
@@ -97,6 +98,7 @@
         /// Creates multiple new configurations in the repository.
         /// </summary>
         /// <param name="apiObjects">The collection of configurations to create.</param>
+        /// <returns>A read-only collection containing the created configurations.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create existing configurations.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk creation operation fails for one or more configurations.</exception>
@@ -132,6 +134,7 @@
         /// Creates new configurations or updates existing ones in the repository.
         /// </summary>
         /// <param name="apiObjects">The collection of configurations to create or update.</param>
+        /// <returns>A read-only collection containing the created or updated configurations.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk create or update operation fails for one or more configurations.</exception>
         public IReadOnlyCollection<Configuration> CreateOrUpdate(IEnumerable<Configuration> apiObjects)
@@ -386,6 +389,7 @@
         /// Updates an existing configuration in the repository.
         /// </summary>
         /// <param name="apiObject">The configuration to update.</param>
+        /// <returns>The updated configuration.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to update a new configuration that doesn't exist yet.</exception>
         /// <exception cref="MediaOpsException">Thrown when the update operation fails for the specified configuration.</exception>
@@ -420,6 +424,7 @@
         /// Updates multiple existing configurations in the repository.
         /// </summary>
         /// <param name="apiObjects">The collection of configurations to update.</param>
+        /// <returns>A read-only collection containing the updated configurations.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to update new configurations that don't exist yet.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk update operation fails for one or more configurations.</exception>

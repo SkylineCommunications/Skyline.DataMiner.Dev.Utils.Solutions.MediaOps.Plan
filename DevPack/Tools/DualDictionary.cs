@@ -348,6 +348,5 @@
 
             return byName.ContainsKey(name);
         }
-
     }
 }

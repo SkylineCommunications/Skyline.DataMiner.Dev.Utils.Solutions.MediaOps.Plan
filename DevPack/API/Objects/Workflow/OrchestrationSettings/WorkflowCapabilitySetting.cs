@@ -1,50 +1,50 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
-    using System;
-    using System.Linq;
+	using System;
+	using System.Linq;
 
-    using StorageWorkflow = Storage.DOM.SlcWorkflow;
+	using StorageWorkflow = Storage.DOM.SlcWorkflow;
 
-    internal class WorkflowCapabilitySetting : CapabilitySetting
-    {
-        internal StorageWorkflow.ProfileParameterValuesSection originalSection;
-        internal StorageWorkflow.ProfileParameterValuesSection updatedSection;
+	internal class WorkflowCapabilitySetting : CapabilitySetting
+	{
+		private StorageWorkflow.ProfileParameterValuesSection originalSection;
+		private StorageWorkflow.ProfileParameterValuesSection updatedSection;
 
-        internal WorkflowCapabilitySetting(CapabilitySetting capabilitySetting) : base(capabilitySetting)
-        {
-        }
+		internal WorkflowCapabilitySetting(CapabilitySetting capabilitySetting) : base(capabilitySetting)
+		{
+		}
 
-        internal WorkflowCapabilitySetting(StorageWorkflow.ProfileParameterValuesSection section)
-        {
-            ParseSection(section);
-            InitTracking();
-        }
+		internal WorkflowCapabilitySetting(StorageWorkflow.ProfileParameterValuesSection section)
+		{
+			ParseSection(section);
+			InitTracking();
+		}
 
-        internal override Storage.DOM.DomSectionBase OriginalSection => originalSection;
+		internal override Storage.DOM.DomSectionBase OriginalSection => originalSection;
 
-        internal StorageWorkflow.ProfileParameterValuesSection GetSectionWithChanges()
-        {
-            if (updatedSection == null)
-            {
-                updatedSection = IsNew ? new StorageWorkflow.ProfileParameterValuesSection() : originalSection.Clone();
-            }
+		internal StorageWorkflow.ProfileParameterValuesSection GetSectionWithChanges()
+		{
+			if (updatedSection == null)
+			{
+				updatedSection = IsNew ? new StorageWorkflow.ProfileParameterValuesSection() : originalSection.Clone();
+			}
 
-            updatedSection.ProfileParameterId = Id;
-            updatedSection.StringValue = Value;
+			updatedSection.ProfileParameterId = Id;
+			updatedSection.StringValue = Value;
 
-            return updatedSection;
-        }
+			return updatedSection;
+		}
 
-        private void ParseSection(StorageWorkflow.ProfileParameterValuesSection section)
-        {
-            originalSection = section ?? throw new ArgumentNullException(nameof(section));
+		private void ParseSection(StorageWorkflow.ProfileParameterValuesSection section)
+		{
+			originalSection = section ?? throw new ArgumentNullException(nameof(section));
 
-            Id = section.ProfileParameterId;
-            Value = section.StringValue;
-            if (!String.IsNullOrEmpty(Value) && Value.Contains(';'))
-            {
-                Value = Value.Split([";"], StringSplitOptions.RemoveEmptyEntries).First();
-            }
-        }
-    }
+			Id = section.ProfileParameterId;
+			Value = section.StringValue;
+			if (!String.IsNullOrEmpty(Value) && Value.Contains(';'))
+			{
+				Value = Value.Split([";"], StringSplitOptions.RemoveEmptyEntries).First();
+			}
+		}
+	}
 }

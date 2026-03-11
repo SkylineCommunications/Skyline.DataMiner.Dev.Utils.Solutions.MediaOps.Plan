@@ -12,24 +12,28 @@
         /// Moves the specified <see cref="Resource"/> from draft to complete state.
         /// </summary>
         /// <param name="resource">The resource to move.</param>
+        /// <returns>The completed resource.</returns>
         Resource Complete(Resource resource);
 
         /// <summary>
         /// Moves the specified resource from draft to complete state.
         /// </summary>
         /// <param name="resourceId">The unique identifier of the resource to move.</param>
+        /// <returns>The completed resource.</returns>
         Resource Complete(Guid resourceId);
 
         /// <summary>
         /// Moves the specified resources from draft to complete state.
         /// </summary>
         /// <param name="resources">The resources to move.</param>
+        /// <returns>A read-only collection containing the completed resources.</returns>
         IReadOnlyCollection<Resource> Complete(IEnumerable<Resource> resources);
 
         /// <summary>
         /// Moves the specified resources from draft to complete state.
         /// </summary>
         /// <param name="resourceIds">The unique identifiers of the resources.</param>
+        /// <returns>A read-only collection containing the completed resources.</returns>
         IReadOnlyCollection<Resource> Complete(IEnumerable<Guid> resourceIds);
 
         /// <summary>
@@ -98,24 +102,28 @@
         /// Marks the specified resource as deprecated, indicating that it is no longer recommended for use.
         /// </summary>
         /// <param name="resource">The resource to be marked as deprecated. Cannot be null.</param>
+        /// <returns>The deprecated resource.</returns>
         Resource Deprecate(Resource resource);
 
         /// <summary>
         /// Marks the specified resource as deprecated, indicating that it is no longer recommended for use.
         /// </summary>
         /// <param name="resourceId">The unique identifier of the resource to deprecate.</param>
+        /// <returns>The deprecated resource.</returns>
         Resource Deprecate(Guid resourceId);
 
         /// <summary>
         /// Marks the specified resources as deprecated, indicating that they are no longer recommended for use.
         /// </summary>
         /// <param name="resources">A collection of resources to be marked as deprecated. Cannot be null or empty.</param>
+        /// <returns>A read-only collection containing the deprecated resources.</returns>
         IReadOnlyCollection<Resource> Deprecate(IEnumerable<Resource> resources);
 
         /// <summary>
         /// Marks the specified resources as deprecated, indicating that they are no longer recommended for use.
         /// </summary>
         /// <param name="resourceIds">The unique identifiers of the resources to deprecate.</param>
+        /// <returns>A read-only collection containing the deprecated resources.</returns>
         IReadOnlyCollection<Resource> Deprecate(IEnumerable<Guid> resourceIds);
 
         /// <summary>
@@ -170,24 +178,28 @@
         /// Moves the specified <see cref="Resource"/> from deprecated to complete state.
         /// </summary>
         /// <param name="resource">The resource to move.</param>
+        /// <returns>The restored resource.</returns>
         Resource Restore(Resource resource);
 
         /// <summary>
         /// Moves the specified resource from deprecated to complete state.
         /// </summary>
         /// <param name="resourceId">The unique identifier of the resource to move.</param>
+        /// <returns>The restored resource.</returns>
         Resource Restore(Guid resourceId);
 
         /// <summary>
         /// Moves the specified resources from deprecated to complete state.
         /// </summary>
         /// <param name="resources">The resources to move.</param>
+        /// <returns>A read-only collection containing the restored resources.</returns>
         IReadOnlyCollection<Resource> Restore(IEnumerable<Resource> resources);
 
         /// <summary>
         /// Moves the specified resources from deprecated to complete state.
         /// </summary>
         /// <param name="resourceIds">The unique identifiers of the resources.</param>
+        /// <returns>A read-only collection containing the restored resources.</returns>
         IReadOnlyCollection<Resource> Restore(IEnumerable<Guid> resourceIds);
 
         /// <summary>
@@ -239,6 +251,7 @@
         /// </summary>
         /// <param name="resourceId">The unique identifier of the resource to convert.</param>
         /// <param name="unmanagedResource">When this method returns, contains the converted <see cref="UnmanagedResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
+        /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
         bool TryConvertToUnmanagedResource(Guid resourceId, out UnmanagedResource unmanagedResource);
 
         /// <summary>
@@ -258,6 +271,5 @@
         /// <param name="virtualFunctionResource">When this method returns, contains the converted <see cref="VirtualFunctionResource"/>, if the conversion succeeded; otherwise, <c>null</c>.</param>
         /// <returns><c>true</c> if the conversion succeeded; otherwise, <c>false</c>.</returns>
         bool TryConvertToVirtualFunctionResource(Guid resourceId, ResourceVirtualFunctionLinkSetting setting, out VirtualFunctionResource virtualFunctionResource);
-
     }
 }

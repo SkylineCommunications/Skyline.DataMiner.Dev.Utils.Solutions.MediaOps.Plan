@@ -529,7 +529,6 @@
 			if (domResourcePools.Count > 0)
 			{
 				domResource.SetCache(domResourcePools);
-
 			}
 		}
 
@@ -748,11 +747,11 @@
 				return;
 			}
 
-			FilterElement<DomInstance> filter(string name) =>
+			FilterElement<DomInstance> Filter(string name) =>
 				DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resource.Id)
 				.AND(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Name).Equal(name));
 
-			var domResourcesbyName = planApi.DomHelpers.SlcResourceStudioHelper.GetResources(apiResources.Select(x => x.Name), filter)
+			var domResourcesbyName = planApi.DomHelpers.SlcResourceStudioHelper.GetResources(apiResources.Select(x => x.Name), Filter)
 				.GroupBy(x => x.Name)
 				.ToDictionary(x => x.Key, x => (IReadOnlyCollection<DomResource>)x.ToList());
 
