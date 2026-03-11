@@ -1,289 +1,282 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
+	using System;
+	using System.Collections.Generic;
+	using System.Linq;
 
-    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
-    using Skyline.DataMiner.Net.Helper;
-    using Skyline.DataMiner.Net.Messages.SLDataGateway;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow;
+	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+	using Skyline.DataMiner.Net.Helper;
+	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow;
 
-    internal class SlcWorkflowResourceUsageValidator : ApiObjectValidator
-    {
-        private readonly HashSet<Guid> resourceIdsToValidate;
-        private readonly IReadOnlyCollection<Resource> resourcesToValidate;
-        private readonly MediaOpsPlanApi planApi;
+	internal class SlcWorkflowResourceUsageValidator : ApiObjectValidator
+	{
+		private readonly HashSet<Guid> resourceIdsToValidate;
+		private readonly IReadOnlyCollection<Resource> resourcesToValidate;
+		private readonly MediaOpsPlanApi planApi;
 
-        private SlcWorkflowResourceUsageValidator(MediaOpsPlanApi planApi, IReadOnlyCollection<Resource> resourcesToValidate)
-        {
-            this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
-            this.resourcesToValidate = resourcesToValidate ?? throw new ArgumentNullException(nameof(resourcesToValidate));
-            resourceIdsToValidate = resourcesToValidate.Select(x => x.Id).ToHashSet();
-        }
+		private SlcWorkflowResourceUsageValidator(MediaOpsPlanApi planApi, IReadOnlyCollection<Resource> resourcesToValidate)
+		{
+			this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
+			this.resourcesToValidate = resourcesToValidate ?? throw new ArgumentNullException(nameof(resourcesToValidate));
+			resourceIdsToValidate = resourcesToValidate.Select(x => x.Id).ToHashSet();
+		}
 
-        public static ApiObjectValidator Validate(MediaOpsPlanApi planApi, ICollection<Resource> resourcesToValidate)
-        {
-            if (resourcesToValidate == null)
-            {
-                throw new ArgumentNullException(nameof(resourcesToValidate));
-            }
+		public static ApiObjectValidator Validate(MediaOpsPlanApi planApi, ICollection<Resource> resourcesToValidate)
+		{
+			if (resourcesToValidate == null)
+			{
+				throw new ArgumentNullException(nameof(resourcesToValidate));
+			}
 
-            var validator = new SlcWorkflowResourceUsageValidator(planApi, resourcesToValidate.ToList());
-            validator.Validate();
+			var validator = new SlcWorkflowResourceUsageValidator(planApi, resourcesToValidate.ToList());
+			validator.Validate();
 
-            return validator;
-        }
+			return validator;
+		}
 
-        private void Validate()
-        {
-            if (!resourceIdsToValidate.Any())
-            {
-                return;
-            }
+		private void Validate()
+		{
+			if (!resourceIdsToValidate.Any())
+			{
+				return;
+			}
 
-            ValidateJobUsage((resource, ids) =>
-            {
-                return new ResourceInUseByJobsError
-                {
-                    Id = resource.Id,
-                    ErrorMessage = $"Resource '{resource.Name}' is in use by {ids.Count} job(s).",
-                    JobIds = ids.ToArray(),
-                };
-            });
+			ValidateJobUsage((resource, ids) =>
+			{
+				return new ResourceInUseByJobsError
+				{
+					Id = resource.Id,
+					ErrorMessage = $"Resource '{resource.Name}' is in use by {ids.Count} job(s).",
+					JobIds = ids.ToArray(),
+				};
+			});
 
+			ValidateRecurringJobUsage((resource, ids) =>
+			{
+				return new ResourceInUseByRecurringJobsError
+				{
+					Id = resource.Id,
+					ErrorMessage = $"Resource '{resource.Name}' is in use by {ids.Count} recurrence(s).",
+					RecurringJobIds = ids.ToArray(),
+				};
+			});
 
-            ValidateRecurringJobUsage((resource, ids) =>
-            {
-                return new ResourceInUseByRecurringJobsError
-                {
-                    Id = resource.Id,
-                    ErrorMessage = $"Resource '{resource.Name}' is in use by {ids.Count} recurrence(s).",
-                    RecurringJobIds = ids.ToArray(),
-                };
-            });
+			ValidateWorkflowUsage((resource, ids) =>
+			{
+				return new ResourceInUseByWorkflowsError
+				{
+					Id = resource.Id,
+					ErrorMessage = $"Resource '{resource.Name}' is in use by {ids.Count} workflow(s).",
+					WorkflowIds = ids.ToArray(),
+				};
+			});
+		}
 
+		private void ValidateJobUsage(Func<Resource, ICollection<Guid>, MediaOpsErrorData> createJobsError)
+		{
+			var jobsReferencingResources = GetJobsReferencingResources();
+			foreach (var resource in resourcesToValidate)
+			{
+				if (!jobsReferencingResources.TryGetValue(resource.Id, out var jobIds))
+				{
+					continue;
+				}
 
-            ValidateWorkflowUsage((resource, ids) =>
-            {
-                return new ResourceInUseByWorkflowsError
-                {
-                    Id = resource.Id,
-                    ErrorMessage = $"Resource '{resource.Name}' is in use by {ids.Count} workflow(s).",
-                    WorkflowIds = ids.ToArray(),
-                };
-            });
-        }
+				ReportError(resource.Id, createJobsError(resource, jobIds));
+			}
+		}
 
-        private void ValidateJobUsage(Func<Resource, ICollection<Guid>, MediaOpsErrorData> createJobsError)
-        {
-            var jobsReferencingResources = GetJobsReferencingResources();
-            foreach (var resource in resourcesToValidate)
-            {
-                if (!jobsReferencingResources.TryGetValue(resource.Id, out var jobIds))
-                {
-                    continue;
-                }
+		private void ValidateRecurringJobUsage(Func<Resource, ICollection<Guid>, MediaOpsErrorData> createRecurringJobsError)
+		{
+			var recurringJobsReferencingResources = GetRecurringJobsReferencingResources();
+			foreach (var resource in resourcesToValidate)
+			{
+				if (!recurringJobsReferencingResources.TryGetValue(resource.Id, out var recurringJobIds))
+				{
+					continue;
+				}
 
-                ReportError(resource.Id, createJobsError(resource, jobIds));
-            }
-        }
+				ReportError(resource.Id, createRecurringJobsError(resource, recurringJobIds));
+			}
+		}
 
-        private void ValidateRecurringJobUsage(Func<Resource, ICollection<Guid>, MediaOpsErrorData> createRecurringJobsError)
-        {
-            var recurringJobsReferencingResources = GetRecurringJobsReferencingResources();
-            foreach (var resource in resourcesToValidate)
-            {
-                if (!recurringJobsReferencingResources.TryGetValue(resource.Id, out var recurringJobIds))
-                {
-                    continue;
-                }
+		private void ValidateWorkflowUsage(Func<Resource, ICollection<Guid>, MediaOpsErrorData> createWorkflowsError)
+		{
+			var workflowsReferencingResources = GetWorkflowsReferencingResources();
+			foreach (var resource in resourcesToValidate)
+			{
+				if (!workflowsReferencingResources.TryGetValue(resource.Id, out var jobIds))
+				{
+					continue;
+				}
 
-                ReportError(resource.Id, createRecurringJobsError(resource, recurringJobIds));
-            }
-        }
+				ReportError(resource.Id, createWorkflowsError(resource, jobIds));
+			}
+		}
 
-        private void ValidateWorkflowUsage(Func<Resource, ICollection<Guid>, MediaOpsErrorData> createWorkflowsError)
-        {
-            var workflowsReferencingResources = GetWorkflowsReferencingResources();
-            foreach (var resource in resourcesToValidate)
-            {
-                if (!workflowsReferencingResources.TryGetValue(resource.Id, out var jobIds))
-                {
-                    continue;
-                }
+		private void ValidateNodeSection(Dictionary<Guid, List<Guid>> result, Guid domInstanceId, NodesSection nodesSection)
+		{
+			if (nodesSection.ReferenceId == Guid.Empty
+				|| !resourceIdsToValidate.Contains(nodesSection.ReferenceId))
+			{
+				return;
+			}
 
-                ReportError(resource.Id, createWorkflowsError(resource, jobIds));
-            }
-        }
+			if (!result.TryGetValue(nodesSection.ReferenceId, out var jobIds))
+			{
+				jobIds = new List<Guid>();
+				result[nodesSection.ReferenceId] = jobIds;
+			}
 
-        private void ValidateNodeSection(Dictionary<Guid, List<Guid>> result, Guid domInstanceId, NodesSection nodesSection)
-        {
-            if (nodesSection.ReferenceId == Guid.Empty
-                || !resourceIdsToValidate.Contains(nodesSection.ReferenceId))
-            {
-                return;
-            }
+			if (!jobIds.Contains(domInstanceId))
+			{
+				jobIds.Add(domInstanceId);
+			}
+		}
 
-            if (!result.TryGetValue(nodesSection.ReferenceId, out var jobIds))
-            {
-                jobIds = new List<Guid>();
-                result[nodesSection.ReferenceId] = jobIds;
-            }
+		private IEnumerable<JobsInstance> GetJobInstancesReferencingResources()
+		{
+			var jobFilter = new ANDFilterElement<DomInstance>(
+					DomInstanceExposers.DomDefinitionId.Equal(SlcWorkflowIds.Definitions.Jobs.Id),
+					DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.Postroll).GreaterThan(DateTimeOffset.UtcNow),
+					DomInstanceExposers.StatusId.NotEqual(SlcWorkflowIds.Behaviors.Job_Behavior.Statuses.ToValue(SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Canceled)));
 
-            if (!jobIds.Contains(domInstanceId))
-            {
-                jobIds.Add(domInstanceId);
-            }
-        }
+			var nodeFilters = resourceIdsToValidate
+				.Select(id =>
+				{
+					var resourceNodeFilter = new ANDFilterElement<DomInstance>(
+						DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeType).Equal((int)SlcWorkflowIds.Enums.Nodetype.Resource),
+						DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeReferenceID).Equal(id.ToString()));
 
-        private IEnumerable<JobsInstance> GetJobInstancesReferencingResources()
-        {
-            var jobFilter = new ANDFilterElement<DomInstance>(
-                    DomInstanceExposers.DomDefinitionId.Equal(SlcWorkflowIds.Definitions.Jobs.Id),
-                    DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.Postroll).GreaterThan(DateTimeOffset.UtcNow),
-                    DomInstanceExposers.StatusId.NotEqual(SlcWorkflowIds.Behaviors.Job_Behavior.Statuses.ToValue(SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Canceled))
-                );
+					return resourceNodeFilter;
+				})
+				.ToArray();
 
-            var nodeFilters = resourceIdsToValidate
-                .Select(id =>
-                {
-                    var resourceNodeFilter = new ANDFilterElement<DomInstance>(
-                        DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeType).Equal((int)SlcWorkflowIds.Enums.Nodetype.Resource),
-                        DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeReferenceID).Equal(id.ToString())
-                    );
+			var nodeFilter = new ORFilterElement<DomInstance>(nodeFilters);
+			var fullFilter = new ANDFilterElement<DomInstance>(jobFilter, nodeFilter);
 
-                    return resourceNodeFilter;
-                })
-                .ToArray();
+			var jobs = planApi.DomHelpers.SlcWorkflowHelper
+				.GetJobs(fullFilter)
+				.DistinctBy(x => x.ID);
 
-            var nodeFilter = new ORFilterElement<DomInstance>(nodeFilters);
-            var fullFilter = new ANDFilterElement<DomInstance>(jobFilter, nodeFilter);
+			return jobs;
+		}
 
-            var jobs = planApi.DomHelpers.SlcWorkflowHelper
-                .GetJobs(fullFilter)
-                .DistinctBy(x => x.ID);
+		private Dictionary<Guid, List<Guid>> GetJobsReferencingResources()
+		{
+			var result = new Dictionary<Guid, List<Guid>>();
+			var jobs = GetJobInstancesReferencingResources();
 
-            return jobs;
-        }
+			foreach (var job in jobs)
+			{
+				var jobId = job.ID.Id;
 
-        private Dictionary<Guid, List<Guid>> GetJobsReferencingResources()
-        {
-            var result = new Dictionary<Guid, List<Guid>>();
-            var jobs = GetJobInstancesReferencingResources();
+				if (job.Nodes != null)
+				{
+					foreach (var nodeSection in job.Nodes)
+					{
+						ValidateNodeSection(result, jobId, nodeSection);
+					}
+				}
+			}
 
-            foreach (var job in jobs)
-            {
-                var jobId = job.ID.Id;
+			return result;
+		}
 
-                if (job.Nodes != null)
-                {
-                    foreach (var nodeSection in job.Nodes)
-                    {
-                        ValidateNodeSection(result, jobId, nodeSection);
-                    }
-                }
-            }
+		private IEnumerable<RecurringJobsInstance> GetRecurringJobInstancesReferencingResources()
+		{
+			var recurringJobFilter = new ANDFilterElement<DomInstance>(
+					DomInstanceExposers.DomDefinitionId.Equal(SlcWorkflowIds.Definitions.RecurringJobs.Id),
+					DomInstanceExposers.StatusId.Equal(SlcWorkflowIds.Behaviors.Recurringjob_Behavior.Statuses.ToValue(SlcWorkflowIds.Behaviors.Recurringjob_Behavior.StatusesEnum.Active)));
 
-            return result;
-        }
+			var nodeFilters = resourceIdsToValidate
+				.Select(id =>
+				{
+					var resourceNodeFilter = new ANDFilterElement<DomInstance>(
+						DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeType).Equal((int)SlcWorkflowIds.Enums.Nodetype.Resource),
+						DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeParentReferenceID).Equal(id.ToString()));
 
-        private IEnumerable<RecurringJobsInstance> GetRecurringJobInstancesReferencingResources()
-        {
-            var recurringJobFilter = new ANDFilterElement<DomInstance>(
-                    DomInstanceExposers.DomDefinitionId.Equal(SlcWorkflowIds.Definitions.RecurringJobs.Id),
-                    DomInstanceExposers.StatusId.Equal(SlcWorkflowIds.Behaviors.Recurringjob_Behavior.Statuses.ToValue(SlcWorkflowIds.Behaviors.Recurringjob_Behavior.StatusesEnum.Active))
-                );
+					return resourceNodeFilter;
+				})
+				.ToArray();
 
-            var nodeFilters = resourceIdsToValidate
-                .Select(id =>
-                {
-                    var resourceNodeFilter = new ANDFilterElement<DomInstance>(
-                        DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeType).Equal((int)SlcWorkflowIds.Enums.Nodetype.Resource),
-                        DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeParentReferenceID).Equal(id.ToString())
-                    );
+			var nodeFilter = new ORFilterElement<DomInstance>(nodeFilters);
+			var fullFilter = new ANDFilterElement<DomInstance>(recurringJobFilter, nodeFilter);
 
-                    return resourceNodeFilter;
-                })
-                .ToArray();
+			var recurringJobs = planApi.DomHelpers.SlcWorkflowHelper
+				.GetRecurringJobs(fullFilter)
+				.DistinctBy(x => x.ID);
 
-            var nodeFilter = new ORFilterElement<DomInstance>(nodeFilters);
-            var fullFilter = new ANDFilterElement<DomInstance>(recurringJobFilter, nodeFilter);
+			return recurringJobs;
+		}
 
-            var recurringJobs = planApi.DomHelpers.SlcWorkflowHelper
-                .GetRecurringJobs(fullFilter)
-                .DistinctBy(x => x.ID);
+		private Dictionary<Guid, List<Guid>> GetRecurringJobsReferencingResources()
+		{
+			var result = new Dictionary<Guid, List<Guid>>();
+			var recurringJobs = GetRecurringJobInstancesReferencingResources();
 
-            return recurringJobs;
-        }
+			foreach (var recurringJob in recurringJobs)
+			{
+				var recurringJobId = recurringJob.ID.Id;
 
-        private Dictionary<Guid, List<Guid>> GetRecurringJobsReferencingResources()
-        {
-            var result = new Dictionary<Guid, List<Guid>>();
-            var recurringJobs = GetRecurringJobInstancesReferencingResources();
+				if (recurringJob.Nodes != null)
+				{
+					foreach (var nodeSection in recurringJob.Nodes)
+					{
+						ValidateNodeSection(result, recurringJobId, nodeSection);
+					}
+				}
+			}
 
-            foreach (var recurringJob in recurringJobs)
-            {
-                var recurringJobId = recurringJob.ID.Id;
+			return result;
+		}
 
-                if (recurringJob.Nodes != null)
-                {
-                    foreach (var nodeSection in recurringJob.Nodes)
-                    {
-                        ValidateNodeSection(result, recurringJobId, nodeSection);
-                    }
-                }
-            }
+		private IEnumerable<WorkflowsInstance> GetWorkflowInstancesReferencingResources()
+		{
+			var workflowFilter = DomInstanceExposers.DomDefinitionId.Equal(SlcWorkflowIds.Definitions.Workflows.Id);
 
-            return result;
-        }
+			var nodeFilters = resourceIdsToValidate
+				.Select(id =>
+				{
+					var resourceNodeFilter = new ANDFilterElement<DomInstance>(
+						DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeType).Equal((int)SlcWorkflowIds.Enums.Nodetype.Resource),
+						DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeReferenceID).Equal(id.ToString()));
 
-        private IEnumerable<WorkflowsInstance> GetWorkflowInstancesReferencingResources()
-        {
-            var workflowFilter = DomInstanceExposers.DomDefinitionId.Equal(SlcWorkflowIds.Definitions.Workflows.Id);
+					return resourceNodeFilter;
+				})
+				.ToArray();
 
-            var nodeFilters = resourceIdsToValidate
-                .Select(id =>
-                {
-                    var resourceNodeFilter = new ANDFilterElement<DomInstance>(
-                        DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeType).Equal((int)SlcWorkflowIds.Enums.Nodetype.Resource),
-                        DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeReferenceID).Equal(id.ToString())
-                    );
+			var nodeFilter = new ORFilterElement<DomInstance>(nodeFilters);
+			var fullFilter = new ANDFilterElement<DomInstance>(workflowFilter, nodeFilter);
 
-                    return resourceNodeFilter;
-                })
-                .ToArray();
+			var workflows = planApi.DomHelpers.SlcWorkflowHelper
+				.GetWorkflows(fullFilter)
+				.DistinctBy(x => x.ID);
 
-            var nodeFilter = new ORFilterElement<DomInstance>(nodeFilters);
-            var fullFilter = new ANDFilterElement<DomInstance>(workflowFilter, nodeFilter);
+			return workflows;
+		}
 
-            var workflows = planApi.DomHelpers.SlcWorkflowHelper
-                .GetWorkflows(fullFilter)
-                .DistinctBy(x => x.ID);
+		private Dictionary<Guid, List<Guid>> GetWorkflowsReferencingResources()
+		{
+			var result = new Dictionary<Guid, List<Guid>>();
+			var workflows = GetWorkflowInstancesReferencingResources();
 
-            return workflows;
-        }
+			foreach (var workflow in workflows)
+			{
+				var workflowId = workflow.ID.Id;
 
-        private Dictionary<Guid, List<Guid>> GetWorkflowsReferencingResources()
-        {
-            var result = new Dictionary<Guid, List<Guid>>();
-            var workflows = GetWorkflowInstancesReferencingResources();
+				if (workflow.Nodes != null)
+				{
+					foreach (var nodeSection in workflow.Nodes)
+					{
+						ValidateNodeSection(result, workflowId, nodeSection);
+					}
+				}
+			}
 
-            foreach (var workflow in workflows)
-            {
-                var workflowId = workflow.ID.Id;
-
-                if (workflow.Nodes != null)
-                {
-                    foreach (var nodeSection in workflow.Nodes)
-                    {
-                        ValidateNodeSection(result, workflowId, nodeSection);
-                    }
-                }
-            }
-
-            return result;
-        }
-    }
+			return result;
+		}
+	}
 }

@@ -10,7 +10,7 @@
 	public static class IConnectionExtensions
 	{
 		/// <summary>
-		/// Retrieves an instance of the <see cref="IMediaOpsPlanApi"/> interface."/>
+		/// Retrieves an instance of the <see cref="IMediaOpsPlanApi"/> interface.
 		/// </summary>
 		/// <param name="connection">The <see cref="IConnection"/> instance.</param>
 		/// <returns>Instance of the <see cref="IMediaOpsPlanApi"/> interface.</returns>

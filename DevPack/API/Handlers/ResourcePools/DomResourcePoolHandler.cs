@@ -756,11 +756,11 @@
 
 		private void ValidateDomNames(ICollection<ResourcePool> apiResourcePools)
 		{
-			FilterElement<DomInstance> filter(string name) =>
+			FilterElement<DomInstance> Filter(string name) =>
 				DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resourcepool.Id)
 				.AND(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourcePoolInfo.Name).Equal(name));
 
-			var domPoolsbyName = planApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(apiResourcePools.Select(x => x.Name), filter)
+			var domPoolsbyName = planApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(apiResourcePools.Select(x => x.Name), Filter)
 				.GroupBy(x => x.Name)
 				.ToDictionary(x => x.Key, x => (IReadOnlyCollection<DomResourcePool>)x.ToList());
 
