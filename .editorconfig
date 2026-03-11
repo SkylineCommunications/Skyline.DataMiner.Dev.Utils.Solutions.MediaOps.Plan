@@ -12,3 +12,21 @@
  dotnet_sort_system_directives_first = true
  dotnet_style_predefined_type_for_locals_parameters_members = true
  dotnet_style_predefined_type_for_member_access = false
+
+# SA1401: Fields should be private
+dotnet_diagnostic.SA1401.severity = none
+
+# SA1305: Field names should not use Hungarian notation
+dotnet_diagnostic.SA1305.severity = none
+
+# SA1202: Elements should be ordered by access
+dotnet_diagnostic.SA1202.severity = suggestion
+
+# SA1501: Statement should not be on a single line
+dotnet_diagnostic.SA1501.severity = none
+
+# SA1314: Type parameter names should begin with T
+dotnet_diagnostic.SA1314.severity = none
+
+# SA1135: Using directives should be qualified
+dotnet_diagnostic.SA1135.severity = none
