@@ -207,6 +207,16 @@
 				MarkAsResourceWithCoreChanges(resource);
 			}
 
+			var resourcesWithConcurencyChanges = resourcesToUpdate.Where(x =>
+				IsValid(x)
+				&& changeResults.Any(y => y.Instance.ID.Id == x.Id
+				&& y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcResource_StudioIds.Sections.ResourceInfo.Concurrency.Id)));
+
+			foreach (var resource in resourcesWithConcurencyChanges)
+			{
+				MarkAsResourceWithCoreChanges(resource);
+			}
+
 			var toCreateDomInstances = resourcesToCreate
 				.Where(IsValid)
 				.Select(x => x.GetInstanceWithChanges())
@@ -1235,7 +1245,7 @@
 				throw new ArgumentNullException(nameof(resource));
 			}
 
-			if (resource.State != ResourceState.Complete)
+			if (resource.State == ResourceState.Draft)
 			{
 				return;
 			}
