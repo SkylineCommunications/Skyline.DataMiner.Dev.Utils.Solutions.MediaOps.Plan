@@ -15,6 +15,7 @@ stateDiagram-v2
   Complete --> Deprecated
   Deprecated --> Complete
 ```
+
 Resources are created in the **Draft** state. Once fully configured, they can be transitioned to **Complete** state to make them available for planning. A completed resource can be **Deprecated** when it is no longer needed, and restored back to **Complete** if required again.
 
 ```csharp

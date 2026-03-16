@@ -147,7 +147,7 @@
 				var errorMessages = new List<string>
 				{
 				   $"Resource pool '{resourcePool1.Name}' has a duplicate ID.",
-				   $"Resource pool '{resourcePool2.Name}' has a duplicate ID."
+				   $"Resource pool '{resourcePool2.Name}' has a duplicate ID.",
 				};
 
 				foreach (var error in resourcePoolConfigurationErrors)

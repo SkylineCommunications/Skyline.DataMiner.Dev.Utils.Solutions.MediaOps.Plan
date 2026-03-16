@@ -66,6 +66,7 @@
         /// Creates a new capability in the repository.
         /// </summary>
         /// <param name="apiObject">The capability to create.</param>
+        /// <returns>The created capability.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create an existing capability.</exception>
         /// <exception cref="MediaOpsException">Thrown when the creation operation fails for the specified capability.</exception>
@@ -100,6 +101,7 @@
         /// Creates multiple new capabilities in the repository.
         /// </summary>
         /// <param name="apiObjects">The collection of capabilities to create.</param>
+        /// <returns>A read-only collection containing the created capabilities.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to create existing capabilities.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk creation operation fails for one or more capabilities.</exception>
@@ -134,6 +136,7 @@
         /// Creates new capabilities or updates existing ones in the repository.
         /// </summary>
         /// <param name="apiObjects">The collection of capabilities to create or update.</param>
+        /// <returns>A read-only collection containing the created or updated capabilities.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk create or update operation fails for one or more capabilities.</exception>
         public IReadOnlyCollection<Capability> CreateOrUpdate(IEnumerable<Capability> apiObjects)
@@ -387,6 +390,7 @@
         /// Updates an existing capability in the repository.
         /// </summary>
         /// <param name="apiObject">The capability to update.</param>
+        /// <returns>The updated capability.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to update a new capability that doesn't exist yet.</exception>
         /// <exception cref="MediaOpsException">Thrown when the update operation fails for the specified capability.</exception>
@@ -421,6 +425,7 @@
         /// Updates multiple existing capabilities in the repository.
         /// </summary>
         /// <param name="apiObjects">The collection of capabilities to update.</param>
+        /// <returns>A read-only collection containing the updated capabilities.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to update new capabilities that don't exist yet.</exception>
         /// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk update operation fails for one or more capabilities.</exception>

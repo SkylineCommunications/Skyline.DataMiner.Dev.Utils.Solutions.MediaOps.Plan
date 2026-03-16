@@ -88,6 +88,7 @@
             {
                 return false;
             }
+
             try
             {
                 resourceMetadata = SecureNewtonsoftDeserialization.DeserializeObject<ResourceMetadata>(json);

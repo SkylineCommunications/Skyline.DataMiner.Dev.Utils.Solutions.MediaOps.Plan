@@ -29,6 +29,7 @@
             {
                 throw new ArgumentNullException(nameof(filter));
             }
+
             return GetConfigurationIterator(filter);
         }
 
@@ -58,6 +59,7 @@
             {
                 throw new ArgumentNullException(nameof(filter));
             }
+
             return GetWorkflowIterator(filter);
         }
 
