@@ -193,7 +193,7 @@
 			catch (MediaOpsException ex)
 			{
 				Assert.AreEqual("The capability defines the following duplicate discretes: Value 1, Value 1, Value 1, Value 1, Value 1, Value 1, Value 1, Value 1, Value 1, Value 1.", ex.Message);
-				Assert.AreEqual(ex.TraceData.ErrorData.Count, 1);
+				Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
 
 				var duplicateDiscretesError = ex.TraceData.ErrorData.OfType<CapabilityDuplicateDiscretesError>().SingleOrDefault();
 				Assert.IsNotNull(duplicateDiscretesError);
