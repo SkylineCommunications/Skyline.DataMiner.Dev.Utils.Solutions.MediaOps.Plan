@@ -14,7 +14,7 @@
 	/// </summary>
 	public class Capability : Parameter
 	{
-		private readonly HashSet<string> discretes = new HashSet<string>();
+		private readonly List<string> discretes = new List<string>();
 		private Guid linkedTimeDependentCapabilityId;
 
 		/// <summary>
