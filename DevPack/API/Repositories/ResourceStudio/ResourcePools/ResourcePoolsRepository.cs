@@ -14,9 +14,7 @@
 
 	using SLDataGateway.API.Types.Querying;
 
-	using static Skyline.DataMiner.Net.Apps.Modules.ModuleIdValidator;
-
-	using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
+    using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
 	/// <summary>
 	/// Provides repository operations for managing <see cref="ResourcePool"/> objects.
@@ -84,8 +82,8 @@
 				resource.AssignToPool(resourcePoolId);
 			}
 
-			PlanApi.Resources.Update(resources);
-		}
+            PlanApi.Resources.CreateOrUpdate(resources);
+        }
 
 		/// <summary>
 		/// Gets the number of resource pools that match the specified filter.
@@ -889,8 +887,8 @@
 				resource.UnassignFromPool(resourcePoolId);
 			}
 
-			PlanApi.Resources.Update(resources);
-		}
+            PlanApi.Resources.CreateOrUpdate(resources);
+        }
 
 		/// <summary>
 		/// Updates an existing resource pool in the repository.
