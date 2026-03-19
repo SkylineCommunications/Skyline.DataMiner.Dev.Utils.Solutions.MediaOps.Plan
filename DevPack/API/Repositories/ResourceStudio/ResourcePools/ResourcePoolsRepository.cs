@@ -14,8 +14,6 @@
 
     using SLDataGateway.API.Types.Querying;
 
-    using static Skyline.DataMiner.Net.Apps.Modules.ModuleIdValidator;
-
     using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
     /// <summary>
@@ -84,7 +82,7 @@
                 resource.AssignToPool(resourcePoolId);
             }
 
-            PlanApi.Resources.Update(resources);
+            PlanApi.Resources.CreateOrUpdate(resources);
         }
 
         /// <summary>
@@ -885,7 +883,7 @@
                 resource.UnassignFromPool(resourcePoolId);
             }
 
-            PlanApi.Resources.Update(resources);
+            PlanApi.Resources.CreateOrUpdate(resources);
         }
 
         /// <summary>
