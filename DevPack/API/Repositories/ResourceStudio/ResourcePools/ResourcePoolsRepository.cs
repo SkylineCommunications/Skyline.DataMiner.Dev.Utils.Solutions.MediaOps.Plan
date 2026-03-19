@@ -14,7 +14,7 @@
 
 	using SLDataGateway.API.Types.Querying;
 
-    using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
+	using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
 	/// <summary>
 	/// Provides repository operations for managing <see cref="ResourcePool"/> objects.
@@ -82,8 +82,8 @@
 				resource.AssignToPool(resourcePoolId);
 			}
 
-            PlanApi.Resources.CreateOrUpdate(resources);
-        }
+			PlanApi.Resources.CreateOrUpdate(resources);
+		}
 
 		/// <summary>
 		/// Gets the number of resource pools that match the specified filter.
@@ -887,8 +887,8 @@
 				resource.UnassignFromPool(resourcePoolId);
 			}
 
-            PlanApi.Resources.CreateOrUpdate(resources);
-        }
+			PlanApi.Resources.CreateOrUpdate(resources);
+		}
 
 		/// <summary>
 		/// Updates an existing resource pool in the repository.
