@@ -19,6 +19,7 @@
 		<PackageIcon>Icon.png</PackageIcon>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<Version>1.6.0-alpha001</Version>
 
 		<Authors>SkylineCommunications</Authors>
 		<Company>Skyline Communications</Company>
