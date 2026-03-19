@@ -9,12 +9,12 @@
 	internal sealed class ResourceFilteringSetup
 	{
 		private readonly TestObjectCreator objectCreator;
-		private readonly IntegrationTestContext TestContext;
+		private readonly IntegrationTestContext testContext;
 
-		public ResourceFilteringSetup(TestObjectCreator objectCreator, IntegrationTestContext TestContext)
+		public ResourceFilteringSetup(TestObjectCreator objectCreator, IntegrationTestContext testContext)
 		{
 			this.objectCreator = objectCreator;
-			this.TestContext = TestContext;
+			this.testContext = testContext;
 
 			CreateCapabilities();
 			CreateCapacities();
@@ -168,9 +168,9 @@
 				objectCreator.CreateCapability(capability);
 			}
 
-			Location = TestContext.Api.Capabilities.Read(Location.Id);
-			Priority = TestContext.Api.Capabilities.Read(Priority.Id);
-			Resolution = TestContext.Api.Capabilities.Read(Resolution.Id);
+			Location = testContext.Api.Capabilities.Read(Location.Id);
+			Priority = testContext.Api.Capabilities.Read(Priority.Id);
+			Resolution = testContext.Api.Capabilities.Read(Resolution.Id);
 		}
 
 		private void CreateDraftResources()
@@ -190,13 +190,13 @@
 
 			var frequencyCapacity1 = new NumberCapacitySetting(Frequency)
 			{
-				Value = 20
+				Value = 20,
 			};
 
 			var bandwidthCapacity1 = new RangeCapacitySetting(Bandwidth)
 			{
 				MinValue = 5000,
-				MaxValue = 7500
+				MaxValue = 7500,
 			};
 
 			DraftResource1.AddCapability(locationResource1);
@@ -214,23 +214,23 @@
 
 			var channelProperty2 = new ResourcePropertySettings(Channel)
 			{
-				Value = "VRT"
+				Value = "VRT",
 			};
 
 			var formatProperty2 = new ResourcePropertySettings(Format)
 			{
-				Value = "16:9"
+				Value = "16:9",
 			};
 
 			var frequencyCapacity2 = new NumberCapacitySetting(Frequency)
 			{
-				Value = 20
+				Value = 20,
 			};
 
 			var bandwidthCapacity2 = new RangeCapacitySetting(Bandwidth)
 			{
 				MinValue = 5000,
-				MaxValue = 7500
+				MaxValue = 7500,
 			};
 
 			DraftResource2.AddProperty(channelProperty2);
@@ -251,7 +251,7 @@
 
 			var formatProperty3 = new ResourcePropertySettings(Format)
 			{
-				Value = "16:9"
+				Value = "16:9",
 			};
 
 			DraftResource3.AddCapability(resolutionResource3);
@@ -284,12 +284,12 @@
 
 			var formatProperty4 = new ResourcePropertySettings(Format)
 			{
-				Value = "16:9"
+				Value = "16:9",
 			};
 
 			var frequencyCapacity4 = new NumberCapacitySetting(Frequency)
 			{
-				Value = 20
+				Value = 20,
 			};
 
 			CompleteResource4.AddCapability(resolutionResource4);
@@ -306,12 +306,12 @@
 
 			var channelProperty5 = new ResourcePropertySettings(Channel)
 			{
-				Value = "VRT"
+				Value = "VRT",
 			};
 
 			var formatProperty5 = new ResourcePropertySettings(Format)
 			{
-				Value = "16:9"
+				Value = "16:9",
 			};
 
 			CompleteResource5.AddProperty(channelProperty5);
@@ -323,8 +323,8 @@
 			CompleteResource5 = objectCreator.CreateResource(CompleteResource5);
 
 			// Mark as complete
-			TestContext.Api.Resources.Complete(CompleteResource4);
-			TestContext.Api.Resources.Complete(CompleteResource5);
+			testContext.Api.Resources.Complete(CompleteResource4);
+			testContext.Api.Resources.Complete(CompleteResource5);
 		}
 
 		private void CreateElementResources()
@@ -416,9 +416,9 @@
 				objectCreator.CreateCapacity(capacity);
 			}
 
-			Frequency = (NumberCapacity)TestContext.Api.Capacities.Read(Frequency.Id);
-			Bandwidth = (RangeCapacity)TestContext.Api.Capacities.Read(Bandwidth.Id);
-			Reach = (NumberCapacity)TestContext.Api.Capacities.Read(Reach.Id);
+			Frequency = (NumberCapacity)testContext.Api.Capacities.Read(Frequency.Id);
+			Bandwidth = (RangeCapacity)testContext.Api.Capacities.Read(Bandwidth.Id);
+			Reach = (NumberCapacity)testContext.Api.Capacities.Read(Reach.Id);
 		}
 
 		private void CreateConfigurations()
@@ -549,16 +549,16 @@
 			ResourcePool1 = objectCreator.CreateResourcePool(ResourcePool1); // Draft pool
 
 			ResourcePool2 = objectCreator.CreateResourcePool(ResourcePool2);
-			ResourcePool2 = TestContext.Api.ResourcePools.Complete(ResourcePool2);
+			ResourcePool2 = testContext.Api.ResourcePools.Complete(ResourcePool2);
 
 			ResourcePool3 = objectCreator.CreateResourcePool(ResourcePool3);
-			ResourcePool3 = TestContext.Api.ResourcePools.Complete(ResourcePool3);
+			ResourcePool3 = testContext.Api.ResourcePools.Complete(ResourcePool3);
 
 			ResourcePool4 = objectCreator.CreateResourcePool(ResourcePool4);
-			ResourcePool4 = TestContext.Api.ResourcePools.Complete(ResourcePool4);
+			ResourcePool4 = testContext.Api.ResourcePools.Complete(ResourcePool4);
 
 			ResourcePool5 = objectCreator.CreateResourcePool(ResourcePool5);
-			ResourcePool5 = TestContext.Api.ResourcePools.Complete(ResourcePool5);
+			ResourcePool5 = testContext.Api.ResourcePools.Complete(ResourcePool5);
 		}
 	}
 }

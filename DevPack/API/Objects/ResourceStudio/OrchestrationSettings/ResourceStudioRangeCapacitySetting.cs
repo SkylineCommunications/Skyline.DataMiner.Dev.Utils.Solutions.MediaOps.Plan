@@ -1,46 +1,47 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
-    using System;
+	using System;
 
-    using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
+	using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
-    internal class ResourceStudioRangeCapacitySetting : RangeCapacitySetting
-    {
-        internal StorageResourceStudio.ProfileParameterValuesSection originalSection;
-        internal StorageResourceStudio.ProfileParameterValuesSection updatedSection;
+	internal class ResourceStudioRangeCapacitySetting : RangeCapacitySetting
+	{
+		private StorageResourceStudio.ProfileParameterValuesSection originalSection;
+		private StorageResourceStudio.ProfileParameterValuesSection updatedSection;
 
-        internal ResourceStudioRangeCapacitySetting(RangeCapacitySetting rangeCapacitySetting) : base(rangeCapacitySetting)
-        {
-        }
+		internal ResourceStudioRangeCapacitySetting(RangeCapacitySetting rangeCapacitySetting) : base(rangeCapacitySetting)
+		{
+		}
 
-        internal ResourceStudioRangeCapacitySetting(StorageResourceStudio.ProfileParameterValuesSection section)
-        {
-            ParseSection(section);
-            InitTracking();
-        }
-        internal override Storage.DOM.DomSectionBase OriginalSection => originalSection;
+		internal ResourceStudioRangeCapacitySetting(StorageResourceStudio.ProfileParameterValuesSection section)
+		{
+			ParseSection(section);
+			InitTracking();
+		}
 
-        internal StorageResourceStudio.ProfileParameterValuesSection GetSectionWithChanges()
-        {
-            if (updatedSection == null)
-            {
-                updatedSection = IsNew ? new StorageResourceStudio.ProfileParameterValuesSection() : originalSection.Clone();
-            }
+		internal override Storage.DOM.DomSectionBase OriginalSection => originalSection;
 
-            updatedSection.ProfileParameterId = Id;
-            updatedSection.DoubleMinValue = MinValue.HasValue ? (double)MinValue : null;
-            updatedSection.DoubleMaxValue = MaxValue.HasValue ? (double)MaxValue : null;
+		internal StorageResourceStudio.ProfileParameterValuesSection GetSectionWithChanges()
+		{
+			if (updatedSection == null)
+			{
+				updatedSection = IsNew ? new StorageResourceStudio.ProfileParameterValuesSection() : originalSection.Clone();
+			}
 
-            return updatedSection;
-        }
+			updatedSection.ProfileParameterId = Id;
+			updatedSection.DoubleMinValue = MinValue.HasValue ? (double)MinValue : null;
+			updatedSection.DoubleMaxValue = MaxValue.HasValue ? (double)MaxValue : null;
 
-        private void ParseSection(StorageResourceStudio.ProfileParameterValuesSection section)
-        {
-            originalSection = section ?? throw new ArgumentNullException(nameof(section));
+			return updatedSection;
+		}
 
-            Id = section.ProfileParameterId;
-            MinValue = section.DoubleMinValue.HasValue ? (decimal)section.DoubleMinValue.Value : null;
-            MaxValue = section.DoubleMaxValue.HasValue ? (decimal)section.DoubleMaxValue.Value : null;
-        }
-    }
+		private void ParseSection(StorageResourceStudio.ProfileParameterValuesSection section)
+		{
+			originalSection = section ?? throw new ArgumentNullException(nameof(section));
+
+			Id = section.ProfileParameterId;
+			MinValue = section.DoubleMinValue.HasValue ? (decimal)section.DoubleMinValue.Value : null;
+			MaxValue = section.DoubleMaxValue.HasValue ? (decimal)section.DoubleMaxValue.Value : null;
+		}
+	}
 }

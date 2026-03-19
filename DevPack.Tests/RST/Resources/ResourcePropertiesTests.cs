@@ -263,6 +263,7 @@
                 Assert.AreEqual(resource.Id, invalidResourcePropertyConfigurationError.Id);
                 return;
             }
+
             Assert.Fail("Exception not thrown");
         }
 

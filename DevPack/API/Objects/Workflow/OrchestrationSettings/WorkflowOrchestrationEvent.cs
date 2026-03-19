@@ -6,8 +6,8 @@
 
 	internal class WorkflowOrchestrationEvent : OrchestrationEvent
 	{
-		internal StorageWorkflow.OrchestrationEventsSection originalSection;
-		internal StorageWorkflow.OrchestrationEventsSection updatedSection;
+		private StorageWorkflow.OrchestrationEventsSection originalSection;
+		private StorageWorkflow.OrchestrationEventsSection updatedSection;
 
 		internal WorkflowOrchestrationEvent(OrchestrationEvent orchestrationEvent) : base(orchestrationEvent)
 		{

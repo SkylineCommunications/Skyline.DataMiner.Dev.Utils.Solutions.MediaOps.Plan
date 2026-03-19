@@ -279,26 +279,32 @@
             {
                 updatedInstance.ProfileParameterValues.Add(capability.GetSectionWithChanges());
             }
+
             foreach (var capacity in numberCapacitySettings)
             {
                 updatedInstance.ProfileParameterValues.Add(capacity.GetSectionWithChanges());
             }
+
             foreach (var capacity in rangeCapacitySettings)
             {
                 updatedInstance.ProfileParameterValues.Add(capacity.GetSectionWithChanges());
             }
+
             foreach (var configuration in textConfigurationSettings)
             {
                 updatedInstance.ProfileParameterValues.Add(configuration.GetSectionWithChanges());
             }
+
             foreach (var configuration in numberConfigurationSettings)
             {
                 updatedInstance.ProfileParameterValues.Add(configuration.GetSectionWithChanges());
             }
+
             foreach (var configuration in discreteTextConfigurationSettings)
             {
                 updatedInstance.ProfileParameterValues.Add(configuration.GetSectionWithChanges());
             }
+
             foreach (var configuration in discreteNumberConfigurationSettings)
             {
                 updatedInstance.ProfileParameterValues.Add(configuration.GetSectionWithChanges());
