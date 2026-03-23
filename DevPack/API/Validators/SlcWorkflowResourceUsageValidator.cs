@@ -107,12 +107,12 @@
 			var workflowsReferencingResources = GetWorkflowsReferencingResources();
 			foreach (var resource in resourcesToValidate)
 			{
-				if (!workflowsReferencingResources.TryGetValue(resource.Id, out var jobIds))
+				if (!workflowsReferencingResources.TryGetValue(resource.Id, out var workflowIds))
 				{
 					continue;
 				}
 
-				ReportError(resource.Id, createWorkflowsError(resource, jobIds));
+				ReportError(resource.Id, createWorkflowsError(resource, workflowIds));
 			}
 		}
 
