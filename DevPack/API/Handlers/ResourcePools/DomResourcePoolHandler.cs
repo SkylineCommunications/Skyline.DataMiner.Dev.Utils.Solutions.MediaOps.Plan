@@ -144,20 +144,20 @@
 
 			CreateOrUpdateDomResourcePools(toCreateDomInstances.Concat(toUpdateDomInstances).ToList());
 
-			CreateCategoryItems(toCreateDomInstances.Where(IsValid));
-			UpdateCategoryItems(resourcePoolsToUpdate.Where(IsValid));
+			CreateCategoryItems(toCreateDomInstances.Where(IsValid).ToArray());
+			UpdateCategoryItems(resourcePoolsToUpdate.Where(IsValid).ToArray());
 
 			return changeResults;
 		}
 
-		private void UpdateCategoryItems(IEnumerable<ResourcePool> resourcePools)
+		private void UpdateCategoryItems(ICollection<ResourcePool> resourcePools)
 		{
 			var resourcePoolDetails = resourcePools.Select(x => new
 			{
 				ID = x.OriginalInstance.ID,
 				OldCategoryId = Guid.TryParse(x.OriginalInstance.ResourcePoolInfo.Category, out var oldCategoryId) ? oldCategoryId : (Guid?)null,
 				NewCategoryId = Guid.TryParse(x.CategoryId, out var newCategoryId) ? newCategoryId : (Guid?)null,
-			});
+			}).ToArray();
 
 			var categoryItemsToCreate = resourcePoolDetails.Where(x => x.NewCategoryId.HasValue && !x.OldCategoryId.HasValue);
 			var categoryItemsToDelete = resourcePoolDetails.Where(x => !x.NewCategoryId.HasValue && x.OldCategoryId.HasValue);
@@ -168,7 +168,7 @@
 			DeleteCategoryItems(categoryItemsToDelete.Select(x => x.ID).ToArray());
 		}
 
-		private void CreateCategoryItems(IEnumerable<DomResourcePool> resourcePoolsToCreate)
+		private void CreateCategoryItems(ICollection<DomResourcePool> resourcePoolsToCreate)
 		{
 			var poolsToRegister = resourcePoolsToCreate.Select(x => new
 			{
@@ -189,6 +189,11 @@
 
 		private void CreateCategoryItems(ICollection<Tuple<DomInstanceId, Guid>> poolInstanceIdsWithCategory)
 		{
+			if (poolInstanceIdsWithCategory == null || poolInstanceIdsWithCategory.Count == 0)
+			{
+				return;
+			}
+
 			var filter = new ORFilterElement<Category>(poolInstanceIdsWithCategory.Select(x => CategoryExposers.ID.Equal(x.Item2)).ToArray());
 			var categories = planApi.Categories.Categories.Read(filter).ToDictionary((Category cat) => cat.ID);
 
@@ -210,12 +215,17 @@
 
 			if (categoryItemsToCreate.Count > 0)
 			{
-				planApi.Categories.CategoryItems.CreateOrUpdate(categoryItemsToCreate);
+				var createdItems = planApi.Categories.CategoryItems.CreateOrUpdate(categoryItemsToCreate);
 			}
 		}
 
 		private void UpdateCategoryItems(ICollection<Tuple<DomInstanceId, Guid>> poolInstanceIdsWithCategory)
 		{
+			if (poolInstanceIdsWithCategory == null || poolInstanceIdsWithCategory.Count == 0)
+			{
+				return;
+			}
+
 			var filter = new ORFilterElement<CategoryItem>(poolInstanceIdsWithCategory.Select(x => CategoryItemExposers.ModuleId.Equal(x.Item1.ModuleId).AND(CategoryItemExposers.InstanceId.Equal(x.Item1.Id.ToString()))).ToArray());
 			var existingCategoryItems = planApi.Categories.CategoryItems.Read(filter);
 
@@ -268,6 +278,11 @@
 
 		private void DeleteCategoryItems(ICollection<DomInstanceId> poolInstanceIds)
 		{
+			if (poolInstanceIds == null || poolInstanceIds.Count == 0)
+			{
+				return;
+			}
+
 			var filter = new ORFilterElement<CategoryItem>(poolInstanceIds.Select(x => CategoryItemExposers.ModuleId.Equal(x.ModuleId).AND(CategoryItemExposers.InstanceId.Equal(x.Id.ToString()))).ToArray());
 			var categoryItemsToDelete = planApi.Categories.CategoryItems.Read(filter);
 

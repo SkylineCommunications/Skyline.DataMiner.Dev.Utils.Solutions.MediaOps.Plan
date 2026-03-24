@@ -8,11 +8,14 @@
 	using RT_MediaOps.Plan.RegressionTests;
 
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+	using Skyline.DataMiner.Net.SLSearch.Exceptions;
 	using Skyline.DataMiner.Solutions.Categories.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
 	[TestClass]
 	[TestCategory("IntegrationTest")]
+	[DoNotParallelize]
 	public sealed class CategoryAssignmentTests : IDisposable
 	{
 		private readonly TestObjectCreator objectCreator;
@@ -30,6 +33,19 @@
 		}
 
 		[TestMethod]
+		public void CreatePoolAssignsCategory()
+		{
+			var category = CreateCategory();
+			var resourcePool = objectCreator.CreateResourcePool(new ResourcePool
+			{
+				Name = $"ResourcePool_{Guid.NewGuid()}",
+				CategoryId = category.ID.ToString(),
+			});
+
+			AssertCategoryAssignment(resourcePool.Id, category);
+		}
+
+		[TestMethod]
 		public void UpdatePoolAssignsCategory()
 		{
 			var category = CreateCategory();
@@ -41,7 +57,7 @@
 			resourcePool.CategoryId = category.ID.ToString();
 			TestContext.Api.ResourcePools.Update(resourcePool);
 
-			AssertCategoryAssignment(resourcePool.Id, category.ID.ToString());
+			AssertCategoryAssignment(resourcePool.Id, category);
 		}
 
 		[TestMethod]
@@ -55,12 +71,12 @@
 				CategoryId = category1.ID.ToString(),
 			});
 
-			AssertCategoryAssignment(resourcePool.Id, category1.ID.ToString());
+			AssertCategoryAssignment(resourcePool.Id, category1);
 
 			resourcePool.CategoryId = category2.ID.ToString();
 			TestContext.Api.ResourcePools.Update(resourcePool);
 
-			AssertCategoryAssignment(resourcePool.Id, category2.ID.ToString());
+			AssertCategoryAssignment(resourcePool.Id, category2);
 		}
 
 		[TestMethod]
@@ -73,12 +89,60 @@
 				CategoryId = category.ID.ToString(),
 			});
 
-			AssertCategoryAssignment(resourcePool.Id, category.ID.ToString());
+			AssertCategoryAssignment(resourcePool.Id, category);
 
 			resourcePool.CategoryId = null;
 			TestContext.Api.ResourcePools.Update(resourcePool);
 
 			AssertCategoryAssignment(resourcePool.Id, null);
+		}
+
+		[TestMethod]
+		public void CreatePoolWithInvalidCategoryIdThrowsException()
+		{
+			MediaOpsException expectedException = null;
+			try
+			{
+				objectCreator.CreateResourcePool(new ResourcePool
+				{
+					Name = $"ResourcePool_{Guid.NewGuid()}",
+					CategoryId = Guid.NewGuid().ToString(),
+				});
+			}
+			catch (MediaOpsException exception)
+			{
+				var tracedata = exception.TraceData.ErrorData.OfType<ResourcePoolCategoryNotFoundError>().Single();
+				Assert.IsNotNull(tracedata);
+
+				return;
+			}
+
+			Assert.Fail("Expected MediaOpsException was not thrown.");
+		}
+
+		[TestMethod]
+		public void UpdatePoolWithInvalidCategoryIdThrowsException()
+		{
+			var resourcePool = objectCreator.CreateResourcePool(new ResourcePool
+			{
+				Name = $"ResourcePool_{Guid.NewGuid()}",
+			});
+
+
+			try
+			{
+				resourcePool.CategoryId = Guid.NewGuid().ToString();
+				resourcePool = TestContext.Api.ResourcePools.Update(resourcePool);
+			}
+			catch (MediaOpsException exception)
+			{
+				var tracedata = exception.TraceData.ErrorData.OfType<ResourcePoolCategoryNotFoundError>().Single();
+				Assert.IsNotNull(tracedata);
+
+				return;
+			}
+
+			Assert.Fail("Expected MediaOpsException was not thrown.");
 		}
 
 		private static Scope GetResourcePoolScope()
@@ -96,30 +160,32 @@
 			});
 		}
 
-		private static void AssertCategoryAssignment(Guid resourcePoolId, string expectedCategoryId)
+		private static void AssertCategoryAssignment(Guid resourcePoolId, Category expectedCategory)
 		{
 			var resourcePool = TestContext.Api.ResourcePools.Read(resourcePoolId);
 			Assert.IsNotNull(resourcePool);
 
-			if (expectedCategoryId == null)
+			if (expectedCategory == null)
 			{
 				Assert.IsNull(resourcePool.CategoryId);
 			}
 			else
 			{
-				Assert.AreEqual(expectedCategoryId, resourcePool.CategoryId);
+				Assert.AreEqual(expectedCategory.ID.ToString(), resourcePool.CategoryId);
 			}
 
 			var categoryItems = TestContext.CategoriesApi.CategoryItems.Read(CategoryItemExposers.InstanceId.Equal(resourcePoolId.ToString())).ToArray();
-			if (expectedCategoryId == null)
+			if (expectedCategory == null)
 			{
 				Assert.AreEqual(0, categoryItems.Length);
 				return;
 			}
 
 			Assert.AreEqual(1, categoryItems.Length);
-			Assert.AreEqual(expectedCategoryId, categoryItems.Single().Category.ID.ToString());
-		}
+			Assert.AreEqual(expectedCategory.ID.ToString(), categoryItems.Single().Category.ID.ToString());
 
+			var childItems = expectedCategory.GetChildItems(TestContext.CategoriesApi.CategoryItems);
+			Assert.AreEqual(1, childItems.Count());
+		}
 	}
 }
