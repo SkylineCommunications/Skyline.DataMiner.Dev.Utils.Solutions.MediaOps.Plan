@@ -100,7 +100,6 @@
 		[TestMethod]
 		public void CreatePoolWithInvalidCategoryIdThrowsException()
 		{
-			MediaOpsException expectedException = null;
 			try
 			{
 				objectCreator.CreateResourcePool(new ResourcePool
@@ -160,7 +159,7 @@
 			});
 		}
 
-		private static void AssertCategoryAssignment(Guid resourcePoolId, Category expectedCategory)
+		private static void AssertCategoryAssignment(Guid resourcePoolId, Category? expectedCategory)
 		{
 			var resourcePool = TestContext.Api.ResourcePools.Read(resourcePoolId);
 			Assert.IsNotNull(resourcePool);

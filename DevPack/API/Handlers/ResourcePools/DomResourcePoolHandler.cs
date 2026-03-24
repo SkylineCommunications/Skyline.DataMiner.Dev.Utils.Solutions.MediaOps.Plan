@@ -150,24 +150,6 @@
 			return changeResults;
 		}
 
-		private void UpdateCategoryItems(ICollection<ResourcePool> resourcePools)
-		{
-			var resourcePoolDetails = resourcePools.Select(x => new
-			{
-				ID = x.OriginalInstance.ID,
-				OldCategoryId = Guid.TryParse(x.OriginalInstance.ResourcePoolInfo.Category, out var oldCategoryId) ? oldCategoryId : (Guid?)null,
-				NewCategoryId = Guid.TryParse(x.CategoryId, out var newCategoryId) ? newCategoryId : (Guid?)null,
-			}).ToArray();
-
-			var categoryItemsToCreate = resourcePoolDetails.Where(x => x.NewCategoryId.HasValue && !x.OldCategoryId.HasValue);
-			var categoryItemsToDelete = resourcePoolDetails.Where(x => !x.NewCategoryId.HasValue && x.OldCategoryId.HasValue);
-			var categoryItemsToUpdate = resourcePoolDetails.Where(x => x.NewCategoryId.HasValue && x.OldCategoryId.HasValue && x.NewCategoryId != x.OldCategoryId);
-
-			CreateCategoryItems(categoryItemsToCreate.Select(x => Tuple.Create(x.ID, x.NewCategoryId.Value)).ToArray());
-			UpdateCategoryItems(categoryItemsToUpdate.Select(x => Tuple.Create(x.ID, x.NewCategoryId.Value)).ToArray());
-			DeleteCategoryItems(categoryItemsToDelete.Select(x => x.ID).ToArray());
-		}
-
 		private void CreateCategoryItems(ICollection<DomResourcePool> resourcePoolsToCreate)
 		{
 			var poolsToRegister = resourcePoolsToCreate.Select(x => new
@@ -215,8 +197,26 @@
 
 			if (categoryItemsToCreate.Count > 0)
 			{
-				var createdItems = planApi.Categories.CategoryItems.CreateOrUpdate(categoryItemsToCreate);
+				planApi.Categories.CategoryItems.CreateOrUpdate(categoryItemsToCreate);
 			}
+		}
+
+		private void UpdateCategoryItems(ICollection<ResourcePool> resourcePools)
+		{
+			var resourcePoolDetails = resourcePools.Select(x => new
+			{
+				ID = x.OriginalInstance.ID,
+				OldCategoryId = Guid.TryParse(x.OriginalInstance.ResourcePoolInfo.Category, out var oldCategoryId) ? oldCategoryId : (Guid?)null,
+				NewCategoryId = Guid.TryParse(x.CategoryId, out var newCategoryId) ? newCategoryId : (Guid?)null,
+			}).ToArray();
+
+			var categoryItemsToCreate = resourcePoolDetails.Where(x => x.NewCategoryId.HasValue && !x.OldCategoryId.HasValue);
+			var categoryItemsToDelete = resourcePoolDetails.Where(x => !x.NewCategoryId.HasValue && x.OldCategoryId.HasValue);
+			var categoryItemsToUpdate = resourcePoolDetails.Where(x => x.NewCategoryId.HasValue && x.OldCategoryId.HasValue && x.NewCategoryId != x.OldCategoryId);
+
+			CreateCategoryItems(categoryItemsToCreate.Select(x => Tuple.Create(x.ID, x.NewCategoryId.Value)).ToArray());
+			UpdateCategoryItems(categoryItemsToUpdate.Select(x => Tuple.Create(x.ID, x.NewCategoryId.Value)).ToArray());
+			DeleteCategoryItems(categoryItemsToDelete.Select(x => x.ID).ToArray());
 		}
 
 		private void UpdateCategoryItems(ICollection<Tuple<DomInstanceId, Guid>> poolInstanceIdsWithCategory)
