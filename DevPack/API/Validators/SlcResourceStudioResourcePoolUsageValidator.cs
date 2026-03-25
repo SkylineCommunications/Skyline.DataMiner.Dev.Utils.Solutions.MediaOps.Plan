@@ -42,7 +42,7 @@
 				return;
 			}
 
-			ValdiateLinkedPoolUsgae((resourcePool, ids) =>
+			ValdiateLinkedPoolUsage((resourcePool, ids) =>
 			{
 				return new ResourcePoolInuseByLinkedPoolsError
 				{
@@ -53,7 +53,7 @@
 			});
 		}
 
-		private void ValdiateLinkedPoolUsgae(Func<ResourcePool, ICollection<Guid>, MediaOpsErrorData> createLinkedPoolError)
+		private void ValdiateLinkedPoolUsage(Func<ResourcePool, ICollection<Guid>, MediaOpsErrorData> createLinkedPoolError)
 		{
 			var linkedPoolsReferencingResourcePools = GetLinkedPoolsReferencingResourcePools();
 			foreach (var resourcePool in resourcePoolsToValidate)
