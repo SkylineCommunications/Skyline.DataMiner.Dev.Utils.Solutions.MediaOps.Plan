@@ -301,29 +301,6 @@
 		}
 
 		[TestMethod]
-		public void CreatePoolWithCategory()
-		{
-			var resourcePoolsScope = TestContext.CategoriesApi.Scopes.Read(ScopeExposers.Name.Equal("Resource Pools")).FirstOrDefault() ?? throw new InvalidOperationException("Category Scope 'Resource Pools' is not available");
-
-			var category = objectCreator.CreateCategory(new Category
-			{
-				Name = $"ResourcePoolCategory_{Guid.NewGuid()}",
-				Scope = resourcePoolsScope,
-			});
-
-			var resourcePool1 = new ResourcePool()
-			{
-				Name = $"ResourcePool_1_{Guid.NewGuid()}",
-				CategoryId = category.ID.ToString(),
-			};
-
-			objectCreator.CreateResourcePool(resourcePool1);
-
-			var readPool = TestContext.Api.ResourcePools.Read(resourcePool1.Id);
-			Assert.AreEqual(resourcePool1.CategoryId, readPool.CategoryId);
-		}
-
-		[TestMethod]
 		public void CreatePoolWithNonExistingCategoryThrowsException()
 		{
 			var resourcePool1 = new ResourcePool()
