@@ -143,7 +143,157 @@
 				.ToList();
 
 			CreateOrUpdateDomResourcePools(toCreateDomInstances.Concat(toUpdateDomInstances).ToList());
+
+			CreateCategoryItems(toCreateDomInstances.Where(IsValid).ToArray());
+			UpdateCategoryItems(resourcePoolsToUpdate.Where(IsValid).ToArray());
+
 			return changeResults;
+		}
+
+		private void CreateCategoryItems(ICollection<DomResourcePool> resourcePoolsToCreate)
+		{
+			var poolsToRegister = resourcePoolsToCreate.Select(x => new
+			{
+				ResourcePool = x,
+				HasCategoryId = Guid.TryParse(x.ResourcePoolInfo.Category, out var categoryId),
+				CategoryId = categoryId,
+			})
+			.Where(x => x.HasCategoryId)
+			.ToList();
+
+			if (poolsToRegister.Count == 0)
+			{
+				return;
+			}
+
+			CreateCategoryItems(poolsToRegister.Select(x => Tuple.Create(x.ResourcePool.ID, x.CategoryId)).ToArray());
+		}
+
+		private void CreateCategoryItems(ICollection<Tuple<DomInstanceId, Guid>> poolInstanceIdsWithCategory)
+		{
+			if (poolInstanceIdsWithCategory == null || poolInstanceIdsWithCategory.Count == 0)
+			{
+				return;
+			}
+
+			var filter = new ORFilterElement<Category>(poolInstanceIdsWithCategory.Select(x => CategoryExposers.ID.Equal(x.Item2)).ToArray());
+			var categories = planApi.Categories.Categories.Read(filter).ToDictionary((Category cat) => cat.ID);
+
+			List<CategoryItem> categoryItemsToCreate = new List<CategoryItem>();
+			foreach (var poolToRegister in poolInstanceIdsWithCategory)
+			{
+				if (!categories.TryGetValue(poolToRegister.Item2, out Category category))
+				{
+					continue;
+				}
+
+				categoryItemsToCreate.Add(new CategoryItem
+				{
+					Category = category,
+					ModuleId = poolToRegister.Item1.ModuleId,
+					InstanceId = poolToRegister.Item1.Id.ToString(),
+				});
+			}
+
+			if (categoryItemsToCreate.Count > 0)
+			{
+				planApi.Categories.CategoryItems.CreateOrUpdate(categoryItemsToCreate);
+			}
+		}
+
+		private void UpdateCategoryItems(ICollection<ResourcePool> resourcePools)
+		{
+			var resourcePoolDetails = resourcePools.Select(x => new
+			{
+				ID = x.OriginalInstance.ID,
+				OldCategoryId = Guid.TryParse(x.OriginalInstance.ResourcePoolInfo.Category, out var oldCategoryId) ? oldCategoryId : (Guid?)null,
+				NewCategoryId = Guid.TryParse(x.CategoryId, out var newCategoryId) ? newCategoryId : (Guid?)null,
+			}).ToArray();
+
+			var categoryItemsToCreate = resourcePoolDetails.Where(x => x.NewCategoryId.HasValue && !x.OldCategoryId.HasValue);
+			var categoryItemsToDelete = resourcePoolDetails.Where(x => !x.NewCategoryId.HasValue && x.OldCategoryId.HasValue);
+			var categoryItemsToUpdate = resourcePoolDetails.Where(x => x.NewCategoryId.HasValue && x.OldCategoryId.HasValue && x.NewCategoryId != x.OldCategoryId);
+
+			CreateCategoryItems(categoryItemsToCreate.Select(x => Tuple.Create(x.ID, x.NewCategoryId.Value)).ToArray());
+			UpdateCategoryItems(categoryItemsToUpdate.Select(x => Tuple.Create(x.ID, x.NewCategoryId.Value)).ToArray());
+			DeleteCategoryItems(categoryItemsToDelete.Select(x => x.ID).ToArray());
+		}
+
+		private void UpdateCategoryItems(ICollection<Tuple<DomInstanceId, Guid>> poolInstanceIdsWithCategory)
+		{
+			if (poolInstanceIdsWithCategory == null || poolInstanceIdsWithCategory.Count == 0)
+			{
+				return;
+			}
+
+			var categoryItemFilter = new ORFilterElement<CategoryItem>(poolInstanceIdsWithCategory.Select(x => CategoryItemExposers.ModuleId.Equal(x.Item1.ModuleId).AND(CategoryItemExposers.InstanceId.Equal(x.Item1.Id.ToString()))).ToArray());
+			var existingCategoryItems = planApi.Categories.CategoryItems.Read(categoryItemFilter).ToDictionary(x => Tuple.Create(x.ModuleId, Guid.Parse(x.InstanceId)), x => x);
+
+			List<CategoryItem> categoryItemsToCreate = new List<CategoryItem>();
+			List<CategoryItem> categoryItemsToUpdate = new List<CategoryItem>();
+			List<CategoryItem> categoryItemsToDelete = new List<CategoryItem>();
+
+			var distinctCategoryIds = poolInstanceIdsWithCategory.Select(x => x.Item2).Distinct();
+			var categoriesToAssign = planApi.Categories.Categories.Read(new ORFilterElement<Category>(distinctCategoryIds.Select(id => CategoryExposers.ID.Equal(id)).ToArray())).ToDictionary(x => x.ID);
+
+			foreach (var poolInstanceIdWithCategory in poolInstanceIdsWithCategory)
+			{
+				if (existingCategoryItems.TryGetValue(Tuple.Create(poolInstanceIdWithCategory.Item1.ModuleId, poolInstanceIdWithCategory.Item1.Id), out var existingCategoryItem))
+				{
+					if (categoriesToAssign.TryGetValue(poolInstanceIdWithCategory.Item2, out var categoryToAssign))
+					{
+						existingCategoryItem.Category = categoryToAssign;
+						categoryItemsToUpdate.Add(existingCategoryItem);
+					}
+					else
+					{
+						// Something weird is going on, the category to assign doesn't exist.
+						// To be safe, delete the existing category item so that the resource pool won't be left in an inconsistent state with a reference to a non-existing category.
+
+						categoryItemsToDelete.Add(existingCategoryItem);
+					}
+				}
+				else
+				{
+					if (categoriesToAssign.TryGetValue(poolInstanceIdWithCategory.Item2, out var categoryToAssign))
+					{
+						categoryItemsToCreate.Add(new CategoryItem
+						{
+							Category = categoryToAssign,
+							ModuleId = poolInstanceIdWithCategory.Item1.ModuleId,
+							InstanceId = poolInstanceIdWithCategory.Item1.Id.ToString(),
+						});
+					}
+					else
+					{
+						// nothing to do
+					}
+				}
+			}
+
+			var itemsToCreateOrUpdate = categoryItemsToCreate.Concat(categoryItemsToUpdate);
+			if (itemsToCreateOrUpdate.Any())
+			{
+				planApi.Categories.CategoryItems.CreateOrUpdate(itemsToCreateOrUpdate);
+			}
+
+			if (categoryItemsToDelete.Any())
+			{
+				planApi.Categories.CategoryItems.Delete(categoryItemsToDelete);
+			}
+		}
+
+		private void DeleteCategoryItems(ICollection<DomInstanceId> poolInstanceIds)
+		{
+			if (poolInstanceIds == null || poolInstanceIds.Count == 0)
+			{
+				return;
+			}
+
+			var filter = new ORFilterElement<CategoryItem>(poolInstanceIds.Select(x => CategoryItemExposers.ModuleId.Equal(x.ModuleId).AND(CategoryItemExposers.InstanceId.Equal(x.Id.ToString()))).ToArray());
+			var categoryItemsToDelete = planApi.Categories.CategoryItems.Read(filter);
+
+			planApi.Categories.CategoryItems.Delete(categoryItemsToDelete);
 		}
 
 		private void CreateOrUpdateOrchestrationSettings(ICollection<ResourcePool> resourcePools)
@@ -353,6 +503,7 @@
 			RemovePoolFromParentPoolLinks(poolsToDelete);
 			HandleDeleteOptions(poolsToDelete, options);
 			UnassignResourcesFromPool(poolsToDelete);
+			DeleteCategoryItems(poolsToDelete.Select(x => x.OriginalInstance.ID).ToArray());
 
 			var deleteCorePoolsLockResult = planApi.LockManager.LockAndExecute(poolsToDelete, DeleteCoreResourcePools); // Returns pools that require updates after referenced pools have been removed.
 			ReportError(deleteCorePoolsLockResult);
