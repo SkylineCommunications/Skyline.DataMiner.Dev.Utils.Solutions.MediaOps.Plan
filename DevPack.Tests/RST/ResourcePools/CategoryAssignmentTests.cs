@@ -8,7 +8,6 @@
 	using RT_MediaOps.Plan.RegressionTests;
 
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
-	using Skyline.DataMiner.Net.SLSearch.Exceptions;
 	using Skyline.DataMiner.Solutions.Categories.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
@@ -53,6 +52,8 @@
 			{
 				Name = $"ResourcePool_{Guid.NewGuid()}",
 			});
+
+			AssertCategoryAssignment(resourcePool.Id, null);
 
 			resourcePool.CategoryId = category.ID.ToString();
 			TestContext.Api.ResourcePools.Update(resourcePool);
@@ -100,18 +101,22 @@
 		[TestMethod]
 		public void CreatePoolWithInvalidCategoryIdThrowsException()
 		{
+			var categoryId = Guid.NewGuid().ToString();
+
 			try
 			{
 				objectCreator.CreateResourcePool(new ResourcePool
 				{
 					Name = $"ResourcePool_{Guid.NewGuid()}",
-					CategoryId = Guid.NewGuid().ToString(),
+					CategoryId = categoryId,
 				});
 			}
 			catch (MediaOpsException exception)
 			{
 				var tracedata = exception.TraceData.ErrorData.OfType<ResourcePoolCategoryNotFoundError>().Single();
 				Assert.IsNotNull(tracedata);
+
+				Assert.AreEqual(categoryId, tracedata.CategoryId);
 
 				return;
 			}
@@ -137,6 +142,9 @@
 			{
 				var tracedata = exception.TraceData.ErrorData.OfType<ResourcePoolCategoryNotFoundError>().Single();
 				Assert.IsNotNull(tracedata);
+
+				Assert.AreEqual(resourcePool.Id, tracedata.Id);
+				Assert.AreEqual(resourcePool.CategoryId, tracedata.CategoryId);
 
 				return;
 			}

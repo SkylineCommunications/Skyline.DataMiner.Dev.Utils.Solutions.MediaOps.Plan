@@ -226,20 +226,19 @@
 				return;
 			}
 
-			var filter = new ORFilterElement<CategoryItem>(poolInstanceIdsWithCategory.Select(x => CategoryItemExposers.ModuleId.Equal(x.Item1.ModuleId).AND(CategoryItemExposers.InstanceId.Equal(x.Item1.Id.ToString()))).ToArray());
-			var existingCategoryItems = planApi.Categories.CategoryItems.Read(filter);
+			var categoryItemFilter = new ORFilterElement<CategoryItem>(poolInstanceIdsWithCategory.Select(x => CategoryItemExposers.ModuleId.Equal(x.Item1.ModuleId).AND(CategoryItemExposers.InstanceId.Equal(x.Item1.Id.ToString()))).ToArray());
+			var existingCategoryItems = planApi.Categories.CategoryItems.Read(categoryItemFilter).ToDictionary(x => Tuple.Create(x.ModuleId, Guid.Parse(x.InstanceId)), x => x);
 
 			List<CategoryItem> categoryItemsToCreate = new List<CategoryItem>();
 			List<CategoryItem> categoryItemsToUpdate = new List<CategoryItem>();
 			List<CategoryItem> categoryItemsToDelete = new List<CategoryItem>();
 
-			var categoriesToAssign = planApi.Categories.Categories.Read(new ORFilterElement<Category>(poolInstanceIdsWithCategory.Select(x => CategoryExposers.ID.Equal(x.Item2)).ToArray())).ToDictionary(x => x.ID);
+			var distinctCategoryIds = poolInstanceIdsWithCategory.Select(x => x.Item2).Distinct();
+			var categoriesToAssign = planApi.Categories.Categories.Read(new ORFilterElement<Category>(distinctCategoryIds.Select(id => CategoryExposers.ID.Equal(id)).ToArray())).ToDictionary(x => x.ID);
 
 			foreach (var poolInstanceIdWithCategory in poolInstanceIdsWithCategory)
 			{
-				var existingCategoryItem = existingCategoryItems.FirstOrDefault(x => x.ModuleId == poolInstanceIdWithCategory.Item1.ModuleId && x.InstanceId == poolInstanceIdWithCategory.Item1.Id.ToString());
-
-				if (existingCategoryItem != null)
+				if (existingCategoryItems.TryGetValue(Tuple.Create(poolInstanceIdWithCategory.Item1.ModuleId, poolInstanceIdWithCategory.Item1.Id), out var existingCategoryItem))
 				{
 					if (categoriesToAssign.TryGetValue(poolInstanceIdWithCategory.Item2, out var categoryToAssign))
 					{
@@ -272,8 +271,16 @@
 				}
 			}
 
-			planApi.Categories.CategoryItems.CreateOrUpdate(categoryItemsToCreate.Concat(categoryItemsToUpdate));
-			planApi.Categories.CategoryItems.Delete(categoryItemsToDelete);
+			var itemsToCreateOrUpdate = categoryItemsToCreate.Concat(categoryItemsToUpdate);
+			if (itemsToCreateOrUpdate.Any())
+			{
+				planApi.Categories.CategoryItems.CreateOrUpdate(itemsToCreateOrUpdate);
+			}
+
+			if (categoryItemsToDelete.Any())
+			{
+				planApi.Categories.CategoryItems.Delete(categoryItemsToDelete);
+			}
 		}
 
 		private void DeleteCategoryItems(ICollection<DomInstanceId> poolInstanceIds)
