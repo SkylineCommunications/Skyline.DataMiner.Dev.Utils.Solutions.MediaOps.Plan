@@ -313,6 +313,7 @@
 			}
 
 			ValidateStateForDeprecateAction(apiResourcePools);
+			ValidateResourceStudioUsage(apiResourcePools.Where(IsValid).ToArray());
 			ValidateWorkflowUsage(apiResourcePools.Where(IsValid).ToArray());
 
 			var poolsToDeprecate = apiResourcePools.Where(IsValid).ToList();
@@ -835,11 +836,22 @@
 
 						ReportError(pool.Id, error);
 					}
-					else if (!domPoolsById.TryGetValue(link.LinkedResourcePoolId, out _))
+					else if (!domPoolsById.TryGetValue(link.LinkedResourcePoolId, out var linkedPool))
 					{
 						var error = new ResourcePoolNotFoundPoolLinkError
 						{
 							ErrorMessage = $"Linked resource pool with ID '{link.LinkedResourcePoolId}' {(link.IsNew ? "does not exist" : "no longer exists")}.",
+							Id = pool.Id,
+							LinkedResourcePoolId = link.LinkedResourcePoolId,
+						};
+
+						ReportError(pool.Id, error);
+					}
+					else if (linkedPool.Status == SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.StatusesEnum.Deprecated)
+					{
+						var error = new ResourcePoolInvalidStatePoolLinkError
+						{
+							ErrorMessage = $"Linked resource pool with ID '{link.LinkedResourcePoolId}' is deprecated.",
 							Id = pool.Id,
 							LinkedResourcePoolId = link.LinkedResourcePoolId,
 						};
@@ -999,6 +1011,11 @@
 					ReportError(pool.Id, error);
 				}
 			}
+		}
+
+		private void ValidateResourceStudioUsage(ICollection<ResourcePool> apiResourcePools)
+		{
+			PassTraceData(SlcResourceStudioResourcePoolUsageValidator.Validate(planApi, apiResourcePools));
 		}
 
 		private void ValidateWorkflowUsage(ICollection<ResourcePool> apiResourcePools)
