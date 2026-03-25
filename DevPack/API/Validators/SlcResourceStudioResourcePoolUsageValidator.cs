@@ -44,7 +44,7 @@
 
 			ValdiateLinkedPoolUsage((resourcePool, ids) =>
 			{
-				return new ResourcePoolInuseByLinkedPoolsError
+				return new ResourcePoolInUseByLinkedPoolsError
 				{
 					Id = resourcePool.Id,
 					ErrorMessage = $"Resource pool '{resourcePool.Name}' is in use by {ids.Count} linked resource pool(s).",
@@ -95,7 +95,14 @@
 
 				if (poolIds.Any())
 				{
-					result.Add(pool.Id, poolIds);
+					if (result.TryGetValue(pool.Id, out var existingPoolIds))
+					{
+						existingPoolIds = existingPoolIds.Union(poolIds).ToHashSet();
+					}
+					else
+					{
+						result.Add(pool.Id, poolIds);
+					}
 				}
 			}
 

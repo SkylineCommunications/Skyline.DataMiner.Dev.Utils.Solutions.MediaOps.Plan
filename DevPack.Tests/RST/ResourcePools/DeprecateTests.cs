@@ -68,7 +68,7 @@
 			var resourcePoolError = expectedException.TraceData.ErrorData.OfType<ResourcePoolError>().SingleOrDefault();
 			Assert.IsNotNull(resourcePoolError);
 
-			var resourcePoolInuseByLinkedPoolsError = resourcePoolError as ResourcePoolInuseByLinkedPoolsError;
+			var resourcePoolInuseByLinkedPoolsError = resourcePoolError as ResourcePoolInUseByLinkedPoolsError;
 			Assert.IsNotNull(resourcePoolInuseByLinkedPoolsError);
 			Assert.AreEqual(pool1.Id, resourcePoolInuseByLinkedPoolsError.Id);
 			Assert.AreEqual(errorMessage, resourcePoolInuseByLinkedPoolsError.ErrorMessage);

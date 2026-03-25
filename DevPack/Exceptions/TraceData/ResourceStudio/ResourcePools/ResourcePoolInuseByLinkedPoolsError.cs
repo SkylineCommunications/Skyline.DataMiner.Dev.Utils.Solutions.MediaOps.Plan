@@ -6,7 +6,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a resource pool is referenced by one or multiple linked resource pools.
 	/// </summary>
-	public class ResourcePoolInuseByLinkedPoolsError : ResourcePoolInUseError
+	public class ResourcePoolInUseByLinkedPoolsError : ResourcePoolInUseError
 	{
 		/// <summary>
 		/// Ids of the linked resource pools referencing the resource pool.
