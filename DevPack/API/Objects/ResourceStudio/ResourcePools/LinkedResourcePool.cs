@@ -70,23 +70,6 @@
             }
         }
 
-        /// <summary>
-        /// Determines whether the specified object is equal to the current LinkedResourcePool instance.
-        /// </summary>
-        /// <param name="obj">The object to compare with the current LinkedResourcePool instance.</param>
-        /// <returns>true if the specified object is a LinkedResourcePool and has the same LinkedResourcePoolId and resource
-        /// selection type as the current instance; otherwise, false.</returns>
-        public override bool Equals(object obj)
-        {
-            if (obj is not LinkedResourcePool other)
-            {
-                return false;
-            }
-
-            return LinkedResourcePoolId == other.LinkedResourcePoolId &&
-                   SelectionType == other.SelectionType;
-        }
-
         internal StorageResourceStudio.ResourcePoolLinksSection GetSectionWithChanges()
         {
             if (updatedSection == null)
