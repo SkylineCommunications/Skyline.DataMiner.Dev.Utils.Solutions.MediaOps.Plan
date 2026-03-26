@@ -188,15 +188,9 @@
 				throw new ArgumentNullException(nameof(linkedResourcePool));
 			}
 
-			var toRemove = linkedResourcepools.SingleOrDefault(x => x.OriginalSection.ID == linkedResourcePool.OriginalSection.ID);
-			if (toRemove == null)
-			{
-				return this;
-			}
-
-			linkedResourcepools.Remove(linkedResourcePool);
-			return this;
-		}
+            linkedResourcepools.Remove(linkedResourcePool);
+            return this;
+        }
 
 		/// <summary>
 		/// Adds a new capability to the resource pool.
