@@ -7,6 +7,8 @@
 
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
+	using SLDataGateway.API.Collections.Linq;
+
 	[TestClass]
 	[TestCategory("IntegrationTest")]
 	[DoNotParallelize]
@@ -307,6 +309,57 @@
 			resourcePool1.RemoveLinkedResourcePool(link2);
 			Assert.AreEqual(2, resourcePool1.LinkedResourcePools.Count);
 			Assert.IsFalse(resourcePool1.LinkedResourcePools.Any(x => x.SelectionType == Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceSelectionType.Manual));
+		}
+
+		[TestMethod]
+		public void LinkDeprecatedResourcePoolThrowsException()
+		{
+			var prefix = Guid.NewGuid().ToString();
+
+			var resourcePool1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
+			{
+				Name = $"{prefix}_ResourcePool1",
+			};
+			var resourcePool2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool()
+			{
+				Name = $"{prefix}_ResourcePool2",
+			};
+
+			var createdPools = objectCreator.CreateResourcePools(new[] { resourcePool1, resourcePool2 });
+			resourcePool1 = createdPools.Single(x => x.Id.Equals(resourcePool1.Id));
+			resourcePool2 = createdPools.Single(x => x.Id.Equals(resourcePool2.Id));
+
+			var completedPools = TestContext.Api.ResourcePools.Complete(new[] { resourcePool1, resourcePool2 });
+			resourcePool1 = completedPools.Single(x => x.Id.Equals(resourcePool1.Id));
+			resourcePool2 = completedPools.Single(x => x.Id.Equals(resourcePool2.Id));
+
+			resourcePool2 = TestContext.Api.ResourcePools.Deprecate(resourcePool2);
+
+			resourcePool1.AddLinkedResourcePool(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.LinkedResourcePool(resourcePool2));
+
+			try
+			{
+				resourcePool1 = TestContext.Api.ResourcePools.Update(resourcePool1);
+			}
+			catch (MediaOpsException ex)
+			{
+				var errorMessage = $"Linked resource pool with ID '{resourcePool2.Id}' is deprecated.";
+				Assert.AreEqual(errorMessage, ex.Message);
+
+				Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
+				var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolError>().SingleOrDefault();
+				Assert.IsNotNull(resourcePoolConfigurationError);
+
+				var resourcePoolInvalidStatePoolLinkError = resourcePoolConfigurationError as ResourcePoolInvalidStatePoolLinkError;
+				Assert.IsNotNull(resourcePoolInvalidStatePoolLinkError);
+				Assert.AreEqual(resourcePool1.Id, resourcePoolInvalidStatePoolLinkError.Id);
+				Assert.AreEqual(resourcePool2.Id, resourcePoolInvalidStatePoolLinkError.LinkedResourcePoolId);
+				Assert.AreEqual(errorMessage, resourcePoolConfigurationError.ErrorMessage);
+
+				return;
+			}
+
+			Assert.Fail("Exception not thrown");
 		}
 	}
 }
