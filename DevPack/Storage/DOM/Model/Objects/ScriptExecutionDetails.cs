@@ -6,7 +6,8 @@
 
     using Newtonsoft.Json;
 
-    using Skyline.DataMiner.Utils.SecureCoding.SecureSerialization.Json.Newtonsoft;
+	using Skyline.DataMiner.Net.Helper;
+	using Skyline.DataMiner.Utils.SecureCoding.SecureSerialization.Json.Newtonsoft;
 
     [JsonObject(MemberSerialization.OptIn)]
     internal class ScriptExecutionDetails : IEquatable<ScriptExecutionDetails>
@@ -62,27 +63,27 @@
                 return false;
             }
 
-            if (!Parameters.SequenceEqual(other.Parameters))
+            if (!Parameters.ScrambledEquals(other.Parameters))
             {
                 return false;
             }
 
-            if (!Dummies.SequenceEqual(other.Dummies))
+            if (!Dummies.ScrambledEquals(other.Dummies))
             {
                 return false;
             }
 
-            if (!ProfileParameterValues.SequenceEqual(other.ProfileParameterValues))
+            if (!ProfileParameterValues.ScrambledEquals(other.ProfileParameterValues))
             {
                 return false;
             }
 
-            if (!ParameterReferences.SequenceEqual(other.ParameterReferences))
+            if (!ParameterReferences.ScrambledEquals(other.ParameterReferences))
             {
                 return false;
             }
 
-            if (!DummyReferences.SequenceEqual(other.DummyReferences))
+            if (!DummyReferences.ScrambledEquals(other.DummyReferences))
             {
                 return false;
             }
