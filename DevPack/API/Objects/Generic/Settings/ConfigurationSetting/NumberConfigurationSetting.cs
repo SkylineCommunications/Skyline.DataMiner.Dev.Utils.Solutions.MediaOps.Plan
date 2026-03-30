@@ -53,6 +53,7 @@
                 hash = (hash * 23) + Id.GetHashCode();
                 hash = (hash * 23) + Value.GetHashCode();
                 hash = (hash * 23) + (OriginalSection != null ? OriginalSection.ID.Id.GetHashCode() : 0);
+                hash = (hash * 23) + (Reference != null ? Reference.GetHashCode() : 0);
                 return hash;
             }
         }
@@ -65,7 +66,7 @@
                 return false;
             }
 
-            return Id == other.Id && Value == other.Value;
+            return Id == other.Id && Value == other.Value && Reference == other.Reference;
         }
     }
 }

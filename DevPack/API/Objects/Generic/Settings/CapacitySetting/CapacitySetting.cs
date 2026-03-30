@@ -5,7 +5,7 @@
     /// <summary>
     /// Represents an abstract base class for settings associated with a specific capacity.
     /// </summary>
-    public abstract class CapacitySetting : TrackableObject
+    public abstract class CapacitySetting : Setting
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="CapacitySetting"/> class using the specified capacity.
@@ -39,21 +39,14 @@
         }
 
         private protected CapacitySetting(CapacitySetting capacitySetting)
+            : base(capacitySetting)
         {
             Id = capacitySetting.Id;
-            IsNew = true;
         }
 
         /// <summary>
         /// Gets the unique identifier of the capacity.
         /// </summary>
         public Guid Id { get; internal set; }
-
-        /// <summary>
-        /// Gets a value indicating whether this setting is fully defined.
-        /// </summary>
-        public abstract bool HasValue { get; }
-
-        internal virtual Storage.DOM.DomSectionBase OriginalSection { get; }
     }
 }

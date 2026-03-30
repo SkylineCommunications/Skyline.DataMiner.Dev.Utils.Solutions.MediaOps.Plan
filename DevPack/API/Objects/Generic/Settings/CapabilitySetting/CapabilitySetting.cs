@@ -5,7 +5,7 @@
     /// <summary>
     /// Represents a single configurable value associated with a specific capability.
     /// </summary>
-    public class CapabilitySetting : TrackableObject
+    public class CapabilitySetting : Setting
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="CapabilitySetting"/> class using the specified capability.
@@ -39,6 +39,7 @@
         }
 
         internal CapabilitySetting(CapabilitySetting capabilitySetting)
+            : base(capabilitySetting)
         {
             Id = capabilitySetting.Id;
             Value = capabilitySetting.Value;
@@ -59,7 +60,7 @@
         /// <summary>
         /// Gets a value indicating whether this setting has a value defined.
         /// </summary>
-        public bool HasValue => Value != null;
+        public override bool HasValue => Value != null;
 
         internal virtual Storage.DOM.DomSectionBase OriginalSection { get; }
 
@@ -75,6 +76,7 @@
                 hash = (hash * 23) + Id.GetHashCode();
                 hash = (hash * 23) + (OriginalSection != null ? OriginalSection.ID.Id.GetHashCode() : 0);
                 hash = (hash * 23) + (Value != null ? Value.GetHashCode() : 0);
+                hash = (hash * 23) + (Reference != null ? Reference.GetHashCode() : 0);
 
                 return hash;
             }
@@ -95,7 +97,7 @@
                 return false;
             }
 
-            return Id == other.Id && Value == other.Value;
+            return Id == other.Id && Value == other.Value && Reference == other.Reference;
         }
     }
 }
