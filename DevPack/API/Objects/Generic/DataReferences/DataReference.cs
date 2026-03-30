@@ -33,9 +33,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		public DataReferenceType Type { get; }
 
 		/// <summary>
-		/// Gets the unique identifier of the referenced data, if applicable. This value may be null if the reference does not point to a specific data item or if the identifier is not available.
+		/// Gets or sets the unique identifier of the referenced data, if applicable. This value may be null if the reference does not point to a specific data item or if the identifier is not available.
 		/// </summary>
-		public string ReferenceId { get; }
+		public string ReferenceId { get; set; }
 
 		internal Storage.DOM.DataReference ToStorage()
 		{
