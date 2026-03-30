@@ -487,8 +487,8 @@
 
 			var scriptExecutionDetails = new ScriptExecutionDetails(storageScriptExecutionDetails.ScriptName);
 
-			scriptExecutionDetails.ParseStorageDummies(storageScriptExecutionDetails.Dummies);
-			scriptExecutionDetails.ParseStorageParameters(storageScriptExecutionDetails.Parameters);
+			scriptExecutionDetails.ParseStorageDummies(storageScriptExecutionDetails.Dummies, storageScriptExecutionDetails.DummyReferences);
+			scriptExecutionDetails.ParseStorageParameters(storageScriptExecutionDetails.Parameters, storageScriptExecutionDetails.ParameterReferences);
 			scriptExecutionDetails.ParseStorageProfileParameterValues(planApi, storageScriptExecutionDetails.ProfileParameterValues);
 
 			return scriptExecutionDetails;
@@ -503,12 +503,26 @@
 
 			foreach (var scriptElementSetting in scriptElementSettings)
 			{
-				storageScriptExecutionDetails.Dummies.Add(scriptElementSetting.Name, (scriptElementSetting.DmsElementId == default) ? scriptElementSetting.ElementName : scriptElementSetting.DmsElementId.Value);
+				if (scriptElementSetting.Reference != null)
+				{
+					storageScriptExecutionDetails.DummyReferences.Add(scriptElementSetting.Name, scriptElementSetting.Reference.ToStorage());
+				}
+				else
+				{
+					storageScriptExecutionDetails.Dummies.Add(scriptElementSetting.Name, (scriptElementSetting.DmsElementId == default) ? scriptElementSetting.ElementName : scriptElementSetting.DmsElementId.Value);
+				}
 			}
 
 			foreach (var scriptParameterSetting in scriptParameterSettings)
 			{
-				storageScriptExecutionDetails.Parameters.Add(scriptParameterSetting.Name, scriptParameterSetting.Value);
+				if (scriptParameterSetting.Reference != null)
+				{
+					storageScriptExecutionDetails.ParameterReferences.Add(scriptParameterSetting.Name, scriptParameterSetting.Reference.ToStorage());
+				}
+				else
+				{
+					storageScriptExecutionDetails.Parameters.Add(scriptParameterSetting.Name, scriptParameterSetting.Value);
+				}
 			}
 
 			foreach (var capabilitySetting in capabilitySettings)
@@ -549,7 +563,7 @@
 			return storageScriptExecutionDetails;
 		}
 
-		private void ParseStorageDummies(Dictionary<string, string> storageDummies)
+		private void ParseStorageDummies(Dictionary<string, string> storageDummies, Dictionary<string, Storage.DOM.DataReference> dummyReferences)
 		{
 			foreach (var kvp in storageDummies)
 			{
@@ -566,15 +580,35 @@
 
 				AddScriptElement(scriptElementSetting);
 			}
+
+			foreach (var kvp in dummyReferences)
+			{
+				var scriptElementSetting = new ScriptElementSetting(kvp.Key)
+				{
+					Reference = DataReference.FromStorage(kvp.Value),
+				};
+
+				AddScriptElement(scriptElementSetting);
+			}
 		}
 
-		private void ParseStorageParameters(Dictionary<string, string> storageParameters)
+		private void ParseStorageParameters(Dictionary<string, string> storageParameters, Dictionary<string, Storage.DOM.DataReference> parameterReferences)
 		{
 			foreach (var kvp in storageParameters)
 			{
 				var scriptParameterSetting = new ScriptParameterSetting(kvp.Key)
 				{
 					Value = kvp.Value,
+				};
+
+				AddScriptParameter(scriptParameterSetting);
+			}
+
+			foreach (var kvp in parameterReferences)
+			{
+				var scriptParameterSetting = new ScriptParameterSetting(kvp.Key)
+				{
+					Reference = DataReference.FromStorage(kvp.Value),
 				};
 
 				AddScriptParameter(scriptParameterSetting);

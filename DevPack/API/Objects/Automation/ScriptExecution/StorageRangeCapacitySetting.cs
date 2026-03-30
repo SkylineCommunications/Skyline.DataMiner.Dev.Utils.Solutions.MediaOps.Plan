@@ -23,6 +23,7 @@
                 ProfileParameterId = Id,
                 DoubleMinValue = MinValue.HasValue ? (double)MinValue : null,
                 DoubleMaxValue = MaxValue.HasValue ? (double)MaxValue : null,
+                Reference = Reference?.ToStorage(),
             };
         }
 
@@ -36,6 +37,7 @@
             Id = profileParameterValue.ProfileParameterId;
             MinValue = profileParameterValue.DoubleMinValue.HasValue ? (decimal)profileParameterValue.DoubleMinValue : null;
             MaxValue = profileParameterValue.DoubleMaxValue.HasValue ? (decimal)profileParameterValue.DoubleMaxValue : null;
+            Reference = DataReference.FromStorage(profileParameterValue.Reference);
         }
     }
 }

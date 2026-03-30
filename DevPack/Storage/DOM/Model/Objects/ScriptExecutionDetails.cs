@@ -23,6 +23,12 @@
         [JsonProperty("values")]
         public List<ProfileParameterValue> ProfileParameterValues { get; set; } = new List<ProfileParameterValue>();
 
+        [JsonProperty("parameterReferences")]
+        public Dictionary<string, DataReference> ParameterReferences { get; set; } = new Dictionary<string, DataReference>();
+
+        [JsonProperty("dummyReferences")]
+        public Dictionary<string, DataReference> DummyReferences { get; set; } = new Dictionary<string, DataReference>();
+
         public static bool TryDeserialize(string json, out ScriptExecutionDetails scriptExecutionDetails)
         {
             scriptExecutionDetails = null;
@@ -67,6 +73,16 @@
             }
 
             if (!ProfileParameterValues.SequenceEqual(other.ProfileParameterValues))
+            {
+                return false;
+            }
+
+            if (!ParameterReferences.SequenceEqual(other.ParameterReferences))
+            {
+                return false;
+            }
+
+            if (!DummyReferences.SequenceEqual(other.DummyReferences))
             {
                 return false;
             }

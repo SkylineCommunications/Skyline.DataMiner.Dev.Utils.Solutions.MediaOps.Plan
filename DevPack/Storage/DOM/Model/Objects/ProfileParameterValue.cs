@@ -4,7 +4,7 @@
 
     using Newtonsoft.Json;
 
-    [JsonObject(MemberSerialization.OptIn)]
+	[JsonObject(MemberSerialization.OptIn)]
     internal class ProfileParameterValue
     {
         [JsonProperty("id")]
@@ -18,5 +18,8 @@
 
         [JsonProperty("doubleMinValue", NullValueHandling = NullValueHandling.Ignore)]
         public double? DoubleMinValue { get; set; }
+
+        [JsonProperty("reference", NullValueHandling = NullValueHandling.Ignore)]
+        public DataReference Reference { get; set; }
     }
 }
