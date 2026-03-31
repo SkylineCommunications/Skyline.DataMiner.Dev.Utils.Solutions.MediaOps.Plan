@@ -1,11 +1,12 @@
 namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
+	using System.Collections.Generic;
 
 	/// <summary>
 	/// Represents a reference to a data source.
 	/// </summary>
-	public class DataReference
+	public class DataReference : IEquatable<DataReference>
 	{
 		/// <summary>
 		/// Initializes a new instance of the <see cref="DataReference"/> class with the specified type.
@@ -37,6 +38,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// </summary>
 		public string ReferenceId { get; set; }
 
+		/// <summary>
+		/// Converts this <see cref="DataReference"/> to its storage representation.
+		/// </summary>
+		/// <returns>A <see cref="Storage.DOM.DataReference"/> representing this instance.</returns>
 		internal Storage.DOM.DataReference ToStorage()
 		{
 			return new Storage.DOM.DataReference
@@ -46,6 +51,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			};
 		}
 
+		/// <summary>
+		/// Creates a <see cref="DataReference"/> from its storage representation.
+		/// </summary>
+		/// <param name="reference">The storage representation to convert from.</param>
+		/// <returns>A new <see cref="DataReference"/> instance, or <see langword="null"/> if the input is null or contains an unrecognized type.</returns>
 		internal static DataReference FromStorage(Storage.DOM.DataReference reference)
 		{
 			if (reference == null)
@@ -59,6 +69,65 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			return new DataReference(type, reference.ReferenceId);
+		}
+
+		/// <summary>
+		/// Determines whether the specified object is equal to the current <see cref="DataReference"/>.
+		/// </summary>
+		/// <param name="obj">The object to compare with the current instance.</param>
+		/// <returns><see langword="true"/> if the specified object is equal to the current instance; otherwise, <see langword="false"/>.</returns>
+		public override bool Equals(object obj)
+		{
+			return Equals(obj as DataReference);
+		}
+
+		/// <summary>
+		/// Determines whether the specified <see cref="DataReference"/> is equal to the current instance.
+		/// </summary>
+		/// <param name="other">The <see cref="DataReference"/> to compare with the current instance.</param>
+		/// <returns><see langword="true"/> if the specified instance is equal to the current instance; otherwise, <see langword="false"/>.</returns>
+		public bool Equals(DataReference other)
+		{
+			return other is not null &&
+				   Type == other.Type &&
+				   ReferenceId == other.ReferenceId;
+		}
+
+		/// <summary>
+		/// Returns a hash code for the current <see cref="DataReference"/>.
+		/// </summary>
+		/// <returns>A hash code for the current instance.</returns>
+		public override int GetHashCode()
+		{
+			unchecked
+			{
+				var hash = 17;
+				hash = hash * 23 + Type.GetHashCode();
+				hash = hash * 23 + EqualityComparer<string>.Default.GetHashCode(ReferenceId);
+				return hash; 
+			}
+		}
+
+		/// <summary>
+		/// Determines whether two <see cref="DataReference"/> instances are equal.
+		/// </summary>
+		/// <param name="left">The left operand.</param>
+		/// <param name="right">The right operand.</param>
+		/// <returns><see langword="true"/> if both instances are equal; otherwise, <see langword="false"/>.</returns>
+		public static bool operator ==(DataReference left, DataReference right)
+		{
+			return EqualityComparer<DataReference>.Default.Equals(left, right);
+		}
+
+		/// <summary>
+		/// Determines whether two <see cref="DataReference"/> instances are not equal.
+		/// </summary>
+		/// <param name="left">The left operand.</param>
+		/// <param name="right">The right operand.</param>
+		/// <returns><see langword="true"/> if the instances are not equal; otherwise, <see langword="false"/>.</returns>
+		public static bool operator !=(DataReference left, DataReference right)
+		{
+			return !(left == right);
 		}
 	}
 }
