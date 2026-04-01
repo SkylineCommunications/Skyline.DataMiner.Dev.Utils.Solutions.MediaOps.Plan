@@ -1,5 +1,7 @@
 namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
+    using System;
+
     /// <summary>
     /// Represents an abstract base class for all settings that can hold either a direct value or a data reference.
     /// </summary>
@@ -9,11 +11,30 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
         {
         }
 
-        private protected Setting(Setting setting)
+        private protected Setting(Guid id)
         {
-            Reference = setting.Reference;
+            if (id == Guid.Empty)
+            {
+                throw new ArgumentException(nameof(id));
+            }
+
+            Id = id;
+
             IsNew = true;
         }
+
+        private protected Setting(Setting setting)
+        {
+            Id = setting.Id;
+            Reference = setting.Reference;
+
+            IsNew = true;
+        }
+
+        /// <summary>
+        /// Gets the unique identifier of the setting.
+        /// </summary>
+        public Guid Id { get; internal set; }
 
         /// <summary>
         /// Gets or sets a reference to a data source that provides the value for this setting.

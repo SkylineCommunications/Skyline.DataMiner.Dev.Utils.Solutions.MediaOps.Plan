@@ -11,7 +11,6 @@
         /// Initializes a new instance of the <see cref="CapabilitySetting"/> class using the specified capability.
         /// </summary>
         /// <param name="capability">The capability to use for initializing the setting. Cannot be null.</param>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="capability"/> is <see langword="null"/>.</exception>
         public CapabilitySetting(Capability capability)
             : this(capability?.Id ?? throw new ArgumentNullException(nameof(capability)))
         {
@@ -23,15 +22,8 @@
         /// <param name="capabilityId">The unique identifier for the capability. Must not be an empty GUID.</param>
         /// <exception cref="ArgumentException">Thrown when <paramref name="capabilityId"/> is an empty GUID.</exception>
         public CapabilitySetting(Guid capabilityId)
+            : base(capabilityId)
         {
-            if (capabilityId == Guid.Empty)
-            {
-                throw new ArgumentException(nameof(capabilityId));
-            }
-
-            Id = capabilityId;
-
-            IsNew = true;
         }
 
         internal CapabilitySetting()
@@ -41,16 +33,10 @@
         internal CapabilitySetting(CapabilitySetting capabilitySetting)
             : base(capabilitySetting)
         {
-            Id = capabilitySetting.Id;
             Value = capabilitySetting.Value;
 
             IsNew = true;
         }
-
-        /// <summary>
-        /// Gets the unique identifier of the capability.
-        /// </summary>
-        public Guid Id { get; internal set; }
 
         /// <summary>
         /// Gets or sets the value associated with this capability.
@@ -61,8 +47,6 @@
         /// Gets a value indicating whether this setting has a value defined.
         /// </summary>
         public override bool HasValue => Value != null;
-
-        internal virtual Storage.DOM.DomSectionBase OriginalSection { get; }
 
         /// <summary>
         /// Generates the hash code for the object.

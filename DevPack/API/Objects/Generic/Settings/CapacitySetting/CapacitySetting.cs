@@ -23,15 +23,8 @@
         /// <param name="capacityId">The unique identifier for the capacity. Must not be an empty GUID.</param>
         /// <exception cref="ArgumentException">Thrown when <paramref name="capacityId"/> is an empty GUID.</exception>
         private protected CapacitySetting(Guid capacityId)
+            : base(capacityId)
         {
-            if (capacityId == Guid.Empty)
-            {
-                throw new ArgumentException(nameof(capacityId));
-            }
-
-            Id = capacityId;
-
-            IsNew = true;
         }
 
         private protected CapacitySetting()
@@ -41,12 +34,6 @@
         private protected CapacitySetting(CapacitySetting capacitySetting)
             : base(capacitySetting)
         {
-            Id = capacitySetting.Id;
         }
-
-        /// <summary>
-        /// Gets the unique identifier of the capacity.
-        /// </summary>
-        public Guid Id { get; internal set; }
     }
 }

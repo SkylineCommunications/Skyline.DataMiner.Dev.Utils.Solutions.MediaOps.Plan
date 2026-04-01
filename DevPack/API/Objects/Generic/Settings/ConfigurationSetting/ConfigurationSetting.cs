@@ -13,15 +13,8 @@
         }
 
         private protected ConfigurationSetting(Guid configurationId)
+            : base(configurationId)
         {
-            if (configurationId == Guid.Empty)
-            {
-                throw new ArgumentException(nameof(configurationId));
-            }
-
-            Id = configurationId;
-
-            IsNew = true;
         }
 
         private protected ConfigurationSetting()
@@ -31,12 +24,6 @@
         private protected ConfigurationSetting(ConfigurationSetting configurationSetting)
             : base(configurationSetting)
         {
-            Id = configurationSetting.Id;
         }
-
-        /// <summary>
-        /// Gets the unique identifier of the configuration.
-        /// </summary>
-        public Guid Id { get; internal set; }
     }
 }
