@@ -31,14 +31,7 @@
 
 		protected override void AfterLoad()
 		{
-			if (DataReference.TryDeserialize(ReferenceJson, out var details))
-			{
-				Reference = details;
-			}
-			else
-			{
-				Reference = null;
-			}
+			Reference = DataReference.TryDeserialize(ReferenceJson, out var details) ? details : null;
 		}
 	}
 }
