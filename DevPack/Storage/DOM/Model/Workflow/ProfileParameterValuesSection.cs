@@ -21,5 +21,24 @@
 				ProfileParameterID = value == Guid.Empty ? null : value.ToString();
 			}
 		}
+
+		public DataReference Reference { get; set; }
+
+		protected override void BeforeToSection()
+		{
+			ReferenceJson = Reference?.Serialize();
+		}
+
+		protected override void AfterLoad()
+		{
+			if (DataReference.TryDeserialize(ReferenceJson, out var details))
+			{
+				Reference = details;
+			}
+			else
+			{
+				Reference = null;
+			}
+		}
 	}
 }

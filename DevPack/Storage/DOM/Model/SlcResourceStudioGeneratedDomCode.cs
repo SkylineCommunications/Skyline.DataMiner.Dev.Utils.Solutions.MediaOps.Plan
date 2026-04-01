@@ -102,7 +102,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
                 public static FieldDescriptorID StringValue { get; } = new FieldDescriptorID(new Guid("664591e2-598f-48f2-ab4a-7bba49124015"));
                 public static FieldDescriptorID DoubleMaxValue { get; } = new FieldDescriptorID(new Guid("2ecda765-f024-45a9-ac8a-ef6cbf205421"));
                 public static FieldDescriptorID DobuleMinValue { get; } = new FieldDescriptorID(new Guid("ff7de433-0ab0-4f85-8fe7-21db9ac59966"));
-                public static FieldDescriptorID ReferenceID { get; } = new FieldDescriptorID(new Guid("9c61edc3-c0b8-4b09-a204-7e98c6ba8cbf"));
+                public static FieldDescriptorID Reference { get; } = new FieldDescriptorID(new Guid("9c61edc3-c0b8-4b09-a204-7e98c6ba8cbf"));
             }
 
             public static class ResourcePoolInfo
@@ -2540,11 +2540,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
         /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
         /// </list>
         /// </remarks>
-        public String ReferenceID
+        public String ReferenceJson
         {
             get
             {
-                var wrapper = section.GetValue<String>(SlcResource_StudioIds.Sections.ProfileParameterValues.ReferenceID);
+                var wrapper = section.GetValue<String>(SlcResource_StudioIds.Sections.ProfileParameterValues.Reference);
                 if (wrapper != null)
                 {
                     return (String)wrapper.Value;
@@ -2559,11 +2559,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
             {
                 if (value == null)
                 {
-                    section.RemoveFieldValueById(SlcResource_StudioIds.Sections.ProfileParameterValues.ReferenceID);
+                    section.RemoveFieldValueById(SlcResource_StudioIds.Sections.ProfileParameterValues.Reference);
                 }
                 else
                 {
-                    section.AddOrUpdateValue(SlcResource_StudioIds.Sections.ProfileParameterValues.ReferenceID, (String)value);
+                    section.AddOrUpdateValue(SlcResource_StudioIds.Sections.ProfileParameterValues.Reference, (String)value);
                 }
             }
         }

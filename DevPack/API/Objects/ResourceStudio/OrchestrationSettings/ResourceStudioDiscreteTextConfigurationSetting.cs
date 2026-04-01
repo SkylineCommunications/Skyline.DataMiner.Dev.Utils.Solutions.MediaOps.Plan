@@ -31,6 +31,7 @@
 
 			updatedSection.ProfileParameterId = Id;
 			updatedSection.StringValue = Value?.Value;
+			updatedSection.Reference = Reference?.ToStorage();
 
 			return updatedSection;
 		}
@@ -49,6 +50,8 @@
 					Value = discreteValue;
 				}
 			}
+
+			Reference = DataReference.FromStorage(section.Reference);
 		}
 	}
 }

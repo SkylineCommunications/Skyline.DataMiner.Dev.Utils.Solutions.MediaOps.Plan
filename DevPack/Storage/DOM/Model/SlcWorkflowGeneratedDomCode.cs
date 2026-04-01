@@ -357,7 +357,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
                 public static FieldDescriptorID StringValue { get; } = new FieldDescriptorID(new Guid("c7a8923e-2882-4c94-87c7-d44a05cc906a"));
                 public static FieldDescriptorID DoubleMaxValue { get; } = new FieldDescriptorID(new Guid("caa80a42-1956-4d97-be3a-b7828267d035"));
                 public static FieldDescriptorID DoubleMinValue { get; } = new FieldDescriptorID(new Guid("ce46816a-269c-4293-bc80-253dba8e6e34"));
-                public static FieldDescriptorID ReferenceID { get; } = new FieldDescriptorID(new Guid("60badcf5-0ec0-4b01-83f0-7c78cc7b0867"));
+                public static FieldDescriptorID Reference { get; } = new FieldDescriptorID(new Guid("60badcf5-0ec0-4b01-83f0-7c78cc7b0867"));
             }
 
             public static class WorkflowExecution
@@ -3934,11 +3934,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
         /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
         /// </list>
         /// </remarks>
-        public String ReferenceID
+        public String ReferenceJson
         {
             get
             {
-                var wrapper = section.GetValue<String>(SlcWorkflowIds.Sections.ProfileParameterValues.ReferenceID);
+                var wrapper = section.GetValue<String>(SlcWorkflowIds.Sections.ProfileParameterValues.Reference);
                 if (wrapper != null)
                 {
                     return (String)wrapper.Value;
@@ -3953,11 +3953,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
             {
                 if (value == null)
                 {
-                    section.RemoveFieldValueById(SlcWorkflowIds.Sections.ProfileParameterValues.ReferenceID);
+                    section.RemoveFieldValueById(SlcWorkflowIds.Sections.ProfileParameterValues.Reference);
                 }
                 else
                 {
-                    section.AddOrUpdateValue(SlcWorkflowIds.Sections.ProfileParameterValues.ReferenceID, (String)value);
+                    section.AddOrUpdateValue(SlcWorkflowIds.Sections.ProfileParameterValues.Reference, (String)value);
                 }
             }
         }
