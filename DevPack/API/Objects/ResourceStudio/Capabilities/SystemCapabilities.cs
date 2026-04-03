@@ -28,6 +28,8 @@
 			var resourceType = planApi.Capabilities.Read(CoreCapabilities.ResourceType.Id);
 			if (resourceType == null)
 			{
+				planApi.Logger.Information("Resource Type capability not found, creating a new instance.");
+
 				var newCapability = new Capability(CoreCapabilities.ResourceType.Id)
 				{
 					Name = CoreCapabilities.ResourceType.Name,

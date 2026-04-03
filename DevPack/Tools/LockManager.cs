@@ -72,6 +72,11 @@
 
 						remainingObjectsToHandle = remainingObjectsToHandle.Except(lockResult.LockedObjects).ToList();
 					}
+					catch (Exception e)
+					{
+						_logger.Error(this, $"An error occurred while executing action with locked objects: {e}");
+						throw;
+					}
 					finally
 					{
 						// Release granted locks
