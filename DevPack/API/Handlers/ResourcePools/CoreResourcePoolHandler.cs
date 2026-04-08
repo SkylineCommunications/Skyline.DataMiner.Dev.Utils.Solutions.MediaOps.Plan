@@ -138,27 +138,6 @@
 			}
 
 			Delete(ResourcePoolMapping.GetMappings(planApi, domResourcePools).ToList());
-
-			/* TODO: Define how pool and resource deletion should work > see loop for more details
-
-            TOL: Not sure if we need to check if there are resources in this pool instead of just removing the pool?
-            > Checks can be done in the DOM handler since we only care about the DOM resources.
-            > Resource pool DOM Handler can then first delete the resources by using the resource repository before deleting the pool.
-
-            FilterElement<CoreResource> filter(Guid resourcePoolId) => Skyline.DataMiner.Net.Messages.ResourceExposers.PoolGUIDs.Contains(resourcePoolId);
-
-			var coreResourcesByCorePoolId = planApi.CoreHelpers.ResourceManagerHelper.GetResources(coreResourcePoolsById.Keys, filter)
-				.SelectMany(resource => resource.PoolGUIDs.Select(poolGuid => new { PoolGuid = poolGuid, Resource = resource }))
-				.GroupBy(x => x.PoolGuid)
-				.ToDictionary(
-					g => g.Key,
-					g => (IReadOnlyCollection<CoreResource>)g.Select(x => x.Resource).ToList()
-				);
-
-            foreach (var coreResourcePool in coreResourcePoolsById.Values)
-            {
-
-            }*/
 		}
 
 		private void Delete(ICollection<ResourcePoolMapping> resourcePoolMappings)

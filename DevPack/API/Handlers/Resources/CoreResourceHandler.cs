@@ -1187,7 +1187,7 @@
 				{
 					coreResource.Capabilities.Add(resourceCapability);
 				}
-				else if (!capability.IsTimeDynamic && !capability.Value.Discreets.Equals(resourceCapability.Value.Discreets))
+				else if (!capability.IsTimeDynamic && !capability.Value.Discreets.ScrambledEquals(resourceCapability.Value.Discreets))
 				{
 					capability.Value.Discreets = resourceCapability.Value.Discreets;
 				}
