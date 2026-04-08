@@ -30,10 +30,10 @@
 			this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
 		}
 
-		internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Resource> apiResources, out DomInstanceBulkOperationResult<DomResource> result)
+		internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Resource> apiResources, out DomInstanceBulkOperationResult<DomResource> result, bool ignoreDeprecated = false)
 		{
 			var handler = new DomResourceHandler(planApi);
-			handler.CreateOrUpdate(apiResources);
+			handler.CreateOrUpdate(apiResources, ignoreDeprecated);
 
 			result = new DomInstanceBulkOperationResult<DomResource>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
@@ -130,7 +130,7 @@
 			}
 		}
 
-		private void CreateOrUpdate(ICollection<Resource> apiResources)
+		private void CreateOrUpdate(ICollection<Resource> apiResources, bool ignoreDeprecated)
 		{
 			if (apiResources == null)
 			{
@@ -142,15 +142,21 @@
 				return;
 			}
 
+			var toValidate = ignoreDeprecated
+				? apiResources.Where(x => x.State != ResourceState.Deprecated).ToList()
+				: apiResources.ToList();
 			var toCreate = apiResources.Where(x => x.IsNew).ToList();
+			var toUpdate = toValidate.Except(toCreate).ToList();
 
 			ValidateIdsNotInUse(toCreate);
-			ValidateCapacities(apiResources);
-			ValidateCapabilities(apiResources);
-			ValidateResourceProperties(apiResources);
-			ValidateNames(apiResources);
-			ValidateConcurrency(apiResources);
-			ValidateConnectionManagement(apiResources);
+			ValidateStateForUpdateAction(toUpdate);
+
+			ValidateCapacities(toValidate);
+			ValidateCapabilities(toValidate);
+			ValidateResourceProperties(toValidate);
+			ValidateNames(toValidate);
+			ValidateConcurrency(toValidate);
+			ValidateConnectionManagement(toValidate);
 
 			var validResources = apiResources.Where(IsValid).ToList();
 			var lockResult = planApi.LockManager.LockAndExecute(validResources, CreateOrUpdateCoreResources);
@@ -590,6 +596,29 @@
 				};
 
 				ReportError(foundInstance.ID.Id, error);
+			}
+		}
+
+		private void ValidateStateForUpdateAction(ICollection<Resource> apiResources)
+		{
+			if (apiResources == null)
+			{
+				throw new ArgumentNullException(nameof(apiResources));
+			}
+
+			if (apiResources.Count == 0)
+			{
+				return;
+			}
+
+			foreach (var resource in apiResources.Where(x => x.State == ResourceState.Deprecated))
+			{
+				var error = new ResourceInvalidStateError
+				{
+					ErrorMessage = "Not allowed to update a resource in Deprecated state.",
+					Id = resource.Id,
+				};
+				ReportError(resource.Id, error);
 			}
 		}
 

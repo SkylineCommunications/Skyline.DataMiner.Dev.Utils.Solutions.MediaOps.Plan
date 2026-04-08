@@ -1,7 +1,6 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
-	using System.Collections;
 	using System.Collections.Generic;
 	using System.Linq;
 
@@ -625,7 +624,7 @@
 		/// <param name="resourcePools">A collection of resource pools for which to retrieve resources.</param>
 		/// <returns>A read-only dictionary where each key is a resource pool and the value is an enumerable of resources in that pool.</returns>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="resourcePools"/> is <c>null</c>.</exception>
-		public IReadOnlyDictionary<ResourcePool, IEnumerable<Resource>> GetResourcesPerPool(IEnumerable<ResourcePool> resourcePools)
+		public IReadOnlyDictionary<ResourcePool, IReadOnlyCollection<Resource>> GetResourcesPerPool(IEnumerable<ResourcePool> resourcePools)
 		{
 			if (resourcePools == null)
 			{
@@ -639,7 +638,7 @@
 
 			var resourcesPerPool = resourcePools.ToDictionary(
 				pool => pool,
-				pool => resources.Where(x => x.ResourcePoolIds.Contains(pool.Id)));
+				pool => (IReadOnlyCollection<Resource>)resources.Where(x => x.ResourcePoolIds.Contains(pool.Id)).ToArray());
 
 			return resourcesPerPool;
 		}
@@ -651,7 +650,7 @@
 		/// <param name="state">The state to filter resources by.</param>
 		/// <returns>A read-only dictionary where each key is a resource pool and the value is an enumerable of resources in that pool with the specified state.</returns>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="resourcePools"/> is <c>null</c>.</exception>
-		public IReadOnlyDictionary<ResourcePool, IEnumerable<Resource>> GetResourcesPerPool(IEnumerable<ResourcePool> resourcePools, ResourceState state)
+		public IReadOnlyDictionary<ResourcePool, IReadOnlyCollection<Resource>> GetResourcesPerPool(IEnumerable<ResourcePool> resourcePools, ResourceState state)
 		{
 			if (resourcePools == null)
 			{
@@ -666,7 +665,7 @@
 
 			var resourcesPerPool = resourcePools.ToDictionary(
 				pool => pool,
-				pool => resources.Where(x => x.ResourcePoolIds.Contains(pool.Id)));
+				pool => (IReadOnlyCollection<Resource>)resources.Where(x => x.ResourcePoolIds.Contains(pool.Id)).ToArray());
 
 			return resourcesPerPool;
 		}
