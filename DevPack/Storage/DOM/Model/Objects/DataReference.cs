@@ -1,9 +1,11 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM
 {
 	using System;
+	using System.Collections.Generic;
 
 	using Newtonsoft.Json;
 
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Tools;
 	using Skyline.DataMiner.Utils.SecureCoding.SecureSerialization.Json.Newtonsoft;
 
 	[JsonObject(MemberSerialization.OptIn)]
@@ -12,8 +14,8 @@
 		[JsonProperty("referenceType")]
 		public string ReferenceType { get; set; }
 
-		[JsonProperty("referenceId")]
-		public string ReferenceId { get; set; }
+		[JsonProperty("referenceData")]
+		public Dictionary<string, string> ReferenceData { get; set; }
 
 		public string Serialize()
 		{
@@ -46,8 +48,17 @@
 				return false;
 			}
 
-			return ReferenceType == other.ReferenceType &&
-				   ReferenceId == other.ReferenceId;
+			if (ReferenceType != other.ReferenceType)
+			{
+				return false;
+			}
+
+			if (!DictionaryComparer<string, string>.Default.Equals(ReferenceData, other.ReferenceData))
+			{
+				return false;
+			}
+
+			return true;
 		}
 
 		public override bool Equals(object obj) => Equals(obj as DataReference);
@@ -58,7 +69,8 @@
 			{
 				int hash = 17;
 				hash = (hash * 23) + (ReferenceType != null ? ReferenceType.GetHashCode() : 0);
-				hash = (hash * 23) + (ReferenceId != null ? ReferenceId.GetHashCode() : 0);
+				hash = (hash * 23) + (DictionaryComparer<string, string>.Default.GetHashCode(ReferenceData));
+
 				return hash;
 			}
 		}

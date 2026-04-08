@@ -1,6 +1,7 @@
 namespace RT_MediaOps.Plan.Automation.ScriptExecution
 {
 	using System;
+	using System.Collections.Generic;
 
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
@@ -11,6 +12,8 @@ namespace RT_MediaOps.Plan.Automation.ScriptExecution
 	[TestClass]
 	public sealed class DataReferenceInSettingsTests
 	{
+		private static readonly Guid TestResourcePropertyId = new Guid("12345678-1234-1234-1234-123456789012");
+
 		private static ProfileParameterValue CreateProfileParameterValue(StorageDataReference reference)
 		{
 			return new ProfileParameterValue
@@ -25,7 +28,7 @@ namespace RT_MediaOps.Plan.Automation.ScriptExecution
 			return new StorageDataReference
 			{
 				ReferenceType = nameof(DataReferenceType.ResourceProperty),
-				ReferenceId = "setting-ref-id",
+				ReferenceData = new Dictionary<string, string> { ["ResourcePropertyId"] = TestResourcePropertyId.ToString() },
 			};
 		}
 
@@ -38,7 +41,9 @@ namespace RT_MediaOps.Plan.Automation.ScriptExecution
 
 			Assert.IsNotNull(setting.Reference);
 			Assert.AreEqual(DataReferenceType.ResourceProperty, setting.Reference.Type);
-			Assert.AreEqual("setting-ref-id", setting.Reference.ReferenceId);
+			var resourcePropertyRef = setting.Reference as ResourcePropertyReference;
+			Assert.IsNotNull(resourcePropertyRef);
+			Assert.AreEqual(TestResourcePropertyId, resourcePropertyRef.ResourcePropertyId);
 		}
 
 		[TestMethod]
@@ -60,7 +65,9 @@ namespace RT_MediaOps.Plan.Automation.ScriptExecution
 
 			Assert.IsNotNull(setting.Reference);
 			Assert.AreEqual(DataReferenceType.ResourceProperty, setting.Reference.Type);
-			Assert.AreEqual("setting-ref-id", setting.Reference.ReferenceId);
+			var resourcePropertyRef = setting.Reference as ResourcePropertyReference;
+			Assert.IsNotNull(resourcePropertyRef);
+			Assert.AreEqual(TestResourcePropertyId, resourcePropertyRef.ResourcePropertyId);
 		}
 
 		[TestMethod]
@@ -72,7 +79,9 @@ namespace RT_MediaOps.Plan.Automation.ScriptExecution
 
 			Assert.IsNotNull(setting.Reference);
 			Assert.AreEqual(DataReferenceType.ResourceProperty, setting.Reference.Type);
-			Assert.AreEqual("setting-ref-id", setting.Reference.ReferenceId);
+			var resourcePropertyRef = setting.Reference as ResourcePropertyReference;
+			Assert.IsNotNull(resourcePropertyRef);
+			Assert.AreEqual(TestResourcePropertyId, resourcePropertyRef.ResourcePropertyId);
 		}
 
 		[TestMethod]
@@ -84,7 +93,9 @@ namespace RT_MediaOps.Plan.Automation.ScriptExecution
 
 			Assert.IsNotNull(setting.Reference);
 			Assert.AreEqual(DataReferenceType.ResourceProperty, setting.Reference.Type);
-			Assert.AreEqual("setting-ref-id", setting.Reference.ReferenceId);
+			var resourcePropertyRef = setting.Reference as ResourcePropertyReference;
+			Assert.IsNotNull(resourcePropertyRef);
+			Assert.AreEqual(TestResourcePropertyId, resourcePropertyRef.ResourcePropertyId);
 		}
 
 		[TestMethod]
@@ -96,7 +107,9 @@ namespace RT_MediaOps.Plan.Automation.ScriptExecution
 
 			Assert.IsNotNull(setting.Reference);
 			Assert.AreEqual(DataReferenceType.ResourceProperty, setting.Reference.Type);
-			Assert.AreEqual("setting-ref-id", setting.Reference.ReferenceId);
+			var resourcePropertyRef = setting.Reference as ResourcePropertyReference;
+			Assert.IsNotNull(resourcePropertyRef);
+			Assert.AreEqual(TestResourcePropertyId, resourcePropertyRef.ResourcePropertyId);
 		}
 
 		[TestMethod]
@@ -110,7 +123,9 @@ namespace RT_MediaOps.Plan.Automation.ScriptExecution
 
 			Assert.IsNotNull(setting.Reference);
 			Assert.AreEqual(DataReferenceType.ResourceProperty, setting.Reference.Type);
-			Assert.AreEqual("setting-ref-id", setting.Reference.ReferenceId);
+			var resourcePropertyRef = setting.Reference as ResourcePropertyReference;
+			Assert.IsNotNull(resourcePropertyRef);
+			Assert.AreEqual(TestResourcePropertyId, resourcePropertyRef.ResourcePropertyId);
 		}
 
 		[TestMethod]
@@ -124,7 +139,9 @@ namespace RT_MediaOps.Plan.Automation.ScriptExecution
 
 			Assert.IsNotNull(setting.Reference);
 			Assert.AreEqual(DataReferenceType.ResourceProperty, setting.Reference.Type);
-			Assert.AreEqual("setting-ref-id", setting.Reference.ReferenceId);
+			var resourcePropertyRef = setting.Reference as ResourcePropertyReference;
+			Assert.IsNotNull(resourcePropertyRef);
+			Assert.AreEqual(TestResourcePropertyId, resourcePropertyRef.ResourcePropertyId);
 		}
 
 		[TestMethod]
@@ -137,7 +154,8 @@ namespace RT_MediaOps.Plan.Automation.ScriptExecution
 
 			Assert.IsNotNull(result.Reference);
 			Assert.AreEqual(nameof(DataReferenceType.ResourceProperty), result.Reference.ReferenceType);
-			Assert.AreEqual("setting-ref-id", result.Reference.ReferenceId);
+			Assert.IsNotNull(result.Reference.ReferenceData);
+			Assert.AreEqual(TestResourcePropertyId.ToString(), result.Reference.ReferenceData["ResourcePropertyId"]);
 		}
 
 		[TestMethod]
