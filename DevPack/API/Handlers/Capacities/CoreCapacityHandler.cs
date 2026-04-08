@@ -49,19 +49,7 @@
 				return;
 			}
 
-			var toCreate = new List<Capacity>();
-			var toUpdate = new List<Capacity>();
-			foreach (var capacity in apiCapacities)
-			{
-				if (capacity.IsNew)
-				{
-					toCreate.Add(capacity);
-				}
-				else
-				{
-					toUpdate.Add(capacity);
-				}
-			}
+			var toCreate = apiCapacities.Where(x => x.IsNew).ToList();
 
 			ValidateIdsNotInUse(toCreate);
 			ValidateNames(apiCapacities);

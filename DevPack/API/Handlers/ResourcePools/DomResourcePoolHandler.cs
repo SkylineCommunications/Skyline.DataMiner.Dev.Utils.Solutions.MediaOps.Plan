@@ -669,7 +669,7 @@
 
 			var resourcesToUpdate = resourcesPerPoolCollection.Values.SelectMany(x => x).Distinct(new DefaultApiObjectComparer()).Cast<Resource>().ToList();
 
-			DomResourceHandler.TryCreateOrUpdate(planApi, resourcesToUpdate, out _, ignoreDeprecated: true);
+			DomResourceHandler.TryCreateOrUpdate(planApi, resourcesToUpdate, out _, allowDeprecatedUpdates: true);
 		}
 
 		private void UpdateCoreResources(ICollection<ResourcePool> apiResourcePools)

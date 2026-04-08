@@ -30,10 +30,10 @@
 			this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
 		}
 
-		internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Resource> apiResources, out DomInstanceBulkOperationResult<DomResource> result, bool ignoreDeprecated = false)
+		internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Resource> apiResources, out DomInstanceBulkOperationResult<DomResource> result, bool allowDeprecatedUpdates = false)
 		{
 			var handler = new DomResourceHandler(planApi);
-			handler.CreateOrUpdate(apiResources, ignoreDeprecated);
+			handler.CreateOrUpdate(apiResources, allowDeprecatedUpdates);
 
 			result = new DomInstanceBulkOperationResult<DomResource>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
@@ -130,7 +130,7 @@
 			}
 		}
 
-		private void CreateOrUpdate(ICollection<Resource> apiResources, bool ignoreDeprecated)
+		private void CreateOrUpdate(ICollection<Resource> apiResources, bool allowDeprecatedUpdates)
 		{
 			if (apiResources == null)
 			{
@@ -142,7 +142,7 @@
 				return;
 			}
 
-			var toValidate = ignoreDeprecated
+			var toValidate = allowDeprecatedUpdates
 				? apiResources.Where(x => x.State != ResourceState.Deprecated).ToList()
 				: apiResources.ToList();
 			var toCreate = apiResources.Where(x => x.IsNew).ToList();
