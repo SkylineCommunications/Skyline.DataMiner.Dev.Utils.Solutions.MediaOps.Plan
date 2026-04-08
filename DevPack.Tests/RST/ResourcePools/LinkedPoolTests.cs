@@ -7,8 +7,6 @@
 
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
-	using SLDataGateway.API.Collections.Linq;
-
 	[TestClass]
 	[TestCategory("IntegrationTest")]
 	[DoNotParallelize]
