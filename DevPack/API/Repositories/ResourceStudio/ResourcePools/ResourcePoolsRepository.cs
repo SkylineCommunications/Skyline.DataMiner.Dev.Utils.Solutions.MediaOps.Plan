@@ -542,7 +542,7 @@
 			var parentPoolsPerPool = resourcePools.ToDictionary(
 				pool => pool,
 				pool =>
-					(IReadOnlyCollection<ResourcePool>)domPools
+					domPools
 						.Where(domPool => domPool.ResourcePoolLinks
 						.Any(link => link.LinkedResourcePool.Value == pool.Id))
 						.Select(domPool =>
