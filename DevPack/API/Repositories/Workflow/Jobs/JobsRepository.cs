@@ -32,7 +32,7 @@
                 {
                     foreach (var domJob in PlanApi.DomHelpers.SlcWorkflowHelper.GetJobs(domFilter))
                     {
-                        yield return new Job(domJob);
+                        yield return new Job(PlanApi, domJob);
                     }
                 }
 

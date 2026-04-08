@@ -1,6 +1,7 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
+	using System.Linq;
 
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
 
@@ -12,6 +13,7 @@
 	public class Job : ApiObject
 	{
 		private StorageWorkflow.JobsInstance originalInstance;
+		private StorageWorkflow.JobsInstance updatedInstance;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Job"/> class.
@@ -30,9 +32,9 @@
 			HasUserDefinedId = true;
 		}
 
-		internal Job(StorageWorkflow.JobsInstance instance) : base(instance.ID.Id)
+		internal Job(MediaOpsPlanApi planApi, StorageWorkflow.JobsInstance instance) : base(instance.ID.Id)
 		{
-			ParseInstance(instance);
+			ParseInstance(planApi, instance);
 			InitTracking();
 		}
 
@@ -61,6 +63,11 @@
 		/// </summary>
 		public Guid WorkflowId { get; set; }
 
+		/// <summary>
+		/// Gets the orchestration settings assigned to this job.
+		/// </summary>
+		public OrchestrationSettings OrchestrationSettings { get; set; }
+
 		internal StorageWorkflow.JobsInstance OriginalInstance => originalInstance;
 
 		/// <inheritdoc/>
@@ -71,6 +78,7 @@
 				int hash = 17;
 				hash = (hash * 23) + Id.GetHashCode();
 				hash = (hash * 23) + (Name != null ? Name.GetHashCode() : 0);
+				hash = (hash * 23) + (OrchestrationSettings != null ? OrchestrationSettings.GetHashCode() : 0);
 
 				return hash;
 			}
@@ -90,10 +98,25 @@
 			}
 
 			return Id == other.Id &&
-				   Name == other.Name;
+				   Name == other.Name &&
+				   OrchestrationSettings == other.OrchestrationSettings;
 		}
 
-		private void ParseInstance(StorageWorkflow.JobsInstance instance)
+		internal StorageWorkflow.JobsInstance GetInstanceWithChanges()
+		{
+			if (updatedInstance == null)
+			{
+				updatedInstance = IsNew ? new StorageWorkflow.JobsInstance(Id) : originalInstance.Clone();
+			}
+
+			updatedInstance.JobInfo.JobName = Name;
+
+			updatedInstance.JobExecution.JobConfiguration = OrchestrationSettings.Id;
+
+			return updatedInstance;
+		}
+
+		private void ParseInstance(MediaOpsPlanApi planApi, StorageWorkflow.JobsInstance instance)
 		{
 			this.originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
 
@@ -105,6 +128,23 @@
 			Priority = instance.JobInfo.JobPriority.HasValue
 				? EnumExtensions.MapEnum<StorageWorkflow.SlcWorkflowIds.Enums.Jobpriority, JobPriority>(instance.JobInfo.JobPriority.Value)
 				: JobPriority.Normal;
+
+			if (instance.JobExecution.JobConfiguration == null || instance.JobExecution.JobConfiguration == Guid.Empty)
+			{
+
+			}
+			else
+			{
+				var domConfiguration = planApi.DomHelpers.SlcWorkflowHelper.GetConfigurations([instance.JobExecution.JobConfiguration.Value]).FirstOrDefault();
+				if (domConfiguration != null)
+				{
+					OrchestrationSettings = new WorkflowOrchestrationSettings(planApi, domConfiguration);
+				}
+				else
+				{
+					OrchestrationSettings = new WorkflowOrchestrationSettings();
+				}
+			}
 		}
 	}
 }

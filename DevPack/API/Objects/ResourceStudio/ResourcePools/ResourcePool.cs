@@ -150,6 +150,7 @@
 				   Url == other.Url &&
 				   CategoryId == other.CategoryId &&
 				   State == other.State &&
+				   OrchestrationSettings == other.OrchestrationSettings &&
 				   LinkedResourcePools.SequenceEqual(other.LinkedResourcePools) &&
 				   Capabilities.SequenceEqual(other.Capabilities);
 		}

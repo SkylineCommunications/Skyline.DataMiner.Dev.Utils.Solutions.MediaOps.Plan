@@ -418,10 +418,10 @@
 				yield break;
 			}
 
-			var storedDomReesourcePropertiesById = planApi.DomHelpers.SlcResourceStudioHelper.GetResourceProperties(propertiesRequiringValidation.Select(x => x.Id)).ToDictionary(x => x.ID.Id);
+			var storedDomResourcePropertiesById = planApi.DomHelpers.SlcResourceStudioHelper.GetResourceProperties(propertiesRequiringValidation.Select(x => x.Id)).ToDictionary(x => x.ID.Id);
 			foreach (var property in propertiesRequiringValidation)
 			{
-				if (!storedDomReesourcePropertiesById.TryGetValue(property.Id, out var stored))
+				if (!storedDomResourcePropertiesById.TryGetValue(property.Id, out var stored))
 				{
 					var error = new ResourcePropertyNotFoundError
 					{
