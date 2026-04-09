@@ -189,9 +189,9 @@
 				throw new ArgumentNullException(nameof(linkedResourcePool));
 			}
 
-            linkedResourcepools.Remove(linkedResourcePool);
-            return this;
-        }
+			linkedResourcepools.Remove(linkedResourcePool);
+			return this;
+		}
 
 		/// <summary>
 		/// Adds a new capability to the resource pool.
