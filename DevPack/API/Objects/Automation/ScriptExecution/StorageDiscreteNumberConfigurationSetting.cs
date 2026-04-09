@@ -23,6 +23,7 @@
 			{
 				ProfileParameterId = Id,
 				DoubleMaxValue = (Value != null) ? (double)Value.Value : null,
+				Reference = Reference?.ToStorage(),
 			};
 		}
 
@@ -43,6 +44,8 @@
 					Value = discreteValue;
 				}
 			}
+
+			Reference = DataReference.FromStorage(profileParameterValue.Reference);
 		}
 	}
 }

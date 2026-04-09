@@ -6,6 +6,7 @@
 
 	using Newtonsoft.Json;
 
+	using Skyline.DataMiner.Net.Helper;
 	using Skyline.DataMiner.Utils.SecureCoding.SecureSerialization.Json.Newtonsoft;
 
 	[JsonObject(MemberSerialization.OptIn)]
@@ -22,6 +23,12 @@
 
 		[JsonProperty("values")]
 		public List<ProfileParameterValue> ProfileParameterValues { get; set; } = new List<ProfileParameterValue>();
+
+		[JsonProperty("parameterReferences")]
+		public Dictionary<string, DataReference> ParameterReferences { get; set; } = new Dictionary<string, DataReference>();
+
+		[JsonProperty("dummyReferences")]
+		public Dictionary<string, DataReference> DummyReferences { get; set; } = new Dictionary<string, DataReference>();
 
 		public static bool TryDeserialize(string json, out ScriptExecutionDetails scriptExecutionDetails)
 		{
@@ -56,17 +63,27 @@
 				return false;
 			}
 
-			if (!Parameters.SequenceEqual(other.Parameters))
+			if (!Parameters.ScrambledEquals(other.Parameters))
 			{
 				return false;
 			}
 
-			if (!Dummies.SequenceEqual(other.Dummies))
+			if (!Dummies.ScrambledEquals(other.Dummies))
 			{
 				return false;
 			}
 
-			if (!ProfileParameterValues.SequenceEqual(other.ProfileParameterValues))
+			if (!ProfileParameterValues.ScrambledEquals(other.ProfileParameterValues))
+			{
+				return false;
+			}
+
+			if (!ParameterReferences.ScrambledEquals(other.ParameterReferences))
+			{
+				return false;
+			}
+
+			if (!DummyReferences.ScrambledEquals(other.DummyReferences))
 			{
 				return false;
 			}

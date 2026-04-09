@@ -22,6 +22,7 @@
 			{
 				ProfileParameterId = Id,
 				StringValue = Value,
+				Reference = Reference?.ToStorage(),
 			};
 		}
 
@@ -34,6 +35,7 @@
 
 			Id = profileParameterValue.ProfileParameterId;
 			Value = profileParameterValue.StringValue;
+			Reference = DataReference.FromStorage(profileParameterValue.Reference);
 		}
 	}
 }

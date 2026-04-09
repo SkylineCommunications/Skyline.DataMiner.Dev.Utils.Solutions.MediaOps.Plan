@@ -1,4 +1,4 @@
-﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
 
@@ -30,6 +30,7 @@
 
 			updatedSection.ProfileParameterId = Id;
 			updatedSection.StringValue = Value;
+			updatedSection.Reference = Reference?.ToStorage();
 
 			return updatedSection;
 		}
@@ -40,6 +41,7 @@
 
 			Id = section.ProfileParameterId;
 			Value = section.StringValue;
+			Reference = DataReference.FromStorage(section.Reference);
 		}
 	}
 }

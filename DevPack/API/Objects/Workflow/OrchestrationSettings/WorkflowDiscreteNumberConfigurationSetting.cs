@@ -1,4 +1,4 @@
-﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
 	using System.Linq;
@@ -31,6 +31,7 @@
 
 			updatedSection.ProfileParameterId = Id;
 			updatedSection.DoubleMaxValue = (Value != null) ? (double)Value.Value : null;
+			updatedSection.Reference = Reference?.ToStorage();
 
 			return updatedSection;
 		}
@@ -49,6 +50,8 @@
 					Value = discreteValue;
 				}
 			}
+
+			Reference = DataReference.FromStorage(section.Reference);
 		}
 	}
 }

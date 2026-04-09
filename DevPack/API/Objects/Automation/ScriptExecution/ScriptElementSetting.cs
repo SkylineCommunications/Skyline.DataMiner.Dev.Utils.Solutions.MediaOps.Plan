@@ -38,5 +38,15 @@
 		/// Gets or sets the name of the element.
 		/// </summary>
 		public string ElementName { get; set; }
+
+		/// <summary>
+		/// Gets or sets a reference to a data source that provides the element ID.
+		/// </summary>
+		public DataReference Reference { get; set; }
+
+		/// <summary>
+		/// Gets a value indicating whether this setting has a reference defined.
+		/// </summary>
+		public bool HasReference => Reference != null;
 	}
 }

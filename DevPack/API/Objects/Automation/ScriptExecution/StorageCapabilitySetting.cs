@@ -24,6 +24,7 @@
 			{
 				ProfileParameterId = Id,
 				StringValue = Value,
+				Reference = Reference?.ToStorage(),
 			};
 		}
 
@@ -40,6 +41,8 @@
 			{
 				Value = Value.Split([";"], StringSplitOptions.RemoveEmptyEntries).First();
 			}
+
+			Reference = DataReference.FromStorage(profileParameterValue.Reference);
 		}
 	}
 }

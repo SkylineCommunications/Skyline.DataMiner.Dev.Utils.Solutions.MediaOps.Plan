@@ -61,6 +61,7 @@
 				hash = (hash * 23) + MinValue.GetHashCode();
 				hash = (hash * 23) + MaxValue.GetHashCode();
 				hash = (hash * 23) + (OriginalSection != null ? OriginalSection.ID.Id.GetHashCode() : 0);
+				hash = (hash * 23) + (Reference != null ? Reference.GetHashCode() : 0);
 
 				return hash;
 			}
@@ -76,7 +77,8 @@
 
 			return Id == other.Id &&
 				   MinValue == other.MinValue &&
-				   MaxValue == other.MaxValue;
+				   MaxValue == other.MaxValue &&
+				   Reference == other.Reference;
 		}
 	}
 }
