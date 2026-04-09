@@ -95,22 +95,51 @@
 
 		public void Delete(Guid apiObjectId)
 		{
-			throw new NotImplementedException();
+			var toDelete = Read(apiObjectId);
+			if (toDelete == null)
+			{
+				return;
+			}
+
+			if (!DomJobHandler.TryDelete(PlanApi, [toDelete], out var result))
+			{
+				result.ThrowSingleException(toDelete.Id);
+			}
 		}
 
 		public void Delete(IEnumerable<Guid> apiObjectIds)
 		{
-			throw new NotImplementedException();
+			if (apiObjectIds == null)
+			{
+				throw new ArgumentNullException(nameof(apiObjectIds));
+			}
+
+			var toDelete = Read(apiObjectIds.ToArray());
+
+			if (!DomJobHandler.TryDelete(PlanApi, toDelete?.ToList(), out var result))
+			{
+				result.ThrowBulkException();
+			}
 		}
 
 		public void Delete(IEnumerable<Job> oToDelete)
 		{
-			throw new NotImplementedException();
+			if (oToDelete == null)
+			{
+				throw new ArgumentNullException(nameof(oToDelete));
+			}
+
+			Delete(oToDelete.Select(x => x.Id).ToArray());
 		}
 
 		public void Delete(Job oToDelete)
 		{
-			throw new NotImplementedException();
+			if (oToDelete == null)
+			{
+				throw new ArgumentNullException(nameof(oToDelete));
+			}
+
+			Delete(oToDelete.Id);
 		}
 
 		public IEnumerable<Job> Read(FilterElement<Job> filter)

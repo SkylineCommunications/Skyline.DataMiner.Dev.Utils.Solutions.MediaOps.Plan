@@ -29,6 +29,16 @@
 			return !result.HasFailures;
 		}
 
+		internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<Job> apiJobs, out DomInstanceBulkOperationResult<DomJob> result)
+		{
+			var handler = new DomJobHandler(planApi);
+			handler.Delete(apiJobs);
+
+			result = new DomInstanceBulkOperationResult<DomJob>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+
+			return !result.HasFailures;
+		}
+
 		private void CreateOrUpdate(ICollection<Job> apiJobs)
 		{
 			if (apiJobs == null)
@@ -152,6 +162,82 @@
 					PassTraceData(jobId, traceData);
 				}
 			}
+		}
+
+		private void Delete(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			var lockResult = planApi.LockManager.LockAndExecute(apiJobs.Where(IsValid).ToList(), DeleteLocked);
+			ReportError(lockResult);
+		}
+
+		private void DeleteLocked(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			if (apiJobs.Any(x => !IsValid(x)))
+			{
+				throw new ArgumentException($"Not all provided jobs are valid", nameof(apiJobs));
+			}
+
+			DeleteOrchestrationSettings(apiJobs);
+
+			var domJobsById = apiJobs.ToDictionary(x => x.Id, x => x.OriginalInstance);
+
+			var instancesToDelete = domJobsById.Values.Select(x => x.ToInstance()).ToArray();
+			planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.TryDeleteInBatches(instancesToDelete, out var domResult);
+
+			foreach (var id in domResult.UnsuccessfulIds)
+			{
+				ReportError(id.Id);
+
+				if (domResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+				{
+					var mediaOpsTraceData = new MediaOpsTraceData();
+					mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = traceData.ToString() });
+
+					PassTraceData(id.Id, mediaOpsTraceData);
+				}
+			}
+
+			ReportSuccess(instancesToDelete.Where(x => domResult.SuccessfulIds.Contains(x.ID)).Select(x => new DomJob(x)).ToArray());
+		}
+
+		private void DeleteOrchestrationSettings(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			if (apiJobs.Any(x => !IsValid(x)))
+			{
+				throw new ArgumentException($"Not all provided jobs are valid", nameof(apiJobs));
+			}
+
+			DomWorkflowOrchestrationSettingsHandler.TryDelete(planApi, apiJobs.Select(x => x.OrchestrationSettings).ToList(), out _);
 		}
 
 		private void ValidateIdsNotInUse(ICollection<Job> apiJobs)
