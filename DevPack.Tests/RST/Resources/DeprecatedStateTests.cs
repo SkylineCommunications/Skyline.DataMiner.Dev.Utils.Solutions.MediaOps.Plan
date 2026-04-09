@@ -1,10 +1,7 @@
 ﻿namespace RT_MediaOps.Plan.RST.Resources
 {
 	using System;
-	using System.Collections.Generic;
 	using System.Linq;
-	using System.Text;
-	using System.Threading.Tasks;
 
 	using RT_MediaOps.Plan.RegressionTests;
 
@@ -30,7 +27,7 @@
 		}
 
 		[TestMethod]
-		public void UpdateName()
+		public void UpdateNameThrowsException()
 		{
 			var prefix = Guid.NewGuid();
 			var name = $"{prefix}_Resource";
@@ -66,18 +63,33 @@
 			var updatedName = $"{name}_Updated";
 			resource.Name = updatedName;
 
-			resource = TestContext.Api.Resources.Update(resource);
-			Assert.IsNotNull(resource);
-			Assert.AreEqual(updatedName, resource.Name);
+			MediaOpsException? expectedException = null;
+			try
+			{
+				resource = TestContext.Api.Resources.Update(resource);
+			}
+			catch (MediaOpsException ex)
+			{
+				expectedException = ex;
+			}
 
-			Assert.AreEqual(coreResourceId, resource.CoreResourceId);
-			coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
-			Assert.IsNotNull(coreResource);
-			Assert.AreEqual(updatedName, coreResource.Name);
+			Assert.IsNotNull(expectedException, "Expected exception was not thrown.");
+
+			var errorMessage = "Not allowed to update a resource in Deprecated state.";
+			Assert.AreEqual(errorMessage, expectedException.Message);
+
+			Assert.AreEqual(1, expectedException.TraceData.ErrorData.Count);
+			var resourceError = expectedException.TraceData.ErrorData.OfType<ResourceError>().SingleOrDefault();
+			Assert.IsNotNull(resourceError);
+
+			var resourceInvalidStateError = resourceError as ResourceInvalidStateError;
+			Assert.IsNotNull(resourceInvalidStateError);
+			Assert.AreEqual(resource.Id, resourceInvalidStateError.Id);
+			Assert.AreEqual(errorMessage, resourceInvalidStateError.ErrorMessage);
 		}
 
 		[TestMethod]
-		public void UpdateConcurrency()
+		public void UpdateConcurrencyThrowsException()
 		{
 			var prefix = Guid.NewGuid();
 
@@ -110,15 +122,29 @@
 			// Update concurrency
 			resource.Concurrency = 2;
 
-			resource = TestContext.Api.Resources.Update(resource);
-			Assert.IsNotNull(resource);
-			Assert.AreEqual(2, resource.Concurrency);
+			MediaOpsException? expectedException = null;
+			try
+			{
+				resource = TestContext.Api.Resources.Update(resource);
+			}
+			catch (MediaOpsException ex)
+			{
+				expectedException = ex;
+			}
 
-			Assert.AreEqual(coreResourceId, resource.CoreResourceId);
-			coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
-			Assert.IsNotNull(coreResource);
-			Assert.AreEqual(Skyline.DataMiner.Net.Messages.ResourceMode.Unavailable, coreResource.Mode);
-			Assert.AreEqual(2, coreResource.MaxConcurrency);
+			Assert.IsNotNull(expectedException, "Expected exception was not thrown.");
+
+			var errorMessage = "Not allowed to update a resource in Deprecated state.";
+			Assert.AreEqual(errorMessage, expectedException.Message);
+
+			Assert.AreEqual(1, expectedException.TraceData.ErrorData.Count);
+			var resourceError = expectedException.TraceData.ErrorData.OfType<ResourceError>().SingleOrDefault();
+			Assert.IsNotNull(resourceError);
+
+			var resourceInvalidStateError = resourceError as ResourceInvalidStateError;
+			Assert.IsNotNull(resourceInvalidStateError);
+			Assert.AreEqual(resource.Id, resourceInvalidStateError.Id);
+			Assert.AreEqual(errorMessage, resourceInvalidStateError.ErrorMessage);
 		}
 	}
 }

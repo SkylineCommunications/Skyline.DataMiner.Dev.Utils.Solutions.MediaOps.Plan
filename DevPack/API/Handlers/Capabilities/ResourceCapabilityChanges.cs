@@ -1,16 +1,16 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
-    using System;
-    using System.Collections.Generic;
+	using System;
+	using System.Collections.Generic;
 
-    using DomResource = Storage.DOM.SlcResource_Studio.ResourceInstance;
+	using DomResource = Storage.DOM.SlcResource_Studio.ResourceInstance;
 
-    internal class ResourceCapabilityChanges
-    {
-        public DomResource Resource { get; set; }
+	internal class ResourceCapabilityChanges
+	{
+		public DomResource Resource { get; set; }
 
-        public List<IConfiguredCapability> AddedOrUpdated { get; } = new List<IConfiguredCapability>();
+		public List<IConfiguredCapability> AddedOrUpdated { get; } = new List<IConfiguredCapability>();
 
-        public List<Guid> Removed { get; } = new List<Guid>();
-    }
+		public List<Guid> Removed { get; } = new List<Guid>();
+	}
 }

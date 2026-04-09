@@ -518,7 +518,7 @@
 		/// <param name="resourcePools">A collection of resource pools for which to retrieve parent-child relationships.</param>
 		/// <returns>A read-only dictionary where each key is a resource pool from the input collection, and the value is an enumerable of its parent resource pools.</returns>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="resourcePools"/> is <c>null</c>.</exception>
-		public IReadOnlyDictionary<ResourcePool, IEnumerable<ResourcePool>> GetParentPoolLinks(IEnumerable<ResourcePool> resourcePools)
+		public IReadOnlyDictionary<ResourcePool, IReadOnlyCollection<ResourcePool>> GetParentPoolLinks(IEnumerable<ResourcePool> resourcePools)
 		{
 			if (resourcePools == null)
 			{
@@ -542,7 +542,7 @@
 			var parentPoolsPerPool = resourcePools.ToDictionary(
 				pool => pool,
 				pool =>
-					domPools
+					(IReadOnlyCollection<ResourcePool>)domPools
 						.Where(domPool => domPool.ResourcePoolLinks
 						.Any(link => link.LinkedResourcePool.Value == pool.Id))
 						.Select(domPool =>
@@ -555,7 +555,7 @@
 							{
 								return parentApiPoolsById[domPool.ID.Id];
 							}
-						}));
+						}).ToArray());
 
 			return parentPoolsPerPool;
 		}
@@ -566,7 +566,7 @@
 		/// <param name="resources">A collection of resources for which to retrieve the associated resource pools.</param>
 		/// <returns>A read-only dictionary where each key is a resource from the input collection, and the value is an enumerable of resource pools associated with that resource.</returns>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="resources"/> is <c>null</c>.</exception>
-		public IReadOnlyDictionary<Resource, IEnumerable<ResourcePool>> GetPoolsPerResource(IEnumerable<Resource> resources)
+		public IReadOnlyDictionary<Resource, IReadOnlyCollection<ResourcePool>> GetPoolsPerResource(IEnumerable<Resource> resources)
 		{
 			if (resources == null)
 			{
@@ -575,7 +575,7 @@
 
 			var poolsPerId = Read(resources.SelectMany(x => x.OriginalInstance.ResourceInternalProperties.PoolIds).Distinct()).ToDictionary(x => x.Id);
 
-			var resourcePoolsPerResource = new Dictionary<Resource, IEnumerable<ResourcePool>>();
+			var resourcePoolsPerResource = new Dictionary<Resource, IReadOnlyCollection<ResourcePool>>();
 			foreach (var resource in resources)
 			{
 				if (resourcePoolsPerResource.ContainsKey(resource))

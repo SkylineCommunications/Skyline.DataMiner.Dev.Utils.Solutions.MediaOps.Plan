@@ -1,86 +1,87 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM
 {
-    using System;
-    using System.Collections.Generic;
-    using Skyline.DataMiner.Net;
-    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
-    using Skyline.DataMiner.Net.Messages.SLDataGateway;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow;
+	using System;
+	using System.Collections.Generic;
 
-    internal class SlcWorkflowHelper : DomModuleHelperBase
-    {
-        public SlcWorkflowHelper(IConnection connection) : base(SlcWorkflowIds.ModuleId, connection)
-        {
-        }
+	using Skyline.DataMiner.Net;
+	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow;
 
-        public long CountWorkflowInstances(FilterElement<DomInstance> filter)
-        {
-            if (filter == null)
-            {
-                throw new ArgumentNullException(nameof(filter));
-            }
+	internal class SlcWorkflowHelper : DomModuleHelperBase
+	{
+		public SlcWorkflowHelper(IConnection connection) : base(SlcWorkflowIds.ModuleId, connection)
+		{
+		}
 
-            return DomHelper.DomInstances.Count(filter);
-        }
+		public long CountWorkflowInstances(FilterElement<DomInstance> filter)
+		{
+			if (filter == null)
+			{
+				throw new ArgumentNullException(nameof(filter));
+			}
 
-        public IEnumerable<ConfigurationInstance> GetConfigurations(FilterElement<DomInstance> filter)
-        {
-            if (filter == null)
-            {
-                throw new ArgumentNullException(nameof(filter));
-            }
+			return DomHelper.DomInstances.Count(filter);
+		}
 
-            return GetConfigurationIterator(filter);
-        }
+		public IEnumerable<ConfigurationInstance> GetConfigurations(FilterElement<DomInstance> filter)
+		{
+			if (filter == null)
+			{
+				throw new ArgumentNullException(nameof(filter));
+			}
 
-        public IEnumerable<JobsInstance> GetJobs(FilterElement<DomInstance> filter)
-        {
-            if (filter == null)
-            {
-                throw new ArgumentNullException(nameof(filter));
-            }
+			return GetConfigurationIterator(filter);
+		}
 
-            return GetJobIterator(filter);
-        }
+		public IEnumerable<JobsInstance> GetJobs(FilterElement<DomInstance> filter)
+		{
+			if (filter == null)
+			{
+				throw new ArgumentNullException(nameof(filter));
+			}
 
-        public IEnumerable<RecurringJobsInstance> GetRecurringJobs(FilterElement<DomInstance> filter)
-        {
-            if (filter == null)
-            {
-                throw new ArgumentNullException(nameof(filter));
-            }
+			return GetJobIterator(filter);
+		}
 
-            return GetRecurringJobIterator(filter);
-        }
+		public IEnumerable<RecurringJobsInstance> GetRecurringJobs(FilterElement<DomInstance> filter)
+		{
+			if (filter == null)
+			{
+				throw new ArgumentNullException(nameof(filter));
+			}
 
-        public IEnumerable<WorkflowsInstance> GetWorkflows(FilterElement<DomInstance> filter)
-        {
-            if (filter == null)
-            {
-                throw new ArgumentNullException(nameof(filter));
-            }
+			return GetRecurringJobIterator(filter);
+		}
 
-            return GetWorkflowIterator(filter);
-        }
+		public IEnumerable<WorkflowsInstance> GetWorkflows(FilterElement<DomInstance> filter)
+		{
+			if (filter == null)
+			{
+				throw new ArgumentNullException(nameof(filter));
+			}
 
-        private IEnumerable<ConfigurationInstance> GetConfigurationIterator(FilterElement<DomInstance> filter)
-        {
-            return InstanceFactory.ReadAndCreateInstances(DomHelper, filter, instance => new ConfigurationInstance(instance));
-        }
+			return GetWorkflowIterator(filter);
+		}
 
-        private IEnumerable<JobsInstance> GetJobIterator(FilterElement<DomInstance> filter)
-        {
-            return InstanceFactory.ReadAndCreateInstances(DomHelper, filter, instance => new JobsInstance(instance));
-        }
+		private IEnumerable<ConfigurationInstance> GetConfigurationIterator(FilterElement<DomInstance> filter)
+		{
+			return InstanceFactory.ReadAndCreateInstances(DomHelper, filter, instance => new ConfigurationInstance(instance));
+		}
 
-        private IEnumerable<RecurringJobsInstance> GetRecurringJobIterator(FilterElement<DomInstance> filter)
-        {
-            return InstanceFactory.ReadAndCreateInstances(DomHelper, filter, instance => new RecurringJobsInstance(instance));
-        }
+		private IEnumerable<JobsInstance> GetJobIterator(FilterElement<DomInstance> filter)
+		{
+			return InstanceFactory.ReadAndCreateInstances(DomHelper, filter, instance => new JobsInstance(instance));
+		}
 
-        private IEnumerable<WorkflowsInstance> GetWorkflowIterator(FilterElement<DomInstance> filter)
-        {
-            return InstanceFactory.ReadAndCreateInstances(DomHelper, filter, instance => new WorkflowsInstance(instance));
-        }
-    }
+		private IEnumerable<RecurringJobsInstance> GetRecurringJobIterator(FilterElement<DomInstance> filter)
+		{
+			return InstanceFactory.ReadAndCreateInstances(DomHelper, filter, instance => new RecurringJobsInstance(instance));
+		}
+
+		private IEnumerable<WorkflowsInstance> GetWorkflowIterator(FilterElement<DomInstance> filter)
+		{
+			return InstanceFactory.ReadAndCreateInstances(DomHelper, filter, instance => new WorkflowsInstance(instance));
+		}
+	}
 }

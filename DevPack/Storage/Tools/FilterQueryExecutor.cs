@@ -1,118 +1,118 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
+	using System;
+	using System.Collections.Generic;
+	using System.Linq;
 
-    using Skyline.DataMiner.Net.Messages.SLDataGateway;
+	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
-    internal class FilterQueryExecutor
-    {
-        public static IEnumerable<TResult> RetrieveFilteredItems<TId, TFilter, TResult>(IEnumerable<TId> ids, Func<TId, FilterElement<TFilter>> filterProvider, Func<FilterElement<TFilter>, IEnumerable<TResult>> filterResolver)
-        {
-            if (ids == null)
-            {
-                throw new ArgumentNullException(nameof(ids));
-            }
+	internal class FilterQueryExecutor
+	{
+		public static IEnumerable<TResult> RetrieveFilteredItems<TId, TFilter, TResult>(IEnumerable<TId> ids, Func<TId, FilterElement<TFilter>> filterProvider, Func<FilterElement<TFilter>, IEnumerable<TResult>> filterResolver)
+		{
+			if (ids == null)
+			{
+				throw new ArgumentNullException(nameof(ids));
+			}
 
-            if (filterProvider == null)
-            {
-                throw new ArgumentNullException(nameof(filterProvider));
-            }
+			if (filterProvider == null)
+			{
+				throw new ArgumentNullException(nameof(filterProvider));
+			}
 
-            if (filterResolver == null)
-            {
-                throw new ArgumentNullException(nameof(filterResolver));
-            }
+			if (filterResolver == null)
+			{
+				throw new ArgumentNullException(nameof(filterResolver));
+			}
 
-            var splitted = SplitFilter(ids, filterProvider).ToList();
+			var splitted = SplitFilter(ids, filterProvider).ToList();
 
-            if (splitted.Count >= 10)
-            {
-                return splitted.AsParallel().SelectMany(filterResolver);
-            }
+			if (splitted.Count >= 10)
+			{
+				return splitted.AsParallel().SelectMany(filterResolver);
+			}
 
-            return splitted.SelectMany(filterResolver);
-        }
+			return splitted.SelectMany(filterResolver);
+		}
 
-        public static long CountFilteredItems<TId, TFilter>(IEnumerable<TId> ids, Func<TId, FilterElement<TFilter>> filterProvider, Func<FilterElement<TFilter>, long> filterCountResolver)
-        {
-            if (ids == null)
-            {
-                throw new ArgumentNullException(nameof(ids));
-            }
+		public static long CountFilteredItems<TId, TFilter>(IEnumerable<TId> ids, Func<TId, FilterElement<TFilter>> filterProvider, Func<FilterElement<TFilter>, long> filterCountResolver)
+		{
+			if (ids == null)
+			{
+				throw new ArgumentNullException(nameof(ids));
+			}
 
-            if (filterProvider == null)
-            {
-                throw new ArgumentNullException(nameof(filterProvider));
-            }
+			if (filterProvider == null)
+			{
+				throw new ArgumentNullException(nameof(filterProvider));
+			}
 
-            if (filterCountResolver == null)
-            {
-                throw new ArgumentNullException(nameof(filterCountResolver));
-            }
+			if (filterCountResolver == null)
+			{
+				throw new ArgumentNullException(nameof(filterCountResolver));
+			}
 
-            var splitted = SplitFilter(ids, filterProvider).ToList();
+			var splitted = SplitFilter(ids, filterProvider).ToList();
 
-            if (splitted.Count >= 10)
-            {
-                return splitted.AsParallel().Sum(filterCountResolver);
-            }
+			if (splitted.Count >= 10)
+			{
+				return splitted.AsParallel().Sum(filterCountResolver);
+			}
 
-            return splitted.Sum(filterCountResolver);
-        }
+			return splitted.Sum(filterCountResolver);
+		}
 
-        private static IEnumerable<FilterElement<TFilter>> SplitFilter<TId, TFilter>(IEnumerable<TId> ids, Func<TId, FilterElement<TFilter>> filterProvider)
-        {
-            var batch = new List<FilterElement<TFilter>>();
-            var count = 0;
+		private static IEnumerable<FilterElement<TFilter>> SplitFilter<TId, TFilter>(IEnumerable<TId> ids, Func<TId, FilterElement<TFilter>> filterProvider)
+		{
+			var batch = new List<FilterElement<TFilter>>();
+			var count = 0;
 
-            // max_clause_count is by default set to minimum 1024
-            // https://www.elastic.co/guide/en/elasticsearch/reference/7.17/search-settings.html
-            const int limit = 1000;
+			// max_clause_count is by default set to minimum 1024
+			// https://www.elastic.co/guide/en/elasticsearch/reference/7.17/search-settings.html
+			const int limit = 1000;
 
-            int CountSubFilters(FilterElement<TFilter> filter)
-            {
-                switch (filter)
-                {
-                    case ANDFilterElement<TFilter> and: return and.subFilters.Sum(CountSubFilters);
-                    case ORFilterElement<TFilter> or: return or.subFilters.Sum(CountSubFilters);
-                    default: return 1;
-                }
-            }
+			int CountSubFilters(FilterElement<TFilter> filter)
+			{
+				switch (filter)
+				{
+					case ANDFilterElement<TFilter> and: return and.subFilters.Sum(CountSubFilters);
+					case ORFilterElement<TFilter> or: return or.subFilters.Sum(CountSubFilters);
+					default: return 1;
+				}
+			}
 
-            foreach (var id in ids.Distinct())
-            {
-                var filter = filterProvider(id);
-                var subfilterCount = filter.flatten().Sum(CountSubFilters);
+			foreach (var id in ids.Distinct())
+			{
+				var filter = filterProvider(id);
+				var subfilterCount = filter.flatten().Sum(CountSubFilters);
 
-                if (count + subfilterCount > limit && batch.Count > 0)
-                {
-                    yield return CombineOrFilters(batch);
+				if (count + subfilterCount > limit && batch.Count > 0)
+				{
+					yield return CombineOrFilters(batch);
 
-                    batch.Clear();
-                    count = 0;
-                }
+					batch.Clear();
+					count = 0;
+				}
 
-                batch.Add(filter);
-                count += subfilterCount;
-            }
+				batch.Add(filter);
+				count += subfilterCount;
+			}
 
-            // don't forget the last items
-            if (batch.Count > 0)
-            {
-                yield return CombineOrFilters(batch);
-            }
-        }
+			// don't forget the last items
+			if (batch.Count > 0)
+			{
+				yield return CombineOrFilters(batch);
+			}
+		}
 
-        private static FilterElement<TFilter> CombineOrFilters<TFilter>(IList<FilterElement<TFilter>> filters)
-        {
-            if (filters.Count == 1)
-            {
-                return filters[0];
-            }
+		private static FilterElement<TFilter> CombineOrFilters<TFilter>(IList<FilterElement<TFilter>> filters)
+		{
+			if (filters.Count == 1)
+			{
+				return filters[0];
+			}
 
-            return new ORFilterElement<TFilter>(filters.ToArray());
-        }
-    }
+			return new ORFilterElement<TFilter>(filters.ToArray());
+		}
+	}
 }

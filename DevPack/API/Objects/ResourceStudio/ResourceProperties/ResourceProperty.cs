@@ -1,93 +1,94 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
-    using System;
-    using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
+	using System;
 
-    /// <summary>
-    /// Represents a resource property in the MediaOps Plan API.
-    /// </summary>
-    public class ResourceProperty : ApiObject
-    {
-        private readonly StorageResourceStudio.ResourcepropertyInstance originalInstance;
+	using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
-        private StorageResourceStudio.ResourcepropertyInstance updatedInstance;
+	/// <summary>
+	/// Represents a resource property in the MediaOps Plan API.
+	/// </summary>
+	public class ResourceProperty : ApiObject
+	{
+		private readonly StorageResourceStudio.ResourcepropertyInstance originalInstance;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ResourceProperty"/> class.
-        /// </summary>
-        public ResourceProperty() : base()
-        {
-            IsNew = true;
-        }
+		private StorageResourceStudio.ResourcepropertyInstance updatedInstance;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ResourceProperty"/> class with a specific resource property ID.
-        /// </summary>
-        /// <param name="resourcePropertyId">The unique identifier of the resource property.</param>
-        public ResourceProperty(Guid resourcePropertyId) : base(resourcePropertyId)
-        {
-            IsNew = true;
-            HasUserDefinedId = true;
-        }
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ResourceProperty"/> class.
+		/// </summary>
+		public ResourceProperty() : base()
+		{
+			IsNew = true;
+		}
 
-        internal ResourceProperty(StorageResourceStudio.ResourcepropertyInstance instance) : base(instance == null ? throw new ArgumentNullException(nameof(instance)) : instance.ID.Id)
-        {
-            originalInstance = instance;
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ResourceProperty"/> class with a specific resource property ID.
+		/// </summary>
+		/// <param name="resourcePropertyId">The unique identifier of the resource property.</param>
+		public ResourceProperty(Guid resourcePropertyId) : base(resourcePropertyId)
+		{
+			IsNew = true;
+			HasUserDefinedId = true;
+		}
 
-            ParseInstance();
-            InitTracking();
-        }
+		internal ResourceProperty(StorageResourceStudio.ResourcepropertyInstance instance) : base(instance == null ? throw new ArgumentNullException(nameof(instance)) : instance.ID.Id)
+		{
+			originalInstance = instance;
 
-        /// <summary>
-        /// Gets or sets the name of the resource property.
-        /// </summary>
-        public override string Name { get; set; }
+			ParseInstance();
+			InitTracking();
+		}
 
-        internal StorageResourceStudio.ResourcepropertyInstance OriginalInstance => originalInstance;
+		/// <summary>
+		/// Gets or sets the name of the resource property.
+		/// </summary>
+		public override string Name { get; set; }
 
-        /// <inheritdoc/>
-        public override int GetHashCode()
-        {
-            unchecked
-            {
-                int hash = 17;
-                hash = (hash * 23) + Id.GetHashCode();
-                hash = (hash * 23) + (Name != null ? Name.GetHashCode() : 0);
-                return hash;
-            }
-        }
+		internal StorageResourceStudio.ResourcepropertyInstance OriginalInstance => originalInstance;
 
-        /// <summary>
-        /// Determines whether the specified object is equal to the current ResourceProperty instance.
-        /// </summary>
-        /// <param name="obj">The object to compare with the current ResourceProperty instance.</param>
-        /// <returns>true if the specified object is a ResourceProperty and has the same Id and Name as the current instance;
-        /// otherwise, false.</returns>
-        public override bool Equals(object obj)
-        {
-            if (obj is not ResourceProperty other)
-            {
-                return false;
-            }
+		/// <inheritdoc/>
+		public override int GetHashCode()
+		{
+			unchecked
+			{
+				int hash = 17;
+				hash = (hash * 23) + Id.GetHashCode();
+				hash = (hash * 23) + (Name != null ? Name.GetHashCode() : 0);
+				return hash;
+			}
+		}
 
-            return Id == other.Id && Name == other.Name;
-        }
+		/// <summary>
+		/// Determines whether the specified object is equal to the current ResourceProperty instance.
+		/// </summary>
+		/// <param name="obj">The object to compare with the current ResourceProperty instance.</param>
+		/// <returns>true if the specified object is a ResourceProperty and has the same Id and Name as the current instance;
+		/// otherwise, false.</returns>
+		public override bool Equals(object obj)
+		{
+			if (obj is not ResourceProperty other)
+			{
+				return false;
+			}
 
-        internal StorageResourceStudio.ResourcepropertyInstance GetInstanceWithChanges()
-        {
-            if (updatedInstance == null)
-            {
-                updatedInstance = IsNew ? new StorageResourceStudio.ResourcepropertyInstance(Id) : originalInstance.Clone();
-            }
+			return Id == other.Id && Name == other.Name;
+		}
 
-            updatedInstance.PropertyInfo.PropertyName = Name;
+		internal StorageResourceStudio.ResourcepropertyInstance GetInstanceWithChanges()
+		{
+			if (updatedInstance == null)
+			{
+				updatedInstance = IsNew ? new StorageResourceStudio.ResourcepropertyInstance(Id) : originalInstance.Clone();
+			}
 
-            return updatedInstance;
-        }
+			updatedInstance.PropertyInfo.PropertyName = Name;
 
-        private void ParseInstance()
-        {
-            Name = OriginalInstance.PropertyInfo.PropertyName;
-        }
-    }
+			return updatedInstance;
+		}
+
+		private void ParseInstance()
+		{
+			Name = OriginalInstance.PropertyInfo.PropertyName;
+		}
+	}
 }

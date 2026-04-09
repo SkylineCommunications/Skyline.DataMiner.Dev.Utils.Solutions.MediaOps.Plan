@@ -1,11 +1,11 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
-    using System;
+	using System;
 
-    internal interface IConfiguredCapability
-    {
-        Guid ProfileParameterId { get; }
+	internal interface IConfiguredCapability
+	{
+		Guid ProfileParameterId { get; }
 
-        string StringValue { get; }
-    }
+		string StringValue { get; }
+	}
 }

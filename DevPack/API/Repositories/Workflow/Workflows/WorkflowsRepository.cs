@@ -1,93 +1,95 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using Skyline.DataMiner.Net.Messages.SLDataGateway;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
-    using SLDataGateway.API.Types.Querying;
+	using System;
+	using System.Collections.Generic;
+	using System.Linq;
 
-    internal class WorkflowsRepository : Repository, IWorkflowsRepository
-    {
-        private readonly WorkflowFilterTranslator filterTranslator = new WorkflowFilterTranslator();
+	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
 
-        public WorkflowsRepository(MediaOpsPlanApi planApi) : base(planApi)
-        {
-        }
+	using SLDataGateway.API.Types.Querying;
 
-        public IEnumerable<Workflow> Read(FilterElement<Workflow> filter)
-        {
-            if (filter == null)
-            {
-                throw new ArgumentNullException(nameof(filter));
-            }
+	internal class WorkflowsRepository : Repository, IWorkflowsRepository
+	{
+		private readonly WorkflowFilterTranslator filterTranslator = new WorkflowFilterTranslator();
 
-            return ActivityHelper.Track(nameof(WorkflowsRepository), nameof(Read), act =>
-            {
-                var domFilter = filterTranslator.Translate(filter);
-                IEnumerable<Workflow> Iterator()
-                {
-                    foreach (var domWorkflow in PlanApi.DomHelpers.SlcWorkflowHelper.GetWorkflows(domFilter))
-                    {
-                        yield return new Workflow(domWorkflow);
-                    }
-                }
+		public WorkflowsRepository(MediaOpsPlanApi planApi) : base(planApi)
+		{
+		}
 
-                return Iterator();
-            });
-        }
+		public IEnumerable<Workflow> Read(FilterElement<Workflow> filter)
+		{
+			if (filter == null)
+			{
+				throw new ArgumentNullException(nameof(filter));
+			}
 
-        public IEnumerable<Workflow> Read(IQuery<Workflow> query)
-        {
-            if (query == null)
-            {
-                throw new ArgumentNullException(nameof(query));
-            }
+			return ActivityHelper.Track(nameof(WorkflowsRepository), nameof(Read), act =>
+			{
+				var domFilter = filterTranslator.Translate(filter);
+				IEnumerable<Workflow> Iterator()
+				{
+					foreach (var domWorkflow in PlanApi.DomHelpers.SlcWorkflowHelper.GetWorkflows(domFilter))
+					{
+						yield return new Workflow(domWorkflow);
+					}
+				}
 
-            return Read(query.Filter);
-        }
+				return Iterator();
+			});
+		}
 
-        public IEnumerable<Workflow> Read()
-        {
-            return Read(new TRUEFilterElement<Workflow>());
-        }
+		public IEnumerable<Workflow> Read(IQuery<Workflow> query)
+		{
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
 
-        public Workflow Read(Guid id)
-        {
-            if (id == Guid.Empty)
-            {
-                throw new ArgumentNullException(nameof(id));
-            }
+			return Read(query.Filter);
+		}
 
-            return ActivityHelper.Track(nameof(WorkflowsRepository), nameof(Read), act =>
-            {
-                act?.AddTag("WorkflowId", id);
-                var resourcePool = Read(WorkflowExposers.Id.Equal(id)).FirstOrDefault();
+		public IEnumerable<Workflow> Read()
+		{
+			return Read(new TRUEFilterElement<Workflow>());
+		}
 
-                if (resourcePool == null)
-                {
-                    act?.AddTag("Hit", false);
-                    return null;
-                }
+		public Workflow Read(Guid id)
+		{
+			if (id == Guid.Empty)
+			{
+				throw new ArgumentNullException(nameof(id));
+			}
 
-                act?.AddTag("Hit", true);
-                return resourcePool;
-            });
-        }
+			return ActivityHelper.Track(nameof(WorkflowsRepository), nameof(Read), act =>
+			{
+				act?.AddTag("WorkflowId", id);
+				var resourcePool = Read(WorkflowExposers.Id.Equal(id)).FirstOrDefault();
 
-        public IEnumerable<Workflow> Read(IEnumerable<Guid> ids)
-        {
-            if (ids == null)
-            {
-                throw new ArgumentNullException(nameof(ids));
-            }
+				if (resourcePool == null)
+				{
+					act?.AddTag("Hit", false);
+					return null;
+				}
 
-            if (!ids.Any())
-            {
-                return Array.Empty<Workflow>();
-            }
+				act?.AddTag("Hit", true);
+				return resourcePool;
+			});
+		}
 
-            return Read(new ORFilterElement<Workflow>(ids.Select(x => WorkflowExposers.Id.Equal(x)).ToArray()));
-        }
-    }
+		public IEnumerable<Workflow> Read(IEnumerable<Guid> ids)
+		{
+			if (ids == null)
+			{
+				throw new ArgumentNullException(nameof(ids));
+			}
+
+			if (!ids.Any())
+			{
+				return Array.Empty<Workflow>();
+			}
+
+			return Read(new ORFilterElement<Workflow>(ids.Select(x => WorkflowExposers.Id.Equal(x)).ToArray()));
+		}
+	}
 }

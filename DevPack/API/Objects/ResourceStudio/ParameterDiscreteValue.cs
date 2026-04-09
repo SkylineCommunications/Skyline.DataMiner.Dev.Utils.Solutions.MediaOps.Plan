@@ -1,11 +1,11 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
-    using System;
+	using System;
 
-    internal class ParameterDiscreteValue<T>
-    {
-        public Guid ParameterId { get; set; }
+	internal class ParameterDiscreteValue<T>
+	{
+		public Guid ParameterId { get; set; }
 
-        public T DiscreteValue { get; set; }
-    }
+		public T DiscreteValue { get; set; }
+	}
 }
