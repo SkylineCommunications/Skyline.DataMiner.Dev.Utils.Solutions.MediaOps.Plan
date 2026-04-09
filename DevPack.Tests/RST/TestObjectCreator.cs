@@ -41,6 +41,10 @@
 
 		private readonly HashSet<Guid> createdCoreResourceIds = new HashSet<Guid>();
 
+		private readonly HashSet<Guid> createdJobIds = new HashSet<Guid>();
+
+		private readonly HashSet<Guid> createdWorkflowIds = new HashSet<Guid>();
+
 		public TestObjectCreator(IntegrationTestContext testContext)
 		{
 			this.testContext = testContext ?? throw new ArgumentNullException(nameof(testContext));
@@ -54,6 +58,24 @@
 
 		public void Dispose()
 		{
+			try
+			{
+				JobsCleanup();
+			}
+			catch
+			{
+				// Ignore cleanup errors
+			}
+
+			try
+			{
+				WorkflowsCleanup();
+			}
+			catch
+			{
+				// Ignore cleanup errors
+			}
+
 			try
 			{
 				ResourcesCleanup();
@@ -273,6 +295,20 @@
 			}
 
 			testContext.ResourceManagerHelper.RemoveResourcePools(createdCoreResourcePoolIds.Select(x => new CoreResourcePool(x)).ToArray());
+		}
+
+		private void JobsCleanup()
+		{
+			var jobs = PlanApi.Jobs.Read(createdJobIds.ToArray());
+
+			PlanApi.Jobs.Delete(jobs.ToArray());
+		}
+
+		private void WorkflowsCleanup()
+		{
+			var workflows = PlanApi.Workflows.Read(createdWorkflowIds.ToArray());
+
+			PlanApi.Workflows.Delete(workflows.ToArray());
 		}
 
 		public T CreateResource<T>(T resource) where T : Resource
@@ -548,6 +584,68 @@
 			foreach (var created in testContext.ResourceManagerHelper.AddOrUpdateResourcePools(resourcePools.ToArray()))
 			{
 				createdCoreResourcePoolIds.Add(created.ID);
+			}
+		}
+
+		public Job CreateJob(Job job)
+		{
+			var createdJob = PlanApi.Jobs.Create(job);
+			createdJobIds.Add(createdJob.Id);
+			return createdJob;
+		}
+
+		public Workflow CreateWorkflow(Workflow workflow)
+		{
+			var createdWorkflow = PlanApi.Workflows.Create(workflow);
+			createdWorkflowIds.Add(createdWorkflow.Id);
+			return createdWorkflow;
+		}
+
+		public IReadOnlyCollection<Job> CreateJobs(IEnumerable<Job> jobs)
+		{
+			try
+			{
+				var createdJobs = PlanApi.Jobs.Create(jobs);
+
+				foreach (var job in createdJobs)
+				{
+					createdJobIds.Add(job.Id);
+				}
+
+				return createdJobs;
+			}
+			catch (MediaOpsBulkException<Guid> bulkException)
+			{
+				foreach (var id in bulkException.Result.SuccessfulIds)
+				{
+					createdJobIds.Add(id);
+				}
+
+				throw;
+			}
+		}
+
+		public IReadOnlyCollection<Workflow> CreateWorkflows(IEnumerable<Workflow> workflows)
+		{
+			try
+			{
+				var createdWorkflows = PlanApi.Workflows.Create(workflows);
+
+				foreach (var workflow in createdWorkflows)
+				{
+					createdWorkflowIds.Add(workflow.Id);
+				}
+
+				return createdWorkflows;
+			}
+			catch (MediaOpsBulkException<Guid> bulkException)
+			{
+				foreach (var id in bulkException.Result.SuccessfulIds)
+				{
+					createdWorkflowIds.Add(id);
+				}
+
+				throw;
 			}
 		}
 	}

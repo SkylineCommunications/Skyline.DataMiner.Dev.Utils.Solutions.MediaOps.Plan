@@ -1,6 +1,7 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
+	using System.Linq;
 
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
 
@@ -12,6 +13,7 @@
 	public class Job : ApiObject
 	{
 		private StorageWorkflow.JobsInstance originalInstance;
+		private StorageWorkflow.JobsInstance updatedInstance;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Job"/> class.
@@ -19,6 +21,8 @@
 		public Job() : base()
 		{
 			IsNew = true;
+
+			OrchestrationSettings = new WorkflowOrchestrationSettings();
 		}
 
 		/// <summary>
@@ -28,11 +32,13 @@
 		{
 			IsNew = true;
 			HasUserDefinedId = true;
+
+			OrchestrationSettings = new WorkflowOrchestrationSettings();
 		}
 
-		internal Job(StorageWorkflow.JobsInstance instance) : base(instance.ID.Id)
+		internal Job(MediaOpsPlanApi planApi, StorageWorkflow.JobsInstance instance) : base(instance.ID.Id)
 		{
-			ParseInstance(instance);
+			ParseInstance(planApi, instance);
 			InitTracking();
 		}
 
@@ -52,6 +58,16 @@
 		public JobPriority Priority { get; set; } = JobPriority.Normal;
 
 		/// <summary>
+		/// Gets or sets the start time of the job.
+		/// </summary>
+		public DateTimeOffset Start { get; set; }
+
+		/// <summary>
+		/// Gets or sets the end time of the job.
+		/// </summary>
+		public DateTimeOffset End { get; set; }
+
+		/// <summary>
 		/// Gets or sets the notes or additional information.
 		/// </summary>
 		public string Notes { get; set; }
@@ -60,6 +76,11 @@
 		/// Gets or sets the workflow ID associated with the job.
 		/// </summary>
 		public Guid WorkflowId { get; set; }
+
+		/// <summary>
+		/// Gets the orchestration settings assigned to this job.
+		/// </summary>
+		public OrchestrationSettings OrchestrationSettings { get; set; }
 
 		internal StorageWorkflow.JobsInstance OriginalInstance => originalInstance;
 
@@ -71,6 +92,7 @@
 				int hash = 17;
 				hash = (hash * 23) + Id.GetHashCode();
 				hash = (hash * 23) + (Name != null ? Name.GetHashCode() : 0);
+				hash = (hash * 23) + (OrchestrationSettings != null ? OrchestrationSettings.GetHashCode() : 0);
 
 				return hash;
 			}
@@ -90,21 +112,57 @@
 			}
 
 			return Id == other.Id &&
-				   Name == other.Name;
+				   Name == other.Name &&
+				   OrchestrationSettings == other.OrchestrationSettings;
 		}
 
-		private void ParseInstance(StorageWorkflow.JobsInstance instance)
+		internal StorageWorkflow.JobsInstance GetInstanceWithChanges()
+		{
+			if (updatedInstance == null)
+			{
+				updatedInstance = IsNew ? new StorageWorkflow.JobsInstance(Id) : originalInstance.Clone();
+			}
+
+			updatedInstance.JobInfo.JobName = Name;
+			updatedInstance.JobInfo.JobStart = Start.UtcDateTime;
+			updatedInstance.JobInfo.JobEnd = End.UtcDateTime;
+
+			updatedInstance.JobExecution.JobConfiguration = OrchestrationSettings.Id;
+
+			return updatedInstance;
+		}
+
+		private void ParseInstance(MediaOpsPlanApi planApi, StorageWorkflow.JobsInstance instance)
 		{
 			this.originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
 
 			Name = instance.JobInfo.JobName;
 			Description = instance.JobInfo.JobDescription;
+			Start = instance.JobInfo.JobStart.Value;
+			End = instance.JobInfo.JobEnd.Value;
 			Notes = instance.JobInfo.JobNotes;
 			WorkflowId = instance.JobInfo.Workflow ?? Guid.Empty;
 
 			Priority = instance.JobInfo.JobPriority.HasValue
 				? EnumExtensions.MapEnum<StorageWorkflow.SlcWorkflowIds.Enums.Jobpriority, JobPriority>(instance.JobInfo.JobPriority.Value)
 				: JobPriority.Normal;
+
+			if (instance.JobExecution.JobConfiguration == null || instance.JobExecution.JobConfiguration == Guid.Empty)
+			{
+				OrchestrationSettings = new WorkflowOrchestrationSettings();
+			}
+			else
+			{
+				var domConfiguration = planApi.DomHelpers.SlcWorkflowHelper.GetConfigurations([instance.JobExecution.JobConfiguration.Value]).FirstOrDefault();
+				if (domConfiguration != null)
+				{
+					OrchestrationSettings = new WorkflowOrchestrationSettings(planApi, domConfiguration);
+				}
+				else
+				{
+					OrchestrationSettings = new WorkflowOrchestrationSettings();
+				}
+			}
 		}
 	}
 }

@@ -18,23 +18,147 @@
 		{
 		}
 
-		public IEnumerable<Job> Read(FilterElement<Job> filter)
+		public long Count()
 		{
-			if (filter == null)
+			throw new NotImplementedException();
+		}
+
+		public long Count(FilterElement<Job> filter)
+		{
+			throw new NotImplementedException();
+		}
+
+		public long Count(IQuery<Job> query)
+		{
+			throw new NotImplementedException();
+		}
+
+		public IReadOnlyCollection<Job> Create(IEnumerable<Job> oToCreate)
+		{
+			if (oToCreate == null)
 			{
-				throw new ArgumentNullException(nameof(filter));
+				throw new ArgumentNullException(nameof(oToCreate));
 			}
 
-			return ActivityHelper.Track(nameof(JobsRepository), nameof(Read), act =>
+			var list = oToCreate.ToList();
+
+			var existing = list.Where(x => !x.IsNew);
+			if (existing.Any())
 			{
-				var domFilter = filterTranslator.Translate(filter);
-				IEnumerable<Job> Iterator()
-				{
-					foreach (var domJob in PlanApi.DomHelpers.SlcWorkflowHelper.GetJobs(domFilter))
-					{
-						yield return new Job(domJob);
-					}
-				}
+				throw new InvalidOperationException("Not possible to use method Create for existing jobs. Use CreateOrUpdate or Update instead.");
+			}
+
+			if (!DomJobHandler.TryCreateOrUpdate(PlanApi, list, out var result))
+			{
+				result.ThrowBulkException();
+			}
+
+			return result.SuccessfulItems.Select(x => new Job(PlanApi, x)).ToList();
+		}
+
+		public Job Create(Job oToCreate)
+		{
+			if (oToCreate == null)
+			{
+				throw new ArgumentNullException(nameof(oToCreate));
+			}
+
+			if (!oToCreate.IsNew)
+			{
+				throw new InvalidOperationException("Not possible to use method Create for existing job. Use CreateOrUpdate or Update instead.");
+			}
+
+			if (!DomJobHandler.TryCreateOrUpdate(PlanApi, [oToCreate], out var result))
+			{
+				result.ThrowSingleException(oToCreate.Id);
+			}
+
+			return new Job(PlanApi, result.SuccessfulItems.Single());
+		}
+
+		public IReadOnlyCollection<Job> CreateOrUpdate(IEnumerable<Job> oToCreateOrUpdate)
+		{
+			if (oToCreateOrUpdate == null)
+			{
+				throw new ArgumentNullException(nameof(oToCreateOrUpdate));
+			}
+
+			var list = oToCreateOrUpdate.ToList();
+
+			if (!DomJobHandler.TryCreateOrUpdate(PlanApi, list, out var result))
+			{
+				result.ThrowBulkException();
+			}
+
+			return result.SuccessfulItems.Select(x => new Job(PlanApi, x)).ToList();
+		}
+
+		public void Delete(Guid apiObjectId)
+		{
+			var toDelete = Read(apiObjectId);
+			if (toDelete == null)
+			{
+				return;
+			}
+
+			if (!DomJobHandler.TryDelete(PlanApi, [toDelete], out var result))
+			{
+				result.ThrowSingleException(toDelete.Id);
+			}
+		}
+
+		public void Delete(IEnumerable<Guid> apiObjectIds)
+		{
+			if (apiObjectIds == null)
+			{
+				throw new ArgumentNullException(nameof(apiObjectIds));
+			}
+
+			var toDelete = Read(apiObjectIds.ToArray());
+
+			if (!DomJobHandler.TryDelete(PlanApi, toDelete?.ToList(), out var result))
+			{
+				result.ThrowBulkException();
+			}
+		}
+
+		public void Delete(IEnumerable<Job> oToDelete)
+		{
+			if (oToDelete == null)
+			{
+				throw new ArgumentNullException(nameof(oToDelete));
+			}
+
+			Delete(oToDelete.Select(x => x.Id).ToArray());
+		}
+
+		public void Delete(Job oToDelete)
+		{
+			if (oToDelete == null)
+			{
+				throw new ArgumentNullException(nameof(oToDelete));
+			}
+
+			Delete(oToDelete.Id);
+		}
+
+		public IEnumerable<Job> Read(FilterElement<Job> filter)
+        {
+            if (filter == null)
+            {
+                throw new ArgumentNullException(nameof(filter));
+            }
+
+            return ActivityHelper.Track(nameof(JobsRepository), nameof(Read), act =>
+            {
+                var domFilter = filterTranslator.Translate(filter);
+                IEnumerable<Job> Iterator()
+                {
+                    foreach (var domJob in PlanApi.DomHelpers.SlcWorkflowHelper.GetJobs(domFilter))
+                    {
+                        yield return new Job(PlanApi, domJob);
+                    }
+                }
 
 				return Iterator();
 			});
@@ -93,12 +217,42 @@
 			return Read(new ORFilterElement<Job>(ids.Select(x => JobExposers.Id.Equal(x)).ToArray()));
 		}
 
-		public void SetOrchestrationState(Guid id, OrchestrationUpdateDetails updateDetails)
+		public IEnumerable<SDM.IPagedResult<Job>> ReadPaged()
 		{
-			if (id == Guid.Empty)
-			{
-				throw new ArgumentNullException(nameof(id));
-			}
+			throw new NotImplementedException();
+		}
+
+		public IEnumerable<SDM.IPagedResult<Job>> ReadPaged(int pageSize)
+		{
+			throw new NotImplementedException();
+		}
+
+		public IEnumerable<SDM.IPagedResult<Job>> ReadPaged(FilterElement<Job> filter)
+		{
+			throw new NotImplementedException();
+		}
+
+		public IEnumerable<SDM.IPagedResult<Job>> ReadPaged(IQuery<Job> query)
+		{
+			throw new NotImplementedException();
+		}
+
+		public IEnumerable<SDM.IPagedResult<Job>> ReadPaged(FilterElement<Job> filter, int pageSize)
+		{
+			throw new NotImplementedException();
+		}
+
+		public IEnumerable<SDM.IPagedResult<Job>> ReadPaged(IQuery<Job> query, int pageSize)
+		{
+			throw new NotImplementedException();
+		}
+
+		public void SetOrchestrationState(Guid id, OrchestrationUpdateDetails updateDetails)
+        {
+            if (id == Guid.Empty)
+            {
+                throw new ArgumentNullException(nameof(id));
+            }
 
 			if (updateDetails == null)
 			{
@@ -150,7 +304,50 @@
 
 			error.ErrorMessage = updateDetails.Message;
 
-			job.OriginalInstance.Save(PlanApi.DomHelpers.SlcWorkflowHelper.DomHelper);
+            job.OriginalInstance.Save(PlanApi.DomHelpers.SlcWorkflowHelper.DomHelper);
+        }
+
+		public IReadOnlyCollection<Job> Update(IEnumerable<Job> oToUpdate)
+		{
+			if (oToUpdate == null)
+			{
+				throw new ArgumentNullException(nameof(oToUpdate));
+			}
+
+			var list = oToUpdate.ToList();
+
+			var newRoles = list.Where(x => x.IsNew);
+			if (newRoles.Any())
+			{
+				throw new InvalidOperationException("Not possible to use method Update for new jobs. Use Create or CreateOrUpdate instead.");
+			}
+
+			if (!DomJobHandler.TryCreateOrUpdate(PlanApi, list, out var result))
+			{
+				result.ThrowBulkException();
+			}
+
+			return result.SuccessfulItems.Select(x => new Job(PlanApi, x)).ToList();
+		}
+
+		public Job Update(Job oToUpdate)
+		{
+			if (oToUpdate == null)
+			{
+				throw new ArgumentNullException(nameof(oToUpdate));
+			}
+
+			if (oToUpdate.IsNew)
+			{
+				throw new InvalidOperationException("Not possible to use method Update for new job. Use Create or CreateOrUpdate instead.");
+			}
+
+			if (!DomJobHandler.TryCreateOrUpdate(PlanApi, [oToUpdate], out var result))
+			{
+				result.ThrowSingleException(oToUpdate.Id);
+			}
+
+			return new Job(PlanApi, result.SuccessfulItems.Single());
 		}
 	}
 }

@@ -310,7 +310,7 @@
 
 			var resourcePoolIdByOrchestrationSettingsId = resourcePools.ToDictionary(x => x.OrchestrationSettings.Id, x => x.Id);
 
-			DomOrchestrationSettingsHandler.TryCreateOrUpdate(planApi, resourcePools.Select(x => x.OrchestrationSettings).ToList(), out var domResult);
+			DomResourceStudioOrchestrationSettingsHandler.TryCreateOrUpdate(planApi, resourcePools.Select(x => x.OrchestrationSettings).ToList(), out var domResult);
 
 			foreach (var id in domResult.UnsuccessfulIds)
 			{
@@ -566,7 +566,7 @@
 				throw new ArgumentException($"Not all provided resource pools are valid", nameof(resourcePools));
 			}
 
-			DomOrchestrationSettingsHandler.TryDelete(planApi, resourcePools.Select(x => x.OrchestrationSettings).ToList(), out _);
+			DomResourceStudioOrchestrationSettingsHandler.TryDelete(planApi, resourcePools.Select(x => x.OrchestrationSettings).ToList(), out _);
 		}
 
 		private void DeprecatePoolResources(ICollection<ResourcePool> apiResourcePools)
