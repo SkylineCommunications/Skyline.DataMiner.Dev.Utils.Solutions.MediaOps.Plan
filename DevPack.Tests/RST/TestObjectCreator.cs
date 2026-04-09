@@ -43,6 +43,8 @@
 
 		private readonly HashSet<Guid> createdJobIds = new HashSet<Guid>();
 
+		private readonly HashSet<Guid> createdWorkflowIds = new HashSet<Guid>();
+
 		public TestObjectCreator(IntegrationTestContext testContext)
 		{
 			this.testContext = testContext ?? throw new ArgumentNullException(nameof(testContext));
@@ -59,6 +61,15 @@
 			try
 			{
 				JobsCleanup();
+			}
+			catch
+			{
+				// Ignore cleanup errors
+			}
+
+			try
+			{
+				WorkflowsCleanup();
 			}
 			catch
 			{
@@ -291,6 +302,13 @@
 			var jobs = PlanApi.Jobs.Read(createdJobIds.ToArray());
 
 			PlanApi.Jobs.Delete(jobs.ToArray());
+		}
+
+		private void WorkflowsCleanup()
+		{
+			var workflows = PlanApi.Workflows.Read(createdWorkflowIds.ToArray());
+
+			PlanApi.Workflows.Delete(workflows.ToArray());
 		}
 
 		public T CreateResource<T>(T resource) where T : Resource
@@ -576,6 +594,13 @@
 			return createdJob;
 		}
 
+		public Workflow CreateWorkflow(Workflow workflow)
+		{
+			var createdWorkflow = PlanApi.Workflows.Create(workflow);
+			createdWorkflowIds.Add(createdWorkflow.Id);
+			return createdWorkflow;
+		}
+
 		public IReadOnlyCollection<Job> CreateJobs(IEnumerable<Job> jobs)
 		{
 			try
@@ -594,6 +619,30 @@
 				foreach (var id in bulkException.Result.SuccessfulIds)
 				{
 					createdJobIds.Add(id);
+				}
+
+				throw;
+			}
+		}
+
+		public IReadOnlyCollection<Workflow> CreateWorkflows(IEnumerable<Workflow> workflows)
+		{
+			try
+			{
+				var createdWorkflows = PlanApi.Workflows.Create(workflows);
+
+				foreach (var workflow in createdWorkflows)
+				{
+					createdWorkflowIds.Add(workflow.Id);
+				}
+
+				return createdWorkflows;
+			}
+			catch (MediaOpsBulkException<Guid> bulkException)
+			{
+				foreach (var id in bulkException.Result.SuccessfulIds)
+				{
+					createdWorkflowIds.Add(id);
 				}
 
 				throw;

@@ -109,6 +109,28 @@
 			return GetWorkflowIterator(filter);
 		}
 
+		public IEnumerable<WorkflowsInstance> GetWorkflows(IEnumerable<Guid> ids)
+		{
+			if (ids == null)
+			{
+				throw new ArgumentNullException(nameof(ids));
+			}
+
+			if (!ids.Any())
+			{
+				return Enumerable.Empty<WorkflowsInstance>();
+			}
+
+			FilterElement<DomInstance> Filter(Guid id) =>
+				DomInstanceExposers.DomDefinitionId.Equal(SlcWorkflowIds.Definitions.Workflows.Id)
+				.AND(DomInstanceExposers.Id.Equal(id));
+
+			return FilterQueryExecutor.RetrieveFilteredItems(
+				ids.Distinct(),
+				x => Filter(x),
+				x => GetWorkflowIterator(x));
+		}
+
 		public IEnumerable<DomInstance> GetWorkflowInstances(IEnumerable<Guid> ids)
 		{
 			if (ids == null)
