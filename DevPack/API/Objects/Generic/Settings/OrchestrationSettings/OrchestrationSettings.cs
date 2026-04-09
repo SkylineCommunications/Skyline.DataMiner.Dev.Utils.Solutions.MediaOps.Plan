@@ -9,7 +9,7 @@
 	/// <summary>
 	/// Represents the base class for orchestration settings.
 	/// </summary>
-	public abstract class OrchestrationSettings : ApiObject
+	public abstract class OrchestrationSettings : ApiObject, IEquatable<OrchestrationSettings>
 	{
 		private protected OrchestrationSettings() : base()
 		{
@@ -154,12 +154,7 @@
 				return false;
 			}
 
-			return Id == other.Id &&
-				Name == other.Name &&
-				Capabilities.ScrambledEquals(other.Capabilities) &&
-				Capacities.ScrambledEquals(other.Capacities) &&
-				Configurations.ScrambledEquals(other.Configurations) &&
-				OrchestrationEvents.ScrambledEquals(other.OrchestrationEvents);
+			return Equals(other);
 		}
 
 		/// <inheritdoc/>
@@ -193,6 +188,72 @@
 
 				return hash;
 			}
+		}
+
+		/// <summary>
+		/// Determines whether the current instance and the specified <see cref="OrchestrationSettings"/> object have the same property values.
+		/// </summary>
+		/// <param name="other">The <see cref="OrchestrationSettings"/> object to compare with the current instance.</param>
+		/// <returns>true if the properties of both objects are equal; otherwise, false.</returns>
+		public bool Equals(OrchestrationSettings other)
+		{
+			if (other == null)
+			{
+				return false;
+			}
+
+			bool idsMatch;
+			if (IsNew && other.IsNew) // Both objects are new, so we should not compare their IDs.
+			{
+				idsMatch = true;
+			}
+			else if (!IsNew && !other.IsNew) // Both objects have been persisted, so we can compare their IDs.
+			{
+				idsMatch = Id == other.Id;
+			}
+			else // One object is new and the other is not, so they cannot be equal.
+			{
+				return false;
+			}
+
+			return idsMatch &&
+				String.Equals(Name, other.Name) &&
+				Capabilities.ScrambledEquals(other.Capabilities) &&
+				Capacities.ScrambledEquals(other.Capacities) &&
+				Configurations.ScrambledEquals(other.Configurations) &&
+				OrchestrationEvents.ScrambledEquals(other.OrchestrationEvents);
+		}
+
+		/// <summary>
+		/// Determines whether two <see cref="OrchestrationSettings"/> instances are equal.
+		/// </summary>
+		/// <param name="left">The left instance to compare.</param>
+		/// <param name="right">The right instance to compare.</param>
+		/// <returns>true if the instances are equal; otherwise, false.</returns>
+		public static bool operator ==(OrchestrationSettings left, OrchestrationSettings right)
+		{
+			if (ReferenceEquals(left, right))
+			{
+				return true;
+			}
+
+			if (left is null || right is null)
+			{
+				return false;
+			}
+
+			return left.Equals(right);
+		}
+
+		/// <summary>
+		/// Determines whether two <see cref="OrchestrationSettings"/> instances are not equal.
+		/// </summary>
+		/// <param name="left">The left instance to compare.</param>
+		/// <param name="right">The right instance to compare.</param>
+		/// <returns>true if the instances are not equal; otherwise, false.</returns>
+		public static bool operator !=(OrchestrationSettings left, OrchestrationSettings right)
+		{
+			return !(left == right);
 		}
 	}
 }

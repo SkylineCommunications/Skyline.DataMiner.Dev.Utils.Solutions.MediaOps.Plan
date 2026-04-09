@@ -101,6 +101,11 @@
 		/// <returns>true if the display name and value of both objects are equal; otherwise, false.</returns>
 		public virtual bool Equals(Discreet<T> other)
 		{
+			if (other == null)
+			{
+				return false;
+			}
+
 			return String.Equals(DisplayName, other.DisplayName) && EqualityComparer<T>.Default.Equals(Value, other.Value);
 		}
 
