@@ -33,7 +33,6 @@ jobs:
 
   integration_tests:
     name: Integration Tests
-    if: github.ref == 'refs/heads/main'
     runs-on: windows-latest
     needs: nuget_validation
     concurrency:
