@@ -21,6 +21,8 @@
 		public Job() : base()
 		{
 			IsNew = true;
+
+			OrchestrationSettings = new WorkflowOrchestrationSettings();
 		}
 
 		/// <summary>
@@ -30,6 +32,8 @@
 		{
 			IsNew = true;
 			HasUserDefinedId = true;
+
+			OrchestrationSettings = new WorkflowOrchestrationSettings();
 		}
 
 		internal Job(MediaOpsPlanApi planApi, StorageWorkflow.JobsInstance instance) : base(instance.ID.Id)
@@ -52,6 +56,16 @@
 		/// Gets or sets the priority of the job.
 		/// </summary>
 		public JobPriority Priority { get; set; } = JobPriority.Normal;
+
+		/// <summary>
+		/// Gets or sets the start time of the job.
+		/// </summary>
+		public DateTimeOffset Start { get; set; }
+
+		/// <summary>
+		/// Gets or sets the end time of the job.
+		/// </summary>
+		public DateTimeOffset End { get; set; }
 
 		/// <summary>
 		/// Gets or sets the notes or additional information.
@@ -110,6 +124,8 @@
 			}
 
 			updatedInstance.JobInfo.JobName = Name;
+			updatedInstance.JobInfo.JobStart = Start.UtcDateTime;
+			updatedInstance.JobInfo.JobEnd = End.UtcDateTime;
 
 			updatedInstance.JobExecution.JobConfiguration = OrchestrationSettings.Id;
 
@@ -122,6 +138,8 @@
 
 			Name = instance.JobInfo.JobName;
 			Description = instance.JobInfo.JobDescription;
+			Start = instance.JobInfo.JobStart.Value;
+			End = instance.JobInfo.JobEnd.Value;
 			Notes = instance.JobInfo.JobNotes;
 			WorkflowId = instance.JobInfo.Workflow ?? Guid.Empty;
 
@@ -131,7 +149,7 @@
 
 			if (instance.JobExecution.JobConfiguration == null || instance.JobExecution.JobConfiguration == Guid.Empty)
 			{
-
+				OrchestrationSettings = new WorkflowOrchestrationSettings();
 			}
 			else
 			{

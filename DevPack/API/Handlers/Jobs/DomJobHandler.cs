@@ -135,7 +135,7 @@
 
 			var jobIdByOrchestrationSettingsId = apiJobs.ToDictionary(x => x.OrchestrationSettings.Id, x => x.Id);
 
-			DomOrchestrationSettingsHandler.TryCreateOrUpdate(planApi, apiJobs.Select(x => x.OrchestrationSettings).ToList(), out var domResult);
+			DomWorkflowOrchestrationSettingsHandler.TryCreateOrUpdate(planApi, apiJobs.Select(x => x.OrchestrationSettings).ToList(), out var domResult);
 
 			foreach (var id in domResult.UnsuccessfulIds)
 			{
