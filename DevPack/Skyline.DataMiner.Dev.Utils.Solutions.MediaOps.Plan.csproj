@@ -38,6 +38,7 @@
 	</ItemGroup>
 	<ItemGroup>
 		<InternalsVisibleTo Include="Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests" />
+		<InternalsVisibleTo Include="Skyline.DataMiner.Utils.MediaOps.Temp.Common" />
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="Skyline.DataMiner.ConnectorAPI.SkylineLockManager" Version="1.3.4" />

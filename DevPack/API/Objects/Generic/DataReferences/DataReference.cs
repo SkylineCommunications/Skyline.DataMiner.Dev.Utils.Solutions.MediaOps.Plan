@@ -26,7 +26,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Serializes this <see cref="DataReference"/> to a string representation suitable for storage or transmission.
 		/// </summary>
 		/// <returns>The serialized string.</returns>
-		public string Serialize()
+		internal string Serialize()
 		{
 			return ToStorage().Serialize();
 		}
@@ -38,7 +38,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <param name="result">When this method returns, contains the deserialized DataReference if the operation succeeds; otherwise, null. This
 		/// parameter is passed uninitialized.</param>
 		/// <returns>true if the string was successfully deserialized into a DataReference; otherwise, false.</returns>
-		public static bool TryDeserialize(string serialized, out DataReference result)
+		internal static bool TryDeserialize(string serialized, out DataReference result)
 		{
 			result = null;
 			if (!Storage.DOM.DataReference.TryDeserialize(serialized, out var storageReference))
