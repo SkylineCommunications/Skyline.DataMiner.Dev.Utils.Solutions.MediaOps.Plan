@@ -23,6 +23,32 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		public DataReferenceType Type { get; }
 
 		/// <summary>
+		/// Serializes this <see cref="DataReference"/> to a string representation suitable for storage or transmission.
+		/// </summary>
+		/// <returns>The serialized string.</returns>
+		public string Serialize()
+		{
+			return ToStorage().Serialize();
+		}
+
+		/// <summary>
+		/// Attempts to deserialize the specified string into a DataReference instance.
+		/// </summary>
+		/// <param name="serialized">The string containing the serialized representation of a DataReference.</param>
+		/// <param name="result">When this method returns, contains the deserialized DataReference if the operation succeeds; otherwise, null. This
+		/// parameter is passed uninitialized.</param>
+		/// <returns>true if the string was successfully deserialized into a DataReference; otherwise, false.</returns>
+		public static bool TryDeserialize(string serialized, out DataReference result)
+		{
+			result = null;
+			if (!Storage.DOM.DataReference.TryDeserialize(serialized, out var storageReference))
+				return false;
+
+			result = FromStorage(storageReference);
+			return result != null;
+		}
+
+		/// <summary>
 		/// Converts this <see cref="DataReference"/> to its storage representation.
 		/// </summary>
 		/// <returns>A <see cref="Storage.DOM.DataReference"/> representing this instance.</returns>
