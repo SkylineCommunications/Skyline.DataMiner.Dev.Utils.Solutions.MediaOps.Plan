@@ -33,6 +33,16 @@
 		/// </summary>
 		public override string Name { get; set; }
 
+		/// <summary>
+		/// Gets or sets the scope of the property.
+		/// </summary>
+		public string Scope { get; set; }
+
+		/// <summary>
+		/// Gets or sets the name of the section to which the property belongs.
+		/// </summary>
+		public string SectionName { get; set; }
+
 		private void ParseInstance(StorageProperties.PropertyInstance instance)
 		{
 			originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
