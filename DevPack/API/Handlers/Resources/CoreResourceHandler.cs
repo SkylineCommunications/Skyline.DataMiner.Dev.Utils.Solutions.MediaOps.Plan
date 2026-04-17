@@ -236,7 +236,7 @@
 
 			foreach (var mapping in resourceMappings)
 			{
-				if (mapping.CoreResource == null)
+				if (mapping.IsNew)
 				{
 					unsuccessfulIds.Add(mapping.DomResource.ID.Id);
 
@@ -311,7 +311,7 @@
 
 			foreach (var mapping in resourceMappings)
 			{
-				if (mapping.CoreResource == null)
+				if (mapping.IsNew)
 				{
 					unsuccessfulIds.Add(mapping.DomResource.ID.Id);
 
@@ -408,7 +408,6 @@
 				return;
 			}
 
-			var domResourcesById = new Dictionary<Guid, DomResource>();
 			var domResourceByCoreId = new Dictionary<Guid, DomResource>();
 
 			var resourcesToCreateOrUpdate = new List<CoreResource>();
@@ -425,11 +424,10 @@
 
 				resourcesToCreateOrUpdate.Add(core);
 
-				domResourcesById.Add(dom.ID.Id, dom);
 				domResourceByCoreId.Add(core.ID, dom);
 			}
 
-			planApi.CoreHelpers.ResourceManagerHelper.TryCreateOrUpdateResourcesInBatches(resourcesToCreateOrUpdate, out var result, out var createdOrUpdatedResources);
+			planApi.CoreHelpers.ResourceManagerHelper.TryCreateOrUpdateResourcesInBatches(resourcesToCreateOrUpdate, out var result);
 
 			foreach (var id in result.UnsuccessfulIds)
 			{
@@ -447,7 +445,7 @@
 				}
 			}
 
-			var createdOrUpdatedResourcesByCoreId = createdOrUpdatedResources?.ToDictionary(x => x.ID) ?? new Dictionary<Guid, CoreResource>();
+			var createdOrUpdatedResourcesByCoreId = result.SuccessfulItems?.Cast<CoreResource>()?.ToDictionary(x => x.ID) ?? new Dictionary<Guid, CoreResource>();
 			foreach (var id in result.SuccessfulIds)
 			{
 				if (!domResourceByCoreId.TryGetValue(id, out var domResource))
@@ -456,7 +454,7 @@
 					continue;
 				}
 
-				domResourcesById[domResource.ID.Id].ResourceInternalProperties.Resource_Id = id;
+				domResource.ResourceInternalProperties.Resource_Id = id;
 
 				if (enableDveActionByCoreId.TryGetValue(id, out var enableDveAction))
 				{
@@ -1295,6 +1293,7 @@
 			private ResourceMapping(DomResource domResource)
 				: this(domResource, BuildCoreResource(domResource.ResourceInfo.Type.Value))
 			{
+				IsNew = true;
 			}
 
 			private ResourceMapping(DomResource domResource, CoreResource coreResource)
@@ -1307,9 +1306,12 @@
 
 			public CoreResource CoreResource { get; }
 
-			public bool NeedsNameValidation =>
-				CoreResource == null
-				|| DomResource.ResourceInfo.Name != CoreResource.Name;
+			/// <summary>
+			/// Indicates whether this mapping represents a new CORE resource that needs to be created, or an existing CORE resource that may need to be updated.
+			/// </summary>
+			public bool IsNew { get; }
+
+			public bool NeedsNameValidation => IsNew || DomResource.ResourceInfo.Name != CoreResource.Name;
 
 			public static IEnumerable<ResourceMapping> GetMappings(MediaOpsPlanApi planApi, ICollection<DomResource> domResources)
 			{
