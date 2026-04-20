@@ -14,7 +14,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Initializes a new instance of the <see cref="SchedulingConfigurationParameterReference"/> class.
 		/// </summary>
 		/// <param name="parameterId">The unique identifier of the scheduling configuration parameter.</param>
-		public SchedulingConfigurationParameterReference(Guid parameterId) : base(DataReferenceType.SchedulingConfigurationParameter)
+		/// <param name="nodeId">
+		/// Optional identifier of the workflow node whose scheduling configuration parameter is referenced.
+		/// When <see langword="null"/> the reference targets the parameter on the current node.
+		/// </param>
+		public SchedulingConfigurationParameterReference(Guid parameterId, string nodeId = null) : base(DataReferenceType.SchedulingConfigurationParameter, nodeId)
 		{
 			ParameterId = parameterId;
 		}
@@ -27,7 +31,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <inheritdoc/>
 		public override bool Equals(DataReference other)
 		{
-			return other is SchedulingConfigurationParameterReference scpr && scpr.ParameterId == ParameterId;
+			return base.Equals(other)
+				&& other is SchedulingConfigurationParameterReference scpr
+				&& scpr.ParameterId == ParameterId;
 		}
 
 		/// <inheritdoc/>
@@ -35,33 +41,27 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 			unchecked
 			{
-				var hash = 17;
-				hash = hash * 23 + Type.GetHashCode();
+				var hash = base.GetHashCode();
 				hash = hash * 23 + ParameterId.GetHashCode();
 				return hash;
 			}
 		}
 
-		internal static SchedulingConfigurationParameterReference ParseFromStorage(Storage.DOM.DataReference reference)
+		internal static SchedulingConfigurationParameterReference ParseFromStorage(Storage.DOM.DataReference reference, string nodeId)
 		{
 			if (reference.ReferenceData == null || !reference.ReferenceData.TryGetValue(ParameterIdKey, out var raw))
 			{
 				return null;
 			}
 
-			return Guid.TryParse(raw, out var id) ? new SchedulingConfigurationParameterReference(id) : null;
+			return Guid.TryParse(raw, out var id) ? new SchedulingConfigurationParameterReference(id, nodeId) : null;
 		}
 
-		internal override Storage.DOM.DataReference ToStorage()
+		private protected override Dictionary<string, string> BuildReferenceData()
 		{
-			return new Storage.DOM.DataReference
-			{
-				ReferenceType = Type.ToString(),
-				ReferenceData = new Dictionary<string, string>
-				{
-					[ParameterIdKey] = ParameterId.ToString(),
-				},
-			};
+			var data = base.BuildReferenceData() ?? new Dictionary<string, string>();
+			data[ParameterIdKey] = ParameterId.ToString();
+			return data;
 		}
 	}
 }

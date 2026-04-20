@@ -9,18 +9,34 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	public abstract class DataReference : IEquatable<DataReference>
 	{
 		/// <summary>
+		/// Storage key used to persist the optional <see cref="NodeId"/> on a reference.
+		/// </summary>
+		internal const string NodeIdKey = "NodeId";
+
+		/// <summary>
 		/// Initializes a new instance of the <see cref="DataReference"/> class with the specified type.
 		/// </summary>
 		/// <param name="type">The type of data this reference points to.</param>
-		protected DataReference(DataReferenceType type)
+		/// <param name="nodeId">
+		/// Optional identifier of the workflow node the reference is scoped to.
+		/// When <see langword="null"/> or empty the reference is interpreted as targeting the current node.
+		/// </param>
+		protected DataReference(DataReferenceType type, string nodeId = null)
 		{
 			Type = type;
+			NodeId = String.IsNullOrEmpty(nodeId) ? null : nodeId;
 		}
 
 		/// <summary>
 		/// Gets the type of data this reference points to.
 		/// </summary>
 		public DataReferenceType Type { get; }
+
+		/// <summary>
+		/// Gets the identifier of the workflow node the reference is scoped to,
+		/// or <see langword="null"/> when the reference targets the current node.
+		/// </summary>
+		public string NodeId { get; }
 
 		/// <summary>
 		/// Serializes this <see cref="DataReference"/> to a string representation suitable for storage or transmission.
@@ -57,7 +73,26 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return new Storage.DOM.DataReference
 			{
 				ReferenceType = Type.ToString(),
+				ReferenceData = BuildReferenceData(),
 			};
+		}
+
+		/// <summary>
+		/// Builds the <c>ReferenceData</c> dictionary used by <see cref="ToStorage"/>.
+		/// </summary>
+		/// <remarks>
+		/// Subclasses with extra storage keys must override this method, call the base implementation
+		/// and add their own keys to the returned dictionary.
+		/// </remarks>
+		/// <returns>The dictionary, or <see langword="null"/> when no data needs to be stored.</returns>
+		private protected virtual Dictionary<string, string> BuildReferenceData()
+		{
+			if (NodeId == null)
+			{
+				return null;
+			}
+
+			return new Dictionary<string, string> { [NodeIdKey] = NodeId };
 		}
 
 		/// <summary>
@@ -77,14 +112,30 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return null;
 			}
 
+			var nodeId = ReadNodeId(reference);
+
 			return type switch
 			{
-				DataReferenceType.ResourceName => new ResourceNameReference(),
-				DataReferenceType.ResourceLinkedObjectID => new ResourceLinkedObjectIdReference(),
-				DataReferenceType.ResourceProperty => ResourcePropertyReference.ParseFromStorage(reference),
-				DataReferenceType.SchedulingConfigurationParameter => SchedulingConfigurationParameterReference.ParseFromStorage(reference),
+				DataReferenceType.ResourceName => new ResourceNameReference(nodeId),
+				DataReferenceType.ResourceLinkedObjectID => new ResourceLinkedObjectIdReference(nodeId),
+				DataReferenceType.ResourceProperty => ResourcePropertyReference.ParseFromStorage(reference, nodeId),
+				DataReferenceType.SchedulingConfigurationParameter => SchedulingConfigurationParameterReference.ParseFromStorage(reference, nodeId),
+				DataReferenceType.WorkflowName => new WorkflowNameReference(nodeId),
+				DataReferenceType.WorkflowProperty => WorkflowPropertyReference.ParseFromStorage(reference, nodeId),
 				_ => null,
 			};
+		}
+
+		internal static string ReadNodeId(Storage.DOM.DataReference reference)
+		{
+			if (reference?.ReferenceData == null)
+			{
+				return null;
+			}
+
+			return reference.ReferenceData.TryGetValue(NodeIdKey, out var nodeId) && !String.IsNullOrEmpty(nodeId)
+				? nodeId
+				: null;
 		}
 
 		/// <summary>
@@ -104,7 +155,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <returns><see langword="true"/> if the specified instance is equal to the current instance; otherwise, <see langword="false"/>.</returns>
 		public virtual bool Equals(DataReference other)
 		{
-			return other is not null && Type == other.Type;
+			return other is not null && Type == other.Type && String.Equals(NodeId, other.NodeId, StringComparison.Ordinal);
 		}
 
 		/// <summary>
@@ -115,7 +166,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 			unchecked
 			{
-				return 17 * 23 + Type.GetHashCode();
+				var hash = 17;
+				hash = (hash * 23) + Type.GetHashCode();
+				hash = (hash * 23) + (NodeId != null ? NodeId.GetHashCode() : 0);
+				return hash;
 			}
 		}
 	}

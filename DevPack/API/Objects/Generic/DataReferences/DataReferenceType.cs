@@ -30,5 +30,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
         /// </summary>
         [Description("Scheduling Configuration Parameter")]
         SchedulingConfigurationParameter,
+
+        /// <summary>
+        /// Refers to the name of a workflow.
+        /// </summary>
+        [Description("Workflow Name")]
+        WorkflowName,
+
+        /// <summary>
+        /// Refers to a workflow property (a property defined under the MediaOps scope and assigned to a workflow / job).
+        /// </summary>
+        [Description("Workflow Property")]
+        WorkflowProperty,
     }
 }
