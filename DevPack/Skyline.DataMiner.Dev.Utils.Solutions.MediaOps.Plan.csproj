@@ -47,7 +47,7 @@
 		<PackageReference Include="Skyline.DataMiner.Dev.Utils.Solutions.Categories" Version="1.1.0" />
 		<PackageReference Include="Skyline.DataMiner.Dev.Utils.SDM.Abstractions" Version="1.0.1" />
 		<PackageReference Include="Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Live" Version="0.0.0" />
-		<PackageReference Include="Skyline.DataMiner.SDM.Registration.Common" Version="2.0.0" />
+		<PackageReference Include="Skyline.DataMiner.SDM.Registration.Common" Version="2.0.5" />
 		<PackageReference Include="Skyline.DataMiner.Utils.DOM" Version="10.5.2.5" />
 		<PackageReference Include="Skyline.DataMiner.Utils.SecureCoding" Version="2.2.1" />
 		<PackageReference Include="Skyline.DataMiner.Utils.SecureCoding.Analyzers" Version="2.2.1">
