@@ -1013,5 +1013,242 @@
 			Assert.AreEqual($"A number capacity setting cannot be used with a capacity of type 'RangeCapacity'.", numberCapacitySettingError.ErrorMessage);
 			Assert.AreEqual(resourcePool.OrchestrationSettings.Id, numberCapacitySettingError.Id);
 		}
+
+		[TestMethod]
+		public void AssignWithInvalidCapabilityValueThrowsException()
+		{
+			var prefix = Guid.NewGuid();
+
+			var capability = new Capability
+			{
+				Name = $"{prefix}_Capability",
+			}
+			.SetDiscretes(["Valid1", "Valid2"]);
+			objectCreator.CreateCapability(capability);
+
+			var resourcePool = new ResourcePool
+			{
+				Name = $"{prefix}_ResourcePool",
+			};
+			resourcePool.OrchestrationSettings
+				.AddCapability(new CapabilitySetting(capability) { Value = "InvalidValue" });
+
+			MediaOpsException? expectedException = null;
+			try
+			{
+				objectCreator.CreateResourcePool(resourcePool);
+			}
+			catch (MediaOpsException ex)
+			{
+				expectedException = ex;
+			}
+
+			Assert.IsNotNull(expectedException, "Expected exception was not thrown.");
+
+			Assert.AreEqual(1, expectedException.TraceData.ErrorData.Count);
+			var orchestrationSettingsErrors = expectedException.TraceData.ErrorData.OfType<OrchestrationSettingsError>().ToList();
+			Assert.AreEqual(1, orchestrationSettingsErrors.Count);
+
+			var invalidCapabilitySettingsError = orchestrationSettingsErrors.OfType<OrchestrationSettingsInvalidCapabilitySettingsError>().Single();
+			Assert.AreEqual($"Discrete value 'InvalidValue' is not valid for capability '{capability.Name}'.", invalidCapabilitySettingsError.ErrorMessage);
+			Assert.AreEqual(capability.Id, invalidCapabilitySettingsError.CapabilityId);
+			Assert.AreEqual(resourcePool.OrchestrationSettings.Id, invalidCapabilitySettingsError.Id);
+		}
+
+		[TestMethod]
+		public void AssignWithMismatchedConfigurationTypeThrowsException()
+		{
+			var prefix = Guid.NewGuid();
+
+			var textConfiguration = new TextConfiguration
+			{
+				Name = $"{prefix}_TextConfiguration",
+			};
+			var numberConfiguration = new NumberConfiguration
+			{
+				Name = $"{prefix}_NumberConfiguration",
+			};
+			var discreteTextConfiguration = new DiscreteTextConfiguration
+			{
+				Name = $"{prefix}_DiscreteTextConfiguration",
+			}
+			.AddDiscrete(new TextDiscreet("A", "A"));
+			var discreteNumberConfiguration = new DiscreteNumberConfiguration
+			{
+				Name = $"{prefix}_DiscreteNumberConfiguration",
+			}
+			.AddDiscrete(new NumberDiscreet(1, "One"));
+			objectCreator.CreateConfigurations([textConfiguration, numberConfiguration, discreteTextConfiguration, discreteNumberConfiguration]);
+
+			var resourcePool = new ResourcePool
+			{
+				Name = $"{prefix}_ResourcePool",
+			};
+
+			// Each setting uses the ID of the wrong configuration type
+			resourcePool.OrchestrationSettings
+				.AddConfiguration(new NumberConfigurationSetting(textConfiguration.Id) { Value = 42 })
+				.AddConfiguration(new TextConfigurationSetting(numberConfiguration.Id) { Value = "text" })
+				.AddConfiguration(new DiscreteTextConfigurationSetting(discreteNumberConfiguration.Id) { Value = new TextDiscreet("A", "A") })
+				.AddConfiguration(new DiscreteNumberConfigurationSetting(discreteTextConfiguration.Id) { Value = new NumberDiscreet(1, "One") });
+
+			MediaOpsException? expectedException = null;
+			try
+			{
+				objectCreator.CreateResourcePool(resourcePool);
+			}
+			catch (MediaOpsException ex)
+			{
+				expectedException = ex;
+			}
+
+			Assert.IsNotNull(expectedException, "Expected exception was not thrown.");
+
+			Assert.AreEqual(4, expectedException.TraceData.ErrorData.Count);
+			var orchestrationSettingsErrors = expectedException.TraceData.ErrorData.OfType<OrchestrationSettingsError>().ToList();
+			Assert.AreEqual(4, orchestrationSettingsErrors.Count);
+
+			var invalidConfigurationSettingsErrors = orchestrationSettingsErrors.OfType<OrchestrationSettingsInvalidConfigurationSettingsError>().ToList();
+			Assert.AreEqual(4, invalidConfigurationSettingsErrors.Count);
+
+			var numberOnTextError = invalidConfigurationSettingsErrors.SingleOrDefault(e => e.ConfigurationId == textConfiguration.Id);
+			Assert.IsNotNull(numberOnTextError);
+			Assert.AreEqual("A number configuration setting cannot be used with a configuration of type 'TextConfiguration'.", numberOnTextError.ErrorMessage);
+			Assert.AreEqual(resourcePool.OrchestrationSettings.Id, numberOnTextError.Id);
+
+			var textOnNumberError = invalidConfigurationSettingsErrors.SingleOrDefault(e => e.ConfigurationId == numberConfiguration.Id);
+			Assert.IsNotNull(textOnNumberError);
+			Assert.AreEqual("A text configuration setting cannot be used with a configuration of type 'NumberConfiguration'.", textOnNumberError.ErrorMessage);
+			Assert.AreEqual(resourcePool.OrchestrationSettings.Id, textOnNumberError.Id);
+
+			var discreteTextOnDiscreteNumberError = invalidConfigurationSettingsErrors.SingleOrDefault(e => e.ConfigurationId == discreteNumberConfiguration.Id);
+			Assert.IsNotNull(discreteTextOnDiscreteNumberError);
+			Assert.AreEqual("A discrete text configuration setting cannot be used with a configuration of type 'DiscreteNumberConfiguration'.", discreteTextOnDiscreteNumberError.ErrorMessage);
+			Assert.AreEqual(resourcePool.OrchestrationSettings.Id, discreteTextOnDiscreteNumberError.Id);
+
+			var discreteNumberOnDiscreteTextError = invalidConfigurationSettingsErrors.SingleOrDefault(e => e.ConfigurationId == discreteTextConfiguration.Id);
+			Assert.IsNotNull(discreteNumberOnDiscreteTextError);
+			Assert.AreEqual("A discrete number configuration setting cannot be used with a configuration of type 'DiscreteTextConfiguration'.", discreteNumberOnDiscreteTextError.ErrorMessage);
+			Assert.AreEqual(resourcePool.OrchestrationSettings.Id, discreteNumberOnDiscreteTextError.Id);
+		}
+
+		[TestMethod]
+		public void AssignWithInvalidDiscreteTextConfigurationValueThrowsException()
+		{
+			var prefix = Guid.NewGuid();
+
+			var configuration = new DiscreteTextConfiguration
+			{
+				Name = $"{prefix}_DiscreteTextConfiguration",
+			}
+			.SetDiscretes([new TextDiscreet("1", "Value1"), new TextDiscreet("2", "Value2")]);
+			objectCreator.CreateConfiguration(configuration);
+
+			var invalidValue = new TextDiscreet("99", "InvalidValue");
+
+			var resourcePool = new ResourcePool
+			{
+				Name = $"{prefix}_ResourcePool",
+			};
+			resourcePool.OrchestrationSettings
+				.AddConfiguration(new DiscreteTextConfigurationSetting(configuration.Id) { Value = invalidValue });
+
+			MediaOpsException? expectedException = null;
+			try
+			{
+				objectCreator.CreateResourcePool(resourcePool);
+			}
+			catch (MediaOpsException ex)
+			{
+				expectedException = ex;
+			}
+
+			Assert.IsNotNull(expectedException, "Expected exception was not thrown.");
+
+			Assert.AreEqual(1, expectedException.TraceData.ErrorData.Count);
+			var invalidConfigurationSettingsError = expectedException.TraceData.ErrorData.OfType<OrchestrationSettingsInvalidConfigurationSettingsError>().Single();
+			Assert.AreEqual($"Value '{invalidValue}' is not a valid discrete value for this configuration.", invalidConfigurationSettingsError.ErrorMessage);
+			Assert.AreEqual(configuration.Id, invalidConfigurationSettingsError.ConfigurationId);
+			Assert.AreEqual(resourcePool.OrchestrationSettings.Id, invalidConfigurationSettingsError.Id);
+		}
+
+		[TestMethod]
+		public void AssignWithInvalidDiscreteNumberConfigurationValueThrowsException()
+		{
+			var prefix = Guid.NewGuid();
+
+			var configuration = new DiscreteNumberConfiguration
+			{
+				Name = $"{prefix}_DiscreteNumberConfiguration",
+			}
+			.SetDiscretes([new NumberDiscreet(1, "One"), new NumberDiscreet(2, "Two")]);
+			objectCreator.CreateConfiguration(configuration);
+
+			var invalidValue = new NumberDiscreet(99, "NinetyNine");
+
+			var resourcePool = new ResourcePool
+			{
+				Name = $"{prefix}_ResourcePool",
+			};
+			resourcePool.OrchestrationSettings
+				.AddConfiguration(new DiscreteNumberConfigurationSetting(configuration.Id) { Value = invalidValue });
+
+			MediaOpsException? expectedException = null;
+			try
+			{
+				objectCreator.CreateResourcePool(resourcePool);
+			}
+			catch (MediaOpsException ex)
+			{
+				expectedException = ex;
+			}
+
+			Assert.IsNotNull(expectedException, "Expected exception was not thrown.");
+
+			Assert.AreEqual(1, expectedException.TraceData.ErrorData.Count);
+			var invalidConfigurationSettingsError = expectedException.TraceData.ErrorData.OfType<OrchestrationSettingsInvalidConfigurationSettingsError>().Single();
+			Assert.AreEqual($"Value '{invalidValue}' is not a valid discrete value for this configuration.", invalidConfigurationSettingsError.ErrorMessage);
+			Assert.AreEqual(configuration.Id, invalidConfigurationSettingsError.ConfigurationId);
+			Assert.AreEqual(resourcePool.OrchestrationSettings.Id, invalidConfigurationSettingsError.Id);
+		}
+
+		[TestMethod]
+		public void AssignWithNumberConfigurationValueOutOfRangeThrowsException()
+		{
+			var prefix = Guid.NewGuid();
+
+			var configuration = new NumberConfiguration
+			{
+				Name = $"{prefix}_NumberConfiguration",
+				RangeMin = 0,
+				RangeMax = 100,
+			};
+			objectCreator.CreateConfiguration(configuration);
+
+			var resourcePool = new ResourcePool
+			{
+				Name = $"{prefix}_ResourcePool",
+			};
+			resourcePool.OrchestrationSettings
+				.AddConfiguration(new NumberConfigurationSetting(configuration.Id) { Value = 150 });
+
+			MediaOpsException? expectedException = null;
+			try
+			{
+				objectCreator.CreateResourcePool(resourcePool);
+			}
+			catch (MediaOpsException ex)
+			{
+				expectedException = ex;
+			}
+
+			Assert.IsNotNull(expectedException, "Expected exception was not thrown.");
+
+			Assert.AreEqual(1, expectedException.TraceData.ErrorData.Count);
+			var invalidConfigurationSettingsError = expectedException.TraceData.ErrorData.OfType<OrchestrationSettingsInvalidConfigurationSettingsError>().Single();
+			Assert.AreEqual($"Value '150' must be lower than or equal to '100'.", invalidConfigurationSettingsError.ErrorMessage);
+			Assert.AreEqual(configuration.Id, invalidConfigurationSettingsError.ConfigurationId);
+			Assert.AreEqual(resourcePool.OrchestrationSettings.Id, invalidConfigurationSettingsError.Id);
+		}
 	}
 }
