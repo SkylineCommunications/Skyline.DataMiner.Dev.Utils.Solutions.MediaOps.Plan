@@ -89,7 +89,7 @@
 				return false;
 			}
 
-			if (capacity.StepSize.HasValue && !ValidateValueStepSize(capacityValue.Value))
+			if (!ValidateValueStepSize(capacityValue.Value))
 			{
 				return false;
 			}
@@ -106,7 +106,13 @@
 
 		private bool ValidateValueStepSize(decimal capacityValue)
 		{
-			if (capacity.StepSize - 0.0m == 0)
+			if (!capacity.StepSize.HasValue)
+			{
+				return true;
+			}
+
+			var stepSize = capacity.StepSize.Value;
+			if (stepSize - 0.0m == 0)
 			{
 				return true;
 			}
@@ -125,9 +131,9 @@
 				// no range defined
 			}
 
-			if ((valueToCheck % capacity.StepSize.Value) != 0)
+			if ((valueToCheck % stepSize) != 0)
 			{
-				ReportError(apiObjectId, ComposeCapacitySettingError(capacitySetting.Id, $"Value '{capacityValue}' must align with the step size of '{capacity.StepSize}'."));
+				ReportError(apiObjectId, ComposeCapacitySettingError(capacitySetting.Id, $"Value '{capacityValue}' must align with the step size of '{stepSize}'."));
 
 				return false;
 			}

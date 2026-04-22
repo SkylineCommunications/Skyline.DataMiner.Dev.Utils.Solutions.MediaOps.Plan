@@ -143,7 +143,7 @@
 				return;
 			}
 
-			if (numberConfiguration.StepSize.HasValue && !ValidateValueStepSize(value.Value, numberConfiguration))
+			if (!ValidateValueStepSize(value.Value, numberConfiguration))
 			{
 				return;
 			}
@@ -158,7 +158,13 @@
 
 		private bool ValidateValueStepSize(decimal value, NumberConfiguration numberConfiguration)
 		{
-			if (numberConfiguration.StepSize - 0.0m == 0)
+			if (!numberConfiguration.StepSize.HasValue)
+			{
+				return true;
+			}
+
+			var stepSize = numberConfiguration.StepSize.Value;
+			if (stepSize - 0.0m == 0)
 			{
 				return true;
 			}
@@ -177,9 +183,9 @@
 				// no range defined
 			}
 
-			if ((valueToCheck % numberConfiguration.StepSize.Value) != 0)
+			if ((valueToCheck % stepSize) != 0)
 			{
-				ReportError(apiObjectId, ComposeConfigurationSettingError(configurationSetting.Id, $"Value '{value}' must align with the step size of '{numberConfiguration.StepSize}'."));
+				ReportError(apiObjectId, ComposeConfigurationSettingError(configurationSetting.Id, $"Value '{value}' must align with the step size of '{stepSize}'."));
 
 				return false;
 			}
