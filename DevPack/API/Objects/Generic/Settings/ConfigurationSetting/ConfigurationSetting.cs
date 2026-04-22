@@ -25,5 +25,10 @@
 			: base(configurationSetting)
 		{
 		}
+
+		/// <summary>
+		/// Gets the unique identifier of the configuration.
+		/// </summary>
+		public new Guid Id { get => base.Id; internal set => base.Id = value; }
 	}
 }

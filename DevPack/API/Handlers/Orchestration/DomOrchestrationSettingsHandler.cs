@@ -181,7 +181,7 @@
 						continue;
 					}
 
-					if (!capabilitiesById.TryGetValue(capabilitySetting.Id, out _))
+					if (!capabilitiesById.TryGetValue(capabilitySetting.Id, out var capability))
 					{
 						var error = new OrchestrationSettingsInvalidCapabilitySettingsError
 						{
@@ -193,32 +193,21 @@
 						ReportError(capabilitySetting.Id, error);
 					}
 
-					// Not needed as long as there are no values assigned
-					/*if (capabilitySetting.Discretes.Count == 0)
+					if (!capabilitySetting.HasValue)
+					{
+						continue;
+					}
+
+					if (!capability.Discretes.Contains(capabilitySetting.Value))
 					{
 						var error = new OrchestrationSettingsInvalidCapabilitySettingsError
 						{
-							ErrorMessage = "At least one discrete value must be specified for the capability.",
+							ErrorMessage = $"Discrete value '{capabilitySetting.Value}' is not valid for capability '{capability.Name}'.",
 							CapabilityId = capabilitySetting.Id,
 						};
 
 						ReportError(capabilitySetting.Id, error);
-						continue;
 					}
-
-					foreach (var discreteValue in capabilitySetting.Discretes)
-					{
-						if (!capability.Discretes.Contains(discreteValue))
-						{
-							var error = new OrchestrationSettingsInvalidCapabilitySettingsError
-							{
-								ErrorMessage = $"Discrete value '{discreteValue}' is not valid for capability '{capability.Name}'.",
-								CapabilityId = capabilitySetting.Id,
-							};
-
-							ReportError(capabilitySetting.Id, error);
-						}
-					}*/
 				}
 			}
 		}
@@ -277,7 +266,7 @@
 						continue;
 					}
 
-					if (!configurationsById.TryGetValue(configurationSetting.Id, out _))
+					if (!configurationsById.TryGetValue(configurationSetting.Id, out var configuration))
 					{
 						var error = new OrchestrationSettingsInvalidConfigurationSettingsError
 						{
@@ -287,9 +276,10 @@
 						};
 
 						ReportError(configurationSetting.Id, error);
+						continue;
 					}
 
-					// Add dedicated validation for configuration setting values here if needed
+					PassTraceData(OrchestrationSettingsConfigurationSettingValidator.Validate(orchestrationSettings.Id, configuration, configurationSetting, configurationSetting.HasValue));
 				}
 			}
 		}
