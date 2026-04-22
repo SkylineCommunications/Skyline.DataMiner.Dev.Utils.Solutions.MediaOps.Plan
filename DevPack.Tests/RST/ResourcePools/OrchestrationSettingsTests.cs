@@ -959,5 +959,59 @@
 			resourcePool2 = TestContext.Api.ResourcePools.Read(resourcePool2.Id);
 			Assert.IsNotNull(resourcePool2);
 		}
+
+		[TestMethod]
+		public void AssignWithMismatchedCapacityTypeThrowsException()
+		{
+
+			var prefix = Guid.NewGuid();
+
+			var numberCapacity = new NumberCapacity
+			{
+				Name = $"{prefix}_NumberCapacity",
+			};
+			var rangeCapacity = new RangeCapacity
+			{
+				Name = $"{prefix}_RangeCapacity",
+			};
+			var capacities = objectCreator.CreateCapacities([numberCapacity, rangeCapacity]);
+
+			var resourcePool = new ResourcePool
+			{
+				Name = $"{prefix}_ResourcePool",
+			};
+			resourcePool.OrchestrationSettings
+				.AddCapacity(new NumberCapacitySetting(rangeCapacity.Id))
+				.AddCapacity(new RangeCapacitySetting(numberCapacity.Id));
+
+			MediaOpsException? expectedException = null;
+			try
+			{
+				objectCreator.CreateResourcePool(resourcePool);
+			}
+			catch (MediaOpsException ex)
+			{
+				expectedException = ex;
+			}
+
+			Assert.IsNotNull(expectedException, "Expected exception was not thrown.");
+
+			Assert.AreEqual(2, expectedException.TraceData.ErrorData.Count);
+			var orchestrationSettingsError = expectedException.TraceData.ErrorData.OfType<OrchestrationSettingsError>();
+			Assert.AreEqual(2, orchestrationSettingsError.Count());
+
+			var orchestrationSettingsInvalidCapacitySettingsError = orchestrationSettingsError.OfType<OrchestrationSettingsInvalidCapacitySettingsError>().ToList();
+			Assert.AreEqual(2, orchestrationSettingsInvalidCapacitySettingsError.Count);
+
+			var rangeCapacitySettingError = orchestrationSettingsInvalidCapacitySettingsError.FirstOrDefault(e => e.CapacityId == numberCapacity.Id);
+			Assert.IsNotNull(rangeCapacitySettingError);
+			Assert.AreEqual($"A range capacity setting cannot be used with a capacity of type 'NumberCapacity'.", rangeCapacitySettingError.ErrorMessage);
+			Assert.AreEqual(resourcePool.OrchestrationSettings.Id, rangeCapacitySettingError.Id);
+
+			var numberCapacitySettingError = orchestrationSettingsInvalidCapacitySettingsError.FirstOrDefault(e => e.CapacityId == rangeCapacity.Id);
+			Assert.IsNotNull(numberCapacitySettingError);
+			Assert.AreEqual($"A number capacity setting cannot be used with a capacity of type 'RangeCapacity'.", numberCapacitySettingError.ErrorMessage);
+			Assert.AreEqual(resourcePool.OrchestrationSettings.Id, numberCapacitySettingError.Id);
+		}
 	}
 }

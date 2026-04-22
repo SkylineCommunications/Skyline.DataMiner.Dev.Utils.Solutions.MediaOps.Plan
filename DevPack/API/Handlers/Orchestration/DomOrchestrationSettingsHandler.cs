@@ -111,7 +111,7 @@
 						continue;
 					}
 
-					if (!capacitiesById.TryGetValue(capacitySetting.Id, out _))
+					if (!capacitiesById.TryGetValue(capacitySetting.Id, out var capacity))
 					{
 						var error = new OrchestrationSettingsInvalidCapacitySettingsError
 						{
@@ -122,6 +122,8 @@
 
 						ReportError(orchestrationSettings.Id, error);
 					}
+
+					PassTraceData(OrchestrationSettingsCapacitySettingValidator.Validate(orchestrationSettings.Id, capacity, capacitySetting, capacitySetting.HasValue));
 				}
 			}
 		}

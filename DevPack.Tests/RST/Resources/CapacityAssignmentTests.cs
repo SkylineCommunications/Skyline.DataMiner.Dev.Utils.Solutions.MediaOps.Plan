@@ -908,5 +908,57 @@
 			// No call to CreateResource / Update here. We only validate in-memory behavior.
 			Assert.AreEqual(0, unmanagedResource.Capacities.Count);
 		}
+
+		[TestMethod]
+		public void AssignWithMismatchedCapacityTypeThrowsException()
+		{
+			var prefix = Guid.NewGuid();
+
+			var numberCapacity = new NumberCapacity
+			{
+				Name = $"{prefix}_NumberCapacity",
+			};
+			var rangeCapacity = new RangeCapacity
+			{
+				Name = $"{prefix}_RangeCapacity",
+			};
+			var capacities = objectCreator.CreateCapacities([numberCapacity, rangeCapacity]);
+
+			var resource = new UnmanagedResource
+			{
+				Name = $"{prefix}_Resource",
+			}
+			.AddCapacity(new NumberCapacitySetting(rangeCapacity.Id))
+			.AddCapacity(new RangeCapacitySetting(numberCapacity.Id));
+
+			MediaOpsException? expectedException = null;
+			try
+			{
+				objectCreator.CreateResource(resource);
+			}
+			catch (MediaOpsException ex)
+			{
+				expectedException = ex;
+			}
+
+			Assert.IsNotNull(expectedException, "Expected exception was not thrown.");
+
+			Assert.AreEqual(2, expectedException.TraceData.ErrorData.Count);
+			var resourceErrors = expectedException.TraceData.ErrorData.OfType<ResourceError>();
+			Assert.AreEqual(2, resourceErrors.Count());
+
+			var resourceInvalidCapacitySettingsErrors = resourceErrors.OfType<ResourceInvalidCapacitySettingsError>().ToList();
+			Assert.AreEqual(2, resourceInvalidCapacitySettingsErrors.Count);
+
+			var rangeCapacitySettingError = resourceInvalidCapacitySettingsErrors.SingleOrDefault(x => x.CapacityId == numberCapacity.Id);
+			Assert.IsNotNull(rangeCapacitySettingError);
+			Assert.AreEqual($"A range capacity setting cannot be used with a capacity of type 'NumberCapacity'.", rangeCapacitySettingError.ErrorMessage);
+			Assert.AreEqual(resource.Id, rangeCapacitySettingError.Id);
+
+			var numberCapacitySettingError = resourceInvalidCapacitySettingsErrors.SingleOrDefault(x => x.CapacityId == rangeCapacity.Id);
+			Assert.IsNotNull(numberCapacitySettingError);
+			Assert.AreEqual($"A number capacity setting cannot be used with a capacity of type 'RangeCapacity'.", numberCapacitySettingError.ErrorMessage);
+			Assert.AreEqual(resource.Id, numberCapacitySettingError.Id);
+		}
 	}
 }
