@@ -39,20 +39,27 @@
 
 		private void Validate()
 		{
-			var actionMap = new Dictionary<Type, Action>
-			{
-				[typeof(TextConfigurationSetting)] = () => ValidateTextConfigurationSetting((TextConfigurationSetting)configurationSetting),
-				[typeof(NumberConfigurationSetting)] = () => ValidateNumberConfigurationSetting((NumberConfigurationSetting)configurationSetting),
-				[typeof(DiscreteTextConfigurationSetting)] = () => ValidateDiscreteTextConfigurationSetting((DiscreteTextConfigurationSetting)configurationSetting),
-				[typeof(DiscreteNumberConfigurationSetting)] = () => ValidateDiscreteNumberConfigurationSetting((DiscreteNumberConfigurationSetting)configurationSetting),
-			};
 
-			if (!actionMap.TryGetValue(configurationSetting.GetType(), out var validateAction))
+			if (configurationSetting is TextConfigurationSetting textConfigurationSetting)
+			{
+				ValidateTextConfigurationSetting(textConfigurationSetting);
+			}
+			else if (configurationSetting is NumberConfigurationSetting numberConfigurationSetting)
+			{
+				ValidateNumberConfigurationSetting(numberConfigurationSetting);
+			}
+			else if (configurationSetting is DiscreteTextConfigurationSetting discreteTextConfigurationSetting)
+			{
+				ValidateDiscreteTextConfigurationSetting(discreteTextConfigurationSetting);
+			}
+			else if (configurationSetting is DiscreteNumberConfigurationSetting discreteNumberConfigurationSetting)
+			{
+				ValidateDiscreteNumberConfigurationSetting(discreteNumberConfigurationSetting);
+			}
+			else
 			{
 				throw new InvalidOperationException($"Unsupported configuration setting type: {configurationSetting.GetType().FullName}");
 			}
-
-			validateAction();
 		}
 
 		private void ValidateTextConfigurationSetting(TextConfigurationSetting setting)
