@@ -922,7 +922,7 @@
 			{
 				Name = $"{prefix}_RangeCapacity",
 			};
-			var capacities = objectCreator.CreateCapacities([numberCapacity, rangeCapacity]);
+			objectCreator.CreateCapacities([numberCapacity, rangeCapacity]);
 
 			var resource = new UnmanagedResource
 			{
