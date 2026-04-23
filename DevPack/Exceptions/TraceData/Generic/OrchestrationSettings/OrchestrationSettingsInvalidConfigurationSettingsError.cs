@@ -5,11 +5,11 @@
 	/// <summary>
 	/// Represents an error that occurs when orchestration settings configuration settings are invalid.
 	/// </summary>
-	public class OrchestrationSettingsInvalidConfigurationSettingsError : OrchestrationSettingsError
+	public sealed class OrchestrationSettingsInvalidConfigurationSettingsError : OrchestrationSettingsError
 	{
 		/// <summary>
 		/// Gets the unique identifier for the configuration.
 		/// </summary>
-		public Guid ConfigurationId { get; set; }
+		public Guid ConfigurationId { get; internal set; }
 	}
 }

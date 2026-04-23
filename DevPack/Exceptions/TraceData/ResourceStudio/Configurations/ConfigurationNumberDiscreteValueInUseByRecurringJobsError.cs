@@ -6,7 +6,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a configuration number discrete value is referenced by one or multiple Recurring Jobs.
 	/// </summary>
-	public class ConfigurationNumberDiscreteValueInUseByRecurringJobsError : ConfigurationNumberDiscreteValueInUseError
+	public sealed class ConfigurationNumberDiscreteValueInUseByRecurringJobsError : ConfigurationNumberDiscreteValueInUseError
 	{
 		/// <summary>
 		/// Ids of the recurring jobs referencing the configuration number discrete value.

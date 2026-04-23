@@ -3,11 +3,11 @@
 	/// <summary>
 	/// Represents an error that occurs when a configuration configuration specifies an invalid configuration name.
 	/// </summary>
-	public class ConfigurationNameExistsError : ConfigurationError
+	public sealed class ConfigurationNameExistsError : ConfigurationError
 	{
 		/// <summary>
 		/// Gets the name of the configuration.
 		/// </summary>
-		public string Name { get; set; }
+		public string Name { get; internal set; }
 	}
 }

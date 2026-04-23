@@ -4,7 +4,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a resource pool configuration references a pool link that does not exist.
 	/// </summary>
-	public class ResourcePoolNotFoundPoolLinkError : ResourcePoolInvalidPoolLinkError
+	public sealed class ResourcePoolNotFoundPoolLinkError : ResourcePoolInvalidPoolLinkError
 	{
 		/// <summary>
 		/// Gets the unique identifier of the linked resource pool.

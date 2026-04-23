@@ -6,7 +6,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a configuration number discrete value is referenced by one or multiple workflows.
 	/// </summary>
-	public class ConfigurationNumberDiscreteValueInUseByWorkflowsError : ConfigurationNumberDiscreteValueInUseError
+	public sealed class ConfigurationNumberDiscreteValueInUseByWorkflowsError : ConfigurationNumberDiscreteValueInUseError
 	{
 		/// <summary>
 		/// Ids of the workflows referencing the configuration number discrete value.

@@ -3,16 +3,16 @@
 	/// <summary>
 	/// Represents an error that occurs when a resource configuration contains an invalid element link.
 	/// </summary>
-	public class ResourceInvalidElementLinkError : ResourceError
+	public sealed class ResourceInvalidElementLinkError : ResourceError
 	{
 		/// <summary>
 		/// Gets or sets the agent ID associated with the resource link.
 		/// </summary>
-		public int AgentId { get; set; }
+		public int AgentId { get; internal set; }
 
 		/// <summary>
 		/// Gets or sets the element ID associated with the resource link.
 		/// </summary>
-		public int ElementId { get; set; }
+		public int ElementId { get; internal set; }
 	}
 }

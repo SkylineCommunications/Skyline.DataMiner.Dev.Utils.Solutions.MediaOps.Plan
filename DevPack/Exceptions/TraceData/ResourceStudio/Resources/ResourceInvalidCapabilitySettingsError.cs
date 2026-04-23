@@ -5,11 +5,11 @@
 	/// <summary>
 	/// Represents an error that occurs when resource capability settings are invalid.
 	/// </summary>
-	public class ResourceInvalidCapabilitySettingsError : ResourceError
+	public sealed class ResourceInvalidCapabilitySettingsError : ResourceError
 	{
 		/// <summary>
 		/// Gets the unique identifier for the capability.
 		/// </summary>
-		public Guid CapabilityId { get; set; }
+		public Guid CapabilityId { get; internal set; }
 	}
 }
