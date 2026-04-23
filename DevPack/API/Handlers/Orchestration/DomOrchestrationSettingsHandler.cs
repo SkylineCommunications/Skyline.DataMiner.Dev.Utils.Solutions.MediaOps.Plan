@@ -277,7 +277,7 @@
 							Id = orchestrationSettings.Id,
 						};
 
-						ReportError(configurationSetting.Id, error);
+						ReportError(orchestrationSettings.Id, error);
 						continue;
 					}
 
