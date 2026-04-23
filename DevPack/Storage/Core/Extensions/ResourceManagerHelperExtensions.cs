@@ -204,7 +204,7 @@
 			return !result.HasFailures;
 		}
 
-		public static bool TryDeteleReservationInstancesInBatches(this ResourceManagerHelper helper, IEnumerable<ReservationInstance> reservationInstances, out ReservationInstanceBulkOperationResult result)
+		public static bool TryDeleteReservationInstancesInBatches(this ResourceManagerHelper helper, IEnumerable<ReservationInstance> reservationInstances, out ReservationInstanceBulkOperationResult result)
 		{
 			if (helper == null)
 			{

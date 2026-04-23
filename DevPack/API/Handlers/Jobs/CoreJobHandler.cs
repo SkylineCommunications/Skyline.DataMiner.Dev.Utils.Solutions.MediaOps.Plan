@@ -181,6 +181,8 @@
 			{
 				return;
 			}
+
+			throw new NotImplementedException();
 		}
 
 		private void Stop(ICollection<DomJob> domJobs)
@@ -195,6 +197,7 @@
 				return;
 			}
 
+			throw new NotImplementedException();
 		}
 
 		private void Delete(ICollection<DomJob> domJobs)
@@ -224,7 +227,7 @@
 				domJobsByReservationId[mapping.Reservation.ID] = mapping.Job;
 			}
 
-			planApi.CoreHelpers.ResourceManagerHelper.TryDeteleReservationInstancesInBatches(toDelete, out var result);
+			planApi.CoreHelpers.ResourceManagerHelper.TryDeleteReservationInstancesInBatches(toDelete, out var result);
 
 			foreach (var id in result.UnsuccessfulIds)
 			{
