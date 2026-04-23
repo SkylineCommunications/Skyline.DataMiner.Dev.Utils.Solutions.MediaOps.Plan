@@ -177,7 +177,7 @@
 							Id = orchestrationSettings.Id,
 						};
 
-						ReportError(capabilitySetting.Id, error);
+						ReportError(orchestrationSettings.Id, error);
 						continue;
 					}
 
@@ -190,7 +190,8 @@
 							Id = orchestrationSettings.Id,
 						};
 
-						ReportError(capabilitySetting.Id, error);
+						ReportError(orchestrationSettings.Id, error);
+						continue;
 					}
 
 					if (!capabilitySetting.HasValue)
@@ -204,9 +205,10 @@
 						{
 							ErrorMessage = $"Discrete value '{capabilitySetting.Value}' is not valid for capability '{capability.Name}'.",
 							CapabilityId = capabilitySetting.Id,
+							Id = orchestrationSettings.Id,
 						};
 
-						ReportError(capabilitySetting.Id, error);
+						ReportError(orchestrationSettings.Id, error);
 					}
 				}
 			}
@@ -262,7 +264,7 @@
 							Id = orchestrationSettings.Id,
 						};
 
-						ReportError(configurationSetting.Id, error);
+						ReportError(orchestrationSettings.Id, error);
 						continue;
 					}
 
