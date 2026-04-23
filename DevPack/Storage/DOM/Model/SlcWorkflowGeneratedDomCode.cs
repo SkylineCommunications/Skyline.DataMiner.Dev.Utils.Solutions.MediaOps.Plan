@@ -3920,7 +3920,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
         }
 
         /// <summary>
-        /// Gets or sets the ReferenceID field of the DOM Instance.
+        /// Gets or sets the Reference field of the DOM Instance.
         /// </summary>
         /// <remarks>
         /// When retrieving the value:
