@@ -42,15 +42,6 @@
 		/// </summary>
 		protected internal override ProfileParameterCategory Category => ProfileParameterCategory.Configuration;
 
-		/// <summary>
-		/// Converts a Configuration instance to its unique identifier as a Guid.
-		/// </summary>
-		/// <remarks>This operator enables a Configuration object to be used wherever a Guid is expected,
-		/// returning the value of its Id property. If the Configuration instance is null, a NullReferenceException will be
-		/// thrown.</remarks>
-		/// <param name="configuration">The Configuration instance to convert to a Guid.</param>
-		public static implicit operator Guid(Configuration configuration) => configuration.Id;
-
 		internal static Configuration InstantiateConfiguration(CoreParameter instance)
 		{
 			if (instance == null)

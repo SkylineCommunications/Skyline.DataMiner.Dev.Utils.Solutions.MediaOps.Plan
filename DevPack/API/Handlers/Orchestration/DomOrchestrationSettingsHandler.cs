@@ -111,7 +111,7 @@
 						continue;
 					}
 
-					if (!capacitiesById.TryGetValue(capacitySetting.Id, out _))
+					if (!capacitiesById.TryGetValue(capacitySetting.Id, out var capacity))
 					{
 						var error = new OrchestrationSettingsInvalidCapacitySettingsError
 						{
@@ -122,6 +122,8 @@
 
 						ReportError(orchestrationSettings.Id, error);
 					}
+
+					PassTraceData(OrchestrationSettingsCapacitySettingValidator.Validate(orchestrationSettings.Id, capacity, capacitySetting, capacitySetting.HasValue));
 				}
 			}
 		}
@@ -175,11 +177,11 @@
 							Id = orchestrationSettings.Id,
 						};
 
-						ReportError(capabilitySetting.Id, error);
+						ReportError(orchestrationSettings.Id, error);
 						continue;
 					}
 
-					if (!capabilitiesById.TryGetValue(capabilitySetting.Id, out _))
+					if (!capabilitiesById.TryGetValue(capabilitySetting.Id, out var capability))
 					{
 						var error = new OrchestrationSettingsInvalidCapabilitySettingsError
 						{
@@ -188,35 +190,26 @@
 							Id = orchestrationSettings.Id,
 						};
 
-						ReportError(capabilitySetting.Id, error);
-					}
-
-					// Not needed as long as there are no values assigned
-					/*if (capabilitySetting.Discretes.Count == 0)
-					{
-						var error = new OrchestrationSettingsInvalidCapabilitySettingsError
-						{
-							ErrorMessage = "At least one discrete value must be specified for the capability.",
-							CapabilityId = capabilitySetting.Id,
-						};
-
-						ReportError(capabilitySetting.Id, error);
+						ReportError(orchestrationSettings.Id, error);
 						continue;
 					}
 
-					foreach (var discreteValue in capabilitySetting.Discretes)
+					if (!capabilitySetting.HasValue)
 					{
-						if (!capability.Discretes.Contains(discreteValue))
-						{
-							var error = new OrchestrationSettingsInvalidCapabilitySettingsError
-							{
-								ErrorMessage = $"Discrete value '{discreteValue}' is not valid for capability '{capability.Name}'.",
-								CapabilityId = capabilitySetting.Id,
-							};
+						continue;
+					}
 
-							ReportError(capabilitySetting.Id, error);
-						}
-					}*/
+					if (!capability.Discretes.Contains(capabilitySetting.Value))
+					{
+						var error = new OrchestrationSettingsInvalidCapabilitySettingsError
+						{
+							ErrorMessage = $"Discrete value '{capabilitySetting.Value}' is not valid for capability '{capability.Name}'.",
+							CapabilityId = capabilitySetting.Id,
+							Id = orchestrationSettings.Id,
+						};
+
+						ReportError(orchestrationSettings.Id, error);
+					}
 				}
 			}
 		}
@@ -271,11 +264,11 @@
 							Id = orchestrationSettings.Id,
 						};
 
-						ReportError(configurationSetting.Id, error);
+						ReportError(orchestrationSettings.Id, error);
 						continue;
 					}
 
-					if (!configurationsById.TryGetValue(configurationSetting.Id, out _))
+					if (!configurationsById.TryGetValue(configurationSetting.Id, out var configuration))
 					{
 						var error = new OrchestrationSettingsInvalidConfigurationSettingsError
 						{
@@ -284,10 +277,11 @@
 							Id = orchestrationSettings.Id,
 						};
 
-						ReportError(configurationSetting.Id, error);
+						ReportError(orchestrationSettings.Id, error);
+						continue;
 					}
 
-					// Add dedicated validation for configuration setting values here if needed
+					PassTraceData(OrchestrationSettingsConfigurationSettingValidator.Validate(orchestrationSettings.Id, configuration, configurationSetting, configurationSetting.HasValue));
 				}
 			}
 		}
