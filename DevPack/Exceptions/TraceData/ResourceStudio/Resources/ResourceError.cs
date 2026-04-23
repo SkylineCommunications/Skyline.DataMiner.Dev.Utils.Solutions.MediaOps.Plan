@@ -10,6 +10,6 @@
 		/// <summary>
 		/// Gets the unique identifier for the resource.
 		/// </summary>
-		public Guid Id { get; set; }
+		public Guid Id { get; internal set; }
 	}
 }

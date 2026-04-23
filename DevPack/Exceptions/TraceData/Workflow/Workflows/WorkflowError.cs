@@ -10,6 +10,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions
 		/// <summary>
 		/// Gets the unique identifier for the workflow.
 		/// </summary>
-		public Guid Id { get; set; }
+		public Guid Id { get; internal set; }
 	}
 }

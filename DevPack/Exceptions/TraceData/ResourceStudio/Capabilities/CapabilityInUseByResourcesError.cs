@@ -6,7 +6,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a capability is referenced by one or multiple resources.
 	/// </summary>
-	public class CapabilityInUseByResourcesError : CapabilityInUseError
+	public sealed class CapabilityInUseByResourcesError : CapabilityInUseError
 	{
 		/// <summary>
 		/// Ids of the resources referencing the capability.

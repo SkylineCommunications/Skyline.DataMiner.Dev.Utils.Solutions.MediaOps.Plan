@@ -6,7 +6,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a configuration is referenced by one or multiple Recurring Jobs.
 	/// </summary>
-	public class ConfigurationInUseByRecurringJobsError : ConfigurationInUseError
+	public sealed class ConfigurationInUseByRecurringJobsError : ConfigurationInUseError
 	{
 		/// <summary>
 		/// Ids of the recurring jobs referencing the configuration.

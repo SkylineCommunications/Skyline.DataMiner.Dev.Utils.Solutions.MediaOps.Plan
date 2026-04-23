@@ -3,7 +3,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a required job is not found.
 	/// </summary>
-	public class JobNotFoundError : JobError
+	public sealed class JobNotFoundError : JobError
 	{
 	}
 }

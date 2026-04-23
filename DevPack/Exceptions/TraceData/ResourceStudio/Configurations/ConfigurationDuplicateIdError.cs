@@ -4,7 +4,7 @@
 	/// Represents an error that occurs when a configurations configuration contains duplicate identifiers.
 	/// </summary>
 	/// <remarks>This can only occur when configurations with the same ID are provided to a bulk operation.</remarks>
-	public class ConfigurationDuplicateIdError : ConfigurationError
+	public sealed class ConfigurationDuplicateIdError : ConfigurationError
 	{
 	}
 }

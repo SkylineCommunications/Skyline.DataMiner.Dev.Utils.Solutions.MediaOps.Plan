@@ -3,11 +3,11 @@
 	/// <summary>
 	/// Represents an error that occurs when a capability configuration name already exists.
 	/// </summary>
-	public class CapabilityNameExistsError : CapabilityError
+	public sealed class CapabilityNameExistsError : CapabilityError
 	{
 		/// <summary>
 		/// Gets the name of the capability.
 		/// </summary>
-		public string Name { get; set; }
+		public string Name { get; internal set; }
 	}
 }
