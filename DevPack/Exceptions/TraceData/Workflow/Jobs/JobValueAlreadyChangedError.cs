@@ -3,7 +3,7 @@
 	/// <summary>
 	/// Represents an error that occurs when attempting to change a job value that has already been modified.
 	/// </summary>
-	public class JobValueAlreadyChangedError : JobError
+	public sealed class JobValueAlreadyChangedError : JobError
 	{
 	}
 }

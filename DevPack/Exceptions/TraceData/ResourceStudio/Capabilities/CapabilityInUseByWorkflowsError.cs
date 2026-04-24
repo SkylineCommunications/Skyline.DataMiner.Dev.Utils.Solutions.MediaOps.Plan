@@ -6,7 +6,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a capability is referenced by one or multiple workflows.
 	/// </summary>
-	public class CapabilityInUseByWorkflowsError : CapabilityInUseError
+	public sealed class CapabilityInUseByWorkflowsError : CapabilityInUseError
 	{
 		/// <summary>
 		/// Ids of the workflows referencing the capability.

@@ -8,6 +8,6 @@
 		/// <summary>
 		/// Gets or sets the message that describes the error.
 		/// </summary>
-		public string ErrorMessage { get; set; }
+		public string ErrorMessage { get; internal set; }
 	}
 }

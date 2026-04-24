@@ -3,11 +3,11 @@
 	/// <summary>
 	/// Represents an error that occurs when a capacity configuration specifies an invalid capacity name.
 	/// </summary>
-	public class CapacityNameExistsError : CapacityError
+	public sealed class CapacityNameExistsError : CapacityError
 	{
 		/// <summary>
 		/// Gets the name of the capacity.
 		/// </summary>
-		public string Name { get; set; }
+		public string Name { get; internal set; }
 	}
 }

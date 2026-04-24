@@ -8,6 +8,6 @@
 		/// <summary>
 		/// The discrete value that is in use.
 		/// </summary>
-		public string DiscreteValue { get; set; }
+		public string DiscreteValue { get; internal set; }
 	}
 }

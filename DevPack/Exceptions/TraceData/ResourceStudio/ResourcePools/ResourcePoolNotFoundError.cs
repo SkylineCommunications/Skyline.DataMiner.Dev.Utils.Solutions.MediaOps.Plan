@@ -3,7 +3,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a required resource pool is not found.
 	/// </summary>
-	public class ResourcePoolNotFoundError : ResourcePoolError
+	public sealed class ResourcePoolNotFoundError : ResourcePoolError
 	{
 	}
 }

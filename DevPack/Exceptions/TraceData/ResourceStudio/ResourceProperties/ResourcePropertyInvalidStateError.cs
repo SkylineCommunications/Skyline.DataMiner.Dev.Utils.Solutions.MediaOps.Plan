@@ -3,7 +3,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a resource property configuration is in an invalid state.
 	/// </summary>
-	public class ResourcePropertyInvalidStateError : ResourcePropertyError
+	public sealed class ResourcePropertyInvalidStateError : ResourcePropertyError
 	{
 	}
 }
