@@ -91,7 +91,7 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 		}
 
 		[TestMethod]
-		public void FromStorage_SchedulingConfigurationParameter_ReturnsSchedulingConfigurationParameterReference()
+		public void FromStorage_NodeConfigurationParameter_ReturnsNodeConfigurationParameterReference()
 		{
 			var guid = new Guid("12345678-1234-1234-1234-123456789012");
 			var storage = new StorageDataReference
@@ -103,9 +103,9 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 			var result = ApiDataReference.FromStorage(storage);
 
 			Assert.IsNotNull(result);
-			var schedulingRef = result as SchedulingConfigurationParameterReference;
+			var schedulingRef = result as NodeConfigurationParameterReference;
 			Assert.IsNotNull(schedulingRef);
-			Assert.AreEqual(DataReferenceType.SchedulingConfigurationParameter, result.Type);
+			Assert.AreEqual(DataReferenceType.NodeConfigurationParameter, result.Type);
 			Assert.AreEqual(guid, schedulingRef.ParameterId);
 		}
 
@@ -129,12 +129,12 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 		}
 
 		[TestMethod]
-		public void SchedulingConfigurationParameterReference_ToStorage_ThenFromStorage_PreservesParameterId()
+		public void NodeConfigurationParameterReference_ToStorage_ThenFromStorage_PreservesParameterId()
 		{
 			var guid = Guid.NewGuid();
-			var original = new SchedulingConfigurationParameterReference(guid);
+			var original = new NodeConfigurationParameterReference(guid);
 
-			var result = ApiDataReference.FromStorage(original.ToStorage()) as SchedulingConfigurationParameterReference;
+			var result = ApiDataReference.FromStorage(original.ToStorage()) as NodeConfigurationParameterReference;
 
 			Assert.IsNotNull(result);
 			Assert.AreEqual(original.ParameterId, result.ParameterId);
