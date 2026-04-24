@@ -59,15 +59,6 @@
 		internal Guid LinkedTimeDependentCapabilityId => linkedTimeDependentCapabilityId;
 
 		/// <summary>
-		/// Defines an implicit conversion from a Capability instance to its underlying Guid identifier.
-		/// </summary>
-		/// <remarks>This operator enables a Capability object to be used wherever a Guid is expected,
-		/// returning the value of its Id property. If the Capability instance is null, a NullReferenceException will be
-		/// thrown.</remarks>
-		/// <param name="capability">The Capability instance to convert to a Guid.</param>
-		public static implicit operator Guid(Capability capability) => capability.Id;
-
-		/// <summary>
 		/// Adds a discrete option to the collection if it is not already present.
 		/// </summary>
 		/// <param name="option">The discrete option to add. Cannot be <see langword="null"/> or whitespace.</param>

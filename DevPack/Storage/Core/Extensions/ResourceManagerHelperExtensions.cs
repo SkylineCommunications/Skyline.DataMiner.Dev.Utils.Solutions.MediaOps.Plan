@@ -7,6 +7,7 @@
 	using Skyline.DataMiner.Net.Helper;
 	using Skyline.DataMiner.Net.Messages;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+	using Skyline.DataMiner.Net.ResourceManager.Objects;
 	using Skyline.DataMiner.Net.ResponseErrorData;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
@@ -67,24 +68,6 @@
 				.ToDictionary(x => x.Key, x => (IReadOnlyCollection<ResourcePool>)x.ToList());
 		}
 
-		public static ResourcePoolBulkOperationResult CreateOrUpdateResourcePoolsInBatches(this ResourceManagerHelper helper, IEnumerable<ResourcePool> resourcePools)
-		{
-			if (helper == null)
-			{
-				throw new ArgumentNullException(nameof(helper));
-			}
-
-			if (resourcePools == null)
-			{
-				throw new ArgumentNullException(nameof(resourcePools));
-			}
-
-			var result = InnerCreateOrUpdateResourcePoolsInBatches(helper, resourcePools);
-			result.ThrowBulkException();
-
-			return result;
-		}
-
 		public static bool TryCreateOrUpdateResourcePoolsInBatches(this ResourceManagerHelper helper, IEnumerable<ResourcePool> resourcePools, out ResourcePoolBulkOperationResult result)
 		{
 			if (helper == null)
@@ -100,24 +83,6 @@
 			result = InnerCreateOrUpdateResourcePoolsInBatches(helper, resourcePools);
 
 			return !result.HasFailures;
-		}
-
-		public static ResourcePoolBulkOperationResult DeleteResourcePoolsInBatches(this ResourceManagerHelper helper, IEnumerable<ResourcePool> resourcePools)
-		{
-			if (helper == null)
-			{
-				throw new ArgumentNullException(nameof(helper));
-			}
-
-			if (resourcePools == null)
-			{
-				throw new ArgumentNullException(nameof(resourcePools));
-			}
-
-			var result = InnerDeleteResourcePoolsInBatches(helper, resourcePools);
-			result.ThrowBulkException();
-
-			return result;
 		}
 
 		public static bool TryDeleteResourcePoolsInBatches(this ResourceManagerHelper helper, IEnumerable<ResourcePool> resourcePools, out ResourcePoolBulkOperationResult result)
@@ -160,42 +125,6 @@
 				x => helper.GetResources(x));
 		}
 
-		public static ResourceBulkOperationResult CreateOrUpdateResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources)
-		{
-			if (helper == null)
-			{
-				throw new ArgumentNullException(nameof(helper));
-			}
-
-			if (resources == null)
-			{
-				throw new ArgumentNullException(nameof(resources));
-			}
-
-			var result = InnerCreateOrUpdateResourcesInBatches(helper, resources, out _);
-			result.ThrowBulkException();
-
-			return result;
-		}
-
-		public static ResourceBulkOperationResult CreateOrUpdateResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources, out IEnumerable<Resource> createdOrUpdatedResources)
-		{
-			if (helper == null)
-			{
-				throw new ArgumentNullException(nameof(helper));
-			}
-
-			if (resources == null)
-			{
-				throw new ArgumentNullException(nameof(resources));
-			}
-
-			var result = InnerCreateOrUpdateResourcesInBatches(helper, resources, out createdOrUpdatedResources);
-			result.ThrowBulkException();
-
-			return result;
-		}
-
 		public static bool TryCreateOrUpdateResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources, out ResourceBulkOperationResult result)
 		{
 			if (helper == null)
@@ -208,49 +137,9 @@
 				throw new ArgumentNullException(nameof(resources));
 			}
 
-			result = InnerCreateOrUpdateResourcesInBatches(helper, resources, out _);
+			result = InnerCreateOrUpdateResourcesInBatches(helper, resources);
 
 			return !result.HasFailures;
-		}
-
-		public static bool TryCreateOrUpdateResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources, out ResourceBulkOperationResult result, out IEnumerable<Resource> createdOrUpdatedResources)
-		{
-			if (helper == null)
-			{
-				throw new ArgumentNullException(nameof(helper));
-			}
-
-			if (resources == null)
-			{
-				throw new ArgumentNullException(nameof(resources));
-			}
-
-			result = InnerCreateOrUpdateResourcesInBatches(helper, resources, out createdOrUpdatedResources);
-
-			return !result.HasFailures;
-		}
-
-		public static ResourceBulkOperationResult DeleteResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources, ResourceDeleteOptions options)
-		{
-			if (helper == null)
-			{
-				throw new ArgumentNullException(nameof(helper));
-			}
-
-			if (resources == null)
-			{
-				throw new ArgumentNullException(nameof(resources));
-			}
-
-			if (options == null)
-			{
-				throw new ArgumentNullException(nameof(options));
-			}
-
-			var result = InnerDeleteResourcesInBatches(helper, resources, options);
-			result.ThrowBulkException();
-
-			return result;
 		}
 
 		public static bool TryDeleteResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources, ResourceDeleteOptions options, out ResourceBulkOperationResult result)
@@ -271,6 +160,63 @@
 			}
 
 			result = InnerDeleteResourcesInBatches(helper, resources, options);
+
+			return !result.HasFailures;
+		}
+
+		public static IEnumerable<ReservationInstance> GetReservationInstances<T>(this ResourceManagerHelper helper, IEnumerable<T> values, Func<T, FilterElement<ReservationInstance>> filter)
+		{
+			if (helper == null)
+			{
+				throw new ArgumentNullException(nameof(helper));
+			}
+
+			if (values == null)
+			{
+				throw new ArgumentNullException(nameof(values));
+			}
+
+			if (filter == null)
+			{
+				throw new ArgumentNullException(nameof(filter));
+			}
+
+			return FilterQueryExecutor.RetrieveFilteredItems(
+				values.Distinct(),
+				x => filter(x),
+				x => helper.GetReservationInstances(x));
+		}
+
+		public static bool TryCreateOrUpdateReservationInstancesInBatches(this ResourceManagerHelper helper, IEnumerable<ReservationInstance> reservationInstances, out ReservationInstanceBulkOperationResult result, ITraceDataHandler<ResourceManagerErrorData> traceDataHandler = null)
+		{
+			if (helper == null)
+			{
+				throw new ArgumentNullException(nameof(helper));
+			}
+
+			if (reservationInstances == null)
+			{
+				throw new ArgumentNullException(nameof(reservationInstances));
+			}
+
+			result = InnerCreateOrUpdateReservationInstancesInBatches(helper, reservationInstances, traceDataHandler);
+
+			return !result.HasFailures;
+		}
+
+		public static bool TryDeleteReservationInstancesInBatches(this ResourceManagerHelper helper, IEnumerable<ReservationInstance> reservationInstances, out ReservationInstanceBulkOperationResult result)
+		{
+			if (helper == null)
+			{
+				throw new ArgumentNullException(nameof(helper));
+			}
+
+			if (reservationInstances == null)
+			{
+				throw new ArgumentNullException(nameof(reservationInstances));
+			}
+
+			result = InnerDeleteReservationInstancesInBatches(helper, reservationInstances);
 
 			return !result.HasFailures;
 		}
@@ -348,21 +294,17 @@
 			return new ResourcePoolBulkOperationResult(successfulItems, unsuccessfulIds, traceDataPerItem);
 		}
 
-		private static ResourceBulkOperationResult InnerCreateOrUpdateResourcesInBatches(ResourceManagerHelper helper, IEnumerable<Resource> resources, out IEnumerable<Resource> createdOrUpdatedResources)
+		private static ResourceBulkOperationResult InnerCreateOrUpdateResourcesInBatches(ResourceManagerHelper helper, IEnumerable<Resource> resources)
 		{
 			var successfulItems = new List<Resource>();
 			var unsuccessfulIds = new List<Guid>();
 			var traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
-
-			var createdOrUpdated = new List<Resource>();
 
 			ActivityHelper.Track(nameof(ResourceManagerHelperExtensions), nameof(InnerCreateOrUpdateResourcesInBatches), act =>
 			{
 				foreach (var batch in resources.Batch(100))
 				{
 					var res = helper.AddOrUpdateResources(batch.ToArray());
-
-					createdOrUpdated.AddRange(res);
 					successfulItems.AddRange(res);
 
 					var traceData = helper.GetTraceDataLastCall();
@@ -385,8 +327,6 @@
 					}
 				}
 			});
-
-			createdOrUpdatedResources = createdOrUpdated;
 
 			return new ResourceBulkOperationResult(successfulItems, unsuccessfulIds, traceDataPerItem);
 		}
@@ -427,6 +367,112 @@
 			});
 
 			return new ResourceBulkOperationResult(successfulItems, unsuccessfulIds, traceDataPerItem);
+		}
+
+		private static ReservationInstanceBulkOperationResult InnerCreateOrUpdateReservationInstancesInBatches(ResourceManagerHelper helper, IEnumerable<ReservationInstance> reservationInstances, ITraceDataHandler<ResourceManagerErrorData> traceDataHandler)
+		{
+			var successfulItems = new List<ReservationInstance>();
+			var unsuccessfulIds = new HashSet<Guid>();
+			var traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
+
+			ActivityHelper.Track(nameof(ResourceManagerHelperExtensions), nameof(InnerCreateOrUpdateReservationInstancesInBatches), act =>
+			{
+				// Batch of 1 is used instead of 100 because of issue in core software [DCP296627]
+				foreach (var batch in reservationInstances.Batch(1))
+				{
+					var res = helper.AddOrUpdateReservationInstances(batch.ToArray());
+					successfulItems.AddRange(res);
+
+					var traceData = helper.GetTraceDataLastCall();
+					var resourceManagerErrors = traceData.ErrorData.OfType<ResourceManagerErrorData>().ToList();
+					if (resourceManagerErrors.Count == 0)
+					{
+						continue;
+					}
+
+					if (traceDataHandler != null)
+					{
+						foreach (var kvp in traceDataHandler.Translate(resourceManagerErrors))
+						{
+							if (traceDataPerItem.TryGetValue(kvp.Key, out var mediaOpsTraceData))
+							{
+								foreach (var error in kvp.Value.ErrorData)
+								{
+									mediaOpsTraceData.Add(error);
+								}
+							}
+							else
+							{
+								traceDataPerItem.Add(kvp.Key, kvp.Value);
+							}
+
+							unsuccessfulIds.Add(kvp.Key);
+						}
+
+						continue;
+					}
+
+					var resourceManagerErrorsBySubjectId = resourceManagerErrors
+					.Where(x => x.SubjectId.HasValue)
+					.GroupBy(x => x.SubjectId.Value)
+					.ToDictionary(x => x.Key, x => x.ToList());
+
+					foreach (var resourceSpecificErrors in resourceManagerErrorsBySubjectId)
+					{
+						var subjectId = resourceSpecificErrors.Key;
+						var errors = resourceSpecificErrors.Value;
+
+						var mediaOpsTraceData = new MediaOpsTraceData();
+						foreach (var error in errors)
+						{
+							mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = error.ToString() });
+						}
+
+						traceDataPerItem.Add(subjectId, mediaOpsTraceData);
+						unsuccessfulIds.Add(subjectId);
+					}
+				}
+			});
+
+			return new ReservationInstanceBulkOperationResult(successfulItems, unsuccessfulIds, traceDataPerItem);
+		}
+
+		private static ReservationInstanceBulkOperationResult InnerDeleteReservationInstancesInBatches(ResourceManagerHelper helper, IEnumerable<ReservationInstance> reservationInstances)
+		{
+			var successfulItems = new List<ReservationInstance>();
+			var unsuccessfulIds = new List<Guid>();
+			var traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
+
+			ActivityHelper.Track(nameof(ResourceManagerHelperExtensions), nameof(InnerDeleteReservationInstancesInBatches), act =>
+			{
+				foreach (var batch in reservationInstances.Batch(100))
+				{
+					var reservations = helper.RemoveReservationInstances(batch.ToArray());
+
+					successfulItems.AddRange(reservations);
+
+					var traceData = helper.GetTraceDataLastCall();
+					foreach (var error in traceData.ErrorData.OfType<ResourceManagerErrorData>())
+					{
+						if (!error.SubjectId.HasValue)
+						{
+							continue;
+						}
+
+						if (!traceDataPerItem.TryGetValue(error.SubjectId.Value, out var mediaOpsTraceData))
+						{
+							mediaOpsTraceData = new MediaOpsTraceData();
+							traceDataPerItem.Add(error.SubjectId.Value, mediaOpsTraceData);
+
+							unsuccessfulIds.Add(error.SubjectId.Value);
+						}
+
+						mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = error.ToString() });
+					}
+				}
+			});
+
+			return new ReservationInstanceBulkOperationResult(successfulItems, unsuccessfulIds, traceDataPerItem);
 		}
 	}
 }

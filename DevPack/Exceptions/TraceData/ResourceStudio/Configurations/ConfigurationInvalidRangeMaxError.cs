@@ -3,11 +3,11 @@
 	/// <summary>
 	/// Represents an error that occurs when the specified maximum value for a configuration configuration range is invalid.
 	/// </summary>
-	public class ConfigurationInvalidRangeMaxError : ConfigurationError
+	public sealed class ConfigurationInvalidRangeMaxError : ConfigurationError
 	{
 		/// <summary>
 		/// Gets or sets the maximum allowable range value.
 		/// </summary>
-		public decimal RangeMax { get; set; }
+		public decimal RangeMax { get; internal set; }
 	}
 }

@@ -3,11 +3,11 @@
 	/// <summary>
 	/// Represents an error that occurs when a resource property configuration name already exists.
 	/// </summary>
-	public class ResourcePropertyNameExistsError : ResourcePropertyError
+	public sealed class ResourcePropertyNameExistsError : ResourcePropertyError
 	{
 		/// <summary>
 		/// Gets the name of the resource property.
 		/// </summary>
-		public string Name { get; set; }
+		public string Name { get; internal set; }
 	}
 }

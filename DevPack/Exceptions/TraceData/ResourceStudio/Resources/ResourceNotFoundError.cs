@@ -3,7 +3,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a required resource is not found.
 	/// </summary>
-	public class ResourceNotFoundError : ResourceError
+	public sealed class ResourceNotFoundError : ResourceError
 	{
 	}
 }
