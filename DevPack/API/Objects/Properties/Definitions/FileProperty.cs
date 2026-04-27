@@ -31,6 +31,11 @@
 		}
 
 		/// <summary>
+		/// Gets or sets a value indicating whether there is a size limit for the file. If false, the limit configured on the server will be used.
+		/// </summary>
+		public bool HasSizeLimit { get; set; }
+
+		/// <summary>
 		/// Gets or sets the maximum allowed size for the file, in MB. If not set, the default value is 20 MB.
 		/// </summary>
 		public int SizeLimit { get; set; }

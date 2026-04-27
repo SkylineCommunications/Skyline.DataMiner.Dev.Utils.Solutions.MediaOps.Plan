@@ -4,8 +4,6 @@
 	using System.Collections.Generic;
 	using System.Linq;
 
-	using static Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcProperties.SlcPropertiesIds.Sections;
-
 	using StorageProperties = Storage.DOM.SlcProperties;
 
 	/// <summary>

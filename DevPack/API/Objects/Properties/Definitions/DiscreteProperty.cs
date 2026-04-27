@@ -13,7 +13,7 @@
 	/// </summary>
 	public class DiscreteProperty : Property
 	{
-		private readonly HashSet<string> discretes = new HashSet<string>();
+		private readonly List<string> discretes = new List<string>();
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="DiscreteProperty"/> class.

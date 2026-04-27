@@ -37,6 +37,7 @@
 		private readonly Lazy<IJobsRepository> lazyJobsRepository;
 		private readonly Lazy<IWorkflowsRepository> lazyWorkflowsRepository;
 		private readonly Lazy<IRecurringJobsRepository> lazyRecurringJobsRepository;
+		private readonly Lazy<IPropertiesRepository> lazyPropertyDefinitionsRepository;
 		private readonly Lazy<Plan.Tools.LockManager> lazyLockManager;
 		private readonly Lazy<ICategoriesApi> lazyCategoriesApi;
 
@@ -67,6 +68,7 @@
 			lazyJobsRepository = new Lazy<IJobsRepository>(() => new JobsRepository(this));
 			lazyWorkflowsRepository = new Lazy<IWorkflowsRepository>(() => new WorkflowsRepository(this));
 			lazyRecurringJobsRepository = new Lazy<IRecurringJobsRepository>(() => new RecurringJobsRepository(this));
+			lazyPropertyDefinitionsRepository = new Lazy<IPropertiesRepository>(() => new PropertiesRepository(this));
 			lazyLockManager = new Lazy<Plan.Tools.LockManager>(() => new Plan.Tools.LockManager(this));
 			lazyCategoriesApi = new Lazy<ICategoriesApi>(() => connection.GetCategoriesApi());
 		}
@@ -115,6 +117,11 @@
 		/// <inheritdoc/>
 		/// </summary>
 		public IRecurringJobsRepository RecurringJobs => lazyRecurringJobsRepository.Value;
+
+		/// <summary>
+		/// <inheritdoc/>
+		/// </summary>
+		public IPropertiesRepository PropertyDefinitions => lazyPropertyDefinitionsRepository.Value;
 
 		internal IConnection Connection => connection;
 
