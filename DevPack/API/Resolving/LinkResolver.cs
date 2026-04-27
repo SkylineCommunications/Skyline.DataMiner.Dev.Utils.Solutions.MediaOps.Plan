@@ -17,17 +17,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// <see cref="ResolvedValue.FromUnresolvedReference"/>.
 	/// </remarks>
 	public class LinkResolver
-    {
+	{
 		/// <summary>
 		/// Initializes a new instance of the <see cref="LinkResolver"/> class.
 		/// </summary>
 		/// <param name="planApi">The MediaOps Plan API used as the default data source.</param>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="planApi"/> is <c>null</c>.</exception>
-
 		public LinkResolver(IMediaOpsPlanApi planApi)
-        {
-            PlanApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
-        }
+		{
+			PlanApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
+		}
 
         /// <summary>Gets the MediaOps Plan API used as the default data source.</summary>
         protected IMediaOpsPlanApi PlanApi { get; }
@@ -59,7 +58,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
                 case CapabilityParameterReference cpr:
                     {
-                        var parameterName = TryGetCapabilityDisplayName(cpr, context);
+                        var parameterName = GetCapabilityDisplayName(cpr, context);
                         if (!String.IsNullOrEmpty(parameterName))
                             displayString += $": {parameterName}";
 
@@ -68,7 +67,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
                 case CapacityParameterReference capr:
                     {
-                        var parameterName = TryGetCapacityDisplayName(capr, context);
+                        var parameterName = GetCapacityDisplayName(capr, context);
                         if (!String.IsNullOrEmpty(parameterName))
                             displayString += $": {parameterName}";
 
@@ -77,7 +76,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
                 case ConfigurationParameterReference cfgr:
                     {
-                        var parameterName = TryGetConfigurationDisplayName(cfgr, context);
+                        var parameterName = GetConfigurationDisplayName(cfgr, context);
                         if (!String.IsNullOrEmpty(parameterName))
                             displayString += $": {parameterName}";
 
@@ -86,7 +85,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
                 case WorkflowPropertyReference wpr:
                     {
-                        var propertyName = TryGetWorkflowPropertyName(wpr.WorkflowPropertyId);
+                        var propertyName = GetWorkflowPropertyName(wpr.WorkflowPropertyId);
                         if (!String.IsNullOrEmpty(propertyName))
                         {
                             displayString += $": {propertyName}";
@@ -128,7 +127,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
                     throw new CircularReferenceException(reference);
                 }
 
-                var resolved = TryResolve(reference, context);
+                var resolved = Resolve(reference, context);
 
                 if (resolved == null)
                 {
@@ -149,129 +148,129 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
             }
         }
 
-        /// <summary>
-        /// Dispatches to the type-specific resolution method.
-        /// </summary>
-        /// <param name="reference">The reference to resolve.</param>
-        /// <param name="context">Resolution context.</param>
-        /// <returns>The resolved value or <c>null</c> if it cannot be determined.</returns>
-		protected virtual ResolvedValue TryResolve(DataReference reference, ResolveContext context)
+		/// <summary>
+		/// Dispatches to the type-specific resolution method.
+		/// </summary>
+		/// <param name="reference">The reference to resolve.</param>
+		/// <param name="context">Resolution context.</param>
+		/// <returns>The resolved value or <c>null</c> if it cannot be determined.</returns>
+		protected virtual ResolvedValue Resolve(DataReference reference, ResolveContext context)
 		{
 			switch (reference)
 			{
 				case CapabilityParameterReference cpb:
-					return TryResolveCapability(cpb, context);
+					return ResolveCapability(cpb, context);
 
 				case CapacityParameterReference cap:
-					return TryResolveCapacity(cap, context);
+					return ResolveCapacity(cap, context);
 
 				case ConfigurationParameterReference cfg:
-					return TryResolveConfiguration(cfg, context);
+					return ResolveConfiguration(cfg, context);
 
-                case ResourceNameReference rnr:
-                    return TryResolveResourceName(rnr, context);
+				case ResourceNameReference rnr:
+					return ResolveResourceName(rnr, context);
 
-                case ResourceLinkedObjectIdReference rlr:
-                    return TryResolveResourceLinkedObjectId(rlr, context);
+				case ResourceLinkedObjectIdReference rlr:
+					return ResolveResourceLinkedObjectId(rlr, context);
 
-                case ResourcePropertyReference rpr:
-                    return TryResolveResourceProperty(rpr, context);
+				case ResourcePropertyReference rpr:
+					return ResolveResourceProperty(rpr, context);
 
-                case WorkflowNameReference wnr:
-                    return TryResolveWorkflowName(wnr, context);
+				case WorkflowNameReference wnr:
+					return ResolveWorkflowName(wnr, context);
 
-                case WorkflowPropertyReference wpr:
-                    return TryResolveWorkflowProperty(wpr);
+				case WorkflowPropertyReference wpr:
+					return ResolveWorkflowProperty(wpr);
 
-                default:
-                    return null;
-            }
-        }
+				default:
+					return null;
+			}
+		}
 
-        /// <summary>
-        /// Resolves a capability parameter reference. The reference targets a specific node when
-        /// <see cref="DataReference.NodeId"/> is set, otherwise the workflow / job itself. Default returns <c>null</c>.
-        /// </summary>
-        protected virtual ResolvedValue TryResolveCapability(CapabilityParameterReference reference, ResolveContext context) => null;
+		/// <summary>
+		/// Resolves a capability parameter reference. The reference targets a specific node when
+		/// <see cref="DataReference.NodeId"/> is set, otherwise the workflow / job itself. Default returns <c>null</c>.
+		/// </summary>
+		protected virtual ResolvedValue ResolveCapability(CapabilityParameterReference reference, ResolveContext context) => null;
 
-        /// <summary>
-        /// Resolves a capacity parameter reference. The reference targets a specific node when
-        /// <see cref="DataReference.NodeId"/> is set, otherwise the workflow / job itself. Default returns <c>null</c>.
-        /// </summary>
-        protected virtual ResolvedValue TryResolveCapacity(CapacityParameterReference reference, ResolveContext context) => null;
+		/// <summary>
+		/// Resolves a capacity parameter reference. The reference targets a specific node when
+		/// <see cref="DataReference.NodeId"/> is set, otherwise the workflow / job itself. Default returns <c>null</c>.
+		/// </summary>
+		protected virtual ResolvedValue ResolveCapacity(CapacityParameterReference reference, ResolveContext context) => null;
 
-        /// <summary>
-        /// Resolves a configuration parameter reference. The reference targets a specific node when
-        /// <see cref="DataReference.NodeId"/> is set, otherwise the workflow / job itself. Default returns <c>null</c>.
-        /// </summary>
-        protected virtual ResolvedValue TryResolveConfiguration(ConfigurationParameterReference reference, ResolveContext context) => null;
+		/// <summary>
+		/// Resolves a configuration parameter reference. The reference targets a specific node when
+		/// <see cref="DataReference.NodeId"/> is set, otherwise the workflow / job itself. Default returns <c>null</c>.
+		/// </summary>
+		protected virtual ResolvedValue ResolveConfiguration(ConfigurationParameterReference reference, ResolveContext context) => null;
 
-        /// <summary>
-        /// Resolves a <see cref="ResourceNameReference"/> using <see cref="GetResourceForReference"/>.
-        /// </summary>
-        protected virtual ResolvedValue TryResolveResourceName(ResourceNameReference reference, ResolveContext context)
-        {
-            var resource = GetResourceForReference(reference, context);
-            return resource == null
-                ? ResolvedValue.FromUnresolvedReference(reference)
-                : ResolvedValue.FromValue(resource.Name);
-        }
+		/// <summary>
+		/// Resolves a <see cref="ResourceNameReference"/> using <see cref="GetResourceForReference"/>.
+		/// </summary>
+		protected virtual ResolvedValue ResolveResourceName(ResourceNameReference reference, ResolveContext context)
+		{
+			var resource = GetResourceForReference(reference, context);
+			return resource == null
+				? ResolvedValue.FromUnresolvedReference(reference)
+				: ResolvedValue.FromValue(resource.Name);
+		}
 
-        /// <summary>
-        /// Resolves a <see cref="ResourcePropertyReference"/> using <see cref="GetResourceForReference"/>.
-        /// </summary>
-        protected virtual ResolvedValue TryResolveResourceProperty(ResourcePropertyReference reference, ResolveContext context)
-        {
-            var resource = GetResourceForReference(reference, context);
-            if (resource == null)
-                return ResolvedValue.FromUnresolvedReference(reference);
+		/// <summary>
+		/// Resolves a <see cref="ResourcePropertyReference"/> using <see cref="GetResourceForReference"/>.
+		/// </summary>
+		protected virtual ResolvedValue ResolveResourceProperty(ResourcePropertyReference reference, ResolveContext context)
+		{
+			var resource = GetResourceForReference(reference, context);
+			if (resource == null)
+				return ResolvedValue.FromUnresolvedReference(reference);
 
-            var propertyValue = resource.Properties.FirstOrDefault(x => x.Id == reference.ResourcePropertyId);
-            return propertyValue == null
-                ? ResolvedValue.FromUnresolvedReference(reference)
-                : ResolvedValue.FromValue(propertyValue.Value);
-        }
+			var propertyValue = resource.Properties.FirstOrDefault(x => x.Id == reference.ResourcePropertyId);
+			return propertyValue == null
+				? ResolvedValue.FromUnresolvedReference(reference)
+				: ResolvedValue.FromValue(propertyValue.Value);
+		}
 
-        /// <summary>
-        /// Resolves a <see cref="ResourceLinkedObjectIdReference"/> using <see cref="GetResourceForReference"/>.
-        /// </summary>
-        protected virtual ResolvedValue TryResolveResourceLinkedObjectId(ResourceLinkedObjectIdReference reference, ResolveContext context)
-        {
-            var resource = GetResourceForReference(reference, context);
-            switch (resource)
-            {
-                case ElementResource elementResource:
-                    return ResolvedValue.FromValue($"{elementResource.AgentId}/{elementResource.ElementId}");
-                case ServiceResource serviceResource:
-                    return ResolvedValue.FromValue($"{serviceResource.AgentId}/{serviceResource.ServiceId}");
-                case VirtualFunctionResource virtualFunctionResource:
-                    return ResolvedValue.FromValue($"{virtualFunctionResource.AgentId}/{virtualFunctionResource.ElementId}");
-                case UnmanagedResource _:
-                    return ResolvedValue.FromValue(String.Empty);
-                default:
-                    return ResolvedValue.FromUnresolvedReference(reference);
-            }
-        }
+		/// <summary>
+		/// Resolves a <see cref="ResourceLinkedObjectIdReference"/> using <see cref="GetResourceForReference"/>.
+		/// </summary>
+		protected virtual ResolvedValue ResolveResourceLinkedObjectId(ResourceLinkedObjectIdReference reference, ResolveContext context)
+		{
+			var resource = GetResourceForReference(reference, context);
+			switch (resource)
+			{
+				case ElementResource elementResource:
+					return ResolvedValue.FromValue($"{elementResource.AgentId}/{elementResource.ElementId}");
+				case ServiceResource serviceResource:
+					return ResolvedValue.FromValue($"{serviceResource.AgentId}/{serviceResource.ServiceId}");
+				case VirtualFunctionResource virtualFunctionResource:
+					return ResolvedValue.FromValue($"{virtualFunctionResource.AgentId}/{virtualFunctionResource.ElementId}");
+				case UnmanagedResource _:
+					return ResolvedValue.FromValue(String.Empty);
+				default:
+					return ResolvedValue.FromUnresolvedReference(reference);
+			}
+		}
 
-        /// <summary>
-        /// Resolves a <see cref="WorkflowNameReference"/>. Default implementation reads the name from
-        /// <see cref="IMediaOpsPlanApi.Workflows"/> using <see cref="ResolveContext.WorkflowId"/>
-        /// or from <see cref="IMediaOpsPlanApi.Jobs"/> using <see cref="ResolveContext.JobId"/>.
-        /// </summary>
-        protected virtual ResolvedValue TryResolveWorkflowName(WorkflowNameReference reference, ResolveContext context)
-        {
-            var value = GetWorkflowName(context);
-            return value != null ? ResolvedValue.FromValue(value) : ResolvedValue.FromUnresolvedReference(reference);
-        }
+		/// <summary>
+		/// Resolves a <see cref="WorkflowNameReference"/>. Default implementation reads the name from
+		/// <see cref="IMediaOpsPlanApi.Workflows"/> using <see cref="ResolveContext.WorkflowId"/>
+		/// or from <see cref="IMediaOpsPlanApi.Jobs"/> using <see cref="ResolveContext.JobId"/>.
+		/// </summary>
+		protected virtual ResolvedValue ResolveWorkflowName(WorkflowNameReference reference, ResolveContext context)
+		{
+			var value = GetWorkflowName(context);
+			return value != null ? ResolvedValue.FromValue(value) : ResolvedValue.FromUnresolvedReference(reference);
+		}
 
-        /// <summary>
-        /// Resolves a <see cref="WorkflowPropertyReference"/> using <see cref="GetWorkflowPropertyValue"/>.
-        /// </summary>
-        protected virtual ResolvedValue TryResolveWorkflowProperty(WorkflowPropertyReference reference)
-        {
-            var value = GetWorkflowPropertyValue(reference.WorkflowPropertyId);
-            return value != null ? ResolvedValue.FromValue(value) : ResolvedValue.FromUnresolvedReference(reference);
-        }
+		/// <summary>
+		/// Resolves a <see cref="WorkflowPropertyReference"/> using <see cref="GetWorkflowPropertyValue"/>.
+		/// </summary>
+		protected virtual ResolvedValue ResolveWorkflowProperty(WorkflowPropertyReference reference)
+		{
+			var value = GetWorkflowPropertyValue(reference.WorkflowPropertyId);
+			return value != null ? ResolvedValue.FromValue(value) : ResolvedValue.FromUnresolvedReference(reference);
+		}
 
         /// <summary>
         /// Returns the resource the reference targets, by delegating to <see cref="GetResourceForNode"/>
@@ -308,22 +307,22 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
         }
 
         /// <summary>Returns the display name for a capability parameter reference. Default reads it from <see cref="IMediaOpsPlanApi.Capabilities"/>.</summary>
-        protected virtual string TryGetCapabilityDisplayName(CapabilityParameterReference reference, ResolveContext context)
-            => TryGetCapabilityName(reference);
+        protected virtual string GetCapabilityDisplayName(CapabilityParameterReference reference, ResolveContext context)
+            => GetCapabilityName(reference);
 
         /// <summary>Returns the display name for a capacity parameter reference. Default reads it from <see cref="IMediaOpsPlanApi.Capacities"/>.</summary>
-        protected virtual string TryGetCapacityDisplayName(CapacityParameterReference reference, ResolveContext context)
-            => TryGetCapacityName(reference);
+        protected virtual string GetCapacityDisplayName(CapacityParameterReference reference, ResolveContext context)
+            => GetCapacityName(reference);
 
         /// <summary>Returns the display name for a configuration parameter reference. Default reads it from <see cref="IMediaOpsPlanApi.Configurations"/>.</summary>
-        protected virtual string TryGetConfigurationDisplayName(ConfigurationParameterReference reference, ResolveContext context)
-            => TryGetConfigurationName(reference);
+        protected virtual string GetConfigurationDisplayName(ConfigurationParameterReference reference, ResolveContext context)
+            => GetConfigurationName(reference);
 
         /// <summary>
         /// Returns the display name for a workflow property. Default returns <c>null</c>; the property catalog
         /// is not exposed through <see cref="IMediaOpsPlanApi"/> and must be supplied by derived classes.
         /// </summary>
-        protected virtual string TryGetWorkflowPropertyName(Guid workflowPropertyId)
+        protected virtual string GetWorkflowPropertyName(Guid workflowPropertyId)
         {
             return null;
         }
@@ -339,21 +338,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
             if (context == null)
                 return null;
 
-            try
+            if (context.WorkflowId.HasValue && context.WorkflowId.Value != Guid.Empty)
             {
-                if (context.WorkflowId.HasValue && context.WorkflowId.Value != Guid.Empty)
-                {
-                    return PlanApi.Workflows.Read(context.WorkflowId.Value)?.Name;
-                }
-
-                if (context.JobId.HasValue && context.JobId.Value != Guid.Empty)
-                {
-                    return PlanApi.Jobs.Read(context.JobId.Value)?.Name;
-                }
+                return PlanApi.Workflows.Read(context.WorkflowId.Value)?.Name;
             }
-            catch
+
+            if (context.JobId.HasValue && context.JobId.Value != Guid.Empty)
             {
-                // Resolution is best-effort; never throw from a label/value lookup.
+                return PlanApi.Jobs.Read(context.JobId.Value)?.Name;
             }
 
             return null;
@@ -368,21 +360,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
             if (context == null)
                 return null;
 
-            try
+            if (context.WorkflowId.HasValue && context.WorkflowId.Value != Guid.Empty)
             {
-                if (context.WorkflowId.HasValue && context.WorkflowId.Value != Guid.Empty)
-                {
-                    return PlanApi.Workflows.Read(context.WorkflowId.Value)?.OrchestrationSettings;
-                }
-
-                if (context.JobId.HasValue && context.JobId.Value != Guid.Empty)
-                {
-                    return PlanApi.Jobs.Read(context.JobId.Value)?.OrchestrationSettings;
-                }
+                return PlanApi.Workflows.Read(context.WorkflowId.Value)?.OrchestrationSettings;
             }
-            catch
+
+            if (context.JobId.HasValue && context.JobId.Value != Guid.Empty)
             {
-                // Resolution is best-effort; never throw from a label/value lookup.
+                return PlanApi.Jobs.Read(context.JobId.Value)?.OrchestrationSettings;
             }
 
             return null;
@@ -396,18 +381,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
             return null;
         }
 
-        /// <summary>
-        /// Provides display information for a node reference, used to suffix the display label.
-        /// Default returns <c>false</c> meaning no suffix is appended.
-        /// </summary>
-        /// <param name="nodeId">The node identifier from the reference.</param>
-        /// <param name="displayName">The human-readable name of the node.</param>
-        /// 
-        protected virtual bool TryGetNodeDisplayInfo(string nodeId, out string displayName)
+		/// <summary>
+		/// Provides display information for a node reference, used to suffix the display label.
+		/// Default returns <c>false</c> meaning no suffix is appended.
+		/// </summary>
+		/// <param name="nodeId">The node identifier from the reference.</param>
+		/// <param name="displayName">The human-readable name of the node.</param>
+		protected virtual bool TryGetNodeDisplayInfo(string nodeId, out string displayName)
 		{
-            displayName = null;
-            return false;
-        }
+			displayName = null;
+			return false;
+		}
 
         /// <summary>Looks up a capability by <paramref name="reference"/>.ParameterId from <see cref="IMediaOpsPlanApi.Capabilities"/>.</summary>
         protected Capability GetCapability(CapabilityParameterReference reference)
@@ -437,134 +421,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
         }
 
         /// <summary>Looks up the capability name by <paramref name="reference"/>.ParameterId from <see cref="IMediaOpsPlanApi.Capabilities"/>.</summary>
-        protected string TryGetCapabilityName(CapabilityParameterReference reference)
+        protected string GetCapabilityName(CapabilityParameterReference reference)
             => GetCapability(reference)?.Name;
 
         /// <summary>Looks up the capacity name by <paramref name="reference"/>.ParameterId from <see cref="IMediaOpsPlanApi.Capacities"/>.</summary>
-        protected string TryGetCapacityName(CapacityParameterReference reference)
+        protected string GetCapacityName(CapacityParameterReference reference)
             => GetCapacity(reference)?.Name;
 
         /// <summary>Looks up the configuration name by <paramref name="reference"/>.ParameterId from <see cref="IMediaOpsPlanApi.Configurations"/>.</summary>
-        protected string TryGetConfigurationName(ConfigurationParameterReference reference)
+        protected string GetConfigurationName(ConfigurationParameterReference reference)
             => GetConfiguration(reference)?.Name;
-
-        /// <summary>Returns the capability name when <paramref name="reference"/> is present in <paramref name="settings"/>; otherwise <c>null</c>.</summary>
-        protected string TryGetCapabilityNameFrom(OrchestrationSettings settings, CapabilityParameterReference reference)
-        {
-            if (settings == null || reference == null || reference.ParameterId == Guid.Empty)
-                return null;
-
-            return settings.Capabilities.Any(s => s.Id == reference.ParameterId)
-                ? TryGetCapabilityName(reference)
-                : null;
-        }
-
-        /// <summary>Returns the capacity name when <paramref name="reference"/> is present in <paramref name="settings"/>; otherwise <c>null</c>.</summary>
-        protected string TryGetCapacityNameFrom(OrchestrationSettings settings, CapacityParameterReference reference)
-        {
-            if (settings == null || reference == null || reference.ParameterId == Guid.Empty)
-                return null;
-
-            return settings.Capacities.Any(s => s.Id == reference.ParameterId)
-                ? TryGetCapacityName(reference)
-                : null;
-        }
-
-        /// <summary>Returns the configuration name when <paramref name="reference"/> is present in <paramref name="settings"/>; otherwise <c>null</c>.</summary>
-        protected string TryGetConfigurationNameFrom(OrchestrationSettings settings, ConfigurationParameterReference reference)
-        {
-            if (settings == null || reference == null || reference.ParameterId == Guid.Empty)
-                return null;
-
-            return settings.Configurations.Any(s => s.Id == reference.ParameterId)
-                ? TryGetConfigurationName(reference)
-                : null;
-        }
-
-        /// <summary>Resolves a capability <paramref name="reference"/> against the supplied orchestration settings.</summary>
-        protected static ResolvedValue ResolveCapabilityFromOrchestrationSettings(OrchestrationSettings orchestrationSettings, CapabilityParameterReference reference)
-        {
-            if (reference == null)
-                return null;
-
-            if (orchestrationSettings == null)
-                return ResolvedValue.FromUnresolvedReference(reference);
-
-            var setting = orchestrationSettings.Capabilities.FirstOrDefault(s => s.Id == reference.ParameterId);
-            return ResolveSetting(setting, reference);
-        }
-
-        /// <summary>Resolves a capacity <paramref name="reference"/> against the supplied orchestration settings.</summary>
-        protected static ResolvedValue ResolveCapacityFromOrchestrationSettings(OrchestrationSettings orchestrationSettings, CapacityParameterReference reference)
-        {
-            if (reference == null)
-                return null;
-
-            if (orchestrationSettings == null)
-                return ResolvedValue.FromUnresolvedReference(reference);
-
-            var setting = orchestrationSettings.Capacities.FirstOrDefault(s => s.Id == reference.ParameterId);
-            return ResolveSetting(setting, reference);
-        }
-
-        /// <summary>Resolves a configuration <paramref name="reference"/> against the supplied orchestration settings.</summary>
-        protected static ResolvedValue ResolveConfigurationFromOrchestrationSettings(OrchestrationSettings orchestrationSettings, ConfigurationParameterReference reference)
-        {
-            if (reference == null)
-                return null;
-
-            if (orchestrationSettings == null)
-                return ResolvedValue.FromUnresolvedReference(reference);
-
-            var setting = orchestrationSettings.Configurations.FirstOrDefault(s => s.Id == reference.ParameterId);
-            return ResolveSetting(setting, reference);
-        }
-
-        private static ResolvedValue ResolveSetting(Setting setting, DataReference reference)
-        {
-            if (setting == null)
-                return ResolvedValue.FromUnresolvedReference(reference);
-
-            if (setting.HasReference)
-                return ResolvedValue.FromUnresolvedReference(setting.Reference);
-
-            return TryGetSettingValue(setting, out var value)
-                ? ResolvedValue.FromValue(value)
-                : ResolvedValue.FromUnresolvedReference(reference);
-        }
-
-        /// <summary>
-        /// Extracts the runtime value of <paramref name="setting"/> based on its concrete type.
-        /// </summary>
-        protected static bool TryGetSettingValue(Setting setting, out object value)
-        {
-            switch (setting)
-            {
-                case CapabilitySetting capabilitySetting:
-                    value = capabilitySetting.Value;
-                    return capabilitySetting.HasValue;
-                case NumberCapacitySetting numberCapacitySetting:
-                    value = numberCapacitySetting.Value;
-                    return numberCapacitySetting.HasValue;
-                case RangeCapacitySetting rangeCapacitySetting:
-                    value = rangeCapacitySetting;
-                    return rangeCapacitySetting.HasValue;
-                case TextConfigurationSetting textConfigurationSetting:
-                    value = textConfigurationSetting.Value;
-                    return textConfigurationSetting.HasValue;
-                case NumberConfigurationSetting numberConfigurationSetting:
-                    value = numberConfigurationSetting.Value;
-                    return numberConfigurationSetting.HasValue;
-                case DiscreteTextConfigurationSetting discreteTextConfigurationSetting:
-                    value = discreteTextConfigurationSetting.Value?.Value;
-                    return discreteTextConfigurationSetting.HasValue;
-                case DiscreteNumberConfigurationSetting discreteNumberConfigurationSetting:
-                    value = discreteNumberConfigurationSetting.Value?.Value;
-                    return discreteNumberConfigurationSetting.HasValue;
-                default:
-                    value = null;
-                    return false;
-            }
-        }
     }
 }
