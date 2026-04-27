@@ -96,17 +96,17 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 			var guid = new Guid("12345678-1234-1234-1234-123456789012");
 			var storage = new StorageDataReference
 			{
-				ReferenceType = "SchedulingConfigurationParameter",
-				ReferenceData = new Dictionary<string, string> { ["SchedulingConfigurationParameterId"] = guid.ToString() },
+				ReferenceType = "ConfigurationParameter",
+				ReferenceData = new Dictionary<string, string> { ["ParameterId"] = guid.ToString() },
 			};
 
 			var result = ApiDataReference.FromStorage(storage);
 
 			Assert.IsNotNull(result);
-			var schedulingRef = result as NodeConfigurationParameterReference;
-			Assert.IsNotNull(schedulingRef);
-			Assert.AreEqual(DataReferenceType.NodeConfigurationParameter, result.Type);
-			Assert.AreEqual(guid, schedulingRef.ParameterId);
+			var configRef = result as ConfigurationParameterReference;
+			Assert.IsNotNull(configRef);
+			Assert.AreEqual(DataReferenceType.ConfigurationParameter, result.Type);
+			Assert.AreEqual(guid, configRef.ParameterId);
 		}
 
 		[TestMethod]
@@ -132,9 +132,9 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 		public void NodeConfigurationParameterReference_ToStorage_ThenFromStorage_PreservesParameterId()
 		{
 			var guid = Guid.NewGuid();
-			var original = new NodeConfigurationParameterReference(guid);
+			var original = new ConfigurationParameterReference(guid);
 
-			var result = ApiDataReference.FromStorage(original.ToStorage()) as NodeConfigurationParameterReference;
+			var result = ApiDataReference.FromStorage(original.ToStorage()) as ConfigurationParameterReference;
 
 			Assert.IsNotNull(result);
 			Assert.AreEqual(original.ParameterId, result.ParameterId);

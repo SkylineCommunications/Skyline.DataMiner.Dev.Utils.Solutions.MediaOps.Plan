@@ -109,24 +109,24 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			if (!Enum.TryParse<DataReferenceType>(reference.ReferenceType, out var type))
-				{
-					return null;
-				}
+			{
+				return null;
+			}
 
-				var nodeId = ReadNodeId(reference);
+			var nodeId = ReadNodeId(reference);
 
-				return type switch
-				{
-					DataReferenceType.ResourceName => new ResourceNameReference(nodeId),
-					DataReferenceType.ResourceLinkedObjectID => new ResourceLinkedObjectIdReference(nodeId),
-					DataReferenceType.ResourceProperty => ResourcePropertyReference.ParseFromStorage(reference, nodeId),
-					DataReferenceType.CapabilityParameter => CapabilityParameterReference.ParseFromStorage(reference, nodeId),
-					DataReferenceType.CapacityParameter => CapacityParameterReference.ParseFromStorage(reference, nodeId),
-					DataReferenceType.ConfigurationParameter => ConfigurationParameterReference.ParseFromStorage(reference, nodeId),
-					DataReferenceType.WorkflowName => new WorkflowNameReference(nodeId),
-					DataReferenceType.WorkflowProperty => WorkflowPropertyReference.ParseFromStorage(reference, nodeId),
-					_ => null,
-				};
+			return type switch
+			{
+				DataReferenceType.ResourceName => new ResourceNameReference(nodeId),
+				DataReferenceType.ResourceLinkedObjectID => new ResourceLinkedObjectIdReference(nodeId),
+				DataReferenceType.ResourceProperty => ResourcePropertyReference.ParseFromStorage(reference, nodeId),
+				DataReferenceType.CapabilityParameter => CapabilityParameterReference.ParseFromStorage(reference, nodeId),
+				DataReferenceType.CapacityParameter => CapacityParameterReference.ParseFromStorage(reference, nodeId),
+				DataReferenceType.ConfigurationParameter => ConfigurationParameterReference.ParseFromStorage(reference, nodeId),
+				DataReferenceType.WorkflowName => new WorkflowNameReference(nodeId),
+				DataReferenceType.WorkflowProperty => WorkflowPropertyReference.ParseFromStorage(reference, nodeId),
+				_ => null,
+			};
 		}
 
 		internal static string ReadNodeId(Storage.DOM.DataReference reference)
