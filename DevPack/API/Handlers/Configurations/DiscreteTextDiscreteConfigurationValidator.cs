@@ -81,6 +81,7 @@
 				{
 					ErrorMessage = $"The configuration defines the following duplicate discrete display values: {String.Join(", ", duplicateDisplayValues)}.",
 					Id = discreteTextConfiguration.Id,
+					DisplayValues = duplicateDisplayValues,
 				});
 			}
 

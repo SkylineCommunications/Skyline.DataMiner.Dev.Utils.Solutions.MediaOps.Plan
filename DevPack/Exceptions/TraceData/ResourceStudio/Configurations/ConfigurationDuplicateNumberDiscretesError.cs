@@ -1,5 +1,6 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions
 {
+	using System;
 	using System.Collections.Generic;
 
 	/// <summary>
@@ -8,8 +9,8 @@
 	public sealed class ConfigurationDuplicateNumberDiscretesError : ConfigurationDuplicateDiscretesError
 	{
 		/// <summary>
-		/// Gets or sets the collection of duplicate discrete decimal values.
+		/// Gets the collection of duplicate discrete decimal values.
 		/// </summary>
-		public List<decimal> Discretes { get; internal set; }
+		public IReadOnlyList<decimal> Discretes { get; internal set; } = Array.Empty<decimal>();
 	}
 }

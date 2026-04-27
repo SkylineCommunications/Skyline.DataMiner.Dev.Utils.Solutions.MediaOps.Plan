@@ -1,5 +1,6 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions
 {
+	using System;
 	using System.Collections.Generic;
 
 	/// <summary>
@@ -8,8 +9,8 @@
 	public sealed class ConfigurationDuplicateTextDiscretesError : ConfigurationDuplicateDiscretesError
 	{
 		/// <summary>
-		/// Gets or sets the collection of duplicate discrete string values.
+		/// Gets the collection of duplicate discrete string values.
 		/// </summary>
-		public List<string> Discretes { get; internal set; }
+		public IReadOnlyList<string> Discretes { get; internal set; } = Array.Empty<string>();
 	}
 }
