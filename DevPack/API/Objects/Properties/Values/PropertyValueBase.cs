@@ -91,15 +91,15 @@
 					continue;
 				}
 
-				if (property is StringProperty stringProperty)
+				if (property is StringProperty)
 				{
 					stringValues.Add(new StringPropertyValue(section));
 				}
-				else if (property is BooleanProperty booleanProperty)
+				else if (property is BooleanProperty)
 				{
 					booleanValues.Add(new BooleanPropertyValue(section));
 				}
-				else if (property is DiscreteProperty discreteProperty)
+				else if (property is DiscreteProperty)
 				{
 					discreteValues.Add(new DiscretePropertyValue(section));
 				}
