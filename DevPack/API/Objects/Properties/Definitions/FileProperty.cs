@@ -26,8 +26,8 @@
 
 		internal FileProperty(StorageProperties.PropertyInstance instance) : base(instance)
 		{
-			InitTracking();
 			ParseInstance(instance);
+			InitTracking();
 		}
 
 		/// <summary>
