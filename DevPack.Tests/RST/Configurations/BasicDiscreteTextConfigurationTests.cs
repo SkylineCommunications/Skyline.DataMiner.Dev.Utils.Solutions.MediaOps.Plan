@@ -450,7 +450,7 @@
 			}
 			catch (MediaOpsException ex)
 			{
-				var duplicateDiscretesError = ex.TraceData.ErrorData.OfType<ConfigurationTextDuplicateDiscretesError>().SingleOrDefault();
+				var duplicateDiscretesError = ex.TraceData.ErrorData.OfType<ConfigurationDuplicateTextDiscretesError>().SingleOrDefault();
 				Assert.IsNotNull(duplicateDiscretesError);
 				Assert.AreEqual(2, duplicateDiscretesError.Discretes.Count);
 				return;
@@ -478,7 +478,7 @@
 			}
 			catch (MediaOpsException ex)
 			{
-				var invalidDiscretesError = ex.TraceData.ErrorData.OfType<ConfigurationInvalidDiscretesError>().SingleOrDefault();
+				var invalidDiscretesError = ex.TraceData.ErrorData.OfType<ConfigurationDuplicateDisplayDiscretesError>().SingleOrDefault();
 				Assert.IsNotNull(invalidDiscretesError);
 				return;
 			}

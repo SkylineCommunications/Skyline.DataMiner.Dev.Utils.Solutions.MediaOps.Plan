@@ -77,7 +77,7 @@
 
 			if (duplicateDisplayValues.Count != 0)
 			{
-				ReportError(discreteTextConfiguration.Id, new ConfigurationInvalidDiscretesError
+				ReportError(discreteTextConfiguration.Id, new ConfigurationDuplicateDisplayDiscretesError
 				{
 					ErrorMessage = $"The configuration defines the following duplicate discrete display values: {String.Join(", ", duplicateDisplayValues)}.",
 					Id = discreteTextConfiguration.Id,
@@ -94,7 +94,7 @@
 
 			if (duplicateDiscreteValues.Count != 0)
 			{
-				ReportError(discreteTextConfiguration.Id, new ConfigurationTextDuplicateDiscretesError
+				ReportError(discreteTextConfiguration.Id, new ConfigurationDuplicateTextDiscretesError
 				{
 					ErrorMessage = $"The configuration defines the following duplicate discrete values: {String.Join(", ", duplicateDiscreteValues)}.",
 					Id = discreteTextConfiguration.Id,
