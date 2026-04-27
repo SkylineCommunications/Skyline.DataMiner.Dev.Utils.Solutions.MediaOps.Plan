@@ -410,7 +410,7 @@
 		/// <returns>An enumerable collection of pages, where each page contains a collection of property collections.</returns>
 		public IEnumerable<IPagedResult<PropertyValueCollection>> ReadPaged(int pageSize)
 		{
-			return ReadPaged(new TRUEFilterElement<PropertyValueCollection>(), MediaOpsPlanApi.DefaultPageSize);
+			return ReadPaged(new TRUEFilterElement<PropertyValueCollection>(), pageSize);
 		}
 
 		/// <summary>

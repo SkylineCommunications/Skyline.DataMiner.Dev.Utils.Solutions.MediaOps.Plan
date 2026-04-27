@@ -49,9 +49,9 @@
 		/// <summary>
 		/// Adds a discrete option to the collection if it is not already present.
 		/// </summary>
-		/// <param name="option">The discrete option to add. Cannot be <see langword="null"/> or whitespace.</param>
+		/// <param name="option">The discrete option to add. Cannot be <see langword="null"/>.</param>
 		/// <returns>The current instance of the <see cref="DiscreteProperty"/> class, allowing for method chaining.</returns>
-		/// <exception cref="ArgumentException">Thrown if <paramref name="option"/> is <see langword="null"/> or whitespace.</exception>
+		/// <exception cref="ArgumentException">Thrown if <paramref name="option"/> is <see langword="null"/>.</exception>
 		public DiscreteProperty AddDiscrete(string option)
 		{
 			if (option == null)
@@ -85,10 +85,10 @@
 		/// <summary>
 		/// Updates the collection of discrete options with the specified values.
 		/// </summary>
-		/// <param name="options">A collection of non-null, non-whitespace strings representing the new discrete options.</param>
+		/// <param name="options">A collection of non-null strings representing the new discrete options.</param>
 		/// <returns>The current instance of the <see cref="DiscreteProperty"/> class, allowing for method chaining.</returns>
 		/// <exception cref="ArgumentNullException">Thrown if <paramref name="options"/> is <see langword="null"/>.</exception>
-		/// <exception cref="ArgumentException">Thrown if any element in <paramref name="options"/> is <see langword="null"/>, empty, or consists only of whitespace.</exception>
+		/// <exception cref="ArgumentException">Thrown if any element in <paramref name="options"/> is <see langword="null"/>.</exception>
 		public DiscreteProperty SetDiscretes(IEnumerable<string> options)
 		{
 			if (options == null)
@@ -122,7 +122,7 @@
 			unchecked
 			{
 				var hash = base.GetHashCode();
-				hash = (hash * 23) + DefaultValue.GetHashCode();
+				hash = (hash * 23) + (DefaultValue != null ? DefaultValue.GetHashCode() : 0);
 
 				foreach (var discreet in discretes.OrderBy(x => x).ToArray())
 				{

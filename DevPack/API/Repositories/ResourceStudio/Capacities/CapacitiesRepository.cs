@@ -387,7 +387,7 @@
 		/// <returns>An enumerable collection of pages, where each page contains a collection of capacities.</returns>
 		public IEnumerable<IPagedResult<Capacity>> ReadPaged(int pageSize)
 		{
-			return ReadPaged(new TRUEFilterElement<Capacity>(), MediaOpsPlanApi.DefaultPageSize);
+			return ReadPaged(new TRUEFilterElement<Capacity>(), pageSize);
 		}
 
 		private IEnumerable<IPagedResult<Capacity>> ReadPagedIterator(FilterElement<Capacity> filter, int pageSize)

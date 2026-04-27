@@ -14,6 +14,7 @@
 		/// </summary>
 		public StringProperty() : base()
 		{
+			SetDefaultValues();
 		}
 
 		/// <summary>
@@ -22,6 +23,7 @@
 		/// <param name="propertyId">The unique identifier of the property.</param>
 		public StringProperty(Guid propertyId) : base(propertyId)
 		{
+			SetDefaultValues();
 		}
 
 		internal StringProperty(StorageProperties.PropertyInstance instance) : base(instance)
@@ -78,6 +80,12 @@
 			instance.PropertyInfo.Default = DefaultValue;
 			instance.PropertyInfo.StringSizeLimit = SizeLimit;
 			instance.PropertyInfo.IsMultiLineString = IsMultiLine;
+		}
+
+		private void SetDefaultValues()
+		{
+			SizeLimit = 250;
+			IsMultiLine = false;
 		}
 
 		private void ParseInstance(StorageProperties.PropertyInstance instance)

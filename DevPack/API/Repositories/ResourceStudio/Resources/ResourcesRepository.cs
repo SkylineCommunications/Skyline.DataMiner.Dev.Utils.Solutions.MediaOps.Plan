@@ -841,7 +841,7 @@
 		/// <returns>An enumerable collection of pages, where each page contains a collection of resources.</returns>
 		public IEnumerable<IPagedResult<Resource>> ReadPaged(int pageSize)
 		{
-			return ReadPaged(new TRUEFilterElement<Resource>(), MediaOpsPlanApi.DefaultPageSize);
+			return ReadPaged(new TRUEFilterElement<Resource>(), pageSize);
 		}
 
 		/// <summary>

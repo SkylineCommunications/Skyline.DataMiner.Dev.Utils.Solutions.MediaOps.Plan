@@ -57,7 +57,8 @@
 		{
 			unchecked
 			{
-				var hash = base.GetHashCode();
+				var hash = 17;
+				hash = (hash * 23) + Id.GetHashCode();
 				hash = (hash * 23) + (Name != null ? Name.GetHashCode() : 0);
 				hash = (hash * 23) + (Scope != null ? Scope.GetHashCode() : 0);
 				hash = (hash * 23) + (SectionName != null ? SectionName.GetHashCode() : 0);
@@ -75,7 +76,8 @@
 				return false;
 			}
 
-			return Name == other.Name
+			return Id == other.Id
+				&& Name == other.Name
 				&& Scope == other.Scope
 				&& SectionName == other.SectionName
 				&& Order == other.Order;
