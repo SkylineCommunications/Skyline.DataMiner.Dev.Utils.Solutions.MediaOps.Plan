@@ -432,6 +432,55 @@
 		}
 
 		[TestMethod]
+		public void CreateWithDuplicateRawValueThrowsException()
+		{
+			var configurationId = Guid.NewGuid();
+
+			var configuration = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteTextConfiguration(configurationId)
+			{
+				Name = $"{configurationId}_Configuration",
+			};
+
+			configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextDiscreet("same_value", "Label1"));
+			configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextDiscreet("same_value", "Label2"));
+
+			try
+			{
+				objectCreator.CreateConfiguration(configuration);
+			}
+			catch (MediaOpsException ex)
+			{
+				Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
+				var duplicateDiscretesError = ex.TraceData.ErrorData.OfType<ConfigurationDuplicateDiscretesError>().SingleOrDefault();
+				Assert.IsNotNull(duplicateDiscretesError);
+				Assert.AreEqual(2, duplicateDiscretesError.Discretes.Count);
+				return;
+			}
+
+			Assert.Fail("Expected exception was not thrown.");
+		}
+
+		[TestMethod]
+		public void CreateWithDuplicateDisplayNameIsAllowed()
+		{
+			var configurationId = Guid.NewGuid();
+
+			var configuration = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteTextConfiguration(configurationId)
+			{
+				Name = $"{configurationId}_Configuration",
+			};
+
+			configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextDiscreet("value_1", "Label"));
+			configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextDiscreet("value_2", "Label"));
+
+			objectCreator.CreateConfiguration(configuration);
+
+			var returnedConfiguration = TestContext.Api.Configurations.Read(configurationId) as Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteTextConfiguration;
+			Assert.IsNotNull(returnedConfiguration);
+			Assert.AreEqual(2, returnedConfiguration.Discretes.Count);
+		}
+
+		[TestMethod]
 		public void CreateWithNullNameThrowsException()
 		{
 			var configuration = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteTextConfiguration()

@@ -66,6 +66,24 @@
 					});
 				}
 			}
+
+			// Validate duplicate raw values
+			var duplicateDiscreteValues = discreteTextConfiguration.Discretes
+				.GroupBy(x => x.Value)
+				.Where(g => g.Count() > 1)
+				.SelectMany(g => g)
+				.Select(x => x.Value)
+				.ToList();
+
+			if (duplicateDiscreteValues.Count != 0)
+			{
+				ReportError(discreteTextConfiguration.Id, new ConfigurationDuplicateDiscretesError
+				{
+					ErrorMessage = $"The configuration defines the following duplicate discrete values: {String.Join(", ", duplicateDiscreteValues)}.",
+					Id = discreteTextConfiguration.Id,
+					Discretes = duplicateDiscreteValues,
+				});
+			}
 		}
 
 		private bool HasValidDisplayValue(string displayValue, out string reason)
@@ -74,11 +92,6 @@
 			if (String.IsNullOrEmpty(displayValue))
 			{
 				reason = "The display value of a discreet cannot be empty";
-				return false;
-			}
-			else if (discreteTextConfiguration.Discretes.Count(x => x.DisplayName.Equals(displayValue)) > 1)
-			{
-				reason = $"Multiple discretes have {displayValue} as their display value";
 				return false;
 			}
 			else if (!InputValidator.HasValidTextLength(displayValue))
@@ -99,11 +112,6 @@
 			if (String.IsNullOrEmpty(value))
 			{
 				reason = "The value of a discreet in a text discreet configuration cannot be empty";
-				return false;
-			}
-			else if (discreteTextConfiguration.Discretes.Count(x => x.Value.Equals(value)) > 1)
-			{
-				reason = $"Multiple discretes have {value} as their value";
 				return false;
 			}
 			else if (!InputValidator.HasValidTextLength(value))
