@@ -109,15 +109,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			if (!Enum.TryParse<DataReferenceType>(reference.ReferenceType, out var type))
 				{
-					// Backward compatibility: handle legacy serialized names.
-					if (String.Equals(reference.ReferenceType, "SchedulingConfigurationParameter", StringComparison.Ordinal))
-					{
-						type = DataReferenceType.ConfigurationParameter;
-					}
-					else
-					{
-						return null;
-					}
+					return null;
 				}
 
 				var nodeId = ReadNodeId(reference);
@@ -127,10 +119,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					DataReferenceType.ResourceName => new ResourceNameReference(nodeId),
 					DataReferenceType.ResourceLinkedObjectID => new ResourceLinkedObjectIdReference(nodeId),
 					DataReferenceType.ResourceProperty => ResourcePropertyReference.ParseFromStorage(reference, nodeId),
+					DataReferenceType.CapabilityParameter => CapabilityParameterReference.ParseFromStorage(reference, nodeId),
+					DataReferenceType.CapacityParameter => CapacityParameterReference.ParseFromStorage(reference, nodeId),
 					DataReferenceType.ConfigurationParameter => ConfigurationParameterReference.ParseFromStorage(reference, nodeId),
 					DataReferenceType.WorkflowName => new WorkflowNameReference(nodeId),
 					DataReferenceType.WorkflowProperty => WorkflowPropertyReference.ParseFromStorage(reference, nodeId),
-					DataReferenceType.WorkflowConfigurationParameter => WorkflowConfigurationParameterReference.ParseFromStorage(reference),
 					_ => null,
 				};
 		}

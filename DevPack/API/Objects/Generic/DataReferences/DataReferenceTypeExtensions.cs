@@ -16,6 +16,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
                 case DataReferenceType.ResourceName:
                 case DataReferenceType.ResourceProperty:
                 case DataReferenceType.ResourceLinkedObjectID:
+                case DataReferenceType.CapabilityParameter:
+                case DataReferenceType.CapacityParameter:
                 case DataReferenceType.ConfigurationParameter:
                     return true;
                 default:

@@ -26,9 +26,21 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
         ResourceLinkedObjectID,
 
         /// <summary>
+        /// Refers to a capability parameter.
+        /// </summary>
+        [Description("Capability")]
+        CapabilityParameter,
+
+        /// <summary>
+        /// Refers to a capacity parameter.
+        /// </summary>
+        [Description("Capacity")]
+        CapacityParameter,
+
+        /// <summary>
         /// Refers to a configuration parameter.
         /// </summary>
-        [Description("Configuration Parameter")]
+        [Description("Configuration")]
         ConfigurationParameter,
 
         /// <summary>
@@ -42,11 +54,5 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
         /// </summary>
         [Description("Workflow Property")]
         WorkflowProperty,
-
-        /// <summary>
-        /// Refers to a configuration parameter on the workflow (or job) level rather than on a specific node.
-        /// </summary>
-        [Description("Workflow Configuration Parameter")]
-        WorkflowConfigurationParameter,
     }
 }
