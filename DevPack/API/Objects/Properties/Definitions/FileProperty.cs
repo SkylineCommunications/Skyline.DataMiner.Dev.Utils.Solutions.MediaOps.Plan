@@ -72,6 +72,7 @@
 
 		internal override void ApplyChanges(StorageProperties.PropertyInstance instance)
 		{
+			instance.PropertyInfo.PropertyType = StorageProperties.SlcPropertiesIds.Enums.PropertytypeEnum.File;
 			instance.PropertyInfo.FileSizeLimit = SizeLimit;
 			instance.PropertyInfo.AllowMultipleFiles = AllowMultiple;
 		}

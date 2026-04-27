@@ -47,7 +47,7 @@
 		public IReadOnlyCollection<string> Discretes => discretes;
 
 		/// <summary>
-		/// Adds a discrete option to the collection if it is not already present.
+		/// Adds a discrete option to the collection.
 		/// </summary>
 		/// <param name="option">The discrete option to add. Cannot be <see langword="null"/>.</param>
 		/// <returns>The current instance of the <see cref="DiscreteProperty"/> class, allowing for method chaining.</returns>
@@ -148,6 +148,7 @@
 
 		internal override void ApplyChanges(StorageProperties.PropertyInstance instance)
 		{
+			instance.PropertyInfo.PropertyType = StorageProperties.SlcPropertiesIds.Enums.PropertytypeEnum.Discrete;
 			instance.PropertyInfo.Default = DefaultValue;
 
 			var toRemove = instance.Discrete.Where(d => !discretes.Contains(d.Option)).ToList();

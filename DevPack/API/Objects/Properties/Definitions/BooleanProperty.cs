@@ -61,6 +61,7 @@
 
 		internal override void ApplyChanges(StorageProperties.PropertyInstance instance)
 		{
+			instance.PropertyInfo.PropertyType = StorageProperties.SlcPropertiesIds.Enums.PropertytypeEnum.Boolean;
 			instance.PropertyInfo.Default = Convert.ToString(DefaultValue);
 		}
 

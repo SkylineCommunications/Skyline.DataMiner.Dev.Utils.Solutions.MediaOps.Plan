@@ -77,6 +77,7 @@
 
 		internal override void ApplyChanges(StorageProperties.PropertyInstance instance)
 		{
+			instance.PropertyInfo.PropertyType = StorageProperties.SlcPropertiesIds.Enums.PropertytypeEnum.String;
 			instance.PropertyInfo.Default = DefaultValue;
 			instance.PropertyInfo.StringSizeLimit = SizeLimit;
 			instance.PropertyInfo.IsMultiLineString = IsMultiLine;
