@@ -67,6 +67,23 @@
 				}
 			}
 
+			// Validate duplicate display values
+			var duplicateDisplayValues = discreteTextConfiguration.Discretes
+				.GroupBy(x => x.DisplayName)
+				.Where(g => g.Count() > 1)
+				.SelectMany(g => g)
+				.Select(x => x.DisplayName)
+				.ToList();
+
+			if (duplicateDisplayValues.Count != 0)
+			{
+				ReportError(discreteTextConfiguration.Id, new ConfigurationInvalidDiscretesError
+				{
+					ErrorMessage = $"The configuration defines the following duplicate discrete display values: {String.Join(", ", duplicateDisplayValues)}.",
+					Id = discreteTextConfiguration.Id,
+				});
+			}
+
 			// Validate duplicate raw values
 			var duplicateDiscreteValues = discreteTextConfiguration.Discretes
 				.GroupBy(x => x.Value)
@@ -77,7 +94,7 @@
 
 			if (duplicateDiscreteValues.Count != 0)
 			{
-				ReportError(discreteTextConfiguration.Id, new ConfigurationDuplicateDiscretesError
+				ReportError(discreteTextConfiguration.Id, new ConfigurationTextDuplicateDiscretesError
 				{
 					ErrorMessage = $"The configuration defines the following duplicate discrete values: {String.Join(", ", duplicateDiscreteValues)}.",
 					Id = discreteTextConfiguration.Id,

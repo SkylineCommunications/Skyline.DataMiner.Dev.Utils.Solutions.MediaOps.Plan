@@ -450,8 +450,7 @@
 			}
 			catch (MediaOpsException ex)
 			{
-				Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-				var duplicateDiscretesError = ex.TraceData.ErrorData.OfType<ConfigurationDuplicateDiscretesError>().SingleOrDefault();
+				var duplicateDiscretesError = ex.TraceData.ErrorData.OfType<ConfigurationNumberDuplicateDiscretesError>().SingleOrDefault();
 				Assert.IsNotNull(duplicateDiscretesError);
 				Assert.AreEqual(2, duplicateDiscretesError.Discretes.Count);
 				return;
@@ -461,7 +460,7 @@
 		}
 
 		[TestMethod]
-		public void CreateWithDuplicateDisplayNameIsAllowed()
+		public void CreateWithDuplicateDisplayNameThrowsException()
 		{
 			var configurationId = Guid.NewGuid();
 
@@ -473,11 +472,18 @@
 			configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(10, "Level"));
 			configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(20, "Level"));
 
-			objectCreator.CreateConfiguration(configuration);
+			try
+			{
+				objectCreator.CreateConfiguration(configuration);
+			}
+			catch (MediaOpsException ex)
+			{
+				var invalidDiscretesError = ex.TraceData.ErrorData.OfType<ConfigurationInvalidDiscretesError>().SingleOrDefault();
+				Assert.IsNotNull(invalidDiscretesError);
+				return;
+			}
 
-			var returnedConfiguration = TestContext.Api.Configurations.Read(configurationId) as Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteNumberConfiguration;
-			Assert.IsNotNull(returnedConfiguration);
-			Assert.AreEqual(2, returnedConfiguration.Discretes.Count);
+			Assert.Fail("Expected exception was not thrown.");
 		}
 
 		[TestMethod]
