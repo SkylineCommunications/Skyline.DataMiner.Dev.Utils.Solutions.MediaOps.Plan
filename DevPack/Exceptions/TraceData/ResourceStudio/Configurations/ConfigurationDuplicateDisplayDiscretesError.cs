@@ -6,7 +6,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a configuration contains duplicate discrete display values.
 	/// </summary>
-	public sealed class ConfigurationDuplicateDisplayDiscretesError : ConfigurationInvalidDiscretesError
+	public sealed class ConfigurationDuplicateDisplayDiscretesError : ConfigurationDuplicateDiscretesError
 	{
 		/// <summary>
 		/// Gets the collection of duplicate discrete display values.
