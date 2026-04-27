@@ -92,7 +92,7 @@
 		{
 			DefaultValue = instance.PropertyInfo.Default;
 			SizeLimit = instance.PropertyInfo.StringSizeLimit.HasValue ? (int)instance.PropertyInfo.StringSizeLimit.Value : 250;
-			IsMultiLine = instance.PropertyInfo.IsMultiLineString.HasValue ? instance.PropertyInfo.IsMultiLineString.Value : false;
+			IsMultiLine = instance.PropertyInfo.IsMultiLineString.HasValue && instance.PropertyInfo.IsMultiLineString.Value;
 		}
 	}
 }
