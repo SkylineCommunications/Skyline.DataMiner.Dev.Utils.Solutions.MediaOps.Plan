@@ -19,7 +19,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <param name="type">The type of data this reference points to.</param>
 		/// <param name="nodeId">
 		/// Optional identifier of the workflow node the reference is scoped to.
-		/// When <see langword="null"/> or empty the reference is interpreted as targeting the current node.
+		/// When <see langword="null"/> or empty the reference targets the workflow / job itself
+		/// rather than any specific node.
 		/// </param>
 		protected DataReference(DataReferenceType type, string nodeId = null)
 		{
@@ -34,7 +35,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		/// <summary>
 		/// Gets the identifier of the workflow node the reference is scoped to,
-		/// or <see langword="null"/> when the reference targets the current node.
+		/// or <see langword="null"/> when the reference targets the workflow / job itself.
 		/// </summary>
 		public string NodeId { get; }
 
