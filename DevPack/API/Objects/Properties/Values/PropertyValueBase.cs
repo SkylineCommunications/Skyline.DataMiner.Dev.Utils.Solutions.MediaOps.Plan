@@ -53,6 +53,8 @@
 
 		public IReadOnlyCollection<DiscretePropertyValue> DiscreteValues => discreteValues;
 
+		public IReadOnlyCollection<PropertyValue> PropertyValues => customValues.Cast<PropertyValue>().Concat(stringValues).Concat(booleanValues).Concat(discreteValues).ToList();
+
 		private void ParseInstance(MediaOpsPlanApi planApi, StorageProperties.PropertyValuesInstance instance)
 		{
 			originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
@@ -72,7 +74,7 @@
 			}
 
 			var propertyIds = propertyValues.Where(pv => pv.PropertyID.HasValue).Select(pv => pv.PropertyID.Value).Distinct();
-			var propertiesById = planApi.PropertyDefinitions.Read(propertyIds).ToDictionary(p => p.Id);
+			var propertiesById = planApi.Properties.Read(propertyIds).ToDictionary(p => p.Id);
 
 			foreach (var section in propertyValues)
 			{
@@ -151,14 +153,14 @@
 		}
 	}
 
-	public abstract class LinkedPropertyValue : PropertyValueBase
+	public abstract class PropertyValue : PropertyValueBase
 	{
-		public LinkedPropertyValue(Property property)
+		public PropertyValue(Property property)
 		{
 			PropertyId = property?.Id ?? throw new ArgumentNullException(nameof(property));
 		}
 
-		internal LinkedPropertyValue(StorageProperties.PropertyValueSection section) : base(section)
+		internal PropertyValue(StorageProperties.PropertyValueSection section) : base(section)
 		{
 			ParseSection(section);
 		}
@@ -171,7 +173,7 @@
 		}
 	}
 
-	public class StringPropertyValue : LinkedPropertyValue
+	public class StringPropertyValue : PropertyValue
 	{
 		public StringPropertyValue(StringProperty property) : base(property)
 		{
@@ -191,7 +193,7 @@
 		}
 	}
 
-	public class BooleanPropertyValue : LinkedPropertyValue
+	public class BooleanPropertyValue : PropertyValue
 	{
 		public BooleanPropertyValue(BooleanProperty property) : base(property)
 		{
@@ -211,7 +213,7 @@
 		}
 	}
 
-	public class DiscretePropertyValue : LinkedPropertyValue
+	public class DiscretePropertyValue : PropertyValue
 	{
 		public DiscretePropertyValue(DiscreteProperty property) : base(property)
 		{

@@ -144,6 +144,46 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				return;
 			}
+
+			ValidateStateForDeleteAction(apiProperties);
+			ValidatePropertiesAreNotInUse(apiProperties, options);
+
+			var lockResult = planApi.LockManager.LockAndExecute(apiProperties.Where(IsValid).ToList(), DeleteLocked);
+			ReportError(lockResult);
+		}
+
+		private void DeleteLocked(ICollection<Property> apiProperties)
+		{
+			if (apiProperties == null)
+			{
+				throw new ArgumentNullException(nameof(apiProperties));
+			}
+
+			if (apiProperties.Count == 0)
+			{
+				return;
+			}
+
+			if (apiProperties.Any(x => !IsValid(x)))
+			{
+				throw new ArgumentException($"Not all provided properties are valid", nameof(apiProperties));
+			}
+
+			var instancesToDelete = apiProperties.Select(x => x.OriginalInstance.ToInstance());
+			planApi.DomHelpers.SlcPropertiesHelper.DomHelper.DomInstances.TryDeleteInBatches(instancesToDelete, out var domResult);
+
+			foreach (var id in domResult.UnsuccessfulIds)
+			{
+				ReportError(id.Id);
+
+				if (domResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+				{
+					var mediaOpsTraceData = new MediaOpsTraceData();
+					mediaOpsTraceData.Add(new MediaOpsErrorData { ErrorMessage = traceData.ToString() });
+				}
+			}
+
+			ReportSuccess(instancesToDelete.Where(x => domResult.SuccessfulIds.Contains(x.ID)).Select(x => new DomProperty(x)));
 		}
 
 		private void ValidateIdsNotInUse(ICollection<Property> apiProperties)
@@ -515,6 +555,75 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			throw new NotImplementedException();
+		}
+
+		private void ValidateStateForDeleteAction(ICollection<Property> apiProperties)
+		{
+			if (apiProperties == null)
+			{
+				throw new ArgumentNullException(nameof(apiProperties));
+			}
+
+			if (apiProperties.Count == 0)
+			{
+				return;
+			}
+
+			foreach (var property in apiProperties.Where(x => x.IsNew))
+			{
+				var error = new PropertyInvalidStateError
+				{
+					ErrorMessage = $"A property that was not saved cannot be removed.",
+					Id = property.Id,
+				};
+
+				ReportError(property.Id, error);
+			}
+		}
+
+		private void ValidatePropertiesAreNotInUse(ICollection<Property> apiProperties, PropertyDeleteOptions options)
+		{
+			if (apiProperties == null)
+			{
+				throw new ArgumentNullException(nameof(apiProperties));
+			}
+
+			if (apiProperties.Count == 0)
+			{
+				return;
+			}
+
+			var filter = new ORFilterElement<PropertyValueCollection>(apiProperties
+				.Select(x => PropertyValueCollectionExposers.PropertyValues.PropertyId.Equal(x.Id))
+				.ToArray());
+			var collectionsUsingProperty = planApi.PropertyValueCollections.Read(filter);
+			var collectionsByPropertyId = collectionsUsingProperty
+				.SelectMany(c => c.PropertyValues.Select(v => new { Collection = c, PropertyId = v.PropertyId }))
+				.GroupBy(x => x.PropertyId)
+				.ToDictionary(g => g.Key, g => (IReadOnlyCollection<PropertyValueCollection>)g.Select(x => x.Collection).ToList());
+
+			foreach (var property in apiProperties)
+			{
+				if (!collectionsByPropertyId.TryGetValue(property.Id, out var collections))
+				{
+					continue;
+				}
+
+				if (options.ForceDelete)
+				{
+					planApi.Logger.Warning(this, $"Property '{property.Name}' ({property.Id}) is in use by {collections.Count} collection(s), but will be deleted anyway because ForceDelete option is enabled.");
+					continue;
+				}
+
+				var error = new PropertyInUseError
+				{
+					ErrorMessage = $"Property '{property.Name}' is in use by {collections.Count} collection(s).",
+					Id = property.Id,
+					CollectionIds = collections.Select(x => x.Id).ToList(),
+				};
+
+				ReportError(property.Id, error);
+			}
 		}
 
 		private ICollection<DomChangeResults> GetPropertiesWithChanges(ICollection<Property> apiProperties)
