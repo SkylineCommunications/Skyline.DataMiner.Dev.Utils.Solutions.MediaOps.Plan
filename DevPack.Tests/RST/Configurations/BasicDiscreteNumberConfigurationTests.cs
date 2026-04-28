@@ -444,19 +444,21 @@
 			configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(10, "Level1"));
 			configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(10, "Level2"));
 
+			MediaOpsException? expectedException = null;
 			try
 			{
 				objectCreator.CreateConfiguration(configuration);
 			}
 			catch (MediaOpsException ex)
 			{
-				var duplicateDiscretesError = ex.TraceData.ErrorData.OfType<ConfigurationDuplicateNumberDiscretesError>().SingleOrDefault();
-				Assert.IsNotNull(duplicateDiscretesError);
-				Assert.AreEqual(2, duplicateDiscretesError.Discretes.Count);
-				return;
+				expectedException = ex;
 			}
 
-			Assert.Fail("Expected exception was not thrown.");
+			Assert.IsNotNull(expectedException, "Expected exception was not thrown.");
+
+			var configurationDuplicateNumberDiscretesError = expectedException.TraceData.ErrorData.OfType<ConfigurationDuplicateNumberDiscretesError>().SingleOrDefault();
+			Assert.IsNotNull(configurationDuplicateNumberDiscretesError);
+			Assert.AreEqual(2, configurationDuplicateNumberDiscretesError.Discretes.Count);
 		}
 
 		[TestMethod]
@@ -472,18 +474,21 @@
 			configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(10, "Level"));
 			configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberDiscreet(20, "Level"));
 
+			MediaOpsException? expectedException = null;
 			try
 			{
 				objectCreator.CreateConfiguration(configuration);
 			}
 			catch (MediaOpsException ex)
 			{
-				var invalidDiscretesError = ex.TraceData.ErrorData.OfType<ConfigurationDuplicateDisplayDiscretesError>().SingleOrDefault();
-				Assert.IsNotNull(invalidDiscretesError);
-				return;
+				expectedException = ex;
 			}
 
-			Assert.Fail("Expected exception was not thrown.");
+			Assert.IsNotNull(expectedException, "Expected exception was not thrown.");
+
+			var configurationDuplicateDisplayDiscretesError = expectedException.TraceData.ErrorData.OfType<ConfigurationDuplicateDisplayDiscretesError>().SingleOrDefault();
+			Assert.IsNotNull(configurationDuplicateDisplayDiscretesError);
+			Assert.AreEqual(2, configurationDuplicateDisplayDiscretesError.DisplayValues.Count);
 		}
 
 		[TestMethod]
