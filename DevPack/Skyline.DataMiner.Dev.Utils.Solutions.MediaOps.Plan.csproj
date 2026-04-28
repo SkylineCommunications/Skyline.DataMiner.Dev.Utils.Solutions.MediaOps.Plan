@@ -19,16 +19,12 @@
 		<PackageIcon>Icon.png</PackageIcon>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<Version>1.6.0-alpha001</Version>
-
 		<Authors>SkylineCommunications</Authors>
 		<Company>Skyline Communications</Company>
 		<Description>Provides an internal API for MediaOps Plan.</Description>
 		<RepositoryType>git</RepositoryType>
 		<RepositoryUrl>https://github.com/SkylineCommunications/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan</RepositoryUrl>
-		<Deterministic>false</Deterministic>
-		<ImplicitUsings>disable</ImplicitUsings>
-		<Nullable>disable</Nullable>
+		<GitVersion>false</GitVersion>
 		<UserSecretsId>8b63d789-daa9-4f00-ade9-5791180385c7</UserSecretsId>
 	</PropertyGroup>
 	<ItemGroup>
