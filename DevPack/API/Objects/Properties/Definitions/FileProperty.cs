@@ -80,7 +80,7 @@
 		private void ParseInstance(StorageProperties.PropertyInstance instance)
 		{
 			SizeLimit = instance.PropertyInfo.FileSizeLimit.HasValue ? (int)instance.PropertyInfo.FileSizeLimit.Value : 20;
-			AllowMultiple = instance.PropertyInfo.AllowMultipleFiles.HasValue ? instance.PropertyInfo.AllowMultipleFiles.Value : false;
+			AllowMultiple = instance.PropertyInfo.AllowMultipleFiles.GetValueOrDefault();
 		}
 	}
 }

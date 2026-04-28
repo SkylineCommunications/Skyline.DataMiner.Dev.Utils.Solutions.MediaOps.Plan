@@ -67,7 +67,7 @@
 
 		private void ParseInstance(StorageProperties.PropertyInstance instance)
 		{
-			DefaultValue = bool.TryParse(instance.PropertyInfo.Default, out var result) ? result : false;
+			DefaultValue = bool.TryParse(instance.PropertyInfo.Default, out var result) && result;
 		}
 	}
 }
