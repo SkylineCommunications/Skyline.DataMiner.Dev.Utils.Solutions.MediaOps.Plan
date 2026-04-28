@@ -79,7 +79,7 @@
 			var toCreate = apiJobs.Where(x => x.IsNew).ToList();
 			var toUpdate = apiJobs.Except(toCreate).ToList();
 
-			var changeResults = GetJobsWithChanges(toUpdate).ToList();
+			var changeResults = GetJobsWithChanges(toUpdate);
 
 			CreateOrUpdateOrchestrationSettings(apiJobs.Where(IsValid).ToList());
 
@@ -291,61 +291,16 @@
 			}
 		}
 
-		private IEnumerable<DomChangeResults> GetJobsWithChanges(ICollection<Job> apiJobs)
+		private ICollection<DomChangeResults> GetJobsWithChanges(ICollection<Job> apiJobs)
 		{
-			if (apiJobs == null)
-			{
-				throw new ArgumentNullException(nameof(apiJobs));
-			}
-
-			if (apiJobs.Count == 0)
-			{
-				return [];
-			}
-
-			return GetJobsWithChangesIterator(apiJobs);
-		}
-
-		private IEnumerable<DomChangeResults> GetJobsWithChangesIterator(ICollection<Job> apiJobs)
-		{
-			var jobsRequiringValidation = apiJobs.Where(x => !x.IsNew && x.HasChanges).ToList();
-			if (jobsRequiringValidation.Count == 0)
-			{
-				yield break;
-			}
-
-			var storedDomJobsById = planApi.DomHelpers.SlcWorkflowHelper.GetJobs(jobsRequiringValidation.Select(x => x.Id)).ToDictionary(x => x.ID.Id);
-			foreach (var job in jobsRequiringValidation)
-			{
-				if (!storedDomJobsById.TryGetValue(job.Id, out var stored))
-				{
-					var error = new JobNotFoundError
-					{
-						ErrorMessage = $"Job with ID '{job.Id}' no longer exists.",
-						Id = job.Id,
-					};
-
-					ReportError(job.Id, error);
-					continue;
-				}
-
-				var changeResult = DomChangeHandler.HandleChanges(job.OriginalInstance, job.GetInstanceWithChanges(), stored);
-				if (changeResult.HasErrors)
-				{
-					foreach (var errorDetails in changeResult.Errors)
-					{
-						var error = new JobValueAlreadyChangedError
-						{
-							ErrorMessage = errorDetails.Message,
-							Id = job.Id,
-						};
-
-						ReportError(job.Id, error);
-					}
-				}
-
-				yield return changeResult;
-			}
+			return GetItemsWithChanges<Job, DomJob>(
+				apiJobs,
+				j => j.OriginalInstance,
+				j => j.GetInstanceWithChanges(),
+				ids => planApi.DomHelpers.SlcWorkflowHelper.GetJobs(ids),
+				j => new JobNotFoundError { ErrorMessage = $"Job with ID '{j.Id}' no longer exists.", Id = j.Id },
+				(j, msg) => new JobValueAlreadyChangedError { ErrorMessage = msg, Id = j.Id })
+				.ToList();
 		}
 	}
 }

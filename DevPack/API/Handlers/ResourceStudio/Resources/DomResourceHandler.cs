@@ -1211,60 +1211,14 @@
 
 		private ICollection<DomChangeResults> GetResourcesWithChanges(ICollection<Resource> apiResources)
 		{
-			if (apiResources == null)
-			{
-				throw new ArgumentNullException(nameof(apiResources));
-			}
-
-			if (apiResources.Count == 0)
-			{
-				return [];
-			}
-
-			var resourcesRequiringValidation = apiResources.Where(x => !x.IsNew && x.HasChanges).ToList();
-			if (resourcesRequiringValidation.Count == 0)
-			{
-				return Array.Empty<DomChangeResults>();
-			}
-
-			List<DomChangeResults> changeResults = new List<DomChangeResults>();
-			var storedDomResourcesById = planApi.DomHelpers.SlcResourceStudioHelper.GetResources(resourcesRequiringValidation.Select(x => x.Id)).ToDictionary(x => x.ID.Id);
-			foreach (var resource in resourcesRequiringValidation)
-			{
-				if (!storedDomResourcesById.TryGetValue(resource.Id, out var stored))
-				{
-					var error = new ResourceNotFoundError
-					{
-						ErrorMessage = $"Resource with ID '{resource.Id}' no longer exists.",
-						Id = resource.Id,
-					};
-
-					ReportError(resource.Id, error);
-
-					continue;
-				}
-
-				var changeResult = DomChangeHandler.HandleChanges(resource.OriginalInstance, resource.GetInstanceWithChanges(), stored);
-				if (changeResult.HasErrors)
-				{
-					foreach (var errorDetails in changeResult.Errors)
-					{
-						var error = new ResourceValueAlreadyChangedError
-						{
-							ErrorMessage = errorDetails.Message,
-							Id = resource.Id,
-						};
-
-						ReportError(resource.Id, error);
-					}
-
-					continue;
-				}
-
-				changeResults.Add(changeResult);
-			}
-
-			return changeResults;
+			return GetItemsWithChanges<Resource, DomResource>(
+				apiResources,
+				p => p.OriginalInstance,
+				p => p.GetInstanceWithChanges(),
+				ids => planApi.DomHelpers.SlcResourceStudioHelper.GetResources(ids),
+				p => new ResourceNotFoundError { ErrorMessage = $"Resource with ID '{p.Id}' no longer exists.", Id = p.Id },
+				(p, msg) => new ResourceValueAlreadyChangedError { ErrorMessage = msg, Id = p.Id })
+				.ToList();
 		}
 
 		private void MarkAsResourceWithCoreChanges(Resource resource)
