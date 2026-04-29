@@ -55,15 +55,42 @@
 						Id = discreteNumberConfiguration.Id,
 					});
 				}
+			}
 
-				if (!IsValidDiscreetNumber(discreet.Value, out string invalidDiscreetNumberReason))
+			// Validate duplicate display values
+			var duplicateDisplayValues = discreteNumberConfiguration.Discretes
+				.GroupBy(x => x.DisplayName)
+				.Where(g => g.Count() > 1)
+				.SelectMany(g => g)
+				.Select(x => x.DisplayName)
+				.ToList();
+
+			if (duplicateDisplayValues.Count != 0)
+			{
+				ReportError(discreteNumberConfiguration.Id, new ConfigurationDuplicateDisplayDiscretesError
 				{
-					ReportError(discreteNumberConfiguration.Id, new ConfigurationInvalidDiscretesError
-					{
-						ErrorMessage = invalidDiscreetNumberReason,
-						Id = discreteNumberConfiguration.Id,
-					});
-				}
+					ErrorMessage = $"The configuration defines the following duplicate discrete display values: {String.Join(", ", duplicateDisplayValues)}.",
+					Id = discreteNumberConfiguration.Id,
+					DisplayValues = duplicateDisplayValues,
+				});
+			}
+
+			// Validate duplicate raw values
+			var duplicateDiscreteValues = discreteNumberConfiguration.Discretes
+				.GroupBy(x => x.Value)
+				.Where(g => g.Count() > 1)
+				.SelectMany(g => g)
+				.Select(x => x.Value)
+				.ToList();
+
+			if (duplicateDiscreteValues.Count != 0)
+			{
+				ReportError(discreteNumberConfiguration.Id, new ConfigurationDuplicateNumberDiscretesError
+				{
+					ErrorMessage = $"The configuration defines the following duplicate discrete values: {String.Join(", ", duplicateDiscreteValues)}.",
+					Id = discreteNumberConfiguration.Id,
+					Discretes = duplicateDiscreteValues,
+				});
 			}
 		}
 
@@ -75,11 +102,6 @@
 				reason = "The display value of a discreet cannot be empty";
 				return false;
 			}
-			else if (discreteNumberConfiguration.Discretes.Count(x => x.DisplayName.Equals(displayValue)) > 1)
-			{
-				reason = $"Multiple discretes have {displayValue} as their display value";
-				return false;
-			}
 			else if (!InputValidator.HasValidTextLength(displayValue))
 			{
 				reason = $"The display value of the discreet exceeds {InputValidator.DefaultMaxTextLength} characters";
@@ -88,21 +110,6 @@
 			else
 			{
 				// valid display value
-				return true;
-			}
-		}
-
-		private bool IsValidDiscreetNumber(decimal value, out string reason)
-		{
-			reason = String.Empty;
-			if (discreteNumberConfiguration.Discretes.Count(x => x.Value.Equals(value)) > 1)
-			{
-				reason = $"Multiple discretes have {value} as their value";
-				return false;
-			}
-			else
-			{
-				// valid number value
 				return true;
 			}
 		}
