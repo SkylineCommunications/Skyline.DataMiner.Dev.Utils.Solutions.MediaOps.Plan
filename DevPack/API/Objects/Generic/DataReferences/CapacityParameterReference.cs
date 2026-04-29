@@ -20,7 +20,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
         {
         }
 
-        internal static CapacityParameterReference ParseFromStorage(Storage.DOM.DataReference reference, string nodeId)
+        internal static CapacityParameterReference ParseFromStorage(Storage.DOM.DataReferenceStorage reference, string nodeId)
         {
             if (reference.ReferenceData == null || !reference.ReferenceData.TryGetValue(ParameterIdKey, out var raw))
                 return null;

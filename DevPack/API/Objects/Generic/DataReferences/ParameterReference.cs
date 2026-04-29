@@ -50,7 +50,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
             }
         }
 
-        private protected override Dictionary<string, string> BuildReferenceData()
+        internal override Dictionary<string, string> BuildReferenceData()
         {
             var data = base.BuildReferenceData() ?? new Dictionary<string, string>();
             data[ParameterIdKey] = ParameterId.ToString();

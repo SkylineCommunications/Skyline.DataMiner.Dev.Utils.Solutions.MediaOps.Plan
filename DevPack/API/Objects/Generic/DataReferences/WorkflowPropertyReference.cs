@@ -48,7 +48,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
             }
         }
 
-        internal static WorkflowPropertyReference ParseFromStorage(Storage.DOM.DataReference reference, string nodeId)
+        internal static WorkflowPropertyReference ParseFromStorage(Storage.DOM.DataReferenceStorage reference, string nodeId)
         {
             if (reference.ReferenceData == null || !reference.ReferenceData.TryGetValue(WorkflowPropertyIdKey, out var raw))
             {
@@ -58,7 +58,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
             return Guid.TryParse(raw, out var id) ? new WorkflowPropertyReference(id, nodeId) : null;
         }
 
-        private protected override Dictionary<string, string> BuildReferenceData()
+        internal override Dictionary<string, string> BuildReferenceData()
         {
             var data = base.BuildReferenceData() ?? new Dictionary<string, string>();
             data[WorkflowPropertyIdKey] = WorkflowPropertyId.ToString();

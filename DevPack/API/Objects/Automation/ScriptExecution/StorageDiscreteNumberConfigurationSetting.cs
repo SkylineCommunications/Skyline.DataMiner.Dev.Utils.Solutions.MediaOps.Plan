@@ -1,4 +1,4 @@
-﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
 	using System.Linq;
@@ -45,7 +45,7 @@
 				}
 			}
 
-			Reference = DataReference.FromStorage(profileParameterValue.Reference);
+			Reference = profileParameterValue.Reference.ToDataReference();
 		}
 	}
 }

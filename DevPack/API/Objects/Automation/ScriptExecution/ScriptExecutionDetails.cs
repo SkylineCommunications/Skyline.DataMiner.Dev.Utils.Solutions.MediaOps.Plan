@@ -563,7 +563,7 @@
 			return storageScriptExecutionDetails;
 		}
 
-		private void ParseStorageDummies(Dictionary<string, string> storageDummies, Dictionary<string, Storage.DOM.DataReference> dummyReferences)
+		private void ParseStorageDummies(Dictionary<string, string> storageDummies, Dictionary<string, Storage.DOM.DataReferenceStorage> dummyReferences)
 		{
 			foreach (var kvp in storageDummies)
 			{
@@ -585,14 +585,14 @@
 			{
 				var scriptElementSetting = new ScriptElementSetting(kvp.Key)
 				{
-					Reference = DataReference.FromStorage(kvp.Value),
+                   Reference = kvp.Value.ToDataReference(),
 				};
 
 				AddScriptElement(scriptElementSetting);
 			}
 		}
 
-		private void ParseStorageParameters(Dictionary<string, string> storageParameters, Dictionary<string, Storage.DOM.DataReference> parameterReferences)
+		private void ParseStorageParameters(Dictionary<string, string> storageParameters, Dictionary<string, Storage.DOM.DataReferenceStorage> parameterReferences)
 		{
 			foreach (var kvp in storageParameters)
 			{
@@ -608,7 +608,7 @@
 			{
 				var scriptParameterSetting = new ScriptParameterSetting(kvp.Key)
 				{
-					Reference = DataReference.FromStorage(kvp.Value),
+                   Reference = kvp.Value.ToDataReference(),
 				};
 
 				AddScriptParameter(scriptParameterSetting);

@@ -1,4 +1,4 @@
-﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
 	using System.Linq;
@@ -51,7 +51,7 @@
 				}
 			}
 
-			Reference = DataReference.FromStorage(section.Reference);
+			Reference = section.Reference.ToDataReference();
 		}
 	}
 }

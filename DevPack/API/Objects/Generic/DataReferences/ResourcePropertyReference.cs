@@ -47,7 +47,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				&& rpr.ResourcePropertyId == ResourcePropertyId;
 		}
 
-		internal static ResourcePropertyReference ParseFromStorage(Storage.DOM.DataReference reference, string nodeId)
+		internal static ResourcePropertyReference ParseFromStorage(Storage.DOM.DataReferenceStorage reference, string nodeId)
 		{
 			if (reference.ReferenceData == null || !reference.ReferenceData.TryGetValue(ResourcePropertyIdKey, out var raw))
 			{
@@ -57,7 +57,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return Guid.TryParse(raw, out var id) ? new ResourcePropertyReference(id, nodeId) : null;
 		}
 
-		private protected override Dictionary<string, string> BuildReferenceData()
+      internal override Dictionary<string, string> BuildReferenceData()
 		{
 			var data = base.BuildReferenceData() ?? new Dictionary<string, string>();
 			data[ResourcePropertyIdKey] = ResourcePropertyId.ToString();
