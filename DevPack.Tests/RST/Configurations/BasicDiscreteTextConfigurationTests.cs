@@ -432,6 +432,66 @@
 		}
 
 		[TestMethod]
+		public void CreateWithDuplicateRawValueThrowsException()
+		{
+			var configurationId = Guid.NewGuid();
+
+			var configuration = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteTextConfiguration(configurationId)
+			{
+				Name = $"{configurationId}_Configuration",
+			};
+
+			configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextDiscreet("same_value", "Label1"));
+			configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextDiscreet("same_value", "Label2"));
+
+			MediaOpsException? expectedException = null;
+			try
+			{
+				objectCreator.CreateConfiguration(configuration);
+			}
+			catch (MediaOpsException ex)
+			{
+				expectedException = ex;
+			}
+
+			Assert.IsNotNull(expectedException, "Expected exception was not thrown.");
+
+			var configurationDuplicateTextDiscretesError = expectedException.TraceData.ErrorData.OfType<ConfigurationDuplicateTextDiscretesError>().SingleOrDefault();
+			Assert.IsNotNull(configurationDuplicateTextDiscretesError);
+			Assert.AreEqual(2, configurationDuplicateTextDiscretesError.Discretes.Count);
+		}
+
+		[TestMethod]
+		public void CreateWithDuplicateDisplayNameThrowsException()
+		{
+			var configurationId = Guid.NewGuid();
+
+			var configuration = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteTextConfiguration(configurationId)
+			{
+				Name = $"{configurationId}_Configuration",
+			};
+
+			configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextDiscreet("value_1", "Label"));
+			configuration.AddDiscrete(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextDiscreet("value_2", "Label"));
+
+			MediaOpsException? expectedException = null;
+			try
+			{
+				objectCreator.CreateConfiguration(configuration);
+			}
+			catch (MediaOpsException ex)
+			{
+				expectedException = ex;
+			}
+
+			Assert.IsNotNull(expectedException, "Expected exception was not thrown.");
+
+			var configurationDuplicateDisplayDiscretesError = expectedException.TraceData.ErrorData.OfType<ConfigurationDuplicateDisplayDiscretesError>().SingleOrDefault();
+			Assert.IsNotNull(configurationDuplicateDisplayDiscretesError);
+			Assert.AreEqual(2, configurationDuplicateDisplayDiscretesError.DisplayValues.Count);
+		}
+
+		[TestMethod]
 		public void CreateWithNullNameThrowsException()
 		{
 			var configuration = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.DiscreteTextConfiguration()
