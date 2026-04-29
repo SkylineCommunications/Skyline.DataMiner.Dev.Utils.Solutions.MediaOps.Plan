@@ -14,7 +14,6 @@
 		/// </summary>
 		public StringProperty() : base()
 		{
-			SetDefaultValues();
 		}
 
 		/// <summary>
@@ -23,7 +22,6 @@
 		/// <param name="propertyId">The unique identifier of the property.</param>
 		public StringProperty(Guid propertyId) : base(propertyId)
 		{
-			SetDefaultValues();
 		}
 
 		internal StringProperty(StorageProperties.PropertyInstance instance) : base(instance)
@@ -38,14 +36,14 @@
 		public string DefaultValue { get; set; }
 
 		/// <summary>
-		/// Gets or sets the maximum allowed length of the string. If not set, the default value is 250.
+		/// Gets or sets the maximum allowed of characters. If not set, the default value is 250.
 		/// </summary>
-		public int SizeLimit { get; set; }
+		public int SizeLimit { get; set; } = 250;
 
 		/// <summary>
 		/// Gets or sets a value indicating whether the content supports multiple lines.
 		/// </summary>
-		public bool IsMultiLine { get; set; }
+		public bool IsMultiLine { get; set; } = false;
 
 		/// <inheritdoc/>
 		public override int GetHashCode()
@@ -81,12 +79,6 @@
 			instance.PropertyInfo.Default = DefaultValue;
 			instance.PropertyInfo.StringSizeLimit = SizeLimit;
 			instance.PropertyInfo.IsMultiLineString = IsMultiLine;
-		}
-
-		private void SetDefaultValues()
-		{
-			SizeLimit = 250;
-			IsMultiLine = false;
 		}
 
 		private void ParseInstance(StorageProperties.PropertyInstance instance)
