@@ -240,6 +240,54 @@
 			});
 		}
 
+		public void Delete(IEnumerable<Property> properties, PropertyDeleteOptions options)
+		{
+			if (properties == null)
+			{
+				throw new ArgumentNullException(nameof(properties));
+			}
+
+			Delete(properties.Select(x => x.Id).ToArray(), options);
+		}
+
+		public void Delete(IEnumerable<Guid> propertyIds, PropertyDeleteOptions options)
+		{
+			if (propertyIds == null)
+			{
+				throw new ArgumentNullException(nameof(propertyIds));
+			}
+
+			var toDelete = Read(propertyIds);
+			if (!DomPropertyHandler.TryDelete(PlanApi, toDelete?.ToList(), out var result, options))
+			{
+				result.ThrowBulkException();
+			}
+		}
+
+		public void Delete(Property property, PropertyDeleteOptions options)
+		{
+			if (property == null)
+			{
+				throw new ArgumentNullException(nameof(property));
+			}
+
+			Delete(property.Id, options);
+		}
+
+		public void Delete(Guid propertyId, PropertyDeleteOptions options)
+		{
+			var toDelete = Read(propertyId);
+			if (toDelete == null)
+			{
+				return;
+			}
+
+			if (!DomPropertyHandler.TryDelete(PlanApi, [toDelete], out var result, options))
+			{
+				result.ThrowSingleException(toDelete.Id);
+			}
+		}
+
 		/// <summary>
 		/// Reads a single property definition by its unique identifier.
 		/// </summary>
