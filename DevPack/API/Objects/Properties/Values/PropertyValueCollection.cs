@@ -7,6 +7,9 @@
 
 	using StorageProperties = Storage.DOM.SlcProperties;
 
+	/// <summary>
+	/// Represents a collection of property values grouped by type, linked to a specific object and scope.
+	/// </summary>
 	public class PropertyValueCollection : ApiObject, ICollection<PropertyValueBase>
 	{
 		private readonly List<CustomPropertyValue> customValues = [];
@@ -40,18 +43,39 @@
 		/// </summary>
 		public override string Name { get; set; }
 
+		/// <summary>
+		/// Gets the identifier of the object this collection is linked to.
+		/// </summary>
 		public string LinkedObjectId { get => linkedObjectId; init => linkedObjectId = value; }
 
+		/// <summary>
+		/// Gets the scope of this property value collection.
+		/// </summary>
 		public string Scope { get => scope; init => scope = value; }
 
+		/// <summary>
+		/// Gets the sub-identifier for this property value collection.
+		/// </summary>
 		public string SubId { get => subId; init => subId = value; }
 
+		/// <summary>
+		/// Gets the collection of custom property values.
+		/// </summary>
 		public IReadOnlyCollection<CustomPropertyValue> CustomValues => customValues;
 
+		/// <summary>
+		/// Gets the collection of string property values.
+		/// </summary>
 		public IReadOnlyCollection<StringPropertyValue> StringValues => stringValues;
 
+		/// <summary>
+		/// Gets the collection of boolean property values.
+		/// </summary>
 		public IReadOnlyCollection<BooleanPropertyValue> BooleanValues => booleanValues;
 
+		/// <summary>
+		/// Gets the collection of discrete property values.
+		/// </summary>
 		public IReadOnlyCollection<DiscretePropertyValue> DiscreteValues => discreteValues;
 
 		/// <inheritdoc />

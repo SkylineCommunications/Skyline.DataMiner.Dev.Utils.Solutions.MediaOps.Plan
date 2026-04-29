@@ -4,6 +4,9 @@
 
 	using StorageProperties = Storage.DOM.SlcProperties;
 
+	/// <summary>
+	/// Provides a base class for property values associated with a DOM property value section.
+	/// </summary>
 	public abstract class PropertyValueBase : TrackableObject
 	{
 		private StorageProperties.PropertyValueSection originalSection;
@@ -19,6 +22,9 @@
 			ParseSection(section);
 		}
 
+		/// <summary>
+		/// Gets the name of the property value.
+		/// </summary>
 		public string Name { get; protected set; }
 
 		private void ParseSection(StorageProperties.PropertyValueSection section)
