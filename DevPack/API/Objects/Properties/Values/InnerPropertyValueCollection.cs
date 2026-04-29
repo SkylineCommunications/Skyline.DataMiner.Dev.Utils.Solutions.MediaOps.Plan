@@ -6,16 +6,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 	using StorageProperties = Storage.DOM.SlcProperties;
 
-	internal class SlcPropertyValueCollection : PropertyValueCollection
+	internal class InnerPropertyValueCollection : PropertyValueCollection
 	{
 		private StorageProperties.PropertyValuesInstance originalInstance;
 		private StorageProperties.PropertyValuesInstance updatedInstance;
 
-		internal SlcPropertyValueCollection() : base()
+		internal InnerPropertyValueCollection() : base()
 		{
 		}
 
-		internal SlcPropertyValueCollection(MediaOpsPlanApi planApi, StorageProperties.PropertyValuesInstance instance) : base(instance.ID.Id)
+		internal InnerPropertyValueCollection(MediaOpsPlanApi planApi, StorageProperties.PropertyValuesInstance instance) : base(instance.ID.Id)
 		{
 			ParseInstance(planApi, instance);
 			InitTracking();
@@ -47,7 +47,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				Property property = null;
 				if (!section.PropertyID.HasValue)
 				{
-					customValues.Add(new SlcCustomPropertyValue(section));
+					customValues.Add(new InnerCustomPropertyValue(section));
 				}
 				else if (!propertiesById.TryGetValue(section.PropertyID.Value, out property))
 				{
@@ -61,27 +61,27 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 				if (property is StringProperty)
 				{
-					stringValues.Add(new SlcStringPropertyValue(section));
+					stringValues.Add(new InnerStringPropertyValue(section));
 				}
 				else if (property is BooleanProperty)
 				{
-					booleanValues.Add(new SlcBooleanPropertyValue(section));
+					booleanValues.Add(new InnerBooleanPropertyValue(section));
 				}
 				else if (property is DiscreteProperty)
 				{
-					discreteValues.Add(new SlcDiscretePropertyValue(section));
+					discreteValues.Add(new InnerDiscretePropertyValue(section));
 				}
 			}
 		}
 	}
 
-	internal class SlcCustomPropertyValue : CustomPropertyValue
+	internal class InnerCustomPropertyValue : CustomPropertyValue
 	{
 		private StorageProperties.PropertyValueSection originalSection;
+		private StorageProperties.PropertyValueSection updatedSection;
 
-		internal SlcCustomPropertyValue(StorageProperties.PropertyValueSection section) : base()
+		internal InnerCustomPropertyValue(StorageProperties.PropertyValueSection section) : base()
 		{
-			IsNew = false;
 			ParseSection(section);
 			InitTracking();
 		}
@@ -93,11 +93,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 	}
 
-	internal class SlcStringPropertyValue : StringPropertyValue
+	internal class InnerStringPropertyValue : StringPropertyValue
 	{
 		private StorageProperties.PropertyValueSection originalSection;
 
-		internal SlcStringPropertyValue(StorageProperties.PropertyValueSection section) : base()
+		internal InnerStringPropertyValue(StorageProperties.PropertyValueSection section) : base()
 		{
 			IsNew = false;
 			ParseSection(section);
@@ -112,11 +112,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 	}
 
-	internal class SlcBooleanPropertyValue : BooleanPropertyValue
+	internal class InnerBooleanPropertyValue : BooleanPropertyValue
 	{
 		private StorageProperties.PropertyValueSection originalSection;
 
-		internal SlcBooleanPropertyValue(StorageProperties.PropertyValueSection section) : base()
+		internal InnerBooleanPropertyValue(StorageProperties.PropertyValueSection section) : base()
 		{
 			IsNew = false;
 			ParseSection(section);
@@ -131,11 +131,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 	}
 
-	internal class SlcDiscretePropertyValue : DiscretePropertyValue
+	internal class InnerDiscretePropertyValue : DiscretePropertyValue
 	{
 		private StorageProperties.PropertyValueSection originalSection;
 
-		internal SlcDiscretePropertyValue(StorageProperties.PropertyValueSection section) : base()
+		internal InnerDiscretePropertyValue(StorageProperties.PropertyValueSection section) : base()
 		{
 			IsNew = false;
 			ParseSection(section);

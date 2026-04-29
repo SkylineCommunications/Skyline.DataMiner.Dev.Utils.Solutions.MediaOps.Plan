@@ -88,7 +88,7 @@
 
 				act?.AddTag("PropertyCollectionId", result.SuccessfulIds.Single());
 
-				return new SlcPropertyValueCollection(PlanApi, result.SuccessfulItems.Single());
+				return new InnerPropertyValueCollection(PlanApi, result.SuccessfulItems.Single());
 			});
 		}
 
@@ -124,7 +124,7 @@
 
 				act?.AddTag("PropertyCollectionIds", string.Join(", ", result.SuccessfulIds));
 
-				return result.SuccessfulItems.Select(x => new SlcPropertyValueCollection(PlanApi, x)).ToList();
+				return result.SuccessfulItems.Select(x => new InnerPropertyValueCollection(PlanApi, x)).ToList();
 			});
 		}
 
@@ -154,7 +154,7 @@
 				act?.AddTag("Created or Updated Property Collections", String.Join(", ", result.SuccessfulIds));
 				act?.AddTag("Created or Updated Property Collections Count", result.SuccessfulIds.Count);
 
-				return result.SuccessfulItems.Select(x => new SlcPropertyValueCollection(PlanApi, x)).ToList();
+				return result.SuccessfulItems.Select(x => new InnerPropertyValueCollection(PlanApi, x)).ToList();
 			});
 		}
 
@@ -320,7 +320,7 @@
 			return ActivityHelper.Track(nameof(PropertyValueCollectionsRepository), nameof(Read), act =>
 			{
 				var instances = PlanApi.DomHelpers.SlcPropertiesHelper.GetPropertyValues(filterTranslator.Translate(filter));
-				return instances.Select(x => new SlcPropertyValueCollection(PlanApi, x));
+				return instances.Select(x => new InnerPropertyValueCollection(PlanApi, x));
 			});
 		}
 
@@ -444,7 +444,7 @@
 
 				act?.AddTag("PropertyCollectionId", result.SuccessfulIds.Single());
 
-				return new SlcPropertyValueCollection(PlanApi, result.SuccessfulItems.Single());
+				return new InnerPropertyValueCollection(PlanApi, result.SuccessfulItems.Single());
 			});
 		}
 
@@ -481,7 +481,7 @@
 				var collectionIds = result.SuccessfulIds;
 				act?.AddTag("PropertyCollectionIds", String.Join(", ", collectionIds));
 
-				return result.SuccessfulItems.Select(x => new SlcPropertyValueCollection(PlanApi, x)).ToList();
+				return result.SuccessfulItems.Select(x => new InnerPropertyValueCollection(PlanApi, x)).ToList();
 			});
 		}
 
@@ -497,7 +497,7 @@
 			{
 				var page = enumerator.Current;
 				hasNext = enumerator.MoveNext();
-				yield return new PagedResult<PropertyValueCollection>(page.Select(x => new SlcPropertyValueCollection(PlanApi, x)), pageNumber++, pageSize, hasNext);
+				yield return new PagedResult<PropertyValueCollection>(page.Select(x => new InnerPropertyValueCollection(PlanApi, x)), pageNumber++, pageSize, hasNext);
 			}
 		}
 	}
