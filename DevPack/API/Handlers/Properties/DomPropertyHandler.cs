@@ -58,7 +58,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			ValidateIdsNotInUse(toCreate);
 			ValidateNames(apiProperties);
-			ValidateScopes(apiProperties);
+			ValidateScopes(toCreate);
 			ValidateSectionNames(apiProperties);
 
 			ValidateStringProperties(apiProperties.OfType<StringProperty>().ToList());
@@ -127,6 +127,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				{
 					var mediaOpsTraceData = new MediaOpsTraceData();
 					mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = traceData.ToString() });
+
+					PassTraceData(id.Id, mediaOpsTraceData);
 				}
 			}
 
@@ -180,6 +182,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				{
 					var mediaOpsTraceData = new MediaOpsTraceData();
 					mediaOpsTraceData.Add(new MediaOpsErrorData { ErrorMessage = traceData.ToString() });
+
+					PassTraceData(id.Id, mediaOpsTraceData);
 				}
 			}
 

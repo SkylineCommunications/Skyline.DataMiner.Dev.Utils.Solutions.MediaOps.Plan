@@ -280,6 +280,8 @@
 				{
 					var mediaOpsTraceData = new MediaOpsTraceData();
 					mediaOpsTraceData.Add(new MediaOpsErrorData { ErrorMessage = traceData.ToString() });
+
+					PassTraceData(id.Id, mediaOpsTraceData);
 				}
 			}
 
@@ -500,6 +502,8 @@
 				{
 					var mediaOpsTraceData = new MediaOpsTraceData();
 					mediaOpsTraceData.Add(new MediaOpsErrorData { ErrorMessage = traceData.ToString() });
+
+					PassTraceData(id.Id, mediaOpsTraceData);
 				}
 			}
 

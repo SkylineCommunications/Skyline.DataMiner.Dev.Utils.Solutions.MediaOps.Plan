@@ -53,7 +53,7 @@
 
 		public IReadOnlyCollection<DiscretePropertyValue> DiscreteValues => discreteValues;
 
-		public IReadOnlyCollection<PropertyValue> PropertyValues => customValues.Cast<PropertyValue>().Concat(stringValues).Concat(booleanValues).Concat(discreteValues).ToList();
+		public IReadOnlyCollection<PropertyValue> PropertyValues => stringValues.Cast<PropertyValue>().Concat(booleanValues).Concat(discreteValues).ToList();
 
 		private void ParseInstance(MediaOpsPlanApi planApi, StorageProperties.PropertyValuesInstance instance)
 		{
