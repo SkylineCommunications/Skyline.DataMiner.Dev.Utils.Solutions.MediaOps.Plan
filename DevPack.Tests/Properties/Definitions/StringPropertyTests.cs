@@ -114,7 +114,7 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 			var stringProperty = new StringProperty(id);
 			var booleanProperty = new BooleanProperty(id);
 
-			Assert.IsFalse(stringProperty.Equals(booleanProperty));
+			Assert.IsFalse(object.Equals(stringProperty, booleanProperty));
 		}
 
 		[TestMethod]
@@ -122,7 +122,7 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 		{
 			var property = new StringProperty();
 
-			Assert.IsFalse(property.Equals(null));
+			Assert.IsFalse(property == null);
 		}
 	}
 }

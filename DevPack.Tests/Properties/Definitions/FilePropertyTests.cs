@@ -111,7 +111,7 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 			var fileProperty = new FileProperty(id);
 			var stringProperty = new StringProperty(id);
 
-			Assert.IsFalse(fileProperty.Equals(stringProperty));
+			Assert.IsFalse(object.Equals(fileProperty, stringProperty));
 		}
 
 		[TestMethod]
@@ -119,7 +119,7 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 		{
 			var property = new FileProperty();
 
-			Assert.IsFalse(property.Equals(null));
+			Assert.IsFalse(property == null);
 		}
 	}
 }

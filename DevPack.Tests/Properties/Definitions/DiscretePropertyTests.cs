@@ -254,7 +254,7 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 			var discrete = new DiscreteProperty(id);
 			var stringProperty = new StringProperty(id);
 
-			Assert.IsFalse(discrete.Equals(stringProperty));
+			Assert.IsFalse(object.Equals(discrete, stringProperty));
 		}
 
 		[TestMethod]
@@ -262,7 +262,7 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 		{
 			var property = new DiscreteProperty();
 
-			Assert.IsFalse(property.Equals(null));
+			Assert.IsFalse(property == null);
 		}
 	}
 }
