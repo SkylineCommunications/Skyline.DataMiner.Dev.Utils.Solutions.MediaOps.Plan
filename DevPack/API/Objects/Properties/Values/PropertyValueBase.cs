@@ -4,21 +4,16 @@
 	using System.Collections.Generic;
 	using System.Linq;
 
-	using StorageProperties = Storage.DOM.SlcProperties;
-
 	public class PropertyValueCollection : ApiObject
 	{
-		private readonly List<CustomPropertyValue> customValues = [];
-		private readonly List<StringPropertyValue> stringValues = [];
-		private readonly List<BooleanPropertyValue> booleanValues = [];
-		private readonly List<DiscretePropertyValue> discreteValues = [];
+		protected readonly List<CustomPropertyValue> customValues = [];
+		protected readonly List<StringPropertyValue> stringValues = [];
+		protected readonly List<BooleanPropertyValue> booleanValues = [];
+		protected readonly List<DiscretePropertyValue> discreteValues = [];
 
-		private StorageProperties.PropertyValuesInstance originalInstance;
-		private StorageProperties.PropertyValuesInstance updatedInstance;
-
-		private string linkedObjectId;
-		private string scope;
-		private string subId;
+		protected string linkedObjectId;
+		protected string scope;
+		protected string subId;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="PropertyValueCollection"/> class.
@@ -28,10 +23,8 @@
 			IsNew = true;
 		}
 
-		internal PropertyValueCollection(MediaOpsPlanApi planApi, StorageProperties.PropertyValuesInstance instance) : base(instance.ID.Id)
+		private protected PropertyValueCollection(Guid id) : base(id)
 		{
-			ParseInstance(planApi, instance);
-			InitTracking();
 		}
 
 		/// <summary>
@@ -54,82 +47,16 @@
 		public IReadOnlyCollection<DiscretePropertyValue> DiscreteValues => discreteValues;
 
 		public IReadOnlyCollection<PropertyValue> PropertyValues => stringValues.Cast<PropertyValue>().Concat(booleanValues).Concat(discreteValues).ToList();
-
-		private void ParseInstance(MediaOpsPlanApi planApi, StorageProperties.PropertyValuesInstance instance)
-		{
-			originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
-
-			linkedObjectId = instance.PropertyValueInfo.LinkedObjectID;
-			scope = instance.PropertyValueInfo.Scope;
-			subId = instance.PropertyValueInfo.SubID;
-
-			ParsePropertyValues(planApi, instance.PropertyValue);
-		}
-
-		private void ParsePropertyValues(MediaOpsPlanApi planApi, IList<StorageProperties.PropertyValueSection> propertyValues)
-		{
-			if (propertyValues == null || propertyValues.Count == 0)
-			{
-				return;
-			}
-
-			var propertyIds = propertyValues.Where(pv => pv.PropertyID.HasValue).Select(pv => pv.PropertyID.Value).Distinct();
-			var propertiesById = planApi.Properties.Read(propertyIds).ToDictionary(p => p.Id);
-
-			foreach (var section in propertyValues)
-			{
-				Property property = null;
-				if (!section.PropertyID.HasValue)
-				{
-					customValues.Add(new CustomPropertyValue(section));
-				}
-				else if (!propertiesById.TryGetValue(section.PropertyID.Value, out property))
-				{
-					planApi.Logger.Information(this, $"Property with ID '{section.PropertyID.Value}' not found.");
-				}
-
-				if (property == null)
-				{
-					continue;
-				}
-
-				if (property is StringProperty)
-				{
-					stringValues.Add(new StringPropertyValue(section));
-				}
-				else if (property is BooleanProperty)
-				{
-					booleanValues.Add(new BooleanPropertyValue(section));
-				}
-				else if (property is DiscreteProperty)
-				{
-					discreteValues.Add(new DiscretePropertyValue(section));
-				}
-			}
-		}
 	}
 
 	public abstract class PropertyValueBase : TrackableObject
 	{
-		private StorageProperties.PropertyValueSection originalSection;
-		private StorageProperties.PropertyValueSection updatedSection;
-
 		private protected PropertyValueBase()
 		{
 			IsNew = true;
 		}
 
-		internal PropertyValueBase(StorageProperties.PropertyValueSection section)
-		{
-			ParseSection(section);
-		}
-
 		public string Name { get; protected set; }
-
-		private void ParseSection(StorageProperties.PropertyValueSection section)
-		{
-			originalSection = section ?? throw new ArgumentNullException(nameof(section));
-		}
 	}
 
 	public class CustomPropertyValue : PropertyValueBase
@@ -139,18 +66,11 @@
 			Name = name ?? throw new ArgumentNullException(nameof(name));
 		}
 
-		internal CustomPropertyValue(StorageProperties.PropertyValueSection section) : base(section)
+		internal CustomPropertyValue()
 		{
-			ParseSection(section);
-			InitTracking();
 		}
 
 		public string Value { get; set; }
-
-		private void ParseSection(StorageProperties.PropertyValueSection section)
-		{
-			Value = section.Value;
-		}
 	}
 
 	public abstract class PropertyValue : PropertyValueBase
@@ -160,17 +80,11 @@
 			PropertyId = property?.Id ?? throw new ArgumentNullException(nameof(property));
 		}
 
-		internal PropertyValue(StorageProperties.PropertyValueSection section) : base(section)
+		internal PropertyValue()
 		{
-			ParseSection(section);
 		}
 
-		public Guid PropertyId { get; private set; }
-
-		private void ParseSection(StorageProperties.PropertyValueSection section)
-		{
-			PropertyId = section.PropertyID.Value;
-		}
+		public Guid PropertyId { get; internal set; }
 	}
 
 	public class StringPropertyValue : PropertyValue
@@ -179,18 +93,11 @@
 		{
 		}
 
-		internal StringPropertyValue(StorageProperties.PropertyValueSection section) : base(section)
+		internal StringPropertyValue()
 		{
-			ParseSection(section);
-			InitTracking();
 		}
 
 		public string Value { get; set; }
-
-		private void ParseSection(StorageProperties.PropertyValueSection section)
-		{
-			Value = section.Value;
-		}
 	}
 
 	public class BooleanPropertyValue : PropertyValue
@@ -199,18 +106,11 @@
 		{
 		}
 
-		internal BooleanPropertyValue(StorageProperties.PropertyValueSection section) : base(section)
+		internal BooleanPropertyValue()
 		{
-			ParseSection(section);
-			InitTracking();
 		}
 
 		public bool Value { get; set; }
-
-		private void ParseSection(StorageProperties.PropertyValueSection section)
-		{
-			Value = Convert.ToBoolean(section.Value);
-		}
 	}
 
 	public class DiscretePropertyValue : PropertyValue
@@ -219,17 +119,10 @@
 		{
 		}
 
-		internal DiscretePropertyValue(StorageProperties.PropertyValueSection section) : base(section)
+		internal DiscretePropertyValue()
 		{
-			ParseSection(section);
-			InitTracking();
 		}
 
 		public string Value { get; set; }
-
-		private void ParseSection(StorageProperties.PropertyValueSection section)
-		{
-			Value = section.Value;
-		}
 	}
 }
