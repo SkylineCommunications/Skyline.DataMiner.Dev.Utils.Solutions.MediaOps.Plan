@@ -527,7 +527,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				}
 
 				var duplicateDiscretes = property.Discretes
-					.GroupBy(x => x.Trim())
+					.GroupBy(x => x)
 					.Where(g => g.Count() > 1)
 					.SelectMany(g => g)
 					.ToList();
