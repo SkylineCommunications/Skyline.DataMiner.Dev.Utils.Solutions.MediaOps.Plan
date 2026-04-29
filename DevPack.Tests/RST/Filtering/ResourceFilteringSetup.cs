@@ -500,9 +500,9 @@
 				Format,
 			};
 
-			Channel = objectCreator.CreateProperty(Channel);
-			Color = objectCreator.CreateProperty(Color);
-			Format = objectCreator.CreateProperty(Format);
+			Channel = objectCreator.CreateResourceProperty(Channel);
+			Color = objectCreator.CreateResourceProperty(Color);
+			Format = objectCreator.CreateResourceProperty(Format);
 		}
 
 		private void CreateResourcePools()

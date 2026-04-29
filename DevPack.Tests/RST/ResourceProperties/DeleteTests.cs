@@ -43,7 +43,7 @@
 				Name = $"{prefix}_Property3",
 			};
 
-			objectCreator.CreateProperties([property1, property2, property3]);
+			objectCreator.CreateResourceProperties([property1, property2, property3]);
 
 			var unmangedResource1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
 			{
