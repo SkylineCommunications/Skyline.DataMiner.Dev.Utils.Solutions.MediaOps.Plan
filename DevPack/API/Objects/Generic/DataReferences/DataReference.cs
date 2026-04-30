@@ -9,12 +9,23 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	public abstract class DataReference : IEquatable<DataReference>
 	{
 		/// <summary>
+		/// Storage key used to persist the optional <see cref="NodeId"/> on a reference.
+		/// </summary>
+		internal const string NodeIdKey = "NodeId";
+
+		/// <summary>
 		/// Initializes a new instance of the <see cref="DataReference"/> class with the specified type.
 		/// </summary>
 		/// <param name="type">The type of data this reference points to.</param>
-		protected DataReference(DataReferenceType type)
+		/// <param name="nodeId">
+		/// Optional identifier of the workflow node the reference is scoped to.
+		/// When <see langword="null"/> or empty the reference targets the workflow / job itself
+		/// rather than any specific node.
+		/// </param>
+		protected DataReference(DataReferenceType type, string nodeId = null)
 		{
 			Type = type;
+			NodeId = String.IsNullOrEmpty(nodeId) ? null : nodeId;
 		}
 
 		/// <summary>
@@ -23,41 +34,18 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		public DataReferenceType Type { get; }
 
 		/// <summary>
-		/// Serializes this <see cref="DataReference"/> to a string representation suitable for storage or transmission.
+		/// Gets the identifier of the workflow node the reference is scoped to,
+		/// or <see langword="null"/> when the reference targets the workflow / job itself.
 		/// </summary>
-		/// <returns>The serialized string.</returns>
-		internal string Serialize()
-		{
-			return ToStorage().Serialize();
-		}
-
-		/// <summary>
-		/// Attempts to deserialize the specified string into a DataReference instance.
-		/// </summary>
-		/// <param name="serialized">The string containing the serialized representation of a DataReference.</param>
-		/// <param name="result">When this method returns, contains the deserialized DataReference if the operation succeeds; otherwise, null. This
-		/// parameter is passed uninitialized.</param>
-		/// <returns>true if the string was successfully deserialized into a DataReference; otherwise, false.</returns>
-		internal static bool TryDeserialize(string serialized, out DataReference result)
-		{
-			result = null;
-			if (!Storage.DOM.DataReference.TryDeserialize(serialized, out var storageReference))
-				return false;
-
-			result = FromStorage(storageReference);
-			return result != null;
-		}
+		public string NodeId { get; }
 
 		/// <summary>
 		/// Converts this <see cref="DataReference"/> to its storage representation.
 		/// </summary>
-		/// <returns>A <see cref="Storage.DOM.DataReference"/> representing this instance.</returns>
-		internal virtual Storage.DOM.DataReference ToStorage()
+		/// <returns>A <see cref="Storage.DOM.DataReferenceStorage"/> representing this instance.</returns>
+		internal virtual Storage.DOM.DataReferenceStorage ToStorage()
 		{
-			return new Storage.DOM.DataReference
-			{
-				ReferenceType = Type.ToString(),
-			};
+			return Storage.DOM.DataReferenceStorage.FromDataReference(this);
 		}
 
 		/// <summary>
@@ -65,26 +53,39 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// </summary>
 		/// <param name="reference">The storage representation to convert from.</param>
 		/// <returns>A new <see cref="DataReference"/> instance, or <see langword="null"/> if the input is null or contains an unrecognized type or an invalid identifier.</returns>
-		internal static DataReference FromStorage(Storage.DOM.DataReference reference)
+		internal static DataReference FromStorage(Storage.DOM.DataReferenceStorage reference)
 		{
-			if (reference == null)
+			return reference?.ToDataReference();
+		}
+
+		/// <summary>
+		/// Builds the <c>ReferenceData</c> dictionary used by storage representations.
+		/// </summary>
+		/// <remarks>
+		/// Subclasses with extra storage keys must override this method, call the base implementation
+		/// and add their own keys to the returned dictionary.
+		/// </remarks>
+		/// <returns>The dictionary, or <see langword="null"/> when no data needs to be stored.</returns>
+		internal virtual Dictionary<string, string> BuildReferenceData()
+		{
+			if (NodeId == null)
 			{
 				return null;
 			}
 
-			if (!Enum.TryParse<DataReferenceType>(reference.ReferenceType, out var type))
+			return new Dictionary<string, string> { [NodeIdKey] = NodeId };
+		}
+
+		internal static string ReadNodeId(Storage.DOM.DataReferenceStorage reference)
+		{
+			if (reference?.ReferenceData == null)
 			{
 				return null;
 			}
 
-			return type switch
-			{
-				DataReferenceType.ResourceName => new ResourceNameReference(),
-				DataReferenceType.ResourceLinkedObjectID => new ResourceLinkedObjectIdReference(),
-				DataReferenceType.ResourceProperty => ResourcePropertyReference.ParseFromStorage(reference),
-				DataReferenceType.SchedulingConfigurationParameter => SchedulingConfigurationParameterReference.ParseFromStorage(reference),
-				_ => null,
-			};
+			return reference.ReferenceData.TryGetValue(NodeIdKey, out var nodeId) && !String.IsNullOrEmpty(nodeId)
+				? nodeId
+				: null;
 		}
 
 		/// <summary>
@@ -104,7 +105,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <returns><see langword="true"/> if the specified instance is equal to the current instance; otherwise, <see langword="false"/>.</returns>
 		public virtual bool Equals(DataReference other)
 		{
-			return other is not null && Type == other.Type;
+			return other is not null && Type == other.Type && String.Equals(NodeId, other.NodeId, StringComparison.Ordinal);
 		}
 
 		/// <summary>
@@ -115,7 +116,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 			unchecked
 			{
-				return 17 * 23 + Type.GetHashCode();
+				var hash = 17;
+				hash = (hash * 23) + Type.GetHashCode();
+				hash = (hash * 23) + (NodeId != null ? NodeId.GetHashCode() : 0);
+				return hash;
 			}
 		}
 	}

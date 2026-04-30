@@ -14,7 +14,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Initializes a new instance of the <see cref="ResourcePropertyReference"/> class.
 		/// </summary>
 		/// <param name="resourcePropertyId">The unique identifier of the resource property.</param>
-		public ResourcePropertyReference(Guid resourcePropertyId) : base(DataReferenceType.ResourceProperty)
+		/// <param name="nodeId">
+		/// Optional identifier of the workflow node whose resource is referenced.
+		/// When <see langword="null"/> the reference targets the resource of the current node.
+		/// </param>
+		public ResourcePropertyReference(Guid resourcePropertyId, string nodeId = null) : base(DataReferenceType.ResourceProperty, nodeId)
 		{
 			ResourcePropertyId = resourcePropertyId;
 		}
@@ -29,8 +33,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 			unchecked
 			{
-				var hash = 17;
-				hash = hash * 23 + Type.GetHashCode();
+				var hash = base.GetHashCode();
 				hash = hash * 23 + ResourcePropertyId.GetHashCode();
 				return hash;
 			}
@@ -39,29 +42,26 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <inheritdoc/>
 		public override bool Equals(DataReference other)
 		{
-			return other is ResourcePropertyReference rpr && rpr.ResourcePropertyId == ResourcePropertyId;
+			return base.Equals(other)
+				&& other is ResourcePropertyReference rpr
+				&& rpr.ResourcePropertyId == ResourcePropertyId;
 		}
 
-		internal static ResourcePropertyReference ParseFromStorage(Storage.DOM.DataReference reference)
+		internal static ResourcePropertyReference ParseFromStorage(Storage.DOM.DataReferenceStorage reference, string nodeId)
 		{
 			if (reference.ReferenceData == null || !reference.ReferenceData.TryGetValue(ResourcePropertyIdKey, out var raw))
 			{
 				return null;
 			}
 
-			return Guid.TryParse(raw, out var id) ? new ResourcePropertyReference(id) : null;
+			return Guid.TryParse(raw, out var id) ? new ResourcePropertyReference(id, nodeId) : null;
 		}
 
-		internal override Storage.DOM.DataReference ToStorage()
+      internal override Dictionary<string, string> BuildReferenceData()
 		{
-			return new Storage.DOM.DataReference
-			{
-				ReferenceType = Type.ToString(),
-				ReferenceData = new Dictionary<string, string>
-				{
-					[ResourcePropertyIdKey] = ResourcePropertyId.ToString(),
-				},
-			};
+			var data = base.BuildReferenceData() ?? new Dictionary<string, string>();
+			data[ResourcePropertyIdKey] = ResourcePropertyId.ToString();
+			return data;
 		}
 	}
 }

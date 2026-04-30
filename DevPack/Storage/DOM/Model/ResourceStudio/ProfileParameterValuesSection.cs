@@ -22,7 +22,7 @@
 			}
 		}
 
-		public DataReference Reference { get; set; }
+		public DataReferenceStorage Reference { get; set; }
 
 		protected override void BeforeToSection()
 		{
@@ -31,7 +31,7 @@
 
 		protected override void AfterLoad()
 		{
-			Reference = DataReference.TryDeserialize(ReferenceJson, out var details) ? details : null;
+			Reference = DataReferenceStorage.TryDeserialize(ReferenceJson, out var details) ? details : null;
 		}
 	}
 }

@@ -1,4 +1,4 @@
-﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
 
@@ -37,7 +37,7 @@
 			Id = profileParameterValue.ProfileParameterId;
 			MinValue = profileParameterValue.DoubleMinValue.HasValue ? (decimal)profileParameterValue.DoubleMinValue : null;
 			MaxValue = profileParameterValue.DoubleMaxValue.HasValue ? (decimal)profileParameterValue.DoubleMaxValue : null;
-			Reference = DataReference.FromStorage(profileParameterValue.Reference);
+			Reference = profileParameterValue.Reference?.ToDataReference();
 		}
 	}
 }

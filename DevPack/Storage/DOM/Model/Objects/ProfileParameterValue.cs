@@ -20,7 +20,7 @@
 		public double? DoubleMinValue { get; set; }
 
 		[JsonProperty("reference", NullValueHandling = NullValueHandling.Ignore)]
-		public DataReference Reference { get; set; }
+		public DataReferenceStorage Reference { get; set; }
 
 		public bool Equals(ProfileParameterValue other)
 		{
