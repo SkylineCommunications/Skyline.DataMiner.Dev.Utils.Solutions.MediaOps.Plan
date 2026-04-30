@@ -45,7 +45,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				}
 			}
 
-			Reference = profileParameterValue.Reference.ToDataReference();
+			Reference = profileParameterValue.Reference?.ToDataReference();
 		}
 	}
 }

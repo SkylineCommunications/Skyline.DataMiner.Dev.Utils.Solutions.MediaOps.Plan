@@ -47,7 +47,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				Value = Value.Split([";"], StringSplitOptions.RemoveEmptyEntries).First();
 			}
 
-			Reference = section.Reference.ToDataReference();
+			Reference = section.Reference?.ToDataReference();
 		}
 	}
 }

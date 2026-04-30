@@ -51,7 +51,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				}
 			}
 
-			Reference = section.Reference.ToDataReference();
+			Reference = section.Reference?.ToDataReference();
 		}
 	}
 }
