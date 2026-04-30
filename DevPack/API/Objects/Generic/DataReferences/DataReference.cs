@@ -49,6 +49,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <summary>
+		/// Creates a <see cref="DataReference"/> from its storage representation.
+		/// </summary>
+		/// <param name="reference">The storage representation to convert from.</param>
+		/// <returns>A new <see cref="DataReference"/> instance, or <see langword="null"/> if the input is null or contains an unrecognized type or an invalid identifier.</returns>
+		internal static DataReference FromStorage(Storage.DOM.DataReferenceStorage reference)
+		{
+			return reference?.ToDataReference();
+		}
+
+		/// <summary>
 		/// Builds the <c>ReferenceData</c> dictionary used by storage representations.
 		/// </summary>
 		/// <remarks>

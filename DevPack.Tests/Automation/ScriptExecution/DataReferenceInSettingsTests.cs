@@ -6,15 +6,12 @@ namespace RT_MediaOps.Plan.Automation.ScriptExecution
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
 
-	using ApiDataReference = Skyline.DataMiner.Solutions.MediaOps.Plan.API.DataReference;
-	using StorageDataReference = Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.DataReference;
-
 	[TestClass]
 	public sealed class DataReferenceInSettingsTests
 	{
 		private static readonly Guid TestResourcePropertyId = new Guid("12345678-1234-1234-1234-123456789012");
 
-		private static ProfileParameterValue CreateProfileParameterValue(StorageDataReference reference)
+		private static ProfileParameterValue CreateProfileParameterValue(DataReferenceStorage reference)
 		{
 			return new ProfileParameterValue
 			{
@@ -23,9 +20,9 @@ namespace RT_MediaOps.Plan.Automation.ScriptExecution
 			};
 		}
 
-		private static StorageDataReference CreateStorageReference()
+		private static DataReferenceStorage CreateStorageReference()
 		{
-			return new StorageDataReference
+			return new DataReferenceStorage
 			{
 				ReferenceType = nameof(DataReferenceType.ResourceProperty),
 				ReferenceData = new Dictionary<string, string> { ["ResourcePropertyId"] = TestResourcePropertyId.ToString() },

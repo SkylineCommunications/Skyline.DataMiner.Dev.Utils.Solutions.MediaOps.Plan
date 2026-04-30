@@ -5,7 +5,7 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 
 	using ApiDataReference = Skyline.DataMiner.Solutions.MediaOps.Plan.API.DataReference;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
-	using StorageDataReference = Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.DataReference;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
 
 	[TestClass]
 	public sealed class DataReferenceTests
@@ -65,7 +65,7 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 		[TestMethod]
 		public void FromStorage_InvalidReferenceType_ReturnsNull()
 		{
-			var storage = new StorageDataReference
+			var storage = new DataReferenceStorage
 			{
 				ReferenceType = "NonExistentType",
 			};
@@ -78,7 +78,7 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 		[TestMethod]
 		public void FromStorage_ResourceLinkedObjectId_ReturnsResourceLinkedObjectIdReference()
 		{
-			var storage = new StorageDataReference
+			var storage = new DataReferenceStorage
 			{
 				ReferenceType = "ResourceLinkedObjectID",
 			};
@@ -94,7 +94,7 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 		public void FromStorage_NodeConfigurationParameter_ReturnsNodeConfigurationParameterReference()
 		{
 			var guid = new Guid("12345678-1234-1234-1234-123456789012");
-			var storage = new StorageDataReference
+			var storage = new DataReferenceStorage
 			{
 				ReferenceType = "ConfigurationParameter",
 				ReferenceData = new Dictionary<string, string> { ["ParameterId"] = guid.ToString() },
@@ -113,7 +113,7 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 		public void FromStorage_ResourceProperty_ReturnsResourcePropertyReference()
 		{
 			var guid = new Guid("12345678-1234-1234-1234-123456789012");
-			var storage = new StorageDataReference
+			var storage = new DataReferenceStorage
 			{
 				ReferenceType = "ResourceProperty",
 				ReferenceData = new Dictionary<string, string> { ["ResourcePropertyId"] = guid.ToString() },
