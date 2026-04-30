@@ -38,7 +38,7 @@
 		/// <summary>
 		/// Gets or sets the maximum allowed size for the file, in MB. If not set, the default value is 20 MB.
 		/// </summary>
-		public long SizeLimit { get; set; }
+		public long SizeLimit { get; set; } = 20;
 
 		/// <summary>
 		/// Gets or sets a value indicating whether multiple files are allowed.
