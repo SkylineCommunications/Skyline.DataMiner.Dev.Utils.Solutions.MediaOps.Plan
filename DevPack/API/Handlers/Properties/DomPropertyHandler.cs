@@ -602,7 +602,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				.ToArray());
 			var collectionsUsingProperty = planApi.PropertyValueCollections.Read(filter);
 			var collectionsByPropertyId = collectionsUsingProperty
-				.SelectMany(c => c.PropertyValues.Select(v => new { Collection = c, PropertyId = v.PropertyId }))
+				.SelectMany(c => c.LinkedValues.Select(v => new { Collection = c, PropertyId = v.PropertyId }))
 				.GroupBy(x => x.PropertyId)
 				.ToDictionary(g => g.Key, g => (IReadOnlyCollection<PropertyValueCollection>)g.Select(x => x.Collection).ToList());
 

@@ -64,6 +64,11 @@
 		public IReadOnlyCollection<CustomPropertyValue> CustomValues => customValues;
 
 		/// <summary>
+		/// Gets the collection of linked property values.
+		/// </summary>
+		public IEnumerable<LinkedPropertyValue> LinkedValues => stringValues.Cast<LinkedPropertyValue>().Concat(booleanValues).Concat(discreteValues);
+
+		/// <summary>
 		/// Gets the collection of string property values.
 		/// </summary>
 		public IReadOnlyCollection<StringPropertyValue> StringValues => stringValues;
