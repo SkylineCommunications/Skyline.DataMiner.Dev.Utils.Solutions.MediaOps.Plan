@@ -30,7 +30,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			updatedSection.ProfileParameterId = Id;
 			updatedSection.DoubleMaxValue = Value.HasValue ? (double)Value : null;
-			updatedSection.Reference = Reference?.ToStorage();
+			updatedSection.DataReference = Reference?.ToStorage();
 
 			return updatedSection;
 		}
@@ -41,7 +41,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			Id = section.ProfileParameterId;
 			Value = section.DoubleMaxValue.HasValue ? (decimal)section.DoubleMaxValue.Value : null;
-			Reference = section.Reference?.ToDataReference();
+			Reference = section.DataReference?.ToDataReference();
 		}
 	}
 }

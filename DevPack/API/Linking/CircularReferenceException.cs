@@ -24,7 +24,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
         {
         }
 
-        /// <summary>Gets the reference at which the cycle was detected.</summary>
+        /// <summary>
+		/// Gets the reference at which the cycle was detected.
+		/// </summary>
         public DataReference Reference { get; }
     }
 }
