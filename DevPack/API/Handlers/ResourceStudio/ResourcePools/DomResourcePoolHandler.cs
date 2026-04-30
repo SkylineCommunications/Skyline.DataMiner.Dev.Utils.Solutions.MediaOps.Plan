@@ -1176,60 +1176,14 @@
 
 		private ICollection<DomChangeResults> GetPoolsWithChanges(ICollection<ResourcePool> apiResourcePools)
 		{
-			if (apiResourcePools == null)
-			{
-				throw new ArgumentNullException(nameof(apiResourcePools));
-			}
-
-			var changeResults = new List<DomChangeResults>();
-			if (apiResourcePools.Count == 0)
-			{
-				return changeResults;
-			}
-
-			var poolsRequiringValidation = apiResourcePools.Where(x => !x.IsNew && x.HasChanges).ToList();
-			if (poolsRequiringValidation.Count == 0)
-			{
-				return changeResults;
-			}
-
-			var storedDomResourcePoolsById = planApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(poolsRequiringValidation.Select(x => x.Id)).ToDictionary(x => x.ID.Id);
-			foreach (var pool in poolsRequiringValidation)
-			{
-				if (!storedDomResourcePoolsById.TryGetValue(pool.Id, out var stored))
-				{
-					var error = new ResourcePoolNotFoundError
-					{
-						ErrorMessage = $"Resource pool with ID '{pool.Id}' no longer exists.",
-						Id = pool.Id,
-					};
-
-					ReportError(pool.Id, error);
-
-					continue;
-				}
-
-				var changeResult = DomChangeHandler.HandleChanges(pool.OriginalInstance, pool.GetInstanceWithChanges(), stored);
-				if (changeResult.HasErrors)
-				{
-					foreach (var errorDetails in changeResult.Errors)
-					{
-						var error = new ResourcePoolValueAlreadyChangedError
-						{
-							ErrorMessage = errorDetails.Message,
-							Id = pool.Id,
-						};
-
-						ReportError(pool.Id, error);
-					}
-
-					continue;
-				}
-
-				changeResults.Add(changeResult);
-			}
-
-			return changeResults;
+			return GetItemsWithChanges<ResourcePool, DomResourcePool>(
+				apiResourcePools,
+				p => p.OriginalInstance,
+				p => p.GetInstanceWithChanges(),
+				ids => planApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(ids),
+				p => new ResourcePoolNotFoundError { ErrorMessage = $"Resource pool with ID '{p.Id}' no longer exists.", Id = p.Id },
+				(p, msg) => new ResourcePoolValueAlreadyChangedError { ErrorMessage = msg, Id = p.Id })
+				.ToList();
 		}
 
 		private void MarkAsPoolWithCoreChanges(ResourcePool resourcePool)

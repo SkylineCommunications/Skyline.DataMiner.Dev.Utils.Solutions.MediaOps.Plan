@@ -53,7 +53,7 @@
 		IRecurringJobsRepository RecurringJobs { get; }
 
 		/// <summary>
-		/// Gets the repository for managing property definitions.
+		/// Gets the repository for managing properties.
 		/// </summary>
 		IPropertiesRepository Properties { get; }
 

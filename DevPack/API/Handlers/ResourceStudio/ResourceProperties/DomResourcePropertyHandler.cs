@@ -4,6 +4,7 @@
 	using System.Collections.Generic;
 	using System.Linq;
 
+	using Skyline.DataMiner.Net;
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
@@ -131,6 +132,8 @@
 				{
 					var mediaOpsTraceData = new MediaOpsTraceData();
 					mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = traceData.ToString() });
+
+					PassTraceData(id.Id, mediaOpsTraceData);
 				}
 			}
 
@@ -191,6 +194,8 @@
 				{
 					var mediaOpsTraceData = new MediaOpsTraceData();
 					mediaOpsTraceData.Add(new MediaOpsErrorData { ErrorMessage = traceData.ToString() });
+
+					PassTraceData(id.Id, mediaOpsTraceData);
 				}
 			}
 
@@ -395,62 +400,16 @@
 			}
 		}
 
-		private IEnumerable<DomChangeResults> GetPropertiesWithChanges(ICollection<ResourceProperty> apiResourceProperties)
+		private ICollection<DomChangeResults> GetPropertiesWithChanges(ICollection<ResourceProperty> apiResourceProperties)
 		{
-			if (apiResourceProperties == null)
-			{
-				throw new ArgumentNullException(nameof(apiResourceProperties));
-			}
-
-			if (apiResourceProperties.Count == 0)
-			{
-				return [];
-			}
-
-			return GetPropertiesWithChangesIterator(apiResourceProperties);
-		}
-
-		private IEnumerable<DomChangeResults> GetPropertiesWithChangesIterator(ICollection<ResourceProperty> apiResourceProperties)
-		{
-			var propertiesRequiringValidation = apiResourceProperties.Where(x => !x.IsNew && x.HasChanges).ToList();
-			if (propertiesRequiringValidation.Count == 0)
-			{
-				yield break;
-			}
-
-			var storedDomResourcePropertiesById = planApi.DomHelpers.SlcResourceStudioHelper.GetResourceProperties(propertiesRequiringValidation.Select(x => x.Id)).ToDictionary(x => x.ID.Id);
-			foreach (var property in propertiesRequiringValidation)
-			{
-				if (!storedDomResourcePropertiesById.TryGetValue(property.Id, out var stored))
-				{
-					var error = new ResourcePropertyNotFoundError
-					{
-						ErrorMessage = $"Resource property with ID '{property.Id}' no longer exists.",
-						Id = property.Id,
-					};
-
-					ReportError(property.Id, error);
-
-					continue;
-				}
-
-				var changeResult = DomChangeHandler.HandleChanges(property.OriginalInstance, property.GetInstanceWithChanges(), stored);
-				if (changeResult.HasErrors)
-				{
-					foreach (var errorDetails in changeResult.Errors)
-					{
-						var error = new ResourcePropertyValueAlreadyChangedError
-						{
-							ErrorMessage = errorDetails.Message,
-							Id = property.Id,
-						};
-
-						ReportError(property.Id, error);
-					}
-				}
-
-				yield return changeResult;
-			}
+			return GetItemsWithChanges<ResourceProperty, DomResourceProperty>(
+				apiResourceProperties,
+				p => p.OriginalInstance,
+				p => p.GetInstanceWithChanges(),
+				ids => planApi.DomHelpers.SlcResourceStudioHelper.GetResourceProperties(ids),
+				p => new ResourcePropertyNotFoundError { ErrorMessage = $"Resource property with ID '{p.Id}' no longer exists.", Id = p.Id },
+				(p, msg) => new ResourcePropertyValueAlreadyChangedError { ErrorMessage = msg, Id = p.Id })
+				.ToList();
 		}
 	}
 }

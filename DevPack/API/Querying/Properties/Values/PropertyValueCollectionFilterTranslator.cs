@@ -17,6 +17,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			[PropertyValueCollectionExposers.LinkedObjectId.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcPropertiesIds.Sections.PropertyValueInfo.LinkedObjectID), comparer, (string)value),
 			[PropertyValueCollectionExposers.Scope.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcPropertiesIds.Sections.PropertyValueInfo.Scope), comparer, (string)value),
 			[PropertyValueCollectionExposers.SubId.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcPropertiesIds.Sections.PropertyValueInfo.SubID), comparer, (string)value),
+			[PropertyValueCollectionExposers.PropertyValues.PropertyId.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcPropertiesIds.Sections.PropertyValue.PropertyID), comparer, (Guid)value),
 		};
 
 		protected override Dictionary<string, Func<Comparer, object, FilterElement<DomInstance>>> Handlers => handlers;

@@ -78,6 +78,24 @@
 			return GetPropertyIterator(filter);
 		}
 
+		public IEnumerable<PropertyInstance> GetProperties<T>(IEnumerable<T> values, Func<T, FilterElement<DomInstance>> filter)
+		{
+			if (values == null)
+			{
+				throw new ArgumentNullException(nameof(values));
+			}
+
+			if (filter == null)
+			{
+				throw new ArgumentNullException(nameof(filter));
+			}
+
+			return FilterQueryExecutor.RetrieveFilteredItems(
+				values.Distinct(),
+				x => filter(x),
+				x => GetPropertyIterator(x));
+		}
+
 		public IEnumerable<PropertyValuesInstance> GetPropertyValues(IEnumerable<Guid> ids)
 		{
 			if (ids == null)
