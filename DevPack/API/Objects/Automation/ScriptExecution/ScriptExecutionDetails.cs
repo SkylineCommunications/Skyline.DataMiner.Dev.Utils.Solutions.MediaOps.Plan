@@ -585,7 +585,7 @@
 			{
 				var scriptElementSetting = new ScriptElementSetting(kvp.Key)
 				{
-                   Reference = kvp.Value.ToDataReference(),
+					Reference = kvp.Value.ToDataReference(),
 				};
 
 				AddScriptElement(scriptElementSetting);
@@ -608,7 +608,7 @@
 			{
 				var scriptParameterSetting = new ScriptParameterSetting(kvp.Key)
 				{
-                   Reference = kvp.Value.ToDataReference(),
+					Reference = kvp.Value.ToDataReference(),
 				};
 
 				AddScriptParameter(scriptParameterSetting);
