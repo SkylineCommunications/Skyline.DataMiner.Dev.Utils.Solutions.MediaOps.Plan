@@ -382,7 +382,7 @@
 		/// <returns>An enumerable collection of pages, where each page contains a collection of configurations.</returns>
 		public IEnumerable<IPagedResult<Configuration>> ReadPaged(int pageSize)
 		{
-			return ReadPaged(new TRUEFilterElement<Configuration>(), MediaOpsPlanApi.DefaultPageSize);
+			return ReadPaged(new TRUEFilterElement<Configuration>(), pageSize);
 		}
 
 		/// <summary>

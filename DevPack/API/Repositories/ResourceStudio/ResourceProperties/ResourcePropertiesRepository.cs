@@ -410,23 +410,7 @@
 		/// <returns>An enumerable collection of pages, where each page contains a collection of resource properties.</returns>
 		public IEnumerable<IPagedResult<ResourceProperty>> ReadPaged(int pageSize)
 		{
-			return ReadPaged(new TRUEFilterElement<ResourceProperty>(), MediaOpsPlanApi.DefaultPageSize);
-		}
-
-		private IEnumerable<IPagedResult<ResourceProperty>> ReadPagedIterator(FilterElement<ResourceProperty> filter, int pageSize)
-		{
-			var pageNumber = 0;
-			var paramFilter = filterTranslator.Translate(filter);
-			var items = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePropertiesPaged(paramFilter, pageSize);
-			var enumerator = items.GetEnumerator();
-			var hasNext = enumerator.MoveNext();
-
-			while (hasNext)
-			{
-				var page = enumerator.Current;
-				hasNext = enumerator.MoveNext();
-				yield return new PagedResult<ResourceProperty>(page.Select(x => new ResourceProperty(x)), pageNumber++, pageSize, hasNext);
-			}
+			return ReadPaged(new TRUEFilterElement<ResourceProperty>(), pageSize);
 		}
 
 		/// <summary>
@@ -499,6 +483,22 @@
 
 				return result.SuccessfulItems.Select(x => new ResourceProperty(x)).ToList();
 			});
+		}
+
+		private IEnumerable<IPagedResult<ResourceProperty>> ReadPagedIterator(FilterElement<ResourceProperty> filter, int pageSize)
+		{
+			var pageNumber = 0;
+			var paramFilter = filterTranslator.Translate(filter);
+			var items = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePropertiesPaged(paramFilter, pageSize);
+			var enumerator = items.GetEnumerator();
+			var hasNext = enumerator.MoveNext();
+
+			while (hasNext)
+			{
+				var page = enumerator.Current;
+				hasNext = enumerator.MoveNext();
+				yield return new PagedResult<ResourceProperty>(page.Select(x => new ResourceProperty(x)), pageNumber++, pageSize, hasNext);
+			}
 		}
 	}
 }
