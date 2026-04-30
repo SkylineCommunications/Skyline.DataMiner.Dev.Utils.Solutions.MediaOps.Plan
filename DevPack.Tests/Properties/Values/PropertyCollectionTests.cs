@@ -42,13 +42,13 @@ namespace RT_MediaOps.Plan.Properties.Values
 			Assert.IsNotNull(collection.StringValues);
 			Assert.IsNotNull(collection.BooleanValues);
 			Assert.IsNotNull(collection.DiscreteValues);
-			Assert.IsNotNull(collection.PropertyValues);
+			Assert.IsNotNull(collection.LinkedValues);
 
 			Assert.AreEqual(0, collection.CustomValues.Count);
 			Assert.AreEqual(0, collection.StringValues.Count);
 			Assert.AreEqual(0, collection.BooleanValues.Count);
 			Assert.AreEqual(0, collection.DiscreteValues.Count);
-			Assert.AreEqual(0, collection.PropertyValues.Count);
+			Assert.AreEqual(0, collection.LinkedValues.Count());
 		}
 
 		[TestMethod]
