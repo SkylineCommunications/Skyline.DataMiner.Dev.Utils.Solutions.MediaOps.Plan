@@ -33,17 +33,17 @@
 		/// <summary>
 		/// Gets or sets a value indicating whether there is a size limit for the file. If false, the limit configured on the server will be used.
 		/// </summary>
-		public bool HasSizeLimit { get; set; }
+		public bool HasSizeLimit { get; set; } = false;
 
 		/// <summary>
 		/// Gets or sets the maximum allowed size for the file, in MB. If not set, the default value is 20 MB.
 		/// </summary>
-		public int SizeLimit { get; set; }
+		public long SizeLimit { get; set; } = 20;
 
 		/// <summary>
 		/// Gets or sets a value indicating whether multiple files are allowed.
 		/// </summary>
-		public bool AllowMultiple { get; set; }
+		public bool AllowMultiple { get; set; } = false;
 
 		/// <inheritdoc/>
 		public override int GetHashCode()
@@ -51,6 +51,7 @@
 			unchecked
 			{
 				var hash = base.GetHashCode();
+				hash = (hash * 23) + HasSizeLimit.GetHashCode();
 				hash = (hash * 23) + SizeLimit.GetHashCode();
 				hash = (hash * 23) + AllowMultiple.GetHashCode();
 
@@ -66,6 +67,7 @@
 				return false;
 			}
 			return base.Equals(other)
+				&& HasSizeLimit == other.HasSizeLimit
 				&& SizeLimit == other.SizeLimit
 				&& AllowMultiple == other.AllowMultiple;
 		}
@@ -79,7 +81,16 @@
 
 		private void ParseInstance(StorageProperties.PropertyInstance instance)
 		{
-			SizeLimit = instance.PropertyInfo.FileSizeLimit.HasValue ? (int)instance.PropertyInfo.FileSizeLimit.Value : 20;
+			if (instance.PropertyInfo.FileSizeLimit.HasValue && instance.PropertyInfo.FileSizeLimit.Value > 0)
+			{
+				SizeLimit = instance.PropertyInfo.FileSizeLimit.Value;
+				HasSizeLimit = true;
+			}
+			else
+			{
+				HasSizeLimit = false;
+			}
+
 			AllowMultiple = instance.PropertyInfo.AllowMultipleFiles.GetValueOrDefault();
 		}
 	}

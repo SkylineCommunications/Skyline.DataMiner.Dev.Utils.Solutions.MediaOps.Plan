@@ -96,6 +96,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 			Assert.IsNull(collection.LinkedObjectId);
 			Assert.IsNull(collection.Scope);
 			Assert.IsNull(collection.SubId);
+			Assert.AreEqual(0, collection.Count);
 		}
 	}
 }
