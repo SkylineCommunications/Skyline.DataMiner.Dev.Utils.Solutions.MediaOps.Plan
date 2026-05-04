@@ -4,7 +4,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
     using System.Runtime.Serialization;
 
     /// <summary>
-    /// Thrown when <see cref="LinkResolver.GetValue"/> detects a circular chain of <see cref="DataReference"/> instances.
+    /// Thrown when <see cref="LinkResolver.ResolveValue"/> detects a circular chain of <see cref="DataReference"/> instances.
     /// </summary>
     [Serializable]
     public sealed class CircularReferenceException : Exception

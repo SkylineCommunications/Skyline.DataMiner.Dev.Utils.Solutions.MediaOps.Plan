@@ -1,7 +1,7 @@
 namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
     /// <summary>
-    /// Represents the result of a <see cref="LinkResolver.GetValue"/> call.
+    /// Represents the result of a <see cref="LinkResolver.ResolveValue"/> call.
     /// Either <see cref="Value"/> holds the resolved value, or <see cref="UnresolvedReference"/>
     /// holds the <see cref="DataReference"/> that could not be fully resolved.
     /// </summary>
@@ -39,5 +39,24 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
         {
             return new ResolvedValue { UnresolvedReference = reference };
         }
+
+		/// <summary>
+		/// Creates a <see cref="ResolvedValue"/> by extracting the value from a concrete <see cref="Setting"/> subclass.
+		/// </summary>
+		/// <param name="setting">The setting whose value to extract.</param>
+		/// <returns>A resolved <see cref="ResolvedValue"/>.</returns>
+		public static ResolvedValue FromSettingValue(Setting setting)
+        {
+			return setting switch
+			{
+				NumberCapacitySetting ncs => FromValue(ncs.Value),
+				RangeCapacitySetting rcs => FromValue(rcs.MaxValue),
+				TextConfigurationSetting tcs => FromValue(tcs.Value),
+				NumberConfigurationSetting nfcs => FromValue(nfcs.Value),
+				DiscreteTextConfigurationSetting dtcs => FromValue(dtcs.Value?.Value),
+				DiscreteNumberConfigurationSetting dncs => FromValue(dncs.Value?.Value),
+				_ => FromValue(null),
+			};
+		}
     }
 }
