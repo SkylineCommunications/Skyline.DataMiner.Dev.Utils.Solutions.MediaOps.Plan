@@ -6,7 +6,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a configuration text discrete value is referenced by one or multiple Recurring Jobs.
 	/// </summary>
-	public class ConfigurationTextDiscreteValueInUseByRecurringJobsError : ConfigurationTextDiscreteValueInUseError
+	public sealed class ConfigurationTextDiscreteValueInUseByRecurringJobsError : ConfigurationTextDiscreteValueInUseError
 	{
 		/// <summary>
 		/// Ids of the recurring jobs referencing the configuration text discrete value.

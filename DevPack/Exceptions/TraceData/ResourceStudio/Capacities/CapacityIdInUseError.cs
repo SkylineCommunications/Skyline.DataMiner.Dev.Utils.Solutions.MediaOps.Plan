@@ -3,7 +3,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a capacity configuration identifier is already in use.
 	/// </summary>
-	public class CapacityIdInUseError : CapacityError
+	public sealed class CapacityIdInUseError : CapacityError
 	{
 	}
 }

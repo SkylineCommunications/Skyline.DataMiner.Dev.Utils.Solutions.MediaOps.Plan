@@ -3,7 +3,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a resource configuration identifier is already in use.
 	/// </summary>
-	public class ResourceIdInUseError : ResourceError
+	public sealed class ResourceIdInUseError : ResourceError
 	{
 	}
 }

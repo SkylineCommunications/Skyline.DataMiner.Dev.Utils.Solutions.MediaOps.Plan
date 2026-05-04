@@ -6,7 +6,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a capability discrete value is referenced by one or multiple workflows.
 	/// </summary>
-	public class CapabilityDiscreteValueInUseByWorkflowsError : CapabilityDiscreteValueInUseError
+	public sealed class CapabilityDiscreteValueInUseByWorkflowsError : CapabilityDiscreteValueInUseError
 	{
 		/// <summary>
 		/// Ids of the workflows referencing the capability discrete value.

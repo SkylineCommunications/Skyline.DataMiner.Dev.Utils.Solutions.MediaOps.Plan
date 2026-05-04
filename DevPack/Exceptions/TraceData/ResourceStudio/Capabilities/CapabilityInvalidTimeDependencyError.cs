@@ -3,7 +3,7 @@
 	/// <summary>
 	/// Represents an error that occurs when attempting to change a capability from time-dependent to non-time-dependent or vice versa.
 	/// </summary>
-	public class CapabilityInvalidTimeDependencyError : CapabilityError
+	public sealed class CapabilityInvalidTimeDependencyError : CapabilityError
 	{
 	}
 }

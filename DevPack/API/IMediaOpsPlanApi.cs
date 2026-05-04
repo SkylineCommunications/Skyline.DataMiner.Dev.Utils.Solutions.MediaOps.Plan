@@ -53,6 +53,16 @@
 		IRecurringJobsRepository RecurringJobs { get; }
 
 		/// <summary>
+		/// Gets the repository for managing property definitions.
+		/// </summary>
+		IPropertiesRepository Properties { get; }
+
+		/// <summary>
+		/// Gets the repository for managing property value collections.
+		/// </summary>
+		IPropertyValueCollectionsRepository PropertyValueCollections { get; }
+
+		/// <summary>
 		/// Determines whether the MediaOps.PLAN application is installed on the DataMiner System.
 		/// </summary>
 		/// <returns>

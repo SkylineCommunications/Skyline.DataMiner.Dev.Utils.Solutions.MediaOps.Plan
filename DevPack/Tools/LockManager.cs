@@ -14,7 +14,7 @@
 
 	internal class LockManager
 	{
-		private const string LockManagerElementName = "MediaOps Lock Manager";
+		private const string LockManagerElementName = "MOP Lock Manager";
 		private const int MaxLockAttempts = 5;
 
 		private readonly TimeSpan _sleepTime = TimeSpan.FromMilliseconds(500);

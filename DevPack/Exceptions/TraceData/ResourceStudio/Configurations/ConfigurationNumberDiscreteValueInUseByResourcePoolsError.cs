@@ -6,7 +6,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a configuration number discrete value is in use by one or multiple Resource Pools.
 	/// </summary>
-	public class ConfigurationNumberDiscreteValueInUseByResourcePoolsError : ConfigurationNumberDiscreteValueInUseError
+	public sealed class ConfigurationNumberDiscreteValueInUseByResourcePoolsError : ConfigurationNumberDiscreteValueInUseError
 	{
 		/// <summary>
 		/// Ids of the resource pools referencing the configuration number discrete value.

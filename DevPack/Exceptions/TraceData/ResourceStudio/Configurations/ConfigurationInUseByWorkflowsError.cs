@@ -6,7 +6,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a configuration is referenced by one or multiple workflows.
 	/// </summary>
-	public class ConfigurationInUseByWorkflowsError : ConfigurationInUseError
+	public sealed class ConfigurationInUseByWorkflowsError : ConfigurationInUseError
 	{
 		/// <summary>
 		/// Ids of the workflows referencing the configuration.

@@ -3,7 +3,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a configuration's default discrete value is invalid.
 	/// </summary>
-	public class ConfigurationInvalidDefaultDiscreetError : ConfigurationError
+	public sealed class ConfigurationInvalidDefaultDiscreetError : ConfigurationError
 	{
 	}
 }

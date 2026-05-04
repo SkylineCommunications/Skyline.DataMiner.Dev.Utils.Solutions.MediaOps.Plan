@@ -7,7 +7,7 @@
 	/// <summary>
 	/// Contains all kinds of data that MediaOps could generate while handling a request.
 	/// </summary>
-	public class MediaOpsTraceData
+	public sealed class MediaOpsTraceData
 	{
 		/// <summary>
 		/// Initializes a new instance of the <see cref="MediaOpsTraceData"/> class.
@@ -20,7 +20,7 @@
 		/// Gets or sets the error data that was generated while handling the request.
 		/// </summary>
 		/// <returns>Never null.</returns>
-		public List<MediaOpsErrorData> ErrorData { get; set; } = new List<MediaOpsErrorData>();
+		public List<MediaOpsErrorData> ErrorData { get; internal set; } = new List<MediaOpsErrorData>();
 
 		/// <summary>
 		/// Returns all the data contained in the object in a readable format.

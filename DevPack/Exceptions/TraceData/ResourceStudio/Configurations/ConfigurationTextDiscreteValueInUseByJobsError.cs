@@ -6,7 +6,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a configuration text discrete value is referenced by one or multiple jobs.
 	/// </summary>
-	public class ConfigurationTextDiscreteValueInUseByJobsError : ConfigurationTextDiscreteValueInUseError
+	public sealed class ConfigurationTextDiscreteValueInUseByJobsError : ConfigurationTextDiscreteValueInUseError
 	{
 		/// <summary>
 		/// Ids of the jobs referencing the configuration text discrete value.

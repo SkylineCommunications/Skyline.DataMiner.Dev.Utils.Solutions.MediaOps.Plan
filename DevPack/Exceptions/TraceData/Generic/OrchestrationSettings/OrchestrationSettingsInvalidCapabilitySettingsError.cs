@@ -5,11 +5,11 @@
 	/// <summary>
 	/// Represents an error that occurs when orchestration settings capability settings are invalid.
 	/// </summary>
-	public class OrchestrationSettingsInvalidCapabilitySettingsError : OrchestrationSettingsError
+	public sealed class OrchestrationSettingsInvalidCapabilitySettingsError : OrchestrationSettingsError
 	{
 		/// <summary>
 		/// Gets the unique identifier for the capability.
 		/// </summary>
-		public Guid CapabilityId { get; set; }
+		public Guid CapabilityId { get; internal set; }
 	}
 }

@@ -3,7 +3,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a resource pool is in an invalid state.
 	/// </summary>
-	public class ResourcePoolInvalidStateError : ResourcePoolError
+	public sealed class ResourcePoolInvalidStateError : ResourcePoolError
 	{
 	}
 }

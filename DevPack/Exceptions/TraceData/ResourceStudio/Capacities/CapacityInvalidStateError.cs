@@ -3,7 +3,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a capacity is in an invalid state.
 	/// </summary>
-	public class CapacityInvalidStateError : CapacityError
+	public sealed class CapacityInvalidStateError : CapacityError
 	{
 	}
 }

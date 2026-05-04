@@ -3,11 +3,11 @@
 	/// <summary>
 	/// Represents an error that occurs when no category can be found in the system with a given ID.
 	/// </summary>
-	public class ResourcePoolCategoryNotFoundError : ResourcePoolError
+	public sealed class ResourcePoolCategoryNotFoundError : ResourcePoolError
 	{
 		/// <summary>
 		/// Gets the unique identifier for the category.
 		/// </summary>
-		public string CategoryId { get; set; }
+		public string CategoryId { get; internal set; }
 	}
 }

@@ -347,7 +347,7 @@
 				}
 
 				var duplicateDiscretes = capability.Discretes
-					.GroupBy(x => x.Trim())
+					.GroupBy(x => x)
 					.Where(g => g.Count() > 1)
 					.SelectMany(g => g)
 					.ToList();
@@ -496,7 +496,7 @@
 
 		private List<string> GetCleanInputDiscretes(IReadOnlyCollection<string> discretes)
 		{
-			return discretes.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).Distinct().ToList();
+			return discretes.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().ToList();
 		}
 	}
 }

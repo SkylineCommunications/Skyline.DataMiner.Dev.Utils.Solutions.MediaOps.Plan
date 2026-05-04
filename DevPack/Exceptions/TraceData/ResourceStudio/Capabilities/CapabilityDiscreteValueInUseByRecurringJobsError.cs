@@ -6,7 +6,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a capability discrete value is referenced by one or multiple Recurring Jobs.
 	/// </summary>
-	public class CapabilityDiscreteValueInUseByRecurringJobsError : CapabilityDiscreteValueInUseError
+	public sealed class CapabilityDiscreteValueInUseByRecurringJobsError : CapabilityDiscreteValueInUseError
 	{
 		/// <summary>
 		/// Ids of the recurring jobs referencing the capability discrete value.

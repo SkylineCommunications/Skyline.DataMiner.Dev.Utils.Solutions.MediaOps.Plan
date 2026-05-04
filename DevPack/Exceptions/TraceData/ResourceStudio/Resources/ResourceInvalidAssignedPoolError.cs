@@ -5,11 +5,11 @@
 	/// <summary>
 	/// Represents an error that occurs when a resource configuration specifies an invalid or unsupported assigned pool.
 	/// </summary>
-	public class ResourceInvalidAssignedPoolError : ResourceError
+	public sealed class ResourceInvalidAssignedPoolError : ResourceError
 	{
 		/// <summary>
 		/// Gets or sets the unique identifier of the associated resource pool.
 		/// </summary>
-		public Guid ResourcePoolId { get; set; }
+		public Guid ResourcePoolId { get; internal set; }
 	}
 }

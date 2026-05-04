@@ -6,7 +6,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a resource pool is referenced by one or multiple jobs.
 	/// </summary>
-	public class ResourcePoolInUseByJobsError : ResourcePoolInUseError
+	public sealed class ResourcePoolInUseByJobsError : ResourcePoolInUseError
 	{
 		/// <summary>
 		/// Ids of the jobs referencing the resource pool.

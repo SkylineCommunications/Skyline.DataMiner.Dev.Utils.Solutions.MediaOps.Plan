@@ -3,7 +3,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a configuration configuration identifier is already in use.
 	/// </summary>
-	public class ConfigurationIdInUseError : ConfigurationError
+	public sealed class ConfigurationIdInUseError : ConfigurationError
 	{
 	}
 }

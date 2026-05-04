@@ -802,7 +802,7 @@
 		/// <returns>An enumerable collection of pages, where each page contains a collection of resource pools.</returns>
 		public IEnumerable<IPagedResult<ResourcePool>> ReadPaged(int pageSize)
 		{
-			return ReadPaged(new TRUEFilterElement<ResourcePool>(), MediaOpsPlanApi.DefaultPageSize);
+			return ReadPaged(new TRUEFilterElement<ResourcePool>(), pageSize);
 		}
 
 		private IEnumerable<IPagedResult<ResourcePool>> ReadPagedIterator(FilterElement<ResourcePool> filter, int pageSize)

@@ -10,6 +10,6 @@
 		/// <summary>
 		/// The discrete value that is in use.
 		/// </summary>
-		public NumberDiscreet DiscreteValue { get; set; }
+		public NumberDiscreet DiscreteValue { get; internal set; }
 	}
 }

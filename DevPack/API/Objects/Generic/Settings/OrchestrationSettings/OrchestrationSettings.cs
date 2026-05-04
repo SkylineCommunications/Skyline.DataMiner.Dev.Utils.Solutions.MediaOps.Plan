@@ -164,7 +164,6 @@
 			{
 				int hash = 17;
 				hash = (hash * 23) + Id.GetHashCode();
-				hash = (hash * 23) + (Name != null ? Name.GetHashCode() : 0);
 
 				foreach (var capability in Capabilities.OrderBy(x => x.Id))
 				{
@@ -217,7 +216,6 @@
 			}
 
 			return idsMatch &&
-				String.Equals(Name, other.Name) &&
 				Capabilities.ScrambledEquals(other.Capabilities) &&
 				Capacities.ScrambledEquals(other.Capacities) &&
 				Configurations.ScrambledEquals(other.Configurations) &&

@@ -3,7 +3,7 @@
 	/// <summary>
 	/// Represents an error that occurs when attempting to change a resource pool value that has already been modified.
 	/// </summary>
-	public class ResourcePoolValueAlreadyChangedError : ResourcePoolError
+	public sealed class ResourcePoolValueAlreadyChangedError : ResourcePoolError
 	{
 	}
 }

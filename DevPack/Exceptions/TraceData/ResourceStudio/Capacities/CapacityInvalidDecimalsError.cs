@@ -3,11 +3,11 @@
 	/// <summary>
 	/// Represents an error that occurs when a capacity configuration specifies an invalid number of decimal places.
 	/// </summary>
-	public class CapacityInvalidDecimalsError : CapacityError
+	public sealed class CapacityInvalidDecimalsError : CapacityError
 	{
 		/// <summary>
 		/// Gets or sets the number of decimal places to use for numeric values.
 		/// </summary>
-		public int Decimals { get; set; }
+		public int Decimals { get; internal set; }
 	}
 }

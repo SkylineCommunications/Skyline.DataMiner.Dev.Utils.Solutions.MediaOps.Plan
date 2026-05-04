@@ -72,15 +72,6 @@
 		/// </summary>
 		protected internal abstract CoreParameter.ParameterType ParameterType { get; }
 
-		/// <summary>
-		/// Defines an implicit conversion from a Capacity instance to its underlying Guid identifier.
-		/// </summary>
-		/// <remarks>This operator enables a Capacity object to be used wherever a Guid is expected,
-		/// returning the value of its Id property. If the Capacity instance is null, a NullReferenceException will be
-		/// thrown.</remarks>
-		/// <param name="capacity">The Capacity instance to convert to a Guid.</param>
-		public static implicit operator Guid(Capacity capacity) => capacity.Id;
-
 		/// <inheritdoc/>
 		public override int GetHashCode()
 		{

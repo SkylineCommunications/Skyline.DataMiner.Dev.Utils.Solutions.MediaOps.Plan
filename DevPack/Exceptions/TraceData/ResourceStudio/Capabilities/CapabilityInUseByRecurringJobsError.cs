@@ -6,7 +6,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a capability is referenced by one or multiple Recurring Jobs.
 	/// </summary>
-	public class CapabilityInUseByRecurringJobsError : CapabilityInUseError
+	public sealed class CapabilityInUseByRecurringJobsError : CapabilityInUseError
 	{
 		/// <summary>
 		/// Ids of the recurring jobs referencing the capability.

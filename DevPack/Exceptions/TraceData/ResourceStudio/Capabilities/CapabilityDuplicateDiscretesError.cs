@@ -5,11 +5,11 @@
 	/// <summary>
 	/// Represents an error that occurs when a capability configuration contains duplicate discrete values.
 	/// </summary>
-	public class CapabilityDuplicateDiscretesError : CapabilityInvalidDiscretesError
+	public sealed class CapabilityDuplicateDiscretesError : CapabilityInvalidDiscretesError
 	{
 		/// <summary>
 		/// Gets or sets the collection of discrete string values.
 		/// </summary>
-		public List<string> Discretes { get; set; }
+		public List<string> Discretes { get; internal set; }
 	}
 }
