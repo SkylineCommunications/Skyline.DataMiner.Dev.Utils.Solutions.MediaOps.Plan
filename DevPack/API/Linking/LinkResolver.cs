@@ -7,7 +7,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
 
 	/// <summary>
-	/// Resolves <see cref="DataReference"/> instances to a display label or a runtime value,
+	/// Resolves <see cref="DataReference"/> instances to a display label or a runtime value.
 	/// </summary>
 	public class LinkResolver
 	{
@@ -147,7 +147,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		/// <summary>
 		/// Resolves a capability parameter reference. The reference targets a specific node when
-		/// <see cref="DataReference.NodeId"/> is set, otherwise the workflow / job itself. Default returns <c>null</c>.
+		/// <see cref="DataReference.NodeId"/> is set, otherwise the workflow / job itself.
+		/// Default returns an unresolved <see cref="ResolvedValue"/>.
 		/// </summary>
 		protected virtual ResolvedValue ResolveCapabilityValue(CapabilityParameterReference reference, ResolveContext context)
 		{
@@ -172,7 +173,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		/// <summary>
 		/// Resolves a capacity parameter reference. The reference targets a specific node when
-		/// <see cref="DataReference.NodeId"/> is set, otherwise the workflow / job itself. Default returns <c>null</c>.
+		/// <see cref="DataReference.NodeId"/> is set, otherwise the workflow / job itself.
+		/// Default returns an unresolved <see cref="ResolvedValue"/>.
 		/// </summary>
 		protected virtual ResolvedValue ResolveCapacityValue(CapacityParameterReference reference, ResolveContext context)
 		{
@@ -197,7 +199,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		/// <summary>
 		/// Resolves a configuration parameter reference. The reference targets a specific node when
-		/// <see cref="DataReference.NodeId"/> is set, otherwise the workflow / job itself. Default returns <c>null</c>.
+		/// <see cref="DataReference.NodeId"/> is set, otherwise the workflow / job itself.
+		/// Default returns an unresolved <see cref="ResolvedValue"/>.
 		/// </summary>
 		protected virtual ResolvedValue ResolveConfigurationValue(ConfigurationParameterReference reference, ResolveContext context)
 		{
@@ -265,8 +268,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		/// <summary>
 		/// Resolves a <see cref="WorkflowNameReference"/>. Default implementation reads the name from
-		/// <see cref="IMediaOpsPlanApi.Workflows"/> using <see cref="ResolveContext.WorkflowId"/>
-		/// or from <see cref="IMediaOpsPlanApi.Jobs"/> using <see cref="ResolveContext.JobId"/>.
+		/// <see cref="ResolveContext.Workflow"/> when available, returning the workflow name
+		/// or an unresolved <see cref="ResolvedValue"/> when no workflow is set.
 		/// </summary>
 		protected virtual ResolvedValue ResolveWorkflowName(WorkflowNameReference reference, ResolveContext context)
 		{
@@ -275,9 +278,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <summary>
-		/// Resolves a <see cref="WorkflowPropertyReference"/> using <see cref="GetWorkflowPropertyValue"/>.
+		/// Resolves a <see cref="WorkflowPropertyReference"/>.
 		/// When <see cref="ResolveContext.WorkflowPropertyValues"/> is populated, those values are
-		/// used directly; otherwise the call falls through to <see cref="GetWorkflowPropertyValue"/>.
+		/// used directly; otherwise an unresolved <see cref="ResolvedValue"/> is returned.
 		/// </summary>
 		protected virtual ResolvedValue ResolveWorkflowPropertyValue(WorkflowPropertyReference reference, ResolveContext context)
 		{
@@ -375,6 +378,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return context.Workflow.Name;
 		}
 
+		/// <summary>
+		/// Returns the <see cref="OrchestrationSettings"/> for the given node or the workflow / job itself
+		/// when <paramref name="nodeId"/> is <c>null</c> or empty.
+		/// </summary>
+		/// <param name="nodeId">The node identifier, or <c>null</c> to target the workflow / job level.</param>
+		/// <param name="context">Resolution context.</param>
+		/// <returns>The matching <see cref="OrchestrationSettings"/>, or <c>null</c> when not found.</returns>
 		protected virtual OrchestrationSettings GetOrchestrationSettings(string nodeId, ResolveContext context)
 		{
 			if (!String.IsNullOrEmpty(nodeId))
