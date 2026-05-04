@@ -394,8 +394,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				{
 					return nodeSettings;
 				}
-
-				return null;
 			}
 			else
 			{
