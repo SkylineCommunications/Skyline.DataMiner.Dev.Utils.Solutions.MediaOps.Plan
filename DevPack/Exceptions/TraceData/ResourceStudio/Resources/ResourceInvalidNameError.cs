@@ -3,11 +3,11 @@
 	/// <summary>
 	/// Represents an error that occurs when a resource configuration specifies an invalid resource name.
 	/// </summary>
-	public class ResourceInvalidNameError : ResourceError
+	public sealed class ResourceInvalidNameError : ResourceError
 	{
 		/// <summary>
 		/// Gets the name of the resource.
 		/// </summary>
-		public string Name { get; set; }
+		public string Name { get; internal set; }
 	}
 }

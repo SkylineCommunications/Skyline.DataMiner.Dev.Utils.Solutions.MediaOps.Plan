@@ -6,7 +6,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a resource pool is referenced by one or multiple workflows.
 	/// </summary>
-	public class ResourcePoolInUseByWorkflowsError : ResourcePoolInUseError
+	public sealed class ResourcePoolInUseByWorkflowsError : ResourcePoolInUseError
 	{
 		/// <summary>
 		/// Ids of the workflows referencing the resource pool.

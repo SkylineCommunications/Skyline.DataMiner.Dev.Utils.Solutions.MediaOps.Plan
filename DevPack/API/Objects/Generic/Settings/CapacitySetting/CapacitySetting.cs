@@ -35,5 +35,10 @@
 			: base(capacitySetting)
 		{
 		}
+
+		/// <summary>
+		/// Gets the unique identifier of the capacity.
+		/// </summary>
+		public new Guid Id { get => base.Id; internal set => base.Id = value; }
 	}
 }

@@ -3,6 +3,8 @@
 	using System;
 	using System.Linq;
 
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
+
 	using StorageWorkflow = Storage.DOM.SlcWorkflow;
 
 	/// <summary>
@@ -26,7 +28,8 @@
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Workflow"/> class with a specific workflow ID.
 		/// </summary>
-		public Workflow(Guid jobId) : base(jobId)
+		/// <param name="workflowId">The unique identifier of the workflow.</param>
+		public Workflow(Guid workflowId) : base(workflowId)
 		{
 			IsNew = true;
 			HasUserDefinedId = true;
@@ -46,6 +49,46 @@
 		public override string Name { get; set; }
 
 		/// <summary>
+		/// Gets or sets the description of the workflow.
+		/// </summary>
+		public string Description { get; set; }
+
+		/// <summary>
+		/// Gets or sets the priority of the workflow.
+		/// </summary>
+		public WorkflowPriority Priority { get; set; } = WorkflowPriority.Normal;
+
+		/// <summary>
+		/// Gets or sets a value indicating whether the workflow is a favorite.
+		/// </summary>
+		public bool IsFavorite { get; set; }
+
+		/// <summary>
+		/// Gets or sets the pre-roll of the workflow.
+		/// </summary>
+		public TimeSpan PreRoll { get; set; }
+
+		/// <summary>
+		/// Gets or sets the post-roll of the workflow.
+		/// </summary>
+		public TimeSpan PostRoll { get; set; }
+
+		/// <summary>
+		/// Gets or sets the notes of the workflow.
+		/// </summary>
+		public string Notes { get; set; }
+
+		/// <summary>
+		/// Gets information about who has locked the workflow for editing. If the workflow is not locked, this property will be null or empty.
+		/// </summary>
+		public string LockedBy { get; private set; }
+
+		/// <summary>
+		/// Gets the state of the workflow.
+		/// </summary>
+		public WorkflowState State { get; private set; }
+
+		/// <summary>
 		/// Gets the orchestration settings assigned to this workflow.
 		/// </summary>
 		public OrchestrationSettings OrchestrationSettings { get; set; }
@@ -60,7 +103,15 @@
 				int hash = 17;
 				hash = (hash * 23) + Id.GetHashCode();
 				hash = (hash * 23) + (Name != null ? Name.GetHashCode() : 0);
+				hash = (hash * 23) + (Description != null ? Description.GetHashCode() : 0);
+				hash = (hash * 23) + Priority.GetHashCode();
+				hash = (hash * 23) + IsFavorite.GetHashCode();
+				hash = (hash * 23) + PreRoll.GetHashCode();
+				hash = (hash * 23) + PostRoll.GetHashCode();
+				hash = (hash * 23) + (Notes != null ? Notes.GetHashCode() : 0);
+				hash = (hash * 23) + (LockedBy != null ? LockedBy.GetHashCode() : 0);
 				hash = (hash * 23) + (OrchestrationSettings != null ? OrchestrationSettings.GetHashCode() : 0);
+				hash = (hash * 23) + State.GetHashCode();
 
 				return hash;
 			}
@@ -81,7 +132,15 @@
 
 			return Id == other.Id &&
 				   Name == other.Name &&
-				   OrchestrationSettings == other.OrchestrationSettings;
+				   Description == other.Description &&
+				   Priority == other.Priority &&
+				   IsFavorite == other.IsFavorite &&
+				   PreRoll == other.PreRoll &&
+				   PostRoll == other.PostRoll &&
+				   Notes == other.Notes &&
+				   LockedBy == other.LockedBy &&
+				   OrchestrationSettings == other.OrchestrationSettings &&
+				   State == other.State;
 		}
 
 		internal StorageWorkflow.WorkflowsInstance GetInstanceWithChanges()
@@ -92,17 +151,33 @@
 			}
 
 			updatedInstance.WorkflowInfo.WorkflowName = Name;
+			updatedInstance.WorkflowInfo.WorkflowDescription = Description;
+			updatedInstance.WorkflowInfo.Favorite = IsFavorite;
+			updatedInstance.WorkflowInfo.Preroll = PreRoll != TimeSpan.Zero ? PreRoll: null;
+			updatedInstance.WorkflowInfo.Postroll = PostRoll != TimeSpan.Zero ? PostRoll : null;
+			updatedInstance.WorkflowInfo.WorkflowNotes = Notes;
 
 			updatedInstance.WorkflowExecution.WorkflowConfiguration = OrchestrationSettings.Id;
+
+			updatedInstance.WorkflowInfo.Priority = EnumExtensions.MapEnum<WorkflowPriority, StorageWorkflow.SlcWorkflowIds.Enums.Priority>(Priority);
 
 			return updatedInstance;
 		}
 
 		private void ParseInstance(MediaOpsPlanApi planApi, StorageWorkflow.WorkflowsInstance instance)
 		{
-			this.originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
+			originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
 
 			Name = instance.WorkflowInfo.WorkflowName;
+			Description = instance.WorkflowInfo.WorkflowDescription;
+			IsFavorite = instance.WorkflowInfo.Favorite.HasValue ? instance.WorkflowInfo.Favorite.Value : false;
+			PreRoll = instance.WorkflowInfo.Preroll.HasValue ? instance.WorkflowInfo.Preroll.Value : TimeSpan.Zero;
+			PostRoll = instance.WorkflowInfo.Postroll.HasValue ? instance.WorkflowInfo.Postroll.Value : TimeSpan.Zero;
+			Notes = instance.WorkflowInfo.WorkflowNotes;
+			LockedBy = instance.WorkflowInfo.LockedBy;
+
+			Priority = instance.WorkflowInfo.Priority.HasValue ? EnumExtensions.MapEnum<StorageWorkflow.SlcWorkflowIds.Enums.Priority, WorkflowPriority>(instance.WorkflowInfo.Priority.Value) : WorkflowPriority.Normal;
+			State = EnumExtensions.MapEnum<StorageWorkflow.SlcWorkflowIds.Behaviors.Workflow_Behavior.StatusesEnum, WorkflowState>(instance.Status);
 
 			if (instance.WorkflowExecution.WorkflowConfiguration == null || instance.WorkflowExecution.WorkflowConfiguration == Guid.Empty)
 			{

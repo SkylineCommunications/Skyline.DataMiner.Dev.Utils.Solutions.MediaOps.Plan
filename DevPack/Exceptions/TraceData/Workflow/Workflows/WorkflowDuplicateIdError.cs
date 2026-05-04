@@ -4,7 +4,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions
 	/// Represents an error that occurs when a workflows configuration contains duplicate identifiers.
 	/// </summary>
 	/// <remarks>This can only occur when workflows with the same ID are provided to a bulk operation.</remarks>
-	public class WorkflowDuplicateIdError : WorkflowError
+	public sealed class WorkflowDuplicateIdError : WorkflowError
 	{
 	}
 }

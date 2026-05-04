@@ -3,7 +3,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a configuration configuration is invalid due to the absence of required discrete values.
 	/// </summary>
-	public class ConfigurationNoDiscretesError : ConfigurationInvalidDiscretesError
+	public sealed class ConfigurationNoDiscretesError : ConfigurationInvalidDiscretesError
 	{
 	}
 }

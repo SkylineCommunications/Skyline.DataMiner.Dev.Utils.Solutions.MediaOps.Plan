@@ -3,11 +3,11 @@
 	/// <summary>
 	/// Represents an error that occurs when a resource pool configuration specifies an invalid resource pool name.
 	/// </summary>
-	public class ResourcePoolNameExistsError : ResourcePoolError
+	public sealed class ResourcePoolNameExistsError : ResourcePoolError
 	{
 		/// <summary>
 		/// Gets the name of the resource pool.
 		/// </summary>
-		public string Name { get; set; }
+		public string Name { get; internal set; }
 	}
 }

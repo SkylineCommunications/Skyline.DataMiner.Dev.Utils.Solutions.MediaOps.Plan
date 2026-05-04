@@ -3,7 +3,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a capability is in an invalid state.
 	/// </summary>
-	public class CapabilityInvalidStateError : CapabilityError
+	public sealed class CapabilityInvalidStateError : CapabilityError
 	{
 	}
 }

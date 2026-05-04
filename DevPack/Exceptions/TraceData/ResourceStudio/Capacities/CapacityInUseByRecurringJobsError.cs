@@ -6,7 +6,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a capacity is referenced by one or multiple Recurring Jobs.
 	/// </summary>
-	public class CapacityInUseByRecurringJobsError : CapacityInUseError
+	public sealed class CapacityInUseByRecurringJobsError : CapacityInUseError
 	{
 		/// <summary>
 		/// Ids of the recurring jobs referencing the capacity.

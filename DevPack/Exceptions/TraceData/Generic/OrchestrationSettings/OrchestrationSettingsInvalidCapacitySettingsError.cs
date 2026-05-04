@@ -5,11 +5,11 @@
 	/// <summary>
 	/// Represents an error that occurs when orchestration settings capacity settings are invalid.
 	/// </summary>
-	public class OrchestrationSettingsInvalidCapacitySettingsError : OrchestrationSettingsError
+	public sealed class OrchestrationSettingsInvalidCapacitySettingsError : OrchestrationSettingsError
 	{
 		/// <summary>
 		/// Gets the unique identifier for the capacity.
 		/// </summary>
-		public Guid CapacityId { get; set; }
+		public Guid CapacityId { get; internal set; }
 	}
 }

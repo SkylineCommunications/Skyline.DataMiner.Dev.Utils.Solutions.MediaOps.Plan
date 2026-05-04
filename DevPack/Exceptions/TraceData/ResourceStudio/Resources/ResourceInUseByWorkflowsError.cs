@@ -6,7 +6,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a resource is referenced by one or multiple workflows.
 	/// </summary>
-	public class ResourceInUseByWorkflowsError : ResourceInUseError
+	public sealed class ResourceInUseByWorkflowsError : ResourceInUseError
 	{
 		/// <summary>
 		/// Ids of the workflows referencing the resource.

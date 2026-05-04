@@ -3,7 +3,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a resource pool configuration references an empty pool link.
 	/// </summary>
-	public class ResourcePoolEmptyPoolLinkError : ResourcePoolInvalidPoolLinkError
+	public sealed class ResourcePoolEmptyPoolLinkError : ResourcePoolInvalidPoolLinkError
 	{
 	}
 }

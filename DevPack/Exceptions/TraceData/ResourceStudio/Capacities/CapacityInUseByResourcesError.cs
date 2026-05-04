@@ -6,7 +6,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a capacity is referenced by one or multiple resources.
 	/// </summary>
-	public class CapacityInUseByResourcesError : CapacityInUseError
+	public sealed class CapacityInUseByResourcesError : CapacityInUseError
 	{
 		/// <summary>
 		/// Ids of the resources referencing the capacity.

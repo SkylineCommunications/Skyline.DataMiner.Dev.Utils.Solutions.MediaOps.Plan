@@ -39,6 +39,11 @@
 		}
 
 		/// <summary>
+		/// Gets the unique identifier of the capability.
+		/// </summary>
+		public new Guid Id { get => base.Id; internal set => base.Id = value; }
+
+		/// <summary>
 		/// Gets or sets the value associated with this capability.
 		/// </summary>
 		public string Value { get; set; }

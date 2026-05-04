@@ -6,11 +6,11 @@
 	/// <summary>
 	/// Represents an error that occurs when attempting to delete a resource property that is currently in use.
 	/// </summary>
-	public class ResourcePropertyInUseError : ResourcePropertyError
+	public sealed class ResourcePropertyInUseError : ResourcePropertyError
 	{
 		/// <summary>
 		/// Gets or sets the collection of unique identifiers of the resources having the resource property implemented.
 		/// </summary>
-		public List<Guid> ResourceIds { get; set; } = [];
+		public List<Guid> ResourceIds { get; internal set; } = [];
 	}
 }

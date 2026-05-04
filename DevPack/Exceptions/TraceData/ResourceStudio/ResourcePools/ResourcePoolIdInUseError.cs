@@ -3,7 +3,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a resource pool configuration identifier is already in use.
 	/// </summary>
-	public class ResourcePoolIdInUseError : ResourcePoolError
+	public sealed class ResourcePoolIdInUseError : ResourcePoolError
 	{
 	}
 }

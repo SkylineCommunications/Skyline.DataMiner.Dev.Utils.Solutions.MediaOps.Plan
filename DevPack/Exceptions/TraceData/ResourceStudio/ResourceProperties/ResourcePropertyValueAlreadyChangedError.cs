@@ -3,7 +3,7 @@
 	/// <summary>
 	/// Represents an error that occurs when attempting to change a resource property value that has already been modified.
 	/// </summary>
-	public class ResourcePropertyValueAlreadyChangedError : ResourcePropertyError
+	public sealed class ResourcePropertyValueAlreadyChangedError : ResourcePropertyError
 	{
 	}
 }

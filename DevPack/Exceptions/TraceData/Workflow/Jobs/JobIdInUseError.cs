@@ -3,7 +3,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a job configuration identifier is already in use.
 	/// </summary>
-	public class JobIdInUseError : JobError
+	public sealed class JobIdInUseError : JobError
 	{
 	}
 }

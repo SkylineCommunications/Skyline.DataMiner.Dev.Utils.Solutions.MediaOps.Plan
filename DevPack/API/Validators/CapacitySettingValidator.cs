@@ -12,7 +12,9 @@
 
 		private readonly CapacitySetting capacitySetting;
 
-		private protected CapacitySettingValidator(Guid apiObjectId, Capacity capacity, CapacitySetting capacitySetting)
+		private readonly bool valueExpected;
+
+		private protected CapacitySettingValidator(Guid apiObjectId, Capacity capacity, CapacitySetting capacitySetting, bool valueExpected)
 		{
 			if (apiObjectId == Guid.Empty)
 			{
@@ -22,9 +24,12 @@
 			this.apiObjectId = apiObjectId;
 			this.capacity = capacity ?? throw new ArgumentNullException(nameof(capacity));
 			this.capacitySetting = capacitySetting ?? throw new ArgumentNullException(nameof(capacitySetting));
+			this.valueExpected = valueExpected;
 
 			Validate();
 		}
+
+		private protected Guid ApiObjectId => apiObjectId;
 
 		internal abstract MediaOpsErrorData ComposeCapacitySettingError(Guid capacityId, string errorMessage);
 
@@ -32,10 +37,22 @@
 		{
 			if (capacitySetting is NumberCapacitySetting numberCapacitySettings)
 			{
+				if (capacity is not NumberCapacity)
+				{
+					ReportError(apiObjectId, ComposeCapacitySettingError(capacitySetting.Id, $"A number capacity setting cannot be used with a capacity of type '{capacity.GetType().Name}'."));
+					return;
+				}
+
 				ValidateValue(numberCapacitySettings.Value);
 			}
 			else if (capacitySetting is RangeCapacitySetting rangeCapacitySettings)
 			{
+				if (capacity is not RangeCapacity)
+				{
+					ReportError(apiObjectId, ComposeCapacitySettingError(capacitySetting.Id, $"A range capacity setting cannot be used with a capacity of type '{capacity.GetType().Name}'."));
+					return;
+				}
+
 				var validMinValue = ValidateValue(rangeCapacitySettings.MinValue);
 				var validMaxValue = ValidateValue(rangeCapacitySettings.MaxValue);
 
@@ -50,7 +67,11 @@
 		{
 			if (!capacityValue.HasValue)
 			{
-				ReportError(apiObjectId, ComposeCapacitySettingError(capacitySetting.Id, "Value cannot be null."));
+				if (valueExpected)
+				{
+					ReportError(apiObjectId, ComposeCapacitySettingError(capacitySetting.Id, "Value cannot be null."));
+				}
+
 				return false;
 			}
 
@@ -68,7 +89,7 @@
 				return false;
 			}
 
-			if (capacity.StepSize.HasValue && !ValidateValueStepSize(capacityValue.Value))
+			if (!ValidateValueStepSize(capacityValue.Value))
 			{
 				return false;
 			}
@@ -85,7 +106,13 @@
 
 		private bool ValidateValueStepSize(decimal capacityValue)
 		{
-			if (capacity.StepSize - 0.0m == 0)
+			if (!capacity.StepSize.HasValue)
+			{
+				return true;
+			}
+
+			var stepSize = capacity.StepSize.Value;
+			if (stepSize - 0.0m == 0)
 			{
 				return true;
 			}
@@ -104,9 +131,9 @@
 				// no range defined
 			}
 
-			if ((valueToCheck % capacity.StepSize.Value) != 0)
+			if ((valueToCheck % stepSize) != 0)
 			{
-				ReportError(apiObjectId, ComposeCapacitySettingError(capacitySetting.Id, $"Value '{capacityValue}' must align with the step size of '{capacity.StepSize}'."));
+				ReportError(apiObjectId, ComposeCapacitySettingError(capacitySetting.Id, $"Value '{capacityValue}' must align with the step size of '{stepSize}'."));
 
 				return false;
 			}
@@ -126,7 +153,7 @@
 	internal class ResourceCapacitySettingValidator : CapacitySettingValidator
 	{
 		private ResourceCapacitySettingValidator(Guid resourceId, Capacity capacity, CapacitySetting capacitySetting)
-			: base(resourceId, capacity, capacitySetting)
+			: base(resourceId, capacity, capacitySetting, true)
 		{
 		}
 
@@ -141,20 +168,21 @@
 			{
 				ErrorMessage = errorMessage,
 				CapacityId = capacityId,
+				Id = ApiObjectId,
 			};
 		}
 	}
 
 	internal class OrchestrationSettingsCapacitySettingValidator : CapacitySettingValidator
 	{
-		private OrchestrationSettingsCapacitySettingValidator(Guid orchestrationSettingsId, Capacity capacity, CapacitySetting capacitySetting)
-			: base(orchestrationSettingsId, capacity, capacitySetting)
+		private OrchestrationSettingsCapacitySettingValidator(Guid orchestrationSettingsId, Capacity capacity, CapacitySetting capacitySetting, bool valueExpected)
+			: base(orchestrationSettingsId, capacity, capacitySetting, valueExpected)
 		{
 		}
 
-		public static CapacitySettingValidator Validate(Guid orchestrationSettingsId, Capacity apiCapacity, CapacitySetting apiCapacitySettings)
+		public static CapacitySettingValidator Validate(Guid orchestrationSettingsId, Capacity apiCapacity, CapacitySetting apiCapacitySettings, bool valueExpected)
 		{
-			return new OrchestrationSettingsCapacitySettingValidator(orchestrationSettingsId, apiCapacity, apiCapacitySettings);
+			return new OrchestrationSettingsCapacitySettingValidator(orchestrationSettingsId, apiCapacity, apiCapacitySettings, valueExpected);
 		}
 
 		internal override MediaOpsErrorData ComposeCapacitySettingError(Guid capacityId, string errorMessage)
@@ -163,6 +191,7 @@
 			{
 				ErrorMessage = errorMessage,
 				CapacityId = capacityId,
+				Id = ApiObjectId,
 			};
 		}
 	}

@@ -6,7 +6,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a configuration text discrete value is referenced by one or multiple workflows.
 	/// </summary>
-	public class ConfigurationTextDiscreteValueInUseByWorkflowsError : ConfigurationTextDiscreteValueInUseError
+	public sealed class ConfigurationTextDiscreteValueInUseByWorkflowsError : ConfigurationTextDiscreteValueInUseError
 	{
 		/// <summary>
 		/// Ids of the workflows referencing the configuration text discrete value.
