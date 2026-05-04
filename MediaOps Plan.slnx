@@ -1,0 +1,16 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Build.targets" />
+    <File Path="LICENSE" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="DevPack.Injector/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Injector.csproj" />
+    <Project Path="DevPack.Tests/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests.csproj" />
+  </Folder>
+  <Project Path="DevPack.Automation/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Automation.csproj" />
+  <Project Path="DevPack.GQI/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.GQI.csproj" />
+  <Project Path="DevPack.Protocol/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Protocol.csproj" />
+  <Project Path="DevPack/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.csproj" />
+</Solution>

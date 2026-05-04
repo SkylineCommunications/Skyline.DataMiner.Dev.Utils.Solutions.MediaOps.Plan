@@ -20,7 +20,6 @@
 		private readonly List<ResourceStudioTextConfigurationSetting> textConfigurationSettings = [];
 
 		private StorageResourceStudio.ConfigurationInstance originalInstance;
-
 		private StorageResourceStudio.ConfigurationInstance updatedInstance;
 
 		internal ResourceStudioOrchestrationSettings() : base()
@@ -354,7 +353,7 @@
 			{
 				if (!parametersById.TryGetValue(section.ProfileParameterId, out var profileParameter))
 				{
-					planApi.Logger.Information(this, $"ResourceStudioOrchestrationSettings > ParseParameterValues > Profile parameter with ID '{section.ProfileParameterId}' not found.");
+					planApi.Logger.Information(this, $"Profile parameter with ID '{section.ProfileParameterId}' not found.");
 					continue;
 				}
 

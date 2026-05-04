@@ -383,7 +383,7 @@
 		/// <returns>An enumerable collection of pages, where each page contains a collection of capabilities.</returns>
 		public IEnumerable<IPagedResult<Capability>> ReadPaged(int pageSize)
 		{
-			return ReadPaged(new TRUEFilterElement<Capability>(), MediaOpsPlanApi.DefaultPageSize);
+			return ReadPaged(new TRUEFilterElement<Capability>(), pageSize);
 		}
 
 		/// <summary>
