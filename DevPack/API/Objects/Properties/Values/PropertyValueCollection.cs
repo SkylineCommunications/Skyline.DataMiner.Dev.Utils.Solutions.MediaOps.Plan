@@ -17,13 +17,6 @@
 		private readonly List<BooleanPropertyValue> booleanValues = [];
 		private readonly List<DiscretePropertyValue> discreteValues = [];
 
-		private StorageProperties.PropertyValuesInstance originalInstance;
-		private StorageProperties.PropertyValuesInstance updatedInstance;
-
-		private string linkedObjectId;
-		private string scope;
-		private string subId;
-
 		/// <summary>
 		/// Initializes a new instance of the <see cref="PropertyValueCollection"/> class.
 		/// </summary>
@@ -34,7 +27,16 @@
 
 		internal PropertyValueCollection(MediaOpsPlanApi planApi, StorageProperties.PropertyValuesInstance instance) : base(instance.ID.Id)
 		{
-			ParseInstance(planApi, instance);
+			if (instance == null)
+			{
+				throw new ArgumentNullException(nameof(instance));
+			}
+
+			LinkedObjectId = instance.PropertyValueInfo.LinkedObjectID;
+			Scope = instance.PropertyValueInfo.Scope;
+			SubId = instance.PropertyValueInfo.SubID;
+
+			ParsePropertyValues(planApi, instance.PropertyValue);
 			InitTracking();
 		}
 
@@ -46,17 +48,17 @@
 		/// <summary>
 		/// Gets the identifier of the object this collection is linked to.
 		/// </summary>
-		public string LinkedObjectId { get => linkedObjectId; init => linkedObjectId = value; }
+		public string LinkedObjectId { get; init; }
 
 		/// <summary>
 		/// Gets the scope of this property value collection.
 		/// </summary>
-		public string Scope { get => scope; init => scope = value; }
+		public string Scope { get; init; }
 
 		/// <summary>
 		/// Gets the sub-identifier for this property value collection.
 		/// </summary>
-		public string SubId { get => subId; init => subId = value; }
+		public string SubId { get; init; }
 
 		/// <summary>
 		/// Gets the collection of custom property values.
@@ -200,17 +202,6 @@
 		IEnumerator IEnumerable.GetEnumerator()
 		{
 			return GetEnumerator();
-		}
-
-		private void ParseInstance(MediaOpsPlanApi planApi, StorageProperties.PropertyValuesInstance instance)
-		{
-			originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
-
-			linkedObjectId = instance.PropertyValueInfo.LinkedObjectID;
-			scope = instance.PropertyValueInfo.Scope;
-			subId = instance.PropertyValueInfo.SubID;
-
-			ParsePropertyValues(planApi, instance.PropertyValue);
 		}
 
 		private void ParsePropertyValues(MediaOpsPlanApi planApi, IList<StorageProperties.PropertyValueSection> propertyValues)

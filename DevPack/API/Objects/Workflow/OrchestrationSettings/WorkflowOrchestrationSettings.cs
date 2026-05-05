@@ -35,23 +35,27 @@
 
 		public override IReadOnlyCollection<CapabilitySetting> Capabilities => capabilitySettings;
 
-		public override IReadOnlyCollection<CapacitySetting> Capacities => numberCapacitySettings.Concat<CapacitySetting>(rangeCapacitySettings).ToList();
+		public override IReadOnlyCollection<CapacitySetting> Capacities => GetCapacities();
 
-		public override IReadOnlyCollection<ConfigurationSetting> Configurations
-		{
-			get
-			{
-				return textConfigurationSettings
-					.Concat<ConfigurationSetting>(numberConfigurationSettings)
-					.Concat(discreteTextConfigurationSettings)
-					.Concat(discreteNumberConfigurationSettings)
-					.ToList();
-			}
-		}
+		public override IReadOnlyCollection<ConfigurationSetting> Configurations => GetConfigurations();
 
 		public override IReadOnlyCollection<OrchestrationEvent> OrchestrationEvents => orchestrationEvents;
 
 		internal StorageWorkflow.ConfigurationInstance OriginalInstance => originalInstance;
+
+		public IReadOnlyCollection<CapacitySetting> GetCapacities()
+		{
+			return numberCapacitySettings.Concat<CapacitySetting>(rangeCapacitySettings).ToList();
+		}
+
+		public IReadOnlyCollection<ConfigurationSetting> GetConfigurations()
+		{
+			return textConfigurationSettings
+				.Concat<ConfigurationSetting>(numberConfigurationSettings)
+				.Concat(discreteTextConfigurationSettings)
+				.Concat(discreteNumberConfigurationSettings)
+				.ToList();
+		}
 
 		public override OrchestrationSettings AddCapability(CapabilitySetting capabilitySetting)
 		{

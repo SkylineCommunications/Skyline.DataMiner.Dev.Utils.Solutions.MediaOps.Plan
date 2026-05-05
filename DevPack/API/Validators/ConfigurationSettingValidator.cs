@@ -158,8 +158,42 @@
 			if (numberConfiguration.Decimals.HasValue && (Math.Round(value.Value, numberConfiguration.Decimals.Value) - value) != 0)
 			{
 				ReportError(apiObjectId, ComposeConfigurationSettingError(configurationSetting.Id, $"Value '{value}' must contain less than '{numberConfiguration.Decimals}' decimals."));
+			}
+		}
+
+		private void ValidateValue(TextDiscreet value, DiscreteTextConfiguration discreteTextConfiguration)
+		{
+			if (value == null)
+			{
+				if (valueExpected)
+				{
+					ReportError(apiObjectId, ComposeConfigurationSettingError(configurationSetting.Id, "Value cannot be null."));
+				}
 
 				return;
+			}
+
+			if (!discreteTextConfiguration.Discretes.Contains(value))
+			{
+				ReportError(apiObjectId, ComposeConfigurationSettingError(configurationSetting.Id, $"Value '{value}' is not a valid discrete value for this configuration."));
+			}
+		}
+
+		private void ValidateValue(NumberDiscreet value, DiscreteNumberConfiguration discreteNumberConfiguration)
+		{
+			if (value == null)
+			{
+				if (valueExpected)
+				{
+					ReportError(apiObjectId, ComposeConfigurationSettingError(configurationSetting.Id, "Value cannot be null."));
+				}
+
+				return;
+			}
+
+			if (!discreteNumberConfiguration.Discretes.Contains(value))
+			{
+				ReportError(apiObjectId, ComposeConfigurationSettingError(configurationSetting.Id, $"Value '{value}' is not a valid discrete value for this configuration."));
 			}
 		}
 
@@ -198,42 +232,6 @@
 			}
 
 			return true;
-		}
-
-		private void ValidateValue(TextDiscreet value, DiscreteTextConfiguration discreteTextConfiguration)
-		{
-			if (value == null)
-			{
-				if (valueExpected)
-				{
-					ReportError(apiObjectId, ComposeConfigurationSettingError(configurationSetting.Id, "Value cannot be null."));
-				}
-
-				return;
-			}
-
-			if (!discreteTextConfiguration.Discretes.Contains(value))
-			{
-				ReportError(apiObjectId, ComposeConfigurationSettingError(configurationSetting.Id, $"Value '{value}' is not a valid discrete value for this configuration."));
-			}
-		}
-
-		private void ValidateValue(NumberDiscreet value, DiscreteNumberConfiguration discreteNumberConfiguration)
-		{
-			if (value == null)
-			{
-				if (valueExpected)
-				{
-					ReportError(apiObjectId, ComposeConfigurationSettingError(configurationSetting.Id, "Value cannot be null."));
-				}
-
-				return;
-			}
-
-			if (!discreteNumberConfiguration.Discretes.Contains(value))
-			{
-				ReportError(apiObjectId, ComposeConfigurationSettingError(configurationSetting.Id, $"Value '{value}' is not a valid discrete value for this configuration."));
-			}
 		}
 	}
 
