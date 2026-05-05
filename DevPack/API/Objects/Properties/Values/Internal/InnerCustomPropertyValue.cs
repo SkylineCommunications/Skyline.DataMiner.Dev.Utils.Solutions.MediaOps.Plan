@@ -1,0 +1,24 @@
+namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+{
+	using System;
+
+	using StorageProperties = Storage.DOM.SlcProperties;
+
+	internal class InnerCustomPropertyValue : CustomPropertyValue
+	{
+		private StorageProperties.PropertyValueSection originalSection;
+		private StorageProperties.PropertyValueSection updatedSection;
+
+		internal InnerCustomPropertyValue(StorageProperties.PropertyValueSection section) : base()
+		{
+			ParseSection(section);
+			InitTracking();
+		}
+
+		private void ParseSection(StorageProperties.PropertyValueSection section)
+		{
+			originalSection = section ?? throw new ArgumentNullException(nameof(section));
+			Value = section.Value;
+		}
+	}
+}

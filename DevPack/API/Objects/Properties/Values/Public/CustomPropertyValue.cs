@@ -22,6 +22,11 @@
 		}
 
 		/// <summary>
+		/// Gets or sets the name of this custom property.
+		/// </summary>
+		public string Name { get; set; }
+
+		/// <summary>
 		/// Gets or sets the string value of this custom property.
 		/// </summary>
 		public string Value { get; set; }

@@ -5,19 +5,24 @@
 	using System.Collections.Generic;
 	using System.Linq;
 
+	using StorageProperties = Storage.DOM.SlcProperties;
+
 	/// <summary>
 	/// Represents a collection of property values grouped by type, linked to a specific object and scope.
 	/// </summary>
 	public class PropertyValueCollection : ApiObject, ICollection<PropertyValueBase>
 	{
-		protected readonly List<CustomPropertyValue> customValues = [];
-		protected readonly List<StringPropertyValue> stringValues = [];
-		protected readonly List<BooleanPropertyValue> booleanValues = [];
-		protected readonly List<DiscretePropertyValue> discreteValues = [];
+		private readonly List<CustomPropertyValue> customValues = [];
+		private readonly List<StringPropertyValue> stringValues = [];
+		private readonly List<BooleanPropertyValue> booleanValues = [];
+		private readonly List<DiscretePropertyValue> discreteValues = [];
 
-		protected string linkedObjectId;
-		protected string scope;
-		protected string subId;
+		private StorageProperties.PropertyValuesInstance originalInstance;
+		private StorageProperties.PropertyValuesInstance updatedInstance;
+
+		private string linkedObjectId;
+		private string scope;
+		private string subId;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="PropertyValueCollection"/> class.
@@ -27,8 +32,20 @@
 			IsNew = true;
 		}
 
-		private protected PropertyValueCollection(Guid id) : base(id)
+		/// <summary>
+		/// Initializes a new instance of the <see cref="PropertyValueCollection"/> class with the specified unique identifier.
+		/// </summary>
+		/// <param name="id">The unique identifier for the property value collection.</param>
+		public PropertyValueCollection(Guid id) : base(id)
 		{
+			IsNew = true;
+			HasUserDefinedId = true;
+		}
+
+		internal PropertyValueCollection(MediaOpsPlanApi planApi, StorageProperties.PropertyValuesInstance instance) : base(instance.ID.Id)
+		{
+			ParseInstance(planApi, instance);
+			InitTracking();
 		}
 
 		/// <summary>
@@ -193,6 +210,59 @@
 		IEnumerator IEnumerable.GetEnumerator()
 		{
 			return GetEnumerator();
+		}
+
+		private void ParseInstance(MediaOpsPlanApi planApi, StorageProperties.PropertyValuesInstance instance)
+		{
+			originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
+
+			linkedObjectId = instance.PropertyValueInfo.LinkedObjectID;
+			scope = instance.PropertyValueInfo.Scope;
+			subId = instance.PropertyValueInfo.SubID;
+
+			ParsePropertyValues(planApi, instance.PropertyValue);
+		}
+
+		private void ParsePropertyValues(MediaOpsPlanApi planApi, IList<StorageProperties.PropertyValueSection> propertyValues)
+		{
+			if (propertyValues == null || propertyValues.Count == 0)
+			{
+				return;
+			}
+
+			var propertyIds = propertyValues.Where(pv => pv.PropertyID.HasValue).Select(pv => pv.PropertyID.Value).Distinct();
+			var propertiesById = planApi.Properties.Read(propertyIds).ToDictionary(p => p.Id);
+
+			foreach (var section in propertyValues)
+			{
+				Property property = null;
+				if (!section.PropertyID.HasValue)
+				{
+					customValues.Add(new InnerCustomPropertyValue(section));
+				}
+				else if (!propertiesById.TryGetValue(section.PropertyID.Value, out property))
+				{
+					planApi.Logger.Information(this, $"Property with ID '{section.PropertyID.Value}' not found.");
+				}
+
+				if (property == null)
+				{
+					continue;
+				}
+
+				if (property is StringProperty)
+				{
+					stringValues.Add(new InnerStringPropertyValue(section));
+				}
+				else if (property is BooleanProperty)
+				{
+					booleanValues.Add(new InnerBooleanPropertyValue(section));
+				}
+				else if (property is DiscreteProperty)
+				{
+					discreteValues.Add(new InnerDiscretePropertyValue(section));
+				}
+			}
 		}
 	}
 }

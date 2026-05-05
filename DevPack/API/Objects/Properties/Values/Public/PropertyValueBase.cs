@@ -9,10 +9,5 @@
 		{
 			IsNew = true;
 		}
-
-		/// <summary>
-		/// Gets the name of the property value.
-		/// </summary>
-		public string Name { get; protected set; }
 	}
 }
