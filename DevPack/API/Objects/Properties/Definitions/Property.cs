@@ -25,9 +25,9 @@
 			HasUserDefinedId = true;
 		}
 
-		private protected Property(StorageProperties.PropertyInstance instance) : base(instance.ID.Id)
+		private protected Property(StorageProperties.PropertyInstance instance) : base(instance?.ID.Id ?? throw new ArgumentNullException(nameof(instance)))
 		{
-			Scope = (instance ?? throw new ArgumentNullException(nameof(instance))).PropertyInfo.Scope;
+			Scope = instance.PropertyInfo.Scope;
 			ParseInstance(instance);
 		}
 

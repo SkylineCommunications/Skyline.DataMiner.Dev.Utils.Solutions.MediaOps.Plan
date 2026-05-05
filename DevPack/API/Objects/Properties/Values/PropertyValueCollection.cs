@@ -25,13 +25,8 @@
 			IsNew = true;
 		}
 
-		internal PropertyValueCollection(MediaOpsPlanApi planApi, StorageProperties.PropertyValuesInstance instance) : base(instance.ID.Id)
+		internal PropertyValueCollection(MediaOpsPlanApi planApi, StorageProperties.PropertyValuesInstance instance) : base(instance?.ID.Id ?? throw new ArgumentNullException(nameof(instance)))
 		{
-			if (instance == null)
-			{
-				throw new ArgumentNullException(nameof(instance));
-			}
-
 			LinkedObjectId = instance.PropertyValueInfo.LinkedObjectID;
 			Scope = instance.PropertyValueInfo.Scope;
 			SubId = instance.PropertyValueInfo.SubID;
