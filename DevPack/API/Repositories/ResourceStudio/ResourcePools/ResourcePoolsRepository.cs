@@ -639,7 +639,7 @@
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="id"/> is <see cref="Guid.Empty"/>.</exception>
 		public ResourcePool Read(Guid id)
 		{
-			PlanApi.Logger.Information(this, "Reading ResourcePool with ID: {id}...", [id]);
+			PlanApi.Logger.Information(this, $"Reading ResourcePool with ID: {id}...");
 
 			if (id == Guid.Empty)
 			{
