@@ -184,6 +184,7 @@
 			{
 				if (!categories.TryGetValue(poolToRegister.Item2, out Category category))
 				{
+					planApi.Logger.Information(this, $"Category with ID '{poolToRegister.Item2}' not found for resource pool with instance ID '{poolToRegister.Item1}'. Skipping category item creation for this resource pool.");
 					continue;
 				}
 

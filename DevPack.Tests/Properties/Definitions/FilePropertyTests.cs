@@ -21,7 +21,7 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 			var property = new FileProperty();
 
 			Assert.IsFalse(property.HasSizeLimit);
-			Assert.AreEqual(0, property.SizeLimit);
+			Assert.AreEqual(20, property.SizeLimit);
 			Assert.IsFalse(property.AllowMultiple);
 		}
 
