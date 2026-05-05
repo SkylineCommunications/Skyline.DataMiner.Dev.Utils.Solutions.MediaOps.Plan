@@ -27,7 +27,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <inheritdoc/>
 		public override bool Equals(object obj)
 		{
-			return Equals(obj as DataReference);
+			return obj is SchedulingConfigurationParameterReference other && other.ParameterId == ParameterId;
 		}
 
 		/// <inheritdoc/>

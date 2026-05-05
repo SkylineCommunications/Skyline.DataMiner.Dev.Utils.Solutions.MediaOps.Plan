@@ -43,12 +43,12 @@
 
 		internal StorageWorkflow.ConfigurationInstance OriginalInstance => originalInstance;
 
-		public IReadOnlyCollection<CapacitySetting> GetCapacities()
+		private IReadOnlyCollection<CapacitySetting> GetCapacities()
 		{
 			return numberCapacitySettings.Concat<CapacitySetting>(rangeCapacitySettings).ToList();
 		}
 
-		public IReadOnlyCollection<ConfigurationSetting> GetConfigurations()
+		private IReadOnlyCollection<ConfigurationSetting> GetConfigurations()
 		{
 			return textConfigurationSettings
 				.Concat<ConfigurationSetting>(numberConfigurationSettings)

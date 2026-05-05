@@ -39,7 +39,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <inheritdoc/>
 		public override bool Equals(object obj)
 		{
-			return Equals(obj as DataReference);
+			return obj is ResourcePropertyReference other && other.ResourcePropertyId == ResourcePropertyId;
 		}
 
 		/// <inheritdoc/>
