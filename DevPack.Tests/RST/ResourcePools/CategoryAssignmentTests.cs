@@ -184,15 +184,15 @@
 			var categoryItems = TestContext.CategoriesApi.CategoryItems.Read(CategoryItemExposers.InstanceId.Equal(resourcePoolId.ToString())).ToArray();
 			if (expectedCategory == null)
 			{
-				Assert.AreEqual(0, categoryItems.Length);
+				Assert.AreEqual(0, categoryItems.Length, "Category items count mismatch");
 				return;
 			}
 
-			Assert.AreEqual(1, categoryItems.Length);
+			Assert.AreEqual(1, categoryItems.Length, "Category items count mismatch");
 			Assert.AreEqual(expectedCategory.ID.ToString(), categoryItems.Single().Category.ID.ToString());
 
 			var childItems = expectedCategory.GetChildItems(TestContext.CategoriesApi.CategoryItems);
-			Assert.AreEqual(1, childItems.Count());
+			Assert.AreEqual(1, childItems.Count(), "Child items count mismatch");
 		}
 	}
 }

@@ -21,6 +21,8 @@ namespace RT_MediaOps.Plan.Properties.Values
 			var collection = new PropertyValueCollection();
 
 			Assert.IsNull(collection.Name);
+			Assert.IsNotNull(collection.CustomValues);
+			Assert.AreEqual(0, collection.CustomValues.Count);
 		}
 
 		[TestMethod]
@@ -40,13 +42,13 @@ namespace RT_MediaOps.Plan.Properties.Values
 			Assert.IsNotNull(collection.StringValues);
 			Assert.IsNotNull(collection.BooleanValues);
 			Assert.IsNotNull(collection.DiscreteValues);
-			Assert.IsNotNull(collection.PropertyValues);
+			Assert.IsNotNull(collection.LinkedValues);
 
 			Assert.AreEqual(0, collection.CustomValues.Count);
 			Assert.AreEqual(0, collection.StringValues.Count);
 			Assert.AreEqual(0, collection.BooleanValues.Count);
 			Assert.AreEqual(0, collection.DiscreteValues.Count);
-			Assert.AreEqual(0, collection.PropertyValues.Count);
+			Assert.AreEqual(0, collection.LinkedValues.Count());
 		}
 
 		[TestMethod]
@@ -96,6 +98,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 			Assert.IsNull(collection.LinkedObjectId);
 			Assert.IsNull(collection.Scope);
 			Assert.IsNull(collection.SubId);
+			Assert.AreEqual(0, collection.Count);
 		}
 	}
 }
