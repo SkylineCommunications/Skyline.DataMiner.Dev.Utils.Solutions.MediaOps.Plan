@@ -98,7 +98,7 @@
 
 				if (!SyncJobWithReservation(job, reservation))
 				{
-					planApi.Logger.Information(this, $"No update required for Job with ID {job.ID.Id} and Reservation with ID {reservation.ID}.");
+					planApi.Logger.Information(this, "No update required for Job with ID {jobId} and Reservation with ID {reservationId}.", [job.ID.Id, reservation.ID]);
 					continue;
 				}
 
@@ -118,7 +118,7 @@
 			{
 				if (!jobByReservationId.TryGetValue(id, out var domJob))
 				{
-					planApi.Logger.Error(this, $"Failed to find DOM ID for Reservation ID {id}.");
+					planApi.Logger.Error(this, "Failed to find DOM ID for Reservation ID {id}.", [id]);
 					continue;
 				}
 
@@ -134,14 +134,14 @@
 			{
 				if (!jobByReservationId.TryGetValue(linkableObject.ID, out var domJob))
 				{
-					planApi.Logger.Error(this, $"Failed to find DOM ID for Reservation ID {linkableObject.ID}.");
+					planApi.Logger.Error(this, "Failed to find DOM ID for Reservation ID {linkableObjectId}.", [linkableObject.ID]);
 					continue;
 				}
 
 				var reservation = linkableObject as CoreReservation;
 				if (reservation == null)
 				{
-					planApi.Logger.Error(this, $"Linkable object with ID {linkableObject.ID} is not of type CoreReservation.");
+					planApi.Logger.Error(this, "Linkable object with ID {linkableObjectId} is not of type CoreReservation.", [linkableObject.ID]);
 					continue;
 				}
 
@@ -197,7 +197,7 @@
 			{
 				if (!domJobsByReservationId.TryGetValue(id, out var domJob))
 				{
-					planApi.Logger.Error(this, $"Failed to find DOM ID for Reservation ID {id}.");
+					planApi.Logger.Error(this, "Failed to find DOM ID for Reservation ID {id}.", [id]);
 					continue;
 				}
 
@@ -213,7 +213,7 @@
 			{
 				if (!domJobsByReservationId.TryGetValue(id, out var domJob))
 				{
-					planApi.Logger.Error(this, $"Failed to find DOM ID for Reservation ID {id}.");
+					planApi.Logger.Error(this, "Failed to find DOM ID for Reservation ID {id}.", [id]);
 					continue;
 				}
 
@@ -256,7 +256,7 @@
 			{
 				if (!domJobsByReservationId.TryGetValue(id, out var domJob))
 				{
-					planApi.Logger.Error(this, $"Failed to find DOM ID for Reservation ID {id}.");
+					planApi.Logger.Error(this, "Failed to find DOM ID for Reservation ID {id}.", [id]);
 					continue;
 				}
 
@@ -272,7 +272,7 @@
 			{
 				if (!domJobsByReservationId.TryGetValue(id, out var domJob))
 				{
-					planApi.Logger.Error(this, $"Failed to find DOM ID for Reservation ID {id}.");
+					planApi.Logger.Error(this, "Failed to find DOM ID for Reservation ID {id}.", [id]);
 					continue;
 				}
 
@@ -601,7 +601,7 @@
 					var mapping = new JobReservationMapping(domJob, coreReservations.First());
 					if (coreReservations.Count > 1)
 					{
-						planApi.Logger.Error(mapping, $"Multiple reservations found for Job with ID {domJob.ID.Id}. This should not happen. Job Name: {domJob.Name}. Number of reservations found: {coreReservations.Count}. First reservation will be used.");
+						planApi.Logger.Error(mapping, "Multiple reservations found for Job with ID {jobId}. This should not happen. Job Name: {jobName}. Number of reservations found: {count}. First reservation will be used.", [domJob.ID.Id, domJob.Name, coreReservations.Count]);
 					}
 
 					yield return mapping;
@@ -668,7 +668,7 @@
 				{
 					if (error.SubjectId == Guid.Empty)
 					{
-						planApi.Logger.Error(this, $"Error with reason {error.ErrorReason} has empty SubjectId. This should not happen. Error message: {error.Message}");
+						planApi.Logger.Error(this, "Error with reason {reason} has empty SubjectId. This should not happen. Error message: {message}", [error.ErrorReason, error.Message]);
 						continue;
 					}
 
