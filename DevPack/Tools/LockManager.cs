@@ -104,7 +104,7 @@
 
 		private LockManagerApiResult<T> LockObjects<T>(ICollection<T> objectsToLock) where T : ApiObject
 		{
-			if (DataMinerAgentHelper.IsRunningOnDataMinerAgent())
+			if (DataMinerAgentHelper.IsRunningOnDataMinerAgent(_logger))
 			{
 				var lockRequests = objectsToLock.Select(x => new LockObjectRequest
 				{
@@ -116,8 +116,6 @@
 			}
 			else
 			{
-				_logger.Warning(this, "This code isn't running on a DataMiner agent, unable to communicate with Lock Manager as NATS communication will fail, keeping locks in memory");
-
 				List<string> grantedObjectLocks = new List<string>();
 				foreach (var objectToLock in objectsToLock)
 				{
@@ -133,7 +131,7 @@
 
 		private void UnlockObjects<T>(ICollection<T> lockedObjects) where T : ApiObject
 		{
-			if (DataMinerAgentHelper.IsRunningOnDataMinerAgent())
+			if (DataMinerAgentHelper.IsRunningOnDataMinerAgent(_logger))
 			{
 				var unlockRequests = lockedObjects.Select(x => new UnlockObjectRequest
 				{
@@ -144,8 +142,6 @@
 			}
 			else
 			{
-				_logger.Warning(this, "This code isn't running on a DataMiner agent, unable to communicate with Lock Manager as NATS communication will fail, unlocking locks from memory");
-
 				Thread.Sleep(1000); // Add some delay to simulate lock communication
 
 				foreach (var lockedObject in lockedObjects)
