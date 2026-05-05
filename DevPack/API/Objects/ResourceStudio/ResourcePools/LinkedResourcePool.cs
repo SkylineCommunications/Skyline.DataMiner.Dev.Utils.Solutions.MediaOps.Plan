@@ -80,8 +80,7 @@
 				return false;
 			}
 
-			return LinkedResourcePoolId == other.LinkedResourcePoolId
-				&& SelectionType == other.SelectionType;
+			return ReferenceEquals(this, other);
 		}
 
 		internal StorageResourceStudio.ResourcePoolLinksSection GetSectionWithChanges()
