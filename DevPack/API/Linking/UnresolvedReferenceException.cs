@@ -1,7 +1,6 @@
 namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
     using System;
-    using System.Runtime.Serialization;
 
 	/// <summary>
 	/// Represents an exception that is thrown when a data reference cannot be resolved.
@@ -16,11 +15,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			: base($"Unable to resolve reference of Type '{reference?.Type}'.")
 		{
 			Reference = reference;
-		}
-
-		private UnresolvedReferenceException(SerializationInfo info, StreamingContext context)
-			: base(info, context)
-		{
 		}
 
 		/// <summary>

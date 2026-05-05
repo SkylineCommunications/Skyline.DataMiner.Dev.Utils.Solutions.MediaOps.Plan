@@ -1,12 +1,10 @@
 namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
     using System;
-    using System.Runtime.Serialization;
 
     /// <summary>
     /// Thrown when <see cref="LinkResolver.ResolveValue"/> detects a circular chain of <see cref="DataReference"/> instances.
     /// </summary>
-    [Serializable]
     public sealed class CircularReferenceException : Exception
     {
         /// <summary>
@@ -17,11 +15,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
             : base($"Circular reference detected for reference of Type '{reference?.Type}'.")
         {
             Reference = reference;
-        }
-
-        private CircularReferenceException(SerializationInfo info, StreamingContext context)
-            : base(info, context)
-        {
         }
 
         /// <summary>
