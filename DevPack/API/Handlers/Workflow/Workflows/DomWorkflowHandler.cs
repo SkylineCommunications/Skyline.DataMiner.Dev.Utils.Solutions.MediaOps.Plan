@@ -79,7 +79,7 @@
 			var toCreate = apiWorkflows.Where(x => x.IsNew).ToList();
 			var toUpdate = apiWorkflows.Except(toCreate).ToList();
 
-			var changeResults = GetWorkflowsWithChanges(toUpdate).ToList();
+			var changeResults = GetWorkflowsWithChanges(toUpdate);
 
 			CreateOrUpdateOrchestrationSettings(apiWorkflows.Where(IsValid).ToList());
 
@@ -291,61 +291,16 @@
 			}
 		}
 
-		private IEnumerable<DomChangeResults> GetWorkflowsWithChanges(ICollection<Workflow> apiWorkflows)
+		private ICollection<DomChangeResults> GetWorkflowsWithChanges(ICollection<Workflow> apiWorkflows)
 		{
-			if (apiWorkflows == null)
-			{
-				throw new ArgumentNullException(nameof(apiWorkflows));
-			}
-
-			if (apiWorkflows.Count == 0)
-			{
-				return [];
-			}
-
-			return GetWorkflowsWithChangesIterator(apiWorkflows);
-		}
-
-		private IEnumerable<DomChangeResults> GetWorkflowsWithChangesIterator(ICollection<Workflow> apiWorkflows)
-		{
-			var workflowsRequiringValidation = apiWorkflows.Where(x => !x.IsNew && x.HasChanges).ToList();
-			if (workflowsRequiringValidation.Count == 0)
-			{
-				yield break;
-			}
-
-			var storedDomWorkflowsById = planApi.DomHelpers.SlcWorkflowHelper.GetWorkflows(workflowsRequiringValidation.Select(x => x.Id)).ToDictionary(x => x.ID.Id);
-			foreach (var workflow in workflowsRequiringValidation)
-			{
-				if (!storedDomWorkflowsById.TryGetValue(workflow.Id, out var stored))
-				{
-					var error = new WorkflowNotFoundError
-					{
-						ErrorMessage = $"Workflow with ID '{workflow.Id}' no longer exists.",
-						Id = workflow.Id,
-					};
-
-					ReportError(workflow.Id, error);
-					continue;
-				}
-
-				var changeResult = DomChangeHandler.HandleChanges(workflow.OriginalInstance, workflow.GetInstanceWithChanges(), stored);
-				if (changeResult.HasErrors)
-				{
-					foreach (var errorDetails in changeResult.Errors)
-					{
-						var error = new WorkflowValueAlreadyChangedError
-						{
-							ErrorMessage = errorDetails.Message,
-							Id = workflow.Id,
-						};
-
-						ReportError(workflow.Id, error);
-					}
-				}
-
-				yield return changeResult;
-			}
+			return GetItemsWithChanges<Workflow, DomWorkflow>(
+				apiWorkflows,
+				w => w.OriginalInstance,
+				w => w.GetInstanceWithChanges(),
+				ids => planApi.DomHelpers.SlcWorkflowHelper.GetWorkflows(ids),
+				w => new WorkflowNotFoundError { ErrorMessage = $"Workflow with ID '{w.Id}' no longer exists.", Id = w.Id },
+				(w, msg) => new WorkflowValueAlreadyChangedError { ErrorMessage = msg, Id = w.Id })
+				.ToList();
 		}
 	}
 }

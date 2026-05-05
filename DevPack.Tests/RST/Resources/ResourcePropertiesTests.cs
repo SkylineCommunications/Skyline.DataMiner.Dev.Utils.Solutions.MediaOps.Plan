@@ -40,7 +40,7 @@
 				Name = $"{prefix}_Property2",
 			};
 
-			objectCreator.CreateProperties(new[] { property1, property2 });
+			objectCreator.CreateResourceProperties(new[] { property1, property2 });
 
 			// Create resource with property configuration
 			var unmanagedResource = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
@@ -187,7 +187,7 @@
 			{
 				Name = $"{prefix}_Property",
 			};
-			objectCreator.CreateProperties(new[] { property });
+			objectCreator.CreateResourceProperties(new[] { property });
 
 			var unmanagedResource = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
 			{
@@ -231,7 +231,7 @@
 			{
 				Name = $"{prefix}_Property",
 			};
-			objectCreator.CreateProperties(new[] { property });
+			objectCreator.CreateResourceProperties(new[] { property });
 
 			var unmanagedResource = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
 			{
@@ -279,7 +279,7 @@
 			{
 				Name = $"{prefix}_Property2",
 			};
-			objectCreator.CreateProperties([property1, property2]);
+			objectCreator.CreateResourceProperties([property1, property2]);
 
 			var unmanagedResource = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
 			{
@@ -334,7 +334,7 @@
 			{
 				Name = $"{prefix}_Property2",
 			};
-			objectCreator.CreateProperties([property1, property2]);
+			objectCreator.CreateResourceProperties([property1, property2]);
 
 			var unmanagedResource = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
 			{
@@ -389,7 +389,7 @@
 			{
 				Name = $"{prefix}_Property",
 			};
-			objectCreator.CreateProperty(property);
+			objectCreator.CreateResourceProperty(property);
 
 			var unmanagedResource1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource()
 			{
@@ -429,7 +429,7 @@
 			{
 				Name = $"{prefix}_Property",
 			};
-			objectCreator.CreateProperties(new[] { property });
+			objectCreator.CreateResourceProperties(new[] { property });
 
 			var propertySettings = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePropertySettings(property.Id)
 			{

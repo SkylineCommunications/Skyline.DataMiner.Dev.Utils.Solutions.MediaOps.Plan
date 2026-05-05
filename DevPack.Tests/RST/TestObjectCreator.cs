@@ -29,6 +29,8 @@
 
 		private readonly HashSet<Guid> createdConfigurationIds = new HashSet<Guid>();
 
+		private readonly HashSet<Guid> createdResourcePropertyIds = new HashSet<Guid>();
+
 		private readonly HashSet<Guid> createdPropertyIds = new HashSet<Guid>();
 
 		private readonly HashSet<Guid> createdCategoryIds = new HashSet<Guid>();
@@ -70,6 +72,16 @@
 			try
 			{
 				WorkflowsCleanup();
+			}
+			catch
+			{
+				// Ignore cleanup errors
+			}
+
+			try
+			{
+				PropertiesCleanup();
+
 			}
 			catch
 			{
@@ -123,7 +135,7 @@
 
 			try
 			{
-				PropertiesCleanup();
+				ResourcePropertiesCleanup();
 			}
 			catch
 			{
@@ -235,9 +247,9 @@
 			PlanApi.Configurations.Delete(configurations.ToArray());
 		}
 
-		private void PropertiesCleanup()
+		private void ResourcePropertiesCleanup()
 		{
-			var properties = PlanApi.ResourceProperties.Read(createdPropertyIds.ToArray());
+			var properties = PlanApi.ResourceProperties.Read(createdResourcePropertyIds.ToArray());
 
 			PlanApi.ResourceProperties.Delete(properties.ToArray());
 		}
@@ -309,6 +321,13 @@
 			var workflows = PlanApi.Workflows.Read(createdWorkflowIds.ToArray());
 
 			PlanApi.Workflows.Delete(workflows.ToArray());
+		}
+
+		private void PropertiesCleanup()
+		{
+			var properties = PlanApi.Properties.Read(createdPropertyIds.ToArray());
+
+			PlanApi.Properties.Delete(properties.ToArray());
 		}
 
 		public T CreateResource<T>(T resource) where T : Resource
@@ -499,18 +518,49 @@
 			}
 		}
 
-		public ResourceProperty CreateProperty(ResourceProperty property)
+		public ResourceProperty CreateResourceProperty(ResourceProperty property)
 		{
 			var createdProperty = PlanApi.ResourceProperties.Create(property);
-			createdPropertyIds.Add(createdProperty.Id);
+			createdResourcePropertyIds.Add(createdProperty.Id);
 			return createdProperty;
 		}
 
-		public IReadOnlyCollection<ResourceProperty> CreateProperties(IEnumerable<ResourceProperty> properties)
+		public IReadOnlyCollection<ResourceProperty> CreateResourceProperties(IEnumerable<ResourceProperty> properties)
 		{
 			try
 			{
 				var createdProperties = PlanApi.ResourceProperties.Create(properties);
+
+				foreach (var id in properties.Select(x => x.Id))
+				{
+					createdResourcePropertyIds.Add(id);
+				}
+
+				return createdProperties;
+			}
+			catch (MediaOpsBulkException<Guid> bulkException)
+			{
+				foreach (var id in bulkException.Result.SuccessfulIds)
+				{
+					createdResourcePropertyIds.Add(id);
+				}
+
+				throw;
+			}
+		}
+
+		public T CreateProperty<T>(T property) where T : Property
+		{
+			var createdProperty = (T)PlanApi.Properties.Create(property);
+			createdPropertyIds.Add(createdProperty.Id);
+			return createdProperty;
+		}
+
+		public IReadOnlyCollection<Property> CreateProperties(IEnumerable<Property> properties)
+		{
+			try
+			{
+				var createdProperties = PlanApi.Properties.Create(properties);
 
 				foreach (var id in properties.Select(x => x.Id))
 				{

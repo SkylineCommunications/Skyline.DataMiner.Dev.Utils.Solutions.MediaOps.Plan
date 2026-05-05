@@ -11,6 +11,6 @@
 		/// <summary>
 		/// Gets or sets the collection of unique identifiers of the resources having the resource property implemented.
 		/// </summary>
-		public List<Guid> ResourceIds { get; internal set; } = [];
+		public IReadOnlyCollection<Guid> ResourceIds { get; internal set; } = [];
 	}
 }
