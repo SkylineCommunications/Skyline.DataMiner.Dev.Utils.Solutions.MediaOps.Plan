@@ -223,7 +223,7 @@
 				}
 				else if (!propertiesById.TryGetValue(section.PropertyID.Value, out property))
 				{
-					planApi.Logger.Information(this, "Property with ID '{propertyId}' not found.", [section.PropertyID.Value]);
+					planApi.Logger.Information(this, $"Property with ID '{section.PropertyID.Value}' not found.");
 				}
 
 				if (property == null)
