@@ -2,9 +2,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
     using System;
     using System.Collections.Generic;
-	using System.Linq;
-
-	using Skyline.DataMiner.Net.ServiceManager.Objects;
 
 	/// <summary>
 	/// Provides contextual information used while resolving <see cref="DataReference"/> instances
@@ -59,6 +56,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Gets or sets the collection of workflow property values, indexed by property identifier.
 		/// </summary>
 		public IDictionary<Guid, string> WorkflowPropertyValues { get; set; }
+
+		/// <summary>
+		/// Gets or sets the collection of job properties.
+		/// </summary>
+		public IDictionary<Guid, Property> JobProperties { get; set; }
+
+		/// <summary>
+		/// Gets or sets the collection of job property values, indexed by property identifier.
+		/// </summary>
+		public IDictionary<Guid, string> JobPropertyValues { get; set; }
 
 		/// <summary>
 		/// Gets or sets a collection that maps node identifiers to their associated orchestration settings.

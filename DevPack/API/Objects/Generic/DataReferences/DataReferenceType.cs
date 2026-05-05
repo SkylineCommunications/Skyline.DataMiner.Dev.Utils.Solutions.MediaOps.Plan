@@ -50,9 +50,21 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
         WorkflowName,
 
         /// <summary>
-        /// Refers to a workflow property (a property defined under the MediaOps scope and assigned to a workflow / job).
+        /// Refers to a workflow property.
         /// </summary>
         [Description("Workflow Property")]
         WorkflowProperty,
+
+        /// <summary>
+        /// Refers to the name of a job.
+        /// </summary>
+        [Description("Job Name")]
+        JobName,
+
+        /// <summary>
+        /// Refers to a job property.
+        /// </summary>
+        [Description("Job Property")]
+        JobProperty,
     }
 }

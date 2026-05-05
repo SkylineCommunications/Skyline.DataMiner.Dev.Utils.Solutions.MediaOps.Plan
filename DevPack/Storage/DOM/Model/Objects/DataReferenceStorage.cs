@@ -41,18 +41,20 @@
 
 			var nodeId = DataReference.ReadNodeId(this);
 
-			switch (type)
+			return type switch
 			{
-				case DataReferenceType.ResourceName: return new ResourceNameReference(nodeId);
-				case DataReferenceType.ResourceLinkedObjectID: return new ResourceLinkedObjectIdReference(nodeId);
-				case DataReferenceType.ResourceProperty: return ResourcePropertyReference.ParseFromStorage(this, nodeId);
-				case DataReferenceType.CapabilityParameter: return CapabilityParameterReference.ParseFromStorage(this, nodeId);
-				case DataReferenceType.CapacityParameter: return CapacityParameterReference.ParseFromStorage(this, nodeId);
-				case DataReferenceType.ConfigurationParameter: return ConfigurationParameterReference.ParseFromStorage(this, nodeId);
-				case DataReferenceType.WorkflowName: return new WorkflowNameReference(nodeId);
-				case DataReferenceType.WorkflowProperty: return WorkflowPropertyReference.ParseFromStorage(this, nodeId);
-				default: return null;
-			}
+				DataReferenceType.ResourceName => new ResourceNameReference(nodeId),
+				DataReferenceType.ResourceLinkedObjectID => new ResourceLinkedObjectIdReference(nodeId),
+				DataReferenceType.ResourceProperty => ResourcePropertyReference.ParseFromStorage(this, nodeId),
+				DataReferenceType.CapabilityParameter => CapabilityParameterReference.ParseFromStorage(this, nodeId),
+				DataReferenceType.CapacityParameter => CapacityParameterReference.ParseFromStorage(this, nodeId),
+				DataReferenceType.ConfigurationParameter => ConfigurationParameterReference.ParseFromStorage(this, nodeId),
+				DataReferenceType.WorkflowName => new WorkflowNameReference(nodeId),
+				DataReferenceType.WorkflowProperty => WorkflowPropertyReference.ParseFromStorage(this, nodeId),
+				DataReferenceType.JobName => new JobNameReference(nodeId),
+				DataReferenceType.JobProperty => JobPropertyReference.ParseFromStorage(this, nodeId),
+				_ => null,
+			};
 		}
 
 		public string Serialize()
