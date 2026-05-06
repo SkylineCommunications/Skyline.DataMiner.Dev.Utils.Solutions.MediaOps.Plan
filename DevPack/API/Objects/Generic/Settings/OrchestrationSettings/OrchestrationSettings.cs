@@ -9,7 +9,7 @@
 	/// <summary>
 	/// Represents the base class for orchestration settings.
 	/// </summary>
-	public abstract class OrchestrationSettings : ApiObject, IEqualityComparer<OrchestrationSettings>
+	public abstract class OrchestrationSettings : ApiObject, IEquatable<OrchestrationSettings>
 	{
 		private protected OrchestrationSettings() : base()
 		{
@@ -193,39 +193,27 @@
 		/// <inheritdoc/>
 		public override int GetHashCode()
 		{
-			return GetHashCode(this);
-		}
-
-		/// <inheritdoc/>
-		public bool Equals(OrchestrationSettings x, OrchestrationSettings y)
-		{
-			throw new NotImplementedException();
-		}
-
-		/// <inheritdoc/>
-		public int GetHashCode(OrchestrationSettings obj)
-		{
 			unchecked
 			{
 				int hash = 17;
-				hash = (hash * 23) + obj.Id.GetHashCode();
+				hash = (hash * 23) + Id.GetHashCode();
 
-				foreach (var capability in obj.Capabilities.OrderBy(x => x.Id))
+				foreach (var capability in Capabilities.OrderBy(x => x.Id))
 				{
 					hash = (hash * 23) + capability.GetHashCode();
 				}
 
-				foreach (var capacity in obj.Capacities.OrderBy(x => x.Id))
+				foreach (var capacity in Capacities.OrderBy(x => x.Id))
 				{
 					hash = (hash * 23) + capacity.GetHashCode();
 				}
 
-				foreach (var configuration in obj.Configurations.OrderBy(x => x.Id))
+				foreach (var configuration in Configurations.OrderBy(x => x.Id))
 				{
 					hash = (hash * 23) + configuration.GetHashCode();
 				}
 
-				foreach (var orchestrationEvent in obj.OrchestrationEvents.OrderBy(x => x.EventType))
+				foreach (var orchestrationEvent in OrchestrationEvents.OrderBy(x => x.EventType))
 				{
 					hash = (hash * 23) + orchestrationEvent.GetHashCode();
 				}
