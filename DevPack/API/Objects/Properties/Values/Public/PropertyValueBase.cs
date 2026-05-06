@@ -15,6 +15,11 @@
 			IsNew = true;
 		}
 
+		/// <summary>
+		/// Gets a value indicating whether this setting has a value defined.
+		/// </summary>
+		public virtual bool HasValue { get; }
+
 		internal virtual Storage.DOM.DomSectionBase OriginalSection { get; }
 	}
 }

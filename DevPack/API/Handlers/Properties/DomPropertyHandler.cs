@@ -171,8 +171,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				throw new ArgumentException($"Not all provided properties are valid", nameof(apiProperties));
 			}
 
-			var instancesToDelete = apiProperties.Select(x => x.OriginalInstance.ToInstance());
-			planApi.DomHelpers.SlcPropertiesHelper.DomHelper.DomInstances.TryDeleteInBatches(instancesToDelete, out var domResult);
+			var toDelete = apiProperties.Select(x => x.OriginalInstance.ToInstance());
+			planApi.DomHelpers.SlcPropertiesHelper.DomHelper.DomInstances.TryDeleteInBatches(toDelete, out var domResult);
 
 			foreach (var id in domResult.UnsuccessfulIds)
 			{
@@ -187,7 +187,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				}
 			}
 
-			ReportSuccess(instancesToDelete.Where(x => domResult.SuccessfulIds.Contains(x.ID)).Select(x => new DomProperty(x)));
+			ReportSuccess(toDelete.Where(x => domResult.SuccessfulIds.Contains(x.ID)).Select(x => new DomProperty(x)));
 		}
 
 		private void ValidateIdsNotInUse(ICollection<Property> apiProperties)
@@ -426,8 +426,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				};
 
 				ReportError(property.Id, error);
-
-				objectsRequiringValidation.Remove(property);
 			}
 		}
 
@@ -600,9 +598,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			var filter = new ORFilterElement<PropertyValueCollection>(apiProperties
 				.Select(x => PropertyValueCollectionExposers.PropertyValues.PropertyId.Equal(x.Id))
 				.ToArray());
-			var collectionsUsingProperty = planApi.PropertyValueCollections.Read(filter);
-			var collectionsByPropertyId = collectionsUsingProperty
-				.SelectMany(c => c.PropertyValues.Select(v => new { Collection = c, PropertyId = v.PropertyId }))
+			var collectionsByPropertyId = planApi.PropertyValueCollections.Read(filter)
+				.SelectMany(c => c.PropertyValues.Select(v => new { Collection = c, PropertyId = v.Id }))
 				.GroupBy(x => x.PropertyId)
 				.ToDictionary(g => g.Key, g => (IReadOnlyCollection<PropertyValueCollection>)g.Select(x => x.Collection).ToList());
 

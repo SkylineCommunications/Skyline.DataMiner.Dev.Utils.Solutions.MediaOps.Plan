@@ -29,7 +29,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				updatedSection = IsNew ? new StorageProperties.PropertyValueSection() : originalSection.Clone();
 			}
 
-			updatedSection.PropertyID = PropertyId;
+			updatedSection.PropertyID = Id;
 			updatedSection.Value = Value;
 
 			return updatedSection;
@@ -39,7 +39,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 			originalSection = section ?? throw new ArgumentNullException(nameof(section));
 
-			PropertyId = section.PropertyID.Value;
+			Id = section.PropertyID.Value;
 			Value = section.Value;
 		}
 	}

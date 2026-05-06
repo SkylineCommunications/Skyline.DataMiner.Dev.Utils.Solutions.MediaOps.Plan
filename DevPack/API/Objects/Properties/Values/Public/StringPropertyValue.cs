@@ -29,6 +29,9 @@
 		/// </summary>
 		public string Value { get; set; }
 
+		/// <inheritdoc/>
+		public override bool HasValue => !string.IsNullOrWhiteSpace(Value);
+
 		/// <inheritdoc />
 		public override int GetHashCode()
 		{

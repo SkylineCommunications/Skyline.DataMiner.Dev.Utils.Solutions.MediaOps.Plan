@@ -20,7 +20,7 @@
 				throw new ArgumentException(nameof(propertyId));
 			}
 
-			PropertyId = propertyId;
+			Id = propertyId;
 		}
 
 		private protected PropertyValue()
@@ -30,13 +30,13 @@
 		internal PropertyValue(PropertyValue propertyValue)
 			: base(propertyValue)
 		{
-			PropertyId = propertyValue.PropertyId;
+			Id = propertyValue.Id;
 		}
 
 		/// <summary>
 		/// Gets the unique identifier of the property.
 		/// </summary>
-		public Guid PropertyId { get; internal set; }
+		public Guid Id { get; internal set; }
 
 		/// <inheritdoc />
 		public override int GetHashCode()
@@ -44,7 +44,7 @@
 			unchecked
 			{
 				int hash = 17;
-				hash = hash * 23 + PropertyId.GetHashCode();
+				hash = hash * 23 + Id.GetHashCode();
 
 				return hash;
 			}
@@ -58,7 +58,7 @@
 				return false;
 			}
 
-			return PropertyId == other.PropertyId;
+			return Id == other.Id;
 		}
 	}
 }

@@ -55,7 +55,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			/// <summary>
 			/// Gets a dynamic list exposer for property IDs.
 			/// </summary>
-			public static readonly DynamicListExposer<PropertyValueCollection, Guid> PropertyId = DynamicListExposer<PropertyValueCollection, Guid>.CreateFromListExposer(new Exposer<PropertyValueCollection, IEnumerable>((obj) => obj.PropertyValues.Where(x => x != null).Select(x => x.PropertyId).Where(x => x != null), "PropertyValues.PropertyId"));
+			public static readonly DynamicListExposer<PropertyValueCollection, Guid> PropertyId = DynamicListExposer<PropertyValueCollection, Guid>.CreateFromListExposer(new Exposer<PropertyValueCollection, IEnumerable>((obj) => obj.PropertyValues.Where(x => x != null).Select(x => x.Id).Where(x => x != null), "PropertyValues.PropertyId"));
 		}
 
 		/// <summary>
