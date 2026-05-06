@@ -14,7 +14,7 @@ namespace RT_MediaOps.Plan.Automation.ScriptExecution
 	{
 		private static readonly Guid TestResourcePropertyId = new Guid("12345678-1234-1234-1234-123456789012");
 
-		private static ProfileParameterValue CreateProfileParameterValue(StorageDataReference reference)
+		private static ProfileParameterValue CreateProfileParameterValue(StorageDataReference? reference)
 		{
 			return new ProfileParameterValue
 			{
