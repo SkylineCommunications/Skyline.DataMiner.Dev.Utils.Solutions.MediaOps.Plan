@@ -18,7 +18,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 		[TestMethod]
 		public void CustomPropertyValue_NullName_Throws()
 		{
-			Assert.ThrowsException<ArgumentNullException>(() => new CustomPropertyValue((string)null));
+			Assert.ThrowsException<ArgumentNullException>(() => new CustomPropertyValue((string)null!));
 		}
 
 		[TestMethod]
@@ -43,7 +43,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 		[TestMethod]
 		public void StringPropertyValue_NullProperty_Throws()
 		{
-			Assert.ThrowsException<ArgumentNullException>(() => new StringPropertyValue((StringProperty)null));
+			Assert.ThrowsException<ArgumentNullException>(() => new StringPropertyValue((StringProperty)null!));
 		}
 
 		[TestMethod]
@@ -68,7 +68,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 		[TestMethod]
 		public void BooleanPropertyValue_NullProperty_Throws()
 		{
-			Assert.ThrowsException<ArgumentNullException>(() => new BooleanPropertyValue((BooleanProperty)null));
+			Assert.ThrowsException<ArgumentNullException>(() => new BooleanPropertyValue((BooleanProperty)null!));
 		}
 
 		[TestMethod]
@@ -93,7 +93,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 		[TestMethod]
 		public void DiscretePropertyValue_NullProperty_Throws()
 		{
-			Assert.ThrowsException<ArgumentNullException>(() => new DiscretePropertyValue((DiscreteProperty)null));
+			Assert.ThrowsException<ArgumentNullException>(() => new DiscretePropertyValue((DiscreteProperty)null!));
 		}
 
 		[TestMethod]
