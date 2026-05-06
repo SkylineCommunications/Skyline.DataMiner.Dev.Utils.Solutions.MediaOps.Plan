@@ -9,15 +9,12 @@
 	/// </summary>
 	public abstract class PropertyValueBase : TrackableObject
 	{
-		private StorageProperties.PropertyValueSection originalSection;
-		private StorageProperties.PropertyValueSection updatedSection;
-
 		private protected PropertyValueBase()
 		{
 			IsNew = true;
 		}
 
-		internal PropertyValueBase(StorageProperties.PropertyValueSection section)
+		private protected PropertyValueBase(StorageProperties.PropertyValueSection section)
 		{
 			ParseSection(section);
 		}
@@ -29,7 +26,10 @@
 
 		private void ParseSection(StorageProperties.PropertyValueSection section)
 		{
-			originalSection = section ?? throw new ArgumentNullException(nameof(section));
+			if (section == null)
+			{
+				throw new ArgumentNullException(nameof(section));
+			}
 		}
 	}
 }

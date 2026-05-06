@@ -102,6 +102,11 @@
 
 			if (storedSection == null)
 			{
+				if (orginalSection == null)
+				{
+					return;
+				}
+
 				results.Errors.Add(new ErrorDetails
 				{
 					Reason = ErrorDetails.ErrorReason.SectionRemoved,
@@ -116,7 +121,7 @@
 				return;
 			}
 
-			if (!storedSection.FieldValues.ScrambledEquals(orginalSection.FieldValues, new FieldValueComparer()))
+			if (orginalSection == null || !storedSection.FieldValues.ScrambledEquals(orginalSection.FieldValues, new FieldValueComparer()))
 			{
 				results.Errors.Add(new ErrorDetails
 				{
@@ -124,8 +129,8 @@
 					Message = $"Section with ID '{section.ID.Id}' has field value changes.",
 					Details = new DomDetails
 					{
-						SectionDefinitionId = orginalSection.SectionDefinitionID.Id,
-						SectionId = orginalSection.ID.Id,
+						SectionDefinitionId = orginalSection?.SectionDefinitionID.Id ?? Guid.Empty,
+						SectionId = orginalSection?.ID.Id ?? Guid.Empty,
 					},
 				});
 

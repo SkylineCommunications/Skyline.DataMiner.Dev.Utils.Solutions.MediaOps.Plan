@@ -25,8 +25,9 @@
 			HasUserDefinedId = true;
 		}
 
-		private protected Property(StorageProperties.PropertyInstance instance) : base(instance.ID.Id)
+		private protected Property(StorageProperties.PropertyInstance instance) : base(instance?.ID.Id ?? throw new ArgumentNullException(nameof(instance)))
 		{
+			Scope = instance.PropertyInfo.Scope;
 			ParseInstance(instance);
 		}
 
@@ -38,7 +39,7 @@
 		/// <summary>
 		/// Gets or sets the scope of the property.
 		/// </summary>
-		public string Scope { get; set; }
+		public string Scope { get; init; }
 
 		/// <summary>
 		/// Gets or sets the name of the section to which the property belongs.
@@ -154,7 +155,6 @@
 			originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
 
 			Name = instance.PropertyInfo.Name;
-			Scope = instance.PropertyInfo.Scope;
 			SectionName = instance.Layout.SectionName;
 			Order = instance.Layout.Order.HasValue ? (int)instance.Layout.Order.Value : 0;
 		}

@@ -42,7 +42,7 @@
 				Name = name,
 			};
 
-			objectCreator.CreateProperty(property);
+			objectCreator.CreateResourceProperty(property);
 
 			var returnedProperty = TestContext.Api.ResourceProperties.Read(propertyId);
 			Assert.IsNotNull(returnedProperty);
@@ -101,10 +101,10 @@
 				Name = $"{propertyId}_Property2",
 			};
 
-			objectCreator.CreateProperty(property1);
+			objectCreator.CreateResourceProperty(property1);
 			try
 			{
-				objectCreator.CreateProperty(property2);
+				objectCreator.CreateResourceProperty(property2);
 			}
 			catch (MediaOpsException ex)
 			{
@@ -141,7 +141,7 @@
 
 			try
 			{
-				objectCreator.CreateProperties(new[] { property1, property2 });
+				objectCreator.CreateResourceProperties(new[] { property1, property2 });
 			}
 			catch (MediaOpsBulkException<Guid> ex)
 			{
@@ -190,10 +190,10 @@
 				Name = $"{propertyId}_Property",
 			};
 
-			objectCreator.CreateProperty(property1);
+			objectCreator.CreateResourceProperty(property1);
 			try
 			{
-				objectCreator.CreateProperty(property2);
+				objectCreator.CreateResourceProperty(property2);
 			}
 			catch (MediaOpsException ex)
 			{
@@ -231,7 +231,7 @@
 
 			try
 			{
-				objectCreator.CreateProperties(new[] { property1, property2 });
+				objectCreator.CreateResourceProperties(new[] { property1, property2 });
 			}
 			catch (MediaOpsBulkException<Guid> ex)
 			{
@@ -269,8 +269,8 @@
 				Name = $"{propertyId}_Property_2",
 			};
 
-			objectCreator.CreateProperty(property1);
-			objectCreator.CreateProperty(property2);
+			objectCreator.CreateResourceProperty(property1);
+			objectCreator.CreateResourceProperty(property2);
 
 			var toUpdate = TestContext.Api.ResourceProperties.Read(property2.Id);
 			toUpdate.Name = property1.Name;
@@ -317,7 +317,7 @@
 
 			try
 			{
-				objectCreator.CreateProperty(property);
+				objectCreator.CreateResourceProperty(property);
 			}
 			catch (MediaOpsException ex)
 			{
@@ -339,7 +339,7 @@
 			};
 			try
 			{
-				objectCreator.CreateProperty(property);
+				objectCreator.CreateResourceProperty(property);
 			}
 			catch (MediaOpsException ex)
 			{

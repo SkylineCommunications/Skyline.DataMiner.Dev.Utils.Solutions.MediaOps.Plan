@@ -170,7 +170,7 @@
 
 			Name = instance.WorkflowInfo.WorkflowName;
 			Description = instance.WorkflowInfo.WorkflowDescription;
-			IsFavorite = instance.WorkflowInfo.Favorite.HasValue ? instance.WorkflowInfo.Favorite.Value : false;
+			IsFavorite = instance.WorkflowInfo.Favorite.GetValueOrDefault();
 			PreRoll = instance.WorkflowInfo.Preroll.HasValue ? instance.WorkflowInfo.Preroll.Value : TimeSpan.Zero;
 			PostRoll = instance.WorkflowInfo.Postroll.HasValue ? instance.WorkflowInfo.Postroll.Value : TimeSpan.Zero;
 			Notes = instance.WorkflowInfo.WorkflowNotes;

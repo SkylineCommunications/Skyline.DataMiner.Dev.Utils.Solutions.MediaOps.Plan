@@ -157,38 +157,6 @@
 			return Equals(other);
 		}
 
-		/// <inheritdoc/>
-		public override int GetHashCode()
-		{
-			unchecked
-			{
-				int hash = 17;
-				hash = (hash * 23) + Id.GetHashCode();
-
-				foreach (var capability in Capabilities.OrderBy(x => x.Id))
-				{
-					hash = (hash * 23) + capability.GetHashCode();
-				}
-
-				foreach (var capacity in Capacities.OrderBy(x => x.Id))
-				{
-					hash = (hash * 23) + capacity.GetHashCode();
-				}
-
-				foreach (var configuration in Configurations.OrderBy(x => x.Id))
-				{
-					hash = (hash * 23) + configuration.GetHashCode();
-				}
-
-				foreach (var orchestrationEvent in OrchestrationEvents.OrderBy(x => x.EventType))
-				{
-					hash = (hash * 23) + orchestrationEvent.GetHashCode();
-				}
-
-				return hash;
-			}
-		}
-
 		/// <summary>
 		/// Determines whether the current instance and the specified <see cref="OrchestrationSettings"/> object have the same property values.
 		/// </summary>
@@ -220,6 +188,38 @@
 				Capacities.ScrambledEquals(other.Capacities) &&
 				Configurations.ScrambledEquals(other.Configurations) &&
 				OrchestrationEvents.ScrambledEquals(other.OrchestrationEvents);
+		}
+
+		/// <inheritdoc/>
+		public override int GetHashCode()
+		{
+			unchecked
+			{
+				int hash = 17;
+				hash = (hash * 23) + Id.GetHashCode();
+
+				foreach (var capability in Capabilities.OrderBy(x => x.Id))
+				{
+					hash = (hash * 23) + capability.GetHashCode();
+				}
+
+				foreach (var capacity in Capacities.OrderBy(x => x.Id))
+				{
+					hash = (hash * 23) + capacity.GetHashCode();
+				}
+
+				foreach (var configuration in Configurations.OrderBy(x => x.Id))
+				{
+					hash = (hash * 23) + configuration.GetHashCode();
+				}
+
+				foreach (var orchestrationEvent in OrchestrationEvents.OrderBy(x => x.EventType))
+				{
+					hash = (hash * 23) + orchestrationEvent.GetHashCode();
+				}
+
+				return hash;
+			}
 		}
 
 		/// <summary>

@@ -14,12 +14,12 @@
 		/// </summary>
 		/// <param name="property">The property definition to link to. Cannot be <see langword="null"/>.</param>
 		/// <exception cref="ArgumentNullException">Thrown if <paramref name="property"/> is <see langword="null"/>.</exception>
-		public LinkedPropertyValue(Property property)
+		protected LinkedPropertyValue(Property property)
 		{
 			PropertyId = property?.Id ?? throw new ArgumentNullException(nameof(property));
 		}
 
-		internal LinkedPropertyValue(StorageProperties.PropertyValueSection section) : base(section)
+		private protected LinkedPropertyValue(StorageProperties.PropertyValueSection section) : base(section)
 		{
 			ParseSection(section);
 		}
