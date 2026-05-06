@@ -12,10 +12,10 @@
 	/// </summary>
 	public class PropertyValueCollection : ApiObject, ICollection<PropertyValueBase>
 	{
-		private readonly List<CustomPropertyValue> customValues = [];
-		private readonly List<StringPropertyValue> stringValues = [];
-		private readonly List<BooleanPropertyValue> booleanValues = [];
-		private readonly List<DiscretePropertyValue> discreteValues = [];
+		private readonly List<InnerCustomPropertyValue> customValues = [];
+		private readonly List<InnerStringPropertyValue> stringValues = [];
+		private readonly List<InnerBooleanPropertyValue> booleanValues = [];
+		private readonly List<InnerDiscretePropertyValue> discreteValues = [];
 
 		private StorageProperties.PropertyValuesInstance originalInstance;
 		private StorageProperties.PropertyValuesInstance updatedInstance;
@@ -99,6 +99,8 @@
 		/// <inheritdoc />
 		public bool IsReadOnly => false;
 
+		internal StorageProperties.PropertyValuesInstance OriginalInstance => originalInstance;
+
 		/// <inheritdoc />
 		public void Add(PropertyValueBase item)
 		{
@@ -110,16 +112,16 @@
 			switch (item)
 			{
 				case CustomPropertyValue custom:
-					customValues.Add(custom);
+					customValues.Add(new InnerCustomPropertyValue(custom));
 					break;
 				case StringPropertyValue stringVal:
-					stringValues.Add(stringVal);
+					stringValues.Add(new InnerStringPropertyValue(stringVal));
 					break;
 				case BooleanPropertyValue boolVal:
-					booleanValues.Add(boolVal);
+					booleanValues.Add(new InnerBooleanPropertyValue(boolVal));
 					break;
 				case DiscretePropertyValue discreteVal:
-					discreteValues.Add(discreteVal);
+					discreteValues.Add(new InnerDiscretePropertyValue(discreteVal));
 					break;
 				default:
 					throw new ArgumentException($"Unsupported property value type '{item.GetType().Name}'.", nameof(item));
@@ -187,10 +189,10 @@
 
 			return item switch
 			{
-				CustomPropertyValue custom => customValues.Remove(custom),
-				StringPropertyValue stringVal => stringValues.Remove(stringVal),
-				BooleanPropertyValue boolVal => booleanValues.Remove(boolVal),
-				DiscretePropertyValue discreteVal => discreteValues.Remove(discreteVal),
+				CustomPropertyValue custom => customValues.RemoveAll(x => x.Equals(custom)) > 0,
+				StringPropertyValue stringVal => stringValues.RemoveAll(x => x.Equals(stringVal)) > 0,
+				BooleanPropertyValue boolVal => booleanValues.RemoveAll(x => x.Equals(boolVal)) > 0,
+				DiscretePropertyValue discreteVal => discreteValues.RemoveAll(x => x.Equals(discreteVal)) > 0,
 				_ => false,
 			};
 		}
@@ -210,6 +212,41 @@
 		IEnumerator IEnumerable.GetEnumerator()
 		{
 			return GetEnumerator();
+		}
+
+		internal StorageProperties.PropertyValuesInstance GetInstanceWithChanges()
+		{
+			if (updatedInstance == null)
+			{
+				updatedInstance = IsNew ? new StorageProperties.PropertyValuesInstance(Id) : originalInstance.Clone();
+			}
+
+			updatedInstance.PropertyValueInfo.LinkedObjectID = linkedObjectId;
+			updatedInstance.PropertyValueInfo.Scope = scope;
+			updatedInstance.PropertyValueInfo.SubID = subId;
+
+			updatedInstance.PropertyValue.Clear();
+			foreach (var customValue in customValues)
+			{
+				updatedInstance.PropertyValue.Add(customValue.GetSectionWithChanges());
+			}
+
+			foreach (var stringValue in stringValues)
+			{
+				updatedInstance.PropertyValue.Add(stringValue.GetSectionWithChanges());
+			}
+
+			foreach (var booleanValue in booleanValues)
+			{
+				updatedInstance.PropertyValue.Add(booleanValue.GetSectionWithChanges());
+			}
+
+			foreach (var discreteValue in discreteValues)
+			{
+				updatedInstance.PropertyValue.Add(discreteValue.GetSectionWithChanges());
+			}
+
+			return updatedInstance;
 		}
 
 		private void ParseInstance(MediaOpsPlanApi planApi, StorageProperties.PropertyValuesInstance instance)

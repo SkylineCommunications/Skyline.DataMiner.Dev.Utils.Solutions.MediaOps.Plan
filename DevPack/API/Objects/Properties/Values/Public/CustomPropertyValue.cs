@@ -13,12 +13,20 @@
 		/// <param name="name">The name of the custom property. Cannot be <see langword="null"/>.</param>
 		/// <exception cref="ArgumentNullException">Thrown if <paramref name="name"/> is <see langword="null"/>.</exception>
 		public CustomPropertyValue(string name)
+			: base(true)
 		{
 			Name = name ?? throw new ArgumentNullException(nameof(name));
 		}
 
 		internal CustomPropertyValue()
 		{
+		}
+
+		internal CustomPropertyValue(CustomPropertyValue customPropertyValue)
+			: base(customPropertyValue)
+		{
+			Name = customPropertyValue.Name;
+			Value = customPropertyValue.Value;
 		}
 
 		/// <summary>
@@ -30,5 +38,30 @@
 		/// Gets or sets the string value of this custom property.
 		/// </summary>
 		public string Value { get; set; }
+
+		/// <inheritdoc />
+		public override int GetHashCode()
+		{
+			unchecked
+			{
+				int hash = 17;
+				hash = hash * 23 + (Name?.GetHashCode() ?? 0);
+				hash = hash * 23 + (Value?.GetHashCode() ?? 0);
+
+				return hash;
+			}
+		}
+
+		/// <inheritdoc />
+		public override bool Equals(object obj)
+		{
+			if (obj is not CustomPropertyValue other)
+			{
+				return false;
+			}
+
+			return Name == other.Name
+				&& Value == other.Value;
+		}
 	}
 }

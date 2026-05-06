@@ -7,23 +7,58 @@
 	/// </summary>
 	public abstract class PropertyValue : PropertyValueBase
 	{
-		/// <summary>
-		/// Initializes a new instance of the <see cref="PropertyValue"/> class linked to the specified property.
-		/// </summary>
-		/// <param name="property">The property definition to link to. Cannot be <see langword="null"/>.</param>
-		/// <exception cref="ArgumentNullException">Thrown if <paramref name="property"/> is <see langword="null"/>.</exception>
-		public PropertyValue(Property property)
-		{
-			PropertyId = property?.Id ?? throw new ArgumentNullException(nameof(property));
-		}
-
-		internal PropertyValue()
+		private protected PropertyValue(Property property)
+			: this(property?.Id ?? throw new ArgumentNullException(nameof(property)))
 		{
 		}
 
+		private protected PropertyValue(Guid propertyId)
+			: base(true)
+		{
+			if (propertyId == Guid.Empty)
+			{
+				throw new ArgumentException(nameof(propertyId));
+			}
+
+			PropertyId = propertyId;
+		}
+
+		private protected PropertyValue()
+		{
+		}
+
+		internal PropertyValue(PropertyValue propertyValue)
+			: base(propertyValue)
+		{
+			PropertyId = propertyValue.PropertyId;
+		}
+
 		/// <summary>
-		/// Gets the unique identifier of the linked property definition.
+		/// Gets the unique identifier of the property.
 		/// </summary>
 		public Guid PropertyId { get; internal set; }
+
+		/// <inheritdoc />
+		public override int GetHashCode()
+		{
+			unchecked
+			{
+				int hash = 17;
+				hash = hash * 23 + PropertyId.GetHashCode();
+
+				return hash;
+			}
+		}
+
+		/// <inheritdoc />
+		public override bool Equals(object obj)
+		{
+			if (obj is not PropertyValue other)
+			{
+				return false;
+			}
+
+			return PropertyId == other.PropertyId;
+		}
 	}
 }

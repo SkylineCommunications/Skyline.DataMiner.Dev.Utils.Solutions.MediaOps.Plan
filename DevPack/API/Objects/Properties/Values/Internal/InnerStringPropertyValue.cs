@@ -7,17 +7,38 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	internal class InnerStringPropertyValue : StringPropertyValue
 	{
 		private StorageProperties.PropertyValueSection originalSection;
+		private StorageProperties.PropertyValueSection updatedSection;
 
-		internal InnerStringPropertyValue(StorageProperties.PropertyValueSection section) : base()
+		internal InnerStringPropertyValue(StringPropertyValue stringPropertyValue)
+			: base(stringPropertyValue)
 		{
-			IsNew = false;
+		}
+
+		internal InnerStringPropertyValue(StorageProperties.PropertyValueSection section)
+		{
 			ParseSection(section);
 			InitTracking();
+		}
+
+		internal override Storage.DOM.DomSectionBase OriginalSection => originalSection;
+
+		internal StorageProperties.PropertyValueSection GetSectionWithChanges()
+		{
+			if (updatedSection == null)
+			{
+				updatedSection = IsNew ? new StorageProperties.PropertyValueSection() : originalSection.Clone();
+			}
+
+			updatedSection.PropertyID = PropertyId;
+			updatedSection.Value = Value;
+
+			return updatedSection;
 		}
 
 		private void ParseSection(StorageProperties.PropertyValueSection section)
 		{
 			originalSection = section ?? throw new ArgumentNullException(nameof(section));
+
 			PropertyId = section.PropertyID.Value;
 			Value = section.Value;
 		}
