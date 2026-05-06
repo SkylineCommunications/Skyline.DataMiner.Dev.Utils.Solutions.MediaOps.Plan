@@ -6,7 +6,7 @@
 
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
 
-	internal class ConsolePlanLogger : ILogger
+	public class ConsolePlanLogger : ILogger
 	{
 		private static readonly IReadOnlyDictionary<LogLevel, string> LogLevelAbbreviations = new Dictionary<LogLevel, string>
 		{
@@ -31,7 +31,7 @@
 			Log(LogLevel.Debug, className, methodName, message);
 		}
 
-		public void Debug(object callerInstance, string message, object[] args = null, [CallerMemberName] string methodName = "")
+		public void Debug(object callerInstance, string message, object[]? args = null, [CallerMemberName] string methodName = "")
 		{
 			Debug(callerInstance.GetType().Name, SafeFormat(message, args), methodName);
 		}
@@ -46,7 +46,7 @@
 			Log(LogLevel.Error, className, methodName, message);
 		}
 
-		public void Error(object callerInstance, string message, object[] args = null, [CallerMemberName] string methodName = "")
+		public void Error(object callerInstance, string message, object[]? args = null, [CallerMemberName] string methodName = "")
 		{
 			Error(callerInstance.GetType().Name, methodName, SafeFormat(message, args));
 		}
@@ -61,7 +61,7 @@
 			Log(LogLevel.Information, className, methodName, message);
 		}
 
-		public void Information(object callerInstance, string message, object[] args = null, [CallerMemberName] string methodName = "")
+		public void Information(object callerInstance, string message, object[]? args = null, [CallerMemberName] string methodName = "")
 		{
 			Information(callerInstance.GetType().Name, SafeFormat(message, args), methodName);
 		}
@@ -76,7 +76,7 @@
 			Log(LogLevel.Warning, className, methodName, message);
 		}
 
-		public void Warning(object callerInstance, string message, object[] args = null, [CallerMemberName] string methodName = "")
+		public void Warning(object callerInstance, string message, object[]? args = null, [CallerMemberName] string methodName = "")
 		{
 			Warning(callerInstance.GetType().Name, SafeFormat(message, args), methodName);
 		}
@@ -91,7 +91,7 @@
 			Console.WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} [{Thread.CurrentThread.ManagedThreadId}] [{LogLevelAbbreviations[logLevel]}] {message}");
 		}
 
-		private static string SafeFormat(string message, params object[] args)
+		private static string SafeFormat(string message, params object[]? args)
 		{
 			if (message == null)
 			{
