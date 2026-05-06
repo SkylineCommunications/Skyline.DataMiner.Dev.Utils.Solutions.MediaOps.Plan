@@ -9,6 +9,7 @@
 	/// </summary>
 	public class CapabilitySettings : TrackableObject
 	{
+		/// <summary>The backing store for discrete values associated with this capability setting.</summary>
 		protected readonly HashSet<string> discretes = [];
 
 		/// <summary>

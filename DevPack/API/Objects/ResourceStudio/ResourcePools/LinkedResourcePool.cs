@@ -72,6 +72,17 @@
 			}
 		}
 
+		/// <inheritdoc/>
+		public override bool Equals(object obj)
+		{
+			if (obj is not LinkedResourcePool other)
+			{
+				return false;
+			}
+
+			return ReferenceEquals(this, other);
+		}
+
 		internal StorageResourceStudio.ResourcePoolLinksSection GetSectionWithChanges()
 		{
 			if (updatedSection == null)

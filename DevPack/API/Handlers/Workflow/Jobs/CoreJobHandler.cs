@@ -23,7 +23,7 @@
 
 		private CoreJobHandler(MediaOpsPlanApi planApi)
 		{
-			planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
+			this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
 		}
 
 		public static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<DomJob> domJobs, out DomInstanceBulkOperationResult<DomJob> result)
@@ -146,11 +146,6 @@
 				}
 
 				// todo: add logic to update or remove the reservation id in the nodes
-				var nodeIdsInReservation = reservation.ResourcesInReservationInstance
-					.OfType<ServiceResourceUsageDefinition>()
-					.Select(x => x.ServiceDefinitionNodeID)
-					.ToHashSet();
-
 				ReportSuccess(domJob);
 			}
 		}
@@ -168,36 +163,6 @@
 		private void Cancel(ICollection<DomJob> domJobs)
 		{
 			UpdateStatus(domJobs, Skyline.DataMiner.Net.Messages.ReservationStatus.Canceled);
-		}
-
-		private void Start(ICollection<DomJob> domJobs)
-		{
-			if (domJobs == null)
-			{
-				throw new ArgumentNullException(nameof(domJobs));
-			}
-
-			if (domJobs.Count == 0)
-			{
-				return;
-			}
-
-			throw new NotImplementedException();
-		}
-
-		private void Stop(ICollection<DomJob> domJobs)
-		{
-			if (domJobs == null)
-			{
-				throw new ArgumentNullException(nameof(domJobs));
-			}
-
-			if (domJobs.Count == 0)
-			{
-				return;
-			}
-
-			throw new NotImplementedException();
 		}
 
 		private void Delete(ICollection<DomJob> domJobs)
@@ -322,10 +287,10 @@
 
 			updateRequired |= SyncName(job, reservation);
 			updateRequired |= SyncStatus(job, reservation);
-			updateRequired |= SyncQuarantineHandlingScript(job, reservation);
+			updateRequired |= SyncQuarantineHandlingScript(reservation);
 			updateRequired |= SyncProperties(job, reservation);
 			updateRequired |= SyncTime(job, reservation);
-			updateRequired |= SyncEvents(job, reservation);
+			updateRequired |= SyncEvents(reservation);
 			updateRequired |= SyncResources(job, reservation);
 
 			return updateRequired;
@@ -358,7 +323,7 @@
 			return true;
 		}
 
-		private bool SyncQuarantineHandlingScript(DomJob job, CoreReservation reservation)
+		private bool SyncQuarantineHandlingScript(CoreReservation reservation)
 		{
 			var expected = "MediaOps_SRM_QuarantineHandling";
 
@@ -375,12 +340,12 @@
 		{
 			bool updateRequired = false;
 
-			updateRequired |= SyncProperty(job, reservation, "Job ID", Convert.ToString(job.ID.Id));
+			updateRequired |= SyncProperty(reservation, "Job ID", Convert.ToString(job.ID.Id));
 
 			return updateRequired;
 		}
 
-		private bool SyncProperty(DomJob job, CoreReservation reservation, string propertyName, string expectedValue)
+		private bool SyncProperty(CoreReservation reservation, string propertyName, string expectedValue)
 		{
 			if (!reservation.Properties.Dictionary.TryGetValue(propertyName, out var existingValue))
 			{
@@ -439,7 +404,7 @@
 			return true;
 		}
 
-		private bool SyncEvents(DomJob job, CoreReservation reservation)
+		private bool SyncEvents(CoreReservation reservation)
 		{
 			bool updateRequired = false;
 
