@@ -50,6 +50,16 @@
 		}
 
 		[TestMethod]
+		public void CountWithEmptyFilterReturnsZero()
+		{
+			var idsToRetrieve = new Guid[0];
+			var emptyFilter = new ORFilterElement<Configuration>(idsToRetrieve.Select(x => Skyline.DataMiner.Solutions.MediaOps.Plan.API.ConfigurationExposers.Id.Equal(x)).ToArray());
+
+			var count = TestContext.Api.Configurations.Count(emptyFilter);
+			Assert.AreEqual(0, count);
+		}
+
+		[TestMethod]
 		public void ReadWithEmptyQueryReturnsEmptyList()
 		{
 			var idsToRetrieve = new Guid[0];

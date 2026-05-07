@@ -28,6 +28,16 @@ namespace RT_MediaOps.Plan.Properties.Values
 		}
 
 		[TestMethod]
+		public void CountWithEmptyFilterReturnsZero()
+		{
+			var idsToRetrieve = new Guid[0];
+			var emptyFilter = new ORFilterElement<PropertyValueCollection>(idsToRetrieve.Select(x => PropertyValueCollectionExposers.Id.Equal(x)).ToArray());
+
+			var count = TestContext.Api.PropertyValueCollections.Count(emptyFilter);
+			Assert.AreEqual(0, count);
+		}
+
+		[TestMethod]
 		public void ReadWithEmptyQueryReturnsEmptyList()
 		{
 			var idsToRetrieve = new Guid[0];

@@ -313,6 +313,16 @@
 		}
 
 		[TestMethod]
+		public void CountWithEmptyFilterReturnsZero()
+		{
+			var idsToRetrieve = new Guid[0];
+			var emptyFilter = new ORFilterElement<ResourcePool>(idsToRetrieve.Select(x => ResourcePoolExposers.Id.Equal(x)).ToArray());
+
+			var count = TestContext.Api.ResourcePools.Count(emptyFilter);
+			Assert.AreEqual(0, count);
+		}
+
+		[TestMethod]
 		public void ReadWithEmptyQueryReturnsEmptyList()
 		{
 			var idsToRetrieve = new Guid[0];

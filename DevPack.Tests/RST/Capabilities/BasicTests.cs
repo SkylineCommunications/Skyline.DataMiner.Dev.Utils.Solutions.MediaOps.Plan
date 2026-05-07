@@ -244,6 +244,16 @@
 		}
 
 		[TestMethod]
+		public void CountWithEmptyFilterReturnsZero()
+		{
+			var idsToRetrieve = new Guid[0];
+			var emptyFilter = new ORFilterElement<Capability>(idsToRetrieve.Select(x => CapabilityExposers.Id.Equal(x)).ToArray());
+
+			var count = TestContext.Api.Capabilities.Count(emptyFilter);
+			Assert.AreEqual(0, count);
+		}
+
+		[TestMethod]
 		public void ReadWithEmptyQueryReturnsEmptyList()
 		{
 			var idsToRetrieve = new Guid[0];

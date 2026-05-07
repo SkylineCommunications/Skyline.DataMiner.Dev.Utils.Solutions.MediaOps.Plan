@@ -60,6 +60,16 @@
 		}
 
 		[TestMethod]
+		public void CountWithEmptyFilterReturnsZero()
+		{
+			var idsToRetrieve = new Guid[0];
+			var emptyFilter = new ORFilterElement<Workflow>(idsToRetrieve.Select(x => WorkflowExposers.Id.Equal(x)).ToArray());
+
+			var count = TestContext.Api.Workflows.Count(emptyFilter);
+			Assert.AreEqual(0, count);
+		}
+
+		[TestMethod]
 		public void ReadWithEmptyQueryReturnsEmptyList()
 		{
 			var idsToRetrieve = new Guid[0];
