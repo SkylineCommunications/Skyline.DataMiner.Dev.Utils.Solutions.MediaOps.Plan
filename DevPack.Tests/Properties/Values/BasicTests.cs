@@ -163,6 +163,89 @@ namespace RT_MediaOps.Plan.Properties.Values
         }
 
         [TestMethod]
+        public void CreateWithDuplicateLinkedObjectIdAndSubIdInBulkThrowsException()
+        {
+            var linkedObjectId = $"obj-{Guid.NewGuid()}";
+            var subId = "sub-1";
+
+            var collection1 = new PropertyValueCollection
+            {
+                Name = "Collection1",
+                LinkedObjectId = linkedObjectId,
+                SubId = subId,
+                Scope = "global",
+            };
+            var collection2 = new PropertyValueCollection
+            {
+                Name = "Collection2",
+                LinkedObjectId = linkedObjectId,
+                SubId = subId,
+                Scope = "global",
+            };
+
+            try
+            {
+                objectCreator.CreatePropertyValueCollections(new[] { collection1, collection2 });
+            }
+            catch (MediaOpsBulkException<Guid> ex)
+            {
+                var errors = ex.Result.TraceDataPerItem.Values
+                    .SelectMany(x => x.ErrorData)
+                    .OfType<PropertyValueCollectionDuplicateLinkedObjectIdAndSubIdError>()
+                    .ToList();
+
+                Assert.AreEqual(2, errors.Count);
+                Assert.IsTrue(errors.All(e => e.LinkedObjectId == linkedObjectId && e.SubId == subId));
+
+                return;
+            }
+
+            Assert.Fail("Expected exception was not thrown.");
+        }
+
+        [TestMethod]
+        public void CreateWithLinkedObjectIdAndSubIdAlreadyInUseThrowsException()
+        {
+            var linkedObjectId = $"obj-{Guid.NewGuid()}";
+            var subId = "sub-1";
+
+            var existing = new PropertyValueCollection
+            {
+                Name = "Existing",
+                LinkedObjectId = linkedObjectId,
+                SubId = subId,
+                Scope = "global",
+            };
+            objectCreator.CreatePropertyValueCollection(existing);
+
+            var newCollection = new PropertyValueCollection
+            {
+                Name = "New",
+                LinkedObjectId = linkedObjectId,
+                SubId = subId,
+                Scope = "global",
+            };
+
+            try
+            {
+                objectCreator.CreatePropertyValueCollection(newCollection);
+            }
+            catch (MediaOpsException ex)
+            {
+                StringAssert.Contains(ex.Message, "already exists");
+
+                var error = ex.TraceData.ErrorData.OfType<PropertyValueCollectionDuplicateLinkedObjectIdAndSubIdError>().SingleOrDefault();
+                Assert.IsNotNull(error);
+                Assert.AreEqual(linkedObjectId, error.LinkedObjectId);
+                Assert.AreEqual(subId, error.SubId);
+
+                return;
+            }
+
+            Assert.Fail("Expected exception was not thrown.");
+        }
+
+        [TestMethod]
         public void CreateWithEmptyLinkedObjectIdThrowsException()
         {
             var collection = new PropertyValueCollection

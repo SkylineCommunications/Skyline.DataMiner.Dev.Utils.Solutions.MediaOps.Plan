@@ -5,6 +5,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using System.Configuration;
 	using System.Linq;
 
+	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Solutions.MediaOps.Live.API.Objects.Orchestration;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
@@ -60,6 +61,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			ValidateIdsNotInUse(toCreate);
 			ValidateLinkedObjectIds(toCreate);
 			ValidateScopes(toCreate);
+			ValidateLinkedObjectIdAndSubIdAreUnique(apiValueCollections);
 
 			propertyLookup = new PropertyLookup(planApi, apiValueCollections);
 			ValidateCustomProperties(apiValueCollections);
@@ -270,6 +272,89 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				};
 
 				ReportError(valueCollection.Id, error);
+			}
+		}
+
+		private void ValidateLinkedObjectIdAndSubIdAreUnique(ICollection<PropertyValueCollection> apiValueCollections)
+		{
+			if (apiValueCollections == null)
+			{
+				throw new ArgumentNullException(nameof(apiValueCollections));
+			}
+
+			if (apiValueCollections.Count == 0)
+			{
+				return;
+			}
+
+			var objectsRequiringValidation = apiValueCollections
+				.Where(IsValid)
+				.Where(x => InputValidator.IsNonEmptyText(x.LinkedObjectId))
+				.ToList();
+
+			if (objectsRequiringValidation.Count == 0)
+			{
+				return;
+			}
+
+			var duplicateGroups = objectsRequiringValidation
+				.GroupBy(x => (x.LinkedObjectId, x.SubId))
+				.Where(g => g.Count() > 1)
+				.ToList();
+
+			foreach (var group in duplicateGroups)
+			{
+				foreach (var valueCollection in group.ToArray())
+				{
+					var error = new PropertyValueCollectionDuplicateLinkedObjectIdAndSubIdError
+					{
+						ErrorMessage = $"Property value collection has a duplicate combination of LinkedObjectId '{group.Key.LinkedObjectId}' and SubId '{group.Key.SubId}'.",
+						Id = valueCollection.Id,
+						LinkedObjectId = group.Key.LinkedObjectId,
+						SubId = group.Key.SubId,
+					};
+
+					ReportError(valueCollection.Id, error);
+
+					objectsRequiringValidation.Remove(valueCollection);
+				}
+			}
+
+			foreach (var linkedObjectGroup in objectsRequiringValidation.GroupBy(x => x.LinkedObjectId))
+			{
+				FilterElement<DomInstance> filter =
+					DomInstanceExposers.DomDefinitionId.Equal(SlcPropertiesIds.Definitions.PropertyValues.Id)
+					.AND(DomInstanceExposers.FieldValues.DomInstanceField(SlcPropertiesIds.Sections.PropertyValueInfo.LinkedObjectID).Equal(linkedObjectGroup.Key));
+
+				var existingBySubId = planApi.DomHelpers.SlcPropertiesHelper.GetPropertyValues(filter)
+					.GroupBy(x => x.PropertyValueInfo.SubID)
+					.ToDictionary(g => g.Key, g => g.ToList());
+
+				foreach (var valueCollection in linkedObjectGroup)
+				{
+					if (!existingBySubId.TryGetValue(valueCollection.SubId, out var existingMatches))
+					{
+						continue;
+					}
+
+					var conflicts = existingMatches.Where(x => x.ID.Id != valueCollection.Id).ToList();
+					if (conflicts.Count == 0)
+					{
+						continue;
+					}
+
+					planApi.Logger.Information(this, $"Combination of LinkedObjectId '{valueCollection.LinkedObjectId}' and SubId '{valueCollection.SubId}' is already in use by property value collection(s) with ID(s) {string.Join(", ", conflicts.Select(x => x.ID.Id))}.");
+
+					var error = new PropertyValueCollectionDuplicateLinkedObjectIdAndSubIdError
+					{
+						ErrorMessage = $"A property value collection with LinkedObjectId '{valueCollection.LinkedObjectId}' and SubId '{valueCollection.SubId}' already exists.",
+						Id = valueCollection.Id,
+						LinkedObjectId = valueCollection.LinkedObjectId,
+						SubId = valueCollection.SubId,
+					};
+
+					ReportError(valueCollection.Id, error);
+				}
 			}
 		}
 
