@@ -30,17 +30,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <summary>
 		/// Gets or sets the collection of capabilities.
 		/// </summary>
-		public IDictionary<Guid, Capability> Capabilities { get; set; }
+		public IDictionary<Guid, Capability> CapabilityDefinitions { get; set; }
 
 		/// <summary>
 		/// Gets or sets the collection of capacities.
 		/// </summary>
-		public IDictionary<Guid, Capacity> Capacities { get; set; }
+		public IDictionary<Guid, Capacity> CapacityDefinitions { get; set; }
 
 		/// <summary>
 		/// Gets or sets the collection of configurations.
 		/// </summary>
-		public IDictionary<Guid, Configuration> Configurations { get; set; }
+		public IDictionary<Guid, Configuration> ConfigurationDefinitions { get; set; }
 
 		/// <summary>
 		/// Gets or sets the collection of resource properties.

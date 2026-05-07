@@ -361,10 +361,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <summary>Returns the display name for a capability parameter reference.</summary>
 		protected virtual string GetCapabilityName(CapabilityParameterReference reference, ResolveContext context)
 		{
-			if (context?.Capabilities == null)
+			if (context?.CapabilityDefinitions == null)
 				return null;
 
-			return context.Capabilities.TryGetValue(reference.ParameterId, out var capability)
+			return context.CapabilityDefinitions.TryGetValue(reference.ParameterId, out var capability)
 				? capability?.Name
 				: null;
 		}
@@ -372,10 +372,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <summary>Returns the display name for a capacity parameter reference.</summary>
 		protected virtual string GetCapacityName(CapacityParameterReference reference, ResolveContext context)
 		{
-			if (context?.Capacities == null)
+			if (context?.CapacityDefinitions == null)
 				return null;
 
-			return context.Capacities.TryGetValue(reference.ParameterId, out var capacity)
+			return context.CapacityDefinitions.TryGetValue(reference.ParameterId, out var capacity)
 				? capacity?.Name
 				: null;
 		}
@@ -383,10 +383,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <summary>Returns the display name for a configuration parameter reference.</summary>
 		protected virtual string GetConfigurationName(ConfigurationParameterReference reference, ResolveContext context)
 		{
-			if (context?.Configurations == null)
+			if (context?.ConfigurationDefinitions == null)
 				return null;
 
-			return context.Configurations.TryGetValue(reference.ParameterId, out var configuration)
+			return context.ConfigurationDefinitions.TryGetValue(reference.ParameterId, out var configuration)
 				? configuration?.Name
 				: null;
 		}
