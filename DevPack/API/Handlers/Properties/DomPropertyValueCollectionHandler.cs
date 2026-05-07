@@ -16,6 +16,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	internal class DomPropertyValueCollectionHandler : DomInstanceApiObjectValidator<DomPropertyValueCollection>
 	{
 		private readonly MediaOpsPlanApi planApi;
+		private PropertyLookup propertyLookup;
 
 		private DomPropertyValueCollectionHandler(MediaOpsPlanApi planApi)
 		{
@@ -60,6 +61,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			ValidateLinkedObjectIds(toCreate);
 			ValidateScopes(toCreate);
 
+			propertyLookup = new PropertyLookup(planApi, apiValueCollections);
+			ValidateCustomProperties(apiValueCollections);
 			ValidatePropertyDefinitionsAndValues(apiValueCollections);
 
 			var lockResult = planApi.LockManager.LockAndExecute(apiValueCollections.Where(IsValid).ToList(), CreateOrUpdateLocked);
@@ -270,7 +273,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 		}
 
-		private void ValidatePropertyDefinitionsAndValues(ICollection<PropertyValueCollection> apiValueCollections)
+		private void ValidateCustomProperties(ICollection<PropertyValueCollection> apiValueCollections)
 		{
 			if (apiValueCollections == null)
 			{
@@ -282,12 +285,94 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return;
 			}
 
-			var propertyIds = apiValueCollections
-				.SelectMany(x => x.PropertyValues)
-				.Select(x => x.Id)
-				.Distinct()
-				.ToList();
-			var propertiesById = planApi.Properties.Read(propertyIds).ToDictionary(x => x.Id);
+			foreach (var valueCollection in apiValueCollections)
+			{
+				if (valueCollection.CustomValues.Any(x => !InputValidator.IsNonEmptyText(x.Name)))
+				{
+					var error = new PropertyValueCollectionInvalidCustomSettingsError
+					{
+						ErrorMessage = "Collection contains empty names.",
+						Id = valueCollection.Id,
+					};
+
+					ReportError(valueCollection.Id, error);
+					continue;
+				}
+
+				foreach (var customValue in valueCollection.CustomValues.Where(x => !InputValidator.HasValidTextLength(x.Name)).ToArray())
+				{
+					var error = new PropertyValueCollectionInvalidCustomSettingsError
+					{
+						ErrorMessage = $"Name '{customValue.Name}' exceeds maximum length of {InputValidator.DefaultMaxTextLength} characters.",
+						Id = valueCollection.Id,
+						Name = customValue.Name,
+					};
+					ReportError(valueCollection.Id, error);
+					continue;
+				}
+
+				var duplicates = valueCollection.CustomValues
+					.GroupBy(x => x.Name)
+					.Where(g => g.Count() > 1)
+					.ToDictionary(x => x.Key, x => x.Count());
+				foreach (var kvp in duplicates)
+				{
+					var error = new PropertyValueCollectionInvalidCustomSettingsError
+					{
+						ErrorMessage = $"Name '{kvp.Key}' is defined {kvp.Value} times.",
+						Id = valueCollection.Id,
+						Name = kvp.Key,
+					};
+					ReportError(valueCollection.Id, error);
+				}
+
+				if (duplicates.Count > 0)
+				{
+					continue;
+				}
+
+				var requiringValidation = valueCollection.CustomValues.ToList();
+
+				var collectionPropertyNames = propertyLookup.PropertiesByScope.TryGetValue(valueCollection.Scope, out var propertiesForScope)
+					? propertiesForScope.Select(p => p.Name).ToHashSet()
+					: new HashSet<string>();
+				foreach (var customValue in requiringValidation.Where(x => collectionPropertyNames.Contains(x.Name)).ToArray())
+				{
+					var error = new PropertyValueCollectionInvalidCustomSettingsError
+					{
+						ErrorMessage = $"Name '{customValue.Name}' cannot be the same as a property name in the same scope.",
+						Id = valueCollection.Id,
+						Name = customValue.Name,
+					};
+
+					ReportError(valueCollection.Id, error);
+					requiringValidation.Remove(customValue);
+				}
+
+				foreach (var customValue in requiringValidation.Where(x => x.HasValue && !InputValidator.HasValidTextLength(x.Value)).ToArray())
+				{
+					var error = new PropertyValueCollectionInvalidCustomSettingsError
+					{
+						ErrorMessage = $"Value for name '{customValue.Name}' exceeds maximum length of {InputValidator.DefaultMaxTextLength} characters.",
+						Id = valueCollection.Id,
+						Name = customValue.Name,
+					};
+					ReportError(valueCollection.Id, error);
+				}
+			}	
+		}
+
+		private void ValidatePropertyDefinitionsAndValues(ICollection<PropertyValueCollection> apiValueCollections)
+		{
+			if (apiValueCollections == null)
+			{
+				throw new ArgumentNullException(nameof(apiValueCollections));
+			}
+
+			if (apiValueCollections.Count == 0)
+			{
+				return;
+			}
 
 			foreach (var valueCollection in apiValueCollections)
 			{
@@ -326,7 +411,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 						continue;
 					}
 
-					if (!propertiesById.TryGetValue(propertyValue.Id, out var property))
+					if (!propertyLookup.PropertyById.TryGetValue(propertyValue.Id, out var property))
 					{
 						var error = new PropertyValueCollectionInvalidPropertySettingsError
 						{
@@ -378,6 +463,76 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				};
 
 				ReportError(valueCollection.Id, error);
+			}
+		}
+
+		private sealed class PropertyLookup
+		{
+			private MediaOpsPlanApi planApi;
+
+			public PropertyLookup(MediaOpsPlanApi planApi, ICollection<PropertyValueCollection> apiValueCollections)
+			{
+				this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
+
+				 LoadPropertiesByScope(apiValueCollections);
+				 LoadRemainingPropertiesById(apiValueCollections);
+			}
+
+			public IReadOnlyDictionary<string, IReadOnlyCollection<Property>> PropertiesByScope { get; } = new Dictionary<string, IReadOnlyCollection<Property>>();
+
+			public IReadOnlyDictionary<Guid, Property> PropertyById { get; } = new Dictionary<Guid, Property>();
+
+			private void LoadPropertiesByScope(ICollection<PropertyValueCollection> apiValueCollections)
+			{
+				var scopes = apiValueCollections
+					.Select(x => x.Scope)
+					.Distinct()
+					.ToList();
+				var filter = new ORFilterElement<Property>(scopes.Select(x => PropertyExposers.Scope.Equal(x)).ToArray());
+				foreach (var property in planApi.Properties.Read(filter))
+				{
+					if (!PropertiesByScope.TryGetValue(property.Scope, out var propertiesForScope))
+					{
+						propertiesForScope = new List<Property>();
+						((Dictionary<string, IReadOnlyCollection<Property>>)PropertiesByScope).Add(property.Scope, propertiesForScope);
+					}
+
+					((List<Property>)propertiesForScope).Add(property);
+
+					((Dictionary<Guid, Property>)PropertyById).Add(property.Id, property);
+				}
+			}
+
+			private void LoadRemainingPropertiesById(ICollection<PropertyValueCollection> apiValueCollections)
+			{
+				var propertyIds = apiValueCollections
+					.SelectMany(x => x.PropertyValues)
+					.Select(x => x.Id)
+					.Distinct()
+					.Where(id => !PropertyById.ContainsKey(id))
+					.ToList();
+				if (propertyIds.Count == 0)
+				{
+					return;
+				}
+
+				foreach (var property in planApi.Properties.Read(propertyIds))
+				{
+					((Dictionary<Guid, Property>)PropertyById).Add(property.Id, property);
+
+					if (string.IsNullOrEmpty(property.Scope))
+					{
+						continue;
+					}
+
+					if (!PropertiesByScope.TryGetValue(property.Scope, out var propertiesForScope))
+					{
+						propertiesForScope = new List<Property>();
+						((Dictionary<string, IReadOnlyCollection<Property>>)PropertiesByScope).Add(property.Scope, propertiesForScope);
+					}
+
+					((List<Property>)propertiesForScope).Add(property);
+				}
 			}
 		}
 	}

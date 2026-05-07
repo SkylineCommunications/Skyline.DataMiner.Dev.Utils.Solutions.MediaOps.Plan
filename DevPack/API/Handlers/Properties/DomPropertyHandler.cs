@@ -283,7 +283,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			var objectsWithDuplicateNames = objectsRequiringValidation
-				.GroupBy(property => property.Name)
+				.GroupBy(property => (property.Name, property.Scope))
 				.Where(g => g.Count() > 1)
 				.SelectMany(x => x)
 				.ToList();
@@ -292,7 +292,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				var error = new PropertyDuplicateNameError
 				{
-					ErrorMessage = $"Property '{property.Name}' has a duplicate name.",
+					ErrorMessage = $"Property '{property.Name}' has a duplicate name in scope '{property.Scope}'.",
 					Id = property.Id,
 					Name = property.Name,
 				};
@@ -317,18 +317,18 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				DomInstanceExposers.DomDefinitionId.Equal(SlcPropertiesIds.Definitions.Property.Id)
 				.AND(DomInstanceExposers.FieldValues.DomInstanceField(SlcPropertiesIds.Sections.PropertyInfo.Name).Equal(name));
 
-			var domPropertiesByName = planApi.DomHelpers.SlcPropertiesHelper.GetProperties(apiProperties.Select(x => x.Name), Filter)
-				.GroupBy(x => x.PropertyInfo.Name)
+			var domPropertiesByScope = planApi.DomHelpers.SlcPropertiesHelper.GetProperties(apiProperties.Select(x => x.Name), Filter)
+				.GroupBy(x => x.PropertyInfo.Scope)
 				.ToDictionary(x => x.Key, x => (IReadOnlyCollection<DomProperty>)x.ToList());
 
 			foreach (var property in apiProperties)
 			{
-				if (!domPropertiesByName.TryGetValue(property.Name, out var domProperties))
+				if (!domPropertiesByScope.TryGetValue(property.Scope, out var domProperties))
 				{
 					continue;
 				}
 
-				var existing = domProperties.Where(x => x.ID.Id != property.Id).ToList();
+				var existing = domProperties.Where(x => x.Name == property.Name && x.ID.Id != property.Id).ToList();
 				if (existing.Count == 0)
 				{
 					continue;
