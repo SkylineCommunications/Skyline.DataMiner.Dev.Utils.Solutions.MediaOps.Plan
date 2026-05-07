@@ -256,8 +256,16 @@
 
 		private void CategoriesCleanup()
 		{
+			if (!createdCategoryIds.Any())
+			{
+				testContext.Logger.Information(this, $"No categories to clean up.");
+			}
+
 			var filter = createdCategoryIds.Select(x => CategoryExposers.ID.Equal(x)).ToArray();
 			var categories = CategoriesApi.Categories.Read(new ORFilterElement<Category>(filter)).ToArray();
+
+			testContext.Logger.Information(this, $"Cleaning up {categories.Length} categories.");
+
 			CategoriesApi.Categories.Delete(categories);
 		}
 
