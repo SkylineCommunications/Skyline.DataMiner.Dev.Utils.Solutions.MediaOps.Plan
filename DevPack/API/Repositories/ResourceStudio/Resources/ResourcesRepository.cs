@@ -306,6 +306,11 @@
 		/// <returns>The count of resources matching the filter.</returns>
 		public long Count(FilterElement<Resource> filter)
 		{
+			if (filter.isEmpty())
+			{
+				return 0;
+			}
+
 			var domFilter = filterTranslator.Translate(filter);
 			return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(domFilter);
 		}
