@@ -259,6 +259,7 @@
 			if (!createdCategoryIds.Any())
 			{
 				testContext.Logger.Information(this, $"No categories to clean up.");
+				return;
 			}
 
 			var filter = createdCategoryIds.Select(x => CategoryExposers.ID.Equal(x)).ToArray();

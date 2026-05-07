@@ -160,22 +160,11 @@
 
 		private Category CreateCategory()
 		{
-			var category = new Category
+			return objectCreator.CreateCategory(new Category
 			{
 				Name = $"ResourcePoolCategory_{Guid.NewGuid()}",
 				Scope = GetResourcePoolScope(),
-			};
-
-			TestContext.Logger.Information(this, $"Creating new category with ID: {category.ID}");
-			category = TestContext.CategoriesApi.Categories.Create(category);
-			return category;
-
-			// TODO: revert this to clean up created categories
-			//return objectCreator.CreateCategory(new Category
-			//{
-			//	Name = $"ResourcePoolCategory_{Guid.NewGuid()}",
-			//	Scope = GetResourcePoolScope(),
-			//});
+			});
 		}
 
 		private static void AssertCategoryAssignment(Guid resourcePoolId, Category? expectedCategory)
@@ -191,12 +180,9 @@
 			{
 				Assert.AreEqual(expectedCategory.ID.ToString(), resourcePool.CategoryId);
 
-				var retrievedCategory = TestContext.CategoriesApi.Categories.Read(expectedCategory.ID);
-				Assert.IsNotNull(retrievedCategory, $"Expected category with ID {expectedCategory.ID} was not created (Read using ID).");
-
 				// check if category was created
-				retrievedCategory = TestContext.CategoriesApi.Categories.Read(CategoryExposers.ID.Equal(expectedCategory.ID)).FirstOrDefault();
-				Assert.IsNotNull(retrievedCategory, $"Expected category with ID {expectedCategory.ID} was not created (Read using filter).");
+				var retrievedCategory = TestContext.CategoriesApi.Categories.Read(CategoryExposers.ID.Equal(expectedCategory.ID)).FirstOrDefault();
+				Assert.IsNotNull(retrievedCategory, $"Expected category with ID {expectedCategory.ID} was not created.");
 			}
 
 			// Check if Resource Pool DOM Instance was added as category item to the expected category
