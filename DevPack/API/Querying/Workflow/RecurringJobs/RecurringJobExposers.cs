@@ -7,7 +7,7 @@
 	/// <summary>
 	/// Provides exposers for querying and filtering <see cref="RecurringJob"/> objects.
 	/// </summary>
-	public class RecurringJobExposers
+	public static class RecurringJobExposers
 	{
 		/// <summary>
 		/// Gets an exposer for the <see cref="ApiObject.Id"/> property.
