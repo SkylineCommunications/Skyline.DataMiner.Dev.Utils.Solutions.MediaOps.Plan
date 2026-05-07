@@ -12,10 +12,17 @@
 	/// </summary>
 	public class PropertyValueCollection : ApiObject, ICollection<PropertyValueBase>
 	{
-		private readonly List<CustomPropertyValue> customValues = [];
-		private readonly List<StringPropertyValue> stringValues = [];
-		private readonly List<BooleanPropertyValue> booleanValues = [];
-		private readonly List<DiscretePropertyValue> discreteValues = [];
+		private readonly List<InnerCustomPropertyValue> customValues = [];
+		private readonly List<InnerStringPropertyValue> stringValues = [];
+		private readonly List<InnerBooleanPropertyValue> booleanValues = [];
+		private readonly List<InnerDiscretePropertyValue> discreteValues = [];
+
+		private StorageProperties.PropertyValuesInstance originalInstance;
+		private StorageProperties.PropertyValuesInstance updatedInstance;
+
+		private string linkedObjectId;
+		private string scope;
+		private string subId;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="PropertyValueCollection"/> class.
@@ -25,13 +32,19 @@
 			IsNew = true;
 		}
 
-		internal PropertyValueCollection(MediaOpsPlanApi planApi, StorageProperties.PropertyValuesInstance instance) : base(instance?.ID.Id ?? throw new ArgumentNullException(nameof(instance)))
+		/// <summary>
+		/// Initializes a new instance of the <see cref="PropertyValueCollection"/> class with the specified unique identifier.
+		/// </summary>
+		/// <param name="id">The unique identifier for the property value collection.</param>
+		public PropertyValueCollection(Guid id) : base(id)
 		{
-			LinkedObjectId = instance.PropertyValueInfo.LinkedObjectID;
-			Scope = instance.PropertyValueInfo.Scope;
-			SubId = instance.PropertyValueInfo.SubID;
+			IsNew = true;
+			HasUserDefinedId = true;
+		}
 
-			ParsePropertyValues(planApi, instance.PropertyValue);
+		internal PropertyValueCollection(MediaOpsPlanApi planApi, StorageProperties.PropertyValuesInstance instance) : base(instance.ID.Id)
+		{
+			ParseInstance(planApi, instance);
 			InitTracking();
 		}
 
@@ -43,17 +56,17 @@
 		/// <summary>
 		/// Gets the identifier of the object this collection is linked to.
 		/// </summary>
-		public string LinkedObjectId { get; init; }
+		public string LinkedObjectId { get => linkedObjectId; init => linkedObjectId = value; }
 
 		/// <summary>
 		/// Gets the scope of this property value collection.
 		/// </summary>
-		public string Scope { get; init; }
+		public string Scope { get => scope; init => scope = value; }
 
 		/// <summary>
 		/// Gets the sub-identifier for this property value collection.
 		/// </summary>
-		public string SubId { get; init; }
+		public string SubId { get => subId; init => subId = value; }
 
 		/// <summary>
 		/// Gets the collection of custom property values.
@@ -61,9 +74,9 @@
 		public IReadOnlyCollection<CustomPropertyValue> CustomValues => customValues;
 
 		/// <summary>
-		/// Gets the collection of linked property values.
+		/// Gets the collection of property values linked to a property definition.
 		/// </summary>
-		public IEnumerable<LinkedPropertyValue> LinkedValues => stringValues.Cast<LinkedPropertyValue>().Concat(booleanValues).Concat(discreteValues);
+		public IReadOnlyCollection<PropertyValue> PropertyValues => stringValues.Cast<PropertyValue>().Concat(booleanValues).Concat(discreteValues).ToList();
 
 		/// <summary>
 		/// Gets the collection of string property values.
@@ -86,6 +99,8 @@
 		/// <inheritdoc />
 		public bool IsReadOnly => false;
 
+		internal StorageProperties.PropertyValuesInstance OriginalInstance => originalInstance;
+
 		/// <inheritdoc />
 		public void Add(PropertyValueBase item)
 		{
@@ -97,16 +112,16 @@
 			switch (item)
 			{
 				case CustomPropertyValue custom:
-					customValues.Add(custom);
+					customValues.Add(new InnerCustomPropertyValue(custom));
 					break;
 				case StringPropertyValue stringVal:
-					stringValues.Add(stringVal);
+					stringValues.Add(new InnerStringPropertyValue(stringVal));
 					break;
 				case BooleanPropertyValue boolVal:
-					booleanValues.Add(boolVal);
+					booleanValues.Add(new InnerBooleanPropertyValue(boolVal));
 					break;
 				case DiscretePropertyValue discreteVal:
-					discreteValues.Add(discreteVal);
+					discreteValues.Add(new InnerDiscretePropertyValue(discreteVal));
 					break;
 				default:
 					throw new ArgumentException($"Unsupported property value type '{item.GetType().Name}'.", nameof(item));
@@ -174,10 +189,10 @@
 
 			return item switch
 			{
-				CustomPropertyValue custom => customValues.Remove(custom),
-				StringPropertyValue stringVal => stringValues.Remove(stringVal),
-				BooleanPropertyValue boolVal => booleanValues.Remove(boolVal),
-				DiscretePropertyValue discreteVal => discreteValues.Remove(discreteVal),
+				CustomPropertyValue custom => customValues.RemoveAll(x => x.Equals(custom)) > 0,
+				StringPropertyValue stringVal => stringValues.RemoveAll(x => x.Equals(stringVal)) > 0,
+				BooleanPropertyValue boolVal => booleanValues.RemoveAll(x => x.Equals(boolVal)) > 0,
+				DiscretePropertyValue discreteVal => discreteValues.RemoveAll(x => x.Equals(discreteVal)) > 0,
 				_ => false,
 			};
 		}
@@ -199,6 +214,52 @@
 			return GetEnumerator();
 		}
 
+		internal StorageProperties.PropertyValuesInstance GetInstanceWithChanges()
+		{
+			if (updatedInstance == null)
+			{
+				updatedInstance = IsNew ? new StorageProperties.PropertyValuesInstance(Id) : originalInstance.Clone();
+			}
+
+			updatedInstance.PropertyValueInfo.LinkedObjectID = linkedObjectId;
+			updatedInstance.PropertyValueInfo.Scope = scope;
+			updatedInstance.PropertyValueInfo.SubID = subId;
+
+			updatedInstance.PropertyValue.Clear();
+			foreach (var customValue in customValues)
+			{
+				updatedInstance.PropertyValue.Add(customValue.GetSectionWithChanges());
+			}
+
+			foreach (var stringValue in stringValues)
+			{
+				updatedInstance.PropertyValue.Add(stringValue.GetSectionWithChanges());
+			}
+
+			foreach (var booleanValue in booleanValues)
+			{
+				updatedInstance.PropertyValue.Add(booleanValue.GetSectionWithChanges());
+			}
+
+			foreach (var discreteValue in discreteValues)
+			{
+				updatedInstance.PropertyValue.Add(discreteValue.GetSectionWithChanges());
+			}
+
+			return updatedInstance;
+		}
+
+		private void ParseInstance(MediaOpsPlanApi planApi, StorageProperties.PropertyValuesInstance instance)
+		{
+			originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
+
+			linkedObjectId = instance.PropertyValueInfo.LinkedObjectID;
+			scope = instance.PropertyValueInfo.Scope;
+			subId = instance.PropertyValueInfo.SubID;
+
+			ParsePropertyValues(planApi, instance.PropertyValue);
+		}
+
 		private void ParsePropertyValues(MediaOpsPlanApi planApi, IList<StorageProperties.PropertyValueSection> propertyValues)
 		{
 			if (propertyValues == null || propertyValues.Count == 0)
@@ -214,7 +275,7 @@
 				Property property = null;
 				if (!section.PropertyID.HasValue)
 				{
-					customValues.Add(new CustomPropertyValue(section));
+					customValues.Add(new InnerCustomPropertyValue(section));
 				}
 				else if (!propertiesById.TryGetValue(section.PropertyID.Value, out property))
 				{
@@ -228,15 +289,15 @@
 
 				if (property is StringProperty)
 				{
-					stringValues.Add(new StringPropertyValue(section));
+					stringValues.Add(new InnerStringPropertyValue(section));
 				}
 				else if (property is BooleanProperty)
 				{
-					booleanValues.Add(new BooleanPropertyValue(section));
+					booleanValues.Add(new InnerBooleanPropertyValue(section));
 				}
 				else if (property is DiscreteProperty)
 				{
-					discreteValues.Add(new DiscretePropertyValue(section));
+					discreteValues.Add(new InnerDiscretePropertyValue(section));
 				}
 			}
 		}

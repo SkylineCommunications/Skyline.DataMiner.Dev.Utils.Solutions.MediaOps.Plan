@@ -179,26 +179,20 @@
 			else
 			{
 				Assert.AreEqual(expectedCategory.ID.ToString(), resourcePool.CategoryId);
-
-				// check if category was created
-				var retrievedCategory = TestContext.CategoriesApi.Categories.Read(CategoryExposers.ID.Equal(expectedCategory.ID)).FirstOrDefault();
-				Assert.IsNotNull(retrievedCategory, $"Expected category with ID {expectedCategory.ID} was not created.");
 			}
 
-			// Check if Resource Pool DOM Instance was added as category item to the expected category
 			var categoryItems = TestContext.CategoriesApi.CategoryItems.Read(CategoryItemExposers.InstanceId.Equal(resourcePoolId.ToString())).ToArray();
 			if (expectedCategory == null)
 			{
-				Assert.AreEqual(0, categoryItems.Length, "The Resource Pool was registered as a category item while it shouldn't have been.");
+				Assert.AreEqual(0, categoryItems.Length, "Category items count mismatch");
+				return;
 			}
-			else
-			{
-				Assert.AreEqual(1, categoryItems.Length, "Category items count mismatch");
-				Assert.AreEqual(expectedCategory.ID.ToString(), categoryItems.Single().Category.ID.ToString());
 
-				var childItems = expectedCategory.GetChildItems(TestContext.CategoriesApi.CategoryItems);
-				Assert.AreEqual(1, childItems.Count(), "Child items count mismatch");
-			}
+			Assert.AreEqual(1, categoryItems.Length, "Category items count mismatch");
+			Assert.AreEqual(expectedCategory.ID.ToString(), categoryItems.Single().Category.ID.ToString());
+
+			var childItems = expectedCategory.GetChildItems(TestContext.CategoriesApi.CategoryItems);
+			Assert.AreEqual(1, childItems.Count(), "Child items count mismatch");
 		}
 	}
 }

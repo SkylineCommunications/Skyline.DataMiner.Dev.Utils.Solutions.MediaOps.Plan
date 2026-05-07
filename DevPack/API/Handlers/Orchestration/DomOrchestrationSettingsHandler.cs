@@ -260,7 +260,6 @@
 						var error = new OrchestrationSettingsInvalidConfigurationSettingsError
 						{
 							ErrorMessage = "Configuration ID cannot be empty.",
-							ConfigurationId = configurationSetting.Id,
 							Id = orchestrationSettings.Id,
 						};
 

@@ -37,7 +37,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 
 			var value = new StringPropertyValue(property);
 
-			Assert.AreEqual(id, value.PropertyId);
+			Assert.AreEqual(id, value.Id);
 		}
 
 		[TestMethod]
@@ -62,7 +62,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 
 			var value = new BooleanPropertyValue(property);
 
-			Assert.AreEqual(id, value.PropertyId);
+			Assert.AreEqual(id, value.Id);
 		}
 
 		[TestMethod]
@@ -87,7 +87,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 
 			var value = new DiscretePropertyValue(property);
 
-			Assert.AreEqual(id, value.PropertyId);
+			Assert.AreEqual(id, value.Id);
 		}
 
 		[TestMethod]

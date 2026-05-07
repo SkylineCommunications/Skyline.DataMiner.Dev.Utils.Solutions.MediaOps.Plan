@@ -6,7 +6,7 @@
 
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
 
-	public class ConsolePlanLogger : ILogger
+	internal class ConsolePlanLogger : ILogger
 	{
 		private static readonly IReadOnlyDictionary<LogLevel, string> LogLevelAbbreviations = new Dictionary<LogLevel, string>
 		{
