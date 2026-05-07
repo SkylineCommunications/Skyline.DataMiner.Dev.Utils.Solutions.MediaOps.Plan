@@ -19,17 +19,22 @@
 
 		public long Count()
 		{
-			throw new NotImplementedException();
+			return Count(new TRUEFilterElement<Workflow>());
 		}
 
 		public long Count(FilterElement<Workflow> filter)
 		{
+			if (filter.isEmpty())
+			{
+				return 0;
+			}
+
 			throw new NotImplementedException();
 		}
 
 		public long Count(IQuery<Workflow> query)
 		{
-			throw new NotImplementedException();
+			return Count(query.Filter);
 		}
 
 		public IReadOnlyCollection<Workflow> Create(IEnumerable<Workflow> oToCreate)

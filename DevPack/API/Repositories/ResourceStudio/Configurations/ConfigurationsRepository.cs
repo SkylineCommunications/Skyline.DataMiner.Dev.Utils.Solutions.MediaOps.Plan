@@ -42,6 +42,11 @@
 		/// <returns>The count of configurations matching the filter.</returns>
 		public long Count(FilterElement<Configuration> filter)
 		{
+			if (filter.isEmpty())
+			{
+				return 0;
+			}
+
 			return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Count), act =>
 			{
 				var paramFilter = filterTranslator.Translate(filter);

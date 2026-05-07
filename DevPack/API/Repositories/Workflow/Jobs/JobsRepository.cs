@@ -20,17 +20,22 @@
 
 		public long Count()
 		{
-			throw new NotImplementedException();
+			return Count(new TRUEFilterElement<Job>());
 		}
 
 		public long Count(FilterElement<Job> filter)
 		{
+			if (filter.isEmpty())
+			{
+				return 0;
+			}
+
 			throw new NotImplementedException();
 		}
 
 		public long Count(IQuery<Job> query)
 		{
-			throw new NotImplementedException();
+			return Count(query.Filter);
 		}
 
 		public IReadOnlyCollection<Job> Create(IEnumerable<Job> oToCreate)

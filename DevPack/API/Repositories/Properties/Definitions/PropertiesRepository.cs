@@ -44,6 +44,11 @@
 		/// <returns>The count of property definitions matching the filter.</returns>
 		public long Count(FilterElement<Property> filter)
 		{
+			if (filter.isEmpty())
+			{
+				return 0;
+			}
+
 			return PlanApi.DomHelpers.SlcPropertiesHelper.CountPropertiesInstances(filterTranslator.Translate(filter));
 		}
 

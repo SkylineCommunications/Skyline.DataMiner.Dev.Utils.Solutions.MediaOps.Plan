@@ -45,6 +45,11 @@
 		/// <returns>The count of capabilities matching the filter.</returns>
 		public long Count(FilterElement<Capability> filter)
 		{
+			if (filter.isEmpty())
+			{
+				return 0;
+			}
+
 			return ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Count), act =>
 			{
 				var paramFilter = filterTranslator.Translate(filter);

@@ -44,6 +44,11 @@
 		/// <returns>The count of resource properties matching the filter.</returns>
 		public long Count(FilterElement<ResourceProperty> filter)
 		{
+			if (filter.isEmpty())
+			{
+				return 0;
+			}
+
 			return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(filterTranslator.Translate(filter));
 		}
 
