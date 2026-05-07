@@ -297,6 +297,11 @@
 		/// <returns>An enumerable collection of configurations matching the filter.</returns>
 		public IEnumerable<Configuration> Read(FilterElement<Configuration> filter)
 		{
+			if (filter.isEmpty())
+			{
+				return Enumerable.Empty<Configuration>();
+			}
+
 			return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Read), act =>
 			{
 				var configurations = PlanApi.CoreHelpers.ProfileProvider.GetConfigurations(filterTranslator.Translate(filter));

@@ -8,6 +8,8 @@
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 
+	using SLDataGateway.API.Querying;
+
 	[TestClass]
 	[TestCategory("IntegrationTest")]
 	public sealed class BasicTests
@@ -50,6 +52,29 @@
 			var jobToVerify = TestContext.Api.Jobs.Read(JobExposers.Name.Equal(firstJob.Name)).First();
 
 			Assert.AreEqual(firstJob, jobToVerify);
+		}
+
+		[TestMethod]
+		public void ReadWithEmptyFilterReturnsEmptyList()
+		{
+			var idsToRetrieve = new Guid[0];
+			var emptyFilter = new ORFilterElement<Job>(idsToRetrieve.Select(x => JobExposers.Id.Equal(x)).ToArray());
+
+			var jobs = TestContext.Api.Jobs.Read(emptyFilter);
+			Assert.IsNotNull(jobs);
+			Assert.AreEqual(0, jobs.Count());
+		}
+
+		[TestMethod]
+		public void ReadWithEmptyQueryReturnsEmptyList()
+		{
+			var idsToRetrieve = new Guid[0];
+			var emptyFilter = new ORFilterElement<Job>(idsToRetrieve.Select(x => JobExposers.Id.Equal(x)).ToArray());
+			var queryWithEmptyFilter = emptyFilter.ToQuery();
+
+			var jobs = TestContext.Api.Jobs.Read(queryWithEmptyFilter);
+			Assert.IsNotNull(jobs);
+			Assert.AreEqual(0, jobs.Count());
 		}
 	}
 }

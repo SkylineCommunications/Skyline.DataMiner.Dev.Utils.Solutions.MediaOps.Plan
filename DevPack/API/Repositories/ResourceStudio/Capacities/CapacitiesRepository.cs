@@ -302,6 +302,11 @@
 				throw new ArgumentNullException(nameof(filter));
 			}
 
+			if (filter.isEmpty())
+			{
+				return Enumerable.Empty<Capacity>();
+			}
+
 			return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Read), act =>
 			{
 				var coreCapacities = PlanApi.CoreHelpers.ProfileProvider.GetCapacities(filterTranslator.Translate(filter));

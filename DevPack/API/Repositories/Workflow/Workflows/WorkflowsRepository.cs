@@ -148,6 +148,11 @@
 				throw new ArgumentNullException(nameof(filter));
 			}
 
+			if (filter.isEmpty())
+			{
+				return Enumerable.Empty<Workflow>();
+			}
+
 			return ActivityHelper.Track(nameof(WorkflowsRepository), nameof(Read), act =>
 			{
 				var domFilter = filterTranslator.Translate(filter);

@@ -9,6 +9,8 @@
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
+	using SLDataGateway.API.Querying;
+
 	[TestClass]
 	[TestCategory("IntegrationTest")]
 	[DoNotParallelize]
@@ -226,6 +228,29 @@
 		public void ReadWithEmptyListReturnsEmptyList()
 		{
 			var capabilities = TestContext.Api.Capabilities.Read(new List<Guid>());
+			Assert.IsNotNull(capabilities);
+			Assert.AreEqual(0, capabilities.Count());
+		}
+
+		[TestMethod]
+		public void ReadWithEmptyFilterReturnsEmptyList()
+		{
+			var idsToRetrieve = new Guid[0];
+			var emptyFilter = new ORFilterElement<Capability>(idsToRetrieve.Select(x => CapabilityExposers.Id.Equal(x)).ToArray());
+
+			var capabilities = TestContext.Api.Capabilities.Read(emptyFilter);
+			Assert.IsNotNull(capabilities);
+			Assert.AreEqual(0, capabilities.Count());
+		}
+
+		[TestMethod]
+		public void ReadWithEmptyQueryReturnsEmptyList()
+		{
+			var idsToRetrieve = new Guid[0];
+			var emptyFilter = new ORFilterElement<Capability>(idsToRetrieve.Select(x => CapabilityExposers.Id.Equal(x)).ToArray());
+			var queryWithEmptyFilter = emptyFilter.ToQuery();
+
+			var capabilities = TestContext.Api.Capabilities.Read(queryWithEmptyFilter);
 			Assert.IsNotNull(capabilities);
 			Assert.AreEqual(0, capabilities.Count());
 		}

@@ -149,6 +149,11 @@
                 throw new ArgumentNullException(nameof(filter));
             }
 
+			if (filter.isEmpty())
+			{
+				return Enumerable.Empty<Job>();
+			}
+
             return ActivityHelper.Track(nameof(JobsRepository), nameof(Read), act =>
             {
                 var domFilter = filterTranslator.Translate(filter);

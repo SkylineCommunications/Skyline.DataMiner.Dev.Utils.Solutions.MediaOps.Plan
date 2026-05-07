@@ -12,6 +12,8 @@
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
+	using SLDataGateway.API.Querying;
+
 	[TestClass]
 	[TestCategory("IntegrationTest")]
 	public sealed class BasicTests : IDisposable
@@ -295,6 +297,29 @@
 		public void ReadWithEmptyListReturnsEmptyList()
 		{
 			var resourcePools = TestContext.Api.ResourcePools.Read(new List<Guid>());
+			Assert.IsNotNull(resourcePools);
+			Assert.AreEqual(0, resourcePools.Count());
+		}
+
+		[TestMethod]
+		public void ReadWithEmptyFilterReturnsEmptyList()
+		{
+			var idsToRetrieve = new Guid[0];
+			var emptyFilter = new ORFilterElement<ResourcePool>(idsToRetrieve.Select(x => ResourcePoolExposers.Id.Equal(x)).ToArray());
+
+			var resourcePools = TestContext.Api.ResourcePools.Read(emptyFilter);
+			Assert.IsNotNull(resourcePools);
+			Assert.AreEqual(0, resourcePools.Count());
+		}
+
+		[TestMethod]
+		public void ReadWithEmptyQueryReturnsEmptyList()
+		{
+			var idsToRetrieve = new Guid[0];
+			var emptyFilter = new ORFilterElement<ResourcePool>(idsToRetrieve.Select(x => ResourcePoolExposers.Id.Equal(x)).ToArray());
+			var queryWithEmptyFilter = emptyFilter.ToQuery();
+
+			var resourcePools = TestContext.Api.ResourcePools.Read(queryWithEmptyFilter);
 			Assert.IsNotNull(resourcePools);
 			Assert.AreEqual(0, resourcePools.Count());
 		}

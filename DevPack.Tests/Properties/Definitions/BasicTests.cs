@@ -6,8 +6,11 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 	using RT_MediaOps.Plan.RegressionTests;
 	using RT_MediaOps.Plan.RST;
 
+	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+
+	using SLDataGateway.API.Querying;
 
 	[TestClass]
 	[TestCategory("IntegrationTest")]
@@ -306,6 +309,29 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 		public void ReadWithEmptyListReturnsEmptyList()
 		{
 			var properties = TestContext.Api.Properties.Read(new List<Guid>());
+			Assert.IsNotNull(properties);
+			Assert.AreEqual(0, properties.Count());
+		}
+
+		[TestMethod]
+		public void ReadWithEmptyFilterReturnsEmptyList()
+		{
+			var idsToRetrieve = new Guid[0];
+			var emptyFilter = new ORFilterElement<Property>(idsToRetrieve.Select(x => Skyline.DataMiner.Solutions.MediaOps.Plan.API.PropertyExposers.Id.Equal(x)).ToArray());
+
+			var properties = TestContext.Api.Properties.Read(emptyFilter);
+			Assert.IsNotNull(properties);
+			Assert.AreEqual(0, properties.Count());
+		}
+
+		[TestMethod]
+		public void ReadWithEmptyQueryReturnsEmptyList()
+		{
+			var idsToRetrieve = new Guid[0];
+			var emptyFilter = new ORFilterElement<Property>(idsToRetrieve.Select(x => Skyline.DataMiner.Solutions.MediaOps.Plan.API.PropertyExposers.Id.Equal(x)).ToArray());
+			var queryWithEmptyFilter = emptyFilter.ToQuery();
+
+			var properties = TestContext.Api.Properties.Read(queryWithEmptyFilter);
 			Assert.IsNotNull(properties);
 			Assert.AreEqual(0, properties.Count());
 		}

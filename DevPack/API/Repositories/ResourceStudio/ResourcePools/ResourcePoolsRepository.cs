@@ -695,6 +695,11 @@
 				throw new ArgumentNullException(nameof(filter));
 			}
 
+			if (filter.isEmpty())
+			{
+				return Enumerable.Empty<ResourcePool>();
+			}
+
 			return ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Read), act =>
 			{
 				var domFilter = filterTranslator.Translate(filter);
