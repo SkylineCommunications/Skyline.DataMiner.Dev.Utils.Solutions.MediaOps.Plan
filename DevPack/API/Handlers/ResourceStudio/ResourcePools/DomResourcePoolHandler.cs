@@ -582,7 +582,7 @@
 					.SelectMany(x => x)
 					.Distinct(new DefaultApiObjectComparer())
 					.Cast<Resource>()
-					.Where(x => poolsPerResourceCollection.TryGetValue(x, out var pools) && pools.Count() == 1 && pools.First().Id == resourcesPerPool.Key.Id)
+					.Where(x => poolsPerResourceCollection.TryGetValue(x, out var pools) && pools.Count == 1 && pools.First().Id == resourcesPerPool.Key.Id)
 					.ToList();
 
 				resourcesToDeprecate.AddRange(poolResourcesToDeprecate);
@@ -647,7 +647,7 @@
 					.SelectMany(x => x)
 					.Distinct(new DefaultApiObjectComparer())
 					.Cast<Resource>()
-					.Where(x => poolsPerResourceCollection.TryGetValue(x, out var pools) && pools.Count() == 1 && pools.First().Id == resourcesPerPool.Key.Id)
+					.Where(x => poolsPerResourceCollection.TryGetValue(x, out var pools) && pools.Count == 1 && pools.First().Id == resourcesPerPool.Key.Id)
 					.ToList();
 
 				resourcesToDelete.AddRange(poolResourcesToDelete);
