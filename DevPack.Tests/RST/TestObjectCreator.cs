@@ -258,7 +258,6 @@
 		{
 			if (!createdCategoryIds.Any())
 			{
-				testContext.Logger.Information(this, $"No categories to clean up.");
 				return;
 			}
 

@@ -287,7 +287,7 @@
 		}
 
 		[TestMethod]
-		public void ReadWith_EmptyList_ReturnsEmptyList()
+		public void ReadWithEmptyListReturnsEmptyList()
 		{
 			var resources = TestContext.Api.Resources.Read(new List<Guid>());
 			Assert.IsNotNull(resources);
@@ -295,7 +295,7 @@
 		}
 
 		[TestMethod]
-		public void ReadWith_EmptyFilter_ReturnsEmptyList()
+		public void ReadWithEmptyFilterReturnsEmptyList()
 		{
 			var idsToRetrieve = new Guid[0];
 			var emptyFilter = new ORFilterElement<Resource>(idsToRetrieve.Select(x => ResourceExposers.Id.Equal(x)).ToArray());
@@ -306,7 +306,7 @@
 		}
 
 		[TestMethod]
-		public void ReadWith_EmptyQuery_ReturnsEmptyList()
+		public void ReadWithEmptyQueryReturnsEmptyList()
 		{
 			var idsToRetrieve = new Guid[0];
 			var emptyFilter = new ORFilterElement<Resource>(idsToRetrieve.Select(x => ResourceExposers.Id.Equal(x)).ToArray());
