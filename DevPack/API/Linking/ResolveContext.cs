@@ -7,7 +7,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// Provides contextual information used while resolving <see cref="DataReference"/> instances
 	/// through a <see cref="LinkResolver"/>.
 	/// </summary>
-	public sealed class ResolveContext
+	public class ResolveContext
     {
         /// <summary>Gets a shared empty context, useful when no contextual information is required.</summary>
         public static ResolveContext Empty { get; } = new ResolveContext();

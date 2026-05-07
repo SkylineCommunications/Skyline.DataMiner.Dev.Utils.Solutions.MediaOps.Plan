@@ -16,20 +16,34 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// </summary>
 		public LinkResolver()
 		{
+			Context = ResolveContext.Empty;
 		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="LinkResolver"/> class with a resolution context.
+		/// </summary>
+		/// <param name="context">The resolution context.</param>
+		/// <exception cref="ArgumentNullException">Thrown when the context is null.</exception>
+		public LinkResolver(ResolveContext context)
+		{
+			Context = context ?? throw new ArgumentNullException(nameof(context));
+		}
+
+		/// <summary>
+		/// Gets the context used for resolving dependencies.
+		/// </summary>
+		public ResolveContext Context { get; }
 
 		/// <summary>
 		/// Builds a human-readable label for the specified reference.
 		/// </summary>
 		/// <param name="reference">The reference to describe.</param>
-		/// <param name="context">Resolution context.</param>
+		/// 
 		/// <returns>The display label.</returns>
-		public string GetDisplayLabel(DataReference reference, ResolveContext context)
+		public virtual string GetDisplayLabel(DataReference reference)
 		{
 			if (reference == null)
 				throw new ArgumentNullException(nameof(reference));
-			if (context == null)
-				throw new ArgumentNullException(nameof(context));
 
 			var displayString = reference.Type.GetDescription();
 
@@ -37,7 +51,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				case ResourcePropertyReference rpr:
 					{
-						var propertyName = GetResourcePropertyName(rpr, context);
+						var propertyName = GetResourcePropertyName(rpr);
 						if (!String.IsNullOrEmpty(propertyName))
 							displayString += $": {propertyName}";
 
@@ -46,7 +60,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 				case CapabilityParameterReference cpr:
 					{
-						var parameterName = GetCapabilityName(cpr, context);
+						var parameterName = GetCapabilityName(cpr);
 						if (!String.IsNullOrEmpty(parameterName))
 							displayString += $": {parameterName}";
 
@@ -55,7 +69,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 				case CapacityParameterReference capr:
 					{
-						var parameterName = GetCapacityName(capr, context);
+						var parameterName = GetCapacityName(capr);
 						if (!String.IsNullOrEmpty(parameterName))
 							displayString += $": {parameterName}";
 
@@ -64,7 +78,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 				case ConfigurationParameterReference cfgr:
 					{
-						var parameterName = GetConfigurationName(cfgr, context);
+						var parameterName = GetConfigurationName(cfgr);
 						if (!String.IsNullOrEmpty(parameterName))
 							displayString += $": {parameterName}";
 
@@ -73,7 +87,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 				case WorkflowPropertyReference wpr:
 					{
-						var propertyName = GetWorkflowPropertyName(wpr, context);
+						var propertyName = GetWorkflowPropertyName(wpr);
 						if (!String.IsNullOrEmpty(propertyName))
 							displayString += $": {propertyName}";
 
@@ -82,7 +96,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 				case JobPropertyReference jpr:
 					{
-						var propertyName = GetJobPropertyName(jpr, context);
+						var propertyName = GetJobPropertyName(jpr);
 						if (!String.IsNullOrEmpty(propertyName))
 							displayString += $": {propertyName}";
 
@@ -103,15 +117,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Resolves the reference to its current value, following chains of references and detecting cycles.
 		/// </summary>
 		/// <param name="reference">The reference to resolve.</param>
-		/// <param name="context">Resolution context.</param>
+		/// 
 		/// <returns>A <see cref="ResolvedValue"/> describing the outcome.</returns>
 		/// <exception cref="CircularReferenceException">Thrown when a cycle is detected.</exception>
-		public virtual ResolvedValue ResolveValue(DataReference reference, ResolveContext context)
+		public virtual ResolvedValue ResolveValue(DataReference reference)
 		{
 			if (reference == null)
 				throw new ArgumentNullException(nameof(reference));
-			if (context == null)
-				throw new ArgumentNullException(nameof(context));
 
 			var visited = new HashSet<DataReference>();
 
@@ -124,16 +136,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 				var resolved = reference switch
 				{
-					CapabilityParameterReference cpb => ResolveCapabilityValue(cpb, context),
-					CapacityParameterReference cap => ResolveCapacityValue(cap, context),
-					ConfigurationParameterReference cfg => ResolveConfigurationValue(cfg, context),
-					ResourceNameReference rnr => ResolveResourceName(rnr, context),
-					ResourceLinkedObjectIdReference rlr => ResolveResourceLinkedObjectId(rlr, context),
-					ResourcePropertyReference rpr => ResolveResourcePropertyValue(rpr, context),
-					WorkflowNameReference wnr => ResolveWorkflowName(wnr, context),
-					WorkflowPropertyReference wpr => ResolveWorkflowPropertyValue(wpr, context),
-					JobNameReference jnr => ResolveJobName(jnr, context),
-					JobPropertyReference jpr => ResolveJobPropertyValue(jpr, context),
+					CapabilityParameterReference cpb => ResolveCapabilityValue(cpb),
+					CapacityParameterReference cap => ResolveCapacityValue(cap),
+					ConfigurationParameterReference cfg => ResolveConfigurationValue(cfg),
+					ResourceNameReference rnr => ResolveResourceName(rnr),
+					ResourceLinkedObjectIdReference rlr => ResolveResourceLinkedObjectId(rlr),
+					ResourcePropertyReference rpr => ResolveResourcePropertyValue(rpr),
+					WorkflowNameReference wnr => ResolveWorkflowName(wnr),
+					WorkflowPropertyReference wpr => ResolveWorkflowPropertyValue(wpr),
+					JobNameReference jnr => ResolveJobName(jnr),
+					JobPropertyReference jpr => ResolveJobPropertyValue(jpr),
 					_ => throw new NotSupportedException($"Unsupported reference type: {reference.GetType()}")
 				};
 
@@ -161,9 +173,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <see cref="DataReference.NodeId"/> is set, otherwise the workflow / job itself.
 		/// Default returns an unresolved <see cref="ResolvedValue"/>.
 		/// </summary>
-		protected virtual ResolvedValue ResolveCapabilityValue(CapabilityParameterReference reference, ResolveContext context)
+		protected virtual ResolvedValue ResolveCapabilityValue(CapabilityParameterReference reference)
 		{
-			var orchestrationSettings = GetOrchestrationSettings(reference.NodeId, context);
+			var orchestrationSettings = GetOrchestrationSettings(reference.NodeId);
 
 			if (orchestrationSettings != null)
 			{
@@ -187,9 +199,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <see cref="DataReference.NodeId"/> is set, otherwise the workflow / job itself.
 		/// Default returns an unresolved <see cref="ResolvedValue"/>.
 		/// </summary>
-		protected virtual ResolvedValue ResolveCapacityValue(CapacityParameterReference reference, ResolveContext context)
+		protected virtual ResolvedValue ResolveCapacityValue(CapacityParameterReference reference)
 		{
-			var orchestrationSettings = GetOrchestrationSettings(reference.NodeId, context);
+			var orchestrationSettings = GetOrchestrationSettings(reference.NodeId);
 
 			if (orchestrationSettings != null)
 			{
@@ -213,9 +225,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <see cref="DataReference.NodeId"/> is set, otherwise the workflow / job itself.
 		/// Default returns an unresolved <see cref="ResolvedValue"/>.
 		/// </summary>
-		protected virtual ResolvedValue ResolveConfigurationValue(ConfigurationParameterReference reference, ResolveContext context)
+		protected virtual ResolvedValue ResolveConfigurationValue(ConfigurationParameterReference reference)
 		{
-			var orchestrationSettings = GetOrchestrationSettings(reference.NodeId, context);
+			var orchestrationSettings = GetOrchestrationSettings(reference.NodeId);
 
 			if (orchestrationSettings != null)
 			{
@@ -237,9 +249,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <summary>
 		/// Resolves a <see cref="ResourceNameReference"/> using <see cref="GetResource"/>.
 		/// </summary>
-		protected virtual ResolvedValue ResolveResourceName(ResourceNameReference reference, ResolveContext context)
+		protected virtual ResolvedValue ResolveResourceName(ResourceNameReference reference)
 		{
-			var resource = GetResource(reference, context);
+			var resource = GetResource(reference);
 			return resource == null
 				? ResolvedValue.FromUnresolvedReference(reference)
 				: ResolvedValue.FromValue(resource.Name);
@@ -248,9 +260,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <summary>
 		/// Resolves a <see cref="ResourcePropertyReference"/> using <see cref="GetResource"/>.
 		/// </summary>
-		protected virtual ResolvedValue ResolveResourcePropertyValue(ResourcePropertyReference reference, ResolveContext context)
+		protected virtual ResolvedValue ResolveResourcePropertyValue(ResourcePropertyReference reference)
 		{
-			var resource = GetResource(reference, context);
+			var resource = GetResource(reference);
 			if (resource == null)
 				return ResolvedValue.FromUnresolvedReference(reference);
 
@@ -263,9 +275,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <summary>
 		/// Resolves a <see cref="ResourceLinkedObjectIdReference"/> using <see cref="GetResource"/>.
 		/// </summary>
-		protected virtual ResolvedValue ResolveResourceLinkedObjectId(ResourceLinkedObjectIdReference reference, ResolveContext context)
+		protected virtual ResolvedValue ResolveResourceLinkedObjectId(ResourceLinkedObjectIdReference reference)
 		{
-			var resource = GetResource(reference, context);
+			var resource = GetResource(reference);
 
 			return resource switch
 			{
@@ -282,9 +294,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <see cref="ResolveContext.Workflow"/> when available, returning the workflow name
 		/// or an unresolved <see cref="ResolvedValue"/> when no workflow is set.
 		/// </summary>
-		protected virtual ResolvedValue ResolveWorkflowName(WorkflowNameReference reference, ResolveContext context)
+		protected virtual ResolvedValue ResolveWorkflowName(WorkflowNameReference reference)
 		{
-			var name = context?.Workflow?.Name;
+			var name = Context?.Workflow?.Name;
 			return name != null ? ResolvedValue.FromValue(name) : ResolvedValue.FromUnresolvedReference(reference);
 		}
 
@@ -293,10 +305,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// When <see cref="ResolveContext.WorkflowPropertyValues"/> is populated, those values are
 		/// used directly; otherwise an unresolved <see cref="ResolvedValue"/> is returned.
 		/// </summary>
-		protected virtual ResolvedValue ResolveWorkflowPropertyValue(WorkflowPropertyReference reference, ResolveContext context)
+		protected virtual ResolvedValue ResolveWorkflowPropertyValue(WorkflowPropertyReference reference)
 		{
-			if (context?.WorkflowPropertyValues != null
-				&& context.WorkflowPropertyValues.TryGetValue(reference.WorkflowPropertyId, out var ctxValue))
+			if (Context?.WorkflowPropertyValues != null &&
+				Context.WorkflowPropertyValues.TryGetValue(reference.WorkflowPropertyId, out var ctxValue))
 			{
 				return ResolvedValue.FromValue(ctxValue);
 			}
@@ -309,9 +321,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <see cref="ResolveContext.Job"/> when available, returning the job name
 		/// or an unresolved <see cref="ResolvedValue"/> when no job is set.
 		/// </summary>
-		protected virtual ResolvedValue ResolveJobName(JobNameReference reference, ResolveContext context)
+		protected virtual ResolvedValue ResolveJobName(JobNameReference reference)
 		{
-			var name = context?.Job?.Name;
+			var name = Context?.Job?.Name;
 			return name != null ? ResolvedValue.FromValue(name) : ResolvedValue.FromUnresolvedReference(reference);
 		}
 
@@ -320,10 +332,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// When <see cref="ResolveContext.JobPropertyValues"/> is populated, those values are
 		/// used directly; otherwise an unresolved <see cref="ResolvedValue"/> is returned.
 		/// </summary>
-		protected virtual ResolvedValue ResolveJobPropertyValue(JobPropertyReference reference, ResolveContext context)
+		protected virtual ResolvedValue ResolveJobPropertyValue(JobPropertyReference reference)
 		{
-			if (context?.JobPropertyValues != null
-				&& context.JobPropertyValues.TryGetValue(reference.JobPropertyId, out var ctxValue))
+			if (Context?.JobPropertyValues != null &&
+				Context.JobPropertyValues.TryGetValue(reference.JobPropertyId, out var ctxValue))
 			{
 				return ResolvedValue.FromValue(ctxValue);
 			}
@@ -335,58 +347,58 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Returns the resource the reference targets when <see cref="DataReference.NodeId"/> is set. References without a node id target the
 		/// workflow / job itself, which has no associated resource, so <c>null</c> is returned.
 		/// </summary>
-		protected virtual Resource GetResource(DataReference reference, ResolveContext context)
+		protected virtual Resource GetResource(DataReference reference)
 		{
 			if (String.IsNullOrEmpty(reference.NodeId))
 			{
 				return null;
 			}
 
-			return context.ResourcesByNode.TryGetValue(reference.NodeId, out var resource)
+			return Context.ResourcesByNode.TryGetValue(reference.NodeId, out var resource)
 				? resource
 				: null;
 		}
 
 		/// <summary>Returns the display name for a resource property reference.</summary>
-		protected virtual string GetResourcePropertyName(ResourcePropertyReference reference, ResolveContext context)
+		protected virtual string GetResourcePropertyName(ResourcePropertyReference reference)
 		{
-			if (context?.ResourceProperties == null)
+			if (Context?.ResourceProperties == null)
 				return null;
 
-			return context.ResourceProperties.TryGetValue(reference.ResourcePropertyId, out var property)
+			return Context.ResourceProperties.TryGetValue(reference.ResourcePropertyId, out var property)
 				? property?.Name
 				: null;
 		}
 
 		/// <summary>Returns the display name for a capability parameter reference.</summary>
-		protected virtual string GetCapabilityName(CapabilityParameterReference reference, ResolveContext context)
+		protected virtual string GetCapabilityName(CapabilityParameterReference reference)
 		{
-			if (context?.CapabilityDefinitions == null)
+			if (Context?.CapabilityDefinitions == null)
 				return null;
 
-			return context.CapabilityDefinitions.TryGetValue(reference.ParameterId, out var capability)
+			return Context.CapabilityDefinitions.TryGetValue(reference.ParameterId, out var capability)
 				? capability?.Name
 				: null;
 		}
 
 		/// <summary>Returns the display name for a capacity parameter reference.</summary>
-		protected virtual string GetCapacityName(CapacityParameterReference reference, ResolveContext context)
+		protected virtual string GetCapacityName(CapacityParameterReference reference)
 		{
-			if (context?.CapacityDefinitions == null)
+			if (Context?.CapacityDefinitions == null)
 				return null;
 
-			return context.CapacityDefinitions.TryGetValue(reference.ParameterId, out var capacity)
+			return Context.CapacityDefinitions.TryGetValue(reference.ParameterId, out var capacity)
 				? capacity?.Name
 				: null;
 		}
 
 		/// <summary>Returns the display name for a configuration parameter reference.</summary>
-		protected virtual string GetConfigurationName(ConfigurationParameterReference reference, ResolveContext context)
+		protected virtual string GetConfigurationName(ConfigurationParameterReference reference)
 		{
-			if (context?.ConfigurationDefinitions == null)
+			if (Context?.ConfigurationDefinitions == null)
 				return null;
 
-			return context.ConfigurationDefinitions.TryGetValue(reference.ParameterId, out var configuration)
+			return Context.ConfigurationDefinitions.TryGetValue(reference.ParameterId, out var configuration)
 				? configuration?.Name
 				: null;
 		}
@@ -395,12 +407,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Returns the display name for a workflow property. Default returns <c>null</c>; the property catalog
 		/// is not exposed through <see cref="IMediaOpsPlanApi"/> and must be supplied by derived classes.
 		/// </summary>
-		protected virtual string GetWorkflowPropertyName(WorkflowPropertyReference reference, ResolveContext context)
+		protected virtual string GetWorkflowPropertyName(WorkflowPropertyReference reference)
 		{
-			if (context?.WorkflowProperties == null)
+			if (Context?.WorkflowProperties == null)
 				return null;
 
-			return context.WorkflowProperties.TryGetValue(reference.WorkflowPropertyId, out var value)
+			return Context.WorkflowProperties.TryGetValue(reference.WorkflowPropertyId, out var value)
 				? value?.Name
 				: null;
 		}
@@ -409,12 +421,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Returns the display name for a job property. Default returns <c>null</c>; the property catalog
 		/// must be supplied by derived classes or through the context.
 		/// </summary>
-		protected virtual string GetJobPropertyName(JobPropertyReference reference, ResolveContext context)
+		protected virtual string GetJobPropertyName(JobPropertyReference reference)
 		{
-			if (context?.JobProperties == null)
+			if (Context?.JobProperties == null)
 				return null;
 
-			return context.JobProperties.TryGetValue(reference.JobPropertyId, out var value)
+			return Context.JobProperties.TryGetValue(reference.JobPropertyId, out var value)
 				? value?.Name
 				: null;
 		}
@@ -424,28 +436,27 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// when <paramref name="nodeId"/> is <c>null</c> or empty.
 		/// </summary>
 		/// <param name="nodeId">The node identifier, or <c>null</c> to target the workflow / job level.</param>
-		/// <param name="context">Resolution context.</param>
 		/// <returns>The matching <see cref="OrchestrationSettings"/>, or <c>null</c> when not found.</returns>
-		protected virtual OrchestrationSettings GetOrchestrationSettings(string nodeId, ResolveContext context)
+		protected virtual OrchestrationSettings GetOrchestrationSettings(string nodeId)
 		{
 			if (!String.IsNullOrEmpty(nodeId))
 			{
-				if (context?.OrchestrationSettingsByNode != null &&
-					context.OrchestrationSettingsByNode.TryGetValue(nodeId, out var nodeSettings))
+				if (Context?.OrchestrationSettingsByNode != null &&
+					Context.OrchestrationSettingsByNode.TryGetValue(nodeId, out var nodeSettings))
 				{
 					return nodeSettings;
 				}
 			}
 			else
 			{
-				if (context?.Workflow != null)
+				if (Context?.Workflow != null)
 				{
-					return context.Workflow.OrchestrationSettings;
+					return Context.Workflow.OrchestrationSettings;
 				}
 
-				if (context?.Job != null)
+				if (Context?.Job != null)
 				{
-					return context.Job.OrchestrationSettings;
+					return Context.Job.OrchestrationSettings;
 				}
 			}
 
