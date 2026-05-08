@@ -36,6 +36,8 @@
 
 		public IDms Dms { get; private set; }
 
+		public ConsolePlanLogger Logger { get; private set; } = new ConsolePlanLogger();
+
 		public DomHelper ResourceStudioDomHelper { get; private set; }
 
 		public ResourceManagerHelper ResourceManagerHelper { get; private set; }
