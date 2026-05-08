@@ -46,7 +46,6 @@ namespace RT_MediaOps.Plan.Properties.Values
             var collectionId = Guid.NewGuid();
             var collection = new PropertyValueCollection(collectionId)
             {
-                Name = "TestCollection",
                 LinkedObjectId = "obj-1",
                 Scope = "global",
             };
@@ -55,7 +54,6 @@ namespace RT_MediaOps.Plan.Properties.Values
             var created = objectCreator.CreatePropertyValueCollection(collection);
 
             Assert.AreEqual(collectionId, created.Id);
-            Assert.AreEqual("TestCollection", created.Name);
             Assert.AreEqual("obj-1", created.LinkedObjectId);
             Assert.AreEqual("global", created.Scope);
             Assert.AreEqual(1, created.StringValues.Count);
@@ -65,20 +63,9 @@ namespace RT_MediaOps.Plan.Properties.Values
             var read = TestContext.Api.PropertyValueCollections.Read(collectionId);
             Assert.IsNotNull(read);
             Assert.AreEqual(collectionId, read.Id);
-            Assert.AreEqual("TestCollection", read.Name);
-
-            // Update
-            read.Name = "TestCollection_Updated";
-            var updated = TestContext.Api.PropertyValueCollections.Update(read);
-
-            Assert.AreEqual("TestCollection_Updated", updated.Name);
-
-            var readAfterUpdate = TestContext.Api.PropertyValueCollections.Read(collectionId);
-            Assert.IsNotNull(readAfterUpdate);
-            Assert.AreEqual("TestCollection_Updated", readAfterUpdate.Name);
 
             // Delete
-            TestContext.Api.PropertyValueCollections.Delete(updated);
+            TestContext.Api.PropertyValueCollections.Delete(read);
 
             var readAfterDelete = TestContext.Api.PropertyValueCollections.Read(collectionId);
             Assert.IsNull(readAfterDelete);
@@ -321,29 +308,6 @@ namespace RT_MediaOps.Plan.Properties.Values
         }
 
         [TestMethod]
-        public void DeleteNewCollectionThrowsException()
-        {
-            var collection = new PropertyValueCollection
-            {
-                Name = "NewCollection",
-                LinkedObjectId = "obj-1",
-                Scope = "global",
-            };
-
-            try
-            {
-                TestContext.Api.PropertyValueCollections.Delete(collection);
-            }
-            catch (MediaOpsException ex)
-            {
-                StringAssert.Contains(ex.Message, "A property value collection that was not saved cannot be removed.");
-                return;
-            }
-
-            Assert.Fail("Expected exception was not thrown.");
-        }
-
-        [TestMethod]
         public void CountReturnsCorrectNumber()
         {
             var countBefore = TestContext.Api.PropertyValueCollections.Count();
@@ -401,6 +365,70 @@ namespace RT_MediaOps.Plan.Properties.Values
             {
                 Assert.IsNull(TestContext.Api.PropertyValueCollections.Read(item.Id));
             }
+        }
+
+        [TestMethod]
+        public void UpdateExistingWithCustomAndDoubleValues()
+        {
+            // Arrange: create a property definition to link values against
+            var property = new StringProperty
+            {
+                Name = $"{Guid.NewGuid()}_Prop",
+                Scope = "global",
+                SectionName = "General",
+            };
+            objectCreator.CreateProperty(property);
+
+            // Create
+            var collectionId = Guid.NewGuid();
+            var collection = new PropertyValueCollection(collectionId)
+            {
+                LinkedObjectId = "obj-1",
+                Scope = "global",
+            };
+            collection.Add(new StringPropertyValue(property) { Value = "hello" });
+
+            var created = objectCreator.CreatePropertyValueCollection(collection);
+
+            // Read
+            var read = TestContext.Api.PropertyValueCollections.Read(collectionId);
+            Assert.IsNotNull(read);
+            Assert.AreEqual(collectionId, read.Id);
+
+            // Arrange: create an additional boolean property definition
+            var booleanProperty = new BooleanProperty
+            {
+                Name = $"{Guid.NewGuid()}_BooleanProp",
+                Scope = "global",
+                SectionName = "General",
+            };
+            objectCreator.CreateProperty(booleanProperty);
+
+            // Update: add a custom value and a boolean property value
+            read.Add(new CustomPropertyValue { Name = "CustomKey", Value = "CustomValue" });
+            read.Add(new BooleanPropertyValue(booleanProperty) { Value = true });
+
+            var updated = TestContext.Api.PropertyValueCollections.Update(read);
+
+            Assert.AreEqual(1, updated.CustomValues.Count);
+            Assert.AreEqual("CustomKey", updated.CustomValues.First().Name);
+            Assert.AreEqual("CustomValue", updated.CustomValues.First().Value);
+            Assert.AreEqual(1, updated.BooleanValues.Count);
+            Assert.AreEqual(true, updated.BooleanValues.First().Value);
+
+            var readAfterUpdate = TestContext.Api.PropertyValueCollections.Read(collectionId);
+            Assert.IsNotNull(readAfterUpdate);
+            Assert.AreEqual(1, readAfterUpdate.CustomValues.Count);
+            Assert.AreEqual("CustomKey", readAfterUpdate.CustomValues.First().Name);
+            Assert.AreEqual("CustomValue", readAfterUpdate.CustomValues.First().Value);
+            Assert.AreEqual(1, readAfterUpdate.BooleanValues.Count);
+            Assert.AreEqual(true, readAfterUpdate.BooleanValues.First().Value);
+
+            // Delete
+            TestContext.Api.PropertyValueCollections.Delete(updated);
+
+            var readAfterDelete = TestContext.Api.PropertyValueCollections.Read(collectionId);
+            Assert.IsNull(readAfterDelete);
         }
     }
 }

@@ -5,6 +5,8 @@
 	using System.Collections.Generic;
 	using System.Linq;
 
+	using Skyline.DataMiner.Net.Helper;
+
 	using StorageProperties = Storage.DOM.SlcProperties;
 
 	/// <summary>
@@ -100,6 +102,59 @@
 		public bool IsReadOnly => false;
 
 		internal StorageProperties.PropertyValuesInstance OriginalInstance => originalInstance;
+
+		/// <inheritdoc />
+		public override int GetHashCode()
+		{
+			unchecked
+			{
+				int hash = 17;
+				hash = (hash * 23) + Id.GetHashCode();
+				hash = (hash * 23) + (linkedObjectId != null ? linkedObjectId.GetHashCode() : 0);
+				hash = (hash * 23) + (scope != null ? scope.GetHashCode() : 0);
+				hash = (hash * 23) + (subId != null ? subId.GetHashCode() : 0);
+
+				foreach (var value in customValues.OrderBy(x => x.Name))
+				{
+					hash = (hash * 23) + value.GetHashCode();
+				}
+
+				foreach (var value in stringValues.OrderBy(x => x.Id))
+				{
+					hash = (hash * 23) + value.GetHashCode();
+				}
+
+				foreach (var value in booleanValues.OrderBy(x => x.Id))
+				{
+					hash = (hash * 23) + value.GetHashCode();
+				}
+
+				foreach (var value in discreteValues.OrderBy(x => x.Id))
+				{
+					hash = (hash * 23) + value.GetHashCode();
+				}
+
+				return hash;
+			}
+		}
+
+		/// <inheritdoc />
+		public override bool Equals(object obj)
+		{
+			if (obj is not PropertyValueCollection other)
+			{
+				return false;
+			}
+
+			return Id == other.Id
+				&& linkedObjectId == other.linkedObjectId
+				&& scope == other.scope
+				&& subId == other.subId
+				&& customValues.ScrambledEquals(other.customValues)
+				&& stringValues.ScrambledEquals(other.stringValues)
+				&& booleanValues.ScrambledEquals(other.booleanValues)
+				&& discreteValues.ScrambledEquals(other.discreteValues);
+		}
 
 		/// <inheritdoc />
 		public void Add(PropertyValueBase item)

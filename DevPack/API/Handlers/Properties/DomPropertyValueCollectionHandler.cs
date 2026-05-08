@@ -2,13 +2,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
 	using System.Collections.Generic;
-	using System.Configuration;
 	using System.Linq;
 
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
-	using Skyline.DataMiner.Solutions.MediaOps.Live.API.Objects.Orchestration;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcProperties;
 	using Skyline.DataMiner.Utils.DOM.Extensions;
 
@@ -61,7 +60,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			ValidateIdsNotInUse(toCreate);
 			ValidateLinkedObjectIds(toCreate);
 			ValidateScopes(toCreate);
-			ValidateLinkedObjectIdAndSubIdAreUnique(toCreate);
+			ValidateLinkedObjectIdAndSubIdAreUnique(toCreate.Where(IsValid).ToList());
 
 			propertyLookup = new PropertyLookup(planApi, apiValueCollections);
 			ValidateCustomProperties(apiValueCollections);
@@ -88,6 +87,50 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				throw new ArgumentException($"Not all provided property value collections are valid", nameof(apiValueCollections));
 			}
 
+			var toCreate = apiValueCollections.Where(x => x.IsNew).ToList();
+			var toUpdate = apiValueCollections.Except(toCreate).ToList();
+
+			var changeResults = GetPropertyValueCollectionsWithChanges(toUpdate);
+
+			var toCreateDomInstances = toCreate
+				.Where(IsValid)
+				.Select(x => x.GetInstanceWithChanges())
+				.ToList();
+			var toUpdateDomInstances = changeResults
+				.Where(IsValid)
+				.Select(x => new DomPropertyValueCollection(x.Instance))
+				.ToList();
+			CreateOrUpdateDomPropertyValueCollections(toCreateDomInstances.Concat(toUpdateDomInstances).ToList());
+		}
+
+		private void CreateOrUpdateDomPropertyValueCollections(ICollection<DomPropertyValueCollection> domValueCollections)
+		{
+			if (domValueCollections == null)
+			{
+				throw new ArgumentNullException(nameof(domValueCollections));
+			}
+
+			if (domValueCollections.Count == 0)
+			{
+				return;
+			}
+
+			planApi.DomHelpers.SlcPropertiesHelper.DomHelper.DomInstances.TryCreateOrUpdateInBatches(domValueCollections.Select(x => x.ToInstance()), out var domResult);
+
+			foreach (var id in domResult.UnsuccessfulIds)
+			{
+				ReportError(id.Id);
+
+				if (domResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+				{
+					var mediaOpsTraceData = new MediaOpsTraceData();
+					mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = traceData.ToString() });
+
+					PassTraceData(id.Id, mediaOpsTraceData);
+				}
+			}
+
+			ReportSuccess(domResult.SuccessfulItems.Select(x => new DomPropertyValueCollection(x)));
 		}
 
 		private void Delete(ICollection<PropertyValueCollection> apiValueCollections)
@@ -287,9 +330,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return;
 			}
 
-			var objectsRequiringValidation = apiValueCollections
-				.Where(IsValid)
-				.ToList();
+			var objectsRequiringValidation = apiValueCollections.ToList();
 
 			if (objectsRequiringValidation.Count == 0)
 			{
@@ -558,6 +599,18 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 				ReportError(valueCollection.Id, error);
 			}
+		}
+
+		private ICollection<DomChangeResults> GetPropertyValueCollectionsWithChanges(ICollection<PropertyValueCollection> apiValueCollections)
+		{
+			return GetItemsWithChanges<PropertyValueCollection, DomPropertyValueCollection>(
+				apiValueCollections,
+				p => p.OriginalInstance,
+				p => p.GetInstanceWithChanges(),
+				ids => planApi.DomHelpers.SlcPropertiesHelper.GetPropertyValues(ids),
+				p => new PropertyValueCollectionNotFoundError { ErrorMessage = $"Property value collection with ID '{p.Id}' no longer exists.", Id = p.Id },
+				(p, msg) => new PropertyValueCollectionValueAlreadyChangedError { ErrorMessage = msg, Id = p.Id })
+				.ToList();
 		}
 
 		private sealed class PropertyLookup
