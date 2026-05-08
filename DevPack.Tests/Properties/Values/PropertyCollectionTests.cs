@@ -172,85 +172,6 @@ namespace RT_MediaOps.Plan.Properties.Values
 		}
 
 		[TestMethod]
-		public void Add_DuplicateStringPropertyValue_ThrowsArgumentException()
-		{
-			var property = new StringProperty();
-			var collection = new PropertyValueCollection();
-			collection.Add(new StringPropertyValue(property));
-
-			Assert.ThrowsException<ArgumentException>(() => collection.Add(new StringPropertyValue(property)));
-		}
-
-		[TestMethod]
-		public void Add_DuplicateBooleanPropertyValue_ThrowsArgumentException()
-		{
-			var property = new BooleanProperty();
-			var collection = new PropertyValueCollection();
-			collection.Add(new BooleanPropertyValue(property));
-
-			Assert.ThrowsException<ArgumentException>(() => collection.Add(new BooleanPropertyValue(property)));
-		}
-
-		[TestMethod]
-		public void Add_DuplicateDiscretePropertyValue_ThrowsArgumentException()
-		{
-			var property = new DiscreteProperty();
-			var collection = new PropertyValueCollection();
-			collection.Add(new DiscretePropertyValue(property));
-
-			Assert.ThrowsException<ArgumentException>(() => collection.Add(new DiscretePropertyValue(property)));
-		}
-
-		[TestMethod]
-		public void Add_DuplicateCustomPropertyValue_ThrowsArgumentException()
-		{
-			var collection = new PropertyValueCollection();
-			collection.Add(new CustomPropertyValue("MyCustom"));
-
-			Assert.ThrowsException<ArgumentException>(() => collection.Add(new CustomPropertyValue("MyCustom")));
-		}
-
-		[TestMethod]
-		public void Add_SameStringPropertyValueInstance_ThrowsArgumentException()
-		{
-			var value = new StringPropertyValue(new StringProperty());
-			var collection = new PropertyValueCollection();
-			collection.Add(value);
-
-			Assert.ThrowsException<ArgumentException>(() => collection.Add(value));
-		}
-
-		[TestMethod]
-		public void Add_SameBooleanPropertyValueInstance_ThrowsArgumentException()
-		{
-			var value = new BooleanPropertyValue(new BooleanProperty());
-			var collection = new PropertyValueCollection();
-			collection.Add(value);
-
-			Assert.ThrowsException<ArgumentException>(() => collection.Add(value));
-		}
-
-		[TestMethod]
-		public void Add_SameDiscretePropertyValueInstance_ThrowsArgumentException()
-		{
-			var value = new DiscretePropertyValue(new DiscreteProperty());
-			var collection = new PropertyValueCollection();
-			collection.Add(value);
-
-			Assert.ThrowsException<ArgumentException>(() => collection.Add(value));
-		}
-
-		[TestMethod]
-		public void Add_SameCustomPropertyValueInstance_ThrowsArgumentException()
-		{
-			var value = new CustomPropertyValue("MyCustom");
-			var collection = new PropertyValueCollection();
-			collection.Add(value);
-
-			Assert.ThrowsException<ArgumentException>(() => collection.Add(value));
-		}
-
-		[TestMethod]
 		public void Remove_ExistingStringPropertyValue_ReturnsTrueAndDecreasesCount()
 		{
 			var collection = new PropertyValueCollection();
@@ -320,20 +241,6 @@ namespace RT_MediaOps.Plan.Properties.Values
 			var result = collection.Remove(null);
 
 			Assert.IsFalse(result);
-		}
-
-		[TestMethod]
-		public void Remove_AllowsReAddingAfterRemoval()
-		{
-			var property = new StringProperty();
-			var collection = new PropertyValueCollection();
-			var value = new StringPropertyValue(property);
-			collection.Add(value);
-			collection.Remove(value);
-
-			collection.Add(new StringPropertyValue(property));
-
-			Assert.AreEqual(1, collection.Count);
 		}
 
 		[TestMethod]

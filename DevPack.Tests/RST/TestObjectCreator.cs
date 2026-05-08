@@ -47,6 +47,8 @@
 
 		private readonly HashSet<Guid> createdWorkflowIds = new HashSet<Guid>();
 
+		private readonly HashSet<Guid> createdPropertyValueCollectionIds = new HashSet<Guid>();
+
 		public TestObjectCreator(IntegrationTestContext testContext)
 		{
 			this.testContext = testContext ?? throw new ArgumentNullException(nameof(testContext));
@@ -181,6 +183,15 @@
 			try
 			{
 				ElementsCleanup();
+			}
+			catch
+			{
+				// Ignore cleanup errors
+			}
+
+			try
+			{
+				PropertyValueCollectionsCleanup();
 			}
 			catch
 			{
@@ -328,6 +339,13 @@
 			var properties = PlanApi.Properties.Read(createdPropertyIds.ToArray());
 
 			PlanApi.Properties.Delete(properties.ToArray());
+		}
+
+		private void PropertyValueCollectionsCleanup()
+		{
+			var collections = PlanApi.PropertyValueCollections.Read(createdPropertyValueCollectionIds);
+
+			PlanApi.PropertyValueCollections.Delete(collections.ToArray());
 		}
 
 		public T CreateResource<T>(T resource) where T : Resource
@@ -693,6 +711,37 @@
 				foreach (var id in bulkException.Result.SuccessfulIds)
 				{
 					createdWorkflowIds.Add(id);
+				}
+
+				throw;
+			}
+		}
+
+		public PropertyValueCollection CreatePropertyValueCollection(PropertyValueCollection collection)
+		{
+			var createdCollection = PlanApi.PropertyValueCollections.Create(collection);
+			createdPropertyValueCollectionIds.Add(createdCollection.Id);
+			return createdCollection;
+		}
+
+		public IReadOnlyCollection<PropertyValueCollection> CreatePropertyValueCollections(IEnumerable<PropertyValueCollection> collections)
+		{
+			try
+			{
+				var createdCollections = PlanApi.PropertyValueCollections.Create(collections);
+
+				foreach (var id in collections.Select(x => x.Id))
+				{
+					createdPropertyValueCollectionIds.Add(id);
+				}
+
+				return createdCollections;
+			}
+			catch (MediaOpsBulkException<Guid> bulkException)
+			{
+				foreach (var id in bulkException.Result.SuccessfulIds)
+				{
+					createdPropertyValueCollectionIds.Add(id);
 				}
 
 				throw;
