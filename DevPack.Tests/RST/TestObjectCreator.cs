@@ -54,7 +54,7 @@
 
 		private IMediaOpsPlanApi PlanApi => testContext.Api;
 
-		private ICategoriesApi CatagoriesApi => testContext.CategoriesApi;
+		private ICategoriesApi CategoriesApi => testContext.CategoriesApi;
 
 		private IDms Dms => testContext.Dms;
 
@@ -256,9 +256,17 @@
 
 		private void CategoriesCleanup()
 		{
+			if (!createdCategoryIds.Any())
+			{
+				return;
+			}
+
 			var filter = createdCategoryIds.Select(x => CategoryExposers.ID.Equal(x)).ToArray();
-			var categories = CatagoriesApi.Categories.Read(new ORFilterElement<Category>(filter)).ToArray();
-			CatagoriesApi.Categories.Delete(categories);
+			var categories = CategoriesApi.Categories.Read(new ORFilterElement<Category>(filter)).ToArray();
+
+			testContext.Logger.Information(this, $"Cleaning up {categories.Length} categories.");
+
+			CategoriesApi.Categories.Delete(categories);
 		}
 
 		private void ElementsCleanup()
@@ -582,7 +590,8 @@
 
 		public Category CreateCategory(Category category)
 		{
-			category = CatagoriesApi.Categories.Create(category);
+			testContext.Logger.Information(this, $"Creating new category with ID: {category.ID}");
+			category = CategoriesApi.Categories.Create(category);
 			createdCategoryIds.Add(category.ID);
 			return category;
 		}

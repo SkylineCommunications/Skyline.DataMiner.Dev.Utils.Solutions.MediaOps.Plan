@@ -44,6 +44,11 @@
 		/// <returns>The count of property collections matching the filter.</returns>
 		public long Count(FilterElement<PropertyValueCollection> filter)
 		{
+			if (filter.isEmpty())
+			{
+				return 0;
+			}
+
 			return PlanApi.DomHelpers.SlcPropertiesHelper.CountPropertiesInstances(filterTranslator.Translate(filter));
 		}
 
@@ -299,10 +304,7 @@
 		/// <returns>An enumerable collection of all property collections.</returns>
 		public IEnumerable<PropertyValueCollection> Read()
 		{
-			return ActivityHelper.Track(nameof(PropertyValueCollectionsRepository), nameof(Read), act =>
-			{
-				return Read(new TRUEFilterElement<PropertyValueCollection>());
-			});
+			return Read(new TRUEFilterElement<PropertyValueCollection>());
 		}
 
 		/// <summary>
@@ -315,6 +317,11 @@
 			if (filter == null)
 			{
 				throw new ArgumentNullException(nameof(filter));
+			}
+
+			if (filter.isEmpty())
+			{
+				return Enumerable.Empty<PropertyValueCollection>();
 			}
 
 			return ActivityHelper.Track(nameof(PropertyValueCollectionsRepository), nameof(Read), act =>
@@ -336,10 +343,7 @@
 				throw new ArgumentNullException(nameof(query));
 			}
 
-			return ActivityHelper.Track(nameof(PropertyValueCollectionsRepository), nameof(Read), act =>
-			{
-				return Read(query.Filter);
-			});
+			return Read(query.Filter);
 		}
 
 		/// <summary>
@@ -502,4 +506,3 @@
 		}
 	}
 }
-
