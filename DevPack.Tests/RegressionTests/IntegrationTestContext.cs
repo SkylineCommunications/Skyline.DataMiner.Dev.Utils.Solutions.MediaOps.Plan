@@ -23,12 +23,13 @@
 			Api = connection.GetMediaOpsPlanApi() ?? throw new NullReferenceException("Unable to create MediaOpsPlanApi");
 			Dms = connection.GetDms() ?? throw new NullReferenceException("Unable to get DMS");
 
-			Api.SetLogger(new ConsolePlanLogger());
+			Api.SetLogger(Logger);
 			ResourceStudioDomHelper = new DomHelper(connection.HandleMessages, "(slc)resource_studio") ?? throw new NullReferenceException("Unable to create ResourceStudioDomHelper");
 
 			ResourceManagerHelper = new ResourceManagerHelper(connection.HandleSingleResponseMessage) ?? throw new NullReferenceException("Unable to create ResourceManagerHelper");
 			ProfileHelper = new ProfileHelper(connection.HandleMessages) ?? throw new NullReferenceException("Unable to create ProfileHelper");
 			CategoriesApi = connection.GetCategoriesApi() ?? throw new NullReferenceException("Unable to create CategoriesApi");
+			CategoriesApi.SetLogger(new ConsoleCategoriesLogger());
 			ProtocolFunctionHelper = new ProtocolFunctionHelper(connection.HandleMessages) ?? throw new NullReferenceException("Unable to create ProtocolFunctionHelper");
 		}
 
