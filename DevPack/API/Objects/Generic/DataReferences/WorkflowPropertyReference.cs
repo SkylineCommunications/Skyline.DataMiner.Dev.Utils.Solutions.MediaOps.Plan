@@ -48,6 +48,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
             }
         }
 
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            return NodeId != null
+                ? $"{Type} (WorkflowPropertyId: {WorkflowPropertyId}, NodeId: {NodeId})"
+                : $"{Type} (WorkflowPropertyId: {WorkflowPropertyId})";
+        }
+
         internal static WorkflowPropertyReference ParseFromStorage(Storage.DOM.DataReferenceStorage reference, string nodeId)
         {
             if (reference.ReferenceData == null || !reference.ReferenceData.TryGetValue(WorkflowPropertyIdKey, out var raw))

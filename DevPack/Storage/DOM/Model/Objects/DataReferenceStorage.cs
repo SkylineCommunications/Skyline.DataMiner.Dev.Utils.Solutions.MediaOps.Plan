@@ -53,7 +53,7 @@
 				DataReferenceType.WorkflowProperty => WorkflowPropertyReference.ParseFromStorage(this, nodeId),
 				DataReferenceType.JobName => new JobNameReference(nodeId),
 				DataReferenceType.JobProperty => JobPropertyReference.ParseFromStorage(this, nodeId),
-				_ => null,
+				_ => throw new NotSupportedException($"Unsupported data reference type: {type}"),
 			};
 		}
 

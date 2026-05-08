@@ -34,10 +34,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		public DataReferenceType Type { get; }
 
 		/// <summary>
-		/// Gets the identifier of the workflow node the reference is scoped to,
+		/// Gets or sets the identifier of the workflow node the reference is scoped to,
 		/// or <see langword="null"/> when the reference targets the workflow / job itself.
 		/// </summary>
-		public string NodeId { get; }
+		public string NodeId { get; set; }
 
 		/// <summary>
 		/// Converts this <see cref="DataReference"/> to its storage representation.
@@ -121,6 +121,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				hash = (hash * 23) + (NodeId != null ? NodeId.GetHashCode() : 0);
 				return hash;
 			}
+		}
+
+		/// <inheritdoc/>
+		public override string ToString()
+		{
+			return NodeId != null
+				? $"{Type} (NodeId: {NodeId})"
+				: $"{Type}";
 		}
 	}
 }

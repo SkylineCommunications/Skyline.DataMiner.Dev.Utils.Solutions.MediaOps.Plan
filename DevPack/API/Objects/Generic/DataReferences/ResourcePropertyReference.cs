@@ -53,6 +53,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				&& rpr.ResourcePropertyId == ResourcePropertyId;
 		}
 
+		/// <inheritdoc/>
+		public override string ToString()
+		{
+			return NodeId != null
+				? $"{Type} (ResourcePropertyId: {ResourcePropertyId}, NodeId: {NodeId})"
+				: $"{Type} (ResourcePropertyId: {ResourcePropertyId})";
+		}
+
 		internal static ResourcePropertyReference ParseFromStorage(Storage.DOM.DataReferenceStorage reference, string nodeId)
 		{
 			if (reference.ReferenceData == null || !reference.ReferenceData.TryGetValue(ResourcePropertyIdKey, out var raw))

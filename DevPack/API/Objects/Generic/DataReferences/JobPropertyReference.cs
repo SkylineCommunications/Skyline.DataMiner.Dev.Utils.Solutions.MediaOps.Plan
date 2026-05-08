@@ -48,6 +48,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
             }
         }
 
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            return NodeId != null
+                ? $"{Type} (JobPropertyId: {JobPropertyId}, NodeId: {NodeId})"
+                : $"{Type} (JobPropertyId: {JobPropertyId})";
+        }
+
         internal static JobPropertyReference ParseFromStorage(Storage.DOM.DataReferenceStorage reference, string nodeId)
         {
             if (reference.ReferenceData == null || !reference.ReferenceData.TryGetValue(JobPropertyIdKey, out var raw))

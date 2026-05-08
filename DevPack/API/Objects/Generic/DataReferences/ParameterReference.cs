@@ -50,6 +50,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
             }
         }
 
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            return NodeId != null
+                ? $"{Type} (ParameterId: {ParameterId}, NodeId: {NodeId})"
+                : $"{Type} (ParameterId: {ParameterId})";
+        }
+
         internal override Dictionary<string, string> BuildReferenceData()
         {
             var data = base.BuildReferenceData() ?? new Dictionary<string, string>();
