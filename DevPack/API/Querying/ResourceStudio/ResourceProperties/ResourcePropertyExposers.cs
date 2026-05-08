@@ -7,7 +7,7 @@
 	/// <summary>
 	/// Provides exposers for querying and filtering <see cref="ResourceProperty"/> objects.
 	/// </summary>
-	public class ResourcePropertyExposers
+	public static class ResourcePropertyExposers
 	{
 		/// <summary>
 		/// Gets an exposer for the <see cref="ApiObject.Id"/> property.

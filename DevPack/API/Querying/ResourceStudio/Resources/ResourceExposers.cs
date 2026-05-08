@@ -9,7 +9,7 @@
 	/// <summary>
 	/// Provides exposers for querying and filtering <see cref="Resource"/> objects.
 	/// </summary>
-	public class ResourceExposers
+	public static class ResourceExposers
 	{
 		/// <summary>
 		/// Gets an exposer for the <see cref="ApiObject.Id"/> property.
@@ -93,7 +93,7 @@
 	/// <summary>
 	/// Provides exposers for querying and filtering <see cref="ElementResource"/> objects.
 	/// </summary>
-	public class ElementResourceExposers
+	public static class ElementResourceExposers
 	{
 		/// <summary>
 		/// Gets an exposer for the <see cref="ElementResource.AgentId"/> property.
@@ -113,7 +113,7 @@
 	/// <summary>
 	/// Provides exposers for querying and filtering <see cref="ServiceResource"/> objects.
 	/// </summary>
-	public class ServiceResourceExposers
+	public static class ServiceResourceExposers
 	{
 		/// <summary>
 		/// Gets an exposer for the <see cref="ServiceResource.AgentId"/> property.
@@ -133,7 +133,7 @@
 	/// <summary>
 	/// Provides exposers for querying and filtering <see cref="VirtualFunctionResource"/> objects.
 	/// </summary>
-	public class VirtualFunctionResourceExposers
+	public static class VirtualFunctionResourceExposers
 	{
 		/// <summary>
 		/// Gets an exposer for the <see cref="VirtualFunctionResource.AgentId"/> property.
