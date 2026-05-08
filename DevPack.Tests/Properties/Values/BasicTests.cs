@@ -1,6 +1,7 @@
 namespace RT_MediaOps.Plan.Properties.Values
 {
 	using System;
+	using System.Linq;
 
 	using RT_MediaOps.Plan.RegressionTests;
 	using RT_MediaOps.Plan.RST;
@@ -60,9 +61,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 			Assert.AreEqual(1, returnedCollection.BooleanValues.Count);
 
 			// Update
-			var boolVal = returnedCollection.BooleanValues.GetEnumerator();
-			boolVal.MoveNext();
-			boolVal.Current.Value = false;
+			returnedCollection.BooleanValues.First().Value = false;
 
 			var updatedCollection = TestContext.Api.PropertyValueCollections.Update(returnedCollection);
 			Assert.IsNotNull(updatedCollection);

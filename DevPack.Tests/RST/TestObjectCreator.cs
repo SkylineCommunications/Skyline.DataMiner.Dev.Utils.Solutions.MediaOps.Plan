@@ -730,9 +730,9 @@
 			{
 				var createdCollections = PlanApi.PropertyValueCollections.Create(collections);
 
-				foreach (var id in collections.Select(x => x.Id))
+				foreach (var createdCollection in createdCollections)
 				{
-					createdPropertyValueCollectionIds.Add(id);
+					createdPropertyValueCollectionIds.Add(createdCollection.Id);
 				}
 
 				return createdCollections;
