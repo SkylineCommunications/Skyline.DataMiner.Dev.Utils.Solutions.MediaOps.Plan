@@ -1,21 +1,23 @@
 namespace RT_MediaOps.Plan.Properties.Values
 {
-    using System;
+	using System;
     using System.Collections.Generic;
-    using System.Linq;
+	using System.Linq;
 
-    using RT_MediaOps.Plan.RegressionTests;
+	using RT_MediaOps.Plan.RegressionTests;
     using RT_MediaOps.Plan.RST;
 
-    using Skyline.DataMiner.Net.Messages.SLDataGateway;
-    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
     using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
-    [TestClass]
-    [TestCategory("IntegrationTest")]
+	using SLDataGateway.API.Querying;
+
+	[TestClass]
+	[TestCategory("IntegrationTest")]
     [DoNotParallelize]
     public sealed class BasicTests : IDisposable
-    {
+	{
         private readonly TestObjectCreator objectCreator;
 
         public BasicTests()
@@ -23,7 +25,7 @@ namespace RT_MediaOps.Plan.Properties.Values
             objectCreator = new TestObjectCreator(TestContext);
         }
 
-        private static IntegrationTestContext TestContext => TestContextManager.SharedTestContext;
+		private static IntegrationTestContext TestContext => TestContextManager.SharedTestContext;
 
         public void Dispose()
         {
@@ -460,9 +462,9 @@ namespace RT_MediaOps.Plan.Properties.Values
                 TestContext.Api.PropertyValueCollections.Update(collection));
         }
 
-        [TestMethod]
+		[TestMethod]
         public void UpdateExistingThenCreateThrowsException()
-        {
+		{
             var collection = new PropertyValueCollection
             {
                 Name = "NewCollection",
@@ -473,11 +475,11 @@ namespace RT_MediaOps.Plan.Properties.Values
 
             Assert.ThrowsException<InvalidOperationException>(() =>
                 TestContext.Api.PropertyValueCollections.Create(created));
-        }
+		}
 
-        [TestMethod]
+		[TestMethod]
         public void CountReturnsCorrectNumber()
-        {
+		{
             var countBefore = TestContext.Api.PropertyValueCollections.Count();
 
             var collection = new PropertyValueCollection
@@ -533,9 +535,9 @@ namespace RT_MediaOps.Plan.Properties.Values
             {
                 Assert.IsNull(TestContext.Api.PropertyValueCollections.Read(item.Id));
             }
-        }
+		}
 
-        [TestMethod]
+		[TestMethod]
         public void UpdateExistingWithCustomAndDoubleValues()
         {
             // Arrange: create a property definition to link values against
@@ -565,7 +567,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 
             // Arrange: create an additional boolean property definition
             var booleanProperty = new BooleanProperty
-            {
+		{
                 Name = $"{Guid.NewGuid()}_BooleanProp",
                 Scope = "global",
                 SectionName = "General",
@@ -597,6 +599,39 @@ namespace RT_MediaOps.Plan.Properties.Values
 
             var readAfterDelete = TestContext.Api.PropertyValueCollections.Read(collectionId);
             Assert.IsNull(readAfterDelete);
-        }
-    }
+		}
+
+		[TestMethod]
+		public void ReadWithEmptyFilterReturnsEmptyList()
+		{
+			var idsToRetrieve = new Guid[0];
+			var emptyFilter = new ORFilterElement<PropertyValueCollection>(idsToRetrieve.Select(x => PropertyValueCollectionExposers.Id.Equal(x)).ToArray());
+
+			var collections = TestContext.Api.PropertyValueCollections.Read(emptyFilter);
+			Assert.IsNotNull(collections);
+			Assert.AreEqual(0, collections.Count());
+		}
+
+		[TestMethod]
+		public void CountWithEmptyFilterReturnsZero()
+		{
+			var idsToRetrieve = new Guid[0];
+			var emptyFilter = new ORFilterElement<PropertyValueCollection>(idsToRetrieve.Select(x => PropertyValueCollectionExposers.Id.Equal(x)).ToArray());
+
+			var count = TestContext.Api.PropertyValueCollections.Count(emptyFilter);
+			Assert.AreEqual(0, count);
+		}
+
+		[TestMethod]
+		public void ReadWithEmptyQueryReturnsEmptyList()
+		{
+			var idsToRetrieve = new Guid[0];
+			var emptyFilter = new ORFilterElement<PropertyValueCollection>(idsToRetrieve.Select(x => PropertyValueCollectionExposers.Id.Equal(x)).ToArray());
+			var queryWithEmptyFilter = emptyFilter.ToQuery();
+
+			var collections = TestContext.Api.PropertyValueCollections.Read(queryWithEmptyFilter);
+			Assert.IsNotNull(collections);
+			Assert.AreEqual(0, collections.Count());
+		}
+	}
 }

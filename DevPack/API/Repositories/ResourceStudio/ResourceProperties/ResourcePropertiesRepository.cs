@@ -44,6 +44,11 @@
 		/// <returns>The count of resource properties matching the filter.</returns>
 		public long Count(FilterElement<ResourceProperty> filter)
 		{
+			if (filter.isEmpty())
+			{
+				return 0;
+			}
+
 			return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(filterTranslator.Translate(filter));
 		}
 
@@ -299,10 +304,7 @@
 		/// <returns>An enumerable collection of all resource properties.</returns>
 		public IEnumerable<ResourceProperty> Read()
 		{
-			return ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Read), act =>
-			{
-				return Read(new TRUEFilterElement<ResourceProperty>());
-			});
+			return Read(new TRUEFilterElement<ResourceProperty>());
 		}
 
 		/// <summary>
@@ -315,6 +317,11 @@
 			if (filter == null)
 			{
 				throw new ArgumentNullException(nameof(filter));
+			}
+
+			if (filter.isEmpty())
+			{
+				return Enumerable.Empty<ResourceProperty>();
 			}
 
 			return ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Read), act =>
@@ -336,10 +343,7 @@
 				throw new ArgumentNullException(nameof(query));
 			}
 
-			return ActivityHelper.Track(nameof(ResourcePropertiesRepository), nameof(Read), act =>
-			{
-				return Read(query.Filter);
-			});
+			return Read(query.Filter);
 		}
 
 		/// <summary>

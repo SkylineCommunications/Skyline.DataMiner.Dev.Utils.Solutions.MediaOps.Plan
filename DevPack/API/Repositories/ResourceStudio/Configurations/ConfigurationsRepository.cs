@@ -42,6 +42,11 @@
 		/// <returns>The count of configurations matching the filter.</returns>
 		public long Count(FilterElement<Configuration> filter)
 		{
+			if (filter.isEmpty())
+			{
+				return 0;
+			}
+
 			return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Count), act =>
 			{
 				var paramFilter = filterTranslator.Translate(filter);
@@ -297,6 +302,11 @@
 		/// <returns>An enumerable collection of configurations matching the filter.</returns>
 		public IEnumerable<Configuration> Read(FilterElement<Configuration> filter)
 		{
+			if (filter.isEmpty())
+			{
+				return Enumerable.Empty<Configuration>();
+			}
+
 			return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Read), act =>
 			{
 				var configurations = PlanApi.CoreHelpers.ProfileProvider.GetConfigurations(filterTranslator.Translate(filter));

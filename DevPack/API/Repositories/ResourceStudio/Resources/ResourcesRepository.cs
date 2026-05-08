@@ -306,6 +306,11 @@
 		/// <returns>The count of resources matching the filter.</returns>
 		public long Count(FilterElement<Resource> filter)
 		{
+			if (filter.isEmpty())
+			{
+				return 0;
+			}
+
 			var domFilter = filterTranslator.Translate(filter);
 			return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(domFilter);
 		}
@@ -740,8 +745,7 @@
 				act?.AddTag("ResourceIds", String.Join(", ", ids));
 				act?.AddTag("ResourceIds Count", ids.Count());
 
-				var resources = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(ids);
-				return Resource.InstantiateResources(PlanApi, resources);
+				return Read(new ORFilterElement<Resource>(ids.Select(x => ResourceExposers.Id.Equal(x)).ToArray()));
 			});
 		}
 
@@ -761,6 +765,11 @@
 		/// <returns>An enumerable collection of resources matching the filter.</returns>
 		public IEnumerable<Resource> Read(FilterElement<Resource> filter)
 		{
+			if (filter.isEmpty())
+			{
+				return Enumerable.Empty<Resource>();
+			}
+
 			return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Read), act =>
 			{
 				var domFilter = filterTranslator.Translate(filter);

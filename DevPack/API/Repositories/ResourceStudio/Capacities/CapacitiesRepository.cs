@@ -42,6 +42,11 @@
 		/// <returns>The count of capacities matching the filter.</returns>
 		public long Count(FilterElement<Capacity> filter)
 		{
+			if (filter.isEmpty())
+			{
+				return 0;
+			}
+
 			return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Count), act =>
 			{
 				var paramFilter = filterTranslator.Translate(filter);
@@ -300,6 +305,11 @@
 			if (filter == null)
 			{
 				throw new ArgumentNullException(nameof(filter));
+			}
+
+			if (filter.isEmpty())
+			{
+				return Enumerable.Empty<Capacity>();
 			}
 
 			return ActivityHelper.Track(nameof(CapacitiesRepository), nameof(Read), act =>
