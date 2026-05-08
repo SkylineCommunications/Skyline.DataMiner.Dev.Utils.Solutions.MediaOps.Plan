@@ -159,6 +159,16 @@ namespace RT_MediaOps.Plan.Properties.Values
 		}
 
 		[TestMethod]
+		public void ICollection_Add_UnsupportedPropertyValueType_Throws()
+		{
+			var collection = new PropertyValueCollection();
+			var unsupportedValue = new UnsupportedPropertyValue();
+
+			var exception = Assert.ThrowsException<ArgumentException>(() => collection.Add(unsupportedValue));
+			StringAssert.Contains(exception.Message, "Unsupported property value type");
+		}
+
+		[TestMethod]
 		public void ICollection_Remove_CustomPropertyValue_DecreasesCount()
 		{
 			var item = new CustomPropertyValue("myProp");
@@ -244,6 +254,14 @@ namespace RT_MediaOps.Plan.Properties.Values
 			collection.CopyTo(array, 0);
 
 			Assert.AreEqual(item, array[0]);
+		}
+
+		private sealed class UnsupportedPropertyValue : PropertyValueBase
+		{
+			public UnsupportedPropertyValue()
+				: base(true)
+			{
+			}
 		}
 	}
 }

@@ -233,6 +233,84 @@ namespace RT_MediaOps.Plan.Properties.Values
         }
 
         [TestMethod]
+        public void CreateWithDuplicateCustomValueNamesThrowsException()
+        {
+            var customName = $"Custom_{Guid.NewGuid()}";
+
+            var collection = new PropertyValueCollection
+            {
+                Name = "DuplicateCustomValues",
+                LinkedObjectId = "obj-1",
+                Scope = "global",
+            };
+            collection.Add(new CustomPropertyValue(customName) { Value = "A" });
+            collection.Add(new CustomPropertyValue(customName) { Value = "B" });
+
+            try
+            {
+                objectCreator.CreatePropertyValueCollection(collection);
+            }
+            catch (MediaOpsException ex)
+            {
+                var errorMessage = $"Name '{customName}' is defined 2 times.";
+                Assert.AreEqual(errorMessage, ex.Message);
+                Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
+
+                var error = ex.TraceData.ErrorData.OfType<PropertyValueCollectionInvalidCustomSettingsError>().SingleOrDefault();
+                Assert.IsNotNull(error);
+                Assert.AreEqual(errorMessage, error.ErrorMessage);
+                Assert.AreEqual(collection.Id, error.Id);
+                Assert.AreEqual(customName, error.Name);
+
+                return;
+            }
+
+            Assert.Fail("Expected exception was not thrown.");
+        }
+
+        [TestMethod]
+        public void CreateWithDuplicatePropertyValueIdsThrowsException()
+        {
+            var property = new StringProperty
+            {
+                Name = $"{Guid.NewGuid()}_Prop",
+                Scope = "global",
+                SectionName = "General",
+            };
+            objectCreator.CreateProperty(property);
+
+            var collection = new PropertyValueCollection
+            {
+                Name = "DuplicatePropertyValues",
+                LinkedObjectId = "obj-1",
+                Scope = "global",
+            };
+            collection.Add(new StringPropertyValue(property) { Value = "A" });
+            collection.Add(new StringPropertyValue(property) { Value = "B" });
+
+            try
+            {
+                objectCreator.CreatePropertyValueCollection(collection);
+            }
+            catch (MediaOpsException ex)
+            {
+                var errorMessage = $"Property value collection contains 2 values with the same property ID '{property.Id}'.";
+                Assert.AreEqual(errorMessage, ex.Message);
+                Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
+
+                var error = ex.TraceData.ErrorData.OfType<PropertyValueCollectionInvalidPropertySettingsError>().SingleOrDefault();
+                Assert.IsNotNull(error);
+                Assert.AreEqual(errorMessage, error.ErrorMessage);
+                Assert.AreEqual(collection.Id, error.Id);
+                Assert.AreEqual(property.Id, error.PropertyId);
+
+                return;
+            }
+
+            Assert.Fail("Expected exception was not thrown.");
+        }
+
+        [TestMethod]
         public void CreateWithEmptyLinkedObjectIdThrowsException()
         {
             var collection = new PropertyValueCollection
