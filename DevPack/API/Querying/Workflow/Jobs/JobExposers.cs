@@ -7,7 +7,7 @@
 	/// <summary>
 	/// Provides exposers for querying and filtering <see cref="Job"/> objects.
 	/// </summary>
-	public class JobExposers
+	public static class JobExposers
 	{
 		/// <summary>
 		/// Gets an exposer for the <see cref="ApiObject.Id"/> property.

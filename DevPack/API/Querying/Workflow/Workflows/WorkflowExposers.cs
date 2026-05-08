@@ -7,7 +7,7 @@
 	/// <summary>
 	/// Provides exposers for querying and filtering <see cref="Workflow"/> objects.
 	/// </summary>
-	public class WorkflowExposers
+	public static class WorkflowExposers
 	{
 		/// <summary>
 		/// Gets an exposer for the <see cref="ApiObject.Id"/> property.

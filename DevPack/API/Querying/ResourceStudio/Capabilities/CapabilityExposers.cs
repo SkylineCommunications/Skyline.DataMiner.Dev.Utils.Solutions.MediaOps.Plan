@@ -9,7 +9,7 @@
 	/// <summary>
 	/// Provides exposers for querying and filtering <see cref="Capability"/> objects.
 	/// </summary>
-	public class CapabilityExposers
+	public static class CapabilityExposers
 	{
 		/// <summary>
 		/// Gets an exposer for the <see cref="ApiObject.Id"/> property.

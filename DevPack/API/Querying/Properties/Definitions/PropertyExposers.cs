@@ -7,7 +7,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// <summary>
 	/// Provides exposers for querying and filtering <see cref="Property"/> objects.
 	/// </summary>
-	public class PropertyExposers
+	public static class PropertyExposers
 	{
 		/// <summary>
 		/// Gets an exposer for the <see cref="ApiObject.Id"/> property.

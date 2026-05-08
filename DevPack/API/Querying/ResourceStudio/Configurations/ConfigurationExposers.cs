@@ -10,7 +10,7 @@
 	/// <summary>
 	/// Provides exposers for querying and filtering <see cref="Configuration"/> objects.
 	/// </summary>
-	public class ConfigurationExposers
+	public static class ConfigurationExposers
 	{
 		/// <summary>
 		/// Gets an exposer for the <see cref="ApiObject.Id"/> property.
@@ -31,7 +31,7 @@
 	/// <summary>
 	/// Provides exposers for querying and filtering <see cref="DiscreteTextConfiguration"/> objects.
 	/// </summary>
-	public class DiscreteTextConfigurationExposers
+	public static class DiscreteTextConfigurationExposers
 	{
 		/// <summary>
 		/// Gets a dynamic list exposer for the <see cref="DiscreteTextConfiguration.Discretes"/> property.
@@ -42,7 +42,7 @@
 	/// <summary>
 	/// Provides exposers for querying and filtering <see cref="DiscreteNumberConfiguration"/> objects.
 	/// </summary>
-	public class DiscreteNumberConfigurationExposers
+	public static class DiscreteNumberConfigurationExposers
 	{
 		/// <summary>
 		/// Gets a dynamic list exposer for the <see cref="DiscreteNumberConfiguration.Discretes"/> property.
