@@ -212,24 +212,13 @@ namespace RT_MediaOps.Plan.Properties.Values
                 SubId = subId,
                 Scope = "global",
             };
+            var ex = Assert.ThrowsException<MediaOpsException>(() => objectCreator.CreatePropertyValueCollection(newCollection));
+            StringAssert.Contains(ex.Message, "already exists");
 
-            try
-            {
-                objectCreator.CreatePropertyValueCollection(newCollection);
-            }
-            catch (MediaOpsException ex)
-            {
-                StringAssert.Contains(ex.Message, "already exists");
-
-                var error = ex.TraceData.ErrorData.OfType<PropertyValueCollectionDuplicateLinkedObjectIdAndSubIdError>().SingleOrDefault();
-                Assert.IsNotNull(error);
-                Assert.AreEqual(linkedObjectId, error.LinkedObjectId);
-                Assert.AreEqual(subId, error.SubId);
-
-                return;
-            }
-
-            Assert.Fail("Expected exception was not thrown.");
+            var error = ex.TraceData.ErrorData.OfType<PropertyValueCollectionDuplicateLinkedObjectIdAndSubIdError>().SingleOrDefault();
+            Assert.IsNotNull(error);
+            Assert.AreEqual(linkedObjectId, error.LinkedObjectId);
+            Assert.AreEqual(subId, error.SubId);
         }
 
         [TestMethod]
@@ -246,26 +235,16 @@ namespace RT_MediaOps.Plan.Properties.Values
             collection.Add(new CustomPropertyValue(customName) { Value = "A" });
             collection.Add(new CustomPropertyValue(customName) { Value = "B" });
 
-            try
-            {
-                objectCreator.CreatePropertyValueCollection(collection);
-            }
-            catch (MediaOpsException ex)
-            {
-                var errorMessage = $"Name '{customName}' is defined 2 times.";
-                Assert.AreEqual(errorMessage, ex.Message);
-                Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
+            var ex = Assert.ThrowsException<MediaOpsException>(() => objectCreator.CreatePropertyValueCollection(collection));
+            var errorMessage = $"Name '{customName}' is defined 2 times.";
+            Assert.AreEqual(errorMessage, ex.Message);
+            Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
 
-                var error = ex.TraceData.ErrorData.OfType<PropertyValueCollectionInvalidCustomSettingsError>().SingleOrDefault();
-                Assert.IsNotNull(error);
-                Assert.AreEqual(errorMessage, error.ErrorMessage);
-                Assert.AreEqual(collection.Id, error.Id);
-                Assert.AreEqual(customName, error.Name);
-
-                return;
-            }
-
-            Assert.Fail("Expected exception was not thrown.");
+            var error = ex.TraceData.ErrorData.OfType<PropertyValueCollectionInvalidCustomSettingsError>().SingleOrDefault();
+            Assert.IsNotNull(error);
+            Assert.AreEqual(errorMessage, error.ErrorMessage);
+            Assert.AreEqual(collection.Id, error.Id);
+            Assert.AreEqual(customName, error.Name);
         }
 
         [TestMethod]
@@ -288,26 +267,16 @@ namespace RT_MediaOps.Plan.Properties.Values
             collection.Add(new StringPropertyValue(property) { Value = "A" });
             collection.Add(new StringPropertyValue(property) { Value = "B" });
 
-            try
-            {
-                objectCreator.CreatePropertyValueCollection(collection);
-            }
-            catch (MediaOpsException ex)
-            {
-                var errorMessage = $"Property value collection contains 2 values with the same property ID '{property.Id}'.";
-                Assert.AreEqual(errorMessage, ex.Message);
-                Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
+            var ex = Assert.ThrowsException<MediaOpsException>(() => objectCreator.CreatePropertyValueCollection(collection));
+            var errorMessage = $"Property value collection contains 2 values with the same property ID '{property.Id}'.";
+            Assert.AreEqual(errorMessage, ex.Message);
+            Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
 
-                var error = ex.TraceData.ErrorData.OfType<PropertyValueCollectionInvalidPropertySettingsError>().SingleOrDefault();
-                Assert.IsNotNull(error);
-                Assert.AreEqual(errorMessage, error.ErrorMessage);
-                Assert.AreEqual(collection.Id, error.Id);
-                Assert.AreEqual(property.Id, error.PropertyId);
-
-                return;
-            }
-
-            Assert.Fail("Expected exception was not thrown.");
+            var error = ex.TraceData.ErrorData.OfType<PropertyValueCollectionInvalidPropertySettingsError>().SingleOrDefault();
+            Assert.IsNotNull(error);
+            Assert.AreEqual(errorMessage, error.ErrorMessage);
+            Assert.AreEqual(collection.Id, error.Id);
+            Assert.AreEqual(property.Id, error.PropertyId);
         }
 
         [TestMethod]
