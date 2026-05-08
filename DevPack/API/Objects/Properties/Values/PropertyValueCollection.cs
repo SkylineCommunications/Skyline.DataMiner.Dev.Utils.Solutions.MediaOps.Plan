@@ -97,15 +97,35 @@
 			switch (item)
 			{
 				case CustomPropertyValue custom:
+					if (customValues.Any(cv => cv.Name == custom.Name))
+					{
+						throw new ArgumentException($"A custom value with name '{custom.Name}' has already been added.", nameof(item));
+					}
+
 					customValues.Add(custom);
 					break;
 				case StringPropertyValue stringVal:
+					if (stringValues.Any(sv => sv.PropertyId == stringVal.PropertyId))
+					{
+						throw new ArgumentException($"A value for property with ID '{stringVal.PropertyId}' has already been added.", nameof(item));
+					}
+
 					stringValues.Add(stringVal);
 					break;
 				case BooleanPropertyValue boolVal:
+					if (booleanValues.Any(bv => bv.PropertyId == boolVal.PropertyId))
+					{
+						throw new ArgumentException($"A value for property with ID '{boolVal.PropertyId}' has already been added.", nameof(item));
+					}
+
 					booleanValues.Add(boolVal);
 					break;
 				case DiscretePropertyValue discreteVal:
+					if (discreteValues.Any(dv => dv.PropertyId == discreteVal.PropertyId))
+					{
+						throw new ArgumentException($"A value for property with ID '{discreteVal.PropertyId}' has already been added.", nameof(item));
+					}
+
 					discreteValues.Add(discreteVal);
 					break;
 				default:
