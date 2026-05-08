@@ -222,6 +222,95 @@ namespace RT_MediaOps.Plan.Properties.Values
         }
 
         [TestMethod]
+        public void CreateWithSameLinkedObjectIdAndDifferentSubIdSucceeds()
+        {
+            var linkedObjectId = $"obj-{Guid.NewGuid()}";
+
+            var collections = new[]
+            {
+                new PropertyValueCollection
+                {
+                    Name = "Collection1",
+                    LinkedObjectId = linkedObjectId,
+                    SubId = "sub-1",
+                    Scope = "global",
+                },
+                new PropertyValueCollection
+                {
+                    Name = "Collection2",
+                    LinkedObjectId = linkedObjectId,
+                    SubId = "sub-2",
+                    Scope = "global",
+                },
+            };
+
+            var created = objectCreator.CreatePropertyValueCollections(collections);
+
+            Assert.AreEqual(2, created.Count);
+            CollectionAssert.AreEquivalent(
+                new[] { "sub-1", "sub-2" },
+                created.Select(x => x.SubId).ToArray());
+        }
+
+        [TestMethod]
+        public void CreateWithDifferentLinkedObjectIdAndSameSubIdSucceeds()
+        {
+            var subId = "shared-sub";
+
+            var collections = new[]
+            {
+                new PropertyValueCollection
+                {
+                    Name = "Collection1",
+                    LinkedObjectId = $"obj-{Guid.NewGuid()}",
+                    SubId = subId,
+                    Scope = "global",
+                },
+                new PropertyValueCollection
+                {
+                    Name = "Collection2",
+                    LinkedObjectId = $"obj-{Guid.NewGuid()}",
+                    SubId = subId,
+                    Scope = "global",
+                },
+            };
+
+            var created = objectCreator.CreatePropertyValueCollections(collections);
+
+            Assert.AreEqual(2, created.Count);
+            Assert.IsTrue(created.All(x => x.SubId == subId));
+            Assert.AreEqual(2, created.Select(x => x.LinkedObjectId).Distinct().Count());
+        }
+
+        [TestMethod]
+        public void CreateWithDuplicateLinkedObjectIdAndNullSubIdInBulkThrowsException()
+        {
+            var linkedObjectId = $"obj-{Guid.NewGuid()}";
+
+            var collection1 = new PropertyValueCollection
+            {
+                Name = "Collection1",
+                LinkedObjectId = linkedObjectId,
+                Scope = "global",
+            };
+            var collection2 = new PropertyValueCollection
+            {
+                Name = "Collection2",
+                LinkedObjectId = linkedObjectId,
+                Scope = "global",
+            };
+
+            var ex = Assert.ThrowsException<MediaOpsBulkException<Guid>>(() => objectCreator.CreatePropertyValueCollections(new[] { collection1, collection2 }));
+            var errors = ex.Result.TraceDataPerItem.Values
+                .SelectMany(x => x.ErrorData)
+                .OfType<PropertyValueCollectionDuplicateLinkedObjectIdAndSubIdError>()
+                .ToList();
+
+            Assert.AreEqual(2, errors.Count);
+            Assert.IsTrue(errors.All(e => e.LinkedObjectId == linkedObjectId && e.SubId == null));
+        }
+
+        [TestMethod]
         public void CreateWithDuplicateCustomValueNamesThrowsException()
         {
             var customName = $"Custom_{Guid.NewGuid()}";
@@ -245,6 +334,38 @@ namespace RT_MediaOps.Plan.Properties.Values
             Assert.AreEqual(errorMessage, error.ErrorMessage);
             Assert.AreEqual(collection.Id, error.Id);
             Assert.AreEqual(customName, error.Name);
+        }
+
+        [TestMethod]
+        public void CreateWithCustomValueNameMatchingPropertyNameInSameScopeThrowsException()
+        {
+            var propertyName = $"{Guid.NewGuid()}_Prop";
+            var property = new StringProperty
+            {
+                Name = propertyName,
+                Scope = "global",
+                SectionName = "General",
+            };
+            objectCreator.CreateProperty(property);
+
+            var collection = new PropertyValueCollection
+            {
+                Name = "ConflictingCustomValue",
+                LinkedObjectId = "obj-1",
+                Scope = "global",
+            };
+            collection.Add(new CustomPropertyValue(propertyName) { Value = "A" });
+
+            var ex = Assert.ThrowsException<MediaOpsException>(() => objectCreator.CreatePropertyValueCollection(collection));
+            var errorMessage = $"Name '{propertyName}' cannot be the same as a property name in the same scope.";
+            Assert.AreEqual(errorMessage, ex.Message);
+            Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
+
+            var error = ex.TraceData.ErrorData.OfType<PropertyValueCollectionInvalidCustomSettingsError>().SingleOrDefault();
+            Assert.IsNotNull(error);
+            Assert.AreEqual(errorMessage, error.ErrorMessage);
+            Assert.AreEqual(collection.Id, error.Id);
+            Assert.AreEqual(propertyName, error.Name);
         }
 
         [TestMethod]
