@@ -212,24 +212,71 @@ namespace RT_MediaOps.Plan.Properties.Values
                 SubId = subId,
                 Scope = "global",
             };
+            var ex = Assert.ThrowsException<MediaOpsException>(() => objectCreator.CreatePropertyValueCollection(newCollection));
+            StringAssert.Contains(ex.Message, "already exists");
 
-            try
+            var error = ex.TraceData.ErrorData.OfType<PropertyValueCollectionDuplicateLinkedObjectIdAndSubIdError>().SingleOrDefault();
+            Assert.IsNotNull(error);
+            Assert.AreEqual(linkedObjectId, error.LinkedObjectId);
+            Assert.AreEqual(subId, error.SubId);
+        }
+
+        [TestMethod]
+        public void CreateWithDuplicateCustomValueNamesThrowsException()
+        {
+            var customName = $"Custom_{Guid.NewGuid()}";
+
+            var collection = new PropertyValueCollection
             {
-                objectCreator.CreatePropertyValueCollection(newCollection);
-            }
-            catch (MediaOpsException ex)
+                Name = "DuplicateCustomValues",
+                LinkedObjectId = "obj-1",
+                Scope = "global",
+            };
+            collection.Add(new CustomPropertyValue(customName) { Value = "A" });
+            collection.Add(new CustomPropertyValue(customName) { Value = "B" });
+
+            var ex = Assert.ThrowsException<MediaOpsException>(() => objectCreator.CreatePropertyValueCollection(collection));
+            var errorMessage = $"Name '{customName}' is defined 2 times.";
+            Assert.AreEqual(errorMessage, ex.Message);
+            Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
+
+            var error = ex.TraceData.ErrorData.OfType<PropertyValueCollectionInvalidCustomSettingsError>().SingleOrDefault();
+            Assert.IsNotNull(error);
+            Assert.AreEqual(errorMessage, error.ErrorMessage);
+            Assert.AreEqual(collection.Id, error.Id);
+            Assert.AreEqual(customName, error.Name);
+        }
+
+        [TestMethod]
+        public void CreateWithDuplicatePropertyValueIdsThrowsException()
+        {
+            var property = new StringProperty
             {
-                StringAssert.Contains(ex.Message, "already exists");
+                Name = $"{Guid.NewGuid()}_Prop",
+                Scope = "global",
+                SectionName = "General",
+            };
+            objectCreator.CreateProperty(property);
 
-                var error = ex.TraceData.ErrorData.OfType<PropertyValueCollectionDuplicateLinkedObjectIdAndSubIdError>().SingleOrDefault();
-                Assert.IsNotNull(error);
-                Assert.AreEqual(linkedObjectId, error.LinkedObjectId);
-                Assert.AreEqual(subId, error.SubId);
+            var collection = new PropertyValueCollection
+            {
+                Name = "DuplicatePropertyValues",
+                LinkedObjectId = "obj-1",
+                Scope = "global",
+            };
+            collection.Add(new StringPropertyValue(property) { Value = "A" });
+            collection.Add(new StringPropertyValue(property) { Value = "B" });
 
-                return;
-            }
+            var ex = Assert.ThrowsException<MediaOpsException>(() => objectCreator.CreatePropertyValueCollection(collection));
+            var errorMessage = $"Property value collection contains 2 values with the same property ID '{property.Id}'.";
+            Assert.AreEqual(errorMessage, ex.Message);
+            Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
 
-            Assert.Fail("Expected exception was not thrown.");
+            var error = ex.TraceData.ErrorData.OfType<PropertyValueCollectionInvalidPropertySettingsError>().SingleOrDefault();
+            Assert.IsNotNull(error);
+            Assert.AreEqual(errorMessage, error.ErrorMessage);
+            Assert.AreEqual(collection.Id, error.Id);
+            Assert.AreEqual(property.Id, error.PropertyId);
         }
 
         [TestMethod]
