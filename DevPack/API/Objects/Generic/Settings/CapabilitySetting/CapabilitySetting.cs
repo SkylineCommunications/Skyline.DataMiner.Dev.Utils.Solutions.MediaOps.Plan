@@ -34,8 +34,6 @@
 			: base(capabilitySetting)
 		{
 			Value = capabilitySetting.Value;
-
-			IsNew = true;
 		}
 
 		/// <summary>

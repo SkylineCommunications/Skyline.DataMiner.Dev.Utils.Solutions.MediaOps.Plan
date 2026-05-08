@@ -145,6 +145,7 @@
 					continue;
 				}
 
+				// todo: add logic to update or remove the reservation id in the nodes
 				ReportSuccess(domJob);
 			}
 		}

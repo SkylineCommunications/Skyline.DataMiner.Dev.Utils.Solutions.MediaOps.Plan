@@ -1,189 +1,434 @@
 namespace RT_MediaOps.Plan.Properties.Values
 {
-	using System;
-	using System.Linq;
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
 
-	using RT_MediaOps.Plan.RegressionTests;
-	using RT_MediaOps.Plan.RST;
+    using RT_MediaOps.Plan.RegressionTests;
+    using RT_MediaOps.Plan.RST;
 
-	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
-	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+    using Skyline.DataMiner.Net.Messages.SLDataGateway;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+    using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
-	[TestClass]
-	[TestCategory("IntegrationTest")]
-	[DoNotParallelize]
-	public sealed class BasicTests : IDisposable
-	{
-		private readonly TestObjectCreator objectCreator;
+    [TestClass]
+    [TestCategory("IntegrationTest")]
+    [DoNotParallelize]
+    public sealed class BasicTests : IDisposable
+    {
+        private readonly TestObjectCreator objectCreator;
 
-		public BasicTests()
-		{
-			objectCreator = new TestObjectCreator(TestContext);
-		}
+        public BasicTests()
+        {
+            objectCreator = new TestObjectCreator(TestContext);
+        }
 
-		private static IntegrationTestContext TestContext => TestContextManager.SharedTestContext;
+        private static IntegrationTestContext TestContext => TestContextManager.SharedTestContext;
 
-		public void Dispose()
-		{
-			objectCreator.Dispose();
-		}
+        public void Dispose()
+        {
+            objectCreator.Dispose();
+        }
 
-		[TestMethod]
-		public void BasicCrudActions()
-		{
-			// Arrange – create the property definition used in the collection
-			var prefix = Guid.NewGuid();
-			var property = new BooleanProperty
-			{
-				Name = $"{prefix}_Property",
-				Scope = "global",
-				SectionName = "General",
-			};
-			objectCreator.CreateProperty(property);
+        [TestMethod]
+        public void BasicCrudActions()
+        {
+            // Arrange: create a property definition to link values against
+            var property = new StringProperty
+            {
+                Name = $"{Guid.NewGuid()}_Prop",
+                Scope = "global",
+                SectionName = "General",
+            };
+            objectCreator.CreateProperty(property);
 
-			// Create
-			var collection = new PropertyValueCollection
-			{
-				LinkedObjectId = $"{prefix}_Object",
-				Scope = "global",
-			};
-			collection.Add(new BooleanPropertyValue(property) { Value = true });
+            // Create
+            var collectionId = Guid.NewGuid();
+            var collection = new PropertyValueCollection(collectionId)
+            {
+                LinkedObjectId = "obj-1",
+                Scope = "global",
+            };
+            collection.Add(new StringPropertyValue(property) { Value = "hello" });
 
-			var createdCollection = objectCreator.CreatePropertyValueCollection(collection);
+            var created = objectCreator.CreatePropertyValueCollection(collection);
 
-			Assert.IsNotNull(createdCollection);
-			Assert.AreNotEqual(Guid.Empty, createdCollection.Id);
+            Assert.AreEqual(collectionId, created.Id);
+            Assert.AreEqual("obj-1", created.LinkedObjectId);
+            Assert.AreEqual("global", created.Scope);
+            Assert.AreEqual(1, created.StringValues.Count);
+            Assert.AreEqual("hello", created.StringValues.First().Value);
 
-			var returnedCollection = TestContext.Api.PropertyValueCollections.Read(createdCollection.Id);
-			Assert.IsNotNull(returnedCollection);
-			Assert.AreEqual(createdCollection.Id, returnedCollection.Id);
-			Assert.AreEqual("global", returnedCollection.Scope);
-			Assert.AreEqual(1, returnedCollection.BooleanValues.Count);
+            // Read
+            var read = TestContext.Api.PropertyValueCollections.Read(collectionId);
+            Assert.IsNotNull(read);
+            Assert.AreEqual(collectionId, read.Id);
 
-			// Update
-			returnedCollection.BooleanValues.First().Value = false;
+            // Delete
+            TestContext.Api.PropertyValueCollections.Delete(read);
 
-			var updatedCollection = TestContext.Api.PropertyValueCollections.Update(returnedCollection);
-			Assert.IsNotNull(updatedCollection);
+            var readAfterDelete = TestContext.Api.PropertyValueCollections.Read(collectionId);
+            Assert.IsNull(readAfterDelete);
+        }
 
-			// Delete
-			TestContext.Api.PropertyValueCollections.Delete(updatedCollection);
+        [TestMethod]
+        public void CreateWithExistingIdThrowsException()
+        {
+            var collectionId = Guid.NewGuid();
 
-			var deletedCollection = TestContext.Api.PropertyValueCollections.Read(updatedCollection.Id);
-			Assert.IsNull(deletedCollection);
-		}
+            var collection1 = new PropertyValueCollection(collectionId)
+            {
+                Name = "Collection1",
+                LinkedObjectId = "obj-1",
+                Scope = "global",
+            };
+            var collection2 = new PropertyValueCollection(collectionId)
+            {
+                Name = "Collection2",
+                LinkedObjectId = "obj-2",
+                Scope = "global",
+            };
 
-		[TestMethod]
-		public void CreateWithDuplicatePropertyValueThrowsException()
-		{
-			var prefix = Guid.NewGuid();
-			var property = new BooleanProperty
-			{
-				Name = $"{prefix}_Property",
-				Scope = "global",
-				SectionName = "General",
-			};
-			objectCreator.CreateProperty(property);
+            objectCreator.CreatePropertyValueCollection(collection1);
 
-			var collection = new PropertyValueCollection
-			{
-				LinkedObjectId = $"{prefix}_Object",
-				Scope = "global",
-			};
+            try
+            {
+                objectCreator.CreatePropertyValueCollection(collection2);
+            }
+            catch (MediaOpsException ex)
+            {
+                StringAssert.Contains(ex.Message, "ID is already in use.");
 
-			// Add the same property twice (allowed at the model level; the handler must reject it)
-			collection.Add(new BooleanPropertyValue(property) { Value = true });
-			collection.Add(new BooleanPropertyValue(property) { Value = false });
+                Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
+                var error = ex.TraceData.ErrorData.OfType<PropertyValueCollectionIdInUseError>().SingleOrDefault();
+                Assert.IsNotNull(error);
+                Assert.AreEqual(collectionId, error.Id);
 
-			try
-			{
-				objectCreator.CreatePropertyValueCollection(collection);
-			}
-			catch (MediaOpsException)
-			{
-				return;
-			}
+                return;
+            }
 
-			Assert.Fail("Expected exception was not thrown.");
-		}
+            Assert.Fail("Expected exception was not thrown.");
+        }
 
-		[TestMethod]
-		public void CreateWithDuplicatePropertyValueInBulkThrowsException()
-		{
-			var prefix = Guid.NewGuid();
-			var property = new BooleanProperty
-			{
-				Name = $"{prefix}_Property",
-				Scope = "global",
-				SectionName = "General",
-			};
-			objectCreator.CreateProperty(property);
+        [TestMethod]
+        public void CreateWithSameIdInBulkThrowsException()
+        {
+            var collectionId = Guid.NewGuid();
 
-			var collection = new PropertyValueCollection
-			{
-				LinkedObjectId = $"{prefix}_Object",
-				Scope = "global",
-			};
+            var collection1 = new PropertyValueCollection(collectionId)
+            {
+                Name = "Collection1",
+                LinkedObjectId = "obj-1",
+                Scope = "global",
+            };
+            var collection2 = new PropertyValueCollection(collectionId)
+            {
+                Name = "Collection2",
+                LinkedObjectId = "obj-2",
+                Scope = "global",
+            };
 
-			// Add the same property twice (allowed at the model level; the handler must reject it)
-			collection.Add(new BooleanPropertyValue(property) { Value = true });
-			collection.Add(new BooleanPropertyValue(property) { Value = false });
+            try
+            {
+                objectCreator.CreatePropertyValueCollections(new[] { collection1, collection2 });
+            }
+            catch (MediaOpsBulkException<Guid> ex)
+            {
+                if (!ex.Result.TraceDataPerItem.TryGetValue(collectionId, out var traceData))
+                {
+                    Assert.Fail("No trace data found for the failed ID.");
+                }
 
-			try
-			{
-				objectCreator.CreatePropertyValueCollections(new[] { collection });
-			}
-			catch (MediaOpsBulkException<Guid>)
-			{
-				return;
-			}
+                Assert.AreEqual(2, traceData.ErrorData.Count);
+                var errors = traceData.ErrorData.OfType<PropertyValueCollectionDuplicateIdError>().ToList();
+                Assert.AreEqual(2, errors.Count);
 
-			Assert.Fail("Expected exception was not thrown.");
-		}
+                return;
+            }
 
-		[TestMethod]
-		public void UpdateWithDuplicatePropertyValueThrowsException()
-		{
-			var prefix = Guid.NewGuid();
-			var property1 = new BooleanProperty
-			{
-				Name = $"{prefix}_Property1",
-				Scope = "global",
-				SectionName = "General",
-			};
-			var property2 = new BooleanProperty
-			{
-				Name = $"{prefix}_Property2",
-				Scope = "global",
-				SectionName = "General",
-			};
-			objectCreator.CreateProperty(property1);
-			objectCreator.CreateProperty(property2);
+            Assert.Fail("Expected exception was not thrown.");
+        }
 
-			var collection = new PropertyValueCollection
-			{
-				LinkedObjectId = $"{prefix}_Object",
-				Scope = "global",
-			};
-			collection.Add(new BooleanPropertyValue(property1) { Value = true });
-			collection.Add(new BooleanPropertyValue(property2) { Value = false });
-			objectCreator.CreatePropertyValueCollection(collection);
+        [TestMethod]
+        public void CreateWithDuplicateLinkedObjectIdAndSubIdInBulkThrowsException()
+        {
+            var linkedObjectId = $"obj-{Guid.NewGuid()}";
+            var subId = "sub-1";
 
-			var savedCollection = TestContext.Api.PropertyValueCollections.Read(collection.Id);
+            var collection1 = new PropertyValueCollection
+            {
+                Name = "Collection1",
+                LinkedObjectId = linkedObjectId,
+                SubId = subId,
+                Scope = "global",
+            };
+            var collection2 = new PropertyValueCollection
+            {
+                Name = "Collection2",
+                LinkedObjectId = linkedObjectId,
+                SubId = subId,
+                Scope = "global",
+            };
 
-			// Add property1 a second time to create a duplicate
-			savedCollection.Add(new BooleanPropertyValue(property1) { Value = false });
+            try
+            {
+                objectCreator.CreatePropertyValueCollections(new[] { collection1, collection2 });
+            }
+            catch (MediaOpsBulkException<Guid> ex)
+            {
+                var errors = ex.Result.TraceDataPerItem.Values
+                    .SelectMany(x => x.ErrorData)
+                    .OfType<PropertyValueCollectionDuplicateLinkedObjectIdAndSubIdError>()
+                    .ToList();
 
-			try
-			{
-				TestContext.Api.PropertyValueCollections.Update(savedCollection);
-			}
-			catch (MediaOpsException)
-			{
-				return;
-			}
+                Assert.AreEqual(2, errors.Count);
+                Assert.IsTrue(errors.All(e => e.LinkedObjectId == linkedObjectId && e.SubId == subId));
 
-			Assert.Fail("Expected exception was not thrown.");
-		}
-	}
+                return;
+            }
+
+            Assert.Fail("Expected exception was not thrown.");
+        }
+
+        [TestMethod]
+        public void CreateWithLinkedObjectIdAndSubIdAlreadyInUseThrowsException()
+        {
+            var linkedObjectId = $"obj-{Guid.NewGuid()}";
+            var subId = "sub-1";
+
+            var existing = new PropertyValueCollection
+            {
+                Name = "Existing",
+                LinkedObjectId = linkedObjectId,
+                SubId = subId,
+                Scope = "global",
+            };
+            objectCreator.CreatePropertyValueCollection(existing);
+
+            var newCollection = new PropertyValueCollection
+            {
+                Name = "New",
+                LinkedObjectId = linkedObjectId,
+                SubId = subId,
+                Scope = "global",
+            };
+
+            try
+            {
+                objectCreator.CreatePropertyValueCollection(newCollection);
+            }
+            catch (MediaOpsException ex)
+            {
+                StringAssert.Contains(ex.Message, "already exists");
+
+                var error = ex.TraceData.ErrorData.OfType<PropertyValueCollectionDuplicateLinkedObjectIdAndSubIdError>().SingleOrDefault();
+                Assert.IsNotNull(error);
+                Assert.AreEqual(linkedObjectId, error.LinkedObjectId);
+                Assert.AreEqual(subId, error.SubId);
+
+                return;
+            }
+
+            Assert.Fail("Expected exception was not thrown.");
+        }
+
+        [TestMethod]
+        public void CreateWithEmptyLinkedObjectIdThrowsException()
+        {
+            var collection = new PropertyValueCollection
+            {
+                Name = "BadCollection",
+                LinkedObjectId = string.Empty,
+                Scope = "global",
+            };
+
+            try
+            {
+                objectCreator.CreatePropertyValueCollection(collection);
+            }
+            catch (MediaOpsException ex)
+            {
+                StringAssert.Contains(ex.Message, "Linked object ID cannot be empty.");
+                return;
+            }
+
+            Assert.Fail("Expected exception was not thrown.");
+        }
+
+        [TestMethod]
+        public void CreateWithEmptyScopeThrowsException()
+        {
+            var collection = new PropertyValueCollection
+            {
+                Name = "BadCollection",
+                LinkedObjectId = "obj-1",
+                Scope = string.Empty,
+            };
+
+            try
+            {
+                objectCreator.CreatePropertyValueCollection(collection);
+            }
+            catch (MediaOpsException ex)
+            {
+                StringAssert.Contains(ex.Message, "Scope cannot be empty.");
+                return;
+            }
+
+            Assert.Fail("Expected exception was not thrown.");
+        }
+
+        [TestMethod]
+        public void CreateNewThenUpdateNewThrowsException()
+        {
+            var collection = new PropertyValueCollection
+            {
+                Name = "NewCollection",
+                LinkedObjectId = "obj-1",
+                Scope = "global",
+            };
+
+            Assert.ThrowsException<InvalidOperationException>(() =>
+                TestContext.Api.PropertyValueCollections.Update(collection));
+        }
+
+        [TestMethod]
+        public void UpdateExistingThenCreateThrowsException()
+        {
+            var collection = new PropertyValueCollection
+            {
+                Name = "NewCollection",
+                LinkedObjectId = "obj-1",
+                Scope = "global",
+            };
+            var created = objectCreator.CreatePropertyValueCollection(collection);
+
+            Assert.ThrowsException<InvalidOperationException>(() =>
+                TestContext.Api.PropertyValueCollections.Create(created));
+        }
+
+        [TestMethod]
+        public void CountReturnsCorrectNumber()
+        {
+            var countBefore = TestContext.Api.PropertyValueCollections.Count();
+
+            var collection = new PropertyValueCollection
+            {
+                Name = "CountTestCollection",
+                LinkedObjectId = "obj-count",
+                Scope = "global",
+            };
+            objectCreator.CreatePropertyValueCollection(collection);
+
+            var countAfter = TestContext.Api.PropertyValueCollections.Count();
+
+            Assert.AreEqual(countBefore + 1, countAfter);
+        }
+
+        [TestMethod]
+        public void ReadByLinkedObjectIdFilter()
+        {
+            var linkedObjectId = $"obj-{Guid.NewGuid()}";
+
+            var collection = new PropertyValueCollection
+            {
+                Name = "FilterTestCollection",
+                LinkedObjectId = linkedObjectId,
+                Scope = "global",
+            };
+            var created = objectCreator.CreatePropertyValueCollection(collection);
+
+            var results = TestContext.Api.PropertyValueCollections
+                .Read(PropertyValueCollectionExposers.Id.Equal(created.Id))
+                .ToList();
+
+            Assert.AreEqual(1, results.Count);
+            Assert.AreEqual(linkedObjectId, results[0].LinkedObjectId);
+        }
+
+        [TestMethod]
+        public void BulkCreateAndDelete()
+        {
+            var collections = new List<PropertyValueCollection>
+            {
+                new PropertyValueCollection { Name = "Bulk1", LinkedObjectId = "bulk-obj-1", Scope = "global" },
+                new PropertyValueCollection { Name = "Bulk2", LinkedObjectId = "bulk-obj-2", Scope = "global" },
+            };
+
+            var created = objectCreator.CreatePropertyValueCollections(collections);
+
+            Assert.AreEqual(2, created.Count);
+
+            TestContext.Api.PropertyValueCollections.Delete(created);
+
+            foreach (var item in created)
+            {
+                Assert.IsNull(TestContext.Api.PropertyValueCollections.Read(item.Id));
+            }
+        }
+
+        [TestMethod]
+        public void UpdateExistingWithCustomAndDoubleValues()
+        {
+            // Arrange: create a property definition to link values against
+            var property = new StringProperty
+            {
+                Name = $"{Guid.NewGuid()}_Prop",
+                Scope = "global",
+                SectionName = "General",
+            };
+            objectCreator.CreateProperty(property);
+
+            // Create
+            var collectionId = Guid.NewGuid();
+            var collection = new PropertyValueCollection(collectionId)
+            {
+                LinkedObjectId = "obj-1",
+                Scope = "global",
+            };
+            collection.Add(new StringPropertyValue(property) { Value = "hello" });
+
+            var created = objectCreator.CreatePropertyValueCollection(collection);
+
+            // Read
+            var read = TestContext.Api.PropertyValueCollections.Read(collectionId);
+            Assert.IsNotNull(read);
+            Assert.AreEqual(collectionId, read.Id);
+
+            // Arrange: create an additional boolean property definition
+            var booleanProperty = new BooleanProperty
+            {
+                Name = $"{Guid.NewGuid()}_BooleanProp",
+                Scope = "global",
+                SectionName = "General",
+            };
+            objectCreator.CreateProperty(booleanProperty);
+
+            // Update: add a custom value and a boolean property value
+            read.Add(new CustomPropertyValue { Name = "CustomKey", Value = "CustomValue" });
+            read.Add(new BooleanPropertyValue(booleanProperty) { Value = true });
+
+            var updated = TestContext.Api.PropertyValueCollections.Update(read);
+
+            Assert.AreEqual(1, updated.CustomValues.Count);
+            Assert.AreEqual("CustomKey", updated.CustomValues.First().Name);
+            Assert.AreEqual("CustomValue", updated.CustomValues.First().Value);
+            Assert.AreEqual(1, updated.BooleanValues.Count);
+            Assert.AreEqual(true, updated.BooleanValues.First().Value);
+
+            var readAfterUpdate = TestContext.Api.PropertyValueCollections.Read(collectionId);
+            Assert.IsNotNull(readAfterUpdate);
+            Assert.AreEqual(1, readAfterUpdate.CustomValues.Count);
+            Assert.AreEqual("CustomKey", readAfterUpdate.CustomValues.First().Name);
+            Assert.AreEqual("CustomValue", readAfterUpdate.CustomValues.First().Value);
+            Assert.AreEqual(1, readAfterUpdate.BooleanValues.Count);
+            Assert.AreEqual(true, readAfterUpdate.BooleanValues.First().Value);
+
+            // Delete
+            TestContext.Api.PropertyValueCollections.Delete(updated);
+
+            var readAfterDelete = TestContext.Api.PropertyValueCollections.Read(collectionId);
+            Assert.IsNull(readAfterDelete);
+        }
+    }
 }

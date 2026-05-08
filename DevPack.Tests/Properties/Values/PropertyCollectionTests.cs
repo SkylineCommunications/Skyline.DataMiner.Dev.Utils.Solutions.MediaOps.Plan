@@ -1,7 +1,6 @@
 namespace RT_MediaOps.Plan.Properties.Values
 {
 	using System;
-	using System.Collections.Generic;
 	using System.Linq;
 
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
@@ -44,13 +43,13 @@ namespace RT_MediaOps.Plan.Properties.Values
 			Assert.IsNotNull(collection.StringValues);
 			Assert.IsNotNull(collection.BooleanValues);
 			Assert.IsNotNull(collection.DiscreteValues);
-			Assert.IsNotNull(collection.LinkedValues);
+			Assert.IsNotNull(collection.PropertyValues);
 
 			Assert.AreEqual(0, collection.CustomValues.Count);
 			Assert.AreEqual(0, collection.StringValues.Count);
 			Assert.AreEqual(0, collection.BooleanValues.Count);
 			Assert.AreEqual(0, collection.DiscreteValues.Count);
-			Assert.AreEqual(0, collection.LinkedValues.Count());
+			Assert.AreEqual(0, collection.PropertyValues.Count);
 		}
 
 		[TestMethod]
@@ -104,7 +103,55 @@ namespace RT_MediaOps.Plan.Properties.Values
 		}
 
 		[TestMethod]
-		public void Add_NullItem_ThrowsArgumentNullException()
+		public void ICollection_IsReadOnly_ReturnsFalse()
+		{
+			var collection = new PropertyValueCollection();
+
+			Assert.IsFalse(collection.IsReadOnly);
+		}
+
+		[TestMethod]
+		public void ICollection_Add_CustomPropertyValue_IncreasesCount()
+		{
+			var collection = new PropertyValueCollection();
+			collection.Add(new CustomPropertyValue("myProp"));
+
+			Assert.AreEqual(1, collection.Count);
+			Assert.AreEqual(1, collection.CustomValues.Count);
+		}
+
+		[TestMethod]
+		public void ICollection_Add_StringPropertyValue_IncreasesCount()
+		{
+			var collection = new PropertyValueCollection();
+			collection.Add(new StringPropertyValue(new StringProperty()));
+
+			Assert.AreEqual(1, collection.Count);
+			Assert.AreEqual(1, collection.StringValues.Count);
+		}
+
+		[TestMethod]
+		public void ICollection_Add_BooleanPropertyValue_IncreasesCount()
+		{
+			var collection = new PropertyValueCollection();
+			collection.Add(new BooleanPropertyValue(new BooleanProperty()));
+
+			Assert.AreEqual(1, collection.Count);
+			Assert.AreEqual(1, collection.BooleanValues.Count);
+		}
+
+		[TestMethod]
+		public void ICollection_Add_DiscretePropertyValue_IncreasesCount()
+		{
+			var collection = new PropertyValueCollection();
+			collection.Add(new DiscretePropertyValue(new DiscreteProperty()));
+
+			Assert.AreEqual(1, collection.Count);
+			Assert.AreEqual(1, collection.DiscreteValues.Count);
+		}
+
+		[TestMethod]
+		public void ICollection_Add_Null_Throws()
 		{
 			var collection = new PropertyValueCollection();
 
@@ -112,157 +159,46 @@ namespace RT_MediaOps.Plan.Properties.Values
 		}
 
 		[TestMethod]
-		public void Add_UnsupportedType_ThrowsArgumentException()
+		public void ICollection_Remove_CustomPropertyValue_DecreasesCount()
 		{
+			var item = new CustomPropertyValue("myProp");
 			var collection = new PropertyValueCollection();
+			collection.Add(item);
 
-			Assert.ThrowsException<ArgumentException>(() => collection.Add(new UnsupportedPropertyValue()));
-		}
+			var removed = collection.Remove(item);
 
-		[TestMethod]
-		public void Add_StringPropertyValue_AppearsInStringValuesAndIncreasesCount()
-		{
-			var collection = new PropertyValueCollection();
-			var value = new StringPropertyValue(new StringProperty());
-
-			collection.Add(value);
-
-			Assert.AreEqual(1, collection.StringValues.Count);
-			Assert.AreEqual(1, collection.Count);
-			Assert.IsTrue(collection.StringValues.Contains(value));
-		}
-
-		[TestMethod]
-		public void Add_BooleanPropertyValue_AppearsInBooleanValuesAndIncreasesCount()
-		{
-			var collection = new PropertyValueCollection();
-			var value = new BooleanPropertyValue(new BooleanProperty());
-
-			collection.Add(value);
-
-			Assert.AreEqual(1, collection.BooleanValues.Count);
-			Assert.AreEqual(1, collection.Count);
-			Assert.IsTrue(collection.BooleanValues.Contains(value));
-		}
-
-		[TestMethod]
-		public void Add_DiscretePropertyValue_AppearsInDiscreteValuesAndIncreasesCount()
-		{
-			var collection = new PropertyValueCollection();
-			var value = new DiscretePropertyValue(new DiscreteProperty());
-
-			collection.Add(value);
-
-			Assert.AreEqual(1, collection.DiscreteValues.Count);
-			Assert.AreEqual(1, collection.Count);
-			Assert.IsTrue(collection.DiscreteValues.Contains(value));
-		}
-
-		[TestMethod]
-		public void Add_CustomPropertyValue_AppearsInCustomValuesAndIncreasesCount()
-		{
-			var collection = new PropertyValueCollection();
-			var value = new CustomPropertyValue("MyCustom");
-
-			collection.Add(value);
-
-			Assert.AreEqual(1, collection.CustomValues.Count);
-			Assert.AreEqual(1, collection.Count);
-			Assert.IsTrue(collection.CustomValues.Contains(value));
-		}
-
-		[TestMethod]
-		public void Remove_ExistingStringPropertyValue_ReturnsTrueAndDecreasesCount()
-		{
-			var collection = new PropertyValueCollection();
-			var value = new StringPropertyValue(new StringProperty());
-			collection.Add(value);
-
-			var result = collection.Remove(value);
-
-			Assert.IsTrue(result);
+			Assert.IsTrue(removed);
 			Assert.AreEqual(0, collection.Count);
 		}
 
 		[TestMethod]
-		public void Remove_ExistingBooleanPropertyValue_ReturnsTrueAndDecreasesCount()
-		{
-			var collection = new PropertyValueCollection();
-			var value = new BooleanPropertyValue(new BooleanProperty());
-			collection.Add(value);
-
-			var result = collection.Remove(value);
-
-			Assert.IsTrue(result);
-			Assert.AreEqual(0, collection.Count);
-		}
-
-		[TestMethod]
-		public void Remove_ExistingDiscretePropertyValue_ReturnsTrueAndDecreasesCount()
-		{
-			var collection = new PropertyValueCollection();
-			var value = new DiscretePropertyValue(new DiscreteProperty());
-			collection.Add(value);
-
-			var result = collection.Remove(value);
-
-			Assert.IsTrue(result);
-			Assert.AreEqual(0, collection.Count);
-		}
-
-		[TestMethod]
-		public void Remove_ExistingCustomPropertyValue_ReturnsTrueAndDecreasesCount()
-		{
-			var collection = new PropertyValueCollection();
-			var value = new CustomPropertyValue("MyCustom");
-			collection.Add(value);
-
-			var result = collection.Remove(value);
-
-			Assert.IsTrue(result);
-			Assert.AreEqual(0, collection.Count);
-		}
-
-		[TestMethod]
-		public void Remove_NonExistingItem_ReturnsFalse()
+		public void ICollection_Remove_Null_ReturnsFalse()
 		{
 			var collection = new PropertyValueCollection();
 
-			var result = collection.Remove(new StringPropertyValue(new StringProperty()));
-
-			Assert.IsFalse(result);
+			Assert.IsFalse(collection.Remove(null));
 		}
 
 		[TestMethod]
-		public void Remove_NullItem_ReturnsFalse()
+		public void ICollection_Contains_ExistingItem_ReturnsTrue()
+		{
+			var item = new CustomPropertyValue("myProp");
+			var collection = new PropertyValueCollection();
+			collection.Add(item);
+
+			Assert.IsTrue(collection.Contains(item));
+		}
+
+		[TestMethod]
+		public void ICollection_Contains_MissingItem_ReturnsFalse()
 		{
 			var collection = new PropertyValueCollection();
 
-			var result = collection.Remove(null);
-
-			Assert.IsFalse(result);
+			Assert.IsFalse(collection.Contains(new CustomPropertyValue("myProp")));
 		}
 
 		[TestMethod]
-		public void Contains_ExistingItem_ReturnsTrue()
-		{
-			var collection = new PropertyValueCollection();
-			var value = new StringPropertyValue(new StringProperty());
-			collection.Add(value);
-
-			Assert.IsTrue(collection.Contains(value));
-		}
-
-		[TestMethod]
-		public void Contains_NonExistingItem_ReturnsFalse()
-		{
-			var collection = new PropertyValueCollection();
-
-			Assert.IsFalse(collection.Contains(new StringPropertyValue(new StringProperty())));
-		}
-
-		[TestMethod]
-		public void Contains_NullItem_ReturnsFalse()
+		public void ICollection_Contains_Null_ReturnsFalse()
 		{
 			var collection = new PropertyValueCollection();
 
@@ -270,108 +206,44 @@ namespace RT_MediaOps.Plan.Properties.Values
 		}
 
 		[TestMethod]
-		public void Clear_RemovesAllItemsAndResetsCount()
+		public void ICollection_Clear_RemovesAllItems()
 		{
 			var collection = new PropertyValueCollection();
+			collection.Add(new CustomPropertyValue("myProp"));
 			collection.Add(new StringPropertyValue(new StringProperty()));
-			collection.Add(new BooleanPropertyValue(new BooleanProperty()));
-			collection.Add(new DiscretePropertyValue(new DiscreteProperty()));
-			collection.Add(new CustomPropertyValue("MyCustom"));
 
 			collection.Clear();
 
 			Assert.AreEqual(0, collection.Count);
-			Assert.AreEqual(0, collection.StringValues.Count);
-			Assert.AreEqual(0, collection.BooleanValues.Count);
-			Assert.AreEqual(0, collection.DiscreteValues.Count);
-			Assert.AreEqual(0, collection.CustomValues.Count);
 		}
 
 		[TestMethod]
-		public void CopyTo_ValidArray_CopiesAllItems()
+		public void ICollection_GetEnumerator_ReturnsAllItems()
 		{
+			var custom = new CustomPropertyValue("myProp");
+			var str = new StringPropertyValue(new StringProperty());
 			var collection = new PropertyValueCollection();
-			var strVal = new StringPropertyValue(new StringProperty());
-			var boolVal = new BooleanPropertyValue(new BooleanProperty());
-			collection.Add(strVal);
-			collection.Add(boolVal);
+			collection.Add(custom);
+			collection.Add(str);
 
-			var array = new PropertyValueBase[2];
+			var items = collection.ToList();
+
+			Assert.AreEqual(2, items.Count);
+			CollectionAssert.Contains(items, custom);
+			CollectionAssert.Contains(items, str);
+		}
+
+		[TestMethod]
+		public void ICollection_CopyTo_CopiesAllItems()
+		{
+			var item = new CustomPropertyValue("myProp");
+			var collection = new PropertyValueCollection();
+			collection.Add(item);
+
+			var array = new PropertyValueBase[1];
 			collection.CopyTo(array, 0);
 
-			CollectionAssert.Contains(array, strVal);
-			CollectionAssert.Contains(array, boolVal);
-		}
-
-		[TestMethod]
-		public void CopyTo_NullArray_ThrowsArgumentNullException()
-		{
-			var collection = new PropertyValueCollection();
-
-			Assert.ThrowsException<ArgumentNullException>(() => collection.CopyTo(null, 0));
-		}
-
-		[TestMethod]
-		public void CopyTo_NegativeIndex_ThrowsArgumentOutOfRangeException()
-		{
-			var collection = new PropertyValueCollection();
-
-			Assert.ThrowsException<ArgumentOutOfRangeException>(() => collection.CopyTo(new PropertyValueBase[1], -1));
-		}
-
-		[TestMethod]
-		public void CopyTo_ArrayTooSmall_ThrowsArgumentException()
-		{
-			var collection = new PropertyValueCollection();
-			collection.Add(new StringPropertyValue(new StringProperty()));
-			collection.Add(new BooleanPropertyValue(new BooleanProperty()));
-
-			Assert.ThrowsException<ArgumentException>(() => collection.CopyTo(new PropertyValueBase[1], 0));
-		}
-
-		[TestMethod]
-		public void GetEnumerator_ReturnsAllAddedItems()
-		{
-			var collection = new PropertyValueCollection();
-			var strVal = new StringPropertyValue(new StringProperty());
-			var boolVal = new BooleanPropertyValue(new BooleanProperty());
-			var discVal = new DiscretePropertyValue(new DiscreteProperty());
-			var custVal = new CustomPropertyValue("custom");
-			collection.Add(strVal);
-			collection.Add(boolVal);
-			collection.Add(discVal);
-			collection.Add(custVal);
-
-			var items = new List<PropertyValueBase>(collection);
-
-			Assert.AreEqual(4, items.Count);
-			CollectionAssert.Contains(items, strVal);
-			CollectionAssert.Contains(items, boolVal);
-			CollectionAssert.Contains(items, discVal);
-			CollectionAssert.Contains(items, custVal);
-		}
-
-		[TestMethod]
-		public void LinkedValues_ContainsStringBooleanAndDiscreteValues()
-		{
-			var collection = new PropertyValueCollection();
-			var strVal = new StringPropertyValue(new StringProperty());
-			var boolVal = new BooleanPropertyValue(new BooleanProperty());
-			var discVal = new DiscretePropertyValue(new DiscreteProperty());
-			collection.Add(strVal);
-			collection.Add(boolVal);
-			collection.Add(discVal);
-
-			var linked = collection.LinkedValues.ToList();
-
-			Assert.AreEqual(3, linked.Count);
-			CollectionAssert.Contains(linked, strVal);
-			CollectionAssert.Contains(linked, boolVal);
-			CollectionAssert.Contains(linked, discVal);
-		}
-
-		private sealed class UnsupportedPropertyValue : PropertyValueBase
-		{
+			Assert.AreEqual(item, array[0]);
 		}
 	}
 }

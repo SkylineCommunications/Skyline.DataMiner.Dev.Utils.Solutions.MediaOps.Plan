@@ -2,8 +2,6 @@
 {
 	using System;
 
-	using StorageProperties = Storage.DOM.SlcProperties;
-
 	/// <summary>
 	/// Represents a custom property value that is not linked to a predefined property definition.
 	/// </summary>
@@ -15,24 +13,55 @@
 		/// <param name="name">The name of the custom property. Cannot be <see langword="null"/>.</param>
 		/// <exception cref="ArgumentNullException">Thrown if <paramref name="name"/> is <see langword="null"/>.</exception>
 		public CustomPropertyValue(string name)
+			: base(true)
 		{
 			Name = name ?? throw new ArgumentNullException(nameof(name));
 		}
 
-		internal CustomPropertyValue(StorageProperties.PropertyValueSection section) : base(section)
+		internal CustomPropertyValue()
 		{
-			ParseSection(section);
-			InitTracking();
 		}
+
+		internal CustomPropertyValue(CustomPropertyValue customPropertyValue)
+			: base(customPropertyValue)
+		{
+			Name = customPropertyValue.Name;
+			Value = customPropertyValue.Value;
+		}
+
+		/// <summary>
+		/// Gets or sets the name of this custom property.
+		/// </summary>
+		public string Name { get; set; }
 
 		/// <summary>
 		/// Gets or sets the string value of this custom property.
 		/// </summary>
 		public string Value { get; set; }
 
-		private void ParseSection(StorageProperties.PropertyValueSection section)
+		/// <inheritdoc />
+		public override int GetHashCode()
 		{
-			Value = section.Value;
+			unchecked
+			{
+				int hash = 17;
+				hash = hash * 23 + (Name?.GetHashCode() ?? 0);
+				hash = hash * 23 + (Value?.GetHashCode() ?? 0);
+
+				return hash;
+			}
+		}
+
+		/// <inheritdoc />
+		public override bool Equals(object obj)
+		{
+			if (obj is not CustomPropertyValue other)
+			{
+				return false;
+			}
+
+			return Name == other.Name
+				&& Value == other.Value;
 		}
 	}
 }
