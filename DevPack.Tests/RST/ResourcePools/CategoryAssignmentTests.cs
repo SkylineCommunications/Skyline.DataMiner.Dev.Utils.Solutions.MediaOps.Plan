@@ -185,6 +185,7 @@
 				Assert.IsNotNull(retrievedCategory, $"Expected category with ID {expectedCategory.ID} was not created.");
 			}
 
+			// Check if Resource Pool DOM Instance was added as category item to the expected category
 			var categoryItems = TestContext.CategoriesApi.CategoryItems.Read(CategoryItemExposers.InstanceId.Equal(resourcePoolId.ToString())).ToArray();
 			if (expectedCategory == null)
 			{
