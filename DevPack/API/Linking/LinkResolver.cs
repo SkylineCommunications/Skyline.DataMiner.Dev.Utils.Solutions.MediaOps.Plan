@@ -169,6 +169,27 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <summary>
+		/// Determines whether the specified reference can be resolved to an actual value.
+		/// </summary>
+		/// <param name="reference">The reference to check.</param>
+		/// <returns><c>true</c> if the reference can be resolved to an actual value; otherwise, <c>false</c>.</returns>
+		public virtual bool CanResolve(DataReference reference)
+		{
+			if (reference == null)
+				throw new ArgumentNullException(nameof(reference));
+
+			try
+			{
+				var resolved = ResolveValue(reference);
+				return resolved != null && resolved.IsResolved;
+			}
+			catch (Exception)
+			{
+				return false;
+			}
+		}
+
+		/// <summary>
 		/// Resolves a capability parameter reference. The reference targets a specific node when
 		/// <see cref="DataReference.NodeId"/> is set, otherwise the workflow / job itself.
 		/// Default returns an unresolved <see cref="ResolvedValue"/>.
