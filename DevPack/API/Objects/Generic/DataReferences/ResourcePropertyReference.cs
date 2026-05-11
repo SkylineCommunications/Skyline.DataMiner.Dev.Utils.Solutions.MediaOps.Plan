@@ -71,7 +71,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return Guid.TryParse(raw, out var id) ? new ResourcePropertyReference(id, nodeId) : null;
 		}
 
-      internal override Dictionary<string, string> BuildReferenceData()
+		internal override Dictionary<string, string> BuildReferenceData()
 		{
 			var data = base.BuildReferenceData() ?? new Dictionary<string, string>();
 			data[ResourcePropertyIdKey] = ResourcePropertyId.ToString();
