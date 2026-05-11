@@ -1,10 +1,7 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
-	using System.Collections.Generic;
 	using System.Linq;
-	using System.Text;
-	using System.Threading.Tasks;
 
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
@@ -39,7 +36,6 @@
 
 		private void Validate()
 		{
-
 			if (configurationSetting is TextConfigurationSetting textConfigurationSetting)
 			{
 				ValidateTextConfigurationSetting(textConfigurationSetting);

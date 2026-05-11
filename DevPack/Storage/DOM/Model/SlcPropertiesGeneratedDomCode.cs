@@ -69,13 +69,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcProperties
 
 		public static class Sections
 		{
-			public static class Discrete
-			{
-				public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("8354c390-f0d9-478d-a8bf-c4677d646a2d"))
-				{ ModuleId = "(slc)properties" };
-				public static FieldDescriptorID Option { get; } = new FieldDescriptorID(new Guid("14e1d9ba-a103-4353-a96b-3bd73ccd99db"));
-			}
-
 			public static class PropertyInfo
 			{
 				public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("2997b2a1-d651-4f93-b0db-4de54fb36d35"))
@@ -88,6 +81,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcProperties
 				public static FieldDescriptorID IsMultiLineString { get; } = new FieldDescriptorID(new Guid("de5c318e-a272-4071-9cc7-f34657b255cb"));
 				public static FieldDescriptorID FileSizeLimit { get; } = new FieldDescriptorID(new Guid("b54e9b8c-6d75-48e5-acd0-9612d5ba1f53"));
 				public static FieldDescriptorID AllowMultipleFiles { get; } = new FieldDescriptorID(new Guid("47423b7e-15b8-4c8e-a701-551a14b72c5a"));
+			}
+
+			public static class Discrete
+			{
+				public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("8354c390-f0d9-478d-a8bf-c4677d646a2d"))
+				{ ModuleId = "(slc)properties" };
+				public static FieldDescriptorID Option { get; } = new FieldDescriptorID(new Guid("14e1d9ba-a103-4353-a96b-3bd73ccd99db"));
 			}
 
 			public static class PropertyValue
@@ -182,14 +182,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcProperties
 		}
 
 		/// <summary>
-		/// Gets or sets the Discrete section of the DOM Instance.
-		/// </summary>
-		public IList<DiscreteSection> Discrete { get; private set; }
-
-		/// <summary>
 		/// Gets or sets the PropertyInfo section of the DOM Instance.
 		/// </summary>
 		public PropertyInfoSection PropertyInfo { get; set; }
+
+		/// <summary>
+		/// Gets or sets the Discrete section of the DOM Instance.
+		/// </summary>
+		public IList<DiscreteSection> Discrete { get; private set; }
 
 		/// <summary>
 		/// Gets or sets the Layout section of the DOM Instance.
@@ -231,12 +231,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcProperties
 		protected sealed override DomInstance InternalToInstance()
 		{
 			domInstance.Sections.Clear();
+			domInstance.Sections.Add(PropertyInfo.ToSection());
 			foreach (var item in Discrete)
 			{
 				domInstance.Sections.Add(item.ToSection());
 			}
 
-			domInstance.Sections.Add(PropertyInfo.ToSection());
 			if (Layout != null && !Layout.IsEmpty)
 			{
 				domInstance.Sections.Add(Layout.ToSection());
@@ -262,7 +262,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcProperties
 
 		protected sealed override void InitializeProperties()
 		{
-			Discrete = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcPropertiesIds.Sections.Discrete.Id)).Select(section => new DiscreteSection(section)).ToList();
 			var _propertyInfo = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcPropertiesIds.Sections.PropertyInfo.Id));
 			if (_propertyInfo is null)
 			{
@@ -273,6 +272,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcProperties
 				PropertyInfo = new PropertyInfoSection(_propertyInfo);
 			}
 
+			Discrete = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcPropertiesIds.Sections.Discrete.Id)).Select(section => new DiscreteSection(section)).ToList();
 			var _layout = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcPropertiesIds.Sections.Layout.Id));
 			if (_layout is null)
 			{
@@ -422,99 +422,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcProperties
 	using Skyline.DataMiner.Net.Apps.Sections.Sections;
 	using Skyline.DataMiner.Net.Messages;
 	using Skyline.DataMiner.Net.Sections;
-
-	/// <summary>
-	/// Represents a wrapper class for accessing a DiscreteSection section.
-	/// The <see cref="DiscreteSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
-	/// </summary>
-	internal partial class DiscreteSection : DomSectionBase
-	{
-		/// <summary>
-		/// Initializes a new instance of the <see cref="DiscreteSection"/> class. Creates an empty <see cref="DiscreteSection"/> object with default settings.
-		/// </summary>
-		public DiscreteSection() : base(SlcPropertiesIds.Sections.Discrete.Id)
-		{
-		}
-
-		/// <summary>
-		/// Initializes a new instance of the <see cref="DiscreteSection"/> class using the specified <paramref name="section"/> for initializing the object.
-		/// </summary>
-		/// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="DiscreteSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-		public DiscreteSection(Section section) : base(section, SlcPropertiesIds.Sections.Discrete.Id)
-		{
-		}
-
-		/// <summary>
-		/// Gets or sets the Option field of the DOM Instance.
-		/// </summary>
-		/// <remarks>
-		/// When retrieving the value:
-		/// <list type="bullet">
-		/// <item>If the field has been set, it will return the value.</item>
-		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-		/// </list>
-		/// </remarks>
-		public String Option
-		{
-			get
-			{
-				var wrapper = section.GetValue<String>(SlcPropertiesIds.Sections.Discrete.Option);
-				if (wrapper != null)
-				{
-					return (String)wrapper.Value;
-				}
-				else
-				{
-					return null;
-				}
-			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcPropertiesIds.Sections.Discrete.Option);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcPropertiesIds.Sections.Discrete.Option, (String)value);
-				}
-			}
-		}
-
-		/// <summary>
-		/// Creates a deep copy of the current <see cref="DiscreteSection"/>.
-		/// </summary>
-		/// <returns>A new <see cref="DiscreteSection"/> object that is a deep copy of this section.</returns>
-		public DiscreteSection Clone()
-		{
-			return new DiscreteSection((Section)this.ToSection().Clone());
-		}
-
-		/// <summary>
-		/// Creates a duplicate of the current <see cref="DiscreteSection"/> with a new id.
-		/// </summary>
-		/// <returns>A new <see cref="DiscreteSection"/> object that is a copy of this section but with a different id.</returns>
-		public DiscreteSection Duplicate()
-		{
-			var section = (Section)this.ToSection().Clone();
-			section.ID = new SectionID(Guid.NewGuid());
-			return new DiscreteSection(section);
-		}
-
-		/// <inheritdoc />
-		protected override Section InternalToSection()
-		{
-			if (section.GetValue<String>(SlcPropertiesIds.Sections.Discrete.Option) == null)
-				throw new InvalidOperationException("'Option' is required. Please fill it in before saving, or mark it as optional with the DOM Editor.");
-			return section;
-		}
-	}
 
 	/// <summary>
 	/// Represents a wrapper class for accessing a PropertyInfoSection section.
@@ -913,6 +820,99 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcProperties
 	}
 
 	/// <summary>
+	/// Represents a wrapper class for accessing a DiscreteSection section.
+	/// The <see cref="DiscreteSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	internal partial class DiscreteSection : DomSectionBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="DiscreteSection"/> class. Creates an empty <see cref="DiscreteSection"/> object with default settings.
+		/// </summary>
+		public DiscreteSection() : base(SlcPropertiesIds.Sections.Discrete.Id)
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="DiscreteSection"/> class using the specified <paramref name="section"/> for initializing the object.
+		/// </summary>
+		/// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="DiscreteSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public DiscreteSection(Section section) : base(section, SlcPropertiesIds.Sections.Discrete.Id)
+		{
+		}
+
+		/// <summary>
+		/// Gets or sets the Option field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String Option
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcPropertiesIds.Sections.Discrete.Option);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcPropertiesIds.Sections.Discrete.Option);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcPropertiesIds.Sections.Discrete.Option, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="DiscreteSection"/>.
+		/// </summary>
+		/// <returns>A new <see cref="DiscreteSection"/> object that is a deep copy of this section.</returns>
+		public DiscreteSection Clone()
+		{
+			return new DiscreteSection((Section)this.ToSection().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="DiscreteSection"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="DiscreteSection"/> object that is a copy of this section but with a different id.</returns>
+		public DiscreteSection Duplicate()
+		{
+			var section = (Section)this.ToSection().Clone();
+			section.ID = new SectionID(Guid.NewGuid());
+			return new DiscreteSection(section);
+		}
+
+		/// <inheritdoc />
+		protected override Section InternalToSection()
+		{
+			if (section.GetValue<String>(SlcPropertiesIds.Sections.Discrete.Option) == null)
+				throw new InvalidOperationException("'Option' is required. Please fill it in before saving, or mark it as optional with the DOM Editor.");
+			return section;
+		}
+	}
+
+	/// <summary>
 	/// Represents a wrapper class for accessing a PropertyValueSection section.
 	/// The <see cref="PropertyValueSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
 	/// </summary>
@@ -1080,14 +1080,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcProperties
 			var section = (Section)this.ToSection().Clone();
 			section.ID = new SectionID(Guid.NewGuid());
 			return new PropertyValueSection(section);
-		}
-
-		/// <inheritdoc />
-		protected override Section InternalToSection()
-		{
-			if (section.GetValue<String>(SlcPropertiesIds.Sections.PropertyValue.PropertyName) == null)
-				throw new InvalidOperationException("'PropertyName' is required. Please fill it in before saving, or mark it as optional with the DOM Editor.");
-			return section;
 		}
 	}
 

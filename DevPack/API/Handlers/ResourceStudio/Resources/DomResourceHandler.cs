@@ -943,6 +943,7 @@
 						var error = new ResourceInvalidCapacitySettingsError
 						{
 							ErrorMessage = "Capacity ID cannot be empty.",
+							Id = resource.Id,
 						};
 
 						ReportError(resource.Id, error);
@@ -955,6 +956,7 @@
 						{
 							ErrorMessage = $"Capacity with ID '{capacitySetting.Id}' not found.",
 							CapacityId = capacitySetting.Id,
+							Id = resource.Id,
 						};
 
 						ReportError(resource.Id, error);
@@ -1016,6 +1018,7 @@
 						var error = new ResourceInvalidCapabilitySettingsError
 						{
 							ErrorMessage = "Capability ID cannot be empty.",
+							Id = resource.Id,
 						};
 
 						ReportError(resource.Id, error);
@@ -1028,6 +1031,7 @@
 						{
 							ErrorMessage = $"Capability with ID '{capabilitySetting.Id}' not found.",
 							CapabilityId = capabilitySetting.Id,
+							Id = resource.Id,
 						};
 
 						ReportError(resource.Id, error);
@@ -1040,6 +1044,7 @@
 						{
 							ErrorMessage = "At least one discrete value must be specified for the capability.",
 							CapabilityId = capabilitySetting.Id,
+							Id = resource.Id,
 						};
 
 						ReportError(resource.Id, error);
@@ -1054,6 +1059,7 @@
 							{
 								ErrorMessage = $"Discrete value '{discreteValue}' is not valid for capability '{capability.Name}'.",
 								CapabilityId = capabilitySetting.Id,
+								Id = resource.Id,
 							};
 
 							ReportError(resource.Id, error);

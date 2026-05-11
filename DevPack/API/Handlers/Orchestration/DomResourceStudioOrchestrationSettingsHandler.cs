@@ -4,6 +4,7 @@
 	using System.Collections.Generic;
 	using System.Linq;
 
+	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
 	using Skyline.DataMiner.Utils.DOM.Extensions;
@@ -73,54 +74,14 @@
 
 		private ICollection<DomChangeResults> GetSettingsWithChanges(ICollection<ResourceStudioOrchestrationSettings> apiOrchestrationSettings)
 		{
-			var changeResults = new List<DomChangeResults>();
-			if (apiOrchestrationSettings.Count == 0)
-			{
-				return changeResults;
-			}
-
-			var toValidate = apiOrchestrationSettings.Where(x => !x.IsNew && x.HasChanges).ToList();
-			if (toValidate.Count == 0)
-			{
-				return changeResults;
-			}
-
-			var storedById = planApi.DomHelpers.SlcResourceStudioHelper.GetConfigurations(toValidate.Select(x => x.Id)).ToDictionary(x => x.ID.Id);
-			foreach (var orchestrationSetting in toValidate)
-			{
-				if (!storedById.TryGetValue(orchestrationSetting.Id, out var stored))
-				{
-					var error = new OrchestrationSettingsNotFoundError
-					{
-						ErrorMessage = $"Resource studio orchestration setting with ID '{orchestrationSetting.Id}' no longer exists.",
-						Id = orchestrationSetting.Id,
-					};
-
-					ReportError(orchestrationSetting.Id, error);
-					continue;
-				}
-
-				var changeResult = DomChangeHandler.HandleChanges(orchestrationSetting.OriginalInstance, orchestrationSetting.GetInstanceWithChanges(), stored);
-				if (changeResult.HasErrors)
-				{
-					foreach (var errorDetails in changeResult.Errors)
-					{
-						var error = new OrchestrationSettingsValueAlreadyChangedError
-						{
-							ErrorMessage = errorDetails.Message,
-							Id = orchestrationSetting.Id,
-						};
-
-						ReportError(orchestrationSetting.Id, error);
-					}
-
-					continue;
-				}
-
-				changeResults.Add(changeResult);
-			}
-
-			return changeResults;
+			return GetItemsWithChanges<ResourceStudioOrchestrationSettings, DomResourceStudioOrchestrationSetting>(
+				apiOrchestrationSettings,
+				p => p.OriginalInstance,
+				p => p.GetInstanceWithChanges(),
+				ids => planApi.DomHelpers.SlcResourceStudioHelper.GetConfigurations(ids),
+				p => new OrchestrationSettingsNotFoundError { ErrorMessage = $"Resource studio orchestration setting with ID '{p.Id}' no longer exists.", Id = p.Id },
+				(p, msg) => new OrchestrationSettingsValueAlreadyChangedError { ErrorMessage = msg, Id = p.Id })
+				.ToList();
 		}
 
 		private void PersistDomInstances(ICollection<DomResourceStudioOrchestrationSetting> domInstances)

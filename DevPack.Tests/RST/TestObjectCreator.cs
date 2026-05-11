@@ -33,6 +33,8 @@
 
 		private readonly HashSet<Guid> createdPropertyIds = new HashSet<Guid>();
 
+		private readonly HashSet<Guid> createdPropertyValueCollectionIds = new HashSet<Guid>();
+
 		private readonly HashSet<Guid> createdCategoryIds = new HashSet<Guid>();
 
 		private readonly HashSet<DmsElementId> createdElementIds = new HashSet<DmsElementId>();
@@ -72,6 +74,15 @@
 			try
 			{
 				WorkflowsCleanup();
+			}
+			catch
+			{
+				// Ignore cleanup errors
+			}
+
+			try
+			{
+				PropertyValueCollectionsCleanup();
 			}
 			catch
 			{
@@ -338,6 +349,11 @@
 			PlanApi.Properties.Delete(properties.ToArray());
 		}
 
+		private void PropertyValueCollectionsCleanup()
+		{
+			PlanApi.PropertyValueCollections.Delete(createdPropertyValueCollectionIds.ToArray());
+		}
+
 		public T CreateResource<T>(T resource) where T : Resource
 		{
 			var createdResource = (T)PlanApi.Resources.Create(resource);
@@ -582,6 +598,37 @@
 				foreach (var id in bulkException.Result.SuccessfulIds)
 				{
 					createdPropertyIds.Add(id);
+				}
+
+				throw;
+			}
+		}
+
+		public PropertyValueCollection CreatePropertyValueCollection(PropertyValueCollection collection)
+		{
+			var created = PlanApi.PropertyValueCollections.Create(collection);
+			createdPropertyValueCollectionIds.Add(created.Id);
+			return created;
+		}
+
+		public IReadOnlyCollection<PropertyValueCollection> CreatePropertyValueCollections(IEnumerable<PropertyValueCollection> collections)
+		{
+			try
+			{
+				var created = PlanApi.PropertyValueCollections.Create(collections);
+
+				foreach (var id in created.Select(x => x.Id))
+				{
+					createdPropertyValueCollectionIds.Add(id);
+				}
+
+				return created;
+			}
+			catch (MediaOpsBulkException<Guid> bulkException)
+			{
+				foreach (var id in bulkException.Result.SuccessfulIds)
+				{
+					createdPropertyValueCollectionIds.Add(id);
 				}
 
 				throw;
