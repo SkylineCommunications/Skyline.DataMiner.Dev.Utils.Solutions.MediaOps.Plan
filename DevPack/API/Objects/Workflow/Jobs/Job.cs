@@ -1,6 +1,8 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
+	using System.Collections;
+	using System.Collections.Generic;
 	using System.Linq;
 
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
@@ -23,6 +25,7 @@
 			IsNew = true;
 
 			OrchestrationSettings = new WorkflowOrchestrationSettings();
+			NodeGraph = new NodeGraph<JobNode>();
 		}
 
 		/// <summary>
@@ -34,6 +37,7 @@
 			HasUserDefinedId = true;
 
 			OrchestrationSettings = new WorkflowOrchestrationSettings();
+			NodeGraph = new NodeGraph<JobNode>();
 		}
 
 		internal Job(MediaOpsPlanApi planApi, StorageWorkflow.JobsInstance instance) : base(instance.ID.Id)
@@ -100,7 +104,9 @@
 		/// <summary>
 		/// Gets the orchestration settings assigned to this job.
 		/// </summary>
-		public OrchestrationSettings OrchestrationSettings { get; set; }
+		public OrchestrationSettings OrchestrationSettings { get; private set; }
+
+		public NodeGraph<JobNode> NodeGraph { get; private set; }
 
 		internal StorageWorkflow.JobsInstance OriginalInstance => originalInstance;
 
@@ -195,6 +201,63 @@
 					OrchestrationSettings = new WorkflowOrchestrationSettings();
 				}
 			}
+
+			ParseNodesAndConnections(planApi, instance.Nodes, instance.Connections);
+		}
+
+		private void ParseNodesAndConnections(MediaOpsPlanApi planApi, ICollection<StorageWorkflow.NodesSection> nodes, ICollection<StorageWorkflow.ConnectionsSection> connections)
+		{
+			if (nodes == null || nodes.Count == 0)
+			{
+				NodeGraph = new NodeGraph<JobNode>();
+				return;
+			}
+
+			var parsedNodesById = new Dictionary<int, JobNode>();
+			foreach (var nodeSecion in nodes)
+			{
+				JobNode node = null;
+				switch (nodeSecion.NodeType.Value)
+				{
+					case StorageWorkflow.SlcWorkflowIds.Enums.Nodetype.Resource:
+						node = new JobResourceNode(nodeSecion);
+						break;
+					case StorageWorkflow.SlcWorkflowIds.Enums.Nodetype.ResourcePool:
+						node = new JobResourcePoolNode(nodeSecion);
+						break;
+					default:
+						planApi.Logger.Warning(this, $"Node with ID {nodeSecion.NodeID} has unsupported node type {nodeSecion.NodeType.Value}. This node will be ignored.");
+						break;
+				}
+
+				if (node == null)
+				{
+					continue;
+				}
+
+				parsedNodesById.Add(node.Id, node);
+			}
+
+			if (connections == null || connections.Count == 0)
+			{
+				NodeGraph = new NodeGraph<JobNode>(parsedNodesById.Values);
+				return;
+			}
+
+			var parsedConnections = new List<NodeConnection<JobNode>>();
+			foreach (var connectionSection in connections)
+			{
+				try
+				{
+					parsedConnections.Add(new NodeConnection<JobNode>(connectionSection, id => parsedNodesById.TryGetValue(id, out var n) ? n : null));
+				}
+				catch (InvalidOperationException ex)
+				{
+					planApi.Logger.Warning(this, $"Connection with ID {connectionSection.ConnectionID} has invalid source or destination node. This connection will be ignored. Exception details: {ex}");
+				}
+			}
+
+			NodeGraph = new NodeGraph<JobNode>(parsedNodesById.Values, parsedConnections);
 		}
 	}
 }
