@@ -25,12 +25,12 @@
 		public WorkflowNodeType? Type { get; set; }
 
 		/// <summary>
-		/// Gets or sets the linked reference ID.
+		/// Gets or sets the reference ID.
 		/// </summary>
 		public Guid ReferenceId { get; set; }
 
 		/// <summary>
-		/// Gets or sets the parent linked reference ID.
+		/// Gets or sets the parent reference ID.
 		/// </summary>
 		public Guid ParentReferenceId { get; set; }
 
