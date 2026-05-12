@@ -11,9 +11,6 @@
 		private readonly List<TNode> nodes = [];
 		private readonly List<NodeConnection<TNode>> connections = [];
 
-		private int lastNodeId;
-		private int lastConnectionId;
-
 		internal NodeGraph()
 		{
 		}
@@ -26,7 +23,6 @@
 			}
 
 			this.nodes.AddRange(nodes);
-			lastNodeId = nodes.Count > 0 ? nodes.Max(n => n.Id) : 0;
 		}
 
 		internal NodeGraph(ICollection<TNode> nodes, ICollection<NodeConnection<TNode>> connections)
@@ -38,7 +34,6 @@
 			}
 
 			this.connections.AddRange(connections);
-			lastConnectionId = connections.Count > 0 ? connections.Max(c => c.Id) : 0;
 		}
 
 		public IReadOnlyCollection<TNode> Nodes => nodes.AsReadOnly();
@@ -52,12 +47,6 @@
 				throw new ArgumentNullException(nameof(node));
 			}
 
-			if (node.Id != 0)
-			{
-				throw new InvalidOperationException("Not allowed to add a node with pre-defined Id. Nodes must be added without Id, and the system will assign a unique Id automatically.");
-			}
-
-			node.Id = ++lastNodeId;
 			nodes.Add(node);
 
 			return this;
@@ -106,7 +95,7 @@
 				throw new InvalidOperationException("Target node is not part of this graph.");
 			}
 
-			var connection = new NodeConnection<TNode>(++lastConnectionId, from, to);
+			var connection = new NodeConnection<TNode>(from, to);
 			connections.Add(connection);
 
 			return this;
@@ -148,14 +137,16 @@
 		private StorageWorkflow.ConnectionsSection originalSection;
 		private StorageWorkflow.ConnectionsSection updatedSection;
 
-		internal NodeConnection(int id, TNode from, TNode to)
+		internal NodeConnection(TNode from, TNode to)
 		{
-			Id = id;
 			From = from ?? throw new ArgumentNullException(nameof(from));
 			To = to ?? throw new ArgumentNullException(nameof(to));
+
+			Id = Guid.NewGuid().ToString();
+			IsNew = true;
 		}
 
-		internal NodeConnection(StorageWorkflow.ConnectionsSection section, Func<int, TNode> nodeResolver)
+		internal NodeConnection(StorageWorkflow.ConnectionsSection section, Func<string, TNode> nodeResolver)
 		{
 			if (nodeResolver == null)
 			{
@@ -166,23 +157,20 @@
 			InitTracking();
 		}
 
-		public int Id { get; private set; }
+		public string Id { get; private set; }
 
 		public TNode From { get; private set; }
 
 		public TNode To { get; private set; }
 
-		private void ParseSection(StorageWorkflow.ConnectionsSection section, Func<int, TNode> nodeResolver)
+		private void ParseSection(StorageWorkflow.ConnectionsSection section, Func<string, TNode> nodeResolver)
 		{
 			originalSection = section ?? throw new ArgumentNullException(nameof(section));
 
-			Id = int.Parse(section.ConnectionID);
+			Id = section.ConnectionID;
 
-			var fromId = int.Parse(section.SourceNodeID);
-			var toId = int.Parse(section.DestinationNodeID);
-
-			From = nodeResolver(fromId) ?? throw new InvalidOperationException($"Connection {Id} references unknown source node {fromId}.");
-			To = nodeResolver(toId) ?? throw new InvalidOperationException($"Connection {Id} references unknown target node {toId}.");
+			From = nodeResolver(section.SourceNodeID) ?? throw new InvalidOperationException($"Connection {Id} references unknown source node {section.SourceNodeID}.");
+			To = nodeResolver(section.DestinationNodeID) ?? throw new InvalidOperationException($"Connection {Id} references unknown target node {section.DestinationNodeID}.");
 		}
 	}
 }

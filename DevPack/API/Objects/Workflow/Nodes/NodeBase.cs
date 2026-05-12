@@ -15,6 +15,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	{
 		private protected NodeBase() : base()
 		{
+			Id = Guid.NewGuid().ToString();
+
+			IsNew = true;
 		}
 
 		private protected NodeBase(StorageWorkflow.NodesSection section)
@@ -25,7 +28,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <summary>
 		/// Gets the unique identifier of the node, which is assigned by the system and cannot be modified by users.
 		/// </summary>
-		public int Id { get; internal set; }
+		public string Id { get; internal set; }
 
 		/// <summary>
 		/// Gets or sets the alias or display name of the node.

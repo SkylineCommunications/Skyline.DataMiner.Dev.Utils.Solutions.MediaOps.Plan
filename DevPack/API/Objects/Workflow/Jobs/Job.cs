@@ -213,7 +213,7 @@
 				return;
 			}
 
-			var parsedNodesById = new Dictionary<int, JobNode>();
+			var parsedNodesById = new Dictionary<string, JobNode>();
 			foreach (var nodeSecion in nodes)
 			{
 				JobNode node = null;

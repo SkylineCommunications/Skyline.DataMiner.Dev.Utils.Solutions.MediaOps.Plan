@@ -3,7 +3,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
     /// <summary>
     /// Defines the current selection state of resources for nodes in job instances.
     /// </summary>
-    public enum ResourceSelectState
+    public enum ResourceSelectionState
     {
         /// <summary>
         /// Resource has been selected.

@@ -3,7 +3,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
     /// <summary>
     /// Defines how resources are selected for nodes in job instances.
     /// </summary>
-    public enum ResourceSelectMode
+    public enum ResourceSelectionMode
     {
         /// <summary>
         /// Resource is selected manually during job setup.
