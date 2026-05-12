@@ -1,6 +1,7 @@
-﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
+	using System.Collections.Generic;
 	using System.Linq;
 
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
@@ -23,6 +24,8 @@
 			IsNew = true;
 
 			OrchestrationSettings = new WorkflowOrchestrationSettings();
+			Nodes = new List<WorkflowNode>();
+			Edges = new List<WorkflowEdge>();
 		}
 
 		/// <summary>
@@ -35,6 +38,8 @@
 			HasUserDefinedId = true;
 
 			OrchestrationSettings = new WorkflowOrchestrationSettings();
+			Nodes = new List<WorkflowNode>();
+			Edges = new List<WorkflowEdge>();
 		}
 
 		internal Workflow(MediaOpsPlanApi planApi, StorageWorkflow.WorkflowsInstance instance) : base(instance.ID.Id)
@@ -93,6 +98,16 @@
 		/// </summary>
 		public OrchestrationSettings OrchestrationSettings { get; set; }
 
+		/// <summary>
+		/// Gets or sets the nodes of this workflow.
+		/// </summary>
+		public IList<WorkflowNode> Nodes { get; set; }
+
+		/// <summary>
+		/// Gets or sets the edges of this workflow.
+		/// </summary>
+		public IList<WorkflowEdge> Edges { get; set; }
+
 		internal StorageWorkflow.WorkflowsInstance OriginalInstance => originalInstance;
 
 		/// <inheritdoc/>
@@ -112,6 +127,8 @@
 				hash = (hash * 23) + (LockedBy != null ? LockedBy.GetHashCode() : 0);
 				hash = (hash * 23) + (OrchestrationSettings != null ? OrchestrationSettings.GetHashCode() : 0);
 				hash = (hash * 23) + State.GetHashCode();
+				hash = (hash * 23) + (Nodes != null ? Nodes.Aggregate(0, (acc, item) => (acc * 23) + (item?.GetHashCode() ?? 0)) : 0);
+				hash = (hash * 23) + (Edges != null ? Edges.Aggregate(0, (acc, item) => (acc * 23) + (item?.GetHashCode() ?? 0)) : 0);
 
 				return hash;
 			}
@@ -140,7 +157,9 @@
 				   Notes == other.Notes &&
 				   LockedBy == other.LockedBy &&
 				   OrchestrationSettings == other.OrchestrationSettings &&
-				   State == other.State;
+				   State == other.State &&
+				   (Nodes ?? Array.Empty<WorkflowNode>()).SequenceEqual(other.Nodes ?? Array.Empty<WorkflowNode>()) &&
+				   (Edges ?? Array.Empty<WorkflowEdge>()).SequenceEqual(other.Edges ?? Array.Empty<WorkflowEdge>());
 		}
 
 		internal StorageWorkflow.WorkflowsInstance GetInstanceWithChanges()
@@ -160,6 +179,17 @@
 			updatedInstance.WorkflowExecution.WorkflowConfiguration = OrchestrationSettings.Id;
 
 			updatedInstance.WorkflowInfo.Priority = EnumExtensions.MapEnum<WorkflowPriority, StorageWorkflow.SlcWorkflowIds.Enums.Priority>(Priority);
+			updatedInstance.Nodes.Clear();
+			foreach (var node in (Nodes ?? Array.Empty<WorkflowNode>()).Where(x => x != null))
+			{
+				updatedInstance.Nodes.Add(node.ToStorageSection());
+			}
+
+			updatedInstance.NodeRelationships.Clear();
+			foreach (var edge in (Edges ?? Array.Empty<WorkflowEdge>()).Where(x => x != null))
+			{
+				updatedInstance.NodeRelationships.Add(edge.ToStorageSection());
+			}
 
 			return updatedInstance;
 		}
@@ -195,6 +225,13 @@
 					OrchestrationSettings = new WorkflowOrchestrationSettings();
 				}
 			}
+
+			Nodes = instance.Nodes
+				.Select(WorkflowNode.FromStorageSection)
+				.ToList();
+			Edges = instance.NodeRelationships
+				.Select(WorkflowEdge.FromStorageSection)
+				.ToList();
 		}
 	}
 }
