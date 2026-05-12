@@ -1,7 +1,6 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
-	using System.Collections;
 	using System.Collections.Generic;
 	using System.Linq;
 
@@ -162,6 +161,18 @@
 			updatedInstance.JobExecution.JobConfiguration = OrchestrationSettings.Id;
 
 			updatedInstance.JobInfo.JobPriority = EnumExtensions.MapEnum<JobPriority, StorageWorkflow.SlcWorkflowIds.Enums.Jobpriority>(Priority);
+
+			updatedInstance.Nodes.Clear();
+			foreach (var node in NodeGraph.Nodes)
+			{
+				updatedInstance.Nodes.Add(node.GetSectionWithChanges());
+			}
+
+			updatedInstance.Connections.Clear();
+			foreach (var connection in NodeGraph.Connections)
+			{
+				updatedInstance.Connections.Add(connection.GetSectionWithChanges());
+			}
 
 			return updatedInstance;
 		}

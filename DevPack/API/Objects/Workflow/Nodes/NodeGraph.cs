@@ -163,6 +163,26 @@
 
 		public TNode To { get; private set; }
 
+		internal StorageWorkflow.ConnectionsSection OriginalSection => originalSection;
+
+		internal StorageWorkflow.ConnectionsSection GetSectionWithChanges()
+		{
+			if (updatedSection == null)
+			{
+				updatedSection = IsNew
+					? new StorageWorkflow.ConnectionsSection()
+					{
+						ConnectionID = Id,
+					}
+					: originalSection.Clone();
+			}
+
+			updatedSection.SourceNodeID = From.Id;
+			updatedSection.DestinationNodeID = To.Id;
+
+			return updatedSection;
+		}
+
 		private void ParseSection(StorageWorkflow.ConnectionsSection section, Func<string, TNode> nodeResolver)
 		{
 			originalSection = section ?? throw new ArgumentNullException(nameof(section));
