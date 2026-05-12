@@ -99,12 +99,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		public OrchestrationSettings OrchestrationSettings { get; set; }
 
 		/// <summary>
-		/// Gets or sets the nodes of this workflow.
+		/// Gets or sets the nodes assigned to this workflow.
 		/// </summary>
 		public IList<WorkflowNode> Nodes { get; set; }
 
 		/// <summary>
-		/// Gets or sets the edges of this workflow.
+		/// Gets or sets the edges assigned to this workflow.
 		/// </summary>
 		public IList<WorkflowEdge> Edges { get; set; }
 
