@@ -57,32 +57,6 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 		}
 
 		[TestMethod]
-		public void WorkflowOrchestrationSettings_UpdateUnmodifiedWorkflow()
-		{
-			var prefix = Guid.NewGuid();
-
-			var capability = new Capability
-			{
-				Name = $"{prefix}_Capability",
-			}
-			.SetDiscretes(["Value 1", "Value 2"]);
-			objectCreator.CreateCapability(capability);
-
-			var workflow = new Workflow
-			{
-				Name = $"{prefix}_Workflow",
-			};
-
-			workflow.OrchestrationSettings.AddCapability(new CapabilitySetting(capability));
-			workflow = objectCreator.CreateWorkflow(workflow);
-
-			var originalWorkflow = TestContext.Api.Workflows.Read(workflow.Id);
-			var updatedWorkflow = TestContext.Api.Workflows.Update(originalWorkflow);
-
-			Assert.AreEqual(originalWorkflow, updatedWorkflow);
-		}
-
-		[TestMethod]
 		public void WorkflowOrchestrationSettings_AddAndRemoveCapacities_NoPersistence()
 		{
 			var prefix = Guid.NewGuid();

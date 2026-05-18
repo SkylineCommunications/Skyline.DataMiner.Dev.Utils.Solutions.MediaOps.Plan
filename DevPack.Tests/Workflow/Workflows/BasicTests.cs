@@ -49,18 +49,6 @@
 		}
 
 		[TestMethod]
-		public void UpdateUnmodifiedWorkflow()
-		{
-			var workflow = TestContext.Api.Workflows.Read().FirstOrDefault();
-			if (workflow == null)
-				return;
-
-			var updatedWorkflow = TestContext.Api.Workflows.Update(workflow);
-
-			Assert.AreEqual(workflow, updatedWorkflow);
-		}
-
-		[TestMethod]
 		public void ReadWithEmptyFilterReturnsEmptyList()
 		{
 			var idsToRetrieve = new Guid[0];

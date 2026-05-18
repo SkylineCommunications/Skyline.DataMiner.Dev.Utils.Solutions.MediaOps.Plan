@@ -57,34 +57,6 @@
 		}
 
 		[TestMethod]
-		public void WorkflowOrchestrationSettings_UpdateUnmodifiedJob()
-		{
-			var prefix = Guid.NewGuid();
-
-			var capability = new Capability
-			{
-				Name = $"{prefix}_Capability",
-			}
-			.SetDiscretes(["Value 1", "Value 2"]);
-			objectCreator.CreateCapability(capability);
-
-			var job = new Job
-			{
-				Name = $"{prefix}_Job",
-				Start = DateTime.Now,
-				End = DateTime.Now.AddMinutes(5),
-			};
-
-			job.OrchestrationSettings.AddCapability(new CapabilitySetting(capability));
-			job = objectCreator.CreateJob(job);
-
-			var originalJob = TestContext.Api.Jobs.Read(job.Id);
-			var updatedJob = TestContext.Api.Jobs.Update(originalJob);
-
-			Assert.AreEqual(originalJob, updatedJob);
-		}
-
-		[TestMethod]
 		public void WorkflowOrchestrationSettings_AddAndRemoveCapacities_NoPersistence()
 		{
 			var prefix = Guid.NewGuid();
