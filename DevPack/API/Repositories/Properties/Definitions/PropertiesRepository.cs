@@ -44,6 +44,11 @@
 		/// <returns>The count of property definitions matching the filter.</returns>
 		public long Count(FilterElement<Property> filter)
 		{
+			if (filter.isEmpty())
+			{
+				return 0;
+			}
+
 			return PlanApi.DomHelpers.SlcPropertiesHelper.CountPropertiesInstances(filterTranslator.Translate(filter));
 		}
 
@@ -347,10 +352,7 @@
 		/// <returns>An enumerable collection of all property definitions.</returns>
 		public IEnumerable<Property> Read()
 		{
-			return ActivityHelper.Track(nameof(PropertiesRepository), nameof(Read), act =>
-			{
-				return Read(new TRUEFilterElement<Property>());
-			});
+			return Read(new TRUEFilterElement<Property>());
 		}
 
 		/// <summary>
@@ -363,6 +365,11 @@
 			if (filter == null)
 			{
 				throw new ArgumentNullException(nameof(filter));
+			}
+
+			if (filter.isEmpty())
+			{
+				return Enumerable.Empty<Property>();
 			}
 
 			return ActivityHelper.Track(nameof(PropertiesRepository), nameof(Read), act =>
@@ -384,10 +391,7 @@
 				throw new ArgumentNullException(nameof(query));
 			}
 
-			return ActivityHelper.Track(nameof(PropertiesRepository), nameof(Read), act =>
-			{
-				return Read(query.Filter);
-			});
+			return Read(query.Filter);
 		}
 
 		/// <summary>
@@ -550,4 +554,3 @@
 		}
 	}
 }
-

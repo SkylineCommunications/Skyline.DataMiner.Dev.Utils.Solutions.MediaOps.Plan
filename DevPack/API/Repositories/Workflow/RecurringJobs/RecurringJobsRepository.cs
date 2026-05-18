@@ -24,6 +24,11 @@
 				throw new ArgumentNullException(nameof(filter));
 			}
 
+			if (filter.isEmpty())
+			{
+				return Enumerable.Empty<RecurringJob>();
+			}
+
 			return ActivityHelper.Track(nameof(RecurringJobsRepository), nameof(Read), act =>
 			{
 				var domFilter = filterTranslator.Translate(filter);

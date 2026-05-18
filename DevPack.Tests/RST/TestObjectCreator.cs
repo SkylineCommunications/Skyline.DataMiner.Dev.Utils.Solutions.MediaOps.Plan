@@ -33,6 +33,8 @@
 
 		private readonly HashSet<Guid> createdPropertyIds = new HashSet<Guid>();
 
+		private readonly HashSet<Guid> createdPropertyValueCollectionIds = new HashSet<Guid>();
+
 		private readonly HashSet<Guid> createdCategoryIds = new HashSet<Guid>();
 
 		private readonly HashSet<DmsElementId> createdElementIds = new HashSet<DmsElementId>();
@@ -54,7 +56,7 @@
 
 		private IMediaOpsPlanApi PlanApi => testContext.Api;
 
-		private ICategoriesApi CatagoriesApi => testContext.CategoriesApi;
+		private ICategoriesApi CategoriesApi => testContext.CategoriesApi;
 
 		private IDms Dms => testContext.Dms;
 
@@ -72,6 +74,15 @@
 			try
 			{
 				WorkflowsCleanup();
+			}
+			catch
+			{
+				// Ignore cleanup errors
+			}
+
+			try
+			{
+				PropertyValueCollectionsCleanup();
 			}
 			catch
 			{
@@ -256,9 +267,17 @@
 
 		private void CategoriesCleanup()
 		{
+			if (!createdCategoryIds.Any())
+			{
+				return;
+			}
+
 			var filter = createdCategoryIds.Select(x => CategoryExposers.ID.Equal(x)).ToArray();
-			var categories = CatagoriesApi.Categories.Read(new ORFilterElement<Category>(filter)).ToArray();
-			CatagoriesApi.Categories.Delete(categories);
+			var categories = CategoriesApi.Categories.Read(new ORFilterElement<Category>(filter)).ToArray();
+
+			testContext.Logger.Information(this, $"Cleaning up {categories.Length} categories.");
+
+			CategoriesApi.Categories.Delete(categories);
 		}
 
 		private void ElementsCleanup()
@@ -328,6 +347,11 @@
 			var properties = PlanApi.Properties.Read(createdPropertyIds.ToArray());
 
 			PlanApi.Properties.Delete(properties.ToArray());
+		}
+
+		private void PropertyValueCollectionsCleanup()
+		{
+			PlanApi.PropertyValueCollections.Delete(createdPropertyValueCollectionIds.ToArray());
 		}
 
 		public T CreateResource<T>(T resource) where T : Resource
@@ -580,9 +604,41 @@
 			}
 		}
 
+		public PropertyValueCollection CreatePropertyValueCollection(PropertyValueCollection collection)
+		{
+			var created = PlanApi.PropertyValueCollections.Create(collection);
+			createdPropertyValueCollectionIds.Add(created.Id);
+			return created;
+		}
+
+		public IReadOnlyCollection<PropertyValueCollection> CreatePropertyValueCollections(IEnumerable<PropertyValueCollection> collections)
+		{
+			try
+			{
+				var created = PlanApi.PropertyValueCollections.Create(collections);
+
+				foreach (var id in created.Select(x => x.Id))
+				{
+					createdPropertyValueCollectionIds.Add(id);
+				}
+
+				return created;
+			}
+			catch (MediaOpsBulkException<Guid> bulkException)
+			{
+				foreach (var id in bulkException.Result.SuccessfulIds)
+				{
+					createdPropertyValueCollectionIds.Add(id);
+				}
+
+				throw;
+			}
+		}
+
 		public Category CreateCategory(Category category)
 		{
-			category = CatagoriesApi.Categories.Create(category);
+			testContext.Logger.Information(this, $"Creating new category with ID: {category.ID}");
+			category = CategoriesApi.Categories.Create(category);
 			createdCategoryIds.Add(category.ID);
 			return category;
 		}

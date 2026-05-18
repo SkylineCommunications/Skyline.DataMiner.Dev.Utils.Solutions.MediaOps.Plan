@@ -6,7 +6,10 @@
 	using RT_MediaOps.Plan.RegressionTests;
 
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+
+	using SLDataGateway.API.Querying;
 
 	[TestClass]
 	[TestCategory("IntegrationTest")]
@@ -612,6 +615,39 @@
 		public void ReadWithEmptyListReturnsEmptyList()
 		{
 			var capacities = TestContext.Api.Capacities.Read(new List<Guid>());
+			Assert.IsNotNull(capacities);
+			Assert.AreEqual(0, capacities.Count());
+		}
+
+		[TestMethod]
+		public void ReadWithEmptyFilterReturnsEmptyList()
+		{
+			var idsToRetrieve = new Guid[0];
+			var emptyFilter = new ORFilterElement<Capacity>(idsToRetrieve.Select(x => CapacityExposers.Id.Equal(x)).ToArray());
+
+			var capacities = TestContext.Api.Capacities.Read(emptyFilter);
+			Assert.IsNotNull(capacities);
+			Assert.AreEqual(0, capacities.Count());
+		}
+
+		[TestMethod]
+		public void CountWithEmptyFilterReturnsZero()
+		{
+			var idsToRetrieve = new Guid[0];
+			var emptyFilter = new ORFilterElement<Capacity>(idsToRetrieve.Select(x => CapacityExposers.Id.Equal(x)).ToArray());
+
+			var count = TestContext.Api.Capacities.Count(emptyFilter);
+			Assert.AreEqual(0, count);
+		}
+
+		[TestMethod]
+		public void ReadWithEmptyQueryReturnsEmptyList()
+		{
+			var idsToRetrieve = new Guid[0];
+			var emptyFilter = new ORFilterElement<Capacity>(idsToRetrieve.Select(x => CapacityExposers.Id.Equal(x)).ToArray());
+			var queryWithEmptyFilter = emptyFilter.ToQuery();
+
+			var capacities = TestContext.Api.Capacities.Read(queryWithEmptyFilter);
 			Assert.IsNotNull(capacities);
 			Assert.AreEqual(0, capacities.Count());
 		}

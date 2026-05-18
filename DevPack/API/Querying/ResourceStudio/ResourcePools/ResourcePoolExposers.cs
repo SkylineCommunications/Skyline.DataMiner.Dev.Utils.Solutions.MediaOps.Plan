@@ -9,7 +9,7 @@
 	/// <summary>
 	/// Provides exposers for querying and filtering <see cref="ResourcePool"/> objects.
 	/// </summary>
-	public class ResourcePoolExposers
+	public static class ResourcePoolExposers
 	{
 		/// <summary>
 		/// Gets an exposer for the <see cref="ApiObject.Id"/> property.
