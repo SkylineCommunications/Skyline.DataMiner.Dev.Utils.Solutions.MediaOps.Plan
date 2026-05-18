@@ -18,6 +18,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		public IDictionary<string, Resource> ResourcesByNode { get; set; }
 
 		/// <summary>
+		/// Gets or sets a collection that maps node identifiers to their associated orchestration settings.
+		/// </summary>
+		public IDictionary<string, OrchestrationSettings> OrchestrationSettingsByNode { get; set; }
+
+		/// <summary>
 		/// Gets or sets the collection of capabilities.
 		/// </summary>
 		public IDictionary<Guid, Capability> CapabilityDefinitions { get; set; }
@@ -36,10 +41,5 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Gets or sets the collection of resource properties.
 		/// </summary>
 		public IDictionary<Guid, ResourceProperty> ResourcePropertyDefinitions { get; set; }
-
-		/// <summary>
-		/// Gets or sets a collection that maps node identifiers to their associated orchestration settings.
-		/// </summary>
-		public IDictionary<string, OrchestrationSettings> OrchestrationSettingsByNode { get; set; }
     }
 }

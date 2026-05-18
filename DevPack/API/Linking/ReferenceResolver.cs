@@ -208,7 +208,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 						return ResolvedValue.FromUnresolvedReference(capabilitySetting.Reference);
 
 					if (capabilitySetting.HasValue)
-						return ResolvedValue.FromValue(capabilitySetting.Value);
+						return ConvertSettingValue(capabilitySetting);
 				}
 			}
 
@@ -234,7 +234,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 						return ResolvedValue.FromUnresolvedReference(capacitySetting.Reference);
 
 					if (capacitySetting.HasValue)
-						return ResolvedValue.FromSettingValue(capacitySetting);
+						return ConvertSettingValue(capacitySetting);
 				}
 			}
 
@@ -260,7 +260,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 						return ResolvedValue.FromUnresolvedReference(configurationSetting.Reference);
 
 					if (configurationSetting.HasValue)
-						return ResolvedValue.FromSettingValue(configurationSetting);
+						return ConvertSettingValue(configurationSetting);
 				}
 			}
 
@@ -275,7 +275,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			var resource = GetResource(reference);
 			return resource == null
 				? ResolvedValue.FromUnresolvedReference(reference)
-				: ResolvedValue.FromValue(resource.Name);
+				: new StringResolvedValue(resource.Name);
 		}
 
 		/// <summary>
@@ -290,7 +290,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			var propertyValue = resource.Properties.FirstOrDefault(x => x.Id == reference.ResourcePropertyId);
 			return propertyValue == null
 				? ResolvedValue.FromUnresolvedReference(reference)
-				: ResolvedValue.FromValue(propertyValue.Value);
+				: new StringResolvedValue(propertyValue.Value);
 		}
 
 		/// <summary>
@@ -302,10 +302,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			return resource switch
 			{
-				ElementResource elementResource => ResolvedValue.FromValue($"{elementResource.AgentId}/{elementResource.ElementId}"),
-				ServiceResource serviceResource => ResolvedValue.FromValue($"{serviceResource.AgentId}/{serviceResource.ServiceId}"),
-				VirtualFunctionResource virtualFunctionResource => ResolvedValue.FromValue($"{virtualFunctionResource.AgentId}/{virtualFunctionResource.ElementId}"),
-				UnmanagedResource _ => ResolvedValue.FromValue(String.Empty),
+				ElementResource elementResource => new StringResolvedValue($"{elementResource.AgentId}/{elementResource.ElementId}"),
+				ServiceResource serviceResource => new StringResolvedValue($"{serviceResource.AgentId}/{serviceResource.ServiceId}"),
+				VirtualFunctionResource virtualFunctionResource => new StringResolvedValue($"{virtualFunctionResource.AgentId}/{virtualFunctionResource.ElementId}"),
+				UnmanagedResource _ => new StringResolvedValue(String.Empty),
 				_ => ResolvedValue.FromUnresolvedReference(reference),
 			};
 		}
@@ -320,7 +320,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			if (Context is WorkflowResolveContext workflowContext)
 			{
 				var name = workflowContext.Workflow?.Name;
-				return name != null ? ResolvedValue.FromValue(name) : ResolvedValue.FromUnresolvedReference(reference);
+				return name != null ? new StringResolvedValue(name) : ResolvedValue.FromUnresolvedReference(reference);
 			}
 
 			return ResolvedValue.FromUnresolvedReference(reference);
@@ -337,7 +337,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				workflowContext?.WorkflowPropertyValues != null &&
 				workflowContext.WorkflowPropertyValues.TryGetValue(reference.WorkflowPropertyId, out var ctxValue))
 			{
-				return ResolvedValue.FromValue(GetPropertyValue(ctxValue));
+				return ConvertPropertyValue(ctxValue);
 			}
 
 			return ResolvedValue.FromUnresolvedReference(reference);
@@ -353,7 +353,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			if (Context is JobResolveContext jobContext)
 			{
 				var name = jobContext.Job?.Name;
-				return name != null ? ResolvedValue.FromValue(name) : ResolvedValue.FromUnresolvedReference(reference);
+				return name != null ? new StringResolvedValue(name) : ResolvedValue.FromUnresolvedReference(reference);
 			}
 
 			return ResolvedValue.FromUnresolvedReference(reference);
@@ -370,7 +370,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				jobContext?.JobPropertyValues != null &&
 				jobContext.JobPropertyValues.TryGetValue(reference.JobPropertyId, out var ctxValue))
 			{
-				return ResolvedValue.FromValue(GetPropertyValue(ctxValue));
+				return ConvertPropertyValue(ctxValue);
 			}
 
 			return ResolvedValue.FromUnresolvedReference(reference);
@@ -512,21 +512,31 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return false;
 		}
 
-		private object GetPropertyValue(PropertyValueBase propertyValue)
+		private ResolvedValue ConvertPropertyValue(PropertyValueBase propertyValue)
 		{
-			switch (propertyValue)
+			return propertyValue switch
 			{
-				case StringPropertyValue stringPv:
-					return stringPv.Value;
-				case BooleanPropertyValue boolPv:
-					return boolPv.Value;
-				case DiscretePropertyValue discretePv:
-					return discretePv.Value;
-				case CustomPropertyValue customPv:
-					return customPv.Value;
-				default:
-					return null;
-			}
+				StringPropertyValue stringPv => new StringResolvedValue(stringPv.Value),
+				BooleanPropertyValue boolPv => new BooleanResolvedValue(boolPv.Value),
+				DiscretePropertyValue discretePv => new StringResolvedValue(discretePv.Value),
+				CustomPropertyValue customPv => new StringResolvedValue(customPv.Value),
+				_ => null,
+			};
+		}
+
+		private ResolvedValue ConvertSettingValue(Setting setting)
+		{
+			return setting switch
+			{
+				CapabilitySetting cs => cs.Value != null ? new StringResolvedValue(cs.Value) : new NullResolvedValue(),
+				NumberCapacitySetting ncs => ncs.Value != null ? new DecimalResolvedValue(ncs.Value.Value) : new NullResolvedValue(),
+				RangeCapacitySetting rcs => rcs.MaxValue != null ? new DecimalResolvedValue(rcs.MaxValue.Value) : new NullResolvedValue(),
+				TextConfigurationSetting tcs => tcs.Value != null ? new StringResolvedValue(tcs.Value) : new NullResolvedValue(),
+				NumberConfigurationSetting nfcs => nfcs.Value != null ? new DecimalResolvedValue(nfcs.Value.Value) : new NullResolvedValue(),
+				DiscreteTextConfigurationSetting dtcs => dtcs.Value?.Value != null ? new StringResolvedValue(dtcs.Value.Value) : new NullResolvedValue(),
+				DiscreteNumberConfigurationSetting dncs => dncs.Value?.Value != null ? new DecimalResolvedValue(dncs.Value.Value) : new NullResolvedValue(),
+				_ => null,
+			};
 		}
 	}
 }
