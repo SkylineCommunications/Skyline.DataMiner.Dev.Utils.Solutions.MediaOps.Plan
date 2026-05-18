@@ -176,6 +176,21 @@
 		}
 
 		[TestMethod]
+		public void UpdateUnmodifiedCapacity()
+		{
+			var capacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity
+			{
+				Name = $"{Guid.NewGuid()}_Capacity",
+			};
+			capacity = (Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity)objectCreator.CreateCapacity(capacity);
+
+			var originalCapacity = TestContext.Api.Capacities.Read(capacity.Id);
+			var updatedCapacity = TestContext.Api.Capacities.Update(originalCapacity);
+
+			Assert.AreEqual(originalCapacity, updatedCapacity);
+		}
+
+		[TestMethod]
 		public void CreateWithExistingIdThrowsException()
 		{
 			var capacityId = Guid.NewGuid();

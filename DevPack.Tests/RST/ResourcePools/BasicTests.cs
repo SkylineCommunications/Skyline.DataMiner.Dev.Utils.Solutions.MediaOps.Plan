@@ -294,6 +294,21 @@
 		}
 
 		[TestMethod]
+		public void UpdateUnmodifiedResourcePool()
+		{
+			var resourcePool = new ResourcePool
+			{
+				Name = $"{Guid.NewGuid()}_ResourcePool",
+			};
+			resourcePool = objectCreator.CreateResourcePool(resourcePool);
+
+			var originalResourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
+			var updatedResourcePool = TestContext.Api.ResourcePools.Update(originalResourcePool);
+
+			Assert.AreEqual(originalResourcePool, updatedResourcePool);
+		}
+
+		[TestMethod]
 		public void ReadWithEmptyListReturnsEmptyList()
 		{
 			var resourcePools = TestContext.Api.ResourcePools.Read(new List<Guid>());

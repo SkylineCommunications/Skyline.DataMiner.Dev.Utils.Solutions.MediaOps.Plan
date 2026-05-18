@@ -109,6 +109,21 @@
 		}
 
 		[TestMethod]
+		public void UpdateUnmodifiedConfiguration()
+		{
+			var configuration = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration
+			{
+				Name = $"{Guid.NewGuid()}_Configuration",
+			};
+			configuration = objectCreator.CreateConfiguration(configuration);
+
+			var originalConfiguration = TestContext.Api.Configurations.Read(configuration.Id);
+			var updatedConfiguration = TestContext.Api.Configurations.Update(originalConfiguration);
+
+			Assert.AreEqual(originalConfiguration, updatedConfiguration);
+		}
+
+		[TestMethod]
 		public void CreateWithExistingIdThrowsException()
 		{
 			var configurationId = Guid.NewGuid();

@@ -219,6 +219,21 @@
 		}
 
 		[TestMethod]
+		public void UpdateUnmodifiedResourceProperty()
+		{
+			var property = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourceProperty
+			{
+				Name = $"{Guid.NewGuid()}_ResourceProperty",
+			};
+			property = objectCreator.CreateResourceProperty(property);
+
+			var originalProperty = TestContext.Api.ResourceProperties.Read(property.Id);
+			var updatedProperty = TestContext.Api.ResourceProperties.Update(originalProperty);
+
+			Assert.AreEqual(originalProperty, updatedProperty);
+		}
+
+		[TestMethod]
 		public void CreateWithSameNameInBulkThrowsException()
 		{
 			var propertyId = Guid.NewGuid();

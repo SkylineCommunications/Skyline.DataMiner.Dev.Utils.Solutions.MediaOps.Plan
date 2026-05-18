@@ -219,6 +219,24 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 		}
 
 		[TestMethod]
+		public void UpdateUnmodifiedProperty()
+		{
+			var property = new BooleanProperty
+			{
+				Name = $"{Guid.NewGuid()}_Property",
+				Scope = "global",
+				SectionName = "General",
+			};
+
+			property = objectCreator.CreateProperty(property);
+
+			var originalProperty = TestContext.Api.Properties.Read(property.Id);
+			var updatedProperty = TestContext.Api.Properties.Update(originalProperty);
+
+			Assert.AreEqual(originalProperty, updatedProperty);
+		}
+
+		[TestMethod]
 		public void CreateWithSameNameInDifferentScopesSucceeds()
 		{
 			var prefix = Guid.NewGuid();

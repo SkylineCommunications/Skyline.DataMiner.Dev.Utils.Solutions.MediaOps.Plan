@@ -602,6 +602,31 @@ namespace RT_MediaOps.Plan.Properties.Values
 		}
 
 		[TestMethod]
+		public void UpdateUnmodifiedPropertyValueCollection()
+		{
+			var property = new StringProperty
+			{
+				Name = $"{Guid.NewGuid()}_Property",
+				Scope = "global",
+				SectionName = "General",
+			};
+			objectCreator.CreateProperty(property);
+
+			var collection = new PropertyValueCollection
+			{
+				LinkedObjectId = $"obj-{Guid.NewGuid()}",
+				Scope = "global",
+			};
+			collection.Add(new StringPropertyValue(property) { Value = "value" });
+			collection = objectCreator.CreatePropertyValueCollection(collection);
+
+			var originalCollection = TestContext.Api.PropertyValueCollections.Read(collection.Id);
+			var updatedCollection = TestContext.Api.PropertyValueCollections.Update(originalCollection);
+
+			Assert.AreEqual(originalCollection, updatedCollection);
+		}
+
+		[TestMethod]
 		public void ReadWithEmptyFilterReturnsEmptyList()
 		{
 			var idsToRetrieve = new Guid[0];

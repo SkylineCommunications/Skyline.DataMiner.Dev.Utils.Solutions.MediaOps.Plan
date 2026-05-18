@@ -55,6 +55,18 @@
 		}
 
 		[TestMethod]
+		public void UpdateUnmodifiedJob()
+		{
+			var job = TestContext.Api.Jobs.Read().FirstOrDefault();
+			if (job == null)
+				return;
+
+			var updatedJob = TestContext.Api.Jobs.Update(job);
+
+			Assert.AreEqual(job, updatedJob);
+		}
+
+		[TestMethod]
 		public void ReadWithEmptyFilterReturnsEmptyList()
 		{
 			var idsToRetrieve = new Guid[0];

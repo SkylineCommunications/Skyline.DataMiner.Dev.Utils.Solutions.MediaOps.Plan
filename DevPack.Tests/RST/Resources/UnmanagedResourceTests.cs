@@ -183,6 +183,22 @@
 		}
 
 		[TestMethod]
+		public void UpdateUnmodifiedResource()
+		{
+			var unmanagedResource = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource
+			{
+				Name = $"{Guid.NewGuid()}_UnmanagedResource",
+				Concurrency = 1,
+			};
+			unmanagedResource = objectCreator.CreateResource(unmanagedResource);
+
+			var originalResource = TestContext.Api.Resources.Read(unmanagedResource.Id);
+			var updatedResource = TestContext.Api.Resources.Update(originalResource);
+
+			Assert.AreEqual(originalResource, updatedResource);
+		}
+
+		[TestMethod]
 		public void ConcurrentUpdatesToSameResource_ShouldExecuteSequentially()
 		{
 			var resourceName = TestHelper.GetRandomName("UnmanagedResource_");

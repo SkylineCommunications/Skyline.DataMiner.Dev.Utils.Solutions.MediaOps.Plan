@@ -213,6 +213,22 @@
 		}
 
 		[TestMethod]
+		public void UpdateUnmodifiedCapability()
+		{
+			var capability = new Capability
+			{
+				Name = $"{Guid.NewGuid()}_Capability",
+			}
+			.SetDiscretes(["Value 1", "Value 2"]);
+			capability = objectCreator.CreateCapability(capability);
+
+			var originalCapability = TestContext.Api.Capabilities.Read(capability.Id);
+			var updatedCapability = TestContext.Api.Capabilities.Update(originalCapability);
+
+			Assert.AreEqual(originalCapability, updatedCapability);
+		}
+
+		[TestMethod]
 		public void ReadAllPaged()
 		{
 			foreach (var page in TestContext.Api.Capabilities.ReadPaged())
