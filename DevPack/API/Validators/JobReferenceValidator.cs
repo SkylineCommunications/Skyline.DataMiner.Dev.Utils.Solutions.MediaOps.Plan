@@ -9,14 +9,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
     /// </summary>
     public class JobReferenceValidator
     {
-        private readonly LinkResolver linkResolver;
+        private readonly ReferenceResolver linkResolver;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JobReferenceValidator"/> class.
         /// </summary>
         /// <param name="linkResolver">The link resolver used to resolve references.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="linkResolver"/> is <see langword="null"/>.</exception>
-        public JobReferenceValidator(LinkResolver linkResolver)
+        public JobReferenceValidator(ReferenceResolver linkResolver)
         {
             this.linkResolver = linkResolver ?? throw new ArgumentNullException(nameof(linkResolver));
         }

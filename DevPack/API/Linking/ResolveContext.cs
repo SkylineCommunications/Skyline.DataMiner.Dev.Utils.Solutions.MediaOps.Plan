@@ -5,22 +5,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 	/// <summary>
 	/// Provides contextual information used while resolving <see cref="DataReference"/> instances
-	/// through a <see cref="LinkResolver"/>.
+	/// through a <see cref="ReferenceResolver"/>.
 	/// </summary>
 	public class ResolveContext
     {
         /// <summary>Gets a shared empty context, useful when no contextual information is required.</summary>
         public static ResolveContext Empty { get; } = new ResolveContext();
-
-		/// <summary>
-		/// Gets or sets the workflow associated with this instance.
-		/// </summary>
-		public Workflow Workflow { get; set; }
-
-		/// <summary>
-		/// Gets or sets the job associated with this instance.
-		/// </summary>
-		public Job Job { get; set; }
 
 		/// <summary>
 		/// Gets or sets a collection that maps node identifiers to their associated resources.
@@ -45,27 +35,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <summary>
 		/// Gets or sets the collection of resource properties.
 		/// </summary>
-		public IDictionary<Guid, ResourceProperty> ResourceProperties { get; set; }
-
-		/// <summary>
-		/// Gets or sets the collection of workflow properties.
-		/// </summary>
-		public IDictionary<Guid, Property> WorkflowProperties { get; set; }
-
-		/// <summary>
-		/// Gets or sets the collection of workflow property values, indexed by property identifier.
-		/// </summary>
-		public IDictionary<Guid, PropertyValueBase> WorkflowPropertyValues { get; set; }
-
-		/// <summary>
-		/// Gets or sets the collection of job properties.
-		/// </summary>
-		public IDictionary<Guid, Property> JobProperties { get; set; }
-
-		/// <summary>
-		/// Gets or sets the collection of job property values, indexed by property identifier.
-		/// </summary>
-		public IDictionary<Guid, PropertyValueBase> JobPropertyValues { get; set; }
+		public IDictionary<Guid, ResourceProperty> ResourcePropertyDefinitions { get; set; }
 
 		/// <summary>
 		/// Gets or sets a collection that maps node identifiers to their associated orchestration settings.

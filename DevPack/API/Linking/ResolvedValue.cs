@@ -1,7 +1,7 @@
 namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
     /// <summary>
-    /// Represents the result of a <see cref="LinkResolver.ResolveValue"/> call.
+    /// Represents the result of a <see cref="ReferenceResolver.ResolveValue"/> call.
     /// Either <see cref="Value"/> holds the resolved value, or <see cref="UnresolvedReference"/>
     /// holds the <see cref="DataReference"/> that could not be fully resolved.
     /// </summary>

@@ -3,7 +3,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
     using System;
 
     /// <summary>
-    /// Thrown when <see cref="LinkResolver.ResolveValue"/> detects a circular chain of <see cref="DataReference"/> instances.
+    /// Thrown when <see cref="ReferenceResolver.ResolveValue"/> detects a circular chain of <see cref="DataReference"/> instances.
     /// </summary>
     public sealed class CircularReferenceException : Exception
     {
