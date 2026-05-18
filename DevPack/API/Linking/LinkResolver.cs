@@ -331,7 +331,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			if (Context?.WorkflowPropertyValues != null &&
 				Context.WorkflowPropertyValues.TryGetValue(reference.WorkflowPropertyId, out var ctxValue))
 			{
-				return ResolvedValue.FromValue(ctxValue);
+				return ResolvedValue.FromValue(GetPropertyValue(ctxValue));
 			}
 
 			return ResolvedValue.FromUnresolvedReference(reference);
@@ -358,7 +358,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			if (Context?.JobPropertyValues != null &&
 				Context.JobPropertyValues.TryGetValue(reference.JobPropertyId, out var ctxValue))
 			{
-				return ResolvedValue.FromValue(ctxValue);
+				return ResolvedValue.FromValue(GetPropertyValue(ctxValue));
 			}
 
 			return ResolvedValue.FromUnresolvedReference(reference);
@@ -494,6 +494,23 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 			displayName = null;
 			return false;
+		}
+
+		private object GetPropertyValue(PropertyValueBase propertyValue)
+		{
+			switch (propertyValue)
+			{
+				case StringPropertyValue stringPv:
+					return stringPv.Value;
+				case BooleanPropertyValue boolPv:
+					return boolPv.Value;
+				case DiscretePropertyValue discretePv:
+					return discretePv.Value;
+				case CustomPropertyValue customPv:
+					return customPv.Value;
+				default:
+					return null;
+			}
 		}
 	}
 }

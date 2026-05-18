@@ -55,7 +55,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <summary>
 		/// Gets or sets the collection of workflow property values, indexed by property identifier.
 		/// </summary>
-		public IDictionary<Guid, string> WorkflowPropertyValues { get; set; }
+		public IDictionary<Guid, PropertyValueBase> WorkflowPropertyValues { get; set; }
 
 		/// <summary>
 		/// Gets or sets the collection of job properties.
@@ -65,7 +65,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <summary>
 		/// Gets or sets the collection of job property values, indexed by property identifier.
 		/// </summary>
-		public IDictionary<Guid, string> JobPropertyValues { get; set; }
+		public IDictionary<Guid, PropertyValueBase> JobPropertyValues { get; set; }
 
 		/// <summary>
 		/// Gets or sets a collection that maps node identifiers to their associated orchestration settings.
