@@ -176,6 +176,80 @@
 		}
 
 		[TestMethod]
+		public void Update_PersistsName_ForSingleCapacity()
+		{
+			var prefix = Guid.NewGuid();
+			var capacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity
+			{
+				Name = $"{prefix}_Capacity",
+			};
+
+			objectCreator.CreateCapacity(capacity);
+
+			var persistedCapacity = TestContext.Api.Capacities.Read(capacity.Id);
+			Assert.IsNotNull(persistedCapacity);
+			Assert.AreEqual(capacity.Name, persistedCapacity.Name);
+
+			var updatedName = $"{prefix}_Updated";
+			persistedCapacity.Name = updatedName; // Regression guard: Name must be copied to the underlying CORE parameter during update.
+			TestContext.Api.Capacities.Update(persistedCapacity);
+
+			var updatedCapacity = TestContext.Api.Capacities.Read(capacity.Id);
+			Assert.IsNotNull(updatedCapacity);
+			Assert.AreEqual(updatedName, updatedCapacity.Name);
+
+			var coreCapacity = TestContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(capacity.Id)).SingleOrDefault();
+			Assert.IsNotNull(coreCapacity);
+			Assert.AreEqual(updatedName, coreCapacity.Name);
+		}
+
+		[TestMethod]
+		public void Update_PersistsName_ForBulkCapacities()
+		{
+			var prefix = Guid.NewGuid();
+			var capacity1 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity
+			{
+				Name = $"{prefix}_Capacity_1",
+			};
+
+			var capacity2 = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.RangeCapacity
+			{
+				Name = $"{prefix}_Capacity_2",
+			};
+
+			objectCreator.CreateCapacities(new Capacity[] { capacity1, capacity2 });
+
+			var persistedCapacity1 = TestContext.Api.Capacities.Read(capacity1.Id);
+			var persistedCapacity2 = TestContext.Api.Capacities.Read(capacity2.Id);
+			Assert.IsNotNull(persistedCapacity1);
+			Assert.IsNotNull(persistedCapacity2);
+			Assert.AreEqual(capacity1.Name, persistedCapacity1.Name);
+			Assert.AreEqual(capacity2.Name, persistedCapacity2.Name);
+
+			var updatedName1 = $"{prefix}_Updated_1";
+			var updatedName2 = $"{prefix}_Updated_2";
+
+			persistedCapacity1.Name = updatedName1; // Regression guard: Name must be copied to the underlying CORE parameter during update.
+			persistedCapacity2.Name = updatedName2;
+
+			TestContext.Api.Capacities.Update(new Capacity[] { persistedCapacity1, persistedCapacity2 });
+
+			var updatedCapacity1 = TestContext.Api.Capacities.Read(capacity1.Id);
+			var updatedCapacity2 = TestContext.Api.Capacities.Read(capacity2.Id);
+			Assert.IsNotNull(updatedCapacity1);
+			Assert.IsNotNull(updatedCapacity2);
+			Assert.AreEqual(updatedName1, updatedCapacity1.Name);
+			Assert.AreEqual(updatedName2, updatedCapacity2.Name);
+
+			var coreCapacity1 = TestContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(capacity1.Id)).SingleOrDefault();
+			var coreCapacity2 = TestContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(capacity2.Id)).SingleOrDefault();
+			Assert.IsNotNull(coreCapacity1);
+			Assert.IsNotNull(coreCapacity2);
+			Assert.AreEqual(updatedName1, coreCapacity1.Name);
+			Assert.AreEqual(updatedName2, coreCapacity2.Name);
+		}
+
+		[TestMethod]
 		public void CreateWithExistingIdThrowsException()
 		{
 			var capacityId = Guid.NewGuid();
