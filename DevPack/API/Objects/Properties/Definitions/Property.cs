@@ -9,7 +9,7 @@
 	/// <summary>
 	/// Represents a property in the MediaOps Plan API.
 	/// </summary>
-	public abstract class Property : ApiObject
+	public abstract class Property : ApiNamedObject
 	{
 		private StorageProperties.PropertyInstance originalInstance;
 		private StorageProperties.PropertyInstance updatedInstance;

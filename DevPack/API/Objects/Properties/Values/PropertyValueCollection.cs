@@ -36,11 +36,6 @@
 		}
 
 		/// <summary>
-		/// Gets or sets the name.
-		/// </summary>
-		public override string Name { get; set; }
-
-		/// <summary>
 		/// Gets the identifier of the object this collection is linked to.
 		/// </summary>
 		public string LinkedObjectId { get; init; }

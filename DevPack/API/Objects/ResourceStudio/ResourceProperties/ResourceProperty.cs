@@ -7,7 +7,7 @@
 	/// <summary>
 	/// Represents a resource property in the MediaOps Plan API.
 	/// </summary>
-	public class ResourceProperty : ApiObject
+	public class ResourceProperty : ApiNamedObject
 	{
 		private readonly StorageResourceStudio.ResourcepropertyInstance originalInstance;
 

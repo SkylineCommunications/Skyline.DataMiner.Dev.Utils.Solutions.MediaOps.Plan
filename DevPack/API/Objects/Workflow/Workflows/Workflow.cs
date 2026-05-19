@@ -10,7 +10,7 @@
 	/// <summary>
 	/// Represents a workflow in MediaOps Plan.
 	/// </summary>
-	public class Workflow : ApiObject
+	public class Workflow : ApiNamedObject
 	{
 		private StorageWorkflow.WorkflowsInstance originalInstance;
 		private StorageWorkflow.WorkflowsInstance updatedInstance;

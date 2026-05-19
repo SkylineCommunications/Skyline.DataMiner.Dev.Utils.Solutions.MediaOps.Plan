@@ -10,7 +10,7 @@
 	/// <summary>
 	/// Represents a job in MediaOps Plan.
 	/// </summary>
-	public class Job : ApiObject
+	public class Job : ApiNamedObject
 	{
 		private StorageWorkflow.JobsInstance originalInstance;
 		private StorageWorkflow.JobsInstance updatedInstance;

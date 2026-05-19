@@ -149,7 +149,39 @@
 				x => DomHelper.DomInstances.Read(x));
 		}
 
-        private IEnumerable<ConfigurationInstance> GetConfigurationIterator(FilterElement<DomInstance> filter)
+		public IEnumerable<AppSettingsInstance> GetAppSettings(FilterElement<DomInstance> filter)
+		{
+			if (filter == null)
+			{
+				throw new ArgumentNullException(nameof(filter));
+			}
+
+			return GetAppSettingIterator(filter);
+		}
+
+		public IEnumerable<AppSettingsInstance> GetAppSettings(IEnumerable<Guid> ids)
+		{
+			if (ids == null)
+			{
+				throw new ArgumentNullException(nameof(ids));
+			}
+
+			if (!ids.Any())
+			{
+				return Enumerable.Empty<AppSettingsInstance>();
+			}
+
+			FilterElement<DomInstance> Filter(Guid id) =>
+				DomInstanceExposers.DomDefinitionId.Equal(SlcWorkflowIds.Definitions.AppSettings.Id)
+				.AND(DomInstanceExposers.Id.Equal(id));
+
+			return FilterQueryExecutor.RetrieveFilteredItems(
+				ids.Distinct(),
+				x => Filter(x),
+				x => GetAppSettingIterator(x));
+		}
+
+		private IEnumerable<ConfigurationInstance> GetConfigurationIterator(FilterElement<DomInstance> filter)
         {
             return InstanceFactory.ReadAndCreateInstances(DomHelper, filter, instance => new ConfigurationInstance(instance));
         }
@@ -167,6 +199,11 @@
 		private IEnumerable<WorkflowsInstance> GetWorkflowIterator(FilterElement<DomInstance> filter)
 		{
 			return InstanceFactory.ReadAndCreateInstances(DomHelper, filter, instance => new WorkflowsInstance(instance));
+		}
+
+		private IEnumerable<AppSettingsInstance> GetAppSettingIterator(FilterElement<DomInstance> filter)
+		{
+			return InstanceFactory.ReadAndCreateInstances(DomHelper, filter, instance => new AppSettingsInstance(instance));
 		}
 	}
 }
