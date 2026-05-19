@@ -8,7 +8,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ResourceNameReference"/> class.
 		/// </summary>
-		public ResourceNameReference() : base(DataReferenceType.ResourceName)
+		/// <param name="nodeId">
+		/// Optional identifier of the workflow node whose resource name is referenced.
+		/// When <see langword="null"/> the reference targets the resource of the current node.
+		/// </param>
+		public ResourceNameReference(string nodeId = null) : base(DataReferenceType.ResourceName, nodeId)
 		{
 		}
 	}

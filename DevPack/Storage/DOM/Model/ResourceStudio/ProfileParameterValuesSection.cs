@@ -1,4 +1,4 @@
-﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio
+namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio
 {
 	using System;
 
@@ -22,16 +22,16 @@
 			}
 		}
 
-		public DataReference Reference { get; set; }
+		public DataReferenceStorage DataReference { get; set; }
 
 		protected override void BeforeToSection()
 		{
-			ReferenceJson = Reference?.Serialize();
+			Reference = DataReference?.Serialize();
 		}
 
 		protected override void AfterLoad()
 		{
-			Reference = DataReference.TryDeserialize(ReferenceJson, out var details) ? details : null;
+           DataReference = DataReferenceStorage.TryDeserialize(Reference, out var details) ? details : null;
 		}
 	}
 }
