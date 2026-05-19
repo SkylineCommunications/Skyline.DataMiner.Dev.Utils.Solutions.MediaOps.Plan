@@ -14,6 +14,8 @@
 		private StorageProperties.PropertyInstance originalInstance;
 		private StorageProperties.PropertyInstance updatedInstance;
 
+		private string scope;
+
 		private protected Property() : base()
 		{
 			IsNew = true;
@@ -39,7 +41,7 @@
 		/// <summary>
 		/// Gets or sets the scope of the property.
 		/// </summary>
-		public string Scope { get; init; }
+		public string Scope { get => scope; init => scope = value; }
 
 		/// <summary>
 		/// Gets or sets the name of the section to which the property belongs.
@@ -155,6 +157,7 @@
 			originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
 
 			Name = instance.PropertyInfo.Name;
+			scope = instance.PropertyInfo.Scope;
 			SectionName = instance.Layout.SectionName;
 			Order = instance.Layout.Order.HasValue ? (int)instance.Layout.Order.Value : 0;
 		}

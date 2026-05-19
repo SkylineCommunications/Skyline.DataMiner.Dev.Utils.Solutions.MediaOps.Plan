@@ -170,93 +170,6 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 		}
 
 		[TestMethod]
-		public void CreateWithExistingNameThrowsException()
-		{
-			var prefix = Guid.NewGuid();
-
-			var property1 = new BooleanProperty()
-			{
-				Name = $"{prefix}_Property",
-				Scope = "global",
-				SectionName = "General",
-			};
-			var property2 = new BooleanProperty()
-			{
-				Name = $"{prefix}_Property",
-				Scope = "global",
-				SectionName = "General",
-			};
-
-			objectCreator.CreateProperty(property1);
-			try
-			{
-				objectCreator.CreateProperty(property2);
-			}
-			catch (MediaOpsException ex)
-			{
-				StringAssert.Contains(ex.Message, "Name is already in use.");
-
-				Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-				var propertyError = ex.TraceData.ErrorData.OfType<PropertyError>().SingleOrDefault();
-				Assert.IsNotNull(propertyError);
-
-				var nameExistsError = propertyError as PropertyNameExistsError;
-				Assert.IsNotNull(nameExistsError);
-				Assert.AreEqual(property2.Id, nameExistsError.Id);
-				Assert.AreEqual(property2.Name, nameExistsError.Name);
-				Assert.AreEqual("Name is already in use.", propertyError.ErrorMessage);
-
-				return;
-			}
-
-			Assert.Fail("Expected exception was not thrown.");
-		}
-
-		[TestMethod]
-		public void CreateWithSameNameInBulkThrowsException()
-		{
-			var prefix = Guid.NewGuid();
-
-			var property1 = new BooleanProperty()
-			{
-				Name = $"{prefix}_Property",
-				Scope = "global",
-				SectionName = "General",
-			};
-			var property2 = new BooleanProperty()
-			{
-				Name = $"{prefix}_Property",
-				Scope = "global",
-				SectionName = "General",
-			};
-
-			try
-			{
-				objectCreator.CreateProperties(new Property[] { property1, property2 });
-			}
-			catch (MediaOpsBulkException<Guid> ex)
-			{
-				Assert.AreEqual(2, ex.Result.TraceDataPerItem.Count);
-
-				foreach (var traceData in ex.Result.TraceDataPerItem.Values)
-				{
-					Assert.AreEqual(1, traceData.ErrorData.Count);
-					var propertyError = traceData.ErrorData.OfType<PropertyError>().SingleOrDefault();
-					Assert.IsNotNull(propertyError);
-
-					var duplicateNameError = propertyError as PropertyDuplicateNameError;
-					Assert.IsNotNull(duplicateNameError);
-					Assert.AreEqual(property2.Name, duplicateNameError.Name);
-					Assert.AreEqual($"Property '{property1.Name}' has a duplicate name.", propertyError.ErrorMessage);
-				}
-
-				return;
-			}
-
-			Assert.Fail("Expected exception was not thrown.");
-		}
-
-		[TestMethod]
 		public void UpdateToSameNameThrowsException()
 		{
 			var prefix = Guid.NewGuid();
@@ -302,6 +215,189 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 			}
 
 			Assert.Fail("Expected exception was not thrown.");
+		}
+
+		[TestMethod]
+		public void CreateWithSameNameInDifferentScopesSucceeds()
+		{
+			var prefix = Guid.NewGuid();
+			var sharedName = $"{prefix}_Property";
+
+			var property1 = new BooleanProperty()
+			{
+				Name = sharedName,
+				Scope = "scope1",
+				SectionName = "General",
+			};
+			var property2 = new BooleanProperty()
+			{
+				Name = sharedName,
+				Scope = "scope2",
+				SectionName = "General",
+			};
+
+			objectCreator.CreateProperty(property1);
+			objectCreator.CreateProperty(property2);
+
+			var returnedProperty1 = TestContext.Api.Properties.Read(property1.Id);
+			var returnedProperty2 = TestContext.Api.Properties.Read(property2.Id);
+
+			Assert.IsNotNull(returnedProperty1);
+			Assert.IsNotNull(returnedProperty2);
+			Assert.AreEqual(sharedName, returnedProperty1.Name);
+			Assert.AreEqual(sharedName, returnedProperty2.Name);
+			Assert.AreEqual("scope1", returnedProperty1.Scope);
+			Assert.AreEqual("scope2", returnedProperty2.Scope);
+		}
+
+		[TestMethod]
+		public void CreateWithSameNameInDifferentScopesInBulkSucceeds()
+		{
+			var prefix = Guid.NewGuid();
+			var sharedName = $"{prefix}_Property";
+
+			var property1 = new BooleanProperty()
+			{
+				Name = sharedName,
+				Scope = "scope1",
+				SectionName = "General",
+			};
+			var property2 = new BooleanProperty()
+			{
+				Name = sharedName,
+				Scope = "scope2",
+				SectionName = "General",
+			};
+
+			objectCreator.CreateProperties(new Property[] { property1, property2 });
+
+			var returnedProperty1 = TestContext.Api.Properties.Read(property1.Id);
+			var returnedProperty2 = TestContext.Api.Properties.Read(property2.Id);
+
+			Assert.IsNotNull(returnedProperty1);
+			Assert.IsNotNull(returnedProperty2);
+			Assert.AreEqual(sharedName, returnedProperty1.Name);
+			Assert.AreEqual(sharedName, returnedProperty2.Name);
+			Assert.AreEqual("scope1", returnedProperty1.Scope);
+			Assert.AreEqual("scope2", returnedProperty2.Scope);
+		}
+
+		[TestMethod]
+		public void CreateWithSameNameInSameScopeThrowsException()
+		{
+			var prefix = Guid.NewGuid();
+
+			var property1 = new BooleanProperty()
+			{
+				Name = $"{prefix}_Property",
+				Scope = "scope1",
+				SectionName = "General",
+			};
+			var property2 = new BooleanProperty()
+			{
+				Name = $"{prefix}_Property",
+				Scope = "scope1",
+				SectionName = "General",
+			};
+
+			objectCreator.CreateProperty(property1);
+			try
+			{
+				objectCreator.CreateProperty(property2);
+			}
+			catch (MediaOpsException ex)
+			{
+				StringAssert.Contains(ex.Message, "Name is already in use.");
+
+				Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
+				var propertyError = ex.TraceData.ErrorData.OfType<PropertyError>().SingleOrDefault();
+				Assert.IsNotNull(propertyError);
+
+				var nameExistsError = propertyError as PropertyNameExistsError;
+				Assert.IsNotNull(nameExistsError);
+				Assert.AreEqual(property2.Id, nameExistsError.Id);
+				Assert.AreEqual(property2.Name, nameExistsError.Name);
+				Assert.AreEqual("Name is already in use.", propertyError.ErrorMessage);
+
+				return;
+			}
+
+			Assert.Fail("Expected exception was not thrown.");
+		}
+
+		[TestMethod]
+		public void CreateWithSameNameInSameScopeInBulkThrowsException()
+		{
+			var prefix = Guid.NewGuid();
+
+			var property1 = new BooleanProperty()
+			{
+				Name = $"{prefix}_Property",
+				Scope = "scope1",
+				SectionName = "General",
+			};
+			var property2 = new BooleanProperty()
+			{
+				Name = $"{prefix}_Property",
+				Scope = "scope1",
+				SectionName = "General",
+			};
+
+			try
+			{
+				objectCreator.CreateProperties(new Property[] { property1, property2 });
+			}
+			catch (MediaOpsBulkException<Guid> ex)
+			{
+				Assert.AreEqual(2, ex.Result.TraceDataPerItem.Count);
+
+				foreach (var traceData in ex.Result.TraceDataPerItem.Values)
+				{
+					Assert.AreEqual(1, traceData.ErrorData.Count);
+					var propertyError = traceData.ErrorData.OfType<PropertyError>().SingleOrDefault();
+					Assert.IsNotNull(propertyError);
+
+					var duplicateNameError = propertyError as PropertyDuplicateNameError;
+					Assert.IsNotNull(duplicateNameError);
+					Assert.AreEqual(property2.Name, duplicateNameError.Name);
+					Assert.AreEqual($"Property '{property1.Name}' has a duplicate name in scope '{property1.Scope}'.", propertyError.ErrorMessage);
+				}
+
+				return;
+			}
+
+			Assert.Fail("Expected exception was not thrown.");
+		}
+
+		[TestMethod]
+		public void UpdateToSameNameInDifferentScopeSucceeds()
+		{
+			var prefix = Guid.NewGuid();
+
+			var property1 = new BooleanProperty()
+			{
+				Name = $"{prefix}_Property_1",
+				Scope = "scope1",
+				SectionName = "General",
+			};
+			var property2 = new BooleanProperty()
+			{
+				Name = $"{prefix}_Property_2",
+				Scope = "scope2",
+				SectionName = "General",
+			};
+
+			objectCreator.CreateProperty(property1);
+			objectCreator.CreateProperty(property2);
+
+			var toUpdate = TestContext.Api.Properties.Read(property2.Id);
+			toUpdate.Name = property1.Name;
+
+			TestContext.Api.Properties.Update(toUpdate);
+
+			var returnedProperty = TestContext.Api.Properties.Read(property2.Id);
+			Assert.IsNotNull(returnedProperty);
+			Assert.AreEqual(property1.Name, returnedProperty.Name);
 		}
 
 		[TestMethod]
