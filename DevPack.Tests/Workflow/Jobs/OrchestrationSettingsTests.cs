@@ -5,7 +5,6 @@
 	using System.Linq;
 
 	using RT_MediaOps.Plan.RegressionTests;
-	using RT_MediaOps.Plan.RST;
 
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
