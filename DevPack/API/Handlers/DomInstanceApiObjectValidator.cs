@@ -57,7 +57,14 @@
 			where TApiObject : ApiObject
 			where TDomInstance : T
 		{
-			var itemsRequiringValidation = apiObjects.Where(x => !x.IsNew).ToList();
+			var unchangedItems = apiObjects
+				.Where(x => !x.IsNew && !x.HasChanges)
+				.Select(getOriginalInstance)
+				.OfType<T>()
+				.ToList();
+			ReportSuccess(unchangedItems);
+
+			var itemsRequiringValidation = apiObjects.Where(x => !x.IsNew && x.HasChanges).ToList();
 			if (itemsRequiringValidation.Count == 0)
 			{
 				yield break;
@@ -69,12 +76,6 @@
 				if (!storedInstancesById.TryGetValue(item.Id, out var stored))
 				{
 					ReportError(item.Id, createNotFoundError(item));
-					continue;
-				}
-
-				if (!item.HasChanges)
-				{
-					ReportSuccess(stored);
 					continue;
 				}
 
