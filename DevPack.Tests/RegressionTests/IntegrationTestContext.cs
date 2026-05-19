@@ -1,11 +1,15 @@
 ﻿namespace RT_MediaOps.Plan.RegressionTests
 {
+	using System.Linq;
+
 	using Skyline.DataMiner.Core.DataMinerSystem.Common;
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Messages;
+	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Net.Profiles;
 	using Skyline.DataMiner.Solutions.Categories.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow;
 
 	using DMConnection = Skyline.DataMiner.Net.Connection;
 
@@ -48,6 +52,44 @@
 		public ICategoriesApi CategoriesApi { get; private set; }
 
 		public ProtocolFunctionHelper ProtocolFunctionHelper { get; private set; }
+
+		/// <summary>
+		/// Reads the current job settings DOM instance and captures it as a <see cref="JobSettingsSnapshot"/>
+		/// that can later be passed to <see cref="RestoreJobSettings"/>.
+		/// </summary>
+		internal JobSettingsSnapshot CreateJobSettingsSnapshot()
+		{
+			var instance = GetJobSettingsInstance();
+			return JobSettingsSnapshot.FromDom(instance);
+		}
+
+		/// <summary>
+		/// Restores the job settings DOM instance to the values captured in the given <paramref name="snapshot"/>.
+		/// Writes directly to the DOM so all properties (including those not exposed by the public API,
+		/// such as <c>JobIDNextSequence</c>) are restored.
+		/// </summary>
+		internal void RestoreJobSettings(JobSettingsSnapshot snapshot)
+		{
+			if (snapshot == null)
+			{
+				throw new ArgumentNullException(nameof(snapshot));
+			}
+
+			var planApi = (MediaOpsPlanApi)Api;
+			var instance = GetJobSettingsInstance();
+			snapshot.ApplyTo(instance);
+			planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.Update(instance.ToInstance());
+		}
+
+		private AppSettingsInstance GetJobSettingsInstance()
+		{
+			var planApi = (MediaOpsPlanApi)Api;
+			var instance = planApi.DomHelpers.SlcWorkflowHelper
+				.GetAppSettings(DomInstanceExposers.Id.Equal(DomJobSettingHandler.JobSettingId))
+				.SingleOrDefault()
+				?? throw new InvalidOperationException("Job settings DOM instance not found.");
+			return instance;
+		}
 
 		public void Dispose()
 		{

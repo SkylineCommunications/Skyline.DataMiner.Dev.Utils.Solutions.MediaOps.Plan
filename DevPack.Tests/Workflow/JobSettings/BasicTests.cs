@@ -45,7 +45,7 @@ namespace RT_MediaOps.Plan.Workflow.JobSettings
 		{
 			var prefix = Guid.NewGuid().ToString("N").Substring(0, 8).ToUpperInvariant();
 			var original = TestContext.Api.GlobalSettings.GetJobSettings();
-			var snapshot = Snapshot(original);
+			var snapshot = TestContext.CreateJobSettingsSnapshot();
 
 			try
 			{
@@ -78,7 +78,7 @@ namespace RT_MediaOps.Plan.Workflow.JobSettings
 			}
 			finally
 			{
-				Restore(snapshot);
+				TestContext.RestoreJobSettings(snapshot);
 			}
 		}
 
@@ -235,51 +235,6 @@ namespace RT_MediaOps.Plan.Workflow.JobSettings
 			}
 
 			Assert.Fail("Expected exception was not thrown.");
-		}
-
-		private static JobSettingsSnapshot Snapshot(JobSettings settings)
-		{
-			return new JobSettingsSnapshot
-			{
-				KeyPrefix = settings.KeyPrefix,
-				KeyMinimumDigits = settings.KeyMinimumDigits,
-				KeyStartingSeed = settings.KeyStartingSeed,
-				KeyIncrement = settings.KeyIncrement,
-				DefaultPreRoll = settings.DefaultPreRoll,
-				DefaultPostRoll = settings.DefaultPostRoll,
-				DesiredJobState = settings.DesiredJobState,
-			};
-		}
-
-		private static void Restore(JobSettingsSnapshot snapshot)
-		{
-			var current = TestContext.Api.GlobalSettings.GetJobSettings();
-			current.KeyPrefix = snapshot.KeyPrefix;
-			current.KeyMinimumDigits = snapshot.KeyMinimumDigits;
-			current.KeyStartingSeed = snapshot.KeyStartingSeed;
-			current.KeyIncrement = snapshot.KeyIncrement;
-			current.DefaultPreRoll = snapshot.DefaultPreRoll;
-			current.DefaultPostRoll = snapshot.DefaultPostRoll;
-			current.DesiredJobState = snapshot.DesiredJobState;
-
-			TestContext.Api.GlobalSettings.UpdateJobSettings(current);
-		}
-
-		private sealed class JobSettingsSnapshot
-		{
-			public string KeyPrefix { get; set; }
-
-			public int KeyMinimumDigits { get; set; }
-
-			public int KeyStartingSeed { get; set; }
-
-			public int KeyIncrement { get; set; }
-
-			public TimeSpan DefaultPreRoll { get; set; }
-
-			public TimeSpan DefaultPostRoll { get; set; }
-
-			public DesiredJobState DesiredJobState { get; set; }
 		}
 	}
 }

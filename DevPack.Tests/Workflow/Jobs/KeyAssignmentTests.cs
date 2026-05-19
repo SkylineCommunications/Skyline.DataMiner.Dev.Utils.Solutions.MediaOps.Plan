@@ -52,21 +52,11 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		{
 			var prefix = Guid.NewGuid();
 			var settings = TestContext.Api.GlobalSettings.GetJobSettings();
-			var snapshot = Snapshot(settings);
+			var snapshot = TestContext.CreateJobSettingsSnapshot();
 
 			try
 			{
-				// Apply deterministic key settings so the next generated key is predictable.
-				settings.KeyPrefix = $"RT_{prefix:N}_".Substring(0, 12);
-				settings.KeyMinimumDigits = 5;
-				settings.KeyStartingSeed = 1;
-				settings.KeyIncrement = 1;
-				TestContext.Api.GlobalSettings.UpdateJobSettings(settings);
-
-				// Pre-calculate the expected key by reading the current next sequence
-				// (the JobSettings update recalculated JobIDNextSequence based on the new starting seed/increment).
-				var settingsAfterUpdate = TestContext.Api.GlobalSettings.GetJobSettings();
-				var expectedKey = $"{settingsAfterUpdate.KeyPrefix}{settingsAfterUpdate.KeyStartingSeed.ToString().PadLeft(settingsAfterUpdate.KeyMinimumDigits, '0')}";
+				var expectedKey = $"{snapshot.JobIDPrefix}{snapshot.JobIDNextSequence.ToString().PadLeft((int)snapshot.JobIDMinimumDigits, '0')}";
 
 				var job = new Job
 				{
@@ -87,53 +77,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			}
 			finally
 			{
-				Restore(snapshot);
+				TestContext.RestoreJobSettings(snapshot);
 			}
-		}
-
-		private static JobSettingsSnapshot Snapshot(JobSettings settings)
-		{
-			return new JobSettingsSnapshot
-			{
-				KeyPrefix = settings.KeyPrefix,
-				KeyMinimumDigits = settings.KeyMinimumDigits,
-				KeyStartingSeed = settings.KeyStartingSeed,
-				KeyIncrement = settings.KeyIncrement,
-				DefaultPreRoll = settings.DefaultPreRoll,
-				DefaultPostRoll = settings.DefaultPostRoll,
-				DesiredJobState = settings.DesiredJobState,
-			};
-		}
-
-		private static void Restore(JobSettingsSnapshot snapshot)
-		{
-			var current = TestContext.Api.GlobalSettings.GetJobSettings();
-			current.KeyPrefix = snapshot.KeyPrefix;
-			current.KeyMinimumDigits = snapshot.KeyMinimumDigits;
-			current.KeyStartingSeed = snapshot.KeyStartingSeed;
-			current.KeyIncrement = snapshot.KeyIncrement;
-			current.DefaultPreRoll = snapshot.DefaultPreRoll;
-			current.DefaultPostRoll = snapshot.DefaultPostRoll;
-			current.DesiredJobState = snapshot.DesiredJobState;
-
-			TestContext.Api.GlobalSettings.UpdateJobSettings(current);
-		}
-
-		private sealed class JobSettingsSnapshot
-		{
-			public string KeyPrefix { get; set; }
-
-			public int KeyMinimumDigits { get; set; }
-
-			public int KeyStartingSeed { get; set; }
-
-			public int KeyIncrement { get; set; }
-
-			public TimeSpan DefaultPreRoll { get; set; }
-
-			public TimeSpan DefaultPostRoll { get; set; }
-
-			public DesiredJobState DesiredJobState { get; set; }
 		}
 	}
 }
