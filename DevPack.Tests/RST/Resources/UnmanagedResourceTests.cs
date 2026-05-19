@@ -199,6 +199,92 @@
 		}
 
 		[TestMethod]
+		public void BulkUpdateWithChangedAndUnchangedResourceReturnsTwoResources()
+		{
+			var prefix = Guid.NewGuid();
+
+			var changedResource = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource
+			{
+				Name = $"{prefix}_Changed",
+				Concurrency = 1,
+			};
+			var unchangedResource = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource
+			{
+				Name = $"{prefix}_Unchanged",
+				Concurrency = 1,
+			};
+
+			changedResource = objectCreator.CreateResource(changedResource);
+			unchangedResource = objectCreator.CreateResource(unchangedResource);
+
+			var changedToUpdate = TestContext.Api.Resources.Read(changedResource.Id);
+			var unchangedToUpdate = TestContext.Api.Resources.Read(unchangedResource.Id);
+
+			changedToUpdate.Name = $"{prefix}_Changed_Updated";
+
+			var updatedResources = TestContext.Api.Resources.Update(new[] { changedToUpdate, unchangedToUpdate });
+
+			Assert.AreEqual(2, updatedResources.Count);
+			Assert.IsTrue(updatedResources.Any(x => x.Id == changedResource.Id));
+			Assert.IsTrue(updatedResources.Any(x => x.Id == unchangedResource.Id));
+
+			var changedAfterUpdate = TestContext.Api.Resources.Read(changedResource.Id);
+			var unchangedAfterUpdate = TestContext.Api.Resources.Read(unchangedResource.Id);
+
+			Assert.AreEqual(changedToUpdate.Name, changedAfterUpdate.Name);
+			Assert.AreEqual(unchangedResource.Name, unchangedAfterUpdate.Name);
+		}
+
+		[TestMethod]
+		public void BulkUpdateWithChangedInvalidAndUnchangedResourceReturnsTwoSuccessfulIds()
+		{
+			var prefix = Guid.NewGuid();
+
+			var changedResource = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource
+			{
+				Name = $"{prefix}_Changed",
+				Concurrency = 1,
+			};
+			var invalidResource = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource
+			{
+				Name = $"{prefix}_Invalid",
+				Concurrency = 1,
+			};
+			var unchangedResource = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.UnmanagedResource
+			{
+				Name = $"{prefix}_Unchanged",
+				Concurrency = 1,
+			};
+
+			changedResource = objectCreator.CreateResource(changedResource);
+			invalidResource = objectCreator.CreateResource(invalidResource);
+			unchangedResource = objectCreator.CreateResource(unchangedResource);
+
+			var changedToUpdate = TestContext.Api.Resources.Read(changedResource.Id);
+			var invalidToUpdate = TestContext.Api.Resources.Read(invalidResource.Id);
+			var unchangedToUpdate = TestContext.Api.Resources.Read(unchangedResource.Id);
+
+			changedToUpdate.Name = $"{prefix}_Changed_Updated";
+			invalidToUpdate.Name = string.Empty;
+
+			var ex = Assert.ThrowsException<MediaOpsBulkException<Guid>>(() => TestContext.Api.Resources.Update(new[] { changedToUpdate, invalidToUpdate, unchangedToUpdate }));
+
+			Assert.AreEqual(2, ex.Result.SuccessfulIds.Count);
+			Assert.IsTrue(ex.Result.SuccessfulIds.Contains(changedResource.Id));
+			Assert.IsTrue(ex.Result.SuccessfulIds.Contains(unchangedResource.Id));
+			Assert.AreEqual(1, ex.Result.UnsuccessfulIds.Count);
+			Assert.IsTrue(ex.Result.UnsuccessfulIds.Contains(invalidResource.Id));
+
+			var changedAfterUpdate = TestContext.Api.Resources.Read(changedResource.Id);
+			var invalidAfterUpdate = TestContext.Api.Resources.Read(invalidResource.Id);
+			var unchangedAfterUpdate = TestContext.Api.Resources.Read(unchangedResource.Id);
+
+			Assert.AreEqual(changedToUpdate.Name, changedAfterUpdate.Name);
+			Assert.AreEqual(invalidResource.Name, invalidAfterUpdate.Name);
+			Assert.AreEqual(unchangedResource.Name, unchangedAfterUpdate.Name);
+		}
+
+		[TestMethod]
 		public void ConcurrentUpdatesToSameResource_ShouldExecuteSequentially()
 		{
 			var resourceName = TestHelper.GetRandomName("UnmanagedResource_");

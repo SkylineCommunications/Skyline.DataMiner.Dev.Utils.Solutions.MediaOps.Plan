@@ -124,6 +124,87 @@
 		}
 
 		[TestMethod]
+		public void BulkUpdateWithChangedAndUnchangedConfigurationReturnsTwoConfigurations()
+		{
+			var prefix = Guid.NewGuid();
+
+			var changedConfiguration = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration
+			{
+				Name = $"{prefix}_Changed",
+			};
+			var unchangedConfiguration = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration
+			{
+				Name = $"{prefix}_Unchanged",
+			};
+
+			changedConfiguration = (Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration)objectCreator.CreateConfiguration(changedConfiguration);
+			unchangedConfiguration = (Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration)objectCreator.CreateConfiguration(unchangedConfiguration);
+
+			var changedToUpdate = TestContext.Api.Configurations.Read(changedConfiguration.Id);
+			var unchangedToUpdate = TestContext.Api.Configurations.Read(unchangedConfiguration.Id);
+
+			changedToUpdate.Name = $"{prefix}_Changed_Updated";
+
+			var updatedConfigurations = TestContext.Api.Configurations.Update(new[] { changedToUpdate, unchangedToUpdate });
+
+			Assert.AreEqual(2, updatedConfigurations.Count);
+			Assert.IsTrue(updatedConfigurations.Any(x => x.Id == changedConfiguration.Id));
+			Assert.IsTrue(updatedConfigurations.Any(x => x.Id == unchangedConfiguration.Id));
+
+			var changedAfterUpdate = TestContext.Api.Configurations.Read(changedConfiguration.Id);
+			var unchangedAfterUpdate = TestContext.Api.Configurations.Read(unchangedConfiguration.Id);
+
+			Assert.AreEqual(changedToUpdate.Name, changedAfterUpdate.Name);
+			Assert.AreEqual(unchangedConfiguration.Name, unchangedAfterUpdate.Name);
+		}
+
+		[TestMethod]
+		public void BulkUpdateWithChangedInvalidAndUnchangedConfigurationReturnsTwoSuccessfulIds()
+		{
+			var prefix = Guid.NewGuid();
+
+			var changedConfiguration = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration
+			{
+				Name = $"{prefix}_Changed",
+			};
+			var invalidConfiguration = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration
+			{
+				Name = $"{prefix}_Invalid",
+			};
+			var unchangedConfiguration = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration
+			{
+				Name = $"{prefix}_Unchanged",
+			};
+
+			changedConfiguration = (Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration)objectCreator.CreateConfiguration(changedConfiguration);
+			invalidConfiguration = (Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration)objectCreator.CreateConfiguration(invalidConfiguration);
+			unchangedConfiguration = (Skyline.DataMiner.Solutions.MediaOps.Plan.API.TextConfiguration)objectCreator.CreateConfiguration(unchangedConfiguration);
+
+			var changedToUpdate = TestContext.Api.Configurations.Read(changedConfiguration.Id);
+			var invalidToUpdate = TestContext.Api.Configurations.Read(invalidConfiguration.Id);
+			var unchangedToUpdate = TestContext.Api.Configurations.Read(unchangedConfiguration.Id);
+
+			changedToUpdate.Name = $"{prefix}_Changed_Updated";
+			invalidToUpdate.Name = string.Empty;
+
+			var ex = Assert.ThrowsException<MediaOpsBulkException<Guid>>(() => TestContext.Api.Configurations.Update(new[] { changedToUpdate, invalidToUpdate, unchangedToUpdate }));
+
+			Assert.AreEqual(2, ex.Result.SuccessfulIds.Count);
+			Assert.IsTrue(ex.Result.SuccessfulIds.Contains(changedConfiguration.Id));
+			Assert.IsTrue(ex.Result.SuccessfulIds.Contains(unchangedConfiguration.Id));
+			Assert.AreEqual(1, ex.Result.UnsuccessfulIds.Count);
+			Assert.IsTrue(ex.Result.UnsuccessfulIds.Contains(invalidConfiguration.Id));
+
+			var changedAfterUpdate = TestContext.Api.Configurations.Read(changedConfiguration.Id);
+			var invalidAfterUpdate = TestContext.Api.Configurations.Read(invalidConfiguration.Id);
+			var unchangedAfterUpdate = TestContext.Api.Configurations.Read(unchangedConfiguration.Id);
+
+			Assert.AreEqual(changedToUpdate.Name, changedAfterUpdate.Name);
+			Assert.AreEqual(invalidConfiguration.Name, invalidAfterUpdate.Name);
+			Assert.AreEqual(unchangedConfiguration.Name, unchangedAfterUpdate.Name);
+		}
+
+		[TestMethod]
 		public void CreateWithExistingIdThrowsException()
 		{
 			var configurationId = Guid.NewGuid();

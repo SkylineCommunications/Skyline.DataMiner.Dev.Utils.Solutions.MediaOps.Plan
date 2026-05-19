@@ -309,6 +309,87 @@
 		}
 
 		[TestMethod]
+		public void BulkUpdateWithChangedAndUnchangedResourcePoolReturnsTwoResourcePools()
+		{
+			var prefix = Guid.NewGuid();
+
+			var changedResourcePool = new ResourcePool
+			{
+				Name = $"{prefix}_Changed",
+			};
+			var unchangedResourcePool = new ResourcePool
+			{
+				Name = $"{prefix}_Unchanged",
+			};
+
+			changedResourcePool = objectCreator.CreateResourcePool(changedResourcePool);
+			unchangedResourcePool = objectCreator.CreateResourcePool(unchangedResourcePool);
+
+			var changedToUpdate = TestContext.Api.ResourcePools.Read(changedResourcePool.Id);
+			var unchangedToUpdate = TestContext.Api.ResourcePools.Read(unchangedResourcePool.Id);
+
+			changedToUpdate.Name = $"{prefix}_Changed_Updated";
+
+			var updatedResourcePools = TestContext.Api.ResourcePools.Update(new[] { changedToUpdate, unchangedToUpdate });
+
+			Assert.AreEqual(2, updatedResourcePools.Count);
+			Assert.IsTrue(updatedResourcePools.Any(x => x.Id == changedResourcePool.Id));
+			Assert.IsTrue(updatedResourcePools.Any(x => x.Id == unchangedResourcePool.Id));
+
+			var changedAfterUpdate = TestContext.Api.ResourcePools.Read(changedResourcePool.Id);
+			var unchangedAfterUpdate = TestContext.Api.ResourcePools.Read(unchangedResourcePool.Id);
+
+			Assert.AreEqual(changedToUpdate.Name, changedAfterUpdate.Name);
+			Assert.AreEqual(unchangedResourcePool.Name, unchangedAfterUpdate.Name);
+		}
+
+		[TestMethod]
+		public void BulkUpdateWithChangedInvalidAndUnchangedResourcePoolReturnsTwoSuccessfulIds()
+		{
+			var prefix = Guid.NewGuid();
+
+			var changedResourcePool = new ResourcePool
+			{
+				Name = $"{prefix}_Changed",
+			};
+			var invalidResourcePool = new ResourcePool
+			{
+				Name = $"{prefix}_Invalid",
+			};
+			var unchangedResourcePool = new ResourcePool
+			{
+				Name = $"{prefix}_Unchanged",
+			};
+
+			changedResourcePool = objectCreator.CreateResourcePool(changedResourcePool);
+			invalidResourcePool = objectCreator.CreateResourcePool(invalidResourcePool);
+			unchangedResourcePool = objectCreator.CreateResourcePool(unchangedResourcePool);
+
+			var changedToUpdate = TestContext.Api.ResourcePools.Read(changedResourcePool.Id);
+			var invalidToUpdate = TestContext.Api.ResourcePools.Read(invalidResourcePool.Id);
+			var unchangedToUpdate = TestContext.Api.ResourcePools.Read(unchangedResourcePool.Id);
+
+			changedToUpdate.Name = $"{prefix}_Changed_Updated";
+			invalidToUpdate.Name = string.Empty;
+
+			var ex = Assert.ThrowsException<MediaOpsBulkException<Guid>>(() => TestContext.Api.ResourcePools.Update(new[] { changedToUpdate, invalidToUpdate, unchangedToUpdate }));
+
+			Assert.AreEqual(2, ex.Result.SuccessfulIds.Count);
+			Assert.IsTrue(ex.Result.SuccessfulIds.Contains(changedResourcePool.Id));
+			Assert.IsTrue(ex.Result.SuccessfulIds.Contains(unchangedResourcePool.Id));
+			Assert.AreEqual(1, ex.Result.UnsuccessfulIds.Count);
+			Assert.IsTrue(ex.Result.UnsuccessfulIds.Contains(invalidResourcePool.Id));
+
+			var changedAfterUpdate = TestContext.Api.ResourcePools.Read(changedResourcePool.Id);
+			var invalidAfterUpdate = TestContext.Api.ResourcePools.Read(invalidResourcePool.Id);
+			var unchangedAfterUpdate = TestContext.Api.ResourcePools.Read(unchangedResourcePool.Id);
+
+			Assert.AreEqual(changedToUpdate.Name, changedAfterUpdate.Name);
+			Assert.AreEqual(invalidResourcePool.Name, invalidAfterUpdate.Name);
+			Assert.AreEqual(unchangedResourcePool.Name, unchangedAfterUpdate.Name);
+		}
+
+		[TestMethod]
 		public void ReadWithEmptyListReturnsEmptyList()
 		{
 			var resourcePools = TestContext.Api.ResourcePools.Read(new List<Guid>());
