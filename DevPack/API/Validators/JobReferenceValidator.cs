@@ -9,16 +9,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
     /// </summary>
     public class JobReferenceValidator
     {
-        private readonly ReferenceResolver linkResolver;
+        private readonly ReferenceResolver _referenceResolver;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JobReferenceValidator"/> class.
         /// </summary>
-        /// <param name="linkResolver">The link resolver used to resolve references.</param>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="linkResolver"/> is <see langword="null"/>.</exception>
-        public JobReferenceValidator(ReferenceResolver linkResolver)
+        /// <param name="referenceResolver">The resolver used to resolve references.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="referenceResolver"/> is <see langword="null"/>.</exception>
+        public JobReferenceValidator(ReferenceResolver referenceResolver)
         {
-            this.linkResolver = linkResolver ?? throw new ArgumentNullException(nameof(linkResolver));
+            _referenceResolver = referenceResolver ?? throw new ArgumentNullException(nameof(referenceResolver));
         }
 
         /// <summary>
@@ -92,7 +92,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
             {
                 try
                 {
-                    var resolved = linkResolver.ResolveValue(reference);
+                    var resolved = _referenceResolver.ResolveValue(reference);
 
                     if (!resolved.IsResolved)
                     {
