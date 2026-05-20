@@ -11,6 +11,7 @@
 
 	[TestClass]
 	[TestCategory("IntegrationTest")]
+	[DoNotParallelize]
 	public sealed class OrchestrationSettingsTests : IDisposable
 	{
 		private readonly TestObjectCreator objectCreator;
