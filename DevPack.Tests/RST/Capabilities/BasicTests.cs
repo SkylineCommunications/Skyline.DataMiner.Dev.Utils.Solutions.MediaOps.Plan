@@ -290,6 +290,108 @@
 		}
 
 		[TestMethod]
+		public void UpdateUnmodifiedCapability()
+		{
+			var capability = new Capability
+			{
+				Name = $"{Guid.NewGuid()}_Capability",
+			}
+			.SetDiscretes(["Value 1", "Value 2"]);
+			capability = objectCreator.CreateCapability(capability);
+
+			var originalCapability = TestContext.Api.Capabilities.Read(capability.Id);
+			var updatedCapability = TestContext.Api.Capabilities.Update(originalCapability);
+
+			Assert.AreEqual(originalCapability, updatedCapability);
+		}
+
+		[TestMethod]
+		public void BulkUpdateWithChangedAndUnchangedCapabilityReturnsTwoCapabilities()
+		{
+			var prefix = Guid.NewGuid().ToString();
+
+			var changedCapability = new Capability
+			{
+				Name = $"{prefix}_Changed",
+			}
+			.SetDiscretes(["Value 1", "Value 2"]);
+			var unchangedCapability = new Capability
+			{
+				Name = $"{prefix}_Unchanged",
+			}
+			.SetDiscretes(["Value 1", "Value 2"]);
+
+			changedCapability = objectCreator.CreateCapability(changedCapability);
+			unchangedCapability = objectCreator.CreateCapability(unchangedCapability);
+
+			var changedToUpdate = TestContext.Api.Capabilities.Read(changedCapability.Id);
+			var unchangedToUpdate = TestContext.Api.Capabilities.Read(unchangedCapability.Id);
+
+			changedToUpdate.Name = $"{prefix}_Changed_Updated";
+
+			var updatedCapabilities = TestContext.Api.Capabilities.Update(new[] { changedToUpdate, unchangedToUpdate });
+
+			Assert.AreEqual(2, updatedCapabilities.Count);
+			Assert.IsTrue(updatedCapabilities.Any(x => x.Id == changedCapability.Id));
+			Assert.IsTrue(updatedCapabilities.Any(x => x.Id == unchangedCapability.Id));
+
+			var changedAfterUpdate = TestContext.Api.Capabilities.Read(changedCapability.Id);
+			var unchangedAfterUpdate = TestContext.Api.Capabilities.Read(unchangedCapability.Id);
+
+			Assert.AreEqual(changedToUpdate.Name, changedAfterUpdate.Name);
+			Assert.AreEqual(unchangedCapability.Name, unchangedAfterUpdate.Name);
+		}
+
+		[TestMethod]
+		public void BulkUpdateWithChangedInvalidAndUnchangedCapabilityReturnsTwoSuccessfulIds()
+		{
+			var prefix = Guid.NewGuid().ToString();
+
+			var changedCapability = new Capability
+			{
+				Name = $"{prefix}_Changed",
+			}
+			.SetDiscretes(["Value 1", "Value 2"]);
+			var invalidCapability = new Capability
+			{
+				Name = $"{prefix}_Invalid",
+			}
+			.SetDiscretes(["Value 1", "Value 2"]);
+			var unchangedCapability = new Capability
+			{
+				Name = $"{prefix}_Unchanged",
+			}
+			.SetDiscretes(["Value 1", "Value 2"]);
+
+			changedCapability = objectCreator.CreateCapability(changedCapability);
+			invalidCapability = objectCreator.CreateCapability(invalidCapability);
+			unchangedCapability = objectCreator.CreateCapability(unchangedCapability);
+
+			var changedToUpdate = TestContext.Api.Capabilities.Read(changedCapability.Id);
+			var invalidToUpdate = TestContext.Api.Capabilities.Read(invalidCapability.Id);
+			var unchangedToUpdate = TestContext.Api.Capabilities.Read(unchangedCapability.Id);
+
+			changedToUpdate.Name = $"{prefix}_Changed_Updated";
+			invalidToUpdate.Name = string.Empty;
+
+			var ex = Assert.ThrowsException<MediaOpsBulkException<Guid>>(() => TestContext.Api.Capabilities.Update(new[] { changedToUpdate, invalidToUpdate, unchangedToUpdate }));
+
+			Assert.AreEqual(2, ex.Result.SuccessfulIds.Count);
+			Assert.IsTrue(ex.Result.SuccessfulIds.Contains(changedCapability.Id));
+			Assert.IsTrue(ex.Result.SuccessfulIds.Contains(unchangedCapability.Id));
+			Assert.AreEqual(1, ex.Result.UnsuccessfulIds.Count);
+			Assert.IsTrue(ex.Result.UnsuccessfulIds.Contains(invalidCapability.Id));
+
+			var changedAfterUpdate = TestContext.Api.Capabilities.Read(changedCapability.Id);
+			var invalidAfterUpdate = TestContext.Api.Capabilities.Read(invalidCapability.Id);
+			var unchangedAfterUpdate = TestContext.Api.Capabilities.Read(unchangedCapability.Id);
+
+			Assert.AreEqual(changedToUpdate.Name, changedAfterUpdate.Name);
+			Assert.AreEqual(invalidCapability.Name, invalidAfterUpdate.Name);
+			Assert.AreEqual(unchangedCapability.Name, unchangedAfterUpdate.Name);
+		}
+
+		[TestMethod]
 		public void ReadAllPaged()
 		{
 			foreach (var page in TestContext.Api.Capabilities.ReadPaged())

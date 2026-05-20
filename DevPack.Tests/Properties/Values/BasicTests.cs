@@ -579,6 +579,136 @@ namespace RT_MediaOps.Plan.Properties.Values
 		}
 
 		[TestMethod]
+		public void UpdateUnmodifiedPropertyValueCollection()
+		{
+			var property = new StringProperty
+			{
+				Name = $"{Guid.NewGuid()}_Property",
+				Scope = "global",
+				SectionName = "General",
+			};
+			objectCreator.CreateProperty(property);
+
+			var collection = new PropertyValueCollection
+			{
+				LinkedObjectId = $"obj-{Guid.NewGuid()}",
+				Scope = "global",
+			};
+			collection.Add(new StringPropertyValue(property) { Value = "value" });
+			collection = objectCreator.CreatePropertyValueCollection(collection);
+
+			var originalCollection = TestContext.Api.PropertyValueCollections.Read(collection.Id);
+			var updatedCollection = TestContext.Api.PropertyValueCollections.Update(originalCollection);
+
+			Assert.AreEqual(originalCollection, updatedCollection);
+		}
+
+		[TestMethod]
+		public void BulkUpdateWithChangedAndUnchangedPropertyValueCollectionReturnsTwoCollections()
+		{
+			var property = new StringProperty
+			{
+				Name = $"{Guid.NewGuid()}_Property",
+				Scope = "global",
+				SectionName = "General",
+			};
+			objectCreator.CreateProperty(property);
+
+			var changedCollection = new PropertyValueCollection
+			{
+				LinkedObjectId = $"obj-{Guid.NewGuid()}",
+				Scope = "global",
+			};
+			changedCollection.Add(new StringPropertyValue(property) { Value = "value-1" });
+			changedCollection = objectCreator.CreatePropertyValueCollection(changedCollection);
+
+			var unchangedCollection = new PropertyValueCollection
+			{
+				LinkedObjectId = $"obj-{Guid.NewGuid()}",
+				Scope = "global",
+			};
+			unchangedCollection.Add(new StringPropertyValue(property) { Value = "value-2" });
+			unchangedCollection = objectCreator.CreatePropertyValueCollection(unchangedCollection);
+
+			var changedToUpdate = TestContext.Api.PropertyValueCollections.Read(changedCollection.Id);
+			var unchangedToUpdate = TestContext.Api.PropertyValueCollections.Read(unchangedCollection.Id);
+
+			changedToUpdate.StringValues.Single().Value = "value-1-updated";
+
+			var updatedCollections = TestContext.Api.PropertyValueCollections.Update(new[] { changedToUpdate, unchangedToUpdate });
+
+			Assert.AreEqual(2, updatedCollections.Count);
+			Assert.IsTrue(updatedCollections.Any(x => x.Id == changedCollection.Id));
+			Assert.IsTrue(updatedCollections.Any(x => x.Id == unchangedCollection.Id));
+
+			var changedAfterUpdate = TestContext.Api.PropertyValueCollections.Read(changedCollection.Id);
+			var unchangedAfterUpdate = TestContext.Api.PropertyValueCollections.Read(unchangedCollection.Id);
+
+			Assert.AreEqual(changedToUpdate.StringValues.Single().Value, changedAfterUpdate.StringValues.Single().Value);
+			Assert.AreEqual(unchangedCollection.StringValues.Single().Value, unchangedAfterUpdate.StringValues.Single().Value);
+		}
+
+		[TestMethod]
+		public void BulkUpdateWithChangedInvalidAndUnchangedPropertyValueCollectionReturnsTwoSuccessfulIds()
+		{
+			var property = new StringProperty
+			{
+				Name = $"{Guid.NewGuid()}_Property",
+				Scope = "global",
+				SectionName = "General",
+			};
+			objectCreator.CreateProperty(property);
+
+			var changedCollection = new PropertyValueCollection
+			{
+				LinkedObjectId = $"obj-{Guid.NewGuid()}",
+				Scope = "global",
+			};
+			changedCollection.Add(new StringPropertyValue(property) { Value = "value-1" });
+			changedCollection = objectCreator.CreatePropertyValueCollection(changedCollection);
+
+			var invalidCollection = new PropertyValueCollection
+			{
+				LinkedObjectId = $"obj-{Guid.NewGuid()}",
+				Scope = "global",
+			};
+			invalidCollection.Add(new StringPropertyValue(property) { Value = "value-2" });
+			invalidCollection = objectCreator.CreatePropertyValueCollection(invalidCollection);
+
+			var unchangedCollection = new PropertyValueCollection
+			{
+				LinkedObjectId = $"obj-{Guid.NewGuid()}",
+				Scope = "global",
+			};
+			unchangedCollection.Add(new StringPropertyValue(property) { Value = "value-3" });
+			unchangedCollection = objectCreator.CreatePropertyValueCollection(unchangedCollection);
+
+			var changedToUpdate = TestContext.Api.PropertyValueCollections.Read(changedCollection.Id);
+			var invalidToUpdate = TestContext.Api.PropertyValueCollections.Read(invalidCollection.Id);
+			var unchangedToUpdate = TestContext.Api.PropertyValueCollections.Read(unchangedCollection.Id);
+
+			changedToUpdate.StringValues.Single().Value = "value-1-updated";
+			invalidToUpdate.Add(new CustomPropertyValue { Name = "Duplicate", Value = "A" });
+			invalidToUpdate.Add(new CustomPropertyValue { Name = "Duplicate", Value = "B" });
+
+			var ex = Assert.ThrowsException<MediaOpsBulkException<Guid>>(() => TestContext.Api.PropertyValueCollections.Update(new[] { changedToUpdate, invalidToUpdate, unchangedToUpdate }));
+
+			Assert.AreEqual(2, ex.Result.SuccessfulIds.Count);
+			Assert.IsTrue(ex.Result.SuccessfulIds.Contains(changedCollection.Id));
+			Assert.IsTrue(ex.Result.SuccessfulIds.Contains(unchangedCollection.Id));
+			Assert.AreEqual(1, ex.Result.UnsuccessfulIds.Count);
+			Assert.IsTrue(ex.Result.UnsuccessfulIds.Contains(invalidCollection.Id));
+
+			var changedAfterUpdate = TestContext.Api.PropertyValueCollections.Read(changedCollection.Id);
+			var invalidAfterUpdate = TestContext.Api.PropertyValueCollections.Read(invalidCollection.Id);
+			var unchangedAfterUpdate = TestContext.Api.PropertyValueCollections.Read(unchangedCollection.Id);
+
+			Assert.AreEqual(changedToUpdate.StringValues.Single().Value, changedAfterUpdate.StringValues.Single().Value);
+			Assert.AreEqual(invalidCollection.CustomValues.Count, invalidAfterUpdate.CustomValues.Count);
+			Assert.AreEqual(unchangedCollection.StringValues.Single().Value, unchangedAfterUpdate.StringValues.Single().Value);
+		}
+
+		[TestMethod]
 		public void ReadWithEmptyFilterReturnsEmptyList()
 		{
 			var idsToRetrieve = new Guid[0];
