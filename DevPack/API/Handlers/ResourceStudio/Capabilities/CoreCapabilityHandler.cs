@@ -465,6 +465,7 @@
 			{
 				var sortedDiscretes = GetSortedDiscretes(capability);
 
+				capability.CoreParameter.Name = capability.Name;
 				capability.CoreParameter.IsOptional = !capability.IsMandatory;
 				capability.CoreParameter.Discretes = sortedDiscretes;
 				capability.CoreParameter.DiscreetDisplayValues = sortedDiscretes;

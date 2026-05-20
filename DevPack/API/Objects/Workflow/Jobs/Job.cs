@@ -1,6 +1,7 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
+	using System.Collections.Generic;
 	using System.Linq;
 
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
@@ -10,10 +11,12 @@
 	/// <summary>
 	/// Represents a job in MediaOps Plan.
 	/// </summary>
-	public class Job : ApiObject
+	public class Job : ApiNamedObject
 	{
 		private StorageWorkflow.JobsInstance originalInstance;
 		private StorageWorkflow.JobsInstance updatedInstance;
+
+		private string key;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Job"/> class.
@@ -23,6 +26,7 @@
 			IsNew = true;
 
 			OrchestrationSettings = new WorkflowOrchestrationSettings();
+			NodeGraph = new NodeGraph<JobNode>();
 		}
 
 		/// <summary>
@@ -34,6 +38,7 @@
 			HasUserDefinedId = true;
 
 			OrchestrationSettings = new WorkflowOrchestrationSettings();
+			NodeGraph = new NodeGraph<JobNode>();
 		}
 
 		internal Job(MediaOpsPlanApi planApi, StorageWorkflow.JobsInstance instance) : base(instance.ID.Id)
@@ -48,9 +53,9 @@
 		public override string Name { get; set; }
 
 		/// <summary>
-		/// Gets the auto generated key of the job, which is assigned by the system and cannot be modified by users.
+		/// Gets or sets the key of the job. If the key is not explicitly set during initialization, the system automatically assigns a generated key that cannot be modified afterwards.
 		/// </summary>
-		public string Key { get; internal set; }
+		public string Key { get => key; init => key = value; }
 
 		/// <summary>
 		/// Gets or sets the description of the job.
@@ -100,7 +105,9 @@
 		/// <summary>
 		/// Gets the orchestration settings assigned to this job.
 		/// </summary>
-		public OrchestrationSettings OrchestrationSettings { get; set; }
+		public OrchestrationSettings OrchestrationSettings { get; private set; }
+
+		public NodeGraph<JobNode> NodeGraph { get; private set; }
 
 		internal StorageWorkflow.JobsInstance OriginalInstance => originalInstance;
 
@@ -118,12 +125,7 @@
 			}
 		}
 
-		/// <summary>
-		/// Determines whether the specified object is equal to the current job instance.
-		/// </summary>
-		/// <param name="obj">The object to compare with the current job instance.</param>
-		/// <returns>true if the specified object is a job and has the same values for all properties as the current
-		/// instance; otherwise, false.</returns>
+		/// <inheritdoc/>
 		public override bool Equals(object obj)
 		{
 			if (obj is not Job other)
@@ -157,7 +159,39 @@
 
 			updatedInstance.JobInfo.JobPriority = EnumExtensions.MapEnum<JobPriority, StorageWorkflow.SlcWorkflowIds.Enums.Jobpriority>(Priority);
 
+			updatedInstance.Nodes.Clear();
+			foreach (var node in NodeGraph.Nodes)
+			{
+				updatedInstance.Nodes.Add(node.GetSectionWithChanges());
+			}
+
+			updatedInstance.Connections.Clear();
+			foreach (var connection in NodeGraph.Connections)
+			{
+				updatedInstance.Connections.Add(connection.GetSectionWithChanges());
+			}
+
 			return updatedInstance;
+		}
+
+		internal void AssignKey(string key)
+		{
+			if (string.IsNullOrWhiteSpace(key))
+			{
+				throw new ArgumentException("Key cannot be null or whitespace.", nameof(key));
+			}
+
+			if (!IsNew)
+			{
+				throw new InvalidOperationException("Key can only be assigned to new jobs.");
+			}
+
+			if (!string.IsNullOrEmpty(Key))
+			{
+				throw new InvalidOperationException("Key has already been assigned and cannot be modified.");
+			}
+
+			this.key = key;
 		}
 
 		private void ParseInstance(MediaOpsPlanApi planApi, StorageWorkflow.JobsInstance instance)
@@ -165,7 +199,7 @@
 			this.originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
 
 			Name = instance.JobInfo.JobName;
-			Key = instance.JobInfo.JobID;
+			key = instance.JobInfo.JobID;
 			Description = instance.JobInfo.JobDescription;
 			Start = instance.JobInfo.JobStart.Value;
 			End = instance.JobInfo.JobEnd.Value;
@@ -195,6 +229,63 @@
 					OrchestrationSettings = new WorkflowOrchestrationSettings();
 				}
 			}
+
+			ParseNodesAndConnections(planApi, instance.Nodes, instance.Connections);
+		}
+
+		private void ParseNodesAndConnections(MediaOpsPlanApi planApi, ICollection<StorageWorkflow.NodesSection> nodes, ICollection<StorageWorkflow.ConnectionsSection> connections)
+		{
+			if (nodes == null || nodes.Count == 0)
+			{
+				NodeGraph = new NodeGraph<JobNode>();
+				return;
+			}
+
+			var parsedNodesById = new Dictionary<string, JobNode>();
+			foreach (var nodeSecion in nodes)
+			{
+				JobNode node = null;
+				switch (nodeSecion.NodeType.Value)
+				{
+					case StorageWorkflow.SlcWorkflowIds.Enums.Nodetype.Resource:
+						node = new JobResourceNode(nodeSecion);
+						break;
+					case StorageWorkflow.SlcWorkflowIds.Enums.Nodetype.ResourcePool:
+						node = new JobResourcePoolNode(nodeSecion);
+						break;
+					default:
+						planApi.Logger.Warning(this, $"Node with ID {nodeSecion.NodeID} has unsupported node type {nodeSecion.NodeType.Value}. This node will be ignored.");
+						break;
+				}
+
+				if (node == null)
+				{
+					continue;
+				}
+
+				parsedNodesById.Add(node.Id, node);
+			}
+
+			if (connections == null || connections.Count == 0)
+			{
+				NodeGraph = new NodeGraph<JobNode>(parsedNodesById.Values);
+				return;
+			}
+
+			var parsedConnections = new List<NodeConnection<JobNode>>();
+			foreach (var connectionSection in connections)
+			{
+				try
+				{
+					parsedConnections.Add(new NodeConnection<JobNode>(connectionSection, id => parsedNodesById.TryGetValue(id, out var n) ? n : null));
+				}
+				catch (InvalidOperationException ex)
+				{
+					planApi.Logger.Warning(this, $"Connection with ID {connectionSection.ConnectionID} has invalid source or destination node. This connection will be ignored. Exception details: {ex}");
+				}
+			}
+
+			NodeGraph = new NodeGraph<JobNode>(parsedNodesById.Values, parsedConnections);
 		}
 	}
 }

@@ -5,6 +5,7 @@
 
 	using Skyline.DataMiner.Core.DataMinerSystem.Common;
 	using Skyline.DataMiner.Net;
+	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.SDM.Registration;
 	using Skyline.DataMiner.Solutions.Categories.API;
@@ -41,6 +42,7 @@
 		private readonly Lazy<IPropertyValueCollectionsRepository> lazyPropertyValueCollectionsRepository;
 		private readonly Lazy<Plan.Tools.LockManager> lazyLockManager;
 		private readonly Lazy<ICategoriesApi> lazyCategoriesApi;
+		private readonly Lazy<IGlobalSettings> lazyGlobalSettings;
 
 		internal static readonly int DefaultPageSize = 200;
 
@@ -73,6 +75,7 @@
 			lazyPropertyValueCollectionsRepository = new Lazy<IPropertyValueCollectionsRepository>(() => new PropertyValueCollectionsRepository(this));
 			lazyLockManager = new Lazy<Plan.Tools.LockManager>(() => new Plan.Tools.LockManager(this));
 			lazyCategoriesApi = new Lazy<ICategoriesApi>(() => connection.GetCategoriesApi());
+			lazyGlobalSettings = new Lazy<IGlobalSettings>(() => new GlobalSettings(this));
 		}
 
 		/// <summary>
@@ -129,6 +132,11 @@
 		/// <inheritdoc/>
 		/// </summary>
 		public IPropertyValueCollectionsRepository PropertyValueCollections => lazyPropertyValueCollectionsRepository.Value;
+
+		/// <summary>
+		/// <inheritdoc/>
+		/// </summary>
+		public IGlobalSettings GlobalSettings => lazyGlobalSettings.Value;
 
 		internal IConnection Connection => connection;
 

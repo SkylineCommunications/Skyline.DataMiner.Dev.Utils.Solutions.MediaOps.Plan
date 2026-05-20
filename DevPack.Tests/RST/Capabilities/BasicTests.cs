@@ -56,6 +56,83 @@
 		}
 
 		[TestMethod]
+		public void Update_PersistsName_ForSingleCapability()
+		{
+			var prefix = Guid.NewGuid();
+			var capability = new Capability
+			{
+				Name = $"{prefix}_Capability",
+			};
+			capability.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
+
+			objectCreator.CreateCapability(capability);
+
+			var persistedCapability = TestContext.Api.Capabilities.Read(capability.Id);
+			Assert.IsNotNull(persistedCapability);
+			Assert.AreEqual(capability.Name, persistedCapability.Name);
+
+			var updatedName = $"{prefix}_Updated";
+			persistedCapability.Name = updatedName; // Regression guard: Name must be copied to the underlying CORE parameter during update.
+			TestContext.Api.Capabilities.Update(persistedCapability);
+
+			var updatedCapability = TestContext.Api.Capabilities.Read(capability.Id);
+			Assert.IsNotNull(updatedCapability);
+			Assert.AreEqual(updatedName, updatedCapability.Name);
+
+			var coreCapability = TestContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(capability.Id)).SingleOrDefault();
+			Assert.IsNotNull(coreCapability);
+			Assert.AreEqual(updatedName, coreCapability.Name);
+		}
+
+		[TestMethod]
+		public void Update_PersistsName_ForBulkCapabilities()
+		{
+			var prefix = Guid.NewGuid();
+			var capability1 = new Capability
+			{
+				Name = $"{prefix}_Capability_1",
+			};
+			capability1.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
+
+			var capability2 = new Capability
+			{
+				Name = $"{prefix}_Capability_2",
+			};
+			capability2.SetDiscretes(new[] { "Value A", "Value B", "Value C" });
+
+			objectCreator.CreateCapabilities([capability1, capability2]);
+
+			var persistedCapability1 = TestContext.Api.Capabilities.Read(capability1.Id);
+			var persistedCapability2 = TestContext.Api.Capabilities.Read(capability2.Id);
+			Assert.IsNotNull(persistedCapability1);
+			Assert.IsNotNull(persistedCapability2);
+			Assert.AreEqual(capability1.Name, persistedCapability1.Name);
+			Assert.AreEqual(capability2.Name, persistedCapability2.Name);
+
+			var updatedName1 = $"{prefix}_Updated_1";
+			var updatedName2 = $"{prefix}_Updated_2";
+
+			persistedCapability1.Name = updatedName1; // Regression guard: Name must be copied to the underlying CORE parameter during update.
+			persistedCapability2.Name = updatedName2;
+
+			TestContext.Api.Capabilities.Update([persistedCapability1, persistedCapability2]);
+
+			var updatedCapability1 = TestContext.Api.Capabilities.Read(capability1.Id);
+			var updatedCapability2 = TestContext.Api.Capabilities.Read(capability2.Id);
+			Assert.IsNotNull(updatedCapability1);
+			Assert.IsNotNull(updatedCapability2);
+			Assert.AreEqual(updatedName1, updatedCapability1.Name);
+			Assert.AreEqual(updatedName2, updatedCapability2.Name);
+
+			var coreCapability1 = TestContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(capability1.Id)).SingleOrDefault();
+			var coreCapability2 = TestContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(capability2.Id)).SingleOrDefault();
+			Assert.IsNotNull(coreCapability1);
+			Assert.IsNotNull(coreCapability2);
+			Assert.AreEqual(updatedName1, coreCapability1.Name);
+			Assert.AreEqual(updatedName2, coreCapability2.Name);
+		}
+
+		[TestMethod]
 		public void TimeDependentCapability()
 		{
 			string name = $"Capability_{Guid.NewGuid()}";
@@ -210,6 +287,108 @@
 			}
 
 			Assert.Fail("The expected exception was not thrown.");
+		}
+
+		[TestMethod]
+		public void UpdateUnmodifiedCapability()
+		{
+			var capability = new Capability
+			{
+				Name = $"{Guid.NewGuid()}_Capability",
+			}
+			.SetDiscretes(["Value 1", "Value 2"]);
+			capability = objectCreator.CreateCapability(capability);
+
+			var originalCapability = TestContext.Api.Capabilities.Read(capability.Id);
+			var updatedCapability = TestContext.Api.Capabilities.Update(originalCapability);
+
+			Assert.AreEqual(originalCapability, updatedCapability);
+		}
+
+		[TestMethod]
+		public void BulkUpdateWithChangedAndUnchangedCapabilityReturnsTwoCapabilities()
+		{
+			var prefix = Guid.NewGuid().ToString();
+
+			var changedCapability = new Capability
+			{
+				Name = $"{prefix}_Changed",
+			}
+			.SetDiscretes(["Value 1", "Value 2"]);
+			var unchangedCapability = new Capability
+			{
+				Name = $"{prefix}_Unchanged",
+			}
+			.SetDiscretes(["Value 1", "Value 2"]);
+
+			changedCapability = objectCreator.CreateCapability(changedCapability);
+			unchangedCapability = objectCreator.CreateCapability(unchangedCapability);
+
+			var changedToUpdate = TestContext.Api.Capabilities.Read(changedCapability.Id);
+			var unchangedToUpdate = TestContext.Api.Capabilities.Read(unchangedCapability.Id);
+
+			changedToUpdate.Name = $"{prefix}_Changed_Updated";
+
+			var updatedCapabilities = TestContext.Api.Capabilities.Update(new[] { changedToUpdate, unchangedToUpdate });
+
+			Assert.AreEqual(2, updatedCapabilities.Count);
+			Assert.IsTrue(updatedCapabilities.Any(x => x.Id == changedCapability.Id));
+			Assert.IsTrue(updatedCapabilities.Any(x => x.Id == unchangedCapability.Id));
+
+			var changedAfterUpdate = TestContext.Api.Capabilities.Read(changedCapability.Id);
+			var unchangedAfterUpdate = TestContext.Api.Capabilities.Read(unchangedCapability.Id);
+
+			Assert.AreEqual(changedToUpdate.Name, changedAfterUpdate.Name);
+			Assert.AreEqual(unchangedCapability.Name, unchangedAfterUpdate.Name);
+		}
+
+		[TestMethod]
+		public void BulkUpdateWithChangedInvalidAndUnchangedCapabilityReturnsTwoSuccessfulIds()
+		{
+			var prefix = Guid.NewGuid().ToString();
+
+			var changedCapability = new Capability
+			{
+				Name = $"{prefix}_Changed",
+			}
+			.SetDiscretes(["Value 1", "Value 2"]);
+			var invalidCapability = new Capability
+			{
+				Name = $"{prefix}_Invalid",
+			}
+			.SetDiscretes(["Value 1", "Value 2"]);
+			var unchangedCapability = new Capability
+			{
+				Name = $"{prefix}_Unchanged",
+			}
+			.SetDiscretes(["Value 1", "Value 2"]);
+
+			changedCapability = objectCreator.CreateCapability(changedCapability);
+			invalidCapability = objectCreator.CreateCapability(invalidCapability);
+			unchangedCapability = objectCreator.CreateCapability(unchangedCapability);
+
+			var changedToUpdate = TestContext.Api.Capabilities.Read(changedCapability.Id);
+			var invalidToUpdate = TestContext.Api.Capabilities.Read(invalidCapability.Id);
+			var unchangedToUpdate = TestContext.Api.Capabilities.Read(unchangedCapability.Id);
+
+			changedToUpdate.Name = $"{prefix}_Changed_Updated";
+			invalidToUpdate.Name = string.Empty;
+
+			var ex = Assert.ThrowsException<MediaOpsBulkException<Guid>>(() => TestContext.Api.Capabilities.Update(new[] { changedToUpdate, invalidToUpdate, unchangedToUpdate }));
+
+			Assert.AreEqual(2, ex.Result.SuccessfulIds.Count);
+			Assert.IsTrue(ex.Result.SuccessfulIds.Contains(changedCapability.Id));
+			Assert.IsTrue(ex.Result.SuccessfulIds.Contains(unchangedCapability.Id));
+			Assert.AreEqual(1, ex.Result.UnsuccessfulIds.Count);
+			Assert.IsTrue(ex.Result.UnsuccessfulIds.Contains(invalidCapability.Id));
+
+			var changedAfterUpdate = TestContext.Api.Capabilities.Read(changedCapability.Id);
+			var invalidAfterUpdate = TestContext.Api.Capabilities.Read(invalidCapability.Id);
+			var unchangedAfterUpdate = TestContext.Api.Capabilities.Read(unchangedCapability.Id);
+
+			Assert.AreEqual(changedToUpdate.Name, changedAfterUpdate.Name);
+			Assert.AreEqual(invalidCapability.Name, invalidAfterUpdate.Name);
+			Assert.AreEqual(unchangedCapability.Name, unchangedAfterUpdate.Name);
 		}
 
 		[TestMethod]

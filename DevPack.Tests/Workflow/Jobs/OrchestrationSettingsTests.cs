@@ -5,13 +5,13 @@
 	using System.Linq;
 
 	using RT_MediaOps.Plan.RegressionTests;
-	using RT_MediaOps.Plan.RST;
 
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
 	[TestClass]
 	[TestCategory("IntegrationTest")]
+	[DoNotParallelize]
 	public sealed class OrchestrationSettingsTests : IDisposable
 	{
 		private readonly TestObjectCreator objectCreator;

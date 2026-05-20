@@ -215,7 +215,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				var error = new PropertyValueCollectionDuplicateIdError
 				{
-					ErrorMessage = $"Property value collection '{valueCollection.Name}' has a duplicate ID.",
+					ErrorMessage = $"Property value collection has a duplicate ID.",
 					Id = valueCollection.Id,
 				};
 
