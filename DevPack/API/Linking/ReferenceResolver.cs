@@ -225,7 +225,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// </summary>
 		protected virtual ResolvedValue ResolveCapabilityValue(CapabilityParameterReference reference)
 		{
-			var orchestrationSettings = GetOrchestrationSettings(reference.NodeId);
+			var orchestrationSettings = GetOrchestrationSettings(reference);
 
 			if (orchestrationSettings != null)
 			{
@@ -251,7 +251,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// </summary>
 		protected virtual ResolvedValue ResolveCapacityValue(CapacityParameterReference reference)
 		{
-			var orchestrationSettings = GetOrchestrationSettings(reference.NodeId);
+			var orchestrationSettings = GetOrchestrationSettings(reference);
 
 			if (orchestrationSettings != null)
 			{
@@ -277,7 +277,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// </summary>
 		protected virtual ResolvedValue ResolveConfigurationValue(ConfigurationParameterReference reference)
 		{
-			var orchestrationSettings = GetOrchestrationSettings(reference.NodeId);
+			var orchestrationSettings = GetOrchestrationSettings(reference);
 
 			if (orchestrationSettings != null)
 			{
@@ -452,7 +452,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// </summary>
 		/// <param name="nodeId">The node identifier, or <c>null</c> to target the workflow / job level.</param>
 		/// <returns>The matching <see cref="OrchestrationSettings"/>, or <c>null</c> when not found.</returns>
-		protected virtual OrchestrationSettings GetOrchestrationSettings(string nodeId)
+		protected virtual OrchestrationSettings GetOrchestrationSettings(DataReference reference)
 		{
 			return null;
 		}

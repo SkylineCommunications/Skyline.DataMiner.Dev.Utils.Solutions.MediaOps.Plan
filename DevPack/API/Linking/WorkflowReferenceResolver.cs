@@ -64,9 +64,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <inheritdoc />
-		protected override OrchestrationSettings GetOrchestrationSettings(string nodeId)
+		protected override OrchestrationSettings GetOrchestrationSettings(DataReference reference)
 		{
-			if (String.IsNullOrEmpty(nodeId))
+			if (String.IsNullOrEmpty(reference.NodeId))
 			{
 				return Workflow.OrchestrationSettings;
 			}
