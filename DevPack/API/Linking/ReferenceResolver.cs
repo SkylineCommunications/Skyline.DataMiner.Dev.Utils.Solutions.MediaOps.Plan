@@ -32,30 +32,33 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			_lazyResourcePropertyDefinitions = new Lazy<IDictionary<Guid, ResourceProperty>>(() => PlanApi.ResourceProperties.Read().ToDictionary(c => c.Id));
 		}
 
+		/// <summary>
+		/// Gets the <see cref="IMediaOpsPlanApi"/> instance used to retrieve definitions and property values.
+		/// </summary>
 		protected IMediaOpsPlanApi PlanApi { get; }
 
 		/// <summary>
-		/// Gets or sets the collection of capabilities.
+		/// Gets the lazily-loaded dictionary of capability definitions keyed by their identifier.
 		/// </summary>
 		protected IDictionary<Guid, Capability> CapabilityDefinitions => _lazyCapabilityDefinitions.Value;
 
 		/// <summary>
-		/// Gets or sets the collection of capacities.
+		/// Gets the lazily-loaded dictionary of capacity definitions keyed by their identifier.
 		/// </summary>
 		protected IDictionary<Guid, Capacity> CapacityDefinitions => _lazyCapacityDefinitions.Value;
 
 		/// <summary>
-		/// Gets or sets the collection of configurations.
+		/// Gets the lazily-loaded dictionary of configuration definitions keyed by their identifier.
 		/// </summary>
 		protected IDictionary<Guid, Configuration> ConfigurationDefinitions => _lazyConfigurationDefinitions.Value;
 
 		/// <summary>
-		/// Gets or sets the collection of properties.
+		/// Gets the lazily-loaded dictionary of property definitions keyed by their identifier.
 		/// </summary>
 		protected IDictionary<Guid, Property> PropertyDefinitions => _lazyPropertyDefinitions.Value;
 
 		/// <summary>
-		/// Gets or sets the collection of resource properties.
+		/// Gets the lazily-loaded dictionary of resource property definitions keyed by their identifier.
 		/// </summary>
 		protected IDictionary<Guid, ResourceProperty> ResourcePropertyDefinitions => _lazyResourcePropertyDefinitions.Value;
 
@@ -337,40 +340,44 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <summary>
-		/// Resolves a <see cref="WorkflowNameReference"/>. Default implementation reads the name from
-		/// <see cref="WorkflowResolveContext.Workflow"/> when available, returning the workflow name
-		/// or an unresolved <see cref="ResolvedValue"/> when no workflow is set.
+		/// Resolves a <see cref="WorkflowNameReference"/>. The base implementation returns an unresolved
+		/// <see cref="ResolvedValue"/>. Derived classes override this to return the workflow name.
 		/// </summary>
+		/// <param name="reference">The workflow name reference to resolve.</param>
+		/// <returns>A <see cref="ResolvedValue"/> containing the workflow name, or an unresolved value.</returns>
 		protected virtual ResolvedValue ResolveWorkflowName(WorkflowNameReference reference)
 		{
 			return ResolvedValue.FromUnresolvedReference(reference);
 		}
 
 		/// <summary>
-		/// Resolves a <see cref="WorkflowPropertyReference"/>.
-		/// When <see cref="WorkflowResolveContext.WorkflowPropertyValues"/> is populated, those values are
-		/// used directly; otherwise an unresolved <see cref="ResolvedValue"/> is returned.
+		/// Resolves a <see cref="WorkflowPropertyReference"/>. The base implementation returns an unresolved
+		/// <see cref="ResolvedValue"/>. Derived classes override this to look up the property value.
 		/// </summary>
+		/// <param name="reference">The workflow property reference to resolve.</param>
+		/// <returns>A <see cref="ResolvedValue"/> containing the property value, or an unresolved value.</returns>
 		protected virtual ResolvedValue ResolveWorkflowPropertyValue(WorkflowPropertyReference reference)
 		{
 			return ResolvedValue.FromUnresolvedReference(reference);
 		}
 
 		/// <summary>
-		/// Resolves a <see cref="JobNameReference"/>. Default implementation reads the name from
-		/// <see cref="JobResolveContext.Job"/> when available, returning the job name
-		/// or an unresolved <see cref="ResolvedValue"/> when no job is set.
+		/// Resolves a <see cref="JobNameReference"/>. The base implementation returns an unresolved
+		/// <see cref="ResolvedValue"/>. Derived classes override this to return the job name.
 		/// </summary>
+		/// <param name="reference">The job name reference to resolve.</param>
+		/// <returns>A <see cref="ResolvedValue"/> containing the job name, or an unresolved value.</returns>
 		protected virtual ResolvedValue ResolveJobName(JobNameReference reference)
 		{
 			return ResolvedValue.FromUnresolvedReference(reference);
 		}
 
 		/// <summary>
-		/// Resolves a <see cref="JobPropertyReference"/>.
-		/// When <see cref="JobResolveContext.JobPropertyValues"/> is populated, those values are
-		/// used directly; otherwise an unresolved <see cref="ResolvedValue"/> is returned.
+		/// Resolves a <see cref="JobPropertyReference"/>. The base implementation returns an unresolved
+		/// <see cref="ResolvedValue"/>. Derived classes override this to look up the property value.
 		/// </summary>
+		/// <param name="reference">The job property reference to resolve.</param>
+		/// <returns>A <see cref="ResolvedValue"/> containing the property value, or an unresolved value.</returns>
 		protected virtual ResolvedValue ResolveJobPropertyValue(JobPropertyReference reference)
 		{
 			return ResolvedValue.FromUnresolvedReference(reference);
@@ -462,6 +469,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return false;
 		}
 
+		/// <summary>
+		/// Converts a <see cref="PropertyValueBase"/> to a <see cref="ResolvedValue"/>.
+		/// </summary>
+		/// <param name="propertyValue">The property value to convert.</param>
+		/// <returns>The corresponding <see cref="ResolvedValue"/>.</returns>
 		protected ResolvedValue ConvertPropertyValue(PropertyValueBase propertyValue)
 		{
 			return propertyValue switch
@@ -474,6 +486,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			};
 		}
 
+		/// <summary>
+		/// Converts a <see cref="Setting"/> to a <see cref="ResolvedValue"/> based on its type and value. Returns <c>null</c> if the setting type is not recognized.
+		/// </summary>
+		/// <param name="setting">The setting to convert.</param>
+		/// <returns>The corresponding <see cref="ResolvedValue"/>.</returns>
 		protected ResolvedValue ConvertSettingValue(Setting setting)
 		{
 			return setting switch
@@ -489,6 +506,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			};
 		}
 
+		/// <summary>
+		/// Reads all property values linked to the specified object identifier and returns them in a dictionary keyed by property id.
+		/// </summary>
+		/// <param name="linkedObjectId">The identifier of the linked object.</param>
+		/// <returns>A dictionary containing the property values keyed by property id.</returns>
 		protected IDictionary<Guid, PropertyValueBase> ReadPropertyValues(Guid linkedObjectId)
 		{
 			var result = new Dictionary<Guid, PropertyValueBase>();

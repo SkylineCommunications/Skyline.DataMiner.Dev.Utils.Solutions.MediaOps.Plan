@@ -4,12 +4,22 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using System.Collections.Generic;
 	using System.Linq;
 
+	/// <summary>
+	/// A <see cref="ReferenceResolver"/> that resolves <see cref="DataReference"/> instances in the context
+	/// of a specific <see cref="Job"/>. Job-level and workflow-level references are resolved using the
+	/// job's own data and its associated workflow.
+	/// </summary>
 	public class JobReferenceResolver : ReferenceResolver
 	{
 		private readonly Lazy<Workflow> _lazyWorkflow;
 		private readonly Lazy<IDictionary<Guid, PropertyValueBase>> _lazyJobPropertyValues;
 		private readonly Lazy<IDictionary<Guid, PropertyValueBase>> _lazyWorkflowPropertyValues;
 
+		/// <summary>
+		/// Initializes a new instance of the <see cref="JobReferenceResolver"/> class.
+		/// </summary>
+		/// <param name="planApi">The MediaOps Plan API used to retrieve definitions and property values.</param>
+		/// <param name="job">The job whose context is used to resolve references.</param>
 		public JobReferenceResolver(IMediaOpsPlanApi planApi, Job job) : base(planApi)
 		{
 			Job = job ?? throw new ArgumentNullException(nameof(job));
@@ -19,24 +29,39 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			_lazyWorkflowPropertyValues = new Lazy<IDictionary<Guid, PropertyValueBase>>(() => ReadPropertyValues(Workflow?.Id ?? Guid.Empty));
 		}
 
+		/// <summary>
+		/// Gets the job used as the resolution context.
+		/// </summary>
 		protected Job Job { get; }
 
+		/// <summary>
+		/// Gets the workflow associated with the job, lazily loaded on first access.
+		/// </summary>
 		protected Workflow Workflow => _lazyWorkflow?.Value;
 
+		/// <summary>
+		/// Gets the lazily-loaded dictionary of property values defined at the job level.
+		/// </summary>
 		protected IDictionary<Guid, PropertyValueBase> JobPropertyValues => _lazyJobPropertyValues.Value;
 
+		/// <summary>
+		/// Gets the lazily-loaded dictionary of property values defined at the workflow level.
+		/// </summary>
 		protected IDictionary<Guid, PropertyValueBase> WorkflowPropertyValues => _lazyWorkflowPropertyValues.Value;
 
+		/// <inheritdoc />
 		protected override ResolvedValue ResolveJobName(JobNameReference reference)
 		{
 			return new StringResolvedValue(Job.Name);
 		}
 
+		/// <inheritdoc />
 		protected override ResolvedValue ResolveWorkflowName(WorkflowNameReference reference)
 		{
 			return new StringResolvedValue(Workflow?.Name);
 		}
 
+		/// <inheritdoc />
 		protected override ResolvedValue ResolveJobPropertyValue(JobPropertyReference reference)
 		{
 			if (JobPropertyValues.TryGetValue(reference.JobPropertyId, out var value))
@@ -47,6 +72,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return ResolvedValue.FromUnresolvedReference(reference);
 		}
 
+		/// <inheritdoc />
 		protected override ResolvedValue ResolveWorkflowPropertyValue(WorkflowPropertyReference reference)
 		{
 			if (WorkflowPropertyValues.TryGetValue(reference.WorkflowPropertyId, out var value))
@@ -57,6 +83,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return ResolvedValue.FromUnresolvedReference(reference);
 		}
 
+		/// <inheritdoc />
 		protected override Resource GetResource(DataReference reference)
 		{
 			if (String.IsNullOrEmpty(reference.NodeId))
@@ -64,19 +91,20 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return null;
 			}
 
+			// TODO: return resource for the specified node ID
 			return null;
 		}
 
+		/// <inheritdoc />
 		protected override OrchestrationSettings GetOrchestrationSettings(string nodeId)
 		{
-			if (!String.IsNullOrEmpty(nodeId))
-			{
-				return null;
-			}
-			else
+			if (String.IsNullOrEmpty(nodeId))
 			{
 				return Job.OrchestrationSettings;
 			}
+
+			// TODO: return orchestration settings for the specified node ID
+			return null;
 		}
 
 		private Workflow LoadWorkflow()
