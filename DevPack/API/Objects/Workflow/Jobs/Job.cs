@@ -11,10 +11,12 @@
 	/// <summary>
 	/// Represents a job in MediaOps Plan.
 	/// </summary>
-	public class Job : ApiObject
+	public class Job : ApiNamedObject
 	{
 		private StorageWorkflow.JobsInstance originalInstance;
 		private StorageWorkflow.JobsInstance updatedInstance;
+
+		private string key;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Job"/> class.
@@ -51,9 +53,9 @@
 		public override string Name { get; set; }
 
 		/// <summary>
-		/// Gets the auto generated key of the job, which is assigned by the system and cannot be modified by users.
+		/// Gets or sets the key of the job. If the key is not explicitly set during initialization, the system automatically assigns a generated key that cannot be modified afterwards.
 		/// </summary>
-		public string Key { get; internal set; }
+		public string Key { get => key; init => key = value; }
 
 		/// <summary>
 		/// Gets or sets the description of the job.
@@ -123,12 +125,7 @@
 			}
 		}
 
-		/// <summary>
-		/// Determines whether the specified object is equal to the current job instance.
-		/// </summary>
-		/// <param name="obj">The object to compare with the current job instance.</param>
-		/// <returns>true if the specified object is a job and has the same values for all properties as the current
-		/// instance; otherwise, false.</returns>
+		/// <inheritdoc/>
 		public override bool Equals(object obj)
 		{
 			if (obj is not Job other)
@@ -177,12 +174,32 @@
 			return updatedInstance;
 		}
 
+		internal void AssignKey(string key)
+		{
+			if (string.IsNullOrWhiteSpace(key))
+			{
+				throw new ArgumentException("Key cannot be null or whitespace.", nameof(key));
+			}
+
+			if (!IsNew)
+			{
+				throw new InvalidOperationException("Key can only be assigned to new jobs.");
+			}
+
+			if (!string.IsNullOrEmpty(Key))
+			{
+				throw new InvalidOperationException("Key has already been assigned and cannot be modified.");
+			}
+
+			this.key = key;
+		}
+
 		private void ParseInstance(MediaOpsPlanApi planApi, StorageWorkflow.JobsInstance instance)
 		{
 			this.originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
 
 			Name = instance.JobInfo.JobName;
-			Key = instance.JobInfo.JobID;
+			key = instance.JobInfo.JobID;
 			Description = instance.JobInfo.JobDescription;
 			Start = instance.JobInfo.JobStart.Value;
 			End = instance.JobInfo.JobEnd.Value;

@@ -80,13 +80,11 @@ namespace RT_MediaOps.Plan.Properties.Values
 
             var collection1 = new PropertyValueCollection(collectionId)
             {
-                Name = "Collection1",
                 LinkedObjectId = "obj-1",
                 Scope = "global",
             };
             var collection2 = new PropertyValueCollection(collectionId)
             {
-                Name = "Collection2",
                 LinkedObjectId = "obj-2",
                 Scope = "global",
             };
@@ -119,13 +117,11 @@ namespace RT_MediaOps.Plan.Properties.Values
 
             var collection1 = new PropertyValueCollection(collectionId)
             {
-                Name = "Collection1",
                 LinkedObjectId = "obj-1",
                 Scope = "global",
             };
             var collection2 = new PropertyValueCollection(collectionId)
             {
-                Name = "Collection2",
                 LinkedObjectId = "obj-2",
                 Scope = "global",
             };
@@ -159,14 +155,12 @@ namespace RT_MediaOps.Plan.Properties.Values
 
             var collection1 = new PropertyValueCollection
             {
-                Name = "Collection1",
                 LinkedObjectId = linkedObjectId,
                 SubId = subId,
                 Scope = "global",
             };
             var collection2 = new PropertyValueCollection
             {
-                Name = "Collection2",
                 LinkedObjectId = linkedObjectId,
                 SubId = subId,
                 Scope = "global",
@@ -200,7 +194,6 @@ namespace RT_MediaOps.Plan.Properties.Values
 
             var existing = new PropertyValueCollection
             {
-                Name = "Existing",
                 LinkedObjectId = linkedObjectId,
                 SubId = subId,
                 Scope = "global",
@@ -209,7 +202,6 @@ namespace RT_MediaOps.Plan.Properties.Values
 
             var newCollection = new PropertyValueCollection
             {
-                Name = "New",
                 LinkedObjectId = linkedObjectId,
                 SubId = subId,
                 Scope = "global",
@@ -232,14 +224,12 @@ namespace RT_MediaOps.Plan.Properties.Values
             {
                 new PropertyValueCollection
                 {
-                    Name = "Collection1",
                     LinkedObjectId = linkedObjectId,
                     SubId = "sub-1",
                     Scope = "global",
                 },
                 new PropertyValueCollection
                 {
-                    Name = "Collection2",
                     LinkedObjectId = linkedObjectId,
                     SubId = "sub-2",
                     Scope = "global",
@@ -263,14 +253,12 @@ namespace RT_MediaOps.Plan.Properties.Values
             {
                 new PropertyValueCollection
                 {
-                    Name = "Collection1",
                     LinkedObjectId = $"obj-{Guid.NewGuid()}",
                     SubId = subId,
                     Scope = "global",
                 },
                 new PropertyValueCollection
                 {
-                    Name = "Collection2",
                     LinkedObjectId = $"obj-{Guid.NewGuid()}",
                     SubId = subId,
                     Scope = "global",
@@ -291,13 +279,11 @@ namespace RT_MediaOps.Plan.Properties.Values
 
             var collection1 = new PropertyValueCollection
             {
-                Name = "Collection1",
                 LinkedObjectId = linkedObjectId,
                 Scope = "global",
             };
             var collection2 = new PropertyValueCollection
             {
-                Name = "Collection2",
                 LinkedObjectId = linkedObjectId,
                 Scope = "global",
             };
@@ -319,7 +305,6 @@ namespace RT_MediaOps.Plan.Properties.Values
 
             var collection = new PropertyValueCollection
             {
-                Name = "DuplicateCustomValues",
                 LinkedObjectId = "obj-1",
                 Scope = "global",
             };
@@ -352,7 +337,6 @@ namespace RT_MediaOps.Plan.Properties.Values
 
             var collection = new PropertyValueCollection
             {
-                Name = "ConflictingCustomValue",
                 LinkedObjectId = "obj-1",
                 Scope = "global",
             };
@@ -383,7 +367,6 @@ namespace RT_MediaOps.Plan.Properties.Values
 
             var collection = new PropertyValueCollection
             {
-                Name = "DuplicatePropertyValues",
                 LinkedObjectId = "obj-1",
                 Scope = "global",
             };
@@ -407,7 +390,6 @@ namespace RT_MediaOps.Plan.Properties.Values
         {
             var collection = new PropertyValueCollection
             {
-                Name = "BadCollection",
                 LinkedObjectId = string.Empty,
                 Scope = "global",
             };
@@ -430,7 +412,6 @@ namespace RT_MediaOps.Plan.Properties.Values
         {
             var collection = new PropertyValueCollection
             {
-                Name = "BadCollection",
                 LinkedObjectId = "obj-1",
                 Scope = string.Empty,
             };
@@ -453,7 +434,6 @@ namespace RT_MediaOps.Plan.Properties.Values
         {
             var collection = new PropertyValueCollection
             {
-                Name = "NewCollection",
                 LinkedObjectId = "obj-1",
                 Scope = "global",
             };
@@ -467,7 +447,6 @@ namespace RT_MediaOps.Plan.Properties.Values
 		{
             var collection = new PropertyValueCollection
             {
-                Name = "NewCollection",
                 LinkedObjectId = "obj-1",
                 Scope = "global",
             };
@@ -484,7 +463,6 @@ namespace RT_MediaOps.Plan.Properties.Values
 
             var collection = new PropertyValueCollection
             {
-                Name = "CountTestCollection",
                 LinkedObjectId = "obj-count",
                 Scope = "global",
             };
@@ -502,7 +480,6 @@ namespace RT_MediaOps.Plan.Properties.Values
 
             var collection = new PropertyValueCollection
             {
-                Name = "FilterTestCollection",
                 LinkedObjectId = linkedObjectId,
                 Scope = "global",
             };
@@ -521,8 +498,8 @@ namespace RT_MediaOps.Plan.Properties.Values
         {
             var collections = new List<PropertyValueCollection>
             {
-                new PropertyValueCollection { Name = "Bulk1", LinkedObjectId = "bulk-obj-1", Scope = "global" },
-                new PropertyValueCollection { Name = "Bulk2", LinkedObjectId = "bulk-obj-2", Scope = "global" },
+                new PropertyValueCollection { LinkedObjectId = "bulk-obj-1", Scope = "global" },
+                new PropertyValueCollection { LinkedObjectId = "bulk-obj-2", Scope = "global" },
             };
 
             var created = objectCreator.CreatePropertyValueCollections(collections);

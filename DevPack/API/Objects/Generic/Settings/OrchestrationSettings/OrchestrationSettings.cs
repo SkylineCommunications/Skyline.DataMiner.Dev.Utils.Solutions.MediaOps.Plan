@@ -22,11 +22,6 @@
 		}
 
 		/// <summary>
-		/// Gets or sets the name.
-		/// </summary>
-		public override string Name { get; set; }
-
-		/// <summary>
 		/// Gets the collection of capability settings.
 		/// </summary>
 		public abstract IReadOnlyCollection<CapabilitySetting> Capabilities { get; }
