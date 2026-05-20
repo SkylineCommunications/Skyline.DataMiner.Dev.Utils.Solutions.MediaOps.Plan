@@ -56,6 +56,83 @@
 		}
 
 		[TestMethod]
+		public void Update_PersistsName_ForSingleCapability()
+		{
+			var prefix = Guid.NewGuid();
+			var capability = new Capability
+			{
+				Name = $"{prefix}_Capability",
+			};
+			capability.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
+
+			objectCreator.CreateCapability(capability);
+
+			var persistedCapability = TestContext.Api.Capabilities.Read(capability.Id);
+			Assert.IsNotNull(persistedCapability);
+			Assert.AreEqual(capability.Name, persistedCapability.Name);
+
+			var updatedName = $"{prefix}_Updated";
+			persistedCapability.Name = updatedName; // Regression guard: Name must be copied to the underlying CORE parameter during update.
+			TestContext.Api.Capabilities.Update(persistedCapability);
+
+			var updatedCapability = TestContext.Api.Capabilities.Read(capability.Id);
+			Assert.IsNotNull(updatedCapability);
+			Assert.AreEqual(updatedName, updatedCapability.Name);
+
+			var coreCapability = TestContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(capability.Id)).SingleOrDefault();
+			Assert.IsNotNull(coreCapability);
+			Assert.AreEqual(updatedName, coreCapability.Name);
+		}
+
+		[TestMethod]
+		public void Update_PersistsName_ForBulkCapabilities()
+		{
+			var prefix = Guid.NewGuid();
+			var capability1 = new Capability
+			{
+				Name = $"{prefix}_Capability_1",
+			};
+			capability1.SetDiscretes(new[] { "Value 1", "Value 2", "Value 3" });
+
+			var capability2 = new Capability
+			{
+				Name = $"{prefix}_Capability_2",
+			};
+			capability2.SetDiscretes(new[] { "Value A", "Value B", "Value C" });
+
+			objectCreator.CreateCapabilities([capability1, capability2]);
+
+			var persistedCapability1 = TestContext.Api.Capabilities.Read(capability1.Id);
+			var persistedCapability2 = TestContext.Api.Capabilities.Read(capability2.Id);
+			Assert.IsNotNull(persistedCapability1);
+			Assert.IsNotNull(persistedCapability2);
+			Assert.AreEqual(capability1.Name, persistedCapability1.Name);
+			Assert.AreEqual(capability2.Name, persistedCapability2.Name);
+
+			var updatedName1 = $"{prefix}_Updated_1";
+			var updatedName2 = $"{prefix}_Updated_2";
+
+			persistedCapability1.Name = updatedName1; // Regression guard: Name must be copied to the underlying CORE parameter during update.
+			persistedCapability2.Name = updatedName2;
+
+			TestContext.Api.Capabilities.Update([persistedCapability1, persistedCapability2]);
+
+			var updatedCapability1 = TestContext.Api.Capabilities.Read(capability1.Id);
+			var updatedCapability2 = TestContext.Api.Capabilities.Read(capability2.Id);
+			Assert.IsNotNull(updatedCapability1);
+			Assert.IsNotNull(updatedCapability2);
+			Assert.AreEqual(updatedName1, updatedCapability1.Name);
+			Assert.AreEqual(updatedName2, updatedCapability2.Name);
+
+			var coreCapability1 = TestContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(capability1.Id)).SingleOrDefault();
+			var coreCapability2 = TestContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(capability2.Id)).SingleOrDefault();
+			Assert.IsNotNull(coreCapability1);
+			Assert.IsNotNull(coreCapability2);
+			Assert.AreEqual(updatedName1, coreCapability1.Name);
+			Assert.AreEqual(updatedName2, coreCapability2.Name);
+		}
+
+		[TestMethod]
 		public void TimeDependentCapability()
 		{
 			string name = $"Capability_{Guid.NewGuid()}";

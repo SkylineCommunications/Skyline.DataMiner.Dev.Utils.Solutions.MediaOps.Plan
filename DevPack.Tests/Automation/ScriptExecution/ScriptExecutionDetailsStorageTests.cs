@@ -3,7 +3,7 @@ namespace RT_MediaOps.Plan.Automation.ScriptExecution
 	using System;
 	using System.Collections.Generic;
 
-	using StorageDOM = Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
 
 	[TestClass]
 	public sealed class ScriptExecutionDetailsStorageTests
@@ -11,34 +11,34 @@ namespace RT_MediaOps.Plan.Automation.ScriptExecution
 		[TestMethod]
 		public void TryDeserialize_EmptyString_ReturnsFalse()
 		{
-			Assert.IsFalse(StorageDOM.ScriptExecutionDetails.TryDeserialize(string.Empty, out var result));
+			Assert.IsFalse(ScriptExecutionDetails.TryDeserialize(string.Empty, out var result));
 			Assert.IsNull(result);
 		}
 
 		[TestMethod]
 		public void TryDeserialize_NullString_ReturnsFalse()
 		{
-			Assert.IsFalse(StorageDOM.ScriptExecutionDetails.TryDeserialize(null, out var result));
+			Assert.IsFalse(ScriptExecutionDetails.TryDeserialize(null, out var result));
 			Assert.IsNull(result);
 		}
 
 		[TestMethod]
 		public void TryDeserialize_InvalidJson_ReturnsFalse()
 		{
-			Assert.IsFalse(StorageDOM.ScriptExecutionDetails.TryDeserialize("not-valid-json", out _));
+			Assert.IsFalse(ScriptExecutionDetails.TryDeserialize("not-valid-json", out _));
 		}
 
 		[TestMethod]
 		public void RoundTrip_DummyReference_PreservesAllData()
 		{
-			var original = new StorageDOM.ScriptExecutionDetails { ScriptName = "TestScript" };
-			original.DummyReferences.Add("dummy1", new StorageDOM.DataReference
+			var original = new ScriptExecutionDetails { ScriptName = "TestScript" };
+			original.DummyReferences.Add("dummy1", new DataReferenceStorage
 			{
 				ReferenceType = "ResourceName",
 				ReferenceData = new Dictionary<string, string> { ["id"] = "res-123" },
 			});
 
-			var success = StorageDOM.ScriptExecutionDetails.TryDeserialize(original.Serialize(), out var restored);
+			var success = ScriptExecutionDetails.TryDeserialize(original.Serialize(), out var restored);
 
 			Assert.IsTrue(success);
 			Assert.IsNotNull(restored);
@@ -51,14 +51,14 @@ namespace RT_MediaOps.Plan.Automation.ScriptExecution
 		[TestMethod]
 		public void RoundTrip_ParameterReference_PreservesAllData()
 		{
-			var original = new StorageDOM.ScriptExecutionDetails { ScriptName = "TestScript" };
-			original.ParameterReferences.Add("param1", new StorageDOM.DataReference
+			var original = new ScriptExecutionDetails { ScriptName = "TestScript" };
+			original.ParameterReferences.Add("param1", new DataReferenceStorage
 			{
 				ReferenceType = "ResourceProperty",
 				ReferenceData = new Dictionary<string, string> { ["id"] = "prop-456" },
 			});
 
-			var success = StorageDOM.ScriptExecutionDetails.TryDeserialize(original.Serialize(), out var restored);
+			var success = ScriptExecutionDetails.TryDeserialize(original.Serialize(), out var restored);
 
 			Assert.IsTrue(success);
 			Assert.IsNotNull(restored);
@@ -71,13 +71,13 @@ namespace RT_MediaOps.Plan.Automation.ScriptExecution
 		[TestMethod]
 		public void RoundTrip_MixedReferences_PreservesAllData()
 		{
-			var original = new StorageDOM.ScriptExecutionDetails { ScriptName = "MixedScript" };
-			original.DummyReferences.Add("dummy1", new StorageDOM.DataReference
+			var original = new ScriptExecutionDetails { ScriptName = "MixedScript" };
+			original.DummyReferences.Add("dummy1", new DataReferenceStorage
 			{
 				ReferenceType = "ResourceLinkedObjectID",
 				ReferenceData = new Dictionary<string, string> { ["id"] = "obj-789" },
 			});
-			original.ParameterReferences.Add("param1", new StorageDOM.DataReference
+			original.ParameterReferences.Add("param1", new DataReferenceStorage
 			{
 				ReferenceType = "SchedulingConfigurationParameter",
 				ReferenceData = new Dictionary<string, string> { ["id"] = "sched-012" },
@@ -85,7 +85,7 @@ namespace RT_MediaOps.Plan.Automation.ScriptExecution
 			original.Dummies.Add("dummy2", "101/1234");
 			original.Parameters.Add("param2", "hardcoded-value");
 
-			var success = StorageDOM.ScriptExecutionDetails.TryDeserialize(original.Serialize(), out var restored);
+			var success = ScriptExecutionDetails.TryDeserialize(original.Serialize(), out var restored);
 
 			Assert.IsTrue(success);
 			Assert.IsNotNull(restored);
@@ -101,9 +101,9 @@ namespace RT_MediaOps.Plan.Automation.ScriptExecution
 		[TestMethod]
 		public void RoundTrip_EmptyReferences_NoEntries()
 		{
-			var original = new StorageDOM.ScriptExecutionDetails { ScriptName = "NoRefScript" };
+			var original = new ScriptExecutionDetails { ScriptName = "NoRefScript" };
 
-			var success = StorageDOM.ScriptExecutionDetails.TryDeserialize(original.Serialize(), out var restored);
+			var success = ScriptExecutionDetails.TryDeserialize(original.Serialize(), out var restored);
 
 			Assert.IsTrue(success);
 			Assert.IsNotNull(restored);
@@ -115,19 +115,19 @@ namespace RT_MediaOps.Plan.Automation.ScriptExecution
 		public void RoundTrip_ProfileParameterValue_WithReference_PreservesAllData()
 		{
 			var id = Guid.NewGuid();
-			var original = new StorageDOM.ScriptExecutionDetails { ScriptName = "PpvScript" };
-			original.ProfileParameterValues.Add(new StorageDOM.ProfileParameterValue
+			var original = new ScriptExecutionDetails { ScriptName = "PpvScript" };
+			original.ProfileParameterValues.Add(new ProfileParameterValue
 			{
 				ProfileParameterId = id,
 				StringValue = "some-value",
-				Reference = new StorageDOM.DataReference
+				Reference = new DataReferenceStorage
 				{
 					ReferenceType = "ResourceName",
 					ReferenceData = new Dictionary<string, string> { ["id"] = "ppv-ref-id" },
 				},
 			});
 
-			var success = StorageDOM.ScriptExecutionDetails.TryDeserialize(original.Serialize(), out var restored);
+			var success = ScriptExecutionDetails.TryDeserialize(original.Serialize(), out var restored);
 
 			Assert.IsTrue(success);
 			Assert.IsNotNull(restored);
@@ -192,7 +192,7 @@ namespace RT_MediaOps.Plan.Automation.ScriptExecution
 		{
 			var a = CreateFullDetails();
 			var b = CreateFullDetails();
-			b.ParameterReferences["p1"] = new StorageDOM.DataReference { ReferenceType = "ResourceName", ReferenceData = new Dictionary<string, string> { ["id"] = "other-id" } };
+			b.ParameterReferences["p1"] = new DataReferenceStorage { ReferenceType = "ResourceName", ReferenceData = new Dictionary<string, string> { ["id"] = "other-id" } };
 
 			Assert.IsFalse(a.Equals(b));
 		}
@@ -202,18 +202,18 @@ namespace RT_MediaOps.Plan.Automation.ScriptExecution
 		{
 			var a = CreateFullDetails();
 			var b = CreateFullDetails();
-			b.DummyReferences["d1"] = new StorageDOM.DataReference { ReferenceType = "ResourceName", ReferenceData = new Dictionary<string, string> { ["id"] = "other-id" } };
+			b.DummyReferences["d1"] = new DataReferenceStorage { ReferenceType = "ResourceName", ReferenceData = new Dictionary<string, string> { ["id"] = "other-id" } };
 
 			Assert.IsFalse(a.Equals(b));
 		}
 
-		private static StorageDOM.ScriptExecutionDetails CreateFullDetails()
+		private static ScriptExecutionDetails CreateFullDetails()
 		{
-			var details = new StorageDOM.ScriptExecutionDetails { ScriptName = "MyScript" };
+			var details = new ScriptExecutionDetails { ScriptName = "MyScript" };
 			details.Parameters.Add("p1", "val1");
 			details.Dummies.Add("d1", "101/1");
-			details.ParameterReferences.Add("p1", new StorageDOM.DataReference { ReferenceType = "ResourceProperty", ReferenceData = new Dictionary<string, string> { ["id"] = "ref-1" } });
-			details.DummyReferences.Add("d1", new StorageDOM.DataReference { ReferenceType = "ResourceName", ReferenceData = new Dictionary<string, string> { ["id"] = "ref-2" } });
+			details.ParameterReferences.Add("p1", new DataReferenceStorage { ReferenceType = "ResourceProperty", ReferenceData = new Dictionary<string, string> { ["id"] = "ref-1" } });
+			details.DummyReferences.Add("d1", new DataReferenceStorage { ReferenceType = "ResourceName", ReferenceData = new Dictionary<string, string> { ["id"] = "ref-2" } });
 			return details;
 		}
 	}

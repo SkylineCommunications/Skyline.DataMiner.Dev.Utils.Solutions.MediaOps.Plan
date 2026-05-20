@@ -39,5 +39,23 @@
 				NodeParentReferenceID = value == Guid.Empty ? null : value.ToString();
 			}
 		}
+
+		internal Guid ReservationId
+		{
+			get
+			{
+				if (string.IsNullOrEmpty(LinkedBookingIds) || !Guid.TryParse(LinkedBookingIds, out var id))
+				{
+					return Guid.Empty;
+				}
+
+				return id;
+			}
+
+			set
+			{
+				LinkedBookingIds = value == Guid.Empty ? null : value.ToString();
+			}
+		}
 	}
 }

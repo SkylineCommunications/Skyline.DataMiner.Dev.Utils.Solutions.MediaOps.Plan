@@ -39,6 +39,80 @@
 		}
 
 		[TestMethod]
+		public void Update_PersistsName_ForSingleConfiguration()
+		{
+			var prefix = Guid.NewGuid();
+			var configuration = new TextConfiguration
+			{
+				Name = $"{prefix}_Configuration",
+			};
+
+			objectCreator.CreateConfiguration(configuration);
+
+			var persistedConfiguration = TestContext.Api.Configurations.Read(configuration.Id);
+			Assert.IsNotNull(persistedConfiguration);
+			Assert.AreEqual(configuration.Name, persistedConfiguration.Name);
+
+			var updatedName = $"{prefix}_Updated";
+			persistedConfiguration.Name = updatedName; // Regression guard: Name must be copied to the underlying CORE parameter during update.
+			TestContext.Api.Configurations.Update(persistedConfiguration);
+
+			var updatedConfiguration = TestContext.Api.Configurations.Read(configuration.Id);
+			Assert.IsNotNull(updatedConfiguration);
+			Assert.AreEqual(updatedName, updatedConfiguration.Name);
+
+			var coreConfiguration = TestContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(configuration.Id)).SingleOrDefault();
+			Assert.IsNotNull(coreConfiguration);
+			Assert.AreEqual(updatedName, coreConfiguration.Name);
+		}
+
+		[TestMethod]
+		public void Update_PersistsName_ForBulkConfigurations()
+		{
+			var prefix = Guid.NewGuid();
+			var configuration1 = new TextConfiguration
+			{
+				Name = $"{prefix}_Configuration_1",
+			};
+
+			var configuration2 = new NumberConfiguration
+			{
+				Name = $"{prefix}_Configuration_2",
+			};
+
+			objectCreator.CreateConfigurations([configuration1, configuration2]);
+
+			var persistedConfiguration1 = TestContext.Api.Configurations.Read(configuration1.Id);
+			var persistedConfiguration2 = TestContext.Api.Configurations.Read(configuration2.Id);
+			Assert.IsNotNull(persistedConfiguration1);
+			Assert.IsNotNull(persistedConfiguration2);
+			Assert.AreEqual(configuration1.Name, persistedConfiguration1.Name);
+			Assert.AreEqual(configuration2.Name, persistedConfiguration2.Name);
+
+			var updatedName1 = $"{prefix}_Updated_1";
+			var updatedName2 = $"{prefix}_Updated_2";
+
+			persistedConfiguration1.Name = updatedName1; // Regression guard: Name must be copied to the underlying CORE parameter during update.
+			persistedConfiguration2.Name = updatedName2;
+
+			TestContext.Api.Configurations.Update([persistedConfiguration1, persistedConfiguration2]);
+
+			var updatedConfiguration1 = TestContext.Api.Configurations.Read(configuration1.Id);
+			var updatedConfiguration2 = TestContext.Api.Configurations.Read(configuration2.Id);
+			Assert.IsNotNull(updatedConfiguration1);
+			Assert.IsNotNull(updatedConfiguration2);
+			Assert.AreEqual(updatedName1, updatedConfiguration1.Name);
+			Assert.AreEqual(updatedName2, updatedConfiguration2.Name);
+
+			var coreConfiguration1 = TestContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(configuration1.Id)).SingleOrDefault();
+			var coreConfiguration2 = TestContext.ProfileHelper.ProfileParameters.Read(Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(configuration2.Id)).SingleOrDefault();
+			Assert.IsNotNull(coreConfiguration1);
+			Assert.IsNotNull(coreConfiguration2);
+			Assert.AreEqual(updatedName1, coreConfiguration1.Name);
+			Assert.AreEqual(updatedName2, coreConfiguration2.Name);
+		}
+
+		[TestMethod]
 		public void ReadWithEmptyFilterReturnsEmptyList()
 		{
 			var idsToRetrieve = new Guid[0];

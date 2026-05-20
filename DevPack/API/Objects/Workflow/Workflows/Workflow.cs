@@ -1,6 +1,7 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
+	using System.Collections.Generic;
 	using System.Linq;
 
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
@@ -23,6 +24,7 @@
 			IsNew = true;
 
 			OrchestrationSettings = new WorkflowOrchestrationSettings();
+			NodeGraph = new NodeGraph<WorkflowNode>();
 		}
 
 		/// <summary>
@@ -35,6 +37,7 @@
 			HasUserDefinedId = true;
 
 			OrchestrationSettings = new WorkflowOrchestrationSettings();
+			NodeGraph = new NodeGraph<WorkflowNode>();
 		}
 
 		internal Workflow(MediaOpsPlanApi planApi, StorageWorkflow.WorkflowsInstance instance) : base(instance.ID.Id)
@@ -92,6 +95,8 @@
 		/// Gets the orchestration settings assigned to this workflow.
 		/// </summary>
 		public OrchestrationSettings OrchestrationSettings { get; set; }
+
+		public NodeGraph<WorkflowNode> NodeGraph { get; private set; }
 
 		internal StorageWorkflow.WorkflowsInstance OriginalInstance => originalInstance;
 
@@ -161,6 +166,18 @@
 
 			updatedInstance.WorkflowInfo.Priority = EnumExtensions.MapEnum<WorkflowPriority, StorageWorkflow.SlcWorkflowIds.Enums.Priority>(Priority);
 
+			updatedInstance.Nodes.Clear();
+			foreach (var node in NodeGraph.Nodes)
+			{
+				updatedInstance.Nodes.Add(node.GetSectionWithChanges());
+			}
+
+			updatedInstance.Connections.Clear();
+			foreach (var connection in NodeGraph.Connections)
+			{
+				updatedInstance.Connections.Add(connection.GetSectionWithChanges());
+			}
+
 			return updatedInstance;
 		}
 
@@ -195,6 +212,63 @@
 					OrchestrationSettings = new WorkflowOrchestrationSettings();
 				}
 			}
+
+			ParseNodesAndConnections(planApi, instance.Nodes, instance.Connections);
+		}
+
+		private void ParseNodesAndConnections(MediaOpsPlanApi planApi, ICollection<StorageWorkflow.NodesSection> nodes, ICollection<StorageWorkflow.ConnectionsSection> connections)
+		{
+			if (nodes == null || nodes.Count == 0)
+			{
+				NodeGraph = new NodeGraph<WorkflowNode>();
+				return;
+			}
+
+			var parsedNodesById = new Dictionary<string, WorkflowNode>();
+			foreach (var nodeSecion in nodes)
+			{
+				WorkflowNode node = null;
+				switch (nodeSecion.NodeType.Value)
+				{
+					case StorageWorkflow.SlcWorkflowIds.Enums.Nodetype.Resource:
+						node = new WorkflowResourceNode(nodeSecion);
+						break;
+					case StorageWorkflow.SlcWorkflowIds.Enums.Nodetype.ResourcePool:
+						node = new WorkflowResourcePoolNode(nodeSecion);
+						break;
+					default:
+						planApi.Logger.Warning(this, $"Node with ID {nodeSecion.NodeID} has unsupported node type {nodeSecion.NodeType.Value}. This node will be ignored.");
+						break;
+				}
+
+				if (node == null)
+				{
+					continue;
+				}
+
+				parsedNodesById.Add(node.Id, node);
+			}
+
+			if (connections == null || connections.Count == 0)
+			{
+				NodeGraph = new NodeGraph<WorkflowNode>(parsedNodesById.Values);
+				return;
+			}
+
+			var parsedConnections = new List<NodeConnection<WorkflowNode>>();
+			foreach (var connectionSection in connections)
+			{
+				try
+				{
+					parsedConnections.Add(new NodeConnection<WorkflowNode>(connectionSection, id => parsedNodesById.TryGetValue(id, out var n) ? n : null));
+				}
+				catch (InvalidOperationException ex)
+				{
+					planApi.Logger.Warning(this, $"Connection with ID {connectionSection.ConnectionID} has invalid source or destination node. This connection will be ignored. Exception details: {ex}");
+				}
+			}
+
+			NodeGraph = new NodeGraph<WorkflowNode>(parsedNodesById.Values, parsedConnections);
 		}
 	}
 }

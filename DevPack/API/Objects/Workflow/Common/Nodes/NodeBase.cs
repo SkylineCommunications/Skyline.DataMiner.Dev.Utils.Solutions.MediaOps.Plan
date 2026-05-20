@@ -1,0 +1,92 @@
+namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+{
+	using System;
+
+	using StorageWorkflow = Storage.DOM.SlcWorkflow;
+
+	/// <summary>
+	/// Base class for all node implementations in workflows, jobs, and recurring jobs.
+	/// This class represents common node properties used across different contexts.
+	/// </summary>
+	public abstract class NodeBase : TrackableObject
+	{
+		private StorageWorkflow.NodesSection originalSection;
+		private StorageWorkflow.NodesSection updatedSection;
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="NodeBase"/> class with a new unique identifier.
+		/// </summary>
+		private protected NodeBase() : base()
+		{
+			Id = Guid.NewGuid().ToString();
+
+			IsNew = true;
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="NodeBase"/> class from a storage section.
+		/// </summary>
+		/// <param name="section">The storage workflow nodes section to parse.</param>
+		private protected NodeBase(StorageWorkflow.NodesSection section)
+		{
+			ParseSection(section);
+		}
+
+		/// <summary>
+		/// Gets the unique identifier of the node, which is assigned by the system and cannot be modified by users.
+		/// </summary>
+		public string Id { get; private set; }
+
+		/// <summary>
+		/// Gets or sets the alias or display name of the node.
+		/// </summary>
+		public string Alias { get; set; }
+
+		/// <summary>
+		/// Gets or sets the icon of the node.
+		/// </summary>
+		public string IconImage { get; set; }
+
+		/// <summary>
+		/// Applies changes from this node to the specified storage section.
+		/// </summary>
+		/// <param name="section">The storage workflow nodes section to apply changes to.</param>
+		internal abstract void ApplyChanges(StorageWorkflow.NodesSection section);
+
+		/// <summary>
+		/// Gets or creates a section with the current changes applied.
+		/// </summary>
+		/// <returns>A <see cref="StorageWorkflow.NodesSection"/> containing the current state of the node.</returns>
+		internal StorageWorkflow.NodesSection GetSectionWithChanges()
+		{
+			if (updatedSection == null)
+			{
+				updatedSection = IsNew
+					? new StorageWorkflow.NodesSection()
+					{
+						NodeID = Id,
+					}
+					: originalSection.Clone();
+			}
+
+			originalSection.NodeAlias = Alias;
+			originalSection.NodeIcon = IconImage;
+
+			return updatedSection;
+		}
+
+		/// <summary>
+		/// Parses properties from the specified storage section.
+		/// </summary>
+		/// <param name="section">The storage workflow nodes section to parse.</param>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="section"/> is null.</exception>
+		private void ParseSection(StorageWorkflow.NodesSection section)
+		{
+			originalSection = section ?? throw new ArgumentNullException(nameof(section));
+
+			Id = section.NodeID;
+			Alias = section.NodeAlias;
+			IconImage = section.NodeIcon;
+		}
+	}
+}

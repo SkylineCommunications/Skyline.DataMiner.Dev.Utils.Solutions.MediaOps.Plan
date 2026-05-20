@@ -92,7 +92,7 @@
 		/// <summary>
 		/// Gets the orchestration settings assigned to this resource pool.
 		/// </summary>
-		public OrchestrationSettings OrchestrationSettings { get; set; }
+		public OrchestrationSettings OrchestrationSettings { get; private set; }
 
 		internal Guid CoreResourcePoolId => coreResourcePoolId;
 
@@ -111,7 +111,7 @@
 				hash = (hash * 23) + (Url != null ? Url.GetHashCode() : 0);
 				hash = (hash * 23) + (CategoryId != null ? CategoryId.GetHashCode() : 0);
 				hash = (hash * 23) + State.GetHashCode();
-				hash = (hash * 23) + (OrchestrationSettings != null ? OrchestrationSettings.GetHashCode() : 0);
+				hash = (hash * 23) + OrchestrationSettings.GetHashCode();
 
 				foreach (var linkedResourcePool in LinkedResourcePools.OrderBy(x => x.LinkedResourcePoolId).ToArray())
 				{

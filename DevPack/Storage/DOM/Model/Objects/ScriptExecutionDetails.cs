@@ -18,17 +18,17 @@
 		[JsonProperty("parameters")]
 		public Dictionary<string, string> Parameters { get; set; } = new Dictionary<string, string>();
 
+		[JsonProperty("parameterReferences")]
+		public Dictionary<string, DataReferenceStorage> ParameterReferences { get; set; } = new Dictionary<string, DataReferenceStorage>();
+
 		[JsonProperty("dummies")]
 		public Dictionary<string, string> Dummies { get; set; } = new Dictionary<string, string>();
 
+		[JsonProperty("dummyReferences")]
+		public Dictionary<string, DataReferenceStorage> DummyReferences { get; set; } = new Dictionary<string, DataReferenceStorage>();
+
 		[JsonProperty("values")]
 		public List<ProfileParameterValue> ProfileParameterValues { get; set; } = new List<ProfileParameterValue>();
-
-		[JsonProperty("parameterReferences")]
-		public Dictionary<string, DataReference> ParameterReferences { get; set; } = new Dictionary<string, DataReference>();
-
-		[JsonProperty("dummyReferences")]
-		public Dictionary<string, DataReference> DummyReferences { get; set; } = new Dictionary<string, DataReference>();
 
 		public static bool TryDeserialize(string json, out ScriptExecutionDetails scriptExecutionDetails)
 		{
