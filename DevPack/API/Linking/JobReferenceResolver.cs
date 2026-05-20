@@ -64,14 +64,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return null;
 			}
 
-			todo;
+			return null;
 		}
 
 		protected override OrchestrationSettings GetOrchestrationSettings(string nodeId)
 		{
 			if (!String.IsNullOrEmpty(nodeId))
 			{
-				todo;
+				return null;
 			}
 			else
 			{

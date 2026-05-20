@@ -430,7 +430,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				: null;
 		}
 
-
 		/// <summary>
 		/// Returns the resource the reference targets when <see cref="DataReference.NodeId"/> is set. References without a node id target the
 		/// workflow / job itself, which has no associated resource, so <c>null</c> is returned.
