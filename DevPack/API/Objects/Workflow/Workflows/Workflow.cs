@@ -96,6 +96,9 @@
 		/// </summary>
 		public OrchestrationSettings OrchestrationSettings { get; set; }
 
+		/// <summary>
+		/// Gets the node graph containing all nodes and connections that define the workflow structure.
+		/// </summary>
 		public NodeGraph<WorkflowNode> NodeGraph { get; private set; }
 
 		internal StorageWorkflow.WorkflowsInstance OriginalInstance => originalInstance;
@@ -116,6 +119,7 @@
 				hash = (hash * 23) + (Notes != null ? Notes.GetHashCode() : 0);
 				hash = (hash * 23) + (LockedBy != null ? LockedBy.GetHashCode() : 0);
 				hash = (hash * 23) + (OrchestrationSettings != null ? OrchestrationSettings.GetHashCode() : 0);
+				hash = (hash * 23) + (NodeGraph != null ? NodeGraph.GetHashCode() : 0);
 				hash = (hash * 23) + State.GetHashCode();
 
 				return hash;
@@ -145,6 +149,7 @@
 				   Notes == other.Notes &&
 				   LockedBy == other.LockedBy &&
 				   OrchestrationSettings == other.OrchestrationSettings &&
+				   NodeGraph == other.NodeGraph &&
 				   State == other.State;
 		}
 

@@ -105,6 +105,9 @@
 		/// </summary>
 		public OrchestrationSettings OrchestrationSettings { get; private set; }
 
+		/// <summary>
+		/// Gets the node graph containing all nodes and connections that define the job structure.
+		/// </summary>
 		public NodeGraph<JobNode> NodeGraph { get; private set; }
 
 		internal StorageWorkflow.JobsInstance OriginalInstance => originalInstance;

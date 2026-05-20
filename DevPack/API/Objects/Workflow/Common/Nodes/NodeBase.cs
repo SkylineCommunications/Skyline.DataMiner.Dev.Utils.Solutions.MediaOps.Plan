@@ -47,6 +47,33 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// </summary>
 		public string IconImage { get; set; }
 
+		/// <inheritdoc/>
+		public override bool Equals(object obj)
+		{
+			if (obj is not NodeBase other)
+			{
+				return false;
+			}
+
+			return Id == other.Id
+				&& Alias == other.Alias
+				&& IconImage == other.IconImage;
+		}
+
+		/// <inheritdoc/>
+		public override int GetHashCode()
+		{
+			unchecked
+			{
+				var hash = 17;
+				hash = (hash * 23) + Id.GetHashCode();
+				hash = (hash * 23) + (Alias != null ? Alias.GetHashCode() : 0);
+				hash = (hash * 23) + (IconImage != null ? IconImage.GetHashCode() : 0);
+
+				return hash;
+			}
+		}
+
 		/// <summary>
 		/// Applies changes from this node to the specified storage section.
 		/// </summary>
