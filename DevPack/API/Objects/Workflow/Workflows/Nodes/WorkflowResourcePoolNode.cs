@@ -7,7 +7,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// <summary>
 	/// Represents a workflow node associated with a resource pool.
 	/// </summary>
-	public class WorkflowResourcePoolNode : WorkflowNode
+	public class WorkflowResourcePoolNode : WorkflowNode, IResourcePoolNode
 	{
 		/// <summary>
 		/// Initializes a new instance of the <see cref="WorkflowResourcePoolNode"/> class with a resource pool.
@@ -34,15 +34,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			ResourcePoolId = resourcePoolId;
 		}
 
-		internal WorkflowResourcePoolNode(StorageWorkflow.NodesSection section) : base(section)
+		internal WorkflowResourcePoolNode(MediaOpsPlanApi planApi, StorageWorkflow.NodesSection section) : base(planApi, section)
 		{
 			ParseSection(section);
 			InitTracking();
 		}
 
-		/// <summary>
-		/// Gets the unique identifier of the resource pool associated with this node.
-		/// </summary>
+		/// <inheritdoc/>
 		public Guid ResourcePoolId { get; private set; }
 
 		/// <inheritdoc/>

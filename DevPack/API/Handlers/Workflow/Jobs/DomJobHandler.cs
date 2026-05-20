@@ -143,9 +143,22 @@
 				throw new ArgumentException($"Not all provided jobs are valid", nameof(apiJobs));
 			}
 
-			var jobIdByOrchestrationSettingsId = apiJobs.ToDictionary(x => x.OrchestrationSettings.Id, x => x.Id);
+			var jobIdByOrchestrationSettingsId = new Dictionary<Guid, Guid>();
+			var orchestrationSettings = new List<OrchestrationSettings>();
 
-			DomWorkflowOrchestrationSettingsHandler.TryCreateOrUpdate(planApi, apiJobs.Select(x => x.OrchestrationSettings).ToList(), out var domResult);
+			foreach (var job in apiJobs)
+			{
+				jobIdByOrchestrationSettingsId[job.OrchestrationSettings.Id] = job.Id;
+				orchestrationSettings.Add(job.OrchestrationSettings);
+
+				foreach (var node in job.NodeGraph.Nodes)
+				{
+					jobIdByOrchestrationSettingsId[node.OrchestrationSettings.Id] = job.Id;
+					orchestrationSettings.Add(node.OrchestrationSettings);
+				}
+			}
+
+			DomWorkflowOrchestrationSettingsHandler.TryCreateOrUpdate(planApi, orchestrationSettings, out var domResult);
 
 			foreach (var id in domResult.UnsuccessfulIds)
 			{

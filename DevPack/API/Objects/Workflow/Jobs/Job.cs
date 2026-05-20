@@ -234,10 +234,10 @@
 				switch (nodeSecion.NodeType.Value)
 				{
 					case StorageWorkflow.SlcWorkflowIds.Enums.Nodetype.Resource:
-						node = new JobResourceNode(nodeSecion);
+						node = new JobResourceNode(planApi, nodeSecion);
 						break;
 					case StorageWorkflow.SlcWorkflowIds.Enums.Nodetype.ResourcePool:
-						node = new JobResourcePoolNode(nodeSecion);
+						node = new JobResourcePoolNode(planApi, nodeSecion);
 						break;
 					default:
 						planApi.Logger.Warning(this, $"Node with ID {nodeSecion.NodeID} has unsupported node type {nodeSecion.NodeType.Value}. This node will be ignored.");
