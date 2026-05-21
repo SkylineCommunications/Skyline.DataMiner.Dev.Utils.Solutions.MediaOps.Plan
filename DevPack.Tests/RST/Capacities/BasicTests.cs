@@ -250,6 +250,102 @@
 		}
 
 		[TestMethod]
+		public void UpdateUnmodifiedCapacity()
+		{
+			var capacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity
+			{
+				Name = $"{Guid.NewGuid()}_Capacity",
+			};
+			capacity = (Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity)objectCreator.CreateCapacity(capacity);
+
+			var originalCapacity = TestContext.Api.Capacities.Read(capacity.Id);
+			var updatedCapacity = TestContext.Api.Capacities.Update(originalCapacity);
+
+			Assert.AreEqual(originalCapacity, updatedCapacity);
+		}
+
+		[TestMethod]
+		public void BulkUpdateWithChangedAndUnchangedCapacityReturnsTwoCapacities()
+		{
+			var prefix = Guid.NewGuid();
+
+			var changedCapacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity
+			{
+				Name = $"{prefix}_Changed",
+			};
+			var unchangedCapacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity
+			{
+				Name = $"{prefix}_Unchanged",
+			};
+
+			changedCapacity = (Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity)objectCreator.CreateCapacity(changedCapacity);
+			unchangedCapacity = (Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity)objectCreator.CreateCapacity(unchangedCapacity);
+
+			var changedToUpdate = TestContext.Api.Capacities.Read(changedCapacity.Id);
+			var unchangedToUpdate = TestContext.Api.Capacities.Read(unchangedCapacity.Id);
+
+			changedToUpdate.Name = $"{prefix}_Changed_Updated";
+
+			var updatedCapacities = TestContext.Api.Capacities.Update(new[] { changedToUpdate, unchangedToUpdate });
+
+			Assert.AreEqual(2, updatedCapacities.Count);
+			Assert.IsTrue(updatedCapacities.Any(x => x.Id == changedCapacity.Id));
+			Assert.IsTrue(updatedCapacities.Any(x => x.Id == unchangedCapacity.Id));
+
+			var changedAfterUpdate = TestContext.Api.Capacities.Read(changedCapacity.Id);
+			var unchangedAfterUpdate = TestContext.Api.Capacities.Read(unchangedCapacity.Id);
+
+			Assert.AreEqual(changedToUpdate.Name, changedAfterUpdate.Name);
+			Assert.AreEqual(unchangedCapacity.Name, unchangedAfterUpdate.Name);
+		}
+
+		[TestMethod]
+		public void BulkUpdateWithChangedInvalidAndUnchangedCapacityReturnsTwoSuccessfulIds()
+		{
+			var prefix = Guid.NewGuid();
+
+			var changedCapacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity
+			{
+				Name = $"{prefix}_Changed",
+			};
+			var invalidCapacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity
+			{
+				Name = $"{prefix}_Invalid",
+			};
+			var unchangedCapacity = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity
+			{
+				Name = $"{prefix}_Unchanged",
+			};
+
+			changedCapacity = (Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity)objectCreator.CreateCapacity(changedCapacity);
+			invalidCapacity = (Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity)objectCreator.CreateCapacity(invalidCapacity);
+			unchangedCapacity = (Skyline.DataMiner.Solutions.MediaOps.Plan.API.NumberCapacity)objectCreator.CreateCapacity(unchangedCapacity);
+
+			var changedToUpdate = TestContext.Api.Capacities.Read(changedCapacity.Id);
+			var invalidToUpdate = TestContext.Api.Capacities.Read(invalidCapacity.Id);
+			var unchangedToUpdate = TestContext.Api.Capacities.Read(unchangedCapacity.Id);
+
+			changedToUpdate.Name = $"{prefix}_Changed_Updated";
+			invalidToUpdate.Name = string.Empty;
+
+			var ex = Assert.ThrowsException<MediaOpsBulkException<Guid>>(() => TestContext.Api.Capacities.Update(new[] { changedToUpdate, invalidToUpdate, unchangedToUpdate }));
+
+			Assert.AreEqual(2, ex.Result.SuccessfulIds.Count);
+			Assert.IsTrue(ex.Result.SuccessfulIds.Contains(changedCapacity.Id));
+			Assert.IsTrue(ex.Result.SuccessfulIds.Contains(unchangedCapacity.Id));
+			Assert.AreEqual(1, ex.Result.UnsuccessfulIds.Count);
+			Assert.IsTrue(ex.Result.UnsuccessfulIds.Contains(invalidCapacity.Id));
+
+			var changedAfterUpdate = TestContext.Api.Capacities.Read(changedCapacity.Id);
+			var invalidAfterUpdate = TestContext.Api.Capacities.Read(invalidCapacity.Id);
+			var unchangedAfterUpdate = TestContext.Api.Capacities.Read(unchangedCapacity.Id);
+
+			Assert.AreEqual(changedToUpdate.Name, changedAfterUpdate.Name);
+			Assert.AreEqual(invalidCapacity.Name, invalidAfterUpdate.Name);
+			Assert.AreEqual(unchangedCapacity.Name, unchangedAfterUpdate.Name);
+		}
+
+		[TestMethod]
 		public void CreateWithExistingIdThrowsException()
 		{
 			var capacityId = Guid.NewGuid();

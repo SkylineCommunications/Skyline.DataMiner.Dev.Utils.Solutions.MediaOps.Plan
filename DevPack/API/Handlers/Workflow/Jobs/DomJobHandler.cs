@@ -54,6 +54,8 @@
 			var toCreate = apiJobs.Where(x => x.IsNew).ToList();
 
 			ValidateIdsNotInUse(toCreate);
+			ValidateKeys(toCreate);
+			AssignKeys(toCreate);
 
 			var lockResult = planApi.LockManager.LockAndExecute(apiJobs.Where(IsValid).ToList(), CreateOrUpdateLocked);
 			ReportError(lockResult);
@@ -253,6 +255,44 @@
 			DomWorkflowOrchestrationSettingsHandler.TryDelete(planApi, apiJobs.Select(x => x.OrchestrationSettings).ToList(), out _);
 		}
 
+		private void AssignKeys(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			var toAssign = apiJobs.Where(x => x.IsNew && string.IsNullOrEmpty(x.Key)).ToList();
+			if (toAssign.Count == 0)
+			{
+				return;
+			}
+
+			DomJobSettingHandler.TryGetNextKeys(planApi, toAssign.Count, out var keys, out var result);
+
+			if (result.HasFailures)
+			{
+				var traceData = result.TraceDataPerItem.First().Value;
+
+				foreach (var job in apiJobs)
+				{
+					ReportError(job.Id, traceData.ErrorData.FirstOrDefault() ?? new MediaOpsErrorData { ErrorMessage = "Failed to generate key." });
+				}
+
+				return;
+			}
+
+			for (int i = 0; i < toAssign.Count; i++)
+			{
+				toAssign[i].AssignKey(keys[i]);
+			}
+		}
+
 		private void ValidateIdsNotInUse(ICollection<Job> apiJobs)
 		{
 			if (apiJobs == null)
@@ -301,6 +341,45 @@
 				};
 
 				ReportError(foundInstance.ID.Id, error);
+			}
+		}
+
+		private void ValidateKeys(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			var requiringValidation = apiJobs.Where(x => !string.IsNullOrEmpty(x.Key)).ToList();
+
+			foreach (var job in requiringValidation.Where(x => !InputValidator.IsNonEmptyText(x.Name)).ToArray())
+			{
+				var error = new JobInvalidKeyError
+				{
+					ErrorMessage = $"Key cannot be empty.",
+					Id = job.Id,
+				};
+
+				ReportError(job.Id, error);
+				requiringValidation.Remove(job);
+			}
+
+			foreach (var job in requiringValidation.Where(x => !InputValidator.HasValidTextLength(x.Key)).ToArray())
+			{
+				var error = new JobInvalidKeyError
+				{
+					ErrorMessage = $"Key exceeds maximum length of {InputValidator.DefaultMaxTextLength} characters.",
+					Key = job.Key,
+					Id = job.Id,
+				};
+
+				ReportError(job.Id, error);
 			}
 		}
 

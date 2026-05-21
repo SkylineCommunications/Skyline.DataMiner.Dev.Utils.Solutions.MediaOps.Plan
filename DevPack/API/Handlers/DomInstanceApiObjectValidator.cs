@@ -32,7 +32,7 @@
 			Func<TApiObject, MediaOpsErrorData> createNotFoundError,
 			Func<TApiObject, string, MediaOpsErrorData> createValueChangedError)
 			where TApiObject : ApiObject
-			where TDomInstance : DomInstanceBase
+			where TDomInstance : T
 		{
 			if (apiObjects == null)
 			{
@@ -55,8 +55,15 @@
 			Func<TApiObject, MediaOpsErrorData> createNotFoundError,
 			Func<TApiObject, string, MediaOpsErrorData> createValueChangedError)
 			where TApiObject : ApiObject
-			where TDomInstance : DomInstanceBase
+			where TDomInstance : T
 		{
+			var unchangedItems = apiObjects
+				.Where(x => !x.IsNew && !x.HasChanges)
+				.Select(getOriginalInstance)
+				.OfType<T>()
+				.ToList();
+			ReportSuccess(unchangedItems);
+
 			var itemsRequiringValidation = apiObjects.Where(x => !x.IsNew && x.HasChanges).ToList();
 			if (itemsRequiringValidation.Count == 0)
 			{

@@ -4,7 +4,6 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 	using System.Linq;
 
 	using RT_MediaOps.Plan.RegressionTests;
-	using RT_MediaOps.Plan.RST;
 
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
@@ -216,6 +215,115 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 			}
 
 			Assert.Fail("Expected exception was not thrown.");
+		}
+
+		[TestMethod]
+		public void UpdateUnmodifiedProperty()
+		{
+			var property = new BooleanProperty
+			{
+				Name = $"{Guid.NewGuid()}_Property",
+				Scope = "global",
+				SectionName = "General",
+			};
+
+			property = objectCreator.CreateProperty(property);
+
+			var originalProperty = TestContext.Api.Properties.Read(property.Id);
+			var updatedProperty = TestContext.Api.Properties.Update(originalProperty);
+
+			Assert.AreEqual(originalProperty, updatedProperty);
+		}
+
+		[TestMethod]
+		public void BulkUpdateWithChangedAndUnchangedPropertyReturnsTwoProperties()
+		{
+			var prefix = Guid.NewGuid();
+
+			var changedProperty = new BooleanProperty
+			{
+				Name = $"{prefix}_Changed",
+				Scope = "global",
+				SectionName = "General",
+			};
+			var unchangedProperty = new BooleanProperty
+			{
+				Name = $"{prefix}_Unchanged",
+				Scope = "global",
+				SectionName = "General",
+			};
+
+			changedProperty = (BooleanProperty)objectCreator.CreateProperty(changedProperty);
+			unchangedProperty = (BooleanProperty)objectCreator.CreateProperty(unchangedProperty);
+
+			var changedToUpdate = TestContext.Api.Properties.Read(changedProperty.Id);
+			var unchangedToUpdate = TestContext.Api.Properties.Read(unchangedProperty.Id);
+
+			changedToUpdate.Name = $"{prefix}_Changed_Updated";
+
+			var updatedProperties = TestContext.Api.Properties.Update(new[] { changedToUpdate, unchangedToUpdate });
+
+			Assert.AreEqual(2, updatedProperties.Count);
+			Assert.IsTrue(updatedProperties.Any(x => x.Id == changedProperty.Id));
+			Assert.IsTrue(updatedProperties.Any(x => x.Id == unchangedProperty.Id));
+
+			var changedAfterUpdate = TestContext.Api.Properties.Read(changedProperty.Id);
+			var unchangedAfterUpdate = TestContext.Api.Properties.Read(unchangedProperty.Id);
+
+			Assert.AreEqual(changedToUpdate.Name, changedAfterUpdate.Name);
+			Assert.AreEqual(unchangedProperty.Name, unchangedAfterUpdate.Name);
+		}
+
+		[TestMethod]
+		public void BulkUpdateWithChangedInvalidAndUnchangedPropertyReturnsTwoSuccessfulIds()
+		{
+			var prefix = Guid.NewGuid();
+
+			var changedProperty = new BooleanProperty
+			{
+				Name = $"{prefix}_Changed",
+				Scope = "global",
+				SectionName = "General",
+			};
+			var invalidProperty = new BooleanProperty
+			{
+				Name = $"{prefix}_Invalid",
+				Scope = "global",
+				SectionName = "General",
+			};
+			var unchangedProperty = new BooleanProperty
+			{
+				Name = $"{prefix}_Unchanged",
+				Scope = "global",
+				SectionName = "General",
+			};
+
+			changedProperty = (BooleanProperty)objectCreator.CreateProperty(changedProperty);
+			invalidProperty = (BooleanProperty)objectCreator.CreateProperty(invalidProperty);
+			unchangedProperty = (BooleanProperty)objectCreator.CreateProperty(unchangedProperty);
+
+			var changedToUpdate = TestContext.Api.Properties.Read(changedProperty.Id);
+			var invalidToUpdate = TestContext.Api.Properties.Read(invalidProperty.Id);
+			var unchangedToUpdate = TestContext.Api.Properties.Read(unchangedProperty.Id);
+
+			changedToUpdate.Name = $"{prefix}_Changed_Updated";
+			invalidToUpdate.Name = String.Empty;
+
+			var ex = Assert.ThrowsException<MediaOpsBulkException<Guid>>(() => TestContext.Api.Properties.Update(new[] { changedToUpdate, invalidToUpdate, unchangedToUpdate }));
+
+			Assert.AreEqual(2, ex.Result.SuccessfulIds.Count);
+			Assert.IsTrue(ex.Result.SuccessfulIds.Contains(changedProperty.Id));
+			Assert.IsTrue(ex.Result.SuccessfulIds.Contains(unchangedProperty.Id));
+			Assert.AreEqual(1, ex.Result.UnsuccessfulIds.Count);
+			Assert.IsTrue(ex.Result.UnsuccessfulIds.Contains(invalidProperty.Id));
+
+			var changedAfterUpdate = TestContext.Api.Properties.Read(changedProperty.Id);
+			var invalidAfterUpdate = TestContext.Api.Properties.Read(invalidProperty.Id);
+			var unchangedAfterUpdate = TestContext.Api.Properties.Read(unchangedProperty.Id);
+
+			Assert.AreEqual(changedToUpdate.Name, changedAfterUpdate.Name);
+			Assert.AreEqual(invalidProperty.Name, invalidAfterUpdate.Name);
+			Assert.AreEqual(unchangedProperty.Name, unchangedAfterUpdate.Name);
 		}
 
 		[TestMethod]

@@ -13,7 +13,7 @@
 	/// functionality such as name management, mandatory status, and category validation. Derived classes must implement
 	/// the  <see cref="Category"/> property and the <see cref="InternalParseParameter(CoreParameter)"/> method to
 	/// define specific behavior and parsing logic.</remarks>
-	public abstract class Parameter : ApiObject
+	public abstract class Parameter : ApiNamedObject
 	{
 		private readonly CoreParameter coreParameter;
 

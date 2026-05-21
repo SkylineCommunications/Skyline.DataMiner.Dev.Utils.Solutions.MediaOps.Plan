@@ -7,7 +7,7 @@
 	/// <summary>
 	/// Represents a recurring job in MediaOps Plan.
 	/// </summary>
-	public class RecurringJob : ApiObject
+	public class RecurringJob : ApiNamedObject
 	{
 		/// <summary>
 		/// Initializes a new instance of the <see cref="RecurringJob"/> class.

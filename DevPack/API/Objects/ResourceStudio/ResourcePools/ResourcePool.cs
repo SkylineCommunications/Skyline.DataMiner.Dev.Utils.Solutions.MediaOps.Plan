@@ -11,7 +11,7 @@
 	/// <summary>
 	/// Represents a resource pool in MediaOps Plan.
 	/// </summary>
-	public class ResourcePool : ApiObject
+	public class ResourcePool : ApiNamedObject
 	{
 		private readonly List<LinkedResourcePool> linkedResourcepools = [];
 		private readonly List<ResourcePoolCapabilitySetting> capabilitySettings = [];
