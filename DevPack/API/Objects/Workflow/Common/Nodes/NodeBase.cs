@@ -104,6 +104,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			updatedSection.NodeConfiguration = OrchestrationSettings.Id;
 
+			ApplyChanges(updatedSection);
+
 			return updatedSection;
 		}
 
