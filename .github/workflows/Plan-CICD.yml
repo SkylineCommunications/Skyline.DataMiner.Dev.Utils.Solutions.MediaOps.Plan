@@ -67,11 +67,11 @@ jobs:
     name: Internal Release
     if: github.ref_type == 'branch' || (github.ref_type == 'tag' && contains(github.ref, '-')) #Trigger on branch changes or on prerelease tags (e.g. 1.2.3-something)
     needs: integration_tests
-    uses: SkylineCommunications/_ReusableWorkflows/.github/workflows/Internal NuGet Solution Master Workflow.yml@main
+    uses: SkylineCommunications/_ReusableWorkflows/.github/workflows/Master Workflow.yml@main
     with:
-      sonarCloudProjectName: SkylineCommunications_Skyline.DataMiner.MediaOps.API
+      sonarcloud-project-name: SkylineCommunications_Skyline.DataMiner.MediaOps.API
     secrets:
-      nugetApiKey: ${{ secrets.NUGETAPIKEY_GITHUB }}
+      NUGET_API_KEY: ${{ secrets.NUGETAPIKEY_GITHUB }}
 
   public_release:
     name: Public Release
