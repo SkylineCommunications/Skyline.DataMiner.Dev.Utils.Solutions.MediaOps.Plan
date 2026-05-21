@@ -8,21 +8,39 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// </summary>
 	public class JobReferenceValidationResult
 	{
-		private readonly ICollection<DataReference> unresolvedReferences;
-
-		internal JobReferenceValidationResult(ICollection<DataReference> unresolvedReferences)
+		private JobReferenceValidationResult(IEnumerable<DataReference> unresolvedReferences)
 		{
-			this.unresolvedReferences = unresolvedReferences ?? throw new ArgumentNullException(nameof(unresolvedReferences));
-		}
+			if (unresolvedReferences is null)
+			{
+				throw new ArgumentNullException(nameof(unresolvedReferences));
+			}
 
-		/// <summary>
-		/// Gets a value indicating whether all references in the job could be resolved.
-		/// </summary>
-		public bool IsValid => unresolvedReferences.Count == 0;
+			UnresolvedReferences = new List<DataReference>(unresolvedReferences).AsReadOnly();
+		}
 
 		/// <summary>
 		/// Gets the collection of references that could not be resolved to an actual value.
 		/// </summary>
-		public IReadOnlyCollection<DataReference> UnresolvedReferences => new List<DataReference>(unresolvedReferences).AsReadOnly();
+		public IReadOnlyCollection<DataReference> UnresolvedReferences { get; }
+
+		/// <summary>
+		/// Gets a value indicating whether all references in the job could be resolved.
+		/// </summary>
+		public bool IsValid => UnresolvedReferences.Count == 0;
+
+		/// <summary>
+		/// Creates a <see cref="JobReferenceValidationResult"/> from a collection of unresolved references.
+		/// </summary>
+		/// <param name="unresolvedReferences">The collection of unresolved references.</param>
+		/// <returns>A new instance of <see cref="JobReferenceValidationResult"/>.</returns>
+		public static JobReferenceValidationResult Create(IEnumerable<DataReference> unresolvedReferences)
+		{
+			if (unresolvedReferences is null)
+			{
+				throw new ArgumentNullException(nameof(unresolvedReferences));
+			}
+
+			return new JobReferenceValidationResult(unresolvedReferences);
+		}
 	}
 }
