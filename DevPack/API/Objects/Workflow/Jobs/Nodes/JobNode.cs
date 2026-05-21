@@ -46,16 +46,26 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		internal Guid CoreReservationId { get; private set; }
 
 		/// <summary>
-		/// Returns this node as a <see cref="JobResourceNode"/> when it represents a resource; otherwise, <c>null</c>.
+		/// Determines whether this node represents a resource and, if so, returns it as a <see cref="JobResourceNode"/>.
 		/// </summary>
-		/// <returns>The current node as a <see cref="JobResourceNode"/>, or <c>null</c> when this node does not represent a resource.</returns>
-		public new JobResourceNode AsResourceNode() => this as JobResourceNode;
+		/// <param name="resourceNode">When this method returns, contains the current node as a <see cref="JobResourceNode"/> when it represents a resource; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this node represents a resource; otherwise, <c>false</c>.</returns>
+		public bool IsResourceNode(out JobResourceNode resourceNode)
+		{
+			resourceNode = this as JobResourceNode;
+			return resourceNode != null;
+		}
 
 		/// <summary>
-		/// Returns this node as a <see cref="JobResourcePoolNode"/> when it represents a resource pool; otherwise, <c>null</c>.
+		/// Determines whether this node represents a resource pool and, if so, returns it as a <see cref="JobResourcePoolNode"/>.
 		/// </summary>
-		/// <returns>The current node as a <see cref="JobResourcePoolNode"/>, or <c>null</c> when this node does not represent a resource pool.</returns>
-		public new JobResourcePoolNode AsResourcePoolNode() => this as JobResourcePoolNode;
+		/// <param name="resourcePoolNode">When this method returns, contains the current node as a <see cref="JobResourcePoolNode"/> when it represents a resource pool; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this node represents a resource pool; otherwise, <c>false</c>.</returns>
+		public bool IsResourcePoolNode(out JobResourcePoolNode resourcePoolNode)
+		{
+			resourcePoolNode = this as JobResourcePoolNode;
+			return resourcePoolNode != null;
+		}
 
 		/// <summary>
 		/// Parses properties from the specified storage section.

@@ -16,9 +16,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <inheritdoc/>
 		public Guid ResourcePoolId { get; private set; }
 
-		/// <inheritdoc/>
-		public override bool IsResourcePoolNode => true;
-
 		internal override void ApplyChanges(StorageWorkflow.NodesSection section)
 		{
 

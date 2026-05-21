@@ -49,26 +49,26 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		public OrchestrationSettings OrchestrationSettings { get; private set; }
 
 		/// <summary>
-		/// Gets a value indicating whether this node represents a resource.
+		/// Determines whether this node represents a resource and, if so, returns it as an <see cref="IResourceNode"/>.
 		/// </summary>
-		public virtual bool IsResourceNode => false;
+		/// <param name="resourceNode">When this method returns, contains the current node as an <see cref="IResourceNode"/> when it represents a resource; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this node represents a resource; otherwise, <c>false</c>.</returns>
+		public bool IsResourceNode(out IResourceNode resourceNode)
+		{
+			resourceNode = this as IResourceNode;
+			return resourceNode != null;
+		}
 
 		/// <summary>
-		/// Gets a value indicating whether this node represents a resource pool.
+		/// Determines whether this node represents a resource pool and, if so, returns it as an <see cref="IResourcePoolNode"/>.
 		/// </summary>
-		public virtual bool IsResourcePoolNode => false;
-
-		/// <summary>
-		/// Returns this node as an <see cref="IResourceNode"/> when it represents a resource; otherwise, <c>null</c>.
-		/// </summary>
-		/// <returns>The current node as an <see cref="IResourceNode"/>, or <c>null</c> when this node does not represent a resource.</returns>
-		public IResourceNode AsResourceNode() => this as IResourceNode;
-
-		/// <summary>
-		/// Returns this node as an <see cref="IResourcePoolNode"/> when it represents a resource pool; otherwise, <c>null</c>.
-		/// </summary>
-		/// <returns>The current node as an <see cref="IResourcePoolNode"/>, or <c>null</c> when this node does not represent a resource pool.</returns>
-		public IResourcePoolNode AsResourcePoolNode() => this as IResourcePoolNode;
+		/// <param name="resourcePoolNode">When this method returns, contains the current node as an <see cref="IResourcePoolNode"/> when it represents a resource pool; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this node represents a resource pool; otherwise, <c>false</c>.</returns>
+		public bool IsResourcePoolNode(out IResourcePoolNode resourcePoolNode)
+		{
+			resourcePoolNode = this as IResourcePoolNode;
+			return resourcePoolNode != null;
+		}
 
 		/// <inheritdoc/>
 		public override bool Equals(object obj)

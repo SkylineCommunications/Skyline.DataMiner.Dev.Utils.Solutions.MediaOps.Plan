@@ -8,105 +8,95 @@ namespace RT_MediaOps.Plan.Workflow.Nodes
 	public sealed class NodeTypeChecksTests
 	{
 		[TestMethod]
-		public void WorkflowNodes_ExposeResourceTypeChecks()
+		public void WorkflowNodes_IsResourceNode_ReturnsConcreteType()
 		{
 			WorkflowNode resourceNode = new WorkflowResourceNode(Guid.NewGuid(), Guid.NewGuid());
 			WorkflowNode resourcePoolNode = new WorkflowResourcePoolNode(Guid.NewGuid());
 
-			Assert.IsTrue(resourceNode.IsResourceNode);
-			Assert.IsFalse(resourceNode.IsResourcePoolNode);
-			Assert.IsFalse(resourcePoolNode.IsResourceNode);
-			Assert.IsTrue(resourcePoolNode.IsResourcePoolNode);
+			Assert.IsTrue(resourceNode.IsResourceNode(out WorkflowResourceNode asResource));
+			Assert.AreSame((object)resourceNode, asResource);
+			Assert.IsFalse(resourceNode.IsResourcePoolNode(out WorkflowResourcePoolNode asPoolFromResource));
+			Assert.IsNull(asPoolFromResource);
+
+			Assert.IsTrue(resourcePoolNode.IsResourcePoolNode(out WorkflowResourcePoolNode asPool));
+			Assert.AreSame((object)resourcePoolNode, asPool);
+			Assert.IsFalse(resourcePoolNode.IsResourceNode(out WorkflowResourceNode asResourceFromPool));
+			Assert.IsNull(asResourceFromPool);
 		}
 
 		[TestMethod]
-		public void WorkflowNodes_AsAccessors_ReturnConcreteTypes()
+		public void WorkflowNodes_IsResourceNode_OnNodeBase_ReturnsInterfaceType()
 		{
-			WorkflowNode resourceNode = new WorkflowResourceNode(Guid.NewGuid(), Guid.NewGuid());
-			WorkflowNode resourcePoolNode = new WorkflowResourcePoolNode(Guid.NewGuid());
+			NodeBase resourceNode = new WorkflowResourceNode(Guid.NewGuid(), Guid.NewGuid());
+			NodeBase resourcePoolNode = new WorkflowResourcePoolNode(Guid.NewGuid());
 
-			WorkflowResourceNode asResource = resourceNode.AsResourceNode();
-			WorkflowResourcePoolNode asPool = resourcePoolNode.AsResourcePoolNode();
+			Assert.IsTrue(resourceNode.IsResourceNode(out IResourceNode asResource));
+			Assert.AreSame((object)resourceNode, asResource);
+			Assert.IsTrue(resourcePoolNode.IsResourcePoolNode(out IResourcePoolNode asPool));
+			Assert.AreSame((object)resourcePoolNode, asPool);
 
-			Assert.AreSame(resourceNode, asResource);
-			Assert.AreSame(resourcePoolNode, asPool);
-			Assert.IsNull(resourceNode.AsResourcePoolNode());
-			Assert.IsNull(resourcePoolNode.AsResourceNode());
-
-			NodeBase baseResource = resourceNode;
-			NodeBase basePool = resourcePoolNode;
-			Assert.AreSame((object)resourceNode, baseResource.AsResourceNode());
-			Assert.AreSame((object)resourcePoolNode, basePool.AsResourcePoolNode());
-			Assert.IsInstanceOfType(baseResource.AsResourceNode(), typeof(IResourceNode));
-			Assert.IsInstanceOfType(basePool.AsResourcePoolNode(), typeof(IResourcePoolNode));
+			Assert.IsFalse(resourceNode.IsResourcePoolNode(out IResourcePoolNode none1));
+			Assert.IsNull(none1);
+			Assert.IsFalse(resourcePoolNode.IsResourceNode(out IResourceNode none2));
+			Assert.IsNull(none2);
 		}
 
 		[TestMethod]
-		public void JobNodes_ExposeResourceTypeChecks()
-		{
-			JobNode resourceNode = new JobResourceNode(Guid.NewGuid(), Guid.NewGuid());
-			JobNode resourcePoolNode = new JobResourcePoolNode(Guid.NewGuid());
-
-			Assert.IsTrue(resourceNode.IsResourceNode);
-			Assert.IsFalse(resourceNode.IsResourcePoolNode);
-			Assert.IsFalse(resourcePoolNode.IsResourceNode);
-			Assert.IsTrue(resourcePoolNode.IsResourcePoolNode);
-		}
-
-		[TestMethod]
-		public void JobNodes_AsAccessors_ReturnConcreteTypes()
+		public void JobNodes_IsResourceNode_ReturnsConcreteType()
 		{
 			JobNode resourceNode = new JobResourceNode(Guid.NewGuid(), Guid.NewGuid());
 			JobNode resourcePoolNode = new JobResourcePoolNode(Guid.NewGuid());
 
-			JobResourceNode asResource = resourceNode.AsResourceNode();
-			JobResourcePoolNode asPool = resourcePoolNode.AsResourcePoolNode();
+			Assert.IsTrue(resourceNode.IsResourceNode(out JobResourceNode asResource));
+			Assert.AreSame((object)resourceNode, asResource);
+			Assert.IsFalse(resourceNode.IsResourcePoolNode(out JobResourcePoolNode asPoolFromResource));
+			Assert.IsNull(asPoolFromResource);
 
-			Assert.AreSame(resourceNode, asResource);
-			Assert.AreSame(resourcePoolNode, asPool);
-			Assert.IsNull(resourceNode.AsResourcePoolNode());
-			Assert.IsNull(resourcePoolNode.AsResourceNode());
-
-			NodeBase baseResource = resourceNode;
-			NodeBase basePool = resourcePoolNode;
-			Assert.AreSame((object)resourceNode, baseResource.AsResourceNode());
-			Assert.AreSame((object)resourcePoolNode, basePool.AsResourcePoolNode());
-			Assert.IsInstanceOfType(baseResource.AsResourceNode(), typeof(IResourceNode));
-			Assert.IsInstanceOfType(basePool.AsResourcePoolNode(), typeof(IResourcePoolNode));
+			Assert.IsTrue(resourcePoolNode.IsResourcePoolNode(out JobResourcePoolNode asPool));
+			Assert.AreSame((object)resourcePoolNode, asPool);
+			Assert.IsFalse(resourcePoolNode.IsResourceNode(out JobResourceNode asResourceFromPool));
+			Assert.IsNull(asResourceFromPool);
 		}
 
 		[TestMethod]
-		public void RecurringJobNodes_ExposeResourceTypeChecks()
+		public void JobNodes_IsResourceNode_OnNodeBase_ReturnsInterfaceType()
+		{
+			NodeBase resourceNode = new JobResourceNode(Guid.NewGuid(), Guid.NewGuid());
+			NodeBase resourcePoolNode = new JobResourcePoolNode(Guid.NewGuid());
+
+			Assert.IsTrue(resourceNode.IsResourceNode(out IResourceNode asResource));
+			Assert.AreSame((object)resourceNode, asResource);
+			Assert.IsTrue(resourcePoolNode.IsResourcePoolNode(out IResourcePoolNode asPool));
+			Assert.AreSame((object)resourcePoolNode, asPool);
+		}
+
+		[TestMethod]
+		public void RecurringJobNodes_IsResourceNode_ReturnsConcreteType()
 		{
 			RecurringJobNode resourceNode = new RecurringJobResourceNode();
 			RecurringJobNode resourcePoolNode = new RecurringJobResourcePoolNode();
 
-			Assert.IsTrue(resourceNode.IsResourceNode);
-			Assert.IsFalse(resourceNode.IsResourcePoolNode);
-			Assert.IsFalse(resourcePoolNode.IsResourceNode);
-			Assert.IsTrue(resourcePoolNode.IsResourcePoolNode);
+			Assert.IsTrue(resourceNode.IsResourceNode(out RecurringJobResourceNode asResource));
+			Assert.AreSame((object)resourceNode, asResource);
+			Assert.IsFalse(resourceNode.IsResourcePoolNode(out RecurringJobResourcePoolNode asPoolFromResource));
+			Assert.IsNull(asPoolFromResource);
+
+			Assert.IsTrue(resourcePoolNode.IsResourcePoolNode(out RecurringJobResourcePoolNode asPool));
+			Assert.AreSame((object)resourcePoolNode, asPool);
+			Assert.IsFalse(resourcePoolNode.IsResourceNode(out RecurringJobResourceNode asResourceFromPool));
+			Assert.IsNull(asResourceFromPool);
 		}
 
 		[TestMethod]
-		public void RecurringJobNodes_AsAccessors_ReturnConcreteTypes()
+		public void RecurringJobNodes_IsResourceNode_OnNodeBase_ReturnsInterfaceType()
 		{
-			RecurringJobNode resourceNode = new RecurringJobResourceNode();
-			RecurringJobNode resourcePoolNode = new RecurringJobResourcePoolNode();
+			NodeBase resourceNode = new RecurringJobResourceNode();
+			NodeBase resourcePoolNode = new RecurringJobResourcePoolNode();
 
-			RecurringJobResourceNode asResource = resourceNode.AsResourceNode();
-			RecurringJobResourcePoolNode asPool = resourcePoolNode.AsResourcePoolNode();
-
-			Assert.AreSame(resourceNode, asResource);
-			Assert.AreSame(resourcePoolNode, asPool);
-			Assert.IsNull(resourceNode.AsResourcePoolNode());
-			Assert.IsNull(resourcePoolNode.AsResourceNode());
-
-			NodeBase baseResource = resourceNode;
-			NodeBase basePool = resourcePoolNode;
-			Assert.AreSame((object)resourceNode, baseResource.AsResourceNode());
-			Assert.AreSame((object)resourcePoolNode, basePool.AsResourcePoolNode());
-			Assert.IsInstanceOfType(baseResource.AsResourceNode(), typeof(IResourceNode));
-			Assert.IsInstanceOfType(basePool.AsResourcePoolNode(), typeof(IResourcePoolNode));
+			Assert.IsTrue(resourceNode.IsResourceNode(out IResourceNode asResource));
+			Assert.AreSame((object)resourceNode, asResource);
+			Assert.IsTrue(resourcePoolNode.IsResourcePoolNode(out IResourcePoolNode asPool));
+			Assert.AreSame((object)resourcePoolNode, asPool);
 		}
 	}
 }
