@@ -64,30 +64,27 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			var node = Workflow.NodeGraph.Nodes.FirstOrDefault(n => String.Equals(n.Id, reference.NodeId, StringComparison.OrdinalIgnoreCase));
 
-			if (node is IResourceNode resourceNode)
+			if (!node.IsResourceNode(out var resourceNode))
 			{
-				var resourceId = resourceNode.ResourceId;
-
-				if (resourceId == Guid.Empty)
-				{
-					return null;
-				}
-
-				if (_resourceCache.TryGetValue(resourceId, out var cachedResource))
-				{
-					return cachedResource;
-				}
-
-				var resource = PlanApi.Resources.Read(resourceId);
-				if (resource != null)
-				{
-					_resourceCache[resourceId] = resource;
-				}
-
-				return resource;
+				return null;
 			}
 
-			return null;
+			var resourceId = resourceNode.ResourceId;
+
+			if (resourceId == Guid.Empty)
+			{
+				return null;
+			}
+
+			if (_resourceCache.TryGetValue(resourceId, out var cachedResource))
+			{
+				return cachedResource;
+			}
+
+			var resource = PlanApi.Resources.Read(resourceId);
+			_resourceCache[resourceId] = resource;
+
+			return resource;
 		}
 
 		/// <inheritdoc />
