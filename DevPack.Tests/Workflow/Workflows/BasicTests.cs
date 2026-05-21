@@ -259,9 +259,19 @@
 		}
 
 		[TestMethod]
-		public void Delete_UnknownId_DoesNotThrow()
+		public void Delete_UnknownId_DoesNotThrow()			
 		{
-			TestContext.Api.Workflows.Delete(Guid.NewGuid());
+			Exception thrownException = null;
+			try
+			{
+				TestContext.Api.Workflows.Delete(Guid.NewGuid());
+			}
+			catch (Exception ex)
+			{
+				thrownException = ex;
+			}
+
+			Assert.IsNull(thrownException, $"Expected no exception when deleting unknown workflow ID, but got: {thrownException}");
 		}
 	}
 }

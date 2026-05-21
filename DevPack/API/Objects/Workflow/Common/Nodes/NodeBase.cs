@@ -109,11 +109,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return updatedSection;
 		}
 
-		/// <summary>
-		/// Parses properties from the specified storage section.
-		/// </summary>
-		/// <param name="section">The storage workflow nodes section to parse.</param>
-		/// <exception cref="ArgumentNullException">Thrown when <paramref name="section"/> is null.</exception>
 		private void ParseSection(MediaOpsPlanApi planApi, StorageWorkflow.NodesSection section)
 		{
 			originalSection = section ?? throw new ArgumentNullException(nameof(section));

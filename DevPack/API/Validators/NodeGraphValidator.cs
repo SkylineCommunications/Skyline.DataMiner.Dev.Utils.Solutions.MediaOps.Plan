@@ -135,7 +135,6 @@
 			if (!resource.ResourcePoolIds.Contains(resourcePool.Id))
 			{
 				ReportError(apiObjectId, CreateResourceNodeError(nodeId, resourceNode.ResourceId, resourceNode.ResourcePoolId, $"Resource with ID '{resourceNode.ResourceId}' is not part of resource pool with ID '{resourceNode.ResourcePoolId}'."));
-				return;
 			}
 		}
 
