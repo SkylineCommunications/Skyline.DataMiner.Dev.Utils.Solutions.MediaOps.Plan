@@ -56,6 +56,148 @@
 		}
 
 		[TestMethod]
+		public void ResourceStudioOrchestrationSettings_UpdateUnmodifiedResourcePool()
+		{
+			var prefix = Guid.NewGuid();
+
+			var capability = new Capability
+			{
+				Name = $"{prefix}_Capability",
+			}
+			.SetDiscretes(["Value 1", "Value 2"]);
+			objectCreator.CreateCapability(capability);
+
+			var resourcePool = new ResourcePool
+			{
+				Name = $"{prefix}_ResourcePool",
+			};
+
+			resourcePool.OrchestrationSettings.AddCapability(new CapabilitySetting(capability));
+			resourcePool = objectCreator.CreateResourcePool(resourcePool);
+
+			var originalResourcePool = TestContext.Api.ResourcePools.Read(resourcePool.Id);
+			var updatedResourcePool = TestContext.Api.ResourcePools.Update(originalResourcePool);
+
+			Assert.AreEqual(originalResourcePool, updatedResourcePool);
+		}
+
+		[TestMethod]
+		public void ResourceStudioOrchestrationSettings_BulkUpdateWithChangedAndUnchangedResourcePoolReturnsTwoResourcePools()
+		{
+			var prefix = Guid.NewGuid();
+
+			var changedCapability = new Capability
+			{
+				Name = $"{prefix}_Changed_Capability",
+			}
+			.SetDiscretes(["Value 1", "Value 2"]);
+			var unchangedCapability = new Capability
+			{
+				Name = $"{prefix}_Unchanged_Capability",
+			}
+			.SetDiscretes(["Value 1", "Value 2"]);
+			objectCreator.CreateCapabilities([changedCapability, unchangedCapability]);
+
+			var changedResourcePool = new ResourcePool
+			{
+				Name = $"{prefix}_Changed_ResourcePool",
+			};
+			changedResourcePool.OrchestrationSettings.AddCapability(new CapabilitySetting(changedCapability));
+			changedResourcePool = objectCreator.CreateResourcePool(changedResourcePool);
+
+			var unchangedResourcePool = new ResourcePool
+			{
+				Name = $"{prefix}_Unchanged_ResourcePool",
+			};
+			unchangedResourcePool.OrchestrationSettings.AddCapability(new CapabilitySetting(unchangedCapability));
+			unchangedResourcePool = objectCreator.CreateResourcePool(unchangedResourcePool);
+
+			var changedToUpdate = TestContext.Api.ResourcePools.Read(changedResourcePool.Id);
+			var unchangedToUpdate = TestContext.Api.ResourcePools.Read(unchangedResourcePool.Id);
+
+			changedToUpdate.Name = $"{prefix}_Changed_ResourcePool_Updated";
+
+			var updatedResourcePools = TestContext.Api.ResourcePools.Update(new[] { changedToUpdate, unchangedToUpdate });
+
+			Assert.AreEqual(2, updatedResourcePools.Count);
+			Assert.IsTrue(updatedResourcePools.Any(x => x.Id == changedResourcePool.Id));
+			Assert.IsTrue(updatedResourcePools.Any(x => x.Id == unchangedResourcePool.Id));
+
+			var changedAfterUpdate = TestContext.Api.ResourcePools.Read(changedResourcePool.Id);
+			var unchangedAfterUpdate = TestContext.Api.ResourcePools.Read(unchangedResourcePool.Id);
+
+			Assert.AreEqual(changedToUpdate.Name, changedAfterUpdate.Name);
+			Assert.AreEqual(unchangedResourcePool.Name, unchangedAfterUpdate.Name);
+		}
+
+		[TestMethod]
+		public void ResourceStudioOrchestrationSettings_BulkUpdateWithChangedInvalidAndUnchangedResourcePoolReturnsTwoSuccessfulIds()
+		{
+			var prefix = Guid.NewGuid();
+
+			var changedCapability = new Capability
+			{
+				Name = $"{prefix}_Changed_Capability",
+			}
+			.SetDiscretes(["Value 1", "Value 2"]);
+			var invalidCapability = new Capability
+			{
+				Name = $"{prefix}_Invalid_Capability",
+			}
+			.SetDiscretes(["Value 1", "Value 2"]);
+			var unchangedCapability = new Capability
+			{
+				Name = $"{prefix}_Unchanged_Capability",
+			}
+			.SetDiscretes(["Value 1", "Value 2"]);
+			objectCreator.CreateCapabilities([changedCapability, invalidCapability, unchangedCapability]);
+
+			var changedResourcePool = new ResourcePool
+			{
+				Name = $"{prefix}_Changed_ResourcePool",
+			};
+			changedResourcePool.OrchestrationSettings.AddCapability(new CapabilitySetting(changedCapability));
+			changedResourcePool = objectCreator.CreateResourcePool(changedResourcePool);
+
+			var invalidResourcePool = new ResourcePool
+			{
+				Name = $"{prefix}_Invalid_ResourcePool",
+			};
+			invalidResourcePool.OrchestrationSettings.AddCapability(new CapabilitySetting(invalidCapability));
+			invalidResourcePool = objectCreator.CreateResourcePool(invalidResourcePool);
+
+			var unchangedResourcePool = new ResourcePool
+			{
+				Name = $"{prefix}_Unchanged_ResourcePool",
+			};
+			unchangedResourcePool.OrchestrationSettings.AddCapability(new CapabilitySetting(unchangedCapability));
+			unchangedResourcePool = objectCreator.CreateResourcePool(unchangedResourcePool);
+
+			var changedToUpdate = TestContext.Api.ResourcePools.Read(changedResourcePool.Id);
+			var invalidToUpdate = TestContext.Api.ResourcePools.Read(invalidResourcePool.Id);
+			var unchangedToUpdate = TestContext.Api.ResourcePools.Read(unchangedResourcePool.Id);
+
+			changedToUpdate.Name = $"{prefix}_Changed_ResourcePool_Updated";
+			invalidToUpdate.Name = string.Empty;
+
+			var ex = Assert.ThrowsException<MediaOpsBulkException<Guid>>(() => TestContext.Api.ResourcePools.Update(new[] { changedToUpdate, invalidToUpdate, unchangedToUpdate }));
+
+			Assert.AreEqual(2, ex.Result.SuccessfulIds.Count);
+			Assert.IsTrue(ex.Result.SuccessfulIds.Contains(changedResourcePool.Id));
+			Assert.IsTrue(ex.Result.SuccessfulIds.Contains(unchangedResourcePool.Id));
+			Assert.AreEqual(1, ex.Result.UnsuccessfulIds.Count);
+			Assert.IsTrue(ex.Result.UnsuccessfulIds.Contains(invalidResourcePool.Id));
+
+			var changedAfterUpdate = TestContext.Api.ResourcePools.Read(changedResourcePool.Id);
+			var invalidAfterUpdate = TestContext.Api.ResourcePools.Read(invalidResourcePool.Id);
+			var unchangedAfterUpdate = TestContext.Api.ResourcePools.Read(unchangedResourcePool.Id);
+
+			Assert.AreEqual(changedToUpdate.Name, changedAfterUpdate.Name);
+			Assert.AreEqual(invalidResourcePool.Name, invalidAfterUpdate.Name);
+			Assert.AreEqual(unchangedResourcePool.Name, unchangedAfterUpdate.Name);
+		}
+
+		[TestMethod]
 		public void ResourceStudioOrchestrationSettings_AddAndRemoveCapacities_NoPersistence()
 		{
 			var prefix = Guid.NewGuid();

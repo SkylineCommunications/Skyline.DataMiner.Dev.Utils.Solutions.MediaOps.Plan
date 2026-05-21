@@ -63,6 +63,11 @@
 		IPropertyValueCollectionsRepository PropertyValueCollections { get; }
 
 		/// <summary>
+		/// Gets the global application settings.
+		/// </summary>
+		IGlobalSettings GlobalSettings { get; }
+
+		/// <summary>
 		/// Determines whether the MediaOps.PLAN application is installed on the DataMiner System.
 		/// </summary>
 		/// <returns>

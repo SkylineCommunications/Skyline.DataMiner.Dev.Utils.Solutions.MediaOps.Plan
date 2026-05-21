@@ -21,17 +21,8 @@ namespace RT_MediaOps.Plan.Properties.Values
 		{
 			var collection = new PropertyValueCollection();
 
-			Assert.IsNull(collection.Name);
 			Assert.IsNotNull(collection.CustomValues);
 			Assert.AreEqual(0, collection.CustomValues.Count);
-		}
-
-		[TestMethod]
-		public void SetName_ValueIsSet()
-		{
-			var collection = new PropertyValueCollection { Name = "MyCollection" };
-
-			Assert.AreEqual("MyCollection", collection.Name);
 		}
 
 		[TestMethod]

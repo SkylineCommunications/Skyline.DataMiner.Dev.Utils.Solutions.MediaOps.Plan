@@ -10,7 +10,7 @@
 	/// Represents a directed graph of nodes with connections between them.
 	/// </summary>
 	/// <typeparam name="TNode">The type of nodes in the graph, must derive from <see cref="NodeBase"/>.</typeparam>
-	public sealed class NodeGraph<TNode> where TNode : NodeBase
+	public sealed class NodeGraph<TNode> : IEquatable<NodeGraph<TNode>> where TNode : NodeBase
 	{
 		private readonly List<TNode> nodes = [];
 		private readonly List<NodeConnection<TNode>> connections = [];
@@ -200,6 +200,16 @@
 				return false;
 			}
 
+			return Equals(other);
+		}
+
+		/// <summary>
+		/// Determines whether the current <see cref="NodeGraph{TNode}"/> instance is equal to another instance.
+		/// </summary>
+		/// <param name="other">The instance to compare with the current instance.</param>
+		/// <returns>true if the instances are equal; otherwise, false.</returns>
+		public bool Equals(NodeGraph<TNode> other)
+		{
 			return nodes.ScrambledEquals(other.nodes) && connections.ScrambledEquals(other.connections);
 		}
 
@@ -221,6 +231,38 @@
 
 				return hash;
 			}
+		}
+
+		/// <summary>
+		/// Determines whether two <see cref="NodeGraph{TNode}"/> instances are equal.
+		/// </summary>
+		/// <param name="left">The left instance to compare.</param>
+		/// <param name="right">The right instance to compare.</param>
+		/// <returns>true if the instances are equal; otherwise, false.</returns>
+		public static bool operator ==(NodeGraph<TNode> left, NodeGraph<TNode> right)
+		{
+			if (ReferenceEquals(left, right))
+			{
+				return true;
+			}
+
+			if (left is null || right is null)
+			{
+				return false;
+			}
+
+			return left.Equals(right);
+		}
+
+		/// <summary>
+		/// Determines whether two <see cref="NodeGraph{TNode}"/> instances are not equal.
+		/// </summary>
+		/// <param name="left">The left instance to compare.</param>
+		/// <param name="right">The right instance to compare.</param>
+		/// <returns>true if the instances are not equal; otherwise, false.</returns>
+		public static bool operator !=(NodeGraph<TNode> left, NodeGraph<TNode> right)
+		{
+			return !(left == right);
 		}
 	}
 }

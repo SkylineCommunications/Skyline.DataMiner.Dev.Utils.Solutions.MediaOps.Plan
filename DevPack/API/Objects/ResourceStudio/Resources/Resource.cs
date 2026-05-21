@@ -11,7 +11,7 @@
 	/// <summary>
 	/// Represents a resource in the MediaOps Plan API.
 	/// </summary>
-	public abstract class Resource : ApiObject
+	public abstract class Resource : ApiNamedObject
 	{
 		private readonly List<ResourceCapabilitySetting> capabilitySettings = [];
 		private readonly List<ResourceNumberCapacitySetting> numberCapacitySettings = [];
