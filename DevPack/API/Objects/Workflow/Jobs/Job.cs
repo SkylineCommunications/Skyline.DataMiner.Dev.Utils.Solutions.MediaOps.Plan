@@ -107,6 +107,9 @@
 		/// </summary>
 		public OrchestrationSettings OrchestrationSettings { get; private set; }
 
+		/// <summary>
+		/// Gets the node graph containing all nodes and connections that define the job structure.
+		/// </summary>
 		public NodeGraph<JobNode> NodeGraph { get; private set; }
 
 		internal StorageWorkflow.JobsInstance OriginalInstance => originalInstance;
@@ -248,10 +251,10 @@
 				switch (nodeSecion.NodeType.Value)
 				{
 					case StorageWorkflow.SlcWorkflowIds.Enums.Nodetype.Resource:
-						node = new JobResourceNode(nodeSecion);
+						node = new JobResourceNode(planApi, nodeSecion);
 						break;
 					case StorageWorkflow.SlcWorkflowIds.Enums.Nodetype.ResourcePool:
-						node = new JobResourcePoolNode(nodeSecion);
+						node = new JobResourcePoolNode(planApi, nodeSecion);
 						break;
 					default:
 						planApi.Logger.Warning(this, $"Node with ID {nodeSecion.NodeID} has unsupported node type {nodeSecion.NodeType.Value}. This node will be ignored.");

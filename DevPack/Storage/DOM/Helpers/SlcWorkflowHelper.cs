@@ -109,6 +109,24 @@
 			return GetWorkflowIterator(filter);
 		}
 
+		public IEnumerable<WorkflowsInstance> GetWorkflows<T>(IEnumerable<T> values, Func<T, FilterElement<DomInstance>> filter)
+		{
+			if (values == null)
+			{
+				throw new ArgumentNullException(nameof(values));
+			}
+
+			if (filter == null)
+			{
+				throw new ArgumentNullException(nameof(filter));
+			}
+
+			return FilterQueryExecutor.RetrieveFilteredItems(
+				values.Distinct(),
+				x => filter(x),
+				x => GetWorkflowIterator(x));
+		}
+
 		public IEnumerable<WorkflowsInstance> GetWorkflows(IEnumerable<Guid> ids)
 		{
 			if (ids == null)

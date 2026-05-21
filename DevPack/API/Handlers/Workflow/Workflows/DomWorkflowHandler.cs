@@ -4,8 +4,12 @@
 	using System.Collections.Generic;
 	using System.Linq;
 
+	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow;
 	using Skyline.DataMiner.Utils.DOM.Extensions;
 
 	using DomWorkflow = Storage.DOM.SlcWorkflow.WorkflowsInstance;
@@ -52,8 +56,14 @@
 			}
 
 			var toCreate = apiWorkflows.Where(x => x.IsNew).ToList();
+			var toUpdate = apiWorkflows.Except(toCreate).ToList();
 
 			ValidateIdsNotInUse(toCreate);
+			ValidateStateForUpdateAction(toUpdate);
+
+			ValidateNames(apiWorkflows);
+			ValidatePreRoll(apiWorkflows);
+			ValidatePostRoll(apiWorkflows);
 
 			var lockResult = planApi.LockManager.LockAndExecute(apiWorkflows.Where(IsValid).ToList(), CreateOrUpdateLocked);
 			ReportError(lockResult);
@@ -80,6 +90,9 @@
 			var toUpdate = apiWorkflows.Except(toCreate).ToList();
 
 			var changeResults = GetWorkflowsWithChanges(toUpdate);
+
+			var toUpdateNameValidation = toUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcWorkflowIds.Sections.WorkflowInfo.WorkflowName.Id)));
+			ValidateDomNames(toCreate.Concat(toUpdateNameValidation).ToList());
 
 			CreateOrUpdateOrchestrationSettings(apiWorkflows.Where(IsValid).ToList());
 
@@ -143,9 +156,22 @@
 				throw new ArgumentException($"Not all provided workflows are valid", nameof(apiWorkflows));
 			}
 
-			var workflowIdByOrchestrationSettingsId = apiWorkflows.ToDictionary(x => x.OrchestrationSettings.Id, x => x.Id);
+			var workflowIdByOrchestrationSettingsId = new Dictionary<Guid, Guid>();
+			var orchestrationSettings = new List<OrchestrationSettings>();
 
-			DomWorkflowOrchestrationSettingsHandler.TryCreateOrUpdate(planApi, apiWorkflows.Select(x => x.OrchestrationSettings).ToList(), out var domResult);
+			foreach (var workflow in apiWorkflows)
+			{
+				workflowIdByOrchestrationSettingsId[workflow.OrchestrationSettings.Id] = workflow.Id;
+				orchestrationSettings.Add(workflow.OrchestrationSettings);
+
+				foreach (var node in workflow.NodeGraph.Nodes)
+				{
+					workflowIdByOrchestrationSettingsId[node.OrchestrationSettings.Id] = workflow.Id;
+					orchestrationSettings.Add(node.OrchestrationSettings);
+				}
+			}
+
+			DomWorkflowOrchestrationSettingsHandler.TryCreateOrUpdate(planApi, orchestrationSettings, out var domResult);
 
 			foreach (var id in domResult.UnsuccessfulIds)
 			{
@@ -289,6 +315,248 @@
 
 				ReportError(foundInstance.ID.Id, error);
 			}
+		}
+
+		private void ValidateStateForUpdateAction(ICollection<Workflow> apiWorkflows)
+		{
+			if (apiWorkflows == null)
+			{
+				throw new ArgumentNullException(nameof(apiWorkflows));
+			}
+
+			if (apiWorkflows.Count == 0)
+			{
+				return;
+			}
+
+			foreach (var workflow in apiWorkflows.Where(x => x.State == WorkflowState.Obsolete))
+			{
+				var error = new WorkflowInvalidStateError
+				{
+					ErrorMessage = "Not allowed to update a workfow in Obsolete state.",
+					Id = workflow.Id,
+				};
+
+				ReportError(workflow.Id, error);
+			}
+		}
+
+		private void ValidateStateForCompleteAction(ICollection<Workflow> apiWorkflows)
+		{
+			if (apiWorkflows == null)
+			{
+				throw new ArgumentNullException(nameof(apiWorkflows));
+			}
+
+			if (apiWorkflows.Count == 0)
+			{
+				return;
+			}
+
+			foreach (var workflow in apiWorkflows.Where(x => x.State != WorkflowState.Draft))
+			{
+				var error = new WorkflowInvalidStateError
+				{
+					ErrorMessage = "Not allowed to complete a workflow that is not in Draft state.",
+					Id = workflow.Id,
+				};
+
+				ReportError(workflow.Id, error);
+			}
+		}
+
+		private void ValidateStateForObsoleteAction(ICollection<Workflow> apiWorkflows)
+		{
+			if (apiWorkflows == null)
+			{
+				throw new ArgumentNullException(nameof(apiWorkflows));
+			}
+
+			if (apiWorkflows.Count == 0)
+			{
+				return;
+			}
+
+			foreach (var workflow in apiWorkflows.Where(x => x.State != WorkflowState.Complete))
+			{
+				var error = new WorkflowInvalidStateError
+				{
+					ErrorMessage = "Not allowed to make a workflow obsolete that is not in Complete state.",
+					Id = workflow.Id,
+				};
+
+				ReportError(workflow.Id, error);
+			}
+		}
+
+		private void ValidateNames(ICollection<Workflow> apiWorkflows)
+		{
+			if (apiWorkflows == null)
+			{
+				throw new ArgumentNullException(nameof(apiWorkflows));
+			}
+
+			if (apiWorkflows.Count == 0)
+			{
+				return;
+			}
+
+			var requiringValidation = apiWorkflows.ToList();
+
+			foreach (var workflow in requiringValidation.Where(x => !InputValidator.IsNonEmptyText(x.Name)).ToArray())
+			{
+				var error = new WorkflowInvalidNameError
+				{
+					ErrorMessage = "Name cannot be empty.",
+					Id = workflow.Id,
+				};
+
+				ReportError(workflow.Id, error);
+
+				requiringValidation.Remove(workflow);
+			}
+
+			foreach (var workflow in requiringValidation.Where(x => !InputValidator.HasValidTextLength(x.Name)).ToArray())
+			{
+				var error = new WorkflowInvalidNameError
+				{
+					ErrorMessage = $"Name exceeds maximum length of {InputValidator.DefaultMaxTextLength} characters.",
+					Id = workflow.Id,
+					Name = workflow.Name,
+				};
+
+				ReportError(workflow.Id, error);
+
+				requiringValidation.Remove(workflow);
+			}
+
+			var withDuplicateNames = requiringValidation
+				.GroupBy(x => x.Name)
+				.Where(g => g.Count() > 1)
+				.SelectMany(g => g)
+				.ToList();
+
+			foreach (var workflow in withDuplicateNames)
+			{
+				var error = new WorkflowDuplicateNameError
+				{
+					ErrorMessage = $"Workflow '{workflow.Name}' has a duplicate name.",
+					Id = workflow.Id,
+					Name = workflow.Name,
+				};
+
+				ReportError(workflow.Id, error);
+			}
+		}
+
+		private void ValidateDomNames(ICollection<Workflow> apiWorkflows)
+		{
+			if (apiWorkflows == null)
+			{
+				throw new ArgumentNullException(nameof(apiWorkflows));
+			}
+
+			if (apiWorkflows.Count == 0)
+			{
+				return;
+			}
+
+			FilterElement<DomInstance> Filter(string name) =>
+				DomInstanceExposers.DomDefinitionId.Equal(SlcWorkflowIds.Definitions.Workflows.Id)
+				.AND(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.WorkflowInfo.WorkflowName).Equal(name));
+
+			var domWorkflowsbyName = planApi.DomHelpers.SlcWorkflowHelper.GetWorkflows(apiWorkflows.Select(x => x.Name), Filter)
+				.GroupBy(x => x.Name)
+				.ToDictionary(x => x.Key, x => (IReadOnlyCollection<DomWorkflow>)x.ToList());
+
+			foreach (var workflow in apiWorkflows)
+			{
+				if (!domWorkflowsbyName.TryGetValue(workflow.Name, out var domResources))
+				{
+					continue;
+				}
+
+				var existing = domResources.Where(x => x.ID.Id != workflow.Id).ToList();
+				if (existing.Count == 0)
+				{
+					continue;
+				}
+
+				planApi.Logger.Information(this, $"Name '{workflow.Name}' is already in use by DOM workflow(s) with ID(s)", [existing.Select(x => x.ID.Id).ToArray()]);
+
+				var error = new WorkflowNameExistsError
+				{
+					ErrorMessage = "Name is already in use.",
+					Id = workflow.Id,
+					Name = workflow.Name,
+				};
+
+				ReportError(workflow.Id, error);
+			}
+		}
+
+		private void ValidatePreRoll(ICollection<Workflow> apiWorkflows)
+		{
+			if (apiWorkflows == null)
+			{
+				throw new ArgumentNullException(nameof(apiWorkflows));
+			}
+
+			if (apiWorkflows.Count == 0)
+			{
+				return;
+			}
+
+			foreach (var workflow in apiWorkflows.Where(x => x.PreRoll < TimeSpan.Zero))
+			{
+				var error = new WorkflowInvalidPreRollError
+				{
+					ErrorMessage = "Pre-roll cannot be negative.",
+					Id = workflow.Id,
+					PreRoll = workflow.PreRoll,
+				};
+
+				ReportError(workflow.Id, error);
+			}
+		}
+
+		private void ValidatePostRoll(ICollection<Workflow> apiWorkflows)
+		{
+			if (apiWorkflows == null)
+			{
+				throw new ArgumentNullException(nameof(apiWorkflows));
+			}
+
+			if (apiWorkflows.Count == 0)
+			{
+				return;
+			}
+
+			foreach (var workflow in apiWorkflows.Where(x => x.PostRoll < TimeSpan.Zero))
+			{
+				var error = new WorkflowInvalidPostRollError
+				{
+					ErrorMessage = "Post-roll cannot be negative.",
+					Id = workflow.Id,
+					PostRoll = workflow.PostRoll,
+				};
+
+				ReportError(workflow.Id, error);
+			}
+		}
+
+		private void ValidateNodeGraph(ICollection<Workflow> apiWorkflows)
+		{
+			if (apiWorkflows == null)
+			{
+				throw new ArgumentNullException(nameof(apiWorkflows));
+			}
+
+			if (apiWorkflows.Count == 0)
+			{
+				return;
+			}
+
 		}
 
 		private ICollection<DomChangeResults> GetWorkflowsWithChanges(ICollection<Workflow> apiWorkflows)
