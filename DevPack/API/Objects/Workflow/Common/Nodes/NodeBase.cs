@@ -48,6 +48,28 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// </summary>
 		public OrchestrationSettings OrchestrationSettings { get; private set; }
 
+		/// <summary>
+		/// Determines whether this node represents a resource and, if so, returns it as an <see cref="IResourceNode"/>.
+		/// </summary>
+		/// <param name="resourceNode">When this method returns, contains the current node as an <see cref="IResourceNode"/> when it represents a resource; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this node represents a resource; otherwise, <c>false</c>.</returns>
+		public bool IsResourceNode(out IResourceNode resourceNode)
+		{
+			resourceNode = this as IResourceNode;
+			return resourceNode != null;
+		}
+
+		/// <summary>
+		/// Determines whether this node represents a resource pool and, if so, returns it as an <see cref="IResourcePoolNode"/>.
+		/// </summary>
+		/// <param name="resourcePoolNode">When this method returns, contains the current node as an <see cref="IResourcePoolNode"/> when it represents a resource pool; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this node represents a resource pool; otherwise, <c>false</c>.</returns>
+		public bool IsResourcePoolNode(out IResourcePoolNode resourcePoolNode)
+		{
+			resourcePoolNode = this as IResourcePoolNode;
+			return resourcePoolNode != null;
+		}
+
 		/// <inheritdoc/>
 		public override bool Equals(object obj)
 		{
