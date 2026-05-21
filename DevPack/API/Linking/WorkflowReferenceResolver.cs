@@ -2,6 +2,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Linq;
 
 	/// <summary>
 	/// A <see cref="ReferenceResolver"/> that resolves <see cref="DataReference"/> instances in the context
@@ -11,6 +12,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	public class WorkflowReferenceResolver : ReferenceResolver
 	{
 		private readonly Lazy<IDictionary<Guid, PropertyValueBase>> _lazyPropertyValues;
+		private readonly IDictionary<Guid, Resource> _resourceCache;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="WorkflowReferenceResolver"/> class.
@@ -22,6 +24,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			Workflow = workflow ?? throw new ArgumentNullException(nameof(workflow));
 
 			_lazyPropertyValues = new Lazy<IDictionary<Guid, PropertyValueBase>>(() => ReadPropertyValues(workflow.Id));
+			_resourceCache = new Dictionary<Guid, Resource>();
 		}
 
 		/// <summary>
@@ -59,7 +62,31 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return null;
 			}
 
-			// TODO: return resource for the specified node ID
+			var node = Workflow.NodeGraph.Nodes.FirstOrDefault(n => String.Equals(n.Id, reference.NodeId, StringComparison.OrdinalIgnoreCase));
+
+			if (node is IResourceNode resourceNode)
+			{
+				var resourceId = resourceNode.ResourceId;
+
+				if (resourceId == Guid.Empty)
+				{
+					return null;
+				}
+
+				if (_resourceCache.TryGetValue(resourceId, out var cachedResource))
+				{
+					return cachedResource;
+				}
+
+				var resource = PlanApi.Resources.Read(resourceId);
+				if (resource != null)
+				{
+					_resourceCache[resourceId] = resource;
+				}
+
+				return resource;
+			}
+
 			return null;
 		}
 
@@ -71,7 +98,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return Workflow.OrchestrationSettings;
 			}
 
-			// TODO: return orchestration settings for the specified node ID
+			var node = Workflow.NodeGraph.Nodes.FirstOrDefault(n => String.Equals(n.Id, reference.NodeId, StringComparison.OrdinalIgnoreCase));
+			if (node != null)
+			{
+				return node.OrchestrationSettings;
+			}
+
 			return null;
 		}
 	}

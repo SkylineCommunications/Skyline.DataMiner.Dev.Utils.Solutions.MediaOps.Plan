@@ -14,6 +14,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		private readonly Lazy<Workflow> _lazyWorkflow;
 		private readonly Lazy<IDictionary<Guid, PropertyValueBase>> _lazyJobPropertyValues;
 		private readonly Lazy<IDictionary<Guid, PropertyValueBase>> _lazyWorkflowPropertyValues;
+		private readonly IDictionary<Guid, Resource> _resourceCache;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="JobReferenceResolver"/> class.
@@ -27,6 +28,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			_lazyWorkflow = new Lazy<Workflow>(LoadWorkflow);
 			_lazyJobPropertyValues = new Lazy<IDictionary<Guid, PropertyValueBase>>(() => ReadPropertyValues(Job.Id));
 			_lazyWorkflowPropertyValues = new Lazy<IDictionary<Guid, PropertyValueBase>>(() => ReadPropertyValues(Workflow?.Id ?? Guid.Empty));
+			_resourceCache = new Dictionary<Guid, Resource>();
 		}
 
 		/// <summary>
@@ -91,7 +93,31 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return null;
 			}
 
-			// TODO: return resource for the specified node ID
+			var node = Job.NodeGraph.Nodes.FirstOrDefault(n => String.Equals(n.Id, reference.NodeId, StringComparison.OrdinalIgnoreCase));
+
+			if (node is IResourceNode resourceNode)
+			{
+				var resourceId = resourceNode.ResourceId;
+
+				if (resourceId == Guid.Empty)
+				{
+					return null;
+				}
+
+				if (_resourceCache.TryGetValue(resourceId, out var cachedResource))
+				{
+					return cachedResource;
+				}
+
+				var resource = PlanApi.Resources.Read(resourceId);
+				if (resource != null)
+				{
+					_resourceCache[resourceId] = resource;
+				}
+
+				return resource;
+			}
+
 			return null;
 		}
 
@@ -103,7 +129,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return Job.OrchestrationSettings;
 			}
 
-			// TODO: return orchestration settings for the specified node ID
+			var node = Job.NodeGraph.Nodes.FirstOrDefault(n => String.Equals(n.Id, reference.NodeId, StringComparison.OrdinalIgnoreCase));
+
+			if (node != null)
+			{
+				return node.OrchestrationSettings;
+			}
+
 			return null;
 		}
 
