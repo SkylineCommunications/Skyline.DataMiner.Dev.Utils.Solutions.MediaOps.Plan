@@ -64,7 +64,6 @@
 			ValidateNames(apiWorkflows);
 			ValidatePreRoll(apiWorkflows);
 			ValidatePostRoll(apiWorkflows);
-			ValidateNodeGraph(apiWorkflows);
 
 			var lockResult = planApi.LockManager.LockAndExecute(apiWorkflows.Where(IsValid).ToList(), CreateOrUpdateLocked);
 			ReportError(lockResult);
@@ -558,33 +557,6 @@
 				return;
 			}
 
-			var resourceIds = new HashSet<Guid>();
-			var resourcePoolIds = new HashSet<Guid>();
-
-			foreach (var workflow in apiWorkflows)
-			{
-				foreach (var node in workflow.NodeGraph.Nodes)
-				{
-					switch (node)
-					{
-						case IResourceNode r:
-							if (r.ResourceId != Guid.Empty) resourceIds.Add(r.ResourceId);
-							if (r.ResourcePoolId != Guid.Empty) resourcePoolIds.Add(r.ResourcePoolId);
-							break;
-						case IResourcePoolNode p:
-							if (p.ResourcePoolId != Guid.Empty) resourcePoolIds.Add(p.ResourcePoolId);
-							break;
-					}
-				}
-			}
-
-			var resourcesById = planApi.Resources.Read(resourceIds).ToDictionary(x => x.Id);
-			var resourcePoolsById = planApi.ResourcePools.Read(resourcePoolIds).ToDictionary(x => x.Id);
-
-			foreach (var workflow in apiWorkflows)
-			{
-				PassTraceData(WorkflowNodeGraphValidator.Validate(workflow.Id, workflow.NodeGraph, resourcesById, resourcePoolsById));
-			}
 		}
 
 		private ICollection<DomChangeResults> GetWorkflowsWithChanges(ICollection<Workflow> apiWorkflows)
