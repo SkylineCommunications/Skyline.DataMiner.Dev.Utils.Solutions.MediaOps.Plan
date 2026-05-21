@@ -11,18 +11,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// </summary>
 	public abstract class JobNode : NodeBase
 	{
-		/// <summary>
-		/// Initializes a new instance of the <see cref="JobNode"/> class with a new unique identifier.
-		/// </summary>
 		private protected JobNode() : base()
 		{
 		}
 
-		/// <summary>
-		/// Initializes a new instance of the <see cref="JobNode"/> class from a storage section.
-		/// </summary>
-		/// <param name="section">The storage workflow nodes section to parse.</param>
-		private protected JobNode(StorageWorkflow.NodesSection section) : base(section)
+		private protected JobNode(MediaOpsPlanApi planApi, StorageWorkflow.NodesSection section) : base(planApi, section)
 		{
 			ParseSection(section);
 		}

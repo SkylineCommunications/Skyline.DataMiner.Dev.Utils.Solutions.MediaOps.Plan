@@ -82,11 +82,6 @@
 		public string Notes { get; set; }
 
 		/// <summary>
-		/// Gets information about who has locked the workflow for editing. If the workflow is not locked, this property will be null or empty.
-		/// </summary>
-		public string LockedBy { get; private set; }
-
-		/// <summary>
 		/// Gets the state of the workflow.
 		/// </summary>
 		public WorkflowState State { get; private set; }
@@ -94,8 +89,11 @@
 		/// <summary>
 		/// Gets the orchestration settings assigned to this workflow.
 		/// </summary>
-		public OrchestrationSettings OrchestrationSettings { get; set; }
+		public OrchestrationSettings OrchestrationSettings { get; private set; }
 
+		/// <summary>
+		/// Gets the node graph containing all nodes and connections that define the workflow structure.
+		/// </summary>
 		public NodeGraph<WorkflowNode> NodeGraph { get; private set; }
 
 		internal StorageWorkflow.WorkflowsInstance OriginalInstance => originalInstance;
@@ -114,8 +112,8 @@
 				hash = (hash * 23) + PreRoll.GetHashCode();
 				hash = (hash * 23) + PostRoll.GetHashCode();
 				hash = (hash * 23) + (Notes != null ? Notes.GetHashCode() : 0);
-				hash = (hash * 23) + (LockedBy != null ? LockedBy.GetHashCode() : 0);
 				hash = (hash * 23) + (OrchestrationSettings != null ? OrchestrationSettings.GetHashCode() : 0);
+				hash = (hash * 23) + (NodeGraph != null ? NodeGraph.GetHashCode() : 0);
 				hash = (hash * 23) + State.GetHashCode();
 
 				return hash;
@@ -143,8 +141,8 @@
 				   PreRoll == other.PreRoll &&
 				   PostRoll == other.PostRoll &&
 				   Notes == other.Notes &&
-				   LockedBy == other.LockedBy &&
 				   OrchestrationSettings == other.OrchestrationSettings &&
+				   NodeGraph == other.NodeGraph &&
 				   State == other.State;
 		}
 
@@ -191,7 +189,6 @@
 			PreRoll = instance.WorkflowInfo.Preroll.HasValue ? instance.WorkflowInfo.Preroll.Value : TimeSpan.Zero;
 			PostRoll = instance.WorkflowInfo.Postroll.HasValue ? instance.WorkflowInfo.Postroll.Value : TimeSpan.Zero;
 			Notes = instance.WorkflowInfo.WorkflowNotes;
-			LockedBy = instance.WorkflowInfo.LockedBy;
 
 			Priority = instance.WorkflowInfo.Priority.HasValue ? EnumExtensions.MapEnum<StorageWorkflow.SlcWorkflowIds.Enums.Priority, WorkflowPriority>(instance.WorkflowInfo.Priority.Value) : WorkflowPriority.Normal;
 			State = EnumExtensions.MapEnum<StorageWorkflow.SlcWorkflowIds.Behaviors.Workflow_Behavior.StatusesEnum, WorkflowState>(instance.Status);
@@ -231,10 +228,10 @@
 				switch (nodeSecion.NodeType.Value)
 				{
 					case StorageWorkflow.SlcWorkflowIds.Enums.Nodetype.Resource:
-						node = new WorkflowResourceNode(nodeSecion);
+						node = new WorkflowResourceNode(planApi, nodeSecion);
 						break;
 					case StorageWorkflow.SlcWorkflowIds.Enums.Nodetype.ResourcePool:
-						node = new WorkflowResourcePoolNode(nodeSecion);
+						node = new WorkflowResourcePoolNode(planApi, nodeSecion);
 						break;
 					default:
 						planApi.Logger.Warning(this, $"Node with ID {nodeSecion.NodeID} has unsupported node type {nodeSecion.NodeType.Value}. This node will be ignored.");

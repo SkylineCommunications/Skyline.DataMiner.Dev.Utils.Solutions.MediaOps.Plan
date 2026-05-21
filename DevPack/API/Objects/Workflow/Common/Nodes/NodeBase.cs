@@ -1,6 +1,7 @@
 namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
+	using System.Linq;
 
 	using StorageWorkflow = Storage.DOM.SlcWorkflow;
 
@@ -13,23 +14,18 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		private StorageWorkflow.NodesSection originalSection;
 		private StorageWorkflow.NodesSection updatedSection;
 
-		/// <summary>
-		/// Initializes a new instance of the <see cref="NodeBase"/> class with a new unique identifier.
-		/// </summary>
 		private protected NodeBase() : base()
 		{
 			Id = Guid.NewGuid().ToString();
 
 			IsNew = true;
+
+			OrchestrationSettings = new WorkflowOrchestrationSettings();
 		}
 
-		/// <summary>
-		/// Initializes a new instance of the <see cref="NodeBase"/> class from a storage section.
-		/// </summary>
-		/// <param name="section">The storage workflow nodes section to parse.</param>
-		private protected NodeBase(StorageWorkflow.NodesSection section)
+		private protected NodeBase(MediaOpsPlanApi planApi, StorageWorkflow.NodesSection section)
 		{
-			ParseSection(section);
+			ParseSection(planApi, section);
 		}
 
 		/// <summary>
@@ -46,6 +42,40 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Gets or sets the icon of the node.
 		/// </summary>
 		public string IconImage { get; set; }
+
+		/// <summary>
+		/// Gets the orchestration settings assigned to this node.
+		/// </summary>
+		public OrchestrationSettings OrchestrationSettings { get; private set; }
+
+		/// <inheritdoc/>
+		public override bool Equals(object obj)
+		{
+			if (obj is not NodeBase other)
+			{
+				return false;
+			}
+
+			return Id == other.Id
+				&& Alias == other.Alias
+				&& IconImage == other.IconImage
+				&& OrchestrationSettings == other.OrchestrationSettings;
+		}
+
+		/// <inheritdoc/>
+		public override int GetHashCode()
+		{
+			unchecked
+			{
+				var hash = 17;
+				hash = (hash * 23) + Id.GetHashCode();
+				hash = (hash * 23) + (Alias != null ? Alias.GetHashCode() : 0);
+				hash = (hash * 23) + (IconImage != null ? IconImage.GetHashCode() : 0);
+				hash = (hash * 23) + (OrchestrationSettings != null ? OrchestrationSettings.GetHashCode() : 0);
+
+				return hash;
+			}
+		}
 
 		/// <summary>
 		/// Applies changes from this node to the specified storage section.
@@ -69,8 +99,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					: originalSection.Clone();
 			}
 
-			originalSection.NodeAlias = Alias;
-			originalSection.NodeIcon = IconImage;
+			updatedSection.NodeAlias = Alias;
+			updatedSection.NodeIcon = IconImage;
+
+			updatedSection.NodeConfiguration = OrchestrationSettings.Id;
 
 			return updatedSection;
 		}
@@ -80,13 +112,30 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// </summary>
 		/// <param name="section">The storage workflow nodes section to parse.</param>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="section"/> is null.</exception>
-		private void ParseSection(StorageWorkflow.NodesSection section)
+		private void ParseSection(MediaOpsPlanApi planApi, StorageWorkflow.NodesSection section)
 		{
 			originalSection = section ?? throw new ArgumentNullException(nameof(section));
 
 			Id = section.NodeID;
 			Alias = section.NodeAlias;
 			IconImage = section.NodeIcon;
+
+			if (section.NodeConfiguration == null || section.NodeConfiguration == Guid.Empty)
+			{
+				OrchestrationSettings = new WorkflowOrchestrationSettings();
+			}
+			else
+			{
+				var domConfiguration = planApi.DomHelpers.SlcWorkflowHelper.GetConfigurations([section.NodeConfiguration.Value]).FirstOrDefault();
+				if (domConfiguration != null)
+				{
+					OrchestrationSettings = new WorkflowOrchestrationSettings(planApi, domConfiguration);
+				}
+				else
+				{
+					OrchestrationSettings = new WorkflowOrchestrationSettings();
+				}
+			}
 		}
 	}
 }

@@ -4,7 +4,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 	using StorageWorkflow = Storage.DOM.SlcWorkflow;
 
-	public class JobResourceNode : JobNode
+	public class JobResourceNode : JobNode, IResourceNode
     {
 		public JobResourceNode(ResourcePool resourcePool, Resource resource)
 			: this(resourcePool?.Id ?? throw new ArgumentNullException(nameof(resourcePool)), resource?.Id ?? throw new ArgumentNullException(nameof(resource)))
@@ -37,20 +37,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			ResourceId = resourceId;
 		}
 
-		internal JobResourceNode(StorageWorkflow.NodesSection section) : base(section)
+		internal JobResourceNode(MediaOpsPlanApi planApi, StorageWorkflow.NodesSection section) : base(planApi, section)
 		{
 			ParseSection(section);
 			InitTracking();
 		}
 
-		/// <summary>
-		/// Gets the unique identifier of the resource pool associated with this node.
-		/// </summary>
+		/// <inheritdoc/>
 		public Guid ResourcePoolId { get; private set; }
 
-		/// <summary>
-		/// Gets the unique identifier of the resource associated with this node.
-		/// </summary>
+		/// <inheritdoc/>
 		public Guid ResourceId { get; private set; }
 
 		internal override void ApplyChanges(StorageWorkflow.NodesSection section)

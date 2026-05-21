@@ -4,6 +4,8 @@
 	using System.Collections.Generic;
 	using System.Linq;
 
+	using Skyline.DataMiner.Net.Helper;
+
 	/// <summary>
 	/// Represents a directed graph of nodes with connections between them.
 	/// </summary>
@@ -188,6 +190,37 @@
 			}
 
 			return connections.Where(c => c.To == node);
+		}
+
+		/// <inheritdoc/>
+		public override bool Equals(object obj)
+		{
+			if (obj is not NodeGraph<TNode> other)
+			{
+				return false;
+			}
+
+			return nodes.ScrambledEquals(other.nodes) && connections.ScrambledEquals(other.connections);
+		}
+
+		/// <inheritdoc/>
+		public override int GetHashCode()
+		{
+			unchecked
+			{
+				int hash = 17;
+				foreach (var node in nodes.OrderBy(x => x.Id).ToArray())
+				{
+					hash = hash * 31 + (node?.GetHashCode() ?? 0);
+				}
+
+				foreach (var connection in connections.OrderBy(x => x.Id).ToArray())
+				{
+					hash = hash * 31 + (connection?.GetHashCode() ?? 0);
+				}
+
+				return hash;
+			}
 		}
 	}
 }
