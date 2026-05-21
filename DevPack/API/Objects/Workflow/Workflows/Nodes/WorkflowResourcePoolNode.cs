@@ -44,6 +44,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		public Guid ResourcePoolId { get; private set; }
 
 		/// <inheritdoc/>
+		public override bool IsResourcePoolNode => true;
+
+		/// <inheritdoc/>
 		public override bool Equals(object obj)
 		{
 			if (obj is not WorkflowResourceNode other)

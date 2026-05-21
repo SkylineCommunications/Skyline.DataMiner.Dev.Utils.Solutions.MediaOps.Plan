@@ -48,6 +48,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// </summary>
 		public OrchestrationSettings OrchestrationSettings { get; private set; }
 
+		/// <summary>
+		/// Gets a value indicating whether this node represents a resource.
+		/// </summary>
+		public virtual bool IsResourceNode => false;
+
+		/// <summary>
+		/// Gets a value indicating whether this node represents a resource pool.
+		/// </summary>
+		public virtual bool IsResourcePoolNode => false;
+
 		/// <inheritdoc/>
 		public override bool Equals(object obj)
 		{
