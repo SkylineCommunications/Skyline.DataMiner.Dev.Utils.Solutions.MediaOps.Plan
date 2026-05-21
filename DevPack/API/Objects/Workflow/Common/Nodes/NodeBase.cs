@@ -9,7 +9,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// Base class for all node implementations in workflows, jobs, and recurring jobs.
 	/// This class represents common node properties used across different contexts.
 	/// </summary>
-	public abstract class NodeBase : TrackableObject
+	public abstract class NodeBase : TrackableObject, INode
 	{
 		private StorageWorkflow.NodesSection originalSection;
 		private StorageWorkflow.NodesSection updatedSection;
@@ -28,9 +28,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			ParseSection(planApi, section);
 		}
 
-		/// <summary>
-		/// Gets the unique identifier of the node, which is assigned by the system and cannot be modified by users.
-		/// </summary>
+		/// <inheritdoc/>
 		public string Id { get; private set; }
 
 		/// <summary>
@@ -104,14 +102,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			updatedSection.NodeConfiguration = OrchestrationSettings.Id;
 
+			ApplyChanges(updatedSection);
+
 			return updatedSection;
 		}
 
-		/// <summary>
-		/// Parses properties from the specified storage section.
-		/// </summary>
-		/// <param name="section">The storage workflow nodes section to parse.</param>
-		/// <exception cref="ArgumentNullException">Thrown when <paramref name="section"/> is null.</exception>
 		private void ParseSection(MediaOpsPlanApi planApi, StorageWorkflow.NodesSection section)
 		{
 			originalSection = section ?? throw new ArgumentNullException(nameof(section));

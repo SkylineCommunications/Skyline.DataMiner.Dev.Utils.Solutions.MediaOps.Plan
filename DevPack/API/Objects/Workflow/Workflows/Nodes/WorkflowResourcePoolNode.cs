@@ -46,7 +46,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <inheritdoc/>
 		public override bool Equals(object obj)
 		{
-			if (obj is not WorkflowResourceNode other)
+			if (obj is not WorkflowResourcePoolNode other)
 			{
 				return false;
 			}
