@@ -1,7 +1,8 @@
-﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions
+namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Linq;
 
 	/// <summary>
 	/// Contains the successfully handled items and the <see cref="MediaOpsTraceData"/> per item.
@@ -50,7 +51,18 @@
 
 		internal void ThrowSingleException(Guid key)
 		{
-			throw new MediaOpsException(TraceDataPerItem[key]);
+			if (TraceDataPerItem.TryGetValue(key, out var traceData))
+			{
+				throw new MediaOpsException(traceData);
+			}
+
+			var fallbackTraceData = TraceDataPerItem.Values.FirstOrDefault();
+			if (fallbackTraceData != null)
+			{
+				throw new MediaOpsException(fallbackTraceData);
+			}
+
+			throw new MediaOpsException($"Operation failed for item with ID '{key}', but no detailed error information is available.");
 		}
 	}
 }
