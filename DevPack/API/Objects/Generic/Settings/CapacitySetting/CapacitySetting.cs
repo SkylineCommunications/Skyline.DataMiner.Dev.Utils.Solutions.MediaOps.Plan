@@ -40,5 +40,27 @@
 		/// Gets the unique identifier of the capacity.
 		/// </summary>
 		public new Guid Id { get => base.Id; internal set => base.Id = value; }
+
+		/// <summary>
+		/// Determines whether this capacity setting represents a numeric capacity and, if so, returns it as a <see cref="NumberCapacitySetting"/>.
+		/// </summary>
+		/// <param name="setting">When this method returns, contains the current capacity setting as a <see cref="NumberCapacitySetting"/> when it represents a numeric capacity; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this capacity setting represents a numeric capacity; otherwise, <c>false</c>.</returns>
+		public bool IsNumberCapacity(out NumberCapacitySetting setting)
+		{
+			setting = this as NumberCapacitySetting;
+			return setting != null;
+		}
+
+		/// <summary>
+		/// Determines whether this capacity setting represents a range capacity and, if so, returns it as a <see cref="RangeCapacitySetting"/>.
+		/// </summary>
+		/// <param name="setting">When this method returns, contains the current capacity setting as a <see cref="RangeCapacitySetting"/> when it represents a range capacity; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this capacity setting represents a range capacity; otherwise, <c>false</c>.</returns>
+		public bool IsRangeCapacity(out RangeCapacitySetting setting)
+		{
+			setting = this as RangeCapacitySetting;
+			return setting != null;
+		}
 	}
 }
