@@ -4,7 +4,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 	using StorageWorkflow = Storage.DOM.SlcWorkflow;
 
-	public class RecurringJobResourcePoolNode : RecurringJobNode
+	public class RecurringJobResourcePoolNode : RecurringJobNode, IResourcePoolNode
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="RecurringJobResourcePoolNode"/> class.
@@ -12,6 +12,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
         public RecurringJobResourcePoolNode() : base()
         {
 		}
+
+		/// <inheritdoc/>
+		public Guid ResourcePoolId { get; private set; }
 
 		/// <inheritdoc/>
 		public override bool IsResourcePoolNode => true;

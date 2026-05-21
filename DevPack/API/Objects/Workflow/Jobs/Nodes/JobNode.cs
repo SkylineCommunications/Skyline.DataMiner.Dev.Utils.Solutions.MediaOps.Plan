@@ -46,6 +46,18 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		internal Guid CoreReservationId { get; private set; }
 
 		/// <summary>
+		/// Returns this node as a <see cref="JobResourceNode"/> when it represents a resource; otherwise, <c>null</c>.
+		/// </summary>
+		/// <returns>The current node as a <see cref="JobResourceNode"/>, or <c>null</c> when this node does not represent a resource.</returns>
+		public new JobResourceNode AsResourceNode() => this as JobResourceNode;
+
+		/// <summary>
+		/// Returns this node as a <see cref="JobResourcePoolNode"/> when it represents a resource pool; otherwise, <c>null</c>.
+		/// </summary>
+		/// <returns>The current node as a <see cref="JobResourcePoolNode"/>, or <c>null</c> when this node does not represent a resource pool.</returns>
+		public new JobResourcePoolNode AsResourcePoolNode() => this as JobResourcePoolNode;
+
+		/// <summary>
 		/// Parses properties from the specified storage section.
 		/// </summary>
 		/// <param name="section">The storage workflow nodes section to parse.</param>
