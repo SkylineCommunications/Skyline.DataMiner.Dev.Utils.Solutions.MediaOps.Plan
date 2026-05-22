@@ -8,16 +8,16 @@
 		/// <summary>
 		/// High priority workflow.
 		/// </summary>
-		High,
+		High = 1,
 
 		/// <summary>
 		/// Normal priority workflow.
 		/// </summary>
-		Normal,
+		Normal = 2,
 
 		/// <summary>
 		/// Low priority workflow.
 		/// </summary>
-		Low,
+		Low = 3,
 	}
 }
