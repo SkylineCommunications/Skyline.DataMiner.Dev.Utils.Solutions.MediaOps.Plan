@@ -132,11 +132,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					}
 			}
 
-			if (!String.IsNullOrEmpty(reference.NodeId))
+			if (!String.IsNullOrEmpty(reference.NodeId) &&
+				TryGetNodeDisplayInfo(reference.NodeId, out var nodeDisplayName))
 			{
-				displayString += TryGetNodeDisplayInfo(reference.NodeId, out var nodeDisplayName)
-					? $" ({nodeDisplayName})"
-					: $" ({reference.NodeId})";
+				displayString += $" ({nodeDisplayName})";
 			}
 
 			return displayString;
