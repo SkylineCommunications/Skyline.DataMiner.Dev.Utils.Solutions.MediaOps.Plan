@@ -302,6 +302,139 @@
 		}
 
 		[TestMethod]
+		public void CreateWithEmptyNameThrowsException()
+		{
+			var job = new Job
+			{
+				Key = $"{Guid.NewGuid()}_Key",
+				Name = "   ",
+				Start = DateTime.UtcNow,
+				End = DateTime.UtcNow.AddMinutes(5),
+			};
+
+			try
+			{
+				objectCreator.CreateJob(job);
+			}
+			catch (MediaOpsException ex)
+			{
+				var error = ex.TraceData.ErrorData.OfType<JobInvalidNameError>().SingleOrDefault();
+				Assert.IsNotNull(error, "Expected JobInvalidNameError.");
+				Assert.AreEqual(job.Id, error.Id);
+				return;
+			}
+
+			Assert.Fail("Expected MediaOpsException was not thrown.");
+		}
+
+		[TestMethod]
+		public void CreateWithKeyExceedingMaxLengthThrowsException()
+		{
+			var job = new Job
+			{
+				Key = new string('a', 151),
+				Name = $"{Guid.NewGuid()}_Job",
+				Start = DateTime.UtcNow,
+				End = DateTime.UtcNow.AddMinutes(5),
+			};
+
+			try
+			{
+				objectCreator.CreateJob(job);
+			}
+			catch (MediaOpsException ex)
+			{
+				var error = ex.TraceData.ErrorData.OfType<JobInvalidKeyError>().SingleOrDefault();
+				Assert.IsNotNull(error, "Expected JobInvalidKeyError.");
+				Assert.AreEqual(job.Id, error.Id);
+				Assert.AreEqual(job.Key, error.Key);
+				return;
+			}
+
+			Assert.Fail("Expected MediaOpsException was not thrown.");
+		}
+
+		[TestMethod]
+		public void CreateWithEndBeforeStartThrowsException()
+		{
+			var start = DateTime.UtcNow;
+			var job = new Job
+			{
+				Name = $"{Guid.NewGuid()}_Job",
+				Start = start,
+				End = start.AddMinutes(-5),
+			};
+
+			try
+			{
+				objectCreator.CreateJob(job);
+			}
+			catch (MediaOpsException ex)
+			{
+				var error = ex.TraceData.ErrorData.OfType<JobInvalidTimingError>().SingleOrDefault();
+				Assert.IsNotNull(error, "Expected JobInvalidTimingError.");
+				Assert.AreEqual(job.Id, error.Id);
+				return;
+			}
+
+			Assert.Fail("Expected MediaOpsException was not thrown.");
+		}
+
+		[TestMethod]
+		public void CreateWithDescriptionExceedingMaxSizeThrowsException()
+		{
+			var job = new Job
+			{
+				Name = $"{Guid.NewGuid()}_Job",
+				Description = new string('a', 32767),
+				Start = DateTime.UtcNow,
+				End = DateTime.UtcNow.AddMinutes(5),
+			};
+
+			try
+			{
+				objectCreator.CreateJob(job);
+			}
+			catch (MediaOpsException ex)
+			{
+				var error = ex.TraceData.ErrorData.OfType<JobInvalidDescriptionError>().SingleOrDefault();
+				Assert.IsNotNull(error, "Expected JobInvalidDescriptionError.");
+				Assert.AreEqual(job.Id, error.Id);
+				Assert.AreEqual(job.Description, error.Description);
+				return;
+			}
+
+			Assert.Fail("Expected MediaOpsException was not thrown.");
+		}
+
+		[TestMethod]
+		public void CreateWithNotesExceedingMaxSizeThrowsException()
+		{
+			var job = new Job
+			{
+				Name = $"{Guid.NewGuid()}_Job",
+				Notes = new string('a', 32767),
+				Start = DateTime.UtcNow,
+				End = DateTime.UtcNow.AddMinutes(5),
+			};
+
+			try
+			{
+				objectCreator.CreateJob(job);
+			}
+			catch (MediaOpsException ex)
+			{
+				var error = ex.TraceData.ErrorData.OfType<JobInvalidNotesError>().SingleOrDefault();
+				Assert.IsNotNull(error, "Expected JobInvalidNotesError.");
+				Assert.AreEqual(job.Id, error.Id);
+				Assert.AreEqual(job.Notes, error.Notes);
+				return;
+			}
+
+			Assert.Fail("Expected MediaOpsException was not thrown.");
+		}
+
+		[TestMethod]
 		public void CreateWithNegativePreRollThrowsException()
 		{
 			var job = new Job
