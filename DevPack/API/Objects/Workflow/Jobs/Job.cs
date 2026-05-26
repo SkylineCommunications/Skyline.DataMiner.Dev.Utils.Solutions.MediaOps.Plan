@@ -93,11 +93,6 @@
 		public string Notes { get; set; }
 
 		/// <summary>
-		/// Gets the workflow ID associated with the job.
-		/// </summary>
-		public Guid WorkflowId { get; internal set; }
-
-		/// <summary>
 		/// Gets the state of the job.
 		/// </summary>
 		public JobState State { get; private set; }
@@ -121,8 +116,18 @@
 			{
 				int hash = 17;
 				hash = (hash * 23) + Id.GetHashCode();
+				hash = (hash * 23) + (Key != null ? Key.GetHashCode() : 0);
 				hash = (hash * 23) + (Name != null ? Name.GetHashCode() : 0);
+				hash = (hash * 23) + (Description != null ? Description.GetHashCode() : 0);
+				hash = (hash * 23) + Priority.GetHashCode();
+				hash = (hash * 23) + Start.GetHashCode();
+				hash = (hash * 23) + End.GetHashCode();
+				hash = (hash * 23) + PreRoll.GetHashCode();
+				hash = (hash * 23) + PostRoll.GetHashCode();
+				hash = (hash * 23) + (Notes != null ? Notes.GetHashCode() : 0);
 				hash = (hash * 23) + (OrchestrationSettings != null ? OrchestrationSettings.GetHashCode() : 0);
+				hash = (hash * 23) + (NodeGraph != null ? NodeGraph.GetHashCode() : 0);
+				hash = (hash * 23) + State.GetHashCode();
 
 				return hash;
 			}
@@ -138,7 +143,17 @@
 
 			return Id == other.Id &&
 				   Name == other.Name &&
-				   OrchestrationSettings == other.OrchestrationSettings;
+				   Key == other.Key &&
+				   Description == other.Description &&
+				   Priority == other.Priority &&
+				   Start == other.Start &&
+				   End == other.End &&
+				   PreRoll == other.PreRoll &&
+				   PostRoll == other.PostRoll &&
+				   Notes == other.Notes &&
+				   OrchestrationSettings == other.OrchestrationSettings &&
+				   NodeGraph == other.NodeGraph &&
+				   State == other.State;
 		}
 
 		internal StorageWorkflow.JobsInstance GetInstanceWithChanges()
@@ -156,7 +171,6 @@
 			updatedInstance.JobInfo.Preroll = PreRoll != TimeSpan.Zero ? Start.Add(-PreRoll).UtcDateTime : Start.UtcDateTime;
 			updatedInstance.JobInfo.Postroll = PostRoll != TimeSpan.Zero ? End.Add(PostRoll).UtcDateTime : End.UtcDateTime;
 			updatedInstance.JobInfo.JobNotes = Notes;
-			updatedInstance.JobInfo.Workflow = WorkflowId != Guid.Empty ? WorkflowId : null;
 
 			updatedInstance.JobExecution.JobConfiguration = OrchestrationSettings.Id;
 
@@ -209,7 +223,6 @@
 			PreRoll = instance.JobInfo.Preroll.HasValue ? (Start - instance.JobInfo.Preroll.Value) : TimeSpan.Zero;
 			PostRoll = instance.JobInfo.Postroll.HasValue ? (instance.JobInfo.Postroll.Value - End) : TimeSpan.Zero;
 			Notes = instance.JobInfo.JobNotes;
-			WorkflowId = instance.JobInfo.Workflow ?? Guid.Empty;
 
 			Priority = instance.JobInfo.JobPriority.HasValue
 				? EnumExtensions.MapEnum<StorageWorkflow.SlcWorkflowIds.Enums.Jobpriority, JobPriority>(instance.JobInfo.JobPriority.Value)
