@@ -33,6 +33,16 @@
 			return !result.HasFailures;
 		}
 
+		internal static bool TryComplete(MediaOpsPlanApi planApi, ICollection<Workflow> apiWorkflows, out DomInstanceBulkOperationResult<DomWorkflow> result)
+		{
+			var handler = new DomWorkflowHandler(planApi);
+			handler.TransitionToCompleted(apiWorkflows);
+
+			result = new DomInstanceBulkOperationResult<DomWorkflow>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+
+			return !result.HasFailures;
+		}
+
 		internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<Workflow> apiWorkflows, out DomInstanceBulkOperationResult<DomWorkflow> result)
 		{
 			var handler = new DomWorkflowHandler(planApi);
@@ -56,10 +66,8 @@
 			}
 
 			var toCreate = apiWorkflows.Where(x => x.IsNew).ToList();
-			var toUpdate = apiWorkflows.Except(toCreate).ToList();
 
 			ValidateIdsNotInUse(toCreate);
-			ValidateStateForUpdateAction(toUpdate);
 
 			ValidateNames(apiWorkflows);
 			ValidatePreRoll(apiWorkflows);
@@ -187,6 +195,35 @@
 				if (domResult.TraceDataPerItem.TryGetValue(id, out var traceData))
 				{
 					PassTraceData(jobId, traceData);
+				}
+			}
+		}
+
+		private void TransitionToCompleted(ICollection<Workflow> apiWorkflows)
+		{
+			if (apiWorkflows == null)
+			{
+				throw new ArgumentNullException(nameof(apiWorkflows));
+			}
+
+			if (apiWorkflows.Count == 0)
+			{
+				return;
+			}
+
+			ValidateStateForCompleteAction(apiWorkflows);
+
+			var toTransition = apiWorkflows.Where(IsValid).ToList();
+			foreach (var workflow in toTransition)
+			{
+				try
+				{
+					var transitionedInstance = planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.DoStatusTransition(workflow.OriginalInstance.ID, SlcWorkflowIds.Behaviors.Workflow_Behavior.Transitions.Draft_To_Complete);
+					ReportSuccess(new DomWorkflow(transitionedInstance));
+				}
+				catch (Exception ex)
+				{
+					ReportError(workflow.Id, new MediaOpsErrorData() { ErrorMessage = ex.ToString() });
 				}
 			}
 		}
@@ -320,30 +357,6 @@
 			}
 		}
 
-		private void ValidateStateForUpdateAction(ICollection<Workflow> apiWorkflows)
-		{
-			if (apiWorkflows == null)
-			{
-				throw new ArgumentNullException(nameof(apiWorkflows));
-			}
-
-			if (apiWorkflows.Count == 0)
-			{
-				return;
-			}
-
-			foreach (var workflow in apiWorkflows.Where(x => x.State == WorkflowState.Obsolete))
-			{
-				var error = new WorkflowInvalidStateError
-				{
-					ErrorMessage = "Not allowed to update a workfow in Obsolete state.",
-					Id = workflow.Id,
-				};
-
-				ReportError(workflow.Id, error);
-			}
-		}
-
 		private void ValidateStateForCompleteAction(ICollection<Workflow> apiWorkflows)
 		{
 			if (apiWorkflows == null)
@@ -361,30 +374,6 @@
 				var error = new WorkflowInvalidStateError
 				{
 					ErrorMessage = "Not allowed to complete a workflow that is not in Draft state.",
-					Id = workflow.Id,
-				};
-
-				ReportError(workflow.Id, error);
-			}
-		}
-
-		private void ValidateStateForObsoleteAction(ICollection<Workflow> apiWorkflows)
-		{
-			if (apiWorkflows == null)
-			{
-				throw new ArgumentNullException(nameof(apiWorkflows));
-			}
-
-			if (apiWorkflows.Count == 0)
-			{
-				return;
-			}
-
-			foreach (var workflow in apiWorkflows.Where(x => x.State != WorkflowState.Complete))
-			{
-				var error = new WorkflowInvalidStateError
-				{
-					ErrorMessage = "Not allowed to make a workflow obsolete that is not in Complete state.",
 					Id = workflow.Id,
 				};
 
@@ -410,19 +399,6 @@
 				var error = new WorkflowInvalidStateError
 				{
 					ErrorMessage = "Not allowed to delete a workflow that has not been created yet.",
-					Id = workflow.Id,
-				};
-
-				ReportError(workflow.Id, error);
-			}
-
-			foreach (var workflow in apiWorkflows
-				.Except(isNew)
-				.Where(x => !new[] {WorkflowState.Draft, WorkflowState.Obsolete}.Contains(x.State)))
-			{
-				var error = new WorkflowInvalidStateError
-				{
-					ErrorMessage = "Not allowed to delete a workflow that is not in Draft or Obsolete state.",
 					Id = workflow.Id,
 				};
 
