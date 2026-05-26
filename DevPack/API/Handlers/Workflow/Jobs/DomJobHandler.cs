@@ -3,7 +3,6 @@
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
-	using System.Runtime.Remoting.Metadata.W3cXsd2001;
 
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
@@ -660,25 +659,7 @@
 				return;
 			}
 
-			var resourceIds = new HashSet<Guid>();
-			var resourcePoolIds = new HashSet<Guid>();
-
-			foreach (var job in apiJobs)
-			{
-				foreach (var node in job.NodeGraph.Nodes)
-				{
-					switch (node)
-					{
-						case IResourceNode r:
-							if (r.ResourceId != Guid.Empty) resourceIds.Add(r.ResourceId);
-							if (r.ResourcePoolId != Guid.Empty) resourcePoolIds.Add(r.ResourcePoolId);
-							break;
-						case IResourcePoolNode p:
-							if (p.ResourcePoolId != Guid.Empty) resourcePoolIds.Add(p.ResourcePoolId);
-							break;
-					}
-				}
-			}
+			CollectReferencedIds(apiJobs, out var resourceIds, out var resourcePoolIds);
 
 			var resourcesById = planApi.Resources.Read(resourceIds).ToDictionary(x => x.Id);
 			var resourcePoolsById = planApi.ResourcePools.Read(resourcePoolIds).ToDictionary(x => x.Id);
@@ -686,6 +667,40 @@
 			foreach (var job in apiJobs)
 			{
 				PassTraceData(JobNodeGraphValidator.Validate(job.Id, job.NodeGraph, resourcesById, resourcePoolsById));
+			}
+		}
+
+		private static void CollectReferencedIds(ICollection<Job> apiJobs, out HashSet<Guid> resourceIds, out HashSet<Guid> resourcePoolIds)
+		{
+			resourceIds = new HashSet<Guid>();
+			resourcePoolIds = new HashSet<Guid>();
+
+			var allNodes = apiJobs.SelectMany(j => j.NodeGraph.Nodes);
+			foreach (var node in allNodes)
+			{
+				CollectNodeIds(node, resourceIds, resourcePoolIds);
+			}
+		}
+
+		private static void CollectNodeIds(JobNode node, HashSet<Guid> resourceIds, HashSet<Guid> resourcePoolIds)
+		{
+			switch (node)
+			{
+				case IResourceNode r:
+					AddIfNotEmpty(resourceIds, r.ResourceId);
+					AddIfNotEmpty(resourcePoolIds, r.ResourcePoolId);
+					break;
+				case IResourcePoolNode p:
+					AddIfNotEmpty(resourcePoolIds, p.ResourcePoolId);
+					break;
+			}
+		}
+
+		private static void AddIfNotEmpty(HashSet<Guid> set, Guid id)
+		{
+			if (id != Guid.Empty)
+			{
+				set.Add(id);
 			}
 		}
 
