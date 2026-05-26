@@ -548,7 +548,14 @@
 		[TestMethod]
 		public void DeleteUnknownIdDoesNotThrow()
 		{
-			TestContext.Api.Jobs.Delete(Guid.NewGuid());
+			try
+			{
+				TestContext.Api.Jobs.Delete(Guid.NewGuid());
+			}
+			catch (Exception ex)
+			{
+				Assert.Fail($"Expected no exception when deleting unknown job ID, but got: {ex}");
+			}
 		}
 
 		[TestMethod]
