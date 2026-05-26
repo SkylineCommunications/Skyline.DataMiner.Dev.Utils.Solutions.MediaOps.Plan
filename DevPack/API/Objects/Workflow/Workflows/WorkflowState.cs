@@ -14,10 +14,5 @@
 		/// The workflow is in complete state.
 		/// </summary>
 		Complete,
-
-		/// <summary>
-		/// The workflow is in obsolete state.
-		/// </summary>
-		Obsolete,
 	}
 }

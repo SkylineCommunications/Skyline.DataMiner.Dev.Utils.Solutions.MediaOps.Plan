@@ -17,6 +17,63 @@
 		{
 		}
 
+		public Workflow Complete(Workflow workflow)
+		{
+			if (workflow == null)
+			{
+				throw new ArgumentNullException(nameof(workflow));
+			}
+
+			return Complete(workflow.Id);
+		}
+
+		public Workflow Complete(Guid workflowId)
+		{
+			var workflow = Read(workflowId);
+			if (workflow == null)
+			{
+				return null;
+			}
+
+			if (!DomWorkflowHandler.TryComplete(PlanApi, [workflow], out var result))
+			{
+				result.ThrowSingleException(workflow.Id);
+			}
+
+			return new Workflow(PlanApi, result.SuccessfulItems.Single());
+		}
+
+		public IReadOnlyCollection<Workflow> Complete(IEnumerable<Workflow> workflows)
+		{
+			if (workflows == null)
+			{
+				throw new ArgumentNullException(nameof(workflows));
+			}
+
+			return Complete(workflows.Select(x => x.Id).ToArray());
+		}
+
+		public IReadOnlyCollection<Workflow> Complete(IEnumerable<Guid> workflowIds)
+		{
+			if (workflowIds == null)
+			{
+				throw new ArgumentNullException(nameof(workflowIds));
+			}
+
+			var workflows = Read(workflowIds.ToArray());
+			if (workflows == null || !workflows.Any())
+			{
+				return Array.Empty<Workflow>();
+			}
+
+			if (!DomWorkflowHandler.TryComplete(PlanApi, workflows.ToList(), out var result))
+			{
+				result.ThrowBulkException();
+			}
+
+			return result.SuccessfulItems.Select(x => new Workflow(PlanApi, x)).ToList();
+		}
+
 		public long Count()
 		{
 			return Count(new TRUEFilterElement<Workflow>());

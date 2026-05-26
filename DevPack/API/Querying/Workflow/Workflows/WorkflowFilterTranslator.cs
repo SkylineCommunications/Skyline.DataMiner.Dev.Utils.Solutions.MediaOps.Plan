@@ -10,7 +10,8 @@
 
 	internal class WorkflowFilterTranslator : DomInstanceFilterTranslator<Workflow>
 	{
-		private readonly FilterElement<DomInstance> workflowsDomDefinitionFilter = DomInstanceExposers.DomDefinitionId.Equal(SlcWorkflowIds.Definitions.Workflows.Id);
+		private readonly FilterElement<DomInstance> workflowsDomDefinitionFilter = DomInstanceExposers.DomDefinitionId.Equal(SlcWorkflowIds.Definitions.Workflows.Id)
+			.AND(DomInstanceExposers.StatusId.NotEqual(SlcWorkflowIds.Behaviors.Workflow_Behavior.Statuses.Obsolete));
 		private readonly Dictionary<string, Func<Comparer, object, FilterElement<DomInstance>>> handlers = new Dictionary<string, Func<Comparer, object, FilterElement<DomInstance>>>
 		{
 			[WorkflowExposers.Id.fieldName] = HandleGuid,
