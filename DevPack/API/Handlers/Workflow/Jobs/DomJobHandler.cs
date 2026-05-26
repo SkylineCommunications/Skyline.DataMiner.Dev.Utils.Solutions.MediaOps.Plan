@@ -649,11 +649,11 @@
 				toValidate.Remove(job);
 			}
 
-			foreach (var job in toValidate.Where(x => x.PreRoll.TotalMinutes % 1 != 0))
+			foreach (var job in toValidate.Where(x => x.PreRoll.Ticks % TimeSpan.TicksPerSecond != 0))
 			{
 				var error = new JobInvalidPreRollError
 				{
-					ErrorMessage = "Pre-roll must be a multiple of minutes.",
+					ErrorMessage = "Pre-roll must be a multiple of seconds.",
 					Id = job.Id,
 					PreRoll = job.PreRoll,
 				};
@@ -689,11 +689,11 @@
 				toValidate.Remove(job);
 			}
 
-			foreach (var job in toValidate.Where(x => x.PostRoll.TotalMinutes % 1 != 0))
+			foreach (var job in toValidate.Where(x => x.PostRoll.Ticks % TimeSpan.TicksPerSecond != 0))
 			{
 				var error = new JobInvalidPostRollError
 				{
-					ErrorMessage = "Post-roll must be a multiple of minutes.",
+					ErrorMessage = "Post-roll must be a multiple of seconds.",
 					Id = job.Id,
 					PostRoll = job.PostRoll,
 				};

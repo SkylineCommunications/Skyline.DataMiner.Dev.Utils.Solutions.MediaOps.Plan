@@ -426,14 +426,15 @@
 		}
 
 		[TestMethod]
-		public void CreateWithPreRollNotMultipleOfMinutesThrowsException()
+		public void CreateWithPreRollNotMultipleOfSecondsThrowsException()
 		{
+			var preRoll = TimeSpan.FromMilliseconds(1500); // 1.5 seconds — not a whole second
 			var job = new Job
 			{
 				Name = $"{Guid.NewGuid()}_Job",
 				Start = DateTime.UtcNow,
 				End = DateTime.UtcNow.AddMinutes(5),
-				PreRoll = TimeSpan.FromSeconds(90), // 1.5 minutes — not a whole minute
+				PreRoll = preRoll,
 			};
 
 			try
@@ -445,7 +446,7 @@
 				var error = ex.TraceData.ErrorData.OfType<JobInvalidPreRollError>().SingleOrDefault();
 				Assert.IsNotNull(error, "Expected JobInvalidPreRollError.");
 				Assert.AreEqual(job.Id, error.Id);
-				Assert.AreEqual(TimeSpan.FromSeconds(90), error.PreRoll);
+				Assert.AreEqual(preRoll, error.PreRoll);
 				return;
 			}
 
@@ -453,14 +454,15 @@
 		}
 
 		[TestMethod]
-		public void CreateWithPostRollNotMultipleOfMinutesThrowsException()
+		public void CreateWithPostRollNotMultipleOfSecondsThrowsException()
 		{
+			var postRoll = TimeSpan.FromMilliseconds(1500); // 1.5 seconds — not a whole second
 			var job = new Job
 			{
 				Name = $"{Guid.NewGuid()}_Job",
 				Start = DateTime.UtcNow,
 				End = DateTime.UtcNow.AddMinutes(5),
-				PostRoll = TimeSpan.FromSeconds(90), // 1.5 minutes — not a whole minute
+				PostRoll = postRoll,
 			};
 
 			try
@@ -472,7 +474,7 @@
 				var error = ex.TraceData.ErrorData.OfType<JobInvalidPostRollError>().SingleOrDefault();
 				Assert.IsNotNull(error, "Expected JobInvalidPostRollError.");
 				Assert.AreEqual(job.Id, error.Id);
-				Assert.AreEqual(TimeSpan.FromSeconds(90), error.PostRoll);
+				Assert.AreEqual(postRoll, error.PostRoll);
 				return;
 			}
 

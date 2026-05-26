@@ -563,11 +563,11 @@
 				toValidate.Remove(workflow);
 			}
 
-			foreach (var workflow in toValidate.Where(x => x.PreRoll.TotalMinutes % 1 != 0).ToArray())
+			foreach (var workflow in toValidate.Where(x => x.PreRoll.Ticks % TimeSpan.TicksPerSecond != 0).ToArray())
 			{
 				var error = new WorkflowInvalidPreRollError
 				{
-					ErrorMessage = "Pre-roll must be a multiple of minutes.",
+					ErrorMessage = "Pre-roll must be a multiple of seconds.",
 					Id = workflow.Id,
 					PreRoll = workflow.PreRoll,
 				};
@@ -604,11 +604,11 @@
 				toValidate.Remove(workflow);
 			}
 
-			foreach (var workflow in toValidate.Where(x => x.PostRoll.TotalMinutes % 1 != 0).ToArray())
+			foreach (var workflow in toValidate.Where(x => x.PostRoll.Ticks % TimeSpan.TicksPerSecond != 0).ToArray())
 			{
 				var error = new WorkflowInvalidPostRollError
 				{
-					ErrorMessage = "Post-roll must be a multiple of minutes.",
+					ErrorMessage = "Post-roll must be a multiple of seconds.",
 					Id = workflow.Id,
 					PostRoll = workflow.PostRoll,
 				};

@@ -243,13 +243,13 @@
 		}
 
 		[TestMethod]
-		public void Create_PreRollNotMultipleOfMinutes_Fails()
+		public void Create_PreRollNotMultipleOfSeconds_Fails()
 		{
 			var prefix = Guid.NewGuid();
 			var workflow = new Workflow
 			{
 				Name = $"{prefix}_Workflow",
-				PreRoll = TimeSpan.FromSeconds(90), // 1.5 minutes — not a whole minute
+				PreRoll = TimeSpan.FromMilliseconds(1500), // 1.5 seconds — not a whole second
 			};
 
 			try
@@ -265,13 +265,13 @@
 		}
 
 		[TestMethod]
-		public void Create_PostRollNotMultipleOfMinutes_Fails()
+		public void Create_PostRollNotMultipleOfSeconds_Fails()
 		{
 			var prefix = Guid.NewGuid();
 			var workflow = new Workflow
 			{
 				Name = $"{prefix}_Workflow",
-				PostRoll = TimeSpan.FromSeconds(90), // 1.5 minutes — not a whole minute
+				PostRoll = TimeSpan.FromMilliseconds(1500), // 1.5 seconds — not a whole second
 			};
 
 			try
