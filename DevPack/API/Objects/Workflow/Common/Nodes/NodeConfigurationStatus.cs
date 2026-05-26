@@ -5,10 +5,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
     /// </summary>
     public enum NodeConfigurationStatus
     {
-        /// <summary>
-        /// No configuration values are needed for this node.
-        /// </summary>
-        NoValuesNeeded = 0,
+		/// <summary>
+		/// The configuration status of the node is unknown.
+		/// </summary>
+		Unknown = -1,
+
+		/// <summary>
+		/// No configuration values are needed for this node.
+		/// </summary>
+		NoValuesNeeded = 0,
 
         /// <summary>
         /// Mandatory configuration values are missing.

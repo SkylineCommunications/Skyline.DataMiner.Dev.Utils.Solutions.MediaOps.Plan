@@ -440,6 +440,19 @@
 			}
 		}
 
+		public void StoreJobIds(IEnumerable<Guid> ids)
+		{
+			if (ids == null)
+			{
+				return;
+			}
+
+			foreach (var id in ids.Where(x => x != Guid.Empty))
+			{
+				createdJobIds.Add(id);
+			}
+		}
+
 		public Capability CreateCapability(Capability capability)
 		{
 			var createdCapability = PlanApi.Capabilities.Create(capability);
