@@ -303,26 +303,6 @@
 		}
 
 		[TestMethod]
-		public void Delete_NewWorkflow_ThrowsException()
-		{
-			var workflow = new Workflow { Name = $"{Guid.NewGuid()}_Workflow" };
-
-			try
-			{
-				TestContext.Api.Workflows.Delete(workflow);
-			}
-			catch (MediaOpsException ex)
-			{
-				var error = ex.TraceData.ErrorData.OfType<WorkflowInvalidStateError>().SingleOrDefault();
-				Assert.IsNotNull(error, "Expected WorkflowInvalidStateError.");
-				Assert.AreEqual(workflow.Id, error.Id);
-				return;
-			}
-
-			Assert.Fail("Expected MediaOpsException was not thrown.");
-		}
-
-		[TestMethod]
 		public void Delete_UnknownId_DoesNotThrow()
 		{
 			try

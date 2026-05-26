@@ -2,6 +2,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 {
 	using System;
 
+	using RT_MediaOps.Plan.Extensions;
 	using RT_MediaOps.Plan.RegressionTests;
 
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
@@ -30,13 +31,14 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		{
 			var prefix = Guid.NewGuid();
 			var userKey = $"RT_{prefix:N}";
+			var currentTime = DateTime.Now.RoundToNextSecond();
 
 			var job = new Job
 			{
 				Name = $"{prefix}_Job",
 				Key = userKey,
-				Start = DateTime.Now,
-				End = DateTime.Now.AddMinutes(5),
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
 			};
 
 			job = objectCreator.CreateJob(job);
@@ -57,12 +59,13 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			try
 			{
 				var expectedKey = $"{snapshot.JobIDPrefix}{snapshot.JobIDNextSequence.ToString().PadLeft((int)snapshot.JobIDMinimumDigits, '0')}";
+				var currentTime = DateTime.Now.RoundToNextSecond();
 
 				var job = new Job
 				{
 					Name = $"{prefix}_Job",
-					Start = DateTime.Now,
-					End = DateTime.Now.AddMinutes(5),
+					Start = currentTime,
+					End = currentTime.AddMinutes(5),
 				};
 
 				Assert.IsTrue(string.IsNullOrEmpty(job.Key), "Key should not be set before creation when auto-generation is expected.");

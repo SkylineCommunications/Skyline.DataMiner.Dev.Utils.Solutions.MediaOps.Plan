@@ -4,6 +4,7 @@
 	using System.Collections.Generic;
 	using System.Linq;
 
+	using RT_MediaOps.Plan.Extensions;
 	using RT_MediaOps.Plan.RegressionTests;
 
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
@@ -161,11 +162,12 @@
 			.SetDiscretes(["Value 1", "Value 2"]);
 			objectCreator.CreateCapability(capability);
 
+			var currentTime = DateTime.Now.RoundToNextSecond();
 			var job = new Job
 			{
 				Name = $"{prefix}_Job",
-				Start = DateTime.Now,
-				End = DateTime.Now.AddMinutes(5),
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
 			};
 
 			var orchestrationSettings = job.OrchestrationSettings;
@@ -196,11 +198,12 @@
 			};
 			objectCreator.CreateCapacities([numberCapacity, rangeCapacity]);
 
+			var currentTime = DateTime.Now.RoundToNextSecond();
 			var job = new Job
 			{
 				Name = $"{prefix}_Job",
-				Start = DateTime.Now,
-				End = DateTime.Now.AddMinutes(5),
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
 			};
 
 			var orchestrationSettings = job.OrchestrationSettings;
@@ -249,11 +252,12 @@
 			.AddDiscrete(new NumberDiscreet(1, "One"));
 			objectCreator.CreateConfigurations([textConfiguration, numberConfiguration, discreteTextConfiguration, discreteNumberConfiguration]);
 
+			var currentTime = DateTime.Now.RoundToNextSecond();
 			var job = new Job
 			{
 				Name = $"{prefix}_Job",
-				Start = DateTime.Now,
-				End = DateTime.Now.AddMinutes(5),
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
 			};
 
 			var orchestrationSettings = job.OrchestrationSettings;
@@ -324,11 +328,12 @@
 			.AddDiscrete(new NumberDiscreet(1, "A"));
 			objectCreator.CreateConfigurations([textConfiguration, numberConfiguration, discreteTextConfiguration, discreteNumberConfiguration]);
 
+			var currentTime = DateTime.Now.RoundToNextSecond();
 			var job = new Job
 			{
 				Name = $"{prefix}_Job",
-				Start = DateTime.Now,
-				End = DateTime.Now.AddMinutes(5),
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
 			};
 			job.OrchestrationSettings
 				.AddCapability(new CapabilitySetting(capability))
@@ -404,11 +409,12 @@
 			.AddDiscrete(new NumberDiscreet(1, "A"));
 			objectCreator.CreateConfigurations([textConfiguration, numberConfiguration, discreteTextConfiguration, discreteNumberConfiguration]);
 
+			var currentTime = DateTime.Now.RoundToNextSecond();
 			var job = new Job
 			{
 				Name = $"{prefix}_Job",
-				Start = DateTime.Now,
-				End = DateTime.Now.AddMinutes(5),
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
 			};
 
 			job = objectCreator.CreateJob(job);
@@ -486,11 +492,12 @@
 			.AddDiscrete(new NumberDiscreet(1, "A"));
 			objectCreator.CreateConfigurations([textConfiguration, numberConfiguration, discreteTextConfiguration, discreteNumberConfiguration]);
 
+			var currentTime = DateTime.Now.RoundToNextSecond();
 			var job = new Job
 			{
 				Name = $"{prefix}_Job",
-				Start = DateTime.Now,
-				End = DateTime.Now.AddMinutes(5),
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
 			};
 
 			job = objectCreator.CreateJob(job);
@@ -587,11 +594,12 @@
 			};
 			objectCreator.CreateConfiguration(textConfiguration);
 
+			var currentTime = DateTime.Now.RoundToNextSecond();
 			var job = new Job
 			{
 				Name = $"{prefix}_Job",
-				Start = DateTime.Now,
-				End = DateTime.Now.AddMinutes(5),
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
 			};
 			job.OrchestrationSettings
 				.AddCapability(new CapabilitySetting(capability))
@@ -645,11 +653,12 @@
 			objectCreator.CreateConfigurations([textConfiguration]);
 
 			// Create new job with Orchestration Setting referencing the created configuration
+			var currentTime = DateTime.Now.RoundToNextSecond();
 			var job = new Job
 			{
 				Name = $"{prefix}_Job",
-				Start = DateTime.Now,
-				End = DateTime.Now.AddMinutes(5),
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
 			};
 
 			job.OrchestrationSettings.SetOrchestrationEvents(new List<OrchestrationEvent>
@@ -696,11 +705,12 @@
 		public void SingleOrchestrationEvents_UpdateJob()
 		{
 			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.Now.RoundToNextSecond();
 			var job = new Job
 			{
 				Name = $"{prefix}_Job",
-				Start = DateTime.Now,
-				End = DateTime.Now.AddMinutes(5),
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
 			};
 
 			job = objectCreator.CreateJob(job);
@@ -768,11 +778,12 @@
 			objectCreator.CreateConfigurations([textConfiguration, discreteNumberConfiguration]);
 
 			// Create new job with Orchestration Setting referencing the created configuration
+			var currentTime = DateTime.Now.RoundToNextSecond();
 			var job = new Job
 			{
 				Name = $"{prefix}_Job",
-				Start = DateTime.Now,
-				End = DateTime.Now.AddMinutes(5),
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
 			};
 
 			job.OrchestrationSettings.SetOrchestrationEvents(new List<OrchestrationEvent>
@@ -923,11 +934,12 @@
 			.AddDiscrete(new NumberDiscreet(1, "A"));
 			objectCreator.CreateConfigurations([textConfiguration, numberConfiguration, discreteTextConfiguration, discreteNumberConfiguration]);
 
+			var currentTime = DateTime.Now.RoundToNextSecond();
 			var job1 = new Job
 			{
 				Name = $"{prefix}_Job 1",
-				Start = DateTime.Now,
-				End = DateTime.Now.AddMinutes(5),
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
 			};
 
 			job1.OrchestrationSettings
@@ -945,8 +957,8 @@
 			var job2 = new Job
 			{
 				Name = $"{prefix}_Job 2",
-				Start = DateTime.Now,
-				End = DateTime.Now.AddMinutes(5),
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
 			};
 
 			foreach (var capacitySetting in job1.OrchestrationSettings.Capacities)

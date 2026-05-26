@@ -3,6 +3,7 @@
 	using System;
 	using System.Linq;
 
+	using RT_MediaOps.Plan.Extensions;
 	using RT_MediaOps.Plan.RegressionTests;
 
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
@@ -106,14 +107,15 @@
 		{
 			var prefix = Guid.NewGuid();
 			var name = $"{prefix}_Job";
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
 
 			var job = new Job
 			{
 				Name = name,
 				Description = "Initial description",
 				Notes = "Initial notes",
-				Start = DateTime.UtcNow,
-				End = DateTime.UtcNow.AddMinutes(10),
+				Start = currentTime,
+				End = currentTime.AddMinutes(10),
 			};
 
 			job = objectCreator.CreateJob(job);
@@ -146,19 +148,20 @@
 		public void CreateOrUpdate_CreatesAndUpdatesInSameCall()
 		{
 			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
 
 			var newJob = new Job
 			{
 				Name = $"{prefix}_Job_New",
-				Start = DateTime.UtcNow,
-				End = DateTime.UtcNow.AddMinutes(5),
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
 			};
 
 			var existingJob = new Job
 			{
 				Name = $"{prefix}_Job_Existing",
-				Start = DateTime.UtcNow,
-				End = DateTime.UtcNow.AddMinutes(5),
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
 			};
 			existingJob = objectCreator.CreateJob(existingJob);
 
@@ -180,11 +183,12 @@
 		[TestMethod]
 		public void CreateOnExistingJobThrowsInvalidOperation()
 		{
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
 			var job = new Job
 			{
 				Name = $"{Guid.NewGuid()}_Job",
-				Start = DateTime.UtcNow,
-				End = DateTime.UtcNow.AddMinutes(5),
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
 			};
 
 			job = objectCreator.CreateJob(job);
@@ -209,20 +213,21 @@
 		public void CreateWithUserDefinedIdAlreadyInUseThrowsException()
 		{
 			var id = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
 
 			var first = new Job(id)
 			{
 				Name = $"{id}_Job_1",
-				Start = DateTime.UtcNow,
-				End = DateTime.UtcNow.AddMinutes(5),
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
 			};
 			objectCreator.CreateJob(first);
 
 			var second = new Job(id)
 			{
 				Name = $"{id}_Job_2",
-				Start = DateTime.UtcNow,
-				End = DateTime.UtcNow.AddMinutes(5),
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
 			};
 
 			try
@@ -330,11 +335,12 @@
 		[TestMethod]
 		public void CreateWithEmptyNameReplacesNameByKey()
 		{
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
 			var job = new Job
 			{
 				Key = $"{Guid.NewGuid()}_Key",
-				Start = DateTime.UtcNow,
-				End = DateTime.UtcNow.AddMinutes(5),
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
 			};
 
 			var createdJob = objectCreator.CreateJob(job);
@@ -618,11 +624,12 @@
 		[TestMethod]
 		public void DeleteByIdRemovesJob()
 		{
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
 			var job = new Job
 			{
 				Name = $"{Guid.NewGuid()}_Job",
-				Start = DateTime.UtcNow,
-				End = DateTime.UtcNow.AddMinutes(5),
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
 			};
 			job = objectCreator.CreateJob(job);
 
@@ -635,19 +642,20 @@
 		public void DeleteBulkByIdsRemovesJobs()
 		{
 			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
 
 			var job1 = objectCreator.CreateJob(new Job
 			{
 				Name = $"{prefix}_Job_1",
-				Start = DateTime.UtcNow,
-				End = DateTime.UtcNow.AddMinutes(5),
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
 			});
 
 			var job2 = objectCreator.CreateJob(new Job
 			{
 				Name = $"{prefix}_Job_2",
-				Start = DateTime.UtcNow,
-				End = DateTime.UtcNow.AddMinutes(5),
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
 			});
 
 			TestContext.Api.Jobs.Delete(new[] { job1.Id, job2.Id });
@@ -673,19 +681,20 @@
 		public void ReadByIdsReturnsRequestedJobs()
 		{
 			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
 
 			var job1 = objectCreator.CreateJob(new Job
 			{
 				Name = $"{prefix}_Job_1",
-				Start = DateTime.UtcNow,
-				End = DateTime.UtcNow.AddMinutes(5),
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
 			});
 
 			var job2 = objectCreator.CreateJob(new Job
 			{
 				Name = $"{prefix}_Job_2",
-				Start = DateTime.UtcNow,
-				End = DateTime.UtcNow.AddMinutes(5),
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
 			});
 
 			var results = TestContext.Api.Jobs.Read(new[] { job1.Id, job2.Id }).ToList();
