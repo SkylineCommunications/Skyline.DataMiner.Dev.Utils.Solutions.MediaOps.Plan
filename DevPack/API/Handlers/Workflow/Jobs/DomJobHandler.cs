@@ -203,6 +203,8 @@
 				return;
 			}
 
+			ValidateStateForDeleteAction(apiJobs);
+
 			var lockResult = planApi.LockManager.LockAndExecute(apiJobs.Where(IsValid).ToList(), DeleteLocked);
 			ReportError(lockResult);
 		}
@@ -397,6 +399,44 @@
 				var error = new JobInvalidStateError
 				{
 					ErrorMessage = "Not allowed to update a job that is not in Draft state.",
+					Id = job.Id,
+				};
+
+				ReportError(job.Id, error);
+			}
+		}
+
+		private void ValidateStateForDeleteAction(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			var isNew = apiJobs.Where(x => x.IsNew).ToList();
+			foreach (var job in isNew)
+			{
+				var error = new JobInvalidStateError
+				{
+					ErrorMessage = "Not allowed to delete a job that has not been created yet.",
+					Id = job.Id,
+				};
+
+				ReportError(job.Id, error);
+			}
+
+			foreach (var job in apiJobs
+				.Except(isNew)
+				.Where(x => x.State != JobState.Draft))
+			{
+				var error = new JobInvalidStateError
+				{
+					ErrorMessage = "Not allowed to delete a job that is not in Draft state.",
 					Id = job.Id,
 				};
 
