@@ -371,6 +371,115 @@
 		}
 
 		[TestMethod]
+		public void CreateWithSubSecondStartTimeThrowsException()
+		{
+			var start = new DateTimeOffset(2024, 1, 1, 12, 0, 0, 500, TimeSpan.Zero); // 500ms
+			var job = new Job
+			{
+				Name = $"{Guid.NewGuid()}_Job",
+				Start = start,
+				End = start.AddMinutes(5),
+			};
+
+			try
+			{
+				objectCreator.CreateJob(job);
+			}
+			catch (MediaOpsException ex)
+			{
+				var error = ex.TraceData.ErrorData.OfType<JobInvalidStartTimeError>().SingleOrDefault();
+				Assert.IsNotNull(error, "Expected JobInvalidStartTimeError.");
+				Assert.AreEqual(job.Id, error.Id);
+				Assert.AreEqual(start, error.Start);
+				return;
+			}
+
+			Assert.Fail("Expected MediaOpsException was not thrown.");
+		}
+
+		[TestMethod]
+		public void CreateWithSubSecondEndTimeThrowsException()
+		{
+			var start = new DateTimeOffset(2024, 1, 1, 12, 0, 0, TimeSpan.Zero);
+			var end = new DateTimeOffset(2024, 1, 1, 12, 5, 0, 750, TimeSpan.Zero); // 750ms
+			var job = new Job
+			{
+				Name = $"{Guid.NewGuid()}_Job",
+				Start = start,
+				End = end,
+			};
+
+			try
+			{
+				objectCreator.CreateJob(job);
+			}
+			catch (MediaOpsException ex)
+			{
+				var error = ex.TraceData.ErrorData.OfType<JobInvalidEndTimeError>().SingleOrDefault();
+				Assert.IsNotNull(error, "Expected JobInvalidEndTimeError.");
+				Assert.AreEqual(job.Id, error.Id);
+				Assert.AreEqual(end, error.End);
+				return;
+			}
+
+			Assert.Fail("Expected MediaOpsException was not thrown.");
+		}
+
+		[TestMethod]
+		public void CreateWithPreRollNotMultipleOfMinutesThrowsException()
+		{
+			var job = new Job
+			{
+				Name = $"{Guid.NewGuid()}_Job",
+				Start = DateTime.UtcNow,
+				End = DateTime.UtcNow.AddMinutes(5),
+				PreRoll = TimeSpan.FromSeconds(90), // 1.5 minutes — not a whole minute
+			};
+
+			try
+			{
+				objectCreator.CreateJob(job);
+			}
+			catch (MediaOpsException ex)
+			{
+				var error = ex.TraceData.ErrorData.OfType<JobInvalidPreRollError>().SingleOrDefault();
+				Assert.IsNotNull(error, "Expected JobInvalidPreRollError.");
+				Assert.AreEqual(job.Id, error.Id);
+				Assert.AreEqual(TimeSpan.FromSeconds(90), error.PreRoll);
+				return;
+			}
+
+			Assert.Fail("Expected MediaOpsException was not thrown.");
+		}
+
+		[TestMethod]
+		public void CreateWithPostRollNotMultipleOfMinutesThrowsException()
+		{
+			var job = new Job
+			{
+				Name = $"{Guid.NewGuid()}_Job",
+				Start = DateTime.UtcNow,
+				End = DateTime.UtcNow.AddMinutes(5),
+				PostRoll = TimeSpan.FromSeconds(90), // 1.5 minutes — not a whole minute
+			};
+
+			try
+			{
+				objectCreator.CreateJob(job);
+			}
+			catch (MediaOpsException ex)
+			{
+				var error = ex.TraceData.ErrorData.OfType<JobInvalidPostRollError>().SingleOrDefault();
+				Assert.IsNotNull(error, "Expected JobInvalidPostRollError.");
+				Assert.AreEqual(job.Id, error.Id);
+				Assert.AreEqual(TimeSpan.FromSeconds(90), error.PostRoll);
+				return;
+			}
+
+			Assert.Fail("Expected MediaOpsException was not thrown.");
+		}
+
+		[TestMethod]
 		public void CreateWithEndBeforeStartThrowsException()
 		{
 			var start = DateTime.UtcNow;

@@ -548,7 +548,9 @@
 				return;
 			}
 
-			foreach (var workflow in apiWorkflows.Where(x => x.PreRoll < TimeSpan.Zero))
+			var toValidate = apiWorkflows.ToList();
+
+			foreach (var workflow in toValidate.Where(x => x.PreRoll < TimeSpan.Zero).ToArray())
 			{
 				var error = new WorkflowInvalidPreRollError
 				{
@@ -558,6 +560,20 @@
 				};
 
 				ReportError(workflow.Id, error);
+				toValidate.Remove(workflow);
+			}
+
+			foreach (var workflow in toValidate.Where(x => x.PreRoll.TotalMinutes % 1 != 0).ToArray())
+			{
+				var error = new WorkflowInvalidPreRollError
+				{
+					ErrorMessage = "Pre-roll must be a multiple of minutes.",
+					Id = workflow.Id,
+					PreRoll = workflow.PreRoll,
+				};
+
+				ReportError(workflow.Id, error);
+				toValidate.Remove(workflow);
 			}
 		}
 
@@ -573,7 +589,9 @@
 				return;
 			}
 
-			foreach (var workflow in apiWorkflows.Where(x => x.PostRoll < TimeSpan.Zero))
+			var toValidate = apiWorkflows.ToList();
+
+			foreach (var workflow in toValidate.Where(x => x.PostRoll < TimeSpan.Zero).ToArray())
 			{
 				var error = new WorkflowInvalidPostRollError
 				{
@@ -583,6 +601,20 @@
 				};
 
 				ReportError(workflow.Id, error);
+				toValidate.Remove(workflow);
+			}
+
+			foreach (var workflow in toValidate.Where(x => x.PostRoll.TotalMinutes % 1 != 0).ToArray())
+			{
+				var error = new WorkflowInvalidPostRollError
+				{
+					ErrorMessage = "Post-roll must be a multiple of minutes.",
+					Id = workflow.Id,
+					PostRoll = workflow.PostRoll,
+				};
+
+				ReportError(workflow.Id, error);
+				toValidate.Remove(workflow);
 			}
 		}
 
