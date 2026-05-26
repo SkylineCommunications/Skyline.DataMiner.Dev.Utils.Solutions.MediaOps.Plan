@@ -458,7 +458,7 @@
 
 			var requiringValidation = apiJobs.Where(x => !string.IsNullOrEmpty(x.Key)).ToList();
 
-			foreach (var job in requiringValidation.Where(x => !InputValidator.IsNonEmptyText(x.Name)).ToArray())
+			foreach (var job in requiringValidation.Where(x => !InputValidator.IsNonEmptyText(x.Key)).ToArray())
 			{
 				var error = new JobInvalidKeyError
 				{

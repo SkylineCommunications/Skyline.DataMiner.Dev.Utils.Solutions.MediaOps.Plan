@@ -302,7 +302,7 @@
 		}
 
 		[TestMethod]
-		public void CreateWithEmptyNameThrowsException()
+		public void CreateWithWhiteSpacesAsNameThrowsException()
 		{
 			var job = new Job
 			{
@@ -325,6 +325,22 @@
 			}
 
 			Assert.Fail("Expected MediaOpsException was not thrown.");
+		}
+
+		[TestMethod]
+		public void CreateWithEmptyNameReplacesNameByKey()
+		{
+			var job = new Job
+			{
+				Key = $"{Guid.NewGuid()}_Key",
+				Start = DateTime.UtcNow,
+				End = DateTime.UtcNow.AddMinutes(5),
+			};
+
+			var createdJob = objectCreator.CreateJob(job);
+			Assert.IsNotNull(createdJob);
+			Assert.AreEqual(job.Key, createdJob.Key);
+			Assert.AreEqual(job.Key, createdJob.Name);
 		}
 
 		[TestMethod]
