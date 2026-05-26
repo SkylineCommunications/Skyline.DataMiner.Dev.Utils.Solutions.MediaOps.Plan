@@ -203,6 +203,8 @@
 				return;
 			}
 
+			ValidateStateForDeleteAction(apiWorkflows);
+
 			var lockResult = planApi.LockManager.LockAndExecute(apiWorkflows.Where(IsValid).ToList(), DeleteLocked);
 			ReportError(lockResult);
 		}
@@ -383,6 +385,44 @@
 				var error = new WorkflowInvalidStateError
 				{
 					ErrorMessage = "Not allowed to make a workflow obsolete that is not in Complete state.",
+					Id = workflow.Id,
+				};
+
+				ReportError(workflow.Id, error);
+			}
+		}
+
+		private void ValidateStateForDeleteAction(ICollection<Workflow> apiWorkflows)
+		{
+			if (apiWorkflows == null)
+			{
+				throw new ArgumentNullException(nameof(apiWorkflows));
+			}
+
+			if (apiWorkflows.Count == 0)
+			{
+				return;
+			}
+
+			var isNew = apiWorkflows.Where(x => x.IsNew).ToList();
+			foreach (var workflow in isNew)
+			{
+				var error = new WorkflowInvalidStateError
+				{
+					ErrorMessage = "Not allowed to delete a workflow that has not been created yet.",
+					Id = workflow.Id,
+				};
+
+				ReportError(workflow.Id, error);
+			}
+
+			foreach (var workflow in apiWorkflows
+				.Except(isNew)
+				.Where(x => !new[] {WorkflowState.Draft, WorkflowState.Obsolete}.Contains(x.State)))
+			{
+				var error = new WorkflowInvalidStateError
+				{
+					ErrorMessage = "Not allowed to delete a workflow that is not in Draft or Obsolete state.",
 					Id = workflow.Id,
 				};
 

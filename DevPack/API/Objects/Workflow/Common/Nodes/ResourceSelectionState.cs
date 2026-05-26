@@ -5,10 +5,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
     /// </summary>
     public enum ResourceSelectionState
     {
-        /// <summary>
-        /// Resource has been selected.
-        /// </summary>
-        Selected = 0,
+		/// <summary>
+		/// The resource selection state is unknown.
+		/// 
+		/// </summary>
+		Unknown = -1,
+
+		/// <summary>
+		/// Resource has been selected.
+		/// </summary>
+		Selected = 0,
 
         /// <summary>
         /// Resource is pending automatic selection.

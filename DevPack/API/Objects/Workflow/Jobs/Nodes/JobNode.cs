@@ -77,8 +77,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			End = section.NodeEndTime.Value;
 			CoreReservationId = section.ReservationId;
 
-			ResourceSelectionState = EnumExtensions.MapEnum<StorageWorkflow.SlcWorkflowIds.Enums.Resourceselectstate, ResourceSelectionState>(section.ResourceSelectState.Value);
-			NodeConfigurationStatus = EnumExtensions.MapEnum<StorageWorkflow.SlcWorkflowIds.Enums.Nodeconfigurationstatus, NodeConfigurationStatus>(section.NodeConfigurationStatus.Value);
+			ResourceSelectionState = section.ResourceSelectState.HasValue
+				? EnumExtensions.MapEnum<StorageWorkflow.SlcWorkflowIds.Enums.Resourceselectstate, ResourceSelectionState>(section.ResourceSelectState.Value)
+				: ResourceSelectionState.Unknown;
+			NodeConfigurationStatus = section.NodeConfigurationStatus.HasValue
+				? EnumExtensions.MapEnum<StorageWorkflow.SlcWorkflowIds.Enums.Nodeconfigurationstatus, NodeConfigurationStatus>(section.NodeConfigurationStatus.Value)
+				: NodeConfigurationStatus.Unknown;
 		}
 	}
 }

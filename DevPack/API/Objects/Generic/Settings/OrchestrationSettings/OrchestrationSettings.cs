@@ -191,7 +191,13 @@
 			unchecked
 			{
 				int hash = 17;
-				hash = (hash * 23) + Id.GetHashCode();
+
+				// Only include Id in the hash when the object is not new. New objects are considered equal regardless of their Id,
+				// so including the Id here would violate the Equals/GetHashCode contract.
+				if (!IsNew)
+				{
+					hash = (hash * 23) + Id.GetHashCode();
+				}
 
 				foreach (var capability in Capabilities.OrderBy(x => x.Id))
 				{

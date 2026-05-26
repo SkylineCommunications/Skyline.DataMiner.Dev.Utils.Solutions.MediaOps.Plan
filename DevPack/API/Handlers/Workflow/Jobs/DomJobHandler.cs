@@ -52,10 +52,21 @@
 			}
 
 			var toCreate = apiJobs.Where(x => x.IsNew).ToList();
+			var toUpdate = apiJobs.Except(toCreate).ToList();
 
 			ValidateIdsNotInUse(toCreate);
 			ValidateKeys(toCreate);
 			AssignKeys(toCreate);
+			AssignNames(toCreate);
+			ValidateStateForUpdateAction(toUpdate);
+
+			ValidateNames(apiJobs);
+			ValidateTimings(apiJobs);
+			ValidatePreRoll(apiJobs);
+			ValidatePostRoll(apiJobs);
+			ValidateNodeGraph(apiJobs);
+			ValidateDescription(apiJobs);
+			ValidateNotes(apiJobs);
 
 			var lockResult = planApi.LockManager.LockAndExecute(apiJobs.Where(IsValid).ToList(), CreateOrUpdateLocked);
 			ReportError(lockResult);
@@ -191,6 +202,8 @@
 				return;
 			}
 
+			ValidateStateForDeleteAction(apiJobs);
+
 			var lockResult = planApi.LockManager.LockAndExecute(apiJobs.Where(IsValid).ToList(), DeleteLocked);
 			ReportError(lockResult);
 		}
@@ -293,6 +306,30 @@
 			}
 		}
 
+		private void AssignNames(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			var toAssign = apiJobs.Where(x => x.IsNew && string.IsNullOrEmpty(x.Name)).ToList();
+			if (toAssign.Count == 0)
+			{
+				return;
+			}
+
+			foreach (var job in toAssign)
+			{
+				job.Name = job.Key;
+			}
+		}
+
 		private void ValidateIdsNotInUse(ICollection<Job> apiJobs)
 		{
 			if (apiJobs == null)
@@ -344,6 +381,68 @@
 			}
 		}
 
+		private void ValidateStateForUpdateAction(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			foreach (var job in apiJobs.Where(x => x.State != JobState.Draft))
+			{
+				var error = new JobInvalidStateError
+				{
+					ErrorMessage = "Not allowed to update a job that is not in Draft state.",
+					Id = job.Id,
+				};
+
+				ReportError(job.Id, error);
+			}
+		}
+
+		private void ValidateStateForDeleteAction(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			var isNew = apiJobs.Where(x => x.IsNew).ToList();
+			foreach (var job in isNew)
+			{
+				var error = new JobInvalidStateError
+				{
+					ErrorMessage = "Not allowed to delete a job that has not been created yet.",
+					Id = job.Id,
+				};
+
+				ReportError(job.Id, error);
+			}
+
+			foreach (var job in apiJobs
+				.Except(isNew)
+				.Where(x => x.State != JobState.Draft))
+			{
+				var error = new JobInvalidStateError
+				{
+					ErrorMessage = "Not allowed to delete a job that is not in Draft state.",
+					Id = job.Id,
+				};
+
+				ReportError(job.Id, error);
+			}
+		}
+
 		private void ValidateKeys(ICollection<Job> apiJobs)
 		{
 			if (apiJobs == null)
@@ -358,7 +457,7 @@
 
 			var requiringValidation = apiJobs.Where(x => !string.IsNullOrEmpty(x.Key)).ToList();
 
-			foreach (var job in requiringValidation.Where(x => !InputValidator.IsNonEmptyText(x.Name)).ToArray())
+			foreach (var job in requiringValidation.Where(x => !InputValidator.IsNonEmptyText(x.Key)).ToArray())
 			{
 				var error = new JobInvalidKeyError
 				{
@@ -380,6 +479,228 @@
 				};
 
 				ReportError(job.Id, error);
+			}
+		}
+
+		private void ValidateNames(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			var requiringValidation = apiJobs.Where(x => !string.IsNullOrEmpty(x.Name)).ToList();
+
+			foreach (var job in requiringValidation.Where(x => !InputValidator.IsNonEmptyText(x.Name)).ToArray())
+			{
+				var error = new JobInvalidNameError
+				{
+					ErrorMessage = $"Name cannot be empty.",
+					Id = job.Id,
+				};
+
+				ReportError(job.Id, error);
+				requiringValidation.Remove(job);
+			}
+
+			foreach (var job in requiringValidation.Where(x => !InputValidator.HasValidTextLength(x.Name)).ToArray())
+			{
+				var error = new JobInvalidNameError
+				{
+					ErrorMessage = $"Name exceeds maximum length of {InputValidator.DefaultMaxTextLength} characters.",
+					Name = job.Name,
+					Id = job.Id,
+				};
+
+				ReportError(job.Id, error);
+			}
+		}
+
+		private void ValidateDescription(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			foreach (var job in apiJobs.Where(x => InputValidator.IsNonEmptyText(x.Description) && !InputValidator.HasValidTextSize(x.Description)))
+			{
+				var error = new JobInvalidDescriptionError
+				{
+					ErrorMessage = $"Description exceeds maximum size of {InputValidator.DefaultMaxTextSize} bytes.",
+					Description = job.Description,
+					Id = job.Id,
+				};
+
+				ReportError(job.Id, error);
+			}
+		}
+
+		private void ValidateNotes(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			foreach (var job in apiJobs.Where(x => InputValidator.IsNonEmptyText(x.Notes) && !InputValidator.HasValidTextSize(x.Notes)))
+			{
+				var error = new JobInvalidNotesError
+				{
+					ErrorMessage = $"Notes exceeds maximum size of {InputValidator.DefaultMaxTextSize} bytes.",
+					Notes = job.Notes,
+					Id = job.Id,
+				};
+
+				ReportError(job.Id, error);
+			}
+		}
+
+		private void ValidateTimings(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			foreach (var job in apiJobs.Where(x => x.End < x.Start))
+			{
+				var error = new JobInvalidTimingError
+				{
+					ErrorMessage = "Start time must be before end time.",
+					Id = job.Id,
+					Start = job.Start,
+					End = job.End,
+				};
+
+				ReportError(job.Id, error);
+			}
+		}
+
+		private void ValidatePreRoll(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			foreach (var job in apiJobs.Where(x => x.PreRoll < TimeSpan.Zero))
+			{
+				var error = new JobInvalidPreRollError
+				{
+					ErrorMessage = "Pre-roll cannot be negative.",
+					Id = job.Id,
+					PreRoll = job.PreRoll,
+				};
+
+				ReportError(job.Id, error);
+			}
+		}
+
+		private void ValidatePostRoll(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			foreach (var job in apiJobs.Where(x => x.PostRoll < TimeSpan.Zero))
+			{
+				var error = new JobInvalidPostRollError
+				{
+					ErrorMessage = "Post-roll cannot be negative.",
+					Id = job.Id,
+					PostRoll = job.PostRoll,
+				};
+
+				ReportError(job.Id, error);
+			}
+		}
+
+		private void ValidateNodeGraph(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			CollectReferencedIds(apiJobs, out var resourceIds, out var resourcePoolIds);
+
+			var resourcesById = planApi.Resources.Read(resourceIds).ToDictionary(x => x.Id);
+			var resourcePoolsById = planApi.ResourcePools.Read(resourcePoolIds).ToDictionary(x => x.Id);
+
+			foreach (var job in apiJobs)
+			{
+				PassTraceData(JobNodeGraphValidator.Validate(job.Id, job.NodeGraph, resourcesById, resourcePoolsById));
+			}
+		}
+
+		private static void CollectReferencedIds(ICollection<Job> apiJobs, out HashSet<Guid> resourceIds, out HashSet<Guid> resourcePoolIds)
+		{
+			resourceIds = new HashSet<Guid>();
+			resourcePoolIds = new HashSet<Guid>();
+
+			var allNodes = apiJobs.SelectMany(j => j.NodeGraph.Nodes);
+			foreach (var node in allNodes)
+			{
+				CollectNodeIds(node, resourceIds, resourcePoolIds);
+			}
+		}
+
+		private static void CollectNodeIds(JobNode node, HashSet<Guid> resourceIds, HashSet<Guid> resourcePoolIds)
+		{
+			switch (node)
+			{
+				case IResourceNode r:
+					AddIfNotEmpty(resourceIds, r.ResourceId);
+					AddIfNotEmpty(resourcePoolIds, r.ResourcePoolId);
+					break;
+				case IResourcePoolNode p:
+					AddIfNotEmpty(resourcePoolIds, p.ResourcePoolId);
+					break;
+			}
+		}
+
+		private static void AddIfNotEmpty(HashSet<Guid> set, Guid id)
+		{
+			if (id != Guid.Empty)
+			{
+				set.Add(id);
 			}
 		}
 
