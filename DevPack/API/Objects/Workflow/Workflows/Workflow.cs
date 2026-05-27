@@ -13,8 +13,12 @@
 	/// </summary>
 	public class Workflow : ApiNamedObject
 	{
+		private static readonly IReadOnlyCollection<CustomPropertyValue> EmptyCustomValues = [];
+		private static readonly IReadOnlyCollection<PropertyValue> EmptyPropertyValues = [];
+
 		private StorageWorkflow.WorkflowsInstance originalInstance;
 		private StorageWorkflow.WorkflowsInstance updatedInstance;
+		private WorkflowPropertiesLoader propertiesLoader;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Workflow"/> class.
@@ -43,6 +47,13 @@
 		internal Workflow(MediaOpsPlanApi planApi, StorageWorkflow.WorkflowsInstance instance) : base(instance.ID.Id)
 		{
 			ParseInstance(planApi, instance);
+
+			propertiesLoader = new WorkflowPropertiesLoader(planApi, Id, NodeGraph.Nodes.Select(n => n.Id));
+			foreach (var node in NodeGraph.Nodes)
+			{
+				node.SetPropertiesLoader(propertiesLoader);
+			}
+
 			InitTracking();
 		}
 
@@ -95,6 +106,20 @@
 		/// Gets the node graph containing all nodes and connections that define the workflow structure.
 		/// </summary>
 		public NodeGraph<WorkflowNode> NodeGraph { get; private set; }
+
+		/// <summary>
+		/// Gets the custom property values associated with this workflow.
+		/// Property values are loaded lazily in a single batch together with the property values of all nodes.
+		/// </summary>
+		public IReadOnlyCollection<CustomPropertyValue> CustomPropertyValues
+			=> propertiesLoader?.GetCustomPropertyValues(Id.ToString()) ?? EmptyCustomValues;
+
+		/// <summary>
+		/// Gets the property values associated with this workflow.
+		/// Property values are loaded lazily in a single batch together with the property values of all nodes.
+		/// </summary>
+		public IReadOnlyCollection<PropertyValue> PropertyValues
+			=> propertiesLoader?.GetPropertyValues(Id.ToString()) ?? EmptyPropertyValues;
 
 		internal StorageWorkflow.WorkflowsInstance OriginalInstance => originalInstance;
 

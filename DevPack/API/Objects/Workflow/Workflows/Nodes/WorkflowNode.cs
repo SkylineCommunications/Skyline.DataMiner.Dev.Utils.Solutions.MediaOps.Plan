@@ -1,5 +1,7 @@
 namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
+	using System.Collections.Generic;
+
 	using StorageWorkflow = Storage.DOM.SlcWorkflow;
 
 	/// <summary>
@@ -7,6 +9,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// </summary>
 	public abstract class WorkflowNode : NodeBase
 	{
+		private static readonly IReadOnlyCollection<CustomPropertyValue> EmptyCustomValues = [];
+		private static readonly IReadOnlyCollection<PropertyValue> EmptyPropertyValues = [];
+
+		private WorkflowPropertiesLoader propertiesLoader;
+
 		private protected WorkflowNode() : base()
 		{
 		}
@@ -14,6 +21,20 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		private protected WorkflowNode(MediaOpsPlanApi planApi, StorageWorkflow.NodesSection section) : base(planApi, section)
 		{
 		}
+
+		/// <summary>
+		/// Gets the custom property values associated with this node.
+		/// Property values are loaded lazily in a single batch together with the property values of the workflow and all other nodes.
+		/// </summary>
+		public IReadOnlyCollection<CustomPropertyValue> CustomPropertyValues
+			=> propertiesLoader?.GetCustomPropertyValues(Id) ?? EmptyCustomValues;
+
+		/// <summary>
+		/// Gets the property values associated with this node.
+		/// Property values are loaded lazily in a single batch together with the property values of the workflow and all other nodes.
+		/// </summary>
+		public IReadOnlyCollection<PropertyValue> PropertyValues
+			=> propertiesLoader?.GetPropertyValues(Id) ?? EmptyPropertyValues;
 
 		/// <summary>
 		/// Determines whether this node represents a resource and, if so, returns it as a <see cref="WorkflowResourceNode"/>.
@@ -35,6 +56,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 			resourcePoolNode = this as WorkflowResourcePoolNode;
 			return resourcePoolNode != null;
+		}
+
+		internal void SetPropertiesLoader(WorkflowPropertiesLoader loader)
+		{
+			propertiesLoader = loader;
 		}
 	}
 }
