@@ -583,6 +583,30 @@
 				return;
 			}
 
+			foreach (var job in apiJobs.Where(x => x.Start.Ticks % TimeSpan.TicksPerSecond != 0))
+			{
+				var error = new JobInvalidStartTimeError
+				{
+					ErrorMessage = "Start time must not have sub-second precision.",
+					Id = job.Id,
+					Start = job.Start,
+				};
+
+				ReportError(job.Id, error);
+			}
+
+			foreach (var job in apiJobs.Where(x => x.End.Ticks % TimeSpan.TicksPerSecond != 0))
+			{
+				var error = new JobInvalidEndTimeError
+				{
+					ErrorMessage = "End time must not have sub-second precision.",
+					Id = job.Id,
+					End = job.End,
+				};
+
+				ReportError(job.Id, error);
+			}
+
 			foreach (var job in apiJobs.Where(x => x.End < x.Start))
 			{
 				var error = new JobInvalidTimingError
@@ -609,11 +633,26 @@
 				return;
 			}
 
-			foreach (var job in apiJobs.Where(x => x.PreRoll < TimeSpan.Zero))
+			var toValidate = apiJobs.ToList();
+
+			foreach (var job in toValidate.Where(x => x.PreRoll < TimeSpan.Zero).ToArray())
 			{
 				var error = new JobInvalidPreRollError
 				{
 					ErrorMessage = "Pre-roll cannot be negative.",
+					Id = job.Id,
+					PreRoll = job.PreRoll,
+				};
+
+				ReportError(job.Id, error);
+				toValidate.Remove(job);
+			}
+
+			foreach (var job in toValidate.Where(x => x.PreRoll.Ticks % TimeSpan.TicksPerSecond != 0))
+			{
+				var error = new JobInvalidPreRollError
+				{
+					ErrorMessage = "Pre-roll must be a multiple of seconds.",
 					Id = job.Id,
 					PreRoll = job.PreRoll,
 				};
@@ -634,11 +673,26 @@
 				return;
 			}
 
-			foreach (var job in apiJobs.Where(x => x.PostRoll < TimeSpan.Zero))
+			var toValidate = apiJobs.ToList();
+
+			foreach (var job in toValidate.Where(x => x.PostRoll < TimeSpan.Zero).ToArray())
 			{
 				var error = new JobInvalidPostRollError
 				{
 					ErrorMessage = "Post-roll cannot be negative.",
+					Id = job.Id,
+					PostRoll = job.PostRoll,
+				};
+
+				ReportError(job.Id, error);
+				toValidate.Remove(job);
+			}
+
+			foreach (var job in toValidate.Where(x => x.PostRoll.Ticks % TimeSpan.TicksPerSecond != 0))
+			{
+				var error = new JobInvalidPostRollError
+				{
+					ErrorMessage = "Post-roll must be a multiple of seconds.",
 					Id = job.Id,
 					PostRoll = job.PostRoll,
 				};

@@ -243,6 +243,50 @@
 		}
 
 		[TestMethod]
+		public void Create_PreRollNotMultipleOfSeconds_Fails()
+		{
+			var prefix = Guid.NewGuid();
+			var workflow = new Workflow
+			{
+				Name = $"{prefix}_Workflow",
+				PreRoll = TimeSpan.FromMilliseconds(1500), // 1.5 seconds — not a whole second
+			};
+
+			try
+			{
+				objectCreator.CreateWorkflow(workflow);
+				Assert.Fail("Expected MediaOpsException was not thrown.");
+			}
+			catch (MediaOpsException ex)
+			{
+				var error = ex.TraceData.ErrorData.OfType<WorkflowInvalidPreRollError>().SingleOrDefault();
+				Assert.IsNotNull(error, "Expected invalid pre-roll error was not reported.");
+			}
+		}
+
+		[TestMethod]
+		public void Create_PostRollNotMultipleOfSeconds_Fails()
+		{
+			var prefix = Guid.NewGuid();
+			var workflow = new Workflow
+			{
+				Name = $"{prefix}_Workflow",
+				PostRoll = TimeSpan.FromMilliseconds(1500), // 1.5 seconds — not a whole second
+			};
+
+			try
+			{
+				objectCreator.CreateWorkflow(workflow);
+				Assert.Fail("Expected MediaOpsException was not thrown.");
+			}
+			catch (MediaOpsException ex)
+			{
+				var error = ex.TraceData.ErrorData.OfType<WorkflowInvalidPostRollError>().SingleOrDefault();
+				Assert.IsNotNull(error, "Expected invalid post-roll error was not reported.");
+			}
+		}
+
+		[TestMethod]
 		public void Update_NewWorkflow_ThrowsInvalidOperation()
 		{
 			var workflow = new Workflow { Name = $"{Guid.NewGuid()}_Workflow" };
@@ -259,7 +303,7 @@
 		}
 
 		[TestMethod]
-		public void Delete_UnknownId_DoesNotThrow()			
+		public void Delete_UnknownId_DoesNotThrow()
 		{
 			try
 			{
