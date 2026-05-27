@@ -4,6 +4,7 @@
 	using System.Collections.Generic;
 	using System.Linq;
 
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
 
 	using StorageWorkflow = Storage.DOM.SlcWorkflow;
@@ -108,6 +109,122 @@
 		public NodeGraph<JobNode> NodeGraph { get; private set; }
 
 		internal StorageWorkflow.JobsInstance OriginalInstance => originalInstance;
+
+		/// <summary>
+		/// Builds a new <see cref="Job"/> from the specified <see cref="Workflow"/>.
+		/// </summary>
+		/// <param name="api">The <see cref="IMediaOpsPlanApi"/> instance used to interact with the API.</param>
+		/// <param name="workflow">The <see cref="Workflow"/> from which to build the job.</param>
+		/// <returns>A <see cref="Job"/> based on the specified workflow.</returns>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="api"/> or <paramref name="workflow"/> is <see langword="null"/>.</exception>
+		public static Job FromWorkflow(IMediaOpsPlanApi api, Workflow workflow)
+		{
+			if (api == null)
+			{
+				throw new ArgumentNullException(nameof(api));
+			}
+
+			if (workflow == null)
+			{
+				throw new ArgumentNullException(nameof(workflow));
+			}
+
+			return FromWorkflow(api, workflow.Id);
+		}
+
+		/// <summary>
+		/// Builds a new <see cref="Job"/> from the workflow with the specified ID.
+		/// </summary>
+		/// <param name="api">The <see cref="IMediaOpsPlanApi"/> instance used to interact with the API.</param>
+		/// <param name="workflowId">The unique identifier of the workflow from which to build the job.</param>
+		/// <returns>A <see cref="Job"/> based on the specified workflow.</returns>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="api"/> is <see langword="null"/>.</exception>
+		/// <exception cref="ArgumentException">Thrown when <paramref name="workflowId"/> is <see cref="Guid.Empty"/>.</exception>
+		/// <exception cref="MediaOpsException">Thrown when no workflow with the specified <paramref name="workflowId"/> is found.</exception>
+		public static Job FromWorkflow(IMediaOpsPlanApi api, Guid workflowId)
+		{
+			if (api == null)
+			{
+				throw new ArgumentNullException(nameof(api));
+			}
+
+			if (workflowId == Guid.Empty)
+			{
+				throw new ArgumentException(nameof(workflowId));
+			}
+
+			var workflow = api.Workflows.Read(workflowId);
+			if (workflow == null)
+			{
+				var error = new WorkflowNotFoundError
+				{
+					ErrorMessage = $"Workflow with ID {workflowId} was not found.",
+					Id = workflowId,
+				};
+
+				throw new MediaOpsException(error);
+			}
+			else if (workflow.State != WorkflowState.Complete)
+			{
+				var error = new WorkflowInvalidStateError
+				{
+					ErrorMessage = "Not allowed to build a job from a workflow that is not in Complete state.",
+					Id = workflowId,
+				};
+
+				throw new MediaOpsException(error);
+			}
+
+			var job = new Job
+			{
+				Priority = EnumExtensions.MapEnum<WorkflowPriority, JobPriority>(workflow.Priority),
+				PreRoll = workflow.PreRoll,
+				PostRoll = workflow.PostRoll,
+			};
+
+			// 1. Clone the node graph first so we have a complete workflow-node-id -> job-node-id map
+			//    before retargeting any DataReferences (orchestration settings may reference nodes).
+			var nodeIdMap = NodeGraphCloner.Clone(workflow.NodeGraph, job.NodeGraph, CreateJobNode);
+
+			// 2. Copy the per-node orchestration settings, pairing each new job node with its source workflow node.
+			var workflowNodesById = workflow.NodeGraph.Nodes.ToDictionary(n => n.Id);
+			var jobNodesById = job.NodeGraph.Nodes.ToDictionary(n => n.Id);
+			foreach (var entry in nodeIdMap)
+			{
+				var workflowNode = workflowNodesById[entry.Key];
+				var jobNode = jobNodesById[entry.Value];
+				OrchestrationSettingsCloner.Clone(workflowNode.OrchestrationSettings, jobNode.OrchestrationSettings, nodeIdMap);
+			}
+
+			// 3. Copy the job-level orchestration settings.
+			OrchestrationSettingsCloner.Clone(workflow.OrchestrationSettings, job.OrchestrationSettings, nodeIdMap);
+
+			return job;
+		}
+
+		/// <summary>
+		/// Produces the <see cref="JobNode"/> that should replace the given <see cref="WorkflowNode"/> inside the
+		/// cloned graph. This is the only piece of "workflow ? job" specific knowledge that <see cref="FromWorkflow"/>
+		/// contributes; the generic cloning and reference retargeting is performed by <see cref="NodeGraphCloner"/>
+		/// and <see cref="OrchestrationSettingsCloner"/>.
+		/// </summary>
+		private static JobNode CreateJobNode(WorkflowNode workflowNode)
+		{
+			return workflowNode switch
+			{
+				WorkflowResourceNode resourceNode => new JobResourceNode(resourceNode.ResourcePoolId, resourceNode.ResourceId)
+				{
+					Alias = resourceNode.Alias,
+					IconImage = resourceNode.IconImage,
+				},
+				WorkflowResourcePoolNode resourcePoolNode => new JobResourcePoolNode(resourcePoolNode.ResourcePoolId)
+				{
+					Alias = resourcePoolNode.Alias,
+					IconImage = resourcePoolNode.IconImage,
+				},
+				_ => null,
+			};
+		}
 
 		/// <inheritdoc/>
 		public override int GetHashCode()
