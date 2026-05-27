@@ -77,8 +77,9 @@ jobs:
     name: Public Release
     if: github.ref_type == 'tag' && !contains(github.ref_name, '-') #Stable tags (e.g. 1.2.3)
     needs: integration_tests
-    uses: SkylineCommunications/_ReusableWorkflows/.github/workflows/NuGet Solution Master Workflow.yml@main
+    uses: SkylineCommunications/_ReusableWorkflows/.github/workflows/Master Workflow.yml@main
     with:
       sonarCloudProjectName: SkylineCommunications_Skyline.DataMiner.MediaOps.API
+      nuget-push-source: "https://api.nuget.org/v3/index.json"
     secrets:
       nugetApiKey: ${{ secrets.NUGETAPIKEY }}
