@@ -79,7 +79,7 @@ jobs:
     needs: integration_tests
     uses: SkylineCommunications/_ReusableWorkflows/.github/workflows/Master Workflow.yml@main
     with:
-      sonarCloudProjectName: SkylineCommunications_Skyline.DataMiner.MediaOps.API
+      sonarcloud-project-name: SkylineCommunications_Skyline.DataMiner.MediaOps.API
       nuget-push-source: "https://api.nuget.org/v3/index.json"
     secrets:
-      nugetApiKey: ${{ secrets.NUGETAPIKEY }}
+      NUGET_API_KEY: ${{ secrets.NUGETAPIKEY }}
