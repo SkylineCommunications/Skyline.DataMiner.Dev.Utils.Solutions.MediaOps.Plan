@@ -338,11 +338,11 @@
 			var ownerScopes = new List<KeyValuePair<Guid, PropertyValuesScope>>();
 			foreach (var workflow in apiWorkflows)
 			{
-				ownerScopes.Add(new KeyValuePair<Guid, PropertyValuesScope>(workflow.Id, workflow.PropertyValuesScopeOrNull));
+				ownerScopes.Add(new KeyValuePair<Guid, PropertyValuesScope>(workflow.Id, workflow.PropertyValuesScope));
 
 				foreach (var node in workflow.NodeGraph.Nodes)
 				{
-					ownerScopes.Add(new KeyValuePair<Guid, PropertyValuesScope>(workflow.Id, node.PropertyValuesScopeOrNull));
+					ownerScopes.Add(new KeyValuePair<Guid, PropertyValuesScope>(workflow.Id, node.PropertyValuesScope));
 				}
 			}
 
@@ -384,7 +384,7 @@
 
 			foreach (var workflow in apiWorkflows)
 			{
-				var cached = workflow.PropertyValuesContextOrNull?.TryGetCachedOriginalCollections();
+				var cached = workflow.PropertyValuesContext?.TryGetCachedOriginalCollections();
 				if (cached != null)
 				{
 					foreach (var collection in cached)

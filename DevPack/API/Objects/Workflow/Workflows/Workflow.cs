@@ -110,59 +110,59 @@
 		/// Property values are loaded lazily in a single batch together with the property values of all nodes.
 		/// Use <see cref="AddCustomProperty"/>, <see cref="SetCustomProperty"/> and <see cref="RemoveCustomProperty"/> to modify them.
 		/// </summary>
-		public IReadOnlyCollection<CustomPropertyValue> CustomPropertyValues => PropertyValuesScope.CustomPropertyValues;
+		public IReadOnlyCollection<CustomPropertyValue> CustomPropertyValues => GetOrCreateScope().CustomPropertyValues;
 
 		/// <summary>
 		/// Gets the property values associated with this workflow.
 		/// Property values are loaded lazily in a single batch together with the property values of all nodes.
 		/// Use <see cref="AddProperty"/>, <see cref="SetProperty"/> and <see cref="RemoveProperty"/> to modify them.
 		/// </summary>
-		public IReadOnlyCollection<PropertyValue> PropertyValues => PropertyValuesScope.PropertyValues;
+		public IReadOnlyCollection<PropertyValue> PropertyValues => GetOrCreateScope().PropertyValues;
 
 		internal StorageWorkflow.WorkflowsInstance OriginalInstance => originalInstance;
 
-		internal PropertyValuesScope PropertyValuesScopeOrNull => propertyValuesScope;
+		internal PropertyValuesScope PropertyValuesScope => propertyValuesScope;
 
-		internal PropertyValuesContext PropertyValuesContextOrNull => propertiesContext;
-
-		private PropertyValuesScope PropertyValuesScope
-			=> propertyValuesScope ??= EnsureContext().CreateOwnerScope();
+		internal PropertyValuesContext PropertyValuesContext => propertiesContext;
 
 		/// <summary>
 		/// Adds a custom property value to this workflow.
 		/// </summary>
 		/// <param name="value">The custom property value to add.</param>
-		public void AddCustomProperty(CustomPropertyValue value) => PropertyValuesScope.AddCustomProperty(value);
+		public void AddCustomProperty(CustomPropertyValue value) => GetOrCreateScope().AddCustomProperty(value);
 
 		/// <summary>
 		/// Replaces the entire collection of custom property values associated with this workflow with the specified values.
 		/// </summary>
 		/// <param name="values">The custom property values that should replace the current collection.</param>
-		public void SetCustomProperties(IEnumerable<CustomPropertyValue> values) => PropertyValuesScope.SetCustomProperties(values);
+		public void SetCustomProperties(IEnumerable<CustomPropertyValue> values) => GetOrCreateScope().SetCustomProperties(values);
 
 		/// <summary>
 		/// Removes the specified custom property value from this workflow.
 		/// </summary>
 		/// <param name="value">The custom property value to remove.</param>
-		public void RemoveCustomProperty(CustomPropertyValue value) => PropertyValuesScope.RemoveCustomProperty(value);
+		public void RemoveCustomProperty(CustomPropertyValue value) => GetOrCreateScope().RemoveCustomProperty(value);
 
 		/// <summary>
 		/// Adds a property value to this workflow.
 		/// </summary>
 		/// <param name="value">The property value to add.</param>
-		public void AddProperty(PropertyValue value) => PropertyValuesScope.AddProperty(value);
+		public void AddProperty(PropertyValue value) => GetOrCreateScope().AddProperty(value);
 
 		/// <summary>
 		/// Replaces the entire collection of property values associated with this workflow with the specified values.
 		/// </summary>
 		/// <param name="values">The property values that should replace the current collection.</param>
-		public void SetProperties(IEnumerable<PropertyValue> values) => PropertyValuesScope.SetProperties(values);
+		public void SetProperties(IEnumerable<PropertyValue> values) => GetOrCreateScope().SetProperties(values);
 
 		/// <summary>
 		/// Removes the specified property value from this workflow.
 		/// </summary>
 		/// <param name="value">The property value to remove.</param>
-		public void RemoveProperty(PropertyValue value) => PropertyValuesScope.RemoveProperty(value);
+		public void RemoveProperty(PropertyValue value) => GetOrCreateScope().RemoveProperty(value);
+
+		private PropertyValuesScope GetOrCreateScope()
+			=> propertyValuesScope ??= EnsureContext().CreateOwnerScope();
 
 		internal PropertyValuesContext EnsureContext()
 		{
