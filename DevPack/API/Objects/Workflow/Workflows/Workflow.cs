@@ -15,8 +15,8 @@
 	{
 		private StorageWorkflow.WorkflowsInstance originalInstance;
 		private StorageWorkflow.WorkflowsInstance updatedInstance;
-		private WorkflowPropertiesLoader propertiesLoader;
-		private WorkflowPropertyValuesEditor propertyValuesEditor;
+		private PropertyValuesLoader propertiesLoader;
+		private PropertyValuesEditor propertyValuesEditor;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Workflow"/> class.
@@ -46,7 +46,7 @@
 		{
 			ParseInstance(planApi, instance);
 
-			propertiesLoader = new WorkflowPropertiesLoader(planApi, Id, NodeGraph.Nodes.Select(n => n.Id));
+			propertiesLoader = new PropertyValuesLoader(planApi, Id, NodeGraph.Nodes.Select(n => n.Id));
 			foreach (var node in NodeGraph.Nodes)
 			{
 				node.SetPropertiesLoader(propertiesLoader);
@@ -121,8 +121,8 @@
 
 		internal StorageWorkflow.WorkflowsInstance OriginalInstance => originalInstance;
 
-		private WorkflowPropertyValuesEditor PropertyValuesEditor
-			=> propertyValuesEditor ??= new WorkflowPropertyValuesEditor(
+		private PropertyValuesEditor PropertyValuesEditor
+			=> propertyValuesEditor ??= new PropertyValuesEditor(
 				() => propertiesLoader?.GetCustomPropertyValues(Id.ToString()),
 				() => propertiesLoader?.GetPropertyValues(Id.ToString()));
 

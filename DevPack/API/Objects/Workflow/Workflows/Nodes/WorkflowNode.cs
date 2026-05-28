@@ -10,8 +10,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// </summary>
 	public abstract class WorkflowNode : NodeBase
 	{
-		private WorkflowPropertiesLoader propertiesLoader;
-		private WorkflowPropertyValuesEditor propertyValuesEditor;
+		private PropertyValuesLoader propertiesLoader;
+		private PropertyValuesEditor propertyValuesEditor;
 
 		private protected WorkflowNode() : base()
 		{
@@ -35,8 +35,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// </summary>
 		public IReadOnlyCollection<PropertyValue> PropertyValues => PropertyValuesEditor.PropertyValues;
 
-		private WorkflowPropertyValuesEditor PropertyValuesEditor
-			=> propertyValuesEditor ??= new WorkflowPropertyValuesEditor(
+		private PropertyValuesEditor PropertyValuesEditor
+			=> propertyValuesEditor ??= new PropertyValuesEditor(
 				() => propertiesLoader?.GetCustomPropertyValues(Id),
 				() => propertiesLoader?.GetPropertyValues(Id));
 
@@ -98,7 +98,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return resourcePoolNode != null;
 		}
 
-		internal void SetPropertiesLoader(WorkflowPropertiesLoader loader)
+		internal void SetPropertiesLoader(PropertyValuesLoader loader)
 		{
 			propertiesLoader = loader;
 		}
