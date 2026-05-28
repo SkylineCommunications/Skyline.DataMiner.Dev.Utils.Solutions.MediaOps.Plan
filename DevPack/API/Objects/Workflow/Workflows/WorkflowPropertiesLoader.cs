@@ -62,14 +62,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			var result = new Dictionary<string, (IReadOnlyCollection<CustomPropertyValue>, IReadOnlyCollection<PropertyValue>)>(
 				StringComparer.OrdinalIgnoreCase);
 
-			var allIds = new List<string> { workflowId.ToString() };
+			var workflowIdString = workflowId.ToString();
+			var allIds = new List<string> { workflowIdString };
 			allIds.AddRange(nodeIds);
 
-			var filterElements = allIds
-				.Select(id => PropertyValueCollectionExposers.LinkedObjectId.Equal(id))
-				.ToArray();
-
-			var filter = new ORFilterElement<PropertyValueCollection>(filterElements);
+			// Property value collections for both the workflow itself and all of its nodes share the same
+			// LinkedObjectId (the workflow ID). The workflow's own collection has an empty SubId while each
+			// node's collection uses the node ID as SubId. A single filter on LinkedObjectId therefore fetches
+			// the data for the workflow and all of its nodes at once.
+			var filter = PropertyValueCollectionExposers.LinkedObjectId.Equal(workflowIdString);
 			var collections = planApi.PropertyValueCollections.Read(filter);
 
 			var groupedCustom = new Dictionary<string, List<CustomPropertyValue>>(StringComparer.OrdinalIgnoreCase);
@@ -77,24 +78,25 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			foreach (var collection in collections)
 			{
-				var id = collection.LinkedObjectId;
-				if (id == null)
+				if (collection.LinkedObjectId == null)
 				{
 					continue;
 				}
 
-				if (!groupedCustom.TryGetValue(id, out var customList))
+				var key = string.IsNullOrEmpty(collection.SubId) ? workflowIdString : collection.SubId;
+
+				if (!groupedCustom.TryGetValue(key, out var customList))
 				{
 					customList = [];
-					groupedCustom[id] = customList;
+					groupedCustom[key] = customList;
 				}
 
 				customList.AddRange(collection.CustomValues);
 
-				if (!groupedProperty.TryGetValue(id, out var propertyList))
+				if (!groupedProperty.TryGetValue(key, out var propertyList))
 				{
 					propertyList = [];
-					groupedProperty[id] = propertyList;
+					groupedProperty[key] = propertyList;
 				}
 
 				propertyList.AddRange(collection.PropertyValues);
