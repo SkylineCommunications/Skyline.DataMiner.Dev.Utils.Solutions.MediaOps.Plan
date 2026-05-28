@@ -40,6 +40,7 @@
 		private readonly Lazy<IRecurringJobsRepository> lazyRecurringJobsRepository;
 		private readonly Lazy<IPropertiesRepository> lazyPropertiesRepository;
 		private readonly Lazy<IPropertyValueCollectionsRepository> lazyPropertyValueCollectionsRepository;
+		private readonly Lazy<ISchedulingPropertiesRepository> lazySchedulingPropertiesRepository;
 		private readonly Lazy<Plan.Tools.LockManager> lazyLockManager;
 		private readonly Lazy<ICategoriesApi> lazyCategoriesApi;
 		private readonly Lazy<IGlobalSettings> lazyGlobalSettings;
@@ -73,6 +74,7 @@
 			lazyRecurringJobsRepository = new Lazy<IRecurringJobsRepository>(() => new RecurringJobsRepository(this));
 			lazyPropertiesRepository = new Lazy<IPropertiesRepository>(() => new PropertiesRepository(this));
 			lazyPropertyValueCollectionsRepository = new Lazy<IPropertyValueCollectionsRepository>(() => new PropertyValueCollectionsRepository(this));
+			lazySchedulingPropertiesRepository = new Lazy<ISchedulingPropertiesRepository>(() => new SchedulingPropertiesRepository(this));
 			lazyLockManager = new Lazy<Plan.Tools.LockManager>(() => new Plan.Tools.LockManager(this));
 			lazyCategoriesApi = new Lazy<ICategoriesApi>(() => connection.GetCategoriesApi());
 			lazyGlobalSettings = new Lazy<IGlobalSettings>(() => new GlobalSettings(this));
@@ -127,6 +129,11 @@
 		/// <inheritdoc/>
 		/// </summary>
 		public IPropertiesRepository Properties => lazyPropertiesRepository.Value;
+
+		/// <summary>
+		/// <inheritdoc/>
+		/// </summary>
+		public ISchedulingPropertiesRepository SchedulingProperties => lazySchedulingPropertiesRepository.Value;
 
 		/// <summary>
 		/// <inheritdoc/>
