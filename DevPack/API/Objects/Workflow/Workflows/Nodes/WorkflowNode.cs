@@ -41,51 +41,40 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				() => propertiesLoader?.GetPropertyValues(Id));
 
 		/// <summary>
-		/// Adds a new custom property value to this node.
+		/// Adds a custom property value to this node.
 		/// </summary>
 		/// <param name="value">The custom property value to add.</param>
-		/// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is <see langword="null"/>.</exception>
-		/// <exception cref="ArgumentException">Thrown when the name of <paramref name="value"/> is null or empty.</exception>
-		/// <exception cref="InvalidOperationException">Thrown when a custom property value with the same name already exists.</exception>
 		public void AddCustomProperty(CustomPropertyValue value) => PropertyValuesEditor.AddCustomProperty(value);
 
 		/// <summary>
-		/// Adds the specified custom property value or replaces an existing one with the same name.
+		/// Replaces the entire collection of custom property values associated with this node with the specified values.
 		/// </summary>
-		/// <param name="value">The custom property value to set.</param>
-		/// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is <see langword="null"/>.</exception>
-		/// <exception cref="ArgumentException">Thrown when the name of <paramref name="value"/> is null or empty.</exception>
-		public void SetCustomProperty(CustomPropertyValue value) => PropertyValuesEditor.SetCustomProperty(value);
+		/// <param name="values">The custom property values that should replace the current collection.</param>
+		public void SetCustomProperties(IEnumerable<CustomPropertyValue> values) => PropertyValuesEditor.SetCustomProperties(values);
 
 		/// <summary>
-		/// Removes the custom property value with the specified name.
+		/// Removes the specified custom property value from this node.
 		/// </summary>
-		/// <param name="name">The name of the custom property value to remove.</param>
-		/// <returns><see langword="true"/> when a matching custom property value was removed; otherwise, <see langword="false"/>.</returns>
-		/// <exception cref="ArgumentNullException">Thrown when <paramref name="name"/> is <see langword="null"/>.</exception>
-		public bool RemoveCustomProperty(string name) => PropertyValuesEditor.RemoveCustomProperty(name);
+		/// <param name="value">The custom property value to remove.</param>
+		public void RemoveCustomProperty(CustomPropertyValue value) => PropertyValuesEditor.RemoveCustomProperty(value);
 
 		/// <summary>
-		/// Adds a new property value to this node.
+		/// Adds a property value to this node.
 		/// </summary>
 		/// <param name="value">The property value to add.</param>
-		/// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is <see langword="null"/>.</exception>
-		/// <exception cref="InvalidOperationException">Thrown when a property value for the same property already exists.</exception>
 		public void AddProperty(PropertyValue value) => PropertyValuesEditor.AddProperty(value);
 
 		/// <summary>
-		/// Adds the specified property value or replaces an existing one for the same property.
+		/// Replaces the entire collection of property values associated with this node with the specified values.
 		/// </summary>
-		/// <param name="value">The property value to set.</param>
-		/// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is <see langword="null"/>.</exception>
-		public void SetProperty(PropertyValue value) => PropertyValuesEditor.SetProperty(value);
+		/// <param name="values">The property values that should replace the current collection.</param>
+		public void SetProperties(IEnumerable<PropertyValue> values) => PropertyValuesEditor.SetProperties(values);
 
 		/// <summary>
-		/// Removes the property value linked to the property with the specified identifier.
+		/// Removes the specified property value from this node.
 		/// </summary>
-		/// <param name="propertyId">The identifier of the property whose value should be removed.</param>
-		/// <returns><see langword="true"/> when a matching property value was removed; otherwise, <see langword="false"/>.</returns>
-		public bool RemoveProperty(Guid propertyId) => PropertyValuesEditor.RemoveProperty(propertyId);
+		/// <param name="value">The property value to remove.</param>
+		public void RemoveProperty(PropertyValue value) => PropertyValuesEditor.RemoveProperty(value);
 
 		/// <summary>
 		/// Determines whether this node represents a resource and, if so, returns it as a <see cref="WorkflowResourceNode"/>.

@@ -37,79 +37,32 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		internal void AddCustomProperty(CustomPropertyValue value)
 		{
-			if (value == null)
-			{
-				throw new ArgumentNullException(nameof(value));
-			}
-
-			if (string.IsNullOrEmpty(value.Name))
-			{
-				throw new ArgumentException("Custom property name cannot be null or empty.", nameof(value));
-			}
-
-			if (CustomValuesList.Any(x => string.Equals(x.Name, value.Name, StringComparison.Ordinal)))
-			{
-				throw new InvalidOperationException($"A custom property value with name '{value.Name}' already exists.");
-			}
-
 			CustomValuesList.Add(value);
 		}
 
-		internal void SetCustomProperty(CustomPropertyValue value)
+		internal void SetCustomProperties(IEnumerable<CustomPropertyValue> values)
 		{
-			if (value == null)
-			{
-				throw new ArgumentNullException(nameof(value));
-			}
-
-			if (string.IsNullOrEmpty(value.Name))
-			{
-				throw new ArgumentException("Custom property name cannot be null or empty.", nameof(value));
-			}
-
-			CustomValuesList.RemoveAll(x => string.Equals(x.Name, value.Name, StringComparison.Ordinal));
-			CustomValuesList.Add(value);
+			customValues = values?.ToList() ?? [];
 		}
 
-		internal bool RemoveCustomProperty(string name)
+		internal void RemoveCustomProperty(CustomPropertyValue value)
 		{
-			if (name == null)
-			{
-				throw new ArgumentNullException(nameof(name));
-			}
-
-			return CustomValuesList.RemoveAll(x => string.Equals(x.Name, name, StringComparison.Ordinal)) > 0;
+			CustomValuesList.Remove(value);
 		}
 
 		internal void AddProperty(PropertyValue value)
 		{
-			if (value == null)
-			{
-				throw new ArgumentNullException(nameof(value));
-			}
-
-			if (PropertyValuesList.Any(x => x.Id == value.Id))
-			{
-				throw new InvalidOperationException($"A property value for property '{value.Id}' already exists.");
-			}
-
 			PropertyValuesList.Add(value);
 		}
 
-		internal void SetProperty(PropertyValue value)
+		internal void SetProperties(IEnumerable<PropertyValue> values)
 		{
-			if (value == null)
-			{
-				throw new ArgumentNullException(nameof(value));
-			}
-
-			PropertyValuesList.RemoveAll(x => x.Id == value.Id);
-			PropertyValuesList.Add(value);
+			propertyValues = values?.ToList() ?? [];
 		}
 
-		internal bool RemoveProperty(Guid propertyId)
+		internal void RemoveProperty(PropertyValue value)
 		{
-			return PropertyValuesList.RemoveAll(x => x.Id == propertyId) > 0;
+			PropertyValuesList.Remove(value);
 		}
 	}
 }
