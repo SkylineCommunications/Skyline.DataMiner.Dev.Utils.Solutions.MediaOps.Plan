@@ -615,6 +615,37 @@
 			}
 		}
 
+		public T CreateSchedulingProperty<T>(T property) where T : Property
+		{
+			var createdProperty = (T)PlanApi.SchedulingProperties.Create(property);
+			createdPropertyIds.Add(createdProperty.Id);
+			return createdProperty;
+		}
+
+		public IReadOnlyCollection<Property> CreateSchedulingProperties(IEnumerable<Property> properties)
+		{
+			try
+			{
+				var createdProperties = PlanApi.SchedulingProperties.Create(properties);
+
+				foreach (var created in createdProperties)
+				{
+					createdPropertyIds.Add(created.Id);
+				}
+
+				return createdProperties;
+			}
+			catch (MediaOpsBulkException<Guid> bulkException)
+			{
+				foreach (var id in bulkException.Result.SuccessfulIds)
+				{
+					createdPropertyIds.Add(id);
+				}
+
+				throw;
+			}
+		}
+
 		public PropertyValueCollection CreatePropertyValueCollection(PropertyValueCollection collection)
 		{
 			var created = PlanApi.PropertyValueCollections.Create(collection);

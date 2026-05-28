@@ -130,6 +130,26 @@
 			return updatedInstance;
 		}
 
+		internal void AssignScope(string scope)
+		{
+			if (string.IsNullOrWhiteSpace(scope))
+			{
+				throw new ArgumentException("Scope cannot be null or whitespace.", nameof(scope));
+			}
+
+			if (!IsNew)
+			{
+				throw new InvalidOperationException("Scope can only be assigned to new properties.");
+			}
+
+			if (!string.IsNullOrEmpty(Scope))
+			{
+				throw new InvalidOperationException("Scope has already been assigned and cannot be modified.");
+			}
+
+			this.scope = scope;
+		}
+
 		private static IEnumerable<Property> InstantiatePropertiesIterator(IEnumerable<StorageProperties.PropertyInstance> instances)
 		{
 			foreach (var instance in instances)

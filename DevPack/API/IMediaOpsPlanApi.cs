@@ -58,6 +58,11 @@
 		IPropertiesRepository Properties { get; }
 
 		/// <summary>
+		/// Gets the repository for managing scheduling properties.
+		/// </summary>
+		ISchedulingPropertiesRepository SchedulingProperties { get; }
+
+		/// <summary>
 		/// Gets the repository for managing property value collections.
 		/// </summary>
 		IPropertyValueCollectionsRepository PropertyValueCollections { get; }
