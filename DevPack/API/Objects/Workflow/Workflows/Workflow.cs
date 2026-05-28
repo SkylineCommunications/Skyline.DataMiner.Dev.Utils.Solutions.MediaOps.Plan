@@ -15,6 +15,8 @@
 	{
 		private StorageWorkflow.WorkflowsInstance originalInstance;
 		private StorageWorkflow.WorkflowsInstance updatedInstance;
+		private PropertyValuesLoader propertiesLoader;
+		private PropertyValuesEditor propertyValuesEditor;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Workflow"/> class.
@@ -43,6 +45,13 @@
 		internal Workflow(MediaOpsPlanApi planApi, StorageWorkflow.WorkflowsInstance instance) : base(instance.ID.Id)
 		{
 			ParseInstance(planApi, instance);
+
+			propertiesLoader = new PropertyValuesLoader(planApi, Id, NodeGraph.Nodes.Select(n => n.Id));
+			foreach (var node in NodeGraph.Nodes)
+			{
+				node.SetPropertiesLoader(propertiesLoader);
+			}
+
 			InitTracking();
 		}
 
@@ -96,7 +105,62 @@
 		/// </summary>
 		public NodeGraph<WorkflowNode> NodeGraph { get; private set; }
 
+		/// <summary>
+		/// Gets the custom property values associated with this workflow.
+		/// Property values are loaded lazily in a single batch together with the property values of all nodes.
+		/// Use <see cref="AddCustomProperty"/>, <see cref="SetCustomProperty"/> and <see cref="RemoveCustomProperty"/> to modify them.
+		/// </summary>
+		public IReadOnlyCollection<CustomPropertyValue> CustomPropertyValues => PropertyValuesEditor.CustomPropertyValues;
+
+		/// <summary>
+		/// Gets the property values associated with this workflow.
+		/// Property values are loaded lazily in a single batch together with the property values of all nodes.
+		/// Use <see cref="AddProperty"/>, <see cref="SetProperty"/> and <see cref="RemoveProperty"/> to modify them.
+		/// </summary>
+		public IReadOnlyCollection<PropertyValue> PropertyValues => PropertyValuesEditor.PropertyValues;
+
 		internal StorageWorkflow.WorkflowsInstance OriginalInstance => originalInstance;
+
+		private PropertyValuesEditor PropertyValuesEditor
+			=> propertyValuesEditor ??= new PropertyValuesEditor(
+				() => propertiesLoader?.GetCustomPropertyValues(Id.ToString()),
+				() => propertiesLoader?.GetPropertyValues(Id.ToString()));
+
+		/// <summary>
+		/// Adds a custom property value to this workflow.
+		/// </summary>
+		/// <param name="value">The custom property value to add.</param>
+		public void AddCustomProperty(CustomPropertyValue value) => PropertyValuesEditor.AddCustomProperty(value);
+
+		/// <summary>
+		/// Replaces the entire collection of custom property values associated with this workflow with the specified values.
+		/// </summary>
+		/// <param name="values">The custom property values that should replace the current collection.</param>
+		public void SetCustomProperties(IEnumerable<CustomPropertyValue> values) => PropertyValuesEditor.SetCustomProperties(values);
+
+		/// <summary>
+		/// Removes the specified custom property value from this workflow.
+		/// </summary>
+		/// <param name="value">The custom property value to remove.</param>
+		public void RemoveCustomProperty(CustomPropertyValue value) => PropertyValuesEditor.RemoveCustomProperty(value);
+
+		/// <summary>
+		/// Adds a property value to this workflow.
+		/// </summary>
+		/// <param name="value">The property value to add.</param>
+		public void AddProperty(PropertyValue value) => PropertyValuesEditor.AddProperty(value);
+
+		/// <summary>
+		/// Replaces the entire collection of property values associated with this workflow with the specified values.
+		/// </summary>
+		/// <param name="values">The property values that should replace the current collection.</param>
+		public void SetProperties(IEnumerable<PropertyValue> values) => PropertyValuesEditor.SetProperties(values);
+
+		/// <summary>
+		/// Removes the specified property value from this workflow.
+		/// </summary>
+		/// <param name="value">The property value to remove.</param>
+		public void RemoveProperty(PropertyValue value) => PropertyValuesEditor.RemoveProperty(value);
 
 		/// <inheritdoc/>
 		public override int GetHashCode()
