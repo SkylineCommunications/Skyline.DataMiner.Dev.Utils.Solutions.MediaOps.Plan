@@ -11,6 +11,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// </summary>
 	internal sealed class WorkflowPropertiesLoader
 	{
+		internal const string MediaOpsScope = "MediaOps";
+
 		private static readonly IReadOnlyCollection<CustomPropertyValue> EmptyCustomValues = [];
 		private static readonly IReadOnlyCollection<PropertyValue> EmptyPropertyValues = [];
 
@@ -67,10 +69,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			allIds.AddRange(nodeIds);
 
 			// Property value collections for both the workflow itself and all of its nodes share the same
-			// LinkedObjectId (the workflow ID). The workflow's own collection has an empty SubId while each
-			// node's collection uses the node ID as SubId. A single filter on LinkedObjectId therefore fetches
-			// the data for the workflow and all of its nodes at once.
-			var filter = PropertyValueCollectionExposers.LinkedObjectId.Equal(workflowIdString);
+			// LinkedObjectId (the workflow ID) and use the 'MediaOps' scope. The workflow's own collection has
+			// an empty SubId while each node's collection uses the node ID as SubId. A single filter on
+			// LinkedObjectId and Scope therefore fetches the data for the workflow and all of its nodes at once.
+			var filter = new ANDFilterElement<PropertyValueCollection>(
+				PropertyValueCollectionExposers.LinkedObjectId.Equal(workflowIdString),
+				PropertyValueCollectionExposers.Scope.Equal(MediaOpsScope));
 			var collections = planApi.PropertyValueCollections.Read(filter);
 
 			var groupedCustom = new Dictionary<string, List<CustomPropertyValue>>(StringComparer.OrdinalIgnoreCase);
