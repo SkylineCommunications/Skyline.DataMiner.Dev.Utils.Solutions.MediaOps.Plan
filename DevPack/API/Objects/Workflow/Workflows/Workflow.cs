@@ -50,6 +50,7 @@
 			foreach (var node in NodeGraph.Nodes)
 			{
 				node.SetPropertiesLoader(propertiesLoader);
+				node.SetOwnerWorkflowId(Id.ToString());
 			}
 
 			InitTracking();
@@ -121,10 +122,17 @@
 
 		internal StorageWorkflow.WorkflowsInstance OriginalInstance => originalInstance;
 
+		internal PropertyValuesEditor PropertyValuesEditorOrNull => propertyValuesEditor;
+
+		internal PropertyValuesLoader PropertiesLoaderOrNull => propertiesLoader;
+
 		private PropertyValuesEditor PropertyValuesEditor
 			=> propertyValuesEditor ??= new PropertyValuesEditor(
-				() => propertiesLoader?.GetCustomPropertyValues(Id.ToString()),
-				() => propertiesLoader?.GetPropertyValues(Id.ToString()));
+				getLinkedObjectId: () => Id.ToString(),
+				getSubId: () => string.Empty,
+				getOriginalCollection: () => propertiesLoader?.GetOriginalCollection(Id.ToString()),
+				getInitialCustomValues: () => propertiesLoader?.GetCustomPropertyValues(Id.ToString()),
+				getInitialPropertyValues: () => propertiesLoader?.GetPropertyValues(Id.ToString()));
 
 		/// <summary>
 		/// Adds a custom property value to this workflow.

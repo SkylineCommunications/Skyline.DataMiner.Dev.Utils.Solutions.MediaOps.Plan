@@ -19,13 +19,13 @@ internal const string MediaOpsScope = "MediaOps";
 private static readonly IReadOnlyCollection<CustomPropertyValue> EmptyCustomValues = [];
 private static readonly IReadOnlyCollection<PropertyValue> EmptyPropertyValues = [];
 
-private readonly Lazy<Dictionary<string, (IReadOnlyCollection<CustomPropertyValue> customValues, IReadOnlyCollection<PropertyValue> propertyValues)>> _lazy;
+private readonly Lazy<Dictionary<string, LoadedEntry>> _lazy;
 
 internal PropertyValuesLoader(MediaOpsPlanApi planApi, Guid ownerId, IEnumerable<string> subIds)
 {
 var capturedSubIds = subIds?.ToList() ?? new List<string>();
 
-_lazy = new Lazy<Dictionary<string, (IReadOnlyCollection<CustomPropertyValue>, IReadOnlyCollection<PropertyValue>)>>(
+_lazy = new Lazy<Dictionary<string, LoadedEntry>>(
 () => Load(planApi, ownerId, capturedSubIds));
 }
 
@@ -38,7 +38,7 @@ return EmptyCustomValues;
 
 if (_lazy.Value.TryGetValue(objectId, out var data))
 {
-return data.customValues;
+return data.CustomValues;
 }
 
 return EmptyCustomValues;
@@ -53,19 +53,46 @@ return EmptyPropertyValues;
 
 if (_lazy.Value.TryGetValue(objectId, out var data))
 {
-return data.propertyValues;
+return data.PropertyValues;
 }
 
 return EmptyPropertyValues;
 }
 
-private static Dictionary<string, (IReadOnlyCollection<CustomPropertyValue>, IReadOnlyCollection<PropertyValue>)> Load(
+internal PropertyValueCollection GetOriginalCollection(string objectId)
+{
+if (objectId == null)
+{
+return null;
+}
+
+return _lazy.Value.TryGetValue(objectId, out var data) ? data.OriginalCollection : null;
+}
+
+/// <summary>
+/// Returns every original <see cref="PropertyValueCollection"/> that was loaded for the owner
+/// and its sub-objects, or <c>null</c> when the loader has not yet been materialized. Callers
+/// that have not triggered loading can use this to avoid forcing an otherwise unneeded query.
+/// </summary>
+internal IReadOnlyCollection<PropertyValueCollection> TryGetCachedOriginalCollections()
+{
+if (!_lazy.IsValueCreated)
+{
+return null;
+}
+
+return _lazy.Value.Values
+.Select(x => x.OriginalCollection)
+.Where(x => x != null)
+.ToList();
+}
+
+private static Dictionary<string, LoadedEntry> Load(
 MediaOpsPlanApi planApi,
 Guid ownerId,
 List<string> subIds)
 {
-var result = new Dictionary<string, (IReadOnlyCollection<CustomPropertyValue>, IReadOnlyCollection<PropertyValue>)>(
-StringComparer.OrdinalIgnoreCase);
+var result = new Dictionary<string, LoadedEntry>(StringComparer.OrdinalIgnoreCase);
 
 var ownerIdString = ownerId.ToString();
 var allIds = new List<string> { ownerIdString };
@@ -81,8 +108,7 @@ PropertyValueCollectionExposers.LinkedObjectId.Equal(ownerIdString),
 PropertyValueCollectionExposers.Scope.Equal(MediaOpsScope));
 var collections = planApi.PropertyValueCollections.Read(filter);
 
-var groupedCustom = new Dictionary<string, List<CustomPropertyValue>>(StringComparer.OrdinalIgnoreCase);
-var groupedProperty = new Dictionary<string, List<PropertyValue>>(StringComparer.OrdinalIgnoreCase);
+var byKey = new Dictionary<string, PropertyValueCollection>(StringComparer.OrdinalIgnoreCase);
 
 foreach (var collection in collections)
 {
@@ -92,37 +118,44 @@ continue;
 }
 
 var key = string.IsNullOrEmpty(collection.SubId) ? ownerIdString : collection.SubId;
-
-if (!groupedCustom.TryGetValue(key, out var customList))
-{
-customList = [];
-groupedCustom[key] = customList;
-}
-
-customList.AddRange(collection.CustomValues);
-
-if (!groupedProperty.TryGetValue(key, out var propertyList))
-{
-propertyList = [];
-groupedProperty[key] = propertyList;
-}
-
-propertyList.AddRange(collection.PropertyValues);
+byKey[key] = collection;
 }
 
 foreach (var id in allIds)
 {
-var customValues = groupedCustom.TryGetValue(id, out var cv)
-? (IReadOnlyCollection<CustomPropertyValue>)cv
-: EmptyCustomValues;
-var propertyValues = groupedProperty.TryGetValue(id, out var pv)
-? (IReadOnlyCollection<PropertyValue>)pv
-: EmptyPropertyValues;
-
-result[id] = (customValues, propertyValues);
+if (byKey.TryGetValue(id, out var collection))
+{
+result[id] = new LoadedEntry(
+collection,
+collection.CustomValues.ToList(),
+collection.PropertyValues.ToList());
+}
+else
+{
+result[id] = new LoadedEntry(null, EmptyCustomValues, EmptyPropertyValues);
+}
 }
 
 return result;
+}
+
+private sealed class LoadedEntry
+{
+internal LoadedEntry(
+PropertyValueCollection originalCollection,
+IReadOnlyCollection<CustomPropertyValue> customValues,
+IReadOnlyCollection<PropertyValue> propertyValues)
+{
+OriginalCollection = originalCollection;
+CustomValues = customValues;
+PropertyValues = propertyValues;
+}
+
+internal PropertyValueCollection OriginalCollection { get; }
+
+internal IReadOnlyCollection<CustomPropertyValue> CustomValues { get; }
+
+internal IReadOnlyCollection<PropertyValue> PropertyValues { get; }
 }
 }
 }

@@ -12,6 +12,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	{
 		private PropertyValuesLoader propertiesLoader;
 		private PropertyValuesEditor propertyValuesEditor;
+		private string ownerWorkflowId;
 
 		private protected WorkflowNode() : base()
 		{
@@ -37,8 +38,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		private PropertyValuesEditor PropertyValuesEditor
 			=> propertyValuesEditor ??= new PropertyValuesEditor(
-				() => propertiesLoader?.GetCustomPropertyValues(Id),
-				() => propertiesLoader?.GetPropertyValues(Id));
+				getLinkedObjectId: () => ownerWorkflowId,
+				getSubId: () => Id,
+				getOriginalCollection: () => propertiesLoader?.GetOriginalCollection(Id),
+				getInitialCustomValues: () => propertiesLoader?.GetCustomPropertyValues(Id),
+				getInitialPropertyValues: () => propertiesLoader?.GetPropertyValues(Id));
+
+		internal PropertyValuesEditor PropertyValuesEditorOrNull => propertyValuesEditor;
 
 		/// <summary>
 		/// Adds a custom property value to this node.
@@ -101,6 +107,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		internal void SetPropertiesLoader(PropertyValuesLoader loader)
 		{
 			propertiesLoader = loader;
+		}
+
+		internal void SetOwnerWorkflowId(string workflowId)
+		{
+			ownerWorkflowId = workflowId;
 		}
 	}
 }
