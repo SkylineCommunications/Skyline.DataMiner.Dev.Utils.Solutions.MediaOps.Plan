@@ -15,8 +15,8 @@
 	{
 		private StorageWorkflow.WorkflowsInstance originalInstance;
 		private StorageWorkflow.WorkflowsInstance updatedInstance;
-		private PropertyValuesLoader propertiesLoader;
-		private PropertyValuesEditor propertyValuesEditor;
+		private PropertyValuesContext propertiesContext;
+		private PropertyValuesScope propertyValuesScope;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Workflow"/> class.
@@ -46,11 +46,10 @@
 		{
 			ParseInstance(planApi, instance);
 
-			propertiesLoader = new PropertyValuesLoader(planApi, Id, NodeGraph.Nodes.Select(n => n.Id));
+			propertiesContext = new PropertyValuesContext(planApi, Id, NodeGraph.Nodes.Select(n => n.Id));
 			foreach (var node in NodeGraph.Nodes)
 			{
-				node.SetPropertiesLoader(propertiesLoader);
-				node.SetOwnerWorkflowId(Id.ToString());
+				node.SetPropertiesContext(propertiesContext);
 			}
 
 			InitTracking();
@@ -111,64 +110,75 @@
 		/// Property values are loaded lazily in a single batch together with the property values of all nodes.
 		/// Use <see cref="AddCustomProperty"/>, <see cref="SetCustomProperty"/> and <see cref="RemoveCustomProperty"/> to modify them.
 		/// </summary>
-		public IReadOnlyCollection<CustomPropertyValue> CustomPropertyValues => PropertyValuesEditor.CustomPropertyValues;
+		public IReadOnlyCollection<CustomPropertyValue> CustomPropertyValues => PropertyValuesScope.CustomPropertyValues;
 
 		/// <summary>
 		/// Gets the property values associated with this workflow.
 		/// Property values are loaded lazily in a single batch together with the property values of all nodes.
 		/// Use <see cref="AddProperty"/>, <see cref="SetProperty"/> and <see cref="RemoveProperty"/> to modify them.
 		/// </summary>
-		public IReadOnlyCollection<PropertyValue> PropertyValues => PropertyValuesEditor.PropertyValues;
+		public IReadOnlyCollection<PropertyValue> PropertyValues => PropertyValuesScope.PropertyValues;
 
 		internal StorageWorkflow.WorkflowsInstance OriginalInstance => originalInstance;
 
-		internal PropertyValuesEditor PropertyValuesEditorOrNull => propertyValuesEditor;
+		internal PropertyValuesScope PropertyValuesScopeOrNull => propertyValuesScope;
 
-		internal PropertyValuesLoader PropertiesLoaderOrNull => propertiesLoader;
+		internal PropertyValuesContext PropertyValuesContextOrNull => propertiesContext;
 
-		private PropertyValuesEditor PropertyValuesEditor
-			=> propertyValuesEditor ??= new PropertyValuesEditor(
-				getLinkedObjectId: () => Id.ToString(),
-				getSubId: () => string.Empty,
-				getOriginalCollection: () => propertiesLoader?.GetOriginalCollection(Id.ToString()),
-				getInitialCustomValues: () => propertiesLoader?.GetCustomPropertyValues(Id.ToString()),
-				getInitialPropertyValues: () => propertiesLoader?.GetPropertyValues(Id.ToString()));
+		private PropertyValuesScope PropertyValuesScope
+			=> propertyValuesScope ??= EnsureContext().CreateOwnerScope();
 
 		/// <summary>
 		/// Adds a custom property value to this workflow.
 		/// </summary>
 		/// <param name="value">The custom property value to add.</param>
-		public void AddCustomProperty(CustomPropertyValue value) => PropertyValuesEditor.AddCustomProperty(value);
+		public void AddCustomProperty(CustomPropertyValue value) => PropertyValuesScope.AddCustomProperty(value);
 
 		/// <summary>
 		/// Replaces the entire collection of custom property values associated with this workflow with the specified values.
 		/// </summary>
 		/// <param name="values">The custom property values that should replace the current collection.</param>
-		public void SetCustomProperties(IEnumerable<CustomPropertyValue> values) => PropertyValuesEditor.SetCustomProperties(values);
+		public void SetCustomProperties(IEnumerable<CustomPropertyValue> values) => PropertyValuesScope.SetCustomProperties(values);
 
 		/// <summary>
 		/// Removes the specified custom property value from this workflow.
 		/// </summary>
 		/// <param name="value">The custom property value to remove.</param>
-		public void RemoveCustomProperty(CustomPropertyValue value) => PropertyValuesEditor.RemoveCustomProperty(value);
+		public void RemoveCustomProperty(CustomPropertyValue value) => PropertyValuesScope.RemoveCustomProperty(value);
 
 		/// <summary>
 		/// Adds a property value to this workflow.
 		/// </summary>
 		/// <param name="value">The property value to add.</param>
-		public void AddProperty(PropertyValue value) => PropertyValuesEditor.AddProperty(value);
+		public void AddProperty(PropertyValue value) => PropertyValuesScope.AddProperty(value);
 
 		/// <summary>
 		/// Replaces the entire collection of property values associated with this workflow with the specified values.
 		/// </summary>
 		/// <param name="values">The property values that should replace the current collection.</param>
-		public void SetProperties(IEnumerable<PropertyValue> values) => PropertyValuesEditor.SetProperties(values);
+		public void SetProperties(IEnumerable<PropertyValue> values) => PropertyValuesScope.SetProperties(values);
 
 		/// <summary>
 		/// Removes the specified property value from this workflow.
 		/// </summary>
 		/// <param name="value">The property value to remove.</param>
-		public void RemoveProperty(PropertyValue value) => PropertyValuesEditor.RemoveProperty(value);
+		public void RemoveProperty(PropertyValue value) => PropertyValuesScope.RemoveProperty(value);
+
+		internal PropertyValuesContext EnsureContext()
+		{
+			if (propertiesContext == null)
+			{
+				// New, unsaved workflow: no backend data to load. A null planApi is fine because the
+				// lazy load will only ever return empty results for owner+nodes.
+				propertiesContext = new PropertyValuesContext(null, Id, NodeGraph.Nodes.Select(n => n.Id));
+				foreach (var node in NodeGraph.Nodes)
+				{
+					node.SetPropertiesContext(propertiesContext);
+				}
+			}
+
+			return propertiesContext;
+		}
 
 		/// <inheritdoc/>
 		public override int GetHashCode()

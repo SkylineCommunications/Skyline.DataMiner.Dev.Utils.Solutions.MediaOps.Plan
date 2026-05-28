@@ -10,9 +10,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// </summary>
 	public abstract class WorkflowNode : NodeBase
 	{
-		private PropertyValuesLoader propertiesLoader;
-		private PropertyValuesEditor propertyValuesEditor;
-		private string ownerWorkflowId;
+		private PropertyValuesContext propertiesContext;
+		private PropertyValuesScope propertyValuesScope;
 
 		private protected WorkflowNode() : base()
 		{
@@ -27,60 +26,55 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Property values are loaded lazily in a single batch together with the property values of the workflow and all other nodes.
 		/// Use <see cref="AddCustomProperty"/>, <see cref="SetCustomProperty"/> and <see cref="RemoveCustomProperty"/> to modify them.
 		/// </summary>
-		public IReadOnlyCollection<CustomPropertyValue> CustomPropertyValues => PropertyValuesEditor.CustomPropertyValues;
+		public IReadOnlyCollection<CustomPropertyValue> CustomPropertyValues => PropertyValuesScope.CustomPropertyValues;
 
 		/// <summary>
 		/// Gets the property values associated with this node.
 		/// Property values are loaded lazily in a single batch together with the property values of the workflow and all other nodes.
 		/// Use <see cref="AddProperty"/>, <see cref="SetProperty"/> and <see cref="RemoveProperty"/> to modify them.
 		/// </summary>
-		public IReadOnlyCollection<PropertyValue> PropertyValues => PropertyValuesEditor.PropertyValues;
+		public IReadOnlyCollection<PropertyValue> PropertyValues => PropertyValuesScope.PropertyValues;
 
-		private PropertyValuesEditor PropertyValuesEditor
-			=> propertyValuesEditor ??= new PropertyValuesEditor(
-				getLinkedObjectId: () => ownerWorkflowId,
-				getSubId: () => Id,
-				getOriginalCollection: () => propertiesLoader?.GetOriginalCollection(Id),
-				getInitialCustomValues: () => propertiesLoader?.GetCustomPropertyValues(Id),
-				getInitialPropertyValues: () => propertiesLoader?.GetPropertyValues(Id));
+		private PropertyValuesScope PropertyValuesScope
+			=> propertyValuesScope ??= new PropertyValuesScope(() => propertiesContext, Id);
 
-		internal PropertyValuesEditor PropertyValuesEditorOrNull => propertyValuesEditor;
+		internal PropertyValuesScope PropertyValuesScopeOrNull => propertyValuesScope;
 
 		/// <summary>
 		/// Adds a custom property value to this node.
 		/// </summary>
 		/// <param name="value">The custom property value to add.</param>
-		public void AddCustomProperty(CustomPropertyValue value) => PropertyValuesEditor.AddCustomProperty(value);
+		public void AddCustomProperty(CustomPropertyValue value) => PropertyValuesScope.AddCustomProperty(value);
 
 		/// <summary>
 		/// Replaces the entire collection of custom property values associated with this node with the specified values.
 		/// </summary>
 		/// <param name="values">The custom property values that should replace the current collection.</param>
-		public void SetCustomProperties(IEnumerable<CustomPropertyValue> values) => PropertyValuesEditor.SetCustomProperties(values);
+		public void SetCustomProperties(IEnumerable<CustomPropertyValue> values) => PropertyValuesScope.SetCustomProperties(values);
 
 		/// <summary>
 		/// Removes the specified custom property value from this node.
 		/// </summary>
 		/// <param name="value">The custom property value to remove.</param>
-		public void RemoveCustomProperty(CustomPropertyValue value) => PropertyValuesEditor.RemoveCustomProperty(value);
+		public void RemoveCustomProperty(CustomPropertyValue value) => PropertyValuesScope.RemoveCustomProperty(value);
 
 		/// <summary>
 		/// Adds a property value to this node.
 		/// </summary>
 		/// <param name="value">The property value to add.</param>
-		public void AddProperty(PropertyValue value) => PropertyValuesEditor.AddProperty(value);
+		public void AddProperty(PropertyValue value) => PropertyValuesScope.AddProperty(value);
 
 		/// <summary>
 		/// Replaces the entire collection of property values associated with this node with the specified values.
 		/// </summary>
 		/// <param name="values">The property values that should replace the current collection.</param>
-		public void SetProperties(IEnumerable<PropertyValue> values) => PropertyValuesEditor.SetProperties(values);
+		public void SetProperties(IEnumerable<PropertyValue> values) => PropertyValuesScope.SetProperties(values);
 
 		/// <summary>
 		/// Removes the specified property value from this node.
 		/// </summary>
 		/// <param name="value">The property value to remove.</param>
-		public void RemoveProperty(PropertyValue value) => PropertyValuesEditor.RemoveProperty(value);
+		public void RemoveProperty(PropertyValue value) => PropertyValuesScope.RemoveProperty(value);
 
 		/// <summary>
 		/// Determines whether this node represents a resource and, if so, returns it as a <see cref="WorkflowResourceNode"/>.
@@ -104,14 +98,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return resourcePoolNode != null;
 		}
 
-		internal void SetPropertiesLoader(PropertyValuesLoader loader)
+		internal void SetPropertiesContext(PropertyValuesContext context)
 		{
-			propertiesLoader = loader;
-		}
-
-		internal void SetOwnerWorkflowId(string workflowId)
-		{
-			ownerWorkflowId = workflowId;
+			propertiesContext = context;
 		}
 	}
 }

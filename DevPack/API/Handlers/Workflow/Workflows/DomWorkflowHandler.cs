@@ -327,28 +327,26 @@
 				throw new ArgumentException($"Not all provided workflows are valid", nameof(apiWorkflows));
 			}
 
-			// Make sure every node knows the workflow it belongs to so that newly created editors
-			// pick up the correct LinkedObjectId when the user added properties prior to saving.
+			// Make sure every workflow has a property values context so that newly created scopes
+			// (owner and nodes) pick up the correct LinkedObjectId when the user added properties
+			// prior to saving.
 			foreach (var workflow in apiWorkflows)
 			{
+				workflow.EnsureContext();
+			}
+
+			var ownerScopes = new List<KeyValuePair<Guid, PropertyValuesScope>>();
+			foreach (var workflow in apiWorkflows)
+			{
+				ownerScopes.Add(new KeyValuePair<Guid, PropertyValuesScope>(workflow.Id, workflow.PropertyValuesScopeOrNull));
+
 				foreach (var node in workflow.NodeGraph.Nodes)
 				{
-					node.SetOwnerWorkflowId(workflow.Id.ToString());
+					ownerScopes.Add(new KeyValuePair<Guid, PropertyValuesScope>(workflow.Id, node.PropertyValuesScopeOrNull));
 				}
 			}
 
-			var ownerEditors = new List<KeyValuePair<Guid, PropertyValuesEditor>>();
-			foreach (var workflow in apiWorkflows)
-			{
-				ownerEditors.Add(new KeyValuePair<Guid, PropertyValuesEditor>(workflow.Id, workflow.PropertyValuesEditorOrNull));
-
-				foreach (var node in workflow.NodeGraph.Nodes)
-				{
-					ownerEditors.Add(new KeyValuePair<Guid, PropertyValuesEditor>(workflow.Id, node.PropertyValuesEditorOrNull));
-				}
-			}
-
-			var (toCreateOrUpdate, toDelete, workflowIdByCollectionId) = ownerEditors.BuildPersistenceActions();
+			var (toCreateOrUpdate, toDelete, workflowIdByCollectionId) = ownerScopes.BuildPersistenceActions();
 
 			if (toCreateOrUpdate.Count > 0)
 			{
@@ -386,7 +384,7 @@
 
 			foreach (var workflow in apiWorkflows)
 			{
-				var cached = workflow.PropertiesLoaderOrNull?.TryGetCachedOriginalCollections();
+				var cached = workflow.PropertyValuesContextOrNull?.TryGetCachedOriginalCollections();
 				if (cached != null)
 				{
 					foreach (var collection in cached)
@@ -408,7 +406,7 @@
 
 				var filter = new ANDFilterElement<PropertyValueCollection>(
 					linkedObjectIdFilter,
-					PropertyValueCollectionExposers.Scope.Equal(PropertyValuesLoader.MediaOpsScope));
+					PropertyValueCollectionExposers.Scope.Equal(PropertyValuesContext.MediaOpsScope));
 
 				foreach (var collection in planApi.PropertyValueCollections.Read(filter))
 				{

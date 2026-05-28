@@ -4,33 +4,32 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using System.Collections.Generic;
 
 	/// <summary>
-	/// Helpers shared by handlers that own <see cref="PropertyValueCollection"/> objects
-	/// (workflows, jobs, recurring jobs, ...). Keeps the editor-to-persistence-action
-	/// aggregation in one place while leaving each handler in charge of dispatching the
-	/// resulting batches and reporting failures in its own error vocabulary.
+	/// Helpers shared by handlers that own <see cref="PropertyValueCollection"/> objects (workflows,
+	/// jobs, recurring jobs, ...). Aggregates the persistence actions produced by a set of owner
+	/// <see cref="PropertyValuesScope"/>s while leaving each handler in charge of dispatching the
+	/// resulting batches and translating handler failures into its own error vocabulary.
 	/// </summary>
-	internal static class PropertyValuesEditorExtensions
+	internal static class PropertyValuesScopeExtensions
 	{
 		/// <summary>
-		/// Walks the supplied (ownerId, editor) pairs, asks every editor for its
-		/// <see cref="PropertyValuesPersistenceAction"/> and splits the results into a
-		/// create/update batch and a delete batch. The returned map associates each produced
-		/// <see cref="PropertyValueCollection"/> Id with the owner it belongs to so callers
-		/// can translate handler failures back to their own object.
+		/// Walks the supplied (ownerId, scope) pairs, asks every scope for its
+		/// <see cref="PropertyValuesPersistenceAction"/> and splits the results into a create/update
+		/// batch and a delete batch. The returned map associates each produced collection id with the
+		/// owner it belongs to so callers can map failures back to the right owner object.
 		/// </summary>
 		internal static (List<PropertyValueCollection> ToCreateOrUpdate, List<PropertyValueCollection> ToDelete, Dictionary<Guid, Guid> OwnerIdByCollectionId)
-			BuildPersistenceActions(this IEnumerable<KeyValuePair<Guid, PropertyValuesEditor>> ownerEditors)
+			BuildPersistenceActions(this IEnumerable<KeyValuePair<Guid, PropertyValuesScope>> ownerScopes)
 		{
 			var toCreateOrUpdate = new List<PropertyValueCollection>();
 			var toDelete = new List<PropertyValueCollection>();
 			var ownerIdByCollectionId = new Dictionary<Guid, Guid>();
 
-			if (ownerEditors == null)
+			if (ownerScopes == null)
 			{
 				return (toCreateOrUpdate, toDelete, ownerIdByCollectionId);
 			}
 
-			foreach (var pair in ownerEditors)
+			foreach (var pair in ownerScopes)
 			{
 				var action = pair.Value?.BuildPersistenceAction();
 				if (action == null)
