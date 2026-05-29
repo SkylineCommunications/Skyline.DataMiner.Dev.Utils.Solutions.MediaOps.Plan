@@ -27,7 +27,7 @@
 		{
 		}
 
-		internal PropertyValue(PropertyValue propertyValue)
+		private protected PropertyValue(PropertyValue propertyValue)
 			: base(propertyValue)
 		{
 			Id = propertyValue.Id;

@@ -41,9 +41,9 @@
 			{
 				ValidateStringPropertySetting(stringPropertySetting);
 			}
-			else if (propertySetting is BooleanPropertyValue booleanPropertySetting)
+			else if (propertySetting is BooleanPropertyValue)
 			{
-				ValidateBooleanPropertySetting(booleanPropertySetting);
+				ValidateBooleanPropertySetting();
 			}
 			else if (propertySetting is DiscretePropertyValue discretePropertySetting)
 			{
@@ -66,7 +66,7 @@
 			ValidateValue(setting.Value, stringProperty);
 		}
 
-		private void ValidateBooleanPropertySetting(BooleanPropertyValue setting)
+		private void ValidateBooleanPropertySetting()
 		{
 			if (property is not BooleanProperty)
 			{
