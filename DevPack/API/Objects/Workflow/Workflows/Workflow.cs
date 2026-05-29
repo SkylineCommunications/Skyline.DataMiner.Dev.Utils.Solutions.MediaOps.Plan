@@ -129,37 +129,67 @@
 		/// Adds a custom property value to this workflow.
 		/// </summary>
 		/// <param name="value">The custom property value to add.</param>
-		public void AddCustomProperty(CustomPropertyValue value) => GetOrCreateScope().AddCustomProperty(value);
+		/// <returns>The current <see cref="Workflow"/> instance.</returns>
+		public Workflow AddCustomProperty(CustomPropertyValue value)
+		{
+			GetOrCreateScope().AddCustomProperty(value);
+			return this;
+		}
 
 		/// <summary>
 		/// Replaces the entire collection of custom property values associated with this workflow with the specified values.
 		/// </summary>
 		/// <param name="values">The custom property values that should replace the current collection.</param>
-		public void SetCustomProperties(IEnumerable<CustomPropertyValue> values) => GetOrCreateScope().SetCustomProperties(values);
+		/// <returns>The current <see cref="Workflow"/> instance.</returns>
+		public Workflow SetCustomProperties(IEnumerable<CustomPropertyValue> values)
+		{
+			GetOrCreateScope().SetCustomProperties(values);
+			return this;
+		}
 
 		/// <summary>
 		/// Removes the specified custom property value from this workflow.
 		/// </summary>
 		/// <param name="value">The custom property value to remove.</param>
-		public void RemoveCustomProperty(CustomPropertyValue value) => GetOrCreateScope().RemoveCustomProperty(value);
+		/// <returns>The current <see cref="Workflow"/> instance.</returns>
+		public Workflow RemoveCustomProperty(CustomPropertyValue value)
+		{
+			GetOrCreateScope().RemoveCustomProperty(value);
+			return this;
+		}
 
 		/// <summary>
 		/// Adds a property value to this workflow.
 		/// </summary>
 		/// <param name="value">The property value to add.</param>
-		public void AddProperty(PropertyValue value) => GetOrCreateScope().AddProperty(value);
+		/// <returns>The current <see cref="Workflow"/> instance.</returns>
+		public Workflow AddProperty(PropertyValue value)
+		{
+			GetOrCreateScope().AddProperty(value);
+			return this;
+		}
 
 		/// <summary>
 		/// Replaces the entire collection of property values associated with this workflow with the specified values.
 		/// </summary>
 		/// <param name="values">The property values that should replace the current collection.</param>
-		public void SetProperties(IEnumerable<PropertyValue> values) => GetOrCreateScope().SetProperties(values);
+		/// <returns>The current <see cref="Workflow"/> instance.</returns>
+		public Workflow SetProperties(IEnumerable<PropertyValue> values)
+		{
+			GetOrCreateScope().SetProperties(values);
+			return this;
+		}
 
 		/// <summary>
 		/// Removes the specified property value from this workflow.
 		/// </summary>
 		/// <param name="value">The property value to remove.</param>
-		public void RemoveProperty(PropertyValue value) => GetOrCreateScope().RemoveProperty(value);
+		/// <returns>The current <see cref="Workflow"/> instance.</returns>
+		public Workflow RemoveProperty(PropertyValue value)
+		{
+			GetOrCreateScope().RemoveProperty(value);
+			return this;
+		}
 
 		private PropertyValuesScope GetOrCreateScope()
 			=> propertyValuesScope ??= EnsureContext().CreateOwnerScope();
@@ -171,10 +201,13 @@
 				// New, unsaved workflow: no backend data to load. A null planApi is fine because the
 				// lazy load will only ever return empty results for owner+nodes.
 				propertiesContext = new PropertyValuesContext(null, Id, NodeGraph.Nodes.Select(n => n.Id));
-				foreach (var node in NodeGraph.Nodes)
-				{
-					node.SetPropertiesContext(propertiesContext);
-				}
+			}
+
+			// Always (re)wire every node currently in the graph so nodes added after the context was
+			// first created still pick up the correct LinkedObjectId when their scope is persisted.
+			foreach (var node in NodeGraph.Nodes)
+			{
+				node.SetPropertiesContext(propertiesContext);
 			}
 
 			return propertiesContext;

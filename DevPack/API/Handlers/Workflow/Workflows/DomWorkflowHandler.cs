@@ -104,7 +104,6 @@
 			ValidateDomNames(toCreate.Concat(toUpdateNameValidation).ToList());
 
 			CreateOrUpdateOrchestrationSettings(apiWorkflows.Where(IsValid).ToList());
-
 			CreateOrUpdatePropertyValueCollections(apiWorkflows.Where(IsValid).ToList());
 
 			var toCreateDomInstances = toCreate
