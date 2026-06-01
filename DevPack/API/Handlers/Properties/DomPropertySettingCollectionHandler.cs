@@ -332,11 +332,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			var objectsRequiringValidation = apiSettingCollections.ToList();
 
-			if (objectsRequiringValidation.Count == 0)
-			{
-				return;
-			}
-
 			var duplicateGroups = objectsRequiringValidation
 				.GroupBy(x => (x.LinkedObjectId, x.SubId))
 				.Where(g => g.Count() > 1)
@@ -442,8 +437,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 						Id = valueCollection.Id,
 						Name = customValue.Name,
 					};
+
 					ReportError(valueCollection.Id, error);
-					continue;
 				}
 
 				var duplicates = valueCollection.CustomSettings
@@ -458,6 +453,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 						Id = valueCollection.Id,
 						Name = kvp.Key,
 					};
+
 					ReportError(valueCollection.Id, error);
 				}
 
@@ -615,7 +611,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		private sealed class PropertyLookup
 		{
-			private MediaOpsPlanApi planApi;
+			private readonly MediaOpsPlanApi planApi;
 
 			public PropertyLookup(MediaOpsPlanApi planApi, ICollection<PropertySettingCollection> apiSettingCollections)
 			{

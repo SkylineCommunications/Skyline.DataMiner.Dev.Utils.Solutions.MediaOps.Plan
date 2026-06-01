@@ -27,10 +27,10 @@
 		{
 		}
 
-		internal PropertySetting(PropertySetting propertyValue)
-			: base(propertyValue)
+		private protected PropertySetting(PropertySetting propertySetting)
+			: base(propertySetting)
 		{
-			Id = propertyValue.Id;
+			Id = propertySetting.Id;
 		}
 
 		/// <summary>

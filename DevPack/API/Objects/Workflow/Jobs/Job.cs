@@ -204,7 +204,7 @@
 
 		/// <summary>
 		/// Produces the <see cref="JobNode"/> that should replace the given <see cref="WorkflowNode"/> inside the
-		/// cloned graph. This is the only piece of "workflow ? job" specific knowledge that <see cref="FromWorkflow"/>
+		/// cloned graph. This is the only piece of "workflow ? job" specific knowledge that <see cref="FromWorkflow(IMediaOpsPlanApi, Workflow)"/>
 		/// contributes; the generic cloning and reference retargeting is performed by <see cref="NodeGraphCloner"/>
 		/// and <see cref="OrchestrationSettingsCloner"/>.
 		/// </summary>
