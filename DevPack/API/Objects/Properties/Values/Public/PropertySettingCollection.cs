@@ -10,14 +10,14 @@
 	using StorageProperties = Storage.DOM.SlcProperties;
 
 	/// <summary>
-	/// Represents a collection of property values grouped by type, linked to a specific object and scope.
+	/// Represents a collection of property settings grouped by type, linked to a specific object and scope.
 	/// </summary>
-	public class PropertyValueCollection : ApiObject, ICollection<PropertyValueBase>
+	public class PropertySettingCollection : ApiObject, ICollection<PropertySettingBase>
 	{
-		private readonly List<InnerCustomPropertyValue> customValues = [];
-		private readonly List<InnerStringPropertyValue> stringValues = [];
-		private readonly List<InnerBooleanPropertyValue> booleanValues = [];
-		private readonly List<InnerDiscretePropertyValue> discreteValues = [];
+		private readonly List<InnerCustomPropertySetting> customSettings = [];
+		private readonly List<InnerStringPropertySetting> stringSettings = [];
+		private readonly List<InnerBooleanPropertySetting> booleanSettings = [];
+		private readonly List<InnerDiscretePropertySetting> discreteSettings = [];
 
 		private StorageProperties.PropertyValuesInstance originalInstance;
 		private StorageProperties.PropertyValuesInstance updatedInstance;
@@ -27,24 +27,24 @@
 		private string subId;
 
 		/// <summary>
-		/// Initializes a new instance of the <see cref="PropertyValueCollection"/> class.
+		/// Initializes a new instance of the <see cref="PropertySettingCollection"/> class.
 		/// </summary>
-		public PropertyValueCollection() : base()
+		public PropertySettingCollection() : base()
 		{
 			IsNew = true;
 		}
 
 		/// <summary>
-		/// Initializes a new instance of the <see cref="PropertyValueCollection"/> class with the specified unique identifier.
+		/// Initializes a new instance of the <see cref="PropertySettingCollection"/> class with the specified unique identifier.
 		/// </summary>
-		/// <param name="id">The unique identifier for the property value collection.</param>
-		public PropertyValueCollection(Guid id) : base(id)
+		/// <param name="id">The unique identifier for the property setting collection.</param>
+		public PropertySettingCollection(Guid id) : base(id)
 		{
 			IsNew = true;
 			HasUserDefinedId = true;
 		}
 
-		internal PropertyValueCollection(MediaOpsPlanApi planApi, StorageProperties.PropertyValuesInstance instance) : base(instance.ID.Id)
+		internal PropertySettingCollection(MediaOpsPlanApi planApi, StorageProperties.PropertyValuesInstance instance) : base(instance.ID.Id)
 		{
 			ParseInstance(planApi, instance);
 			InitTracking();
@@ -56,42 +56,42 @@
 		public string LinkedObjectId { get => linkedObjectId; init => linkedObjectId = value; }
 
 		/// <summary>
-		/// Gets the scope of this property value collection.
+		/// Gets the scope of this property setting collection.
 		/// </summary>
 		public string Scope { get => scope; init => scope = value; }
 
 		/// <summary>
-		/// Gets the sub-identifier for this property value collection.
+		/// Gets the sub-identifier for this property setting collection.
 		/// </summary>
 		public string SubId { get => subId; init => subId = value; }
 
 		/// <summary>
-		/// Gets the collection of custom property values.
+		/// Gets the collection of custom property settings.
 		/// </summary>
-		public IReadOnlyCollection<CustomPropertyValue> CustomValues => customValues;
+		public IReadOnlyCollection<CustomPropertySetting> CustomSettings => customSettings;
 
 		/// <summary>
-		/// Gets the collection of property values linked to a property definition.
+		/// Gets the collection of property settings linked to a property definition.
 		/// </summary>
-		public IReadOnlyCollection<PropertyValue> PropertyValues => stringValues.Cast<PropertyValue>().Concat(booleanValues).Concat(discreteValues).ToList();
+		public IReadOnlyCollection<PropertySetting> PropertySettings => stringSettings.Cast<PropertySetting>().Concat(booleanSettings).Concat(discreteSettings).ToList();
 
 		/// <summary>
-		/// Gets the collection of string property values.
+		/// Gets the collection of string property settings.
 		/// </summary>
-		public IReadOnlyCollection<StringPropertyValue> StringValues => stringValues;
+		public IReadOnlyCollection<StringPropertySetting> StringSettings => stringSettings;
 
 		/// <summary>
-		/// Gets the collection of boolean property values.
+		/// Gets the collection of boolean property settings.
 		/// </summary>
-		public IReadOnlyCollection<BooleanPropertyValue> BooleanValues => booleanValues;
+		public IReadOnlyCollection<BooleanPropertySetting> BooleanSettings => booleanSettings;
 
 		/// <summary>
-		/// Gets the collection of discrete property values.
+		/// Gets the collection of discrete property settings.
 		/// </summary>
-		public IReadOnlyCollection<DiscretePropertyValue> DiscreteValues => discreteValues;
+		public IReadOnlyCollection<DiscretePropertySetting> DiscreteSettings => discreteSettings;
 
 		/// <inheritdoc />
-		public int Count => customValues.Count + stringValues.Count + booleanValues.Count + discreteValues.Count;
+		public int Count => customSettings.Count + stringSettings.Count + booleanSettings.Count + discreteSettings.Count;
 
 		/// <inheritdoc />
 		public bool IsReadOnly => false;
@@ -109,22 +109,22 @@
 				hash = (hash * 23) + (scope != null ? scope.GetHashCode() : 0);
 				hash = (hash * 23) + (subId != null ? subId.GetHashCode() : 0);
 
-				foreach (var value in customValues.OrderBy(x => x.Name))
+				foreach (var value in customSettings.OrderBy(x => x.Name))
 				{
 					hash = (hash * 23) + value.GetHashCode();
 				}
 
-				foreach (var value in stringValues.OrderBy(x => x.Id))
+				foreach (var value in stringSettings.OrderBy(x => x.Id))
 				{
 					hash = (hash * 23) + value.GetHashCode();
 				}
 
-				foreach (var value in booleanValues.OrderBy(x => x.Id))
+				foreach (var value in booleanSettings.OrderBy(x => x.Id))
 				{
 					hash = (hash * 23) + value.GetHashCode();
 				}
 
-				foreach (var value in discreteValues.OrderBy(x => x.Id))
+				foreach (var value in discreteSettings.OrderBy(x => x.Id))
 				{
 					hash = (hash * 23) + value.GetHashCode();
 				}
@@ -136,7 +136,7 @@
 		/// <inheritdoc />
 		public override bool Equals(object obj)
 		{
-			if (obj is not PropertyValueCollection other)
+			if (obj is not PropertySettingCollection other)
 			{
 				return false;
 			}
@@ -145,14 +145,14 @@
 				&& linkedObjectId == other.linkedObjectId
 				&& scope == other.scope
 				&& subId == other.subId
-				&& customValues.ScrambledEquals(other.customValues)
-				&& stringValues.ScrambledEquals(other.stringValues)
-				&& booleanValues.ScrambledEquals(other.booleanValues)
-				&& discreteValues.ScrambledEquals(other.discreteValues);
+				&& customSettings.ScrambledEquals(other.customSettings)
+				&& stringSettings.ScrambledEquals(other.stringSettings)
+				&& booleanSettings.ScrambledEquals(other.booleanSettings)
+				&& discreteSettings.ScrambledEquals(other.discreteSettings);
 		}
 
 		/// <inheritdoc />
-		public void Add(PropertyValueBase item)
+		public void Add(PropertySettingBase item)
 		{
 			if (item == null)
 			{
@@ -161,34 +161,34 @@
 
 			switch (item)
 			{
-				case CustomPropertyValue custom:
-					customValues.Add(new InnerCustomPropertyValue(custom));
+				case CustomPropertySetting custom:
+					customSettings.Add(new InnerCustomPropertySetting(custom));
 					break;
-				case StringPropertyValue stringVal:
-					stringValues.Add(new InnerStringPropertyValue(stringVal));
+				case StringPropertySetting stringVal:
+					stringSettings.Add(new InnerStringPropertySetting(stringVal));
 					break;
-				case BooleanPropertyValue boolVal:
-					booleanValues.Add(new InnerBooleanPropertyValue(boolVal));
+				case BooleanPropertySetting boolVal:
+					booleanSettings.Add(new InnerBooleanPropertySetting(boolVal));
 					break;
-				case DiscretePropertyValue discreteVal:
-					discreteValues.Add(new InnerDiscretePropertyValue(discreteVal));
+				case DiscretePropertySetting discreteVal:
+					discreteSettings.Add(new InnerDiscretePropertySetting(discreteVal));
 					break;
 				default:
-					throw new ArgumentException($"Unsupported property value type '{item.GetType().Name}'.", nameof(item));
+					throw new ArgumentException($"Unsupported property setting type '{item.GetType().Name}'.", nameof(item));
 			}
 		}
 
 		/// <inheritdoc />
 		public void Clear()
 		{
-			customValues.Clear();
-			stringValues.Clear();
-			booleanValues.Clear();
-			discreteValues.Clear();
+			customSettings.Clear();
+			stringSettings.Clear();
+			booleanSettings.Clear();
+			discreteSettings.Clear();
 		}
 
 		/// <inheritdoc />
-		public bool Contains(PropertyValueBase item)
+		public bool Contains(PropertySettingBase item)
 		{
 			if (item == null)
 			{
@@ -197,16 +197,16 @@
 
 			return item switch
 			{
-				CustomPropertyValue custom => customValues.Contains(custom),
-				StringPropertyValue stringVal => stringValues.Contains(stringVal),
-				BooleanPropertyValue boolVal => booleanValues.Contains(boolVal),
-				DiscretePropertyValue discreteVal => discreteValues.Contains(discreteVal),
+				CustomPropertySetting custom => customSettings.Contains(custom),
+				StringPropertySetting stringVal => stringSettings.Contains(stringVal),
+				BooleanPropertySetting boolVal => booleanSettings.Contains(boolVal),
+				DiscretePropertySetting discreteVal => discreteSettings.Contains(discreteVal),
 				_ => false,
 			};
 		}
 
 		/// <inheritdoc />
-		public void CopyTo(PropertyValueBase[] array, int arrayIndex)
+		public void CopyTo(PropertySettingBase[] array, int arrayIndex)
 		{
 			if (array == null)
 			{
@@ -230,7 +230,7 @@
 		}
 
 		/// <inheritdoc />
-		public bool Remove(PropertyValueBase item)
+		public bool Remove(PropertySettingBase item)
 		{
 			if (item == null)
 			{
@@ -239,22 +239,22 @@
 
 			return item switch
 			{
-				CustomPropertyValue custom => customValues.RemoveAll(x => x.Equals(custom)) > 0,
-				StringPropertyValue stringVal => stringValues.RemoveAll(x => x.Equals(stringVal)) > 0,
-				BooleanPropertyValue boolVal => booleanValues.RemoveAll(x => x.Equals(boolVal)) > 0,
-				DiscretePropertyValue discreteVal => discreteValues.RemoveAll(x => x.Equals(discreteVal)) > 0,
+				CustomPropertySetting custom => customSettings.RemoveAll(x => x.Equals(custom)) > 0,
+				StringPropertySetting stringVal => stringSettings.RemoveAll(x => x.Equals(stringVal)) > 0,
+				BooleanPropertySetting boolVal => booleanSettings.RemoveAll(x => x.Equals(boolVal)) > 0,
+				DiscretePropertySetting discreteVal => discreteSettings.RemoveAll(x => x.Equals(discreteVal)) > 0,
 				_ => false,
 			};
 		}
 
 		/// <inheritdoc />
-		public IEnumerator<PropertyValueBase> GetEnumerator()
+		public IEnumerator<PropertySettingBase> GetEnumerator()
 		{
-			return customValues
-				.Cast<PropertyValueBase>()
-				.Concat(stringValues)
-				.Concat(booleanValues)
-				.Concat(discreteValues)
+			return customSettings
+				.Cast<PropertySettingBase>()
+				.Concat(stringSettings)
+				.Concat(booleanSettings)
+				.Concat(discreteSettings)
 				.GetEnumerator();
 		}
 
@@ -276,24 +276,24 @@
 			updatedInstance.PropertyValueInfo.SubID = subId;
 
 			updatedInstance.PropertyValue.Clear();
-			foreach (var customValue in customValues)
+			foreach (var customSetting in customSettings)
 			{
-				updatedInstance.PropertyValue.Add(customValue.GetSectionWithChanges());
+				updatedInstance.PropertyValue.Add(customSetting.GetSectionWithChanges());
 			}
 
-			foreach (var stringValue in stringValues)
+			foreach (var stringSetting in stringSettings)
 			{
-				updatedInstance.PropertyValue.Add(stringValue.GetSectionWithChanges());
+				updatedInstance.PropertyValue.Add(stringSetting.GetSectionWithChanges());
 			}
 
-			foreach (var booleanValue in booleanValues)
+			foreach (var booleanSetting in booleanSettings)
 			{
-				updatedInstance.PropertyValue.Add(booleanValue.GetSectionWithChanges());
+				updatedInstance.PropertyValue.Add(booleanSetting.GetSectionWithChanges());
 			}
 
-			foreach (var discreteValue in discreteValues)
+			foreach (var discreteSetting in discreteSettings)
 			{
-				updatedInstance.PropertyValue.Add(discreteValue.GetSectionWithChanges());
+				updatedInstance.PropertyValue.Add(discreteSetting.GetSectionWithChanges());
 			}
 
 			return updatedInstance;
@@ -325,7 +325,7 @@
 				Property property = null;
 				if (!section.PropertyID.HasValue)
 				{
-					customValues.Add(new InnerCustomPropertyValue(section));
+					customSettings.Add(new InnerCustomPropertySetting(section));
 				}
 				else if (!propertiesById.TryGetValue(section.PropertyID.Value, out property))
 				{
@@ -339,15 +339,15 @@
 
 				if (property is StringProperty)
 				{
-					stringValues.Add(new InnerStringPropertyValue(section));
+					stringSettings.Add(new InnerStringPropertySetting(section));
 				}
 				else if (property is BooleanProperty)
 				{
-					booleanValues.Add(new InnerBooleanPropertyValue(section));
+					booleanSettings.Add(new InnerBooleanPropertySetting(section));
 				}
 				else if (property is DiscreteProperty)
 				{
-					discreteValues.Add(new InnerDiscretePropertyValue(section));
+					discreteSettings.Add(new InnerDiscretePropertySetting(section));
 				}
 			}
 		}

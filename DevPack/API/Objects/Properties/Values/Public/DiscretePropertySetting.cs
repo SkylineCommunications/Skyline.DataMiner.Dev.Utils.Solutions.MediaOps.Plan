@@ -3,22 +3,22 @@
 	/// <summary>
 	/// Represents a property value that holds a discrete (predefined) string value.
 	/// </summary>
-	public class DiscretePropertyValue : PropertyValue
+	public class DiscretePropertySetting : PropertySetting
 	{
 		/// <summary>
-		/// Initializes a new instance of the <see cref="DiscretePropertyValue"/> class linked to the specified discrete property.
+		/// Initializes a new instance of the <see cref="DiscretePropertySetting"/> class linked to the specified discrete property.
 		/// </summary>
 		/// <param name="property">The <see cref="DiscreteProperty"/> definition to link to.</param>
-		public DiscretePropertyValue(DiscreteProperty property)
+		public DiscretePropertySetting(DiscreteProperty property)
 			: base(property)
 		{
 		}
 
-		internal DiscretePropertyValue()
+		internal DiscretePropertySetting()
 		{
 		}
 
-		internal DiscretePropertyValue(DiscretePropertyValue discretePropertyValue)
+		internal DiscretePropertySetting(DiscretePropertySetting discretePropertyValue)
 			: base(discretePropertyValue)
 		{
 			Value = discretePropertyValue.Value;
@@ -47,7 +47,7 @@
 		/// <inheritdoc />
 		public override bool Equals(object obj)
 		{
-			if (obj is not DiscretePropertyValue other)
+			if (obj is not DiscretePropertySetting other)
 			{
 				return false;
 			}

@@ -11,11 +11,11 @@
 
 		private readonly Property property;
 
-		private readonly PropertyValue propertySetting;
+		private readonly PropertySetting propertySetting;
 
 		private readonly bool valueExpected;
 
-		private PropertySettingValidator(Guid apiObjectId, Property property, PropertyValue propertySetting, bool valueExpected)
+		private PropertySettingValidator(Guid apiObjectId, Property property, PropertySetting propertySetting, bool valueExpected)
 		{
 			if (apiObjectId == Guid.Empty)
 			{
@@ -30,22 +30,22 @@
 			Validate();
 		}
 
-		public static PropertySettingValidator Validate(Guid apiObjectId, Property property, PropertyValue propertySetting, bool valueExpected)
+		public static PropertySettingValidator Validate(Guid apiObjectId, Property property, PropertySetting propertySetting, bool valueExpected)
 		{
 			return new PropertySettingValidator(apiObjectId, property, propertySetting, valueExpected);
 		}
 
 		private void Validate()
 		{
-			if (propertySetting is StringPropertyValue stringPropertySetting)
+			if (propertySetting is StringPropertySetting stringPropertySetting)
 			{
 				ValidateStringPropertySetting(stringPropertySetting);
 			}
-			else if (propertySetting is BooleanPropertyValue)
+			else if (propertySetting is BooleanPropertySetting)
 			{
 				ValidateBooleanPropertySetting();
 			}
-			else if (propertySetting is DiscretePropertyValue discretePropertySetting)
+			else if (propertySetting is DiscretePropertySetting discretePropertySetting)
 			{
 				ValidateDiscretePropertySetting(discretePropertySetting);
 			}
@@ -55,7 +55,7 @@
 			}
 		}
 
-		private void ValidateStringPropertySetting(StringPropertyValue setting)
+		private void ValidateStringPropertySetting(StringPropertySetting setting)
 		{
 			if (property is not StringProperty stringProperty)
 			{
@@ -74,7 +74,7 @@
 			}
 		}
 
-		private void ValidateDiscretePropertySetting(DiscretePropertyValue setting)
+		private void ValidateDiscretePropertySetting(DiscretePropertySetting setting)
 		{
 			if (property is not DiscreteProperty discreteProperty)
 			{

@@ -5,24 +5,24 @@
 	/// <summary>
 	/// Represents a custom property value that is not linked to a predefined property definition.
 	/// </summary>
-	public class CustomPropertyValue : PropertyValueBase
+	public class CustomPropertySetting : PropertySettingBase
 	{
 		/// <summary>
-		/// Initializes a new instance of the <see cref="CustomPropertyValue"/> class with the specified name.
+		/// Initializes a new instance of the <see cref="CustomPropertySetting"/> class with the specified name.
 		/// </summary>
 		/// <param name="name">The name of the custom property. Cannot be <see langword="null"/>.</param>
 		/// <exception cref="ArgumentNullException">Thrown if <paramref name="name"/> is <see langword="null"/>.</exception>
-		public CustomPropertyValue(string name)
+		public CustomPropertySetting(string name)
 			: base(true)
 		{
 			Name = name ?? throw new ArgumentNullException(nameof(name));
 		}
 
-		internal CustomPropertyValue()
+		internal CustomPropertySetting()
 		{
 		}
 
-		internal CustomPropertyValue(CustomPropertyValue customPropertyValue)
+		internal CustomPropertySetting(CustomPropertySetting customPropertyValue)
 			: base(customPropertyValue)
 		{
 			Name = customPropertyValue.Name;
@@ -55,7 +55,7 @@
 		/// <inheritdoc />
 		public override bool Equals(object obj)
 		{
-			if (obj is not CustomPropertyValue other)
+			if (obj is not CustomPropertySetting other)
 			{
 				return false;
 			}

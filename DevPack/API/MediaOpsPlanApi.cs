@@ -39,7 +39,7 @@
 		private readonly Lazy<IWorkflowsRepository> lazyWorkflowsRepository;
 		private readonly Lazy<IRecurringJobsRepository> lazyRecurringJobsRepository;
 		private readonly Lazy<IPropertiesRepository> lazyPropertiesRepository;
-		private readonly Lazy<IPropertyValueCollectionsRepository> lazyPropertyValueCollectionsRepository;
+		private readonly Lazy<IPropertySettingCollectionsRepository> lazyPropertySettingCollectionsRepository;
 		private readonly Lazy<ISchedulingPropertiesRepository> lazySchedulingPropertiesRepository;
 		private readonly Lazy<Plan.Tools.LockManager> lazyLockManager;
 		private readonly Lazy<ICategoriesApi> lazyCategoriesApi;
@@ -73,7 +73,7 @@
 			lazyWorkflowsRepository = new Lazy<IWorkflowsRepository>(() => new WorkflowsRepository(this));
 			lazyRecurringJobsRepository = new Lazy<IRecurringJobsRepository>(() => new RecurringJobsRepository(this));
 			lazyPropertiesRepository = new Lazy<IPropertiesRepository>(() => new PropertiesRepository(this));
-			lazyPropertyValueCollectionsRepository = new Lazy<IPropertyValueCollectionsRepository>(() => new PropertyValueCollectionsRepository(this));
+			lazyPropertySettingCollectionsRepository = new Lazy<IPropertySettingCollectionsRepository>(() => new PropertySettingCollectionsRepository(this));
 			lazySchedulingPropertiesRepository = new Lazy<ISchedulingPropertiesRepository>(() => new SchedulingPropertiesRepository(this));
 			lazyLockManager = new Lazy<Plan.Tools.LockManager>(() => new Plan.Tools.LockManager(this));
 			lazyCategoriesApi = new Lazy<ICategoriesApi>(() => connection.GetCategoriesApi());
@@ -138,7 +138,7 @@
 		/// <summary>
 		/// <inheritdoc/>
 		/// </summary>
-		public IPropertyValueCollectionsRepository PropertyValueCollections => lazyPropertyValueCollectionsRepository.Value;
+		public IPropertySettingCollectionsRepository PropertySettingCollections => lazyPropertySettingCollectionsRepository.Value;
 
 		/// <summary>
 		/// <inheritdoc/>

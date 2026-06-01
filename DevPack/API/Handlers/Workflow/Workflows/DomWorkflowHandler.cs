@@ -104,6 +104,7 @@
 			ValidateDomNames(toCreate.Concat(toUpdateNameValidation).ToList());
 
 			CreateOrUpdateOrchestrationSettings(apiWorkflows.Where(IsValid).ToList());
+			CreateOrUpdatePropertyValueCollections(apiWorkflows.Where(IsValid).ToList());
 
 			var toCreateDomInstances = toCreate
 				.Where(IsValid)
@@ -265,6 +266,8 @@
 
 			DeleteOrchestrationSettings(apiWorkflows);
 
+			DeletePropertyValueCollections(apiWorkflows);
+
 			var domWorkflowsById = apiWorkflows.ToDictionary(x => x.Id, x => x.OriginalInstance);
 
 			var instancesToDelete = domWorkflowsById.Values.Select(x => x.ToInstance()).ToArray();
@@ -304,6 +307,149 @@
 			}
 
 			DomWorkflowOrchestrationSettingsHandler.TryDelete(planApi, apiWorkflows.Select(x => x.OrchestrationSettings).ToList(), out _);
+		}
+
+		private void CreateOrUpdatePropertyValueCollections(ICollection<Workflow> apiWorkflows)
+		{
+			if (apiWorkflows == null)
+			{
+				throw new ArgumentNullException(nameof(apiWorkflows));
+			}
+
+			if (apiWorkflows.Count == 0)
+			{
+				return;
+			}
+
+			if (apiWorkflows.Any(x => !IsValid(x)))
+			{
+				throw new ArgumentException($"Not all provided workflows are valid", nameof(apiWorkflows));
+			}
+
+			// Make sure every workflow has a property values context so that newly created scopes
+			// (owner and nodes) pick up the correct LinkedObjectId when the user added properties
+			// prior to saving.
+			foreach (var workflow in apiWorkflows)
+			{
+				workflow.EnsureContext();
+			}
+
+			var ownerScopes = new List<KeyValuePair<Guid, PropertySettingsScope>>();
+			foreach (var workflow in apiWorkflows)
+			{
+				ownerScopes.Add(new KeyValuePair<Guid, PropertySettingsScope>(workflow.Id, workflow.PropertySettingsScope));
+
+				foreach (var node in workflow.NodeGraph.Nodes)
+				{
+					ownerScopes.Add(new KeyValuePair<Guid, PropertySettingsScope>(workflow.Id, node.PropertySettingsScope));
+				}
+			}
+
+			var (toCreateOrUpdate, toDelete, workflowIdByCollectionId) = ownerScopes.BuildPersistenceActions();
+
+			if (toCreateOrUpdate.Count > 0)
+			{
+				DomPropertySettingCollectionHandler.TryCreateOrUpdate(planApi, toCreateOrUpdate, out var result);
+				ReportPropertyValueCollectionFailures(result, workflowIdByCollectionId);
+			}
+
+			if (toDelete.Count > 0)
+			{
+				DomPropertySettingCollectionHandler.TryDelete(planApi, toDelete, out var result);
+				ReportPropertyValueCollectionFailures(result, workflowIdByCollectionId);
+			}
+		}
+
+		private void DeletePropertyValueCollections(ICollection<Workflow> apiWorkflows)
+		{
+			if (apiWorkflows == null)
+			{
+				throw new ArgumentNullException(nameof(apiWorkflows));
+			}
+
+			if (apiWorkflows.Count == 0)
+			{
+				return;
+			}
+
+			if (apiWorkflows.Any(x => !IsValid(x)))
+			{
+				throw new ArgumentException($"Not all provided workflows are valid", nameof(apiWorkflows));
+			}
+
+			var workflowIdByCollectionId = new Dictionary<Guid, Guid>();
+			var toDelete = new List<PropertySettingCollection>();
+			var workflowsRequiringQuery = new Dictionary<string, Guid>();
+
+			foreach (var workflow in apiWorkflows)
+			{
+				var cached = workflow.PropertySettingsContext?.TryGetCachedOriginalCollections();
+				if (cached != null)
+				{
+					foreach (var collection in cached)
+					{
+						workflowIdByCollectionId[collection.Id] = workflow.Id;
+						toDelete.Add(collection);
+					}
+				}
+				else
+				{
+					workflowsRequiringQuery[workflow.Id.ToString()] = workflow.Id;
+				}
+			}
+
+			if (workflowsRequiringQuery.Count > 0)
+			{
+				var linkedObjectIdFilter = new ORFilterElement<PropertySettingCollection>(
+					workflowsRequiringQuery.Keys.Select(id => PropertySettingCollectionExposers.LinkedObjectId.Equal(id)).ToArray());
+
+				var filter = new ANDFilterElement<PropertySettingCollection>(
+					linkedObjectIdFilter,
+					PropertySettingCollectionExposers.Scope.Equal(PropertySettingsContext.MediaOpsScope));
+
+				foreach (var collection in planApi.PropertySettingCollections.Read(filter))
+				{
+					if (collection.LinkedObjectId != null && workflowsRequiringQuery.TryGetValue(collection.LinkedObjectId, out var workflowId))
+					{
+						workflowIdByCollectionId[collection.Id] = workflowId;
+						toDelete.Add(collection);
+					}
+				}
+			}
+
+			if (toDelete.Count == 0)
+			{
+				return;
+			}
+
+			DomPropertySettingCollectionHandler.TryDelete(planApi, toDelete, out var domResult);
+			ReportPropertyValueCollectionFailures(domResult, workflowIdByCollectionId);
+		}
+
+		private void ReportPropertyValueCollectionFailures(
+			DomInstanceBulkOperationResult<Storage.DOM.SlcProperties.PropertyValuesInstance> result,
+			Dictionary<Guid, Guid> workflowIdByCollectionId)
+		{
+			if (result == null || !result.HasFailures)
+			{
+				return;
+			}
+
+			foreach (var id in result.UnsuccessfulIds)
+			{
+				if (!workflowIdByCollectionId.TryGetValue(id, out var workflowId))
+				{
+					planApi.Logger.Error(this, $"Failed to find workflow ID for property value collection ID", [id]);
+					continue;
+				}
+
+				ReportError(workflowId);
+
+				if (result.TraceDataPerItem.TryGetValue(id, out var traceData))
+				{
+					PassTraceData(workflowId, traceData);
+				}
+			}
 		}
 
 		private void ValidateIdsNotInUse(ICollection<Workflow> apiWorkflows)

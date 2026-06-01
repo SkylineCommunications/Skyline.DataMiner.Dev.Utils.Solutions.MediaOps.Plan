@@ -46,30 +46,30 @@ namespace RT_MediaOps.Plan.Properties.Values
 
             // Create
             var collectionId = Guid.NewGuid();
-            var collection = new PropertyValueCollection(collectionId)
+            var collection = new PropertySettingCollection(collectionId)
             {
                 LinkedObjectId = "obj-1",
                 Scope = "global",
             };
-            collection.Add(new StringPropertyValue(property) { Value = "hello" });
+            collection.Add(new StringPropertySetting(property) { Value = "hello" });
 
             var created = objectCreator.CreatePropertyValueCollection(collection);
 
             Assert.AreEqual(collectionId, created.Id);
             Assert.AreEqual("obj-1", created.LinkedObjectId);
             Assert.AreEqual("global", created.Scope);
-            Assert.AreEqual(1, created.StringValues.Count);
-            Assert.AreEqual("hello", created.StringValues.First().Value);
+            Assert.AreEqual(1, created.StringSettings.Count);
+            Assert.AreEqual("hello", created.StringSettings.First().Value);
 
             // Read
-            var read = TestContext.Api.PropertyValueCollections.Read(collectionId);
+            var read = TestContext.Api.PropertySettingCollections.Read(collectionId);
             Assert.IsNotNull(read);
             Assert.AreEqual(collectionId, read.Id);
 
             // Delete
-            TestContext.Api.PropertyValueCollections.Delete(read);
+            TestContext.Api.PropertySettingCollections.Delete(read);
 
-            var readAfterDelete = TestContext.Api.PropertyValueCollections.Read(collectionId);
+            var readAfterDelete = TestContext.Api.PropertySettingCollections.Read(collectionId);
             Assert.IsNull(readAfterDelete);
         }
 
@@ -78,12 +78,12 @@ namespace RT_MediaOps.Plan.Properties.Values
         {
             var collectionId = Guid.NewGuid();
 
-            var collection1 = new PropertyValueCollection(collectionId)
+            var collection1 = new PropertySettingCollection(collectionId)
             {
                 LinkedObjectId = "obj-1",
                 Scope = "global",
             };
-            var collection2 = new PropertyValueCollection(collectionId)
+            var collection2 = new PropertySettingCollection(collectionId)
             {
                 LinkedObjectId = "obj-2",
                 Scope = "global",
@@ -115,12 +115,12 @@ namespace RT_MediaOps.Plan.Properties.Values
         {
             var collectionId = Guid.NewGuid();
 
-            var collection1 = new PropertyValueCollection(collectionId)
+            var collection1 = new PropertySettingCollection(collectionId)
             {
                 LinkedObjectId = "obj-1",
                 Scope = "global",
             };
-            var collection2 = new PropertyValueCollection(collectionId)
+            var collection2 = new PropertySettingCollection(collectionId)
             {
                 LinkedObjectId = "obj-2",
                 Scope = "global",
@@ -128,7 +128,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 
             try
             {
-                objectCreator.CreatePropertyValueCollections(new[] { collection1, collection2 });
+                objectCreator.CreatePropertySettingCollections(new[] { collection1, collection2 });
             }
             catch (MediaOpsBulkException<Guid> ex)
             {
@@ -153,13 +153,13 @@ namespace RT_MediaOps.Plan.Properties.Values
             var linkedObjectId = $"obj-{Guid.NewGuid()}";
             var subId = "sub-1";
 
-            var collection1 = new PropertyValueCollection
+            var collection1 = new PropertySettingCollection
             {
                 LinkedObjectId = linkedObjectId,
                 SubId = subId,
                 Scope = "global",
             };
-            var collection2 = new PropertyValueCollection
+            var collection2 = new PropertySettingCollection
             {
                 LinkedObjectId = linkedObjectId,
                 SubId = subId,
@@ -168,7 +168,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 
             try
             {
-                objectCreator.CreatePropertyValueCollections(new[] { collection1, collection2 });
+                objectCreator.CreatePropertySettingCollections(new[] { collection1, collection2 });
             }
             catch (MediaOpsBulkException<Guid> ex)
             {
@@ -192,7 +192,7 @@ namespace RT_MediaOps.Plan.Properties.Values
             var linkedObjectId = $"obj-{Guid.NewGuid()}";
             var subId = "sub-1";
 
-            var existing = new PropertyValueCollection
+            var existing = new PropertySettingCollection
             {
                 LinkedObjectId = linkedObjectId,
                 SubId = subId,
@@ -200,7 +200,7 @@ namespace RT_MediaOps.Plan.Properties.Values
             };
             objectCreator.CreatePropertyValueCollection(existing);
 
-            var newCollection = new PropertyValueCollection
+            var newCollection = new PropertySettingCollection
             {
                 LinkedObjectId = linkedObjectId,
                 SubId = subId,
@@ -222,13 +222,13 @@ namespace RT_MediaOps.Plan.Properties.Values
 
             var collections = new[]
             {
-                new PropertyValueCollection
+                new PropertySettingCollection
                 {
                     LinkedObjectId = linkedObjectId,
                     SubId = "sub-1",
                     Scope = "global",
                 },
-                new PropertyValueCollection
+                new PropertySettingCollection
                 {
                     LinkedObjectId = linkedObjectId,
                     SubId = "sub-2",
@@ -236,7 +236,7 @@ namespace RT_MediaOps.Plan.Properties.Values
                 },
             };
 
-            var created = objectCreator.CreatePropertyValueCollections(collections);
+            var created = objectCreator.CreatePropertySettingCollections(collections);
 
             Assert.AreEqual(2, created.Count);
             CollectionAssert.AreEquivalent(
@@ -251,13 +251,13 @@ namespace RT_MediaOps.Plan.Properties.Values
 
             var collections = new[]
             {
-                new PropertyValueCollection
+                new PropertySettingCollection
                 {
                     LinkedObjectId = $"obj-{Guid.NewGuid()}",
                     SubId = subId,
                     Scope = "global",
                 },
-                new PropertyValueCollection
+                new PropertySettingCollection
                 {
                     LinkedObjectId = $"obj-{Guid.NewGuid()}",
                     SubId = subId,
@@ -265,7 +265,7 @@ namespace RT_MediaOps.Plan.Properties.Values
                 },
             };
 
-            var created = objectCreator.CreatePropertyValueCollections(collections);
+            var created = objectCreator.CreatePropertySettingCollections(collections);
 
             Assert.AreEqual(2, created.Count);
             Assert.IsTrue(created.All(x => x.SubId == subId));
@@ -277,18 +277,18 @@ namespace RT_MediaOps.Plan.Properties.Values
         {
             var linkedObjectId = $"obj-{Guid.NewGuid()}";
 
-            var collection1 = new PropertyValueCollection
+            var collection1 = new PropertySettingCollection
             {
                 LinkedObjectId = linkedObjectId,
                 Scope = "global",
             };
-            var collection2 = new PropertyValueCollection
+            var collection2 = new PropertySettingCollection
             {
                 LinkedObjectId = linkedObjectId,
                 Scope = "global",
             };
 
-            var ex = Assert.ThrowsException<MediaOpsBulkException<Guid>>(() => objectCreator.CreatePropertyValueCollections(new[] { collection1, collection2 }));
+            var ex = Assert.ThrowsException<MediaOpsBulkException<Guid>>(() => objectCreator.CreatePropertySettingCollections(new[] { collection1, collection2 }));
             var errors = ex.Result.TraceDataPerItem.Values
                 .SelectMany(x => x.ErrorData)
                 .OfType<PropertyValueCollectionDuplicateLinkedObjectIdAndSubIdError>()
@@ -303,13 +303,13 @@ namespace RT_MediaOps.Plan.Properties.Values
         {
             var customName = $"Custom_{Guid.NewGuid()}";
 
-            var collection = new PropertyValueCollection
+            var collection = new PropertySettingCollection
             {
                 LinkedObjectId = "obj-1",
                 Scope = "global",
             };
-            collection.Add(new CustomPropertyValue(customName) { Value = "A" });
-            collection.Add(new CustomPropertyValue(customName) { Value = "B" });
+            collection.Add(new CustomPropertySetting(customName) { Value = "A" });
+            collection.Add(new CustomPropertySetting(customName) { Value = "B" });
 
             var ex = Assert.ThrowsException<MediaOpsException>(() => objectCreator.CreatePropertyValueCollection(collection));
             var errorMessage = $"Name '{customName}' is defined 2 times.";
@@ -335,12 +335,12 @@ namespace RT_MediaOps.Plan.Properties.Values
             };
             objectCreator.CreateProperty(property);
 
-            var collection = new PropertyValueCollection
+            var collection = new PropertySettingCollection
             {
                 LinkedObjectId = "obj-1",
                 Scope = "global",
             };
-            collection.Add(new CustomPropertyValue(propertyName) { Value = "A" });
+            collection.Add(new CustomPropertySetting(propertyName) { Value = "A" });
 
             var ex = Assert.ThrowsException<MediaOpsException>(() => objectCreator.CreatePropertyValueCollection(collection));
             var errorMessage = $"Name '{propertyName}' cannot be the same as a property name in the same scope.";
@@ -365,13 +365,13 @@ namespace RT_MediaOps.Plan.Properties.Values
             };
             objectCreator.CreateProperty(property);
 
-            var collection = new PropertyValueCollection
+            var collection = new PropertySettingCollection
             {
                 LinkedObjectId = "obj-1",
                 Scope = "global",
             };
-            collection.Add(new StringPropertyValue(property) { Value = "A" });
-            collection.Add(new StringPropertyValue(property) { Value = "B" });
+            collection.Add(new StringPropertySetting(property) { Value = "A" });
+            collection.Add(new StringPropertySetting(property) { Value = "B" });
 
             var ex = Assert.ThrowsException<MediaOpsException>(() => objectCreator.CreatePropertyValueCollection(collection));
             var errorMessage = $"Property value collection contains 2 values with the same property ID '{property.Id}'.";
@@ -388,7 +388,7 @@ namespace RT_MediaOps.Plan.Properties.Values
         [TestMethod]
         public void CreateWithEmptyLinkedObjectIdThrowsException()
         {
-            var collection = new PropertyValueCollection
+            var collection = new PropertySettingCollection
             {
                 LinkedObjectId = string.Empty,
                 Scope = "global",
@@ -410,7 +410,7 @@ namespace RT_MediaOps.Plan.Properties.Values
         [TestMethod]
         public void CreateWithEmptyScopeThrowsException()
         {
-            var collection = new PropertyValueCollection
+            var collection = new PropertySettingCollection
             {
                 LinkedObjectId = "obj-1",
                 Scope = string.Empty,
@@ -432,20 +432,20 @@ namespace RT_MediaOps.Plan.Properties.Values
         [TestMethod]
         public void CreateNewThenUpdateNewThrowsException()
         {
-            var collection = new PropertyValueCollection
+            var collection = new PropertySettingCollection
             {
                 LinkedObjectId = "obj-1",
                 Scope = "global",
             };
 
             Assert.ThrowsException<InvalidOperationException>(() =>
-                TestContext.Api.PropertyValueCollections.Update(collection));
+                TestContext.Api.PropertySettingCollections.Update(collection));
         }
 
 		[TestMethod]
         public void UpdateExistingThenCreateThrowsException()
 		{
-            var collection = new PropertyValueCollection
+            var collection = new PropertySettingCollection
             {
                 LinkedObjectId = "obj-1",
                 Scope = "global",
@@ -453,22 +453,22 @@ namespace RT_MediaOps.Plan.Properties.Values
             var created = objectCreator.CreatePropertyValueCollection(collection);
 
             Assert.ThrowsException<InvalidOperationException>(() =>
-                TestContext.Api.PropertyValueCollections.Create(created));
+                TestContext.Api.PropertySettingCollections.Create(created));
 		}
 
 		[TestMethod]
         public void CountReturnsCorrectNumber()
 		{
-            var countBefore = TestContext.Api.PropertyValueCollections.Count();
+            var countBefore = TestContext.Api.PropertySettingCollections.Count();
 
-            var collection = new PropertyValueCollection
+            var collection = new PropertySettingCollection
             {
                 LinkedObjectId = "obj-count",
                 Scope = "global",
             };
             objectCreator.CreatePropertyValueCollection(collection);
 
-            var countAfter = TestContext.Api.PropertyValueCollections.Count();
+            var countAfter = TestContext.Api.PropertySettingCollections.Count();
 
             Assert.AreEqual(countBefore + 1, countAfter);
         }
@@ -478,15 +478,15 @@ namespace RT_MediaOps.Plan.Properties.Values
         {
             var linkedObjectId = $"obj-{Guid.NewGuid()}";
 
-            var collection = new PropertyValueCollection
+            var collection = new PropertySettingCollection
             {
                 LinkedObjectId = linkedObjectId,
                 Scope = "global",
             };
             var created = objectCreator.CreatePropertyValueCollection(collection);
 
-            var results = TestContext.Api.PropertyValueCollections
-                .Read(PropertyValueCollectionExposers.Id.Equal(created.Id))
+            var results = TestContext.Api.PropertySettingCollections
+                .Read(PropertySettingCollectionExposers.Id.Equal(created.Id))
                 .ToList();
 
             Assert.AreEqual(1, results.Count);
@@ -496,21 +496,21 @@ namespace RT_MediaOps.Plan.Properties.Values
         [TestMethod]
         public void BulkCreateAndDelete()
         {
-            var collections = new List<PropertyValueCollection>
+            var collections = new List<PropertySettingCollection>
             {
-                new PropertyValueCollection { LinkedObjectId = "bulk-obj-1", Scope = "global" },
-                new PropertyValueCollection { LinkedObjectId = "bulk-obj-2", Scope = "global" },
+                new PropertySettingCollection { LinkedObjectId = "bulk-obj-1", Scope = "global" },
+                new PropertySettingCollection { LinkedObjectId = "bulk-obj-2", Scope = "global" },
             };
 
-            var created = objectCreator.CreatePropertyValueCollections(collections);
+            var created = objectCreator.CreatePropertySettingCollections(collections);
 
             Assert.AreEqual(2, created.Count);
 
-            TestContext.Api.PropertyValueCollections.Delete(created);
+            TestContext.Api.PropertySettingCollections.Delete(created);
 
             foreach (var item in created)
             {
-                Assert.IsNull(TestContext.Api.PropertyValueCollections.Read(item.Id));
+                Assert.IsNull(TestContext.Api.PropertySettingCollections.Read(item.Id));
             }
 		}
 
@@ -528,17 +528,17 @@ namespace RT_MediaOps.Plan.Properties.Values
 
             // Create
             var collectionId = Guid.NewGuid();
-            var collection = new PropertyValueCollection(collectionId)
+            var collection = new PropertySettingCollection(collectionId)
             {
                 LinkedObjectId = "obj-1",
                 Scope = "global",
             };
-            collection.Add(new StringPropertyValue(property) { Value = "hello" });
+            collection.Add(new StringPropertySetting(property) { Value = "hello" });
 
             var created = objectCreator.CreatePropertyValueCollection(collection);
 
             // Read
-            var read = TestContext.Api.PropertyValueCollections.Read(collectionId);
+            var read = TestContext.Api.PropertySettingCollections.Read(collectionId);
             Assert.IsNotNull(read);
             Assert.AreEqual(collectionId, read.Id);
 
@@ -552,29 +552,29 @@ namespace RT_MediaOps.Plan.Properties.Values
             objectCreator.CreateProperty(booleanProperty);
 
             // Update: add a custom value and a boolean property value
-            read.Add(new CustomPropertyValue { Name = "CustomKey", Value = "CustomValue" });
-            read.Add(new BooleanPropertyValue(booleanProperty) { Value = true });
+            read.Add(new CustomPropertySetting { Name = "CustomKey", Value = "CustomValue" });
+            read.Add(new BooleanPropertySetting(booleanProperty) { Value = true });
 
-            var updated = TestContext.Api.PropertyValueCollections.Update(read);
+            var updated = TestContext.Api.PropertySettingCollections.Update(read);
 
-            Assert.AreEqual(1, updated.CustomValues.Count);
-            Assert.AreEqual("CustomKey", updated.CustomValues.First().Name);
-            Assert.AreEqual("CustomValue", updated.CustomValues.First().Value);
-            Assert.AreEqual(1, updated.BooleanValues.Count);
-            Assert.AreEqual(true, updated.BooleanValues.First().Value);
+            Assert.AreEqual(1, updated.CustomSettings.Count);
+            Assert.AreEqual("CustomKey", updated.CustomSettings.First().Name);
+            Assert.AreEqual("CustomValue", updated.CustomSettings.First().Value);
+            Assert.AreEqual(1, updated.BooleanSettings.Count);
+            Assert.AreEqual(true, updated.BooleanSettings.First().Value);
 
-            var readAfterUpdate = TestContext.Api.PropertyValueCollections.Read(collectionId);
+            var readAfterUpdate = TestContext.Api.PropertySettingCollections.Read(collectionId);
             Assert.IsNotNull(readAfterUpdate);
-            Assert.AreEqual(1, readAfterUpdate.CustomValues.Count);
-            Assert.AreEqual("CustomKey", readAfterUpdate.CustomValues.First().Name);
-            Assert.AreEqual("CustomValue", readAfterUpdate.CustomValues.First().Value);
-            Assert.AreEqual(1, readAfterUpdate.BooleanValues.Count);
-            Assert.AreEqual(true, readAfterUpdate.BooleanValues.First().Value);
+            Assert.AreEqual(1, readAfterUpdate.CustomSettings.Count);
+            Assert.AreEqual("CustomKey", readAfterUpdate.CustomSettings.First().Name);
+            Assert.AreEqual("CustomValue", readAfterUpdate.CustomSettings.First().Value);
+            Assert.AreEqual(1, readAfterUpdate.BooleanSettings.Count);
+            Assert.AreEqual(true, readAfterUpdate.BooleanSettings.First().Value);
 
             // Delete
-            TestContext.Api.PropertyValueCollections.Delete(updated);
+            TestContext.Api.PropertySettingCollections.Delete(updated);
 
-            var readAfterDelete = TestContext.Api.PropertyValueCollections.Read(collectionId);
+            var readAfterDelete = TestContext.Api.PropertySettingCollections.Read(collectionId);
             Assert.IsNull(readAfterDelete);
 		}
 
@@ -589,16 +589,16 @@ namespace RT_MediaOps.Plan.Properties.Values
 			};
 			objectCreator.CreateProperty(property);
 
-			var collection = new PropertyValueCollection
+			var collection = new PropertySettingCollection
 			{
 				LinkedObjectId = $"obj-{Guid.NewGuid()}",
 				Scope = "global",
 			};
-			collection.Add(new StringPropertyValue(property) { Value = "value" });
+			collection.Add(new StringPropertySetting(property) { Value = "value" });
 			collection = objectCreator.CreatePropertyValueCollection(collection);
 
-			var originalCollection = TestContext.Api.PropertyValueCollections.Read(collection.Id);
-			var updatedCollection = TestContext.Api.PropertyValueCollections.Update(originalCollection);
+			var originalCollection = TestContext.Api.PropertySettingCollections.Read(collection.Id);
+			var updatedCollection = TestContext.Api.PropertySettingCollections.Update(originalCollection);
 
 			Assert.AreEqual(originalCollection, updatedCollection);
 		}
@@ -614,38 +614,38 @@ namespace RT_MediaOps.Plan.Properties.Values
 			};
 			objectCreator.CreateProperty(property);
 
-			var changedCollection = new PropertyValueCollection
+			var changedCollection = new PropertySettingCollection
 			{
 				LinkedObjectId = $"obj-{Guid.NewGuid()}",
 				Scope = "global",
 			};
-			changedCollection.Add(new StringPropertyValue(property) { Value = "value-1" });
+			changedCollection.Add(new StringPropertySetting(property) { Value = "value-1" });
 			changedCollection = objectCreator.CreatePropertyValueCollection(changedCollection);
 
-			var unchangedCollection = new PropertyValueCollection
+			var unchangedCollection = new PropertySettingCollection
 			{
 				LinkedObjectId = $"obj-{Guid.NewGuid()}",
 				Scope = "global",
 			};
-			unchangedCollection.Add(new StringPropertyValue(property) { Value = "value-2" });
+			unchangedCollection.Add(new StringPropertySetting(property) { Value = "value-2" });
 			unchangedCollection = objectCreator.CreatePropertyValueCollection(unchangedCollection);
 
-			var changedToUpdate = TestContext.Api.PropertyValueCollections.Read(changedCollection.Id);
-			var unchangedToUpdate = TestContext.Api.PropertyValueCollections.Read(unchangedCollection.Id);
+			var changedToUpdate = TestContext.Api.PropertySettingCollections.Read(changedCollection.Id);
+			var unchangedToUpdate = TestContext.Api.PropertySettingCollections.Read(unchangedCollection.Id);
 
-			changedToUpdate.StringValues.Single().Value = "value-1-updated";
+			changedToUpdate.StringSettings.Single().Value = "value-1-updated";
 
-			var updatedCollections = TestContext.Api.PropertyValueCollections.Update(new[] { changedToUpdate, unchangedToUpdate });
+			var updatedCollections = TestContext.Api.PropertySettingCollections.Update(new[] { changedToUpdate, unchangedToUpdate });
 
 			Assert.AreEqual(2, updatedCollections.Count);
 			Assert.IsTrue(updatedCollections.Any(x => x.Id == changedCollection.Id));
 			Assert.IsTrue(updatedCollections.Any(x => x.Id == unchangedCollection.Id));
 
-			var changedAfterUpdate = TestContext.Api.PropertyValueCollections.Read(changedCollection.Id);
-			var unchangedAfterUpdate = TestContext.Api.PropertyValueCollections.Read(unchangedCollection.Id);
+			var changedAfterUpdate = TestContext.Api.PropertySettingCollections.Read(changedCollection.Id);
+			var unchangedAfterUpdate = TestContext.Api.PropertySettingCollections.Read(unchangedCollection.Id);
 
-			Assert.AreEqual(changedToUpdate.StringValues.Single().Value, changedAfterUpdate.StringValues.Single().Value);
-			Assert.AreEqual(unchangedCollection.StringValues.Single().Value, unchangedAfterUpdate.StringValues.Single().Value);
+			Assert.AreEqual(changedToUpdate.StringSettings.Single().Value, changedAfterUpdate.StringSettings.Single().Value);
+			Assert.AreEqual(unchangedCollection.StringSettings.Single().Value, unchangedAfterUpdate.StringSettings.Single().Value);
 		}
 
 		[TestMethod]
@@ -659,39 +659,39 @@ namespace RT_MediaOps.Plan.Properties.Values
 			};
 			objectCreator.CreateProperty(property);
 
-			var changedCollection = new PropertyValueCollection
+			var changedCollection = new PropertySettingCollection
 			{
 				LinkedObjectId = $"obj-{Guid.NewGuid()}",
 				Scope = "global",
 			};
-			changedCollection.Add(new StringPropertyValue(property) { Value = "value-1" });
+			changedCollection.Add(new StringPropertySetting(property) { Value = "value-1" });
 			changedCollection = objectCreator.CreatePropertyValueCollection(changedCollection);
 
-			var invalidCollection = new PropertyValueCollection
+			var invalidCollection = new PropertySettingCollection
 			{
 				LinkedObjectId = $"obj-{Guid.NewGuid()}",
 				Scope = "global",
 			};
-			invalidCollection.Add(new StringPropertyValue(property) { Value = "value-2" });
+			invalidCollection.Add(new StringPropertySetting(property) { Value = "value-2" });
 			invalidCollection = objectCreator.CreatePropertyValueCollection(invalidCollection);
 
-			var unchangedCollection = new PropertyValueCollection
+			var unchangedCollection = new PropertySettingCollection
 			{
 				LinkedObjectId = $"obj-{Guid.NewGuid()}",
 				Scope = "global",
 			};
-			unchangedCollection.Add(new StringPropertyValue(property) { Value = "value-3" });
+			unchangedCollection.Add(new StringPropertySetting(property) { Value = "value-3" });
 			unchangedCollection = objectCreator.CreatePropertyValueCollection(unchangedCollection);
 
-			var changedToUpdate = TestContext.Api.PropertyValueCollections.Read(changedCollection.Id);
-			var invalidToUpdate = TestContext.Api.PropertyValueCollections.Read(invalidCollection.Id);
-			var unchangedToUpdate = TestContext.Api.PropertyValueCollections.Read(unchangedCollection.Id);
+			var changedToUpdate = TestContext.Api.PropertySettingCollections.Read(changedCollection.Id);
+			var invalidToUpdate = TestContext.Api.PropertySettingCollections.Read(invalidCollection.Id);
+			var unchangedToUpdate = TestContext.Api.PropertySettingCollections.Read(unchangedCollection.Id);
 
-			changedToUpdate.StringValues.Single().Value = "value-1-updated";
-			invalidToUpdate.Add(new CustomPropertyValue { Name = "Duplicate", Value = "A" });
-			invalidToUpdate.Add(new CustomPropertyValue { Name = "Duplicate", Value = "B" });
+			changedToUpdate.StringSettings.Single().Value = "value-1-updated";
+			invalidToUpdate.Add(new CustomPropertySetting { Name = "Duplicate", Value = "A" });
+			invalidToUpdate.Add(new CustomPropertySetting { Name = "Duplicate", Value = "B" });
 
-			var ex = Assert.ThrowsException<MediaOpsBulkException<Guid>>(() => TestContext.Api.PropertyValueCollections.Update(new[] { changedToUpdate, invalidToUpdate, unchangedToUpdate }));
+			var ex = Assert.ThrowsException<MediaOpsBulkException<Guid>>(() => TestContext.Api.PropertySettingCollections.Update(new[] { changedToUpdate, invalidToUpdate, unchangedToUpdate }));
 
 			Assert.AreEqual(2, ex.Result.SuccessfulIds.Count);
 			Assert.IsTrue(ex.Result.SuccessfulIds.Contains(changedCollection.Id));
@@ -699,22 +699,22 @@ namespace RT_MediaOps.Plan.Properties.Values
 			Assert.AreEqual(1, ex.Result.UnsuccessfulIds.Count);
 			Assert.IsTrue(ex.Result.UnsuccessfulIds.Contains(invalidCollection.Id));
 
-			var changedAfterUpdate = TestContext.Api.PropertyValueCollections.Read(changedCollection.Id);
-			var invalidAfterUpdate = TestContext.Api.PropertyValueCollections.Read(invalidCollection.Id);
-			var unchangedAfterUpdate = TestContext.Api.PropertyValueCollections.Read(unchangedCollection.Id);
+			var changedAfterUpdate = TestContext.Api.PropertySettingCollections.Read(changedCollection.Id);
+			var invalidAfterUpdate = TestContext.Api.PropertySettingCollections.Read(invalidCollection.Id);
+			var unchangedAfterUpdate = TestContext.Api.PropertySettingCollections.Read(unchangedCollection.Id);
 
-			Assert.AreEqual(changedToUpdate.StringValues.Single().Value, changedAfterUpdate.StringValues.Single().Value);
-			Assert.AreEqual(invalidCollection.CustomValues.Count, invalidAfterUpdate.CustomValues.Count);
-			Assert.AreEqual(unchangedCollection.StringValues.Single().Value, unchangedAfterUpdate.StringValues.Single().Value);
+			Assert.AreEqual(changedToUpdate.StringSettings.Single().Value, changedAfterUpdate.StringSettings.Single().Value);
+			Assert.AreEqual(invalidCollection.CustomSettings.Count, invalidAfterUpdate.CustomSettings.Count);
+			Assert.AreEqual(unchangedCollection.StringSettings.Single().Value, unchangedAfterUpdate.StringSettings.Single().Value);
 		}
 
 		[TestMethod]
 		public void ReadWithEmptyFilterReturnsEmptyList()
 		{
 			var idsToRetrieve = new Guid[0];
-			var emptyFilter = new ORFilterElement<PropertyValueCollection>(idsToRetrieve.Select(x => PropertyValueCollectionExposers.Id.Equal(x)).ToArray());
+			var emptyFilter = new ORFilterElement<PropertySettingCollection>(idsToRetrieve.Select(x => PropertySettingCollectionExposers.Id.Equal(x)).ToArray());
 
-			var collections = TestContext.Api.PropertyValueCollections.Read(emptyFilter);
+			var collections = TestContext.Api.PropertySettingCollections.Read(emptyFilter);
 			Assert.IsNotNull(collections);
 			Assert.AreEqual(0, collections.Count());
 		}
@@ -723,9 +723,9 @@ namespace RT_MediaOps.Plan.Properties.Values
 		public void CountWithEmptyFilterReturnsZero()
 		{
 			var idsToRetrieve = new Guid[0];
-			var emptyFilter = new ORFilterElement<PropertyValueCollection>(idsToRetrieve.Select(x => PropertyValueCollectionExposers.Id.Equal(x)).ToArray());
+			var emptyFilter = new ORFilterElement<PropertySettingCollection>(idsToRetrieve.Select(x => PropertySettingCollectionExposers.Id.Equal(x)).ToArray());
 
-			var count = TestContext.Api.PropertyValueCollections.Count(emptyFilter);
+			var count = TestContext.Api.PropertySettingCollections.Count(emptyFilter);
 			Assert.AreEqual(0, count);
 		}
 
@@ -733,10 +733,10 @@ namespace RT_MediaOps.Plan.Properties.Values
 		public void ReadWithEmptyQueryReturnsEmptyList()
 		{
 			var idsToRetrieve = new Guid[0];
-			var emptyFilter = new ORFilterElement<PropertyValueCollection>(idsToRetrieve.Select(x => PropertyValueCollectionExposers.Id.Equal(x)).ToArray());
+			var emptyFilter = new ORFilterElement<PropertySettingCollection>(idsToRetrieve.Select(x => PropertySettingCollectionExposers.Id.Equal(x)).ToArray());
 			var queryWithEmptyFilter = emptyFilter.ToQuery();
 
-			var collections = TestContext.Api.PropertyValueCollections.Read(queryWithEmptyFilter);
+			var collections = TestContext.Api.PropertySettingCollections.Read(queryWithEmptyFilter);
 			Assert.IsNotNull(collections);
 			Assert.AreEqual(0, collections.Count());
 		}

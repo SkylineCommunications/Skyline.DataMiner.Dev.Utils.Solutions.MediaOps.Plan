@@ -63,9 +63,9 @@
 		ISchedulingPropertiesRepository SchedulingProperties { get; }
 
 		/// <summary>
-		/// Gets the repository for managing property value collections.
+		/// Gets the repository for managing property setting collections.
 		/// </summary>
-		IPropertyValueCollectionsRepository PropertyValueCollections { get; }
+		IPropertySettingCollectionsRepository PropertySettingCollections { get; }
 
 		/// <summary>
 		/// Gets the global application settings.

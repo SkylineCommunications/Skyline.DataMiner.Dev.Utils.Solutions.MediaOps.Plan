@@ -425,18 +425,18 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <summary>
-		/// Converts a <see cref="PropertyValueBase"/> to a <see cref="ResolvedValue"/>.
+		/// Converts a <see cref="PropertySettingBase"/> to a <see cref="ResolvedValue"/>.
 		/// </summary>
 		/// <param name="propertyValue">The property value to convert.</param>
 		/// <returns>The corresponding <see cref="ResolvedValue"/>.</returns>
-		protected ResolvedValue ConvertPropertyValue(PropertyValueBase propertyValue)
+		protected ResolvedValue ConvertPropertyValue(PropertySettingBase propertyValue)
 		{
 			return propertyValue switch
 			{
-				StringPropertyValue stringPv => new StringResolvedValue(stringPv.Value),
-				BooleanPropertyValue boolPv => new BooleanResolvedValue(boolPv.Value),
-				DiscretePropertyValue discretePv => new StringResolvedValue(discretePv.Value),
-				CustomPropertyValue customPv => new StringResolvedValue(customPv.Value),
+				StringPropertySetting stringPv => new StringResolvedValue(stringPv.Value),
+				BooleanPropertySetting boolPv => new BooleanResolvedValue(boolPv.Value),
+				DiscretePropertySetting discretePv => new StringResolvedValue(discretePv.Value),
+				CustomPropertySetting customPv => new StringResolvedValue(customPv.Value),
 				_ => null,
 			};
 		}
@@ -466,21 +466,21 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// </summary>
 		/// <param name="linkedObjectId">The identifier of the linked object.</param>
 		/// <returns>A dictionary containing the property values keyed by property id.</returns>
-		protected IDictionary<Guid, PropertyValueBase> ReadPropertyValues(Guid linkedObjectId)
+		protected IDictionary<Guid, PropertySettingBase> ReadPropertyValues(Guid linkedObjectId)
 		{
-			var result = new Dictionary<Guid, PropertyValueBase>();
+			var result = new Dictionary<Guid, PropertySettingBase>();
 
 			if (linkedObjectId == Guid.Empty)
 			{
 				return result;
 			}
 
-			var filter = PropertyValueCollectionExposers.LinkedObjectId.Equal(Convert.ToString(linkedObjectId));
-			var collections = PlanApi.PropertyValueCollections.Read(filter);
+			var filter = PropertySettingCollectionExposers.LinkedObjectId.Equal(Convert.ToString(linkedObjectId));
+			var collections = PlanApi.PropertySettingCollections.Read(filter);
 
 			foreach (var collection in collections)
 			{
-				foreach (var propertyValue in collection.OfType<PropertyValue>())
+				foreach (var propertyValue in collection.OfType<PropertySetting>())
 				{
 					result[propertyValue.Id] = propertyValue;
 				} 

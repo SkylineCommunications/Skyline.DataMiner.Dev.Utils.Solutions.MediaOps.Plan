@@ -1,16 +1,16 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	/// <summary>
-	/// Provides a base class for property values.
+	/// Provides a base class for property settings.
 	/// </summary>
-	public abstract class PropertyValueBase : TrackableObject
+	public abstract class PropertySettingBase : TrackableObject
 	{
-		private protected PropertyValueBase(bool isNew = false)
+		private protected PropertySettingBase(bool isNew = false)
 		{
 			IsNew = isNew;
 		}
 
-		private protected PropertyValueBase(PropertyValueBase propertyValueBase)
+		private protected PropertySettingBase(PropertySettingBase propertySettingBase)
 		{
 			IsNew = true;
 		}

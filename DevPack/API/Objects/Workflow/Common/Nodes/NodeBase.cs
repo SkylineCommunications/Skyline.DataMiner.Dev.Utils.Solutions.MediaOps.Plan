@@ -1,6 +1,7 @@
 namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
+	using System.Collections.Generic;
 	using System.Linq;
 
 	using StorageWorkflow = Storage.DOM.SlcWorkflow;
@@ -13,6 +14,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	{
 		private StorageWorkflow.NodesSection originalSection;
 		private StorageWorkflow.NodesSection updatedSection;
+
+		private PropertySettingsContext propertiesContext;
+		private PropertySettingsScope propertySettingsScope;
 
 		private protected NodeBase() : base()
 		{
@@ -45,6 +49,96 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Gets the orchestration settings assigned to this node.
 		/// </summary>
 		public OrchestrationSettings OrchestrationSettings { get; private set; }
+
+		/// <summary>
+		/// Gets the custom property settings associated with this node.
+		/// Property settings are loaded lazily in a single batch together with the property settings of the owning object and all other nodes.
+		/// Use <see cref="AddCustomProperty"/>, <see cref="SetCustomProperties"/> and <see cref="RemoveCustomProperty"/> to modify them.
+		/// </summary>
+		public IReadOnlyCollection<CustomPropertySetting> CustomPropertySettings => GetOrCreateScope().CustomPropertySettings;
+
+		/// <summary>
+		/// Gets the property settings associated with this node.
+		/// Property settings are loaded lazily in a single batch together with the property settings of the owning object and all other nodes.
+		/// Use <see cref="AddProperty"/>, <see cref="SetProperties"/> and <see cref="RemoveProperty"/> to modify them.
+		/// </summary>
+		public IReadOnlyCollection<PropertySetting> PropertySettings => GetOrCreateScope().PropertySettings;
+
+		internal PropertySettingsScope PropertySettingsScope => propertySettingsScope;
+
+		/// <summary>
+		/// Adds a custom property setting to this node.
+		/// </summary>
+		/// <param name="setting">The custom property setting to add.</param>
+		/// <returns>The current <see cref="NodeBase"/> instance.</returns>
+		public NodeBase AddCustomProperty(CustomPropertySetting setting)
+		{
+			GetOrCreateScope().AddCustomProperty(setting);
+			return this;
+		}
+
+		/// <summary>
+		/// Replaces the entire collection of custom property settings associated with this node with the specified settings.
+		/// </summary>
+		/// <param name="settings">The custom property settings that should replace the current collection.</param>
+		/// <returns>The current <see cref="NodeBase"/> instance.</returns>
+		public NodeBase SetCustomProperties(IEnumerable<CustomPropertySetting> settings)
+		{
+			GetOrCreateScope().SetCustomProperties(settings);
+			return this;
+		}
+
+		/// <summary>
+		/// Removes the specified custom property setting from this node.
+		/// </summary>
+		/// <param name="setting">The custom property setting to remove.</param>
+		/// <returns>The current <see cref="NodeBase"/> instance.</returns>
+		public NodeBase RemoveCustomProperty(CustomPropertySetting setting)
+		{
+			GetOrCreateScope().RemoveCustomProperty(setting);
+			return this;
+		}
+
+		/// <summary>
+		/// Adds a property setting to this node.
+		/// </summary>
+		/// <param name="setting">The property setting to add.</param>
+		/// <returns>The current <see cref="NodeBase"/> instance.</returns>
+		public NodeBase AddProperty(PropertySetting setting)
+		{
+			GetOrCreateScope().AddProperty(setting);
+			return this;
+		}
+
+		/// <summary>
+		/// Replaces the entire collection of property settings associated with this node with the specified settings.
+		/// </summary>
+		/// <param name="settings">The property settings that should replace the current collection.</param>
+		/// <returns>The current <see cref="NodeBase"/> instance.</returns>
+		public NodeBase SetProperties(IEnumerable<PropertySetting> settings)
+		{
+			GetOrCreateScope().SetProperties(settings);
+			return this;
+		}
+
+		/// <summary>
+		/// Removes the specified property setting from this node.
+		/// </summary>
+		/// <param name="setting">The property setting to remove.</param>
+		/// <returns>The current <see cref="NodeBase"/> instance.</returns>
+		public NodeBase RemoveProperty(PropertySetting setting)
+		{
+			GetOrCreateScope().RemoveProperty(setting);
+			return this;
+		}
+
+		internal void SetPropertiesContext(PropertySettingsContext context)
+		{
+			propertiesContext = context;
+		}
+
+		private PropertySettingsScope GetOrCreateScope()
+			=> propertySettingsScope ??= new PropertySettingsScope(() => propertiesContext, Id);
 
 		/// <summary>
 		/// Determines whether this node represents a resource and, if so, returns it as an <see cref="IResourceNode"/>.
