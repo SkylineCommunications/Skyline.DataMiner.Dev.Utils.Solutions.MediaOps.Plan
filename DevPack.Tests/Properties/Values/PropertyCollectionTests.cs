@@ -26,7 +26,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 		}
 
 		[TestMethod]
-		public void DefaultConstructor_ValueCollectionsAreEmptyButNotNull()
+		public void DefaultConstructor_SettingCollectionsAreEmptyButNotNull()
 		{
 			var collection = new PropertySettingCollection();
 
@@ -44,7 +44,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 		}
 
 		[TestMethod]
-		public void PropertyCollection_InitLinkedObjectId_ValueIsSet()
+		public void PropertyCollection_InitLinkedObjectId_LinkedObjectIdIsSet()
 		{
 			var collection = new PropertySettingCollection { LinkedObjectId = "obj-1" };
 
@@ -52,7 +52,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 		}
 
 		[TestMethod]
-		public void PropertyCollection_InitScope_ValueIsSet()
+		public void PropertyCollection_InitScope_ScopeIsSet()
 		{
 			var collection = new PropertySettingCollection { Scope = "global" };
 
@@ -60,7 +60,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 		}
 
 		[TestMethod]
-		public void PropertyCollection_InitSubId_ValueIsSet()
+		public void PropertyCollection_InitSubId_SubIdIsSet()
 		{
 			var collection = new PropertySettingCollection { SubId = "sub-1" };
 
@@ -68,7 +68,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 		}
 
 		[TestMethod]
-		public void PropertyCollection_InitAllProperties_ValuesAreSet()
+		public void PropertyCollection_InitAllProperties_AllPropertiesAreSet()
 		{
 			var collection = new PropertySettingCollection
 			{
@@ -102,7 +102,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 		}
 
 		[TestMethod]
-		public void ICollection_Add_CustomPropertyValue_IncreasesCount()
+		public void ICollection_Add_CustomPropertySetting_IncreasesCount()
 		{
 			var collection = new PropertySettingCollection();
 			collection.Add(new CustomPropertySetting("myProp"));
@@ -112,7 +112,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 		}
 
 		[TestMethod]
-		public void ICollection_Add_StringPropertyValue_IncreasesCount()
+		public void ICollection_Add_StringPropertySetting_IncreasesCount()
 		{
 			var collection = new PropertySettingCollection();
 			collection.Add(new StringPropertySetting(new StringProperty()));
@@ -122,7 +122,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 		}
 
 		[TestMethod]
-		public void ICollection_Add_BooleanPropertyValue_IncreasesCount()
+		public void ICollection_Add_BooleanPropertySetting_IncreasesCount()
 		{
 			var collection = new PropertySettingCollection();
 			collection.Add(new BooleanPropertySetting(new BooleanProperty()));
@@ -132,7 +132,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 		}
 
 		[TestMethod]
-		public void ICollection_Add_DiscretePropertyValue_IncreasesCount()
+		public void ICollection_Add_DiscretePropertySetting_IncreasesCount()
 		{
 			var collection = new PropertySettingCollection();
 			collection.Add(new DiscretePropertySetting(new DiscreteProperty()));
@@ -150,17 +150,17 @@ namespace RT_MediaOps.Plan.Properties.Values
 		}
 
 		[TestMethod]
-		public void ICollection_Add_UnsupportedPropertyValueType_Throws()
+		public void ICollection_Add_UnsupportedPropertySettingType_Throws()
 		{
 			var collection = new PropertySettingCollection();
-			var unsupportedValue = new UnsupportedPropertySetting();
+			var unsupportedSetting = new UnsupportedPropertySetting();
 
-			var exception = Assert.ThrowsException<ArgumentException>(() => collection.Add(unsupportedValue));
+			var exception = Assert.ThrowsException<ArgumentException>(() => collection.Add(unsupportedSetting));
 			StringAssert.Contains(exception.Message, "Unsupported property setting type");
 		}
 
 		[TestMethod]
-		public void ICollection_Remove_CustomPropertyValue_DecreasesCount()
+		public void ICollection_Remove_CustomPropertySetting_DecreasesCount()
 		{
 			var item = new CustomPropertySetting("myProp");
 			var collection = new PropertySettingCollection();
