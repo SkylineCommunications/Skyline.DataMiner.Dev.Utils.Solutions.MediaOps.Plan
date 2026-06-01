@@ -102,7 +102,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			var filter = new ANDFilterElement<PropertySettingCollection>(
 				PropertySettingCollectionExposers.LinkedObjectId.Equal(ownerIdString),
 				PropertySettingCollectionExposers.Scope.Equal(MediaOpsScope));
-			var collections = planApi.PropertyValueCollections.Read(filter);
+			var collections = planApi.PropertySettingCollections.Read(filter);
 
 			var byKey = new Dictionary<string, PropertySettingCollection>(StringComparer.OrdinalIgnoreCase);
 			foreach (var collection in collections)
