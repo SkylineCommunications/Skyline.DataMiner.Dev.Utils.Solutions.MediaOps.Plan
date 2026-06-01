@@ -49,8 +49,6 @@
 				DataReferenceType.CapabilityParameter => CapabilityParameterReference.ParseFromStorage(this, nodeId),
 				DataReferenceType.CapacityParameter => CapacityParameterReference.ParseFromStorage(this, nodeId),
 				DataReferenceType.ConfigurationParameter => ConfigurationParameterReference.ParseFromStorage(this, nodeId),
-				DataReferenceType.WorkflowName => new WorkflowNameReference(nodeId),
-				DataReferenceType.WorkflowProperty => WorkflowPropertyReference.ParseFromStorage(this, nodeId),
 				DataReferenceType.JobName => new JobNameReference(nodeId),
 				DataReferenceType.JobProperty => JobPropertyReference.ParseFromStorage(this, nodeId),
 				_ => throw new NotSupportedException($"Unsupported data reference type: {type}"),

@@ -113,15 +113,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 						break;
 					}
 
-				case WorkflowPropertyReference wpr:
-					{
-						var propertyName = GetWorkflowPropertyName(wpr);
-						if (!String.IsNullOrEmpty(propertyName))
-							displayString += $": {propertyName}";
-
-						break;
-					}
-
 				case JobPropertyReference jpr:
 					{
 						var propertyName = GetJobPropertyName(jpr);
@@ -170,8 +161,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					ResourceNameReference rnr => ResolveResourceName(rnr),
 					ResourceLinkedObjectIdReference rlr => ResolveResourceLinkedObjectId(rlr),
 					ResourcePropertyReference rpr => ResolveResourcePropertyValue(rpr),
-					WorkflowNameReference wnr => ResolveWorkflowName(wnr),
-					WorkflowPropertyReference wpr => ResolveWorkflowPropertyValue(wpr),
 					JobNameReference jnr => ResolveJobName(jnr),
 					JobPropertyReference jpr => ResolveJobPropertyValue(jpr),
 					_ => throw new NotSupportedException($"Unsupported reference type: {reference.GetType()}")
@@ -339,28 +328,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <summary>
-		/// Resolves a <see cref="WorkflowNameReference"/>. The base implementation returns an unresolved
-		/// <see cref="ResolvedValue"/>. Derived classes override this to return the workflow name.
-		/// </summary>
-		/// <param name="reference">The workflow name reference to resolve.</param>
-		/// <returns>A <see cref="ResolvedValue"/> containing the workflow name, or an unresolved value.</returns>
-		protected virtual ResolvedValue ResolveWorkflowName(WorkflowNameReference reference)
-		{
-			return ResolvedValue.FromUnresolvedReference(reference);
-		}
-
-		/// <summary>
-		/// Resolves a <see cref="WorkflowPropertyReference"/>. The base implementation returns an unresolved
-		/// <see cref="ResolvedValue"/>. Derived classes override this to look up the property value.
-		/// </summary>
-		/// <param name="reference">The workflow property reference to resolve.</param>
-		/// <returns>A <see cref="ResolvedValue"/> containing the property value, or an unresolved value.</returns>
-		protected virtual ResolvedValue ResolveWorkflowPropertyValue(WorkflowPropertyReference reference)
-		{
-			return ResolvedValue.FromUnresolvedReference(reference);
-		}
-
-		/// <summary>
 		/// Resolves a <see cref="JobNameReference"/>. The base implementation returns an unresolved
 		/// <see cref="ResolvedValue"/>. Derived classes override this to return the job name.
 		/// </summary>
@@ -380,17 +347,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		protected virtual ResolvedValue ResolveJobPropertyValue(JobPropertyReference reference)
 		{
 			return ResolvedValue.FromUnresolvedReference(reference);
-		}
-
-		/// <summary>
-		/// Returns the display name for a workflow property. Default returns <c>null</c>; the property catalog
-		/// is not exposed through <see cref="IMediaOpsPlanApi"/> and must be supplied by derived classes.
-		/// </summary>
-		protected virtual string GetWorkflowPropertyName(WorkflowPropertyReference reference)
-		{
-			return PropertyDefinitions.TryGetValue(reference.WorkflowPropertyId, out var value)
-				? value?.Name
-				: null;
 		}
 
 		/// <summary>

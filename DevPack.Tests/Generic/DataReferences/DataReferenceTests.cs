@@ -176,29 +176,6 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 		}
 
 		[TestMethod]
-		public void WorkflowPropertyReference_Constructor_SetsProperties()
-		{
-			var guid = Guid.NewGuid();
-			var reference = new WorkflowPropertyReference(guid);
-
-			Assert.AreEqual(DataReferenceType.WorkflowProperty, reference.Type);
-			Assert.AreEqual(guid, reference.WorkflowPropertyId);
-			Assert.IsNull(reference.NodeId);
-		}
-
-		[TestMethod]
-		public void WorkflowPropertyReference_ToStorage_ThenFromStorage_PreservesData()
-		{
-			var guid = Guid.NewGuid();
-			var original = new WorkflowPropertyReference(guid);
-
-			var result = ApiDataReference.FromStorage(original.ToStorage()) as WorkflowPropertyReference;
-
-			Assert.IsNotNull(result);
-			Assert.AreEqual(original.WorkflowPropertyId, result.WorkflowPropertyId);
-		}
-
-		[TestMethod]
 		public void CapabilityParameterReference_Constructor_SetsProperties()
 		{
 			var guid = Guid.NewGuid();
@@ -243,15 +220,6 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 		}
 
 		[TestMethod]
-		public void WorkflowNameReference_Constructor_SetsType()
-		{
-			var reference = new WorkflowNameReference();
-
-			Assert.AreEqual(DataReferenceType.WorkflowName, reference.Type);
-			Assert.IsNull(reference.NodeId);
-		}
-
-		[TestMethod]
 		public void JobNameReference_Constructor_SetsType()
 		{
 			var reference = new JobNameReference();
@@ -273,21 +241,6 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 			Assert.IsNotNull(result);
 			Assert.IsInstanceOfType(result, typeof(JobNameReference));
 			Assert.AreEqual(DataReferenceType.JobName, result.Type);
-		}
-
-		[TestMethod]
-		public void FromStorage_WorkflowName_ReturnsWorkflowNameReference()
-		{
-			var storage = new DataReferenceStorage
-			{
-				ReferenceType = "WorkflowName",
-			};
-
-			var result = ApiDataReference.FromStorage(storage);
-
-			Assert.IsNotNull(result);
-			Assert.IsInstanceOfType(result, typeof(WorkflowNameReference));
-			Assert.AreEqual(DataReferenceType.WorkflowName, result.Type);
 		}
 
 		[TestMethod]
@@ -330,7 +283,7 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 		public void DataReference_Equals_DifferentType_ReturnsFalse()
 		{
 			var ref1 = new ResourceNameReference();
-			var ref2 = new WorkflowNameReference();
+			var ref2 = new JobNameReference();
 
 			Assert.IsFalse(ref1.Equals((ApiDataReference)ref2));
 		}
@@ -408,21 +361,9 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 		}
 
 		[TestMethod]
-		public void IsNodeScoped_WorkflowProperty_ReturnsFalse()
-		{
-			Assert.IsFalse(DataReferenceType.WorkflowProperty.IsNodeScoped());
-		}
-
-		[TestMethod]
 		public void IsNodeScoped_JobName_ReturnsFalse()
 		{
 			Assert.IsFalse(DataReferenceType.JobName.IsNodeScoped());
-		}
-
-		[TestMethod]
-		public void IsNodeScoped_WorkflowName_ReturnsFalse()
-		{
-			Assert.IsFalse(DataReferenceType.WorkflowName.IsNodeScoped());
 		}
 
 		[TestMethod]

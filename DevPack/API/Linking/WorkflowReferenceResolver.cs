@@ -38,23 +38,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		protected IDictionary<Guid, PropertyValueBase> PropertyValues => _lazyPropertyValues.Value;
 
 		/// <inheritdoc />
-		protected override ResolvedValue ResolveWorkflowName(WorkflowNameReference reference)
-		{
-			return new StringResolvedValue(Workflow.Name);
-		}
-
-		/// <inheritdoc />
-		protected override ResolvedValue ResolveWorkflowPropertyValue(WorkflowPropertyReference reference)
-		{
-			if (PropertyValues.TryGetValue(reference.WorkflowPropertyId, out var value))
-			{
-				return ConvertPropertyValue(value);
-			}
-
-			return ResolvedValue.FromUnresolvedReference(reference);
-		}
-
-		/// <inheritdoc />
 		protected override Resource GetResource(DataReference reference)
 		{
 			if (String.IsNullOrEmpty(reference.NodeId))

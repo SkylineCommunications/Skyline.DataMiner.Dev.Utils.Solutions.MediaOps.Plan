@@ -44,18 +44,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
         ConfigurationParameter,
 
         /// <summary>
-        /// Refers to the name of the workflow.
-        /// </summary>
-        [Description("Workflow Name")]
-        WorkflowName,
-
-        /// <summary>
-        /// Refers to a workflow property.
-        /// </summary>
-        [Description("Workflow Property")]
-        WorkflowProperty,
-
-        /// <summary>
         /// Refers to the name of a job.
         /// </summary>
         [Description("Job Name")]
