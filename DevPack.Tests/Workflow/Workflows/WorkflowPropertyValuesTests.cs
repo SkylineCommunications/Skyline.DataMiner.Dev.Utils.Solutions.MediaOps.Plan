@@ -12,8 +12,8 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 		{
 			var workflow = new Workflow { Name = "Test" };
 
-			Assert.IsNotNull(workflow.CustomPropertyValues);
-			Assert.AreEqual(0, workflow.CustomPropertyValues.Count);
+			Assert.IsNotNull(workflow.CustomPropertySettings);
+			Assert.AreEqual(0, workflow.CustomPropertySettings.Count);
 		}
 
 		[TestMethod]
@@ -21,8 +21,8 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 		{
 			var workflow = new Workflow { Name = "Test" };
 
-			Assert.IsNotNull(workflow.PropertyValues);
-			Assert.AreEqual(0, workflow.PropertyValues.Count);
+			Assert.IsNotNull(workflow.PropertySettings);
+			Assert.AreEqual(0, workflow.PropertySettings.Count);
 		}
 
 		[TestMethod]
@@ -30,8 +30,8 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 		{
 			var workflow = new Workflow(Guid.NewGuid()) { Name = "Test" };
 
-			Assert.IsNotNull(workflow.CustomPropertyValues);
-			Assert.AreEqual(0, workflow.CustomPropertyValues.Count);
+			Assert.IsNotNull(workflow.CustomPropertySettings);
+			Assert.AreEqual(0, workflow.CustomPropertySettings.Count);
 		}
 
 		[TestMethod]
@@ -39,8 +39,8 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 		{
 			var workflow = new Workflow(Guid.NewGuid()) { Name = "Test" };
 
-			Assert.IsNotNull(workflow.PropertyValues);
-			Assert.AreEqual(0, workflow.PropertyValues.Count);
+			Assert.IsNotNull(workflow.PropertySettings);
+			Assert.AreEqual(0, workflow.PropertySettings.Count);
 		}
 
 		[TestMethod]
@@ -48,8 +48,8 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 		{
 			var node = new WorkflowResourceNode(Guid.NewGuid(), Guid.NewGuid());
 
-			Assert.IsNotNull(node.CustomPropertyValues);
-			Assert.AreEqual(0, node.CustomPropertyValues.Count);
+			Assert.IsNotNull(node.CustomPropertySettings);
+			Assert.AreEqual(0, node.CustomPropertySettings.Count);
 		}
 
 		[TestMethod]
@@ -57,8 +57,8 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 		{
 			var node = new WorkflowResourceNode(Guid.NewGuid(), Guid.NewGuid());
 
-			Assert.IsNotNull(node.PropertyValues);
-			Assert.AreEqual(0, node.PropertyValues.Count);
+			Assert.IsNotNull(node.PropertySettings);
+			Assert.AreEqual(0, node.PropertySettings.Count);
 		}
 
 		[TestMethod]
@@ -66,8 +66,8 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 		{
 			var node = new WorkflowResourcePoolNode(Guid.NewGuid());
 
-			Assert.IsNotNull(node.CustomPropertyValues);
-			Assert.AreEqual(0, node.CustomPropertyValues.Count);
+			Assert.IsNotNull(node.CustomPropertySettings);
+			Assert.AreEqual(0, node.CustomPropertySettings.Count);
 		}
 
 		[TestMethod]
@@ -75,8 +75,8 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 		{
 			var node = new WorkflowResourcePoolNode(Guid.NewGuid());
 
-			Assert.IsNotNull(node.PropertyValues);
-			Assert.AreEqual(0, node.PropertyValues.Count);
+			Assert.IsNotNull(node.PropertySettings);
+			Assert.AreEqual(0, node.PropertySettings.Count);
 		}
 
 		[TestMethod]
@@ -87,15 +87,15 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 			var node = new WorkflowResourceNode(Guid.NewGuid(), Guid.NewGuid());
 			workflow.NodeGraph.Add(node);
 
-			node.AddCustomProperty(new CustomPropertyValue("Tag") { Value = "live" });
+			node.AddCustomProperty(new CustomPropertySetting("Tag") { Value = "live" });
 
 			// Act: simulate the save path - DomWorkflowHandler calls EnsureContext() on each workflow.
 			workflow.EnsureContext();
 
 			var ownerScopes = new[]
 			{
-				new KeyValuePair<Guid, Skyline.DataMiner.Solutions.MediaOps.Plan.API.PropertyValuesScope>(workflow.Id, workflow.PropertyValuesScope),
-				new KeyValuePair<Guid, Skyline.DataMiner.Solutions.MediaOps.Plan.API.PropertyValuesScope>(workflow.Id, node.PropertyValuesScope),
+				new KeyValuePair<Guid, Skyline.DataMiner.Solutions.MediaOps.Plan.API.PropertySettingsScope>(workflow.Id, workflow.PropertySettingsScope),
+				new KeyValuePair<Guid, Skyline.DataMiner.Solutions.MediaOps.Plan.API.PropertySettingsScope>(workflow.Id, node.PropertySettingsScope),
 			};
 
 			var (toCreateOrUpdate, toDelete, ownerByCollectionId) = ownerScopes.BuildPersistenceActions();
@@ -106,10 +106,10 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 
 			var collection = toCreateOrUpdate[0];
 			Assert.AreEqual(workflow.Id.ToString(), collection.LinkedObjectId, "LinkedObjectId should be the owning workflow id.");
-			Assert.AreEqual(PropertyValuesContext.MediaOpsScope, collection.Scope, "Scope should be the MediaOps scope.");
+			Assert.AreEqual(PropertySettingsContext.MediaOpsScope, collection.Scope, "Scope should be the MediaOps scope.");
 			Assert.AreEqual(node.Id, collection.SubId, "SubId should be the node id.");
-			Assert.AreEqual(1, collection.CustomValues.Count, "The custom property added on the node should be present.");
-			Assert.AreEqual("Tag", collection.CustomValues.First().Name);
+			Assert.AreEqual(1, collection.CustomSettings.Count, "The custom property added on the node should be present.");
+			Assert.AreEqual("Tag", collection.CustomSettings.First().Name);
 
 			Assert.IsTrue(ownerByCollectionId.TryGetValue(collection.Id, out var ownerId));
 			Assert.AreEqual(workflow.Id, ownerId, "Failure reporting must map back to the workflow id.");
@@ -127,7 +127,7 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 			workflow.EnsureContext();
 
 			var node = new WorkflowResourceNode(Guid.NewGuid(), Guid.NewGuid());
-			node.AddCustomProperty(new CustomPropertyValue("Channel") { Value = "1" });
+			node.AddCustomProperty(new CustomPropertySetting("Channel") { Value = "1" });
 			workflow.NodeGraph.Add(node);
 
 			// Act: save path re-runs EnsureContext, which must re-wire newly added nodes.
@@ -135,8 +135,8 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 
 			var ownerScopes = new[]
 			{
-				new KeyValuePair<Guid, Skyline.DataMiner.Solutions.MediaOps.Plan.API.PropertyValuesScope>(workflow.Id, workflow.PropertyValuesScope),
-				new KeyValuePair<Guid, Skyline.DataMiner.Solutions.MediaOps.Plan.API.PropertyValuesScope>(workflow.Id, node.PropertyValuesScope),
+				new KeyValuePair<Guid, Skyline.DataMiner.Solutions.MediaOps.Plan.API.PropertySettingsScope>(workflow.Id, workflow.PropertySettingsScope),
+				new KeyValuePair<Guid, Skyline.DataMiner.Solutions.MediaOps.Plan.API.PropertySettingsScope>(workflow.Id, node.PropertySettingsScope),
 			};
 
 			var (toCreateOrUpdate, toDelete, ownerByCollectionId) = ownerScopes.BuildPersistenceActions();
@@ -147,7 +147,7 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 
 			var collection = toCreateOrUpdate[0];
 			Assert.AreEqual(workflow.Id.ToString(), collection.LinkedObjectId, "Node added after the context was created must still resolve to the workflow id.");
-			Assert.AreEqual(PropertyValuesContext.MediaOpsScope, collection.Scope);
+			Assert.AreEqual(PropertySettingsContext.MediaOpsScope, collection.Scope);
 			Assert.AreEqual(node.Id, collection.SubId);
 
 			Assert.IsTrue(ownerByCollectionId.TryGetValue(collection.Id, out var ownerId));

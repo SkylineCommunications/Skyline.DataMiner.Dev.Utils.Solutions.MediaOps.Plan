@@ -3,22 +3,22 @@
 	/// <summary>
 	/// Represents a property value that holds a string value.
 	/// </summary>
-	public class StringPropertyValue : PropertyValue
+	public class StringPropertySetting : PropertySetting
 	{
 		/// <summary>
-		/// Initializes a new instance of the <see cref="StringPropertyValue"/> class linked to the specified string property.
+		/// Initializes a new instance of the <see cref="StringPropertySetting"/> class linked to the specified string property.
 		/// </summary>
 		/// <param name="property">The <see cref="StringProperty"/> definition to link to.</param>
-		public StringPropertyValue(StringProperty property)
+		public StringPropertySetting(StringProperty property)
 			: base(property)
 		{
 		}
 
-		internal StringPropertyValue()
+		internal StringPropertySetting()
 		{
 		}
 
-		internal StringPropertyValue(StringPropertyValue stringPropertyValue)
+		internal StringPropertySetting(StringPropertySetting stringPropertyValue)
 			: base(stringPropertyValue)
 		{
 			Value = stringPropertyValue.Value;
@@ -47,7 +47,7 @@
 		/// <inheritdoc />
 		public override bool Equals(object obj)
 		{
-			if (obj is not StringPropertyValue other)
+			if (obj is not StringPropertySetting other)
 			{
 				return false;
 			}

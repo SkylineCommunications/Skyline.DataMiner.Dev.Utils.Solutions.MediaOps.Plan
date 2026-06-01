@@ -13,17 +13,17 @@
 	using SLDataGateway.API.Types.Querying;
 
 	/// <summary>
-	/// Provides repository operations for managing <see cref="PropertyValueCollection"/> objects.
+	/// Provides repository operations for managing <see cref="PropertySettingCollection"/> objects.
 	/// </summary>
-	internal class PropertyValueCollectionsRepository : Repository, IPropertyValueCollectionsRepository
+	internal class PropertySettingCollectionsRepository : Repository, IPropertySettingCollectionsRepository
 	{
-		private readonly PropertyValueCollectionFilterTranslator filterTranslator = new PropertyValueCollectionFilterTranslator();
+		private readonly PropertySettingCollectionFilterTranslator filterTranslator = new PropertySettingCollectionFilterTranslator();
 
 		/// <summary>
-		/// Initializes a new instance of the <see cref="PropertyValueCollectionsRepository"/> class.
+		/// Initializes a new instance of the <see cref="PropertySettingCollectionsRepository"/> class.
 		/// </summary>
 		/// <param name="planApi">The MediaOps Plan API instance.</param>
-		public PropertyValueCollectionsRepository(MediaOpsPlanApi planApi)
+		public PropertySettingCollectionsRepository(MediaOpsPlanApi planApi)
 			: base(planApi)
 		{
 		}
@@ -34,7 +34,7 @@
 		/// <returns>The total count of property collections.</returns>
 		public long Count()
 		{
-			return Count(new TRUEFilterElement<PropertyValueCollection>());
+			return Count(new TRUEFilterElement<PropertySettingCollection>());
 		}
 
 		/// <summary>
@@ -42,7 +42,7 @@
 		/// </summary>
 		/// <param name="filter">The filter criteria to apply when counting property collections.</param>
 		/// <returns>The count of property collections matching the filter.</returns>
-		public long Count(FilterElement<PropertyValueCollection> filter)
+		public long Count(FilterElement<PropertySettingCollection> filter)
 		{
 			if (filter.isEmpty())
 			{
@@ -57,7 +57,7 @@
 		/// </summary>
 		/// <param name="query">The query criteria to apply when counting property collections.</param>
 		/// <returns>The count of property collections matching the query.</returns>
-		public long Count(IQuery<PropertyValueCollection> query)
+		public long Count(IQuery<PropertySettingCollection> query)
 		{
 			return Count(query.Filter);
 		}
@@ -70,7 +70,7 @@
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
 		/// <exception cref="InvalidOperationException">Thrown when attempting to create an existing property collection.</exception>
 		/// <exception cref="MediaOpsException">Thrown when the creation operation fails for the specified property collection.</exception>
-		public PropertyValueCollection Create(PropertyValueCollection apiObject)
+		public PropertySettingCollection Create(PropertySettingCollection apiObject)
 		{
 			PlanApi.Logger.Information(this, "Creating new PropertyCollection...");
 
@@ -79,21 +79,21 @@
 				throw new ArgumentNullException(nameof(apiObject));
 			}
 
-			return ActivityHelper.Track(nameof(PropertyValueCollectionsRepository), nameof(Create), act =>
+			return ActivityHelper.Track(nameof(PropertySettingCollectionsRepository), nameof(Create), act =>
 			{
 				if (!apiObject.IsNew)
 				{
 					throw new InvalidOperationException("Not possible to use method Create for existing property collection. Use CreateOrUpdate or Update instead.");
 				}
 
-				if (!DomPropertyValueCollectionHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
+				if (!DomPropertySettingCollectionHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
 				{
 					result.ThrowSingleException(apiObject.Id);
 				}
 
 				act?.AddTag("PropertyCollectionId", result.SuccessfulIds.Single());
 
-				return new PropertyValueCollection(PlanApi, result.SuccessfulItems.Single());
+				return new PropertySettingCollection(PlanApi, result.SuccessfulItems.Single());
 			});
 		}
 
@@ -105,7 +105,7 @@
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
 		/// <exception cref="InvalidOperationException">Thrown when attempting to create existing property collections.</exception>
 		/// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk creation operation fails for one or more property collections.</exception>
-		public IReadOnlyCollection<PropertyValueCollection> Create(IEnumerable<PropertyValueCollection> apiObjects)
+		public IReadOnlyCollection<PropertySettingCollection> Create(IEnumerable<PropertySettingCollection> apiObjects)
 		{
 			if (apiObjects == null)
 			{
@@ -114,7 +114,7 @@
 
 			var list = apiObjects.ToList();
 
-			return ActivityHelper.Track(nameof(PropertyValueCollectionsRepository), nameof(Create), act =>
+			return ActivityHelper.Track(nameof(PropertySettingCollectionsRepository), nameof(Create), act =>
 			{
 				var existingCollections = list.Where(x => !x.IsNew);
 				if (existingCollections.Any())
@@ -122,14 +122,14 @@
 					throw new InvalidOperationException("Not possible to use method Create for existing property collections. Use CreateOrUpdate or Update instead.");
 				}
 
-				if (!DomPropertyValueCollectionHandler.TryCreateOrUpdate(PlanApi, list, out var result))
+				if (!DomPropertySettingCollectionHandler.TryCreateOrUpdate(PlanApi, list, out var result))
 				{
 					result.ThrowBulkException();
 				}
 
 				act?.AddTag("PropertyCollectionIds", string.Join(", ", result.SuccessfulIds));
 
-				return result.SuccessfulItems.Select(x => new PropertyValueCollection(PlanApi, x)).ToList();
+				return result.SuccessfulItems.Select(x => new PropertySettingCollection(PlanApi, x)).ToList();
 			});
 		}
 
@@ -140,7 +140,7 @@
 		/// <returns>A read-only collection containing the created or updated property collections.</returns>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
 		/// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk create or update operation fails for one or more property collections.</exception>
-		public IReadOnlyCollection<PropertyValueCollection> CreateOrUpdate(IEnumerable<PropertyValueCollection> apiObjects)
+		public IReadOnlyCollection<PropertySettingCollection> CreateOrUpdate(IEnumerable<PropertySettingCollection> apiObjects)
 		{
 			if (apiObjects == null)
 			{
@@ -149,9 +149,9 @@
 
 			var list = apiObjects.ToList();
 
-			return ActivityHelper.Track(nameof(PropertyValueCollectionsRepository), nameof(CreateOrUpdate), act =>
+			return ActivityHelper.Track(nameof(PropertySettingCollectionsRepository), nameof(CreateOrUpdate), act =>
 			{
-				if (!DomPropertyValueCollectionHandler.TryCreateOrUpdate(PlanApi, list, out var result))
+				if (!DomPropertySettingCollectionHandler.TryCreateOrUpdate(PlanApi, list, out var result))
 				{
 					result.ThrowBulkException();
 				}
@@ -159,7 +159,7 @@
 				act?.AddTag("Created or Updated Property Collections", String.Join(", ", result.SuccessfulIds));
 				act?.AddTag("Created or Updated Property Collections Count", result.SuccessfulIds.Count);
 
-				return result.SuccessfulItems.Select(x => new PropertyValueCollection(PlanApi, x)).ToList();
+				return result.SuccessfulItems.Select(x => new PropertySettingCollection(PlanApi, x)).ToList();
 			});
 		}
 
@@ -168,7 +168,7 @@
 		/// </summary>
 		/// <param name="apiObjects">The property collections to delete.</param>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
-		public void Delete(IEnumerable<PropertyValueCollection> apiObjects)
+		public void Delete(IEnumerable<PropertySettingCollection> apiObjects)
 		{
 			if (apiObjects == null)
 			{
@@ -193,9 +193,9 @@
 
 			var collectionsToDelete = Read(apiObjectIds.ToArray());
 
-			ActivityHelper.Track(nameof(PropertyValueCollectionsRepository), nameof(Delete), act =>
+			ActivityHelper.Track(nameof(PropertySettingCollectionsRepository), nameof(Delete), act =>
 			{
-				if (!DomPropertyValueCollectionHandler.TryDelete(PlanApi, collectionsToDelete?.ToList(), out var result))
+				if (!DomPropertySettingCollectionHandler.TryDelete(PlanApi, collectionsToDelete?.ToList(), out var result))
 				{
 					result.ThrowBulkException();
 				}
@@ -211,7 +211,7 @@
 		/// <param name="oToDelete">The property collection to delete.</param>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="oToDelete"/> is <c>null</c>.</exception>
 		/// <exception cref="MediaOpsException">Thrown when the deletion operation fails for the specified property collection.</exception>
-		public void Delete(PropertyValueCollection oToDelete)
+		public void Delete(PropertySettingCollection oToDelete)
 		{
 			if (oToDelete == null)
 			{
@@ -234,9 +234,9 @@
 				return;
 			}
 
-			ActivityHelper.Track(nameof(PropertyValueCollectionsRepository), nameof(Delete), act =>
+			ActivityHelper.Track(nameof(PropertySettingCollectionsRepository), nameof(Delete), act =>
 			{
-				if (!DomPropertyValueCollectionHandler.TryDelete(PlanApi, [collectionToDelete], out var result))
+				if (!DomPropertySettingCollectionHandler.TryDelete(PlanApi, [collectionToDelete], out var result))
 				{
 					result.ThrowSingleException(collectionToDelete.Id);
 				}
@@ -251,7 +251,7 @@
 		/// <param name="id">The unique identifier of the property collection.</param>
 		/// <returns>The property collection with the specified identifier, or <c>null</c> if not found.</returns>
 		/// <exception cref="ArgumentException">Thrown when <paramref name="id"/> is <see cref="Guid.Empty"/>.</exception>
-		public PropertyValueCollection Read(Guid id)
+		public PropertySettingCollection Read(Guid id)
 		{
 			PlanApi.Logger.Information(this, $"Reading PropertyCollection with ID: {id}...");
 
@@ -260,10 +260,10 @@
 				throw new ArgumentException(nameof(id));
 			}
 
-			return ActivityHelper.Track(nameof(PropertyValueCollectionsRepository), nameof(Read), act =>
+			return ActivityHelper.Track(nameof(PropertySettingCollectionsRepository), nameof(Read), act =>
 			{
 				act?.AddTag("PropertyCollectionId", id);
-				var collection = Read(PropertyValueCollectionExposers.Id.Equal(id)).FirstOrDefault();
+				var collection = Read(PropertySettingCollectionExposers.Id.Equal(id)).FirstOrDefault();
 
 				if (collection == null)
 				{
@@ -283,7 +283,7 @@
 		/// <param name="ids">A collection of unique identifiers.</param>
 		/// <returns>An enumerable collection of property collections matching the specified identifiers.</returns>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="ids"/> is <c>null</c>.</exception>
-		public IEnumerable<PropertyValueCollection> Read(IEnumerable<Guid> ids)
+		public IEnumerable<PropertySettingCollection> Read(IEnumerable<Guid> ids)
 		{
 			if (ids == null)
 			{
@@ -292,19 +292,19 @@
 
 			if (!ids.Any())
 			{
-				return Array.Empty<PropertyValueCollection>();
+				return Array.Empty<PropertySettingCollection>();
 			}
 
-			return Read(new ORFilterElement<PropertyValueCollection>(ids.Select(x => PropertyValueCollectionExposers.Id.Equal(x)).ToArray()));
+			return Read(new ORFilterElement<PropertySettingCollection>(ids.Select(x => PropertySettingCollectionExposers.Id.Equal(x)).ToArray()));
 		}
 
 		/// <summary>
 		/// Reads all property collections from the repository.
 		/// </summary>
 		/// <returns>An enumerable collection of all property collections.</returns>
-		public IEnumerable<PropertyValueCollection> Read()
+		public IEnumerable<PropertySettingCollection> Read()
 		{
-			return Read(new TRUEFilterElement<PropertyValueCollection>());
+			return Read(new TRUEFilterElement<PropertySettingCollection>());
 		}
 
 		/// <summary>
@@ -312,7 +312,7 @@
 		/// </summary>
 		/// <param name="filter">The filter criteria to apply when reading property collections.</param>
 		/// <returns>An enumerable collection of property collections matching the filter.</returns>
-		public IEnumerable<PropertyValueCollection> Read(FilterElement<PropertyValueCollection> filter)
+		public IEnumerable<PropertySettingCollection> Read(FilterElement<PropertySettingCollection> filter)
 		{
 			if (filter == null)
 			{
@@ -321,13 +321,13 @@
 
 			if (filter.isEmpty())
 			{
-				return Enumerable.Empty<PropertyValueCollection>();
+				return Enumerable.Empty<PropertySettingCollection>();
 			}
 
-			return ActivityHelper.Track(nameof(PropertyValueCollectionsRepository), nameof(Read), act =>
+			return ActivityHelper.Track(nameof(PropertySettingCollectionsRepository), nameof(Read), act =>
 			{
 				var instances = PlanApi.DomHelpers.SlcPropertiesHelper.GetPropertyValues(filterTranslator.Translate(filter));
-				return instances.Select(x => new PropertyValueCollection(PlanApi, x));
+				return instances.Select(x => new PropertySettingCollection(PlanApi, x));
 			});
 		}
 
@@ -336,7 +336,7 @@
 		/// </summary>
 		/// <param name="query">The query criteria to apply when reading property collections.</param>
 		/// <returns>An enumerable collection of property collections matching the query.</returns>
-		public IEnumerable<PropertyValueCollection> Read(IQuery<PropertyValueCollection> query)
+		public IEnumerable<PropertySettingCollection> Read(IQuery<PropertySettingCollection> query)
 		{
 			if (query == null)
 			{
@@ -350,9 +350,9 @@
 		/// Reads all property collections in pages.
 		/// </summary>
 		/// <returns>An enumerable collection of pages, where each page contains a collection of property collections.</returns>
-		public IEnumerable<IPagedResult<PropertyValueCollection>> ReadPaged()
+		public IEnumerable<IPagedResult<PropertySettingCollection>> ReadPaged()
 		{
-			return ReadPaged(new TRUEFilterElement<PropertyValueCollection>());
+			return ReadPaged(new TRUEFilterElement<PropertySettingCollection>());
 		}
 
 		/// <summary>
@@ -360,7 +360,7 @@
 		/// </summary>
 		/// <param name="filter">The filter criteria to apply when reading property collections.</param>
 		/// <returns>An enumerable collection of pages, where each page contains property collections matching the filter.</returns>
-		public IEnumerable<IPagedResult<PropertyValueCollection>> ReadPaged(FilterElement<PropertyValueCollection> filter)
+		public IEnumerable<IPagedResult<PropertySettingCollection>> ReadPaged(FilterElement<PropertySettingCollection> filter)
 		{
 			return ReadPaged(filter, MediaOpsPlanApi.DefaultPageSize);
 		}
@@ -370,7 +370,7 @@
 		/// </summary>
 		/// <param name="query">The query criteria to apply when reading property collections.</param>
 		/// <returns>An enumerable collection of pages, where each page contains property collections matching the query.</returns>
-		public IEnumerable<IPagedResult<PropertyValueCollection>> ReadPaged(IQuery<PropertyValueCollection> query)
+		public IEnumerable<IPagedResult<PropertySettingCollection>> ReadPaged(IQuery<PropertySettingCollection> query)
 		{
 			return ReadPaged(query.Filter);
 		}
@@ -381,7 +381,7 @@
 		/// <param name="filter">The filter criteria to apply when reading property collections.</param>
 		/// <param name="pageSize">The number of items per page.</param>
 		/// <returns>An enumerable collection of pages, where each page contains up to the specified number of property collections matching the filter.</returns>
-		public IEnumerable<IPagedResult<PropertyValueCollection>> ReadPaged(FilterElement<PropertyValueCollection> filter, int pageSize)
+		public IEnumerable<IPagedResult<PropertySettingCollection>> ReadPaged(FilterElement<PropertySettingCollection> filter, int pageSize)
 		{
 			if (filter == null)
 			{
@@ -402,7 +402,7 @@
 		/// <param name="query">The query criteria to apply when reading property collections.</param>
 		/// <param name="pageSize">The number of items per page.</param>
 		/// <returns>An enumerable collection of pages, where each page contains up to the specified number of property collections matching the query.</returns>
-		public IEnumerable<IPagedResult<PropertyValueCollection>> ReadPaged(IQuery<PropertyValueCollection> query, int pageSize)
+		public IEnumerable<IPagedResult<PropertySettingCollection>> ReadPaged(IQuery<PropertySettingCollection> query, int pageSize)
 		{
 			return ReadPaged(query.Filter, pageSize);
 		}
@@ -412,9 +412,9 @@
 		/// </summary>
 		/// <param name="pageSize">The number of items per page.</param>
 		/// <returns>An enumerable collection of pages, where each page contains a collection of property collections.</returns>
-		public IEnumerable<IPagedResult<PropertyValueCollection>> ReadPaged(int pageSize)
+		public IEnumerable<IPagedResult<PropertySettingCollection>> ReadPaged(int pageSize)
 		{
-			return ReadPaged(new TRUEFilterElement<PropertyValueCollection>(), pageSize);
+			return ReadPaged(new TRUEFilterElement<PropertySettingCollection>(), pageSize);
 		}
 
 		/// <summary>
@@ -425,7 +425,7 @@
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObject"/> is <c>null</c>.</exception>
 		/// <exception cref="InvalidOperationException">Thrown when attempting to update a new property collection that doesn't exist yet.</exception>
 		/// <exception cref="MediaOpsException">Thrown when the update operation fails for the specified property collection.</exception>
-		public PropertyValueCollection Update(PropertyValueCollection apiObject)
+		public PropertySettingCollection Update(PropertySettingCollection apiObject)
 		{
 			if (apiObject == null)
 			{
@@ -434,21 +434,21 @@
 
 			PlanApi.Logger.Information(this, $"Updating existing PropertyCollection {apiObject.Id}...");
 
-			return ActivityHelper.Track(nameof(PropertyValueCollectionsRepository), nameof(Update), act =>
+			return ActivityHelper.Track(nameof(PropertySettingCollectionsRepository), nameof(Update), act =>
 			{
 				if (apiObject.IsNew)
 				{
 					throw new InvalidOperationException("Not possible to use method Update for new property collection. Use Create or CreateOrUpdate instead.");
 				}
 
-				if (!DomPropertyValueCollectionHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
+				if (!DomPropertySettingCollectionHandler.TryCreateOrUpdate(PlanApi, [apiObject], out var result))
 				{
 					result.ThrowSingleException(apiObject.Id);
 				}
 
 				act?.AddTag("PropertyCollectionId", result.SuccessfulIds.Single());
 
-				return new PropertyValueCollection(PlanApi, result.SuccessfulItems.Single());
+				return new PropertySettingCollection(PlanApi, result.SuccessfulItems.Single());
 			});
 		}
 
@@ -460,7 +460,7 @@
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="apiObjects"/> is <c>null</c>.</exception>
 		/// <exception cref="InvalidOperationException">Thrown when attempting to update new property collections that don't exist yet.</exception>
 		/// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk update operation fails for one or more property collections.</exception>
-		public IReadOnlyCollection<PropertyValueCollection> Update(IEnumerable<PropertyValueCollection> apiObjects)
+		public IReadOnlyCollection<PropertySettingCollection> Update(IEnumerable<PropertySettingCollection> apiObjects)
 		{
 			if (apiObjects == null)
 			{
@@ -469,7 +469,7 @@
 
 			var list = apiObjects.ToList();
 
-			return ActivityHelper.Track(nameof(PropertyValueCollectionsRepository), nameof(Update), act =>
+			return ActivityHelper.Track(nameof(PropertySettingCollectionsRepository), nameof(Update), act =>
 			{
 				var newCollections = list.Where(x => x.IsNew);
 				if (newCollections.Any())
@@ -477,7 +477,7 @@
 					throw new InvalidOperationException("Not possible to use method Update for new property collections. Use Create or CreateOrUpdate instead.");
 				}
 
-				if (!DomPropertyValueCollectionHandler.TryCreateOrUpdate(PlanApi, list, out var result))
+				if (!DomPropertySettingCollectionHandler.TryCreateOrUpdate(PlanApi, list, out var result))
 				{
 					result.ThrowBulkException();
 				}
@@ -485,11 +485,11 @@
 				var collectionIds = result.SuccessfulIds;
 				act?.AddTag("PropertyCollectionIds", String.Join(", ", collectionIds));
 
-				return result.SuccessfulItems.Select(x => new PropertyValueCollection(PlanApi, x)).ToList();
+				return result.SuccessfulItems.Select(x => new PropertySettingCollection(PlanApi, x)).ToList();
 			});
 		}
 
-		private IEnumerable<IPagedResult<PropertyValueCollection>> ReadPagedIterator(FilterElement<PropertyValueCollection> filter, int pageSize)
+		private IEnumerable<IPagedResult<PropertySettingCollection>> ReadPagedIterator(FilterElement<PropertySettingCollection> filter, int pageSize)
 		{
 			var pageNumber = 0;
 			var paramFilter = filterTranslator.Translate(filter);
@@ -501,7 +501,7 @@
 			{
 				var page = enumerator.Current;
 				hasNext = enumerator.MoveNext();
-				yield return new PagedResult<PropertyValueCollection>(page.Select(x => new PropertyValueCollection(PlanApi, x)), pageNumber++, pageSize, hasNext);
+				yield return new PagedResult<PropertySettingCollection>(page.Select(x => new PropertySettingCollection(PlanApi, x)), pageNumber++, pageSize, hasNext);
 			}
 		}
 	}

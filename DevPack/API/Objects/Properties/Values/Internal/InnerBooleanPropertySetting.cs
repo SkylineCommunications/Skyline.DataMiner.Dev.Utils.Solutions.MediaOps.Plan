@@ -4,17 +4,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 	using StorageProperties = Storage.DOM.SlcProperties;
 
-	internal class InnerBooleanPropertyValue : BooleanPropertyValue
+	internal class InnerBooleanPropertySetting : BooleanPropertySetting
 	{
 		private StorageProperties.PropertyValueSection originalSection;
 		private StorageProperties.PropertyValueSection updatedSection;
 
-		internal InnerBooleanPropertyValue(BooleanPropertyValue booleanPropertyValue)
+		internal InnerBooleanPropertySetting(BooleanPropertySetting booleanPropertyValue)
 			: base(booleanPropertyValue)
 		{
 		}
 
-		internal InnerBooleanPropertyValue(StorageProperties.PropertyValueSection section)
+		internal InnerBooleanPropertySetting(StorageProperties.PropertyValueSection section)
 		{
 			ParseSection(section);
 			InitTracking();

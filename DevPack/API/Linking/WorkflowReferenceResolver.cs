@@ -11,7 +11,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// </summary>
 	public class WorkflowReferenceResolver : ReferenceResolver
 	{
-		private readonly Lazy<IDictionary<Guid, PropertyValueBase>> _lazyPropertyValues;
+		private readonly Lazy<IDictionary<Guid, PropertySettingBase>> _lazyPropertyValues;
 		private readonly IDictionary<Guid, Resource> _resourceCache;
 
 		/// <summary>
@@ -23,7 +23,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 			Workflow = workflow ?? throw new ArgumentNullException(nameof(workflow));
 
-			_lazyPropertyValues = new Lazy<IDictionary<Guid, PropertyValueBase>>(() => ReadPropertyValues(workflow.Id));
+			_lazyPropertyValues = new Lazy<IDictionary<Guid, PropertySettingBase>>(() => ReadPropertyValues(workflow.Id));
 			_resourceCache = new Dictionary<Guid, Resource>();
 		}
 
@@ -35,7 +35,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <summary>
 		/// Gets the lazily-loaded dictionary of property values defined at the workflow level.
 		/// </summary>
-		protected IDictionary<Guid, PropertyValueBase> PropertyValues => _lazyPropertyValues.Value;
+		protected IDictionary<Guid, PropertySettingBase> PropertyValues => _lazyPropertyValues.Value;
 
 		/// <inheritdoc />
 		protected override ResolvedValue ResolveWorkflowName(WorkflowNameReference reference)

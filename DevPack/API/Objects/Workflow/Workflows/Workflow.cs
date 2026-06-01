@@ -15,8 +15,8 @@
 	{
 		private StorageWorkflow.WorkflowsInstance originalInstance;
 		private StorageWorkflow.WorkflowsInstance updatedInstance;
-		private PropertyValuesContext propertiesContext;
-		private PropertyValuesScope propertyValuesScope;
+		private PropertySettingsContext propertiesContext;
+		private PropertySettingsScope propertySettingsScope;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Workflow"/> class.
@@ -46,7 +46,7 @@
 		{
 			ParseInstance(planApi, instance);
 
-			propertiesContext = new PropertyValuesContext(planApi, Id, NodeGraph.Nodes.Select(n => n.Id));
+			propertiesContext = new PropertySettingsContext(planApi, Id, NodeGraph.Nodes.Select(n => n.Id));
 			foreach (var node in NodeGraph.Nodes)
 			{
 				node.SetPropertiesContext(propertiesContext);
@@ -106,101 +106,101 @@
 		public NodeGraph<WorkflowNode> NodeGraph { get; private set; }
 
 		/// <summary>
-		/// Gets the custom property values associated with this workflow.
-		/// Property values are loaded lazily in a single batch together with the property values of all nodes.
-		/// Use <see cref="AddCustomProperty"/>, <see cref="SetCustomProperty"/> and <see cref="RemoveCustomProperty"/> to modify them.
+		/// Gets the custom property settings associated with this workflow.
+		/// Property settings are loaded lazily in a single batch together with the property settings of all nodes.
+		/// Use <see cref="AddCustomProperty"/>, <see cref="SetCustomProperties"/> and <see cref="RemoveCustomProperty"/> to modify them.
 		/// </summary>
-		public IReadOnlyCollection<CustomPropertyValue> CustomPropertyValues => GetOrCreateScope().CustomPropertyValues;
+		public IReadOnlyCollection<CustomPropertySetting> CustomPropertySettings => GetOrCreateScope().CustomPropertySettings;
 
 		/// <summary>
-		/// Gets the property values associated with this workflow.
-		/// Property values are loaded lazily in a single batch together with the property values of all nodes.
-		/// Use <see cref="AddProperty"/>, <see cref="SetProperty"/> and <see cref="RemoveProperty"/> to modify them.
+		/// Gets the property settings associated with this workflow.
+		/// Property settings are loaded lazily in a single batch together with the property settings of all nodes.
+		/// Use <see cref="AddProperty"/>, <see cref="SetProperties"/> and <see cref="RemoveProperty"/> to modify them.
 		/// </summary>
-		public IReadOnlyCollection<PropertyValue> PropertyValues => GetOrCreateScope().PropertyValues;
+		public IReadOnlyCollection<PropertySetting> PropertySettings => GetOrCreateScope().PropertySettings;
 
 		internal StorageWorkflow.WorkflowsInstance OriginalInstance => originalInstance;
 
-		internal PropertyValuesScope PropertyValuesScope => propertyValuesScope;
+		internal PropertySettingsScope PropertySettingsScope => propertySettingsScope;
 
-		internal PropertyValuesContext PropertyValuesContext => propertiesContext;
+		internal PropertySettingsContext PropertySettingsContext => propertiesContext;
 
 		/// <summary>
-		/// Adds a custom property value to this workflow.
+		/// Adds a custom property setting to this workflow.
 		/// </summary>
-		/// <param name="value">The custom property value to add.</param>
+		/// <param name="setting">The custom property setting to add.</param>
 		/// <returns>The current <see cref="Workflow"/> instance.</returns>
-		public Workflow AddCustomProperty(CustomPropertyValue value)
+		public Workflow AddCustomProperty(CustomPropertySetting setting)
 		{
-			GetOrCreateScope().AddCustomProperty(value);
+			GetOrCreateScope().AddCustomProperty(setting);
 			return this;
 		}
 
 		/// <summary>
-		/// Replaces the entire collection of custom property values associated with this workflow with the specified values.
+		/// Replaces the entire collection of custom property settings associated with this workflow with the specified settings.
 		/// </summary>
-		/// <param name="values">The custom property values that should replace the current collection.</param>
+		/// <param name="settings">The custom property settings that should replace the current collection.</param>
 		/// <returns>The current <see cref="Workflow"/> instance.</returns>
-		public Workflow SetCustomProperties(IEnumerable<CustomPropertyValue> values)
+		public Workflow SetCustomProperties(IEnumerable<CustomPropertySetting> settings)
 		{
-			GetOrCreateScope().SetCustomProperties(values);
+			GetOrCreateScope().SetCustomProperties(settings);
 			return this;
 		}
 
 		/// <summary>
-		/// Removes the specified custom property value from this workflow.
+		/// Removes the specified custom property setting from this workflow.
 		/// </summary>
-		/// <param name="value">The custom property value to remove.</param>
+		/// <param name="setting">The custom property setting to remove.</param>
 		/// <returns>The current <see cref="Workflow"/> instance.</returns>
-		public Workflow RemoveCustomProperty(CustomPropertyValue value)
+		public Workflow RemoveCustomProperty(CustomPropertySetting setting)
 		{
-			GetOrCreateScope().RemoveCustomProperty(value);
+			GetOrCreateScope().RemoveCustomProperty(setting);
 			return this;
 		}
 
 		/// <summary>
-		/// Adds a property value to this workflow.
+		/// Adds a property setting to this workflow.
 		/// </summary>
-		/// <param name="value">The property value to add.</param>
+		/// <param name="setting">The property setting to add.</param>
 		/// <returns>The current <see cref="Workflow"/> instance.</returns>
-		public Workflow AddProperty(PropertyValue value)
+		public Workflow AddProperty(PropertySetting setting)
 		{
-			GetOrCreateScope().AddProperty(value);
+			GetOrCreateScope().AddProperty(setting);
 			return this;
 		}
 
 		/// <summary>
-		/// Replaces the entire collection of property values associated with this workflow with the specified values.
+		/// Replaces the entire collection of property settings associated with this workflow with the specified settings.
 		/// </summary>
-		/// <param name="values">The property values that should replace the current collection.</param>
+		/// <param name="settings">The property settings that should replace the current collection.</param>
 		/// <returns>The current <see cref="Workflow"/> instance.</returns>
-		public Workflow SetProperties(IEnumerable<PropertyValue> values)
+		public Workflow SetProperties(IEnumerable<PropertySetting> settings	)
 		{
-			GetOrCreateScope().SetProperties(values);
+			GetOrCreateScope().SetProperties(settings);
 			return this;
 		}
 
 		/// <summary>
-		/// Removes the specified property value from this workflow.
+		/// Removes the specified property setting from this workflow.
 		/// </summary>
-		/// <param name="value">The property value to remove.</param>
+		/// <param name="setting">The property setting to remove.</param>
 		/// <returns>The current <see cref="Workflow"/> instance.</returns>
-		public Workflow RemoveProperty(PropertyValue value)
+		public Workflow RemoveProperty(PropertySetting setting)
 		{
-			GetOrCreateScope().RemoveProperty(value);
+			GetOrCreateScope().RemoveProperty(setting);
 			return this;
 		}
 
-		private PropertyValuesScope GetOrCreateScope()
-			=> propertyValuesScope ??= EnsureContext().CreateOwnerScope();
+		private PropertySettingsScope GetOrCreateScope()
+			=> propertySettingsScope ??= EnsureContext().CreateOwnerScope();
 
-		internal PropertyValuesContext EnsureContext()
+		internal PropertySettingsContext EnsureContext()
 		{
 			if (propertiesContext == null)
 			{
 				// New, unsaved workflow: no backend data to load. A null planApi is fine because the
 				// lazy load will only ever return empty results for owner+nodes.
-				propertiesContext = new PropertyValuesContext(null, Id, NodeGraph.Nodes.Select(n => n.Id));
+				propertiesContext = new PropertySettingsContext(null, Id, NodeGraph.Nodes.Select(n => n.Id));
 			}
 
 			// Always (re)wire every node currently in the graph so nodes added after the context was

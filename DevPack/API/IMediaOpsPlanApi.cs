@@ -65,7 +65,7 @@
 		/// <summary>
 		/// Gets the repository for managing property value collections.
 		/// </summary>
-		IPropertyValueCollectionsRepository PropertyValueCollections { get; }
+		IPropertySettingCollectionsRepository PropertyValueCollections { get; }
 
 		/// <summary>
 		/// Gets the global application settings.

@@ -11,7 +11,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 		[TestMethod]
 		public void DefaultConstructor_GeneratesId()
 		{
-			var collection = new PropertyValueCollection();
+			var collection = new PropertySettingCollection();
 
 			Assert.AreNotEqual(Guid.Empty, collection.Id);
 		}
@@ -19,34 +19,34 @@ namespace RT_MediaOps.Plan.Properties.Values
 		[TestMethod]
 		public void DefaultConstructor_NameIsNull()
 		{
-			var collection = new PropertyValueCollection();
+			var collection = new PropertySettingCollection();
 
-			Assert.IsNotNull(collection.CustomValues);
-			Assert.AreEqual(0, collection.CustomValues.Count);
+			Assert.IsNotNull(collection.CustomSettings);
+			Assert.AreEqual(0, collection.CustomSettings.Count);
 		}
 
 		[TestMethod]
 		public void DefaultConstructor_ValueCollectionsAreEmptyButNotNull()
 		{
-			var collection = new PropertyValueCollection();
+			var collection = new PropertySettingCollection();
 
-			Assert.IsNotNull(collection.CustomValues);
-			Assert.IsNotNull(collection.StringValues);
-			Assert.IsNotNull(collection.BooleanValues);
-			Assert.IsNotNull(collection.DiscreteValues);
-			Assert.IsNotNull(collection.PropertyValues);
+			Assert.IsNotNull(collection.CustomSettings);
+			Assert.IsNotNull(collection.StringSettings);
+			Assert.IsNotNull(collection.BooleanSettings);
+			Assert.IsNotNull(collection.DiscreteSettings);
+			Assert.IsNotNull(collection.PropertySettings);
 
-			Assert.AreEqual(0, collection.CustomValues.Count);
-			Assert.AreEqual(0, collection.StringValues.Count);
-			Assert.AreEqual(0, collection.BooleanValues.Count);
-			Assert.AreEqual(0, collection.DiscreteValues.Count);
-			Assert.AreEqual(0, collection.PropertyValues.Count);
+			Assert.AreEqual(0, collection.CustomSettings.Count);
+			Assert.AreEqual(0, collection.StringSettings.Count);
+			Assert.AreEqual(0, collection.BooleanSettings.Count);
+			Assert.AreEqual(0, collection.DiscreteSettings.Count);
+			Assert.AreEqual(0, collection.PropertySettings.Count);
 		}
 
 		[TestMethod]
 		public void PropertyCollection_InitLinkedObjectId_ValueIsSet()
 		{
-			var collection = new PropertyValueCollection { LinkedObjectId = "obj-1" };
+			var collection = new PropertySettingCollection { LinkedObjectId = "obj-1" };
 
 			Assert.AreEqual("obj-1", collection.LinkedObjectId);
 		}
@@ -54,7 +54,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 		[TestMethod]
 		public void PropertyCollection_InitScope_ValueIsSet()
 		{
-			var collection = new PropertyValueCollection { Scope = "global" };
+			var collection = new PropertySettingCollection { Scope = "global" };
 
 			Assert.AreEqual("global", collection.Scope);
 		}
@@ -62,7 +62,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 		[TestMethod]
 		public void PropertyCollection_InitSubId_ValueIsSet()
 		{
-			var collection = new PropertyValueCollection { SubId = "sub-1" };
+			var collection = new PropertySettingCollection { SubId = "sub-1" };
 
 			Assert.AreEqual("sub-1", collection.SubId);
 		}
@@ -70,7 +70,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 		[TestMethod]
 		public void PropertyCollection_InitAllProperties_ValuesAreSet()
 		{
-			var collection = new PropertyValueCollection
+			var collection = new PropertySettingCollection
 			{
 				LinkedObjectId = "obj-1",
 				Scope = "global",
@@ -85,7 +85,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 		[TestMethod]
 		public void PropertyCollection_DefaultConstructor_PropertiesAreNull()
 		{
-			var collection = new PropertyValueCollection();
+			var collection = new PropertySettingCollection();
 
 			Assert.IsNull(collection.LinkedObjectId);
 			Assert.IsNull(collection.Scope);
@@ -96,7 +96,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 		[TestMethod]
 		public void ICollection_IsReadOnly_ReturnsFalse()
 		{
-			var collection = new PropertyValueCollection();
+			var collection = new PropertySettingCollection();
 
 			Assert.IsFalse(collection.IsReadOnly);
 		}
@@ -104,47 +104,47 @@ namespace RT_MediaOps.Plan.Properties.Values
 		[TestMethod]
 		public void ICollection_Add_CustomPropertyValue_IncreasesCount()
 		{
-			var collection = new PropertyValueCollection();
-			collection.Add(new CustomPropertyValue("myProp"));
+			var collection = new PropertySettingCollection();
+			collection.Add(new CustomPropertySetting("myProp"));
 
 			Assert.AreEqual(1, collection.Count);
-			Assert.AreEqual(1, collection.CustomValues.Count);
+			Assert.AreEqual(1, collection.CustomSettings.Count);
 		}
 
 		[TestMethod]
 		public void ICollection_Add_StringPropertyValue_IncreasesCount()
 		{
-			var collection = new PropertyValueCollection();
-			collection.Add(new StringPropertyValue(new StringProperty()));
+			var collection = new PropertySettingCollection();
+			collection.Add(new StringPropertySetting(new StringProperty()));
 
 			Assert.AreEqual(1, collection.Count);
-			Assert.AreEqual(1, collection.StringValues.Count);
+			Assert.AreEqual(1, collection.StringSettings.Count);
 		}
 
 		[TestMethod]
 		public void ICollection_Add_BooleanPropertyValue_IncreasesCount()
 		{
-			var collection = new PropertyValueCollection();
-			collection.Add(new BooleanPropertyValue(new BooleanProperty()));
+			var collection = new PropertySettingCollection();
+			collection.Add(new BooleanPropertySetting(new BooleanProperty()));
 
 			Assert.AreEqual(1, collection.Count);
-			Assert.AreEqual(1, collection.BooleanValues.Count);
+			Assert.AreEqual(1, collection.BooleanSettings.Count);
 		}
 
 		[TestMethod]
 		public void ICollection_Add_DiscretePropertyValue_IncreasesCount()
 		{
-			var collection = new PropertyValueCollection();
-			collection.Add(new DiscretePropertyValue(new DiscreteProperty()));
+			var collection = new PropertySettingCollection();
+			collection.Add(new DiscretePropertySetting(new DiscreteProperty()));
 
 			Assert.AreEqual(1, collection.Count);
-			Assert.AreEqual(1, collection.DiscreteValues.Count);
+			Assert.AreEqual(1, collection.DiscreteSettings.Count);
 		}
 
 		[TestMethod]
 		public void ICollection_Add_Null_Throws()
 		{
-			var collection = new PropertyValueCollection();
+			var collection = new PropertySettingCollection();
 
 			Assert.ThrowsException<ArgumentNullException>(() => collection.Add(null));
 		}
@@ -152,7 +152,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 		[TestMethod]
 		public void ICollection_Add_UnsupportedPropertyValueType_Throws()
 		{
-			var collection = new PropertyValueCollection();
+			var collection = new PropertySettingCollection();
 			var unsupportedValue = new UnsupportedPropertyValue();
 
 			var exception = Assert.ThrowsException<ArgumentException>(() => collection.Add(unsupportedValue));
@@ -162,8 +162,8 @@ namespace RT_MediaOps.Plan.Properties.Values
 		[TestMethod]
 		public void ICollection_Remove_CustomPropertyValue_DecreasesCount()
 		{
-			var item = new CustomPropertyValue("myProp");
-			var collection = new PropertyValueCollection();
+			var item = new CustomPropertySetting("myProp");
+			var collection = new PropertySettingCollection();
 			collection.Add(item);
 
 			var removed = collection.Remove(item);
@@ -175,7 +175,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 		[TestMethod]
 		public void ICollection_Remove_Null_ReturnsFalse()
 		{
-			var collection = new PropertyValueCollection();
+			var collection = new PropertySettingCollection();
 
 			Assert.IsFalse(collection.Remove(null));
 		}
@@ -183,8 +183,8 @@ namespace RT_MediaOps.Plan.Properties.Values
 		[TestMethod]
 		public void ICollection_Contains_ExistingItem_ReturnsTrue()
 		{
-			var item = new CustomPropertyValue("myProp");
-			var collection = new PropertyValueCollection();
+			var item = new CustomPropertySetting("myProp");
+			var collection = new PropertySettingCollection();
 			collection.Add(item);
 
 			Assert.IsTrue(collection.Contains(item));
@@ -193,15 +193,15 @@ namespace RT_MediaOps.Plan.Properties.Values
 		[TestMethod]
 		public void ICollection_Contains_MissingItem_ReturnsFalse()
 		{
-			var collection = new PropertyValueCollection();
+			var collection = new PropertySettingCollection();
 
-			Assert.IsFalse(collection.Contains(new CustomPropertyValue("myProp")));
+			Assert.IsFalse(collection.Contains(new CustomPropertySetting("myProp")));
 		}
 
 		[TestMethod]
 		public void ICollection_Contains_Null_ReturnsFalse()
 		{
-			var collection = new PropertyValueCollection();
+			var collection = new PropertySettingCollection();
 
 			Assert.IsFalse(collection.Contains(null));
 		}
@@ -209,9 +209,9 @@ namespace RT_MediaOps.Plan.Properties.Values
 		[TestMethod]
 		public void ICollection_Clear_RemovesAllItems()
 		{
-			var collection = new PropertyValueCollection();
-			collection.Add(new CustomPropertyValue("myProp"));
-			collection.Add(new StringPropertyValue(new StringProperty()));
+			var collection = new PropertySettingCollection();
+			collection.Add(new CustomPropertySetting("myProp"));
+			collection.Add(new StringPropertySetting(new StringProperty()));
 
 			collection.Clear();
 
@@ -221,9 +221,9 @@ namespace RT_MediaOps.Plan.Properties.Values
 		[TestMethod]
 		public void ICollection_GetEnumerator_ReturnsAllItems()
 		{
-			var custom = new CustomPropertyValue("myProp");
-			var str = new StringPropertyValue(new StringProperty());
-			var collection = new PropertyValueCollection();
+			var custom = new CustomPropertySetting("myProp");
+			var str = new StringPropertySetting(new StringProperty());
+			var collection = new PropertySettingCollection();
 			collection.Add(custom);
 			collection.Add(str);
 
@@ -237,17 +237,17 @@ namespace RT_MediaOps.Plan.Properties.Values
 		[TestMethod]
 		public void ICollection_CopyTo_CopiesAllItems()
 		{
-			var item = new CustomPropertyValue("myProp");
-			var collection = new PropertyValueCollection();
+			var item = new CustomPropertySetting("myProp");
+			var collection = new PropertySettingCollection();
 			collection.Add(item);
 
-			var array = new PropertyValueBase[1];
+			var array = new PropertySettingBase[1];
 			collection.CopyTo(array, 0);
 
 			Assert.AreEqual(item, array[0]);
 		}
 
-		private sealed class UnsupportedPropertyValue : PropertyValueBase
+		private sealed class UnsupportedPropertyValue : PropertySettingBase
 		{
 			public UnsupportedPropertyValue()
 				: base(true)

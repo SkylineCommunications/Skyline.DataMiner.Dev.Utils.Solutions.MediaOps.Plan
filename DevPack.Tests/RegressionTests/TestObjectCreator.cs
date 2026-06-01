@@ -646,14 +646,14 @@
 			}
 		}
 
-		public PropertyValueCollection CreatePropertyValueCollection(PropertyValueCollection collection)
+		public PropertySettingCollection CreatePropertyValueCollection(PropertySettingCollection collection)
 		{
 			var created = PlanApi.PropertyValueCollections.Create(collection);
 			createdPropertyValueCollectionIds.Add(created.Id);
 			return created;
 		}
 
-		public IReadOnlyCollection<PropertyValueCollection> CreatePropertyValueCollections(IEnumerable<PropertyValueCollection> collections)
+		public IReadOnlyCollection<PropertySettingCollection> CreatePropertyValueCollections(IEnumerable<PropertySettingCollection> collections)
 		{
 			try
 			{

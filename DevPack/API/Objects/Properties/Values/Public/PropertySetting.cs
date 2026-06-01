@@ -5,14 +5,14 @@
 	/// <summary>
 	/// Represents a property value that is linked to a specific <see cref="Property"/> definition.
 	/// </summary>
-	public abstract class PropertyValue : PropertyValueBase
+	public abstract class PropertySetting : PropertySettingBase
 	{
-		private protected PropertyValue(Property property)
+		private protected PropertySetting(Property property)
 			: this(property?.Id ?? throw new ArgumentNullException(nameof(property)))
 		{
 		}
 
-		private protected PropertyValue(Guid propertyId)
+		private protected PropertySetting(Guid propertyId)
 			: base(true)
 		{
 			if (propertyId == Guid.Empty)
@@ -23,11 +23,11 @@
 			Id = propertyId;
 		}
 
-		private protected PropertyValue()
+		private protected PropertySetting()
 		{
 		}
 
-		internal PropertyValue(PropertyValue propertyValue)
+		internal PropertySetting(PropertySetting propertyValue)
 			: base(propertyValue)
 		{
 			Id = propertyValue.Id;
@@ -53,7 +53,7 @@
 		/// <inheritdoc />
 		public override bool Equals(object obj)
 		{
-			if (obj is not PropertyValue other)
+			if (obj is not PropertySetting other)
 			{
 				return false;
 			}

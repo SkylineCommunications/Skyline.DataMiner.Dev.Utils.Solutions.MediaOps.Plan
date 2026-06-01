@@ -4,9 +4,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using System.Collections.Generic;
 
 	/// <summary>
-	/// Helpers shared by handlers that own <see cref="PropertyValueCollection"/> objects (workflows,
+	/// Helpers shared by handlers that own <see cref="PropertySettingCollection"/> objects (workflows,
 	/// jobs, recurring jobs, ...). Aggregates the persistence actions produced by a set of owner
-	/// <see cref="PropertyValuesScope"/>s while leaving each handler in charge of dispatching the
+	/// <see cref="PropertySettingsScope"/>s while leaving each handler in charge of dispatching the
 	/// resulting batches and translating handler failures into its own error vocabulary.
 	/// </summary>
 	internal static class PropertyValuesScopeExtensions
@@ -17,11 +17,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// batch and a delete batch. The returned map associates each produced collection id with the
 		/// owner it belongs to so callers can map failures back to the right owner object.
 		/// </summary>
-		internal static (List<PropertyValueCollection> ToCreateOrUpdate, List<PropertyValueCollection> ToDelete, Dictionary<Guid, Guid> OwnerIdByCollectionId)
-			BuildPersistenceActions(this IEnumerable<KeyValuePair<Guid, PropertyValuesScope>> ownerScopes)
+		internal static (List<PropertySettingCollection> ToCreateOrUpdate, List<PropertySettingCollection> ToDelete, Dictionary<Guid, Guid> OwnerIdByCollectionId)
+			BuildPersistenceActions(this IEnumerable<KeyValuePair<Guid, PropertySettingsScope>> ownerScopes)
 		{
-			var toCreateOrUpdate = new List<PropertyValueCollection>();
-			var toDelete = new List<PropertyValueCollection>();
+			var toCreateOrUpdate = new List<PropertySettingCollection>();
+			var toDelete = new List<PropertySettingCollection>();
 			var ownerIdByCollectionId = new Dictionary<Guid, Guid>();
 
 			if (ownerScopes == null)

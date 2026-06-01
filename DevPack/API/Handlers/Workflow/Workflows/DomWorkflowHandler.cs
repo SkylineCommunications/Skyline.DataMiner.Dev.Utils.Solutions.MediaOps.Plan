@@ -334,14 +334,14 @@
 				workflow.EnsureContext();
 			}
 
-			var ownerScopes = new List<KeyValuePair<Guid, PropertyValuesScope>>();
+			var ownerScopes = new List<KeyValuePair<Guid, PropertySettingsScope>>();
 			foreach (var workflow in apiWorkflows)
 			{
-				ownerScopes.Add(new KeyValuePair<Guid, PropertyValuesScope>(workflow.Id, workflow.PropertyValuesScope));
+				ownerScopes.Add(new KeyValuePair<Guid, PropertySettingsScope>(workflow.Id, workflow.PropertySettingsScope));
 
 				foreach (var node in workflow.NodeGraph.Nodes)
 				{
-					ownerScopes.Add(new KeyValuePair<Guid, PropertyValuesScope>(workflow.Id, node.PropertyValuesScope));
+					ownerScopes.Add(new KeyValuePair<Guid, PropertySettingsScope>(workflow.Id, node.PropertySettingsScope));
 				}
 			}
 
@@ -349,13 +349,13 @@
 
 			if (toCreateOrUpdate.Count > 0)
 			{
-				DomPropertyValueCollectionHandler.TryCreateOrUpdate(planApi, toCreateOrUpdate, out var result);
+				DomPropertySettingCollectionHandler.TryCreateOrUpdate(planApi, toCreateOrUpdate, out var result);
 				ReportPropertyValueCollectionFailures(result, workflowIdByCollectionId);
 			}
 
 			if (toDelete.Count > 0)
 			{
-				DomPropertyValueCollectionHandler.TryDelete(planApi, toDelete, out var result);
+				DomPropertySettingCollectionHandler.TryDelete(planApi, toDelete, out var result);
 				ReportPropertyValueCollectionFailures(result, workflowIdByCollectionId);
 			}
 		}
@@ -378,12 +378,12 @@
 			}
 
 			var workflowIdByCollectionId = new Dictionary<Guid, Guid>();
-			var toDelete = new List<PropertyValueCollection>();
+			var toDelete = new List<PropertySettingCollection>();
 			var workflowsRequiringQuery = new Dictionary<string, Guid>();
 
 			foreach (var workflow in apiWorkflows)
 			{
-				var cached = workflow.PropertyValuesContext?.TryGetCachedOriginalCollections();
+				var cached = workflow.PropertySettingsContext?.TryGetCachedOriginalCollections();
 				if (cached != null)
 				{
 					foreach (var collection in cached)
@@ -400,12 +400,12 @@
 
 			if (workflowsRequiringQuery.Count > 0)
 			{
-				var linkedObjectIdFilter = new ORFilterElement<PropertyValueCollection>(
-					workflowsRequiringQuery.Keys.Select(id => PropertyValueCollectionExposers.LinkedObjectId.Equal(id)).ToArray());
+				var linkedObjectIdFilter = new ORFilterElement<PropertySettingCollection>(
+					workflowsRequiringQuery.Keys.Select(id => PropertySettingCollectionExposers.LinkedObjectId.Equal(id)).ToArray());
 
-				var filter = new ANDFilterElement<PropertyValueCollection>(
+				var filter = new ANDFilterElement<PropertySettingCollection>(
 					linkedObjectIdFilter,
-					PropertyValueCollectionExposers.Scope.Equal(PropertyValuesContext.MediaOpsScope));
+					PropertySettingCollectionExposers.Scope.Equal(PropertySettingsContext.MediaOpsScope));
 
 				foreach (var collection in planApi.PropertyValueCollections.Read(filter))
 				{
@@ -422,7 +422,7 @@
 				return;
 			}
 
-			DomPropertyValueCollectionHandler.TryDelete(planApi, toDelete, out var domResult);
+			DomPropertySettingCollectionHandler.TryDelete(planApi, toDelete, out var domResult);
 			ReportPropertyValueCollectionFailures(domResult, workflowIdByCollectionId);
 		}
 

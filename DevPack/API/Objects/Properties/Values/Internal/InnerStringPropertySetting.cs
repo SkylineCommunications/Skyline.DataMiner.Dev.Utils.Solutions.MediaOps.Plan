@@ -4,17 +4,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 	using StorageProperties = Storage.DOM.SlcProperties;
 
-	internal class InnerDiscretePropertyValue : DiscretePropertyValue
+	internal class InnerStringPropertySetting : StringPropertySetting
 	{
 		private StorageProperties.PropertyValueSection originalSection;
 		private StorageProperties.PropertyValueSection updatedSection;
 
-		internal InnerDiscretePropertyValue(DiscretePropertyValue discretePropertyValue)
-			: base(discretePropertyValue)
+		internal InnerStringPropertySetting(StringPropertySetting stringPropertyValue)
+			: base(stringPropertyValue)
 		{
 		}
 
-		internal InnerDiscretePropertyValue(StorageProperties.PropertyValueSection section)
+		internal InnerStringPropertySetting(StorageProperties.PropertyValueSection section)
 		{
 			ParseSection(section);
 			InitTracking();

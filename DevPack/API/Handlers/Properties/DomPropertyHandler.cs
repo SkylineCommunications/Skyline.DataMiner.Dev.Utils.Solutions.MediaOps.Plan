@@ -595,13 +595,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return;
 			}
 
-			var filter = new ORFilterElement<PropertyValueCollection>(apiProperties
-				.Select(x => PropertyValueCollectionExposers.PropertyValues.PropertyId.Equal(x.Id))
+			var filter = new ORFilterElement<PropertySettingCollection>(apiProperties
+				.Select(x => PropertySettingCollectionExposers.PropertySettings.PropertyId.Equal(x.Id))
 				.ToArray());
 			var collectionsByPropertyId = planApi.PropertyValueCollections.Read(filter)
-				.SelectMany(c => c.PropertyValues.Select(v => new { Collection = c, PropertyId = v.Id }))
+				.SelectMany(c => c.PropertySettings.Select(v => new { Collection = c, PropertyId = v.Id }))
 				.GroupBy(x => x.PropertyId)
-				.ToDictionary(g => g.Key, g => (IReadOnlyCollection<PropertyValueCollection>)g.Select(x => x.Collection).ToList());
+				.ToDictionary(g => g.Key, g => (IReadOnlyCollection<PropertySettingCollection>)g.Select(x => x.Collection).ToList());
 
 			foreach (var property in apiProperties)
 			{

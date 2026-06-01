@@ -3,22 +3,22 @@
 	/// <summary>
 	/// Represents a property value that holds a boolean value.
 	/// </summary>
-	public class BooleanPropertyValue : PropertyValue
+	public class BooleanPropertySetting : PropertySetting
 	{
 		/// <summary>
-		/// Initializes a new instance of the <see cref="BooleanPropertyValue"/> class linked to the specified boolean property.
+		/// Initializes a new instance of the <see cref="BooleanPropertySetting"/> class linked to the specified boolean property.
 		/// </summary>
 		/// <param name="property">The <see cref="BooleanProperty"/> definition to link to.</param>
-		public BooleanPropertyValue(BooleanProperty property)
+		public BooleanPropertySetting(BooleanProperty property)
 			: base(property)
 		{
 		}
 
-		internal BooleanPropertyValue()
+		internal BooleanPropertySetting()
 		{
 		}
 
-		internal BooleanPropertyValue(BooleanPropertyValue booleanPropertyValue)
+		internal BooleanPropertySetting(BooleanPropertySetting booleanPropertyValue)
 			: base(booleanPropertyValue)
 		{
 			Value = booleanPropertyValue.Value;
@@ -44,7 +44,7 @@
 		/// <inheritdoc />
 		public override bool Equals(object obj)
 		{
-			if (obj is not BooleanPropertyValue other)
+			if (obj is not BooleanPropertySetting other)
 			{
 				return false;
 			}

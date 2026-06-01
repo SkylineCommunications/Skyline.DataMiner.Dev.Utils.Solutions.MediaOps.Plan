@@ -11,84 +11,84 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcProperties;
 	using Skyline.DataMiner.Utils.DOM.Extensions;
 
-	using DomPropertyValueCollection = Storage.DOM.SlcProperties.PropertyValuesInstance;
+	using DomPropertySettingCollection = Storage.DOM.SlcProperties.PropertyValuesInstance;
 
-	internal class DomPropertyValueCollectionHandler : DomInstanceApiObjectValidator<DomPropertyValueCollection>
+	internal class DomPropertySettingCollectionHandler : DomInstanceApiObjectValidator<DomPropertySettingCollection>
 	{
 		private readonly MediaOpsPlanApi planApi;
 		private PropertyLookup propertyLookup;
 
-		private DomPropertyValueCollectionHandler(MediaOpsPlanApi planApi)
+		private DomPropertySettingCollectionHandler(MediaOpsPlanApi planApi)
 		{
 			this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
 		}
 
-		internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<PropertyValueCollection> apiValueCollections, out DomInstanceBulkOperationResult<DomPropertyValueCollection> result)
+		internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<PropertySettingCollection> apiSettingCollections, out DomInstanceBulkOperationResult<DomPropertySettingCollection> result)
 		{
-			var handler = new DomPropertyValueCollectionHandler(planApi);
-			handler.CreateOrUpdate(apiValueCollections);
+			var handler = new DomPropertySettingCollectionHandler(planApi);
+			handler.CreateOrUpdate(apiSettingCollections);
 
-			result = new DomInstanceBulkOperationResult<DomPropertyValueCollection>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+			result = new DomInstanceBulkOperationResult<DomPropertySettingCollection>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
 			return !result.HasFailures;
 		}
 
-		internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<PropertyValueCollection> apiValueCollections, out DomInstanceBulkOperationResult<DomPropertyValueCollection> result)
+		internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<PropertySettingCollection> apiSettingCollections, out DomInstanceBulkOperationResult<DomPropertySettingCollection> result)
 		{
-			var handler = new DomPropertyValueCollectionHandler(planApi);
-			handler.Delete(apiValueCollections);
+			var handler = new DomPropertySettingCollectionHandler(planApi);
+			handler.Delete(apiSettingCollections);
 
-			result = new DomInstanceBulkOperationResult<DomPropertyValueCollection>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+			result = new DomInstanceBulkOperationResult<DomPropertySettingCollection>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
 			return !result.HasFailures;
 		}
 
-		private void CreateOrUpdate(ICollection<PropertyValueCollection> apiValueCollections)
+		private void CreateOrUpdate(ICollection<PropertySettingCollection> apiSettingCollections)
 		{
-			if (apiValueCollections == null)
+			if (apiSettingCollections == null)
 			{
-				throw new ArgumentNullException(nameof(apiValueCollections));
+				throw new ArgumentNullException(nameof(apiSettingCollections));
 			}
 
-			if (apiValueCollections.Count == 0)
+			if (apiSettingCollections.Count == 0)
 			{
 				return;
 			}
 
-			var toCreate = apiValueCollections.Where(x => x.IsNew).ToList();
+			var toCreate = apiSettingCollections.Where(x => x.IsNew).ToList();
 
 			ValidateIdsNotInUse(toCreate);
 			ValidateLinkedObjectIds(toCreate);
 			ValidateScopes(toCreate);
 			ValidateLinkedObjectIdAndSubIdAreUnique(toCreate.Where(IsValid).ToList());
 
-			propertyLookup = new PropertyLookup(planApi, apiValueCollections);
-			ValidateCustomProperties(apiValueCollections);
-			ValidatePropertyDefinitionsAndValues(apiValueCollections);
+			propertyLookup = new PropertyLookup(planApi, apiSettingCollections);
+			ValidateCustomProperties(apiSettingCollections);
+			ValidatePropertyDefinitionsAndValues(apiSettingCollections);
 
-			var lockResult = planApi.LockManager.LockAndExecute(apiValueCollections.Where(IsValid).ToList(), CreateOrUpdateLocked);
+			var lockResult = planApi.LockManager.LockAndExecute(apiSettingCollections.Where(IsValid).ToList(), CreateOrUpdateLocked);
 			ReportError(lockResult);
 		}
 
-		private void CreateOrUpdateLocked(ICollection<PropertyValueCollection> apiValueCollections)
+		private void CreateOrUpdateLocked(ICollection<PropertySettingCollection> apiSettingCollections)
 		{
-			if (apiValueCollections == null)
+			if (apiSettingCollections == null)
 			{
-				throw new ArgumentNullException(nameof(apiValueCollections));
+				throw new ArgumentNullException(nameof(apiSettingCollections));
 			}
 
-			if (apiValueCollections.Count == 0)
+			if (apiSettingCollections.Count == 0)
 			{
 				return;
 			}
 
-			if (apiValueCollections.Any(x => !IsValid(x)))
+			if (apiSettingCollections.Any(x => !IsValid(x)))
 			{
-				throw new ArgumentException($"Not all provided property value collections are valid", nameof(apiValueCollections));
+				throw new ArgumentException($"Not all provided property value collections are valid", nameof(apiSettingCollections));
 			}
 
-			var toCreate = apiValueCollections.Where(x => x.IsNew).ToList();
-			var toUpdate = apiValueCollections.Except(toCreate).ToList();
+			var toCreate = apiSettingCollections.Where(x => x.IsNew).ToList();
+			var toUpdate = apiSettingCollections.Except(toCreate).ToList();
 
 			var changeResults = GetPropertyValueCollectionsWithChanges(toUpdate);
 
@@ -98,12 +98,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				.ToList();
 			var toUpdateDomInstances = changeResults
 				.Where(IsValid)
-				.Select(x => new DomPropertyValueCollection(x.Instance))
+				.Select(x => new DomPropertySettingCollection(x.Instance))
 				.ToList();
 			CreateOrUpdateDomPropertyValueCollections(toCreateDomInstances.Concat(toUpdateDomInstances).ToList());
 		}
 
-		private void CreateOrUpdateDomPropertyValueCollections(ICollection<DomPropertyValueCollection> domValueCollections)
+		private void CreateOrUpdateDomPropertyValueCollections(ICollection<DomPropertySettingCollection> domValueCollections)
 		{
 			if (domValueCollections == null)
 			{
@@ -130,45 +130,45 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				}
 			}
 
-			ReportSuccess(domResult.SuccessfulItems.Select(x => new DomPropertyValueCollection(x)));
+			ReportSuccess(domResult.SuccessfulItems.Select(x => new DomPropertySettingCollection(x)));
 		}
 
-		private void Delete(ICollection<PropertyValueCollection> apiValueCollections)
+		private void Delete(ICollection<PropertySettingCollection> apiSettingCollections)
 		{
-			if (apiValueCollections == null)
+			if (apiSettingCollections == null)
 			{
-				throw new ArgumentNullException(nameof(apiValueCollections));
+				throw new ArgumentNullException(nameof(apiSettingCollections));
 			}
 
-			if (apiValueCollections.Count == 0)
+			if (apiSettingCollections.Count == 0)
 			{
 				return;
 			}
 
-			ValidateStateForDeleteAction(apiValueCollections);
+			ValidateStateForDeleteAction(apiSettingCollections);
 
-			var lockResult = planApi.LockManager.LockAndExecute(apiValueCollections.Where(IsValid).ToList(), DeleteLocked);
+			var lockResult = planApi.LockManager.LockAndExecute(apiSettingCollections.Where(IsValid).ToList(), DeleteLocked);
 			ReportError(lockResult);
 		}
 
-		private void DeleteLocked(ICollection<PropertyValueCollection> apiValueCollections)
+		private void DeleteLocked(ICollection<PropertySettingCollection> apiSettingCollections)
 		{
-			if (apiValueCollections == null)
+			if (apiSettingCollections == null)
 			{
-				throw new ArgumentNullException(nameof(apiValueCollections));
+				throw new ArgumentNullException(nameof(apiSettingCollections));
 			}
 
-			if (apiValueCollections.Count == 0)
+			if (apiSettingCollections.Count == 0)
 			{
 				return;
 			}
 
-			if (apiValueCollections.Any(x => !IsValid(x)))
+			if (apiSettingCollections.Any(x => !IsValid(x)))
 			{
-				throw new ArgumentException($"Not all provided property value collections are valid", nameof(apiValueCollections));
+				throw new ArgumentException($"Not all provided property value collections are valid", nameof(apiSettingCollections));
 			}
 
-			var toDelete = apiValueCollections.Select(x => x.OriginalInstance.ToInstance());
+			var toDelete = apiSettingCollections.Select(x => x.OriginalInstance.ToInstance());
 			planApi.DomHelpers.SlcPropertiesHelper.DomHelper.DomInstances.TryDeleteInBatches(toDelete, out var domResult);
 
 			foreach (var id in domResult.UnsuccessfulIds)
@@ -184,22 +184,22 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				}
 			}
 
-			ReportSuccess(toDelete.Where(x => domResult.SuccessfulIds.Contains(x.ID)).Select(x => new DomPropertyValueCollection(x)));
+			ReportSuccess(toDelete.Where(x => domResult.SuccessfulIds.Contains(x.ID)).Select(x => new DomPropertySettingCollection(x)));
 		}
 
-		private void ValidateIdsNotInUse(ICollection<PropertyValueCollection> apiValueCollections)
+		private void ValidateIdsNotInUse(ICollection<PropertySettingCollection> apiSettingCollections)
 		{
-			if (apiValueCollections == null)
+			if (apiSettingCollections == null)
 			{
-				throw new ArgumentNullException(nameof(apiValueCollections));
+				throw new ArgumentNullException(nameof(apiSettingCollections));
 			}
 
-			if (apiValueCollections.Count == 0)
+			if (apiSettingCollections.Count == 0)
 			{
 				return;
 			}
 
-			var objectsRequiringValidation = apiValueCollections.Where(x => x.IsNew && x.HasUserDefinedId).ToList();
+			var objectsRequiringValidation = apiSettingCollections.Where(x => x.IsNew && x.HasUserDefinedId).ToList();
 			if (objectsRequiringValidation.Count == 0)
 			{
 				return;
@@ -238,19 +238,19 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 		}
 
-		private void ValidateLinkedObjectIds(ICollection<PropertyValueCollection> apiValueCollections)
+		private void ValidateLinkedObjectIds(ICollection<PropertySettingCollection> apiSettingCollections)
 		{
-			if (apiValueCollections == null)
+			if (apiSettingCollections == null)
 			{
-				throw new ArgumentNullException(nameof(apiValueCollections));
+				throw new ArgumentNullException(nameof(apiSettingCollections));
 			}
 
-			if (apiValueCollections.Count == 0)
+			if (apiSettingCollections.Count == 0)
 			{
 				return;
 			}
 
-			var objectsRequiringValidation = apiValueCollections.ToList();
+			var objectsRequiringValidation = apiSettingCollections.ToList();
 
 			foreach (var valueCollection in objectsRequiringValidation.Where(x => !InputValidator.IsNonEmptyText(x.LinkedObjectId)).ToArray())
 			{
@@ -278,19 +278,19 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 		}
 
-		private void ValidateScopes(ICollection<PropertyValueCollection> apiValueCollections)
+		private void ValidateScopes(ICollection<PropertySettingCollection> apiSettingCollections)
 		{
-			if (apiValueCollections == null)
+			if (apiSettingCollections == null)
 			{
-				throw new ArgumentNullException(nameof(apiValueCollections));
+				throw new ArgumentNullException(nameof(apiSettingCollections));
 			}
 
-			if (apiValueCollections.Count == 0)
+			if (apiSettingCollections.Count == 0)
 			{
 				return;
 			}
 
-			var objectsRequiringValidation = apiValueCollections.ToList();
+			var objectsRequiringValidation = apiSettingCollections.ToList();
 
 			foreach (var valueCollection in objectsRequiringValidation.Where(x => !InputValidator.IsNonEmptyText(x.Scope)).ToArray())
 			{
@@ -318,19 +318,19 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 		}
 
-		private void ValidateLinkedObjectIdAndSubIdAreUnique(ICollection<PropertyValueCollection> apiValueCollections)
+		private void ValidateLinkedObjectIdAndSubIdAreUnique(ICollection<PropertySettingCollection> apiSettingCollections)
 		{
-			if (apiValueCollections == null)
+			if (apiSettingCollections == null)
 			{
-				throw new ArgumentNullException(nameof(apiValueCollections));
+				throw new ArgumentNullException(nameof(apiSettingCollections));
 			}
 
-			if (apiValueCollections.Count == 0)
+			if (apiSettingCollections.Count == 0)
 			{
 				return;
 			}
 
-			var objectsRequiringValidation = apiValueCollections.ToList();
+			var objectsRequiringValidation = apiSettingCollections.ToList();
 
 			if (objectsRequiringValidation.Count == 0)
 			{
@@ -408,21 +408,21 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 		}
 
-		private void ValidateCustomProperties(ICollection<PropertyValueCollection> apiValueCollections)
+		private void ValidateCustomProperties(ICollection<PropertySettingCollection> apiSettingCollections)
 		{
-			if (apiValueCollections == null)
+			if (apiSettingCollections == null)
 			{
-				throw new ArgumentNullException(nameof(apiValueCollections));
+				throw new ArgumentNullException(nameof(apiSettingCollections));
 			}
 
-			if (apiValueCollections.Count == 0)
+			if (apiSettingCollections.Count == 0)
 			{
 				return;
 			}
 
-			foreach (var valueCollection in apiValueCollections)
+			foreach (var valueCollection in apiSettingCollections)
 			{
-				if (valueCollection.CustomValues.Any(x => !InputValidator.IsNonEmptyText(x.Name)))
+				if (valueCollection.CustomSettings.Any(x => !InputValidator.IsNonEmptyText(x.Name)))
 				{
 					var error = new PropertyValueCollectionInvalidCustomSettingsError
 					{
@@ -434,7 +434,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					continue;
 				}
 
-				foreach (var customValue in valueCollection.CustomValues.Where(x => !InputValidator.HasValidTextLength(x.Name)).ToArray())
+				foreach (var customValue in valueCollection.CustomSettings.Where(x => !InputValidator.HasValidTextLength(x.Name)).ToArray())
 				{
 					var error = new PropertyValueCollectionInvalidCustomSettingsError
 					{
@@ -446,7 +446,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					continue;
 				}
 
-				var duplicates = valueCollection.CustomValues
+				var duplicates = valueCollection.CustomSettings
 					.GroupBy(x => x.Name)
 					.Where(g => g.Count() > 1)
 					.ToDictionary(x => x.Key, x => x.Count());
@@ -466,7 +466,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					continue;
 				}
 
-				var requiringValidation = valueCollection.CustomValues.ToList();
+				var requiringValidation = valueCollection.CustomSettings.ToList();
 
 				var collectionPropertyNames = propertyLookup.PropertiesByScope.TryGetValue(valueCollection.Scope, out var propertiesForScope)
 					? propertiesForScope.Select(p => p.Name).ToHashSet()
@@ -497,21 +497,21 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}	
 		}
 
-		private void ValidatePropertyDefinitionsAndValues(ICollection<PropertyValueCollection> apiValueCollections)
+		private void ValidatePropertyDefinitionsAndValues(ICollection<PropertySettingCollection> apiSettingCollections)
 		{
-			if (apiValueCollections == null)
+			if (apiSettingCollections == null)
 			{
-				throw new ArgumentNullException(nameof(apiValueCollections));
+				throw new ArgumentNullException(nameof(apiSettingCollections));
 			}
 
-			if (apiValueCollections.Count == 0)
+			if (apiSettingCollections.Count == 0)
 			{
 				return;
 			}
 
-			foreach (var valueCollection in apiValueCollections)
+			foreach (var valueCollection in apiSettingCollections)
 			{
-				var duplicates = valueCollection.PropertyValues
+				var duplicates = valueCollection.PropertySettings
 					.GroupBy(x => x.Id)
 					.Where(g => g.Count() > 1)
 					.ToDictionary(x => x.Key, x => x.Count());
@@ -532,7 +532,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					continue;
 				}
 
-				foreach (var propertyValue in valueCollection.PropertyValues)
+				foreach (var propertyValue in valueCollection.PropertySettings)
 				{
 					if (propertyValue.Id == Guid.Empty)
 					{
@@ -577,19 +577,19 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 		}
 
-		private void ValidateStateForDeleteAction(ICollection<PropertyValueCollection> apiValueCollections)
+		private void ValidateStateForDeleteAction(ICollection<PropertySettingCollection> apiSettingCollections)
 		{
-			if (apiValueCollections == null)
+			if (apiSettingCollections == null)
 			{
-				throw new ArgumentNullException(nameof(apiValueCollections));
+				throw new ArgumentNullException(nameof(apiSettingCollections));
 			}
 
-			if (apiValueCollections.Count == 0)
+			if (apiSettingCollections.Count == 0)
 			{
 				return;
 			}
 
-			foreach (var valueCollection in apiValueCollections.Where(x => x.IsNew))
+			foreach (var valueCollection in apiSettingCollections.Where(x => x.IsNew))
 			{
 				var error = new PropertyValueCollectionInvalidStateError
 				{
@@ -601,10 +601,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 		}
 
-		private ICollection<DomChangeResults> GetPropertyValueCollectionsWithChanges(ICollection<PropertyValueCollection> apiValueCollections)
+		private ICollection<DomChangeResults> GetPropertyValueCollectionsWithChanges(ICollection<PropertySettingCollection> apiSettingCollections)
 		{
-			return GetItemsWithChanges<PropertyValueCollection, DomPropertyValueCollection>(
-				apiValueCollections,
+			return GetItemsWithChanges<PropertySettingCollection, DomPropertySettingCollection>(
+				apiSettingCollections,
 				p => p.OriginalInstance,
 				p => p.GetInstanceWithChanges(),
 				ids => planApi.DomHelpers.SlcPropertiesHelper.GetPropertyValues(ids),
@@ -617,21 +617,21 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 			private MediaOpsPlanApi planApi;
 
-			public PropertyLookup(MediaOpsPlanApi planApi, ICollection<PropertyValueCollection> apiValueCollections)
+			public PropertyLookup(MediaOpsPlanApi planApi, ICollection<PropertySettingCollection> apiSettingCollections)
 			{
 				this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
 
-				 LoadPropertiesByScope(apiValueCollections);
-				 LoadRemainingPropertiesById(apiValueCollections);
+				 LoadPropertiesByScope(apiSettingCollections);
+				 LoadRemainingPropertiesById(apiSettingCollections);
 			}
 
 			public IReadOnlyDictionary<string, IReadOnlyCollection<Property>> PropertiesByScope { get; } = new Dictionary<string, IReadOnlyCollection<Property>>();
 
 			public IReadOnlyDictionary<Guid, Property> PropertyById { get; } = new Dictionary<Guid, Property>();
 
-			private void LoadPropertiesByScope(ICollection<PropertyValueCollection> apiValueCollections)
+			private void LoadPropertiesByScope(ICollection<PropertySettingCollection> apiSettingCollections)
 			{
-				var scopes = apiValueCollections
+				var scopes = apiSettingCollections
 					.Select(x => x.Scope)
 					.Distinct()
 					.ToList();
@@ -650,10 +650,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				}
 			}
 
-			private void LoadRemainingPropertiesById(ICollection<PropertyValueCollection> apiValueCollections)
+			private void LoadRemainingPropertiesById(ICollection<PropertySettingCollection> apiSettingCollections)
 			{
-				var propertyIds = apiValueCollections
-					.SelectMany(x => x.PropertyValues)
+				var propertyIds = apiSettingCollections
+					.SelectMany(x => x.PropertySettings)
 					.Select(x => x.Id)
 					.Distinct()
 					.Where(id => !PropertyById.ContainsKey(id))
