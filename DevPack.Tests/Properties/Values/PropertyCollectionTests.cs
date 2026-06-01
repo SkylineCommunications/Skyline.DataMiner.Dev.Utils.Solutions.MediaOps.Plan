@@ -153,10 +153,10 @@ namespace RT_MediaOps.Plan.Properties.Values
 		public void ICollection_Add_UnsupportedPropertyValueType_Throws()
 		{
 			var collection = new PropertySettingCollection();
-			var unsupportedValue = new UnsupportedPropertyValue();
+			var unsupportedValue = new UnsupportedPropertySetting();
 
 			var exception = Assert.ThrowsException<ArgumentException>(() => collection.Add(unsupportedValue));
-			StringAssert.Contains(exception.Message, "Unsupported property value type");
+			StringAssert.Contains(exception.Message, "Unsupported property setting type");
 		}
 
 		[TestMethod]
@@ -247,9 +247,9 @@ namespace RT_MediaOps.Plan.Properties.Values
 			Assert.AreEqual(item, array[0]);
 		}
 
-		private sealed class UnsupportedPropertyValue : PropertySettingBase
+		private sealed class UnsupportedPropertySetting : PropertySettingBase
 		{
-			public UnsupportedPropertyValue()
+			public UnsupportedPropertySetting()
 				: base(true)
 			{
 			}
