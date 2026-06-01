@@ -407,7 +407,7 @@
 					linkedObjectIdFilter,
 					PropertySettingCollectionExposers.Scope.Equal(PropertySettingsContext.MediaOpsScope));
 
-				foreach (var collection in planApi.PropertyValueCollections.Read(filter))
+				foreach (var collection in planApi.PropertySettingCollections.Read(filter))
 				{
 					if (collection.LinkedObjectId != null && workflowsRequiringQuery.TryGetValue(collection.LinkedObjectId, out var workflowId))
 					{

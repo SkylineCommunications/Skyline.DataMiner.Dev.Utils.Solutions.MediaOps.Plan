@@ -520,7 +520,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			var filter = PropertySettingCollectionExposers.LinkedObjectId.Equal(Convert.ToString(linkedObjectId));
-			var collections = PlanApi.PropertyValueCollections.Read(filter);
+			var collections = PlanApi.PropertySettingCollections.Read(filter);
 
 			foreach (var collection in collections)
 			{

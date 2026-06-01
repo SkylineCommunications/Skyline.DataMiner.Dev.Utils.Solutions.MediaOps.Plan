@@ -80,7 +80,7 @@
 
 			try
 			{
-				PropertyValueCollectionsCleanup();
+				PropertySettingCollectionsCleanup();
 			}
 			catch
 			{
@@ -347,9 +347,9 @@
 			PlanApi.Properties.Delete(properties.ToArray());
 		}
 
-		private void PropertyValueCollectionsCleanup()
+		private void PropertySettingCollectionsCleanup()
 		{
-			PlanApi.PropertyValueCollections.Delete(createdPropertyValueCollectionIds.ToArray());
+			PlanApi.PropertySettingCollections.Delete(createdPropertyValueCollectionIds.ToArray());
 		}
 
 		public T CreateResource<T>(T resource) where T : Resource
@@ -648,16 +648,16 @@
 
 		public PropertySettingCollection CreatePropertyValueCollection(PropertySettingCollection collection)
 		{
-			var created = PlanApi.PropertyValueCollections.Create(collection);
+			var created = PlanApi.PropertySettingCollections.Create(collection);
 			createdPropertyValueCollectionIds.Add(created.Id);
 			return created;
 		}
 
-		public IReadOnlyCollection<PropertySettingCollection> CreatePropertyValueCollections(IEnumerable<PropertySettingCollection> collections)
+		public IReadOnlyCollection<PropertySettingCollection> CreatePropertySettingCollections(IEnumerable<PropertySettingCollection> collections)
 		{
 			try
 			{
-				var created = PlanApi.PropertyValueCollections.Create(collections);
+				var created = PlanApi.PropertySettingCollections.Create(collections);
 
 				foreach (var id in created.Select(x => x.Id))
 				{

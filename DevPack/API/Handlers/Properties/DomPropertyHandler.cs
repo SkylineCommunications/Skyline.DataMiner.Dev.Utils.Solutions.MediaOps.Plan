@@ -598,7 +598,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			var filter = new ORFilterElement<PropertySettingCollection>(apiProperties
 				.Select(x => PropertySettingCollectionExposers.PropertySettings.PropertyId.Equal(x.Id))
 				.ToArray());
-			var collectionsByPropertyId = planApi.PropertyValueCollections.Read(filter)
+			var collectionsByPropertyId = planApi.PropertySettingCollections.Read(filter)
 				.SelectMany(c => c.PropertySettings.Select(v => new { Collection = c, PropertyId = v.Id }))
 				.GroupBy(x => x.PropertyId)
 				.ToDictionary(g => g.Key, g => (IReadOnlyCollection<PropertySettingCollection>)g.Select(x => x.Collection).ToList());
