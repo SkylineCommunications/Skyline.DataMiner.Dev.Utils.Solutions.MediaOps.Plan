@@ -66,7 +66,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Builds a human-readable label for the specified reference.
 		/// </summary>
 		/// <param name="reference">The reference to describe.</param>
-		/// 
 		/// <returns>The display label.</returns>
 		public virtual string GetDisplayLabel(DataReference reference)
 		{
@@ -136,7 +135,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Resolves the reference to its current value, following chains of references and detecting cycles.
 		/// </summary>
 		/// <param name="reference">The reference to resolve.</param>
-		/// 
 		/// <returns>A <see cref="ResolvedValue"/> describing the outcome.</returns>
 		/// <exception cref="CircularReferenceException">Thrown when a cycle is detected.</exception>
 		public virtual ResolvedValue ResolveValue(DataReference reference)
@@ -209,8 +207,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <summary>
 		/// Resolves a capability parameter reference. The reference targets a specific node when
 		/// <see cref="DataReference.NodeId"/> is set, otherwise the workflow / job itself.
-		/// Default returns an unresolved <see cref="ResolvedValue"/>.
+		/// Default returns an unresolved <see cref="ResolvedValue"/> when no matching setting is found.
 		/// </summary>
+		/// <param name="reference">The capability parameter reference to resolve.</param>
+		/// <returns>A <see cref="ResolvedValue"/> containing the capability value, or an unresolved value.</returns>
 		protected virtual ResolvedValue ResolveCapabilityValue(CapabilityParameterReference reference)
 		{
 			var orchestrationSettings = GetOrchestrationSettings(reference);
@@ -235,8 +235,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <summary>
 		/// Resolves a capacity parameter reference. The reference targets a specific node when
 		/// <see cref="DataReference.NodeId"/> is set, otherwise the workflow / job itself.
-		/// Default returns an unresolved <see cref="ResolvedValue"/>.
+		/// Default returns an unresolved <see cref="ResolvedValue"/> when no matching setting is found.
 		/// </summary>
+		/// <param name="reference">The capacity parameter reference to resolve.</param>
+		/// <returns>A <see cref="ResolvedValue"/> containing the capacity value, or an unresolved value.</returns>
 		protected virtual ResolvedValue ResolveCapacityValue(CapacityParameterReference reference)
 		{
 			var orchestrationSettings = GetOrchestrationSettings(reference);
@@ -261,8 +263,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <summary>
 		/// Resolves a configuration parameter reference. The reference targets a specific node when
 		/// <see cref="DataReference.NodeId"/> is set, otherwise the workflow / job itself.
-		/// Default returns an unresolved <see cref="ResolvedValue"/>.
+		/// Default returns an unresolved <see cref="ResolvedValue"/> when no matching setting is found.
 		/// </summary>
+		/// <param name="reference">The configuration parameter reference to resolve.</param>
+		/// <returns>A <see cref="ResolvedValue"/> containing the configuration value, or an unresolved value.</returns>
 		protected virtual ResolvedValue ResolveConfigurationValue(ConfigurationParameterReference reference)
 		{
 			var orchestrationSettings = GetOrchestrationSettings(reference);
@@ -402,10 +406,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <summary>
-		/// Returns the <see cref="OrchestrationSettings"/> for the given node or the workflow / job itself
-		/// when <paramref name="nodeId"/> is <c>null</c> or empty.
+		/// Returns the <see cref="OrchestrationSettings"/> for the given reference's node or the workflow / job itself
+		/// when <see cref="DataReference.NodeId"/> is <c>null</c> or empty.
 		/// </summary>
-		/// <param name="nodeId">The node identifier, or <c>null</c> to target the workflow / job level.</param>
+		/// <param name="reference">The data reference containing the optional node identifier. When <see cref="DataReference.NodeId"/> is set, the node-level settings are targeted; otherwise the workflow / job level.</param>
 		/// <returns>The matching <see cref="OrchestrationSettings"/>, or <c>null</c> when not found.</returns>
 		protected virtual OrchestrationSettings GetOrchestrationSettings(DataReference reference)
 		{
