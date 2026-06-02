@@ -7,6 +7,7 @@
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow;
 	using Skyline.DataMiner.Utils.DOM.Extensions;
 
 	using DomJob = Storage.DOM.SlcWorkflow.JobsInstance;
@@ -59,6 +60,7 @@
 			ValidateKeys(toCreate);
 			AssignKeys(toCreate);
 			AssignNames(toCreate);
+			AssignNodeTimings(toCreate);
 			ValidateStateForUpdateAction(toUpdate);
 
 			ValidateNames(apiJobs);
@@ -473,6 +475,28 @@
 			foreach (var job in toAssign)
 			{
 				job.Name = job.Key;
+			}
+		}
+
+		private void AssignNodeTimings(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			foreach (var job in apiJobs.Where(x => x.IsNew))
+			{
+				foreach (var node in job.NodeGraph.Nodes)
+				{
+					node.Start = job.Start;
+					node.End = job.End;
+				}
 			}
 		}
 

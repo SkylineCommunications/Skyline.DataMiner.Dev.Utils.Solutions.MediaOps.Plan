@@ -23,12 +23,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <summary>
 		/// Gets the start time of the node.
 		/// </summary>
-		public DateTimeOffset Start { get; private set; }
+		public DateTimeOffset Start { get; internal set; }
 
 		/// <summary>
 		/// Gets the end time of the node.
 		/// </summary>
-		public DateTimeOffset End { get; private set; }
+		public DateTimeOffset End { get; internal set; }
 
 		/// <summary>
 		/// Gets the current selection state of the resource.
@@ -44,6 +44,20 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Gets the internal unique identifier for the core reservation associated with this job node.
 		/// </summary>
 		internal Guid CoreReservationId { get; private set; }
+
+		internal sealed override void ApplyChanges(StorageWorkflow.NodesSection section)
+		{
+			section.NodeStartTime = Start.UtcDateTime;
+			section.NodeEndTime = End.UtcDateTime;
+
+			ApplyJobNodeChanges(section);
+		}
+
+		/// <summary>
+		/// Applies subclass-specific changes from this job node to the specified storage section.
+		/// </summary>
+		/// <param name="section">The storage workflow nodes section to apply changes to.</param>
+		internal abstract void ApplyJobNodeChanges(StorageWorkflow.NodesSection section);
 
 		/// <summary>
 		/// Determines whether this node represents a resource and, if so, returns it as a <see cref="JobResourceNode"/>.
@@ -73,9 +87,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <param name="section">The storage workflow nodes section to parse.</param>
 		private void ParseSection(StorageWorkflow.NodesSection section)
 		{
-			// Will be fixed in the scope of WI44887
-			//Start = section.NodeStartTime.Value;
-			//End = section.NodeEndTime.Value;
+			Start = section.NodeStartTime.Value;
+			End = section.NodeEndTime.Value;
 			CoreReservationId = section.ReservationId;
 
 			ResourceSelectionState = section.ResourceSelectState.HasValue
