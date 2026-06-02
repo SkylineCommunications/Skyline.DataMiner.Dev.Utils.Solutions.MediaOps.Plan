@@ -401,7 +401,7 @@
 			{
 				if (!jobIdByCollectionId.TryGetValue(id, out var jobId))
 				{
-					planApi.Logger.Error(this, $"Failed to find job ID for property value collection ID", [id]);
+					planApi.Logger.Error(this, $"Failed to find job ID for property value collection ID {id}.");
 					continue;
 				}
 
