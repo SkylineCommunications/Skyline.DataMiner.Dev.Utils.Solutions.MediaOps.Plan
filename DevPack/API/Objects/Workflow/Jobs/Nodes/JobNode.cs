@@ -73,8 +73,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <param name="section">The storage workflow nodes section to parse.</param>
 		private void ParseSection(StorageWorkflow.NodesSection section)
 		{
-			Start = section.NodeStartTime.Value;
-			End = section.NodeEndTime.Value;
+			// Will be fixed in the scope of WI44887
+			//Start = section.NodeStartTime.Value;
+			//End = section.NodeEndTime.Value;
 			CoreReservationId = section.ReservationId;
 
 			ResourceSelectionState = section.ResourceSelectState.HasValue

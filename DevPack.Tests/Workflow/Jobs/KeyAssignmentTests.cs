@@ -58,7 +58,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			try
 			{
-				var expectedKey = $"{snapshot.JobIDPrefix}{snapshot.JobIDNextSequence.ToString().PadLeft((int)snapshot.JobIDMinimumDigits, '0')}";
+				var expectedKey = $"{snapshot.JobIDPrefix}{snapshot.JobIDNextSequence.ToString().PadLeft(snapshot.JobIDMinimumDigits.HasValue ? (int)snapshot.JobIDMinimumDigits.Value : 1, '0')}";
 				var currentTime = DateTime.Now.RoundToNextSecond();
 
 				var job = new Job
