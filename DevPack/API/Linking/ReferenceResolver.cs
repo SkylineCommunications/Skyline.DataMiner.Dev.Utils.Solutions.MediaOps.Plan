@@ -409,7 +409,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Returns the <see cref="OrchestrationSettings"/> for the given reference's node or the workflow / job itself
 		/// when <see cref="DataReference.NodeId"/> is <c>null</c> or empty.
 		/// </summary>
-		/// <param name="reference">The data reference containing the node identifier to target the workflow / job level.</param>
+		/// <param name="reference">The data reference containing the optional node identifier. When <see cref="DataReference.NodeId"/> is set, the node-level settings are targeted; otherwise the workflow / job level.</param>
 		/// <returns>The matching <see cref="OrchestrationSettings"/>, or <c>null</c> when not found.</returns>
 		protected virtual OrchestrationSettings GetOrchestrationSettings(DataReference reference)
 		{
