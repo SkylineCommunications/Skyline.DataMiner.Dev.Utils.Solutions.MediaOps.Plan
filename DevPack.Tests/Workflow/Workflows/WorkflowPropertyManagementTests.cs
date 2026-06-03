@@ -5,6 +5,8 @@
 
 	using RT_MediaOps.Plan.RegressionTests;
 
+	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 
 	[TestClass]
@@ -41,7 +43,7 @@
 			workflow.AddCustomProperty(new CustomPropertySetting("Tag1") { Value = "Value1" });
 
 			var node1 = new WorkflowResourcePoolNode(pool);
-			node1.AddCustomProperty(new CustomPropertySetting("Tag1"){ Value = "Value1" });
+			node1.AddCustomProperty(new CustomPropertySetting("Tag1") { Value = "Value1" });
 			workflow.NodeGraph.Add(node1);
 
 			workflow = objectCreator.CreateWorkflow(workflow);
@@ -92,6 +94,53 @@
 				Assert.IsNotNull(customNodeTag2Property);
 				Assert.AreEqual("Value2", customNodeTag2Property.Value);
 			}
+		}
+
+		[TestMethod]
+		public void CreateWorkflow_WithPropertiesOnWorkflowAndNodes_PersistedCollectionsCarryOwnerMetadata()
+		{
+			var prefix = Guid.NewGuid();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var workflow = new Workflow { Name = $"{prefix}_Workflow" };
+			workflow.AddCustomProperty(new CustomPropertySetting("Tag1") { Value = "Value1" });
+
+			var node1 = new WorkflowResourcePoolNode(pool);
+			node1.AddCustomProperty(new CustomPropertySetting("Tag1") { Value = "Value1" });
+			workflow.NodeGraph.Add(node1);
+
+			var node2 = new WorkflowResourcePoolNode(pool);
+			node2.AddCustomProperty(new CustomPropertySetting("Tag2") { Value = "Value2" });
+			workflow.NodeGraph.Add(node2);
+
+			workflow = objectCreator.CreateWorkflow(workflow);
+
+			// Read back the persisted collections straight from the repository to verify the metadata
+			// that addresses each collection (LinkedObjectId, Scope and SubId).
+			var collections = ReadCollections(workflow.Id);
+			var nodeIds = workflow.NodeGraph.Nodes.Select(n => n.Id).ToHashSet();
+
+			Assert.AreEqual(3, collections.Count, "Expected one owner collection plus one collection per node.");
+			Assert.IsTrue(collections.All(c => c.LinkedObjectId == workflow.Id.ToString()), "Every collection must be linked to the workflow id.");
+			Assert.IsTrue(collections.All(c => c.Scope == PropertySettingsContext.MediaOpsScope), "Every collection must use the MediaOps scope.");
+
+			var ownerCollection = collections.SingleOrDefault(c => string.IsNullOrEmpty(c.SubId));
+			Assert.IsNotNull(ownerCollection, "The owner-level collection must use an empty SubId.");
+
+			var nodeCollections = collections.Where(c => !string.IsNullOrEmpty(c.SubId)).ToList();
+			Assert.AreEqual(2, nodeCollections.Count, "Each node must have its own collection.");
+			Assert.IsTrue(nodeCollections.All(c => nodeIds.Contains(c.SubId)), "Each node collection's SubId must match a node id.");
+		}
+
+		private System.Collections.Generic.List<PropertySettingCollection> ReadCollections(Guid ownerId)
+		{
+			var filter = new ANDFilterElement<PropertySettingCollection>(
+				PropertySettingCollectionExposers.LinkedObjectId.Equal(ownerId.ToString()),
+				PropertySettingCollectionExposers.Scope.Equal(PropertySettingsContext.MediaOpsScope));
+
+			return TestContext.Api.PropertySettingCollections.Read(filter).ToList();
 		}
 	}
 }
