@@ -703,5 +703,153 @@
 			Assert.IsTrue(results.Any(j => j.Id == job1.Id));
 			Assert.IsTrue(results.Any(j => j.Id == job2.Id));
 		}
+
+		[TestMethod]
+		public void CreateWithOrganizationAndOwnerPersistsValues()
+		{
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+			var organizationId = Guid.NewGuid();
+			var ownerId = Guid.NewGuid();
+
+			var job = new Job
+			{
+				Name = $"{Guid.NewGuid()}_Job",
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
+				OrganizationId = organizationId,
+				OwnerId = ownerId,
+			};
+
+			job = objectCreator.CreateJob(job);
+
+			var read = TestContext.Api.Jobs.Read(job.Id);
+			Assert.IsNotNull(read);
+			Assert.AreEqual(organizationId, read.OrganizationId);
+			Assert.AreEqual(ownerId, read.OwnerId);
+		}
+
+		[TestMethod]
+		public void UpdateOrganizationAndOwnerPersistsValues()
+		{
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+			var job = objectCreator.CreateJob(new Job
+			{
+				Name = $"{Guid.NewGuid()}_Job",
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
+			});
+
+			var read = TestContext.Api.Jobs.Read(job.Id);
+			var organizationId = Guid.NewGuid();
+			var ownerId = Guid.NewGuid();
+			read.OrganizationId = organizationId;
+			read.OwnerId = ownerId;
+
+			TestContext.Api.Jobs.Update(read);
+
+			var reread = TestContext.Api.Jobs.Read(job.Id);
+			Assert.IsNotNull(reread);
+			Assert.AreEqual(organizationId, reread.OrganizationId);
+			Assert.AreEqual(ownerId, reread.OwnerId);
+		}
+
+		[TestMethod]
+		public void CreateWithContactsPersistsContactIds()
+		{
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+			var contact1 = Guid.NewGuid();
+			var contact2 = Guid.NewGuid();
+
+			var job = new Job
+			{
+				Name = $"{Guid.NewGuid()}_Job",
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
+			};
+			job.AddContact(contact1).AddContact(contact2);
+
+			job = objectCreator.CreateJob(job);
+
+			var read = TestContext.Api.Jobs.Read(job.Id);
+			Assert.IsNotNull(read);
+			Assert.AreEqual(2, read.ContactIds.Count);
+			Assert.IsTrue(read.ContactIds.Contains(contact1));
+			Assert.IsTrue(read.ContactIds.Contains(contact2));
+		}
+
+		[TestMethod]
+		public void RemoveContactUpdatesContactIds()
+		{
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+			var contact1 = Guid.NewGuid();
+			var contact2 = Guid.NewGuid();
+
+			var job = new Job
+			{
+				Name = $"{Guid.NewGuid()}_Job",
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
+			};
+			job.AddContact(contact1).AddContact(contact2);
+			job = objectCreator.CreateJob(job);
+
+			var read = TestContext.Api.Jobs.Read(job.Id);
+			read.RemoveContact(contact1);
+			TestContext.Api.Jobs.Update(read);
+
+			var reread = TestContext.Api.Jobs.Read(job.Id);
+			Assert.IsNotNull(reread);
+			Assert.AreEqual(1, reread.ContactIds.Count);
+			Assert.IsFalse(reread.ContactIds.Contains(contact1));
+			Assert.IsTrue(reread.ContactIds.Contains(contact2));
+		}
+
+		[TestMethod]
+		public void AddContactWithEmptyGuidThrowsException()
+		{
+			var job = new Job
+			{
+				Name = $"{Guid.NewGuid()}_Job",
+				Start = DateTime.UtcNow,
+				End = DateTime.UtcNow.AddMinutes(5),
+			};
+
+			Assert.ThrowsException<ArgumentException>(() => job.AddContact(Guid.Empty));
+		}
+
+		[TestMethod]
+		public void RemoveContactWithEmptyGuidThrowsException()
+		{
+			var job = new Job
+			{
+				Name = $"{Guid.NewGuid()}_Job",
+				Start = DateTime.UtcNow,
+				End = DateTime.UtcNow.AddMinutes(5),
+			};
+
+			Assert.ThrowsException<ArgumentException>(() => job.RemoveContact(Guid.Empty));
+		}
+
+		[TestMethod]
+		public void AddContactIsIdempotentForDuplicateIds()
+		{
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+			var contact = Guid.NewGuid();
+
+			var job = new Job
+			{
+				Name = $"{Guid.NewGuid()}_Job",
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
+			};
+			job.AddContact(contact).AddContact(contact);
+
+			job = objectCreator.CreateJob(job);
+
+			var read = TestContext.Api.Jobs.Read(job.Id);
+			Assert.IsNotNull(read);
+			Assert.AreEqual(1, read.ContactIds.Count);
+			Assert.IsTrue(read.ContactIds.Contains(contact));
+		}
 	}
 }
