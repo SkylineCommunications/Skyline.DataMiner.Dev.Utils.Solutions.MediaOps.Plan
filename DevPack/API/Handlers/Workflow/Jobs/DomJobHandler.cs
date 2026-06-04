@@ -4,8 +4,10 @@
 	using System.Collections.Generic;
 	using System.Linq;
 
+	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow;
 	using Skyline.DataMiner.Utils.DOM.Extensions;
 
 	using DomJob = Storage.DOM.SlcWorkflow.JobsInstance;
@@ -58,6 +60,7 @@
 			ValidateKeys(toCreate);
 			AssignKeys(toCreate);
 			AssignNames(toCreate);
+			AssignNodeTimings(toCreate);
 			ValidateStateForUpdateAction(toUpdate);
 
 			ValidateNames(apiJobs);
@@ -95,6 +98,7 @@
 			var changeResults = GetJobsWithChanges(toUpdate);
 
 			CreateOrUpdateOrchestrationSettings(apiJobs.Where(IsValid).ToList());
+			CreateOrUpdatePropertyValueCollections(apiJobs.Where(IsValid).ToList());
 
 			var toCreateDomInstances = toCreate
 				.Where(IsValid)
@@ -226,6 +230,7 @@
 			}
 
 			DeleteOrchestrationSettings(apiJobs);
+			DeletePropertyValueCollections(apiJobs);
 
 			var domJobsById = apiJobs.ToDictionary(x => x.Id, x => x.OriginalInstance);
 
@@ -266,6 +271,149 @@
 			}
 
 			DomWorkflowOrchestrationSettingsHandler.TryDelete(planApi, apiJobs.Select(x => x.OrchestrationSettings).ToList(), out _);
+		}
+
+		private void CreateOrUpdatePropertyValueCollections(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			if (apiJobs.Any(x => !IsValid(x)))
+			{
+				throw new ArgumentException($"Not all provided jobs are valid", nameof(apiJobs));
+			}
+
+			// Make sure every job has a property values context so that newly created scopes
+			// (owner and nodes) pick up the correct LinkedObjectId when the user added properties
+			// prior to saving.
+			foreach (var job in apiJobs)
+			{
+				job.EnsureContext();
+			}
+
+			var ownerScopes = new List<KeyValuePair<Guid, PropertySettingsScope>>();
+			foreach (var job in apiJobs)
+			{
+				ownerScopes.Add(new KeyValuePair<Guid, PropertySettingsScope>(job.Id, job.PropertySettingsScope));
+
+				foreach (var node in job.NodeGraph.Nodes)
+				{
+					ownerScopes.Add(new KeyValuePair<Guid, PropertySettingsScope>(job.Id, node.PropertySettingsScope));
+				}
+			}
+
+			var (toCreateOrUpdate, toDelete, jobIdByCollectionId) = ownerScopes.BuildPersistenceActions();
+
+			if (toCreateOrUpdate.Count > 0)
+			{
+				DomPropertySettingCollectionHandler.TryCreateOrUpdate(planApi, toCreateOrUpdate, out var result);
+				ReportPropertyValueCollectionFailures(result, jobIdByCollectionId);
+			}
+
+			if (toDelete.Count > 0)
+			{
+				DomPropertySettingCollectionHandler.TryDelete(planApi, toDelete, out var result);
+				ReportPropertyValueCollectionFailures(result, jobIdByCollectionId);
+			}
+		}
+
+		private void DeletePropertyValueCollections(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			if (apiJobs.Any(x => !IsValid(x)))
+			{
+				throw new ArgumentException($"Not all provided jobs are valid", nameof(apiJobs));
+			}
+
+			var jobIdByCollectionId = new Dictionary<Guid, Guid>();
+			var toDelete = new List<PropertySettingCollection>();
+			var jobsRequiringQuery = new Dictionary<string, Guid>();
+
+			foreach (var job in apiJobs)
+			{
+				var cached = job.PropertySettingsContext?.TryGetCachedOriginalCollections();
+				if (cached != null)
+				{
+					foreach (var collection in cached)
+					{
+						jobIdByCollectionId[collection.Id] = job.Id;
+						toDelete.Add(collection);
+					}
+				}
+				else
+				{
+					jobsRequiringQuery[job.Id.ToString()] = job.Id;
+				}
+			}
+
+			if (jobsRequiringQuery.Count > 0)
+			{
+				var linkedObjectIdFilter = new ORFilterElement<PropertySettingCollection>(
+					jobsRequiringQuery.Keys.Select(id => PropertySettingCollectionExposers.LinkedObjectId.Equal(id)).ToArray());
+
+				var filter = new ANDFilterElement<PropertySettingCollection>(
+					linkedObjectIdFilter,
+					PropertySettingCollectionExposers.Scope.Equal(PropertySettingsContext.MediaOpsScope));
+
+				foreach (var collection in planApi.PropertySettingCollections.Read(filter))
+				{
+					if (collection.LinkedObjectId != null && jobsRequiringQuery.TryGetValue(collection.LinkedObjectId, out var jobId))
+					{
+						jobIdByCollectionId[collection.Id] = jobId;
+						toDelete.Add(collection);
+					}
+				}
+			}
+
+			if (toDelete.Count == 0)
+			{
+				return;
+			}
+
+			DomPropertySettingCollectionHandler.TryDelete(planApi, toDelete, out var domResult);
+			ReportPropertyValueCollectionFailures(domResult, jobIdByCollectionId);
+		}
+
+		private void ReportPropertyValueCollectionFailures(
+			DomInstanceBulkOperationResult<Storage.DOM.SlcProperties.PropertyValuesInstance> result,
+			Dictionary<Guid, Guid> jobIdByCollectionId)
+		{
+			if (result == null || !result.HasFailures)
+			{
+				return;
+			}
+
+			foreach (var id in result.UnsuccessfulIds)
+			{
+				if (!jobIdByCollectionId.TryGetValue(id, out var jobId))
+				{
+					planApi.Logger.Error(this, $"Failed to find job ID for property value collection ID {id}.");
+					continue;
+				}
+
+				ReportError(jobId);
+
+				if (result.TraceDataPerItem.TryGetValue(id, out var traceData))
+				{
+					PassTraceData(jobId, traceData);
+				}
+			}
 		}
 
 		private void AssignKeys(ICollection<Job> apiJobs)
@@ -327,6 +475,28 @@
 			foreach (var job in toAssign)
 			{
 				job.Name = job.Key;
+			}
+		}
+
+		private void AssignNodeTimings(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			foreach (var job in apiJobs.Where(x => x.IsNew))
+			{
+				foreach (var node in job.NodeGraph.Nodes)
+				{
+					node.Start = job.Start;
+					node.End = job.End;
+				}
 			}
 		}
 

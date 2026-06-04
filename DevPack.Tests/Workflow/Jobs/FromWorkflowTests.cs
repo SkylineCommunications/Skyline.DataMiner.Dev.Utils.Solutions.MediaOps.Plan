@@ -37,7 +37,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		[TestMethod]
 		public void FromWorkflow_NullWorkflow_Throws()
 		{
-			Assert.ThrowsException<ArgumentNullException>(() => Job.FromWorkflow(TestContext.Api, (Workflow)null));
+			Assert.ThrowsException<ArgumentNullException>(() => Job.FromWorkflow(TestContext.Api, null));
 		}
 
 		[TestMethod]

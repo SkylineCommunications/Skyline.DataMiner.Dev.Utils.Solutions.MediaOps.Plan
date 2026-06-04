@@ -18,6 +18,8 @@
 
 		private StorageWorkflow.JobsInstance originalInstance;
 		private StorageWorkflow.JobsInstance updatedInstance;
+		private PropertySettingsContext propertiesContext;
+		private PropertySettingsScope propertySettingsScope;
 
 		private string key;
 
@@ -47,6 +49,13 @@
 		internal Job(MediaOpsPlanApi planApi, StorageWorkflow.JobsInstance instance) : base(instance.ID.Id)
 		{
 			ParseInstance(planApi, instance);
+
+			propertiesContext = new PropertySettingsContext(planApi, Id, NodeGraph.Nodes.Select(n => n.Id));
+			foreach (var node in NodeGraph.Nodes)
+			{
+				node.SetPropertiesContext(propertiesContext);
+			}
+
 			InitTracking();
 		}
 
@@ -111,6 +120,19 @@
 		public NodeGraph<JobNode> NodeGraph { get; private set; }
 
 		/// <summary>
+		/// Gets the custom property settings associated with this job.
+		/// Property settings are loaded lazily in a single batch together with the property settings of all nodes.
+		/// Use <see cref="AddCustomProperty"/>, <see cref="SetCustomProperties"/> and <see cref="RemoveCustomProperty"/> to modify them.
+		/// </summary>
+		public IReadOnlyCollection<CustomPropertySetting> CustomPropertySettings => GetOrCreateScope().CustomPropertySettings;
+
+		/// <summary>
+		/// Gets the property settings associated with this job.
+		/// Property settings are loaded lazily in a single batch together with the property settings of all nodes.
+		/// Use <see cref="AddProperty"/>, <see cref="SetProperties"/> and <see cref="RemoveProperty"/> to modify them.
+		/// </summary>
+		public IReadOnlyCollection<PropertySetting> PropertySettings => GetOrCreateScope().PropertySettings;
+    
 		/// Gets or sets the ID of the organization associated with the job.
 		/// </summary>
 		public Guid OrganizationId { get; set; }
@@ -126,6 +148,98 @@
 		public IReadOnlyCollection<Guid> ContactIds => contactIds;
 
 		internal StorageWorkflow.JobsInstance OriginalInstance => originalInstance;
+
+		internal PropertySettingsScope PropertySettingsScope => propertySettingsScope;
+
+		internal PropertySettingsContext PropertySettingsContext => propertiesContext;
+
+		/// <summary>
+		/// Adds a custom property setting to this job.
+		/// </summary>
+		/// <param name="setting">The custom property setting to add.</param>
+		/// <returns>The current <see cref="Job"/> instance.</returns>
+		public Job AddCustomProperty(CustomPropertySetting setting)
+		{
+			GetOrCreateScope().AddCustomProperty(setting);
+			return this;
+		}
+
+		/// <summary>
+		/// Replaces the entire collection of custom property settings associated with this job with the specified settings.
+		/// </summary>
+		/// <param name="settings">The custom property settings that should replace the current collection.</param>
+		/// <returns>The current <see cref="Job"/> instance.</returns>
+		public Job SetCustomProperties(IEnumerable<CustomPropertySetting> settings)
+		{
+			GetOrCreateScope().SetCustomProperties(settings);
+			return this;
+		}
+
+		/// <summary>
+		/// Removes the specified custom property setting from this job.
+		/// </summary>
+		/// <param name="setting">The custom property setting to remove.</param>
+		/// <returns>The current <see cref="Job"/> instance.</returns>
+		public Job RemoveCustomProperty(CustomPropertySetting setting)
+		{
+			GetOrCreateScope().RemoveCustomProperty(setting);
+			return this;
+		}
+
+		/// <summary>
+		/// Adds a property setting to this job.
+		/// </summary>
+		/// <param name="setting">The property setting to add.</param>
+		/// <returns>The current <see cref="Job"/> instance.</returns>
+		public Job AddProperty(PropertySetting setting)
+		{
+			GetOrCreateScope().AddProperty(setting);
+			return this;
+		}
+
+		/// <summary>
+		/// Replaces the entire collection of property settings associated with this job with the specified settings.
+		/// </summary>
+		/// <param name="settings">The property settings that should replace the current collection.</param>
+		/// <returns>The current <see cref="Job"/> instance.</returns>
+		public Job SetProperties(IEnumerable<PropertySetting> settings)
+		{
+			GetOrCreateScope().SetProperties(settings);
+			return this;
+		}
+
+		/// <summary>
+		/// Removes the specified property setting from this job.
+		/// </summary>
+		/// <param name="setting">The property setting to remove.</param>
+		/// <returns>The current <see cref="Job"/> instance.</returns>
+		public Job RemoveProperty(PropertySetting setting)
+		{
+			GetOrCreateScope().RemoveProperty(setting);
+			return this;
+		}
+
+		private PropertySettingsScope GetOrCreateScope()
+			=> propertySettingsScope ??= EnsureContext().CreateOwnerScope();
+
+		internal PropertySettingsContext EnsureContext()
+		{
+			if (propertiesContext == null)
+			{
+				// New, unsaved job: no backend data to load. A null planApi is fine because the
+				// lazy load will only ever return empty results for owner+nodes.
+				propertiesContext = new PropertySettingsContext(null, Id, NodeGraph.Nodes.Select(n => n.Id));
+			}
+
+			// Always (re)wire every node currently in the graph so nodes added after the context was
+			// first created still pick up the correct LinkedObjectId when their scope is persisted.
+			foreach (var node in NodeGraph.Nodes)
+			{
+				node.SetPropertiesContext(propertiesContext);
+			}
+
+			return propertiesContext;
+		}
 
 		/// <summary>
 		/// Builds a new <see cref="Job"/> from the specified <see cref="Workflow"/>.

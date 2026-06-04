@@ -16,7 +16,7 @@ namespace RT_MediaOps.Plan.RegressionTests
 		{
 		}
 
-		public string JobIDPrefix { get; private set; }
+		public string? JobIDPrefix { get; private set; }
 
 		public long? JobIDMinimumDigits { get; private set; }
 
