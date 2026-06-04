@@ -76,7 +76,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <inheritdoc/>
 		public Guid ResourceId { get; private set; }
 
-		internal override void ApplyChanges(StorageWorkflow.NodesSection section)
+		internal override void ApplyJobNodeChanges(StorageWorkflow.NodesSection section)
 		{
 			section.NodeType = StorageWorkflow.SlcWorkflowIds.Enums.Nodetype.Resource;
 			section.ReferenceId = ResourceId;
