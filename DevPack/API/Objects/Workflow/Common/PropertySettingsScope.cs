@@ -72,44 +72,66 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		internal void AddCustomProperty(CustomPropertySetting setting)
 		{
-			if (setting != null)
+			if (setting == null)
 			{
-				Settings.Add(setting);
+				throw new ArgumentNullException(nameof(setting));
 			}
 
+			Settings.Add(setting);
 			isDirty = true;
 		}
 
 		internal void SetCustomProperties(IEnumerable<CustomPropertySetting> settings)
 		{
-			Settings.SetCustomSettings(settings?.Where(s => s != null));
+			if (settings == null)
+			{
+				throw new ArgumentNullException(nameof(settings));
+			}
+
+			Settings.SetCustomSettings(settings.Where(s => s != null));
 			isDirty = true;
 		}
 
 		internal void RemoveCustomProperty(CustomPropertySetting setting)
 		{
+			if (setting == null)
+			{
+				throw new ArgumentNullException(nameof(setting));
+			}
+
 			Settings.Remove(setting);
 			isDirty = true;
 		}
 
 		internal void AddProperty(PropertySetting setting)
 		{
-			if (setting != null)
+			if (setting == null)
 			{
-				Settings.Add(setting);
+				throw new ArgumentNullException(nameof(setting));
 			}
 
+			Settings.Add(setting);
 			isDirty = true;
 		}
 
 		internal void SetProperties(IEnumerable<PropertySetting> settings)
 		{
-			Settings.SetPropertySettings(settings?.Where(s => s != null));
+			if (settings == null)
+			{
+				throw new ArgumentNullException(nameof(settings));
+			}
+
+			Settings.SetPropertySettings(settings.Where(s => s != null));
 			isDirty = true;
 		}
 
 		internal void RemoveProperty(PropertySetting setting)
 		{
+			if (setting == null)
+			{
+				throw new ArgumentNullException(nameof(setting));
+			}
+
 			Settings.Remove(setting);
 			isDirty = true;
 		}
