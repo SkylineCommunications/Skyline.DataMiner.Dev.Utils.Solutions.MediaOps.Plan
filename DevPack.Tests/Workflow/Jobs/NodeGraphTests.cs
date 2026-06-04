@@ -5,7 +5,6 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 	using RT_MediaOps.Plan.Extensions;
 	using RT_MediaOps.Plan.RegressionTests;
-	using RT_MediaOps.Plan.RST;
 
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
@@ -441,6 +440,230 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				Assert.AreEqual(invalidNode.Id, error.NodeId);
 				Assert.AreEqual(missingResourceId, error.ResourceId);
 			}
+		}
+
+		[TestMethod]
+		public void NodeGraph_CreateJob_HappyPath_EmptyNodeGraph()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = currentTime,
+				End = currentTime.AddMinutes(10),
+			};
+			job = objectCreator.CreateJob(job);
+
+			Assert.IsNotNull(job);
+			Assert.AreEqual(0, job.NodeGraph.Nodes.Count);
+			Assert.AreEqual(0, job.NodeGraph.Connections.Count);
+		}
+
+		[TestMethod]
+		public void NodeGraph_CreateJob_NodeAliasAtMaxLength_Succeeds()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = currentTime,
+				End = currentTime.AddMinutes(10),
+			};
+			var node = new JobResourcePoolNode(pool)
+			{
+				Alias = new string('a', 150),
+			};
+			job.NodeGraph.Add(node);
+
+			job = objectCreator.CreateJob(job);
+
+			Assert.IsNotNull(job);
+			Assert.AreEqual(1, job.NodeGraph.Nodes.Count);
+			Assert.AreEqual(new string('a', 150), job.NodeGraph.Nodes.Single().Alias);
+		}
+
+		[TestMethod]
+		public void NodeGraph_CreateJob_ResourceNodeWithDraftPool_Fails()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			// Pool stays in Draft.
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+
+			var completePool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_CompletePool" });
+			completePool = TestContext.Api.ResourcePools.Complete(completePool);
+
+			var resource = new UnmanagedResource { Name = $"{prefix}_Resource" }.AssignToPool(completePool);
+			resource = objectCreator.CreateResource(resource);
+			resource = TestContext.Api.Resources.Complete(resource);
+
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = currentTime,
+				End = currentTime.AddMinutes(10),
+			};
+			var node = new JobResourceNode(pool.Id, resource.Id);
+			job.NodeGraph.Add(node);
+
+			try
+			{
+				objectCreator.CreateJob(job);
+				Assert.Fail("Expected MediaOpsException was not thrown.");
+			}
+			catch (MediaOpsException ex)
+			{
+				var error = ex.TraceData.ErrorData.OfType<JobNodeGraphInvalidResourceNodeError>().SingleOrDefault();
+				Assert.IsNotNull(error);
+				Assert.AreEqual(job.Id, error.Id);
+				Assert.AreEqual(node.Id, error.NodeId);
+				Assert.AreEqual(resource.Id, error.ResourceId);
+				Assert.AreEqual(pool.Id, error.ResourcePoolId);
+				Assert.AreEqual($"Resource pool with ID '{pool.Id}' is not in a valid state. Only resource pools in 'Complete' state can be used.", error.ErrorMessage);
+			}
+		}
+
+		[TestMethod]
+		public void NodeGraph_UpdateJob_AddValidNode_NodeIsActuallyAdded()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var job = objectCreator.CreateJob(new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = currentTime,
+				End = currentTime.AddMinutes(10),
+			});
+
+			Assert.AreEqual(0, job.NodeGraph.Nodes.Count);
+
+			var node = new JobResourcePoolNode(pool);
+			job.NodeGraph.Add(node);
+
+			job = TestContext.Api.Jobs.Update(job);
+
+			Assert.AreEqual(1, job.NodeGraph.Nodes.Count);
+			Assert.IsNotNull(job.NodeGraph.Nodes.OfType<JobResourcePoolNode>().SingleOrDefault());
+		}
+
+		[TestMethod]
+		public void NodeGraph_UpdateJob_AddConnection_ConnectionIsActuallyAdded()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = new UnmanagedResource { Name = $"{prefix}_Resource" }.AssignToPool(pool);
+			resource = objectCreator.CreateResource(resource);
+			resource = TestContext.Api.Resources.Complete(resource);
+
+			var resourceNode = new JobResourceNode(pool, resource);
+			var poolNode = new JobResourcePoolNode(pool);
+
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = currentTime,
+				End = currentTime.AddMinutes(10),
+			};
+			job.NodeGraph.Add(resourceNode).Add(poolNode);
+			job = objectCreator.CreateJob(job);
+
+			Assert.AreEqual(0, job.NodeGraph.Connections.Count);
+
+			var fromNode = job.NodeGraph.Nodes.OfType<JobResourceNode>().Single();
+			var toNode = job.NodeGraph.Nodes.OfType<JobResourcePoolNode>().Single();
+			job.NodeGraph.Connect(fromNode, toNode);
+
+			job = TestContext.Api.Jobs.Update(job);
+
+			Assert.AreEqual(1, job.NodeGraph.Connections.Count);
+		}
+
+		[TestMethod]
+		public void NodeGraph_UpdateJob_RemoveConnection_ConnectionIsActuallyRemoved()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = new UnmanagedResource { Name = $"{prefix}_Resource" }.AssignToPool(pool);
+			resource = objectCreator.CreateResource(resource);
+			resource = TestContext.Api.Resources.Complete(resource);
+
+			var resourceNode = new JobResourceNode(pool, resource);
+			var poolNode = new JobResourcePoolNode(pool);
+
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = currentTime,
+				End = currentTime.AddMinutes(10),
+			};
+			job.NodeGraph.Add(resourceNode).Add(poolNode).Connect(resourceNode, poolNode);
+			job = objectCreator.CreateJob(job);
+
+			Assert.AreEqual(1, job.NodeGraph.Connections.Count);
+
+			job.NodeGraph.Disconnect(job.NodeGraph.Connections.Single());
+
+			job = TestContext.Api.Jobs.Update(job);
+
+			Assert.AreEqual(0, job.NodeGraph.Connections.Count);
+			Assert.AreEqual(2, job.NodeGraph.Nodes.Count);
+		}
+
+		[TestMethod]
+		public void NodeGraph_UpdateJob_RemoveNode_NodeIsActuallyRemoved()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = new UnmanagedResource { Name = $"{prefix}_Resource" }.AssignToPool(pool);
+			resource = objectCreator.CreateResource(resource);
+			resource = TestContext.Api.Resources.Complete(resource);
+
+			var resourceNode = new JobResourceNode(pool, resource);
+			var poolNode = new JobResourcePoolNode(pool);
+
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = currentTime,
+				End = currentTime.AddMinutes(10),
+			};
+			job.NodeGraph.Add(resourceNode).Add(poolNode);
+
+			job = objectCreator.CreateJob(job);
+
+			Assert.AreEqual(2, job.NodeGraph.Nodes.Count);
+
+			job.NodeGraph.Remove(job.NodeGraph.Nodes.OfType<JobResourceNode>().Single());
+
+			job = TestContext.Api.Jobs.Update(job);
+
+			Assert.AreEqual(1, job.NodeGraph.Nodes.Count);
+			Assert.IsNull(job.NodeGraph.Nodes.OfType<JobResourceNode>().SingleOrDefault());
+			Assert.IsNotNull(job.NodeGraph.Nodes.OfType<JobResourcePoolNode>().SingleOrDefault());
 		}
 
 		[TestMethod]
