@@ -14,6 +14,8 @@
 	/// </summary>
 	public class Job : ApiNamedObject
 	{
+		private readonly HashSet<Guid> contactIds = [];
+
 		private StorageWorkflow.JobsInstance originalInstance;
 		private StorageWorkflow.JobsInstance updatedInstance;
 		private PropertySettingsContext propertiesContext;
@@ -130,6 +132,20 @@
 		/// Use <see cref="AddProperty"/>, <see cref="SetProperties"/> and <see cref="RemoveProperty"/> to modify them.
 		/// </summary>
 		public IReadOnlyCollection<PropertySetting> PropertySettings => GetOrCreateScope().PropertySettings;
+    
+		/// Gets or sets the ID of the organization associated with the job.
+		/// </summary>
+		public Guid OrganizationId { get; set; }
+
+		/// <summary>
+		/// Gets or sets the ID of the owner of the job.
+		/// </summary>
+		public Guid OwnerId { get; set; }
+
+		/// <summary>
+		/// Gets the collection of contact IDs associated with the job.
+		/// </summary>
+		public IReadOnlyCollection<Guid> ContactIds => contactIds;
 
 		internal StorageWorkflow.JobsInstance OriginalInstance => originalInstance;
 
@@ -370,6 +386,40 @@
 			};
 		}
 
+		/// <summary>
+		/// Adds a contact to the job.
+		/// </summary>
+		/// <param name="contactId">The unique identifier of the contact to add.</param>
+		/// <returns>The current <see cref="Job"/> instance.</returns>
+		/// <exception cref="ArgumentException">Thrown when <paramref name="contactId"/> is <see cref="Guid.Empty"/>.</exception>
+		public Job AddContact(Guid contactId)
+		{
+			if (contactId == Guid.Empty)
+			{
+				throw new ArgumentException(nameof(contactId));
+			}
+
+			contactIds.Add(contactId);
+			return this;
+		}
+
+		/// <summary>
+		/// Removes a contact from the job.
+		/// </summary>
+		/// <param name="contactId">The unique identifier of the contact to remove.</param>
+		/// <returns>The current <see cref="Job"/> instance.</returns>
+		/// <exception cref="ArgumentException">Thrown when <paramref name="contactId"/> is <see cref="Guid.Empty"/>.</exception>
+		public Job RemoveContact(Guid contactId)
+		{
+			if (contactId == Guid.Empty)
+			{
+				throw new ArgumentException(nameof(contactId));
+			}
+
+			contactIds.Remove(contactId);
+			return this;
+		}
+
 		/// <inheritdoc/>
 		public override int GetHashCode()
 		{
@@ -389,6 +439,13 @@
 				hash = (hash * 23) + (OrchestrationSettings != null ? OrchestrationSettings.GetHashCode() : 0);
 				hash = (hash * 23) + (NodeGraph != null ? NodeGraph.GetHashCode() : 0);
 				hash = (hash * 23) + State.GetHashCode();
+				hash = (hash * 23) + OrganizationId.GetHashCode();
+				hash = (hash * 23) + OwnerId.GetHashCode();
+
+				foreach (var contactId in contactIds.OrderBy(x => x).ToArray())
+				{
+					hash = (hash * 23) + contactId.GetHashCode();
+				}
 
 				return hash;
 			}
@@ -414,7 +471,10 @@
 				   Notes == other.Notes &&
 				   OrchestrationSettings == other.OrchestrationSettings &&
 				   NodeGraph == other.NodeGraph &&
-				   State == other.State;
+				   State == other.State &&
+				   OrganizationId == other.OrganizationId &&
+				   OwnerId == other.OwnerId &&
+				   contactIds.SetEquals(other.contactIds);
 		}
 
 		internal StorageWorkflow.JobsInstance GetInstanceWithChanges()
@@ -436,6 +496,15 @@
 			updatedInstance.JobExecution.JobConfiguration = OrchestrationSettings.Id;
 
 			updatedInstance.JobInfo.JobPriority = EnumExtensions.MapEnum<JobPriority, StorageWorkflow.SlcWorkflowIds.Enums.Jobpriority>(Priority);
+
+			updatedInstance.CostingAndBilling.Organization = OrganizationId != Guid.Empty ? OrganizationId : null;
+			updatedInstance.CostingAndBilling.JobOwner = OwnerId != Guid.Empty ? OwnerId : null;
+
+			updatedInstance.CostingAndBilling.AdditionalContacts.Clear();
+			foreach (var contactId in ContactIds)
+			{
+				updatedInstance.CostingAndBilling.AdditionalContacts.Add(contactId);
+			}
 
 			updatedInstance.Nodes.Clear();
 			foreach (var node in NodeGraph.Nodes)
@@ -489,6 +558,14 @@
 				? EnumExtensions.MapEnum<StorageWorkflow.SlcWorkflowIds.Enums.Jobpriority, JobPriority>(instance.JobInfo.JobPriority.Value)
 				: JobPriority.Normal;
 			State = EnumExtensions.MapEnum<StorageWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum, JobState>(instance.Status);
+
+			OrganizationId = instance.CostingAndBilling.Organization ?? Guid.Empty;
+			OwnerId = instance.CostingAndBilling.JobOwner ?? Guid.Empty;
+
+			foreach (var contactId in instance.CostingAndBilling.AdditionalContacts)
+			{
+				contactIds.Add(contactId);
+			}
 
 			if (instance.JobExecution.JobConfiguration == null || instance.JobExecution.JobConfiguration == Guid.Empty)
 			{
