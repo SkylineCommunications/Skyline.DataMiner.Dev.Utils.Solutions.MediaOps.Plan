@@ -84,6 +84,12 @@
 			updatedSection.SourceNodeID = From.Id;
 			updatedSection.DestinationNodeID = To.Id;
 
+			// Default values until correctly implemented. This will prevent some job integration tests from failing as the DOM CRUD is still adding these values in the background.
+			updatedSection.ConnectionExecutionOrder = 0;
+			updatedSection.ConnectionType = StorageWorkflow.SlcWorkflowIds.Enums.Connectiontype.LevelBased;
+			updatedSection.ConnectionSubtype = StorageWorkflow.SlcWorkflowIds.Enums.Connectionsubtype.All;
+			updatedSection.PredefinedSubset = StorageWorkflow.SlcWorkflowIds.Enums.Predefinedsubset.VAD;
+
 			return updatedSection;
 		}
 
