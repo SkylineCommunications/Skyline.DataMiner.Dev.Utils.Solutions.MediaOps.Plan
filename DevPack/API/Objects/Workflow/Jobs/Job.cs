@@ -330,6 +330,35 @@
 			// 3. Copy the job-level orchestration settings.
 			OrchestrationSettingsCloner.Clone(workflow.OrchestrationSettings, job.OrchestrationSettings, nodeIdMap);
 
+			// 4. Copy the property settings from the workflow (owner) and from each workflow node onto the
+			//    corresponding job node. The property scope copies every incoming setting into an independent
+			//    instance, so the job never shares references with the source workflow.
+			foreach (var setting in workflow.CustomPropertySettings)
+			{
+				job.AddCustomProperty(setting);
+			}
+
+			foreach (var setting in workflow.PropertySettings)
+			{
+				job.AddProperty(setting);
+			}
+
+			foreach (var entry in nodeIdMap)
+			{
+				var workflowNode = workflowNodesById[entry.Key];
+				var jobNode = jobNodesById[entry.Value];
+
+				foreach (var setting in workflowNode.CustomPropertySettings)
+				{
+					jobNode.AddCustomProperty(setting);
+				}
+
+				foreach (var setting in workflowNode.PropertySettings)
+				{
+					jobNode.AddProperty(setting);
+				}
+			}
+
 			return job;
 		}
 

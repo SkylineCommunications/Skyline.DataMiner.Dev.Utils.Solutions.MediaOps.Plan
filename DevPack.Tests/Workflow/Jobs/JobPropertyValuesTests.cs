@@ -153,5 +153,122 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			Assert.IsTrue(ownerByCollectionId.TryGetValue(collection.Id, out var ownerId));
 			Assert.AreEqual(job.Id, ownerId);
 		}
+
+		[TestMethod]
+		public void Job_AddCustomProperty_StoresIndependentCopy()
+		{
+			var job = new Job(Guid.NewGuid()) { Name = "Test" };
+			var setting = new CustomPropertySetting("Tag") { Value = "live" };
+
+			job.AddCustomProperty(setting);
+
+			var stored = job.CustomPropertySettings.Single();
+			Assert.IsFalse(ReferenceEquals(setting, stored), "The scope must store a copy, not the caller's instance.");
+
+			// Mutating the original after adding it must not affect the owner's stored value.
+			setting.Value = "mutated";
+			Assert.AreEqual("live", job.CustomPropertySettings.Single().Value);
+		}
+
+		[TestMethod]
+		public void Job_AddProperty_StoresIndependentCopy()
+		{
+			var property = new StringProperty { Name = "Channel", Scope = "global", SectionName = "General" };
+			var job = new Job(Guid.NewGuid()) { Name = "Test" };
+			var setting = new StringPropertySetting(property) { Value = "one" };
+
+			job.AddProperty(setting);
+
+			var stored = (StringPropertySetting)job.PropertySettings.Single();
+			Assert.IsFalse(ReferenceEquals(setting, stored), "The scope must store a copy, not the caller's instance.");
+
+			setting.Value = "two";
+			Assert.AreEqual("one", ((StringPropertySetting)job.PropertySettings.Single()).Value);
+		}
+
+		[TestMethod]
+		public void Job_SetCustomProperties_StoresIndependentCopies()
+		{
+			var job = new Job(Guid.NewGuid()) { Name = "Test" };
+			var setting = new CustomPropertySetting("Tag") { Value = "live" };
+
+			job.SetCustomProperties(new[] { setting });
+
+			var stored = job.CustomPropertySettings.Single();
+			Assert.IsFalse(ReferenceEquals(setting, stored));
+
+			setting.Value = "mutated";
+			Assert.AreEqual("live", job.CustomPropertySettings.Single().Value);
+		}
+
+		[TestMethod]
+		public void CopyingCustomPropertyBetweenJobs_DoesNotShareReference()
+		{
+			var source = new Job(Guid.NewGuid()) { Name = "Source" };
+			source.AddCustomProperty(new CustomPropertySetting("Tag") { Value = "live" });
+
+			var target = new Job(Guid.NewGuid()) { Name = "Target" };
+
+			// Simulate a user copying the source's properties onto another job.
+			foreach (var setting in source.CustomPropertySettings)
+			{
+				target.AddCustomProperty(setting);
+			}
+
+			var targetSetting = target.CustomPropertySettings.Single();
+			var sourceSetting = source.CustomPropertySettings.Single();
+			Assert.IsFalse(ReferenceEquals(sourceSetting, targetSetting), "Copies between jobs must not share references.");
+
+			// Mutating the copy on the target must not bleed back into the source job.
+			targetSetting.Value = "vod";
+			Assert.AreEqual("live", source.CustomPropertySettings.Single().Value);
+			Assert.AreEqual("vod", target.CustomPropertySettings.Single().Value);
+		}
+
+		[TestMethod]
+		public void JobResourceNode_AddCustomProperty_StoresIndependentCopy()
+		{
+			var node = new JobResourceNode(Guid.NewGuid(), Guid.NewGuid());
+			var setting = new CustomPropertySetting("Tag") { Value = "live" };
+
+			node.AddCustomProperty(setting);
+
+			var stored = node.CustomPropertySettings.Single();
+			Assert.IsFalse(ReferenceEquals(setting, stored), "The scope must store a copy, not the caller's instance.");
+
+			setting.Value = "mutated";
+			Assert.AreEqual("live", node.CustomPropertySettings.Single().Value);
+		}
+
+		[TestMethod]
+		public void NewJob_OwnerProperties_PersistenceActionCarriesOwnerMetadata()
+		{
+			// Arrange: brand-new job with owner-level properties only.
+			var job = new Job(Guid.NewGuid()) { Name = "Test" };
+			job.AddCustomProperty(new CustomPropertySetting("Tag") { Value = "live" });
+
+			// Act
+			job.EnsureContext();
+			var action = job.PropertySettingsScope.BuildPersistenceAction();
+
+			// Assert: the owner collection must be fully addressable.
+			Assert.IsNotNull(action);
+			Assert.IsFalse(action.IsDelete);
+			Assert.AreEqual(job.Id.ToString(), action.Collection.LinkedObjectId, "LinkedObjectId should be the owning job id.");
+			Assert.AreEqual(PropertySettingsContext.MediaOpsScope, action.Collection.Scope, "Scope should be the MediaOps scope.");
+			Assert.AreEqual(string.Empty, action.Collection.SubId, "Owner-level collections use an empty SubId.");
+		}
+
+		[TestMethod]
+		public void DirtyScopeWithoutWiredContext_BuildPersistenceAction_Throws()
+		{
+			// Arrange: a node scope whose context was never wired (e.g. node never attached to a graph).
+			var node = new JobResourceNode(Guid.NewGuid(), Guid.NewGuid());
+			node.AddCustomProperty(new CustomPropertySetting("Tag") { Value = "live" });
+
+			// Act + Assert: persisting dirty content without an owner context would create an orphaned
+			// collection with a null LinkedObjectId, so it must fail fast instead.
+			Assert.ThrowsException<InvalidOperationException>(() => node.PropertySettingsScope.BuildPersistenceAction());
+		}
 	}
 }

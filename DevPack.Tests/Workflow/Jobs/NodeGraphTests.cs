@@ -5,13 +5,13 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 	using RT_MediaOps.Plan.Extensions;
 	using RT_MediaOps.Plan.RegressionTests;
-	using RT_MediaOps.Plan.RST;
 
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
 	[TestClass]
 	[TestCategory("IntegrationTest")]
+	[DoNotParallelize]
 	public sealed class NodeGraphTests : IDisposable
 	{
 		private readonly TestObjectCreator objectCreator;
