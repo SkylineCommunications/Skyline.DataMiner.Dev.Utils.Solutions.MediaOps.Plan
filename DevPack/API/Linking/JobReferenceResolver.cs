@@ -64,7 +64,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			var node = Job.NodeGraph.Nodes.FirstOrDefault(n => String.Equals(n.Id, reference.NodeId, StringComparison.OrdinalIgnoreCase));
 
-			if (!node.IsResourceNode(out var resourceNode))
+			if (node == null ||
+				!node.IsResourceNode(out var resourceNode))
 			{
 				return null;
 			}
