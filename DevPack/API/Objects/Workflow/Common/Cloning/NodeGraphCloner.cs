@@ -87,6 +87,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				destination.Connect(from, to);
 			}
 
+			foreach (var link in source.Links)
+			{
+				if (!nodeMap.TryGetValue(link.Value, out var parent) ||
+					!nodeMap.TryGetValue(link.Key, out var child))
+				{
+					continue;
+				}
+
+				destination.Link(parent, child);
+			}
+
 			return nodeIdMap;
 		}
 	}
