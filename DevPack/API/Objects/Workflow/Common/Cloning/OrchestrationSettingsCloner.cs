@@ -1,6 +1,5 @@
 namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
-	using System;
 	using System.Collections.Generic;
 
 	/// <summary>
@@ -17,11 +16,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	///
 	/// Reference handling notes:
 	/// - References pointing at nodes that were cloned have their <see cref="DataReference.NodeId"/> rewritten so
-	///   they target the new destination node.
+	///   they target the new destination node. This applies to every node-scoped reference type, including the
+	///   job-scoped name and property references when they are scoped to a specific node.
 	/// - References pointing at nodes that are not part of the cloned graph are passed through untouched.
-	/// - Workflow-/job-scoped references (name and property references) are intentionally left untouched for now;
-	///   the property model on jobs and workflows is still being designed and the workflow-name use case has not been
-	///   confirmed. Once those are clarified the type swaps can be added here in a single place.
+	/// - References that target the workflow / job itself (i.e. without a <see cref="DataReference.NodeId"/>) are
+	///   passed through untouched.
 	/// </remarks>
 	internal static class OrchestrationSettingsCloner
 	{
@@ -125,11 +124,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Returns a new <see cref="DataReference"/> with its <see cref="DataReference.NodeId"/> rewritten when it
 		/// points at a node that was cloned. References that are unknown to the map are returned as-is.
 		/// </summary>
-		/// <remarks>
-		/// Workflow-/job-scoped references (<c>WorkflowNameReference</c>, <c>WorkflowPropertyReference</c>,
-		/// <c>JobNameReference</c>, <c>JobPropertyReference</c>) are intentionally not transformed here.
-		/// Support for those will be added in a later phase once the property model on jobs and workflows is in place.
-		/// </remarks>
 		private static DataReference RemapReference(DataReference reference, IReadOnlyDictionary<string, string> nodeIdMap)
 		{
 			if (reference == null)
@@ -152,6 +146,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				CapabilityParameterReference cpr => new CapabilityParameterReference(cpr.ParameterId, mappedNodeId),
 				CapacityParameterReference cpr => new CapacityParameterReference(cpr.ParameterId, mappedNodeId),
 				ConfigurationParameterReference cpr => new ConfigurationParameterReference(cpr.ParameterId, mappedNodeId),
+				JobNameReference _ => new JobNameReference(mappedNodeId),
+				JobPropertyReference jpr => new JobPropertyReference(jpr.JobPropertyId, mappedNodeId),
 				_ => reference,
 			};
 		}

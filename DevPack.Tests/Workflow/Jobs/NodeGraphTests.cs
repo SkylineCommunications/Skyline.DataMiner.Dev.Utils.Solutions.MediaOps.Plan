@@ -11,6 +11,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 	[TestClass]
 	[TestCategory("IntegrationTest")]
+	[DoNotParallelize]
 	public sealed class NodeGraphTests : IDisposable
 	{
 		private readonly TestObjectCreator objectCreator;
