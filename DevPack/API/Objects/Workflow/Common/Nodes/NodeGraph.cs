@@ -351,6 +351,16 @@
 		/// <returns>true if the instances are equal; otherwise, false.</returns>
 		public bool Equals(NodeGraph<TNode> other)
 		{
+			if (ReferenceEquals(this, other))
+			{
+				return true;
+			}
+
+			if (other is null)
+			{
+				return false;
+			}
+
 			return nodes.ScrambledEquals(other.nodes)
 				&& connections.ScrambledEquals(other.connections)
 				&& LinkKeys().ScrambledEquals(other.LinkKeys());
