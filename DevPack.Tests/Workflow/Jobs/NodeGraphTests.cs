@@ -46,6 +46,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				Name = $"{prefix}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
 			};
 
 			var resourceNode = new JobResourceNode(pool, resource);
@@ -78,6 +80,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				Name = $"{prefix}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
 			};
 			var node = new JobResourceNode(pool.Id, missingResourceId);
 			job.NodeGraph.Add(node);
@@ -117,6 +121,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				Name = $"{prefix}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
 			};
 			var node = new JobResourceNode(pool, resource);
 			job.NodeGraph.Add(node);
@@ -151,6 +157,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				Name = $"{prefix}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
 			};
 			var node = new JobResourcePoolNode(pool);
 			job.NodeGraph.Add(node);
@@ -183,6 +191,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				Name = $"{prefix}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
 			};
 			var node = new JobResourcePoolNode(missingPoolId);
 			job.NodeGraph.Add(node);
@@ -223,6 +233,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				Name = $"{prefix}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
 			};
 			var node = new JobResourceNode(poolB, resource);
 			job.NodeGraph.Add(node);
@@ -258,6 +270,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				Name = $"{prefix}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
 			};
 			var node = new JobResourcePoolNode(pool)
 			{
@@ -295,6 +309,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				Name = $"{prefix}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
 			};
 			var node = new JobResourcePoolNode(pool);
 			job.NodeGraph.Add(node).Connect(node, node);
@@ -332,6 +348,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				Name = $"{prefix}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
 			};
 			var badResourceNode = new JobResourceNode(pool.Id, missingResourceId);
 			var badPoolNode = new JobResourcePoolNode(missingPoolId);
@@ -369,6 +387,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				Name = $"{prefix}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
 			});
 
 			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
@@ -411,6 +431,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				Name = $"{prefix}_Valid",
 				Start = currentTime,
 				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
 			};
 			validJob.NodeGraph.Add(new JobResourceNode(pool, resource));
 
@@ -419,6 +441,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				Name = $"{prefix}_Invalid",
 				Start = currentTime,
 				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
 			};
 			var missingResourceId = Guid.NewGuid();
 			var invalidNode = new JobResourceNode(pool.Id, missingResourceId);

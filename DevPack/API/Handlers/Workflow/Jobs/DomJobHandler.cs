@@ -753,7 +753,35 @@
 				return;
 			}
 
-			foreach (var job in apiJobs.Where(x => x.Start.Ticks % TimeSpan.TicksPerSecond != 0))
+			var toValidate = apiJobs.ToList();
+
+			foreach (var job in toValidate.Where(x => x.Start == default).ToArray())
+			{
+				var error = new JobInvalidStartTimeError
+				{
+					ErrorMessage = "Start time is required.",
+					Id = job.Id,
+					Start = job.Start,
+				};
+
+				ReportError(job.Id, error);
+				toValidate.Remove(job);
+			}
+
+			foreach (var job in toValidate.Where(x => x.End == default).ToArray())
+			{
+				var error = new JobInvalidEndTimeError
+				{
+					ErrorMessage = "End time is required.",
+					Id = job.Id,
+					End = job.End,
+				};
+
+				ReportError(job.Id, error);
+				toValidate.Remove(job);
+			}
+
+			foreach (var job in toValidate.Where(x => x.Start.Ticks % TimeSpan.TicksPerSecond != 0))
 			{
 				var error = new JobInvalidStartTimeError
 				{
@@ -765,7 +793,7 @@
 				ReportError(job.Id, error);
 			}
 
-			foreach (var job in apiJobs.Where(x => x.End.Ticks % TimeSpan.TicksPerSecond != 0))
+			foreach (var job in toValidate.Where(x => x.End.Ticks % TimeSpan.TicksPerSecond != 0))
 			{
 				var error = new JobInvalidEndTimeError
 				{
@@ -777,7 +805,7 @@
 				ReportError(job.Id, error);
 			}
 
-			foreach (var job in apiJobs.Where(x => x.End < x.Start))
+			foreach (var job in toValidate.Where(x => x.End < x.Start))
 			{
 				var error = new JobInvalidTimingError
 				{
@@ -805,26 +833,42 @@
 
 			var toValidate = apiJobs.ToList();
 
-			foreach (var job in toValidate.Where(x => x.PreRoll < TimeSpan.Zero).ToArray())
+			foreach (var job in toValidate.Where(x => x.PreRollStart == default).ToArray())
 			{
 				var error = new JobInvalidPreRollError
 				{
-					ErrorMessage = "Pre-roll cannot be negative.",
+					ErrorMessage = "Pre-roll start time is required.",
 					Id = job.Id,
-					PreRoll = job.PreRoll,
+					PreRollStart = job.PreRollStart,
+					Start = job.Start,
 				};
 
 				ReportError(job.Id, error);
 				toValidate.Remove(job);
 			}
 
-			foreach (var job in toValidate.Where(x => x.PreRoll.Ticks % TimeSpan.TicksPerSecond != 0))
+			foreach (var job in toValidate.Where(x => x.PreRollStart.Ticks % TimeSpan.TicksPerSecond != 0).ToArray())
 			{
 				var error = new JobInvalidPreRollError
 				{
-					ErrorMessage = "Pre-roll must be a multiple of seconds.",
+					ErrorMessage = "Pre-roll start time must not have sub-second precision.",
 					Id = job.Id,
-					PreRoll = job.PreRoll,
+					PreRollStart = job.PreRollStart,
+					Start = job.Start,
+				};
+
+				ReportError(job.Id, error);
+				toValidate.Remove(job);
+			}
+
+			foreach (var job in toValidate.Where(x => x.PreRollStart > x.Start))
+			{
+				var error = new JobInvalidPreRollError
+				{
+					ErrorMessage = "Pre-roll start cannot be after the job start time.",
+					Id = job.Id,
+					PreRollStart = job.PreRollStart,
+					Start = job.Start,
 				};
 
 				ReportError(job.Id, error);
@@ -845,26 +889,42 @@
 
 			var toValidate = apiJobs.ToList();
 
-			foreach (var job in toValidate.Where(x => x.PostRoll < TimeSpan.Zero).ToArray())
+			foreach (var job in toValidate.Where(x => x.PostRollEnd == default).ToArray())
 			{
 				var error = new JobInvalidPostRollError
 				{
-					ErrorMessage = "Post-roll cannot be negative.",
+					ErrorMessage = "Post-roll end time is required.",
 					Id = job.Id,
-					PostRoll = job.PostRoll,
+					PostRollEnd = job.PostRollEnd,
+					End = job.End,
 				};
 
 				ReportError(job.Id, error);
 				toValidate.Remove(job);
 			}
 
-			foreach (var job in toValidate.Where(x => x.PostRoll.Ticks % TimeSpan.TicksPerSecond != 0))
+			foreach (var job in toValidate.Where(x => x.PostRollEnd.Ticks % TimeSpan.TicksPerSecond != 0).ToArray())
 			{
 				var error = new JobInvalidPostRollError
 				{
-					ErrorMessage = "Post-roll must be a multiple of seconds.",
+					ErrorMessage = "Post-roll end time must not have sub-second precision.",
 					Id = job.Id,
-					PostRoll = job.PostRoll,
+					PostRollEnd = job.PostRollEnd,
+					End = job.End,
+				};
+
+				ReportError(job.Id, error);
+				toValidate.Remove(job);
+			}
+
+			foreach (var job in toValidate.Where(x => x.PostRollEnd < x.End))
+			{
+				var error = new JobInvalidPostRollError
+				{
+					ErrorMessage = "Post-roll end cannot be before the job end time.",
+					Id = job.Id,
+					PostRollEnd = job.PostRollEnd,
+					End = job.End,
 				};
 
 				ReportError(job.Id, error);

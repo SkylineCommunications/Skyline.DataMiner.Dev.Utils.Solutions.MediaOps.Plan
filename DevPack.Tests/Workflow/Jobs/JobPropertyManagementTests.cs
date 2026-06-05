@@ -43,6 +43,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				Name = $"{prefix}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
 			};
 			job.AddCustomProperty(new CustomPropertySetting("Tag1") { Value = "Value1" });
 
@@ -114,6 +116,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				Name = $"{prefix}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
 			};
 			job.AddCustomProperty(new CustomPropertySetting("Tag1") { Value = "Value1" });
 

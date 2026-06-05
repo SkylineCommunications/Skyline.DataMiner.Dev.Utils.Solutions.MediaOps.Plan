@@ -83,8 +83,11 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			Assert.IsNotNull(job);
 			Assert.AreEqual(JobPriority.High, job.Priority);
-			Assert.AreEqual(TimeSpan.FromSeconds(7), job.PreRoll);
-			Assert.AreEqual(TimeSpan.FromSeconds(11), job.PostRoll);
+
+			// FromWorkflow no longer carries over the workflow's pre-roll/post-roll. It is up to the
+			// consumer to apply the workflow's configuration onto the job timings if they want.
+			Assert.AreEqual(default(DateTimeOffset), job.PreRollStart);
+			Assert.AreEqual(default(DateTimeOffset), job.PostRollEnd);
 		}
 
 		[TestMethod]
