@@ -50,11 +50,21 @@
 		protected abstract MediaOpsErrorData CreateConnectionInvalidNodeLinkError(string connectionId, string nodeId, string errorMessage);
 		protected abstract MediaOpsErrorData CreateInvalidNodeLinkError(string parentNodeId, string childNodeId, string errorMessage);
 
+		/// <summary>
+		/// Validates whether the net original-to-final swap transition is allowed for the owning context.
+		/// </summary>
+		/// <param name="original">The node that was originally part of the graph before any swap.</param>
+		/// <param name="target">The node that currently represents <paramref name="original"/> after one or more swaps.</param>
+		/// <param name="error">When the swap is not allowed, contains the typed error; otherwise, <see langword="null"/>.</param>
+		/// <returns><see langword="true"/> when the swap is allowed; otherwise, <see langword="false"/>.</returns>
+		protected abstract bool ValidateSwap(TNode original, TNode target, out MediaOpsErrorData error);
+
 		private void Validate()
 		{
 			ValidateNodes();
 			ValidateConnections();
 			ValidateLinks();
+			ValidateSwaps();
 		}
 
 		private void ValidateNodes()
@@ -274,6 +284,18 @@
 				ReportError(apiObjectId, CreateInvalidNodeLinkError(parent.Id, child.Id, $"Child node with ID '{child.Id}' cannot participate in any connection."));
 			}
 		}
+
+		private void ValidateSwaps()
+		{
+			// Only the net original-to-final transition is validated; intermediate swap steps are ignored.
+			foreach (var swap in nodeGraph.SwapMappings)
+			{
+				if (!ValidateSwap(swap.Key, swap.Value, out var error))
+				{
+					ReportError(apiObjectId, error);
+				}
+			}
+		}
 	}
 
 	internal class JobNodeGraphValidator : NodeGraphValidator<JobNode>
@@ -381,6 +403,24 @@
 				Id = ApiObjectId,
 			};
 		}
+
+		protected override bool ValidateSwap(JobNode original, JobNode target, out MediaOpsErrorData error)
+		{
+			if (JobNodeSwapValidator.IsSwapAllowed(original, target, out var errorMessage))
+			{
+				error = null;
+				return true;
+			}
+
+			error = new JobNodeSwapNotAllowedError
+			{
+				Id = ApiObjectId,
+				NodeId = original.Id,
+				TargetNodeId = target.Id,
+				ErrorMessage = errorMessage,
+			};
+			return false;
+		}
 	}
 
 	internal class WorkflowNodeGraphValidator : NodeGraphValidator<WorkflowNode>
@@ -487,6 +527,24 @@
 				ChildNodeId = childNodeId,
 				Id = ApiObjectId,
 			};
+		}
+
+		protected override bool ValidateSwap(WorkflowNode original, WorkflowNode target, out MediaOpsErrorData error)
+		{
+			if (WorkflowNodeSwapValidator.IsSwapAllowed(original, target, out var errorMessage))
+			{
+				error = null;
+				return true;
+			}
+
+			error = new WorkflowNodeSwapNotAllowedError
+			{
+				Id = ApiObjectId,
+				NodeId = original.Id,
+				TargetNodeId = target.Id,
+				ErrorMessage = errorMessage,
+			};
+			return false;
 		}
 	}
 }

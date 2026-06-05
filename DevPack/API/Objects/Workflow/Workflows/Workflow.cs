@@ -27,6 +27,7 @@
 
 			OrchestrationSettings = new WorkflowOrchestrationSettings();
 			NodeGraph = new NodeGraph<WorkflowNode>();
+			ConfigureNodeGraphSwapHooks();
 		}
 
 		/// <summary>
@@ -40,6 +41,7 @@
 
 			OrchestrationSettings = new WorkflowOrchestrationSettings();
 			NodeGraph = new NodeGraph<WorkflowNode>();
+			ConfigureNodeGraphSwapHooks();
 		}
 
 		internal Workflow(MediaOpsPlanApi planApi, StorageWorkflow.WorkflowsInstance instance) : base(instance.ID.Id)
@@ -343,6 +345,7 @@
 			if (nodes == null || nodes.Count == 0)
 			{
 				NodeGraph = new NodeGraph<WorkflowNode>();
+				ConfigureNodeGraphSwapHooks();
 				return;
 			}
 
@@ -390,6 +393,17 @@
 			var parsedLinks = ParseLinks(planApi, parsedNodesById, relationships);
 
 			NodeGraph = new NodeGraph<WorkflowNode>(parsedNodesById.Values, parsedConnections, parsedLinks);
+			ConfigureNodeGraphSwapHooks();
+		}
+
+		/// <summary>
+		/// Configures the swap behavior of <see cref="NodeGraph"/> for the workflow context: retargets the workflow-level
+		/// orchestration settings after a swap. The workflow-specific swap type rules are validated against the net
+		/// original-to-final transition by <see cref="WorkflowNodeGraphValidator"/> when the workflow is saved.
+		/// </summary>
+		private void ConfigureNodeGraphSwapHooks()
+		{
+			NodeGraph.SetExternalReferenceRetargeter(nodeIdMap => OrchestrationSettingsCloner.RetargetReferences(OrchestrationSettings, nodeIdMap));
 		}
 
 		private List<KeyValuePair<WorkflowNode, WorkflowNode>> ParseLinks(MediaOpsPlanApi planApi, IReadOnlyDictionary<string, WorkflowNode> parsedNodesById, ICollection<StorageWorkflow.NodeRelationshipsSection> relationships)

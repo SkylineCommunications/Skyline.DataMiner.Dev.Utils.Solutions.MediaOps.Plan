@@ -73,6 +73,76 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <summary>
+		/// Rewrites, in place, every embedded <see cref="DataReference"/> on <paramref name="settings"/> using
+		/// <paramref name="nodeIdMap"/>. Unlike <see cref="Clone"/>, this does not copy any data; it only retargets
+		/// references that already live on the supplied settings instance.
+		/// </summary>
+		/// <param name="settings">The orchestration settings to retarget. May be <see langword="null"/>, in which case nothing happens.</param>
+		/// <param name="nodeIdMap">A map from old node ids to new node ids.</param>
+		public static void RetargetReferences(OrchestrationSettings settings, IReadOnlyDictionary<string, string> nodeIdMap)
+		{
+			if (settings == null || nodeIdMap == null)
+			{
+				return;
+			}
+
+			foreach (var setting in settings.Capabilities)
+			{
+				setting.Reference = RemapReference(setting.Reference, nodeIdMap);
+			}
+
+			foreach (var setting in settings.Capacities)
+			{
+				setting.Reference = RemapReference(setting.Reference, nodeIdMap);
+			}
+
+			foreach (var setting in settings.Configurations)
+			{
+				setting.Reference = RemapReference(setting.Reference, nodeIdMap);
+			}
+
+			foreach (var orchestrationEvent in settings.OrchestrationEvents)
+			{
+				if (orchestrationEvent.ExecutionDetails != null)
+				{
+					RetargetExecutionDetails(orchestrationEvent.ExecutionDetails, nodeIdMap);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Rewrites, in place, every embedded <see cref="DataReference"/> on <paramref name="details"/> using
+		/// <paramref name="nodeIdMap"/>.
+		/// </summary>
+		private static void RetargetExecutionDetails(ScriptExecutionDetails details, IReadOnlyDictionary<string, string> nodeIdMap)
+		{
+			foreach (var element in details.ScriptElements)
+			{
+				element.Reference = RemapReference(element.Reference, nodeIdMap);
+			}
+
+			foreach (var parameter in details.ScriptParameters)
+			{
+				parameter.Reference = RemapReference(parameter.Reference, nodeIdMap);
+			}
+
+			foreach (var setting in details.Capabilities)
+			{
+				setting.Reference = RemapReference(setting.Reference, nodeIdMap);
+			}
+
+			foreach (var setting in details.Capacities)
+			{
+				setting.Reference = RemapReference(setting.Reference, nodeIdMap);
+			}
+
+			foreach (var setting in details.Configurations)
+			{
+				setting.Reference = RemapReference(setting.Reference, nodeIdMap);
+			}
+		}
+
+		/// <summary>
 		/// Creates an independent copy of <paramref name="source"/> in which every <see cref="DataReference"/>
 		/// has been retargeted using <paramref name="nodeIdMap"/>.
 		/// </summary>

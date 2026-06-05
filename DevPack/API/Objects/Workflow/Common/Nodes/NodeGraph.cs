@@ -16,6 +16,12 @@
 		private readonly List<NodeConnection<TNode>> connections = [];
 		private readonly Dictionary<TNode, TNode> childToParent = [];
 
+		// Maps the original node that was swapped out to the node that currently represents it in the graph.
+		// The original node is always kept as the key so future logic (e.g. running jobs) can reason about it.
+		private readonly Dictionary<TNode, TNode> originalToCurrentSwap = [];
+
+		private Action<IReadOnlyDictionary<string, string>> externalReferenceRetargeter;
+
 		/// <summary>
 		/// Initializes a new instance of the <see cref="NodeGraph{TNode}"/> class.
 		/// </summary>
@@ -159,6 +165,168 @@
 
 			nodes.Remove(node);
 		}
+
+		/// <summary>
+		/// Replaces an existing node in the graph with a new, not-yet-added node, retargeting all connections,
+		/// parent-child links and node-scoped <see cref="DataReference"/>s to the new node.
+		/// </summary>
+		/// <remarks>
+		/// The new node receives its own identifier; all references to the old node's identifier are rewritten to
+		/// the new one. The original node that was swapped out is preserved internally (see <see cref="GetOriginalNode"/>);
+		/// when a previously swapped node is swapped again, the mapping keeps the original node and updates its current
+		/// representation to <paramref name="newNode"/>.
+		/// Context-specific type rules (e.g. a resource node can only be swapped to another resource node inside a job)
+		/// are not enforced here; they are validated against the net original-to-final transition by the node graph
+		/// validator when the owning job or workflow is saved, so all swap errors are aggregated with the other
+		/// validation errors instead of failing on the first illegal swap.
+		/// </remarks>
+		/// <param name="oldNode">The node currently in the graph that should be replaced.</param>
+		/// <param name="newNode">The new, freshly initialized node that is not part of the graph.</param>
+		/// <returns>The current <see cref="NodeGraph{TNode}"/> instance for method chaining.</returns>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="oldNode"/> or <paramref name="newNode"/> is null.</exception>
+		/// <exception cref="InvalidOperationException">Thrown when <paramref name="oldNode"/> is not part of the graph, or when <paramref name="newNode"/> is already part of the graph or is not a newly initialized node.</exception>
+		public NodeGraph<TNode> Swap(TNode oldNode, TNode newNode)
+		{
+			if (oldNode == null)
+			{
+				throw new ArgumentNullException(nameof(oldNode));
+			}
+
+			if (newNode == null)
+			{
+				throw new ArgumentNullException(nameof(newNode));
+			}
+
+			if (!nodes.Contains(oldNode))
+			{
+				throw new InvalidOperationException("Node to swap is not part of this graph.");
+			}
+
+			if (nodes.Contains(newNode))
+			{
+				throw new InvalidOperationException("The new node is already part of this graph. The node to swap to must be a new node.");
+			}
+
+			if (!newNode.IsNew)
+			{
+				throw new InvalidOperationException("The node to swap to must be a newly initialized node.");
+			}
+
+			// Context-specific type rules (e.g. resource -> resource only inside jobs) are deferred to the node graph
+			// validator so that all swap errors are aggregated with the other validation errors at save time.
+
+			// Replace the node in the node list, preserving its position.
+			var index = nodes.IndexOf(oldNode);
+			nodes[index] = newNode;
+
+			// Retarget all connections that reference the old node.
+			foreach (var connection in connections.Where(c => c.From == oldNode || c.To == oldNode).ToList())
+			{
+				connection.Retarget(oldNode, newNode);
+			}
+
+			// Retarget parent-child links: the old node can be both a parent and a child.
+			RetargetLinks(oldNode, newNode);
+
+			// Rewrite node-scoped DataReferences (orchestration settings of every node in the graph).
+			var idMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+			{
+				[oldNode.Id] = newNode.Id,
+			};
+
+			foreach (var node in nodes)
+			{
+				OrchestrationSettingsCloner.RetargetReferences(node.OrchestrationSettings, idMap);
+			}
+
+			// Let the owner retarget any references that live outside the graph (e.g. owner-level orchestration settings).
+			externalReferenceRetargeter?.Invoke(idMap);
+
+			// Track the swap so the original node stays available and re-swaps keep referencing the original.
+			RecordSwap(oldNode, newNode);
+
+			return this;
+		}
+
+		/// <summary>
+		/// Gets the original node that a current node represents, if the current node is the result of one or more swaps.
+		/// </summary>
+		/// <param name="currentNode">The node that currently lives in the graph.</param>
+		/// <returns>The original node that was swapped out, or <paramref name="currentNode"/> itself when it was never the result of a swap.</returns>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="currentNode"/> is null.</exception>
+		public TNode GetOriginalNode(TNode currentNode)
+		{
+			if (currentNode == null)
+			{
+				throw new ArgumentNullException(nameof(currentNode));
+			}
+
+			foreach (var entry in originalToCurrentSwap)
+			{
+				if (entry.Value == currentNode)
+				{
+					return entry.Key;
+				}
+			}
+
+			return currentNode;
+		}
+
+		/// <summary>
+		/// Gets the internal mapping of each originally swapped-out node to the node that currently represents it.
+		/// </summary>
+		internal IReadOnlyDictionary<TNode, TNode> SwapMappings => originalToCurrentSwap;
+
+		/// <summary>
+		/// Sets the delegate that retargets references living outside the graph (e.g. owner-level orchestration settings)
+		/// after a swap, using the old-id -> new-id map produced by the swap.
+		/// </summary>
+		/// <param name="retargeter">The retarget delegate, or <see langword="null"/> to clear it.</param>
+		internal void SetExternalReferenceRetargeter(Action<IReadOnlyDictionary<string, string>> retargeter)
+		{
+			externalReferenceRetargeter = retargeter;
+		}
+
+		private void RetargetLinks(TNode oldNode, TNode newNode)
+		{
+			// Move a child link belonging to the old node onto the new node.
+			if (childToParent.TryGetValue(oldNode, out var parent))
+			{
+				childToParent.Remove(oldNode);
+				childToParent[newNode] = parent;
+			}
+
+			// Re-point any children whose parent was the old node.
+			foreach (var child in childToParent.Where(kvp => kvp.Value == oldNode).Select(kvp => kvp.Key).ToList())
+			{
+				childToParent[child] = newNode;
+			}
+		}
+
+		private void RecordSwap(TNode oldNode, TNode newNode)
+		{
+			// If the old node is already the current representation of an earlier swap, keep the original key and
+			// update its current value. Otherwise, the old node becomes the original key of a new mapping.
+			TNode originalKey = null;
+			foreach (var entry in originalToCurrentSwap)
+			{
+				if (entry.Value == oldNode)
+				{
+					originalKey = entry.Key;
+					break;
+				}
+			}
+
+			if (originalKey != null)
+			{
+				originalToCurrentSwap[originalKey] = newNode;
+			}
+			else
+			{
+				originalToCurrentSwap[oldNode] = newNode;
+			}
+		}
+
 
 		/// <summary>
 		/// Creates a directed connection from one node to another.
