@@ -266,6 +266,16 @@
 				throw new ArgumentNullException(nameof(child));
 			}
 
+			if (!nodes.Contains(parent))
+			{
+				throw new InvalidOperationException("Parent node is not part of this graph.");
+			}
+
+			if (!nodes.Contains(child))
+			{
+				throw new InvalidOperationException("Child node is not part of this graph.");
+			}
+
 			childToParent[child] = parent;
 
 			return this;
