@@ -92,14 +92,26 @@
 		public DateTimeOffset End { get; set; }
 
 		/// <summary>
-		/// Gets or sets the pre-roll of the job.
+		/// Gets or sets the pre-roll start time of the job. This must be earlier than or equal to <see cref="Start"/>.
+		/// When equal to <see cref="Start"/>, the job has no pre-roll.
 		/// </summary>
-		public TimeSpan PreRoll { get; set; }
+		public DateTimeOffset PreRollStart { get; set; }
 
 		/// <summary>
-		/// Gets or sets the post-roll of the job.
+		/// Gets or sets the post-roll end time of the job. This must be later than or equal to <see cref="End"/>.
+		/// When equal to <see cref="End"/>, the job has no post-roll.
 		/// </summary>
-		public TimeSpan PostRoll { get; set; }
+		public DateTimeOffset PostRollEnd { get; set; }
+
+		/// <summary>
+		/// Gets the pre-roll duration of the job, calculated as the difference between <see cref="Start"/> and <see cref="PreRollStart"/>.
+		/// </summary>
+		public TimeSpan PreRollDuration => Start - PreRollStart;
+
+		/// <summary>
+		/// Gets the post-roll duration of the job, calculated as the difference between <see cref="PostRollEnd"/> and <see cref="End"/>.
+		/// </summary>
+		public TimeSpan PostRollDuration => PostRollEnd - End;
 
 		/// <summary>
 		/// Gets or sets the notes or additional information.
@@ -313,8 +325,6 @@
 			var job = new Job
 			{
 				Priority = EnumExtensions.MapEnum<WorkflowPriority, JobPriority>(workflow.Priority),
-				PreRoll = workflow.PreRoll,
-				PostRoll = workflow.PostRoll,
 			};
 
 			// 1. Clone the node graph first so we have a complete workflow-node-id -> job-node-id map
@@ -437,8 +447,8 @@
 				hash = (hash * 23) + Priority.GetHashCode();
 				hash = (hash * 23) + Start.GetHashCode();
 				hash = (hash * 23) + End.GetHashCode();
-				hash = (hash * 23) + PreRoll.GetHashCode();
-				hash = (hash * 23) + PostRoll.GetHashCode();
+				hash = (hash * 23) + PreRollStart.GetHashCode();
+				hash = (hash * 23) + PostRollEnd.GetHashCode();
 				hash = (hash * 23) + (Notes != null ? Notes.GetHashCode() : 0);
 				hash = (hash * 23) + (OrchestrationSettings != null ? OrchestrationSettings.GetHashCode() : 0);
 				hash = (hash * 23) + (NodeGraph != null ? NodeGraph.GetHashCode() : 0);
@@ -470,8 +480,8 @@
 				   Priority == other.Priority &&
 				   Start == other.Start &&
 				   End == other.End &&
-				   PreRoll == other.PreRoll &&
-				   PostRoll == other.PostRoll &&
+				   PreRollStart == other.PreRollStart &&
+				   PostRollEnd == other.PostRollEnd &&
 				   Notes == other.Notes &&
 				   OrchestrationSettings == other.OrchestrationSettings &&
 				   NodeGraph == other.NodeGraph &&
@@ -493,8 +503,8 @@
 			updatedInstance.JobInfo.JobDescription = Description;
 			updatedInstance.JobInfo.JobStart = Start.UtcDateTime;
 			updatedInstance.JobInfo.JobEnd = End.UtcDateTime;
-			updatedInstance.JobInfo.Preroll = PreRoll != TimeSpan.Zero ? Start.Add(-PreRoll).UtcDateTime : Start.UtcDateTime;
-			updatedInstance.JobInfo.Postroll = PostRoll != TimeSpan.Zero ? End.Add(PostRoll).UtcDateTime : End.UtcDateTime;
+			updatedInstance.JobInfo.Preroll = PreRollStart.UtcDateTime;
+			updatedInstance.JobInfo.Postroll = PostRollEnd.UtcDateTime;
 			updatedInstance.JobInfo.JobNotes = Notes;
 
 			updatedInstance.JobExecution.JobConfiguration = OrchestrationSettings.Id;
@@ -564,8 +574,8 @@
 			Description = instance.JobInfo.JobDescription;
 			Start = instance.JobInfo.JobStart.Value;
 			End = instance.JobInfo.JobEnd.Value;
-			PreRoll = instance.JobInfo.Preroll.HasValue ? (Start - instance.JobInfo.Preroll.Value) : TimeSpan.Zero;
-			PostRoll = instance.JobInfo.Postroll.HasValue ? (instance.JobInfo.Postroll.Value - End) : TimeSpan.Zero;
+			PreRollStart = instance.JobInfo.Preroll.HasValue ? instance.JobInfo.Preroll.Value : Start;
+			PostRollEnd = instance.JobInfo.Postroll.HasValue ? instance.JobInfo.Postroll.Value : End;
 			Notes = instance.JobInfo.JobNotes;
 
 			Priority = instance.JobInfo.JobPriority.HasValue

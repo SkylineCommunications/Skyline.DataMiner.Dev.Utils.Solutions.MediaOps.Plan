@@ -39,6 +39,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				Key = userKey,
 				Start = currentTime,
 				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
 			};
 
 			job = objectCreator.CreateJob(job);
@@ -66,6 +68,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 					Name = $"{prefix}_Job",
 					Start = currentTime,
 					End = currentTime.AddMinutes(5),
+					PreRollStart = currentTime,
+					PostRollEnd = currentTime.AddMinutes(5),
 				};
 
 				Assert.IsTrue(string.IsNullOrEmpty(job.Key), "Key should not be set before creation when auto-generation is expected.");
