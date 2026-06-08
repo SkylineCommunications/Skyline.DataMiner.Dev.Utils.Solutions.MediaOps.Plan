@@ -174,6 +174,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			job.Name = $"{prefix}_Job";
 			job.Start = DateTime.UtcNow.RoundToNextSecond();
 			job.End = job.Start.AddMinutes(10);
+			job.PreRollStart = job.Start;
+			job.PostRollEnd = job.End;
 
 			job = objectCreator.CreateJob(job);
 
