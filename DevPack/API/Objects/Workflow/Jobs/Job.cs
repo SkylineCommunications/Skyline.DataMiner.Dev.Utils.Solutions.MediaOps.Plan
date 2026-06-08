@@ -131,8 +131,6 @@
 		/// <summary>
 		/// Gets the node graph containing all nodes and connections that define the job structure.
 		/// </summary>
-		// TODO: When running-job swap logic is added, consume NodeGraph.SwapMappings here so that for jobs in a
-		// running state the original node is not replaced but its end time is adapted instead.
 		public NodeGraph<JobNode> NodeGraph { get; private set; }
 
 		/// <summary>

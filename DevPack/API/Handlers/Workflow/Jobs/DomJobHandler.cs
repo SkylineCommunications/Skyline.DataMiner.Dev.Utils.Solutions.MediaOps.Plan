@@ -15,10 +15,17 @@
 	internal class DomJobHandler : DomInstanceApiObjectValidator<DomJob>
 	{
 		private readonly MediaOpsPlanApi planApi;
+		private readonly DateTimeOffset currentTime;
 
 		private DomJobHandler(MediaOpsPlanApi planApi)
+			: this(planApi, DateTimeOffset.UtcNow)
+		{
+		}
+
+		private DomJobHandler(MediaOpsPlanApi planApi, DateTimeOffset currentTime)
 		{
 			this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
+			this.currentTime = currentTime;
 		}
 
 		internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Job> apiJobs, out DomInstanceBulkOperationResult<DomJob> result)
@@ -60,13 +67,20 @@
 			ValidateKeys(toCreate);
 			AssignKeys(toCreate);
 			AssignNames(toCreate);
-			AssignNodeTimings(toCreate);
 			ValidateStateForUpdateAction(toUpdate);
 
 			ValidateNames(apiJobs);
 			ValidateTimings(apiJobs);
 			ValidatePreRoll(apiJobs);
 			ValidatePostRoll(apiJobs);
+			ValidateStateTimings(apiJobs);
+
+			// Apply the node timings before validating the node graph so that restored/added/changed nodes are part of
+			// the whole-graph validation, and before the lock's GetJobsWithChanges so the DOM snapshots capture them.
+			// Only valid jobs are touched so invalid job-level timings are not propagated onto the nodes. The application
+			// is idempotent, so a job whose timings did not change produces no node-timing diff (and no spurious conflict).
+			ApplyNodeTimings(apiJobs.Where(IsValid).ToList());
+
 			ValidateNodeGraph(apiJobs);
 			ValidateDescription(apiJobs);
 			ValidateNotes(apiJobs);
@@ -96,6 +110,13 @@
 			var toUpdate = apiJobs.Except(toCreate).ToList();
 
 			var changeResults = GetJobsWithChanges(toUpdate);
+
+			// Re-validate the timing chain on the merged result while holding the lock. The pre-lock validation ran
+			// against this user's own snapshot, but a concurrent user may have changed a different timing field that
+			// only became visible after the merge. This check is baseline-independent: it asserts the absolute
+			// ordering invariants (PreRollStart <= Start <= End <= PostRollEnd) of the merged window and is only run
+			// when this user actually changed a timing field.
+			ValidateMergedTimings(toUpdate, changeResults);
 
 			CreateOrUpdateOrchestrationSettings(apiJobs.Where(IsValid).ToList());
 			CreateOrUpdatePropertyValueCollections(apiJobs.Where(IsValid).ToList());
@@ -491,7 +512,7 @@
 			}
 		}
 
-		private void AssignNodeTimings(ICollection<Job> apiJobs)
+		private void ApplyNodeTimings(ICollection<Job> apiJobs)
 		{
 			if (apiJobs == null)
 			{
@@ -503,13 +524,12 @@
 				return;
 			}
 
-			foreach (var job in apiJobs.Where(x => x.IsNew))
+			foreach (var job in apiJobs)
 			{
-				foreach (var node in job.NodeGraph.Nodes)
-				{
-					node.Start = job.Start;
-					node.End = job.End;
-				}
+				var requested = JobTimingWindow.FromJob(job);
+				JobTimingWindow? original = job.IsNew ? (JobTimingWindow?)null : JobTimingWindow.FromInstance(job.OriginalInstance);
+
+				JobNodeTimingResolver.Apply(job.State, requested, original, currentTime, job.NodeGraph);
 			}
 		}
 
@@ -941,6 +961,77 @@
 				};
 
 				ReportError(job.Id, error);
+			}
+		}
+
+		private void ValidateStateTimings(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			// A new job has no stored baseline, so there are no state-based change restrictions to enforce yet.
+			foreach (var job in apiJobs.Where(x => !x.IsNew))
+			{
+				var requested = JobTimingWindow.FromJob(job);
+				var original = JobTimingWindow.FromInstance(job.OriginalInstance);
+
+				var errors = JobNodeTimingResolver.Validate(job.Id, job.State, requested, original, currentTime);
+				foreach (var error in errors)
+				{
+					ReportError(job.Id, error);
+				}
+			}
+		}
+
+		private void ValidateMergedTimings(ICollection<Job> toUpdate, ICollection<DomChangeResults> changeResults)
+		{
+			if (toUpdate == null)
+			{
+				throw new ArgumentNullException(nameof(toUpdate));
+			}
+
+			if (changeResults == null)
+			{
+				throw new ArgumentNullException(nameof(changeResults));
+			}
+
+			if (changeResults.Count == 0)
+			{
+				return;
+			}
+
+			var jobsById = toUpdate.ToDictionary(x => x.Id);
+
+			foreach (var changeResult in changeResults.Where(IsValid))
+			{
+				if (!jobsById.TryGetValue(changeResult.Id, out var job))
+				{
+					continue;
+				}
+
+				// The merged window only matters when this user actually changed one of the timing boundaries; an
+				// unrelated change (e.g. notes) cannot introduce a timing-ordering violation on its own.
+				var requested = JobTimingWindow.FromJob(job);
+				var original = JobTimingWindow.FromInstance(job.OriginalInstance);
+				if (!requested.GetChanges(original).Any)
+				{
+					continue;
+				}
+
+				var mergedWindow = JobTimingWindow.FromInstance(new DomJob(changeResult.Instance));
+
+				var errors = JobNodeTimingResolver.ValidateTimingChainOrdering(job.Id, mergedWindow);
+				foreach (var error in errors)
+				{
+					ReportError(job.Id, error);
+				}
 			}
 		}
 

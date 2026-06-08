@@ -910,5 +910,54 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				Assert.AreEqual($"Child node with ID '{childNode.Id}' cannot participate in any connection.", error.ErrorMessage);
 			}
 		}
+
+		[TestMethod]
+		public void NodeGraph_CreateDraftJob_NodeTimingsSpanPreRollToPostRoll()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var preRollStart = currentTime.AddSeconds(-30);
+			var start = currentTime;
+			var end = currentTime.AddMinutes(10);
+			var postRollEnd = end.AddSeconds(45);
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = new UnmanagedResource { Name = $"{prefix}_Resource" }.AssignToPool(pool);
+			resource = objectCreator.CreateResource(resource);
+			resource = TestContext.Api.Resources.Complete(resource);
+
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = start,
+				End = end,
+				PreRollStart = preRollStart,
+				PostRollEnd = postRollEnd,
+			};
+
+			var resourceNode = new JobResourceNode(pool, resource);
+			var poolNode = new JobResourcePoolNode(pool);
+
+			job.NodeGraph
+				.Add(resourceNode)
+				.Add(poolNode)
+				.Connect(resourceNode, poolNode);
+
+			job = objectCreator.CreateJob(job);
+
+			// Re-read the job so the assertions run against the persisted node timings rather than the in-memory graph.
+			var read = TestContext.Api.Jobs.Read(job.Id);
+			Assert.IsNotNull(read);
+			Assert.AreEqual(2, read.NodeGraph.Nodes.Count);
+
+			foreach (var node in read.NodeGraph.Nodes)
+			{
+				Assert.AreEqual(preRollStart, node.Start, $"Node '{node.Id}' should start at the pre-roll start.");
+				Assert.AreEqual(postRollEnd, node.End, $"Node '{node.Id}' should end at the post-roll end.");
+			}
+		}
 	}
 }
