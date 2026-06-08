@@ -32,6 +32,7 @@
 
 			OrchestrationSettings = new WorkflowOrchestrationSettings();
 			NodeGraph = new NodeGraph<JobNode>();
+			ConfigureNodeGraphSwapHooks();
 		}
 
 		/// <summary>
@@ -44,6 +45,7 @@
 
 			OrchestrationSettings = new WorkflowOrchestrationSettings();
 			NodeGraph = new NodeGraph<JobNode>();
+			ConfigureNodeGraphSwapHooks();
 		}
 
 		internal Job(MediaOpsPlanApi planApi, StorageWorkflow.JobsInstance instance) : base(instance.ID.Id)
@@ -117,6 +119,8 @@
 		/// <summary>
 		/// Gets the node graph containing all nodes and connections that define the job structure.
 		/// </summary>
+		// TODO: When running-job swap logic is added, consume NodeGraph.SwapMappings here so that for jobs in a
+		// running state the original node is not replaced but its end time is adapted instead.
 		public NodeGraph<JobNode> NodeGraph { get; private set; }
 
 		/// <summary>
@@ -602,6 +606,7 @@
 			if (nodes == null || nodes.Count == 0)
 			{
 				NodeGraph = new NodeGraph<JobNode>();
+				ConfigureNodeGraphSwapHooks();
 				return;
 			}
 
@@ -649,6 +654,17 @@
 			var parsedLinks = ParseLinks(planApi, parsedNodesById, relationships);
 
 			NodeGraph = new NodeGraph<JobNode>(parsedNodesById.Values, parsedConnections, parsedLinks);
+			ConfigureNodeGraphSwapHooks();
+		}
+
+		/// <summary>
+		/// Configures the swap behavior of <see cref="NodeGraph"/> for the job context: retargets the job-level
+		/// orchestration settings after a swap. The job-specific swap type rules are validated against the net
+		/// original-to-final transition by <see cref="JobNodeGraphValidator"/> when the job is saved.
+		/// </summary>
+		private void ConfigureNodeGraphSwapHooks()
+		{
+			NodeGraph.SetExternalReferenceRetargeter(nodeIdMap => OrchestrationSettingsCloner.RetargetReferences(OrchestrationSettings, nodeIdMap));
 		}
 
 		private List<KeyValuePair<JobNode, JobNode>> ParseLinks(MediaOpsPlanApi planApi, IReadOnlyDictionary<string, JobNode> parsedNodesById, ICollection<StorageWorkflow.NodeRelationshipsSection> relationships)
