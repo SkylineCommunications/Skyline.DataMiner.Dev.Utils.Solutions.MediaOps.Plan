@@ -394,6 +394,28 @@ namespace RT_MediaOps.Plan.Workflow.Nodes
 		}
 
 		[TestMethod]
+		public void CopyPropertiesFrom_CreatesIndependentPropertySettingInstances()
+		{
+			var property = new StringProperty(Guid.NewGuid());
+			var source = new WorkflowResourceNode(Guid.NewGuid(), Guid.NewGuid());
+			source.AddProperty(new StringPropertySetting(property) { Value = "Red" });
+
+			var target = new WorkflowResourceNode(Guid.NewGuid(), Guid.NewGuid());
+			target.CopyPropertiesFrom(source);
+
+			var sourceSetting = source.PropertySettings.OfType<StringPropertySetting>().Single();
+			var targetSetting = target.PropertySettings.OfType<StringPropertySetting>().Single();
+
+			Assert.AreNotSame(sourceSetting, targetSetting);
+			Assert.AreEqual("Red", targetSetting.Value);
+
+			sourceSetting.Value = "Blue";
+
+			Assert.AreEqual("Blue", sourceSetting.Value);
+			Assert.AreEqual("Red", targetSetting.Value);
+		}
+
+		[TestMethod]
 		public void CopyPropertiesFrom_NullSource_Throws()
 		{
 			var target = new WorkflowResourceNode(Guid.NewGuid(), Guid.NewGuid());
