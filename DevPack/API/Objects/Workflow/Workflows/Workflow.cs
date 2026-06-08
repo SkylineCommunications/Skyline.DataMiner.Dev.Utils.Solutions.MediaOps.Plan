@@ -291,6 +291,16 @@
 				updatedInstance.Connections.Add(connection.GetSectionWithChanges());
 			}
 
+			updatedInstance.NodeRelationships.Clear();
+			foreach (var link in NodeGraph.Links)
+			{
+				updatedInstance.NodeRelationships.Add(new StorageWorkflow.NodeRelationshipsSection
+				{
+					ParentNodeID = link.Value.Id,
+					ChildNodeID = link.Key.Id,
+				});
+			}
+
 			return updatedInstance;
 		}
 
@@ -325,10 +335,10 @@
 				}
 			}
 
-			ParseNodesAndConnections(planApi, instance.Nodes, instance.Connections);
+			ParseNodesAndConnections(planApi, instance.Nodes, instance.Connections, instance.NodeRelationships);
 		}
 
-		private void ParseNodesAndConnections(MediaOpsPlanApi planApi, ICollection<StorageWorkflow.NodesSection> nodes, ICollection<StorageWorkflow.ConnectionsSection> connections)
+		private void ParseNodesAndConnections(MediaOpsPlanApi planApi, ICollection<StorageWorkflow.NodesSection> nodes, ICollection<StorageWorkflow.ConnectionsSection> connections, ICollection<StorageWorkflow.NodeRelationshipsSection> relationships)
 		{
 			if (nodes == null || nodes.Count == 0)
 			{
@@ -361,26 +371,48 @@
 				parsedNodesById.Add(node.Id, node);
 			}
 
-			if (connections == null || connections.Count == 0)
-			{
-				NodeGraph = new NodeGraph<WorkflowNode>(parsedNodesById.Values);
-				return;
-			}
-
 			var parsedConnections = new List<NodeConnection<WorkflowNode>>();
-			foreach (var connectionSection in connections)
+			if (connections != null)
 			{
-				try
+				foreach (var connectionSection in connections)
 				{
-					parsedConnections.Add(new NodeConnection<WorkflowNode>(connectionSection, id => parsedNodesById.TryGetValue(id, out var n) ? n : null));
-				}
-				catch (InvalidOperationException ex)
-				{
-					planApi.Logger.Warning(this, $"Connection with ID {connectionSection.ConnectionID} has invalid source or destination node. This connection will be ignored. Exception details: {ex}");
+					try
+					{
+						parsedConnections.Add(new NodeConnection<WorkflowNode>(connectionSection, id => parsedNodesById.TryGetValue(id, out var n) ? n : null));
+					}
+					catch (InvalidOperationException ex)
+					{
+						planApi.Logger.Warning(this, $"Connection with ID {connectionSection.ConnectionID} has invalid source or destination node. This connection will be ignored. Exception details: {ex}");
+					}
 				}
 			}
 
-			NodeGraph = new NodeGraph<WorkflowNode>(parsedNodesById.Values, parsedConnections);
+			var parsedLinks = ParseLinks(planApi, parsedNodesById, relationships);
+
+			NodeGraph = new NodeGraph<WorkflowNode>(parsedNodesById.Values, parsedConnections, parsedLinks);
+		}
+
+		private List<KeyValuePair<WorkflowNode, WorkflowNode>> ParseLinks(MediaOpsPlanApi planApi, IReadOnlyDictionary<string, WorkflowNode> parsedNodesById, ICollection<StorageWorkflow.NodeRelationshipsSection> relationships)
+		{
+			var parsedLinks = new List<KeyValuePair<WorkflowNode, WorkflowNode>>();
+			if (relationships == null)
+			{
+				return parsedLinks;
+			}
+
+			foreach (var relationship in relationships)
+			{
+				if (!parsedNodesById.TryGetValue(relationship.ParentNodeID ?? string.Empty, out var parent) ||
+					!parsedNodesById.TryGetValue(relationship.ChildNodeID ?? string.Empty, out var child))
+				{
+					planApi.Logger.Warning(this, $"Node relationship referencing parent '{relationship.ParentNodeID}' and child '{relationship.ChildNodeID}' has an invalid node. This link will be ignored.");
+					continue;
+				}
+
+				parsedLinks.Add(new KeyValuePair<WorkflowNode, WorkflowNode>(child, parent));
+			}
+
+			return parsedLinks;
 		}
 	}
 }

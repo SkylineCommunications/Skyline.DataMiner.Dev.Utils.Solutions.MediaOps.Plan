@@ -551,5 +551,189 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 			Assert.IsNull(workflow.NodeGraph.Nodes.OfType<WorkflowResourceNode>().SingleOrDefault());
 			Assert.IsNotNull(workflow.NodeGraph.Nodes.OfType<WorkflowResourcePoolNode>().SingleOrDefault());
 		}
+
+		[TestMethod]
+		public void NodeGraph_CreateWorkflow_WithParentChildLink_HappyPath()
+		{
+			var prefix = Guid.NewGuid();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = new UnmanagedResource { Name = $"{prefix}_Resource" }.AssignToPool(pool);
+			resource = objectCreator.CreateResource(resource);
+			resource = TestContext.Api.Resources.Complete(resource);
+
+			var workflow = new Workflow { Name = $"{prefix}_Workflow" };
+
+			var parentNode = new WorkflowResourcePoolNode(pool);
+			var childNode = new WorkflowResourceNode(pool, resource);
+
+			workflow.NodeGraph
+				.Add(parentNode)
+				.Add(childNode)
+				.Link(parentNode, childNode);
+
+			workflow = objectCreator.CreateWorkflow(workflow);
+
+			Assert.IsNotNull(workflow);
+			Assert.AreEqual(2, workflow.NodeGraph.Nodes.Count);
+
+			var persistedParent = workflow.NodeGraph.GetParent(workflow.NodeGraph.Nodes.Single(x => x.Id == childNode.Id));
+			Assert.IsNotNull(persistedParent);
+			Assert.AreEqual(parentNode.Id, persistedParent.Id);
+
+			var persistedChildren = workflow.NodeGraph.GetChildren(workflow.NodeGraph.Nodes.Single(x => x.Id == parentNode.Id)).ToList();
+			Assert.AreEqual(1, persistedChildren.Count);
+			Assert.AreEqual(childNode.Id, persistedChildren.Single().Id);
+		}
+
+		[TestMethod]
+		public void NodeGraph_RemoveParentNode_CascadesToChildren()
+		{
+			var prefix = Guid.NewGuid();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var workflow = new Workflow { Name = $"{prefix}_Workflow" };
+
+			var parentNode = new WorkflowResourcePoolNode(pool);
+			var childNode = new WorkflowResourcePoolNode(pool);
+
+			workflow.NodeGraph
+				.Add(parentNode)
+				.Add(childNode)
+				.Link(parentNode, childNode);
+
+			workflow.NodeGraph.Remove(parentNode);
+
+			Assert.AreEqual(0, workflow.NodeGraph.Nodes.Count);
+			Assert.IsNull(workflow.NodeGraph.GetParent(childNode));
+		}
+
+		[TestMethod]
+		public void NodeGraph_Unlink_RemovesParentChildLink()
+		{
+			var prefix = Guid.NewGuid();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var workflow = new Workflow { Name = $"{prefix}_Workflow" };
+
+			var parentNode = new WorkflowResourcePoolNode(pool);
+			var childNode = new WorkflowResourcePoolNode(pool);
+
+			workflow.NodeGraph
+				.Add(parentNode)
+				.Add(childNode)
+				.Link(parentNode, childNode);
+
+			Assert.AreEqual(parentNode.Id, workflow.NodeGraph.GetParent(childNode).Id);
+
+			workflow.NodeGraph.Unlink(childNode);
+
+			Assert.IsNull(workflow.NodeGraph.GetParent(childNode));
+			Assert.IsFalse(workflow.NodeGraph.GetChildren(parentNode).Any());
+			Assert.AreEqual(2, workflow.NodeGraph.Nodes.Count);
+		}
+
+		[TestMethod]
+		public void NodeGraph_CreateWorkflow_LinkNodeToItself_Fails()
+		{
+			var prefix = Guid.NewGuid();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var workflow = new Workflow { Name = $"{prefix}_Workflow" };
+			var node = new WorkflowResourcePoolNode(pool);
+			workflow.NodeGraph.Add(node).Link(node, node);
+
+			try
+			{
+				objectCreator.CreateWorkflow(workflow);
+				Assert.Fail("Expected MediaOpsException was not thrown.");
+			}
+			catch (MediaOpsException ex)
+			{
+				var error = ex.TraceData.ErrorData.OfType<WorkflowNodeGraphInvalidLinkError>().SingleOrDefault();
+				Assert.IsNotNull(error);
+				Assert.AreEqual(workflow.Id, error.Id);
+				Assert.AreEqual(node.Id, error.ParentNodeId);
+				Assert.AreEqual(node.Id, error.ChildNodeId);
+				Assert.AreEqual("A node cannot be linked to itself.", error.ErrorMessage);
+			}
+		}
+
+		[TestMethod]
+		public void NodeGraph_CreateWorkflow_CascadedLink_Fails()
+		{
+			var prefix = Guid.NewGuid();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var workflow = new Workflow { Name = $"{prefix}_Workflow" };
+			var nodeA = new WorkflowResourcePoolNode(pool);
+			var nodeB = new WorkflowResourcePoolNode(pool);
+			var nodeC = new WorkflowResourcePoolNode(pool);
+
+			workflow.NodeGraph
+				.Add(nodeA)
+				.Add(nodeB)
+				.Add(nodeC)
+				.Link(nodeA, nodeB)
+				.Link(nodeB, nodeC);
+
+			try
+			{
+				objectCreator.CreateWorkflow(workflow);
+				Assert.Fail("Expected MediaOpsException was not thrown.");
+			}
+			catch (MediaOpsException ex)
+			{
+				var error = ex.TraceData.ErrorData.OfType<WorkflowNodeGraphInvalidLinkError>().FirstOrDefault();
+				Assert.IsNotNull(error);
+				Assert.AreEqual(workflow.Id, error.Id);
+			}
+		}
+
+		[TestMethod]
+		public void NodeGraph_CreateWorkflow_ChildNodeWithConnection_Fails()
+		{
+			var prefix = Guid.NewGuid();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var workflow = new Workflow { Name = $"{prefix}_Workflow" };
+			var parentNode = new WorkflowResourcePoolNode(pool);
+			var childNode = new WorkflowResourcePoolNode(pool);
+			var otherNode = new WorkflowResourcePoolNode(pool);
+
+			workflow.NodeGraph
+				.Add(parentNode)
+				.Add(childNode)
+				.Add(otherNode)
+				.Link(parentNode, childNode)
+				.Connect(childNode, otherNode);
+
+			try
+			{
+				objectCreator.CreateWorkflow(workflow);
+				Assert.Fail("Expected MediaOpsException was not thrown.");
+			}
+			catch (MediaOpsException ex)
+			{
+				var error = ex.TraceData.ErrorData.OfType<WorkflowNodeGraphInvalidLinkError>().SingleOrDefault();
+				Assert.IsNotNull(error);
+				Assert.AreEqual(workflow.Id, error.Id);
+				Assert.AreEqual(parentNode.Id, error.ParentNodeId);
+				Assert.AreEqual(childNode.Id, error.ChildNodeId);
+				Assert.AreEqual($"Child node with ID '{childNode.Id}' cannot participate in any connection.", error.ErrorMessage);
+			}
+		}
 	}
 }

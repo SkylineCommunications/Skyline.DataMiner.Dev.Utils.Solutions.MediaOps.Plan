@@ -48,11 +48,13 @@
 		protected abstract MediaOpsErrorData CreateEmptyConnectionIdError(string errorMessage);
 		protected abstract MediaOpsErrorData CreateDuplicateConnectionIdError(string connectionId, string errorMessage);
 		protected abstract MediaOpsErrorData CreateConnectionInvalidNodeLinkError(string connectionId, string nodeId, string errorMessage);
+		protected abstract MediaOpsErrorData CreateInvalidNodeLinkError(string parentNodeId, string childNodeId, string errorMessage);
 
 		private void Validate()
 		{
 			ValidateNodes();
 			ValidateConnections();
+			ValidateLinks();
 		}
 
 		private void ValidateNodes()
@@ -210,6 +212,68 @@
 				ReportError(apiObjectId, CreateConnectionInvalidNodeLinkError(connection.Id, connection.From.Id, "Connection cannot link a node to itself."));
 			}
 		}
+
+		private void ValidateLinks()
+		{
+			var links = nodeGraph.Links.ToList();
+
+			var parentIds = new HashSet<string>(links.Select(link => link.Value?.Id).Where(id => id != null));
+			var childIds = new HashSet<string>(links.Select(link => link.Key?.Id).Where(id => id != null));
+
+			var connectedNodeIds = new HashSet<string>(
+				nodeGraph.Connections
+					.Where(c => c.From != null && c.To != null)
+					.SelectMany(c => new[] { c.From.Id, c.To.Id }));
+
+			foreach (var link in links)
+			{
+				ValidateLink(link.Value, link.Key, parentIds, childIds, connectedNodeIds);
+			}
+		}
+
+		private void ValidateLink(TNode parent, TNode child, HashSet<string> parentIds, HashSet<string> childIds, HashSet<string> connectedNodeIds)
+		{
+			if (parent == null || child == null)
+			{
+				ReportError(apiObjectId, CreateInvalidNodeLinkError(parent?.Id ?? string.Empty, child?.Id ?? string.Empty, "Link must reference two valid nodes."));
+				return;
+			}
+
+			if (!NodeIds.Contains(parent.Id))
+			{
+				ReportError(apiObjectId, CreateInvalidNodeLinkError(parent.Id, child.Id, $"Parent node with ID '{parent.Id}' does not exist in the graph."));
+				return;
+			}
+
+			if (!NodeIds.Contains(child.Id))
+			{
+				ReportError(apiObjectId, CreateInvalidNodeLinkError(parent.Id, child.Id, $"Child node with ID '{child.Id}' does not exist in the graph."));
+				return;
+			}
+
+			if (parent.Id == child.Id)
+			{
+				ReportError(apiObjectId, CreateInvalidNodeLinkError(parent.Id, child.Id, "A node cannot be linked to itself."));
+				return;
+			}
+
+			if (parentIds.Contains(child.Id))
+			{
+				ReportError(apiObjectId, CreateInvalidNodeLinkError(parent.Id, child.Id, $"Cascaded linking is not allowed. Child node with ID '{child.Id}' is also a parent of another node."));
+				return;
+			}
+
+			if (childIds.Contains(parent.Id))
+			{
+				ReportError(apiObjectId, CreateInvalidNodeLinkError(parent.Id, child.Id, $"Cascaded linking is not allowed. Parent node with ID '{parent.Id}' is also a child of another node."));
+				return;
+			}
+
+			if (connectedNodeIds.Contains(child.Id))
+			{
+				ReportError(apiObjectId, CreateInvalidNodeLinkError(parent.Id, child.Id, $"Child node with ID '{child.Id}' cannot participate in any connection."));
+			}
+		}
 	}
 
 	internal class JobNodeGraphValidator : NodeGraphValidator<JobNode>
@@ -306,6 +370,17 @@
 				Id = ApiObjectId,
 			};
 		}
+
+		protected override MediaOpsErrorData CreateInvalidNodeLinkError(string parentNodeId, string childNodeId, string errorMessage)
+		{
+			return new JobNodeGraphInvalidLinkError
+			{
+				ErrorMessage = errorMessage,
+				ParentNodeId = parentNodeId,
+				ChildNodeId = childNodeId,
+				Id = ApiObjectId,
+			};
+		}
 	}
 
 	internal class WorkflowNodeGraphValidator : NodeGraphValidator<WorkflowNode>
@@ -399,6 +474,17 @@
 				ErrorMessage = errorMessage,
 				ResourcePoolId = resourcePoolId,
 				NodeId = nodeId,
+				Id = ApiObjectId,
+			};
+		}
+
+		protected override MediaOpsErrorData CreateInvalidNodeLinkError(string parentNodeId, string childNodeId, string errorMessage)
+		{
+			return new WorkflowNodeGraphInvalidLinkError
+			{
+				ErrorMessage = errorMessage,
+				ParentNodeId = parentNodeId,
+				ChildNodeId = childNodeId,
 				Id = ApiObjectId,
 			};
 		}

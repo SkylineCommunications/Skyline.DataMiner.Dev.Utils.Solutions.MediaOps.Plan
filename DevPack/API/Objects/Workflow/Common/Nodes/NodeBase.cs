@@ -218,6 +218,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			updatedSection.NodeConfiguration = OrchestrationSettings.Id;
 
+			if (IsNew)
+			{
+				// Default values until correctly implemented. This will prevent some job integration tests from failing as the DOM CRUD is still adding these values in the background.
+				updatedSection.Hidden ??= false;
+				updatedSection.Billable ??= false;
+				updatedSection.NodeConfigurationExecutionOrder ??= 0;
+			}
 			ApplyChanges(updatedSection);
 
 			return updatedSection;
