@@ -610,23 +610,20 @@
 				return;
 			}
 
+			var parsedNodesById = ParseNodes(planApi, nodes);
+			var parsedConnections = ParseConnections(planApi, parsedNodesById, connections);
+			var parsedLinks = ParseLinks(planApi, parsedNodesById, relationships);
+
+			NodeGraph = new NodeGraph<JobNode>(parsedNodesById.Values, parsedConnections, parsedLinks);
+			ConfigureNodeGraphSwapHooks();
+		}
+
+		private Dictionary<string, JobNode> ParseNodes(MediaOpsPlanApi planApi, ICollection<StorageWorkflow.NodesSection> nodes)
+		{
 			var parsedNodesById = new Dictionary<string, JobNode>();
 			foreach (var nodeSecion in nodes)
 			{
-				JobNode node = null;
-				switch (nodeSecion.NodeType.Value)
-				{
-					case StorageWorkflow.SlcWorkflowIds.Enums.Nodetype.Resource:
-						node = new JobResourceNode(planApi, nodeSecion);
-						break;
-					case StorageWorkflow.SlcWorkflowIds.Enums.Nodetype.ResourcePool:
-						node = new JobResourcePoolNode(planApi, nodeSecion);
-						break;
-					default:
-						planApi.Logger.Warning(this, $"Node with ID {nodeSecion.NodeID} has unsupported node type {nodeSecion.NodeType.Value}. This node will be ignored.");
-						break;
-				}
-
+				var node = CreateNode(planApi, nodeSecion);
 				if (node == null)
 				{
 					continue;
@@ -635,26 +632,44 @@
 				parsedNodesById.Add(node.Id, node);
 			}
 
-			var parsedConnections = new List<NodeConnection<JobNode>>();
-			if (connections != null)
+			return parsedNodesById;
+		}
+
+		private JobNode CreateNode(MediaOpsPlanApi planApi, StorageWorkflow.NodesSection nodeSecion)
+		{
+			switch (nodeSecion.NodeType.Value)
 			{
-				foreach (var connectionSection in connections)
+				case StorageWorkflow.SlcWorkflowIds.Enums.Nodetype.Resource:
+					return new JobResourceNode(planApi, nodeSecion);
+				case StorageWorkflow.SlcWorkflowIds.Enums.Nodetype.ResourcePool:
+					return new JobResourcePoolNode(planApi, nodeSecion);
+				default:
+					planApi.Logger.Warning(this, $"Node with ID {nodeSecion.NodeID} has unsupported node type {nodeSecion.NodeType.Value}. This node will be ignored.");
+					return null;
+			}
+		}
+
+		private List<NodeConnection<JobNode>> ParseConnections(MediaOpsPlanApi planApi, IReadOnlyDictionary<string, JobNode> parsedNodesById, ICollection<StorageWorkflow.ConnectionsSection> connections)
+		{
+			var parsedConnections = new List<NodeConnection<JobNode>>();
+			if (connections == null)
+			{
+				return parsedConnections;
+			}
+
+			foreach (var connectionSection in connections)
+			{
+				try
 				{
-					try
-					{
-						parsedConnections.Add(new NodeConnection<JobNode>(connectionSection, id => parsedNodesById.TryGetValue(id, out var n) ? n : null));
-					}
-					catch (InvalidOperationException ex)
-					{
-						planApi.Logger.Warning(this, $"Connection with ID {connectionSection.ConnectionID} has invalid source or destination node. This connection will be ignored. Exception details: {ex}");
-					}
+					parsedConnections.Add(new NodeConnection<JobNode>(connectionSection, id => parsedNodesById.TryGetValue(id, out var n) ? n : null));
+				}
+				catch (InvalidOperationException ex)
+				{
+					planApi.Logger.Warning(this, $"Connection with ID {connectionSection.ConnectionID} has invalid source or destination node. This connection will be ignored. Exception details: {ex}");
 				}
 			}
 
-			var parsedLinks = ParseLinks(planApi, parsedNodesById, relationships);
-
-			NodeGraph = new NodeGraph<JobNode>(parsedNodesById.Values, parsedConnections, parsedLinks);
-			ConfigureNodeGraphSwapHooks();
+			return parsedConnections;
 		}
 
 		/// <summary>

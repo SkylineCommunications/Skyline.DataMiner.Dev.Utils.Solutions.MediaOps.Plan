@@ -343,43 +343,9 @@
 
 			var jobIdByCollectionId = new Dictionary<Guid, Guid>();
 			var toDelete = new List<PropertySettingCollection>();
-			var jobsRequiringQuery = new Dictionary<string, Guid>();
 
-			foreach (var job in apiJobs)
-			{
-				var cached = job.PropertySettingsContext?.TryGetCachedOriginalCollections();
-				if (cached != null)
-				{
-					foreach (var collection in cached)
-					{
-						jobIdByCollectionId[collection.Id] = job.Id;
-						toDelete.Add(collection);
-					}
-				}
-				else
-				{
-					jobsRequiringQuery[job.Id.ToString()] = job.Id;
-				}
-			}
-
-			if (jobsRequiringQuery.Count > 0)
-			{
-				var linkedObjectIdFilter = new ORFilterElement<PropertySettingCollection>(
-					jobsRequiringQuery.Keys.Select(id => PropertySettingCollectionExposers.LinkedObjectId.Equal(id)).ToArray());
-
-				var filter = new ANDFilterElement<PropertySettingCollection>(
-					linkedObjectIdFilter,
-					PropertySettingCollectionExposers.Scope.Equal(PropertySettingsContext.MediaOpsScope));
-
-				foreach (var collection in planApi.PropertySettingCollections.Read(filter))
-				{
-					if (collection.LinkedObjectId != null && jobsRequiringQuery.TryGetValue(collection.LinkedObjectId, out var jobId))
-					{
-						jobIdByCollectionId[collection.Id] = jobId;
-						toDelete.Add(collection);
-					}
-				}
-			}
+			var jobsRequiringQuery = CollectCachedCollectionsToDelete(apiJobs, jobIdByCollectionId, toDelete);
+			QueryCollectionsToDelete(jobsRequiringQuery, jobIdByCollectionId, toDelete);
 
 			if (toDelete.Count == 0)
 			{
@@ -388,6 +354,53 @@
 
 			DomPropertySettingCollectionHandler.TryDelete(planApi, toDelete, out var domResult);
 			ReportPropertyValueCollectionFailures(domResult, jobIdByCollectionId);
+		}
+
+		private static Dictionary<string, Guid> CollectCachedCollectionsToDelete(ICollection<Job> apiJobs, Dictionary<Guid, Guid> jobIdByCollectionId, List<PropertySettingCollection> toDelete)
+		{
+			var jobsRequiringQuery = new Dictionary<string, Guid>();
+
+			foreach (var job in apiJobs)
+			{
+				var cached = job.PropertySettingsContext?.TryGetCachedOriginalCollections();
+				if (cached == null)
+				{
+					jobsRequiringQuery[job.Id.ToString()] = job.Id;
+					continue;
+				}
+
+				foreach (var collection in cached)
+				{
+					jobIdByCollectionId[collection.Id] = job.Id;
+					toDelete.Add(collection);
+				}
+			}
+
+			return jobsRequiringQuery;
+		}
+
+		private void QueryCollectionsToDelete(Dictionary<string, Guid> jobsRequiringQuery, Dictionary<Guid, Guid> jobIdByCollectionId, List<PropertySettingCollection> toDelete)
+		{
+			if (jobsRequiringQuery.Count == 0)
+			{
+				return;
+			}
+
+			var linkedObjectIdFilter = new ORFilterElement<PropertySettingCollection>(
+				jobsRequiringQuery.Keys.Select(id => PropertySettingCollectionExposers.LinkedObjectId.Equal(id)).ToArray());
+
+			var filter = new ANDFilterElement<PropertySettingCollection>(
+				linkedObjectIdFilter,
+				PropertySettingCollectionExposers.Scope.Equal(PropertySettingsContext.MediaOpsScope));
+
+			foreach (var collection in planApi.PropertySettingCollections.Read(filter))
+			{
+				if (collection.LinkedObjectId != null && jobsRequiringQuery.TryGetValue(collection.LinkedObjectId, out var jobId))
+				{
+					jobIdByCollectionId[collection.Id] = jobId;
+					toDelete.Add(collection);
+				}
+			}
 		}
 
 		private void ReportPropertyValueCollectionFailures(
