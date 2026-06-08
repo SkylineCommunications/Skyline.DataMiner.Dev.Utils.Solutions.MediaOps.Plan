@@ -32,6 +32,7 @@
 
 			OrchestrationSettings = new WorkflowOrchestrationSettings();
 			NodeGraph = new NodeGraph<JobNode>();
+			ConfigureNodeGraphSwapHooks();
 		}
 
 		/// <summary>
@@ -44,6 +45,7 @@
 
 			OrchestrationSettings = new WorkflowOrchestrationSettings();
 			NodeGraph = new NodeGraph<JobNode>();
+			ConfigureNodeGraphSwapHooks();
 		}
 
 		internal Job(MediaOpsPlanApi planApi, StorageWorkflow.JobsInstance instance) : base(instance.ID.Id)
@@ -129,6 +131,8 @@
 		/// <summary>
 		/// Gets the node graph containing all nodes and connections that define the job structure.
 		/// </summary>
+		// TODO: When running-job swap logic is added, consume NodeGraph.SwapMappings here so that for jobs in a
+		// running state the original node is not replaced but its end time is adapted instead.
 		public NodeGraph<JobNode> NodeGraph { get; private set; }
 
 		/// <summary>
@@ -528,6 +532,16 @@
 				updatedInstance.Connections.Add(connection.GetSectionWithChanges());
 			}
 
+			updatedInstance.NodeRelationships.Clear();
+			foreach (var link in NodeGraph.Links)
+			{
+				updatedInstance.NodeRelationships.Add(new StorageWorkflow.NodeRelationshipsSection
+				{
+					ParentNodeID = link.Value.Id,
+					ChildNodeID = link.Key.Id,
+				});
+			}
+
 			return updatedInstance;
 		}
 
@@ -594,34 +608,32 @@
 				}
 			}
 
-			ParseNodesAndConnections(planApi, instance.Nodes, instance.Connections);
+			ParseNodesAndConnections(planApi, instance.Nodes, instance.Connections, instance.NodeRelationships);
 		}
 
-		private void ParseNodesAndConnections(MediaOpsPlanApi planApi, ICollection<StorageWorkflow.NodesSection> nodes, ICollection<StorageWorkflow.ConnectionsSection> connections)
+		private void ParseNodesAndConnections(MediaOpsPlanApi planApi, ICollection<StorageWorkflow.NodesSection> nodes, ICollection<StorageWorkflow.ConnectionsSection> connections, ICollection<StorageWorkflow.NodeRelationshipsSection> relationships)
 		{
 			if (nodes == null || nodes.Count == 0)
 			{
 				NodeGraph = new NodeGraph<JobNode>();
+				ConfigureNodeGraphSwapHooks();
 				return;
 			}
 
+			var parsedNodesById = ParseNodes(planApi, nodes);
+			var parsedConnections = ParseConnections(planApi, parsedNodesById, connections);
+			var parsedLinks = ParseLinks(planApi, parsedNodesById, relationships);
+
+			NodeGraph = new NodeGraph<JobNode>(parsedNodesById.Values, parsedConnections, parsedLinks);
+			ConfigureNodeGraphSwapHooks();
+		}
+
+		private Dictionary<string, JobNode> ParseNodes(MediaOpsPlanApi planApi, ICollection<StorageWorkflow.NodesSection> nodes)
+		{
 			var parsedNodesById = new Dictionary<string, JobNode>();
 			foreach (var nodeSecion in nodes)
 			{
-				JobNode node = null;
-				switch (nodeSecion.NodeType.Value)
-				{
-					case StorageWorkflow.SlcWorkflowIds.Enums.Nodetype.Resource:
-						node = new JobResourceNode(planApi, nodeSecion);
-						break;
-					case StorageWorkflow.SlcWorkflowIds.Enums.Nodetype.ResourcePool:
-						node = new JobResourcePoolNode(planApi, nodeSecion);
-						break;
-					default:
-						planApi.Logger.Warning(this, $"Node with ID {nodeSecion.NodeID} has unsupported node type {nodeSecion.NodeType.Value}. This node will be ignored.");
-						break;
-				}
-
+				var node = CreateNode(planApi, nodeSecion);
 				if (node == null)
 				{
 					continue;
@@ -630,13 +642,31 @@
 				parsedNodesById.Add(node.Id, node);
 			}
 
-			if (connections == null || connections.Count == 0)
+			return parsedNodesById;
+		}
+
+		private JobNode CreateNode(MediaOpsPlanApi planApi, StorageWorkflow.NodesSection nodeSecion)
+		{
+			switch (nodeSecion.NodeType.Value)
 			{
-				NodeGraph = new NodeGraph<JobNode>(parsedNodesById.Values);
-				return;
+				case StorageWorkflow.SlcWorkflowIds.Enums.Nodetype.Resource:
+					return new JobResourceNode(planApi, nodeSecion);
+				case StorageWorkflow.SlcWorkflowIds.Enums.Nodetype.ResourcePool:
+					return new JobResourcePoolNode(planApi, nodeSecion);
+				default:
+					planApi.Logger.Warning(this, $"Node with ID {nodeSecion.NodeID} has unsupported node type {nodeSecion.NodeType.Value}. This node will be ignored.");
+					return null;
+			}
+		}
+
+		private List<NodeConnection<JobNode>> ParseConnections(MediaOpsPlanApi planApi, IReadOnlyDictionary<string, JobNode> parsedNodesById, ICollection<StorageWorkflow.ConnectionsSection> connections)
+		{
+			var parsedConnections = new List<NodeConnection<JobNode>>();
+			if (connections == null)
+			{
+				return parsedConnections;
 			}
 
-			var parsedConnections = new List<NodeConnection<JobNode>>();
 			foreach (var connectionSection in connections)
 			{
 				try
@@ -649,7 +679,40 @@
 				}
 			}
 
-			NodeGraph = new NodeGraph<JobNode>(parsedNodesById.Values, parsedConnections);
+			return parsedConnections;
+		}
+
+		/// <summary>
+		/// Configures the swap behavior of <see cref="NodeGraph"/> for the job context: retargets the job-level
+		/// orchestration settings after a swap. The job-specific swap type rules are validated against the net
+		/// original-to-final transition by <see cref="JobNodeGraphValidator"/> when the job is saved.
+		/// </summary>
+		private void ConfigureNodeGraphSwapHooks()
+		{
+			NodeGraph.SetExternalReferenceRetargeter(nodeIdMap => OrchestrationSettingsCloner.RetargetReferences(OrchestrationSettings, nodeIdMap));
+		}
+
+		private List<KeyValuePair<JobNode, JobNode>> ParseLinks(MediaOpsPlanApi planApi, IReadOnlyDictionary<string, JobNode> parsedNodesById, ICollection<StorageWorkflow.NodeRelationshipsSection> relationships)
+		{
+			var parsedLinks = new List<KeyValuePair<JobNode, JobNode>>();
+			if (relationships == null)
+			{
+				return parsedLinks;
+			}
+
+			foreach (var relationship in relationships)
+			{
+				if (!parsedNodesById.TryGetValue(relationship.ParentNodeID ?? string.Empty, out var parent) ||
+					!parsedNodesById.TryGetValue(relationship.ChildNodeID ?? string.Empty, out var child))
+				{
+					planApi.Logger.Warning(this, $"Node relationship referencing parent '{relationship.ParentNodeID}' and child '{relationship.ChildNodeID}' has an invalid node. This link will be ignored.");
+					continue;
+				}
+
+				parsedLinks.Add(new KeyValuePair<JobNode, JobNode>(child, parent));
+			}
+
+			return parsedLinks;
 		}
 	}
 }

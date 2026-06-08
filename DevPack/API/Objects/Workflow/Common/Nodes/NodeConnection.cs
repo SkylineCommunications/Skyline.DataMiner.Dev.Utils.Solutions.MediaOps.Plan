@@ -66,6 +66,36 @@
 		internal StorageWorkflow.ConnectionsSection OriginalSection => originalSection;
 
 		/// <summary>
+		/// Retargets this connection so that any endpoint currently referencing <paramref name="oldNode"/>
+		/// points at <paramref name="newNode"/> instead.
+		/// </summary>
+		/// <param name="oldNode">The node that should be replaced.</param>
+		/// <param name="newNode">The node that takes the place of <paramref name="oldNode"/>.</param>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="oldNode"/> or <paramref name="newNode"/> is null.</exception>
+		internal void Retarget(TNode oldNode, TNode newNode)
+		{
+			if (oldNode == null)
+			{
+				throw new ArgumentNullException(nameof(oldNode));
+			}
+
+			if (newNode == null)
+			{
+				throw new ArgumentNullException(nameof(newNode));
+			}
+
+			if (From == oldNode)
+			{
+				From = newNode;
+			}
+
+			if (To == oldNode)
+			{
+				To = newNode;
+			}
+		}
+
+		/// <summary>
 		/// Gets or creates a section with the current changes applied.
 		/// </summary>
 		/// <returns>A <see cref="StorageWorkflow.ConnectionsSection"/> containing the current state of the connection.</returns>
@@ -84,6 +114,14 @@
 			updatedSection.SourceNodeID = From.Id;
 			updatedSection.DestinationNodeID = To.Id;
 
+			if (IsNew)
+			{
+				// Default values until correctly implemented. This will prevent some job integration tests from failing as the DOM CRUD is still adding these values in the background.
+				updatedSection.ConnectionExecutionOrder ??= 0;
+				updatedSection.ConnectionType ??= StorageWorkflow.SlcWorkflowIds.Enums.Connectiontype.LevelBased;
+				updatedSection.ConnectionSubtype ??= StorageWorkflow.SlcWorkflowIds.Enums.Connectionsubtype.All;
+				updatedSection.PredefinedSubset ??= StorageWorkflow.SlcWorkflowIds.Enums.Predefinedsubset.VAD;
+			}
 			return updatedSection;
 		}
 

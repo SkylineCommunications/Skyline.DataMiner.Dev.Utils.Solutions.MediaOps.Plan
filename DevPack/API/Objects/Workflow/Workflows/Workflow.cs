@@ -27,6 +27,7 @@
 
 			OrchestrationSettings = new WorkflowOrchestrationSettings();
 			NodeGraph = new NodeGraph<WorkflowNode>();
+			ConfigureNodeGraphSwapHooks();
 		}
 
 		/// <summary>
@@ -40,6 +41,7 @@
 
 			OrchestrationSettings = new WorkflowOrchestrationSettings();
 			NodeGraph = new NodeGraph<WorkflowNode>();
+			ConfigureNodeGraphSwapHooks();
 		}
 
 		internal Workflow(MediaOpsPlanApi planApi, StorageWorkflow.WorkflowsInstance instance) : base(instance.ID.Id)
@@ -291,6 +293,16 @@
 				updatedInstance.Connections.Add(connection.GetSectionWithChanges());
 			}
 
+			updatedInstance.NodeRelationships.Clear();
+			foreach (var link in NodeGraph.Links)
+			{
+				updatedInstance.NodeRelationships.Add(new StorageWorkflow.NodeRelationshipsSection
+				{
+					ParentNodeID = link.Value.Id,
+					ChildNodeID = link.Key.Id,
+				});
+			}
+
 			return updatedInstance;
 		}
 
@@ -325,34 +337,32 @@
 				}
 			}
 
-			ParseNodesAndConnections(planApi, instance.Nodes, instance.Connections);
+			ParseNodesAndConnections(planApi, instance.Nodes, instance.Connections, instance.NodeRelationships);
 		}
 
-		private void ParseNodesAndConnections(MediaOpsPlanApi planApi, ICollection<StorageWorkflow.NodesSection> nodes, ICollection<StorageWorkflow.ConnectionsSection> connections)
+		private void ParseNodesAndConnections(MediaOpsPlanApi planApi, ICollection<StorageWorkflow.NodesSection> nodes, ICollection<StorageWorkflow.ConnectionsSection> connections, ICollection<StorageWorkflow.NodeRelationshipsSection> relationships)
 		{
 			if (nodes == null || nodes.Count == 0)
 			{
 				NodeGraph = new NodeGraph<WorkflowNode>();
+				ConfigureNodeGraphSwapHooks();
 				return;
 			}
 
+			var parsedNodesById = ParseNodes(planApi, nodes);
+			var parsedConnections = ParseConnections(planApi, parsedNodesById, connections);
+			var parsedLinks = ParseLinks(planApi, parsedNodesById, relationships);
+
+			NodeGraph = new NodeGraph<WorkflowNode>(parsedNodesById.Values, parsedConnections, parsedLinks);
+			ConfigureNodeGraphSwapHooks();
+		}
+
+		private Dictionary<string, WorkflowNode> ParseNodes(MediaOpsPlanApi planApi, ICollection<StorageWorkflow.NodesSection> nodes)
+		{
 			var parsedNodesById = new Dictionary<string, WorkflowNode>();
 			foreach (var nodeSecion in nodes)
 			{
-				WorkflowNode node = null;
-				switch (nodeSecion.NodeType.Value)
-				{
-					case StorageWorkflow.SlcWorkflowIds.Enums.Nodetype.Resource:
-						node = new WorkflowResourceNode(planApi, nodeSecion);
-						break;
-					case StorageWorkflow.SlcWorkflowIds.Enums.Nodetype.ResourcePool:
-						node = new WorkflowResourcePoolNode(planApi, nodeSecion);
-						break;
-					default:
-						planApi.Logger.Warning(this, $"Node with ID {nodeSecion.NodeID} has unsupported node type {nodeSecion.NodeType.Value}. This node will be ignored.");
-						break;
-				}
-
+				var node = CreateNode(planApi, nodeSecion);
 				if (node == null)
 				{
 					continue;
@@ -361,13 +371,31 @@
 				parsedNodesById.Add(node.Id, node);
 			}
 
-			if (connections == null || connections.Count == 0)
+			return parsedNodesById;
+		}
+
+		private WorkflowNode CreateNode(MediaOpsPlanApi planApi, StorageWorkflow.NodesSection nodeSecion)
+		{
+			switch (nodeSecion.NodeType.Value)
 			{
-				NodeGraph = new NodeGraph<WorkflowNode>(parsedNodesById.Values);
-				return;
+				case StorageWorkflow.SlcWorkflowIds.Enums.Nodetype.Resource:
+					return new WorkflowResourceNode(planApi, nodeSecion);
+				case StorageWorkflow.SlcWorkflowIds.Enums.Nodetype.ResourcePool:
+					return new WorkflowResourcePoolNode(planApi, nodeSecion);
+				default:
+					planApi.Logger.Warning(this, $"Node with ID {nodeSecion.NodeID} has unsupported node type {nodeSecion.NodeType.Value}. This node will be ignored.");
+					return null;
+			}
+		}
+
+		private List<NodeConnection<WorkflowNode>> ParseConnections(MediaOpsPlanApi planApi, IReadOnlyDictionary<string, WorkflowNode> parsedNodesById, ICollection<StorageWorkflow.ConnectionsSection> connections)
+		{
+			var parsedConnections = new List<NodeConnection<WorkflowNode>>();
+			if (connections == null)
+			{
+				return parsedConnections;
 			}
 
-			var parsedConnections = new List<NodeConnection<WorkflowNode>>();
 			foreach (var connectionSection in connections)
 			{
 				try
@@ -380,7 +408,40 @@
 				}
 			}
 
-			NodeGraph = new NodeGraph<WorkflowNode>(parsedNodesById.Values, parsedConnections);
+			return parsedConnections;
+		}
+
+		/// <summary>
+		/// Configures the swap behavior of <see cref="NodeGraph"/> for the workflow context: retargets the workflow-level
+		/// orchestration settings after a swap. The workflow-specific swap type rules are validated against the net
+		/// original-to-final transition by <see cref="WorkflowNodeGraphValidator"/> when the workflow is saved.
+		/// </summary>
+		private void ConfigureNodeGraphSwapHooks()
+		{
+			NodeGraph.SetExternalReferenceRetargeter(nodeIdMap => OrchestrationSettingsCloner.RetargetReferences(OrchestrationSettings, nodeIdMap));
+		}
+
+		private List<KeyValuePair<WorkflowNode, WorkflowNode>> ParseLinks(MediaOpsPlanApi planApi, IReadOnlyDictionary<string, WorkflowNode> parsedNodesById, ICollection<StorageWorkflow.NodeRelationshipsSection> relationships)
+		{
+			var parsedLinks = new List<KeyValuePair<WorkflowNode, WorkflowNode>>();
+			if (relationships == null)
+			{
+				return parsedLinks;
+			}
+
+			foreach (var relationship in relationships)
+			{
+				if (!parsedNodesById.TryGetValue(relationship.ParentNodeID ?? string.Empty, out var parent) ||
+					!parsedNodesById.TryGetValue(relationship.ChildNodeID ?? string.Empty, out var child))
+				{
+					planApi.Logger.Warning(this, $"Node relationship referencing parent '{relationship.ParentNodeID}' and child '{relationship.ChildNodeID}' has an invalid node. This link will be ignored.");
+					continue;
+				}
+
+				parsedLinks.Add(new KeyValuePair<WorkflowNode, WorkflowNode>(child, parent));
+			}
+
+			return parsedLinks;
 		}
 	}
 }

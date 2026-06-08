@@ -132,6 +132,58 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return this;
 		}
 
+		/// <summary>
+		/// Copies all property settings and custom property settings from the specified source node into this node,
+		/// replacing this node's current settings.
+		/// </summary>
+		/// <remarks>
+		/// This is a convenience helper to take over the properties of another node (for example the node being
+		/// swapped out). It is intentionally generic so it can be reused for any node, not just swap scenarios.
+		/// </remarks>
+		/// <param name="source">The node whose properties should be copied.</param>
+		/// <returns>The current <see cref="NodeBase"/> instance.</returns>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="source"/> is null.</exception>
+		public NodeBase CopyPropertiesFrom(NodeBase source)
+		{
+			if (source == null)
+			{
+				throw new ArgumentNullException(nameof(source));
+			}
+
+			SetProperties(source.PropertySettings);
+			SetCustomProperties(source.CustomPropertySettings.Select(setting => new CustomPropertySetting(setting)));
+
+			return this;
+		}
+
+		/// <summary>
+		/// Copies the orchestration settings from the specified source node into this node, retargeting any
+		/// node-scoped <see cref="DataReference"/>s from the source node to this node.
+		/// </summary>
+		/// <remarks>
+		/// This is a convenience helper to take over the orchestration settings of another node (for example the node
+		/// being swapped out). It is intentionally generic so it can be reused for any node, not just swap scenarios.
+		/// </remarks>
+		/// <param name="source">The node whose orchestration settings should be copied.</param>
+		/// <returns>The current <see cref="NodeBase"/> instance.</returns>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="source"/> is null.</exception>
+		public NodeBase CopyOrchestrationSettingsFrom(NodeBase source)
+		{
+			if (source == null)
+			{
+				throw new ArgumentNullException(nameof(source));
+			}
+
+			var nodeIdMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+			{
+				[source.Id] = Id,
+			};
+
+			OrchestrationSettingsCloner.Clone(source.OrchestrationSettings, OrchestrationSettings, nodeIdMap);
+
+			return this;
+		}
+
 		internal void SetPropertiesContext(PropertySettingsContext context)
 		{
 			propertiesContext = context;
@@ -218,6 +270,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			updatedSection.NodeConfiguration = OrchestrationSettings.Id;
 
+			if (IsNew)
+			{
+				// Default values until correctly implemented. This will prevent some job integration tests from failing as the DOM CRUD is still adding these values in the background.
+				updatedSection.Hidden ??= false;
+				updatedSection.Billable ??= false;
+				updatedSection.NodeConfigurationExecutionOrder ??= 0;
+			}
 			ApplyChanges(updatedSection);
 
 			return updatedSection;
