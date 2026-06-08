@@ -239,6 +239,83 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void FromWorkflow_CopiesCustomPropertiesOnWorkflowAndNodes()
+		{
+			var prefix = Guid.NewGuid();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = new UnmanagedResource { Name = $"{prefix}_Resource" }.AssignToPool(pool);
+			resource = objectCreator.CreateResource(resource);
+			resource = TestContext.Api.Resources.Complete(resource);
+
+			var workflow = new Workflow { Name = $"{prefix}_Workflow" };
+			workflow.AddCustomProperty(new CustomPropertySetting("Tag1") { Value = "Value1" });
+
+			var resourceNode = new WorkflowResourceNode(pool, resource);
+			resourceNode.AddCustomProperty(new CustomPropertySetting("Tag2") { Value = "Value2" });
+			workflow.NodeGraph.Add(resourceNode);
+
+			workflow = objectCreator.CreateWorkflow(workflow);
+			workflow = TestContext.Api.Workflows.Complete(workflow);
+
+			var job = Job.FromWorkflow(TestContext.Api, workflow.Id);
+
+			Assert.AreEqual(1, job.CustomPropertySettings.Count);
+			var jobProperty = job.CustomPropertySettings.Single();
+			Assert.AreEqual("Tag1", jobProperty.Name);
+			Assert.AreEqual("Value1", jobProperty.Value);
+
+			var jobNode = job.NodeGraph.Nodes.OfType<JobResourceNode>().Single();
+			Assert.AreEqual(1, jobNode.CustomPropertySettings.Count);
+			var jobNodeProperty = jobNode.CustomPropertySettings.Single();
+			Assert.AreEqual("Tag2", jobNodeProperty.Name);
+			Assert.AreEqual("Value2", jobNodeProperty.Value);
+		}
+
+		[TestMethod]
+		public void FromWorkflow_CopiedProperties_AreIndependentInstances()
+		{
+			var prefix = Guid.NewGuid();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = new UnmanagedResource { Name = $"{prefix}_Resource" }.AssignToPool(pool);
+			resource = objectCreator.CreateResource(resource);
+			resource = TestContext.Api.Resources.Complete(resource);
+
+			var workflow = new Workflow { Name = $"{prefix}_Workflow" };
+			workflow.AddCustomProperty(new CustomPropertySetting("Tag1") { Value = "Value1" });
+
+			var resourceNode = new WorkflowResourceNode(pool, resource);
+			resourceNode.AddCustomProperty(new CustomPropertySetting("Tag2") { Value = "Value2" });
+			workflow.NodeGraph.Add(resourceNode);
+
+			workflow = objectCreator.CreateWorkflow(workflow);
+			workflow = TestContext.Api.Workflows.Complete(workflow);
+
+			var job = Job.FromWorkflow(TestContext.Api, workflow.Id);
+
+			// The copied settings must not be the same instances as the workflow's settings.
+			var workflowProperty = workflow.CustomPropertySettings.Single();
+			var jobProperty = job.CustomPropertySettings.Single();
+			Assert.AreNotSame(workflowProperty, jobProperty);
+
+			var workflowNodeProperty = workflow.NodeGraph.Nodes.Single().CustomPropertySettings.Single();
+			var jobNodeProperty = job.NodeGraph.Nodes.Single().CustomPropertySettings.Single();
+			Assert.AreNotSame(workflowNodeProperty, jobNodeProperty);
+
+			// Mutating the job copies must not affect the source workflow's settings.
+			jobProperty.Value = "Changed";
+			jobNodeProperty.Value = "Changed";
+
+			Assert.AreEqual("Value1", workflow.CustomPropertySettings.Single().Value);
+			Assert.AreEqual("Value2", workflow.NodeGraph.Nodes.Single().CustomPropertySettings.Single().Value);
+		}
+
+		[TestMethod]
 		public void FromWorkflow_DoesNotMutateSourceWorkflow()
 		{
 			var prefix = Guid.NewGuid();

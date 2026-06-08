@@ -14,8 +14,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		private readonly Func<PropertySettingsContext> getContext;
 		private readonly string subId;
 
-		private List<CustomPropertySetting> customSettings;
-		private List<PropertySetting> propertySettings;
+		private PropertySettingCollection settings;
 		private bool isDirty;
 
 		internal PropertySettingsScope(Func<PropertySettingsContext> getContext, string subId)
@@ -26,9 +25,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		internal bool IsDirty => isDirty;
 
-		internal IReadOnlyCollection<CustomPropertySetting> CustomPropertySettings => CustomSettingsList;
+		internal IReadOnlyCollection<CustomPropertySetting> CustomPropertySettings => Settings.CustomSettings;
 
-		internal IReadOnlyCollection<PropertySetting> PropertySettings => PropertySettingsList;
+		internal IReadOnlyCollection<PropertySetting> PropertySettings => Settings.PropertySettings;
 
 		private PropertySettingsContext Context => getContext?.Invoke();
 
@@ -45,45 +44,95 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 		}
 
-		private List<CustomPropertySetting> CustomSettingsList
-			=> customSettings ??= (Context?.GetInitialCustomSettings(Key) ?? []).ToList();
+		/// <summary>
+		/// Gets the backing collection for this scope. It is seeded lazily from the context, and because
+		/// <see cref="PropertySettingCollection.Add"/> wraps every setting in a fresh inner instance, the
+		/// scope never shares a reference with the caller (or with the owner a setting originated from).
+		/// </summary>
+		private PropertySettingCollection Settings => settings ??= BuildInitialSettings();
 
-		private List<PropertySetting> PropertySettingsList
-			=> propertySettings ??= (Context?.GetInitialPropertySettings(Key) ?? []).ToList();
+		private PropertySettingCollection BuildInitialSettings()
+		{
+			var collection = new PropertySettingCollection();
+			var context = Context;
+			var key = Key;
+
+			foreach (var setting in context?.GetInitialCustomSettings(key) ?? [])
+			{
+				collection.Add(setting);
+			}
+
+			foreach (var setting in context?.GetInitialPropertySettings(key) ?? [])
+			{
+				collection.Add(setting);
+			}
+
+			return collection;
+		}
 
 		internal void AddCustomProperty(CustomPropertySetting setting)
 		{
-			CustomSettingsList.Add(setting);
+			if (setting == null)
+			{
+				throw new ArgumentNullException(nameof(setting));
+			}
+
+			Settings.Add(setting);
 			isDirty = true;
 		}
 
 		internal void SetCustomProperties(IEnumerable<CustomPropertySetting> settings)
 		{
-			customSettings = settings?.ToList() ?? [];
+			if (settings == null)
+			{
+				throw new ArgumentNullException(nameof(settings));
+			}
+
+			Settings.SetCustomSettings(settings.Where(s => s != null));
 			isDirty = true;
 		}
 
 		internal void RemoveCustomProperty(CustomPropertySetting setting)
 		{
-			CustomSettingsList.Remove(setting);
+			if (setting == null)
+			{
+				throw new ArgumentNullException(nameof(setting));
+			}
+
+			Settings.Remove(setting);
 			isDirty = true;
 		}
 
 		internal void AddProperty(PropertySetting setting)
 		{
-			PropertySettingsList.Add(setting);
+			if (setting == null)
+			{
+				throw new ArgumentNullException(nameof(setting));
+			}
+
+			Settings.Add(setting);
 			isDirty = true;
 		}
 
 		internal void SetProperties(IEnumerable<PropertySetting> settings)
 		{
-			propertySettings = settings?.ToList() ?? [];
+			if (settings == null)
+			{
+				throw new ArgumentNullException(nameof(settings));
+			}
+
+			Settings.SetPropertySettings(settings.Where(s => s != null));
 			isDirty = true;
 		}
 
 		internal void RemoveProperty(PropertySetting setting)
 		{
-			PropertySettingsList.Remove(setting);
+			if (setting == null)
+			{
+				throw new ArgumentNullException(nameof(setting));
+			}
+
+			Settings.Remove(setting);
 			isDirty = true;
 		}
 
@@ -100,44 +149,58 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			var context = Context;
 			var original = context?.GetOriginalCollection(Key);
-			var hasContent = (customSettings != null && customSettings.Count > 0)
-				|| (propertySettings != null && propertySettings.Count > 0);
+			var current = Settings;
 
-			if (!hasContent)
+			if (current.Count == 0)
 			{
 				return original != null ? PropertyValuesPersistenceAction.Delete(original) : null;
 			}
 
-			PropertySettingCollection target;
+			// Dirty content must always carry owner metadata. The context is the single source of truth
+			// for LinkedObjectId; without it the collection would be persisted orphaned (null link).
+			if (context == null)
+			{
+				throw new InvalidOperationException(
+					"Cannot persist property settings because the owning context has not been wired. " +
+					"Ensure the owner's context is created (e.g. via EnsureContext) before saving.");
+			}
+
 			if (original != null)
 			{
-				target = original;
-				target.Clear();
-			}
-			else
-			{
-				target = new PropertySettingCollection
+				// Existing owner: reuse the loaded collection so the handler performs an update with the
+				// correct identity and DOM tracking, replacing its content with the current state.
+				original.Clear();
+
+				foreach (var setting in current.CustomSettings)
 				{
-					LinkedObjectId = context?.LinkedObjectId,
-					Scope = PropertySettingsContext.MediaOpsScope,
-					SubId = subId,
-				};
+					original.Add(setting);
+				}
+
+				foreach (var setting in current.PropertySettings)
+				{
+					original.Add(setting);
+				}
+
+				return PropertyValuesPersistenceAction.CreateOrUpdate(original);
 			}
 
-			if (customSettings != null)
+			// New owner: build the persistence collection with its owner metadata set once via the init
+			// properties, then copy the current in-memory state into it.
+			var target = new PropertySettingCollection
 			{
-				foreach (var setting in customSettings)
-				{
-					target.Add(setting);
-				}
+				LinkedObjectId = context.LinkedObjectId,
+				Scope = PropertySettingsContext.MediaOpsScope,
+				SubId = subId,
+			};
+
+			foreach (var setting in current.CustomSettings)
+			{
+				target.Add(setting);
 			}
 
-			if (propertySettings != null)
+			foreach (var setting in current.PropertySettings)
 			{
-				foreach (var setting in propertySettings)
-				{
-					target.Add(setting);
-				}
+				target.Add(setting);
 			}
 
 			return PropertyValuesPersistenceAction.CreateOrUpdate(target);
