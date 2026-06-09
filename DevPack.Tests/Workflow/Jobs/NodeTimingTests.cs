@@ -28,7 +28,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var node = NewNode();
 			var graph = GraphWith(node);
 
-			JobNodeTimingResolver.Apply(state, DefaultWindow(), null, CurrentTime, graph);
+			JobNodeTimingResolver.Apply(state, DefaultWindow(), CurrentTime, graph);
 
 			Assert.AreEqual(PreRollStart, node.Start);
 			Assert.AreEqual(PostRollEnd, node.End);
@@ -41,7 +41,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			Assert.IsTrue(node.IsNew, "Precondition: a freshly created node is new.");
 			var graph = GraphWith(node);
 
-			JobNodeTimingResolver.Apply(JobState.Draft, DefaultWindow(), null, CurrentTime, graph);
+			JobNodeTimingResolver.Apply(JobState.Draft, DefaultWindow(), CurrentTime, graph);
 
 			Assert.AreEqual(PreRollStart, node.Start);
 			Assert.AreEqual(PostRollEnd, node.End);
@@ -54,11 +54,11 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var graph = GraphWith(node);
 			var window = DefaultWindow();
 
-			JobNodeTimingResolver.Apply(JobState.Draft, window, null, CurrentTime, graph);
+			JobNodeTimingResolver.Apply(JobState.Draft, window, CurrentTime, graph);
 			var startAfterFirstApply = node.Start;
 			var endAfterFirstApply = node.End;
 
-			JobNodeTimingResolver.Apply(JobState.Draft, window, null, CurrentTime, graph);
+			JobNodeTimingResolver.Apply(JobState.Draft, window, CurrentTime, graph);
 
 			Assert.AreEqual(startAfterFirstApply, node.Start);
 			Assert.AreEqual(endAfterFirstApply, node.End);
@@ -76,7 +76,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var node = NewNode();
 			var graph = GraphWith(node);
 
-			JobNodeTimingResolver.Apply(JobState.Running, DefaultWindow(), DefaultWindow(), CurrentTime, graph);
+			JobNodeTimingResolver.Apply(JobState.Running, DefaultWindow(), CurrentTime, graph);
 
 			Assert.AreEqual(CurrentTime, node.Start);
 			Assert.AreEqual(PostRollEnd, node.End);
@@ -90,7 +90,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var graph = GraphWith(node);
 
 			var window = Window(PreRollStart, Start, End.AddMinutes(30), extendedPostRollEnd);
-			JobNodeTimingResolver.Apply(JobState.Running, window, DefaultWindow(), CurrentTime, graph);
+			JobNodeTimingResolver.Apply(JobState.Running, window, CurrentTime, graph);
 
 			Assert.AreEqual(Start, node.Start);
 			Assert.AreEqual(extendedPostRollEnd, node.End);
@@ -103,7 +103,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var node = ExistingNode(PreRollStart, endedAt);
 			var graph = GraphWith(node);
 
-			JobNodeTimingResolver.Apply(JobState.Running, DefaultWindow(), DefaultWindow(), CurrentTime, graph);
+			JobNodeTimingResolver.Apply(JobState.Running, DefaultWindow(), CurrentTime, graph);
 
 			Assert.AreEqual(PreRollStart, node.Start);
 			Assert.AreEqual(endedAt, node.End);
@@ -118,7 +118,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var newNode = NewNode();
 			graph.Swap(oldNode, newNode);
 
-			JobNodeTimingResolver.Apply(JobState.Running, DefaultWindow(), DefaultWindow(), CurrentTime, graph);
+			JobNodeTimingResolver.Apply(JobState.Running, DefaultWindow(), CurrentTime, graph);
 
 			// The swapped-out node keeps its start, has its end truncated to the current time and is restored into the graph.
 			Assert.AreEqual(Start, oldNode.Start);
@@ -146,7 +146,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var node = ExistingNode(nodeStart, nodeEnd);
 			var graph = GraphWith(node);
 
-			JobNodeTimingResolver.Apply(state, DefaultWindow(), DefaultWindow(), CurrentTime, graph);
+			JobNodeTimingResolver.Apply(state, DefaultWindow(), CurrentTime, graph);
 
 			Assert.AreEqual(nodeStart, node.Start);
 			Assert.AreEqual(nodeEnd, node.End);

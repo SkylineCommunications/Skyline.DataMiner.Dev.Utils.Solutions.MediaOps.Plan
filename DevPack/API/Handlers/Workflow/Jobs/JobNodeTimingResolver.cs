@@ -121,10 +121,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// </remarks>
 		/// <param name="state">The state of the job.</param>
 		/// <param name="requested">The requested (in-memory) timing window.</param>
-		/// <param name="original">The originally loaded timing window, or <see langword="null"/> for a new job.</param>
 		/// <param name="currentTime">The reference time used to evaluate running-state rules.</param>
 		/// <param name="nodeGraph">The node graph whose node timings should be aligned with the window.</param>
-		internal static void Apply(JobState state, JobTimingWindow requested, JobTimingWindow? original, DateTimeOffset currentTime, NodeGraph<JobNode> nodeGraph)
+		internal static void Apply(JobState state, JobTimingWindow requested, DateTimeOffset currentTime, NodeGraph<JobNode> nodeGraph)
 		{
 			if (nodeGraph == null)
 			{

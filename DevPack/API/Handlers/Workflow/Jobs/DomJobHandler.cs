@@ -526,9 +526,8 @@
 			foreach (var job in apiJobs)
 			{
 				var requested = JobTimingWindow.FromJob(job);
-				JobTimingWindow? original = job.IsNew ? (JobTimingWindow?)null : JobTimingWindow.FromInstance(job.OriginalInstance);
 
-				JobNodeTimingResolver.Apply(job.State, requested, original, currentTime, job.NodeGraph);
+				JobNodeTimingResolver.Apply(job.State, requested, currentTime, job.NodeGraph);
 			}
 		}
 
