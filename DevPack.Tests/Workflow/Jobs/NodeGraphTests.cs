@@ -478,6 +478,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				Name = $"{prefix}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
 			};
 			job = objectCreator.CreateJob(job);
 
@@ -500,6 +502,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				Name = $"{prefix}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
 			};
 			var node = new JobResourcePoolNode(pool)
 			{
@@ -570,6 +574,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				Name = $"{prefix}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
 			});
 
 			Assert.AreEqual(0, job.NodeGraph.Nodes.Count);
@@ -604,6 +610,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				Name = $"{prefix}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
 			};
 			job.NodeGraph.Add(resourceNode).Add(poolNode);
 			job = objectCreator.CreateJob(job);
@@ -640,6 +648,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				Name = $"{prefix}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
 			};
 			job.NodeGraph.Add(resourceNode).Add(poolNode).Connect(resourceNode, poolNode);
 			job = objectCreator.CreateJob(job);
@@ -675,6 +685,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				Name = $"{prefix}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
 			};
 			job.NodeGraph.Add(resourceNode).Add(poolNode);
 
@@ -709,6 +721,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				Name = $"{prefix}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
 			};
 
 			var parentNode = new JobResourcePoolNode(pool);
