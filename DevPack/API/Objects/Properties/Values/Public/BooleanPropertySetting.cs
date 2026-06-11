@@ -18,10 +18,10 @@
 		{
 		}
 
-		internal BooleanPropertySetting(BooleanPropertySetting booleanPropertyValue)
-			: base(booleanPropertyValue)
+		internal BooleanPropertySetting(BooleanPropertySetting booleanPropertySetting)
+			: base(booleanPropertySetting)
 		{
-			Value = booleanPropertyValue.Value;
+			Value = booleanPropertySetting.Value;
 		}
 
 		/// <summary>

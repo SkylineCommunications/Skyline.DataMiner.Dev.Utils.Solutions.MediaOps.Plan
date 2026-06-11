@@ -22,11 +22,11 @@
 		{
 		}
 
-		internal CustomPropertySetting(CustomPropertySetting customPropertyValue)
-			: base(customPropertyValue)
+		internal CustomPropertySetting(CustomPropertySetting customPropertySetting)
+			: base(customPropertySetting)
 		{
-			Name = customPropertyValue.Name;
-			Value = customPropertyValue.Value;
+			Name = customPropertySetting.Name;
+			Value = customPropertySetting.Value;
 		}
 
 		/// <summary>

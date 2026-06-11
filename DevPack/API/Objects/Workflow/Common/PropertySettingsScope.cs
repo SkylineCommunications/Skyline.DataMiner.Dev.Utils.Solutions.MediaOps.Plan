@@ -7,7 +7,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// <summary>
 	/// Per-owner mutable view over a <see cref="PropertySettingsContext"/>. Exposes a flat split API
 	/// (custom values vs. system-defined property values) to the caller and translates the local
-	/// state into a <see cref="PropertyValuesPersistenceAction"/> when it is time to persist.
+	/// state into a <see cref="PropertySettingsPersistenceAction"/> when it is time to persist.
 	/// </summary>
 	internal sealed class PropertySettingsScope
 	{
@@ -140,7 +140,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Produces the persistence action that the property setting collection handler should apply, or
 		/// <c>null</c> when the scope was never mutated.
 		/// </summary>
-		internal PropertyValuesPersistenceAction BuildPersistenceAction()
+		internal PropertySettingsPersistenceAction BuildPersistenceAction()
 		{
 			if (!isDirty)
 			{
@@ -153,7 +153,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			if (current.Count == 0)
 			{
-				return original != null ? PropertyValuesPersistenceAction.Delete(original) : null;
+				return original != null ? PropertySettingsPersistenceAction.Delete(original) : null;
 			}
 
 			// Dirty content must always carry owner metadata. The context is the single source of truth
@@ -181,7 +181,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					original.Add(setting);
 				}
 
-				return PropertyValuesPersistenceAction.CreateOrUpdate(original);
+				return PropertySettingsPersistenceAction.CreateOrUpdate(original);
 			}
 
 			// New owner: build the persistence collection with its owner metadata set once via the init
@@ -203,13 +203,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				target.Add(setting);
 			}
 
-			return PropertyValuesPersistenceAction.CreateOrUpdate(target);
+			return PropertySettingsPersistenceAction.CreateOrUpdate(target);
 		}
 	}
 
-	internal sealed class PropertyValuesPersistenceAction
+	internal sealed class PropertySettingsPersistenceAction
 	{
-		private PropertyValuesPersistenceAction(PropertySettingCollection collection, bool delete)
+		private PropertySettingsPersistenceAction(PropertySettingCollection collection, bool delete)
 		{
 			Collection = collection;
 			IsDelete = delete;
@@ -219,10 +219,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		internal bool IsDelete { get; }
 
-		internal static PropertyValuesPersistenceAction CreateOrUpdate(PropertySettingCollection collection)
-			=> new PropertyValuesPersistenceAction(collection, delete: false);
+		internal static PropertySettingsPersistenceAction CreateOrUpdate(PropertySettingCollection collection)
+			=> new PropertySettingsPersistenceAction(collection, delete: false);
 
-		internal static PropertyValuesPersistenceAction Delete(PropertySettingCollection collection)
-			=> new PropertyValuesPersistenceAction(collection, delete: true);
+		internal static PropertySettingsPersistenceAction Delete(PropertySettingCollection collection)
+			=> new PropertySettingsPersistenceAction(collection, delete: true);
 	}
 }

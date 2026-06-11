@@ -31,7 +31,7 @@
 
 		private readonly HashSet<Guid> createdPropertyIds = new HashSet<Guid>();
 
-		private readonly HashSet<Guid> createdPropertyValueCollectionIds = new HashSet<Guid>();
+		private readonly HashSet<Guid> createdPropertySettingCollectionIds = new HashSet<Guid>();
 
 		private readonly HashSet<Guid> createdCategoryIds = new HashSet<Guid>();
 
@@ -349,7 +349,7 @@
 
 		private void PropertySettingCollectionsCleanup()
 		{
-			PlanApi.PropertySettingCollections.Delete(createdPropertyValueCollectionIds.ToArray());
+			PlanApi.PropertySettingCollections.Delete(createdPropertySettingCollectionIds.ToArray());
 		}
 
 		public T CreateResource<T>(T resource) where T : Resource
@@ -646,10 +646,10 @@
 			}
 		}
 
-		public PropertySettingCollection CreatePropertyValueCollection(PropertySettingCollection collection)
+		public PropertySettingCollection CreatePropertySettingCollection(PropertySettingCollection collection)
 		{
 			var created = PlanApi.PropertySettingCollections.Create(collection);
-			createdPropertyValueCollectionIds.Add(created.Id);
+			createdPropertySettingCollectionIds.Add(created.Id);
 			return created;
 		}
 
@@ -661,7 +661,7 @@
 
 				foreach (var id in created.Select(x => x.Id))
 				{
-					createdPropertyValueCollectionIds.Add(id);
+					createdPropertySettingCollectionIds.Add(id);
 				}
 
 				return created;
@@ -670,7 +670,7 @@
 			{
 				foreach (var id in bulkException.Result.SuccessfulIds)
 				{
-					createdPropertyValueCollectionIds.Add(id);
+					createdPropertySettingCollectionIds.Add(id);
 				}
 
 				throw;

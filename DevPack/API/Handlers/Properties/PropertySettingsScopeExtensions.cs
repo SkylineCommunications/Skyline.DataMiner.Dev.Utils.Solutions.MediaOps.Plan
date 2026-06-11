@@ -9,11 +9,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// <see cref="PropertySettingsScope"/>s while leaving each handler in charge of dispatching the
 	/// resulting batches and translating handler failures into its own error vocabulary.
 	/// </summary>
-	internal static class PropertyValuesScopeExtensions
+	internal static class PropertySettingsScopeExtensions
 	{
 		/// <summary>
 		/// Walks the supplied (ownerId, scope) pairs, asks every scope for its
-		/// <see cref="PropertyValuesPersistenceAction"/> and splits the results into a create/update
+		/// <see cref="PropertySettingsPersistenceAction"/> and splits the results into a create/update
 		/// batch and a delete batch. The returned map associates each produced collection id with the
 		/// owner it belongs to so callers can map failures back to the right owner object.
 		/// </summary>

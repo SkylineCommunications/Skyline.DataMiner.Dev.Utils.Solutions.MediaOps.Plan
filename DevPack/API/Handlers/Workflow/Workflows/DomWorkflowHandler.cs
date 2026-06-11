@@ -103,7 +103,7 @@
 			ValidateDomNames(toCreate.Concat(toUpdateNameValidation).ToList());
 
 			CreateOrUpdateOrchestrationSettings(apiWorkflows.Where(IsValid).ToList());
-			CreateOrUpdatePropertyValueCollections(apiWorkflows.Where(IsValid).ToList());
+			CreateOrUpdatePropertySettingCollections(apiWorkflows.Where(IsValid).ToList());
 
 			var toCreateDomInstances = toCreate
 				.Where(IsValid)
@@ -265,7 +265,7 @@
 
 			DeleteOrchestrationSettings(apiWorkflows);
 
-			DeletePropertyValueCollections(apiWorkflows);
+			DeletePropertySettingCollections(apiWorkflows);
 
 			var domWorkflowsById = apiWorkflows.ToDictionary(x => x.Id, x => x.OriginalInstance);
 
@@ -308,7 +308,7 @@
 			DomWorkflowOrchestrationSettingsHandler.TryDelete(planApi, apiWorkflows.Select(x => x.OrchestrationSettings).ToList(), out _);
 		}
 
-		private void CreateOrUpdatePropertyValueCollections(ICollection<Workflow> apiWorkflows)
+		private void CreateOrUpdatePropertySettingCollections(ICollection<Workflow> apiWorkflows)
 		{
 			if (apiWorkflows == null)
 			{
@@ -349,17 +349,17 @@
 			if (toCreateOrUpdate.Count > 0)
 			{
 				DomPropertySettingCollectionHandler.TryCreateOrUpdate(planApi, toCreateOrUpdate, out var result);
-				ReportPropertyValueCollectionFailures(result, workflowIdByCollectionId);
+				ReportPropertySettingCollectionFailures(result, workflowIdByCollectionId);
 			}
 
 			if (toDelete.Count > 0)
 			{
 				DomPropertySettingCollectionHandler.TryDelete(planApi, toDelete, out var result);
-				ReportPropertyValueCollectionFailures(result, workflowIdByCollectionId);
+				ReportPropertySettingCollectionFailures(result, workflowIdByCollectionId);
 			}
 		}
 
-		private void DeletePropertyValueCollections(ICollection<Workflow> apiWorkflows)
+		private void DeletePropertySettingCollections(ICollection<Workflow> apiWorkflows)
 		{
 			if (apiWorkflows == null)
 			{
@@ -422,10 +422,10 @@
 			}
 
 			DomPropertySettingCollectionHandler.TryDelete(planApi, toDelete, out var domResult);
-			ReportPropertyValueCollectionFailures(domResult, workflowIdByCollectionId);
+			ReportPropertySettingCollectionFailures(domResult, workflowIdByCollectionId);
 		}
 
-		private void ReportPropertyValueCollectionFailures(
+		private void ReportPropertySettingCollectionFailures(
 			DomInstanceBulkOperationResult<Storage.DOM.SlcProperties.PropertyValuesInstance> result,
 			Dictionary<Guid, Guid> workflowIdByCollectionId)
 		{

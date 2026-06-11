@@ -118,7 +118,7 @@
 			ValidateMergedTimings(toUpdate, changeResults);
 
 			CreateOrUpdateOrchestrationSettings(apiJobs.Where(IsValid).ToList());
-			CreateOrUpdatePropertyValueCollections(apiJobs.Where(IsValid).ToList());
+			CreateOrUpdatePropertySettingCollections(apiJobs.Where(IsValid).ToList());
 
 			var toCreateDomInstances = toCreate
 				.Where(IsValid)
@@ -250,7 +250,7 @@
 			}
 
 			DeleteOrchestrationSettings(apiJobs);
-			DeletePropertyValueCollections(apiJobs);
+			DeletePropertySettingCollections(apiJobs);
 
 			var domJobsById = apiJobs.ToDictionary(x => x.Id, x => x.OriginalInstance);
 
@@ -293,7 +293,7 @@
 			DomWorkflowOrchestrationSettingsHandler.TryDelete(planApi, apiJobs.Select(x => x.OrchestrationSettings).ToList(), out _);
 		}
 
-		private void CreateOrUpdatePropertyValueCollections(ICollection<Job> apiJobs)
+		private void CreateOrUpdatePropertySettingCollections(ICollection<Job> apiJobs)
 		{
 			if (apiJobs == null)
 			{
@@ -334,17 +334,17 @@
 			if (toCreateOrUpdate.Count > 0)
 			{
 				DomPropertySettingCollectionHandler.TryCreateOrUpdate(planApi, toCreateOrUpdate, out var result);
-				ReportPropertyValueCollectionFailures(result, jobIdByCollectionId);
+				ReportPropertySettingCollectionFailures(result, jobIdByCollectionId);
 			}
 
 			if (toDelete.Count > 0)
 			{
 				DomPropertySettingCollectionHandler.TryDelete(planApi, toDelete, out var result);
-				ReportPropertyValueCollectionFailures(result, jobIdByCollectionId);
+				ReportPropertySettingCollectionFailures(result, jobIdByCollectionId);
 			}
 		}
 
-		private void DeletePropertyValueCollections(ICollection<Job> apiJobs)
+		private void DeletePropertySettingCollections(ICollection<Job> apiJobs)
 		{
 			if (apiJobs == null)
 			{
@@ -373,7 +373,7 @@
 			}
 
 			DomPropertySettingCollectionHandler.TryDelete(planApi, toDelete, out var domResult);
-			ReportPropertyValueCollectionFailures(domResult, jobIdByCollectionId);
+			ReportPropertySettingCollectionFailures(domResult, jobIdByCollectionId);
 		}
 
 		private static Dictionary<string, Guid> CollectCachedCollectionsToDelete(ICollection<Job> apiJobs, Dictionary<Guid, Guid> jobIdByCollectionId, List<PropertySettingCollection> toDelete)
@@ -423,7 +423,7 @@
 			}
 		}
 
-		private void ReportPropertyValueCollectionFailures(
+		private void ReportPropertySettingCollectionFailures(
 			DomInstanceBulkOperationResult<Storage.DOM.SlcProperties.PropertyValuesInstance> result,
 			Dictionary<Guid, Guid> jobIdByCollectionId)
 		{
