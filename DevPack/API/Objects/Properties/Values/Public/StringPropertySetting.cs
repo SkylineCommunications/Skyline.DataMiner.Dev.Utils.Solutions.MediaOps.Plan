@@ -18,10 +18,10 @@
 		{
 		}
 
-		internal StringPropertySetting(StringPropertySetting stringPropertyValue)
-			: base(stringPropertyValue)
+		internal StringPropertySetting(StringPropertySetting stringPropertySetting)
+			: base(stringPropertySetting)
 		{
-			Value = stringPropertyValue.Value;
+			Value = stringPropertySetting.Value;
 		}
 
 		/// <summary>

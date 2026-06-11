@@ -18,10 +18,10 @@
 		{
 		}
 
-		internal DiscretePropertySetting(DiscretePropertySetting discretePropertyValue)
-			: base(discretePropertyValue)
+		internal DiscretePropertySetting(DiscretePropertySetting discretePropertySetting)
+			: base(discretePropertySetting)
 		{
-			Value = discretePropertyValue.Value;
+			Value = discretePropertySetting.Value;
 		}
 
 		/// <summary>

@@ -9,8 +9,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		private StorageProperties.PropertyValueSection originalSection;
 		private StorageProperties.PropertyValueSection updatedSection;
 
-		internal InnerBooleanPropertySetting(BooleanPropertySetting booleanPropertyValue)
-			: base(booleanPropertyValue)
+		internal InnerBooleanPropertySetting(BooleanPropertySetting booleanPropertySetting)
+			: base(booleanPropertySetting)
 		{
 		}
 

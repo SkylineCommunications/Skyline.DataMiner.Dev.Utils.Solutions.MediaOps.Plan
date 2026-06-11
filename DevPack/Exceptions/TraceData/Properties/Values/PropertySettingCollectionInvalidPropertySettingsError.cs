@@ -3,9 +3,9 @@
 	using System;
 
 	/// <summary>
-	/// Represents an error that occurs when property value collection property settings are invalid.
+	/// Represents an error that occurs when property setting collection property settings are invalid.
 	/// </summary>
-	public sealed class PropertyValueCollectionInvalidPropertySettingsError : PropertyValueCollectionError
+	public sealed class PropertySettingCollectionInvalidPropertySettingsError : PropertySettingCollectionError
 	{
 		/// <summary>
 		/// Gets the unique identifier for the property.

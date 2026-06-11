@@ -90,7 +90,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			var toCreate = apiSettingCollections.Where(x => x.IsNew).ToList();
 			var toUpdate = apiSettingCollections.Except(toCreate).ToList();
 
-			var changeResults = GetPropertyValueCollectionsWithChanges(toUpdate);
+			var changeResults = GetPropertySettingCollectionsWithChanges(toUpdate);
 
 			var toCreateDomInstances = toCreate
 				.Where(IsValid)
@@ -100,10 +100,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				.Where(IsValid)
 				.Select(x => new DomPropertySettingCollection(x.Instance))
 				.ToList();
-			CreateOrUpdateDomPropertyValueCollections(toCreateDomInstances.Concat(toUpdateDomInstances).ToList());
+			CreateOrUpdateDomPropertySettingCollections(toCreateDomInstances.Concat(toUpdateDomInstances).ToList());
 		}
 
-		private void CreateOrUpdateDomPropertyValueCollections(ICollection<DomPropertySettingCollection> domValueCollections)
+		private void CreateOrUpdateDomPropertySettingCollections(ICollection<DomPropertySettingCollection> domValueCollections)
 		{
 			if (domValueCollections == null)
 			{
@@ -213,7 +213,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			foreach (var valueCollection in objectsWithDuplicateIds)
 			{
-				var error = new PropertyValueCollectionDuplicateIdError
+				var error = new PropertySettingCollectionDuplicateIdError
 				{
 					ErrorMessage = $"Property value collection has a duplicate ID.",
 					Id = valueCollection.Id,
@@ -228,7 +228,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				planApi.Logger.Information(this, $"ID is already in use by a Properties instance.", [foundInstance.ID.Id]);
 
-				var error = new PropertyValueCollectionIdInUseError
+				var error = new PropertySettingCollectionIdInUseError
 				{
 					ErrorMessage = "ID is already in use.",
 					Id = foundInstance.ID.Id,
@@ -254,7 +254,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			foreach (var valueCollection in objectsRequiringValidation.Where(x => !InputValidator.IsNonEmptyText(x.LinkedObjectId)).ToArray())
 			{
-				var error = new PropertyValueCollectionInvalidLinkedObjectIdError
+				var error = new PropertySettingCollectionInvalidLinkedObjectIdError
 				{
 					ErrorMessage = "Linked object ID cannot be empty.",
 					Id = valueCollection.Id,
@@ -267,7 +267,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			foreach (var valueCollection in objectsRequiringValidation.Where(x => !InputValidator.HasValidTextLength(x.LinkedObjectId)).ToArray())
 			{
-				var error = new PropertyValueCollectionInvalidLinkedObjectIdError
+				var error = new PropertySettingCollectionInvalidLinkedObjectIdError
 				{
 					ErrorMessage = $"Linked object ID exceeds maximum length of {InputValidator.DefaultMaxTextLength} characters.",
 					Id = valueCollection.Id,
@@ -294,7 +294,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			foreach (var valueCollection in objectsRequiringValidation.Where(x => !InputValidator.IsNonEmptyText(x.Scope)).ToArray())
 			{
-				var error = new PropertyValueCollectionInvalidScopeError
+				var error = new PropertySettingCollectionInvalidScopeError
 				{
 					ErrorMessage = "Scope cannot be empty.",
 					Id = valueCollection.Id,
@@ -307,7 +307,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			foreach (var valueCollection in objectsRequiringValidation.Where(x => !InputValidator.HasValidTextLength(x.Scope)).ToArray())
 			{
-				var error = new PropertyValueCollectionInvalidScopeError
+				var error = new PropertySettingCollectionInvalidScopeError
 				{
 					ErrorMessage = $"Scope exceeds maximum length of {InputValidator.DefaultMaxTextLength} characters.",
 					Id = valueCollection.Id,
@@ -341,7 +341,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				foreach (var valueCollection in group.ToArray())
 				{
-					var error = new PropertyValueCollectionDuplicateLinkedObjectIdAndSubIdError
+					var error = new PropertySettingCollectionDuplicateLinkedObjectIdAndSubIdError
 					{
 						ErrorMessage = $"Property value collection has a duplicate combination of LinkedObjectId '{group.Key.LinkedObjectId}' and SubId '{group.Key.SubId}'.",
 						Id = valueCollection.Id,
@@ -391,7 +391,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 				planApi.Logger.Information(this, $"Combination of LinkedObjectId '{valueCollection.LinkedObjectId}' and SubId '{valueCollection.SubId}' is already in use by property value collection(s) with ID(s) {string.Join(", ", conflicts.Select(x => x.ID.Id))}.");
 
-				var error = new PropertyValueCollectionDuplicateLinkedObjectIdAndSubIdError
+				var error = new PropertySettingCollectionDuplicateLinkedObjectIdAndSubIdError
 				{
 					ErrorMessage = $"A property value collection with LinkedObjectId '{valueCollection.LinkedObjectId}' and SubId '{valueCollection.SubId}' already exists.",
 					Id = valueCollection.Id,
@@ -419,7 +419,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				if (valueCollection.CustomSettings.Any(x => !InputValidator.IsNonEmptyText(x.Name)))
 				{
-					var error = new PropertyValueCollectionInvalidCustomSettingsError
+					var error = new PropertySettingCollectionInvalidCustomSettingsError
 					{
 						ErrorMessage = "Collection contains empty names.",
 						Id = valueCollection.Id,
@@ -431,7 +431,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 				foreach (var customValue in valueCollection.CustomSettings.Where(x => !InputValidator.HasValidTextLength(x.Name)).ToArray())
 				{
-					var error = new PropertyValueCollectionInvalidCustomSettingsError
+					var error = new PropertySettingCollectionInvalidCustomSettingsError
 					{
 						ErrorMessage = $"Name '{customValue.Name}' exceeds maximum length of {InputValidator.DefaultMaxTextLength} characters.",
 						Id = valueCollection.Id,
@@ -447,7 +447,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					.ToDictionary(x => x.Key, x => x.Count());
 				foreach (var kvp in duplicates)
 				{
-					var error = new PropertyValueCollectionInvalidCustomSettingsError
+					var error = new PropertySettingCollectionInvalidCustomSettingsError
 					{
 						ErrorMessage = $"Name '{kvp.Key}' is defined {kvp.Value} times.",
 						Id = valueCollection.Id,
@@ -469,7 +469,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					: new HashSet<string>();
 				foreach (var customValue in requiringValidation.Where(x => collectionPropertyNames.Contains(x.Name)).ToArray())
 				{
-					var error = new PropertyValueCollectionInvalidCustomSettingsError
+					var error = new PropertySettingCollectionInvalidCustomSettingsError
 					{
 						ErrorMessage = $"Name '{customValue.Name}' cannot be the same as a property name in the same scope.",
 						Id = valueCollection.Id,
@@ -482,7 +482,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 				foreach (var customValue in requiringValidation.Where(x => x.HasValue && !InputValidator.HasValidTextLength(x.Value)).ToArray())
 				{
-					var error = new PropertyValueCollectionInvalidCustomSettingsError
+					var error = new PropertySettingCollectionInvalidCustomSettingsError
 					{
 						ErrorMessage = $"Value for name '{customValue.Name}' exceeds maximum length of {InputValidator.DefaultMaxTextLength} characters.",
 						Id = valueCollection.Id,
@@ -514,7 +514,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 				foreach (var kvp in duplicates)
 				{
-					var error = new PropertyValueCollectionInvalidPropertySettingsError
+					var error = new PropertySettingCollectionInvalidPropertySettingsError
 					{
 						Id = valueCollection.Id,
 						PropertyId = kvp.Key,
@@ -528,11 +528,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					continue;
 				}
 
-				foreach (var propertyValue in valueCollection.PropertySettings)
+				foreach (var propertySetting in valueCollection.PropertySettings)
 				{
-					if (propertyValue.Id == Guid.Empty)
+					if (propertySetting.Id == Guid.Empty)
 					{
-						var error = new PropertyValueCollectionInvalidPropertySettingsError
+						var error = new PropertySettingCollectionInvalidPropertySettingsError
 						{
 							ErrorMessage = "Property ID cannot be empty.",
 							Id = valueCollection.Id,
@@ -542,13 +542,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 						continue;
 					}
 
-					if (!propertyLookup.PropertyById.TryGetValue(propertyValue.Id, out var property))
+					if (!propertyLookup.PropertyById.TryGetValue(propertySetting.Id, out var property))
 					{
-						var error = new PropertyValueCollectionInvalidPropertySettingsError
+						var error = new PropertySettingCollectionInvalidPropertySettingsError
 						{
 							Id = valueCollection.Id,
-							PropertyId = propertyValue.Id,
-							ErrorMessage = $"Property with ID '{propertyValue.Id}' not found.",
+							PropertyId = propertySetting.Id,
+							ErrorMessage = $"Property with ID '{propertySetting.Id}' not found.",
 						};
 
 						ReportError(valueCollection.Id, error);
@@ -557,10 +557,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 					if (property.Scope != valueCollection.Scope)
 					{
-						var error = new PropertyValueCollectionInvalidPropertySettingsError
+						var error = new PropertySettingCollectionInvalidPropertySettingsError
 						{
 							Id = valueCollection.Id,
-							PropertyId = propertyValue.Id,
+							PropertyId = propertySetting.Id,
 							ErrorMessage = $"Property scope '{property.Scope}' does not match property value collection scope '{valueCollection.Scope}'.",
 						};
 
@@ -568,7 +568,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 						continue;
 					}
 
-					PassTraceData(PropertySettingValidator.Validate(valueCollection.Id, property, propertyValue, propertyValue.HasValue));
+					PassTraceData(PropertySettingValidator.Validate(valueCollection.Id, property, propertySetting, propertySetting.HasValue));
 				}
 			}
 		}
@@ -587,7 +587,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			foreach (var valueCollection in apiSettingCollections.Where(x => x.IsNew))
 			{
-				var error = new PropertyValueCollectionInvalidStateError
+				var error = new PropertySettingCollectionInvalidStateError
 				{
 					ErrorMessage = $"A property value collection that was not saved cannot be removed.",
 					Id = valueCollection.Id,
@@ -597,15 +597,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 		}
 
-		private ICollection<DomChangeResults> GetPropertyValueCollectionsWithChanges(ICollection<PropertySettingCollection> apiSettingCollections)
+		private ICollection<DomChangeResults> GetPropertySettingCollectionsWithChanges(ICollection<PropertySettingCollection> apiSettingCollections)
 		{
 			return GetItemsWithChanges<PropertySettingCollection, DomPropertySettingCollection>(
 				apiSettingCollections,
 				p => p.OriginalInstance,
 				p => p.GetInstanceWithChanges(),
 				ids => planApi.DomHelpers.SlcPropertiesHelper.GetPropertyValues(ids),
-				p => new PropertyValueCollectionNotFoundError { ErrorMessage = $"Property value collection with ID '{p.Id}' no longer exists.", Id = p.Id },
-				(p, msg) => new PropertyValueCollectionValueAlreadyChangedError { ErrorMessage = msg, Id = p.Id })
+				p => new PropertySettingCollectionNotFoundError { ErrorMessage = $"Property setting collection with ID '{p.Id}' no longer exists.", Id = p.Id },
+				(p, msg) => new PropertySettingCollectionValueAlreadyChangedError { ErrorMessage = msg, Id = p.Id })
 				.ToList();
 		}
 
