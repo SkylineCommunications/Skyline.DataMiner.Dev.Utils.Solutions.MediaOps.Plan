@@ -116,6 +116,8 @@
 				Notes = "Initial notes",
 				Start = currentTime,
 				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
 			};
 
 			job = objectCreator.CreateJob(job);
@@ -155,6 +157,8 @@
 				Name = $"{prefix}_Job_New",
 				Start = currentTime,
 				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
 			};
 
 			var existingJob = new Job
@@ -162,6 +166,8 @@
 				Name = $"{prefix}_Job_Existing",
 				Start = currentTime,
 				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
 			};
 			existingJob = objectCreator.CreateJob(existingJob);
 
@@ -189,6 +195,8 @@
 				Name = $"{Guid.NewGuid()}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
 			};
 
 			job = objectCreator.CreateJob(job);
@@ -204,6 +212,8 @@
 				Name = $"{Guid.NewGuid()}_Job",
 				Start = DateTime.UtcNow,
 				End = DateTime.UtcNow.AddMinutes(5),
+				PreRollStart = DateTime.UtcNow,
+				PostRollEnd = DateTime.UtcNow.AddMinutes(5),
 			};
 
 			Assert.ThrowsException<InvalidOperationException>(() => TestContext.Api.Jobs.Update(job));
@@ -220,6 +230,8 @@
 				Name = $"{id}_Job_1",
 				Start = currentTime,
 				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
 			};
 			objectCreator.CreateJob(first);
 
@@ -228,6 +240,8 @@
 				Name = $"{id}_Job_2",
 				Start = currentTime,
 				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
 			};
 
 			try
@@ -255,6 +269,8 @@
 				Name = $"{id}_Job_1",
 				Start = DateTime.UtcNow,
 				End = DateTime.UtcNow.AddMinutes(5),
+				PreRollStart = DateTime.UtcNow,
+				PostRollEnd = DateTime.UtcNow.AddMinutes(5),
 			};
 
 			var job2 = new Job(id)
@@ -262,6 +278,8 @@
 				Name = $"{id}_Job_2",
 				Start = DateTime.UtcNow,
 				End = DateTime.UtcNow.AddMinutes(5),
+				PreRollStart = DateTime.UtcNow,
+				PostRollEnd = DateTime.UtcNow.AddMinutes(5),
 			};
 
 			try
@@ -288,6 +306,8 @@
 				Name = new string('a', 151),
 				Start = DateTime.UtcNow,
 				End = DateTime.UtcNow.AddMinutes(5),
+				PreRollStart = DateTime.UtcNow,
+				PostRollEnd = DateTime.UtcNow.AddMinutes(5),
 			};
 
 			try
@@ -315,6 +335,8 @@
 				Name = "   ",
 				Start = DateTime.UtcNow,
 				End = DateTime.UtcNow.AddMinutes(5),
+				PreRollStart = DateTime.UtcNow,
+				PostRollEnd = DateTime.UtcNow.AddMinutes(5),
 			};
 
 			try
@@ -341,6 +363,8 @@
 				Key = $"{Guid.NewGuid()}_Key",
 				Start = currentTime,
 				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
 			};
 
 			var createdJob = objectCreator.CreateJob(job);
@@ -358,6 +382,8 @@
 				Name = $"{Guid.NewGuid()}_Job",
 				Start = DateTime.UtcNow,
 				End = DateTime.UtcNow.AddMinutes(5),
+				PreRollStart = DateTime.UtcNow,
+				PostRollEnd = DateTime.UtcNow.AddMinutes(5),
 			};
 
 			try
@@ -385,6 +411,8 @@
 				Name = $"{Guid.NewGuid()}_Job",
 				Start = start,
 				End = start.AddMinutes(5),
+				PreRollStart = start,
+				PostRollEnd = start.AddMinutes(5),
 			};
 
 			try
@@ -413,6 +441,8 @@
 				Name = $"{Guid.NewGuid()}_Job",
 				Start = start,
 				End = end,
+				PreRollStart = start,
+				PostRollEnd = end,
 			};
 
 			try
@@ -432,15 +462,16 @@
 		}
 
 		[TestMethod]
-		public void CreateWithPreRollNotMultipleOfSecondsThrowsException()
+		public void CreateWithPreRollStartNotMultipleOfSecondsThrowsException()
 		{
-			var preRoll = TimeSpan.FromMilliseconds(1500); // 1.5 seconds — not a whole second
+			var start = DateTime.UtcNow.RoundToNextSecond();
 			var job = new Job
 			{
 				Name = $"{Guid.NewGuid()}_Job",
-				Start = DateTime.UtcNow,
-				End = DateTime.UtcNow.AddMinutes(5),
-				PreRoll = preRoll,
+				Start = start,
+				End = start.AddMinutes(5),
+				PreRollStart = start.AddMilliseconds(-1500), // 1.5 seconds before start — sub-second precision
+				PostRollEnd = start.AddMinutes(5),
 			};
 
 			try
@@ -452,7 +483,7 @@
 				var error = ex.TraceData.ErrorData.OfType<JobInvalidPreRollError>().SingleOrDefault();
 				Assert.IsNotNull(error, "Expected JobInvalidPreRollError.");
 				Assert.AreEqual(job.Id, error.Id);
-				Assert.AreEqual(preRoll, error.PreRoll);
+				Assert.AreEqual(job.PreRollStart, error.PreRollStart);
 				return;
 			}
 
@@ -460,15 +491,17 @@
 		}
 
 		[TestMethod]
-		public void CreateWithPostRollNotMultipleOfSecondsThrowsException()
+		public void CreateWithPostRollEndNotMultipleOfSecondsThrowsException()
 		{
-			var postRoll = TimeSpan.FromMilliseconds(1500); // 1.5 seconds — not a whole second
+			var start = DateTime.UtcNow.RoundToNextSecond();
+			var end = start.AddMinutes(5);
 			var job = new Job
 			{
 				Name = $"{Guid.NewGuid()}_Job",
-				Start = DateTime.UtcNow,
-				End = DateTime.UtcNow.AddMinutes(5),
-				PostRoll = postRoll,
+				Start = start,
+				End = end,
+				PreRollStart = start,
+				PostRollEnd = end.AddMilliseconds(1500), // 1.5 seconds after end — sub-second precision
 			};
 
 			try
@@ -480,7 +513,7 @@
 				var error = ex.TraceData.ErrorData.OfType<JobInvalidPostRollError>().SingleOrDefault();
 				Assert.IsNotNull(error, "Expected JobInvalidPostRollError.");
 				Assert.AreEqual(job.Id, error.Id);
-				Assert.AreEqual(postRoll, error.PostRoll);
+				Assert.AreEqual(job.PostRollEnd, error.PostRollEnd);
 				return;
 			}
 
@@ -496,6 +529,8 @@
 				Name = $"{Guid.NewGuid()}_Job",
 				Start = start,
 				End = start.AddMinutes(-5),
+				PreRollStart = start,
+				PostRollEnd = start.AddMinutes(-5),
 			};
 
 			try
@@ -522,6 +557,8 @@
 				Description = new string('a', 32767),
 				Start = DateTime.UtcNow,
 				End = DateTime.UtcNow.AddMinutes(5),
+				PreRollStart = DateTime.UtcNow,
+				PostRollEnd = DateTime.UtcNow.AddMinutes(5),
 			};
 
 			try
@@ -549,6 +586,8 @@
 				Notes = new string('a', 32767),
 				Start = DateTime.UtcNow,
 				End = DateTime.UtcNow.AddMinutes(5),
+				PreRollStart = DateTime.UtcNow,
+				PostRollEnd = DateTime.UtcNow.AddMinutes(5),
 			};
 
 			try
@@ -568,14 +607,16 @@
 		}
 
 		[TestMethod]
-		public void CreateWithNegativePreRollThrowsException()
+		public void CreateWithPreRollStartAfterStartThrowsException()
 		{
+			var start = DateTime.UtcNow.RoundToNextSecond();
 			var job = new Job
 			{
 				Name = $"{Guid.NewGuid()}_Job",
-				Start = DateTime.UtcNow,
-				End = DateTime.UtcNow.AddMinutes(5),
-				PreRoll = TimeSpan.FromSeconds(-1),
+				Start = start,
+				End = start.AddMinutes(5),
+				PreRollStart = start.AddSeconds(1), // after the start time — invalid
+				PostRollEnd = start.AddMinutes(5),
 			};
 
 			try
@@ -587,7 +628,8 @@
 				var error = ex.TraceData.ErrorData.OfType<JobInvalidPreRollError>().SingleOrDefault();
 				Assert.IsNotNull(error, "Expected JobInvalidPreRollError.");
 				Assert.AreEqual(job.Id, error.Id);
-				Assert.AreEqual(TimeSpan.FromSeconds(-1), error.PreRoll);
+				Assert.AreEqual(job.PreRollStart, error.PreRollStart);
+				Assert.AreEqual(job.Start, error.Start);
 				return;
 			}
 
@@ -595,14 +637,17 @@
 		}
 
 		[TestMethod]
-		public void CreateWithNegativePostRollThrowsException()
+		public void CreateWithPostRollEndBeforeEndThrowsException()
 		{
+			var start = DateTime.UtcNow.RoundToNextSecond();
+			var end = start.AddMinutes(5);
 			var job = new Job
 			{
 				Name = $"{Guid.NewGuid()}_Job",
-				Start = DateTime.UtcNow,
-				End = DateTime.UtcNow.AddMinutes(5),
-				PostRoll = TimeSpan.FromSeconds(-1),
+				Start = start,
+				End = end,
+				PreRollStart = start,
+				PostRollEnd = end.AddSeconds(-1), // before the end time — invalid
 			};
 
 			try
@@ -614,11 +659,166 @@
 				var error = ex.TraceData.ErrorData.OfType<JobInvalidPostRollError>().SingleOrDefault();
 				Assert.IsNotNull(error, "Expected JobInvalidPostRollError.");
 				Assert.AreEqual(job.Id, error.Id);
-				Assert.AreEqual(TimeSpan.FromSeconds(-1), error.PostRoll);
+				Assert.AreEqual(job.PostRollEnd, error.PostRollEnd);
+				Assert.AreEqual(job.End, error.End);
 				return;
 			}
 
 			Assert.Fail("Expected MediaOpsException was not thrown.");
+		}
+
+		[TestMethod]
+		public void CreateWithMissingStartThrowsException()
+		{
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+			var job = new Job
+			{
+				Name = $"{Guid.NewGuid()}_Job",
+				// Start intentionally left unset (default).
+				End = currentTime.AddMinutes(5),
+				PostRollEnd = currentTime.AddMinutes(5),
+			};
+
+			try
+			{
+				objectCreator.CreateJob(job);
+			}
+			catch (MediaOpsException ex)
+			{
+				var error = ex.TraceData.ErrorData.OfType<JobInvalidStartTimeError>().SingleOrDefault();
+				Assert.IsNotNull(error, "Expected JobInvalidStartTimeError.");
+				Assert.AreEqual(job.Id, error.Id);
+				return;
+			}
+
+			Assert.Fail("Expected MediaOpsException was not thrown.");
+		}
+
+		[TestMethod]
+		public void CreateWithMissingEndThrowsException()
+		{
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+			var job = new Job
+			{
+				Name = $"{Guid.NewGuid()}_Job",
+				Start = currentTime,
+				// End intentionally left unset (default).
+				PreRollStart = currentTime,
+			};
+
+			try
+			{
+				objectCreator.CreateJob(job);
+			}
+			catch (MediaOpsException ex)
+			{
+				var error = ex.TraceData.ErrorData.OfType<JobInvalidEndTimeError>().SingleOrDefault();
+				Assert.IsNotNull(error, "Expected JobInvalidEndTimeError.");
+				Assert.AreEqual(job.Id, error.Id);
+				return;
+			}
+
+			Assert.Fail("Expected MediaOpsException was not thrown.");
+		}
+
+		[TestMethod]
+		public void CreateWithMissingPreRollStartThrowsException()
+		{
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+			var job = new Job
+			{
+				Name = $"{Guid.NewGuid()}_Job",
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
+				// PreRollStart intentionally left unset (default).
+				PostRollEnd = currentTime.AddMinutes(5),
+			};
+
+			try
+			{
+				objectCreator.CreateJob(job);
+			}
+			catch (MediaOpsException ex)
+			{
+				var error = ex.TraceData.ErrorData.OfType<JobInvalidPreRollError>().SingleOrDefault();
+				Assert.IsNotNull(error, "Expected JobInvalidPreRollError.");
+				Assert.AreEqual(job.Id, error.Id);
+				return;
+			}
+
+			Assert.Fail("Expected MediaOpsException was not thrown.");
+		}
+
+		[TestMethod]
+		public void CreateWithMissingPostRollEndThrowsException()
+		{
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+			var job = new Job
+			{
+				Name = $"{Guid.NewGuid()}_Job",
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				// PostRollEnd intentionally left unset (default).
+			};
+
+			try
+			{
+				objectCreator.CreateJob(job);
+			}
+			catch (MediaOpsException ex)
+			{
+				var error = ex.TraceData.ErrorData.OfType<JobInvalidPostRollError>().SingleOrDefault();
+				Assert.IsNotNull(error, "Expected JobInvalidPostRollError.");
+				Assert.AreEqual(job.Id, error.Id);
+				return;
+			}
+
+			Assert.Fail("Expected MediaOpsException was not thrown.");
+		}
+
+		[TestMethod]
+		public void CreateWithPreRollStartEqualToStartAndPostRollEndEqualToEndSucceeds()
+		{
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+			var job = new Job
+			{
+				Name = $"{Guid.NewGuid()}_Job",
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
+			};
+
+			job = objectCreator.CreateJob(job);
+
+			var read = TestContext.Api.Jobs.Read(job.Id);
+			Assert.IsNotNull(read);
+			Assert.AreEqual(TimeSpan.Zero, read.PreRollDuration);
+			Assert.AreEqual(TimeSpan.Zero, read.PostRollDuration);
+			Assert.AreEqual(read.Start, read.PreRollStart);
+			Assert.AreEqual(read.End, read.PostRollEnd);
+		}
+
+		[TestMethod]
+		public void CreateWithPreRollAndPostRollPersistsDurations()
+		{
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+			var job = new Job
+			{
+				Name = $"{Guid.NewGuid()}_Job",
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime.AddSeconds(-30),
+				PostRollEnd = currentTime.AddMinutes(5).AddSeconds(45),
+			};
+
+			job = objectCreator.CreateJob(job);
+
+			var read = TestContext.Api.Jobs.Read(job.Id);
+			Assert.IsNotNull(read);
+			Assert.AreEqual(TimeSpan.FromSeconds(30), read.PreRollDuration);
+			Assert.AreEqual(TimeSpan.FromSeconds(45), read.PostRollDuration);
 		}
 
 		[TestMethod]
@@ -630,6 +830,8 @@
 				Name = $"{Guid.NewGuid()}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
 			};
 			job = objectCreator.CreateJob(job);
 
@@ -649,6 +851,8 @@
 				Name = $"{prefix}_Job_1",
 				Start = currentTime,
 				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
 			});
 
 			var job2 = objectCreator.CreateJob(new Job
@@ -656,6 +860,8 @@
 				Name = $"{prefix}_Job_2",
 				Start = currentTime,
 				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
 			});
 
 			TestContext.Api.Jobs.Delete(new[] { job1.Id, job2.Id });
@@ -688,6 +894,8 @@
 				Name = $"{prefix}_Job_1",
 				Start = currentTime,
 				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
 			});
 
 			var job2 = objectCreator.CreateJob(new Job
@@ -695,6 +903,8 @@
 				Name = $"{prefix}_Job_2",
 				Start = currentTime,
 				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
 			});
 
 			var results = TestContext.Api.Jobs.Read(new[] { job1.Id, job2.Id }).ToList();
@@ -716,6 +926,8 @@
 				Name = $"{Guid.NewGuid()}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
 				OrganizationId = organizationId,
 				OwnerId = ownerId,
 			};
@@ -737,6 +949,8 @@
 				Name = $"{Guid.NewGuid()}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
 			});
 
 			var read = TestContext.Api.Jobs.Read(job.Id);
@@ -765,6 +979,8 @@
 				Name = $"{Guid.NewGuid()}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
 			};
 			job.AddContact(contact1).AddContact(contact2);
 
@@ -789,6 +1005,8 @@
 				Name = $"{Guid.NewGuid()}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
 			};
 			job.AddContact(contact1).AddContact(contact2);
 			job = objectCreator.CreateJob(job);
@@ -812,6 +1030,8 @@
 				Name = $"{Guid.NewGuid()}_Job",
 				Start = DateTime.UtcNow,
 				End = DateTime.UtcNow.AddMinutes(5),
+				PreRollStart = DateTime.UtcNow,
+				PostRollEnd = DateTime.UtcNow.AddMinutes(5),
 			};
 
 			Assert.ThrowsException<ArgumentException>(() => job.AddContact(Guid.Empty));
@@ -825,6 +1045,8 @@
 				Name = $"{Guid.NewGuid()}_Job",
 				Start = DateTime.UtcNow,
 				End = DateTime.UtcNow.AddMinutes(5),
+				PreRollStart = DateTime.UtcNow,
+				PostRollEnd = DateTime.UtcNow.AddMinutes(5),
 			};
 
 			Assert.ThrowsException<ArgumentException>(() => job.RemoveContact(Guid.Empty));
@@ -841,6 +1063,8 @@
 				Name = $"{Guid.NewGuid()}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
 			};
 			job.AddContact(contact).AddContact(contact);
 

@@ -278,6 +278,34 @@
 		internal IReadOnlyDictionary<TNode, TNode> SwapMappings => originalToCurrentSwap;
 
 		/// <summary>
+		/// Re-adds a node that was previously swapped out back into the graph, keeping its original object identity
+		/// (and therefore its underlying section) intact.
+		/// </summary>
+		/// <remarks>
+		/// This is used by running-job timing logic to retain a swapped-out node next to its replacement instead of
+		/// dropping it. The original node object is preserved so that, when the job is persisted, the change is seen as
+		/// an update of the existing section rather than a removal followed by an add, which keeps the storage-layer
+		/// merge field-level and conflict-aware. The method is idempotent: restoring a node that is already part of the
+		/// graph is a no-op.
+		/// </remarks>
+		/// <param name="original">The originally swapped-out node to restore.</param>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="original"/> is null.</exception>
+		internal void RestoreSwappedOutNode(TNode original)
+		{
+			if (original == null)
+			{
+				throw new ArgumentNullException(nameof(original));
+			}
+
+			if (nodes.Contains(original))
+			{
+				return;
+			}
+
+			nodes.Add(original);
+		}
+
+		/// <summary>
 		/// Sets the delegate that retargets references living outside the graph (e.g. owner-level orchestration settings)
 		/// after a swap, using the old-id -> new-id map produced by the swap.
 		/// </summary>

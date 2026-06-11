@@ -168,6 +168,8 @@
 				Name = $"{prefix}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
 			};
 
 			var orchestrationSettings = job.OrchestrationSettings;
@@ -204,6 +206,8 @@
 				Name = $"{prefix}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
 			};
 
 			var orchestrationSettings = job.OrchestrationSettings;
@@ -258,6 +262,8 @@
 				Name = $"{prefix}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
 			};
 
 			var orchestrationSettings = job.OrchestrationSettings;
@@ -334,6 +340,8 @@
 				Name = $"{prefix}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
 			};
 			job.OrchestrationSettings
 				.AddCapability(new CapabilitySetting(capability))
@@ -415,6 +423,8 @@
 				Name = $"{prefix}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
 			};
 
 			job = objectCreator.CreateJob(job);
@@ -498,6 +508,8 @@
 				Name = $"{prefix}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
 			};
 
 			job = objectCreator.CreateJob(job);
@@ -600,6 +612,8 @@
 				Name = $"{prefix}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
 			};
 			job.OrchestrationSettings
 				.AddCapability(new CapabilitySetting(capability))
@@ -659,6 +673,8 @@
 				Name = $"{prefix}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
 			};
 
 			job.OrchestrationSettings.SetOrchestrationEvents(new List<OrchestrationEvent>
@@ -711,6 +727,8 @@
 				Name = $"{prefix}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
 			};
 
 			job = objectCreator.CreateJob(job);
@@ -784,6 +802,8 @@
 				Name = $"{prefix}_Job",
 				Start = currentTime,
 				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
 			};
 
 			job.OrchestrationSettings.SetOrchestrationEvents(new List<OrchestrationEvent>
@@ -940,6 +960,8 @@
 				Name = $"{prefix}_Job 1",
 				Start = currentTime,
 				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
 			};
 
 			job1.OrchestrationSettings
@@ -959,6 +981,8 @@
 				Name = $"{prefix}_Job 2",
 				Start = currentTime,
 				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
 			};
 
 			foreach (var capacitySetting in job1.OrchestrationSettings.Capacities)

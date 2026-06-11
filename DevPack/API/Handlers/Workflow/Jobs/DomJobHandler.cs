@@ -7,7 +7,6 @@
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
-	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow;
 	using Skyline.DataMiner.Utils.DOM.Extensions;
 
 	using DomJob = Storage.DOM.SlcWorkflow.JobsInstance;
@@ -15,10 +14,17 @@
 	internal class DomJobHandler : DomInstanceApiObjectValidator<DomJob>
 	{
 		private readonly MediaOpsPlanApi planApi;
+		private readonly DateTimeOffset currentTime;
 
 		private DomJobHandler(MediaOpsPlanApi planApi)
+			: this(planApi, DateTimeOffset.UtcNow)
+		{
+		}
+
+		private DomJobHandler(MediaOpsPlanApi planApi, DateTimeOffset currentTime)
 		{
 			this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
+			this.currentTime = currentTime;
 		}
 
 		internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Job> apiJobs, out DomInstanceBulkOperationResult<DomJob> result)
@@ -60,13 +66,20 @@
 			ValidateKeys(toCreate);
 			AssignKeys(toCreate);
 			AssignNames(toCreate);
-			AssignNodeTimings(toCreate);
 			ValidateStateForUpdateAction(toUpdate);
 
 			ValidateNames(apiJobs);
 			ValidateTimings(apiJobs);
 			ValidatePreRoll(apiJobs);
 			ValidatePostRoll(apiJobs);
+			ValidateStateTimings(apiJobs);
+
+			// Apply the node timings before validating the node graph so that restored/added/changed nodes are part of
+			// the whole-graph validation, and before the lock's GetJobsWithChanges so the DOM snapshots capture them.
+			// Only valid jobs are touched so invalid job-level timings are not propagated onto the nodes. The application
+			// is idempotent, so a job whose timings did not change produces no node-timing diff (and no spurious conflict).
+			ApplyNodeTimings(apiJobs.Where(IsValid).ToList());
+
 			ValidateNodeGraph(apiJobs);
 			ValidateDescription(apiJobs);
 			ValidateNotes(apiJobs);
@@ -96,6 +109,13 @@
 			var toUpdate = apiJobs.Except(toCreate).ToList();
 
 			var changeResults = GetJobsWithChanges(toUpdate);
+
+			// Re-validate the timing chain on the merged result while holding the lock. The pre-lock validation ran
+			// against this user's own snapshot, but a concurrent user may have changed a different timing field that
+			// only became visible after the merge. This check is baseline-independent: it asserts the absolute
+			// ordering invariants (PreRollStart <= Start <= End <= PostRollEnd) of the merged window and is only run
+			// when this user actually changed a timing field.
+			ValidateMergedTimings(toUpdate, changeResults);
 
 			CreateOrUpdateOrchestrationSettings(apiJobs.Where(IsValid).ToList());
 			CreateOrUpdatePropertyValueCollections(apiJobs.Where(IsValid).ToList());
@@ -491,7 +511,7 @@
 			}
 		}
 
-		private void AssignNodeTimings(ICollection<Job> apiJobs)
+		private void ApplyNodeTimings(ICollection<Job> apiJobs)
 		{
 			if (apiJobs == null)
 			{
@@ -503,13 +523,11 @@
 				return;
 			}
 
-			foreach (var job in apiJobs.Where(x => x.IsNew))
+			foreach (var job in apiJobs)
 			{
-				foreach (var node in job.NodeGraph.Nodes)
-				{
-					node.Start = job.Start;
-					node.End = job.End;
-				}
+				var requested = JobTimingWindow.FromJob(job);
+
+				JobNodeTimingResolver.Apply(job.State, requested, currentTime, job.NodeGraph);
 			}
 		}
 
@@ -766,7 +784,35 @@
 				return;
 			}
 
-			foreach (var job in apiJobs.Where(x => x.Start.Ticks % TimeSpan.TicksPerSecond != 0))
+			var toValidate = apiJobs.ToList();
+
+			foreach (var job in toValidate.Where(x => x.Start == default).ToArray())
+			{
+				var error = new JobInvalidStartTimeError
+				{
+					ErrorMessage = "Start time is required.",
+					Id = job.Id,
+					Start = job.Start,
+				};
+
+				ReportError(job.Id, error);
+				toValidate.Remove(job);
+			}
+
+			foreach (var job in toValidate.Where(x => x.End == default).ToArray())
+			{
+				var error = new JobInvalidEndTimeError
+				{
+					ErrorMessage = "End time is required.",
+					Id = job.Id,
+					End = job.End,
+				};
+
+				ReportError(job.Id, error);
+				toValidate.Remove(job);
+			}
+
+			foreach (var job in toValidate.Where(x => x.Start.Ticks % TimeSpan.TicksPerSecond != 0))
 			{
 				var error = new JobInvalidStartTimeError
 				{
@@ -778,7 +824,7 @@
 				ReportError(job.Id, error);
 			}
 
-			foreach (var job in apiJobs.Where(x => x.End.Ticks % TimeSpan.TicksPerSecond != 0))
+			foreach (var job in toValidate.Where(x => x.End.Ticks % TimeSpan.TicksPerSecond != 0))
 			{
 				var error = new JobInvalidEndTimeError
 				{
@@ -790,7 +836,7 @@
 				ReportError(job.Id, error);
 			}
 
-			foreach (var job in apiJobs.Where(x => x.End < x.Start))
+			foreach (var job in toValidate.Where(x => x.End < x.Start))
 			{
 				var error = new JobInvalidTimingError
 				{
@@ -818,26 +864,42 @@
 
 			var toValidate = apiJobs.ToList();
 
-			foreach (var job in toValidate.Where(x => x.PreRoll < TimeSpan.Zero).ToArray())
+			foreach (var job in toValidate.Where(x => x.PreRollStart == default).ToArray())
 			{
 				var error = new JobInvalidPreRollError
 				{
-					ErrorMessage = "Pre-roll cannot be negative.",
+					ErrorMessage = "Pre-roll start time is required.",
 					Id = job.Id,
-					PreRoll = job.PreRoll,
+					PreRollStart = job.PreRollStart,
+					Start = job.Start,
 				};
 
 				ReportError(job.Id, error);
 				toValidate.Remove(job);
 			}
 
-			foreach (var job in toValidate.Where(x => x.PreRoll.Ticks % TimeSpan.TicksPerSecond != 0))
+			foreach (var job in toValidate.Where(x => x.PreRollStart.Ticks % TimeSpan.TicksPerSecond != 0).ToArray())
 			{
 				var error = new JobInvalidPreRollError
 				{
-					ErrorMessage = "Pre-roll must be a multiple of seconds.",
+					ErrorMessage = "Pre-roll start time must not have sub-second precision.",
 					Id = job.Id,
-					PreRoll = job.PreRoll,
+					PreRollStart = job.PreRollStart,
+					Start = job.Start,
+				};
+
+				ReportError(job.Id, error);
+				toValidate.Remove(job);
+			}
+
+			foreach (var job in toValidate.Where(x => x.PreRollStart > x.Start))
+			{
+				var error = new JobInvalidPreRollError
+				{
+					ErrorMessage = "Pre-roll start cannot be after the job start time.",
+					Id = job.Id,
+					PreRollStart = job.PreRollStart,
+					Start = job.Start,
 				};
 
 				ReportError(job.Id, error);
@@ -858,29 +920,116 @@
 
 			var toValidate = apiJobs.ToList();
 
-			foreach (var job in toValidate.Where(x => x.PostRoll < TimeSpan.Zero).ToArray())
+			foreach (var job in toValidate.Where(x => x.PostRollEnd == default).ToArray())
 			{
 				var error = new JobInvalidPostRollError
 				{
-					ErrorMessage = "Post-roll cannot be negative.",
+					ErrorMessage = "Post-roll end time is required.",
 					Id = job.Id,
-					PostRoll = job.PostRoll,
+					PostRollEnd = job.PostRollEnd,
+					End = job.End,
 				};
 
 				ReportError(job.Id, error);
 				toValidate.Remove(job);
 			}
 
-			foreach (var job in toValidate.Where(x => x.PostRoll.Ticks % TimeSpan.TicksPerSecond != 0))
+			foreach (var job in toValidate.Where(x => x.PostRollEnd.Ticks % TimeSpan.TicksPerSecond != 0).ToArray())
 			{
 				var error = new JobInvalidPostRollError
 				{
-					ErrorMessage = "Post-roll must be a multiple of seconds.",
+					ErrorMessage = "Post-roll end time must not have sub-second precision.",
 					Id = job.Id,
-					PostRoll = job.PostRoll,
+					PostRollEnd = job.PostRollEnd,
+					End = job.End,
 				};
 
 				ReportError(job.Id, error);
+				toValidate.Remove(job);
+			}
+
+			foreach (var job in toValidate.Where(x => x.PostRollEnd < x.End))
+			{
+				var error = new JobInvalidPostRollError
+				{
+					ErrorMessage = "Post-roll end cannot be before the job end time.",
+					Id = job.Id,
+					PostRollEnd = job.PostRollEnd,
+					End = job.End,
+				};
+
+				ReportError(job.Id, error);
+			}
+		}
+
+		private void ValidateStateTimings(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			// A new job has no stored baseline, so there are no state-based change restrictions to enforce yet.
+			foreach (var job in apiJobs.Where(x => !x.IsNew))
+			{
+				var requested = JobTimingWindow.FromJob(job);
+				var original = JobTimingWindow.FromInstance(job.OriginalInstance);
+
+				var errors = JobNodeTimingResolver.Validate(job.Id, job.State, requested, original, currentTime);
+				foreach (var error in errors)
+				{
+					ReportError(job.Id, error);
+				}
+			}
+		}
+
+		private void ValidateMergedTimings(ICollection<Job> toUpdate, ICollection<DomChangeResults> changeResults)
+		{
+			if (toUpdate == null)
+			{
+				throw new ArgumentNullException(nameof(toUpdate));
+			}
+
+			if (changeResults == null)
+			{
+				throw new ArgumentNullException(nameof(changeResults));
+			}
+
+			if (changeResults.Count == 0)
+			{
+				return;
+			}
+
+			var jobsById = toUpdate.ToDictionary(x => x.Id);
+
+			foreach (var changeResult in changeResults.Where(IsValid))
+			{
+				if (!jobsById.TryGetValue(changeResult.Id, out var job))
+				{
+					continue;
+				}
+
+				// The merged window only matters when this user actually changed one of the timing boundaries; an
+				// unrelated change (e.g. notes) cannot introduce a timing-ordering violation on its own.
+				var requested = JobTimingWindow.FromJob(job);
+				var original = JobTimingWindow.FromInstance(job.OriginalInstance);
+				if (!requested.GetChanges(original).Any)
+				{
+					continue;
+				}
+
+				var mergedWindow = JobTimingWindow.FromInstance(new DomJob(changeResult.Instance));
+
+				var errors = JobNodeTimingResolver.ValidateTimingChainOrdering(job.Id, mergedWindow);
+				foreach (var error in errors)
+				{
+					ReportError(job.Id, error);
+				}
 			}
 		}
 
