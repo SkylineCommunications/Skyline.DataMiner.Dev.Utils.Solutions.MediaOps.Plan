@@ -1,14 +1,11 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
-	using System.Collections.Generic;
 
-	using Skyline.DataMiner.SDM;
-
-    /// <summary>
-    /// Defines methods for managing <see cref="Job"/> objects.
-    /// </summary>
-    public interface IJobsRepository : IRepository<Job>
+	/// <summary>
+	/// Defines methods for managing <see cref="Job"/> objects.
+	/// </summary>
+	public interface IJobsRepository : IRepository<Job>
     {
         /// <summary>
         /// Set the state of a specific orchestration event for a job.
