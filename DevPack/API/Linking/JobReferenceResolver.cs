@@ -11,19 +11,19 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// </summary>
 	public class JobReferenceResolver : ReferenceResolver
 	{
-		private readonly Lazy<IDictionary<Guid, PropertySettingBase>> _lazyJobPropertyValues;
+		private readonly Lazy<IDictionary<Guid, PropertySettingBase>> _lazyJobPropertySettings;
 		private readonly IDictionary<Guid, Resource> _resourceCache;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="JobReferenceResolver"/> class.
 		/// </summary>
-		/// <param name="planApi">The MediaOps Plan API used to retrieve definitions and property values.</param>
+		/// <param name="planApi">The MediaOps Plan API used to retrieve definitions and property settings.</param>
 		/// <param name="job">The job whose context is used to resolve references.</param>
 		public JobReferenceResolver(IMediaOpsPlanApi planApi, Job job) : base(planApi)
 		{
 			Job = job ?? throw new ArgumentNullException(nameof(job));
 
-			_lazyJobPropertyValues = new Lazy<IDictionary<Guid, PropertySettingBase>>(() => ReadPropertyValues(Job.Id));
+			_lazyJobPropertySettings = new Lazy<IDictionary<Guid, PropertySettingBase>>(() => ReadPropertySettings(Job.Id));
 			_resourceCache = new Dictionary<Guid, Resource>();
 		}
 
@@ -33,9 +33,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		protected Job Job { get; }
 
 		/// <summary>
-		/// Gets the lazily-loaded dictionary of property values defined at the job level.
+		/// Gets the lazily-loaded dictionary of property settings defined at the job level.
 		/// </summary>
-		protected IDictionary<Guid, PropertySettingBase> JobPropertyValues => _lazyJobPropertyValues.Value;
+		protected IDictionary<Guid, PropertySettingBase> JobPropertySettings => _lazyJobPropertySettings.Value;
 
 		/// <inheritdoc />
 		protected override ResolvedValue ResolveJobName(JobNameReference reference)
@@ -46,9 +46,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <inheritdoc />
 		protected override ResolvedValue ResolveJobPropertyValue(JobPropertyReference reference)
 		{
-			if (JobPropertyValues.TryGetValue(reference.JobPropertyId, out var value))
+			if (JobPropertySettings.TryGetValue(reference.JobPropertyId, out var value))
 			{
-				return ConvertPropertyValue(value);
+				return ConvertPropertySetting(value);
 			}
 
 			return ResolvedValue.FromUnresolvedReference(reference);

@@ -1,9 +1,9 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions
 {
 	/// <summary>
-	/// Represents an error that occurs when property value collection custom settings are invalid.
+	/// Represents an error that occurs when property setting collection custom settings are invalid.
 	/// </summary>
-	public sealed class PropertyValueCollectionInvalidCustomSettingsError : PropertyValueCollectionError
+	public sealed class PropertySettingCollectionInvalidCustomSettingsError : PropertySettingCollectionError
 	{
 		/// <summary>
 		/// Gets the name of the custom setting.

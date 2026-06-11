@@ -9,8 +9,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		private StorageProperties.PropertyValueSection originalSection;
 		private StorageProperties.PropertyValueSection updatedSection;
 
-		internal InnerStringPropertySetting(StringPropertySetting stringPropertyValue)
-			: base(stringPropertyValue)
+		internal InnerStringPropertySetting(StringPropertySetting stringPropertySetting)
+			: base(stringPropertySetting)
 		{
 		}
 

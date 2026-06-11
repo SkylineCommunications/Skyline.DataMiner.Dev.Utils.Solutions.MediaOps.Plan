@@ -5,10 +5,10 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 
 	[TestClass]
-	public sealed class JobPropertyValuesTests
+	public sealed class JobPropertySettingsTests
 	{
 		[TestMethod]
-		public void Job_NewInstance_CustomPropertyValuesIsEmpty()
+		public void Job_NewInstance_CustomPropertySettingsIsEmpty()
 		{
 			var job = new Job { Name = "Test" };
 
@@ -17,7 +17,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
-		public void Job_NewInstance_PropertyValuesIsEmpty()
+		public void Job_NewInstance_PropertySettingsIsEmpty()
 		{
 			var job = new Job { Name = "Test" };
 
@@ -26,7 +26,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
-		public void Job_NewInstanceWithId_CustomPropertyValuesIsEmpty()
+		public void Job_NewInstanceWithId_CustomPropertySettingsIsEmpty()
 		{
 			var job = new Job(Guid.NewGuid()) { Name = "Test" };
 
@@ -35,7 +35,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
-		public void Job_NewInstanceWithId_PropertyValuesIsEmpty()
+		public void Job_NewInstanceWithId_PropertySettingsIsEmpty()
 		{
 			var job = new Job(Guid.NewGuid()) { Name = "Test" };
 
@@ -44,7 +44,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
-		public void JobResourceNode_NewInstance_CustomPropertyValuesIsEmpty()
+		public void JobResourceNode_NewInstance_CustomPropertySettingsIsEmpty()
 		{
 			var node = new JobResourceNode(Guid.NewGuid(), Guid.NewGuid());
 
@@ -53,7 +53,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
-		public void JobResourceNode_NewInstance_PropertyValuesIsEmpty()
+		public void JobResourceNode_NewInstance_PropertySettingsIsEmpty()
 		{
 			var node = new JobResourceNode(Guid.NewGuid(), Guid.NewGuid());
 
@@ -62,7 +62,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
-		public void JobResourcePoolNode_NewInstance_CustomPropertyValuesIsEmpty()
+		public void JobResourcePoolNode_NewInstance_CustomPropertySettingsIsEmpty()
 		{
 			var node = new JobResourcePoolNode(Guid.NewGuid());
 
@@ -71,7 +71,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
-		public void JobResourcePoolNode_NewInstance_PropertyValuesIsEmpty()
+		public void JobResourcePoolNode_NewInstance_PropertySettingsIsEmpty()
 		{
 			var node = new JobResourcePoolNode(Guid.NewGuid());
 

@@ -308,10 +308,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			if (resource == null)
 				return ResolvedValue.FromUnresolvedReference(reference);
 
-			var propertyValue = resource.Properties.FirstOrDefault(x => x.Id == reference.ResourcePropertyId);
-			return propertyValue == null
+			var propertySetting = resource.Properties.FirstOrDefault(x => x.Id == reference.ResourcePropertyId);
+			return propertySetting == null
 				? ResolvedValue.FromUnresolvedReference(reference)
-				: new StringResolvedValue(propertyValue.Value);
+				: new StringResolvedValue(propertySetting.Value);
 		}
 
 		/// <summary>
@@ -431,11 +431,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <summary>
 		/// Converts a <see cref="PropertySettingBase"/> to a <see cref="ResolvedValue"/>.
 		/// </summary>
-		/// <param name="propertyValue">The property value to convert.</param>
+		/// <param name="propertySetting">The property setting to convert.</param>
 		/// <returns>The corresponding <see cref="ResolvedValue"/>.</returns>
-		protected ResolvedValue ConvertPropertyValue(PropertySettingBase propertyValue)
+		protected ResolvedValue ConvertPropertySetting(PropertySettingBase propertySetting)
 		{
-			return propertyValue switch
+			return propertySetting switch
 			{
 				StringPropertySetting stringPv => new StringResolvedValue(stringPv.Value),
 				BooleanPropertySetting boolPv => new BooleanResolvedValue(boolPv.Value),
@@ -466,11 +466,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <summary>
-		/// Reads all property values linked to the specified object identifier and returns them in a dictionary keyed by property id.
+		/// Reads all property settings linked to the specified object identifier and returns them in a dictionary keyed by property id.
 		/// </summary>
 		/// <param name="linkedObjectId">The identifier of the linked object.</param>
-		/// <returns>A dictionary containing the property values keyed by property id.</returns>
-		protected IDictionary<Guid, PropertySettingBase> ReadPropertyValues(Guid linkedObjectId)
+		/// <returns>A dictionary containing the property settings keyed by property id.</returns>
+		protected IDictionary<Guid, PropertySettingBase> ReadPropertySettings(Guid linkedObjectId)
 		{
 			var result = new Dictionary<Guid, PropertySettingBase>();
 
@@ -484,9 +484,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			foreach (var collection in collections)
 			{
-				foreach (var propertyValue in collection.OfType<PropertySetting>())
+				foreach (var propertySetting in collection.OfType<PropertySetting>())
 				{
-					result[propertyValue.Id] = propertyValue;
+					result[propertySetting.Id] = propertySetting;
 				} 
 			}
 

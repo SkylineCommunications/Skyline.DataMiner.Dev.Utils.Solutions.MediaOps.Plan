@@ -53,7 +53,7 @@ namespace RT_MediaOps.Plan.Properties.Values
             };
             collection.Add(new StringPropertySetting(property) { Value = "hello" });
 
-            var created = objectCreator.CreatePropertyValueCollection(collection);
+            var created = objectCreator.CreatePropertySettingCollection(collection);
 
             Assert.AreEqual(collectionId, created.Id);
             Assert.AreEqual("obj-1", created.LinkedObjectId);
@@ -89,18 +89,18 @@ namespace RT_MediaOps.Plan.Properties.Values
                 Scope = "global",
             };
 
-            objectCreator.CreatePropertyValueCollection(collection1);
+            objectCreator.CreatePropertySettingCollection(collection1);
 
             try
             {
-                objectCreator.CreatePropertyValueCollection(collection2);
+                objectCreator.CreatePropertySettingCollection(collection2);
             }
             catch (MediaOpsException ex)
             {
                 StringAssert.Contains(ex.Message, "ID is already in use.");
 
                 Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
-                var error = ex.TraceData.ErrorData.OfType<PropertyValueCollectionIdInUseError>().SingleOrDefault();
+                var error = ex.TraceData.ErrorData.OfType<PropertySettingCollectionIdInUseError>().SingleOrDefault();
                 Assert.IsNotNull(error);
                 Assert.AreEqual(collectionId, error.Id);
 
@@ -138,7 +138,7 @@ namespace RT_MediaOps.Plan.Properties.Values
                 }
 
                 Assert.AreEqual(2, traceData.ErrorData.Count);
-                var errors = traceData.ErrorData.OfType<PropertyValueCollectionDuplicateIdError>().ToList();
+                var errors = traceData.ErrorData.OfType<PropertySettingCollectionDuplicateIdError>().ToList();
                 Assert.AreEqual(2, errors.Count);
 
                 return;
@@ -174,7 +174,7 @@ namespace RT_MediaOps.Plan.Properties.Values
             {
                 var errors = ex.Result.TraceDataPerItem.Values
                     .SelectMany(x => x.ErrorData)
-                    .OfType<PropertyValueCollectionDuplicateLinkedObjectIdAndSubIdError>()
+                    .OfType<PropertySettingCollectionDuplicateLinkedObjectIdAndSubIdError>()
                     .ToList();
 
                 Assert.AreEqual(2, errors.Count);
@@ -198,7 +198,7 @@ namespace RT_MediaOps.Plan.Properties.Values
                 SubId = subId,
                 Scope = "global",
             };
-            objectCreator.CreatePropertyValueCollection(existing);
+            objectCreator.CreatePropertySettingCollection(existing);
 
             var newCollection = new PropertySettingCollection
             {
@@ -206,10 +206,10 @@ namespace RT_MediaOps.Plan.Properties.Values
                 SubId = subId,
                 Scope = "global",
             };
-            var ex = Assert.ThrowsException<MediaOpsException>(() => objectCreator.CreatePropertyValueCollection(newCollection));
+            var ex = Assert.ThrowsException<MediaOpsException>(() => objectCreator.CreatePropertySettingCollection(newCollection));
             StringAssert.Contains(ex.Message, "already exists");
 
-            var error = ex.TraceData.ErrorData.OfType<PropertyValueCollectionDuplicateLinkedObjectIdAndSubIdError>().SingleOrDefault();
+            var error = ex.TraceData.ErrorData.OfType<PropertySettingCollectionDuplicateLinkedObjectIdAndSubIdError>().SingleOrDefault();
             Assert.IsNotNull(error);
             Assert.AreEqual(linkedObjectId, error.LinkedObjectId);
             Assert.AreEqual(subId, error.SubId);
@@ -291,7 +291,7 @@ namespace RT_MediaOps.Plan.Properties.Values
             var ex = Assert.ThrowsException<MediaOpsBulkException<Guid>>(() => objectCreator.CreatePropertySettingCollections(new[] { collection1, collection2 }));
             var errors = ex.Result.TraceDataPerItem.Values
                 .SelectMany(x => x.ErrorData)
-                .OfType<PropertyValueCollectionDuplicateLinkedObjectIdAndSubIdError>()
+                .OfType<PropertySettingCollectionDuplicateLinkedObjectIdAndSubIdError>()
                 .ToList();
 
             Assert.AreEqual(2, errors.Count);
@@ -311,12 +311,12 @@ namespace RT_MediaOps.Plan.Properties.Values
             collection.Add(new CustomPropertySetting(customName) { Value = "A" });
             collection.Add(new CustomPropertySetting(customName) { Value = "B" });
 
-            var ex = Assert.ThrowsException<MediaOpsException>(() => objectCreator.CreatePropertyValueCollection(collection));
+            var ex = Assert.ThrowsException<MediaOpsException>(() => objectCreator.CreatePropertySettingCollection(collection));
             var errorMessage = $"Name '{customName}' is defined 2 times.";
             Assert.AreEqual(errorMessage, ex.Message);
             Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
 
-            var error = ex.TraceData.ErrorData.OfType<PropertyValueCollectionInvalidCustomSettingsError>().SingleOrDefault();
+            var error = ex.TraceData.ErrorData.OfType<PropertySettingCollectionInvalidCustomSettingsError>().SingleOrDefault();
             Assert.IsNotNull(error);
             Assert.AreEqual(errorMessage, error.ErrorMessage);
             Assert.AreEqual(collection.Id, error.Id);
@@ -342,12 +342,12 @@ namespace RT_MediaOps.Plan.Properties.Values
             };
             collection.Add(new CustomPropertySetting(propertyName) { Value = "A" });
 
-            var ex = Assert.ThrowsException<MediaOpsException>(() => objectCreator.CreatePropertyValueCollection(collection));
+            var ex = Assert.ThrowsException<MediaOpsException>(() => objectCreator.CreatePropertySettingCollection(collection));
             var errorMessage = $"Name '{propertyName}' cannot be the same as a property name in the same scope.";
             Assert.AreEqual(errorMessage, ex.Message);
             Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
 
-            var error = ex.TraceData.ErrorData.OfType<PropertyValueCollectionInvalidCustomSettingsError>().SingleOrDefault();
+            var error = ex.TraceData.ErrorData.OfType<PropertySettingCollectionInvalidCustomSettingsError>().SingleOrDefault();
             Assert.IsNotNull(error);
             Assert.AreEqual(errorMessage, error.ErrorMessage);
             Assert.AreEqual(collection.Id, error.Id);
@@ -355,7 +355,7 @@ namespace RT_MediaOps.Plan.Properties.Values
         }
 
         [TestMethod]
-        public void CreateWithDuplicatePropertyValueIdsThrowsException()
+        public void CreateWithDuplicatePropertySettingIdsThrowsException()
         {
             var property = new StringProperty
             {
@@ -373,12 +373,12 @@ namespace RT_MediaOps.Plan.Properties.Values
             collection.Add(new StringPropertySetting(property) { Value = "A" });
             collection.Add(new StringPropertySetting(property) { Value = "B" });
 
-            var ex = Assert.ThrowsException<MediaOpsException>(() => objectCreator.CreatePropertyValueCollection(collection));
+            var ex = Assert.ThrowsException<MediaOpsException>(() => objectCreator.CreatePropertySettingCollection(collection));
             var errorMessage = $"Property value collection contains 2 values with the same property ID '{property.Id}'.";
             Assert.AreEqual(errorMessage, ex.Message);
             Assert.AreEqual(1, ex.TraceData.ErrorData.Count);
 
-            var error = ex.TraceData.ErrorData.OfType<PropertyValueCollectionInvalidPropertySettingsError>().SingleOrDefault();
+            var error = ex.TraceData.ErrorData.OfType<PropertySettingCollectionInvalidPropertySettingsError>().SingleOrDefault();
             Assert.IsNotNull(error);
             Assert.AreEqual(errorMessage, error.ErrorMessage);
             Assert.AreEqual(collection.Id, error.Id);
@@ -396,7 +396,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 
             try
             {
-                objectCreator.CreatePropertyValueCollection(collection);
+                objectCreator.CreatePropertySettingCollection(collection);
             }
             catch (MediaOpsException ex)
             {
@@ -418,7 +418,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 
             try
             {
-                objectCreator.CreatePropertyValueCollection(collection);
+                objectCreator.CreatePropertySettingCollection(collection);
             }
             catch (MediaOpsException ex)
             {
@@ -450,7 +450,7 @@ namespace RT_MediaOps.Plan.Properties.Values
                 LinkedObjectId = "obj-1",
                 Scope = "global",
             };
-            var created = objectCreator.CreatePropertyValueCollection(collection);
+            var created = objectCreator.CreatePropertySettingCollection(collection);
 
             Assert.ThrowsException<InvalidOperationException>(() =>
                 TestContext.Api.PropertySettingCollections.Create(created));
@@ -466,7 +466,7 @@ namespace RT_MediaOps.Plan.Properties.Values
                 LinkedObjectId = "obj-count",
                 Scope = "global",
             };
-            objectCreator.CreatePropertyValueCollection(collection);
+            objectCreator.CreatePropertySettingCollection(collection);
 
             var countAfter = TestContext.Api.PropertySettingCollections.Count();
 
@@ -483,7 +483,7 @@ namespace RT_MediaOps.Plan.Properties.Values
                 LinkedObjectId = linkedObjectId,
                 Scope = "global",
             };
-            var created = objectCreator.CreatePropertyValueCollection(collection);
+            var created = objectCreator.CreatePropertySettingCollection(collection);
 
             var results = TestContext.Api.PropertySettingCollections
                 .Read(PropertySettingCollectionExposers.Id.Equal(created.Id))
@@ -535,7 +535,7 @@ namespace RT_MediaOps.Plan.Properties.Values
             };
             collection.Add(new StringPropertySetting(property) { Value = "hello" });
 
-            var created = objectCreator.CreatePropertyValueCollection(collection);
+            var created = objectCreator.CreatePropertySettingCollection(collection);
 
             // Read
             var read = TestContext.Api.PropertySettingCollections.Read(collectionId);
@@ -579,7 +579,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 		}
 
 		[TestMethod]
-		public void UpdateUnmodifiedPropertyValueCollection()
+		public void UpdateUnmodifiedPropertySettingCollection()
 		{
 			var property = new StringProperty
 			{
@@ -595,7 +595,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 				Scope = "global",
 			};
 			collection.Add(new StringPropertySetting(property) { Value = "value" });
-			collection = objectCreator.CreatePropertyValueCollection(collection);
+			collection = objectCreator.CreatePropertySettingCollection(collection);
 
 			var originalCollection = TestContext.Api.PropertySettingCollections.Read(collection.Id);
 			var updatedCollection = TestContext.Api.PropertySettingCollections.Update(originalCollection);
@@ -604,7 +604,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 		}
 
 		[TestMethod]
-		public void BulkUpdateWithChangedAndUnchangedPropertyValueCollectionReturnsTwoCollections()
+		public void BulkUpdateWithChangedAndUnchangedPropertySettingCollectionReturnsTwoCollections()
 		{
 			var property = new StringProperty
 			{
@@ -620,7 +620,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 				Scope = "global",
 			};
 			changedCollection.Add(new StringPropertySetting(property) { Value = "value-1" });
-			changedCollection = objectCreator.CreatePropertyValueCollection(changedCollection);
+			changedCollection = objectCreator.CreatePropertySettingCollection(changedCollection);
 
 			var unchangedCollection = new PropertySettingCollection
 			{
@@ -628,7 +628,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 				Scope = "global",
 			};
 			unchangedCollection.Add(new StringPropertySetting(property) { Value = "value-2" });
-			unchangedCollection = objectCreator.CreatePropertyValueCollection(unchangedCollection);
+			unchangedCollection = objectCreator.CreatePropertySettingCollection(unchangedCollection);
 
 			var changedToUpdate = TestContext.Api.PropertySettingCollections.Read(changedCollection.Id);
 			var unchangedToUpdate = TestContext.Api.PropertySettingCollections.Read(unchangedCollection.Id);
@@ -649,7 +649,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 		}
 
 		[TestMethod]
-		public void BulkUpdateWithChangedInvalidAndUnchangedPropertyValueCollectionReturnsTwoSuccessfulIds()
+		public void BulkUpdateWithChangedInvalidAndUnchangedPropertySettingCollectionReturnsTwoSuccessfulIds()
 		{
 			var property = new StringProperty
 			{
@@ -665,7 +665,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 				Scope = "global",
 			};
 			changedCollection.Add(new StringPropertySetting(property) { Value = "value-1" });
-			changedCollection = objectCreator.CreatePropertyValueCollection(changedCollection);
+			changedCollection = objectCreator.CreatePropertySettingCollection(changedCollection);
 
 			var invalidCollection = new PropertySettingCollection
 			{
@@ -673,7 +673,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 				Scope = "global",
 			};
 			invalidCollection.Add(new StringPropertySetting(property) { Value = "value-2" });
-			invalidCollection = objectCreator.CreatePropertyValueCollection(invalidCollection);
+			invalidCollection = objectCreator.CreatePropertySettingCollection(invalidCollection);
 
 			var unchangedCollection = new PropertySettingCollection
 			{
@@ -681,7 +681,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 				Scope = "global",
 			};
 			unchangedCollection.Add(new StringPropertySetting(property) { Value = "value-3" });
-			unchangedCollection = objectCreator.CreatePropertyValueCollection(unchangedCollection);
+			unchangedCollection = objectCreator.CreatePropertySettingCollection(unchangedCollection);
 
 			var changedToUpdate = TestContext.Api.PropertySettingCollections.Read(changedCollection.Id);
 			var invalidToUpdate = TestContext.Api.PropertySettingCollections.Read(invalidCollection.Id);

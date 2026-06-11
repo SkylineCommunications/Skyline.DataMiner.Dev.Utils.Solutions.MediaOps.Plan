@@ -5,10 +5,10 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 
 	[TestClass]
-	public sealed class WorkflowPropertyValuesTests
+	public sealed class WorkflowPropertySettingsTests
 	{
 		[TestMethod]
-		public void Workflow_NewInstance_CustomPropertyValuesIsEmpty()
+		public void Workflow_NewInstance_CustomPropertySettingsIsEmpty()
 		{
 			var workflow = new Workflow { Name = "Test" };
 
@@ -17,7 +17,7 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 		}
 
 		[TestMethod]
-		public void Workflow_NewInstance_PropertyValuesIsEmpty()
+		public void Workflow_NewInstance_PropertySettingsIsEmpty()
 		{
 			var workflow = new Workflow { Name = "Test" };
 
@@ -26,7 +26,7 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 		}
 
 		[TestMethod]
-		public void Workflow_NewInstanceWithId_CustomPropertyValuesIsEmpty()
+		public void Workflow_NewInstanceWithId_CustomPropertySettingsIsEmpty()
 		{
 			var workflow = new Workflow(Guid.NewGuid()) { Name = "Test" };
 
@@ -35,7 +35,7 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 		}
 
 		[TestMethod]
-		public void Workflow_NewInstanceWithId_PropertyValuesIsEmpty()
+		public void Workflow_NewInstanceWithId_PropertySettingsIsEmpty()
 		{
 			var workflow = new Workflow(Guid.NewGuid()) { Name = "Test" };
 
@@ -44,7 +44,7 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 		}
 
 		[TestMethod]
-		public void WorkflowResourceNode_NewInstance_CustomPropertyValuesIsEmpty()
+		public void WorkflowResourceNode_NewInstance_CustomPropertySettingsIsEmpty()
 		{
 			var node = new WorkflowResourceNode(Guid.NewGuid(), Guid.NewGuid());
 
@@ -53,7 +53,7 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 		}
 
 		[TestMethod]
-		public void WorkflowResourceNode_NewInstance_PropertyValuesIsEmpty()
+		public void WorkflowResourceNode_NewInstance_PropertySettingsIsEmpty()
 		{
 			var node = new WorkflowResourceNode(Guid.NewGuid(), Guid.NewGuid());
 
@@ -62,7 +62,7 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 		}
 
 		[TestMethod]
-		public void WorkflowResourcePoolNode_NewInstance_CustomPropertyValuesIsEmpty()
+		public void WorkflowResourcePoolNode_NewInstance_CustomPropertySettingsIsEmpty()
 		{
 			var node = new WorkflowResourcePoolNode(Guid.NewGuid());
 
@@ -71,7 +71,7 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 		}
 
 		[TestMethod]
-		public void WorkflowResourcePoolNode_NewInstance_PropertyValuesIsEmpty()
+		public void WorkflowResourcePoolNode_NewInstance_PropertySettingsIsEmpty()
 		{
 			var node = new WorkflowResourcePoolNode(Guid.NewGuid());
 

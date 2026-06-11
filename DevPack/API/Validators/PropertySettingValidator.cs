@@ -87,7 +87,7 @@
 
 		private MediaOpsErrorData ComposePropertySettingError(Guid propertyId, string errorMessage)
 		{
-			return new PropertyValueCollectionInvalidPropertySettingsError
+			return new PropertySettingCollectionInvalidPropertySettingsError
 			{
 				ErrorMessage = errorMessage,
 				PropertyId = propertyId,
