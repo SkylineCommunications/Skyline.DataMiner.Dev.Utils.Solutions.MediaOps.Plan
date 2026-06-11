@@ -409,7 +409,7 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 				.AddConfiguration(new DiscreteTextConfigurationSetting(discreteTextConfiguration))
 				.AddConfiguration(new DiscreteNumberConfigurationSetting(discreteNumberConfiguration));
 
-			workflow = TestContext.Api.Workflows.Update(workflow);
+			workflow = ((WorkflowsRepository)TestContext.Api.Workflows).Update(workflow);
 
 			Assert.IsNotNull(workflow);
 			Assert.IsNotNull(workflow.OrchestrationSettings);
@@ -494,7 +494,7 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 				]),
 			});
 
-			workflow = TestContext.Api.Workflows.Update(workflow);
+			workflow = ((WorkflowsRepository)TestContext.Api.Workflows).Update(workflow);
 
 			Assert.IsNotNull(workflow);
 			Assert.IsNotNull(workflow.OrchestrationSettings);
@@ -702,7 +702,7 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 				},
 			});
 
-			workflow = TestContext.Api.Workflows.Update(workflow);
+			workflow = ((WorkflowsRepository)TestContext.Api.Workflows).Update(workflow);
 
 			Assert.IsNotNull(workflow.OrchestrationSettings);
 			Assert.IsNotNull(workflow.OrchestrationSettings.OrchestrationEvents);
@@ -819,7 +819,7 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 				ExecutionDetails = new ScriptExecutionDetails("PrerollStopScript").AddConfiguration(new TextConfigurationSetting(textConfiguration) { Value = "HelloWorld" }),
 			});
 
-			workflow = TestContext.Api.Workflows.Update(workflow);
+			workflow = ((WorkflowsRepository)TestContext.Api.Workflows).Update(workflow);
 
 			Assert.IsNotNull(workflow.OrchestrationSettings);
 			Assert.IsNotNull(workflow.OrchestrationSettings.OrchestrationEvents);

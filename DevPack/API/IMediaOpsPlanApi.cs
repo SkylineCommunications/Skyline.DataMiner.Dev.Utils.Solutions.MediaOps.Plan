@@ -55,22 +55,22 @@
 		/// <summary>
 		/// Gets the repository for managing properties.
 		/// </summary>
-		IPropertiesRepository Properties { get; }
+		internal IPropertiesRepository Properties { get; }
 
 		/// <summary>
 		/// Gets the repository for managing scheduling properties.
 		/// </summary>
-		ISchedulingPropertiesRepository SchedulingProperties { get; }
+		internal ISchedulingPropertiesRepository SchedulingProperties { get; }
 
 		/// <summary>
 		/// Gets the repository for managing property setting collections.
 		/// </summary>
-		IPropertySettingCollectionsRepository PropertySettingCollections { get; }
+		internal IPropertySettingCollectionsRepository PropertySettingCollections { get; }
 
 		/// <summary>
 		/// Gets the global application settings.
 		/// </summary>
-		IGlobalSettings GlobalSettings { get; }
+		internal IGlobalSettings GlobalSettings { get; }
 
 		/// <summary>
 		/// Determines whether the MediaOps.PLAN application is installed on the DataMiner System.

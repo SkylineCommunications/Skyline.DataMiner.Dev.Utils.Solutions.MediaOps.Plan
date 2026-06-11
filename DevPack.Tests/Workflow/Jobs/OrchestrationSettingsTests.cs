@@ -438,7 +438,7 @@
 				.AddConfiguration(new DiscreteTextConfigurationSetting(discreteTextConfiguration))
 				.AddConfiguration(new DiscreteNumberConfigurationSetting(discreteNumberConfiguration));
 
-			job = TestContext.Api.Jobs.Update(job);
+			job = ((JobsRepository)TestContext.Api.Jobs).Update(job);
 
 			Assert.IsNotNull(job);
 			Assert.IsNotNull(job.OrchestrationSettings);
@@ -528,7 +528,7 @@
 				]),
 			});
 
-			job = TestContext.Api.Jobs.Update(job);
+			job = ((JobsRepository)TestContext.Api.Jobs).Update(job);
 
 			Assert.IsNotNull(job);
 			Assert.IsNotNull(job.OrchestrationSettings);
@@ -750,7 +750,7 @@
 				},
 			});
 
-			job = TestContext.Api.Jobs.Update(job);
+			job = ((JobsRepository)TestContext.Api.Jobs).Update(job);
 
 			Assert.IsNotNull(job.OrchestrationSettings);
 			Assert.IsNotNull(job.OrchestrationSettings.OrchestrationEvents);
@@ -872,7 +872,7 @@
 				ExecutionDetails = new ScriptExecutionDetails("PrerollStopScript").AddConfiguration(new TextConfigurationSetting(textConfiguration) { Value = "HelloWorld" }),
 			});
 
-			job = TestContext.Api.Jobs.Update(job);
+			job = ((JobsRepository)TestContext.Api.Jobs).Update(job);
 
 			Assert.IsNotNull(job.OrchestrationSettings);
 			Assert.IsNotNull(job.OrchestrationSettings.OrchestrationEvents);

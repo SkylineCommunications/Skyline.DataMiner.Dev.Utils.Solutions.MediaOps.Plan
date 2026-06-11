@@ -73,7 +73,7 @@
 			node2.AddCustomProperty(new CustomPropertySetting("Tag2") { Value = "Value2" });
 			workflow.NodeGraph.Add(node2);
 
-			workflow = TestContext.Api.Workflows.Update(workflow);
+			workflow = ((WorkflowsRepository)TestContext.Api.Workflows).Update(workflow);
 			Assert.IsNotNull(workflow);
 			Assert.AreEqual(2, workflow.CustomPropertySettings.Count);
 			var customWorkflowTag1Property = workflow.CustomPropertySettings.FirstOrDefault(x => x.Name == "Tag1");

@@ -23,7 +23,7 @@
 			Console.WriteLine("Connected to DataMiner\r\n");
 
 			var api = connection.GetMediaOpsPlanApi();
-
+			
 			var resource = new UnmanagedResource()
 			{
 				Name = "Injected Resource",
@@ -31,7 +31,7 @@
 			};
 
 			api.Resources.Create(resource);
-
+			
 			var r = api.Resources.Read(resource.Id);
 			r.Name = "Updated Injected Resource";
 
