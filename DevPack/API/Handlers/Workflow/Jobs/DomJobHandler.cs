@@ -5,9 +5,9 @@
 	using System.Linq;
 
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+	using Skyline.DataMiner.Solutions.Categories.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
-	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow;
 	using Skyline.DataMiner.Utils.DOM.Extensions;
 
 	using DomJob = Storage.DOM.SlcWorkflow.JobsInstance;
@@ -64,6 +64,7 @@
 			ValidateStateForUpdateAction(toUpdate);
 
 			ValidateNames(apiJobs);
+			ValidateCategories(apiJobs);
 			ValidateTimings(apiJobs);
 			ValidatePreRoll(apiJobs);
 			ValidatePostRoll(apiJobs);
@@ -701,6 +702,59 @@
 				};
 
 				ReportError(job.Id, error);
+			}
+		}
+
+		private void ValidateCategories(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			var scope = planApi.Categories.Scopes.Read(ScopeExposers.Name.Equal("Job Types")).FirstOrDefault();
+			if (scope == null)
+			{
+				foreach (var job in apiJobs.Where(x => !string.IsNullOrEmpty(x.CategoryId)))
+				{
+					var error = new JobCategoryScopeNotFoundError
+					{
+						ErrorMessage = "Category with scope 'Job Types' not found.",
+						Id = job.Id,
+					};
+
+					ReportError(job.Id, error);
+				}
+
+				return;
+			}
+
+			var categoryIds = planApi.Categories.Categories.GetByScope(scope).Select(x => x.ID.ToString()).ToList();
+
+			foreach (var job in apiJobs.Where(x => !string.IsNullOrEmpty(x.CategoryId)))
+			{
+				if (!categoryIds.Contains(job.CategoryId))
+				{
+					if (job.CategoryId.Equals("Scheduling", StringComparison.InvariantCultureIgnoreCase))
+					{
+						// Translate previous fixed source to new fixed category id.
+						job.CategoryId = Convert.ToString(JobTypes.Scheduled);
+						continue;
+					}
+
+					var error = new JobCategoryNotFoundError
+					{
+						ErrorMessage = $"Category with ID '{job.CategoryId}' not found in Scope 'Job Types'.",
+						CategoryId = job.CategoryId,
+						Id = job.Id,
+					};
+
+					ReportError(job.Id, error);
+				}
 			}
 		}
 

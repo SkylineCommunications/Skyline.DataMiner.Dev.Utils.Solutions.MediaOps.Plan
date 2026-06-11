@@ -18,6 +18,8 @@
 		{
 		}
 
+		public JobTypes JobTypes { get; } = new JobTypes();
+
 		public long Count()
 		{
 			return Count(new TRUEFilterElement<Job>());

@@ -136,7 +136,8 @@
 		/// Use <see cref="AddProperty"/>, <see cref="SetProperties"/> and <see cref="RemoveProperty"/> to modify them.
 		/// </summary>
 		public IReadOnlyCollection<PropertySetting> PropertySettings => GetOrCreateScope().PropertySettings;
-    
+
+		/// <summary>
 		/// Gets or sets the ID of the organization associated with the job.
 		/// </summary>
 		public Guid OrganizationId { get; set; }
@@ -150,6 +151,11 @@
 		/// Gets the collection of contact IDs associated with the job.
 		/// </summary>
 		public IReadOnlyCollection<Guid> ContactIds => contactIds;
+
+		/// <summary>
+		/// Gets or sets the unique identifier of the associated job type.
+		/// </summary>
+		public string CategoryId { get; set; }
 
 		internal StorageWorkflow.JobsInstance OriginalInstance => originalInstance;
 
@@ -496,6 +502,7 @@
 			updatedInstance.JobInfo.Preroll = PreRoll != TimeSpan.Zero ? Start.Add(-PreRoll).UtcDateTime : Start.UtcDateTime;
 			updatedInstance.JobInfo.Postroll = PostRoll != TimeSpan.Zero ? End.Add(PostRoll).UtcDateTime : End.UtcDateTime;
 			updatedInstance.JobInfo.JobNotes = Notes;
+			updatedInstance.JobInfo.JobSource = CategoryId;
 
 			updatedInstance.JobExecution.JobConfiguration = OrchestrationSettings.Id;
 
@@ -567,6 +574,7 @@
 			PreRoll = instance.JobInfo.Preroll.HasValue ? (Start - instance.JobInfo.Preroll.Value) : TimeSpan.Zero;
 			PostRoll = instance.JobInfo.Postroll.HasValue ? (instance.JobInfo.Postroll.Value - End) : TimeSpan.Zero;
 			Notes = instance.JobInfo.JobNotes;
+			CategoryId = instance.JobInfo.JobSource;
 
 			Priority = instance.JobInfo.JobPriority.HasValue
 				? EnumExtensions.MapEnum<StorageWorkflow.SlcWorkflowIds.Enums.Jobpriority, JobPriority>(instance.JobInfo.JobPriority.Value)
