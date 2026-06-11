@@ -446,6 +446,7 @@
 				hash = (hash * 23) + PreRoll.GetHashCode();
 				hash = (hash * 23) + PostRoll.GetHashCode();
 				hash = (hash * 23) + (Notes != null ? Notes.GetHashCode() : 0);
+				hash = (hash * 23) + (CategoryId != null ? CategoryId.GetHashCode() : 0);
 				hash = (hash * 23) + (OrchestrationSettings != null ? OrchestrationSettings.GetHashCode() : 0);
 				hash = (hash * 23) + (NodeGraph != null ? NodeGraph.GetHashCode() : 0);
 				hash = (hash * 23) + State.GetHashCode();
@@ -479,6 +480,7 @@
 				   PreRoll == other.PreRoll &&
 				   PostRoll == other.PostRoll &&
 				   Notes == other.Notes &&
+				   CategoryId == other.CategoryId &&
 				   OrchestrationSettings == other.OrchestrationSettings &&
 				   NodeGraph == other.NodeGraph &&
 				   State == other.State &&
