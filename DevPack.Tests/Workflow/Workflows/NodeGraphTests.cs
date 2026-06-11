@@ -318,7 +318,7 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 
 			try
 			{
-				TestContext.Api.Workflows.Update(workflow);
+				((WorkflowsRepository)TestContext.Api.Workflows).Update(workflow);
 				Assert.Fail("Expected MediaOpsException was not thrown.");
 			}
 			catch (MediaOpsException ex)
@@ -456,7 +456,7 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 			var node = new WorkflowResourcePoolNode(pool);
 			workflow.NodeGraph.Add(node);
 
-			workflow = TestContext.Api.Workflows.Update(workflow);
+			workflow = ((WorkflowsRepository)TestContext.Api.Workflows).Update(workflow);
 
 			Assert.AreEqual(1, workflow.NodeGraph.Nodes.Count);
 			Assert.IsNotNull(workflow.NodeGraph.Nodes.OfType<WorkflowResourcePoolNode>().SingleOrDefault());
@@ -487,7 +487,7 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 			var toNode = workflow.NodeGraph.Nodes.OfType<WorkflowResourcePoolNode>().Single();
 			workflow.NodeGraph.Connect(fromNode, toNode);
 
-			workflow = TestContext.Api.Workflows.Update(workflow);
+			workflow = ((WorkflowsRepository)TestContext.Api.Workflows).Update(workflow);
 
 			Assert.AreEqual(1, workflow.NodeGraph.Connections.Count);
 		}
@@ -515,7 +515,7 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 
 			workflow.NodeGraph.Disconnect(workflow.NodeGraph.Connections.Single());
 
-			workflow = TestContext.Api.Workflows.Update(workflow);
+			workflow = ((WorkflowsRepository)TestContext.Api.Workflows).Update(workflow);
 
 			Assert.AreEqual(0, workflow.NodeGraph.Connections.Count);
 			Assert.AreEqual(2, workflow.NodeGraph.Nodes.Count);
@@ -545,7 +545,7 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 
 			workflow.NodeGraph.Remove(workflow.NodeGraph.Nodes.OfType<WorkflowResourceNode>().Single());
 
-			workflow = TestContext.Api.Workflows.Update(workflow);
+			workflow = ((WorkflowsRepository)TestContext.Api.Workflows).Update(workflow);
 
 			Assert.AreEqual(1, workflow.NodeGraph.Nodes.Count);
 			Assert.IsNull(workflow.NodeGraph.Nodes.OfType<WorkflowResourceNode>().SingleOrDefault());

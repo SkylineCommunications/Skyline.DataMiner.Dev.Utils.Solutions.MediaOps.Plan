@@ -52,7 +52,7 @@
 			this.testContext = testContext ?? throw new ArgumentNullException(nameof(testContext));
 		}
 
-		private IMediaOpsPlanApi PlanApi => testContext.Api;
+		private MediaOpsPlanApi PlanApi => testContext.Api;
 
 		private ICategoriesApi CategoriesApi => testContext.CategoriesApi;
 
@@ -330,14 +330,14 @@
 		{
 			var jobs = PlanApi.Jobs.Read(createdJobIds.ToArray());
 
-			PlanApi.Jobs.Delete(jobs.ToArray());
+			((JobsRepository)PlanApi.Jobs).Delete(jobs.ToArray());
 		}
 
 		private void WorkflowsCleanup()
 		{
 			var workflows = PlanApi.Workflows.Read(createdWorkflowIds.ToArray());
 
-			PlanApi.Workflows.Delete(workflows.ToArray());
+			((WorkflowsRepository)PlanApi.Workflows).Delete(workflows.ToArray());
 		}
 
 		private void PropertiesCleanup()
@@ -737,14 +737,14 @@
 
 		public Job CreateJob(Job job)
 		{
-			var createdJob = PlanApi.Jobs.Create(job);
+			var createdJob = ((JobsRepository)PlanApi.Jobs).Create(job);
 			createdJobIds.Add(createdJob.Id);
 			return createdJob;
 		}
 
 		public Workflow CreateWorkflow(Workflow workflow)
 		{
-			var createdWorkflow = PlanApi.Workflows.Create(workflow);
+			var createdWorkflow = ((WorkflowsRepository)PlanApi.Workflows).Create(workflow);
 			createdWorkflowIds.Add(createdWorkflow.Id);
 			return createdWorkflow;
 		}
@@ -753,7 +753,7 @@
 		{
 			try
 			{
-				var createdJobs = PlanApi.Jobs.Create(jobs);
+				var createdJobs = ((JobsRepository)PlanApi.Jobs).Create(jobs);
 
 				foreach (var job in createdJobs)
 				{
@@ -777,7 +777,7 @@
 		{
 			try
 			{
-				var createdWorkflows = PlanApi.Workflows.Create(workflows);
+				var createdWorkflows = ((WorkflowsRepository)PlanApi.Workflows).Create(workflows);
 
 				foreach (var workflow in createdWorkflows)
 				{

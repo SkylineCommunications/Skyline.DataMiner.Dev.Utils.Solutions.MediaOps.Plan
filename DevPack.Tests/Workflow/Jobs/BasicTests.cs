@@ -86,7 +86,7 @@
 			var idsToRetrieve = new Guid[0];
 			var emptyFilter = new ORFilterElement<Job>(idsToRetrieve.Select(x => JobExposers.Id.Equal(x)).ToArray());
 
-			var count = TestContext.Api.Jobs.Count(emptyFilter);
+			var count = ((JobsRepository)TestContext.Api.Jobs).Count(emptyFilter);
 			Assert.AreEqual(0, count);
 		}
 
@@ -132,7 +132,7 @@
 			var updatedName = name + "_updated";
 			read.Name = updatedName;
 			read.Description = "Updated description";
-			var updated = TestContext.Api.Jobs.Update(read);
+			var updated = ((JobsRepository)TestContext.Api.Jobs).Update(read);
 			Assert.AreEqual(updatedName, updated.Name);
 			Assert.AreEqual("Updated description", updated.Description);
 
@@ -142,7 +142,7 @@
 			Assert.AreEqual("Updated description", rereadAfterUpdate.Description);
 
 			// Delete
-			TestContext.Api.Jobs.Delete(rereadAfterUpdate);
+			((JobsRepository)TestContext.Api.Jobs).Delete(rereadAfterUpdate);
 			Assert.IsNull(TestContext.Api.Jobs.Read(job.Id));
 		}
 
@@ -173,7 +173,7 @@
 
 			existingJob.Description = "Updated via CreateOrUpdate";
 
-			var results = TestContext.Api.Jobs.CreateOrUpdate(new[] { newJob, existingJob });
+			var results = ((JobsRepository)TestContext.Api.Jobs).CreateOrUpdate(new[] { newJob, existingJob });
 			objectCreator.StoreJobIds(results.Select(j => j.Id));
 
 			Assert.AreEqual(2, results.Count);
@@ -201,7 +201,7 @@
 
 			job = objectCreator.CreateJob(job);
 
-			Assert.ThrowsException<InvalidOperationException>(() => TestContext.Api.Jobs.Create(job));
+			Assert.ThrowsException<InvalidOperationException>(() => ((JobsRepository)TestContext.Api.Jobs).Create(job));
 		}
 
 		[TestMethod]
@@ -216,7 +216,7 @@
 				PostRollEnd = DateTime.UtcNow.AddMinutes(5),
 			};
 
-			Assert.ThrowsException<InvalidOperationException>(() => TestContext.Api.Jobs.Update(job));
+			Assert.ThrowsException<InvalidOperationException>(() => ((JobsRepository)TestContext.Api.Jobs).Update(job));
 		}
 
 		[TestMethod]
@@ -233,7 +233,7 @@
 				PreRollStart = currentTime,
 				PostRollEnd = currentTime.AddMinutes(5),
 			};
-			objectCreator.CreateJob(first);
+			((JobsRepository)TestContext.Api.Jobs).Create(first);
 
 			var second = new Job(id)
 			{
@@ -246,7 +246,7 @@
 
 			try
 			{
-				objectCreator.CreateJob(second);
+				((JobsRepository)TestContext.Api.Jobs).Create(second);
 			}
 			catch (MediaOpsException ex)
 			{
@@ -835,7 +835,7 @@
 			};
 			job = objectCreator.CreateJob(job);
 
-			TestContext.Api.Jobs.Delete(job.Id);
+			((JobsRepository)TestContext.Api.Jobs).Delete(job.Id);
 
 			Assert.IsNull(TestContext.Api.Jobs.Read(job.Id));
 		}
@@ -864,7 +864,7 @@
 				PostRollEnd = currentTime.AddMinutes(5),
 			});
 
-			TestContext.Api.Jobs.Delete(new[] { job1.Id, job2.Id });
+			((JobsRepository)TestContext.Api.Jobs).Delete(new[] { job1.Id, job2.Id });
 
 			Assert.IsNull(TestContext.Api.Jobs.Read(job1.Id));
 			Assert.IsNull(TestContext.Api.Jobs.Read(job2.Id));
@@ -875,7 +875,7 @@
 		{
 			try
 			{
-				TestContext.Api.Jobs.Delete(Guid.NewGuid());
+				((JobsRepository)TestContext.Api.Jobs).Delete(Guid.NewGuid());
 			}
 			catch (Exception ex)
 			{
@@ -959,7 +959,7 @@
 			read.OrganizationId = organizationId;
 			read.OwnerId = ownerId;
 
-			TestContext.Api.Jobs.Update(read);
+			((JobsRepository)TestContext.Api.Jobs).Update(read);
 
 			var reread = TestContext.Api.Jobs.Read(job.Id);
 			Assert.IsNotNull(reread);
@@ -1013,7 +1013,7 @@
 
 			var read = TestContext.Api.Jobs.Read(job.Id);
 			read.RemoveContact(contact1);
-			TestContext.Api.Jobs.Update(read);
+			((JobsRepository)TestContext.Api.Jobs).Update(read);
 
 			var reread = TestContext.Api.Jobs.Read(job.Id);
 			Assert.IsNotNull(reread);

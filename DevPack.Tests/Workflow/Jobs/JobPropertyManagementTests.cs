@@ -79,7 +79,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			node2.AddCustomProperty(new CustomPropertySetting("Tag2") { Value = "Value2" });
 			job.NodeGraph.Add(node2);
 
-			job = TestContext.Api.Jobs.Update(job);
+			job = ((JobsRepository)TestContext.Api.Jobs).Update(job);
 			Assert.IsNotNull(job);
 			Assert.AreEqual(2, job.CustomPropertySettings.Count);
 			var customJobTag1Property = job.CustomPropertySettings.FirstOrDefault(x => x.Name == "Tag1");

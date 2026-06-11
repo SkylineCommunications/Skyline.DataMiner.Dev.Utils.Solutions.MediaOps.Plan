@@ -79,7 +79,7 @@
 			var idsToRetrieve = new Guid[0];
 			var emptyFilter = new ORFilterElement<Workflow>(idsToRetrieve.Select(x => WorkflowExposers.Id.Equal(x)).ToArray());
 
-			var count = TestContext.Api.Workflows.Count(emptyFilter);
+			var count = ((WorkflowsRepository)TestContext.Api.Workflows).Count(emptyFilter);
 			Assert.AreEqual(0, count);
 		}
 
@@ -135,7 +135,7 @@
 			created.IsFavorite = true;
 			created.Notes = "Updated notes";
 
-			TestContext.Api.Workflows.Update(created);
+			((WorkflowsRepository)TestContext.Api.Workflows).Update(created);
 
 			var updated = TestContext.Api.Workflows.Read(workflow.Id);
 			Assert.IsNotNull(updated);
@@ -146,7 +146,7 @@
 			Assert.AreEqual("Updated notes", updated.Notes);
 
 			// Delete and validate it is gone.
-			TestContext.Api.Workflows.Delete(updated);
+			((WorkflowsRepository)TestContext.Api.Workflows).Delete(updated);
 
 			var deleted = TestContext.Api.Workflows.Read(workflow.Id);
 			Assert.IsNull(deleted);
@@ -162,7 +162,7 @@
 				Description = "Created via CreateOrUpdate",
 			};
 
-			var created = TestContext.Api.Workflows.CreateOrUpdate([workflow]).Single();
+			var created = ((WorkflowsRepository)TestContext.Api.Workflows).CreateOrUpdate([workflow]).Single();
 
 			try
 			{
@@ -172,14 +172,14 @@
 				Assert.AreEqual("Created via CreateOrUpdate", persisted.Description);
 
 				persisted.Description = "Updated via CreateOrUpdate";
-				var updated = TestContext.Api.Workflows.CreateOrUpdate([persisted]).Single();
+				var updated = ((WorkflowsRepository)TestContext.Api.Workflows).CreateOrUpdate([persisted]).Single();
 
 				Assert.AreEqual(created.Id, updated.Id);
 				Assert.AreEqual("Updated via CreateOrUpdate", updated.Description);
 			}
 			finally
 			{
-				TestContext.Api.Workflows.Delete(created.Id);
+				((WorkflowsRepository)TestContext.Api.Workflows).Delete(created.Id);
 			}
 		}
 
@@ -291,7 +291,7 @@
 		{
 			var workflow = new Workflow { Name = $"{Guid.NewGuid()}_Workflow" };
 
-			Assert.ThrowsException<InvalidOperationException>(() => TestContext.Api.Workflows.Update(workflow));
+			Assert.ThrowsException<InvalidOperationException>(() => ((WorkflowsRepository)TestContext.Api.Workflows).Update(workflow));
 		}
 
 		[TestMethod]
@@ -299,7 +299,7 @@
 		{
 			var workflow = objectCreator.CreateWorkflow(new Workflow { Name = $"{Guid.NewGuid()}_Workflow" });
 
-			Assert.ThrowsException<InvalidOperationException>(() => TestContext.Api.Workflows.Create(workflow));
+			Assert.ThrowsException<InvalidOperationException>(() => ((WorkflowsRepository)TestContext.Api.Workflows).Create(workflow));
 		}
 
 		[TestMethod]
@@ -307,7 +307,7 @@
 		{
 			try
 			{
-				TestContext.Api.Workflows.Delete(Guid.NewGuid());
+				((WorkflowsRepository)TestContext.Api.Workflows).Delete(Guid.NewGuid());
 			}
 			catch (Exception ex)
 			{

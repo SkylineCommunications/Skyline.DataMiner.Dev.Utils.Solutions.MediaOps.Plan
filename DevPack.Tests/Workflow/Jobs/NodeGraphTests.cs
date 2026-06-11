@@ -400,7 +400,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			try
 			{
-				TestContext.Api.Jobs.Update(job);
+				((JobsRepository)TestContext.Api.Jobs).Update(job);
 				Assert.Fail("Expected MediaOpsException was not thrown.");
 			}
 			catch (MediaOpsException ex)
@@ -583,7 +583,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var node = new JobResourcePoolNode(pool);
 			job.NodeGraph.Add(node);
 
-			job = TestContext.Api.Jobs.Update(job);
+			job = ((JobsRepository)TestContext.Api.Jobs).Update(job);
 
 			Assert.AreEqual(1, job.NodeGraph.Nodes.Count);
 			Assert.IsNotNull(job.NodeGraph.Nodes.OfType<JobResourcePoolNode>().SingleOrDefault());
@@ -622,7 +622,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var toNode = job.NodeGraph.Nodes.OfType<JobResourcePoolNode>().Single();
 			job.NodeGraph.Connect(fromNode, toNode);
 
-			job = TestContext.Api.Jobs.Update(job);
+			job = ((JobsRepository)TestContext.Api.Jobs).Update(job);
 
 			Assert.AreEqual(1, job.NodeGraph.Connections.Count);
 		}
@@ -658,7 +658,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			job.NodeGraph.Disconnect(job.NodeGraph.Connections.Single());
 
-			job = TestContext.Api.Jobs.Update(job);
+			job = ((JobsRepository)TestContext.Api.Jobs).Update(job);
 
 			Assert.AreEqual(0, job.NodeGraph.Connections.Count);
 			Assert.AreEqual(2, job.NodeGraph.Nodes.Count);
@@ -696,7 +696,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			job.NodeGraph.Remove(job.NodeGraph.Nodes.OfType<JobResourceNode>().Single());
 
-			job = TestContext.Api.Jobs.Update(job);
+			job = ((JobsRepository)TestContext.Api.Jobs).Update(job);
 
 			Assert.AreEqual(1, job.NodeGraph.Nodes.Count);
 			Assert.IsNull(job.NodeGraph.Nodes.OfType<JobResourceNode>().SingleOrDefault());

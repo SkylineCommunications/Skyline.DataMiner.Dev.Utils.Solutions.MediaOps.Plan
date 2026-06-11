@@ -24,7 +24,7 @@
 			connection = Skyline.DataMiner.Net.ConnectionSettings.GetConnection(config.BaseUrl) ?? throw new NullReferenceException("Unable to connect to DataMiner");
 			connection.Authenticate(config.Username, config.Password, config.Domain);
 
-			Api = connection.GetMediaOpsPlanApi() ?? throw new NullReferenceException("Unable to create MediaOpsPlanApi");
+			Api = connection.GetMediaOpsPlanApi() as MediaOpsPlanApi ?? throw new NullReferenceException("Unable to create MediaOpsPlanApi");
 			Dms = connection.GetDms() ?? throw new NullReferenceException("Unable to get DMS");
 
 			Api.SetLogger(Logger);
@@ -37,7 +37,7 @@
 			ProtocolFunctionHelper = new ProtocolFunctionHelper(connection.HandleMessages) ?? throw new NullReferenceException("Unable to create ProtocolFunctionHelper");
 		}
 
-		public IMediaOpsPlanApi Api { get; private set; }
+		public MediaOpsPlanApi Api { get; private set; }
 
 		public IDms Dms { get; private set; }
 
