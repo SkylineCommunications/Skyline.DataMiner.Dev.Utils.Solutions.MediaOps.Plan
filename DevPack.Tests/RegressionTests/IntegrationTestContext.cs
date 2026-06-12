@@ -3,6 +3,7 @@
 	using System.Linq;
 
 	using Skyline.DataMiner.Core.DataMinerSystem.Common;
+	using Skyline.DataMiner.Net;
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Messages;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
@@ -21,7 +22,8 @@
 		{
 			var config = Config.Load();
 
-			connection = Skyline.DataMiner.Net.ConnectionSettings.GetConnection(config.BaseUrl) ?? throw new NullReferenceException("Unable to connect to DataMiner");
+			connection = Skyline.DataMiner.Net.ConnectionSettings.GetConnection(config.BaseUrl, ConnectionAttributes.NoProtoBufSerialization)
+				?? throw new NullReferenceException("Unable to connect to DataMiner");
 			connection.Authenticate(config.Username, config.Password, config.Domain);
 
 			Api = connection.GetMediaOpsPlanApi() as MediaOpsPlanApi ?? throw new NullReferenceException("Unable to create MediaOpsPlanApi");
