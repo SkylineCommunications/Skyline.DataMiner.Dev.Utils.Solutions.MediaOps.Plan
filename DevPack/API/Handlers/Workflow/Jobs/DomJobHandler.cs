@@ -716,10 +716,16 @@
 				return;
 			}
 
+			var toValidate = apiJobs.Where(x => !string.IsNullOrEmpty(x.CategoryId)).ToList();
+			if (toValidate.Count == 0)
+			{
+				return;
+			}
+
 			var scope = planApi.Categories.Scopes.Read(ScopeExposers.Name.Equal("Job Types")).FirstOrDefault();
 			if (scope == null)
 			{
-				foreach (var job in apiJobs.Where(x => !string.IsNullOrEmpty(x.CategoryId)))
+				foreach (var job in toValidate)
 				{
 					var error = new JobCategoryScopeNotFoundError
 					{
@@ -735,7 +741,7 @@
 
 			var categoryIds = planApi.Categories.Categories.GetByScope(scope).Select(x => x.ID.ToString()).ToList();
 
-			foreach (var job in apiJobs.Where(x => !string.IsNullOrEmpty(x.CategoryId)))
+			foreach (var job in toValidate)
 			{
 				if (!categoryIds.Contains(job.CategoryId))
 				{
