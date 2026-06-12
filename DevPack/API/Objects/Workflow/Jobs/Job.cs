@@ -504,6 +504,8 @@
 			updatedInstance.JobInfo.Preroll = PreRoll != TimeSpan.Zero ? Start.Add(-PreRoll).UtcDateTime : Start.UtcDateTime;
 			updatedInstance.JobInfo.Postroll = PostRoll != TimeSpan.Zero ? End.Add(PostRoll).UtcDateTime : End.UtcDateTime;
 			updatedInstance.JobInfo.JobNotes = Notes;
+
+			// Reusing JobSource field to store CategoryId to be backwards compatible with existing implementations.
 			updatedInstance.JobInfo.JobSource = CategoryId;
 
 			updatedInstance.JobExecution.JobConfiguration = OrchestrationSettings.Id;
@@ -576,6 +578,8 @@
 			PreRoll = instance.JobInfo.Preroll.HasValue ? (Start - instance.JobInfo.Preroll.Value) : TimeSpan.Zero;
 			PostRoll = instance.JobInfo.Postroll.HasValue ? (instance.JobInfo.Postroll.Value - End) : TimeSpan.Zero;
 			Notes = instance.JobInfo.JobNotes;
+
+			// Reusing JobSource field to store CategoryId to be backwards compatible with existing implementations.
 			CategoryId = instance.JobInfo.JobSource;
 
 			Priority = instance.JobInfo.JobPriority.HasValue
