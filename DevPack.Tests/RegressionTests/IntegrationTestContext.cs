@@ -22,6 +22,8 @@
 		{
 			var config = Config.Load();
 
+			Logger.Information($"Initializing test context with DataMiner at {config.BaseUrl} and user {config.Domain}\\{config.Username}");
+
 			connection = Skyline.DataMiner.Net.ConnectionSettings.GetConnection(config.BaseUrl, ConnectionAttributes.NoProtoBufSerialization)
 				?? throw new NullReferenceException("Unable to connect to DataMiner");
 			connection.Authenticate(config.Username, config.Password, config.Domain);
