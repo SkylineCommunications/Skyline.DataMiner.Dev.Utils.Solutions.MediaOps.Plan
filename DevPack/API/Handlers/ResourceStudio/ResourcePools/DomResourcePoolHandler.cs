@@ -1126,17 +1126,15 @@
 			var resourcePoolScope = planApi.Categories.Scopes.Read(ScopeExposers.Name.Equal("Resource Pools")).FirstOrDefault();
 			if (resourcePoolScope == null)
 			{
-				foreach (var pool in apiResourcePools)
+				foreach (var pool in apiResourcePools.Where(x => !string.IsNullOrEmpty(x.CategoryId)))
 				{
-					if (pool.CategoryId != null)
+					var error = new ResourcePoolCategoryScopeNotFoundError
 					{
-						var error = new ResourcePoolCategoryScopeNotFoundError
-						{
-							ErrorMessage = "Category with scope 'Resource Pools' not found.",
-						};
+						ErrorMessage = "Category with scope 'Resource Pools' not found.",
+						Id = pool.Id,
+					};
 
-						ReportError(pool.Id, error);
-					}
+					ReportError(pool.Id, error);
 				}
 
 				return;

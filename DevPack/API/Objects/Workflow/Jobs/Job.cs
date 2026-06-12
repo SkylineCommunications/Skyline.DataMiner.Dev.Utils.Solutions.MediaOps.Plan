@@ -146,7 +146,8 @@
 		/// Use <see cref="AddProperty"/>, <see cref="SetProperties"/> and <see cref="RemoveProperty"/> to modify them.
 		/// </summary>
 		public IReadOnlyCollection<PropertySetting> PropertySettings => GetOrCreateScope().PropertySettings;
-    
+
+		/// <summary>
 		/// Gets or sets the ID of the organization associated with the job.
 		/// </summary>
 		public Guid OrganizationId { get; set; }
@@ -160,6 +161,11 @@
 		/// Gets the collection of contact IDs associated with the job.
 		/// </summary>
 		public IReadOnlyCollection<Guid> ContactIds => contactIds;
+
+		/// <summary>
+		/// Gets or sets the unique identifier of the associated job type.
+		/// </summary>
+		public string CategoryId { get; set; }
 
 		internal StorageWorkflow.JobsInstance OriginalInstance => originalInstance;
 
@@ -448,6 +454,7 @@
 				hash = (hash * 23) + PreRollStart.GetHashCode();
 				hash = (hash * 23) + PostRollEnd.GetHashCode();
 				hash = (hash * 23) + (Notes != null ? Notes.GetHashCode() : 0);
+				hash = (hash * 23) + (CategoryId != null ? CategoryId.GetHashCode() : 0);
 				hash = (hash * 23) + (OrchestrationSettings != null ? OrchestrationSettings.GetHashCode() : 0);
 				hash = (hash * 23) + (NodeGraph != null ? NodeGraph.GetHashCode() : 0);
 				hash = (hash * 23) + State.GetHashCode();
@@ -481,6 +488,7 @@
 				   PreRollStart == other.PreRollStart &&
 				   PostRollEnd == other.PostRollEnd &&
 				   Notes == other.Notes &&
+				   CategoryId == other.CategoryId &&
 				   OrchestrationSettings == other.OrchestrationSettings &&
 				   NodeGraph == other.NodeGraph &&
 				   State == other.State &&
@@ -504,6 +512,9 @@
 			updatedInstance.JobInfo.Preroll = PreRollStart.UtcDateTime;
 			updatedInstance.JobInfo.Postroll = PostRollEnd.UtcDateTime;
 			updatedInstance.JobInfo.JobNotes = Notes;
+
+			// Reusing JobSource field to store CategoryId to be backwards compatible with existing implementations.
+			updatedInstance.JobInfo.JobSource = CategoryId;
 
 			updatedInstance.JobExecution.JobConfiguration = OrchestrationSettings.Id;
 
@@ -575,6 +586,9 @@
 			PreRollStart = instance.JobInfo.Preroll.HasValue ? instance.JobInfo.Preroll.Value : Start;
 			PostRollEnd = instance.JobInfo.Postroll.HasValue ? instance.JobInfo.Postroll.Value : End;
 			Notes = instance.JobInfo.JobNotes;
+
+			// Reusing JobSource field to store CategoryId to be backwards compatible with existing implementations.
+			CategoryId = instance.JobInfo.JobSource;
 
 			Priority = instance.JobInfo.JobPriority.HasValue
 				? EnumExtensions.MapEnum<StorageWorkflow.SlcWorkflowIds.Enums.Jobpriority, JobPriority>(instance.JobInfo.JobPriority.Value)
