@@ -72,6 +72,28 @@
 		/// </summary>
 		protected internal abstract CoreParameter.ParameterType ParameterType { get; }
 
+		/// <summary>
+		/// Determines whether this capacity represents a numeric capacity and, if so, returns it as a <see cref="NumberCapacity"/>.
+		/// </summary>
+		/// <param name="capacity">When this method returns, contains the current capacity as a <see cref="NumberCapacity"/> when it represents a numeric capacity; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> if the current capacity instance is of type <see cref="NumberCapacity"/>; otherwise, <c>false</c>.</returns>
+		public bool IsNumberCapacity(out NumberCapacity capacity)
+		{
+			capacity = this as NumberCapacity;
+			return capacity != null;
+		}
+
+		/// <summary>
+		/// Determines whether this capacity represents a range capacity and, if so, returns it as a <see cref="RangeCapacity"/>.
+		/// </summary>
+		/// <param name="capacity">When this method returns, contains the current capacity as a <see cref="RangeCapacity"/> when it represents a range capacity; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> if the current capacity instance is of type <see cref="RangeCapacity"/>; otherwise, <c>false</c>.</returns>
+		public bool IsRangeCapacity(out RangeCapacity capacity)
+		{
+			capacity = this as RangeCapacity;
+			return capacity != null;
+		}
+
 		/// <inheritdoc/>
 		public override int GetHashCode()
 		{
