@@ -18,10 +18,46 @@ env:
   NUGET_RESTORE_MSBUILD_ARGS: /p:Configuration=Release
 
 jobs:
+  check_existing:
+    name: Check for prior successful run
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+    outputs:
+      already_tested: ${{ steps.check.outputs.tested }}
+    steps:
+      - id: check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            try {
+              const res = await github.rest.actions.listWorkflowRuns({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: 'Plan-CICD.yml',
+                head_sha: context.sha,
+                status: 'success',
+                per_page: 100,
+              });
+              const prior = res.data.workflow_runs.find(r => r.id !== context.runId);
+              if (prior) {
+                core.info(`Found prior successful run #${prior.run_number} (id ${prior.id}) for ${context.sha}; validation and integration tests will be skipped.`);
+                core.setOutput('tested', 'true');
+              } else {
+                core.info(`No prior successful run for ${context.sha}; validation and integration tests will run.`);
+                core.setOutput('tested', 'false');
+              }
+            } catch (e) {
+              core.warning(`Could not determine prior run status: ${e.message}. Tests will run.`);
+              core.setOutput('tested', 'false');
+            }
+
   nuget_validation:
     name: Validate NuGets
     runs-on: ubuntu-latest
-    
+    needs: check_existing
+    if: ${{ needs.check_existing.outputs.already_tested != 'true' }}
+
     steps:
      - uses: actions/checkout@v4
 
@@ -34,7 +70,8 @@ jobs:
   integration_tests:
     name: Integration Tests
     runs-on: windows-latest
-    needs: nuget_validation
+    needs: [check_existing, nuget_validation]
+    if: ${{ always() && needs.check_existing.outputs.already_tested != 'true' && needs.nuget_validation.result == 'success' }}
     concurrency:
       group: reg-${{github.ref}}
 
@@ -65,8 +102,12 @@ jobs:
 
   internal_release:
     name: Internal Release
-    if: github.ref_type == 'branch' || (github.ref_type == 'tag' && contains(github.ref, '-')) #Trigger on branch changes or on prerelease tags (e.g. 1.2.3-something)
-    needs: integration_tests
+    needs: [check_existing, nuget_validation, integration_tests]
+    if: > #Trigger on branch changes or on prerelease tags (e.g. 1.2.3-something). Allow when tests passed this run OR were skipped because the commit was already tested.
+      always() &&
+      (github.ref_type == 'branch' || (github.ref_type == 'tag' && contains(github.ref, '-'))) &&
+      (needs.check_existing.outputs.already_tested == 'true' ||
+       (needs.nuget_validation.result == 'success' && needs.integration_tests.result == 'success'))
     uses: SkylineCommunications/_ReusableWorkflows/.github/workflows/Master Workflow.yml@main
     with:
       sonarcloud-project-name: SkylineCommunications_Skyline.DataMiner.MediaOps.API
@@ -75,8 +116,12 @@ jobs:
 
   public_release:
     name: Public Release
-    if: github.ref_type == 'tag' && !contains(github.ref_name, '-') #Stable tags (e.g. 1.2.3)
-    needs: integration_tests
+    needs: [check_existing, nuget_validation, integration_tests]
+    if: > #Stable tags (e.g. 1.2.3). Allow when tests passed this run OR were skipped because the commit was already tested.
+      always() &&
+      github.ref_type == 'tag' && !contains(github.ref_name, '-') &&
+      (needs.check_existing.outputs.already_tested == 'true' ||
+       (needs.nuget_validation.result == 'success' && needs.integration_tests.result == 'success'))
     uses: SkylineCommunications/_ReusableWorkflows/.github/workflows/Master Workflow.yml@main
     with:
       sonarcloud-project-name: SkylineCommunications_Skyline.DataMiner.MediaOps.API
