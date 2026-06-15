@@ -34,6 +34,7 @@
 	</ItemGroup>
 	<ItemGroup>
 		<InternalsVisibleTo Include="Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests" />
+		<InternalsVisibleTo Include="Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.UnitTesting" />
 		<InternalsVisibleTo Include="Skyline.DataMiner.Utils.MediaOps.Temp.Common" />
 		<!-- Allows Moq/Castle DynamicProxy to mock interfaces (e.g. IMediaOpsPlanApi) that expose internal members. -->
 		<InternalsVisibleTo Include="DynamicProxyGenAssembly2" />

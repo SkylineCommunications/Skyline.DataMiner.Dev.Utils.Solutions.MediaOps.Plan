@@ -41,7 +41,16 @@
 
 				BaseUrl = configuration[prefixCredentials + "_HOST"] ?? "localhost";
 			}
+
+			// By default the regression tests run against an in-memory simulated DataMiner System.
+			// To run them against a real DataMiner Agent, set MEDIAOPS_PLAN_USE_REAL_DMA to "true":
+			// dotnet user-secrets set "MEDIAOPS_PLAN_USE_REAL_DMA" "true"
+			var useRealDma = configuration["MEDIAOPS_PLAN_USE_REAL_DMA"];
+			UseRealDma = String.Equals(useRealDma, "true", StringComparison.OrdinalIgnoreCase)
+				|| String.Equals(useRealDma, "1", StringComparison.OrdinalIgnoreCase);
 		}
+
+		public bool UseRealDma { get; }
 
 		public string BaseUrl { get; }
 

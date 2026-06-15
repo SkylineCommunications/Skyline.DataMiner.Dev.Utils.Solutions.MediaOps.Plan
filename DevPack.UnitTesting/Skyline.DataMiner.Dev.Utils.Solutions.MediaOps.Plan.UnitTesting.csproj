@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net48</TargetFramework>
+		<PlatformTarget>anycpu</PlatformTarget>
+		<LangVersion>latest</LangVersion>
+		<OutputType>Library</OutputType>
+		<AssemblyTitle>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.UnitTesting</AssemblyTitle>
+		<Product>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.UnitTesting</Product>
+		<AssemblyName>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.UnitTesting</AssemblyName>
+		<RootNamespace>Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting</RootNamespace>
+
+		<PackageId>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.UnitTesting</PackageId>
+		<PackageTags>Skyline;DataMiner</PackageTags>
+		<PackageProjectUrl>https://skyline.be</PackageProjectUrl>
+		<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+		<Authors>SkylineCommunications</Authors>
+		<Company>Skyline Communications</Company>
+		<Description>Provides an in-memory simulated connection and helpers for unit and integration testing of MediaOps Plan.</Description>
+		<RepositoryType>git</RepositoryType>
+		<RepositoryUrl>https://github.com/SkylineCommunications/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan</RepositoryUrl>
+		<GitVersion>false</GitVersion>
+		<GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+		<GenerateDocumentationFile>True</GenerateDocumentationFile>
+	</PropertyGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\DevPack\Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Skyline.DataMiner.Core.DataMinerSystem.Common" Version="1.1.3.7" />
+		<PackageReference Include="Skyline.DataMiner.Dev.Common" Version="10.5.11.1" />
+		<PackageReference Include="Skyline.DataMiner.Utils.DOM" Version="10.5.2.5" />
+	</ItemGroup>
+</Project>
