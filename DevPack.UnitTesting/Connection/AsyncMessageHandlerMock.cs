@@ -53,7 +53,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Connection
 			return progress;
 		}
 
-		public AsyncProgress Launch(DMSMessage[] messages, AsyncResponseEventHandler onCompleteHandler, AsyncProgressEventHandler onProgressHandler, int pageSize = 250)
+		public AsyncProgress Launch(DMSMessage[] messages, AsyncResponseEventHandler onCompleteHandler = null, AsyncProgressEventHandler onProgressHandler = null, int pageSize = 250)
 		{
 			throw new NotImplementedException();
 		}
