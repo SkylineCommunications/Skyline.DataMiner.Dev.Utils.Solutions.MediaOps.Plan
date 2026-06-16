@@ -1,0 +1,50 @@
+﻿<Project Sdk="Skyline.DataMiner.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net48</TargetFramework>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<UserSecretsId>19c4344b-e5af-439e-97f1-b6336e532590</UserSecretsId>
+	</PropertyGroup>
+	<PropertyGroup>
+		<DataMinerType>TestPackage</DataMinerType>
+		<GenerateDataMinerPackage>True</GenerateDataMinerPackage>
+		<MinimumRequiredDmVersion>10.4.0.0 - 14003</MinimumRequiredDmVersion>
+		<!-- <MinimumRequiredDmWebVersion>10.6.2 (CU0)</MinimumRequiredDmWebVersion> -->
+		<Version>1.0.15</Version>
+		<VersionComment>Initial Version</VersionComment>
+		<!-- Do NOT fill in the Organization Token here. This points to either an Environment Variable skyline__sdk__dataminertoken holding the organization token or a Visual Studio User Secret holding the token. -->
+		<CatalogPublishKeyName>skyline:sdk:dataminertoken</CatalogPublishKeyName>
+		<CatalogDefaultDownloadKeyName>skyline:sdk:dataminertoken</CatalogDefaultDownloadKeyName>
+	</PropertyGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\DevPack.Tests\Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests.csproj" ReferenceOutputAssembly="false" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Skyline.DataMiner.CICD.CSharpAnalysis.Analyzer" Version="2.1.2">
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Skyline.DataMiner.Core.AppPackageInstaller" Version="4.0.0" />
+		<PackageReference Include="Skyline.DataMiner.Dev.Automation" Version="10.4.0.24" />
+		<PackageReference Include="Skyline.DataMiner.Utils.SecureCoding.Analyzers" Version="2.2.3">
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Remove="TestPackageContent\Dependencies\**" />
+		<Compile Remove="TestPackageContent\TestHarvesting\**" />
+		<Compile Remove="TestPackageContent\Tests\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Content Include="TestPackageContent\Dependencies\**">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Include="TestPackageContent\TestHarvesting\**">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Include="TestPackageContent\Tests\**">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
+</Project>

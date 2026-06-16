@@ -36,6 +36,11 @@
 			var protocols = TestContext.Dms.GetProtocols().Where(p => p.Name == "Generic Camera").ToList();
 			if (protocols.Count == 0)
 			{
+				if (Config.IsQaOps)
+				{
+					Assert.Inconclusive("Connector 'Generic Camera' is not available on the QAOps system.");
+				}
+
 				Assert.Fail("Connector 'Generic Camera' is not available on the system. Cannot proceed with the test.");
 			}
 

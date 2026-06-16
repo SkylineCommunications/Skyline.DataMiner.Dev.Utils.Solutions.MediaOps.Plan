@@ -20,6 +20,7 @@
 		private readonly TimeSpan _sleepTime = TimeSpan.FromMilliseconds(500);
 		private readonly SkylineLockManagerConnectorApi _lockapi;
 		private readonly ILogger _logger;
+		private readonly bool useInMemoryLocks;
 
 		private readonly ConcurrentHashSet<string> lockedObjectIds = new ConcurrentHashSet<string>(); // Only used for Integration Testing outside of a DataMiner Agent
 
@@ -30,8 +31,12 @@
 				throw new ArgumentNullException(nameof(planApi));
 			}
 
-			_lockapi = new SkylineLockManagerConnectorApi(planApi.Connection, LockManagerElementName, new LockManagerLoggerFactory(planApi.Logger));
 			_logger = planApi.Logger;
+			useInMemoryLocks = !DataMinerAgentHelper.IsRunningOnDataMinerAgent(_logger);
+			if (!useInMemoryLocks)
+			{
+				_lockapi = new SkylineLockManagerConnectorApi(planApi.Connection, LockManagerElementName, new LockManagerLoggerFactory(planApi.Logger));
+			}
 		}
 
 		public LockResult<T> LockAndExecute<T>(ICollection<T> apiObjects, Action<ICollection<T>> action) where T : ApiObject
@@ -104,7 +109,7 @@
 
 		private LockManagerApiResult<T> LockObjects<T>(ICollection<T> objectsToLock) where T : ApiObject
 		{
-			if (DataMinerAgentHelper.IsRunningOnDataMinerAgent(_logger))
+			if (!useInMemoryLocks)
 			{
 				var lockRequests = objectsToLock.Select(x => new LockObjectRequest
 				{
@@ -131,7 +136,7 @@
 
 		private void UnlockObjects<T>(ICollection<T> lockedObjects) where T : ApiObject
 		{
-			if (DataMinerAgentHelper.IsRunningOnDataMinerAgent(_logger))
+			if (!useInMemoryLocks)
 			{
 				var unlockRequests = lockedObjects.Select(x => new UnlockObjectRequest
 				{

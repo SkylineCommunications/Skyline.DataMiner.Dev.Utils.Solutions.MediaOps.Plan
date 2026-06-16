@@ -9,6 +9,7 @@
 	internal static class DataMinerAgentHelper
 	{
 		private static bool? isRunningOnDataMinerAgent;
+		private static bool useInMemoryLocksForCurrentProcess;
 
 		private static readonly string[] DataMinerProcessNames = new[]
 		{
@@ -19,6 +20,12 @@
 
 		public static bool IsRunningOnDataMinerAgent(ILogger _logger)
 		{
+			if (useInMemoryLocksForCurrentProcess)
+			{
+				_logger.Warning("Using in-memory locks for this process.");
+				return false;
+			}
+
 			if (!isRunningOnDataMinerAgent.HasValue)
 			{
 				string currentProcessName = Process.GetCurrentProcess().ProcessName;
@@ -30,6 +37,11 @@
 			}
 			
 			return isRunningOnDataMinerAgent.Value;
+		}
+
+		internal static void UseInMemoryLocksForCurrentProcess()
+		{
+			useInMemoryLocksForCurrentProcess = true;
 		}
 	}
 }

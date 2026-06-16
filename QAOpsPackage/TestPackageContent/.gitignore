@@ -1,0 +1,5 @@
+# Ignore all directories and files ending with .generated
+*.generated/
+
+# Also ignore any files (not just directories) ending with .generated
+*.generated
