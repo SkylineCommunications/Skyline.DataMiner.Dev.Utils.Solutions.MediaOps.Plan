@@ -7,19 +7,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 	using System.Threading;
 
 	using Skyline.DataMiner.Net;
-	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.AppPackages;
 	using Skyline.DataMiner.Net.AppPackages.Messages;
-	using Skyline.DataMiner.Net.ManagerStore;
+	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Messages;
 	using Skyline.DataMiner.Net.Messages.Advanced;
-	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Connection;
-	using Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Querying;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores;
 	using Skyline.DataMiner.Utils.DOM.UnitTesting;
-
-	using SLDataGateway.API.Querying;
 
 	/// <summary>
 	/// Central in-memory dispatcher that replies to SLNet messages in the same way a real
@@ -37,7 +32,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 		private readonly DomSLNetMessageHandler _domSlNetMessageHandler = new DomSLNetMessageHandler(validateAgainstDefinition: false);
 		private readonly ProfileParameterStore _profileParameterStore = new ProfileParameterStore();
 		private readonly ResourceManagerStore _resourceManagerStore = new ResourceManagerStore();
-		private readonly ConcurrentDictionary<PagingCookie, InMemoryPagingHandler<DomInstance>> _domPagingHandlers = new ConcurrentDictionary<PagingCookie, InMemoryPagingHandler<DomInstance>>();
 		private readonly ConcurrentBag<SimulatedProtocol> _protocols = new ConcurrentBag<SimulatedProtocol>();
 		private readonly ConcurrentDictionary<Guid, FunctionDefinition> _functionDefinitions = new ConcurrentDictionary<Guid, FunctionDefinition>();
 		private readonly ConcurrentDictionary<string, ProtocolFunction> _protocolFunctions = new ConcurrentDictionary<string, ProtocolFunction>(StringComparer.OrdinalIgnoreCase);
@@ -270,14 +264,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 				throw new ArgumentNullException(nameof(message));
 			}
 
-			ApplyInitialStatuses(message);
-
-			if (TryHandleDomInstanceQuery(message, out var domQueryResponse))
-			{
-				responses = new[] { domQueryResponse };
-				return true;
-			}
-
 			if (_domSlNetMessageHandler.TryHandleMessage(message, out var domResponse))
 			{
 				responses = new[] { domResponse };
@@ -356,129 +342,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 					responses = Array.Empty<DMSMessage>();
 					return false;
 			}
-		}
-
-		private void ApplyInitialStatuses(DMSMessage message)
-		{
-			switch (message)
-			{
-				case ManagerStoreCreateRequest<DomInstance> request:
-					ApplyInitialStatus(request.Object);
-					break;
-
-				case ManagerStoreBulkCreateOrUpdateRequest<DomInstance> request:
-					foreach (var instance in request.Objects)
-					{
-						ApplyInitialStatus(instance);
-					}
-
-					break;
-			}
-		}
-
-		private void ApplyInitialStatus(DomInstance instance)
-		{
-			if (instance is null || !String.IsNullOrEmpty(instance.StatusId) || instance.DomDefinitionId is null)
-			{
-				return;
-			}
-
-			if (!_domDefinitions.TryGetValue(instance.DomDefinitionId, out var definition) || definition.DomBehaviorDefinitionId is null)
-			{
-				return;
-			}
-
-			if (_domBehaviorDefinitions.TryGetValue(definition.DomBehaviorDefinitionId, out var behavior))
-			{
-				instance.StatusId = behavior.InitialStatusId;
-			}
-		}
-
-		/// <summary>
-		/// Handles DOM instance read, count and paging requests using a coercion-aware filter
-		/// evaluation, mirroring how a real DataMiner Agent coerces value types (for example
-		/// <see cref="int"/> versus <see cref="long"/>) before comparing them. All other DOM
-		/// messages are delegated to the underlying DOM message handler.
-		/// </summary>
-		private bool TryHandleDomInstanceQuery(DMSMessage message, out DMSMessage response)
-		{
-			switch (message)
-			{
-				case ManagerStoreReadRequest<DomInstance> request:
-					{
-						var instances = ReadAllDomInstances(request.ModuleId);
-						var filtered = CoercingFilterEvaluator.Apply(request.Query.Filter, instances);
-						var ordered = request.Query.WithFilter(new TRUEFilterElement<DomInstance>()).ExecuteInMemory(filtered).ToList();
-
-						response = new ManagerStoreCrudResponse<DomInstance>(ordered);
-						return true;
-					}
-
-				case ManagerStoreCountRequest<DomInstance> request:
-					{
-						var instances = ReadAllDomInstances(request.ModuleId);
-						var count = CoercingFilterEvaluator.Apply(request.Query.Filter, instances).LongCount();
-
-						response = new ManagerStoreCountResponse<DomInstance>(count);
-						return true;
-					}
-
-				case ManagerStoreStartPagingRequest<DomInstance> request:
-					{
-						var instances = ReadAllDomInstances(request.ModuleId);
-						var filtered = CoercingFilterEvaluator.Apply(request.Filter.Filter, instances);
-						var ordered = request.Filter.WithFilter(new TRUEFilterElement<DomInstance>()).ExecuteInMemory(filtered).ToList();
-
-						var pagingHandler = new InMemoryPagingHandler<DomInstance>(ordered);
-						_domPagingHandlers.TryAdd(pagingHandler.Cookie, pagingHandler);
-
-						var nextPage = pagingHandler.GetNextPage(request.PreferredPageSize, out var isLast);
-
-						if (isLast)
-						{
-							_domPagingHandlers.TryRemove(pagingHandler.Cookie, out pagingHandler);
-							pagingHandler.Dispose();
-						}
-
-						response = new ManagerStorePagingResponse<DomInstance>(nextPage, isLast, pagingHandler.Cookie);
-						return true;
-					}
-
-				case ManagerStoreNextPagingRequest<DomInstance> request when _domPagingHandlers.ContainsKey(request.PagingCookie):
-					{
-						_domPagingHandlers.TryGetValue(request.PagingCookie, out var pagingHandler);
-
-						var nextPage = pagingHandler.GetNextPage(request.PreferredPageSize, out var isLast);
-
-						if (isLast)
-						{
-							_domPagingHandlers.TryRemove(pagingHandler.Cookie, out pagingHandler);
-							pagingHandler.Dispose();
-						}
-
-						response = new ManagerStorePagingResponse<DomInstance>(nextPage, isLast, request.PagingCookie);
-						return true;
-					}
-
-				default:
-					response = default;
-					return false;
-			}
-		}
-
-		private List<DomInstance> ReadAllDomInstances(string moduleId)
-		{
-			var request = new ManagerStoreReadRequest<DomInstance>(new TRUEFilterElement<DomInstance>().ToQuery())
-			{
-				ModuleId = moduleId,
-			};
-
-			if (_domSlNetMessageHandler.TryHandleMessage(request, out var domResponse) && domResponse is ManagerStoreCrudResponse<DomInstance> crudResponse)
-			{
-				return crudResponse.Objects;
-			}
-
-			return new List<DomInstance>();
 		}
 
 		private IEnumerable<DMSMessage> HandleMessage(ImpersonateMessage msg)

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFramework>net48</TargetFramework>
 		<PlatformTarget>anycpu</PlatformTarget>
@@ -28,6 +28,6 @@
 	<ItemGroup>
 		<PackageReference Include="Skyline.DataMiner.Core.DataMinerSystem.Common" Version="1.1.3.7" />
 		<PackageReference Include="Skyline.DataMiner.Dev.Common" Version="10.5.11.1" />
-		<PackageReference Include="Skyline.DataMiner.Utils.DOM" Version="10.5.2.5" />
+		<PackageReference Include="Skyline.DataMiner.Utils.DOM" Version="10.5.2.8" />
 	</ItemGroup>
 </Project>
