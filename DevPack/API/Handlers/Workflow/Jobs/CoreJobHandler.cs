@@ -15,6 +15,7 @@
 
 	using CoreReservation = Net.ResourceManager.Objects.ReservationInstance;
 	using DomJob = Storage.DOM.SlcWorkflow.JobsInstance;
+	using DomNode = Storage.DOM.SlcWorkflow.NodesSection;
 
 	internal class CoreJobHandler : DomInstanceApiObjectValidator<DomJob>
 	{
@@ -144,7 +145,6 @@
 					continue;
 				}
 
-				// todo: add logic to update or remove the reservation id in the nodes
 				ReportSuccess(domJob);
 			}
 		}
@@ -425,7 +425,7 @@
 
 		private bool SyncResources(DomJob job, CoreReservation reservation)
 		{
-			var expectedUsages = ResourceUsageBuilder.BuildUsages(planApi);
+			var expectedUsages = ResourceUsageBuilder.BuildUsages(planApi, job.Nodes);
 
 			if (reservation.ResourcesInReservationInstance.ScrambledEquals(expectedUsages))
 			{
@@ -532,8 +532,22 @@
 
 		private sealed class ResourceUsageBuilder
 		{
-			public static IReadOnlyCollection<ServiceResourceUsageDefinition> BuildUsages(MediaOpsPlanApi planApi)
+			public static IReadOnlyCollection<ServiceResourceUsageDefinition> BuildUsages(MediaOpsPlanApi planApi, ICollection<DomNode> nodes)
 			{
+				var resourceNodes = nodes.Where(x => x.NodeType == Storage.DOM.SlcWorkflow.SlcWorkflowIds.Enums.Nodetype.Resource && x.NodeEndTime > DateTimeOffset.UtcNow).ToList();
+				if (resourceNodes.Count == 0)
+				{
+					return new List<ServiceResourceUsageDefinition>();
+				}
+
+				foreach (var node in resourceNodes)
+				{
+					var resourceUsage = new ServiceResourceUsageDefinition
+					{
+						GUID = Guid.NewGuid(),
+					};
+				}
+
 				throw new NotImplementedException();
 			}
 		}
