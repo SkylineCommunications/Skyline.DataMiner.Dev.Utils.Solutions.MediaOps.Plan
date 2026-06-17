@@ -22,6 +22,10 @@
 
 		private Action<IReadOnlyDictionary<string, string>> externalReferenceRetargeter;
 
+		// Monotonic high-water mark of core reservation node IDs handed out for JobNodes in this graph. Seeded from
+		// loaded nodes so an ID freed by a removed node is never reused for a different node during this graph's lifetime.
+		private int highestAssignedCoreReservationNodeId;
+
 		/// <summary>
 		/// Initializes a new instance of the <see cref="NodeGraph{TNode}"/> class.
 		/// </summary>
@@ -42,6 +46,8 @@
 			}
 
 			this.nodes.AddRange(nodes);
+
+			SeedHighestAssignedCoreReservationNodeId();
 		}
 
 		/// <summary>
@@ -127,7 +133,64 @@
 
 			nodes.Add(node);
 
+			AssignCoreReservationNodeIdIfMissing(node);
+
 			return this;
+		}
+
+		/// <summary>
+		/// Ensures every <see cref="JobNode"/> in the graph has a unique core reservation node ID assigned.
+		/// Nodes that already have an ID keep it; nodes without one receive the next available unique ID.
+		/// </summary>
+		/// <remarks>
+		/// Only applies to graphs containing <see cref="JobNode"/>s; graphs of other node types are left unchanged.
+		/// </remarks>
+		internal void EnsureCoreReservationNodeIds()
+		{
+			foreach (var node in nodes)
+			{
+				AssignCoreReservationNodeIdIfMissing(node);
+			}
+		}
+
+		private void AssignCoreReservationNodeIdIfMissing(TNode node)
+		{
+			if (node is not JobNode jobNode)
+			{
+				return;
+			}
+
+			if (jobNode.CoreReservationNodeId is int existingId)
+			{
+				// Keep the high-water mark in sync with ids that enter the graph already assigned (e.g. via Add),
+				// so a later assignment never collides with or reuses them.
+				if (existingId > highestAssignedCoreReservationNodeId)
+				{
+					highestAssignedCoreReservationNodeId = existingId;
+				}
+
+				return;
+			}
+
+			jobNode.SetCoreReservationNodeId(GetNextCoreReservationNodeId());
+		}
+
+		private int GetNextCoreReservationNodeId()
+		{
+			// The high-water mark already reflects the highest id ever present in this graph (seeded from loaded nodes
+			// and kept up to date as nodes are assigned or enter the graph), so the next id is simply one above it.
+			return ++highestAssignedCoreReservationNodeId;
+		}
+
+		private void SeedHighestAssignedCoreReservationNodeId()
+		{
+			foreach (var node in nodes)
+			{
+				if (node is JobNode jobNode && jobNode.CoreReservationNodeId is int id && id > highestAssignedCoreReservationNodeId)
+				{
+					highestAssignedCoreReservationNodeId = id;
+				}
+			}
 		}
 
 		/// <summary>
@@ -241,6 +304,9 @@
 
 			// Let the owner retarget any references that live outside the graph (e.g. owner-level orchestration settings).
 			externalReferenceRetargeter?.Invoke(idMap);
+
+			// The swapped-in node is a brand-new node; give it its own unique core reservation node ID.
+			AssignCoreReservationNodeIdIfMissing(newNode);
 
 			// Track the swap so the original node stays available and re-swaps keep referencing the original.
 			RecordSwap(oldNode, newNode);

@@ -47,10 +47,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			section.NodeStartTime = Start.UtcDateTime;
 			section.NodeEndTime = End.UtcDateTime;
 
-			if (CoreReservationNodeId.HasValue)
-			{
-				section.CoreReservationNodeID = CoreReservationNodeId.Value;
-			}
+			section.CoreReservationNodeID = CoreReservationNodeId.Value;
 
 			ApplyJobNodeChanges(section);
 		}
@@ -83,16 +80,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return resourcePoolNode != null;
 		}
 
-		internal void SetCoreServationNodeId(int nodeId)
+		internal void SetCoreReservationNodeId(int nodeId)
 		{
 			if (nodeId <= 0)
 			{
 				throw new ArgumentOutOfRangeException(nameof(nodeId), "Node ID must be a positive integer.");
-			}
-
-			if (!IsNew)
-			{
-				throw new InvalidOperationException("Core reservation node ID can only be set for new nodes.");
 			}
 
 			if (CoreReservationNodeId.HasValue)
@@ -104,6 +96,33 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <summary>
+		/// Resolves the core reservation node ID for a node. For legacy nodes, whose node ID is a positive integer
+		/// instead of a GUID, the core reservation node ID must equal that node ID, so it takes precedence. For other
+		/// nodes the stored value is used, where a non-positive stored value (e.g. the default <c>0</c>) is treated as
+		/// not yet assigned because valid IDs start at <c>1</c>.
+		/// </summary>
+		/// <param name="storedCoreReservationNodeId">The stored core reservation node ID, when present.</param>
+		/// <param name="nodeId">The node ID, which for legacy nodes is a positive integer instead of a GUID.</param>
+		/// <returns>The resolved core reservation node ID, or <c>null</c> when none could be determined.</returns>
+		internal static int? ResolveCoreReservationNodeId(long? storedCoreReservationNodeId, string nodeId)
+		{
+			// Legacy nodes used a positive integer NodeID instead of a GUID. The core reservation node ID must match
+			// that NodeID, so it takes precedence and is reused directly as the authoritative value.
+			if (int.TryParse(nodeId, out var legacyNodeId) && legacyNodeId > 0)
+			{
+				return legacyNodeId;
+			}
+
+			// Valid core reservation node IDs start at 1; treat a stored 0 (or any non-positive value) as "not assigned yet".
+			if (storedCoreReservationNodeId.HasValue && storedCoreReservationNodeId.Value > 0)
+			{
+				return (int)storedCoreReservationNodeId.Value;
+			}
+
+			return null;
+		}
+
+		/// <summary>
 		/// Parses properties from the specified storage section.
 		/// </summary>
 		/// <param name="section">The storage workflow nodes section to parse.</param>
@@ -111,7 +130,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 			Start = section.NodeStartTime.Value;
 			End = section.NodeEndTime.Value;
-			CoreReservationNodeId = section.CoreReservationNodeID.HasValue ? (int)section.CoreReservationNodeID.Value : null;
+			CoreReservationNodeId = ResolveCoreReservationNodeId(section.CoreReservationNodeID, section.NodeID);
 
 			ResourceSelectionState = section.ResourceSelectState.HasValue
 				? EnumExtensions.MapEnum<StorageWorkflow.SlcWorkflowIds.Enums.Resourceselectstate, ResourceSelectionState>(section.ResourceSelectState.Value)
