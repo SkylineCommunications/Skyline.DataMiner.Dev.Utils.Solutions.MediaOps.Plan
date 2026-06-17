@@ -40,15 +40,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// </summary>
 		public NodeConfigurationStatus NodeConfigurationStatus { get; private set; }
 
-		/// <summary>
-		/// Gets the internal unique identifier for the core reservation associated with this job node.
-		/// </summary>
-		internal Guid CoreReservationId { get; private set; }
+		internal int? CoreReservationNodeId { get; private set; }
 
 		internal sealed override void ApplyChanges(StorageWorkflow.NodesSection section)
 		{
 			section.NodeStartTime = Start.UtcDateTime;
 			section.NodeEndTime = End.UtcDateTime;
+
+			if (CoreReservationNodeId.HasValue)
+			{
+				section.CoreReservationNodeID = CoreReservationNodeId.Value;
+			}
 
 			ApplyJobNodeChanges(section);
 		}
@@ -81,6 +83,26 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return resourcePoolNode != null;
 		}
 
+		internal void SetCoreServationNodeId(int nodeId)
+		{
+			if (nodeId <= 0)
+			{
+				throw new ArgumentOutOfRangeException(nameof(nodeId), "Node ID must be a positive integer.");
+			}
+
+			if (!IsNew)
+			{
+				throw new InvalidOperationException("Core reservation node ID can only be set for new nodes.");
+			}
+
+			if (CoreReservationNodeId.HasValue)
+			{
+				throw new InvalidOperationException("Core reservation node ID has already been set.");
+			}
+
+			CoreReservationNodeId = nodeId;
+		}
+
 		/// <summary>
 		/// Parses properties from the specified storage section.
 		/// </summary>
@@ -89,7 +111,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 			Start = section.NodeStartTime.Value;
 			End = section.NodeEndTime.Value;
-			CoreReservationId = section.ReservationId;
+			CoreReservationNodeId = section.CoreReservationNodeID.HasValue ? (int)section.CoreReservationNodeID.Value : null;
 
 			ResourceSelectionState = section.ResourceSelectState.HasValue
 				? EnumExtensions.MapEnum<StorageWorkflow.SlcWorkflowIds.Enums.Resourceselectstate, ResourceSelectionState>(section.ResourceSelectState.Value)
