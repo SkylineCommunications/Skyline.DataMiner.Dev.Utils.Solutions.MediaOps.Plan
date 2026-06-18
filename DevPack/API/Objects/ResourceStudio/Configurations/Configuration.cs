@@ -42,6 +42,50 @@
 		/// </summary>
 		protected internal override ProfileParameterCategory Category => ProfileParameterCategory.Configuration;
 
+		/// <summary>
+		/// Determines whether this configuration represents a numeric configuration and, if so, returns it as a <see cref="NumberConfiguration"/>.
+		/// </summary>
+		/// <param name="configuration">When this method returns, contains the current configuration as a <see cref="NumberConfiguration"/> when it represents a numeric configuration; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> if the current configuration instance is of type <see cref="NumberConfiguration"/>; otherwise, <c>false</c>.</returns>
+		public bool IsNumberConfiguration(out NumberConfiguration configuration)
+		{
+			configuration = this as NumberConfiguration;
+			return configuration != null;
+		}
+
+		/// <summary>
+		/// Determines whether this configuration represents a discrete numeric configuration and, if so, returns it as a <see cref="DiscreteNumberConfiguration"/>.
+		/// </summary>
+		/// <param name="configuration">When this method returns, contains the current configuration as a <see cref="DiscreteNumberConfiguration"/> when it represents a discrete numeric configuration; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> if the current configuration instance is of type <see cref="DiscreteNumberConfiguration"/>; otherwise, <c>false</c>.</returns>
+		public bool IsDiscreteNumberConfiguration(out DiscreteNumberConfiguration configuration)
+		{
+			configuration = this as DiscreteNumberConfiguration;
+			return configuration != null;
+		}
+
+		/// <summary>
+		/// Determines whether this configuration represents a text configuration and, if so, returns it as a <see cref="TextConfiguration"/>.
+		/// </summary>
+		/// <param name="configuration">When this method returns, contains the current configuration as a <see cref="TextConfiguration"/> when it represents a text configuration; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> if the current configuration instance is of type <see cref="TextConfiguration"/>; otherwise, <c>false</c>.</returns>
+		public bool IsTextConfiguration(out TextConfiguration configuration)
+		{
+			configuration = this as TextConfiguration;
+			return configuration != null;
+		}
+
+		/// <summary>
+		/// Determines whether this configuration represents a discrete text configuration and, if so, returns it as a <see cref="DiscreteTextConfiguration"/>.
+		/// </summary>
+		/// <param name="configuration">When this method returns, contains the current configuration as a <see cref="DiscreteTextConfiguration"/> when it represents a discrete text configuration; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> if the current configuration instance is of type <see cref="DiscreteTextConfiguration"/>; otherwise, <c>false</c>.</returns>
+		public bool IsDiscreteTextConfiguration(out DiscreteTextConfiguration configuration)
+		{
+			configuration = this as DiscreteTextConfiguration;
+			return configuration != null;
+		}
+
 		internal static Configuration InstantiateConfiguration(CoreParameter instance)
 		{
 			if (instance == null)
