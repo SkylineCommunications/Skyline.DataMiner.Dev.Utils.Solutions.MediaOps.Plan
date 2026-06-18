@@ -1269,7 +1269,7 @@
 		private bool SyncPools(DomResource domResource, CoreResource coreResource)
 		{
 			var poolIds = domResource.ResourceInternalProperties?.PoolIds ?? Enumerable.Empty<Guid>();
-			var cachedDomPoolsById = domResource.GetFromCache<DomResourcePool>().ToDictionary(x => x.ID.Id);
+			var cachedDomPoolsById = domResource.DomInstanceCache.GetFromCache<DomResourcePool>().ToDictionary(x => x.ID.Id);
 
 			var missingPoolIds = poolIds.Where(x => !cachedDomPoolsById.ContainsKey(x));
 			var domPools = planApi.ResourcePools.Read(missingPoolIds).Select(x => x.OriginalInstance).ToList();
