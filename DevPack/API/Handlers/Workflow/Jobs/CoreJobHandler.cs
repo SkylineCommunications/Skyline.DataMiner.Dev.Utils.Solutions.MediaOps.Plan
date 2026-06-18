@@ -96,7 +96,7 @@
 				var job = mapping.Job;
 				var reservation = mapping.Reservation;
 
-				if (!SyncJobWithReservation(job, reservation))
+				if (!SyncJobWithReservation(job, ref reservation))
 				{
 					planApi.Logger.Information(this, $"No update required for Job with ID {job.ID.Id} and Reservation with ID {reservation.ID}.");
 					continue;
@@ -280,7 +280,7 @@
 			}
 		}
 
-		private bool SyncJobWithReservation(DomJob job, CoreReservation reservation)
+		private bool SyncJobWithReservation(DomJob job, ref CoreReservation reservation)
 		{
 			bool updateRequired = false;
 
@@ -288,7 +288,7 @@
 			updateRequired |= SyncStatus(job, reservation);
 			updateRequired |= SyncQuarantineHandlingScript(reservation);
 			updateRequired |= SyncProperties(job, reservation);
-			updateRequired |= SyncTime(job, reservation);
+			updateRequired |= SyncTime(job, ref reservation);
 			updateRequired |= SyncEvents(reservation);
 			updateRequired |= SyncResources(job, reservation);
 
@@ -362,7 +362,7 @@
 			return true;
 		}
 
-		private bool SyncTime(DomJob job, CoreReservation reservation)
+		private bool SyncTime(DomJob job, ref CoreReservation reservation)
 		{
 			var timeRange = new Skyline.DataMiner.Net.Time.TimeRangeUtc(job.JobInfo.Preroll.Value, job.JobInfo.Postroll.Value);
 			if (reservation.TimeRange.Equals(timeRange))
@@ -540,15 +540,41 @@
 					return new List<ServiceResourceUsageDefinition>();
 				}
 
-				foreach (var node in resourceNodes)
+				var domResourceInstanceIds = resourceNodes
+					.Select(x => x.ReferenceId)
+					.Where(id => id != Guid.Empty)
+					.Distinct()
+					.ToList();
+
+				var coreResourceIdByDomInstanceId = planApi.Resources.Read(domResourceInstanceIds)
+					.ToDictionary(r => r.Id, r => r.CoreResourceId);
+
+				var result = new List<ServiceResourceUsageDefinition>();
+				foreach (var section in resourceNodes)
 				{
+					var domResourceId = section.ReferenceId;
+					if (domResourceId == Guid.Empty
+						|| !coreResourceIdByDomInstanceId.TryGetValue(domResourceId, out var coreResourceId)
+						|| coreResourceId == Guid.Empty)
+					{
+						planApi.Logger.Error(planApi, $"Failed to resolve core resource ID for node with ID '{section.NodeID}' and DOM resource instance ID '{domResourceId}'. Skipping node.");
+						continue;
+					}
+
+					// TODO (deferred): Populate RequiredCapabilities and RequiredCapacities from the node's
+					// configuration, mirroring the old SrmBuilder (ConfigurationHandler.ComposeCapabilities/
+					// ComposeCapacities) and honoring an `ignoreEmptyConfigurationValues` flag that is true when the
+					// reservation status is Pending. No equivalent ConfigurationHandler exists in the new DevPack yet.
 					var resourceUsage = new ServiceResourceUsageDefinition
 					{
-						GUID = Guid.NewGuid(),
+						GUID = coreResourceId,
+						ServiceDefinitionNodeID = (int)(section.CoreReservationNodeID.GetValueOrDefault()),
 					};
+
+					result.Add(resourceUsage);
 				}
 
-				throw new NotImplementedException();
+				return result;
 			}
 		}
 
@@ -662,7 +688,15 @@
 					return ReturnDefaultTraceData(resourceManagerErrors);
 				}
 
-				throw new NotImplementedException();
+				// TODO (deferred): Translate the three known ResourceManager error reasons into rich MediaOps error
+				// types as the old TraceDataHandler did:
+				//   - ReservationUpdateCausedReservationsToGoToQuarantine -> ResourcesNotAvailableError
+				//   - ResourceCapacityInvalid   -> ResourceCapacityInvalidError
+				//   - ResourceCapabilityInvalid -> ResourceCapabilityInvalidError
+				// These three MediaOpsErrorData subclasses do not exist in the new DevPack yet and must be added
+				// under DevPack/Exceptions/TraceData/... before this richer mapping can be implemented.
+				// For now all errors fall back to ReturnDefaultTraceData (generic ErrorMessage per reservation).
+				return ReturnDefaultTraceData(resourceManagerErrors);
 			}
 
 			private MediaOpsTraceData GetOrCreateTraceData(Guid id)
