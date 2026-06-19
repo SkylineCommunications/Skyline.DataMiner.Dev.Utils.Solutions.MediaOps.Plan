@@ -7,6 +7,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
+	using PropertyIdSubId = (System.Guid, System.String);
+
 	/// <summary>
 	/// Resolves <see cref="DataReference"/> instances to a display label or a runtime value.
 	/// </summary>
@@ -466,27 +468,28 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <summary>
-		/// Reads all property settings linked to the specified object identifier and returns them in a dictionary keyed by property id.
+		/// Reads all property settings linked to the specified object identifier and returns them in a dictionary keyed by property id and sub id.
 		/// </summary>
 		/// <param name="linkedObjectId">The identifier of the linked object.</param>
-		/// <returns>A dictionary containing the property settings keyed by property id.</returns>
-		protected IDictionary<Guid, PropertySettingBase> ReadPropertySettings(Guid linkedObjectId)
+		/// <returns>A dictionary containing the property settings keyed by property id and sub id.</returns>
+		protected IDictionary<PropertyIdSubId, PropertySettingBase> ReadPropertySettings(Guid linkedObjectId)
 		{
-			var result = new Dictionary<Guid, PropertySettingBase>();
+			var result = new Dictionary<PropertyIdSubId, PropertySettingBase>();
 
 			if (linkedObjectId == Guid.Empty)
 			{
 				return result;
 			}
 
-			var filter = PropertySettingCollectionExposers.LinkedObjectId.Equal(Convert.ToString(linkedObjectId));
+			var filter = PropertySettingCollectionExposers.LinkedObjectId.Equal(Convert.ToString(linkedObjectId))
+				.AND(PropertySettingCollectionExposers.Scope.Equal(PropertySettingsContext.MediaOpsScope));
 			var collections = PlanApi.PropertySettingCollections.Read(filter);
 
 			foreach (var collection in collections)
 			{
 				foreach (var propertySetting in collection.OfType<PropertySetting>())
 				{
-					result[propertySetting.Id] = propertySetting;
+					result[(propertySetting.Id, collection.SubId)] = propertySetting;
 				} 
 			}
 
