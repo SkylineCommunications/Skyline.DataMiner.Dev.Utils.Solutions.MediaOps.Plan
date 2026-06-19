@@ -23,7 +23,7 @@
 
 		private readonly HashSet<Guid> resourceIdsWithCoreChanges = new HashSet<Guid>();
 
-		private IDictionary<Guid, ResourcePool> resourcePoolsById = new Dictionary<Guid, ResourcePool>();
+		private Dictionary<Guid, ResourcePool> resourcePoolsById = new Dictionary<Guid, ResourcePool>();
 
 		private DomResourceHandler(MediaOpsPlanApi planApi)
 		{
@@ -548,7 +548,7 @@
 
 			if (domResourcePools.Count > 0)
 			{
-				domResource.SetCache(domResourcePools);
+				domResource.DomInstanceCache.SetCache(domResourcePools);
 			}
 		}
 
