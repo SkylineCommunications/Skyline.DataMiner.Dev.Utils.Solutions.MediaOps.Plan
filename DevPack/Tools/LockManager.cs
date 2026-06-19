@@ -142,8 +142,6 @@
 			}
 			else
 			{
-				Thread.Sleep(1000); // Add some delay to simulate lock communication
-
 				foreach (var lockedObject in lockedObjects)
 				{
 					lockedObjectIds.TryRemove(lockedObject.LockId);
