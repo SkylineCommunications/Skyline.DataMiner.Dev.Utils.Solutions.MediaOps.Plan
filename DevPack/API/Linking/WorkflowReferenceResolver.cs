@@ -4,6 +4,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using System.Collections.Generic;
 	using System.Linq;
 
+	using PropertyIdSubId = (System.Guid, System.String);
+
 	/// <summary>
 	/// A <see cref="ReferenceResolver"/> that resolves <see cref="DataReference"/> instances in the context
 	/// of a specific <see cref="Workflow"/>. Workflow-level references are resolved using the workflow's
@@ -11,7 +13,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// </summary>
 	public class WorkflowReferenceResolver : ReferenceResolver
 	{
-		private readonly Lazy<IDictionary<Guid, PropertySettingBase>> _lazyPropertySettings;
+		private readonly Lazy<IDictionary<PropertyIdSubId, PropertySettingBase>> _lazyPropertySettings;
 		private readonly IDictionary<Guid, Resource> _resourceCache;
 
 		/// <summary>
@@ -23,7 +25,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 			Workflow = workflow ?? throw new ArgumentNullException(nameof(workflow));
 
-			_lazyPropertySettings = new Lazy<IDictionary<Guid, PropertySettingBase>>(() => ReadPropertySettings(workflow.Id));
+			_lazyPropertySettings = new Lazy<IDictionary<PropertyIdSubId, PropertySettingBase>>(() => ReadPropertySettings(workflow.Id));
 			_resourceCache = new Dictionary<Guid, Resource>();
 		}
 
@@ -35,7 +37,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <summary>
 		/// Gets the lazily-loaded dictionary of property settings defined at the workflow level.
 		/// </summary>
-		protected IDictionary<Guid, PropertySettingBase> PropertySettings => _lazyPropertySettings.Value;
+		protected IDictionary<PropertyIdSubId, PropertySettingBase> PropertySettings => _lazyPropertySettings.Value;
 
 		/// <inheritdoc />
 		protected override Resource GetResource(DataReference reference)

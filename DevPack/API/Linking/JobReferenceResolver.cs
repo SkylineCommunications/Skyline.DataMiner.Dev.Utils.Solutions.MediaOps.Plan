@@ -4,6 +4,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using System.Collections.Generic;
 	using System.Linq;
 
+	using PropertyIdSubId = (System.Guid, System.String);
+
 	/// <summary>
 	/// A <see cref="ReferenceResolver"/> that resolves <see cref="DataReference"/> instances in the context
 	/// of a specific <see cref="Job"/>. Job-level and workflow-level references are resolved using the
@@ -11,7 +13,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// </summary>
 	public class JobReferenceResolver : ReferenceResolver
 	{
-		private readonly Lazy<IDictionary<Guid, PropertySettingBase>> _lazyJobPropertySettings;
+		private readonly Lazy<IDictionary<PropertyIdSubId, PropertySettingBase>> _lazyJobPropertySettings;
 		private readonly IDictionary<Guid, Resource> _resourceCache;
 
 		/// <summary>
@@ -23,7 +25,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 			Job = job ?? throw new ArgumentNullException(nameof(job));
 
-			_lazyJobPropertySettings = new Lazy<IDictionary<Guid, PropertySettingBase>>(() => ReadPropertySettings(Job.Id));
+			_lazyJobPropertySettings = new Lazy<IDictionary<PropertyIdSubId, PropertySettingBase>>(() => ReadPropertySettings(Job.Id));
 			_resourceCache = new Dictionary<Guid, Resource>();
 		}
 
@@ -35,7 +37,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <summary>
 		/// Gets the lazily-loaded dictionary of property settings defined at the job level.
 		/// </summary>
-		protected IDictionary<Guid, PropertySettingBase> JobPropertySettings => _lazyJobPropertySettings.Value;
+		protected IDictionary<PropertyIdSubId, PropertySettingBase> JobPropertySettings => _lazyJobPropertySettings.Value;
 
 		/// <inheritdoc />
 		protected override ResolvedValue ResolveJobName(JobNameReference reference)
@@ -46,7 +48,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <inheritdoc />
 		protected override ResolvedValue ResolveJobPropertyValue(JobPropertyReference reference)
 		{
-			if (JobPropertySettings.TryGetValue(reference.JobPropertyId, out var value))
+			if (JobPropertySettings.TryGetValue((reference.JobPropertyId, reference.NodeId ?? string.Empty), out var value))
 			{
 				return ConvertPropertySetting(value);
 			}
