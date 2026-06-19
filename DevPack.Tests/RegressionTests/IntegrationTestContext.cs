@@ -3,6 +3,7 @@
 	using System.Linq;
 
 	using Skyline.DataMiner.Core.DataMinerSystem.Common;
+	using Skyline.DataMiner.Net;
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Messages;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
@@ -10,19 +11,21 @@
 	using Skyline.DataMiner.Solutions.Categories.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation;
 
 	using DMConnection = Skyline.DataMiner.Net.Connection;
 
 	public sealed class IntegrationTestContext : IDisposable
 	{
-		private readonly DMConnection connection;
+		private readonly IConnection connection;
 
 		public IntegrationTestContext()
 		{
 			var config = Config.Load();
 
-			connection = Skyline.DataMiner.Net.ConnectionSettings.GetConnection(config.BaseUrl) ?? throw new NullReferenceException("Unable to connect to DataMiner");
-			connection.Authenticate(config.Username, config.Password, config.Domain);
+			connection = config.UseRealDma
+				? CreateRealConnection(config)
+				: CreateSimulatedConnection();
 
 			Api = connection.GetMediaOpsPlanApi() ?? throw new NullReferenceException("Unable to create MediaOpsPlanApi");
 			Dms = connection.GetDms() ?? throw new NullReferenceException("Unable to get DMS");
@@ -36,6 +39,20 @@
 			CategoriesApi.SetLogger(new ConsoleCategoriesLogger());
 			ProtocolFunctionHelper = new ProtocolFunctionHelper(connection.HandleMessages) ?? throw new NullReferenceException("Unable to create ProtocolFunctionHelper");
 		}
+
+		private static IConnection CreateRealConnection(Config config)
+		{
+			var realConnection = Skyline.DataMiner.Net.ConnectionSettings.GetConnection(config.BaseUrl) ?? throw new NullReferenceException("Unable to connect to DataMiner");
+			realConnection.Authenticate(config.Username, config.Password, config.Domain);
+			return realConnection;
+		}
+
+		private static IConnection CreateSimulatedConnection()
+		{
+			var dms = MediaOpsPlanSimulation.Create();
+			return dms.CreateConnection();
+		}
+
 
 		public IMediaOpsPlanApi Api { get; private set; }
 

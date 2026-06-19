@@ -66,6 +66,43 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void NodeGraph_CreateJob_DuplicateNode_Fails()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = currentTime,
+				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
+			};
+
+			// Adding the same node twice is not blocked in-memory; the save-time node graph validator is the safety net.
+			var node = new JobResourcePoolNode(pool);
+			job.NodeGraph.Add(node).Add(node);
+
+			try
+			{
+				objectCreator.CreateJob(job);
+				Assert.Fail("Expected MediaOpsException was not thrown.");
+			}
+			catch (MediaOpsException ex)
+			{
+				var errors = ex.TraceData.ErrorData.OfType<JobNodeGraphDuplicateNodeIdError>().ToList();
+				Assert.IsTrue(errors.Count > 0, "Expected a duplicate node ID error to be reported.");
+				Assert.IsTrue(errors.All(error => error.Id == job.Id));
+				Assert.IsTrue(errors.All(error => error.NodeId == node.Id));
+				Assert.IsTrue(errors.All(error => error.ErrorMessage == "Node has a duplicate ID."));
+			}
+		}
+
+		[TestMethod]
 		public void NodeGraph_CreateJob_NonExistingResource_Fails()
 		{
 			var prefix = Guid.NewGuid();

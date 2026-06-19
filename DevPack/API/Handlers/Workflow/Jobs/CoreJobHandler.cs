@@ -15,6 +15,7 @@
 
 	using CoreReservation = Net.ResourceManager.Objects.ReservationInstance;
 	using DomJob = Storage.DOM.SlcWorkflow.JobsInstance;
+	using DomResource = Storage.DOM.SlcResource_Studio.ResourceInstance;
 
 	internal class CoreJobHandler : DomInstanceApiObjectValidator<DomJob>
 	{
@@ -95,7 +96,7 @@
 				var job = mapping.Job;
 				var reservation = mapping.Reservation;
 
-				if (!SyncJobWithReservation(job, reservation))
+				if (!SyncJobWithReservation(job, ref reservation))
 				{
 					planApi.Logger.Information(this, $"No update required for Job with ID {job.ID.Id} and Reservation with ID {reservation.ID}.");
 					continue;
@@ -144,7 +145,6 @@
 					continue;
 				}
 
-				// todo: add logic to update or remove the reservation id in the nodes
 				ReportSuccess(domJob);
 			}
 		}
@@ -280,7 +280,7 @@
 			}
 		}
 
-		private bool SyncJobWithReservation(DomJob job, CoreReservation reservation)
+		private bool SyncJobWithReservation(DomJob job, ref CoreReservation reservation)
 		{
 			bool updateRequired = false;
 
@@ -288,7 +288,7 @@
 			updateRequired |= SyncStatus(job, reservation);
 			updateRequired |= SyncQuarantineHandlingScript(reservation);
 			updateRequired |= SyncProperties(job, reservation);
-			updateRequired |= SyncTime(job, reservation);
+			updateRequired |= SyncTime(job, ref reservation);
 			updateRequired |= SyncEvents(reservation);
 			updateRequired |= SyncResources(job, reservation);
 
@@ -362,7 +362,7 @@
 			return true;
 		}
 
-		private bool SyncTime(DomJob job, CoreReservation reservation)
+		private bool SyncTime(DomJob job, ref CoreReservation reservation)
 		{
 			var timeRange = new Skyline.DataMiner.Net.Time.TimeRangeUtc(job.JobInfo.Preroll.Value, job.JobInfo.Postroll.Value);
 			if (reservation.TimeRange.Equals(timeRange))
@@ -425,7 +425,7 @@
 
 		private bool SyncResources(DomJob job, CoreReservation reservation)
 		{
-			var expectedUsages = ResourceUsageBuilder.BuildUsages(planApi);
+			var expectedUsages = ResourceUsageBuilder.BuildUsages(planApi, job);
 
 			if (reservation.ResourcesInReservationInstance.ScrambledEquals(expectedUsages))
 			{
@@ -532,9 +532,43 @@
 
 		private sealed class ResourceUsageBuilder
 		{
-			public static IReadOnlyCollection<ServiceResourceUsageDefinition> BuildUsages(MediaOpsPlanApi planApi)
+			public static IReadOnlyCollection<ServiceResourceUsageDefinition> BuildUsages(MediaOpsPlanApi planApi, DomJob job)
 			{
-				throw new NotImplementedException();
+				var resourceNodes = job.Nodes.Where(x => x.NodeType == Storage.DOM.SlcWorkflow.SlcWorkflowIds.Enums.Nodetype.Resource && x.NodeEndTime > DateTimeOffset.UtcNow).ToList();
+				if (resourceNodes.Count == 0)
+				{
+					return new List<ServiceResourceUsageDefinition>();
+				}
+
+				var domResourceIds = resourceNodes.Select(x => x.ReferenceId).Distinct().ToList();
+				var cachedDomResourcesById = job.DomInstanceCache.GetFromCache<DomResource>().ToDictionary(x => x.ID.Id);
+
+				var missingResourceIds = domResourceIds.Where(x => !cachedDomResourcesById.ContainsKey(x));
+				var domResources = planApi.Resources.Read(missingResourceIds).Select(x => x.OriginalInstance).ToList();
+				domResources.AddRange(cachedDomResourcesById.Values);
+
+				var domResourcesById = domResources.ToDictionary(x => x.ID.Id);
+
+				var result = new List<ServiceResourceUsageDefinition>();
+				foreach (var node in resourceNodes)
+				{
+					if (!domResourcesById.TryGetValue(node.ReferenceId, out var domResource))
+					{
+						// This situation should not happen as the validation in DomJobHandler should have prevented it, but in case it does, we log an error and skip this resource.
+						planApi.Logger.Error($"Failed to find DOM Resource with ID {node.ReferenceId} for Job with ID {job.ID.Id}. This resource will be skipped.");
+						continue;
+					}
+
+					var resourceUsage = new ServiceResourceUsageDefinition
+					{
+						GUID = domResource.ResourceInternalProperties.Resource_Id.GetValueOrDefault(),
+						ServiceDefinitionNodeID = (int)node.CoreReservationNodeID.GetValueOrDefault(),
+					};
+
+					result.Add(resourceUsage);
+				}
+
+				return result;
 			}
 		}
 

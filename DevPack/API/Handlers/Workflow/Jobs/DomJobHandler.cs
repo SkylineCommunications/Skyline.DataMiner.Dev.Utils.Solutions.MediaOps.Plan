@@ -11,11 +11,16 @@
 	using Skyline.DataMiner.Utils.DOM.Extensions;
 
 	using DomJob = Storage.DOM.SlcWorkflow.JobsInstance;
+	using DomResource = Storage.DOM.SlcResource_Studio.ResourceInstance;
 
 	internal class DomJobHandler : DomInstanceApiObjectValidator<DomJob>
 	{
 		private readonly MediaOpsPlanApi planApi;
 		private readonly DateTimeOffset currentTime;
+
+		private readonly HashSet<Guid> jobIdsWithCoreChanges = new HashSet<Guid>();
+
+		private Dictionary<Guid, Resource> resourcesById = new Dictionary<Guid, Resource>();
 
 		private DomJobHandler(MediaOpsPlanApi planApi)
 			: this(planApi, DateTimeOffset.UtcNow)
@@ -147,7 +152,29 @@
 				return;
 			}
 
-			planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.TryCreateOrUpdateInBatches(domJobs.Select(x => x.ToInstance()), out var domResult);
+			var domJobsById = domJobs.ToDictionary(x => x.ID.Id);
+
+			if (jobIdsWithCoreChanges.Count != 0)
+			{
+				var domJobsWithCoreChanges = domJobs.Where(x => jobIdsWithCoreChanges.Contains(x.ID.Id)).ToList();
+				UpdateCaches(domJobsWithCoreChanges);
+
+				CoreJobHandler.TryCreateOrUpdate(planApi, domJobsWithCoreChanges, out var coreResult);
+
+				foreach (var id in coreResult.UnsuccessfulIds)
+				{
+					ReportError(id);
+
+					if (coreResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+					{
+						PassTraceData(id, traceData);
+					}
+
+					domJobsById.Remove(id);
+				}
+			}
+
+			planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.TryCreateOrUpdateInBatches(domJobsById.Values.Select(x => x.ToInstance()), out var domResult);
 
 			foreach (var id in domResult.UnsuccessfulIds)
 			{
@@ -448,6 +475,54 @@
 				{
 					PassTraceData(jobId, traceData);
 				}
+			}
+		}
+
+		private void UpdateCaches(ICollection<DomJob> domJobs)
+		{
+			if (domJobs == null)
+			{
+				throw new ArgumentNullException(nameof(domJobs));
+			}
+
+			if (domJobs.Count == 0)
+			{
+				return;
+			}
+
+			foreach (var domJob in domJobs)
+			{
+				UpdateResourceCache(domJob);
+			}
+		}
+
+		private void UpdateResourceCache(DomJob domJob)
+		{
+			if (resourcesById == null)
+			{
+				return;
+			}
+
+			var resourceIds = domJob.Nodes
+				.Where(x => x.NodeType == Storage.DOM.SlcWorkflow.SlcWorkflowIds.Enums.Nodetype.Resource)
+				.Select(x => x.ReferenceId)
+				.Distinct()
+				.ToList();
+
+			var domResources = new List<DomResource>();
+			foreach (var resourceId in resourceIds)
+			{
+				if (!resourcesById.TryGetValue(resourceId, out var resource))
+				{
+					continue;
+				}
+
+				domResources.Add(resource.OriginalInstance);
+			}
+
+			if (domResources.Count > 0)
+			{
+				domJob.DomInstanceCache.SetCache(domResources);
 			}
 		}
 
@@ -1108,7 +1183,7 @@
 
 			CollectReferencedIds(apiJobs, out var resourceIds, out var resourcePoolIds);
 
-			var resourcesById = planApi.Resources.Read(resourceIds).ToDictionary(x => x.Id);
+			resourcesById = planApi.Resources.Read(resourceIds).ToDictionary(x => x.Id);
 			var resourcePoolsById = planApi.ResourcePools.Read(resourcePoolIds).ToDictionary(x => x.Id);
 
 			foreach (var job in apiJobs)
@@ -1161,6 +1236,21 @@
 				j => new JobNotFoundError { ErrorMessage = $"Job with ID '{j.Id}' no longer exists.", Id = j.Id },
 				(j, msg) => new JobValueAlreadyChangedError { ErrorMessage = msg, Id = j.Id })
 				.ToList();
+		}
+
+		private void MarkAsJobWithCoreChanges(Job job)
+		{
+			if (job == null)
+			{
+				throw new ArgumentNullException(nameof(job));
+			}
+
+			if (!new[] { JobState.Tentative, JobState.Confirmed, JobState.Running }.Contains(job.State))
+			{
+				return;
+			}
+
+			jobIdsWithCoreChanges.Add(job.Id);
 		}
 	}
 }

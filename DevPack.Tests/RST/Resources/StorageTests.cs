@@ -16,19 +16,19 @@
 
 			var resourcePool1 = new ResourcepoolInstance();
 			var resourcePool2 = new ResourcepoolInstance();
-			resourceInstance.SetCache<ResourcepoolInstance>([resourcePool1, resourcePool2]);
+			resourceInstance.DomInstanceCache.SetCache<ResourcepoolInstance>([resourcePool1, resourcePool2]);
 
 			var propertyConfiguration1 = new ResourcepropertyInstance();
 			var propertyConfiguration2 = new ResourcepropertyInstance();
-			resourceInstance.SetCache<ResourcepropertyInstance>([propertyConfiguration1, propertyConfiguration2]);
+			resourceInstance.DomInstanceCache.SetCache<ResourcepropertyInstance>([propertyConfiguration1, propertyConfiguration2]);
 
-			var cachedResourcePools = resourceInstance.GetFromCache<ResourcepoolInstance>().ToList();
+			var cachedResourcePools = resourceInstance.DomInstanceCache.GetFromCache<ResourcepoolInstance>().ToList();
 			Assert.IsNotNull(cachedResourcePools);
 			Assert.AreEqual(2, cachedResourcePools.OfType<ResourcepoolInstance>().Count());
 			Assert.IsTrue(cachedResourcePools.Exists(x => x.ID.Id == resourcePool1.ID.Id));
 			Assert.IsTrue(cachedResourcePools.Exists(x => x.ID.Id == resourcePool2.ID.Id));
 
-			var cachedPropertyConfigurations = resourceInstance.GetFromCache<ResourcepropertyInstance>().ToList();
+			var cachedPropertyConfigurations = resourceInstance.DomInstanceCache.GetFromCache<ResourcepropertyInstance>().ToList();
 			Assert.IsNotNull(cachedPropertyConfigurations);
 			Assert.AreEqual(2, cachedPropertyConfigurations.OfType<ResourcepropertyInstance>().Count());
 			Assert.IsTrue(cachedPropertyConfigurations.Exists(x => x.ID.Id == propertyConfiguration1.ID.Id));
@@ -54,9 +54,9 @@
 					Name = "Pool 2",
 				},
 			};
-			resourceInstance.SetCache<ResourcepoolInstance>([resourcePool1, resourcePool2]);
+			resourceInstance.DomInstanceCache.SetCache<ResourcepoolInstance>([resourcePool1, resourcePool2]);
 
-			var cachedResourcePools = resourceInstance.GetFromCache<ResourcepoolInstance>().ToList();
+			var cachedResourcePools = resourceInstance.DomInstanceCache.GetFromCache<ResourcepoolInstance>().ToList();
 			Assert.IsNotNull(cachedResourcePools);
 			Assert.AreEqual(2, cachedResourcePools.OfType<ResourcepoolInstance>().Count());
 			Assert.IsTrue(cachedResourcePools.Exists(x => x.ID.Id == resourcePool1.ID.Id && x.ResourcePoolInfo.Name == "Pool 1"));
@@ -70,9 +70,9 @@
 					Name = "Pool 3",
 				},
 			};
-			resourceInstance.SetCache<ResourcepoolInstance>([resourcePool1, resourcePool3]);
+			resourceInstance.DomInstanceCache.SetCache<ResourcepoolInstance>([resourcePool1, resourcePool3]);
 
-			cachedResourcePools = resourceInstance.GetFromCache<ResourcepoolInstance>().ToList();
+			cachedResourcePools = resourceInstance.DomInstanceCache.GetFromCache<ResourcepoolInstance>().ToList();
 			Assert.IsNotNull(cachedResourcePools);
 			Assert.AreEqual(2, cachedResourcePools.OfType<ResourcepoolInstance>().Count());
 			Assert.IsTrue(cachedResourcePools.Exists(x => x.ID.Id == resourcePool1.ID.Id && x.ResourcePoolInfo.Name == "Pool 1_Updated"));
@@ -86,7 +86,7 @@
 
 			try
 			{
-				resourceInstance.SetCache<ResourcepoolInstance>(null);
+				resourceInstance.DomInstanceCache.SetCache<ResourcepoolInstance>(null);
 			}
 			catch (ArgumentNullException)
 			{
@@ -101,9 +101,9 @@
 		public void SetCache_EmptyCollection()
 		{
 			var resourceInstance = new ResourceInstance();
-			resourceInstance.SetCache<ResourcepoolInstance>([]);
+			resourceInstance.DomInstanceCache.SetCache<ResourcepoolInstance>([]);
 
-			var cachedResourcePools = resourceInstance.GetFromCache<ResourcepoolInstance>().ToList();
+			var cachedResourcePools = resourceInstance.DomInstanceCache.GetFromCache<ResourcepoolInstance>().ToList();
 			Assert.AreEqual(0, cachedResourcePools.OfType<ResourcepoolInstance>().Count());
 		}
 
@@ -117,7 +117,7 @@
 
 			try
 			{
-				resourceInstance.SetCache<ResourcepoolInstance?>([resourcePool1, null, resourcePool2, null]);
+				resourceInstance.DomInstanceCache.SetCache<ResourcepoolInstance?>([resourcePool1, null, resourcePool2, null]);
 			}
 			catch (ArgumentException)
 			{
@@ -141,7 +141,7 @@
 
 			try
 			{
-				resourceInstance.SetCache<DomInstanceBase>([resourcePool1, resourcePool2, propertyConfiguration1, propertyConfiguration2]);
+				resourceInstance.DomInstanceCache.SetCache<DomInstanceBase>([resourcePool1, resourcePool2, propertyConfiguration1, propertyConfiguration2]);
 			}
 			catch (InvalidOperationException ex)
 			{
@@ -159,19 +159,19 @@
 
 			var resourcePool1 = new ResourcepoolInstance();
 			var resourcePool2 = new ResourcepoolInstance();
-			resourceInstance.AddToCache<ResourcepoolInstance>([resourcePool1, resourcePool2]);
+			resourceInstance.DomInstanceCache.AddToCache<ResourcepoolInstance>([resourcePool1, resourcePool2]);
 
 			var propertyConfiguration1 = new ResourcepropertyInstance();
 			var propertyConfiguration2 = new ResourcepropertyInstance();
-			resourceInstance.AddToCache<ResourcepropertyInstance>([propertyConfiguration1, propertyConfiguration2]);
+			resourceInstance.DomInstanceCache.AddToCache<ResourcepropertyInstance>([propertyConfiguration1, propertyConfiguration2]);
 
-			var cachedResourcePools = resourceInstance.GetFromCache<ResourcepoolInstance>().ToList();
+			var cachedResourcePools = resourceInstance.DomInstanceCache.GetFromCache<ResourcepoolInstance>().ToList();
 			Assert.IsNotNull(cachedResourcePools);
 			Assert.AreEqual(2, cachedResourcePools.OfType<ResourcepoolInstance>().Count());
 			Assert.IsTrue(cachedResourcePools.Exists(x => x.ID.Id == resourcePool1.ID.Id));
 			Assert.IsTrue(cachedResourcePools.Exists(x => x.ID.Id == resourcePool2.ID.Id));
 
-			var cachedPropertyConfigurations = resourceInstance.GetFromCache<ResourcepropertyInstance>().ToList();
+			var cachedPropertyConfigurations = resourceInstance.DomInstanceCache.GetFromCache<ResourcepropertyInstance>().ToList();
 			Assert.IsNotNull(cachedPropertyConfigurations);
 			Assert.AreEqual(2, cachedPropertyConfigurations.OfType<ResourcepropertyInstance>().Count());
 			Assert.IsTrue(cachedPropertyConfigurations.Exists(x => x.ID.Id == propertyConfiguration1.ID.Id));
@@ -197,9 +197,9 @@
 					Name = "Pool 2",
 				},
 			};
-			resourceInstance.AddToCache<ResourcepoolInstance>([resourcePool1, resourcePool2]);
+			resourceInstance.DomInstanceCache.AddToCache<ResourcepoolInstance>([resourcePool1, resourcePool2]);
 
-			var cachedResourcePools = resourceInstance.GetFromCache<ResourcepoolInstance>().ToList();
+			var cachedResourcePools = resourceInstance.DomInstanceCache.GetFromCache<ResourcepoolInstance>().ToList();
 			Assert.IsNotNull(cachedResourcePools);
 			Assert.AreEqual(2, cachedResourcePools.OfType<ResourcepoolInstance>().Count());
 			Assert.IsTrue(cachedResourcePools.Exists(x => x.ID.Id == resourcePool1.ID.Id && x.ResourcePoolInfo.Name == "Pool 1"));
@@ -213,9 +213,9 @@
 					Name = "Pool 3",
 				},
 			};
-			resourceInstance.AddToCache<ResourcepoolInstance>([resourcePool1, resourcePool3]);
+			resourceInstance.DomInstanceCache.AddToCache<ResourcepoolInstance>([resourcePool1, resourcePool3]);
 
-			cachedResourcePools = resourceInstance.GetFromCache<ResourcepoolInstance>().ToList();
+			cachedResourcePools = resourceInstance.DomInstanceCache.GetFromCache<ResourcepoolInstance>().ToList();
 			Assert.IsNotNull(cachedResourcePools);
 			Assert.AreEqual(3, cachedResourcePools.OfType<ResourcepoolInstance>().Count());
 			Assert.IsTrue(cachedResourcePools.Exists(x => x.ID.Id == resourcePool1.ID.Id && x.ResourcePoolInfo.Name == "Pool 1_Updated"));
@@ -230,7 +230,7 @@
 
 			try
 			{
-				resourceInstance.AddToCache<ResourcepoolInstance>(null);
+				resourceInstance.DomInstanceCache.AddToCache<ResourcepoolInstance>(null);
 			}
 			catch (ArgumentNullException)
 			{
@@ -245,9 +245,9 @@
 		public void AddToCache_EmptyCollection()
 		{
 			var resourceInstance = new ResourceInstance();
-			resourceInstance.AddToCache<ResourcepoolInstance>([]);
+			resourceInstance.DomInstanceCache.AddToCache<ResourcepoolInstance>([]);
 
-			var cachedResourcePools = resourceInstance.GetFromCache<ResourcepoolInstance>().ToList();
+			var cachedResourcePools = resourceInstance.DomInstanceCache.GetFromCache<ResourcepoolInstance>().ToList();
 			Assert.AreEqual(0, cachedResourcePools.OfType<ResourcepoolInstance>().Count());
 		}
 
@@ -261,7 +261,7 @@
 
 			try
 			{
-				resourceInstance.AddToCache<ResourcepoolInstance?>([resourcePool1, null, resourcePool2, null]);
+				resourceInstance.DomInstanceCache.AddToCache<ResourcepoolInstance?>([resourcePool1, null, resourcePool2, null]);
 			}
 			catch (ArgumentException)
 			{
@@ -285,7 +285,7 @@
 
 			try
 			{
-				resourceInstance.AddToCache<DomInstanceBase>([resourcePool1, resourcePool2, propertyConfiguration1, propertyConfiguration2]);
+				resourceInstance.DomInstanceCache.AddToCache<DomInstanceBase>([resourcePool1, resourcePool2, propertyConfiguration1, propertyConfiguration2]);
 			}
 			catch (InvalidOperationException ex)
 			{
@@ -303,9 +303,9 @@
 
 			var resourcePool1 = new ResourcepoolInstance();
 			var resourcePool2 = new ResourcepoolInstance();
-			resourceInstance.SetCache<ResourcepoolInstance>([resourcePool1, resourcePool2]);
+			resourceInstance.DomInstanceCache.SetCache<ResourcepoolInstance>([resourcePool1, resourcePool2]);
 
-			var cachedPropertyConfigurations = resourceInstance.GetFromCache<ResourcepropertyInstance>().ToList();
+			var cachedPropertyConfigurations = resourceInstance.DomInstanceCache.GetFromCache<ResourcepropertyInstance>().ToList();
 			Assert.IsNotNull(cachedPropertyConfigurations);
 		}
 	}

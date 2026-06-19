@@ -529,6 +529,10 @@
 				updatedInstance.CostingAndBilling.AdditionalContacts.Add(contactId);
 			}
 
+			// Guarantee every job node has a unique core reservation node ID before persisting, including
+			// nodes loaded from storage that bypass NodeGraph.Add (e.g. legacy nodes without an assigned ID).
+			NodeGraph.EnsureCoreReservationNodeIds();
+
 			updatedInstance.Nodes.Clear();
 			foreach (var node in NodeGraph.Nodes)
 			{

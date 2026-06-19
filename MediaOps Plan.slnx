@@ -9,6 +9,7 @@
     <Project Path="DevPack.Injector/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Injector.csproj" />
     <Project Path="DevPack.Tests/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests.csproj" />
     <Project Path="QAOpsPackage/QAOpsPackage.csproj" />
+    <Project Path="DevPack.UnitTesting/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.UnitTesting.csproj" />
   </Folder>
   <Project Path="DevPack.Automation/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Automation.csproj" />
   <Project Path="DevPack.GQI/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.GQI.csproj" />

@@ -27,6 +27,7 @@
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\DevPack\Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.csproj" />
+		<ProjectReference Include="..\DevPack.UnitTesting\Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.UnitTesting.csproj" />
 	</ItemGroup>
 	<Target Name="CopyIntegrationTestOutputToTestPackage" AfterTargets="Build">
 		<PropertyGroup>
