@@ -46,7 +46,7 @@ short_description: This is a custom solution for DataMiner.
 # A valid URL that points to the source code.
 #   A valid URL
 #   Max length: 2048 characters
-source_code_url:
+source_code_url: https://github.com/SkylineCommunications/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan
 
 # [Optional]
 # A valid URL that points to documentation.
@@ -60,7 +60,7 @@ documentation_url:
 #   The name is required; max 256 characters.
 #   The email and url are optional, and should be in valid email/URL formats.
 owners:
-  - name: 'Skyline Communications'
+  - name: 'FUSE'
     email:
     url:
   
@@ -71,4 +71,4 @@ owners:
 #   Cannot contain newlines.
 #   Cannot contain leading or trailing whitespace characters.
 tags:
-  - 
+  - MediaOps
