@@ -40,7 +40,7 @@ title: QAOpsPackage
 # General information about the Catalog item.
 #   Max length: 100,000 characters
 # Currently not shown in the Catalog UI but will be supported in the near future.
-short_description: This is a custom solution for DataMiner.
+short_description: DataMiner Test Package for MediaOps back-end integration tests.
 
 # [Optional]
 # A valid URL that points to the source code.
