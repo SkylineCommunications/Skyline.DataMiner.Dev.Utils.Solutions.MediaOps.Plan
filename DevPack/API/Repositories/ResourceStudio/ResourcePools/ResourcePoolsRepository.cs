@@ -915,6 +915,8 @@
 				throw new ArgumentNullException(nameof(apiObject));
 			}
 
+			PlanApi.Logger.Information(this, $"Updating existing ResourcePool {apiObject.Name}...");
+
 			return ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Update), act =>
 			{
 				if (!apiObject.HasChanges)
