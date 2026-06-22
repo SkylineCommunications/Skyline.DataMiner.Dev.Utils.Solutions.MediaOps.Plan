@@ -12,6 +12,9 @@ on:
   pull_request:
     branches: 
      - '**'
+  schedule:
+  # Saturday and Sunday at 03:00 UTC
+    - cron: '0 3 * * 6,0'
 
 env:
   #https://github.com/NuGet/Home/issues/7575#issuecomment-443801131
@@ -81,6 +84,7 @@ jobs:
       DATAMINER_PASSWORD: ${{ secrets.DATAMINER_PASSWORD }}
       DATAMINER_HOST: ${{ vars.DATAMINER_HOST }}
       CRED_PREFIX: "DATAMINER"
+      MEDIAOPS_PLAN_USE_REAL_DMA: ${{ github.event_name == 'schedule' || github.ref_type == 'tag' }}
 
     steps:
      - uses: actions/checkout@v4
