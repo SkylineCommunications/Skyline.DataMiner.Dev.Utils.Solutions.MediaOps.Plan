@@ -16,8 +16,10 @@
 		</PackageReference>
 		<PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.1" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.1" />
+		<PackageReference Include="Skyline.DataMiner.CICD.Tools.WinEncryptedKeys.Lib" Version="2.1.0" />
 		<PackageReference Include="Skyline.DataMiner.Core.DataMinerSystem.Common" Version="1.1.3.7" />
 		<PackageReference Include="Skyline.DataMiner.Dev.Common" Version="10.5.11.1" />
+		<PackageReference Include="Skyline.DataMiner.Files.SLNetTypes" Version="10.6.7" />
 		<PackageReference Include="Skyline.DataMiner.Utils.SecureCoding.Analyzers" Version="2.2.1">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -27,4 +29,16 @@
 		<ProjectReference Include="..\DevPack\Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.csproj" />
 		<ProjectReference Include="..\DevPack.UnitTesting\Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.UnitTesting.csproj" />
 	</ItemGroup>
+	<Target Name="CopyIntegrationTestOutputToTestPackage" AfterTargets="Build">
+		<PropertyGroup>
+			<QAOpsHarvestingOutput>..\QAOpsPackage\TestPackageContent\TestHarvesting\postbuild.generated\$(MSBuildProjectName)\</QAOpsHarvestingOutput>
+		</PropertyGroup>
+		<ItemGroup>
+			<IntegrationTestOutput Include="$(OutputPath)**\*.*" />
+		</ItemGroup>
+		<RemoveDir Directories="$(QAOpsHarvestingOutput)" />
+		<Copy
+			SourceFiles="@(IntegrationTestOutput)"
+			DestinationFiles="@(IntegrationTestOutput->'$(QAOpsHarvestingOutput)%(RecursiveDir)%(Filename)%(Extension)')" />
+	</Target>
 </Project>

@@ -5,6 +5,8 @@
 	using System.Reflection;
 
 	using Microsoft.Extensions.Configuration;
+	using Skyline.DataMiner.CICD.Tools.WinEncryptedKeys.Lib;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Tools;
 
 	public class Config
 	{
@@ -13,6 +15,15 @@
 			if (configuration is null)
 			{
 				throw new ArgumentNullException(nameof(configuration));
+			}
+
+			if (TryLoadQaOpsCredentials(out var qaOpsConfig))
+			{
+				Username = qaOpsConfig.Username;
+				Password = qaOpsConfig.Password;
+				Domain = qaOpsConfig.Domain;
+				BaseUrl = qaOpsConfig.BaseUrl;
+				return;
 			}
 
 			// To set the credentials prefix locally, use the following command from the 'DevPack.Tests' folder:
@@ -60,6 +71,8 @@
 
 		public string Domain { get; }
 
+		public static bool IsQaOps { get; private set; }
+
 		public static Config Load()
 		{
 			var builder = new ConfigurationBuilder()
@@ -67,6 +80,50 @@
 				.AddEnvironmentVariables();
 
 			return new Config(builder.Build());
+		}
+
+		private static bool TryLoadQaOpsCredentials(out QaOpsConfig config)
+		{
+			config = default;
+
+			if (!Keys.TryRetrieveKey("BridgeId", out var bridgeId) || string.IsNullOrWhiteSpace(bridgeId))
+			{
+				return false;
+			}
+
+			if (!Keys.TryRetrieveKey("QAOpsDataMinerUser", out var userName) || string.IsNullOrWhiteSpace(userName))
+			{
+				throw new InvalidOperationException("QAOps Bridge detected, but encrypted key 'QAOpsDataMinerUser' is missing.");
+			}
+
+			if (!Keys.TryRetrieveKey("QAOpsDataMinerPassword", out var password) || string.IsNullOrWhiteSpace(password))
+			{
+				throw new InvalidOperationException("QAOps Bridge detected, but encrypted key 'QAOpsDataMinerPassword' is missing.");
+			}
+
+			IsQaOps = true;
+			DataMinerAgentHelper.UseInMemoryLocksForCurrentProcess();
+			config = new QaOpsConfig("localhost", userName, password, string.Empty);
+			return true;
+		}
+
+		private readonly struct QaOpsConfig
+		{
+			public QaOpsConfig(string baseUrl, string username, string password, string domain)
+			{
+				BaseUrl = baseUrl;
+				Username = username;
+				Password = password;
+				Domain = domain;
+			}
+
+			public string BaseUrl { get; }
+
+			public string Username { get; }
+
+			public string Password { get; }
+
+			public string Domain { get; }
 		}
 	}
 }

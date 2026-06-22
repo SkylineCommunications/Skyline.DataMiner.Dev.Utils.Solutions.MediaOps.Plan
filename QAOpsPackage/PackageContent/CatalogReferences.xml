@@ -1,0 +1,20 @@
+<CatalogReferences xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://www.skyline.be/catalogReferences">
+	<CatalogReference id="52173e49-9185-4772-9b60-c186ee365a81">
+		<Name>000 Standard Data Model Registration</Name>
+		<Selection>
+			<Range>2</Range>
+		</Selection>
+	</CatalogReference>
+	<CatalogReference id="c9666f3a-be26-42fd-83f2-6ee7fab4f11e">
+		<Name>001 Categories</Name>
+		<Selection>
+			<Range>1</Range>
+		</Selection>
+	</CatalogReference>
+	<CatalogReference id="d0eaf346-1ab9-4230-b934-d32a1e770c1b">
+		<Name>MediaOps Plan (internal)</Name>
+		<Selection>
+			<Range>0.1.0</Range>
+		</Selection>
+	</CatalogReference>
+</CatalogReferences>
