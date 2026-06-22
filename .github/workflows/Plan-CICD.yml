@@ -34,6 +34,11 @@ jobs:
         with:
           script: |
             try {
+              if (context.eventName === 'schedule') {
+                core.info('Scheduled run detected; validation and integration tests will run.');
+                core.setOutput('tested', 'false');
+                return;
+              }
               const res = await github.rest.actions.listWorkflowRuns({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
