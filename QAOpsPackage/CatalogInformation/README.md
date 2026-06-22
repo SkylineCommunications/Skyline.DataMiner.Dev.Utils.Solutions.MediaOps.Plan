@@ -1,4 +1,4 @@
-# QAOpsPackage
+# MediaOps Plan API Tests
 
 > [!IMPORTANT]
 > This package is intended to run in **DataMiner QAOps**. It is a **test package**, not a production package.
