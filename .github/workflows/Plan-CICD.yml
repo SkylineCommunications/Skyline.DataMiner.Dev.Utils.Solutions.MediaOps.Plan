@@ -2,6 +2,11 @@ name: Plan CICD
 
 on:
   workflow_dispatch:
+    inputs:
+      scheduled_rc:
+        description: 'Internal use: scheduled run dispatched for the latest RC branch (enables real DMA tests).'
+        type: boolean
+        default: false
   push:
     branches: 
      - 'main'
@@ -13,7 +18,7 @@ on:
     branches: 
      - '**'
   schedule:
-  # Saturday and Sunday at 03:00 UTC
+  # 03:00 UTC on Saturday (main) and Sunday (latest RC branch); the "route" job decides what runs (see below).
     - cron: '0 3 * * 6,0'
 
 env:
@@ -21,9 +26,75 @@ env:
   NUGET_RESTORE_MSBUILD_ARGS: /p:Configuration=Release
 
 jobs:
+  route:
+    name: Route scheduled run
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    outputs:
+      should_run: ${{ steps.decide.outputs.should_run }}
+    steps:
+      - id: decide
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Non-scheduled events (push, pull_request, manual/dispatched) always run here.
+            if (context.eventName !== 'schedule') {
+              core.setOutput('should_run', 'true');
+              return;
+            }
+
+            const day = new Date().getUTCDay(); // 0 = Sunday ... 6 = Saturday
+
+            // Saturday: test main (scheduled runs always execute on the default branch).
+            if (day === 6) {
+              core.info('Saturday schedule: running tests on main.');
+              core.setOutput('should_run', 'true');
+              return;
+            }
+
+            core.setOutput('should_run', 'false');
+
+            // Sunday: find the latest RC branch (X.Y.X) and dispatch the workflow onto it.
+            if (day === 0) {
+              const branches = await github.paginate(github.rest.repos.listBranches, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                per_page: 100,
+              });
+              const rc = branches
+                .map(b => b.name)
+                .filter(n => /^\d+\.\d+\.X$/.test(n))
+                .sort((a, b) => {
+                  const [aMaj, aMin] = a.split('.').map(Number);
+                  const [bMaj, bMin] = b.split('.').map(Number);
+                  return bMaj - aMaj || bMin - aMin;
+                })[0];
+
+              if (!rc) {
+                core.warning('No RC branch (X.Y.X) found to dispatch.');
+                return;
+              }
+
+              await github.rest.actions.createWorkflowDispatch({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: 'Plan-CICD.yml',
+                ref: rc,
+                inputs: { scheduled_rc: 'true' },
+              });
+              core.info(`Sunday schedule: dispatched Plan-CICD on latest RC branch ${rc}.`);
+              return;
+            }
+
+            core.info('Scheduled run on a non-test day; nothing to do.');
+
   check_existing:
     name: Check for prior successful run
     runs-on: ubuntu-latest
+    needs: route
+    if: ${{ needs.route.outputs.should_run == 'true' }}
     permissions:
       actions: read
     outputs:
@@ -58,8 +129,8 @@ jobs:
   nuget_validation:
     name: Validate NuGets
     runs-on: ubuntu-latest
-    needs: check_existing
-    if: ${{ needs.check_existing.outputs.already_tested != 'true' }}
+    needs: [route, check_existing]
+    if: ${{ needs.route.outputs.should_run == 'true' && needs.check_existing.outputs.already_tested != 'true' }}
 
     steps:
      - uses: actions/checkout@v4
@@ -73,8 +144,8 @@ jobs:
   integration_tests:
     name: Integration Tests
     runs-on: windows-latest
-    needs: [check_existing, nuget_validation]
-    if: ${{ always() && needs.check_existing.outputs.already_tested != 'true' && needs.nuget_validation.result == 'success' }}
+    needs: [route, check_existing, nuget_validation]
+    if: ${{ always() && needs.route.outputs.should_run == 'true' && needs.check_existing.outputs.already_tested != 'true' && needs.nuget_validation.result == 'success' }}
     concurrency:
       group: reg-${{github.ref}}
 
@@ -84,7 +155,7 @@ jobs:
       DATAMINER_PASSWORD: ${{ secrets.DATAMINER_PASSWORD }}
       DATAMINER_HOST: ${{ vars.DATAMINER_HOST }}
       CRED_PREFIX: "DATAMINER"
-      MEDIAOPS_PLAN_USE_REAL_DMA: ${{ github.event_name == 'schedule' || github.ref_type == 'tag' }}
+      MEDIAOPS_PLAN_USE_REAL_DMA: ${{ github.event_name == 'schedule' || github.ref_type == 'tag' || github.event.inputs.scheduled_rc == 'true' }}
 
     steps:
      - uses: actions/checkout@v4
@@ -106,9 +177,10 @@ jobs:
 
   internal_release:
     name: Internal Release
-    needs: [check_existing, nuget_validation, integration_tests]
+    needs: [route, check_existing, nuget_validation, integration_tests]
     if: > #Trigger on branch changes or on prerelease tags (e.g. 1.2.3-something). Allow when tests passed this run OR were skipped because the commit was already tested.
       always() &&
+      needs.route.outputs.should_run == 'true' &&
       (github.ref_type == 'branch' || (github.ref_type == 'tag' && contains(github.ref, '-'))) &&
       (needs.check_existing.outputs.already_tested == 'true' ||
        (needs.nuget_validation.result == 'success' && needs.integration_tests.result == 'success'))
