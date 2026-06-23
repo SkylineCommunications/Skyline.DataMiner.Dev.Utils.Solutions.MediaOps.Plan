@@ -20,6 +20,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 		}
 
+		private protected ConnectionConfiguration(ConnectionConfiguration connectionConfiguration)
+		{
+		}
+
 		/// <summary>
 		/// Writes the connection type, subtype and any additional details of this configuration to the specified storage section.
 		/// </summary>

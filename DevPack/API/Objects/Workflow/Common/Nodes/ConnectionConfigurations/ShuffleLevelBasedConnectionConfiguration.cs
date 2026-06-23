@@ -29,6 +29,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 		}
 
+		internal ShuffleLevelBasedConnectionConfiguration(ShuffleLevelBasedConnectionConfiguration shuffleLevelBasedConnectionConfiguration)
+			: base(shuffleLevelBasedConnectionConfiguration)
+		{
+			levelMappings = new Dictionary<long, long>(shuffleLevelBasedConnectionConfiguration.levelMappings);
+		}
+
 		/// <summary>
 		/// Gets the level mappings of this configuration, keyed by destination level with the assigned source level as value.
 		/// </summary>

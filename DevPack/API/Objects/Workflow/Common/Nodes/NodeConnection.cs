@@ -113,6 +113,32 @@
 		}
 
 		/// <summary>
+		/// Replaces this connection's configuration with a deep copy of the specified configuration.
+		/// </summary>
+		/// <remarks>
+		/// Used when cloning a graph so the new connection owns an independent configuration and never shares
+		/// mutable state with the source connection. When <paramref name="source"/> is null the current
+		/// configuration is kept.
+		/// </remarks>
+		/// <param name="source">The configuration to deep copy onto this connection.</param>
+		internal void CopyConfigurationFrom(ConnectionConfiguration source)
+		{
+			switch (source)
+			{
+				case null:
+					break;
+				case AllLevelBasedConnectionConfiguration all:
+					Configuration = new AllLevelBasedConnectionConfiguration(all);
+					break;
+				case ShuffleLevelBasedConnectionConfiguration shuffle:
+					Configuration = new ShuffleLevelBasedConnectionConfiguration(shuffle);
+					break;
+				default:
+					throw new ArgumentException("The connection configuration type is not supported.", nameof(source));
+			}
+		}
+
+		/// <summary>
 		/// Gets or creates a section with the current changes applied.
 		/// </summary>
 		/// <returns>A <see cref="StorageWorkflow.ConnectionsSection"/> containing the current state of the connection.</returns>

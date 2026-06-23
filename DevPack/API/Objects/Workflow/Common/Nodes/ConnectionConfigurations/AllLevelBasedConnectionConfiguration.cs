@@ -17,6 +17,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 		}
 
+		internal AllLevelBasedConnectionConfiguration(AllLevelBasedConnectionConfiguration allLevelBasedConnectionConfiguration)
+			: base(allLevelBasedConnectionConfiguration)
+		{
+		}
+
 		internal override void WriteTo(StorageWorkflow.ConnectionsSection section)
 		{
 			section.ConnectionType = StorageWorkflow.SlcWorkflowIds.Enums.Connectiontype.LevelBased;
