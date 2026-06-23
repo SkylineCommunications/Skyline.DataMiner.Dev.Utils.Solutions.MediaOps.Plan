@@ -12,6 +12,7 @@
 	{
 		private StorageWorkflow.ConnectionsSection originalSection;
 		private StorageWorkflow.ConnectionsSection updatedSection;
+		private ConnectionConfiguration configuration;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="NodeConnection{TNode}"/> class with the specified source and destination nodes.
@@ -26,6 +27,8 @@
 
 			Id = Guid.NewGuid().ToString();
 			IsNew = true;
+
+			Configuration = new AllLevelBasedConnectionConfiguration();
 		}
 
 		/// <summary>
@@ -59,6 +62,20 @@
 		/// Gets the destination node of the connection.
 		/// </summary>
 		public TNode To { get; private set; }
+
+		/// <summary>
+		/// Gets or sets the configuration that determines how the source node is connected to the destination node.
+		/// </summary>
+		/// <remarks>
+		/// New connections default to an <see cref="AllLevelBasedConnectionConfiguration"/>. The concrete type of the
+		/// configuration determines how the connection is persisted.
+		/// </remarks>
+		/// <exception cref="ArgumentNullException">Thrown when the value is set to null.</exception>
+		public ConnectionConfiguration Configuration
+		{
+			get => configuration;
+			set => configuration = value ?? throw new ArgumentNullException(nameof(value));
+		}
 
 		/// <summary>
 		/// Gets the original storage section for this connection.
@@ -114,14 +131,15 @@
 			updatedSection.SourceNodeID = From.Id;
 			updatedSection.DestinationNodeID = To.Id;
 
+			Configuration.WriteTo(updatedSection);
+
 			if (IsNew)
 			{
 				// Default values until correctly implemented. This will prevent some job integration tests from failing as the DOM CRUD is still adding these values in the background.
 				updatedSection.ConnectionExecutionOrder ??= 0;
-				updatedSection.ConnectionType ??= StorageWorkflow.SlcWorkflowIds.Enums.Connectiontype.LevelBased;
-				updatedSection.ConnectionSubtype ??= StorageWorkflow.SlcWorkflowIds.Enums.Connectionsubtype.All;
 				updatedSection.PredefinedSubset ??= StorageWorkflow.SlcWorkflowIds.Enums.Predefinedsubset.VAD;
 			}
+
 			return updatedSection;
 		}
 
@@ -140,6 +158,37 @@
 
 			From = nodeResolver(section.SourceNodeID) ?? throw new InvalidOperationException($"Connection {Id} references unknown source node {section.SourceNodeID}.");
 			To = nodeResolver(section.DestinationNodeID) ?? throw new InvalidOperationException($"Connection {Id} references unknown target node {section.DestinationNodeID}.");
+
+			Configuration = ConnectionConfiguration.FromSection(section);
+		}
+
+		/// <inheritdoc/>
+		public override bool Equals(object obj)
+		{
+			if (obj is not NodeConnection<TNode> other)
+			{
+				return false;
+			}
+
+			return Id == other.Id
+				&& From?.Id == other.From?.Id
+				&& To?.Id == other.To?.Id
+				&& Equals(Configuration, other.Configuration);
+		}
+
+		/// <inheritdoc/>
+		public override int GetHashCode()
+		{
+			unchecked
+			{
+				var hash = 17;
+				hash = (hash * 23) + (Id != null ? Id.GetHashCode() : 0);
+				hash = (hash * 23) + (From?.Id != null ? From.Id.GetHashCode() : 0);
+				hash = (hash * 23) + (To?.Id != null ? To.Id.GetHashCode() : 0);
+				hash = (hash * 23) + (Configuration != null ? Configuration.GetHashCode() : 0);
+
+				return hash;
+			}
 		}
 	}
 }
