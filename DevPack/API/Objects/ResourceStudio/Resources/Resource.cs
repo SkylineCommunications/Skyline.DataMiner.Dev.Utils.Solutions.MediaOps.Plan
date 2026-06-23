@@ -611,16 +611,26 @@
 		}
 
 		/// <summary>
-		/// Marks the current in-memory changes as persisted by promoting them to the original snapshot.
+		/// Adopts the persisted state of <paramref name="persisted"/> into this resource after a successful save.
 		/// </summary>
+		/// <param name="persisted">The resource returned by the save operation, reflecting the stored state.</param>
 		/// <remarks>
-		/// This keeps the original snapshot in sync with storage after a successful save, so that a later
-		/// comparison does not report fields that were already persisted as conflicting changes.
+		/// This keeps the original snapshot in sync with storage so a later comparison does not report fields that
+		/// were already persisted as conflicting changes. It also picks up server-assigned values (such as the core
+		/// resource id) that are only known after saving.
 		/// </remarks>
-		internal void AcceptChanges()
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="persisted"/> is <c>null</c>.</exception>
+		internal void AcceptChanges(Resource persisted)
 		{
-			originalInstance = GetInstanceWithChanges().Clone();
+			if (persisted == null)
+			{
+				throw new ArgumentNullException(nameof(persisted));
+			}
+
+			originalInstance = persisted.originalInstance.Clone();
 			updatedInstance = null;
+			coreResourceId = persisted.coreResourceId;
+			resourcePoolIds = new HashSet<Guid>(persisted.resourcePoolIds);
 		}
 
 		private static IEnumerable<Resource> InstantiateResourcesIterator(MediaOpsPlanApi planApi, IEnumerable<StorageResourceStudio.ResourceInstance> instances)

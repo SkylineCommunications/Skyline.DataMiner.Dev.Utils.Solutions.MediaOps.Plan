@@ -82,13 +82,17 @@
 				resource.AssignToPool(resourcePoolId);
 			}
 
-			PlanApi.Resources.CreateOrUpdate(resources);
+			var persisted = PlanApi.Resources.CreateOrUpdate(resources).ToDictionary(x => x.Id);
 
-			// Keep the provided resources in sync with the persisted state so a later update does not
-			// flag the now-stored pool assignment as a conflicting change.
+			// Keep the provided resources in sync with the persisted state (including server-assigned
+			// values such as the core resource id) so a later update does not flag the now-stored pool
+			// assignment as a conflicting change.
 			foreach (var resource in resources)
 			{
-				resource.AcceptChanges();
+				if (persisted.TryGetValue(resource.Id, out var persistedResource))
+				{
+					resource.AcceptChanges(persistedResource);
+				}
 			}
 		}
 
@@ -904,13 +908,17 @@
 				resource.UnassignFromPool(resourcePoolId);
 			}
 
-			PlanApi.Resources.CreateOrUpdate(resources);
+			var persisted = PlanApi.Resources.CreateOrUpdate(resources).ToDictionary(x => x.Id);
 
-			// Keep the provided resources in sync with the persisted state so a later update does not
-			// flag the now-stored pool change as a conflicting change.
+			// Keep the provided resources in sync with the persisted state (including server-assigned
+			// values such as the core resource id) so a later update does not flag the now-stored pool
+			// change as a conflicting change.
 			foreach (var resource in resources)
 			{
-				resource.AcceptChanges();
+				if (persisted.TryGetValue(resource.Id, out var persistedResource))
+				{
+					resource.AcceptChanges(persistedResource);
+				}
 			}
 		}
 
