@@ -170,15 +170,6 @@
 		private void HandleChangedFieldValue(FieldValueDifference difference)
 		{
 			var storedSection = stored.Sections.FirstOrDefault(x => x.ID.Id == difference.SectionId.Id);
-			var storedFieldValue = storedSection?.FieldValues.FirstOrDefault(x => x.FieldDescriptorID.Id == difference.FieldDescriptorId.Id);
-
-			if (StoredValueMatchesDesiredValue(storedFieldValue, difference))
-			{
-				// The stored value already equals the value this change wants to apply, so there is
-				// nothing to do and this should not be reported as a conflicting change.
-				return;
-			}
-
 			var originalSection = original.Sections.FirstOrDefault(x => x.ID.Id == difference.SectionId.Id);
 
 			if ((storedSection == null && originalSection != null)
@@ -206,6 +197,7 @@
 				return;
 			}
 
+			var storedFieldValue = storedSection.FieldValues.FirstOrDefault(x => x.FieldDescriptorID.Id == difference.FieldDescriptorId.Id);
 			var originalFieldValue = originalSection.FieldValues.FirstOrDefault(x => x.FieldDescriptorID.Id == difference.FieldDescriptorId.Id);
 
 			if ((storedFieldValue == null && originalFieldValue != null)
@@ -251,16 +243,6 @@
 			}
 
 			ApplyChangedValue(storedSection, storedFieldValue, difference);
-		}
-
-		private static bool StoredValueMatchesDesiredValue(FieldValue storedFieldValue, FieldValueDifference difference)
-		{
-			if (difference.Type == CrudType.Delete)
-			{
-				return storedFieldValue == null;
-			}
-
-			return storedFieldValue != null && Equals(storedFieldValue.Value, difference.ValueAfter);
 		}
 
 		private void ApplyChangedValue(FieldValueDifference difference)

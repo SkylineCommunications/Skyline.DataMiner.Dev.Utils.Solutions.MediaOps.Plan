@@ -610,6 +610,19 @@
 			return updatedInstance;
 		}
 
+		/// <summary>
+		/// Marks the current in-memory changes as persisted by promoting them to the original snapshot.
+		/// </summary>
+		/// <remarks>
+		/// This keeps the original snapshot in sync with storage after a successful save, so that a later
+		/// comparison does not report fields that were already persisted as conflicting changes.
+		/// </remarks>
+		internal void AcceptChanges()
+		{
+			originalInstance = GetInstanceWithChanges().Clone();
+			updatedInstance = null;
+		}
+
 		private static IEnumerable<Resource> InstantiateResourcesIterator(MediaOpsPlanApi planApi, IEnumerable<StorageResourceStudio.ResourceInstance> instances)
 		{
 			foreach (var instance in instances)

@@ -83,6 +83,13 @@
 			}
 
 			PlanApi.Resources.CreateOrUpdate(resources);
+
+			// Keep the provided resources in sync with the persisted state so a later update does not
+			// flag the now-stored pool assignment as a conflicting change.
+			foreach (var resource in resources)
+			{
+				resource.AcceptChanges();
+			}
 		}
 
 		/// <summary>
@@ -898,6 +905,13 @@
 			}
 
 			PlanApi.Resources.CreateOrUpdate(resources);
+
+			// Keep the provided resources in sync with the persisted state so a later update does not
+			// flag the now-stored pool change as a conflicting change.
+			foreach (var resource in resources)
+			{
+				resource.AcceptChanges();
+			}
 		}
 
 		/// <summary>
