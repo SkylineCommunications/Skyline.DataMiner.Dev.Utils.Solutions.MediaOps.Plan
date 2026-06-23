@@ -34,7 +34,7 @@ id: ac9e5ad2-9db6-497f-9018-293be7a3d532
 #   Max length: 100 characters.
 #   Cannot contain newlines.
 #   Cannot contain leading or trailing whitespace characters.
-title: QAOpsPackage
+title: MediaOps Plan API Tests
 
 # [Optional]
 # General information about the Catalog item.
