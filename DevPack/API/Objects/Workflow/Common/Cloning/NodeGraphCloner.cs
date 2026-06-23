@@ -84,7 +84,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					continue;
 				}
 
-				destination.Connect(from, to);
+				destination.Connect(from, to, connection.Configuration);
 			}
 
 			foreach (var link in source.Links)

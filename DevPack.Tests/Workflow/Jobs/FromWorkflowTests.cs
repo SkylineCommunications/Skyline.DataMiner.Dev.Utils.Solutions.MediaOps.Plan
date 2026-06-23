@@ -387,6 +387,81 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void FromWorkflow_CopiesConnectionConfiguration()
+		{
+			var prefix = Guid.NewGuid();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = new UnmanagedResource { Name = $"{prefix}_Resource" }.AssignToPool(pool);
+			resource = objectCreator.CreateResource(resource);
+			resource = TestContext.Api.Resources.Complete(resource);
+
+			var workflow = new Workflow { Name = $"{prefix}_Workflow" };
+			var resourceNode = new WorkflowResourceNode(pool, resource);
+			var poolNode = new WorkflowResourcePoolNode(pool);
+			workflow.NodeGraph.Add(resourceNode).Add(poolNode).Connect(resourceNode, poolNode);
+
+			// Give the workflow connection a non-default (shuffle) configuration so we can verify it is carried over.
+			var workflowConnection = workflow.NodeGraph.Connections.Single();
+			workflowConnection.Configuration = new ShuffleLevelBasedConnectionConfiguration()
+				.AddLevelMapping(destinationLevel: 1, sourceLevel: 10)
+				.AddLevelMapping(destinationLevel: 2, sourceLevel: 20);
+
+			workflow = objectCreator.CreateWorkflow(workflow);
+			workflow = TestContext.Api.Workflows.Complete(workflow);
+
+			var job = Job.FromWorkflow(TestContext.Api, workflow.Id);
+
+			var jobConnection = job.NodeGraph.Connections.Single();
+			var jobConfiguration = jobConnection.Configuration as ShuffleLevelBasedConnectionConfiguration;
+
+			// The shuffle configuration and its level mappings are preserved on the cloned connection.
+			Assert.IsNotNull(jobConfiguration, "Expected the job connection to keep the shuffle configuration.");
+			Assert.AreEqual(2, jobConfiguration.LevelMappings.Count);
+			Assert.AreEqual(10L, jobConfiguration.LevelMappings[1L]);
+			Assert.AreEqual(20L, jobConfiguration.LevelMappings[2L]);
+		}
+
+		[TestMethod]
+		public void FromWorkflow_CopiedConnectionConfiguration_IsIndependentInstance()
+		{
+			var prefix = Guid.NewGuid();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = new UnmanagedResource { Name = $"{prefix}_Resource" }.AssignToPool(pool);
+			resource = objectCreator.CreateResource(resource);
+			resource = TestContext.Api.Resources.Complete(resource);
+
+			var workflow = new Workflow { Name = $"{prefix}_Workflow" };
+			var resourceNode = new WorkflowResourceNode(pool, resource);
+			var poolNode = new WorkflowResourcePoolNode(pool);
+			workflow.NodeGraph.Add(resourceNode).Add(poolNode).Connect(resourceNode, poolNode);
+
+			var workflowConnection = workflow.NodeGraph.Connections.Single();
+			workflowConnection.Configuration = new ShuffleLevelBasedConnectionConfiguration()
+				.AddLevelMapping(destinationLevel: 1, sourceLevel: 10);
+
+			workflow = objectCreator.CreateWorkflow(workflow);
+			workflow = TestContext.Api.Workflows.Complete(workflow);
+
+			var job = Job.FromWorkflow(TestContext.Api, workflow.Id);
+
+			// The job and workflow connections must not share the same configuration instance.
+			var jobConfiguration = (ShuffleLevelBasedConnectionConfiguration)job.NodeGraph.Connections.Single().Configuration;
+			var workflowConfiguration = (ShuffleLevelBasedConnectionConfiguration)workflow.NodeGraph.Connections.Single().Configuration;
+			Assert.AreNotSame(workflowConfiguration, jobConfiguration);
+
+			// Mutating the job copy must not affect the source workflow's configuration.
+			jobConfiguration.AddLevelMapping(destinationLevel: 5, sourceLevel: 50);
+
+			Assert.IsFalse(workflowConfiguration.LevelMappings.ContainsKey(5L));
+		}
+
+		[TestMethod]
 		public void FromWorkflow_WorkflowInDraftState_Fails()
 		{
 			var prefix = Guid.NewGuid();

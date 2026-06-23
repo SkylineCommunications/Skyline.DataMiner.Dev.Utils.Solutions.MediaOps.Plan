@@ -18,6 +18,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 		}
 
+		private protected LevelBasedConnectionConfiguration(LevelBasedConnectionConfiguration levelBasedConnectionConfiguration)
+			: base(levelBasedConnectionConfiguration)
+		{
+		}
+
 		internal static new ConnectionConfiguration FromSection(StorageWorkflow.ConnectionsSection section)
 		{
 			if (section == null)

@@ -193,5 +193,45 @@ namespace RT_MediaOps.Plan.Workflow.Connections
 
 			Assert.AreNotEqual<ConnectionConfiguration>(all, shuffle);
 		}
+
+		[TestMethod]
+		public void CopyConstructor_All_ReturnsEqualIndependentInstance()
+		{
+			var original = new AllLevelBasedConnectionConfiguration();
+
+			var copy = new AllLevelBasedConnectionConfiguration(original);
+
+			Assert.AreNotSame(original, copy);
+			Assert.AreEqual(original, copy);
+		}
+
+		[TestMethod]
+		public void CopyConstructor_Shuffle_CopiesLevelMappings()
+		{
+			var original = new ShuffleLevelBasedConnectionConfiguration()
+				.AddLevelMapping(destinationLevel: 1, sourceLevel: 10)
+				.AddLevelMapping(destinationLevel: 2, sourceLevel: 20);
+
+			var copy = new ShuffleLevelBasedConnectionConfiguration(original);
+
+			Assert.AreNotSame(original, copy);
+			Assert.AreEqual(2, copy.LevelMappings.Count);
+			Assert.AreEqual(10L, copy.LevelMappings[1L]);
+			Assert.AreEqual(20L, copy.LevelMappings[2L]);
+		}
+
+		[TestMethod]
+		public void CopyConstructor_Shuffle_MutationsDoNotAffectOriginal()
+		{
+			var original = new ShuffleLevelBasedConnectionConfiguration()
+				.AddLevelMapping(destinationLevel: 1, sourceLevel: 10);
+
+			var copy = new ShuffleLevelBasedConnectionConfiguration(original);
+			copy.AddLevelMapping(destinationLevel: 2, sourceLevel: 20);
+
+			Assert.AreEqual(1, original.LevelMappings.Count);
+			Assert.IsFalse(original.LevelMappings.ContainsKey(2L));
+		}
 	}
 }
+
