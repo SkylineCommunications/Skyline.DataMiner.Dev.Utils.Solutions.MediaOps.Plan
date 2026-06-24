@@ -610,6 +610,52 @@
 			return updatedInstance;
 		}
 
+		/// <summary>
+		/// Adopts the persisted state of <paramref name="persisted"/> into this resource after a successful save.
+		/// </summary>
+		/// <param name="persisted">The resource returned by the save operation, reflecting the stored state.</param>
+		/// <remarks>
+		/// This keeps the original snapshot in sync with storage so a later comparison does not report fields that
+		/// were already persisted as conflicting changes. It adopts the full parsed state of <paramref name="persisted"/>
+		/// (rather than only the pool assignment), so server-derived values such as the core resource id and the
+		/// resource state are also reflected on this object after saving.
+		/// </remarks>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="persisted"/> is <c>null</c>.</exception>
+		internal void AcceptChanges(Resource persisted)
+		{
+			if (persisted == null)
+			{
+				throw new ArgumentNullException(nameof(persisted));
+			}
+
+			originalInstance = persisted.originalInstance.Clone();
+			updatedInstance = null;
+
+			Name = persisted.Name;
+			IsFavorite = persisted.IsFavorite;
+			IsExternallyManaged = persisted.IsExternallyManaged;
+			Concurrency = persisted.Concurrency;
+			State = persisted.State;
+			IconImage = persisted.IconImage;
+			Url = persisted.Url;
+			VirtualSignalGroupInputId = persisted.VirtualSignalGroupInputId;
+			VirtualSignalGroupOutputId = persisted.VirtualSignalGroupOutputId;
+			coreResourceId = persisted.coreResourceId;
+			resourcePoolIds = new HashSet<Guid>(persisted.resourcePoolIds);
+
+			capabilitySettings.Clear();
+			capabilitySettings.AddRange(persisted.capabilitySettings);
+
+			numberCapacitySettings.Clear();
+			numberCapacitySettings.AddRange(persisted.numberCapacitySettings);
+
+			rangeCapacitySettings.Clear();
+			rangeCapacitySettings.AddRange(persisted.rangeCapacitySettings);
+
+			propertySettings.Clear();
+			propertySettings.AddRange(persisted.propertySettings);
+		}
+
 		private static IEnumerable<Resource> InstantiateResourcesIterator(MediaOpsPlanApi planApi, IEnumerable<StorageResourceStudio.ResourceInstance> instances)
 		{
 			foreach (var instance in instances)
