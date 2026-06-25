@@ -18,7 +18,14 @@
 		private readonly MediaOpsPlanApi planApi;
 		private readonly DateTimeOffset currentTime;
 
+		// Definition cache scoped to this handler's operation. Created fresh for every create/update so it never
+		// outlives a single operation and cannot become stale, while still being shared by every resolver built
+		// during the operation so the definitions are read at most once.
+		private readonly ReferenceDefinitionCache referenceDefinitions;
+
 		private readonly HashSet<Guid> jobIdsWithCoreChanges = new HashSet<Guid>();
+
+		private readonly Dictionary<Guid, IReadOnlyDictionary<DataReference, ResolvedValue>> resolvedReferencesByJobId = new Dictionary<Guid, IReadOnlyDictionary<DataReference, ResolvedValue>>();
 
 		private Dictionary<Guid, Resource> resourcesById = new Dictionary<Guid, Resource>();
 
@@ -31,6 +38,7 @@
 		{
 			this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
 			this.currentTime = currentTime;
+			this.referenceDefinitions = new ReferenceDefinitionCache(planApi);
 		}
 
 		internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Job> apiJobs, out DomInstanceBulkOperationResult<DomJob> result)
@@ -88,6 +96,7 @@
 			ApplyNodeTimings(apiJobs.Where(IsValid).ToList());
 
 			ValidateNodeGraph(apiJobs);
+			ValidateReferences(apiJobs);
 			ValidateDescription(apiJobs);
 			ValidateNotes(apiJobs);
 
@@ -211,6 +220,7 @@
 
 			var jobIdByOrchestrationSettingsId = new Dictionary<Guid, Guid>();
 			var orchestrationSettings = new List<OrchestrationSettings>();
+			var referenceTargets = new Dictionary<Guid, (ReferenceResolver Resolver, bool ReportErrors)>();
 
 			foreach (var job in apiJobs)
 			{
@@ -222,9 +232,28 @@
 					jobIdByOrchestrationSettingsId[node.OrchestrationSettings.Id] = job.Id;
 					orchestrationSettings.Add(node.OrchestrationSettings);
 				}
+
+				// Only Confirmed/Running jobs report unresolved orchestration-event references. Build a single resolver
+				// per job and share it across the job's own and its nodes' orchestration settings.
+				if (job.State != JobState.Confirmed && job.State != JobState.Running)
+				{
+					continue;
+				}
+
+				var resolver = new JobReferenceResolver(planApi, job, referenceDefinitions);
+				referenceTargets[job.OrchestrationSettings.Id] = (resolver, true);
+
+				foreach (var node in job.NodeGraph.Nodes)
+				{
+					referenceTargets[node.OrchestrationSettings.Id] = (resolver, true);
+				}
 			}
 
-			DomWorkflowOrchestrationSettingsHandler.TryCreateOrUpdate(planApi, orchestrationSettings, out var domResult);
+			var referenceValidationContext = referenceTargets.Count > 0
+				? new OrchestrationReferenceValidationContext(referenceTargets)
+				: null;
+
+			DomWorkflowOrchestrationSettingsHandler.TryCreateOrUpdate(planApi, orchestrationSettings, referenceValidationContext, out var domResult);
 
 			foreach (var id in domResult.UnsuccessfulIds)
 			{
@@ -493,6 +522,15 @@
 			foreach (var domJob in domJobs)
 			{
 				UpdateResourceCache(domJob);
+				UpdateResolvedReferenceCache(domJob);
+			}
+		}
+
+		private void UpdateResolvedReferenceCache(DomJob domJob)
+		{
+			if (resolvedReferencesByJobId.TryGetValue(domJob.ID.Id, out var resolvedReferences) && resolvedReferences.Count > 0)
+			{
+				domJob.ResolvedReferenceCache.SetCache(resolvedReferences);
 			}
 		}
 
@@ -1190,6 +1228,52 @@
 			{
 				PassTraceData(JobNodeGraphValidator.Validate(job.Id, job.NodeGraph, resourcesById, resourcePoolsById));
 			}
+		}
+
+		// Resolves the settings references of every job that has reached a state where its references are expected to
+		// point at concrete values. Tentative jobs are resolved so the resolved values can be cached for later use, but
+		// only Confirmed/Running jobs report unresolved references as errors. Must run after ValidateNodeGraph so the
+		// node graph (and therefore the resources referenced by the resolver) is known to be valid.
+		private void ValidateReferences(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			foreach (var job in apiJobs.Where(x => IsValid(x) && RequiresReferenceResolution(x.State)))
+			{
+				var resolver = new JobReferenceResolver(planApi, job, referenceDefinitions);
+				var resolution = new JobReferenceValidator(resolver).Resolve(job);
+
+				resolvedReferencesByJobId[job.Id] = resolution.ResolvedReferences;
+
+				if (job.State != JobState.Confirmed && job.State != JobState.Running)
+				{
+					continue;
+				}
+
+				foreach (var reference in resolution.UnresolvedReferences)
+				{
+					var label = resolver.GetDisplayLabel(reference);
+					ReportError(job.Id, new JobUnresolvedReferenceError
+					{
+						Id = job.Id,
+						Reference = label,
+						ErrorMessage = $"Reference '{label}' could not be resolved to a value.",
+					});
+				}
+			}
+		}
+
+		private static bool RequiresReferenceResolution(JobState state)
+		{
+			return state == JobState.Tentative || state == JobState.Confirmed || state == JobState.Running;
 		}
 
 		private static void CollectReferencedIds(ICollection<Job> apiJobs, out HashSet<Guid> resourceIds, out HashSet<Guid> resourcePoolIds)

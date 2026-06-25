@@ -13,9 +13,12 @@
 	{
 		protected readonly MediaOpsPlanApi planApi;
 
-		protected DomOrchestrationSettingsHandler(MediaOpsPlanApi planApi)
+		protected readonly OrchestrationReferenceValidationContext referenceValidationContext;
+
+		protected DomOrchestrationSettingsHandler(MediaOpsPlanApi planApi, OrchestrationReferenceValidationContext referenceValidationContext = null)
 		{
 			this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
+			this.referenceValidationContext = referenceValidationContext;
 		}
 
 		protected void CreateOrUpdate(ICollection<TApiSettings> apiOrchestrationSettings)
@@ -33,6 +36,7 @@
 			ValidateCapacities(apiOrchestrationSettings);
 			ValidateCapabilities(apiOrchestrationSettings);
 			ValidateConfigurations(apiOrchestrationSettings);
+			ValidateOrchestrationEventReferences(apiOrchestrationSettings);
 
 			var lockResult = planApi.LockManager.LockAndExecute(apiOrchestrationSettings.Where(IsValid).ToList(), CreateOrUpdateDomInstances);
 			ReportError(lockResult);
@@ -57,6 +61,94 @@
 		protected abstract void CreateOrUpdateDomInstances(ICollection<TApiSettings> apiOrchestrationSettings);
 
 		protected abstract void DeleteDomInstances(ICollection<TApiSettings> apiOrchestrationSettings);
+
+		// Resolves the references contained in the orchestration events of each settings instance and reports the ones
+		// that cannot be resolved. The resolver and the reporting behavior are supplied per settings instance by the
+		// caller through the optional validation context. When no context is supplied (for example for workflow
+		// orchestration settings) no event reference validation is performed.
+		private void ValidateOrchestrationEventReferences(ICollection<TApiSettings> apiOrchestrationSettings)
+		{
+			if (referenceValidationContext == null)
+			{
+				return;
+			}
+
+			foreach (var orchestrationSettings in apiOrchestrationSettings)
+			{
+				if (!referenceValidationContext.TryGetTarget(orchestrationSettings.Id, out var resolver, out var reportErrors) || !reportErrors)
+				{
+					continue;
+				}
+
+				foreach (var reference in EnumerateEventReferences(orchestrationSettings))
+				{
+					if (resolver.CanResolve(reference))
+					{
+						continue;
+					}
+
+					var label = resolver.GetDisplayLabel(reference);
+					ReportError(orchestrationSettings.Id, new OrchestrationSettingsUnresolvedReferenceError
+					{
+						Id = orchestrationSettings.Id,
+						Reference = label,
+						ErrorMessage = $"Reference '{label}' could not be resolved to a value.",
+					});
+				}
+			}
+		}
+
+		private static IEnumerable<DataReference> EnumerateEventReferences(OrchestrationSettings orchestrationSettings)
+		{
+			foreach (var orchestrationEvent in orchestrationSettings.OrchestrationEvents)
+			{
+				var executionDetails = orchestrationEvent.ExecutionDetails;
+				if (executionDetails == null)
+				{
+					continue;
+				}
+
+				foreach (var scriptElement in executionDetails.ScriptElements)
+				{
+					if (scriptElement.HasReference)
+					{
+						yield return scriptElement.Reference;
+					}
+				}
+
+				foreach (var scriptParameter in executionDetails.ScriptParameters)
+				{
+					if (scriptParameter.HasReference)
+					{
+						yield return scriptParameter.Reference;
+					}
+				}
+
+				foreach (var capability in executionDetails.Capabilities)
+				{
+					if (capability.HasReference)
+					{
+						yield return capability.Reference;
+					}
+				}
+
+				foreach (var capacity in executionDetails.Capacities)
+				{
+					if (capacity.HasReference)
+					{
+						yield return capacity.Reference;
+					}
+				}
+
+				foreach (var configuration in executionDetails.Configurations)
+				{
+					if (configuration.HasReference)
+					{
+						yield return configuration.Reference;
+					}
+				}
+			}
+		}
 
 		private void ValidateCapacities(ICollection<TApiSettings> apiOrchestrationSettings)
 		{

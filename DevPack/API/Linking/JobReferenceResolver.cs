@@ -21,7 +21,20 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// </summary>
 		/// <param name="planApi">The MediaOps Plan API used to retrieve definitions and property settings.</param>
 		/// <param name="job">The job whose context is used to resolve references.</param>
-		public JobReferenceResolver(IMediaOpsPlanApi planApi, Job job) : base(planApi)
+		public JobReferenceResolver(IMediaOpsPlanApi planApi, Job job)
+			: this(planApi, job, null)
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="JobReferenceResolver"/> class, reusing the supplied definition
+		/// cache so that every resolver created during the same operation queries the definitions at most once.
+		/// </summary>
+		/// <param name="planApi">The MediaOps Plan API used to retrieve definitions and property settings.</param>
+		/// <param name="job">The job whose context is used to resolve references.</param>
+		/// <param name="definitions">The operation-scoped definition cache to reuse, or <c>null</c> to use a private cache.</param>
+		internal JobReferenceResolver(IMediaOpsPlanApi planApi, Job job, ReferenceDefinitionCache definitions)
+			: base(planApi, definitions)
 		{
 			Job = job ?? throw new ArgumentNullException(nameof(job));
 
