@@ -14,24 +14,25 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// </summary>
 	public class ReferenceResolver
 	{
-		private readonly Lazy<IDictionary<Guid, Capability>> _lazyCapabilityDefinitions;
-		private readonly Lazy<IDictionary<Guid, Capacity>> _lazyCapacityDefinitions;
-		private readonly Lazy<IDictionary<Guid, Configuration>> _lazyConfigurationDefinitions;
-		private readonly Lazy<IDictionary<Guid, Property>> _lazyPropertyDefinitions;
-		private readonly Lazy<IDictionary<Guid, ResourceProperty>> _lazyResourcePropertyDefinitions;
+		private readonly ReferenceDefinitionCache definitions;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ReferenceResolver"/> class.
 		/// </summary>
 		public ReferenceResolver(IMediaOpsPlanApi planApi)
+			: this(planApi, null)
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ReferenceResolver"/> class, optionally reusing a definition
+		/// cache that is shared by every resolver created during the same operation so the definitions are queried at
+		/// most once. The cache is scoped to that operation; when none is supplied a private cache is created.
+		/// </summary>
+		internal ReferenceResolver(IMediaOpsPlanApi planApi, ReferenceDefinitionCache definitions)
 		{
 			PlanApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
-
-			_lazyCapabilityDefinitions = new Lazy<IDictionary<Guid, Capability>>(() => PlanApi.Capabilities.Read().ToDictionary(c => c.Id));
-			_lazyCapacityDefinitions = new Lazy<IDictionary<Guid, Capacity>>(() => PlanApi.Capacities.Read().ToDictionary(c => c.Id));
-			_lazyConfigurationDefinitions = new Lazy<IDictionary<Guid, Configuration>>(() => PlanApi.Configurations.Read().ToDictionary(c => c.Id));
-			_lazyPropertyDefinitions = new Lazy<IDictionary<Guid, Property>>(() => PlanApi.Properties.Read().ToDictionary(c => c.Id));
-			_lazyResourcePropertyDefinitions = new Lazy<IDictionary<Guid, ResourceProperty>>(() => PlanApi.ResourceProperties.Read().ToDictionary(c => c.Id));
+			this.definitions = definitions ?? new ReferenceDefinitionCache(planApi);
 		}
 
 		/// <summary>
@@ -42,27 +43,27 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <summary>
 		/// Gets the lazily-loaded dictionary of capability definitions keyed by their identifier.
 		/// </summary>
-		protected IDictionary<Guid, Capability> CapabilityDefinitions => _lazyCapabilityDefinitions.Value;
+		protected IDictionary<Guid, Capability> CapabilityDefinitions => definitions.CapabilityDefinitions;
 
 		/// <summary>
 		/// Gets the lazily-loaded dictionary of capacity definitions keyed by their identifier.
 		/// </summary>
-		protected IDictionary<Guid, Capacity> CapacityDefinitions => _lazyCapacityDefinitions.Value;
+		protected IDictionary<Guid, Capacity> CapacityDefinitions => definitions.CapacityDefinitions;
 
 		/// <summary>
 		/// Gets the lazily-loaded dictionary of configuration definitions keyed by their identifier.
 		/// </summary>
-		protected IDictionary<Guid, Configuration> ConfigurationDefinitions => _lazyConfigurationDefinitions.Value;
+		protected IDictionary<Guid, Configuration> ConfigurationDefinitions => definitions.ConfigurationDefinitions;
 
 		/// <summary>
 		/// Gets the lazily-loaded dictionary of property definitions keyed by their identifier.
 		/// </summary>
-		protected IDictionary<Guid, Property> PropertyDefinitions => _lazyPropertyDefinitions.Value;
+		protected IDictionary<Guid, Property> PropertyDefinitions => definitions.PropertyDefinitions;
 
 		/// <summary>
 		/// Gets the lazily-loaded dictionary of resource property definitions keyed by their identifier.
 		/// </summary>
-		protected IDictionary<Guid, ResourceProperty> ResourcePropertyDefinitions => _lazyResourcePropertyDefinitions.Value;
+		protected IDictionary<Guid, ResourceProperty> ResourcePropertyDefinitions => definitions.ResourcePropertyDefinitions;
 
 		/// <summary>
 		/// Builds a human-readable label for the specified reference.

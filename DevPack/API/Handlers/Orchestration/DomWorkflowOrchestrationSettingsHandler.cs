@@ -12,13 +12,19 @@
 
 	internal sealed class DomWorkflowOrchestrationSettingsHandler : DomOrchestrationSettingsHandler<WorkflowOrchestrationSettings, DomWorkflowOrchestrationSetting>
 	{
-		private DomWorkflowOrchestrationSettingsHandler(MediaOpsPlanApi planApi) : base(planApi)
+		private DomWorkflowOrchestrationSettingsHandler(MediaOpsPlanApi planApi, IOrchestrationReferenceValidationContext referenceValidationContext = null)
+			: base(planApi, referenceValidationContext)
 		{
 		}
 
 		internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<OrchestrationSettings> apiOrchestrationSettings, out DomInstanceBulkOperationResult<DomWorkflowOrchestrationSetting> result)
 		{
-			var handler = new DomWorkflowOrchestrationSettingsHandler(planApi);
+			return TryCreateOrUpdate(planApi, apiOrchestrationSettings, null, out result);
+		}
+
+		internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<OrchestrationSettings> apiOrchestrationSettings, IOrchestrationReferenceValidationContext referenceValidationContext, out DomInstanceBulkOperationResult<DomWorkflowOrchestrationSetting> result)
+		{
+			var handler = new DomWorkflowOrchestrationSettingsHandler(planApi, referenceValidationContext);
 			handler.CreateOrUpdate(apiOrchestrationSettings.OfType<WorkflowOrchestrationSettings>().ToList());
 
 			result = new DomInstanceBulkOperationResult<DomWorkflowOrchestrationSetting>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
