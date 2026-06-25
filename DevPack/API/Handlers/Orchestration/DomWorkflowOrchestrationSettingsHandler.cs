@@ -12,7 +12,7 @@
 
 	internal sealed class DomWorkflowOrchestrationSettingsHandler : DomOrchestrationSettingsHandler<WorkflowOrchestrationSettings, DomWorkflowOrchestrationSetting>
 	{
-		private DomWorkflowOrchestrationSettingsHandler(MediaOpsPlanApi planApi, IOrchestrationReferenceValidationContext referenceValidationContext = null)
+		private DomWorkflowOrchestrationSettingsHandler(MediaOpsPlanApi planApi, OrchestrationReferenceValidationContext referenceValidationContext = null)
 			: base(planApi, referenceValidationContext)
 		{
 		}
@@ -22,7 +22,7 @@
 			return TryCreateOrUpdate(planApi, apiOrchestrationSettings, null, out result);
 		}
 
-		internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<OrchestrationSettings> apiOrchestrationSettings, IOrchestrationReferenceValidationContext referenceValidationContext, out DomInstanceBulkOperationResult<DomWorkflowOrchestrationSetting> result)
+		internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<OrchestrationSettings> apiOrchestrationSettings, OrchestrationReferenceValidationContext referenceValidationContext, out DomInstanceBulkOperationResult<DomWorkflowOrchestrationSetting> result)
 		{
 			var handler = new DomWorkflowOrchestrationSettingsHandler(planApi, referenceValidationContext);
 			handler.CreateOrUpdate(apiOrchestrationSettings.OfType<WorkflowOrchestrationSettings>().ToList());

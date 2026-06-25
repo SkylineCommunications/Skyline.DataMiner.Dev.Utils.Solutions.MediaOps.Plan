@@ -13,9 +13,9 @@
 	{
 		protected readonly MediaOpsPlanApi planApi;
 
-		protected readonly IOrchestrationReferenceValidationContext referenceValidationContext;
+		protected readonly OrchestrationReferenceValidationContext referenceValidationContext;
 
-		protected DomOrchestrationSettingsHandler(MediaOpsPlanApi planApi, IOrchestrationReferenceValidationContext referenceValidationContext = null)
+		protected DomOrchestrationSettingsHandler(MediaOpsPlanApi planApi, OrchestrationReferenceValidationContext referenceValidationContext = null)
 		{
 			this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
 			this.referenceValidationContext = referenceValidationContext;
