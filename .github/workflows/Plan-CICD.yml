@@ -110,6 +110,13 @@ jobs:
                 core.setOutput('tested', 'false');
                 return;
               }
+              // Tags must always run the integration tests against a real DMA, even if the
+              // commit was already tested on a branch/PR. Never skip on a tag.
+              if (context.ref.startsWith('refs/tags/')) {
+                core.info('Tag detected; validation and integration tests will run (real DMA enforced).');
+                core.setOutput('tested', 'false');
+                return;
+              }
               const res = await github.rest.actions.listWorkflowRuns({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -183,11 +190,11 @@ jobs:
   internal_release:
     name: Internal Release
     needs: [route, check_existing, nuget_validation, integration_tests]
-    if: > #Trigger on branch changes or on prerelease tags (e.g. 1.2.3-something). Allow when tests passed this run OR were skipped because the commit was already tested.
+    if: > #Trigger on branch changes or on prerelease tags (e.g. 1.2.3-something). Branches may reuse a prior successful test run; tags always require a fresh pass.
       always() &&
       needs.route.outputs.should_run == 'true' &&
       (github.ref_type == 'branch' || (github.ref_type == 'tag' && contains(github.ref, '-'))) &&
-      (needs.check_existing.outputs.already_tested == 'true' ||
+      ((github.ref_type == 'branch' && needs.check_existing.outputs.already_tested == 'true') ||
        (needs.nuget_validation.result == 'success' && needs.integration_tests.result == 'success'))
     uses: SkylineCommunications/_ReusableWorkflows/.github/workflows/Master Workflow.yml@main
     with:
@@ -198,11 +205,10 @@ jobs:
   public_release:
     name: Public Release
     needs: [check_existing, nuget_validation, integration_tests]
-    if: > #Stable tags (e.g. 1.2.3). Allow when tests passed this run OR were skipped because the commit was already tested.
+    if: > #Stable tags (e.g. 1.2.3). Tags always require a fresh successful test run (no skip).
       always() &&
       github.ref_type == 'tag' && !contains(github.ref_name, '-') &&
-      (needs.check_existing.outputs.already_tested == 'true' ||
-       (needs.nuget_validation.result == 'success' && needs.integration_tests.result == 'success'))
+      needs.nuget_validation.result == 'success' && needs.integration_tests.result == 'success'
     uses: SkylineCommunications/_ReusableWorkflows/.github/workflows/Master Workflow.yml@main
     with:
       sonarcloud-project-name: SkylineCommunications_Skyline.DataMiner.MediaOps.API
