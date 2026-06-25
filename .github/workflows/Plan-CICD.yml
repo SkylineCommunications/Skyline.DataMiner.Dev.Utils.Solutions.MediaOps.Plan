@@ -190,11 +190,11 @@ jobs:
   internal_release:
     name: Internal Release
     needs: [route, check_existing, nuget_validation, integration_tests]
-    if: > #Trigger on branch changes or on prerelease tags (e.g. 1.2.3-something). Branches may reuse a prior successful test run; tags always require a fresh pass.
+    if: > #Trigger on branch changes or on prerelease tags (e.g. 1.2.3-something). Branches may reuse a prior successful test run (check_existing always returns false for tags, so already_tested is implicitly branch-only).
       always() &&
       needs.route.outputs.should_run == 'true' &&
       (github.ref_type == 'branch' || (github.ref_type == 'tag' && contains(github.ref, '-'))) &&
-      ((github.ref_type == 'branch' && needs.check_existing.outputs.already_tested == 'true') ||
+      (needs.check_existing.outputs.already_tested == 'true' ||
        (needs.nuget_validation.result == 'success' && needs.integration_tests.result == 'success'))
     uses: SkylineCommunications/_ReusableWorkflows/.github/workflows/Master Workflow.yml@main
     with:
