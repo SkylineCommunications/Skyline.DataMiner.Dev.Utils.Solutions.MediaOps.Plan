@@ -9,7 +9,7 @@
 	{
 		private readonly ConcurrentDictionary<Type, IReadOnlyList<DomInstanceBase>> cache = new();
 
-		public void SetCache<T>(IEnumerable<T> instances)
+		public void SetCache<T>(IEnumerable<T> objects)
 		{
 			var type = typeof(T);
 			if (type == typeof(DomInstanceBase))
@@ -17,12 +17,12 @@
 				throw new InvalidOperationException("Cannot use DomInstanceBase directly. Use a derived type.");
 			}
 
-			if (instances == null)
+			if (objects == null)
 			{
-				throw new ArgumentNullException(nameof(instances));
+				throw new ArgumentNullException(nameof(objects));
 			}
 
-			var instanceList = instances.ToList();
+			var instanceList = objects.ToList();
 			if (instanceList.Count == 0)
 			{
 				return;
@@ -30,13 +30,13 @@
 
 			if (instanceList.Any(x => x == null))
 			{
-				throw new ArgumentException("instances collection contains null values", nameof(instances));
+				throw new ArgumentException("instances collection contains null values", nameof(objects));
 			}
 
 			cache[type] = instanceList.Cast<DomInstanceBase>().ToList().AsReadOnly();
 		}
 
-		public void AddToCache<T>(IEnumerable<T> instances)
+		public void AddToCache<T>(IEnumerable<T> objects)
 		{
 			var type = typeof(T);
 			if (type == typeof(DomInstanceBase))
@@ -44,12 +44,12 @@
 				throw new InvalidOperationException("Cannot use DomInstanceBase directly. Use a derived type.");
 			}
 
-			if (instances == null)
+			if (objects == null)
 			{
-				throw new ArgumentNullException(nameof(instances));
+				throw new ArgumentNullException(nameof(objects));
 			}
 
-			var instanceList = instances.Cast<DomInstanceBase>().ToList();
+			var instanceList = objects.Cast<DomInstanceBase>().ToList();
 
 			if (instanceList.Count == 0)
 			{
@@ -58,7 +58,7 @@
 
 			if (instanceList.Any(x => x == null))
 			{
-				throw new ArgumentException("instances collection contains null values", nameof(instances));
+				throw new ArgumentException("instances collection contains null values", nameof(objects));
 			}
 
 			cache.AddOrUpdate(

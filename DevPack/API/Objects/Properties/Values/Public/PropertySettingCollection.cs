@@ -189,8 +189,8 @@
 
 		/// <summary>
 		/// Replaces all custom property settings in this collection with the specified settings, leaving the
-		/// property-definition-linked settings and the collection's identity (<see cref="Id"/>,
-		/// <see cref="LinkedObjectId"/>, <see cref="Scope"/> and <see cref="SubId"/>) untouched.
+		/// property-definition-linked settings and the collection's identity (<see cref="LinkedObjectId"/>,
+		/// <see cref="Scope"/> and <see cref="SubId"/>) untouched.
 		/// </summary>
 		/// <param name="settings">The custom property settings that should replace the current custom settings. May be <see langword="null"/> to clear them.</param>
 		public void SetCustomSettings(IEnumerable<CustomPropertySetting> settings)
@@ -210,7 +210,7 @@
 
 		/// <summary>
 		/// Replaces all property-definition-linked settings in this collection with the specified settings, leaving the
-		/// custom property settings and the collection's identity (<see cref="Id"/>, <see cref="LinkedObjectId"/>,
+		/// custom property settings and the collection's identity <see cref="LinkedObjectId"/>,
 		/// <see cref="Scope"/> and <see cref="SubId"/>) untouched.
 		/// </summary>
 		/// <param name="settings">The property settings that should replace the current property settings. May be <see langword="null"/> to clear them.</param>
