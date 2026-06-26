@@ -2,6 +2,7 @@
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Globalization;
 	using System.Linq;
 	using System.Text.RegularExpressions;
 
@@ -10,8 +11,11 @@
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Net.ResourceManager.Objects;
 	using Skyline.DataMiner.Net.ResponseErrorData;
+	using Skyline.DataMiner.Net.SRM.Capabilities;
+	using Skyline.DataMiner.Net.SRM.Capacities;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
 
 	using CoreReservation = Net.ResourceManager.Objects.ReservationInstance;
 	using DomJob = Storage.DOM.SlcWorkflow.JobsInstance;
@@ -549,6 +553,15 @@
 
 				var domResourcesById = domResources.ToDictionary(x => x.ID.Id);
 
+				// All node orchestration settings are parsed earlier in the pipeline and cached on the DOM job by
+				// DomJobHandler (in UpdateOrchestrationSettingsCache) immediately before this handler runs, and every
+				// node section references its orchestration setting by ID. The settings of every resource node are
+				// therefore available here without re-parsing the configuration or reading the profile parameters again.
+				var orchestrationSettingsCache = job.OrchestrationSettingsCache;
+
+				// The resolved references were cached earlier in the pipeline, so referenced values can be applied here.
+				var resolvedReferences = job.ResolvedReferenceCache;
+
 				var result = new List<ServiceResourceUsageDefinition>();
 				foreach (var node in resourceNodes)
 				{
@@ -565,10 +578,143 @@
 						ServiceDefinitionNodeID = (int)node.CoreReservationNodeID.GetValueOrDefault(),
 					};
 
+					if (node.NodeConfiguration.HasValue
+						&& node.NodeConfiguration.Value != Guid.Empty
+						&& orchestrationSettingsCache.TryGetValue(node.NodeConfiguration.Value, out var orchestrationSettings))
+					{
+						resourceUsage.RequiredCapabilities = BuildCapabilities(orchestrationSettings.Capabilities, resolvedReferences).ToList();
+						resourceUsage.RequiredCapacities = BuildCapacities(orchestrationSettings.Capacities, resolvedReferences).ToList();
+					}
+
 					result.Add(resourceUsage);
 				}
 
 				return result;
+			}
+
+			private static IEnumerable<ResourceCapabilityUsage> BuildCapabilities(IReadOnlyCollection<CapabilitySetting> capabilities, ResolvedReferenceCache resolvedReferences)
+			{
+				foreach (var capability in capabilities)
+				{
+					// Capabilities are discrete in this model, so the value is always applied as the required discrete value.
+					if (!TryGetCapabilityValue(capability, resolvedReferences, out var value))
+					{
+						continue;
+					}
+
+					yield return new ResourceCapabilityUsage
+					{
+						CapabilityProfileID = capability.Id,
+						RequiredDiscreet = value,
+					};
+				}
+			}
+
+			private static IEnumerable<MultiResourceCapacityUsage> BuildCapacities(IReadOnlyCollection<CapacitySetting> capacities, ResolvedReferenceCache resolvedReferences)
+			{
+				foreach (var capacity in capacities)
+				{
+					switch (capacity)
+					{
+						case NumberCapacitySetting numberCapacity:
+							if (TryGetCapacityQuantity(numberCapacity, resolvedReferences, out var quantity))
+							{
+								yield return new MultiResourceCapacityUsage
+								{
+									CapacityProfileID = numberCapacity.Id,
+									DecimalQuantity = quantity,
+								};
+							}
+
+							break;
+
+						case RangeCapacitySetting rangeCapacity:
+							// References are not yet supported for range capacities, so only literal min/max values are applied.
+							if (rangeCapacity.HasValue)
+							{
+								yield return new MultiResourceCapacityUsage
+								{
+									CapacityProfileID = rangeCapacity.Id,
+									RangeStart = rangeCapacity.MinValue.Value,
+									DecimalQuantity = rangeCapacity.MaxValue.Value - rangeCapacity.MinValue.Value,
+								};
+							}
+
+							break;
+					}
+				}
+			}
+
+			private static bool TryGetCapabilityValue(CapabilitySetting capability, ResolvedReferenceCache resolvedReferences, out string value)
+			{
+				if (capability.HasValue)
+				{
+					value = capability.Value;
+					return true;
+				}
+
+				if (TryGetResolvedRawValue(capability, resolvedReferences, out var rawValue))
+				{
+					value = Convert.ToString(rawValue, CultureInfo.InvariantCulture);
+					return value != null;
+				}
+
+				value = null;
+				return false;
+			}
+
+			private static bool TryGetCapacityQuantity(NumberCapacitySetting capacity, ResolvedReferenceCache resolvedReferences, out decimal quantity)
+			{
+				if (capacity.Value.HasValue)
+				{
+					quantity = capacity.Value.Value;
+					return true;
+				}
+
+				if (TryGetResolvedRawValue(capacity, resolvedReferences, out var rawValue) && TryConvertToDecimal(rawValue, out quantity))
+				{
+					return true;
+				}
+
+				quantity = default;
+				return false;
+			}
+
+			private static bool TryGetResolvedRawValue(Setting setting, ResolvedReferenceCache resolvedReferences, out object rawValue)
+			{
+				rawValue = null;
+
+				if (!setting.HasReference || resolvedReferences == null)
+				{
+					return false;
+				}
+
+				if (!resolvedReferences.TryGetValue(setting.Reference, out var resolvedValue) || !resolvedValue.IsResolved)
+				{
+					return false;
+				}
+
+				rawValue = resolvedValue.GetRawValue();
+				return rawValue != null;
+			}
+
+			private static bool TryConvertToDecimal(object rawValue, out decimal value)
+			{
+				switch (rawValue)
+				{
+					case decimal decimalValue:
+						value = decimalValue;
+						return true;
+					case double doubleValue:
+						value = (decimal)doubleValue;
+						return true;
+					case string stringValue when decimal.TryParse(stringValue, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed):
+						value = parsed;
+						return true;
+					default:
+						value = default;
+						return false;
+				}
 			}
 		}
 
