@@ -3,8 +3,8 @@ name: Plan CICD
 on:
   workflow_dispatch:
     inputs:
-      scheduled_rc:
-        description: 'Internal use: scheduled run dispatched for the latest RC branch (enables real DMA tests).'
+      use_real_dma:
+        description: 'Run the integration tests against a real DMA (instead of a simulated one).'
         type: boolean
         default: false
   push:
@@ -19,6 +19,7 @@ on:
      - '**'
   schedule:
   # 03:00 UTC on Saturday (main) and Sunday (latest RC branch); the "route" job decides what runs (see below).
+  # The RC branch is checked out into this run (not dispatched), so older RC branches need no workflow changes.
     - cron: '0 3 * * 6,0'
 
 env:
@@ -30,18 +31,27 @@ jobs:
     name: Route scheduled run
     runs-on: ubuntu-latest
     permissions:
-      actions: write
       contents: read
     outputs:
       should_run: ${{ steps.decide.outputs.should_run }}
+      test_ref: ${{ steps.decide.outputs.test_ref }}
+      real_dma: ${{ steps.decide.outputs.real_dma }}
     steps:
       - id: decide
         uses: actions/github-script@v7
         with:
           script: |
-            // Non-scheduled events (push, pull_request, manual/dispatched) always run here.
+            const isTag = context.ref.startsWith('refs/tags/');
+
+            // Non-scheduled events (push, pull_request, manual) test the triggering ref
+            // directly (empty test_ref = default checkout). Real DMA is used for tag builds
+            // and when a manual run explicitly opts in via the use_real_dma input.
             if (context.eventName !== 'schedule') {
+              const manualRealDma = context.eventName === 'workflow_dispatch'
+                && context.payload.inputs?.use_real_dma === 'true';
               core.setOutput('should_run', 'true');
+              core.setOutput('test_ref', '');
+              core.setOutput('real_dma', String(isTag || manualRealDma));
               return;
             }
 
@@ -49,14 +59,16 @@ jobs:
 
             // Saturday: test main (scheduled runs always execute on the default branch).
             if (day === 6) {
-              core.info('Saturday schedule: running tests on main.');
+              core.info('Saturday schedule: running tests on main with real DMA.');
               core.setOutput('should_run', 'true');
+              core.setOutput('test_ref', '');
+              core.setOutput('real_dma', 'true');
               return;
             }
 
-            core.setOutput('should_run', 'false');
-
-            // Sunday: find the latest RC branch (X.Y.X) and dispatch the workflow onto it.
+            // Sunday: find the latest RC branch (X.Y.X) and check it out in THIS run.
+            // We deliberately do not dispatch a separate run onto the RC branch, so older
+            // RC branches need no changes (no workflow_dispatch input to backport).
             if (day === 0) {
               const branches = await github.paginate(github.rest.repos.listBranches, {
                 owner: context.repo.owner,
@@ -73,22 +85,20 @@ jobs:
                 })[0];
 
               if (!rc) {
-                core.warning('No RC branch (X.Y.X) found to dispatch.');
+                core.warning('No RC branch (X.Y.X) found to test.');
+                core.setOutput('should_run', 'false');
                 return;
               }
 
-              await github.rest.actions.createWorkflowDispatch({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                workflow_id: 'Plan-CICD.yml',
-                ref: rc,
-                inputs: { scheduled_rc: 'true' },
-              });
-              core.info(`Sunday schedule: dispatched Plan-CICD on latest RC branch ${rc}.`);
+              core.info(`Sunday schedule: running tests on latest RC branch ${rc} with real DMA.`);
+              core.setOutput('should_run', 'true');
+              core.setOutput('test_ref', rc);
+              core.setOutput('real_dma', 'true');
               return;
             }
 
             core.info('Scheduled run on a non-test day; nothing to do.');
+            core.setOutput('should_run', 'false');
 
   check_existing:
     name: Check for prior successful run
@@ -146,6 +156,8 @@ jobs:
 
     steps:
      - uses: actions/checkout@v4
+       with:
+         ref: ${{ needs.route.outputs.test_ref }}
 
      - name: Install dotnet-consolidate
        run: dotnet tool install -g dotnet-consolidate
@@ -167,10 +179,12 @@ jobs:
       DATAMINER_PASSWORD: ${{ secrets.DATAMINER_PASSWORD }}
       DATAMINER_HOST: ${{ vars.DATAMINER_HOST }}
       CRED_PREFIX: "DATAMINER"
-      MEDIAOPS_PLAN_USE_REAL_DMA: ${{ github.event_name == 'schedule' || github.ref_type == 'tag' || github.event.inputs.scheduled_rc == 'true' }}
+      MEDIAOPS_PLAN_USE_REAL_DMA: ${{ needs.route.outputs.real_dma }}
 
     steps:
      - uses: actions/checkout@v4
+       with:
+         ref: ${{ needs.route.outputs.test_ref }}
 
      - name: Setup dotnet
        uses: actions/setup-dotnet@v5.3.0
@@ -190,8 +204,9 @@ jobs:
   internal_release:
     name: Internal Release
     needs: [route, check_existing, nuget_validation, integration_tests]
-    if: > #Trigger on branch changes or on prerelease tags (e.g. 1.2.3-something). Branches may reuse a prior successful test run (check_existing always returns false for tags, so already_tested is implicitly branch-only).
+    if: > #Trigger on branch changes or on prerelease tags (e.g. 1.2.3-something). Scheduled runs only test, never release. Branches may reuse a prior successful test run (check_existing always returns false for tags, so already_tested is implicitly branch-only).
       always() &&
+      github.event_name != 'schedule' &&
       needs.route.outputs.should_run == 'true' &&
       (github.ref_type == 'branch' || (github.ref_type == 'tag' && contains(github.ref, '-'))) &&
       (needs.check_existing.outputs.already_tested == 'true' ||
