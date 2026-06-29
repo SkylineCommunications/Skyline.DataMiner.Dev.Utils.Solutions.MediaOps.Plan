@@ -224,29 +224,7 @@
 
 			foreach (var job in apiJobs)
 			{
-				jobIdByOrchestrationSettingsId[job.OrchestrationSettings.Id] = job.Id;
-				orchestrationSettings.Add(job.OrchestrationSettings);
-
-				foreach (var node in job.NodeGraph.Nodes)
-				{
-					jobIdByOrchestrationSettingsId[node.OrchestrationSettings.Id] = job.Id;
-					orchestrationSettings.Add(node.OrchestrationSettings);
-				}
-
-				// Only Confirmed/Running jobs report unresolved orchestration-event references. Build a single resolver
-				// per job and share it across the job's own and its nodes' orchestration settings.
-				if (job.State != JobState.Confirmed && job.State != JobState.Running)
-				{
-					continue;
-				}
-
-				var resolver = new JobReferenceResolver(planApi, job, referenceDefinitions);
-				referenceTargets[job.OrchestrationSettings.Id] = (resolver, true);
-
-				foreach (var node in job.NodeGraph.Nodes)
-				{
-					referenceTargets[node.OrchestrationSettings.Id] = (resolver, true);
-				}
+				CollectOrchestrationSettingsForJob(job, jobIdByOrchestrationSettingsId, orchestrationSettings, referenceTargets);
 			}
 
 			var referenceValidationContext = referenceTargets.Count > 0
@@ -269,6 +247,37 @@
 				{
 					PassTraceData(jobId, traceData);
 				}
+			}
+		}
+
+		private void CollectOrchestrationSettingsForJob(
+			Job job,
+			Dictionary<Guid, Guid> jobIdByOrchestrationSettingsId,
+			List<OrchestrationSettings> orchestrationSettings,
+			Dictionary<Guid, (ReferenceResolver Resolver, bool ReportErrors)> referenceTargets)
+		{
+			jobIdByOrchestrationSettingsId[job.OrchestrationSettings.Id] = job.Id;
+			orchestrationSettings.Add(job.OrchestrationSettings);
+
+			foreach (var node in job.NodeGraph.Nodes)
+			{
+				jobIdByOrchestrationSettingsId[node.OrchestrationSettings.Id] = job.Id;
+				orchestrationSettings.Add(node.OrchestrationSettings);
+			}
+
+			// Only Confirmed/Running jobs report unresolved orchestration-event references. Build a single resolver
+			// per job and share it across the job's own and its nodes' orchestration settings.
+			if (job.State != JobState.Confirmed && job.State != JobState.Running)
+			{
+				return;
+			}
+
+			var resolver = new JobReferenceResolver(planApi, job, referenceDefinitions);
+			referenceTargets[job.OrchestrationSettings.Id] = (resolver, true);
+
+			foreach (var node in job.NodeGraph.Nodes)
+			{
+				referenceTargets[node.OrchestrationSettings.Id] = (resolver, true);
 			}
 		}
 

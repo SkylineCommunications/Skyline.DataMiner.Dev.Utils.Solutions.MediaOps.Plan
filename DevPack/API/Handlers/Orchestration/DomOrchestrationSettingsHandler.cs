@@ -100,54 +100,19 @@
 
 		private static IEnumerable<DataReference> EnumerateEventReferences(OrchestrationSettings orchestrationSettings)
 		{
-			foreach (var orchestrationEvent in orchestrationSettings.OrchestrationEvents)
-			{
-				var executionDetails = orchestrationEvent.ExecutionDetails;
-				if (executionDetails == null)
-				{
-					continue;
-				}
+			return orchestrationSettings.OrchestrationEvents
+				.Select(orchestrationEvent => orchestrationEvent.ExecutionDetails)
+				.Where(executionDetails => executionDetails != null)
+				.SelectMany(EnumerateExecutionDetailReferences);
+		}
 
-				foreach (var scriptElement in executionDetails.ScriptElements)
-				{
-					if (scriptElement.HasReference)
-					{
-						yield return scriptElement.Reference;
-					}
-				}
-
-				foreach (var scriptParameter in executionDetails.ScriptParameters)
-				{
-					if (scriptParameter.HasReference)
-					{
-						yield return scriptParameter.Reference;
-					}
-				}
-
-				foreach (var capability in executionDetails.Capabilities)
-				{
-					if (capability.HasReference)
-					{
-						yield return capability.Reference;
-					}
-				}
-
-				foreach (var capacity in executionDetails.Capacities)
-				{
-					if (capacity.HasReference)
-					{
-						yield return capacity.Reference;
-					}
-				}
-
-				foreach (var configuration in executionDetails.Configurations)
-				{
-					if (configuration.HasReference)
-					{
-						yield return configuration.Reference;
-					}
-				}
-			}
+		private static IEnumerable<DataReference> EnumerateExecutionDetailReferences(ScriptExecutionDetails executionDetails)
+		{
+			return executionDetails.ScriptElements.Where(x => x.HasReference).Select(x => x.Reference)
+				.Concat(executionDetails.ScriptParameters.Where(x => x.HasReference).Select(x => x.Reference))
+				.Concat(executionDetails.Capabilities.Where(x => x.HasReference).Select(x => x.Reference))
+				.Concat(executionDetails.Capacities.Where(x => x.HasReference).Select(x => x.Reference))
+				.Concat(executionDetails.Configurations.Where(x => x.HasReference).Select(x => x.Reference));
 		}
 
 		private void ValidateCapacities(ICollection<TApiSettings> apiOrchestrationSettings)
