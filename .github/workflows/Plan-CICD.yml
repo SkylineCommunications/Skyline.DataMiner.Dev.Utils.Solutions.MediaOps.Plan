@@ -77,13 +77,27 @@ jobs:
                 return;
               }
 
-              await github.rest.actions.createWorkflowDispatch({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                workflow_id: 'Plan-CICD.yml',
-                ref: rc,
-                inputs: { scheduled_rc: 'true' },
-              });
+              try {
+                await github.rest.actions.createWorkflowDispatch({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  workflow_id: 'Plan-CICD.yml',
+                  ref: rc,
+                  inputs: { scheduled_rc: 'true' },
+                });
+              } catch (error) {
+                if (!error.message?.includes('Unexpected inputs provided')) {
+                  throw error;
+                }
+
+                core.warning(`Branch ${rc} does not support 'scheduled_rc' input yet. Dispatching without inputs.`);
+                await github.rest.actions.createWorkflowDispatch({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  workflow_id: 'Plan-CICD.yml',
+                  ref: rc,
+                });
+              }
               core.info(`Sunday schedule: dispatched Plan-CICD on latest RC branch ${rc}.`);
               return;
             }
