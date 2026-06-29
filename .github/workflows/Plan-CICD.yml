@@ -2,6 +2,11 @@ name: Plan CICD
 
 on:
   workflow_dispatch:
+    inputs:
+      use_real_dma:
+        description: 'Run the integration tests against a real DMA (instead of a simulated one).'
+        type: boolean
+        default: false
   push:
     branches: 
      - 'main'
@@ -39,11 +44,14 @@ jobs:
             const isTag = context.ref.startsWith('refs/tags/');
 
             // Non-scheduled events (push, pull_request, manual) test the triggering ref
-            // directly (empty test_ref = default checkout). Real DMA only for tag builds.
+            // directly (empty test_ref = default checkout). Real DMA is used for tag builds
+            // and when a manual run explicitly opts in via the use_real_dma input.
             if (context.eventName !== 'schedule') {
+              const manualRealDma = context.eventName === 'workflow_dispatch'
+                && context.payload.inputs?.use_real_dma === 'true';
               core.setOutput('should_run', 'true');
               core.setOutput('test_ref', '');
-              core.setOutput('real_dma', String(isTag));
+              core.setOutput('real_dma', String(isTag || manualRealDma));
               return;
             }
 
