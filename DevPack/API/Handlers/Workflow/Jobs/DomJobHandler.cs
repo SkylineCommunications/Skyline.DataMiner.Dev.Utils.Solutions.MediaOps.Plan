@@ -27,6 +27,8 @@
 
 		private readonly Dictionary<Guid, IReadOnlyDictionary<DataReference, ResolvedValue>> resolvedReferencesByJobId = new Dictionary<Guid, IReadOnlyDictionary<DataReference, ResolvedValue>>();
 
+		private readonly Dictionary<Guid, List<OrchestrationSettings>> orchestrationSettingsByJobId = new Dictionary<Guid, List<OrchestrationSettings>>();
+
 		private Dictionary<Guid, Resource> resourcesById = new Dictionary<Guid, Resource>();
 
 		private DomJobHandler(MediaOpsPlanApi planApi)
@@ -259,11 +261,16 @@
 			jobIdByOrchestrationSettingsId[job.OrchestrationSettings.Id] = job.Id;
 			orchestrationSettings.Add(job.OrchestrationSettings);
 
+			var jobOrchestrationSettings = new List<OrchestrationSettings> { job.OrchestrationSettings };
+
 			foreach (var node in job.NodeGraph.Nodes)
 			{
 				jobIdByOrchestrationSettingsId[node.OrchestrationSettings.Id] = job.Id;
 				orchestrationSettings.Add(node.OrchestrationSettings);
+				jobOrchestrationSettings.Add(node.OrchestrationSettings);
 			}
+
+			orchestrationSettingsByJobId[job.Id] = jobOrchestrationSettings;
 
 			// Only Confirmed/Running jobs report unresolved orchestration-event references. Build a single resolver
 			// per job and share it across the job's own and its nodes' orchestration settings.
@@ -532,6 +539,7 @@
 			{
 				UpdateResourceCache(domJob);
 				UpdateResolvedReferenceCache(domJob);
+				UpdateOrchestrationSettingsCache(domJob);
 			}
 		}
 
@@ -540,6 +548,14 @@
 			if (resolvedReferencesByJobId.TryGetValue(domJob.ID.Id, out var resolvedReferences) && resolvedReferences.Count > 0)
 			{
 				domJob.ResolvedReferenceCache.SetCache(resolvedReferences);
+			}
+		}
+
+		private void UpdateOrchestrationSettingsCache(DomJob domJob)
+		{
+			if (orchestrationSettingsByJobId.TryGetValue(domJob.ID.Id, out var orchestrationSettings) && orchestrationSettings.Count > 0)
+			{
+				domJob.OrchestrationSettingsCache.SetCache(orchestrationSettings.ToDictionary(x => x.Id));
 			}
 		}
 
