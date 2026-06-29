@@ -2,6 +2,11 @@ name: Plan CICD
 
 on:
   workflow_dispatch:
+    inputs:
+      use_real_dma:
+        description: 'Run the integration tests against a real DMA (instead of a simulated one).'
+        type: boolean
+        default: false
   push:
     branches: 
      - 'main'
@@ -12,15 +17,94 @@ on:
   pull_request:
     branches: 
      - '**'
+  schedule:
+  # 03:00 UTC on Saturday (main) and Sunday (latest RC branch); the "route" job decides what runs (see below).
+  # The RC branch is checked out into this run (not dispatched), so older RC branches need no workflow changes.
+    - cron: '0 3 * * 6,0'
 
 env:
   #https://github.com/NuGet/Home/issues/7575#issuecomment-443801131
   NUGET_RESTORE_MSBUILD_ARGS: /p:Configuration=Release
 
 jobs:
+  route:
+    name: Route scheduled run
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      should_run: ${{ steps.decide.outputs.should_run }}
+      test_ref: ${{ steps.decide.outputs.test_ref }}
+      real_dma: ${{ steps.decide.outputs.real_dma }}
+    steps:
+      - id: decide
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const isTag = context.ref.startsWith('refs/tags/');
+
+            // Non-scheduled events (push, pull_request, manual) test the triggering ref
+            // directly (empty test_ref = default checkout). Real DMA is used for tag builds
+            // and when a manual run explicitly opts in via the use_real_dma input.
+            if (context.eventName !== 'schedule') {
+              const manualRealDma = context.eventName === 'workflow_dispatch'
+                && context.payload.inputs?.use_real_dma === 'true';
+              core.setOutput('should_run', 'true');
+              core.setOutput('test_ref', '');
+              core.setOutput('real_dma', String(isTag || manualRealDma));
+              return;
+            }
+
+            const day = new Date().getUTCDay(); // 0 = Sunday ... 6 = Saturday
+
+            // Saturday: test main (scheduled runs always execute on the default branch).
+            if (day === 6) {
+              core.info('Saturday schedule: running tests on main with real DMA.');
+              core.setOutput('should_run', 'true');
+              core.setOutput('test_ref', '');
+              core.setOutput('real_dma', 'true');
+              return;
+            }
+
+            // Sunday: find the latest RC branch (X.Y.X) and check it out in THIS run.
+            // We deliberately do not dispatch a separate run onto the RC branch, so older
+            // RC branches need no changes (no workflow_dispatch input to backport).
+            if (day === 0) {
+              const branches = await github.paginate(github.rest.repos.listBranches, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                per_page: 100,
+              });
+              const rc = branches
+                .map(b => b.name)
+                .filter(n => /^\d+\.\d+\.X$/.test(n))
+                .sort((a, b) => {
+                  const [aMaj, aMin] = a.split('.').map(Number);
+                  const [bMaj, bMin] = b.split('.').map(Number);
+                  return bMaj - aMaj || bMin - aMin;
+                })[0];
+
+              if (!rc) {
+                core.warning('No RC branch (X.Y.X) found to test.');
+                core.setOutput('should_run', 'false');
+                return;
+              }
+
+              core.info(`Sunday schedule: running tests on latest RC branch ${rc} with real DMA.`);
+              core.setOutput('should_run', 'true');
+              core.setOutput('test_ref', rc);
+              core.setOutput('real_dma', 'true');
+              return;
+            }
+
+            core.info('Scheduled run on a non-test day; nothing to do.');
+            core.setOutput('should_run', 'false');
+
   check_existing:
     name: Check for prior successful run
     runs-on: ubuntu-latest
+    needs: route
+    if: ${{ needs.route.outputs.should_run == 'true' }}
     permissions:
       actions: read
     outputs:
@@ -31,6 +115,18 @@ jobs:
         with:
           script: |
             try {
+              if (context.eventName === 'schedule') {
+                core.info('Scheduled run detected; validation and integration tests will run.');
+                core.setOutput('tested', 'false');
+                return;
+              }
+              // Tags must always run the integration tests against a real DMA, even if the
+              // commit was already tested on a branch/PR. Never skip on a tag.
+              if (context.ref.startsWith('refs/tags/')) {
+                core.info('Tag detected; validation and integration tests will run (real DMA enforced).');
+                core.setOutput('tested', 'false');
+                return;
+              }
               const res = await github.rest.actions.listWorkflowRuns({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -55,11 +151,13 @@ jobs:
   nuget_validation:
     name: Validate NuGets
     runs-on: ubuntu-latest
-    needs: check_existing
-    if: ${{ needs.check_existing.outputs.already_tested != 'true' }}
+    needs: [route, check_existing]
+    if: ${{ needs.route.outputs.should_run == 'true' && needs.check_existing.outputs.already_tested != 'true' }}
 
     steps:
      - uses: actions/checkout@v4
+       with:
+         ref: ${{ needs.route.outputs.test_ref }}
 
      - name: Install dotnet-consolidate
        run: dotnet tool install -g dotnet-consolidate
@@ -70,8 +168,8 @@ jobs:
   integration_tests:
     name: Integration Tests
     runs-on: windows-latest
-    needs: [check_existing, nuget_validation]
-    if: ${{ always() && needs.check_existing.outputs.already_tested != 'true' && needs.nuget_validation.result == 'success' }}
+    needs: [route, check_existing, nuget_validation]
+    if: ${{ always() && needs.route.outputs.should_run == 'true' && needs.check_existing.outputs.already_tested != 'true' && needs.nuget_validation.result == 'success' }}
     concurrency:
       group: reg-${{github.ref}}
 
@@ -81,12 +179,15 @@ jobs:
       DATAMINER_PASSWORD: ${{ secrets.DATAMINER_PASSWORD }}
       DATAMINER_HOST: ${{ vars.DATAMINER_HOST }}
       CRED_PREFIX: "DATAMINER"
+      MEDIAOPS_PLAN_USE_REAL_DMA: ${{ needs.route.outputs.real_dma }}
 
     steps:
      - uses: actions/checkout@v4
+       with:
+         ref: ${{ needs.route.outputs.test_ref }}
 
      - name: Setup dotnet
-       uses: actions/setup-dotnet@v4
+       uses: actions/setup-dotnet@v5.3.0
 
      - name: Setup NuGet
        uses: NuGet/setup-nuget@v2.0.1
@@ -102,9 +203,11 @@ jobs:
 
   internal_release:
     name: Internal Release
-    needs: [check_existing, nuget_validation, integration_tests]
-    if: > #Trigger on branch changes or on prerelease tags (e.g. 1.2.3-something). Allow when tests passed this run OR were skipped because the commit was already tested.
+    needs: [route, check_existing, nuget_validation, integration_tests]
+    if: > #Trigger on branch changes or on prerelease tags (e.g. 1.2.3-something). Scheduled runs only test, never release. Branches may reuse a prior successful test run (check_existing always returns false for tags, so already_tested is implicitly branch-only).
       always() &&
+      github.event_name != 'schedule' &&
+      needs.route.outputs.should_run == 'true' &&
       (github.ref_type == 'branch' || (github.ref_type == 'tag' && contains(github.ref, '-'))) &&
       (needs.check_existing.outputs.already_tested == 'true' ||
        (needs.nuget_validation.result == 'success' && needs.integration_tests.result == 'success'))
@@ -117,11 +220,10 @@ jobs:
   public_release:
     name: Public Release
     needs: [check_existing, nuget_validation, integration_tests]
-    if: > #Stable tags (e.g. 1.2.3). Allow when tests passed this run OR were skipped because the commit was already tested.
+    if: > #Stable tags (e.g. 1.2.3). Tags always require a fresh successful test run (no skip).
       always() &&
       github.ref_type == 'tag' && !contains(github.ref_name, '-') &&
-      (needs.check_existing.outputs.already_tested == 'true' ||
-       (needs.nuget_validation.result == 'success' && needs.integration_tests.result == 'success'))
+      needs.nuget_validation.result == 'success' && needs.integration_tests.result == 'success'
     uses: SkylineCommunications/_ReusableWorkflows/.github/workflows/Master Workflow.yml@main
     with:
       sonarcloud-project-name: SkylineCommunications_Skyline.DataMiner.MediaOps.API
