@@ -330,7 +330,7 @@
 		{
 			var expected = "MediaOps_SRM_QuarantineHandling";
 
-			if (reservation.QuarantineHandlingScriptName.Equals(expected))
+			if (string.Equals(reservation.QuarantineHandlingScriptName, expected, StringComparison.Ordinal))
 			{
 				return false;
 			}

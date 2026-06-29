@@ -20,6 +20,58 @@
 
 		public JobTypes JobTypes { get; } = new JobTypes();
 
+		public Job SaveAsTentative(Job job)
+		{
+			if (job == null)
+			{
+				throw new ArgumentNullException(nameof(job));
+			}
+
+			return SaveAsTentative(job.Id);
+		}
+
+		public Job SaveAsTentative(Guid jobId)
+		{
+			var job = Read(jobId);
+			if (job == null)
+			{
+				return null;
+			}
+
+			if (!DomJobHandler.TrySaveAsTentative(PlanApi, [job], out var result))
+			{
+				result.ThrowSingleException(job.Id);
+			}
+
+			return new Job(PlanApi, result.SuccessfulItems.Single());
+		}
+
+		public IReadOnlyCollection<Job> SaveAsTentative(IEnumerable<Job> jobs)
+		{
+			if (jobs == null)
+			{
+				throw new ArgumentNullException(nameof(jobs));
+			}
+
+			return SaveAsTentative(jobs.Select(x => x.Id).ToArray());
+		}
+
+		public IReadOnlyCollection<Job> SaveAsTentative(IEnumerable<Guid> jobIds)
+		{
+			if (jobIds == null)
+			{
+				throw new ArgumentNullException(nameof(jobIds));
+			}
+
+			var jobs = Read(jobIds);
+			if (!DomJobHandler.TrySaveAsTentative(PlanApi, jobs?.ToList(), out var result))
+			{
+				result.ThrowBulkException();
+			}
+
+			return result.SuccessfulItems.Select(x => new Job(PlanApi, x)).ToList();
+		}
+
 		public long Count()
 		{
 			return Count(new TRUEFilterElement<Job>());

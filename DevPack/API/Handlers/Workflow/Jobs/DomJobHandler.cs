@@ -63,6 +63,16 @@
 			return !result.HasFailures;
 		}
 
+		internal static bool TrySaveAsTentative(MediaOpsPlanApi planApi, ICollection<Job> apiJobs, out DomInstanceBulkOperationResult<DomJob> result)
+		{
+			var handler = new DomJobHandler(planApi);
+			handler.TransitionToTentativeFromDraft(apiJobs);
+
+			result = new DomInstanceBulkOperationResult<DomJob>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+
+			return !result.HasFailures;
+		}
+
 		private void CreateOrUpdate(ICollection<Job> apiJobs)
 		{
 			if (apiJobs == null)
@@ -134,6 +144,18 @@
 			// ordering invariants (PreRollStart <= Start <= End <= PostRollEnd) of the merged window and is only run
 			// when this user actually changed a timing field.
 			ValidateMergedTimings(toUpdate, changeResults);
+
+			// A reservation only mirrors the job's name, timings and nodes; all other fields are metadata that have no
+			// impact on the core reservation. Only mark jobs whose name, timing or node sections actually changed so
+			// the CoreJobHandler is not invoked for metadata-only updates.
+			var jobsWithReservationChanges = toUpdate.Where(x =>
+				IsValid(x)
+				&& changeResults.Any(y => y.Id == x.Id && HasReservationImpactingChanges(y)));
+
+			foreach (var job in jobsWithReservationChanges)
+			{
+				MarkAsJobWithCoreChanges(job);
+			}
 
 			CreateOrUpdateOrchestrationSettings(apiJobs.Where(IsValid).ToList());
 			CreateOrUpdatePropertySettingCollections(apiJobs.Where(IsValid).ToList());
@@ -285,6 +307,136 @@
 			foreach (var node in job.NodeGraph.Nodes)
 			{
 				referenceTargets[node.OrchestrationSettings.Id] = (resolver, true);
+			}
+		}
+
+		private void TransitionToTentativeFromDraft(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			ValidateStateForSaveAsTentativeFromDraftAction(apiJobs);
+			ValidateEndNotInPast(apiJobs);
+
+			var lockResult = planApi.LockManager.LockAndExecute(apiJobs.Where(IsValid).ToList(), SaveAsTentativeLocked);
+			ReportError(lockResult);
+		}
+
+		private void SaveAsTentativeLocked(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			if (apiJobs.Any(x => !IsValid(x)))
+			{
+				throw new ArgumentException($"Not all provided jobs are valid", nameof(apiJobs));
+			}
+
+			// Re-read the resources referenced by the node graph so the resource cache used by the reservation sync is
+			// populated, and collect (but do not persist) every job's orchestration settings so they can be cached.
+			// Settings are not changed during a draft-to-tentative transition, so re-persisting them is not required.
+			CollectReferencedIds(apiJobs.ToList(), out var resourceIds, out _);
+			resourcesById = planApi.Resources.Read(resourceIds).ToDictionary(x => x.Id);
+
+			foreach (var job in apiJobs.Where(IsValid))
+			{
+				var jobOrchestrationSettings = new List<OrchestrationSettings> { job.OrchestrationSettings };
+				foreach (var node in job.NodeGraph.Nodes)
+				{
+					jobOrchestrationSettings.Add(node.OrchestrationSettings);
+				}
+
+				orchestrationSettingsByJobId[job.Id] = jobOrchestrationSettings;
+
+				// Only jobs that actually use resources need a reservation; gating on resource nodes avoids creating
+				// empty reservations for resource-less jobs.
+				if (job.NodeGraph.Nodes.OfType<IResourceNode>().Any())
+				{
+					jobIdsWithCoreChanges.Add(job.Id);
+				}
+			}
+
+			// The transition does not modify the job, so the stored instance is used as-is; conflict detection via
+			// GetJobsWithChanges adds no value when no changes are applied.
+			var domJobs = apiJobs.Where(IsValid).Select(x => x.OriginalInstance).ToList();
+
+			TransitionDomJobsToTentative(domJobs);
+		}
+
+		private void TransitionDomJobsToTentative(ICollection<DomJob> domJobs)
+		{
+			if (domJobs == null)
+			{
+				throw new ArgumentNullException(nameof(domJobs));
+			}
+
+			if (domJobs.Count == 0)
+			{
+				return;
+			}
+
+			var domJobsById = domJobs.ToDictionary(x => x.ID.Id);
+
+			if (jobIdsWithCoreChanges.Count != 0)
+			{
+				var domJobsWithCoreChanges = domJobs.Where(x => jobIdsWithCoreChanges.Contains(x.ID.Id)).ToList();
+				UpdateCaches(domJobsWithCoreChanges);
+
+				CoreJobHandler.TryCreateOrUpdate(planApi, domJobsWithCoreChanges, out var coreResult);
+
+				foreach (var id in coreResult.UnsuccessfulIds)
+				{
+					ReportError(id);
+
+					if (coreResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+					{
+						PassTraceData(id, traceData);
+					}
+
+					domJobsById.Remove(id);
+				}
+			}
+
+			// The transition applies no field changes, so the DOM jobs are not re-saved; DoStatusTransition persists the
+			// status change on its own. Only jobs whose reservation sync succeeded are transitioned.
+			foreach (var domJob in domJobsById.Values)
+			{
+				try
+				{
+					var transitionedInstance = planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.DoStatusTransition(domJob.ID, Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.Transitions.Draft_To_Tentative);
+					ReportSuccess(new DomJob(transitionedInstance));
+				}
+				catch (Exception ex)
+				{
+					ReportError(domJob.ID.Id, new MediaOpsErrorData() { ErrorMessage = ex.ToString() });
+				}
+			}
+		}
+
+		private void ValidateEndNotInPast(ICollection<Job> apiJobs)
+		{
+			foreach (var job in apiJobs.Where(x => IsValid(x) && x.End < currentTime))
+			{
+				ReportError(job.Id, new JobInvalidEndTimeError
+				{
+					ErrorMessage = "A job whose end time lies in the past cannot be moved to Tentative state.",
+					Id = job.Id,
+					End = job.End,
+				});
 			}
 		}
 
@@ -781,6 +933,18 @@
 				};
 
 				ReportError(job.Id, error);
+			}
+		}
+
+		private void ValidateStateForSaveAsTentativeFromDraftAction(ICollection<Job> apiJobs)
+		{
+			foreach (var job in apiJobs.Where(x => x.IsNew || x.State != JobState.Draft))
+			{
+				ReportError(job.Id, new JobInvalidStateError
+				{
+					ErrorMessage = "Only jobs in Draft state can be moved to Tentative state.",
+					Id = job.Id,
+				});
 			}
 		}
 
@@ -1360,6 +1524,31 @@
 			}
 
 			jobIdsWithCoreChanges.Add(job.Id);
+		}
+
+		// The core reservation only mirrors the job's name, timings and nodes. A change is reservation-impacting when
+		// one of these JobInfo fields changed or when a node section was added, removed or changed.
+		private static bool HasReservationImpactingChanges(DomChangeResults changeResult)
+		{
+			var reservationFields = new[]
+			{
+				Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.JobInfo.JobName.Id,
+				Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.JobInfo.JobStart.Id,
+				Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.JobInfo.JobEnd.Id,
+				Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.JobInfo.Preroll.Id,
+				Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.JobInfo.Postroll.Id,
+			};
+
+			if (changeResult.ChangedFields.Any(x => reservationFields.Contains(x.FieldDescriptorId)))
+			{
+				return true;
+			}
+
+			var nodesSectionId = Storage.DOM.SlcWorkflow.SlcWorkflowIds.Sections.Nodes.Id.Id;
+
+			return changeResult.AddedSections.Any(x => x.SectionDefinitionId == nodesSectionId)
+				|| changeResult.RemovedSections.Any(x => x.SectionDefinitionId == nodesSectionId)
+				|| changeResult.ChangedFields.Any(x => x.SectionDefinitionId == nodesSectionId);
 		}
 	}
 }
