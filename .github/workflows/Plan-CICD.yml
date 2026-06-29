@@ -86,8 +86,12 @@ jobs:
                   inputs: { scheduled_rc: 'true' },
                 });
               } catch (error) {
-                const message = error.response?.data?.message || error.message || '';
-                const isUnsupportedInputError = error.status === 422 && message.includes('Unexpected inputs provided');
+                const status = error?.status;
+                const message = error?.response?.data?.message || error?.message || '';
+                const isUnsupportedInputError =
+                  status === 422 &&
+                  message.includes('Unexpected inputs provided') &&
+                  message.includes('scheduled_rc');
                 if (!isUnsupportedInputError) {
                   throw error;
                 }
