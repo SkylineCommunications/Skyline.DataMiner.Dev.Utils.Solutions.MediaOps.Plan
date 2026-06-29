@@ -86,7 +86,9 @@ jobs:
                   inputs: { scheduled_rc: 'true' },
                 });
               } catch (error) {
-                if (!error.message?.includes('Unexpected inputs provided')) {
+                const message = error.response?.data?.message || error.message || '';
+                const isUnsupportedInputError = error.status === 422 && message.includes('Unexpected inputs provided');
+                if (!isUnsupportedInputError) {
                   throw error;
                 }
 
