@@ -80,6 +80,40 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void SaveAsTentative_JobWithoutNodes_CreatesEmptyCoreReservation()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = currentTime,
+				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
+			};
+
+			job = objectCreator.CreateJob(job);
+
+			var tentativeJob = TestContext.Api.Jobs.SaveAsTentative(job);
+			Assert.IsNotNull(tentativeJob, "Expected the job to transition to the Tentative state.");
+
+			var reservations = TestContext.ResourceManagerHelper.GetReservationInstances(
+				ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(job.Id))).ToList();
+
+			Assert.AreEqual(1, reservations.Count, "Expected a core reservation to be created even when the job has no nodes.");
+
+			var reservation = reservations[0];
+			Assert.AreEqual($"{tentativeJob.Name} [{tentativeJob.Key}]", reservation.Name);
+			Assert.AreEqual(currentTime, reservation.Start);
+			Assert.AreEqual(currentTime.AddMinutes(10), reservation.End);
+
+			var usages = reservation.ResourcesInReservationInstance.OfType<ServiceResourceUsageDefinition>().ToList();
+			Assert.AreEqual(0, usages.Count, "Expected the reservation of a node-less job to have no resource usages.");
+		}
+
+		[TestMethod]
 		public void SaveAsTentative_CreatesCoreReservation_WithCapabilityAndCapacityApplied()
 		{
 			var prefix = Guid.NewGuid();
