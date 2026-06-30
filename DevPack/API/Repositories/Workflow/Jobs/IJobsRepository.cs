@@ -42,6 +42,34 @@
 		IReadOnlyCollection<Job> SaveAsTentative(IEnumerable<Guid> jobIds);
 
 		/// <summary>
+		/// Moves the specified <see cref="Job"/> from tentative to confirmed state.
+		/// </summary>
+		/// <param name="job">The job to confirm.</param>
+		/// <returns>The confirmed job.</returns>
+		Job Confirm(Job job);
+
+		/// <summary>
+		/// Moves the specified job from tentative to confirmed state.
+		/// </summary>
+		/// <param name="jobId">The unique identifier of the job to confirm.</param>
+		/// <returns>The confirmed job.</returns>
+		Job Confirm(Guid jobId);
+
+		/// <summary>
+		/// Moves the specified jobs from tentative to confirmed state.
+		/// </summary>
+		/// <param name="jobs">The jobs to confirm.</param>
+		/// <returns>A read-only collection containing the confirmed jobs.</returns>
+		IReadOnlyCollection<Job> Confirm(IEnumerable<Job> jobs);
+
+		/// <summary>
+		/// Moves the specified jobs from tentative to confirmed state.
+		/// </summary>
+		/// <param name="jobIds">The unique identifiers of the jobs to confirm.</param>
+		/// <returns>A read-only collection containing the confirmed jobs.</returns>
+		IReadOnlyCollection<Job> Confirm(IEnumerable<Guid> jobIds);
+
+		/// <summary>
 		/// Set the state of a specific orchestration event for a job.
 		/// </summary>
 		/// <param name="id">The unique identifier of the job.</param>

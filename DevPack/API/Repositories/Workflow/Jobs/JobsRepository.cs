@@ -72,6 +72,58 @@
 			return result.SuccessfulItems.Select(x => new Job(PlanApi, x)).ToList();
 		}
 
+		public Job Confirm(Job job)
+		{
+			if (job == null)
+			{
+				throw new ArgumentNullException(nameof(job));
+			}
+
+			return Confirm(job.Id);
+		}
+
+		public Job Confirm(Guid jobId)
+		{
+			var job = Read(jobId);
+			if (job == null)
+			{
+				return null;
+			}
+
+			if (!DomJobHandler.TryConfirm(PlanApi, [job], out var result))
+			{
+				result.ThrowSingleException(job.Id);
+			}
+
+			return new Job(PlanApi, result.SuccessfulItems.Single());
+		}
+
+		public IReadOnlyCollection<Job> Confirm(IEnumerable<Job> jobs)
+		{
+			if (jobs == null)
+			{
+				throw new ArgumentNullException(nameof(jobs));
+			}
+
+			return Confirm(jobs.Select(x => x.Id).ToArray());
+		}
+
+		public IReadOnlyCollection<Job> Confirm(IEnumerable<Guid> jobIds)
+		{
+			if (jobIds == null)
+			{
+				throw new ArgumentNullException(nameof(jobIds));
+			}
+
+			var jobs = Read(jobIds);
+			if (!DomJobHandler.TryConfirm(PlanApi, jobs?.ToList(), out var result))
+			{
+				result.ThrowBulkException();
+			}
+
+			return result.SuccessfulItems.Select(x => new Job(PlanApi, x)).ToList();
+		}
+
 		public long Count()
 		{
 			return Count(new TRUEFilterElement<Job>());

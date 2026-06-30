@@ -73,6 +73,16 @@
 			return !result.HasFailures;
 		}
 
+		internal static bool TryConfirm(MediaOpsPlanApi planApi, ICollection<Job> apiJobs, out DomInstanceBulkOperationResult<DomJob> result)
+		{
+			var handler = new DomJobHandler(planApi);
+			handler.TransitionToConfirmedFromTentative(apiJobs);
+
+			result = new DomInstanceBulkOperationResult<DomJob>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+
+			return !result.HasFailures;
+		}
+
 		private void CreateOrUpdate(ICollection<Job> apiJobs)
 		{
 			if (apiJobs == null)
@@ -108,6 +118,7 @@
 			ApplyNodeTimings(apiJobs.Where(IsValid).ToList());
 
 			ValidateNodeGraph(apiJobs);
+			ValidateNoResourcePoolNodeForLiveJob(apiJobs);
 			ValidateReferences(apiJobs);
 			ValidateDescription(apiJobs);
 			ValidateNotes(apiJobs);
@@ -362,12 +373,9 @@
 
 				orchestrationSettingsByJobId[job.Id] = jobOrchestrationSettings;
 
-				// Only jobs that actually use resources need a reservation; gating on resource nodes avoids creating
-				// empty reservations for resource-less jobs.
-				if (job.NodeGraph.Nodes.OfType<IResourceNode>().Any())
-				{
-					jobIdsWithCoreChanges.Add(job.Id);
-				}
+				// Every job gets a core reservation when it moves to Tentative, even when it has no resource nodes yet.
+				// The reservation is created (possibly without bookings) and is populated as resources are assigned.
+				jobIdsWithCoreChanges.Add(job.Id);
 			}
 
 			// The transition does not modify the job, so the stored instance is used as-is; conflict detection via
@@ -418,6 +426,110 @@
 				try
 				{
 					var transitionedInstance = planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.DoStatusTransition(domJob.ID, Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.Transitions.Draft_To_Tentative);
+					ReportSuccess(new DomJob(transitionedInstance));
+				}
+				catch (Exception ex)
+				{
+					ReportError(domJob.ID.Id, new MediaOpsErrorData() { ErrorMessage = ex.ToString() });
+				}
+			}
+		}
+
+		private void TransitionToConfirmedFromTentative(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			ValidateStateForConfirmFromTentativeAction(apiJobs);
+			ValidateEndNotInPast(apiJobs);
+			ValidateAllNodesHaveResourceAssigned(apiJobs);
+			ValidateNoMandatoryConfigurationMissing(apiJobs);
+			ValidateReferencesForConfirm(apiJobs);
+
+			var lockResult = planApi.LockManager.LockAndExecute(apiJobs.Where(IsValid).ToList(), ConfirmLocked);
+			ReportError(lockResult);
+		}
+
+		private void ConfirmLocked(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			if (apiJobs.Any(x => !IsValid(x)))
+			{
+				throw new ArgumentException($"Not all provided jobs are valid", nameof(apiJobs));
+			}
+
+			// Every Tentative job has a core reservation (created during the draft-to-tentative transition), including
+			// resource-less jobs, so every job's reservation must be confirmed.
+			foreach (var job in apiJobs)
+			{
+				jobIdsWithCoreChanges.Add(job.Id);
+			}
+
+			// The transition does not modify the job, so the stored instance is used as-is; conflict detection via
+			// GetJobsWithChanges adds no value when no changes are applied.
+			var domJobs = apiJobs.Select(x => x.OriginalInstance).ToList();
+
+			TransitionDomJobsToConfirmed(domJobs);
+		}
+
+		private void TransitionDomJobsToConfirmed(ICollection<DomJob> domJobs)
+		{
+			if (domJobs == null)
+			{
+				throw new ArgumentNullException(nameof(domJobs));
+			}
+
+			if (domJobs.Count == 0)
+			{
+				return;
+			}
+
+			var domJobsById = domJobs.ToDictionary(x => x.ID.Id);
+
+			if (jobIdsWithCoreChanges.Count != 0)
+			{
+				// A confirm does not change the reservation contents; the reservation was already synced while the job
+				// was edited in Tentative state. Only its status is flipped to Confirmed.
+				var domJobsWithCoreChanges = domJobs.Where(x => jobIdsWithCoreChanges.Contains(x.ID.Id)).ToList();
+
+				CoreJobHandler.TryConfirm(planApi, domJobsWithCoreChanges, out var coreResult);
+
+				foreach (var id in coreResult.UnsuccessfulIds)
+				{
+					ReportError(id);
+
+					if (coreResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+					{
+						PassTraceData(id, traceData);
+					}
+
+					domJobsById.Remove(id);
+				}
+			}
+
+			// The transition applies no field changes, so the DOM jobs are not re-saved; DoStatusTransition persists the
+			// status change on its own. Only jobs whose reservation confirmation succeeded are transitioned.
+			foreach (var domJob in domJobsById.Values)
+			{
+				try
+				{
+					var transitionedInstance = planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.DoStatusTransition(domJob.ID, Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.Transitions.Tentative_To_Confirmed);
 					ReportSuccess(new DomJob(transitionedInstance));
 				}
 				catch (Exception ex)
@@ -886,11 +998,11 @@
 				return;
 			}
 
-			foreach (var job in apiJobs.Where(x => x.State != JobState.Draft))
+			foreach (var job in apiJobs.Where(x => x.State == JobState.Completed || x.State == JobState.Canceled))
 			{
 				var error = new JobInvalidStateError
 				{
-					ErrorMessage = "Not allowed to update a job that is not in Draft state.",
+					ErrorMessage = "Not allowed to update a job that is completed or canceled.",
 					Id = job.Id,
 				};
 
@@ -945,6 +1057,101 @@
 					ErrorMessage = "Only jobs in Draft state can be moved to Tentative state.",
 					Id = job.Id,
 				});
+			}
+		}
+
+		private void ValidateStateForConfirmFromTentativeAction(ICollection<Job> apiJobs)
+		{
+			foreach (var job in apiJobs.Where(x => x.IsNew || x.State != JobState.Tentative))
+			{
+				ReportError(job.Id, new JobInvalidStateError
+				{
+					ErrorMessage = "Only jobs in Tentative state can be confirmed.",
+					Id = job.Id,
+				});
+			}
+		}
+
+		private void ValidateNoResourcePoolNodeForLiveJob(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			// A Confirmed or Running job is backed by a confirmed reservation, which can only hold concrete resources.
+			// A resource pool node represents an unresolved booking, so it is rejected for jobs in those states.
+			foreach (var job in apiJobs.Where(x => IsValid(x) && (x.State == JobState.Confirmed || x.State == JobState.Running)))
+			{
+				foreach (var node in job.NodeGraph.Nodes.Where(x => x.IsResourcePoolNode(out _)))
+				{
+					ReportError(job.Id, new JobResourcePoolNodeNotAllowedError
+					{
+						ErrorMessage = "A resource pool node is not allowed on a job in the Confirmed or Running state.",
+						Id = job.Id,
+						NodeId = node.Id,
+					});
+				}
+			}
+		}
+
+		private void ValidateAllNodesHaveResourceAssigned(ICollection<Job> apiJobs)
+		{
+			foreach (var job in apiJobs.Where(IsValid))
+			{
+				foreach (var node in job.NodeGraph.Nodes)
+				{
+					if (node.IsResourcePoolNode(out _) || (node.IsResourceNode(out var resourceNode) && resourceNode.ResourceId == Guid.Empty))
+					{
+						ReportError(job.Id, new JobNodeResourceNotAssignedError
+						{
+							ErrorMessage = "A job can only be confirmed when all of its nodes have a concrete resource assigned.",
+							Id = job.Id,
+							NodeId = node.Id,
+						});
+					}
+				}
+			}
+		}
+
+		private void ValidateNoMandatoryConfigurationMissing(ICollection<Job> apiJobs)
+		{
+			foreach (var job in apiJobs.Where(IsValid))
+			{
+				foreach (var node in job.NodeGraph.Nodes.Where(x => x.NodeConfigurationStatus == NodeConfigurationStatus.MandatoryValuesMissing))
+				{
+					ReportError(job.Id, new JobMandatoryConfigurationMissingError
+					{
+						ErrorMessage = "A job can only be confirmed when all mandatory configuration values are provided.",
+						Id = job.Id,
+						NodeId = node.Id,
+					});
+				}
+			}
+		}
+
+		private void ValidateReferencesForConfirm(ICollection<Job> apiJobs)
+		{
+			foreach (var job in apiJobs.Where(IsValid))
+			{
+				var resolver = new JobReferenceResolver(planApi, job, referenceDefinitions);
+				var resolution = new JobReferenceValidator(resolver).Resolve(job);
+
+				foreach (var reference in resolution.UnresolvedReferences)
+				{
+					var label = resolver.GetDisplayLabel(reference);
+					ReportError(job.Id, new JobUnresolvedReferenceError
+					{
+						Id = job.Id,
+						Reference = label,
+						ErrorMessage = $"Reference '{label}' could not be resolved to a value.",
+					});
+				}
 			}
 		}
 
