@@ -13,16 +13,21 @@
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation;
 
-	using DMConnection = Skyline.DataMiner.Net.Connection;
-
 	public sealed class IntegrationTestContext : IDisposable
 	{
-		private readonly IConnection connection;
+		private readonly object connectionLock = new object();
+		private readonly Config config;
+
+		private IConnection connection;
 
 		public IntegrationTestContext()
 		{
-			var config = Config.Load();
+			config = Config.Load();
+			Initialize();
+		}
 
+		private void Initialize()
+		{
 			connection = config.UseRealDma
 				? CreateRealConnection(config)
 				: CreateSimulatedConnection();
@@ -40,11 +45,49 @@
 			ProtocolFunctionHelper = new ProtocolFunctionHelper(connection.HandleMessages) ?? throw new NullReferenceException("Unable to create ProtocolFunctionHelper");
 		}
 
+		/// <summary>
+		/// Verifies that the underlying connection is still usable and recreates it when needed.
+		/// A real DataMiner Agent connection can be shut down or lose its authentication during a
+		/// long-running test session; when that happens a fresh connection is created and all
+		/// connection-bound helpers are re-initialized. The simulated connection holds the in-memory
+		/// system state, so it is never recreated.
+		/// </summary>
+		public void EnsureConnected()
+		{
+			lock (connectionLock)
+			{
+				if (IsConnectionHealthy())
+				{
+					return;
+				}
+
+				connection.Dispose();
+				Initialize();
+			}
+		}
+
+		private bool IsConnectionHealthy()
+		{
+			// The simulated connection holds the in-memory system state, never shuts down and has no
+			// authentication, so it must never be recreated.
+			if (!config.UseRealDma)
+			{
+				return true;
+			}
+
+			return connection is Skyline.DataMiner.Net.Connection realConnection
+				&& !realConnection.IsShuttingDown
+				&& realConnection.IsAuthenticated;
+		}
+
 		private static IConnection CreateRealConnection(Config config)
 		{
-			var realConnection = Skyline.DataMiner.Net.ConnectionSettings.GetConnection(config.BaseUrl) ?? throw new NullReferenceException("Unable to connect to DataMiner");
-			realConnection.Authenticate(config.Username, config.Password, config.Domain);
-			return realConnection;
+			var connection = Skyline.DataMiner.Net.ConnectionSettings.GetConnection(config.BaseUrl)
+				?? throw new NullReferenceException("Unable to connect to DataMiner");
+
+			connection.Authenticate(config.Username, config.Password, config.Domain);
+
+			return connection;
 		}
 
 		private static IConnection CreateSimulatedConnection()
