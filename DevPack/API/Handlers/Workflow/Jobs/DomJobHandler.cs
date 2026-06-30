@@ -66,7 +66,7 @@
 		internal static bool TrySaveAsTentative(MediaOpsPlanApi planApi, ICollection<Job> apiJobs, out DomInstanceBulkOperationResult<DomJob> result)
 		{
 			var handler = new DomJobHandler(planApi);
-			handler.TransitionToTentativeFromDraft(apiJobs);
+			handler.SaveAsTentative(apiJobs);
 
 			result = new DomInstanceBulkOperationResult<DomJob>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
@@ -76,7 +76,27 @@
 		internal static bool TryConfirm(MediaOpsPlanApi planApi, ICollection<Job> apiJobs, out DomInstanceBulkOperationResult<DomJob> result)
 		{
 			var handler = new DomJobHandler(planApi);
-			handler.TransitionToConfirmedFromTentative(apiJobs);
+			handler.Confirm(apiJobs);
+
+			result = new DomInstanceBulkOperationResult<DomJob>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+
+			return !result.HasFailures;
+		}
+
+		internal static bool TryCancel(MediaOpsPlanApi planApi, ICollection<Job> apiJobs, out DomInstanceBulkOperationResult<DomJob> result)
+		{
+			var handler = new DomJobHandler(planApi);
+			handler.Cancel(apiJobs);
+
+			result = new DomInstanceBulkOperationResult<DomJob>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+
+			return !result.HasFailures;
+		}
+
+		internal static bool TryReturnToTentative(MediaOpsPlanApi planApi, ICollection<Job> apiJobs, out DomInstanceBulkOperationResult<DomJob> result)
+		{
+			var handler = new DomJobHandler(planApi);
+			handler.ReturnToTentative(apiJobs);
 
 			result = new DomInstanceBulkOperationResult<DomJob>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
@@ -321,7 +341,7 @@
 			}
 		}
 
-		private void TransitionToTentativeFromDraft(ICollection<Job> apiJobs)
+		private void SaveAsTentative(ICollection<Job> apiJobs)
 		{
 			if (apiJobs == null)
 			{
@@ -435,7 +455,7 @@
 			}
 		}
 
-		private void TransitionToConfirmedFromTentative(ICollection<Job> apiJobs)
+		private void Confirm(ICollection<Job> apiJobs)
 		{
 			if (apiJobs == null)
 			{
@@ -530,6 +550,207 @@
 				try
 				{
 					var transitionedInstance = planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.DoStatusTransition(domJob.ID, Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.Transitions.Tentative_To_Confirmed);
+					ReportSuccess(new DomJob(transitionedInstance));
+				}
+				catch (Exception ex)
+				{
+					ReportError(domJob.ID.Id, new MediaOpsErrorData() { ErrorMessage = ex.ToString() });
+				}
+			}
+		}
+
+		private void Cancel(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			ValidateStateForCancelAction(apiJobs);
+
+			var lockResult = planApi.LockManager.LockAndExecute(apiJobs.Where(IsValid).ToList(), CancelLocked);
+			ReportError(lockResult);
+		}
+
+		private void CancelLocked(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			if (apiJobs.Any(x => !IsValid(x)))
+			{
+				throw new ArgumentException($"Not all provided jobs are valid", nameof(apiJobs));
+			}
+
+			// Every Tentative or Confirmed job has a core reservation, so every job's reservation must be canceled.
+			foreach (var job in apiJobs)
+			{
+				jobIdsWithCoreChanges.Add(job.Id);
+			}
+
+			// The transition does not modify the job, so the stored instance is used as-is; conflict detection via
+			// GetJobsWithChanges adds no value when no changes are applied.
+			var domJobs = apiJobs.Select(x => x.OriginalInstance).ToList();
+
+			TransitionDomJobsToCanceled(domJobs);
+		}
+
+		private void TransitionDomJobsToCanceled(ICollection<DomJob> domJobs)
+		{
+			if (domJobs == null)
+			{
+				throw new ArgumentNullException(nameof(domJobs));
+			}
+
+			if (domJobs.Count == 0)
+			{
+				return;
+			}
+
+			var domJobsById = domJobs.ToDictionary(x => x.ID.Id);
+
+			if (jobIdsWithCoreChanges.Count != 0)
+			{
+				// A cancel does not change the reservation contents; only its status is flipped to Canceled.
+				var domJobsWithCoreChanges = domJobs.Where(x => jobIdsWithCoreChanges.Contains(x.ID.Id)).ToList();
+
+				CoreJobHandler.TryCancel(planApi, domJobsWithCoreChanges, out var coreResult);
+
+				foreach (var id in coreResult.UnsuccessfulIds)
+				{
+					ReportError(id);
+
+					if (coreResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+					{
+						PassTraceData(id, traceData);
+					}
+
+					domJobsById.Remove(id);
+				}
+			}
+
+			// The transition applies no field changes, so the DOM jobs are not re-saved; DoStatusTransition persists the
+			// status change on its own. Only jobs whose reservation cancellation succeeded are transitioned, using the
+			// transition that matches the job's current status.
+			foreach (var domJob in domJobsById.Values)
+			{
+				try
+				{
+					var transitionId = domJob.Status == Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Tentative
+						? Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.Transitions.Tentative_To_Canceled
+						: Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.Transitions.Confirmed_To_Canceled;
+
+					var transitionedInstance = planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.DoStatusTransition(domJob.ID, transitionId);
+					ReportSuccess(new DomJob(transitionedInstance));
+				}
+				catch (Exception ex)
+				{
+					ReportError(domJob.ID.Id, new MediaOpsErrorData() { ErrorMessage = ex.ToString() });
+				}
+			}
+		}
+
+		private void ReturnToTentative(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			ValidateStateForReturnToTentativeAction(apiJobs);
+
+			var lockResult = planApi.LockManager.LockAndExecute(apiJobs.Where(IsValid).ToList(), ReturnToTentativeLocked);
+			ReportError(lockResult);
+		}
+
+		private void ReturnToTentativeLocked(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			if (apiJobs.Any(x => !IsValid(x)))
+			{
+				throw new ArgumentException($"Not all provided jobs are valid", nameof(apiJobs));
+			}
+
+			// Every Confirmed job has a core reservation, so every job's reservation must be returned to pending.
+			foreach (var job in apiJobs)
+			{
+				jobIdsWithCoreChanges.Add(job.Id);
+			}
+
+			// The transition does not modify the job, so the stored instance is used as-is; conflict detection via
+			// GetJobsWithChanges adds no value when no changes are applied.
+			var domJobs = apiJobs.Select(x => x.OriginalInstance).ToList();
+
+			TransitionDomJobsToTentativeFromConfirmed(domJobs);
+		}
+
+		private void TransitionDomJobsToTentativeFromConfirmed(ICollection<DomJob> domJobs)
+		{
+			if (domJobs == null)
+			{
+				throw new ArgumentNullException(nameof(domJobs));
+			}
+
+			if (domJobs.Count == 0)
+			{
+				return;
+			}
+
+			var domJobsById = domJobs.ToDictionary(x => x.ID.Id);
+
+			if (jobIdsWithCoreChanges.Count != 0)
+			{
+				// Returning to tentative does not change the reservation contents; only its status is flipped to pending.
+				var domJobsWithCoreChanges = domJobs.Where(x => jobIdsWithCoreChanges.Contains(x.ID.Id)).ToList();
+
+				CoreJobHandler.TryReturnToPending(planApi, domJobsWithCoreChanges, out var coreResult);
+
+				foreach (var id in coreResult.UnsuccessfulIds)
+				{
+					ReportError(id);
+
+					if (coreResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+					{
+						PassTraceData(id, traceData);
+					}
+
+					domJobsById.Remove(id);
+				}
+			}
+
+			// The transition applies no field changes, so the DOM jobs are not re-saved; DoStatusTransition persists the
+			// status change on its own. Only jobs whose reservation return-to-pending succeeded are transitioned.
+			foreach (var domJob in domJobsById.Values)
+			{
+				try
+				{
+					var transitionedInstance = planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.DoStatusTransition(domJob.ID, Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.Transitions.Confirmed_To_Tentative);
 					ReportSuccess(new DomJob(transitionedInstance));
 				}
 				catch (Exception ex)
@@ -1067,6 +1288,30 @@
 				ReportError(job.Id, new JobInvalidStateError
 				{
 					ErrorMessage = "Only jobs in Tentative state can be confirmed.",
+					Id = job.Id,
+				});
+			}
+		}
+
+		private void ValidateStateForCancelAction(ICollection<Job> apiJobs)
+		{
+			foreach (var job in apiJobs.Where(x => x.IsNew || (x.State != JobState.Tentative && x.State != JobState.Confirmed)))
+			{
+				ReportError(job.Id, new JobInvalidStateError
+				{
+					ErrorMessage = "Only jobs in Tentative or Confirmed state can be canceled.",
+					Id = job.Id,
+				});
+			}
+		}
+
+		private void ValidateStateForReturnToTentativeAction(ICollection<Job> apiJobs)
+		{
+			foreach (var job in apiJobs.Where(x => x.IsNew || x.State != JobState.Confirmed))
+			{
+				ReportError(job.Id, new JobInvalidStateError
+				{
+					ErrorMessage = "Only jobs in Confirmed state can be returned to Tentative state.",
 					Id = job.Id,
 				});
 			}
