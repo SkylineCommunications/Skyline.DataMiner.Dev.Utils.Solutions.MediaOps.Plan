@@ -2,12 +2,23 @@
 {
 	public static class TestContextManager
 	{
-		public static IntegrationTestContext SharedTestContext { get; } = new IntegrationTestContext();
+		private static readonly IntegrationTestContext sharedTestContext = new IntegrationTestContext();
+
+		public static IntegrationTestContext SharedTestContext
+		{
+			get
+			{
+				// Verify the connection is still alive and authenticated before every test,
+				// recreating it when needed.
+				sharedTestContext.EnsureConnected();
+				return sharedTestContext;
+			}
+		}
 
 		[AssemblyCleanup]
 		public static void Cleanup()
 		{
-			SharedTestContext.Dispose();
+			sharedTestContext.Dispose();
 		}
 	}
 }
