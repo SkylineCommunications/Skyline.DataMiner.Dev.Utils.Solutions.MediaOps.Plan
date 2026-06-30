@@ -98,6 +98,34 @@
 		IReadOnlyCollection<Job> Cancel(IEnumerable<Guid> jobIds);
 
 		/// <summary>
+		/// Returns the specified <see cref="Job"/> from confirmed back to tentative state.
+		/// </summary>
+		/// <param name="job">The job to return to tentative state.</param>
+		/// <returns>The job that was returned to tentative state.</returns>
+		Job ReturnToTentative(Job job);
+
+		/// <summary>
+		/// Returns the specified job from confirmed back to tentative state.
+		/// </summary>
+		/// <param name="jobId">The unique identifier of the job to return to tentative state.</param>
+		/// <returns>The job that was returned to tentative state.</returns>
+		Job ReturnToTentative(Guid jobId);
+
+		/// <summary>
+		/// Returns the specified jobs from confirmed back to tentative state.
+		/// </summary>
+		/// <param name="jobs">The jobs to return to tentative state.</param>
+		/// <returns>A read-only collection containing the jobs that were returned to tentative state.</returns>
+		IReadOnlyCollection<Job> ReturnToTentative(IEnumerable<Job> jobs);
+
+		/// <summary>
+		/// Returns the specified jobs from confirmed back to tentative state.
+		/// </summary>
+		/// <param name="jobIds">The unique identifiers of the jobs to return to tentative state.</param>
+		/// <returns>A read-only collection containing the jobs that were returned to tentative state.</returns>
+		IReadOnlyCollection<Job> ReturnToTentative(IEnumerable<Guid> jobIds);
+
+		/// <summary>
 		/// Set the state of a specific orchestration event for a job.
 		/// </summary>
 		/// <param name="id">The unique identifier of the job.</param>

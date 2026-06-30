@@ -176,6 +176,58 @@
 			return result.SuccessfulItems.Select(x => new Job(PlanApi, x)).ToList();
 		}
 
+		public Job ReturnToTentative(Job job)
+		{
+			if (job == null)
+			{
+				throw new ArgumentNullException(nameof(job));
+			}
+
+			return ReturnToTentative(job.Id);
+		}
+
+		public Job ReturnToTentative(Guid jobId)
+		{
+			var job = Read(jobId);
+			if (job == null)
+			{
+				return null;
+			}
+
+			if (!DomJobHandler.TryReturnToTentative(PlanApi, [job], out var result))
+			{
+				result.ThrowSingleException(job.Id);
+			}
+
+			return new Job(PlanApi, result.SuccessfulItems.Single());
+		}
+
+		public IReadOnlyCollection<Job> ReturnToTentative(IEnumerable<Job> jobs)
+		{
+			if (jobs == null)
+			{
+				throw new ArgumentNullException(nameof(jobs));
+			}
+
+			return ReturnToTentative(jobs.Select(x => x.Id).ToArray());
+		}
+
+		public IReadOnlyCollection<Job> ReturnToTentative(IEnumerable<Guid> jobIds)
+		{
+			if (jobIds == null)
+			{
+				throw new ArgumentNullException(nameof(jobIds));
+			}
+
+			var jobs = Read(jobIds);
+			if (!DomJobHandler.TryReturnToTentative(PlanApi, jobs?.ToList(), out var result))
+			{
+				result.ThrowBulkException();
+			}
+
+			return result.SuccessfulItems.Select(x => new Job(PlanApi, x)).ToList();
+		}
+
 		public long Count()
 		{
 			return Count(new TRUEFilterElement<Job>());
