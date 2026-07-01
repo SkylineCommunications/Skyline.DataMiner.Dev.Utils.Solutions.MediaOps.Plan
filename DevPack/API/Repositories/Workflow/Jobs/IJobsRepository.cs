@@ -126,6 +126,34 @@
 		IReadOnlyCollection<Job> ReturnToTentative(IEnumerable<Guid> jobIds);
 
 		/// <summary>
+		/// Marks the specified <see cref="Job"/> as completed. The job must be in the draft or tentative state and its end time must lie in the past.
+		/// </summary>
+		/// <param name="job">The job to mark as completed.</param>
+		/// <returns>The completed job.</returns>
+		Job MarkAsCompleted(Job job);
+
+		/// <summary>
+		/// Marks the specified job as completed. The job must be in the draft or tentative state and its end time must lie in the past.
+		/// </summary>
+		/// <param name="jobId">The unique identifier of the job to mark as completed.</param>
+		/// <returns>The completed job.</returns>
+		Job MarkAsCompleted(Guid jobId);
+
+		/// <summary>
+		/// Marks the specified jobs as completed. Each job must be in the draft or tentative state and its end time must lie in the past.
+		/// </summary>
+		/// <param name="jobs">The jobs to mark as completed.</param>
+		/// <returns>A read-only collection containing the completed jobs.</returns>
+		IReadOnlyCollection<Job> MarkAsCompleted(IEnumerable<Job> jobs);
+
+		/// <summary>
+		/// Marks the specified jobs as completed. Each job must be in the draft or tentative state and its end time must lie in the past.
+		/// </summary>
+		/// <param name="jobIds">The unique identifiers of the jobs to mark as completed.</param>
+		/// <returns>A read-only collection containing the completed jobs.</returns>
+		IReadOnlyCollection<Job> MarkAsCompleted(IEnumerable<Guid> jobIds);
+
+		/// <summary>
 		/// Set the state of a specific orchestration event for a job.
 		/// </summary>
 		/// <param name="id">The unique identifier of the job.</param>
