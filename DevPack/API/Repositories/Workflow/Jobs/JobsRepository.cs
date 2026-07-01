@@ -395,14 +395,14 @@
 			Delete(oToDelete.Id, new JobDeleteOptions());
 		}
 
-		public void Delete(Guid apiObjectId, JobDeleteOptions options)
+		public void Delete(Guid jobId, JobDeleteOptions options)
 		{
 			if (options == null)
 			{
 				throw new ArgumentNullException(nameof(options));
 			}
 
-			var toDelete = Read(apiObjectId);
+			var toDelete = Read(jobId);
 			if (toDelete == null)
 			{
 				return;
@@ -414,11 +414,11 @@
 			}
 		}
 
-		public void Delete(IEnumerable<Guid> apiObjectIds, JobDeleteOptions options)
+		public void Delete(IEnumerable<Guid> jobIds, JobDeleteOptions options)
 		{
-			if (apiObjectIds == null)
+			if (jobIds == null)
 			{
-				throw new ArgumentNullException(nameof(apiObjectIds));
+				throw new ArgumentNullException(nameof(jobIds));
 			}
 
 			if (options == null)
@@ -426,7 +426,7 @@
 				throw new ArgumentNullException(nameof(options));
 			}
 
-			var toDelete = Read(apiObjectIds.ToArray());
+			var toDelete = Read(jobIds.ToArray());
 
 			if (!DomJobHandler.TryDelete(PlanApi, toDelete?.ToList(), out var result, options))
 			{
@@ -434,24 +434,24 @@
 			}
 		}
 
-		public void Delete(Job oToDelete, JobDeleteOptions options)
+		public void Delete(Job job, JobDeleteOptions options)
 		{
-			if (oToDelete == null)
+			if (job == null)
 			{
-				throw new ArgumentNullException(nameof(oToDelete));
+				throw new ArgumentNullException(nameof(job));
 			}
 
-			Delete(oToDelete.Id, options);
+			Delete(job.Id, options);
 		}
 
-		public void Delete(IEnumerable<Job> oToDelete, JobDeleteOptions options)
+		public void Delete(IEnumerable<Job> jobs, JobDeleteOptions options)
 		{
-			if (oToDelete == null)
+			if (jobs == null)
 			{
-				throw new ArgumentNullException(nameof(oToDelete));
+				throw new ArgumentNullException(nameof(jobs));
 			}
 
-			Delete(oToDelete.Select(x => x.Id).ToArray(), options);
+			Delete(jobs.Select(x => x.Id).ToArray(), options);
 		}
 
 		public IEnumerable<Job> Read(FilterElement<Job> filter)
