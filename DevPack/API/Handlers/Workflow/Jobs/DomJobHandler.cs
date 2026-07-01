@@ -53,10 +53,10 @@
 			return !result.HasFailures;
 		}
 
-		internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<Job> apiJobs, out DomInstanceBulkOperationResult<DomJob> result)
+		internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<Job> apiJobs, out DomInstanceBulkOperationResult<DomJob> result, JobDeleteOptions options = null)
 		{
 			var handler = new DomJobHandler(planApi);
-			handler.Delete(apiJobs);
+			handler.Delete(apiJobs, options ?? JobDeleteOptions.GetDefaults());
 
 			result = new DomInstanceBulkOperationResult<DomJob>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
@@ -888,11 +888,16 @@
 			}
 		}
 
-		private void Delete(ICollection<Job> apiJobs)
+		private void Delete(ICollection<Job> apiJobs, JobDeleteOptions options)
 		{
 			if (apiJobs == null)
 			{
 				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (options == null)
+			{
+				throw new ArgumentNullException(nameof(options));
 			}
 
 			if (apiJobs.Count == 0)
@@ -900,7 +905,7 @@
 				return;
 			}
 
-			ValidateStateForDeleteAction(apiJobs);
+			ValidateStateForDeleteAction(apiJobs, options.ForceDelete);
 
 			var lockResult = planApi.LockManager.LockAndExecute(apiJobs.Where(IsValid).ToList(), DeleteLocked);
 			ReportError(lockResult);
@@ -923,10 +928,37 @@
 				throw new ArgumentException($"Not all provided jobs are valid", nameof(apiJobs));
 			}
 
-			DeleteOrchestrationSettings(apiJobs);
-			DeletePropertySettingCollections(apiJobs);
+			var jobsToDelete = apiJobs.ToList();
 
-			var domJobsById = apiJobs.ToDictionary(x => x.Id, x => x.OriginalInstance);
+			// A non-Draft job has a core reservation that must be removed before the job itself is deleted; a Draft job
+			// has none. If a reservation deletion fails, the job is not deleted so its reservation is not orphaned.
+			var jobsWithReservation = jobsToDelete.Where(x => x.State != JobState.Draft).ToList();
+			if (jobsWithReservation.Count != 0)
+			{
+				CoreJobHandler.TryDelete(planApi, jobsWithReservation.Select(x => x.OriginalInstance).ToList(), out var coreResult);
+
+				foreach (var id in coreResult.UnsuccessfulIds)
+				{
+					ReportError(id);
+
+					if (coreResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+					{
+						PassTraceData(id, traceData);
+					}
+
+					jobsToDelete.RemoveAll(x => x.Id == id);
+				}
+			}
+
+			if (jobsToDelete.Count == 0)
+			{
+				return;
+			}
+
+			DeleteOrchestrationSettings(jobsToDelete);
+			DeletePropertySettingCollections(jobsToDelete);
+
+			var domJobsById = jobsToDelete.ToDictionary(x => x.Id, x => x.OriginalInstance);
 
 			var instancesToDelete = domJobsById.Values.Select(x => x.ToInstance()).ToArray();
 			planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.TryDeleteInBatches(instancesToDelete, out var domResult);
@@ -1346,7 +1378,7 @@
 			}
 		}
 
-		private void ValidateStateForDeleteAction(ICollection<Job> apiJobs)
+		private void ValidateStateForDeleteAction(ICollection<Job> apiJobs, bool forceDelete)
 		{
 			if (apiJobs == null)
 			{
@@ -1370,13 +1402,18 @@
 				ReportError(job.Id, error);
 			}
 
+			if (forceDelete)
+			{
+				return;
+			}
+
 			foreach (var job in apiJobs
 				.Except(isNew)
-				.Where(x => x.State != JobState.Draft))
+				.Where(x => x.State != JobState.Draft && x.State != JobState.Canceled && x.State != JobState.Completed))
 			{
 				var error = new JobInvalidStateError
 				{
-					ErrorMessage = "Not allowed to delete a job that is not in Draft state.",
+					ErrorMessage = "Not allowed to delete a job that is not in Draft, Canceled or Completed state.",
 					Id = job.Id,
 				};
 

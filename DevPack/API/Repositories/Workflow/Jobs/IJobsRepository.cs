@@ -3,6 +3,8 @@
 	using System;
 	using System.Collections.Generic;
 
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+
 	/// <summary>
 	/// Defines methods for managing <see cref="Job"/> objects, including state transitions.
 	/// </summary>
@@ -159,5 +161,41 @@
 		/// <param name="id">The unique identifier of the job.</param>
 		/// <param name="updateDetails">An object containing the new state information and any associated metadata. Cannot be null.</param>
 		void SetOrchestrationState(Guid id, OrchestrationUpdateDetails updateDetails);
+
+		/// <summary>
+		/// Deletes the specified <see cref="Job"/> using the provided <see cref="JobDeleteOptions"/>.
+		/// </summary>
+		/// <param name="job">The job to delete.</param>
+		/// <param name="options">Options specifying how the job should be deleted.</param>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="job"/> or <paramref name="options"/> is <c>null</c>.</exception>
+		/// <exception cref="MediaOpsException">Thrown when the deletion operation fails for the specified job.</exception>
+		void Delete(Job job, JobDeleteOptions options);
+
+		/// <summary>
+		/// Deletes the job with the specified identifier using the provided <see cref="JobDeleteOptions"/>.
+		/// </summary>
+		/// <param name="jobId">The unique identifier of the job to delete.</param>
+		/// <param name="options">Options specifying how the job should be deleted.</param>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="options"/> is <c>null</c>.</exception>
+		/// <exception cref="MediaOpsException">Thrown when the deletion operation fails for the specified job.</exception>
+		void Delete(Guid jobId, JobDeleteOptions options);
+
+		/// <summary>
+		/// Deletes the specified jobs using the provided <see cref="JobDeleteOptions"/>.
+		/// </summary>
+		/// <param name="jobs">The jobs to delete.</param>
+		/// <param name="options">Options specifying how the jobs should be deleted.</param>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="jobs"/> or <paramref name="options"/> is <c>null</c>.</exception>
+		/// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk deletion operation fails for one or more jobs.</exception>
+		void Delete(IEnumerable<Job> jobs, JobDeleteOptions options);
+
+		/// <summary>
+		/// Deletes the jobs with the specified identifiers using the provided <see cref="JobDeleteOptions"/>.
+		/// </summary>
+		/// <param name="jobIds">The unique identifiers of the jobs to delete.</param>
+		/// <param name="options">Options specifying how the jobs should be deleted.</param>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="jobIds"/> or <paramref name="options"/> is <c>null</c>.</exception>
+		/// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk deletion operation fails for one or more jobs.</exception>
+		void Delete(IEnumerable<Guid> jobIds, JobDeleteOptions options);
     }
 }
