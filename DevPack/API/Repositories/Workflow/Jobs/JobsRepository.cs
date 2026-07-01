@@ -228,6 +228,58 @@
 			return result.SuccessfulItems.Select(x => new Job(PlanApi, x)).ToList();
 		}
 
+		public Job MarkAsCompleted(Job job)
+		{
+			if (job == null)
+			{
+				throw new ArgumentNullException(nameof(job));
+			}
+
+			return MarkAsCompleted(job.Id);
+		}
+
+		public Job MarkAsCompleted(Guid jobId)
+		{
+			var job = Read(jobId);
+			if (job == null)
+			{
+				return null;
+			}
+
+			if (!DomJobHandler.TryMarkAsCompleted(PlanApi, [job], out var result))
+			{
+				result.ThrowSingleException(job.Id);
+			}
+
+			return new Job(PlanApi, result.SuccessfulItems.Single());
+		}
+
+		public IReadOnlyCollection<Job> MarkAsCompleted(IEnumerable<Job> jobs)
+		{
+			if (jobs == null)
+			{
+				throw new ArgumentNullException(nameof(jobs));
+			}
+
+			return MarkAsCompleted(jobs.Select(x => x.Id).ToArray());
+		}
+
+		public IReadOnlyCollection<Job> MarkAsCompleted(IEnumerable<Guid> jobIds)
+		{
+			if (jobIds == null)
+			{
+				throw new ArgumentNullException(nameof(jobIds));
+			}
+
+			var jobs = Read(jobIds);
+			if (!DomJobHandler.TryMarkAsCompleted(PlanApi, jobs?.ToList(), out var result))
+			{
+				result.ThrowBulkException();
+			}
+
+			return result.SuccessfulItems.Select(x => new Job(PlanApi, x)).ToList();
+		}
+
 		public long Count()
 		{
 			return Count(new TRUEFilterElement<Job>());

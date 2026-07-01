@@ -103,6 +103,16 @@
 			return !result.HasFailures;
 		}
 
+		internal static bool TryMarkAsCompleted(MediaOpsPlanApi planApi, ICollection<Job> apiJobs, out DomInstanceBulkOperationResult<DomJob> result)
+		{
+			var handler = new DomJobHandler(planApi);
+			handler.MarkAsCompleted(apiJobs);
+
+			result = new DomInstanceBulkOperationResult<DomJob>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+
+			return !result.HasFailures;
+		}
+
 		private void CreateOrUpdate(ICollection<Job> apiJobs)
 		{
 			if (apiJobs == null)
@@ -760,6 +770,111 @@
 			}
 		}
 
+		private void MarkAsCompleted(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			ValidateStateForMarkAsCompletedAction(apiJobs);
+			ValidateEndInPast(apiJobs);
+
+			var lockResult = planApi.LockManager.LockAndExecute(apiJobs.Where(IsValid).ToList(), MarkAsCompletedLocked);
+			ReportError(lockResult);
+		}
+
+		private void MarkAsCompletedLocked(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			if (apiJobs.Any(x => !IsValid(x)))
+			{
+				throw new ArgumentException($"Not all provided jobs are valid", nameof(apiJobs));
+			}
+
+			// A Tentative job has a core reservation that must be removed; a Draft job has none, in which case the
+			// reservation delete is a no-op. Adding every job is therefore safe.
+			foreach (var job in apiJobs)
+			{
+				jobIdsWithCoreChanges.Add(job.Id);
+			}
+
+			// The transition does not modify the job, so the stored instance is used as-is; conflict detection via
+			// GetJobsWithChanges adds no value when no changes are applied.
+			var domJobs = apiJobs.Select(x => x.OriginalInstance).ToList();
+
+			TransitionDomJobsToCompleted(domJobs);
+		}
+
+		private void TransitionDomJobsToCompleted(ICollection<DomJob> domJobs)
+		{
+			if (domJobs == null)
+			{
+				throw new ArgumentNullException(nameof(domJobs));
+			}
+
+			if (domJobs.Count == 0)
+			{
+				return;
+			}
+
+			var domJobsById = domJobs.ToDictionary(x => x.ID.Id);
+
+			if (jobIdsWithCoreChanges.Count != 0)
+			{
+				// Completing a past job removes its reservation; a Draft job has no reservation, so the delete is a no-op.
+				var domJobsWithCoreChanges = domJobs.Where(x => jobIdsWithCoreChanges.Contains(x.ID.Id)).ToList();
+
+				CoreJobHandler.TryDelete(planApi, domJobsWithCoreChanges, out var coreResult);
+
+				foreach (var id in coreResult.UnsuccessfulIds)
+				{
+					ReportError(id);
+
+					if (coreResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+					{
+						PassTraceData(id, traceData);
+					}
+
+					domJobsById.Remove(id);
+				}
+			}
+
+			// The transition applies no field changes, so the DOM jobs are not re-saved; DoStatusTransition persists the
+			// status change on its own. Only jobs whose reservation deletion succeeded are transitioned, using the
+			// transition that matches the job's current status.
+			foreach (var domJob in domJobsById.Values)
+			{
+				try
+				{
+					var transitionId = domJob.Status == Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Draft
+						? Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.Transitions.Draft_To_Completed
+						: Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.Transitions.Tentative_To_Completed;
+
+					var transitionedInstance = planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.DoStatusTransition(domJob.ID, transitionId);
+					ReportSuccess(new DomJob(transitionedInstance));
+				}
+				catch (Exception ex)
+				{
+					ReportError(domJob.ID.Id, new MediaOpsErrorData() { ErrorMessage = ex.ToString() });
+				}
+			}
+		}
+
 		private void ValidateEndNotInPast(ICollection<Job> apiJobs)
 		{
 			foreach (var job in apiJobs.Where(x => IsValid(x) && x.End < currentTime))
@@ -1313,6 +1428,31 @@
 				{
 					ErrorMessage = "Only jobs in Confirmed state can be returned to Tentative state.",
 					Id = job.Id,
+				});
+			}
+		}
+
+		private void ValidateStateForMarkAsCompletedAction(ICollection<Job> apiJobs)
+		{
+			foreach (var job in apiJobs.Where(x => x.IsNew || (x.State != JobState.Draft && x.State != JobState.Tentative)))
+			{
+				ReportError(job.Id, new JobInvalidStateError
+				{
+					ErrorMessage = "Only jobs in Draft or Tentative state can be marked as completed.",
+					Id = job.Id,
+				});
+			}
+		}
+
+		private void ValidateEndInPast(ICollection<Job> apiJobs)
+		{
+			foreach (var job in apiJobs.Where(x => IsValid(x) && x.End > currentTime))
+			{
+				ReportError(job.Id, new JobInvalidEndTimeError
+				{
+					ErrorMessage = "Only jobs whose end time lies in the past can be marked as completed.",
+					Id = job.Id,
+					End = job.End,
 				});
 			}
 		}
