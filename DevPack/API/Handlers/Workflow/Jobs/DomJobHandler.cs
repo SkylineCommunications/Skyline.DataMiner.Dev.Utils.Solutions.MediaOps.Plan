@@ -501,11 +501,68 @@
 				jobIdsWithCoreChanges.Add(job.Id);
 			}
 
-			// The transition does not modify the job, so the stored instance is used as-is; conflict detection via
-			// GetJobsWithChanges adds no value when no changes are applied.
-			var domJobs = apiJobs.Select(x => x.OriginalInstance).ToList();
+			// Step 1: adapt the node start times to the confirm time so the resource usage reflects the actual reserved
+			// window (a start in the past would otherwise make the resource look reserved from that past time) and
+			// persist those changes to DOM. Only jobs whose node timings were stored successfully proceed to step 2.
+			var domJobs = ApplyConfirmNodeTimingsAndSave(apiJobs);
 
+			// Step 2: move the successfully-updated jobs to the Confirmed state.
 			TransitionDomJobsToConfirmed(domJobs);
+		}
+
+		private ICollection<DomJob> ApplyConfirmNodeTimingsAndSave(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			// Adapt the node start times of every job to the confirm time and remember which jobs actually changed so
+			// only those are re-saved to DOM. The unchanged jobs keep their stored instance.
+			var changedJobs = new List<Job>();
+			foreach (var job in apiJobs)
+			{
+				if (JobNodeTimingResolver.AdaptNodeStartTimesToConfirmTime(currentTime, job.NodeGraph))
+				{
+					changedJobs.Add(job);
+				}
+			}
+
+			var domJobsById = apiJobs.ToDictionary(x => x.Id, x => x.OriginalInstance);
+
+			if (changedJobs.Count == 0)
+			{
+				return domJobsById.Values.ToList();
+			}
+
+			var updatedInstances = changedJobs.Select(x => x.GetInstanceWithChanges().ToInstance()).ToList();
+
+			planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.TryCreateOrUpdateInBatches(updatedInstances, out var domResult);
+
+			foreach (var id in domResult.UnsuccessfulIds)
+			{
+				ReportError(id.Id);
+
+				if (domResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+				{
+					var mediaOpsTraceData = new MediaOpsTraceData();
+					mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = traceData.ToString() });
+
+					PassTraceData(id.Id, mediaOpsTraceData);
+				}
+
+				// A job whose node-timing update failed must not be transitioned to Confirmed.
+				domJobsById.Remove(id.Id);
+			}
+
+			// Replace the stored instance of every successfully-updated job with its saved instance so the transition
+			// operates on the latest data.
+			foreach (var saved in domResult.SuccessfulItems)
+			{
+				domJobsById[saved.ID.Id] = new DomJob(saved);
+			}
+
+			return domJobsById.Values.ToList();
 		}
 
 		private void TransitionDomJobsToConfirmed(ICollection<DomJob> domJobs)
