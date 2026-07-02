@@ -159,12 +159,55 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		[DataTestMethod]
 		[DataRow(JobState.Draft)]
 		[DataRow(JobState.Tentative)]
-		[DataRow(JobState.Confirmed)]
 		public void Validate_ScheduledState_AllowsTimingChange(JobState state)
 		{
 			var requested = Window(PreRollStart, Start.AddMinutes(1), End, PostRollEnd);
 
 			var errors = JobNodeTimingResolver.Validate(JobId, state, requested, DefaultWindow(), CurrentTime);
+
+			Assert.AreEqual(0, errors.Count);
+		}
+
+		[TestMethod]
+		public void Validate_Confirmed_StartMovedFarEnoughIntoFuture_ReturnsNoErrors()
+		{
+			var requested = Window(PreRollStart, CurrentTime.AddMinutes(10), End, PostRollEnd);
+
+			var errors = JobNodeTimingResolver.Validate(JobId, JobState.Confirmed, requested, DefaultWindow(), CurrentTime);
+
+			Assert.AreEqual(0, errors.Count);
+		}
+
+		[TestMethod]
+		public void Validate_Confirmed_StartMovedWithinGuardTime_ReturnsChangeNotAllowed()
+		{
+			var requested = Window(PreRollStart, CurrentTime.Add(JobNodeTimingResolver.GuardTime).AddSeconds(-1), End, PostRollEnd);
+
+			var errors = JobNodeTimingResolver.Validate(JobId, JobState.Confirmed, requested, DefaultWindow(), CurrentTime);
+
+			var error = errors.OfType<JobStartChangeNotAllowedError>().SingleOrDefault();
+			Assert.IsNotNull(error);
+			Assert.AreEqual(requested.Start, error.Value);
+		}
+
+		[TestMethod]
+		public void Validate_Confirmed_PreRollStartMovedWithinGuardTime_ReturnsChangeNotAllowed()
+		{
+			var requested = Window(CurrentTime.AddSeconds(2), Start, End, PostRollEnd);
+
+			var errors = JobNodeTimingResolver.Validate(JobId, JobState.Confirmed, requested, DefaultWindow(), CurrentTime);
+
+			var error = errors.OfType<JobPreRollStartChangeNotAllowedError>().SingleOrDefault();
+			Assert.IsNotNull(error);
+			Assert.AreEqual(requested.PreRollStart, error.Value);
+		}
+
+		[TestMethod]
+		public void Validate_Confirmed_EndChangeIsNotGuarded_ReturnsNoErrors()
+		{
+			var requested = Window(PreRollStart, Start, CurrentTime.AddSeconds(1), PostRollEnd);
+
+			var errors = JobNodeTimingResolver.Validate(JobId, JobState.Confirmed, requested, DefaultWindow(), CurrentTime);
 
 			Assert.AreEqual(0, errors.Count);
 		}
@@ -232,6 +275,30 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			Assert.AreEqual(0, errors.Count);
 		}
 
+		[TestMethod]
+		public void Validate_Running_FutureEndMovedWithinGuardTime_ReturnsChangeNotAllowed()
+		{
+			var requested = Window(PreRollStart, Start, CurrentTime.Add(JobNodeTimingResolver.GuardTime).AddSeconds(-1), PostRollEnd);
+
+			var errors = JobNodeTimingResolver.Validate(JobId, JobState.Running, requested, DefaultWindow(), CurrentTime);
+
+			var error = errors.OfType<JobEndChangeNotAllowedError>().SingleOrDefault();
+			Assert.IsNotNull(error);
+			Assert.AreEqual(requested.End, error.Value);
+		}
+
+		[TestMethod]
+		public void Validate_Running_FuturePostRollEndMovedWithinGuardTime_ReturnsChangeNotAllowed()
+		{
+			var requested = Window(PreRollStart, Start, End, CurrentTime.AddSeconds(2));
+
+			var errors = JobNodeTimingResolver.Validate(JobId, JobState.Running, requested, DefaultWindow(), CurrentTime);
+
+			var error = errors.OfType<JobPostRollEndChangeNotAllowedError>().SingleOrDefault();
+			Assert.IsNotNull(error);
+			Assert.AreEqual(requested.PostRollEnd, error.Value);
+		}
+
 		[DataTestMethod]
 		[DataRow(JobState.Completed)]
 		[DataRow(JobState.Canceled)]
@@ -290,6 +357,49 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			Assert.AreEqual(1, errors.Count);
 			Assert.IsInstanceOfType(errors[0], typeof(JobInvalidPostRollError));
+		}
+
+		[TestMethod]
+		public void ValidateTimingChainOrdering_PreRollShorterThanGuardTime_ReturnsPreRollError()
+		{
+			var window = Window(Start.Add(-JobNodeTimingResolver.GuardTime).AddSeconds(1), Start, End, PostRollEnd);
+
+			var errors = JobNodeTimingResolver.ValidateTimingChainOrdering(JobId, window);
+
+			Assert.AreEqual(1, errors.Count);
+			Assert.IsInstanceOfType(errors[0], typeof(JobInvalidPreRollError));
+		}
+
+		[TestMethod]
+		public void ValidateTimingChainOrdering_PostRollShorterThanGuardTime_ReturnsPostRollError()
+		{
+			var window = Window(PreRollStart, Start, End, End.Add(JobNodeTimingResolver.GuardTime).AddSeconds(-1));
+
+			var errors = JobNodeTimingResolver.ValidateTimingChainOrdering(JobId, window);
+
+			Assert.AreEqual(1, errors.Count);
+			Assert.IsInstanceOfType(errors[0], typeof(JobInvalidPostRollError));
+		}
+
+		[TestMethod]
+		public void ValidateTimingChainOrdering_DurationShorterThanGuardTime_ReturnsTimingError()
+		{
+			var window = Window(PreRollStart, Start, Start.Add(JobNodeTimingResolver.GuardTime).AddSeconds(-1), PostRollEnd);
+
+			var errors = JobNodeTimingResolver.ValidateTimingChainOrdering(JobId, window);
+
+			Assert.AreEqual(1, errors.Count);
+			Assert.IsInstanceOfType(errors[0], typeof(JobInvalidTimingError));
+		}
+
+		[TestMethod]
+		public void ValidateTimingChainOrdering_NoPreRollOrPostRoll_ReturnsNoErrors()
+		{
+			var window = Window(Start, Start, End, End);
+
+			var errors = JobNodeTimingResolver.ValidateTimingChainOrdering(JobId, window);
+
+			Assert.AreEqual(0, errors.Count);
 		}
 
 		#endregion

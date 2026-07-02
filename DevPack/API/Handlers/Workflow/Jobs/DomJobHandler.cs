@@ -1651,11 +1651,11 @@
 				ReportError(job.Id, error);
 			}
 
-			foreach (var job in toValidate.Where(x => x.End < x.Start))
+			foreach (var job in toValidate.Where(x => x.End - x.Start < JobNodeTimingResolver.GuardTime))
 			{
 				var error = new JobInvalidTimingError
 				{
-					ErrorMessage = "Start time must be before end time.",
+					ErrorMessage = $"The duration between the start and end time must be at least {JobNodeTimingResolver.GuardTime.TotalSeconds:0} seconds.",
 					Id = job.Id,
 					Start = job.Start,
 					End = job.End,
@@ -1719,6 +1719,19 @@
 
 				ReportError(job.Id, error);
 			}
+
+			foreach (var job in toValidate.Where(x => x.PreRollStart < x.Start && x.Start - x.PreRollStart < JobNodeTimingResolver.GuardTime))
+			{
+				var error = new JobInvalidPreRollError
+				{
+					ErrorMessage = $"The pre-roll duration must be at least {JobNodeTimingResolver.GuardTime.TotalSeconds:0} seconds.",
+					Id = job.Id,
+					PreRollStart = job.PreRollStart,
+					Start = job.Start,
+				};
+
+				ReportError(job.Id, error);
+			}
 		}
 
 		private void ValidatePostRoll(ICollection<Job> apiJobs)
@@ -1768,6 +1781,19 @@
 				var error = new JobInvalidPostRollError
 				{
 					ErrorMessage = "Post-roll end cannot be before the job end time.",
+					Id = job.Id,
+					PostRollEnd = job.PostRollEnd,
+					End = job.End,
+				};
+
+				ReportError(job.Id, error);
+			}
+
+			foreach (var job in toValidate.Where(x => x.PostRollEnd > x.End && x.PostRollEnd - x.End < JobNodeTimingResolver.GuardTime))
+			{
+				var error = new JobInvalidPostRollError
+				{
+					ErrorMessage = $"The post-roll duration must be at least {JobNodeTimingResolver.GuardTime.TotalSeconds:0} seconds.",
 					Id = job.Id,
 					PostRollEnd = job.PostRollEnd,
 					End = job.End,
