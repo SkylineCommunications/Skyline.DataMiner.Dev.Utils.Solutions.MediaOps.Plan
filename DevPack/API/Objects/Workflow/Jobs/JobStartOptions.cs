@@ -10,13 +10,5 @@
 		/// This is only relevant when a pre-roll is configured.
 		/// </summary>
 		public bool KeepJobStartTime { get; set; } = true;
-
-		internal static JobStartOptions GetDefaults()
-		{
-			return new JobStartOptions
-			{
-				KeepJobStartTime = true,
-			};
-		}
 	}
 }

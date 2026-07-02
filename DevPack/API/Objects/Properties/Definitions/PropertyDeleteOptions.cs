@@ -10,13 +10,5 @@
 		/// Values linked to this property will be silently deleted when updating the collections of which these property values are part.
 		/// </summary>
 		public bool ForceDelete { get; set; } = false;
-
-		internal static PropertyDeleteOptions GetDefaults()
-		{
-			return new PropertyDeleteOptions
-			{
-				ForceDelete = false,
-			};
-		}
 	}
 }

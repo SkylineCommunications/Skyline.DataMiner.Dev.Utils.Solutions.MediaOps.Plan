@@ -51,7 +51,7 @@
 		internal static bool TryDeprecate(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out DomInstanceBulkOperationResult<DomResourcePool> result, ResourcePoolDeprecateOptions options = null)
 		{
 			var handler = new DomResourcePoolHandler(planApi);
-			handler.TransitionToDeprecated(apiResourcePools, options ?? ResourcePoolDeprecateOptions.GetDefaults());
+			handler.TransitionToDeprecated(apiResourcePools, options ?? new ResourcePoolDeprecateOptions());
 
 			result = new DomInstanceBulkOperationResult<DomResourcePool>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
@@ -61,7 +61,7 @@
 		internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<ResourcePool> apiResourcePools, out DomInstanceBulkOperationResult<DomResourcePool> result, ResourcePoolDeleteOptions options = null)
 		{
 			var handler = new DomResourcePoolHandler(planApi);
-			handler.Delete(apiResourcePools, options ?? ResourcePoolDeleteOptions.GetDefaults());
+			handler.Delete(apiResourcePools, options ?? new ResourcePoolDeleteOptions());
 
 			result = new DomInstanceBulkOperationResult<DomResourcePool>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 

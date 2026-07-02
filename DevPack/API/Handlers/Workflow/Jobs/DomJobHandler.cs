@@ -56,7 +56,7 @@
 		internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<Job> apiJobs, out DomInstanceBulkOperationResult<DomJob> result, JobDeleteOptions options = null)
 		{
 			var handler = new DomJobHandler(planApi);
-			handler.Delete(apiJobs, options ?? JobDeleteOptions.GetDefaults());
+			handler.Delete(apiJobs, options ?? new JobDeleteOptions());
 
 			result = new DomInstanceBulkOperationResult<DomJob>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 

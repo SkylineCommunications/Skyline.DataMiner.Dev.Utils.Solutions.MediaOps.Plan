@@ -418,14 +418,14 @@
 				throw new ArgumentNullException(nameof(resourcePool));
 			}
 
-			var defaultOptions = ResourcePoolDeprecateOptions.GetDefaults();
+			var defaultOptions = new ResourcePoolDeprecateOptions();
 			return Deprecate(resourcePool.Id, defaultOptions);
 		}
 
 		/// <inheritdoc/>
 		public ResourcePool Deprecate(Guid resourcePoolId)
 		{
-			var defaultOptions = ResourcePoolDeprecateOptions.GetDefaults();
+			var defaultOptions = new ResourcePoolDeprecateOptions();
 			return Deprecate(resourcePoolId, defaultOptions);
 		}
 
@@ -437,7 +437,7 @@
 				throw new ArgumentNullException(nameof(resourcePools));
 			}
 
-			var defaultOptions = ResourcePoolDeprecateOptions.GetDefaults();
+			var defaultOptions = new ResourcePoolDeprecateOptions();
 			return Deprecate(resourcePools.Select(x => x.Id).ToArray(), defaultOptions);
 		}
 
@@ -449,7 +449,7 @@
 				throw new ArgumentNullException(nameof(resourcePoolIds));
 			}
 
-			var defaultOptions = ResourcePoolDeprecateOptions.GetDefaults();
+			var defaultOptions = new ResourcePoolDeprecateOptions();
 			return Deprecate(resourcePoolIds, defaultOptions);
 		}
 

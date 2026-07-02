@@ -16,14 +16,5 @@
 		/// Resources that are part of multiple resource pools will not be deleted.
 		/// </summary>
 		public bool DeleteDeprecatedResources { get; set; } = false;
-
-		internal static ResourcePoolDeleteOptions GetDefaults()
-		{
-			return new ResourcePoolDeleteOptions
-			{
-				DeleteDraftResources = false,
-				DeleteDeprecatedResources = false,
-			};
-		}
 	}
 }
