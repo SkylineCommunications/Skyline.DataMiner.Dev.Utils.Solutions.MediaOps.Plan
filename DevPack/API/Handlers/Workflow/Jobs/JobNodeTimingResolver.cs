@@ -264,12 +264,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				// The boundary already lies in the past and can no longer be adapted.
 				errors.Add(CreateChangeNotAllowed<TError>(jobId, requestedValue, $"The {field} of a running job cannot be changed because it already occurred."));
+				return;
 			}
-			else if (requestedValue < currentTime + GuardTime)
-			{
-				// The boundary is still in the future but is being moved to within the guard time of the current time.
-				errors.Add(CreateChangeNotAllowed<TError>(jobId, requestedValue, $"The {field} of a running job must be set to at least {GuardTime.TotalSeconds:0} seconds in the future."));
-			}
+
+			// The boundary is still in the future but must remain at least the guard time ahead of the current time.
+			ValidateChangedBoundaryInFuture<TError>(jobId, changed, requestedValue, currentTime, field, "running", errors);
 		}
 
 		private static void ValidateNoTimingChangesAllowed(Guid jobId, JobTimingWindow requested, JobTimingFieldChanges changes, List<MediaOpsErrorData> errors)
