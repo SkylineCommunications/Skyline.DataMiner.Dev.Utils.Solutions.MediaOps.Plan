@@ -330,7 +330,7 @@
 		{
 			var jobs = PlanApi.Jobs.Read(createdJobIds.ToArray());
 
-			PlanApi.Jobs.Delete(jobs.ToArray());
+			PlanApi.Jobs.Delete(jobs.ToArray(), new JobDeleteOptions { ForceDelete = true });
 		}
 
 		private void WorkflowsCleanup()
