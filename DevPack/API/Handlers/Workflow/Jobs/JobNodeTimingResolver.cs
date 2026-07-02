@@ -246,13 +246,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		private static void ValidateRunningTimingChanges(Guid jobId, JobTimingWindow requested, JobTimingWindow original, DateTimeOffset currentTime, JobTimingFieldChanges changes, List<MediaOpsErrorData> errors)
 		{
-			ValidateRunningBoundary<JobPreRollStartChangeNotAllowedError>(jobId, changes.PreRollStartChanged, original.PreRollStart, requested.PreRollStart, currentTime, "pre-roll start", errors);
-			ValidateRunningBoundary<JobStartChangeNotAllowedError>(jobId, changes.StartChanged, original.Start, requested.Start, currentTime, "start", errors);
-			ValidateRunningBoundary<JobEndChangeNotAllowedError>(jobId, changes.EndChanged, original.End, requested.End, currentTime, "end", errors);
-			ValidateRunningBoundary<JobPostRollEndChangeNotAllowedError>(jobId, changes.PostRollEndChanged, original.PostRollEnd, requested.PostRollEnd, currentTime, "post-roll end", errors);
+			// Every changed boundary of a running job must still lie in the future: one that already occurred can no
+			// longer be adapted, and one that is still ahead must remain at least the guard time in the future.
+			ValidateChangedRunningBoundary<JobPreRollStartChangeNotAllowedError>(jobId, changes.PreRollStartChanged, original.PreRollStart, requested.PreRollStart, currentTime, "pre-roll start", errors);
+			ValidateChangedRunningBoundary<JobStartChangeNotAllowedError>(jobId, changes.StartChanged, original.Start, requested.Start, currentTime, "start", errors);
+			ValidateChangedRunningBoundary<JobEndChangeNotAllowedError>(jobId, changes.EndChanged, original.End, requested.End, currentTime, "end", errors);
+			ValidateChangedRunningBoundary<JobPostRollEndChangeNotAllowedError>(jobId, changes.PostRollEndChanged, original.PostRollEnd, requested.PostRollEnd, currentTime, "post-roll end", errors);
 		}
 
-		private static void ValidateRunningBoundary<TError>(Guid jobId, bool changed, DateTimeOffset originalValue, DateTimeOffset requestedValue, DateTimeOffset currentTime, string field, List<MediaOpsErrorData> errors)
+		private static void ValidateChangedRunningBoundary<TError>(Guid jobId, bool changed, DateTimeOffset originalValue, DateTimeOffset requestedValue, DateTimeOffset currentTime, string field, List<MediaOpsErrorData> errors)
 			where TError : JobTimingChangeNotAllowedError, new()
 		{
 			if (!changed)
