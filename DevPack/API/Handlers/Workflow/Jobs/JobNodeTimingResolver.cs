@@ -173,7 +173,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				// Only a node that would otherwise appear reserved from a time in the past is moved forward. A node that
 				// already ended keeps its window, and a node that starts in the future is already correct.
-				if (node.Start < currentTime && node.End > currentTime && node.Start != currentTime)
+				if (node.Start < currentTime && node.End > currentTime)
 				{
 					node.Start = currentTime;
 					changed = true;
