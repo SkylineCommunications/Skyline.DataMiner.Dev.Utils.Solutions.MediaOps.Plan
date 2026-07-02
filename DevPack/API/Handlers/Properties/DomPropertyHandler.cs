@@ -35,7 +35,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<Property> apiProperties, out DomInstanceBulkOperationResult<DomProperty> result, PropertyDeleteOptions options = null)
 		{
 			var handler = new DomPropertyHandler(planApi);
-			handler.Delete(apiProperties, options ?? PropertyDeleteOptions.GetDefaults());
+			handler.Delete(apiProperties, options ?? new PropertyDeleteOptions());
 
 			result = new DomInstanceBulkOperationResult<DomProperty>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
