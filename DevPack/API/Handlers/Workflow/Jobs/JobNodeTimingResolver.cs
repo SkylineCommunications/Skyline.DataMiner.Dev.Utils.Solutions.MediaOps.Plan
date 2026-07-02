@@ -149,6 +149,40 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 		}
 
+		/// <summary>
+		/// Adapts the node start times of a job that is being confirmed so the resource usage reflects the time at which
+		/// the job was confirmed instead of a start that already lies in the past.
+		/// </summary>
+		/// <remarks>
+		/// A node whose start lies in the past but that has not ended yet is moved forward to the confirm time; a node
+		/// that already ended or that starts in the future is left untouched. The method is idempotent: a node whose
+		/// start already equals the confirm time produces no change.
+		/// </remarks>
+		/// <param name="currentTime">The time at which the job is being confirmed.</param>
+		/// <param name="nodeGraph">The node graph whose node start times should be adapted.</param>
+		/// <returns><see langword="true"/> when at least one node start time was changed; otherwise <see langword="false"/>.</returns>
+		internal static bool AdaptNodeStartTimesToConfirmTime(DateTimeOffset currentTime, NodeGraph<JobNode> nodeGraph)
+		{
+			if (nodeGraph == null)
+			{
+				throw new ArgumentNullException(nameof(nodeGraph));
+			}
+
+			bool changed = false;
+			foreach (var node in nodeGraph.Nodes)
+			{
+				// Only a node that would otherwise appear reserved from a time in the past is moved forward. A node that
+				// already ended keeps its window, and a node that starts in the future is already correct.
+				if (node.Start < currentTime && node.End > currentTime)
+				{
+					node.Start = currentTime;
+					changed = true;
+				}
+			}
+
+			return changed;
+		}
+
 		private static void ApplyScheduledTimings(JobTimingWindow requested, NodeGraph<JobNode> nodeGraph)
 		{
 			// For a job that has not started yet every node spans the full pre-roll/post-roll window.
