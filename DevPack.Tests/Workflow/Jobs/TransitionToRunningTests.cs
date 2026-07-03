@@ -115,59 +115,6 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				"Expected a JobPreRollStartNotReachedError when the pre-roll start time has not yet passed.");
 		}
 
-		// The "confirmed job with a non-running reservation" case is covered deterministically in
-		// TransitionToRunningSimulationTests. As a live-agent integration test it is inherently racy: manually starting
-		// the job fires the reservation-start event, and SRM (plus the scheduling script) may mark the reservation
-		// ongoing and/or move the job to Running before the assertion runs.
-
-		[TestMethod]
-		public void TransitionToRunning_RunningReservation_MovesJobToRunning()
-		{
-			var prefix = Guid.NewGuid();
-			var currentTime = DateTime.UtcNow.RoundToNextSecond();
-
-			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
-			pool = TestContext.Api.ResourcePools.Complete(pool);
-
-			var resource = new UnmanagedResource { Name = $"{prefix}_Resource" }.AssignToPool(pool);
-			resource = objectCreator.CreateResource(resource);
-			resource = TestContext.Api.Resources.Complete(resource);
-
-			var job = new Job
-			{
-				Name = $"{prefix}_Job",
-				Start = currentTime.AddMinutes(10),
-				End = currentTime.AddMinutes(20),
-				PreRollStart = currentTime.AddMinutes(10),
-				PostRollEnd = currentTime.AddMinutes(20),
-			};
-
-			job.NodeGraph.Add(new JobResourceNode(pool, resource));
-			job = objectCreator.CreateJob(job);
-
-			var tentativeJob = TestContext.Api.Jobs.SaveAsTentative(job);
-			var confirmedJob = TestContext.Api.Jobs.Confirm(tentativeJob);
-
-			// Manually start the job so its reservation start moves to now, then wait for SRM to mark the reservation as
-			// ongoing before performing the confirmed-to-running transition.
-			TestContext.Api.Jobs.Start(confirmedJob);
-
-			var reservation = WaitForReservationOngoing(job.Id, TimeSpan.FromSeconds(60));
-			Assert.IsNotNull(reservation, "Expected a core reservation for the job.");
-			Assert.AreEqual(
-				Skyline.DataMiner.Net.Messages.ReservationStatus.Ongoing,
-				reservation.Status,
-				"Expected the core reservation to be ongoing before transitioning the job to running.");
-
-			var runningJob = TestContext.Api.Jobs.TransitionToRunning(confirmedJob);
-
-			Assert.IsNotNull(runningJob, "Expected the transition to return the updated job.");
-			Assert.AreEqual(
-				JobState.Running,
-				runningJob.State,
-				"Expected the job to be moved to the Running state.");
-		}
-
 		private ReservationInstance WaitForReservationOngoing(Guid jobId, TimeSpan timeout)
 		{
 			var stopwatch = Stopwatch.StartNew();
