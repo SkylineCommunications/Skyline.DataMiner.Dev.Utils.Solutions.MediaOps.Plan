@@ -1703,11 +1703,11 @@
 			}
 
 			var newStartTime = options.NewStartTime.Value;
-			foreach (var job in apiJobs.Where(x => IsValid(x) && (newStartTime <= currentTime || newStartTime > x.End)))
+			foreach (var job in apiJobs.Where(x => IsValid(x) && (newStartTime < currentTime + JobNodeTimingResolver.GuardTime || x.End - newStartTime < JobNodeTimingResolver.GuardTime)))
 			{
 				ReportError(job.Id, new JobInvalidStartTimeError
 				{
-					ErrorMessage = "The new start time must lie in the future and cannot be later than the job's end time.",
+					ErrorMessage = $"The new start time must be at least {JobNodeTimingResolver.GuardTime.TotalSeconds:0} seconds in the future and leave at least {JobNodeTimingResolver.GuardTime.TotalSeconds:0} seconds until the job's end time.",
 					Id = job.Id,
 					Start = newStartTime,
 				});
