@@ -1,0 +1,192 @@
+namespace RT_MediaOps.Plan.Workflow.Jobs
+{
+	using System;
+	using System.Diagnostics;
+	using System.Linq;
+	using System.Threading;
+
+	using RT_MediaOps.Plan.Extensions;
+	using RT_MediaOps.Plan.RegressionTests;
+
+	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+	using Skyline.DataMiner.Net.ResourceManager.Objects;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+
+	[TestClass]
+	[TestCategory("IntegrationTest")]
+	[DoNotParallelize]
+	public sealed class TransitionToRunningTests : IDisposable
+	{
+		private readonly TestObjectCreator objectCreator;
+
+		public TransitionToRunningTests()
+		{
+			objectCreator = new TestObjectCreator(TestContext);
+		}
+
+		private static IntegrationTestContext TestContext => TestContextManager.SharedTestContext;
+
+		public void Dispose()
+		{
+			objectCreator.Dispose();
+		}
+
+		[TestMethod]
+		public void TransitionToRunning_DraftJob_ThrowsInvalidStateError()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = currentTime.AddMinutes(10),
+				End = currentTime.AddMinutes(20),
+				PreRollStart = currentTime.AddMinutes(10),
+				PostRollEnd = currentTime.AddMinutes(20),
+			};
+
+			job = objectCreator.CreateJob(job);
+
+			var exception = Assert.ThrowsException<MediaOpsException>(() => TestContext.Api.Jobs.TransitionToRunning(job));
+			Assert.IsTrue(
+				exception.TraceData.ErrorData.OfType<JobInvalidStateError>().Any(),
+				"Expected a JobInvalidStateError when transitioning a job that is not in the Confirmed state.");
+		}
+
+		[TestMethod]
+		public void TransitionToRunning_TentativeJob_ThrowsInvalidStateError()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = currentTime.AddMinutes(10),
+				End = currentTime.AddMinutes(20),
+				PreRollStart = currentTime.AddMinutes(10),
+				PostRollEnd = currentTime.AddMinutes(20),
+			};
+
+			job = objectCreator.CreateJob(job);
+
+			var tentativeJob = TestContext.Api.Jobs.SaveAsTentative(job);
+
+			var exception = Assert.ThrowsException<MediaOpsException>(() => TestContext.Api.Jobs.TransitionToRunning(tentativeJob));
+			Assert.IsTrue(
+				exception.TraceData.ErrorData.OfType<JobInvalidStateError>().Any(),
+				"Expected a JobInvalidStateError when transitioning a job that is not in the Confirmed state.");
+		}
+
+		[TestMethod]
+		public void TransitionToRunning_ConfirmedJobWithFuturePreRoll_ThrowsPreRollStartNotReachedError()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = new UnmanagedResource { Name = $"{prefix}_Resource" }.AssignToPool(pool);
+			resource = objectCreator.CreateResource(resource);
+			resource = TestContext.Api.Resources.Complete(resource);
+
+			// The pre-roll start lies in the future, so the transition must be rejected.
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = currentTime.AddMinutes(10),
+				End = currentTime.AddMinutes(20),
+				PreRollStart = currentTime.AddMinutes(10),
+				PostRollEnd = currentTime.AddMinutes(20),
+			};
+
+			job.NodeGraph.Add(new JobResourceNode(pool, resource));
+			job = objectCreator.CreateJob(job);
+
+			var tentativeJob = TestContext.Api.Jobs.SaveAsTentative(job);
+			var confirmedJob = TestContext.Api.Jobs.Confirm(tentativeJob);
+
+			var exception = Assert.ThrowsException<MediaOpsException>(() => TestContext.Api.Jobs.TransitionToRunning(confirmedJob));
+			Assert.IsTrue(
+				exception.TraceData.ErrorData.OfType<JobPreRollStartNotReachedError>().Any(),
+				"Expected a JobPreRollStartNotReachedError when the pre-roll start time has not yet passed.");
+		}
+
+		// The "confirmed job with a non-running reservation" case is covered deterministically in
+		// TransitionToRunningSimulationTests. As a live-agent integration test it is inherently racy: manually starting
+		// the job fires the reservation-start event, and SRM (plus the scheduling script) may mark the reservation
+		// ongoing and/or move the job to Running before the assertion runs.
+
+		[TestMethod]
+		public void TransitionToRunning_RunningReservation_MovesJobToRunning()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = new UnmanagedResource { Name = $"{prefix}_Resource" }.AssignToPool(pool);
+			resource = objectCreator.CreateResource(resource);
+			resource = TestContext.Api.Resources.Complete(resource);
+
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = currentTime.AddMinutes(10),
+				End = currentTime.AddMinutes(20),
+				PreRollStart = currentTime.AddMinutes(10),
+				PostRollEnd = currentTime.AddMinutes(20),
+			};
+
+			job.NodeGraph.Add(new JobResourceNode(pool, resource));
+			job = objectCreator.CreateJob(job);
+
+			var tentativeJob = TestContext.Api.Jobs.SaveAsTentative(job);
+			var confirmedJob = TestContext.Api.Jobs.Confirm(tentativeJob);
+
+			// Manually start the job so its reservation start moves to now, then wait for SRM to mark the reservation as
+			// ongoing before performing the confirmed-to-running transition.
+			TestContext.Api.Jobs.Start(confirmedJob);
+
+			var reservation = WaitForReservationOngoing(job.Id, TimeSpan.FromSeconds(60));
+			Assert.IsNotNull(reservation, "Expected a core reservation for the job.");
+			Assert.AreEqual(
+				Skyline.DataMiner.Net.Messages.ReservationStatus.Ongoing,
+				reservation.Status,
+				"Expected the core reservation to be ongoing before transitioning the job to running.");
+
+			var runningJob = TestContext.Api.Jobs.TransitionToRunning(confirmedJob);
+
+			Assert.IsNotNull(runningJob, "Expected the transition to return the updated job.");
+			Assert.AreEqual(
+				JobState.Running,
+				runningJob.State,
+				"Expected the job to be moved to the Running state.");
+		}
+
+		private ReservationInstance WaitForReservationOngoing(Guid jobId, TimeSpan timeout)
+		{
+			var stopwatch = Stopwatch.StartNew();
+			ReservationInstance reservation = null;
+
+			while (stopwatch.Elapsed < timeout)
+			{
+				reservation = TestContext.ResourceManagerHelper.GetReservationInstances(
+					Skyline.DataMiner.Net.ResourceManager.Objects.ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(jobId))).FirstOrDefault();
+
+				if (reservation != null && reservation.Status == Skyline.DataMiner.Net.Messages.ReservationStatus.Ongoing)
+				{
+					return reservation;
+				}
+
+				Thread.Sleep(1000);
+			}
+
+			return reservation;
+		}
+	}
+}

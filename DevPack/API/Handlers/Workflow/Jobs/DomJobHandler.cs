@@ -123,6 +123,16 @@
 			return !result.HasFailures;
 		}
 
+		internal static bool TryTransitionToRunning(MediaOpsPlanApi planApi, ICollection<Job> apiJobs, out DomInstanceBulkOperationResult<DomJob> result)
+		{
+			var handler = new DomJobHandler(planApi);
+			handler.TransitionToRunning(apiJobs);
+
+			result = new DomInstanceBulkOperationResult<DomJob>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+
+			return !result.HasFailures;
+		}
+
 		private void CreateOrUpdate(ICollection<Job> apiJobs)
 		{
 			if (apiJobs == null)
@@ -1077,6 +1087,79 @@
 			ReportSuccess(domResult.SuccessfulItems.Select(x => new DomJob(x)).ToArray());
 		}
 
+		private void TransitionToRunning(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			ValidateStateForTransitionToRunningAction(apiJobs);
+			ValidatePreRollStartReached(apiJobs);
+
+			var lockResult = planApi.LockManager.LockAndExecute(apiJobs.Where(IsValid).ToList(), TransitionToRunningLocked);
+			ReportError(lockResult);
+		}
+
+		private void TransitionToRunningLocked(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			if (apiJobs.Any(x => !IsValid(x)))
+			{
+				throw new ArgumentException($"Not all provided jobs are valid", nameof(apiJobs));
+			}
+
+			// Verify the core reservation is running while the lock is held, so no concurrent job change can alter the
+			// reservation between the check and the DOM transition. Jobs whose reservation is not running are reported
+			// as errors here and filtered out below.
+			ValidateReservationIsRunning(apiJobs);
+
+			var domJobs = apiJobs.Where(IsValid).Select(x => x.OriginalInstance).ToList();
+			TransitionDomJobsToRunning(domJobs);
+		}
+
+		private void TransitionDomJobsToRunning(ICollection<DomJob> domJobs)
+		{
+			if (domJobs == null)
+			{
+				throw new ArgumentNullException(nameof(domJobs));
+			}
+
+			if (domJobs.Count == 0)
+			{
+				return;
+			}
+
+			// The transition to Running changes neither the reservation (it is already running) nor any DOM field, so the
+			// jobs are not re-saved; DoStatusTransition persists the status change on its own.
+			foreach (var domJob in domJobs)
+			{
+				try
+				{
+					var transitionedInstance = planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.DoStatusTransition(domJob.ID, Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.Transitions.Confirmed_To_Running);
+					ReportSuccess(new DomJob(transitionedInstance));
+				}
+				catch (Exception ex)
+				{
+					ReportError(domJob.ID.Id, new MediaOpsErrorData() { ErrorMessage = ex.ToString() });
+				}
+			}
+		}
+
 		private void Delete(ICollection<Job> apiJobs, JobDeleteOptions options)
 		{
 			if (apiJobs == null)
@@ -1711,6 +1794,54 @@
 					Id = job.Id,
 					Start = newStartTime,
 				});
+			}
+		}
+
+		private void ValidateStateForTransitionToRunningAction(ICollection<Job> apiJobs)
+		{
+			foreach (var job in apiJobs.Where(x => x.IsNew || x.State != JobState.Confirmed))
+			{
+				ReportError(job.Id, new JobInvalidStateError
+				{
+					ErrorMessage = "Only jobs in Confirmed state can be transitioned to running.",
+					Id = job.Id,
+				});
+			}
+		}
+
+		private void ValidatePreRollStartReached(ICollection<Job> apiJobs)
+		{
+			foreach (var job in apiJobs.Where(x => IsValid(x) && x.PreRollStart > currentTime))
+			{
+				ReportError(job.Id, new JobPreRollStartNotReachedError
+				{
+					ErrorMessage = "The job cannot be transitioned to running before its pre-roll start time has passed.",
+					Id = job.Id,
+					PreRollStart = job.PreRollStart,
+				});
+			}
+		}
+
+		private void ValidateReservationIsRunning(ICollection<Job> apiJobs)
+		{
+			var validJobs = apiJobs.Where(IsValid).ToList();
+			if (validJobs.Count == 0)
+			{
+				return;
+			}
+
+			var domJobs = validJobs.Select(x => x.OriginalInstance).ToList();
+
+			CoreJobHandler.TryVerifyOngoing(planApi, domJobs, out var coreResult);
+
+			foreach (var id in coreResult.UnsuccessfulIds)
+			{
+				ReportError(id);
+
+				if (coreResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+				{
+					PassTraceData(id, traceData);
+				}
 			}
 		}
 

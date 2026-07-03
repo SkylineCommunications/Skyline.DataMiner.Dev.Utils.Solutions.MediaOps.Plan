@@ -72,6 +72,38 @@
 		IReadOnlyCollection<Job> Confirm(IEnumerable<Guid> jobIds);
 
 		/// <summary>
+		/// Moves the specified <see cref="Job"/> from confirmed to running state. The job's pre-roll start time must have
+		/// passed and its core reservation must be running.
+		/// </summary>
+		/// <param name="job">The job to transition to running.</param>
+		/// <returns>The running job.</returns>
+		Job TransitionToRunning(Job job);
+
+		/// <summary>
+		/// Moves the specified job from confirmed to running state. The job's pre-roll start time must have passed and its
+		/// core reservation must be running.
+		/// </summary>
+		/// <param name="jobId">The unique identifier of the job to transition to running.</param>
+		/// <returns>The running job.</returns>
+		Job TransitionToRunning(Guid jobId);
+
+		/// <summary>
+		/// Moves the specified jobs from confirmed to running state. Each job's pre-roll start time must have passed and its
+		/// core reservation must be running.
+		/// </summary>
+		/// <param name="jobs">The jobs to transition to running.</param>
+		/// <returns>A read-only collection containing the running jobs.</returns>
+		IReadOnlyCollection<Job> TransitionToRunning(IEnumerable<Job> jobs);
+
+		/// <summary>
+		/// Moves the specified jobs from confirmed to running state. Each job's pre-roll start time must have passed and its
+		/// core reservation must be running.
+		/// </summary>
+		/// <param name="jobIds">The unique identifiers of the jobs to transition to running.</param>
+		/// <returns>A read-only collection containing the running jobs.</returns>
+		IReadOnlyCollection<Job> TransitionToRunning(IEnumerable<Guid> jobIds);
+
+		/// <summary>
 		/// Cancels the specified <see cref="Job"/>, which must be in the tentative or confirmed state.
 		/// </summary>
 		/// <param name="job">The job to cancel.</param>

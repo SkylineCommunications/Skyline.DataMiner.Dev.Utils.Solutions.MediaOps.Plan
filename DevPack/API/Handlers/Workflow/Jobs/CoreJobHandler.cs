@@ -87,6 +87,15 @@
 			return !result.HasFailures;
 		}
 
+		public static bool TryVerifyOngoing(MediaOpsPlanApi planApi, ICollection<DomJob> domJobs, out DomInstanceBulkOperationResult<DomJob> result)
+		{
+			var handler = new CoreJobHandler(planApi);
+			handler.VerifyOngoing(domJobs);
+
+			result = new DomInstanceBulkOperationResult<DomJob>(handler.successfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+			return !result.HasFailures;
+		}
+
 		private static string ComposeReservationActionScriptConfig(Guid reservationId, string action)
 		{
 			return $"Script:MediaOps_SRM_Scheduling Actions||Reservation ID={reservationId};Action={action}|||NoConfirmation,NoSetCheck,Asynchronous";
@@ -319,6 +328,47 @@
 			}
 
 			return reservationStartByJobId;
+		}
+
+		private void VerifyOngoing(ICollection<DomJob> domJobs)
+		{
+			if (domJobs == null)
+			{
+				throw new ArgumentNullException(nameof(domJobs));
+			}
+
+			if (domJobs.Count == 0)
+			{
+				return;
+			}
+
+			foreach (var mapping in JobReservationMapping.GetMappings(planApi, domJobs))
+			{
+				// A Confirmed job always has a reservation; a missing one is unexpected and cannot be transitioned.
+				if (mapping.IsNew)
+				{
+					ReportError(mapping.Job.ID.Id, new JobReservationNotFoundError
+					{
+						ErrorMessage = "No core reservation was found for the job, so it cannot be transitioned to running.",
+						Id = mapping.Job.ID.Id,
+					});
+					continue;
+				}
+
+				// The Confirmed-to-Running transition may only happen once the reservation has actually started, which
+				// SRM reflects as the Ongoing status.
+				if (mapping.Reservation.Status != Skyline.DataMiner.Net.Messages.ReservationStatus.Ongoing)
+				{
+					ReportError(mapping.Job.ID.Id, new JobReservationNotRunningError
+					{
+						ErrorMessage = "The core reservation is not running, so the job cannot be transitioned to running.",
+						Id = mapping.Job.ID.Id,
+					});
+					continue;
+				}
+
+				ReportSuccess(mapping.Job);
+			}
 		}
 
 		private static CoreReservation MoveReservationStart(CoreReservation reservation, DateTimeOffset startTime)
