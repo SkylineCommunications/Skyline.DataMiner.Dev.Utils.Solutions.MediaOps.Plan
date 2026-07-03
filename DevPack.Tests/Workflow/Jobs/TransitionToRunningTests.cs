@@ -114,26 +114,5 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				exception.TraceData.ErrorData.OfType<JobPreRollStartNotReachedError>().Any(),
 				"Expected a JobPreRollStartNotReachedError when the pre-roll start time has not yet passed.");
 		}
-
-		private ReservationInstance WaitForReservationOngoing(Guid jobId, TimeSpan timeout)
-		{
-			var stopwatch = Stopwatch.StartNew();
-			ReservationInstance reservation = null;
-
-			while (stopwatch.Elapsed < timeout)
-			{
-				reservation = TestContext.ResourceManagerHelper.GetReservationInstances(
-					Skyline.DataMiner.Net.ResourceManager.Objects.ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(jobId))).FirstOrDefault();
-
-				if (reservation != null && reservation.Status == Skyline.DataMiner.Net.Messages.ReservationStatus.Ongoing)
-				{
-					return reservation;
-				}
-
-				Thread.Sleep(1000);
-			}
-
-			return reservation;
-		}
 	}
 }
