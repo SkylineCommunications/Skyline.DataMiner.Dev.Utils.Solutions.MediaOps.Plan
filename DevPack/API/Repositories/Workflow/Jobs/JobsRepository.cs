@@ -280,6 +280,103 @@
 			return result.SuccessfulItems.Select(x => new Job(PlanApi, x)).ToList();
 		}
 
+		public Job Start(Job job)
+		{
+			if (job == null)
+			{
+				throw new ArgumentNullException(nameof(job));
+			}
+
+			return Start(job.Id, new JobManualStartOptions());
+		}
+
+		public Job Start(Guid jobId)
+		{
+			return Start(jobId, new JobManualStartOptions());
+		}
+
+		public IReadOnlyCollection<Job> Start(IEnumerable<Job> jobs)
+		{
+			if (jobs == null)
+			{
+				throw new ArgumentNullException(nameof(jobs));
+			}
+
+			return Start(jobs.Select(x => x.Id).ToArray(), new JobManualStartOptions());
+		}
+
+		public IReadOnlyCollection<Job> Start(IEnumerable<Guid> jobIds)
+		{
+			if (jobIds == null)
+			{
+				throw new ArgumentNullException(nameof(jobIds));
+			}
+
+			return Start(jobIds, new JobManualStartOptions());
+		}
+
+		public Job Start(Job job, JobManualStartOptions options)
+		{
+			if (job == null)
+			{
+				throw new ArgumentNullException(nameof(job));
+			}
+
+			return Start(job.Id, options);
+		}
+
+		public Job Start(Guid jobId, JobManualStartOptions options)
+		{
+			if (options == null)
+			{
+				throw new ArgumentNullException(nameof(options));
+			}
+
+			var job = Read(jobId);
+			if (job == null)
+			{
+				return null;
+			}
+
+			if (!DomJobHandler.TryStart(PlanApi, [job], out var result, options))
+			{
+				result.ThrowSingleException(job.Id);
+			}
+
+			return new Job(PlanApi, result.SuccessfulItems.Single());
+		}
+
+		public IReadOnlyCollection<Job> Start(IEnumerable<Job> jobs, JobManualStartOptions options)
+		{
+			if (jobs == null)
+			{
+				throw new ArgumentNullException(nameof(jobs));
+			}
+
+			return Start(jobs.Select(x => x.Id).ToArray(), options);
+		}
+
+		public IReadOnlyCollection<Job> Start(IEnumerable<Guid> jobIds, JobManualStartOptions options)
+		{
+			if (jobIds == null)
+			{
+				throw new ArgumentNullException(nameof(jobIds));
+			}
+
+			if (options == null)
+			{
+				throw new ArgumentNullException(nameof(options));
+			}
+
+			var jobs = Read(jobIds);
+			if (!DomJobHandler.TryStart(PlanApi, jobs?.ToList(), out var result, options))
+			{
+				result.ThrowBulkException();
+			}
+
+			return result.SuccessfulItems.Select(x => new Job(PlanApi, x)).ToList();
+		}
+
 		public long Count()
 		{
 			return Count(new TRUEFilterElement<Job>());

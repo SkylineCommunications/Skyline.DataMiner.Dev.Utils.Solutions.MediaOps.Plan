@@ -113,6 +113,16 @@
 			return !result.HasFailures;
 		}
 
+		internal static bool TryStart(MediaOpsPlanApi planApi, ICollection<Job> apiJobs, out DomInstanceBulkOperationResult<DomJob> result, JobManualStartOptions options = null)
+		{
+			var handler = new DomJobHandler(planApi);
+			handler.Start(apiJobs, options ?? new JobManualStartOptions());
+
+			result = new DomInstanceBulkOperationResult<DomJob>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+
+			return !result.HasFailures;
+		}
+
 		private void CreateOrUpdate(ICollection<Job> apiJobs)
 		{
 			if (apiJobs == null)
@@ -945,6 +955,128 @@
 			}
 		}
 
+		private void Start(ICollection<Job> apiJobs, JobManualStartOptions options)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (options == null)
+			{
+				throw new ArgumentNullException(nameof(options));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			ValidateStateForManualStartAction(apiJobs);
+			ValidateNewStartTime(apiJobs, options);
+
+			var lockResult = planApi.LockManager.LockAndExecute(apiJobs.Where(IsValid).ToList(), jobs => StartLocked(jobs, options));
+			ReportError(lockResult);
+		}
+
+		private void StartLocked(ICollection<Job> apiJobs, JobManualStartOptions options)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			if (apiJobs.Any(x => !IsValid(x)))
+			{
+				throw new ArgumentException($"Not all provided jobs are valid", nameof(apiJobs));
+			}
+
+			// Step 1: move the core reservation start to the current time and persist it BEFORE the DOM job is updated.
+			// Moving the reservation start fires the reservation start event, which drives the Confirmed-to-Running
+			// transition, and yields the actual persisted start that the DOM job and its nodes must reflect.
+			var domJobsById = apiJobs.ToDictionary(x => x.Id, x => x.OriginalInstance);
+
+			CoreJobHandler.TryStart(planApi, domJobsById.Values.ToList(), currentTime, out var coreResult, out var reservationStartByJobId);
+
+			foreach (var id in coreResult.UnsuccessfulIds)
+			{
+				ReportError(id);
+
+				if (coreResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+				{
+					PassTraceData(id, traceData);
+				}
+
+				// A job whose reservation could not be started must not have its DOM instance updated.
+				domJobsById.Remove(id);
+			}
+
+			// Step 2: reflect the persisted reservation start into the DOM job's pre-roll and every node, optionally
+			// replace the job's start time with the requested one, and persist the DOM job.
+			var jobsById = apiJobs.ToDictionary(x => x.Id);
+			var changedJobs = new List<Job>();
+			foreach (var jobId in domJobsById.Keys)
+			{
+				if (!reservationStartByJobId.TryGetValue(jobId, out var reservationStart))
+				{
+					continue;
+				}
+
+				var job = jobsById[jobId];
+
+				// Capture whether a pre-roll was configured before the pre-roll start is overwritten below. When no
+				// pre-roll was configured, the start equals the pre-roll start and both must stay aligned.
+				var hasPreRoll = job.PreRollStart != job.Start;
+
+				job.PreRollStart = reservationStart;
+				foreach (var node in job.NodeGraph.Nodes)
+				{
+					node.Start = reservationStart;
+				}
+
+				if (options.NewStartTime.HasValue)
+				{
+					job.Start = options.NewStartTime.Value;
+				}
+				else if (!hasPreRoll)
+				{
+					// Without a pre-roll the start must follow the reservation start so no artificial pre-roll is introduced.
+					job.Start = reservationStart;
+				}
+
+				changedJobs.Add(job);
+			}
+
+			if (changedJobs.Count == 0)
+			{
+				return;
+			}
+
+			var updatedInstances = changedJobs.Select(x => x.GetInstanceWithChanges().ToInstance()).ToList();
+
+			planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.TryCreateOrUpdateInBatches(updatedInstances, out var domResult);
+
+			foreach (var id in domResult.UnsuccessfulIds)
+			{
+				ReportError(id.Id);
+
+				if (domResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+				{
+					var mediaOpsTraceData = new MediaOpsTraceData();
+					mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = traceData.ToString() });
+
+					PassTraceData(id.Id, mediaOpsTraceData);
+				}
+			}
+
+			ReportSuccess(domResult.SuccessfulItems.Select(x => new DomJob(x)).ToArray());
+		}
+
 		private void Delete(ICollection<Job> apiJobs, JobDeleteOptions options)
 		{
 			if (apiJobs == null)
@@ -1547,6 +1679,37 @@
 					ErrorMessage = "Only jobs whose end time lies in the past can be marked as completed.",
 					Id = job.Id,
 					End = job.End,
+				});
+			}
+		}
+
+		private void ValidateStateForManualStartAction(ICollection<Job> apiJobs)
+		{
+			foreach (var job in apiJobs.Where(x => x.IsNew || x.State != JobState.Confirmed))
+			{
+				ReportError(job.Id, new JobInvalidStateError
+				{
+					ErrorMessage = "Only jobs in Confirmed state can be manually started.",
+					Id = job.Id,
+				});
+			}
+		}
+
+		private void ValidateNewStartTime(ICollection<Job> apiJobs, JobManualStartOptions options)
+		{
+			if (!options.NewStartTime.HasValue)
+			{
+				return;
+			}
+
+			var newStartTime = options.NewStartTime.Value;
+			foreach (var job in apiJobs.Where(x => IsValid(x) && (newStartTime <= currentTime || newStartTime > x.End)))
+			{
+				ReportError(job.Id, new JobInvalidStartTimeError
+				{
+					ErrorMessage = "The new start time must lie in the future and cannot be later than the job's end time.",
+					Id = job.Id,
+					Start = newStartTime,
 				});
 			}
 		}

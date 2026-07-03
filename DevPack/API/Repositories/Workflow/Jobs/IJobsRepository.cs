@@ -156,6 +156,66 @@
 		IReadOnlyCollection<Job> MarkAsCompleted(IEnumerable<Guid> jobIds);
 
 		/// <summary>
+		/// Manually starts the specified <see cref="Job"/>. The job must be in the confirmed state. The current start time is kept, even when a pre-roll is configured.
+		/// </summary>
+		/// <param name="job">The job to start.</param>
+		/// <returns>The started job.</returns>
+		Job Start(Job job);
+
+		/// <summary>
+		/// Manually starts the specified job. The job must be in the confirmed state. The current start time is kept, even when a pre-roll is configured.
+		/// </summary>
+		/// <param name="jobId">The unique identifier of the job to start.</param>
+		/// <returns>The started job.</returns>
+		Job Start(Guid jobId);
+
+		/// <summary>
+		/// Manually starts the specified jobs. Each job must be in the confirmed state. The current start time is kept, even when a pre-roll is configured.
+		/// </summary>
+		/// <param name="jobs">The jobs to start.</param>
+		/// <returns>A read-only collection containing the started jobs.</returns>
+		IReadOnlyCollection<Job> Start(IEnumerable<Job> jobs);
+
+		/// <summary>
+		/// Manually starts the specified jobs. Each job must be in the confirmed state. The current start time is kept, even when a pre-roll is configured.
+		/// </summary>
+		/// <param name="jobIds">The unique identifiers of the jobs to start.</param>
+		/// <returns>A read-only collection containing the started jobs.</returns>
+		IReadOnlyCollection<Job> Start(IEnumerable<Guid> jobIds);
+
+		/// <summary>
+		/// Manually starts the specified <see cref="Job"/>. The job must be in the confirmed state. Use <paramref name="options"/> to provide a new start time; it must lie in the future and cannot be later than the job's end time.
+		/// </summary>
+		/// <param name="job">The job to start.</param>
+		/// <param name="options">The options that control how the job is started.</param>
+		/// <returns>The started job.</returns>
+		Job Start(Job job, JobManualStartOptions options);
+
+		/// <summary>
+		/// Manually starts the specified job. The job must be in the confirmed state. Use <paramref name="options"/> to provide a new start time; it must lie in the future and cannot be later than the job's end time.
+		/// </summary>
+		/// <param name="jobId">The unique identifier of the job to start.</param>
+		/// <param name="options">The options that control how the job is started.</param>
+		/// <returns>The started job.</returns>
+		Job Start(Guid jobId, JobManualStartOptions options);
+
+		/// <summary>
+		/// Manually starts the specified jobs. Each job must be in the confirmed state. Use <paramref name="options"/> to provide a new start time; it must lie in the future and cannot be later than each job's end time.
+		/// </summary>
+		/// <param name="jobs">The jobs to start.</param>
+		/// <param name="options">The options that control how the jobs are started.</param>
+		/// <returns>A read-only collection containing the started jobs.</returns>
+		IReadOnlyCollection<Job> Start(IEnumerable<Job> jobs, JobManualStartOptions options);
+
+		/// <summary>
+		/// Manually starts the specified jobs. Each job must be in the confirmed state. Use <paramref name="options"/> to provide a new start time; it must lie in the future and cannot be later than each job's end time.
+		/// </summary>
+		/// <param name="jobIds">The unique identifiers of the jobs to start.</param>
+		/// <param name="options">The options that control how the jobs are started.</param>
+		/// <returns>A read-only collection containing the started jobs.</returns>
+		IReadOnlyCollection<Job> Start(IEnumerable<Guid> jobIds, JobManualStartOptions options);
+
+		/// <summary>
 		/// Set the state of a specific orchestration event for a job.
 		/// </summary>
 		/// <param name="id">The unique identifier of the job.</param>

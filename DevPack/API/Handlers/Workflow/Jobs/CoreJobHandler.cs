@@ -75,6 +75,18 @@
 			return !result.HasFailures;
 		}
 
+		// The persisted reservation start is returned per job (reservationStartByJobId) rather than reusing the requested
+		// startTime, because SRM may adjust the start on save (granularity, constraints, tick precision). Reflecting the
+		// actual persisted start into the DOM job keeps DOM and the reservation consistent and avoids later SyncTime drift.
+		public static bool TryStart(MediaOpsPlanApi planApi, ICollection<DomJob> domJobs, DateTimeOffset startTime, out DomInstanceBulkOperationResult<DomJob> result, out IReadOnlyDictionary<Guid, DateTimeOffset> reservationStartByJobId)
+		{
+			var handler = new CoreJobHandler(planApi);
+			reservationStartByJobId = handler.Start(domJobs, startTime);
+
+			result = new DomInstanceBulkOperationResult<DomJob>(handler.successfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+			return !result.HasFailures;
+		}
+
 		private static string ComposeReservationActionScriptConfig(Guid reservationId, string action)
 		{
 			return $"Script:MediaOps_SRM_Scheduling Actions||Reservation ID={reservationId};Action={action}|||NoConfirmation,NoSetCheck,Asynchronous";
@@ -223,6 +235,134 @@
 
 				ReportSuccess(domJob);
 			}
+		}
+
+		private IReadOnlyDictionary<Guid, DateTimeOffset> Start(ICollection<DomJob> domJobs, DateTimeOffset startTime)
+		{
+			var reservationStartByJobId = new Dictionary<Guid, DateTimeOffset>();
+
+			if (domJobs == null)
+			{
+				throw new ArgumentNullException(nameof(domJobs));
+			}
+
+			if (domJobs.Count == 0)
+			{
+				return reservationStartByJobId;
+			}
+
+			var domJobsByReservationId = new Dictionary<Guid, DomJob>();
+			var toUpdate = new List<CoreReservation>();
+
+			foreach (var mapping in JobReservationMapping.GetMappings(planApi, domJobs))
+			{
+				// A Confirmed job always has a reservation; a missing one is unexpected and cannot be started.
+				if (mapping.IsNew)
+				{
+					ReportError(mapping.Job.ID.Id, new JobReservationNotFoundError
+					{
+						ErrorMessage = "No core reservation was found for the job, so it cannot be started.",
+						Id = mapping.Job.ID.Id,
+					});
+					continue;
+				}
+
+				// Move the reservation start to the requested start time (the current time). Persisting this fires the
+				// reservation start event, which drives the Confirmed-to-Running transition.
+				var reservation = MoveReservationStart(mapping.Reservation, startTime);
+
+				toUpdate.Add(reservation);
+				domJobsByReservationId[reservation.ID] = mapping.Job;
+			}
+
+			if (toUpdate.Count == 0)
+			{
+				return reservationStartByJobId;
+			}
+
+			planApi.CoreHelpers.ResourceManagerHelper.TryCreateOrUpdateReservationInstancesInBatches(toUpdate, out var result);
+
+			foreach (var id in result.UnsuccessfulIds)
+			{
+				if (!domJobsByReservationId.TryGetValue(id, out var domJob))
+				{
+					planApi.Logger.Error(this, $"Failed to find DOM ID for Reservation ID {id}.");
+					continue;
+				}
+
+				ReportError(domJob.ID.Id);
+
+				if (result.TraceDataPerItem.TryGetValue(id, out var traceData))
+				{
+					PassTraceData(domJob.ID.Id, traceData);
+				}
+			}
+
+			foreach (var linkableObject in result.SuccessfulItems)
+			{
+				if (!domJobsByReservationId.TryGetValue(linkableObject.ID, out var domJob))
+				{
+					planApi.Logger.Error(this, $"Failed to find DOM ID for Reservation ID {linkableObject.ID}.");
+					continue;
+				}
+
+				var reservation = linkableObject as CoreReservation;
+				if (reservation == null)
+				{
+					planApi.Logger.Error(this, $"Linkable object with ID {linkableObject.ID} is not of type CoreReservation.");
+					continue;
+				}
+
+				// Report the actual persisted reservation start so the caller can reflect it into the DOM job and its nodes.
+				reservationStartByJobId[domJob.ID.Id] = reservation.TimeRange.Start;
+				ReportSuccess(domJob);
+			}
+
+			return reservationStartByJobId;
+		}
+
+		private static CoreReservation MoveReservationStart(CoreReservation reservation, DateTimeOffset startTime)
+		{
+			var timeRange = new Skyline.DataMiner.Net.Time.TimeRangeUtc(startTime.UtcDateTime, reservation.TimeRange.Stop);
+
+			return ApplyTimeRange(reservation, timeRange);
+		}
+
+		// Re-creates the reservation with the new time range and re-anchors the Start/End scheduling events to the new
+		// boundaries so they keep firing at the reservation edges; any other events keep their original time.
+		private static CoreReservation ApplyTimeRange(CoreReservation reservation, Skyline.DataMiner.Net.Time.TimeRangeUtc timeRange)
+		{
+			var existingEvents = reservation.Events;
+			foreach (var existingEvent in existingEvents)
+			{
+				reservation.RemoveEvent(existingEvent.Key, existingEvent.Value);
+			}
+
+			reservation = reservation.NewTimeRange(timeRange);
+
+			foreach (var existingEvent in existingEvents)
+			{
+				DateTime time;
+
+				switch (existingEvent.Value.Name)
+				{
+					case JobEvent.Start:
+						time = timeRange.Start;
+						break;
+
+					case JobEvent.End:
+						time = timeRange.Stop;
+						break;
+
+					default:
+						time = existingEvent.Key;
+						break;
+				}
+
+				reservation.AddEvent(time, existingEvent.Value);
+			}
+
+			return reservation;
 		}
 
 		private void UpdateStatus(ICollection<DomJob> domJobs, Skyline.DataMiner.Net.Messages.ReservationStatus reservationStatus)
@@ -374,35 +514,7 @@
 				return false;
 			}
 
-			var existingEvents = reservation.Events;
-			foreach (var existingEvent in existingEvents)
-			{
-				reservation.RemoveEvent(existingEvent.Key, existingEvent.Value);
-			}
-
-			reservation = reservation.NewTimeRange(timeRange);
-
-			foreach (var existingEvent in existingEvents)
-			{
-				DateTime time;
-
-				switch (existingEvent.Value.Name)
-				{
-					case JobEvent.Start:
-						time = timeRange.Start;
-						break;
-
-					case JobEvent.End:
-						time = timeRange.Stop;
-						break;
-
-					default:
-						time = existingEvent.Key;
-						break;
-				}
-
-				reservation.AddEvent(time, existingEvent.Value);
-			}
+			reservation = ApplyTimeRange(reservation, timeRange);
 
 			return true;
 		}
