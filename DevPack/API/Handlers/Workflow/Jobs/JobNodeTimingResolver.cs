@@ -17,6 +17,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	internal static class JobNodeTimingResolver
 	{
 		/// <summary>
+		/// The minimum guard interval enforced between adjacent job timing boundaries (pre-roll, start, end and
+		/// post-roll) and between a changed boundary and the current time. It is stored in this single field so the
+		/// value can be adapted in one place.
+		/// </summary>
+		internal static readonly TimeSpan GuardTime = TimeSpan.FromSeconds(5);
+
+		/// <summary>
 		/// Validates the requested timing window against the rules that apply to the supplied job state.
 		/// </summary>
 		/// <param name="jobId">The identifier of the job, used to tag the produced errors.</param>
@@ -45,8 +52,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				case JobState.Draft:
 				case JobState.Tentative:
-				case JobState.Confirmed:
 					// No additional state-based timing restrictions; the general validators cover ordering and required values.
+					break;
+
+				case JobState.Confirmed:
+					ValidateConfirmedTimingChanges(jobId, requested, currentTime, changes, errors);
 					break;
 
 				case JobState.Running:
@@ -86,12 +96,22 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					Start = window.Start,
 				});
 			}
+			else if (window.PreRollStart != window.Start && window.Start - window.PreRollStart < GuardTime)
+			{
+				errors.Add(new JobInvalidPreRollError
+				{
+					ErrorMessage = $"The pre-roll duration must be at least {GuardTime.TotalSeconds:0} seconds.",
+					Id = jobId,
+					PreRollStart = window.PreRollStart,
+					Start = window.Start,
+				});
+			}
 
-			if (window.End < window.Start)
+			if (window.End - window.Start < GuardTime)
 			{
 				errors.Add(new JobInvalidTimingError
 				{
-					ErrorMessage = "Start time must be before end time.",
+					ErrorMessage = $"The duration between the start and end time must be at least {GuardTime.TotalSeconds:0} seconds.",
 					Id = jobId,
 					Start = window.Start,
 					End = window.End,
@@ -103,6 +123,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				errors.Add(new JobInvalidPostRollError
 				{
 					ErrorMessage = "Post-roll end cannot be before the job end time.",
+					Id = jobId,
+					PostRollEnd = window.PostRollEnd,
+					End = window.End,
+				});
+			}
+			else if (window.PostRollEnd != window.End && window.PostRollEnd - window.End < GuardTime)
+			{
+				errors.Add(new JobInvalidPostRollError
+				{
+					ErrorMessage = $"The post-roll duration must be at least {GuardTime.TotalSeconds:0} seconds.",
 					Id = jobId,
 					PostRollEnd = window.PostRollEnd,
 					End = window.End,
@@ -226,15 +256,39 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 		}
 
-		private static void ValidateRunningTimingChanges(Guid jobId, JobTimingWindow requested, JobTimingWindow original, DateTimeOffset currentTime, JobTimingFieldChanges changes, List<MediaOpsErrorData> errors)
+		private static void ValidateConfirmedTimingChanges(Guid jobId, JobTimingWindow requested, DateTimeOffset currentTime, JobTimingFieldChanges changes, List<MediaOpsErrorData> errors)
 		{
-			ValidateRunningBoundary<JobPreRollStartChangeNotAllowedError>(jobId, changes.PreRollStartChanged, original.PreRollStart, requested.PreRollStart, currentTime, "pre-roll start", errors);
-			ValidateRunningBoundary<JobStartChangeNotAllowedError>(jobId, changes.StartChanged, original.Start, requested.Start, currentTime, "start", errors);
-			ValidateRunningBoundary<JobEndChangeNotAllowedError>(jobId, changes.EndChanged, original.End, requested.End, currentTime, "end", errors);
-			ValidateRunningBoundary<JobPostRollEndChangeNotAllowedError>(jobId, changes.PostRollEndChanged, original.PostRollEnd, requested.PostRollEnd, currentTime, "post-roll end", errors);
+			// Only the start-side boundaries are guarded for a confirmed (not yet started) job: a changed pre-roll start
+			// or start must remain at least the guard time in the future so it cannot be moved to (nearly) the present.
+			ValidateChangedBoundaryInFuture<JobPreRollStartChangeNotAllowedError>(jobId, changes.PreRollStartChanged, requested.PreRollStart, currentTime, "pre-roll start", "confirmed", errors);
+			ValidateChangedBoundaryInFuture<JobStartChangeNotAllowedError>(jobId, changes.StartChanged, requested.Start, currentTime, "start", "confirmed", errors);
 		}
 
-		private static void ValidateRunningBoundary<TError>(Guid jobId, bool changed, DateTimeOffset originalValue, DateTimeOffset requestedValue, DateTimeOffset currentTime, string field, List<MediaOpsErrorData> errors)
+		private static void ValidateChangedBoundaryInFuture<TError>(Guid jobId, bool changed, DateTimeOffset requestedValue, DateTimeOffset currentTime, string field, string state, List<MediaOpsErrorData> errors)
+			where TError : JobTimingChangeNotAllowedError, new()
+		{
+			if (!changed)
+			{
+				return;
+			}
+
+			if (requestedValue < currentTime + GuardTime)
+			{
+				errors.Add(CreateChangeNotAllowed<TError>(jobId, requestedValue, $"The {field} of a {state} job must be at least {GuardTime.TotalSeconds:0} seconds in the future."));
+			}
+		}
+
+		private static void ValidateRunningTimingChanges(Guid jobId, JobTimingWindow requested, JobTimingWindow original, DateTimeOffset currentTime, JobTimingFieldChanges changes, List<MediaOpsErrorData> errors)
+		{
+			// Every changed boundary of a running job must still lie in the future: one that already occurred can no
+			// longer be adapted, and one that is still ahead must remain at least the guard time in the future.
+			ValidateChangedRunningBoundary<JobPreRollStartChangeNotAllowedError>(jobId, changes.PreRollStartChanged, original.PreRollStart, requested.PreRollStart, currentTime, "pre-roll start", errors);
+			ValidateChangedRunningBoundary<JobStartChangeNotAllowedError>(jobId, changes.StartChanged, original.Start, requested.Start, currentTime, "start", errors);
+			ValidateChangedRunningBoundary<JobEndChangeNotAllowedError>(jobId, changes.EndChanged, original.End, requested.End, currentTime, "end", errors);
+			ValidateChangedRunningBoundary<JobPostRollEndChangeNotAllowedError>(jobId, changes.PostRollEndChanged, original.PostRollEnd, requested.PostRollEnd, currentTime, "post-roll end", errors);
+		}
+
+		private static void ValidateChangedRunningBoundary<TError>(Guid jobId, bool changed, DateTimeOffset originalValue, DateTimeOffset requestedValue, DateTimeOffset currentTime, string field, List<MediaOpsErrorData> errors)
 			where TError : JobTimingChangeNotAllowedError, new()
 		{
 			if (!changed)
@@ -246,12 +300,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				// The boundary already lies in the past and can no longer be adapted.
 				errors.Add(CreateChangeNotAllowed<TError>(jobId, requestedValue, $"The {field} of a running job cannot be changed because it already occurred."));
+				return;
 			}
-			else if (requestedValue <= currentTime)
-			{
-				// The boundary is still in the future but is being moved to the current time or the past.
-				errors.Add(CreateChangeNotAllowed<TError>(jobId, requestedValue, $"The {field} of a running job must be set to a time in the future."));
-			}
+
+			// The boundary is still in the future but must remain at least the guard time ahead of the current time.
+			ValidateChangedBoundaryInFuture<TError>(jobId, changed, requestedValue, currentTime, field, "running", errors);
 		}
 
 		private static void ValidateNoTimingChangesAllowed(Guid jobId, JobTimingWindow requested, JobTimingFieldChanges changes, List<MediaOpsErrorData> errors)
