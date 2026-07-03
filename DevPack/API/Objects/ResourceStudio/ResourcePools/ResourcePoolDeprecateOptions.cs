@@ -11,13 +11,5 @@
 		/// </summary>
 		/// <value><c>true</c> if resource deprecation is allowed; otherwise, <c>false</c>.</value>
 		public bool AllowResourceDeprecation { get; set; } = false;
-
-		internal static ResourcePoolDeprecateOptions GetDefaults()
-		{
-			return new ResourcePoolDeprecateOptions
-			{
-				AllowResourceDeprecation = false,
-			};
-		}
 	}
 }

@@ -468,6 +468,82 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 		#endregion
 
+		#region AdaptNodeStartTimesToConfirmTime
+
+		[TestMethod]
+		public void AdaptNodeStartTimesToConfirmTime_PastActiveNode_MovesStartToConfirmTime()
+		{
+			var node = ExistingNode(PreRollStart, End);
+			var graph = GraphWith(node);
+
+			var changed = JobNodeTimingResolver.AdaptNodeStartTimesToConfirmTime(CurrentTime, graph);
+
+			Assert.IsTrue(changed);
+			Assert.AreEqual(CurrentTime, node.Start);
+			Assert.AreEqual(End, node.End);
+		}
+
+		[TestMethod]
+		public void AdaptNodeStartTimesToConfirmTime_FutureNode_IsLeftUntouched()
+		{
+			var futureStart = CurrentTime.AddMinutes(5);
+			var node = ExistingNode(futureStart, End);
+			var graph = GraphWith(node);
+
+			var changed = JobNodeTimingResolver.AdaptNodeStartTimesToConfirmTime(CurrentTime, graph);
+
+			Assert.IsFalse(changed);
+			Assert.AreEqual(futureStart, node.Start);
+			Assert.AreEqual(End, node.End);
+		}
+
+		[TestMethod]
+		public void AdaptNodeStartTimesToConfirmTime_AlreadyEndedNode_IsLeftUntouched()
+		{
+			var endedAt = CurrentTime.AddMinutes(-5);
+			var node = ExistingNode(PreRollStart, endedAt);
+			var graph = GraphWith(node);
+
+			var changed = JobNodeTimingResolver.AdaptNodeStartTimesToConfirmTime(CurrentTime, graph);
+
+			Assert.IsFalse(changed);
+			Assert.AreEqual(PreRollStart, node.Start);
+			Assert.AreEqual(endedAt, node.End);
+		}
+
+		[TestMethod]
+		public void AdaptNodeStartTimesToConfirmTime_StartAlreadyAtConfirmTime_ReturnsFalse()
+		{
+			var node = ExistingNode(CurrentTime, End);
+			var graph = GraphWith(node);
+
+			var changed = JobNodeTimingResolver.AdaptNodeStartTimesToConfirmTime(CurrentTime, graph);
+
+			Assert.IsFalse(changed);
+			Assert.AreEqual(CurrentTime, node.Start);
+		}
+
+		[TestMethod]
+		public void AdaptNodeStartTimesToConfirmTime_MixedGraph_OnlyAdaptsPastActiveNodes()
+		{
+			var pastActive = ExistingNode(PreRollStart, End);
+			var futureStart = CurrentTime.AddMinutes(5);
+			var future = ExistingNode(futureStart, End);
+			var endedAt = CurrentTime.AddMinutes(-5);
+			var ended = ExistingNode(PreRollStart, endedAt);
+			var graph = GraphWith(pastActive, future, ended);
+
+			var changed = JobNodeTimingResolver.AdaptNodeStartTimesToConfirmTime(CurrentTime, graph);
+
+			Assert.IsTrue(changed);
+			Assert.AreEqual(CurrentTime, pastActive.Start);
+			Assert.AreEqual(futureStart, future.Start);
+			Assert.AreEqual(PreRollStart, ended.Start);
+			Assert.AreEqual(endedAt, ended.End);
+		}
+
+		#endregion
+
 		#region Helpers
 
 		private static JobResourceNode NewNode()
