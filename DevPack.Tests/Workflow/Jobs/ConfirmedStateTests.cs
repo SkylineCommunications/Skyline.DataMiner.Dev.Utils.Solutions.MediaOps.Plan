@@ -46,10 +46,10 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var job = new Job
 			{
 				Name = $"{prefix}_Job",
-				Start = currentTime,
-				End = currentTime.AddMinutes(10),
-				PreRollStart = currentTime,
-				PostRollEnd = currentTime.AddMinutes(10),
+				Start = currentTime.AddMinutes(10),
+				End = currentTime.AddMinutes(20),
+				PreRollStart = currentTime.AddMinutes(10),
+				PostRollEnd = currentTime.AddMinutes(20),
 			};
 
 			var resourceNode = new JobResourceNode(pool, resource);
@@ -154,10 +154,10 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var job = new Job
 			{
 				Name = $"{prefix}_Job",
-				Start = currentTime,
-				End = currentTime.AddMinutes(10),
-				PreRollStart = currentTime,
-				PostRollEnd = currentTime.AddMinutes(10),
+				Start = currentTime.AddMinutes(10),
+				End = currentTime.AddMinutes(20),
+				PreRollStart = currentTime.AddMinutes(10),
+				PostRollEnd = currentTime.AddMinutes(20),
 			};
 
 			job = objectCreator.CreateJob(job);
