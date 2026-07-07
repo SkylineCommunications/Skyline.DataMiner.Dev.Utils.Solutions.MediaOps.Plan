@@ -1022,19 +1022,7 @@
 			var domJobsById = apiJobs.ToDictionary(x => x.Id, x => x.OriginalInstance);
 
 			CoreJobHandler.TryStart(planApi, domJobsById.Values.ToList(), currentTime, out var coreResult, out var reservationStartByJobId);
-
-			foreach (var id in coreResult.UnsuccessfulIds)
-			{
-				ReportError(id);
-
-				if (coreResult.TraceDataPerItem.TryGetValue(id, out var traceData))
-				{
-					PassTraceData(id, traceData);
-				}
-
-				// A job whose reservation could not be started must not have its DOM instance updated.
-				domJobsById.Remove(id);
-			}
+			RemoveFailedReservations(coreResult, domJobsById);
 
 			// Step 2: reflect the persisted reservation start into the DOM job's pre-roll and every node, optionally
 			// replace the job's start time with the requested one, and persist the DOM job.
@@ -1048,53 +1036,34 @@
 				}
 
 				var job = jobsById[jobId];
-
-				// Capture whether a pre-roll was configured before the pre-roll start is overwritten below. When no
-				// pre-roll was configured, the start equals the pre-roll start and both must stay aligned.
-				var hasPreRoll = job.PreRollStart != job.Start;
-
-				job.PreRollStart = reservationStart;
-				foreach (var node in job.NodeGraph.Nodes)
-				{
-					node.Start = reservationStart;
-				}
-
-				if (options.NewStartTime.HasValue)
-				{
-					job.Start = options.NewStartTime.Value;
-				}
-				else if (!hasPreRoll)
-				{
-					// Without a pre-roll the start must follow the reservation start so no artificial pre-roll is introduced.
-					job.Start = reservationStart;
-				}
-
+				ApplyStart(job, reservationStart, options);
 				changedJobs.Add(job);
 			}
 
-			if (changedJobs.Count == 0)
+			PersistChangedJobs(changedJobs);
+		}
+
+		private static void ApplyStart(Job job, DateTimeOffset reservationStart, JobStartOptions options)
+		{
+			// Capture whether a pre-roll was configured before the pre-roll start is overwritten below. When no
+			// pre-roll was configured, the start equals the pre-roll start and both must stay aligned.
+			var hasPreRoll = job.PreRollStart != job.Start;
+
+			job.PreRollStart = reservationStart;
+			foreach (var node in job.NodeGraph.Nodes)
 			{
-				return;
+				node.Start = reservationStart;
 			}
 
-			var updatedInstances = changedJobs.Select(x => x.GetInstanceWithChanges().ToInstance()).ToList();
-
-			planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.TryCreateOrUpdateInBatches(updatedInstances, out var domResult);
-
-			foreach (var id in domResult.UnsuccessfulIds)
+			if (options.NewStartTime.HasValue)
 			{
-				ReportError(id.Id);
-
-				if (domResult.TraceDataPerItem.TryGetValue(id, out var traceData))
-				{
-					var mediaOpsTraceData = new MediaOpsTraceData();
-					mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = traceData.ToString() });
-
-					PassTraceData(id.Id, mediaOpsTraceData);
-				}
+				job.Start = options.NewStartTime.Value;
 			}
-
-			ReportSuccess(domResult.SuccessfulItems.Select(x => new DomJob(x)).ToArray());
+			else if (!hasPreRoll)
+			{
+				// Without a pre-roll the start must follow the reservation start so no artificial pre-roll is introduced.
+				job.Start = reservationStart;
+			}
 		}
 
 		private void Stop(ICollection<Job> apiJobs, JobStopOptions options)
@@ -1160,31 +1129,7 @@
 				jobsToReschedule = apiJobs.Where(x => x.PostRollEnd <= x.End).ToList();
 			}
 
-			var persistedReservationEndByJobId = new Dictionary<Guid, DateTimeOffset>();
-			if (jobsToReschedule.Count > 0)
-			{
-				var domJobsToReschedule = jobsToReschedule.Select(x => x.OriginalInstance).ToList();
-
-				CoreJobHandler.TryStop(planApi, domJobsToReschedule, reservationEnd, out var coreResult, out var reservationEndByJobId);
-
-				foreach (var id in coreResult.UnsuccessfulIds)
-				{
-					ReportError(id);
-
-					if (coreResult.TraceDataPerItem.TryGetValue(id, out var traceData))
-					{
-						PassTraceData(id, traceData);
-					}
-
-					// A job whose reservation could not be stopped must not have its DOM instance updated.
-					jobsById.Remove(id);
-				}
-
-				foreach (var entry in reservationEndByJobId)
-				{
-					persistedReservationEndByJobId[entry.Key] = entry.Value;
-				}
-			}
+			var persistedReservationEndByJobId = RescheduleReservations(jobsToReschedule, reservationEnd, jobsById);
 
 			// Step 2: reflect the new end into every remaining DOM job. Rescheduled jobs take the persisted reservation end
 			// as their post-roll end; jobs that kept their post-roll retain their existing post-roll end. Clamp every node
@@ -1192,35 +1137,79 @@
 			var changedJobs = new List<Job>();
 			foreach (var job in jobsById.Values)
 			{
-				// Capture whether a post-roll was configured before the post-roll end is overwritten below.
-				var hasPostRoll = job.PostRollEnd > job.End;
-
-				if (persistedReservationEndByJobId.TryGetValue(job.Id, out var persistedEnd))
-				{
-					job.PostRollEnd = persistedEnd;
-
-					// Mirror the manual start: when there is no post-roll and no explicit end is requested, the end follows
-					// the (persisted) post-roll end so both stay exactly aligned, just as Start follows the pre-roll start
-					// when there is no pre-roll.
-					job.End = !options.NewPostRollEnd.HasValue && !hasPostRoll ? persistedEnd : currentTime;
-				}
-				else
-				{
-					// The post-roll is kept, so only the end moves to the current time.
-					job.End = currentTime;
-				}
-
-				foreach (var node in job.NodeGraph.Nodes)
-				{
-					if (node.End > job.PostRollEnd)
-					{
-						node.End = job.PostRollEnd;
-					}
-				}
-
+				ApplyStop(job, options, persistedReservationEndByJobId);
 				changedJobs.Add(job);
 			}
 
+			PersistChangedJobs(changedJobs);
+		}
+
+		// Moves the core reservation end of the jobs that need rescheduling to reservationEnd, persists it BEFORE the DOM
+		// job is updated, removes any job whose reservation could not be updated and returns the actual persisted end per job.
+		private IReadOnlyDictionary<Guid, DateTimeOffset> RescheduleReservations(ICollection<Job> jobsToReschedule, DateTimeOffset reservationEnd, IDictionary<Guid, Job> jobsById)
+		{
+			if (jobsToReschedule.Count == 0)
+			{
+				return new Dictionary<Guid, DateTimeOffset>();
+			}
+
+			var domJobsToReschedule = jobsToReschedule.Select(x => x.OriginalInstance).ToList();
+
+			CoreJobHandler.TryStop(planApi, domJobsToReschedule, reservationEnd, out var coreResult, out var reservationEndByJobId);
+			RemoveFailedReservations(coreResult, jobsById);
+
+			return reservationEndByJobId;
+		}
+
+		private void ApplyStop(Job job, JobStopOptions options, IReadOnlyDictionary<Guid, DateTimeOffset> persistedReservationEndByJobId)
+		{
+			// Capture whether a post-roll was configured before the post-roll end is overwritten below.
+			var hasPostRoll = job.PostRollEnd > job.End;
+
+			if (persistedReservationEndByJobId.TryGetValue(job.Id, out var persistedEnd))
+			{
+				job.PostRollEnd = persistedEnd;
+
+				// Mirror the manual start: when there is no post-roll and no explicit end is requested, the end follows
+				// the (persisted) post-roll end so both stay exactly aligned, just as Start follows the pre-roll start
+				// when there is no pre-roll.
+				job.End = !options.NewPostRollEnd.HasValue && !hasPostRoll ? persistedEnd : currentTime;
+			}
+			else
+			{
+				// The post-roll is kept, so only the end moves to the current time.
+				job.End = currentTime;
+			}
+
+			foreach (var node in job.NodeGraph.Nodes)
+			{
+				if (node.End > job.PostRollEnd)
+				{
+					node.End = job.PostRollEnd;
+				}
+			}
+		}
+
+		// Reports and drops every job whose core reservation could not be updated so its DOM instance is not persisted.
+		private void RemoveFailedReservations<T>(DomInstanceBulkOperationResult<DomJob> coreResult, IDictionary<Guid, T> jobsById)
+		{
+			foreach (var id in coreResult.UnsuccessfulIds)
+			{
+				ReportError(id);
+
+				if (coreResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+				{
+					PassTraceData(id, traceData);
+				}
+
+				// A job whose reservation could not be updated must not have its DOM instance updated.
+				jobsById.Remove(id);
+			}
+		}
+
+		// Persists the changed DOM jobs in batches and reports the per-job success and failure results.
+		private void PersistChangedJobs(ICollection<Job> changedJobs)
+		{
 			if (changedJobs.Count == 0)
 			{
 				return;

@@ -260,91 +260,35 @@
 
 		private IReadOnlyDictionary<Guid, DateTimeOffset> Start(ICollection<DomJob> domJobs, DateTimeOffset startTime)
 		{
-			var reservationStartByJobId = new Dictionary<Guid, DateTimeOffset>();
-
-			if (domJobs == null)
-			{
-				throw new ArgumentNullException(nameof(domJobs));
-			}
-
-			if (domJobs.Count == 0)
-			{
-				return reservationStartByJobId;
-			}
-
-			var domJobsByReservationId = new Dictionary<Guid, DomJob>();
-			var toUpdate = new List<CoreReservation>();
-
-			foreach (var mapping in JobReservationMapping.GetMappings(planApi, domJobs))
-			{
-				// A Confirmed job always has a reservation; a missing one is unexpected and cannot be started.
-				if (mapping.IsNew)
-				{
-					ReportError(mapping.Job.ID.Id, new JobReservationNotFoundError
-					{
-						ErrorMessage = "No core reservation was found for the job, so it cannot be started.",
-						Id = mapping.Job.ID.Id,
-					});
-					continue;
-				}
-
-				// Move the reservation start to the requested start time (the current time). Persisting this fires the
-				// reservation start event, which drives the Confirmed-to-Running transition.
-				var reservation = MoveReservationStart(mapping.Reservation, startTime);
-
-				toUpdate.Add(reservation);
-				domJobsByReservationId[reservation.ID] = mapping.Job;
-			}
-
-			if (toUpdate.Count == 0)
-			{
-				return reservationStartByJobId;
-			}
-
-			planApi.CoreHelpers.ResourceManagerHelper.TryCreateOrUpdateReservationInstancesInBatches(toUpdate, out var result);
-
-			foreach (var id in result.UnsuccessfulIds)
-			{
-				if (!domJobsByReservationId.TryGetValue(id, out var domJob))
-				{
-					planApi.Logger.Error(this, $"Failed to find DOM ID for Reservation ID {id}.");
-					continue;
-				}
-
-				ReportError(domJob.ID.Id);
-
-				if (result.TraceDataPerItem.TryGetValue(id, out var traceData))
-				{
-					PassTraceData(domJob.ID.Id, traceData);
-				}
-			}
-
-			foreach (var linkableObject in result.SuccessfulItems)
-			{
-				if (!domJobsByReservationId.TryGetValue(linkableObject.ID, out var domJob))
-				{
-					planApi.Logger.Error(this, $"Failed to find DOM ID for Reservation ID {linkableObject.ID}.");
-					continue;
-				}
-
-				var reservation = linkableObject as CoreReservation;
-				if (reservation == null)
-				{
-					planApi.Logger.Error(this, $"Linkable object with ID {linkableObject.ID} is not of type CoreReservation.");
-					continue;
-				}
-
-				// Report the actual persisted reservation start so the caller can reflect it into the DOM job and its nodes.
-				reservationStartByJobId[domJob.ID.Id] = reservation.TimeRange.Start;
-				ReportSuccess(domJob);
-			}
-
-			return reservationStartByJobId;
+			// Move the reservation start to the requested start time (the current time). Persisting this fires the
+			// reservation start event, which drives the Confirmed-to-Running transition.
+			return MoveReservations(
+				domJobs,
+				reservation => MoveReservationStart(reservation, startTime),
+				reservation => reservation.TimeRange.Start,
+				"No core reservation was found for the job, so it cannot be started.");
 		}
 
 		private IReadOnlyDictionary<Guid, DateTimeOffset> Stop(ICollection<DomJob> domJobs, DateTimeOffset endTime)
 		{
-			var reservationEndByJobId = new Dictionary<Guid, DateTimeOffset>();
+			// Move the reservation end to the requested end time so the reservation stops early.
+			return MoveReservations(
+				domJobs,
+				reservation => MoveReservationEnd(reservation, endTime),
+				reservation => reservation.TimeRange.Stop,
+				"No core reservation was found for the job, so it cannot be stopped.");
+		}
+
+		// Moves the reservation boundary of every provided job with moveReservation, persists the reservations in batches
+		// and returns the actual persisted boundary (selected with getPersistedTime) per job. SRM may adjust the boundary
+		// on save, so the persisted value is reported rather than the requested one.
+		private IReadOnlyDictionary<Guid, DateTimeOffset> MoveReservations(
+			ICollection<DomJob> domJobs,
+			Func<CoreReservation, CoreReservation> moveReservation,
+			Func<CoreReservation, DateTimeOffset> getPersistedTime,
+			string reservationNotFoundMessage)
+		{
+			var reservationTimeByJobId = new Dictionary<Guid, DateTimeOffset>();
 
 			if (domJobs == null)
 			{
@@ -353,39 +297,56 @@
 
 			if (domJobs.Count == 0)
 			{
-				return reservationEndByJobId;
+				return reservationTimeByJobId;
 			}
 
-			var domJobsByReservationId = new Dictionary<Guid, DomJob>();
+			var toUpdate = CollectReservationUpdates(domJobs, moveReservation, reservationNotFoundMessage, out var domJobsByReservationId);
+			if (toUpdate.Count == 0)
+			{
+				return reservationTimeByJobId;
+			}
+
+			planApi.CoreHelpers.ResourceManagerHelper.TryCreateOrUpdateReservationInstancesInBatches(toUpdate, out var result);
+
+			ReportReservationFailures(result, domJobsByReservationId);
+			ReportReservationSuccesses(result, domJobsByReservationId, getPersistedTime, reservationTimeByJobId);
+
+			return reservationTimeByJobId;
+		}
+
+		private List<CoreReservation> CollectReservationUpdates(
+			ICollection<DomJob> domJobs,
+			Func<CoreReservation, CoreReservation> moveReservation,
+			string reservationNotFoundMessage,
+			out Dictionary<Guid, DomJob> domJobsByReservationId)
+		{
+			domJobsByReservationId = new Dictionary<Guid, DomJob>();
 			var toUpdate = new List<CoreReservation>();
 
 			foreach (var mapping in JobReservationMapping.GetMappings(planApi, domJobs))
 			{
-				// A Running job always has a reservation; a missing one is unexpected and cannot be stopped.
+				// A Confirmed or Running job always has a reservation; a missing one is unexpected.
 				if (mapping.IsNew)
 				{
 					ReportError(mapping.Job.ID.Id, new JobReservationNotFoundError
 					{
-						ErrorMessage = "No core reservation was found for the job, so it cannot be stopped.",
+						ErrorMessage = reservationNotFoundMessage,
 						Id = mapping.Job.ID.Id,
 					});
 					continue;
 				}
 
-				// Move the reservation end to the requested end time so the reservation stops early.
-				var reservation = MoveReservationEnd(mapping.Reservation, endTime);
+				var reservation = moveReservation(mapping.Reservation);
 
 				toUpdate.Add(reservation);
 				domJobsByReservationId[reservation.ID] = mapping.Job;
 			}
 
-			if (toUpdate.Count == 0)
-			{
-				return reservationEndByJobId;
-			}
+			return toUpdate;
+		}
 
-			planApi.CoreHelpers.ResourceManagerHelper.TryCreateOrUpdateReservationInstancesInBatches(toUpdate, out var result);
-
+		private void ReportReservationFailures(ReservationInstanceBulkOperationResult result, IReadOnlyDictionary<Guid, DomJob> domJobsByReservationId)
+		{
 			foreach (var id in result.UnsuccessfulIds)
 			{
 				if (!domJobsByReservationId.TryGetValue(id, out var domJob))
@@ -401,7 +362,14 @@
 					PassTraceData(domJob.ID.Id, traceData);
 				}
 			}
+		}
 
+		private void ReportReservationSuccesses(
+			ReservationInstanceBulkOperationResult result,
+			IReadOnlyDictionary<Guid, DomJob> domJobsByReservationId,
+			Func<CoreReservation, DateTimeOffset> getPersistedTime,
+			Dictionary<Guid, DateTimeOffset> reservationTimeByJobId)
+		{
 			foreach (var linkableObject in result.SuccessfulItems)
 			{
 				if (!domJobsByReservationId.TryGetValue(linkableObject.ID, out var domJob))
@@ -417,12 +385,10 @@
 					continue;
 				}
 
-				// Report the actual persisted reservation end so the caller can reflect it into the DOM job's post-roll end.
-				reservationEndByJobId[domJob.ID.Id] = reservation.TimeRange.Stop;
+				// Report the actual persisted reservation boundary so the caller can reflect it into the DOM job.
+				reservationTimeByJobId[domJob.ID.Id] = getPersistedTime(reservation);
 				ReportSuccess(domJob);
 			}
-
-			return reservationEndByJobId;
 		}
 
 		private void VerifyOngoing(ICollection<DomJob> domJobs)
