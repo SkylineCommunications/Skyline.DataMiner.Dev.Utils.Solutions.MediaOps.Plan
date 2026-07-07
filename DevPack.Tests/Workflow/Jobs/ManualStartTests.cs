@@ -177,7 +177,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var confirmedJob = TestContext.Api.Jobs.Confirm(tentativeJob);
 
 			var newStartTime = currentTime.AddMinutes(5);
-			var startedJob = TestContext.Api.Jobs.Start(confirmedJob, new JobManualStartOptions { NewStartTime = newStartTime });
+			var startedJob = TestContext.Api.Jobs.Start(confirmedJob, new JobStartOptions { NewStartTime = newStartTime });
 			Assert.IsNotNull(startedJob, "Expected the manual start to return the updated job.");
 
 			Assert.AreEqual(
@@ -234,7 +234,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var confirmedJob = TestContext.Api.Jobs.Confirm(tentativeJob);
 
 			var newStartTime = currentTime.AddMinutes(5);
-			var startedJob = TestContext.Api.Jobs.Start(confirmedJob, new JobManualStartOptions { NewStartTime = newStartTime });
+			var startedJob = TestContext.Api.Jobs.Start(confirmedJob, new JobStartOptions { NewStartTime = newStartTime });
 			Assert.IsNotNull(startedJob, "Expected the manual start to return the updated job.");
 
 			Assert.AreEqual(
@@ -337,7 +337,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var tentativeJob = TestContext.Api.Jobs.SaveAsTentative(job);
 			var confirmedJob = TestContext.Api.Jobs.Confirm(tentativeJob);
 
-			var options = new JobManualStartOptions { NewStartTime = currentTime.AddMinutes(-5) };
+			var options = new JobStartOptions { NewStartTime = currentTime.AddMinutes(-5) };
 
 			var exception = Assert.ThrowsException<MediaOpsException>(() => TestContext.Api.Jobs.Start(confirmedJob, options));
 			Assert.IsTrue(
@@ -373,7 +373,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var tentativeJob = TestContext.Api.Jobs.SaveAsTentative(job);
 			var confirmedJob = TestContext.Api.Jobs.Confirm(tentativeJob);
 
-			var options = new JobManualStartOptions { NewStartTime = currentTime.AddMinutes(30) };
+			var options = new JobStartOptions { NewStartTime = currentTime.AddMinutes(30) };
 
 			var exception = Assert.ThrowsException<MediaOpsException>(() => TestContext.Api.Jobs.Start(confirmedJob, options));
 			Assert.IsTrue(
@@ -410,7 +410,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var confirmedJob = TestContext.Api.Jobs.Confirm(tentativeJob);
 
 			// A new start time in the future but within the guard time window must be rejected.
-			var options = new JobManualStartOptions { NewStartTime = currentTime.AddSeconds(JobNodeTimingResolver.GuardTime.TotalSeconds - 2) };
+			var options = new JobStartOptions { NewStartTime = currentTime.AddSeconds(JobNodeTimingResolver.GuardTime.TotalSeconds - 2) };
 
 			var exception = Assert.ThrowsException<MediaOpsException>(() => TestContext.Api.Jobs.Start(confirmedJob, options));
 			Assert.IsTrue(
@@ -447,7 +447,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var confirmedJob = TestContext.Api.Jobs.Confirm(tentativeJob);
 
 			// A new start time that leaves less than the guard time until the job's end must be rejected.
-			var options = new JobManualStartOptions { NewStartTime = currentTime.AddMinutes(20).AddSeconds(-(JobNodeTimingResolver.GuardTime.TotalSeconds - 2)) };
+			var options = new JobStartOptions { NewStartTime = currentTime.AddMinutes(20).AddSeconds(-(JobNodeTimingResolver.GuardTime.TotalSeconds - 2)) };
 
 			var exception = Assert.ThrowsException<MediaOpsException>(() => TestContext.Api.Jobs.Start(confirmedJob, options));
 			Assert.IsTrue(

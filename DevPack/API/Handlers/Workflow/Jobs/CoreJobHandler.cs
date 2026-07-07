@@ -96,6 +96,18 @@
 			return !result.HasFailures;
 		}
 
+		// The persisted reservation end is returned per job (reservationEndByJobId) rather than reusing the requested
+		// endTime, because SRM may adjust the end on save (granularity, constraints, tick precision). Reflecting the
+		// actual persisted end into the DOM job keeps DOM and the reservation consistent and avoids later SyncTime drift.
+		public static bool TryStop(MediaOpsPlanApi planApi, ICollection<DomJob> domJobs, DateTimeOffset endTime, out DomInstanceBulkOperationResult<DomJob> result, out IReadOnlyDictionary<Guid, DateTimeOffset> reservationEndByJobId)
+		{
+			var handler = new CoreJobHandler(planApi);
+			reservationEndByJobId = handler.Stop(domJobs, endTime);
+
+			result = new DomInstanceBulkOperationResult<DomJob>(handler.successfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+			return !result.HasFailures;
+		}
+
 		private static string ComposeReservationActionScriptConfig(Guid reservationId, string action)
 		{
 			return $"Script:MediaOps_SRM_Scheduling Actions||Reservation ID={reservationId};Action={action}|||NoConfirmation,NoSetCheck,Asynchronous";
@@ -330,6 +342,89 @@
 			return reservationStartByJobId;
 		}
 
+		private IReadOnlyDictionary<Guid, DateTimeOffset> Stop(ICollection<DomJob> domJobs, DateTimeOffset endTime)
+		{
+			var reservationEndByJobId = new Dictionary<Guid, DateTimeOffset>();
+
+			if (domJobs == null)
+			{
+				throw new ArgumentNullException(nameof(domJobs));
+			}
+
+			if (domJobs.Count == 0)
+			{
+				return reservationEndByJobId;
+			}
+
+			var domJobsByReservationId = new Dictionary<Guid, DomJob>();
+			var toUpdate = new List<CoreReservation>();
+
+			foreach (var mapping in JobReservationMapping.GetMappings(planApi, domJobs))
+			{
+				// A Running job always has a reservation; a missing one is unexpected and cannot be stopped.
+				if (mapping.IsNew)
+				{
+					ReportError(mapping.Job.ID.Id, new JobReservationNotFoundError
+					{
+						ErrorMessage = "No core reservation was found for the job, so it cannot be stopped.",
+						Id = mapping.Job.ID.Id,
+					});
+					continue;
+				}
+
+				// Move the reservation end to the requested end time so the reservation stops early.
+				var reservation = MoveReservationEnd(mapping.Reservation, endTime);
+
+				toUpdate.Add(reservation);
+				domJobsByReservationId[reservation.ID] = mapping.Job;
+			}
+
+			if (toUpdate.Count == 0)
+			{
+				return reservationEndByJobId;
+			}
+
+			planApi.CoreHelpers.ResourceManagerHelper.TryCreateOrUpdateReservationInstancesInBatches(toUpdate, out var result);
+
+			foreach (var id in result.UnsuccessfulIds)
+			{
+				if (!domJobsByReservationId.TryGetValue(id, out var domJob))
+				{
+					planApi.Logger.Error(this, $"Failed to find DOM ID for Reservation ID {id}.");
+					continue;
+				}
+
+				ReportError(domJob.ID.Id);
+
+				if (result.TraceDataPerItem.TryGetValue(id, out var traceData))
+				{
+					PassTraceData(domJob.ID.Id, traceData);
+				}
+			}
+
+			foreach (var linkableObject in result.SuccessfulItems)
+			{
+				if (!domJobsByReservationId.TryGetValue(linkableObject.ID, out var domJob))
+				{
+					planApi.Logger.Error(this, $"Failed to find DOM ID for Reservation ID {linkableObject.ID}.");
+					continue;
+				}
+
+				var reservation = linkableObject as CoreReservation;
+				if (reservation == null)
+				{
+					planApi.Logger.Error(this, $"Linkable object with ID {linkableObject.ID} is not of type CoreReservation.");
+					continue;
+				}
+
+				// Report the actual persisted reservation end so the caller can reflect it into the DOM job's post-roll end.
+				reservationEndByJobId[domJob.ID.Id] = reservation.TimeRange.Stop;
+				ReportSuccess(domJob);
+			}
+
+			return reservationEndByJobId;
+		}
+
 		private void VerifyOngoing(ICollection<DomJob> domJobs)
 		{
 			if (domJobs == null)
@@ -374,6 +469,13 @@
 		private static CoreReservation MoveReservationStart(CoreReservation reservation, DateTimeOffset startTime)
 		{
 			var timeRange = new Skyline.DataMiner.Net.Time.TimeRangeUtc(startTime.UtcDateTime, reservation.TimeRange.Stop);
+
+			return ApplyTimeRange(reservation, timeRange);
+		}
+
+		private static CoreReservation MoveReservationEnd(CoreReservation reservation, DateTimeOffset endTime)
+		{
+			var timeRange = new Skyline.DataMiner.Net.Time.TimeRangeUtc(reservation.TimeRange.Start, endTime.UtcDateTime);
 
 			return ApplyTimeRange(reservation, timeRange);
 		}

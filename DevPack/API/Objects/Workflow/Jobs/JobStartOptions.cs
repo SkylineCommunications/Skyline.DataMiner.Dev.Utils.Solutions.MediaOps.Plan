@@ -3,9 +3,9 @@
 	using System;
 
 	/// <summary>
-	/// Represents options for manually starting a job.
+	/// Represents options for starting a job.
 	/// </summary>
-	public class JobManualStartOptions
+	public class JobStartOptions
 	{
 		/// <summary>
 		/// Gets or sets the new start time of the job.

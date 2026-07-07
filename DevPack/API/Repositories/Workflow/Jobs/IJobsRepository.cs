@@ -221,7 +221,7 @@
 		/// <param name="job">The job to start.</param>
 		/// <param name="options">The options that control how the job is started.</param>
 		/// <returns>The started job.</returns>
-		Job Start(Job job, JobManualStartOptions options);
+		Job Start(Job job, JobStartOptions options);
 
 		/// <summary>
 		/// Manually starts the specified job. The job must be in the confirmed state. Use <paramref name="options"/> to provide a new start time; it must lie in the future and cannot be later than the job's end time.
@@ -229,7 +229,7 @@
 		/// <param name="jobId">The unique identifier of the job to start.</param>
 		/// <param name="options">The options that control how the job is started.</param>
 		/// <returns>The started job.</returns>
-		Job Start(Guid jobId, JobManualStartOptions options);
+		Job Start(Guid jobId, JobStartOptions options);
 
 		/// <summary>
 		/// Manually starts the specified jobs. Each job must be in the confirmed state. Use <paramref name="options"/> to provide a new start time; it must lie in the future and cannot be later than each job's end time.
@@ -237,7 +237,7 @@
 		/// <param name="jobs">The jobs to start.</param>
 		/// <param name="options">The options that control how the jobs are started.</param>
 		/// <returns>A read-only collection containing the started jobs.</returns>
-		IReadOnlyCollection<Job> Start(IEnumerable<Job> jobs, JobManualStartOptions options);
+		IReadOnlyCollection<Job> Start(IEnumerable<Job> jobs, JobStartOptions options);
 
 		/// <summary>
 		/// Manually starts the specified jobs. Each job must be in the confirmed state. Use <paramref name="options"/> to provide a new start time; it must lie in the future and cannot be later than each job's end time.
@@ -245,7 +245,67 @@
 		/// <param name="jobIds">The unique identifiers of the jobs to start.</param>
 		/// <param name="options">The options that control how the jobs are started.</param>
 		/// <returns>A read-only collection containing the started jobs.</returns>
-		IReadOnlyCollection<Job> Start(IEnumerable<Guid> jobIds, JobManualStartOptions options);
+		IReadOnlyCollection<Job> Start(IEnumerable<Guid> jobIds, JobStartOptions options);
+
+		/// <summary>
+		/// Stops the specified running <see cref="Job"/> early. The job must be in the running state and must not be running in its pre-roll or post-roll. The end time is set to the current time and the current post-roll end time is kept.
+		/// </summary>
+		/// <param name="job">The job to stop.</param>
+		/// <returns>The stopped job.</returns>
+		Job Stop(Job job);
+
+		/// <summary>
+		/// Stops the specified running job early. The job must be in the running state and must not be running in its pre-roll or post-roll. The end time is set to the current time and the current post-roll end time is kept.
+		/// </summary>
+		/// <param name="jobId">The unique identifier of the job to stop.</param>
+		/// <returns>The stopped job.</returns>
+		Job Stop(Guid jobId);
+
+		/// <summary>
+		/// Stops the specified running jobs early. Each job must be in the running state and must not be running in its pre-roll or post-roll. The end time is set to the current time and the current post-roll end time is kept.
+		/// </summary>
+		/// <param name="jobs">The jobs to stop.</param>
+		/// <returns>A read-only collection containing the stopped jobs.</returns>
+		IReadOnlyCollection<Job> Stop(IEnumerable<Job> jobs);
+
+		/// <summary>
+		/// Stops the specified running jobs early. Each job must be in the running state and must not be running in its pre-roll or post-roll. The end time is set to the current time and the current post-roll end time is kept.
+		/// </summary>
+		/// <param name="jobIds">The unique identifiers of the jobs to stop.</param>
+		/// <returns>A read-only collection containing the stopped jobs.</returns>
+		IReadOnlyCollection<Job> Stop(IEnumerable<Guid> jobIds);
+
+		/// <summary>
+		/// Stops the specified running <see cref="Job"/> early. The job must be in the running state and must not be running in its pre-roll or post-roll. The end time is set to the current time. Use <paramref name="options"/> to provide a new post-roll end time; it must lie sufficiently in the future.
+		/// </summary>
+		/// <param name="job">The job to stop.</param>
+		/// <param name="options">The options that control how the job is stopped.</param>
+		/// <returns>The stopped job.</returns>
+		Job Stop(Job job, JobStopOptions options);
+
+		/// <summary>
+		/// Stops the specified running job early. The job must be in the running state and must not be running in its pre-roll or post-roll. The end time is set to the current time. Use <paramref name="options"/> to provide a new post-roll end time; it must lie sufficiently in the future.
+		/// </summary>
+		/// <param name="jobId">The unique identifier of the job to stop.</param>
+		/// <param name="options">The options that control how the job is stopped.</param>
+		/// <returns>The stopped job.</returns>
+		Job Stop(Guid jobId, JobStopOptions options);
+
+		/// <summary>
+		/// Stops the specified running jobs early. Each job must be in the running state and must not be running in its pre-roll or post-roll. The end time is set to the current time. Use <paramref name="options"/> to provide a new post-roll end time; it must lie sufficiently in the future.
+		/// </summary>
+		/// <param name="jobs">The jobs to stop.</param>
+		/// <param name="options">The options that control how the jobs are stopped.</param>
+		/// <returns>A read-only collection containing the stopped jobs.</returns>
+		IReadOnlyCollection<Job> Stop(IEnumerable<Job> jobs, JobStopOptions options);
+
+		/// <summary>
+		/// Stops the specified running jobs early. Each job must be in the running state and must not be running in its pre-roll or post-roll. The end time is set to the current time. Use <paramref name="options"/> to provide a new post-roll end time; it must lie sufficiently in the future.
+		/// </summary>
+		/// <param name="jobIds">The unique identifiers of the jobs to stop.</param>
+		/// <param name="options">The options that control how the jobs are stopped.</param>
+		/// <returns>A read-only collection containing the stopped jobs.</returns>
+		IReadOnlyCollection<Job> Stop(IEnumerable<Guid> jobIds, JobStopOptions options);
 
 		/// <summary>
 		/// Set the state of a specific orchestration event for a job.

@@ -1,0 +1,9 @@
+namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions
+{
+	/// <summary>
+	/// Represents an error that occurs when a job cannot be stopped because it is currently running in its pre-roll.
+	/// </summary>
+	public sealed class JobRunningInPreRollError : JobError
+	{
+	}
+}

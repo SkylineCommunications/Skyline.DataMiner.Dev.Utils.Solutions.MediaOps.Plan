@@ -113,10 +113,10 @@
 			return !result.HasFailures;
 		}
 
-		internal static bool TryStart(MediaOpsPlanApi planApi, ICollection<Job> apiJobs, out DomInstanceBulkOperationResult<DomJob> result, JobManualStartOptions options = null)
+		internal static bool TryStart(MediaOpsPlanApi planApi, ICollection<Job> apiJobs, out DomInstanceBulkOperationResult<DomJob> result, JobStartOptions options = null)
 		{
 			var handler = new DomJobHandler(planApi);
-			handler.Start(apiJobs, options ?? new JobManualStartOptions());
+			handler.Start(apiJobs, options ?? new JobStartOptions());
 
 			result = new DomInstanceBulkOperationResult<DomJob>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
@@ -127,6 +127,16 @@
 		{
 			var handler = new DomJobHandler(planApi);
 			handler.TransitionToRunning(apiJobs);
+
+			result = new DomInstanceBulkOperationResult<DomJob>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+
+			return !result.HasFailures;
+		}
+
+		internal static bool TryStop(MediaOpsPlanApi planApi, ICollection<Job> apiJobs, out DomInstanceBulkOperationResult<DomJob> result, JobStopOptions options = null)
+		{
+			var handler = new DomJobHandler(planApi);
+			handler.Stop(apiJobs, options ?? new JobStopOptions());
 
 			result = new DomInstanceBulkOperationResult<DomJob>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
@@ -965,7 +975,7 @@
 			}
 		}
 
-		private void Start(ICollection<Job> apiJobs, JobManualStartOptions options)
+		private void Start(ICollection<Job> apiJobs, JobStartOptions options)
 		{
 			if (apiJobs == null)
 			{
@@ -982,14 +992,14 @@
 				return;
 			}
 
-			ValidateStateForManualStartAction(apiJobs);
+			ValidateStateForStartAction(apiJobs);
 			ValidateNewStartTime(apiJobs, options);
 
 			var lockResult = planApi.LockManager.LockAndExecute(apiJobs.Where(IsValid).ToList(), jobs => StartLocked(jobs, options));
 			ReportError(lockResult);
 		}
 
-		private void StartLocked(ICollection<Job> apiJobs, JobManualStartOptions options)
+		private void StartLocked(ICollection<Job> apiJobs, JobStartOptions options)
 		{
 			if (apiJobs == null)
 			{
@@ -1057,6 +1067,155 @@
 				{
 					// Without a pre-roll the start must follow the reservation start so no artificial pre-roll is introduced.
 					job.Start = reservationStart;
+				}
+
+				changedJobs.Add(job);
+			}
+
+			if (changedJobs.Count == 0)
+			{
+				return;
+			}
+
+			var updatedInstances = changedJobs.Select(x => x.GetInstanceWithChanges().ToInstance()).ToList();
+
+			planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.TryCreateOrUpdateInBatches(updatedInstances, out var domResult);
+
+			foreach (var id in domResult.UnsuccessfulIds)
+			{
+				ReportError(id.Id);
+
+				if (domResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+				{
+					var mediaOpsTraceData = new MediaOpsTraceData();
+					mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = traceData.ToString() });
+
+					PassTraceData(id.Id, mediaOpsTraceData);
+				}
+			}
+
+			ReportSuccess(domResult.SuccessfulItems.Select(x => new DomJob(x)).ToArray());
+		}
+
+		private void Stop(ICollection<Job> apiJobs, JobStopOptions options)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (options == null)
+			{
+				throw new ArgumentNullException(nameof(options));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			ValidateStateForStopAction(apiJobs);
+			ValidateNotRunningInPreRoll(apiJobs);
+			ValidateNotRunningInPostRoll(apiJobs);
+			ValidateNewPostRollEnd(apiJobs, options);
+
+			var lockResult = planApi.LockManager.LockAndExecute(apiJobs.Where(IsValid).ToList(), jobs => StopLocked(jobs, options));
+			ReportError(lockResult);
+		}
+
+		private void StopLocked(ICollection<Job> apiJobs, JobStopOptions options)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			if (apiJobs.Any(x => !IsValid(x)))
+			{
+				throw new ArgumentException($"Not all provided jobs are valid", nameof(apiJobs));
+			}
+
+			// Step 1: move the core reservation end and persist it BEFORE the DOM job is updated. The reservation must
+			// still cover the entire post-roll, so its end is aligned with the post-roll end. Within a single stop the
+			// reservations that need to move all move to one common end: the caller's new post-roll end when provided
+			// (applies to every job), otherwise the current time for jobs without a post-roll. Jobs that keep a configured
+			// post-roll leave their reservation untouched.
+			var jobsById = apiJobs.ToDictionary(x => x.Id);
+
+			DateTimeOffset reservationEnd;
+			List<Job> jobsToReschedule;
+			if (options.NewPostRollEnd.HasValue)
+			{
+				reservationEnd = options.NewPostRollEnd.Value;
+				jobsToReschedule = apiJobs.ToList();
+			}
+			else
+			{
+				reservationEnd = currentTime;
+				jobsToReschedule = apiJobs.Where(x => x.PostRollEnd <= x.End).ToList();
+			}
+
+			var persistedReservationEndByJobId = new Dictionary<Guid, DateTimeOffset>();
+			if (jobsToReschedule.Count > 0)
+			{
+				var domJobsToReschedule = jobsToReschedule.Select(x => x.OriginalInstance).ToList();
+
+				CoreJobHandler.TryStop(planApi, domJobsToReschedule, reservationEnd, out var coreResult, out var reservationEndByJobId);
+
+				foreach (var id in coreResult.UnsuccessfulIds)
+				{
+					ReportError(id);
+
+					if (coreResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+					{
+						PassTraceData(id, traceData);
+					}
+
+					// A job whose reservation could not be stopped must not have its DOM instance updated.
+					jobsById.Remove(id);
+				}
+
+				foreach (var entry in reservationEndByJobId)
+				{
+					persistedReservationEndByJobId[entry.Key] = entry.Value;
+				}
+			}
+
+			// Step 2: reflect the new end into every remaining DOM job. Rescheduled jobs take the persisted reservation end
+			// as their post-roll end; jobs that kept their post-roll retain their existing post-roll end. Clamp every node
+			// so no node outlives the post-roll end, then persist the DOM job.
+			var changedJobs = new List<Job>();
+			foreach (var job in jobsById.Values)
+			{
+				// Capture whether a post-roll was configured before the post-roll end is overwritten below.
+				var hasPostRoll = job.PostRollEnd > job.End;
+
+				if (persistedReservationEndByJobId.TryGetValue(job.Id, out var persistedEnd))
+				{
+					job.PostRollEnd = persistedEnd;
+
+					// Mirror the manual start: when there is no post-roll and no explicit end is requested, the end follows
+					// the (persisted) post-roll end so both stay exactly aligned, just as Start follows the pre-roll start
+					// when there is no pre-roll.
+					job.End = !options.NewPostRollEnd.HasValue && !hasPostRoll ? persistedEnd : currentTime;
+				}
+				else
+				{
+					// The post-roll is kept, so only the end moves to the current time.
+					job.End = currentTime;
+				}
+
+				foreach (var node in job.NodeGraph.Nodes)
+				{
+					if (node.End > job.PostRollEnd)
+					{
+						node.End = job.PostRollEnd;
+					}
 				}
 
 				changedJobs.Add(job);
@@ -1766,7 +1925,7 @@
 			}
 		}
 
-		private void ValidateStateForManualStartAction(ICollection<Job> apiJobs)
+		private void ValidateStateForStartAction(ICollection<Job> apiJobs)
 		{
 			foreach (var job in apiJobs.Where(x => x.IsNew || x.State != JobState.Confirmed))
 			{
@@ -1778,7 +1937,7 @@
 			}
 		}
 
-		private void ValidateNewStartTime(ICollection<Job> apiJobs, JobManualStartOptions options)
+		private void ValidateNewStartTime(ICollection<Job> apiJobs, JobStartOptions options)
 		{
 			if (!options.NewStartTime.HasValue)
 			{
@@ -1805,6 +1964,67 @@
 				{
 					ErrorMessage = "Only jobs in Confirmed state can be transitioned to running.",
 					Id = job.Id,
+				});
+			}
+		}
+
+		private void ValidateStateForStopAction(ICollection<Job> apiJobs)
+		{
+			foreach (var job in apiJobs.Where(x => x.IsNew || x.State != JobState.Running))
+			{
+				ReportError(job.Id, new JobInvalidStateError
+				{
+					ErrorMessage = "Only jobs in Running state can be stopped.",
+					Id = job.Id,
+				});
+			}
+		}
+
+		private void ValidateNotRunningInPreRoll(ICollection<Job> apiJobs)
+		{
+			foreach (var job in apiJobs.Where(x => IsValid(x) && x.PreRollStart < currentTime && currentTime < x.Start))
+			{
+				ReportError(job.Id, new JobRunningInPreRollError
+				{
+					ErrorMessage = "The job cannot be stopped while it is running in its pre-roll.",
+					Id = job.Id,
+				});
+			}
+		}
+
+		private void ValidateNotRunningInPostRoll(ICollection<Job> apiJobs)
+		{
+			foreach (var job in apiJobs.Where(x => IsValid(x) && x.End < currentTime && currentTime < x.PostRollEnd))
+			{
+				ReportError(job.Id, new JobRunningInPostRollError
+				{
+					ErrorMessage = "The job cannot be stopped while it is running in its post-roll.",
+					Id = job.Id,
+				});
+			}
+		}
+
+		private void ValidateNewPostRollEnd(ICollection<Job> apiJobs, JobStopOptions options)
+		{
+			if (!options.NewPostRollEnd.HasValue)
+			{
+				return;
+			}
+
+			var newPostRollEnd = options.NewPostRollEnd.Value;
+			if (newPostRollEnd >= currentTime + JobNodeTimingResolver.GuardTime)
+			{
+				return;
+			}
+
+			foreach (var job in apiJobs.Where(IsValid))
+			{
+				ReportError(job.Id, new JobInvalidPostRollError
+				{
+					ErrorMessage = $"The new post-roll end time must be at least {JobNodeTimingResolver.GuardTime.TotalSeconds:0} seconds in the future.",
+					Id = job.Id,
+					PostRollEnd = newPostRollEnd,
+					End = job.End,
 				});
 			}
 		}
