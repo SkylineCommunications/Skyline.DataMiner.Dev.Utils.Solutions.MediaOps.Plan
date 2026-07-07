@@ -176,6 +176,58 @@
 			return result.SuccessfulItems.Select(x => new Job(PlanApi, x)).ToList();
 		}
 
+		public Job TransitionToCompleted(Job job)
+		{
+			if (job == null)
+			{
+				throw new ArgumentNullException(nameof(job));
+			}
+
+			return TransitionToCompleted(job.Id);
+		}
+
+		public Job TransitionToCompleted(Guid jobId)
+		{
+			var job = Read(jobId);
+			if (job == null)
+			{
+				return null;
+			}
+
+			if (!DomJobHandler.TryTransitionToCompleted(PlanApi, [job], out var result))
+			{
+				result.ThrowSingleException(job.Id);
+			}
+
+			return new Job(PlanApi, result.SuccessfulItems.Single());
+		}
+
+		public IReadOnlyCollection<Job> TransitionToCompleted(IEnumerable<Job> jobs)
+		{
+			if (jobs == null)
+			{
+				throw new ArgumentNullException(nameof(jobs));
+			}
+
+			return TransitionToCompleted(jobs.Select(x => x.Id).ToArray());
+		}
+
+		public IReadOnlyCollection<Job> TransitionToCompleted(IEnumerable<Guid> jobIds)
+		{
+			if (jobIds == null)
+			{
+				throw new ArgumentNullException(nameof(jobIds));
+			}
+
+			var jobs = Read(jobIds);
+			if (!DomJobHandler.TryTransitionToCompleted(PlanApi, jobs?.ToList(), out var result))
+			{
+				result.ThrowBulkException();
+			}
+
+			return result.SuccessfulItems.Select(x => new Job(PlanApi, x)).ToList();
+		}
+
 		public Job Cancel(Job job)
 		{
 			if (job == null)
