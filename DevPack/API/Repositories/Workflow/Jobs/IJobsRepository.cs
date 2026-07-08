@@ -247,30 +247,22 @@
 		/// <returns>A read-only collection containing the started jobs.</returns>
 		IReadOnlyCollection<Job> Start(IEnumerable<Guid> jobIds, JobStartOptions options);
 
-		/// <summary>
-		/// Stops the specified running <see cref="Job"/> early. The job must be in the running state and must not be running in its pre-roll or post-roll. The end time is set to the current time and the current post-roll end time is kept.
-		/// </summary>
+		/// Stops the specified running <see cref="Job"/> early. The job must be in the running state and must not be running in its pre-roll or post-roll. The end time is set to the current time. If a post-roll is configured, its end time is kept; otherwise the post-roll end is aligned with the new end time.
 		/// <param name="job">The job to stop.</param>
 		/// <returns>The stopped job.</returns>
 		Job Stop(Job job);
 
-		/// <summary>
-		/// Stops the specified running job early. The job must be in the running state and must not be running in its pre-roll or post-roll. The end time is set to the current time and the current post-roll end time is kept.
-		/// </summary>
+		/// Stops the specified running job early. The job must be in the running state and must not be running in its pre-roll or post-roll. The end time is set to the current time. If a post-roll is configured, its end time is kept; otherwise the post-roll end is aligned with the new end time.
 		/// <param name="jobId">The unique identifier of the job to stop.</param>
 		/// <returns>The stopped job.</returns>
 		Job Stop(Guid jobId);
 
-		/// <summary>
-		/// Stops the specified running jobs early. Each job must be in the running state and must not be running in its pre-roll or post-roll. The end time is set to the current time and the current post-roll end time is kept.
-		/// </summary>
+		/// Stops the specified running jobs early. Each job must be in the running state and must not be running in its pre-roll or post-roll. The end time is set to the current time. If a post-roll is configured, its end time is kept; otherwise the post-roll end is aligned with the new end time.
 		/// <param name="jobs">The jobs to stop.</param>
 		/// <returns>A read-only collection containing the stopped jobs.</returns>
 		IReadOnlyCollection<Job> Stop(IEnumerable<Job> jobs);
 
-		/// <summary>
-		/// Stops the specified running jobs early. Each job must be in the running state and must not be running in its pre-roll or post-roll. The end time is set to the current time and the current post-roll end time is kept.
-		/// </summary>
+		/// Stops the specified running jobs early. Each job must be in the running state and must not be running in its pre-roll or post-roll. The end time is set to the current time. If a post-roll is configured, its end time is kept; otherwise the post-roll end is aligned with the new end time.
 		/// <param name="jobIds">The unique identifiers of the jobs to stop.</param>
 		/// <returns>A read-only collection containing the stopped jobs.</returns>
 		IReadOnlyCollection<Job> Stop(IEnumerable<Guid> jobIds);
