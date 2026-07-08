@@ -30,7 +30,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			objectCreator.Dispose();
 		}
 
-		/*[TestMethod]
+		[TestMethod]
 		public void Start_ConfirmedJobWithPreRoll_MovesTimingsToNowAndKeepsStart()
 		{
 			var prefix = Guid.NewGuid();
@@ -259,7 +259,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				reservations[0].Start,
 				startedJob.Start.UtcDateTime,
 				"Expected the job start to reflect the new start time rather than the reservation start.");
-		}*/
+		}
 
 		[TestMethod]
 		public void Start_DraftJob_ThrowsInvalidStateError()
