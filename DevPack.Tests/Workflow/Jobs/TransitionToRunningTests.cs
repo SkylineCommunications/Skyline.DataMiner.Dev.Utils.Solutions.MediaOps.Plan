@@ -1,9 +1,7 @@
 namespace RT_MediaOps.Plan.Workflow.Jobs
 {
 	using System;
-	using System.Diagnostics;
 	using System.Linq;
-	using System.Threading;
 
 	using RT_MediaOps.Plan.Extensions;
 	using RT_MediaOps.Plan.RegressionTests;
