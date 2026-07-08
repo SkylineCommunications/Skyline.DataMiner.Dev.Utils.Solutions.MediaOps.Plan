@@ -96,6 +96,15 @@
 			return !result.HasFailures;
 		}
 
+		public static bool TryVerifyEnded(MediaOpsPlanApi planApi, ICollection<DomJob> domJobs, out DomInstanceBulkOperationResult<DomJob> result)
+		{
+			var handler = new CoreJobHandler(planApi);
+			handler.VerifyEnded(domJobs);
+
+			result = new DomInstanceBulkOperationResult<DomJob>(handler.successfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+			return !result.HasFailures;
+		}
+
 		// The persisted reservation end is returned per job (reservationEndByJobId) rather than reusing the requested
 		// endTime, because SRM may adjust the end on save (granularity, constraints, tick precision). Reflecting the
 		// actual persisted end into the DOM job keeps DOM and the reservation consistent and avoids later SyncTime drift.
@@ -423,6 +432,47 @@
 					ReportError(mapping.Job.ID.Id, new JobReservationNotRunningError
 					{
 						ErrorMessage = "The core reservation is not running, so the job cannot be transitioned to running.",
+						Id = mapping.Job.ID.Id,
+					});
+					continue;
+				}
+
+				ReportSuccess(mapping.Job);
+			}
+		}
+
+		private void VerifyEnded(ICollection<DomJob> domJobs)
+		{
+			if (domJobs == null)
+			{
+				throw new ArgumentNullException(nameof(domJobs));
+			}
+
+			if (domJobs.Count == 0)
+			{
+				return;
+			}
+
+			foreach (var mapping in JobReservationMapping.GetMappings(planApi, domJobs))
+			{
+				// A Running job always has a reservation; a missing one is unexpected and cannot be transitioned.
+				if (mapping.IsNew)
+				{
+					ReportError(mapping.Job.ID.Id, new JobReservationNotFoundError
+					{
+						ErrorMessage = "No core reservation was found for the job, so it cannot be transitioned to completed.",
+						Id = mapping.Job.ID.Id,
+					});
+					continue;
+				}
+
+				// The Running-to-Completed transition may only happen once the reservation has actually finished, which
+				// SRM reflects as the Ended status.
+				if (mapping.Reservation.Status != Skyline.DataMiner.Net.Messages.ReservationStatus.Ended)
+				{
+					ReportError(mapping.Job.ID.Id, new JobReservationNotEndedError
+					{
+						ErrorMessage = "The core reservation has not ended, so the job cannot be transitioned to completed.",
 						Id = mapping.Job.ID.Id,
 					});
 					continue;
