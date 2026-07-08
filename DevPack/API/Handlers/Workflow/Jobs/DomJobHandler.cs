@@ -1225,7 +1225,22 @@
 				return;
 			}
 
-			var updatedInstances = changedJobs.Select(x => x.GetInstanceWithChanges().ToInstance()).ToList();
+			// Re-read the stored jobs and merge the timing changes onto them instead of persisting the pre-operation
+			// snapshot. Step 1 moved the core reservation, which makes SRM promote it to Ongoing on a live agent and
+			// drives the job's status transition (Confirmed-to-Running on start, Running-to-Completed on stop). The
+			// snapshot in OriginalInstance still carries the status the job had before that transition, so persisting it
+			// with a normal update would attempt to change the status and be rejected with
+			// StatusChangeNotAllowedForNormalUpdate. Merging the changes onto the current instance keeps the job's actual
+			// status, so only the timing fields are updated.
+			var updatedInstances = GetJobsWithChanges(changedJobs)
+				.Where(IsValid)
+				.Select(x => new DomJob(x.Instance).ToInstance())
+				.ToList();
+
+			if (updatedInstances.Count == 0)
+			{
+				return;
+			}
 
 			planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.TryCreateOrUpdateInBatches(updatedInstances, out var domResult);
 
