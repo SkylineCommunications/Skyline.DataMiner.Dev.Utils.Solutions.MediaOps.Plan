@@ -124,6 +124,110 @@
 			return result.SuccessfulItems.Select(x => new Job(PlanApi, x)).ToList();
 		}
 
+		public Job TransitionToRunning(Job job)
+		{
+			if (job == null)
+			{
+				throw new ArgumentNullException(nameof(job));
+			}
+
+			return TransitionToRunning(job.Id);
+		}
+
+		public Job TransitionToRunning(Guid jobId)
+		{
+			var job = Read(jobId);
+			if (job == null)
+			{
+				return null;
+			}
+
+			if (!DomJobHandler.TryTransitionToRunning(PlanApi, [job], out var result))
+			{
+				result.ThrowSingleException(job.Id);
+			}
+
+			return new Job(PlanApi, result.SuccessfulItems.Single());
+		}
+
+		public IReadOnlyCollection<Job> TransitionToRunning(IEnumerable<Job> jobs)
+		{
+			if (jobs == null)
+			{
+				throw new ArgumentNullException(nameof(jobs));
+			}
+
+			return TransitionToRunning(jobs.Select(x => x.Id).ToArray());
+		}
+
+		public IReadOnlyCollection<Job> TransitionToRunning(IEnumerable<Guid> jobIds)
+		{
+			if (jobIds == null)
+			{
+				throw new ArgumentNullException(nameof(jobIds));
+			}
+
+			var jobs = Read(jobIds);
+			if (!DomJobHandler.TryTransitionToRunning(PlanApi, jobs?.ToList(), out var result))
+			{
+				result.ThrowBulkException();
+			}
+
+			return result.SuccessfulItems.Select(x => new Job(PlanApi, x)).ToList();
+		}
+
+		public Job TransitionToCompleted(Job job)
+		{
+			if (job == null)
+			{
+				throw new ArgumentNullException(nameof(job));
+			}
+
+			return TransitionToCompleted(job.Id);
+		}
+
+		public Job TransitionToCompleted(Guid jobId)
+		{
+			var job = Read(jobId);
+			if (job == null)
+			{
+				return null;
+			}
+
+			if (!DomJobHandler.TryTransitionToCompleted(PlanApi, [job], out var result))
+			{
+				result.ThrowSingleException(job.Id);
+			}
+
+			return new Job(PlanApi, result.SuccessfulItems.Single());
+		}
+
+		public IReadOnlyCollection<Job> TransitionToCompleted(IEnumerable<Job> jobs)
+		{
+			if (jobs == null)
+			{
+				throw new ArgumentNullException(nameof(jobs));
+			}
+
+			return TransitionToCompleted(jobs.Select(x => x.Id).ToArray());
+		}
+
+		public IReadOnlyCollection<Job> TransitionToCompleted(IEnumerable<Guid> jobIds)
+		{
+			if (jobIds == null)
+			{
+				throw new ArgumentNullException(nameof(jobIds));
+			}
+
+			var jobs = Read(jobIds);
+			if (!DomJobHandler.TryTransitionToCompleted(PlanApi, jobs?.ToList(), out var result))
+			{
+				result.ThrowBulkException();
+			}
+
+			return result.SuccessfulItems.Select(x => new Job(PlanApi, x)).ToList();
+		}
+
 		public Job Cancel(Job job)
 		{
 			if (job == null)
@@ -273,6 +377,200 @@
 
 			var jobs = Read(jobIds);
 			if (!DomJobHandler.TryMarkAsCompleted(PlanApi, jobs?.ToList(), out var result))
+			{
+				result.ThrowBulkException();
+			}
+
+			return result.SuccessfulItems.Select(x => new Job(PlanApi, x)).ToList();
+		}
+
+		public Job Start(Job job)
+		{
+			if (job == null)
+			{
+				throw new ArgumentNullException(nameof(job));
+			}
+
+			return Start(job.Id, new JobStartOptions());
+		}
+
+		public Job Start(Guid jobId)
+		{
+			return Start(jobId, new JobStartOptions());
+		}
+
+		public IReadOnlyCollection<Job> Start(IEnumerable<Job> jobs)
+		{
+			if (jobs == null)
+			{
+				throw new ArgumentNullException(nameof(jobs));
+			}
+
+			return Start(jobs.Select(x => x.Id).ToArray(), new JobStartOptions());
+		}
+
+		public IReadOnlyCollection<Job> Start(IEnumerable<Guid> jobIds)
+		{
+			if (jobIds == null)
+			{
+				throw new ArgumentNullException(nameof(jobIds));
+			}
+
+			return Start(jobIds, new JobStartOptions());
+		}
+
+		public Job Start(Job job, JobStartOptions options)
+		{
+			if (job == null)
+			{
+				throw new ArgumentNullException(nameof(job));
+			}
+
+			return Start(job.Id, options);
+		}
+
+		public Job Start(Guid jobId, JobStartOptions options)
+		{
+			if (options == null)
+			{
+				throw new ArgumentNullException(nameof(options));
+			}
+
+			var job = Read(jobId);
+			if (job == null)
+			{
+				return null;
+			}
+
+			if (!DomJobHandler.TryStart(PlanApi, [job], out var result, options))
+			{
+				result.ThrowSingleException(job.Id);
+			}
+
+			return new Job(PlanApi, result.SuccessfulItems.Single());
+		}
+
+		public IReadOnlyCollection<Job> Start(IEnumerable<Job> jobs, JobStartOptions options)
+		{
+			if (jobs == null)
+			{
+				throw new ArgumentNullException(nameof(jobs));
+			}
+
+			return Start(jobs.Select(x => x.Id).ToArray(), options);
+		}
+
+		public IReadOnlyCollection<Job> Start(IEnumerable<Guid> jobIds, JobStartOptions options)
+		{
+			if (jobIds == null)
+			{
+				throw new ArgumentNullException(nameof(jobIds));
+			}
+
+			if (options == null)
+			{
+				throw new ArgumentNullException(nameof(options));
+			}
+
+			var jobs = Read(jobIds);
+			if (!DomJobHandler.TryStart(PlanApi, jobs?.ToList(), out var result, options))
+			{
+				result.ThrowBulkException();
+			}
+
+			return result.SuccessfulItems.Select(x => new Job(PlanApi, x)).ToList();
+		}
+
+		public Job Stop(Job job)
+		{
+			if (job == null)
+			{
+				throw new ArgumentNullException(nameof(job));
+			}
+
+			return Stop(job.Id, new JobStopOptions());
+		}
+
+		public Job Stop(Guid jobId)
+		{
+			return Stop(jobId, new JobStopOptions());
+		}
+
+		public IReadOnlyCollection<Job> Stop(IEnumerable<Job> jobs)
+		{
+			if (jobs == null)
+			{
+				throw new ArgumentNullException(nameof(jobs));
+			}
+
+			return Stop(jobs.Select(x => x.Id).ToArray(), new JobStopOptions());
+		}
+
+		public IReadOnlyCollection<Job> Stop(IEnumerable<Guid> jobIds)
+		{
+			if (jobIds == null)
+			{
+				throw new ArgumentNullException(nameof(jobIds));
+			}
+
+			return Stop(jobIds, new JobStopOptions());
+		}
+
+		public Job Stop(Job job, JobStopOptions options)
+		{
+			if (job == null)
+			{
+				throw new ArgumentNullException(nameof(job));
+			}
+
+			return Stop(job.Id, options);
+		}
+
+		public Job Stop(Guid jobId, JobStopOptions options)
+		{
+			if (options == null)
+			{
+				throw new ArgumentNullException(nameof(options));
+			}
+
+			var job = Read(jobId);
+			if (job == null)
+			{
+				return null;
+			}
+
+			if (!DomJobHandler.TryStop(PlanApi, [job], out var result, options))
+			{
+				result.ThrowSingleException(job.Id);
+			}
+
+			return new Job(PlanApi, result.SuccessfulItems.Single());
+		}
+
+		public IReadOnlyCollection<Job> Stop(IEnumerable<Job> jobs, JobStopOptions options)
+		{
+			if (jobs == null)
+			{
+				throw new ArgumentNullException(nameof(jobs));
+			}
+
+			return Stop(jobs.Select(x => x.Id).ToArray(), options);
+		}
+
+		public IReadOnlyCollection<Job> Stop(IEnumerable<Guid> jobIds, JobStopOptions options)
+		{
+			if (jobIds == null)
+			{
+				throw new ArgumentNullException(nameof(jobIds));
+			}
+
+			if (options == null)
+			{
+				throw new ArgumentNullException(nameof(options));
+			}
+
+			var jobs = Read(jobIds);
+			if (!DomJobHandler.TryStop(PlanApi, jobs?.ToList(), out var result, options))
 			{
 				result.ThrowBulkException();
 			}
