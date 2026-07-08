@@ -156,28 +156,28 @@
 		IReadOnlyCollection<Job> MarkAsCompleted(IEnumerable<Guid> jobIds);
 
 		/// <summary>
-		/// Manually starts the specified <see cref="Job"/>. The job must be in the confirmed state. The current start time is kept, even when a pre-roll is configured.
+		/// Manually starts the specified <see cref="Job"/>. The job must be in the confirmed state. The pre-roll start (and all node starts) are moved to the current time; the job start is kept when a pre-roll is configured, otherwise it is aligned with the pre-roll start.
 		/// </summary>
 		/// <param name="job">The job to start.</param>
 		/// <returns>The started job.</returns>
 		Job Start(Job job);
 
 		/// <summary>
-		/// Manually starts the specified job. The job must be in the confirmed state. The current start time is kept, even when a pre-roll is configured.
+		/// Manually starts the specified job. The job must be in the confirmed state. The pre-roll start (and all node starts) are moved to the current time; the job start is kept when a pre-roll is configured, otherwise it is aligned with the pre-roll start.
 		/// </summary>
 		/// <param name="jobId">The unique identifier of the job to start.</param>
 		/// <returns>The started job.</returns>
 		Job Start(Guid jobId);
 
 		/// <summary>
-		/// Manually starts the specified jobs. Each job must be in the confirmed state. The current start time is kept, even when a pre-roll is configured.
+		/// Manually starts the specified jobs. Each job must be in the confirmed state. The pre-roll start (and all node starts) are moved to the current time; the job start is kept when a pre-roll is configured, otherwise it is aligned with the pre-roll start.
 		/// </summary>
 		/// <param name="jobs">The jobs to start.</param>
 		/// <returns>A read-only collection containing the started jobs.</returns>
 		IReadOnlyCollection<Job> Start(IEnumerable<Job> jobs);
 
 		/// <summary>
-		/// Manually starts the specified jobs. Each job must be in the confirmed state. The current start time is kept, even when a pre-roll is configured.
+		/// Manually starts the specified jobs. Each job must be in the confirmed state. The pre-roll start (and all node starts) are moved to the current time; the job start is kept when a pre-roll is configured, otherwise it is aligned with the pre-roll start.
 		/// </summary>
 		/// <param name="jobIds">The unique identifiers of the jobs to start.</param>
 		/// <returns>A read-only collection containing the started jobs.</returns>
