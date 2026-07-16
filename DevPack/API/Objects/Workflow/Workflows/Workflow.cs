@@ -207,6 +207,17 @@
 		internal PropertySettingsContext PropertySettingsContext => propertiesContext;
 
 		/// <summary>
+		/// Creates a duplicate of this workflow with a newly generated identifier. The duplicate is a brand new,
+		/// unsaved workflow instance without any ties to the original: all properties, orchestration settings,
+		/// nodes, connections, links and property settings are deep copied.
+		/// </summary>
+		/// <returns>A new <see cref="Workflow"/> instance that is a deep copy of the current workflow.</returns>
+		public Workflow Duplicate()
+		{
+			return new Workflow(this, Guid.NewGuid());
+		}
+
+		/// <summary>
 		/// Creates a duplicate of this workflow with the specified identifier. The duplicate is a brand new,
 		/// unsaved workflow instance without any ties to the original: all properties, orchestration settings,
 		/// nodes, connections, links and property settings are deep copied.
