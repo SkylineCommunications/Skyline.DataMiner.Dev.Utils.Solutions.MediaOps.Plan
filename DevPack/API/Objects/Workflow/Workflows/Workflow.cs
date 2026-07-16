@@ -58,6 +58,85 @@
 		}
 
 		/// <summary>
+		/// Initializes a new instance of the <see cref="Workflow"/> class as a deep copy of the specified original
+		/// workflow, using the supplied identifier for the new workflow. The resulting instance is a brand new,
+		/// unsaved workflow that shares no references with <paramref name="original"/>.
+		/// </summary>
+		/// <param name="original">The workflow to duplicate.</param>
+		/// <param name="id">The unique identifier of the duplicated workflow.</param>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="original"/> is <see langword="null"/>.</exception>
+		/// <exception cref="ArgumentException">Thrown when <paramref name="id"/> is <see cref="Guid.Empty"/>.</exception>
+		internal Workflow(Workflow original, Guid id) : base(id)
+		{
+			if (original == null)
+			{
+				throw new ArgumentNullException(nameof(original));
+			}
+
+			IsNew = true;
+			HasUserDefinedId = true;
+
+			Name = original.Name;
+			Description = original.Description;
+			Priority = original.Priority;
+			IsFavorite = original.IsFavorite;
+			PreRoll = original.PreRoll;
+			PostRoll = original.PostRoll;
+			Notes = original.Notes;
+
+			OrchestrationSettings = new WorkflowOrchestrationSettings();
+			NodeGraph = new NodeGraph<WorkflowNode>();
+			ConfigureNodeGraphSwapHooks();
+
+			// 1. Clone the node graph first so we have a complete original-node-id -> duplicated-node-id map
+			//    before retargeting any DataReferences (orchestration settings may reference nodes).
+			var nodeIdMap = NodeGraphCloner.Clone(original.NodeGraph, NodeGraph, CreateDuplicatedNode);
+
+			var originalNodesById = original.NodeGraph.Nodes.ToDictionary(n => n.Id);
+			var duplicatedNodesById = NodeGraph.Nodes.ToDictionary(n => n.Id);
+
+			// 2. Copy the per-node orchestration settings, pairing each new node with its source workflow node.
+			foreach (var entry in nodeIdMap)
+			{
+				var originalNode = originalNodesById[entry.Key];
+				var duplicatedNode = duplicatedNodesById[entry.Value];
+				OrchestrationSettingsCloner.Clone(originalNode.OrchestrationSettings, duplicatedNode.OrchestrationSettings, nodeIdMap);
+			}
+
+			// 3. Copy the workflow-level orchestration settings.
+			OrchestrationSettingsCloner.Clone(original.OrchestrationSettings, OrchestrationSettings, nodeIdMap);
+
+			// 4. Copy the property settings from the original workflow (owner) and from each original node onto the
+			//    corresponding new node. The property scope copies every incoming setting into an independent
+			//    instance, so the duplicate never shares references with the original workflow.
+			foreach (var setting in original.CustomPropertySettings)
+			{
+				AddCustomProperty(setting);
+			}
+
+			foreach (var setting in original.PropertySettings)
+			{
+				AddProperty(setting);
+			}
+
+			foreach (var entry in nodeIdMap)
+			{
+				var originalNode = originalNodesById[entry.Key];
+				var duplicatedNode = duplicatedNodesById[entry.Value];
+
+				foreach (var setting in originalNode.CustomPropertySettings)
+				{
+					duplicatedNode.AddCustomProperty(setting);
+				}
+
+				foreach (var setting in originalNode.PropertySettings)
+				{
+					duplicatedNode.AddProperty(setting);
+				}
+			}
+		}
+
+		/// <summary>
 		/// Gets or sets the name of the workflow.
 		/// </summary>
 		public override string Name { get; set; }
@@ -126,6 +205,19 @@
 		internal PropertySettingsScope PropertySettingsScope => propertySettingsScope;
 
 		internal PropertySettingsContext PropertySettingsContext => propertiesContext;
+
+		/// <summary>
+		/// Creates a duplicate of this workflow with the specified identifier. The duplicate is a brand new,
+		/// unsaved workflow instance without any ties to the original: all properties, orchestration settings,
+		/// nodes, connections, links and property settings are deep copied.
+		/// </summary>
+		/// <param name="id">The unique identifier of the duplicated workflow.</param>
+		/// <returns>A new <see cref="Workflow"/> instance that is a deep copy of the current workflow.</returns>
+		/// <exception cref="ArgumentException">Thrown when <paramref name="id"/> is <see cref="Guid.Empty"/>.</exception>
+		public Workflow Duplicate(Guid id)
+		{
+			return new Workflow(this, id);
+		}
 
 		/// <summary>
 		/// Adds a custom property setting to this workflow.
@@ -386,6 +478,29 @@
 					planApi.Logger.Warning(this, $"Node with ID {nodeSecion.NodeID} has unsupported node type {nodeSecion.NodeType.Value}. This node will be ignored.");
 					return null;
 			}
+		}
+
+		/// <summary>
+		/// Produces the <see cref="WorkflowNode"/> that should replace the given source <see cref="WorkflowNode"/>
+		/// inside the duplicated graph. The generic cloning and reference retargeting is performed by
+		/// <see cref="NodeGraphCloner"/> and <see cref="OrchestrationSettingsCloner"/>.
+		/// </summary>
+		private static WorkflowNode CreateDuplicatedNode(WorkflowNode source)
+		{
+			return source switch
+			{
+				WorkflowResourceNode resourceNode => new WorkflowResourceNode(resourceNode.ResourcePoolId, resourceNode.ResourceId)
+				{
+					Alias = resourceNode.Alias,
+					IconImage = resourceNode.IconImage,
+				},
+				WorkflowResourcePoolNode resourcePoolNode => new WorkflowResourcePoolNode(resourcePoolNode.ResourcePoolId)
+				{
+					Alias = resourcePoolNode.Alias,
+					IconImage = resourcePoolNode.IconImage,
+				},
+				_ => null,
+			};
 		}
 
 		private List<NodeConnection<WorkflowNode>> ParseConnections(MediaOpsPlanApi planApi, IReadOnlyDictionary<string, WorkflowNode> parsedNodesById, ICollection<StorageWorkflow.ConnectionsSection> connections)
