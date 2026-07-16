@@ -320,7 +320,7 @@
 		/// <param name="currentNode">The node that currently lives in the graph.</param>
 		/// <returns>The original node that was swapped out, or <paramref name="currentNode"/> itself when it was never the result of a swap.</returns>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="currentNode"/> is null.</exception>
-		public TNode GetOriginalNode(TNode currentNode)
+		internal TNode GetOriginalNode(TNode currentNode)
 		{
 			if (currentNode == null)
 			{
