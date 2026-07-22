@@ -8,7 +8,7 @@
 	/// Thrown when a MediaOps bulk operation failed.
 	/// </summary>
 	/// <typeparam name="K">The type of the identifiers used in the bulk operation.</typeparam>
-	public class MediaOpsBulkException<K> : Exception
+	public class MediaOpsBulkException<K> : MediaOpsBulkException
 		where K : IEquatable<K>
 	{
 		/// <summary>
@@ -61,6 +61,35 @@
 
 			var lines = preLines.Concat(new[] { base.ToString() });
 			return string.Join(Environment.NewLine, lines);
+		}
+
+		/// <summary>
+		/// Gets the error message that explains the reason for this <see cref="MediaOpsException" />.
+		/// </summary>
+		public override string Message
+		{
+			get
+			{
+				if (Result.TraceDataPerItem.Count == 1 && Result.TraceDataPerItem.First().Value.ErrorData.Count == 1)
+				{
+					return Result.TraceDataPerItem.First().Value.ErrorData[0].ErrorMessage;
+				}
+
+				return ToString();
+			}
+		}
+	}
+
+	/// <summary>
+	/// Represents an exception thrown when a MediaOps bulk operation fails.
+	/// </summary>
+	public class MediaOpsBulkException : Exception
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="MediaOpsBulkException"/> class.
+		/// </summary>
+		protected internal MediaOpsBulkException()
+		{
 		}
 	}
 }
