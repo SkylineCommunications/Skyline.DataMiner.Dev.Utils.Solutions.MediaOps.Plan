@@ -69,7 +69,7 @@
 		/// <summary>
 		/// Gets or sets the key of the job. If the key is not explicitly set during initialization, the system automatically assigns a generated key that cannot be modified afterwards.
 		/// </summary>
-		public string Key { get => key; init => key = value; }
+		public string Key { get => key; set => key = value; }
 
 		/// <summary>
 		/// Gets or sets the description of the job.

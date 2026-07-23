@@ -53,17 +53,17 @@
 		/// <summary>
 		/// Gets the identifier of the object this collection is linked to.
 		/// </summary>
-		public string LinkedObjectId { get => linkedObjectId; init => linkedObjectId = value; }
+		public string LinkedObjectId { get => linkedObjectId; set => linkedObjectId = value; }
 
 		/// <summary>
 		/// Gets the scope of this property setting collection.
 		/// </summary>
-		public string Scope { get => scope; init => scope = value; }
+		public string Scope { get => scope; set => scope = value; }
 
 		/// <summary>
 		/// Gets the sub-identifier for this property setting collection.
 		/// </summary>
-		public string SubId { get => subId; init => subId = value; }
+		public string SubId { get => subId; set => subId = value; }
 
 		/// <summary>
 		/// Gets the collection of custom property settings.

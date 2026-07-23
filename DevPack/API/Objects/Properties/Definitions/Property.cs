@@ -41,7 +41,7 @@
 		/// <summary>
 		/// Gets or sets the scope of the property.
 		/// </summary>
-		public string Scope { get => scope; init => scope = value; }
+		public string Scope { get => scope; set => scope = value; }
 
 		/// <summary>
 		/// Gets or sets the name of the section to which the property belongs.
