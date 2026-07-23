@@ -72,15 +72,7 @@
 		public string Key
 		{
 			get => key;
-			set
-			{
-				if (value == key)
-				{
-					return;
-				}
-
-				AssignKey(value);
-			}
+			set => AssignKey(value);
 		}
 
 		/// <summary>
