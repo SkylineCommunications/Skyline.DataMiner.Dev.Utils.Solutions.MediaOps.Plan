@@ -2395,7 +2395,8 @@
 				return;
 			}
 
-			var categoryIds = planApi.Categories.Categories.GetByScope(scope).Select(x => x.ID.ToString()).ToList();
+			var categories = planApi.Categories.Categories.GetByScope(scope).ToList();
+			var categoryIds = categories.Select(x => x.ID.ToString()).ToList();
 
 			foreach (var job in toValidate)
 			{
@@ -2405,6 +2406,14 @@
 					{
 						// Translate previous fixed source to new fixed category id.
 						job.CategoryId = Convert.ToString(JobTypes.Scheduled);
+						continue;
+					}
+
+					var matchedCategory = categories.FirstOrDefault(x => String.Equals(x.Name, job.CategoryId, StringComparison.InvariantCultureIgnoreCase));
+					if (matchedCategory != null)
+					{
+						// Normalize category names to IDs so downstream processing remains ID-based.
+						job.CategoryId = matchedCategory.ID.ToString();
 						continue;
 					}
 
