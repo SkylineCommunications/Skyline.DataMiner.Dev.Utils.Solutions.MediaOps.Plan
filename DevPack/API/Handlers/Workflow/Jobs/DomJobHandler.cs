@@ -2409,14 +2409,6 @@
 						continue;
 					}
 
-					var matchedCategory = categories.FirstOrDefault(x => String.Equals(x.Name, job.CategoryId, StringComparison.InvariantCultureIgnoreCase));
-					if (matchedCategory != null)
-					{
-						// Normalize category names to IDs so downstream processing remains ID-based.
-						job.CategoryId = matchedCategory.ID.ToString();
-						continue;
-					}
-
 					var error = new JobCategoryNotFoundError
 					{
 						ErrorMessage = $"Category with ID '{job.CategoryId}' not found in Scope '{JobCategoryScopes.JobTypes}'.",
