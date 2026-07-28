@@ -116,7 +116,7 @@
 		/// <summary>
 		/// Gets or sets the recurring pattern that defines when jobs are generated from this recurring job.
 		/// </summary>
-		public RecurringPattern Pattern { get; set; } = new RecurringPattern();
+		public RecurringPattern Pattern { get; private set; } = new RecurringPattern();
 
 		internal RecurringJobsInstance OriginalInstance => originalInstance;
 
