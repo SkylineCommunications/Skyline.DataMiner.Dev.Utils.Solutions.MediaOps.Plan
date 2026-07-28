@@ -6,6 +6,7 @@
 
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Solutions.Categories.API;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
 
 	using SlcWorkflowIds = Storage.DOM.SlcWorkflow.SlcWorkflowIds;
 
@@ -94,7 +95,7 @@
 			var categoryItemFilter = new ORFilterElement<CategoryItem>(jobs.Select(x => BuildCategoryItemFilter(x.JobId)).ToArray());
 			var existingCategoryItemsByJobId = planApi.Categories.CategoryItems
 				.Read(categoryItemFilter)
-				.ToDictionary(x => Guid.Parse(x.InstanceId), x => x);
+				.SafeToDictionary(x => Guid.Parse(x.InstanceId), x => x);
 
 			var categoryItemsToCreateOrUpdate = new List<CategoryItem>();
 			var categoryItemsToDelete = new List<CategoryItem>();

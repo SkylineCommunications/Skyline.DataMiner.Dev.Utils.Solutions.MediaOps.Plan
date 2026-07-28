@@ -97,7 +97,7 @@
 
 		private static Scope GetJobScope()
 		{
-			return TestContext.CategoriesApi.Scopes.Read(ScopeExposers.Name.Equal(JobCategoryScopes.JobTypes)).FirstOrDefault()
+			return TestContext.CategoriesApi.Scopes.Read(JobCategoryScopes.JobTypes)
 				?? throw new InvalidOperationException($"Category Scope '{JobCategoryScopes.JobTypes}' is not available");
 		}
 

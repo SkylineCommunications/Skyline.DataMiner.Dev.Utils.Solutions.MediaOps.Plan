@@ -240,7 +240,6 @@
 
 			CreateOrUpdateOrchestrationSettings(apiJobs.Where(IsValid).ToList());
 			CreateOrUpdatePropertySettingCollections(apiJobs.Where(IsValid).ToList());
-			CreateOrUpdateCategoryItems(apiJobs.Where(IsValid).ToList());
 
 			var toCreateDomInstances = toCreate
 				.Where(IsValid)
@@ -253,6 +252,10 @@
 				.ToList();
 
 			CreateOrUpdateDomJobs(toCreateDomInstances.Concat(toUpdateDomInstances).ToList());
+
+			// Register the category items only after the job DOM instances are persisted so the Categories app is not
+			// left with items pointing to jobs that failed to be created or updated.
+			CreateOrUpdateCategoryItems(apiJobs.Where(IsValid).ToList());
 		}
 
 		private void CreateOrUpdateDomJobs(ICollection<DomJob> domJobs)
@@ -2438,7 +2441,7 @@
 			}
 
 			var categories = planApi.Categories.Categories.GetByScope(scope).ToList();
-			var categoryIds = categories.Select(x => x.ID.ToString()).ToList();
+			var categoryIds = categories.Select(x => x.ID.ToString()).ToHashSet();
 
 			foreach (var job in toValidate)
 			{
