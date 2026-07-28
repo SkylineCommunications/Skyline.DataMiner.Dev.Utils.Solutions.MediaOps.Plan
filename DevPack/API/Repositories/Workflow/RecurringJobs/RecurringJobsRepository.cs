@@ -36,7 +36,7 @@
 				{
 					foreach (var domRecurringJob in PlanApi.DomHelpers.SlcWorkflowHelper.GetRecurringJobs(domFilter))
 					{
-						yield return new RecurringJob(domRecurringJob);
+						yield return new RecurringJob(PlanApi, domRecurringJob);
 					}
 				}
 
@@ -69,16 +69,16 @@
 			return ActivityHelper.Track(nameof(RecurringJobsRepository), nameof(Read), act =>
 			{
 				act?.AddTag("RecurringJobId", id);
-				var resourcePool = Read(RecurringJobExposers.Id.Equal(id)).FirstOrDefault();
+				var recurringJob = Read(RecurringJobExposers.Id.Equal(id)).FirstOrDefault();
 
-				if (resourcePool == null)
+				if (recurringJob == null)
 				{
 					act?.AddTag("Hit", false);
 					return null;
 				}
 
 				act?.AddTag("Hit", true);
-				return resourcePool;
+				return recurringJob;
 			});
 		}
 
