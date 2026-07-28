@@ -69,10 +69,12 @@
 			var job = new Job
 			{
 				Name = recurringJob.Name,
+				Description = recurringJob.Description,
 				Start = startTime,
 				End = endTime,
 				PreRollStart = startTime - recurringJob.PreRollDuration,
 				PostRollEnd = endTime + recurringJob.PostRollDuration,
+				Priority = EnumExtensions.MapEnum<RecurringJobPriority, JobPriority>(recurringJob.Priority),
 			};
 
 			// Clone the graph first to establish the recurring-node-to-job-node ID mapping.
@@ -129,6 +131,8 @@
 					jobNode.AddProperty(setting);
 				}
 			}
+
+			// TODO: linked items (=relationships) are not yet being taken over
 
 			return job;
 		}

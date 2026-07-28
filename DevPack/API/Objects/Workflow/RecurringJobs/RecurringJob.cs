@@ -14,6 +14,8 @@
 	/// </summary>
 	public class RecurringJob : ApiNamedObject
 	{
+		private readonly HashSet<Guid> contactIds = [];
+
 		private RecurringJobsInstance originalInstance;
 		private PropertySettingsContext propertiesContext;
 		private PropertySettingsScope propertySettingsScope;
@@ -60,6 +62,16 @@
 		/// Gets or sets the name of the recurring job.
 		/// </summary>
 		public override string Name { get; set; }
+
+		/// <summary>
+		/// Gets or sets the description of the recurring job.
+		/// </summary>
+		public string Description { get; set; }
+
+		/// <summary>
+		/// Gets or sets the priority of the recurring job.
+		/// </summary>
+		public RecurringJobPriority Priority { get; set; } = RecurringJobPriority.Normal;
 
 		/// <summary>
 		/// Gets the orchestration settings assigned to this recurring job.
@@ -117,6 +129,26 @@
 		/// Gets or sets the recurring pattern that defines when jobs are generated from this recurring job.
 		/// </summary>
 		public RecurringPattern Pattern { get; private set; } = new RecurringPattern();
+
+		/// <summary>
+		/// Gets or sets the ID of the organization associated with the recurring job.
+		/// </summary>
+		public Guid OrganizationId { get; set; }
+
+		/// <summary>
+		/// Gets or sets the ID of the owner of the recurring job.
+		/// </summary>
+		public Guid OwnerId { get; set; }
+
+		/// <summary>
+		/// Gets the collection of contact IDs associated with the recurring job.
+		/// </summary>
+		public IReadOnlyCollection<Guid> ContactIds => contactIds;
+
+		/// <summary>
+		/// Gets or sets the unique identifier of the associated recurring job type.
+		/// </summary>
+		public string CategoryId { get; set; }
 
 		internal RecurringJobsInstance OriginalInstance => originalInstance;
 
