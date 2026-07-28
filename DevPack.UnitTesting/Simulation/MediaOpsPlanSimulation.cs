@@ -43,6 +43,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 		/// </summary>
 		private const string ResourcePoolsScopeName = "Resource Pools";
 
+		/// <summary>
+		/// The name of the category scope the MediaOps Plan solution uses for job types.
+		/// </summary>
+		private const string JobTypesScopeName = "Job Types";
+
 		private const string GenericCameraProtocolName = "Generic Camera";
 
 		/// <summary>
@@ -162,6 +167,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 			categoriesApi.InstallDomModules();
 
 			categoriesApi.Scopes.Create(new Scope { Name = ResourcePoolsScopeName });
+			categoriesApi.Scopes.Create(new Scope { Name = JobTypesScopeName });
 		}
 
 		private static void RegisterProtocols(SimulatedDms dms)
