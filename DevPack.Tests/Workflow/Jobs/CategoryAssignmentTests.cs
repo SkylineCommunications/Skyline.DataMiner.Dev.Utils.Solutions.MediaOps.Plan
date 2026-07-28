@@ -110,7 +110,7 @@
 				var traceData = exception.TraceData.ErrorData.OfType<JobCategoryNotFoundError>().Single();
 				Assert.IsNotNull(traceData);
 				Assert.AreEqual(categoryId, traceData.CategoryId);
-				Assert.AreEqual($"Category with ID '{categoryId}' not found in Scope '{JobCategoryScopes.JobTypes}'.", traceData.ErrorMessage);
+				Assert.AreEqual($"Category with ID '{categoryId}' not found in Scope '{CategoryScopes.JobTypes}'.", traceData.ErrorMessage);
 
 				return;
 			}
@@ -209,8 +209,8 @@
 
 		private static Scope GetJobScope()
 		{
-			return TestContext.CategoriesApi.Scopes.Read(JobCategoryScopes.JobTypes)
-				?? throw new InvalidOperationException($"Category Scope '{JobCategoryScopes.JobTypes}' is not available");
+			return TestContext.CategoriesApi.Scopes.Read(CategoryScopes.JobTypes)
+				?? throw new InvalidOperationException($"Category Scope '{CategoryScopes.JobTypes}' is not available");
 		}
 
 		private static void AssertCategoryAssignment(Guid jobId, Category? expectedCategory)

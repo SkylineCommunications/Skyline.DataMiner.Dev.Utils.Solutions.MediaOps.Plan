@@ -9,6 +9,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 	using Skyline.DataMiner.Net.Messages;
 	using Skyline.DataMiner.Net.Sections;
 	using Skyline.DataMiner.Solutions.Categories.API;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcProperties;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow;
@@ -37,16 +38,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 		private const string ResourceStudioModuleId = "(slc)resource_studio";
 		private const string WorkflowModuleId = "(slc)workflow";
 		private const string PropertiesModuleId = "(slc)properties";
-
-		/// <summary>
-		/// The name of the category scope the MediaOps Plan solution uses for resource pools.
-		/// </summary>
-		private const string ResourcePoolsScopeName = "Resource Pools";
-
-		/// <summary>
-		/// The name of the category scope the MediaOps Plan solution uses for job types.
-		/// </summary>
-		private const string JobTypesScopeName = "Job Types";
 
 		private const string GenericCameraProtocolName = "Generic Camera";
 
@@ -166,8 +157,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 
 			categoriesApi.InstallDomModules();
 
-			categoriesApi.Scopes.Create(new Scope { Name = ResourcePoolsScopeName });
-			categoriesApi.Scopes.Create(new Scope { Name = JobTypesScopeName });
+			categoriesApi.Scopes.Create(new Scope { Name = CategoryScopes.ResourcePools });
+			categoriesApi.Scopes.Create(new Scope { Name = CategoryScopes.JobTypes });
 		}
 
 		private static void RegisterProtocols(SimulatedDms dms)

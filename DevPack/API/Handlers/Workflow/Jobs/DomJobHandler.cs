@@ -2423,14 +2423,14 @@
 				return;
 			}
 
-			var scope = planApi.Categories.Scopes.Read(ScopeExposers.Name.Equal(JobCategoryScopes.JobTypes)).FirstOrDefault();
+			var scope = planApi.Categories.Scopes.Read(ScopeExposers.Name.Equal(CategoryScopes.JobTypes)).FirstOrDefault();
 			if (scope == null)
 			{
 				foreach (var job in toValidate)
 				{
 					var error = new JobCategoryScopeNotFoundError
 					{
-						ErrorMessage = $"Category with scope '{JobCategoryScopes.JobTypes}' not found.",
+						ErrorMessage = $"Category with scope '{CategoryScopes.JobTypes}' not found.",
 						Id = job.Id,
 					};
 
@@ -2456,7 +2456,7 @@
 
 					var error = new JobCategoryNotFoundError
 					{
-						ErrorMessage = $"Category with ID '{job.JobTypeCategoryId}' not found in Scope '{JobCategoryScopes.JobTypes}'.",
+						ErrorMessage = $"Category with ID '{job.JobTypeCategoryId}' not found in Scope '{CategoryScopes.JobTypes}'.",
 						CategoryId = job.JobTypeCategoryId,
 						Id = job.Id,
 					};

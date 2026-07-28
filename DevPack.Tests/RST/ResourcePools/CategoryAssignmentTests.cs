@@ -154,7 +154,7 @@
 
 		private static Scope GetResourcePoolScope()
 		{
-			return TestContext.CategoriesApi.Scopes.Read(ScopeExposers.Name.Equal("Resource Pools")).FirstOrDefault()
+			return TestContext.CategoriesApi.Scopes.Read(ScopeExposers.Name.Equal(CategoryScopes.ResourcePools)).FirstOrDefault()
 				?? throw new InvalidOperationException("Category Scope 'Resource Pools' is not available");
 		}
 
