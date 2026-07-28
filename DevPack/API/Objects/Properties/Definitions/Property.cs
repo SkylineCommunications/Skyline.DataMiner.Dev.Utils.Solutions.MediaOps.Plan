@@ -29,7 +29,6 @@
 
 		private protected Property(StorageProperties.PropertyInstance instance) : base(instance?.ID.Id ?? throw new ArgumentNullException(nameof(instance)))
 		{
-			Scope = instance.PropertyInfo.Scope;
 			ParseInstance(instance);
 		}
 
@@ -41,7 +40,7 @@
 		/// <summary>
 		/// Gets or sets the scope of the property.
 		/// </summary>
-		public string Scope { get => scope; set => scope = value; }
+		public string Scope { get => scope; set => AssignScope(value); }
 
 		/// <summary>
 		/// Gets or sets the name of the section to which the property belongs.

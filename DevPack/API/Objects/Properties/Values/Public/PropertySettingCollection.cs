@@ -35,6 +35,15 @@
 		}
 
 		/// <summary>
+		/// Initializes a new instance of the <see cref="PropertySettingCollection"/> class using explicit initialization data.
+		/// </summary>
+		/// <param name="data">The data required to initialize the collection.</param>
+		public PropertySettingCollection(PropertySettingCollectionData data) : this()
+		{
+			AssignData(data);
+		}
+
+		/// <summary>
 		/// Initializes a new instance of the <see cref="PropertySettingCollection"/> class with the specified unique identifier.
 		/// </summary>
 		/// <param name="id">The unique identifier for the property setting collection.</param>
@@ -42,6 +51,16 @@
 		{
 			IsNew = true;
 			HasUserDefinedId = true;
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="PropertySettingCollection"/> class with the specified unique identifier and initialization data.
+		/// </summary>
+		/// <param name="id">The unique identifier for the property setting collection.</param>
+		/// <param name="data">The data required to initialize the collection.</param>
+		public PropertySettingCollection(Guid id, PropertySettingCollectionData data) : this(id)
+		{
+			AssignData(data);
 		}
 
 		internal PropertySettingCollection(MediaOpsPlanApi planApi, StorageProperties.PropertyValuesInstance instance) : base(instance.ID.Id)
@@ -58,7 +77,7 @@
 		/// <summary>
 		/// Gets the scope of this property setting collection.
 		/// </summary>
-		public string Scope { get => scope; set => scope = value; }
+		public string Scope { get => scope; set => AssignScope(value); }
 
 		/// <summary>
 		/// Gets the sub-identifier for this property setting collection.
@@ -352,6 +371,38 @@
 			subId = instance.PropertyValueInfo.SubID;
 
 			ParsePropertyValues(planApi, instance.PropertyValue);
+		}
+
+		private void AssignData(PropertySettingCollectionData data)
+		{
+			if (data == null)
+			{
+				throw new ArgumentNullException(nameof(data));
+			}
+
+			LinkedObjectId = data.LinkedObjectId;
+			Scope = data.Scope;
+			SubId = data.SubId;
+		}
+
+		private void AssignScope(string scope)
+		{
+			if (string.IsNullOrWhiteSpace(scope))
+			{
+				throw new ArgumentException("Scope cannot be null or whitespace.", nameof(scope));
+			}
+
+			if (!IsNew)
+			{
+				throw new InvalidOperationException("Scope can only be assigned to new property setting collections.");
+			}
+
+			if (!string.IsNullOrEmpty(this.scope))
+			{
+				throw new InvalidOperationException("Scope has already been assigned and cannot be modified.");
+			}
+
+			this.scope = scope;
 		}
 
 		private void ParsePropertyValues(MediaOpsPlanApi planApi, IList<StorageProperties.PropertyValueSection> propertyValues)

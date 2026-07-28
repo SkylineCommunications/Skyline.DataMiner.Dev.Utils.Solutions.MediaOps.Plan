@@ -94,6 +94,32 @@ namespace RT_MediaOps.Plan.Properties.Values
 		}
 
 		[TestMethod]
+		public void ConstructorWithData_AllPropertiesAreSet()
+		{
+			var collection = new PropertySettingCollection(new PropertySettingCollectionData
+			{
+				LinkedObjectId = "obj-1",
+				Scope = "global",
+				SubId = "sub-1",
+			});
+
+			Assert.AreEqual("obj-1", collection.LinkedObjectId);
+			Assert.AreEqual("global", collection.Scope);
+			Assert.AreEqual("sub-1", collection.SubId);
+		}
+
+		[TestMethod]
+		public void ConstructorWithData_WithoutScope_ThrowsArgumentException()
+		{
+			Assert.ThrowsException<ArgumentException>(() => new PropertySettingCollection(new PropertySettingCollectionData
+			{
+				LinkedObjectId = "obj-1",
+				Scope = " ",
+				SubId = "sub-1",
+			}));
+		}
+
+		[TestMethod]
 		public void ICollection_IsReadOnly_ReturnsFalse()
 		{
 			var collection = new PropertySettingCollection();

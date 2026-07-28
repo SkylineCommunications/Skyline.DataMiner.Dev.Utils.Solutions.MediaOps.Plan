@@ -186,12 +186,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			// New owner: build the persistence collection with its owner metadata set once through
 			// setters, then copy the current in-memory state into it.
-			var target = new PropertySettingCollection
+			var target = new PropertySettingCollection(new PropertySettingCollectionData
 			{
 				LinkedObjectId = context.LinkedObjectId,
 				Scope = PropertySettingsContext.MediaOpsScope,
 				SubId = subId,
-			};
+			});
 
 			foreach (var setting in current.CustomSettings)
 			{

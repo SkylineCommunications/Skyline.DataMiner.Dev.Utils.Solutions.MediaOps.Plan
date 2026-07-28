@@ -67,6 +67,22 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 		}
 
 		[TestMethod]
+		public void Scope_Whitespace_ThrowsArgumentException()
+		{
+			var property = new StringProperty();
+
+			Assert.ThrowsException<ArgumentException>(() => property.Scope = " ");
+		}
+
+		[TestMethod]
+		public void Scope_AssignedTwice_ThrowsInvalidOperationException()
+		{
+			var property = new StringProperty { Scope = "global" };
+
+			Assert.ThrowsException<InvalidOperationException>(() => property.Scope = "other");
+		}
+
+		[TestMethod]
 		public void Equals_SameValues_ReturnsTrue()
 		{
 			var id = Guid.NewGuid();
