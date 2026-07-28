@@ -37,6 +37,9 @@
 		/// <summary>
 		/// Represents the specific date on which the recurring pattern should end.
 		/// </summary>
+		/// <remarks>
+		/// Any timing information in the EndDate will be ignored, only the date part will be used.
+		/// </remarks>
 		public DateTimeOffset EndDate { get; set; }
 
 		/// <summary>

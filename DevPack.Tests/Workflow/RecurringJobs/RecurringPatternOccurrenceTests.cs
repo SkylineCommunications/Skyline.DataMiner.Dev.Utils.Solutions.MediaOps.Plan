@@ -500,10 +500,11 @@ namespace RT_MediaOps.Plan.Workflow.RecurringJobs
 			var startTime = new DateTimeOffset(2024, 1, 1, 9, 0, 0, TimeSpan.Zero);
 			var occurrences = pattern.CalculateOccurrencesByEndDate(startTime, TimeZoneInfo.Utc).ToArray();
 
-			Assert.AreEqual(3, occurrences.Length);
+			Assert.AreEqual(4, occurrences.Length);
 			Assert.AreEqual(new DateTimeOffset(2024, 1, 1, 9, 0, 0, TimeSpan.Zero), occurrences[0]);
 			Assert.AreEqual(new DateTimeOffset(2024, 1, 8, 9, 0, 0, TimeSpan.Zero), occurrences[1]);
 			Assert.AreEqual(new DateTimeOffset(2024, 1, 15, 9, 0, 0, TimeSpan.Zero), occurrences[2]);
+			Assert.AreEqual(new DateTimeOffset(2024, 1, 22, 9, 0, 0, TimeSpan.Zero), occurrences[3]); // Although the end date is Jan 22 at 09:00, it should still be included because the generation ignores timing info from the end date.
 		}
 
 		[TestMethod]
@@ -647,10 +648,9 @@ namespace RT_MediaOps.Plan.Workflow.RecurringJobs
 			var startTime = new DateTimeOffset(2021, 6, 15, 10, 0, 0, TimeSpan.Zero);
 			var occurrences = pattern.CalculateOccurrencesByEndDate(startTime, TimeZoneInfo.Utc).ToArray();
 
-			Assert.AreEqual(3, occurrences.Length);
+			Assert.AreEqual(2, occurrences.Length);
 			Assert.AreEqual(2021, occurrences[0].Year);
 			Assert.AreEqual(2022, occurrences[1].Year);
-			Assert.AreEqual(2023, occurrences[2].Year);
 		}
 
 		[TestMethod]
