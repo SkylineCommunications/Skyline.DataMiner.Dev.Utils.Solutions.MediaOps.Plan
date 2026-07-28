@@ -74,6 +74,11 @@
 		public RecurringJobPriority Priority { get; set; } = RecurringJobPriority.Normal;
 
 		/// <summary>
+		/// Gets the state of the job.
+		/// </summary>
+		public RecurringJobState State { get; private set; }
+
+		/// <summary>
 		/// Gets the orchestration settings assigned to this recurring job.
 		/// </summary>
 		public OrchestrationSettings OrchestrationSettings { get; private set; }
@@ -123,7 +128,7 @@
 		/// <summary>
 		/// Gets or sets the current process state of this recurring job.
 		/// </summary>
-		public ProcessState ProcessState { get; set; } = ProcessState.NA;
+		public RecurringJobProcessState ProcessState { get; set; } = RecurringJobProcessState.NA;
 
 		/// <summary>
 		/// Gets or sets the recurring pattern that defines when jobs are generated from this recurring job.
@@ -234,6 +239,8 @@
 
 			Duration = instance.RecurringInfo.Duration ?? TimeSpan.Zero;
 
+			State = EnumExtensions.MapEnum<SlcWorkflowIds.Behaviors.Recurringjob_Behavior.StatusesEnum, RecurringJobState>(instance.Status);
+
 			PreRollDuration = instance.JobInfo.JobStart.HasValue && instance.JobInfo.Preroll.HasValue
 				? instance.JobInfo.JobStart.Value - instance.JobInfo.Preroll.Value
 				: TimeSpan.Zero;
@@ -251,7 +258,8 @@
 			Pattern = string.IsNullOrEmpty(patternJson)
 				? new RecurringPattern()
 				: RecurringPattern.Deserialize(patternJson);
-			ProcessState = (instance.RecurringInfo.ProcessStatus ?? SlcWorkflowIds.Enums.Processstatus.NA).MapEnum<SlcWorkflowIds.Enums.Processstatus, ProcessState>();
+
+			ProcessState = (instance.RecurringInfo.ProcessStatus ?? SlcWorkflowIds.Enums.Processstatus.NA).MapEnum<SlcWorkflowIds.Enums.Processstatus, RecurringJobProcessState>();
 			DesiredJobState = (instance.RecurringInfo.DesiredJobStatus ?? SlcWorkflowIds.Enums.Desiredjobstatus.Draft).MapEnum<SlcWorkflowIds.Enums.Desiredjobstatus, JobState>();
 
 			if (instance.JobExecution.JobConfiguration == null || instance.JobExecution.JobConfiguration == Guid.Empty)

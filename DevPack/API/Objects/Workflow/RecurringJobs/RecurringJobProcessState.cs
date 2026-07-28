@@ -3,7 +3,7 @@
 	/// <summary>
 	/// Represents the state of a recurring job process.
 	/// </summary>
-	public enum ProcessState
+	public enum RecurringJobProcessState
 	{
 		/// <summary>
 		/// The process state could not be retrieved.
