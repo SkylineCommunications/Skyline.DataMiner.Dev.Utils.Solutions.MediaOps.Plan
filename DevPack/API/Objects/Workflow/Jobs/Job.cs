@@ -281,9 +281,9 @@
 		public IReadOnlyCollection<Guid> ContactIds => contactIds;
 
 		/// <summary>
-		/// Gets or sets the unique identifier of the associated job type.
+		/// Gets or sets the unique identifier of the associated job type category.
 		/// </summary>
-		public string CategoryId { get; set; }
+		public string JobTypeCategoryId { get; set; }
 
 		internal StorageWorkflow.JobsInstance OriginalInstance => originalInstance;
 
@@ -572,7 +572,7 @@
 				hash = (hash * 23) + PreRollStart.GetHashCode();
 				hash = (hash * 23) + PostRollEnd.GetHashCode();
 				hash = (hash * 23) + (Notes != null ? Notes.GetHashCode() : 0);
-				hash = (hash * 23) + (CategoryId != null ? CategoryId.GetHashCode() : 0);
+				hash = (hash * 23) + (JobTypeCategoryId != null ? JobTypeCategoryId.GetHashCode() : 0);
 				hash = (hash * 23) + (OrchestrationSettings != null ? OrchestrationSettings.GetHashCode() : 0);
 				hash = (hash * 23) + (NodeGraph != null ? NodeGraph.GetHashCode() : 0);
 				hash = (hash * 23) + State.GetHashCode();
@@ -606,7 +606,7 @@
 				   PreRollStart == other.PreRollStart &&
 				   PostRollEnd == other.PostRollEnd &&
 				   Notes == other.Notes &&
-				   CategoryId == other.CategoryId &&
+				   JobTypeCategoryId == other.JobTypeCategoryId &&
 				   OrchestrationSettings == other.OrchestrationSettings &&
 				   NodeGraph == other.NodeGraph &&
 				   State == other.State &&
@@ -631,8 +631,8 @@
 			updatedInstance.JobInfo.Postroll = PostRollEnd.UtcDateTime;
 			updatedInstance.JobInfo.JobNotes = Notes;
 
-			// Reusing JobSource field to store CategoryId to be backwards compatible with existing implementations.
-			updatedInstance.JobInfo.JobSource = CategoryId;
+			// Reusing JobSource field to store the job type category ID to be backwards compatible with existing implementations.
+			updatedInstance.JobInfo.JobSource = JobTypeCategoryId;
 
 			updatedInstance.JobExecution.JobConfiguration = OrchestrationSettings.Id;
 
@@ -709,8 +709,8 @@
 			PostRollEnd = instance.JobInfo.Postroll.HasValue ? instance.JobInfo.Postroll.Value : End;
 			Notes = instance.JobInfo.JobNotes;
 
-			// Reusing JobSource field to store CategoryId to be backwards compatible with existing implementations.
-			CategoryId = instance.JobInfo.JobSource;
+			// Reusing JobSource field to store the job type category ID to be backwards compatible with existing implementations.
+			JobTypeCategoryId = instance.JobInfo.JobSource;
 
 			Priority = instance.JobInfo.JobPriority.HasValue
 				? EnumExtensions.MapEnum<StorageWorkflow.SlcWorkflowIds.Enums.Jobpriority, JobPriority>(instance.JobInfo.JobPriority.Value)

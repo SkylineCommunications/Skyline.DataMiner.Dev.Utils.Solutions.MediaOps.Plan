@@ -12,10 +12,8 @@
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Skyline.DataMiner.Dev.Common">
-      <Version>10.5.11.1</Version>
-    </PackageReference>
-    <PackageReference Include="Skyline.DataMiner.Utils.SecureCoding.Analyzers" Version="2.2.1">
+    <PackageReference Include="Skyline.DataMiner.Dev.Common" />
+    <PackageReference Include="Skyline.DataMiner.Utils.SecureCoding.Analyzers">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>

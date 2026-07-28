@@ -1123,14 +1123,14 @@
 				return;
 			}
 
-			var resourcePoolScope = planApi.Categories.Scopes.Read(ScopeExposers.Name.Equal("Resource Pools")).FirstOrDefault();
+			var resourcePoolScope = planApi.Categories.Scopes.Read(ScopeExposers.Name.Equal(CategoryScopes.ResourcePools)).FirstOrDefault();
 			if (resourcePoolScope == null)
 			{
 				foreach (var pool in apiResourcePools.Where(x => !string.IsNullOrEmpty(x.CategoryId)))
 				{
 					var error = new ResourcePoolCategoryScopeNotFoundError
 					{
-						ErrorMessage = "Category with scope 'Resource Pools' not found.",
+						ErrorMessage = $"Category with scope '{CategoryScopes.ResourcePools}' not found.",
 						Id = pool.Id,
 					};
 
@@ -1153,7 +1153,7 @@
 				{
 					var error = new ResourcePoolCategoryNotFoundError
 					{
-						ErrorMessage = $"Category with ID '{pool.CategoryId}' not found in Scope 'Resource Pools'.",
+						ErrorMessage = $"Category with ID '{pool.CategoryId}' not found in Scope '{CategoryScopes.ResourcePools}'.",
 						CategoryId = pool.CategoryId,
 						Id = pool.Id,
 					};

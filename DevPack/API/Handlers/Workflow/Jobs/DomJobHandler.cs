@@ -252,6 +252,10 @@
 				.ToList();
 
 			CreateOrUpdateDomJobs(toCreateDomInstances.Concat(toUpdateDomInstances).ToList());
+
+			// Register the category items only after the job DOM instances are persisted so the Categories app is not
+			// left with items pointing to jobs that failed to be created or updated.
+			CreateOrUpdateCategoryItems(apiJobs.Where(IsValid).ToList());
 		}
 
 		private void CreateOrUpdateDomJobs(ICollection<DomJob> domJobs)
@@ -1475,6 +1479,7 @@
 
 			DeleteOrchestrationSettings(jobsToDelete);
 			DeletePropertySettingCollections(jobsToDelete);
+			DeleteCategoryItems(jobsToDelete);
 
 			var domJobsById = jobsToDelete.ToDictionary(x => x.Id, x => x.OriginalInstance);
 
@@ -1515,6 +1520,46 @@
 			}
 
 			DomWorkflowOrchestrationSettingsHandler.TryDelete(planApi, apiJobs.Select(x => x.OrchestrationSettings).ToList(), out _);
+		}
+
+		private void CreateOrUpdateCategoryItems(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			if (apiJobs.Any(x => !IsValid(x)))
+			{
+				throw new ArgumentException($"Not all provided jobs are valid", nameof(apiJobs));
+			}
+
+			DomJobCategoryHandler.CreateOrUpdate(planApi, apiJobs);
+		}
+
+		private void DeleteCategoryItems(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			if (apiJobs.Any(x => !IsValid(x)))
+			{
+				throw new ArgumentException($"Not all provided jobs are valid", nameof(apiJobs));
+			}
+
+			DomJobCategoryHandler.Delete(planApi, apiJobs);
 		}
 
 		private void CreateOrUpdatePropertySettingCollections(ICollection<Job> apiJobs)
@@ -2372,20 +2417,20 @@
 				return;
 			}
 
-			var toValidate = apiJobs.Where(x => !string.IsNullOrEmpty(x.CategoryId)).ToList();
+			var toValidate = apiJobs.Where(x => !string.IsNullOrEmpty(x.JobTypeCategoryId)).ToList();
 			if (toValidate.Count == 0)
 			{
 				return;
 			}
 
-			var scope = planApi.Categories.Scopes.Read(ScopeExposers.Name.Equal("Job Types")).FirstOrDefault();
+			var scope = planApi.Categories.Scopes.Read(ScopeExposers.Name.Equal(CategoryScopes.JobTypes)).FirstOrDefault();
 			if (scope == null)
 			{
 				foreach (var job in toValidate)
 				{
 					var error = new JobCategoryScopeNotFoundError
 					{
-						ErrorMessage = "Category with scope 'Job Types' not found.",
+						ErrorMessage = $"Category with scope '{CategoryScopes.JobTypes}' not found.",
 						Id = job.Id,
 					};
 
@@ -2395,23 +2440,24 @@
 				return;
 			}
 
-			var categoryIds = planApi.Categories.Categories.GetByScope(scope).Select(x => x.ID.ToString()).ToList();
+			var categories = planApi.Categories.Categories.GetByScope(scope).ToList();
+			var categoryIds = categories.Select(x => x.ID.ToString()).ToHashSet();
 
 			foreach (var job in toValidate)
 			{
-				if (!categoryIds.Contains(job.CategoryId))
+				if (!categoryIds.Contains(job.JobTypeCategoryId))
 				{
-					if (job.CategoryId.Equals("Scheduling", StringComparison.InvariantCultureIgnoreCase))
+					if (job.JobTypeCategoryId.Equals("Scheduling", StringComparison.InvariantCultureIgnoreCase))
 					{
 						// Translate previous fixed source to new fixed category id.
-						job.CategoryId = Convert.ToString(JobTypes.Scheduled);
+						job.JobTypeCategoryId = Convert.ToString(JobTypes.Scheduled);
 						continue;
 					}
 
 					var error = new JobCategoryNotFoundError
 					{
-						ErrorMessage = $"Category with ID '{job.CategoryId}' not found in Scope 'Job Types'.",
-						CategoryId = job.CategoryId,
+						ErrorMessage = $"Category with ID '{job.JobTypeCategoryId}' not found in Scope '{CategoryScopes.JobTypes}'.",
+						CategoryId = job.JobTypeCategoryId,
 						Id = job.Id,
 					};
 
