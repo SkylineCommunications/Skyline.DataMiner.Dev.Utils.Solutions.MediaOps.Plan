@@ -291,6 +291,8 @@
 
 			Name = instance.JobInfo.JobName;
 
+			Description = instance.JobInfo.JobDescription;
+
 			Duration = instance.RecurringInfo.Duration ?? TimeSpan.Zero;
 
 			State = EnumExtensions.MapEnum<SlcWorkflowIds.Behaviors.Recurringjob_Behavior.StatusesEnum, RecurringJobState>(instance.Status);
