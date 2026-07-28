@@ -8,7 +8,7 @@
 		/// <summary>
 		/// The recurring job is active.
 		/// </summary>
-		Activ = 0,
+		Active = 0,
 
 		/// <summary>
 		/// The recurring job has been cancelled.
