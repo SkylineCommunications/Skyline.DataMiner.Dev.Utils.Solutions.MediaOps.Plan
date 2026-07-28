@@ -129,11 +129,6 @@
 			return JsonConvert.SerializeObject(this);
 		}
 
-		/// <summary>
-		/// Gets whether the RecurringPattern is valid.
-		/// </summary>
-		public bool IsValid => TryValidate(out _);
-
 		internal bool TryValidate(out string reason)
 		{
 			reason = String.Empty;
