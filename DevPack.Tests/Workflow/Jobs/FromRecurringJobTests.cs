@@ -114,11 +114,11 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		[TestMethod]
 		public void FromRecurringJob_CategoryId_IsCopied()
 		{
-			var recurringJob = new RecurringJob { Name = "Test", Duration = TimeSpan.FromHours(1), CategoryId = "cat-001" };
+			var recurringJob = new RecurringJob { Name = "Test", Duration = TimeSpan.FromHours(1), JobTypeCategoryId = "cat-001" };
 
 			var job = Job.FromRecurringJob(recurringJob, BaseStartTime);
 
-			Assert.AreEqual("cat-001", job.CategoryId);
+			Assert.AreEqual("cat-001", job.JobTypeCategoryId);
 		}
 
 		[TestMethod]
@@ -161,7 +161,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				PostRollDuration = TimeSpan.FromMinutes(5),
 				OrganizationId = orgId,
 				OwnerId = ownerId,
-				CategoryId = "full-cat",
+				JobTypeCategoryId = "full-cat",
 			};
 			recurringJob.AddContact(contactId);
 
@@ -172,7 +172,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			Assert.AreEqual(JobPriority.High, job.Priority);
 			Assert.AreEqual(orgId, job.OrganizationId);
 			Assert.AreEqual(ownerId, job.OwnerId);
-			Assert.AreEqual("full-cat", job.CategoryId);
+			Assert.AreEqual("full-cat", job.JobTypeCategoryId);
 			CollectionAssert.Contains(new System.Collections.Generic.List<Guid>(job.ContactIds), contactId);
 		}
 	}

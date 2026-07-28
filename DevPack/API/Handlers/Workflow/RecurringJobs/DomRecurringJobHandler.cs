@@ -823,7 +823,7 @@
 				return;
 			}
 
-			var toValidate = apiRecurringJobs.Where(x => !string.IsNullOrEmpty(x.CategoryId)).ToList();
+			var toValidate = apiRecurringJobs.Where(x => !string.IsNullOrEmpty(x.JobTypeCategoryId)).ToList();
 			if (toValidate.Count == 0)
 			{
 				return;
@@ -850,19 +850,19 @@
 
 			foreach (var recurringJob in toValidate)
 			{
-				if (!categoryIds.Contains(recurringJob.CategoryId))
+				if (!categoryIds.Contains(recurringJob.JobTypeCategoryId))
 				{
-					if (recurringJob.CategoryId.Equals("Scheduling", StringComparison.InvariantCultureIgnoreCase))
+					if (recurringJob.JobTypeCategoryId.Equals("Scheduling", StringComparison.InvariantCultureIgnoreCase))
 					{
 						// Translate previous fixed source to new fixed category id.
-						recurringJob.CategoryId = Convert.ToString(JobTypes.Scheduled);
+						recurringJob.JobTypeCategoryId = Convert.ToString(JobTypes.Scheduled);
 						continue;
 					}
 
 					var error = new JobCategoryNotFoundError
 					{
-						ErrorMessage = $"Category with ID '{recurringJob.CategoryId}' not found in Scope 'Job Types'.",
-						CategoryId = recurringJob.CategoryId,
+						ErrorMessage = $"Category with ID '{recurringJob.JobTypeCategoryId}' not found in Scope 'Job Types'.",
+						CategoryId = recurringJob.JobTypeCategoryId,
 						Id = recurringJob.Id,
 					};
 

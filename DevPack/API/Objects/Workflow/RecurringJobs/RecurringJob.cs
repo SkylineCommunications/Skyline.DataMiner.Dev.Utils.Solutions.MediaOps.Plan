@@ -189,7 +189,7 @@
 		/// <summary>
 		/// Gets or sets the unique identifier of the associated recurring job type.
 		/// </summary>
-		public string CategoryId { get; set; }
+		public string JobTypeCategoryId { get; set; }
 
 		internal RecurringJobsInstance OriginalInstance => originalInstance;
 
@@ -219,7 +219,7 @@
 				hash = (hash * 23) + (Pattern != null ? Pattern.GetHashCode() : 0);
 				hash = (hash * 23) + OrganizationId.GetHashCode();
 				hash = (hash * 23) + OwnerId.GetHashCode();
-				hash = (hash * 23) + (CategoryId != null ? CategoryId.GetHashCode() : 0);
+				hash = (hash * 23) + (JobTypeCategoryId != null ? JobTypeCategoryId.GetHashCode() : 0);
 
 				foreach (var contactId in contactIds.OrderBy(x => x).ToArray())
 				{
@@ -259,7 +259,7 @@
 				&& Equals(Pattern, other.Pattern)
 				&& OrganizationId == other.OrganizationId
 				&& OwnerId == other.OwnerId
-				&& CategoryId == other.CategoryId
+				&& JobTypeCategoryId == other.JobTypeCategoryId
 				&& contactIds.SetEquals(other.contactIds);
 		}
 
@@ -458,7 +458,7 @@
 			updatedInstance.RecurringInfo.RecurringPattern = Pattern.Serialize();
 
 			// Reusing JobSource field to store CategoryId to be backwards compatible with existing implementations.
-			updatedInstance.JobInfo.JobSource = CategoryId;
+			updatedInstance.JobInfo.JobSource = JobTypeCategoryId;
 
 			updatedInstance.JobExecution.JobConfiguration = OrchestrationSettings.Id;
 

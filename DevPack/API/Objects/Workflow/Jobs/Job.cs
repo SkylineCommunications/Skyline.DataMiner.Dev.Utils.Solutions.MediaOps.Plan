@@ -77,7 +77,7 @@
 				Priority = EnumExtensions.MapEnum<RecurringJobPriority, JobPriority>(recurringJob.Priority),
 				OrganizationId = recurringJob.OrganizationId,
 				OwnerId = recurringJob.OwnerId,
-				CategoryId = recurringJob.CategoryId,
+				JobTypeCategoryId = recurringJob.JobTypeCategoryId,
 			};
 
 			foreach (var contactId in recurringJob.ContactIds)
