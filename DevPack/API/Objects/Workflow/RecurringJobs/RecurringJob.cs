@@ -4,6 +4,7 @@
 	using System.Collections.Generic;
 	using System.Linq;
 
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow;
 
 	using StorageWorkflow = Storage.DOM.SlcWorkflow;
@@ -82,6 +83,29 @@
 		/// </summary>
 		public IReadOnlyCollection<PropertySetting> PropertySettings => GetOrCreateScope().PropertySettings;
 
+		/// <summary>
+		/// Gets or sets the duration of each generated job, excluding pre-roll and post-roll.
+		/// </summary>
+		public TimeSpan Duration { get; set; }
+
+		/// <summary>
+		/// Gets or sets the pre-roll duration of each generated job.
+		/// </summary>
+		public TimeSpan PreRollDuration { get; set; }
+
+		/// <summary>
+		/// Gets or sets the post-roll duration of each generated job.
+		/// </summary>
+		public TimeSpan PostRollDuration { get; set; }
+
+		public TimeZoneInfo TimeZone { get; set; } = TimeZoneInfo.Utc;
+
+		public JobState DesiredJobState { get; set; } = JobState.Draft;
+
+		public ProcessState ProcessState { get; set; } = ProcessState.NA;
+
+		public RecurringPattern Pattern { get; private set; } = new RecurringPattern();
+
 		internal RecurringJobsInstance OriginalInstance => originalInstance;
 
 		internal PropertySettingsScope PropertySettingsScope => propertySettingsScope;
@@ -98,6 +122,9 @@
 				hash = (hash * 23) + (Name != null ? Name.GetHashCode() : 0);
 				hash = (hash * 23) + (OrchestrationSettings != null ? OrchestrationSettings.GetHashCode() : 0);
 				hash = (hash * 23) + (NodeGraph != null ? NodeGraph.GetHashCode() : 0);
+				hash = (hash * 23) + Duration.GetHashCode();
+				hash = (hash * 23) + PreRollDuration.GetHashCode();
+				hash = (hash * 23) + PostRollDuration.GetHashCode();
 
 				return hash;
 			}
@@ -118,6 +145,9 @@
 
 			return Id == other.Id
 				&& Name == other.Name
+				&& Duration == other.Duration
+				&& PreRollDuration == other.PreRollDuration
+				&& PostRollDuration == other.PostRollDuration
 				&& Equals(OrchestrationSettings, other.OrchestrationSettings)
 				&& Equals(NodeGraph, other.NodeGraph);
 		}
@@ -149,6 +179,21 @@
 			this.originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
 
 			Name = instance.JobInfo.JobName;
+
+			Duration = instance.RecurringInfo.Duration ?? TimeSpan.Zero;
+
+			PreRollDuration = instance.JobInfo.JobStart.HasValue && instance.JobInfo.Preroll.HasValue
+				? instance.JobInfo.JobStart.Value - instance.JobInfo.Preroll.Value
+				: TimeSpan.Zero;
+
+			PostRollDuration = instance.JobInfo.JobEnd.HasValue && instance.JobInfo.Postroll.HasValue
+				? instance.JobInfo.Postroll.Value - instance.JobInfo.JobEnd.Value
+				: TimeSpan.Zero;
+
+			TimeZone = TimeZoneInfo.FromSerializedString(Convert.ToString(instance.RecurringInfo.TimeZone));
+			Pattern = RecurringPattern.Deserialize(instance.RecurringInfo.RecurringPattern);
+			ProcessState = (instance.RecurringInfo.ProcessStatus ?? SlcWorkflowIds.Enums.Processstatus.NA).MapEnum<SlcWorkflowIds.Enums.Processstatus, ProcessState>();
+			DesiredJobState = (instance.RecurringInfo.DesiredJobStatus ?? SlcWorkflowIds.Enums.Desiredjobstatus.Draft).MapEnum<SlcWorkflowIds.Enums.Desiredjobstatus, JobState>();
 
 			if (instance.JobExecution.JobConfiguration == null || instance.JobExecution.JobConfiguration == Guid.Empty)
 			{

@@ -48,6 +48,112 @@
 			ConfigureNodeGraphSwapHooks();
 		}
 
+		/// <summary>
+		/// Creates a new job based on the specified recurring job.
+		/// </summary>
+		/// <param name="recurringJob">The recurring job to copy.</param>
+		/// <param name="startTime">The start time of the generated job.</param>
+		/// <returns>A new job containing the recurring job configuration.</returns>
+		/// <exception cref="ArgumentNullException">
+		/// Thrown when <paramref name="recurringJob"/> is <see langword="null"/>.
+		/// </exception>
+		public static Job FromRecurringJob(RecurringJob recurringJob, DateTimeOffset startTime)
+		{
+			if (recurringJob == null)
+			{
+				throw new ArgumentNullException(nameof(recurringJob));
+			}
+
+			var endTime = startTime + recurringJob.Duration;
+
+			var job = new Job
+			{
+				Name = recurringJob.Name,
+				Start = startTime,
+				End = endTime,
+				PreRollStart = startTime - recurringJob.PreRollDuration,
+				PostRollEnd = endTime + recurringJob.PostRollDuration,
+			};
+
+			// Clone the graph first to establish the recurring-node-to-job-node ID mapping.
+			var nodeIdMap = NodeGraphCloner.Clone(
+				recurringJob.NodeGraph,
+				job.NodeGraph,
+				CreateJobNode);
+
+			var recurringNodesById = recurringJob.NodeGraph.Nodes.ToDictionary(node => node.Id);
+			var jobNodesById = job.NodeGraph.Nodes.ToDictionary(node => node.Id);
+
+			// Clone node-level orchestration settings.
+			foreach (var entry in nodeIdMap)
+			{
+				var recurringNode = recurringNodesById[entry.Key];
+				var jobNode = jobNodesById[entry.Value];
+
+				OrchestrationSettingsCloner.Clone(
+					recurringNode.OrchestrationSettings,
+					jobNode.OrchestrationSettings,
+					nodeIdMap);
+			}
+
+			// Clone job-level orchestration settings.
+			OrchestrationSettingsCloner.Clone(
+				recurringJob.OrchestrationSettings,
+				job.OrchestrationSettings,
+				nodeIdMap);
+
+			// Clone recurring-job-level property settings.
+			foreach (var setting in recurringJob.CustomPropertySettings)
+			{
+				job.AddCustomProperty(setting);
+			}
+
+			foreach (var setting in recurringJob.PropertySettings)
+			{
+				job.AddProperty(setting);
+			}
+
+			// Clone node-level property settings.
+			foreach (var entry in nodeIdMap)
+			{
+				var recurringNode = recurringNodesById[entry.Key];
+				var jobNode = jobNodesById[entry.Value];
+
+				foreach (var setting in recurringNode.CustomPropertySettings)
+				{
+					jobNode.AddCustomProperty(setting);
+				}
+
+				foreach (var setting in recurringNode.PropertySettings)
+				{
+					jobNode.AddProperty(setting);
+				}
+			}
+
+			return job;
+		}
+
+		private static JobNode CreateJobNode(RecurringJobNode recurringJobNode)
+		{
+			return recurringJobNode switch
+			{
+				RecurringJobResourceNode resourceNode => new JobResourceNode(
+					resourceNode.ResourcePoolId,
+					resourceNode.ResourceId)
+				{
+					Alias = resourceNode.Alias,
+					IconImage = resourceNode.IconImage,
+				},
+				RecurringJobResourcePoolNode resourcePoolNode => new JobResourcePoolNode(
+					resourcePoolNode.ResourcePoolId)
+				{
+					Alias = resourcePoolNode.Alias,
+					IconImage = resourcePoolNode.IconImage,
+				},
+				_ => null,
+			};
+		}
+
 		internal Job(MediaOpsPlanApi planApi, StorageWorkflow.JobsInstance instance) : base(instance.ID.Id)
 		{
 			ParseInstance(planApi, instance);
