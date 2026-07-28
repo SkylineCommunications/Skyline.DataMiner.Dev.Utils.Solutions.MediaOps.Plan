@@ -9,6 +9,7 @@
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Solutions.Categories.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
 	[TestClass]
 	[TestCategory("IntegrationTest")]
@@ -93,6 +94,63 @@
 
 			var categoryItems = TestContext.CategoriesApi.CategoryItems.Read(CategoryItemExposers.InstanceId.Equal(job.Id.ToString())).ToArray();
 			Assert.AreEqual(0, categoryItems.Length, "The category item was not removed when the job was deleted.");
+		}
+
+		[TestMethod]
+		public void CreateJobWithNonExistingCategoryThrowsException()
+		{
+			var categoryId = Guid.NewGuid().ToString();
+
+			try
+			{
+				CreateJob(categoryId);
+			}
+			catch (MediaOpsException exception)
+			{
+				var traceData = exception.TraceData.ErrorData.OfType<JobCategoryNotFoundError>().Single();
+				Assert.IsNotNull(traceData);
+				Assert.AreEqual(categoryId, traceData.CategoryId);
+				Assert.AreEqual($"Category with ID '{categoryId}' not found in Scope '{JobCategoryScopes.JobTypes}'.", traceData.ErrorMessage);
+
+				return;
+			}
+
+			Assert.Fail("Expected MediaOpsException was not thrown.");
+		}
+
+		[TestMethod]
+		public void UpdateJobWithNonExistingCategoryThrowsException()
+		{
+			var job = CreateJob(null);
+
+			try
+			{
+				job.JobTypeCategoryId = Guid.NewGuid().ToString();
+				TestContext.Api.Jobs.Update(job);
+			}
+			catch (MediaOpsException exception)
+			{
+				var traceData = exception.TraceData.ErrorData.OfType<JobCategoryNotFoundError>().Single();
+				Assert.IsNotNull(traceData);
+				Assert.AreEqual(job.Id, traceData.Id);
+				Assert.AreEqual(job.JobTypeCategoryId, traceData.CategoryId);
+
+				return;
+			}
+
+			Assert.Fail("Expected MediaOpsException was not thrown.");
+		}
+
+		[TestMethod]
+		public void CreateJobTranslatesLegacySchedulingSource()
+		{
+			// The legacy fixed source value "Scheduling" must be translated to the fixed Scheduled job type category
+			// so jobs created against the old implementation remain valid.
+			var job = CreateJob("Scheduling");
+
+			var read = TestContext.Api.Jobs.Read(job.Id);
+			Assert.IsNotNull(read);
+			Assert.AreEqual(JobTypes.Scheduled.ToString(), read.JobTypeCategoryId);
 		}
 
 		private static Scope GetJobScope()
