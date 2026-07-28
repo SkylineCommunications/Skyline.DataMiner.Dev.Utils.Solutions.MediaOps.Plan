@@ -908,9 +908,20 @@
 				return;
 			}
 
-			var toValidate = apiRecurringJobs.ToList();
+			foreach (var job in apiRecurringJobs.Where(IsValid))
+			{
+				if (!job.Pattern.TryValidate(out string reason))
+				{
+					var error = new RecurringJobInvalidPatternError
+					{
+						ErrorMessage = $"The recurring pattern is invalid: {reason}",
+						Reason = reason,
+						Id = job.Id,
+					};
 
-			// TODO: validate the RecurringJob.Pattern property
+					ReportError(job.Id, error);
+				}
+			}
 		}
 
 		private void ValidatePreRoll(ICollection<RecurringJob> apiRecurringJobs)

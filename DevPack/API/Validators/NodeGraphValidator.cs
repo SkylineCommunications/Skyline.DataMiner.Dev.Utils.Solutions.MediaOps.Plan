@@ -423,6 +423,131 @@
 		}
 	}
 
+	internal class RecurringJobNodeGraphValidator : NodeGraphValidator<RecurringJobNode>
+	{
+		private RecurringJobNodeGraphValidator(Guid recurringJobId, NodeGraph<RecurringJobNode> nodeGraph, IReadOnlyDictionary<Guid, Resource> resourcesById, IReadOnlyDictionary<Guid, ResourcePool> resourcePoolsById)
+			: base(recurringJobId, nodeGraph, resourcesById, resourcePoolsById)
+		{
+		}
+
+		public static ApiObjectValidator Validate(Guid recurringJobId, NodeGraph<RecurringJobNode> nodeGraph, IReadOnlyDictionary<Guid, Resource> resourcesById, IReadOnlyDictionary<Guid, ResourcePool> resourcePoolsById)
+		{
+			return new RecurringJobNodeGraphValidator(recurringJobId, nodeGraph, resourcesById, resourcePoolsById);
+		}
+
+		protected override MediaOpsErrorData CreateConnectionInvalidNodeLinkError(string connectionId, string nodeId, string errorMessage)
+		{
+			return new RecurringJobNodeGraphConnectionWithInvalidNodeError
+			{
+				ErrorMessage = errorMessage,
+				NodeId = nodeId,
+				ConnectionId = connectionId,
+				Id = ApiObjectId,
+			};
+		}
+
+		protected override MediaOpsErrorData CreateDuplicateConnectionIdError(string connectionId, string errorMessage)
+		{
+			return new RecurringJobNodeGraphDuplicateConnectionIdError
+			{
+				ErrorMessage = errorMessage,
+				ConnectionId = connectionId,
+				Id = ApiObjectId,
+			};
+		}
+
+		protected override MediaOpsErrorData CreateDuplicateNodeIdError(string nodeId, string errorMessage)
+		{
+			return new RecurringJobNodeGraphDuplicateNodeIdError
+			{
+				ErrorMessage = errorMessage,
+				NodeId = nodeId,
+				Id = ApiObjectId,
+			};
+		}
+
+		protected override MediaOpsErrorData CreateEmptyConnectionIdError(string errorMessage)
+		{
+			return new RecurringJobNodeGraphEmptyConnectionIdError
+			{
+				ErrorMessage = errorMessage,
+				Id = ApiObjectId,
+			};
+		}
+
+		protected override MediaOpsErrorData CreateEmptyNodeIdError(string errorMessage)
+		{
+			return new RecurringJobNodeGraphEmptyNodeIdError
+			{
+				ErrorMessage = errorMessage,
+				Id = ApiObjectId,
+			};
+		}
+
+		protected override MediaOpsErrorData CreateNodeAliasError(string nodeId, string alias, string errorMessage)
+		{
+			return new RecurringJobNodeGraphInvalidNodeAliasError
+			{
+				ErrorMessage = errorMessage,
+				Alias = alias,
+				NodeId = nodeId,
+				Id = ApiObjectId,
+			};
+		}
+
+		protected override MediaOpsErrorData CreateResourceNodeError(string nodeId, Guid resourceId, Guid resourcePoolId, string errorMessage)
+		{
+			return new RecurringJobNodeGraphInvalidResourceNodeError
+			{
+				ErrorMessage = errorMessage,
+				ResourcePoolId = resourcePoolId,
+				ResourceId = resourceId,
+				NodeId = nodeId,
+				Id = ApiObjectId,
+			};
+		}
+
+		protected override MediaOpsErrorData CreateResourcePoolNodeError(string nodeId, Guid resourcePoolId, string errorMessage)
+		{
+			return new RecurringJobNodeGraphInvalidResourcePoolNodeError
+			{
+				ErrorMessage = errorMessage,
+				ResourcePoolId = resourcePoolId,
+				NodeId = nodeId,
+				Id = ApiObjectId,
+			};
+		}
+
+		protected override MediaOpsErrorData CreateInvalidNodeLinkError(string parentNodeId, string childNodeId, string errorMessage)
+		{
+			return new RecurringJobNodeGraphInvalidLinkError
+			{
+				ErrorMessage = errorMessage,
+				ParentNodeId = parentNodeId,
+				ChildNodeId = childNodeId,
+				Id = ApiObjectId,
+			};
+		}
+
+		protected override bool ValidateSwap(RecurringJobNode original, RecurringJobNode target, out MediaOpsErrorData error)
+		{
+			if (RecurringJobNodeSwapValidator.IsSwapAllowed(original, target, out var errorMessage))
+			{
+				error = null;
+				return true;
+			}
+
+			error = new RecurringJobNodeGraphSwapNotAllowedError
+			{
+				Id = ApiObjectId,
+				NodeId = original.Id,
+				TargetNodeId = target.Id,
+				ErrorMessage = errorMessage,
+			};
+			return false;
+		}
+	}
+
 	internal class WorkflowNodeGraphValidator : NodeGraphValidator<WorkflowNode>
 	{
 		private WorkflowNodeGraphValidator(Guid workflowId, NodeGraph<WorkflowNode> nodeGraph, IReadOnlyDictionary<Guid, Resource> resourcesById, IReadOnlyDictionary<Guid, ResourcePool> resourcePoolsById)

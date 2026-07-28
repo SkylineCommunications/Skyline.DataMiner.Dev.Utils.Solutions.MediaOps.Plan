@@ -134,7 +134,7 @@
 		/// </summary>
 		public bool IsValid => TryValidate(out _);
 
-		private bool TryValidate(out string reason)
+		internal bool TryValidate(out string reason)
 		{
 			reason = String.Empty;
 

@@ -56,6 +56,48 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	}
 
 	/// <summary>
+	/// Validates whether a node swap is allowed within the node graph of a recurring job.
+	/// </summary>
+	/// <remarks>
+	/// Inside recurring jobs both resource and resource pool nodes can be swapped to either a resource node or a
+	/// resource pool node. The rule is evaluated against the net original-to-final transition; intermediate swap
+	/// steps are ignored.
+	/// </remarks>
+	internal static class RecurringJobNodeSwapValidator
+	{
+		/// <summary>
+		/// Determines whether swapping <paramref name="original"/> to <paramref name="target"/> is allowed inside a recurring job.
+		/// </summary>
+		/// <param name="original">The node that was originally part of the graph.</param>
+		/// <param name="target">The node that currently represents the original node after one or more swaps.</param>
+		/// <param name="errorMessage">When the swap is not allowed, contains the reason; otherwise, <see langword="null"/>.</param>
+		/// <returns><see langword="true"/> when the swap is allowed; otherwise, <see langword="false"/>.</returns>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="original"/> or <paramref name="target"/> is null.</exception>
+		public static bool IsSwapAllowed(RecurringJobNode original, RecurringJobNode target, out string errorMessage)
+		{
+			if (original == null)
+			{
+				throw new ArgumentNullException(nameof(original));
+			}
+
+			if (target == null)
+			{
+				throw new ArgumentNullException(nameof(target));
+			}
+
+			// In recurring jobs both resource and pool nodes can be swapped to a resource or pool node.
+			if (!target.IsResourceNode(out _) && !target.IsResourcePoolNode(out _))
+			{
+				errorMessage = "A node in a recurring job can only be swapped to a resource node or a resource pool node.";
+				return false;
+			}
+
+			errorMessage = null;
+			return true;
+		}
+	}
+
+	/// <summary>
 	/// Validates whether a node swap is allowed within the node graph of a workflow.
 	/// </summary>
 	/// <remarks>
