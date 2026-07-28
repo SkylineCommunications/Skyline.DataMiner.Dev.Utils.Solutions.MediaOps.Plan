@@ -101,7 +101,7 @@
 				?? throw new InvalidOperationException($"Category Scope '{JobCategoryScopes.JobTypes}' is not available");
 		}
 
-		private static void AssertCategoryAssignment(Guid jobId, Category expectedCategory)
+		private static void AssertCategoryAssignment(Guid jobId, Category? expectedCategory)
 		{
 			var job = TestContext.Api.Jobs.Read(jobId);
 			Assert.IsNotNull(job);
@@ -140,7 +140,7 @@
 			});
 		}
 
-		private Job CreateJob(string categoryId)
+		private Job CreateJob(string? categoryId)
 		{
 			var currentTime = DateTime.UtcNow.RoundToNextSecond();
 
