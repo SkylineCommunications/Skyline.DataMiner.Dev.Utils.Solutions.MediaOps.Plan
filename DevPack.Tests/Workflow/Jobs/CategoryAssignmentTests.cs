@@ -153,6 +153,60 @@
 			Assert.AreEqual(JobTypes.Scheduled.ToString(), read.JobTypeCategoryId);
 		}
 
+		[TestMethod]
+		public void CreateJobsInBulkAssignsCategories()
+		{
+			var category1 = CreateCategory();
+			var category2 = CreateCategory();
+
+			var jobWithCategory1 = BuildJob(category1.ID.ToString());
+			var jobWithCategory2 = BuildJob(category2.ID.ToString());
+			var jobWithoutCategory = BuildJob(null);
+
+			var jobs = objectCreator.CreateJobs(new[] { jobWithCategory1, jobWithCategory2, jobWithoutCategory }).ToArray();
+
+			var createdJob1 = jobs.Single(x => x.Name == jobWithCategory1.Name);
+			var createdJob2 = jobs.Single(x => x.Name == jobWithCategory2.Name);
+			var createdJob3 = jobs.Single(x => x.Name == jobWithoutCategory.Name);
+
+			AssertCategoryAssignment(createdJob1.Id, category1);
+			AssertCategoryAssignment(createdJob2.Id, category2);
+			AssertCategoryAssignment(createdJob3.Id, null);
+		}
+
+		[TestMethod]
+		public void UpdateJobsInBulkChangesCategories()
+		{
+			var category1 = CreateCategory();
+			var category2 = CreateCategory();
+
+			// Start with: one assigned to category1, one assigned to category2, one without a category.
+			var jobToChange = BuildJob(category1.ID.ToString());
+			var jobToRemove = BuildJob(category2.ID.ToString());
+			var jobToAssign = BuildJob(null);
+
+			var jobs = objectCreator.CreateJobs(new[] { jobToChange, jobToRemove, jobToAssign }).ToArray();
+
+			var createdJobToChange = jobs.Single(x => x.Name == jobToChange.Name);
+			var createdJobToRemove = jobs.Single(x => x.Name == jobToRemove.Name);
+			var createdJobToAssign = jobs.Single(x => x.Name == jobToAssign.Name);
+
+			AssertCategoryAssignment(createdJobToChange.Id, category1);
+			AssertCategoryAssignment(createdJobToRemove.Id, category2);
+			AssertCategoryAssignment(createdJobToAssign.Id, null);
+
+			// Change one, remove one and assign one, all in a single bulk update.
+			createdJobToChange.JobTypeCategoryId = category2.ID.ToString();
+			createdJobToRemove.JobTypeCategoryId = null;
+			createdJobToAssign.JobTypeCategoryId = category1.ID.ToString();
+
+			TestContext.Api.Jobs.Update(new[] { createdJobToChange, createdJobToRemove, createdJobToAssign });
+
+			AssertCategoryAssignment(createdJobToChange.Id, category2);
+			AssertCategoryAssignment(createdJobToRemove.Id, null);
+			AssertCategoryAssignment(createdJobToAssign.Id, category1);
+		}
+
 		private static Scope GetJobScope()
 		{
 			return TestContext.CategoriesApi.Scopes.Read(JobCategoryScopes.JobTypes)
@@ -200,9 +254,14 @@
 
 		private Job CreateJob(string? categoryId)
 		{
+			return objectCreator.CreateJob(BuildJob(categoryId));
+		}
+
+		private static Job BuildJob(string? categoryId)
+		{
 			var currentTime = DateTime.UtcNow.RoundToNextSecond();
 
-			return objectCreator.CreateJob(new Job
+			return new Job
 			{
 				Name = $"Job_{Guid.NewGuid()}",
 				Start = currentTime,
@@ -210,7 +269,7 @@
 				PreRollStart = currentTime,
 				PostRollEnd = currentTime.AddMinutes(10),
 				JobTypeCategoryId = categoryId,
-			});
+			};
 		}
 	}
 }
