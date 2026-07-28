@@ -75,7 +75,15 @@
 				PreRollStart = startTime - recurringJob.PreRollDuration,
 				PostRollEnd = endTime + recurringJob.PostRollDuration,
 				Priority = EnumExtensions.MapEnum<RecurringJobPriority, JobPriority>(recurringJob.Priority),
+				OrganizationId = recurringJob.OrganizationId,
+				OwnerId = recurringJob.OwnerId,
+				CategoryId = recurringJob.CategoryId,
 			};
+
+			foreach (var contactId in recurringJob.ContactIds)
+			{
+				job.AddContact(contactId);
+			}
 
 			// Clone the graph first to establish the recurring-node-to-job-node ID mapping.
 			var nodeIdMap = NodeGraphCloner.Clone(

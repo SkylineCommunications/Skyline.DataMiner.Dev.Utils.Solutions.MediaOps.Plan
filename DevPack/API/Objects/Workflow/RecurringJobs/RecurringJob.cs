@@ -151,6 +151,40 @@
 		public IReadOnlyCollection<Guid> ContactIds => contactIds;
 
 		/// <summary>
+		/// Adds a contact to the recurring job.
+		/// </summary>
+		/// <param name="contactId">The unique identifier of the contact to add.</param>
+		/// <returns>The current <see cref="RecurringJob"/> instance.</returns>
+		/// <exception cref="ArgumentException">Thrown when <paramref name="contactId"/> is <see cref="Guid.Empty"/>.</exception>
+		public RecurringJob AddContact(Guid contactId)
+		{
+			if (contactId == Guid.Empty)
+			{
+				throw new ArgumentException(nameof(contactId));
+			}
+
+			contactIds.Add(contactId);
+			return this;
+		}
+
+		/// <summary>
+		/// Removes a contact from the recurring job.
+		/// </summary>
+		/// <param name="contactId">The unique identifier of the contact to remove.</param>
+		/// <returns>The current <see cref="RecurringJob"/> instance.</returns>
+		/// <exception cref="ArgumentException">Thrown when <paramref name="contactId"/> is <see cref="Guid.Empty"/>.</exception>
+		public RecurringJob RemoveContact(Guid contactId)
+		{
+			if (contactId == Guid.Empty)
+			{
+				throw new ArgumentException(nameof(contactId));
+			}
+
+			contactIds.Remove(contactId);
+			return this;
+		}
+
+		/// <summary>
 		/// Gets or sets the unique identifier of the associated recurring job type.
 		/// </summary>
 		public string CategoryId { get; set; }
@@ -169,6 +203,8 @@
 				int hash = 17;
 				hash = (hash * 23) + Id.GetHashCode();
 				hash = (hash * 23) + (Name != null ? Name.GetHashCode() : 0);
+				hash = (hash * 23) + (Description != null ? Description.GetHashCode() : 0);
+				hash = (hash * 23) + Priority.GetHashCode();
 				hash = (hash * 23) + (OrchestrationSettings != null ? OrchestrationSettings.GetHashCode() : 0);
 				hash = (hash * 23) + (NodeGraph != null ? NodeGraph.GetHashCode() : 0);
 				hash = (hash * 23) + Duration.GetHashCode();
@@ -178,6 +214,14 @@
 				hash = (hash * 23) + DesiredJobState.GetHashCode();
 				hash = (hash * 23) + ProcessState.GetHashCode();
 				hash = (hash * 23) + (Pattern != null ? Pattern.GetHashCode() : 0);
+				hash = (hash * 23) + OrganizationId.GetHashCode();
+				hash = (hash * 23) + OwnerId.GetHashCode();
+				hash = (hash * 23) + (CategoryId != null ? CategoryId.GetHashCode() : 0);
+
+				foreach (var contactId in contactIds.OrderBy(x => x).ToArray())
+				{
+					hash = (hash * 23) + contactId.GetHashCode();
+				}
 
 				return hash;
 			}
@@ -198,6 +242,8 @@
 
 			return Id == other.Id
 				&& Name == other.Name
+				&& Description == other.Description
+				&& Priority == other.Priority
 				&& Duration == other.Duration
 				&& PreRollDuration == other.PreRollDuration
 				&& PostRollDuration == other.PostRollDuration
@@ -206,7 +252,11 @@
 				&& Equals(TimeZone, other.TimeZone)
 				&& DesiredJobState == other.DesiredJobState
 				&& ProcessState == other.ProcessState
-				&& Equals(Pattern, other.Pattern);
+				&& Equals(Pattern, other.Pattern)
+				&& OrganizationId == other.OrganizationId
+				&& OwnerId == other.OwnerId
+				&& CategoryId == other.CategoryId
+				&& contactIds.SetEquals(other.contactIds);
 		}
 
 		private PropertySettingsScope GetOrCreateScope()
