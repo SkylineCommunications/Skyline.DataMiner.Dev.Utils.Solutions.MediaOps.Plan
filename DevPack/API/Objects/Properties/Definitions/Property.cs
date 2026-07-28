@@ -29,6 +29,9 @@
 
 		private protected Property(StorageProperties.PropertyInstance instance) : base(instance?.ID.Id ?? throw new ArgumentNullException(nameof(instance)))
 		{
+			// Parse persisted data as-is, including legacy scope values that may not satisfy
+			// new-object assignment constraints. Validation is enforced on new assignments.
+			scope = instance.PropertyInfo.Scope;
 			ParseInstance(instance);
 		}
 
@@ -176,7 +179,6 @@
 			originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
 
 			Name = instance.PropertyInfo.Name;
-			scope = instance.PropertyInfo.Scope;
 			SectionName = instance.Layout.SectionName;
 			Order = instance.Layout.Order.HasValue ? (int)instance.Layout.Order.Value : 0;
 		}
