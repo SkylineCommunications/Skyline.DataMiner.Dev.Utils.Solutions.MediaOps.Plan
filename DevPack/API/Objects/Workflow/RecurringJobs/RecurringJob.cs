@@ -213,6 +213,7 @@
 				hash = (hash * 23) + (TimeZone != null ? TimeZone.GetHashCode() : 0);
 				hash = (hash * 23) + DesiredJobState.GetHashCode();
 				hash = (hash * 23) + ProcessState.GetHashCode();
+				hash = (hash * 23) + State.GetHashCode();
 				hash = (hash * 23) + (Pattern != null ? Pattern.GetHashCode() : 0);
 				hash = (hash * 23) + OrganizationId.GetHashCode();
 				hash = (hash * 23) + OwnerId.GetHashCode();
@@ -252,6 +253,7 @@
 				&& Equals(TimeZone, other.TimeZone)
 				&& DesiredJobState == other.DesiredJobState
 				&& ProcessState == other.ProcessState
+				&& State == other.State
 				&& Equals(Pattern, other.Pattern)
 				&& OrganizationId == other.OrganizationId
 				&& OwnerId == other.OwnerId
