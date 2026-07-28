@@ -45,6 +45,39 @@
 		public WeekDays WeekDays { get; set; }
 
 		/// <summary>
+		/// Determines whether the specified object is equal to the current recurring pattern instance.
+		/// </summary>
+		/// <param name="obj">The object to compare with the current recurring pattern instance.</param>
+		/// <returns>true if the specified object is a recurring pattern with the same property values; otherwise, false.</returns>
+		public override bool Equals(object obj)
+		{
+			if (obj is not RecurringPattern other)
+			{
+				return false;
+			}
+
+			return RepeatType == other.RepeatType
+				&& RepeatEvery == other.RepeatEvery
+				&& EndDate == other.EndDate
+				&& WeekDays == other.WeekDays;
+		}
+
+		/// <inheritdoc/>
+		public override int GetHashCode()
+		{
+			unchecked
+			{
+				int hash = 17;
+				hash = (hash * 23) + RepeatType.GetHashCode();
+				hash = (hash * 23) + RepeatEvery.GetHashCode();
+				hash = (hash * 23) + EndDate.GetHashCode();
+				hash = (hash * 23) + WeekDays.GetHashCode();
+
+				return hash;
+			}
+		}
+
+		/// <summary>
 		/// Converts the RecurringPattern to a string representation.
 		/// </summary>
 		/// <returns>String representation of the RecurringPattern.</returns>

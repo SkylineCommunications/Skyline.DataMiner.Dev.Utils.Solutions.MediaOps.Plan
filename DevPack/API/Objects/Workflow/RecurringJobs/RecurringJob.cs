@@ -98,13 +98,25 @@
 		/// </summary>
 		public TimeSpan PostRollDuration { get; set; }
 
+		/// <summary>
+		/// Gets or sets the time zone used when generating jobs from this recurring job.
+		/// </summary>
 		public TimeZoneInfo TimeZone { get; set; } = TimeZoneInfo.Utc;
 
+		/// <summary>
+		/// Gets or sets the desired state of each job generated from this recurring job.
+		/// </summary>
 		public JobState DesiredJobState { get; set; } = JobState.Draft;
 
+		/// <summary>
+		/// Gets or sets the current process state of this recurring job.
+		/// </summary>
 		public ProcessState ProcessState { get; set; } = ProcessState.NA;
 
-		public RecurringPattern Pattern { get; private set; } = new RecurringPattern();
+		/// <summary>
+		/// Gets or sets the recurring pattern that defines when jobs are generated from this recurring job.
+		/// </summary>
+		public RecurringPattern Pattern { get; set; } = new RecurringPattern();
 
 		internal RecurringJobsInstance OriginalInstance => originalInstance;
 
@@ -125,6 +137,10 @@
 				hash = (hash * 23) + Duration.GetHashCode();
 				hash = (hash * 23) + PreRollDuration.GetHashCode();
 				hash = (hash * 23) + PostRollDuration.GetHashCode();
+				hash = (hash * 23) + (TimeZone != null ? TimeZone.GetHashCode() : 0);
+				hash = (hash * 23) + DesiredJobState.GetHashCode();
+				hash = (hash * 23) + ProcessState.GetHashCode();
+				hash = (hash * 23) + (Pattern != null ? Pattern.GetHashCode() : 0);
 
 				return hash;
 			}
@@ -149,7 +165,11 @@
 				&& PreRollDuration == other.PreRollDuration
 				&& PostRollDuration == other.PostRollDuration
 				&& Equals(OrchestrationSettings, other.OrchestrationSettings)
-				&& Equals(NodeGraph, other.NodeGraph);
+				&& Equals(NodeGraph, other.NodeGraph)
+				&& Equals(TimeZone, other.TimeZone)
+				&& DesiredJobState == other.DesiredJobState
+				&& ProcessState == other.ProcessState
+				&& Equals(Pattern, other.Pattern);
 		}
 
 		private PropertySettingsScope GetOrCreateScope()
@@ -190,8 +210,15 @@
 				? instance.JobInfo.Postroll.Value - instance.JobInfo.JobEnd.Value
 				: TimeSpan.Zero;
 
-			TimeZone = TimeZoneInfo.FromSerializedString(Convert.ToString(instance.RecurringInfo.TimeZone));
-			Pattern = RecurringPattern.Deserialize(instance.RecurringInfo.RecurringPattern);
+			var timeZoneString = Convert.ToString(instance.RecurringInfo.TimeZone);
+			TimeZone = string.IsNullOrEmpty(timeZoneString)
+				? TimeZoneInfo.Utc
+				: TimeZoneInfo.FromSerializedString(timeZoneString);
+
+			var patternJson = instance.RecurringInfo.RecurringPattern;
+			Pattern = string.IsNullOrEmpty(patternJson)
+				? new RecurringPattern()
+				: RecurringPattern.Deserialize(patternJson);
 			ProcessState = (instance.RecurringInfo.ProcessStatus ?? SlcWorkflowIds.Enums.Processstatus.NA).MapEnum<SlcWorkflowIds.Enums.Processstatus, ProcessState>();
 			DesiredJobState = (instance.RecurringInfo.DesiredJobStatus ?? SlcWorkflowIds.Enums.Desiredjobstatus.Draft).MapEnum<SlcWorkflowIds.Enums.Desiredjobstatus, JobState>();
 
