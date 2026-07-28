@@ -4,6 +4,7 @@
 	using System.Collections.Generic;
 	using System.Linq;
 
+	using Skyline.DataMiner.Net.Jobs;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
 
@@ -15,6 +16,112 @@
 
 		public RecurringJobsRepository(MediaOpsPlanApi planApi) : base(planApi)
 		{
+		}
+
+		public RecurringJob Cancel(RecurringJob recurringJob)
+		{
+			if (recurringJob == null)
+			{
+				throw new ArgumentNullException(nameof(recurringJob));
+			}
+
+			return Cancel(recurringJob.Id);
+		}
+
+		public RecurringJob Cancel(Guid recurringJobId)
+		{
+			var recurringJob = Read(recurringJobId);
+			if (recurringJob == null)
+			{
+				return null;
+			}
+
+			if (!DomRecurringJobHandler.TryCancel(PlanApi, [recurringJob], out var result))
+			{
+				result.ThrowSingleException(recurringJob.Id);
+			}
+
+			return new RecurringJob(PlanApi, result.SuccessfulItems.Single());
+		}
+
+		public IReadOnlyCollection<RecurringJob> Cancel(IEnumerable<RecurringJob> recurringJobs)
+		{
+			throw new NotImplementedException();
+		}
+
+		public IReadOnlyCollection<RecurringJob> Cancel(IEnumerable<Guid> recurringJobIds)
+		{
+			throw new NotImplementedException();
+		}
+
+		public RecurringJob Complete(RecurringJob recurringJob)
+		{
+			throw new NotImplementedException();
+		}
+
+		public RecurringJob Complete(Guid recurringJobId)
+		{
+			throw new NotImplementedException();
+		}
+
+		public IReadOnlyCollection<RecurringJob> Complete(IEnumerable<RecurringJob> recurringJobs)
+		{
+			throw new NotImplementedException();
+		}
+
+		public IReadOnlyCollection<RecurringJob> Complete(IEnumerable<Guid> recurringJobIds)
+		{
+			throw new NotImplementedException();
+		}
+
+		public long Count()
+		{
+			throw new NotImplementedException();
+		}
+
+		public long Count(FilterElement<RecurringJob> filter)
+		{
+			throw new NotImplementedException();
+		}
+
+		public long Count(IQuery<RecurringJob> query)
+		{
+			throw new NotImplementedException();
+		}
+
+		public IReadOnlyCollection<RecurringJob> Create(IEnumerable<RecurringJob> oToCreate)
+		{
+			throw new NotImplementedException();
+		}
+
+		public RecurringJob Create(RecurringJob oToCreate)
+		{
+			throw new NotImplementedException();
+		}
+
+		public IReadOnlyCollection<RecurringJob> CreateOrUpdate(IEnumerable<RecurringJob> oToCreateOrUpdate)
+		{
+			throw new NotImplementedException();
+		}
+
+		public void Delete(Guid apiObjectId)
+		{
+			throw new NotImplementedException();
+		}
+
+		public void Delete(IEnumerable<Guid> apiObjectIds)
+		{
+			throw new NotImplementedException();
+		}
+
+		public void Delete(IEnumerable<RecurringJob> oToDelete)
+		{
+			throw new NotImplementedException();
+		}
+
+		public void Delete(RecurringJob oToDelete)
+		{
+			throw new NotImplementedException();
 		}
 
 		public IEnumerable<RecurringJob> Read(FilterElement<RecurringJob> filter)
@@ -95,6 +202,46 @@
 			}
 
 			return Read(new ORFilterElement<RecurringJob>(ids.Select(x => RecurringJobExposers.Id.Equal(x)).ToArray()));
+		}
+
+		public IEnumerable<SDM.IPagedResult<RecurringJob>> ReadPaged()
+		{
+			throw new NotImplementedException();
+		}
+
+		public IEnumerable<SDM.IPagedResult<RecurringJob>> ReadPaged(int pageSize)
+		{
+			throw new NotImplementedException();
+		}
+
+		public IEnumerable<SDM.IPagedResult<RecurringJob>> ReadPaged(FilterElement<RecurringJob> filter)
+		{
+			throw new NotImplementedException();
+		}
+
+		public IEnumerable<SDM.IPagedResult<RecurringJob>> ReadPaged(IQuery<RecurringJob> query)
+		{
+			throw new NotImplementedException();
+		}
+
+		public IEnumerable<SDM.IPagedResult<RecurringJob>> ReadPaged(FilterElement<RecurringJob> filter, int pageSize)
+		{
+			throw new NotImplementedException();
+		}
+
+		public IEnumerable<SDM.IPagedResult<RecurringJob>> ReadPaged(IQuery<RecurringJob> query, int pageSize)
+		{
+			throw new NotImplementedException();
+		}
+
+		public IReadOnlyCollection<RecurringJob> Update(IEnumerable<RecurringJob> oToUpdate)
+		{
+			throw new NotImplementedException();
+		}
+
+		public RecurringJob Update(RecurringJob oToUpdate)
+		{
+			throw new NotImplementedException();
 		}
 	}
 }

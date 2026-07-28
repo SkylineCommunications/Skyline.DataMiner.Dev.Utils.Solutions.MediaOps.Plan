@@ -3,31 +3,65 @@
 	using System;
 	using System.Collections.Generic;
 
-	using Skyline.DataMiner.SDM;
-
 	/// <summary>
 	/// Defines methods for managing <see cref="RecurringJob"/> objects.
 	/// </summary>
-	public interface IRecurringJobsRepository : IReadableRepository<RecurringJob>
+	public interface IRecurringJobsRepository : IRepository<RecurringJob>
 	{
 		/// <summary>
-		/// Reads all Recurring Jobs.
+		/// Moves the specified <see cref="RecurringJob"/> from <see cref="RecurringJobState.Active"/> to <see cref="RecurringJobState.Completed"/> state.
 		/// </summary>
-		/// <returns>An enumerable collection of all Recurring Jobs.</returns>
-		IEnumerable<RecurringJob> Read();
+		/// <param name="recurringJob">The recurring job to complete.</param>
+		/// <returns>The completed recurring job.</returns>
+		RecurringJob Complete(RecurringJob recurringJob);
 
 		/// <summary>
-		/// Reads a single Recurring Job by its unique identifier.
+		/// Moves the specified <see cref="RecurringJob"/> from <see cref="RecurringJobState.Active"/> to <see cref="RecurringJobState.Completed"/> state.
 		/// </summary>
-		/// <param name="id">The unique identifier of the Recurring Job.</param>
-		/// <returns>The Recurring Job with the specified identifier, or <c>null</c> if not found.</returns>
-		RecurringJob Read(Guid id);
+		/// <param name="recurringJobId">The unique identifier of the recurring job to complete.</param>
+		/// <returns>The completed recurring job.</returns>
+		RecurringJob Complete(Guid recurringJobId);
 
 		/// <summary>
-		/// Reads multiple Recurring Jobs by their unique identifiers.
+		/// Moves the specified Recurring Jobs from <see cref="RecurringJobState.Active"/> to <see cref="RecurringJobState.Completed"/> state.
 		/// </summary>
-		/// <param name="ids">A collection of unique identifiers.</param>
-		/// <returns>An enumerable collection of Recurring Jobs matching the specified identifiers.</returns>
-		IEnumerable<RecurringJob> Read(IEnumerable<Guid> ids);
+		/// <param name="recurringJobs">The recurring jobs to complete.</param>
+		/// <returns>A read-only collection containing the completed recurring jobs.</returns>
+		IReadOnlyCollection<RecurringJob> Complete(IEnumerable<RecurringJob> recurringJobs);
+
+		/// <summary>
+		/// Moves the specified Recurring Jobs from <see cref="RecurringJobState.Active"/> to <see cref="RecurringJobState.Completed"/> state.
+		/// </summary>
+		/// <param name="recurringJobIds">The unique identifiers of the recurring jobs to complete.</param>
+		/// <returns>A read-only collection containing the completed recurring jobs.</returns>
+		IReadOnlyCollection<RecurringJob> Complete(IEnumerable<Guid> recurringJobIds);
+
+		/// <summary>
+		/// Moves the specified <see cref="RecurringJob"/> from <see cref="RecurringJobState.Active"/> to <see cref="RecurringJobState.Cancelled"/> state.
+		/// </summary>
+		/// <param name="recurringJob">The recurring job to cancel.</param>
+		/// <returns>The canceled recurring job.</returns>
+		RecurringJob Cancel(RecurringJob recurringJob);
+
+		/// <summary>
+		/// Moves the specified <see cref="RecurringJob"/> from <see cref="RecurringJobState.Active"/> to <see cref="RecurringJobState.Cancelled"/> state.
+		/// </summary>
+		/// <param name="recurringJobId">The unique identifier of the recurring job to cancel.</param>
+		/// <returns>The canceled recurring job.</returns>
+		RecurringJob Cancel(Guid recurringJobId);
+
+		/// <summary>
+		/// Moves the specified Recurring Jobs from <see cref="RecurringJobState.Active"/> to <see cref="RecurringJobState.Cancelled"/> state.
+		/// </summary>
+		/// <param name="recurringJobs">The recurring jobs to cancel.</param>
+		/// <returns>A read-only collection containing the canceled recurring jobs.</returns>
+		IReadOnlyCollection<RecurringJob> Cancel(IEnumerable<RecurringJob> recurringJobs);
+
+		/// <summary>
+		/// Moves the specified Recurring Jobs from <see cref="RecurringJobState.Active"/> to <see cref="RecurringJobState.Cancelled"/> state.
+		/// </summary>
+		/// <param name="recurringJobIds">The unique identifiers of the recurring jobs to cancel.</param>
+		/// <returns>A read-only collection containing the canceled recurring jobs.</returns>
+		IReadOnlyCollection<RecurringJob> Cancel(IEnumerable<Guid> recurringJobIds);
 	}
 }

@@ -5,6 +5,7 @@
 	using System.Linq;
 
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow;
 
 	using StorageWorkflow = Storage.DOM.SlcWorkflow;
@@ -17,6 +18,7 @@
 		private readonly HashSet<Guid> contactIds = [];
 
 		private RecurringJobsInstance originalInstance;
+		private RecurringJobsInstance updatedInstance;
 		private PropertySettingsContext propertiesContext;
 		private PropertySettingsScope propertySettingsScope;
 
@@ -74,9 +76,9 @@
 		public RecurringJobPriority Priority { get; set; } = RecurringJobPriority.Normal;
 
 		/// <summary>
-		/// Gets the state of the job.
+		/// Gets the state of the recurring job.
 		/// </summary>
-		public RecurringJobState State { get; private set; }
+		public RecurringJobState State { get; private set; } = RecurringJobState.Active;
 
 		/// <summary>
 		/// Gets the orchestration settings assigned to this recurring job.
@@ -431,6 +433,69 @@
 		private void ConfigureNodeGraphSwapHooks()
 		{
 			NodeGraph.SetExternalReferenceRetargeter(nodeIdMap => OrchestrationSettingsCloner.RetargetReferences(OrchestrationSettings, nodeIdMap));
+		}
+
+		internal RecurringJobsInstance GetInstanceWithChanges()
+		{
+			if (updatedInstance == null)
+			{
+				updatedInstance = IsNew ? new RecurringJobsInstance(Id) : originalInstance.Clone();
+			}
+
+			updatedInstance.JobInfo.JobName = Name;
+			updatedInstance.JobInfo.JobDescription = Description;
+
+			var defaultDateTime = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+			updatedInstance.JobInfo.JobStart = defaultDateTime;
+			updatedInstance.JobInfo.JobEnd = defaultDateTime;
+			updatedInstance.JobInfo.Preroll = defaultDateTime - PreRollDuration;
+			updatedInstance.JobInfo.Postroll = defaultDateTime + PostRollDuration;
+
+			updatedInstance.RecurringInfo.Duration = Duration;
+			updatedInstance.RecurringInfo.ProcessStatus = ProcessState.MapEnum<RecurringJobProcessState, SlcWorkflowIds.Enums.Processstatus>();
+			updatedInstance.RecurringInfo.DesiredJobStatus = DesiredJobState.MapEnum<JobState, SlcWorkflowIds.Enums.Desiredjobstatus>();
+			updatedInstance.RecurringInfo.TimeZone = TimeZone.ToSerializedString();
+			updatedInstance.RecurringInfo.RecurringPattern = Pattern.Serialize();
+
+			// Reusing JobSource field to store CategoryId to be backwards compatible with existing implementations.
+			updatedInstance.JobInfo.JobSource = CategoryId;
+
+			updatedInstance.JobExecution.JobConfiguration = OrchestrationSettings.Id;
+
+			updatedInstance.JobInfo.JobPriority = Priority.MapEnum<RecurringJobPriority, SlcWorkflowIds.Enums.Jobpriority>();
+
+			updatedInstance.CostingAndBilling.Organization = OrganizationId != Guid.Empty ? OrganizationId : null;
+			updatedInstance.CostingAndBilling.JobOwner = OwnerId != Guid.Empty ? OwnerId : null;
+
+			updatedInstance.CostingAndBilling.AdditionalContacts.Clear();
+			foreach (var contactId in ContactIds)
+			{
+				updatedInstance.CostingAndBilling.AdditionalContacts.Add(contactId);
+			}
+
+			updatedInstance.Nodes.Clear();
+			foreach (var node in NodeGraph.Nodes)
+			{
+				updatedInstance.Nodes.Add(node.GetSectionWithChanges());
+			}
+
+			updatedInstance.Connections.Clear();
+			foreach (var connection in NodeGraph.Connections)
+			{
+				updatedInstance.Connections.Add(connection.GetSectionWithChanges());
+			}
+
+			updatedInstance.NodeRelationships.Clear();
+			foreach (var link in NodeGraph.Links)
+			{
+				updatedInstance.NodeRelationships.Add(new StorageWorkflow.NodeRelationshipsSection
+				{
+					ParentNodeID = link.Value.Id,
+					ChildNodeID = link.Key.Id,
+				});
+			}
+
+			return updatedInstance;
 		}
 	}
 }
