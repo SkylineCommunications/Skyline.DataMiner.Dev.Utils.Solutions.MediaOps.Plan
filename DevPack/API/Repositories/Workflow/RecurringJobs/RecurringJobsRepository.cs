@@ -46,32 +46,80 @@
 
 		public IReadOnlyCollection<RecurringJob> Cancel(IEnumerable<RecurringJob> recurringJobs)
 		{
-			throw new NotImplementedException();
+			if (recurringJobs == null)
+			{
+				throw new ArgumentNullException(nameof(recurringJobs));
+			}
+
+			return Cancel(recurringJobs.Select(x => x.Id).ToArray());
 		}
 
 		public IReadOnlyCollection<RecurringJob> Cancel(IEnumerable<Guid> recurringJobIds)
 		{
-			throw new NotImplementedException();
+			if (recurringJobIds == null)
+			{
+				throw new ArgumentNullException(nameof(recurringJobIds));
+			}
+
+			var recurringJobs = Read(recurringJobIds);
+			if (!DomRecurringJobHandler.TryCancel(PlanApi, recurringJobs?.ToList(), out var result))
+			{
+				result.ThrowBulkException();
+			}
+
+			return result.SuccessfulItems.Select(x => new RecurringJob(PlanApi, x)).ToList();
 		}
 
 		public RecurringJob Complete(RecurringJob recurringJob)
 		{
-			throw new NotImplementedException();
+			if (recurringJob == null)
+			{
+				throw new ArgumentNullException(nameof(recurringJob));
+			}
+
+			return Complete(recurringJob.Id);
 		}
 
 		public RecurringJob Complete(Guid recurringJobId)
 		{
-			throw new NotImplementedException();
+			var recurringJob = Read(recurringJobId);
+			if (recurringJob == null)
+			{
+				return null;
+			}
+
+			if (!DomRecurringJobHandler.TryComplete(PlanApi, [recurringJob], out var result))
+			{
+				result.ThrowSingleException(recurringJob.Id);
+			}
+
+			return new RecurringJob(PlanApi, result.SuccessfulItems.Single());
 		}
 
 		public IReadOnlyCollection<RecurringJob> Complete(IEnumerable<RecurringJob> recurringJobs)
 		{
-			throw new NotImplementedException();
+			if (recurringJobs == null)
+			{
+				throw new ArgumentNullException(nameof(recurringJobs));
+			}
+
+			return Complete(recurringJobs.Select(x => x.Id).ToArray());
 		}
 
 		public IReadOnlyCollection<RecurringJob> Complete(IEnumerable<Guid> recurringJobIds)
 		{
-			throw new NotImplementedException();
+			if (recurringJobIds == null)
+			{
+				throw new ArgumentNullException(nameof(recurringJobIds));
+			}
+
+			var recurringJobs = Read(recurringJobIds);
+			if (!DomRecurringJobHandler.TryComplete(PlanApi, recurringJobs?.ToList(), out var result))
+			{
+				result.ThrowBulkException();
+			}
+
+			return result.SuccessfulItems.Select(x => new RecurringJob(PlanApi, x)).ToList();
 		}
 
 		public long Count()
@@ -97,37 +145,111 @@
 
 		public IReadOnlyCollection<RecurringJob> Create(IEnumerable<RecurringJob> oToCreate)
 		{
-			throw new NotImplementedException();
+			if (oToCreate == null)
+			{
+				throw new ArgumentNullException(nameof(oToCreate));
+			}
+
+			var list = oToCreate.ToList();
+
+			var existing = list.Where(x => !x.IsNew);
+			if (existing.Any())
+			{
+				throw new InvalidOperationException("Not possible to use method Create for existing recurring jobs. Use CreateOrUpdate or Update instead.");
+			}
+
+			if (!DomRecurringJobHandler.TryCreateOrUpdate(PlanApi, list, out var result))
+			{
+				result.ThrowBulkException();
+			}
+
+			return result.SuccessfulItems.Select(x => new RecurringJob(PlanApi, x)).ToList();
 		}
 
 		public RecurringJob Create(RecurringJob oToCreate)
 		{
-			throw new NotImplementedException();
+			if (oToCreate == null)
+			{
+				throw new ArgumentNullException(nameof(oToCreate));
+			}
+
+			if (!oToCreate.IsNew)
+			{
+				throw new InvalidOperationException("Not possible to use method Create for existing recurring job. Use CreateOrUpdate or Update instead.");
+			}
+
+			if (!DomRecurringJobHandler.TryCreateOrUpdate(PlanApi, [oToCreate], out var result))
+			{
+				result.ThrowSingleException(oToCreate.Id);
+			}
+
+			return new RecurringJob(PlanApi, result.SuccessfulItems.Single());
 		}
 
 		public IReadOnlyCollection<RecurringJob> CreateOrUpdate(IEnumerable<RecurringJob> oToCreateOrUpdate)
 		{
-			throw new NotImplementedException();
+			if (oToCreateOrUpdate == null)
+			{
+				throw new ArgumentNullException(nameof(oToCreateOrUpdate));
+			}
+
+			var list = oToCreateOrUpdate.ToList();
+
+			if (!DomRecurringJobHandler.TryCreateOrUpdate(PlanApi, list, out var result))
+			{
+				result.ThrowBulkException();
+			}
+
+			return result.SuccessfulItems.Select(x => new RecurringJob(PlanApi, x)).ToList();
 		}
 
 		public void Delete(Guid apiObjectId)
 		{
-			throw new NotImplementedException();
+			var toDelete = Read(apiObjectId);
+			if (toDelete == null)
+			{
+				return;
+			}
+
+			if (!DomRecurringJobHandler.TryDelete(PlanApi, [toDelete], out var result))
+			{
+				result.ThrowSingleException(toDelete.Id);
+			}
 		}
 
 		public void Delete(IEnumerable<Guid> apiObjectIds)
 		{
-			throw new NotImplementedException();
+			if (apiObjectIds == null)
+			{
+				throw new ArgumentNullException(nameof(apiObjectIds));
+			}
+
+			var toDelete = Read(apiObjectIds.ToArray());
+
+			if (!DomRecurringJobHandler.TryDelete(PlanApi, toDelete?.ToList(), out var result))
+			{
+				result.ThrowBulkException();
+			}
 		}
 
 		public void Delete(IEnumerable<RecurringJob> oToDelete)
 		{
-			throw new NotImplementedException();
+			if (oToDelete == null)
+			{
+				throw new ArgumentNullException(nameof(oToDelete));
+			}
+
+			Delete(oToDelete.Select(x => x.Id).ToArray());
 		}
 
 		public void Delete(RecurringJob oToDelete)
 		{
-			throw new NotImplementedException();
+			if (oToDelete == null)
+			{
+				throw new ArgumentNullException(nameof(oToDelete));
+			}
+
+			Delete(oToDelete.Id);
 		}
 
 		public IEnumerable<RecurringJob> Read(FilterElement<RecurringJob> filter)
@@ -242,12 +364,45 @@
 
 		public IReadOnlyCollection<RecurringJob> Update(IEnumerable<RecurringJob> oToUpdate)
 		{
-			throw new NotImplementedException();
+			if (oToUpdate == null)
+			{
+				throw new ArgumentNullException(nameof(oToUpdate));
+			}
+
+			var list = oToUpdate.ToList();
+
+			var newRecurringJobs = list.Where(x => x.IsNew);
+			if (newRecurringJobs.Any())
+			{
+				throw new InvalidOperationException("Not possible to use method Update for new recurring jobs. Use Create or CreateOrUpdate instead.");
+			}
+
+			if (!DomRecurringJobHandler.TryCreateOrUpdate(PlanApi, list, out var result))
+			{
+				result.ThrowBulkException();
+			}
+
+			return result.SuccessfulItems.Select(x => new RecurringJob(PlanApi, x)).ToList();
 		}
 
 		public RecurringJob Update(RecurringJob oToUpdate)
 		{
-			throw new NotImplementedException();
+			if (oToUpdate == null)
+			{
+				throw new ArgumentNullException(nameof(oToUpdate));
+			}
+
+			if (oToUpdate.IsNew)
+			{
+				throw new InvalidOperationException("Not possible to use method Update for new recurring job. Use Create or CreateOrUpdate instead.");
+			}
+
+			if (!DomRecurringJobHandler.TryCreateOrUpdate(PlanApi, [oToUpdate], out var result))
+			{
+				result.ThrowSingleException(oToUpdate.Id);
+			}
+
+			return new RecurringJob(PlanApi, result.SuccessfulItems.Single());
 		}
 	}
 }
