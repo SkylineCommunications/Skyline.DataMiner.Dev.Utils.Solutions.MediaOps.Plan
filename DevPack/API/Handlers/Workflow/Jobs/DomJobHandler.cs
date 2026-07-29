@@ -4,6 +4,7 @@
 	using System.Collections.Generic;
 	using System.Linq;
 
+	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Solutions.Categories.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
@@ -1232,37 +1233,50 @@
 
 			// Re-read the stored jobs and merge the timing changes onto them instead of persisting the pre-operation
 			// snapshot. Step 1 moved the core reservation, which makes SRM promote it to Ongoing on a live agent and
-			// drives the job's status transition (Confirmed-to-Running on start, Running-to-Completed on stop). The
-			// snapshot in OriginalInstance still carries the status the job had before that transition, so persisting it
-			// with a normal update would attempt to change the status and be rejected with
-			// StatusChangeNotAllowedForNormalUpdate. Merging the changes onto the current instance keeps the job's actual
-			// status, so only the timing fields are updated.
-			var updatedInstances = GetJobsWithChanges(changedJobs)
-				.Where(IsValid)
-				.Select(x => new DomJob(x.Instance).ToInstance())
-				.ToList();
+			// drives the job's status transition (Confirmed-to-Running on start, Running-to-Completed on stop). That
+			// transition is asynchronous: it can land before this re-read (the merge then keeps the new status) or in
+			// the window between the re-read and the write (the merge keeps the old status, so the normal update tries
+			// to change the status and is rejected with StatusChangeNotAllowedForNormalUpdate). Re-reading and writing
+			// again picks up the new status, so retry as long as every remaining failure is that status-change race.
+			const int maxAttempts = 10;
+			const int retryDelayMs = 250;
 
-			if (updatedInstances.Count == 0)
+			for (int attempt = 1; attempt <= maxAttempts; attempt++)
 			{
+				var updatedInstances = GetJobsWithChanges(changedJobs)
+					.Where(IsValid)
+					.Select(x => new DomJob(x.Instance).ToInstance())
+					.ToList();
+
+				if (updatedInstances.Count == 0)
+				{
+					return;
+				}
+
+				planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.TryCreateOrUpdateInBatches(updatedInstances, out var domResult);
+
+				if (attempt < maxAttempts && HasOnlyStatusChangeFailures(domResult))
+				{
+					System.Threading.Thread.Sleep(retryDelayMs);
+					continue;
+				}
+
+				foreach (var id in domResult.UnsuccessfulIds)
+				{
+					ReportError(id.Id);
+
+					if (domResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+					{
+						var mediaOpsTraceData = new MediaOpsTraceData();
+						mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = traceData.ToString() });
+
+						PassTraceData(id.Id, mediaOpsTraceData);
+					}
+				}
+
+				ReportSuccess(domResult.SuccessfulItems.Select(x => new DomJob(x)).ToArray());
 				return;
 			}
-
-			planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.TryCreateOrUpdateInBatches(updatedInstances, out var domResult);
-
-			foreach (var id in domResult.UnsuccessfulIds)
-			{
-				ReportError(id.Id);
-
-				if (domResult.TraceDataPerItem.TryGetValue(id, out var traceData))
-				{
-					var mediaOpsTraceData = new MediaOpsTraceData();
-					mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = traceData.ToString() });
-
-					PassTraceData(id.Id, mediaOpsTraceData);
-				}
-			}
-
-			ReportSuccess(domResult.SuccessfulItems.Select(x => new DomJob(x)).ToArray());
 		}
 
 		private void TransitionToRunning(ICollection<Job> apiJobs)
@@ -3001,6 +3015,16 @@
 			return changeResult.AddedSections.Any(x => x.SectionDefinitionId == nodesSectionId)
 				|| changeResult.RemovedSections.Any(x => x.SectionDefinitionId == nodesSectionId)
 				|| changeResult.ChangedFields.Any(x => x.SectionDefinitionId == nodesSectionId);
+		}
+
+		private static bool HasOnlyStatusChangeFailures(Net.Messages.IBulkOperationResult<DomInstanceId> domResult)
+		{
+			return
+				domResult.UnsuccessfulIds.Count > 0 &&
+				domResult.UnsuccessfulIds.All(id =>
+					domResult.TraceDataPerItem.TryGetValue(id, out var trace) &&
+					trace.ErrorData.OfType<DomInstanceError>().Any(error =>
+						error.ErrorReason == DomInstanceError.Reason.StatusChangeNotAllowedForNormalUpdate));
 		}
 	}
 }
