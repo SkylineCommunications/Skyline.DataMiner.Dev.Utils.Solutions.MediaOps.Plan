@@ -5,9 +5,5 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions
 	/// </summary>
 	public sealed class RecurringJobInvalidPatternError : RecurringJobError
 	{
-		/// <summary>
-		/// Gets the reason why the recurring pattern is invalid.
-		/// </summary>
-		public string Reason { get; internal set; }
 	}
 }

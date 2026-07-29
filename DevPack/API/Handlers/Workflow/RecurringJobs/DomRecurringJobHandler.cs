@@ -90,6 +90,8 @@
 			ValidatePattern(apiRecurringJobs);
 			ValidatePreRoll(apiRecurringJobs);
 			ValidatePostRoll(apiRecurringJobs);
+			ValidateDuration(apiRecurringJobs);
+			ValidateEndTime(apiRecurringJobs);
 
 			ValidateNodeGraph(apiRecurringJobs);
 			ValidateDescription(apiRecurringJobs);
@@ -712,19 +714,6 @@
 
 				ReportError(job.Id, error);
 			}
-
-			foreach (var job in apiRecurringJobs
-				.Except(isNew)
-				.Where(x => x.State != RecurringJobState.Cancelled && x.State != RecurringJobState.Completed))
-			{
-				var error = new RecurringJobInvalidStateError
-				{
-					ErrorMessage = "Not allowed to delete a recurring job that is not in Draft, Canceled or Completed state.",
-					Id = job.Id,
-				};
-
-				ReportError(job.Id, error);
-			}
 		}
 
 		private void ValidateStateForCancelAction(ICollection<RecurringJob> apiRecurringJobs)
@@ -1002,6 +991,37 @@
 
 				ReportError(job.Id, error);
 			}
+		}
+
+		private void ValidateDuration(ICollection<RecurringJob> apiRecurringJobs)
+		{
+			if (apiRecurringJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiRecurringJobs));
+			}
+
+			if (apiRecurringJobs.Count == 0)
+			{
+				return;
+			}
+
+			// TODO: validate that the duration is a positive value and does not have sub-second precision. This validation is currently missing.
+		}
+
+		private void ValidateEndTime(ICollection<RecurringJob> apiRecurringJobs)
+		{
+			if (apiRecurringJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiRecurringJobs));
+			}
+
+			if (apiRecurringJobs.Count == 0)
+			{
+				return;
+			}
+
+			// TODO: validate the Pattern.EndTime
+			// Error message = "The Recurring Series must end between now and two years in the future."
 		}
 
 		private void ValidateNodeGraph(ICollection<RecurringJob> apiRecurringJobs)
