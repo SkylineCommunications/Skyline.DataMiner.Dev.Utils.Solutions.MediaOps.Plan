@@ -76,17 +76,23 @@
 
 		public long Count()
 		{
-			throw new NotImplementedException();
+			return Count(new TRUEFilterElement<RecurringJob>());
 		}
 
 		public long Count(FilterElement<RecurringJob> filter)
 		{
-			throw new NotImplementedException();
+			if (filter.isEmpty())
+			{
+				return 0;
+			}
+
+			var domFilter = filterTranslator.Translate(filter);
+			return PlanApi.DomHelpers.SlcWorkflowHelper.CountWorkflowInstances(domFilter);
 		}
 
 		public long Count(IQuery<RecurringJob> query)
 		{
-			throw new NotImplementedException();
+			return Count(query.Filter);
 		}
 
 		public IReadOnlyCollection<RecurringJob> Create(IEnumerable<RecurringJob> oToCreate)
