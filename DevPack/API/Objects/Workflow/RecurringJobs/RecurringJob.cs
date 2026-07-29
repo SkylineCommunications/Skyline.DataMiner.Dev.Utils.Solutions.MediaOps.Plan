@@ -130,7 +130,7 @@
 		/// <summary>
 		/// Gets or sets the desired state of each job generated from this recurring job.
 		/// </summary>
-		public JobState DesiredJobState { get; set; } = JobState.Draft;
+		public DesiredJobState DesiredJobState { get; set; } = DesiredJobState.Draft;
 
 		/// <summary>
 		/// Gets or sets the current process state of this recurring job.
@@ -319,7 +319,7 @@
 				: RecurringPattern.Deserialize(patternJson);
 
 			ProcessState = (instance.RecurringInfo.ProcessStatus ?? SlcWorkflowIds.Enums.Processstatus.NA).MapEnum<SlcWorkflowIds.Enums.Processstatus, RecurringJobProcessState>();
-			DesiredJobState = (instance.RecurringInfo.DesiredJobStatus ?? SlcWorkflowIds.Enums.Desiredjobstatus.Draft).MapEnum<SlcWorkflowIds.Enums.Desiredjobstatus, JobState>();
+			DesiredJobState = (instance.RecurringInfo.DesiredJobStatus ?? SlcWorkflowIds.Enums.Desiredjobstatus.Draft).MapEnum<SlcWorkflowIds.Enums.Desiredjobstatus, DesiredJobState>();
 
 			if (instance.JobExecution.JobConfiguration == null || instance.JobExecution.JobConfiguration == Guid.Empty)
 			{
@@ -457,7 +457,7 @@
 
 			updatedInstance.RecurringInfo.Duration = Duration;
 			updatedInstance.RecurringInfo.ProcessStatus = ProcessState.MapEnum<RecurringJobProcessState, SlcWorkflowIds.Enums.Processstatus>();
-			updatedInstance.RecurringInfo.DesiredJobStatus = DesiredJobState.MapEnum<JobState, SlcWorkflowIds.Enums.Desiredjobstatus>();
+			updatedInstance.RecurringInfo.DesiredJobStatus = DesiredJobState.MapEnum<DesiredJobState, SlcWorkflowIds.Enums.Desiredjobstatus>();
 			updatedInstance.RecurringInfo.TimeZone = TimeZone.ToSerializedString();
 			updatedInstance.RecurringInfo.RecurringPattern = Pattern.Serialize();
 

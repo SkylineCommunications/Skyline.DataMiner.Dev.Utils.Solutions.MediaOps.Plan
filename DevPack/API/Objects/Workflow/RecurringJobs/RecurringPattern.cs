@@ -48,6 +48,11 @@
 		public WeekDays WeekDays { get; set; }
 
 		/// <summary>
+		/// Gets whether the RecurringPattern is valid.
+		/// </summary>
+		public bool IsValid => TryValidate(out _);
+
+		/// <summary>
 		/// Determines whether the specified object is equal to the current recurring pattern instance.
 		/// </summary>
 		/// <param name="obj">The object to compare with the current recurring pattern instance.</param>
@@ -122,6 +127,31 @@
 		public string Serialize()
 		{
 			return JsonConvert.SerializeObject(this);
+		}
+
+		internal bool TryValidate(out string reason)
+		{
+			reason = String.Empty;
+
+			if (RepeatType == RepeatType.Never)
+			{
+				reason = "The RepeatType cannot be 'Never' for a recurring pattern.";
+				return false;
+			}
+
+			if (RepeatEvery < 1)
+			{
+				reason = "The RepeatEvery value must be at least 1.";
+				return false;
+			}
+
+			if (RepeatType == RepeatType.Weekly && WeekDays == WeekDays.None)
+			{
+				reason = "At least one day of the week should be included in a weekly pattern.";
+				return false;
+			}
+
+			return true;
 		}
 
 		private static DateTimeOffset ConvertToTimeZoneOffset(DateTimeOffset dateTime, TimeZoneInfo timeZone)
