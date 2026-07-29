@@ -431,18 +431,19 @@
 
 		private static RecurringJob NewValidRecurringJob(string name)
 		{
-			return ConfigurePattern(new RecurringJob { Name = name, Start = DateTime.UtcNow.AddHours(1) });
+			return ConfigurePattern(new RecurringJob { Name = name, Start = DateTime.UtcNow.AddHours(1), Duration = TimeSpan.FromHours(1) });
 		}
 
 		private static RecurringJob NewValidRecurringJob(string name, Guid id)
 		{
-			return ConfigurePattern(new RecurringJob(id) { Name = name, Start = DateTime.UtcNow.AddHours(1) });
+			return ConfigurePattern(new RecurringJob(id) { Name = name, Start = DateTime.UtcNow.AddHours(1), Duration = TimeSpan.FromHours(1) });
 		}
 
 		private static RecurringJob ConfigurePattern(RecurringJob recurringJob)
 		{
 			recurringJob.Pattern.RepeatType = RepeatType.Daily;
 			recurringJob.Pattern.RepeatEvery = 1;
+			recurringJob.Pattern.EndDate = DateTime.UtcNow.AddDays(10);
 			return recurringJob;
 		}
 	}
