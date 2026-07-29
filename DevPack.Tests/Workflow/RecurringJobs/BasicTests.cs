@@ -98,6 +98,50 @@
 		}
 
 		[TestMethod]
+		public void CountWithEmptyFilterReturnsZero()
+		{
+			var idsToRetrieve = new Guid[0];
+			var emptyFilter = new ORFilterElement<RecurringJob>(idsToRetrieve.Select(x => RecurringJobExposers.Id.Equal(x)).ToArray());
+
+			var count = TestContext.Api.RecurringJobs.Count(emptyFilter);
+			Assert.AreEqual(0, count);
+		}
+
+		[TestMethod]
+		public void CountByIdReturnsSingleRecurringJob()
+		{
+			var recurringJob = objectCreator.CreateRecurringJob(NewValidRecurringJob($"{Guid.NewGuid()}_RecurringJob"));
+
+			var count = TestContext.Api.RecurringJobs.Count(RecurringJobExposers.Id.Equal(recurringJob.Id));
+			Assert.AreEqual(1, count);
+		}
+
+		[TestMethod]
+		public void CountByNameReturnsMatchingRecurringJob()
+		{
+			var name = $"{Guid.NewGuid()}_RecurringJob";
+
+			objectCreator.CreateRecurringJob(NewValidRecurringJob(name));
+
+			var count = TestContext.Api.RecurringJobs.Count(RecurringJobExposers.Name.Equal(name));
+			Assert.AreEqual(1, count);
+		}
+
+		[TestMethod]
+		public void CountByUnknownNameReturnsZero()
+		{
+			var count = TestContext.Api.RecurringJobs.Count(RecurringJobExposers.Name.Equal($"{Guid.NewGuid()}_Unknown"));
+			Assert.AreEqual(0, count);
+		}
+
+		[TestMethod]
+		public void CountByUnknownIdReturnsZero()
+		{
+			var count = TestContext.Api.RecurringJobs.Count(RecurringJobExposers.Id.Equal(Guid.NewGuid()));
+			Assert.AreEqual(0, count);
+		}
+
+		[TestMethod]
 		public void HappyPathCreate()
 		{
 			var prefix = Guid.NewGuid();
@@ -360,13 +404,9 @@
 			var read = TestContext.Api.RecurringJobs.Read(recurringJob.Id);
 			read.Description = "Updated description";
 
-			var planApi = (MediaOpsPlanApi)TestContext.Api;
-			var success = DomRecurringJobHandler.TryCreateOrUpdate(planApi, new[] { read }, out var result);
-
-			Assert.IsFalse(success, "Updating an existing recurring job should not be allowed.");
-			Assert.IsTrue(result.TraceDataPerItem.TryGetValue(read.Id, out var traceData), "Expected trace data for the blocked update.");
+			var exception = Assert.ThrowsException<MediaOpsException>(() => TestContext.Api.RecurringJobs.Update(read));
 			Assert.IsTrue(
-				traceData.ErrorData.OfType<RecurringJobInvalidStateError>().Any(),
+				exception.TraceData.ErrorData.OfType<RecurringJobInvalidStateError>().Any(),
 				"Expected a RecurringJobInvalidStateError when updating an existing recurring job.");
 
 			// The stored recurring job must remain unchanged.

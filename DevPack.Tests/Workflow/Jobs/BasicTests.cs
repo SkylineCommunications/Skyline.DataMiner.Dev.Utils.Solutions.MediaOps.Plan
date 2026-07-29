@@ -91,6 +91,56 @@
 		}
 
 		[TestMethod]
+		public void CountByIdReturnsSingleJob()
+		{
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+			var job = objectCreator.CreateJob(new Job
+			{
+				Name = $"{Guid.NewGuid()}_Job",
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
+			});
+
+			var count = TestContext.Api.Jobs.Count(JobExposers.Id.Equal(job.Id));
+			Assert.AreEqual(1, count);
+		}
+
+		[TestMethod]
+		public void CountByNameReturnsMatchingJob()
+		{
+			var name = $"{Guid.NewGuid()}_Job";
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			objectCreator.CreateJob(new Job
+			{
+				Name = name,
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
+			});
+
+			var count = TestContext.Api.Jobs.Count(JobExposers.Name.Equal(name));
+			Assert.AreEqual(1, count);
+		}
+
+		[TestMethod]
+		public void CountByUnknownNameReturnsZero()
+		{
+			var count = TestContext.Api.Jobs.Count(JobExposers.Name.Equal($"{Guid.NewGuid()}_Unknown"));
+			Assert.AreEqual(0, count);
+		}
+
+		[TestMethod]
+		public void CountByUnknownIdReturnsZero()
+		{
+			var count = TestContext.Api.Jobs.Count(JobExposers.Id.Equal(Guid.NewGuid()));
+			Assert.AreEqual(0, count);
+		}
+
+		[TestMethod]
 		public void ReadWithEmptyQueryReturnsEmptyList()
 		{
 			var idsToRetrieve = new Guid[0];

@@ -853,32 +853,34 @@
 				throw new ArgumentNullException(nameof(recurringJob));
 			}
 
-			// The public RecurringJobs repository does not implement Create yet, so the DOM handler is used
-			// directly to persist the backend recurring job DOM instance.
-			var planApi = (MediaOpsPlanApi)PlanApi;
-			if (!DomRecurringJobHandler.TryCreateOrUpdate(planApi, new[] { recurringJob }, out var result))
-			{
-				StoreRecurringJobIds(result.SuccessfulIds);
-				result.ThrowSingleException(recurringJob.Id);
-			}
-
-			createdRecurringJobIds.Add(recurringJob.Id);
-			return PlanApi.RecurringJobs.Read(recurringJob.Id);
+			var createdRecurringJob = PlanApi.RecurringJobs.Create(recurringJob);
+			createdRecurringJobIds.Add(createdRecurringJob.Id);
+			return createdRecurringJob;
 		}
 
 		public IReadOnlyCollection<RecurringJob> CreateRecurringJobs(IEnumerable<RecurringJob> recurringJobs)
 		{
-			var toCreate = recurringJobs?.ToList() ?? throw new ArgumentNullException(nameof(recurringJobs));
-
-			var planApi = (MediaOpsPlanApi)PlanApi;
-			if (!DomRecurringJobHandler.TryCreateOrUpdate(planApi, toCreate, out var result))
+			if (recurringJobs == null)
 			{
-				StoreRecurringJobIds(result.SuccessfulIds);
-				result.ThrowBulkException();
+				throw new ArgumentNullException(nameof(recurringJobs));
 			}
 
-			StoreRecurringJobIds(result.SuccessfulIds);
-			return PlanApi.RecurringJobs.Read(result.SuccessfulIds).ToList();
+			try
+			{
+				var createdRecurringJobs = PlanApi.RecurringJobs.Create(recurringJobs);
+
+				foreach (var recurringJob in createdRecurringJobs)
+				{
+					createdRecurringJobIds.Add(recurringJob.Id);
+				}
+
+				return createdRecurringJobs;
+			}
+			catch (MediaOpsBulkException<Guid> bulkException)
+			{
+				StoreRecurringJobIds(bulkException.Result.SuccessfulIds);
+				throw;
+			}
 		}
 
 		public RecurringJob CompleteRecurringJob(RecurringJob recurringJob)
@@ -888,15 +890,7 @@
 				throw new ArgumentNullException(nameof(recurringJob));
 			}
 
-			// The public RecurringJobs repository does not implement Complete yet, so the DOM handler is used
-			// directly to transition the backend recurring job DOM instance from Active to Completed.
-			var planApi = (MediaOpsPlanApi)PlanApi;
-			if (!DomRecurringJobHandler.TryComplete(planApi, new[] { recurringJob }, out var result))
-			{
-				result.ThrowSingleException(recurringJob.Id);
-			}
-
-			return PlanApi.RecurringJobs.Read(recurringJob.Id);
+			return PlanApi.RecurringJobs.Complete(recurringJob);
 		}
 	}
 }
