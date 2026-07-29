@@ -85,6 +85,7 @@
 			ValidateStateForUpdateAction(toUpdate);
 
 			ValidateNames(apiRecurringJobs);
+			ValidateStartTime(apiRecurringJobs);
 			ValidateCategories(apiRecurringJobs);
 			ValidatePattern(apiRecurringJobs);
 			ValidatePreRoll(apiRecurringJobs);
@@ -750,26 +751,28 @@
 			}
 		}
 
-		private void ValidateReservationIsEnded(ICollection<Job> apiJobs)
+		private void ValidateStartTime(ICollection<RecurringJob> apiRecurringJobs)
 		{
-			var validJobs = apiJobs.Where(IsValid).ToList();
-			if (validJobs.Count == 0)
+			if (apiRecurringJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiRecurringJobs));
+			}
+
+			if (apiRecurringJobs.Count == 0)
 			{
 				return;
 			}
 
-			var domJobs = validJobs.Select(x => x.OriginalInstance).ToList();
-
-			CoreJobHandler.TryVerifyEnded(planApi, domJobs, out var coreResult);
-
-			foreach (var id in coreResult.UnsuccessfulIds)
+			var now = DateTimeOffset.UtcNow;
+			foreach (var recurringJob in apiRecurringJobs.Where(x => x.Start < now).ToArray())
 			{
-				ReportError(id);
-
-				if (coreResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+				var error = new RecurringJobInvalidStartTimeError
 				{
-					PassTraceData(id, traceData);
-				}
+					ErrorMessage = "Start time must be in the future.",
+					Id = recurringJob.Id,
+				};
+
+				ReportError(recurringJob.Id, error);
 			}
 		}
 

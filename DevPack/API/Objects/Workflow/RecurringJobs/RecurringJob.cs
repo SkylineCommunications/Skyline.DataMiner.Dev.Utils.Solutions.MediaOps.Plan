@@ -103,6 +103,11 @@
 		public IReadOnlyCollection<PropertySetting> PropertySettings => GetOrCreateScope().PropertySettings;
 
 		/// <summary>
+		/// Gets or sets the start time of the first job generated from this recurring job, in the time zone specified by <see cref="TimeZone"/>.
+		/// </summary>
+		public DateTimeOffset Start { get; set; }
+
+		/// <summary>
 		/// Gets or sets the duration of each generated job, excluding pre-roll and post-roll.
 		/// </summary>
 		public TimeSpan Duration { get; set; }
@@ -290,11 +295,9 @@
 			this.originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
 
 			Name = instance.JobInfo.JobName;
-
 			Description = instance.JobInfo.JobDescription;
-
+			Start = instance.JobInfo.JobStart.Value;
 			Duration = instance.RecurringInfo.Duration ?? TimeSpan.Zero;
-
 			State = EnumExtensions.MapEnum<SlcWorkflowIds.Behaviors.Recurringjob_Behavior.StatusesEnum, RecurringJobState>(instance.Status);
 
 			PreRollDuration = instance.JobInfo.JobStart.HasValue && instance.JobInfo.Preroll.HasValue
@@ -447,11 +450,10 @@
 			updatedInstance.JobInfo.JobName = Name;
 			updatedInstance.JobInfo.JobDescription = Description;
 
-			var defaultDateTime = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-			updatedInstance.JobInfo.JobStart = defaultDateTime;
-			updatedInstance.JobInfo.JobEnd = defaultDateTime;
-			updatedInstance.JobInfo.Preroll = defaultDateTime - PreRollDuration;
-			updatedInstance.JobInfo.Postroll = defaultDateTime + PostRollDuration;
+			updatedInstance.JobInfo.JobStart = Start.UtcDateTime;
+			updatedInstance.JobInfo.JobEnd = Start.Add(Duration).UtcDateTime;
+			updatedInstance.JobInfo.Preroll = Start.Subtract(PreRollDuration).UtcDateTime;
+			updatedInstance.JobInfo.Postroll = Start.Add(Duration).Add(PostRollDuration).UtcDateTime;
 
 			updatedInstance.RecurringInfo.Duration = Duration;
 			updatedInstance.RecurringInfo.ProcessStatus = ProcessState.MapEnum<RecurringJobProcessState, SlcWorkflowIds.Enums.Processstatus>();
