@@ -70,6 +70,7 @@
 			{
 				Name = recurringJob.Name,
 				Description = recurringJob.Description,
+				Notes = recurringJob.Notes,
 				Start = startTime,
 				End = endTime,
 				PreRollStart = startTime - recurringJob.PreRollDuration,
@@ -583,6 +584,7 @@
 				hash = (hash * 23) + State.GetHashCode();
 				hash = (hash * 23) + OrganizationId.GetHashCode();
 				hash = (hash * 23) + OwnerId.GetHashCode();
+				hash = (hash * 23) + RecurringJobId.GetHashCode();
 
 				foreach (var contactId in contactIds.OrderBy(x => x).ToArray())
 				{
@@ -617,6 +619,7 @@
 				   State == other.State &&
 				   OrganizationId == other.OrganizationId &&
 				   OwnerId == other.OwnerId &&
+				   RecurringJobId == other.RecurringJobId &&
 				   contactIds.SetEquals(other.contactIds);
 		}
 

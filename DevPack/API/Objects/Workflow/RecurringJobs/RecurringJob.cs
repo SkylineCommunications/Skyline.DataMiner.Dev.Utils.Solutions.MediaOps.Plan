@@ -79,6 +79,7 @@
 			{
 				Name = job.Name,
 				Description = job.Description,
+				Notes = job.Notes,
 				Start = job.Start,
 				Duration = job.End - job.Start,
 				PreRollDuration = job.PreRollDuration,
@@ -345,6 +346,7 @@
 				hash = (hash * 23) + OrganizationId.GetHashCode();
 				hash = (hash * 23) + OwnerId.GetHashCode();
 				hash = (hash * 23) + (JobTypeCategoryId != null ? JobTypeCategoryId.GetHashCode() : 0);
+				hash = (hash * 23) + (Notes != null ? Notes.GetHashCode() : 0);
 
 				foreach (var contactId in contactIds.OrderBy(x => x).ToArray())
 				{
@@ -385,6 +387,7 @@
 				&& OrganizationId == other.OrganizationId
 				&& OwnerId == other.OwnerId
 				&& JobTypeCategoryId == other.JobTypeCategoryId
+				&& Notes == other.Notes
 				&& contactIds.SetEquals(other.contactIds);
 		}
 
