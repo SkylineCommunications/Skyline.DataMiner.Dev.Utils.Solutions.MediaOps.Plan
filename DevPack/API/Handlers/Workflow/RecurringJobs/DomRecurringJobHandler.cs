@@ -91,7 +91,7 @@
 			ValidatePreRoll(apiRecurringJobs);
 			ValidatePostRoll(apiRecurringJobs);
 			ValidateDuration(apiRecurringJobs);
-			ValidateEndTime(apiRecurringJobs);
+			ValidateEndDate(apiRecurringJobs);
 
 			ValidateNodeGraph(apiRecurringJobs);
 			ValidateDescription(apiRecurringJobs);
@@ -1005,10 +1005,35 @@
 				return;
 			}
 
-			// TODO: validate that the duration is a positive value and does not have sub-second precision. This validation is currently missing.
+			var toValidate = apiRecurringJobs.ToList();
+
+			foreach (var job in toValidate.Where(x => x.Duration.Ticks % TimeSpan.TicksPerSecond != 0).ToArray())
+			{
+				var error = new RecurringJobInvalidDurationError
+				{
+					ErrorMessage = "Duration must not have sub-second precision.",
+					Id = job.Id,
+					Duration = job.Duration,
+				};
+
+				ReportError(job.Id, error);
+				toValidate.Remove(job);
+			}
+
+			foreach (var job in toValidate.Where(x => x.Duration <= TimeSpan.Zero))
+			{
+				var error = new RecurringJobInvalidDurationError
+				{
+					ErrorMessage = "The duration must be greater than 0 seconds.",
+					Id = job.Id,
+					Duration = job.Duration,
+				};
+
+				ReportError(job.Id, error);
+			}
 		}
 
-		private void ValidateEndTime(ICollection<RecurringJob> apiRecurringJobs)
+		private void ValidateEndDate(ICollection<RecurringJob> apiRecurringJobs)
 		{
 			if (apiRecurringJobs == null)
 			{
@@ -1020,8 +1045,20 @@
 				return;
 			}
 
-			// TODO: validate the Pattern.EndTime
-			// Error message = "The Recurring Series must end between now and two years in the future."
+			var now = DateTimeOffset.UtcNow;
+			var maxEndDate = now.AddYears(2);
+
+			foreach (var job in apiRecurringJobs.Where(x => x.Pattern != null && (x.Pattern.EndDate < now || x.Pattern.EndDate > maxEndDate)))
+			{
+				var error = new RecurringJobInvalidEndDateError
+				{
+					ErrorMessage = "The Recurring Series must end between now and two years in the future.",
+					Id = job.Id,
+					EndDate = job.Pattern.EndDate,
+				};
+
+				ReportError(job.Id, error);
+			}
 		}
 
 		private void ValidateNodeGraph(ICollection<RecurringJob> apiRecurringJobs)
