@@ -61,6 +61,121 @@
 		}
 
 		/// <summary>
+		/// Creates a new recurring job based on the specified job.
+		/// </summary>
+		/// <param name="job">The job to copy.</param>
+		/// <returns>A new recurring job containing the job configuration.</returns>
+		/// <exception cref="ArgumentNullException">
+		/// Thrown when <paramref name="job"/> is <see langword="null"/>.
+		/// </exception>
+		public static RecurringJob FromJob(Job job)
+		{
+			if (job == null)
+			{
+				throw new ArgumentNullException(nameof(job));
+			}
+
+			var recurringJob = new RecurringJob
+			{
+				Name = job.Name,
+				Description = job.Description,
+				Start = job.Start,
+				Duration = job.End - job.Start,
+				PreRollDuration = job.PreRollDuration,
+				PostRollDuration = job.PostRollDuration,
+				Priority = EnumExtensions.MapEnum<JobPriority, RecurringJobPriority>(job.Priority),
+				OrganizationId = job.OrganizationId,
+				OwnerId = job.OwnerId,
+				JobTypeCategoryId = job.JobTypeCategoryId,
+			};
+
+			foreach (var contactId in job.ContactIds)
+			{
+				recurringJob.AddContact(contactId);
+			}
+
+			// Clone the graph first to establish the job-node-to-recurring-node ID mapping.
+			var nodeIdMap = NodeGraphCloner.Clone(
+				job.NodeGraph,
+				recurringJob.NodeGraph,
+				CreateRecurringJobNode);
+
+			var jobNodesById = job.NodeGraph.Nodes.ToDictionary(node => node.Id);
+			var recurringNodesById = recurringJob.NodeGraph.Nodes.ToDictionary(node => node.Id);
+
+			// Clone node-level orchestration settings.
+			foreach (var entry in nodeIdMap)
+			{
+				var jobNode = jobNodesById[entry.Key];
+				var recurringNode = recurringNodesById[entry.Value];
+
+				OrchestrationSettingsCloner.Clone(
+					jobNode.OrchestrationSettings,
+					recurringNode.OrchestrationSettings,
+					nodeIdMap);
+			}
+
+			// Clone job-level orchestration settings.
+			OrchestrationSettingsCloner.Clone(
+				job.OrchestrationSettings,
+				recurringJob.OrchestrationSettings,
+				nodeIdMap);
+
+			// Clone job-level property settings.
+			foreach (var setting in job.CustomPropertySettings)
+			{
+				recurringJob.GetOrCreateScope().AddCustomProperty(setting);
+			}
+
+			foreach (var setting in job.PropertySettings)
+			{
+				recurringJob.GetOrCreateScope().AddProperty(setting);
+			}
+
+			// Clone node-level property settings.
+			foreach (var entry in nodeIdMap)
+			{
+				var jobNode = jobNodesById[entry.Key];
+				var recurringNode = recurringNodesById[entry.Value];
+
+				foreach (var setting in jobNode.CustomPropertySettings)
+				{
+					recurringNode.AddCustomProperty(setting);
+				}
+
+				foreach (var setting in jobNode.PropertySettings)
+				{
+					recurringNode.AddProperty(setting);
+				}
+			}
+
+			// TODO: linked items (=relationships) are not yet being taken over
+
+			return recurringJob;
+		}
+
+		private static RecurringJobNode CreateRecurringJobNode(JobNode jobNode)
+		{
+			return jobNode switch
+			{
+				JobResourceNode resourceNode => new RecurringJobResourceNode(
+					resourceNode.ResourcePoolId,
+					resourceNode.ResourceId)
+				{
+					Alias = resourceNode.Alias,
+					IconImage = resourceNode.IconImage,
+				},
+				JobResourcePoolNode resourcePoolNode => new RecurringJobResourcePoolNode(
+					resourcePoolNode.ResourcePoolId)
+				{
+					Alias = resourcePoolNode.Alias,
+					IconImage = resourcePoolNode.IconImage,
+				},
+				_ => null,
+			};
+		}
+
+		/// <summary>
 		/// Gets or sets the name of the recurring job.
 		/// </summary>
 		public override string Name { get; set; }
