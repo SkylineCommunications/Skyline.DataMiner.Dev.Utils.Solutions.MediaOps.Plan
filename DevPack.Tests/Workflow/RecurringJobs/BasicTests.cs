@@ -348,6 +348,116 @@
 		}
 
 		[TestMethod]
+		public void CreateWithDurationNotMultipleOfSecondsThrowsException()
+		{
+			var recurringJob = NewValidRecurringJob($"{Guid.NewGuid()}_RecurringJob");
+			recurringJob.Duration = TimeSpan.FromMilliseconds(30_500);
+
+			try
+			{
+				objectCreator.CreateRecurringJob(recurringJob);
+			}
+			catch (MediaOpsException ex)
+			{
+				var error = ex.TraceData.ErrorData.OfType<RecurringJobInvalidDurationError>().SingleOrDefault();
+				Assert.IsNotNull(error, "Expected RecurringJobInvalidDurationError.");
+				Assert.AreEqual(recurringJob.Id, error.Id);
+				Assert.AreEqual(recurringJob.Duration, error.Duration);
+				return;
+			}
+
+			Assert.Fail("Expected MediaOpsException was not thrown.");
+		}
+
+		[TestMethod]
+		public void CreateWithZeroDurationThrowsException()
+		{
+			var recurringJob = NewValidRecurringJob($"{Guid.NewGuid()}_RecurringJob");
+			recurringJob.Duration = TimeSpan.Zero;
+
+			try
+			{
+				objectCreator.CreateRecurringJob(recurringJob);
+			}
+			catch (MediaOpsException ex)
+			{
+				var error = ex.TraceData.ErrorData.OfType<RecurringJobInvalidDurationError>().SingleOrDefault();
+				Assert.IsNotNull(error, "Expected RecurringJobInvalidDurationError.");
+				Assert.AreEqual(recurringJob.Id, error.Id);
+				Assert.AreEqual(TimeSpan.Zero, error.Duration);
+				return;
+			}
+
+			Assert.Fail("Expected MediaOpsException was not thrown.");
+		}
+
+		[TestMethod]
+		public void CreateWithNegativeDurationThrowsException()
+		{
+			var recurringJob = NewValidRecurringJob($"{Guid.NewGuid()}_RecurringJob");
+			recurringJob.Duration = TimeSpan.FromMinutes(-5);
+
+			try
+			{
+				objectCreator.CreateRecurringJob(recurringJob);
+			}
+			catch (MediaOpsException ex)
+			{
+				var error = ex.TraceData.ErrorData.OfType<RecurringJobInvalidDurationError>().SingleOrDefault();
+				Assert.IsNotNull(error, "Expected RecurringJobInvalidDurationError.");
+				Assert.AreEqual(recurringJob.Id, error.Id);
+				Assert.AreEqual(recurringJob.Duration, error.Duration);
+				return;
+			}
+
+			Assert.Fail("Expected MediaOpsException was not thrown.");
+		}
+
+		[TestMethod]
+		public void CreateWithEndDateInThePastThrowsException()
+		{
+			var recurringJob = NewValidRecurringJob($"{Guid.NewGuid()}_RecurringJob");
+			recurringJob.Pattern.EndDate = DateTimeOffset.UtcNow.AddDays(-1);
+
+			try
+			{
+				objectCreator.CreateRecurringJob(recurringJob);
+			}
+			catch (MediaOpsException ex)
+			{
+				var error = ex.TraceData.ErrorData.OfType<RecurringJobInvalidEndDateError>().SingleOrDefault();
+				Assert.IsNotNull(error, "Expected RecurringJobInvalidEndDateError.");
+				Assert.AreEqual(recurringJob.Id, error.Id);
+				Assert.AreEqual(recurringJob.Pattern.EndDate, error.EndDate);
+				return;
+			}
+
+			Assert.Fail("Expected MediaOpsException was not thrown.");
+		}
+
+		[TestMethod]
+		public void CreateWithEndDateMoreThanTwoYearsInFutureThrowsException()
+		{
+			var recurringJob = NewValidRecurringJob($"{Guid.NewGuid()}_RecurringJob");
+			recurringJob.Pattern.EndDate = DateTimeOffset.UtcNow.AddYears(2).AddDays(1);
+
+			try
+			{
+				objectCreator.CreateRecurringJob(recurringJob);
+			}
+			catch (MediaOpsException ex)
+			{
+				var error = ex.TraceData.ErrorData.OfType<RecurringJobInvalidEndDateError>().SingleOrDefault();
+				Assert.IsNotNull(error, "Expected RecurringJobInvalidEndDateError.");
+				Assert.AreEqual(recurringJob.Id, error.Id);
+				Assert.AreEqual(recurringJob.Pattern.EndDate, error.EndDate);
+				return;
+			}
+
+			Assert.Fail("Expected MediaOpsException was not thrown.");
+		}
+
+		[TestMethod]
 		public void CreateWithUserDefinedIdAlreadyInUseThrowsException()
 		{
 			var id = Guid.NewGuid();
@@ -431,18 +541,19 @@
 
 		private static RecurringJob NewValidRecurringJob(string name)
 		{
-			return ConfigurePattern(new RecurringJob { Name = name, Start = DateTime.UtcNow.AddHours(1) });
+			return ConfigurePattern(new RecurringJob { Name = name, Start = DateTime.UtcNow.AddHours(1), Duration = TimeSpan.FromMinutes(30) });
 		}
 
 		private static RecurringJob NewValidRecurringJob(string name, Guid id)
 		{
-			return ConfigurePattern(new RecurringJob(id) { Name = name, Start = DateTime.UtcNow.AddHours(1) });
+			return ConfigurePattern(new RecurringJob(id) { Name = name, Start = DateTime.UtcNow.AddHours(1), Duration = TimeSpan.FromMinutes(30) });
 		}
 
 		private static RecurringJob ConfigurePattern(RecurringJob recurringJob)
 		{
 			recurringJob.Pattern.RepeatType = RepeatType.Daily;
 			recurringJob.Pattern.RepeatEvery = 1;
+			recurringJob.Pattern.EndDate = DateTimeOffset.UtcNow.AddMonths(1);
 			return recurringJob;
 		}
 	}
