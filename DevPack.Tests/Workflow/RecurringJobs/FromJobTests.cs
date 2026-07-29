@@ -40,6 +40,16 @@ namespace RT_MediaOps.Plan.Workflow.RecurringJobs
 		}
 
 		[TestMethod]
+		public void FromJob_Notes_IsCopied()
+		{
+			var job = new Job { Name = "Test", Notes = "Some notes", Start = BaseStartTime, End = BaseStartTime + TimeSpan.FromHours(1) };
+
+			var recurringJob = RecurringJob.FromJob(job);
+
+			Assert.AreEqual("Some notes", recurringJob.Notes);
+		}
+
+		[TestMethod]
 		public void FromJob_Priority_IsMappedCorrectly()
 		{
 			var job = new Job { Name = "Test", Priority = JobPriority.High, Start = BaseStartTime, End = BaseStartTime + TimeSpan.FromHours(1) };
