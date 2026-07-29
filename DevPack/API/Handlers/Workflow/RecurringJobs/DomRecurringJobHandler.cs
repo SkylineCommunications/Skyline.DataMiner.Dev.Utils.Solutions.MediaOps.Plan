@@ -7,6 +7,7 @@
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Solutions.Categories.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
 	using Skyline.DataMiner.Utils.DOM.Extensions;
 
@@ -66,6 +67,16 @@
 			return !result.HasFailures;
 		}
 
+		internal static bool TryUpdateProcessState(MediaOpsPlanApi planApi, ICollection<(RecurringJob RecurringJob, RecurringJobProcessState ProcessState)> updates, out DomInstanceBulkOperationResult<DomRecurringJob> result)
+		{
+			var handler = new DomRecurringJobHandler(planApi);
+			handler.UpdateProcessState(updates);
+
+			result = new DomInstanceBulkOperationResult<DomRecurringJob>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+
+			return !result.HasFailures;
+		}
+
 		private void CreateOrUpdate(ICollection<RecurringJob> apiRecurringJobs)
 		{
 			if (apiRecurringJobs == null)
@@ -88,6 +99,7 @@
 			ValidateStartTime(apiRecurringJobs);
 			ValidateCategories(apiRecurringJobs);
 			ValidatePattern(apiRecurringJobs);
+			ValidateDesiredJobState(apiRecurringJobs);
 			ValidatePreRoll(apiRecurringJobs);
 			ValidatePostRoll(apiRecurringJobs);
 			ValidateDuration(apiRecurringJobs);
@@ -392,6 +404,46 @@
 			ReportError(lockResult);
 		}
 
+		private void UpdateProcessState(ICollection<(RecurringJob RecurringJob, RecurringJobProcessState ProcessState)> updates)
+		{
+			if (updates == null)
+			{
+				throw new ArgumentNullException(nameof(updates));
+			}
+
+			if (updates.Count == 0)
+			{
+				return;
+			}
+
+			var domInstances = new List<DomRecurringJob>();
+			foreach (var (recurringJob, processState) in updates)
+			{
+				var instance = recurringJob.OriginalInstance.Clone();
+				instance.RecurringInfo.ProcessStatus = processState.MapEnum<RecurringJobProcessState, Storage.DOM.SlcWorkflow.SlcWorkflowIds.Enums.Processstatus>();
+				domInstances.Add(new DomRecurringJob(instance));
+			}
+
+			var domInstancesById = domInstances.ToDictionary(x => x.ID.Id);
+
+			planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.TryCreateOrUpdateInBatches(domInstancesById.Values.Select(x => x.ToInstance()), out var domResult);
+
+			foreach (var id in domResult.UnsuccessfulIds)
+			{
+				ReportError(id.Id);
+
+				if (domResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+				{
+					var mediaOpsTraceData = new MediaOpsTraceData();
+					mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = traceData.ToString() });
+
+					PassTraceData(id.Id, mediaOpsTraceData);
+				}
+			}
+
+			ReportSuccess(domResult.SuccessfulItems.Select(x => new DomRecurringJob(x)));
+		}
+
 		private void DeleteLocked(ICollection<RecurringJob> apiRecurringJobs)
 		{
 			if (apiRecurringJobs == null)
@@ -683,7 +735,7 @@
 			{
 				var error = new RecurringJobInvalidStateError
 				{
-					ErrorMessage = "Not allowed to update a recurring jobs once it has been created.",
+					ErrorMessage = "Not allowed to update a recurring job once it has been created.",
 					Id = recurringJob.Id,
 				};
 
@@ -913,6 +965,28 @@
 			}
 		}
 
+		private void ValidateDesiredJobState(ICollection<RecurringJob> apiRecurringJobs)
+		{
+			if (apiRecurringJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiRecurringJobs));
+			}
+
+			if (apiRecurringJobs.Count == 0)
+			{
+				return;
+			}
+
+			foreach (var recurringJob in apiRecurringJobs.Where(x => !Enum.IsDefined(typeof(DesiredJobState), x.DesiredJobState)))
+			{
+				ReportError(recurringJob.Id, new RecurringJobInvalidDesiredJobStateError
+				{
+					ErrorMessage = $"Desired job state '{recurringJob.DesiredJobState}' is not a valid value.",
+					Id = recurringJob.Id,
+				});
+			}
+		}
+
 		private void ValidatePreRoll(ICollection<RecurringJob> apiRecurringJobs)
 		{
 			if (apiRecurringJobs == null)
@@ -1045,10 +1119,10 @@
 				return;
 			}
 
-			var now = DateTimeOffset.UtcNow;
-			var maxEndDate = now.AddYears(2);
+			var today = DateTimeOffset.UtcNow.Date;
+			var maxEndDate = today.AddYears(2);
 
-			foreach (var job in apiRecurringJobs.Where(x => x.Pattern != null && (x.Pattern.EndDate < now || x.Pattern.EndDate > maxEndDate)))
+			foreach (var job in apiRecurringJobs.Where(x => x.Pattern != null && (x.Pattern.EndDate.Date < today || x.Pattern.EndDate.Date > maxEndDate)))
 			{
 				var error = new RecurringJobInvalidEndDateError
 				{

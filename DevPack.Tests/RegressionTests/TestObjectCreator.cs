@@ -359,9 +359,9 @@
 				return;
 			}
 
-			// The public RecurringJobs repository does not expose a Delete operation yet, and deletion through
-			// the handler is restricted to Cancelled/Completed recurring jobs. Deleting the backend DOM instances
-			// directly guarantees the created recurring jobs are cleaned up regardless of their current state.
+			// Deletion through the public repository is restricted to Cancelled/Completed recurring jobs.
+			// Deleting the backend DOM instances directly guarantees the created recurring jobs are
+			// cleaned up regardless of their current state.
 			var planApi = (MediaOpsPlanApi)PlanApi;
 			var instances = planApi.DomHelpers.SlcWorkflowHelper
 				.GetRecurringJobs(createdRecurringJobIds.ToArray())

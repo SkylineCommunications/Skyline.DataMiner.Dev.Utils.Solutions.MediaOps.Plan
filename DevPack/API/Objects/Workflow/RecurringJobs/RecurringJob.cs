@@ -254,9 +254,9 @@
 		public DesiredJobState DesiredJobState { get; set; } = DesiredJobState.Draft;
 
 		/// <summary>
-		/// Gets or sets the current process state of this recurring job.
+		/// Gets the current process state of this recurring job.
 		/// </summary>
-		public RecurringJobProcessState ProcessState { get; set; } = RecurringJobProcessState.NA;
+		public RecurringJobProcessState ProcessState { get; private set; } = RecurringJobProcessState.NA;
 
 		/// <summary>
 		/// Gets or sets the recurring pattern that defines when jobs are generated from this recurring job.

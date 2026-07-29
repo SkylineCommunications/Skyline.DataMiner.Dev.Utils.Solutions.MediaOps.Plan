@@ -63,5 +63,21 @@
 		/// <param name="recurringJobIds">The unique identifiers of the recurring jobs to cancel.</param>
 		/// <returns>A read-only collection containing the canceled recurring jobs.</returns>
 		IReadOnlyCollection<RecurringJob> Cancel(IEnumerable<Guid> recurringJobIds);
+
+		/// <summary>
+		/// Updates the <see cref="RecurringJob.ProcessState"/> of the recurring job with the specified ID.
+		/// </summary>
+		/// <param name="recurringJobId">The unique identifier of the recurring job to update.</param>
+		/// <param name="processState">The new process state to set.</param>
+		/// <returns>The updated recurring job, or <see langword="null"/> if no recurring job with the given ID exists.</returns>
+		RecurringJob UpdateProcessState(Guid recurringJobId, RecurringJobProcessState processState);
+
+		/// <summary>
+		/// Updates the <see cref="RecurringJob.ProcessState"/> of the specified recurring job.
+		/// </summary>
+		/// <param name="recurringJob">The recurring job to update.</param>
+		/// <param name="processState">The new process state to set.</param>
+		/// <returns>The updated recurring job.</returns>
+		RecurringJob UpdateProcessState(RecurringJob recurringJob, RecurringJobProcessState processState);
 	}
 }

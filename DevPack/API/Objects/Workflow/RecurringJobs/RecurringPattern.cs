@@ -199,9 +199,8 @@
 		/// <summary>
 		/// Returns the amount of occurrences between the given start and end time of the recurring pattern.
 		/// </summary>
-		/// <returns>Amount of jobs between start- and end time of the recurrence.</returns>
+		/// <returns>Amount of jobs between start- and end time of the recurrence. Returns 0 if <see cref="RecurringPattern.EndDate"/> is earlier than the provided <paramref name="startTime"/>.</returns>
 		/// <param name="startTime">Start time of the recurrence.</param>
-		/// <exception cref="NotImplementedException">If the <see cref="RecurringPattern.EndDate"/> is earlier than the provided <paramref name="startTime"/></exception>
 		public int CalculateOccurrences(DateTimeOffset startTime)
 		{
 			return CalculateOccurrencesByEndDate(startTime, TimeZoneInfo.Utc).Count();
@@ -321,8 +320,8 @@
 		/// </summary>
 		/// <param name="startTime">Start time from which the occurrences will be generated.</param>
 		/// <param name="timeZone">Time zone of the start times returned by this method.</param>
-		/// <returns>List of dates on which an occurrence should take place.</returns>
-		/// <exception cref="NotSupportedException">In case the End date defined in the pattern is earlier than the provided start time.</exception>
+		/// <returns>List of dates on which an occurrence should take place. Returns an empty sequence if <see cref="RecurringPattern.EndDate"/> is earlier than the provided <paramref name="startTime"/>.</returns>
+		/// <exception cref="NotSupportedException">In case the <see cref="RepeatType"/> is not supported.</exception>
 		public IEnumerable<DateTimeOffset> CalculateOccurrencesByEndDate(DateTimeOffset startTime, TimeZoneInfo timeZone)
 		{
 			if (EndDate.Date < startTime.Date) return new DateTimeOffset[0];

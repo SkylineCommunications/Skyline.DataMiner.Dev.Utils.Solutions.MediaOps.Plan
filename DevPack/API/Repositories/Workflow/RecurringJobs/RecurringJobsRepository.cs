@@ -122,6 +122,32 @@
 			return result.SuccessfulItems.Select(x => new RecurringJob(PlanApi, x)).ToList();
 		}
 
+		public RecurringJob UpdateProcessState(Guid recurringJobId, RecurringJobProcessState processState)
+		{
+			var recurringJob = Read(recurringJobId);
+			if (recurringJob == null)
+			{
+				return null;
+			}
+
+			return UpdateProcessState(recurringJob, processState);
+		}
+
+		public RecurringJob UpdateProcessState(RecurringJob recurringJob, RecurringJobProcessState processState)
+		{
+			if (recurringJob == null)
+			{
+				throw new ArgumentNullException(nameof(recurringJob));
+			}
+
+			if (!DomRecurringJobHandler.TryUpdateProcessState(PlanApi, [(recurringJob, processState)], out var result))
+			{
+				result.ThrowSingleException(recurringJob.Id);
+			}
+
+			return new RecurringJob(PlanApi, result.SuccessfulItems.Single());
+		}
+
 		public long Count()
 		{
 			return Count(new TRUEFilterElement<RecurringJob>());
