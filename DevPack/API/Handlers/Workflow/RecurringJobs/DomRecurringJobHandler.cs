@@ -87,7 +87,8 @@
 			ValidateNames(apiRecurringJobs);
 			ValidateStartTime(apiRecurringJobs);
 			ValidateCategories(apiRecurringJobs);
-			ValidatePattern(apiRecurringJobs);
+			ValidateDesiredJobState(apiRecurringJobs);
+			ValidatePattern_RepeatType(apiRecurringJobs);
 			ValidatePreRoll(apiRecurringJobs);
 			ValidatePostRoll(apiRecurringJobs);
 
@@ -899,7 +900,7 @@
 			}
 		}
 
-		private void ValidatePattern(ICollection<RecurringJob> apiRecurringJobs)
+		private void ValidateDesiredJobState(ICollection<RecurringJob> apiRecurringJobs)
 		{
 			if (apiRecurringJobs == null)
 			{
@@ -911,18 +912,70 @@
 				return;
 			}
 
-			foreach (var job in apiRecurringJobs.Where(IsValid))
+			foreach (var job in apiRecurringJobs)
 			{
-				if (!job.Pattern.TryValidate(out string reason))
+				if (job.DesiredJobState == JobState.Draft || job.DesiredJobState == JobState.Tentative)
+				{
+					continue;
+				}
+
+				ReportError(new RecurringJobInvalidDesiredJobStateError
+				{
+					ErrorMessage = $"The desired job state '{job.DesiredJobState}' is not valid for a recurring job.",
+					DesiredJobState = job.DesiredJobState,
+					Id = job.Id,
+				});
+			}
+		}
+
+		private void ValidatePattern_RepeatType(ICollection<RecurringJob> apiRecurringJobs)
+		{
+			if (apiRecurringJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiRecurringJobs));
+			}
+
+			if (apiRecurringJobs.Count == 0)
+			{
+				return;
+			}
+
+			foreach (var recurringJob in apiRecurringJobs)
+			{
+				if (recurringJob.Pattern.RepeatType == RepeatType.Never)
 				{
 					var error = new RecurringJobInvalidPatternError
 					{
-						ErrorMessage = $"The recurring pattern is invalid: {reason}",
-						Reason = reason,
-						Id = job.Id,
+						ErrorMessage = "The RepeatType cannot be 'Never' for a recurring pattern.",
+						Id = recurringJob.Id,
 					};
 
-					ReportError(job.Id, error);
+					ReportError(recurringJob.Id, error);
+					continue;
+				}
+
+				if (recurringJob.Pattern.RepeatEvery < 1)
+				{
+					var error = new RecurringJobInvalidPatternError
+					{
+						ErrorMessage = "The RepeatEvery value must be at least 1.",
+						Id = recurringJob.Id,
+					};
+
+					ReportError(recurringJob.Id, error);
+					continue;
+				}
+
+				if (recurringJob.Pattern.RepeatType == RepeatType.Weekly && recurringJob.Pattern.WeekDays == WeekDays.None)
+				{
+					var error = new RecurringJobInvalidPatternError
+					{
+						ErrorMessage = "At least one day of the week should be included in a weekly pattern.",
+						Id = recurringJob.Id,
+					};
+
+					ReportError(recurringJob.Id, error);
+					continue;
 				}
 			}
 		}

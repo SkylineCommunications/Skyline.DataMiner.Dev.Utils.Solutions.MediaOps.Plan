@@ -121,37 +121,7 @@
 		/// <returns>The serialized pattern.</returns>
 		public string Serialize()
 		{
-			if (!TryValidate(out string reason))
-			{
-				throw new JsonSerializationException(reason);
-			}
-
 			return JsonConvert.SerializeObject(this);
-		}
-
-		internal bool TryValidate(out string reason)
-		{
-			reason = String.Empty;
-
-			if (RepeatType == RepeatType.Never)
-			{
-				reason = "The RepeatType cannot be 'Never' for a recurring pattern.";
-				return false;
-			}
-
-			if (RepeatEvery < 1)
-			{
-				reason = "The RepeatEvery value must be at least 1.";
-				return false;
-			}
-
-			if (RepeatType == RepeatType.Weekly && WeekDays == WeekDays.None)
-			{
-				reason = "At least one day of the week should be included in a weekly pattern.";
-				return false;
-			}
-
-			return true;
 		}
 
 		private static DateTimeOffset ConvertToTimeZoneOffset(DateTimeOffset dateTime, TimeZoneInfo timeZone)
@@ -452,13 +422,7 @@
 				throw new JsonSerializationException("The JSON string cannot be null or empty.");
 			}
 
-			var pattern = SecureNewtonsoftDeserialization.DeserializeObject<RecurringPattern>(json);
-			if (!pattern.TryValidate(out string reason))
-			{
-				throw new JsonSerializationException(reason);
-			}
-
-			return pattern;
+			return SecureNewtonsoftDeserialization.DeserializeObject<RecurringPattern>(json);
 		}
 	}
 }
