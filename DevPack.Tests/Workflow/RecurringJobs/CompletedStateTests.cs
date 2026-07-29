@@ -78,7 +78,7 @@
 
 		private static RecurringJob NewValidRecurringJob(string name)
 		{
-			var recurringJob = new RecurringJob { Name = name };
+			var recurringJob = new RecurringJob { Name = name, Start = DateTime.UtcNow.AddHours(1) };
 			recurringJob.Pattern.RepeatType = RepeatType.Daily;
 			recurringJob.Pattern.RepeatEvery = 1;
 			return recurringJob;

@@ -431,12 +431,12 @@
 
 		private static RecurringJob NewValidRecurringJob(string name)
 		{
-			return ConfigurePattern(new RecurringJob { Name = name });
+			return ConfigurePattern(new RecurringJob { Name = name, Start = DateTime.UtcNow.AddHours(1) });
 		}
 
 		private static RecurringJob NewValidRecurringJob(string name, Guid id)
 		{
-			return ConfigurePattern(new RecurringJob(id) { Name = name });
+			return ConfigurePattern(new RecurringJob(id) { Name = name, Start = DateTime.UtcNow.AddHours(1) });
 		}
 
 		private static RecurringJob ConfigurePattern(RecurringJob recurringJob)
