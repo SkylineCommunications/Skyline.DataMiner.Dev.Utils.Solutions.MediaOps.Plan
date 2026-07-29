@@ -8,7 +8,7 @@
 		/// <summary>
 		/// The recurring job instance will not repeat.
 		/// </summary>
-		Never = 0,
+		Never = 0, // TODO: does it make sense to expose this if we don't allow creating a recurring job that never repeats? Maybe we should remove this value from the enum.
 
 		/// <summary>
 		/// The recurring job instance will repeat every day.

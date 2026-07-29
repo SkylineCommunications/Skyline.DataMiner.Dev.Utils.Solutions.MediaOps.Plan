@@ -285,6 +285,11 @@
 		/// </summary>
 		public string JobTypeCategoryId { get; set; }
 
+		/// <summary>
+		/// Gets or sets the unique identifier of the recurring job that generated this job, if applicable.
+		/// </summary>
+		public Guid RecurringJobId { get; set; }
+
 		internal StorageWorkflow.JobsInstance OriginalInstance => originalInstance;
 
 		internal PropertySettingsScope PropertySettingsScope => propertySettingsScope;
@@ -630,6 +635,7 @@
 			updatedInstance.JobInfo.Preroll = PreRollStart.UtcDateTime;
 			updatedInstance.JobInfo.Postroll = PostRollEnd.UtcDateTime;
 			updatedInstance.JobInfo.JobNotes = Notes;
+			updatedInstance.JobInfo.JobSeriesID = RecurringJobId != Guid.Empty ? RecurringJobId.ToString() : null;
 
 			// Reusing JobSource field to store the job type category ID to be backwards compatible with existing implementations.
 			updatedInstance.JobInfo.JobSource = JobTypeCategoryId;
@@ -708,6 +714,7 @@
 			PreRollStart = instance.JobInfo.Preroll.HasValue ? instance.JobInfo.Preroll.Value : Start;
 			PostRollEnd = instance.JobInfo.Postroll.HasValue ? instance.JobInfo.Postroll.Value : End;
 			Notes = instance.JobInfo.JobNotes;
+			RecurringJobId = Guid.TryParse(instance.JobInfo.JobSeriesID, out var recurringJobId) ? recurringJobId : Guid.Empty;
 
 			// Reusing JobSource field to store the job type category ID to be backwards compatible with existing implementations.
 			JobTypeCategoryId = instance.JobInfo.JobSource;

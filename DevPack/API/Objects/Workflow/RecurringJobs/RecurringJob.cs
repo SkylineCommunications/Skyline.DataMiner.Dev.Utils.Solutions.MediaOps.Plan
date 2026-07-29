@@ -91,6 +91,11 @@
 		public NodeGraph<RecurringJobNode> NodeGraph { get; private set; }
 
 		/// <summary>
+		/// Gets or sets the notes or additional information.
+		/// </summary>
+		public string Notes { get; set; }
+
+		/// <summary>
 		/// Gets the custom property settings associated with this recurring job.
 		/// Property settings are loaded lazily in a single batch together with the property settings of all nodes.
 		/// </summary>
