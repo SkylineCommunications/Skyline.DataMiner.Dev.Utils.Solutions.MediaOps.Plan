@@ -99,7 +99,6 @@
 			ValidateStartTime(apiRecurringJobs);
 			ValidateCategories(apiRecurringJobs);
 			ValidatePattern(apiRecurringJobs);
-			ValidateDesiredJobState(apiRecurringJobs);
 			ValidatePreRoll(apiRecurringJobs);
 			ValidatePostRoll(apiRecurringJobs);
 			ValidateDuration(apiRecurringJobs);
@@ -962,28 +961,6 @@
 						Id = recurringJob.Id,
 					});
 				}
-			}
-		}
-
-		private void ValidateDesiredJobState(ICollection<RecurringJob> apiRecurringJobs)
-		{
-			if (apiRecurringJobs == null)
-			{
-				throw new ArgumentNullException(nameof(apiRecurringJobs));
-			}
-
-			if (apiRecurringJobs.Count == 0)
-			{
-				return;
-			}
-
-			foreach (var recurringJob in apiRecurringJobs.Where(x => !Enum.IsDefined(typeof(DesiredJobState), x.DesiredJobState)))
-			{
-				ReportError(recurringJob.Id, new RecurringJobInvalidDesiredJobStateError
-				{
-					ErrorMessage = $"Desired job state '{recurringJob.DesiredJobState}' is not a valid value.",
-					Id = recurringJob.Id,
-				});
 			}
 		}
 
