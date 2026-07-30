@@ -379,9 +379,11 @@
 		[TestMethod]
 		public void CreateWithWhiteSpacesAsNameThrowsException()
 		{
-			var job = new Job
+			var job = new Job(new JobData
 			{
 				Key = $"{Guid.NewGuid()}_Key",
+			})
+			{
 				Name = "   ",
 				Start = DateTime.UtcNow,
 				End = DateTime.UtcNow.AddMinutes(5),
@@ -408,9 +410,11 @@
 		public void CreateWithEmptyNameReplacesNameByKey()
 		{
 			var currentTime = DateTime.UtcNow.RoundToNextSecond();
-			var job = new Job
+			var job = new Job(new JobData
 			{
 				Key = $"{Guid.NewGuid()}_Key",
+			})
+			{
 				Start = currentTime,
 				End = currentTime.AddMinutes(5),
 				PreRollStart = currentTime,
@@ -426,9 +430,11 @@
 		[TestMethod]
 		public void CreateWithKeyExceedingMaxLengthThrowsException()
 		{
-			var job = new Job
+			var job = new Job(new JobData
 			{
 				Key = new string('a', 151),
+			})
+			{
 				Name = $"{Guid.NewGuid()}_Job",
 				Start = DateTime.UtcNow,
 				End = DateTime.UtcNow.AddMinutes(5),

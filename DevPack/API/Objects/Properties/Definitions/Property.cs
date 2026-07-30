@@ -14,17 +14,42 @@
 		private StorageProperties.PropertyInstance originalInstance;
 		private StorageProperties.PropertyInstance updatedInstance;
 
-		private string scope;
-
 		private protected Property() : base()
 		{
 			IsNew = true;
+		}
+
+		private protected Property(PropertyData data) : base()
+		{
+			if (data == null)
+			{
+				throw new ArgumentNullException(nameof(data));
+			}
+
+			data.Validate(nameof(data));
+
+			IsNew = true;
+			Scope = data.Scope;
 		}
 
 		private protected Property(Guid propertyId) : base(propertyId)
 		{
 			IsNew = true;
 			HasUserDefinedId = true;
+		}
+
+		private protected Property(Guid propertyId, PropertyData data) : base(propertyId)
+		{
+			if (data == null)
+			{
+				throw new ArgumentNullException(nameof(data));
+			}
+
+			data.Validate(nameof(data));
+
+			IsNew = true;
+			HasUserDefinedId = true;
+			Scope = data.Scope;
 		}
 
 		private protected Property(StorageProperties.PropertyInstance instance) : base(instance?.ID.Id ?? throw new ArgumentNullException(nameof(instance)))
@@ -39,9 +64,9 @@
 		public override string Name { get; set; }
 
 		/// <summary>
-		/// Gets or sets the scope of the property.
+		/// Gets the scope of the property. The scope can only be provided through a <see cref="PropertyData"/> instance when the property is created.
 		/// </summary>
-		public string Scope { get => scope; init => scope = value; }
+		public string Scope { get; private set; }
 
 		/// <summary>
 		/// Gets or sets the name of the section to which the property belongs.
@@ -147,7 +172,7 @@
 				throw new InvalidOperationException("Scope has already been assigned and cannot be modified.");
 			}
 
-			this.scope = scope;
+			Scope = scope;
 		}
 
 		private static IEnumerable<Property> InstantiatePropertiesIterator(IEnumerable<StorageProperties.PropertyInstance> instances)
@@ -177,7 +202,7 @@
 			originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
 
 			Name = instance.PropertyInfo.Name;
-			scope = instance.PropertyInfo.Scope;
+			Scope = instance.PropertyInfo.Scope;
 			SectionName = instance.Layout.SectionName;
 			Order = instance.Layout.Order.HasValue ? (int)instance.Layout.Order.Value : 0;
 		}

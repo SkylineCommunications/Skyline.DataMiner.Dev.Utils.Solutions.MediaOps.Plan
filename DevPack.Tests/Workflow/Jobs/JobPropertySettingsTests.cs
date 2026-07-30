@@ -173,7 +173,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		[TestMethod]
 		public void Job_AddProperty_StoresIndependentCopy()
 		{
-			var property = new StringProperty { Name = "Channel", Scope = "global", SectionName = "General" };
+			var property = new StringProperty(new PropertyData { Scope = "global" }) { Name = "Channel", SectionName = "General" };
 			var job = new Job(Guid.NewGuid()) { Name = "Test" };
 			var setting = new StringPropertySetting(property) { Value = "one" };
 

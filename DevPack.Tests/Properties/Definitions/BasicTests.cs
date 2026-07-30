@@ -37,10 +37,12 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 			var propertyId = Guid.NewGuid();
 			var name = $"{propertyId}_Property";
 
-			var property = new BooleanProperty(propertyId)
+			var property = new BooleanProperty(propertyId, new PropertyData
+			{
+				Scope = "global",
+			})
 			{
 				Name = name,
-				Scope = "global",
 				SectionName = "General",
 				DefaultValue = true,
 			};
@@ -77,16 +79,20 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 		{
 			var propertyId = Guid.NewGuid();
 
-			var property1 = new BooleanProperty(propertyId)
+			var property1 = new BooleanProperty(propertyId, new PropertyData
+			{
+				Scope = "global",
+			})
 			{
 				Name = $"{propertyId}_Property1",
-				Scope = "global",
 				SectionName = "General",
 			};
-			var property2 = new BooleanProperty(propertyId)
+			var property2 = new BooleanProperty(propertyId, new PropertyData
+			{
+				Scope = "global",
+			})
 			{
 				Name = $"{propertyId}_Property2",
-				Scope = "global",
 				SectionName = "General",
 			};
 
@@ -119,16 +125,20 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 		{
 			var propertyId = Guid.NewGuid();
 
-			var property1 = new BooleanProperty(propertyId)
+			var property1 = new BooleanProperty(propertyId, new PropertyData
+			{
+				Scope = "global",
+			})
 			{
 				Name = $"{propertyId}_Property1",
-				Scope = "global",
 				SectionName = "General",
 			};
-			var property2 = new BooleanProperty(propertyId)
+			var property2 = new BooleanProperty(propertyId, new PropertyData
+			{
+				Scope = "global",
+			})
 			{
 				Name = $"{propertyId}_Property2",
-				Scope = "global",
 				SectionName = "General",
 			};
 
@@ -174,16 +184,20 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 		{
 			var prefix = Guid.NewGuid();
 
-			var property1 = new BooleanProperty()
+			var property1 = new BooleanProperty(new PropertyData
+			{
+				Scope = "global",
+			})
 			{
 				Name = $"{prefix}_Property_1",
-				Scope = "global",
 				SectionName = "General",
 			};
-			var property2 = new BooleanProperty()
+			var property2 = new BooleanProperty(new PropertyData
+			{
+				Scope = "global",
+			})
 			{
 				Name = $"{prefix}_Property_2",
-				Scope = "global",
 				SectionName = "General",
 			};
 
@@ -220,10 +234,12 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 		[TestMethod]
 		public void UpdateUnmodifiedProperty()
 		{
-			var property = new BooleanProperty
+			var property = new BooleanProperty(new PropertyData
+			{
+				Scope = "global",
+			})
 			{
 				Name = $"{Guid.NewGuid()}_Property",
-				Scope = "global",
 				SectionName = "General",
 			};
 
@@ -240,16 +256,20 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 		{
 			var prefix = Guid.NewGuid();
 
-			var changedProperty = new BooleanProperty
+			var changedProperty = new BooleanProperty(new PropertyData
+			{
+				Scope = "global",
+			})
 			{
 				Name = $"{prefix}_Changed",
-				Scope = "global",
 				SectionName = "General",
 			};
-			var unchangedProperty = new BooleanProperty
+			var unchangedProperty = new BooleanProperty(new PropertyData
+			{
+				Scope = "global",
+			})
 			{
 				Name = $"{prefix}_Unchanged",
-				Scope = "global",
 				SectionName = "General",
 			};
 
@@ -279,22 +299,28 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 		{
 			var prefix = Guid.NewGuid();
 
-			var changedProperty = new BooleanProperty
+			var changedProperty = new BooleanProperty(new PropertyData
+			{
+				Scope = "global",
+			})
 			{
 				Name = $"{prefix}_Changed",
-				Scope = "global",
 				SectionName = "General",
 			};
-			var invalidProperty = new BooleanProperty
+			var invalidProperty = new BooleanProperty(new PropertyData
+			{
+				Scope = "global",
+			})
 			{
 				Name = $"{prefix}_Invalid",
-				Scope = "global",
 				SectionName = "General",
 			};
-			var unchangedProperty = new BooleanProperty
+			var unchangedProperty = new BooleanProperty(new PropertyData
+			{
+				Scope = "global",
+			})
 			{
 				Name = $"{prefix}_Unchanged",
-				Scope = "global",
 				SectionName = "General",
 			};
 
@@ -332,16 +358,20 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 			var prefix = Guid.NewGuid();
 			var sharedName = $"{prefix}_Property";
 
-			var property1 = new BooleanProperty()
+			var property1 = new BooleanProperty(new PropertyData
+			{
+				Scope = "scope1",
+			})
 			{
 				Name = sharedName,
-				Scope = "scope1",
 				SectionName = "General",
 			};
-			var property2 = new BooleanProperty()
+			var property2 = new BooleanProperty(new PropertyData
+			{
+				Scope = "scope2",
+			})
 			{
 				Name = sharedName,
-				Scope = "scope2",
 				SectionName = "General",
 			};
 
@@ -365,16 +395,20 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 			var prefix = Guid.NewGuid();
 			var sharedName = $"{prefix}_Property";
 
-			var property1 = new BooleanProperty()
+			var property1 = new BooleanProperty(new PropertyData
+			{
+				Scope = "scope1",
+			})
 			{
 				Name = sharedName,
-				Scope = "scope1",
 				SectionName = "General",
 			};
-			var property2 = new BooleanProperty()
+			var property2 = new BooleanProperty(new PropertyData
+			{
+				Scope = "scope2",
+			})
 			{
 				Name = sharedName,
-				Scope = "scope2",
 				SectionName = "General",
 			};
 
@@ -396,16 +430,20 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 		{
 			var prefix = Guid.NewGuid();
 
-			var property1 = new BooleanProperty()
+			var property1 = new BooleanProperty(new PropertyData
+			{
+				Scope = "scope1",
+			})
 			{
 				Name = $"{prefix}_Property",
-				Scope = "scope1",
 				SectionName = "General",
 			};
-			var property2 = new BooleanProperty()
+			var property2 = new BooleanProperty(new PropertyData
+			{
+				Scope = "scope1",
+			})
 			{
 				Name = $"{prefix}_Property",
-				Scope = "scope1",
 				SectionName = "General",
 			};
 
@@ -439,16 +477,20 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 		{
 			var prefix = Guid.NewGuid();
 
-			var property1 = new BooleanProperty()
+			var property1 = new BooleanProperty(new PropertyData
+			{
+				Scope = "scope1",
+			})
 			{
 				Name = $"{prefix}_Property",
-				Scope = "scope1",
 				SectionName = "General",
 			};
-			var property2 = new BooleanProperty()
+			var property2 = new BooleanProperty(new PropertyData
+			{
+				Scope = "scope1",
+			})
 			{
 				Name = $"{prefix}_Property",
-				Scope = "scope1",
 				SectionName = "General",
 			};
 
@@ -483,16 +525,20 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 		{
 			var prefix = Guid.NewGuid();
 
-			var property1 = new BooleanProperty()
+			var property1 = new BooleanProperty(new PropertyData
+			{
+				Scope = "scope1",
+			})
 			{
 				Name = $"{prefix}_Property_1",
-				Scope = "scope1",
 				SectionName = "General",
 			};
-			var property2 = new BooleanProperty()
+			var property2 = new BooleanProperty(new PropertyData
+			{
+				Scope = "scope2",
+			})
 			{
 				Name = $"{prefix}_Property_2",
-				Scope = "scope2",
 				SectionName = "General",
 			};
 
@@ -553,10 +599,12 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 		[TestMethod]
 		public void CreateWithNullNameThrowsException()
 		{
-			var property = new BooleanProperty()
+			var property = new BooleanProperty(new PropertyData
+			{
+				Scope = "global",
+			})
 			{
 				Name = null,
-				Scope = "global",
 				SectionName = "General",
 			};
 
@@ -578,10 +626,12 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 		[TestMethod]
 		public void CreateWithEmptyNameThrowsException()
 		{
-			var property = new BooleanProperty()
+			var property = new BooleanProperty(new PropertyData
+			{
+				Scope = "global",
+			})
 			{
 				Name = string.Empty,
-				Scope = "global",
 				SectionName = "General",
 			};
 

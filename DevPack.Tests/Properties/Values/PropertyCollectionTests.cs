@@ -44,25 +44,25 @@ namespace RT_MediaOps.Plan.Properties.Values
 		}
 
 		[TestMethod]
-		public void PropertyCollection_InitLinkedObjectId_LinkedObjectIdIsSet()
+		public void PropertyCollection_CreateWithData_LinkedObjectIdIsSet()
 		{
-			var collection = new PropertySettingCollection { LinkedObjectId = "obj-1" };
+			var collection = new PropertySettingCollection(new PropertySettingCollectionData { LinkedObjectId = "obj-1", Scope = "global", SubId = string.Empty });
 
 			Assert.AreEqual("obj-1", collection.LinkedObjectId);
 		}
 
 		[TestMethod]
-		public void PropertyCollection_InitScope_ScopeIsSet()
+		public void PropertyCollection_CreateWithData_ScopeIsSet()
 		{
-			var collection = new PropertySettingCollection { Scope = "global" };
+			var collection = new PropertySettingCollection(new PropertySettingCollectionData { LinkedObjectId = "obj-1", Scope = "global", SubId = string.Empty });
 
 			Assert.AreEqual("global", collection.Scope);
 		}
 
 		[TestMethod]
-		public void PropertyCollection_InitSubId_SubIdIsSet()
+		public void PropertyCollection_CreateWithData_SubIdIsSet()
 		{
-			var collection = new PropertySettingCollection { SubId = "sub-1" };
+			var collection = new PropertySettingCollection(new PropertySettingCollectionData { LinkedObjectId = "obj-1", Scope = "global", SubId = "sub-1" });
 
 			Assert.AreEqual("sub-1", collection.SubId);
 		}
@@ -70,12 +70,12 @@ namespace RT_MediaOps.Plan.Properties.Values
 		[TestMethod]
 		public void PropertyCollection_InitAllProperties_AllPropertiesAreSet()
 		{
-			var collection = new PropertySettingCollection
+			var collection = new PropertySettingCollection(new PropertySettingCollectionData
 			{
 				LinkedObjectId = "obj-1",
 				Scope = "global",
 				SubId = "sub-1",
-			};
+			});
 
 			Assert.AreEqual("obj-1", collection.LinkedObjectId);
 			Assert.AreEqual("global", collection.Scope);

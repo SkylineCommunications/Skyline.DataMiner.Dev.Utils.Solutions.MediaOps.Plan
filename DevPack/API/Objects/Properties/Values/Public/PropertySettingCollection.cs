@@ -22,10 +22,6 @@
 		private StorageProperties.PropertyValuesInstance originalInstance;
 		private StorageProperties.PropertyValuesInstance updatedInstance;
 
-		private string linkedObjectId;
-		private string scope;
-		private string subId;
-
 		/// <summary>
 		/// Initializes a new instance of the <see cref="PropertySettingCollection"/> class.
 		/// </summary>
@@ -44,6 +40,52 @@
 			HasUserDefinedId = true;
 		}
 
+		/// <summary>
+		/// Initializes a new instance of the <see cref="PropertySettingCollection"/> class with the specified data.
+		/// </summary>
+		/// <param name="data">The data that can only be provided on creation.</param>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="data"/> is <see langword="null"/>.</exception>
+		/// <exception cref="ArgumentException">Thrown when a required field of <paramref name="data"/> is not filled out.</exception>
+		public PropertySettingCollection(PropertySettingCollectionData data) : base()
+		{
+			if (data == null)
+			{
+				throw new ArgumentNullException(nameof(data));
+			}
+
+			data.Validate(nameof(data));
+
+			IsNew = true;
+
+			LinkedObjectId = data.LinkedObjectId;
+			Scope = data.Scope;
+			SubId = data.SubId;
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="PropertySettingCollection"/> class with the specified unique identifier and data.
+		/// </summary>
+		/// <param name="id">The unique identifier for the property setting collection.</param>
+		/// <param name="data">The data that can only be provided on creation.</param>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="data"/> is <see langword="null"/>.</exception>
+		/// <exception cref="ArgumentException">Thrown when a required field of <paramref name="data"/> is not filled out.</exception>
+		public PropertySettingCollection(Guid id, PropertySettingCollectionData data) : base(id)
+		{
+			if (data == null)
+			{
+				throw new ArgumentNullException(nameof(data));
+			}
+
+			data.Validate(nameof(data));
+
+			IsNew = true;
+			HasUserDefinedId = true;
+
+			LinkedObjectId = data.LinkedObjectId;
+			Scope = data.Scope;
+			SubId = data.SubId;
+		}
+
 		internal PropertySettingCollection(MediaOpsPlanApi planApi, StorageProperties.PropertyValuesInstance instance) : base(instance.ID.Id)
 		{
 			ParseInstance(planApi, instance);
@@ -51,19 +93,19 @@
 		}
 
 		/// <summary>
-		/// Gets the identifier of the object this collection is linked to.
+		/// Gets the identifier of the object this collection is linked to. It can only be provided through a <see cref="PropertySettingCollectionData"/> instance when the collection is created.
 		/// </summary>
-		public string LinkedObjectId { get => linkedObjectId; init => linkedObjectId = value; }
+		public string LinkedObjectId { get; private set; }
 
 		/// <summary>
-		/// Gets the scope of this property setting collection.
+		/// Gets the scope of this property setting collection. It can only be provided through a <see cref="PropertySettingCollectionData"/> instance when the collection is created.
 		/// </summary>
-		public string Scope { get => scope; init => scope = value; }
+		public string Scope { get; private set; }
 
 		/// <summary>
-		/// Gets the sub-identifier for this property setting collection.
+		/// Gets the sub-identifier for this property setting collection. It can only be provided through a <see cref="PropertySettingCollectionData"/> instance when the collection is created.
 		/// </summary>
-		public string SubId { get => subId; init => subId = value; }
+		public string SubId { get; private set; }
 
 		/// <summary>
 		/// Gets the collection of custom property settings.
@@ -105,9 +147,9 @@
 			{
 				int hash = 17;
 				hash = (hash * 23) + Id.GetHashCode();
-				hash = (hash * 23) + (linkedObjectId != null ? linkedObjectId.GetHashCode() : 0);
-				hash = (hash * 23) + (scope != null ? scope.GetHashCode() : 0);
-				hash = (hash * 23) + (subId != null ? subId.GetHashCode() : 0);
+				hash = (hash * 23) + (LinkedObjectId != null ? LinkedObjectId.GetHashCode() : 0);
+				hash = (hash * 23) + (Scope != null ? Scope.GetHashCode() : 0);
+				hash = (hash * 23) + (SubId != null ? SubId.GetHashCode() : 0);
 
 				foreach (var value in customSettings.OrderBy(x => x.Name))
 				{
@@ -142,9 +184,9 @@
 			}
 
 			return Id == other.Id
-				&& linkedObjectId == other.linkedObjectId
-				&& scope == other.scope
-				&& subId == other.subId
+				&& LinkedObjectId == other.LinkedObjectId
+				&& Scope == other.Scope
+				&& SubId == other.SubId
 				&& customSettings.ScrambledEquals(other.customSettings)
 				&& stringSettings.ScrambledEquals(other.stringSettings)
 				&& booleanSettings.ScrambledEquals(other.booleanSettings)
@@ -315,9 +357,9 @@
 				updatedInstance = IsNew ? new StorageProperties.PropertyValuesInstance(Id) : originalInstance.Clone();
 			}
 
-			updatedInstance.PropertyValueInfo.LinkedObjectID = linkedObjectId;
-			updatedInstance.PropertyValueInfo.Scope = scope;
-			updatedInstance.PropertyValueInfo.SubID = subId;
+			updatedInstance.PropertyValueInfo.LinkedObjectID = LinkedObjectId;
+			updatedInstance.PropertyValueInfo.Scope = Scope;
+			updatedInstance.PropertyValueInfo.SubID = SubId;
 
 			updatedInstance.PropertyValue.Clear();
 			foreach (var customSetting in customSettings)
@@ -347,9 +389,9 @@
 		{
 			originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
 
-			linkedObjectId = instance.PropertyValueInfo.LinkedObjectID;
-			scope = instance.PropertyValueInfo.Scope;
-			subId = instance.PropertyValueInfo.SubID;
+			LinkedObjectId = instance.PropertyValueInfo.LinkedObjectID;
+			Scope = instance.PropertyValueInfo.Scope;
+			SubId = instance.PropertyValueInfo.SubID;
 
 			ParsePropertyValues(planApi, instance.PropertyValue);
 		}

@@ -44,10 +44,12 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 		[TestMethod]
 		public void SetProperties_ValuesAreSet()
 		{
-			var property = new FileProperty
+			var property = new FileProperty(new PropertyData
+			{
+				Scope = "global",
+			})
 			{
 				Name = "MyFile",
-				Scope = "global",
 				SectionName = "Files",
 				Order = 3,
 				HasSizeLimit = true,

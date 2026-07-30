@@ -17,10 +17,31 @@
 		}
 
 		/// <summary>
+		/// Initializes a new instance of the <see cref="StringProperty"/> class with the specified data.
+		/// </summary>
+		/// <param name="data">The data that can only be provided on creation.</param>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="data"/> is <see langword="null"/>.</exception>
+		/// <exception cref="ArgumentException">Thrown when a required field of <paramref name="data"/> is not filled out.</exception>
+		public StringProperty(PropertyData data) : base(data)
+		{
+		}
+
+		/// <summary>
 		/// Initializes a new instance of the <see cref="StringProperty"/> class with a specific property ID.
 		/// </summary>
 		/// <param name="propertyId">The unique identifier of the property.</param>
 		public StringProperty(Guid propertyId) : base(propertyId)
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="StringProperty"/> class with a specific property ID and the specified data.
+		/// </summary>
+		/// <param name="propertyId">The unique identifier of the property.</param>
+		/// <param name="data">The data that can only be provided on creation.</param>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="data"/> is <see langword="null"/>.</exception>
+		/// <exception cref="ArgumentException">Thrown when a required field of <paramref name="data"/> is not filled out.</exception>
+		public StringProperty(Guid propertyId, PropertyData data) : base(propertyId, data)
 		{
 		}
 
