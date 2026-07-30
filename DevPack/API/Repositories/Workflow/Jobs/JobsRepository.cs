@@ -590,7 +590,8 @@
 				return 0;
 			}
 
-			throw new NotImplementedException();
+			var domFilter = filterTranslator.Translate(filter);
+			return PlanApi.DomHelpers.SlcWorkflowHelper.CountWorkflowInstances(domFilter);
 		}
 
 		public long Count(IQuery<Job> query)
@@ -753,27 +754,27 @@
 		}
 
 		public IEnumerable<Job> Read(FilterElement<Job> filter)
-        {
-            if (filter == null)
-            {
-                throw new ArgumentNullException(nameof(filter));
-            }
+		{
+			if (filter == null)
+			{
+				throw new ArgumentNullException(nameof(filter));
+			}
 
 			if (filter.isEmpty())
 			{
 				return Enumerable.Empty<Job>();
 			}
 
-            return ActivityHelper.Track(nameof(JobsRepository), nameof(Read), act =>
-            {
-                var domFilter = filterTranslator.Translate(filter);
-                IEnumerable<Job> Iterator()
-                {
-                    foreach (var domJob in PlanApi.DomHelpers.SlcWorkflowHelper.GetJobs(domFilter))
-                    {
-                        yield return new Job(PlanApi, domJob);
-                    }
-                }
+			return ActivityHelper.Track(nameof(JobsRepository), nameof(Read), act =>
+			{
+				var domFilter = filterTranslator.Translate(filter);
+				IEnumerable<Job> Iterator()
+				{
+					foreach (var domJob in PlanApi.DomHelpers.SlcWorkflowHelper.GetJobs(domFilter))
+					{
+						yield return new Job(PlanApi, domJob);
+					}
+				}
 
 				return Iterator();
 			});
@@ -863,11 +864,11 @@
 		}
 
 		public void SetOrchestrationState(Guid id, OrchestrationUpdateDetails updateDetails)
-        {
-            if (id == Guid.Empty)
-            {
-                throw new ArgumentNullException(nameof(id));
-            }
+		{
+			if (id == Guid.Empty)
+			{
+				throw new ArgumentNullException(nameof(id));
+			}
 
 			if (updateDetails == null)
 			{
@@ -919,8 +920,8 @@
 
 			error.ErrorMessage = updateDetails.Message;
 
-            job.OriginalInstance.Save(PlanApi.DomHelpers.SlcWorkflowHelper.DomHelper);
-        }
+			job.OriginalInstance.Save(PlanApi.DomHelpers.SlcWorkflowHelper.DomHelper);
+		}
 
 		public IReadOnlyCollection<Job> Update(IEnumerable<Job> oToUpdate)
 		{

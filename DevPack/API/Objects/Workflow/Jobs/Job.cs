@@ -48,6 +48,125 @@
 			ConfigureNodeGraphSwapHooks();
 		}
 
+		/// <summary>
+		/// Creates a new job based on the specified recurring job.
+		/// </summary>
+		/// <param name="recurringJob">The recurring job to copy.</param>
+		/// <param name="startTime">The start time of the generated job.</param>
+		/// <returns>A new job containing the recurring job configuration.</returns>
+		/// <exception cref="ArgumentNullException">
+		/// Thrown when <paramref name="recurringJob"/> is <see langword="null"/>.
+		/// </exception>
+		public static Job FromRecurringJob(RecurringJob recurringJob, DateTimeOffset startTime)
+		{
+			if (recurringJob == null)
+			{
+				throw new ArgumentNullException(nameof(recurringJob));
+			}
+
+			var endTime = startTime + recurringJob.Duration;
+
+			var job = new Job
+			{
+				Name = recurringJob.Name,
+				Description = recurringJob.Description,
+				Notes = recurringJob.Notes,
+				Start = startTime,
+				End = endTime,
+				PreRollStart = startTime - recurringJob.PreRollDuration,
+				PostRollEnd = endTime + recurringJob.PostRollDuration,
+				Priority = EnumExtensions.MapEnum<RecurringJobPriority, JobPriority>(recurringJob.Priority),
+				OrganizationId = recurringJob.OrganizationId,
+				OwnerId = recurringJob.OwnerId,
+				JobTypeCategoryId = recurringJob.JobTypeCategoryId,
+			};
+
+			foreach (var contactId in recurringJob.ContactIds)
+			{
+				job.AddContact(contactId);
+			}
+
+			// Clone the graph first to establish the recurring-node-to-job-node ID mapping.
+			var nodeIdMap = NodeGraphCloner.Clone(
+				recurringJob.NodeGraph,
+				job.NodeGraph,
+				CreateJobNode);
+
+			var recurringNodesById = recurringJob.NodeGraph.Nodes.ToDictionary(node => node.Id);
+			var jobNodesById = job.NodeGraph.Nodes.ToDictionary(node => node.Id);
+
+			// Clone node-level orchestration settings.
+			foreach (var entry in nodeIdMap)
+			{
+				var recurringNode = recurringNodesById[entry.Key];
+				var jobNode = jobNodesById[entry.Value];
+
+				OrchestrationSettingsCloner.Clone(
+					recurringNode.OrchestrationSettings,
+					jobNode.OrchestrationSettings,
+					nodeIdMap);
+			}
+
+			// Clone job-level orchestration settings.
+			OrchestrationSettingsCloner.Clone(
+				recurringJob.OrchestrationSettings,
+				job.OrchestrationSettings,
+				nodeIdMap);
+
+			// Clone recurring-job-level property settings.
+			foreach (var setting in recurringJob.CustomPropertySettings)
+			{
+				job.AddCustomProperty(setting);
+			}
+
+			foreach (var setting in recurringJob.PropertySettings)
+			{
+				job.AddProperty(setting);
+			}
+
+			// Clone node-level property settings.
+			foreach (var entry in nodeIdMap)
+			{
+				var recurringNode = recurringNodesById[entry.Key];
+				var jobNode = jobNodesById[entry.Value];
+
+				foreach (var setting in recurringNode.CustomPropertySettings)
+				{
+					jobNode.AddCustomProperty(setting);
+				}
+
+				foreach (var setting in recurringNode.PropertySettings)
+				{
+					jobNode.AddProperty(setting);
+				}
+			}
+
+			// TODO: linked items (=relationships) are not yet being taken over
+
+			return job;
+		}
+
+		private static JobNode CreateJobNode(RecurringJobNode recurringJobNode)
+		{
+			return recurringJobNode switch
+			{
+				RecurringJobResourceNode resourceNode => new JobResourceNode(
+					resourceNode.ResourcePoolId,
+					resourceNode.ResourceId)
+				{
+					Alias = resourceNode.Alias,
+					IconImage = resourceNode.IconImage,
+				},
+				RecurringJobResourcePoolNode resourcePoolNode => new JobResourcePoolNode(
+					resourcePoolNode.ResourcePoolId)
+				{
+					Alias = resourcePoolNode.Alias,
+					IconImage = resourcePoolNode.IconImage,
+				},
+				_ => null,
+			};
+		}
+
 		internal Job(MediaOpsPlanApi planApi, StorageWorkflow.JobsInstance instance) : base(instance.ID.Id)
 		{
 			ParseInstance(planApi, instance);
@@ -166,6 +285,11 @@
 		/// Gets or sets the unique identifier of the associated job type category.
 		/// </summary>
 		public string JobTypeCategoryId { get; set; }
+
+		/// <summary>
+		/// Gets or sets the unique identifier of the recurring job that generated this job, if applicable.
+		/// </summary>
+		public Guid RecurringJobId { get; set; }
 
 		internal StorageWorkflow.JobsInstance OriginalInstance => originalInstance;
 
@@ -460,6 +584,7 @@
 				hash = (hash * 23) + State.GetHashCode();
 				hash = (hash * 23) + OrganizationId.GetHashCode();
 				hash = (hash * 23) + OwnerId.GetHashCode();
+				hash = (hash * 23) + RecurringJobId.GetHashCode();
 
 				foreach (var contactId in contactIds.OrderBy(x => x).ToArray())
 				{
@@ -494,6 +619,7 @@
 				   State == other.State &&
 				   OrganizationId == other.OrganizationId &&
 				   OwnerId == other.OwnerId &&
+				   RecurringJobId == other.RecurringJobId &&
 				   contactIds.SetEquals(other.contactIds);
 		}
 
@@ -512,6 +638,7 @@
 			updatedInstance.JobInfo.Preroll = PreRollStart.UtcDateTime;
 			updatedInstance.JobInfo.Postroll = PostRollEnd.UtcDateTime;
 			updatedInstance.JobInfo.JobNotes = Notes;
+			updatedInstance.JobInfo.JobSeriesID = RecurringJobId != Guid.Empty ? RecurringJobId.ToString() : null;
 
 			// Reusing JobSource field to store the job type category ID to be backwards compatible with existing implementations.
 			updatedInstance.JobInfo.JobSource = JobTypeCategoryId;
@@ -590,6 +717,7 @@
 			PreRollStart = instance.JobInfo.Preroll.HasValue ? instance.JobInfo.Preroll.Value : Start;
 			PostRollEnd = instance.JobInfo.Postroll.HasValue ? instance.JobInfo.Postroll.Value : End;
 			Notes = instance.JobInfo.JobNotes;
+			RecurringJobId = Guid.TryParse(instance.JobInfo.JobSeriesID, out var recurringJobId) ? recurringJobId : Guid.Empty;
 
 			// Reusing JobSource field to store the job type category ID to be backwards compatible with existing implementations.
 			JobTypeCategoryId = instance.JobInfo.JobSource;

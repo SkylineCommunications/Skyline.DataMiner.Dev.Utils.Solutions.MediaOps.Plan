@@ -177,6 +177,7 @@
 
 			ValidateNames(apiJobs);
 			ValidateCategories(apiJobs);
+			ValidateRecurringJobIds(apiJobs);
 			ValidateTimings(apiJobs);
 			ValidatePreRoll(apiJobs);
 			ValidatePostRoll(apiJobs);
@@ -2472,6 +2473,50 @@
 					{
 						ErrorMessage = $"Category with ID '{job.JobTypeCategoryId}' not found in Scope '{CategoryScopes.JobTypes}'.",
 						CategoryId = job.JobTypeCategoryId,
+						Id = job.Id,
+					};
+
+					ReportError(job.Id, error);
+				}
+			}
+		}
+
+		private void ValidateRecurringJobIds(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			var toValidate = apiJobs.Where(x => x.RecurringJobId != Guid.Empty).ToList();
+			if (toValidate.Count == 0)
+			{
+				return;
+			}
+
+			// Cache existence results per unique recurring job id so we hit the backend at most once per id
+			// for the whole batch, even if many jobs in the batch reference the same recurring job.
+			var existsByRecurringJobId = new Dictionary<Guid, bool>();
+
+			foreach (var job in toValidate)
+			{
+				if (!existsByRecurringJobId.TryGetValue(job.RecurringJobId, out var exists))
+				{
+					exists = planApi.RecurringJobs.Count(RecurringJobExposers.Id.Equal(job.RecurringJobId)) > 0;
+					existsByRecurringJobId[job.RecurringJobId] = exists;
+				}
+
+				if (!exists)
+				{
+					var error = new JobRecurringJobNotFoundError
+					{
+						ErrorMessage = $"Recurring job with ID '{job.RecurringJobId}' referenced by job '{job.Id}' was not found.",
+						RecurringJobId = job.RecurringJobId,
 						Id = job.Id,
 					};
 

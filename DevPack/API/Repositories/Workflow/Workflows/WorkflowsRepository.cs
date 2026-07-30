@@ -86,7 +86,8 @@
 				return 0;
 			}
 
-			throw new NotImplementedException();
+			var domFilter = filterTranslator.Translate(filter);
+			return PlanApi.DomHelpers.SlcWorkflowHelper.CountWorkflowInstances(domFilter);
 		}
 
 		public long Count(IQuery<Workflow> query)

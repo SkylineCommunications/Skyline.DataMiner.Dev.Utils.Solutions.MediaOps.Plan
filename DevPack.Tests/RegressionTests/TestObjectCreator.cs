@@ -9,6 +9,7 @@
 	using Skyline.DataMiner.Solutions.Categories.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+	using Skyline.DataMiner.Utils.DOM.Extensions;
 
 	using CoreResource = Skyline.DataMiner.Net.Messages.Resource;
 	using CoreResourcePool = Skyline.DataMiner.Net.Messages.ResourcePool;
@@ -45,6 +46,8 @@
 
 		private readonly HashSet<Guid> createdJobIds = new HashSet<Guid>();
 
+		private readonly HashSet<Guid> createdRecurringJobIds = new HashSet<Guid>();
+
 		private readonly HashSet<Guid> createdWorkflowIds = new HashSet<Guid>();
 
 		public TestObjectCreator(IntegrationTestContext testContext)
@@ -63,6 +66,15 @@
 			try
 			{
 				JobsCleanup();
+			}
+			catch
+			{
+				// Ignore cleanup errors
+			}
+
+			try
+			{
+				RecurringJobsCleanup();
 			}
 			catch
 			{
@@ -338,6 +350,16 @@
 			var workflows = PlanApi.Workflows.Read(createdWorkflowIds.ToArray());
 
 			PlanApi.Workflows.Delete(workflows.ToArray());
+		}
+
+		private void RecurringJobsCleanup()
+		{
+			if (createdRecurringJobIds.Count == 0)
+			{
+				return;
+			}
+
+			PlanApi.RecurringJobs.Delete(createdRecurringJobIds);
 		}
 
 		private void PropertiesCleanup()
@@ -795,6 +817,66 @@
 
 				throw;
 			}
+		}
+
+		public void StoreRecurringJobIds(IEnumerable<Guid> ids)
+		{
+			if (ids == null)
+			{
+				return;
+			}
+
+			foreach (var id in ids.Where(x => x != Guid.Empty))
+			{
+				createdRecurringJobIds.Add(id);
+			}
+		}
+
+		public RecurringJob CreateRecurringJob(RecurringJob recurringJob)
+		{
+			if (recurringJob == null)
+			{
+				throw new ArgumentNullException(nameof(recurringJob));
+			}
+
+			var createdRecurringJob = PlanApi.RecurringJobs.Create(recurringJob);
+			createdRecurringJobIds.Add(createdRecurringJob.Id);
+			return createdRecurringJob;
+		}
+
+		public IReadOnlyCollection<RecurringJob> CreateRecurringJobs(IEnumerable<RecurringJob> recurringJobs)
+		{
+			if (recurringJobs == null)
+			{
+				throw new ArgumentNullException(nameof(recurringJobs));
+			}
+
+			try
+			{
+				var createdRecurringJobs = PlanApi.RecurringJobs.Create(recurringJobs);
+
+				foreach (var recurringJob in createdRecurringJobs)
+				{
+					createdRecurringJobIds.Add(recurringJob.Id);
+				}
+
+				return createdRecurringJobs;
+			}
+			catch (MediaOpsBulkException<Guid> bulkException)
+			{
+				StoreRecurringJobIds(bulkException.Result.SuccessfulIds);
+				throw;
+			}
+		}
+
+		public RecurringJob CompleteRecurringJob(RecurringJob recurringJob)
+		{
+			if (recurringJob == null)
+			{
+				throw new ArgumentNullException(nameof(recurringJob));
+			}
+
+			return PlanApi.RecurringJobs.Complete(recurringJob);
 		}
 	}
 }

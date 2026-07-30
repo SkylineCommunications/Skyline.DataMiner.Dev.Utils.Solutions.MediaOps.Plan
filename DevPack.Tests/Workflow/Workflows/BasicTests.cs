@@ -94,6 +94,46 @@
 		}
 
 		[TestMethod]
+		public void CountByIdReturnsSingleWorkflow()
+		{
+			var workflow = objectCreator.CreateWorkflow(new Workflow
+			{
+				Name = $"{Guid.NewGuid()}_Workflow",
+			});
+
+			var count = TestContext.Api.Workflows.Count(WorkflowExposers.Id.Equal(workflow.Id));
+			Assert.AreEqual(1, count);
+		}
+
+		[TestMethod]
+		public void CountByNameReturnsMatchingWorkflow()
+		{
+			var name = $"{Guid.NewGuid()}_Workflow";
+
+			objectCreator.CreateWorkflow(new Workflow
+			{
+				Name = name,
+			});
+
+			var count = TestContext.Api.Workflows.Count(WorkflowExposers.Name.Equal(name));
+			Assert.AreEqual(1, count);
+		}
+
+		[TestMethod]
+		public void CountByUnknownNameReturnsZero()
+		{
+			var count = TestContext.Api.Workflows.Count(WorkflowExposers.Name.Equal($"{Guid.NewGuid()}_Unknown"));
+			Assert.AreEqual(0, count);
+		}
+
+		[TestMethod]
+		public void CountByUnknownIdReturnsZero()
+		{
+			var count = TestContext.Api.Workflows.Count(WorkflowExposers.Id.Equal(Guid.NewGuid()));
+			Assert.AreEqual(0, count);
+		}
+
+		[TestMethod]
 		public void ReadWithEmptyQueryReturnsEmptyList()
 		{
 			var idsToRetrieve = new Guid[0];
