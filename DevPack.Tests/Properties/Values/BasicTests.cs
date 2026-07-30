@@ -280,7 +280,7 @@ namespace RT_MediaOps.Plan.Properties.Values
         }
 
         [TestMethod]
-        public void CreateWithDuplicateLinkedObjectIdAndNullSubIdInBulkThrowsException()
+        public void CreateWithDuplicateLinkedObjectIdAndEmptySubIdInBulkThrowsException()
         {
             var linkedObjectId = $"obj-{Guid.NewGuid()}";
 
@@ -304,7 +304,7 @@ namespace RT_MediaOps.Plan.Properties.Values
                 .ToList();
 
             Assert.AreEqual(2, errors.Count);
-            Assert.IsTrue(errors.All(e => e.LinkedObjectId == linkedObjectId && e.SubId == null));
+            Assert.IsTrue(errors.All(e => e.LinkedObjectId == linkedObjectId && e.SubId == string.Empty));
         }
 
         [TestMethod]
@@ -404,47 +404,27 @@ namespace RT_MediaOps.Plan.Properties.Values
         [TestMethod]
         public void CreateWithEmptyLinkedObjectIdThrowsException()
         {
-            var collection = new PropertySettingCollection(new PropertySettingCollectionData
+            var data = new PropertySettingCollectionData
             {
                 LinkedObjectId = string.Empty,
                 Scope = "global",
                 SubId = string.Empty,
-            });
+            };
 
-            try
-            {
-                objectCreator.CreatePropertySettingCollection(collection);
-            }
-            catch (MediaOpsException ex)
-            {
-                StringAssert.Contains(ex.Message, "Linked object ID cannot be empty.");
-                return;
-            }
-
-            Assert.Fail("Expected exception was not thrown.");
+            Assert.ThrowsException<ArgumentException>(() => new PropertySettingCollection(data));
         }
 
         [TestMethod]
         public void CreateWithEmptyScopeThrowsException()
         {
-            var collection = new PropertySettingCollection(new PropertySettingCollectionData
+            var data = new PropertySettingCollectionData
             {
                 LinkedObjectId = "obj-1",
                 Scope = string.Empty,
                 SubId = string.Empty,
-            });
+            };
 
-            try
-            {
-                objectCreator.CreatePropertySettingCollection(collection);
-            }
-            catch (MediaOpsException ex)
-            {
-                StringAssert.Contains(ex.Message, "Scope cannot be empty.");
-                return;
-            }
-
-            Assert.Fail("Expected exception was not thrown.");
+            Assert.ThrowsException<ArgumentException>(() => new PropertySettingCollection(data));
         }
 
         [TestMethod]
