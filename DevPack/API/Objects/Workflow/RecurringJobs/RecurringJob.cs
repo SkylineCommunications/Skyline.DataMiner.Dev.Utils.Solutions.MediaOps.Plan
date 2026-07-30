@@ -61,6 +61,104 @@
 		}
 
 		/// <summary>
+		/// Initializes a new instance of the <see cref="RecurringJob"/> class as a deep copy of the specified original
+		/// recurring job, using the supplied identifier for the new recurring job. The resulting instance is a brand new,
+		/// unsaved recurring job that shares no references with <paramref name="original"/>.
+		/// </summary>
+		/// <param name="original">The recurring job to duplicate.</param>
+		/// <param name="id">The unique identifier of the duplicated recurring job.</param>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="original"/> is <see langword="null"/>.</exception>
+		/// <exception cref="ArgumentException">Thrown when <paramref name="id"/> is <see cref="Guid.Empty"/>.</exception>
+		internal RecurringJob(RecurringJob original, Guid id) : base(id)
+		{
+			if (original == null)
+			{
+				throw new ArgumentNullException(nameof(original));
+			}
+
+			IsNew = true;
+			HasUserDefinedId = true;
+
+			Name = original.Name;
+			Description = original.Description;
+			Priority = original.Priority;
+			Start = original.Start;
+			Duration = original.Duration;
+			PreRollDuration = original.PreRollDuration;
+			PostRollDuration = original.PostRollDuration;
+			TimeZone = original.TimeZone;
+			DesiredJobState = original.DesiredJobState;
+			Notes = original.Notes;
+			OrganizationId = original.OrganizationId;
+			OwnerId = original.OwnerId;
+			JobTypeCategoryId = original.JobTypeCategoryId;
+
+			Pattern = new RecurringPattern
+			{
+				RepeatType = original.Pattern.RepeatType,
+				RepeatEvery = original.Pattern.RepeatEvery,
+				EndDate = original.Pattern.EndDate,
+				WeekDays = original.Pattern.WeekDays,
+			};
+
+			foreach (var contactId in original.ContactIds)
+			{
+				contactIds.Add(contactId);
+			}
+
+			OrchestrationSettings = new WorkflowOrchestrationSettings();
+			NodeGraph = new NodeGraph<RecurringJobNode>();
+			ConfigureNodeGraphSwapHooks();
+
+			// 1. Clone the node graph first so we have a complete original-node-id -> duplicated-node-id map
+			//    before retargeting any DataReferences (orchestration settings may reference nodes).
+			var nodeIdMap = NodeGraphCloner.Clone(original.NodeGraph, NodeGraph, CreateDuplicatedNode);
+
+			var originalNodesById = original.NodeGraph.Nodes.ToDictionary(n => n.Id);
+			var duplicatedNodesById = NodeGraph.Nodes.ToDictionary(n => n.Id);
+
+			// 2. Copy the per-node orchestration settings, pairing each new node with its source recurring job node.
+			foreach (var entry in nodeIdMap)
+			{
+				var originalNode = originalNodesById[entry.Key];
+				var duplicatedNode = duplicatedNodesById[entry.Value];
+				OrchestrationSettingsCloner.Clone(originalNode.OrchestrationSettings, duplicatedNode.OrchestrationSettings, nodeIdMap);
+			}
+
+			// 3. Copy the recurring job-level orchestration settings.
+			OrchestrationSettingsCloner.Clone(original.OrchestrationSettings, OrchestrationSettings, nodeIdMap);
+
+			// 4. Copy the property settings from the original recurring job (owner) and from each original node onto the
+			//    corresponding new node. The property scope copies every incoming setting into an independent
+			//    instance, so the duplicate never shares references with the original recurring job.
+			foreach (var setting in original.CustomPropertySettings)
+			{
+				GetOrCreateScope().AddCustomProperty(setting);
+			}
+
+			foreach (var setting in original.PropertySettings)
+			{
+				GetOrCreateScope().AddProperty(setting);
+			}
+
+			foreach (var entry in nodeIdMap)
+			{
+				var originalNode = originalNodesById[entry.Key];
+				var duplicatedNode = duplicatedNodesById[entry.Value];
+
+				foreach (var setting in originalNode.CustomPropertySettings)
+				{
+					duplicatedNode.AddCustomProperty(setting);
+				}
+
+				foreach (var setting in originalNode.PropertySettings)
+				{
+					duplicatedNode.AddProperty(setting);
+				}
+			}
+		}
+
+		/// <summary>
 		/// Creates a new recurring job based on the specified job.
 		/// </summary>
 		/// <param name="job">The job to copy.</param>
@@ -177,6 +275,32 @@
 		}
 
 		/// <summary>
+		/// Produces the <see cref="RecurringJobNode"/> that should replace the given source <see cref="RecurringJobNode"/>
+		/// inside the duplicated graph. The generic cloning and reference retargeting is performed by
+		/// <see cref="NodeGraphCloner"/> and <see cref="OrchestrationSettingsCloner"/>.
+		/// </summary>
+		private static RecurringJobNode CreateDuplicatedNode(RecurringJobNode source)
+		{
+			return source switch
+			{
+				RecurringJobResourceNode resourceNode => new RecurringJobResourceNode(
+					resourceNode.ResourcePoolId,
+					resourceNode.ResourceId)
+				{
+					Alias = resourceNode.Alias,
+					IconImage = resourceNode.IconImage,
+				},
+				RecurringJobResourcePoolNode resourcePoolNode => new RecurringJobResourcePoolNode(
+					resourcePoolNode.ResourcePoolId)
+				{
+					Alias = resourcePoolNode.Alias,
+					IconImage = resourcePoolNode.IconImage,
+				},
+				_ => null,
+			};
+		}
+
+		/// <summary>
 		/// Gets or sets the name of the recurring job.
 		/// </summary>
 		public override string Name { get; set; }
@@ -277,6 +401,30 @@
 		/// Gets the collection of contact IDs associated with the recurring job.
 		/// </summary>
 		public IReadOnlyCollection<Guid> ContactIds => contactIds;
+
+		/// <summary>
+		/// Creates a duplicate of this recurring job with a newly generated identifier. The duplicate is a brand new,
+		/// unsaved recurring job instance without any ties to the original: all properties, orchestration settings,
+		/// nodes, connections, links and property settings are deep copied.
+		/// </summary>
+		/// <returns>A new <see cref="RecurringJob"/> instance that is a deep copy of the current recurring job.</returns>
+		public RecurringJob Duplicate()
+		{
+			return new RecurringJob(this, Guid.NewGuid());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of this recurring job with the specified identifier. The duplicate is a brand new,
+		/// unsaved recurring job instance without any ties to the original: all properties, orchestration settings,
+		/// nodes, connections, links and property settings are deep copied.
+		/// </summary>
+		/// <param name="id">The unique identifier of the duplicated recurring job.</param>
+		/// <returns>A new <see cref="RecurringJob"/> instance that is a deep copy of the current recurring job.</returns>
+		/// <exception cref="ArgumentException">Thrown when <paramref name="id"/> is <see cref="Guid.Empty"/>.</exception>
+		public RecurringJob Duplicate(Guid id)
+		{
+			return new RecurringJob(this, id);
+		}
 
 		/// <summary>
 		/// Adds a contact to the recurring job.
