@@ -4,6 +4,8 @@
 	using System.Collections.Generic;
 	using System.Linq;
 
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow;
 
 	using StorageWorkflow = Storage.DOM.SlcWorkflow;
@@ -13,7 +15,10 @@
 	/// </summary>
 	public class RecurringJob : ApiNamedObject
 	{
+		private readonly HashSet<Guid> contactIds = [];
+
 		private RecurringJobsInstance originalInstance;
+		private RecurringJobsInstance updatedInstance;
 		private PropertySettingsContext propertiesContext;
 		private PropertySettingsScope propertySettingsScope;
 
@@ -56,9 +61,140 @@
 		}
 
 		/// <summary>
+		/// Creates a new recurring job based on the specified job.
+		/// </summary>
+		/// <param name="job">The job to copy.</param>
+		/// <returns>A new recurring job containing the job configuration.</returns>
+		/// <exception cref="ArgumentNullException">
+		/// Thrown when <paramref name="job"/> is <see langword="null"/>.
+		/// </exception>
+		public static RecurringJob FromJob(Job job)
+		{
+			if (job == null)
+			{
+				throw new ArgumentNullException(nameof(job));
+			}
+
+			var recurringJob = new RecurringJob
+			{
+				Name = job.Name,
+				Description = job.Description,
+				Notes = job.Notes,
+				Start = job.Start,
+				Duration = job.End - job.Start,
+				PreRollDuration = job.PreRollDuration,
+				PostRollDuration = job.PostRollDuration,
+				Priority = EnumExtensions.MapEnum<JobPriority, RecurringJobPriority>(job.Priority),
+				OrganizationId = job.OrganizationId,
+				OwnerId = job.OwnerId,
+				JobTypeCategoryId = job.JobTypeCategoryId,
+			};
+
+			foreach (var contactId in job.ContactIds)
+			{
+				recurringJob.AddContact(contactId);
+			}
+
+			// Clone the graph first to establish the job-node-to-recurring-node ID mapping.
+			var nodeIdMap = NodeGraphCloner.Clone(
+				job.NodeGraph,
+				recurringJob.NodeGraph,
+				CreateRecurringJobNode);
+
+			var jobNodesById = job.NodeGraph.Nodes.ToDictionary(node => node.Id);
+			var recurringNodesById = recurringJob.NodeGraph.Nodes.ToDictionary(node => node.Id);
+
+			// Clone node-level orchestration settings.
+			foreach (var entry in nodeIdMap)
+			{
+				var jobNode = jobNodesById[entry.Key];
+				var recurringNode = recurringNodesById[entry.Value];
+
+				OrchestrationSettingsCloner.Clone(
+					jobNode.OrchestrationSettings,
+					recurringNode.OrchestrationSettings,
+					nodeIdMap);
+			}
+
+			// Clone job-level orchestration settings.
+			OrchestrationSettingsCloner.Clone(
+				job.OrchestrationSettings,
+				recurringJob.OrchestrationSettings,
+				nodeIdMap);
+
+			// Clone job-level property settings.
+			foreach (var setting in job.CustomPropertySettings)
+			{
+				recurringJob.GetOrCreateScope().AddCustomProperty(setting);
+			}
+
+			foreach (var setting in job.PropertySettings)
+			{
+				recurringJob.GetOrCreateScope().AddProperty(setting);
+			}
+
+			// Clone node-level property settings.
+			foreach (var entry in nodeIdMap)
+			{
+				var jobNode = jobNodesById[entry.Key];
+				var recurringNode = recurringNodesById[entry.Value];
+
+				foreach (var setting in jobNode.CustomPropertySettings)
+				{
+					recurringNode.AddCustomProperty(setting);
+				}
+
+				foreach (var setting in jobNode.PropertySettings)
+				{
+					recurringNode.AddProperty(setting);
+				}
+			}
+
+			// TODO: linked items (=relationships) are not yet being taken over
+
+			return recurringJob;
+		}
+
+		private static RecurringJobNode CreateRecurringJobNode(JobNode jobNode)
+		{
+			return jobNode switch
+			{
+				JobResourceNode resourceNode => new RecurringJobResourceNode(
+					resourceNode.ResourcePoolId,
+					resourceNode.ResourceId)
+				{
+					Alias = resourceNode.Alias,
+					IconImage = resourceNode.IconImage,
+				},
+				JobResourcePoolNode resourcePoolNode => new RecurringJobResourcePoolNode(
+					resourcePoolNode.ResourcePoolId)
+				{
+					Alias = resourcePoolNode.Alias,
+					IconImage = resourcePoolNode.IconImage,
+				},
+				_ => null,
+			};
+		}
+
+		/// <summary>
 		/// Gets or sets the name of the recurring job.
 		/// </summary>
 		public override string Name { get; set; }
+
+		/// <summary>
+		/// Gets or sets the description of the recurring job.
+		/// </summary>
+		public string Description { get; set; }
+
+		/// <summary>
+		/// Gets or sets the priority of the recurring job.
+		/// </summary>
+		public RecurringJobPriority Priority { get; set; } = RecurringJobPriority.Normal;
+
+		/// <summary>
+		/// Gets the state of the recurring job.
+		/// </summary>
+		public RecurringJobState State { get; private set; } = RecurringJobState.Active;
 
 		/// <summary>
 		/// Gets the orchestration settings assigned to this recurring job.
@@ -71,6 +207,11 @@
 		public NodeGraph<RecurringJobNode> NodeGraph { get; private set; }
 
 		/// <summary>
+		/// Gets or sets the notes or additional information.
+		/// </summary>
+		public string Notes { get; set; }
+
+		/// <summary>
 		/// Gets the custom property settings associated with this recurring job.
 		/// Property settings are loaded lazily in a single batch together with the property settings of all nodes.
 		/// </summary>
@@ -81,6 +222,100 @@
 		/// Property settings are loaded lazily in a single batch together with the property settings of all nodes.
 		/// </summary>
 		public IReadOnlyCollection<PropertySetting> PropertySettings => GetOrCreateScope().PropertySettings;
+
+		/// <summary>
+		/// Gets or sets the start time of the first job generated from this recurring job, in the time zone specified by <see cref="TimeZone"/>.
+		/// </summary>
+		public DateTimeOffset Start { get; set; }
+
+		/// <summary>
+		/// Gets or sets the duration of each generated job, excluding pre-roll and post-roll.
+		/// </summary>
+		public TimeSpan Duration { get; set; }
+
+		/// <summary>
+		/// Gets or sets the pre-roll duration of each generated job.
+		/// </summary>
+		public TimeSpan PreRollDuration { get; set; }
+
+		/// <summary>
+		/// Gets or sets the post-roll duration of each generated job.
+		/// </summary>
+		public TimeSpan PostRollDuration { get; set; }
+
+		/// <summary>
+		/// Gets or sets the time zone used when generating jobs from this recurring job.
+		/// </summary>
+		public TimeZoneInfo TimeZone { get; set; } = TimeZoneInfo.Utc;
+
+		/// <summary>
+		/// Gets or sets the desired state of each job generated from this recurring job.
+		/// </summary>
+		public DesiredJobState DesiredJobState { get; set; } = DesiredJobState.Draft;
+
+		/// <summary>
+		/// Gets the current process state of this recurring job.
+		/// </summary>
+		public RecurringJobProcessState ProcessState { get; private set; } = RecurringJobProcessState.NA;
+
+		/// <summary>
+		/// Gets or sets the recurring pattern that defines when jobs are generated from this recurring job.
+		/// </summary>
+		public RecurringPattern Pattern { get; private set; } = new RecurringPattern();
+
+		/// <summary>
+		/// Gets or sets the ID of the organization associated with the recurring job.
+		/// </summary>
+		public Guid OrganizationId { get; set; }
+
+		/// <summary>
+		/// Gets or sets the ID of the owner of the recurring job.
+		/// </summary>
+		public Guid OwnerId { get; set; }
+
+		/// <summary>
+		/// Gets the collection of contact IDs associated with the recurring job.
+		/// </summary>
+		public IReadOnlyCollection<Guid> ContactIds => contactIds;
+
+		/// <summary>
+		/// Adds a contact to the recurring job.
+		/// </summary>
+		/// <param name="contactId">The unique identifier of the contact to add.</param>
+		/// <returns>The current <see cref="RecurringJob"/> instance.</returns>
+		/// <exception cref="ArgumentException">Thrown when <paramref name="contactId"/> is <see cref="Guid.Empty"/>.</exception>
+		public RecurringJob AddContact(Guid contactId)
+		{
+			if (contactId == Guid.Empty)
+			{
+				throw new ArgumentException(nameof(contactId));
+			}
+
+			contactIds.Add(contactId);
+			return this;
+		}
+
+		/// <summary>
+		/// Removes a contact from the recurring job.
+		/// </summary>
+		/// <param name="contactId">The unique identifier of the contact to remove.</param>
+		/// <returns>The current <see cref="RecurringJob"/> instance.</returns>
+		/// <exception cref="ArgumentException">Thrown when <paramref name="contactId"/> is <see cref="Guid.Empty"/>.</exception>
+		public RecurringJob RemoveContact(Guid contactId)
+		{
+			if (contactId == Guid.Empty)
+			{
+				throw new ArgumentException(nameof(contactId));
+			}
+
+			contactIds.Remove(contactId);
+			return this;
+		}
+
+		/// <summary>
+		/// Gets or sets the unique identifier of the associated recurring job type.
+		/// </summary>
+		public string JobTypeCategoryId { get; set; }
 
 		internal RecurringJobsInstance OriginalInstance => originalInstance;
 
@@ -96,8 +331,27 @@
 				int hash = 17;
 				hash = (hash * 23) + Id.GetHashCode();
 				hash = (hash * 23) + (Name != null ? Name.GetHashCode() : 0);
+				hash = (hash * 23) + (Description != null ? Description.GetHashCode() : 0);
+				hash = (hash * 23) + Priority.GetHashCode();
 				hash = (hash * 23) + (OrchestrationSettings != null ? OrchestrationSettings.GetHashCode() : 0);
 				hash = (hash * 23) + (NodeGraph != null ? NodeGraph.GetHashCode() : 0);
+				hash = (hash * 23) + Duration.GetHashCode();
+				hash = (hash * 23) + PreRollDuration.GetHashCode();
+				hash = (hash * 23) + PostRollDuration.GetHashCode();
+				hash = (hash * 23) + (TimeZone != null ? TimeZone.GetHashCode() : 0);
+				hash = (hash * 23) + DesiredJobState.GetHashCode();
+				hash = (hash * 23) + ProcessState.GetHashCode();
+				hash = (hash * 23) + State.GetHashCode();
+				hash = (hash * 23) + (Pattern != null ? Pattern.GetHashCode() : 0);
+				hash = (hash * 23) + OrganizationId.GetHashCode();
+				hash = (hash * 23) + OwnerId.GetHashCode();
+				hash = (hash * 23) + (JobTypeCategoryId != null ? JobTypeCategoryId.GetHashCode() : 0);
+				hash = (hash * 23) + (Notes != null ? Notes.GetHashCode() : 0);
+
+				foreach (var contactId in contactIds.OrderBy(x => x).ToArray())
+				{
+					hash = (hash * 23) + contactId.GetHashCode();
+				}
 
 				return hash;
 			}
@@ -118,8 +372,23 @@
 
 			return Id == other.Id
 				&& Name == other.Name
+				&& Description == other.Description
+				&& Priority == other.Priority
+				&& Duration == other.Duration
+				&& PreRollDuration == other.PreRollDuration
+				&& PostRollDuration == other.PostRollDuration
 				&& Equals(OrchestrationSettings, other.OrchestrationSettings)
-				&& Equals(NodeGraph, other.NodeGraph);
+				&& Equals(NodeGraph, other.NodeGraph)
+				&& Equals(TimeZone, other.TimeZone)
+				&& DesiredJobState == other.DesiredJobState
+				&& ProcessState == other.ProcessState
+				&& State == other.State
+				&& Equals(Pattern, other.Pattern)
+				&& OrganizationId == other.OrganizationId
+				&& OwnerId == other.OwnerId
+				&& JobTypeCategoryId == other.JobTypeCategoryId
+				&& Notes == other.Notes
+				&& contactIds.SetEquals(other.contactIds);
 		}
 
 		private PropertySettingsScope GetOrCreateScope()
@@ -149,6 +418,31 @@
 			this.originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
 
 			Name = instance.JobInfo.JobName;
+			Description = instance.JobInfo.JobDescription;
+			Start = instance.JobInfo.JobStart.Value;
+			Duration = instance.RecurringInfo.Duration ?? TimeSpan.Zero;
+			State = EnumExtensions.MapEnum<SlcWorkflowIds.Behaviors.Recurringjob_Behavior.StatusesEnum, RecurringJobState>(instance.Status);
+
+			PreRollDuration = instance.JobInfo.JobStart.HasValue && instance.JobInfo.Preroll.HasValue
+				? instance.JobInfo.JobStart.Value - instance.JobInfo.Preroll.Value
+				: TimeSpan.Zero;
+
+			PostRollDuration = instance.JobInfo.JobEnd.HasValue && instance.JobInfo.Postroll.HasValue
+				? instance.JobInfo.Postroll.Value - instance.JobInfo.JobEnd.Value
+				: TimeSpan.Zero;
+
+			var timeZoneString = Convert.ToString(instance.RecurringInfo.TimeZone);
+			TimeZone = string.IsNullOrEmpty(timeZoneString)
+				? TimeZoneInfo.Utc
+				: TimeZoneInfo.FromSerializedString(timeZoneString);
+
+			var patternJson = instance.RecurringInfo.RecurringPattern;
+			Pattern = string.IsNullOrEmpty(patternJson)
+				? new RecurringPattern()
+				: RecurringPattern.Deserialize(patternJson);
+
+			ProcessState = (instance.RecurringInfo.ProcessStatus ?? SlcWorkflowIds.Enums.Processstatus.NA).MapEnum<SlcWorkflowIds.Enums.Processstatus, RecurringJobProcessState>();
+			DesiredJobState = (instance.RecurringInfo.DesiredJobStatus ?? SlcWorkflowIds.Enums.Desiredjobstatus.Draft).MapEnum<SlcWorkflowIds.Enums.Desiredjobstatus, DesiredJobState>();
 
 			if (instance.JobExecution.JobConfiguration == null || instance.JobExecution.JobConfiguration == Guid.Empty)
 			{
@@ -267,6 +561,68 @@
 		private void ConfigureNodeGraphSwapHooks()
 		{
 			NodeGraph.SetExternalReferenceRetargeter(nodeIdMap => OrchestrationSettingsCloner.RetargetReferences(OrchestrationSettings, nodeIdMap));
+		}
+
+		internal RecurringJobsInstance GetInstanceWithChanges()
+		{
+			if (updatedInstance == null)
+			{
+				updatedInstance = IsNew ? new RecurringJobsInstance(Id) : originalInstance.Clone();
+			}
+
+			updatedInstance.JobInfo.JobName = Name;
+			updatedInstance.JobInfo.JobDescription = Description;
+
+			updatedInstance.JobInfo.JobStart = Start.UtcDateTime;
+			updatedInstance.JobInfo.JobEnd = Start.Add(Duration).UtcDateTime;
+			updatedInstance.JobInfo.Preroll = Start.Subtract(PreRollDuration).UtcDateTime;
+			updatedInstance.JobInfo.Postroll = Start.Add(Duration).Add(PostRollDuration).UtcDateTime;
+
+			updatedInstance.RecurringInfo.Duration = Duration;
+			updatedInstance.RecurringInfo.ProcessStatus = ProcessState.MapEnum<RecurringJobProcessState, SlcWorkflowIds.Enums.Processstatus>();
+			updatedInstance.RecurringInfo.DesiredJobStatus = DesiredJobState.MapEnum<DesiredJobState, SlcWorkflowIds.Enums.Desiredjobstatus>();
+			updatedInstance.RecurringInfo.TimeZone = TimeZone.ToSerializedString();
+			updatedInstance.RecurringInfo.RecurringPattern = Pattern.Serialize();
+
+			// Reusing JobSource field to store CategoryId to be backwards compatible with existing implementations.
+			updatedInstance.JobInfo.JobSource = JobTypeCategoryId;
+
+			updatedInstance.JobExecution.JobConfiguration = OrchestrationSettings.Id;
+
+			updatedInstance.JobInfo.JobPriority = Priority.MapEnum<RecurringJobPriority, SlcWorkflowIds.Enums.Jobpriority>();
+
+			updatedInstance.CostingAndBilling.Organization = OrganizationId != Guid.Empty ? OrganizationId : null;
+			updatedInstance.CostingAndBilling.JobOwner = OwnerId != Guid.Empty ? OwnerId : null;
+
+			updatedInstance.CostingAndBilling.AdditionalContacts.Clear();
+			foreach (var contactId in ContactIds)
+			{
+				updatedInstance.CostingAndBilling.AdditionalContacts.Add(contactId);
+			}
+
+			updatedInstance.Nodes.Clear();
+			foreach (var node in NodeGraph.Nodes)
+			{
+				updatedInstance.Nodes.Add(node.GetSectionWithChanges());
+			}
+
+			updatedInstance.Connections.Clear();
+			foreach (var connection in NodeGraph.Connections)
+			{
+				updatedInstance.Connections.Add(connection.GetSectionWithChanges());
+			}
+
+			updatedInstance.NodeRelationships.Clear();
+			foreach (var link in NodeGraph.Links)
+			{
+				updatedInstance.NodeRelationships.Add(new StorageWorkflow.NodeRelationshipsSection
+				{
+					ParentNodeID = link.Value.Id,
+					ChildNodeID = link.Key.Id,
+				});
+			}
+
+			return updatedInstance;
 		}
 	}
 }

@@ -4,6 +4,7 @@
 	using System.Collections.Generic;
 	using System.Linq;
 
+	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Solutions.Categories.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
@@ -176,6 +177,7 @@
 
 			ValidateNames(apiJobs);
 			ValidateCategories(apiJobs);
+			ValidateRecurringJobIds(apiJobs);
 			ValidateTimings(apiJobs);
 			ValidatePreRoll(apiJobs);
 			ValidatePostRoll(apiJobs);
@@ -252,6 +254,10 @@
 				.ToList();
 
 			CreateOrUpdateDomJobs(toCreateDomInstances.Concat(toUpdateDomInstances).ToList());
+
+			// Register the category items only after the job DOM instances are persisted so the Categories app is not
+			// left with items pointing to jobs that failed to be created or updated.
+			CreateOrUpdateCategoryItems(apiJobs.Where(IsValid).ToList());
 		}
 
 		private void CreateOrUpdateDomJobs(ICollection<DomJob> domJobs)
@@ -1227,37 +1233,50 @@
 
 			// Re-read the stored jobs and merge the timing changes onto them instead of persisting the pre-operation
 			// snapshot. Step 1 moved the core reservation, which makes SRM promote it to Ongoing on a live agent and
-			// drives the job's status transition (Confirmed-to-Running on start, Running-to-Completed on stop). The
-			// snapshot in OriginalInstance still carries the status the job had before that transition, so persisting it
-			// with a normal update would attempt to change the status and be rejected with
-			// StatusChangeNotAllowedForNormalUpdate. Merging the changes onto the current instance keeps the job's actual
-			// status, so only the timing fields are updated.
-			var updatedInstances = GetJobsWithChanges(changedJobs)
-				.Where(IsValid)
-				.Select(x => new DomJob(x.Instance).ToInstance())
-				.ToList();
+			// drives the job's status transition (Confirmed-to-Running on start, Running-to-Completed on stop). That
+			// transition is asynchronous: it can land before this re-read (the merge then keeps the new status) or in
+			// the window between the re-read and the write (the merge keeps the old status, so the normal update tries
+			// to change the status and is rejected with StatusChangeNotAllowedForNormalUpdate). Re-reading and writing
+			// again picks up the new status, so retry as long as every remaining failure is that status-change race.
+			const int maxAttempts = 10;
+			const int retryDelayMs = 250;
 
-			if (updatedInstances.Count == 0)
+			for (int attempt = 1; attempt <= maxAttempts; attempt++)
 			{
+				var updatedInstances = GetJobsWithChanges(changedJobs)
+					.Where(IsValid)
+					.Select(x => new DomJob(x.Instance).ToInstance())
+					.ToList();
+
+				if (updatedInstances.Count == 0)
+				{
+					return;
+				}
+
+				planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.TryCreateOrUpdateInBatches(updatedInstances, out var domResult);
+
+				if (attempt < maxAttempts && HasOnlyStatusChangeFailures(domResult))
+				{
+					System.Threading.Thread.Sleep(retryDelayMs);
+					continue;
+				}
+
+				foreach (var id in domResult.UnsuccessfulIds)
+				{
+					ReportError(id.Id);
+
+					if (domResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+					{
+						var mediaOpsTraceData = new MediaOpsTraceData();
+						mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = traceData.ToString() });
+
+						PassTraceData(id.Id, mediaOpsTraceData);
+					}
+				}
+
+				ReportSuccess(domResult.SuccessfulItems.Select(x => new DomJob(x)).ToArray());
 				return;
 			}
-
-			planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.TryCreateOrUpdateInBatches(updatedInstances, out var domResult);
-
-			foreach (var id in domResult.UnsuccessfulIds)
-			{
-				ReportError(id.Id);
-
-				if (domResult.TraceDataPerItem.TryGetValue(id, out var traceData))
-				{
-					var mediaOpsTraceData = new MediaOpsTraceData();
-					mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = traceData.ToString() });
-
-					PassTraceData(id.Id, mediaOpsTraceData);
-				}
-			}
-
-			ReportSuccess(domResult.SuccessfulItems.Select(x => new DomJob(x)).ToArray());
 		}
 
 		private void TransitionToRunning(ICollection<Job> apiJobs)
@@ -1475,6 +1494,7 @@
 
 			DeleteOrchestrationSettings(jobsToDelete);
 			DeletePropertySettingCollections(jobsToDelete);
+			DeleteCategoryItems(jobsToDelete);
 
 			var domJobsById = jobsToDelete.ToDictionary(x => x.Id, x => x.OriginalInstance);
 
@@ -1515,6 +1535,46 @@
 			}
 
 			DomWorkflowOrchestrationSettingsHandler.TryDelete(planApi, apiJobs.Select(x => x.OrchestrationSettings).ToList(), out _);
+		}
+
+		private void CreateOrUpdateCategoryItems(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			if (apiJobs.Any(x => !IsValid(x)))
+			{
+				throw new ArgumentException($"Not all provided jobs are valid", nameof(apiJobs));
+			}
+
+			DomJobCategoryHandler.CreateOrUpdate(planApi, apiJobs);
+		}
+
+		private void DeleteCategoryItems(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			if (apiJobs.Any(x => !IsValid(x)))
+			{
+				throw new ArgumentException($"Not all provided jobs are valid", nameof(apiJobs));
+			}
+
+			DomJobCategoryHandler.Delete(planApi, apiJobs);
 		}
 
 		private void CreateOrUpdatePropertySettingCollections(ICollection<Job> apiJobs)
@@ -2372,20 +2432,20 @@
 				return;
 			}
 
-			var toValidate = apiJobs.Where(x => !string.IsNullOrEmpty(x.CategoryId)).ToList();
+			var toValidate = apiJobs.Where(x => !string.IsNullOrEmpty(x.JobTypeCategoryId)).ToList();
 			if (toValidate.Count == 0)
 			{
 				return;
 			}
 
-			var scope = planApi.Categories.Scopes.Read(ScopeExposers.Name.Equal("Job Types")).FirstOrDefault();
+			var scope = planApi.Categories.Scopes.Read(ScopeExposers.Name.Equal(CategoryScopes.JobTypes)).FirstOrDefault();
 			if (scope == null)
 			{
 				foreach (var job in toValidate)
 				{
 					var error = new JobCategoryScopeNotFoundError
 					{
-						ErrorMessage = "Category with scope 'Job Types' not found.",
+						ErrorMessage = $"Category with scope '{CategoryScopes.JobTypes}' not found.",
 						Id = job.Id,
 					};
 
@@ -2395,23 +2455,68 @@
 				return;
 			}
 
-			var categoryIds = planApi.Categories.Categories.GetByScope(scope).Select(x => x.ID.ToString()).ToList();
+			var categories = planApi.Categories.Categories.GetByScope(scope).ToList();
+			var categoryIds = categories.Select(x => x.ID.ToString()).ToHashSet();
 
 			foreach (var job in toValidate)
 			{
-				if (!categoryIds.Contains(job.CategoryId))
+				if (!categoryIds.Contains(job.JobTypeCategoryId))
 				{
-					if (job.CategoryId.Equals("Scheduling", StringComparison.InvariantCultureIgnoreCase))
+					if (job.JobTypeCategoryId.Equals("Scheduling", StringComparison.InvariantCultureIgnoreCase))
 					{
 						// Translate previous fixed source to new fixed category id.
-						job.CategoryId = Convert.ToString(JobTypes.Scheduled);
+						job.JobTypeCategoryId = Convert.ToString(JobTypes.Scheduled);
 						continue;
 					}
 
 					var error = new JobCategoryNotFoundError
 					{
-						ErrorMessage = $"Category with ID '{job.CategoryId}' not found in Scope 'Job Types'.",
-						CategoryId = job.CategoryId,
+						ErrorMessage = $"Category with ID '{job.JobTypeCategoryId}' not found in Scope '{CategoryScopes.JobTypes}'.",
+						CategoryId = job.JobTypeCategoryId,
+						Id = job.Id,
+					};
+
+					ReportError(job.Id, error);
+				}
+			}
+		}
+
+		private void ValidateRecurringJobIds(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			var toValidate = apiJobs.Where(x => x.RecurringJobId != Guid.Empty).ToList();
+			if (toValidate.Count == 0)
+			{
+				return;
+			}
+
+			// Cache existence results per unique recurring job id so we hit the backend at most once per id
+			// for the whole batch, even if many jobs in the batch reference the same recurring job.
+			var existsByRecurringJobId = new Dictionary<Guid, bool>();
+
+			foreach (var job in toValidate)
+			{
+				if (!existsByRecurringJobId.TryGetValue(job.RecurringJobId, out var exists))
+				{
+					exists = planApi.RecurringJobs.Count(RecurringJobExposers.Id.Equal(job.RecurringJobId)) > 0;
+					existsByRecurringJobId[job.RecurringJobId] = exists;
+				}
+
+				if (!exists)
+				{
+					var error = new JobRecurringJobNotFoundError
+					{
+						ErrorMessage = $"Recurring job with ID '{job.RecurringJobId}' referenced by job '{job.Id}' was not found.",
+						RecurringJobId = job.RecurringJobId,
 						Id = job.Id,
 					};
 
@@ -2910,6 +3015,16 @@
 			return changeResult.AddedSections.Any(x => x.SectionDefinitionId == nodesSectionId)
 				|| changeResult.RemovedSections.Any(x => x.SectionDefinitionId == nodesSectionId)
 				|| changeResult.ChangedFields.Any(x => x.SectionDefinitionId == nodesSectionId);
+		}
+
+		private static bool HasOnlyStatusChangeFailures(Net.Messages.IBulkOperationResult<DomInstanceId> domResult)
+		{
+			return
+				domResult.UnsuccessfulIds.Count > 0 &&
+				domResult.UnsuccessfulIds.All(id =>
+					domResult.TraceDataPerItem.TryGetValue(id, out var trace) &&
+					trace.ErrorData.OfType<DomInstanceError>().Any(error =>
+						error.ErrorReason == DomInstanceError.Reason.StatusChangeNotAllowedForNormalUpdate));
 		}
 	}
 }
