@@ -216,6 +216,94 @@
 		}
 
 		/// <summary>
+		/// Initializes a new instance of the <see cref="Job"/> class as a deep copy of the specified original
+		/// job, using the supplied identifier for the new job. The resulting instance is a brand new,
+		/// unsaved job that shares no references with <paramref name="original"/>.
+		/// </summary>
+		/// <param name="original">The job to duplicate.</param>
+		/// <param name="id">The unique identifier of the duplicated job.</param>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="original"/> is <see langword="null"/>.</exception>
+		/// <exception cref="ArgumentException">Thrown when <paramref name="id"/> is <see cref="Guid.Empty"/>.</exception>
+		internal Job(Job original, Guid id) : base(id)
+		{
+			if (original == null)
+			{
+				throw new ArgumentNullException(nameof(original));
+			}
+
+			IsNew = true;
+			HasUserDefinedId = true;
+
+			Name = original.Name;
+			Description = original.Description;
+			Priority = original.Priority;
+			Start = original.Start;
+			End = original.End;
+			PreRollStart = original.PreRollStart;
+			PostRollEnd = original.PostRollEnd;
+			Notes = original.Notes;
+			OrganizationId = original.OrganizationId;
+			OwnerId = original.OwnerId;
+			JobTypeCategoryId = original.JobTypeCategoryId;
+
+			foreach (var contactId in original.ContactIds)
+			{
+				contactIds.Add(contactId);
+			}
+
+			OrchestrationSettings = new WorkflowOrchestrationSettings();
+			NodeGraph = new NodeGraph<JobNode>();
+			ConfigureNodeGraphSwapHooks();
+
+			// 1. Clone the node graph first so we have a complete original-node-id -> duplicated-node-id map
+			//    before retargeting any DataReferences (orchestration settings may reference nodes).
+			var nodeIdMap = NodeGraphCloner.Clone(original.NodeGraph, NodeGraph, CreateDuplicatedNode);
+
+			var originalNodesById = original.NodeGraph.Nodes.ToDictionary(n => n.Id);
+			var duplicatedNodesById = NodeGraph.Nodes.ToDictionary(n => n.Id);
+
+			// 2. Copy the per-node orchestration settings, pairing each new node with its source job node.
+			foreach (var entry in nodeIdMap)
+			{
+				var originalNode = originalNodesById[entry.Key];
+				var duplicatedNode = duplicatedNodesById[entry.Value];
+				OrchestrationSettingsCloner.Clone(originalNode.OrchestrationSettings, duplicatedNode.OrchestrationSettings, nodeIdMap);
+			}
+
+			// 3. Copy the job-level orchestration settings.
+			OrchestrationSettingsCloner.Clone(original.OrchestrationSettings, OrchestrationSettings, nodeIdMap);
+
+			// 4. Copy the property settings from the original job (owner) and from each original node onto the
+			//    corresponding new node. The property scope copies every incoming setting into an independent
+			//    instance, so the duplicate never shares references with the original job.
+			foreach (var setting in original.CustomPropertySettings)
+			{
+				AddCustomProperty(setting);
+			}
+
+			foreach (var setting in original.PropertySettings)
+			{
+				AddProperty(setting);
+			}
+
+			foreach (var entry in nodeIdMap)
+			{
+				var originalNode = originalNodesById[entry.Key];
+				var duplicatedNode = duplicatedNodesById[entry.Value];
+
+				foreach (var setting in originalNode.CustomPropertySettings)
+				{
+					duplicatedNode.AddCustomProperty(setting);
+				}
+
+				foreach (var setting in originalNode.PropertySettings)
+				{
+					duplicatedNode.AddProperty(setting);
+				}
+			}
+		}
+
+		/// <summary>
 		/// Gets or sets the name of the job.
 		/// </summary>
 		public override string Name { get; set; }
@@ -331,6 +419,30 @@
 		internal PropertySettingsScope PropertySettingsScope => propertySettingsScope;
 
 		internal PropertySettingsContext PropertySettingsContext => propertiesContext;
+
+		/// <summary>
+		/// Creates a duplicate of this job with a newly generated identifier. The duplicate is a brand new,
+		/// unsaved job instance without any ties to the original: all properties, orchestration settings,
+		/// nodes, connections, links and property settings are deep copied.
+		/// </summary>
+		/// <returns>A new <see cref="Job"/> instance that is a deep copy of the current job.</returns>
+		public Job Duplicate()
+		{
+			return new Job(this, Guid.NewGuid());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of this job with the specified identifier. The duplicate is a brand new,
+		/// unsaved job instance without any ties to the original: all properties, orchestration settings,
+		/// nodes, connections, links and property settings are deep copied.
+		/// </summary>
+		/// <param name="id">The unique identifier of the duplicated job.</param>
+		/// <returns>A new <see cref="Job"/> instance that is a deep copy of the current job.</returns>
+		/// <exception cref="ArgumentException">Thrown when <paramref name="id"/> is <see cref="Guid.Empty"/>.</exception>
+		public Job Duplicate(Guid id)
+		{
+			return new Job(this, id);
+		}
 
 		/// <summary>
 		/// Adds a custom property setting to this job.
@@ -555,6 +667,29 @@
 					IconImage = resourceNode.IconImage,
 				},
 				WorkflowResourcePoolNode resourcePoolNode => new JobResourcePoolNode(resourcePoolNode.ResourcePoolId)
+				{
+					Alias = resourcePoolNode.Alias,
+					IconImage = resourcePoolNode.IconImage,
+				},
+				_ => null,
+			};
+		}
+
+		/// <summary>
+		/// Produces the <see cref="JobNode"/> that should replace the given source <see cref="JobNode"/>
+		/// inside the duplicated graph. The generic cloning and reference retargeting is performed by
+		/// <see cref="NodeGraphCloner"/> and <see cref="OrchestrationSettingsCloner"/>.
+		/// </summary>
+		private static JobNode CreateDuplicatedNode(JobNode source)
+		{
+			return source switch
+			{
+				JobResourceNode resourceNode => new JobResourceNode(resourceNode.ResourcePoolId, resourceNode.ResourceId)
+				{
+					Alias = resourceNode.Alias,
+					IconImage = resourceNode.IconImage,
+				},
+				JobResourcePoolNode resourcePoolNode => new JobResourcePoolNode(resourcePoolNode.ResourcePoolId)
 				{
 					Alias = resourcePoolNode.Alias,
 					IconImage = resourcePoolNode.IconImage,
