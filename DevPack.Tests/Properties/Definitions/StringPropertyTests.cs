@@ -46,10 +46,12 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 		[TestMethod]
 		public void SetProperties_ValuesAreSet()
 		{
-			var property = new StringProperty
+			var property = new StringProperty(new PropertyData
+			{
+				Scope = "global",
+			})
 			{
 				Name = "MyString",
-				Scope = "global",
 				SectionName = "Section1",
 				Order = 2,
 				DefaultValue = "default",

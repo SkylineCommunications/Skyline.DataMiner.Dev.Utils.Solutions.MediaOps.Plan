@@ -36,21 +36,24 @@ namespace RT_MediaOps.Plan.Properties.Values
         public void BasicCrudActions()
         {
             // Arrange: create a property definition to link values against
-            var property = new StringProperty
+            var property = new StringProperty(new PropertyData
+            {
+                Scope = "global",
+            })
             {
                 Name = $"{Guid.NewGuid()}_Prop",
-                Scope = "global",
                 SectionName = "General",
             };
             objectCreator.CreateProperty(property);
 
             // Create
             var collectionId = Guid.NewGuid();
-            var collection = new PropertySettingCollection(collectionId)
+            var collection = new PropertySettingCollection(collectionId, new PropertySettingCollectionData
             {
                 LinkedObjectId = "obj-1",
                 Scope = "global",
-            };
+                SubId = string.Empty,
+            });
             collection.Add(new StringPropertySetting(property) { Value = "hello" });
 
             var created = objectCreator.CreatePropertySettingCollection(collection);
@@ -78,16 +81,18 @@ namespace RT_MediaOps.Plan.Properties.Values
         {
             var collectionId = Guid.NewGuid();
 
-            var collection1 = new PropertySettingCollection(collectionId)
+            var collection1 = new PropertySettingCollection(collectionId, new PropertySettingCollectionData
             {
                 LinkedObjectId = "obj-1",
                 Scope = "global",
-            };
-            var collection2 = new PropertySettingCollection(collectionId)
+                SubId = string.Empty,
+            });
+            var collection2 = new PropertySettingCollection(collectionId, new PropertySettingCollectionData
             {
                 LinkedObjectId = "obj-2",
                 Scope = "global",
-            };
+                SubId = string.Empty,
+            });
 
             objectCreator.CreatePropertySettingCollection(collection1);
 
@@ -115,16 +120,18 @@ namespace RT_MediaOps.Plan.Properties.Values
         {
             var collectionId = Guid.NewGuid();
 
-            var collection1 = new PropertySettingCollection(collectionId)
+            var collection1 = new PropertySettingCollection(collectionId, new PropertySettingCollectionData
             {
                 LinkedObjectId = "obj-1",
                 Scope = "global",
-            };
-            var collection2 = new PropertySettingCollection(collectionId)
+                SubId = string.Empty,
+            });
+            var collection2 = new PropertySettingCollection(collectionId, new PropertySettingCollectionData
             {
                 LinkedObjectId = "obj-2",
                 Scope = "global",
-            };
+                SubId = string.Empty,
+            });
 
             try
             {
@@ -153,18 +160,18 @@ namespace RT_MediaOps.Plan.Properties.Values
             var linkedObjectId = $"obj-{Guid.NewGuid()}";
             var subId = "sub-1";
 
-            var collection1 = new PropertySettingCollection
+            var collection1 = new PropertySettingCollection(new PropertySettingCollectionData
             {
                 LinkedObjectId = linkedObjectId,
                 SubId = subId,
                 Scope = "global",
-            };
-            var collection2 = new PropertySettingCollection
+            });
+            var collection2 = new PropertySettingCollection(new PropertySettingCollectionData
             {
                 LinkedObjectId = linkedObjectId,
                 SubId = subId,
                 Scope = "global",
-            };
+            });
 
             try
             {
@@ -192,20 +199,20 @@ namespace RT_MediaOps.Plan.Properties.Values
             var linkedObjectId = $"obj-{Guid.NewGuid()}";
             var subId = "sub-1";
 
-            var existing = new PropertySettingCollection
+            var existing = new PropertySettingCollection(new PropertySettingCollectionData
             {
                 LinkedObjectId = linkedObjectId,
                 SubId = subId,
                 Scope = "global",
-            };
+            });
             objectCreator.CreatePropertySettingCollection(existing);
 
-            var newCollection = new PropertySettingCollection
+            var newCollection = new PropertySettingCollection(new PropertySettingCollectionData
             {
                 LinkedObjectId = linkedObjectId,
                 SubId = subId,
                 Scope = "global",
-            };
+            });
             var ex = Assert.ThrowsException<MediaOpsException>(() => objectCreator.CreatePropertySettingCollection(newCollection));
             StringAssert.Contains(ex.Message, "already exists");
 
@@ -222,18 +229,18 @@ namespace RT_MediaOps.Plan.Properties.Values
 
             var collections = new[]
             {
-                new PropertySettingCollection
+                new PropertySettingCollection(new PropertySettingCollectionData
                 {
                     LinkedObjectId = linkedObjectId,
                     SubId = "sub-1",
                     Scope = "global",
-                },
-                new PropertySettingCollection
+                }),
+                new PropertySettingCollection(new PropertySettingCollectionData
                 {
                     LinkedObjectId = linkedObjectId,
                     SubId = "sub-2",
                     Scope = "global",
-                },
+                }),
             };
 
             var created = objectCreator.CreatePropertySettingCollections(collections);
@@ -251,18 +258,18 @@ namespace RT_MediaOps.Plan.Properties.Values
 
             var collections = new[]
             {
-                new PropertySettingCollection
+                new PropertySettingCollection(new PropertySettingCollectionData
                 {
                     LinkedObjectId = $"obj-{Guid.NewGuid()}",
                     SubId = subId,
                     Scope = "global",
-                },
-                new PropertySettingCollection
+                }),
+                new PropertySettingCollection(new PropertySettingCollectionData
                 {
                     LinkedObjectId = $"obj-{Guid.NewGuid()}",
                     SubId = subId,
                     Scope = "global",
-                },
+                }),
             };
 
             var created = objectCreator.CreatePropertySettingCollections(collections);
@@ -273,20 +280,22 @@ namespace RT_MediaOps.Plan.Properties.Values
         }
 
         [TestMethod]
-        public void CreateWithDuplicateLinkedObjectIdAndNullSubIdInBulkThrowsException()
+        public void CreateWithDuplicateLinkedObjectIdAndEmptySubIdInBulkThrowsException()
         {
             var linkedObjectId = $"obj-{Guid.NewGuid()}";
 
-            var collection1 = new PropertySettingCollection
+            var collection1 = new PropertySettingCollection(new PropertySettingCollectionData
             {
                 LinkedObjectId = linkedObjectId,
                 Scope = "global",
-            };
-            var collection2 = new PropertySettingCollection
+                SubId = string.Empty,
+            });
+            var collection2 = new PropertySettingCollection(new PropertySettingCollectionData
             {
                 LinkedObjectId = linkedObjectId,
                 Scope = "global",
-            };
+                SubId = string.Empty,
+            });
 
             var ex = Assert.ThrowsException<MediaOpsBulkException<Guid>>(() => objectCreator.CreatePropertySettingCollections(new[] { collection1, collection2 }));
             var errors = ex.Result.TraceDataPerItem.Values
@@ -295,7 +304,7 @@ namespace RT_MediaOps.Plan.Properties.Values
                 .ToList();
 
             Assert.AreEqual(2, errors.Count);
-            Assert.IsTrue(errors.All(e => e.LinkedObjectId == linkedObjectId && e.SubId == null));
+            Assert.IsTrue(errors.All(e => e.LinkedObjectId == linkedObjectId && e.SubId == string.Empty));
         }
 
         [TestMethod]
@@ -303,11 +312,12 @@ namespace RT_MediaOps.Plan.Properties.Values
         {
             var customName = $"Custom_{Guid.NewGuid()}";
 
-            var collection = new PropertySettingCollection
+            var collection = new PropertySettingCollection(new PropertySettingCollectionData
             {
                 LinkedObjectId = "obj-1",
                 Scope = "global",
-            };
+                SubId = string.Empty,
+            });
             collection.Add(new CustomPropertySetting(customName) { Value = "A" });
             collection.Add(new CustomPropertySetting(customName) { Value = "B" });
 
@@ -327,19 +337,22 @@ namespace RT_MediaOps.Plan.Properties.Values
         public void CreateWithCustomValueNameMatchingPropertyNameInSameScopeThrowsException()
         {
             var propertyName = $"{Guid.NewGuid()}_Prop";
-            var property = new StringProperty
+            var property = new StringProperty(new PropertyData
+            {
+                Scope = "global",
+            })
             {
                 Name = propertyName,
-                Scope = "global",
                 SectionName = "General",
             };
             objectCreator.CreateProperty(property);
 
-            var collection = new PropertySettingCollection
+            var collection = new PropertySettingCollection(new PropertySettingCollectionData
             {
                 LinkedObjectId = "obj-1",
                 Scope = "global",
-            };
+                SubId = string.Empty,
+            });
             collection.Add(new CustomPropertySetting(propertyName) { Value = "A" });
 
             var ex = Assert.ThrowsException<MediaOpsException>(() => objectCreator.CreatePropertySettingCollection(collection));
@@ -357,19 +370,22 @@ namespace RT_MediaOps.Plan.Properties.Values
         [TestMethod]
         public void CreateWithDuplicatePropertySettingIdsThrowsException()
         {
-            var property = new StringProperty
+            var property = new StringProperty(new PropertyData
+            {
+                Scope = "global",
+            })
             {
                 Name = $"{Guid.NewGuid()}_Prop",
-                Scope = "global",
                 SectionName = "General",
             };
             objectCreator.CreateProperty(property);
 
-            var collection = new PropertySettingCollection
+            var collection = new PropertySettingCollection(new PropertySettingCollectionData
             {
                 LinkedObjectId = "obj-1",
                 Scope = "global",
-            };
+                SubId = string.Empty,
+            });
             collection.Add(new StringPropertySetting(property) { Value = "A" });
             collection.Add(new StringPropertySetting(property) { Value = "B" });
 
@@ -388,55 +404,38 @@ namespace RT_MediaOps.Plan.Properties.Values
         [TestMethod]
         public void CreateWithEmptyLinkedObjectIdThrowsException()
         {
-            var collection = new PropertySettingCollection
+            var data = new PropertySettingCollectionData
             {
                 LinkedObjectId = string.Empty,
                 Scope = "global",
+                SubId = string.Empty,
             };
 
-            try
-            {
-                objectCreator.CreatePropertySettingCollection(collection);
-            }
-            catch (MediaOpsException ex)
-            {
-                StringAssert.Contains(ex.Message, "Linked object ID cannot be empty.");
-                return;
-            }
-
-            Assert.Fail("Expected exception was not thrown.");
+            Assert.ThrowsException<ArgumentException>(() => new PropertySettingCollection(data));
         }
 
         [TestMethod]
         public void CreateWithEmptyScopeThrowsException()
         {
-            var collection = new PropertySettingCollection
+            var data = new PropertySettingCollectionData
             {
                 LinkedObjectId = "obj-1",
                 Scope = string.Empty,
+                SubId = string.Empty,
             };
 
-            try
-            {
-                objectCreator.CreatePropertySettingCollection(collection);
-            }
-            catch (MediaOpsException ex)
-            {
-                StringAssert.Contains(ex.Message, "Scope cannot be empty.");
-                return;
-            }
-
-            Assert.Fail("Expected exception was not thrown.");
+            Assert.ThrowsException<ArgumentException>(() => new PropertySettingCollection(data));
         }
 
         [TestMethod]
         public void CreateNewThenUpdateNewThrowsException()
         {
-            var collection = new PropertySettingCollection
+            var collection = new PropertySettingCollection(new PropertySettingCollectionData
             {
                 LinkedObjectId = "obj-1",
                 Scope = "global",
-            };
+                SubId = string.Empty,
+            });
 
             Assert.ThrowsException<InvalidOperationException>(() =>
                 TestContext.Api.PropertySettingCollections.Update(collection));
@@ -445,11 +444,12 @@ namespace RT_MediaOps.Plan.Properties.Values
 		[TestMethod]
         public void UpdateExistingThenCreateThrowsException()
 		{
-            var collection = new PropertySettingCollection
+            var collection = new PropertySettingCollection(new PropertySettingCollectionData
             {
                 LinkedObjectId = "obj-1",
                 Scope = "global",
-            };
+                SubId = string.Empty,
+            });
             var created = objectCreator.CreatePropertySettingCollection(collection);
 
             Assert.ThrowsException<InvalidOperationException>(() =>
@@ -461,11 +461,12 @@ namespace RT_MediaOps.Plan.Properties.Values
 		{
             var countBefore = TestContext.Api.PropertySettingCollections.Count();
 
-            var collection = new PropertySettingCollection
+            var collection = new PropertySettingCollection(new PropertySettingCollectionData
             {
                 LinkedObjectId = "obj-count",
                 Scope = "global",
-            };
+                SubId = string.Empty,
+            });
             objectCreator.CreatePropertySettingCollection(collection);
 
             var countAfter = TestContext.Api.PropertySettingCollections.Count();
@@ -478,11 +479,12 @@ namespace RT_MediaOps.Plan.Properties.Values
         {
             var linkedObjectId = $"obj-{Guid.NewGuid()}";
 
-            var collection = new PropertySettingCollection
+            var collection = new PropertySettingCollection(new PropertySettingCollectionData
             {
                 LinkedObjectId = linkedObjectId,
                 Scope = "global",
-            };
+                SubId = string.Empty,
+            });
             var created = objectCreator.CreatePropertySettingCollection(collection);
 
             var results = TestContext.Api.PropertySettingCollections
@@ -498,8 +500,8 @@ namespace RT_MediaOps.Plan.Properties.Values
         {
             var collections = new List<PropertySettingCollection>
             {
-                new PropertySettingCollection { LinkedObjectId = "bulk-obj-1", Scope = "global" },
-                new PropertySettingCollection { LinkedObjectId = "bulk-obj-2", Scope = "global" },
+                new PropertySettingCollection(new PropertySettingCollectionData { LinkedObjectId = "bulk-obj-1", Scope = "global", SubId = string.Empty }),
+                new PropertySettingCollection(new PropertySettingCollectionData { LinkedObjectId = "bulk-obj-2", Scope = "global", SubId = string.Empty }),
             };
 
             var created = objectCreator.CreatePropertySettingCollections(collections);
@@ -518,21 +520,24 @@ namespace RT_MediaOps.Plan.Properties.Values
         public void UpdateExistingWithCustomAndDoubleValues()
         {
             // Arrange: create a property definition to link values against
-            var property = new StringProperty
+            var property = new StringProperty(new PropertyData
+            {
+                Scope = "global",
+            })
             {
                 Name = $"{Guid.NewGuid()}_Prop",
-                Scope = "global",
                 SectionName = "General",
             };
             objectCreator.CreateProperty(property);
 
             // Create
             var collectionId = Guid.NewGuid();
-            var collection = new PropertySettingCollection(collectionId)
+            var collection = new PropertySettingCollection(collectionId, new PropertySettingCollectionData
             {
                 LinkedObjectId = "obj-1",
                 Scope = "global",
-            };
+                SubId = string.Empty,
+            });
             collection.Add(new StringPropertySetting(property) { Value = "hello" });
 
             var created = objectCreator.CreatePropertySettingCollection(collection);
@@ -543,10 +548,12 @@ namespace RT_MediaOps.Plan.Properties.Values
             Assert.AreEqual(collectionId, read.Id);
 
             // Arrange: create an additional boolean property definition
-            var booleanProperty = new BooleanProperty
+            var booleanProperty = new BooleanProperty(new PropertyData
+		{
+                Scope = "global",
+		})
 		{
                 Name = $"{Guid.NewGuid()}_BooleanProp",
-                Scope = "global",
                 SectionName = "General",
             };
             objectCreator.CreateProperty(booleanProperty);
@@ -581,19 +588,22 @@ namespace RT_MediaOps.Plan.Properties.Values
 		[TestMethod]
 		public void UpdateUnmodifiedPropertySettingCollection()
 		{
-			var property = new StringProperty
+			var property = new StringProperty(new PropertyData
+			{
+				Scope = "global",
+			})
 			{
 				Name = $"{Guid.NewGuid()}_Property",
-				Scope = "global",
 				SectionName = "General",
 			};
 			objectCreator.CreateProperty(property);
 
-			var collection = new PropertySettingCollection
+			var collection = new PropertySettingCollection(new PropertySettingCollectionData
 			{
 				LinkedObjectId = $"obj-{Guid.NewGuid()}",
 				Scope = "global",
-			};
+				SubId = string.Empty,
+			});
 			collection.Add(new StringPropertySetting(property) { Value = "value" });
 			collection = objectCreator.CreatePropertySettingCollection(collection);
 
@@ -606,27 +616,31 @@ namespace RT_MediaOps.Plan.Properties.Values
 		[TestMethod]
 		public void BulkUpdateWithChangedAndUnchangedPropertySettingCollectionReturnsTwoCollections()
 		{
-			var property = new StringProperty
+			var property = new StringProperty(new PropertyData
+			{
+				Scope = "global",
+			})
 			{
 				Name = $"{Guid.NewGuid()}_Property",
-				Scope = "global",
 				SectionName = "General",
 			};
 			objectCreator.CreateProperty(property);
 
-			var changedCollection = new PropertySettingCollection
+			var changedCollection = new PropertySettingCollection(new PropertySettingCollectionData
 			{
 				LinkedObjectId = $"obj-{Guid.NewGuid()}",
 				Scope = "global",
-			};
+				SubId = string.Empty,
+			});
 			changedCollection.Add(new StringPropertySetting(property) { Value = "value-1" });
 			changedCollection = objectCreator.CreatePropertySettingCollection(changedCollection);
 
-			var unchangedCollection = new PropertySettingCollection
+			var unchangedCollection = new PropertySettingCollection(new PropertySettingCollectionData
 			{
 				LinkedObjectId = $"obj-{Guid.NewGuid()}",
 				Scope = "global",
-			};
+				SubId = string.Empty,
+			});
 			unchangedCollection.Add(new StringPropertySetting(property) { Value = "value-2" });
 			unchangedCollection = objectCreator.CreatePropertySettingCollection(unchangedCollection);
 
@@ -651,35 +665,40 @@ namespace RT_MediaOps.Plan.Properties.Values
 		[TestMethod]
 		public void BulkUpdateWithChangedInvalidAndUnchangedPropertySettingCollectionReturnsTwoSuccessfulIds()
 		{
-			var property = new StringProperty
+			var property = new StringProperty(new PropertyData
+			{
+				Scope = "global",
+			})
 			{
 				Name = $"{Guid.NewGuid()}_Property",
-				Scope = "global",
 				SectionName = "General",
 			};
 			objectCreator.CreateProperty(property);
 
-			var changedCollection = new PropertySettingCollection
+			var changedCollection = new PropertySettingCollection(new PropertySettingCollectionData
 			{
 				LinkedObjectId = $"obj-{Guid.NewGuid()}",
 				Scope = "global",
-			};
+				SubId = string.Empty,
+			});
 			changedCollection.Add(new StringPropertySetting(property) { Value = "value-1" });
 			changedCollection = objectCreator.CreatePropertySettingCollection(changedCollection);
 
-			var invalidCollection = new PropertySettingCollection
+			var invalidCollection = new PropertySettingCollection(new PropertySettingCollectionData
 			{
 				LinkedObjectId = $"obj-{Guid.NewGuid()}",
 				Scope = "global",
-			};
+				SubId = string.Empty,
+			});
 			invalidCollection.Add(new StringPropertySetting(property) { Value = "value-2" });
 			invalidCollection = objectCreator.CreatePropertySettingCollection(invalidCollection);
 
-			var unchangedCollection = new PropertySettingCollection
+			var unchangedCollection = new PropertySettingCollection(new PropertySettingCollectionData
 			{
 				LinkedObjectId = $"obj-{Guid.NewGuid()}",
 				Scope = "global",
-			};
+				SubId = string.Empty,
+			});
 			unchangedCollection.Add(new StringPropertySetting(property) { Value = "value-3" });
 			unchangedCollection = objectCreator.CreatePropertySettingCollection(unchangedCollection);
 

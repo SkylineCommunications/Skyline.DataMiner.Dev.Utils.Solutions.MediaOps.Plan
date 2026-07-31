@@ -33,10 +33,12 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var userKey = $"RT_{prefix:N}";
 			var currentTime = DateTime.Now.RoundToNextSecond();
 
-			var job = new Job
+			var job = new Job(new JobData
+			{
+				Key = userKey,
+			})
 			{
 				Name = $"{prefix}_Job",
-				Key = userKey,
 				Start = currentTime,
 				End = currentTime.AddMinutes(5),
 				PreRollStart = currentTime,

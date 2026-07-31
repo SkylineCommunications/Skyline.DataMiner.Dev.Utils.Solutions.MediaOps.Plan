@@ -50,10 +50,12 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 		[TestMethod]
 		public void SetInheritedProperties_ValuesAreSet()
 		{
-			var property = new BooleanProperty
+			var property = new BooleanProperty(new PropertyData
+			{
+				Scope = "global",
+			})
 			{
 				Name = "MyBool",
-				Scope = "global",
 				SectionName = "General",
 				Order = 5,
 				DefaultValue = true,
@@ -70,8 +72,8 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 		public void Equals_SameValues_ReturnsTrue()
 		{
 			var id = Guid.NewGuid();
-			var first = new BooleanProperty(id) { Name = "B", Scope = "s", SectionName = "sec", Order = 1, DefaultValue = true };
-			var second = new BooleanProperty(id) { Name = "B", Scope = "s", SectionName = "sec", Order = 1, DefaultValue = true };
+			var first = new BooleanProperty(id, new PropertyData { Scope = "s" }) { Name = "B", SectionName = "sec", Order = 1, DefaultValue = true };
+			var second = new BooleanProperty(id, new PropertyData { Scope = "s" }) { Name = "B", SectionName = "sec", Order = 1, DefaultValue = true };
 
 			Assert.IsTrue(first.Equals(second));
 			Assert.AreEqual(first.GetHashCode(), second.GetHashCode());

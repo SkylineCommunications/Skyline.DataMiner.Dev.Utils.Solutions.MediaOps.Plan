@@ -36,16 +36,20 @@ namespace RT_MediaOps.Plan.Workflow.SchedulingProperties
 		{
 			var prefix = Guid.NewGuid();
 
-			var mediaOpsProperty = new BooleanProperty
+			var mediaOpsProperty = new BooleanProperty(new PropertyData
+			{
+				Scope = MediaOpsScope,
+			})
 			{
 				Name = $"{prefix}_MediaOps",
-				Scope = MediaOpsScope,
 				SectionName = "General",
 			};
-			var otherProperty = new BooleanProperty
+			var otherProperty = new BooleanProperty(new PropertyData
+			{
+				Scope = OtherScope,
+			})
 			{
 				Name = $"{prefix}_Other",
-				Scope = OtherScope,
 				SectionName = "General",
 			};
 
@@ -94,10 +98,12 @@ namespace RT_MediaOps.Plan.Workflow.SchedulingProperties
 		[TestMethod]
 		public void CreateSchedulingProperty_WithExplicitMediaOpsScope_Succeeds()
 		{
-			var property = new BooleanProperty
+			var property = new BooleanProperty(new PropertyData
+			{
+				Scope = MediaOpsScope,
+			})
 			{
 				Name = $"{Guid.NewGuid()}_Property",
-				Scope = MediaOpsScope,
 				SectionName = "General",
 			};
 
@@ -110,10 +116,12 @@ namespace RT_MediaOps.Plan.Workflow.SchedulingProperties
 		[TestMethod]
 		public void CreateSchedulingProperty_WithNonMediaOpsScope_ThrowsInvalidScopeError()
 		{
-			var property = new BooleanProperty
+			var property = new BooleanProperty(new PropertyData
+			{
+				Scope = OtherScope,
+			})
 			{
 				Name = $"{Guid.NewGuid()}_Property",
-				Scope = OtherScope,
 				SectionName = "General",
 			};
 
@@ -141,16 +149,20 @@ namespace RT_MediaOps.Plan.Workflow.SchedulingProperties
 		{
 			var prefix = Guid.NewGuid();
 
-			var validProperty = new BooleanProperty
+			var validProperty = new BooleanProperty(new PropertyData
+			{
+				Scope = MediaOpsScope,
+			})
 			{
 				Name = $"{prefix}_Valid",
-				Scope = MediaOpsScope,
 				SectionName = "General",
 			};
-			var invalidProperty = new BooleanProperty
+			var invalidProperty = new BooleanProperty(new PropertyData
+			{
+				Scope = OtherScope,
+			})
 			{
 				Name = $"{prefix}_Invalid",
-				Scope = OtherScope,
 				SectionName = "General",
 			};
 
@@ -181,10 +193,12 @@ namespace RT_MediaOps.Plan.Workflow.SchedulingProperties
 		[TestMethod]
 		public void DeleteSchedulingProperty_MediaOpsScope_DeletesProperty()
 		{
-			var property = new BooleanProperty
+			var property = new BooleanProperty(new PropertyData
+			{
+				Scope = MediaOpsScope,
+			})
 			{
 				Name = $"{Guid.NewGuid()}_Property",
-				Scope = MediaOpsScope,
 				SectionName = "General",
 			};
 
@@ -200,10 +214,12 @@ namespace RT_MediaOps.Plan.Workflow.SchedulingProperties
 		[TestMethod]
 		public void DeleteSchedulingProperty_MediaOpsScope_WithOptions_DeletesProperty()
 		{
-			var property = new BooleanProperty
+			var property = new BooleanProperty(new PropertyData
+			{
+				Scope = MediaOpsScope,
+			})
 			{
 				Name = $"{Guid.NewGuid()}_Property",
-				Scope = MediaOpsScope,
 				SectionName = "General",
 			};
 
@@ -217,10 +233,12 @@ namespace RT_MediaOps.Plan.Workflow.SchedulingProperties
 		[TestMethod]
 		public void DeleteSchedulingProperty_NonMediaOpsScope_DoesNotDeleteProperty()
 		{
-			var property = new BooleanProperty
+			var property = new BooleanProperty(new PropertyData
+			{
+				Scope = OtherScope,
+			})
 			{
 				Name = $"{Guid.NewGuid()}_Property",
-				Scope = OtherScope,
 				SectionName = "General",
 			};
 
@@ -238,16 +256,20 @@ namespace RT_MediaOps.Plan.Workflow.SchedulingProperties
 		{
 			var prefix = Guid.NewGuid();
 
-			var mediaOpsProperty = new BooleanProperty
+			var mediaOpsProperty = new BooleanProperty(new PropertyData
+			{
+				Scope = MediaOpsScope,
+			})
 			{
 				Name = $"{prefix}_MediaOps",
-				Scope = MediaOpsScope,
 				SectionName = "General",
 			};
-			var otherProperty = new BooleanProperty
+			var otherProperty = new BooleanProperty(new PropertyData
+			{
+				Scope = OtherScope,
+			})
 			{
 				Name = $"{prefix}_Other",
-				Scope = OtherScope,
 				SectionName = "General",
 			};
 

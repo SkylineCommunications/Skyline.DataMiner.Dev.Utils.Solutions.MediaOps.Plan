@@ -21,8 +21,6 @@
 		private PropertySettingsContext propertiesContext;
 		private PropertySettingsScope propertySettingsScope;
 
-		private string key;
-
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Job"/> class.
 		/// </summary>
@@ -46,6 +44,43 @@
 			OrchestrationSettings = new WorkflowOrchestrationSettings();
 			NodeGraph = new NodeGraph<JobNode>();
 			ConfigureNodeGraphSwapHooks();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="Job"/> class with the specified data.
+		/// </summary>
+		/// <param name="data">The data that can only be provided on creation.</param>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="data"/> is <see langword="null"/>.</exception>
+		/// <exception cref="ArgumentException">Thrown when a required field of <paramref name="data"/> is not filled out.</exception>
+		public Job(JobData data) : this()
+		{
+			if (data == null)
+			{
+				throw new ArgumentNullException(nameof(data));
+			}
+
+			data.Validate(nameof(data));
+
+			Key = data.Key;
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="Job"/> class with a specific job ID and the specified data.
+		/// </summary>
+		/// <param name="jobId">The unique identifier of the job.</param>
+		/// <param name="data">The data that can only be provided on creation.</param>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="data"/> is <see langword="null"/>.</exception>
+		/// <exception cref="ArgumentException">Thrown when a required field of <paramref name="data"/> is not filled out.</exception>
+		public Job(Guid jobId, JobData data) : this(jobId)
+		{
+			if (data == null)
+			{
+				throw new ArgumentNullException(nameof(data));
+			}
+
+			data.Validate(nameof(data));
+
+			Key = data.Key;
 		}
 
 		/// <summary>
@@ -274,9 +309,9 @@
 		public override string Name { get; set; }
 
 		/// <summary>
-		/// Gets or sets the key of the job. If the key is not explicitly set during initialization, the system automatically assigns a generated key that cannot be modified afterwards.
+		/// Gets the key of the job. The key can only be provided through a <see cref="JobData"/> instance when the job is created. If no key is provided, the system automatically assigns a generated key that cannot be modified afterwards.
 		/// </summary>
-		public string Key { get => key; init => key = value; }
+		public string Key { get; private set; }
 
 		/// <summary>
 		/// Gets or sets the description of the job.
@@ -837,7 +872,7 @@
 				throw new InvalidOperationException("Key has already been assigned and cannot be modified.");
 			}
 
-			this.key = key;
+			Key = key;
 		}
 
 		private void ParseInstance(MediaOpsPlanApi planApi, StorageWorkflow.JobsInstance instance)
@@ -845,7 +880,7 @@
 			this.originalInstance = instance ?? throw new ArgumentNullException(nameof(instance));
 
 			Name = instance.JobInfo.JobName;
-			key = instance.JobInfo.JobID;
+			Key = instance.JobInfo.JobID;
 			Description = instance.JobInfo.JobDescription;
 			Start = instance.JobInfo.JobStart.Value;
 			End = instance.JobInfo.JobEnd.Value;
