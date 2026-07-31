@@ -2443,6 +2443,13 @@
 			{
 				foreach (var job in toValidate)
 				{
+					// The 'Scheduled' category has a fixed, well-known id, so it must not raise a scope-not-found error.
+					if (IsScheduledCategory(job.JobTypeCategoryId))
+					{
+						job.JobTypeCategoryId = Convert.ToString(JobTypes.Scheduled);
+						continue;
+					}
+
 					var error = new JobCategoryScopeNotFoundError
 					{
 						ErrorMessage = $"Category with scope '{CategoryScopes.JobTypes}' not found.",
@@ -2462,7 +2469,7 @@
 			{
 				if (!categoryIds.Contains(job.JobTypeCategoryId))
 				{
-					if (job.JobTypeCategoryId.Equals("Scheduling", StringComparison.InvariantCultureIgnoreCase))
+					if (IsScheduledCategory(job.JobTypeCategoryId))
 					{
 						// Translate previous fixed source to new fixed category id.
 						job.JobTypeCategoryId = Convert.ToString(JobTypes.Scheduled);
@@ -2523,6 +2530,13 @@
 					ReportError(job.Id, error);
 				}
 			}
+		}
+
+		private static bool IsScheduledCategory(string categoryId)
+		{
+			// The 'Scheduled' category is identified by its fixed id, or by the legacy fixed source value "Scheduling".
+			return String.Equals(categoryId, Convert.ToString(JobTypes.Scheduled), StringComparison.InvariantCultureIgnoreCase)
+				|| String.Equals(categoryId, "Scheduling", StringComparison.InvariantCultureIgnoreCase);
 		}
 
 		private void ValidateDescription(ICollection<Job> apiJobs)
