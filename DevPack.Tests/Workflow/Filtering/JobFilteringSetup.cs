@@ -18,7 +18,7 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 			this.testContext = testContext;
 
 			Prefix = Guid.NewGuid().ToString();
-			BaseTime = DateTime.UtcNow.RoundToNextSecond();
+			BaseTime = new DateTimeOffset(DateTime.UtcNow.RoundToNextSecond());
 
 			OrganizationId = Guid.NewGuid();
 			OwnerId = Guid.NewGuid();
@@ -29,7 +29,7 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 
 		public string Prefix { get; }
 
-		public DateTime BaseTime { get; }
+		public DateTimeOffset BaseTime { get; }
 
 		public Guid OrganizationId { get; }
 
