@@ -5,6 +5,7 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 	using RT_MediaOps.Plan.Extensions;
 	using RT_MediaOps.Plan.RegressionTests;
 
+	using Skyline.DataMiner.Solutions.Categories.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 
 	internal sealed class JobFilteringSetup
@@ -23,7 +24,12 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 			OrganizationId = Guid.NewGuid();
 			OwnerId = Guid.NewGuid();
 			RecurringJobId = Guid.NewGuid();
+			CategoryA_Id = Guid.NewGuid();
+			CategoryB_Id = Guid.NewGuid();
 
+			var scope = GetJobScope();
+			CreateRecurringJob();
+			CreateCategories(scope);
 			CreateJobs();
 		}
 
@@ -36,6 +42,10 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 		public Guid OwnerId { get; }
 
 		public Guid RecurringJobId { get; }
+
+		public Guid CategoryA_Id { get; }
+
+		public Guid CategoryB_Id { get; }
 
 		public Job[] Jobs => new[]
 		{
@@ -50,6 +60,43 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 
 		public Job? TentativeJob3 { get; private set; }
 
+		private void CreateCategories(Scope scope)
+		{
+			objectCreator.CreateCategory(new Category(CategoryA_Id)
+			{
+				Name = $"CategoryA_{Guid.NewGuid()}",
+				Scope = scope,
+			});
+
+			objectCreator.CreateCategory(new Category(CategoryB_Id)
+			{
+				Name = $"CategoryB_{Guid.NewGuid()}",
+				Scope = scope,
+			});
+		}
+
+		private Scope GetJobScope()
+		{
+			return testContext.CategoriesApi.Scopes.Read(CategoryScopes.JobTypes)
+				?? throw new InvalidOperationException($"Category Scope '{CategoryScopes.JobTypes}' is not available");
+		}
+
+		private void CreateRecurringJob()
+		{
+			var recurringJob = new RecurringJob(RecurringJobId)
+			{
+				Name = $"RecurringJob_{Prefix}",
+				Duration = TimeSpan.FromHours(1),
+				Start = DateTimeOffset.UtcNow.AddHours(5),
+			};
+
+			recurringJob.Pattern.EndDate = DateTimeOffset.UtcNow.AddDays(10);
+			recurringJob.Pattern.RepeatEvery = 1;
+			recurringJob.Pattern.RepeatType = RepeatType.Daily;
+
+			objectCreator.CreateRecurringJob(recurringJob);
+		}
+
 		private void CreateJobs()
 		{
 			var job1 = new Job(new JobData { Key = $"Key_1_{Prefix}" })
@@ -62,7 +109,7 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 				End = BaseTime.AddHours(2),
 				PreRollStart = BaseTime.AddMinutes(50),
 				PostRollEnd = BaseTime.AddHours(2).AddMinutes(10),
-				JobTypeCategoryId = $"Category_A_{Prefix}",
+				JobTypeCategoryId = CategoryA_Id.ToString(),
 				OrganizationId = OrganizationId,
 				OwnerId = OwnerId,
 				RecurringJobId = RecurringJobId,
@@ -78,7 +125,7 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 				End = BaseTime.AddHours(4),
 				PreRollStart = BaseTime.AddHours(3),
 				PostRollEnd = BaseTime.AddHours(4),
-				JobTypeCategoryId = $"Category_B_{Prefix}",
+				JobTypeCategoryId = CategoryB_Id.ToString(),
 			};
 
 			var job3 = new Job(new JobData { Key = $"Key_3_{Prefix}" })
@@ -91,7 +138,7 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 				End = BaseTime.AddHours(6),
 				PreRollStart = BaseTime.AddHours(5),
 				PostRollEnd = BaseTime.AddHours(6),
-				JobTypeCategoryId = $"Category_A_{Prefix}",
+				JobTypeCategoryId = CategoryA_Id.ToString(),
 			};
 
 			DraftJob1 = objectCreator.CreateJob(job1);

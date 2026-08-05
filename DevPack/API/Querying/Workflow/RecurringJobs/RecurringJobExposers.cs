@@ -45,26 +45,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		public static readonly Exposer<RecurringJob, TimeSpan> Duration = new Exposer<RecurringJob, TimeSpan>((obj) => obj.Duration, "Duration");
 
 		/// <summary>
-		/// Gets an exposer for the <see cref="RecurringJob.PreRollDuration"/> property.
-		/// </summary>
-		/// <remarks>
-		/// The pre-roll duration is not stored as such, only the resulting pre-roll start time is stored. Filtering on this
-		/// exposer is therefore not supported and will throw a <see cref="NotSupportedException"/>. The exposer can still be
-		/// used to inspect the value of a recurring job.
-		/// </remarks>
-		public static readonly Exposer<RecurringJob, TimeSpan> PreRollDuration = new Exposer<RecurringJob, TimeSpan>((obj) => obj.PreRollDuration, "PreRollDuration");
-
-		/// <summary>
-		/// Gets an exposer for the <see cref="RecurringJob.PostRollDuration"/> property.
-		/// </summary>
-		/// <remarks>
-		/// The post-roll duration is not stored as such, only the resulting post-roll end time is stored. Filtering on this
-		/// exposer is therefore not supported and will throw a <see cref="NotSupportedException"/>. The exposer can still be
-		/// used to inspect the value of a recurring job.
-		/// </remarks>
-		public static readonly Exposer<RecurringJob, TimeSpan> PostRollDuration = new Exposer<RecurringJob, TimeSpan>((obj) => obj.PostRollDuration, "PostRollDuration");
-
-		/// <summary>
 		/// Gets an exposer for the <see cref="RecurringJob.DesiredJobState"/> property.
 		/// </summary>
 		public static readonly Exposer<RecurringJob, DesiredJobState> DesiredJobState = new Exposer<RecurringJob, DesiredJobState>((obj) => obj.DesiredJobState, "DesiredJobState");

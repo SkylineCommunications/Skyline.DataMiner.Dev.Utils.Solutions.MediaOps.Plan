@@ -22,11 +22,7 @@
 			[JobExposers.End.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.JobEnd), comparer, ((DateTimeOffset)value).UtcDateTime),
 			[JobExposers.PreRollStart.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.Preroll), comparer, ((DateTimeOffset)value).UtcDateTime),
 			[JobExposers.PostRollEnd.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.Postroll), comparer, ((DateTimeOffset)value).UtcDateTime),
-
-			// Reusing JobSeriesID field to store the recurring job ID to be backwards compatible with existing implementations.
 			[JobExposers.RecurringJobId.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.JobSeriesID), comparer, Convert.ToString(value)),
-
-			// Reusing JobSource field to store the job type category ID to be backwards compatible with existing implementations.
 			[JobExposers.JobTypeCategoryId.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.JobSource), comparer, (string)value),
 			[JobExposers.Priority.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.JobPriority), comparer, ConvertJobPriority((JobPriority)value)),
 			[JobExposers.State.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.StatusId, comparer, ConvertJobState((JobState)value)),

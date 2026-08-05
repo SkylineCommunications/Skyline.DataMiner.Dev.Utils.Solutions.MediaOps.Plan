@@ -22,13 +22,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			[RecurringJobExposers.Priority.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.JobPriority), comparer, ConvertRecurringJobPriority((RecurringJobPriority)value)),
 			[RecurringJobExposers.Start.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.JobStart), comparer, ((DateTimeOffset)value).UtcDateTime),
 			[RecurringJobExposers.Duration.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.RecurringInfo.Duration), comparer, (TimeSpan)value),
-			[RecurringJobExposers.PreRollDuration.fieldName] = (comparer, value) => throw new NotSupportedException($"Filtering on {RecurringJobExposers.PreRollDuration.fieldName} is not supported because only the resulting pre-roll start time is stored."),
-			[RecurringJobExposers.PostRollDuration.fieldName] = (comparer, value) => throw new NotSupportedException($"Filtering on {RecurringJobExposers.PostRollDuration.fieldName} is not supported because only the resulting post-roll end time is stored."),
 			[RecurringJobExposers.DesiredJobState.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.RecurringInfo.DesiredJobStatus), comparer, ConvertDesiredJobState((DesiredJobState)value)),
 			[RecurringJobExposers.OrganizationId.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.CostingAndBilling.Organization), comparer, (Guid)value),
 			[RecurringJobExposers.OwnerId.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.CostingAndBilling.JobOwner), comparer, (Guid)value),
-
-			// Reusing JobSource field to store the job type category ID to be backwards compatible with existing implementations.
 			[RecurringJobExposers.JobTypeCategoryId.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.JobSource), comparer, (string)value),
 			[RecurringJobExposers.Pattern.EndDate.fieldName] = (comparer, value) => CreatePatternEndDateFilter(comparer, (DateTimeOffset)value),
 		};

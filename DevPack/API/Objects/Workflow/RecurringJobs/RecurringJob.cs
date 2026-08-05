@@ -572,6 +572,9 @@
 			Duration = instance.RecurringInfo.Duration ?? TimeSpan.Zero;
 			State = EnumExtensions.MapEnum<SlcWorkflowIds.Behaviors.Recurringjob_Behavior.StatusesEnum, RecurringJobState>(instance.Status);
 
+			// Reusing JobSource field to store the job type category ID to be backwards compatible with existing implementations.
+			JobTypeCategoryId = instance.JobInfo.JobSource;
+
 			PreRollDuration = instance.JobInfo.JobStart.HasValue && instance.JobInfo.Preroll.HasValue
 				? instance.JobInfo.JobStart.Value - instance.JobInfo.Preroll.Value
 				: TimeSpan.Zero;

@@ -117,19 +117,21 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 		}
 
 		[TestMethod]
-		public void FilterOnPreRollDurationIsNotSupported()
+		public void ReadRecurringJobsPagedWithFilter_CustomPageSize()
 		{
-			var filter = RecurringJobExposers.PreRollDuration.Equal(TimeSpan.FromMinutes(10));
+			foreach (var (expectedObjects, filter) in RecurringJobFilterTestCases)
+			{
+				var expectedObjectIds = expectedObjects.Select(x => x.Id).OrderBy(x => x).ToList();
+				var pages = TestContext.Api.RecurringJobs.ReadPaged(filter, 2).ToList();
+				var actualObjectIds = pages.SelectMany(x => x).Select(x => x.Id).OrderBy(x => x).ToList();
 
-			Assert.ThrowsException<NotSupportedException>(() => TestContext.Api.RecurringJobs.Count(filter));
-		}
+				Assert.IsTrue(expectedObjectIds.SequenceEqual(actualObjectIds), filter.ToString());
 
-		[TestMethod]
-		public void FilterOnPostRollDurationIsNotSupported()
-		{
-			var filter = RecurringJobExposers.PostRollDuration.Equal(TimeSpan.FromMinutes(10));
-
-			Assert.ThrowsException<NotSupportedException>(() => TestContext.Api.RecurringJobs.Count(filter));
+				foreach (var page in pages)
+				{
+					Assert.IsTrue(page.Count() <= 2, filter.ToString());
+				}
+			}
 		}
 	}
 }

@@ -71,9 +71,9 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 			new Tuple<Job[], FilterElement<Job>>([Setup.DraftJob1!], JobFilter.AND(JobExposers.RecurringJobId.Equal(Setup.RecurringJobId))),
 			new Tuple<Job[], FilterElement<Job>>([], JobFilter.AND(JobExposers.RecurringJobId.Equal(Guid.NewGuid()))),
 
-			new Tuple<Job[], FilterElement<Job>>([Setup.DraftJob1!, Setup.TentativeJob3!], JobFilter.AND(JobExposers.JobTypeCategoryId.Equal($"Category_A_{Setup.Prefix}"))),
-			new Tuple<Job[], FilterElement<Job>>([Setup.DraftJob2!], JobFilter.AND(JobExposers.JobTypeCategoryId.Equal($"Category_B_{Setup.Prefix}"))),
-			new Tuple<Job[], FilterElement<Job>>([], JobFilter.AND(JobExposers.JobTypeCategoryId.Equal($"Category_C_{Setup.Prefix}"))),
+			new Tuple<Job[], FilterElement<Job>>([Setup.DraftJob1!, Setup.TentativeJob3!], JobFilter.AND(JobExposers.JobTypeCategoryId.Equal(Setup.CategoryA_Id.ToString()))),
+			new Tuple<Job[], FilterElement<Job>>([Setup.DraftJob2!], JobFilter.AND(JobExposers.JobTypeCategoryId.Equal(Setup.CategoryB_Id.ToString()))),
+			new Tuple<Job[], FilterElement<Job>>([], JobFilter.AND(JobExposers.JobTypeCategoryId.Equal(Guid.NewGuid().ToString()))),
 
 			new Tuple<Job[], FilterElement<Job>>([Setup.DraftJob1!], JobFilter.AND(JobExposers.Priority.Equal(JobPriority.High))),
 			new Tuple<Job[], FilterElement<Job>>([Setup.DraftJob2!], JobFilter.AND(JobExposers.Priority.Equal(JobPriority.Normal))),

@@ -5,6 +5,7 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 	using RT_MediaOps.Plan.Extensions;
 	using RT_MediaOps.Plan.RegressionTests;
 
+	using Skyline.DataMiner.Solutions.Categories.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 
 	internal sealed class RecurringJobFilteringSetup
@@ -22,7 +23,9 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 
 			OrganizationId = Guid.NewGuid();
 			OwnerId = Guid.NewGuid();
+			CategoryId = Guid.NewGuid();
 
+			CreateCategory();
 			CreateRecurringJobs();
 		}
 
@@ -51,6 +54,25 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 
 		public RecurringJob? RecurringJob3 { get; private set; }
 
+		public Guid CategoryId { get; }
+
+		private void CreateCategory()
+		{
+			var scope = GetJobScope();
+
+			objectCreator.CreateCategory(new Category(CategoryId)
+			{
+				Name = $"Category_{Guid.NewGuid()}",
+				Scope = scope,
+			});
+		}
+
+		private Scope GetJobScope()
+		{
+			return testContext.CategoriesApi.Scopes.Read(CategoryScopes.JobTypes)
+				?? throw new InvalidOperationException($"Category Scope '{CategoryScopes.JobTypes}' is not available");
+		}
+
 		private void CreateRecurringJobs()
 		{
 			var recurringJob1 = new RecurringJob
@@ -64,7 +86,7 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 				PreRollDuration = TimeSpan.FromMinutes(10),
 				PostRollDuration = TimeSpan.FromMinutes(10),
 				DesiredJobState = DesiredJobState.Draft,
-				JobTypeCategoryId = "Scheduling",
+				JobTypeCategoryId = CategoryId.ToString(),
 				OrganizationId = OrganizationId,
 				OwnerId = OwnerId,
 			};
