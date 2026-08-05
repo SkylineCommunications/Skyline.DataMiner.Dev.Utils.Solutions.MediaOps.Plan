@@ -8,6 +8,7 @@
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow;
+	using Skyline.DataMiner.Utils.DOM.Extensions;
 
 	internal class SlcWorkflowHelper : DomModuleHelperBase
 	{
@@ -169,6 +170,22 @@
 				ids.Distinct(),
 				x => Filter(x),
 				x => GetWorkflowIterator(x));
+		}
+
+		public IEnumerable<IEnumerable<WorkflowsInstance>> GetWorkflowsPaged(FilterElement<DomInstance> filter, int pageSize)
+		{
+			if (filter == null)
+			{
+				throw new ArgumentNullException(nameof(filter));
+			}
+
+			if (pageSize <= 0)
+			{
+				throw new ArgumentOutOfRangeException(nameof(pageSize));
+			}
+
+			var pages = DomHelper.DomInstances.ReadPaged(filter, pageSize);
+			return InstanceFactory.CreateInstances(pages, instance => new WorkflowsInstance(instance));
 		}
 
 		public IEnumerable<DomInstance> GetWorkflowInstances(IEnumerable<Guid> ids)
