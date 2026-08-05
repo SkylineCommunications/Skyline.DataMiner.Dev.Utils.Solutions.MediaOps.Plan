@@ -835,32 +835,73 @@
 
 		public IEnumerable<SDM.IPagedResult<Job>> ReadPaged()
 		{
-			throw new NotImplementedException();
+			return ReadPaged(new TRUEFilterElement<Job>());
 		}
 
 		public IEnumerable<SDM.IPagedResult<Job>> ReadPaged(int pageSize)
 		{
-			throw new NotImplementedException();
+			return ReadPaged(new TRUEFilterElement<Job>(), pageSize);
 		}
 
 		public IEnumerable<SDM.IPagedResult<Job>> ReadPaged(FilterElement<Job> filter)
 		{
-			throw new NotImplementedException();
+			return ReadPaged(filter, MediaOpsPlanApi.DefaultPageSize);
 		}
 
 		public IEnumerable<SDM.IPagedResult<Job>> ReadPaged(IQuery<Job> query)
 		{
-			throw new NotImplementedException();
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			return ReadPaged(query.Filter);
 		}
 
 		public IEnumerable<SDM.IPagedResult<Job>> ReadPaged(FilterElement<Job> filter, int pageSize)
 		{
-			throw new NotImplementedException();
+			if (filter == null)
+			{
+				throw new ArgumentNullException(nameof(filter));
+			}
+
+			if (pageSize <= 0)
+			{
+				throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size must be greater than zero.");
+			}
+
+			if (filter.isEmpty())
+			{
+				return Enumerable.Empty<SDM.IPagedResult<Job>>();
+			}
+
+			return ReadPagedIterator(filter, pageSize);
 		}
 
 		public IEnumerable<SDM.IPagedResult<Job>> ReadPaged(IQuery<Job> query, int pageSize)
 		{
-			throw new NotImplementedException();
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			return ReadPaged(query.Filter, pageSize);
+		}
+
+		private IEnumerable<SDM.IPagedResult<Job>> ReadPagedIterator(FilterElement<Job> filter, int pageSize)
+		{
+			var pageNumber = 0;
+			var domFilter = filterTranslator.Translate(filter);
+			var pages = PlanApi.DomHelpers.SlcWorkflowHelper.GetJobsPaged(domFilter, pageSize);
+			var enumerator = pages.GetEnumerator();
+			var hasNext = enumerator.MoveNext();
+
+			while (hasNext)
+			{
+				var page = enumerator.Current;
+				hasNext = enumerator.MoveNext();
+				yield return new PagedResult<Job>(page.Select(x => new Job(PlanApi, x)), pageNumber++, pageSize, hasNext);
+			}
 		}
 
 		public void SetOrchestrationState(Guid id, OrchestrationUpdateDetails updateDetails)
