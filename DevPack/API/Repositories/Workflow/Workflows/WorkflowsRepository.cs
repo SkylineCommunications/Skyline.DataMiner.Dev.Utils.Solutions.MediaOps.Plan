@@ -286,32 +286,73 @@
 
 		public IEnumerable<SDM.IPagedResult<Workflow>> ReadPaged()
 		{
-			throw new NotImplementedException();
+			return ReadPaged(new TRUEFilterElement<Workflow>());
 		}
 
 		public IEnumerable<SDM.IPagedResult<Workflow>> ReadPaged(int pageSize)
 		{
-			throw new NotImplementedException();
+			return ReadPaged(new TRUEFilterElement<Workflow>(), pageSize);
 		}
 
 		public IEnumerable<SDM.IPagedResult<Workflow>> ReadPaged(FilterElement<Workflow> filter)
 		{
-			throw new NotImplementedException();
+			return ReadPaged(filter, MediaOpsPlanApi.DefaultPageSize);
 		}
 
 		public IEnumerable<SDM.IPagedResult<Workflow>> ReadPaged(IQuery<Workflow> query)
 		{
-			throw new NotImplementedException();
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			return ReadPaged(query.Filter);
 		}
 
 		public IEnumerable<SDM.IPagedResult<Workflow>> ReadPaged(FilterElement<Workflow> filter, int pageSize)
 		{
-			throw new NotImplementedException();
+			if (filter == null)
+			{
+				throw new ArgumentNullException(nameof(filter));
+			}
+
+			if (pageSize <= 0)
+			{
+				throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size must be greater than zero.");
+			}
+
+			if (filter.isEmpty())
+			{
+				return Enumerable.Empty<SDM.IPagedResult<Workflow>>();
+			}
+
+			return ReadPagedIterator(filter, pageSize);
 		}
 
 		public IEnumerable<SDM.IPagedResult<Workflow>> ReadPaged(IQuery<Workflow> query, int pageSize)
 		{
-			throw new NotImplementedException();
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			return ReadPaged(query.Filter, pageSize);
+		}
+
+		private IEnumerable<SDM.IPagedResult<Workflow>> ReadPagedIterator(FilterElement<Workflow> filter, int pageSize)
+		{
+			var pageNumber = 0;
+			var domFilter = filterTranslator.Translate(filter);
+			var pages = PlanApi.DomHelpers.SlcWorkflowHelper.GetWorkflowsPaged(domFilter, pageSize);
+			var enumerator = pages.GetEnumerator();
+			var hasNext = enumerator.MoveNext();
+
+			while (hasNext)
+			{
+				var page = enumerator.Current;
+				hasNext = enumerator.MoveNext();
+				yield return new PagedResult<Workflow>(page.Select(x => new Workflow(PlanApi, x)), pageNumber++, pageSize, hasNext);
+			}
 		}
 
 		public IReadOnlyCollection<Workflow> Update(IEnumerable<Workflow> oToUpdate)

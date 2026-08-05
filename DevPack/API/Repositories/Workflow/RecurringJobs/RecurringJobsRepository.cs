@@ -360,32 +360,73 @@
 
 		public IEnumerable<SDM.IPagedResult<RecurringJob>> ReadPaged()
 		{
-			throw new NotImplementedException();
+			return ReadPaged(new TRUEFilterElement<RecurringJob>());
 		}
 
 		public IEnumerable<SDM.IPagedResult<RecurringJob>> ReadPaged(int pageSize)
 		{
-			throw new NotImplementedException();
+			return ReadPaged(new TRUEFilterElement<RecurringJob>(), pageSize);
 		}
 
 		public IEnumerable<SDM.IPagedResult<RecurringJob>> ReadPaged(FilterElement<RecurringJob> filter)
 		{
-			throw new NotImplementedException();
+			return ReadPaged(filter, MediaOpsPlanApi.DefaultPageSize);
 		}
 
 		public IEnumerable<SDM.IPagedResult<RecurringJob>> ReadPaged(IQuery<RecurringJob> query)
 		{
-			throw new NotImplementedException();
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			return ReadPaged(query.Filter);
 		}
 
 		public IEnumerable<SDM.IPagedResult<RecurringJob>> ReadPaged(FilterElement<RecurringJob> filter, int pageSize)
 		{
-			throw new NotImplementedException();
+			if (filter == null)
+			{
+				throw new ArgumentNullException(nameof(filter));
+			}
+
+			if (pageSize <= 0)
+			{
+				throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size must be greater than zero.");
+			}
+
+			if (filter.isEmpty())
+			{
+				return Enumerable.Empty<SDM.IPagedResult<RecurringJob>>();
+			}
+
+			return ReadPagedIterator(filter, pageSize);
 		}
 
 		public IEnumerable<SDM.IPagedResult<RecurringJob>> ReadPaged(IQuery<RecurringJob> query, int pageSize)
 		{
-			throw new NotImplementedException();
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			return ReadPaged(query.Filter, pageSize);
+		}
+
+		private IEnumerable<SDM.IPagedResult<RecurringJob>> ReadPagedIterator(FilterElement<RecurringJob> filter, int pageSize)
+		{
+			var pageNumber = 0;
+			var domFilter = filterTranslator.Translate(filter);
+			var pages = PlanApi.DomHelpers.SlcWorkflowHelper.GetRecurringJobsPaged(domFilter, pageSize);
+			var enumerator = pages.GetEnumerator();
+			var hasNext = enumerator.MoveNext();
+
+			while (hasNext)
+			{
+				var page = enumerator.Current;
+				hasNext = enumerator.MoveNext();
+				yield return new PagedResult<RecurringJob>(page.Select(x => new RecurringJob(PlanApi, x)), pageNumber++, pageSize, hasNext);
+			}
 		}
 
 		public IReadOnlyCollection<RecurringJob> Update(IEnumerable<RecurringJob> oToUpdate)
