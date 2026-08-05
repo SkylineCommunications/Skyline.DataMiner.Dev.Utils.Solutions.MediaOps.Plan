@@ -15,7 +15,7 @@
 		public static readonly Exposer<Workflow, Guid> Id = new Exposer<Workflow, Guid>((obj) => obj.Id, "Id");
 
 		/// <summary>
-		/// Gets an exposer for the <see cref="ApiObject.Name"/> property.
+		/// Gets an exposer for the <see cref="ApiNamedObject.Name"/> property.
 		/// </summary>
 		public static readonly Exposer<Workflow, string> Name = new Exposer<Workflow, string>((obj) => obj.Name, "Name");
 
