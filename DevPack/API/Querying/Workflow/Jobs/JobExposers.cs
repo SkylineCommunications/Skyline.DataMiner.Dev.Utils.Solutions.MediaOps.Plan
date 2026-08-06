@@ -1,6 +1,8 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
+	using System.Collections;
+	using System.Linq;
 
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
@@ -83,5 +85,54 @@
 		/// Gets an exposer for the <see cref="Job.OwnerId"/> property.
 		/// </summary>
 		public static readonly Exposer<Job, Guid> OwnerId = new Exposer<Job, Guid>((obj) => obj.OwnerId, "OwnerId");
+
+		/// <summary>
+		/// Provides exposers for querying and filtering the capabilities of the <see cref="Job.OrchestrationSettings"/> property.
+		/// </summary>
+		public static class Capabilities
+		{
+			/// <summary>
+			/// Gets a dynamic list exposer for capability IDs.
+			/// </summary>
+			public static readonly DynamicListExposer<Job, Guid> CapabilityId = DynamicListExposer<Job, Guid>.CreateFromListExposer(new Exposer<Job, IEnumerable>((obj) => obj.OrchestrationSettings.Capabilities.Where(x => x != null).Select(x => x.Id), "Capabilities.Id"));
+
+			/// <summary>
+			/// Gets a dynamic list exposer for capability discrete values.
+			/// </summary>
+			public static readonly DynamicListExposer<Job, string> Discretes = DynamicListExposer<Job, string>.CreateFromListExposer(new Exposer<Job, IEnumerable>((obj) => obj.OrchestrationSettings.Capabilities.Where(x => x != null).Select(x => x.Value).Where(x => x != null), "Capabilities.Discretes"));
+		}
+
+		/// <summary>
+		/// Provides exposers for querying and filtering the capacities of the <see cref="Job.OrchestrationSettings"/> property.
+		/// </summary>
+		public static class Capacities
+		{
+			/// <summary>
+			/// Gets a dynamic list exposer for capacity IDs.
+			/// </summary>
+			public static readonly DynamicListExposer<Job, Guid> CapacityId = DynamicListExposer<Job, Guid>.CreateFromListExposer(new Exposer<Job, IEnumerable>((obj) => obj.OrchestrationSettings.Capacities.Where(x => x != null).Select(x => x.Id), "Capacities.Id"));
+		}
+
+		/// <summary>
+		/// Provides exposers for querying and filtering the configurations of the <see cref="Job.OrchestrationSettings"/> property.
+		/// </summary>
+		public static class Configurations
+		{
+			/// <summary>
+			/// Gets a dynamic list exposer for configuration IDs.
+			/// </summary>
+			public static readonly DynamicListExposer<Job, Guid> ConfigurationId = DynamicListExposer<Job, Guid>.CreateFromListExposer(new Exposer<Job, IEnumerable>((obj) => obj.OrchestrationSettings.Configurations.Where(x => x != null).Select(x => x.Id), "Configurations.Id"));
+		}
+
+		/// <summary>
+		/// Provides exposers for querying and filtering the <see cref="Job.PropertySettings"/> property.
+		/// </summary>
+		public static class Properties
+		{
+			/// <summary>
+			/// Gets a dynamic list exposer for property IDs.
+			/// </summary>
+			public static readonly DynamicListExposer<Job, Guid> PropertyId = DynamicListExposer<Job, Guid>.CreateFromListExposer(new Exposer<Job, IEnumerable>((obj) => obj.PropertySettings.Where(x => x != null).Select(x => x.Id), "Properties.Id"));
+		}
 	}
 }

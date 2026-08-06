@@ -30,6 +30,8 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 			var scope = GetJobScope();
 			CreateRecurringJob();
 			CreateCategories(scope);
+			CreateOrchestrationParameters();
+			CreateSchedulingProperty();
 			CreateJobs();
 		}
 
@@ -59,6 +61,46 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 		public Job? DraftJob2 { get; private set; }
 
 		public Job? TentativeJob3 { get; private set; }
+
+		public Capability? Capability { get; private set; }
+
+		public NumberCapacity? Capacity { get; private set; }
+
+		public TextConfiguration? Configuration { get; private set; }
+
+		public StringProperty? Property { get; private set; }
+
+		private void CreateOrchestrationParameters()
+		{
+			var capability = new Capability
+			{
+				Name = $"Capability_{Prefix}",
+			};
+
+			capability.SetDiscretes(["USA", "Belgium"]);
+
+			Capability = objectCreator.CreateCapability(capability);
+
+			Capacity = (NumberCapacity)objectCreator.CreateCapacity(new NumberCapacity
+			{
+				Name = $"Capacity_{Prefix}",
+			});
+
+			Configuration = objectCreator.CreateConfiguration(new TextConfiguration
+			{
+				Name = $"Configuration_{Prefix}",
+				IsMandatory = false,
+			});
+		}
+
+		private void CreateSchedulingProperty()
+		{
+			Property = objectCreator.CreateSchedulingProperty(new StringProperty
+			{
+				Name = $"Property_{Prefix}",
+				SectionName = "General",
+			});
+		}
 
 		private void CreateCategories(Scope scope)
 		{
@@ -140,6 +182,13 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 				PostRollEnd = BaseTime.AddHours(6),
 				JobTypeCategoryId = CategoryA_Id.ToString(),
 			};
+
+			job1.OrchestrationSettings.AddCapability(new CapabilitySetting(Capability!) { Value = "Belgium" });
+			job1.OrchestrationSettings.AddCapacity(new NumberCapacitySetting(Capacity!) { Value = 20 });
+			job1.OrchestrationSettings.AddConfiguration(new TextConfigurationSetting(Configuration!) { Value = "First" });
+			job1.AddProperty(new StringPropertySetting(Property!) { Value = "First" });
+
+			job2.OrchestrationSettings.AddCapability(new CapabilitySetting(Capability!) { Value = "USA" });
 
 			DraftJob1 = objectCreator.CreateJob(job1);
 			DraftJob2 = objectCreator.CreateJob(job2);
