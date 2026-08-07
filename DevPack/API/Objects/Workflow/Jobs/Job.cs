@@ -735,8 +735,9 @@
 					poolNode.OrchestrationSettings.Capacities,
 					CreateEligibleResourceFilter(poolNode.ResourcePoolId, assignedResourceIds));
 
+				// The already assigned resources are excluded through the filter, so any returned resource can be used.
 				// A node for which no resource is eligible keeps its resource pool node so it can be assigned later.
-				var resource = eligibleResources?.FirstOrDefault(x => x != null && !assignedResourceIds.Contains(x.Id));
+				var resource = eligibleResources?.FirstOrDefault(x => x != null);
 				if (resource == null)
 				{
 					continue;
