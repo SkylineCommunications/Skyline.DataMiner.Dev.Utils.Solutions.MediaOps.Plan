@@ -113,43 +113,31 @@
 				RequiredCapacities = BuildCapacities(capacitySettings).ToList(),
 			};
 
+			Dictionary<Guid, Resource> filteredResourcesByCoreId = null;
 			if (filter != null && !filter.isEmpty())
 			{
-				if (!TryBuildCoreResourceFilter(filter, out var coreFilter))
+				// The DevPack filter is defined on the Resource Studio resources, so it is resolved first and the matching
+				// core resources are then used to restrict the eligibility request.
+				filteredResourcesByCoreId = planApi.Resources.Read(filter)
+					.Where(x => x.CoreResourceId != Guid.Empty)
+					.GroupBy(x => x.CoreResourceId)
+					.ToDictionary(x => x.Key, x => x.First());
+
+				if (filteredResourcesByCoreId.Count == 0)
 				{
 					// No Resource Studio resource matches the filter, so no resource can be eligible.
 					return Array.Empty<Resource>();
 				}
 
-				context.ResourceFilter = coreFilter;
+				context.ResourceFilter = new ORFilterElement<CoreResource>(filteredResourcesByCoreId.Keys.Select(x => Net.Messages.ResourceExposers.ID.Equal(x)).ToArray());
 			}
 
 			var eligibleCoreResources = planApi.CoreHelpers.ResourceManagerHelper.GetEligibleResourcesForContext(context);
 
-			return MapToResourceStudioResources(eligibleCoreResources);
+			return MapToResourceStudioResources(eligibleCoreResources, filteredResourcesByCoreId);
 		}
 
-		private bool TryBuildCoreResourceFilter(FilterElement<Resource> filter, out FilterElement<CoreResource> coreFilter)
-		{
-			// The DevPack filter is defined on the Resource Studio resources, so it is resolved first and the matching
-			// core resources are then used to restrict the eligibility request.
-			var coreResourceIds = planApi.Resources.Read(filter)
-				.Select(x => x.CoreResourceId)
-				.Where(x => x != Guid.Empty)
-				.Distinct()
-				.ToList();
-
-			if (coreResourceIds.Count == 0)
-			{
-				coreFilter = null;
-				return false;
-			}
-
-			coreFilter = new ORFilterElement<CoreResource>(coreResourceIds.Select(x => Net.Messages.ResourceExposers.ID.Equal(x)).ToArray());
-			return true;
-		}
-
-		private ICollection<Resource> MapToResourceStudioResources(IReadOnlyCollection<CoreResource> coreResources)
+		private ICollection<Resource> MapToResourceStudioResources(IReadOnlyCollection<CoreResource> coreResources, IReadOnlyDictionary<Guid, Resource> knownResourcesByCoreId)
 		{
 			if (coreResources == null || coreResources.Count == 0)
 			{
@@ -160,6 +148,15 @@
 			if (coreResourceIds.Count == 0)
 			{
 				return Array.Empty<Resource>();
+			}
+
+			if (knownResourcesByCoreId != null)
+			{
+				// The Resource Studio resources were already read to build the core resource filter, so they can be reused here.
+				return coreResourceIds
+					.Where(knownResourcesByCoreId.ContainsKey)
+					.Select(x => knownResourcesByCoreId[x])
+					.ToList();
 			}
 
 			FilterElement<DomInstance> Filter(Guid coreResourceId) =>

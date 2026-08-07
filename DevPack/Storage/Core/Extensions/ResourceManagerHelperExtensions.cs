@@ -154,11 +154,11 @@
 					throw new MediaOpsException(mediaOpsTraceData);
 				}
 
-				var eligibleResources = result?.EligibleResources ?? new List<Resource>();
+				List<Resource> eligibleResources = result?.EligibleResources ?? new List<Resource>();
 
 				act?.AddTag("Eligible Resources Count", eligibleResources.Count);
 
-				return (IReadOnlyCollection<Resource>)eligibleResources;
+				return eligibleResources;
 			});
 		}
 
