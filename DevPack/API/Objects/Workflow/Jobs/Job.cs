@@ -714,7 +714,7 @@
 		/// <returns>The current <see cref="Job"/> instance.</returns>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="api"/> is <see langword="null"/>.</exception>
 		/// <exception cref="MediaOpsException">Thrown when the time range of a node that needs a resource is not valid.</exception>
-		public Job AssignMissingResources(IMediaOpsPlanApi api)
+		public Job AssignEligibleResources(IMediaOpsPlanApi api)
 		{
 			if (api == null)
 			{
