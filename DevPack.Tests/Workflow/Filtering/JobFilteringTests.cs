@@ -89,6 +89,21 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 
 			new Tuple<Job[], FilterElement<Job>>([Setup.DraftJob1!], JobFilter.AND(JobExposers.OwnerId.Equal(Setup.OwnerId))),
 			new Tuple<Job[], FilterElement<Job>>([], JobFilter.AND(JobExposers.OwnerId.Equal(Guid.NewGuid()))),
+
+			new Tuple<Job[], FilterElement<Job>>([Setup.DraftJob1!, Setup.DraftJob2!], JobFilter.AND(JobExposers.Capabilities.CapabilityId.Equal(Setup.Capability!.Id))),
+			new Tuple<Job[], FilterElement<Job>>([], JobFilter.AND(JobExposers.Capabilities.CapabilityId.Equal(Guid.NewGuid()))),
+
+			new Tuple<Job[], FilterElement<Job>>([Setup.DraftJob1!], JobFilter.AND(JobExposers.Capabilities.Discretes.Contains("Belgium"))),
+			new Tuple<Job[], FilterElement<Job>>([Setup.DraftJob2!], JobFilter.AND(JobExposers.Capabilities.Discretes.Contains("USA"))),
+
+			new Tuple<Job[], FilterElement<Job>>([Setup.DraftJob1!], JobFilter.AND(JobExposers.Capacities.CapacityId.Equal(Setup.Capacity!.Id))),
+			new Tuple<Job[], FilterElement<Job>>([], JobFilter.AND(JobExposers.Capacities.CapacityId.Equal(Guid.NewGuid()))),
+
+			new Tuple<Job[], FilterElement<Job>>([Setup.DraftJob1!], JobFilter.AND(JobExposers.Configurations.ConfigurationId.Equal(Setup.Configuration!.Id))),
+			new Tuple<Job[], FilterElement<Job>>([], JobFilter.AND(JobExposers.Configurations.ConfigurationId.Equal(Guid.NewGuid()))),
+
+			new Tuple<Job[], FilterElement<Job>>([Setup.DraftJob1!], JobFilter.AND(JobExposers.Properties.PropertyId.Equal(Setup.Property!.Id))),
+			new Tuple<Job[], FilterElement<Job>>([], JobFilter.AND(JobExposers.Properties.PropertyId.Equal(Guid.NewGuid()))),
 		};
 
 		[TestMethod]

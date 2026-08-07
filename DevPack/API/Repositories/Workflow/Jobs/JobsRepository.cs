@@ -12,10 +12,11 @@
 
 	internal class JobsRepository : Repository, IJobsRepository
 	{
-		private readonly JobFilterTranslator filterTranslator = new JobFilterTranslator();
+		private readonly JobFilterTranslator filterTranslator;
 
 		public JobsRepository(MediaOpsPlanApi planApi) : base(planApi)
 		{
+			filterTranslator = new JobFilterTranslator(planApi);
 		}
 
 		public JobTypes JobTypes { get; } = new JobTypes();
