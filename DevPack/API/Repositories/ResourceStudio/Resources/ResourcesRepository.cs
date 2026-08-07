@@ -596,6 +596,49 @@
 		}
 
 		/// <summary>
+		/// Retrieves the resources that are eligible for the specified time range, capabilities and capacities.
+		/// </summary>
+		/// <param name="start">The start of the time range for which the resources must be available.</param>
+		/// <param name="end">The end of the time range for which the resources must be available.</param>
+		/// <param name="capabilitySettings">The capabilities the resources must provide. Can be <c>null</c> or empty.</param>
+		/// <param name="capacitySettings">The capacities the resources must have available. Can be <c>null</c> or empty.</param>
+		/// <returns>A collection containing the eligible resources.</returns>
+		/// <exception cref="ArgumentException">Thrown when <paramref name="end"/> is earlier than <paramref name="start"/>.</exception>
+		/// <exception cref="MediaOpsException">Thrown when the eligibility request fails.</exception>
+		public ICollection<Resource> GetEligibleResources(DateTimeOffset start, DateTimeOffset end, ICollection<CapabilitySetting> capabilitySettings, ICollection<CapacitySetting> capacitySettings)
+		{
+			return GetEligibleResources(start, end, capabilitySettings, capacitySettings, null);
+		}
+
+		/// <summary>
+		/// Retrieves the resources that are eligible for the specified time range, capabilities and capacities and that match the specified filter.
+		/// </summary>
+		/// <param name="start">The start of the time range for which the resources must be available.</param>
+		/// <param name="end">The end of the time range for which the resources must be available.</param>
+		/// <param name="capabilitySettings">The capabilities the resources must provide. Can be <c>null</c> or empty.</param>
+		/// <param name="capacitySettings">The capacities the resources must have available. Can be <c>null</c> or empty.</param>
+		/// <param name="filter">The filter that restricts the resources considered for the eligibility request. Can be <c>null</c>.</param>
+		/// <returns>A collection containing the eligible resources.</returns>
+		/// <exception cref="ArgumentException">Thrown when <paramref name="end"/> is earlier than <paramref name="start"/>.</exception>
+		/// <exception cref="MediaOpsException">Thrown when the eligibility request fails.</exception>
+		public ICollection<Resource> GetEligibleResources(DateTimeOffset start, DateTimeOffset end, ICollection<CapabilitySetting> capabilitySettings, ICollection<CapacitySetting> capacitySettings, FilterElement<Resource> filter)
+		{
+			if (end < start)
+			{
+				throw new ArgumentException("The end of the time range cannot be earlier than the start of the time range.", nameof(end));
+			}
+
+			return ActivityHelper.Track(nameof(ResourcesRepository), nameof(GetEligibleResources), act =>
+			{
+				var resources = CoreEligibleResourceHandler.GetEligibleResources(PlanApi, start, end, capabilitySettings, capacitySettings, filter);
+
+				act?.AddTag("Eligible Resources Count", resources.Count);
+
+				return resources;
+			});
+		}
+
+		/// <summary>
 		/// Retrieves all resources in the specified resource pool.
 		/// </summary>
 		/// <param name="resourcePool">The resource pool for which to retrieve resources.</param>

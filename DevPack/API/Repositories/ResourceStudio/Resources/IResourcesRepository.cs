@@ -3,6 +3,8 @@
 	using System;
 	using System.Collections.Generic;
 
+	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+
 	/// <summary>
 	/// Defines methods for managing <see cref="Resource"/> objects.
 	/// </summary>
@@ -125,6 +127,27 @@
 		/// <param name="resourceIds">The unique identifiers of the resources to deprecate.</param>
 		/// <returns>A read-only collection containing the deprecated resources.</returns>
 		IReadOnlyCollection<Resource> Deprecate(IEnumerable<Guid> resourceIds);
+
+		/// <summary>
+		/// Gets the resources that are eligible for the specified time range, capabilities and capacities.
+		/// </summary>
+		/// <param name="start">The start of the time range for which the resources must be available.</param>
+		/// <param name="end">The end of the time range for which the resources must be available.</param>
+		/// <param name="capabilitySettings">The capabilities the resources must provide. Can be <c>null</c> or empty.</param>
+		/// <param name="capacitySettings">The capacities the resources must have available. Can be <c>null</c> or empty.</param>
+		/// <returns>A collection containing the eligible resources.</returns>
+		ICollection<Resource> GetEligibleResources(DateTimeOffset start, DateTimeOffset end, ICollection<CapabilitySetting> capabilitySettings, ICollection<CapacitySetting> capacitySettings);
+
+		/// <summary>
+		/// Gets the resources that are eligible for the specified time range, capabilities and capacities and that match the specified filter.
+		/// </summary>
+		/// <param name="start">The start of the time range for which the resources must be available.</param>
+		/// <param name="end">The end of the time range for which the resources must be available.</param>
+		/// <param name="capabilitySettings">The capabilities the resources must provide. Can be <c>null</c> or empty.</param>
+		/// <param name="capacitySettings">The capacities the resources must have available. Can be <c>null</c> or empty.</param>
+		/// <param name="filter">The filter that restricts the resources considered for the eligibility request. Can be <c>null</c>.</param>
+		/// <returns>A collection containing the eligible resources.</returns>
+		ICollection<Resource> GetEligibleResources(DateTimeOffset start, DateTimeOffset end, ICollection<CapabilitySetting> capabilitySettings, ICollection<CapacitySetting> capacitySettings, FilterElement<Resource> filter);
 
 		/// <summary>
 		/// Gets all resources in the specified resource pool.

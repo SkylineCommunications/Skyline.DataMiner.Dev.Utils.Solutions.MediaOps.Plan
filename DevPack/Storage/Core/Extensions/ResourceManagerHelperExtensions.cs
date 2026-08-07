@@ -125,6 +125,43 @@
 				x => helper.GetResources(x));
 		}
 
+		public static IReadOnlyCollection<Resource> GetEligibleResourcesForContext(this ResourceManagerHelper helper, EligibleResourceContext context)
+		{
+			if (helper == null)
+			{
+				throw new ArgumentNullException(nameof(helper));
+			}
+
+			if (context == null)
+			{
+				throw new ArgumentNullException(nameof(context));
+			}
+
+			return ActivityHelper.Track(nameof(ResourceManagerHelperExtensions), nameof(GetEligibleResourcesForContext), act =>
+			{
+				var result = helper.GetEligibleResources(context);
+
+				var traceData = helper.GetTraceDataLastCall();
+				var errors = traceData?.ErrorData?.OfType<ResourceManagerErrorData>().ToList();
+				if (errors?.Count > 0)
+				{
+					var mediaOpsTraceData = new MediaOpsTraceData();
+					foreach (var error in errors)
+					{
+						mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = error.ToString() });
+					}
+
+					throw new MediaOpsException(mediaOpsTraceData);
+				}
+
+				var eligibleResources = result?.EligibleResources ?? new List<Resource>();
+
+				act?.AddTag("Eligible Resources Count", eligibleResources.Count);
+
+				return (IReadOnlyCollection<Resource>)eligibleResources;
+			});
+		}
+
 		public static bool TryCreateOrUpdateResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources, out ResourceBulkOperationResult result)
 		{
 			if (helper == null)

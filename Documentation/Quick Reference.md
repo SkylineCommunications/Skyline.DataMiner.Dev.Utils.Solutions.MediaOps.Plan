@@ -139,6 +139,21 @@ api.Resources.Delete(resource.Id);
 
 // Delete multiple resources
 api.Resources.Delete(new[] { id1, id2, id3 });
+
+// Get the resources that are eligible for a time range, with the required capabilities and capacities
+var eligibleResources = api.Resources.GetEligibleResources(
+    DateTimeOffset.UtcNow,
+    DateTimeOffset.UtcNow.AddHours(1),
+    new[] { new CapabilitySetting(capabilityId) { Value = "4K" } },
+    new CapacitySetting[] { new NumberCapacitySetting(capacityId) { Value = 10 } });
+
+// Restrict the eligible resources with a filter
+var eligibleResourcesInPool = api.Resources.GetEligibleResources(
+    DateTimeOffset.UtcNow,
+    DateTimeOffset.UtcNow.AddHours(1),
+    new[] { new CapabilitySetting(capabilityId) { Value = "4K" } },
+    new CapacitySetting[] { new NumberCapacitySetting(capacityId) { Value = 10 } },
+    ResourceExposers.ResourcePoolIds.Contains(poolId));
 ```
 
 ### Resource Pools
