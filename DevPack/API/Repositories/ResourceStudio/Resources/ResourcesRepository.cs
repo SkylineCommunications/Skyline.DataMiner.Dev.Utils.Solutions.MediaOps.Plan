@@ -605,7 +605,7 @@
 		/// <returns>A collection containing the eligible resources.</returns>
 		/// <exception cref="ArgumentException">Thrown when <paramref name="end"/> is earlier than <paramref name="start"/>.</exception>
 		/// <exception cref="MediaOpsException">Thrown when the eligibility request fails.</exception>
-		public ICollection<Resource> GetEligibleResources(DateTimeOffset start, DateTimeOffset end, ICollection<CapabilitySetting> capabilitySettings, ICollection<CapacitySetting> capacitySettings)
+		public ICollection<Resource> GetEligibleResources(DateTimeOffset start, DateTimeOffset end, IReadOnlyCollection<CapabilitySetting> capabilitySettings, IReadOnlyCollection<CapacitySetting> capacitySettings)
 		{
 			return GetEligibleResources(start, end, capabilitySettings, capacitySettings, null);
 		}
@@ -621,7 +621,7 @@
 		/// <returns>A collection containing the eligible resources.</returns>
 		/// <exception cref="ArgumentException">Thrown when <paramref name="end"/> is earlier than <paramref name="start"/>.</exception>
 		/// <exception cref="MediaOpsException">Thrown when the eligibility request fails.</exception>
-		public ICollection<Resource> GetEligibleResources(DateTimeOffset start, DateTimeOffset end, ICollection<CapabilitySetting> capabilitySettings, ICollection<CapacitySetting> capacitySettings, FilterElement<Resource> filter)
+		public ICollection<Resource> GetEligibleResources(DateTimeOffset start, DateTimeOffset end, IReadOnlyCollection<CapabilitySetting> capabilitySettings, IReadOnlyCollection<CapacitySetting> capacitySettings, FilterElement<Resource> filter)
 		{
 			if (end < start)
 			{

@@ -136,7 +136,7 @@
 		/// <param name="capabilitySettings">The capabilities the resources must provide. Can be <c>null</c> or empty.</param>
 		/// <param name="capacitySettings">The capacities the resources must have available. Can be <c>null</c> or empty.</param>
 		/// <returns>A collection containing the eligible resources.</returns>
-		ICollection<Resource> GetEligibleResources(DateTimeOffset start, DateTimeOffset end, ICollection<CapabilitySetting> capabilitySettings, ICollection<CapacitySetting> capacitySettings);
+		ICollection<Resource> GetEligibleResources(DateTimeOffset start, DateTimeOffset end, IReadOnlyCollection<CapabilitySetting> capabilitySettings, IReadOnlyCollection<CapacitySetting> capacitySettings);
 
 		/// <summary>
 		/// Gets the resources that are eligible for the specified time range, capabilities and capacities and that match the specified filter.
@@ -147,7 +147,7 @@
 		/// <param name="capacitySettings">The capacities the resources must have available. Can be <c>null</c> or empty.</param>
 		/// <param name="filter">The filter that restricts the resources considered for the eligibility request. Can be <c>null</c>.</param>
 		/// <returns>A collection containing the eligible resources.</returns>
-		ICollection<Resource> GetEligibleResources(DateTimeOffset start, DateTimeOffset end, ICollection<CapabilitySetting> capabilitySettings, ICollection<CapacitySetting> capacitySettings, FilterElement<Resource> filter);
+		ICollection<Resource> GetEligibleResources(DateTimeOffset start, DateTimeOffset end, IReadOnlyCollection<CapabilitySetting> capabilitySettings, IReadOnlyCollection<CapacitySetting> capacitySettings, FilterElement<Resource> filter);
 
 		/// <summary>
 		/// Gets all resources in the specified resource pool.

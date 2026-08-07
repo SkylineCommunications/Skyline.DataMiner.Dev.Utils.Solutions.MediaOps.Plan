@@ -32,8 +32,8 @@
 			MediaOpsPlanApi planApi,
 			DateTimeOffset start,
 			DateTimeOffset end,
-			ICollection<CapabilitySetting> capabilitySettings,
-			ICollection<CapacitySetting> capacitySettings,
+			IReadOnlyCollection<CapabilitySetting> capabilitySettings,
+			IReadOnlyCollection<CapacitySetting> capacitySettings,
 			FilterElement<Resource> filter)
 		{
 			var handler = new CoreEligibleResourceHandler(planApi);
@@ -44,7 +44,7 @@
 				act => handler.GetEligibleResources(start, end, capabilitySettings, capacitySettings, filter));
 		}
 
-		private static IEnumerable<ResourceCapabilityUsage> BuildCapabilities(ICollection<CapabilitySetting> capabilitySettings)
+		private static IEnumerable<ResourceCapabilityUsage> BuildCapabilities(IReadOnlyCollection<CapabilitySetting> capabilitySettings)
 		{
 			if (capabilitySettings == null)
 			{
@@ -67,7 +67,7 @@
 			}
 		}
 
-		private static IEnumerable<MultiResourceCapacityUsage> BuildCapacities(ICollection<CapacitySetting> capacitySettings)
+		private static IEnumerable<MultiResourceCapacityUsage> BuildCapacities(IReadOnlyCollection<CapacitySetting> capacitySettings)
 		{
 			if (capacitySettings == null)
 			{
@@ -103,8 +103,8 @@
 		private ICollection<Resource> GetEligibleResources(
 			DateTimeOffset start,
 			DateTimeOffset end,
-			ICollection<CapabilitySetting> capabilitySettings,
-			ICollection<CapacitySetting> capacitySettings,
+			IReadOnlyCollection<CapabilitySetting> capabilitySettings,
+			IReadOnlyCollection<CapacitySetting> capacitySettings,
 			FilterElement<Resource> filter)
 		{
 			var context = new EligibleResourceContext(new Net.Time.TimeRangeUtc(start.UtcDateTime, end.UtcDateTime))
