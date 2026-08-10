@@ -784,7 +784,16 @@
 		/// <returns>An enumerable collection of resources matching the query.</returns>
 		public IEnumerable<Resource> Read(IQuery<Resource> query)
 		{
-			return Read(query.Filter);
+			if (query.Filter.isEmpty())
+			{
+				return Enumerable.Empty<Resource>();
+			}
+
+			return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Read), act =>
+			{
+				var domFilter = filterTranslator.Translate(query);
+				return Resource.InstantiateResources(PlanApi, PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(domFilter));
+			});
 		}
 
 		/// <summary>

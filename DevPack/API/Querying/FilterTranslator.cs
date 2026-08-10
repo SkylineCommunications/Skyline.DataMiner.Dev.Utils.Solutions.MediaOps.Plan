@@ -7,6 +7,9 @@
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
+	using SLDataGateway.API.Querying;
+	using SLDataGateway.API.Types.Querying;
+
 	internal abstract class FilterTranslator<T, K> where T : ApiObject
 	{
 		protected FilterTranslator()
@@ -60,6 +63,20 @@
 			}
 
 			return translated;
+		}
+
+		public virtual IQuery<K> Translate(IQuery<T> query)
+		{
+			if (query is null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			var translatedFilter = Translate(query.Filter);
+			var translatedOrderBy = query.Order?.Select(order => new OrderByElement<K>(order.FieldName, order.Direction)).ToList();
+
+			var translatedQuery = new Query<K>(translatedFilter, query.OrderBy, query.Skip, query.Take);
+			return translatedQuery;
 		}
 
 		private FilterElement<K> TranslateFilter(ManagedFilterIdentifier managedFilter)
