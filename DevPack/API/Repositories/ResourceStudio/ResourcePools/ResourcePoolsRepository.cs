@@ -103,6 +103,11 @@
 		/// <returns>The count of resource pools matching the filter.</returns>
 		public long Count(FilterElement<ResourcePool> filter)
 		{
+			if (filter == null)
+			{
+				throw new ArgumentNullException(nameof(filter));
+			}
+
 			if (filter.isEmpty())
 			{
 				return 0;
@@ -128,7 +133,17 @@
 		/// <returns>The count of resource pools matching the query.</returns>
 		public long Count(IQuery<ResourcePool> query)
 		{
-			return Count(query.Filter);
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			if (query.Filter.isEmpty())
+			{
+				return 0;
+			}
+
+			return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(TranslateToDomQuery(query));
 		}
 
 		/// <summary>
@@ -752,7 +767,22 @@
 				throw new ArgumentNullException(nameof(query));
 			}
 
-			return Read(query.Filter);
+			if (query.Filter.isEmpty())
+			{
+				return Enumerable.Empty<ResourcePool>();
+			}
+
+			var domQuery = TranslateToDomQuery(query);
+
+			IEnumerable<ResourcePool> Iterator()
+			{
+				foreach (var domResourcePool in PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(domQuery))
+				{
+					yield return new ResourcePool(PlanApi, domResourcePool);
+				}
+			}
+
+			return Iterator();
 		}
 
 		/// <summary>
@@ -781,7 +811,12 @@
 		/// <returns>An enumerable collection of pages, where each page contains resource pools matching the query.</returns>
 		public IEnumerable<IPagedResult<ResourcePool>> ReadPaged(IQuery<ResourcePool> query)
 		{
-			return ReadPaged(query.Filter);
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			return ReadPaged(query, MediaOpsPlanApi.DefaultPageSize);
 		}
 
 		/// <summary>
@@ -813,7 +848,22 @@
 		/// <returns>An enumerable collection of pages, where each page contains up to the specified number of resource pools matching the query.</returns>
 		public IEnumerable<IPagedResult<ResourcePool>> ReadPaged(IQuery<ResourcePool> query, int pageSize)
 		{
-			return ReadPaged(query.Filter, pageSize);
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			if (pageSize <= 0)
+			{
+				throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size must be greater than zero.");
+			}
+
+			if (query.Filter.isEmpty())
+			{
+				return Enumerable.Empty<IPagedResult<ResourcePool>>();
+			}
+
+			return ReadPagedIterator(query, pageSize);
 		}
 
 		/// <summary>
@@ -840,6 +890,32 @@
 				hasNext = enumerator.MoveNext();
 				yield return new PagedResult<ResourcePool>(page.Select(x => new ResourcePool(PlanApi, x)), pageNumber++, pageSize, hasNext);
 			}
+		}
+
+		private IEnumerable<IPagedResult<ResourcePool>> ReadPagedIterator(IQuery<ResourcePool> query, int pageSize)
+		{
+			var pageNumber = 0;
+			var items = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePoolsPaged(TranslateToDomQuery(query), pageSize);
+			var enumerator = items.GetEnumerator();
+			var hasNext = enumerator.MoveNext();
+
+			while (hasNext)
+			{
+				var page = enumerator.Current;
+				hasNext = enumerator.MoveNext();
+				yield return new PagedResult<ResourcePool>(page.Select(x => new ResourcePool(PlanApi, x)), pageNumber++, pageSize, hasNext);
+			}
+		}
+
+		private IQuery<DomInstance> TranslateToDomQuery(IQuery<ResourcePool> query)
+		{
+			var domFilter = filterTranslator.TranslateFilter(query.Filter);
+			var domOrderBy = filterTranslator.TranslateFullOrderBy(query.Order);
+
+			return query
+				.WithFilter(domFilter)
+				.WithOrder(domOrderBy)
+				.WithLimit(query.Limit);
 		}
 
 		/// <summary>

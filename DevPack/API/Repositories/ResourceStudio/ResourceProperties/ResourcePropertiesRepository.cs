@@ -44,6 +44,11 @@
 		/// <returns>The count of resource properties matching the filter.</returns>
 		public long Count(FilterElement<ResourceProperty> filter)
 		{
+			if (filter == null)
+			{
+				throw new ArgumentNullException(nameof(filter));
+			}
+
 			if (filter.isEmpty())
 			{
 				return 0;
@@ -59,7 +64,17 @@
 		/// <returns>The count of resource properties matching the query.</returns>
 		public long Count(IQuery<ResourceProperty> query)
 		{
-			return Count(query.Filter);
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			if (query.Filter.isEmpty())
+			{
+				return 0;
+			}
+
+			return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(TranslateToDomQuery(query));
 		}
 
 		/// <summary>
@@ -343,7 +358,13 @@
 				throw new ArgumentNullException(nameof(query));
 			}
 
-			return Read(query.Filter);
+			if (query.Filter.isEmpty())
+			{
+				return Enumerable.Empty<ResourceProperty>();
+			}
+
+			var properties = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourceProperties(TranslateToDomQuery(query));
+			return properties.Select(x => new ResourceProperty(x));
 		}
 
 		/// <summary>
@@ -372,7 +393,12 @@
 		/// <returns>An enumerable collection of pages, where each page contains resource properties matching the query.</returns>
 		public IEnumerable<IPagedResult<ResourceProperty>> ReadPaged(IQuery<ResourceProperty> query)
 		{
-			return ReadPaged(query.Filter);
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			return ReadPaged(query, MediaOpsPlanApi.DefaultPageSize);
 		}
 
 		/// <summary>
@@ -404,7 +430,22 @@
 		/// <returns>An enumerable collection of pages, where each page contains up to the specified number of resource properties matching the query.</returns>
 		public IEnumerable<IPagedResult<ResourceProperty>> ReadPaged(IQuery<ResourceProperty> query, int pageSize)
 		{
-			return ReadPaged(query.Filter, pageSize);
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			if (pageSize <= 0)
+			{
+				throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size must be greater than zero.");
+			}
+
+			if (query.Filter.isEmpty())
+			{
+				return Enumerable.Empty<IPagedResult<ResourceProperty>>();
+			}
+
+			return ReadPagedIterator(query, pageSize);
 		}
 
 		/// <summary>
@@ -503,6 +544,32 @@
 				hasNext = enumerator.MoveNext();
 				yield return new PagedResult<ResourceProperty>(page.Select(x => new ResourceProperty(x)), pageNumber++, pageSize, hasNext);
 			}
+		}
+
+		private IEnumerable<IPagedResult<ResourceProperty>> ReadPagedIterator(IQuery<ResourceProperty> query, int pageSize)
+		{
+			var pageNumber = 0;
+			var items = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePropertiesPaged(TranslateToDomQuery(query), pageSize);
+			var enumerator = items.GetEnumerator();
+			var hasNext = enumerator.MoveNext();
+
+			while (hasNext)
+			{
+				var page = enumerator.Current;
+				hasNext = enumerator.MoveNext();
+				yield return new PagedResult<ResourceProperty>(page.Select(x => new ResourceProperty(x)), pageNumber++, pageSize, hasNext);
+			}
+		}
+
+		private IQuery<DomInstance> TranslateToDomQuery(IQuery<ResourceProperty> query)
+		{
+			var domFilter = filterTranslator.TranslateFilter(query.Filter);
+			var domOrderBy = filterTranslator.TranslateFullOrderBy(query.Order);
+
+			return query
+				.WithFilter(domFilter)
+				.WithOrder(domOrderBy)
+				.WithLimit(query.Limit);
 		}
 	}
 }

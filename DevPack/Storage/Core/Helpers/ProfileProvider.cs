@@ -12,6 +12,8 @@
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 	using Skyline.DataMiner.Utils.DOM.Extensions;
 
+	using SLDataGateway.API.Types.Querying;
+
 	using static Skyline.DataMiner.Net.Profiles.Parameter;
 
 	/// <summary>
@@ -243,6 +245,51 @@
 			return profileHelper.ProfileParameters.Count(AllCapabilitiesFilter.AND(filter));
 		}
 
+		public long CountCapabilities(IQuery<Net.Profiles.Parameter> query)
+		{
+			return profileHelper.ProfileParameters.Count(ApplyParameterTypeFilter(query, AllCapabilitiesFilter));
+		}
+
+		public long CountCapacities(IQuery<Net.Profiles.Parameter> query)
+		{
+			return profileHelper.ProfileParameters.Count(ApplyParameterTypeFilter(query, AllCapacitiesFilter));
+		}
+
+		public long CountConfigurations(IQuery<Net.Profiles.Parameter> query)
+		{
+			return profileHelper.ProfileParameters.Count(ApplyParameterTypeFilter(query, AllConfigurationsFilter));
+		}
+
+		public IEnumerable<Net.Profiles.Parameter> GetCapabilities(IQuery<Net.Profiles.Parameter> query)
+		{
+			return profileHelper.ProfileParameters.Read(ApplyParameterTypeFilter(query, AllCapabilitiesFilter));
+		}
+
+		public IEnumerable<Net.Profiles.Parameter> GetCapacities(IQuery<Net.Profiles.Parameter> query)
+		{
+			return profileHelper.ProfileParameters.Read(ApplyParameterTypeFilter(query, AllCapacitiesFilter));
+		}
+
+		public IEnumerable<Net.Profiles.Parameter> GetConfigurations(IQuery<Net.Profiles.Parameter> query)
+		{
+			return profileHelper.ProfileParameters.Read(ApplyParameterTypeFilter(query, AllConfigurationsFilter));
+		}
+
+		public IEnumerable<IEnumerable<Net.Profiles.Parameter>> GetCapabilitiesPaged(IQuery<Net.Profiles.Parameter> query, long pageSize = 500)
+		{
+			return profileHelper.ProfileParameters.ReadPaged(ApplyParameterTypeFilter(query, AllCapabilitiesFilter), pageSize);
+		}
+
+		public IEnumerable<IEnumerable<Net.Profiles.Parameter>> GetCapacitiesPaged(IQuery<Net.Profiles.Parameter> query, long pageSize = 500)
+		{
+			return profileHelper.ProfileParameters.ReadPaged(ApplyParameterTypeFilter(query, AllCapacitiesFilter), pageSize);
+		}
+
+		public IEnumerable<IEnumerable<Net.Profiles.Parameter>> GetConfigurationsPaged(IQuery<Net.Profiles.Parameter> query, long pageSize = 500)
+		{
+			return profileHelper.ProfileParameters.ReadPaged(ApplyParameterTypeFilter(query, AllConfigurationsFilter), pageSize);
+		}
+
 		public bool TryDeleteParametersInBatches(IEnumerable<Net.Profiles.Parameter> parameters, out ParameterBulkOperationResult result)
 		{
 			if (parameters == null)
@@ -280,6 +327,16 @@
 
 			result = new ParameterBulkOperationResult(successfulItems, unsuccessfulIds, traceDataPerItem);
 			return !result.HasFailures;
+		}
+
+		private static IQuery<Net.Profiles.Parameter> ApplyParameterTypeFilter(IQuery<Net.Profiles.Parameter> query, FilterElement<Net.Profiles.Parameter> parameterTypeFilter)
+		{
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			return query.WithFilter(parameterTypeFilter.AND(query.Filter));
 		}
 	}
 }
