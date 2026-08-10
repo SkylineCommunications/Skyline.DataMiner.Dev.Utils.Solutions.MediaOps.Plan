@@ -42,6 +42,11 @@
 		/// <returns>The count of capacities matching the filter.</returns>
 		public long Count(FilterElement<Capacity> filter)
 		{
+			if (filter == null)
+			{
+				throw new ArgumentNullException(nameof(filter));
+			}
+
 			if (filter.isEmpty())
 			{
 				return 0;
@@ -61,7 +66,17 @@
 		/// <returns>The count of capacities matching the query.</returns>
 		public long Count(IQuery<Capacity> query)
 		{
-			return Count(query.Filter);
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			if (query.Filter.isEmpty())
+			{
+				return 0;
+			}
+
+			return PlanApi.CoreHelpers.ProfileProvider.CountCapacities(TranslateToParameterQuery(query));
 		}
 
 		/// <summary>
@@ -326,7 +341,18 @@
 		/// <returns>An enumerable collection of capacities matching the query.</returns>
 		public IEnumerable<Capacity> Read(IQuery<Capacity> query)
 		{
-			return Read(query.Filter);
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			if (query.Filter.isEmpty())
+			{
+				return Enumerable.Empty<Capacity>();
+			}
+
+			var coreCapacities = PlanApi.CoreHelpers.ProfileProvider.GetCapacities(TranslateToParameterQuery(query));
+			return Capacity.InstantiateCapacities(coreCapacities);
 		}
 
 		/// <summary>
@@ -355,7 +381,12 @@
 		/// <returns>An enumerable collection of pages, where each page contains capacities matching the query.</returns>
 		public IEnumerable<IPagedResult<Capacity>> ReadPaged(IQuery<Capacity> query)
 		{
-			return ReadPaged(query.Filter);
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			return ReadPaged(query, MediaOpsPlanApi.DefaultPageSize);
 		}
 
 		/// <summary>
@@ -387,7 +418,22 @@
 		/// <returns>An enumerable collection of pages, where each page contains up to the specified number of capacities matching the query.</returns>
 		public IEnumerable<IPagedResult<Capacity>> ReadPaged(IQuery<Capacity> query, int pageSize)
 		{
-			return ReadPaged(query.Filter, pageSize);
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			if (pageSize <= 0)
+			{
+				throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size must be greater than zero.");
+			}
+
+			if (query.Filter.isEmpty())
+			{
+				return Enumerable.Empty<IPagedResult<Capacity>>();
+			}
+
+			return ReadPagedIterator(query, pageSize);
 		}
 
 		/// <summary>
@@ -414,6 +460,32 @@
 				hasNext = enumerator.MoveNext();
 				yield return new PagedResult<Capacity>(Capacity.InstantiateCapacities(page), pageNumber++, pageSize, hasNext);
 			}
+		}
+
+		private IEnumerable<IPagedResult<Capacity>> ReadPagedIterator(IQuery<Capacity> query, int pageSize)
+		{
+			var pageNumber = 0;
+			var items = PlanApi.CoreHelpers.ProfileProvider.GetCapacitiesPaged(TranslateToParameterQuery(query), pageSize);
+			var enumerator = items.GetEnumerator();
+			var hasNext = enumerator.MoveNext();
+
+			while (hasNext)
+			{
+				var page = enumerator.Current;
+				hasNext = enumerator.MoveNext();
+				yield return new PagedResult<Capacity>(Capacity.InstantiateCapacities(page), pageNumber++, pageSize, hasNext);
+			}
+		}
+
+		private IQuery<Net.Profiles.Parameter> TranslateToParameterQuery(IQuery<Capacity> query)
+		{
+			var paramFilter = filterTranslator.TranslateFilter(query.Filter);
+			var paramOrderBy = filterTranslator.TranslateFullOrderBy(query.Order);
+
+			return query
+				.WithFilter(paramFilter)
+				.WithOrder(paramOrderBy)
+				.WithLimit(query.Limit);
 		}
 
 		/// <summary>
