@@ -8,6 +8,8 @@
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API.Querying;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow;
 
+	using SLDataGateway.API.Types.Querying;
+
 	internal class WorkflowFilterTranslator : DomInstanceFilterTranslator<Workflow>
 	{
 		private readonly FilterElement<DomInstance> workflowsDomDefinitionFilter = DomInstanceExposers.DomDefinitionId.Equal(SlcWorkflowIds.Definitions.Workflows.Id)
@@ -25,9 +27,24 @@
 			[WorkflowExposers.State.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.StatusId, comparer, ConvertWorkflowState((WorkflowState)value)),
 		};
 
+		private readonly Dictionary<string, Func<SortOrder, bool, IOrderByElement>> orderByHandlers = new Dictionary<string, Func<SortOrder, bool, IOrderByElement>>
+		{
+			[WorkflowExposers.Id.fieldName] = HandleGuid,
+			[WorkflowExposers.Name.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.WorkflowInfo.WorkflowName), sortOrder, naturalSort),
+			[WorkflowExposers.Description.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.WorkflowInfo.WorkflowDescription), sortOrder, naturalSort),
+			[WorkflowExposers.Notes.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.WorkflowInfo.WorkflowNotes), sortOrder, naturalSort),
+			[WorkflowExposers.IsFavorite.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.WorkflowInfo.Favorite), sortOrder, naturalSort),
+			[WorkflowExposers.Priority.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.WorkflowInfo.Priority), sortOrder, naturalSort),
+			[WorkflowExposers.PreRoll.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.WorkflowInfo.Preroll), sortOrder, naturalSort),
+			[WorkflowExposers.PostRoll.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.WorkflowInfo.Postroll), sortOrder, naturalSort),
+			[WorkflowExposers.State.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.StatusId, sortOrder, naturalSort),
+		};
+
 		protected override FilterElement<DomInstance> DomDefinitionFilter => workflowsDomDefinitionFilter;
 
 		protected override Dictionary<string, Func<Comparer, object, FilterElement<DomInstance>>> FilterHandlers => handlers;
+
+		protected override Dictionary<string, Func<SortOrder, bool, IOrderByElement>> OrderByHandlers => orderByHandlers;
 
 		private static int ConvertWorkflowPriority(WorkflowPriority priority)
 		{

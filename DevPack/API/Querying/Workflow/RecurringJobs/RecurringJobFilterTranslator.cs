@@ -10,6 +10,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API.Querying;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow;
 
+	using SLDataGateway.API.Types.Querying;
+
 	internal class RecurringJobFilterTranslator : DomInstanceFilterTranslator<RecurringJob>
 	{
 		private readonly FilterElement<DomInstance> recurringJobsDomDefinitionFilter = DomInstanceExposers.DomDefinitionId.Equal(SlcWorkflowIds.Definitions.RecurringJobs.Id);
@@ -29,9 +31,26 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			[RecurringJobExposers.Pattern.EndDate.fieldName] = (comparer, value) => CreatePatternEndDateFilter(comparer, (DateTimeOffset)value),
 		};
 
+		private readonly Dictionary<string, Func<SortOrder, bool, IOrderByElement>> orderByHandlers = new Dictionary<string, Func<SortOrder, bool, IOrderByElement>>
+		{
+			[RecurringJobExposers.Id.fieldName] = HandleGuid,
+			[RecurringJobExposers.Name.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.JobName), sortOrder, naturalSort),
+			[RecurringJobExposers.Description.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.JobDescription), sortOrder, naturalSort),
+			[RecurringJobExposers.Notes.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.JobNotes), sortOrder, naturalSort),
+			[RecurringJobExposers.Priority.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.JobPriority), sortOrder, naturalSort),
+			[RecurringJobExposers.Start.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.JobStart), sortOrder, naturalSort),
+			[RecurringJobExposers.Duration.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.RecurringInfo.Duration), sortOrder, naturalSort),
+			[RecurringJobExposers.DesiredJobState.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.RecurringInfo.DesiredJobStatus), sortOrder, naturalSort),
+			[RecurringJobExposers.OrganizationId.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.CostingAndBilling.Organization), sortOrder, naturalSort),
+			[RecurringJobExposers.OwnerId.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.CostingAndBilling.JobOwner), sortOrder, naturalSort),
+			[RecurringJobExposers.JobTypeCategoryId.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.JobSource), sortOrder, naturalSort),
+		};
+
 		protected override FilterElement<DomInstance> DomDefinitionFilter => recurringJobsDomDefinitionFilter;
 
 		protected override Dictionary<string, Func<Comparer, object, FilterElement<DomInstance>>> FilterHandlers => handlers;
+
+		protected override Dictionary<string, Func<SortOrder, bool, IOrderByElement>> OrderByHandlers => orderByHandlers;
 
 		private static int ConvertRecurringJobPriority(RecurringJobPriority priority)
 		{
