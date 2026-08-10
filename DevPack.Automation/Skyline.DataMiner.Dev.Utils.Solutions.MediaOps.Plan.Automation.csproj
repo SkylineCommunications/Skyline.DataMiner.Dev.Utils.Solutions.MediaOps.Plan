@@ -8,7 +8,7 @@
 		<AssemblyTitle>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Automation</AssemblyTitle>
 		<Product>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Automation</Product>
 		<AssemblyName>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Automation</AssemblyName>
-		<RootNamespace>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Automation</RootNamespace>
+		<RootNamespace>Skyline.DataMiner.Solutions.MediaOps.Plan.Automation</RootNamespace>
 
 		<PackageId>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Automation</PackageId>
 		<PackageTags>Skyline;DataMiner</PackageTags>
