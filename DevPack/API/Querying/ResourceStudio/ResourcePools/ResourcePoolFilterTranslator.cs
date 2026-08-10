@@ -29,7 +29,7 @@
 			[ResourcePoolExposers.HasCategory.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.KeyExists(SlcResource_StudioIds.Sections.ResourcePoolInfo.Category.Id.ToString()), comparer, (bool)value),
 		};
 
-		protected override Dictionary<string, Func<Comparer, object, FilterElement<DomInstance>>> Handlers => handlers;
+		protected override Dictionary<string, Func<Comparer, object, FilterElement<DomInstance>>> FilterHandlers => handlers;
 
 		protected override FilterElement<DomInstance> DomDefinitionFilter => resourcePoolDomDefinitionFilter;
 

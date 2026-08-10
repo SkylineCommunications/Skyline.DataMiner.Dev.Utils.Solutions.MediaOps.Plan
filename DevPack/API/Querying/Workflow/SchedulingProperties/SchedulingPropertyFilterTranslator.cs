@@ -21,6 +21,6 @@
 
 		protected override FilterElement<DomInstance> DomDefinitionFilter => propertyDomDefinitionFilter;
 
-		protected override Dictionary<string, Func<Comparer, object, FilterElement<DomInstance>>> Handlers => handlers;
+		protected override Dictionary<string, Func<Comparer, object, FilterElement<DomInstance>>> FilterHandlers => handlers;
 	}
 }

@@ -31,7 +31,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		protected override FilterElement<DomInstance> DomDefinitionFilter => recurringJobsDomDefinitionFilter;
 
-		protected override Dictionary<string, Func<Comparer, object, FilterElement<DomInstance>>> Handlers => handlers;
+		protected override Dictionary<string, Func<Comparer, object, FilterElement<DomInstance>>> FilterHandlers => handlers;
 
 		private static int ConvertRecurringJobPriority(RecurringJobPriority priority)
 		{

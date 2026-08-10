@@ -311,7 +311,7 @@
 				return 0;
 			}
 
-			var domFilter = filterTranslator.Translate(filter);
+			var domFilter = filterTranslator.TranslateFilter(filter);
 			return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(domFilter);
 		}
 
@@ -772,7 +772,7 @@
 
 			return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Read), act =>
 			{
-				var domFilter = filterTranslator.Translate(filter);
+				var domFilter = filterTranslator.TranslateFilter(filter);
 				return Resource.InstantiateResources(PlanApi, PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(domFilter));
 			});
 		}
@@ -784,16 +784,17 @@
 		/// <returns>An enumerable collection of resources matching the query.</returns>
 		public IEnumerable<Resource> Read(IQuery<Resource> query)
 		{
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
 			if (query.Filter.isEmpty())
 			{
 				return Enumerable.Empty<Resource>();
 			}
 
-			return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Read), act =>
-			{
-				var domFilter = filterTranslator.Translate(query);
-				return Resource.InstantiateResources(PlanApi, PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(domFilter));
-			});
+			throw new NotImplementedException();
 		}
 
 		/// <summary>
@@ -1199,7 +1200,7 @@
 		private IEnumerable<IPagedResult<Resource>> ReadPagedIterator(FilterElement<Resource> filter, int pageSize)
 		{
 			var pageNumber = 0;
-			var paramFilter = filterTranslator.Translate(filter);
+			var paramFilter = filterTranslator.TranslateFilter(filter);
 			var items = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcesPaged(paramFilter, pageSize);
 			var enumerator = items.GetEnumerator();
 			var hasNext = enumerator.MoveNext();

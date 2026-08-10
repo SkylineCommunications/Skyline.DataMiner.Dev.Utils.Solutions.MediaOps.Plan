@@ -52,7 +52,7 @@
 
 			return ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Count), act =>
 			{
-				var paramFilter = filterTranslator.Translate(filter);
+				var paramFilter = filterTranslator.TranslateFilter(filter);
 				return PlanApi.CoreHelpers.ProfileProvider.CountCapabilities(paramFilter);
 			});
 		}
@@ -310,7 +310,7 @@
 
 			return ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Read), act =>
 			{
-				var paramFilter = filterTranslator.Translate(filter);
+				var paramFilter = filterTranslator.TranslateFilter(filter);
 				return PlanApi.CoreHelpers.ProfileProvider.GetCapabilities(paramFilter).Select(x => new Capability(x));
 			});
 		}
@@ -469,7 +469,7 @@
 		private IEnumerable<IPagedResult<Capability>> ReadPagedIterator(FilterElement<Capability> filter, int pageSize)
 		{
 			var pageNumber = 0;
-			var paramFilter = filterTranslator.Translate(filter);
+			var paramFilter = filterTranslator.TranslateFilter(filter);
 			var items = PlanApi.CoreHelpers.ProfileProvider.GetCapabilitiesPaged(paramFilter, pageSize);
 			var enumerator = items.GetEnumerator();
 			var hasNext = enumerator.MoveNext();

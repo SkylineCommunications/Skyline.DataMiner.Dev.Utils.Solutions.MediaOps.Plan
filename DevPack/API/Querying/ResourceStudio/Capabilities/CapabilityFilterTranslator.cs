@@ -23,7 +23,7 @@
 			[CapabilityExposers.IsTimeDependent.fieldName] = (comparer, value) => IsTimeDependantFilter(comparer, (bool)value),
 		};
 
-		protected override Dictionary<string, Func<Comparer, object, FilterElement<Net.Profiles.Parameter>>> Handlers => handlers;
+		protected override Dictionary<string, Func<Comparer, object, FilterElement<Net.Profiles.Parameter>>> FilterHandlers => handlers;
 
 		protected override FilterElement<Net.Profiles.Parameter> ParameterTypeFilter => ProfileProvider.AllCapabilitiesFilter;
 

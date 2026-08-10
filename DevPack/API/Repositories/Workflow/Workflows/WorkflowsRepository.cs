@@ -86,7 +86,7 @@
 				return 0;
 			}
 
-			var domFilter = filterTranslator.Translate(filter);
+			var domFilter = filterTranslator.TranslateFilter(filter);
 			return PlanApi.DomHelpers.SlcWorkflowHelper.CountWorkflowInstances(domFilter);
 		}
 
@@ -218,7 +218,7 @@
 
 			return ActivityHelper.Track(nameof(WorkflowsRepository), nameof(Read), act =>
 			{
-				var domFilter = filterTranslator.Translate(filter);
+				var domFilter = filterTranslator.TranslateFilter(filter);
 				IEnumerable<Workflow> Iterator()
 				{
 					foreach (var domWorkflow in PlanApi.DomHelpers.SlcWorkflowHelper.GetWorkflows(domFilter))
@@ -342,7 +342,7 @@
 		private IEnumerable<SDM.IPagedResult<Workflow>> ReadPagedIterator(FilterElement<Workflow> filter, int pageSize)
 		{
 			var pageNumber = 0;
-			var domFilter = filterTranslator.Translate(filter);
+			var domFilter = filterTranslator.TranslateFilter(filter);
 			var pages = PlanApi.DomHelpers.SlcWorkflowHelper.GetWorkflowsPaged(domFilter, pageSize);
 			var enumerator = pages.GetEnumerator();
 			var hasNext = enumerator.MoveNext();

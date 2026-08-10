@@ -20,7 +20,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			[PropertySettingCollectionExposers.PropertySettings.PropertyId.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcPropertiesIds.Sections.PropertyValue.PropertyID), comparer, (Guid)value),
 		};
 
-		protected override Dictionary<string, Func<Comparer, object, FilterElement<DomInstance>>> Handlers => handlers;
+		protected override Dictionary<string, Func<Comparer, object, FilterElement<DomInstance>>> FilterHandlers => handlers;
 
 		protected override FilterElement<DomInstance> DomDefinitionFilter => propertySettingsDomDefinitionFilter;
 	}

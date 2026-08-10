@@ -49,7 +49,7 @@
 				return 0;
 			}
 
-			return PlanApi.DomHelpers.SlcPropertiesHelper.CountPropertiesInstances(filterTranslator.Translate(filter));
+			return PlanApi.DomHelpers.SlcPropertiesHelper.CountPropertiesInstances(filterTranslator.TranslateFilter(filter));
 		}
 
 		/// <summary>
@@ -326,7 +326,7 @@
 
 			return ActivityHelper.Track(nameof(PropertySettingCollectionsRepository), nameof(Read), act =>
 			{
-				var instances = PlanApi.DomHelpers.SlcPropertiesHelper.GetPropertyValues(filterTranslator.Translate(filter));
+				var instances = PlanApi.DomHelpers.SlcPropertiesHelper.GetPropertyValues(filterTranslator.TranslateFilter(filter));
 				return instances.Select(x => new PropertySettingCollection(PlanApi, x));
 			});
 		}
@@ -492,7 +492,7 @@
 		private IEnumerable<IPagedResult<PropertySettingCollection>> ReadPagedIterator(FilterElement<PropertySettingCollection> filter, int pageSize)
 		{
 			var pageNumber = 0;
-			var paramFilter = filterTranslator.Translate(filter);
+			var paramFilter = filterTranslator.TranslateFilter(filter);
 			var items = PlanApi.DomHelpers.SlcPropertiesHelper.GetPropertyValuesPaged(paramFilter, pageSize);
 			var enumerator = items.GetEnumerator();
 			var hasNext = enumerator.MoveNext();

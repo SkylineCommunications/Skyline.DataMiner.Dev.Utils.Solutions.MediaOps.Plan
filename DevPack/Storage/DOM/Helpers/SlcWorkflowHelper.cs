@@ -10,6 +10,8 @@
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow;
 	using Skyline.DataMiner.Utils.DOM.Extensions;
 
+	using SLDataGateway.API.Types.Querying;
+
 	internal class SlcWorkflowHelper : DomModuleHelperBase
 	{
 		public SlcWorkflowHelper(IConnection connection) : base(SlcWorkflowIds.ModuleId, connection)
@@ -24,6 +26,16 @@
 			}
 
 			return DomHelper.DomInstances.Count(filter);
+		}
+
+		public long CountWorkflowInstances(IQuery<DomInstance> query)
+		{
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			return DomHelper.DomInstances.Count(query);
 		}
 
 		public IEnumerable<ConfigurationInstance> GetConfigurations(FilterElement<DomInstance> filter)
@@ -66,6 +78,16 @@
 			}
 
 			return GetJobIterator(filter);
+		}
+
+		public IEnumerable<JobsInstance> GetJobs(IQuery<DomInstance> query)
+		{
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			return GetJobIterator(query);
 		}
 
 		public IEnumerable<JobsInstance> GetJobs(IEnumerable<Guid> ids)
@@ -188,6 +210,22 @@
 			return InstanceFactory.CreateInstances(pages, instance => new JobsInstance(instance));
 		}
 
+		public IEnumerable<IEnumerable<JobsInstance>> GetJobsPaged(IQuery<DomInstance> query, int pageSize)
+		{
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			if (pageSize <= 0)
+			{
+				throw new ArgumentOutOfRangeException(nameof(pageSize));
+			}
+
+			var pages = DomHelper.DomInstances.ReadPaged(query, pageSize);
+			return InstanceFactory.CreateInstances(pages, instance => new JobsInstance(instance));
+		}
+
 		public IEnumerable<IEnumerable<RecurringJobsInstance>> GetRecurringJobsPaged(FilterElement<DomInstance> filter, int pageSize)
 		{
 			if (filter == null)
@@ -278,6 +316,11 @@
 		private IEnumerable<JobsInstance> GetJobIterator(FilterElement<DomInstance> filter)
 		{
 			return InstanceFactory.ReadAndCreateInstances(DomHelper, filter, instance => new JobsInstance(instance));
+		}
+
+		private IEnumerable<JobsInstance> GetJobIterator(IQuery<DomInstance> query)
+		{
+			return InstanceFactory.ReadAndCreateInstances(DomHelper, query, instance => new JobsInstance(instance));
 		}
 
 		private IEnumerable<RecurringJobsInstance> GetRecurringJobIterator(FilterElement<DomInstance> filter)

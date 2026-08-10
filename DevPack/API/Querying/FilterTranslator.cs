@@ -16,7 +16,7 @@
 		{
 		}
 
-		protected abstract Dictionary<string, Func<Comparer, object, FilterElement<K>>> Handlers { get; }
+		protected abstract Dictionary<string, Func<Comparer, object, FilterElement<K>>> FilterHandlers { get; }
 
 		/// <summary>
 		/// Translates a filter element of type <typeparamref name="T"/> into a filter element for <see cref="DomInstance"/>.
@@ -25,7 +25,7 @@
 		/// <returns>A <see cref="FilterElement{DomInstance}"/> representing the translated filter.</returns>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="filter"/> is null.</exception>
 		/// <exception cref="NotSupportedException">Thrown when the filter type is not supported.</exception>
-		public virtual FilterElement<K> Translate(FilterElement<T> filter)
+		public virtual FilterElement<K> TranslateFilter(FilterElement<T> filter)
 		{
 			if (filter is null)
 			{
@@ -35,15 +35,15 @@
 			FilterElement<K> translated;
 			if (filter is ANDFilterElement<T> and)
 			{
-				translated = new ANDFilterElement<K>(and.subFilters.Select(Translate).ToArray());
+				translated = new ANDFilterElement<K>(and.subFilters.Select(TranslateFilter).ToArray());
 			}
 			else if (filter is ORFilterElement<T> or)
 			{
-				translated = new ORFilterElement<K>(or.subFilters.Select(Translate).ToArray());
+				translated = new ORFilterElement<K>(or.subFilters.Select(TranslateFilter).ToArray());
 			}
 			else if (filter is NOTFilterElement<T> not)
 			{
-				translated = new NOTFilterElement<K>(Translate(not));
+				translated = new NOTFilterElement<K>(TranslateFilter(not));
 			}
 			else if (filter is TRUEFilterElement<T>)
 			{
@@ -59,24 +59,10 @@
 			}
 			else
 			{
-				throw new NotSupportedException($"Unsupported filter: {filter}");
+				throw new NotSupportedException($"Translating filter '{filter}' is not implemented.");
 			}
 
 			return translated;
-		}
-
-		public virtual IQuery<K> Translate(IQuery<T> query)
-		{
-			if (query is null)
-			{
-				throw new ArgumentNullException(nameof(query));
-			}
-
-			var translatedFilter = Translate(query.Filter);
-			var translatedOrderBy = query.Order?.Select(order => new OrderByElement<K>(order.FieldName, order.Direction)).ToList();
-
-			var translatedQuery = new Query<K>(translatedFilter, query.OrderBy, query.Skip, query.Take);
-			return translatedQuery;
 		}
 
 		private FilterElement<K> TranslateFilter(ManagedFilterIdentifier managedFilter)
@@ -95,12 +81,12 @@
 
 		private FilterElement<K> CreateFilter(string fieldName, Comparer comparer, object value)
 		{
-			if (!Handlers.ContainsKey(fieldName))
+			if (!FilterHandlers.ContainsKey(fieldName))
 			{
 				throw new NotSupportedException(fieldName);
 			}
 
-			return Handlers[fieldName].Invoke(comparer, value);
+			return FilterHandlers[fieldName].Invoke(comparer, value);
 		}
 	}
 }

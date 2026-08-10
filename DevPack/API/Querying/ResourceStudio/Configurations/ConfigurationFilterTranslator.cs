@@ -23,7 +23,7 @@
 			[DiscreteNumberConfigurationExposers.Discretes.fieldName] = (comparer, value) => FilterElementFactory.Create(ParameterExposers.Discretes, comparer, Convert.ToString((decimal)value, CultureInfo.InvariantCulture)).AND(ParameterExposers.Type.Equal((int)ParameterType.Discrete)),
 		};
 
-		protected override Dictionary<string, Func<Comparer, object, FilterElement<Net.Profiles.Parameter>>> Handlers => handlers;
+		protected override Dictionary<string, Func<Comparer, object, FilterElement<Net.Profiles.Parameter>>> FilterHandlers => handlers;
 
 		protected override FilterElement<Net.Profiles.Parameter> ParameterTypeFilter => ProfileProvider.AllConfigurationsFilter;
 	}

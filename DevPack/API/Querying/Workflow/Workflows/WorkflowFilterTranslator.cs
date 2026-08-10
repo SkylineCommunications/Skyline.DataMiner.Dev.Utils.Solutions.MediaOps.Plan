@@ -27,7 +27,7 @@
 
 		protected override FilterElement<DomInstance> DomDefinitionFilter => workflowsDomDefinitionFilter;
 
-		protected override Dictionary<string, Func<Comparer, object, FilterElement<DomInstance>>> Handlers => handlers;
+		protected override Dictionary<string, Func<Comparer, object, FilterElement<DomInstance>>> FilterHandlers => handlers;
 
 		private static int ConvertWorkflowPriority(WorkflowPriority priority)
 		{

@@ -8,6 +8,7 @@
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
+	using SLDataGateway.API.Querying;
 	using SLDataGateway.API.Types.Querying;
 
 	internal class JobsRepository : Repository, IJobsRepository
@@ -586,18 +587,41 @@
 
 		public long Count(FilterElement<Job> filter)
 		{
+			if (filter == null)
+			{
+				throw new ArgumentNullException(nameof(filter));
+			}
+
 			if (filter.isEmpty())
 			{
 				return 0;
 			}
 
-			var domFilter = filterTranslator.Translate(filter);
+			var domFilter = filterTranslator.TranslateFilter(filter);
 			return PlanApi.DomHelpers.SlcWorkflowHelper.CountWorkflowInstances(domFilter);
 		}
 
 		public long Count(IQuery<Job> query)
 		{
-			return Count(query.Filter);
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			if (query.Filter.isEmpty())
+			{
+				return 0;
+			}
+
+			var domFilter = filterTranslator.TranslateFilter(query.Filter);
+			var domOrderBy = filterTranslator.TranslateFullOrderBy(query.Order);
+
+			var domQuery = query
+				.WithFilter(domFilter)
+				.WithOrder(domOrderBy)
+				.WithLimit(query.Limit);
+
+			return PlanApi.DomHelpers.SlcWorkflowHelper.CountWorkflowInstances(domQuery);
 		}
 
 		public IReadOnlyCollection<Job> Create(IEnumerable<Job> oToCreate)
@@ -768,7 +792,7 @@
 
 			return ActivityHelper.Track(nameof(JobsRepository), nameof(Read), act =>
 			{
-				var domFilter = filterTranslator.Translate(filter);
+				var domFilter = filterTranslator.TranslateFilter(filter);
 				IEnumerable<Job> Iterator()
 				{
 					foreach (var domJob in PlanApi.DomHelpers.SlcWorkflowHelper.GetJobs(domFilter))
@@ -788,7 +812,28 @@
 				throw new ArgumentNullException(nameof(query));
 			}
 
-			return Read(query.Filter);
+			if (query.Filter.isEmpty())
+			{
+				return Enumerable.Empty<Job>();
+			}
+
+			var domFilter = filterTranslator.TranslateFilter(query.Filter);
+			var domOrderBy = filterTranslator.TranslateFullOrderBy(query.Order);
+
+			var domQuery = query
+				.WithFilter(domFilter)
+				.WithOrder(domOrderBy)
+				.WithLimit(query.Limit);
+
+			IEnumerable<Job> Iterator()
+			{
+				foreach (var domJob in PlanApi.DomHelpers.SlcWorkflowHelper.GetJobs(domQuery))
+				{
+					yield return new Job(PlanApi, domJob);
+				}
+			}
+
+			return Iterator();
 		}
 
 		public IEnumerable<Job> Read()
@@ -856,7 +901,7 @@
 				throw new ArgumentNullException(nameof(query));
 			}
 
-			return ReadPaged(query.Filter);
+			return ReadPaged(query, MediaOpsPlanApi.DefaultPageSize);
 		}
 
 		public IEnumerable<SDM.IPagedResult<Job>> ReadPaged(FilterElement<Job> filter, int pageSize)
@@ -886,14 +931,47 @@
 				throw new ArgumentNullException(nameof(query));
 			}
 
-			return ReadPaged(query.Filter, pageSize);
+			if (pageSize <= 0)
+			{
+				throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size must be greater than zero.");
+			}
+
+			if (query.Filter.isEmpty())
+			{
+				return Enumerable.Empty<SDM.IPagedResult<Job>>();
+			}
+
+			return ReadPagedIterator(query, pageSize);
 		}
 
 		private IEnumerable<SDM.IPagedResult<Job>> ReadPagedIterator(FilterElement<Job> filter, int pageSize)
 		{
 			var pageNumber = 0;
-			var domFilter = filterTranslator.Translate(filter);
+			var domFilter = filterTranslator.TranslateFilter(filter);
 			var pages = PlanApi.DomHelpers.SlcWorkflowHelper.GetJobsPaged(domFilter, pageSize);
+			var enumerator = pages.GetEnumerator();
+			var hasNext = enumerator.MoveNext();
+
+			while (hasNext)
+			{
+				var page = enumerator.Current;
+				hasNext = enumerator.MoveNext();
+				yield return new PagedResult<Job>(page.Select(x => new Job(PlanApi, x)), pageNumber++, pageSize, hasNext);
+			}
+		}
+
+		private IEnumerable<SDM.IPagedResult<Job>> ReadPagedIterator(IQuery<Job> query, int pageSize)
+		{
+			var domFilter = filterTranslator.TranslateFilter(query.Filter);
+			var domOrderBy = filterTranslator.TranslateFullOrderBy(query.Order);
+
+			var domQuery = query
+				.WithFilter(domFilter)
+				.WithOrder(domOrderBy)
+				.WithLimit(query.Limit);
+
+			var pageNumber = 0;
+			var pages = PlanApi.DomHelpers.SlcWorkflowHelper.GetJobsPaged(domQuery, pageSize);
 			var enumerator = pages.GetEnumerator();
 			var hasNext = enumerator.MoveNext();
 

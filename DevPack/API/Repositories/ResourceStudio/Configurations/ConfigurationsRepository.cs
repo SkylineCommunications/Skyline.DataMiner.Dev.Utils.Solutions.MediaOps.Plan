@@ -49,7 +49,7 @@
 
 			return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Count), act =>
 			{
-				var paramFilter = filterTranslator.Translate(filter);
+				var paramFilter = filterTranslator.TranslateFilter(filter);
 				return PlanApi.CoreHelpers.ProfileProvider.CountConfigurations(paramFilter);
 			});
 		}
@@ -309,7 +309,7 @@
 
 			return ActivityHelper.Track(nameof(ConfigurationsRepository), nameof(Read), act =>
 			{
-				var configurations = PlanApi.CoreHelpers.ProfileProvider.GetConfigurations(filterTranslator.Translate(filter));
+				var configurations = PlanApi.CoreHelpers.ProfileProvider.GetConfigurations(filterTranslator.TranslateFilter(filter));
 				return Configuration.InstantiateConfigurations(configurations);
 			});
 		}
@@ -469,7 +469,7 @@
 		private IEnumerable<IPagedResult<Configuration>> ReadPagedIterator(FilterElement<Configuration> filter, int pageSize)
 		{
 			var pageNumber = 0;
-			var paramFilter = filterTranslator.Translate(filter);
+			var paramFilter = filterTranslator.TranslateFilter(filter);
 			var items = PlanApi.CoreHelpers.ProfileProvider.GetConfigurationsPaged(paramFilter, pageSize);
 			var enumerator = items.GetEnumerator();
 			var hasNext = enumerator.MoveNext();

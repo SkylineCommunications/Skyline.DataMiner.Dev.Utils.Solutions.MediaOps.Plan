@@ -108,7 +108,7 @@
 				return 0;
 			}
 
-			var domFilter = filterTranslator.Translate(filter);
+			var domFilter = filterTranslator.TranslateFilter(filter);
 			return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(domFilter);
 		}
 
@@ -718,7 +718,7 @@
 
 			return ActivityHelper.Track(nameof(ResourcePoolsRepository), nameof(Read), act =>
 			{
-				var domFilter = filterTranslator.Translate(filter);
+				var domFilter = filterTranslator.TranslateFilter(filter);
 				IEnumerable<ResourcePool> Iterator()
 				{
 					foreach (var domResourcePool in PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(domFilter))
@@ -829,7 +829,7 @@
 		private IEnumerable<IPagedResult<ResourcePool>> ReadPagedIterator(FilterElement<ResourcePool> filter, int pageSize)
 		{
 			var pageNumber = 0;
-			var paramFilter = filterTranslator.Translate(filter);
+			var paramFilter = filterTranslator.TranslateFilter(filter);
 			var items = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePoolsPaged(paramFilter, pageSize);
 			var enumerator = items.GetEnumerator();
 			var hasNext = enumerator.MoveNext();

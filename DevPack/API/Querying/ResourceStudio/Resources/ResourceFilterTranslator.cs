@@ -8,6 +8,8 @@
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API.Querying;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
 
+	using SLDataGateway.API.Types.Querying;
+
 	internal class ResourceFilterTranslator : DomInstanceFilterTranslator<Resource>
 	{
 		private readonly FilterElement<DomInstance> resourceDomDefinitionFilter = DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resource.Id);
@@ -35,9 +37,11 @@
 			[VirtualFunctionResourceExposers.FunctionTableIndex.fieldName] = (comparer, value) => CreateFunctionTableIndexFilter(comparer, Convert.ToString(value)).AND(FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInfo.Type), Comparer.Equals, (int)SlcResource_StudioIds.Enums.Type.VirtualFunction)),
 		};
 
-		protected override Dictionary<string, Func<Comparer, object, FilterElement<DomInstance>>> Handlers => handlers;
+		protected override Dictionary<string, Func<Comparer, object, FilterElement<DomInstance>>> FilterHandlers => handlers;
 
 		protected override FilterElement<DomInstance> DomDefinitionFilter => resourceDomDefinitionFilter;
+
+		protected override Dictionary<string, Func<SortOrder, bool, IOrderByElement>> OrderByHandlers => throw new NotImplementedException();
 
 		private static string ConvertResourceState(ResourceState filterValue)
 		{

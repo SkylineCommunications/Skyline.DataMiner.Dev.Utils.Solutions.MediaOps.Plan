@@ -8,6 +8,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API.Querying;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcProperties;
 
+	using SLDataGateway.API.Types.Querying;
+
 	internal class PropertyFilterTranslator : DomInstanceFilterTranslator<Property>
 	{
 		private readonly FilterElement<DomInstance> propertyDomDefinitionFilter = DomInstanceExposers.DomDefinitionId.Equal(SlcPropertiesIds.Definitions.Property.Id);
@@ -20,7 +22,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			[PropertyExposers.Order.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcPropertiesIds.Sections.Layout.Order), comparer, (int)value),
 		};
 
-		protected override Dictionary<string, Func<Comparer, object, FilterElement<DomInstance>>> Handlers => handlers;
+		protected override Dictionary<string, Func<Comparer, object, FilterElement<DomInstance>>> FilterHandlers => handlers;
 
 		protected override FilterElement<DomInstance> DomDefinitionFilter => propertyDomDefinitionFilter;
 	}

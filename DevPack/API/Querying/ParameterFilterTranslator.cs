@@ -24,9 +24,9 @@
 			return FilterElementFactory.Create(ParameterExposers.IsOptional, comparer, !(bool)value);
 		}
 
-		public override FilterElement<Net.Profiles.Parameter> Translate(FilterElement<T> filter)
+		public override FilterElement<Net.Profiles.Parameter> TranslateFilter(FilterElement<T> filter)
 		{
-			return base.Translate(filter).AND(ParameterTypeFilter);
+			return base.TranslateFilter(filter).AND(ParameterTypeFilter);
 		}
 	}
 }

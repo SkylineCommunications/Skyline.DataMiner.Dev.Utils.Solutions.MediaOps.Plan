@@ -160,7 +160,7 @@
 				return 0;
 			}
 
-			var domFilter = filterTranslator.Translate(filter);
+			var domFilter = filterTranslator.TranslateFilter(filter);
 			return PlanApi.DomHelpers.SlcWorkflowHelper.CountWorkflowInstances(domFilter);
 		}
 
@@ -292,7 +292,7 @@
 
 			return ActivityHelper.Track(nameof(RecurringJobsRepository), nameof(Read), act =>
 			{
-				var domFilter = filterTranslator.Translate(filter);
+				var domFilter = filterTranslator.TranslateFilter(filter);
 				IEnumerable<RecurringJob> Iterator()
 				{
 					foreach (var domRecurringJob in PlanApi.DomHelpers.SlcWorkflowHelper.GetRecurringJobs(domFilter))
@@ -416,7 +416,7 @@
 		private IEnumerable<SDM.IPagedResult<RecurringJob>> ReadPagedIterator(FilterElement<RecurringJob> filter, int pageSize)
 		{
 			var pageNumber = 0;
-			var domFilter = filterTranslator.Translate(filter);
+			var domFilter = filterTranslator.TranslateFilter(filter);
 			var pages = PlanApi.DomHelpers.SlcWorkflowHelper.GetRecurringJobsPaged(domFilter, pageSize);
 			var enumerator = pages.GetEnumerator();
 			var hasNext = enumerator.MoveNext();
