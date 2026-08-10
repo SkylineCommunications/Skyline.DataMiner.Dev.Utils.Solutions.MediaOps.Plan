@@ -7,6 +7,7 @@
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Solutions.Categories.API;
+	using Skyline.DataMiner.Solutions.MediaOps.Live.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
 	using Skyline.DataMiner.Utils.DOM.Extensions;
@@ -2311,7 +2312,8 @@
 		{
 			foreach (var job in apiJobs.Where(IsValid))
 			{
-				foreach (var node in job.NodeGraph.Nodes.Where(x => x.NodeConfigurationStatus == NodeConfigurationStatus.MandatoryValuesMissing))
+				ConfigurationStatusCalculator calculator = new ConfigurationStatusCalculator(planApi, planApi.LiveApi, job);
+				foreach (var node in job.NodeGraph.Nodes.Where(x => calculator.GetNodeConfigurationStatus(x.Id) == ConfigurationStatus.MandatoryValuesMissing))
 				{
 					ReportError(job.Id, new JobMandatoryConfigurationMissingError
 					{
