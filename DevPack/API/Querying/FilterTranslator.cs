@@ -18,6 +18,8 @@
 
 		protected abstract Dictionary<string, Func<Comparer, object, FilterElement<K>>> FilterHandlers { get; }
 
+		protected abstract Dictionary<string, Func<SortOrder, bool, IOrderByElement>> OrderByHandlers { get; }
+
 		/// <summary>
 		/// Translates a filter element of type <typeparamref name="T"/> into a filter element for <see cref="DomInstance"/>.
 		/// </summary>
@@ -65,6 +67,24 @@
 			return translated;
 		}
 
+		public virtual IOrderBy TranslateFullOrderBy(IOrderBy order)
+		{
+			if (order == null)
+			{
+				throw new ArgumentNullException(nameof(order));
+			}
+
+			var translatedElements = new List<IOrderByElement>();
+
+			foreach (var orderByElement in order.Elements)
+			{
+				var translated = TranslateOrderBy(orderByElement);
+				translatedElements.Add(translated);
+			}
+
+			return new OrderBy(translatedElements);
+		}
+
 		private FilterElement<K> TranslateFilter(ManagedFilterIdentifier managedFilter)
 		{
 			if (managedFilter is null)
@@ -87,6 +107,32 @@
 			}
 
 			return FilterHandlers[fieldName].Invoke(comparer, value);
+		}
+
+		private IOrderByElement TranslateOrderBy(IOrderByElement orderByElement)
+		{
+			if (orderByElement == null)
+			{
+				throw new ArgumentNullException(nameof(orderByElement));
+			}
+
+			var fieldName = orderByElement.Exposer.fieldName;
+			var sortOrder = orderByElement.SortOrder;
+			var naturalSort = orderByElement.Options.NaturalSort;
+
+			var translated = CreateOrderBy(fieldName, sortOrder, naturalSort);
+
+			return translated;
+		}
+
+		private IOrderByElement CreateOrderBy(string fieldName, SortOrder sortOrder, bool naturalSort = false)
+		{
+			if (!OrderByHandlers.ContainsKey(fieldName))
+			{
+				throw new NotSupportedException($"Creating an order by for field '{fieldName}' is not implemented.");
+			}
+
+			return OrderByHandlers[fieldName].Invoke(sortOrder, naturalSort);
 		}
 	}
 }
