@@ -380,48 +380,6 @@
 			return ReadPagedIterator(query, pageSize);
 		}
 
-		private IEnumerable<SDM.IPagedResult<Workflow>> ReadPagedIterator(IQuery<Workflow> query, int pageSize)
-		{
-			var pageNumber = 0;
-			var pages = PlanApi.DomHelpers.SlcWorkflowHelper.GetWorkflowsPaged(TranslateToDomQuery(query), pageSize);
-			var enumerator = pages.GetEnumerator();
-			var hasNext = enumerator.MoveNext();
-
-			while (hasNext)
-			{
-				var page = enumerator.Current;
-				hasNext = enumerator.MoveNext();
-				yield return new PagedResult<Workflow>(page.Select(x => new Workflow(PlanApi, x)), pageNumber++, pageSize, hasNext);
-			}
-		}
-
-		private IQuery<DomInstance> TranslateToDomQuery(IQuery<Workflow> query)
-		{
-			var domFilter = filterTranslator.TranslateFilter(query.Filter);
-			var domOrderBy = filterTranslator.TranslateFullOrderBy(query.Order);
-
-			return query
-				.WithFilter(domFilter)
-				.WithOrder(domOrderBy)
-				.WithLimit(query.Limit);
-		}
-
-		private IEnumerable<SDM.IPagedResult<Workflow>> ReadPagedIterator(FilterElement<Workflow> filter, int pageSize)
-		{
-			var pageNumber = 0;
-			var domFilter = filterTranslator.TranslateFilter(filter);
-			var pages = PlanApi.DomHelpers.SlcWorkflowHelper.GetWorkflowsPaged(domFilter, pageSize);
-			var enumerator = pages.GetEnumerator();
-			var hasNext = enumerator.MoveNext();
-
-			while (hasNext)
-			{
-				var page = enumerator.Current;
-				hasNext = enumerator.MoveNext();
-				yield return new PagedResult<Workflow>(page.Select(x => new Workflow(PlanApi, x)), pageNumber++, pageSize, hasNext);
-			}
-		}
-
 		public IReadOnlyCollection<Workflow> Update(IEnumerable<Workflow> oToUpdate)
 		{
 			if (oToUpdate == null)
@@ -463,6 +421,48 @@
 			}
 
 			return new Workflow(PlanApi, result.SuccessfulItems.Single());
+		}
+
+		private IEnumerable<SDM.IPagedResult<Workflow>> ReadPagedIterator(IQuery<Workflow> query, int pageSize)
+		{
+			var pageNumber = 0;
+			var pages = PlanApi.DomHelpers.SlcWorkflowHelper.GetWorkflowsPaged(TranslateToDomQuery(query), pageSize);
+			var enumerator = pages.GetEnumerator();
+			var hasNext = enumerator.MoveNext();
+
+			while (hasNext)
+			{
+				var page = enumerator.Current;
+				hasNext = enumerator.MoveNext();
+				yield return new PagedResult<Workflow>(page.Select(x => new Workflow(PlanApi, x)), pageNumber++, pageSize, hasNext);
+			}
+		}
+
+		private IEnumerable<SDM.IPagedResult<Workflow>> ReadPagedIterator(FilterElement<Workflow> filter, int pageSize)
+		{
+			var pageNumber = 0;
+			var domFilter = filterTranslator.TranslateFilter(filter);
+			var pages = PlanApi.DomHelpers.SlcWorkflowHelper.GetWorkflowsPaged(domFilter, pageSize);
+			var enumerator = pages.GetEnumerator();
+			var hasNext = enumerator.MoveNext();
+
+			while (hasNext)
+			{
+				var page = enumerator.Current;
+				hasNext = enumerator.MoveNext();
+				yield return new PagedResult<Workflow>(page.Select(x => new Workflow(PlanApi, x)), pageNumber++, pageSize, hasNext);
+			}
+		}
+
+		private IQuery<DomInstance> TranslateToDomQuery(IQuery<Workflow> query)
+		{
+			var domFilter = filterTranslator.TranslateFilter(query.Filter);
+			var domOrderBy = filterTranslator.TranslateFullOrderBy(query.Order);
+
+			return query
+				.WithFilter(domFilter)
+				.WithOrder(domOrderBy)
+				.WithLimit(query.Limit);
 		}
 	}
 }

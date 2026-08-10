@@ -22,34 +22,34 @@
 	/// </summary>
 	internal class ProfileProvider
 	{
-		/// <summary>
-		/// A helper to facilitate profile-related operations.
-		/// </summary>
-		private readonly ProfileHelper profileHelper;
-
-		private static readonly FilterElement<Net.Profiles.Parameter> AllTimeDependentCapabilitiesFilter =
-			ParameterExposers.Categories.Contains((int)ProfileParameterCategory.Capability)
-			.AND(ParameterExposers.Categories.NotContains((int)ProfileParameterCategory.Capacity))
-			.AND(ParameterExposers.Categories.NotContains((int)ProfileParameterCategory.Configuration))
-			.AND(ParameterExposers.Name.Matches(".*- Time dependent$"));
-
 		internal static readonly FilterElement<Net.Profiles.Parameter> AllCapabilitiesFilter =
-			ParameterExposers.Categories.Contains((int)ProfileParameterCategory.Capability)
-			.AND(ParameterExposers.Categories.NotContains((int)ProfileParameterCategory.Capacity))
-			.AND(ParameterExposers.Categories.NotContains((int)ProfileParameterCategory.Configuration))
-			.AND(ParameterExposers.Type.Equal((int)ParameterType.Discrete))
-			.AND(ParameterExposers.Name.NotMatches(".*- Time dependent$")); // Don't include linked Time dependent capabilities.
+					ParameterExposers.Categories.Contains((int)ProfileParameterCategory.Capability)
+					.AND(ParameterExposers.Categories.NotContains((int)ProfileParameterCategory.Capacity))
+					.AND(ParameterExposers.Categories.NotContains((int)ProfileParameterCategory.Configuration))
+					.AND(ParameterExposers.Type.Equal((int)ParameterType.Discrete))
+					.AND(ParameterExposers.Name.NotMatches(".*- Time dependent$"));
 
 		internal static readonly FilterElement<Net.Profiles.Parameter> AllCapacitiesFilter =
-			ParameterExposers.Categories.Contains((int)ProfileParameterCategory.Capacity)
-			.AND(ParameterExposers.Categories.NotContains((int)ProfileParameterCategory.Capability))
-			.AND(ParameterExposers.Categories.NotContains((int)ProfileParameterCategory.Configuration));
+					ParameterExposers.Categories.Contains((int)ProfileParameterCategory.Capacity)
+					.AND(ParameterExposers.Categories.NotContains((int)ProfileParameterCategory.Capability))
+					.AND(ParameterExposers.Categories.NotContains((int)ProfileParameterCategory.Configuration));
 
+		// Don't include linked Time dependent capabilities.
 		internal static readonly FilterElement<Net.Profiles.Parameter> AllConfigurationsFilter =
 			ParameterExposers.Categories.Contains((int)ProfileParameterCategory.Configuration)
 			.AND(ParameterExposers.Categories.NotContains((int)ProfileParameterCategory.Capability))
 			.AND(ParameterExposers.Categories.NotContains((int)ProfileParameterCategory.Capacity));
 
+		private static readonly FilterElement<Net.Profiles.Parameter> AllTimeDependentCapabilitiesFilter =
+					ParameterExposers.Categories.Contains((int)ProfileParameterCategory.Capability)
+					.AND(ParameterExposers.Categories.NotContains((int)ProfileParameterCategory.Capacity))
+					.AND(ParameterExposers.Categories.NotContains((int)ProfileParameterCategory.Configuration))
+					.AND(ParameterExposers.Name.Matches(".*- Time dependent$"));
+
+		/// <summary>
+		/// A helper to facilitate profile-related operations.
+		/// </summary>
+		private readonly ProfileHelper profileHelper;
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ProfileProvider"/> class using the specified connection.
 		/// </summary>
@@ -62,6 +62,132 @@
 			}
 
 			this.profileHelper = new ProfileHelper(connection.HandleMessages);
+		}
+
+		public long CountCapabilities(FilterElement<Net.Profiles.Parameter> filter)
+		{
+			return profileHelper.ProfileParameters.Count(AllCapabilitiesFilter.AND(filter));
+		}
+
+		public long CountCapabilities(IQuery<Net.Profiles.Parameter> query)
+		{
+			return profileHelper.ProfileParameters.Count(ApplyParameterTypeFilter(query, AllCapabilitiesFilter));
+		}
+
+		public long CountCapacities(FilterElement<Net.Profiles.Parameter> filter)
+		{
+			return profileHelper.ProfileParameters.Count(AllCapacitiesFilter.AND(filter));
+		}
+
+		public long CountCapacities(IQuery<Net.Profiles.Parameter> query)
+		{
+			return profileHelper.ProfileParameters.Count(ApplyParameterTypeFilter(query, AllCapacitiesFilter));
+		}
+
+		public long CountConfigurations(FilterElement<Net.Profiles.Parameter> filter)
+		{
+			return profileHelper.ProfileParameters.Count(AllConfigurationsFilter.AND(filter));
+		}
+
+		public long CountConfigurations(IQuery<Net.Profiles.Parameter> query)
+		{
+			return profileHelper.ProfileParameters.Count(ApplyParameterTypeFilter(query, AllConfigurationsFilter));
+		}
+
+		public long CountNonTimeDependentCapabilities()
+		{
+			return profileHelper.ProfileParameters.Count(AllCapabilitiesFilter);
+		}
+
+		public IEnumerable<Net.Profiles.Parameter> GetCapabilities(FilterElement<Net.Profiles.Parameter> filter)
+		{
+			if (filter == null)
+				throw new ArgumentNullException(nameof(filter));
+
+			return profileHelper.ProfileParameters.Read(AllCapabilitiesFilter.AND(filter));
+		}
+
+		public IEnumerable<Net.Profiles.Parameter> GetCapabilities(IQuery<Net.Profiles.Parameter> query)
+		{
+			return profileHelper.ProfileParameters.Read(ApplyParameterTypeFilter(query, AllCapabilitiesFilter));
+		}
+
+		public IEnumerable<IEnumerable<Net.Profiles.Parameter>> GetCapabilitiesPaged(FilterElement<Net.Profiles.Parameter> filter, long pageSize = 500)
+		{
+			return profileHelper.ProfileParameters.ReadPaged(AllCapabilitiesFilter.AND(filter), pageSize);
+		}
+
+		public IEnumerable<IEnumerable<Net.Profiles.Parameter>> GetCapabilitiesPaged(IQuery<Net.Profiles.Parameter> query, long pageSize = 500)
+		{
+			return profileHelper.ProfileParameters.ReadPaged(ApplyParameterTypeFilter(query, AllCapabilitiesFilter), pageSize);
+		}
+
+		public IEnumerable<Net.Profiles.Parameter> GetCapacities(FilterElement<Net.Profiles.Parameter> filter)
+		{
+			if (filter == null)
+				throw new ArgumentNullException(nameof(filter));
+
+			return profileHelper.ProfileParameters.Read(AllCapacitiesFilter.AND(filter));
+		}
+
+		public IEnumerable<Net.Profiles.Parameter> GetCapacities(IQuery<Net.Profiles.Parameter> query)
+		{
+			return profileHelper.ProfileParameters.Read(ApplyParameterTypeFilter(query, AllCapacitiesFilter));
+		}
+
+		/// <summary>
+		/// Retrieves capacity parameters in pages.
+		/// </summary>
+		/// <param name="filter">The filter to apply when retrieving capacity parameters.</param>
+		/// <param name="pageSize">The number of items per page. Default is 500.</param>
+		/// <returns>A collection of pages, where each page contains a collection of capacity parameters.</returns>
+		public IEnumerable<IEnumerable<Net.Profiles.Parameter>> GetCapacitiesPaged(FilterElement<Net.Profiles.Parameter> filter, long pageSize = 500)
+		{
+			return profileHelper.ProfileParameters.ReadPaged(AllCapacitiesFilter.AND(filter), pageSize);
+		}
+
+		public IEnumerable<IEnumerable<Net.Profiles.Parameter>> GetCapacitiesPaged(IQuery<Net.Profiles.Parameter> query, long pageSize = 500)
+		{
+			return profileHelper.ProfileParameters.ReadPaged(ApplyParameterTypeFilter(query, AllCapacitiesFilter), pageSize);
+		}
+
+		public IEnumerable<Net.Profiles.Parameter> GetConfigurations(FilterElement<Net.Profiles.Parameter> filter)
+		{
+			if (filter == null)
+				throw new ArgumentNullException(nameof(filter));
+
+			return profileHelper.ProfileParameters.Read(AllConfigurationsFilter.AND(filter));
+		}
+
+		public IEnumerable<Net.Profiles.Parameter> GetConfigurations(IQuery<Net.Profiles.Parameter> query)
+		{
+			return profileHelper.ProfileParameters.Read(ApplyParameterTypeFilter(query, AllConfigurationsFilter));
+		}
+
+		/// <summary>
+		/// Retrieves all configuration parameters.
+		/// </summary>
+		/// <param name="filter">The filter to apply when retrieving configuration parameters.</param>
+		/// <param name="pageSize">The number of items per page. Default is 500.</param>
+		/// <returns>A collection of pages, where each page contains a collection of configuration parameters.</returns>
+		public IEnumerable<IEnumerable<Net.Profiles.Parameter>> GetConfigurationsPaged(FilterElement<Net.Profiles.Parameter> filter, long pageSize = 500)
+		{
+			return profileHelper.ProfileParameters.ReadPaged(AllConfigurationsFilter.AND(filter), pageSize);
+		}
+
+		public IEnumerable<IEnumerable<Net.Profiles.Parameter>> GetConfigurationsPaged(IQuery<Net.Profiles.Parameter> query, long pageSize = 500)
+		{
+			return profileHelper.ProfileParameters.ReadPaged(ApplyParameterTypeFilter(query, AllConfigurationsFilter), pageSize);
+		}
+
+		public IEnumerable<Net.Profiles.Parameter> GetParameters(FilterElement<Net.Profiles.Parameter> filter)
+		{
+			if (filter == null)
+			{
+				throw new ArgumentNullException(nameof(filter));
+			}
+
+			return profileHelper.ProfileParameters.Read(filter);
 		}
 
 		/// <summary>
@@ -105,15 +231,9 @@
 			var filter = new ORFilterElement<Net.Profiles.Parameter>(names.Select(name => ParameterExposers.Name.Equal(name)).ToArray());
 			return GetParameters(filter);
 		}
-
-		public IEnumerable<Net.Profiles.Parameter> GetParameters(FilterElement<Net.Profiles.Parameter> filter)
+		public IReadOnlyCollection<Net.Profiles.Parameter> GetTimeDependentCapabilities(FilterElement<Net.Profiles.Parameter> filter)
 		{
-			if (filter == null)
-			{
-				throw new ArgumentNullException(nameof(filter));
-			}
-
-			return profileHelper.ProfileParameters.Read(filter);
+			return profileHelper.ProfileParameters.Read(AllTimeDependentCapabilitiesFilter.AND(filter));
 		}
 
 		/// <summary>
@@ -168,128 +288,6 @@
 			result = new ParameterBulkOperationResult(successfulItems, unsuccessfulIds, traceDataPerItem);
 			return !result.HasFailures;
 		}
-
-		/// <summary>
-		/// Retrieves capacity parameters in pages.
-		/// </summary>
-		/// <param name="filter">The filter to apply when retrieving capacity parameters.</param>
-		/// <param name="pageSize">The number of items per page. Default is 500.</param>
-		/// <returns>A collection of pages, where each page contains a collection of capacity parameters.</returns>
-		public IEnumerable<IEnumerable<Net.Profiles.Parameter>> GetCapacitiesPaged(FilterElement<Net.Profiles.Parameter> filter, long pageSize = 500)
-		{
-			return profileHelper.ProfileParameters.ReadPaged(AllCapacitiesFilter.AND(filter), pageSize);
-		}
-
-		public long CountCapacities(FilterElement<Net.Profiles.Parameter> filter)
-		{
-			return profileHelper.ProfileParameters.Count(AllCapacitiesFilter.AND(filter));
-		}
-
-		/// <summary>
-		/// Retrieves all configuration parameters.
-		/// </summary>
-		/// <param name="filter">The filter to apply when retrieving configuration parameters.</param>
-		/// <param name="pageSize">The number of items per page. Default is 500.</param>
-		/// <returns>A collection of pages, where each page contains a collection of configuration parameters.</returns>
-		public IEnumerable<IEnumerable<Net.Profiles.Parameter>> GetConfigurationsPaged(FilterElement<Net.Profiles.Parameter> filter, long pageSize = 500)
-		{
-			return profileHelper.ProfileParameters.ReadPaged(AllConfigurationsFilter.AND(filter), pageSize);
-		}
-
-		public long CountConfigurations(FilterElement<Net.Profiles.Parameter> filter)
-		{
-			return profileHelper.ProfileParameters.Count(AllConfigurationsFilter.AND(filter));
-		}
-
-		public IReadOnlyCollection<Net.Profiles.Parameter> GetTimeDependentCapabilities(FilterElement<Net.Profiles.Parameter> filter)
-		{
-			return profileHelper.ProfileParameters.Read(AllTimeDependentCapabilitiesFilter.AND(filter));
-		}
-
-		public long CountNonTimeDependentCapabilities()
-		{
-			return profileHelper.ProfileParameters.Count(AllCapabilitiesFilter);
-		}
-
-		public IEnumerable<IEnumerable<Net.Profiles.Parameter>> GetCapabilitiesPaged(FilterElement<Net.Profiles.Parameter> filter, long pageSize = 500)
-		{
-			return profileHelper.ProfileParameters.ReadPaged(AllCapabilitiesFilter.AND(filter), pageSize);
-		}
-
-		public IEnumerable<Net.Profiles.Parameter> GetCapabilities(FilterElement<Net.Profiles.Parameter> filter)
-		{
-			if (filter == null)
-				throw new ArgumentNullException(nameof(filter));
-
-			return profileHelper.ProfileParameters.Read(AllCapabilitiesFilter.AND(filter));
-		}
-
-		public IEnumerable<Net.Profiles.Parameter> GetCapacities(FilterElement<Net.Profiles.Parameter> filter)
-		{
-			if (filter == null)
-				throw new ArgumentNullException(nameof(filter));
-
-			return profileHelper.ProfileParameters.Read(AllCapacitiesFilter.AND(filter));
-		}
-
-		public IEnumerable<Net.Profiles.Parameter> GetConfigurations(FilterElement<Net.Profiles.Parameter> filter)
-		{
-			if (filter == null)
-				throw new ArgumentNullException(nameof(filter));
-
-			return profileHelper.ProfileParameters.Read(AllConfigurationsFilter.AND(filter));
-		}
-
-		public long CountCapabilities(FilterElement<Net.Profiles.Parameter> filter)
-		{
-			return profileHelper.ProfileParameters.Count(AllCapabilitiesFilter.AND(filter));
-		}
-
-		public long CountCapabilities(IQuery<Net.Profiles.Parameter> query)
-		{
-			return profileHelper.ProfileParameters.Count(ApplyParameterTypeFilter(query, AllCapabilitiesFilter));
-		}
-
-		public long CountCapacities(IQuery<Net.Profiles.Parameter> query)
-		{
-			return profileHelper.ProfileParameters.Count(ApplyParameterTypeFilter(query, AllCapacitiesFilter));
-		}
-
-		public long CountConfigurations(IQuery<Net.Profiles.Parameter> query)
-		{
-			return profileHelper.ProfileParameters.Count(ApplyParameterTypeFilter(query, AllConfigurationsFilter));
-		}
-
-		public IEnumerable<Net.Profiles.Parameter> GetCapabilities(IQuery<Net.Profiles.Parameter> query)
-		{
-			return profileHelper.ProfileParameters.Read(ApplyParameterTypeFilter(query, AllCapabilitiesFilter));
-		}
-
-		public IEnumerable<Net.Profiles.Parameter> GetCapacities(IQuery<Net.Profiles.Parameter> query)
-		{
-			return profileHelper.ProfileParameters.Read(ApplyParameterTypeFilter(query, AllCapacitiesFilter));
-		}
-
-		public IEnumerable<Net.Profiles.Parameter> GetConfigurations(IQuery<Net.Profiles.Parameter> query)
-		{
-			return profileHelper.ProfileParameters.Read(ApplyParameterTypeFilter(query, AllConfigurationsFilter));
-		}
-
-		public IEnumerable<IEnumerable<Net.Profiles.Parameter>> GetCapabilitiesPaged(IQuery<Net.Profiles.Parameter> query, long pageSize = 500)
-		{
-			return profileHelper.ProfileParameters.ReadPaged(ApplyParameterTypeFilter(query, AllCapabilitiesFilter), pageSize);
-		}
-
-		public IEnumerable<IEnumerable<Net.Profiles.Parameter>> GetCapacitiesPaged(IQuery<Net.Profiles.Parameter> query, long pageSize = 500)
-		{
-			return profileHelper.ProfileParameters.ReadPaged(ApplyParameterTypeFilter(query, AllCapacitiesFilter), pageSize);
-		}
-
-		public IEnumerable<IEnumerable<Net.Profiles.Parameter>> GetConfigurationsPaged(IQuery<Net.Profiles.Parameter> query, long pageSize = 500)
-		{
-			return profileHelper.ProfileParameters.ReadPaged(ApplyParameterTypeFilter(query, AllConfigurationsFilter), pageSize);
-		}
-
 		public bool TryDeleteParametersInBatches(IEnumerable<Net.Profiles.Parameter> parameters, out ParameterBulkOperationResult result)
 		{
 			if (parameters == null)

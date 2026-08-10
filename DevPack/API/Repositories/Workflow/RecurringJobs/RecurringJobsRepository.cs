@@ -123,32 +123,6 @@
 			return result.SuccessfulItems.Select(x => new RecurringJob(PlanApi, x)).ToList();
 		}
 
-		public RecurringJob UpdateProcessState(Guid recurringJobId, RecurringJobProcessState processState)
-		{
-			var recurringJob = Read(recurringJobId);
-			if (recurringJob == null)
-			{
-				return null;
-			}
-
-			return UpdateProcessState(recurringJob, processState);
-		}
-
-		public RecurringJob UpdateProcessState(RecurringJob recurringJob, RecurringJobProcessState processState)
-		{
-			if (recurringJob == null)
-			{
-				throw new ArgumentNullException(nameof(recurringJob));
-			}
-
-			if (!DomRecurringJobHandler.TryUpdateProcessState(PlanApi, [(recurringJob, processState)], out var result))
-			{
-				result.ThrowSingleException(recurringJob.Id);
-			}
-
-			return new RecurringJob(PlanApi, result.SuccessfulItems.Single());
-		}
-
 		public long Count()
 		{
 			return Count(new TRUEFilterElement<RecurringJob>());
@@ -454,48 +428,6 @@
 			return ReadPagedIterator(query, pageSize);
 		}
 
-		private IEnumerable<SDM.IPagedResult<RecurringJob>> ReadPagedIterator(IQuery<RecurringJob> query, int pageSize)
-		{
-			var pageNumber = 0;
-			var pages = PlanApi.DomHelpers.SlcWorkflowHelper.GetRecurringJobsPaged(TranslateToDomQuery(query), pageSize);
-			var enumerator = pages.GetEnumerator();
-			var hasNext = enumerator.MoveNext();
-
-			while (hasNext)
-			{
-				var page = enumerator.Current;
-				hasNext = enumerator.MoveNext();
-				yield return new PagedResult<RecurringJob>(page.Select(x => new RecurringJob(PlanApi, x)), pageNumber++, pageSize, hasNext);
-			}
-		}
-
-		private IQuery<DomInstance> TranslateToDomQuery(IQuery<RecurringJob> query)
-		{
-			var domFilter = filterTranslator.TranslateFilter(query.Filter);
-			var domOrderBy = filterTranslator.TranslateFullOrderBy(query.Order);
-
-			return query
-				.WithFilter(domFilter)
-				.WithOrder(domOrderBy)
-				.WithLimit(query.Limit);
-		}
-
-		private IEnumerable<SDM.IPagedResult<RecurringJob>> ReadPagedIterator(FilterElement<RecurringJob> filter, int pageSize)
-		{
-			var pageNumber = 0;
-			var domFilter = filterTranslator.TranslateFilter(filter);
-			var pages = PlanApi.DomHelpers.SlcWorkflowHelper.GetRecurringJobsPaged(domFilter, pageSize);
-			var enumerator = pages.GetEnumerator();
-			var hasNext = enumerator.MoveNext();
-
-			while (hasNext)
-			{
-				var page = enumerator.Current;
-				hasNext = enumerator.MoveNext();
-				yield return new PagedResult<RecurringJob>(page.Select(x => new RecurringJob(PlanApi, x)), pageNumber++, pageSize, hasNext);
-			}
-		}
-
 		public IReadOnlyCollection<RecurringJob> Update(IEnumerable<RecurringJob> oToUpdate)
 		{
 			if (oToUpdate == null)
@@ -537,6 +469,73 @@
 			}
 
 			return new RecurringJob(PlanApi, result.SuccessfulItems.Single());
+		}
+
+		public RecurringJob UpdateProcessState(Guid recurringJobId, RecurringJobProcessState processState)
+		{
+			var recurringJob = Read(recurringJobId);
+			if (recurringJob == null)
+			{
+				return null;
+			}
+
+			return UpdateProcessState(recurringJob, processState);
+		}
+
+		public RecurringJob UpdateProcessState(RecurringJob recurringJob, RecurringJobProcessState processState)
+		{
+			if (recurringJob == null)
+			{
+				throw new ArgumentNullException(nameof(recurringJob));
+			}
+
+			if (!DomRecurringJobHandler.TryUpdateProcessState(PlanApi, [(recurringJob, processState)], out var result))
+			{
+				result.ThrowSingleException(recurringJob.Id);
+			}
+
+			return new RecurringJob(PlanApi, result.SuccessfulItems.Single());
+		}
+		private IEnumerable<SDM.IPagedResult<RecurringJob>> ReadPagedIterator(IQuery<RecurringJob> query, int pageSize)
+		{
+			var pageNumber = 0;
+			var pages = PlanApi.DomHelpers.SlcWorkflowHelper.GetRecurringJobsPaged(TranslateToDomQuery(query), pageSize);
+			var enumerator = pages.GetEnumerator();
+			var hasNext = enumerator.MoveNext();
+
+			while (hasNext)
+			{
+				var page = enumerator.Current;
+				hasNext = enumerator.MoveNext();
+				yield return new PagedResult<RecurringJob>(page.Select(x => new RecurringJob(PlanApi, x)), pageNumber++, pageSize, hasNext);
+			}
+		}
+
+		private IEnumerable<SDM.IPagedResult<RecurringJob>> ReadPagedIterator(FilterElement<RecurringJob> filter, int pageSize)
+		{
+			var pageNumber = 0;
+			var domFilter = filterTranslator.TranslateFilter(filter);
+			var pages = PlanApi.DomHelpers.SlcWorkflowHelper.GetRecurringJobsPaged(domFilter, pageSize);
+			var enumerator = pages.GetEnumerator();
+			var hasNext = enumerator.MoveNext();
+
+			while (hasNext)
+			{
+				var page = enumerator.Current;
+				hasNext = enumerator.MoveNext();
+				yield return new PagedResult<RecurringJob>(page.Select(x => new RecurringJob(PlanApi, x)), pageNumber++, pageSize, hasNext);
+			}
+		}
+
+		private IQuery<DomInstance> TranslateToDomQuery(IQuery<RecurringJob> query)
+		{
+			var domFilter = filterTranslator.TranslateFilter(query.Filter);
+			var domOrderBy = filterTranslator.TranslateFullOrderBy(query.Order);
+
+			return query
+				.WithFilter(domFilter)
+				.WithOrder(domOrderBy)
+				.WithLimit(query.Limit);
 		}
 	}
 }

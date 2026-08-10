@@ -11,19 +11,14 @@
 	{
 		protected abstract FilterElement<Net.Profiles.Parameter> ParameterTypeFilter { get; }
 
+		public override FilterElement<Net.Profiles.Parameter> TranslateFilter(FilterElement<T> filter)
+		{
+			return base.TranslateFilter(filter).AND(ParameterTypeFilter);
+		}
+
 		protected static FilterElement<Net.Profiles.Parameter> HandleGuid(Comparer comparer, object value)
 		{
 			return FilterElementFactory.Create(ParameterExposers.ID, comparer, (Guid)value);
-		}
-
-		protected static FilterElement<Net.Profiles.Parameter> HandleName(Comparer comparer, object value)
-		{
-			return FilterElementFactory.Create(ParameterExposers.Name, comparer, (string)value);
-		}
-
-		protected static FilterElement<Net.Profiles.Parameter> HandleIsMandatory(Comparer comparer, object value)
-		{
-			return FilterElementFactory.Create(ParameterExposers.IsOptional, comparer, !(bool)value);
 		}
 
 		protected static IOrderByElement HandleGuid(SortOrder sortOrder, bool naturalSort)
@@ -31,9 +26,9 @@
 			return OrderByElementFactory.Create(ParameterExposers.ID, sortOrder, naturalSort);
 		}
 
-		protected static IOrderByElement HandleName(SortOrder sortOrder, bool naturalSort)
+		protected static FilterElement<Net.Profiles.Parameter> HandleIsMandatory(Comparer comparer, object value)
 		{
-			return OrderByElementFactory.Create(ParameterExposers.Name, sortOrder, naturalSort);
+			return FilterElementFactory.Create(ParameterExposers.IsOptional, comparer, !(bool)value);
 		}
 
 		protected static IOrderByElement HandleIsMandatory(SortOrder sortOrder, bool naturalSort)
@@ -42,6 +37,14 @@
 			return OrderByElementFactory.Create(ParameterExposers.IsOptional, InvertSortOrder(sortOrder), naturalSort);
 		}
 
+		protected static FilterElement<Net.Profiles.Parameter> HandleName(Comparer comparer, object value)
+		{
+			return FilterElementFactory.Create(ParameterExposers.Name, comparer, (string)value);
+		}
+		protected static IOrderByElement HandleName(SortOrder sortOrder, bool naturalSort)
+		{
+			return OrderByElementFactory.Create(ParameterExposers.Name, sortOrder, naturalSort);
+		}
 		private static SortOrder InvertSortOrder(SortOrder sortOrder)
 		{
 			switch (sortOrder)
@@ -53,11 +56,6 @@
 				default:
 					return sortOrder;
 			}
-		}
-
-		public override FilterElement<Net.Profiles.Parameter> TranslateFilter(FilterElement<T> filter)
-		{
-			return base.TranslateFilter(filter).AND(ParameterTypeFilter);
 		}
 	}
 }
