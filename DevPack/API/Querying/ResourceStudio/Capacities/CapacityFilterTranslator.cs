@@ -8,6 +8,8 @@
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API.Querying;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
 
+	using SLDataGateway.API.Types.Querying;
+
 	internal class CapacityFilterTranslator : ParameterFilterTranslator<Capacity>
 	{
 		private readonly Dictionary<string, Func<Comparer, object, FilterElement<Net.Profiles.Parameter>>> handlers = new Dictionary<string, Func<Comparer, object, FilterElement<Net.Profiles.Parameter>>>
@@ -27,7 +29,21 @@
 			[CapacityExposers.HasDecimals.fieldName] = (comparer, value) => HandleHasValue(ParameterExposers.Decimals, comparer, (bool)value, int.MaxValue),
 		};
 
-		protected override Dictionary<string, Func<Comparer, object, FilterElement<Net.Profiles.Parameter>>> Handlers => handlers;
+		private readonly Dictionary<string, Func<SortOrder, bool, IOrderByElement>> orderByHandlers = new Dictionary<string, Func<SortOrder, bool, IOrderByElement>>
+		{
+			[CapacityExposers.Id.fieldName] = HandleGuid,
+			[CapacityExposers.Name.fieldName] = HandleName,
+			[CapacityExposers.IsMandatory.fieldName] = HandleIsMandatory,
+			[CapacityExposers.Units.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(ParameterExposers.Units, sortOrder, naturalSort),
+			[CapacityExposers.RangeMin.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(ParameterExposers.RangeMin, sortOrder, naturalSort),
+			[CapacityExposers.RangeMax.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(ParameterExposers.RangeMax, sortOrder, naturalSort),
+			[CapacityExposers.StepSize.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(ParameterExposers.Stepsize, sortOrder, naturalSort),
+			[CapacityExposers.Decimals.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(ParameterExposers.Decimals, sortOrder, naturalSort),
+		};
+
+		protected override Dictionary<string, Func<Comparer, object, FilterElement<Net.Profiles.Parameter>>> FilterHandlers => handlers;
+
+		protected override Dictionary<string, Func<SortOrder, bool, IOrderByElement>> OrderByHandlers => orderByHandlers;
 
 		protected override FilterElement<Net.Profiles.Parameter> ParameterTypeFilter => ProfileProvider.AllCapacitiesFilter;
 

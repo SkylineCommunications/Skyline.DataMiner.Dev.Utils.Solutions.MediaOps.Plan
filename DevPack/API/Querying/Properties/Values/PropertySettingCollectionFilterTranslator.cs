@@ -8,6 +8,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API.Querying;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcProperties;
 
+	using SLDataGateway.API.Types.Querying;
+
 	internal class PropertySettingCollectionFilterTranslator : DomInstanceFilterTranslator<PropertySettingCollection>
 	{
 		private readonly FilterElement<DomInstance> propertySettingsDomDefinitionFilter = DomInstanceExposers.DomDefinitionId.Equal(SlcPropertiesIds.Definitions.PropertyValues.Id);
@@ -20,8 +22,18 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			[PropertySettingCollectionExposers.PropertySettings.PropertyId.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcPropertiesIds.Sections.PropertyValue.PropertyID), comparer, (Guid)value),
 		};
 
-		protected override Dictionary<string, Func<Comparer, object, FilterElement<DomInstance>>> Handlers => handlers;
+		private readonly Dictionary<string, Func<SortOrder, bool, IOrderByElement>> orderByHandlers = new Dictionary<string, Func<SortOrder, bool, IOrderByElement>>
+		{
+			[PropertySettingCollectionExposers.Id.fieldName] = HandleGuid,
+			[PropertySettingCollectionExposers.LinkedObjectId.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcPropertiesIds.Sections.PropertyValueInfo.LinkedObjectID), sortOrder, naturalSort),
+			[PropertySettingCollectionExposers.Scope.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcPropertiesIds.Sections.PropertyValueInfo.Scope), sortOrder, naturalSort),
+			[PropertySettingCollectionExposers.SubId.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcPropertiesIds.Sections.PropertyValueInfo.SubID), sortOrder, naturalSort),
+		};
+
+		protected override Dictionary<string, Func<Comparer, object, FilterElement<DomInstance>>> FilterHandlers => handlers;
 
 		protected override FilterElement<DomInstance> DomDefinitionFilter => propertySettingsDomDefinitionFilter;
+
+		protected override Dictionary<string, Func<SortOrder, bool, IOrderByElement>> OrderByHandlers => orderByHandlers;
 	}
 }

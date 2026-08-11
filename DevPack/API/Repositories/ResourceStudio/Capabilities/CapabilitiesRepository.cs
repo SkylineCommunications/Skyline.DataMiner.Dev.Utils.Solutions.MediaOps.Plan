@@ -45,6 +45,11 @@
 		/// <returns>The count of capabilities matching the filter.</returns>
 		public long Count(FilterElement<Capability> filter)
 		{
+			if (filter == null)
+			{
+				throw new ArgumentNullException(nameof(filter));
+			}
+
 			if (filter.isEmpty())
 			{
 				return 0;
@@ -52,7 +57,7 @@
 
 			return ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Count), act =>
 			{
-				var paramFilter = filterTranslator.Translate(filter);
+				var paramFilter = filterTranslator.TranslateFilter(filter);
 				return PlanApi.CoreHelpers.ProfileProvider.CountCapabilities(paramFilter);
 			});
 		}
@@ -64,7 +69,17 @@
 		/// <returns>The count of capabilities matching the query.</returns>
 		public long Count(IQuery<Capability> query)
 		{
-			return Count(query.Filter);
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			if (query.Filter.isEmpty())
+			{
+				return 0;
+			}
+
+			return PlanApi.CoreHelpers.ProfileProvider.CountCapabilities(TranslateToParameterQuery(query));
 		}
 
 		/// <summary>
@@ -310,7 +325,7 @@
 
 			return ActivityHelper.Track(nameof(CapabilitiesRepository), nameof(Read), act =>
 			{
-				var paramFilter = filterTranslator.Translate(filter);
+				var paramFilter = filterTranslator.TranslateFilter(filter);
 				return PlanApi.CoreHelpers.ProfileProvider.GetCapabilities(paramFilter).Select(x => new Capability(x));
 			});
 		}
@@ -322,7 +337,17 @@
 		/// <returns>An enumerable collection of capabilities matching the query.</returns>
 		public IEnumerable<Capability> Read(IQuery<Capability> query)
 		{
-			return Read(query.Filter);
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			if (query.Filter.isEmpty())
+			{
+				return Enumerable.Empty<Capability>();
+			}
+
+			return PlanApi.CoreHelpers.ProfileProvider.GetCapabilities(TranslateToParameterQuery(query)).Select(x => new Capability(x));
 		}
 
 		/// <summary>
@@ -351,7 +376,12 @@
 		/// <returns>An enumerable collection of pages, where each page contains capabilities matching the query.</returns>
 		public IEnumerable<IPagedResult<Capability>> ReadPaged(IQuery<Capability> query)
 		{
-			return ReadPaged(query.Filter);
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			return ReadPaged(query, MediaOpsPlanApi.DefaultPageSize);
 		}
 
 		/// <summary>
@@ -383,7 +413,22 @@
 		/// <returns>An enumerable collection of pages, where each page contains up to the specified number of capabilities matching the query.</returns>
 		public IEnumerable<IPagedResult<Capability>> ReadPaged(IQuery<Capability> query, int pageSize)
 		{
-			return ReadPaged(query.Filter, pageSize);
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			if (pageSize <= 0)
+			{
+				throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size must be greater than zero.");
+			}
+
+			if (query.Filter.isEmpty())
+			{
+				return Enumerable.Empty<IPagedResult<Capability>>();
+			}
+
+			return ReadPagedIterator(query, pageSize);
 		}
 
 		/// <summary>
@@ -469,7 +514,7 @@
 		private IEnumerable<IPagedResult<Capability>> ReadPagedIterator(FilterElement<Capability> filter, int pageSize)
 		{
 			var pageNumber = 0;
-			var paramFilter = filterTranslator.Translate(filter);
+			var paramFilter = filterTranslator.TranslateFilter(filter);
 			var items = PlanApi.CoreHelpers.ProfileProvider.GetCapabilitiesPaged(paramFilter, pageSize);
 			var enumerator = items.GetEnumerator();
 			var hasNext = enumerator.MoveNext();
@@ -480,6 +525,32 @@
 				hasNext = enumerator.MoveNext();
 				yield return new PagedResult<Capability>(page.Select(x => new Capability(x)), pageNumber++, pageSize, hasNext);
 			}
+		}
+
+		private IEnumerable<IPagedResult<Capability>> ReadPagedIterator(IQuery<Capability> query, int pageSize)
+		{
+			var pageNumber = 0;
+			var items = PlanApi.CoreHelpers.ProfileProvider.GetCapabilitiesPaged(TranslateToParameterQuery(query), pageSize);
+			var enumerator = items.GetEnumerator();
+			var hasNext = enumerator.MoveNext();
+
+			while (hasNext)
+			{
+				var page = enumerator.Current;
+				hasNext = enumerator.MoveNext();
+				yield return new PagedResult<Capability>(page.Select(x => new Capability(x)), pageNumber++, pageSize, hasNext);
+			}
+		}
+
+		private IQuery<Net.Profiles.Parameter> TranslateToParameterQuery(IQuery<Capability> query)
+		{
+			var paramFilter = filterTranslator.TranslateFilter(query.Filter);
+			var paramOrderBy = filterTranslator.TranslateFullOrderBy(query.Order);
+
+			return query
+				.WithFilter(paramFilter)
+				.WithOrder(paramOrderBy)
+				.WithLimit(query.Limit);
 		}
 	}
 }

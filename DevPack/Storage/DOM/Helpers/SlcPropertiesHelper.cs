@@ -10,6 +10,8 @@
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcProperties;
 	using Skyline.DataMiner.Utils.DOM.Extensions;
 
+	using SLDataGateway.API.Types.Querying;
+
 	internal class SlcPropertiesHelper : DomModuleHelperBase
 	{
 		public SlcPropertiesHelper(IConnection connection) : base(SlcPropertiesIds.ModuleId, connection)
@@ -24,6 +26,16 @@
 			}
 
 			return DomHelper.DomInstances.Count(filter);
+		}
+
+		public long CountPropertiesInstances(IQuery<DomInstance> query)
+		{
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			return DomHelper.DomInstances.Count(query);
 		}
 
 		public IEnumerable<DomInstance> GetPropertiesInstances(IEnumerable<Guid> ids)
@@ -76,6 +88,16 @@
 			return GetPropertyIterator(filter);
 		}
 
+		public IEnumerable<PropertyInstance> GetProperties(IQuery<DomInstance> query)
+		{
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			return GetPropertyIterator(query);
+		}
+
 		public IEnumerable<PropertyInstance> GetProperties<T>(IEnumerable<T> values, Func<T, FilterElement<DomInstance>> filter)
 		{
 			if (values == null)
@@ -126,6 +148,16 @@
 			return GetPropertyValueIterator(filter);
 		}
 
+		public IEnumerable<PropertyValuesInstance> GetPropertyValues(IQuery<DomInstance> query)
+		{
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			return GetPropertyValueIterator(query);
+		}
+
 		internal IEnumerable<IEnumerable<PropertyInstance>> GetPropertiesPaged(FilterElement<DomInstance> paramFilter, int pageSize)
 		{
 			if (paramFilter == null)
@@ -139,6 +171,22 @@
 			}
 
 			var pages = DomHelper.DomInstances.ReadPaged(paramFilter, pageSize);
+			return InstanceFactory.CreateInstances(pages, instance => new PropertyInstance(instance));
+		}
+
+		internal IEnumerable<IEnumerable<PropertyInstance>> GetPropertiesPaged(IQuery<DomInstance> query, int pageSize)
+		{
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			if (pageSize <= 0)
+			{
+				throw new ArgumentOutOfRangeException(nameof(pageSize));
+			}
+
+			var pages = DomHelper.DomInstances.ReadPaged(query, pageSize);
 			return InstanceFactory.CreateInstances(pages, instance => new PropertyInstance(instance));
 		}
 
@@ -158,14 +206,40 @@
 			return InstanceFactory.CreateInstances(pages, instance => new PropertyValuesInstance(instance));
 		}
 
+		internal IEnumerable<IEnumerable<PropertyValuesInstance>> GetPropertyValuesPaged(IQuery<DomInstance> query, int pageSize)
+		{
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			if (pageSize <= 0)
+			{
+				throw new ArgumentOutOfRangeException(nameof(pageSize));
+			}
+
+			var pages = DomHelper.DomInstances.ReadPaged(query, pageSize);
+			return InstanceFactory.CreateInstances(pages, instance => new PropertyValuesInstance(instance));
+		}
+
 		private IEnumerable<PropertyInstance> GetPropertyIterator(FilterElement<DomInstance> filter)
 		{
 			return InstanceFactory.ReadAndCreateInstances(DomHelper, filter, instance => new PropertyInstance(instance));
 		}
 
+		private IEnumerable<PropertyInstance> GetPropertyIterator(IQuery<DomInstance> query)
+		{
+			return InstanceFactory.ReadAndCreateInstances(DomHelper, query, instance => new PropertyInstance(instance));
+		}
+
 		private IEnumerable<PropertyValuesInstance> GetPropertyValueIterator(FilterElement<DomInstance> filter)
 		{
 			return InstanceFactory.ReadAndCreateInstances(DomHelper, filter, instance => new PropertyValuesInstance(instance));
+		}
+
+		private IEnumerable<PropertyValuesInstance> GetPropertyValueIterator(IQuery<DomInstance> query)
+		{
+			return InstanceFactory.ReadAndCreateInstances(DomHelper, query, instance => new PropertyValuesInstance(instance));
 		}
 	}
 }
