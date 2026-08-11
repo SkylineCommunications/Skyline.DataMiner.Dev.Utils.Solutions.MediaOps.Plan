@@ -10,17 +10,20 @@
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API.Querying;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow;
 
+	using SLDataGateway.API.Types.Querying;
+
 	internal class JobFilterTranslator : DomInstanceFilterTranslator<Job>
 	{
 		private readonly MediaOpsPlanApi planApi;
 		private readonly FilterElement<DomInstance> jobsDomDefinitionFilter = DomInstanceExposers.DomDefinitionId.Equal(SlcWorkflowIds.Definitions.Jobs.Id);
-		private readonly Dictionary<string, Func<Comparer, object, FilterElement<DomInstance>>> handlers;
+		private readonly Dictionary<string, Func<Comparer, object, FilterElement<DomInstance>>> filterHandlers;
+		private readonly Dictionary<string, Func<SortOrder, bool, IOrderByElement>> orderByHandlers;
 
 		public JobFilterTranslator(MediaOpsPlanApi planApi)
 		{
 			this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
 
-			handlers = new Dictionary<string, Func<Comparer, object, FilterElement<DomInstance>>>
+			filterHandlers = new Dictionary<string, Func<Comparer, object, FilterElement<DomInstance>>>
 			{
 				[JobExposers.Id.fieldName] = HandleGuid,
 				[JobExposers.Name.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.JobName), comparer, (string)value),
@@ -43,11 +46,32 @@
 				[JobExposers.Configurations.ConfigurationId.fieldName] = (comparer, value) => CreateOrchestrationSettingsFilter(SlcWorkflowIds.Sections.ProfileParameterValues.ProfileParameterID, comparer, Convert.ToString(value)),
 				[JobExposers.Properties.PropertyId.fieldName] = (comparer, value) => CreatePropertySettingsFilter(comparer, (Guid)value),
 			};
+
+			orderByHandlers = new Dictionary<string, Func<SortOrder, bool, IOrderByElement>>
+			{
+				[JobExposers.Id.fieldName] = HandleGuid,
+				[JobExposers.Name.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.JobName), sortOrder, naturalSort),
+				[JobExposers.Key.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.JobID), sortOrder, naturalSort),
+				[JobExposers.Description.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.JobDescription), sortOrder, naturalSort),
+				[JobExposers.Notes.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.JobNotes), sortOrder, naturalSort),
+				[JobExposers.Start.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.JobStart), sortOrder, naturalSort),
+				[JobExposers.End.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.JobEnd), sortOrder, naturalSort),
+				[JobExposers.PreRollStart.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.Preroll), sortOrder, naturalSort),
+				[JobExposers.PostRollEnd.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.Postroll), sortOrder, naturalSort),
+				[JobExposers.RecurringJobId.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.JobSeriesID), sortOrder, naturalSort),
+				[JobExposers.JobTypeCategoryId.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.JobSource), sortOrder, naturalSort),
+				[JobExposers.Priority.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.JobPriority), sortOrder, naturalSort),
+				[JobExposers.State.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.StatusId, sortOrder, naturalSort),
+				[JobExposers.OrganizationId.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.CostingAndBilling.Organization), sortOrder, naturalSort),
+				[JobExposers.OwnerId.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.CostingAndBilling.JobOwner), sortOrder, naturalSort),
+			};
 		}
 
 		protected override FilterElement<DomInstance> DomDefinitionFilter => jobsDomDefinitionFilter;
 
-		protected override Dictionary<string, Func<Comparer, object, FilterElement<DomInstance>>> Handlers => handlers;
+		protected override Dictionary<string, Func<Comparer, object, FilterElement<DomInstance>>> FilterHandlers => filterHandlers;
+
+		protected override Dictionary<string, Func<SortOrder, bool, IOrderByElement>> OrderByHandlers => orderByHandlers;
 
 		/// <summary>
 		/// Creates a filter on the orchestration settings of a job. Since the orchestration settings are stored in a

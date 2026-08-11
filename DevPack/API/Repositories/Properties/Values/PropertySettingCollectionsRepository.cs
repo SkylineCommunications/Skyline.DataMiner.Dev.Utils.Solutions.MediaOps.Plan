@@ -44,12 +44,17 @@
 		/// <returns>The count of property collections matching the filter.</returns>
 		public long Count(FilterElement<PropertySettingCollection> filter)
 		{
+			if (filter == null)
+			{
+				throw new ArgumentNullException(nameof(filter));
+			}
+
 			if (filter.isEmpty())
 			{
 				return 0;
 			}
 
-			return PlanApi.DomHelpers.SlcPropertiesHelper.CountPropertiesInstances(filterTranslator.Translate(filter));
+			return PlanApi.DomHelpers.SlcPropertiesHelper.CountPropertiesInstances(filterTranslator.TranslateFilter(filter));
 		}
 
 		/// <summary>
@@ -59,7 +64,17 @@
 		/// <returns>The count of property collections matching the query.</returns>
 		public long Count(IQuery<PropertySettingCollection> query)
 		{
-			return Count(query.Filter);
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			if (query.Filter.isEmpty())
+			{
+				return 0;
+			}
+
+			return PlanApi.DomHelpers.SlcPropertiesHelper.CountPropertiesInstances(TranslateToDomQuery(query));
 		}
 
 		/// <summary>
@@ -326,7 +341,7 @@
 
 			return ActivityHelper.Track(nameof(PropertySettingCollectionsRepository), nameof(Read), act =>
 			{
-				var instances = PlanApi.DomHelpers.SlcPropertiesHelper.GetPropertyValues(filterTranslator.Translate(filter));
+				var instances = PlanApi.DomHelpers.SlcPropertiesHelper.GetPropertyValues(filterTranslator.TranslateFilter(filter));
 				return instances.Select(x => new PropertySettingCollection(PlanApi, x));
 			});
 		}
@@ -343,7 +358,13 @@
 				throw new ArgumentNullException(nameof(query));
 			}
 
-			return Read(query.Filter);
+			if (query.Filter.isEmpty())
+			{
+				return Enumerable.Empty<PropertySettingCollection>();
+			}
+
+			var instances = PlanApi.DomHelpers.SlcPropertiesHelper.GetPropertyValues(TranslateToDomQuery(query));
+			return instances.Select(x => new PropertySettingCollection(PlanApi, x));
 		}
 
 		/// <summary>
@@ -372,7 +393,12 @@
 		/// <returns>An enumerable collection of pages, where each page contains property collections matching the query.</returns>
 		public IEnumerable<IPagedResult<PropertySettingCollection>> ReadPaged(IQuery<PropertySettingCollection> query)
 		{
-			return ReadPaged(query.Filter);
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			return ReadPaged(query, MediaOpsPlanApi.DefaultPageSize);
 		}
 
 		/// <summary>
@@ -404,7 +430,22 @@
 		/// <returns>An enumerable collection of pages, where each page contains up to the specified number of property collections matching the query.</returns>
 		public IEnumerable<IPagedResult<PropertySettingCollection>> ReadPaged(IQuery<PropertySettingCollection> query, int pageSize)
 		{
-			return ReadPaged(query.Filter, pageSize);
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			if (pageSize <= 0)
+			{
+				throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size must be greater than zero.");
+			}
+
+			if (query.Filter.isEmpty())
+			{
+				return Enumerable.Empty<IPagedResult<PropertySettingCollection>>();
+			}
+
+			return ReadPagedIterator(query, pageSize);
 		}
 
 		/// <summary>
@@ -492,7 +533,7 @@
 		private IEnumerable<IPagedResult<PropertySettingCollection>> ReadPagedIterator(FilterElement<PropertySettingCollection> filter, int pageSize)
 		{
 			var pageNumber = 0;
-			var paramFilter = filterTranslator.Translate(filter);
+			var paramFilter = filterTranslator.TranslateFilter(filter);
 			var items = PlanApi.DomHelpers.SlcPropertiesHelper.GetPropertyValuesPaged(paramFilter, pageSize);
 			var enumerator = items.GetEnumerator();
 			var hasNext = enumerator.MoveNext();
@@ -503,6 +544,32 @@
 				hasNext = enumerator.MoveNext();
 				yield return new PagedResult<PropertySettingCollection>(page.Select(x => new PropertySettingCollection(PlanApi, x)), pageNumber++, pageSize, hasNext);
 			}
+		}
+
+		private IEnumerable<IPagedResult<PropertySettingCollection>> ReadPagedIterator(IQuery<PropertySettingCollection> query, int pageSize)
+		{
+			var pageNumber = 0;
+			var items = PlanApi.DomHelpers.SlcPropertiesHelper.GetPropertyValuesPaged(TranslateToDomQuery(query), pageSize);
+			var enumerator = items.GetEnumerator();
+			var hasNext = enumerator.MoveNext();
+
+			while (hasNext)
+			{
+				var page = enumerator.Current;
+				hasNext = enumerator.MoveNext();
+				yield return new PagedResult<PropertySettingCollection>(page.Select(x => new PropertySettingCollection(PlanApi, x)), pageNumber++, pageSize, hasNext);
+			}
+		}
+
+		private IQuery<DomInstance> TranslateToDomQuery(IQuery<PropertySettingCollection> query)
+		{
+			var domFilter = filterTranslator.TranslateFilter(query.Filter);
+			var domOrderBy = filterTranslator.TranslateFullOrderBy(query.Order);
+
+			return query
+				.WithFilter(domFilter)
+				.WithOrder(domOrderBy)
+				.WithLimit(query.Limit);
 		}
 	}
 }

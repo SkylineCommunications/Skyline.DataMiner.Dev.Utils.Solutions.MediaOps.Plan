@@ -139,6 +139,21 @@ api.Resources.Delete(resource.Id);
 
 // Delete multiple resources
 api.Resources.Delete(new[] { id1, id2, id3 });
+
+// Get the resources that are eligible for a time range, with the required capabilities and capacities
+var eligibleResources = api.Resources.GetEligibleResources(new EligibleResourcesContext(DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddHours(1))
+{
+    CapabilitySettings = new[] { new CapabilitySetting(capabilityId) { Value = "4K" } },
+    CapacitySettings = new CapacitySetting[] { new NumberCapacitySetting(capacityId) { Value = 10 } },
+});
+
+// Restrict the eligible resources with a filter
+var eligibleResourcesInPool = api.Resources.GetEligibleResources(new EligibleResourcesContext(DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddHours(1))
+{
+    CapabilitySettings = new[] { new CapabilitySetting(capabilityId) { Value = "4K" } },
+    CapacitySettings = new CapacitySetting[] { new NumberCapacitySetting(capacityId) { Value = 10 } },
+    Filter = ResourceExposers.ResourcePoolIds.Contains(poolId),
+});
 ```
 
 ### Resource Pools
@@ -462,6 +477,11 @@ api.Jobs.SetOrchestrationState(jobId, new OrchestrationUpdateDetails
     EventState = OrchestrationEventState.Succeeded,
     Message = "Preroll started successfully",
 });
+
+// Assign a resource to every node of a job that only has a resource pool assigned. Every node gets an
+// eligible resource of its pool for its own time range; resources already assigned to the job are skipped.
+job.AssignEligibleResources(api);
+job = api.Jobs.Update(job);
 ```
 
 ## Delete with Options

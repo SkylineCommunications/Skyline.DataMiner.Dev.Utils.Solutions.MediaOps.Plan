@@ -4,6 +4,7 @@
 	using System.Collections.Generic;
 	using System.Linq;
 
+	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
 
@@ -81,18 +82,33 @@
 
 		public long Count(FilterElement<Workflow> filter)
 		{
+			if (filter == null)
+			{
+				throw new ArgumentNullException(nameof(filter));
+			}
+
 			if (filter.isEmpty())
 			{
 				return 0;
 			}
 
-			var domFilter = filterTranslator.Translate(filter);
+			var domFilter = filterTranslator.TranslateFilter(filter);
 			return PlanApi.DomHelpers.SlcWorkflowHelper.CountWorkflowInstances(domFilter);
 		}
 
 		public long Count(IQuery<Workflow> query)
 		{
-			return Count(query.Filter);
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			if (query.Filter.isEmpty())
+			{
+				return 0;
+			}
+
+			return PlanApi.DomHelpers.SlcWorkflowHelper.CountWorkflowInstances(TranslateToDomQuery(query));
 		}
 
 		public IReadOnlyCollection<Workflow> Create(IEnumerable<Workflow> oToCreate)
@@ -218,7 +234,7 @@
 
 			return ActivityHelper.Track(nameof(WorkflowsRepository), nameof(Read), act =>
 			{
-				var domFilter = filterTranslator.Translate(filter);
+				var domFilter = filterTranslator.TranslateFilter(filter);
 				IEnumerable<Workflow> Iterator()
 				{
 					foreach (var domWorkflow in PlanApi.DomHelpers.SlcWorkflowHelper.GetWorkflows(domFilter))
@@ -238,7 +254,22 @@
 				throw new ArgumentNullException(nameof(query));
 			}
 
-			return Read(query.Filter);
+			if (query.Filter.isEmpty())
+			{
+				return Enumerable.Empty<Workflow>();
+			}
+
+			var domQuery = TranslateToDomQuery(query);
+
+			IEnumerable<Workflow> Iterator()
+			{
+				foreach (var domWorkflow in PlanApi.DomHelpers.SlcWorkflowHelper.GetWorkflows(domQuery))
+				{
+					yield return new Workflow(PlanApi, domWorkflow);
+				}
+			}
+
+			return Iterator();
 		}
 
 		public IEnumerable<Workflow> Read()
@@ -306,7 +337,7 @@
 				throw new ArgumentNullException(nameof(query));
 			}
 
-			return ReadPaged(query.Filter);
+			return ReadPaged(query, MediaOpsPlanApi.DefaultPageSize);
 		}
 
 		public IEnumerable<SDM.IPagedResult<Workflow>> ReadPaged(FilterElement<Workflow> filter, int pageSize)
@@ -336,23 +367,17 @@
 				throw new ArgumentNullException(nameof(query));
 			}
 
-			return ReadPaged(query.Filter, pageSize);
-		}
-
-		private IEnumerable<SDM.IPagedResult<Workflow>> ReadPagedIterator(FilterElement<Workflow> filter, int pageSize)
-		{
-			var pageNumber = 0;
-			var domFilter = filterTranslator.Translate(filter);
-			var pages = PlanApi.DomHelpers.SlcWorkflowHelper.GetWorkflowsPaged(domFilter, pageSize);
-			var enumerator = pages.GetEnumerator();
-			var hasNext = enumerator.MoveNext();
-
-			while (hasNext)
+			if (pageSize <= 0)
 			{
-				var page = enumerator.Current;
-				hasNext = enumerator.MoveNext();
-				yield return new PagedResult<Workflow>(page.Select(x => new Workflow(PlanApi, x)), pageNumber++, pageSize, hasNext);
+				throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size must be greater than zero.");
 			}
+
+			if (query.Filter.isEmpty())
+			{
+				return Enumerable.Empty<SDM.IPagedResult<Workflow>>();
+			}
+
+			return ReadPagedIterator(query, pageSize);
 		}
 
 		public IReadOnlyCollection<Workflow> Update(IEnumerable<Workflow> oToUpdate)
@@ -396,6 +421,48 @@
 			}
 
 			return new Workflow(PlanApi, result.SuccessfulItems.Single());
+		}
+
+		private IEnumerable<SDM.IPagedResult<Workflow>> ReadPagedIterator(IQuery<Workflow> query, int pageSize)
+		{
+			var pageNumber = 0;
+			var pages = PlanApi.DomHelpers.SlcWorkflowHelper.GetWorkflowsPaged(TranslateToDomQuery(query), pageSize);
+			var enumerator = pages.GetEnumerator();
+			var hasNext = enumerator.MoveNext();
+
+			while (hasNext)
+			{
+				var page = enumerator.Current;
+				hasNext = enumerator.MoveNext();
+				yield return new PagedResult<Workflow>(page.Select(x => new Workflow(PlanApi, x)), pageNumber++, pageSize, hasNext);
+			}
+		}
+
+		private IEnumerable<SDM.IPagedResult<Workflow>> ReadPagedIterator(FilterElement<Workflow> filter, int pageSize)
+		{
+			var pageNumber = 0;
+			var domFilter = filterTranslator.TranslateFilter(filter);
+			var pages = PlanApi.DomHelpers.SlcWorkflowHelper.GetWorkflowsPaged(domFilter, pageSize);
+			var enumerator = pages.GetEnumerator();
+			var hasNext = enumerator.MoveNext();
+
+			while (hasNext)
+			{
+				var page = enumerator.Current;
+				hasNext = enumerator.MoveNext();
+				yield return new PagedResult<Workflow>(page.Select(x => new Workflow(PlanApi, x)), pageNumber++, pageSize, hasNext);
+			}
+		}
+
+		private IQuery<DomInstance> TranslateToDomQuery(IQuery<Workflow> query)
+		{
+			var domFilter = filterTranslator.TranslateFilter(query.Filter);
+			var domOrderBy = filterTranslator.TranslateFullOrderBy(query.Order);
+
+			return query
+				.WithFilter(domFilter)
+				.WithOrder(domOrderBy)
+				.WithLimit(query.Limit);
 		}
 	}
 }

@@ -306,12 +306,17 @@
 		/// <returns>The count of resources matching the filter.</returns>
 		public long Count(FilterElement<Resource> filter)
 		{
+			if (filter == null)
+			{
+				throw new ArgumentNullException(nameof(filter));
+			}
+
 			if (filter.isEmpty())
 			{
 				return 0;
 			}
 
-			var domFilter = filterTranslator.Translate(filter);
+			var domFilter = filterTranslator.TranslateFilter(filter);
 			return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(domFilter);
 		}
 
@@ -322,7 +327,17 @@
 		/// <returns>The count of resources matching the query.</returns>
 		public long Count(IQuery<Resource> query)
 		{
-			return Count(query.Filter);
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			if (query.Filter.isEmpty())
+			{
+				return 0;
+			}
+
+			return PlanApi.DomHelpers.SlcResourceStudioHelper.CountResourceStudioInstances(TranslateToDomQuery(query));
 		}
 
 		/// <summary>
@@ -596,6 +611,30 @@
 		}
 
 		/// <summary>
+		/// Retrieves the resources that are eligible for the specified context.
+		/// </summary>
+		/// <param name="context">The context describing the time range, capabilities, capacities and filter of the eligibility request.</param>
+		/// <returns>A collection containing the eligible resources.</returns>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="context"/> is <c>null</c>.</exception>
+		/// <exception cref="MediaOpsException">Thrown when the eligibility request fails.</exception>
+		public ICollection<Resource> GetEligibleResources(EligibleResourcesContext context)
+		{
+			if (context == null)
+			{
+				throw new ArgumentNullException(nameof(context));
+			}
+
+			return ActivityHelper.Track(nameof(ResourcesRepository), nameof(GetEligibleResources), act =>
+			{
+				var resources = CoreEligibleResourceHandler.GetEligibleResources(PlanApi, context);
+
+				act?.AddTag("Eligible Resources Count", resources.Count);
+
+				return resources;
+			});
+		}
+
+		/// <summary>
 		/// Retrieves all resources in the specified resource pool.
 		/// </summary>
 		/// <param name="resourcePool">The resource pool for which to retrieve resources.</param>
@@ -772,7 +811,7 @@
 
 			return ActivityHelper.Track(nameof(ResourcesRepository), nameof(Read), act =>
 			{
-				var domFilter = filterTranslator.Translate(filter);
+				var domFilter = filterTranslator.TranslateFilter(filter);
 				return Resource.InstantiateResources(PlanApi, PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(domFilter));
 			});
 		}
@@ -784,7 +823,17 @@
 		/// <returns>An enumerable collection of resources matching the query.</returns>
 		public IEnumerable<Resource> Read(IQuery<Resource> query)
 		{
-			return Read(query.Filter);
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			if (query.Filter.isEmpty())
+			{
+				return Enumerable.Empty<Resource>();
+			}
+
+			return Resource.InstantiateResources(PlanApi, PlanApi.DomHelpers.SlcResourceStudioHelper.GetResources(TranslateToDomQuery(query)));
 		}
 
 		/// <summary>
@@ -813,7 +862,12 @@
 		/// <returns>An enumerable collection of pages, where each page contains resources matching the query.</returns>
 		public IEnumerable<IPagedResult<Resource>> ReadPaged(IQuery<Resource> query)
 		{
-			return ReadPaged(query.Filter);
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			return ReadPaged(query, MediaOpsPlanApi.DefaultPageSize);
 		}
 
 		/// <summary>
@@ -845,7 +899,22 @@
 		/// <returns>An enumerable collection of pages, where each page contains up to the specified number of resources matching the query.</returns>
 		public IEnumerable<IPagedResult<Resource>> ReadPaged(IQuery<Resource> query, int pageSize)
 		{
-			return ReadPaged(query.Filter, pageSize);
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			if (pageSize <= 0)
+			{
+				throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size must be greater than zero.");
+			}
+
+			if (query.Filter.isEmpty())
+			{
+				return Enumerable.Empty<IPagedResult<Resource>>();
+			}
+
+			return ReadPagedIterator(query, pageSize);
 		}
 
 		/// <summary>
@@ -1190,7 +1259,7 @@
 		private IEnumerable<IPagedResult<Resource>> ReadPagedIterator(FilterElement<Resource> filter, int pageSize)
 		{
 			var pageNumber = 0;
-			var paramFilter = filterTranslator.Translate(filter);
+			var paramFilter = filterTranslator.TranslateFilter(filter);
 			var items = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcesPaged(paramFilter, pageSize);
 			var enumerator = items.GetEnumerator();
 			var hasNext = enumerator.MoveNext();
@@ -1201,6 +1270,32 @@
 				hasNext = enumerator.MoveNext();
 				yield return new PagedResult<Resource>(Resource.InstantiateResources(PlanApi, page), pageNumber++, pageSize, hasNext);
 			}
+		}
+
+		private IEnumerable<IPagedResult<Resource>> ReadPagedIterator(IQuery<Resource> query, int pageSize)
+		{
+			var pageNumber = 0;
+			var items = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcesPaged(TranslateToDomQuery(query), pageSize);
+			var enumerator = items.GetEnumerator();
+			var hasNext = enumerator.MoveNext();
+
+			while (hasNext)
+			{
+				var page = enumerator.Current;
+				hasNext = enumerator.MoveNext();
+				yield return new PagedResult<Resource>(Resource.InstantiateResources(PlanApi, page), pageNumber++, pageSize, hasNext);
+			}
+		}
+
+		private IQuery<DomInstance> TranslateToDomQuery(IQuery<Resource> query)
+		{
+			var domFilter = filterTranslator.TranslateFilter(query.Filter);
+			var domOrderBy = filterTranslator.TranslateFullOrderBy(query.Order);
+
+			return query
+				.WithFilter(domFilter)
+				.WithOrder(domOrderBy)
+				.WithLimit(query.Limit);
 		}
 	}
 }
