@@ -507,6 +507,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 				public static FieldDescriptorID Workflow { get; } = new FieldDescriptorID(new Guid("9d608393-c7f2-4f45-9857-8b18c5f42a47"));
 				public static FieldDescriptorID JobStart { get; } = new FieldDescriptorID(new Guid("eabadf08-89e9-499a-b119-07d76c544a90"));
 				public static FieldDescriptorID JobEnd { get; } = new FieldDescriptorID(new Guid("0d978e1c-dbba-4592-a9b2-32ed65fc7603"));
+				public static FieldDescriptorID JobDuration { get; } = new FieldDescriptorID(new Guid("ba4a0115-dd76-4130-bd75-6cd0181a3b08"));
 				public static FieldDescriptorID ApproxOutDuration { get; } = new FieldDescriptorID(new Guid("79a7943e-5adf-44fa-9984-9f16622ebbb3"));
 				public static FieldDescriptorID ApproxOutTime { get; } = new FieldDescriptorID(new Guid("ea1f069f-7fe7-4ce2-91d3-aca94051f74b"));
 				public static FieldDescriptorID JobPriority { get; } = new FieldDescriptorID(new Guid("7775cd7c-0b56-4878-ad35-a7757d436a32"));
@@ -7968,6 +7969,49 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 			}
 		}
 
+		/// <summary>
+		/// Gets or sets the JobDuration field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public TimeSpan? JobDuration
+		{
+			get
+			{
+				var wrapper = section.GetValue<TimeSpan>(SlcWorkflowIds.Sections.JobInfo.JobDuration);
+				if (wrapper != null)
+				{
+					return (TimeSpan?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcWorkflowIds.Sections.JobInfo.JobDuration);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcWorkflowIds.Sections.JobInfo.JobDuration, (TimeSpan)value);
+				}
+			}
+		}
+
 		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
 		/// Gets the ApproxOutDuration field of the DOM Instance.
@@ -8503,6 +8547,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 				throw new InvalidOperationException("'JobStart' is required. Please fill it in before saving, or mark it as optional with the DOM Editor.");
 			if (section.GetValue<DateTime>(SlcWorkflowIds.Sections.JobInfo.JobEnd) == null)
 				throw new InvalidOperationException("'JobEnd' is required. Please fill it in before saving, or mark it as optional with the DOM Editor.");
+			if (section.GetValue<TimeSpan>(SlcWorkflowIds.Sections.JobInfo.JobDuration) == null)
+				throw new InvalidOperationException("'JobDuration' is required. Please fill it in before saving, or mark it as optional with the DOM Editor.");
 			return section;
 		}
 	}

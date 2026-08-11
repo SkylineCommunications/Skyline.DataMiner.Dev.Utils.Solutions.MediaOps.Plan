@@ -73,6 +73,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 				JobName = "Sample Recurring Job",
 				JobStart = DateTime.UtcNow,
 				JobEnd = DateTime.UtcNow.AddHours(1),
+				JobDuration = TimeSpan.FromHours(1),
 			};
 
 			var recurringJob = new DomInstance
