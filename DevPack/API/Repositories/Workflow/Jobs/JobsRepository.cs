@@ -1024,23 +1024,11 @@
 					errorCode = "LIV104";
 					break;
 				default:
-					break;
+					throw new NotSupportedException($"Unsupported Orchestration Event Type {updateDetails.Event}");
 			}
 
-			var error = job.OriginalInstance.Errors.FirstOrDefault(e => e.ErrorCode == errorCode);
-			if (error == null)
-			{
-				error = new Storage.DOM.SlcWorkflow.ErrorsSection
-				{
-					ErrorCode = errorCode,
-				};
-
-				job.OriginalInstance.Errors.Add(error);
-			}
-
-			error.ErrorMessage = updateDetails.Message;
-
-			job.OriginalInstance.Save(PlanApi.DomHelpers.SlcWorkflowHelper.DomHelper);
+			job.AddError(new JobError(errorCode, updateDetails.Message));
+			PlanApi.Jobs.Update(job);
 		}
 
 		public IReadOnlyCollection<Job> Update(IEnumerable<Job> oToUpdate)
