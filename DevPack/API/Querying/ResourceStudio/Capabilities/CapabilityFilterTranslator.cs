@@ -10,6 +10,8 @@
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API.Querying;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
 
+	using SLDataGateway.API.Types.Querying;
+
 	using static Skyline.DataMiner.Net.Profiles.Parameter;
 
 	internal class CapabilityFilterTranslator : ParameterFilterTranslator<Capability>
@@ -23,7 +25,16 @@
 			[CapabilityExposers.IsTimeDependent.fieldName] = (comparer, value) => IsTimeDependantFilter(comparer, (bool)value),
 		};
 
-		protected override Dictionary<string, Func<Comparer, object, FilterElement<Net.Profiles.Parameter>>> Handlers => handlers;
+		private readonly Dictionary<string, Func<SortOrder, bool, IOrderByElement>> orderByHandlers = new Dictionary<string, Func<SortOrder, bool, IOrderByElement>>
+		{
+			[CapabilityExposers.Id.fieldName] = HandleGuid,
+			[CapabilityExposers.Name.fieldName] = HandleName,
+			[CapabilityExposers.IsMandatory.fieldName] = HandleIsMandatory,
+		};
+
+		protected override Dictionary<string, Func<Comparer, object, FilterElement<Net.Profiles.Parameter>>> FilterHandlers => handlers;
+
+		protected override Dictionary<string, Func<SortOrder, bool, IOrderByElement>> OrderByHandlers => orderByHandlers;
 
 		protected override FilterElement<Net.Profiles.Parameter> ParameterTypeFilter => ProfileProvider.AllCapabilitiesFilter;
 

@@ -9,6 +9,8 @@
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
 
+	using SLDataGateway.API.Types.Querying;
+
 	internal class ResourcePoolPoolFilterTranslator : DomInstanceFilterTranslator<ResourcePool>
 	{
 		private readonly FilterElement<DomInstance> resourcePoolDomDefinitionFilter = DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resourcepool.Id);
@@ -29,9 +31,21 @@
 			[ResourcePoolExposers.HasCategory.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.KeyExists(SlcResource_StudioIds.Sections.ResourcePoolInfo.Category.Id.ToString()), comparer, (bool)value),
 		};
 
-		protected override Dictionary<string, Func<Comparer, object, FilterElement<DomInstance>>> Handlers => handlers;
+		private readonly Dictionary<string, Func<SortOrder, bool, IOrderByElement>> orderByHandlers = new Dictionary<string, Func<SortOrder, bool, IOrderByElement>>
+		{
+			[ResourcePoolExposers.Id.fieldName] = HandleGuid,
+			[ResourcePoolExposers.Name.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourcePoolInfo.Name), sortOrder, naturalSort),
+			[ResourcePoolExposers.State.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.StatusId, sortOrder, naturalSort),
+			[ResourcePoolExposers.IconImage.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourcePoolOther.IconImage), sortOrder, naturalSort),
+			[ResourcePoolExposers.Url.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourcePoolOther.URL), sortOrder, naturalSort),
+			[ResourcePoolExposers.CategoryId.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourcePoolInfo.Category), sortOrder, naturalSort),
+		};
+
+		protected override Dictionary<string, Func<Comparer, object, FilterElement<DomInstance>>> FilterHandlers => handlers;
 
 		protected override FilterElement<DomInstance> DomDefinitionFilter => resourcePoolDomDefinitionFilter;
+
+		protected override Dictionary<string, Func<SortOrder, bool, IOrderByElement>> OrderByHandlers => orderByHandlers;
 
 		private static string ConvertResourcePoolState(ResourcePoolState filterValue)
 		{

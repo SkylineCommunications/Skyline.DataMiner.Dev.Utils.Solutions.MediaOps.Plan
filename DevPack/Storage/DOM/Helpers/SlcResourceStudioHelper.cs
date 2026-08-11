@@ -28,6 +28,16 @@
 			return DomHelper.DomInstances.Count(filter);
 		}
 
+		public long CountResourceStudioInstances(IQuery<DomInstance> query)
+		{
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			return DomHelper.DomInstances.Count(query);
+		}
+
 		public IEnumerable<ResourcepoolInstance> GetResourcePools(FilterElement<DomInstance> filter)
 		{
 			if (filter == null)
@@ -290,6 +300,11 @@
 
 		internal IEnumerable<ResourcepoolInstance> GetResourcePools(IQuery<DomInstance> query)
 		{
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
 			return InstanceFactory.ReadAndCreateInstances(DomHelper, query, instance => new ResourcepoolInstance(instance));
 		}
 
@@ -309,8 +324,29 @@
 			return InstanceFactory.CreateInstances(pages, instance => new ResourcepoolInstance(instance));
 		}
 
+		internal IEnumerable<IEnumerable<ResourcepoolInstance>> GetResourcePoolsPaged(IQuery<DomInstance> query, int pageSize)
+		{
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			if (pageSize <= 0)
+			{
+				throw new ArgumentOutOfRangeException(nameof(pageSize));
+			}
+
+			var pages = DomHelper.DomInstances.ReadPaged(query, pageSize);
+			return InstanceFactory.CreateInstances(pages, instance => new ResourcepoolInstance(instance));
+		}
+
 		internal IEnumerable<ResourcepropertyInstance> GetResourceProperties(IQuery<DomInstance> query)
 		{
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
 			return InstanceFactory.ReadAndCreateInstances(DomHelper, query, instance => new ResourcepropertyInstance(instance));
 		}
 
@@ -330,8 +366,29 @@
 			return InstanceFactory.CreateInstances(pages, instance => new ResourcepropertyInstance(instance));
 		}
 
+		internal IEnumerable<IEnumerable<ResourcepropertyInstance>> GetResourcePropertiesPaged(IQuery<DomInstance> query, int pageSize)
+		{
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			if (pageSize <= 0)
+			{
+				throw new ArgumentOutOfRangeException(nameof(pageSize));
+			}
+
+			var pages = DomHelper.DomInstances.ReadPaged(query, pageSize);
+			return InstanceFactory.CreateInstances(pages, instance => new ResourcepropertyInstance(instance));
+		}
+
 		internal IEnumerable<ResourceInstance> GetResources(IQuery<DomInstance> query)
 		{
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
 			return InstanceFactory.ReadAndCreateInstances(DomHelper, query, instance => new ResourceInstance(instance));
 		}
 
@@ -348,6 +405,22 @@
 			}
 
 			var pages = DomHelper.DomInstances.ReadPaged(paramFilter, pageSize);
+			return InstanceFactory.CreateInstances(pages, instance => new ResourceInstance(instance));
+		}
+
+		internal IEnumerable<IEnumerable<ResourceInstance>> GetResourcesPaged(IQuery<DomInstance> query, int pageSize)
+		{
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			if (pageSize <= 0)
+			{
+				throw new ArgumentOutOfRangeException(nameof(pageSize));
+			}
+
+			var pages = DomHelper.DomInstances.ReadPaged(query, pageSize);
 			return InstanceFactory.CreateInstances(pages, instance => new ResourceInstance(instance));
 		}
 
