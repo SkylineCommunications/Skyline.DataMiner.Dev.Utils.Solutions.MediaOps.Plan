@@ -12,6 +12,8 @@
 
 	using SLDataGateway.API.Querying;
 
+	using JobError = Skyline.DataMiner.Solutions.MediaOps.Plan.API.JobError;
+
 	[TestClass]
 	[TestCategory("IntegrationTest")]
 	[DoNotParallelize]
@@ -1145,15 +1147,15 @@
 				PreRollStart = currentTime,
 				PostRollEnd = currentTime.AddMinutes(5),
 			};
-			job.AddError("LIV101", "Pre-roll could not be started.").AddError("LIV102", "Pre-roll could not be stopped.");
+			job.AddError(new JobError("LIV101", "Pre-roll could not be started.")).AddError(new JobError("LIV102", "Pre-roll could not be stopped."));
 
 			job = objectCreator.CreateJob(job);
 
 			var read = TestContext.Api.Jobs.Read(job.Id);
 			Assert.IsNotNull(read);
 			Assert.AreEqual(2, read.Errors.Count);
-			Assert.IsTrue(read.Errors.Contains(new JobErrorInfo("LIV101", "Pre-roll could not be started.")));
-			Assert.IsTrue(read.Errors.Contains(new JobErrorInfo("LIV102", "Pre-roll could not be stopped.")));
+			Assert.IsTrue(read.Errors.Contains(new JobError("LIV101", "Pre-roll could not be started.")));
+			Assert.IsTrue(read.Errors.Contains(new JobError("LIV102", "Pre-roll could not be stopped.")));
 		}
 
 		[TestMethod]
@@ -1169,7 +1171,7 @@
 				PreRollStart = currentTime,
 				PostRollEnd = currentTime.AddMinutes(5),
 			};
-			job.AddError("LIV101", "Pre-roll could not be started.").AddError("LIV102", "Pre-roll could not be stopped.");
+			job.AddError(new JobError("LIV101", "Pre-roll could not be started.")).AddError(new JobError("LIV102", "Pre-roll could not be stopped."));
 			job = objectCreator.CreateJob(job);
 
 			var read = TestContext.Api.Jobs.Read(job.Id);
@@ -1179,8 +1181,8 @@
 			var reread = TestContext.Api.Jobs.Read(job.Id);
 			Assert.IsNotNull(reread);
 			Assert.AreEqual(1, reread.Errors.Count);
-			Assert.AreEqual("LIV102", reread.Errors.Single().ErrorCode);
-			Assert.AreEqual("Pre-roll could not be stopped.", reread.Errors.Single().ErrorMessage);
+			Assert.AreEqual("LIV102", reread.Errors.Single().Code);
+			Assert.AreEqual("Pre-roll could not be stopped.", reread.Errors.Single().Message);
 		}
 
 		[TestMethod]
@@ -1196,14 +1198,14 @@
 				PreRollStart = currentTime,
 				PostRollEnd = currentTime.AddMinutes(5),
 			};
-			job.AddError("LIV101", "Pre-roll could not be started.").AddError("LIV101", "Pre-roll failed.");
+			job.AddError(new JobError("LIV101", "Pre-roll could not be started.")).AddError(new JobError("LIV101", "Pre-roll failed."));
 
 			job = objectCreator.CreateJob(job);
 
 			var read = TestContext.Api.Jobs.Read(job.Id);
 			Assert.IsNotNull(read);
 			Assert.AreEqual(1, read.Errors.Count);
-			Assert.AreEqual("Pre-roll failed.", read.Errors.Single().ErrorMessage);
+			Assert.AreEqual("Pre-roll failed.", read.Errors.Single().Message);
 		}
 
 		[TestMethod]
@@ -1218,7 +1220,7 @@
 				PostRollEnd = DateTime.UtcNow.AddMinutes(5),
 			};
 
-			Assert.ThrowsException<ArgumentException>(() => job.AddError(String.Empty, "Some message."));
+			Assert.ThrowsException<ArgumentException>(() => job.AddError(new JobError(String.Empty, "Some message.")));
 		}
 
 		[TestMethod]

@@ -16,7 +16,7 @@
 	public class Job : ApiNamedObject
 	{
 		private readonly HashSet<Guid> contactIds = [];
-		private readonly Dictionary<string, JobErrorInfo> errors = [];
+		private readonly Dictionary<string, JobError> errors = [];
 
 		private StorageWorkflow.JobsInstance originalInstance;
 		private StorageWorkflow.JobsInstance updatedInstance;
@@ -409,7 +409,7 @@
 		/// <summary>
 		/// Gets the collection of errors reported on the job.
 		/// </summary>
-		public IReadOnlyCollection<JobErrorInfo> Errors => errors.Values;
+		public IReadOnlyCollection<JobError> Errors => errors.Values;
 
 		/// <summary>
 		/// Gets or sets the unique identifier of the associated job type category.
@@ -852,18 +852,17 @@
 		/// <summary>
 		/// Adds an error to the job. When an error with the same error code is already present, its message is updated.
 		/// </summary>
-		/// <param name="errorCode">The code that identifies the error.</param>
-		/// <param name="errorMessage">The message that describes the error.</param>
+		/// <param name="error">The error to add.</param>
 		/// <returns>The current <see cref="Job"/> instance.</returns>
-		/// <exception cref="ArgumentException">Thrown when <paramref name="errorCode"/> is <see langword="null"/> or whitespace.</exception>
-		public Job AddError(string errorCode, string errorMessage)
+		/// <exception cref="ArgumentException">Thrown when <paramref name="error"/> is <see langword="null"/>.</exception>
+		public Job AddError(JobError error)
 		{
-			if (string.IsNullOrWhiteSpace(errorCode))
+			if (error == null)
 			{
-				throw new ArgumentException("Error code cannot be null or whitespace.", nameof(errorCode));
+				throw new ArgumentNullException(nameof(error));
 			}
 
-			errors[errorCode] = new JobErrorInfo(errorCode, errorMessage);
+			errors[error.Code] = error;
 			return this;
 		}
 
@@ -882,6 +881,22 @@
 
 			errors.Remove(errorCode);
 			return this;
+		}
+
+		/// <summary>
+		/// Removes the specified error from the job.
+		/// </summary>
+		/// <param name="error">The error to remove.</param>
+		/// <returns>The current <see cref="Job"/> instance.</returns>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="error"/> is <see langword="null"/>.</exception>
+		public Job RemoveError(JobError error)
+		{
+			if (error == null)
+			{
+				throw new ArgumentNullException(nameof(error));
+			}
+
+			return RemoveError(error.Code);
 		}
 
 		/// <inheritdoc/>
@@ -913,7 +928,7 @@
 					hash = (hash * 23) + contactId.GetHashCode();
 				}
 
-				foreach (var error in errors.Values.OrderBy(x => x.ErrorCode, StringComparer.Ordinal).ToArray())
+				foreach (var error in errors.Values.OrderBy(x => x.Code, StringComparer.Ordinal).ToArray())
 				{
 					hash = (hash * 23) + error.GetHashCode();
 				}
@@ -1007,8 +1022,8 @@
 			{
 				updatedInstance.Errors.Add(new StorageWorkflow.ErrorsSection
 				{
-					ErrorCode = error.ErrorCode,
-					ErrorMessage = error.ErrorMessage,
+					ErrorCode = error.Code,
+					ErrorMessage = error.Message,
 				});
 			}
 
@@ -1098,7 +1113,7 @@
 					continue;
 				}
 
-				errors[error.ErrorCode] = new JobErrorInfo(error.ErrorCode, error.ErrorMessage);
+				errors[error.ErrorCode] = new JobError(error.ErrorCode, error.ErrorMessage);
 			}
 
 			if (instance.JobExecution.JobConfiguration == null || instance.JobExecution.JobConfiguration == Guid.Empty)
