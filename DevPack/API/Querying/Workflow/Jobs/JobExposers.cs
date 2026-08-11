@@ -92,6 +92,39 @@
 		public static readonly Exposer<Job, Guid> OwnerId = new Exposer<Job, Guid>((obj) => obj.OwnerId, "OwnerId");
 
 		/// <summary>
+		/// Gets an exposer for the <see cref="Job.ActionRequired"/> property.
+		/// </summary>
+		/// <remarks>
+		/// The value is only calculated when the job is created or updated, so jobs that were never saved with this
+		/// version of the API have no value stored and are not returned by this exposer.
+		/// </remarks>
+		public static readonly Exposer<Job, bool> ActionRequired = new Exposer<Job, bool>((obj) => obj.ActionRequired, "ActionRequired");
+
+		/// <summary>
+		/// Gets an exposer for the <see cref="Job.ConfigurationState"/> property.
+		/// </summary>
+		/// <remarks>
+		/// The value is only calculated when the job is created or updated, so jobs that were never saved with this
+		/// version of the API have no value stored and are not returned by this exposer.
+		/// </remarks>
+		public static readonly Exposer<Job, ConfigurationState> ConfigurationState = new Exposer<Job, ConfigurationState>((obj) => obj.ConfigurationState, "ConfigurationState");
+
+		/// <summary>
+		/// Provides exposers for querying and filtering the nodes of the <see cref="Job.NodeGraph"/> property.
+		/// </summary>
+		public static class Nodes
+		{
+			/// <summary>
+			/// Gets a dynamic list exposer for the <see cref="JobNode.ConfigurationState"/> property. A job matches when one of its nodes matches.
+			/// </summary>
+			/// <remarks>
+			/// The value is only calculated when the job is created or updated, so nodes that were never saved with this
+			/// version of the API have no value stored and are not returned by this exposer.
+			/// </remarks>
+			public static readonly DynamicListExposer<Job, ConfigurationState> ConfigurationState = DynamicListExposer<Job, ConfigurationState>.CreateFromListExposer(new Exposer<Job, IEnumerable>((obj) => obj.NodeGraph.Nodes.Where(x => x != null).Select(x => x.ConfigurationState), "Nodes.ConfigurationState"));
+		}
+
+		/// <summary>
 		/// Provides exposers for querying and filtering the capabilities of the <see cref="Job.OrchestrationSettings"/> property.
 		/// </summary>
 		public static class Capabilities

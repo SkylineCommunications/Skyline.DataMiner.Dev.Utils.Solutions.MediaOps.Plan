@@ -91,14 +91,15 @@
 				Assert.AreEqual(Guid.Empty, resource.CoreResourceId);
 			}
 
-			// Remove resources from pool.
+			// Remove resources from pool. The read does not guarantee an order, so the resource that stays
+			// assigned is identified by its ID instead of by its position in the result.
+			var stillAssignedResourceId = resources.First().Id;
 			TestContext.Api.ResourcePools.UnassignResourcesFromPool(resourcePool.Id, resources.Skip(1).ToArray());
 
 			resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).ToList();
-			int resourceIndex = 0;
 			foreach (var resource in resources)
 			{
-				if (resourceIndex == 0)
+				if (resource.Id == stillAssignedResourceId)
 				{
 					Assert.AreEqual(1, resource.ResourcePoolIds.Count);
 					Assert.IsTrue(resource.ResourcePoolIds.Contains(resourcePool.Id));
@@ -110,8 +111,6 @@
 				}
 
 				Assert.AreEqual(Guid.Empty, resource.CoreResourceId);
-
-				resourceIndex++;
 			}
 		}
 
@@ -162,17 +161,18 @@
 				Assert.IsTrue(coreResource.PoolGUIDs.Contains(resourcePool.CoreResourcePoolId));
 			}
 
-			// Remove resources from pool.
+			// Remove resources from pool. The read does not guarantee an order, so the resource that stays
+			// assigned is identified by its ID instead of by its position in the result.
+			var stillAssignedResourceId = resources.First().Id;
 			TestContext.Api.ResourcePools.UnassignResourcesFromPool(resourcePool.Id, resources.Skip(1).ToArray());
 
 			resources = TestContext.Api.Resources.Read([unmanagedResource1.Id, unmanagedResource2.Id, unmanagedResource3.Id]).ToList();
-			int resourceIndex = 0;
 			foreach (var resource in resources)
 			{
 				Assert.AreNotEqual(Guid.Empty, resource.CoreResourceId);
 				var coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
 
-				if (resourceIndex == 0)
+				if (resource.Id == stillAssignedResourceId)
 				{
 					Assert.AreEqual(1, coreResource.PoolGUIDs.Count);
 					Assert.IsTrue(coreResource.PoolGUIDs.Contains(resourcePool.CoreResourcePoolId));
@@ -182,8 +182,6 @@
 					Assert.AreEqual(0, coreResource.PoolGUIDs.Count);
 					Assert.IsFalse(coreResource.PoolGUIDs.Contains(resourcePool.CoreResourcePoolId));
 				}
-
-				resourceIndex++;
 			}
 		}
 
