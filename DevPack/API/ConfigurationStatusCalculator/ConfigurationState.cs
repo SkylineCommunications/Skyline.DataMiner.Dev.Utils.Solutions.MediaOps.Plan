@@ -7,8 +7,13 @@
 	/// This status is not stored on the DOM instances, it is always calculated based on the current orchestration settings.
 	/// It is intended to be used as a visual indication only.
 	/// </remarks>
-	public enum ConfigurationStatus
+	public enum ConfigurationState
 	{
+		/// <summary>
+		/// The configuration status is unknown, for example because the node is not yet initialized.
+		/// </summary>
+		Unknown = -1,
+
 		/// <summary>
 		/// No capabilities, capacities, configurations or orchestration events are defined.
 		/// </summary>

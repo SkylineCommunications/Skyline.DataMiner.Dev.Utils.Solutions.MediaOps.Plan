@@ -2312,8 +2312,8 @@
 		{
 			foreach (var job in apiJobs.Where(IsValid))
 			{
-				ConfigurationStatusCalculator calculator = new ConfigurationStatusCalculator(planApi, planApi.LiveApi, job);
-				foreach (var node in job.NodeGraph.Nodes.Where(x => calculator.GetNodeConfigurationStatus(x.Id) == ConfigurationStatus.MandatoryValuesMissing))
+				ConfigurationStateCalculator calculator = new ConfigurationStateCalculator(planApi, planApi.LiveApi, job);
+				foreach (var node in job.NodeGraph.Nodes.Where(x => calculator.GetNodeConfigurationState(x.Id) == ConfigurationState.MandatoryValuesMissing))
 				{
 					ReportError(job.Id, new JobMandatoryConfigurationMissingError
 					{

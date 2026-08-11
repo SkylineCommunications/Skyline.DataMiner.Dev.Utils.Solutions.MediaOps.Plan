@@ -7,15 +7,15 @@
 	using Skyline.DataMiner.Solutions.MediaOps.Live.API;
 
 	/// <summary>
-	/// Calculates the <see cref="ConfigurationStatus"/> of the orchestration settings of a job, a recurring job or their nodes.
+	/// Calculates the <see cref="ConfigurationState"/> of the orchestration settings of a job, a recurring job or their nodes.
 	/// </summary>
 	/// <remarks>
-	/// The configuration status is not stored on the DOM instances. This calculator determines it on the fly, based on the
+	/// The configuration State is not stored on the DOM instances. This calculator determines it on the fly, based on the
 	/// orchestration settings of the given object. All required parameter definitions and orchestration script definitions
 	/// are read in batch and cached for the lifetime of the calculator, so a single instance should be reused as long as the
 	/// underlying job (or recurring job) is not modified.
 	/// </remarks>
-	public sealed class ConfigurationStatusCalculator
+	public sealed class ConfigurationStateCalculator
 	{
 		private readonly IMediaOpsPlanApi _planApi;
 		private readonly IMediaOpsLiveApi _liveApi;
@@ -29,18 +29,18 @@
 		private readonly Lazy<bool> _isLiveInstalled;
 
 		private readonly Dictionary<string, ScriptInputRequirements> _requirementsByScriptName = new Dictionary<string, ScriptInputRequirements>();
-		private readonly Dictionary<string, ConfigurationStatus> _statusByNodeId = new Dictionary<string, ConfigurationStatus>();
+		private readonly Dictionary<string, ConfigurationState> _StateByNodeId = new Dictionary<string, ConfigurationState>();
 
-		private ConfigurationStatus? _rootStatus;
+		private ConfigurationState? _rootState;
 
 		/// <summary>
-		/// Initializes a new instance of the <see cref="ConfigurationStatusCalculator"/> class for the specified job.
+		/// Initializes a new instance of the <see cref="ConfigurationStateCalculator"/> class for the specified job.
 		/// </summary>
 		/// <param name="planApi">The MediaOps Plan API.</param>
 		/// <param name="liveApi">The MediaOps Live API.</param>
-		/// <param name="job">The job for which the configuration statuses are calculated.</param>
+		/// <param name="job">The job for which the configuration Statees are calculated.</param>
 		/// <exception cref="ArgumentNullException">When one of the arguments is <c>null</c>.</exception>
-		public ConfigurationStatusCalculator(IMediaOpsPlanApi planApi, IMediaOpsLiveApi liveApi, Job job)
+		public ConfigurationStateCalculator(IMediaOpsPlanApi planApi, IMediaOpsLiveApi liveApi, Job job)
 			: this(planApi, liveApi, job?.OrchestrationSettings, GetSettingsByNodeId(job?.NodeGraph))
 		{
 			if (job == null)
@@ -50,13 +50,13 @@
 		}
 
 		/// <summary>
-		/// Initializes a new instance of the <see cref="ConfigurationStatusCalculator"/> class for the specified recurring job.
+		/// Initializes a new instance of the <see cref="ConfigurationStateCalculator"/> class for the specified recurring job.
 		/// </summary>
 		/// <param name="planApi">The MediaOps Plan API.</param>
 		/// <param name="liveApi">The MediaOps Live API.</param>
-		/// <param name="recurringJob">The recurring job for which the configuration statuses are calculated.</param>
+		/// <param name="recurringJob">The recurring job for which the configuration Statees are calculated.</param>
 		/// <exception cref="ArgumentNullException">When one of the arguments is <c>null</c>.</exception>
-		public ConfigurationStatusCalculator(IMediaOpsPlanApi planApi, IMediaOpsLiveApi liveApi, RecurringJob recurringJob)
+		public ConfigurationStateCalculator(IMediaOpsPlanApi planApi, IMediaOpsLiveApi liveApi, RecurringJob recurringJob)
 			: this(planApi, liveApi, recurringJob?.OrchestrationSettings, GetSettingsByNodeId(recurringJob?.NodeGraph))
 		{
 			if (recurringJob == null)
@@ -65,7 +65,7 @@
 			}
 		}
 
-		private ConfigurationStatusCalculator(IMediaOpsPlanApi planApi, IMediaOpsLiveApi liveApi, OrchestrationSettings rootSettings, IReadOnlyDictionary<string, OrchestrationSettings> settingsByNodeId)
+		private ConfigurationStateCalculator(IMediaOpsPlanApi planApi, IMediaOpsLiveApi liveApi, OrchestrationSettings rootSettings, IReadOnlyDictionary<string, OrchestrationSettings> settingsByNodeId)
 		{
 			_planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
 			_liveApi = liveApi ?? throw new ArgumentNullException(nameof(liveApi));
@@ -80,15 +80,15 @@
 		}
 
 		/// <summary>
-		/// Creates a calculator for the nodes of the specified node graph. No job level status can be calculated with the returned instance.
+		/// Creates a calculator for the nodes of the specified node graph. No job level State can be calculated with the returned instance.
 		/// </summary>
 		/// <typeparam name="TNode">The type of the nodes in the graph.</typeparam>
 		/// <param name="planApi">The MediaOps Plan API.</param>
 		/// <param name="liveApi">The MediaOps Live API.</param>
-		/// <param name="nodeGraph">The node graph for which the node configuration statuses are calculated.</param>
+		/// <param name="nodeGraph">The node graph for which the node configuration Statees are calculated.</param>
 		/// <returns>A calculator for the nodes of the specified node graph.</returns>
 		/// <exception cref="ArgumentNullException">When one of the arguments is <c>null</c>.</exception>
-		public static ConfigurationStatusCalculator ForNodes<TNode>(IMediaOpsPlanApi planApi, IMediaOpsLiveApi liveApi, NodeGraph<TNode> nodeGraph)
+		public static ConfigurationStateCalculator ForNodes<TNode>(IMediaOpsPlanApi planApi, IMediaOpsLiveApi liveApi, NodeGraph<TNode> nodeGraph)
 			where TNode : NodeBase
 		{
 			if (nodeGraph == null)
@@ -96,61 +96,61 @@
 				throw new ArgumentNullException(nameof(nodeGraph));
 			}
 
-			return new ConfigurationStatusCalculator(planApi, liveApi, null, GetSettingsByNodeId(nodeGraph));
+			return new ConfigurationStateCalculator(planApi, liveApi, null, GetSettingsByNodeId(nodeGraph));
 		}
 
 		/// <summary>
-		/// Gets the configuration status of the job (or recurring job) itself, based on its job level orchestration settings.
+		/// Gets the configuration State of the job (or recurring job) itself, based on its job level orchestration settings.
 		/// </summary>
-		/// <returns>The configuration status of the job.</returns>
+		/// <returns>The configuration State of the job.</returns>
 		/// <exception cref="InvalidOperationException">When the calculator was not created for a job or recurring job.</exception>
-		public ConfigurationStatus GetJobConfigurationStatus()
+		public ConfigurationState GetJobConfigurationState()
 		{
 			if (_rootSettings == null)
 			{
-				throw new InvalidOperationException("No job level orchestration settings are available. Create the calculator with a job or recurring job to calculate the job configuration status.");
+				throw new InvalidOperationException("No job level orchestration settings are available. Create the calculator with a job or recurring job to calculate the job configuration State.");
 			}
 
-			if (!_rootStatus.HasValue)
+			if (!_rootState.HasValue)
 			{
-				_rootStatus = GetConfigurationStatus(_rootSettings);
+				_rootState = GetConfigurationState(_rootSettings);
 			}
 
-			return _rootStatus.Value;
+			return _rootState.Value;
 		}
 
 		/// <summary>
-		/// Gets the configuration status of the node with the specified ID.
+		/// Gets the configuration State of the node with the specified ID.
 		/// </summary>
 		/// <param name="nodeId">The ID of the node.</param>
-		/// <returns>The configuration status of the node.</returns>
+		/// <returns>The configuration State of the node.</returns>
 		/// <exception cref="InvalidOperationException">When the node is not part of the job.</exception>
-		public ConfigurationStatus GetNodeConfigurationStatus(string nodeId)
+		public ConfigurationState GetNodeConfigurationState(string nodeId)
 		{
-			if (!TryGetNodeConfigurationStatus(nodeId, out var status))
+			if (!TryGetNodeConfigurationState(nodeId, out var State))
 			{
 				throw new InvalidOperationException($"The node with ID {nodeId} is not part of the job.");
 			}
 
-			return status;
+			return State;
 		}
 
 		/// <summary>
-		/// Tries to get the configuration status of the node with the specified ID.
+		/// Tries to get the configuration State of the node with the specified ID.
 		/// </summary>
 		/// <param name="nodeId">The ID of the node.</param>
-		/// <param name="status">When this method returns <c>true</c>, contains the configuration status of the node.</param>
+		/// <param name="State">When this method returns <c>true</c>, contains the configuration State of the node.</param>
 		/// <returns><c>true</c> when the node is part of the job; otherwise, <c>false</c>.</returns>
-		public bool TryGetNodeConfigurationStatus(string nodeId, out ConfigurationStatus status)
+		public bool TryGetNodeConfigurationState(string nodeId, out ConfigurationState State)
 		{
-			status = default;
+			State = default;
 
 			if (String.IsNullOrEmpty(nodeId))
 			{
 				return false;
 			}
 
-			if (_statusByNodeId.TryGetValue(nodeId, out status))
+			if (_StateByNodeId.TryGetValue(nodeId, out State))
 			{
 				return true;
 			}
@@ -160,47 +160,47 @@
 				return false;
 			}
 
-			status = GetConfigurationStatus(settings);
-			_statusByNodeId[nodeId] = status;
+			State = GetConfigurationState(settings);
+			_StateByNodeId[nodeId] = State;
 
 			return true;
 		}
 
 		/// <summary>
-		/// Gets the configuration status of every node of the job.
+		/// Gets the configuration State of every node of the job.
 		/// </summary>
-		/// <returns>The configuration status per node ID.</returns>
-		public IReadOnlyDictionary<string, ConfigurationStatus> GetNodeConfigurationStatuses()
+		/// <returns>The configuration State per node ID.</returns>
+		public IReadOnlyDictionary<string, ConfigurationState> GetNodeConfigurationStatees()
 		{
 			foreach (var nodeId in _settingsByNodeId.Keys)
 			{
-				TryGetNodeConfigurationStatus(nodeId, out _);
+				TryGetNodeConfigurationState(nodeId, out _);
 			}
 
-			return _statusByNodeId;
+			return _StateByNodeId;
 		}
 
 		/// <summary>
 		/// Determines whether the job or one of its nodes is missing mandatory values.
 		/// </summary>
-		/// <returns><c>true</c> when the job or one of its nodes has the status <see cref="ConfigurationStatus.MandatoryValuesMissing"/>; otherwise, <c>false</c>.</returns>
+		/// <returns><c>true</c> when the job or one of its nodes has the State <see cref="ConfigurationState.MandatoryValuesMissing"/>; otherwise, <c>false</c>.</returns>
 		public bool HasMissingMandatoryValues()
 		{
-			if (_rootSettings != null && GetJobConfigurationStatus() == ConfigurationStatus.MandatoryValuesMissing)
+			if (_rootSettings != null && GetJobConfigurationState() == ConfigurationState.MandatoryValuesMissing)
 			{
 				return true;
 			}
 
-			return GetNodeConfigurationStatuses().Values.Any(x => x == ConfigurationStatus.MandatoryValuesMissing);
+			return GetNodeConfigurationStatees().Values.Any(x => x == ConfigurationState.MandatoryValuesMissing);
 		}
 
 		/// <summary>
-		/// Calculates the configuration status of the specified orchestration settings.
+		/// Calculates the configuration State of the specified orchestration settings.
 		/// </summary>
 		/// <param name="settings">The orchestration settings.</param>
-		/// <returns>The configuration status of the specified orchestration settings.</returns>
+		/// <returns>The configuration State of the specified orchestration settings.</returns>
 		/// <exception cref="ArgumentNullException">When <paramref name="settings"/> is <c>null</c>.</exception>
-		public ConfigurationStatus GetConfigurationStatus(OrchestrationSettings settings)
+		public ConfigurationState GetConfigurationState(OrchestrationSettings settings)
 		{
 			if (settings == null)
 			{
@@ -209,25 +209,25 @@
 
 			if (settings.OrchestrationEvents.Any(x => !IsEventFullyDefined(x)))
 			{
-				return ConfigurationStatus.MandatoryValuesMissing;
+				return ConfigurationState.MandatoryValuesMissing;
 			}
 
 			if (MandatoryParametersMissingValues(settings))
 			{
-				return ConfigurationStatus.MandatoryValuesMissing;
+				return ConfigurationState.MandatoryValuesMissing;
 			}
 
 			if (ParametersMissingValues(settings))
 			{
-				return ConfigurationStatus.NonMandatoryValuesMissing;
+				return ConfigurationState.NonMandatoryValuesMissing;
 			}
 
 			if (IsEmpty(settings))
 			{
-				return ConfigurationStatus.NoParametersDefined;
+				return ConfigurationState.NoParametersDefined;
 			}
 
-			return ConfigurationStatus.AllValuesProvided;
+			return ConfigurationState.AllValuesProvided;
 		}
 
 		private static IReadOnlyDictionary<string, OrchestrationSettings> GetSettingsByNodeId<TNode>(NodeGraph<TNode> nodeGraph)

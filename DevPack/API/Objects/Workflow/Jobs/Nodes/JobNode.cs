@@ -38,7 +38,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <summary>
 		/// Gets the current configuration status of the node.
 		/// </summary>
-		public NodeConfigurationStatus NodeConfigurationStatus { get; private set; }
+		public ConfigurationState NodeConfigurationStatus { get; private set; }
 
 		internal int? CoreReservationNodeId { get; private set; }
 
@@ -132,12 +132,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			End = section.NodeEndTime.Value;
 			CoreReservationNodeId = ResolveCoreReservationNodeId(section.CoreReservationNodeID, section.NodeID);
 
-			ResourceSelectionState = section.ResourceSelectState.HasValue
-				? EnumExtensions.MapEnum<StorageWorkflow.SlcWorkflowIds.Enums.Resourceselectstate, ResourceSelectionState>(section.ResourceSelectState.Value)
+			ResourceSelectionState = section.ResourceSelectState.HasValue && EnumExtensions.TryMapEnum<StorageWorkflow.SlcWorkflowIds.Enums.Resourceselectstate, ResourceSelectionState>(section.ResourceSelectState.Value, out var resourceState)
+				? resourceState
 				: ResourceSelectionState.Unknown;
-			NodeConfigurationStatus = section.NodeConfigurationStatus.HasValue
-				? EnumExtensions.MapEnum<StorageWorkflow.SlcWorkflowIds.Enums.Nodeconfigurationstatus, NodeConfigurationStatus>(section.NodeConfigurationStatus.Value)
-				: NodeConfigurationStatus.Unknown;
+			NodeConfigurationStatus = section.NodeConfigurationStatus.HasValue && EnumExtensions.TryMapEnum<StorageWorkflow.SlcWorkflowIds.Enums.Nodeconfigurationstatus, ConfigurationState>(section.NodeConfigurationStatus.Value, out var configState)
+				? configState
+				: ConfigurationState.Unknown;
 		}
 	}
 }
