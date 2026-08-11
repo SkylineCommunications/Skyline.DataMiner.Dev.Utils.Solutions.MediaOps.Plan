@@ -42,6 +42,11 @@
 		public static readonly Exposer<Job, DateTimeOffset> End = new Exposer<Job, DateTimeOffset>((obj) => obj.End, "End");
 
 		/// <summary>
+		/// Gets an exposer for the <see cref="Job.Duration"/> property.
+		/// </summary>
+		public static readonly Exposer<Job, TimeSpan> Duration = new Exposer<Job, TimeSpan>((obj) => obj.Duration, "Duration");
+
+		/// <summary>
 		/// Gets an exposer for the <see cref="Job.PreRollStart"/> property.
 		/// </summary>
 		public static readonly Exposer<Job, DateTimeOffset> PreRollStart = new Exposer<Job, DateTimeOffset>((obj) => obj.PreRollStart, "PreRollStart");
