@@ -196,8 +196,30 @@
 			ValidateDescription(apiJobs);
 			ValidateNotes(apiJobs);
 
+			// The configuration state of the nodes and the action needed flag of the job are stored on the DOM instance so
+			// they can be queried without recalculating them. They are refreshed here, before the instances with changes are
+			// built, so every create or update persists the state of the orchestration settings that is being saved.
+			ApplyConfigurationStates(apiJobs.Where(IsValid).ToList());
+
 			var lockResult = planApi.LockManager.LockAndExecute(apiJobs.Where(IsValid).ToList(), CreateOrUpdateLocked);
 			ReportError(lockResult);
+		}
+
+		private void ApplyConfigurationStates(ICollection<Job> apiJobs)
+		{
+			foreach (var job in apiJobs)
+			{
+				var calculator = new ConfigurationStateCalculator(planApi, planApi.LiveApi, job);
+
+				foreach (var node in job.NodeGraph.Nodes)
+				{
+					node.ConfigurationState = calculator.TryGetNodeConfigurationState(node.Id, out var nodeState)
+						? nodeState
+						: ConfigurationState.Unknown;
+				}
+
+				job.ActionNeeded = calculator.HasMissingMandatoryValues();
+			}
 		}
 
 		private void CreateOrUpdateLocked(ICollection<Job> apiJobs)
@@ -2312,8 +2334,8 @@
 		{
 			foreach (var job in apiJobs.Where(IsValid))
 			{
-				ConfigurationStateCalculator calculator = new ConfigurationStateCalculator(planApi, planApi.LiveApi, job);
-				foreach (var node in job.NodeGraph.Nodes.Where(x => calculator.GetNodeConfigurationState(x.Id) == ConfigurationState.MandatoryValuesMissing))
+				var calculator = new ConfigurationStateCalculator(planApi, planApi.LiveApi, job);
+				foreach (var node in job.NodeGraph.Nodes.Where(x => calculator.TryGetNodeConfigurationState(x.Id, out var state) && state == ConfigurationState.MandatoryValuesMissing))
 				{
 					ReportError(job.Id, new JobMandatoryConfigurationMissingError
 					{

@@ -1,4 +1,4 @@
-namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
 
@@ -36,9 +36,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		public ResourceSelectionState ResourceSelectionState { get; private set; }
 
 		/// <summary>
-		/// Gets the current configuration status of the node.
+		/// Gets the configuration state of the orchestration settings of the node.
 		/// </summary>
-		public ConfigurationState ConfigurationState { get; private set; }
+		/// <remarks>
+		/// This value does not depict the actual state of the node: it is only recalculated and stored when the job is created or updated.
+		/// </remarks>
+		public ConfigurationState ConfigurationState { get; internal set; }
 
 		internal int? CoreReservationNodeId { get; private set; }
 
@@ -48,6 +51,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			section.NodeEndTime = End.UtcDateTime;
 
 			section.CoreReservationNodeID = CoreReservationNodeId.Value;
+
+			section.NodeConfigurationStatus = EnumExtensions.TryMapEnum<ConfigurationState, StorageWorkflow.SlcWorkflowIds.Enums.Nodeconfigurationstatus>(ConfigurationState, out var storedConfigurationState)
+				? storedConfigurationState
+				: (StorageWorkflow.SlcWorkflowIds.Enums.Nodeconfigurationstatus?)null;
 
 			ApplyJobNodeChanges(section);
 		}
@@ -137,7 +144,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				: ResourceSelectionState.Unknown;
 			ConfigurationState = section.NodeConfigurationStatus.HasValue && EnumExtensions.TryMapEnum<StorageWorkflow.SlcWorkflowIds.Enums.Nodeconfigurationstatus, ConfigurationState>(section.NodeConfigurationStatus.Value, out var configState)
 				? configState
-				: ConfigurationState.Unknown;
+				: API.ConfigurationState.Unknown;
 		}
 	}
 }
