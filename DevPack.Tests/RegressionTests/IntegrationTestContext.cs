@@ -97,6 +97,13 @@
 		}
 
 
+		/// <summary>
+		/// Gets a value indicating whether the tests run against a real DataMiner Agent. The simulated connection only
+		/// implements part of the DataMiner functionality, so tests that rely on functionality it does not implement
+		/// must be skipped when this is <see langword="false"/>.
+		/// </summary>
+		public bool UseRealDma => config.UseRealDma;
+
 		public IMediaOpsPlanApi Api { get; private set; }
 
 		public IDms Dms { get; private set; }

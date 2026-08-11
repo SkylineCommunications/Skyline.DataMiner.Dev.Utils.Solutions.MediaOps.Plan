@@ -611,6 +611,30 @@
 		}
 
 		/// <summary>
+		/// Retrieves the resources that are eligible for the specified context.
+		/// </summary>
+		/// <param name="context">The context describing the time range, capabilities, capacities and filter of the eligibility request.</param>
+		/// <returns>A collection containing the eligible resources.</returns>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="context"/> is <c>null</c>.</exception>
+		/// <exception cref="MediaOpsException">Thrown when the eligibility request fails.</exception>
+		public ICollection<Resource> GetEligibleResources(EligibleResourcesContext context)
+		{
+			if (context == null)
+			{
+				throw new ArgumentNullException(nameof(context));
+			}
+
+			return ActivityHelper.Track(nameof(ResourcesRepository), nameof(GetEligibleResources), act =>
+			{
+				var resources = CoreEligibleResourceHandler.GetEligibleResources(PlanApi, context);
+
+				act?.AddTag("Eligible Resources Count", resources.Count);
+
+				return resources;
+			});
+		}
+
+		/// <summary>
 		/// Retrieves all resources in the specified resource pool.
 		/// </summary>
 		/// <param name="resourcePool">The resource pool for which to retrieve resources.</param>

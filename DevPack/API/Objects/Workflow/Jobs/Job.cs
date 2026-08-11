@@ -4,6 +4,7 @@
 	using System.Collections.Generic;
 	using System.Linq;
 
+	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
 
@@ -696,6 +697,116 @@
 				},
 				_ => null,
 			};
+		}
+
+		/// <summary>
+		/// Assigns a resource to every node of the job that only has a resource pool assigned. For each such node the
+		/// eligible resources of its pool are requested for the time range of that node, and the first eligible resource
+		/// is assigned by swapping the resource pool node for a resource node that keeps the alias, icon, orchestration
+		/// settings and property settings of the original node.
+		/// </summary>
+		/// <remarks>
+		/// Resources that are already assigned to another node of this job are excluded from the lookup, so the same
+		/// resource is never assigned twice within the same job. A node for which no eligible resource is found keeps
+		/// its resource pool node. The changes are only applied in memory; the job must still be saved to persist them.
+		/// </remarks>
+		/// <param name="api">The <see cref="IMediaOpsPlanApi"/> instance used to look up the eligible resources.</param>
+		/// <returns>The current <see cref="Job"/> instance.</returns>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="api"/> is <see langword="null"/>.</exception>
+		/// <exception cref="MediaOpsException">Thrown when the time range of a node that needs a resource is not valid.</exception>
+		public Job AssignEligibleResources(IMediaOpsPlanApi api)
+		{
+			if (api == null)
+			{
+				throw new ArgumentNullException(nameof(api));
+			}
+
+			var assignedResourceIds = new HashSet<Guid>(
+				NodeGraph.Nodes.OfType<JobResourceNode>().Select(node => node.ResourceId).Where(id => id != Guid.Empty));
+
+			foreach (var poolNode in NodeGraph.Nodes.OfType<JobResourcePoolNode>().ToList())
+			{
+				GetNodeTimeRange(poolNode, out var start, out var end);
+
+				var eligibleResources = api.Resources.GetEligibleResources(new EligibleResourcesContext(start, end)
+				{
+					CapabilitySettings = poolNode.OrchestrationSettings.Capabilities,
+					CapacitySettings = poolNode.OrchestrationSettings.Capacities,
+					Filter = CreateEligibleResourceFilter(poolNode.ResourcePoolId, assignedResourceIds),
+				});
+
+				// The already assigned resources are excluded through the filter, so any returned resource can be used.
+				// A node for which no resource is eligible keeps its resource pool node so it can be assigned later.
+				var resource = eligibleResources?.FirstOrDefault(x => x != null);
+				if (resource == null)
+				{
+					continue;
+				}
+
+				var resourceNode = new JobResourceNode(poolNode.ResourcePoolId, resource.Id)
+				{
+					Alias = poolNode.Alias,
+					IconImage = poolNode.IconImage,
+				};
+
+				resourceNode.CopyOrchestrationSettingsFrom(poolNode);
+				resourceNode.CopyPropertiesFrom(poolNode);
+
+				NodeGraph.Swap(poolNode, resourceNode);
+
+				assignedResourceIds.Add(resource.Id);
+			}
+
+			return this;
+		}
+
+		/// <summary>
+		/// Creates the filter that restricts the eligible resources of a node to the resources of its resource pool,
+		/// excluding the resources that are already assigned to another node of the job.
+		/// </summary>
+		private static FilterElement<Resource> CreateEligibleResourceFilter(Guid resourcePoolId, IReadOnlyCollection<Guid> excludedResourceIds)
+		{
+			var poolFilter = ResourceExposers.ResourcePoolIds.Contains(resourcePoolId);
+			if (excludedResourceIds.Count == 0)
+			{
+				return poolFilter;
+			}
+
+			var subFilters = new List<FilterElement<Resource>> { poolFilter };
+			subFilters.AddRange(excludedResourceIds.Select(resourceId => ResourceExposers.Id.NotEqual(resourceId)));
+
+			return new ANDFilterElement<Resource>(subFilters.ToArray());
+		}
+
+		/// <summary>
+		/// Resolves the time range for which a resource must be available to be assignable to the specified node. Node
+		/// timings are only resolved when the job is saved, so a node without a time range falls back to the full
+		/// pre-roll to post-roll window of the job, which is the window such a node receives for a job that has not
+		/// started yet.
+		/// </summary>
+		private void GetNodeTimeRange(JobNode node, out DateTimeOffset start, out DateTimeOffset end)
+		{
+			if (node.End > node.Start)
+			{
+				start = node.Start;
+				end = node.End;
+			}
+			else
+			{
+				start = PreRollStart;
+				end = PostRollEnd;
+			}
+
+			if (end <= start)
+			{
+				throw new MediaOpsException(new JobInvalidTimingError
+				{
+					ErrorMessage = $"Cannot determine the time range of node with ID '{node.Id}' because the job has no valid timings.",
+					Id = Id,
+					Start = start,
+					End = end,
+				});
+			}
 		}
 
 		/// <summary>

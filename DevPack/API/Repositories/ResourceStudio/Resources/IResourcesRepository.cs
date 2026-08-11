@@ -3,6 +3,8 @@
 	using System;
 	using System.Collections.Generic;
 
+	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+
 	/// <summary>
 	/// Defines methods for managing <see cref="Resource"/> objects.
 	/// </summary>
@@ -125,6 +127,13 @@
 		/// <param name="resourceIds">The unique identifiers of the resources to deprecate.</param>
 		/// <returns>A read-only collection containing the deprecated resources.</returns>
 		IReadOnlyCollection<Resource> Deprecate(IEnumerable<Guid> resourceIds);
+
+		/// <summary>
+		/// Gets the resources that are eligible for the specified context.
+		/// </summary>
+		/// <param name="context">The context describing the time range, capabilities, capacities and filter of the eligibility request.</param>
+		/// <returns>A collection containing the eligible resources.</returns>
+		ICollection<Resource> GetEligibleResources(EligibleResourcesContext context);
 
 		/// <summary>
 		/// Gets all resources in the specified resource pool.
