@@ -218,7 +218,7 @@
 					node.ConfigurationState = calculator.GetNodeConfigurationState(node);
 				}
 
-				job.ActionNeeded = calculator.HasMissingMandatoryValues(job);
+				job.ActionRequired = calculator.HasMissingMandatoryValues(job);
 			}
 		}
 

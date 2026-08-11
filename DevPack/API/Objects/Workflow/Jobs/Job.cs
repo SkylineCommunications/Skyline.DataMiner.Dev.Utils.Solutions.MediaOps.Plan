@@ -423,7 +423,7 @@
 		/// <remarks>
 		/// This value does not depict the actual state of the job: it is only recalculated and stored when the job is created or updated.
 		/// </remarks>
-		public bool ActionNeeded { get; internal set; }
+		public bool ActionRequired { get; internal set; }
 
 		internal StorageWorkflow.JobsInstance OriginalInstance => originalInstance;
 
@@ -930,7 +930,7 @@
 			updatedInstance.JobInfo.Postroll = PostRollEnd.UtcDateTime;
 			updatedInstance.JobInfo.JobNotes = Notes;
 			updatedInstance.JobInfo.JobSeriesID = RecurringJobId != Guid.Empty ? RecurringJobId.ToString() : null;
-			updatedInstance.JobInfo.ActionNeeded = ActionNeeded;
+			updatedInstance.JobInfo.ActionNeeded = ActionRequired;
 
 			// Reusing JobSource field to store the job type category ID to be backwards compatible with existing implementations.
 			updatedInstance.JobInfo.JobSource = JobTypeCategoryId;
@@ -1010,7 +1010,7 @@
 			PostRollEnd = instance.JobInfo.Postroll.HasValue ? instance.JobInfo.Postroll.Value : End;
 			Notes = instance.JobInfo.JobNotes;
 			RecurringJobId = Guid.TryParse(instance.JobInfo.JobSeriesID, out var recurringJobId) ? recurringJobId : Guid.Empty;
-			ActionNeeded = instance.JobInfo.ActionNeeded ?? false;
+			ActionRequired = instance.JobInfo.ActionNeeded ?? false;
 
 			// Reusing JobSource field to store the job type category ID to be backwards compatible with existing implementations.
 			JobTypeCategoryId = instance.JobInfo.JobSource;

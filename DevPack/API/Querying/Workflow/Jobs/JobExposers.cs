@@ -87,13 +87,13 @@
 		public static readonly Exposer<Job, Guid> OwnerId = new Exposer<Job, Guid>((obj) => obj.OwnerId, "OwnerId");
 
 		/// <summary>
-		/// Gets an exposer for the <see cref="Job.ActionNeeded"/> property.
+		/// Gets an exposer for the <see cref="Job.ActionRequired"/> property.
 		/// </summary>
 		/// <remarks>
 		/// The value is only calculated when the job is created or updated, so jobs that were never saved with this
 		/// version of the API have no value stored and are not returned by this exposer.
 		/// </remarks>
-		public static readonly Exposer<Job, bool> ActionNeeded = new Exposer<Job, bool>((obj) => obj.ActionNeeded, "ActionNeeded");
+		public static readonly Exposer<Job, bool> ActionRequired = new Exposer<Job, bool>((obj) => obj.ActionRequired, "ActionRequired");
 
 		/// <summary>
 		/// Provides exposers for querying and filtering the nodes of the <see cref="Job.NodeGraph"/> property.
