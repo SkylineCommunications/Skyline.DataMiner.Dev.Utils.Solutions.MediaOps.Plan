@@ -1,4 +1,4 @@
-namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
 
@@ -31,14 +31,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		public DateTimeOffset End { get; internal set; }
 
 		/// <summary>
-		/// Gets the current selection state of the resource.
-		/// </summary>
-		public ResourceSelectionState ResourceSelectionState { get; private set; }
-
-		/// <summary>
 		/// Gets the current configuration status of the node.
 		/// </summary>
-		public NodeConfigurationStatus NodeConfigurationStatus { get; private set; }
+		/// <remarks>
+		/// This value does not depict the actual state of the node: it is only recalculated and stored when the job is created or updated.
+		/// </remarks>
+		public ConfigurationState ConfigurationState { get; internal set; }
 
 		internal int? CoreReservationNodeId { get; private set; }
 
@@ -48,6 +46,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			section.NodeEndTime = End.UtcDateTime;
 
 			section.CoreReservationNodeID = CoreReservationNodeId.Value;
+
+			section.NodeConfigurationStatus = EnumExtensions.TryMapEnum<ConfigurationState, StorageWorkflow.SlcWorkflowIds.Enums.Nodeconfigurationstatus>(ConfigurationState, out var storedConfigurationState)
+				? storedConfigurationState
+				: (StorageWorkflow.SlcWorkflowIds.Enums.Nodeconfigurationstatus?)null;
 
 			ApplyJobNodeChanges(section);
 		}
@@ -132,12 +134,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			End = section.NodeEndTime.Value;
 			CoreReservationNodeId = ResolveCoreReservationNodeId(section.CoreReservationNodeID, section.NodeID);
 
-			ResourceSelectionState = section.ResourceSelectState.HasValue
-				? EnumExtensions.MapEnum<StorageWorkflow.SlcWorkflowIds.Enums.Resourceselectstate, ResourceSelectionState>(section.ResourceSelectState.Value)
-				: ResourceSelectionState.Unknown;
-			NodeConfigurationStatus = section.NodeConfigurationStatus.HasValue
-				? EnumExtensions.MapEnum<StorageWorkflow.SlcWorkflowIds.Enums.Nodeconfigurationstatus, NodeConfigurationStatus>(section.NodeConfigurationStatus.Value)
-				: NodeConfigurationStatus.Unknown;
+			ConfigurationState = section.NodeConfigurationStatus.HasValue
+				? EnumExtensions.MapEnum<StorageWorkflow.SlcWorkflowIds.Enums.Nodeconfigurationstatus, ConfigurationState>(section.NodeConfigurationStatus.Value)
+				: ConfigurationState.Unknown;
 		}
 	}
 }

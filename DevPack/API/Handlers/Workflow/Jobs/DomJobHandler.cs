@@ -7,6 +7,7 @@
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Solutions.Categories.API;
+	using Skyline.DataMiner.Solutions.MediaOps.Live.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
 	using Skyline.DataMiner.Utils.DOM.Extensions;
@@ -195,8 +196,31 @@
 			ValidateDescription(apiJobs);
 			ValidateNotes(apiJobs);
 
+			// The configuration state of the nodes and the action needed flag of the job are stored on the DOM instance so
+			// they can be queried without recalculating them. They are refreshed here, before the instances with changes are
+			// built, so every create or update persists the state of the orchestration settings that is being saved.
+			ApplyConfigurationStates(apiJobs.Where(IsValid).ToList());
+
 			var lockResult = planApi.LockManager.LockAndExecute(apiJobs.Where(IsValid).ToList(), CreateOrUpdateLocked);
 			ReportError(lockResult);
+		}
+
+		private void ApplyConfigurationStates(ICollection<Job> apiJobs)
+		{
+			// A single calculator is used for all jobs so the parameter definitions and orchestration scripts that are
+			// referenced by the jobs are read in one batch and are shared between them.
+			var calculator = new ConfigurationStateCalculator(planApi, planApi.LiveApi, apiJobs);
+
+			foreach (var job in apiJobs)
+			{
+				foreach (var node in job.NodeGraph.Nodes)
+				{
+					node.ConfigurationState = calculator.GetNodeConfigurationState(node);
+				}
+
+				job.ConfigurationState = calculator.GetJobConfigurationState(job);
+				job.ActionRequired = calculator.HasMissingMandatoryValues(job);
+			}
 		}
 
 		private void CreateOrUpdateLocked(ICollection<Job> apiJobs)
@@ -2309,11 +2333,26 @@
 
 		private void ValidateNoMandatoryConfigurationMissing(ICollection<Job> apiJobs)
 		{
-			foreach (var job in apiJobs.Where(IsValid))
+			var validJobs = apiJobs.Where(IsValid).ToList();
+			if (validJobs.Count == 0)
 			{
-				foreach (var node in job.NodeGraph.Nodes.Where(x => x.NodeConfigurationStatus == NodeConfigurationStatus.MandatoryValuesMissing))
+				return;
+			}
+
+			foreach (var job in validJobs)
+			{
+				if (job.ConfigurationState == ConfigurationState.MandatoryValuesMissing)
 				{
 					ReportError(job.Id, new JobMandatoryConfigurationMissingError
+					{
+						ErrorMessage = "A job can only be confirmed when all mandatory configuration values are provided.",
+						Id = job.Id,
+					});
+				}
+
+				foreach (var node in job.NodeGraph.Nodes.Where(x => x.ConfigurationState == ConfigurationState.MandatoryValuesMissing))
+				{
+					ReportError(job.Id, new JobNodeMandatoryConfigurationMissingError
 					{
 						ErrorMessage = "A job can only be confirmed when all mandatory configuration values are provided.",
 						Id = job.Id,
