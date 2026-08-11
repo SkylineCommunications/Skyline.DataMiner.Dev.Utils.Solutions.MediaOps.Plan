@@ -1131,5 +1131,109 @@
 			Assert.AreEqual(1, read.ContactIds.Count);
 			Assert.IsTrue(read.ContactIds.Contains(contact));
 		}
+
+		[TestMethod]
+		public void CreateWithErrorsPersistsErrors()
+		{
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var job = new Job
+			{
+				Name = $"{Guid.NewGuid()}_Job",
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
+			};
+			job.AddError("LIV101", "Pre-roll could not be started.").AddError("LIV102", "Pre-roll could not be stopped.");
+
+			job = objectCreator.CreateJob(job);
+
+			var read = TestContext.Api.Jobs.Read(job.Id);
+			Assert.IsNotNull(read);
+			Assert.AreEqual(2, read.Errors.Count);
+			Assert.IsTrue(read.Errors.Contains(new JobErrorInfo("LIV101", "Pre-roll could not be started.")));
+			Assert.IsTrue(read.Errors.Contains(new JobErrorInfo("LIV102", "Pre-roll could not be stopped.")));
+		}
+
+		[TestMethod]
+		public void RemoveErrorUpdatesErrors()
+		{
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var job = new Job
+			{
+				Name = $"{Guid.NewGuid()}_Job",
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
+			};
+			job.AddError("LIV101", "Pre-roll could not be started.").AddError("LIV102", "Pre-roll could not be stopped.");
+			job = objectCreator.CreateJob(job);
+
+			var read = TestContext.Api.Jobs.Read(job.Id);
+			read.RemoveError("LIV101");
+			TestContext.Api.Jobs.Update(read);
+
+			var reread = TestContext.Api.Jobs.Read(job.Id);
+			Assert.IsNotNull(reread);
+			Assert.AreEqual(1, reread.Errors.Count);
+			Assert.AreEqual("LIV102", reread.Errors.Single().ErrorCode);
+			Assert.AreEqual("Pre-roll could not be stopped.", reread.Errors.Single().ErrorMessage);
+		}
+
+		[TestMethod]
+		public void AddErrorWithExistingCodeUpdatesMessage()
+		{
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var job = new Job
+			{
+				Name = $"{Guid.NewGuid()}_Job",
+				Start = currentTime,
+				End = currentTime.AddMinutes(5),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(5),
+			};
+			job.AddError("LIV101", "Pre-roll could not be started.").AddError("LIV101", "Pre-roll failed.");
+
+			job = objectCreator.CreateJob(job);
+
+			var read = TestContext.Api.Jobs.Read(job.Id);
+			Assert.IsNotNull(read);
+			Assert.AreEqual(1, read.Errors.Count);
+			Assert.AreEqual("Pre-roll failed.", read.Errors.Single().ErrorMessage);
+		}
+
+		[TestMethod]
+		public void AddErrorWithEmptyCodeThrowsException()
+		{
+			var job = new Job
+			{
+				Name = $"{Guid.NewGuid()}_Job",
+				Start = DateTime.UtcNow,
+				End = DateTime.UtcNow.AddMinutes(5),
+				PreRollStart = DateTime.UtcNow,
+				PostRollEnd = DateTime.UtcNow.AddMinutes(5),
+			};
+
+			Assert.ThrowsException<ArgumentException>(() => job.AddError(String.Empty, "Some message."));
+		}
+
+		[TestMethod]
+		public void RemoveErrorWithEmptyCodeThrowsException()
+		{
+			var job = new Job
+			{
+				Name = $"{Guid.NewGuid()}_Job",
+				Start = DateTime.UtcNow,
+				End = DateTime.UtcNow.AddMinutes(5),
+				PreRollStart = DateTime.UtcNow,
+				PostRollEnd = DateTime.UtcNow.AddMinutes(5),
+			};
+
+			Assert.ThrowsException<ArgumentException>(() => job.RemoveError(String.Empty));
+		}
 	}
 }

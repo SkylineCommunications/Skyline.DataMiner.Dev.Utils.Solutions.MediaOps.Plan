@@ -16,6 +16,7 @@
 	public class Job : ApiNamedObject
 	{
 		private readonly HashSet<Guid> contactIds = [];
+		private readonly Dictionary<string, JobErrorInfo> errors = [];
 
 		private StorageWorkflow.JobsInstance originalInstance;
 		private StorageWorkflow.JobsInstance updatedInstance;
@@ -404,6 +405,11 @@
 		/// Gets the collection of contact IDs associated with the job.
 		/// </summary>
 		public IReadOnlyCollection<Guid> ContactIds => contactIds;
+
+		/// <summary>
+		/// Gets the collection of errors reported on the job.
+		/// </summary>
+		public IReadOnlyCollection<JobErrorInfo> Errors => errors.Values;
 
 		/// <summary>
 		/// Gets or sets the unique identifier of the associated job type category.
@@ -843,6 +849,41 @@
 			return this;
 		}
 
+		/// <summary>
+		/// Adds an error to the job. When an error with the same error code is already present, its message is updated.
+		/// </summary>
+		/// <param name="errorCode">The code that identifies the error.</param>
+		/// <param name="errorMessage">The message that describes the error.</param>
+		/// <returns>The current <see cref="Job"/> instance.</returns>
+		/// <exception cref="ArgumentException">Thrown when <paramref name="errorCode"/> is <see langword="null"/> or whitespace.</exception>
+		public Job AddError(string errorCode, string errorMessage)
+		{
+			if (string.IsNullOrWhiteSpace(errorCode))
+			{
+				throw new ArgumentException("Error code cannot be null or whitespace.", nameof(errorCode));
+			}
+
+			errors[errorCode] = new JobErrorInfo(errorCode, errorMessage);
+			return this;
+		}
+
+		/// <summary>
+		/// Removes the error with the specified error code from the job.
+		/// </summary>
+		/// <param name="errorCode">The code that identifies the error to remove.</param>
+		/// <returns>The current <see cref="Job"/> instance.</returns>
+		/// <exception cref="ArgumentException">Thrown when <paramref name="errorCode"/> is <see langword="null"/> or whitespace.</exception>
+		public Job RemoveError(string errorCode)
+		{
+			if (string.IsNullOrWhiteSpace(errorCode))
+			{
+				throw new ArgumentException("Error code cannot be null or whitespace.", nameof(errorCode));
+			}
+
+			errors.Remove(errorCode);
+			return this;
+		}
+
 		/// <inheritdoc/>
 		public override int GetHashCode()
 		{
@@ -870,6 +911,11 @@
 				foreach (var contactId in contactIds.OrderBy(x => x).ToArray())
 				{
 					hash = (hash * 23) + contactId.GetHashCode();
+				}
+
+				foreach (var error in errors.Values.OrderBy(x => x.ErrorCode, StringComparer.Ordinal).ToArray())
+				{
+					hash = (hash * 23) + error.GetHashCode();
 				}
 
 				return hash;
@@ -901,7 +947,26 @@
 				   OrganizationId == other.OrganizationId &&
 				   OwnerId == other.OwnerId &&
 				   RecurringJobId == other.RecurringJobId &&
-				   contactIds.SetEquals(other.contactIds);
+				   contactIds.SetEquals(other.contactIds) &&
+				   ErrorsEqual(other);
+		}
+
+		private bool ErrorsEqual(Job other)
+		{
+			if (errors.Count != other.errors.Count)
+			{
+				return false;
+			}
+
+			foreach (var error in errors)
+			{
+				if (!other.errors.TryGetValue(error.Key, out var otherError) || !error.Value.Equals(otherError))
+				{
+					return false;
+				}
+			}
+
+			return true;
 		}
 
 		internal StorageWorkflow.JobsInstance GetInstanceWithChanges()
@@ -935,6 +1000,16 @@
 			foreach (var contactId in ContactIds)
 			{
 				updatedInstance.CostingAndBilling.AdditionalContacts.Add(contactId);
+			}
+
+			updatedInstance.Errors.Clear();
+			foreach (var error in Errors)
+			{
+				updatedInstance.Errors.Add(new StorageWorkflow.ErrorsSection
+				{
+					ErrorCode = error.ErrorCode,
+					ErrorMessage = error.ErrorMessage,
+				});
 			}
 
 			// Guarantee every job node has a unique core reservation node ID before persisting, including
@@ -1014,6 +1089,16 @@
 			foreach (var contactId in instance.CostingAndBilling.AdditionalContacts)
 			{
 				contactIds.Add(contactId);
+			}
+
+			foreach (var error in instance.Errors)
+			{
+				if (string.IsNullOrWhiteSpace(error.ErrorCode))
+				{
+					continue;
+				}
+
+				errors[error.ErrorCode] = new JobErrorInfo(error.ErrorCode, error.ErrorMessage);
 			}
 
 			if (instance.JobExecution.JobConfiguration == null || instance.JobExecution.JobConfiguration == Guid.Empty)
