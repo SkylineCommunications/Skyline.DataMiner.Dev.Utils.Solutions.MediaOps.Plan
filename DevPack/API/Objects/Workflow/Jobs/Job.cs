@@ -417,7 +417,7 @@
 
 		/// <summary>
 		/// Gets a value indicating whether manual actions are required to complete the job. This property is set by the system and cannot be modified directly.
-		/// For example, when mandatory orchestration settings are missing, this property is set to <c>true</c>, indicating that the job cannot be completed
+		/// For example, when mandatory orchestration settings are missing, this property is set to <c>true</c>, indicating that the job cannot be confirmed
 		/// until those values are provided.
 		/// </summary>
 		/// <remarks>
