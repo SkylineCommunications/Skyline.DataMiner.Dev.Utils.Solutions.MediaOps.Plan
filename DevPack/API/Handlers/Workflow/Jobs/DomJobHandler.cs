@@ -2339,13 +2339,20 @@
 				return;
 			}
 
-			var calculator = new ConfigurationStateCalculator(planApi, planApi.LiveApi, validJobs);
-
 			foreach (var job in validJobs)
 			{
-				foreach (var node in job.NodeGraph.Nodes.Where(x => calculator.GetNodeConfigurationState(x) == ConfigurationState.MandatoryValuesMissing))
+				if (job.ConfigurationState == ConfigurationState.MandatoryValuesMissing)
 				{
 					ReportError(job.Id, new JobMandatoryConfigurationMissingError
+					{
+						ErrorMessage = "A job can only be confirmed when all mandatory configuration values are provided.",
+						Id = job.Id,
+					});
+				}
+
+				foreach (var node in job.NodeGraph.Nodes.Where(x => x.ConfigurationState == ConfigurationState.MandatoryValuesMissing))
+				{
+					ReportError(job.Id, new JobNodeMandatoryConfigurationMissingError
 					{
 						ErrorMessage = "A job can only be confirmed when all mandatory configuration values are provided.",
 						Id = job.Id,
