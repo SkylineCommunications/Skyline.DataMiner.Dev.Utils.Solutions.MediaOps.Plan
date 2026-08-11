@@ -129,25 +129,11 @@
 		IReadOnlyCollection<Resource> Deprecate(IEnumerable<Guid> resourceIds);
 
 		/// <summary>
-		/// Gets the resources that are eligible for the specified time range, capabilities and capacities.
+		/// Gets the resources that are eligible for the specified context.
 		/// </summary>
-		/// <param name="start">The start of the time range for which the resources must be available.</param>
-		/// <param name="end">The end of the time range for which the resources must be available.</param>
-		/// <param name="capabilitySettings">The capabilities the resources must provide. Can be <c>null</c> or empty.</param>
-		/// <param name="capacitySettings">The capacities the resources must have available. Can be <c>null</c> or empty.</param>
+		/// <param name="context">The context describing the time range, capabilities, capacities and filter of the eligibility request.</param>
 		/// <returns>A collection containing the eligible resources.</returns>
-		ICollection<Resource> GetEligibleResources(DateTimeOffset start, DateTimeOffset end, IReadOnlyCollection<CapabilitySetting> capabilitySettings, IReadOnlyCollection<CapacitySetting> capacitySettings);
-
-		/// <summary>
-		/// Gets the resources that are eligible for the specified time range, capabilities and capacities and that match the specified filter.
-		/// </summary>
-		/// <param name="start">The start of the time range for which the resources must be available.</param>
-		/// <param name="end">The end of the time range for which the resources must be available.</param>
-		/// <param name="capabilitySettings">The capabilities the resources must provide. Can be <c>null</c> or empty.</param>
-		/// <param name="capacitySettings">The capacities the resources must have available. Can be <c>null</c> or empty.</param>
-		/// <param name="filter">The filter that restricts the resources considered for the eligibility request. Can be <c>null</c>.</param>
-		/// <returns>A collection containing the eligible resources.</returns>
-		ICollection<Resource> GetEligibleResources(DateTimeOffset start, DateTimeOffset end, IReadOnlyCollection<CapabilitySetting> capabilitySettings, IReadOnlyCollection<CapacitySetting> capacitySettings, FilterElement<Resource> filter);
+		ICollection<Resource> GetEligibleResources(EligibleResourcesContext context);
 
 		/// <summary>
 		/// Gets all resources in the specified resource pool.

@@ -11,7 +11,7 @@ namespace RT_MediaOps.Plan.RST.Resources
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 
 	/// <summary>
-	/// Tests for <see cref="IResourcesRepository.GetEligibleResources(DateTimeOffset, DateTimeOffset, IReadOnlyCollection{CapabilitySetting}, IReadOnlyCollection{CapacitySetting})"/>
+	/// Tests for <see cref="IResourcesRepository.GetEligibleResources(EligibleResourcesContext)"/>
 	/// and <see cref="Job.AssignEligibleResources(IMediaOpsPlanApi)"/>.
 	/// </summary>
 	/// <remarks>
@@ -179,17 +179,49 @@ namespace RT_MediaOps.Plan.RST.Resources
 			var firstResource = CreateCompleteResource($"{prefix}_Resource_1", pool, null);
 			var secondResource = CreateCompleteResource($"{prefix}_Resource_2", pool, null);
 
-			var eligible = TestContext.Api.Resources.GetEligibleResources(
-				currentTime.AddHours(1),
-				currentTime.AddHours(2),
-				Array.Empty<CapabilitySetting>(),
-				Array.Empty<CapacitySetting>(),
-				ResourceExposers.Id.Equal(firstResource.Id));
+			var eligible = TestContext.Api.Resources.GetEligibleResources(new EligibleResourcesContext(currentTime.AddHours(1), currentTime.AddHours(2))
+			{
+				Filter = ResourceExposers.Id.Equal(firstResource.Id),
+			});
 
 			var eligibleIds = eligible.Select(x => x.Id).ToList();
 
 			CollectionAssert.Contains(eligibleIds, firstResource.Id, "Expected the resource that matches the filter to be eligible.");
 			CollectionAssert.DoesNotContain(eligibleIds, secondResource.Id, "Expected a resource that does not match the filter not to be returned.");
+		}
+
+		[TestMethod]
+		public void GetEligibleResources_WithPropertyValueFilter_OnlyConsidersResourcesWithThatPropertyValue()
+		{
+			SkipWhenNotRunningAgainstRealDma();
+
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var property = objectCreator.CreateResourceProperty(new ResourceProperty { Name = $"{prefix}_Location" });
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var matchingValue = $"{prefix}_StudioA";
+			var otherValue = $"{prefix}_StudioB";
+
+			var matchingResource = CreateCompleteResource($"{prefix}_Resource_A", pool, resource => resource.AddProperty(new ResourcePropertySettings(property.Id) { Value = matchingValue }));
+			var otherValueResource = CreateCompleteResource($"{prefix}_Resource_B", pool, resource => resource.AddProperty(new ResourcePropertySettings(property.Id) { Value = otherValue }));
+			var withoutPropertyResource = CreateCompleteResource($"{prefix}_Resource_None", pool, null);
+
+			var eligible = TestContext.Api.Resources.GetEligibleResources(new EligibleResourcesContext(currentTime.AddHours(1), currentTime.AddHours(2))
+			{
+				Filter = ResourceExposers.ResourcePoolIds.Contains(pool.Id)
+					.AND(ResourceExposers.Properties.PropertyId.Equal(property.Id))
+					.AND(ResourceExposers.Properties.Value.Equal(matchingValue)),
+			});
+
+			var eligibleIds = eligible.Select(x => x.Id).ToList();
+
+			CollectionAssert.Contains(eligibleIds, matchingResource.Id, "Expected the resource that has the requested property value to be eligible.");
+			CollectionAssert.DoesNotContain(eligibleIds, otherValueResource.Id, "Expected the resource that has another value for the property not to be eligible.");
+			CollectionAssert.DoesNotContain(eligibleIds, withoutPropertyResource.Id, "Expected the resource that does not have the property not to be eligible.");
 		}
 
 		[TestMethod]
@@ -306,12 +338,12 @@ namespace RT_MediaOps.Plan.RST.Resources
 			IReadOnlyCollection<CapacitySetting> capacitySettings,
 			ResourcePool pool)
 		{
-			var eligibleResources = TestContext.Api.Resources.GetEligibleResources(
-				start,
-				end,
-				capabilitySettings,
-				capacitySettings,
-				ResourceExposers.ResourcePoolIds.Contains(pool.Id));
+			var eligibleResources = TestContext.Api.Resources.GetEligibleResources(new EligibleResourcesContext(start, end)
+			{
+				CapabilitySettings = capabilitySettings,
+				CapacitySettings = capacitySettings,
+				Filter = ResourceExposers.ResourcePoolIds.Contains(pool.Id),
+			});
 
 			return eligibleResources.Select(x => x.Id).ToList();
 		}

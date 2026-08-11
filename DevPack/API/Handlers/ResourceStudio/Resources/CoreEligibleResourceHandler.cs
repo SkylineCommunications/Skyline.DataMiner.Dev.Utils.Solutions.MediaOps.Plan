@@ -28,20 +28,19 @@
 			this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
 		}
 
-		public static ICollection<Resource> GetEligibleResources(
-			MediaOpsPlanApi planApi,
-			DateTimeOffset start,
-			DateTimeOffset end,
-			IReadOnlyCollection<CapabilitySetting> capabilitySettings,
-			IReadOnlyCollection<CapacitySetting> capacitySettings,
-			FilterElement<Resource> filter)
+		public static ICollection<Resource> GetEligibleResources(MediaOpsPlanApi planApi, EligibleResourcesContext context)
 		{
+			if (context == null)
+			{
+				throw new ArgumentNullException(nameof(context));
+			}
+
 			var handler = new CoreEligibleResourceHandler(planApi);
 
 			return ActivityHelper.Track(
 				nameof(CoreEligibleResourceHandler),
 				nameof(GetEligibleResources),
-				act => handler.GetEligibleResources(start, end, capabilitySettings, capacitySettings, filter));
+				act => handler.GetEligibleResources(context));
 		}
 
 		private static IEnumerable<ResourceCapabilityUsage> BuildCapabilities(IReadOnlyCollection<CapabilitySetting> capabilitySettings)
@@ -100,18 +99,15 @@
 			}
 		}
 
-		private ICollection<Resource> GetEligibleResources(
-			DateTimeOffset start,
-			DateTimeOffset end,
-			IReadOnlyCollection<CapabilitySetting> capabilitySettings,
-			IReadOnlyCollection<CapacitySetting> capacitySettings,
-			FilterElement<Resource> filter)
+		private ICollection<Resource> GetEligibleResources(EligibleResourcesContext context)
 		{
-			var context = new EligibleResourceContext(new Net.Time.TimeRangeUtc(start.UtcDateTime, end.UtcDateTime))
+			var coreContext = new EligibleResourceContext(new Net.Time.TimeRangeUtc(context.Start.UtcDateTime, context.End.UtcDateTime))
 			{
-				RequiredCapabilities = BuildCapabilities(capabilitySettings).ToList(),
-				RequiredCapacities = BuildCapacities(capacitySettings).ToList(),
+				RequiredCapabilities = BuildCapabilities(context.CapabilitySettings).ToList(),
+				RequiredCapacities = BuildCapacities(context.CapacitySettings).ToList(),
 			};
+
+			var filter = context.Filter;
 
 			Dictionary<Guid, Resource> filteredResourcesByCoreId = null;
 			if (filter != null && !filter.isEmpty())
@@ -129,10 +125,10 @@
 					return Array.Empty<Resource>();
 				}
 
-				context.ResourceFilter = new ORFilterElement<CoreResource>(filteredResourcesByCoreId.Keys.Select(x => Net.Messages.ResourceExposers.ID.Equal(x)).ToArray());
+				coreContext.ResourceFilter = new ORFilterElement<CoreResource>(filteredResourcesByCoreId.Keys.Select(x => Net.Messages.ResourceExposers.ID.Equal(x)).ToArray());
 			}
 
-			var eligibleCoreResources = planApi.CoreHelpers.ResourceManagerHelper.GetEligibleResourcesForContext(context);
+			var eligibleCoreResources = planApi.CoreHelpers.ResourceManagerHelper.GetEligibleResourcesForContext(coreContext);
 
 			return MapToResourceStudioResources(eligibleCoreResources, filteredResourcesByCoreId);
 		}

@@ -728,12 +728,12 @@
 			{
 				GetNodeTimeRange(poolNode, out var start, out var end);
 
-				var eligibleResources = api.Resources.GetEligibleResources(
-					start,
-					end,
-					poolNode.OrchestrationSettings.Capabilities,
-					poolNode.OrchestrationSettings.Capacities,
-					CreateEligibleResourceFilter(poolNode.ResourcePoolId, assignedResourceIds));
+				var eligibleResources = api.Resources.GetEligibleResources(new EligibleResourcesContext(start, end)
+				{
+					CapabilitySettings = poolNode.OrchestrationSettings.Capabilities,
+					CapacitySettings = poolNode.OrchestrationSettings.Capacities,
+					Filter = CreateEligibleResourceFilter(poolNode.ResourcePoolId, assignedResourceIds),
+				});
 
 				// The already assigned resources are excluded through the filter, so any returned resource can be used.
 				// A node for which no resource is eligible keeps its resource pool node so it can be assigned later.
