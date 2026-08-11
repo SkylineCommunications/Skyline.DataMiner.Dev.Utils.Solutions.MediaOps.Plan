@@ -96,6 +96,15 @@
 		public static readonly Exposer<Job, bool> ActionRequired = new Exposer<Job, bool>((obj) => obj.ActionRequired, "ActionRequired");
 
 		/// <summary>
+		/// Gets an exposer for the <see cref="Job.ConfigurationState"/> property.
+		/// </summary>
+		/// <remarks>
+		/// The value is only calculated when the job is created or updated, so jobs that were never saved with this
+		/// version of the API have no value stored and are not returned by this exposer.
+		/// </remarks>
+		public static readonly Exposer<Job, ConfigurationState> ConfigurationState = new Exposer<Job, ConfigurationState>((obj) => obj.ConfigurationState, "ConfigurationState");
+
+		/// <summary>
 		/// Provides exposers for querying and filtering the nodes of the <see cref="Job.NodeGraph"/> property.
 		/// </summary>
 		public static class Nodes

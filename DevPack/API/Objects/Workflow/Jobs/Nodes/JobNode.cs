@@ -134,9 +134,9 @@
 			End = section.NodeEndTime.Value;
 			CoreReservationNodeId = ResolveCoreReservationNodeId(section.CoreReservationNodeID, section.NodeID);
 
-			NodeConfigurationStatus = section.NodeConfigurationStatus.HasValue
-				? EnumExtensions.MapEnum<StorageWorkflow.SlcWorkflowIds.Enums.Nodeconfigurationstatus, NodeConfigurationStatus>(section.NodeConfigurationStatus.Value)
-				: NodeConfigurationStatus.Unknown;
+			ConfigurationState = section.NodeConfigurationStatus.HasValue
+				? EnumExtensions.MapEnum<StorageWorkflow.SlcWorkflowIds.Enums.Nodeconfigurationstatus, ConfigurationState>(section.NodeConfigurationStatus.Value)
+				: ConfigurationState.Unknown;
 		}
 	}
 }

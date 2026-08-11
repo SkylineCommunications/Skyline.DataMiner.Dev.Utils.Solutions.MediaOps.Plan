@@ -41,7 +41,8 @@
 				[JobExposers.OrganizationId.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.CostingAndBilling.Organization), comparer, (Guid)value),
 				[JobExposers.OwnerId.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.CostingAndBilling.JobOwner), comparer, (Guid)value),
 				[JobExposers.ActionRequired.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.ActionNeeded), comparer, (bool)value),
-				[JobExposers.Nodes.ConfigurationState.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeConfigurationStatus), comparer, ConvertConfigurationState((ConfigurationState)value)),
+				[JobExposers.ConfigurationState.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobExecution.JobConfigurationStatus), comparer, ConvertJobConfigurationState((ConfigurationState)value)),
+				[JobExposers.Nodes.ConfigurationState.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeConfigurationStatus), comparer, ConvertNodeConfigurationState((ConfigurationState)value)),
 				[JobExposers.Capabilities.CapabilityId.fieldName] = (comparer, value) => CreateOrchestrationSettingsFilter(SlcWorkflowIds.Sections.ProfileParameterValues.ProfileParameterID, comparer, Convert.ToString(value)),
 				[JobExposers.Capabilities.Discretes.fieldName] = (comparer, value) => CreateOrchestrationSettingsFilter(SlcWorkflowIds.Sections.ProfileParameterValues.StringValue, comparer, Convert.ToString(value)),
 				[JobExposers.Capacities.CapacityId.fieldName] = (comparer, value) => CreateOrchestrationSettingsFilter(SlcWorkflowIds.Sections.ProfileParameterValues.ProfileParameterID, comparer, Convert.ToString(value)),
@@ -67,6 +68,7 @@
 				[JobExposers.OrganizationId.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.CostingAndBilling.Organization), sortOrder, naturalSort),
 				[JobExposers.OwnerId.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.CostingAndBilling.JobOwner), sortOrder, naturalSort),
 				[JobExposers.ActionRequired.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.ActionNeeded), sortOrder, naturalSort),
+				[JobExposers.ConfigurationState.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobExecution.JobConfigurationStatus), sortOrder, naturalSort),
 			};
 		}
 
@@ -144,7 +146,24 @@
 			}
 		}
 
-		private static int ConvertConfigurationState(ConfigurationState state)
+		private static int ConvertJobConfigurationState(ConfigurationState state)
+		{
+			switch (state)
+			{
+				case ConfigurationState.MandatoryValuesMissing:
+					return (int)SlcWorkflowIds.Enums.Jobconfigurationstatus.MandatoryValuesMissing;
+				case ConfigurationState.NonMandatoryValuesMissing:
+					return (int)SlcWorkflowIds.Enums.Jobconfigurationstatus.NonMandatoryValuesMissing;
+				case ConfigurationState.AllValuesProvided:
+					return (int)SlcWorkflowIds.Enums.Jobconfigurationstatus.AllValuesProvided;
+				case ConfigurationState.NoParametersDefined:
+					return (int)SlcWorkflowIds.Enums.Jobconfigurationstatus.NoParametersDefined;
+				default:
+					throw new InvalidOperationException($"Unsupported configuration state: {state}");
+			}
+		}
+
+		private static int ConvertNodeConfigurationState(ConfigurationState state)
 		{
 			switch (state)
 			{
