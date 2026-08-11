@@ -207,18 +207,18 @@
 
 		private void ApplyConfigurationStates(ICollection<Job> apiJobs)
 		{
+			// A single calculator is used for all jobs so the parameter definitions and orchestration scripts that are
+			// referenced by the jobs are read in one batch and are shared between them.
+			var calculator = new ConfigurationStateCalculator(planApi, planApi.LiveApi, apiJobs);
+
 			foreach (var job in apiJobs)
 			{
-				var calculator = new ConfigurationStateCalculator(planApi, planApi.LiveApi, job);
-
 				foreach (var node in job.NodeGraph.Nodes)
 				{
-					node.ConfigurationState = calculator.TryGetNodeConfigurationState(node.Id, out var nodeState)
-						? nodeState
-						: ConfigurationState.Unknown;
+					node.ConfigurationState = calculator.GetNodeConfigurationState(node);
 				}
 
-				job.ActionNeeded = calculator.HasMissingMandatoryValues();
+				job.ActionNeeded = calculator.HasMissingMandatoryValues(job);
 			}
 		}
 
@@ -2332,10 +2332,17 @@
 
 		private void ValidateNoMandatoryConfigurationMissing(ICollection<Job> apiJobs)
 		{
-			foreach (var job in apiJobs.Where(IsValid))
+			var validJobs = apiJobs.Where(IsValid).ToList();
+			if (validJobs.Count == 0)
 			{
-				var calculator = new ConfigurationStateCalculator(planApi, planApi.LiveApi, job);
-				foreach (var node in job.NodeGraph.Nodes.Where(x => calculator.TryGetNodeConfigurationState(x.Id, out var state) && state == ConfigurationState.MandatoryValuesMissing))
+				return;
+			}
+
+			var calculator = new ConfigurationStateCalculator(planApi, planApi.LiveApi, validJobs);
+
+			foreach (var job in validJobs)
+			{
+				foreach (var node in job.NodeGraph.Nodes.Where(x => calculator.GetNodeConfigurationState(x) == ConfigurationState.MandatoryValuesMissing))
 				{
 					ReportError(job.Id, new JobMandatoryConfigurationMissingError
 					{
