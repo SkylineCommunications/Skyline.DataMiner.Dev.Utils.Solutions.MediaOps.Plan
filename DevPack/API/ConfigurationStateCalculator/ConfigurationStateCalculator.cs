@@ -208,7 +208,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// </summary>
 		/// <param name="settings">The orchestration settings.</param>
 		/// <returns>The configuration state of the specified orchestration settings, or <see cref="ConfigurationState.Unknown"/> when no settings are available.</returns>
-		public ConfigurationState GetConfigurationState(OrchestrationSettings settings)
+		private ConfigurationState GetConfigurationState(OrchestrationSettings settings)
 		{
 			if (settings == null)
 			{
