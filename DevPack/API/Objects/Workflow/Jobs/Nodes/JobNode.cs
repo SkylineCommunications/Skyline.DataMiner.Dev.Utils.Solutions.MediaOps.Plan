@@ -31,12 +31,7 @@
 		public DateTimeOffset End { get; internal set; }
 
 		/// <summary>
-		/// Gets the current selection state of the resource.
-		/// </summary>
-		public ResourceSelectionState ResourceSelectionState { get; private set; }
-
-		/// <summary>
-		/// Gets the configuration state of the orchestration settings of the node.
+		/// Gets the current configuration status of the node.
 		/// </summary>
 		/// <remarks>
 		/// This value does not depict the actual state of the node: it is only recalculated and stored when the job is created or updated.
@@ -139,12 +134,9 @@
 			End = section.NodeEndTime.Value;
 			CoreReservationNodeId = ResolveCoreReservationNodeId(section.CoreReservationNodeID, section.NodeID);
 
-			ResourceSelectionState = section.ResourceSelectState.HasValue && EnumExtensions.TryMapEnum<StorageWorkflow.SlcWorkflowIds.Enums.Resourceselectstate, ResourceSelectionState>(section.ResourceSelectState.Value, out var resourceState)
-				? resourceState
-				: ResourceSelectionState.Unknown;
-			ConfigurationState = section.NodeConfigurationStatus.HasValue && EnumExtensions.TryMapEnum<StorageWorkflow.SlcWorkflowIds.Enums.Nodeconfigurationstatus, ConfigurationState>(section.NodeConfigurationStatus.Value, out var configState)
-				? configState
-				: API.ConfigurationState.Unknown;
+			NodeConfigurationStatus = section.NodeConfigurationStatus.HasValue
+				? EnumExtensions.MapEnum<StorageWorkflow.SlcWorkflowIds.Enums.Nodeconfigurationstatus, NodeConfigurationStatus>(section.NodeConfigurationStatus.Value)
+				: NodeConfigurationStatus.Unknown;
 		}
 	}
 }
