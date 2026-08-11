@@ -218,7 +218,7 @@
 						: ConfigurationState.Unknown;
 				}
 
-				job.ActionRequired = calculator.HasMissingMandatoryValues();
+				job.ActionNeeded = calculator.HasMissingMandatoryValues();
 			}
 		}
 
