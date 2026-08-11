@@ -31,6 +31,7 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 			CreateRecurringJob();
 			CreateCategories(scope);
 			CreateOrchestrationParameters();
+			CreateResourcePool();
 			CreateSchedulingProperty();
 			CreateJobs();
 		}
@@ -64,11 +65,15 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 
 		public Capability? Capability { get; private set; }
 
+		public Capability? MandatoryCapability { get; private set; }
+
 		public NumberCapacity? Capacity { get; private set; }
 
 		public TextConfiguration? Configuration { get; private set; }
 
 		public StringProperty? Property { get; private set; }
+
+		public ResourcePool? ResourcePool { get; private set; }
 
 		private void CreateOrchestrationParameters()
 		{
@@ -81,6 +86,16 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 
 			Capability = objectCreator.CreateCapability(capability);
 
+			var mandatoryCapability = new Capability
+			{
+				Name = $"MandatoryCapability_{Prefix}",
+				IsMandatory = true,
+			};
+
+			mandatoryCapability.SetDiscretes(["USA", "Belgium"]);
+
+			MandatoryCapability = objectCreator.CreateCapability(mandatoryCapability);
+
 			Capacity = (NumberCapacity)objectCreator.CreateCapacity(new NumberCapacity
 			{
 				Name = $"Capacity_{Prefix}",
@@ -91,6 +106,14 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 				Name = $"Configuration_{Prefix}",
 				IsMandatory = false,
 			});
+		}
+
+		private void CreateResourcePool()
+		{
+			ResourcePool = testContext.Api.ResourcePools.Complete(objectCreator.CreateResourcePool(new ResourcePool
+			{
+				Name = $"ResourcePool_{Prefix}",
+			}));
 		}
 
 		private void CreateSchedulingProperty()
@@ -189,6 +212,14 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 			job1.AddProperty(new StringPropertySetting(Property!) { Value = "First" });
 
 			job2.OrchestrationSettings.AddCapability(new CapabilitySetting(Capability!) { Value = "USA" });
+
+			// The first job has a node without orchestration settings, while the node of the second job is missing a
+			// mandatory value. This makes the second job the only job that requires an action.
+			job1.NodeGraph.Add(new JobResourcePoolNode(ResourcePool!));
+
+			var job2Node = new JobResourcePoolNode(ResourcePool!);
+			job2Node.OrchestrationSettings.AddCapability(new CapabilitySetting(MandatoryCapability!));
+			job2.NodeGraph.Add(job2Node);
 
 			DraftJob1 = objectCreator.CreateJob(job1);
 			DraftJob2 = objectCreator.CreateJob(job2);

@@ -19,6 +19,21 @@
 				.Single(target => target.ToString().Equals(sourceEnum.ToString(), StringComparison.OrdinalIgnoreCase));
 		}
 
+		public static bool TryMapEnum<TSource, TTarget>(this TSource sourceEnum, out TTarget targetEnum)
+		{
+			if (EqualityComparer<TSource>.Default.Equals(sourceEnum, default))
+			{
+				targetEnum = default;
+				return false;
+			}
+
+			targetEnum = Enum.GetValues(typeof(TTarget))
+				.Cast<TTarget>()
+				.SingleOrDefault(target => target.ToString().Equals(sourceEnum.ToString(), StringComparison.OrdinalIgnoreCase));
+
+			return !EqualityComparer<TTarget>.Default.Equals(targetEnum, default);
+		}
+
 		public static string GetDescription<T>(this T value) where T : struct, Enum
 		{
 			var name = Convert.ToString(value);

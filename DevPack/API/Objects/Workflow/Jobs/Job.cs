@@ -415,6 +415,26 @@
 		/// </summary>
 		public Guid RecurringJobId { get; set; }
 
+		/// <summary>
+		/// Gets a value indicating whether manual actions are required to complete the job. This property is set by the system and cannot be modified directly.
+		/// For example, when mandatory orchestration settings are missing, this property is set to <c>true</c>, indicating that the job cannot be confirmed
+		/// until those values are provided.
+		/// </summary>
+		/// <remarks>
+		/// This value does not depict the actual state of the job: it is only recalculated and stored when the job is created or updated.
+		/// </remarks>
+		public bool ActionRequired { get; internal set; }
+
+		/// <summary>
+		/// Gets the configuration state of the <see cref="OrchestrationSettings"/> of the job itself. The orchestration settings
+		/// of the nodes of the job are not taken into account: those are exposed by <see cref="JobNode.ConfigurationState"/>.
+		/// This property is set by the system and cannot be modified directly.
+		/// </summary>
+		/// <remarks>
+		/// This value does not depict the actual state of the job: it is only recalculated and stored when the job is created or updated.
+		/// </remarks>
+		public ConfigurationState ConfigurationState { get; internal set; }
+
 		internal StorageWorkflow.JobsInstance OriginalInstance => originalInstance;
 
 		internal PropertySettingsScope PropertySettingsScope => propertySettingsScope;
@@ -920,11 +940,16 @@
 			updatedInstance.JobInfo.Postroll = PostRollEnd.UtcDateTime;
 			updatedInstance.JobInfo.JobNotes = Notes;
 			updatedInstance.JobInfo.JobSeriesID = RecurringJobId != Guid.Empty ? RecurringJobId.ToString() : null;
+			updatedInstance.JobInfo.ActionNeeded = ActionRequired;
 
 			// Reusing JobSource field to store the job type category ID to be backwards compatible with existing implementations.
 			updatedInstance.JobInfo.JobSource = JobTypeCategoryId;
 
 			updatedInstance.JobExecution.JobConfiguration = OrchestrationSettings.Id;
+
+			updatedInstance.JobExecution.JobConfigurationStatus = EnumExtensions.TryMapEnum<ConfigurationState, StorageWorkflow.SlcWorkflowIds.Enums.Jobconfigurationstatus>(ConfigurationState, out var storedConfigurationState)
+				? storedConfigurationState
+				: (StorageWorkflow.SlcWorkflowIds.Enums.Jobconfigurationstatus?)null;
 
 			updatedInstance.JobInfo.JobPriority = EnumExtensions.MapEnum<JobPriority, StorageWorkflow.SlcWorkflowIds.Enums.Jobpriority>(Priority);
 
@@ -999,6 +1024,11 @@
 			PostRollEnd = instance.JobInfo.Postroll.HasValue ? instance.JobInfo.Postroll.Value : End;
 			Notes = instance.JobInfo.JobNotes;
 			RecurringJobId = Guid.TryParse(instance.JobInfo.JobSeriesID, out var recurringJobId) ? recurringJobId : Guid.Empty;
+			ActionRequired = instance.JobInfo.ActionNeeded ?? false;
+
+			ConfigurationState = instance.JobExecution.JobConfigurationStatus.HasValue
+				? EnumExtensions.MapEnum<StorageWorkflow.SlcWorkflowIds.Enums.Jobconfigurationstatus, ConfigurationState>(instance.JobExecution.JobConfigurationStatus.Value)
+				: ConfigurationState.Unknown;
 
 			// Reusing JobSource field to store the job type category ID to be backwards compatible with existing implementations.
 			JobTypeCategoryId = instance.JobInfo.JobSource;
