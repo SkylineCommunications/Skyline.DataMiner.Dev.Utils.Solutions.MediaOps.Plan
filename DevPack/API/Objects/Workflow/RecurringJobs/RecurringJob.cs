@@ -728,6 +728,7 @@
 
 			updatedInstance.JobInfo.JobStart = Start.UtcDateTime;
 			updatedInstance.JobInfo.JobEnd = Start.Add(Duration).UtcDateTime;
+			updatedInstance.JobInfo.JobDuration = Duration;
 			updatedInstance.JobInfo.Preroll = Start.Subtract(PreRollDuration).UtcDateTime;
 			updatedInstance.JobInfo.Postroll = Start.Add(Duration).Add(PostRollDuration).UtcDateTime;
 
