@@ -15,7 +15,7 @@
 	/// are read in batch and cached for the lifetime of the calculator, so a single instance should be reused as long as the
 	/// underlying job (or recurring job) is not modified.
 	/// </remarks>
-	public sealed class ConfigurationStateCalculator
+	internal sealed class ConfigurationStateCalculator
 	{
 		private readonly IMediaOpsPlanApi _planApi;
 		private readonly IMediaOpsLiveApi _liveApi;

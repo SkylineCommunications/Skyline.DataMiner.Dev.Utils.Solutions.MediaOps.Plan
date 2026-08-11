@@ -414,6 +414,12 @@
 		/// </summary>
 		public Guid RecurringJobId { get; set; }
 
+		/// <summary>
+		/// Gets a value indicating whether manual actions are required to complete the job. This property is set by the system and cannot be modified directly.
+		/// For example, if a node doesn't have a resource assigned, this property will be set to true, indicating that the job cannot be completed until a resource is assigned.
+		/// </summary>
+		public bool ActionNeeded { get; internal set; }
+
 		internal StorageWorkflow.JobsInstance OriginalInstance => originalInstance;
 
 		internal PropertySettingsScope PropertySettingsScope => propertySettingsScope;
