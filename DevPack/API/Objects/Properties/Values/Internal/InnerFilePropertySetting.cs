@@ -7,8 +7,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 	internal class InnerFilePropertySetting : FilePropertySetting
 	{
-		private const char FileSeparator = '|';
-
 		private StorageProperties.PropertyValueSection originalSection;
 		private StorageProperties.PropertyValueSection updatedSection;
 
