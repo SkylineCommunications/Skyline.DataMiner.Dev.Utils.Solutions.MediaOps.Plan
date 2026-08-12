@@ -115,18 +115,22 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				var instanceId = new DomInstanceId(settingCollection.Id);
 
-				// A dropped file setting can be re-added as a copy, so only the attachments that nothing refers to anymore are removed.
+				// Only the attachments that nothing refers to anymore are removed. Reconciling against the full stored
+				// attachment list catches orphans from removed file settings as well as settings that were never loaded.
 				var expectedAttachments = new HashSet<string>(
 					settingCollection.FileSettings.SelectMany(x => x.Files.Select(f => FilePropertySetting.GetAttachmentName(x.Id, f))),
 					StringComparer.OrdinalIgnoreCase);
 
-				foreach (var removedSetting in settingCollection.RemovedFileSettings)
+				foreach (var attachmentName in planApi.PropertyAttachments.GetNames(instanceId).Where(x => !expectedAttachments.Contains(x)).ToList())
 				{
-					var orphaned = removedSetting.StoredFiles
-						.Where(x => !expectedAttachments.Contains(FilePropertySetting.GetAttachmentName(removedSetting.Id, x)))
-						.ToList();
-
-					DeleteAttachments(instanceId, removedSetting, orphaned);
+					try
+					{
+						planApi.PropertyAttachments.Delete(instanceId, attachmentName);
+					}
+					catch (Exception ex)
+					{
+						planApi.Logger.Error(this, $"Failed to delete orphaned attachment '{attachmentName}': {ex}");
+					}
 				}
 
 				settingCollection.ClearRemovedFileSettings();
@@ -143,11 +147,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 					try
 					{
-						foreach (var fileName in setting.FilesToDelete)
-						{
-							planApi.PropertyAttachments.Delete(instanceId, FilePropertySetting.GetAttachmentName(setting.Id, fileName));
-						}
-
 						foreach (var fileToUpload in setting.FilesToUpload)
 						{
 							planApi.PropertyAttachments.Add(instanceId, FilePropertySetting.GetAttachmentName(setting.Id, fileToUpload.Key), fileToUpload.Value);
@@ -164,22 +163,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 							Id = settingCollection.Id,
 						});
 					}
-				}
-			}
-		}
-
-		// Cleaning up attachments must never fail the operation itself, so failures are only logged.
-		private void DeleteAttachments(DomInstanceId instanceId, FilePropertySetting setting, IEnumerable<string> fileNames)
-		{
-			foreach (var fileName in fileNames)
-			{
-				try
-				{
-					planApi.PropertyAttachments.Delete(instanceId, FilePropertySetting.GetAttachmentName(setting.Id, fileName));
-				}
-				catch (Exception ex)
-				{
-					planApi.Logger.Error(this, $"Failed to delete attachment '{fileName}' of property '{setting.Id}': {ex}");
 				}
 			}
 		}
