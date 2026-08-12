@@ -46,7 +46,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 		}
 
-		internal FilePropertySetting(FilePropertySetting filePropertySetting)
+		internal FilePropertySetting(FilePropertySetting filePropertySetting, Guid destinationCollectionId)
 			: base(filePropertySetting)
 		{
 			files.AddRange(filePropertySetting.files);
@@ -60,6 +60,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				filesToDelete.Add(fileToDelete);
 			}
+
+			CopyStoredFiles(filePropertySetting, destinationCollectionId);
 		}
 
 		/// <summary>
@@ -239,6 +241,31 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 			this.planApi = planApi;
 			this.settingCollectionId = settingCollectionId;
+		}
+
+		// A setting that stays in the collection holding its attachments keeps them; anywhere else the content has to travel along.
+		private void CopyStoredFiles(FilePropertySetting source, Guid destinationCollectionId)
+		{
+			if (source.storedFiles.Count == 0)
+			{
+				return;
+			}
+
+			if (source.settingCollectionId == destinationCollectionId)
+			{
+				foreach (var storedFile in source.storedFiles)
+				{
+					storedFiles.Add(storedFile);
+				}
+
+				SetStorageContext(source.planApi, source.settingCollectionId);
+				return;
+			}
+
+			foreach (var storedFile in source.storedFiles.Where(x => !filesToUpload.ContainsKey(x)))
+			{
+				filesToUpload[storedFile] = source.ReadContent(storedFile);
+			}
 		}
 
 		// The file name is used as an attachment name, so any directory information is stripped off.

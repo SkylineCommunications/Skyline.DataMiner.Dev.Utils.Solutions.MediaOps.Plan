@@ -115,10 +115,18 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				var instanceId = new DomInstanceId(settingCollection.Id);
 
-				// A file setting that was dropped from the collection still has attachments that must be cleaned up.
+				// A dropped file setting can be re-added as a copy, so only the attachments that nothing refers to anymore are removed.
+				var expectedAttachments = new HashSet<string>(
+					settingCollection.FileSettings.SelectMany(x => x.Files.Select(f => FilePropertySetting.GetAttachmentName(x.Id, f))),
+					StringComparer.OrdinalIgnoreCase);
+
 				foreach (var removedSetting in settingCollection.RemovedFileSettings)
 				{
-					DeleteAttachments(instanceId, removedSetting, removedSetting.StoredFiles);
+					var orphaned = removedSetting.StoredFiles
+						.Where(x => !expectedAttachments.Contains(FilePropertySetting.GetAttachmentName(removedSetting.Id, x)))
+						.ToList();
+
+					DeleteAttachments(instanceId, removedSetting, orphaned);
 				}
 
 				settingCollection.ClearRemovedFileSettings();
@@ -241,9 +249,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				throw new ArgumentException($"Not all provided property value collections are valid", nameof(apiSettingCollections));
 			}
 
-			// The attachments are removed while the instance still exists, so no file content is left behind.
-			DeleteAttachments(apiSettingCollections);
-
+			// The server removes the attachments together with the instance, so they need no separate cleanup here.
 			var toDelete = apiSettingCollections.Select(x => x.OriginalInstance.ToInstance());
 			planApi.DomHelpers.SlcPropertiesHelper.DomHelper.DomInstances.TryDeleteInBatches(toDelete, out var domResult);
 
@@ -261,21 +267,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			ReportSuccess(toDelete.Where(x => domResult.SuccessfulIds.Contains(x.ID)).Select(x => new DomPropertySettingCollection(x)));
-		}
-
-		private void DeleteAttachments(ICollection<PropertySettingCollection> apiSettingCollections)
-		{
-			foreach (var settingCollection in apiSettingCollections)
-			{
-				var instanceId = new DomInstanceId(settingCollection.Id);
-
-				foreach (var setting in settingCollection.FileSettings.Concat(settingCollection.RemovedFileSettings))
-				{
-					DeleteAttachments(instanceId, setting, setting.StoredFiles);
-				}
-
-				settingCollection.ClearRemovedFileSettings();
-			}
 		}
 
 		private void ValidateIdsNotInUse(ICollection<PropertySettingCollection> apiSettingCollections)
