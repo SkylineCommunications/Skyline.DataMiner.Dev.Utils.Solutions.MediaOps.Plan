@@ -10,8 +10,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		private StorageProperties.PropertyValueSection originalSection;
 		private StorageProperties.PropertyValueSection updatedSection;
 
-		internal InnerFilePropertySetting(FilePropertySetting filePropertySetting)
-			: base(filePropertySetting)
+		internal InnerFilePropertySetting(FilePropertySetting filePropertySetting, Guid destinationCollectionId)
+			: base(filePropertySetting, destinationCollectionId)
 		{
 		}
 

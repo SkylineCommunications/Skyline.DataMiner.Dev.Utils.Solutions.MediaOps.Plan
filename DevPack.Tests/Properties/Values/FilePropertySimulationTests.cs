@@ -166,7 +166,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 		}
 
 		[TestMethod]
-		public void Delete_RemovesAttachments()
+		public void Update_RetainingSettingsOfSameCollection_KeepsAttachmentsWithoutReupload()
 		{
 			var (api, attachments) = CreateContext();
 			var property = CreateFileProperty(api);
@@ -176,9 +176,35 @@ namespace RT_MediaOps.Plan.Properties.Values
 			api.PropertySettingCollections.Create(collection);
 
 			var read = api.PropertySettingCollections.Read(collection.Id);
-			api.PropertySettingCollections.Delete(read);
+			read.SetPropertySettings(read.PropertySettings.ToList());
 
-			Assert.IsFalse(attachments.Contains(collection.Id, $"{property.Id}_document.pdf"), "Expected the attachments to be removed together with the collection.");
+			var updated = api.PropertySettingCollections.Update(read);
+
+			CollectionAssert.AreEqual(new[] { "document.pdf" }, updated.FileSettings.Single().Files.ToArray());
+			CollectionAssert.AreEqual(Content("hello"), updated.FileSettings.Single().ReadContent("document.pdf"));
+			Assert.IsTrue(attachments.Contains(collection.Id, $"{property.Id}_document.pdf"));
+		}
+
+		[TestMethod]
+		public void Create_CopyingSettingFromOtherCollection_CopiesStoredContent()
+		{
+			var (api, attachments) = CreateContext();
+			var property = CreateFileProperty(api);
+
+			var source = CreateCollection();
+			source.Add(new FilePropertySetting(property).AddFile("document.pdf", Content("hello")));
+			api.PropertySettingCollections.Create(source);
+
+			var readSource = api.PropertySettingCollections.Read(source.Id);
+
+			var destination = CreateCollection();
+			destination.Add(readSource.FileSettings.Single());
+			var created = api.PropertySettingCollections.Create(destination);
+
+			Assert.IsTrue(
+				attachments.Contains(destination.Id, $"{property.Id}_document.pdf"),
+				"Expected the stored content to be copied to the destination collection.");
+			CollectionAssert.AreEqual(Content("hello"), created.FileSettings.Single().ReadContent("document.pdf"));
 		}
 
 		[TestMethod]

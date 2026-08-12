@@ -233,7 +233,7 @@
 					discreteSettings.Add(new InnerDiscretePropertySetting(discreteVal));
 					break;
 				case FilePropertySetting fileVal:
-					fileSettings.Add(new InnerFilePropertySetting(fileVal));
+					fileSettings.Add(new InnerFilePropertySetting(fileVal, Id));
 					break;
 				default:
 					throw new ArgumentException($"Unsupported property setting type '{item.GetType().Name}'.", nameof(item));
