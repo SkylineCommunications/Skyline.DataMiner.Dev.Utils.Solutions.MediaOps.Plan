@@ -30,9 +30,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				throw new ArgumentNullException(nameof(resourceManagerErrors));
 			}
 
+			traceDataPerReservationId.Clear();
+
 			if (resourceManagerErrors.Count == 0)
 			{
-				return new Dictionary<Guid, MediaOpsTraceData>();
+				return traceDataPerReservationId;
 			}
 
 			var reservationUpdateCausedReservationsToGoToQuarantineErrors = resourceManagerErrors.Where(x => x.ErrorReason == ResourceManagerErrorData.Reason.ReservationUpdateCausedReservationsToGoToQuarantine).ToList();
@@ -40,8 +42,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			var resourceCapabilityInvalidErrors = resourceManagerErrors.Where(x => x.ErrorReason == ResourceManagerErrorData.Reason.ResourceCapabilityInvalid).ToList();
 
 			// The DevPack surfaces resources by their Resource Studio (DOM) id, so the core resource ids in the errors are
-			// resolved to their DOM counterparts in a single query.
-			var domResourceIdByCoreId = BuildDomResourceIdByCoreId(
+			// resolved to their DOM counterparts in a batched query (one or more backend calls, depending on filter size).
 				reservationUpdateCausedReservationsToGoToQuarantineErrors,
 				resourceCapacityInvalidErrors,
 				resourceCapabilityInvalidErrors);
@@ -239,7 +240,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		private void AddRawFallback(MediaOpsTraceData traceData, ResourceManagerErrorData error)
 		{
-			planApi.Logger.Error(this, $"Falling back to the raw error message for an error with reason {error.ErrorReason}.");
+			planApi.Logger.Error(this, $"Falling back to the raw error data (ToString) for an error with reason {error.ErrorReason}.");
 			traceData.Add(new MediaOpsErrorData { ErrorMessage = error.ToString() });
 		}
 

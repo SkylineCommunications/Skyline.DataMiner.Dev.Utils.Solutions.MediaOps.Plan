@@ -184,5 +184,32 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				errorData.Any(x => x.GetType() == typeof(MediaOpsErrorData)),
 				"Expected the unknown error to be added as a raw default alongside the translated one.");
 		}
+		[TestMethod]
+		public void Translate_WhenCalledMultipleTimes_DoesNotReturnPreviousResults()
+		{
+			var (api, resource) = CreateContextWithResource();
+			var handler = new ResourceManagerTraceDataHandler((MediaOpsPlanApi)api);
+
+			var reservationId1 = Guid.NewGuid();
+			var reservationId2 = Guid.NewGuid();
+
+			var first = new ResourceManagerErrorData(
+				ResourceManagerErrorData.Reason.ResourceCapacityInvalid,
+				reservationId1,
+				resource.CoreResourceId,
+				new MultiResourceCapacityUsage { CapacityProfileID = Guid.NewGuid() });
+
+			var second = new ResourceManagerErrorData(
+				ResourceManagerErrorData.Reason.UnknownError,
+				reservationId2,
+				(Guid?)null,
+				new List<Guid>());
+
+			Assert.IsTrue(handler.Translate(new[] { first }).ContainsKey(reservationId1));
+
+			var secondResult = handler.Translate(new[] { second });
+			Assert.IsFalse(secondResult.ContainsKey(reservationId1), "Expected previous translation output not to leak into subsequent calls.");
+			Assert.IsTrue(secondResult.ContainsKey(reservationId2));
+		}
 	}
 }
