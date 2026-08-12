@@ -58,6 +58,24 @@ namespace RT_MediaOps.Plan.Properties.Values
 		}
 
 		[TestMethod]
+		public void AddFile_StripsUnixDirectoryInformation()
+		{
+			var setting = new FilePropertySetting(new FileProperty());
+
+			setting.AddFile("/tmp/../document.pdf", Content("abc"));
+
+			CollectionAssert.AreEqual(new[] { "document.pdf" }, setting.Files.ToArray());
+		}
+
+		[TestMethod]
+		public void AddFile_RelativeName_Throws()
+		{
+			var setting = new FilePropertySetting(new FileProperty());
+
+			Assert.ThrowsException<ArgumentException>(() => setting.AddFile("..", Content("abc")));
+		}
+
+		[TestMethod]
 		public void AddFile_SameNameTwice_KeepsSingleEntry()
 		{
 			var setting = new FilePropertySetting(new FileProperty());
