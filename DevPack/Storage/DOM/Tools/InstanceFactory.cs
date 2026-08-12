@@ -11,6 +11,7 @@
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Utils.DOM.Extensions;
 
+	using SLDataGateway.API.Querying;
 	using SLDataGateway.API.Types.Querying;
 
 	internal static class InstanceFactory
@@ -73,8 +74,12 @@
 
 			InitSoftDeletedFields(domHelper);
 
-			var pages = domHelper.DomInstances.ReadPaged(query);
-			var instances = pages.SelectMany(page => page);
+			// A paged read only uses the limit as a hint for the page size: it keeps requesting pages until the server
+			// reports the final page, so the limit and offset of the query are not applied to the total result.
+			// A regular read applies them, so it must be used whenever the query is limited.
+			var instances = IsLimited(query)
+				? (IEnumerable<DomInstance>)domHelper.DomInstances.Read(query)
+				: domHelper.DomInstances.ReadPaged(query).SelectMany(page => page);
 
 			return CreateInstances(instances, createInstance);
 		}
@@ -135,6 +140,22 @@
 			{
 				yield return CreateInstancesIterator(page, createInstance);
 			}
+		}
+
+		private static bool IsLimited(IQuery<DomInstance> query)
+		{
+			var limit = query.Limit;
+			if (limit == null)
+			{
+				return false;
+			}
+
+			if (limit.Limit != Int32.MaxValue)
+			{
+				return true;
+			}
+
+			return limit is LimitBy limitBy && limitBy.Offset > 0;
 		}
 
 		private static void InitSoftDeletedFields(DomHelper domHelper)
