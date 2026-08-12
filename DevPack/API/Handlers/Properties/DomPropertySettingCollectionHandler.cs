@@ -100,10 +100,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				.Where(IsValid)
 				.Select(x => new DomPropertySettingCollection(x.Instance))
 				.ToList();
-			CreateOrUpdateDomPropertySettingCollections(toCreateDomInstances.Concat(toUpdateDomInstances).ToList());
+			var persistedInstances = CreateOrUpdateDomPropertySettingCollections(toCreateDomInstances.Concat(toUpdateDomInstances).ToList());
 
 			// The file content is attached to the DOM instance, so it can only be stored once that instance exists.
 			SyncAttachments(apiSettingCollections.Where(IsValid).ToList());
+
+			// Reported last, because a collection whose files could not be stored must not be reported as successful.
+			ReportSuccess(persistedInstances.Where(x => !TraceDataPerItem.ContainsKey(x.ID.Id)));
 		}
 
 		private void SyncAttachments(ICollection<PropertySettingCollection> apiSettingCollections)
@@ -111,6 +114,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			foreach (var settingCollection in apiSettingCollections)
 			{
 				var instanceId = new DomInstanceId(settingCollection.Id);
+
+				// A file setting that was dropped from the collection still has attachments that must be cleaned up.
+				foreach (var removedSetting in settingCollection.RemovedFileSettings)
+				{
+					DeleteAttachments(instanceId, removedSetting, removedSetting.StoredFiles);
+				}
+
+				settingCollection.ClearRemovedFileSettings();
 
 				foreach (var setting in settingCollection.FileSettings)
 				{
@@ -149,7 +160,23 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 		}
 
-		private void CreateOrUpdateDomPropertySettingCollections(ICollection<DomPropertySettingCollection> domValueCollections)
+		// Cleaning up attachments must never fail the operation itself, so failures are only logged.
+		private void DeleteAttachments(DomInstanceId instanceId, FilePropertySetting setting, IEnumerable<string> fileNames)
+		{
+			foreach (var fileName in fileNames)
+			{
+				try
+				{
+					planApi.PropertyAttachments.Delete(instanceId, FilePropertySetting.GetAttachmentName(setting.Id, fileName));
+				}
+				catch (Exception ex)
+				{
+					planApi.Logger.Error(this, $"Failed to delete attachment '{fileName}' of property '{setting.Id}': {ex}");
+				}
+			}
+		}
+
+		private ICollection<DomPropertySettingCollection> CreateOrUpdateDomPropertySettingCollections(ICollection<DomPropertySettingCollection> domValueCollections)
 		{
 			if (domValueCollections == null)
 			{
@@ -158,7 +185,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			if (domValueCollections.Count == 0)
 			{
-				return;
+				return new List<DomPropertySettingCollection>();
 			}
 
 			planApi.DomHelpers.SlcPropertiesHelper.DomHelper.DomInstances.TryCreateOrUpdateInBatches(domValueCollections.Select(x => x.ToInstance()), out var domResult);
@@ -176,7 +203,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				}
 			}
 
-			ReportSuccess(domResult.SuccessfulItems.Select(x => new DomPropertySettingCollection(x)));
+			return domResult.SuccessfulItems.Select(x => new DomPropertySettingCollection(x)).ToList();
 		}
 
 		private void Delete(ICollection<PropertySettingCollection> apiSettingCollections)
@@ -240,28 +267,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 			foreach (var settingCollection in apiSettingCollections)
 			{
-				var settingsWithFiles = settingCollection.FileSettings.Where(x => x.Files.Count != 0).ToList();
-				if (settingsWithFiles.Count == 0)
-				{
-					continue;
-				}
-
 				var instanceId = new DomInstanceId(settingCollection.Id);
 
-				foreach (var setting in settingsWithFiles)
+				foreach (var setting in settingCollection.FileSettings.Concat(settingCollection.RemovedFileSettings))
 				{
-					foreach (var fileName in setting.Files)
-					{
-						try
-						{
-							planApi.PropertyAttachments.Delete(instanceId, FilePropertySetting.GetAttachmentName(setting.Id, fileName));
-						}
-						catch (Exception ex)
-						{
-							planApi.Logger.Error(this, $"Failed to delete attachment '{fileName}' of property '{setting.Id}': {ex}");
-						}
-					}
+					DeleteAttachments(instanceId, setting, setting.StoredFiles);
 				}
+
+				settingCollection.ClearRemovedFileSettings();
 			}
 		}
 

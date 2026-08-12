@@ -85,6 +85,22 @@ namespace RT_MediaOps.Plan.Properties.Values
 		}
 
 		[TestMethod]
+		public void AddFile_NameContainingSeparator_Throws()
+		{
+			var setting = new FilePropertySetting(new FileProperty());
+
+			Assert.ThrowsException<ArgumentException>(() => setting.AddFile("first|second.pdf", Content("abc")));
+		}
+
+		[TestMethod]
+		public void AddFile_NameContainingInvalidCharacter_Throws()
+		{
+			var setting = new FilePropertySetting(new FileProperty());
+
+			Assert.ThrowsException<ArgumentException>(() => setting.AddFile("do<cument>.pdf", Content("abc")));
+		}
+
+		[TestMethod]
 		public void RemoveFile_RemovesFile()
 		{
 			var setting = new FilePropertySetting(new FileProperty());

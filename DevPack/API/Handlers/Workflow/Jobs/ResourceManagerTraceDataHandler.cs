@@ -43,6 +43,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			// The DevPack surfaces resources by their Resource Studio (DOM) id, so the core resource ids in the errors are
 			// resolved to their DOM counterparts in a batched query (one or more backend calls, depending on filter size).
+			var domResourceIdByCoreId = BuildDomResourceIdByCoreId(
 				reservationUpdateCausedReservationsToGoToQuarantineErrors,
 				resourceCapacityInvalidErrors,
 				resourceCapabilityInvalidErrors);

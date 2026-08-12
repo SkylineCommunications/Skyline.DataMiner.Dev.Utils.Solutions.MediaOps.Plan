@@ -20,6 +20,9 @@
 		private readonly List<InnerDiscretePropertySetting> discreteSettings = [];
 		private readonly List<InnerFilePropertySetting> fileSettings = [];
 
+		// File settings that are dropped still own attachments, so they are kept until those are deleted.
+		private readonly List<InnerFilePropertySetting> removedFileSettings = [];
+
 		private StorageProperties.PropertyValuesInstance originalInstance;
 		private StorageProperties.PropertyValuesInstance updatedInstance;
 
@@ -146,6 +149,8 @@
 
 		internal StorageProperties.PropertyValuesInstance OriginalInstance => originalInstance;
 
+		internal IReadOnlyCollection<FilePropertySetting> RemovedFileSettings => removedFileSettings;
+
 		/// <inheritdoc />
 		public override int GetHashCode()
 		{
@@ -242,6 +247,7 @@
 			stringSettings.Clear();
 			booleanSettings.Clear();
 			discreteSettings.Clear();
+			TrackRemovedFileSettings(fileSettings);
 			fileSettings.Clear();
 		}
 
@@ -277,6 +283,7 @@
 			stringSettings.Clear();
 			booleanSettings.Clear();
 			discreteSettings.Clear();
+			TrackRemovedFileSettings(fileSettings);
 			fileSettings.Clear();
 
 			if (settings == null)
@@ -347,9 +354,28 @@
 				StringPropertySetting stringVal => stringSettings.RemoveAll(x => x.Equals(stringVal)) > 0,
 				BooleanPropertySetting boolVal => booleanSettings.RemoveAll(x => x.Equals(boolVal)) > 0,
 				DiscretePropertySetting discreteVal => discreteSettings.RemoveAll(x => x.Equals(discreteVal)) > 0,
-				FilePropertySetting fileVal => fileSettings.RemoveAll(x => x.Equals(fileVal)) > 0,
+				FilePropertySetting fileVal => RemoveFileSetting(fileVal),
 				_ => false,
 			};
+		}
+
+		private bool RemoveFileSetting(FilePropertySetting fileSetting)
+		{
+			var toRemove = fileSettings.Where(x => x.Equals(fileSetting)).ToList();
+			if (toRemove.Count == 0)
+			{
+				return false;
+			}
+
+			TrackRemovedFileSettings(toRemove);
+			toRemove.ForEach(x => fileSettings.Remove(x));
+
+			return true;
+		}
+
+		private void TrackRemovedFileSettings(IEnumerable<InnerFilePropertySetting> settings)
+		{
+			removedFileSettings.AddRange(settings.Where(x => x.StoredFiles.Count != 0));
 		}
 
 		/// <inheritdoc />
@@ -408,6 +434,11 @@
 			}
 
 			return updatedInstance;
+		}
+
+		internal void ClearRemovedFileSettings()
+		{
+			removedFileSettings.Clear();
 		}
 
 		private void ParseInstance(MediaOpsPlanApi planApi, StorageProperties.PropertyValuesInstance instance)

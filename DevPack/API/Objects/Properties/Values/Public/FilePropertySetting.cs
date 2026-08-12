@@ -17,11 +17,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// </remarks>
 	public class FilePropertySetting : PropertySetting
 	{
+		// The file names are stored as a single separated value, so the separator cannot be part of a file name.
+		internal const char FileSeparator = '|';
+
 		private readonly List<string> files = new List<string>();
 
 		private readonly Dictionary<string, byte[]> filesToUpload = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
 
 		private readonly HashSet<string> filesToDelete = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+		// The files that are known to be stored as an attachment, so a removal knows whether it has to delete one.
+		private readonly HashSet<string> storedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
 		private MediaOpsPlanApi planApi;
 
@@ -67,6 +73,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		internal IReadOnlyDictionary<string, byte[]> FilesToUpload => filesToUpload;
 
 		internal IReadOnlyCollection<string> FilesToDelete => filesToDelete;
+
+		internal IReadOnlyCollection<string> StoredFiles => storedFiles;
 
 		// The attachment holding the content of a file is named after the property it belongs to.
 		internal static string GetAttachmentName(Guid propertyId, string fileName)
@@ -150,9 +158,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			files.Remove(storedName);
+			filesToUpload.Remove(storedName);
 
-			// A file that was never uploaded only has to be forgotten, not deleted.
-			if (!filesToUpload.Remove(storedName))
+			// Only a file that is actually stored has an attachment that must be deleted.
+			if (storedFiles.Contains(storedName))
 			{
 				filesToDelete.Add(storedName);
 			}
@@ -208,12 +217,21 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				files.Add(fileName);
 			}
+
+			storedFiles.Add(fileName);
 		}
 
 		internal void ClearPendingFileChanges()
 		{
 			filesToUpload.Clear();
 			filesToDelete.Clear();
+
+			// Everything that is left is stored from here on.
+			storedFiles.Clear();
+			foreach (var fileName in files)
+			{
+				storedFiles.Add(fileName);
+			}
 		}
 
 		// Captures where the content of the files is stored, so it can be read on demand.
@@ -233,6 +251,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			var name = Path.GetFileName(fileName.Trim());
 			if (string.IsNullOrWhiteSpace(name))
+			{
+				throw new ArgumentException($"'{fileName}' is not a valid file name.", nameof(fileName));
+			}
+
+			if (name.IndexOf(FileSeparator) != -1)
+			{
+				throw new ArgumentException($"The file name cannot contain '{FileSeparator}'.", nameof(fileName));
+			}
+
+			if (name.IndexOfAny(Path.GetInvalidFileNameChars()) != -1)
 			{
 				throw new ArgumentException($"'{fileName}' is not a valid file name.", nameof(fileName));
 			}

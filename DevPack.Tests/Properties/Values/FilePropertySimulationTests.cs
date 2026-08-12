@@ -182,6 +182,81 @@ namespace RT_MediaOps.Plan.Properties.Values
 		}
 
 		[TestMethod]
+		public void Update_ReplacedThenRemovedFile_DeletesStoredAttachment()
+		{
+			var (api, attachments) = CreateContext();
+			var property = CreateFileProperty(api);
+
+			var collection = CreateCollection();
+			collection.Add(new FilePropertySetting(property).AddFile("document.pdf", Content("hello")));
+			api.PropertySettingCollections.Create(collection);
+
+			var read = api.PropertySettingCollections.Read(collection.Id);
+			var setting = read.FileSettings.Single();
+
+			// Replacing the content and removing it again must still delete the file that is already stored.
+			setting.AddFile("document.pdf", Content("replaced"));
+			setting.RemoveFile("document.pdf");
+
+			api.PropertySettingCollections.Update(read);
+
+			Assert.IsFalse(attachments.Contains(collection.Id, $"{property.Id}_document.pdf"), "Expected the stored attachment to be deleted.");
+		}
+
+		[TestMethod]
+		public void Update_RemovingWholeFileSetting_DeletesAttachments()
+		{
+			var (api, attachments) = CreateContext();
+			var property = CreateFileProperty(api);
+
+			var collection = CreateCollection();
+			collection.Add(new FilePropertySetting(property).AddFile("document.pdf", Content("hello")));
+			api.PropertySettingCollections.Create(collection);
+
+			var read = api.PropertySettingCollections.Read(collection.Id);
+			read.Remove(read.FileSettings.Single());
+
+			api.PropertySettingCollections.Update(read);
+
+			Assert.IsFalse(attachments.Contains(collection.Id, $"{property.Id}_document.pdf"), "Expected the attachments of a removed file setting to be deleted.");
+		}
+
+		[TestMethod]
+		public void Update_ClearingSettings_DeletesAttachments()
+		{
+			var (api, attachments) = CreateContext();
+			var property = CreateFileProperty(api);
+
+			var collection = CreateCollection();
+			collection.Add(new FilePropertySetting(property).AddFile("document.pdf", Content("hello")));
+			api.PropertySettingCollections.Create(collection);
+
+			var read = api.PropertySettingCollections.Read(collection.Id);
+			read.SetPropertySettings(null);
+
+			api.PropertySettingCollections.Update(read);
+
+			Assert.IsFalse(attachments.Contains(collection.Id, $"{property.Id}_document.pdf"), "Expected the attachments to be deleted when the settings are replaced.");
+		}
+
+		[TestMethod]
+		public void Create_WhenAttachmentUploadFails_ReportsErrorInsteadOfThrowingUnexpectedly()
+		{
+			var (api, attachments) = CreateContext();
+			var property = CreateFileProperty(api);
+
+			attachments.FailOnAdd = true;
+
+			var collection = CreateCollection();
+			collection.Add(new FilePropertySetting(property).AddFile("document.pdf", Content("hello")));
+
+			var exception = Assert.ThrowsException<MediaOpsException>(() => api.PropertySettingCollections.Create(collection));
+			Assert.IsTrue(
+				exception.TraceData.ErrorData.OfType<PropertySettingCollectionInvalidPropertySettingsError>().Any(),
+				"Expected the attachment failure to be reported as a structured error.");
+		}
+
+		[TestMethod]
 		public void Create_MultipleFilesWhileNotAllowed_ThrowsInvalidPropertySettingsError()
 		{
 			var (api, _) = CreateContext();
@@ -267,8 +342,15 @@ namespace RT_MediaOps.Plan.Properties.Values
 		{
 			private readonly Dictionary<Guid, Dictionary<string, byte[]>> attachments = new Dictionary<Guid, Dictionary<string, byte[]>>();
 
+			public bool FailOnAdd { get; set; }
+
 			public void Add(DomInstanceId instanceId, string attachmentName, byte[] content)
 			{
+				if (FailOnAdd)
+				{
+					throw new InvalidOperationException("Simulated upload failure.");
+				}
+
 				if (!attachments.TryGetValue(instanceId.Id, out var perInstance))
 				{
 					perInstance = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
