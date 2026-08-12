@@ -2,7 +2,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
 	using System.Collections.Generic;
-	using System.IO;
 	using System.Linq;
 
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
@@ -19,6 +18,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	{
 		// The file names are stored as a single separated value, so the separator cannot be part of a file name.
 		internal const char FileSeparator = '|';
+
+		private static readonly char[] DirectorySeparators = new[] { '/', '\\' };
+
+		// Checked explicitly instead of through Path, because those characters depend on the platform this runs on.
+		private static readonly char[] InvalidFileNameCharacters = new[] { '<', '>', ':', '"', '/', '\\', '|', '?', '*' };
 
 		private readonly List<string> files = new List<string>();
 
@@ -276,8 +280,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				throw new ArgumentException("The file name cannot be null or white space.", nameof(fileName));
 			}
 
-			var name = Path.GetFileName(fileName.Trim());
-			if (string.IsNullOrWhiteSpace(name))
+			var trimmed = fileName.Trim();
+
+			// Both separators are handled explicitly, because the attachment is stored on the server regardless of the platform this runs on.
+			var separatorIndex = trimmed.LastIndexOfAny(DirectorySeparators);
+			var name = separatorIndex == -1 ? trimmed : trimmed.Substring(separatorIndex + 1);
+
+			if (string.IsNullOrWhiteSpace(name) || name == "." || name == "..")
 			{
 				throw new ArgumentException($"'{fileName}' is not a valid file name.", nameof(fileName));
 			}
@@ -287,7 +296,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				throw new ArgumentException($"The file name cannot contain '{FileSeparator}'.", nameof(fileName));
 			}
 
-			if (name.IndexOfAny(Path.GetInvalidFileNameChars()) != -1)
+			if (name.IndexOfAny(InvalidFileNameCharacters) != -1 || name.Any(char.IsControl))
 			{
 				throw new ArgumentException($"'{fileName}' is not a valid file name.", nameof(fileName));
 			}
