@@ -101,6 +101,52 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				.Select(x => new DomPropertySettingCollection(x.Instance))
 				.ToList();
 			CreateOrUpdateDomPropertySettingCollections(toCreateDomInstances.Concat(toUpdateDomInstances).ToList());
+
+			// The file content is attached to the DOM instance, so it can only be stored once that instance exists.
+			SyncAttachments(apiSettingCollections.Where(IsValid).ToList());
+		}
+
+		private void SyncAttachments(ICollection<PropertySettingCollection> apiSettingCollections)
+		{
+			foreach (var settingCollection in apiSettingCollections)
+			{
+				var instanceId = new DomInstanceId(settingCollection.Id);
+
+				foreach (var setting in settingCollection.FileSettings)
+				{
+					// The collection exists from here on, so the content of its files can be read on demand.
+					setting.SetStorageContext(planApi, settingCollection.Id);
+
+					if (setting.FilesToUpload.Count == 0 && setting.FilesToDelete.Count == 0)
+					{
+						continue;
+					}
+
+					try
+					{
+						foreach (var fileName in setting.FilesToDelete)
+						{
+							planApi.PropertyAttachments.Delete(instanceId, FilePropertySetting.GetAttachmentName(setting.Id, fileName));
+						}
+
+						foreach (var fileToUpload in setting.FilesToUpload)
+						{
+							planApi.PropertyAttachments.Add(instanceId, FilePropertySetting.GetAttachmentName(setting.Id, fileToUpload.Key), fileToUpload.Value);
+						}
+
+						setting.ClearPendingFileChanges();
+					}
+					catch (Exception ex)
+					{
+						ReportError(settingCollection.Id, new PropertySettingCollectionInvalidPropertySettingsError
+						{
+							ErrorMessage = $"The files of the property could not be stored: {ex.Message}",
+							PropertyId = setting.Id,
+							Id = settingCollection.Id,
+						});
+					}
+				}
+			}
 		}
 
 		private void CreateOrUpdateDomPropertySettingCollections(ICollection<DomPropertySettingCollection> domValueCollections)
@@ -168,6 +214,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				throw new ArgumentException($"Not all provided property value collections are valid", nameof(apiSettingCollections));
 			}
 
+			// The attachments are removed while the instance still exists, so no file content is left behind.
+			DeleteAttachments(apiSettingCollections);
+
 			var toDelete = apiSettingCollections.Select(x => x.OriginalInstance.ToInstance());
 			planApi.DomHelpers.SlcPropertiesHelper.DomHelper.DomInstances.TryDeleteInBatches(toDelete, out var domResult);
 
@@ -185,6 +234,35 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			ReportSuccess(toDelete.Where(x => domResult.SuccessfulIds.Contains(x.ID)).Select(x => new DomPropertySettingCollection(x)));
+		}
+
+		private void DeleteAttachments(ICollection<PropertySettingCollection> apiSettingCollections)
+		{
+			foreach (var settingCollection in apiSettingCollections)
+			{
+				var settingsWithFiles = settingCollection.FileSettings.Where(x => x.Files.Count != 0).ToList();
+				if (settingsWithFiles.Count == 0)
+				{
+					continue;
+				}
+
+				var instanceId = new DomInstanceId(settingCollection.Id);
+
+				foreach (var setting in settingsWithFiles)
+				{
+					foreach (var fileName in setting.Files)
+					{
+						try
+						{
+							planApi.PropertyAttachments.Delete(instanceId, FilePropertySetting.GetAttachmentName(setting.Id, fileName));
+						}
+						catch (Exception ex)
+						{
+							planApi.Logger.Error(this, $"Failed to delete attachment '{fileName}' of property '{setting.Id}': {ex}");
+						}
+					}
+				}
+			}
 		}
 
 		private void ValidateIdsNotInUse(ICollection<PropertySettingCollection> apiSettingCollections)

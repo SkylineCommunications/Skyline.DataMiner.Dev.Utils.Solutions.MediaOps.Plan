@@ -18,6 +18,7 @@
 		private readonly List<InnerStringPropertySetting> stringSettings = [];
 		private readonly List<InnerBooleanPropertySetting> booleanSettings = [];
 		private readonly List<InnerDiscretePropertySetting> discreteSettings = [];
+		private readonly List<InnerFilePropertySetting> fileSettings = [];
 
 		private StorageProperties.PropertyValuesInstance originalInstance;
 		private StorageProperties.PropertyValuesInstance updatedInstance;
@@ -115,7 +116,7 @@
 		/// <summary>
 		/// Gets the collection of property settings linked to a property definition.
 		/// </summary>
-		public IReadOnlyCollection<PropertySetting> PropertySettings => stringSettings.Cast<PropertySetting>().Concat(booleanSettings).Concat(discreteSettings).ToList();
+		public IReadOnlyCollection<PropertySetting> PropertySettings => stringSettings.Cast<PropertySetting>().Concat(booleanSettings).Concat(discreteSettings).Concat(fileSettings).ToList();
 
 		/// <summary>
 		/// Gets the collection of string property settings.
@@ -132,8 +133,13 @@
 		/// </summary>
 		public IReadOnlyCollection<DiscretePropertySetting> DiscreteSettings => discreteSettings;
 
+		/// <summary>
+		/// Gets the collection of file property settings.
+		/// </summary>
+		public IReadOnlyCollection<FilePropertySetting> FileSettings => fileSettings;
+
 		/// <inheritdoc />
-		public int Count => customSettings.Count + stringSettings.Count + booleanSettings.Count + discreteSettings.Count;
+		public int Count => customSettings.Count + stringSettings.Count + booleanSettings.Count + discreteSettings.Count + fileSettings.Count;
 
 		/// <inheritdoc />
 		public bool IsReadOnly => false;
@@ -171,6 +177,11 @@
 					hash = (hash * 23) + value.GetHashCode();
 				}
 
+				foreach (var value in fileSettings.OrderBy(x => x.Id))
+				{
+					hash = (hash * 23) + value.GetHashCode();
+				}
+
 				return hash;
 			}
 		}
@@ -190,7 +201,8 @@
 				&& customSettings.ScrambledEquals(other.customSettings)
 				&& stringSettings.ScrambledEquals(other.stringSettings)
 				&& booleanSettings.ScrambledEquals(other.booleanSettings)
-				&& discreteSettings.ScrambledEquals(other.discreteSettings);
+				&& discreteSettings.ScrambledEquals(other.discreteSettings)
+				&& fileSettings.ScrambledEquals(other.fileSettings);
 		}
 
 		/// <inheritdoc />
@@ -215,6 +227,9 @@
 				case DiscretePropertySetting discreteVal:
 					discreteSettings.Add(new InnerDiscretePropertySetting(discreteVal));
 					break;
+				case FilePropertySetting fileVal:
+					fileSettings.Add(new InnerFilePropertySetting(fileVal));
+					break;
 				default:
 					throw new ArgumentException($"Unsupported property setting type '{item.GetType().Name}'.", nameof(item));
 			}
@@ -227,6 +242,7 @@
 			stringSettings.Clear();
 			booleanSettings.Clear();
 			discreteSettings.Clear();
+			fileSettings.Clear();
 		}
 
 		/// <summary>
@@ -261,6 +277,7 @@
 			stringSettings.Clear();
 			booleanSettings.Clear();
 			discreteSettings.Clear();
+			fileSettings.Clear();
 
 			if (settings == null)
 			{
@@ -287,6 +304,7 @@
 				StringPropertySetting stringVal => stringSettings.Contains(stringVal),
 				BooleanPropertySetting boolVal => booleanSettings.Contains(boolVal),
 				DiscretePropertySetting discreteVal => discreteSettings.Contains(discreteVal),
+				FilePropertySetting fileVal => fileSettings.Contains(fileVal),
 				_ => false,
 			};
 		}
@@ -329,6 +347,7 @@
 				StringPropertySetting stringVal => stringSettings.RemoveAll(x => x.Equals(stringVal)) > 0,
 				BooleanPropertySetting boolVal => booleanSettings.RemoveAll(x => x.Equals(boolVal)) > 0,
 				DiscretePropertySetting discreteVal => discreteSettings.RemoveAll(x => x.Equals(discreteVal)) > 0,
+				FilePropertySetting fileVal => fileSettings.RemoveAll(x => x.Equals(fileVal)) > 0,
 				_ => false,
 			};
 		}
@@ -341,6 +360,7 @@
 				.Concat(stringSettings)
 				.Concat(booleanSettings)
 				.Concat(discreteSettings)
+				.Concat(fileSettings)
 				.GetEnumerator();
 		}
 
@@ -380,6 +400,11 @@
 			foreach (var discreteSetting in discreteSettings)
 			{
 				updatedInstance.PropertyValue.Add(discreteSetting.GetSectionWithChanges());
+			}
+
+			foreach (var fileSetting in fileSettings)
+			{
+				updatedInstance.PropertyValue.Add(fileSetting.GetSectionWithChanges());
 			}
 
 			return updatedInstance;
@@ -434,6 +459,10 @@
 				else if (property is DiscreteProperty)
 				{
 					discreteSettings.Add(new InnerDiscretePropertySetting(section));
+				}
+				else if (property is FileProperty)
+				{
+					fileSettings.Add(new InnerFilePropertySetting(planApi, Id, section));
 				}
 			}
 		}
