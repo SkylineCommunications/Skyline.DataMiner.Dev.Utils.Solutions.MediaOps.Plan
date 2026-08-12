@@ -49,6 +49,9 @@
 				[JobExposers.Capacities.CapacityId.fieldName] = (comparer, value) => CreateOrchestrationSettingsFilter(SlcWorkflowIds.Sections.ProfileParameterValues.ProfileParameterID, comparer, Convert.ToString(value)),
 				[JobExposers.Configurations.ConfigurationId.fieldName] = (comparer, value) => CreateOrchestrationSettingsFilter(SlcWorkflowIds.Sections.ProfileParameterValues.ProfileParameterID, comparer, Convert.ToString(value)),
 				[JobExposers.Properties.PropertyId.fieldName] = (comparer, value) => CreatePropertySettingsFilter(comparer, (Guid)value),
+				[JobExposers.HasError.fieldName] = (comparer, value) => CreateHasErrorFilter(comparer, (bool)value),
+				[JobExposers.Errors.Code.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Errors.ErrorCode), comparer, Convert.ToString(value)),
+				[JobExposers.Errors.Message.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Errors.ErrorMessage), comparer, Convert.ToString(value)),
 			};
 
 			orderByHandlers = new Dictionary<string, Func<SortOrder, bool, IOrderByElement>>
@@ -131,6 +134,30 @@
 			return new ORFilterElement<DomInstance>(jobIds
 				.Select(x => DomInstanceExposers.Id.Equal(x))
 				.ToArray());
+		}
+
+		/// <summary>
+		/// Creates a filter on the presence of errors on a job. Errors are stored in a repeating section, so a job has
+		/// errors when the errors section is present on the DOM instance.
+		/// </summary>
+		private static FilterElement<DomInstance> CreateHasErrorFilter(Comparer comparer, bool value)
+		{
+			bool hasError;
+			switch (comparer)
+			{
+				case Comparer.Equals:
+					hasError = value;
+					break;
+				case Comparer.NotEquals:
+					hasError = !value;
+					break;
+				default:
+					throw new NotSupportedException("This comparer option is not supported");
+			}
+
+			return hasError
+				? DomInstanceExposers.SectionDefinitionIds.Contains(SlcWorkflowIds.Sections.Errors.Id.Id)
+				: DomInstanceExposers.SectionDefinitionIds.NotContains(SlcWorkflowIds.Sections.Errors.Id.Id);
 		}
 
 		private static int ConvertJobPriority(JobPriority priority)
