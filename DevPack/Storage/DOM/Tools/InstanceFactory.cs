@@ -16,6 +16,11 @@
 
 	internal static class InstanceFactory
 	{
+		/// <summary>
+		/// The limit used by <see cref="LimitBy.Default"/>, indicating that the query is not limited.
+		/// </summary>
+		private const int NoLimit = Int32.MaxValue;
+
 		private static readonly ConcurrentDictionary<string, Dictionary<Guid, Guid[]>> SoftDeletedFieldsPerModule = new ConcurrentDictionary<string, Dictionary<Guid, Guid[]>>();
 
 		public static IEnumerable<T> ReadAndCreateInstances<T>(DomHelper domHelper, FilterElement<DomInstance> filter, Func<DomInstance, T> createInstance)
@@ -150,7 +155,7 @@
 				return false;
 			}
 
-			if (limit.Limit != Int32.MaxValue)
+			if (limit.Limit != NoLimit)
 			{
 				return true;
 			}
