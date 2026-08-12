@@ -105,8 +105,8 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 			new Tuple<Job[], FilterElement<Job>>([Setup.DraftJob1!], JobFilter.AND(JobExposers.Properties.PropertyId.Equal(Setup.Property!.Id))),
 			new Tuple<Job[], FilterElement<Job>>([], JobFilter.AND(JobExposers.Properties.PropertyId.Equal(Guid.NewGuid()))),
 
-			new Tuple<Job[], FilterElement<Job>>([Setup.DraftJob2!], JobFilter.AND(JobExposers.ActionRequired .Equal(true))),
-			new Tuple<Job[], FilterElement<Job>>([Setup.DraftJob1!, Setup.TentativeJob3!], JobFilter.AND(JobExposers.ActionRequired.Equal(false))),
+			new Tuple<Job[], FilterElement<Job>>(Setup.Jobs.Where(job => job.ActionRequired).ToArray(), JobFilter.AND(JobExposers.ActionRequired.Equal(true))),
+			new Tuple<Job[], FilterElement<Job>>(Setup.Jobs.Where(job => !job.ActionRequired).ToArray(), JobFilter.AND(JobExposers.ActionRequired.Equal(false))),
 
 			new Tuple<Job[], FilterElement<Job>>([Setup.DraftJob2!], JobFilter.AND(JobExposers.Nodes.ConfigurationState.Equal(ConfigurationState.MandatoryValuesMissing))),
 			new Tuple<Job[], FilterElement<Job>>([Setup.DraftJob1!], JobFilter.AND(JobExposers.Nodes.ConfigurationState.Equal(ConfigurationState.NoParametersDefined))),
