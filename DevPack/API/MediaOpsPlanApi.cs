@@ -49,6 +49,8 @@
 
 		private ILogger logger;
 
+		private IPropertyAttachmentStore propertyAttachments;
+
 		/// <summary>
 		/// Initializes a new instance of the <see cref="MediaOpsPlanApi"/> class.
 		/// </summary>
@@ -150,6 +152,13 @@
 		internal ILogger Logger => logger;
 
 		internal DomHelpers DomHelpers => domHelpers;
+
+		// Settable so the attachment handling can be verified without a DataMiner Agent.
+		internal IPropertyAttachmentStore PropertyAttachments
+		{
+			get => propertyAttachments ?? (propertyAttachments = new PropertyAttachmentStore(domHelpers.SlcPropertiesHelper));
+			set => propertyAttachments = value;
+		}
 
 		internal CoreHelpers CoreHelpers => coreHelpers;
 
