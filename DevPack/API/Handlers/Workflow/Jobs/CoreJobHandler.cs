@@ -10,7 +10,6 @@
 	using Skyline.DataMiner.Net.Jobs;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Net.ResourceManager.Objects;
-	using Skyline.DataMiner.Net.ResponseErrorData;
 	using Skyline.DataMiner.Net.SRM.Capabilities;
 	using Skyline.DataMiner.Net.SRM.Capacities;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
@@ -1074,72 +1073,6 @@
 				{
 					ID = Guid.NewGuid(),
 				};
-			}
-		}
-
-		private sealed class ResourceManagerTraceDataHandler : ITraceDataHandler<ResourceManagerErrorData>
-		{
-			private readonly MediaOpsPlanApi planApi;
-
-			private readonly Dictionary<Guid, MediaOpsTraceData> traceDataPerReservationId = new Dictionary<Guid, MediaOpsTraceData>();
-
-			public ResourceManagerTraceDataHandler(MediaOpsPlanApi planApi)
-			{
-				this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
-			}
-
-			public IReadOnlyDictionary<Guid, MediaOpsTraceData> Translate(ICollection<ResourceManagerErrorData> resourceManagerErrors)
-			{
-				if (resourceManagerErrors == null)
-				{
-					throw new ArgumentNullException(nameof(resourceManagerErrors));
-				}
-
-				if (resourceManagerErrors.Count == 0)
-				{
-					return new Dictionary<Guid, MediaOpsTraceData>();
-				}
-
-				var reservationUpdateCausedReservationsToGoToQuarantineErrors = resourceManagerErrors.Where(x => x.ErrorReason == ResourceManagerErrorData.Reason.ReservationUpdateCausedReservationsToGoToQuarantine).ToList();
-				var resourceCapacityInvalidErrors = resourceManagerErrors.Where(x => x.ErrorReason == ResourceManagerErrorData.Reason.ResourceCapacityInvalid).ToList();
-				var resourceCapabilityInvalidErrors = resourceManagerErrors.Where(x => x.ErrorReason == ResourceManagerErrorData.Reason.ResourceCapabilityInvalid).ToList();
-				if ((reservationUpdateCausedReservationsToGoToQuarantineErrors.Count + resourceCapacityInvalidErrors.Count + resourceCapabilityInvalidErrors.Count) != resourceManagerErrors.Count)
-				{
-					return ReturnDefaultTraceData(resourceManagerErrors);
-				}
-
-				throw new NotImplementedException();
-			}
-
-			private MediaOpsTraceData GetOrCreateTraceData(Guid id)
-			{
-				if (!traceDataPerReservationId.TryGetValue(id, out var traceData))
-				{
-					traceData = new MediaOpsTraceData();
-					traceDataPerReservationId[id] = traceData;
-				}
-
-				return traceData;
-			}
-
-			private Dictionary<Guid, MediaOpsTraceData> ReturnDefaultTraceData(ICollection<ResourceManagerErrorData> resourceManagerErrors)
-			{
-				foreach (var error in resourceManagerErrors)
-				{
-					if (error.SubjectId == Guid.Empty)
-					{
-						planApi.Logger.Error(this, $"Error with reason {error.ErrorReason} has empty SubjectId. This should not happen. Error message: {error.Message}");
-						continue;
-					}
-
-					var traceData = GetOrCreateTraceData(error.SubjectId.Value);
-					traceData.Add(new MediaOpsErrorData
-					{
-						ErrorMessage = error.ToString(),
-					});
-				}
-
-				return traceDataPerReservationId;
 			}
 		}
 	}

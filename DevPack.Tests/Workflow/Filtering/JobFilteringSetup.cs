@@ -50,6 +50,14 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 
 		public Guid CategoryB_Id { get; }
 
+		public string ErrorCodeA => $"ErrorCodeA_{Prefix}";
+
+		public string ErrorCodeB => $"ErrorCodeB_{Prefix}";
+
+		public string ErrorMessageA => "Pre-roll could not be started.";
+
+		public string ErrorMessageB => "Pre-roll could not be stopped.";
+
 		public Job[] Jobs => new[]
 		{
 			DraftJob1!,
@@ -212,6 +220,11 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 			job1.AddProperty(new StringPropertySetting(Property!) { Value = "First" });
 
 			job2.OrchestrationSettings.AddCapability(new CapabilitySetting(Capability!) { Value = "USA" });
+
+			// The first two jobs have errors, while the third job has none.
+			job1.AddError(new JobError(ErrorCodeA, ErrorMessageA));
+			job2.AddError(new JobError(ErrorCodeA, ErrorMessageA));
+			job2.AddError(new JobError(ErrorCodeB, ErrorMessageB));
 
 			// The first job has a node without orchestration settings, while the node of the second job is missing a
 			// mandatory value. This makes the second job the only job that requires an action.
