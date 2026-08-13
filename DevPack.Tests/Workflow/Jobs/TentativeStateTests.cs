@@ -394,6 +394,123 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void SaveAsTentative_NodeWithMandatoryCapabilityWithoutValue_Succeeds()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var capability = new Capability
+			{
+				Name = $"{prefix}_MandatoryCapability",
+				IsMandatory = true,
+			}
+			.SetDiscretes(["Value 1", "Value 2"]);
+			objectCreator.CreateCapability(capability);
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = new UnmanagedResource { Name = $"{prefix}_Resource" }.AssignToPool(pool);
+			resource = objectCreator.CreateResource(resource);
+			resource = TestContext.Api.Resources.Complete(resource);
+
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = currentTime,
+				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
+			};
+
+			var resourceNode = new JobResourceNode(pool, resource);
+			resourceNode.OrchestrationSettings.AddCapability(new CapabilitySetting(capability));
+
+			job.NodeGraph.Add(resourceNode);
+			job = objectCreator.CreateJob(job);
+
+			var tentativeJob = TestContext.Api.Jobs.SaveAsTentative(job);
+			Assert.IsNotNull(tentativeJob, "Expected the job to transition to the Tentative state.");
+		}
+
+		[TestMethod]
+		public void SaveAsTentative_NodeWithMandatoryCapacityWithoutValue_Succeeds()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var capacity = new NumberCapacity
+			{
+				Name = $"{prefix}_MandatoryCapacity",
+				IsMandatory = true,
+			};
+			objectCreator.CreateCapacities([capacity]);
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = new UnmanagedResource { Name = $"{prefix}_Resource" }.AssignToPool(pool);
+			resource = objectCreator.CreateResource(resource);
+			resource = TestContext.Api.Resources.Complete(resource);
+
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = currentTime,
+				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
+			};
+
+			var resourceNode = new JobResourceNode(pool, resource);
+			resourceNode.OrchestrationSettings.AddCapacity(new NumberCapacitySetting(capacity));
+
+			job.NodeGraph.Add(resourceNode);
+			job = objectCreator.CreateJob(job);
+
+			var tentativeJob = TestContext.Api.Jobs.SaveAsTentative(job);
+			Assert.IsNotNull(tentativeJob, "Expected the job to transition to the Tentative state.");
+		}
+
+		[TestMethod]
+		public void SaveAsTentative_NodeWithMandatoryConfigurationWithoutValue_Succeeds()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var configuration = objectCreator.CreateConfiguration(new TextConfiguration
+			{
+				Name = $"{prefix}_MandatoryConfiguration",
+				IsMandatory = true,
+			});
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = new UnmanagedResource { Name = $"{prefix}_Resource" }.AssignToPool(pool);
+			resource = objectCreator.CreateResource(resource);
+			resource = TestContext.Api.Resources.Complete(resource);
+
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = currentTime,
+				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
+			};
+
+			var resourceNode = new JobResourceNode(pool, resource);
+			resourceNode.OrchestrationSettings.AddConfiguration(new TextConfigurationSetting(configuration));
+
+			job.NodeGraph.Add(resourceNode);
+			job = objectCreator.CreateJob(job);
+
+			var tentativeJob = TestContext.Api.Jobs.SaveAsTentative(job);
+			Assert.IsNotNull(tentativeJob, "Expected the job to transition to the Tentative state.");
+		}
+
+		[TestMethod]
 		public void SaveAsTentative_StartInPast_Fails()
 		{
 			var prefix = Guid.NewGuid();
