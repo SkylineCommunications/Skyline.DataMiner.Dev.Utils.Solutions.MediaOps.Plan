@@ -52,6 +52,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 		public DomSLNetMessageHandler DomHandler => _domSlNetMessageHandler;
 
 		/// <summary>
+		/// Gets or sets the maximum document size, in MB, reported by the simulated agent.
+		/// </summary>
+		public int MaxDocumentSizeInMegaBytes { get; set; } = 100;
+
+		/// <summary>
 		/// Registers an installed application package so that installation checks succeed.
 		/// </summary>
 		/// <param name="name">The name of the application package.</param>
@@ -431,6 +436,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 						};
 					}
 
+					break;
+
+				case InfoType.GeneralInfoMessage:
+					yield return new GeneralInfoEventMessage
+					{
+						MaxDocumentSize = MaxDocumentSizeInMegaBytes,
+					};
 					break;
 
 				default:

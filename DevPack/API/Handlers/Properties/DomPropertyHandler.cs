@@ -5,6 +5,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using System.Linq;
 
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+	using Skyline.DataMiner.Net.Messages;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
@@ -556,7 +557,54 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return;
 			}
 
-			throw new NotImplementedException();
+			// Only properties that define their own limit are validated; the others fall back to the server limit.
+			var propertiesWithSizeLimit = apiProperties.Where(x => x.HasSizeLimit).ToList();
+			if (propertiesWithSizeLimit.Count == 0)
+			{
+				return;
+			}
+
+			var maxSizeLimit = GetMaxDocumentSizeInMegaBytes();
+
+			foreach (var property in propertiesWithSizeLimit)
+			{
+				if (property.SizeLimit <= 0)
+				{
+					var error = new PropertyInvalidFileSizeLimitError
+					{
+						ErrorMessage = "Size limit must be greater than 0.",
+						SizeLimit = property.SizeLimit,
+						Id = property.Id,
+					};
+
+					ReportError(property.Id, error);
+					continue;
+				}
+
+				if (maxSizeLimit.HasValue && property.SizeLimit > maxSizeLimit.Value)
+				{
+					var error = new PropertyInvalidFileSizeLimitError
+					{
+						ErrorMessage = $"Size limit cannot exceed the maximum file size allowed by DataMiner ({maxSizeLimit.Value} MB).",
+						SizeLimit = property.SizeLimit,
+						Id = property.Id,
+					};
+
+					ReportError(property.Id, error);
+				}
+			}
+		}
+
+		// Returns the file size limit configured on the server, in MB, or null when it is not exposed.
+		private long? GetMaxDocumentSizeInMegaBytes()
+		{
+			var response = planApi.Connection.HandleSingleResponseMessage(new GetInfoMessage(InfoType.GeneralInfoMessage)) as GeneralInfoEventMessage;
+			if (response == null || response.MaxDocumentSize <= 0)
+			{
+				return null;
+			}
+
+			return response.MaxDocumentSize;
 		}
 
 		private void ValidateStateForDeleteAction(ICollection<Property> apiProperties)
