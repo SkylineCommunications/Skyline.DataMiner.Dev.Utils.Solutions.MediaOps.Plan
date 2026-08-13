@@ -128,6 +128,166 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void Update_TentativeJob_RemoveResourceNode_UpdatesCoreReservationResources()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource1 = new UnmanagedResource { Name = $"{prefix}_Resource_1" }.AssignToPool(pool);
+			resource1 = objectCreator.CreateResource(resource1);
+			resource1 = TestContext.Api.Resources.Complete(resource1);
+
+			var resource2 = new UnmanagedResource { Name = $"{prefix}_Resource_2" }.AssignToPool(pool);
+			resource2 = objectCreator.CreateResource(resource2);
+			resource2 = TestContext.Api.Resources.Complete(resource2);
+
+			var resource3 = new UnmanagedResource { Name = $"{prefix}_Resource_3" }.AssignToPool(pool);
+			resource3 = objectCreator.CreateResource(resource3);
+			resource3 = TestContext.Api.Resources.Complete(resource3);
+
+			var resource4 = new UnmanagedResource { Name = $"{prefix}_Resource_4" }.AssignToPool(pool);
+			resource4 = objectCreator.CreateResource(resource4);
+			resource4 = TestContext.Api.Resources.Complete(resource4);
+
+			var node1 = new JobResourceNode(pool, resource1);
+			var node2 = new JobResourceNode(pool, resource2);
+			var node3 = new JobResourceNode(pool, resource3);
+			var node4 = new JobResourceNode(pool, resource4);
+
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = currentTime,
+				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
+			};
+
+			job.NodeGraph
+				.Add(node1)
+				.Add(node2)
+				.Add(node3)
+				.Add(node4);
+			job = objectCreator.CreateJob(job);
+
+			var tentativeJob = TestContext.Api.Jobs.SaveAsTentative(job);
+			Assert.IsNotNull(tentativeJob, "Expected the job to transition to the Tentative state.");
+
+			tentativeJob.NodeGraph.Remove(tentativeJob.NodeGraph.Nodes.Single(x => x.Id == node2.Id));
+			tentativeJob.NodeGraph.Remove(tentativeJob.NodeGraph.Nodes.Single(x => x.Id == node3.Id));
+
+			TestContext.Api.Jobs.Update(tentativeJob);
+
+			var reservations = TestContext.ResourceManagerHelper.GetReservationInstances(
+				ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(job.Id))).ToList();
+
+			Assert.AreEqual(1, reservations.Count, "Expected exactly one core reservation for the tentative job.");
+
+			var usages = reservations[0].ResourcesInReservationInstance.OfType<ServiceResourceUsageDefinition>().ToList();
+			Assert.AreEqual(2, usages.Count, "Expected the remaining resource nodes to be booked as reservation usages.");
+
+			var resourceIds = usages.Select(x => x.GUID).ToList();
+			CollectionAssert.Contains(resourceIds, resource1.CoreResourceId);
+			CollectionAssert.Contains(resourceIds, resource4.CoreResourceId);
+			CollectionAssert.DoesNotContain(resourceIds, resource2.CoreResourceId);
+			CollectionAssert.DoesNotContain(resourceIds, resource3.CoreResourceId);
+		}
+
+		[TestMethod]
+		public void Update_TentativeJob_RemoveParentNode_UpdatesCoreReservationResources()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool1 = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool_1" });
+			pool1 = TestContext.Api.ResourcePools.Complete(pool1);
+
+			var pool2 = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool_2" });
+			pool2 = TestContext.Api.ResourcePools.Complete(pool2);
+
+			var resource1 = new UnmanagedResource { Name = $"{prefix}_Resource_1" }.AssignToPool(pool1);
+			resource1 = objectCreator.CreateResource(resource1);
+			resource1 = TestContext.Api.Resources.Complete(resource1);
+
+			var resource2 = new UnmanagedResource { Name = $"{prefix}_Resource_2" }.AssignToPool(pool1);
+			resource2 = objectCreator.CreateResource(resource2);
+			resource2 = TestContext.Api.Resources.Complete(resource2);
+
+			var resource3 = new UnmanagedResource { Name = $"{prefix}_Resource_3" }.AssignToPool(pool1);
+			resource3 = objectCreator.CreateResource(resource3);
+			resource3 = TestContext.Api.Resources.Complete(resource3);
+
+			var resource4 = new UnmanagedResource { Name = $"{prefix}_Resource_4" }.AssignToPool(pool2);
+			resource4 = objectCreator.CreateResource(resource4);
+			resource4 = TestContext.Api.Resources.Complete(resource4);
+
+			var resource5 = new UnmanagedResource { Name = $"{prefix}_Resource_5" }.AssignToPool(pool2);
+			resource5 = objectCreator.CreateResource(resource5);
+			resource5 = TestContext.Api.Resources.Complete(resource5);
+
+			var resource6 = new UnmanagedResource { Name = $"{prefix}_Resource_6" }.AssignToPool(pool2);
+			resource6 = objectCreator.CreateResource(resource6);
+			resource6 = TestContext.Api.Resources.Complete(resource6);
+
+			var parent1 = new JobResourceNode(pool1, resource1);
+			var parent2 = new JobResourceNode(pool1, resource2);
+			var parent3 = new JobResourceNode(pool1, resource3);
+			var child1 = new JobResourceNode(pool2, resource4);
+			var child2 = new JobResourceNode(pool2, resource5);
+			var child3 = new JobResourceNode(pool2, resource6);
+
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = currentTime,
+				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
+			};
+
+			job.NodeGraph
+				.Add(parent1)
+				.Add(parent2)
+				.Add(parent3)
+				.Add(child1)
+				.Add(child2)
+				.Add(child3)
+				.Link(parent1, child1)
+				.Link(parent1, child2)
+				.Link(parent1, child3);
+			job = objectCreator.CreateJob(job);
+
+			var tentativeJob = TestContext.Api.Jobs.SaveAsTentative(job);
+			Assert.IsNotNull(tentativeJob, "Expected the job to transition to the Tentative state.");
+
+			tentativeJob.NodeGraph.Remove(tentativeJob.NodeGraph.Nodes.Single(x => x.Id == parent1.Id));
+
+			var updatedJob = TestContext.Api.Jobs.Update(tentativeJob);
+			Assert.AreEqual(2, updatedJob.NodeGraph.Nodes.Count);
+			Assert.IsNotNull(updatedJob.NodeGraph.Nodes.SingleOrDefault(x => x.Id == parent2.Id));
+			Assert.IsNotNull(updatedJob.NodeGraph.Nodes.SingleOrDefault(x => x.Id == parent3.Id));
+
+			var reservations = TestContext.ResourceManagerHelper.GetReservationInstances(
+				ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(job.Id))).ToList();
+
+			Assert.AreEqual(1, reservations.Count, "Expected exactly one core reservation for the tentative job.");
+
+			var usages = reservations[0].ResourcesInReservationInstance.OfType<ServiceResourceUsageDefinition>().ToList();
+			Assert.AreEqual(2, usages.Count, "Expected the remaining resource nodes to be booked as reservation usages.");
+
+			var resourceIds = usages.Select(x => x.GUID).ToList();
+			CollectionAssert.Contains(resourceIds, resource2.CoreResourceId);
+			CollectionAssert.Contains(resourceIds, resource3.CoreResourceId);
+			CollectionAssert.DoesNotContain(resourceIds, resource1.CoreResourceId);
+			CollectionAssert.DoesNotContain(resourceIds, resource4.CoreResourceId);
+			CollectionAssert.DoesNotContain(resourceIds, resource5.CoreResourceId);
+			CollectionAssert.DoesNotContain(resourceIds, resource6.CoreResourceId);
+		}
+
+		[TestMethod]
 		public void SaveAsTentative_JobWithoutNodes_CreatesEmptyCoreReservation()
 		{
 			var prefix = Guid.NewGuid();
