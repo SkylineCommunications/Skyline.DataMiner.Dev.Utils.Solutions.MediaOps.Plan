@@ -67,6 +67,20 @@ namespace RT_MediaOps.Plan.Workflow.Querying
 			new Tuple<Job[], IQuery<Job>>(
 				[],
 				JobFilter.AND(JobExposers.Name.Contains("Unknown")).ToQuery().OrderBy(JobExposers.Name)),
+
+			new Tuple<Job[], IQuery<Job>>(
+				[Setup.DraftJob1!, Setup.DraftJob2!],
+				JobFilter.AND(JobExposers.HasError.Equal(true)).ToQuery().OrderBy(JobExposers.Name)),
+			new Tuple<Job[], IQuery<Job>>(
+				[Setup.TentativeJob3!],
+				JobFilter.AND(JobExposers.HasError.Equal(false)).ToQuery().OrderBy(JobExposers.Name)),
+
+			new Tuple<Job[], IQuery<Job>>(
+				[Setup.DraftJob2!, Setup.DraftJob1!],
+				JobFilter.AND(JobExposers.Errors.Code.Equal(Setup.ErrorCodeA)).ToQuery().OrderByDescending(JobExposers.Name)),
+			new Tuple<Job[], IQuery<Job>>(
+				[Setup.DraftJob2!],
+				JobFilter.AND(JobExposers.Errors.Message.Contains("could not be stopped")).ToQuery().OrderBy(JobExposers.Name)),
 		};
 
 		/// <summary>
@@ -136,9 +150,17 @@ namespace RT_MediaOps.Plan.Workflow.Querying
 		[TestMethod]
 		public void ReadJobsWithUnsupportedOrderByThrowsException()
 		{
-			var query = JobFilter.ToQuery().OrderBy(JobExposers.Capabilities.CapabilityId);
+			var queries = new[]
+			{
+				JobFilter.ToQuery().OrderBy(JobExposers.Capabilities.CapabilityId),
+				JobFilter.ToQuery().OrderBy(JobExposers.HasError),
+				JobFilter.ToQuery().OrderBy(JobExposers.Errors.Code),
+			};
 
-			Assert.ThrowsException<NotSupportedException>(() => TestContext.Api.Jobs.Read(query).ToList());
+			foreach (var query in queries)
+			{
+				Assert.ThrowsException<NotSupportedException>(() => TestContext.Api.Jobs.Read(query).ToList());
+			}
 		}
 	}
 }

@@ -115,6 +115,18 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 			new Tuple<Job[], FilterElement<Job>>([Setup.DraftJob1!, Setup.DraftJob2!], JobFilter.AND(JobExposers.ConfigurationState.Equal(ConfigurationState.AllValuesProvided))),
 			new Tuple<Job[], FilterElement<Job>>([Setup.TentativeJob3!], JobFilter.AND(JobExposers.ConfigurationState.Equal(ConfigurationState.NoParametersDefined))),
 			new Tuple<Job[], FilterElement<Job>>([], JobFilter.AND(JobExposers.ConfigurationState.Equal(ConfigurationState.MandatoryValuesMissing))),
+
+			new Tuple<Job[], FilterElement<Job>>([Setup.DraftJob1!, Setup.DraftJob2!], JobFilter.AND(JobExposers.HasError.Equal(true))),
+			new Tuple<Job[], FilterElement<Job>>([Setup.TentativeJob3!], JobFilter.AND(JobExposers.HasError.Equal(false))),
+			new Tuple<Job[], FilterElement<Job>>([Setup.TentativeJob3!], JobFilter.AND(JobExposers.HasError.NotEqual(true))),
+
+			new Tuple<Job[], FilterElement<Job>>([Setup.DraftJob1!, Setup.DraftJob2!], JobFilter.AND(JobExposers.Errors.Code.Equal(Setup.ErrorCodeA))),
+			new Tuple<Job[], FilterElement<Job>>([Setup.DraftJob2!], JobFilter.AND(JobExposers.Errors.Code.Equal(Setup.ErrorCodeB))),
+			new Tuple<Job[], FilterElement<Job>>([], JobFilter.AND(JobExposers.Errors.Code.Equal($"UnknownErrorCode_{Setup.Prefix}"))),
+
+			new Tuple<Job[], FilterElement<Job>>([Setup.DraftJob1!, Setup.DraftJob2!], JobFilter.AND(JobExposers.Errors.Message.Equal(Setup.ErrorMessageA))),
+			new Tuple<Job[], FilterElement<Job>>([Setup.DraftJob2!], JobFilter.AND(JobExposers.Errors.Message.Contains("could not be stopped"))),
+			new Tuple<Job[], FilterElement<Job>>([], JobFilter.AND(JobExposers.Errors.Message.Contains("Unknown error message"))),
 		};
 
 		[TestMethod]
@@ -127,6 +139,14 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 
 				Assert.IsTrue(expectedObjectIds.SequenceEqual(actualObjectIds), filter.ToString());
 			}
+		}
+
+		[TestMethod]
+		public void ReadJobsWithUnsupportedHasErrorComparerThrowsException()
+		{
+			var filter = JobFilter.AND(JobExposers.HasError.GreaterThan(false));
+
+			Assert.ThrowsException<NotSupportedException>(() => TestContext.Api.Jobs.Read(filter).ToList());
 		}
 
 		[TestMethod]
