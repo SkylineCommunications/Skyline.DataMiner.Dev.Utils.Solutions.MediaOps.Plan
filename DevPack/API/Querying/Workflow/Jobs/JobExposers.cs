@@ -110,6 +110,11 @@
 		public static readonly Exposer<Job, ConfigurationState> ConfigurationState = new Exposer<Job, ConfigurationState>((obj) => obj.ConfigurationState, "ConfigurationState");
 
 		/// <summary>
+		/// Gets an exposer that indicates whether a job has at least one error reported on it.
+		/// </summary>
+		public static readonly Exposer<Job, bool> HasError = new Exposer<Job, bool>((obj) => obj.Errors.Count > 0, "HasError");
+
+		/// <summary>
 		/// Provides exposers for querying and filtering the nodes of the <see cref="Job.NodeGraph"/> property.
 		/// </summary>
 		public static class Nodes
@@ -171,6 +176,22 @@
 			/// Gets a dynamic list exposer for property IDs.
 			/// </summary>
 			public static readonly DynamicListExposer<Job, Guid> PropertyId = DynamicListExposer<Job, Guid>.CreateFromListExposer(new Exposer<Job, IEnumerable>((obj) => obj.PropertySettings.Where(x => x != null).Select(x => x.Id), "Properties.Id"));
+		}
+
+		/// <summary>
+		/// Provides exposers for querying and filtering the <see cref="Job.Errors"/> property.
+		/// </summary>
+		public static class Errors
+		{
+			/// <summary>
+			/// Gets a dynamic list exposer for the <see cref="JobError.Code"/> property. A job matches when one of its errors matches.
+			/// </summary>
+			public static readonly DynamicListExposer<Job, string> Code = DynamicListExposer<Job, string>.CreateFromListExposer(new Exposer<Job, IEnumerable>((obj) => obj.Errors.Where(x => x != null).Select(x => x.Code).Where(x => x != null), "Errors.Code"));
+
+			/// <summary>
+			/// Gets a dynamic list exposer for the <see cref="JobError.Message"/> property. A job matches when one of its errors matches.
+			/// </summary>
+			public static readonly DynamicListExposer<Job, string> Message = DynamicListExposer<Job, string>.CreateFromListExposer(new Exposer<Job, IEnumerable>((obj) => obj.Errors.Where(x => x != null).Select(x => x.Message).Where(x => x != null), "Errors.Message"));
 		}
 	}
 }
