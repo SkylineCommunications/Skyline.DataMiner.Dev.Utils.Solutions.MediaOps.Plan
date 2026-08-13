@@ -9,6 +9,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Net.ResourceManager.Objects;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
 	[TestClass]
 	[TestCategory("IntegrationTest")]
@@ -183,6 +184,51 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var requiredCapacity = usage.RequiredCapacities.Single();
 			Assert.AreEqual(capacity.Id, requiredCapacity.CapacityProfileID, "The capacity profile should match the configured capacity.");
 			Assert.AreEqual(25m, requiredCapacity.DecimalQuantity, "The required capacity quantity should match the configured capacity value.");
+		}
+
+		[TestMethod]
+		public void SaveAsTentative_StartInPast_Fails()
+		{
+			var prefix = Guid.NewGuid();
+			var pastTime = DateTime.UtcNow.AddMinutes(-30).RoundToNextSecond();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = new UnmanagedResource { Name = $"{prefix}_Resource" }.AssignToPool(pool);
+			resource = objectCreator.CreateResource(resource);
+			resource = TestContext.Api.Resources.Complete(resource);
+
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = pastTime,
+				End = pastTime.AddMinutes(10),
+				PreRollStart = pastTime,
+				PostRollEnd = pastTime.AddMinutes(10),
+			};
+
+			var resourceNode = new JobResourceNode(pool, resource);
+
+			job.NodeGraph.Add(resourceNode);
+
+			job = objectCreator.CreateJob(job);
+
+			try
+			{
+				var tentativeJob = TestContext.Api.Jobs.SaveAsTentative(job);
+				Assert.Fail("Expected MediaOpsException was not thrown.");
+			}
+			catch (MediaOpsException ex)
+			{
+				var error = ex.TraceData.ErrorData.OfType<JobInvalidEndTimeError>().SingleOrDefault();
+				Assert.IsNotNull(error);
+				Assert.AreEqual(job.Id, error.Id);
+
+				var reservations = TestContext.ResourceManagerHelper.GetReservationInstances(
+					ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(job.Id))).ToList();
+				Assert.AreEqual(0, reservations.Count, "Expected no core reservation for the tentative job in past.");
+			}
 		}
 	}
 }

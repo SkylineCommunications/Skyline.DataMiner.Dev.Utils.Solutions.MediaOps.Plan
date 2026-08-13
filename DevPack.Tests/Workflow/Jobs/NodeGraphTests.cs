@@ -1181,6 +1181,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			node.OrchestrationSettings.AddConfiguration(new TextConfigurationSetting(configuration));
 
 			job.NodeGraph.Add(node);
+
+			// TODO: Check if this should be allowed on confirmed jobs after adding node with mandatory configuration.
 			job = TestContext.Api.Jobs.Update(job);
 
 			try
