@@ -96,9 +96,7 @@
 		internal override void ApplyChanges(StorageProperties.PropertyInstance instance)
 		{
 			instance.PropertyInfo.PropertyType = StorageProperties.SlcPropertiesIds.Enums.PropertytypeEnum.File;
-
-			// A zero size limit signals that the limit configured on the server applies.
-			instance.PropertyInfo.FileSizeLimit = HasSizeLimit ? SizeLimit : 0;
+			instance.PropertyInfo.FileSizeLimit = SizeLimit;
 			instance.PropertyInfo.AllowMultipleFiles = AllowMultiple;
 		}
 
