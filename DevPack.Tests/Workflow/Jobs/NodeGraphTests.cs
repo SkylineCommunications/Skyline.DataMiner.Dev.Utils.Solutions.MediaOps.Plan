@@ -784,6 +784,54 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void NodeGraph_UpdateJob_Tentative_SwapValidResourceNode_NodeIsActuallySwapped()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = new UnmanagedResource { Name = $"{prefix}_Resource" }.AssignToPool(pool);
+			resource = objectCreator.CreateResource(resource);
+			resource = TestContext.Api.Resources.Complete(resource);
+
+			var replacementResource = new UnmanagedResource { Name = $"{prefix}_ReplacementResource" }.AssignToPool(pool);
+			replacementResource = objectCreator.CreateResource(replacementResource);
+			replacementResource = TestContext.Api.Resources.Complete(replacementResource);
+
+			var node = new JobResourceNode(pool, resource);
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = currentTime,
+				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
+			};
+
+			job.NodeGraph.Add(node);
+
+			job = objectCreator.CreateJob(job);
+			job = TestContext.Api.Jobs.SaveAsTentative(job);
+
+			var replacementNode = new JobResourceNode(pool, replacementResource);
+			job.NodeGraph.Swap(job.NodeGraph.Nodes.Single(), replacementNode);
+
+			job = TestContext.Api.Jobs.Update(job);
+
+			var read = TestContext.Api.Jobs.Read(job.Id);
+			Assert.IsNotNull(read);
+			Assert.AreEqual(1, read.NodeGraph.Nodes.Count);
+			Assert.IsFalse(read.NodeGraph.Nodes.Any(n => n.Id == node.Id));
+			Assert.IsTrue(read.NodeGraph.Nodes.Any(n => n.Id == replacementNode.Id));
+
+			var readNode = read.NodeGraph.Nodes.OfType<JobResourceNode>().Single();
+			Assert.AreEqual(replacementResource.Id, readNode.ResourceId);
+			Assert.AreEqual(pool.Id, readNode.ResourcePoolId);
+		}
+
+		[TestMethod]
 		public void NodeGraph_UpdateJob_Confirmed_AddValidResourceNode_NodeIsActuallyAdded()
 		{
 			var prefix = Guid.NewGuid();
