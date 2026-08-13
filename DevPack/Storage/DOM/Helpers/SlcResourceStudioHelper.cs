@@ -6,10 +6,12 @@
 
 	using Skyline.DataMiner.Net;
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+	using Skyline.DataMiner.Net.Apps.ManagerStore.Select;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
 	using Skyline.DataMiner.Utils.DOM.Extensions;
 
+	using SLDataGateway.API.Querying;
 	using SLDataGateway.API.Types.Querying;
 
 	internal class SlcResourceStudioHelper : DomModuleHelperBase
@@ -228,6 +230,29 @@
 				ids.Distinct(),
 				x => DomInstanceExposers.Id.Equal(x),
 				x => DomHelper.DomInstances.Read(x));
+		}
+
+		public IEnumerable<PartialObject<DomInstance, DomInstanceId>> GetResourceStudioFields<T>(IEnumerable<T> values, Func<T, FilterElement<DomInstance>> filter, SelectedFields<DomInstance> selectedFields)
+		{
+			if (values == null)
+			{
+				throw new ArgumentNullException(nameof(values));
+			}
+
+			if (filter == null)
+			{
+				throw new ArgumentNullException(nameof(filter));
+			}
+
+			if (selectedFields == null)
+			{
+				throw new ArgumentNullException(nameof(selectedFields));
+			}
+
+			return FilterQueryExecutor.RetrieveFilteredItems(
+				values.Distinct(),
+				x => filter(x),
+				x => DomHelper.DomInstances.Read(x.ToQuery(), selectedFields));
 		}
 
 		public DomInstance TransitionResourceToComplete(Guid resourceId)

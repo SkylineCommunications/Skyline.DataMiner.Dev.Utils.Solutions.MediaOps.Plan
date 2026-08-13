@@ -5,6 +5,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using System.Linq;
 
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+	using Skyline.DataMiner.Net.Apps.ManagerStore.Select;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Net.ResponseErrorData;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
@@ -95,20 +96,23 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return new Dictionary<Guid, Guid>();
 			}
 
+			var selectedFields = new SelectedFields<DomInstance>()
+				.Add(SlcResource_StudioIds.Sections.ResourceInternalProperties.Resource_Id);
+
 			FilterElement<DomInstance> Filter(Guid coreResourceId) =>
 				DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resource.Id)
 				.AND(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.ResourceInternalProperties.Resource_Id).Equal(coreResourceId));
 
 			var domResourceIdByCoreId = new Dictionary<Guid, Guid>();
-			foreach (var domResource in planApi.DomHelpers.SlcResourceStudioHelper.GetResources(coreResourceIds, Filter))
+			foreach (var partialObject in planApi.DomHelpers.SlcResourceStudioHelper.GetResourceStudioFields(coreResourceIds, Filter, selectedFields))
 			{
-				var coreId = domResource.ResourceInternalProperties.Resource_Id.GetValueOrDefault();
-				if (coreId == Guid.Empty)
+				if (!partialObject.TryGetValue<Guid>(SlcResource_StudioIds.Sections.ResourceInternalProperties.Resource_Id, out var coreId)
+					|| coreId == Guid.Empty)
 				{
 					continue;
 				}
 
-				domResourceIdByCoreId[coreId] = domResource.ID.Id;
+				domResourceIdByCoreId[coreId] = partialObject.Id.Id;
 			}
 
 			return domResourceIdByCoreId;
