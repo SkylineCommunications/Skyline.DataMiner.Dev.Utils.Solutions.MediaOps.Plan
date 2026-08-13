@@ -511,7 +511,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
-		public void SaveAsTentative_StartInPast_Fails()
+		public void SaveAsTentative_EndsInPast_Fails()
 		{
 			var prefix = Guid.NewGuid();
 			var pastTime = DateTime.UtcNow.AddMinutes(-30).RoundToNextSecond();
