@@ -239,6 +239,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		private void DeleteOrphanedAttachments(PropertySettingCollection settingCollection)
 		{
+			// A collection that never held a file has no attachments, so the attachment API is not contacted for it.
+			if (settingCollection.FileSettings.Count == 0 && settingCollection.RemovedFileSettings.Count == 0)
+			{
+				return;
+			}
+
 			var instanceId = new DomInstanceId(settingCollection.Id);
 
 			// Only the attachments that nothing refers to anymore are removed. Reconciling against the full stored
