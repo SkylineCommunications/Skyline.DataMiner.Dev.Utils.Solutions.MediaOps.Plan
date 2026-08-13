@@ -15,7 +15,6 @@
 		<PackageReference Include="Skyline.DataMiner.CICD.Tools.WinEncryptedKeys.Lib" />
 		<PackageReference Include="Skyline.DataMiner.Core.DataMinerSystem.Common" />
 		<PackageReference Include="Skyline.DataMiner.Dev.Common" />
-		<PackageReference Include="Skyline.DataMiner.Files.SLNetTypes" />
 		<PackageReference Include="Skyline.DataMiner.Utils.SecureCoding.Analyzers">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

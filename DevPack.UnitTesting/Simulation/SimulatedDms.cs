@@ -264,6 +264,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 				throw new ArgumentNullException(nameof(message));
 			}
 
+			// A DOM select read only asks for specific fields. The DOM message handler does not support it,
+			// so it is translated into a regular read and then reduced to the requested fields.
+			if (DomInstanceSelectStore.TryHandleMessage(message, _domSlNetMessageHandler, out var selectResponse))
+			{
+				responses = new[] { selectResponse };
+				return true;
+			}
+
 			if (_domSlNetMessageHandler.TryHandleMessage(message, out var domResponse))
 			{
 				responses = new[] { domResponse };
