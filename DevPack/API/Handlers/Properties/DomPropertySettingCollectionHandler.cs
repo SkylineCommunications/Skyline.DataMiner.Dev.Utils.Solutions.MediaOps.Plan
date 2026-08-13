@@ -100,69 +100,163 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				.Where(IsValid)
 				.Select(x => new DomPropertySettingCollection(x.Instance))
 				.ToList();
-			var persistedInstances = CreateOrUpdateDomPropertySettingCollections(toCreateDomInstances.Concat(toUpdateDomInstances).ToList());
+			var domInstancesToPersist = toCreateDomInstances.Concat(toUpdateDomInstances).ToList();
 
-			// The file content is attached to the DOM instance, so it can only be stored once that instance exists.
-			SyncAttachments(apiSettingCollections.Where(IsValid).ToList());
+			// The file content is attached to the DOM instance, so it can only be stored once that instance exists. The
+			// names of the files that still have to be uploaded are therefore kept out of this first write.
+			DeferPendingFileNames(apiSettingCollections, domInstancesToPersist);
+
+			var persistedInstances = CreateOrUpdateDomPropertySettingCollections(domInstancesToPersist);
+			var storedInstances = SyncAttachments(apiSettingCollections.Where(IsValid).ToList(), persistedInstances);
 
 			// Reported last, because a collection whose files could not be stored must not be reported as successful.
-			ReportSuccess(persistedInstances.Where(x => !TraceDataPerItem.ContainsKey(x.ID.Id)));
+			ReportSuccess(storedInstances.Where(x => !UnsuccessfulItems.Contains(x.ID.Id)));
 		}
 
-		private void SyncAttachments(ICollection<PropertySettingCollection> apiSettingCollections)
+		// A file name may only be stored once its content is uploaded, so a name that is still pending keeps the value that
+		// is stored today. That value only refers to content that is available on the collection.
+		private static void DeferPendingFileNames(ICollection<PropertySettingCollection> apiSettingCollections, ICollection<DomPropertySettingCollection> domInstances)
 		{
+			var domInstancesById = domInstances.ToDictionary(x => x.ID.Id);
+
 			foreach (var settingCollection in apiSettingCollections)
 			{
-				var instanceId = new DomInstanceId(settingCollection.Id);
-
-				// Only the attachments that nothing refers to anymore are removed. Reconciling against the full stored
-				// attachment list catches orphans from removed file settings as well as settings that were never loaded.
-				var expectedAttachments = new HashSet<string>(
-					settingCollection.FileSettings.SelectMany(x => x.Files.Select(f => FilePropertySetting.GetAttachmentName(x.Id, f))),
-					StringComparer.OrdinalIgnoreCase);
-
-				foreach (var attachmentName in planApi.PropertyAttachments.GetNames(instanceId).Where(x => !expectedAttachments.Contains(x)).ToList())
+				if (!domInstancesById.TryGetValue(settingCollection.Id, out var domInstance))
 				{
-					try
+					continue;
+				}
+
+				foreach (var setting in settingCollection.FileSettings.Where(x => x.FilesToUpload.Count > 0))
+				{
+					SetFileNames(domInstance, setting, setting.Files.Where(setting.IsStored));
+				}
+			}
+		}
+
+		private static void SetFileNames(DomPropertySettingCollection domInstance, FilePropertySetting setting, IEnumerable<string> fileNames)
+		{
+			var section = domInstance.PropertyValue.FirstOrDefault(x => x.PropertyID == setting.Id);
+			if (section == null)
+			{
+				return;
+			}
+
+			section.Value = string.Join(FilePropertySetting.FileSeparator.ToString(), fileNames);
+		}
+
+		private ICollection<DomPropertySettingCollection> SyncAttachments(ICollection<PropertySettingCollection> apiSettingCollections, ICollection<DomPropertySettingCollection> persistedInstances)
+		{
+			var persistedInstancesById = persistedInstances.ToDictionary(x => x.ID.Id);
+			var uploadedSettingsPerCollection = new Dictionary<Guid, ICollection<FilePropertySetting>>();
+
+			foreach (var settingCollection in apiSettingCollections)
+			{
+				if (!persistedInstancesById.TryGetValue(settingCollection.Id, out var persistedInstance))
+				{
+					// The collection itself is not stored, so there is nothing to attach content to.
+					continue;
+				}
+
+				var uploadedSettings = UploadPendingFiles(settingCollection);
+				if (uploadedSettings.Count == 0)
+				{
+					continue;
+				}
+
+				foreach (var setting in uploadedSettings)
+				{
+					SetFileNames(persistedInstance, setting, setting.Files);
+				}
+
+				uploadedSettingsPerCollection[settingCollection.Id] = uploadedSettings;
+			}
+
+			// The names of the uploaded files are only stored now, so a stored name always refers to content that exists.
+			var committedInstances = CreateOrUpdateDomPropertySettingCollections(uploadedSettingsPerCollection.Keys.Select(x => persistedInstancesById[x]).ToList())
+				.ToDictionary(x => x.ID.Id);
+
+			foreach (var settingCollection in apiSettingCollections.Where(x => persistedInstancesById.ContainsKey(x.Id)))
+			{
+				if (committedInstances.ContainsKey(settingCollection.Id) && uploadedSettingsPerCollection.TryGetValue(settingCollection.Id, out var uploadedSettings))
+				{
+					foreach (var setting in uploadedSettings)
 					{
-						planApi.PropertyAttachments.Delete(instanceId, attachmentName);
-					}
-					catch (Exception ex)
-					{
-						planApi.Logger.Error(this, $"Failed to delete orphaned attachment '{attachmentName}': {ex}");
+						setting.ClearPendingFileChanges();
 					}
 				}
 
-				settingCollection.ClearRemovedFileSettings();
-
-				foreach (var setting in settingCollection.FileSettings)
+				// A setting without pending uploads is stored as it is, so its removals are final as well.
+				foreach (var setting in settingCollection.FileSettings.Where(x => x.FilesToUpload.Count == 0))
 				{
-					// The collection exists from here on, so the content of its files can be read on demand.
-					setting.SetStorageContext(planApi, settingCollection.Id);
+					setting.ClearPendingFileChanges();
+				}
 
-					if (setting.FilesToUpload.Count == 0 && setting.FilesToDelete.Count == 0)
+				DeleteOrphanedAttachments(settingCollection);
+
+				settingCollection.ClearRemovedFileSettings();
+			}
+
+			return persistedInstances.Select(x => committedInstances.TryGetValue(x.ID.Id, out var committed) ? committed : x).ToList();
+		}
+
+		private ICollection<FilePropertySetting> UploadPendingFiles(PropertySettingCollection settingCollection)
+		{
+			var instanceId = new DomInstanceId(settingCollection.Id);
+			var uploadedSettings = new List<FilePropertySetting>();
+
+			foreach (var setting in settingCollection.FileSettings)
+			{
+				// The collection exists from here on, so the content of its files can be read on demand.
+				setting.SetStorageContext(planApi, settingCollection.Id);
+
+				if (setting.FilesToUpload.Count == 0)
+				{
+					continue;
+				}
+
+				try
+				{
+					foreach (var fileToUpload in setting.FilesToUpload)
 					{
-						continue;
+						planApi.PropertyAttachments.Add(instanceId, FilePropertySetting.GetAttachmentName(setting.Id, fileToUpload.Key), fileToUpload.Value);
 					}
 
-					try
+					uploadedSettings.Add(setting);
+				}
+				catch (Exception ex)
+				{
+					ReportError(settingCollection.Id, new PropertySettingCollectionInvalidPropertySettingsError
 					{
-						foreach (var fileToUpload in setting.FilesToUpload)
-						{
-							planApi.PropertyAttachments.Add(instanceId, FilePropertySetting.GetAttachmentName(setting.Id, fileToUpload.Key), fileToUpload.Value);
-						}
+						ErrorMessage = $"The files of the property could not be stored: {ex.Message}",
+						PropertyId = setting.Id,
+						Id = settingCollection.Id,
+					});
+				}
+			}
 
-						setting.ClearPendingFileChanges();
-					}
-					catch (Exception ex)
-					{
-						ReportError(settingCollection.Id, new PropertySettingCollectionInvalidPropertySettingsError
-						{
-							ErrorMessage = $"The files of the property could not be stored: {ex.Message}",
-							PropertyId = setting.Id,
-							Id = settingCollection.Id,
-						});
-					}
+			return uploadedSettings;
+		}
+
+		private void DeleteOrphanedAttachments(PropertySettingCollection settingCollection)
+		{
+			var instanceId = new DomInstanceId(settingCollection.Id);
+
+			// Only the attachments that nothing refers to anymore are removed. Reconciling against the full stored
+			// attachment list catches orphans from removed file settings, settings that were never loaded and content
+			// that was uploaded for a file name that could not be stored.
+			var expectedAttachments = new HashSet<string>(
+				settingCollection.FileSettings.SelectMany(x => x.Files.Where(x.IsStored).Select(f => FilePropertySetting.GetAttachmentName(x.Id, f))),
+				StringComparer.OrdinalIgnoreCase);
+
+			foreach (var attachmentName in planApi.PropertyAttachments.GetNames(instanceId).Where(x => !expectedAttachments.Contains(x)).ToList())
+			{
+				try
+				{
+					planApi.PropertyAttachments.Delete(instanceId, attachmentName);
+				}
+				catch (Exception ex)
+				{
+					planApi.Logger.Error(this, $"Failed to delete orphaned attachment '{attachmentName}': {ex}");
 				}
 			}
 		}

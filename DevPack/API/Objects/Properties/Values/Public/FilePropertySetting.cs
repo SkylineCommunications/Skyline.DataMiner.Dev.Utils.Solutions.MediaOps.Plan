@@ -82,6 +82,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		internal IReadOnlyCollection<string> StoredFiles => storedFiles;
 
+		// A file is only stored once its content is uploaded as an attachment.
+		internal bool IsStored(string fileName)
+		{
+			return storedFiles.Contains(fileName);
+		}
+
 		// The attachment holding the content of a file is named after the property it belongs to.
 		internal static string GetAttachmentName(Guid propertyId, string fileName)
 		{
