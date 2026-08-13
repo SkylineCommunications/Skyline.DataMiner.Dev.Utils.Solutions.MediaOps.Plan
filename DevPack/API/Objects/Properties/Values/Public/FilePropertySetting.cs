@@ -266,7 +266,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return;
 			}
 
-			foreach (var storedFile in source.storedFiles.Where(x => !filesToUpload.ContainsKey(x)))
+			foreach (var storedFile in source.storedFiles.Where(x => source.files.Contains(x, StringComparer.OrdinalIgnoreCase) && !filesToUpload.ContainsKey(x)))
 			{
 				filesToUpload[storedFile] = source.ReadContent(storedFile);
 			}
