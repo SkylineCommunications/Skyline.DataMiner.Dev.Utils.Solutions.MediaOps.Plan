@@ -15,8 +15,8 @@ namespace RT_MediaOps.Plan.RST.Resources
 	/// and <see cref="Job.AssignEligibleResources(IMediaOpsPlanApi)"/>.
 	/// </summary>
 	/// <remarks>
-	/// Resource eligibility is resolved by the DataMiner Resource Manager, which the simulated connection does not
-	/// implement, so every test is skipped when the tests do not run against a real DataMiner Agent.
+	/// Resource eligibility is resolved by the DataMiner Resource Manager for real connections and by the in-memory
+	/// Resource Manager store for simulated connections.
 	/// </remarks>
 	[TestClass]
 	[TestCategory("IntegrationTest")]
@@ -39,8 +39,6 @@ namespace RT_MediaOps.Plan.RST.Resources
 		[TestMethod]
 		public void GetEligibleResources_RequestedCapability_ReturnsOnlyResourcesWithThatCapabilityValue()
 		{
-			SkipWhenNotRunningAgainstRealDma();
-
 			var prefix = Guid.NewGuid();
 			var currentTime = DateTime.UtcNow.RoundToNextSecond();
 
@@ -70,8 +68,6 @@ namespace RT_MediaOps.Plan.RST.Resources
 		[TestMethod]
 		public void GetEligibleResources_RequestedCapacity_ReturnsOnlyResourcesWithEnoughCapacity()
 		{
-			SkipWhenNotRunningAgainstRealDma();
-
 			var prefix = Guid.NewGuid();
 			var currentTime = DateTime.UtcNow.RoundToNextSecond();
 
@@ -105,8 +101,6 @@ namespace RT_MediaOps.Plan.RST.Resources
 		[TestMethod]
 		public void GetEligibleResources_CapacityUsedByConfirmedJob_ReturnsResourceOnlyOutsideTheBookedTimeRange()
 		{
-			SkipWhenNotRunningAgainstRealDma();
-
 			var prefix = Guid.NewGuid();
 			var currentTime = DateTime.UtcNow.RoundToNextSecond();
 
@@ -168,8 +162,6 @@ namespace RT_MediaOps.Plan.RST.Resources
 		[TestMethod]
 		public void GetEligibleResources_WithFilter_OnlyConsidersResourcesMatchingTheFilter()
 		{
-			SkipWhenNotRunningAgainstRealDma();
-
 			var prefix = Guid.NewGuid();
 			var currentTime = DateTime.UtcNow.RoundToNextSecond();
 
@@ -193,8 +185,6 @@ namespace RT_MediaOps.Plan.RST.Resources
 		[TestMethod]
 		public void GetEligibleResources_WithPropertyValueFilter_OnlyConsidersResourcesWithThatPropertyValue()
 		{
-			SkipWhenNotRunningAgainstRealDma();
-
 			var prefix = Guid.NewGuid();
 			var currentTime = DateTime.UtcNow.RoundToNextSecond();
 
@@ -227,8 +217,6 @@ namespace RT_MediaOps.Plan.RST.Resources
 		[TestMethod]
 		public void AssignEligibleResources_PoolNodesWithCapability_AssignsADistinctEligibleResourcePerNode()
 		{
-			SkipWhenNotRunningAgainstRealDma();
-
 			var prefix = Guid.NewGuid();
 			var currentTime = DateTime.UtcNow.RoundToNextSecond();
 
@@ -283,8 +271,6 @@ namespace RT_MediaOps.Plan.RST.Resources
 		[TestMethod]
 		public void AssignEligibleResources_WithoutEligibleResource_KeepsTheResourcePoolNode()
 		{
-			SkipWhenNotRunningAgainstRealDma();
-
 			var prefix = Guid.NewGuid();
 			var currentTime = DateTime.UtcNow.RoundToNextSecond();
 
@@ -314,14 +300,6 @@ namespace RT_MediaOps.Plan.RST.Resources
 
 			Assert.AreEqual(0, job.NodeGraph.Nodes.OfType<JobResourceNode>().Count(), "Expected no resource node to be created when no resource is eligible.");
 			Assert.AreEqual(1, job.NodeGraph.Nodes.OfType<JobResourcePoolNode>().Count(), "Expected the resource pool node to be kept when no resource is eligible.");
-		}
-
-		private static void SkipWhenNotRunningAgainstRealDma()
-		{
-			if (!TestContext.UseRealDma)
-			{
-				Assert.Inconclusive("Resource eligibility is resolved by the DataMiner Resource Manager, which the simulated connection does not implement.");
-			}
 		}
 
 		private static CapabilitySettings CreateCapabilitySettings(Capability capability, string value)
