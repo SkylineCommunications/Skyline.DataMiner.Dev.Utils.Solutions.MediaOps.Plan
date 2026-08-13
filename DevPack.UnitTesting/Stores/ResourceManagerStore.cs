@@ -265,13 +265,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 				return response;
 			}
 
-			var singleContext = request.Context ?? new EligibleResourceContext(request.RequestedTimeRange)
-			{
-				RequiredCapabilities = request.RequiredCapabilities,
-				RequiredCapacities = request.RequiredCapacities,
-				ReservationIdToIgnore = request.ReservationToIgnore,
-				NodeIdToIgnore = request.NodeIdToIgnore,
-			};
+			var singleContext = request.Context;
 
 			var eligibleResources = GetEligibleResources(singleContext).ToList();
 			return new EligibleResourcesResponseMessage(new EligibleResourceResult(singleContext.ContextId, eligibleResources, new List<ResourceUsageDetails>()))
