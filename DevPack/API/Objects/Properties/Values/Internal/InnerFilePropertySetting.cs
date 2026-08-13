@@ -50,16 +50,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			foreach (var entry in section.Value.Split(new[] { FileSeparator }, StringSplitOptions.RemoveEmptyEntries))
 			{
-				AddParsedFile(StripAttachmentPrefix(entry));
+				AddParsedFile(entry);
 			}
-		}
-
-		// Values written by older versions store the attachment name instead of the file name.
-		private string StripAttachmentPrefix(string entry)
-		{
-			var prefix = $"{Id}_";
-
-			return entry.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) ? entry.Substring(prefix.Length) : entry;
 		}
 	}
 }
