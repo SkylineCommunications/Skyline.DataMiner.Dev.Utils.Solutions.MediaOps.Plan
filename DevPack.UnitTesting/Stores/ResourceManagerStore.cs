@@ -14,6 +14,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 	using Skyline.DataMiner.Net.ResponseErrorData;
 	using Skyline.DataMiner.Net.SRM.Capabilities;
 	using Skyline.DataMiner.Net.SRM.Capacities;
+	using Skyline.DataMiner.Net.SRM.Quarantine;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation;
 
 	/// <summary>
@@ -64,6 +65,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 				case SetResourceMessage request:
 					{
 						var objects = request.ResourceManagerObjects ?? new List<Resource>();
+						var updatedResources = new List<Resource>();
 
 						foreach (var resource in objects)
 						{
@@ -82,7 +84,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 								}
 
 								_resources[resource.GUID] = resource;
+								updatedResources.Add(resource);
 							}
+						}
+
+						if (!request.isDelete && request.ForceQuarantine)
+						{
+							ApplyQuarantineForUpdatedResources(updatedResources);
 						}
 
 						response = new ResourceResponseMessage(objects.ToArray()) { Success = true };
@@ -370,6 +378,56 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 			return true;
 		}
 
+		private void ApplyQuarantineForUpdatedResources(IReadOnlyCollection<Resource> updatedResources)
+		{
+			foreach (var resource in updatedResources)
+			{
+				var maxConcurrency = Math.Max(1, resource.MaxConcurrency);
+				var usages = _reservationInstances.Values
+					.Where(x => ConsumesCapacity(x.Status))
+					.SelectMany(reservation => reservation.ResourcesInReservationInstance
+						.OfType<ServiceResourceUsageDefinition>()
+						.Where(usage => usage.GUID == resource.GUID && UsesCompleteResource(usage))
+						.Select(usage => new ReservationUsage(reservation, usage)))
+					.OrderBy(x => x.Reservation.Start)
+					.ThenBy(x => x.Reservation.CreatedAt)
+					.ThenBy(x => x.Reservation.ID)
+					.ThenBy(x => x.Usage.ServiceDefinitionNodeID)
+					.ToList();
+
+				var acceptedUsages = new List<ReservationUsage>();
+				foreach (var usage in usages)
+				{
+					var overlappingAcceptedUsages = acceptedUsages
+						.Where(x => RangesOverlap(usage.Reservation.Start, usage.Reservation.End, x.Reservation.Start, x.Reservation.End))
+						.ToList();
+
+					if (overlappingAcceptedUsages.Count >= maxConcurrency)
+					{
+						MoveUsageToQuarantine(usage.Reservation, usage.Usage, QuarantineTrigger.Reason.ConcurrencyDowngraded);
+						continue;
+					}
+
+					acceptedUsages.Add(usage);
+				}
+			}
+		}
+
+		private static void MoveUsageToQuarantine(ReservationInstance reservation, ServiceResourceUsageDefinition usage, QuarantineTrigger.Reason reason)
+		{
+			if (!reservation.ResourcesInReservationInstance.Remove(usage))
+			{
+				return;
+			}
+
+			reservation.IsQuarantined = true;
+			reservation.QuarantinedResources.Add(new QuarantinedResourceUsageDefinition
+			{
+				QuarantinedResourceUsage = usage,
+				QuarantineTriggers = [new QuarantineTrigger { QuarantineReason = reason }],
+			});
+		}
+
 		private bool HasReservationConflict(ReservationInstance reservation, IEnumerable<ReservationInstance> existingReservations)
 		{
 			if (!ConsumesCapacity(reservation.Status))
@@ -398,7 +456,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 
 				if (UsesCompleteResource(usage))
 				{
-					if (otherUsages.Any())
+					if (otherUsages.Count + 1 > Math.Max(1, resource.MaxConcurrency))
 					{
 						return true;
 					}
@@ -527,6 +585,19 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 		private static bool RangesOverlap(decimal start1, decimal end1, decimal start2, decimal end2)
 		{
 			return start1 < end2 && start2 < end1;
+		}
+
+		private sealed class ReservationUsage
+		{
+			public ReservationUsage(ReservationInstance reservation, ServiceResourceUsageDefinition usage)
+			{
+				Reservation = reservation;
+				Usage = usage;
+			}
+
+			public ReservationInstance Reservation { get; }
+
+			public ServiceResourceUsageDefinition Usage { get; }
 		}
 	}
 }

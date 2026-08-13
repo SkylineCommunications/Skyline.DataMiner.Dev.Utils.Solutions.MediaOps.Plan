@@ -3,8 +3,12 @@
 	using System;
 	using System.Linq;
 
+	using RT_MediaOps.Plan.Extensions;
 	using RT_MediaOps.Plan.RegressionTests;
 
+	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+	using Skyline.DataMiner.Net.ResourceManager.Objects;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
 	[TestClass]
@@ -87,6 +91,71 @@
 			}
 
 			Assert.Fail("Exception not thrown");
+		}
+
+		[TestMethod]
+		public void UpdateConcurrency_WithOverlappingTentativeReservations_QuarantinesReservation()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = new UnmanagedResource
+			{
+				Name = $"{prefix}_ResourceA",
+				Concurrency = 2,
+			}.AssignToPool(pool);
+			resource = objectCreator.CreateResource(resource);
+			resource = TestContext.Api.Resources.Complete(resource);
+
+			var jobA = new Job
+			{
+				Name = $"{prefix}_Job_1",
+				Start = currentTime.AddHours(1),
+				End = currentTime.AddHours(2),
+				PreRollStart = currentTime.AddHours(1),
+				PostRollEnd = currentTime.AddHours(2),
+			};
+			jobA.NodeGraph
+				.Add(new JobResourceNode(pool, resource));
+
+			var jobB = new Job
+			{
+				Name = $"{prefix}_Job_2",
+				Start = currentTime.AddHours(1),
+				End = currentTime.AddHours(2),
+				PreRollStart = currentTime.AddHours(1),
+				PostRollEnd = currentTime.AddHours(2),
+			};
+			jobB.NodeGraph
+				.Add(new JobResourceNode(pool, resource));
+
+			jobA = objectCreator.CreateJob(jobA);
+			jobB = objectCreator.CreateJob(jobB);
+
+			jobA = TestContext.Api.Jobs.SaveAsTentative(jobA);
+			jobB = TestContext.Api.Jobs.SaveAsTentative(jobB);
+
+			var coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
+			Assert.IsNotNull(coreResource);
+			coreResource.MaxConcurrency = 1;
+			TestContext.ResourceManagerHelper.AddOrUpdateResources(true, [coreResource]);
+
+			var reservations = TestContext.ResourceManagerHelper.GetReservationInstances(
+				ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(jobA.Id)))
+				.Concat(TestContext.ResourceManagerHelper.GetReservationInstances(
+					ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(jobB.Id))))
+				.ToList();
+
+			Assert.AreEqual(2, reservations.Count, "Expected exactly one core reservation for each tentative job.");
+
+			var quarantinedReservations = reservations.Where(x => x.IsQuarantined).ToList();
+			Assert.IsTrue(quarantinedReservations.Count > 0, "Expected at least one reservation to be quarantined after lowering the concurrency of an overlapping resource.");
+			Assert.IsTrue(
+				quarantinedReservations.Any(x => x.QuarantinedResources.Any(y => y.QuarantinedResourceUsage.GUID == resource.CoreResourceId)),
+				"Expected the lowered resource to be present in the quarantined resources.");
 		}
 	}
 }
