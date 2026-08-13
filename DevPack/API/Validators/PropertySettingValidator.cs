@@ -49,10 +49,6 @@
 			{
 				ValidateDiscretePropertySetting(discretePropertySetting);
 			}
-			else if (propertySetting is FilePropertySetting filePropertySetting)
-			{
-				ValidateFilePropertySetting(filePropertySetting);
-			}
 			else
 			{
 				throw new InvalidOperationException($"Unsupported property setting type: {propertySetting.GetType().FullName}");
@@ -87,41 +83,6 @@
 			}
 
 			ValidateValue(setting.Value, discreteProperty);
-		}
-
-		private void ValidateFilePropertySetting(FilePropertySetting setting)
-		{
-			if (property is not FileProperty fileProperty)
-			{
-				ReportError(apiObjectId, ComposePropertySettingError(propertySetting.Id, $"A file property setting cannot be used with a property of type '{property.GetType().Name}'."));
-				return;
-			}
-
-			if (setting.Files.Count == 0)
-			{
-				if (valueExpected)
-				{
-					ReportError(apiObjectId, ComposePropertySettingError(propertySetting.Id, "Value cannot be null."));
-				}
-
-				return;
-			}
-
-			if (!fileProperty.AllowMultiple && setting.Files.Count > 1)
-			{
-				ReportError(apiObjectId, ComposePropertySettingError(propertySetting.Id, "This property does not allow multiple files."));
-			}
-
-			if (!fileProperty.HasSizeLimit)
-			{
-				return;
-			}
-
-			var sizeLimitInBytes = fileProperty.SizeLimit * 1024L * 1024L;
-			foreach (var fileToUpload in setting.FilesToUpload.Where(x => x.Value.LongLength > sizeLimitInBytes))
-			{
-				ReportError(apiObjectId, ComposePropertySettingError(propertySetting.Id, $"File '{fileToUpload.Key}' exceeds the maximum file size of {fileProperty.SizeLimit} MB."));
-			}
 		}
 
 		private MediaOpsErrorData ComposePropertySettingError(Guid propertyId, string errorMessage)

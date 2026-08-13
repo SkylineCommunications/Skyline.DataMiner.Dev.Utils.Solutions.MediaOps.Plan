@@ -100,74 +100,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				.Where(IsValid)
 				.Select(x => new DomPropertySettingCollection(x.Instance))
 				.ToList();
-			var persistedInstances = CreateOrUpdateDomPropertySettingCollections(toCreateDomInstances.Concat(toUpdateDomInstances).ToList());
-
-			// The file content is attached to the DOM instance, so it can only be stored once that instance exists.
-			SyncAttachments(apiSettingCollections.Where(IsValid).ToList());
-
-			// Reported last, because a collection whose files could not be stored must not be reported as successful.
-			ReportSuccess(persistedInstances.Where(x => !TraceDataPerItem.ContainsKey(x.ID.Id)));
+			CreateOrUpdateDomPropertySettingCollections(toCreateDomInstances.Concat(toUpdateDomInstances).ToList());
 		}
 
-		private void SyncAttachments(ICollection<PropertySettingCollection> apiSettingCollections)
-		{
-			foreach (var settingCollection in apiSettingCollections)
-			{
-				var instanceId = new DomInstanceId(settingCollection.Id);
-
-				// Only the attachments that nothing refers to anymore are removed. Reconciling against the full stored
-				// attachment list catches orphans from removed file settings as well as settings that were never loaded.
-				var expectedAttachments = new HashSet<string>(
-					settingCollection.FileSettings.SelectMany(x => x.Files.Select(f => FilePropertySetting.GetAttachmentName(x.Id, f))),
-					StringComparer.OrdinalIgnoreCase);
-
-				foreach (var attachmentName in planApi.PropertyAttachments.GetNames(instanceId).Where(x => !expectedAttachments.Contains(x)).ToList())
-				{
-					try
-					{
-						planApi.PropertyAttachments.Delete(instanceId, attachmentName);
-					}
-					catch (Exception ex)
-					{
-						planApi.Logger.Error(this, $"Failed to delete orphaned attachment '{attachmentName}': {ex}");
-					}
-				}
-
-				settingCollection.ClearRemovedFileSettings();
-
-				foreach (var setting in settingCollection.FileSettings)
-				{
-					// The collection exists from here on, so the content of its files can be read on demand.
-					setting.SetStorageContext(planApi, settingCollection.Id);
-
-					if (setting.FilesToUpload.Count == 0 && setting.FilesToDelete.Count == 0)
-					{
-						continue;
-					}
-
-					try
-					{
-						foreach (var fileToUpload in setting.FilesToUpload)
-						{
-							planApi.PropertyAttachments.Add(instanceId, FilePropertySetting.GetAttachmentName(setting.Id, fileToUpload.Key), fileToUpload.Value);
-						}
-
-						setting.ClearPendingFileChanges();
-					}
-					catch (Exception ex)
-					{
-						ReportError(settingCollection.Id, new PropertySettingCollectionInvalidPropertySettingsError
-						{
-							ErrorMessage = $"The files of the property could not be stored: {ex.Message}",
-							PropertyId = setting.Id,
-							Id = settingCollection.Id,
-						});
-					}
-				}
-			}
-		}
-
-		private ICollection<DomPropertySettingCollection> CreateOrUpdateDomPropertySettingCollections(ICollection<DomPropertySettingCollection> domValueCollections)
+		private void CreateOrUpdateDomPropertySettingCollections(ICollection<DomPropertySettingCollection> domValueCollections)
 		{
 			if (domValueCollections == null)
 			{
@@ -176,7 +112,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			if (domValueCollections.Count == 0)
 			{
-				return new List<DomPropertySettingCollection>();
+				return;
 			}
 
 			planApi.DomHelpers.SlcPropertiesHelper.DomHelper.DomInstances.TryCreateOrUpdateInBatches(domValueCollections.Select(x => x.ToInstance()), out var domResult);
@@ -194,7 +130,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				}
 			}
 
-			return domResult.SuccessfulItems.Select(x => new DomPropertySettingCollection(x)).ToList();
+			ReportSuccess(domResult.SuccessfulItems.Select(x => new DomPropertySettingCollection(x)));
 		}
 
 		private void Delete(ICollection<PropertySettingCollection> apiSettingCollections)
@@ -232,7 +168,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				throw new ArgumentException($"Not all provided property value collections are valid", nameof(apiSettingCollections));
 			}
 
-			// The server removes the attachments together with the instance, so they need no separate cleanup here.
 			var toDelete = apiSettingCollections.Select(x => x.OriginalInstance.ToInstance());
 			planApi.DomHelpers.SlcPropertiesHelper.DomHelper.DomInstances.TryDeleteInBatches(toDelete, out var domResult);
 
