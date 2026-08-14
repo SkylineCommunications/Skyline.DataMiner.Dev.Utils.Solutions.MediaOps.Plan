@@ -403,6 +403,16 @@
 		public IReadOnlyCollection<Guid> ContactIds => contactIds;
 
 		/// <summary>
+		/// Gets the configuration state of the <see cref="OrchestrationSettings"/> of the recurring job itself. The orchestration settings
+		/// of the nodes of the recurring job are not taken into account: those are exposed by <see cref="RecurringJobNode.ConfigurationState"/>.
+		/// This property is set by the system and cannot be modified directly.
+		/// </summary>
+		/// <remarks>
+		/// This value does not depict the actual state of the recurring job: it is only recalculated and stored when the recurring job is created or updated.
+		/// </remarks>
+		public ConfigurationState ConfigurationState { get; internal set; }
+
+		/// <summary>
 		/// Creates a duplicate of this recurring job with a newly generated identifier. The duplicate is a brand new,
 		/// unsaved recurring job instance without any ties to the original: all properties, orchestration settings,
 		/// nodes, connections, links and property settings are deep copied.
@@ -596,6 +606,10 @@
 			ProcessState = (instance.RecurringInfo.ProcessStatus ?? SlcWorkflowIds.Enums.Processstatus.NA).MapEnum<SlcWorkflowIds.Enums.Processstatus, RecurringJobProcessState>();
 			DesiredJobState = (instance.RecurringInfo.DesiredJobStatus ?? SlcWorkflowIds.Enums.Desiredjobstatus.Draft).MapEnum<SlcWorkflowIds.Enums.Desiredjobstatus, DesiredJobState>();
 
+			ConfigurationState = instance.JobExecution.JobConfigurationStatus.HasValue
+				? EnumExtensions.MapEnum<SlcWorkflowIds.Enums.Jobconfigurationstatus, ConfigurationState>(instance.JobExecution.JobConfigurationStatus.Value)
+				: ConfigurationState.Unknown;
+
 			if (instance.JobExecution.JobConfiguration == null || instance.JobExecution.JobConfiguration == Guid.Empty)
 			{
 				OrchestrationSettings = new WorkflowOrchestrationSettings();
@@ -742,6 +756,10 @@
 			updatedInstance.JobInfo.JobSource = JobTypeCategoryId;
 
 			updatedInstance.JobExecution.JobConfiguration = OrchestrationSettings.Id;
+
+			updatedInstance.JobExecution.JobConfigurationStatus = EnumExtensions.TryMapEnum<ConfigurationState, SlcWorkflowIds.Enums.Jobconfigurationstatus>(ConfigurationState, out var storedConfigurationState)
+				? storedConfigurationState
+				: (SlcWorkflowIds.Enums.Jobconfigurationstatus?)null;
 
 			updatedInstance.JobInfo.JobPriority = Priority.MapEnum<RecurringJobPriority, SlcWorkflowIds.Enums.Jobpriority>();
 
