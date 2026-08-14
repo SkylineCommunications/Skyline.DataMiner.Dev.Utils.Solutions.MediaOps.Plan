@@ -12,6 +12,7 @@
     <Project Path="DevPack.UnitTesting/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.UnitTesting.csproj" />
   </Folder>
   <Project Path="DevPack.Automation/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Automation.csproj" />
+  <Project Path="DevPack.Benchmarks/DevPack.Benchmarks.csproj" />
   <Project Path="DevPack.GQI/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.GQI.csproj" />
   <Project Path="DevPack.Protocol/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Protocol.csproj" />
   <Project Path="DevPack/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.csproj" />
