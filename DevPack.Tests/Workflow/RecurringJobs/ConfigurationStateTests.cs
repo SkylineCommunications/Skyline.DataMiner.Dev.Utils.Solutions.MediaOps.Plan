@@ -165,6 +165,10 @@ namespace RT_MediaOps.Plan.Workflow.RecurringJobs
 				ConfigurationState.MandatoryValuesMissing);
 		}
 
+		/// <summary>
+		/// Asserts the configuration state of the specified recurring job and of every one of its nodes, both on the
+		/// given instance and on the stored instance. All nodes of the recurring job are expected to have the same state.
+		/// </summary>
 		private static void AssertConfigurationStates(RecurringJob recurringJob, ConfigurationState expectedRecurringJobState, ConfigurationState expectedNodeState)
 		{
 			var readRecurringJob = TestContext.Api.RecurringJobs.Read(recurringJob.Id);
