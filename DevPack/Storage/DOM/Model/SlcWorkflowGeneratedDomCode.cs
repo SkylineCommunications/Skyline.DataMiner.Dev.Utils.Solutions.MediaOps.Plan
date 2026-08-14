@@ -8547,8 +8547,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 				throw new InvalidOperationException("'JobStart' is required. Please fill it in before saving, or mark it as optional with the DOM Editor.");
 			if (section.GetValue<DateTime>(SlcWorkflowIds.Sections.JobInfo.JobEnd) == null)
 				throw new InvalidOperationException("'JobEnd' is required. Please fill it in before saving, or mark it as optional with the DOM Editor.");
-			if (section.GetValue<TimeSpan>(SlcWorkflowIds.Sections.JobInfo.JobDuration) == null)
-				throw new InvalidOperationException("'JobDuration' is required. Please fill it in before saving, or mark it as optional with the DOM Editor.");
 			return section;
 		}
 	}
