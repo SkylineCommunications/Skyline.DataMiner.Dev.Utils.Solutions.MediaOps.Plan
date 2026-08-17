@@ -618,11 +618,34 @@
 			return true;
 		}
 
+		// Only the statuses of jobs that have not started yet are mirrored onto the reservation. Once a job is running
+		// (or beyond), the reservation status is driven by SRM (Ongoing, Ended, ...) and must not be overwritten by an
+		// edit of the job, as that would push a running reservation back to Pending and prevent it from ever ending.
+		private static bool TryGetExpectedReservationStatus(DomJob job, out Skyline.DataMiner.Net.Messages.ReservationStatus expected)
+		{
+			switch (job.Status)
+			{
+				case Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Draft:
+				case Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Tentative:
+					expected = Skyline.DataMiner.Net.Messages.ReservationStatus.Pending;
+					return true;
+
+				case Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Confirmed:
+					expected = Skyline.DataMiner.Net.Messages.ReservationStatus.Confirmed;
+					return true;
+
+				default:
+					expected = default(Skyline.DataMiner.Net.Messages.ReservationStatus);
+					return false;
+			}
+		}
+
 		private bool SyncStatus(DomJob job, CoreReservation reservation)
 		{
-			var expected = job.Status == Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Confirmed
-				? Skyline.DataMiner.Net.Messages.ReservationStatus.Confirmed
-				: Skyline.DataMiner.Net.Messages.ReservationStatus.Pending;
+			if (!TryGetExpectedReservationStatus(job, out var expected))
+			{
+				return false;
+			}
 
 			if (reservation.Status.Equals(expected))
 			{
@@ -759,9 +782,13 @@
 			if (reservation.QuarantinedResources.Count == 0)
 			{
 				reservation.IsQuarantined = false;
-				reservation.Status = job.Status == Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Tentative
-					? Net.Messages.ReservationStatus.Pending
-					: Net.Messages.ReservationStatus.Confirmed;
+
+				// The reservation status is only restored for jobs that have not started yet; for a running (or later)
+				// job the status is managed by SRM and must be left untouched.
+				if (TryGetExpectedReservationStatus(job, out var expectedStatus))
+				{
+					reservation.Status = expectedStatus;
+				}
 			}
 
 			return true;
