@@ -147,16 +147,60 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		private ICollection<DomPropertySettingCollection> SyncAttachments(ICollection<PropertySettingCollection> apiSettingCollections, ICollection<DomPropertySettingCollection> persistedInstances)
 		{
 			var persistedInstancesById = persistedInstances.ToDictionary(x => x.ID.Id);
+
+			// A collection that is not stored has nothing to attach content to.
+			var storedCollections = apiSettingCollections.Where(x => persistedInstancesById.ContainsKey(x.Id)).ToList();
+
+			var uploadedSettingsPerCollection = UploadPendingFiles(storedCollections, persistedInstancesById);
+
+			// The names of the uploaded files are only stored now, so a stored name always refers to content that exists.
+			var committedInstances = CreateOrUpdateDomPropertySettingCollections(uploadedSettingsPerCollection.Keys.Select(x => persistedInstancesById[x]).ToList())
+				.ToDictionary(x => x.ID.Id);
+
+			foreach (var settingCollection in storedCollections)
+			{
+				FinalizeFileChanges(settingCollection, GetCommittedUploads(settingCollection.Id, uploadedSettingsPerCollection, committedInstances));
+			}
+
+			return persistedInstances.Select(x => committedInstances.TryGetValue(x.ID.Id, out var committed) ? committed : x).ToList();
+		}
+
+		private static IEnumerable<FilePropertySetting> GetCommittedUploads(
+			Guid settingCollectionId,
+			IReadOnlyDictionary<Guid, ICollection<FilePropertySetting>> uploadedSettingsPerCollection,
+			IReadOnlyDictionary<Guid, DomPropertySettingCollection> committedInstances)
+		{
+			return committedInstances.ContainsKey(settingCollectionId) && uploadedSettingsPerCollection.TryGetValue(settingCollectionId, out var uploadedSettings)
+				? uploadedSettings
+				: Enumerable.Empty<FilePropertySetting>();
+		}
+
+		private void FinalizeFileChanges(PropertySettingCollection settingCollection, IEnumerable<FilePropertySetting> committedSettings)
+		{
+			foreach (var setting in committedSettings)
+			{
+				setting.ClearPendingFileChanges();
+			}
+
+			// A setting without pending uploads is stored as it is, so its removals are final as well.
+			foreach (var setting in settingCollection.FileSettings.Where(x => x.FilesToUpload.Count == 0))
+			{
+				setting.ClearPendingFileChanges();
+			}
+
+			DeleteOrphanedAttachments(settingCollection);
+
+			settingCollection.ClearRemovedFileSettings();
+		}
+
+		private Dictionary<Guid, ICollection<FilePropertySetting>> UploadPendingFiles(
+			ICollection<PropertySettingCollection> storedCollections,
+			IReadOnlyDictionary<Guid, DomPropertySettingCollection> persistedInstancesById)
+		{
 			var uploadedSettingsPerCollection = new Dictionary<Guid, ICollection<FilePropertySetting>>();
 
-			foreach (var settingCollection in apiSettingCollections)
+			foreach (var settingCollection in storedCollections)
 			{
-				if (!persistedInstancesById.TryGetValue(settingCollection.Id, out var persistedInstance))
-				{
-					// The collection itself is not stored, so there is nothing to attach content to.
-					continue;
-				}
-
 				var uploadedSettings = UploadPendingFiles(settingCollection);
 				if (uploadedSettings.Count == 0)
 				{
@@ -165,38 +209,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 				foreach (var setting in uploadedSettings)
 				{
-					SetFileNames(persistedInstance, setting, setting.Files);
+					SetFileNames(persistedInstancesById[settingCollection.Id], setting, setting.Files);
 				}
 
 				uploadedSettingsPerCollection[settingCollection.Id] = uploadedSettings;
 			}
 
-			// The names of the uploaded files are only stored now, so a stored name always refers to content that exists.
-			var committedInstances = CreateOrUpdateDomPropertySettingCollections(uploadedSettingsPerCollection.Keys.Select(x => persistedInstancesById[x]).ToList())
-				.ToDictionary(x => x.ID.Id);
-
-			foreach (var settingCollection in apiSettingCollections.Where(x => persistedInstancesById.ContainsKey(x.Id)))
-			{
-				if (committedInstances.ContainsKey(settingCollection.Id) && uploadedSettingsPerCollection.TryGetValue(settingCollection.Id, out var uploadedSettings))
-				{
-					foreach (var setting in uploadedSettings)
-					{
-						setting.ClearPendingFileChanges();
-					}
-				}
-
-				// A setting without pending uploads is stored as it is, so its removals are final as well.
-				foreach (var setting in settingCollection.FileSettings.Where(x => x.FilesToUpload.Count == 0))
-				{
-					setting.ClearPendingFileChanges();
-				}
-
-				DeleteOrphanedAttachments(settingCollection);
-
-				settingCollection.ClearRemovedFileSettings();
-			}
-
-			return persistedInstances.Select(x => committedInstances.TryGetValue(x.ID.Id, out var committed) ? committed : x).ToList();
+			return uploadedSettingsPerCollection;
 		}
 
 		private ICollection<FilePropertySetting> UploadPendingFiles(PropertySettingCollection settingCollection)
