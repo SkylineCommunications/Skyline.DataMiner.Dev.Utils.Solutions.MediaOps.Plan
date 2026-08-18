@@ -15,10 +15,15 @@
 		private readonly List<TNode> nodes = [];
 		private readonly List<NodeConnection<TNode>> connections = [];
 		private readonly Dictionary<TNode, TNode> childToParent = [];
+		private readonly List<NodeGroup<TNode>> groups = [];
 
 		// Maps the original node that was swapped out to the node that currently represents it in the graph.
 		// The original node is always kept as the key so future logic (e.g. running jobs) can reason about it.
 		private readonly Dictionary<TNode, TNode> originalToCurrentSwap = [];
+
+		// Group membership of a swapped-out node, captured at swap time. It cannot be derived from the replacement later
+		// on, because the consumer is free to change the replacement's group membership after the swap.
+		private readonly Dictionary<TNode, List<NodeGroup<TNode>>> swappedOutGroupMemberships = [];
 
 		private Action<IReadOnlyDictionary<string, string>> externalReferenceRetargeter;
 
@@ -119,6 +124,53 @@
 		public IReadOnlyCollection<NodeConnection<TNode>> Connections => connections.AsReadOnly();
 
 		/// <summary>
+		/// Gets a read-only collection of all node groups in the graph.
+		/// </summary>
+		public IReadOnlyCollection<NodeGroup<TNode>> Groups => groups.AsReadOnly();
+
+		/// <summary>
+		/// Adds a new, empty group to the graph.
+		/// </summary>
+		/// <remarks>
+		/// Group names are not required to be unique and may be empty.
+		/// </remarks>
+		/// <param name="name">The name of the group.</param>
+		/// <returns>The group that was added.</returns>
+		public NodeGroup<TNode> AddGroup(string name)
+		{
+			var group = new NodeGroup<TNode>(this, name);
+			groups.Add(group);
+
+			return group;
+		}
+
+		/// <summary>
+		/// Removes a group from the graph. The nodes that were part of the group remain part of the graph.
+		/// </summary>
+		/// <param name="group">The group to remove.</param>
+		/// <returns>true when the group was part of the graph; otherwise, false.</returns>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="group"/> is null.</exception>
+		public bool RemoveGroup(NodeGroup<TNode> group)
+		{
+			if (group == null)
+			{
+				throw new ArgumentNullException(nameof(group));
+			}
+
+			return groups.Remove(group);
+		}
+
+		/// <summary>
+		/// Determines whether the specified node is part of the graph.
+		/// </summary>
+		/// <param name="node">The node to look for.</param>
+		/// <returns>true when the node is part of the graph; otherwise, false.</returns>
+		internal bool Contains(TNode node)
+		{
+			return node != null && nodes.Contains(node);
+		}
+
+		/// <summary>
 		/// Adds a node to the graph.
 		/// </summary>
 		/// <param name="node">The node to add.</param>
@@ -196,6 +248,7 @@
 		/// <summary>
 		/// Removes a node from the graph and all connections associated with it.
 		/// When the node is a parent, all of its child nodes are removed as well.
+		/// The node is also removed from every group it belongs to; a group that becomes empty is kept.
 		/// </summary>
 		/// <param name="node">The node to remove.</param>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="node"/> is null.</exception>
@@ -225,6 +278,11 @@
 			}
 
 			childToParent.Remove(node);
+
+			foreach (var group in groups)
+			{
+				group.Remove(node);
+			}
 
 			nodes.Remove(node);
 		}
@@ -291,6 +349,14 @@
 			// Retarget parent-child links: the old node can be both a parent and a child.
 			RetargetLinks(oldNode, newNode);
 
+			// Capture the group membership before it is handed over, so a later restore can put the old node back exactly
+			// where it was instead of following the replacement's membership.
+			var membershipSnapshot = CaptureGroupMemberships(oldNode);
+			foreach (var group in groups)
+			{
+				group.ReplaceNode(oldNode, newNode);
+			}
+
 			// Rewrite node-scoped DataReferences (orchestration settings of every node in the graph).
 			var idMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
 			{
@@ -310,6 +376,13 @@
 
 			// Track the swap so the original node stays available and re-swaps keep referencing the original.
 			RecordSwap(oldNode, newNode);
+
+			// Only an original node can ever be restored; in a chained swap the intermediate node is not a key and its
+			// snapshot is dropped, leaving the original's snapshot from the first swap untouched.
+			if (originalToCurrentSwap.ContainsKey(oldNode))
+			{
+				swappedOutGroupMemberships[oldNode] = membershipSnapshot;
+			}
 
 			return this;
 		}
@@ -351,8 +424,9 @@
 		/// This is used by running-job timing logic to retain a swapped-out node next to its replacement instead of
 		/// dropping it. The original node object is preserved so that, when the job is persisted, the change is seen as
 		/// an update of the existing section rather than a removal followed by an add, which keeps the storage-layer
-		/// merge field-level and conflict-aware. The method is idempotent: restoring a node that is already part of the
-		/// graph is a no-op.
+		/// merge field-level and conflict-aware. The node also rejoins the groups it belonged to at the time of the
+		/// swap, so both it and its replacement are part of the relevant groups. The method is idempotent: restoring a
+		/// node that is already part of the graph is a no-op.
 		/// </remarks>
 		/// <param name="original">The originally swapped-out node to restore.</param>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="original"/> is null.</exception>
@@ -369,6 +443,30 @@
 			}
 
 			nodes.Add(original);
+
+			RestoreGroupMemberships(original);
+		}
+
+		private List<NodeGroup<TNode>> CaptureGroupMemberships(TNode node)
+		{
+			return groups.Where(group => group.Contains(node)).ToList();
+		}
+
+		private void RestoreGroupMemberships(TNode original)
+		{
+			if (!swappedOutGroupMemberships.TryGetValue(original, out var memberships))
+			{
+				return;
+			}
+
+			foreach (var group in memberships)
+			{
+				// A group that was removed from the graph after the swap is not resurrected.
+				if (groups.Contains(group))
+				{
+					group.Add(original);
+				}
+			}
 		}
 
 		/// <summary>
@@ -649,7 +747,8 @@
 
 			return nodes.ScrambledEquals(other.nodes)
 				&& connections.ScrambledEquals(other.connections)
-				&& LinkKeys().ScrambledEquals(other.LinkKeys());
+				&& LinkKeys().ScrambledEquals(other.LinkKeys())
+				&& GroupKeys().ScrambledEquals(other.GroupKeys());
 		}
 
 		/// <inheritdoc/>
@@ -673,12 +772,20 @@
 					hash = hash * 31 + link.GetHashCode();
 				}
 
+				foreach (var group in GroupKeys().OrderBy(x => x).ToArray())
+				{
+					hash = hash * 31 + group.GetHashCode();
+				}
+
 				return hash;
 			}
 		}
 
 		private IEnumerable<string> LinkKeys()
 			=> childToParent.Select(kvp => $"{kvp.Key?.Id}->{kvp.Value?.Id}");
+
+		private IEnumerable<string> GroupKeys()
+			=> groups.Select(group => group.GetComparisonKey());
 
 		/// <summary>
 		/// Determines whether two <see cref="NodeGraph{TNode}"/> instances are equal.

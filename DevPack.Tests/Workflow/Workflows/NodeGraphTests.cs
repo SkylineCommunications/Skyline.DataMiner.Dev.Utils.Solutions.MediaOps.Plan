@@ -56,6 +56,75 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 		}
 
 		[TestMethod]
+		public void NodeGraph_Groups_SurviveStorageRoundTrip()
+		{
+			var prefix = Guid.NewGuid();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = new UnmanagedResource { Name = $"{prefix}_Resource" }.AssignToPool(pool);
+			resource = objectCreator.CreateResource(resource);
+			resource = TestContext.Api.Resources.Complete(resource);
+
+			var workflow = new Workflow { Name = $"{prefix}_Workflow" };
+			var resourceNode = new WorkflowResourceNode(pool, resource);
+			var poolNode = new WorkflowResourcePoolNode(pool);
+
+			workflow.NodeGraph.Add(resourceNode).Add(poolNode);
+			workflow.NodeGraph.AddGroup("Group A").Add(resourceNode);
+			workflow.NodeGraph.AddGroup("Group B").Add(resourceNode).Add(poolNode);
+			workflow.NodeGraph.AddGroup("Empty group");
+
+			workflow = objectCreator.CreateWorkflow(workflow);
+
+			var stored = TestContext.Api.Workflows.Read(workflow.Id);
+
+			Assert.AreEqual(3, stored.NodeGraph.Groups.Count);
+
+			var storedResourceNode = stored.NodeGraph.Nodes.Single(node => node.Id == resourceNode.Id);
+			var storedPoolNode = stored.NodeGraph.Nodes.Single(node => node.Id == poolNode.Id);
+
+			CollectionAssert.AreEqual(new[] { storedResourceNode }, stored.NodeGraph.Groups.Single(group => group.Name == "Group A").Nodes.ToArray());
+			CollectionAssert.AreEqual(new[] { storedResourceNode, storedPoolNode }, stored.NodeGraph.Groups.Single(group => group.Name == "Group B").Nodes.ToArray());
+			Assert.AreEqual(0, stored.NodeGraph.Groups.Single(group => group.Name == "Empty group").Nodes.Count);
+		}
+
+		[TestMethod]
+		public void NodeGraph_RemovingNode_RemovesItFromGroupsInStorage()
+		{
+			var prefix = Guid.NewGuid();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = new UnmanagedResource { Name = $"{prefix}_Resource" }.AssignToPool(pool);
+			resource = objectCreator.CreateResource(resource);
+			resource = TestContext.Api.Resources.Complete(resource);
+
+			var workflow = new Workflow { Name = $"{prefix}_Workflow" };
+			var resourceNode = new WorkflowResourceNode(pool, resource);
+			var poolNode = new WorkflowResourcePoolNode(pool);
+
+			workflow.NodeGraph.Add(resourceNode).Add(poolNode);
+			workflow.NodeGraph.AddGroup("Group A").Add(resourceNode);
+			workflow.NodeGraph.AddGroup("Group B").Add(resourceNode).Add(poolNode);
+
+			workflow = objectCreator.CreateWorkflow(workflow);
+
+			var nodeToRemove = workflow.NodeGraph.Nodes.Single(node => node.Id == resourceNode.Id);
+			workflow.NodeGraph.Remove(nodeToRemove);
+			workflow = TestContext.Api.Workflows.Update(workflow);
+
+			var stored = TestContext.Api.Workflows.Read(workflow.Id);
+
+			// The now-empty group is kept.
+			Assert.AreEqual(2, stored.NodeGraph.Groups.Count);
+			Assert.AreEqual(0, stored.NodeGraph.Groups.Single(group => group.Name == "Group A").Nodes.Count);
+			Assert.AreEqual(poolNode.Id, stored.NodeGraph.Groups.Single(group => group.Name == "Group B").Nodes.Single().Id);
+		}
+
+		[TestMethod]
 		public void NodeGraph_CreateWorkflow_NonExistingResource_Fails()
 		{
 			var prefix = Guid.NewGuid();

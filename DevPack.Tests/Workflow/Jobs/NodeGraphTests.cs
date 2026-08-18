@@ -66,6 +66,48 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void NodeGraph_Groups_SurviveStorageRoundTrip()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = new UnmanagedResource { Name = $"{prefix}_Resource" }.AssignToPool(pool);
+			resource = objectCreator.CreateResource(resource);
+			resource = TestContext.Api.Resources.Complete(resource);
+
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = currentTime,
+				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
+			};
+
+			var resourceNode = new JobResourceNode(pool, resource);
+			var poolNode = new JobResourcePoolNode(pool);
+
+			job.NodeGraph.Add(resourceNode).Add(poolNode);
+			job.NodeGraph.AddGroup("Group A").Add(resourceNode);
+			job.NodeGraph.AddGroup("Group B").Add(resourceNode).Add(poolNode);
+
+			job = objectCreator.CreateJob(job);
+
+			var stored = TestContext.Api.Jobs.Read(job.Id);
+
+			Assert.AreEqual(2, stored.NodeGraph.Groups.Count);
+
+			var storedResourceNode = stored.NodeGraph.Nodes.Single(node => node.Id == resourceNode.Id);
+			var storedPoolNode = stored.NodeGraph.Nodes.Single(node => node.Id == poolNode.Id);
+
+			CollectionAssert.AreEqual(new[] { storedResourceNode }, stored.NodeGraph.Groups.Single(group => group.Name == "Group A").Nodes.ToArray());
+			CollectionAssert.AreEqual(new[] { storedResourceNode, storedPoolNode }, stored.NodeGraph.Groups.Single(group => group.Name == "Group B").Nodes.ToArray());
+		}
+
+		[TestMethod]
 		public void NodeGraph_CreateJob_DuplicateNode_Fails()
 		{
 			var prefix = Guid.NewGuid();
