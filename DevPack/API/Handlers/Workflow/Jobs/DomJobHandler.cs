@@ -2659,69 +2659,70 @@
 				return;
 			}
 
-			var toValidate = apiJobs.ToList();
+			// The timing changes are determined once per job so the comparison with the stored job is not repeated for every rule.
+			var toValidate = apiJobs.Select(x => new { Job = x, Changes = GetTimingChanges(x) }).ToList();
 
-			foreach (var job in toValidate.Where(x => x.Start == default).ToArray())
+			foreach (var candidate in toValidate.Where(x => x.Job.Start == default).ToArray())
 			{
 				var error = new JobInvalidStartTimeError
 				{
 					ErrorMessage = "Start time is required.",
-					Id = job.Id,
-					Start = job.Start,
+					Id = candidate.Job.Id,
+					Start = candidate.Job.Start,
 				};
 
-				ReportError(job.Id, error);
-				toValidate.Remove(job);
+				ReportError(candidate.Job.Id, error);
+				toValidate.Remove(candidate);
 			}
 
-			foreach (var job in toValidate.Where(x => x.End == default).ToArray())
+			foreach (var candidate in toValidate.Where(x => x.Job.End == default).ToArray())
 			{
 				var error = new JobInvalidEndTimeError
 				{
 					ErrorMessage = "End time is required.",
-					Id = job.Id,
-					End = job.End,
+					Id = candidate.Job.Id,
+					End = candidate.Job.End,
 				};
 
-				ReportError(job.Id, error);
-				toValidate.Remove(job);
+				ReportError(candidate.Job.Id, error);
+				toValidate.Remove(candidate);
 			}
 
-			foreach (var job in toValidate.Where(x => GetTimingChanges(x).StartChanged && x.Start.Ticks % TimeSpan.TicksPerSecond != 0))
+			foreach (var candidate in toValidate.Where(x => x.Changes.StartChanged && x.Job.Start.Ticks % TimeSpan.TicksPerSecond != 0))
 			{
 				var error = new JobInvalidStartTimeError
 				{
 					ErrorMessage = "Start time must not have sub-second precision.",
-					Id = job.Id,
-					Start = job.Start,
+					Id = candidate.Job.Id,
+					Start = candidate.Job.Start,
 				};
 
-				ReportError(job.Id, error);
+				ReportError(candidate.Job.Id, error);
 			}
 
-			foreach (var job in toValidate.Where(x => GetTimingChanges(x).EndChanged && x.End.Ticks % TimeSpan.TicksPerSecond != 0))
+			foreach (var candidate in toValidate.Where(x => x.Changes.EndChanged && x.Job.End.Ticks % TimeSpan.TicksPerSecond != 0))
 			{
 				var error = new JobInvalidEndTimeError
 				{
 					ErrorMessage = "End time must not have sub-second precision.",
-					Id = job.Id,
-					End = job.End,
+					Id = candidate.Job.Id,
+					End = candidate.Job.End,
 				};
 
-				ReportError(job.Id, error);
+				ReportError(candidate.Job.Id, error);
 			}
 
-			foreach (var job in toValidate.Where(x => GetTimingChanges(x).AnyStartOrEndChanged && x.End - x.Start < JobNodeTimingResolver.GuardTime))
+			foreach (var candidate in toValidate.Where(x => x.Changes.AnyStartOrEndChanged && x.Job.End - x.Job.Start < JobNodeTimingResolver.GuardTime))
 			{
 				var error = new JobInvalidTimingError
 				{
 					ErrorMessage = $"The duration between the start and end time must be at least {JobNodeTimingResolver.GuardTime.TotalSeconds:0} seconds.",
-					Id = job.Id,
-					Start = job.Start,
-					End = job.End,
+					Id = candidate.Job.Id,
+					Start = candidate.Job.Start,
+					End = candidate.Job.End,
 				};
 
-				ReportError(job.Id, error);
+				ReportError(candidate.Job.Id, error);
 			}
 		}
 
@@ -2737,60 +2738,61 @@
 				return;
 			}
 
-			var toValidate = apiJobs.ToList();
+			// The timing changes are determined once per job so the comparison with the stored job is not repeated for every rule.
+			var toValidate = apiJobs.Select(x => new { Job = x, Changes = GetTimingChanges(x) }).ToList();
 
-			foreach (var job in toValidate.Where(x => x.PreRollStart == default).ToArray())
+			foreach (var candidate in toValidate.Where(x => x.Job.PreRollStart == default).ToArray())
 			{
 				var error = new JobInvalidPreRollError
 				{
 					ErrorMessage = "Pre-roll start time is required.",
-					Id = job.Id,
-					PreRollStart = job.PreRollStart,
-					Start = job.Start,
+					Id = candidate.Job.Id,
+					PreRollStart = candidate.Job.PreRollStart,
+					Start = candidate.Job.Start,
 				};
 
-				ReportError(job.Id, error);
-				toValidate.Remove(job);
+				ReportError(candidate.Job.Id, error);
+				toValidate.Remove(candidate);
 			}
 
-			foreach (var job in toValidate.Where(x => GetTimingChanges(x).PreRollStartChanged && x.PreRollStart.Ticks % TimeSpan.TicksPerSecond != 0).ToArray())
+			foreach (var candidate in toValidate.Where(x => x.Changes.PreRollStartChanged && x.Job.PreRollStart.Ticks % TimeSpan.TicksPerSecond != 0).ToArray())
 			{
 				var error = new JobInvalidPreRollError
 				{
 					ErrorMessage = "Pre-roll start time must not have sub-second precision.",
-					Id = job.Id,
-					PreRollStart = job.PreRollStart,
-					Start = job.Start,
+					Id = candidate.Job.Id,
+					PreRollStart = candidate.Job.PreRollStart,
+					Start = candidate.Job.Start,
 				};
 
-				ReportError(job.Id, error);
-				toValidate.Remove(job);
+				ReportError(candidate.Job.Id, error);
+				toValidate.Remove(candidate);
 			}
 
-			foreach (var job in toValidate.Where(x => GetTimingChanges(x).AnyStartTimingChanged && x.PreRollStart > x.Start))
+			foreach (var candidate in toValidate.Where(x => x.Changes.AnyStartTimingChanged && x.Job.PreRollStart > x.Job.Start))
 			{
 				var error = new JobInvalidPreRollError
 				{
 					ErrorMessage = "Pre-roll start cannot be after the job start time.",
-					Id = job.Id,
-					PreRollStart = job.PreRollStart,
-					Start = job.Start,
+					Id = candidate.Job.Id,
+					PreRollStart = candidate.Job.PreRollStart,
+					Start = candidate.Job.Start,
 				};
 
-				ReportError(job.Id, error);
+				ReportError(candidate.Job.Id, error);
 			}
 
-			foreach (var job in toValidate.Where(x => GetTimingChanges(x).AnyStartTimingChanged && x.PreRollStart < x.Start && x.Start - x.PreRollStart < JobNodeTimingResolver.GuardTime))
+			foreach (var candidate in toValidate.Where(x => x.Changes.AnyStartTimingChanged && x.Job.PreRollStart < x.Job.Start && x.Job.Start - x.Job.PreRollStart < JobNodeTimingResolver.GuardTime))
 			{
 				var error = new JobInvalidPreRollError
 				{
 					ErrorMessage = $"The pre-roll duration must be at least {JobNodeTimingResolver.GuardTime.TotalSeconds:0} seconds.",
-					Id = job.Id,
-					PreRollStart = job.PreRollStart,
-					Start = job.Start,
+					Id = candidate.Job.Id,
+					PreRollStart = candidate.Job.PreRollStart,
+					Start = candidate.Job.Start,
 				};
 
-				ReportError(job.Id, error);
+				ReportError(candidate.Job.Id, error);
 			}
 		}
 
@@ -2806,60 +2808,61 @@
 				return;
 			}
 
-			var toValidate = apiJobs.ToList();
+			// The timing changes are determined once per job so the comparison with the stored job is not repeated for every rule.
+			var toValidate = apiJobs.Select(x => new { Job = x, Changes = GetTimingChanges(x) }).ToList();
 
-			foreach (var job in toValidate.Where(x => x.PostRollEnd == default).ToArray())
+			foreach (var candidate in toValidate.Where(x => x.Job.PostRollEnd == default).ToArray())
 			{
 				var error = new JobInvalidPostRollError
 				{
 					ErrorMessage = "Post-roll end time is required.",
-					Id = job.Id,
-					PostRollEnd = job.PostRollEnd,
-					End = job.End,
+					Id = candidate.Job.Id,
+					PostRollEnd = candidate.Job.PostRollEnd,
+					End = candidate.Job.End,
 				};
 
-				ReportError(job.Id, error);
-				toValidate.Remove(job);
+				ReportError(candidate.Job.Id, error);
+				toValidate.Remove(candidate);
 			}
 
-			foreach (var job in toValidate.Where(x => GetTimingChanges(x).PostRollEndChanged && x.PostRollEnd.Ticks % TimeSpan.TicksPerSecond != 0).ToArray())
+			foreach (var candidate in toValidate.Where(x => x.Changes.PostRollEndChanged && x.Job.PostRollEnd.Ticks % TimeSpan.TicksPerSecond != 0).ToArray())
 			{
 				var error = new JobInvalidPostRollError
 				{
 					ErrorMessage = "Post-roll end time must not have sub-second precision.",
-					Id = job.Id,
-					PostRollEnd = job.PostRollEnd,
-					End = job.End,
+					Id = candidate.Job.Id,
+					PostRollEnd = candidate.Job.PostRollEnd,
+					End = candidate.Job.End,
 				};
 
-				ReportError(job.Id, error);
-				toValidate.Remove(job);
+				ReportError(candidate.Job.Id, error);
+				toValidate.Remove(candidate);
 			}
 
-			foreach (var job in toValidate.Where(x => GetTimingChanges(x).AnyEndTimingChanged && x.PostRollEnd < x.End))
+			foreach (var candidate in toValidate.Where(x => x.Changes.AnyEndTimingChanged && x.Job.PostRollEnd < x.Job.End))
 			{
 				var error = new JobInvalidPostRollError
 				{
 					ErrorMessage = "Post-roll end cannot be before the job end time.",
-					Id = job.Id,
-					PostRollEnd = job.PostRollEnd,
-					End = job.End,
+					Id = candidate.Job.Id,
+					PostRollEnd = candidate.Job.PostRollEnd,
+					End = candidate.Job.End,
 				};
 
-				ReportError(job.Id, error);
+				ReportError(candidate.Job.Id, error);
 			}
 
-			foreach (var job in toValidate.Where(x => GetTimingChanges(x).AnyEndTimingChanged && x.PostRollEnd > x.End && x.PostRollEnd - x.End < JobNodeTimingResolver.GuardTime))
+			foreach (var candidate in toValidate.Where(x => x.Changes.AnyEndTimingChanged && x.Job.PostRollEnd > x.Job.End && x.Job.PostRollEnd - x.Job.End < JobNodeTimingResolver.GuardTime))
 			{
 				var error = new JobInvalidPostRollError
 				{
 					ErrorMessage = $"The post-roll duration must be at least {JobNodeTimingResolver.GuardTime.TotalSeconds:0} seconds.",
-					Id = job.Id,
-					PostRollEnd = job.PostRollEnd,
-					End = job.End,
+					Id = candidate.Job.Id,
+					PostRollEnd = candidate.Job.PostRollEnd,
+					End = candidate.Job.End,
 				};
 
-				ReportError(job.Id, error);
+				ReportError(candidate.Job.Id, error);
 			}
 		}
 
