@@ -133,7 +133,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// </summary>
 		internal string GetComparisonKey()
 		{
-			return $"{Name}:{String.Join(",", nodes.Select(node => node?.Id).OrderBy(id => id, StringComparer.Ordinal))}";
+var nameKey = Name == null ? "null" : $"value:{Name}";
+			return $"{nameKey}:{String.Join(",", nodes.Select(node => node?.Id).OrderBy(id => id, StringComparer.Ordinal))}";
 		}
 	}
 }
