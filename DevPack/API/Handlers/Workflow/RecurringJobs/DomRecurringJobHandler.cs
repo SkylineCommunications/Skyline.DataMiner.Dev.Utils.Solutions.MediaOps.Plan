@@ -107,8 +107,30 @@
 			ValidateNodeGraph(apiRecurringJobs);
 			ValidateDescription(apiRecurringJobs);
 
+			// The configuration state of the recurring job and its nodes is stored on the DOM instance so it can be
+			// queried without recalculating it. It is refreshed here, before the instances with changes are built, so
+			// every create or update persists the state of the orchestration settings that is being saved.
+			ApplyConfigurationStates(apiRecurringJobs.Where(IsValid).ToList());
+
 			var lockResult = planApi.LockManager.LockAndExecute(apiRecurringJobs.Where(IsValid).ToList(), CreateOrUpdateLocked);
 			ReportError(lockResult);
+		}
+
+		private void ApplyConfigurationStates(ICollection<RecurringJob> apiRecurringJobs)
+		{
+			// A single calculator is used for all recurring jobs so the parameter definitions and orchestration scripts
+			// that are referenced by them are read in one batch and are shared between them.
+			var calculator = new ConfigurationStateCalculator(planApi, planApi.LiveApi, apiRecurringJobs);
+
+			foreach (var recurringJob in apiRecurringJobs)
+			{
+				foreach (var node in recurringJob.NodeGraph.Nodes)
+				{
+					node.ConfigurationState = calculator.GetNodeConfigurationState(node);
+				}
+
+				recurringJob.ConfigurationState = calculator.GetJobConfigurationState(recurringJob);
+			}
 		}
 
 		private void CreateOrUpdateLocked(ICollection<RecurringJob> apiRecurringJobs)
