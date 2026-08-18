@@ -2578,6 +2578,25 @@
 				|| String.Equals(categoryId, "Scheduling", StringComparison.InvariantCultureIgnoreCase);
 		}
 
+		/// <summary>
+		/// Determines which timing boundaries this operation changes compared to the stored job.
+		/// </summary>
+		/// <remarks>
+		/// The timing validations are only applied to the boundaries that are actually being changed. A stored boundary
+		/// that no longer satisfies the current rules (for example a pre-roll start that reflects the sub-second core
+		/// reservation start of a manually started job) must not block an update that only touches other fields such as
+		/// the description. Every boundary of a new job is considered changed so a created job is fully validated.
+		/// </remarks>
+		private static JobTimingFieldChanges GetTimingChanges(Job job)
+		{
+			if (job.IsNew)
+			{
+				return new JobTimingFieldChanges(true, true, true, true);
+			}
+
+			return JobTimingWindow.FromJob(job).GetChanges(JobTimingWindow.FromInstance(job.OriginalInstance));
+		}
+
 		private void ValidateDescription(ICollection<Job> apiJobs)
 		{
 			if (apiJobs == null)
@@ -2668,7 +2687,7 @@
 				toValidate.Remove(job);
 			}
 
-			foreach (var job in toValidate.Where(x => x.Start.Ticks % TimeSpan.TicksPerSecond != 0))
+			foreach (var job in toValidate.Where(x => GetTimingChanges(x).StartChanged && x.Start.Ticks % TimeSpan.TicksPerSecond != 0))
 			{
 				var error = new JobInvalidStartTimeError
 				{
@@ -2680,7 +2699,7 @@
 				ReportError(job.Id, error);
 			}
 
-			foreach (var job in toValidate.Where(x => x.End.Ticks % TimeSpan.TicksPerSecond != 0))
+			foreach (var job in toValidate.Where(x => GetTimingChanges(x).EndChanged && x.End.Ticks % TimeSpan.TicksPerSecond != 0))
 			{
 				var error = new JobInvalidEndTimeError
 				{
@@ -2692,7 +2711,7 @@
 				ReportError(job.Id, error);
 			}
 
-			foreach (var job in toValidate.Where(x => x.End - x.Start < JobNodeTimingResolver.GuardTime))
+			foreach (var job in toValidate.Where(x => GetTimingChanges(x).AnyStartOrEndChanged && x.End - x.Start < JobNodeTimingResolver.GuardTime))
 			{
 				var error = new JobInvalidTimingError
 				{
@@ -2734,7 +2753,7 @@
 				toValidate.Remove(job);
 			}
 
-			foreach (var job in toValidate.Where(x => x.PreRollStart.Ticks % TimeSpan.TicksPerSecond != 0).ToArray())
+			foreach (var job in toValidate.Where(x => GetTimingChanges(x).PreRollStartChanged && x.PreRollStart.Ticks % TimeSpan.TicksPerSecond != 0).ToArray())
 			{
 				var error = new JobInvalidPreRollError
 				{
@@ -2748,7 +2767,7 @@
 				toValidate.Remove(job);
 			}
 
-			foreach (var job in toValidate.Where(x => x.PreRollStart > x.Start))
+			foreach (var job in toValidate.Where(x => GetTimingChanges(x).AnyStartTimingChanged && x.PreRollStart > x.Start))
 			{
 				var error = new JobInvalidPreRollError
 				{
@@ -2761,7 +2780,7 @@
 				ReportError(job.Id, error);
 			}
 
-			foreach (var job in toValidate.Where(x => x.PreRollStart < x.Start && x.Start - x.PreRollStart < JobNodeTimingResolver.GuardTime))
+			foreach (var job in toValidate.Where(x => GetTimingChanges(x).AnyStartTimingChanged && x.PreRollStart < x.Start && x.Start - x.PreRollStart < JobNodeTimingResolver.GuardTime))
 			{
 				var error = new JobInvalidPreRollError
 				{
@@ -2803,7 +2822,7 @@
 				toValidate.Remove(job);
 			}
 
-			foreach (var job in toValidate.Where(x => x.PostRollEnd.Ticks % TimeSpan.TicksPerSecond != 0).ToArray())
+			foreach (var job in toValidate.Where(x => GetTimingChanges(x).PostRollEndChanged && x.PostRollEnd.Ticks % TimeSpan.TicksPerSecond != 0).ToArray())
 			{
 				var error = new JobInvalidPostRollError
 				{
@@ -2817,7 +2836,7 @@
 				toValidate.Remove(job);
 			}
 
-			foreach (var job in toValidate.Where(x => x.PostRollEnd < x.End))
+			foreach (var job in toValidate.Where(x => GetTimingChanges(x).AnyEndTimingChanged && x.PostRollEnd < x.End))
 			{
 				var error = new JobInvalidPostRollError
 				{
@@ -2830,7 +2849,7 @@
 				ReportError(job.Id, error);
 			}
 
-			foreach (var job in toValidate.Where(x => x.PostRollEnd > x.End && x.PostRollEnd - x.End < JobNodeTimingResolver.GuardTime))
+			foreach (var job in toValidate.Where(x => GetTimingChanges(x).AnyEndTimingChanged && x.PostRollEnd > x.End && x.PostRollEnd - x.End < JobNodeTimingResolver.GuardTime))
 			{
 				var error = new JobInvalidPostRollError
 				{

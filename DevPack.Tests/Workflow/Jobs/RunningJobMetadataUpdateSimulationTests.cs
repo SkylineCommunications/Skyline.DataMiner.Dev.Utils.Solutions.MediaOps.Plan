@@ -9,6 +9,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Net.ResourceManager.Objects;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation;
 
 	using ResourcePool = Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool;
@@ -80,6 +81,42 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			return api.Jobs.TransitionToRunning(startedJob);
 		}
 
+		/// <summary>
+		/// Creates a job that is running and whose pre-roll start and start already lie in the past, so no manual start
+		/// is needed to pass the pre-roll guard of the confirmed-to-running transition.
+		/// </summary>
+		private static Job CreateRunningJobStartedInThePast(IMediaOpsPlanApi api, ResourceManagerHelper resourceManagerHelper)
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var (pool, resource) = CreatePoolAndResource(api, prefix);
+
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = currentTime.AddMinutes(-10),
+				End = currentTime.AddMinutes(20),
+				PreRollStart = currentTime.AddMinutes(-10),
+				PostRollEnd = currentTime.AddMinutes(20),
+			};
+
+			job.NodeGraph.Add(new JobResourceNode(pool, resource));
+			job = api.Jobs.Create(job);
+
+			var tentativeJob = api.Jobs.SaveAsTentative(job);
+			var confirmedJob = api.Jobs.Confirm(tentativeJob);
+
+			var reservation = resourceManagerHelper.GetReservationInstances(
+				ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(confirmedJob.Id))).FirstOrDefault();
+			Assert.IsNotNull(reservation, "Expected a core reservation for the job.");
+
+			reservation.Status = ReservationStatus.Ongoing;
+			resourceManagerHelper.AddOrUpdateReservationInstances(reservation);
+
+			return api.Jobs.TransitionToRunning(confirmedJob);
+		}
+
 		[DataTestMethod]
 		[DataRow(true)]
 		[DataRow(false)]
@@ -96,6 +133,51 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			Assert.AreEqual("Updated description", updatedJob.Description, "Expected the description of the running job to be updated.");
 			Assert.AreEqual(JobState.Running, updatedJob.State, "Expected the job to remain in the Running state.");
+		}
+
+		[TestMethod]
+		public void Update_DescriptionOfRunningJobThatStartedInThePast_Succeeds()
+		{
+			var (api, resourceManagerHelper) = CreateContext();
+
+			var runningJob = CreateRunningJobStartedInThePast(api, resourceManagerHelper);
+			Assert.AreEqual(JobState.Running, runningJob.State, "Expected the job to be running.");
+
+			runningJob.Description = "Updated description";
+
+			var updatedJob = api.Jobs.Update(runningJob);
+
+			Assert.AreEqual("Updated description", updatedJob.Description, "Expected the description of the running job to be updated.");
+		}
+
+		[TestMethod]
+		public void Update_StartOfRunningJobThatStartedInThePast_ThrowsStartChangeNotAllowedError()
+		{
+			var (api, resourceManagerHelper) = CreateContext();
+
+			var runningJob = CreateRunningJobStartedInThePast(api, resourceManagerHelper);
+
+			runningJob.Start = runningJob.Start.AddMinutes(1);
+
+			var exception = Assert.ThrowsException<MediaOpsException>(() => api.Jobs.Update(runningJob));
+			Assert.IsTrue(
+				exception.TraceData.ErrorData.OfType<JobStartChangeNotAllowedError>().Any(),
+				"Expected a JobStartChangeNotAllowedError when the start time of a running job that already started is changed.");
+		}
+
+		[TestMethod]
+		public void Update_PreRollStartOfRunningJobThatStartedInThePast_ThrowsPreRollStartChangeNotAllowedError()
+		{
+			var (api, resourceManagerHelper) = CreateContext();
+
+			var runningJob = CreateRunningJobStartedInThePast(api, resourceManagerHelper);
+
+			runningJob.PreRollStart = runningJob.PreRollStart.AddMinutes(1);
+
+			var exception = Assert.ThrowsException<MediaOpsException>(() => api.Jobs.Update(runningJob));
+			Assert.IsTrue(
+				exception.TraceData.ErrorData.OfType<JobPreRollStartChangeNotAllowedError>().Any(),
+				"Expected a JobPreRollStartChangeNotAllowedError when the pre-roll start of a running job that already started is changed.");
 		}
 	}
 }

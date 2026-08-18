@@ -105,5 +105,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Gets a value indicating whether an end-side boundary (end or post-roll end) changed.
 		/// </summary>
 		internal bool AnyEndTimingChanged => EndChanged || PostRollEndChanged;
+
+		/// <summary>
+		/// Gets a value indicating whether the start or the end changed.
+		/// </summary>
+		internal bool AnyStartOrEndChanged => StartChanged || EndChanged;
 	}
 }
