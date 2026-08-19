@@ -43,7 +43,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			var changes = requested.GetChanges(original.Value);
-			if (!changes.Any)
+			if (!changes.AnyChanged)
 			{
 				return errors;
 			}
