@@ -69,7 +69,7 @@
 				{
 					return new[] { CreateLocked() };
 				});
-			
+
 			if (!lockResult.AllLocksGranted)
 			{
 				ReportError(JobSettingId, new MediaOpsErrorData { ErrorMessage = $"Failed to acquire lock for {nameof(JobSettings)} {JobSettingId}." });

@@ -215,7 +215,7 @@
 		/// Gets or sets the end time of the job.
 		/// </summary>
 		public DateTimeOffset End { get; set; }
-		
+
 		/// <summary>
 		/// Gets the duration of the job, calculated as the difference between <see cref="End"/> and <see cref="Start"/>.
 		/// </summary>

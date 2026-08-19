@@ -133,7 +133,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// </summary>
 		internal string GetComparisonKey()
 		{
-var nameKey = Name == null ? "null" : $"value:{Name}";
+			var nameKey = Name == null ? "null" : $"value:{Name}";
 			return $"{nameKey}:{String.Join(",", nodes.Select(node => node?.Id).OrderBy(id => id, StringComparer.Ordinal))}";
 		}
 	}

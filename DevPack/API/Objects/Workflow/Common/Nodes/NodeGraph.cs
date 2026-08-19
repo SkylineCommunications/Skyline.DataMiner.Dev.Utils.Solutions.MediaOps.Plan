@@ -167,7 +167,7 @@
 		/// <returns>true when the node is part of the graph; otherwise, false.</returns>
 		internal bool Contains(TNode node)
 		{
-return node != null && nodes.Any(candidate => ReferenceEquals(candidate, node));
+			return node != null && nodes.Any(candidate => ReferenceEquals(candidate, node));
 		}
 
 		/// <summary>

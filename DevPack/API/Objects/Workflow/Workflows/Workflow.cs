@@ -279,7 +279,7 @@
 		/// </summary>
 		/// <param name="settings">The property settings that should replace the current collection.</param>
 		/// <returns>The current <see cref="Workflow"/> instance.</returns>
-		public Workflow SetProperties(IEnumerable<PropertySetting> settings	)
+		public Workflow SetProperties(IEnumerable<PropertySetting> settings)
 		{
 			GetOrCreateScope().SetProperties(settings);
 			return this;
@@ -376,7 +376,7 @@
 			updatedInstance.WorkflowInfo.WorkflowName = Name;
 			updatedInstance.WorkflowInfo.WorkflowDescription = Description;
 			updatedInstance.WorkflowInfo.Favorite = IsFavorite;
-			updatedInstance.WorkflowInfo.Preroll = PreRoll != TimeSpan.Zero ? PreRoll: null;
+			updatedInstance.WorkflowInfo.Preroll = PreRoll != TimeSpan.Zero ? PreRoll : null;
 			updatedInstance.WorkflowInfo.Postroll = PostRoll != TimeSpan.Zero ? PostRoll : null;
 			updatedInstance.WorkflowInfo.WorkflowNotes = Notes;
 
