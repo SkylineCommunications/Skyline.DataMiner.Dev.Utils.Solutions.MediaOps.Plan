@@ -215,7 +215,7 @@
 		/// Gets or sets the end time of the job.
 		/// </summary>
 		public DateTimeOffset End { get; set; }
-		
+
 		/// <summary>
 		/// Gets the duration of the job, calculated as the difference between <see cref="End"/> and <see cref="Start"/>.
 		/// </summary>
@@ -519,7 +519,15 @@
 			//    before retargeting any DataReferences (orchestration settings may reference nodes).
 			var nodeIdMap = NodeGraphCloner.Clone(workflow.NodeGraph, job.NodeGraph, CreateJobNode);
 
-			// 2. Copy the per-node orchestration settings, pairing each new job node with its source workflow node.
+			// 2. On top of the groups copied from the workflow, the job gets a group holding every node it originates
+			//    from. Group names are not unique, so a workflow group with the same name is left as is.
+			var workflowGroup = job.NodeGraph.AddGroup(workflow.Name);
+			foreach (var jobNode in job.NodeGraph.Nodes)
+			{
+				workflowGroup.Add(jobNode);
+			}
+
+			// 3. Copy the per-node orchestration settings, pairing each new job node with its source workflow node.
 			var workflowNodesById = workflow.NodeGraph.Nodes.ToDictionary(n => n.Id);
 			var jobNodesById = job.NodeGraph.Nodes.ToDictionary(n => n.Id);
 			foreach (var entry in nodeIdMap)
@@ -529,10 +537,10 @@
 				OrchestrationSettingsCloner.Clone(workflowNode.OrchestrationSettings, jobNode.OrchestrationSettings, nodeIdMap);
 			}
 
-			// 3. Copy the job-level orchestration settings.
+			// 4. Copy the job-level orchestration settings.
 			OrchestrationSettingsCloner.Clone(workflow.OrchestrationSettings, job.OrchestrationSettings, nodeIdMap);
 
-			// 4. Copy the property settings from the workflow (owner) and from each workflow node onto the
+			// 5. Copy the property settings from the workflow (owner) and from each workflow node onto the
 			//    corresponding job node. The property scope copies every incoming setting into an independent
 			//    instance, so the job never shares references with the source workflow.
 			foreach (var setting in workflow.CustomPropertySettings)
@@ -1084,6 +1092,22 @@
 				});
 			}
 
+			updatedInstance.NodeGroups.Clear();
+			foreach (var group in NodeGraph.Groups)
+			{
+				var groupSection = new StorageWorkflow.NodeGroupsSection
+				{
+					GroupName = group.Name,
+				};
+
+				foreach (var node in group.Nodes)
+				{
+					groupSection.GroupNodeIds.Add(node.Id);
+				}
+
+				updatedInstance.NodeGroups.Add(groupSection);
+			}
+
 			return updatedInstance;
 		}
 
@@ -1169,15 +1193,16 @@
 				}
 			}
 
-			ParseNodesAndConnections(planApi, instance.Nodes, instance.Connections, instance.NodeRelationships);
+			ParseNodesAndConnections(planApi, instance.Nodes, instance.Connections, instance.NodeRelationships, instance.NodeGroups);
 		}
 
-		private void ParseNodesAndConnections(MediaOpsPlanApi planApi, ICollection<StorageWorkflow.NodesSection> nodes, ICollection<StorageWorkflow.ConnectionsSection> connections, ICollection<StorageWorkflow.NodeRelationshipsSection> relationships)
+		private void ParseNodesAndConnections(MediaOpsPlanApi planApi, ICollection<StorageWorkflow.NodesSection> nodes, ICollection<StorageWorkflow.ConnectionsSection> connections, ICollection<StorageWorkflow.NodeRelationshipsSection> relationships, ICollection<StorageWorkflow.NodeGroupsSection> nodeGroups)
 		{
 			if (nodes == null || nodes.Count == 0)
 			{
 				NodeGraph = new NodeGraph<JobNode>();
 				ConfigureNodeGraphSwapHooks();
+				ParseGroups(planApi, new Dictionary<string, JobNode>(), nodeGroups);
 				return;
 			}
 
@@ -1187,6 +1212,31 @@
 
 			NodeGraph = new NodeGraph<JobNode>(parsedNodesById.Values, parsedConnections, parsedLinks);
 			ConfigureNodeGraphSwapHooks();
+
+			ParseGroups(planApi, parsedNodesById, nodeGroups);
+		}
+
+		private void ParseGroups(MediaOpsPlanApi planApi, IReadOnlyDictionary<string, JobNode> parsedNodesById, ICollection<StorageWorkflow.NodeGroupsSection> nodeGroups)
+		{
+			if (nodeGroups == null)
+			{
+				return;
+			}
+
+			foreach (var groupSection in nodeGroups)
+			{
+				var group = NodeGraph.AddGroup(groupSection.GroupName);
+				foreach (var nodeId in groupSection.GroupNodeIds ?? [])
+				{
+					if (!parsedNodesById.TryGetValue(nodeId ?? string.Empty, out var node))
+					{
+						planApi.Logger.Warning(this, $"Node group '{groupSection.GroupName}' references unknown node '{nodeId}'. This node will be ignored.");
+						continue;
+					}
+
+					group.Add(node);
+				}
+			}
 		}
 
 		private Dictionary<string, JobNode> ParseNodes(MediaOpsPlanApi planApi, ICollection<StorageWorkflow.NodesSection> nodes)

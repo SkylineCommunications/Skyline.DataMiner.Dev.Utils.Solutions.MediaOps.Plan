@@ -279,7 +279,7 @@
 		/// </summary>
 		/// <param name="settings">The property settings that should replace the current collection.</param>
 		/// <returns>The current <see cref="Workflow"/> instance.</returns>
-		public Workflow SetProperties(IEnumerable<PropertySetting> settings	)
+		public Workflow SetProperties(IEnumerable<PropertySetting> settings)
 		{
 			GetOrCreateScope().SetProperties(settings);
 			return this;
@@ -376,7 +376,7 @@
 			updatedInstance.WorkflowInfo.WorkflowName = Name;
 			updatedInstance.WorkflowInfo.WorkflowDescription = Description;
 			updatedInstance.WorkflowInfo.Favorite = IsFavorite;
-			updatedInstance.WorkflowInfo.Preroll = PreRoll != TimeSpan.Zero ? PreRoll: null;
+			updatedInstance.WorkflowInfo.Preroll = PreRoll != TimeSpan.Zero ? PreRoll : null;
 			updatedInstance.WorkflowInfo.Postroll = PostRoll != TimeSpan.Zero ? PostRoll : null;
 			updatedInstance.WorkflowInfo.WorkflowNotes = Notes;
 
@@ -404,6 +404,22 @@
 					ParentNodeID = link.Value.Id,
 					ChildNodeID = link.Key.Id,
 				});
+			}
+
+			updatedInstance.NodeGroups.Clear();
+			foreach (var group in NodeGraph.Groups)
+			{
+				var groupSection = new StorageWorkflow.NodeGroupsSection
+				{
+					GroupName = group.Name,
+				};
+
+				foreach (var node in group.Nodes)
+				{
+					groupSection.GroupNodeIds.Add(node.Id);
+				}
+
+				updatedInstance.NodeGroups.Add(groupSection);
 			}
 
 			return updatedInstance;
@@ -440,15 +456,16 @@
 				}
 			}
 
-			ParseNodesAndConnections(planApi, instance.Nodes, instance.Connections, instance.NodeRelationships);
+			ParseNodesAndConnections(planApi, instance.Nodes, instance.Connections, instance.NodeRelationships, instance.NodeGroups);
 		}
 
-		private void ParseNodesAndConnections(MediaOpsPlanApi planApi, ICollection<StorageWorkflow.NodesSection> nodes, ICollection<StorageWorkflow.ConnectionsSection> connections, ICollection<StorageWorkflow.NodeRelationshipsSection> relationships)
+		private void ParseNodesAndConnections(MediaOpsPlanApi planApi, ICollection<StorageWorkflow.NodesSection> nodes, ICollection<StorageWorkflow.ConnectionsSection> connections, ICollection<StorageWorkflow.NodeRelationshipsSection> relationships, ICollection<StorageWorkflow.NodeGroupsSection> nodeGroups)
 		{
 			if (nodes == null || nodes.Count == 0)
 			{
 				NodeGraph = new NodeGraph<WorkflowNode>();
 				ConfigureNodeGraphSwapHooks();
+				ParseGroups(planApi, new Dictionary<string, WorkflowNode>(), nodeGroups);
 				return;
 			}
 
@@ -458,6 +475,31 @@
 
 			NodeGraph = new NodeGraph<WorkflowNode>(parsedNodesById.Values, parsedConnections, parsedLinks);
 			ConfigureNodeGraphSwapHooks();
+
+			ParseGroups(planApi, parsedNodesById, nodeGroups);
+		}
+
+		private void ParseGroups(MediaOpsPlanApi planApi, IReadOnlyDictionary<string, WorkflowNode> parsedNodesById, ICollection<StorageWorkflow.NodeGroupsSection> nodeGroups)
+		{
+			if (nodeGroups == null)
+			{
+				return;
+			}
+
+			foreach (var groupSection in nodeGroups)
+			{
+				var group = NodeGraph.AddGroup(groupSection.GroupName);
+				foreach (var nodeId in groupSection.GroupNodeIds ?? [])
+				{
+					if (!parsedNodesById.TryGetValue(nodeId ?? string.Empty, out var node))
+					{
+						planApi.Logger.Warning(this, $"Node group '{groupSection.GroupName}' references unknown node '{nodeId}'. This node will be ignored.");
+						continue;
+					}
+
+					group.Add(node);
+				}
+			}
 		}
 
 		private Dictionary<string, WorkflowNode> ParseNodes(MediaOpsPlanApi planApi, ICollection<StorageWorkflow.NodesSection> nodes)

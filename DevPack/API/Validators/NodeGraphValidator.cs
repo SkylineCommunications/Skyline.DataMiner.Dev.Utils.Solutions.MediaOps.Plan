@@ -49,6 +49,7 @@
 		protected abstract MediaOpsErrorData CreateDuplicateConnectionIdError(string connectionId, string errorMessage);
 		protected abstract MediaOpsErrorData CreateConnectionInvalidNodeLinkError(string connectionId, string nodeId, string errorMessage);
 		protected abstract MediaOpsErrorData CreateInvalidNodeLinkError(string parentNodeId, string childNodeId, string errorMessage);
+		protected abstract MediaOpsErrorData CreateGroupWithInvalidNodeError(string groupName, string nodeId, string errorMessage);
 
 		/// <summary>
 		/// Validates whether the net original-to-final swap transition is allowed for the owning context.
@@ -64,6 +65,7 @@
 			ValidateNodes();
 			ValidateConnections();
 			ValidateLinks();
+			ValidateGroups();
 			ValidateSwaps();
 		}
 
@@ -285,6 +287,20 @@
 			}
 		}
 
+		private void ValidateGroups()
+		{
+			foreach (var group in nodeGraph.Groups)
+			{
+				foreach (var node in group.Nodes)
+				{
+					if (node == null || !NodeIds.Contains(node.Id))
+					{
+						ReportError(apiObjectId, CreateGroupWithInvalidNodeError(group.Name, node?.Id ?? string.Empty, $"Node with ID '{node?.Id}' does not exist in the graph."));
+					}
+				}
+			}
+		}
+
 		private void ValidateSwaps()
 		{
 			// Only the net original-to-final transition is validated; intermediate swap steps are ignored.
@@ -400,6 +416,17 @@
 				ErrorMessage = errorMessage,
 				ParentNodeId = parentNodeId,
 				ChildNodeId = childNodeId,
+				Id = ApiObjectId,
+			};
+		}
+
+		protected override MediaOpsErrorData CreateGroupWithInvalidNodeError(string groupName, string nodeId, string errorMessage)
+		{
+			return new JobNodeGraphGroupWithInvalidNodeError
+			{
+				ErrorMessage = errorMessage,
+				GroupName = groupName,
+				NodeId = nodeId,
 				Id = ApiObjectId,
 			};
 		}
@@ -529,6 +556,17 @@
 			};
 		}
 
+		protected override MediaOpsErrorData CreateGroupWithInvalidNodeError(string groupName, string nodeId, string errorMessage)
+		{
+			return new RecurringJobNodeGraphGroupWithInvalidNodeError
+			{
+				ErrorMessage = errorMessage,
+				GroupName = groupName,
+				NodeId = nodeId,
+				Id = ApiObjectId,
+			};
+		}
+
 		protected override bool ValidateSwap(RecurringJobNode original, RecurringJobNode target, out MediaOpsErrorData error)
 		{
 			if (RecurringJobNodeSwapValidator.IsSwapAllowed(original, target, out var errorMessage))
@@ -650,6 +688,17 @@
 				ErrorMessage = errorMessage,
 				ParentNodeId = parentNodeId,
 				ChildNodeId = childNodeId,
+				Id = ApiObjectId,
+			};
+		}
+
+		protected override MediaOpsErrorData CreateGroupWithInvalidNodeError(string groupName, string nodeId, string errorMessage)
+		{
+			return new WorkflowNodeGraphGroupWithInvalidNodeError
+			{
+				ErrorMessage = errorMessage,
+				GroupName = groupName,
+				NodeId = nodeId,
 				Id = ApiObjectId,
 			};
 		}

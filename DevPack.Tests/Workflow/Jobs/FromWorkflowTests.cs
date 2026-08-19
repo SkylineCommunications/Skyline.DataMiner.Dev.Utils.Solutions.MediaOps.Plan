@@ -177,6 +177,75 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void FromWorkflow_CopiesGroupsAndAddsGroupNamedAfterTheWorkflow()
+		{
+			var prefix = Guid.NewGuid();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = new UnmanagedResource { Name = $"{prefix}_Resource" }.AssignToPool(pool);
+			resource = objectCreator.CreateResource(resource);
+			resource = TestContext.Api.Resources.Complete(resource);
+
+			var workflow = new Workflow { Name = $"{prefix}_Workflow" };
+			var resourceNode = new WorkflowResourceNode(pool, resource) { Alias = "RN" };
+			var poolNode = new WorkflowResourcePoolNode(pool) { Alias = "PN" };
+
+			workflow.NodeGraph.Add(resourceNode).Add(poolNode);
+			workflow.NodeGraph.AddGroup("Group A").Add(resourceNode);
+			workflow.NodeGraph.AddGroup("Group B").Add(resourceNode).Add(poolNode);
+
+			workflow = objectCreator.CreateWorkflow(workflow);
+			workflow = TestContext.Api.Workflows.Complete(workflow);
+
+			var job = Job.FromWorkflow(TestContext.Api, workflow.Id);
+
+			Assert.AreEqual(3, job.NodeGraph.Groups.Count);
+
+			var groupA = job.NodeGraph.Groups.Single(group => group.Name == "Group A");
+			Assert.AreEqual(1, groupA.Nodes.Count);
+
+			var groupB = job.NodeGraph.Groups.Single(group => group.Name == "Group B");
+			Assert.AreEqual(2, groupB.Nodes.Count);
+
+			var workflowGroup = job.NodeGraph.Groups.Single(group => group.Name == workflow.Name);
+			CollectionAssert.AreEquivalent(job.NodeGraph.Nodes.ToArray(), workflowGroup.Nodes.ToArray());
+
+			// The groups reference the cloned job nodes, never the workflow nodes.
+			foreach (var group in job.NodeGraph.Groups)
+			{
+				CollectionAssert.IsSubsetOf(group.Nodes.ToArray(), job.NodeGraph.Nodes.ToArray());
+			}
+		}
+
+		[TestMethod]
+		public void FromWorkflow_WorkflowGroupWithSameNameAsWorkflow_IsKeptAlongsideTheAddedGroup()
+		{
+			var prefix = Guid.NewGuid();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var workflowName = $"{prefix}_Workflow";
+			var workflow = new Workflow { Name = workflowName };
+			var poolNode = new WorkflowResourcePoolNode(pool) { Alias = "PN" };
+
+			workflow.NodeGraph.Add(poolNode);
+			workflow.NodeGraph.AddGroup(workflowName);
+
+			workflow = objectCreator.CreateWorkflow(workflow);
+			workflow = TestContext.Api.Workflows.Complete(workflow);
+
+			var job = Job.FromWorkflow(TestContext.Api, workflow.Id);
+
+			var groups = job.NodeGraph.Groups.Where(group => group.Name == workflowName).ToList();
+			Assert.AreEqual(2, groups.Count);
+			Assert.AreEqual(1, groups.Count(group => group.Nodes.Count == 0));
+			Assert.AreEqual(1, groups.Count(group => group.Nodes.Count == 1));
+		}
+
+		[TestMethod]
 		public void FromWorkflow_CopiesJobLevelOrchestrationSettings()
 		{
 			var prefix = Guid.NewGuid();

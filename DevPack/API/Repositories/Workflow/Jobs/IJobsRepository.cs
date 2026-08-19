@@ -9,7 +9,7 @@
 	/// Defines methods for managing <see cref="Job"/> objects, including state transitions.
 	/// </summary>
 	public interface IJobsRepository : IRepository<Job>
-    {
+	{
 		/// <summary>
 		/// Gets the identifiers for predefined job types.
 		/// </summary>
@@ -373,5 +373,5 @@
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="jobIds"/> or <paramref name="options"/> is <c>null</c>.</exception>
 		/// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk deletion operation fails for one or more jobs.</exception>
 		void Delete(IEnumerable<Guid> jobIds, JobDeleteOptions options);
-    }
+	}
 }

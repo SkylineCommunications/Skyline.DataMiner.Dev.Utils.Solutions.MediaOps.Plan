@@ -49,7 +49,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <param name="resourceId">The unique identifier of the resource.</param>
 		/// <exception cref="ArgumentException">Thrown when <paramref name="resourcePoolId"/> or <paramref name="resourceId"/> is <see cref="Guid.Empty"/>.</exception>
 		public JobResourceNode(Guid resourcePoolId, Guid resourceId) : base()
-        {
+		{
 			if (resourcePoolId == Guid.Empty)
 			{
 				throw new ArgumentException(nameof(resourcePoolId));
@@ -88,5 +88,5 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			ResourcePoolId = section.ParentReferenceId;
 			ResourceId = section.ReferenceId;
 		}
-    }
+	}
 }

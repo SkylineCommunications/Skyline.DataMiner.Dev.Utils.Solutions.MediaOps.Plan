@@ -622,15 +622,16 @@
 					: new WorkflowOrchestrationSettings();
 			}
 
-			ParseNodesAndConnections(planApi, instance.Nodes, instance.Connections, instance.NodeRelationships);
+			ParseNodesAndConnections(planApi, instance.Nodes, instance.Connections, instance.NodeRelationships, instance.NodeGroups);
 		}
 
-		private void ParseNodesAndConnections(MediaOpsPlanApi planApi, ICollection<StorageWorkflow.NodesSection> nodes, ICollection<StorageWorkflow.ConnectionsSection> connections, ICollection<StorageWorkflow.NodeRelationshipsSection> relationships)
+		private void ParseNodesAndConnections(MediaOpsPlanApi planApi, ICollection<StorageWorkflow.NodesSection> nodes, ICollection<StorageWorkflow.ConnectionsSection> connections, ICollection<StorageWorkflow.NodeRelationshipsSection> relationships, ICollection<StorageWorkflow.NodeGroupsSection> nodeGroups)
 		{
 			if (nodes == null || nodes.Count == 0)
 			{
 				NodeGraph = new NodeGraph<RecurringJobNode>();
 				ConfigureNodeGraphSwapHooks();
+				ParseGroups(planApi, new Dictionary<string, RecurringJobNode>(), nodeGroups);
 				return;
 			}
 
@@ -640,6 +641,31 @@
 
 			NodeGraph = new NodeGraph<RecurringJobNode>(parsedNodesById.Values, parsedConnections, parsedLinks);
 			ConfigureNodeGraphSwapHooks();
+
+			ParseGroups(planApi, parsedNodesById, nodeGroups);
+		}
+
+		private void ParseGroups(MediaOpsPlanApi planApi, IReadOnlyDictionary<string, RecurringJobNode> parsedNodesById, ICollection<StorageWorkflow.NodeGroupsSection> nodeGroups)
+		{
+			if (nodeGroups == null)
+			{
+				return;
+			}
+
+			foreach (var groupSection in nodeGroups)
+			{
+				var group = NodeGraph.AddGroup(groupSection.GroupName);
+				foreach (var nodeId in groupSection.GroupNodeIds ?? [])
+				{
+					if (!parsedNodesById.TryGetValue(nodeId ?? string.Empty, out var node))
+					{
+						planApi.Logger.Warning(this, $"Node group '{groupSection.GroupName}' references unknown node '{nodeId}'. This node will be ignored.");
+						continue;
+					}
+
+					group.Add(node);
+				}
+			}
 		}
 
 		private Dictionary<string, RecurringJobNode> ParseNodes(MediaOpsPlanApi planApi, ICollection<StorageWorkflow.NodesSection> nodes)
@@ -792,6 +818,22 @@
 					ParentNodeID = link.Value.Id,
 					ChildNodeID = link.Key.Id,
 				});
+			}
+
+			updatedInstance.NodeGroups.Clear();
+			foreach (var group in NodeGraph.Groups)
+			{
+				var groupSection = new StorageWorkflow.NodeGroupsSection
+				{
+					GroupName = group.Name,
+				};
+
+				foreach (var node in group.Nodes)
+				{
+					groupSection.GroupNodeIds.Add(node.Id);
+				}
+
+				updatedInstance.NodeGroups.Add(groupSection);
 			}
 
 			return updatedInstance;

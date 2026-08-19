@@ -5,6 +5,7 @@
 	using System.Reflection;
 
 	using Microsoft.Extensions.Configuration;
+
 	using Skyline.DataMiner.CICD.Tools.WinEncryptedKeys.Lib;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Tools;
 

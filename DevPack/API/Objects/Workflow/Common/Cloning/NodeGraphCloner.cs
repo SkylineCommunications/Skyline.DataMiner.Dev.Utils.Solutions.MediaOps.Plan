@@ -22,7 +22,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	internal static class NodeGraphCloner
 	{
 		/// <summary>
-		/// Copies all nodes and connections from <paramref name="source"/> into <paramref name="destination"/>,
+		/// Copies all nodes, connections and groups from <paramref name="source"/> into <paramref name="destination"/>,
 		/// regenerating node and connection identifiers in the process.
 		/// </summary>
 		/// <typeparam name="TSource">The source node type.</typeparam>
@@ -31,7 +31,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <param name="destination">The destination graph to populate. Must be empty.</param>
 		/// <param name="nodeFactory">
 		/// Function that produces a destination node for each source node. Return <see langword="null"/> to skip a node;
-		/// connections involving that node will be skipped as well.
+		/// connections and group memberships involving that node will be skipped as well.
 		/// </param>
 		/// <returns>
 		/// A dictionary mapping each cloned source node id to the corresponding new destination node id.
@@ -96,6 +96,18 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				}
 
 				destination.Link(parent, child);
+			}
+
+			foreach (var sourceGroup in source.Groups)
+			{
+				var destinationGroup = destination.AddGroup(sourceGroup.Name);
+				foreach (var sourceNode in sourceGroup.Nodes)
+				{
+					if (nodeMap.TryGetValue(sourceNode, out var destinationNode))
+					{
+						destinationGroup.Add(destinationNode);
+					}
+				}
 			}
 
 			return nodeIdMap;
