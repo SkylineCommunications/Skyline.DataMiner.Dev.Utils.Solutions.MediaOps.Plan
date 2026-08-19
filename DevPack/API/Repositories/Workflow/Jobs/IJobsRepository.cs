@@ -104,32 +104,32 @@
 		IReadOnlyCollection<Job> TransitionToRunning(IEnumerable<Guid> jobIds);
 
 		/// <summary>
-		/// Moves the specified <see cref="Job"/> from running to completed state. The job's post-roll end time must have
-		/// passed and its core reservation must have ended.
+		/// Moves the specified <see cref="Job"/> from running to completed state. The job's core reservation must have
+		/// ended, which also means its post-roll end time has passed.
 		/// </summary>
 		/// <param name="job">The job to transition to completed.</param>
 		/// <returns>The completed job.</returns>
 		Job TransitionToCompleted(Job job);
 
 		/// <summary>
-		/// Moves the specified job from running to completed state. The job's post-roll end time must have passed and its
-		/// core reservation must have ended.
+		/// Moves the specified job from running to completed state. The job's core reservation must have ended, which
+		/// also means its post-roll end time has passed.
 		/// </summary>
 		/// <param name="jobId">The unique identifier of the job to transition to completed.</param>
 		/// <returns>The completed job.</returns>
 		Job TransitionToCompleted(Guid jobId);
 
 		/// <summary>
-		/// Moves the specified jobs from running to completed state. Each job's post-roll end time must have passed and its
-		/// core reservation must have ended.
+		/// Moves the specified jobs from running to completed state. Each job's core reservation must have ended, which
+		/// also means its post-roll end time has passed.
 		/// </summary>
 		/// <param name="jobs">The jobs to transition to completed.</param>
 		/// <returns>A read-only collection containing the completed jobs.</returns>
 		IReadOnlyCollection<Job> TransitionToCompleted(IEnumerable<Job> jobs);
 
 		/// <summary>
-		/// Moves the specified jobs from running to completed state. Each job's post-roll end time must have passed and its
-		/// core reservation must have ended.
+		/// Moves the specified jobs from running to completed state. Each job's core reservation must have ended, which
+		/// also means its post-roll end time has passed.
 		/// </summary>
 		/// <param name="jobIds">The unique identifiers of the jobs to transition to completed.</param>
 		/// <returns>A read-only collection containing the completed jobs.</returns>
