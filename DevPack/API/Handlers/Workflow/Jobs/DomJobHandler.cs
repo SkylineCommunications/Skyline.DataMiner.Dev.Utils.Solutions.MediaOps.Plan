@@ -2922,7 +2922,7 @@
 				// unrelated change (e.g. notes) cannot introduce a timing-ordering violation on its own.
 				var requested = JobTimingWindow.FromJob(job);
 				var original = JobTimingWindow.FromInstance(job.OriginalInstance);
-				if (!requested.GetChanges(original).Any)
+				if (!requested.GetChanges(original).AnyChanged)
 				{
 					continue;
 				}

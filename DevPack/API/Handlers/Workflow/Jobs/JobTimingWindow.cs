@@ -94,7 +94,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <summary>
 		/// Gets a value indicating whether any of the four timing boundaries changed.
 		/// </summary>
-		internal bool Any => PreRollStartChanged || StartChanged || EndChanged || PostRollEndChanged;
+		internal bool AnyChanged => PreRollStartChanged || StartChanged || EndChanged || PostRollEndChanged;
 
 		/// <summary>
 		/// Gets a value indicating whether a start-side boundary (pre-roll start or start) changed.
@@ -108,6 +108,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		/// <summary>
 		/// Gets a value indicating whether the start or the end changed.
+		/// Pre-roll start and post-roll end are considered "side" boundaries, so they are not included in this check.
 		/// </summary>
 		internal bool AnyStartOrEndChanged => StartChanged || EndChanged;
 	}
