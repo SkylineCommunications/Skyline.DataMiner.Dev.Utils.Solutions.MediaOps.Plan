@@ -30,10 +30,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		private LiveJobConfigHandler(MediaOpsPlanApi planApi, Job job, JobState targetState, ReferenceDefinitionCache referenceDefinitions, DateTimeOffset currentTime)
 		{
-			this._planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
-			this._job = job ?? throw new ArgumentNullException(nameof(job));
-			this._targetState = targetState;
-			this._currentTime = currentTime;
+			_planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
+			_job = job ?? throw new ArgumentNullException(nameof(job));
+			_targetState = targetState;
+			_currentTime = currentTime;
 
 			_referenceResolver = new JobReferenceResolver(planApi, job, referenceDefinitions);
 			_liveConfiguration = planApi.LiveApi.Orchestration.GetOrCreateNewOrchestrationJobConfiguration(job.Id.ToString());
