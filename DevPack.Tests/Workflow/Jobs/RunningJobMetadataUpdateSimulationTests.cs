@@ -23,6 +23,11 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 	[TestClass]
 	public sealed class RunningJobMetadataUpdateSimulationTests
 	{
+		/// <summary>
+		/// The minimum pre-roll duration that is enforced by the job validations.
+		/// </summary>
+		private static readonly TimeSpan GuardTime = TimeSpan.FromSeconds(5);
+
 		private static (IMediaOpsPlanApi Api, ResourceManagerHelper ResourceManagerHelper) CreateContext()
 		{
 			var dms = MediaOpsPlanSimulation.Create();
@@ -70,6 +75,49 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var confirmedJob = api.Jobs.Confirm(tentativeJob);
 
 			var startedJob = api.Jobs.Start(confirmedJob);
+
+			var reservation = resourceManagerHelper.GetReservationInstances(
+				ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(startedJob.Id))).FirstOrDefault();
+			Assert.IsNotNull(reservation, "Expected a core reservation for the job.");
+
+			reservation.Status = ReservationStatus.Ongoing;
+			resourceManagerHelper.AddOrUpdateReservationInstances(reservation);
+
+			return api.Jobs.TransitionToRunning(startedJob);
+		}
+
+		/// <summary>
+		/// Creates a job that is running after a manual start that happened close to its planned start, so the persisted
+		/// pre-roll duration is shorter than the guard time.
+		/// </summary>
+		private static Job CreateManuallyStartedJobWithShortPreRoll(IMediaOpsPlanApi api, ResourceManagerHelper resourceManagerHelper)
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var (pool, resource) = CreatePoolAndResource(api, prefix);
+
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = currentTime.AddSeconds(2),
+				End = currentTime.AddMinutes(20),
+				PreRollStart = currentTime.AddMinutes(-1),
+				PostRollEnd = currentTime.AddMinutes(20),
+			};
+
+			job.NodeGraph.Add(new JobResourceNode(pool, resource));
+			job = api.Jobs.Create(job);
+
+			var tentativeJob = api.Jobs.SaveAsTentative(job);
+			var confirmedJob = api.Jobs.Confirm(tentativeJob);
+
+			// The manual start moves the pre-roll start to the actual reservation start, which lies less than the guard
+			// time before the planned start time, so the persisted pre-roll no longer satisfies the pre-roll rules.
+			var startedJob = api.Jobs.Start(confirmedJob);
+			Assert.IsTrue(
+				startedJob.Start - startedJob.PreRollStart < GuardTime,
+				"Expected the manual start to persist a pre-roll shorter than the guard time.");
 
 			var reservation = resourceManagerHelper.GetReservationInstances(
 				ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(startedJob.Id))).FirstOrDefault();
@@ -133,6 +181,52 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			Assert.AreEqual("Updated description", updatedJob.Description, "Expected the description of the running job to be updated.");
 			Assert.AreEqual(JobState.Running, updatedJob.State, "Expected the job to remain in the Running state.");
+		}
+
+		[TestMethod]
+		public void Update_DescriptionOfManuallyStartedRunningJobWithShortPreRoll_Succeeds()
+		{
+			var (api, resourceManagerHelper) = CreateContext();
+
+			var runningJob = CreateManuallyStartedJobWithShortPreRoll(api, resourceManagerHelper);
+			Assert.AreEqual(JobState.Running, runningJob.State, "Expected the job to be running.");
+
+			runningJob.Description = "Updated description";
+
+			var updatedJob = api.Jobs.Update(runningJob);
+
+			Assert.AreEqual("Updated description", updatedJob.Description, "Expected the description of the running job to be updated.");
+			Assert.AreEqual(JobState.Running, updatedJob.State, "Expected the job to remain in the Running state.");
+		}
+
+		[TestMethod]
+		public void Update_PreRollStartOfManuallyStartedRunningJobWithShortPreRoll_ThrowsInvalidPreRollError()
+		{
+			var (api, resourceManagerHelper) = CreateContext();
+
+			var runningJob = CreateManuallyStartedJobWithShortPreRoll(api, resourceManagerHelper);
+
+			runningJob.PreRollStart = runningJob.Start.AddSeconds(-1);
+
+			var exception = Assert.ThrowsException<MediaOpsException>(() => api.Jobs.Update(runningJob));
+			Assert.IsTrue(
+				exception.TraceData.ErrorData.OfType<JobInvalidPreRollError>().Any(x => x.ErrorMessage.Contains("pre-roll duration")),
+				"Expected a JobInvalidPreRollError about the pre-roll duration when the pre-roll start of a running job is changed to a too short pre-roll.");
+		}
+
+		[TestMethod]
+		public void Update_StartOfManuallyStartedRunningJobWithShortPreRoll_ThrowsInvalidPreRollError()
+		{
+			var (api, resourceManagerHelper) = CreateContext();
+
+			var runningJob = CreateManuallyStartedJobWithShortPreRoll(api, resourceManagerHelper);
+
+			runningJob.Start = runningJob.PreRollStart.AddSeconds(1);
+
+			var exception = Assert.ThrowsException<MediaOpsException>(() => api.Jobs.Update(runningJob));
+			Assert.IsTrue(
+				exception.TraceData.ErrorData.OfType<JobInvalidPreRollError>().Any(x => x.ErrorMessage.Contains("pre-roll duration")),
+				"Expected a JobInvalidPreRollError about the pre-roll duration when the start of a running job is changed while the pre-roll is too short.");
 		}
 
 		[TestMethod]
