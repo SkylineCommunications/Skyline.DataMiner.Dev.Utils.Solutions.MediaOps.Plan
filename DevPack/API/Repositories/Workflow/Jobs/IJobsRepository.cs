@@ -105,7 +105,7 @@
 
 		/// <summary>
 		/// Moves the specified <see cref="Job"/> from running to completed state. The job's core reservation must have
-		/// ended, which also means its post-roll end time has passed.
+		/// ended; its status is authoritative even if the job's persisted post-roll end has not yet been updated.
 		/// </summary>
 		/// <param name="job">The job to transition to completed.</param>
 		/// <returns>The completed job.</returns>
@@ -120,8 +120,8 @@
 		Job TransitionToCompleted(Guid jobId);
 
 		/// <summary>
-		/// Moves the specified jobs from running to completed state. Each job's core reservation must have ended, which
-		/// also means its post-roll end time has passed.
+		/// Moves the specified jobs from running to completed state. Each job's core reservation must have ended; its status
+		/// is authoritative even if the job's persisted post-roll end has not yet been updated.
 		/// </summary>
 		/// <param name="jobs">The jobs to transition to completed.</param>
 		/// <returns>A read-only collection containing the completed jobs.</returns>
