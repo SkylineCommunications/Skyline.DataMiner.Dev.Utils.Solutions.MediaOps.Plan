@@ -196,5 +196,28 @@
 		/// </summary>
 		/// <param name="resourcePool">The resource pool to import. Cannot be null.</param>
 		void Import(Skyline.DataMiner.Net.Messages.ResourcePool resourcePool);
+
+		/// <summary>
+		/// Compares every completed resource pool and every completed resource with its SRM counterpart.
+		/// </summary>
+		/// <returns>The items that are out of sync. Nothing is changed in SRM.</returns>
+		SynchronizationReport GetOutOfSyncItems();
+
+		/// <summary>
+		/// Compares the specified resource pools and the completed resources they contain with their SRM counterpart.
+		/// </summary>
+		/// <param name="resourcePools">The resource pools to inspect. Resource pools that are not completed are ignored.</param>
+		/// <returns>The items that are out of sync. Nothing is changed in SRM.</returns>
+		/// <exception cref="ArgumentNullException"><paramref name="resourcePools"/> is <see langword="null"/>.</exception>
+		SynchronizationReport GetOutOfSyncItems(IEnumerable<ResourcePool> resourcePools);
+
+		/// <summary>
+		/// Applies the DOM configuration of the specified items to SRM.
+		/// </summary>
+		/// <param name="items">The items to synchronize, as returned by <see cref="GetOutOfSyncItems()"/>.</param>
+		/// <returns>The outcome per item. Items that can no longer be synchronized are reported as a failure.</returns>
+		/// <remarks>The items are compared again before anything is applied, so only the differences that still exist are pushed to SRM.</remarks>
+		/// <exception cref="ArgumentNullException"><paramref name="items"/> is <see langword="null"/>.</exception>
+		SynchronizationResult Synchronize(IEnumerable<SynchronizationItem> items);
 	}
 }
