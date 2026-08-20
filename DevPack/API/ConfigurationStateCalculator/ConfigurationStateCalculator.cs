@@ -6,6 +6,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using System.Runtime.CompilerServices;
 
 	using Skyline.DataMiner.Solutions.MediaOps.Live.API;
+	using Skyline.DataMiner.Solutions.MediaOps.Live.Orchestration.ScriptHelper;
 
 	/// <summary>
 	/// Calculates the <see cref="ConfigurationState"/> of the orchestration settings of jobs, recurring jobs or their nodes.
@@ -412,37 +413,73 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return true;
 			}
 
-			var requirements = GetScriptInputRequirements(orchestrationEvent.ExecutionDetails.ScriptName);
+			var executionDetails = orchestrationEvent.ExecutionDetails;
+			var requirements = GetScriptInputRequirements(executionDetails.ScriptName);
 
 			foreach (var elementName in requirements.ElementNames)
 			{
-				var elementSetting = orchestrationEvent.ExecutionDetails.ScriptElements.FirstOrDefault(x => x.Name == elementName);
+				var elementSetting = executionDetails.ScriptElements.FirstOrDefault(x => x.Name == elementName);
 				if (elementSetting == null)
 				{
 					return false;
 				}
 
-				if (String.IsNullOrWhiteSpace(elementSetting.ElementName) && !elementSetting.HasReference)
+				var hasElementValue = elementSetting.DmsElementId != default || !String.IsNullOrWhiteSpace(elementSetting.ElementName);
+				if (!hasElementValue && !elementSetting.HasReference)
 				{
 					return false;
 				}
 			}
 
-			foreach (var parameterName in requirements.ParameterNames)
+			foreach (var parameter in requirements.Parameters)
 			{
-				var parameterSetting = orchestrationEvent.ExecutionDetails.ScriptParameters.FirstOrDefault(x => x.Name == parameterName);
-				if (parameterSetting == null)
-				{
-					return false;
-				}
-
-				if (String.IsNullOrWhiteSpace(parameterSetting.Value) && !parameterSetting.HasReference)
+				if (!IsParameterFullyDefined(parameter, executionDetails))
 				{
 					return false;
 				}
 			}
 
 			return true;
+		}
+
+		private static bool IsParameterFullyDefined(OrchestrationScriptInputParameter parameter, ScriptExecutionDetails executionDetails)
+		{
+			if (parameter.LinkedProfileParameter != null)
+			{
+				// Optional profile parameters never block confirmation.
+				if (parameter.LinkedProfileParameter.IsOptional == true)
+				{
+					return true;
+				}
+
+				return IsProfileParameterDefined(executionDetails, parameter.LinkedProfileParameter.ID);
+			}
+
+			var scriptParameter = executionDetails.ScriptParameters.FirstOrDefault(x => x.Name == parameter.Name);
+			return scriptParameter != null && (!String.IsNullOrWhiteSpace(scriptParameter.Value) || scriptParameter.HasReference);
+		}
+
+		private static bool IsProfileParameterDefined(ScriptExecutionDetails executionDetails, Guid profileParameterId)
+		{
+			var capability = executionDetails.Capabilities.FirstOrDefault(x => x.Id == profileParameterId);
+			if (capability != null)
+			{
+				return capability.HasValue || capability.HasReference;
+			}
+
+			var capacity = executionDetails.Capacities.FirstOrDefault(x => x.Id == profileParameterId);
+			if (capacity != null)
+			{
+				return capacity.HasValue || capacity.HasReference;
+			}
+
+			var configuration = executionDetails.Configurations.FirstOrDefault(x => x.Id == profileParameterId);
+			if (configuration != null)
+			{
+				return configuration.HasValue || configuration.HasReference;
+			}
+
+			return false;
 		}
 
 		private ScriptInputRequirements GetScriptInputRequirements(string scriptName)
@@ -461,7 +498,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				requirements = new ScriptInputRequirements(
 					scriptInputInfo.Elements.Select(x => x.Name).ToList(),
-					scriptInputInfo.Parameters.Select(x => x.Name).ToList());
+					scriptInputInfo.Parameters.ToList());
 			}
 
 			_requirementsByScriptName[scriptName] = requirements;
@@ -549,17 +586,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		private sealed class ScriptInputRequirements
 		{
-			public static readonly ScriptInputRequirements Empty = new ScriptInputRequirements(new List<string>(), new List<string>());
+			public static readonly ScriptInputRequirements Empty = new ScriptInputRequirements(new List<string>(), new List<OrchestrationScriptInputParameter>());
 
-			public ScriptInputRequirements(IReadOnlyCollection<string> elementNames, IReadOnlyCollection<string> parameterNames)
+			public ScriptInputRequirements(IReadOnlyCollection<string> elementNames, IReadOnlyCollection<OrchestrationScriptInputParameter> parameters)
 			{
 				ElementNames = elementNames;
-				ParameterNames = parameterNames;
+				Parameters = parameters;
 			}
 
 			public IReadOnlyCollection<string> ElementNames { get; }
 
-			public IReadOnlyCollection<string> ParameterNames { get; }
+			public IReadOnlyCollection<OrchestrationScriptInputParameter> Parameters { get; }
 		}
 	}
 }
