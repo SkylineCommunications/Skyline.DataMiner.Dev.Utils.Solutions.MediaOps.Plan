@@ -416,9 +416,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			var executionDetails = orchestrationEvent.ExecutionDetails;
 			var requirements = GetScriptInputRequirements(executionDetails.ScriptName);
 
-			foreach (var elementName in requirements.ElementNames)
+			foreach (var element in requirements.Elements)
 			{
-				var elementSetting = executionDetails.ScriptElements.FirstOrDefault(x => x.Name == elementName);
+				var elementSetting = executionDetails.ScriptElements.FirstOrDefault(x => x.Name == element.Name);
 				if (elementSetting == null)
 				{
 					return false;
@@ -497,7 +497,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			else
 			{
 				requirements = new ScriptInputRequirements(
-					scriptInputInfo.Elements.Select(x => x.Name).ToList(),
+					scriptInputInfo.Elements.ToList(),
 					scriptInputInfo.Parameters.ToList());
 			}
 
@@ -586,15 +586,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		private sealed class ScriptInputRequirements
 		{
-			public static readonly ScriptInputRequirements Empty = new ScriptInputRequirements(new List<string>(), new List<OrchestrationScriptInputParameter>());
+			public static readonly ScriptInputRequirements Empty = new ScriptInputRequirements(new List<OrchestrationScriptInputElement>(), new List<OrchestrationScriptInputParameter>());
 
-			public ScriptInputRequirements(IReadOnlyCollection<string> elementNames, IReadOnlyCollection<OrchestrationScriptInputParameter> parameters)
+			public ScriptInputRequirements(IReadOnlyCollection<OrchestrationScriptInputElement> elements, IReadOnlyCollection<OrchestrationScriptInputParameter> parameters)
 			{
-				ElementNames = elementNames;
+				Elements = elements;
 				Parameters = parameters;
 			}
 
-			public IReadOnlyCollection<string> ElementNames { get; }
+			public IReadOnlyCollection<OrchestrationScriptInputElement> Elements { get; }
 
 			public IReadOnlyCollection<OrchestrationScriptInputParameter> Parameters { get; }
 		}
