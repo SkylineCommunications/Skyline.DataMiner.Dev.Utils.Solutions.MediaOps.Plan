@@ -432,7 +432,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var changes = window.GetChanges(window);
 
-			Assert.IsFalse(changes.Any);
+			Assert.IsFalse(changes.AnyChanged);
 			Assert.IsFalse(changes.AnyStartTimingChanged);
 			Assert.IsFalse(changes.AnyEndTimingChanged);
 		}
@@ -444,7 +444,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var changes = requested.GetChanges(DefaultWindow());
 
-			Assert.IsTrue(changes.Any);
+			Assert.IsTrue(changes.AnyChanged);
 			Assert.IsTrue(changes.PreRollStartChanged);
 			Assert.IsTrue(changes.AnyStartTimingChanged);
 			Assert.IsFalse(changes.AnyEndTimingChanged);
@@ -460,7 +460,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var changes = requested.GetChanges(DefaultWindow());
 
-			Assert.IsTrue(changes.Any);
+			Assert.IsTrue(changes.AnyChanged);
 			Assert.IsTrue(changes.PostRollEndChanged);
 			Assert.IsTrue(changes.AnyEndTimingChanged);
 			Assert.IsFalse(changes.AnyStartTimingChanged);

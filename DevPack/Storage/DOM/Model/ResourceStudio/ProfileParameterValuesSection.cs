@@ -31,7 +31,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
 
 		protected override void AfterLoad()
 		{
-           DataReference = DataReferenceStorage.TryDeserialize(Reference, out var details) ? details : null;
+			DataReference = DataReferenceStorage.TryDeserialize(Reference, out var details) ? details : null;
 		}
 	}
 }

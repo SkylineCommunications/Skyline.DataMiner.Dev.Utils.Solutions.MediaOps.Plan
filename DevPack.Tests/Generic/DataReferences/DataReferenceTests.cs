@@ -4,6 +4,7 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 	using System.Collections.Generic;
 
 	using ApiDataReference = Skyline.DataMiner.Solutions.MediaOps.Plan.API.DataReference;
+
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
 

@@ -146,6 +146,45 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void Delete_DraftJobWithNode_RemovesJobAndNodeOrchestrationSettings()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = currentTime,
+				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
+			};
+
+			job.NodeGraph.Add(new JobResourcePoolNode(pool));
+			job = objectCreator.CreateJob(job);
+			Assert.AreEqual(JobState.Draft, job.State, "Expected the job to be in the Draft state.");
+
+			var orchestrationSettingsIds = new[] { job.OrchestrationSettings.Id }
+				.Concat(job.NodeGraph.Nodes.Select(x => x.OrchestrationSettings.Id))
+				.ToList();
+			Assert.AreEqual(2, orchestrationSettingsIds.Count, "Expected an orchestration settings instance for the job and for its node.");
+
+			var planApi = (MediaOpsPlanApi)TestContext.Api;
+			var configurations = planApi.DomHelpers.SlcWorkflowHelper.GetConfigurations(orchestrationSettingsIds).ToList();
+			Assert.AreEqual(2, configurations.Count, "Expected both orchestration settings to be stored before the job is deleted.");
+
+			TestContext.Api.Jobs.Delete(job.Id);
+
+			Assert.IsNull(TestContext.Api.Jobs.Read(job.Id), "Expected the job to be deleted.");
+
+			configurations = planApi.DomHelpers.SlcWorkflowHelper.GetConfigurations(orchestrationSettingsIds).ToList();
+			Assert.AreEqual(0, configurations.Count, "Expected the orchestration settings of the job and of its nodes to be removed.");
+		}
+
+		[TestMethod]
 		public void Delete_CompletedJob_RemovesJob()
 		{
 			var prefix = Guid.NewGuid();

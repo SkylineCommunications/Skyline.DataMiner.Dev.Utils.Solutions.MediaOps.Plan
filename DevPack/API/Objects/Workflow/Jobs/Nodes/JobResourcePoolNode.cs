@@ -15,7 +15,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <param name="resourcePool">The resource pool associated with this node.</param>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="resourcePool"/> is null.</exception>
 		public JobResourcePoolNode(ResourcePool resourcePool)
-			: this (resourcePool?.Id ?? throw new ArgumentNullException(nameof(resourcePool)))
+			: this(resourcePool?.Id ?? throw new ArgumentNullException(nameof(resourcePool)))
 		{
 		}
 

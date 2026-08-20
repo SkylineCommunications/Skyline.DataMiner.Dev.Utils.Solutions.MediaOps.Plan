@@ -1,6 +1,6 @@
 namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
-    using System;
+	using System;
 
 	/// <summary>
 	/// Represents an exception that is thrown when a data reference cannot be resolved.

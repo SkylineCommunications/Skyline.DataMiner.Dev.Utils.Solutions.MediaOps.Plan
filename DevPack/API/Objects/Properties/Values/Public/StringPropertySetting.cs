@@ -37,7 +37,7 @@
 		{
 			unchecked
 			{
-				int hash  = base.GetHashCode();
+				int hash = base.GetHashCode();
 				hash = hash * 23 + (Value?.GetHashCode() ?? 0);
 
 				return hash;

@@ -674,7 +674,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					};
 					ReportError(valueCollection.Id, error);
 				}
-			}	
+			}
 		}
 
 		private void ValidatePropertyDefinitionsAndValues(ICollection<PropertySettingCollection> apiSettingCollections)
@@ -801,8 +801,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
 
-				 LoadPropertiesByScope(apiSettingCollections);
-				 LoadRemainingPropertiesById(apiSettingCollections);
+				LoadPropertiesByScope(apiSettingCollections);
+				LoadRemainingPropertiesById(apiSettingCollections);
 			}
 
 			public IReadOnlyDictionary<string, IReadOnlyCollection<Property>> PropertiesByScope { get; } = new Dictionary<string, IReadOnlyCollection<Property>>();
