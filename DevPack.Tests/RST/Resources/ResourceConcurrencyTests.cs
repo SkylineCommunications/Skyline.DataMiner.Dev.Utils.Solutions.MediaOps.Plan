@@ -102,11 +102,20 @@
 			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
 			pool = TestContext.Api.ResourcePools.Complete(pool);
 
+			var capacity = new NumberCapacity
+			{
+				Name = $"{prefix}_Capacity",
+				RangeMin = 0,
+				RangeMax = 100,
+			};
+			objectCreator.CreateCapacity(capacity);
+
 			var resource = new UnmanagedResource
 			{
 				Name = $"{prefix}_ResourceA",
 				Concurrency = 2,
 			}.AssignToPool(pool);
+			resource.AddCapacity(new NumberCapacitySetting(capacity) { Value = 100 });
 			resource = objectCreator.CreateResource(resource);
 			resource = TestContext.Api.Resources.Complete(resource);
 
@@ -118,8 +127,9 @@
 				PreRollStart = currentTime.AddHours(1),
 				PostRollEnd = currentTime.AddHours(2),
 			};
-			jobA.NodeGraph
-				.Add(new JobResourceNode(pool, resource));
+			var nodeA = new JobResourceNode(pool, resource);
+			nodeA.OrchestrationSettings.AddCapacity(new NumberCapacitySetting(capacity) { Value = 10 });
+			jobA.NodeGraph.Add(nodeA);
 
 			var jobB = new Job
 			{
@@ -129,8 +139,9 @@
 				PreRollStart = currentTime.AddHours(1),
 				PostRollEnd = currentTime.AddHours(2),
 			};
-			jobB.NodeGraph
-				.Add(new JobResourceNode(pool, resource));
+			var nodeB = new JobResourceNode(pool, resource);
+			nodeB.OrchestrationSettings.AddCapacity(new NumberCapacitySetting(capacity) { Value = 10 });
+			jobB.NodeGraph.Add(nodeB);
 
 			jobA = objectCreator.CreateJob(jobA);
 			jobB = objectCreator.CreateJob(jobB);
@@ -152,7 +163,7 @@
 			Assert.AreEqual(2, reservations.Count, "Expected exactly one core reservation for each tentative job.");
 
 			var quarantinedReservations = reservations.Where(x => x.IsQuarantined).ToList();
-			Assert.IsTrue(quarantinedReservations.Count > 0, "Expected at least one reservation to be quarantined after lowering the concurrency of an overlapping resource.");
+			Assert.AreEqual(1, quarantinedReservations.Count, "Expected exactly one reservation to be quarantined after lowering the concurrency of an overlapping resource.");
 			Assert.IsTrue(
 				quarantinedReservations.Any(x => x.QuarantinedResources.Any(y => y.QuarantinedResourceUsage.GUID == resource.CoreResourceId)),
 				"Expected the lowered resource to be present in the quarantined resources.");

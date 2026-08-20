@@ -156,7 +156,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 								_reservationInstances.TryRemove(reservation.ID, out _);
 								successfulObjects.Add(reservation);
 							}
-							else if (HasReservationConflict(reservation, _reservationInstances.Values.Concat(successfulObjects)))
+							else if (HasReservationConflict(reservation, _reservationInstances.Values))
 							{
 								traceData.Add(new ResourceManagerErrorData(ResourceManagerErrorData.Reason.UnknownError, reservation.ID)
 								{
@@ -286,7 +286,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 
 			foreach (var resource in resources)
 			{
-				if (!HasRequiredCapabilities(resource, context?.RequiredCapabilities) ||
+				if (resource.Mode == ResourceMode.Unavailable ||
+					!HasRequiredCapabilities(resource, context?.RequiredCapabilities) ||
+					!HasConcurrencyAvailable(resource, context) ||
 					!HasRequiredCapacities(resource, context))
 				{
 					continue;
@@ -372,6 +374,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 			return true;
 		}
 
+		private bool HasConcurrencyAvailable(Resource resource, EligibleResourceContext context)
+		{
+			return GetOverlappingResourceUsages(resource.GUID, context).Count() + 1 <= Math.Max(1, resource.MaxConcurrency);
+		}
+
 		private void ApplyQuarantineForUpdatedResources(IReadOnlyCollection<Resource> updatedResources)
 		{
 			foreach (var resource in updatedResources)
@@ -381,7 +388,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 					.Where(x => ConsumesCapacity(x.Status))
 					.SelectMany(reservation => reservation.ResourcesInReservationInstance
 						.OfType<ServiceResourceUsageDefinition>()
-						.Where(usage => usage.GUID == resource.GUID && UsesCompleteResource(usage))
+						.Where(usage => usage.GUID == resource.GUID)
 						.Select(usage => new ReservationUsage(reservation, usage)))
 					.OrderBy(x => x.Reservation.Start)
 					.ThenBy(x => x.Reservation.CreatedAt)
@@ -448,13 +455,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 					.Where(x => x.GUID == usage.GUID)
 					.ToList();
 
+				if (otherUsages.Count + 1 > Math.Max(1, resource.MaxConcurrency))
+				{
+					return true;
+				}
+
 				if (UsesCompleteResource(usage))
 				{
-					if (otherUsages.Count + 1 > Math.Max(1, resource.MaxConcurrency))
-					{
-						return true;
-					}
-
 					continue;
 				}
 

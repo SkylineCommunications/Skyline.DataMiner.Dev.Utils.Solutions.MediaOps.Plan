@@ -160,6 +160,75 @@ namespace RT_MediaOps.Plan.RST.Resources
 		}
 
 		[TestMethod]
+		public void GetEligibleResources_CompleteResourceAlreadyBooked_ReturnsResourceOnlyOutsideTheBookedTimeRange()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = CreateCompleteResource($"{prefix}_Resource", pool, null);
+
+			var bookedStart = currentTime.AddHours(1);
+			var bookedEnd = currentTime.AddHours(2);
+
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = bookedStart,
+				End = bookedEnd,
+				PreRollStart = bookedStart,
+				PostRollEnd = bookedEnd,
+			};
+
+			job.NodeGraph.Add(new JobResourceNode(pool, resource));
+			job = objectCreator.CreateJob(job);
+			job = TestContext.Api.Jobs.SaveAsTentative(job);
+			job = TestContext.Api.Jobs.Confirm(job);
+
+			var eligibleDuringBooking = GetEligibleResourceIds(
+				bookedStart.AddMinutes(15),
+				bookedEnd.AddMinutes(-15),
+				Array.Empty<CapabilitySetting>(),
+				Array.Empty<CapacitySetting>(),
+				pool);
+
+			CollectionAssert.DoesNotContain(eligibleDuringBooking, resource.Id, "Expected the resource not to be eligible while its concurrency is fully used by the confirmed job.");
+
+			var eligibleAfterBooking = GetEligibleResourceIds(
+				bookedEnd.AddHours(1),
+				bookedEnd.AddHours(2),
+				Array.Empty<CapabilitySetting>(),
+				Array.Empty<CapacitySetting>(),
+				pool);
+
+			CollectionAssert.Contains(eligibleAfterBooking, resource.Id, "Expected the resource to be eligible outside the time range of the confirmed job.");
+		}
+
+		[TestMethod]
+		public void GetEligibleResources_DeprecatedResource_DoesNotReturnResource()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = CreateCompleteResource($"{prefix}_Resource", pool, null);
+			resource = TestContext.Api.Resources.Deprecate(resource);
+
+			var eligibleIds = GetEligibleResourceIds(
+				currentTime.AddHours(1),
+				currentTime.AddHours(2),
+				Array.Empty<CapabilitySetting>(),
+				Array.Empty<CapacitySetting>(),
+				pool);
+
+			CollectionAssert.DoesNotContain(eligibleIds, resource.Id, "Expected a deprecated resource not to be eligible.");
+		}
+
+		[TestMethod]
 		public void GetEligibleResources_WithFilter_OnlyConsidersResourcesMatchingTheFilter()
 		{
 			var prefix = Guid.NewGuid();
