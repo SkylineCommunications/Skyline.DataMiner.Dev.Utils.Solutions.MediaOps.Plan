@@ -148,10 +148,18 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return synchronizedIds;
 			}
 
-			var domResourcePoolsById = planApi.ResourcePools.Read(ids).ToDictionary(x => x.Id, x => x.OriginalInstance);
-			foreach (var id in ids.Where(x => !domResourcePoolsById.ContainsKey(x)))
+var resourcePools = planApi.ResourcePools.Read(ids).ToList();
+			var domResourcePoolsById = resourcePools
+				.Where(x => x.State == ResourcePoolState.Complete)
+				.ToDictionary(x => x.Id, x => x.OriginalInstance);
+			foreach (var id in ids.Where(x => resourcePools.All(y => y.Id != x)))
 			{
 				AddFailure(failures, id, new ResourcePoolNotFoundError { ErrorMessage = $"Resource pool with ID '{id}' no longer exists.", Id = id });
+			}
+
+			foreach (var resourcePool in resourcePools.Where(x => x.State != ResourcePoolState.Complete))
+			{
+				AddFailure(failures, resourcePool.Id, new ResourcePoolInvalidStateError { ErrorMessage = "Resource pool is no longer in Completed state.", Id = resourcePool.Id });
 			}
 
 			CoreResourcePoolHandler.TryGetDifferences(planApi, domResourcePoolsById.Values.ToList(), out var detection);
@@ -207,10 +215,18 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return synchronizedIds;
 			}
 
-			var domResourcesById = planApi.Resources.Read(ids).ToDictionary(x => x.Id, x => x.OriginalInstance);
-			foreach (var id in ids.Where(x => !domResourcesById.ContainsKey(x)))
+var resources = planApi.Resources.Read(ids).ToList();
+			var domResourcesById = resources
+				.Where(x => x.State == ResourceState.Complete)
+				.ToDictionary(x => x.Id, x => x.OriginalInstance);
+			foreach (var id in ids.Where(x => resources.All(y => y.Id != x)))
 			{
 				AddFailure(failures, id, new ResourceNotFoundError { ErrorMessage = $"Resource with ID '{id}' no longer exists.", Id = id });
+			}
+
+			foreach (var resource in resources.Where(x => x.State != ResourceState.Complete))
+			{
+				AddFailure(failures, resource.Id, new ResourceInvalidStateError { ErrorMessage = "Resource is no longer in Completed state.", Id = resource.Id });
 			}
 
 			CoreResourceHandler.TryGetDifferences(planApi, domResourcesById.Values.ToList(), out var detection);
