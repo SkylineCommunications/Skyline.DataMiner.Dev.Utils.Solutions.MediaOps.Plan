@@ -47,29 +47,28 @@
 		[TestMethod]
 		public void ReadWorkflowById()
 		{
-			var firstWorkflow = TestContext.Api.Workflows.Read().FirstOrDefault();
-			if (firstWorkflow == null && Config.IsQaOps)
+			var workflow = objectCreator.CreateWorkflow(new Workflow
 			{
-				Assert.Inconclusive("No workflow exists on the QAOps system after package installation.");
-			}
+				Name = $"{Guid.NewGuid()}_Workflow",
+			});
 
-			var jobToVerify = TestContext.Api.Workflows.Read(firstWorkflow.Id);
+			var workflowToVerify = TestContext.Api.Workflows.Read(workflow.Id);
 
-			Assert.AreEqual(firstWorkflow, jobToVerify);
+			Assert.AreEqual(workflow, workflowToVerify);
 		}
 
 		[TestMethod]
 		public void ReadWorkflowByName()
 		{
-			var firstWorkflow = TestContext.Api.Workflows.Read().FirstOrDefault();
-			if (firstWorkflow == null && Config.IsQaOps)
+			var name = $"{Guid.NewGuid()}_Workflow";
+			var workflow = objectCreator.CreateWorkflow(new Workflow
 			{
-				Assert.Inconclusive("No workflow exists on the QAOps system after package installation.");
-			}
+				Name = name,
+			});
 
-			var jobToVerify = TestContext.Api.Workflows.Read(WorkflowExposers.Name.Equal(firstWorkflow.Name)).First();
+			var workflowToVerify = TestContext.Api.Workflows.Read(WorkflowExposers.Name.Equal(name)).Single();
 
-			Assert.AreEqual(firstWorkflow, jobToVerify);
+			Assert.AreEqual(workflow, workflowToVerify);
 		}
 
 		[TestMethod]
