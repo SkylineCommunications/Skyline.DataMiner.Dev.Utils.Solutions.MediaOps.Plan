@@ -1389,7 +1389,6 @@
 			}
 
 			ValidateStateForTransitionToCompletedAction(apiJobs);
-			ValidatePostRollEndReached(apiJobs);
 
 			var lockResult = planApi.LockManager.LockAndExecute(apiJobs.Where(IsValid).ToList(), TransitionToCompletedLocked);
 			ReportError(lockResult);
@@ -2248,19 +2247,12 @@
 			}
 		}
 
-		private void ValidatePostRollEndReached(ICollection<Job> apiJobs)
-		{
-			foreach (var job in apiJobs.Where(x => IsValid(x) && x.PostRollEnd > currentTime))
-			{
-				ReportError(job.Id, new JobPostRollEndNotReachedError
-				{
-					ErrorMessage = "The job cannot be transitioned to completed before its post-roll end time has passed.",
-					Id = job.Id,
-					PostRollEnd = job.PostRollEnd,
-				});
-			}
-		}
-
+		// The core reservation always covers the entire post-roll, so an ended reservation proves the post-roll is over.
+		// The reservation is therefore the only source of truth for completing a job; the DOM job's post-roll end is only
+		// used to explain why a job whose reservation has not ended yet cannot be completed. Relying on the DOM post-roll
+		// end on its own would reject a job that was stopped early, because a stop moves and persists the reservation
+		// before the DOM job, so the DOM job can still hold its original (future) post-roll end when the reservation end
+		// event triggers the completion.
 		private void ValidateReservationIsEnded(ICollection<Job> apiJobs)
 		{
 			var validJobs = apiJobs.Where(IsValid).ToList();
@@ -2273,6 +2265,7 @@
 
 			CoreJobHandler.TryVerifyEnded(planApi, domJobs, out var coreResult);
 
+			var jobsById = validJobs.ToDictionary(x => x.Id);
 			foreach (var id in coreResult.UnsuccessfulIds)
 			{
 				ReportError(id);
@@ -2280,6 +2273,16 @@
 				if (coreResult.TraceDataPerItem.TryGetValue(id, out var traceData))
 				{
 					PassTraceData(id, traceData);
+				}
+
+				if (jobsById.TryGetValue(id, out var job) && job.PostRollEnd > currentTime)
+				{
+					ReportError(id, new JobPostRollEndNotReachedError
+					{
+						ErrorMessage = "The job cannot be transitioned to completed before its post-roll end time has passed.",
+						Id = id,
+						PostRollEnd = job.PostRollEnd,
+					});
 				}
 			}
 		}

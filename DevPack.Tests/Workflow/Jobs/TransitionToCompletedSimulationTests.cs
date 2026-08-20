@@ -177,5 +177,26 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				completedJob.State,
 				"Expected the job to be moved to the Completed state.");
 		}
+
+		[TestMethod]
+		public void TransitionToCompleted_EndedReservationWithFuturePostRollEnd_MovesJobToCompleted()
+		{
+			var (api, resourceManagerHelper) = CreateContext();
+
+			var runningJob = CreateRunningJob(api, resourceManagerHelper, withPostRoll: false);
+
+			// Mirrors an early stop where the core reservation has already been moved and ended, while the matching DOM
+			// timing update is still in flight, so the job snapshot still holds its original (future) post-roll end. The
+			// ended reservation proves the post-roll is over, so the transition must still complete the job.
+			SetReservationStatus(resourceManagerHelper, runningJob.Id, ReservationStatus.Ended);
+
+			var completedJob = api.Jobs.TransitionToCompleted(runningJob);
+
+			Assert.IsNotNull(completedJob, "Expected the transition to return the updated job.");
+			Assert.AreEqual(
+				JobState.Completed,
+				completedJob.State,
+				"Expected the job to be moved to the Completed state.");
+		}
 	}
 }
