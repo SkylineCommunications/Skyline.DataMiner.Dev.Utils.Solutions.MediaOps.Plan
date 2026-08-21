@@ -4,12 +4,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 	using System.Collections.Concurrent;
 	using System.Collections.Generic;
 	using System.Linq;
+	using System.Threading;
 
 	using Skyline.DataMiner.Net;
 	using Skyline.DataMiner.Net.ManagerStore;
 	using Skyline.DataMiner.Net.Messages;
 	using Skyline.DataMiner.Net.Messages.ResourceManager;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+	using Skyline.DataMiner.Net.ResourceManager.Helpers;
 	using Skyline.DataMiner.Net.ResourceManager.Objects;
 	using Skyline.DataMiner.Net.ResponseErrorData;
 	using Skyline.DataMiner.Net.SRM.Capabilities;
@@ -27,6 +29,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 		private readonly ConcurrentDictionary<Guid, ResourcePool> _resourcePools = new ConcurrentDictionary<Guid, ResourcePool>();
 		private readonly ConcurrentDictionary<Guid, ReservationInstance> _reservationInstances = new ConcurrentDictionary<Guid, ReservationInstance>();
 		private readonly ConcurrentDictionary<PagingCookie, InMemoryPagingHandler<ReservationInstance>> _reservationPagingHandlers = new ConcurrentDictionary<PagingCookie, InMemoryPagingHandler<ReservationInstance>>();
+
+		// A real DataMiner Agent breaks ties between equally timed usages on the oldest reservation.
+		private readonly ConcurrentDictionary<Guid, long> _reservationCreationOrder = new ConcurrentDictionary<Guid, long>();
+		private long _lastReservationCreationOrder;
 
 		public bool TryHandleMessage(DMSMessage message, out DMSMessage response)
 		{
@@ -149,25 +155,37 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 						var successfulObjects = new List<ReservationInstance>();
 						var traceData = new TraceData();
 
+						var quarantineError = request.isDelete ? null : BuildQuarantineError(objects);
+
 						foreach (var reservation in objects)
 						{
 							if (request.isDelete)
 							{
 								_reservationInstances.TryRemove(reservation.ID, out _);
+								_reservationCreationOrder.TryRemove(reservation.ID, out _);
 								successfulObjects.Add(reservation);
 							}
 							else if (HasReservationConflict(reservation, _reservationInstances.Values))
 							{
-								traceData.Add(new ResourceManagerErrorData(ResourceManagerErrorData.Reason.UnknownError, reservation.ID)
+								if (quarantineError == null)
 								{
-									Message = "Reservation has conflicting resource usage.",
-								});
+									traceData.Add(new ResourceManagerErrorData(ResourceManagerErrorData.Reason.UnknownError, reservation.ID)
+									{
+										Message = "Reservation has conflicting resource usage.",
+									});
+								}
 							}
 							else
 							{
+								_reservationCreationOrder.GetOrAdd(reservation.ID, _ => Interlocked.Increment(ref _lastReservationCreationOrder));
 								_reservationInstances[reservation.ID] = reservation;
 								successfulObjects.Add(reservation);
 							}
+						}
+
+						if (quarantineError != null)
+						{
+							traceData.Add(quarantineError);
 						}
 
 						response = new ResourceManagerResponseMessage
@@ -391,7 +409,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 						.Where(usage => usage.GUID == resource.GUID)
 						.Select(usage => new ReservationUsage(reservation, usage)))
 					.OrderBy(x => x.Reservation.Start)
-					.ThenBy(x => x.Reservation.CreatedAt)
+					.ThenBy(x => GetCreationOrder(x.Reservation.ID))
 					.ThenBy(x => x.Reservation.ID)
 					.ThenBy(x => x.Usage.ServiceDefinitionNodeID)
 					.ToList();
@@ -412,6 +430,119 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 					acceptedUsages.Add(usage);
 				}
 			}
+		}
+
+		/// <summary>
+		/// Mirrors how a real DataMiner Agent reports a resource conflict on a reservation update: the reservation that
+		/// loses the resource is reported as having to go to quarantine, triggered by the reservations from this request
+		/// that claim the same resource. The reservation going to quarantine is not necessarily part of the request.
+		/// </summary>
+		private ResourceManagerErrorData BuildQuarantineError(IReadOnlyCollection<ReservationInstance> updatedReservations)
+		{
+			var updatedIds = new HashSet<Guid>(updatedReservations.Select(x => x.ID));
+
+			var candidates = updatedReservations
+				.Concat(_reservationInstances.Values.Where(x => !updatedIds.Contains(x.ID)))
+				.Where(x => ConsumesCapacity(x.Status))
+				.ToList();
+
+			var resourceIds = updatedReservations
+				.SelectMany(x => x.ResourcesInReservationInstance.OfType<ServiceResourceUsageDefinition>())
+				.Select(x => x.GUID)
+				.Distinct();
+
+			var quarantinedPerReservation = new Dictionary<Guid, QuarantinedUsagesOnSingleReservation>();
+
+			foreach (var resourceId in resourceIds)
+			{
+				if (!_resources.TryGetValue(resourceId, out var resource))
+				{
+					continue;
+				}
+
+				var maxConcurrency = Math.Max(1, resource.MaxConcurrency);
+
+				var usages = candidates
+					.SelectMany(reservation => reservation.ResourcesInReservationInstance
+						.OfType<ServiceResourceUsageDefinition>()
+						.Where(usage => usage.GUID == resourceId)
+						.Select(usage => new ReservationUsage(reservation, usage)))
+					.OrderBy(x => x.Reservation.Start)
+					.ThenBy(x => GetCreationOrder(x.Reservation.ID))
+					.ThenBy(x => x.Reservation.ID)
+					.ThenBy(x => x.Usage.ServiceDefinitionNodeID)
+					.ToList();
+
+				var acceptedUsages = new List<ReservationUsage>();
+				foreach (var usage in usages)
+				{
+					var overlappingAcceptedUsages = acceptedUsages
+						.Where(x => RangesOverlap(usage.Reservation.Start, usage.Reservation.End, x.Reservation.Start, x.Reservation.End))
+						.ToList();
+
+					if (overlappingAcceptedUsages.Count < maxConcurrency)
+					{
+						acceptedUsages.Add(usage);
+						continue;
+					}
+
+					var triggerIds = overlappingAcceptedUsages
+						.Select(x => x.Reservation.ID)
+						.Concat(new[] { usage.Reservation.ID })
+						.Where(updatedIds.Contains)
+						.Distinct()
+						.ToList();
+
+					if (triggerIds.Count == 0)
+					{
+						continue;
+					}
+
+					AddQuarantinedUsage(quarantinedPerReservation, usage, triggerIds);
+				}
+			}
+
+			if (quarantinedPerReservation.Count == 0)
+			{
+				return null;
+			}
+
+			// The Agent does not fill in the subject; the impacted reservations are reported through MustBeMovedToQuarantine.
+			return new ResourceManagerErrorData(ResourceManagerErrorData.Reason.ReservationUpdateCausedReservationsToGoToQuarantine, (Guid?)null)
+			{
+				MustBeMovedToQuarantine = quarantinedPerReservation.Values.ToList(),
+			};
+		}
+
+		private static void AddQuarantinedUsage(IDictionary<Guid, QuarantinedUsagesOnSingleReservation> quarantinedPerReservation, ReservationUsage usage, IEnumerable<Guid> triggerIds)
+		{
+			if (!quarantinedPerReservation.TryGetValue(usage.Reservation.ID, out var quarantined))
+			{
+				quarantined = new QuarantinedUsagesOnSingleReservation
+				{
+					ReservationInstance = usage.Reservation,
+					QuarantinedUsages = new List<QuarantinedResourceUsageDefinition>(),
+				};
+
+				quarantinedPerReservation[usage.Reservation.ID] = quarantined;
+			}
+
+			quarantined.QuarantinedUsages.Add(new QuarantinedResourceUsageDefinition
+			{
+				QuarantinedResourceUsage = usage.Usage,
+				QuarantineTriggers = triggerIds
+					.Select(x => new QuarantineTrigger
+					{
+						QuarantineReason = QuarantineTrigger.Reason.ConcurrencyDowngraded,
+						ReservationUpdateTrigger = new ReservationDifference { ReservationId = x },
+					})
+					.ToList(),
+			});
+		}
+
+		private long GetCreationOrder(Guid reservationId)
+		{
+			return _reservationCreationOrder.TryGetValue(reservationId, out var order) ? order : Int64.MaxValue;
 		}
 
 		private static void MoveUsageToQuarantine(ReservationInstance reservation, ServiceResourceUsageDefinition usage, QuarantineTrigger.Reason reason)

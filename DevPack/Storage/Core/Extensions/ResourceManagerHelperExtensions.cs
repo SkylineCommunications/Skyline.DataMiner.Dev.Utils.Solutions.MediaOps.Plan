@@ -3,6 +3,7 @@
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
+	using System.Text.RegularExpressions;
 
 	using Skyline.DataMiner.Net.Helper;
 	using Skyline.DataMiner.Net.Messages;
@@ -224,7 +225,7 @@
 				x => helper.GetReservationInstances(x));
 		}
 
-		public static bool TryCreateOrUpdateReservationInstancesInBatches(this ResourceManagerHelper helper, IEnumerable<ReservationInstance> reservationInstances, out ReservationInstanceBulkOperationResult result, ITraceDataHandler<ResourceManagerErrorData> traceDataHandler = null)
+		public static bool TryCreateOrUpdateReservationInstancesInBatches(this ResourceManagerHelper helper, IEnumerable<ReservationInstance> reservationInstances, out ReservationInstanceBulkOperationResult result, ITraceDataHandler<ResourceManagerErrorData> traceDataHandler = null, IReadOnlyCollection<Guid> newReservationIds = null)
 		{
 			if (helper == null)
 			{
@@ -236,7 +237,7 @@
 				throw new ArgumentNullException(nameof(reservationInstances));
 			}
 
-			result = InnerCreateOrUpdateReservationInstancesInBatches(helper, reservationInstances, traceDataHandler);
+			result = InnerCreateOrUpdateReservationInstancesInBatches(helper, reservationInstances, traceDataHandler, newReservationIds);
 
 			return !result.HasFailures;
 		}
@@ -406,7 +407,7 @@
 			return new ResourceBulkOperationResult(successfulItems, unsuccessfulIds, traceDataPerItem);
 		}
 
-		private static ReservationInstanceBulkOperationResult InnerCreateOrUpdateReservationInstancesInBatches(ResourceManagerHelper helper, IEnumerable<ReservationInstance> reservationInstances, ITraceDataHandler<ResourceManagerErrorData> traceDataHandler)
+		private static ReservationInstanceBulkOperationResult InnerCreateOrUpdateReservationInstancesInBatches(ResourceManagerHelper helper, IEnumerable<ReservationInstance> reservationInstances, ITraceDataHandler<ResourceManagerErrorData> traceDataHandler, IReadOnlyCollection<Guid> newReservationIds)
 		{
 			var successfulItems = new List<ReservationInstance>();
 			var unsuccessfulIds = new HashSet<Guid>();
@@ -414,64 +415,77 @@
 
 			ActivityHelper.Track(nameof(ResourceManagerHelperExtensions), nameof(InnerCreateOrUpdateReservationInstancesInBatches), act =>
 			{
-				// Batch of 1 is used instead of 100 because of issue in core software [DCP296627]
-				foreach (var batch in reservationInstances.Batch(1))
+				var toCreate = reservationInstances.Where(x => newReservationIds?.Contains(x.ID) ?? false).ToList();
+				var toUpdate = reservationInstances.Except(toCreate).ToList();
+
+				// Batch of 1 is used instead of 100 because for creating jobs because of issue in core software [DCP296627]
+				foreach (var batch in toCreate.Batch(1))
 				{
-					var res = helper.AddOrUpdateReservationInstances(batch.ToArray());
-					successfulItems.AddRange(res);
+					HandleBatch(batch);
+				}
 
-					var traceData = helper.GetTraceDataLastCall();
-					var resourceManagerErrors = traceData.ErrorData.OfType<ResourceManagerErrorData>().ToList();
-					if (resourceManagerErrors.Count == 0)
-					{
-						continue;
-					}
-
-					if (traceDataHandler != null)
-					{
-						foreach (var kvp in traceDataHandler.Translate(resourceManagerErrors))
-						{
-							if (traceDataPerItem.TryGetValue(kvp.Key, out var mediaOpsTraceData))
-							{
-								foreach (var error in kvp.Value.ErrorData)
-								{
-									mediaOpsTraceData.Add(error);
-								}
-							}
-							else
-							{
-								traceDataPerItem.Add(kvp.Key, kvp.Value);
-							}
-
-							unsuccessfulIds.Add(kvp.Key);
-						}
-
-						continue;
-					}
-
-					var resourceManagerErrorsBySubjectId = resourceManagerErrors
-					.Where(x => x.SubjectId.HasValue)
-					.GroupBy(x => x.SubjectId.Value)
-					.ToDictionary(x => x.Key, x => x.ToList());
-
-					foreach (var resourceSpecificErrors in resourceManagerErrorsBySubjectId)
-					{
-						var subjectId = resourceSpecificErrors.Key;
-						var errors = resourceSpecificErrors.Value;
-
-						var mediaOpsTraceData = new MediaOpsTraceData();
-						foreach (var error in errors)
-						{
-							mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = error.ToString() });
-						}
-
-						traceDataPerItem.Add(subjectId, mediaOpsTraceData);
-						unsuccessfulIds.Add(subjectId);
-					}
+				foreach (var batch in toUpdate.Batch(100))
+				{
+					HandleBatch(batch);
 				}
 			});
 
 			return new ReservationInstanceBulkOperationResult(successfulItems, unsuccessfulIds, traceDataPerItem);
+
+			void HandleBatch(IEnumerable<ReservationInstance> batch)
+			{
+				var res = helper.AddOrUpdateReservationInstances(batch.ToArray());
+				successfulItems.AddRange(res);
+
+				var traceData = helper.GetTraceDataLastCall();
+				var resourceManagerErrors = traceData.ErrorData.OfType<ResourceManagerErrorData>().ToList();
+				if (resourceManagerErrors.Count == 0)
+				{
+					return;
+				}
+
+				if (traceDataHandler != null)
+				{
+					foreach (var kvp in traceDataHandler.Translate(resourceManagerErrors))
+					{
+						if (traceDataPerItem.TryGetValue(kvp.Key, out var mediaOpsTraceData))
+						{
+							foreach (var error in kvp.Value.ErrorData)
+							{
+								mediaOpsTraceData.Add(error);
+							}
+						}
+						else
+						{
+							traceDataPerItem.Add(kvp.Key, kvp.Value);
+						}
+
+						unsuccessfulIds.Add(kvp.Key);
+					}
+
+					return;
+				}
+
+				var resourceManagerErrorsBySubjectId = resourceManagerErrors
+				.Where(x => x.SubjectId.HasValue)
+				.GroupBy(x => x.SubjectId.Value)
+				.ToDictionary(x => x.Key, x => x.ToList());
+
+				foreach (var resourceSpecificErrors in resourceManagerErrorsBySubjectId)
+				{
+					var subjectId = resourceSpecificErrors.Key;
+					var errors = resourceSpecificErrors.Value;
+
+					var mediaOpsTraceData = new MediaOpsTraceData();
+					foreach (var error in errors)
+					{
+						mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = error.ToString() });
+					}
+
+					traceDataPerItem.Add(subjectId, mediaOpsTraceData);
+					unsuccessfulIds.Add(subjectId);
+				}
+			}
 		}
 
 		private static ReservationInstanceBulkOperationResult InnerDeleteReservationInstancesInBatches(ResourceManagerHelper helper, IEnumerable<ReservationInstance> reservationInstances)
