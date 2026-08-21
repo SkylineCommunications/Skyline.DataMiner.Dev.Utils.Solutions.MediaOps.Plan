@@ -22,6 +22,8 @@
 
 	internal class CoreJobHandler : DomInstanceApiObjectValidator<DomJob>
 	{
+		internal const string JobIdPropertyName = "Job ID";
+
 		private readonly MediaOpsPlanApi planApi;
 
 		private CoreJobHandler(MediaOpsPlanApi planApi)
@@ -121,6 +123,15 @@
 			return $"Script:MediaOps_SRM_Scheduling Actions||Reservation ID={reservationId};Action={action}|||NoConfirmation,NoSetCheck,Asynchronous";
 		}
 
+		// Errors translated from core reservation errors are only aware of the reservation, not of the job it belongs to.
+		private static void StampJobId(MediaOpsTraceData traceData, Guid jobId)
+		{
+			foreach (var jobError in traceData.ErrorData.OfType<Exceptions.JobError>().Where(x => x.Id == Guid.Empty))
+			{
+				jobError.Id = jobId;
+			}
+		}
+
 		private void CreateOrUpdate(ICollection<DomJob> domJobs)
 		{
 			if (domJobs == null)
@@ -136,11 +147,17 @@
 			var jobByReservationId = new Dictionary<Guid, DomJob>();
 
 			var reservationsToCreateOrUpdate = new List<CoreReservation>();
+			var newReservationIds = new HashSet<Guid>();
 			foreach (var mapping in JobReservationMapping.GetMappings(planApi, domJobs))
 			{
 				var job = mapping.Job;
 				var reservation = mapping.Reservation;
 
+				if (mapping.IsNew)
+				{
+					newReservationIds.Add(reservation.ID);
+				}
+				
 				if (!SyncJobWithReservation(job, ref reservation))
 				{
 					planApi.Logger.Information(this, $"No update required for Job with ID {job.ID.Id} and Reservation with ID {reservation.ID}.");
@@ -157,7 +174,7 @@
 				return;
 			}
 
-			planApi.CoreHelpers.ResourceManagerHelper.TryCreateOrUpdateReservationInstancesInBatches(reservationsToCreateOrUpdate, out var result, new ResourceManagerTraceDataHandler(planApi));
+			planApi.CoreHelpers.ResourceManagerHelper.TryCreateOrUpdateReservationInstancesInBatches(reservationsToCreateOrUpdate, out var result, traceDataHandler: new ResourceManagerTraceDataHandler(planApi), newReservationIds: newReservationIds);
 
 			foreach (var id in result.UnsuccessfulIds)
 			{
@@ -171,6 +188,7 @@
 
 				if (result.TraceDataPerItem.TryGetValue(id, out var traceData))
 				{
+					StampJobId(traceData, domJob.ID.Id);
 					PassTraceData(domJob.ID.Id, traceData);
 				}
 			}
@@ -673,7 +691,7 @@
 		{
 			bool updateRequired = false;
 
-			updateRequired |= SyncProperty(reservation, "Job ID", Convert.ToString(job.ID.Id));
+			updateRequired |= SyncProperty(reservation, JobIdPropertyName, Convert.ToString(job.ID.Id));
 
 			return updateRequired;
 		}
@@ -1070,10 +1088,10 @@
 			private static IEnumerable<JobReservationMapping> GetMappingsIterator(MediaOpsPlanApi planApi, ICollection<DomJob> domJobs)
 			{
 				var jobIds = domJobs.Select(x => x.ID.Id).ToList();
-				FilterElement<CoreReservation> Filter(Guid id) => ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(id));
+				FilterElement<CoreReservation> Filter(Guid id) => ReservationInstanceExposers.Properties.StringField(JobIdPropertyName).Equal(Convert.ToString(id));
 				var reservationsByJobId = planApi.CoreHelpers.ResourceManagerHelper.GetReservationInstances(jobIds, Filter)
 					.GroupBy(x => Guid.Parse(Convert.ToString(x.Properties
-						.First(y => y.Key == "Job ID").Value)))
+						.First(y => y.Key == JobIdPropertyName).Value)))
 					.ToDictionary(g => g.Key, g => g.ToList());
 
 				foreach (var domJob in domJobs)
