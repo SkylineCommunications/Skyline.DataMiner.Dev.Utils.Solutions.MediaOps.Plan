@@ -156,6 +156,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 			else if (_targetState == JobState.Canceled)
 			{
+				if (!_liveConfiguration.OrchestrationEvents.Any())
+				{
+					// A job that was canceled before it was ever confirmed (e.g. a tentative job) has no orchestration events.
+					return;
+				}
+
 				CancelEventsIfNotAlreadyTriggered();
 			}
 			else if (_targetState == JobState.Completed)
@@ -453,7 +459,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 			var resourcesById = ResourcesById;
 
-			foreach (var connection in _job.NodeGraph.Connections)
+			// Hidden nodes are soft-deleted (removed or swapped-out) nodes that are excluded from orchestration, so any
+			// connection touching a hidden node must be skipped as well.
+			foreach (var connection in _job.NodeGraph.Connections.Where(c => !c.From.Hidden && !c.To.Hidden))
 			{
 				if (!connection.From.IsResourceNode(out var sourceResourceNode) ||
 					!resourcesById.TryGetValue(sourceResourceNode.ResourceId, out var sourceResource) ||
@@ -481,6 +489,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 				if (TryBuildLevelMapping(connection.Configuration, out var levelMappings))
 				{
+					if (levelMappings.Count == 0)
+					{
+						// A shuffle configuration without any resolvable level mappings would be interpreted by MediaOps Live
+						// as a default full connection, which would incorrectly broaden access. Omit the connection instead.
+						continue;
+					}
+
 					liveConnection.LevelMappings = levelMappings;
 				}
 

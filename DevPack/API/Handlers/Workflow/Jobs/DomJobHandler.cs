@@ -283,7 +283,6 @@
 			// left with items pointing to jobs that failed to be created or updated.
 			CreateOrUpdateCategoryItems(apiJobs.Where(IsValid).ToList());
 
-			// Push the orchestration job configuration and events to MediaOps Live for the persisted jobs.
 			SyncLiveOrchestration(apiJobs.Where(IsValid).ToList());
 		}
 
@@ -1091,9 +1090,9 @@
 				changedJobs.Add(job);
 			}
 
+			// The orchestration events are synchronized by the Confirmed-to-Running transition that the reservation start
+			// event drives afterwards, so they are not synchronized here.
 			PersistChangedJobs(changedJobs);
-
-			SyncLiveOrchestration(changedJobs, JobState.Running);
 		}
 
 		private static void ApplyStart(Job job, DateTimeOffset reservationStart, JobStartOptions options)
@@ -1194,9 +1193,9 @@
 				changedJobs.Add(job);
 			}
 
+			// The orchestration events are synchronized by the Running-to-Completed transition that runs afterwards, so
+			// they are not synchronized here.
 			PersistChangedJobs(changedJobs);
-
-			SyncLiveOrchestration(changedJobs, JobState.Completed);
 		}
 
 		// Moves the core reservation end of the jobs that need rescheduling to reservationEnd, persists it BEFORE the DOM
@@ -1566,7 +1565,7 @@
 		/// <summary>
 		/// Pushes the orchestration job configuration and events of the successfully-persisted jobs to MediaOps Live.
 		/// </summary>
-		/// <param name="apiJobs">The jobs to synchronize. Only jobs whose id is in <c>SuccessfulIds</c> are synchronized.</param>
+		/// <param name="apiJobs">The jobs to synchronize. Only valid jobs are synchronized.</param>
 		/// <param name="overrideState">When provided, the state to synchronize the jobs with instead of each job's own state.</param>
 		/// <exception cref="ArgumentNullException"><paramref name="apiJobs"/> is <see langword="null"/>.</exception>
 		private void SyncLiveOrchestration(IEnumerable<Job> apiJobs, JobState? overrideState = null)
@@ -1582,13 +1581,8 @@
 				return;
 			}
 
-			foreach (var job in apiJobs)
+			foreach (var job in apiJobs.Where(IsValid))
 			{
-				if (!SuccessfulIds.Contains(job.Id))
-				{
-					continue;
-				}
-
 				var state = overrideState ?? job.State;
 
 				try
@@ -1605,7 +1599,7 @@
 		/// <summary>
 		/// Removes the orchestration job configuration and events of the successfully-persisted jobs from MediaOps Live.
 		/// </summary>
-		/// <param name="apiJobs">The jobs to remove. Only jobs whose id is in <c>SuccessfulIds</c> are removed.</param>
+		/// <param name="apiJobs">The jobs to remove. Only valid jobs are removed.</param>
 		/// <exception cref="ArgumentNullException"><paramref name="apiJobs"/> is <see langword="null"/>.</exception>
 		private void SyncLiveOrchestrationForDelete(IEnumerable<Job> apiJobs)
 		{
@@ -1620,13 +1614,8 @@
 				return;
 			}
 
-			foreach (var job in apiJobs)
+			foreach (var job in apiJobs.Where(IsValid))
 			{
-				if (!SuccessfulIds.Contains(job.Id))
-				{
-					continue;
-				}
-
 				try
 				{
 					LiveJobConfigHandler.DeleteLiveJobConfigForJob(planApi, job);
