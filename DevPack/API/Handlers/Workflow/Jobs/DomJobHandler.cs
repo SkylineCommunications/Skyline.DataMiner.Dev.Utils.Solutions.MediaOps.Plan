@@ -282,6 +282,8 @@
 			// Register the category items only after the job DOM instances are persisted so the Categories app is not
 			// left with items pointing to jobs that failed to be created or updated.
 			CreateOrUpdateCategoryItems(apiJobs.Where(IsValid).ToList());
+
+			SyncLiveOrchestration(apiJobs.Where(IsValid).ToList());
 		}
 
 		private void CreateOrUpdateDomJobs(ICollection<DomJob> domJobs)
@@ -588,6 +590,8 @@
 
 			// Step 2: move the successfully-updated jobs to the Confirmed state.
 			TransitionDomJobsToConfirmed(domJobs);
+
+			SyncLiveOrchestration(apiJobs, JobState.Confirmed);
 		}
 
 		private ICollection<DomJob> ApplyConfirmNodeTimingsAndSave(ICollection<Job> apiJobs)
@@ -742,6 +746,8 @@
 			var domJobs = apiJobs.Select(x => x.OriginalInstance).ToList();
 
 			TransitionDomJobsToCanceled(domJobs);
+
+			SyncLiveOrchestration(apiJobs, JobState.Canceled);
 		}
 
 		private void TransitionDomJobsToCanceled(ICollection<DomJob> domJobs)
@@ -845,6 +851,8 @@
 			var domJobs = apiJobs.Select(x => x.OriginalInstance).ToList();
 
 			TransitionDomJobsToTentativeFromConfirmed(domJobs);
+
+			SyncLiveOrchestration(apiJobs, JobState.Tentative);
 		}
 
 		private void TransitionDomJobsToTentativeFromConfirmed(ICollection<DomJob> domJobs)
@@ -945,6 +953,8 @@
 			var domJobs = apiJobs.Select(x => x.OriginalInstance).ToList();
 
 			TransitionDomJobsToCompleted(domJobs);
+
+			SyncLiveOrchestration(apiJobs, JobState.Completed);
 		}
 
 		private void TransitionDomJobsToCompleted(ICollection<DomJob> domJobs)
@@ -1080,6 +1090,8 @@
 				changedJobs.Add(job);
 			}
 
+			// The orchestration events are synchronized by the Confirmed-to-Running transition that the reservation start
+			// event drives afterwards, so they are not synchronized here.
 			PersistChangedJobs(changedJobs);
 		}
 
@@ -1181,6 +1193,8 @@
 				changedJobs.Add(job);
 			}
 
+			// The orchestration events are synchronized by the Running-to-Completed transition that runs afterwards, so
+			// they are not synchronized here.
 			PersistChangedJobs(changedJobs);
 		}
 
@@ -1346,6 +1360,8 @@
 
 			var domJobs = apiJobs.Where(IsValid).Select(x => x.OriginalInstance).ToList();
 			TransitionDomJobsToRunning(domJobs);
+
+			SyncLiveOrchestration(apiJobs.Where(IsValid).ToList(), JobState.Running);
 		}
 
 		private void TransitionDomJobsToRunning(ICollection<DomJob> domJobs)
@@ -1418,6 +1434,8 @@
 
 			var domJobs = apiJobs.Where(IsValid).Select(x => x.OriginalInstance).ToList();
 			TransitionDomJobsToCompletedFromRunning(domJobs);
+
+			SyncLiveOrchestration(apiJobs.Where(IsValid).ToList(), JobState.Completed);
 		}
 
 		private void TransitionDomJobsToCompletedFromRunning(ICollection<DomJob> domJobs)
@@ -1538,6 +1556,74 @@
 			}
 
 			ReportSuccess(instancesToDelete.Where(x => domResult.SuccessfulIds.Contains(x.ID)).Select(x => new DomJob(x)).ToArray());
+
+			// Remove the orchestration job configuration and events from MediaOps Live for the deleted jobs.
+			SyncLiveOrchestrationForDelete(jobsToDelete);
+		}
+
+		/// <summary>
+		/// Pushes the orchestration job configuration and events of the successfully-persisted jobs to MediaOps Live.
+		/// </summary>
+		/// <param name="apiJobs">The jobs to synchronize. Only valid jobs are synchronized.</param>
+		/// <param name="overrideState">When provided, the state to synchronize the jobs with instead of each job's own state.</param>
+		/// <exception cref="ArgumentNullException"><paramref name="apiJobs"/> is <see langword="null"/>.</exception>
+		private void SyncLiveOrchestration(IEnumerable<Job> apiJobs, JobState? overrideState = null)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (!planApi.LiveApi.IsInstalled())
+			{
+				// MediaOps Live is not installed, so there are no orchestration events to synchronize.
+				return;
+			}
+
+			foreach (var job in apiJobs.Where(IsValid))
+			{
+				var state = overrideState ?? job.State;
+
+				try
+				{
+					LiveJobConfigHandler.SetLiveJobConfigForJob(planApi, job, state, referenceDefinitions, currentTime);
+				}
+				catch (Exception ex)
+				{
+					planApi.Logger.Error(this, $"Failed to synchronize orchestration events for job {job.Id}: {ex}");
+				}
+			}
+		}
+
+		/// <summary>
+		/// Removes the orchestration job configuration and events of the successfully-persisted jobs from MediaOps Live.
+		/// </summary>
+		/// <param name="apiJobs">The jobs to remove. Only valid jobs are removed.</param>
+		/// <exception cref="ArgumentNullException"><paramref name="apiJobs"/> is <see langword="null"/>.</exception>
+		private void SyncLiveOrchestrationForDelete(IEnumerable<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (!planApi.LiveApi.IsInstalled())
+			{
+				// MediaOps Live is not installed, so there are no orchestration events to remove.
+				return;
+			}
+
+			foreach (var job in apiJobs.Where(IsValid))
+			{
+				try
+				{
+					LiveJobConfigHandler.DeleteLiveJobConfigForJob(planApi, job);
+				}
+				catch (Exception ex)
+				{
+					planApi.Logger.Error(this, $"Failed to remove orchestration events for job {job.Id}: {ex}");
+				}
+			}
 		}
 
 		private void DeleteOrchestrationSettings(ICollection<Job> apiJobs)
