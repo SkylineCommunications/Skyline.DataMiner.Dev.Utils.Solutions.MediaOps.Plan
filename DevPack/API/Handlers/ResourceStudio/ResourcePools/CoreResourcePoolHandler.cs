@@ -34,6 +34,17 @@
 			return !result.HasFailures;
 		}
 
+		public static bool TryGetDifferences(MediaOpsPlanApi planApi, ICollection<DomResourcePool> domResourcePools, out SynchronizationDetectionResult result)
+		{
+			var handler = new CoreResourcePoolHandler(planApi);
+			var detection = new SynchronizationDetectionResult();
+			handler.DetectDifferences(domResourcePools, detection);
+
+			result = detection;
+
+			return result.IsSynchronized;
+		}
+
 		public static bool TryDelete(MediaOpsPlanApi planApi, ICollection<DomResourcePool> domResourcePools, out DomInstanceBulkOperationResult<DomResourcePool> result)
 		{
 			var handler = new CoreResourcePoolHandler(planApi);
@@ -62,6 +73,53 @@
 			CreateOrUpdate(resourcePoolMappingByDomId.Where(x => !traceDataPerItem.Keys.Contains(x.Key)).Select(x => x.Value).ToList());
 		}
 
+		private void DetectDifferences(ICollection<DomResourcePool> domResourcePools, SynchronizationDetectionResult detection)
+		{
+			if (domResourcePools == null)
+			{
+				throw new ArgumentNullException(nameof(domResourcePools));
+			}
+
+			if (domResourcePools.Count == 0)
+			{
+				return;
+			}
+
+			var resourcePoolMappingByDomId = ResourcePoolMapping.GetMappings(planApi, domResourcePools).ToDictionary(x => x.DomResourcePool.ID.Id);
+
+			ValidateNames(resourcePoolMappingByDomId.Values.Where(x => x.NeedsNameValidation).Select(x => x.DomResourcePool).ToList());
+
+			foreach (var entry in resourcePoolMappingByDomId)
+			{
+				var mapping = entry.Value;
+
+				bool isBlocked = traceDataPerItem.TryGetValue(entry.Key, out var traceData);
+				if (isBlocked)
+				{
+					detection.BlockersPerItem.Add(entry.Key, traceData);
+				}
+
+				if (mapping.CoreResourcePool == null)
+				{
+					detection.DifferencesPerItem.Add(entry.Key, [new MissingCoreObjectDifference()]);
+					continue;
+				}
+
+				if (isBlocked)
+				{
+					// A blocked resource pool cannot be synchronized, so comparing the remaining configuration adds no value.
+					continue;
+				}
+
+				if (String.Equals(mapping.DomResourcePool.ResourcePoolInfo.Name, mapping.CoreResourcePool.Name))
+				{
+					continue;
+				}
+
+				detection.DifferencesPerItem.Add(entry.Key, [new NameDifference(mapping.DomResourcePool.ResourcePoolInfo.Name, mapping.CoreResourcePool.Name)]);
+			}
+		}
+
 		private void CreateOrUpdate(ICollection<ResourcePoolMapping> resourcePoolMappings)
 		{
 			if (resourcePoolMappings == null)
@@ -81,6 +139,14 @@
 			foreach (var mapping in resourcePoolMappings)
 			{
 				var dom = mapping.DomResourcePool;
+
+				if (mapping.CoreResourcePool != null && String.Equals(dom.ResourcePoolInfo.Name, mapping.CoreResourcePool.Name))
+				{
+					planApi.Logger.Information(this, $"No CORE changes for DOM resource pool {dom.ID}");
+					successfulItems.Add(dom);
+					continue;
+				}
+
 				var core = mapping.CoreResourcePool ?? new CoreResourcePool(Guid.NewGuid());
 
 				core.Name = dom.ResourcePoolInfo.Name;
@@ -89,6 +155,11 @@
 
 				domPoolsById.Add(dom.ID.Id, dom);
 				domIdByCoreId.Add(core.ID, dom.ID.Id);
+			}
+
+			if (poolsToCreateOrUpdate.Count == 0)
+			{
+				return;
 			}
 
 			planApi.CoreHelpers.ResourceManagerHelper.TryCreateOrUpdateResourcePoolsInBatches(poolsToCreateOrUpdate, out var result);
