@@ -1,4 +1,4 @@
-/*namespace RT_MediaOps.Plan.Workflow.Jobs
+namespace RT_MediaOps.Plan.Workflow.Jobs
 {
 	using System;
 	using System.Linq;
@@ -887,9 +887,9 @@
 			var job = objectCreator.CreateJob(new Job
 			{
 				Name = $"{prefix}_Job",
-				Start = currentTime,
+				Start = currentTime.AddMinutes(1),
 				End = currentTime.AddMinutes(10),
-				PreRollStart = currentTime,
+				PreRollStart = currentTime.AddMinutes(1),
 				PostRollEnd = currentTime.AddMinutes(10),
 			});
 
@@ -1179,60 +1179,102 @@
 			{
 				var error = ex.TraceData.ErrorData.OfType<MediaOpsErrorData>().SingleOrDefault();
 				Assert.IsNotNull(error);
-				Assert.IsTrue(error.ErrorMessage.Contains("Reservation has conflicting resource usage"));
+
+				var jobResourceNotAvailableError = error as JobResourceNotAvailableError;
+				Assert.IsNotNull(jobResourceNotAvailableError);
+				Assert.AreEqual(job.Id, jobResourceNotAvailableError.Id, "Expected the error to report the job that cannot be updated.");
+				Assert.AreEqual(resource.Id, jobResourceNotAvailableError.ResourceId, "Expected the error to report the unavailable resource of that job.");
 			}
 		}
 
+		// Use case 1: Job A, B and C have the same time.
+		[DataRow(5, 15, DisplayName = "Job A, B and C have the same time")]
+
+		// Use case 2: Job B and C have the same time, but job A overlaps in the near future.
+		[DataRow(10, 20, DisplayName = "Job A overlaps job B and C in the near future")]
+
+		// Use case 3: Job B and C have the same time, but job A overlaps and starts earlier.
+		[DataRow(0, 10, DisplayName = "Job A overlaps job B and C but starts earlier")]
 		[TestMethod]
-		public void NodeGraph_UpdateJob_Tentative_ResourceInUse_Fails()
+		public void NodeGraph_UpdateJob_Tentative_ResourceInUse_Fails(int jobAStartOffsetInMinutes, int jobAEndOffsetInMinutes)
 		{
 			var prefix = Guid.NewGuid();
 			var currentTime = DateTime.UtcNow.RoundToNextSecond();
 
+			var jobAStart = currentTime.AddMinutes(jobAStartOffsetInMinutes);
+			var jobAEnd = currentTime.AddMinutes(jobAEndOffsetInMinutes);
+
 			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_PoolA" });
 			pool = TestContext.Api.ResourcePools.Complete(pool);
 
-			var resource = new UnmanagedResource { Name = $"{prefix}_Resource" }.AssignToPool(pool);
-			resource = objectCreator.CreateResource(resource);
-			resource = TestContext.Api.Resources.Complete(resource);
+			var resourceA = new UnmanagedResource { Name = $"{prefix}_ResourceA" }.AssignToPool(pool);
+			resourceA = objectCreator.CreateResource(resourceA);
+			resourceA = TestContext.Api.Resources.Complete(resourceA);
+
+			var resourceB = new UnmanagedResource { Name = $"{prefix}_ResourceB" }.AssignToPool(pool);
+			resourceB = objectCreator.CreateResource(resourceB);
+			resourceB = TestContext.Api.Resources.Complete(resourceB);
 
 			var jobA = objectCreator.CreateJob(new Job
 			{
 				Name = $"{prefix}_JobA",
-				Start = currentTime,
-				End = currentTime.AddMinutes(10),
-				PreRollStart = currentTime,
-				PostRollEnd = currentTime.AddMinutes(10),
+				Start = jobAStart,
+				End = jobAEnd,
+				PreRollStart = jobAStart,
+				PostRollEnd = jobAEnd,
 			});
 			jobA = TestContext.Api.Jobs.SaveAsTentative(jobA);
 
 			var jobB = objectCreator.CreateJob(new Job
 			{
 				Name = $"{prefix}_JobB",
-				Start = currentTime,
-				End = currentTime.AddMinutes(10),
-				PreRollStart = currentTime,
-				PostRollEnd = currentTime.AddMinutes(10),
+				Start = currentTime.AddMinutes(5),
+				End = currentTime.AddMinutes(15),
+				PreRollStart = currentTime.AddMinutes(5),
+				PostRollEnd = currentTime.AddMinutes(15),
 			});
 			jobB = TestContext.Api.Jobs.SaveAsTentative(jobB);
 
-			var nodeA = new JobResourceNode(pool, resource);
-			var nodeB = new JobResourceNode(pool, resource);
-			jobA.NodeGraph.Add(nodeA);
-			jobA = TestContext.Api.Jobs.Update(jobA);
-			Assert.AreEqual(1, jobA.NodeGraph.Nodes.Count);
+			var jobC = objectCreator.CreateJob(new Job
+			{
+				Name = $"{prefix}_JobC",
+				Start = currentTime.AddMinutes(5),
+				End = currentTime.AddMinutes(15),
+				PreRollStart = currentTime.AddMinutes(5),
+				PostRollEnd = currentTime.AddMinutes(15),
+			});
+			jobC = TestContext.Api.Jobs.SaveAsTentative(jobC);
 
-			jobB.NodeGraph.Add(nodeB);
+			jobA.NodeGraph
+				.Add(new JobResourceNode(pool, resourceA))
+				.Add(new JobResourceNode(pool, resourceB));
+			jobA = TestContext.Api.Jobs.Update(jobA);
+			Assert.AreEqual(2, jobA.NodeGraph.Nodes.Count);
+
+			jobB.NodeGraph.Add(new JobResourceNode(pool, resourceA));
+			jobC.NodeGraph.Add(new JobResourceNode(pool, resourceB));
 
 			try
 			{
-				jobB = TestContext.Api.Jobs.Update(jobB);
-				Assert.Fail("Expected MediaOpsException was not thrown.");
+				TestContext.Api.Jobs.Update([jobB, jobC]);
+				Assert.Fail("Expected MediaOpsBulkException was not thrown.");
 			}
-			catch (MediaOpsException ex)
+			catch (MediaOpsBulkException<Guid> ex)
 			{
-				Assert.IsTrue(ex.TraceData.ErrorData.Any(), "Expected the core reservation conflict to be reported.");
+				CollectionAssert.AreEquivalent(new[] { jobB.Id, jobC.Id }, ex.Result.UnsuccessfulIds.ToArray(), "Expected both jobs to fail.");
+
+				AssertResourceNotAvailable(ex, jobB.Id, resourceA.Id);
+				AssertResourceNotAvailable(ex, jobC.Id, resourceB.Id);
 			}
+		}
+
+		private static void AssertResourceNotAvailable(MediaOpsBulkException<Guid> ex, Guid jobId, Guid resourceId)
+		{
+			Assert.IsTrue(ex.Result.TraceDataPerItem.TryGetValue(jobId, out var traceData), $"Expected trace data for job {jobId}.");
+
+			var error = traceData.ErrorData.OfType<JobResourceNotAvailableError>().Single();
+			Assert.AreEqual(jobId, error.Id, "Expected the error to report the job that cannot be updated.");
+			Assert.AreEqual(resourceId, error.ResourceId, "Expected the error to report the unavailable resource of that job.");
 		}
 
 		[TestMethod]
@@ -1673,4 +1715,3 @@
 		}
 	}
 }
-*/

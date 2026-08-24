@@ -4,12 +4,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using System.Collections.Generic;
 	using System.Linq;
 
+	using Newtonsoft.Json;
+
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Apps.ManagerStore.Select;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Net.ResponseErrorData;
+	using Skyline.DataMiner.Net.SRM.Quarantine;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
+
+	using CoreReservation = Net.ResourceManager.Objects.ReservationInstance;
 
 	// Translates core ResourceManager errors into DevPack job resource errors keyed per reservation (SubjectId). Only the
 	// resource, capacity and capability ids are surfaced; the consumer is responsible for resolving them to names.
@@ -124,34 +129,96 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 			foreach (var error in quarantineErrors)
 			{
-				if (!TryGetReservationId(error, out var reservationId))
+				// The same resource can be reported by multiple quarantined reservations for the same reservation update.
+				var emitted = new HashSet<Tuple<Guid, Guid>>();
+
+				foreach (var quarantinedUsagesOnReservation in error.MustBeMovedToQuarantine)
+				{
+					foreach (var usage in quarantinedUsagesOnReservation.QuarantinedUsages ?? new List<QuarantinedResourceUsageDefinition>())
+					{
+						var coreResourceId = usage.QuarantinedResourceUsage.GUID;
+						if (!domResourceIdByCoreId.TryGetValue(coreResourceId, out var domResourceId))
+						{
+							planApi.Logger.Error(this, $"Could not resolve a Resource Studio resource for core resource {coreResourceId}.");
+							continue;
+						}
+
+						foreach (var reservationId in GetTraceDataKeys(error, quarantinedUsagesOnReservation.ReservationInstance, usage))
+						{
+							if (!emitted.Add(Tuple.Create(reservationId, domResourceId)))
+							{
+								continue;
+							}
+
+							GetOrCreateTraceData(reservationId).Add(new JobResourceNotAvailableError
+							{
+								ResourceId = domResourceId,
+							});
+						}
+					}
+				}
+
+				if (emitted.Count > 0)
 				{
 					continue;
 				}
 
-				var traceData = GetOrCreateTraceData(reservationId);
-
-				var emittedAny = false;
-				foreach (var coreResourceId in GetQuarantinedCoreResourceIds(error).Distinct())
+				var fallbackKeys = GetFallbackKeys(error).ToList();
+				if (fallbackKeys.Count == 0)
 				{
-					if (!domResourceIdByCoreId.TryGetValue(coreResourceId, out var domResourceId))
-					{
-						planApi.Logger.Error(this, $"Could not resolve a Resource Studio resource for core resource {coreResourceId}.");
-						continue;
-					}
-
-					traceData.Add(new JobResourceNotAvailableError
-					{
-						ErrorMessage = error.Message,
-						ResourceId = domResourceId,
-					});
-					emittedAny = true;
+					planApi.Logger.Error(this, $"Error with reason {error.ErrorReason} could not be linked to a reservation. Error message: {error.Message}");
+					continue;
 				}
 
-				if (!emittedAny)
+				foreach (var reservationId in fallbackKeys)
 				{
-					AddRawFallback(traceData, error);
+					AddRawFallback(GetOrCreateTraceData(reservationId), error);
 				}
+			}
+		}
+
+		// The quarantine is reported against the reservation update that triggered it, which is the reservation the DevPack is
+		// creating or updating. SubjectId is not filled in for this error reason, so it is only used as a fallback.
+		private IEnumerable<Guid> GetTraceDataKeys(ResourceManagerErrorData error, CoreReservation impactedReservation, QuarantinedResourceUsageDefinition usage)
+		{
+			var triggerReservationIds = (usage.QuarantineTriggers ?? new List<QuarantineTrigger>())
+				.Where(x => x.ReservationUpdateTrigger != null && x.ReservationUpdateTrigger.ReservationId != Guid.Empty)
+				.Select(x => x.ReservationUpdateTrigger.ReservationId)
+				.Distinct()
+				.ToList();
+
+			if (triggerReservationIds.Count > 0)
+			{
+				return triggerReservationIds;
+			}
+
+			planApi.Logger.Error(this, $"Error with reason {error.ErrorReason} has no reservation update trigger. Falling back to the subject or impacted reservation.");
+
+			return GetFallbackKeys(error, impactedReservation);
+		}
+
+		private IEnumerable<Guid> GetFallbackKeys(ResourceManagerErrorData error)
+		{
+			return error.MustBeMovedToQuarantine
+				.Select(x => x.ReservationInstance)
+				.DefaultIfEmpty(null)
+				.SelectMany(x => GetFallbackKeys(error, x))
+				.Distinct();
+		}
+
+		private IEnumerable<Guid> GetFallbackKeys(ResourceManagerErrorData error, CoreReservation impactedReservation)
+		{
+			var subjectId = error.SubjectId.GetValueOrDefault();
+			if (subjectId != Guid.Empty)
+			{
+				yield return subjectId;
+				yield break;
+			}
+
+			var impactedReservationId = impactedReservation?.ID ?? Guid.Empty;
+			if (impactedReservationId != Guid.Empty)
+			{
+				yield return impactedReservationId;
 			}
 		}
 
