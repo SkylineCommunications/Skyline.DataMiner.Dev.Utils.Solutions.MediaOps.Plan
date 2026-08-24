@@ -134,46 +134,62 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 				foreach (var quarantinedUsagesOnReservation in error.MustBeMovedToQuarantine)
 				{
-					foreach (var usage in quarantinedUsagesOnReservation.QuarantinedUsages ?? new List<QuarantinedResourceUsageDefinition>())
+					EmitResourceNotAvailableErrors(
+						error,
+						quarantinedUsagesOnReservation.ReservationInstance,
+						quarantinedUsagesOnReservation.QuarantinedUsages,
+						domResourceIdByCoreId,
+						emitted);
+				}
+
+				if (emitted.Count == 0)
+				{
+					AddFallbackTraceData(error);
+				}
+			}
+		}
+
+		private void EmitResourceNotAvailableErrors(
+			ResourceManagerErrorData error,
+			CoreReservation quarantinedReservation,
+			IEnumerable<QuarantinedResourceUsageDefinition> quarantinedUsages,
+			IReadOnlyDictionary<Guid, Guid> domResourceIdByCoreId,
+			ISet<Tuple<Guid, Guid>> emitted)
+		{
+			foreach (var usage in quarantinedUsages ?? Enumerable.Empty<QuarantinedResourceUsageDefinition>())
+			{
+				var coreResourceId = usage.QuarantinedResourceUsage.GUID;
+				if (!domResourceIdByCoreId.TryGetValue(coreResourceId, out var domResourceId))
+				{
+					planApi.Logger.Error(this, $"Could not resolve a Resource Studio resource for core resource {coreResourceId}.");
+					continue;
+				}
+
+				foreach (var reservationId in GetTraceDataKeys(error, quarantinedReservation, usage))
+				{
+					if (emitted.Add(Tuple.Create(reservationId, domResourceId)))
 					{
-						var coreResourceId = usage.QuarantinedResourceUsage.GUID;
-						if (!domResourceIdByCoreId.TryGetValue(coreResourceId, out var domResourceId))
+						GetOrCreateTraceData(reservationId).Add(new JobResourceNotAvailableError
 						{
-							planApi.Logger.Error(this, $"Could not resolve a Resource Studio resource for core resource {coreResourceId}.");
-							continue;
-						}
-
-						foreach (var reservationId in GetTraceDataKeys(error, quarantinedUsagesOnReservation.ReservationInstance, usage))
-						{
-							if (!emitted.Add(Tuple.Create(reservationId, domResourceId)))
-							{
-								continue;
-							}
-
-							GetOrCreateTraceData(reservationId).Add(new JobResourceNotAvailableError
-							{
-								ResourceId = domResourceId,
-							});
-						}
+							ResourceId = domResourceId,
+						});
 					}
 				}
+			}
+		}
 
-				if (emitted.Count > 0)
-				{
-					continue;
-				}
+		private void AddFallbackTraceData(ResourceManagerErrorData error)
+		{
+			var fallbackKeys = GetFallbackKeys(error).ToList();
+			if (fallbackKeys.Count == 0)
+			{
+				planApi.Logger.Error(this, $"Error with reason {error.ErrorReason} could not be linked to a reservation. Error message: {error.Message}");
+				return;
+			}
 
-				var fallbackKeys = GetFallbackKeys(error).ToList();
-				if (fallbackKeys.Count == 0)
-				{
-					planApi.Logger.Error(this, $"Error with reason {error.ErrorReason} could not be linked to a reservation. Error message: {error.Message}");
-					continue;
-				}
-
-				foreach (var reservationId in fallbackKeys)
-				{
-					AddRawFallback(GetOrCreateTraceData(reservationId), error);
-				}
+			foreach (var reservationId in fallbackKeys)
+			{
+				AddRawFallback(GetOrCreateTraceData(reservationId), error);
 			}
 		}
 

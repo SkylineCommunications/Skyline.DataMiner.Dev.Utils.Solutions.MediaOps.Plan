@@ -444,47 +444,47 @@
 					return;
 				}
 
-				if (traceDataHandler != null)
+				var traceDataPerReservationId = traceDataHandler != null
+					? traceDataHandler.Translate(resourceManagerErrors)
+					: GroupRawErrorsBySubjectId(resourceManagerErrors);
+
+				foreach (var kvp in traceDataPerReservationId)
 				{
-					foreach (var kvp in traceDataHandler.Translate(resourceManagerErrors))
-					{
-						if (traceDataPerItem.TryGetValue(kvp.Key, out var mediaOpsTraceData))
-						{
-							foreach (var error in kvp.Value.ErrorData)
-							{
-								mediaOpsTraceData.Add(error);
-							}
-						}
-						else
-						{
-							traceDataPerItem.Add(kvp.Key, kvp.Value);
-						}
+					AddTraceData(traceDataPerItem, kvp.Key, kvp.Value);
+					unsuccessfulIds.Add(kvp.Key);
+				}
+			}
+		}
 
-						unsuccessfulIds.Add(kvp.Key);
-					}
+		private static IReadOnlyDictionary<Guid, MediaOpsTraceData> GroupRawErrorsBySubjectId(IEnumerable<ResourceManagerErrorData> resourceManagerErrors)
+		{
+			var traceDataPerSubjectId = new Dictionary<Guid, MediaOpsTraceData>();
 
-					return;
+			foreach (var error in resourceManagerErrors.Where(x => x.SubjectId.HasValue))
+			{
+				if (!traceDataPerSubjectId.TryGetValue(error.SubjectId.Value, out var mediaOpsTraceData))
+				{
+					mediaOpsTraceData = new MediaOpsTraceData();
+					traceDataPerSubjectId.Add(error.SubjectId.Value, mediaOpsTraceData);
 				}
 
-				var resourceManagerErrorsBySubjectId = resourceManagerErrors
-				.Where(x => x.SubjectId.HasValue)
-				.GroupBy(x => x.SubjectId.Value)
-				.ToDictionary(x => x.Key, x => x.ToList());
+				mediaOpsTraceData.Add(new MediaOpsErrorData { ErrorMessage = error.ToString() });
+			}
 
-				foreach (var resourceSpecificErrors in resourceManagerErrorsBySubjectId)
-				{
-					var subjectId = resourceSpecificErrors.Key;
-					var errors = resourceSpecificErrors.Value;
+			return traceDataPerSubjectId;
+		}
 
-					var mediaOpsTraceData = new MediaOpsTraceData();
-					foreach (var error in errors)
-					{
-						mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = error.ToString() });
-					}
+		private static void AddTraceData(IDictionary<Guid, MediaOpsTraceData> traceDataPerItem, Guid key, MediaOpsTraceData traceData)
+		{
+			if (!traceDataPerItem.TryGetValue(key, out var existingTraceData))
+			{
+				traceDataPerItem.Add(key, traceData);
+				return;
+			}
 
-					traceDataPerItem.Add(subjectId, mediaOpsTraceData);
-					unsuccessfulIds.Add(subjectId);
-				}
+			foreach (var error in traceData.ErrorData)
+			{
+				existingTraceData.Add(error);
 			}
 		}
 
