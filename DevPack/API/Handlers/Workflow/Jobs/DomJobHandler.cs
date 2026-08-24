@@ -283,7 +283,9 @@
 			// left with items pointing to jobs that failed to be created or updated.
 			CreateOrUpdateCategoryItems(apiJobs.Where(IsValid).ToList());
 
-			SyncLiveOrchestration(apiJobs.Where(IsValid).ToList());
+			// Synchronize MediaOps Live from the persisted instances so Live reflects the merged result rather than this
+			// user's in-memory snapshot, which may miss a concurrent edit that the lock-merge preserved.
+			SyncLiveOrchestration(SuccessfulItems.Select(x => new Job(planApi, x)).ToList());
 		}
 
 		private void CreateOrUpdateDomJobs(ICollection<DomJob> domJobs)
