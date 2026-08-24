@@ -434,7 +434,9 @@
 
 			void HandleBatch(IEnumerable<ReservationInstance> batch)
 			{
-				var res = helper.AddOrUpdateReservationInstances(batch.ToArray());
+				var requested = batch.ToList();
+
+				var res = helper.AddOrUpdateReservationInstances(requested.ToArray()) ?? Array.Empty<ReservationInstance>();
 				successfulItems.AddRange(res);
 
 				var traceData = helper.GetTraceDataLastCall();
@@ -452,6 +454,35 @@
 				{
 					AddTraceData(traceDataPerItem, kvp.Key, kvp.Value);
 					unsuccessfulIds.Add(kvp.Key);
+				}
+
+				ReportUnpersistedReservations(requested, res, resourceManagerErrors);
+			}
+
+			// A reported error is not always linked to the reservation that was refused. When a reservation is refused
+			// because an overlapping booking would have to go to quarantine (for example when the resource concurrency
+			// does not allow the extra booking), the core software reports the impacted bookings, which are not
+			// necessarily part of this request. Every requested reservation that the Agent did not persist is therefore
+			// reported as unsuccessful, so the caller never treats a refused reservation as saved.
+			void ReportUnpersistedReservations(IReadOnlyCollection<ReservationInstance> requested, IReadOnlyCollection<ReservationInstance> persisted, IReadOnlyCollection<ResourceManagerErrorData> resourceManagerErrors)
+			{
+				var persistedIds = new HashSet<Guid>(persisted.Select(x => x.ID));
+
+				foreach (var reservation in requested.Where(x => !persistedIds.Contains(x.ID)))
+				{
+					if (!unsuccessfulIds.Add(reservation.ID) && traceDataPerItem.ContainsKey(reservation.ID))
+					{
+						// The reservation was already reported with its own (translated) errors.
+						continue;
+					}
+
+					var mediaOpsTraceData = new MediaOpsTraceData();
+					foreach (var error in resourceManagerErrors)
+					{
+						mediaOpsTraceData.Add(new MediaOpsErrorData { ErrorMessage = error.ToString() });
+					}
+
+					AddTraceData(traceDataPerItem, reservation.ID, mediaOpsTraceData);
 				}
 			}
 		}

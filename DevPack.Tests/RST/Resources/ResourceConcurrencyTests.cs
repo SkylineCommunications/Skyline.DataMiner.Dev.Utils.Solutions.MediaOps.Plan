@@ -94,6 +94,60 @@
 		}
 
 		[TestMethod]
+		public void SaveAsTentative_SecondJobWithSameResourceExceedingConcurrency_Fails()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = new UnmanagedResource
+			{
+				Name = $"{prefix}_Resource",
+				Concurrency = 1,
+			}.AssignToPool(pool);
+			resource = objectCreator.CreateResource(resource);
+			resource = TestContext.Api.Resources.Complete(resource);
+
+			Job CreateJob(string name)
+			{
+				var job = new Job
+				{
+					Name = $"{prefix}_{name}",
+					Start = currentTime.AddHours(1),
+					End = currentTime.AddHours(2),
+					PreRollStart = currentTime.AddHours(1),
+					PostRollEnd = currentTime.AddHours(2),
+				};
+
+				job.NodeGraph.Add(new JobResourceNode(pool, resource));
+
+				return objectCreator.CreateJob(job);
+			}
+
+			var jobA = CreateJob("Job_1");
+			var jobB = CreateJob("Job_2");
+
+			jobA = TestContext.Api.Jobs.SaveAsTentative(jobA);
+			Assert.AreEqual(JobState.Tentative, jobA.State, "Expected the first job to be saved as tentative.");
+
+			// The resource is already reserved by the pending reservation of the first job, so the second job cannot
+			// claim it for the same time range.
+			Assert.ThrowsException<MediaOpsException>(
+				() => TestContext.Api.Jobs.SaveAsTentative(jobB),
+				"Expected the second job not to be saved as tentative while the resource concurrency is exceeded.");
+
+			var storedJobB = TestContext.Api.Jobs.Read(jobB.Id);
+			Assert.AreEqual(JobState.Draft, storedJobB.State, "Expected the second job to remain in draft state.");
+
+			var reservationsOfJobB = TestContext.ResourceManagerHelper.GetReservationInstances(
+				ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(jobB.Id))).ToList();
+
+			Assert.AreEqual(0, reservationsOfJobB.Count, "Expected no core reservation to be created for the second job.");
+		}
+
+		[TestMethod]
 		public void UpdateConcurrency_WithOverlappingTentativeReservations_QuarantinesReservation()
 		{
 			var prefix = Guid.NewGuid();
