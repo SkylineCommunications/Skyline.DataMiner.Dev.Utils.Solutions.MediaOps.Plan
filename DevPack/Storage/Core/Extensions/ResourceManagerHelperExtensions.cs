@@ -448,7 +448,9 @@
 						? traceDataHandler.Translate(resourceManagerErrors)
 						: GroupRawErrorsBySubjectId(resourceManagerErrors);
 
-					foreach (var kvp in traceDataPerReservationId)
+var requestedIds = new HashSet<Guid>(requested.Select(x => x.ID));
+					var persistedIds = new HashSet<Guid>(res.Select(x => x.ID));
+					foreach (var kvp in traceDataPerReservationId.Where(x => requestedIds.Contains(x.Key) && !persistedIds.Contains(x.Key)))
 					{
 						AddTraceData(traceDataPerItem, kvp.Key, kvp.Value);
 						unsuccessfulIds.Add(kvp.Key);

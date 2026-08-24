@@ -88,8 +88,7 @@ namespace RT_MediaOps.Plan.Storage.Core
 			var success = helper.TryCreateOrUpdateReservationInstancesInBatches(new[] { persistedReservation, refusedReservation }, out var result);
 
 			Assert.IsFalse(success, "Expected the operation to fail when one of the reservations was not persisted.");
-			CollectionAssert.Contains(result.UnsuccessfulIds.ToArray(), refusedReservation.ID, "Expected the refused reservation to be reported as unsuccessful.");
-			CollectionAssert.DoesNotContain(result.UnsuccessfulIds.ToArray(), persistedReservation.ID, "Expected the persisted reservation not to be reported as unsuccessful.");
+CollectionAssert.AreEquivalent(new[] { refusedReservation.ID }, result.UnsuccessfulIds.ToArray(), "Expected only the refused reservation to be reported as unsuccessful.");
 			CollectionAssert.AreEquivalent(new[] { persistedReservation.ID }, result.SuccessfulIds.ToArray(), "Expected the persisted reservation to be reported as successful.");
 		}
 
