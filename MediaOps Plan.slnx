@@ -2,14 +2,15 @@
   <Folder Name="/Solution Items/">
     <File Path="Directory.Build.props" />
     <File Path="Directory.Build.targets" />
+    <File Path="Directory.Packages.props" />
     <File Path="LICENSE" />
     <File Path="README.md" />
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="DevPack.Injector/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Injector.csproj" />
     <Project Path="DevPack.Tests/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests.csproj" />
-    <Project Path="QAOpsPackage/QAOpsPackage.csproj" />
     <Project Path="DevPack.UnitTesting/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.UnitTesting.csproj" />
+    <Project Path="QAOpsPackage/QAOpsPackage.csproj" />
   </Folder>
   <Project Path="DevPack.Automation/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Automation.csproj" />
   <Project Path="DevPack.GQI/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.GQI.csproj" />
