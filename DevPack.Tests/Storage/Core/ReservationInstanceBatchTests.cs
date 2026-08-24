@@ -55,6 +55,26 @@ namespace RT_MediaOps.Plan.Storage.Core
 			Assert.IsTrue(result.TraceDataPerItem.ContainsKey(reservation.ID), "Expected trace data to be reported for the refused reservation.");
 		}
 
+		/// <summary>
+		/// The trace data of the last call is kept on the <see cref="ResourceManagerHelper"/> itself, so a concurrent
+		/// call on the same helper can overwrite the errors of a refused reservation. The reservations returned by the
+		/// Agent must therefore remain the source of truth.
+		/// </summary>
+		[TestMethod]
+		public void TryCreateOrUpdateReservationInstances_ReservationRefusedWithoutErrors_ReportsFailure()
+		{
+			var reservation = CreateReservation();
+
+			var helper = CreateHelper(message => CreateResponse(new List<ReservationInstance>(), new TraceData()));
+
+			var success = helper.TryCreateOrUpdateReservationInstancesInBatches(new[] { reservation }, out var result);
+
+			Assert.IsFalse(success, "Expected the operation to fail when the Agent did not persist the reservation.");
+			CollectionAssert.Contains(result.UnsuccessfulIds.ToArray(), reservation.ID, "Expected the refused reservation to be reported as unsuccessful.");
+			Assert.AreEqual(0, result.SuccessfulItems.Count, "Expected no reservation to be reported as successful.");
+			Assert.IsTrue(result.TraceDataPerItem.ContainsKey(reservation.ID), "Expected trace data to be reported for the refused reservation.");
+		}
+
 		[TestMethod]
 		public void TryCreateOrUpdateReservationInstances_OneOfTwoReservationsRefused_ReportsOnlyRefusedAsUnsuccessful()
 		{
