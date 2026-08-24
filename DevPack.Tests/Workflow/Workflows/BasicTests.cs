@@ -47,29 +47,28 @@
 		[TestMethod]
 		public void ReadWorkflowById()
 		{
-			var firstWorkflow = TestContext.Api.Workflows.Read().FirstOrDefault();
-			if (firstWorkflow == null && Config.IsQaOps)
+			var workflow = objectCreator.CreateWorkflow(new Workflow
 			{
-				Assert.Inconclusive("No workflow exists on the QAOps system after package installation.");
-			}
+				Name = $"{Guid.NewGuid()}_Workflow",
+			});
 
-			var jobToVerify = TestContext.Api.Workflows.Read(firstWorkflow.Id);
+			var workflowToVerify = TestContext.Api.Workflows.Read(workflow.Id);
 
-			Assert.AreEqual(firstWorkflow, jobToVerify);
+			Assert.AreEqual(workflow, workflowToVerify);
 		}
 
 		[TestMethod]
 		public void ReadWorkflowByName()
 		{
-			var firstWorkflow = TestContext.Api.Workflows.Read().FirstOrDefault();
-			if (firstWorkflow == null && Config.IsQaOps)
+			var name = $"{Guid.NewGuid()}_Workflow";
+			var workflow = objectCreator.CreateWorkflow(new Workflow
 			{
-				Assert.Inconclusive("No workflow exists on the QAOps system after package installation.");
-			}
+				Name = name,
+			});
 
-			var jobToVerify = TestContext.Api.Workflows.Read(WorkflowExposers.Name.Equal(firstWorkflow.Name)).First();
+			var workflowToVerify = TestContext.Api.Workflows.Read(WorkflowExposers.Name.Equal(name)).Single();
 
-			Assert.AreEqual(firstWorkflow, jobToVerify);
+			Assert.AreEqual(workflow, workflowToVerify);
 		}
 
 		[TestMethod]
@@ -363,6 +362,39 @@
 			{
 				Assert.Fail($"Expected no exception when deleting unknown workflow ID, but got: {ex}");
 			}
+		}
+
+		[TestMethod]
+		public void Delete_WorkflowWithNode_RemovesWorkflowAndNodeOrchestrationSettings()
+		{
+			var prefix = Guid.NewGuid();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var workflow = new Workflow
+			{
+				Name = $"{prefix}_Workflow",
+			};
+
+			workflow.NodeGraph.Add(new WorkflowResourcePoolNode(pool));
+			workflow = objectCreator.CreateWorkflow(workflow);
+
+			var orchestrationSettingsIds = new[] { workflow.OrchestrationSettings.Id }
+				.Concat(workflow.NodeGraph.Nodes.Select(x => x.OrchestrationSettings.Id))
+				.ToList();
+			Assert.AreEqual(2, orchestrationSettingsIds.Count, "Expected an orchestration settings instance for the workflow and for its node.");
+
+			var planApi = (MediaOpsPlanApi)TestContext.Api;
+			var configurations = planApi.DomHelpers.SlcWorkflowHelper.GetConfigurations(orchestrationSettingsIds).ToList();
+			Assert.AreEqual(2, configurations.Count, "Expected both orchestration settings to be stored before the workflow is deleted.");
+
+			TestContext.Api.Workflows.Delete(workflow.Id);
+
+			Assert.IsNull(TestContext.Api.Workflows.Read(workflow.Id), "Expected the workflow to be deleted.");
+
+			configurations = planApi.DomHelpers.SlcWorkflowHelper.GetConfigurations(orchestrationSettingsIds).ToList();
+			Assert.AreEqual(0, configurations.Count, "Expected the orchestration settings of the workflow and of its nodes to be removed.");
 		}
 	}
 }

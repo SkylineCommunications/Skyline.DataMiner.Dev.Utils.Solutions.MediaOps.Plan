@@ -30,12 +30,12 @@
 			{
 				string currentProcessName = Process.GetCurrentProcess().ProcessName;
 				isRunningOnDataMinerAgent = DataMinerProcessNames.Any(x => currentProcessName.StartsWith(x, StringComparison.InvariantCultureIgnoreCase));
-				if (!isRunningOnDataMinerAgent.Value )
+				if (!isRunningOnDataMinerAgent.Value)
 				{
 					_logger.Warning("This code isn't running on a DataMiner agent, unable to communicate with Lock Manager as NATS communication will fail, keeping locks in memory");
 				}
 			}
-			
+
 			return isRunningOnDataMinerAgent.Value;
 		}
 

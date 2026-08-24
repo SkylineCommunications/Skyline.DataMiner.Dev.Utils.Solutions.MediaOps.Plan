@@ -22,7 +22,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	internal static class NodeGraphCloner
 	{
 		/// <summary>
-		/// Copies all nodes and connections from <paramref name="source"/> into <paramref name="destination"/>,
+		/// Copies all nodes, connections and groups from <paramref name="source"/> into <paramref name="destination"/>,
 		/// regenerating node and connection identifiers in the process.
 		/// </summary>
 		/// <typeparam name="TSource">The source node type.</typeparam>
@@ -31,7 +31,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <param name="destination">The destination graph to populate. Must be empty.</param>
 		/// <param name="nodeFactory">
 		/// Function that produces a destination node for each source node. Return <see langword="null"/> to skip a node;
-		/// connections involving that node will be skipped as well.
+		/// connections and group memberships involving that node will be skipped as well.
 		/// </param>
 		/// <returns>
 		/// A dictionary mapping each cloned source node id to the corresponding new destination node id.
@@ -61,6 +61,23 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			var nodeMap = new Dictionary<TSource, TDest>();
+			var nodeIdMap = CloneNodes(source, destination, nodeFactory, nodeMap);
+
+			CloneConnections(source, destination, nodeMap);
+			CloneLinks(source, destination, nodeMap);
+			CloneGroups(source, destination, nodeMap);
+
+			return nodeIdMap;
+		}
+
+		private static Dictionary<string, string> CloneNodes<TSource, TDest>(
+			NodeGraph<TSource> source,
+			NodeGraph<TDest> destination,
+			Func<TSource, TDest> nodeFactory,
+			IDictionary<TSource, TDest> nodeMap)
+			where TSource : NodeBase
+			where TDest : NodeBase
+		{
 			var nodeIdMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
 			foreach (var sourceNode in source.Nodes)
@@ -76,6 +93,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				destination.Add(destinationNode);
 			}
 
+			return nodeIdMap;
+		}
+
+		private static void CloneConnections<TSource, TDest>(
+			NodeGraph<TSource> source,
+			NodeGraph<TDest> destination,
+			IDictionary<TSource, TDest> nodeMap)
+			where TSource : NodeBase
+			where TDest : NodeBase
+		{
 			foreach (var connection in source.Connections)
 			{
 				if (!nodeMap.TryGetValue(connection.From, out var from) ||
@@ -86,7 +113,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 				destination.Connect(from, to, connection.Configuration);
 			}
+		}
 
+		private static void CloneLinks<TSource, TDest>(
+			NodeGraph<TSource> source,
+			NodeGraph<TDest> destination,
+			IDictionary<TSource, TDest> nodeMap)
+			where TSource : NodeBase
+			where TDest : NodeBase
+		{
 			foreach (var link in source.Links)
 			{
 				if (!nodeMap.TryGetValue(link.Value, out var parent) ||
@@ -97,8 +132,26 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 				destination.Link(parent, child);
 			}
+		}
 
-			return nodeIdMap;
+		private static void CloneGroups<TSource, TDest>(
+			NodeGraph<TSource> source,
+			NodeGraph<TDest> destination,
+			IDictionary<TSource, TDest> nodeMap)
+			where TSource : NodeBase
+			where TDest : NodeBase
+		{
+			foreach (var sourceGroup in source.Groups)
+			{
+				var destinationGroup = destination.AddGroup(sourceGroup.Name);
+				foreach (var sourceNode in sourceGroup.Nodes)
+				{
+					if (nodeMap.TryGetValue(sourceNode, out var destinationNode))
+					{
+						destinationGroup.Add(destinationNode);
+					}
+				}
+			}
 		}
 	}
 }

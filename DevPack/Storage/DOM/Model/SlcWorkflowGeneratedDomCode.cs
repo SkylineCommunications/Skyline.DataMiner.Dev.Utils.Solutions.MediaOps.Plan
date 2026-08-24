@@ -524,6 +524,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 				public static FieldDescriptorID JobSeriesID { get; } = new FieldDescriptorID(new Guid("e35a308c-c342-4d61-b53e-744ffdeda9b9"));
 			}
 
+			public static class NodeGroups
+			{
+				public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("6f964b2c-9682-4a44-9c91-bc3a5871a794"))
+				{ ModuleId = "(slc)workflow" };
+				public static FieldDescriptorID GroupName { get; } = new FieldDescriptorID(new Guid("069a0c53-25ff-4538-86e3-73e9f83afd36"));
+				public static FieldDescriptorID GroupNodeIds { get; } = new FieldDescriptorID(new Guid("6b7b43d0-ec5a-44b2-b25d-614e9c8a05dc"));
+			}
+
 			public static class JobNodeRelationshipGeneralActions
 			{
 				public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("bd8f007f-fc61-47e5-83f8-0e708217db29"))
@@ -1170,6 +1178,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 		/// </summary>
 		public JobInfoSection JobInfo { get; set; }
 
+		/// <summary>
+		/// Gets or sets the NodeGroups section of the DOM Instance.
+		/// </summary>
+		public IList<NodeGroupsSection> NodeGroups { get; private set; }
+
 		public static explicit operator RecurringJobsInstance(DomInstance instance)
 		{
 			return new RecurringJobsInstance(instance);
@@ -1230,6 +1243,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 
 			domInstance.Sections.Add(JobExecution.ToSection());
 			domInstance.Sections.Add(JobInfo.ToSection());
+			foreach (var item in NodeGroups)
+			{
+				domInstance.Sections.Add(item.ToSection());
+			}
+
 			return domInstance;
 		}
 
@@ -1303,6 +1321,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 			{
 				JobInfo = new JobInfoSection(_jobInfo);
 			}
+
+			NodeGroups = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.NodeGroups.Id)).Select(section => new NodeGroupsSection(section)).ToList();
 		}
 	}
 
@@ -1398,6 +1418,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 		/// </summary>
 		public JobInfoSection JobInfo { get; set; }
 
+		/// <summary>
+		/// Gets or sets the NodeGroups section of the DOM Instance.
+		/// </summary>
+		public IList<NodeGroupsSection> NodeGroups { get; private set; }
+
 		public static explicit operator JobsInstance(DomInstance instance)
 		{
 			return new JobsInstance(instance);
@@ -1462,6 +1487,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 
 			domInstance.Sections.Add(JobExecution.ToSection());
 			domInstance.Sections.Add(JobInfo.ToSection());
+			foreach (var item in NodeGroups)
+			{
+				domInstance.Sections.Add(item.ToSection());
+			}
+
 			return domInstance;
 		}
 
@@ -1526,6 +1556,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 			{
 				JobInfo = new JobInfoSection(_jobInfo);
 			}
+
+			NodeGroups = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.NodeGroups.Id)).Select(section => new NodeGroupsSection(section)).ToList();
 		}
 	}
 
@@ -1887,6 +1919,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 		/// </summary>
 		public IList<NodesSection> Nodes { get; private set; }
 
+		/// <summary>
+		/// Gets or sets the NodeGroups section of the DOM Instance.
+		/// </summary>
+		public IList<NodeGroupsSection> NodeGroups { get; private set; }
+
 		public static explicit operator WorkflowsInstance(DomInstance instance)
 		{
 			return new WorkflowsInstance(instance);
@@ -1936,6 +1973,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 			}
 
 			foreach (var item in Nodes)
+			{
+				domInstance.Sections.Add(item.ToSection());
+			}
+
+			foreach (var item in NodeGroups)
 			{
 				domInstance.Sections.Add(item.ToSection());
 			}
@@ -1993,6 +2035,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 
 			Connections = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.Connections.Id)).Select(section => new ConnectionsSection(section)).ToList();
 			Nodes = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.Nodes.Id)).Select(section => new NodesSection(section)).ToList();
+			NodeGroups = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.NodeGroups.Id)).Select(section => new NodeGroupsSection(section)).ToList();
 		}
 	}
 
@@ -8547,6 +8590,121 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 				throw new InvalidOperationException("'JobStart' is required. Please fill it in before saving, or mark it as optional with the DOM Editor.");
 			if (section.GetValue<DateTime>(SlcWorkflowIds.Sections.JobInfo.JobEnd) == null)
 				throw new InvalidOperationException("'JobEnd' is required. Please fill it in before saving, or mark it as optional with the DOM Editor.");
+			return section;
+		}
+	}
+
+	/// <summary>
+	/// Represents a wrapper class for accessing a NodeGroupsSection section.
+	/// The <see cref="NodeGroupsSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	internal partial class NodeGroupsSection : DomSectionBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="NodeGroupsSection"/> class. Creates an empty <see cref="NodeGroupsSection"/> object with default settings.
+		/// </summary>
+		public NodeGroupsSection() : base(SlcWorkflowIds.Sections.NodeGroups.Id)
+		{
+			GroupNodeIds = new List<String>();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="NodeGroupsSection"/> class using the specified <paramref name="section"/> for initializing the object.
+		/// </summary>
+		/// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="NodeGroupsSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public NodeGroupsSection(Section section) : base(section, SlcWorkflowIds.Sections.NodeGroups.Id)
+		{
+			var groupNodeIds = section.GetListValue<String>(SlcWorkflowIds.Sections.NodeGroups.GroupNodeIds);
+			GroupNodeIds = groupNodeIds != null ? groupNodeIds.Values : new List<String>();
+		}
+
+		/// <summary>
+		/// Gets or sets the GroupName field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String GroupName
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcWorkflowIds.Sections.NodeGroups.GroupName);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcWorkflowIds.Sections.NodeGroups.GroupName);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcWorkflowIds.Sections.NodeGroups.GroupName, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the GroupNodeIds field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public IList<String> GroupNodeIds { get; private set; }
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="NodeGroupsSection"/>.
+		/// </summary>
+		/// <returns>A new <see cref="NodeGroupsSection"/> object that is a deep copy of this section.</returns>
+		public NodeGroupsSection Clone()
+		{
+			return new NodeGroupsSection((Section)this.ToSection().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="NodeGroupsSection"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="NodeGroupsSection"/> object that is a copy of this section but with a different id.</returns>
+		public NodeGroupsSection Duplicate()
+		{
+			var section = (Section)this.ToSection().Clone();
+			section.ID = new SectionID(Guid.NewGuid());
+			return new NodeGroupsSection(section);
+		}
+
+		/// <inheritdoc />
+		protected override Section InternalToSection()
+		{
+			if (GroupNodeIds.Count == 0)
+				section.RemoveFieldValueById(SlcWorkflowIds.Sections.NodeGroups.GroupNodeIds);
+			else
+				section.AddOrUpdateListValue<String>(SlcWorkflowIds.Sections.NodeGroups.GroupNodeIds, GroupNodeIds.ToList());
 			return section;
 		}
 	}

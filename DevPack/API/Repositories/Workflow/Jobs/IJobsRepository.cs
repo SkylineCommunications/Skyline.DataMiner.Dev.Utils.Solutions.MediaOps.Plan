@@ -9,7 +9,7 @@
 	/// Defines methods for managing <see cref="Job"/> objects, including state transitions.
 	/// </summary>
 	public interface IJobsRepository : IRepository<Job>
-    {
+	{
 		/// <summary>
 		/// Gets the identifiers for predefined job types.
 		/// </summary>
@@ -104,32 +104,32 @@
 		IReadOnlyCollection<Job> TransitionToRunning(IEnumerable<Guid> jobIds);
 
 		/// <summary>
-		/// Moves the specified <see cref="Job"/> from running to completed state. The job's post-roll end time must have
-		/// passed and its core reservation must have ended.
+		/// Moves the specified <see cref="Job"/> from running to completed state. The job's core reservation must have
+		/// ended; its status is authoritative even if the job's persisted post-roll end has not yet been updated.
 		/// </summary>
 		/// <param name="job">The job to transition to completed.</param>
 		/// <returns>The completed job.</returns>
 		Job TransitionToCompleted(Job job);
 
 		/// <summary>
-		/// Moves the specified job from running to completed state. The job's post-roll end time must have passed and its
-		/// core reservation must have ended.
+		/// Moves the specified job from running to completed state. The job's core reservation must have ended, which
+		/// also means its post-roll end time has passed.
 		/// </summary>
 		/// <param name="jobId">The unique identifier of the job to transition to completed.</param>
 		/// <returns>The completed job.</returns>
 		Job TransitionToCompleted(Guid jobId);
 
 		/// <summary>
-		/// Moves the specified jobs from running to completed state. Each job's post-roll end time must have passed and its
-		/// core reservation must have ended.
+		/// Moves the specified jobs from running to completed state. Each job's core reservation must have ended; its status
+		/// is authoritative even if the job's persisted post-roll end has not yet been updated.
 		/// </summary>
 		/// <param name="jobs">The jobs to transition to completed.</param>
 		/// <returns>A read-only collection containing the completed jobs.</returns>
 		IReadOnlyCollection<Job> TransitionToCompleted(IEnumerable<Job> jobs);
 
 		/// <summary>
-		/// Moves the specified jobs from running to completed state. Each job's post-roll end time must have passed and its
-		/// core reservation must have ended.
+		/// Moves the specified jobs from running to completed state. Each job's core reservation must have ended, which
+		/// also means its post-roll end time has passed.
 		/// </summary>
 		/// <param name="jobIds">The unique identifiers of the jobs to transition to completed.</param>
 		/// <returns>A read-only collection containing the completed jobs.</returns>
@@ -373,5 +373,5 @@
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="jobIds"/> or <paramref name="options"/> is <c>null</c>.</exception>
 		/// <exception cref="MediaOpsBulkException{Guid}">Thrown when the bulk deletion operation fails for one or more jobs.</exception>
 		void Delete(IEnumerable<Guid> jobIds, JobDeleteOptions options);
-    }
+	}
 }

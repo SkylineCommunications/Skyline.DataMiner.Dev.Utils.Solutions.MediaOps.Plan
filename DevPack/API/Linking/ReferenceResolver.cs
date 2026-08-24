@@ -491,7 +491,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				foreach (var propertySetting in collection.OfType<PropertySetting>())
 				{
 					result[(propertySetting.Id, collection.SubId)] = propertySetting;
-				} 
+				}
 			}
 
 			return result;
