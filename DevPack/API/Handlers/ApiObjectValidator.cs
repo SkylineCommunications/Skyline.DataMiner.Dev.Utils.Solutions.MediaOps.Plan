@@ -117,7 +117,7 @@
 
 		protected bool IsValid(IIdentifiable identifiable)
 		{
-			return !TraceDataPerItem.Keys.Contains(identifiable.Id);
+			return !TraceDataPerItem.ContainsKey(identifiable.Id);
 		}
 
 		private void AddValidationError(Guid key, MediaOpsErrorData error)

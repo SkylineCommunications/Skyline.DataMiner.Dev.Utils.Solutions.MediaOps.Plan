@@ -8,12 +8,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel.Status;
 	using Skyline.DataMiner.Net.Messages;
 	using Skyline.DataMiner.Net.Sections;
+	using Skyline.DataMiner.SDM.Registration;
 	using Skyline.DataMiner.Solutions.Categories.API;
+	using Skyline.DataMiner.Solutions.MediaOps.Live.API;
+	using Skyline.DataMiner.Solutions.MediaOps.Live.API.Extensions;
+	using Skyline.DataMiner.Solutions.MediaOps.Live.API.Objects.ConnectivityManagement;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcProperties;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow;
 
+	using LiveConstants = Skyline.DataMiner.Solutions.MediaOps.Live.Constants;
 	using PropertiesDefinitions = Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcProperties.SlcPropertiesIds.Definitions;
 	using PropertiesSections = Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcProperties.SlcPropertiesIds.Sections;
 	using ResourceStudioBehaviors = Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Behaviors;
@@ -35,6 +40,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 		/// </summary>
 		public const string LockManagerElementName = "MOP Lock Manager";
 
+		/// <summary>
+		/// The catalog item ID the MediaOps Live solution is registered with in the SDM registrar.
+		/// </summary>
+		public const string MediaOpsLiveSolutionId = "213031b9-af0b-488c-be20-934912b967c0";
+
+		/// <summary>
+		/// The folder the MediaOps Live orchestration scripts are stored in.
+		/// </summary>
+		public const string OrchestrationScriptFolder = "MediaOps/OrchestrationScripts";
+
 		private const string ResourceStudioModuleId = "(slc)resource_studio";
 		private const string WorkflowModuleId = "(slc)workflow";
 		private const string PropertiesModuleId = "(slc)properties";
@@ -44,8 +59,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 		/// <summary>
 		/// Creates a <see cref="SimulatedDms"/> configured for the MediaOps Plan solution.
 		/// </summary>
+		/// <param name="installMediaOpsLive">
+		/// When <see langword="true"/>, the MediaOps Live solution is installed as well (solution registration, DOM
+		/// modules, orchestration scripts and connectivity levels), so the Plan solution pushes its orchestration
+		/// configuration to MediaOps Live.
+		/// </param>
 		/// <returns>The configured <see cref="SimulatedDms"/>.</returns>
-		public static SimulatedDms Create()
+		public static SimulatedDms Create(bool installMediaOpsLive = false)
 		{
 			var dms = new SimulatedDms();
 
@@ -59,7 +79,51 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 
 			SeedSampleData(dms);
 
+			if (installMediaOpsLive)
+			{
+				InstallMediaOpsLive(dms);
+			}
+
 			return dms;
+		}
+
+		private static void InstallMediaOpsLive(SimulatedDms dms)
+		{
+			var connection = dms.CreateConnection();
+			var version = MediaOpsLiveApi.GetVersion();
+
+			dms.AddApplicationPackage(LiveConstants.AppPackageName, version);
+
+			// The Plan solution only pushes orchestration configuration when MediaOps Live is registered in the SDM registrar.
+			connection.GetSdmRegistrar().Solutions.CreateOrUpdate(new[]
+			{
+				new SolutionRegistration
+				{
+					ID = MediaOpsLiveSolutionId,
+					DisplayName = "MediaOps Live",
+					Version = version,
+				},
+			});
+
+			dms.AddScript(LiveConstants.OrchestrationScriptName, OrchestrationScriptFolder);
+			dms.AddScript(LiveConstants.OrchestrationSlidingWindowSchedulerScriptName, OrchestrationScriptFolder);
+
+			var liveApi = connection.GetMediaOpsLiveApi();
+			liveApi.InstallDomModules();
+
+			SeedMediaOpsLiveLevels(liveApi);
+		}
+
+		private static void SeedMediaOpsLiveLevels(IMediaOpsLiveApi liveApi)
+		{
+			var transportType = liveApi.TransportTypes.Create(new TransportType { Name = "TSoIP" });
+
+			liveApi.Levels.CreateOrUpdate(new[]
+			{
+				new Level { Number = 1, Name = "Video", TransportType = transportType },
+				new Level { Number = 2, Name = "Audio", TransportType = transportType },
+				new Level { Number = 3, Name = "Data", TransportType = transportType },
+			});
 		}
 
 		private static void SeedSampleData(SimulatedDms dms)
