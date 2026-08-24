@@ -61,6 +61,23 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			var nodeMap = new Dictionary<TSource, TDest>();
+			var nodeIdMap = CloneNodes(source, destination, nodeFactory, nodeMap);
+
+			CloneConnections(source, destination, nodeMap);
+			CloneLinks(source, destination, nodeMap);
+			CloneGroups(source, destination, nodeMap);
+
+			return nodeIdMap;
+		}
+
+		private static Dictionary<string, string> CloneNodes<TSource, TDest>(
+			NodeGraph<TSource> source,
+			NodeGraph<TDest> destination,
+			Func<TSource, TDest> nodeFactory,
+			IDictionary<TSource, TDest> nodeMap)
+			where TSource : NodeBase
+			where TDest : NodeBase
+		{
 			var nodeIdMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
 			foreach (var sourceNode in source.Nodes)
@@ -76,6 +93,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				destination.Add(destinationNode);
 			}
 
+			return nodeIdMap;
+		}
+
+		private static void CloneConnections<TSource, TDest>(
+			NodeGraph<TSource> source,
+			NodeGraph<TDest> destination,
+			IDictionary<TSource, TDest> nodeMap)
+			where TSource : NodeBase
+			where TDest : NodeBase
+		{
 			foreach (var connection in source.Connections)
 			{
 				if (!nodeMap.TryGetValue(connection.From, out var from) ||
@@ -86,7 +113,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 				destination.Connect(from, to, connection.Configuration);
 			}
+		}
 
+		private static void CloneLinks<TSource, TDest>(
+			NodeGraph<TSource> source,
+			NodeGraph<TDest> destination,
+			IDictionary<TSource, TDest> nodeMap)
+			where TSource : NodeBase
+			where TDest : NodeBase
+		{
 			foreach (var link in source.Links)
 			{
 				if (!nodeMap.TryGetValue(link.Value, out var parent) ||
@@ -97,7 +132,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 				destination.Link(parent, child);
 			}
+		}
 
+		private static void CloneGroups<TSource, TDest>(
+			NodeGraph<TSource> source,
+			NodeGraph<TDest> destination,
+			IDictionary<TSource, TDest> nodeMap)
+			where TSource : NodeBase
+			where TDest : NodeBase
+		{
 			foreach (var sourceGroup in source.Groups)
 			{
 				var destinationGroup = destination.AddGroup(sourceGroup.Name);
@@ -109,8 +152,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					}
 				}
 			}
-
-			return nodeIdMap;
 		}
 	}
 }

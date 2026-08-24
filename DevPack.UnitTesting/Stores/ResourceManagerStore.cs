@@ -354,42 +354,32 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 				return true;
 			}
 
-			foreach (var required in requiredCapacities)
+			return requiredCapacities
+				.Where(required => required != null)
+				.All(required => HasRequiredCapacity(resource, required, context));
+		}
+
+		private bool HasRequiredCapacity(Resource resource, MultiResourceCapacityUsage required, EligibleResourceContext context)
+		{
+			var capacity = resource.Capacities?.FirstOrDefault(x => x.CapacityProfileID == required.CapacityProfileID);
+			if (capacity?.Value == null)
 			{
-				if (required == null)
-				{
-					continue;
-				}
-
-				var capacity = resource.Capacities?.FirstOrDefault(x => x.CapacityProfileID == required.CapacityProfileID);
-				if (capacity == null || capacity.Value == null)
-				{
-					return false;
-				}
-
-				if (required.RangeStart.HasValue)
-				{
-					var resourceMin = capacity.Value.MinDecimalQuantity ?? Decimal.MinValue;
-					var resourceMax = capacity.Value.MaxDecimalQuantity;
-					var requiredStart = required.RangeStart.Value;
-					var requiredEnd = requiredStart + required.DecimalQuantity;
-
-					if (requiredStart < resourceMin || requiredEnd > resourceMax || HasOverlappingRangeUsage(resource.GUID, required, context))
-					{
-						return false;
-					}
-
-					continue;
-				}
-
-				var used = GetUsedQuantity(resource.GUID, required, context);
-				if (capacity.Value.MaxDecimalQuantity - used < required.DecimalQuantity)
-				{
-					return false;
-				}
+				return false;
 			}
 
-			return true;
+			if (!required.RangeStart.HasValue)
+			{
+				var used = GetUsedQuantity(resource.GUID, required, context);
+				return capacity.Value.MaxDecimalQuantity - used >= required.DecimalQuantity;
+			}
+
+			var resourceMin = capacity.Value.MinDecimalQuantity ?? Decimal.MinValue;
+			var requiredStart = required.RangeStart.Value;
+			var requiredEnd = requiredStart + required.DecimalQuantity;
+
+			return requiredStart >= resourceMin
+				&& requiredEnd <= capacity.Value.MaxDecimalQuantity
+				&& !HasOverlappingRangeUsage(resource.GUID, required, context);
 		}
 
 		private bool HasConcurrencyAvailable(Resource resource, EligibleResourceContext context)
