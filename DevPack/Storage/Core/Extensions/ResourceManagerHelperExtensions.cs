@@ -434,9 +434,9 @@
 
 			void HandleBatch(IEnumerable<ReservationInstance> batch)
 			{
-				var requested = batch.ToList();
+				var requested = batch.ToArray();
 
-				var res = helper.AddOrUpdateReservationInstances(requested.ToArray()) ?? Array.Empty<ReservationInstance>();
+				var res = helper.AddOrUpdateReservationInstances(requested) ?? Array.Empty<ReservationInstance>();
 				successfulItems.AddRange(res);
 
 				var traceData = helper.GetTraceDataLastCall();
