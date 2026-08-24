@@ -13,7 +13,7 @@
 
 	[TestClass]
 	[TestCategory("IntegrationTest")]
-	public sealed class ResourceConcurrencyTests
+	public sealed class ResourceConcurrencyTests : IDisposable
 	{
 		private readonly TestObjectCreator objectCreator;
 
