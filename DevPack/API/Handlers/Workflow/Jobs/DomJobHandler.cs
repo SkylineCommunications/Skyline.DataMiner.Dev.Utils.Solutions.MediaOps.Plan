@@ -1195,9 +1195,13 @@
 				changedJobs.Add(job);
 			}
 
-			// The orchestration events are synchronized by the Running-to-Completed transition that runs afterwards, so
-			// they are not synchronized here.
 			PersistChangedJobs(changedJobs);
+
+			// Step 3: an early stop moves the end (and possibly the post-roll end) into the past, so the end events must be
+			// re-timed, the ones that are now due must be triggered immediately and the remaining ones must be rescheduled.
+			// The Running-to-Completed transition that follows keeps the events as-is, so it cannot do this. Synchronize
+			// with the Running state because that transition may already have landed on the persisted instances.
+			SyncLiveOrchestration(SuccessfulItems.Select(x => new Job(planApi, x)).ToList(), JobState.Running);
 		}
 
 		// Moves the core reservation end of the jobs that need rescheduling to reservationEnd, persists it BEFORE the DOM

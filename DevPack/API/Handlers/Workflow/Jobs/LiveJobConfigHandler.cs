@@ -555,9 +555,19 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return false;
 			}
 
-			return liveEventConfig.EventState == LiveEnums.EventState.Completed
+			if (liveEventConfig.EventState == LiveEnums.EventState.Completed
 				|| liveEventConfig.EventState == LiveEnums.EventState.Failed
-				|| liveEventConfig.EventState == LiveEnums.EventState.Configuring;
+				|| liveEventConfig.EventState == LiveEnums.EventState.Configuring)
+			{
+				return true;
+			}
+
+			// Execution is handed off to a deferred script, so an event that was already handed off is still in Draft
+			// state for a while. It only counts as triggered when the hand-off happened at or after the time it is
+			// currently scheduled for, so an event that is rescheduled to a later time is triggered again.
+			return liveEventConfig.ActualStartTime.HasValue
+				&& liveEventConfig.EventTime.HasValue
+				&& liveEventConfig.ActualStartTime.Value >= liveEventConfig.EventTime.Value;
 		}
 
 		private bool IsEventInThePast(LiveEnums.EventType eventType)
