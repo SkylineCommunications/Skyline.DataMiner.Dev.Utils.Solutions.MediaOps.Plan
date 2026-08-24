@@ -434,24 +434,64 @@
 
 			void HandleBatch(IEnumerable<ReservationInstance> batch)
 			{
-				var res = helper.AddOrUpdateReservationInstances(batch.ToArray());
+				var requested = batch.ToArray();
+
+				var res = helper.AddOrUpdateReservationInstances(requested) ?? Array.Empty<ReservationInstance>();
 				successfulItems.AddRange(res);
 
 				var traceData = helper.GetTraceDataLastCall();
 				var resourceManagerErrors = traceData.ErrorData.OfType<ResourceManagerErrorData>().ToList();
-				if (resourceManagerErrors.Count == 0)
+
+				if (resourceManagerErrors.Count > 0)
 				{
-					return;
+					var traceDataPerReservationId = traceDataHandler != null
+						? traceDataHandler.Translate(resourceManagerErrors)
+						: GroupRawErrorsBySubjectId(resourceManagerErrors);
+
+					var requestedIds = new HashSet<Guid>(requested.Select(x => x.ID));
+					var persistedIds = new HashSet<Guid>(res.Select(x => x.ID));
+					foreach (var kvp in traceDataPerReservationId.Where(x => requestedIds.Contains(x.Key) && !persistedIds.Contains(x.Key)))
+					{
+						AddTraceData(traceDataPerItem, kvp.Key, kvp.Value);
+						unsuccessfulIds.Add(kvp.Key);
+					}
 				}
 
-				var traceDataPerReservationId = traceDataHandler != null
-					? traceDataHandler.Translate(resourceManagerErrors)
-					: GroupRawErrorsBySubjectId(resourceManagerErrors);
+				ReportUnpersistedReservations(requested, res, resourceManagerErrors);
+			}
 
-				foreach (var kvp in traceDataPerReservationId)
+			// The reservations returned by the Agent are the source of truth: a reservation that is not returned was not
+			// saved. The reported errors cannot be used for that, as they are not always linked to the reservation that
+			// was refused. When a reservation is refused because an overlapping booking would have to go to quarantine
+			// (for example when the resource concurrency does not allow the extra booking), the core software reports the
+			// impacted bookings, which are not necessarily part of this request. The errors can even be missing entirely,
+			// because the trace data of the last call is kept on the (shared) helper and can be overwritten by a
+			// concurrent call. Every requested reservation that the Agent did not persist is therefore reported as
+			// unsuccessful, so the caller never treats a refused reservation as saved.
+			void ReportUnpersistedReservations(IReadOnlyCollection<ReservationInstance> requested, IReadOnlyCollection<ReservationInstance> persisted, IReadOnlyCollection<ResourceManagerErrorData> resourceManagerErrors)
+			{
+				var persistedIds = new HashSet<Guid>(persisted.Select(x => x.ID));
+
+				foreach (var reservation in requested.Where(x => !persistedIds.Contains(x.ID)))
 				{
-					AddTraceData(traceDataPerItem, kvp.Key, kvp.Value);
-					unsuccessfulIds.Add(kvp.Key);
+					if (!unsuccessfulIds.Add(reservation.ID) && traceDataPerItem.ContainsKey(reservation.ID))
+					{
+						// The reservation was already reported with its own (translated) errors.
+						continue;
+					}
+
+					var mediaOpsTraceData = new MediaOpsTraceData();
+					foreach (var error in resourceManagerErrors)
+					{
+						mediaOpsTraceData.Add(new MediaOpsErrorData { ErrorMessage = error.ToString() });
+					}
+
+					if (resourceManagerErrors.Count == 0)
+					{
+						mediaOpsTraceData.Add(new MediaOpsErrorData { ErrorMessage = $"Reservation with ID '{reservation.ID}' was not saved by the DataMiner Agent." });
+					}
+
+					AddTraceData(traceDataPerItem, reservation.ID, mediaOpsTraceData);
 				}
 			}
 		}
