@@ -238,7 +238,7 @@
 			{
 				if (mapping.IsNew)
 				{
-					AddCoreResourceNotFoundError(mapping.DomResource);
+					AddCoreResourceNotFoundError(mapping);
 
 					continue;
 				}
@@ -313,7 +313,7 @@
 			{
 				if (mapping.IsNew)
 				{
-					AddCoreResourceNotFoundError(mapping.DomResource);
+					AddCoreResourceNotFoundError(mapping);
 
 					continue;
 				}
@@ -373,6 +373,12 @@
 			var virtualFunctionResourcesToValidate = new List<DomResource>();
 			foreach (var resourceMapping in resourceMappingByDomId.Values)
 			{
+				if (resourceMapping.IsCoreResourceMissing)
+				{
+					AddCoreResourceNotFoundError(resourceMapping);
+					continue;
+				}
+
 				if (resourceMapping.DomResource.ResourceInfo.Type == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type.Element)
 				{
 					elementResourcesToValidate.Add(resourceMapping.DomResource);
@@ -1017,12 +1023,12 @@
 			}
 		}
 
-		private void AddCoreResourceNotFoundError(DomResource domResource)
+		private void AddCoreResourceNotFoundError(ResourceMapping mapping)
 		{
-			var coreResourceId = domResource.ResourceInternalProperties.Resource_Id.GetValueOrDefault();
+			var domResource = mapping.DomResource;
 
-			var errorMessage = coreResourceId != Guid.Empty
-				? $"The linked CORE resource with ID '{coreResourceId}' no longer exists."
+			var errorMessage = mapping.IsCoreResourceMissing
+				? $"The linked CORE resource with ID '{mapping.ConfiguredCoreResourceId}' no longer exists."
 				: "The resource is not linked to a CORE resource.";
 
 			AddError(
@@ -1311,6 +1317,7 @@
 				: this(domResource, BuildCoreResource(domResource.ResourceInfo.Type.Value))
 			{
 				IsNew = true;
+				ConfiguredCoreResourceId = domResource.ResourceInternalProperties.Resource_Id.GetValueOrDefault();
 			}
 
 			private ResourceMapping(DomResource domResource, CoreResource coreResource)
@@ -1327,6 +1334,16 @@
 			/// Indicates whether this mapping represents a new CORE resource that needs to be created, or an existing CORE resource that may need to be updated.
 			/// </summary>
 			public bool IsNew { get; }
+
+			/// <summary>
+			/// Indicates whether the DOM resource refers to a CORE resource that no longer exists. This is an invalid situation, as the CORE resource existed in the past.
+			/// </summary>
+			public bool IsCoreResourceMissing => IsNew && ConfiguredCoreResourceId != Guid.Empty;
+
+			/// <summary>
+			/// The CORE resource ID configured on the DOM resource, or <see cref="Guid.Empty"/> if the DOM resource is not linked to a CORE resource.
+			/// </summary>
+			public Guid ConfiguredCoreResourceId { get; }
 
 			public bool NeedsNameValidation => IsNew || DomResource.ResourceInfo.Name != CoreResource.Name;
 
