@@ -238,7 +238,7 @@
 			{
 				if (mapping.IsNew)
 				{
-					unsuccessfulIds.Add(mapping.DomResource.ID.Id);
+					AddCoreResourceNotFoundError(mapping.DomResource);
 
 					continue;
 				}
@@ -313,7 +313,7 @@
 			{
 				if (mapping.IsNew)
 				{
-					unsuccessfulIds.Add(mapping.DomResource.ID.Id);
+					AddCoreResourceNotFoundError(mapping.DomResource);
 
 					continue;
 				}
@@ -1015,6 +1015,23 @@
 			{
 				AddError(domResource.ID.Id, error);
 			}
+		}
+
+		private void AddCoreResourceNotFoundError(DomResource domResource)
+		{
+			var coreResourceId = domResource.ResourceInternalProperties.Resource_Id.GetValueOrDefault();
+
+			var errorMessage = coreResourceId != Guid.Empty
+				? $"The linked CORE resource with ID '{coreResourceId}' no longer exists."
+				: "The resource is not linked to a CORE resource.";
+
+			AddError(
+				domResource.ID.Id,
+				new ResourceNotFoundError
+				{
+					ErrorMessage = errorMessage,
+					Id = domResource.ID.Id,
+				});
 		}
 
 		private void AddError(Guid id, MediaOpsErrorData error)
