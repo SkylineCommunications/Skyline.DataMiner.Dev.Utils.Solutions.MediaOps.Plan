@@ -18,6 +18,10 @@
 		/// <summary>
 		/// Moves the specified <see cref="Job"/> from draft to tentative state.
 		/// </summary>
+		/// <remarks>
+		/// Unsaved changes on the supplied job, including a job that was not created yet, are persisted before the
+		/// transition is performed.
+		/// </remarks>
 		/// <param name="job">The job to move.</param>
 		/// <returns>The tentative job.</returns>
 		Job SaveAsTentative(Job job);
@@ -32,6 +36,10 @@
 		/// <summary>
 		/// Moves the specified jobs from draft to tentative state.
 		/// </summary>
+		/// <remarks>
+		/// Unsaved changes on the supplied jobs, including jobs that were not created yet, are persisted before the
+		/// transition is performed.
+		/// </remarks>
 		/// <param name="jobs">The jobs to move.</param>
 		/// <returns>A read-only collection containing the tentative jobs.</returns>
 		IReadOnlyCollection<Job> SaveAsTentative(IEnumerable<Job> jobs);
