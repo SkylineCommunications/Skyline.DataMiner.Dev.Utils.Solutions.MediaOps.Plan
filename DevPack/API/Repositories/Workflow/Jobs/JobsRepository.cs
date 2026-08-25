@@ -29,8 +29,6 @@
 				throw new ArgumentNullException(nameof(job));
 			}
 
-			SaveChanges([job]);
-
 			return SaveAsTentative(job.Id);
 		}
 
@@ -57,11 +55,7 @@
 				throw new ArgumentNullException(nameof(jobs));
 			}
 
-			var list = jobs.ToList();
-
-			SaveChanges(list);
-
-			return SaveAsTentative(list.Select(x => x.Id).ToArray());
+			return SaveAsTentative(jobs.Select(x => x.Id).ToArray());
 		}
 
 		public IReadOnlyCollection<Job> SaveAsTentative(IEnumerable<Guid> jobIds)
@@ -1078,22 +1072,6 @@
 			}
 
 			return new Job(PlanApi, result.SuccessfulItems.Single());
-		}
-
-		/// <summary>
-		/// Persists the jobs that are new or that carry unsaved changes. A state transition operates on the stored job, so
-		/// without this the pending changes of the supplied objects (for example the node graph of a job that was built
-		/// with <see cref="Job.FromWorkflow(IMediaOpsPlanApi, Guid)"/>) would silently be lost.
-		/// </summary>
-		private void SaveChanges(ICollection<Job> jobs)
-		{
-			var toSave = jobs.Where(x => x != null && (x.IsNew || x.HasChanges)).ToList();
-			if (toSave.Count == 0)
-			{
-				return;
-			}
-
-			CreateOrUpdate(toSave);
 		}
 	}
 }

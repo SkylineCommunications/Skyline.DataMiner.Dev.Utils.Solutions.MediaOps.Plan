@@ -575,7 +575,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
-		public void SaveAsTentative_JobBuiltFromWorkflow_PersistsPoolNodeAndWorkflowGroup()
+		public void SaveAsTentative_JobBuiltFromWorkflow_KeepsPoolNodeAndWorkflowGroup()
 		{
 			var prefix = Guid.NewGuid();
 			var currentTime = DateTime.UtcNow.RoundToNextSecond();
@@ -589,11 +589,12 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			job.PreRollStart = currentTime;
 			job.PostRollEnd = currentTime.AddMinutes(10);
 
-			// The job is not created upfront, so the transition has to persist the pending changes of the job itself.
-			objectCreator.StoreJobIds([job.Id]);
-			var tentativeJob = TestContext.Api.Jobs.SaveAsTentative(job);
+			// A job must be created in Draft state before it can be moved to Tentative state.
+			var createdJob = objectCreator.CreateJob(job);
 
-			Assert.IsNotNull(tentativeJob, "Expected the job to be created and transitioned to the Tentative state.");
+			var tentativeJob = TestContext.Api.Jobs.SaveAsTentative(createdJob);
+
+			Assert.IsNotNull(tentativeJob, "Expected the job to be transitioned to the Tentative state.");
 			Assert.AreEqual(JobState.Tentative, tentativeJob.State);
 
 			AssertPoolNodeIsInWorkflowGroup(TestContext.Api.Jobs.Read(tentativeJob.Id), workflow.Name, pool.Id);
