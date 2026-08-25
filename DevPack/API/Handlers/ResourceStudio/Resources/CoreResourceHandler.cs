@@ -1335,7 +1335,7 @@
 			/// </summary>
 			public CoreResourceState State { get; }
 
-			public bool NeedsNameValidation => State != CoreResourceState.Existing || DomResource.ResourceInfo.Name != CoreResource.Name;
+			public bool NeedsNameValidation => State == CoreResourceState.New || DomResource.ResourceInfo.Name != CoreResource.Name;
 
 			public static IEnumerable<ResourceMapping> GetMappings(MediaOpsPlanApi planApi, ICollection<DomResource> domResources)
 			{
