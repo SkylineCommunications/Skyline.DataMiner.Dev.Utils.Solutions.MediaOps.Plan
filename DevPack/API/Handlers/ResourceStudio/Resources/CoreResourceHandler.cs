@@ -236,7 +236,7 @@
 
 			foreach (var mapping in resourceMappings)
 			{
-				if (mapping.IsNew)
+				if (mapping.State != CoreResourceState.Existing)
 				{
 					AddCoreResourceNotFoundError(mapping);
 
@@ -311,7 +311,7 @@
 
 			foreach (var mapping in resourceMappings)
 			{
-				if (mapping.IsNew)
+				if (mapping.State != CoreResourceState.Existing)
 				{
 					AddCoreResourceNotFoundError(mapping);
 
@@ -373,7 +373,7 @@
 			var virtualFunctionResourcesToValidate = new List<DomResource>();
 			foreach (var resourceMapping in resourceMappingByDomId.Values)
 			{
-				if (resourceMapping.IsCoreResourceMissing)
+				if (resourceMapping.State == CoreResourceState.Missing)
 				{
 					AddCoreResourceNotFoundError(resourceMapping);
 					continue;
@@ -1314,16 +1314,16 @@
 
 		private sealed class ResourceMapping
 		{
-			private ResourceMapping(DomResource domResource)
-				: this(domResource, BuildCoreResource(domResource.ResourceInfo.Type.Value))
+			private ResourceMapping(DomResource domResource, CoreResourceState state)
+				: this(domResource, BuildCoreResource(domResource.ResourceInfo.Type.Value), state)
 			{
-				IsNew = true;
 			}
 
-			private ResourceMapping(DomResource domResource, CoreResource coreResource)
+			private ResourceMapping(DomResource domResource, CoreResource coreResource, CoreResourceState state)
 			{
 				DomResource = domResource ?? throw new ArgumentNullException(nameof(domResource));
 				CoreResource = coreResource ?? throw new ArgumentNullException(nameof(coreResource));
+				State = state;
 			}
 
 			public DomResource DomResource { get; }
@@ -1331,16 +1331,11 @@
 			public CoreResource CoreResource { get; }
 
 			/// <summary>
-			/// Indicates whether this mapping represents a new CORE resource that needs to be created, or an existing CORE resource that may need to be updated.
+			/// Indicates whether the CORE resource already exists, still needs to be created, or went missing.
 			/// </summary>
-			public bool IsNew { get; }
+			public CoreResourceState State { get; }
 
-			/// <summary>
-			/// Indicates whether the DOM resource refers to a CORE resource that no longer exists. This is an invalid situation, as the CORE resource existed in the past.
-			/// </summary>
-			public bool IsCoreResourceMissing => IsNew && DomResource.ResourceInternalProperties.Resource_Id.GetValueOrDefault() != Guid.Empty;
-
-			public bool NeedsNameValidation => IsNew || DomResource.ResourceInfo.Name != CoreResource.Name;
+			public bool NeedsNameValidation => State != CoreResourceState.Existing || DomResource.ResourceInfo.Name != CoreResource.Name;
 
 			public static IEnumerable<ResourceMapping> GetMappings(MediaOpsPlanApi planApi, ICollection<DomResource> domResources)
 			{
@@ -1373,14 +1368,22 @@
 
 				foreach (var domResource in domResources)
 				{
-					if (domResource.ResourceInternalProperties.Resource_Id.HasValue
-						&& coreResourcesById.TryGetValue(domResource.ResourceInternalProperties.Resource_Id.Value, out var coreResource))
+					var storedCoreResourceId = domResource.ResourceInternalProperties.Resource_Id.GetValueOrDefault();
+					if (storedCoreResourceId == Guid.Empty)
 					{
-						yield return new ResourceMapping(domResource, coreResource);
+						// The DOM resource was never synced to CORE, so a new CORE resource needs to be created.
+						yield return new ResourceMapping(domResource, CoreResourceState.New);
 						continue;
 					}
 
-					yield return new ResourceMapping(domResource);
+					if (coreResourcesById.TryGetValue(storedCoreResourceId, out var coreResource))
+					{
+						yield return new ResourceMapping(domResource, coreResource, CoreResourceState.Existing);
+						continue;
+					}
+
+					// The DOM resource refers to a CORE resource that existed in the past but can no longer be found.
+					yield return new ResourceMapping(domResource, CoreResourceState.Missing);
 				}
 			}
 
@@ -1396,6 +1399,24 @@
 
 				return new CoreResource(Guid.NewGuid());
 			}
+		}
+
+		private enum CoreResourceState
+		{
+			/// <summary>
+			/// The DOM resource was never synced to CORE, so the CORE resource still needs to be created.
+			/// </summary>
+			New,
+
+			/// <summary>
+			/// The CORE resource exists and may need to be updated.
+			/// </summary>
+			Existing,
+
+			/// <summary>
+			/// The DOM resource refers to a CORE resource that no longer exists. This is an invalid situation, as the CORE resource existed in the past.
+			/// </summary>
+			Missing,
 		}
 
 		private struct ElementFunctionMapping
