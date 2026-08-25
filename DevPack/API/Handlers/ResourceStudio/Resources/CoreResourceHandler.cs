@@ -1026,9 +1026,10 @@
 		private void AddCoreResourceNotFoundError(ResourceMapping mapping)
 		{
 			var domResource = mapping.DomResource;
+			var coreResourceId = domResource.ResourceInternalProperties.Resource_Id.GetValueOrDefault();
 
-			var errorMessage = mapping.IsCoreResourceMissing
-				? $"The linked CORE resource with ID '{mapping.ConfiguredCoreResourceId}' no longer exists."
+			var errorMessage = coreResourceId != Guid.Empty
+				? $"The linked CORE resource with ID '{coreResourceId}' no longer exists."
 				: "The resource is not linked to a CORE resource.";
 
 			AddError(
@@ -1317,7 +1318,6 @@
 				: this(domResource, BuildCoreResource(domResource.ResourceInfo.Type.Value))
 			{
 				IsNew = true;
-				ConfiguredCoreResourceId = domResource.ResourceInternalProperties.Resource_Id.GetValueOrDefault();
 			}
 
 			private ResourceMapping(DomResource domResource, CoreResource coreResource)
@@ -1338,12 +1338,7 @@
 			/// <summary>
 			/// Indicates whether the DOM resource refers to a CORE resource that no longer exists. This is an invalid situation, as the CORE resource existed in the past.
 			/// </summary>
-			public bool IsCoreResourceMissing => IsNew && ConfiguredCoreResourceId != Guid.Empty;
-
-			/// <summary>
-			/// The CORE resource ID configured on the DOM resource, or <see cref="Guid.Empty"/> if the DOM resource is not linked to a CORE resource.
-			/// </summary>
-			public Guid ConfiguredCoreResourceId { get; }
+			public bool IsCoreResourceMissing => IsNew && DomResource.ResourceInternalProperties.Resource_Id.GetValueOrDefault() != Guid.Empty;
 
 			public bool NeedsNameValidation => IsNew || DomResource.ResourceInfo.Name != CoreResource.Name;
 
