@@ -39,6 +39,29 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 			return job;
 		}
 
+		/// <summary>Configures the events while the job is still a draft, the way the job is built in the field.</summary>
+		private static Job ConfirmJobWithElementLinkedEvents(ReferenceTestContext context, DataReference reference)
+		{
+			var pool = context.CreatePool();
+			var resource = context.CreateResource(pool);
+
+			var start = ReferenceTestContext.ScheduleStart;
+			var job = new Job
+			{
+				Name = context.Name("Job"),
+				Start = start,
+				End = start.AddHours(1),
+				PreRollStart = start,
+				PostRollEnd = start.AddHours(1),
+			};
+
+			var node = new JobResourceNode(pool, resource);
+			job.NodeGraph.Add(node);
+			AddElementLinkedEvents(node, reference);
+
+			return context.Api.Jobs.Confirm(context.Api.Jobs.SaveAsTentative(context.Api.Jobs.Create(job)));
+		}
+
 		/// <summary>Mirrors the reported setup: a pre-roll and a post-roll script whose 'Element' input is linked.</summary>
 		private static void AddElementLinkedEvents(JobNode node, DataReference reference)
 		{
@@ -122,7 +145,17 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 			Assert.AreEqual(resource.Name, ((StringResolvedValue)resolved).Value);
 		}
 
-		/// <summary>The reported scenario: a node-level script parameter linked without an explicit node id.</summary>
+		/// <summary>The reported build order: the events are configured while the job is still a draft.</summary>
+		[TestMethod]
+		public void OrchestrationEventReferenceTests_ResourceReferenceWithoutNodeId_IsAcceptedWhenConfirmingTheJob()
+		{
+			var context = ReferenceTestContext.Create();
+
+			var job = ConfirmJobWithElementLinkedEvents(context, new ResourceLinkedObjectIdReference());
+
+			Assert.AreEqual(JobState.Confirmed, job.State);
+		}
+
 		[TestMethod]
 		public void OrchestrationEventReferenceTests_ResourceReferenceWithoutNodeId_IsAcceptedOnAConfirmedJob()
 		{
