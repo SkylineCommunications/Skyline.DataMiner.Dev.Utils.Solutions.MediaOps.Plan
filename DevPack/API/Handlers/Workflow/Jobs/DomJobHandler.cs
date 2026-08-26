@@ -27,7 +27,7 @@
 
 		private readonly HashSet<Guid> jobIdsWithCoreChanges = new HashSet<Guid>();
 
-		private readonly Dictionary<Guid, IReadOnlyDictionary<DataReference, ResolvedValue>> resolvedReferencesByJobId = new Dictionary<Guid, IReadOnlyDictionary<DataReference, ResolvedValue>>();
+		private readonly Dictionary<Guid, ResolvedReferenceCache> resolvedReferencesByJobId = new Dictionary<Guid, ResolvedReferenceCache>();
 
 		private readonly Dictionary<Guid, List<OrchestrationSettings>> orchestrationSettingsByJobId = new Dictionary<Guid, List<OrchestrationSettings>>();
 
@@ -359,7 +359,7 @@
 
 			var jobIdByOrchestrationSettingsId = new Dictionary<Guid, Guid>();
 			var orchestrationSettings = new List<OrchestrationSettings>();
-			var referenceTargets = new Dictionary<Guid, (ReferenceResolver Resolver, bool ReportErrors)>();
+			var referenceTargets = new Dictionary<Guid, (ReferenceResolver Resolver, string OwningNodeId, bool ReportErrors)>();
 
 			foreach (var job in apiJobs)
 			{
@@ -393,7 +393,7 @@
 			Job job,
 			Dictionary<Guid, Guid> jobIdByOrchestrationSettingsId,
 			List<OrchestrationSettings> orchestrationSettings,
-			Dictionary<Guid, (ReferenceResolver Resolver, bool ReportErrors)> referenceTargets)
+			Dictionary<Guid, (ReferenceResolver Resolver, string OwningNodeId, bool ReportErrors)> referenceTargets)
 		{
 			jobIdByOrchestrationSettingsId[job.OrchestrationSettings.Id] = job.Id;
 			orchestrationSettings.Add(job.OrchestrationSettings);
@@ -417,11 +417,11 @@
 			}
 
 			var resolver = new JobReferenceResolver(planApi, job, referenceDefinitions);
-			referenceTargets[job.OrchestrationSettings.Id] = (resolver, true);
+			referenceTargets[job.OrchestrationSettings.Id] = (resolver, null, true);
 
 			foreach (var node in job.NodeGraph.Nodes)
 			{
-				referenceTargets[node.OrchestrationSettings.Id] = (resolver, true);
+				referenceTargets[node.OrchestrationSettings.Id] = (resolver, node.Id, true);
 			}
 		}
 
@@ -1878,7 +1878,7 @@
 		{
 			if (resolvedReferencesByJobId.TryGetValue(domJob.ID.Id, out var resolvedReferences) && resolvedReferences.Count > 0)
 			{
-				domJob.ResolvedReferenceCache.SetCache(resolvedReferences);
+				domJob.ResolvedReferenceCache.Set(resolvedReferences);
 			}
 		}
 

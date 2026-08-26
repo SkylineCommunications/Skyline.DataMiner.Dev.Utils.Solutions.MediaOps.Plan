@@ -138,9 +138,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Resolves the reference to its current value, following chains of references and detecting cycles.
 		/// </summary>
 		/// <param name="reference">The reference to resolve.</param>
+		/// <param name="currentNodeId">
+		/// The node whose settings hold the reference, or <c>null</c> when they belong to the workflow / job itself.
+		/// A resource reference has no meaning at workflow / job level, so one that does not target a node of its own
+		/// is resolved against this node. Capability, capacity and configuration references are not affected: without a
+		/// node they deliberately target the workflow / job level settings.
+		/// </param>
 		/// <returns>A <see cref="ResolvedValue"/> describing the outcome.</returns>
 		/// <exception cref="CircularReferenceException">Thrown when a cycle is detected.</exception>
-		public virtual ResolvedValue ResolveValue(DataReference reference)
+		public virtual ResolvedValue ResolveValue(DataReference reference, string currentNodeId = null)
 		{
 			if (reference == null)
 				throw new ArgumentNullException(nameof(reference));
@@ -149,6 +155,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			while (true)
 			{
+				// Following a reference that names a node moves the resolution onto that node, so a node-less
+				// resource reference further down the chain resolves against it.
+				if (!String.IsNullOrEmpty(reference.NodeId))
+				{
+					currentNodeId = reference.NodeId;
+				}
+
 				if (!visited.Add(reference))
 				{
 					throw new CircularReferenceException(reference);
@@ -159,9 +172,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					CapabilityParameterReference cpb => ResolveCapabilityValue(cpb),
 					CapacityParameterReference cap => ResolveCapacityValue(cap),
 					ConfigurationParameterReference cfg => ResolveConfigurationValue(cfg),
-					ResourceNameReference rnr => ResolveResourceName(rnr),
-					ResourceLinkedObjectIdReference rlr => ResolveResourceLinkedObjectId(rlr),
-					ResourcePropertyReference rpr => ResolveResourcePropertyValue(rpr),
+					ResourceNameReference rnr => ResolveResourceName(rnr, currentNodeId),
+					ResourceLinkedObjectIdReference rlr => ResolveResourceLinkedObjectId(rlr, currentNodeId),
+					ResourcePropertyReference rpr => ResolveResourcePropertyValue(rpr, currentNodeId),
 					JobNameReference jnr => ResolveJobName(jnr),
 					JobPropertyReference jpr => ResolveJobPropertyValue(jpr),
 					_ => throw new NotSupportedException($"Unsupported reference type: {reference.GetType()}")
@@ -190,15 +203,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Determines whether the specified reference can be resolved to an actual value.
 		/// </summary>
 		/// <param name="reference">The reference to check.</param>
+		/// <param name="currentNodeId">The node whose settings hold the reference, or <c>null</c> when they belong to the workflow / job itself.</param>
 		/// <returns><c>true</c> if the reference can be resolved to an actual value; otherwise, <c>false</c>.</returns>
-		public virtual bool CanResolve(DataReference reference)
+		public virtual bool CanResolve(DataReference reference, string currentNodeId = null)
 		{
 			if (reference == null)
 				throw new ArgumentNullException(nameof(reference));
 
 			try
 			{
-				var resolved = ResolveValue(reference);
+				var resolved = ResolveValue(reference, currentNodeId);
 				return resolved != null && resolved.IsResolved;
 			}
 			catch (Exception)
@@ -294,9 +308,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <summary>
 		/// Resolves a <see cref="ResourceNameReference"/> using <see cref="GetResource"/>.
 		/// </summary>
-		protected virtual ResolvedValue ResolveResourceName(ResourceNameReference reference)
+		protected virtual ResolvedValue ResolveResourceName(ResourceNameReference reference, string currentNodeId)
 		{
-			var resource = GetResource(reference);
+			var resource = GetResource(reference, currentNodeId);
 			return resource == null
 				? ResolvedValue.FromUnresolvedReference(reference)
 				: new StringResolvedValue(resource.Name);
@@ -305,9 +319,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <summary>
 		/// Resolves a <see cref="ResourcePropertyReference"/> using <see cref="GetResource"/>.
 		/// </summary>
-		protected virtual ResolvedValue ResolveResourcePropertyValue(ResourcePropertyReference reference)
+		protected virtual ResolvedValue ResolveResourcePropertyValue(ResourcePropertyReference reference, string currentNodeId)
 		{
-			var resource = GetResource(reference);
+			var resource = GetResource(reference, currentNodeId);
 			if (resource == null)
 				return ResolvedValue.FromUnresolvedReference(reference);
 
@@ -320,9 +334,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <summary>
 		/// Resolves a <see cref="ResourceLinkedObjectIdReference"/> using <see cref="GetResource"/>.
 		/// </summary>
-		protected virtual ResolvedValue ResolveResourceLinkedObjectId(ResourceLinkedObjectIdReference reference)
+		protected virtual ResolvedValue ResolveResourceLinkedObjectId(ResourceLinkedObjectIdReference reference, string currentNodeId)
 		{
-			var resource = GetResource(reference);
+			var resource = GetResource(reference, currentNodeId);
 
 			return resource switch
 			{
@@ -400,10 +414,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <summary>
-		/// Returns the resource the reference targets when <see cref="DataReference.NodeId"/> is set. References without a node id target the
-		/// workflow / job itself, which has no associated resource, so <c>null</c> is returned.
+		/// Returns the resource the reference targets: the resource of the node it points at, or of
+		/// <paramref name="currentNodeId"/> when it points at none. Returns <c>null</c> when neither is known, since the
+		/// workflow / job itself has no associated resource.
 		/// </summary>
-		protected virtual Resource GetResource(DataReference reference)
+		/// <param name="reference">The reference to resolve the resource for.</param>
+		/// <param name="currentNodeId">The node whose settings hold the reference, or <c>null</c> when they belong to the workflow / job itself.</param>
+		protected virtual Resource GetResource(DataReference reference, string currentNodeId)
 		{
 			return null;
 		}

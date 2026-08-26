@@ -2,418 +2,205 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 {
 	using System;
 	using System.Collections.Generic;
-
-	using ApiDataReference = Skyline.DataMiner.Solutions.MediaOps.Plan.API.DataReference;
+	using System.Linq;
 
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
-	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
 
+	/// <summary>
+	/// Tests for the <see cref="DataReference"/> model itself: construction, equality, hashing and formatting.
+	/// Persistence is covered by <see cref="DataReferenceStorageTests"/> and resolution by <see cref="ReferenceResolverTests"/>.
+	/// </summary>
 	[TestClass]
 	public sealed class DataReferenceTests
 	{
+		private static readonly Guid PayloadId = new Guid("12345678-1234-1234-1234-123456789012");
+
+		public static IEnumerable<object[]> AllTypes => DataReferenceFactory.AllTypes;
+
+		public static IEnumerable<object[]> TypesWithPayload => DataReferenceFactory.TypesWithPayload;
+
+		/// <summary>Guards that every reference type keeps taking part in the data-driven tests below.</summary>
 		[TestMethod]
-		public void ResourceNameReference_Constructor_SetsType()
+		public void DataReferenceTests_EveryDataReferenceType_HasAReferenceImplementation()
 		{
-			var reference = new ResourceNameReference();
-
-			Assert.AreEqual(DataReferenceType.ResourceName, reference.Type);
-		}
-
-		[TestMethod]
-		public void ResourcePropertyReference_Constructor_SetsProperties()
-		{
-			var guid = new Guid("12345678-1234-1234-1234-123456789012");
-			var reference = new ResourcePropertyReference(guid);
-
-			Assert.AreEqual(DataReferenceType.ResourceProperty, reference.Type);
-			Assert.AreEqual(guid, reference.ResourcePropertyId);
-		}
-
-		[TestMethod]
-		public void ResourcePropertyReference_ToStorage_ReturnsCorrectStorageObject()
-		{
-			var guid = new Guid("12345678-1234-1234-1234-123456789012");
-			var reference = new ResourcePropertyReference(guid);
-
-			var storage = reference.ToStorage();
-
-			Assert.IsNotNull(storage);
-			Assert.AreEqual("ResourceProperty", storage.ReferenceType);
-			Assert.IsNotNull(storage.ReferenceData);
-			Assert.AreEqual(guid.ToString(), storage.ReferenceData["ResourcePropertyId"]);
-		}
-
-		[TestMethod]
-		public void ResourceNameReference_ToStorage_HasNoReferenceData()
-		{
-			var reference = new ResourceNameReference();
-
-			var storage = reference.ToStorage();
-
-			Assert.IsNotNull(storage);
-			Assert.AreEqual("ResourceName", storage.ReferenceType);
-			Assert.IsNull(storage.ReferenceData);
-		}
-
-		[TestMethod]
-		public void FromStorage_NullInput_ReturnsNull()
-		{
-			var result = ApiDataReference.FromStorage(null);
-
-			Assert.IsNull(result);
-		}
-
-		[TestMethod]
-		public void FromStorage_InvalidReferenceType_ReturnsNull()
-		{
-			var storage = new DataReferenceStorage
+			foreach (DataReferenceType type in Enum.GetValues(typeof(DataReferenceType)))
 			{
-				ReferenceType = "NonExistentType",
-			};
+				var reference = DataReferenceFactory.Create(type, PayloadId);
 
-			var result = ApiDataReference.FromStorage(storage);
-
-			Assert.IsNull(result);
+				Assert.AreEqual(type, reference.Type, $"'{type}' is not mapped onto a matching reference implementation.");
+			}
 		}
 
-		[TestMethod]
-		public void FromStorage_ResourceLinkedObjectId_ReturnsResourceLinkedObjectIdReference()
+		[DataTestMethod]
+		[DynamicData(nameof(AllTypes))]
+		public void DataReferenceTests_Constructor_WithoutNodeId_TargetsTheWorkflowOrJobItself(DataReferenceType type)
 		{
-			var storage = new DataReferenceStorage
-			{
-				ReferenceType = "ResourceLinkedObjectID",
-			};
+			var reference = DataReferenceFactory.Create(type, PayloadId);
 
-			var result = ApiDataReference.FromStorage(storage);
-
-			Assert.IsNotNull(result);
-			Assert.IsInstanceOfType(result, typeof(ResourceLinkedObjectIdReference));
-			Assert.AreEqual(DataReferenceType.ResourceLinkedObjectID, result.Type);
-		}
-
-		[TestMethod]
-		public void FromStorage_NodeConfigurationParameter_ReturnsNodeConfigurationParameterReference()
-		{
-			var guid = new Guid("12345678-1234-1234-1234-123456789012");
-			var storage = new DataReferenceStorage
-			{
-				ReferenceType = "ConfigurationParameter",
-				ReferenceData = new Dictionary<string, string> { ["ParameterId"] = guid.ToString() },
-			};
-
-			var result = ApiDataReference.FromStorage(storage);
-
-			Assert.IsNotNull(result);
-			var configRef = result as ConfigurationParameterReference;
-			Assert.IsNotNull(configRef);
-			Assert.AreEqual(DataReferenceType.ConfigurationParameter, result.Type);
-			Assert.AreEqual(guid, configRef.ParameterId);
-		}
-
-		[TestMethod]
-		public void FromStorage_ResourceProperty_ReturnsResourcePropertyReference()
-		{
-			var guid = new Guid("12345678-1234-1234-1234-123456789012");
-			var storage = new DataReferenceStorage
-			{
-				ReferenceType = "ResourceProperty",
-				ReferenceData = new Dictionary<string, string> { ["ResourcePropertyId"] = guid.ToString() },
-			};
-
-			var result = ApiDataReference.FromStorage(storage);
-
-			Assert.IsNotNull(result);
-			var resourcePropertyRef = result as ResourcePropertyReference;
-			Assert.IsNotNull(resourcePropertyRef);
-			Assert.AreEqual(DataReferenceType.ResourceProperty, result.Type);
-			Assert.AreEqual(guid, resourcePropertyRef.ResourcePropertyId);
-		}
-
-		[TestMethod]
-		public void NodeConfigurationParameterReference_ToStorage_ThenFromStorage_PreservesParameterId()
-		{
-			var guid = Guid.NewGuid();
-			var original = new ConfigurationParameterReference(guid);
-
-			var result = ApiDataReference.FromStorage(original.ToStorage()) as ConfigurationParameterReference;
-
-			Assert.IsNotNull(result);
-			Assert.AreEqual(original.ParameterId, result.ParameterId);
-		}
-
-		[TestMethod]
-		public void ResourcePropertyReference_ToStorage_ThenFromStorage_PreservesResourcePropertyId()
-		{
-			var guid = Guid.NewGuid();
-			var original = new ResourcePropertyReference(guid);
-
-			var result = ApiDataReference.FromStorage(original.ToStorage()) as ResourcePropertyReference;
-
-			Assert.IsNotNull(result);
-			Assert.AreEqual(original.ResourcePropertyId, result.ResourcePropertyId);
-		}
-
-		[TestMethod]
-		public void JobPropertyReference_Constructor_SetsProperties()
-		{
-			var guid = Guid.NewGuid();
-			var reference = new JobPropertyReference(guid);
-
-			Assert.AreEqual(DataReferenceType.JobProperty, reference.Type);
-			Assert.AreEqual(guid, reference.JobPropertyId);
+			Assert.AreEqual(type, reference.Type);
 			Assert.IsNull(reference.NodeId);
 		}
 
-		[TestMethod]
-		public void JobPropertyReference_ToStorage_ThenFromStorage_PreservesData()
+		[DataTestMethod]
+		[DynamicData(nameof(AllTypes))]
+		public void DataReferenceTests_Constructor_WithNodeId_TargetsThatNode(DataReferenceType type)
 		{
-			var guid = Guid.NewGuid();
-			var original = new JobPropertyReference(guid);
+			var reference = DataReferenceFactory.Create(type, PayloadId, "node-1");
 
-			var result = ApiDataReference.FromStorage(original.ToStorage()) as JobPropertyReference;
-
-			Assert.IsNotNull(result);
-			Assert.AreEqual(original.JobPropertyId, result.JobPropertyId);
+			Assert.AreEqual("node-1", reference.NodeId);
 		}
 
-		[TestMethod]
-		public void CapabilityParameterReference_Constructor_SetsProperties()
+		[DataTestMethod]
+		[DynamicData(nameof(AllTypes))]
+		public void DataReferenceTests_Constructor_EmptyNodeId_NormalizesToNull(DataReferenceType type)
 		{
-			var guid = Guid.NewGuid();
-			var reference = new CapabilityParameterReference(guid);
+			var reference = DataReferenceFactory.Create(type, PayloadId, String.Empty);
 
-			Assert.AreEqual(DataReferenceType.CapabilityParameter, reference.Type);
-			Assert.AreEqual(guid, reference.ParameterId);
-		}
-
-		[TestMethod]
-		public void CapabilityParameterReference_ToStorage_ThenFromStorage_PreservesData()
-		{
-			var guid = Guid.NewGuid();
-			var original = new CapabilityParameterReference(guid);
-
-			var result = ApiDataReference.FromStorage(original.ToStorage()) as CapabilityParameterReference;
-
-			Assert.IsNotNull(result);
-			Assert.AreEqual(original.ParameterId, result.ParameterId);
-		}
-
-		[TestMethod]
-		public void CapacityParameterReference_Constructor_SetsProperties()
-		{
-			var guid = Guid.NewGuid();
-			var reference = new CapacityParameterReference(guid);
-
-			Assert.AreEqual(DataReferenceType.CapacityParameter, reference.Type);
-			Assert.AreEqual(guid, reference.ParameterId);
-		}
-
-		[TestMethod]
-		public void CapacityParameterReference_ToStorage_ThenFromStorage_PreservesData()
-		{
-			var guid = Guid.NewGuid();
-			var original = new CapacityParameterReference(guid);
-
-			var result = ApiDataReference.FromStorage(original.ToStorage()) as CapacityParameterReference;
-
-			Assert.IsNotNull(result);
-			Assert.AreEqual(original.ParameterId, result.ParameterId);
-		}
-
-		[TestMethod]
-		public void JobNameReference_Constructor_SetsType()
-		{
-			var reference = new JobNameReference();
-
-			Assert.AreEqual(DataReferenceType.JobName, reference.Type);
 			Assert.IsNull(reference.NodeId);
 		}
 
-		[TestMethod]
-		public void FromStorage_JobName_ReturnsJobNameReference()
+		[DataTestMethod]
+		[DynamicData(nameof(TypesWithPayload))]
+		public void DataReferenceTests_Constructor_WithPayload_ExposesTheIdentifier(DataReferenceType type)
 		{
-			var storage = new DataReferenceStorage
+			var reference = DataReferenceFactory.Create(type, PayloadId);
+
+			Assert.AreEqual(PayloadId, DataReferenceFactory.GetPayloadId(reference));
+		}
+
+		[DataTestMethod]
+		[DynamicData(nameof(AllTypes))]
+		public void DataReferenceTests_Equals_SameTypePayloadAndNode_ReturnsTrue(DataReferenceType type)
+		{
+			var first = DataReferenceFactory.Create(type, PayloadId, "node-1");
+			var second = DataReferenceFactory.Create(type, PayloadId, "node-1");
+
+			Assert.IsTrue(first.Equals(second));
+			Assert.IsTrue(second.Equals(first));
+			Assert.AreEqual(first.GetHashCode(), second.GetHashCode());
+		}
+
+		[DataTestMethod]
+		[DynamicData(nameof(AllTypes))]
+		public void DataReferenceTests_Equals_DifferentNodeId_ReturnsFalse(DataReferenceType type)
+		{
+			var withoutNode = DataReferenceFactory.Create(type, PayloadId);
+			var onNode1 = DataReferenceFactory.Create(type, PayloadId, "node-1");
+			var onNode2 = DataReferenceFactory.Create(type, PayloadId, "node-2");
+
+			Assert.IsFalse(onNode1.Equals(onNode2));
+			Assert.IsFalse(onNode1.Equals(withoutNode));
+			Assert.IsFalse(withoutNode.Equals(onNode1));
+		}
+
+		[DataTestMethod]
+		[DynamicData(nameof(TypesWithPayload))]
+		public void DataReferenceTests_Equals_DifferentPayload_ReturnsFalse(DataReferenceType type)
+		{
+			var first = DataReferenceFactory.Create(type, Guid.NewGuid());
+			var second = DataReferenceFactory.Create(type, Guid.NewGuid());
+
+			Assert.IsFalse(first.Equals(second));
+		}
+
+		[TestMethod]
+		public void DataReferenceTests_Equals_DifferentType_ReturnsFalse()
+		{
+			var references = Enum.GetValues(typeof(DataReferenceType))
+				.Cast<DataReferenceType>()
+				.Select(type => DataReferenceFactory.Create(type, PayloadId))
+				.ToList();
+
+			foreach (var first in references)
 			{
-				ReferenceType = "JobName",
+				foreach (var second in references.Where(other => other.Type != first.Type))
+				{
+					Assert.IsFalse(first.Equals(second), $"'{first.Type}' must not equal '{second.Type}'.");
+				}
+			}
+		}
+
+		[DataTestMethod]
+		[DynamicData(nameof(AllTypes))]
+		public void DataReferenceTests_Equals_Null_ReturnsFalse(DataReferenceType type)
+		{
+			var reference = DataReferenceFactory.Create(type, PayloadId);
+
+			Assert.IsFalse(reference.Equals((DataReference?)null));
+			Assert.IsFalse(reference.Equals((object?)null));
+		}
+
+		/// <summary>
+		/// The untyped overload must stay in sync with the typed one: resolved-reference caches and validators key
+		/// their dictionaries on <see cref="DataReference"/>.
+		/// </summary>
+		[DataTestMethod]
+		[DynamicData(nameof(AllTypes))]
+		public void DataReferenceTests_EqualsAsObject_BehavesLikeTypedEquals(DataReferenceType type)
+		{
+			var reference = DataReferenceFactory.Create(type, PayloadId, "node-1");
+			var same = DataReferenceFactory.Create(type, PayloadId, "node-1");
+			var otherNode = DataReferenceFactory.Create(type, PayloadId, "node-2");
+
+			Assert.IsTrue(reference.Equals((object)same));
+			Assert.IsFalse(reference.Equals((object)otherNode));
+			Assert.IsFalse(reference.Equals("not a reference"));
+		}
+
+		[DataTestMethod]
+		[DynamicData(nameof(AllTypes))]
+		public void DataReferenceTests_UsedAsDictionaryKey_EqualReferencesShareTheSameEntry(DataReferenceType type)
+		{
+			var dictionary = new Dictionary<DataReference, string>
+			{
+				[DataReferenceFactory.Create(type, PayloadId, "node-1")] = "on node 1",
+				[DataReferenceFactory.Create(type, PayloadId, "node-2")] = "on node 2",
+				[DataReferenceFactory.Create(type, PayloadId)] = "on the job",
 			};
 
-			var result = ApiDataReference.FromStorage(storage);
-
-			Assert.IsNotNull(result);
-			Assert.IsInstanceOfType(result, typeof(JobNameReference));
-			Assert.AreEqual(DataReferenceType.JobName, result.Type);
+			Assert.AreEqual(3, dictionary.Count);
+			Assert.AreEqual("on node 1", dictionary[DataReferenceFactory.Create(type, PayloadId, "node-1")]);
+			Assert.AreEqual("on node 2", dictionary[DataReferenceFactory.Create(type, PayloadId, "node-2")]);
+			Assert.AreEqual("on the job", dictionary[DataReferenceFactory.Create(type, PayloadId)]);
 		}
 
-		[TestMethod]
-		public void DataReference_WithNodeId_PreservesNodeIdThroughRoundTrip()
+		[DataTestMethod]
+		[DynamicData(nameof(AllTypes))]
+		public void DataReferenceTests_ToString_WithoutNodeId_DescribesTypeAndPayload(DataReferenceType type)
 		{
-			var guid = Guid.NewGuid();
-			var nodeId = "node-42";
-			var original = new ResourcePropertyReference(guid, nodeId);
+			var reference = DataReferenceFactory.Create(type, PayloadId);
+			var payloadKey = DataReferenceFactory.GetPayloadKey(type);
 
-			Assert.AreEqual(nodeId, original.NodeId);
+			var expected = payloadKey == null
+				? $"{type}"
+				: $"{type} ({payloadKey}: {PayloadId})";
 
-			var result = ApiDataReference.FromStorage(original.ToStorage()) as ResourcePropertyReference;
-
-			Assert.IsNotNull(result);
-			Assert.AreEqual(nodeId, result.NodeId);
-			Assert.AreEqual(guid, result.ResourcePropertyId);
+			Assert.AreEqual(expected, reference.ToString());
 		}
 
-		[TestMethod]
-		public void DataReference_Equals_SameTypeAndData_ReturnsTrue()
+		[DataTestMethod]
+		[DynamicData(nameof(AllTypes))]
+		public void DataReferenceTests_ToString_WithNodeId_IncludesNodeId(DataReferenceType type)
 		{
-			var guid = Guid.NewGuid();
-			var ref1 = new ResourcePropertyReference(guid);
-			var ref2 = new ResourcePropertyReference(guid);
+			var reference = DataReferenceFactory.Create(type, PayloadId, "node-5");
+			var payloadKey = DataReferenceFactory.GetPayloadKey(type);
 
-			Assert.IsTrue(ref1.Equals(ref2));
-			Assert.IsTrue(ref2.Equals(ref1));
+			var expected = payloadKey == null
+				? $"{type} (NodeId: node-5)"
+				: $"{type} ({payloadKey}: {PayloadId}, NodeId: node-5)";
+
+			Assert.AreEqual(expected, reference.ToString());
 		}
 
-		[TestMethod]
-		public void DataReference_Equals_DifferentData_ReturnsFalse()
+		[DataTestMethod]
+		[DynamicData(nameof(AllTypes))]
+		public void DataReferenceTests_NodeId_IsMutableSoReferencesCanBeRetargeted(DataReferenceType type)
 		{
-			var ref1 = new ResourcePropertyReference(Guid.NewGuid());
-			var ref2 = new ResourcePropertyReference(Guid.NewGuid());
+			var reference = DataReferenceFactory.Create(type, PayloadId);
 
-			Assert.IsFalse(ref1.Equals(ref2));
-		}
+			reference.NodeId = "node-9";
 
-		[TestMethod]
-		public void DataReference_Equals_DifferentType_ReturnsFalse()
-		{
-			var ref1 = new ResourceNameReference();
-			var ref2 = new JobNameReference();
-
-			Assert.IsFalse(ref1.Equals((ApiDataReference)ref2));
-		}
-
-		[TestMethod]
-		public void DataReference_Equals_DifferentNodeId_ReturnsFalse()
-		{
-			var guid = Guid.NewGuid();
-			var ref1 = new ResourcePropertyReference(guid, "node-1");
-			var ref2 = new ResourcePropertyReference(guid, "node-2");
-
-			Assert.IsFalse(ref1.Equals(ref2));
-		}
-
-		[TestMethod]
-		public void DataReference_GetHashCode_EqualObjects_SameHashCode()
-		{
-			var guid = Guid.NewGuid();
-			var ref1 = new ResourcePropertyReference(guid);
-			var ref2 = new ResourcePropertyReference(guid);
-
-			Assert.AreEqual(ref1.GetHashCode(), ref2.GetHashCode());
-		}
-
-		[TestMethod]
-		public void DataReference_ToString_WithoutNodeId_ReturnsType()
-		{
-			var reference = new ResourceNameReference();
-
-			Assert.AreEqual("ResourceName", reference.ToString());
-		}
-
-		[TestMethod]
-		public void DataReference_ToString_WithNodeId_IncludesNodeId()
-		{
-			var reference = new ResourceNameReference("node-5");
-
-			Assert.AreEqual("ResourceName (NodeId: node-5)", reference.ToString());
-		}
-
-		[TestMethod]
-		public void IsNodeScoped_ResourceName_ReturnsTrue()
-		{
-			Assert.IsTrue(DataReferenceType.ResourceName.IsNodeScoped());
-		}
-
-		[TestMethod]
-		public void IsNodeScoped_ResourceProperty_ReturnsTrue()
-		{
-			Assert.IsTrue(DataReferenceType.ResourceProperty.IsNodeScoped());
-		}
-
-		[TestMethod]
-		public void IsNodeScoped_ConfigurationParameter_ReturnsTrue()
-		{
-			Assert.IsTrue(DataReferenceType.ConfigurationParameter.IsNodeScoped());
-		}
-
-		[TestMethod]
-		public void IsNodeScoped_CapabilityParameter_ReturnsTrue()
-		{
-			Assert.IsTrue(DataReferenceType.CapabilityParameter.IsNodeScoped());
-		}
-
-		[TestMethod]
-		public void IsNodeScoped_CapacityParameter_ReturnsTrue()
-		{
-			Assert.IsTrue(DataReferenceType.CapacityParameter.IsNodeScoped());
-		}
-
-		[TestMethod]
-		public void IsNodeScoped_JobProperty_ReturnsFalse()
-		{
-			Assert.IsFalse(DataReferenceType.JobProperty.IsNodeScoped());
-		}
-
-		[TestMethod]
-		public void IsNodeScoped_JobName_ReturnsFalse()
-		{
-			Assert.IsFalse(DataReferenceType.JobName.IsNodeScoped());
-		}
-
-		[TestMethod]
-		public void DataReferenceStorage_Serialize_ThenDeserialize_RoundTrips()
-		{
-			var guid = Guid.NewGuid();
-			var original = new ResourcePropertyReference(guid, "node-1");
-			var storage = original.ToStorage();
-
-			var json = storage.Serialize();
-			Assert.IsTrue(DataReferenceStorage.TryDeserialize(json, out var deserialized));
-
-			var result = ApiDataReference.FromStorage(deserialized) as ResourcePropertyReference;
-			Assert.IsNotNull(result);
-			Assert.AreEqual(guid, result.ResourcePropertyId);
-			Assert.AreEqual("node-1", result.NodeId);
-		}
-
-		[TestMethod]
-		public void DataReferenceStorage_TryDeserialize_InvalidJson_ReturnsFalse()
-		{
-			Assert.IsFalse(DataReferenceStorage.TryDeserialize("not json", out var result));
-			Assert.IsNull(result);
-		}
-
-		[TestMethod]
-		public void DataReferenceStorage_TryDeserialize_NullOrEmpty_ReturnsFalse()
-		{
-			Assert.IsFalse(DataReferenceStorage.TryDeserialize(null, out _));
-			Assert.IsFalse(DataReferenceStorage.TryDeserialize(string.Empty, out _));
-		}
-
-		[TestMethod]
-		public void DataReferenceStorage_Equals_SameContent_ReturnsTrue()
-		{
-			var guid = Guid.NewGuid();
-			var ref1 = new ResourcePropertyReference(guid);
-			var ref2 = new ResourcePropertyReference(guid);
-
-			Assert.IsTrue(ref1.ToStorage().Equals(ref2.ToStorage()));
-		}
-
-		[TestMethod]
-		public void DataReferenceStorage_Equals_DifferentContent_ReturnsFalse()
-		{
-			var ref1 = new ResourcePropertyReference(Guid.NewGuid());
-			var ref2 = new ResourcePropertyReference(Guid.NewGuid());
-
-			Assert.IsFalse(ref1.ToStorage().Equals(ref2.ToStorage()));
+			Assert.AreEqual("node-9", reference.NodeId);
 		}
 	}
 }
