@@ -280,7 +280,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			var jobEventSettings = _job.OrchestrationSettings?.OrchestrationEvents
 				.FirstOrDefault(e => MapEventType(e.EventType) == eventType);
 
-			BuildScriptConfiguration(jobEventSettings, out var scriptName, out var arguments, out var profile);
+			BuildScriptConfiguration(jobEventSettings, null, out var scriptName, out var arguments, out var profile);
 
 			liveEventConfig.GlobalOrchestrationScript = scriptName;
 			liveEventConfig.GlobalOrchestrationScriptArguments = arguments;
@@ -329,14 +329,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			var nodeEventSettings = node.OrchestrationSettings?.OrchestrationEvents
 				.FirstOrDefault(e => MapEventType(e.EventType) == eventType);
 
-			BuildScriptConfiguration(nodeEventSettings, out var scriptName, out var arguments, out var profile);
+			BuildScriptConfiguration(nodeEventSettings, node.Id, out var scriptName, out var arguments, out var profile);
 
 			nodeEventConfig.OrchestrationScriptName = scriptName;
 			nodeEventConfig.OrchestrationScriptArguments = arguments;
 			nodeEventConfig.Profile = profile;
 		}
 
-		private void BuildScriptConfiguration(OrchestrationEvent eventSettings, out string scriptName, out IList<Live.OrchestrationScriptArgument> arguments, out Live.OrchestrationProfile profile)
+		private void BuildScriptConfiguration(OrchestrationEvent eventSettings, string owningNodeId, out string scriptName, out IList<Live.OrchestrationScriptArgument> arguments, out Live.OrchestrationProfile profile)
 		{
 			var executionDetails = eventSettings?.ExecutionDetails;
 
@@ -351,11 +351,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			var storage = executionDetails.ToStorage();
 
 			scriptName = executionDetails.ScriptName;
-			arguments = GetScriptArgumentsFromExecutionDetails(storage, eventSettings.Metadata);
-			profile = GetScriptProfilesFromExecutionDetails(storage);
+			arguments = GetScriptArgumentsFromExecutionDetails(storage, eventSettings.Metadata, owningNodeId);
+			profile = GetScriptProfilesFromExecutionDetails(storage, owningNodeId);
 		}
 
-		private IList<Live.OrchestrationScriptArgument> GetScriptArgumentsFromExecutionDetails(Storage.DOM.ScriptExecutionDetails executionDetails, string metadata)
+		private IList<Live.OrchestrationScriptArgument> GetScriptArgumentsFromExecutionDetails(Storage.DOM.ScriptExecutionDetails executionDetails, string metadata, string owningNodeId)
 		{
 			var arguments = new List<Live.OrchestrationScriptArgument>();
 
@@ -366,7 +366,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			foreach (var dummyReference in executionDetails.DummyReferences.Where(x => x.Value != null))
 			{
-				if (TryResolveReference(dummyReference.Value, out var resolved))
+				if (TryResolveReference(dummyReference.Value, owningNodeId, out var resolved))
 				{
 					var stringValue = Convert.ToString(resolved.GetRawValue(), CultureInfo.InvariantCulture);
 					arguments.Add(new Live.OrchestrationScriptArgument(LiveEnums.OrchestrationScriptArgumentType.Element, dummyReference.Key, stringValue));
@@ -380,7 +380,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			foreach (var parameterReference in executionDetails.ParameterReferences.Where(x => x.Value != null))
 			{
-				if (TryResolveReference(parameterReference.Value, out var resolved))
+				if (TryResolveReference(parameterReference.Value, owningNodeId, out var resolved))
 				{
 					var stringValue = Convert.ToString(resolved.GetRawValue(), CultureInfo.InvariantCulture);
 					arguments.Add(new Live.OrchestrationScriptArgument(LiveEnums.OrchestrationScriptArgumentType.Parameter, parameterReference.Key, stringValue));
@@ -407,7 +407,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return arguments;
 		}
 
-		private Live.OrchestrationProfile GetScriptProfilesFromExecutionDetails(Storage.DOM.ScriptExecutionDetails executionDetails)
+		private Live.OrchestrationProfile GetScriptProfilesFromExecutionDetails(Storage.DOM.ScriptExecutionDetails executionDetails, string owningNodeId)
 		{
 			var profile = new Live.OrchestrationProfile();
 
@@ -415,7 +415,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				if (profileParameterValue.Reference != null)
 				{
-					if (TryResolveReference(profileParameterValue.Reference, out var resolved))
+					if (TryResolveReference(profileParameterValue.Reference, owningNodeId, out var resolved))
 					{
 						profile.Values.Add(new Live.OrchestrationProfileValue
 						{
@@ -531,13 +531,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return true;
 		}
 
-		private bool TryResolveReference(Storage.DOM.DataReferenceStorage referenceStorage, out ResolvedValue resolvedValue)
+		private bool TryResolveReference(Storage.DOM.DataReferenceStorage referenceStorage, string owningNodeId, out ResolvedValue resolvedValue)
 		{
 			resolvedValue = null;
 
 			try
 			{
-				resolvedValue = _referenceResolver.ResolveValue(referenceStorage.ToDataReference());
+				resolvedValue = _referenceResolver.ResolveValue(referenceStorage.ToDataReference(), owningNodeId);
 			}
 			catch (CircularReferenceException)
 			{

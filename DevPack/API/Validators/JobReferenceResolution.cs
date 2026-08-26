@@ -3,6 +3,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using System;
 	using System.Collections.Generic;
 
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
+
 	/// <summary>
 	/// Represents the outcome of resolving the settings references of a <see cref="Job"/>.
 	/// </summary>
@@ -12,10 +14,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Initializes a new instance of the <see cref="JobReferenceResolution"/> class.
 		/// </summary>
 		/// <param name="unresolvedReferences">The references that could not be resolved to a value.</param>
-		/// <param name="resolvedReferences">The references that resolved to a value, mapped to their resolved value.</param>
+		/// <param name="resolvedReferences">The values that were resolved, per node and reference.</param>
 		public JobReferenceResolution(
 			IReadOnlyCollection<DataReference> unresolvedReferences,
-			IReadOnlyDictionary<DataReference, ResolvedValue> resolvedReferences)
+			ResolvedReferenceCache resolvedReferences)
 		{
 			UnresolvedReferences = unresolvedReferences ?? throw new ArgumentNullException(nameof(unresolvedReferences));
 			ResolvedReferences = resolvedReferences ?? throw new ArgumentNullException(nameof(resolvedReferences));
@@ -27,9 +29,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		public IReadOnlyCollection<DataReference> UnresolvedReferences { get; }
 
 		/// <summary>
-		/// Gets the references that resolved to a value, mapped to their resolved value.
+		/// Gets the values that were resolved, per node and reference.
 		/// </summary>
-		public IReadOnlyDictionary<DataReference, ResolvedValue> ResolvedReferences { get; }
+		public ResolvedReferenceCache ResolvedReferences { get; }
 
 		/// <summary>
 		/// Gets a value indicating whether all references resolved to a value.

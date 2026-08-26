@@ -39,7 +39,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			Assert.AreEqual(1, result.UnresolvedReferences.Count);
 			Assert.AreEqual(unresolvedReference, result.UnresolvedReferences.Single());
 			Assert.AreEqual(1, result.ResolvedReferences.Count);
-			Assert.IsTrue(result.ResolvedReferences.ContainsKey(resolvedReference));
+			Assert.IsTrue(result.ResolvedReferences.Contains(null, resolvedReference));
 		}
 
 		[TestMethod]
@@ -118,7 +118,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				this.circularReferences = circularReferences ?? new HashSet<DataReference>();
 			}
 
-			public override ResolvedValue ResolveValue(DataReference reference)
+			public override ResolvedValue ResolveValue(DataReference reference, string currentNodeId = null)
 			{
 				if (circularReferences.Contains(reference))
 				{

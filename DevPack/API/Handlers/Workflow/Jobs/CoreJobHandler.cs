@@ -906,8 +906,8 @@
 						&& node.NodeConfiguration.Value != Guid.Empty
 						&& orchestrationSettingsCache.TryGetValue(node.NodeConfiguration.Value, out var orchestrationSettings))
 					{
-						resourceUsage.RequiredCapabilities = BuildCapabilities(orchestrationSettings.Capabilities, resolvedReferences).ToList();
-						resourceUsage.RequiredCapacities = BuildCapacities(orchestrationSettings.Capacities, resolvedReferences).ToList();
+						resourceUsage.RequiredCapabilities = BuildCapabilities(orchestrationSettings.Capabilities, resolvedReferences, node.NodeID).ToList();
+						resourceUsage.RequiredCapacities = BuildCapacities(orchestrationSettings.Capacities, resolvedReferences, node.NodeID).ToList();
 					}
 
 					result.Add(resourceUsage);
@@ -916,12 +916,12 @@
 				return result;
 			}
 
-			private static IEnumerable<ResourceCapabilityUsage> BuildCapabilities(IReadOnlyCollection<CapabilitySetting> capabilities, ResolvedReferenceCache resolvedReferences)
+			private static IEnumerable<ResourceCapabilityUsage> BuildCapabilities(IReadOnlyCollection<CapabilitySetting> capabilities, ResolvedReferenceCache resolvedReferences, string owningNodeId)
 			{
 				foreach (var capability in capabilities)
 				{
 					// Capabilities are discrete in this model, so the value is always applied as the required discrete value.
-					if (!TryGetCapabilityValue(capability, resolvedReferences, out var value))
+					if (!TryGetCapabilityValue(capability, resolvedReferences, owningNodeId, out var value))
 					{
 						continue;
 					}
@@ -934,14 +934,14 @@
 				}
 			}
 
-			private static IEnumerable<MultiResourceCapacityUsage> BuildCapacities(IReadOnlyCollection<CapacitySetting> capacities, ResolvedReferenceCache resolvedReferences)
+			private static IEnumerable<MultiResourceCapacityUsage> BuildCapacities(IReadOnlyCollection<CapacitySetting> capacities, ResolvedReferenceCache resolvedReferences, string owningNodeId)
 			{
 				foreach (var capacity in capacities)
 				{
 					switch (capacity)
 					{
 						case NumberCapacitySetting numberCapacity:
-							if (TryGetCapacityQuantity(numberCapacity, resolvedReferences, out var quantity))
+							if (TryGetCapacityQuantity(numberCapacity, resolvedReferences, owningNodeId, out var quantity))
 							{
 								yield return new MultiResourceCapacityUsage
 								{
@@ -969,7 +969,7 @@
 				}
 			}
 
-			private static bool TryGetCapabilityValue(CapabilitySetting capability, ResolvedReferenceCache resolvedReferences, out string value)
+			private static bool TryGetCapabilityValue(CapabilitySetting capability, ResolvedReferenceCache resolvedReferences, string owningNodeId, out string value)
 			{
 				if (capability.HasValue)
 				{
@@ -977,7 +977,7 @@
 					return true;
 				}
 
-				if (TryGetResolvedRawValue(capability, resolvedReferences, out var rawValue))
+				if (TryGetResolvedRawValue(capability, resolvedReferences, owningNodeId, out var rawValue))
 				{
 					value = Convert.ToString(rawValue, CultureInfo.InvariantCulture);
 					return value != null;
@@ -987,7 +987,7 @@
 				return false;
 			}
 
-			private static bool TryGetCapacityQuantity(NumberCapacitySetting capacity, ResolvedReferenceCache resolvedReferences, out decimal quantity)
+			private static bool TryGetCapacityQuantity(NumberCapacitySetting capacity, ResolvedReferenceCache resolvedReferences, string owningNodeId, out decimal quantity)
 			{
 				if (capacity.Value.HasValue)
 				{
@@ -995,7 +995,7 @@
 					return true;
 				}
 
-				if (TryGetResolvedRawValue(capacity, resolvedReferences, out var rawValue) && TryConvertToDecimal(rawValue, out quantity))
+				if (TryGetResolvedRawValue(capacity, resolvedReferences, owningNodeId, out var rawValue) && TryConvertToDecimal(rawValue, out quantity))
 				{
 					return true;
 				}
@@ -1004,7 +1004,7 @@
 				return false;
 			}
 
-			private static bool TryGetResolvedRawValue(Setting setting, ResolvedReferenceCache resolvedReferences, out object rawValue)
+			private static bool TryGetResolvedRawValue(Setting setting, ResolvedReferenceCache resolvedReferences, string owningNodeId, out object rawValue)
 			{
 				rawValue = null;
 
@@ -1013,7 +1013,9 @@
 					return false;
 				}
 
-				if (!resolvedReferences.TryGetValue(setting.Reference, out var resolvedValue) || !resolvedValue.IsResolved)
+				var reference = setting.Reference;
+
+				if (!resolvedReferences.TryGetValue(owningNodeId, reference, out var resolvedValue) || !resolvedValue.IsResolved)
 				{
 					return false;
 				}

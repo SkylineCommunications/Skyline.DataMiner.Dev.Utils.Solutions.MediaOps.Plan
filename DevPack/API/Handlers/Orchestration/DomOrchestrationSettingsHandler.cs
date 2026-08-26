@@ -75,14 +75,14 @@
 
 			foreach (var orchestrationSettings in apiOrchestrationSettings)
 			{
-				if (!referenceValidationContext.TryGetTarget(orchestrationSettings.Id, out var resolver, out var reportErrors) || !reportErrors)
+				if (!referenceValidationContext.TryGetTarget(orchestrationSettings.Id, out var resolver, out var owningNodeId, out var reportErrors) || !reportErrors)
 				{
 					continue;
 				}
 
 				foreach (var reference in EnumerateEventReferences(orchestrationSettings))
 				{
-					if (resolver.CanResolve(reference))
+					if (resolver.CanResolve(reference, owningNodeId))
 					{
 						continue;
 					}
