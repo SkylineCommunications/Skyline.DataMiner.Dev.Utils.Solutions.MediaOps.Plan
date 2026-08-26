@@ -2,6 +2,7 @@
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Linq;
 
 	/// <summary>
 	/// Contains the successfully handled items and the <see cref="MediaOpsTraceData"/> per item.
@@ -50,7 +51,24 @@
 
 		internal void ThrowSingleException(Guid key)
 		{
-			throw new MediaOpsException(TraceDataPerItem[key]);
+			if (TraceDataPerItem.TryGetValue(key, out var traceData))
+			{
+				throw new MediaOpsException(traceData);
+			}
+
+			// No trace data was reported for the requested item, fall back to the trace data of the other items so the original failure reason is not lost.
+			var fallbackTraceData = new MediaOpsTraceData();
+			foreach (var error in TraceDataPerItem.Values.SelectMany(x => x.ErrorData))
+			{
+				fallbackTraceData.Add(error);
+			}
+
+			if (fallbackTraceData.ErrorData.Count == 0)
+			{
+				fallbackTraceData.Add(new MediaOpsErrorData { ErrorMessage = $"The operation failed for the item with ID '{key}'." });
+			}
+
+			throw new MediaOpsException(fallbackTraceData);
 		}
 	}
 }
