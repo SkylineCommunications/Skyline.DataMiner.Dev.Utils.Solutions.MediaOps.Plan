@@ -233,6 +233,9 @@
 				completedResources.Select(x => x.Id).ToList(),
 				expectedException.Result.UnsuccessfulIds.ToList());
 
+			// Reading the message of a bulk exception with more than one failure must not recurse into ToString().
+			var message = expectedException.Message;
+
 			foreach (var completedResource in completedResources)
 			{
 				var traceData = expectedException.Result.TraceDataPerItem[completedResource.Id];
@@ -240,6 +243,8 @@
 				Assert.IsNotNull(resourceNotFoundError);
 				Assert.AreEqual(completedResource.Id, resourceNotFoundError.Id);
 				Assert.AreEqual($"The linked CORE resource with ID '{completedResource.CoreResourceId}' no longer exists.", resourceNotFoundError.ErrorMessage);
+
+				StringAssert.Contains(message, resourceNotFoundError.ErrorMessage);
 
 				Assert.AreEqual(ResourceState.Complete, TestContext.Api.Resources.Read(completedResource.Id).State);
 			}
