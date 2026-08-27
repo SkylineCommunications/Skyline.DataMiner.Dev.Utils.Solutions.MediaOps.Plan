@@ -16,6 +16,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 	/// In-memory store that handles Resource Manager messages (resources, resource pools and
 	/// reservation instances), mirroring how a real DataMiner Agent would respond.
 	/// </summary>
+	/// <remarks>
+	/// Objects are copied on the way in and on the way out. A real agent is a separate process, so a caller
+	/// can never reach the stored object; keeping references here would let a caller mutate the store by accident.
+	/// </remarks>
 	internal sealed class ResourceManagerStore
 	{
 		private readonly ConcurrentDictionary<Guid, Resource> _resources = new ConcurrentDictionary<Guid, Resource>();
@@ -47,35 +51,39 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 							result = _resources.Values;
 						}
 
-						response = new ResourceResponseMessage(result.ToArray()) { Success = true };
+						response = new ResourceResponseMessage(result.Select(Copy).ToArray()) { Success = true };
 						return true;
 					}
 
 				case SetResourceMessage request:
 					{
 						var objects = request.ResourceManagerObjects ?? new List<Resource>();
+						var handled = new List<Resource>(objects.Count);
 
 						foreach (var resource in objects)
 						{
 							if (request.isDelete)
 							{
 								_resources.TryRemove(resource.GUID, out _);
+								handled.Add(resource);
+								continue;
 							}
-							else
-							{
-								// A real DataMiner Agent provisions the DVE row for a function resource and
-								// assigns its primary key. Mirror that by assigning a primary key so callers
-								// that enable the DVE afterwards have a valid key to work with.
-								if (resource is FunctionResource functionResource && String.IsNullOrWhiteSpace(functionResource.PK))
-								{
-									functionResource.PK = functionResource.GUID.ToString();
-								}
 
-								_resources[resource.GUID] = resource;
+							var stored = Copy(resource);
+
+							// A real DataMiner Agent provisions the DVE row for a function resource and
+							// assigns its primary key. Mirror that by assigning a primary key so callers
+							// that enable the DVE afterwards have a valid key to work with.
+							if (stored is FunctionResource functionResource && String.IsNullOrWhiteSpace(functionResource.PK))
+							{
+								functionResource.PK = functionResource.GUID.ToString();
 							}
+
+							_resources[stored.GUID] = stored;
+							handled.Add(Copy(stored));
 						}
 
-						response = new ResourceResponseMessage(objects.ToArray()) { Success = true };
+						response = new ResourceResponseMessage(handled.ToArray()) { Success = true };
 						return true;
 					}
 
@@ -97,27 +105,30 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 							result = _resourcePools.Values;
 						}
 
-						response = new ResourcePoolResponseMessage(result.ToArray()) { Success = true };
+						response = new ResourcePoolResponseMessage(result.Select(Copy).ToArray()) { Success = true };
 						return true;
 					}
 
 				case SetResourcePoolMessage request:
 					{
 						var objects = request.ResourceManagerObjects ?? new List<ResourcePool>();
+						var handled = new List<ResourcePool>(objects.Count);
 
 						foreach (var pool in objects)
 						{
 							if (request.isDelete)
 							{
 								_resourcePools.TryRemove(pool.GUID, out _);
+								handled.Add(pool);
+								continue;
 							}
-							else
-							{
-								_resourcePools[pool.GUID] = pool;
-							}
+
+							var stored = Copy(pool);
+							_resourcePools[stored.GUID] = stored;
+							handled.Add(Copy(stored));
 						}
 
-						response = new ResourcePoolResponseMessage(objects.ToArray()) { Success = true };
+						response = new ResourcePoolResponseMessage(handled.ToArray()) { Success = true };
 						return true;
 					}
 
@@ -128,23 +139,26 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 				case SetReservationInstanceMessage request:
 					{
 						var objects = request.ResourceManagerObjects ?? new List<ReservationInstance>();
+						var handled = new List<ReservationInstance>(objects.Count);
 
 						foreach (var reservation in objects)
 						{
 							if (request.isDelete)
 							{
 								_reservationInstances.TryRemove(reservation.ID, out _);
+								handled.Add(reservation);
+								continue;
 							}
-							else
-							{
-								_reservationInstances[reservation.ID] = reservation;
-							}
+
+							var stored = Copy(reservation);
+							_reservationInstances[stored.ID] = stored;
+							handled.Add(Copy(stored));
 						}
 
 						response = new ResourceManagerResponseMessage
 						{
 							Success = true,
-							ReservationInstances = objects,
+							ReservationInstances = handled,
 						};
 						return true;
 					}
@@ -155,7 +169,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 
 				case ManagerStoreReadRequest<ReservationInstance> request:
 					{
-						var instances = request.Query.ExecuteInMemory(_reservationInstances.Values).ToList();
+						var instances = request.Query.ExecuteInMemory(_reservationInstances.Values).Select(Copy).ToList();
 						response = new ManagerStoreCrudResponse<ReservationInstance>(instances);
 						return true;
 					}
@@ -169,7 +183,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 
 				case ManagerStoreStartPagingRequest<ReservationInstance> request:
 					{
-						var instances = request.Filter.ExecuteInMemory(_reservationInstances.Values).ToList();
+						var instances = request.Filter.ExecuteInMemory(_reservationInstances.Values).Select(Copy).ToList();
 						var pagingHandler = new InMemoryPagingHandler<ReservationInstance>(instances);
 						_reservationPagingHandlers.TryAdd(pagingHandler.Cookie, pagingHandler);
 
@@ -220,6 +234,21 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 					response = default;
 					return false;
 			}
+		}
+
+		private static Resource Copy(Resource resource)
+		{
+			return (Resource)resource.Clone();
+		}
+
+		private static ResourcePool Copy(ResourcePool resourcePool)
+		{
+			return (ResourcePool)resourcePool.Clone();
+		}
+
+		private static ReservationInstance Copy(ReservationInstance reservation)
+		{
+			return (ReservationInstance)reservation.Clone();
 		}
 	}
 }
