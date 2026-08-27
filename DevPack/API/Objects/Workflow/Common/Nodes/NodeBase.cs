@@ -46,6 +46,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		public string IconImage { get; set; }
 
 		/// <summary>
+		/// Gets a value indicating whether this node is hidden. Hidden nodes are soft-deleted nodes (for example nodes that
+		/// were removed or swapped out) that are kept for history but excluded from orchestration.
+		/// </summary>
+		internal bool Hidden { get; private set; }
+
+		/// <summary>
 		/// Gets the orchestration settings assigned to this node.
 		/// </summary>
 		public OrchestrationSettings OrchestrationSettings { get; private set; }
@@ -288,6 +294,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			Id = section.NodeID;
 			Alias = section.NodeAlias;
 			IconImage = section.NodeIcon;
+			Hidden = section.Hidden ?? false;
 
 			if (section.NodeConfiguration == null || section.NodeConfiguration == Guid.Empty)
 			{

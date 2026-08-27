@@ -3,6 +3,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using System;
 	using System.Collections.Generic;
 
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
+
 	/// <summary>
 	/// Resolves and validates the <see cref="DataReference"/> instances contained in the orchestration
 	/// settings of a <see cref="Job"/> (both job level and node level). Only the capability, capacity and
@@ -35,20 +37,22 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			var unresolved = new List<DataReference>();
-			var resolved = new Dictionary<DataReference, ResolvedValue>();
+			var resolved = new ResolvedReferenceCache();
 
-			foreach (var setting in EnumerateReferenceSettings(job))
+			foreach (var entry in EnumerateReferenceSettings(job))
 			{
-				var reference = setting.Reference;
-				if (reference == null || resolved.ContainsKey(reference) || unresolved.Contains(reference))
+				var reference = entry.Setting.Reference;
+				if (reference == null || resolved.Contains(entry.OwningNodeId, reference))
 				{
 					continue;
 				}
 
+				// A resource reference without a node resolves against the node holding the setting, so the same
+				// configured reference can produce a different value per node.
 				ResolvedValue value;
 				try
 				{
-					value = resolver.ResolveValue(reference);
+					value = resolver.ResolveValue(reference, entry.OwningNodeId);
 				}
 				catch (CircularReferenceException)
 				{
@@ -57,9 +61,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 				if (value != null && value.IsResolved)
 				{
-					resolved[reference] = value;
+					resolved.Set(entry.OwningNodeId, reference, value);
 				}
-				else
+				else if (!unresolved.Contains(reference))
 				{
 					unresolved.Add(reference);
 				}
@@ -68,18 +72,18 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return new JobReferenceResolution(unresolved, resolved);
 		}
 
-		private static IEnumerable<Setting> EnumerateReferenceSettings(Job job)
+		private static IEnumerable<(Setting Setting, string OwningNodeId)> EnumerateReferenceSettings(Job job)
 		{
 			foreach (var setting in EnumerateReferenceSettings(job.OrchestrationSettings))
 			{
-				yield return setting;
+				yield return (setting, null);
 			}
 
 			foreach (var node in job.NodeGraph.Nodes)
 			{
 				foreach (var setting in EnumerateReferenceSettings(node.OrchestrationSettings))
 				{
-					yield return setting;
+					yield return (setting, node.Id);
 				}
 			}
 		}

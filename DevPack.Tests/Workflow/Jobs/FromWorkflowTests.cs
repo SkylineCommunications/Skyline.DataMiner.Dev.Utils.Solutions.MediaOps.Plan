@@ -3,6 +3,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 	using System;
 	using System.Linq;
 
+	using RT_MediaOps.Plan.Extensions;
 	using RT_MediaOps.Plan.RegressionTests;
 
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
@@ -551,6 +552,82 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				Assert.AreEqual(workflow.Id, error.Id);
 				Assert.AreEqual("Not allowed to build a job from a workflow that is not in Complete state.", error.ErrorMessage);
 			}
+		}
+
+		[TestMethod]
+		public void FromWorkflow_CreatedJob_PersistsPoolNodeAndWorkflowGroup()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var workflow = CreateCompleteWorkflowWithConfiguredPoolNode(prefix, out var pool);
+
+			var job = Job.FromWorkflow(TestContext.Api, workflow.Id);
+			job.Name = $"{prefix}_Job";
+			job.Start = currentTime;
+			job.End = currentTime.AddMinutes(10);
+			job.PreRollStart = currentTime;
+			job.PostRollEnd = currentTime.AddMinutes(10);
+
+			var createdJob = objectCreator.CreateJob(job);
+
+			AssertPoolNodeIsInWorkflowGroup(TestContext.Api.Jobs.Read(createdJob.Id), workflow.Name, pool.Id);
+		}
+
+		[TestMethod]
+		public void SaveAsTentative_JobBuiltFromWorkflow_KeepsPoolNodeAndWorkflowGroup()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var workflow = CreateCompleteWorkflowWithConfiguredPoolNode(prefix, out var pool);
+
+			var job = Job.FromWorkflow(TestContext.Api, workflow.Id);
+			job.Name = $"{prefix}_Job";
+			job.Start = currentTime;
+			job.End = currentTime.AddMinutes(10);
+			job.PreRollStart = currentTime;
+			job.PostRollEnd = currentTime.AddMinutes(10);
+
+			// A job must be created in Draft state before it can be moved to Tentative state.
+			var createdJob = objectCreator.CreateJob(job);
+
+			var tentativeJob = TestContext.Api.Jobs.SaveAsTentative(createdJob);
+
+			Assert.IsNotNull(tentativeJob, "Expected the job to be transitioned to the Tentative state.");
+			Assert.AreEqual(JobState.Tentative, tentativeJob.State);
+
+			AssertPoolNodeIsInWorkflowGroup(TestContext.Api.Jobs.Read(tentativeJob.Id), workflow.Name, pool.Id);
+		}
+
+		private static void AssertPoolNodeIsInWorkflowGroup(Job storedJob, string workflowName, Guid poolId)
+		{
+			Assert.IsNotNull(storedJob, "Expected the job to be stored.");
+
+			var storedNode = storedJob.NodeGraph.Nodes.OfType<JobResourcePoolNode>().Single();
+			Assert.AreEqual(poolId, storedNode.ResourcePoolId);
+			Assert.AreEqual(1, storedNode.OrchestrationSettings.Configurations.Count, "Expected the node configuration to be persisted.");
+
+			var workflowGroup = storedJob.NodeGraph.Groups.Single(group => group.Name == workflowName);
+			CollectionAssert.AreEquivalent(new[] { storedNode.Id }, workflowGroup.Nodes.Select(node => node.Id).ToArray());
+		}
+
+		private Workflow CreateCompleteWorkflowWithConfiguredPoolNode(Guid prefix, out ResourcePool pool)
+		{
+			pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var textConfiguration = new TextConfiguration { Name = $"{prefix}_TextConfiguration" };
+			objectCreator.CreateConfigurations([textConfiguration]);
+
+			var workflow = new Workflow { Name = $"{prefix}_Workflow" };
+			var poolNode = new WorkflowResourcePoolNode(pool) { Alias = "PN" };
+			poolNode.OrchestrationSettings.AddConfiguration(new TextConfigurationSetting(textConfiguration));
+			workflow.NodeGraph.Add(poolNode);
+
+			workflow = objectCreator.CreateWorkflow(workflow);
+
+			return TestContext.Api.Workflows.Complete(workflow);
 		}
 	}
 }

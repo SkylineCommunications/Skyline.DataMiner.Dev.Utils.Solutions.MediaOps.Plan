@@ -111,6 +111,17 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void Duplicate_DoesNotCopyErrors()
+		{
+			var job = new Job { Name = "Original", Start = BaseStart, End = BaseEnd };
+			job.AddError(new JobError("LIV101", "Pre-roll could not be started."));
+
+			var duplicate = job.Duplicate(Guid.NewGuid());
+
+			Assert.AreEqual(0, duplicate.Errors.Count, "Duplicated job should not inherit the errors of the original.");
+		}
+
+		[TestMethod]
 		public void Duplicate_CopiesContacts()
 		{
 			var contactId = Guid.NewGuid();

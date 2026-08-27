@@ -27,7 +27,7 @@
 
 		private readonly HashSet<Guid> jobIdsWithCoreChanges = new HashSet<Guid>();
 
-		private readonly Dictionary<Guid, IReadOnlyDictionary<DataReference, ResolvedValue>> resolvedReferencesByJobId = new Dictionary<Guid, IReadOnlyDictionary<DataReference, ResolvedValue>>();
+		private readonly Dictionary<Guid, ResolvedReferenceCache> resolvedReferencesByJobId = new Dictionary<Guid, ResolvedReferenceCache>();
 
 		private readonly Dictionary<Guid, List<OrchestrationSettings>> orchestrationSettingsByJobId = new Dictionary<Guid, List<OrchestrationSettings>>();
 
@@ -282,6 +282,10 @@
 			// Register the category items only after the job DOM instances are persisted so the Categories app is not
 			// left with items pointing to jobs that failed to be created or updated.
 			CreateOrUpdateCategoryItems(apiJobs.Where(IsValid).ToList());
+
+			// Synchronize MediaOps Live from the persisted instances so Live reflects the merged result rather than this
+			// user's in-memory snapshot, which may miss a concurrent edit that the lock-merge preserved.
+			SyncLiveOrchestration(SuccessfulItems.Select(x => new Job(planApi, x)).ToList());
 		}
 
 		private void CreateOrUpdateDomJobs(ICollection<DomJob> domJobs)
@@ -355,7 +359,7 @@
 
 			var jobIdByOrchestrationSettingsId = new Dictionary<Guid, Guid>();
 			var orchestrationSettings = new List<OrchestrationSettings>();
-			var referenceTargets = new Dictionary<Guid, (ReferenceResolver Resolver, bool ReportErrors)>();
+			var referenceTargets = new Dictionary<Guid, (ReferenceResolver Resolver, string OwningNodeId, bool ReportErrors)>();
 
 			foreach (var job in apiJobs)
 			{
@@ -389,7 +393,7 @@
 			Job job,
 			Dictionary<Guid, Guid> jobIdByOrchestrationSettingsId,
 			List<OrchestrationSettings> orchestrationSettings,
-			Dictionary<Guid, (ReferenceResolver Resolver, bool ReportErrors)> referenceTargets)
+			Dictionary<Guid, (ReferenceResolver Resolver, string OwningNodeId, bool ReportErrors)> referenceTargets)
 		{
 			jobIdByOrchestrationSettingsId[job.OrchestrationSettings.Id] = job.Id;
 			orchestrationSettings.Add(job.OrchestrationSettings);
@@ -413,11 +417,11 @@
 			}
 
 			var resolver = new JobReferenceResolver(planApi, job, referenceDefinitions);
-			referenceTargets[job.OrchestrationSettings.Id] = (resolver, true);
+			referenceTargets[job.OrchestrationSettings.Id] = (resolver, null, true);
 
 			foreach (var node in job.NodeGraph.Nodes)
 			{
-				referenceTargets[node.OrchestrationSettings.Id] = (resolver, true);
+				referenceTargets[node.OrchestrationSettings.Id] = (resolver, node.Id, true);
 			}
 		}
 
@@ -588,6 +592,8 @@
 
 			// Step 2: move the successfully-updated jobs to the Confirmed state.
 			TransitionDomJobsToConfirmed(domJobs);
+
+			SyncLiveOrchestration(apiJobs, JobState.Confirmed);
 		}
 
 		private ICollection<DomJob> ApplyConfirmNodeTimingsAndSave(ICollection<Job> apiJobs)
@@ -742,6 +748,8 @@
 			var domJobs = apiJobs.Select(x => x.OriginalInstance).ToList();
 
 			TransitionDomJobsToCanceled(domJobs);
+
+			SyncLiveOrchestration(apiJobs, JobState.Canceled);
 		}
 
 		private void TransitionDomJobsToCanceled(ICollection<DomJob> domJobs)
@@ -845,6 +853,8 @@
 			var domJobs = apiJobs.Select(x => x.OriginalInstance).ToList();
 
 			TransitionDomJobsToTentativeFromConfirmed(domJobs);
+
+			SyncLiveOrchestration(apiJobs, JobState.Tentative);
 		}
 
 		private void TransitionDomJobsToTentativeFromConfirmed(ICollection<DomJob> domJobs)
@@ -945,6 +955,8 @@
 			var domJobs = apiJobs.Select(x => x.OriginalInstance).ToList();
 
 			TransitionDomJobsToCompleted(domJobs);
+
+			SyncLiveOrchestration(apiJobs, JobState.Completed);
 		}
 
 		private void TransitionDomJobsToCompleted(ICollection<DomJob> domJobs)
@@ -1080,6 +1092,8 @@
 				changedJobs.Add(job);
 			}
 
+			// The orchestration events are synchronized by the Confirmed-to-Running transition that the reservation start
+			// event drives afterwards, so they are not synchronized here.
 			PersistChangedJobs(changedJobs);
 		}
 
@@ -1182,6 +1196,12 @@
 			}
 
 			PersistChangedJobs(changedJobs);
+
+			// Step 3: an early stop moves the end (and possibly the post-roll end) into the past, so the end events must be
+			// re-timed, the ones that are now due must be triggered immediately and the remaining ones must be rescheduled.
+			// The Running-to-Completed transition that follows keeps the events as-is, so it cannot do this. Synchronize
+			// with the Running state because that transition may already have landed on the persisted instances.
+			SyncLiveOrchestration(SuccessfulItems.Select(x => new Job(planApi, x)).ToList(), JobState.Running);
 		}
 
 		// Moves the core reservation end of the jobs that need rescheduling to reservationEnd, persists it BEFORE the DOM
@@ -1346,6 +1366,8 @@
 
 			var domJobs = apiJobs.Where(IsValid).Select(x => x.OriginalInstance).ToList();
 			TransitionDomJobsToRunning(domJobs);
+
+			SyncLiveOrchestration(apiJobs.Where(IsValid).ToList(), JobState.Running);
 		}
 
 		private void TransitionDomJobsToRunning(ICollection<DomJob> domJobs)
@@ -1389,7 +1411,6 @@
 			}
 
 			ValidateStateForTransitionToCompletedAction(apiJobs);
-			ValidatePostRollEndReached(apiJobs);
 
 			var lockResult = planApi.LockManager.LockAndExecute(apiJobs.Where(IsValid).ToList(), TransitionToCompletedLocked);
 			ReportError(lockResult);
@@ -1419,6 +1440,8 @@
 
 			var domJobs = apiJobs.Where(IsValid).Select(x => x.OriginalInstance).ToList();
 			TransitionDomJobsToCompletedFromRunning(domJobs);
+
+			SyncLiveOrchestration(apiJobs.Where(IsValid).ToList(), JobState.Completed);
 		}
 
 		private void TransitionDomJobsToCompletedFromRunning(ICollection<DomJob> domJobs)
@@ -1539,6 +1562,74 @@
 			}
 
 			ReportSuccess(instancesToDelete.Where(x => domResult.SuccessfulIds.Contains(x.ID)).Select(x => new DomJob(x)).ToArray());
+
+			// Remove the orchestration job configuration and events from MediaOps Live for the deleted jobs.
+			SyncLiveOrchestrationForDelete(jobsToDelete);
+		}
+
+		/// <summary>
+		/// Pushes the orchestration job configuration and events of the successfully-persisted jobs to MediaOps Live.
+		/// </summary>
+		/// <param name="apiJobs">The jobs to synchronize. Only valid jobs are synchronized.</param>
+		/// <param name="overrideState">When provided, the state to synchronize the jobs with instead of each job's own state.</param>
+		/// <exception cref="ArgumentNullException"><paramref name="apiJobs"/> is <see langword="null"/>.</exception>
+		private void SyncLiveOrchestration(IEnumerable<Job> apiJobs, JobState? overrideState = null)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (!planApi.LiveApi.IsInstalled())
+			{
+				// MediaOps Live is not installed, so there are no orchestration events to synchronize.
+				return;
+			}
+
+			foreach (var job in apiJobs.Where(IsValid))
+			{
+				var state = overrideState ?? job.State;
+
+				try
+				{
+					LiveJobConfigHandler.SetLiveJobConfigForJob(planApi, job, state, referenceDefinitions, currentTime);
+				}
+				catch (Exception ex)
+				{
+					planApi.Logger.Error(this, $"Failed to synchronize orchestration events for job {job.Id}: {ex}");
+				}
+			}
+		}
+
+		/// <summary>
+		/// Removes the orchestration job configuration and events of the successfully-persisted jobs from MediaOps Live.
+		/// </summary>
+		/// <param name="apiJobs">The jobs to remove. Only valid jobs are removed.</param>
+		/// <exception cref="ArgumentNullException"><paramref name="apiJobs"/> is <see langword="null"/>.</exception>
+		private void SyncLiveOrchestrationForDelete(IEnumerable<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (!planApi.LiveApi.IsInstalled())
+			{
+				// MediaOps Live is not installed, so there are no orchestration events to remove.
+				return;
+			}
+
+			foreach (var job in apiJobs.Where(IsValid))
+			{
+				try
+				{
+					LiveJobConfigHandler.DeleteLiveJobConfigForJob(planApi, job);
+				}
+				catch (Exception ex)
+				{
+					planApi.Logger.Error(this, $"Failed to remove orchestration events for job {job.Id}: {ex}");
+				}
+			}
 		}
 
 		private void DeleteOrchestrationSettings(ICollection<Job> apiJobs)
@@ -1558,7 +1649,13 @@
 				throw new ArgumentException($"Not all provided jobs are valid", nameof(apiJobs));
 			}
 
-			DomWorkflowOrchestrationSettingsHandler.TryDelete(planApi, apiJobs.Select(x => x.OrchestrationSettings).ToList(), out _);
+			// The orchestration settings of the nodes are stored as separate DOM instances and must be removed as well.
+			var orchestrationSettings = apiJobs
+				.SelectMany(x => new[] { x.OrchestrationSettings }.Concat(x.NodeGraph.Nodes.Select(node => node.OrchestrationSettings)))
+				.Where(x => x != null)
+				.ToList();
+
+			DomWorkflowOrchestrationSettingsHandler.TryDelete(planApi, orchestrationSettings, out _);
 		}
 
 		private void CreateOrUpdateCategoryItems(ICollection<Job> apiJobs)
@@ -1781,7 +1878,7 @@
 		{
 			if (resolvedReferencesByJobId.TryGetValue(domJob.ID.Id, out var resolvedReferences) && resolvedReferences.Count > 0)
 			{
-				domJob.ResolvedReferenceCache.SetCache(resolvedReferences);
+				domJob.ResolvedReferenceCache.Set(resolvedReferences);
 			}
 		}
 
@@ -2248,19 +2345,12 @@
 			}
 		}
 
-		private void ValidatePostRollEndReached(ICollection<Job> apiJobs)
-		{
-			foreach (var job in apiJobs.Where(x => IsValid(x) && x.PostRollEnd > currentTime))
-			{
-				ReportError(job.Id, new JobPostRollEndNotReachedError
-				{
-					ErrorMessage = "The job cannot be transitioned to completed before its post-roll end time has passed.",
-					Id = job.Id,
-					PostRollEnd = job.PostRollEnd,
-				});
-			}
-		}
-
+		// The core reservation always covers the entire post-roll, so an ended reservation proves the post-roll is over.
+		// The reservation is therefore the only source of truth for completing a job; the DOM job's post-roll end is only
+		// used to explain why a job whose reservation has not ended yet cannot be completed. Relying on the DOM post-roll
+		// end on its own would reject a job that was stopped early, because a stop moves and persists the reservation
+		// before the DOM job, so the DOM job can still hold its original (future) post-roll end when the reservation end
+		// event triggers the completion.
 		private void ValidateReservationIsEnded(ICollection<Job> apiJobs)
 		{
 			var validJobs = apiJobs.Where(IsValid).ToList();
@@ -2273,6 +2363,7 @@
 
 			CoreJobHandler.TryVerifyEnded(planApi, domJobs, out var coreResult);
 
+			var jobsById = validJobs.ToDictionary(x => x.Id);
 			foreach (var id in coreResult.UnsuccessfulIds)
 			{
 				ReportError(id);
@@ -2280,6 +2371,16 @@
 				if (coreResult.TraceDataPerItem.TryGetValue(id, out var traceData))
 				{
 					PassTraceData(id, traceData);
+				}
+
+				if (jobsById.TryGetValue(id, out var job) && job.PostRollEnd > currentTime)
+				{
+					ReportError(id, new JobPostRollEndNotReachedError
+					{
+						ErrorMessage = "The job cannot be transitioned to completed before its post-roll end time has passed.",
+						Id = id,
+						PostRollEnd = job.PostRollEnd,
+					});
 				}
 			}
 		}
