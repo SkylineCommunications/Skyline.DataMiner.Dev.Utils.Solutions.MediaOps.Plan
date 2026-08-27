@@ -1,5 +1,6 @@
 ﻿namespace RT_MediaOps.Plan.RegressionTests
 {
+	using System.Diagnostics;
 	using System.Linq;
 
 	using Skyline.DataMiner.Core.DataMinerSystem.Common;
@@ -82,8 +83,19 @@
 
 		private static IConnection CreateRealConnection(Config config)
 		{
+			Debug.WriteLine($"Connecting to DataMiner at {config.BaseUrl} as {config.Username} in domain {config.Domain}...");
+
 			var connection = Skyline.DataMiner.Net.ConnectionSettings.GetConnection(config.BaseUrl)
 				?? throw new NullReferenceException("Unable to connect to DataMiner");
+
+			connection.OnClose += (reason) => Debug.WriteLine($"Connection closed: {reason}");
+			connection.OnAbnormalClose += (s, e) => Debug.WriteLine($"Connection closed abnormally: {e.Reason}");
+			connection.OnForcedLogout += (s, e) => Debug.WriteLine($"Connection forced logout: {e.Reason}");
+
+			connection.ConnectTimeoutTime = 60000;
+			connection.PollingRequestTimeout = 60000;
+			connection.ConnectionCheckingInterval = 120000;
+			connection.ConnectionCheckFailMax = 5;
 
 			connection.Authenticate(config.Username, config.Password, config.Domain);
 

@@ -305,7 +305,13 @@
 				throw new ArgumentException($"Not all provided workflows are valid", nameof(apiWorkflows));
 			}
 
-			DomWorkflowOrchestrationSettingsHandler.TryDelete(planApi, apiWorkflows.Select(x => x.OrchestrationSettings).ToList(), out _);
+			// The orchestration settings of the nodes are stored as separate DOM instances and must be removed as well.
+			var orchestrationSettings = apiWorkflows
+				.SelectMany(x => new[] { x.OrchestrationSettings }.Concat(x.NodeGraph.Nodes.Select(node => node.OrchestrationSettings)))
+				.Where(x => x != null)
+				.ToList();
+
+			DomWorkflowOrchestrationSettingsHandler.TryDelete(planApi, orchestrationSettings, out _);
 		}
 
 		private void CreateOrUpdatePropertySettingCollections(ICollection<Workflow> apiWorkflows)

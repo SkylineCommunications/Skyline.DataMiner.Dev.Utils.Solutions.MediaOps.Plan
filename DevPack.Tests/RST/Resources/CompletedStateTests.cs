@@ -1,10 +1,12 @@
 ﻿namespace RT_MediaOps.Plan.RST.Resources
 {
 	using System;
+	using System.Linq;
 
 	using RT_MediaOps.Plan.RegressionTests;
 
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
 	[TestClass]
 	[TestCategory("IntegrationTest")]
@@ -95,6 +97,53 @@
 			coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
 			Assert.IsNotNull(coreResource);
 			Assert.AreEqual(2, coreResource.MaxConcurrency);
+		}
+
+		[TestMethod]
+		public void UpdateWithoutCoreResourceThrowsException()
+		{
+			var prefix = Guid.NewGuid();
+
+			var unmanagedResource = new UnmanagedResource()
+			{
+				Name = $"{prefix}_Resource",
+			};
+
+			var resource = objectCreator.CreateResource(unmanagedResource) as Resource;
+			Assert.IsNotNull(resource);
+
+			// Complete
+			resource = TestContext.Api.Resources.Complete(resource.Id);
+			var coreResourceId = resource.CoreResourceId;
+			Assert.AreNotEqual(Guid.Empty, coreResourceId);
+
+			// Remove the CORE resource, the DOM resource keeps its reference to it.
+			TestContext.ResourceManagerHelper.RemoveResources(new Skyline.DataMiner.Net.Messages.Resource(coreResourceId));
+			Assert.IsNull(TestContext.ResourceManagerHelper.GetResource(coreResourceId));
+
+			// Update
+			resource.Name = $"{prefix}_Resource_Updated";
+
+			MediaOpsException? expectedException = null;
+			try
+			{
+				TestContext.Api.Resources.Update(resource);
+			}
+			catch (MediaOpsException ex)
+			{
+				expectedException = ex;
+			}
+
+			Assert.IsNotNull(expectedException, "Expected exception was not thrown.");
+
+			var errorMessage = $"The linked CORE resource with ID '{coreResourceId}' no longer exists.";
+			Assert.AreEqual(errorMessage, expectedException.Message);
+
+			Assert.AreEqual(1, expectedException.TraceData.ErrorData.Count);
+			var resourceNotFoundError = expectedException.TraceData.ErrorData.OfType<ResourceNotFoundError>().SingleOrDefault();
+			Assert.IsNotNull(resourceNotFoundError);
+			Assert.AreEqual(resource.Id, resourceNotFoundError.Id);
+			Assert.AreEqual(errorMessage, resourceNotFoundError.ErrorMessage);
 		}
 	}
 }

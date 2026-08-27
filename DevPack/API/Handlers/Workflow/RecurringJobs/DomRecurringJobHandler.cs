@@ -530,7 +530,13 @@
 				throw new ArgumentException($"Not all provided recurring jobs are valid", nameof(apiRecurringJobs));
 			}
 
-			DomWorkflowOrchestrationSettingsHandler.TryDelete(planApi, apiRecurringJobs.Select(x => x.OrchestrationSettings).ToList(), out _);
+			// The orchestration settings of the nodes are stored as separate DOM instances and must be removed as well.
+			var orchestrationSettings = apiRecurringJobs
+				.SelectMany(x => new[] { x.OrchestrationSettings }.Concat(x.NodeGraph.Nodes.Select(node => node.OrchestrationSettings)))
+				.Where(x => x != null)
+				.ToList();
+
+			DomWorkflowOrchestrationSettingsHandler.TryDelete(planApi, orchestrationSettings, out _);
 		}
 
 		private void CreateOrUpdatePropertySettingCollections(ICollection<RecurringJob> apiRecurringJobs)

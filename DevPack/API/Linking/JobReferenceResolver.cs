@@ -70,14 +70,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <inheritdoc />
-		protected override Resource GetResource(DataReference reference)
+		protected override Resource GetResource(DataReference reference, string currentNodeId)
 		{
-			if (String.IsNullOrEmpty(reference.NodeId))
+			var nodeId = String.IsNullOrEmpty(reference.NodeId) ? currentNodeId : reference.NodeId;
+
+			if (String.IsNullOrEmpty(nodeId))
 			{
 				return null;
 			}
 
-			var node = Job.NodeGraph.Nodes.FirstOrDefault(n => String.Equals(n.Id, reference.NodeId, StringComparison.OrdinalIgnoreCase));
+			var node = Job.NodeGraph.Nodes.FirstOrDefault(n => String.Equals(n.Id, nodeId, StringComparison.OrdinalIgnoreCase));
 
 			if (node == null ||
 				!node.IsResourceNode(out var resourceNode))

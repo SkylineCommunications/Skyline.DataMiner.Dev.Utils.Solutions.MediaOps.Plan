@@ -16,6 +16,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 	using ResourcePool = Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool;
 	using PlanResource = Skyline.DataMiner.Solutions.MediaOps.Plan.API.Resource;
+	using CoreReservation = Skyline.DataMiner.Net.ResourceManager.Objects.ReservationInstance;
 
 	/// <summary>
 	/// Deterministic, simulation-backed tests for translating core ResourceManager errors into DevPack job resource errors.
@@ -26,6 +27,13 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 	{
 		private static (IMediaOpsPlanApi Api, PlanResource Resource) CreateContextWithResource()
 		{
+			var (api, resources) = CreateContextWithResources(1);
+
+			return (api, resources[0]);
+		}
+
+		private static (IMediaOpsPlanApi Api, IReadOnlyList<PlanResource> Resources) CreateContextWithResources(int count)
+		{
 			var dms = MediaOpsPlanSimulation.Create();
 			var connection = dms.CreateConnection();
 			var api = connection.GetMediaOpsPlanApi();
@@ -35,15 +43,125 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var pool = api.ResourcePools.Create(new ResourcePool { Name = $"{prefix}_Pool" });
 			pool = api.ResourcePools.Complete(pool);
 
-			var resource = new UnmanagedResource { Name = $"{prefix}_Resource" }.AssignToPool(pool);
-			resource = api.Resources.Create(resource);
-			resource = api.Resources.Complete(resource);
+			var resources = new List<PlanResource>();
+			for (var i = 0; i < count; i++)
+			{
+				var resource = new UnmanagedResource { Name = $"{prefix}_Resource{i}" }.AssignToPool(pool);
+				resource = api.Resources.Create(resource);
+				resources.Add(api.Resources.Complete(resource));
+			}
 
-			return (api, resource);
+			return (api, resources);
+		}
+
+		private static ResourceManagerErrorData CreateQuarantineError(params QuarantinedUsagesOnSingleReservation[] impactedReservations)
+		{
+			// The core software leaves SubjectId empty for this reason; everything is reported through MustBeMovedToQuarantine.
+			return new ResourceManagerErrorData(
+				ResourceManagerErrorData.Reason.ReservationUpdateCausedReservationsToGoToQuarantine,
+				(Guid?)null,
+				(Guid?)null,
+				new List<Guid>())
+			{
+				MustBeMovedToQuarantine = impactedReservations.ToList(),
+			};
+		}
+
+		private static QuarantinedUsagesOnSingleReservation CreateQuarantinedReservation(Guid reservationId, params QuarantinedResourceUsageDefinition[] usages)
+		{
+			return new QuarantinedUsagesOnSingleReservation
+			{
+				ReservationInstance = new CoreReservation { ID = reservationId },
+				QuarantinedUsages = usages.ToList(),
+			};
+		}
+
+		private static QuarantinedResourceUsageDefinition CreateQuarantinedUsage(Guid coreResourceId, params Guid[] triggerReservationIds)
+		{
+			return new QuarantinedResourceUsageDefinition
+			{
+				QuarantinedResourceUsage = new ResourceUsageDefinition(coreResourceId),
+				QuarantineTriggers = triggerReservationIds
+					.Select(x => new QuarantineTrigger { ReservationUpdateTrigger = new ReservationDifference { ReservationId = x } })
+					.ToList(),
+			};
+		}
+
+		/// <summary>
+		/// Covers use cases 1 and 3, where the core software reports each updated reservation as the one going to quarantine.
+		/// Both use cases produce an identical payload.
+		/// </summary>
+		[TestMethod]
+		public void Translate_Quarantine_TriggerIsTheQuarantinedReservation_ReportsResourcePerUpdatedReservation()
+		{
+			var (api, resources) = CreateContextWithResources(2);
+
+			var jobBReservationId = Guid.NewGuid();
+			var jobCReservationId = Guid.NewGuid();
+
+			var error = CreateQuarantineError(
+				CreateQuarantinedReservation(jobBReservationId, CreateQuarantinedUsage(resources[0].CoreResourceId, jobBReservationId)),
+				CreateQuarantinedReservation(jobCReservationId, CreateQuarantinedUsage(resources[1].CoreResourceId, jobCReservationId)));
+
+			var handler = new ResourceManagerTraceDataHandler((MediaOpsPlanApi)api);
+
+			var result = handler.Translate(new[] { error });
+
+			CollectionAssert.AreEquivalent(
+				new[] { jobBReservationId, jobCReservationId },
+				result.Keys.ToArray(),
+				"Expected the translated errors to be keyed by the reservation being updated.");
+
+			Assert.AreEqual(
+				resources[0].Id,
+				result[jobBReservationId].ErrorData.OfType<JobResourceNotAvailableError>().Single().ResourceId,
+				"Expected the DOM resource id to be reported.");
+			Assert.AreEqual(
+				resources[1].Id,
+				result[jobCReservationId].ErrorData.OfType<JobResourceNotAvailableError>().Single().ResourceId,
+				"Expected the DOM resource id to be reported.");
+		}
+
+		/// <summary>
+		/// Covers use case 2, where the core software reports a single overlapping reservation that is not being updated.
+		/// The unavailable resources still have to be reported on the reservations that are being updated.
+		/// </summary>
+		[TestMethod]
+		public void Translate_Quarantine_TriggerIsAnotherReservation_ReportsResourcePerUpdatedReservation()
+		{
+			var (api, resources) = CreateContextWithResources(2);
+
+			var jobAReservationId = Guid.NewGuid();
+			var jobBReservationId = Guid.NewGuid();
+			var jobCReservationId = Guid.NewGuid();
+
+			var error = CreateQuarantineError(
+				CreateQuarantinedReservation(
+					jobAReservationId,
+					CreateQuarantinedUsage(resources[0].CoreResourceId, jobBReservationId),
+					CreateQuarantinedUsage(resources[1].CoreResourceId, jobCReservationId)));
+
+			var handler = new ResourceManagerTraceDataHandler((MediaOpsPlanApi)api);
+
+			var result = handler.Translate(new[] { error });
+
+			CollectionAssert.AreEquivalent(
+				new[] { jobBReservationId, jobCReservationId },
+				result.Keys.ToArray(),
+				"Expected the translated errors to be keyed by the reservations being updated, not by the quarantined one.");
+
+			Assert.AreEqual(
+				resources[0].Id,
+				result[jobBReservationId].ErrorData.OfType<JobResourceNotAvailableError>().Single().ResourceId,
+				"Expected the DOM resource id to be reported.");
+			Assert.AreEqual(
+				resources[1].Id,
+				result[jobCReservationId].ErrorData.OfType<JobResourceNotAvailableError>().Single().ResourceId,
+				"Expected the DOM resource id to be reported.");
 		}
 
 		[TestMethod]
-		public void Translate_QuarantineError_EmitsResourceNotAvailableWithDomResourceId()
+		public void Translate_QuarantineErrorWithoutTrigger_FallsBackToSubjectId()
 		{
 			var (api, resource) = CreateContextWithResource();
 			var reservationId = Guid.NewGuid();

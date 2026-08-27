@@ -1,6 +1,7 @@
 namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 {
 	using System;
+	using System.Collections;
 	using System.Collections.Concurrent;
 	using System.Collections.Generic;
 	using System.Linq;
@@ -10,6 +11,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 	using Skyline.DataMiner.Net.AppPackages;
 	using Skyline.DataMiner.Net.AppPackages.Messages;
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+	using Skyline.DataMiner.Net.Automation;
 	using Skyline.DataMiner.Net.Messages;
 	using Skyline.DataMiner.Net.Messages.Advanced;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Connection;
@@ -36,6 +38,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 		private readonly ConcurrentDictionary<Guid, FunctionDefinition> _functionDefinitions = new ConcurrentDictionary<Guid, FunctionDefinition>();
 		private readonly ConcurrentDictionary<string, ProtocolFunction> _protocolFunctions = new ConcurrentDictionary<string, ProtocolFunction>(StringComparer.OrdinalIgnoreCase);
 
+		private readonly ConcurrentDictionary<string, SimulatedAutomationScript> _scripts = new ConcurrentDictionary<string, SimulatedAutomationScript>(StringComparer.OrdinalIgnoreCase);
+		private readonly ConcurrentBag<ExecuteScriptMessage> _executedScripts = new ConcurrentBag<ExecuteScriptMessage>();
+		private readonly ConcurrentDictionary<int, ConcurrentDictionary<int, SimulatedSchedulerTask>> _schedulerTasks = new ConcurrentDictionary<int, ConcurrentDictionary<int, SimulatedSchedulerTask>>();
+
 		private int _nextElementId;
 
 		/// <summary>
@@ -55,6 +61,39 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 		/// Gets or sets the maximum document size, in MB, reported by the simulated agent.
 		/// </summary>
 		public int MaxDocumentSizeInMegaBytes { get; set; } = 100;
+
+		/// <summary>
+		/// Gets the Automation scripts that are registered on the simulated agent.
+		/// </summary>
+		public IReadOnlyCollection<SimulatedAutomationScript> Scripts => _scripts.Values.ToList();
+
+		/// <summary>
+		/// Gets the Automation script executions that were requested on the simulated agent, in the order they were received.
+		/// </summary>
+		public IReadOnlyCollection<ExecuteScriptMessage> ExecutedScripts => _executedScripts.ToList();
+
+		/// <summary>
+		/// Gets all scheduler tasks that currently exist on the simulated agents.
+		/// </summary>
+		public IReadOnlyCollection<SimulatedSchedulerTask> SchedulerTasks => _schedulerTasks.Values.SelectMany(tasks => tasks.Values).ToList();
+
+		/// <summary>
+		/// Registers an Automation script so that script lookups and script executions succeed, mirroring the
+		/// installed state of a real DataMiner Agent.
+		/// </summary>
+		/// <param name="name">The script name.</param>
+		/// <param name="folder">The folder the script is stored in.</param>
+		/// <param name="parameters">The descriptions of the input parameters of the script.</param>
+		/// <param name="dummies">The descriptions of the input dummies of the script.</param>
+		public void AddScript(string name, string folder = null, IEnumerable<string> parameters = null, IEnumerable<string> dummies = null)
+		{
+			if (String.IsNullOrWhiteSpace(name))
+			{
+				throw new ArgumentException($"'{nameof(name)}' cannot be null or whitespace.", nameof(name));
+			}
+
+			_scripts[name] = new SimulatedAutomationScript(name, folder, parameters, dummies);
+		}
 
 		/// <summary>
 		/// Registers an installed application package so that installation checks succeed.
@@ -345,6 +384,22 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 					responses = HandleMessage(msg);
 					return true;
 
+				case GetScriptInfoMessage msg:
+					responses = HandleMessage(msg);
+					return true;
+
+				case GetAutomationInfoMessage msg:
+					responses = HandleMessage(msg);
+					return true;
+
+				case ExecuteScriptMessage msg:
+					responses = HandleMessage(msg);
+					return true;
+
+				case SetSchedulerInfoMessage msg:
+					responses = HandleMessage(msg);
+					return true;
+
 				case SetParameterMessage _:
 					// Fire-and-forget parameter set (for example enabling a DVE row). No response is
 					// expected by the caller, so acknowledge it without producing one.
@@ -453,9 +508,123 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 					};
 					break;
 
+				case InfoType.Scripts:
+					yield return new GetScriptsResponseMessage
+					{
+						Scripts = _scripts.Values.Select(x => x.Name).ToArray(),
+					};
+					break;
+
+				case InfoType.SchedulerTasks:
+					yield return new GetSchedulerTasksResponseMessage
+					{
+						Tasks = new ArrayList(SchedulerTasks.Select(x => x.ToSchedulerTask()).ToList()),
+					};
+					break;
+
 				default:
 					throw new NotSupportedException($"Unsupported InfoType: {msg.Type}");
 			}
+		}
+
+		private IEnumerable<DMSMessage> HandleMessage(GetScriptInfoMessage msg)
+		{
+			if (!_scripts.TryGetValue(msg.Name, out var script))
+			{
+				throw new InvalidOperationException(
+					$"Script '{msg.Name}' is not registered. Register it with {nameof(AddScript)}() before it is used. " +
+					$"Registered scripts: [{String.Join(", ", _scripts.Keys)}]");
+			}
+
+			var nextId = 1;
+
+			yield return new GetScriptInfoResponseMessage
+			{
+				Name = script.Name,
+				Folder = script.Folder,
+				Type = AutomationScriptType.Automation,
+				Parameters = script.Parameters.Select(x => new AutomationParameterInfo { Description = x, ParameterId = nextId++ }).ToArray(),
+				Dummies = script.Dummies.Select(x => new AutomationProtocolInfo { Description = x, ProtocolId = nextId++, ProtocolName = "Protocol", ProtocolVersion = "Production" }).ToArray(),
+				Memories = Array.Empty<AutomationMemoryInfo>(),
+
+				// No C# blocks are exposed, so callers do not attempt to run the script to request its script info.
+				Exes = Array.Empty<AutomationExeInfo>(),
+			};
+		}
+
+		private IEnumerable<DMSMessage> HandleMessage(GetAutomationInfoMessage msg)
+		{
+			if (msg.What != (int)AutomationInfoType.ScriptFolders)
+			{
+				throw new NotSupportedException($"Unsupported AutomationInfoType: {msg.What}");
+			}
+
+			var folders = _scripts.Values
+				.GroupBy(x => x.Folder, StringComparer.OrdinalIgnoreCase)
+				.Select(group => new SA(new[] { group.Key }.Concat(group.Select(x => x.Name)).ToArray()))
+				.ToArray();
+
+			yield return new GetAutomationInfoResponseMessage
+			{
+				psaRet = new PSA { Psa = folders },
+			};
+		}
+
+		private IEnumerable<DMSMessage> HandleMessage(ExecuteScriptMessage msg)
+		{
+			if (!_scripts.ContainsKey(msg.ScriptName))
+			{
+				throw new InvalidOperationException(
+					$"Script '{msg.ScriptName}' is not registered. Register it with {nameof(AddScript)}() before it is used. " +
+					$"Registered scripts: [{String.Join(", ", _scripts.Keys)}]");
+			}
+
+			_executedScripts.Add(msg);
+
+			// The simulation records the execution request; it does not run any script logic.
+			yield return new ExecuteScriptResponseMessage
+			{
+				saRet = new SA(new[] { "0" }),
+			};
+		}
+
+		private IEnumerable<DMSMessage> HandleMessage(SetSchedulerInfoMessage msg)
+		{
+			var tasks = _schedulerTasks.GetOrAdd(msg.DataMinerID, _ => new ConcurrentDictionary<int, SimulatedSchedulerTask>());
+
+			const int deleteTask = 3;
+			int returnId;
+
+			if (msg.What == deleteTask)
+			{
+				tasks.TryRemove(Convert.ToInt32(msg.Info), out _);
+				returnId = 0;
+			}
+			else
+			{
+				// An update carries the ID of the task to update as the first general info field; a create does not.
+				var generalInfo = msg.Ppsa.Ppsa[0].Psa[0].Sa;
+				returnId = Int32.TryParse(generalInfo[0], out var taskId) ? taskId : GetFirstAvailableSchedulerTaskId(tasks);
+
+				tasks[returnId] = new SimulatedSchedulerTask(msg.DataMinerID, returnId, msg);
+			}
+
+			yield return new SetSchedulerInfoResponseMessage
+			{
+				iRet = returnId,
+			};
+		}
+
+		private static int GetFirstAvailableSchedulerTaskId(ConcurrentDictionary<int, SimulatedSchedulerTask> tasks)
+		{
+			var id = 1;
+
+			while (tasks.ContainsKey(id))
+			{
+				id++;
+			}
+
+			return id;
 		}
 
 		private IEnumerable<DMSMessage> HandleMessage(GetDataMinerByIDMessage msg)

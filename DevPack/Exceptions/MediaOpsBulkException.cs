@@ -27,10 +27,23 @@
 		public IBulkOperationResult<K> Result { get; }
 
 		/// <summary>
-		/// Returns a string that represents the current exception, including details about the bulk operation result.
+		/// Gets the error message that explains the reason for this <see cref="MediaOpsException" />.
 		/// </summary>
-		/// <returns>A string representation of the exception.</returns>
-		public override string ToString()
+		public override string Message
+		{
+			get
+			{
+				if (Result.TraceDataPerItem.Count == 1 && Result.TraceDataPerItem.First().Value.ErrorData.Count == 1)
+				{
+					return Result.TraceDataPerItem.First().Value.ErrorData[0].ErrorMessage;
+				}
+
+				return BuildFailureSummary();
+			}
+		}
+
+		// Never call ToString() from here: Exception.ToString() reads the virtual Message, which would recurse until the stack overflows.
+		private string BuildFailureSummary()
 		{
 			const int maxSuccessfulIds = 10;
 			var successfulIds = string.Join(", ", Result.SuccessfulIds.Take(maxSuccessfulIds));
@@ -39,7 +52,7 @@
 				successfulIds += $", ... ({Result.SuccessfulIds.Count - maxSuccessfulIds} more)";
 			}
 
-			var preLines = new List<string>(3 + Result.UnsuccessfulIds.Count)
+			var lines = new List<string>(3 + Result.UnsuccessfulIds.Count)
 									{
 										$"Bulk CRUD operation: {Result.SuccessfulIds.Count} succeeded, {Result.UnsuccessfulIds.Count} failed",
 										$" - IDs of the successful items: {successfulIds}",
@@ -55,28 +68,11 @@
 				}
 
 				var traceDataLines = traceData?.ToString().Split(new[] { Environment.NewLine, "\n" }, StringSplitOptions.None) ?? Array.Empty<string>();
-				preLines.Add($"  - {id}:");
-				preLines.AddRange(traceDataLines.Select(x => $"    {x}"));
+				lines.Add($"  - {id}:");
+				lines.AddRange(traceDataLines.Select(x => $"    {x}"));
 			}
 
-			var lines = preLines.Concat(new[] { base.ToString() });
 			return string.Join(Environment.NewLine, lines);
-		}
-
-		/// <summary>
-		/// Gets the error message that explains the reason for this <see cref="MediaOpsException" />.
-		/// </summary>
-		public override string Message
-		{
-			get
-			{
-				if (Result.TraceDataPerItem.Count == 1 && Result.TraceDataPerItem.First().Value.ErrorData.Count == 1)
-				{
-					return Result.TraceDataPerItem.First().Value.ErrorData[0].ErrorMessage;
-				}
-
-				return ToString();
-			}
 		}
 	}
 
