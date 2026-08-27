@@ -408,7 +408,7 @@
 					detection.BlockersPerItem.Add(entry.Key, traceData);
 				}
 
-				if (entry.Value.IsNew)
+				if (entry.Value.State != CoreResourceState.Existing)
 				{
 					detection.DifferencesPerItem.Add(entry.Key, [new MissingCoreObjectDifference()]);
 					continue;

@@ -6,6 +6,7 @@ namespace RT_MediaOps.Plan.RST.Synchronization
 	using RT_MediaOps.Plan.RegressionTests;
 
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
 	using CoreResource = Skyline.DataMiner.Net.Messages.Resource;
 	using CoreResourcePool = Skyline.DataMiner.Net.Messages.ResourcePool;
@@ -151,24 +152,25 @@ namespace RT_MediaOps.Plan.RST.Synchronization
 		}
 
 		[TestMethod]
-		public void MissingCoreResourceIsDetectedAndRecreated()
+		public void MissingCoreResourceIsReportedAsBlocker()
 		{
 			var (pool, resource) = CreateCompletedPoolWithResource(Guid.NewGuid());
-			var originalCoreResourceId = resource.CoreResourceId;
 
-			TestContext.ResourceManagerHelper.RemoveResources([new CoreResource(originalCoreResourceId)]);
+			TestContext.ResourceManagerHelper.RemoveResources([new CoreResource(resource.CoreResourceId)]);
 
 			var item = TestContext.Api.ResourcePools.GetOutOfSyncItems([pool]).Resources.Single();
 			Assert.IsFalse(item.CoreObjectExists);
 			Assert.AreEqual(1, item.Differences.OfType<MissingCoreObjectDifference>().Count());
 
-			var result = TestContext.Api.ResourcePools.Synchronize([item]);
-			Assert.IsFalse(result.HasFailures);
+			// A dangling link is not repaired automatically: the CORE resource existed before, so something may still reference it.
+			Assert.IsFalse(item.CanSynchronize);
+			Assert.IsTrue(item.Blockers.OfType<ResourceNotFoundError>().Any());
 
-			var recreated = TestContext.Api.Resources.Read(resource.Id);
-			Assert.AreNotEqual(Guid.Empty, recreated.CoreResourceId);
-			Assert.AreEqual(resource.Name, GetCoreResource(recreated).Name);
-			Assert.IsTrue(TestContext.Api.ResourcePools.GetOutOfSyncItems([pool]).IsSynchronized);
+			var result = TestContext.Api.ResourcePools.Synchronize([item]);
+
+			Assert.IsTrue(result.HasFailures);
+			Assert.IsTrue(result.Failures.ContainsKey(resource.Id));
+			Assert.AreEqual(0, result.SynchronizedResourceIds.Count);
 		}
 
 		[TestMethod]
@@ -202,18 +204,19 @@ namespace RT_MediaOps.Plan.RST.Synchronization
 			var prefix = Guid.NewGuid();
 			var (pool, resource) = CreateCompletedPoolWithResource(prefix);
 
-			TestContext.ResourceManagerHelper.RemoveResources([new CoreResource(resource.CoreResourceId)]);
+			// Drift the name so the resource needs name validation, then hand its DOM name to another CORE resource.
+			DriftCoreResource(resource, x => x.Name = $"{prefix}_Drifted");
 
-			var conflictingCoreResource = new CoreResource(Guid.NewGuid())
+			objectCreator.CreateCoreResource(new CoreResource(Guid.NewGuid())
 			{
 				Name = resource.Name,
 				MaxConcurrency = 1,
-			};
-			objectCreator.CreateCoreResource(conflictingCoreResource);
+			});
 
 			var item = TestContext.Api.ResourcePools.GetOutOfSyncItems([pool]).Resources.Single();
+			Assert.IsTrue(item.CoreObjectExists);
 			Assert.IsFalse(item.CanSynchronize);
-			Assert.IsTrue(item.Blockers.Count > 0);
+			Assert.IsTrue(item.Blockers.OfType<ResourceNameExistsError>().Any());
 
 			var result = TestContext.Api.ResourcePools.Synchronize([item]);
 
@@ -232,11 +235,6 @@ namespace RT_MediaOps.Plan.RST.Synchronization
 			var healthy = CompleteAndAssignToPool(new UnmanagedResource { Name = $"{prefix}_Healthy" }, pool);
 
 			TestContext.ResourceManagerHelper.RemoveResources([new CoreResource(blocked.CoreResourceId)]);
-			objectCreator.CreateCoreResource(new CoreResource(Guid.NewGuid())
-			{
-				Name = blocked.Name,
-				MaxConcurrency = 1,
-			});
 
 			DriftCoreResource(healthy, x => x.MaxConcurrency = 9);
 
