@@ -420,7 +420,13 @@
 					continue;
 				}
 
-				var differences = SyncDomResourceWithCoreResource(entry.Value.DomResource, entry.Value.CoreResource);
+				// The sync methods patch while they compare, so detection has to run against a copy.
+				if (entry.Value.CoreResource.Clone() is not CoreResource coreResourceCopy)
+				{
+					throw new InvalidOperationException($"Failed to clone CORE resource {entry.Value.CoreResource.ID} for comparison.");
+				}
+
+				var differences = SyncDomResourceWithCoreResource(entry.Value.DomResource, coreResourceCopy);
 				if (differences.Count > 0)
 				{
 					detection.DifferencesPerItem.Add(entry.Key, differences);

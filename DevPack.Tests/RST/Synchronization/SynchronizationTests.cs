@@ -279,12 +279,43 @@ namespace RT_MediaOps.Plan.RST.Synchronization
 		public void DetectionDoesNotChangeCore()
 		{
 			var prefix = Guid.NewGuid();
-			var (pool, resource) = CreateCompletedPoolWithResource(prefix);
+
+			var capacity = new NumberCapacity
+			{
+				Name = $"{prefix}_Capacity",
+				RangeMin = 0,
+				RangeMax = 200,
+				StepSize = 1,
+			};
+			objectCreator.CreateCapacity(capacity);
+
+			var capability = new Capability
+			{
+				Name = $"{prefix}_Capability",
+			}
+			.SetDiscretes(new[] { "A", "B" });
+			objectCreator.CreateCapability(capability);
+
+			var pool = CreateCompletedPool(prefix);
+
+			var unmanagedResource = new UnmanagedResource
+			{
+				Name = $"{prefix}_Resource",
+			};
+			unmanagedResource.AddCapability(new CapabilitySettings(capability.Id).SetDiscretes(new[] { "A" }));
+			unmanagedResource.AddCapacity(new NumberCapacitySetting(capacity.Id) { Value = 100 });
+
+			var resource = CompleteAndAssignToPool(unmanagedResource, pool);
+			var driftedPoolId = Guid.NewGuid();
 
 			DriftCoreResource(resource, x =>
 			{
 				x.Name = $"{prefix}_Drifted";
 				x.MaxConcurrency = 4;
+				x.Capacities.Single().Value.MaxDecimalQuantity = 50;
+				x.Capabilities.Single(c => c.CapabilityProfileID == capability.Id).Value.Discreets = ["B"];
+				x.PoolGUIDs.Clear();
+				x.PoolGUIDs.Add(driftedPoolId);
 			});
 
 			TestContext.Api.ResourcePools.GetOutOfSyncItems([pool]);
@@ -293,6 +324,9 @@ namespace RT_MediaOps.Plan.RST.Synchronization
 			var coreResource = GetCoreResource(resource);
 			Assert.AreEqual($"{prefix}_Drifted", coreResource.Name);
 			Assert.AreEqual(4, coreResource.MaxConcurrency);
+			Assert.AreEqual(50m, coreResource.Capacities.Single().Value.MaxDecimalQuantity);
+			CollectionAssert.AreEquivalent(new[] { "B" }, coreResource.Capabilities.Single(c => c.CapabilityProfileID == capability.Id).Value.Discreets.ToArray());
+			CollectionAssert.AreEquivalent(new[] { driftedPoolId }, coreResource.PoolGUIDs.ToArray());
 			Assert.AreEqual(1, secondReport.Resources.Count, "Repeated detection should keep reporting the same item.");
 		}
 
