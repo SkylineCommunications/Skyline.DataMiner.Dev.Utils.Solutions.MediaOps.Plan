@@ -22,6 +22,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		public Guid CapabilityId { get; }
 
 		/// <summary>
+		/// Gets the name of the capability, or <see langword="null"/> when the capability no longer exists.
+		/// </summary>
+		public string Name { get; internal set; }
+
+		/// <summary>
 		/// Gets a value indicating whether the capability is time dependent.
 		/// </summary>
 		public bool IsTimeDependent { get; internal set; }

@@ -147,7 +147,7 @@
 					continue;
 				}
 
-				var core = mapping.CoreResourcePool ?? new CoreResourcePool(Guid.NewGuid());
+				var core = mapping.CoreResourcePool ?? new CoreResourcePool(GetCoreResourcePoolId(dom));
 
 				core.Name = dom.ResourcePoolInfo.Name;
 
@@ -353,6 +353,14 @@
 				};
 				AddError(pool.ID.Id, error);
 			}
+		}
+
+		private static Guid GetCoreResourcePoolId(DomResourcePool domResourcePool)
+		{
+			// Reusing the stored ID keeps the resources that still refer to the deleted CORE pool working.
+			var storedCoreResourcePoolId = domResourcePool.ResourcePoolInternalProperties.ResourcePoolId;
+
+			return storedCoreResourcePoolId != Guid.Empty ? storedCoreResourcePoolId : Guid.NewGuid();
 		}
 
 		private void AddError(Guid id, MediaOpsErrorData error)

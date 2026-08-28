@@ -152,25 +152,61 @@ namespace RT_MediaOps.Plan.RST.Synchronization
 		}
 
 		[TestMethod]
-		public void MissingCoreResourceIsReportedAsBlocker()
+		public void MissingCoreResourcePoolIsDetectedAndRecreated()
 		{
-			var (pool, resource) = CreateCompletedPoolWithResource(Guid.NewGuid());
+			var prefix = Guid.NewGuid();
+			var pool = CreateCompletedPool(prefix);
+			var originalCoreResourcePoolId = pool.CoreResourcePoolId;
+
+			TestContext.ResourceManagerHelper.RemoveResourcePools([new CoreResourcePool(originalCoreResourcePoolId)]);
+
+			var item = TestContext.Api.ResourcePools.GetOutOfSyncItems([pool]).ResourcePools.Single();
+			Assert.IsFalse(item.CoreObjectExists);
+			Assert.AreEqual(1, item.Differences.OfType<MissingCoreObjectDifference>().Count());
+			Assert.IsTrue(item.CanSynchronize);
+
+			var result = TestContext.Api.ResourcePools.Synchronize([item]);
+			Assert.IsFalse(result.HasFailures);
+
+			var recreated = TestContext.Api.ResourcePools.Read(pool.Id);
+			Assert.AreEqual(originalCoreResourcePoolId, recreated.CoreResourcePoolId, "The CORE resource pool must be recreated under its original ID.");
+			Assert.AreEqual(pool.Name, TestContext.ResourceManagerHelper.GetResourcePool(originalCoreResourcePoolId).Name);
+		}
+
+		[TestMethod]
+		public void MissingCoreResourceIsSelectableInFullReport()
+		{
+			var (_, resource) = CreateCompletedPoolWithResource(Guid.NewGuid());
 
 			TestContext.ResourceManagerHelper.RemoveResources([new CoreResource(resource.CoreResourceId)]);
+
+			// The script uses the unscoped overload, so it has to behave the same as the scoped one.
+			var item = TestContext.Api.ResourcePools.GetOutOfSyncItems().Resources.Single(x => x.Id == resource.Id);
+
+			Assert.IsFalse(item.CoreObjectExists);
+			Assert.IsTrue(item.CanSynchronize, String.Join(" | ", item.Blockers.Select(x => x.ErrorMessage)));
+		}
+
+		[TestMethod]
+		public void MissingCoreResourceIsDetectedAndRecreated()
+		{
+			var (pool, resource) = CreateCompletedPoolWithResource(Guid.NewGuid());
+			var originalCoreResourceId = resource.CoreResourceId;
+
+			TestContext.ResourceManagerHelper.RemoveResources([new CoreResource(originalCoreResourceId)]);
 
 			var item = TestContext.Api.ResourcePools.GetOutOfSyncItems([pool]).Resources.Single();
 			Assert.IsFalse(item.CoreObjectExists);
 			Assert.AreEqual(1, item.Differences.OfType<MissingCoreObjectDifference>().Count());
-
-			// A dangling link is not repaired automatically: the CORE resource existed before, so something may still reference it.
-			Assert.IsFalse(item.CanSynchronize);
-			Assert.IsTrue(item.Blockers.OfType<ResourceNotFoundError>().Any());
+			Assert.IsTrue(item.CanSynchronize, "A dangling CORE link is repairable by synchronizing.");
 
 			var result = TestContext.Api.ResourcePools.Synchronize([item]);
+			Assert.IsFalse(result.HasFailures);
 
-			Assert.IsTrue(result.HasFailures);
-			Assert.IsTrue(result.Failures.ContainsKey(resource.Id));
-			Assert.AreEqual(0, result.SynchronizedResourceIds.Count);
+			var recreated = TestContext.Api.Resources.Read(resource.Id);
+			Assert.AreEqual(originalCoreResourceId, recreated.CoreResourceId, "The CORE resource must be recreated under its original ID.");
+			Assert.AreEqual(resource.Name, GetCoreResource(recreated).Name);
+			Assert.IsTrue(TestContext.Api.ResourcePools.GetOutOfSyncItems([pool]).IsSynchronized);
 		}
 
 		[TestMethod]
@@ -234,7 +270,12 @@ namespace RT_MediaOps.Plan.RST.Synchronization
 			var blocked = CompleteAndAssignToPool(new UnmanagedResource { Name = $"{prefix}_Blocked" }, pool);
 			var healthy = CompleteAndAssignToPool(new UnmanagedResource { Name = $"{prefix}_Healthy" }, pool);
 
-			TestContext.ResourceManagerHelper.RemoveResources([new CoreResource(blocked.CoreResourceId)]);
+			DriftCoreResource(blocked, x => x.Name = $"{prefix}_BlockedDrifted");
+			objectCreator.CreateCoreResource(new CoreResource(Guid.NewGuid())
+			{
+				Name = blocked.Name,
+				MaxConcurrency = 1,
+			});
 
 			DriftCoreResource(healthy, x => x.MaxConcurrency = 9);
 
@@ -304,7 +345,9 @@ namespace RT_MediaOps.Plan.RST.Synchronization
 			unmanagedResource.AddCapacity(new NumberCapacitySetting(capacity.Id) { Value = 100 });
 
 			var resource = CompleteAndAssignToPool(unmanagedResource, pool);
-			var driftedPoolId = Guid.NewGuid();
+
+			// A real agent rejects a membership of a pool that does not exist, so drift towards a real one.
+			var driftedPool = CreateCompletedPool(prefix, "DriftedPool");
 
 			DriftCoreResource(resource, x =>
 			{
@@ -313,7 +356,7 @@ namespace RT_MediaOps.Plan.RST.Synchronization
 				x.Capacities.Single().Value.MaxDecimalQuantity = 50;
 				x.Capabilities.Single(c => c.CapabilityProfileID == capability.Id).Value.Discreets = ["B"];
 				x.PoolGUIDs.Clear();
-				x.PoolGUIDs.Add(driftedPoolId);
+				x.PoolGUIDs.Add(driftedPool.CoreResourcePoolId);
 			});
 
 			TestContext.Api.ResourcePools.GetOutOfSyncItems([pool]);
@@ -324,7 +367,7 @@ namespace RT_MediaOps.Plan.RST.Synchronization
 			Assert.AreEqual(4, coreResource.MaxConcurrency);
 			Assert.AreEqual(50m, coreResource.Capacities.Single().Value.MaxDecimalQuantity);
 			CollectionAssert.AreEquivalent(new[] { "B" }, coreResource.Capabilities.Single(c => c.CapabilityProfileID == capability.Id).Value.Discreets.ToArray());
-			CollectionAssert.AreEquivalent(new[] { driftedPoolId }, coreResource.PoolGUIDs.ToArray());
+			CollectionAssert.AreEquivalent(new[] { driftedPool.CoreResourcePoolId }, coreResource.PoolGUIDs.ToArray());
 			Assert.AreEqual(1, secondReport.Resources.Count, "Repeated detection should keep reporting the same item.");
 		}
 
@@ -338,13 +381,18 @@ namespace RT_MediaOps.Plan.RST.Synchronization
 			var coreResource = GetCoreResource(resource);
 			drift(coreResource);
 			TestContext.ResourceManagerHelper.AddOrUpdateResources(coreResource);
+
+			// A real agent rejects an invalid update without throwing, which would otherwise surface as a confusing assert further down.
+			var storedCoreResource = GetCoreResource(resource);
+			Assert.AreEqual(coreResource.Name, storedCoreResource.Name, "Precondition: the CORE drift was not applied.");
+			Assert.AreEqual(coreResource.MaxConcurrency, storedCoreResource.MaxConcurrency, "Precondition: the CORE drift was not applied.");
 		}
 
-		private ResourcePool CreateCompletedPool(Guid prefix)
+		private ResourcePool CreateCompletedPool(Guid prefix, string suffix = "Pool")
 		{
 			var pool = new ResourcePool(Guid.NewGuid())
 			{
-				Name = $"{prefix}_Pool",
+				Name = $"{prefix}_{suffix}",
 			};
 
 			objectCreator.CreateResourcePool(pool);

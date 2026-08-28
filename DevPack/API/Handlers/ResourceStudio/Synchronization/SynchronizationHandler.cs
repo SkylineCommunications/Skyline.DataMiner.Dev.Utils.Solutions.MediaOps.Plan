@@ -260,7 +260,7 @@ var resources = planApi.Resources.Read(ids).ToList();
 				return synchronizedIds;
 			}
 
-			CoreResourceHandler.TryCreateOrUpdate(planApi, toSynchronize, out var result);
+			CoreResourceHandler.TryCreateOrUpdate(planApi, toSynchronize, out var result, recreateMissingCoreResources: true);
 
 			foreach (var id in result.UnsuccessfulIds)
 			{
