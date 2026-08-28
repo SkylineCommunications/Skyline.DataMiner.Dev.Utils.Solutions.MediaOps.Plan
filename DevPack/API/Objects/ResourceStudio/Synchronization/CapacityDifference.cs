@@ -19,6 +19,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		public Guid CapacityId { get; }
 
 		/// <summary>
+		/// Gets the name of the capacity, or <see langword="null"/> when the capacity no longer exists.
+		/// </summary>
+		public string Name { get; internal set; }
+
+		/// <summary>
 		/// Gets a value indicating whether the capacity is a range capacity.
 		/// </summary>
 		public bool IsRange { get; internal set; }

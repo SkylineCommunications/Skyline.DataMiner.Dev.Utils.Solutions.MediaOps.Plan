@@ -17,5 +17,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Gets the identifier of the CORE resource pool the membership applies to.
 		/// </summary>
 		public Guid CoreResourcePoolId { get; }
+
+		/// <summary>
+		/// Gets the name of the resource pool, or <see langword="null"/> when the pool is only known to CORE.
+		/// </summary>
+		public string Name { get; internal set; }
 	}
 }
