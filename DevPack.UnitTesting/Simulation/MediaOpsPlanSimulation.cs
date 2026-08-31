@@ -152,6 +152,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 			};
 			recurringJob.Sections.Add(jobInfo.ToSection());
 			dms.CreateDomInstance(recurringJob);
+
+			// The solution seeds this reserved object type during setup; jobs cannot be linked to anything without it.
+			var jobObjectType = new ObjectTypesInstance();
+			jobObjectType.ObjectTypeInfo.ObjectName = "Job";
+			dms.CreateDomInstance(ToModuleInstance(jobObjectType.ToInstance(), RelationshipsModuleId));
 		}
 
 		private static DomInstance ToModuleInstance(DomInstance instance, string moduleId)

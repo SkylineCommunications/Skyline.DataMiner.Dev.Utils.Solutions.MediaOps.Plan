@@ -1,0 +1,117 @@
+namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+{
+	using System;
+
+	/// <summary>
+	/// Represents a link between a job and another object, e.g. a booking or a reference in an external system.
+	/// Only the linked object has to be described: the job side of the relationship is filled in automatically.
+	/// </summary>
+	public class JobLink
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="JobLink"/> class.
+		/// </summary>
+		/// <param name="objectType">The type of the object that is linked to the job.</param>
+		/// <param name="objectId">The identifier of the object that is linked to the job.</param>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="objectType"/> is <see langword="null"/>.</exception>
+		/// <exception cref="ArgumentException">Thrown when <paramref name="objectId"/> is <see langword="null"/> or whitespace.</exception>
+		public JobLink(RelationshipObjectType objectType, string objectId)
+			: this(objectType?.Id ?? throw new ArgumentNullException(nameof(objectType)), objectId)
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="JobLink"/> class.
+		/// </summary>
+		/// <param name="objectTypeId">The unique identifier of the type of the object that is linked to the job.</param>
+		/// <param name="objectId">The identifier of the object that is linked to the job.</param>
+		/// <exception cref="ArgumentException">Thrown when <paramref name="objectTypeId"/> is <see cref="Guid.Empty"/> or when <paramref name="objectId"/> is <see langword="null"/> or whitespace.</exception>
+		public JobLink(Guid objectTypeId, string objectId)
+		{
+			if (objectTypeId == Guid.Empty)
+			{
+				throw new ArgumentException($"'{nameof(objectTypeId)}' must be filled out.", nameof(objectTypeId));
+			}
+
+			if (String.IsNullOrWhiteSpace(objectId))
+			{
+				throw new ArgumentException($"'{nameof(objectId)}' must be filled out.", nameof(objectId));
+			}
+
+			ObjectTypeId = objectTypeId;
+			ObjectId = objectId;
+			JobIsParent = true;
+		}
+
+		internal JobLink(JobLink original)
+		{
+			ObjectTypeId = original.ObjectTypeId;
+			ObjectId = original.ObjectId;
+			ObjectName = original.ObjectName;
+			Url = original.Url;
+			JobIsParent = original.JobIsParent;
+		}
+
+		// Links that are already stored bypass validation: the solution allows an empty object type and object id.
+		internal JobLink(Guid objectTypeId, string objectId, Guid relationshipId, bool jobIsParent)
+		{
+			ObjectTypeId = objectTypeId;
+			ObjectId = objectId;
+			Id = relationshipId;
+			JobIsParent = jobIsParent;
+		}
+
+		/// <summary>
+		/// Gets the unique identifier of the relationship that stores this link. This is <see cref="Guid.Empty"/> as long as the link has not been saved.
+		/// </summary>
+		public Guid Id { get; internal set; }
+
+		/// <summary>
+		/// Gets the unique identifier of the type of the linked object.
+		/// </summary>
+		public Guid ObjectTypeId { get; internal set; }
+
+		/// <summary>
+		/// Gets or sets the identifier of the linked object. This is a free-form identifier and is not restricted to DOM instances.
+		/// </summary>
+		public string ObjectId { get; set; }
+
+		/// <summary>
+		/// Gets or sets the name of the linked object. This is a snapshot and is not kept in sync with the linked object.
+		/// </summary>
+		public string ObjectName { get; set; }
+
+		/// <summary>
+		/// Gets or sets the URL that points to the linked object.
+		/// </summary>
+		public string Url { get; set; }
+
+		// New links always put the job on the parent side; existing links keep the side they were stored on.
+		internal bool JobIsParent { get; set; }
+
+		/// <inheritdoc/>
+		public override int GetHashCode()
+		{
+			unchecked
+			{
+				var hash = 17;
+				hash = (hash * 23) + ObjectTypeId.GetHashCode();
+				hash = (hash * 23) + (ObjectId != null ? ObjectId.GetHashCode() : 0);
+
+				return hash;
+			}
+		}
+
+		/// <inheritdoc/>
+		public override bool Equals(object obj)
+		{
+			if (obj is not JobLink other)
+			{
+				return false;
+			}
+
+			return ObjectTypeId == other.ObjectTypeId
+				&& String.Equals(ObjectId, other.ObjectId, StringComparison.Ordinal);
+		}
+	}
+}

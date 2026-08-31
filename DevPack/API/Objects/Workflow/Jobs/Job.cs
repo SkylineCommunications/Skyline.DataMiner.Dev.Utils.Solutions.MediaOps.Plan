@@ -22,6 +22,8 @@
 		private StorageWorkflow.JobsInstance updatedInstance;
 		private PropertySettingsContext propertiesContext;
 		private PropertySettingsScope propertySettingsScope;
+		private JobLinksContext jobLinksContext;
+		private JobLinksScope jobLinksScope;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Job"/> class.
@@ -94,6 +96,8 @@
 			{
 				node.SetPropertiesContext(propertiesContext);
 			}
+
+			jobLinksContext = new JobLinksContext(planApi, Id, () => Name);
 
 			InitTracking();
 		}
@@ -183,6 +187,13 @@
 				{
 					duplicatedNode.AddProperty(setting);
 				}
+			}
+
+			// 5. Copy the links of the original job. The copies are new links: they get their own relationship
+			//    once the duplicate is saved.
+			foreach (var link in original.Links)
+			{
+				AddLink(new JobLink(link));
 			}
 		}
 
@@ -278,6 +289,12 @@
 		public IReadOnlyCollection<PropertySetting> PropertySettings => GetOrCreateScope().PropertySettings;
 
 		/// <summary>
+		/// Gets the objects that are linked to this job. Links are loaded lazily.
+		/// Use <see cref="AddLink"/>, <see cref="SetLinks"/> and <see cref="RemoveLink"/> to modify them.
+		/// </summary>
+		public IReadOnlyCollection<JobLink> Links => GetOrCreateLinksScope().Links;
+
+		/// <summary>
 		/// Gets or sets the ID of the organization associated with the job.
 		/// </summary>
 		public Guid OrganizationId { get; set; }
@@ -332,6 +349,10 @@
 		internal PropertySettingsScope PropertySettingsScope => propertySettingsScope;
 
 		internal PropertySettingsContext PropertySettingsContext => propertiesContext;
+
+		internal JobLinksScope JobLinksScope => jobLinksScope;
+
+		internal JobLinksContext JobLinksContext => jobLinksContext;
 
 		/// <summary>
 		/// Creates a duplicate of this job with a newly generated identifier. The duplicate is a brand new,
@@ -423,8 +444,53 @@
 			return this;
 		}
 
+		/// <summary>
+		/// Links an object to this job. When a link to the same object already exists, its name and URL are updated instead.
+		/// </summary>
+		/// <param name="link">The link to add.</param>
+		/// <returns>The current <see cref="Job"/> instance.</returns>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="link"/> is <see langword="null"/>.</exception>
+		public Job AddLink(JobLink link)
+		{
+			GetOrCreateLinksScope().AddLink(link);
+			return this;
+		}
+
+		/// <summary>
+		/// Replaces the entire collection of links associated with this job with the specified links.
+		/// </summary>
+		/// <param name="links">The links that should replace the current collection.</param>
+		/// <returns>The current <see cref="Job"/> instance.</returns>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="links"/> is <see langword="null"/>.</exception>
+		public Job SetLinks(IEnumerable<JobLink> links)
+		{
+			GetOrCreateLinksScope().SetLinks(links);
+			return this;
+		}
+
+		/// <summary>
+		/// Removes the link to the object described by the specified <see cref="JobLink"/> from this job.
+		/// </summary>
+		/// <param name="link">The link to remove.</param>
+		/// <returns>The current <see cref="Job"/> instance.</returns>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="link"/> is <see langword="null"/>.</exception>
+		public Job RemoveLink(JobLink link)
+		{
+			GetOrCreateLinksScope().RemoveLink(link);
+			return this;
+		}
+
 		private PropertySettingsScope GetOrCreateScope()
 			=> propertySettingsScope ??= EnsureContext().CreateOwnerScope();
+
+		private JobLinksScope GetOrCreateLinksScope()
+			=> jobLinksScope ??= EnsureLinksContext().CreateOwnerScope();
+
+		internal JobLinksContext EnsureLinksContext()
+		{
+			// New, unsaved job: a null planApi is fine because the lazy load will only ever return empty results.
+			return jobLinksContext ??= new JobLinksContext(null, Id, () => Name);
+		}
 
 		internal PropertySettingsContext EnsureContext()
 		{
