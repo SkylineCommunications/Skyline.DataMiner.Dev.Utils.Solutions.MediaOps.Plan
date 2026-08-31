@@ -9,6 +9,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
 	[TestClass]
 	[TestCategory("IntegrationTest")]
@@ -238,6 +239,71 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			Assert.AreEqual(objectType.Id, link.ObjectTypeId);
 			Assert.AreEqual("booking-1", link.ObjectId);
 			Assert.AreEqual("Evening show", link.ObjectName);
+		}
+
+		[TestMethod]
+		public void DuplicateJob_WithLinkStoredJobAsChild_StoresDuplicateAsParent()
+		{
+			var prefix = Guid.NewGuid();
+			var objectType = objectCreator.CreateRelationshipObjectType(new RelationshipObjectType { Name = $"{prefix}_Booking" });
+
+			var job = objectCreator.CreateJob(NewJob($"{prefix}_Job"));
+			var jobObjectType = ReadJobObjectType();
+
+			objectCreator.CreateRelationship(new Relationship(new RelationshipData
+			{
+				Parent = new RelationshipEndpoint(objectType, "booking-1") { ObjectName = "Evening show" },
+				Child = new RelationshipEndpoint(jobObjectType, job.Id.ToString()) { ObjectName = job.Name },
+			}));
+
+			var duplicate = TestContext.Api.Jobs.Read(job.Id).Duplicate();
+			duplicate.Name = $"{prefix}_Duplicate";
+			duplicate = objectCreator.CreateJob(duplicate);
+
+			var relationship = TestContext.Api.Relationships
+				.Read(RelationshipExposers.Parent.ObjectId.Equal(duplicate.Id.ToString()))
+				.Single();
+
+			Assert.AreEqual(jobObjectType.Id, relationship.Parent.ObjectTypeId, "A duplicated link is a new link, so the job goes on the parent side.");
+			Assert.AreEqual(objectType.Id, relationship.Child.ObjectTypeId);
+			Assert.AreEqual("booking-1", relationship.Child.ObjectId);
+		}
+
+		[TestMethod]
+		public void CreateJob_WithLink_WithoutJobObjectType_ReportsError()
+		{
+			var prefix = Guid.NewGuid();
+			var objectType = objectCreator.CreateRelationshipObjectType(new RelationshipObjectType { Name = $"{prefix}_Booking" });
+			var jobObjectType = ReadJobObjectType();
+
+			var job = NewJob($"{prefix}_Job");
+			job.AddLink(new JobLink(objectType, "booking-1"));
+
+			RenameJobObjectType(jobObjectType.Id, $"{prefix}_NotAJob");
+			try
+			{
+				var exception = Assert.ThrowsException<MediaOpsException>(() => objectCreator.CreateJob(job));
+
+				Assert.IsNotNull(exception.TraceData.ErrorData.OfType<JobLinkObjectTypeNotFoundError>().SingleOrDefault());
+			}
+			finally
+			{
+				RenameJobObjectType(jobObjectType.Id, "Job");
+			}
+		}
+
+		private static RelationshipObjectType ReadJobObjectType()
+			=> TestContext.Api.RelationshipObjectTypes.Read(RelationshipObjectTypeExposers.Name.Equal("Job")).Single();
+
+		// Writes straight to DOM: the API refuses to create, rename or delete an object type with a reserved name.
+		private static void RenameJobObjectType(Guid id, string name)
+		{
+			var helper = ((MediaOpsPlanApi)TestContext.Api).DomHelpers.SlcRelationshipsHelper;
+
+			var instance = helper.GetObjectTypes(new[] { id }).Single();
+			instance.ObjectTypeInfo.ObjectName = name;
+
+			helper.DomHelper.DomInstances.Update(instance.ToInstance());
 		}
 
 		private static Job NewJob(string name)

@@ -43,13 +43,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			JobIsParent = true;
 		}
 
+		// A copy is an unsaved link, so it follows the create convention instead of inheriting the original's storage side.
 		internal JobLink(JobLink original)
 		{
 			ObjectTypeId = original.ObjectTypeId;
 			ObjectId = original.ObjectId;
 			ObjectName = original.ObjectName;
 			Url = original.Url;
-			JobIsParent = original.JobIsParent;
+			JobIsParent = true;
 		}
 
 		// Links that are already stored bypass validation: the solution allows an empty object type and object id.
