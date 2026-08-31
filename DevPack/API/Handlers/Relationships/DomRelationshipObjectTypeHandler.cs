@@ -104,14 +104,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			var toCreate = apiObjectTypes.Where(x => x.IsNew).ToList();
 			var toUpdate = apiObjectTypes.Except(toCreate).ToList();
 
-			// Re-validate the user defined IDs while the object type locks are held, so concurrent creates with the
-			// same ID cannot both pass the check.
-			ValidateIdsNotInUse(toCreate);
-
 			var changeResults = GetObjectTypesWithChanges(toUpdate);
 
 			var toUpdateNameValidation = toUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcRelationshipsIds.Sections.ObjectTypeInfo.ObjectName.Id)));
-			ValidateDomNames(toCreate.Where(IsValid).Concat(toUpdateNameValidation).ToList());
+			ValidateDomNames(toCreate.Concat(toUpdateNameValidation).ToList());
 
 			var toCreateDomInstances = toCreate
 				.Where(IsValid)

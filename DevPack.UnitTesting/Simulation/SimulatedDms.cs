@@ -316,6 +316,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 				return true;
 			}
 
+			// A paged read on an agent uses the limit only as a hint for the page size, so it is stripped before
+			// the DOM message handler applies it.
+			if (DomInstancePagingStore.TryHandleMessage(message, _domSlNetMessageHandler, out var pagingResponse))
+			{
+				responses = new[] { pagingResponse };
+				return true;
+			}
+
 			if (_domSlNetMessageHandler.TryHandleMessage(message, out var domResponse))
 			{
 				responses = new[] { domResponse };

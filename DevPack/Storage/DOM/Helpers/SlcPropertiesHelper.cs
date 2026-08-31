@@ -186,8 +186,7 @@
 				throw new ArgumentOutOfRangeException(nameof(pageSize));
 			}
 
-			var pages = DomHelper.DomInstances.ReadPaged(query, pageSize);
-			return InstanceFactory.CreateInstances(pages, instance => new PropertyInstance(instance));
+			return InstanceFactory.ReadAndCreateInstancesPaged(DomHelper, query, pageSize, instance => new PropertyInstance(instance));
 		}
 
 		internal IEnumerable<IEnumerable<PropertyValuesInstance>> GetPropertyValuesPaged(FilterElement<DomInstance> paramFilter, int pageSize)
@@ -218,8 +217,7 @@
 				throw new ArgumentOutOfRangeException(nameof(pageSize));
 			}
 
-			var pages = DomHelper.DomInstances.ReadPaged(query, pageSize);
-			return InstanceFactory.CreateInstances(pages, instance => new PropertyValuesInstance(instance));
+			return InstanceFactory.ReadAndCreateInstancesPaged(DomHelper, query, pageSize, instance => new PropertyValuesInstance(instance));
 		}
 
 		private IEnumerable<PropertyInstance> GetPropertyIterator(FilterElement<DomInstance> filter)
