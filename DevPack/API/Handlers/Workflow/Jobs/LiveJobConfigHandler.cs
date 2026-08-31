@@ -27,6 +27,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		private readonly Live.OrchestrationJobConfiguration _liveConfiguration;
 		private readonly Lazy<Dictionary<long, ConnectivityLevel>> _lazyLevelsByNumber;
 		private readonly Lazy<Dictionary<Guid, Resource>> _lazyResourcesById;
+		private readonly Lazy<Dictionary<Guid, ResourcePool>> _lazyResourcePoolsById;
 
 		private LiveJobConfigHandler(MediaOpsPlanApi planApi, Job job, JobState targetState, ReferenceDefinitionCache referenceDefinitions, DateTimeOffset currentTime)
 		{
@@ -40,11 +41,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			_lazyLevelsByNumber = new Lazy<Dictionary<long, ConnectivityLevel>>(BuildLevelsByNumber);
 			_lazyResourcesById = new Lazy<Dictionary<Guid, Resource>>(BuildResourcesById);
+			_lazyResourcePoolsById = new Lazy<Dictionary<Guid, ResourcePool>>(BuildResourcePoolsById);
 		}
 
 		private Dictionary<long, ConnectivityLevel> LevelsByNumber => _lazyLevelsByNumber.Value;
 
 		private Dictionary<Guid, Resource> ResourcesById => _lazyResourcesById.Value;
+
+		private Dictionary<Guid, ResourcePool> ResourcePoolsById => _lazyResourcePoolsById.Value;
 
 		internal static void SetLiveJobConfigForJob(MediaOpsPlanApi planApi, Job job, JobState targetState, ReferenceDefinitionCache referenceDefinitions, DateTimeOffset currentTime)
 		{
@@ -310,20 +314,21 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 			var nodeConfigs = liveEventConfig.Configuration.NodeConfigurations;
 			var nodeEventConfig = nodeConfigs.SingleOrDefault(n => n.NodeId == node.Id);
+			var nodeLabel = GetNodeLabel(node);
 
 			if (nodeEventConfig == null)
 			{
 				nodeEventConfig = new Live.NodeConfiguration
 				{
 					NodeId = node.Id,
-					NodeLabel = node.Alias,
+					NodeLabel = nodeLabel,
 				};
 
 				nodeConfigs.Add(nodeEventConfig);
 			}
 			else
 			{
-				nodeEventConfig.NodeLabel = node.Alias;
+				nodeEventConfig.NodeLabel = nodeLabel;
 			}
 
 			var nodeEventSettings = node.OrchestrationSettings?.OrchestrationEvents
@@ -605,6 +610,48 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			return _planApi.Resources.Read(resourceIds).SafeToDictionary(x => x.Id);
+		}
+
+		private Dictionary<Guid, ResourcePool> BuildResourcePoolsById()
+		{
+			var resourcePoolIds = new HashSet<Guid>();
+
+			foreach (var node in _job.NodeGraph.Nodes)
+			{
+				if (node.IsResourcePoolNode(out var resourcePoolNode))
+				{
+					resourcePoolIds.Add(resourcePoolNode.ResourcePoolId);
+				}
+			}
+
+			return _planApi.ResourcePools.Read(resourcePoolIds).SafeToDictionary(x => x.Id);
+		}
+
+		/// <summary>
+		/// Determines a human-readable label for the node, so orchestration output does not have to fall back to the node ID.
+		/// </summary>
+		private string GetNodeLabel(JobNode node)
+		{
+			if (!String.IsNullOrWhiteSpace(node.Alias))
+			{
+				return node.Alias.Trim();
+			}
+
+			if (node.IsResourceNode(out var resourceNode)
+				&& ResourcesById.TryGetValue(resourceNode.ResourceId, out var resource)
+				&& !String.IsNullOrWhiteSpace(resource.Name))
+			{
+				return resource.Name;
+			}
+
+			if (node.IsResourcePoolNode(out var resourcePoolNode)
+				&& ResourcePoolsById.TryGetValue(resourcePoolNode.ResourcePoolId, out var resourcePool)
+				&& !String.IsNullOrWhiteSpace(resourcePool.Name))
+			{
+				return resourcePool.Name;
+			}
+
+			return null;
 		}
 	}
 }
