@@ -50,6 +50,69 @@
 			return new LockResult<T>(result.FailedToLockObjects);
 		}
 
+		/// <summary>
+		/// Locks all provided objects at the same time and only executes the action when every lock was granted.
+		/// Partially granted locks are released before a new attempt is made.
+		/// </summary>
+		public LockResult<T> LockAllAndExecute<T>(ICollection<T> apiObjects, Action action) where T : ApiObject
+		{
+			if (apiObjects == null)
+			{
+				throw new ArgumentNullException(nameof(apiObjects));
+			}
+
+			if (action == null)
+			{
+				throw new ArgumentNullException(nameof(action));
+			}
+
+			if (!apiObjects.Any())
+			{
+				action();
+				return new LockResult<T>(Array.Empty<T>());
+			}
+
+			int attempts = 0;
+			ICollection<T> failedToLockObjects;
+
+			do
+			{
+				var lockResult = LockObjects(apiObjects);
+				failedToLockObjects = lockResult.FailedToLockObjects;
+
+				try
+				{
+					if (!failedToLockObjects.Any())
+					{
+						action();
+						return new LockResult<T>(Array.Empty<T>());
+					}
+				}
+				catch (Exception e)
+				{
+					_logger.Error(this, $"An error occurred while executing action with locked objects: {e}");
+					throw;
+				}
+				finally
+				{
+					// Release granted locks, also when only part of the objects could be locked.
+					UnlockObjects(lockResult.LockedObjects);
+				}
+
+				attempts++;
+
+				if (attempts < MaxLockAttempts)
+				{
+					Thread.Sleep(_sleepTime);
+				}
+			}
+			while (attempts < MaxLockAttempts);
+
+			_logger.Error(this, "Failed to lock all {0} objects after {1} attempts. Remaining objects: {2}", [typeof(T).Name, MaxLockAttempts, string.Join(", ", failedToLockObjects.Select(x => x.Id))]);
+
+			return new LockResult<T>(failedToLockObjects);
+		}
+
 		public LockResult<T, K> LockAndExecute<T, K>(ICollection<T> apiObjects, Func<ICollection<T>, ICollection<K>> action) where T : ApiObject
 		{
 			var result = LockAndExecuteInternal(apiObjects, action);

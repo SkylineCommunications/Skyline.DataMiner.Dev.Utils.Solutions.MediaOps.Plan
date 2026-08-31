@@ -162,6 +162,15 @@ namespace RT_MediaOps.Plan.Relationships.Querying
 		}
 
 		[TestMethod]
+		public void ReadRelationshipsPagedWithLimitedQuery()
+		{
+			var query = RelationshipFilter.ToQuery().OrderBy(RelationshipExposers.Parent.Order).Limit(2);
+
+			QueryAssert.ReadPaged(TestContext.Api.Relationships, [Setup.Relationship1!, Setup.Relationship2!], query);
+			QueryAssert.ReadPaged(TestContext.Api.Relationships, [Setup.Relationship1!, Setup.Relationship2!], query, 1);
+		}
+
+		[TestMethod]
 		public void ReadRelationshipsWithFilter()
 		{
 			var filter = RelationshipFilter.AND(RelationshipExposers.Parent.ObjectTypeId.Equal(Setup.ObjectTypeA!.Id));
@@ -221,6 +230,15 @@ namespace RT_MediaOps.Plan.Relationships.Querying
 			var query = ObjectTypeFilter.ToQuery().OrderBy(RelationshipObjectTypeExposers.Name).Limit(2);
 
 			QueryAssert.Read(TestContext.Api.RelationshipObjectTypes, [Setup.ObjectTypeA!, Setup.ObjectTypeB!], query);
+		}
+
+		[TestMethod]
+		public void ReadObjectTypesPagedWithLimitedQuery()
+		{
+			var query = ObjectTypeFilter.ToQuery().OrderBy(RelationshipObjectTypeExposers.Name).Limit(2);
+
+			QueryAssert.ReadPaged(TestContext.Api.RelationshipObjectTypes, [Setup.ObjectTypeA!, Setup.ObjectTypeB!], query);
+			QueryAssert.ReadPaged(TestContext.Api.RelationshipObjectTypes, [Setup.ObjectTypeA!, Setup.ObjectTypeB!], query, 1);
 		}
 
 		[TestMethod]
