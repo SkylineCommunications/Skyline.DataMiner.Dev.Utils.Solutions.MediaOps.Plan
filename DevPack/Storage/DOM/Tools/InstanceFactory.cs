@@ -112,6 +112,8 @@
 				throw new ArgumentNullException(nameof(createInstance));
 			}
 
+			InitSoftDeletedFields(domHelper);
+
 			// A paged read only uses the limit as a hint for the page size: it keeps requesting pages until the server
 			// reports the final page, so the limit and offset of the query are not applied to the total result.
 			// A regular read applies them, so a limited query is read at once and split into pages afterwards.

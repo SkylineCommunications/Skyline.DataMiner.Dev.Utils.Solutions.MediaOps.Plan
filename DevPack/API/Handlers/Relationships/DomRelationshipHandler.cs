@@ -109,10 +109,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			var toCreate = apiRelationships.Where(x => x.IsNew).ToList();
 			var toUpdate = apiRelationships.Except(toCreate).ToList();
 
-			// Re-validate the user defined IDs while the relationship locks are held, so concurrent creates with the
-			// same ID cannot both pass the check.
-			ValidateIdsNotInUse(toCreate);
-
 			var changeResults = GetRelationshipsWithChanges(toUpdate);
 
 			var toCreateDomInstances = toCreate
