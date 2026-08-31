@@ -158,6 +158,25 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM
 				x => GetLinkIterator(x));
 		}
 
+		// DOM instance IDs are unique per module, not per definition, so ID collisions must be looked up across both definitions.
+		public IEnumerable<DomInstance> GetRelationshipsInstances(IEnumerable<Guid> ids)
+		{
+			if (ids == null)
+			{
+				throw new ArgumentNullException(nameof(ids));
+			}
+
+			if (!ids.Any())
+			{
+				return Enumerable.Empty<DomInstance>();
+			}
+
+			return FilterQueryExecutor.RetrieveFilteredItems(
+				ids.Distinct(),
+				x => DomInstanceExposers.Id.Equal(x),
+				x => DomHelper.DomInstances.Read(x));
+		}
+
 		internal IEnumerable<IEnumerable<ObjectTypesInstance>> GetObjectTypesPaged(FilterElement<DomInstance> paramFilter, int pageSize)
 		{
 			if (paramFilter == null)

@@ -73,6 +73,26 @@ namespace RT_MediaOps.Plan.Relationships.Definitions
 		}
 
 		[TestMethod]
+		public void CreateWithIdOfExistingRelationshipThrowsException()
+		{
+			var objectType = objectCreator.CreateRelationshipObjectType(new RelationshipObjectType { Name = $"{Guid.NewGuid()}_ObjectType" });
+
+			var relationship = objectCreator.CreateRelationship(new Relationship(new RelationshipData
+			{
+				Parent = new RelationshipEndpoint(objectType, Guid.NewGuid().ToString()),
+				Child = new RelationshipEndpoint(objectType, Guid.NewGuid().ToString()),
+			}));
+
+			// DOM instance IDs are unique per module, so a link ID collides with an object type ID.
+			var exception = Assert.ThrowsException<MediaOpsException>(
+				() => objectCreator.CreateRelationshipObjectType(new RelationshipObjectType(relationship.Id) { Name = $"{Guid.NewGuid()}_ObjectType" }));
+
+			var error = exception.TraceData.ErrorData.OfType<RelationshipObjectTypeIdInUseError>().SingleOrDefault();
+			Assert.IsNotNull(error);
+			Assert.AreEqual(relationship.Id, error.Id);
+		}
+
+		[TestMethod]
 		public void CreateWithExistingNameThrowsException()
 		{
 			var name = $"{Guid.NewGuid()}_ObjectType";

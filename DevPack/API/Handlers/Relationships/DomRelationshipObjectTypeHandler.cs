@@ -251,9 +251,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				objectsRequiringValidation.Remove(objectType);
 			}
 
-			foreach (var foundInstance in planApi.DomHelpers.SlcRelationshipsHelper.GetObjectTypes(objectsRequiringValidation.Select(x => x.Id)))
+			foreach (var foundInstance in planApi.DomHelpers.SlcRelationshipsHelper.GetRelationshipsInstances(objectsRequiringValidation.Select(x => x.Id)))
 			{
-				planApi.Logger.Information(this, "ID is already in use by a relationship object type instance.", [foundInstance.ID.Id]);
+				planApi.Logger.Information(this, "ID is already in use by a Relationships instance.", [foundInstance.ID.Id]);
 
 				var error = new RelationshipObjectTypeIdInUseError
 				{
