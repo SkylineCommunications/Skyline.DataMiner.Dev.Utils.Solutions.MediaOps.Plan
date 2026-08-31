@@ -55,10 +55,38 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			ValidateIdsNotInUse(toCreate);
 			ValidateEndpoints(apiRelationships);
-			ValidateObjectTypesExist(apiRelationships.Where(IsValid).ToList());
 
-			var lockResult = planApi.LockManager.LockAndExecute(apiRelationships.Where(IsValid).ToList(), CreateOrUpdateLocked);
-			ReportError(lockResult);
+			var validRelationships = apiRelationships.Where(IsValid).ToList();
+			if (validRelationships.Count == 0)
+			{
+				return;
+			}
+
+			// The referenced object types are locked first, so they cannot be removed while the relationships are written.
+			// Object type locks are always taken before relationship locks to prevent deadlocks.
+			var objectTypeLocks = validRelationships
+				.SelectMany(x => new[] { x.Parent.ObjectTypeId, x.Child.ObjectTypeId })
+				.Distinct()
+				.Select(x => new RelationshipObjectType(x))
+				.ToList();
+
+			var objectTypeLockResult = planApi.LockManager.LockAllAndExecute(objectTypeLocks, () =>
+			{
+				ValidateObjectTypesExist(validRelationships);
+
+				var lockResult = planApi.LockManager.LockAndExecute(validRelationships.Where(IsValid).ToList(), CreateOrUpdateLocked);
+				ReportError(lockResult);
+			});
+
+			if (objectTypeLockResult.AllLocksGranted)
+			{
+				return;
+			}
+
+			foreach (var relationship in validRelationships.Where(IsValid))
+			{
+				ReportError(relationship.Id, new MediaOpsErrorData { ErrorMessage = $"Failed to lock relationship object type(s) '{string.Join("', '", objectTypeLockResult.FailedToLockObjects.Select(x => x.Id))}'." });
+			}
 		}
 
 		private void CreateOrUpdateLocked(ICollection<Relationship> apiRelationships)
@@ -80,6 +108,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			var toCreate = apiRelationships.Where(x => x.IsNew).ToList();
 			var toUpdate = apiRelationships.Except(toCreate).ToList();
+
+			// Re-validate the user defined IDs while the relationship locks are held, so concurrent creates with the
+			// same ID cannot both pass the check.
+			ValidateIdsNotInUse(toCreate);
 
 			var changeResults = GetRelationshipsWithChanges(toUpdate);
 

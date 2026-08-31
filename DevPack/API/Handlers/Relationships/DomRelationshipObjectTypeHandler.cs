@@ -59,8 +59,29 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			ValidateIdsNotInUse(toCreate);
 			ValidateNames(apiObjectTypes);
 
-			var lockResult = planApi.LockManager.LockAndExecute(apiObjectTypes.Where(IsValid).ToList(), CreateOrUpdateLocked);
-			ReportError(lockResult);
+			var validObjectTypes = apiObjectTypes.Where(IsValid).ToList();
+			if (validObjectTypes.Count == 0)
+			{
+				return;
+			}
+
+			// Names must be unique across all object types, so the name validation and the write are serialized on a
+			// single lock instead of on the object type locks, which do not exclude each other for different IDs.
+			var nameLockResult = planApi.LockManager.LockAllAndExecute(new[] { new ObjectTypeNamesSentinel() }, () =>
+			{
+				var lockResult = planApi.LockManager.LockAndExecute(validObjectTypes, CreateOrUpdateLocked);
+				ReportError(lockResult);
+			});
+
+			if (nameLockResult.AllLocksGranted)
+			{
+				return;
+			}
+
+			foreach (var objectType in validObjectTypes.Where(IsValid))
+			{
+				ReportError(objectType.Id, new MediaOpsErrorData { ErrorMessage = "Failed to lock the relationship object type names." });
+			}
 		}
 
 		private void CreateOrUpdateLocked(ICollection<RelationshipObjectType> apiObjectTypes)
@@ -83,10 +104,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			var toCreate = apiObjectTypes.Where(x => x.IsNew).ToList();
 			var toUpdate = apiObjectTypes.Except(toCreate).ToList();
 
+			// Re-validate the user defined IDs while the object type locks are held, so concurrent creates with the
+			// same ID cannot both pass the check.
+			ValidateIdsNotInUse(toCreate);
+
 			var changeResults = GetObjectTypesWithChanges(toUpdate);
 
 			var toUpdateNameValidation = toUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcRelationshipsIds.Sections.ObjectTypeInfo.ObjectName.Id)));
-			ValidateDomNames(toCreate.Concat(toUpdateNameValidation).ToList());
+			ValidateDomNames(toCreate.Where(IsValid).Concat(toUpdateNameValidation).ToList());
 
 			var toCreateDomInstances = toCreate
 				.Where(IsValid)
@@ -143,7 +168,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			ValidateStateForDeleteAction(apiObjectTypes);
 			ValidateNamesAreNotReserved(apiObjectTypes.Where(IsValid).ToList());
-			ValidateObjectTypesAreNotInUse(apiObjectTypes.Where(IsValid).ToList());
 
 			var lockResult = planApi.LockManager.LockAndExecute(apiObjectTypes.Where(IsValid).ToList(), DeleteLocked);
 			ReportError(lockResult);
@@ -166,7 +190,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				throw new ArgumentException("Not all provided relationship object types are valid", nameof(apiObjectTypes));
 			}
 
-			var toDelete = apiObjectTypes.Select(x => x.OriginalInstance.ToInstance()).ToList();
+			// The reference check runs while the object type locks are held: relationship writes lock the object types
+			// they reference, so no relationship can be added for an object type that is being removed.
+			ValidateObjectTypesAreNotInUse(apiObjectTypes);
+
+			var toDelete = apiObjectTypes.Where(IsValid).Select(x => x.OriginalInstance.ToInstance()).ToList();
+			if (toDelete.Count == 0)
+			{
+				return;
+			}
+
 			planApi.DomHelpers.SlcRelationshipsHelper.DomHelper.DomInstances.TryDeleteInBatches(toDelete, out var domResult);
 
 			foreach (var id in domResult.UnsuccessfulIds)
@@ -418,6 +451,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				o => new RelationshipObjectTypeNotFoundError { ErrorMessage = $"Relationship object type with ID '{o.Id}' no longer exists.", Id = o.Id },
 				(o, msg) => new RelationshipObjectTypeValueAlreadyChangedError { ErrorMessage = msg, Id = o.Id })
 				.ToList();
+		}
+
+		// Used to serialize the name validation of relationship object types, which cannot be done with the locks of
+		// the individual object types.
+		private sealed class ObjectTypeNamesSentinel : ApiObject
+		{
+			private static readonly Guid SentinelId = new Guid("6d7fbd66-9c2b-4d0f-9ec6-2f3a0a5f0a6d");
+
+			internal ObjectTypeNamesSentinel() : base(SentinelId)
+			{
+			}
 		}
 	}
 }

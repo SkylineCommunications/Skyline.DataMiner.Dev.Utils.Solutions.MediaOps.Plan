@@ -186,8 +186,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM
 				throw new ArgumentOutOfRangeException(nameof(pageSize));
 			}
 
-			var pages = DomHelper.DomInstances.ReadPaged(query, pageSize);
-			return InstanceFactory.CreateInstances(pages, instance => new ObjectTypesInstance(instance));
+			return InstanceFactory.ReadAndCreateInstancesPaged(DomHelper, query, pageSize, instance => new ObjectTypesInstance(instance));
 		}
 
 		internal IEnumerable<IEnumerable<LinksInstance>> GetLinksPaged(FilterElement<DomInstance> paramFilter, int pageSize)
@@ -218,8 +217,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM
 				throw new ArgumentOutOfRangeException(nameof(pageSize));
 			}
 
-			var pages = DomHelper.DomInstances.ReadPaged(query, pageSize);
-			return InstanceFactory.CreateInstances(pages, instance => new LinksInstance(instance));
+			return InstanceFactory.ReadAndCreateInstancesPaged(DomHelper, query, pageSize, instance => new LinksInstance(instance));
 		}
 
 		private IEnumerable<ObjectTypesInstance> GetObjectTypeIterator(FilterElement<DomInstance> filter)
