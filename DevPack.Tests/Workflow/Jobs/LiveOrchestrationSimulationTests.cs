@@ -701,6 +701,135 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void Update_ConfirmedJobWithOnlyPropertyChanges_SynchronizesLive()
+		{
+			var setup = CreateSetup();
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var jobProperty = (StringProperty)setup.Api.SchedulingProperties.Create(new StringProperty
+			{
+				Name = $"{prefix}_JobProperty",
+				SectionName = "General",
+			});
+
+			var job = CreateJob(
+				setup,
+				preRollStart: currentTime.AddMinutes(5),
+				start: currentTime.AddMinutes(10),
+				end: currentTime.AddMinutes(20),
+				postRollEnd: currentTime.AddMinutes(25));
+
+			var confirmedJob = Confirm(setup, job);
+
+			var prerollStart = GetEvent(GetLiveConfiguration(setup, confirmedJob), LiveEnums.EventType.PrerollStart);
+			SetOrchestrationEventState(setup, prerollStart.ID, LiveEnums.EventState.Cancelled);
+
+			confirmedJob.AddProperty(new StringPropertySetting(jobProperty) { Value = "Property value" });
+
+			var updatedJob = setup.Api.Jobs.Update(confirmedJob);
+
+			Assert.AreEqual(
+				LiveEnums.EventState.Confirmed,
+				GetEvent(GetLiveConfiguration(setup, updatedJob), LiveEnums.EventType.PrerollStart).EventState,
+				"A property change must still reach MediaOps Live.");
+		}
+
+		[TestMethod]
+		public void Update_ConfirmedJobWithOnlyOrchestrationChanges_SynchronizesLive()
+		{
+			var setup = CreateSetup();
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var textConfiguration = (TextConfiguration)setup.Api.Configurations.Create(new TextConfiguration { Name = $"{prefix}_Text" });
+
+			var job = CreateJob(
+				setup,
+				preRollStart: currentTime.AddMinutes(5),
+				start: currentTime.AddMinutes(10),
+				end: currentTime.AddMinutes(20),
+				postRollEnd: currentTime.AddMinutes(25));
+
+			var node = job.NodeGraph.Nodes.Single();
+			node.OrchestrationSettings.SetOrchestrationEvents(new List<OrchestrationEvent>
+			{
+				new OrchestrationEvent
+				{
+					EventType = OrchestrationEventType.PrerollStart,
+					ExecutionDetails = new ScriptExecutionDetails(OrchestrationScriptName)
+						.AddConfiguration(new TextConfigurationSetting(textConfiguration) { Value = "Before" }),
+				},
+			});
+
+			job = setup.Api.Jobs.Update(job);
+
+			var confirmedJob = Confirm(setup, job);
+
+			// Changing only a configured value keeps the node fully configured, so the job instance does not change.
+			var confirmedNode = confirmedJob.NodeGraph.Nodes.Single();
+			confirmedNode.OrchestrationSettings.SetOrchestrationEvents(new List<OrchestrationEvent>
+			{
+				new OrchestrationEvent
+				{
+					EventType = OrchestrationEventType.PrerollStart,
+					ExecutionDetails = new ScriptExecutionDetails(OrchestrationScriptName)
+						.AddConfiguration(new TextConfigurationSetting(textConfiguration) { Value = "After" }),
+				},
+			});
+
+			var updatedJob = setup.Api.Jobs.Update(confirmedJob);
+
+			var nodeConfiguration = GetEvent(GetLiveConfiguration(setup, updatedJob), LiveEnums.EventType.PrerollStart)
+				.Configuration.NodeConfigurations.Single();
+
+			Assert.AreEqual(
+				"After",
+				nodeConfiguration.Profile.Values.Single(x => x.Name == textConfiguration.Id.ToString()).Value.StringValue,
+				"An orchestration change must still reach MediaOps Live.");
+		}
+
+		[TestMethod]
+		public void Update_ConfirmedJobWithLinkAndPropertyChanges_SynchronizesLive()
+		{
+			var setup = CreateSetup();
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var jobProperty = (StringProperty)setup.Api.SchedulingProperties.Create(new StringProperty
+			{
+				Name = $"{prefix}_JobProperty",
+				SectionName = "General",
+			});
+
+			var job = CreateJob(
+				setup,
+				preRollStart: currentTime.AddMinutes(5),
+				start: currentTime.AddMinutes(10),
+				end: currentTime.AddMinutes(20),
+				postRollEnd: currentTime.AddMinutes(25));
+
+			var confirmedJob = Confirm(setup, job);
+
+			var prerollStart = GetEvent(GetLiveConfiguration(setup, confirmedJob), LiveEnums.EventType.PrerollStart);
+			SetOrchestrationEventState(setup, prerollStart.ID, LiveEnums.EventState.Cancelled);
+
+			// Property values are stored outside the job instance, so only the property scope marks this as more
+			// than a link-only save. An orchestration parameter can reference a job property.
+			var objectType = setup.Api.RelationshipObjectTypes.Create(new RelationshipObjectType { Name = $"{prefix}_Booking" });
+			confirmedJob.AddLink(new JobLink(objectType, "booking-1"));
+			confirmedJob.AddProperty(new StringPropertySetting(jobProperty) { Value = "Property value" });
+
+			var updatedJob = setup.Api.Jobs.Update(confirmedJob);
+
+			Assert.AreEqual(1, updatedJob.Links.Count, "Expected the link to be saved.");
+			Assert.AreEqual(
+				LiveEnums.EventState.Confirmed,
+				GetEvent(GetLiveConfiguration(setup, updatedJob), LiveEnums.EventType.PrerollStart).EventState,
+				"A property change must still reach MediaOps Live, even when links changed in the same save.");
+		}
+
+		[TestMethod]
 		public void Update_ConfirmedJobWithLinkAndOrchestrationChanges_SynchronizesLive()
 		{
 			var setup = CreateSetup();
