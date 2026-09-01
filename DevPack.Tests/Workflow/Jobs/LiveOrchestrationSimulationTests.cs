@@ -427,6 +427,38 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void Update_ConfirmedJobWithOnlyLinkChanges_DoesNotSynchronizeLive()
+		{
+			var setup = CreateSetup();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var job = CreateJob(
+				setup,
+				preRollStart: currentTime.AddMinutes(5),
+				start: currentTime.AddMinutes(10),
+				end: currentTime.AddMinutes(20),
+				postRollEnd: currentTime.AddMinutes(25));
+
+			var confirmedJob = Confirm(setup, job);
+
+			// Tampering with a scheduled event gives the synchronization something to undo, so the assertion below
+			// fails as soon as a link-only save reaches MediaOps Live.
+			var prerollStart = GetEvent(GetLiveConfiguration(setup, confirmedJob), LiveEnums.EventType.PrerollStart);
+			SetOrchestrationEventState(setup, prerollStart.ID, LiveEnums.EventState.Cancelled);
+
+			var objectType = setup.Api.RelationshipObjectTypes.Create(new RelationshipObjectType { Name = $"{Guid.NewGuid()}_Booking" });
+			confirmedJob.AddLink(new JobLink(objectType, "booking-1"));
+
+			var updatedJob = setup.Api.Jobs.Update(confirmedJob);
+
+			Assert.AreEqual(1, updatedJob.Links.Count, "Expected the link to be saved.");
+			Assert.AreEqual(
+				LiveEnums.EventState.Cancelled,
+				GetEvent(GetLiveConfiguration(setup, updatedJob), LiveEnums.EventType.PrerollStart).EventState,
+				"A save that only changed job links must not push anything to MediaOps Live.");
+		}
+
+		[TestMethod]
 		public void Start_ConfirmedJob_TriggersPreRollStartOnTransitionToRunning()
 		{
 			var setup = CreateSetup();
@@ -666,6 +698,69 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var levelMapping = liveConnection.LevelMappings.Single();
 			Assert.AreEqual(1, levelMapping.Source.Number, "Expected the shuffled source level to be resolved.");
 			Assert.AreEqual(2, levelMapping.Destination.Number, "Expected the shuffled destination level to be resolved.");
+		}
+
+		[TestMethod]
+		public void Update_ConfirmedJobWithLinkAndOrchestrationChanges_SynchronizesLive()
+		{
+			var setup = CreateSetup();
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var textConfiguration = (TextConfiguration)setup.Api.Configurations.Create(new TextConfiguration { Name = $"{prefix}_Text" });
+
+			var job = CreateJob(
+				setup,
+				preRollStart: currentTime.AddMinutes(5),
+				start: currentTime.AddMinutes(10),
+				end: currentTime.AddMinutes(20),
+				postRollEnd: currentTime.AddMinutes(25));
+
+			var node = job.NodeGraph.Nodes.Single();
+			node.OrchestrationSettings.SetOrchestrationEvents(new List<OrchestrationEvent>
+			{
+				new OrchestrationEvent
+				{
+					EventType = OrchestrationEventType.PrerollStart,
+					ExecutionDetails = new ScriptExecutionDetails(OrchestrationScriptName)
+						.AddConfiguration(new TextConfigurationSetting(textConfiguration) { Value = "Before" }),
+				},
+			});
+
+			job = setup.Api.Jobs.Update(job);
+
+			var confirmedJob = Confirm(setup, job);
+
+			var prerollStart = GetEvent(GetLiveConfiguration(setup, confirmedJob), LiveEnums.EventType.PrerollStart);
+			SetOrchestrationEventState(setup, prerollStart.ID, LiveEnums.EventState.Cancelled);
+
+			var objectType = setup.Api.RelationshipObjectTypes.Create(new RelationshipObjectType { Name = $"{prefix}_Booking" });
+			confirmedJob.AddLink(new JobLink(objectType, "booking-1"));
+
+			// Changing only a configured value keeps the node fully configured, so the job instance itself does not
+			// change. The orchestration settings still have to reach MediaOps Live.
+			var confirmedNode = confirmedJob.NodeGraph.Nodes.Single();
+			confirmedNode.OrchestrationSettings.SetOrchestrationEvents(new List<OrchestrationEvent>
+			{
+				new OrchestrationEvent
+				{
+					EventType = OrchestrationEventType.PrerollStart,
+					ExecutionDetails = new ScriptExecutionDetails(OrchestrationScriptName)
+						.AddConfiguration(new TextConfigurationSetting(textConfiguration) { Value = "After" }),
+				},
+			});
+
+			var updatedJob = setup.Api.Jobs.Update(confirmedJob);
+
+			Assert.AreEqual(1, updatedJob.Links.Count, "Expected the link to be saved.");
+
+			var liveConfiguration = GetLiveConfiguration(setup, updatedJob);
+			var nodeConfiguration = GetEvent(liveConfiguration, LiveEnums.EventType.PrerollStart).Configuration.NodeConfigurations.Single();
+
+			Assert.AreEqual(
+				"After",
+				nodeConfiguration.Profile.Values.Single(x => x.Name == textConfiguration.Id.ToString()).Value.StringValue,
+				"An orchestration change must still reach MediaOps Live, even when links changed in the same save.");
 		}
 
 		[TestMethod]

@@ -264,6 +264,11 @@
 				MarkAsJobWithCoreChanges(job);
 			}
 
+			// Determined before anything is persisted: saving refreshes the baselines this comparison relies on.
+			var linkOnlyJobIds = new HashSet<Guid>(toUpdate
+				.Where(x => IsValid(x) && HasOnlyLinkChanges(x, changeResults))
+				.Select(x => x.Id));
+
 			CreateOrUpdateOrchestrationSettings(apiJobs.Where(IsValid).ToList());
 			CreateOrUpdatePropertySettingCollections(apiJobs.Where(IsValid).ToList());
 			CreateOrUpdateJobLinks(apiJobs.Where(IsValid).ToList());
@@ -286,7 +291,10 @@
 
 			// Synchronize MediaOps Live from the persisted instances so Live reflects the merged result rather than this
 			// user's in-memory snapshot, which may miss a concurrent edit that the lock-merge preserved.
-			SyncLiveOrchestration(SuccessfulItems.Select(x => new Job(planApi, x)).ToList());
+			SyncLiveOrchestration(SuccessfulItems
+				.Where(x => !linkOnlyJobIds.Contains(x.ID.Id))
+				.Select(x => new Job(planApi, x))
+				.ToList());
 		}
 
 		private void CreateOrUpdateDomJobs(ICollection<DomJob> domJobs)
@@ -3346,6 +3354,42 @@
 			}
 
 			jobIdsWithCoreChanges.Add(job.Id);
+		}
+
+		// Links live in the (slc)relationships module and are not part of the orchestration configuration, so a job that
+		// changed nothing else has nothing to push to MediaOps Live. Property settings count as a change because an
+		// orchestration parameter can reference a job property through a JobPropertyReference.
+		private bool HasOnlyLinkChanges(Job job, ICollection<DomChangeResults> changeResults)
+		{
+			if (job.JobLinksScope?.IsDirty != true || job.PropertySettingsScope?.IsDirty == true)
+			{
+				return false;
+			}
+
+			// A job whose DOM instance is unchanged is not reported at all, so a missing result means nothing changed.
+			var changeResult = changeResults.FirstOrDefault(x => x.Id == job.Id);
+			if (changeResult != null
+				&& (changeResult.ChangedFields.Count > 0
+					|| changeResult.AddedSections.Count > 0
+					|| changeResult.RemovedSections.Count > 0))
+			{
+				return false;
+			}
+
+			return IsOrchestrationUnchanged(job.OrchestrationSettings)
+				&& job.NodeGraph.Nodes.All(x => IsOrchestrationUnchanged(x.OrchestrationSettings));
+		}
+
+		// The orchestration settings are rewritten on every save, so the DOM diff cannot say whether they really
+		// changed. Their stored baseline is parsed back instead and compared by value.
+		private bool IsOrchestrationUnchanged(OrchestrationSettings settings)
+		{
+			if (settings is not WorkflowOrchestrationSettings workflowSettings || workflowSettings.IsNew)
+			{
+				return false;
+			}
+
+			return workflowSettings.Equals(new WorkflowOrchestrationSettings(planApi, workflowSettings.OriginalInstance));
 		}
 
 		// The core reservation only mirrors the job's name, timings and nodes. A change is reservation-impacting when
