@@ -66,6 +66,39 @@
 
 		internal CoreParameter CoreParameter => coreParameter;
 
+		/// <summary>
+		/// Determines whether this parameter is a capability and, if so, returns it as a <see cref="Capability"/>.
+		/// </summary>
+		/// <param name="parameter">When this method returns, contains the current parameter as a <see cref="Capability"/> when it is one; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this parameter is a <see cref="Capability"/>; otherwise, <c>false</c>.</returns>
+		public bool IsCapability(out Capability parameter)
+		{
+			parameter = this as Capability;
+			return parameter != null;
+		}
+
+		/// <summary>
+		/// Determines whether this parameter is a capacity and, if so, returns it as a <see cref="Capacity"/>.
+		/// </summary>
+		/// <param name="parameter">When this method returns, contains the current parameter as a <see cref="Capacity"/> when it is one; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this parameter is a <see cref="Capacity"/>; otherwise, <c>false</c>.</returns>
+		public bool IsCapacity(out Capacity parameter)
+		{
+			parameter = this as Capacity;
+			return parameter != null;
+		}
+
+		/// <summary>
+		/// Determines whether this parameter is a configuration and, if so, returns it as a <see cref="Configuration"/>.
+		/// </summary>
+		/// <param name="parameter">When this method returns, contains the current parameter as a <see cref="Configuration"/> when it is one; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this parameter is a <see cref="Configuration"/>; otherwise, <c>false</c>.</returns>
+		public bool IsConfiguration(out Configuration parameter)
+		{
+			parameter = this as Configuration;
+			return parameter != null;
+		}
+
 		/// <inheritdoc/>
 		public override int GetHashCode()
 		{

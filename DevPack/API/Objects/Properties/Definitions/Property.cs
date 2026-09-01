@@ -84,6 +84,50 @@
 
 		internal StorageProperties.PropertyInstance OriginalInstance => originalInstance;
 
+		/// <summary>
+		/// Determines whether this property is a boolean property and, if so, returns it as a <see cref="BooleanProperty"/>.
+		/// </summary>
+		/// <param name="property">When this method returns, contains the current property as a <see cref="BooleanProperty"/> when it is one; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this property is a <see cref="BooleanProperty"/>; otherwise, <c>false</c>.</returns>
+		public bool IsBooleanProperty(out BooleanProperty property)
+		{
+			property = this as BooleanProperty;
+			return property != null;
+		}
+
+		/// <summary>
+		/// Determines whether this property is a discrete property and, if so, returns it as a <see cref="DiscreteProperty"/>.
+		/// </summary>
+		/// <param name="property">When this method returns, contains the current property as a <see cref="DiscreteProperty"/> when it is one; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this property is a <see cref="DiscreteProperty"/>; otherwise, <c>false</c>.</returns>
+		public bool IsDiscreteProperty(out DiscreteProperty property)
+		{
+			property = this as DiscreteProperty;
+			return property != null;
+		}
+
+		/// <summary>
+		/// Determines whether this property is a file property and, if so, returns it as a <see cref="FileProperty"/>.
+		/// </summary>
+		/// <param name="property">When this method returns, contains the current property as a <see cref="FileProperty"/> when it is one; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this property is a <see cref="FileProperty"/>; otherwise, <c>false</c>.</returns>
+		public bool IsFileProperty(out FileProperty property)
+		{
+			property = this as FileProperty;
+			return property != null;
+		}
+
+		/// <summary>
+		/// Determines whether this property is a string property and, if so, returns it as a <see cref="StringProperty"/>.
+		/// </summary>
+		/// <param name="property">When this method returns, contains the current property as a <see cref="StringProperty"/> when it is one; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this property is a <see cref="StringProperty"/>; otherwise, <c>false</c>.</returns>
+		public bool IsStringProperty(out StringProperty property)
+		{
+			property = this as StringProperty;
+			return property != null;
+		}
+
 		/// <inheritdoc/>
 		public override int GetHashCode()
 		{
