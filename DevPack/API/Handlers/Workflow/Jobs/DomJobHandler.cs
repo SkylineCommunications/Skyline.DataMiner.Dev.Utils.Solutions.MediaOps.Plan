@@ -3359,7 +3359,7 @@
 		// Links live in the (slc)relationships module and are not part of the orchestration configuration, so a job that
 		// changed nothing else has nothing to push to MediaOps Live. Property settings count as a change because an
 		// orchestration parameter can reference a job property through a JobPropertyReference.
-		private bool HasOnlyLinkChanges(Job job, ICollection<DomChangeResults> changeResults)
+		private static bool HasOnlyLinkChanges(Job job, ICollection<DomChangeResults> changeResults)
 		{
 			if (job.JobLinksScope?.IsDirty != true || job.PropertySettingsScope?.IsDirty == true)
 			{
@@ -3381,15 +3381,11 @@
 		}
 
 		// The orchestration settings are rewritten on every save, so the DOM diff cannot say whether they really
-		// changed. Their stored baseline is parsed back instead and compared by value.
-		private bool IsOrchestrationUnchanged(OrchestrationSettings settings)
+		// changed. Their own change tracking is used instead. Settings that were never persisted always count as
+		// changed, because HasChanges reports false for a new object.
+		private static bool IsOrchestrationUnchanged(OrchestrationSettings settings)
 		{
-			if (settings is not WorkflowOrchestrationSettings workflowSettings || workflowSettings.IsNew)
-			{
-				return false;
-			}
-
-			return workflowSettings.Equals(new WorkflowOrchestrationSettings(planApi, workflowSettings.OriginalInstance));
+			return settings != null && !settings.IsNew && !settings.HasChanges;
 		}
 
 		// The core reservation only mirrors the job's name, timings and nodes. A change is reservation-impacting when
