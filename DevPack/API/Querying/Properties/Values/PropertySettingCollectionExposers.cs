@@ -50,6 +50,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <summary>
 		/// Provides exposers for querying and filtering property settings.
 		/// </summary>
+		/// <seealso cref="BooleanPropertySettings"/>
+		/// <seealso cref="DiscretePropertySettings"/>
+		/// <seealso cref="StringPropertySettings"/>
 		public class PropertySettings
 		{
 			/// <summary>

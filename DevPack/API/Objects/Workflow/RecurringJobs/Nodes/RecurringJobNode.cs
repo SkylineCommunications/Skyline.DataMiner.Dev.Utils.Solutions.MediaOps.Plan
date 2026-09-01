@@ -7,6 +7,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// <summary>
 	/// Base class for nodes within recurring jobs.
 	/// </summary>
+	/// <seealso cref="RecurringJobResourceNode"/>
+	/// <seealso cref="RecurringJobResourcePoolNode"/>
 	public abstract class RecurringJobNode : NodeBase
 	{
 		private protected RecurringJobNode() : base()

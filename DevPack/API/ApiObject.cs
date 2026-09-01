@@ -5,6 +5,10 @@
 	/// <summary>
 	/// Represents the base class for all API objects in the MediaOps Plan API.
 	/// </summary>
+	/// <seealso cref="ApiNamedObject"/>
+	/// <seealso cref="JobSettings"/>
+	/// <seealso cref="OrchestrationSettings"/>
+	/// <seealso cref="PropertySettingCollection"/>
 	public abstract class ApiObject : TrackableObject, IIdentifiable
 	{
 		private protected ApiObject()

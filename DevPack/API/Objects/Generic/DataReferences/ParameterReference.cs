@@ -7,6 +7,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// Common base class for references that target a parameter (capability, capacity or configuration)
 	/// on a workflow node.
 	/// </summary>
+	/// <seealso cref="CapabilityParameterReference"/>
+	/// <seealso cref="CapacityParameterReference"/>
+	/// <seealso cref="ConfigurationParameterReference"/>
 	public abstract class ParameterReference : DataReference
 	{
 		internal const string ParameterIdKey = "ParameterId";
@@ -30,6 +33,39 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Gets the unique identifier of the parameter.
 		/// </summary>
 		public Guid ParameterId { get; }
+
+		/// <summary>
+		/// Determines whether this reference targets a capability and, if so, returns it as a <see cref="CapabilityParameterReference"/>.
+		/// </summary>
+		/// <param name="reference">When this method returns, contains the current reference as a <see cref="CapabilityParameterReference"/> when it is one; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this reference is a <see cref="CapabilityParameterReference"/>; otherwise, <c>false</c>.</returns>
+		public bool IsCapabilityParameterReference(out CapabilityParameterReference reference)
+		{
+			reference = this as CapabilityParameterReference;
+			return reference != null;
+		}
+
+		/// <summary>
+		/// Determines whether this reference targets a capacity and, if so, returns it as a <see cref="CapacityParameterReference"/>.
+		/// </summary>
+		/// <param name="reference">When this method returns, contains the current reference as a <see cref="CapacityParameterReference"/> when it is one; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this reference is a <see cref="CapacityParameterReference"/>; otherwise, <c>false</c>.</returns>
+		public bool IsCapacityParameterReference(out CapacityParameterReference reference)
+		{
+			reference = this as CapacityParameterReference;
+			return reference != null;
+		}
+
+		/// <summary>
+		/// Determines whether this reference targets a configuration and, if so, returns it as a <see cref="ConfigurationParameterReference"/>.
+		/// </summary>
+		/// <param name="reference">When this method returns, contains the current reference as a <see cref="ConfigurationParameterReference"/> when it is one; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this reference is a <see cref="ConfigurationParameterReference"/>; otherwise, <c>false</c>.</returns>
+		public bool IsConfigurationParameterReference(out ConfigurationParameterReference reference)
+		{
+			reference = this as ConfigurationParameterReference;
+			return reference != null;
+		}
 
 		/// <inheritdoc/>
 		public override bool Equals(DataReference other)

@@ -11,6 +11,10 @@
 	/// <summary>
 	/// Represents a resource in the MediaOps Plan API.
 	/// </summary>
+	/// <seealso cref="ElementResource"/>
+	/// <seealso cref="ServiceResource"/>
+	/// <seealso cref="UnmanagedResource"/>
+	/// <seealso cref="VirtualFunctionResource"/>
 	public abstract class Resource : ApiNamedObject
 	{
 		private readonly List<ResourceCapabilitySetting> capabilitySettings = [];
@@ -112,6 +116,50 @@
 		internal StorageResourceStudio.ResourceInstance OriginalInstance => originalInstance;
 
 		internal Guid CoreResourceId => coreResourceId;
+
+		/// <summary>
+		/// Determines whether this resource is an element resource and, if so, returns it as an <see cref="ElementResource"/>.
+		/// </summary>
+		/// <param name="resource">When this method returns, contains the current resource as an <see cref="ElementResource"/> when it is one; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this resource is an <see cref="ElementResource"/>; otherwise, <c>false</c>.</returns>
+		public bool IsElementResource(out ElementResource resource)
+		{
+			resource = this as ElementResource;
+			return resource != null;
+		}
+
+		/// <summary>
+		/// Determines whether this resource is a service resource and, if so, returns it as a <see cref="ServiceResource"/>.
+		/// </summary>
+		/// <param name="resource">When this method returns, contains the current resource as a <see cref="ServiceResource"/> when it is one; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this resource is a <see cref="ServiceResource"/>; otherwise, <c>false</c>.</returns>
+		public bool IsServiceResource(out ServiceResource resource)
+		{
+			resource = this as ServiceResource;
+			return resource != null;
+		}
+
+		/// <summary>
+		/// Determines whether this resource is an unmanaged resource and, if so, returns it as an <see cref="UnmanagedResource"/>.
+		/// </summary>
+		/// <param name="resource">When this method returns, contains the current resource as an <see cref="UnmanagedResource"/> when it is one; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this resource is an <see cref="UnmanagedResource"/>; otherwise, <c>false</c>.</returns>
+		public bool IsUnmanagedResource(out UnmanagedResource resource)
+		{
+			resource = this as UnmanagedResource;
+			return resource != null;
+		}
+
+		/// <summary>
+		/// Determines whether this resource is a virtual function resource and, if so, returns it as a <see cref="VirtualFunctionResource"/>.
+		/// </summary>
+		/// <param name="resource">When this method returns, contains the current resource as a <see cref="VirtualFunctionResource"/> when it is one; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this resource is a <see cref="VirtualFunctionResource"/>; otherwise, <c>false</c>.</returns>
+		public bool IsVirtualFunctionResource(out VirtualFunctionResource resource)
+		{
+			resource = this as VirtualFunctionResource;
+			return resource != null;
+		}
 
 		/// <summary>
 		/// Assigns the current resource to the specified resource pool.

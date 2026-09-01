@@ -10,6 +10,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// Base class for all node implementations in workflows, jobs, and recurring jobs.
 	/// This class represents common node properties used across different contexts.
 	/// </summary>
+	/// <seealso cref="JobNode"/>
+	/// <seealso cref="RecurringJobNode"/>
+	/// <seealso cref="WorkflowNode"/>
 	public abstract class NodeBase : TrackableObject, INode
 	{
 		private StorageWorkflow.NodesSection originalSection;

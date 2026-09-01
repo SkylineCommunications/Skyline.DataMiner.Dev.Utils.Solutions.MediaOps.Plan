@@ -12,6 +12,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// When <see langword="false"/>, inspect <see cref="UnresolvedReference"/> for diagnostics.
 	/// </para>
 	/// </remarks>
+	/// <seealso cref="BooleanResolvedValue"/>
+	/// <seealso cref="DecimalResolvedValue"/>
+	/// <seealso cref="DoubleResolvedValue"/>
+	/// <seealso cref="NullResolvedValue"/>
+	/// <seealso cref="StringResolvedValue"/>
 	public abstract class ResolvedValue
 	{
 		/// <summary>Initializes a new instance of the <see cref="ResolvedValue"/> class.</summary>
@@ -30,6 +35,61 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// When <see langword="false"/>, inspect <see cref="UnresolvedReference"/> for details.
 		/// </summary>
 		public bool IsResolved => UnresolvedReference == null;
+
+		/// <summary>
+		/// Determines whether this resolved value holds a boolean and, if so, returns it as a <see cref="BooleanResolvedValue"/>.
+		/// </summary>
+		/// <param name="value">When this method returns, contains the current resolved value as a <see cref="BooleanResolvedValue"/> when it is one; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this resolved value is a <see cref="BooleanResolvedValue"/>; otherwise, <c>false</c>.</returns>
+		public bool IsBooleanResolvedValue(out BooleanResolvedValue value)
+		{
+			value = this as BooleanResolvedValue;
+			return value != null;
+		}
+
+		/// <summary>
+		/// Determines whether this resolved value holds a decimal and, if so, returns it as a <see cref="DecimalResolvedValue"/>.
+		/// </summary>
+		/// <param name="value">When this method returns, contains the current resolved value as a <see cref="DecimalResolvedValue"/> when it is one; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this resolved value is a <see cref="DecimalResolvedValue"/>; otherwise, <c>false</c>.</returns>
+		public bool IsDecimalResolvedValue(out DecimalResolvedValue value)
+		{
+			value = this as DecimalResolvedValue;
+			return value != null;
+		}
+
+		/// <summary>
+		/// Determines whether this resolved value holds a double and, if so, returns it as a <see cref="DoubleResolvedValue"/>.
+		/// </summary>
+		/// <param name="value">When this method returns, contains the current resolved value as a <see cref="DoubleResolvedValue"/> when it is one; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this resolved value is a <see cref="DoubleResolvedValue"/>; otherwise, <c>false</c>.</returns>
+		public bool IsDoubleResolvedValue(out DoubleResolvedValue value)
+		{
+			value = this as DoubleResolvedValue;
+			return value != null;
+		}
+
+		/// <summary>
+		/// Determines whether this resolved value holds no value and, if so, returns it as a <see cref="NullResolvedValue"/>.
+		/// </summary>
+		/// <param name="value">When this method returns, contains the current resolved value as a <see cref="NullResolvedValue"/> when it is one; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this resolved value is a <see cref="NullResolvedValue"/>; otherwise, <c>false</c>.</returns>
+		public bool IsNullResolvedValue(out NullResolvedValue value)
+		{
+			value = this as NullResolvedValue;
+			return value != null;
+		}
+
+		/// <summary>
+		/// Determines whether this resolved value holds a string and, if so, returns it as a <see cref="StringResolvedValue"/>.
+		/// </summary>
+		/// <param name="value">When this method returns, contains the current resolved value as a <see cref="StringResolvedValue"/> when it is one; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this resolved value is a <see cref="StringResolvedValue"/>; otherwise, <c>false</c>.</returns>
+		public bool IsStringResolvedValue(out StringResolvedValue value)
+		{
+			value = this as StringResolvedValue;
+			return value != null;
+		}
 
 		/// <summary>
 		/// Creates an unresolved <see cref="ResolvedValue"/> wrapping a <see cref="DataReference"/>

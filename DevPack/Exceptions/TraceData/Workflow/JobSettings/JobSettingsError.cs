@@ -5,6 +5,12 @@
 	/// <summary>
 	/// Represents an error that occurs when creating or updating a job setting with invalid configuration.
 	/// </summary>
+	/// <seealso cref="JobSettingsInvalidKeyIncrementError"/>
+	/// <seealso cref="JobSettingsInvalidKeyMinimumDigitsError"/>
+	/// <seealso cref="JobSettingsInvalidKeyPrefixError"/>
+	/// <seealso cref="JobSettingsInvalidKeyStartingSeedError"/>
+	/// <seealso cref="JobSettingsNotFoundError"/>
+	/// <seealso cref="JobSettingsValueAlreadyChangedError"/>
 	public class JobSettingsError : MediaOpsErrorData
 	{
 		/// <summary>

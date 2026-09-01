@@ -3,6 +3,11 @@
 	/// <summary>
 	/// Represents an error that occurs when attempting to delete a capability discrete value that is currently in use.
 	/// </summary>
+	/// <seealso cref="CapabilityDiscreteValueInUseByJobsError"/>
+	/// <seealso cref="CapabilityDiscreteValueInUseByRecurringJobsError"/>
+	/// <seealso cref="CapabilityDiscreteValueInUseByResourcePoolsError"/>
+	/// <seealso cref="CapabilityDiscreteValueInUseByResourcesError"/>
+	/// <seealso cref="CapabilityDiscreteValueInUseByWorkflowsError"/>
 	public class CapabilityDiscreteValueInUseError : CapabilityError
 	{
 		/// <summary>

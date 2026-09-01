@@ -12,6 +12,10 @@
 	/// <summary>
 	/// Represents a Configuration in the MediaOps.
 	/// </summary>
+	/// <seealso cref="DiscreteNumberConfiguration"/>
+	/// <seealso cref="DiscreteTextConfiguration"/>
+	/// <seealso cref="NumberConfiguration"/>
+	/// <seealso cref="TextConfiguration"/>
 	public abstract class Configuration : Parameter
 	{
 		/// <summary>

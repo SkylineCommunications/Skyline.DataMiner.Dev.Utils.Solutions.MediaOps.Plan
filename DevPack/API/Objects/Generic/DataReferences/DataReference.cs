@@ -6,6 +6,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// <summary>
 	/// Represents an abstract reference to a data source. Use a concrete subclass that matches the desired <see cref="DataReferenceType"/>.
 	/// </summary>
+	/// <seealso cref="JobNameReference"/>
+	/// <seealso cref="JobPropertyReference"/>
+	/// <seealso cref="ParameterReference"/>
+	/// <seealso cref="ResourceLinkedObjectIdReference"/>
+	/// <seealso cref="ResourceNameReference"/>
+	/// <seealso cref="ResourcePropertyReference"/>
 	public abstract class DataReference : IEquatable<DataReference>
 	{
 		/// <summary>
@@ -38,6 +44,72 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// or <see langword="null"/> when the reference targets the workflow / job itself.
 		/// </summary>
 		public string NodeId { get; set; }
+
+		/// <summary>
+		/// Determines whether this reference targets a job name and, if so, returns it as a <see cref="JobNameReference"/>.
+		/// </summary>
+		/// <param name="reference">When this method returns, contains the current reference as a <see cref="JobNameReference"/> when it is one; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this reference is a <see cref="JobNameReference"/>; otherwise, <c>false</c>.</returns>
+		public bool IsJobNameReference(out JobNameReference reference)
+		{
+			reference = this as JobNameReference;
+			return reference != null;
+		}
+
+		/// <summary>
+		/// Determines whether this reference targets a job property and, if so, returns it as a <see cref="JobPropertyReference"/>.
+		/// </summary>
+		/// <param name="reference">When this method returns, contains the current reference as a <see cref="JobPropertyReference"/> when it is one; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this reference is a <see cref="JobPropertyReference"/>; otherwise, <c>false</c>.</returns>
+		public bool IsJobPropertyReference(out JobPropertyReference reference)
+		{
+			reference = this as JobPropertyReference;
+			return reference != null;
+		}
+
+		/// <summary>
+		/// Determines whether this reference targets a parameter and, if so, returns it as a <see cref="ParameterReference"/>.
+		/// </summary>
+		/// <param name="reference">When this method returns, contains the current reference as a <see cref="ParameterReference"/> when it is one; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this reference is a <see cref="ParameterReference"/>; otherwise, <c>false</c>.</returns>
+		public bool IsParameterReference(out ParameterReference reference)
+		{
+			reference = this as ParameterReference;
+			return reference != null;
+		}
+
+		/// <summary>
+		/// Determines whether this reference targets the identifier of an object linked to a resource and, if so, returns it as a <see cref="ResourceLinkedObjectIdReference"/>.
+		/// </summary>
+		/// <param name="reference">When this method returns, contains the current reference as a <see cref="ResourceLinkedObjectIdReference"/> when it is one; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this reference is a <see cref="ResourceLinkedObjectIdReference"/>; otherwise, <c>false</c>.</returns>
+		public bool IsResourceLinkedObjectIdReference(out ResourceLinkedObjectIdReference reference)
+		{
+			reference = this as ResourceLinkedObjectIdReference;
+			return reference != null;
+		}
+
+		/// <summary>
+		/// Determines whether this reference targets a resource name and, if so, returns it as a <see cref="ResourceNameReference"/>.
+		/// </summary>
+		/// <param name="reference">When this method returns, contains the current reference as a <see cref="ResourceNameReference"/> when it is one; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this reference is a <see cref="ResourceNameReference"/>; otherwise, <c>false</c>.</returns>
+		public bool IsResourceNameReference(out ResourceNameReference reference)
+		{
+			reference = this as ResourceNameReference;
+			return reference != null;
+		}
+
+		/// <summary>
+		/// Determines whether this reference targets a resource property and, if so, returns it as a <see cref="ResourcePropertyReference"/>.
+		/// </summary>
+		/// <param name="reference">When this method returns, contains the current reference as a <see cref="ResourcePropertyReference"/> when it is one; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this reference is a <see cref="ResourcePropertyReference"/>; otherwise, <c>false</c>.</returns>
+		public bool IsResourcePropertyReference(out ResourcePropertyReference reference)
+		{
+			reference = this as ResourcePropertyReference;
+			return reference != null;
+		}
 
 		/// <summary>
 		/// Converts this <see cref="DataReference"/> to its storage representation.

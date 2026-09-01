@@ -8,6 +8,15 @@
 	/// <remarks>This class is intended to be used as a base class for objects that require tracking of their
 	/// state,  such as whether they are newly created or have been modified. It is not intended for direct
 	/// instantiation  outside of derived classes.</remarks>
+	/// <seealso cref="ApiObject"/>
+	/// <seealso cref="CapabilitySettings"/>
+	/// <seealso cref="LinkedResourcePool"/>
+	/// <seealso cref="NodeBase"/>
+	/// <seealso cref="NodeConnection{TNode}"/>
+	/// <seealso cref="OrchestrationEvent"/>
+	/// <seealso cref="PropertySettingBase"/>
+	/// <seealso cref="ResourcePropertySettings"/>
+	/// <seealso cref="Setting"/>
 	public abstract class TrackableObject
 	{
 		private bool wasInitialized = false;

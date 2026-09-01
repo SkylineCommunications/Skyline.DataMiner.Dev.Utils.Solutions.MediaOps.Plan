@@ -5,6 +5,8 @@
 	/// <summary>
 	/// Represents an abstract base class for settings associated with a specific capacity.
 	/// </summary>
+	/// <seealso cref="NumberCapacitySetting"/>
+	/// <seealso cref="RangeCapacitySetting"/>
 	public abstract class CapacitySetting : Setting
 	{
 		/// <summary>

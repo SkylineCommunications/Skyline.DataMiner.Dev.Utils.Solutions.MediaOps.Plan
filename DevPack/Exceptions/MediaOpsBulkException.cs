@@ -79,6 +79,7 @@
 	/// <summary>
 	/// Represents an exception thrown when a MediaOps bulk operation fails.
 	/// </summary>
+	/// <seealso cref="MediaOpsBulkException{K}"/>
 	public class MediaOpsBulkException : Exception
 	{
 		/// <summary>

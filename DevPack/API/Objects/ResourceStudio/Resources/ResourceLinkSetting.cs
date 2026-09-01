@@ -5,12 +5,48 @@
 	/// <summary>
 	/// Represents the base configuration for a resource link.
 	/// </summary>
+	/// <seealso cref="ResourceElementLinkSetting"/>
+	/// <seealso cref="ResourceServiceLinkSetting"/>
+	/// <seealso cref="ResourceVirtualFunctionLinkSetting"/>
 	public abstract class ResourceLinkSetting
 	{
 		/// <summary>
 		/// Gets or sets the agent ID associated with the resource link.
 		/// </summary>
 		public int AgentId { get; set; }
+
+		/// <summary>
+		/// Determines whether this link setting is an element link and, if so, returns it as a <see cref="ResourceElementLinkSetting"/>.
+		/// </summary>
+		/// <param name="linkSetting">When this method returns, contains the current link setting as a <see cref="ResourceElementLinkSetting"/> when it is one; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this link setting is a <see cref="ResourceElementLinkSetting"/>; otherwise, <c>false</c>.</returns>
+		public bool IsResourceElementLinkSetting(out ResourceElementLinkSetting linkSetting)
+		{
+			linkSetting = this as ResourceElementLinkSetting;
+			return linkSetting != null;
+		}
+
+		/// <summary>
+		/// Determines whether this link setting is a service link and, if so, returns it as a <see cref="ResourceServiceLinkSetting"/>.
+		/// </summary>
+		/// <param name="linkSetting">When this method returns, contains the current link setting as a <see cref="ResourceServiceLinkSetting"/> when it is one; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this link setting is a <see cref="ResourceServiceLinkSetting"/>; otherwise, <c>false</c>.</returns>
+		public bool IsResourceServiceLinkSetting(out ResourceServiceLinkSetting linkSetting)
+		{
+			linkSetting = this as ResourceServiceLinkSetting;
+			return linkSetting != null;
+		}
+
+		/// <summary>
+		/// Determines whether this link setting is a virtual function link and, if so, returns it as a <see cref="ResourceVirtualFunctionLinkSetting"/>.
+		/// </summary>
+		/// <param name="linkSetting">When this method returns, contains the current link setting as a <see cref="ResourceVirtualFunctionLinkSetting"/> when it is one; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this link setting is a <see cref="ResourceVirtualFunctionLinkSetting"/>; otherwise, <c>false</c>.</returns>
+		public bool IsResourceVirtualFunctionLinkSetting(out ResourceVirtualFunctionLinkSetting linkSetting)
+		{
+			linkSetting = this as ResourceVirtualFunctionLinkSetting;
+			return linkSetting != null;
+		}
 	}
 
 	/// <summary>

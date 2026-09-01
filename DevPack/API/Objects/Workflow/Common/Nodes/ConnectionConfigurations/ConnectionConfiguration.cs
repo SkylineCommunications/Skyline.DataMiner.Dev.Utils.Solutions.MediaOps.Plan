@@ -14,6 +14,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// subclasses (for example <see cref="AllLevelBasedConnectionConfiguration"/> or
 	/// <see cref="ShuffleLevelBasedConnectionConfiguration"/>) and never with the underlying storage enums.
 	/// </remarks>
+	/// <seealso cref="LevelBasedConnectionConfiguration"/>
 	public abstract class ConnectionConfiguration
 	{
 		private protected ConnectionConfiguration()
@@ -22,6 +23,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		private protected ConnectionConfiguration(ConnectionConfiguration connectionConfiguration)
 		{
+		}
+
+		/// <summary>
+		/// Determines whether this connection configuration is level-based and, if so, returns it as a <see cref="LevelBasedConnectionConfiguration"/>.
+		/// </summary>
+		/// <param name="configuration">When this method returns, contains the current configuration as a <see cref="LevelBasedConnectionConfiguration"/> when it is one; otherwise, <c>null</c>.</param>
+		/// <returns><c>true</c> when this connection configuration is a <see cref="LevelBasedConnectionConfiguration"/>; otherwise, <c>false</c>.</returns>
+		public bool IsLevelBasedConnectionConfiguration(out LevelBasedConnectionConfiguration configuration)
+		{
+			configuration = this as LevelBasedConnectionConfiguration;
+			return configuration != null;
 		}
 
 		/// <summary>

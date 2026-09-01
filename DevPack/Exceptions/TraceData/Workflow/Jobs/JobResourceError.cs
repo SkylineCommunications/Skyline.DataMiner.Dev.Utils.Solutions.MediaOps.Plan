@@ -5,6 +5,9 @@
 	/// <summary>
 	/// Represents an error that is associated with a specific resource within a job operation.
 	/// </summary>
+	/// <seealso cref="JobResourceInvalidCapabilityError"/>
+	/// <seealso cref="JobResourceInvalidCapacityError"/>
+	/// <seealso cref="JobResourceNotAvailableError"/>
 	public class JobResourceError : JobError
 	{
 		/// <summary>

@@ -5,6 +5,10 @@
 	/// <summary>
 	/// Represents an abstract base class for settings associated with a specific configuration.
 	/// </summary>
+	/// <seealso cref="DiscreteNumberConfigurationSetting"/>
+	/// <seealso cref="DiscreteTextConfigurationSetting"/>
+	/// <seealso cref="NumberConfigurationSetting"/>
+	/// <seealso cref="TextConfigurationSetting"/>
 	public abstract class ConfigurationSetting : Setting
 	{
 		private protected ConfigurationSetting(Configuration configuration)
