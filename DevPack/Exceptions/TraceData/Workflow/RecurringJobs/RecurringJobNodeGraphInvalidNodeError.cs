@@ -3,6 +3,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions
 	/// <summary>
 	/// Represents an error that occurs when a node in the node graph of a recurring job is invalid.
 	/// </summary>
+	/// <seealso cref="RecurringJobNodeGraphDuplicateNodeIdError"/>
+	/// <seealso cref="RecurringJobNodeGraphEmptyNodeIdError"/>
+	/// <seealso cref="RecurringJobNodeGraphInvalidNodeAliasError"/>
+	/// <seealso cref="RecurringJobNodeGraphInvalidResourceNodeError"/>
+	/// <seealso cref="RecurringJobNodeGraphInvalidResourcePoolNodeError"/>
+	/// <seealso cref="RecurringJobNodeGraphSwapNotAllowedError"/>
 	public class RecurringJobNodeGraphInvalidNodeError : RecurringJobNodeGraphError
 	{
 		/// <summary>

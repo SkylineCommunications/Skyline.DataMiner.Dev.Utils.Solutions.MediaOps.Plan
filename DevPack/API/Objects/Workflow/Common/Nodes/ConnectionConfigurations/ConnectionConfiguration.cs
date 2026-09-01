@@ -14,6 +14,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// subclasses (for example <see cref="AllLevelBasedConnectionConfiguration"/> or
 	/// <see cref="ShuffleLevelBasedConnectionConfiguration"/>) and never with the underlying storage enums.
 	/// </remarks>
+	/// <seealso cref="LevelBasedConnectionConfiguration"/>
 	public abstract class ConnectionConfiguration
 	{
 		private protected ConnectionConfiguration()

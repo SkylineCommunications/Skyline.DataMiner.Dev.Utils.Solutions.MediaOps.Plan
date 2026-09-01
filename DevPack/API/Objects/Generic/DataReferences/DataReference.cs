@@ -6,6 +6,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// <summary>
 	/// Represents an abstract reference to a data source. Use a concrete subclass that matches the desired <see cref="DataReferenceType"/>.
 	/// </summary>
+	/// <seealso cref="JobNameReference"/>
+	/// <seealso cref="JobPropertyReference"/>
+	/// <seealso cref="ParameterReference"/>
+	/// <seealso cref="ResourceLinkedObjectIdReference"/>
+	/// <seealso cref="ResourceNameReference"/>
+	/// <seealso cref="ResourcePropertyReference"/>
 	public abstract class DataReference : IEquatable<DataReference>
 	{
 		/// <summary>

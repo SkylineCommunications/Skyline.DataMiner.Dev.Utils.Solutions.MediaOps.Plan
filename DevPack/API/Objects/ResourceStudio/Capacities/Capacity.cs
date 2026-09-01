@@ -12,6 +12,8 @@
 	/// <summary>
 	/// Represents a Capacity in the MediaOps Plan API.
 	/// </summary>
+	/// <seealso cref="NumberCapacity"/>
+	/// <seealso cref="RangeCapacity"/>
 	public abstract class Capacity : Parameter
 	{
 		/// <summary>

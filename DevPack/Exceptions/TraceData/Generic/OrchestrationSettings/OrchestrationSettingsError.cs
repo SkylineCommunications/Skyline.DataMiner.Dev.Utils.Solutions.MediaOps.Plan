@@ -5,6 +5,12 @@
 	/// <summary>
 	/// Represents an error that occurs when creating or updating a resource studio orchestration setting with invalid configuration.
 	/// </summary>
+	/// <seealso cref="OrchestrationSettingsInvalidCapabilitySettingsError"/>
+	/// <seealso cref="OrchestrationSettingsInvalidCapacitySettingsError"/>
+	/// <seealso cref="OrchestrationSettingsInvalidConfigurationSettingsError"/>
+	/// <seealso cref="OrchestrationSettingsNotFoundError"/>
+	/// <seealso cref="OrchestrationSettingsUnresolvedReferenceError"/>
+	/// <seealso cref="OrchestrationSettingsValueAlreadyChangedError"/>
 	public class OrchestrationSettingsError : MediaOpsErrorData
 	{
 		/// <summary>

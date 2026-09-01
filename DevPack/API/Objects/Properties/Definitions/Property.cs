@@ -9,6 +9,10 @@
 	/// <summary>
 	/// Represents a property in the MediaOps Plan API.
 	/// </summary>
+	/// <seealso cref="BooleanProperty"/>
+	/// <seealso cref="DiscreteProperty"/>
+	/// <seealso cref="FileProperty"/>
+	/// <seealso cref="StringProperty"/>
 	public abstract class Property : ApiNamedObject
 	{
 		private StorageProperties.PropertyInstance originalInstance;

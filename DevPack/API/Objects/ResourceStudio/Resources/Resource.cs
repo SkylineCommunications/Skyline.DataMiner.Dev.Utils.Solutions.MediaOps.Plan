@@ -11,6 +11,10 @@
 	/// <summary>
 	/// Represents a resource in the MediaOps Plan API.
 	/// </summary>
+	/// <seealso cref="ElementResource"/>
+	/// <seealso cref="ServiceResource"/>
+	/// <seealso cref="UnmanagedResource"/>
+	/// <seealso cref="VirtualFunctionResource"/>
 	public abstract class Resource : ApiNamedObject
 	{
 		private readonly List<ResourceCapabilitySetting> capabilitySettings = [];

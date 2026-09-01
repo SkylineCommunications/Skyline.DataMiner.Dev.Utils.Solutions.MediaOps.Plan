@@ -3,6 +3,8 @@
 	/// <summary>
 	/// Provides a base class for property settings.
 	/// </summary>
+	/// <seealso cref="CustomPropertySetting"/>
+	/// <seealso cref="PropertySetting"/>
 	public abstract class PropertySettingBase : TrackableObject
 	{
 		private protected PropertySettingBase(bool isNew = false)

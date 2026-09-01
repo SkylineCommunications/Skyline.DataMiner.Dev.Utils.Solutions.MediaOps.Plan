@@ -12,6 +12,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// subtype (for example <see cref="AllLevelBasedConnectionConfiguration"/> or
 	/// <see cref="ShuffleLevelBasedConnectionConfiguration"/>) determines how the levels are matched.
 	/// </remarks>
+	/// <seealso cref="AllLevelBasedConnectionConfiguration"/>
+	/// <seealso cref="ShuffleLevelBasedConnectionConfiguration"/>
 	public abstract class LevelBasedConnectionConfiguration : ConnectionConfiguration
 	{
 		private protected LevelBasedConnectionConfiguration()

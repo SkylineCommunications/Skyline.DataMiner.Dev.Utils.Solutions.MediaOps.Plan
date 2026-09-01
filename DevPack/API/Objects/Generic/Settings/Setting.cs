@@ -5,6 +5,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// <summary>
 	/// Represents an abstract base class for all settings that can hold either a direct value or a data reference.
 	/// </summary>
+	/// <seealso cref="CapabilitySetting"/>
+	/// <seealso cref="CapacitySetting"/>
+	/// <seealso cref="ConfigurationSetting"/>
 	public abstract class Setting : TrackableObject
 	{
 		private protected Setting()

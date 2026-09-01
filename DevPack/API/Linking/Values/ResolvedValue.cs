@@ -12,6 +12,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// When <see langword="false"/>, inspect <see cref="UnresolvedReference"/> for diagnostics.
 	/// </para>
 	/// </remarks>
+	/// <seealso cref="BooleanResolvedValue"/>
+	/// <seealso cref="DecimalResolvedValue"/>
+	/// <seealso cref="DoubleResolvedValue"/>
+	/// <seealso cref="NullResolvedValue"/>
+	/// <seealso cref="StringResolvedValue"/>
 	public abstract class ResolvedValue
 	{
 		/// <summary>Initializes a new instance of the <see cref="ResolvedValue"/> class.</summary>

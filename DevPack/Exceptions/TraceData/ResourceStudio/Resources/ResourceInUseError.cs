@@ -3,6 +3,9 @@
 	/// <summary>
 	/// Represents an error that occurs when attempting to delete a resource that is currently in use.
 	/// </summary>
+	/// <seealso cref="ResourceInUseByJobsError"/>
+	/// <seealso cref="ResourceInUseByRecurringJobsError"/>
+	/// <seealso cref="ResourceInUseByWorkflowsError"/>
 	public class ResourceInUseError : ResourceError
 	{
 	}

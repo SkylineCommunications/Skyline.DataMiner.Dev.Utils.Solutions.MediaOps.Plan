@@ -12,6 +12,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// <summary>
 	/// Resolves <see cref="DataReference"/> instances to a display label or a runtime value.
 	/// </summary>
+	/// <seealso cref="JobReferenceResolver"/>
+	/// <seealso cref="WorkflowReferenceResolver"/>
 	public class ReferenceResolver
 	{
 		private readonly ReferenceDefinitionCache definitions;

@@ -5,6 +5,10 @@
 	/// <summary>
 	/// Represents a property value that is linked to a specific <see cref="Property"/> definition.
 	/// </summary>
+	/// <seealso cref="BooleanPropertySetting"/>
+	/// <seealso cref="DiscretePropertySetting"/>
+	/// <seealso cref="FilePropertySetting"/>
+	/// <seealso cref="StringPropertySetting"/>
 	public abstract class PropertySetting : PropertySettingBase
 	{
 		private protected PropertySetting(Property property)

@@ -7,6 +7,8 @@
 	/// Represents a value paired with a display name,.
 	/// </summary>
 	/// <typeparam name="T">The type of the value to associate with a display name.</typeparam>
+	/// <seealso cref="NumberDiscreet"/>
+	/// <seealso cref="TextDiscreet"/>
 	public class Discreet<T> : IEquatable<Discreet<T>>
 	{
 		/// <summary>

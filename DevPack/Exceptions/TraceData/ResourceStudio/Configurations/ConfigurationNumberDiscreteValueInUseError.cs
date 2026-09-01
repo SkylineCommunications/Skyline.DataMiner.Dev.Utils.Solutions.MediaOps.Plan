@@ -5,6 +5,10 @@
 	/// <summary>
 	/// Represents an error that occurs when attempting to delete a configuration Number discrete value that is currently in use.
 	/// </summary>
+	/// <seealso cref="ConfigurationNumberDiscreteValueInUseByJobsError"/>
+	/// <seealso cref="ConfigurationNumberDiscreteValueInUseByRecurringJobsError"/>
+	/// <seealso cref="ConfigurationNumberDiscreteValueInUseByResourcePoolsError"/>
+	/// <seealso cref="ConfigurationNumberDiscreteValueInUseByWorkflowsError"/>
 	public class ConfigurationNumberDiscreteValueInUseError : ConfigurationError
 	{
 		/// <summary>

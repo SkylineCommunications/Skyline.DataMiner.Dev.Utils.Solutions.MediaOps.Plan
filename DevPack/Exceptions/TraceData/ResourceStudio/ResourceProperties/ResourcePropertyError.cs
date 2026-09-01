@@ -5,6 +5,15 @@
 	/// <summary>
 	/// Represents an error that occurs when creating or updating a resource property with invalid configuration.
 	/// </summary>
+	/// <seealso cref="ResourcePropertyDuplicateIdError"/>
+	/// <seealso cref="ResourcePropertyDuplicateNameError"/>
+	/// <seealso cref="ResourcePropertyIdInUseError"/>
+	/// <seealso cref="ResourcePropertyInUseError"/>
+	/// <seealso cref="ResourcePropertyInvalidNameError"/>
+	/// <seealso cref="ResourcePropertyInvalidStateError"/>
+	/// <seealso cref="ResourcePropertyNameExistsError"/>
+	/// <seealso cref="ResourcePropertyNotFoundError"/>
+	/// <seealso cref="ResourcePropertyValueAlreadyChangedError"/>
 	public class ResourcePropertyError : MediaOpsErrorData
 	{
 		/// <summary>

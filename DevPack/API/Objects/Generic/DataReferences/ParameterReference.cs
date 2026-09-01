@@ -7,6 +7,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// Common base class for references that target a parameter (capability, capacity or configuration)
 	/// on a workflow node.
 	/// </summary>
+	/// <seealso cref="CapabilityParameterReference"/>
+	/// <seealso cref="CapacityParameterReference"/>
+	/// <seealso cref="ConfigurationParameterReference"/>
 	public abstract class ParameterReference : DataReference
 	{
 		internal const string ParameterIdKey = "ParameterId";

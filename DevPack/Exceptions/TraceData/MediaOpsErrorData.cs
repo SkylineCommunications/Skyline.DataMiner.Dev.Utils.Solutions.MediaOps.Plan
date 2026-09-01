@@ -3,6 +3,20 @@
 	/// <summary>
 	/// Parent class for all ErrorData types.
 	/// </summary>
+	/// <seealso cref="CapabilityError"/>
+	/// <seealso cref="CapacityError"/>
+	/// <seealso cref="ConfigurationError"/>
+	/// <seealso cref="JobError"/>
+	/// <seealso cref="JobSettingsError"/>
+	/// <seealso cref="OrchestrationSettingsError"/>
+	/// <seealso cref="PropertyError"/>
+	/// <seealso cref="PropertySettingCollectionError"/>
+	/// <seealso cref="RecurringJobError"/>
+	/// <seealso cref="ResourceError"/>
+	/// <seealso cref="ResourcePoolError"/>
+	/// <seealso cref="ResourcePropertyError"/>
+	/// <seealso cref="SchedulingPropertyError"/>
+	/// <seealso cref="WorkflowError"/>
 	public class MediaOpsErrorData
 	{
 		/// <summary>

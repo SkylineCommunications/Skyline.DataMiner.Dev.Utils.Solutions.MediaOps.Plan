@@ -5,6 +5,9 @@
 	/// <summary>
 	/// Represents the base configuration for a resource link.
 	/// </summary>
+	/// <seealso cref="ResourceElementLinkSetting"/>
+	/// <seealso cref="ResourceServiceLinkSetting"/>
+	/// <seealso cref="ResourceVirtualFunctionLinkSetting"/>
 	public abstract class ResourceLinkSetting
 	{
 		/// <summary>

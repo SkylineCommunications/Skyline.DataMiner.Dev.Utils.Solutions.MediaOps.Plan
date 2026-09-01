@@ -5,6 +5,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// <summary>
 	/// Base class for nodes within workflows.
 	/// </summary>
+	/// <seealso cref="WorkflowResourceNode"/>
+	/// <seealso cref="WorkflowResourcePoolNode"/>
 	public abstract class WorkflowNode : NodeBase
 	{
 		private protected WorkflowNode() : base()

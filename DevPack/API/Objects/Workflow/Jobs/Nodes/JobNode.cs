@@ -9,6 +9,8 @@
 	/// <summary>
 	/// Base class for nodes within jobs.
 	/// </summary>
+	/// <seealso cref="JobResourceNode"/>
+	/// <seealso cref="JobResourcePoolNode"/>
 	public abstract class JobNode : NodeBase
 	{
 		private protected JobNode() : base()
