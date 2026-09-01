@@ -8,7 +8,6 @@
 	/// Thrown when a MediaOps bulk operation failed.
 	/// </summary>
 	/// <typeparam name="K">The type of the identifiers used in the bulk operation.</typeparam>
-	/// <seealso cref="MediaOpsBulkException{K}"/>
 	public class MediaOpsBulkException<K> : MediaOpsBulkException
 		where K : IEquatable<K>
 	{
