@@ -6,6 +6,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 	using System.Text;
 
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+	using Skyline.DataMiner.Net.Exceptions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
@@ -22,9 +23,15 @@ namespace RT_MediaOps.Plan.Properties.Values
 
 		private static byte[] Content(string value) => Encoding.UTF8.GetBytes(value);
 
-		private static (IMediaOpsPlanApi Api, FakePropertyAttachmentStore Attachments) CreateContext()
+		private static (IMediaOpsPlanApi Api, FakePropertyAttachmentStore Attachments) CreateContext(int? maxDocumentSizeInMegaBytes = null)
 		{
 			var dms = MediaOpsPlanSimulation.Create();
+
+			if (maxDocumentSizeInMegaBytes.HasValue)
+			{
+				dms.MaxDocumentSizeInMegaBytes = maxDocumentSizeInMegaBytes.Value;
+			}
+
 			var connection = dms.CreateConnection();
 			var api = connection.GetMediaOpsPlanApi();
 
@@ -50,11 +57,16 @@ namespace RT_MediaOps.Plan.Properties.Values
 
 		private static PropertySettingCollection CreateCollection()
 		{
+			return CreateCollection($"obj-{Guid.NewGuid()}", string.Empty);
+		}
+
+		private static PropertySettingCollection CreateCollection(string linkedObjectId, string subId)
+		{
 			return new PropertySettingCollection(new PropertySettingCollectionData
 			{
-				LinkedObjectId = $"obj-{Guid.NewGuid()}",
+				LinkedObjectId = linkedObjectId,
 				Scope = Scope,
-				SubId = string.Empty,
+				SubId = subId,
 			});
 		}
 
@@ -315,6 +327,194 @@ namespace RT_MediaOps.Plan.Properties.Values
 		}
 
 		[TestMethod]
+		public void Create_FileExceedingServerMaximum_ThrowsFileSizeExceededErrorWithoutUploading()
+		{
+			var (api, attachments) = CreateContext(maxDocumentSizeInMegaBytes: 1);
+			var property = CreateFileProperty(api, hasSizeLimit: false);
+
+			var collection = CreateCollection();
+			collection.Add(new FilePropertySetting(property).AddFile("big.bin", new byte[2 * 1024 * 1024]));
+
+			var exception = Assert.ThrowsException<MediaOpsException>(() => api.PropertySettingCollections.Create(collection));
+
+			var error = exception.TraceData.ErrorData.OfType<PropertySettingCollectionFileSizeExceededError>().SingleOrDefault();
+			Assert.IsNotNull(error, "Expected a file size exceeded error when the file is larger than the server maximum.");
+			Assert.AreEqual("big.bin", error.FileName);
+			Assert.AreEqual(2L * 1024 * 1024, error.FileSize);
+			Assert.AreEqual(1L * 1024 * 1024, error.MaxFileSize);
+			Assert.AreEqual(0, attachments.AddCallCount, "Expected the upload to be blocked by validation.");
+		}
+
+		[TestMethod]
+		public void Create_UploadRejectedByServerFileSizeLimit_ThrowsFileSizeExceededError()
+		{
+			var (api, attachments) = CreateContext();
+			var property = CreateFileProperty(api);
+
+			attachments.AddException = new DataMinerException(
+				"The document to upload is larger than the max configured document size.",
+				new ArgumentException("The document to upload is larger than the max configured document size.", "FileSize"));
+
+			var collection = CreateCollection();
+			collection.Add(new FilePropertySetting(property).AddFile("document.pdf", Content("hello")));
+
+			var exception = Assert.ThrowsException<MediaOpsException>(() => api.PropertySettingCollections.Create(collection));
+
+			var error = exception.TraceData.ErrorData.OfType<PropertySettingCollectionFileSizeExceededError>().SingleOrDefault();
+			Assert.IsNotNull(error, "Expected the server rejection to be translated into a file size exceeded error.");
+			Assert.AreEqual("document.pdf", error.FileName);
+			Assert.AreEqual(Content("hello").LongLength, error.FileSize);
+			Assert.AreEqual(property.Id, error.PropertyId);
+		}
+
+		[TestMethod]
+		public void Create_FirstFileUploadFails_LeavesRemainingFilesOfTheSettingUntouched()
+		{
+			var (api, attachments) = CreateContext();
+			var property = CreateFileProperty(api, allowMultiple: true);
+
+			attachments.AddException = new InvalidOperationException("Simulated upload failure.");
+
+			var collection = CreateCollection();
+			collection.Add(new FilePropertySetting(property)
+				.AddFile("first.pdf", Content("a"))
+				.AddFile("second.pdf", Content("b")));
+
+			Assert.ThrowsException<MediaOpsException>(() => api.PropertySettingCollections.Create(collection));
+			Assert.AreEqual(1, attachments.AddCallCount, "Expected the upload to stop after the first failure, so stored content cannot change for a setting that is not committed.");
+		}
+
+		[TestMethod]
+		public void Read_WithLegacyPrefixedFileNames_ReturnsBareFileNamesAndResolvesContent()
+		{
+			var (api, _) = CreateContext();
+			var property = CreateFileProperty(api);
+
+			var collection = CreateCollection();
+			collection.Add(new FilePropertySetting(property).AddFile("document.pdf", Content("hello")));
+			api.PropertySettingCollections.Create(collection);
+
+			WriteStoredFileValue(api, collection.Id, property.Id, $"{property.Id}_document.pdf");
+
+			var read = api.PropertySettingCollections.Read(collection.Id);
+			var setting = read.FileSettings.Single();
+
+			CollectionAssert.AreEqual(new[] { "document.pdf" }, setting.Files.ToArray(), "Expected the legacy property ID prefix to be stripped.");
+			CollectionAssert.AreEqual(Content("hello"), setting.ReadContent("document.pdf"), "Expected the existing attachment to still be resolved.");
+		}
+
+		[TestMethod]
+		public void Update_AfterReadingLegacyPrefixedFileNames_RewritesValueWithoutPrefix()
+		{
+			var (api, _) = CreateContext();
+			var property = CreateFileProperty(api, allowMultiple: true);
+
+			var collection = CreateCollection();
+			collection.Add(new FilePropertySetting(property).AddFile("document.pdf", Content("hello")));
+			api.PropertySettingCollections.Create(collection);
+
+			WriteStoredFileValue(api, collection.Id, property.Id, $"{property.Id}_document.pdf");
+
+			var read = api.PropertySettingCollections.Read(collection.Id);
+			read.FileSettings.Single().AddFile("extra.pdf", Content("world"));
+			api.PropertySettingCollections.Update(read);
+
+			Assert.AreEqual("document.pdf|extra.pdf", ReadStoredFileValue(api, collection.Id, property.Id), "Expected the legacy value to be rewritten without the prefix.");
+		}
+
+		private static void WriteStoredFileValue(IMediaOpsPlanApi api, Guid collectionId, Guid propertyId, string value)
+		{
+			var helper = ((MediaOpsPlanApi)api).DomHelpers.SlcPropertiesHelper;
+			var instance = helper.GetPropertyValues(new[] { collectionId }).Single();
+
+			instance.PropertyValue.Single(x => x.PropertyID == propertyId).Value = value;
+			instance.Save(helper.DomHelper);
+		}
+
+		private static string ReadStoredFileValue(IMediaOpsPlanApi api, Guid collectionId, Guid propertyId)
+		{
+			var helper = ((MediaOpsPlanApi)api).DomHelpers.SlcPropertiesHelper;
+			var instance = helper.GetPropertyValues(new[] { collectionId }).Single();
+
+			return instance.PropertyValue.Single(x => x.PropertyID == propertyId).Value;
+		}
+
+		[TestMethod]
+		public void Create_SameFileNameOnTwoSubIdsOfTheSameObject_KeepsBothContentsSeparate()
+		{
+			var (api, attachments) = CreateContext();
+			var property = CreateFileProperty(api);
+
+			var linkedObjectId = $"job-{Guid.NewGuid()}";
+			var firstNode = CreateCollection(linkedObjectId, "node-1");
+			var secondNode = CreateCollection(linkedObjectId, "node-2");
+
+			firstNode.Add(new FilePropertySetting(property).AddFile("report.pdf", Content("first")));
+			secondNode.Add(new FilePropertySetting(property).AddFile("report.pdf", Content("second")));
+
+			api.PropertySettingCollections.Create(firstNode);
+			api.PropertySettingCollections.Create(secondNode);
+
+			var readFirst = api.PropertySettingCollections.Read(firstNode.Id);
+			var readSecond = api.PropertySettingCollections.Read(secondNode.Id);
+
+			CollectionAssert.AreEqual(Content("first"), readFirst.FileSettings.Single().ReadContent("report.pdf"));
+			CollectionAssert.AreEqual(Content("second"), readSecond.FileSettings.Single().ReadContent("report.pdf"));
+
+			// The attachments live on their own collection, so the identical name is not a conflict.
+			var attachmentName = $"{property.Id}_report.pdf";
+			Assert.IsTrue(attachments.Contains(firstNode.Id, attachmentName));
+			Assert.IsTrue(attachments.Contains(secondNode.Id, attachmentName));
+		}
+
+		[TestMethod]
+		public void Create_SameFileNameOnTwoPropertiesOfOneNode_KeepsBothContentsSeparate()
+		{
+			var (api, attachments) = CreateContext();
+			var first = CreateFileProperty(api);
+			var second = CreateFileProperty(api);
+
+			var node = CreateCollection($"job-{Guid.NewGuid()}", "node-1");
+			node.Add(new FilePropertySetting(first).AddFile("report.pdf", Content("first")));
+			node.Add(new FilePropertySetting(second).AddFile("report.pdf", Content("second")));
+
+			api.PropertySettingCollections.Create(node);
+
+			var read = api.PropertySettingCollections.Read(node.Id);
+
+			CollectionAssert.AreEqual(new[] { "report.pdf" }, read.FileSettings.Single(x => x.Id == first.Id).Files.ToArray());
+			CollectionAssert.AreEqual(new[] { "report.pdf" }, read.FileSettings.Single(x => x.Id == second.Id).Files.ToArray());
+			CollectionAssert.AreEqual(Content("first"), read.FileSettings.Single(x => x.Id == first.Id).ReadContent("report.pdf"));
+			CollectionAssert.AreEqual(Content("second"), read.FileSettings.Single(x => x.Id == second.Id).ReadContent("report.pdf"));
+
+			// The property id in the attachment name is what keeps the identical file names apart within one node.
+			Assert.IsTrue(attachments.Contains(node.Id, $"{first.Id}_report.pdf"));
+			Assert.IsTrue(attachments.Contains(node.Id, $"{second.Id}_report.pdf"));
+		}
+
+		[TestMethod]
+		public void Update_AddingAnExistingFileNameToASecondPropertyOfANode_LeavesTheFirstPropertyUntouched()
+		{
+			var (api, _) = CreateContext();
+			var first = CreateFileProperty(api);
+			var second = CreateFileProperty(api);
+
+			var node = CreateCollection($"job-{Guid.NewGuid()}", "node-1");
+			node.Add(new FilePropertySetting(first).AddFile("report.pdf", Content("first")));
+			node.Add(new FilePropertySetting(second));
+			api.PropertySettingCollections.Create(node);
+
+			var read = api.PropertySettingCollections.Read(node.Id);
+			read.FileSettings.Single(x => x.Id == second.Id).AddFile("report.pdf", Content("second"));
+			api.PropertySettingCollections.Update(read);
+
+			var reread = api.PropertySettingCollections.Read(node.Id);
+
+			CollectionAssert.AreEqual(Content("first"), reread.FileSettings.Single(x => x.Id == first.Id).ReadContent("report.pdf"), "Expected the file of the first property to keep its own content.");
+			CollectionAssert.AreEqual(Content("second"), reread.FileSettings.Single(x => x.Id == second.Id).ReadContent("report.pdf"));
+		}
+
+		[TestMethod]
 		public void CreateProperty_SizeLimitBelowOne_ThrowsInvalidFileSizeLimitError()
 		{
 			var (api, _) = CreateContext();
@@ -370,8 +570,19 @@ namespace RT_MediaOps.Plan.Properties.Values
 
 			public bool FailOnAdd { get; set; }
 
+			public Exception AddException { get; set; }
+
+			public int AddCallCount { get; private set; }
+
 			public void Add(DomInstanceId instanceId, string attachmentName, byte[] content)
 			{
+				AddCallCount++;
+
+				if (AddException != null)
+				{
+					throw AddException;
+				}
+
 				if (FailOnAdd)
 				{
 					throw new InvalidOperationException("Simulated upload failure.");

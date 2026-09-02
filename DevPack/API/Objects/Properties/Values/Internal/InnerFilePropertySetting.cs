@@ -50,8 +50,20 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			foreach (var entry in section.Value.Split(new[] { FileSeparator }, StringSplitOptions.RemoveEmptyEntries))
 			{
-				AddParsedFile(entry);
+				AddParsedFile(StripLegacyPropertyIdPrefix(entry));
 			}
+		}
+
+		// Legacy values listed the file names prefixed with the property id, the DevPack lists them bare. Reading both
+		// keeps existing values usable; they are rewritten bare on the next save. The attachment that holds the content
+		// is named "{propertyId}_{fileName}" in either case, so only this list needs the fallback.
+		private string StripLegacyPropertyIdPrefix(string entry)
+		{
+			var prefix = $"{Id}_";
+
+			return entry.Length > prefix.Length && entry.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+				? entry.Substring(prefix.Length)
+				: entry;
 		}
 	}
 }

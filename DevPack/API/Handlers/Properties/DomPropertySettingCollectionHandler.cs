@@ -233,27 +233,70 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					continue;
 				}
 
-				try
+				var uploadFailed = false;
+
+				foreach (var fileToUpload in setting.FilesToUpload)
 				{
-					foreach (var fileToUpload in setting.FilesToUpload)
+					try
 					{
 						planApi.PropertyAttachments.Add(instanceId, FilePropertySetting.GetAttachmentName(setting.Id, fileToUpload.Key), fileToUpload.Value);
 					}
-
-					uploadedSettings.Add(setting);
-				}
-				catch (Exception ex)
-				{
-					ReportError(settingCollection.Id, new PropertySettingCollectionInvalidPropertySettingsError
+					catch (Exception ex)
 					{
-						ErrorMessage = $"The files of the property could not be stored: {ex.Message}",
-						PropertyId = setting.Id,
-						Id = settingCollection.Id,
-					});
+						// The setting is not committed anymore, so the remaining files must not overwrite what is stored.
+						uploadFailed = true;
+						ReportError(settingCollection.Id, ComposeUploadError(settingCollection.Id, setting.Id, fileToUpload.Key, fileToUpload.Value.LongLength, ex));
+						break;
+					}
+				}
+
+				if (!uploadFailed)
+				{
+					uploadedSettings.Add(setting);
 				}
 			}
 
 			return uploadedSettings;
+		}
+
+		// The server rejects documents above its configured maximum size with an ArgumentException on the FileSize parameter.
+		private static bool IsMaxDocumentSizeViolation(Exception ex)
+		{
+			for (var current = ex; current != null; current = current.InnerException)
+			{
+				if (current is ArgumentException argumentException && String.Equals(argumentException.ParamName, "FileSize", StringComparison.OrdinalIgnoreCase))
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		private MediaOpsErrorData ComposeUploadError(Guid settingCollectionId, Guid propertyId, string fileName, long fileSize, Exception ex)
+		{
+			if (!IsMaxDocumentSizeViolation(ex))
+			{
+				return new PropertySettingCollectionInvalidPropertySettingsError
+				{
+					ErrorMessage = $"The files of the property could not be stored: {ex.Message}",
+					PropertyId = propertyId,
+					Id = settingCollectionId,
+				};
+			}
+
+			var maxSizeInMegaBytes = planApi.MaxDocumentSizeInMegaBytes;
+			var maxSizeDescription = maxSizeInMegaBytes.HasValue ? $"of {maxSizeInMegaBytes.Value} MB " : String.Empty;
+
+			return new PropertySettingCollectionFileSizeExceededError
+			{
+				ErrorMessage = $"File '{fileName}' could not be stored because it exceeds the maximum file size {maxSizeDescription}configured in DataMiner. Contact your DataMiner administrator to increase the maximum document size.",
+				PropertyId = propertyId,
+				Id = settingCollectionId,
+				FileName = fileName,
+				FileSize = fileSize,
+				MaxFileSize = maxSizeInMegaBytes.HasValue ? maxSizeInMegaBytes.Value * 1024L * 1024L : 0,
+			};
 		}
 
 		private void DeleteOrphanedAttachments(PropertySettingCollection settingCollection)
@@ -689,6 +732,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return;
 			}
 
+			// Only contact the server for its limit when there is actually something to upload.
+			var maxDocumentSizeInMegaBytes = apiSettingCollections.Any(x => x.FileSettings.Any(f => f.FilesToUpload.Count > 0))
+				? planApi.MaxDocumentSizeInMegaBytes
+				: null;
+
 			foreach (var valueCollection in apiSettingCollections)
 			{
 				var duplicates = valueCollection.PropertySettings
@@ -752,7 +800,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 						continue;
 					}
 
-					PassTraceData(PropertySettingValidator.Validate(valueCollection.Id, property, propertySetting, propertySetting.HasValue));
+					PassTraceData(PropertySettingValidator.Validate(valueCollection.Id, property, propertySetting, propertySetting.HasValue, maxDocumentSizeInMegaBytes));
 				}
 			}
 		}

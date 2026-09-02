@@ -1,6 +1,7 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
+	using System.Collections.Generic;
 	using System.Linq;
 
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
@@ -15,7 +16,9 @@
 
 		private readonly bool valueExpected;
 
-		private PropertySettingValidator(Guid apiObjectId, Property property, PropertySetting propertySetting, bool valueExpected)
+		private readonly long? maxDocumentSizeInMegaBytes;
+
+		private PropertySettingValidator(Guid apiObjectId, Property property, PropertySetting propertySetting, bool valueExpected, long? maxDocumentSizeInMegaBytes)
 		{
 			if (apiObjectId == Guid.Empty)
 			{
@@ -26,13 +29,14 @@
 			this.property = property;
 			this.propertySetting = propertySetting;
 			this.valueExpected = valueExpected;
+			this.maxDocumentSizeInMegaBytes = maxDocumentSizeInMegaBytes;
 
 			Validate();
 		}
 
-		public static PropertySettingValidator Validate(Guid apiObjectId, Property property, PropertySetting propertySetting, bool valueExpected)
+		public static PropertySettingValidator Validate(Guid apiObjectId, Property property, PropertySetting propertySetting, bool valueExpected, long? maxDocumentSizeInMegaBytes = null)
 		{
-			return new PropertySettingValidator(apiObjectId, property, propertySetting, valueExpected);
+			return new PropertySettingValidator(apiObjectId, property, propertySetting, valueExpected, maxDocumentSizeInMegaBytes);
 		}
 
 		private void Validate()
@@ -112,15 +116,35 @@
 				ReportError(apiObjectId, ComposePropertySettingError(propertySetting.Id, "This property does not allow multiple files."));
 			}
 
-			if (!fileProperty.HasSizeLimit)
+			var filesExceedingPropertyLimit = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+			if (fileProperty.HasSizeLimit)
+			{
+				var sizeLimitInBytes = fileProperty.SizeLimit * 1024L * 1024L;
+				foreach (var fileToUpload in setting.FilesToUpload.Where(x => x.Value.LongLength > sizeLimitInBytes))
+				{
+					filesExceedingPropertyLimit.Add(fileToUpload.Key);
+					ReportError(apiObjectId, ComposePropertySettingError(propertySetting.Id, $"File '{fileToUpload.Key}' exceeds the maximum file size of {fileProperty.SizeLimit} MB."));
+				}
+			}
+
+			// A property limit that was valid when it was configured can still exceed the current server limit.
+			if (!maxDocumentSizeInMegaBytes.HasValue || maxDocumentSizeInMegaBytes.Value <= 0)
 			{
 				return;
 			}
 
-			var sizeLimitInBytes = fileProperty.SizeLimit * 1024L * 1024L;
-			foreach (var fileToUpload in setting.FilesToUpload.Where(x => x.Value.LongLength > sizeLimitInBytes))
+			var maxSizeInBytes = maxDocumentSizeInMegaBytes.Value * 1024L * 1024L;
+			foreach (var fileToUpload in setting.FilesToUpload.Where(x => x.Value.LongLength > maxSizeInBytes && !filesExceedingPropertyLimit.Contains(x.Key)))
 			{
-				ReportError(apiObjectId, ComposePropertySettingError(propertySetting.Id, $"File '{fileToUpload.Key}' exceeds the maximum file size of {fileProperty.SizeLimit} MB."));
+				ReportError(apiObjectId, new PropertySettingCollectionFileSizeExceededError
+				{
+					ErrorMessage = $"File '{fileToUpload.Key}' exceeds the maximum file size of {maxDocumentSizeInMegaBytes.Value} MB configured in DataMiner. Contact your DataMiner administrator to increase the maximum document size.",
+					PropertyId = propertySetting.Id,
+					Id = apiObjectId,
+					FileName = fileToUpload.Key,
+					FileSize = fileToUpload.Value.LongLength,
+					MaxFileSize = maxSizeInBytes,
+				});
 			}
 		}
 

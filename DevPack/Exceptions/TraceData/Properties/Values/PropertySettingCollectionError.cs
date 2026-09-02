@@ -7,6 +7,7 @@
 	/// </summary>
 	/// <seealso cref="PropertySettingCollectionDuplicateIdError"/>
 	/// <seealso cref="PropertySettingCollectionDuplicateLinkedObjectIdAndSubIdError"/>
+	/// <seealso cref="PropertySettingCollectionFileSizeExceededError"/>
 	/// <seealso cref="PropertySettingCollectionIdInUseError"/>
 	/// <seealso cref="PropertySettingCollectionInvalidCustomSettingsError"/>
 	/// <seealso cref="PropertySettingCollectionInvalidLinkedObjectIdError"/>
