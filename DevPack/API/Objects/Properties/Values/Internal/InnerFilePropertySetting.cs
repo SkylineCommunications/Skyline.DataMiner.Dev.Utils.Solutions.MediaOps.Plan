@@ -54,8 +54,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 		}
 
-		// Before the DevPack, file names were stored prefixed with the property id. Reading both keeps existing values
-		// usable; they are rewritten without the prefix the next time the collection is saved.
+		// Legacy values listed the file names prefixed with the property id, the DevPack lists them bare. Reading both
+		// keeps existing values usable; they are rewritten bare on the next save. The attachment that holds the content
+		// is named "{propertyId}_{fileName}" in either case, so only this list needs the fallback.
 		private string StripLegacyPropertyIdPrefix(string entry)
 		{
 			var prefix = $"{Id}_";
