@@ -83,6 +83,7 @@
 			PreRoll = original.PreRoll;
 			PostRoll = original.PostRoll;
 			Notes = original.Notes;
+			JobTypeCategoryId = original.JobTypeCategoryId;
 
 			OrchestrationSettings = new WorkflowOrchestrationSettings();
 			NodeGraph = new NodeGraph<WorkflowNode>();
@@ -170,6 +171,12 @@
 		/// Gets or sets the notes of the workflow.
 		/// </summary>
 		public string Notes { get; set; }
+
+		/// <summary>
+		/// Gets or sets the ID of the job type category that has to be used for jobs created from this workflow.
+		/// The category belongs to the <see cref="CategoryScopes.JobTypes"/> scope.
+		/// </summary>
+		public string JobTypeCategoryId { get; set; }
 
 		/// <summary>
 		/// Gets the state of the workflow.
@@ -332,6 +339,7 @@
 				hash = (hash * 23) + PreRoll.GetHashCode();
 				hash = (hash * 23) + PostRoll.GetHashCode();
 				hash = (hash * 23) + (Notes != null ? Notes.GetHashCode() : 0);
+				hash = (hash * 23) + (JobTypeCategoryId != null ? JobTypeCategoryId.GetHashCode() : 0);
 				hash = (hash * 23) + (OrchestrationSettings != null ? OrchestrationSettings.GetHashCode() : 0);
 				hash = (hash * 23) + (NodeGraph != null ? NodeGraph.GetHashCode() : 0);
 				hash = (hash * 23) + State.GetHashCode();
@@ -361,6 +369,7 @@
 				   PreRoll == other.PreRoll &&
 				   PostRoll == other.PostRoll &&
 				   Notes == other.Notes &&
+				   JobTypeCategoryId == other.JobTypeCategoryId &&
 				   OrchestrationSettings == other.OrchestrationSettings &&
 				   NodeGraph == other.NodeGraph &&
 				   State == other.State;
@@ -379,6 +388,7 @@
 			updatedInstance.WorkflowInfo.Preroll = PreRoll != TimeSpan.Zero ? PreRoll : null;
 			updatedInstance.WorkflowInfo.Postroll = PostRoll != TimeSpan.Zero ? PostRoll : null;
 			updatedInstance.WorkflowInfo.WorkflowNotes = Notes;
+			updatedInstance.WorkflowInfo.JobType = !string.IsNullOrEmpty(JobTypeCategoryId) ? JobTypeCategoryId : null;
 
 			updatedInstance.WorkflowExecution.WorkflowConfiguration = OrchestrationSettings.Id;
 
@@ -435,6 +445,7 @@
 			PreRoll = instance.WorkflowInfo.Preroll.HasValue ? instance.WorkflowInfo.Preroll.Value : TimeSpan.Zero;
 			PostRoll = instance.WorkflowInfo.Postroll.HasValue ? instance.WorkflowInfo.Postroll.Value : TimeSpan.Zero;
 			Notes = instance.WorkflowInfo.WorkflowNotes;
+			JobTypeCategoryId = instance.WorkflowInfo.JobType;
 
 			Priority = instance.WorkflowInfo.Priority.HasValue ? EnumExtensions.MapEnum<StorageWorkflow.SlcWorkflowIds.Enums.Priority, WorkflowPriority>(instance.WorkflowInfo.Priority.Value) : WorkflowPriority.Normal;
 			State = EnumExtensions.MapEnum<StorageWorkflow.SlcWorkflowIds.Behaviors.Workflow_Behavior.StatusesEnum, WorkflowState>(instance.Status);

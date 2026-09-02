@@ -6,6 +6,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 	using RT_MediaOps.Plan.Extensions;
 	using RT_MediaOps.Plan.RegressionTests;
 
+	using Skyline.DataMiner.Solutions.Categories.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
@@ -107,6 +108,33 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			Assert.IsNotNull(job);
 			Assert.AreEqual(JobPriority.Normal, job.Priority);
+		}
+
+		[TestMethod]
+		public void FromWorkflow_WorkflowWithJobType_CopiesJobType()
+		{
+			var prefix = Guid.NewGuid();
+
+			var scope = TestContext.CategoriesApi.Scopes.Read(CategoryScopes.JobTypes)
+				?? throw new InvalidOperationException($"Category Scope '{CategoryScopes.JobTypes}' is not available");
+
+			var category = objectCreator.CreateCategory(new Category
+			{
+				Name = $"{prefix}_JobCategory",
+				Scope = scope,
+			});
+
+			var workflow = objectCreator.CreateWorkflow(new Workflow
+			{
+				Name = $"{prefix}_Workflow",
+				JobTypeCategoryId = category.ID.ToString(),
+			});
+			workflow = TestContext.Api.Workflows.Complete(workflow);
+
+			var job = Job.FromWorkflow(TestContext.Api, workflow.Id);
+
+			Assert.IsNotNull(job);
+			Assert.AreEqual(category.ID.ToString(), job.JobTypeCategoryId);
 		}
 
 		[TestMethod]

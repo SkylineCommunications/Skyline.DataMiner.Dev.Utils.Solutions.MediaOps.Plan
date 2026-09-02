@@ -50,6 +50,11 @@
 		public static readonly Exposer<Workflow, string> Notes = new Exposer<Workflow, string>((obj) => obj.Notes, "Notes");
 
 		/// <summary>
+		/// Gets an exposer for the <see cref="Workflow.JobTypeCategoryId"/> property.
+		/// </summary>
+		public static readonly Exposer<Workflow, string> JobTypeCategoryId = new Exposer<Workflow, string>((obj) => obj.JobTypeCategoryId, "JobTypeCategoryId");
+
+		/// <summary>
 		/// Gets an exposer for the <see cref="Workflow.State"/> property.
 		/// </summary>
 		public static readonly Exposer<Workflow, WorkflowState> State = new Exposer<Workflow, WorkflowState>((obj) => obj.State, "State");

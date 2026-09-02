@@ -24,6 +24,7 @@
 			[WorkflowExposers.Priority.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.WorkflowInfo.Priority), comparer, ConvertWorkflowPriority((WorkflowPriority)value)),
 			[WorkflowExposers.PreRoll.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.WorkflowInfo.Preroll), comparer, (TimeSpan)value),
 			[WorkflowExposers.PostRoll.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.WorkflowInfo.Postroll), comparer, (TimeSpan)value),
+			[WorkflowExposers.JobTypeCategoryId.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.WorkflowInfo.JobType), comparer, (string)value),
 			[WorkflowExposers.State.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.StatusId, comparer, ConvertWorkflowState((WorkflowState)value)),
 		};
 
@@ -37,6 +38,7 @@
 			[WorkflowExposers.Priority.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.WorkflowInfo.Priority), sortOrder, naturalSort),
 			[WorkflowExposers.PreRoll.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.WorkflowInfo.Preroll), sortOrder, naturalSort),
 			[WorkflowExposers.PostRoll.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.WorkflowInfo.Postroll), sortOrder, naturalSort),
+			[WorkflowExposers.JobTypeCategoryId.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.WorkflowInfo.JobType), sortOrder, naturalSort),
 			[WorkflowExposers.State.fieldName] = (sortOrder, naturalSort) => OrderByElementFactory.Create(DomInstanceExposers.StatusId, sortOrder, naturalSort),
 		};
 
