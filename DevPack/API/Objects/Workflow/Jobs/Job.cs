@@ -513,6 +513,7 @@
 			var job = new Job
 			{
 				Priority = EnumExtensions.MapEnum<WorkflowPriority, JobPriority>(workflow.Priority),
+				JobTypeCategoryId = workflow.JobTypeCategoryId,
 			};
 
 			// 1. Clone the node graph first so we have a complete workflow-node-id -> job-node-id map

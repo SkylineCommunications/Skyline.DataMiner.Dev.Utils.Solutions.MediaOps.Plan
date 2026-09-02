@@ -317,6 +317,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 				public static FieldDescriptorID LockedBy { get; } = new FieldDescriptorID(new Guid("079642cf-b0b9-4364-a677-27e702c56006"));
 				public static FieldDescriptorID Preroll { get; } = new FieldDescriptorID(new Guid("c887b7ff-da0c-46ab-a0f3-ff32890663d4"));
 				public static FieldDescriptorID Postroll { get; } = new FieldDescriptorID(new Guid("d6dae562-0a51-4e09-8ccc-cf149c4f42ce"));
+				public static FieldDescriptorID JobType { get; } = new FieldDescriptorID(new Guid("24673df0-cffa-4423-a82e-14c18589fdc5"));
 			}
 
 			public static class JobLiteMetadata
@@ -3036,6 +3037,49 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 				else
 				{
 					section.AddOrUpdateValue(SlcWorkflowIds.Sections.WorkflowInfo.Postroll, (TimeSpan)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the JobType field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String JobType
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcWorkflowIds.Sections.WorkflowInfo.JobType);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcWorkflowIds.Sections.WorkflowInfo.JobType);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcWorkflowIds.Sections.WorkflowInfo.JobType, (String)value);
 				}
 			}
 		}
