@@ -6,6 +6,7 @@
 	using Skyline.DataMiner.Core.DataMinerSystem.Common;
 	using Skyline.DataMiner.Net;
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+	using Skyline.DataMiner.Net.Messages;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.SDM.Registration;
 	using Skyline.DataMiner.Solutions.Categories.API;
@@ -44,6 +45,7 @@
 		private readonly Lazy<Plan.Tools.LockManager> lazyLockManager;
 		private readonly Lazy<ICategoriesApi> lazyCategoriesApi;
 		private readonly Lazy<IGlobalSettings> lazyGlobalSettings;
+		private readonly Lazy<long?> lazyMaxDocumentSizeInMegaBytes;
 
 		internal static readonly int DefaultPageSize = 200;
 
@@ -80,6 +82,7 @@
 			lazyLockManager = new Lazy<Plan.Tools.LockManager>(() => new Plan.Tools.LockManager(this));
 			lazyCategoriesApi = new Lazy<ICategoriesApi>(() => connection.GetCategoriesApi());
 			lazyGlobalSettings = new Lazy<IGlobalSettings>(() => new GlobalSettings(this));
+			lazyMaxDocumentSizeInMegaBytes = new Lazy<long?>(ReadMaxDocumentSizeInMegaBytes);
 		}
 
 		/// <summary>
@@ -170,6 +173,9 @@
 
 		internal ICategoriesApi Categories => lazyCategoriesApi.Value;
 
+		// The maximum document size configured on the server, in MB, or null when it is not exposed.
+		internal long? MaxDocumentSizeInMegaBytes => lazyMaxDocumentSizeInMegaBytes.Value;
+
 		/// <inheritdoc/>
 		public void SetLogger(ILogger logger)
 		{
@@ -195,6 +201,13 @@
 		public bool IsInstalled()
 		{
 			return IsInstalled(out _);
+		}
+
+		private long? ReadMaxDocumentSizeInMegaBytes()
+		{
+			var response = connection.HandleSingleResponseMessage(new GetInfoMessage(InfoType.GeneralInfoMessage)) as GeneralInfoEventMessage;
+
+			return response == null || response.MaxDocumentSize <= 0 ? (long?)null : response.MaxDocumentSize;
 		}
 	}
 }

@@ -6,6 +6,7 @@ namespace RT_MediaOps.Plan.Properties.Values
 	using System.Text;
 
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+	using Skyline.DataMiner.Net.Exceptions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
@@ -22,9 +23,15 @@ namespace RT_MediaOps.Plan.Properties.Values
 
 		private static byte[] Content(string value) => Encoding.UTF8.GetBytes(value);
 
-		private static (IMediaOpsPlanApi Api, FakePropertyAttachmentStore Attachments) CreateContext()
+		private static (IMediaOpsPlanApi Api, FakePropertyAttachmentStore Attachments) CreateContext(int? maxDocumentSizeInMegaBytes = null)
 		{
 			var dms = MediaOpsPlanSimulation.Create();
+
+			if (maxDocumentSizeInMegaBytes.HasValue)
+			{
+				dms.MaxDocumentSizeInMegaBytes = maxDocumentSizeInMegaBytes.Value;
+			}
+
 			var connection = dms.CreateConnection();
 			var api = connection.GetMediaOpsPlanApi();
 
@@ -315,6 +322,47 @@ namespace RT_MediaOps.Plan.Properties.Values
 		}
 
 		[TestMethod]
+		public void Create_FileExceedingServerMaximum_ThrowsFileSizeExceededErrorWithoutUploading()
+		{
+			var (api, attachments) = CreateContext(maxDocumentSizeInMegaBytes: 1);
+			var property = CreateFileProperty(api, hasSizeLimit: false);
+
+			var collection = CreateCollection();
+			collection.Add(new FilePropertySetting(property).AddFile("big.bin", new byte[2 * 1024 * 1024]));
+
+			var exception = Assert.ThrowsException<MediaOpsException>(() => api.PropertySettingCollections.Create(collection));
+
+			var error = exception.TraceData.ErrorData.OfType<PropertySettingCollectionFileSizeExceededError>().SingleOrDefault();
+			Assert.IsNotNull(error, "Expected a file size exceeded error when the file is larger than the server maximum.");
+			Assert.AreEqual("big.bin", error.FileName);
+			Assert.AreEqual(2L * 1024 * 1024, error.FileSize);
+			Assert.AreEqual(1L * 1024 * 1024, error.MaxFileSize);
+			Assert.AreEqual(0, attachments.AddCallCount, "Expected the upload to be blocked by validation.");
+		}
+
+		[TestMethod]
+		public void Create_UploadRejectedByServerFileSizeLimit_ThrowsFileSizeExceededError()
+		{
+			var (api, attachments) = CreateContext();
+			var property = CreateFileProperty(api);
+
+			attachments.AddException = new DataMinerException(
+				"The document to upload is larger than the max configured document size.",
+				new ArgumentException("The document to upload is larger than the max configured document size.", "FileSize"));
+
+			var collection = CreateCollection();
+			collection.Add(new FilePropertySetting(property).AddFile("document.pdf", Content("hello")));
+
+			var exception = Assert.ThrowsException<MediaOpsException>(() => api.PropertySettingCollections.Create(collection));
+
+			var error = exception.TraceData.ErrorData.OfType<PropertySettingCollectionFileSizeExceededError>().SingleOrDefault();
+			Assert.IsNotNull(error, "Expected the server rejection to be translated into a file size exceeded error.");
+			Assert.AreEqual("document.pdf", error.FileName);
+			Assert.AreEqual(Content("hello").LongLength, error.FileSize);
+			Assert.AreEqual(property.Id, error.PropertyId);
+		}
+
+		[TestMethod]
 		public void CreateProperty_SizeLimitBelowOne_ThrowsInvalidFileSizeLimitError()
 		{
 			var (api, _) = CreateContext();
@@ -370,8 +418,19 @@ namespace RT_MediaOps.Plan.Properties.Values
 
 			public bool FailOnAdd { get; set; }
 
+			public Exception AddException { get; set; }
+
+			public int AddCallCount { get; private set; }
+
 			public void Add(DomInstanceId instanceId, string attachmentName, byte[] content)
 			{
+				AddCallCount++;
+
+				if (AddException != null)
+				{
+					throw AddException;
+				}
+
 				if (FailOnAdd)
 				{
 					throw new InvalidOperationException("Simulated upload failure.");
