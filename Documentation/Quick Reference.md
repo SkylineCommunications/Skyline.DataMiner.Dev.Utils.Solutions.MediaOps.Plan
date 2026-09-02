@@ -498,3 +498,57 @@ api.ResourcePools.Delete(pool, new ResourcePoolDeleteOptions
     DeleteDeprecatedResources = true,
 });
 ```
+
+## Synchronization with SRM
+
+Resource Studio is the master: the DOM configuration is pushed to SRM. Synchronization is a two-phase operation.
+The first phase only reports differences, the second phase applies the ones you select.
+
+```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
+// Phase 1: detect. Nothing is changed in SRM.
+var report = api.ResourcePools.GetOutOfSyncItems();
+
+// Or limit the scope to specific resource pools and the resources they contain.
+report = api.ResourcePools.GetOutOfSyncItems(new[] { pool1, pool2 });
+
+if (report.IsSynchronized)
+{
+    return;
+}
+
+foreach (var item in report.GetAllItems())
+{
+    // item.Differences holds data only. Format the message yourself.
+    foreach (var difference in item.Differences)
+    {
+        switch (difference)
+        {
+            case MissingCoreObjectDifference:
+                Console.WriteLine($"{item.Name} does not exist in SRM.");
+                break;
+            case NameDifference name:
+                Console.WriteLine($"{item.Name}: name is '{name.CoreValue}' in SRM.");
+                break;
+            case CapacityDifference capacity:
+                Console.WriteLine($"{item.Name}: capacity {capacity.CapacityId} is {capacity.Kind}.");
+                break;
+        }
+    }
+
+    // item.CanSynchronize is false when a blocker was found, for example a duplicate name.
+    foreach (var blocker in item.Blockers)
+    {
+        Console.WriteLine($"{item.Name} cannot be synchronized: {blocker.ErrorMessage}");
+    }
+}
+
+// Phase 2: apply the selection. Items are compared again, so only actual differences are pushed.
+var result = api.ResourcePools.Synchronize(report.GetAllItems().Where(x => x.CanSynchronize));
+
+foreach (var failure in result.Failures)
+{
+    Console.WriteLine($"{failure.Key}: {failure.Value}");
+}
+```

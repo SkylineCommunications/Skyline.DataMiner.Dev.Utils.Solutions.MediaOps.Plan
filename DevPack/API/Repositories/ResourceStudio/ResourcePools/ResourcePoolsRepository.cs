@@ -1082,5 +1082,33 @@
 
 			ResourcePoolImportHandler.Import(PlanApi, [resourcePool]);
 		}
+
+		/// <inheritdoc/>
+		public SynchronizationReport GetOutOfSyncItems()
+		{
+			return SynchronizationHandler.GetReport(PlanApi);
+		}
+
+		/// <inheritdoc/>
+		public SynchronizationReport GetOutOfSyncItems(IEnumerable<ResourcePool> resourcePools)
+		{
+			if (resourcePools == null)
+			{
+				throw new ArgumentNullException(nameof(resourcePools));
+			}
+
+			return SynchronizationHandler.GetReport(PlanApi, resourcePools.ToList());
+		}
+
+		/// <inheritdoc/>
+		public SynchronizationResult Synchronize(IEnumerable<SynchronizationItem> items)
+		{
+			if (items == null)
+			{
+				throw new ArgumentNullException(nameof(items));
+			}
+
+			return SynchronizationHandler.Synchronize(PlanApi, items.Where(x => x != null).ToList());
+		}
 	}
 }

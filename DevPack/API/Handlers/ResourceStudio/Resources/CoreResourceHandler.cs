@@ -28,7 +28,7 @@
 		private readonly Dictionary<Guid, MediaOpsTraceData> traceDataPerItem = new Dictionary<Guid, MediaOpsTraceData>();
 		private readonly Dictionary<Guid, Action<CoreResource>> enableDveActionByCoreId = new Dictionary<Guid, Action<CoreResource>>();
 
-		private readonly IReadOnlyDictionary<Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type, Func<DomResource, CoreResource, bool>> typeSyncers;
+		private readonly IReadOnlyDictionary<Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type, Action<DomResource, CoreResource, ICollection<SynchronizationDifference>>> typeSyncers;
 
 		private readonly Lazy<Dictionary<Guid, Net.Profiles.Parameter>> lazyCoreCapabilitiesById;
 		private readonly Lazy<Dictionary<Guid, Net.Profiles.Parameter>> lazyCoreTimeDependentCapabilitiesById;
@@ -44,7 +44,7 @@
 			lazyCoreCapacitiesById = new Lazy<Dictionary<Guid, Net.Profiles.Parameter>>(() => planApi.CoreHelpers.ProfileProvider.GetCapacities(new TRUEFilterElement<Net.Profiles.Parameter>()).ToDictionary(x => x.ID));
 			lazyCapabilitiesHandler = new Lazy<DomCapabilitiesHandler>(() => new DomCapabilitiesHandler(planApi));
 
-			typeSyncers = new Dictionary<Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type, Func<DomResource, CoreResource, bool>>
+			typeSyncers = new Dictionary<Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type, Action<DomResource, CoreResource, ICollection<SynchronizationDifference>>>
 			{
 				[Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type.Unmanaged] = ApplyUnmanagedResourceConfig,
 				[Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type.Element] = ApplyElementResourceConfig,
@@ -61,14 +61,25 @@
 
 		private DomCapabilitiesHandler CapabilitiesHandler => lazyCapabilitiesHandler.Value;
 
-		public static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out DomInstanceBulkOperationResult<DomResource> result)
+		public static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out DomInstanceBulkOperationResult<DomResource> result, bool recreateMissingCoreResources = false)
 		{
 			var handler = new CoreResourceHandler(planApi);
-			ActivityHelper.Track(nameof(CoreResourceHandler), nameof(TryCreateOrUpdate), act => handler.CreateOrUpdate(domResources));
+			ActivityHelper.Track(nameof(CoreResourceHandler), nameof(TryCreateOrUpdate), act => handler.CreateOrUpdate(domResources, recreateMissingCoreResources));
 
 			result = new DomInstanceBulkOperationResult<DomResource>(handler.successfulItems, handler.unsuccessfulIds, handler.traceDataPerItem);
 
 			return !result.HasFailures;
+		}
+
+		public static bool TryGetDifferences(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out SynchronizationDetectionResult result)
+		{
+			var handler = new CoreResourceHandler(planApi);
+			var detection = new SynchronizationDetectionResult();
+			ActivityHelper.Track(nameof(CoreResourceHandler), nameof(TryGetDifferences), act => handler.DetectDifferences(domResources, detection));
+
+			result = detection;
+
+			return result.IsSynchronized;
 		}
 
 		public static bool TryDelete(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out DomInstanceBulkOperationResult<DomResource> result)
@@ -354,7 +365,7 @@
 			}
 		}
 
-		private void CreateOrUpdate(ICollection<DomResource> domResources)
+		private void CreateOrUpdate(ICollection<DomResource> domResources, bool recreateMissingCoreResources)
 		{
 			if (domResources == null)
 			{
@@ -368,12 +379,69 @@
 
 			var resourceMappingByDomId = ResourceMapping.GetMappings(planApi, domResources).ToDictionary(x => x.DomResource.ID.Id);
 
+			ValidateMappings(resourceMappingByDomId, validateCompletedVirtualFunctionResources: false, reportMissingCoreResources: !recreateMissingCoreResources);
+
+			CreateOrUpdate(resourceMappingByDomId.Where(x => !traceDataPerItem.Keys.Contains(x.Key)).Select(x => x.Value).ToList());
+		}
+
+		private void DetectDifferences(ICollection<DomResource> domResources, SynchronizationDetectionResult detection)
+		{
+			if (domResources == null)
+			{
+				throw new ArgumentNullException(nameof(domResources));
+			}
+
+			if (domResources.Count == 0)
+			{
+				return;
+			}
+
+			var resourceMappingByDomId = ResourceMapping.GetMappings(planApi, domResources).ToDictionary(x => x.DomResource.ID.Id);
+
+			ValidateMappings(resourceMappingByDomId, validateCompletedVirtualFunctionResources: true, reportMissingCoreResources: false);
+
+			foreach (var entry in resourceMappingByDomId)
+			{
+				bool isBlocked = traceDataPerItem.TryGetValue(entry.Key, out var traceData);
+				if (isBlocked)
+				{
+					detection.BlockersPerItem.Add(entry.Key, traceData);
+				}
+
+				if (entry.Value.State != CoreResourceState.Existing)
+				{
+					detection.DifferencesPerItem.Add(entry.Key, [new MissingCoreObjectDifference()]);
+					continue;
+				}
+
+				if (isBlocked)
+				{
+					// A blocked resource cannot be synchronized, so comparing the remaining configuration adds no value.
+					continue;
+				}
+
+				// The sync methods patch while they compare, so detection has to run against a copy.
+				if (entry.Value.CoreResource.Clone() is not CoreResource coreResourceCopy)
+				{
+					throw new InvalidOperationException($"Failed to clone CORE resource {entry.Value.CoreResource.ID} for comparison.");
+				}
+
+				var differences = SyncDomResourceWithCoreResource(entry.Value.DomResource, coreResourceCopy);
+				if (differences.Count > 0)
+				{
+					detection.DifferencesPerItem.Add(entry.Key, differences);
+				}
+			}
+		}
+
+		private void ValidateMappings(IReadOnlyDictionary<Guid, ResourceMapping> resourceMappingByDomId, bool validateCompletedVirtualFunctionResources, bool reportMissingCoreResources)
+		{
 			var elementResourcesToValidate = new List<DomResource>();
 			var serviceResourcesToValidate = new List<DomResource>();
 			var virtualFunctionResourcesToValidate = new List<DomResource>();
 			foreach (var resourceMapping in resourceMappingByDomId.Values)
 			{
-				if (resourceMapping.State == CoreResourceState.Missing)
+				if (reportMissingCoreResources && resourceMapping.State == CoreResourceState.Missing)
 				{
 					AddCoreResourceNotFoundError(resourceMapping);
 					continue;
@@ -388,7 +456,7 @@
 					serviceResourcesToValidate.Add(resourceMapping.DomResource);
 				}
 				else if (resourceMapping.DomResource.ResourceInfo.Type == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type.VirtualFunction
-					&& resourceMapping.DomResource.Status == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum.Draft)
+					&& (validateCompletedVirtualFunctionResources || resourceMapping.DomResource.Status == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum.Draft))
 				{
 					virtualFunctionResourcesToValidate.Add(resourceMapping.DomResource);
 				}
@@ -398,8 +466,6 @@
 			ValidateServiceResources(serviceResourcesToValidate);
 			ValidateVirtualFunctionResources(virtualFunctionResourcesToValidate);
 			ValidateNames(resourceMappingByDomId.Where(x => !traceDataPerItem.Keys.Contains(x.Key) && x.Value.NeedsNameValidation).Select(x => x.Value.DomResource).ToList());
-
-			CreateOrUpdate(resourceMappingByDomId.Where(x => !traceDataPerItem.Keys.Contains(x.Key)).Select(x => x.Value).ToList());
 		}
 
 		private void CreateOrUpdate(ICollection<ResourceMapping> resourceMappings)
@@ -422,7 +488,7 @@
 				var dom = mapping.DomResource;
 				var core = mapping.CoreResource;
 
-				if (!SyncDomResourceWithCoreResource(dom, core))
+				if (SyncDomResourceWithCoreResource(dom, core).Count == 0)
 				{
 					planApi.Logger.Information(this, $"No CORE changes for DOM resource {mapping.DomResource.ID}");
 					continue;
@@ -471,18 +537,18 @@
 			}
 		}
 
-		private bool SyncDomResourceWithCoreResource(DomResource dom, CoreResource core)
+		private List<SynchronizationDifference> SyncDomResourceWithCoreResource(DomResource dom, CoreResource core)
 		{
-			bool updateRequired = false;
+			var differences = new List<SynchronizationDifference>();
 
-			updateRequired |= SyncName(dom, core);
-			updateRequired |= SyncType(dom, core);
-			updateRequired |= SyncCapacities(dom, core);
-			updateRequired |= SyncCapabilities(dom, core);
-			updateRequired |= SyncConcurrency(dom, core);
-			updateRequired |= SyncPools(dom, core);
+			SyncName(dom, core, differences);
+			SyncType(dom, core, differences);
+			SyncCapacities(dom, core, differences);
+			SyncCapabilities(dom, core, differences);
+			SyncConcurrency(dom, core, differences);
+			SyncPools(dom, core, differences);
 
-			return updateRequired;
+			return differences;
 		}
 
 		private void Delete(ICollection<DomResource> domResources)
@@ -558,106 +624,97 @@
 			}
 		}
 
-		private bool ApplyUnmanagedResourceConfig(DomResource domResource, CoreResource coreResource)
+		private void ApplyUnmanagedResourceConfig(DomResource domResource, CoreResource coreResource, ICollection<SynchronizationDifference> differences)
 		{
-			return SetResourceType(coreResource, "Unlinked Resource");
+			SetResourceType(coreResource, "Unlinked Resource", differences);
 		}
 
-		private bool ApplyElementResourceConfig(DomResource domResource, CoreResource coreResource)
+		private void ApplyElementResourceConfig(DomResource domResource, CoreResource coreResource, ICollection<SynchronizationDifference> differences)
 		{
 			var elementInfo = new DmsElementId(domResource.ResourceInternalProperties.Metadata.LinkedElementInfo);
 
-			bool updateRequired = false;
-			if (coreResource.DmaID != elementInfo.AgentId)
+			if (coreResource.DmaID != elementInfo.AgentId || coreResource.ElementID != elementInfo.ElementId)
 			{
+				differences.Add(new ElementLinkDifference(elementInfo.AgentId, elementInfo.ElementId, coreResource.DmaID, coreResource.ElementID));
+
 				coreResource.DmaID = elementInfo.AgentId;
-				updateRequired = true;
-			}
-
-			if (coreResource.ElementID != elementInfo.ElementId)
-			{
 				coreResource.ElementID = elementInfo.ElementId;
-				updateRequired = true;
 			}
 
-			updateRequired |= SetResourceType(coreResource, "Element");
-			return updateRequired;
+			SetResourceType(coreResource, "Element", differences);
 		}
 
-		private bool ApplyServiceResourceConfig(DomResource domResource, CoreResource coreResource)
+		private void ApplyServiceResourceConfig(DomResource domResource, CoreResource coreResource, ICollection<SynchronizationDifference> differences)
 		{
-			bool updateRequired = false;
+			var linkedServiceInfo = domResource.ResourceInternalProperties.Metadata.LinkedServiceInfo;
 			var serviceLinkProperty = coreResource.Properties.FirstOrDefault(x => String.Equals(x.Name, "Service Link"));
 			if (serviceLinkProperty == null)
 			{
-				serviceLinkProperty = new Net.Messages.ResourceManagerProperty("Service Link", domResource.ResourceInternalProperties.Metadata.LinkedServiceInfo);
-				coreResource.Properties.Add(serviceLinkProperty);
-				updateRequired = true;
+				coreResource.Properties.Add(new Net.Messages.ResourceManagerProperty("Service Link", linkedServiceInfo));
+				differences.Add(new ServiceLinkDifference(SynchronizationDifferenceKind.Missing, linkedServiceInfo, null));
 			}
-			else if (!String.Equals(serviceLinkProperty.Value, domResource.ResourceInternalProperties.Metadata.LinkedServiceInfo))
+			else if (!String.Equals(serviceLinkProperty.Value, linkedServiceInfo))
 			{
-				serviceLinkProperty.Value = domResource.ResourceInternalProperties.Metadata.LinkedServiceInfo;
-				updateRequired = true;
+				differences.Add(new ServiceLinkDifference(SynchronizationDifferenceKind.ValueMismatch, linkedServiceInfo, serviceLinkProperty.Value));
+				serviceLinkProperty.Value = linkedServiceInfo;
 			}
 			else
 			{
 				// no property update required
 			}
 
-			updateRequired |= SetResourceType(coreResource, "Service");
-			return updateRequired;
+			SetResourceType(coreResource, "Service", differences);
 		}
 
-		private bool ApplyVirtualFunctionResourceConfig(DomResource domResource, CoreResource coreResource)
+		private void ApplyVirtualFunctionResourceConfig(DomResource domResource, CoreResource coreResource, ICollection<SynchronizationDifference> differences)
 		{
 			if (coreResource is not CoreFunctionResource functionResource)
 			{
 				throw new InvalidOperationException($"Core Resource {coreResource.Name} ({coreResource.ID}) is not a FunctionResource.");
 			}
 
-			bool updateRequired = false;
 			var functionDefinition = planApi.CoreHelpers.ProtocolFunctionHelperCache.GetFunctionDefinition(domResource.ResourceInternalProperties.Metadata.LinkedFunctionId);
-			if (functionResource.FunctionGUID != functionDefinition.GUID)
-			{
-				functionResource.FunctionGUID = functionDefinition.GUID;
-				updateRequired = true;
-			}
-
 			var elementInfo = new DmsElementId(domResource.ResourceInternalProperties.Metadata.LinkedElementInfo);
-			if (functionResource.MainDVEDmaID != elementInfo.AgentId)
-			{
-				functionResource.MainDVEDmaID = elementInfo.AgentId;
-				updateRequired = true;
-			}
+			string tableIndex = domResource.ResourceInternalProperties.Metadata.LinkedFunctionTableIndex;
 
-			if (functionResource.MainDVEElementID != elementInfo.ElementId)
+			var difference = new VirtualFunctionLinkDifference
 			{
-				functionResource.MainDVEElementID = elementInfo.ElementId;
-				updateRequired = true;
-			}
+				DomFunctionId = functionDefinition.GUID,
+				CoreFunctionId = functionResource.FunctionGUID,
+				DomAgentId = elementInfo.AgentId,
+				DomElementId = elementInfo.ElementId,
+				CoreAgentId = functionResource.MainDVEDmaID,
+				CoreElementId = functionResource.MainDVEElementID,
+				DomFunctionTableIndex = tableIndex,
+				CoreFunctionTableIndex = functionResource.LinkerTableEntries.FirstOrDefault()?.Item2,
+			};
+
+			bool updateRequired = functionResource.FunctionGUID != functionDefinition.GUID
+				|| functionResource.MainDVEDmaID != elementInfo.AgentId
+				|| functionResource.MainDVEElementID != elementInfo.ElementId;
+
+			functionResource.FunctionGUID = functionDefinition.GUID;
+			functionResource.MainDVEDmaID = elementInfo.AgentId;
+			functionResource.MainDVEElementID = elementInfo.ElementId;
 
 			if (functionDefinition.EntryPoints.Any())
 			{
 				int parameterId = functionDefinition.EntryPoints.First().ParameterId;
-				string tableIndex = domResource.ResourceInternalProperties.Metadata.LinkedFunctionTableIndex;
+				var existingEntry = functionResource.LinkerTableEntries.FirstOrDefault();
 
-				if (functionResource.LinkerTableEntries.Any())
-				{
-					var existingEntry = functionResource.LinkerTableEntries.First();
-					if (existingEntry.Item1 != parameterId || !String.Equals(existingEntry.Item2, tableIndex))
-					{
-						functionResource.LinkerTableEntries = [new Tuple<int, string>(parameterId, tableIndex)];
-						updateRequired = true;
-					}
-				}
-				else
+				if (existingEntry == null || existingEntry.Item1 != parameterId || !String.Equals(existingEntry.Item2, tableIndex))
 				{
 					functionResource.LinkerTableEntries = [new Tuple<int, string>(parameterId, tableIndex)];
 					updateRequired = true;
 				}
 			}
 
-			updateRequired |= SetResourceType(coreResource, "Virtual Function");
+			if (updateRequired)
+			{
+				differences.Add(difference);
+			}
+
+			SetResourceType(coreResource, "Virtual Function", differences);
 
 			Action<CoreResource> enableDveAction = (createdResource) =>
 			{
@@ -672,14 +729,11 @@
 				dveStateColumn.SetValue(fResource.PK, 1);
 			};
 
-			enableDveActionByCoreId.Add(coreResource.ID, enableDveAction);
-
-			return updateRequired;
+			enableDveActionByCoreId[coreResource.ID] = enableDveAction;
 		}
 
-		private bool SetResourceType(CoreResource coreResource, string resourceTypeValue)
+		private void SetResourceType(CoreResource coreResource, string resourceTypeValue, ICollection<SynchronizationDifference> differences)
 		{
-			bool updateRequired = false;
 			var resourceTypeCapability = coreResource.Capabilities.FirstOrDefault(x => x.CapabilityProfileID == CoreCapabilities.ResourceType.Id);
 			var capabilityValue = new Net.Profiles.CapabilityParameterValue(new List<string> { resourceTypeValue });
 			if (resourceTypeCapability == null)
@@ -689,16 +743,18 @@
 					Value = capabilityValue,
 				});
 
-				updateRequired = true;
+				differences.Add(new ResourceTypeDifference(SynchronizationDifferenceKind.Missing, resourceTypeValue, null));
 			}
 			else if (!resourceTypeCapability.Value.Equals(capabilityValue))
 			{
+				differences.Add(new ResourceTypeDifference(SynchronizationDifferenceKind.ValueMismatch, resourceTypeValue, resourceTypeCapability.Value?.Discreets?.FirstOrDefault()));
+
 				resourceTypeCapability.Value = capabilityValue;
-
-				updateRequired = true;
 			}
-
-			return updateRequired;
+			else
+			{
+				// no resource type update required
+			}
 		}
 
 		private void ValidateNames(ICollection<DomResource> domResources)
@@ -1064,33 +1120,33 @@
 			mediaOpsTraceData.Add(error);
 		}
 
-		private bool SyncName(DomResource domResource, CoreResource coreResource)
+		private void SyncName(DomResource domResource, CoreResource coreResource, ICollection<SynchronizationDifference> differences)
 		{
 			if (String.Equals(domResource.ResourceInfo.Name, coreResource.Name))
 			{
-				return false;
+				return;
 			}
 
+			differences.Add(new NameDifference(domResource.ResourceInfo.Name, coreResource.Name));
+
 			coreResource.Name = domResource.ResourceInfo.Name;
-			return true;
 		}
 
-		private bool SyncType(DomResource domResource, CoreResource coreResource)
+		private void SyncType(DomResource domResource, CoreResource coreResource, ICollection<SynchronizationDifference> differences)
 		{
-			return typeSyncers[domResource.ResourceInfo.Type.Value].Invoke(domResource, coreResource);
+			typeSyncers[domResource.ResourceInfo.Type.Value].Invoke(domResource, coreResource, differences);
 		}
 
-		private bool SyncCapacities(DomResource domResource, CoreResource coreResource)
+		private void SyncCapacities(DomResource domResource, CoreResource coreResource, ICollection<SynchronizationDifference> differences)
 		{
-			bool resourceHasChanges = false;
 			var required = GetRequiredResourceCapacities(domResource);
 			var removed = coreResource.Capacities.Where(x => !required.Select(y => y.CapacityProfileID).Contains(x.CapacityProfileID)).ToList();
 
 			foreach (var resourceCapacity in removed)
 			{
-				coreResource.Capacities.Remove(resourceCapacity);
+				differences.Add(CreateDifference(SynchronizationDifferenceKind.Obsolete, resourceCapacity.CapacityProfileID, null, resourceCapacity.Value));
 
-				resourceHasChanges = true;
+				coreResource.Capacities.Remove(resourceCapacity);
 			}
 
 			foreach (var resourceCapacity in required)
@@ -1098,17 +1154,42 @@
 				var capacity = coreResource.Capacities.SingleOrDefault(x => x.CapacityProfileID == resourceCapacity.CapacityProfileID);
 				if (capacity == null)
 				{
+					differences.Add(CreateDifference(SynchronizationDifferenceKind.Missing, resourceCapacity.CapacityProfileID, resourceCapacity.Value, null));
+
 					coreResource.Capacities.Add(resourceCapacity);
+					continue;
 				}
-				else if (!HasChangedValue(capacity, resourceCapacity))
+
+				var currentMin = capacity.Value.MinDecimalQuantity;
+				var currentMax = capacity.Value.MaxDecimalQuantity;
+
+				if (!HasChangedValue(capacity, resourceCapacity))
 				{
 					continue;
 				}
 
-				resourceHasChanges = true;
+				var difference = CreateDifference(SynchronizationDifferenceKind.ValueMismatch, resourceCapacity.CapacityProfileID, resourceCapacity.Value, null);
+				difference.CoreMinValue = difference.IsRange ? currentMin : null;
+				difference.CoreMaxValue = currentMax;
+
+				differences.Add(difference);
 			}
 
-			return resourceHasChanges;
+			CapacityDifference CreateDifference(SynchronizationDifferenceKind kind, Guid capacityId, Net.Profiles.CapacityParameterValue domValue, Net.Profiles.CapacityParameterValue coreValue)
+			{
+				bool isKnown = CoreCapacitiesById.TryGetValue(capacityId, out var coreCapacity);
+				bool isRange = isKnown && coreCapacity.IsRange();
+
+				return new CapacityDifference(kind, capacityId)
+				{
+					Name = coreCapacity?.Name,
+					IsRange = isRange,
+					DomMinValue = isRange ? domValue?.MinDecimalQuantity : null,
+					DomMaxValue = domValue?.MaxDecimalQuantity,
+					CoreMinValue = isRange ? coreValue?.MinDecimalQuantity : null,
+					CoreMaxValue = coreValue?.MaxDecimalQuantity,
+				};
+			}
 
 			bool HasChangedValue(MultiResourceCapacity current, MultiResourceCapacity expected)
 			{
@@ -1186,9 +1267,8 @@
 			return capacities;
 		}
 
-		private bool SyncCapabilities(DomResource domResource, CoreResource coreResource)
+		private void SyncCapabilities(DomResource domResource, CoreResource coreResource, ICollection<SynchronizationDifference> differences)
 		{
-			bool resourceHasChanges = false;
 			var required = GetRequiredResourceCapabilities(domResource);
 			var removed = coreResource.Capabilities
 				.Where(x =>
@@ -1198,8 +1278,13 @@
 
 			foreach (var resourceCapability in removed)
 			{
+				differences.Add(new CapabilityDifference(SynchronizationDifferenceKind.Obsolete, resourceCapability.CapabilityProfileID, null, resourceCapability.Value?.Discreets)
+				{
+					Name = GetCapabilityName(resourceCapability.CapabilityProfileID),
+					IsTimeDependent = resourceCapability.IsTimeDynamic,
+				});
+
 				coreResource.Capabilities.Remove(resourceCapability);
-				resourceHasChanges = true;
 			}
 
 			foreach (var resourceCapability in required)
@@ -1207,21 +1292,39 @@
 				var capability = coreResource.Capabilities.SingleOrDefault(x => x.CapabilityProfileID == resourceCapability.CapabilityProfileID);
 				if (capability == null)
 				{
+					differences.Add(new CapabilityDifference(SynchronizationDifferenceKind.Missing, resourceCapability.CapabilityProfileID, resourceCapability.Value?.Discreets, null)
+					{
+						Name = GetCapabilityName(resourceCapability.CapabilityProfileID),
+						IsTimeDependent = resourceCapability.IsTimeDynamic,
+					});
+
 					coreResource.Capabilities.Add(resourceCapability);
+					continue;
 				}
-				else if (!capability.IsTimeDynamic && !capability.Value.Discreets.ScrambledEquals(resourceCapability.Value.Discreets))
-				{
-					capability.Value.Discreets = resourceCapability.Value.Discreets;
-				}
-				else
+
+				if (capability.IsTimeDynamic || capability.Value.Discreets.ScrambledEquals(resourceCapability.Value.Discreets))
 				{
 					continue;
 				}
 
-				resourceHasChanges = true;
+				differences.Add(new CapabilityDifference(SynchronizationDifferenceKind.ValueMismatch, resourceCapability.CapabilityProfileID, resourceCapability.Value?.Discreets, capability.Value.Discreets)
+				{
+					Name = GetCapabilityName(resourceCapability.CapabilityProfileID),
+					IsTimeDependent = capability.IsTimeDynamic,
+				});
+
+				capability.Value.Discreets = resourceCapability.Value.Discreets;
+			}
+		}
+
+		private string GetCapabilityName(Guid capabilityProfileId)
+		{
+			if (CoreCapabilitiesById.TryGetValue(capabilityProfileId, out var capability))
+			{
+				return capability.Name;
 			}
 
-			return resourceHasChanges;
+			return CoreTimeDependentCapabilitiesById.TryGetValue(capabilityProfileId, out var timeDependentCapability) ? timeDependentCapability.Name : null;
 		}
 
 		private List<Net.SRM.Capabilities.ResourceCapability> GetRequiredResourceCapabilities(DomResource domResource)
@@ -1273,7 +1376,7 @@
 			return configuredCapability.StringValue.Split(';').ToList();
 		}
 
-		private bool SyncConcurrency(DomResource domResource, CoreResource coreResource)
+		private void SyncConcurrency(DomResource domResource, CoreResource coreResource, ICollection<SynchronizationDifference> differences)
 		{
 			var configuredConcurrency = (int)domResource.ResourceInfo.Concurrency;
 			if (configuredConcurrency < 1)
@@ -1283,14 +1386,15 @@
 
 			if (coreResource.MaxConcurrency == configuredConcurrency)
 			{
-				return false;
+				return;
 			}
 
+			differences.Add(new MaxConcurrencyDifference(configuredConcurrency, coreResource.MaxConcurrency));
+
 			coreResource.MaxConcurrency = configuredConcurrency;
-			return true;
 		}
 
-		private bool SyncPools(DomResource domResource, CoreResource coreResource)
+		private void SyncPools(DomResource domResource, CoreResource coreResource, ICollection<SynchronizationDifference> differences)
 		{
 			var poolIds = domResource.ResourceInternalProperties?.PoolIds ?? Enumerable.Empty<Guid>();
 			var cachedDomPoolsById = domResource.DomInstanceCache.GetFromCache<DomResourcePool>().ToDictionary(x => x.ID.Id);
@@ -1303,19 +1407,35 @@
 
 			if (coreResource.PoolGUIDs.ScrambledEquals(corePoolIds))
 			{
-				return false;
+				return;
+			}
+
+			var poolNamesByCoreId = domPools
+				.Where(x => x.ResourcePoolInternalProperties.ResourcePoolId != Guid.Empty)
+				.GroupBy(x => x.ResourcePoolInternalProperties.ResourcePoolId)
+				.ToDictionary(x => x.Key, x => x.First().ResourcePoolInfo.Name);
+
+			foreach (var corePoolId in corePoolIds.Except(coreResource.PoolGUIDs))
+			{
+				differences.Add(new ResourcePoolMembershipDifference(SynchronizationDifferenceKind.Missing, corePoolId)
+				{
+					Name = poolNamesByCoreId.TryGetValue(corePoolId, out var name) ? name : null,
+				});
+			}
+
+			foreach (var corePoolId in coreResource.PoolGUIDs.Except(corePoolIds))
+			{
+				differences.Add(new ResourcePoolMembershipDifference(SynchronizationDifferenceKind.Obsolete, corePoolId));
 			}
 
 			coreResource.PoolGUIDs.Clear();
 			coreResource.PoolGUIDs.AddRange(corePoolIds);
-
-			return true;
 		}
 
 		private sealed class ResourceMapping
 		{
-			private ResourceMapping(DomResource domResource, CoreResourceState state)
-				: this(domResource, BuildCoreResource(domResource.ResourceInfo.Type.Value), state)
+			private ResourceMapping(DomResource domResource, CoreResourceState state, Guid coreResourceId)
+				: this(domResource, BuildCoreResource(domResource.ResourceInfo.Type.Value, coreResourceId), state)
 			{
 			}
 
@@ -1372,7 +1492,7 @@
 					if (storedCoreResourceId == Guid.Empty)
 					{
 						// The DOM resource was never synced to CORE, so a new CORE resource needs to be created.
-						yield return new ResourceMapping(domResource, CoreResourceState.New);
+						yield return new ResourceMapping(domResource, CoreResourceState.New, Guid.NewGuid());
 						continue;
 					}
 
@@ -1383,21 +1503,22 @@
 					}
 
 					// The DOM resource refers to a CORE resource that existed in the past but can no longer be found.
-					yield return new ResourceMapping(domResource, CoreResourceState.Missing);
+					// Recreating it under the original ID keeps anything that still refers to it working.
+					yield return new ResourceMapping(domResource, CoreResourceState.Missing, storedCoreResourceId);
 				}
 			}
 
-			private static CoreResource BuildCoreResource(Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type resourceType)
+			private static CoreResource BuildCoreResource(Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type resourceType, Guid coreResourceId)
 			{
 				if (resourceType == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type.VirtualFunction)
 				{
 					return new CoreFunctionResource()
 					{
-						ID = Guid.NewGuid(),
+						ID = coreResourceId,
 					};
 				}
 
-				return new CoreResource(Guid.NewGuid());
+				return new CoreResource(coreResourceId);
 			}
 		}
 
