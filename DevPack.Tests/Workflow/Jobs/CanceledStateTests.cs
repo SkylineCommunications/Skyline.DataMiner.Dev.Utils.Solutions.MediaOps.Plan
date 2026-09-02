@@ -82,13 +82,15 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			resource = objectCreator.CreateResource(resource);
 			resource = TestContext.Api.Resources.Complete(resource);
 
+			// The job window must start in the future: a confirmed reservation that is already inside its window is
+			// started by SRM, which transitions the job to Running and makes the Confirmed-to-Canceled transition invalid.
 			var job = new Job
 			{
 				Name = $"{prefix}_Job",
-				Start = currentTime,
-				End = currentTime.AddMinutes(10),
-				PreRollStart = currentTime,
-				PostRollEnd = currentTime.AddMinutes(10),
+				Start = currentTime.AddMinutes(10),
+				End = currentTime.AddMinutes(20),
+				PreRollStart = currentTime.AddMinutes(10),
+				PostRollEnd = currentTime.AddMinutes(20),
 			};
 
 			job.NodeGraph.Add(new JobResourceNode(pool, resource));
