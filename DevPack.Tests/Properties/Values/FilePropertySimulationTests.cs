@@ -363,6 +363,23 @@ namespace RT_MediaOps.Plan.Properties.Values
 		}
 
 		[TestMethod]
+		public void Create_FirstFileUploadFails_LeavesRemainingFilesOfTheSettingUntouched()
+		{
+			var (api, attachments) = CreateContext();
+			var property = CreateFileProperty(api, allowMultiple: true);
+
+			attachments.AddException = new InvalidOperationException("Simulated upload failure.");
+
+			var collection = CreateCollection();
+			collection.Add(new FilePropertySetting(property)
+				.AddFile("first.pdf", Content("a"))
+				.AddFile("second.pdf", Content("b")));
+
+			Assert.ThrowsException<MediaOpsException>(() => api.PropertySettingCollections.Create(collection));
+			Assert.AreEqual(1, attachments.AddCallCount, "Expected the upload to stop after the first failure, so stored content cannot change for a setting that is not committed.");
+		}
+
+		[TestMethod]
 		public void CreateProperty_SizeLimitBelowOne_ThrowsInvalidFileSizeLimitError()
 		{
 			var (api, _) = CreateContext();

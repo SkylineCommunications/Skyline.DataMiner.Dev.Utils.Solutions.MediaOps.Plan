@@ -243,8 +243,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					}
 					catch (Exception ex)
 					{
+						// The setting is not committed anymore, so the remaining files must not overwrite what is stored.
 						uploadFailed = true;
 						ReportError(settingCollection.Id, ComposeUploadError(settingCollection.Id, setting.Id, fileToUpload.Key, fileToUpload.Value.LongLength, ex));
+						break;
 					}
 				}
 
@@ -730,7 +732,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return;
 			}
 
-			var maxDocumentSizeInMegaBytes = planApi.MaxDocumentSizeInMegaBytes;
+			// Only contact the server for its limit when there is actually something to upload.
+			var maxDocumentSizeInMegaBytes = apiSettingCollections.Any(x => x.FileSettings.Any(f => f.FilesToUpload.Count > 0))
+				? planApi.MaxDocumentSizeInMegaBytes
+				: null;
 
 			foreach (var valueCollection in apiSettingCollections)
 			{
