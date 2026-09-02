@@ -2,6 +2,7 @@
 {
 	using System;
 	using System.Linq;
+	using System.Threading;
 
 	using Skyline.DataMiner.Core.DataMinerSystem.Common;
 	using Skyline.DataMiner.Net;
@@ -82,7 +83,9 @@
 			lazyLockManager = new Lazy<Plan.Tools.LockManager>(() => new Plan.Tools.LockManager(this));
 			lazyCategoriesApi = new Lazy<ICategoriesApi>(() => connection.GetCategoriesApi());
 			lazyGlobalSettings = new Lazy<IGlobalSettings>(() => new GlobalSettings(this));
-			lazyMaxDocumentSizeInMegaBytes = new Lazy<long?>(ReadMaxDocumentSizeInMegaBytes);
+
+			// PublicationOnly so a transient failure of the general-info request is retried instead of cached.
+			lazyMaxDocumentSizeInMegaBytes = new Lazy<long?>(ReadMaxDocumentSizeInMegaBytes, LazyThreadSafetyMode.PublicationOnly);
 		}
 
 		/// <summary>
