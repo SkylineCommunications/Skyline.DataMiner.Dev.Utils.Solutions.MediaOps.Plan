@@ -427,7 +427,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
-		public void Update_ConfirmedJobWithOnlyLinkChanges_DoesNotSynchronizeLive()
+		public void Update_ConfirmedJobWithOnlyRelationshipChanges_DoesNotSynchronizeLive()
 		{
 			var setup = CreateSetup();
 			var currentTime = DateTime.UtcNow.RoundToNextSecond();
@@ -442,7 +442,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var confirmedJob = Confirm(setup, job);
 
 			// Tampering with a scheduled event gives the synchronization something to undo, so the assertion below
-			// fails as soon as a link-only save reaches MediaOps Live.
+			// fails as soon as a endpoint-only save reaches MediaOps Live.
 			var prerollStart = GetEvent(GetLiveConfiguration(setup, confirmedJob), LiveEnums.EventType.PrerollStart);
 			SetOrchestrationEventState(setup, prerollStart.ID, LiveEnums.EventState.Cancelled);
 
@@ -451,11 +451,11 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var updatedJob = setup.Api.Jobs.Update(confirmedJob);
 
-			Assert.AreEqual(1, updatedJob.RelationshipEndpoints.Count, "Expected the link to be saved.");
+			Assert.AreEqual(1, updatedJob.RelationshipEndpoints.Count, "Expected the endpoint to be saved.");
 			Assert.AreEqual(
 				LiveEnums.EventState.Cancelled,
 				GetEvent(GetLiveConfiguration(setup, updatedJob), LiveEnums.EventType.PrerollStart).EventState,
-				"A save that only changed job links must not push anything to MediaOps Live.");
+				"A save that only changed job relationships must not push anything to MediaOps Live.");
 		}
 
 		[TestMethod]
@@ -790,7 +790,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
-		public void Update_ConfirmedJobWithLinkAndPropertyChanges_SynchronizesLive()
+		public void Update_ConfirmedJobWithRelationshipAndPropertyChanges_SynchronizesLive()
 		{
 			var setup = CreateSetup();
 			var prefix = Guid.NewGuid();
@@ -815,22 +815,22 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			SetOrchestrationEventState(setup, prerollStart.ID, LiveEnums.EventState.Cancelled);
 
 			// Property values are stored outside the job instance, so only the property scope marks this as more
-			// than a link-only save. An orchestration parameter can reference a job property.
+			// than a endpoint-only save. An orchestration parameter can reference a job property.
 			var objectType = setup.Api.RelationshipObjectTypes.Create(new RelationshipObjectType { Name = $"{prefix}_Booking" });
 			confirmedJob.AddRelationshipEndpoint(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1" });
 			confirmedJob.AddProperty(new StringPropertySetting(jobProperty) { Value = "Property value" });
 
 			var updatedJob = setup.Api.Jobs.Update(confirmedJob);
 
-			Assert.AreEqual(1, updatedJob.RelationshipEndpoints.Count, "Expected the link to be saved.");
+			Assert.AreEqual(1, updatedJob.RelationshipEndpoints.Count, "Expected the endpoint to be saved.");
 			Assert.AreEqual(
 				LiveEnums.EventState.Confirmed,
 				GetEvent(GetLiveConfiguration(setup, updatedJob), LiveEnums.EventType.PrerollStart).EventState,
-				"A property change must still reach MediaOps Live, even when links changed in the same save.");
+				"A property change must still reach MediaOps Live, even when relationships changed in the same save.");
 		}
 
 		[TestMethod]
-		public void Update_ConfirmedJobWithLinkAndOrchestrationChanges_SynchronizesLive()
+		public void Update_ConfirmedJobWithRelationshipAndOrchestrationChanges_SynchronizesLive()
 		{
 			var setup = CreateSetup();
 			var prefix = Guid.NewGuid();
@@ -881,7 +881,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var updatedJob = setup.Api.Jobs.Update(confirmedJob);
 
-			Assert.AreEqual(1, updatedJob.RelationshipEndpoints.Count, "Expected the link to be saved.");
+			Assert.AreEqual(1, updatedJob.RelationshipEndpoints.Count, "Expected the endpoint to be saved.");
 
 			var liveConfiguration = GetLiveConfiguration(setup, updatedJob);
 			var nodeConfiguration = GetEvent(liveConfiguration, LiveEnums.EventType.PrerollStart).Configuration.NodeConfigurations.Single();
@@ -889,7 +889,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			Assert.AreEqual(
 				"After",
 				nodeConfiguration.Profile.Values.Single(x => x.Name == textConfiguration.Id.ToString()).Value.StringValue,
-				"An orchestration change must still reach MediaOps Live, even when links changed in the same save.");
+				"An orchestration change must still reach MediaOps Live, even when relationships changed in the same save.");
 		}
 
 		[TestMethod]

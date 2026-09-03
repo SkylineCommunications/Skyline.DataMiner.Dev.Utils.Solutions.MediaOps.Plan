@@ -141,7 +141,7 @@ namespace RT_MediaOps.Plan.Relationships.Links
 		{
 			var objectType = objectCreator.CreateRelationshipObjectType(new RelationshipObjectType { Name = $"{Guid.NewGuid()}_ObjectType" });
 
-			// DOM instance IDs are unique per module, so an object type ID collides with a link ID.
+			// DOM instance IDs are unique per module, so an object type ID collides with a relationship ID.
 			var exception = Assert.ThrowsException<MediaOpsException>(() => objectCreator.CreateRelationship(new Relationship(objectType.Id, new RelationshipData
 			{
 				Parent = new RelationshipEndpoint(objectType, Guid.NewGuid().ToString()),
