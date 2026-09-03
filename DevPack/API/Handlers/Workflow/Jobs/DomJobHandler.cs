@@ -1,4 +1,4 @@
-﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
 	using System.Collections.Generic;
@@ -271,7 +271,7 @@
 
 			CreateOrUpdateOrchestrationSettings(apiJobs.Where(IsValid).ToList());
 			CreateOrUpdatePropertySettingCollections(apiJobs.Where(IsValid).ToList());
-			CreateOrUpdateJobLinks(apiJobs.Where(IsValid).ToList());
+			CreateOrUpdateJobRelationships(apiJobs.Where(IsValid).ToList());
 
 			var toCreateDomInstances = toCreate
 				.Where(IsValid)
@@ -1550,7 +1550,7 @@
 
 			DeleteOrchestrationSettings(jobsToDelete);
 			DeletePropertySettingCollections(jobsToDelete);
-			DeleteJobLinks(jobsToDelete);
+			DeleteJobRelationships(jobsToDelete);
 			DeleteCategoryItems(jobsToDelete);
 
 			var domJobsById = jobsToDelete.ToDictionary(x => x.Id, x => x.OriginalInstance);
@@ -1708,7 +1708,7 @@
 			DomJobCategoryHandler.Delete(planApi, apiJobs);
 		}
 
-		private void CreateOrUpdateJobLinks(ICollection<Job> apiJobs)
+		private void CreateOrUpdateJobRelationships(ICollection<Job> apiJobs)
 		{
 			if (apiJobs == null)
 			{
@@ -1728,17 +1728,17 @@
 			// Make sure every job has a links context so that scopes created before saving can resolve the job side of the link.
 			foreach (var job in apiJobs)
 			{
-				job.EnsureLinksContext();
+				job.EnsureRelationshipsContext();
 			}
 
-			var dirtyJobs = apiJobs.Where(x => x.JobLinksScope != null && x.JobLinksScope.IsDirty).ToList();
+			var dirtyJobs = apiJobs.Where(x => x.JobRelationshipsScope != null && x.JobRelationshipsScope.IsDirty).ToList();
 			if (dirtyJobs.Count == 0)
 			{
 				return;
 			}
 
 			// The reserved "Job" object type is seeded by the solution, so it is resolved once per save instead of per job.
-			var jobObjectTypeId = JobLinksContext.ResolveJobObjectTypeId(planApi);
+			var jobObjectTypeId = JobRelationshipsContext.ResolveJobObjectTypeId(planApi);
 
 			var jobIdByRelationshipId = new Dictionary<Guid, Guid>();
 			var toCreateOrUpdate = new List<Relationship>();
@@ -1746,7 +1746,7 @@
 
 			foreach (var job in dirtyJobs)
 			{
-				var actions = job.JobLinksScope.BuildPersistenceActions(jobObjectTypeId);
+				var actions = job.JobRelationshipsScope.BuildPersistenceActions(jobObjectTypeId);
 				if (actions == null)
 				{
 					continue;
@@ -1754,7 +1754,7 @@
 
 				if (actions.JobObjectTypeMissing)
 				{
-					var error = new JobLinkObjectTypeNotFoundError
+					var error = new JobRelationshipObjectTypeNotFoundError
 					{
 						ErrorMessage = $"Relationship object type '{RelationshipObjectType.JobObjectTypeName}' does not exist, so links cannot be configured on a job.",
 						Id = job.Id,
@@ -1780,17 +1780,17 @@
 			if (toCreateOrUpdate.Count > 0)
 			{
 				DomRelationshipHandler.TryCreateOrUpdate(planApi, toCreateOrUpdate, out var result);
-				ReportJobLinkFailures(result, jobIdByRelationshipId);
+				ReportJobRelationshipFailures(result, jobIdByRelationshipId);
 			}
 
 			if (toDelete.Count > 0)
 			{
 				DomRelationshipHandler.TryDelete(planApi, toDelete, out var result);
-				ReportJobLinkFailures(result, jobIdByRelationshipId);
+				ReportJobRelationshipFailures(result, jobIdByRelationshipId);
 			}
 		}
 
-		private void DeleteJobLinks(ICollection<Job> apiJobs)
+		private void DeleteJobRelationships(ICollection<Job> apiJobs)
 		{
 			if (apiJobs == null)
 			{
@@ -1808,7 +1808,7 @@
 			var jobsRequiringQuery = new Dictionary<string, Guid>();
 			foreach (var job in apiJobs)
 			{
-				var cached = job.JobLinksContext?.TryGetCachedOriginalRelationships();
+				var cached = job.JobRelationshipsContext?.TryGetCachedOriginalRelationships();
 				if (cached == null)
 				{
 					jobsRequiringQuery[job.Id.ToString()] = job.Id;
@@ -1822,7 +1822,7 @@
 				}
 			}
 
-			QueryJobLinksToDelete(jobsRequiringQuery, jobIdByRelationshipId, toDelete);
+			QueryJobRelationshipsToDelete(jobsRequiringQuery, jobIdByRelationshipId, toDelete);
 
 			if (toDelete.Count == 0)
 			{
@@ -1830,23 +1830,23 @@
 			}
 
 			DomRelationshipHandler.TryDelete(planApi, toDelete, out var domResult);
-			ReportJobLinkFailures(domResult, jobIdByRelationshipId);
+			ReportJobRelationshipFailures(domResult, jobIdByRelationshipId);
 		}
 
-		private void QueryJobLinksToDelete(Dictionary<string, Guid> jobsRequiringQuery, Dictionary<Guid, Guid> jobIdByRelationshipId, List<Relationship> toDelete)
+		private void QueryJobRelationshipsToDelete(Dictionary<string, Guid> jobsRequiringQuery, Dictionary<Guid, Guid> jobIdByRelationshipId, List<Relationship> toDelete)
 		{
 			if (jobsRequiringQuery.Count == 0)
 			{
 				return;
 			}
 
-			var jobObjectTypeId = JobLinksContext.ResolveJobObjectTypeId(planApi);
+			var jobObjectTypeId = JobRelationshipsContext.ResolveJobObjectTypeId(planApi);
 			if (jobObjectTypeId == Guid.Empty)
 			{
 				return;
 			}
 
-			var filter = JobLinksContext.BuildLinkedObjectFilter(jobObjectTypeId, jobsRequiringQuery.Keys);
+			var filter = JobRelationshipsContext.BuildLinkedObjectFilter(jobObjectTypeId, jobsRequiringQuery.Keys);
 
 			foreach (var relationship in planApi.Relationships.Read(filter))
 			{
@@ -1862,7 +1862,7 @@
 			}
 		}
 
-		private void ReportJobLinkFailures(DomInstanceBulkOperationResult<Storage.DOM.SlcRelationships.LinksInstance> result, Dictionary<Guid, Guid> jobIdByRelationshipId)
+		private void ReportJobRelationshipFailures(DomInstanceBulkOperationResult<Storage.DOM.SlcRelationships.LinksInstance> result, Dictionary<Guid, Guid> jobIdByRelationshipId)
 		{
 			if (result == null || !result.HasFailures)
 			{
@@ -3361,7 +3361,7 @@
 		// orchestration parameter can reference a job property through a JobPropertyReference.
 		private static bool HasOnlyLinkChanges(Job job, ICollection<DomChangeResults> changeResults)
 		{
-			if (job.JobLinksScope?.IsDirty != true || job.PropertySettingsScope?.IsDirty == true)
+			if (job.JobRelationshipsScope?.IsDirty != true || job.PropertySettingsScope?.IsDirty == true)
 			{
 				return false;
 			}

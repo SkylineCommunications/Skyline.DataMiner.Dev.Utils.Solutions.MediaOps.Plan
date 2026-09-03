@@ -22,8 +22,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		private StorageWorkflow.JobsInstance updatedInstance;
 		private PropertySettingsContext propertiesContext;
 		private PropertySettingsScope propertySettingsScope;
-		private JobLinksContext jobLinksContext;
-		private JobLinksScope jobLinksScope;
+		private JobRelationshipsContext jobRelationshipsContext;
+		private JobRelationshipsScope jobRelationshipsScope;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Job"/> class.
@@ -97,7 +97,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				node.SetPropertiesContext(propertiesContext);
 			}
 
-			jobLinksContext = new JobLinksContext(planApi, Id, () => Name);
+			jobRelationshipsContext = new JobRelationshipsContext(planApi, Id, () => Name);
 
 			InitTracking();
 		}
@@ -292,7 +292,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Gets the objects that are linked to this job. Links are loaded lazily.
 		/// Use <see cref="AddLink"/>, <see cref="SetLinks"/> and <see cref="RemoveLink"/> to modify them.
 		/// </summary>
-		public IReadOnlyCollection<JobRelationshipEndpoint> Links => GetOrCreateLinksScope().Links;
+		public IReadOnlyCollection<JobRelationshipEndpoint> Links => GetOrCreateRelationshipsScope().Links;
 
 		/// <summary>
 		/// Gets or sets the ID of the organization associated with the job.
@@ -350,9 +350,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		internal PropertySettingsContext PropertySettingsContext => propertiesContext;
 
-		internal JobLinksScope JobLinksScope => jobLinksScope;
+		internal JobRelationshipsScope JobRelationshipsScope => jobRelationshipsScope;
 
-		internal JobLinksContext JobLinksContext => jobLinksContext;
+		internal JobRelationshipsContext JobRelationshipsContext => jobRelationshipsContext;
 
 		/// <summary>
 		/// Creates a duplicate of this job with a newly generated identifier. The duplicate is a brand new,
@@ -452,7 +452,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="link"/> is <see langword="null"/>.</exception>
 		public Job AddLink(JobRelationshipEndpoint link)
 		{
-			GetOrCreateLinksScope().AddLink(link);
+			GetOrCreateRelationshipsScope().AddLink(link);
 			return this;
 		}
 
@@ -464,7 +464,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="links"/> is <see langword="null"/>.</exception>
 		public Job SetLinks(IEnumerable<JobRelationshipEndpoint> links)
 		{
-			GetOrCreateLinksScope().SetLinks(links);
+			GetOrCreateRelationshipsScope().SetLinks(links);
 			return this;
 		}
 
@@ -476,20 +476,20 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="link"/> is <see langword="null"/>.</exception>
 		public Job RemoveLink(JobRelationshipEndpoint link)
 		{
-			GetOrCreateLinksScope().RemoveLink(link);
+			GetOrCreateRelationshipsScope().RemoveLink(link);
 			return this;
 		}
 
 		private PropertySettingsScope GetOrCreateScope()
 			=> propertySettingsScope ??= EnsureContext().CreateOwnerScope();
 
-		private JobLinksScope GetOrCreateLinksScope()
-			=> jobLinksScope ??= EnsureLinksContext().CreateOwnerScope();
+		private JobRelationshipsScope GetOrCreateRelationshipsScope()
+			=> jobRelationshipsScope ??= EnsureRelationshipsContext().CreateOwnerScope();
 
-		internal JobLinksContext EnsureLinksContext()
+		internal JobRelationshipsContext EnsureRelationshipsContext()
 		{
 			// New, unsaved job: a null planApi is fine because the lazy load will only ever return empty results.
-			return jobLinksContext ??= new JobLinksContext(null, Id, () => Name);
+			return jobRelationshipsContext ??= new JobRelationshipsContext(null, Id, () => Name);
 		}
 
 		internal PropertySettingsContext EnsureContext()

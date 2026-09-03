@@ -5,17 +5,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using System.Linq;
 
 	/// <summary>
-	/// Per-job mutable view over a <see cref="JobLinksContext"/>. Exposes a flat list of <see cref="JobRelationshipEndpoint"/> objects
-	/// to the caller and translates the local state into <see cref="JobLinksPersistenceActions"/> when it is time to persist.
+	/// Per-job mutable view over a <see cref="JobRelationshipsContext"/>. Exposes a flat list of <see cref="JobRelationshipEndpoint"/> objects
+	/// to the caller and translates the local state into <see cref="JobRelationshipsPersistenceActions"/> when it is time to persist.
 	/// </summary>
-	internal sealed class JobLinksScope
+	internal sealed class JobRelationshipsScope
 	{
-		private readonly Func<JobLinksContext> getContext;
+		private readonly Func<JobRelationshipsContext> getContext;
 
 		private List<JobRelationshipEndpoint> links;
 		private bool isDirty;
 
-		internal JobLinksScope(Func<JobLinksContext> getContext)
+		internal JobRelationshipsScope(Func<JobRelationshipsContext> getContext)
 		{
 			this.getContext = getContext;
 		}
@@ -24,7 +24,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		internal IReadOnlyCollection<JobRelationshipEndpoint> Links => Current;
 
-		private JobLinksContext Context => getContext?.Invoke();
+		private JobRelationshipsContext Context => getContext?.Invoke();
 
 		private List<JobRelationshipEndpoint> Current => links ??= BuildInitialLinks();
 
@@ -103,7 +103,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Produces the relationships that have to be created, updated or deleted, or <see langword="null"/> when the scope was never mutated.
 		/// </summary>
 		/// <param name="jobObjectTypeId">The unique identifier of the reserved "Job" object type, resolved once per save.</param>
-		internal JobLinksPersistenceActions BuildPersistenceActions(Guid jobObjectTypeId)
+		internal JobRelationshipsPersistenceActions BuildPersistenceActions(Guid jobObjectTypeId)
 		{
 			if (!isDirty)
 			{
@@ -112,9 +112,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			var context = Context ?? throw new InvalidOperationException(
 				"Cannot persist job links because the owning context has not been wired. " +
-				"Ensure the job's context is created (e.g. via EnsureLinksContext) before saving.");
+				"Ensure the job's context is created (e.g. via EnsureRelationshipsContext) before saving.");
 
-			var actions = new JobLinksPersistenceActions();
+			var actions = new JobRelationshipsPersistenceActions();
 			var current = Current;
 
 			if (current.Count > 0 && jobObjectTypeId == Guid.Empty)
@@ -167,7 +167,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return String.Equals(left.ObjectId, right.ObjectId, StringComparison.Ordinal);
 		}
 
-		private static void ApplyToRelationship(Relationship relationship, JobRelationshipEndpoint link, JobLinksContext context, Guid jobObjectTypeId)
+		private static void ApplyToRelationship(Relationship relationship, JobRelationshipEndpoint link, JobRelationshipsContext context, Guid jobObjectTypeId)
 		{
 			var jobEndpoint = link.JobIsParent ? relationship.Parent : relationship.Child;
 			var linkedEndpoint = link.JobIsParent ? relationship.Child : relationship.Parent;
@@ -194,7 +194,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 	}
 
-	internal sealed class JobLinksPersistenceActions
+	internal sealed class JobRelationshipsPersistenceActions
 	{
 		internal List<Relationship> ToCreateOrUpdate { get; } = new List<Relationship>();
 

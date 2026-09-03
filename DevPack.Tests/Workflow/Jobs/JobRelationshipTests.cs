@@ -14,11 +14,11 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 	[TestClass]
 	[TestCategory("IntegrationTest")]
 	[DoNotParallelize]
-	public sealed class JobLinkTests : IDisposable
+	public sealed class JobRelationshipTests : IDisposable
 	{
 		private readonly TestObjectCreator objectCreator;
 
-		public JobLinkTests()
+		public JobRelationshipTests()
 		{
 			objectCreator = new TestObjectCreator(TestContext);
 		}
@@ -282,7 +282,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			{
 				var exception = Assert.ThrowsException<MediaOpsException>(() => objectCreator.CreateJob(job));
 
-				Assert.IsNotNull(exception.TraceData.ErrorData.OfType<JobLinkObjectTypeNotFoundError>().SingleOrDefault());
+				Assert.IsNotNull(exception.TraceData.ErrorData.OfType<JobRelationshipObjectTypeNotFoundError>().SingleOrDefault());
 			}
 			finally
 			{

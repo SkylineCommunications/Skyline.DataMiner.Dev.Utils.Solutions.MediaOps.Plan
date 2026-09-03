@@ -8,10 +8,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 	/// <summary>
 	/// Owner-scoped context that lazily loads every <see cref="Relationship"/> a job takes part in and hands out a
-	/// <see cref="JobLinksScope"/> that hides the storage details (the reserved "Job" object type, the parent/child
+	/// <see cref="JobRelationshipsScope"/> that hides the storage details (the reserved "Job" object type, the parent/child
 	/// sides and the job's own object id) from the user.
 	/// </summary>
-	internal sealed class JobLinksContext
+	internal sealed class JobRelationshipsContext
 	{
 		private static readonly IReadOnlyCollection<JobRelationshipEndpoint> EmptyLinks = [];
 
@@ -19,7 +19,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		private readonly Func<string> getOwnerName;
 		private readonly Lazy<LoadedLinks> lazy;
 
-		internal JobLinksContext(MediaOpsPlanApi planApi, Guid ownerId, Func<string> getOwnerName)
+		internal JobRelationshipsContext(MediaOpsPlanApi planApi, Guid ownerId, Func<string> getOwnerName)
 		{
 			this.ownerId = ownerId;
 			this.getOwnerName = getOwnerName;
@@ -41,7 +41,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		internal IReadOnlyCollection<Relationship> OriginalRelationships => lazy.Value.Relationships.Values.ToList();
 
-		internal JobLinksScope CreateOwnerScope() => new JobLinksScope(() => this);
+		internal JobRelationshipsScope CreateOwnerScope() => new JobRelationshipsScope(() => this);
 
 		internal bool TryGetOriginalRelationship(Guid id, out Relationship relationship)
 			=> lazy.Value.Relationships.TryGetValue(id, out relationship);
@@ -111,7 +111,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			foreach (var relationship in relationships)
 			{
 				relationshipsById[relationship.Id] = relationship;
-				links.Add(ToJobLink(relationship, jobObjectTypeId, objectId));
+				links.Add(ToEndpoint(relationship, jobObjectTypeId, objectId));
 			}
 
 			return new LoadedLinks(jobObjectTypeId, links, relationshipsById);
@@ -120,7 +120,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <summary>
 		/// Projects a relationship onto the endpoint that is not the job.
 		/// </summary>
-		internal static JobRelationshipEndpoint ToJobLink(Relationship relationship, Guid jobObjectTypeId, string jobObjectId)
+		internal static JobRelationshipEndpoint ToEndpoint(Relationship relationship, Guid jobObjectTypeId, string jobObjectId)
 		{
 			var jobIsParent = relationship.Parent != null
 				&& relationship.Parent.ObjectTypeId == jobObjectTypeId
