@@ -1,4 +1,4 @@
-﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
 	using System.Collections.Generic;
@@ -264,8 +264,14 @@
 				MarkAsJobWithCoreChanges(job);
 			}
 
+			// Determined before anything is persisted: saving refreshes the baselines this comparison relies on.
+			var linkOnlyJobIds = new HashSet<Guid>(toUpdate
+				.Where(x => IsValid(x) && HasOnlyLinkChanges(x, changeResults))
+				.Select(x => x.Id));
+
 			CreateOrUpdateOrchestrationSettings(apiJobs.Where(IsValid).ToList());
 			CreateOrUpdatePropertySettingCollections(apiJobs.Where(IsValid).ToList());
+			CreateOrUpdateJobRelationships(apiJobs.Where(IsValid).ToList());
 
 			var toCreateDomInstances = toCreate
 				.Where(IsValid)
@@ -285,7 +291,10 @@
 
 			// Synchronize MediaOps Live from the persisted instances so Live reflects the merged result rather than this
 			// user's in-memory snapshot, which may miss a concurrent edit that the lock-merge preserved.
-			SyncLiveOrchestration(SuccessfulItems.Select(x => new Job(planApi, x)).ToList());
+			SyncLiveOrchestration(SuccessfulItems
+				.Where(x => !linkOnlyJobIds.Contains(x.ID.Id))
+				.Select(x => new Job(planApi, x))
+				.ToList());
 		}
 
 		private void CreateOrUpdateDomJobs(ICollection<DomJob> domJobs)
@@ -1541,6 +1550,7 @@
 
 			DeleteOrchestrationSettings(jobsToDelete);
 			DeletePropertySettingCollections(jobsToDelete);
+			DeleteJobRelationships(jobsToDelete);
 			DeleteCategoryItems(jobsToDelete);
 
 			var domJobsById = jobsToDelete.ToDictionary(x => x.Id, x => x.OriginalInstance);
@@ -1696,6 +1706,184 @@
 			}
 
 			DomJobCategoryHandler.Delete(planApi, apiJobs);
+		}
+
+		private void CreateOrUpdateJobRelationships(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			if (apiJobs.Any(x => !IsValid(x)))
+			{
+				throw new ArgumentException($"Not all provided jobs are valid", nameof(apiJobs));
+			}
+
+			// Make sure every job has a links context so that scopes created before saving can resolve the job side of the link.
+			foreach (var job in apiJobs)
+			{
+				job.EnsureRelationshipsContext();
+			}
+
+			var dirtyJobs = apiJobs.Where(x => x.JobRelationshipsScope != null && x.JobRelationshipsScope.IsDirty).ToList();
+			if (dirtyJobs.Count == 0)
+			{
+				return;
+			}
+
+			// The reserved "Job" object type is seeded by the solution, so it is resolved once per save instead of per job.
+			var jobObjectTypeId = JobRelationshipsContext.ResolveJobObjectTypeId(planApi);
+
+			var jobIdByRelationshipId = new Dictionary<Guid, Guid>();
+			var toCreateOrUpdate = new List<Relationship>();
+			var toDelete = new List<Relationship>();
+
+			foreach (var job in dirtyJobs)
+			{
+				var actions = job.JobRelationshipsScope.BuildPersistenceActions(jobObjectTypeId);
+				if (actions == null)
+				{
+					continue;
+				}
+
+				if (actions.JobObjectTypeMissing)
+				{
+					var error = new JobRelationshipObjectTypeNotFoundError
+					{
+						ErrorMessage = $"Relationship object type '{RelationshipObjectType.JobObjectTypeName}' does not exist, so links cannot be configured on a job.",
+						Id = job.Id,
+					};
+
+					ReportError(job.Id, error);
+					continue;
+				}
+
+				foreach (var relationship in actions.ToCreateOrUpdate)
+				{
+					jobIdByRelationshipId[relationship.Id] = job.Id;
+					toCreateOrUpdate.Add(relationship);
+				}
+
+				foreach (var relationship in actions.ToDelete)
+				{
+					jobIdByRelationshipId[relationship.Id] = job.Id;
+					toDelete.Add(relationship);
+				}
+			}
+
+			if (toCreateOrUpdate.Count > 0)
+			{
+				DomRelationshipHandler.TryCreateOrUpdate(planApi, toCreateOrUpdate, out var result);
+				ReportJobRelationshipFailures(result, jobIdByRelationshipId);
+			}
+
+			if (toDelete.Count > 0)
+			{
+				DomRelationshipHandler.TryDelete(planApi, toDelete, out var result);
+				ReportJobRelationshipFailures(result, jobIdByRelationshipId);
+			}
+		}
+
+		private void DeleteJobRelationships(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			var jobIdByRelationshipId = new Dictionary<Guid, Guid>();
+			var toDelete = new List<Relationship>();
+
+			var jobsRequiringQuery = new Dictionary<string, Guid>();
+			foreach (var job in apiJobs)
+			{
+				var cached = job.JobRelationshipsContext?.TryGetCachedOriginalRelationships();
+				if (cached == null)
+				{
+					jobsRequiringQuery[job.Id.ToString()] = job.Id;
+					continue;
+				}
+
+				foreach (var relationship in cached)
+				{
+					jobIdByRelationshipId[relationship.Id] = job.Id;
+					toDelete.Add(relationship);
+				}
+			}
+
+			QueryJobRelationshipsToDelete(jobsRequiringQuery, jobIdByRelationshipId, toDelete);
+
+			if (toDelete.Count == 0)
+			{
+				return;
+			}
+
+			DomRelationshipHandler.TryDelete(planApi, toDelete, out var domResult);
+			ReportJobRelationshipFailures(domResult, jobIdByRelationshipId);
+		}
+
+		private void QueryJobRelationshipsToDelete(Dictionary<string, Guid> jobsRequiringQuery, Dictionary<Guid, Guid> jobIdByRelationshipId, List<Relationship> toDelete)
+		{
+			if (jobsRequiringQuery.Count == 0)
+			{
+				return;
+			}
+
+			var jobObjectTypeId = JobRelationshipsContext.ResolveJobObjectTypeId(planApi);
+			if (jobObjectTypeId == Guid.Empty)
+			{
+				return;
+			}
+
+			var filter = JobRelationshipsContext.BuildLinkedObjectFilter(jobObjectTypeId, jobsRequiringQuery.Keys);
+
+			foreach (var relationship in planApi.Relationships.Read(filter))
+			{
+				var jobObjectId = relationship.Parent?.ObjectTypeId == jobObjectTypeId && jobsRequiringQuery.ContainsKey(relationship.Parent.ObjectId ?? String.Empty)
+					? relationship.Parent.ObjectId
+					: relationship.Child?.ObjectId;
+
+				if (jobObjectId != null && jobsRequiringQuery.TryGetValue(jobObjectId, out var jobId))
+				{
+					jobIdByRelationshipId[relationship.Id] = jobId;
+					toDelete.Add(relationship);
+				}
+			}
+		}
+
+		private void ReportJobRelationshipFailures(DomInstanceBulkOperationResult<Storage.DOM.SlcRelationships.LinksInstance> result, Dictionary<Guid, Guid> jobIdByRelationshipId)
+		{
+			if (result == null || !result.HasFailures)
+			{
+				return;
+			}
+
+			foreach (var id in result.UnsuccessfulIds)
+			{
+				if (!jobIdByRelationshipId.TryGetValue(id, out var jobId))
+				{
+					planApi.Logger.Error(this, $"Failed to find job ID for relationship ID {id}.");
+					continue;
+				}
+
+				ReportError(jobId);
+
+				if (result.TraceDataPerItem.TryGetValue(id, out var traceData))
+				{
+					PassTraceData(jobId, traceData);
+				}
+			}
 		}
 
 		private void CreateOrUpdatePropertySettingCollections(ICollection<Job> apiJobs)
@@ -3166,6 +3354,38 @@
 			}
 
 			jobIdsWithCoreChanges.Add(job.Id);
+		}
+
+		// Links live in the (slc)relationships module and are not part of the orchestration configuration, so a job that
+		// changed nothing else has nothing to push to MediaOps Live. Property settings count as a change because an
+		// orchestration parameter can reference a job property through a JobPropertyReference.
+		private static bool HasOnlyLinkChanges(Job job, ICollection<DomChangeResults> changeResults)
+		{
+			if (job.JobRelationshipsScope?.IsDirty != true || job.PropertySettingsScope?.IsDirty == true)
+			{
+				return false;
+			}
+
+			// A job whose DOM instance is unchanged is not reported at all, so a missing result means nothing changed.
+			var changeResult = changeResults.FirstOrDefault(x => x.Id == job.Id);
+			if (changeResult != null
+				&& (changeResult.ChangedFields.Count > 0
+					|| changeResult.AddedSections.Count > 0
+					|| changeResult.RemovedSections.Count > 0))
+			{
+				return false;
+			}
+
+			return IsOrchestrationUnchanged(job.OrchestrationSettings)
+				&& job.NodeGraph.Nodes.All(x => IsOrchestrationUnchanged(x.OrchestrationSettings));
+		}
+
+		// The orchestration settings are rewritten on every save, so the DOM diff cannot say whether they really
+		// changed. Their own change tracking is used instead. Settings that were never persisted always count as
+		// changed, because HasChanges reports false for a new object.
+		private static bool IsOrchestrationUnchanged(OrchestrationSettings settings)
+		{
+			return settings != null && !settings.IsNew && !settings.HasChanges;
 		}
 
 		// The core reservation only mirrors the job's name, timings and nodes. A change is reservation-impacting when

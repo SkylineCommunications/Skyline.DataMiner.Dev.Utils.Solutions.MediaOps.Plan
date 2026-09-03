@@ -68,6 +68,16 @@
 		IPropertySettingCollectionsRepository PropertySettingCollections { get; }
 
 		/// <summary>
+		/// Gets the repository for managing relationships.
+		/// </summary>
+		IRelationshipsRepository Relationships { get; }
+
+		/// <summary>
+		/// Gets the repository for managing relationship object types.
+		/// </summary>
+		IRelationshipObjectTypesRepository RelationshipObjectTypes { get; }
+
+		/// <summary>
 		/// Gets the global application settings.
 		/// </summary>
 		IGlobalSettings GlobalSettings { get; }

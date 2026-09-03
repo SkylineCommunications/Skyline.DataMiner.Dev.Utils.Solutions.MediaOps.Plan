@@ -43,6 +43,8 @@
 		private readonly Lazy<IPropertiesRepository> lazyPropertiesRepository;
 		private readonly Lazy<IPropertySettingCollectionsRepository> lazyPropertySettingCollectionsRepository;
 		private readonly Lazy<ISchedulingPropertiesRepository> lazySchedulingPropertiesRepository;
+		private readonly Lazy<IRelationshipsRepository> lazyRelationshipsRepository;
+		private readonly Lazy<IRelationshipObjectTypesRepository> lazyRelationshipObjectTypesRepository;
 		private readonly Lazy<Plan.Tools.LockManager> lazyLockManager;
 		private readonly Lazy<ICategoriesApi> lazyCategoriesApi;
 		private readonly Lazy<IGlobalSettings> lazyGlobalSettings;
@@ -80,6 +82,8 @@
 			lazyPropertiesRepository = new Lazy<IPropertiesRepository>(() => new PropertiesRepository(this));
 			lazyPropertySettingCollectionsRepository = new Lazy<IPropertySettingCollectionsRepository>(() => new PropertySettingCollectionsRepository(this));
 			lazySchedulingPropertiesRepository = new Lazy<ISchedulingPropertiesRepository>(() => new SchedulingPropertiesRepository(this));
+			lazyRelationshipsRepository = new Lazy<IRelationshipsRepository>(() => new RelationshipsRepository(this));
+			lazyRelationshipObjectTypesRepository = new Lazy<IRelationshipObjectTypesRepository>(() => new RelationshipObjectTypesRepository(this));
 			lazyLockManager = new Lazy<Plan.Tools.LockManager>(() => new Plan.Tools.LockManager(this));
 			lazyCategoriesApi = new Lazy<ICategoriesApi>(() => connection.GetCategoriesApi());
 			lazyGlobalSettings = new Lazy<IGlobalSettings>(() => new GlobalSettings(this));
@@ -147,6 +151,16 @@
 		/// <inheritdoc/>
 		/// </summary>
 		public IPropertySettingCollectionsRepository PropertySettingCollections => lazyPropertySettingCollectionsRepository.Value;
+
+		/// <summary>
+		/// <inheritdoc/>
+		/// </summary>
+		public IRelationshipsRepository Relationships => lazyRelationshipsRepository.Value;
+
+		/// <summary>
+		/// <inheritdoc/>
+		/// </summary>
+		public IRelationshipObjectTypesRepository RelationshipObjectTypes => lazyRelationshipObjectTypesRepository.Value;
 
 		/// <summary>
 		/// <inheritdoc/>

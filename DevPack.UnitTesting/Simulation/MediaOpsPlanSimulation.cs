@@ -15,12 +15,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 	using Skyline.DataMiner.Solutions.MediaOps.Live.API.Objects.ConnectivityManagement;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcProperties;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcRelationships;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow;
 
 	using LiveConstants = Skyline.DataMiner.Solutions.MediaOps.Live.Constants;
 	using PropertiesDefinitions = Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcProperties.SlcPropertiesIds.Definitions;
 	using PropertiesSections = Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcProperties.SlcPropertiesIds.Sections;
+	using RelationshipsDefinitions = Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcRelationships.SlcRelationshipsIds.Definitions;
+	using RelationshipsSections = Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcRelationships.SlcRelationshipsIds.Sections;
 	using ResourceStudioBehaviors = Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Behaviors;
 	using ResourceStudioDefinitions = Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Definitions;
 	using ResourceStudioSections = Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Sections;
@@ -53,6 +56,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 		private const string ResourceStudioModuleId = "(slc)resource_studio";
 		private const string WorkflowModuleId = "(slc)workflow";
 		private const string PropertiesModuleId = "(slc)properties";
+		private const string RelationshipsModuleId = "(slc)relationships";
 
 		private const string GenericCameraProtocolName = "Generic Camera";
 
@@ -74,6 +78,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 			RegisterResourceStudioModule(dms);
 			RegisterWorkflowModule(dms);
 			RegisterPropertiesModule(dms);
+			RegisterRelationshipsModule(dms);
 			RegisterCategoriesModule(dms);
 			RegisterProtocols(dms);
 
@@ -147,6 +152,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 			};
 			recurringJob.Sections.Add(jobInfo.ToSection());
 			dms.CreateDomInstance(recurringJob);
+
+			// The solution seeds this reserved object type during setup; jobs cannot be linked to anything without it.
+			var jobObjectType = new ObjectTypesInstance();
+			jobObjectType.ObjectTypeInfo.ObjectName = "Job";
+			dms.CreateDomInstance(ToModuleInstance(jobObjectType.ToInstance(), RelationshipsModuleId));
 		}
 
 		private static DomInstance ToModuleInstance(DomInstance instance, string moduleId)
@@ -249,6 +259,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 			};
 
 			dms.RegisterDomModule(PropertiesModuleId, definitions, new DomBehaviorDefinition[0]);
+		}
+
+		private static void RegisterRelationshipsModule(SimulatedDms dms)
+		{
+			var definitions = new List<DomDefinition>
+			{
+				BuildDefinition(RelationshipsDefinitions.ObjectTypes, null, RelationshipsSections.ObjectTypeInfo.ObjectName),
+				BuildDefinition(RelationshipsDefinitions.Links, null),
+			};
+
+			dms.RegisterDomModule(RelationshipsModuleId, definitions, new DomBehaviorDefinition[0]);
 		}
 
 		private static DomDefinition BuildDefinition(DomDefinitionId definitionId, DomBehaviorDefinitionId behaviorDefinitionId, FieldDescriptorID nameFieldId = null)

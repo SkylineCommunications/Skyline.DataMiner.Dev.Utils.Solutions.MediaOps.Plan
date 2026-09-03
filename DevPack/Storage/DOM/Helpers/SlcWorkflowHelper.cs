@@ -242,8 +242,7 @@
 				throw new ArgumentOutOfRangeException(nameof(pageSize));
 			}
 
-			var pages = DomHelper.DomInstances.ReadPaged(query, pageSize);
-			return InstanceFactory.CreateInstances(pages, instance => new JobsInstance(instance));
+			return InstanceFactory.ReadAndCreateInstancesPaged(DomHelper, query, pageSize, instance => new JobsInstance(instance));
 		}
 
 		public IEnumerable<IEnumerable<RecurringJobsInstance>> GetRecurringJobsPaged(FilterElement<DomInstance> filter, int pageSize)
@@ -274,8 +273,7 @@
 				throw new ArgumentOutOfRangeException(nameof(pageSize));
 			}
 
-			var pages = DomHelper.DomInstances.ReadPaged(query, pageSize);
-			return InstanceFactory.CreateInstances(pages, instance => new RecurringJobsInstance(instance));
+			return InstanceFactory.ReadAndCreateInstancesPaged(DomHelper, query, pageSize, instance => new RecurringJobsInstance(instance));
 		}
 
 		public IEnumerable<IEnumerable<WorkflowsInstance>> GetWorkflowsPaged(FilterElement<DomInstance> filter, int pageSize)
@@ -306,8 +304,7 @@
 				throw new ArgumentOutOfRangeException(nameof(pageSize));
 			}
 
-			var pages = DomHelper.DomInstances.ReadPaged(query, pageSize);
-			return InstanceFactory.CreateInstances(pages, instance => new WorkflowsInstance(instance));
+			return InstanceFactory.ReadAndCreateInstancesPaged(DomHelper, query, pageSize, instance => new WorkflowsInstance(instance));
 		}
 
 		public IEnumerable<DomInstance> GetWorkflowInstances(IEnumerable<Guid> ids)

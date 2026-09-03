@@ -34,6 +34,10 @@
 
 		private readonly HashSet<Guid> createdPropertySettingCollectionIds = new HashSet<Guid>();
 
+		private readonly HashSet<Guid> createdRelationshipIds = new HashSet<Guid>();
+
+		private readonly HashSet<Guid> createdRelationshipObjectTypeIds = new HashSet<Guid>();
+
 		private readonly HashSet<Guid> createdCategoryIds = new HashSet<Guid>();
 
 		private readonly HashSet<DmsElementId> createdElementIds = new HashSet<DmsElementId>();
@@ -84,6 +88,24 @@
 			try
 			{
 				WorkflowsCleanup();
+			}
+			catch
+			{
+				// Ignore cleanup errors
+			}
+
+			try
+			{
+				RelationshipsCleanup();
+			}
+			catch
+			{
+				// Ignore cleanup errors
+			}
+
+			try
+			{
+				RelationshipObjectTypesCleanup();
 			}
 			catch
 			{
@@ -372,6 +394,16 @@
 		private void PropertySettingCollectionsCleanup()
 		{
 			PlanApi.PropertySettingCollections.Delete(createdPropertySettingCollectionIds.ToArray());
+		}
+
+		private void RelationshipsCleanup()
+		{
+			PlanApi.Relationships.Delete(createdRelationshipIds.ToArray());
+		}
+
+		private void RelationshipObjectTypesCleanup()
+		{
+			PlanApi.RelationshipObjectTypes.Delete(createdRelationshipObjectTypeIds.ToArray());
 		}
 
 		public T CreateResource<T>(T resource) where T : Resource
@@ -693,6 +725,68 @@
 				foreach (var id in bulkException.Result.SuccessfulIds)
 				{
 					createdPropertySettingCollectionIds.Add(id);
+				}
+
+				throw;
+			}
+		}
+
+		public RelationshipObjectType CreateRelationshipObjectType(RelationshipObjectType objectType)
+		{
+			var created = PlanApi.RelationshipObjectTypes.Create(objectType);
+			createdRelationshipObjectTypeIds.Add(created.Id);
+			return created;
+		}
+
+		public IReadOnlyCollection<RelationshipObjectType> CreateRelationshipObjectTypes(IEnumerable<RelationshipObjectType> objectTypes)
+		{
+			try
+			{
+				var created = PlanApi.RelationshipObjectTypes.Create(objectTypes);
+
+				foreach (var id in created.Select(x => x.Id))
+				{
+					createdRelationshipObjectTypeIds.Add(id);
+				}
+
+				return created;
+			}
+			catch (MediaOpsBulkException<Guid> bulkException)
+			{
+				foreach (var id in bulkException.Result.SuccessfulIds)
+				{
+					createdRelationshipObjectTypeIds.Add(id);
+				}
+
+				throw;
+			}
+		}
+
+		public Relationship CreateRelationship(Relationship relationship)
+		{
+			var created = PlanApi.Relationships.Create(relationship);
+			createdRelationshipIds.Add(created.Id);
+			return created;
+		}
+
+		public IReadOnlyCollection<Relationship> CreateRelationships(IEnumerable<Relationship> relationships)
+		{
+			try
+			{
+				var created = PlanApi.Relationships.Create(relationships);
+
+				foreach (var id in created.Select(x => x.Id))
+				{
+					createdRelationshipIds.Add(id);
+				}
+
+				return created;
+			}
+			catch (MediaOpsBulkException<Guid> bulkException)
+			{
+				foreach (var id in bulkException.Result.SuccessfulIds)
+				{
+					createdRelationshipIds.Add(id);
 				}
 
 				throw;
