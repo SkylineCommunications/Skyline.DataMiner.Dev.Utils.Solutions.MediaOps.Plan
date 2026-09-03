@@ -46,8 +46,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var objectType = objectCreator.CreateRelationshipObjectType(new RelationshipObjectType { Name = $"{prefix}_Booking" });
 
 			var job = NewJob($"{prefix}_Job");
-			job.AddLink(new JobLink(objectType, "booking-1")
-			{
+			job.AddLink(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1",
 				ObjectName = "Evening show",
 				Url = "https://example.invalid/booking/1",
 			});
@@ -73,7 +72,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var objectType = objectCreator.CreateRelationshipObjectType(new RelationshipObjectType { Name = $"{prefix}_Booking" });
 
 			var job = NewJob($"{prefix}_Job");
-			job.AddLink(new JobLink(objectType, "booking-1") { ObjectName = "Evening show" });
+			job.AddLink(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1", ObjectName = "Evening show" });
 			job = objectCreator.CreateJob(job);
 
 			var jobObjectType = TestContext.Api.RelationshipObjectTypes
@@ -100,13 +99,12 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var objectType = objectCreator.CreateRelationshipObjectType(new RelationshipObjectType { Name = $"{prefix}_Booking" });
 
 			var job = NewJob($"{prefix}_Job");
-			job.AddLink(new JobLink(objectType, "booking-1") { ObjectName = "Original" });
+			job.AddLink(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1", ObjectName = "Original" });
 			job = objectCreator.CreateJob(job);
 
 			var originalLinkId = job.Links.Single().Id;
 
-			job.AddLink(new JobLink(objectType, "booking-1")
-			{
+			job.AddLink(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1",
 				ObjectName = "Renamed",
 				Url = "https://example.invalid/renamed",
 			});
@@ -129,14 +127,14 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var objectType = objectCreator.CreateRelationshipObjectType(new RelationshipObjectType { Name = $"{prefix}_Booking" });
 
 			var job = NewJob($"{prefix}_Job");
-			job.AddLink(new JobLink(objectType, "booking-1"));
-			job.AddLink(new JobLink(objectType, "booking-2"));
+			job.AddLink(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1" });
+			job.AddLink(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-2" });
 			job = objectCreator.CreateJob(job);
 
 			Assert.AreEqual(2, job.Links.Count);
 			var removedLinkId = job.Links.Single(x => x.ObjectId == "booking-1").Id;
 
-			job.RemoveLink(new JobLink(objectType, "booking-1"));
+			job.RemoveLink(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1" });
 			TestContext.Api.Jobs.Update(job);
 
 			var returned = TestContext.Api.Jobs.Read(job.Id);
@@ -153,11 +151,11 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var objectType = objectCreator.CreateRelationshipObjectType(new RelationshipObjectType { Name = $"{prefix}_Booking" });
 
 			var job = NewJob($"{prefix}_Job");
-			job.AddLink(new JobLink(objectType, "booking-1"));
-			job.AddLink(new JobLink(objectType, "booking-2"));
+			job.AddLink(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1" });
+			job.AddLink(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-2" });
 			job = objectCreator.CreateJob(job);
 
-			job.SetLinks([new JobLink(objectType, "booking-2") { ObjectName = "Kept" }, new JobLink(objectType, "booking-3")]);
+			job.SetLinks([new JobRelationshipEndpoint(objectType) { ObjectId = "booking-2", ObjectName = "Kept" }, new JobRelationshipEndpoint(objectType) { ObjectId = "booking-3" }]);
 			TestContext.Api.Jobs.Update(job);
 
 			var returned = TestContext.Api.Jobs.Read(job.Id);
@@ -173,7 +171,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var objectType = objectCreator.CreateRelationshipObjectType(new RelationshipObjectType { Name = $"{prefix}_Booking" });
 
 			var job = NewJob($"{prefix}_Job");
-			job.AddLink(new JobLink(objectType, "booking-1"));
+			job.AddLink(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1" });
 			job = objectCreator.CreateJob(job);
 
 			var linkId = job.Links.Single().Id;
@@ -190,7 +188,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var objectType = objectCreator.CreateRelationshipObjectType(new RelationshipObjectType { Name = $"{prefix}_Booking" });
 
 			var job = NewJob($"{prefix}_Job");
-			job.AddLink(new JobLink(objectType, "booking-1") { ObjectName = "Evening show" });
+			job.AddLink(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1", ObjectName = "Evening show" });
 			job = objectCreator.CreateJob(job);
 
 			var originalLinkId = job.Links.Single().Id;
@@ -277,7 +275,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var jobObjectType = ReadJobObjectType();
 
 			var job = NewJob($"{prefix}_Job");
-			job.AddLink(new JobLink(objectType, "booking-1"));
+			job.AddLink(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1" });
 
 			RenameJobObjectType(jobObjectType.Id, $"{prefix}_NotAJob");
 			try
@@ -315,8 +313,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var job = NewJob($"{prefix}_Job");
 
 			// Documents have no identifier of their own, so two of them must not collapse into one link.
-			job.AddLink(new JobLink(objectType, null) { ObjectName = "Spec", Url = "https://example.invalid/spec" });
-			job.AddLink(new JobLink(objectType, null) { ObjectName = "Manual", Url = "https://example.invalid/manual" });
+			job.AddLink(new JobRelationshipEndpoint(objectType) { ObjectName = "Spec", Url = "https://example.invalid/spec" });
+			job.AddLink(new JobRelationshipEndpoint(objectType) { ObjectName = "Manual", Url = "https://example.invalid/manual" });
 
 			job = objectCreator.CreateJob(job);
 
@@ -335,8 +333,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var objectType = objectCreator.CreateRelationshipObjectType(new RelationshipObjectType { Name = $"{prefix}_Document" });
 
 			var job = NewJob($"{prefix}_Job");
-			job.AddLink(new JobLink(objectType, null) { ObjectName = "Spec" });
-			job.AddLink(new JobLink(objectType, null) { ObjectName = "Manual" });
+			job.AddLink(new JobRelationshipEndpoint(objectType) { ObjectName = "Spec" });
+			job.AddLink(new JobRelationshipEndpoint(objectType) { ObjectName = "Manual" });
 			job = objectCreator.CreateJob(job);
 
 			job.RemoveLink(job.Links.Single(x => x.ObjectName == "Spec"));

@@ -13,7 +13,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// </summary>
 	internal sealed class JobLinksContext
 	{
-		private static readonly IReadOnlyCollection<JobLink> EmptyLinks = [];
+		private static readonly IReadOnlyCollection<JobRelationshipEndpoint> EmptyLinks = [];
 
 		private readonly Guid ownerId;
 		private readonly Func<string> getOwnerName;
@@ -37,7 +37,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// </summary>
 		internal string OwnerName => getOwnerName?.Invoke();
 
-		internal IReadOnlyCollection<JobLink> InitialLinks => lazy.Value.Links;
+		internal IReadOnlyCollection<JobRelationshipEndpoint> InitialLinks => lazy.Value.Links;
 
 		internal IReadOnlyCollection<Relationship> OriginalRelationships => lazy.Value.Relationships.Values.ToList();
 
@@ -105,7 +105,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				.Read(BuildLinkedObjectFilter(jobObjectTypeId, [objectId]))
 				.ToList();
 
-			var links = new List<JobLink>();
+			var links = new List<JobRelationshipEndpoint>();
 			var relationshipsById = new Dictionary<Guid, Relationship>();
 
 			foreach (var relationship in relationships)
@@ -120,7 +120,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <summary>
 		/// Projects a relationship onto the endpoint that is not the job.
 		/// </summary>
-		internal static JobLink ToJobLink(Relationship relationship, Guid jobObjectTypeId, string jobObjectId)
+		internal static JobRelationshipEndpoint ToJobLink(Relationship relationship, Guid jobObjectTypeId, string jobObjectId)
 		{
 			var jobIsParent = relationship.Parent != null
 				&& relationship.Parent.ObjectTypeId == jobObjectTypeId
@@ -128,7 +128,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			var other = jobIsParent ? relationship.Child : relationship.Parent;
 
-			return new JobLink(other?.ObjectTypeId ?? Guid.Empty, other?.ObjectId, relationship.Id, jobIsParent)
+			return new JobRelationshipEndpoint(other?.ObjectTypeId ?? Guid.Empty, other?.ObjectId, relationship.Id, jobIsParent)
 			{
 				ObjectName = other?.ObjectName,
 				Url = other?.Url,
@@ -137,7 +137,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		private sealed class LoadedLinks
 		{
-			internal LoadedLinks(Guid jobObjectTypeId, IReadOnlyCollection<JobLink> links, Dictionary<Guid, Relationship> relationships)
+			internal LoadedLinks(Guid jobObjectTypeId, IReadOnlyCollection<JobRelationshipEndpoint> links, Dictionary<Guid, Relationship> relationships)
 			{
 				JobObjectTypeId = jobObjectTypeId;
 				Links = links;
@@ -146,7 +146,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			internal Guid JobObjectTypeId { get; }
 
-			internal IReadOnlyCollection<JobLink> Links { get; }
+			internal IReadOnlyCollection<JobRelationshipEndpoint> Links { get; }
 
 			internal Dictionary<Guid, Relationship> Relationships { get; }
 		}

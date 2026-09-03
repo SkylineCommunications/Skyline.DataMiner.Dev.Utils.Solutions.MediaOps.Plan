@@ -3,29 +3,27 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using System;
 
 	/// <summary>
-	/// Represents a link between a job and another object, e.g. a booking or a reference in an external system.
-	/// Only the linked object has to be described: the job side of the relationship is filled in automatically.
+	/// Describes the object a job is linked to, e.g. a booking or a reference in an external system.
+	/// Only this side of the relationship has to be described: the job side is filled in automatically.
 	/// </summary>
-	public class JobLink
+	public class JobRelationshipEndpoint
 	{
 		/// <summary>
-		/// Initializes a new instance of the <see cref="JobLink"/> class.
+		/// Initializes a new instance of the <see cref="JobRelationshipEndpoint"/> class.
 		/// </summary>
 		/// <param name="objectType">The type of the object that is linked to the job.</param>
-		/// <param name="objectId">The identifier of the object that is linked to the job. Optional: an object that has no identifier of its own can be described by its name and URL.</param>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="objectType"/> is <see langword="null"/>.</exception>
-		public JobLink(RelationshipObjectType objectType, string objectId)
-			: this(objectType?.Id ?? throw new ArgumentNullException(nameof(objectType)), objectId)
+		public JobRelationshipEndpoint(RelationshipObjectType objectType)
+			: this(objectType?.Id ?? throw new ArgumentNullException(nameof(objectType)))
 		{
 		}
 
 		/// <summary>
-		/// Initializes a new instance of the <see cref="JobLink"/> class.
+		/// Initializes a new instance of the <see cref="JobRelationshipEndpoint"/> class.
 		/// </summary>
 		/// <param name="objectTypeId">The unique identifier of the type of the object that is linked to the job.</param>
-		/// <param name="objectId">The identifier of the object that is linked to the job. Optional: an object that has no identifier of its own can be described by its name and URL.</param>
 		/// <exception cref="ArgumentException">Thrown when <paramref name="objectTypeId"/> is <see cref="Guid.Empty"/>.</exception>
-		public JobLink(Guid objectTypeId, string objectId)
+		public JobRelationshipEndpoint(Guid objectTypeId)
 		{
 			if (objectTypeId == Guid.Empty)
 			{
@@ -33,12 +31,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			ObjectTypeId = objectTypeId;
-			ObjectId = objectId;
 			JobIsParent = true;
 		}
 
 		// A copy is an unsaved link, so it follows the create convention instead of inheriting the original's storage side.
-		internal JobLink(JobLink original)
+		internal JobRelationshipEndpoint(JobRelationshipEndpoint original)
 		{
 			ObjectTypeId = original.ObjectTypeId;
 			ObjectId = original.ObjectId;
@@ -48,7 +45,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		// Links that are already stored bypass validation: the solution allows an empty object type and object id.
-		internal JobLink(Guid objectTypeId, string objectId, Guid relationshipId, bool jobIsParent)
+		internal JobRelationshipEndpoint(Guid objectTypeId, string objectId, Guid relationshipId, bool jobIsParent)
 		{
 			ObjectTypeId = objectTypeId;
 			ObjectId = objectId;
@@ -87,32 +84,32 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <inheritdoc/>
 		public override int GetHashCode()
 		{
-			// Only the object type takes part: the object id is optional and the relationship id changes when the link
-			// is saved, so neither can contribute to a stable hash.
-			return ObjectTypeId.GetHashCode();
+			unchecked
+			{
+				var hash = 17;
+				hash = (hash * 23) + Id.GetHashCode();
+				hash = (hash * 23) + ObjectTypeId.GetHashCode();
+				hash = (hash * 23) + (ObjectId != null ? ObjectId.GetHashCode() : 0);
+				hash = (hash * 23) + (ObjectName != null ? ObjectName.GetHashCode() : 0);
+				hash = (hash * 23) + (Url != null ? Url.GetHashCode() : 0);
+
+				return hash;
+			}
 		}
 
 		/// <inheritdoc/>
 		public override bool Equals(object obj)
 		{
-			if (obj is not JobLink other)
+			if (obj is not JobRelationshipEndpoint other)
 			{
 				return false;
 			}
 
-			if (ObjectTypeId != other.ObjectTypeId)
-			{
-				return false;
-			}
-
-			// Without an object id a link has no identity of its own, so several of them can coexist on a job and only
-			// the stored relationship tells them apart.
-			if (String.IsNullOrWhiteSpace(ObjectId) || String.IsNullOrWhiteSpace(other.ObjectId))
-			{
-				return Id != Guid.Empty && Id == other.Id;
-			}
-
-			return String.Equals(ObjectId, other.ObjectId, StringComparison.Ordinal);
+			return Id == other.Id
+				&& ObjectTypeId == other.ObjectTypeId
+				&& String.Equals(ObjectId, other.ObjectId, StringComparison.Ordinal)
+				&& String.Equals(ObjectName, other.ObjectName, StringComparison.Ordinal)
+				&& String.Equals(Url, other.Url, StringComparison.Ordinal);
 		}
 	}
 }

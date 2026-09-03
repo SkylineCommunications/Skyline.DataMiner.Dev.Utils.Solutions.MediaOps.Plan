@@ -5,14 +5,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using System.Linq;
 
 	/// <summary>
-	/// Per-job mutable view over a <see cref="JobLinksContext"/>. Exposes a flat list of <see cref="JobLink"/> objects
+	/// Per-job mutable view over a <see cref="JobLinksContext"/>. Exposes a flat list of <see cref="JobRelationshipEndpoint"/> objects
 	/// to the caller and translates the local state into <see cref="JobLinksPersistenceActions"/> when it is time to persist.
 	/// </summary>
 	internal sealed class JobLinksScope
 	{
 		private readonly Func<JobLinksContext> getContext;
 
-		private List<JobLink> links;
+		private List<JobRelationshipEndpoint> links;
 		private bool isDirty;
 
 		internal JobLinksScope(Func<JobLinksContext> getContext)
@@ -22,13 +22,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		internal bool IsDirty => isDirty;
 
-		internal IReadOnlyCollection<JobLink> Links => Current;
+		internal IReadOnlyCollection<JobRelationshipEndpoint> Links => Current;
 
 		private JobLinksContext Context => getContext?.Invoke();
 
-		private List<JobLink> Current => links ??= BuildInitialLinks();
+		private List<JobRelationshipEndpoint> Current => links ??= BuildInitialLinks();
 
-		internal void AddLink(JobLink link)
+		internal void AddLink(JobRelationshipEndpoint link)
 		{
 			if (link == null)
 			{
@@ -36,7 +36,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			// Adding a link that points at the same object replaces it, so a job never ends up with duplicates.
-			var existing = Current.FirstOrDefault(x => x.Equals(link));
+			var existing = Current.FirstOrDefault(x => PointsAtSameObject(x, link));
 			if (existing != null)
 			{
 				existing.ObjectName = link.ObjectName;
@@ -50,17 +50,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			isDirty = true;
 		}
 
-		internal void SetLinks(IEnumerable<JobLink> newLinks)
+		internal void SetLinks(IEnumerable<JobRelationshipEndpoint> newLinks)
 		{
 			if (newLinks == null)
 			{
 				throw new ArgumentNullException(nameof(newLinks));
 			}
 
-			var replacement = new List<JobLink>();
+			var replacement = new List<JobRelationshipEndpoint>();
 			foreach (var link in newLinks.Where(x => x != null))
 			{
-				var existing = replacement.FirstOrDefault(x => x.Equals(link));
+				var existing = replacement.FirstOrDefault(x => PointsAtSameObject(x, link));
 				if (existing != null)
 				{
 					existing.ObjectName = link.ObjectName;
@@ -69,7 +69,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				}
 
 				// Keep the stored identity so replacing the collection updates existing relationships instead of recreating them.
-				var match = Current.FirstOrDefault(x => x.Equals(link));
+				var match = Current.FirstOrDefault(x => PointsAtSameObject(x, link));
 				if (match != null && link.Id == Guid.Empty)
 				{
 					link.Id = match.Id;
@@ -83,14 +83,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			isDirty = true;
 		}
 
-		internal void RemoveLink(JobLink link)
+		internal void RemoveLink(JobRelationshipEndpoint link)
 		{
 			if (link == null)
 			{
 				throw new ArgumentNullException(nameof(link));
 			}
 
-			var existing = Current.FirstOrDefault(x => x.Equals(link));
+			var existing = Current.FirstOrDefault(x => PointsAtSameObject(x, link));
 			if (existing != null)
 			{
 				Current.Remove(existing);
@@ -149,7 +149,25 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return actions;
 		}
 
-		private static void ApplyToRelationship(Relationship relationship, JobLink link, JobLinksContext context, Guid jobObjectTypeId)
+		// Matching is on the object a link points at, not on its whole value: AddLink refreshes the name and URL of a
+		// link that already points at the same object, and RemoveLink does not need them to be passed in. Without an
+		// object id there is nothing to match on, so only the stored relationship tells two such links apart.
+		private static bool PointsAtSameObject(JobRelationshipEndpoint left, JobRelationshipEndpoint right)
+		{
+			if (left.ObjectTypeId != right.ObjectTypeId)
+			{
+				return false;
+			}
+
+			if (String.IsNullOrWhiteSpace(left.ObjectId) || String.IsNullOrWhiteSpace(right.ObjectId))
+			{
+				return left.Id != Guid.Empty && left.Id == right.Id;
+			}
+
+			return String.Equals(left.ObjectId, right.ObjectId, StringComparison.Ordinal);
+		}
+
+		private static void ApplyToRelationship(Relationship relationship, JobRelationshipEndpoint link, JobLinksContext context, Guid jobObjectTypeId)
 		{
 			var jobEndpoint = link.JobIsParent ? relationship.Parent : relationship.Child;
 			var linkedEndpoint = link.JobIsParent ? relationship.Child : relationship.Parent;
@@ -164,15 +182,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			linkedEndpoint.Url = link.Url;
 		}
 
-		private List<JobLink> BuildInitialLinks()
+		private List<JobRelationshipEndpoint> BuildInitialLinks()
 		{
 			var context = Context;
 
-			return context?.InitialLinks.Select(x => new JobLink(x.ObjectTypeId, x.ObjectId, x.Id, x.JobIsParent)
+			return context?.InitialLinks.Select(x => new JobRelationshipEndpoint(x.ObjectTypeId, x.ObjectId, x.Id, x.JobIsParent)
 			{
 				ObjectName = x.ObjectName,
 				Url = x.Url,
-			}).ToList() ?? new List<JobLink>();
+			}).ToList() ?? new List<JobRelationshipEndpoint>();
 		}
 	}
 

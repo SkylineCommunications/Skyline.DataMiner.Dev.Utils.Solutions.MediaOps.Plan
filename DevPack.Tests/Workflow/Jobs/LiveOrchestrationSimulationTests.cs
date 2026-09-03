@@ -447,7 +447,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			SetOrchestrationEventState(setup, prerollStart.ID, LiveEnums.EventState.Cancelled);
 
 			var objectType = setup.Api.RelationshipObjectTypes.Create(new RelationshipObjectType { Name = $"{Guid.NewGuid()}_Booking" });
-			confirmedJob.AddLink(new JobLink(objectType, "booking-1"));
+			confirmedJob.AddLink(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1" });
 
 			var updatedJob = setup.Api.Jobs.Update(confirmedJob);
 
@@ -817,7 +817,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			// Property values are stored outside the job instance, so only the property scope marks this as more
 			// than a link-only save. An orchestration parameter can reference a job property.
 			var objectType = setup.Api.RelationshipObjectTypes.Create(new RelationshipObjectType { Name = $"{prefix}_Booking" });
-			confirmedJob.AddLink(new JobLink(objectType, "booking-1"));
+			confirmedJob.AddLink(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1" });
 			confirmedJob.AddProperty(new StringPropertySetting(jobProperty) { Value = "Property value" });
 
 			var updatedJob = setup.Api.Jobs.Update(confirmedJob);
@@ -864,7 +864,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			SetOrchestrationEventState(setup, prerollStart.ID, LiveEnums.EventState.Cancelled);
 
 			var objectType = setup.Api.RelationshipObjectTypes.Create(new RelationshipObjectType { Name = $"{prefix}_Booking" });
-			confirmedJob.AddLink(new JobLink(objectType, "booking-1"));
+			confirmedJob.AddLink(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1" });
 
 			// Changing only a configured value keeps the node fully configured, so the job instance itself does not
 			// change. The orchestration settings still have to reach MediaOps Live.

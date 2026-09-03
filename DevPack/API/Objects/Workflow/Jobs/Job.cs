@@ -1,4 +1,4 @@
-﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
 	using System.Collections.Generic;
@@ -193,7 +193,7 @@
 			//    once the duplicate is saved.
 			foreach (var link in original.Links)
 			{
-				AddLink(new JobLink(link));
+				AddLink(new JobRelationshipEndpoint(link));
 			}
 		}
 
@@ -292,7 +292,7 @@
 		/// Gets the objects that are linked to this job. Links are loaded lazily.
 		/// Use <see cref="AddLink"/>, <see cref="SetLinks"/> and <see cref="RemoveLink"/> to modify them.
 		/// </summary>
-		public IReadOnlyCollection<JobLink> Links => GetOrCreateLinksScope().Links;
+		public IReadOnlyCollection<JobRelationshipEndpoint> Links => GetOrCreateLinksScope().Links;
 
 		/// <summary>
 		/// Gets or sets the ID of the organization associated with the job.
@@ -450,7 +450,7 @@
 		/// <param name="link">The link to add.</param>
 		/// <returns>The current <see cref="Job"/> instance.</returns>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="link"/> is <see langword="null"/>.</exception>
-		public Job AddLink(JobLink link)
+		public Job AddLink(JobRelationshipEndpoint link)
 		{
 			GetOrCreateLinksScope().AddLink(link);
 			return this;
@@ -462,19 +462,19 @@
 		/// <param name="links">The links that should replace the current collection.</param>
 		/// <returns>The current <see cref="Job"/> instance.</returns>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="links"/> is <see langword="null"/>.</exception>
-		public Job SetLinks(IEnumerable<JobLink> links)
+		public Job SetLinks(IEnumerable<JobRelationshipEndpoint> links)
 		{
 			GetOrCreateLinksScope().SetLinks(links);
 			return this;
 		}
 
 		/// <summary>
-		/// Removes the link to the object described by the specified <see cref="JobLink"/> from this job.
+		/// Removes the link to the object described by the specified <see cref="JobRelationshipEndpoint"/> from this job.
 		/// </summary>
 		/// <param name="link">The link to remove.</param>
 		/// <returns>The current <see cref="Job"/> instance.</returns>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="link"/> is <see langword="null"/>.</exception>
-		public Job RemoveLink(JobLink link)
+		public Job RemoveLink(JobRelationshipEndpoint link)
 		{
 			GetOrCreateLinksScope().RemoveLink(link);
 			return this;
