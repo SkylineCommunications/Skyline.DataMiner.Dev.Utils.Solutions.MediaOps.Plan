@@ -35,8 +35,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		{
 			var job = new Job { Name = "Test" };
 
-			Assert.IsNotNull(job.Links);
-			Assert.AreEqual(0, job.Links.Count);
+			Assert.IsNotNull(job.RelationshipEndpoints);
+			Assert.AreEqual(0, job.RelationshipEndpoints.Count);
 		}
 
 		[TestMethod]
@@ -46,7 +46,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var objectType = objectCreator.CreateRelationshipObjectType(new RelationshipObjectType { Name = $"{prefix}_Booking" });
 
 			var job = NewJob($"{prefix}_Job");
-			job.AddLink(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1",
+			job.AddRelationshipEndpoint(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1",
 				ObjectName = "Evening show",
 				Url = "https://example.invalid/booking/1",
 			});
@@ -55,9 +55,9 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var returned = TestContext.Api.Jobs.Read(job.Id);
 			Assert.IsNotNull(returned);
-			Assert.AreEqual(1, returned.Links.Count);
+			Assert.AreEqual(1, returned.RelationshipEndpoints.Count);
 
-			var link = returned.Links.Single();
+			var link = returned.RelationshipEndpoints.Single();
 			Assert.AreEqual(objectType.Id, link.ObjectTypeId);
 			Assert.AreEqual("booking-1", link.ObjectId);
 			Assert.AreEqual("Evening show", link.ObjectName);
@@ -72,7 +72,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var objectType = objectCreator.CreateRelationshipObjectType(new RelationshipObjectType { Name = $"{prefix}_Booking" });
 
 			var job = NewJob($"{prefix}_Job");
-			job.AddLink(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1", ObjectName = "Evening show" });
+			job.AddRelationshipEndpoint(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1", ObjectName = "Evening show" });
 			job = objectCreator.CreateJob(job);
 
 			var jobObjectType = TestContext.Api.RelationshipObjectTypes
@@ -99,12 +99,12 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var objectType = objectCreator.CreateRelationshipObjectType(new RelationshipObjectType { Name = $"{prefix}_Booking" });
 
 			var job = NewJob($"{prefix}_Job");
-			job.AddLink(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1", ObjectName = "Original" });
+			job.AddRelationshipEndpoint(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1", ObjectName = "Original" });
 			job = objectCreator.CreateJob(job);
 
-			var originalLinkId = job.Links.Single().Id;
+			var originalLinkId = job.RelationshipEndpoints.Single().Id;
 
-			job.AddLink(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1",
+			job.AddRelationshipEndpoint(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1",
 				ObjectName = "Renamed",
 				Url = "https://example.invalid/renamed",
 			});
@@ -112,9 +112,9 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var returned = TestContext.Api.Jobs.Read(job.Id);
 			Assert.IsNotNull(returned);
-			Assert.AreEqual(1, returned.Links.Count, "Adding a link to the same object must not create a duplicate.");
+			Assert.AreEqual(1, returned.RelationshipEndpoints.Count, "Adding a link to the same object must not create a duplicate.");
 
-			var link = returned.Links.Single();
+			var link = returned.RelationshipEndpoints.Single();
 			Assert.AreEqual(originalLinkId, link.Id);
 			Assert.AreEqual("Renamed", link.ObjectName);
 			Assert.AreEqual("https://example.invalid/renamed", link.Url);
@@ -127,20 +127,20 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var objectType = objectCreator.CreateRelationshipObjectType(new RelationshipObjectType { Name = $"{prefix}_Booking" });
 
 			var job = NewJob($"{prefix}_Job");
-			job.AddLink(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1" });
-			job.AddLink(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-2" });
+			job.AddRelationshipEndpoint(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1" });
+			job.AddRelationshipEndpoint(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-2" });
 			job = objectCreator.CreateJob(job);
 
-			Assert.AreEqual(2, job.Links.Count);
-			var removedLinkId = job.Links.Single(x => x.ObjectId == "booking-1").Id;
+			Assert.AreEqual(2, job.RelationshipEndpoints.Count);
+			var removedLinkId = job.RelationshipEndpoints.Single(x => x.ObjectId == "booking-1").Id;
 
-			job.RemoveLink(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1" });
+			job.RemoveRelationshipEndpoint(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1" });
 			TestContext.Api.Jobs.Update(job);
 
 			var returned = TestContext.Api.Jobs.Read(job.Id);
 			Assert.IsNotNull(returned);
-			Assert.AreEqual(1, returned.Links.Count);
-			Assert.AreEqual("booking-2", returned.Links.Single().ObjectId);
+			Assert.AreEqual(1, returned.RelationshipEndpoints.Count);
+			Assert.AreEqual("booking-2", returned.RelationshipEndpoints.Single().ObjectId);
 			Assert.IsNull(TestContext.Api.Relationships.Read(removedLinkId));
 		}
 
@@ -151,17 +151,17 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var objectType = objectCreator.CreateRelationshipObjectType(new RelationshipObjectType { Name = $"{prefix}_Booking" });
 
 			var job = NewJob($"{prefix}_Job");
-			job.AddLink(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1" });
-			job.AddLink(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-2" });
+			job.AddRelationshipEndpoint(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1" });
+			job.AddRelationshipEndpoint(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-2" });
 			job = objectCreator.CreateJob(job);
 
-			job.SetLinks([new JobRelationshipEndpoint(objectType) { ObjectId = "booking-2", ObjectName = "Kept" }, new JobRelationshipEndpoint(objectType) { ObjectId = "booking-3" }]);
+			job.SetRelationshipEndpoints([new JobRelationshipEndpoint(objectType) { ObjectId = "booking-2", ObjectName = "Kept" }, new JobRelationshipEndpoint(objectType) { ObjectId = "booking-3" }]);
 			TestContext.Api.Jobs.Update(job);
 
 			var returned = TestContext.Api.Jobs.Read(job.Id);
 			Assert.IsNotNull(returned);
-			CollectionAssert.AreEquivalent(new[] { "booking-2", "booking-3" }, returned.Links.Select(x => x.ObjectId).ToArray());
-			Assert.AreEqual("Kept", returned.Links.Single(x => x.ObjectId == "booking-2").ObjectName);
+			CollectionAssert.AreEquivalent(new[] { "booking-2", "booking-3" }, returned.RelationshipEndpoints.Select(x => x.ObjectId).ToArray());
+			Assert.AreEqual("Kept", returned.RelationshipEndpoints.Single(x => x.ObjectId == "booking-2").ObjectName);
 		}
 
 		[TestMethod]
@@ -171,10 +171,10 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var objectType = objectCreator.CreateRelationshipObjectType(new RelationshipObjectType { Name = $"{prefix}_Booking" });
 
 			var job = NewJob($"{prefix}_Job");
-			job.AddLink(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1" });
+			job.AddRelationshipEndpoint(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1" });
 			job = objectCreator.CreateJob(job);
 
-			var linkId = job.Links.Single().Id;
+			var linkId = job.RelationshipEndpoints.Single().Id;
 
 			TestContext.Api.Jobs.Delete(job);
 
@@ -188,10 +188,10 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var objectType = objectCreator.CreateRelationshipObjectType(new RelationshipObjectType { Name = $"{prefix}_Booking" });
 
 			var job = NewJob($"{prefix}_Job");
-			job.AddLink(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1", ObjectName = "Evening show" });
+			job.AddRelationshipEndpoint(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1", ObjectName = "Evening show" });
 			job = objectCreator.CreateJob(job);
 
-			var originalLinkId = job.Links.Single().Id;
+			var originalLinkId = job.RelationshipEndpoints.Single().Id;
 
 			var duplicate = job.Duplicate();
 			duplicate.Name = $"{prefix}_Duplicate";
@@ -199,9 +199,9 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var returned = TestContext.Api.Jobs.Read(duplicate.Id);
 			Assert.IsNotNull(returned);
-			Assert.AreEqual(1, returned.Links.Count);
+			Assert.AreEqual(1, returned.RelationshipEndpoints.Count);
 
-			var link = returned.Links.Single();
+			var link = returned.RelationshipEndpoints.Single();
 			Assert.AreEqual(objectType.Id, link.ObjectTypeId);
 			Assert.AreEqual("booking-1", link.ObjectId);
 			Assert.AreEqual("Evening show", link.ObjectName);
@@ -231,9 +231,9 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var returned = TestContext.Api.Jobs.Read(job.Id);
 			Assert.IsNotNull(returned);
-			Assert.AreEqual(1, returned.Links.Count);
+			Assert.AreEqual(1, returned.RelationshipEndpoints.Count);
 
-			var link = returned.Links.Single();
+			var link = returned.RelationshipEndpoints.Single();
 			Assert.AreEqual(objectType.Id, link.ObjectTypeId);
 			Assert.AreEqual("booking-1", link.ObjectId);
 			Assert.AreEqual("Evening show", link.ObjectName);
@@ -275,7 +275,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var jobObjectType = ReadJobObjectType();
 
 			var job = NewJob($"{prefix}_Job");
-			job.AddLink(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1" });
+			job.AddRelationshipEndpoint(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1" });
 
 			RenameJobObjectType(jobObjectType.Id, $"{prefix}_NotAJob");
 			try
@@ -313,17 +313,17 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var job = NewJob($"{prefix}_Job");
 
 			// Documents have no identifier of their own, so two of them must not collapse into one link.
-			job.AddLink(new JobRelationshipEndpoint(objectType) { ObjectName = "Spec", Url = "https://example.invalid/spec" });
-			job.AddLink(new JobRelationshipEndpoint(objectType) { ObjectName = "Manual", Url = "https://example.invalid/manual" });
+			job.AddRelationshipEndpoint(new JobRelationshipEndpoint(objectType) { ObjectName = "Spec", Url = "https://example.invalid/spec" });
+			job.AddRelationshipEndpoint(new JobRelationshipEndpoint(objectType) { ObjectName = "Manual", Url = "https://example.invalid/manual" });
 
 			job = objectCreator.CreateJob(job);
 
 			var returned = TestContext.Api.Jobs.Read(job.Id);
 			Assert.IsNotNull(returned);
-			Assert.AreEqual(2, returned.Links.Count);
+			Assert.AreEqual(2, returned.RelationshipEndpoints.Count);
 			CollectionAssert.AreEquivalent(
 				new[] { "Spec", "Manual" },
-				returned.Links.Select(x => x.ObjectName).ToArray());
+				returned.RelationshipEndpoints.Select(x => x.ObjectName).ToArray());
 		}
 
 		[TestMethod]
@@ -333,16 +333,16 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var objectType = objectCreator.CreateRelationshipObjectType(new RelationshipObjectType { Name = $"{prefix}_Document" });
 
 			var job = NewJob($"{prefix}_Job");
-			job.AddLink(new JobRelationshipEndpoint(objectType) { ObjectName = "Spec" });
-			job.AddLink(new JobRelationshipEndpoint(objectType) { ObjectName = "Manual" });
+			job.AddRelationshipEndpoint(new JobRelationshipEndpoint(objectType) { ObjectName = "Spec" });
+			job.AddRelationshipEndpoint(new JobRelationshipEndpoint(objectType) { ObjectName = "Manual" });
 			job = objectCreator.CreateJob(job);
 
-			job.RemoveLink(job.Links.Single(x => x.ObjectName == "Spec"));
+			job.RemoveRelationshipEndpoint(job.RelationshipEndpoints.Single(x => x.ObjectName == "Spec"));
 			TestContext.Api.Jobs.Update(job);
 
 			var returned = TestContext.Api.Jobs.Read(job.Id);
 			Assert.IsNotNull(returned);
-			Assert.AreEqual("Manual", returned.Links.Single().ObjectName);
+			Assert.AreEqual("Manual", returned.RelationshipEndpoints.Single().ObjectName);
 		}
 
 		private static Job NewJob(string name)

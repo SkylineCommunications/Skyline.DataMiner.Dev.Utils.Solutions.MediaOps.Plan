@@ -22,13 +22,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		internal bool IsDirty => isDirty;
 
-		internal IReadOnlyCollection<JobRelationshipEndpoint> Links => Current;
+		internal IReadOnlyCollection<JobRelationshipEndpoint> RelationshipEndpoints => Current;
 
 		private JobRelationshipsContext Context => getContext?.Invoke();
 
-		private List<JobRelationshipEndpoint> Current => links ??= BuildInitialLinks();
+		private List<JobRelationshipEndpoint> Current => links ??= BuildInitialEndpoints();
 
-		internal void AddLink(JobRelationshipEndpoint link)
+		internal void AddRelationshipEndpoint(JobRelationshipEndpoint link)
 		{
 			if (link == null)
 			{
@@ -50,7 +50,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			isDirty = true;
 		}
 
-		internal void SetLinks(IEnumerable<JobRelationshipEndpoint> newLinks)
+		internal void SetRelationshipEndpoints(IEnumerable<JobRelationshipEndpoint> newLinks)
 		{
 			if (newLinks == null)
 			{
@@ -83,7 +83,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			isDirty = true;
 		}
 
-		internal void RemoveLink(JobRelationshipEndpoint link)
+		internal void RemoveRelationshipEndpoint(JobRelationshipEndpoint link)
 		{
 			if (link == null)
 			{
@@ -149,8 +149,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return actions;
 		}
 
-		// Matching is on the object a link points at, not on its whole value: AddLink refreshes the name and URL of a
-		// link that already points at the same object, and RemoveLink does not need them to be passed in. Without an
+		// Matching is on the object a link points at, not on its whole value: AddRelationshipEndpoint refreshes the name and URL of a
+		// link that already points at the same object, and RemoveRelationshipEndpoint does not need them to be passed in. Without an
 		// object id there is nothing to match on, so only the stored relationship tells two such links apart.
 		private static bool PointsAtSameObject(JobRelationshipEndpoint left, JobRelationshipEndpoint right)
 		{
@@ -182,11 +182,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			linkedEndpoint.Url = link.Url;
 		}
 
-		private List<JobRelationshipEndpoint> BuildInitialLinks()
+		private List<JobRelationshipEndpoint> BuildInitialEndpoints()
 		{
 			var context = Context;
 
-			return context?.InitialLinks.Select(x => new JobRelationshipEndpoint(x.ObjectTypeId, x.ObjectId, x.Id, x.JobIsParent)
+			return context?.InitialEndpoints.Select(x => new JobRelationshipEndpoint(x.ObjectTypeId, x.ObjectId, x.Id, x.JobIsParent)
 			{
 				ObjectName = x.ObjectName,
 				Url = x.Url,

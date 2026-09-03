@@ -447,11 +447,11 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			SetOrchestrationEventState(setup, prerollStart.ID, LiveEnums.EventState.Cancelled);
 
 			var objectType = setup.Api.RelationshipObjectTypes.Create(new RelationshipObjectType { Name = $"{Guid.NewGuid()}_Booking" });
-			confirmedJob.AddLink(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1" });
+			confirmedJob.AddRelationshipEndpoint(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1" });
 
 			var updatedJob = setup.Api.Jobs.Update(confirmedJob);
 
-			Assert.AreEqual(1, updatedJob.Links.Count, "Expected the link to be saved.");
+			Assert.AreEqual(1, updatedJob.RelationshipEndpoints.Count, "Expected the link to be saved.");
 			Assert.AreEqual(
 				LiveEnums.EventState.Cancelled,
 				GetEvent(GetLiveConfiguration(setup, updatedJob), LiveEnums.EventType.PrerollStart).EventState,
@@ -817,12 +817,12 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			// Property values are stored outside the job instance, so only the property scope marks this as more
 			// than a link-only save. An orchestration parameter can reference a job property.
 			var objectType = setup.Api.RelationshipObjectTypes.Create(new RelationshipObjectType { Name = $"{prefix}_Booking" });
-			confirmedJob.AddLink(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1" });
+			confirmedJob.AddRelationshipEndpoint(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1" });
 			confirmedJob.AddProperty(new StringPropertySetting(jobProperty) { Value = "Property value" });
 
 			var updatedJob = setup.Api.Jobs.Update(confirmedJob);
 
-			Assert.AreEqual(1, updatedJob.Links.Count, "Expected the link to be saved.");
+			Assert.AreEqual(1, updatedJob.RelationshipEndpoints.Count, "Expected the link to be saved.");
 			Assert.AreEqual(
 				LiveEnums.EventState.Confirmed,
 				GetEvent(GetLiveConfiguration(setup, updatedJob), LiveEnums.EventType.PrerollStart).EventState,
@@ -864,7 +864,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			SetOrchestrationEventState(setup, prerollStart.ID, LiveEnums.EventState.Cancelled);
 
 			var objectType = setup.Api.RelationshipObjectTypes.Create(new RelationshipObjectType { Name = $"{prefix}_Booking" });
-			confirmedJob.AddLink(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1" });
+			confirmedJob.AddRelationshipEndpoint(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1" });
 
 			// Changing only a configured value keeps the node fully configured, so the job instance itself does not
 			// change. The orchestration settings still have to reach MediaOps Live.
@@ -881,7 +881,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var updatedJob = setup.Api.Jobs.Update(confirmedJob);
 
-			Assert.AreEqual(1, updatedJob.Links.Count, "Expected the link to be saved.");
+			Assert.AreEqual(1, updatedJob.RelationshipEndpoints.Count, "Expected the link to be saved.");
 
 			var liveConfiguration = GetLiveConfiguration(setup, updatedJob);
 			var nodeConfiguration = GetEvent(liveConfiguration, LiveEnums.EventType.PrerollStart).Configuration.NodeConfigurations.Single();

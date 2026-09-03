@@ -13,18 +13,18 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// </summary>
 	internal sealed class JobRelationshipsContext
 	{
-		private static readonly IReadOnlyCollection<JobRelationshipEndpoint> EmptyLinks = [];
+		private static readonly IReadOnlyCollection<JobRelationshipEndpoint> EmptyEndpoints = [];
 
 		private readonly Guid ownerId;
 		private readonly Func<string> getOwnerName;
-		private readonly Lazy<LoadedLinks> lazy;
+		private readonly Lazy<LoadedEndpoints> lazy;
 
 		internal JobRelationshipsContext(MediaOpsPlanApi planApi, Guid ownerId, Func<string> getOwnerName)
 		{
 			this.ownerId = ownerId;
 			this.getOwnerName = getOwnerName;
 
-			lazy = new Lazy<LoadedLinks>(() => Load(planApi, ownerId));
+			lazy = new Lazy<LoadedEndpoints>(() => Load(planApi, ownerId));
 		}
 
 		/// <summary>
@@ -37,7 +37,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// </summary>
 		internal string OwnerName => getOwnerName?.Invoke();
 
-		internal IReadOnlyCollection<JobRelationshipEndpoint> InitialLinks => lazy.Value.Links;
+		internal IReadOnlyCollection<JobRelationshipEndpoint> InitialEndpoints => lazy.Value.RelationshipEndpoints;
 
 		internal IReadOnlyCollection<Relationship> OriginalRelationships => lazy.Value.Relationships.Values.ToList();
 
@@ -86,18 +86,18 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return objectType?.Id ?? Guid.Empty;
 		}
 
-		private static LoadedLinks Load(MediaOpsPlanApi planApi, Guid ownerId)
+		private static LoadedEndpoints Load(MediaOpsPlanApi planApi, Guid ownerId)
 		{
 			if (planApi == null)
 			{
 				// New/unsaved job: nothing has ever been persisted yet.
-				return new LoadedLinks(Guid.Empty, EmptyLinks, new Dictionary<Guid, Relationship>());
+				return new LoadedEndpoints(Guid.Empty, EmptyEndpoints, new Dictionary<Guid, Relationship>());
 			}
 
 			var jobObjectTypeId = ResolveJobObjectTypeId(planApi);
 			if (jobObjectTypeId == Guid.Empty)
 			{
-				return new LoadedLinks(Guid.Empty, EmptyLinks, new Dictionary<Guid, Relationship>());
+				return new LoadedEndpoints(Guid.Empty, EmptyEndpoints, new Dictionary<Guid, Relationship>());
 			}
 
 			var objectId = ownerId.ToString();
@@ -114,7 +114,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				links.Add(ToEndpoint(relationship, jobObjectTypeId, objectId));
 			}
 
-			return new LoadedLinks(jobObjectTypeId, links, relationshipsById);
+			return new LoadedEndpoints(jobObjectTypeId, links, relationshipsById);
 		}
 
 		/// <summary>
@@ -135,18 +135,18 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			};
 		}
 
-		private sealed class LoadedLinks
+		private sealed class LoadedEndpoints
 		{
-			internal LoadedLinks(Guid jobObjectTypeId, IReadOnlyCollection<JobRelationshipEndpoint> links, Dictionary<Guid, Relationship> relationships)
+			internal LoadedEndpoints(Guid jobObjectTypeId, IReadOnlyCollection<JobRelationshipEndpoint> endpoints, Dictionary<Guid, Relationship> relationships)
 			{
 				JobObjectTypeId = jobObjectTypeId;
-				Links = links;
+				RelationshipEndpoints = endpoints;
 				Relationships = relationships;
 			}
 
 			internal Guid JobObjectTypeId { get; }
 
-			internal IReadOnlyCollection<JobRelationshipEndpoint> Links { get; }
+			internal IReadOnlyCollection<JobRelationshipEndpoint> RelationshipEndpoints { get; }
 
 			internal Dictionary<Guid, Relationship> Relationships { get; }
 		}
