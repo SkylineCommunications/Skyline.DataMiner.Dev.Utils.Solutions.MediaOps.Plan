@@ -147,21 +147,7 @@
 
 		private DomJobSettings CreateLocked()
 		{
-			var toRemove = planApi.DomHelpers.SlcWorkflowHelper.GetAppSettings(DomInstanceExposers.DomDefinitionId.Equal(SlcWorkflowIds.Definitions.AppSettings.Id)).ToList();
-
-			DomJobSettings result;
-			if (toRemove.Count == 0)
-			{
-				result = CreateDefaultInstance();
-			}
-			else
-			{
-				result = MigrateInstance(toRemove.First());
-
-				planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.DeleteInBatches(toRemove.Select(i => i.ToInstance()));
-			}
-
-			return result;
+			return CreateDefaultInstance();
 		}
 
 		private DomJobSettings CreateDefaultInstance()
@@ -179,15 +165,6 @@
 			newInstance.JobSettings.DesiredJobStatus = SlcWorkflowIds.Enums.Desiredjobstatus.Draft;
 
 			var createdInstance = planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.Create(newInstance.ToInstance());
-			return new DomJobSettings(createdInstance);
-		}
-
-		private DomJobSettings MigrateInstance(DomJobSettings source)
-		{
-			var mergedInstance = new DomJobSettings(JobSettingId);
-			mergedInstance.JobSettings = source.JobSettings;
-
-			var createdInstance = planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.Create(mergedInstance.ToInstance());
 			return new DomJobSettings(createdInstance);
 		}
 
