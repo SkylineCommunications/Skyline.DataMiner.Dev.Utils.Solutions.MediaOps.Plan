@@ -12,9 +12,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Initializes a new instance of the <see cref="JobLink"/> class.
 		/// </summary>
 		/// <param name="objectType">The type of the object that is linked to the job.</param>
-		/// <param name="objectId">The identifier of the object that is linked to the job.</param>
+		/// <param name="objectId">The identifier of the object that is linked to the job. Optional: an object that has no identifier of its own can be described by its name and URL.</param>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="objectType"/> is <see langword="null"/>.</exception>
-		/// <exception cref="ArgumentException">Thrown when <paramref name="objectId"/> is <see langword="null"/> or whitespace.</exception>
 		public JobLink(RelationshipObjectType objectType, string objectId)
 			: this(objectType?.Id ?? throw new ArgumentNullException(nameof(objectType)), objectId)
 		{
@@ -24,18 +23,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Initializes a new instance of the <see cref="JobLink"/> class.
 		/// </summary>
 		/// <param name="objectTypeId">The unique identifier of the type of the object that is linked to the job.</param>
-		/// <param name="objectId">The identifier of the object that is linked to the job.</param>
-		/// <exception cref="ArgumentException">Thrown when <paramref name="objectTypeId"/> is <see cref="Guid.Empty"/> or when <paramref name="objectId"/> is <see langword="null"/> or whitespace.</exception>
+		/// <param name="objectId">The identifier of the object that is linked to the job. Optional: an object that has no identifier of its own can be described by its name and URL.</param>
+		/// <exception cref="ArgumentException">Thrown when <paramref name="objectTypeId"/> is <see cref="Guid.Empty"/>.</exception>
 		public JobLink(Guid objectTypeId, string objectId)
 		{
 			if (objectTypeId == Guid.Empty)
 			{
 				throw new ArgumentException($"'{nameof(objectTypeId)}' must be filled out.", nameof(objectTypeId));
-			}
-
-			if (String.IsNullOrWhiteSpace(objectId))
-			{
-				throw new ArgumentException($"'{nameof(objectId)}' must be filled out.", nameof(objectId));
 			}
 
 			ObjectTypeId = objectTypeId;
@@ -93,14 +87,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <inheritdoc/>
 		public override int GetHashCode()
 		{
-			unchecked
-			{
-				var hash = 17;
-				hash = (hash * 23) + ObjectTypeId.GetHashCode();
-				hash = (hash * 23) + (ObjectId != null ? ObjectId.GetHashCode() : 0);
-
-				return hash;
-			}
+			// Only the object type takes part: the object id is optional and the relationship id changes when the link
+			// is saved, so neither can contribute to a stable hash.
+			return ObjectTypeId.GetHashCode();
 		}
 
 		/// <inheritdoc/>
@@ -111,8 +100,19 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return false;
 			}
 
-			return ObjectTypeId == other.ObjectTypeId
-				&& String.Equals(ObjectId, other.ObjectId, StringComparison.Ordinal);
+			if (ObjectTypeId != other.ObjectTypeId)
+			{
+				return false;
+			}
+
+			// Without an object id a link has no identity of its own, so several of them can coexist on a job and only
+			// the stored relationship tells them apart.
+			if (String.IsNullOrWhiteSpace(ObjectId) || String.IsNullOrWhiteSpace(other.ObjectId))
+			{
+				return Id != Guid.Empty && Id == other.Id;
+			}
+
+			return String.Equals(ObjectId, other.ObjectId, StringComparison.Ordinal);
 		}
 	}
 }

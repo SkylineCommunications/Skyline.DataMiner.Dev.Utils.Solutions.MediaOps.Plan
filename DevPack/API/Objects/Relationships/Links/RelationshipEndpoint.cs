@@ -19,19 +19,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Initializes a new instance of the <see cref="RelationshipEndpoint"/> class for the specified object type.
 		/// </summary>
 		/// <param name="objectType">The type of the object this endpoint points to.</param>
-		/// <param name="objectId">The identifier of the object this endpoint points to.</param>
+		/// <param name="objectId">The identifier of the object this endpoint points to. Optional: an endpoint can describe an object that has no identifier of its own.</param>
 		/// <exception cref="ArgumentNullException"><paramref name="objectType"/> is <see langword="null"/>.</exception>
-		/// <exception cref="ArgumentException"><paramref name="objectId"/> is <see langword="null"/> or whitespace.</exception>
 		public RelationshipEndpoint(RelationshipObjectType objectType, string objectId)
 		{
 			if (objectType == null)
 			{
 				throw new ArgumentNullException(nameof(objectType));
-			}
-
-			if (string.IsNullOrWhiteSpace(objectId))
-			{
-				throw new ArgumentException($"'{nameof(objectId)}' must be filled out.", nameof(objectId));
 			}
 
 			IsNew = true;
@@ -43,18 +37,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Initializes a new instance of the <see cref="RelationshipEndpoint"/> class for the specified object type identifier.
 		/// </summary>
 		/// <param name="objectTypeId">The unique identifier of the object type this endpoint points to.</param>
-		/// <param name="objectId">The identifier of the object this endpoint points to.</param>
-		/// <exception cref="ArgumentException"><paramref name="objectTypeId"/> is empty or <paramref name="objectId"/> is <see langword="null"/> or whitespace.</exception>
+		/// <param name="objectId">The identifier of the object this endpoint points to. Optional: an endpoint can describe an object that has no identifier of its own.</param>
+		/// <exception cref="ArgumentException"><paramref name="objectTypeId"/> is empty.</exception>
 		public RelationshipEndpoint(Guid objectTypeId, string objectId)
 		{
 			if (objectTypeId == Guid.Empty)
 			{
 				throw new ArgumentException($"'{nameof(objectTypeId)}' must be filled out.", nameof(objectTypeId));
-			}
-
-			if (string.IsNullOrWhiteSpace(objectId))
-			{
-				throw new ArgumentException($"'{nameof(objectId)}' must be filled out.", nameof(objectId));
 			}
 
 			IsNew = true;

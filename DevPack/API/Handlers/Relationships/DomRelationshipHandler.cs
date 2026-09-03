@@ -366,11 +366,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return $"{side} object type must be filled out.";
 			}
 
-			if (!InputValidator.IsNonEmptyText(endpoint.ObjectId))
-			{
-				return $"{side} object ID must be filled out.";
-			}
-
+			// The object id is optional: an endpoint may describe something that has no identifier, such as a document
+			// that is only reachable through its URL.
 			return null;
 		}
 	}

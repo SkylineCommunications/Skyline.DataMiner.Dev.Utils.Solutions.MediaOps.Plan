@@ -306,6 +306,47 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			helper.DomHelper.DomInstances.Update(instance.ToInstance());
 		}
 
+		[TestMethod]
+		public void AddLink_WithoutObjectId_KeepsSeparateLinks()
+		{
+			var prefix = Guid.NewGuid();
+			var objectType = objectCreator.CreateRelationshipObjectType(new RelationshipObjectType { Name = $"{prefix}_Document" });
+
+			var job = NewJob($"{prefix}_Job");
+
+			// Documents have no identifier of their own, so two of them must not collapse into one link.
+			job.AddLink(new JobLink(objectType, null) { ObjectName = "Spec", Url = "https://example.invalid/spec" });
+			job.AddLink(new JobLink(objectType, null) { ObjectName = "Manual", Url = "https://example.invalid/manual" });
+
+			job = objectCreator.CreateJob(job);
+
+			var returned = TestContext.Api.Jobs.Read(job.Id);
+			Assert.IsNotNull(returned);
+			Assert.AreEqual(2, returned.Links.Count);
+			CollectionAssert.AreEquivalent(
+				new[] { "Spec", "Manual" },
+				returned.Links.Select(x => x.ObjectName).ToArray());
+		}
+
+		[TestMethod]
+		public void RemoveLink_WithoutObjectId_RemovesOnlyThatLink()
+		{
+			var prefix = Guid.NewGuid();
+			var objectType = objectCreator.CreateRelationshipObjectType(new RelationshipObjectType { Name = $"{prefix}_Document" });
+
+			var job = NewJob($"{prefix}_Job");
+			job.AddLink(new JobLink(objectType, null) { ObjectName = "Spec" });
+			job.AddLink(new JobLink(objectType, null) { ObjectName = "Manual" });
+			job = objectCreator.CreateJob(job);
+
+			job.RemoveLink(job.Links.Single(x => x.ObjectName == "Spec"));
+			TestContext.Api.Jobs.Update(job);
+
+			var returned = TestContext.Api.Jobs.Read(job.Id);
+			Assert.IsNotNull(returned);
+			Assert.AreEqual("Manual", returned.Links.Single().ObjectName);
+		}
+
 		private static Job NewJob(string name)
 		{
 			var currentTime = DateTime.UtcNow.RoundToNextSecond();

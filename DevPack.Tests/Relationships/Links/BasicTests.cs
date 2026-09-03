@@ -154,13 +154,34 @@ namespace RT_MediaOps.Plan.Relationships.Links
 		}
 
 		[TestMethod]
-		public void CreateWithoutObjectIdThrowsException()
+		public void CreateWithoutObjectIdSucceeds()
 		{
 			var objectType = objectCreator.CreateRelationshipObjectType(new RelationshipObjectType { Name = $"{Guid.NewGuid()}_ObjectType" });
 
+			// An endpoint can describe something that has no identifier of its own, such as a document behind a URL.
+			var relationship = objectCreator.CreateRelationship(new Relationship(new RelationshipData
+			{
+				Parent = new RelationshipEndpoint(objectType, null) { ObjectName = "Parent" },
+				Child = new RelationshipEndpoint(objectType, null)
+				{
+					ObjectName = "Specification",
+					Url = "https://example.invalid/spec",
+				},
+			}));
+
+			var returned = TestContext.Api.Relationships.Read(relationship.Id);
+			Assert.IsNotNull(returned);
+			Assert.IsNull(returned.Child.ObjectId, "An empty object ID is removed from the section, so it reads back as null.");
+			Assert.AreEqual("Specification", returned.Child.ObjectName);
+			Assert.AreEqual("https://example.invalid/spec", returned.Child.Url);
+		}
+
+		[TestMethod]
+		public void CreateWithoutObjectTypeThrowsException()
+		{
 			var relationship = new Relationship();
-			relationship.Parent.ObjectTypeId = objectType.Id;
-			relationship.Child.ObjectTypeId = objectType.Id;
+			relationship.Parent.ObjectId = "parent-1";
+			relationship.Child.ObjectId = "child-1";
 
 			var exception = Assert.ThrowsException<MediaOpsException>(() => objectCreator.CreateRelationship(relationship));
 
