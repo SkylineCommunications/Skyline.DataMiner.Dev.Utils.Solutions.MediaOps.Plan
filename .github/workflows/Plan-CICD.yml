@@ -13,7 +13,7 @@ on:
      - '*.*.X'
     tags:
       - "[0-9]+.[0-9]+.[0-9]+"
-      # Prerelease tags; add 'NoRegression' to the suffix (e.g. 1.7.0-NoRegression003) to publish without integration tests.
+      # Prerelease tags; use an 'alpha' suffix (e.g. 1.7.0-alpha007) to publish without integration tests.
       - "[0-9]+.[0-9]+.[0-9]+-**"
   pull_request:
     branches: 
@@ -170,8 +170,8 @@ jobs:
     name: Integration Tests
     runs-on: windows-latest
     needs: [route, check_existing, nuget_validation]
-    # Prerelease tags containing 'NoRegression' (e.g. 1.7.0-NoRegression003) publish without running the integration tests.
-    if: ${{ always() && needs.route.outputs.should_run == 'true' && needs.check_existing.outputs.already_tested != 'true' && needs.nuget_validation.result == 'success' && !(github.ref_type == 'tag' && contains(github.ref_name, 'NoRegression')) }}
+    # Prerelease tags containing 'alpha' (e.g. 1.7.0-alpha007) publish without running the integration tests; every other suffix still runs them.
+    if: ${{ always() && needs.route.outputs.should_run == 'true' && needs.check_existing.outputs.already_tested != 'true' && needs.nuget_validation.result == 'success' && !(github.ref_type == 'tag' && contains(github.ref_name, 'alpha')) }}
     concurrency:
       group: reg-${{github.ref}}
 
@@ -206,14 +206,14 @@ jobs:
   internal_release:
     name: Internal Release
     needs: [route, check_existing, nuget_validation, integration_tests]
-    if: > #Trigger on branch changes or on prerelease tags (e.g. 1.2.3-something). Scheduled runs only test, never release. Branches may reuse a prior successful test run (check_existing always returns false for tags, so already_tested is implicitly branch-only). 'NoRegression' tags skip the integration tests but still require NuGet validation.
+    if: > #Trigger on branch changes or on prerelease tags (e.g. 1.2.3-something). Scheduled runs only test, never release. Branches may reuse a prior successful test run (check_existing always returns false for tags, so already_tested is implicitly branch-only). 'alpha' tags skip the integration tests but still require NuGet validation.
       always() &&
       github.event_name != 'schedule' &&
       needs.route.outputs.should_run == 'true' &&
       (github.ref_type == 'branch' || (github.ref_type == 'tag' && contains(github.ref, '-'))) &&
       (needs.check_existing.outputs.already_tested == 'true' ||
        (needs.nuget_validation.result == 'success' && needs.integration_tests.result == 'success') ||
-       (needs.nuget_validation.result == 'success' && github.ref_type == 'tag' && contains(github.ref_name, 'NoRegression')))
+       (needs.nuget_validation.result == 'success' && github.ref_type == 'tag' && contains(github.ref_name, 'alpha')))
     uses: SkylineCommunications/_ReusableWorkflows/.github/workflows/Master Workflow.yml@main
     with:
       sonarcloud-project-name: SkylineCommunications_Skyline.DataMiner.MediaOps.API
