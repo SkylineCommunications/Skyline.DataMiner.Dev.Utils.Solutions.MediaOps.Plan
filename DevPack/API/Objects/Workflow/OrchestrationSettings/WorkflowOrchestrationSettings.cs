@@ -23,7 +23,7 @@
 
 		private StorageWorkflow.ConfigurationInstance updatedInstance;
 
-		internal WorkflowOrchestrationSettings() : base()
+		public WorkflowOrchestrationSettings() : base()
 		{
 		}
 
