@@ -544,7 +544,7 @@
 		/// <returns>The created <see cref="NodeConnection{TNode}"/>.</returns>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="from"/> or <paramref name="to"/> is null.</exception>
 		/// <exception cref="InvalidOperationException">Thrown when either node is not part of the graph.</exception>
-		internal NodeConnection<TNode> Connect(TNode from, TNode to, ConnectionConfiguration configuration)
+		public NodeConnection<TNode> Connect(TNode from, TNode to, ConnectionConfiguration configuration)
 		{
 			var connection = CreateConnection(from, to);
 			connection.CopyConfigurationFrom(configuration);

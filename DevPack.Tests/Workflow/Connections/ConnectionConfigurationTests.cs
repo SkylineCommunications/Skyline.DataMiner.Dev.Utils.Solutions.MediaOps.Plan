@@ -1,5 +1,6 @@
 namespace RT_MediaOps.Plan.Workflow.Connections
 {
+	using System;
 	using System.Linq;
 
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
@@ -9,6 +10,27 @@ namespace RT_MediaOps.Plan.Workflow.Connections
 	[TestClass]
 	public sealed class ConnectionConfigurationTests
 	{
+		[TestMethod]
+		public void Connect_WithConfiguration_AppliesIndependentCopy()
+		{
+			var graph = new Workflow().NodeGraph;
+			var from = new WorkflowResourcePoolNode(Guid.NewGuid());
+			var to = new WorkflowResourcePoolNode(Guid.NewGuid());
+			var configuration = new ShuffleLevelBasedConnectionConfiguration()
+				.AddLevelMapping(destinationLevel: 1, sourceLevel: 10);
+			graph.Add(from).Add(to);
+
+			var connection = graph.Connect(from, to, configuration);
+			configuration.AddLevelMapping(destinationLevel: 2, sourceLevel: 20);
+
+			Assert.AreSame(connection, graph.Connections.Single());
+			Assert.AreNotSame(configuration, connection.Configuration);
+			var appliedConfiguration = connection.Configuration as ShuffleLevelBasedConnectionConfiguration;
+			Assert.IsNotNull(appliedConfiguration);
+			Assert.AreEqual(1, appliedConfiguration.LevelMappings.Count);
+			Assert.AreEqual(10L, appliedConfiguration.LevelMappings[1L]);
+		}
+
 		[TestMethod]
 		public void Shuffle_AddLevelMapping_ExposedAsReadOnly()
 		{
