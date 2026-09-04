@@ -288,7 +288,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 			if (request.MultipleContexts != null && request.MultipleContexts.Count > 0)
 			{
 				var results = request.MultipleContexts
-					.Select(context => new EligibleResourceResult(context.ContextId, GetEligibleResources(context).ToList(), new List<ResourceUsageDetails>()))
+					.Select(BuildEligibleResourceResult)
 					.ToList();
 
 				var response = new EligibleResourcesResponseMessage { Success = true };
@@ -297,13 +297,87 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 			}
 
 			var singleContext = request.Context;
-
-			var eligibleResources = GetEligibleResources(singleContext).ToList();
-			return new EligibleResourcesResponseMessage(new EligibleResourceResult(singleContext.ContextId, eligibleResources, new List<ResourceUsageDetails>()))
+			var result = BuildEligibleResourceResult(singleContext);
+			return new EligibleResourcesResponseMessage(result)
 			{
-				EligibleResources = eligibleResources.ToArray(),
+				EligibleResources = result.EligibleResources.ToArray(),
 				Success = true,
 			};
+		}
+
+		private EligibleResourceResult BuildEligibleResourceResult(EligibleResourceContext context)
+		{
+			var eligibleResources = GetEligibleResources(context).ToList();
+			var usageDetails = eligibleResources.Select(resource => BuildResourceUsageDetails(resource, context)).ToList();
+			return new EligibleResourceResult(context.ContextId, eligibleResources, usageDetails);
+		}
+
+		private ResourceUsageDetails BuildResourceUsageDetails(Resource resource, EligibleResourceContext context)
+		{
+			var reservationUsages = GetOverlappingReservationUsages(resource.GUID, context).ToList();
+			var overlappingUsages = reservationUsages.Select(x => x.Usage).ToList();
+			var capacityUsageDetails = (resource.Capacities ?? [])
+				.Where(capacity => capacity?.Value != null)
+				.Select(capacity => BuildCapacityUsageDetails(capacity, overlappingUsages))
+				.ToList();
+
+			var usageDetails = new ResourceUsageDetails(resource.GUID)
+			{
+				ConcurrencyLeft = Math.Max(0, Math.Max(1, resource.MaxConcurrency) - overlappingUsages.Count),
+			};
+
+			usageDetails.CapacityUsageDetails.AddRange(capacityUsageDetails);
+			return usageDetails;
+		}
+
+		private static CapacityUsageDetails BuildCapacityUsageDetails(MultiResourceCapacity capacity, IReadOnlyCollection<ServiceResourceUsageDefinition> overlappingUsages)
+		{
+			var usedCapacities = overlappingUsages
+				.SelectMany(usage => usage.RequiredCapacities ?? [])
+				.Where(usage => usage.CapacityProfileID == capacity.CapacityProfileID)
+				.ToList();
+
+			if (!capacity.Value.MinDecimalQuantity.HasValue)
+			{
+				var consumption = usedCapacities.Where(usage => !usage.RangeStart.HasValue).Sum(usage => usage.DecimalQuantity);
+				return new CapacityUsageDetails(capacity.CapacityProfileID, capacity.Value.MaxDecimalQuantity - consumption);
+			}
+
+			var remainingRanges = BuildRemainingRanges(
+				capacity.Value.MinDecimalQuantity.Value,
+				capacity.Value.MaxDecimalQuantity,
+				usedCapacities.Where(usage => usage.RangeStart.HasValue)
+					.Select(usage => new CapacityUsageRange(usage.RangeStart.Value, usage.RangeStart.Value + usage.DecimalQuantity)));
+
+			return new CapacityUsageDetails(capacity.CapacityProfileID, remainingRanges.ToArray());
+		}
+
+		private static IReadOnlyCollection<CapacityUsageRange> BuildRemainingRanges(decimal minimum, decimal maximum, IEnumerable<CapacityUsageRange> occupiedRanges)
+		{
+			var occupied = occupiedRanges
+				.Select(range => new CapacityUsageRange(Math.Max(minimum, range.RangeStart), Math.Min(maximum, range.RangeEnd)))
+				.Where(range => range.RangeStart < range.RangeEnd)
+				.OrderBy(range => range.RangeStart)
+				.ToList();
+
+			var remaining = new List<CapacityUsageRange>();
+			var cursor = minimum;
+			foreach (var range in occupied)
+			{
+				if (range.RangeStart > cursor)
+				{
+					remaining.Add(new CapacityUsageRange(cursor, range.RangeStart));
+				}
+
+				cursor = Math.Max(cursor, range.RangeEnd);
+			}
+
+			if (cursor < maximum)
+			{
+				remaining.Add(new CapacityUsageRange(cursor, maximum));
+			}
+
+			return remaining;
 		}
 
 		private IEnumerable<Resource> GetEligibleResources(EligibleResourceContext context)
@@ -686,6 +760,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 
 		private IEnumerable<ServiceResourceUsageDefinition> GetOverlappingResourceUsages(Guid resourceId, EligibleResourceContext context)
 		{
+			return GetOverlappingReservationUsages(resourceId, context).Select(x => x.Usage);
+		}
+
+		private IEnumerable<ReservationUsage> GetOverlappingReservationUsages(Guid resourceId, EligibleResourceContext context)
+		{
 			if (context?.TimeRange == null)
 			{
 				yield break;
@@ -704,7 +783,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 				{
 					if (usage.GUID == resourceId)
 					{
-						yield return usage;
+						yield return new ReservationUsage(reservation, usage);
 					}
 				}
 			}

@@ -614,10 +614,10 @@
 		/// Retrieves the resources that are eligible for the specified context.
 		/// </summary>
 		/// <param name="context">The context describing the time range, capabilities, capacities and filter of the eligibility request.</param>
-		/// <returns>A collection containing the eligible resources.</returns>
+		/// <returns>The eligible resources and their usage during the requested time range.</returns>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="context"/> is <c>null</c>.</exception>
 		/// <exception cref="MediaOpsException">Thrown when the eligibility request fails.</exception>
-		public ICollection<Resource> GetEligibleResources(EligibleResourcesContext context)
+		public EligibleResourcesResult GetEligibleResources(EligibleResourcesContext context)
 		{
 			if (context == null)
 			{
@@ -626,11 +626,11 @@
 
 			return ActivityHelper.Track(nameof(ResourcesRepository), nameof(GetEligibleResources), act =>
 			{
-				var resources = CoreEligibleResourceHandler.GetEligibleResources(PlanApi, context);
+				var result = CoreEligibleResourceHandler.GetEligibleResources(PlanApi, context);
 
-				act?.AddTag("Eligible Resources Count", resources.Count);
+				act?.AddTag("Eligible Resources Count", result.EligibleResources.Count);
 
-				return resources;
+				return result;
 			});
 		}
 
