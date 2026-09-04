@@ -11,7 +11,7 @@ namespace RT_MediaOps.Plan.Workflow.Connections
 	public sealed class ConnectionConfigurationTests
 	{
 		[TestMethod]
-		public void Connect_WithConfiguration_AppliesIndependentCopy()
+		public void Connect_WithConfiguration_UsesProvidedInstance()
 		{
 			var graph = new Workflow().NodeGraph;
 			var from = new WorkflowResourcePoolNode(Guid.NewGuid());
@@ -20,15 +20,12 @@ namespace RT_MediaOps.Plan.Workflow.Connections
 				.AddLevelMapping(destinationLevel: 1, sourceLevel: 10);
 			graph.Add(from).Add(to);
 
-			var connection = graph.Connect(from, to, configuration);
+			var result = graph.Connect(from, to, configuration);
 			configuration.AddLevelMapping(destinationLevel: 2, sourceLevel: 20);
 
-			Assert.AreSame(connection, graph.Connections.Single());
-			Assert.AreNotSame(configuration, connection.Configuration);
-			var appliedConfiguration = connection.Configuration as ShuffleLevelBasedConnectionConfiguration;
-			Assert.IsNotNull(appliedConfiguration);
-			Assert.AreEqual(1, appliedConfiguration.LevelMappings.Count);
-			Assert.AreEqual(10L, appliedConfiguration.LevelMappings[1L]);
+			Assert.AreSame(graph, result);
+			Assert.AreSame(configuration, graph.Connections.Single().Configuration);
+			Assert.AreEqual(2, ((ShuffleLevelBasedConnectionConfiguration)graph.Connections.Single().Configuration).LevelMappings.Count);
 		}
 
 		[TestMethod]
@@ -256,4 +253,3 @@ namespace RT_MediaOps.Plan.Workflow.Connections
 		}
 	}
 }
-
