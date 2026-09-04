@@ -28,7 +28,7 @@
 			this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
 		}
 
-		public static ICollection<Resource> GetEligibleResources(MediaOpsPlanApi planApi, EligibleResourcesContext context)
+		public static EligibleResourcesResult GetEligibleResources(MediaOpsPlanApi planApi, EligibleResourcesContext context)
 		{
 			if (context == null)
 			{
@@ -99,7 +99,7 @@
 			}
 		}
 
-		private ICollection<Resource> GetEligibleResources(EligibleResourcesContext context)
+		private EligibleResourcesResult GetEligibleResources(EligibleResourcesContext context)
 		{
 			var coreContext = new EligibleResourceContext(new Net.Time.TimeRangeUtc(context.Start.UtcDateTime, context.End.UtcDateTime))
 			{
@@ -122,15 +122,94 @@
 				if (filteredResourcesByCoreId.Count == 0)
 				{
 					// No Resource Studio resource matches the filter, so no resource can be eligible.
-					return Array.Empty<Resource>();
+					return new EligibleResourcesResult(Array.Empty<EligibleResource>());
 				}
 
 				coreContext.ResourceFilter = new ORFilterElement<CoreResource>(filteredResourcesByCoreId.Keys.Select(x => Net.Messages.ResourceExposers.ID.Equal(x)).ToArray());
 			}
 
-			var eligibleCoreResources = planApi.CoreHelpers.ResourceManagerHelper.GetEligibleResourcesForContext(coreContext);
+			if (context.JobIdToIgnore != Guid.Empty)
+			{
+				var reservation = planApi.CoreHelpers.ResourceManagerHelper
+					.GetReservationInstances(
+						new[] { context.JobIdToIgnore },
+						jobId => ReservationInstanceExposers.Properties.StringField(CoreJobHandler.JobIdPropertyName).Equal(Convert.ToString(jobId)))
+					.FirstOrDefault();
 
-			return MapToResourceStudioResources(eligibleCoreResources, filteredResourcesByCoreId);
+				if (reservation != null)
+				{
+					coreContext.ReservationIdToIgnore = new Net.ReservationInstanceID(reservation.ID);
+				}
+			}
+
+			var coreResult = planApi.CoreHelpers.ResourceManagerHelper.GetEligibleResourcesForContext(coreContext);
+			var resources = MapToResourceStudioResources(coreResult.EligibleResources, filteredResourcesByCoreId);
+			var usageByCoreResourceId = coreResult.UsageDetails.ToDictionary(usage => usage.ResourceId);
+
+			var eligibleResources = resources.Select(resource =>
+			{
+				if (!usageByCoreResourceId.TryGetValue(resource.CoreResourceId, out var usageDetails))
+				{
+					throw new InvalidOperationException($"No usage details were returned for eligible resource {resource.Id}.");
+				}
+
+				return new EligibleResource(resource, MapUsage(resource, usageDetails));
+			});
+
+			return new EligibleResourcesResult(eligibleResources);
+		}
+
+		private static ResourceUsage MapUsage(Resource resource, ResourceUsageDetails usageDetails)
+		{
+			var capacitySettingsById = resource.Capacities.ToDictionary(capacity => capacity.Id);
+			var capacityUsages = usageDetails.CapacityUsageDetails
+				.Where(usage => capacitySettingsById.ContainsKey(usage.CapacityParameterId))
+				.Select(usage => MapCapacityUsage(capacitySettingsById[usage.CapacityParameterId], usage))
+				.ToList();
+
+			var remainingConcurrency = Math.Max(0, usageDetails.ConcurrencyLeft);
+			return new ResourceUsage(Math.Max(0, resource.Concurrency - remainingConcurrency), remainingConcurrency, capacityUsages);
+		}
+
+		private static CapacityUsage MapCapacityUsage(CapacitySetting capacitySetting, CapacityUsageDetails usageDetails)
+		{
+			if (capacitySetting is NumberCapacitySetting numberCapacity)
+			{
+				var remainingCapacity = usageDetails.CapacityLeft;
+				return new NumberCapacityUsage(capacitySetting.Id, Math.Max(0, numberCapacity.Value.GetValueOrDefault() - remainingCapacity), remainingCapacity);
+			}
+
+			var rangeCapacity = (RangeCapacitySetting)capacitySetting;
+			var minimum = rangeCapacity.MinValue.GetValueOrDefault();
+			var maximum = rangeCapacity.MaxValue.GetValueOrDefault();
+			var remainingRanges = (usageDetails.RangesLeft ?? [])
+				.Select(range => new CapacityRange(range.RangeStart, range.RangeEnd))
+				.OrderBy(range => range.Start)
+				.ToList();
+
+			return new RangeCapacityUsage(capacitySetting.Id, BuildConsumedRanges(minimum, maximum, remainingRanges), remainingRanges);
+		}
+
+		private static IReadOnlyCollection<CapacityRange> BuildConsumedRanges(decimal minimum, decimal maximum, IReadOnlyCollection<CapacityRange> remainingRanges)
+		{
+			var consumed = new List<CapacityRange>();
+			var cursor = minimum;
+			foreach (var range in remainingRanges)
+			{
+				if (range.Start > cursor)
+				{
+					consumed.Add(new CapacityRange(cursor, range.Start));
+				}
+
+				cursor = Math.Max(cursor, range.End);
+			}
+
+			if (cursor < maximum)
+			{
+				consumed.Add(new CapacityRange(cursor, maximum));
+			}
+
+			return consumed;
 		}
 
 		private ICollection<Resource> MapToResourceStudioResources(IReadOnlyCollection<CoreResource> coreResources, IReadOnlyDictionary<Guid, Resource> knownResourcesByCoreId)

@@ -132,8 +132,8 @@
 		/// Gets the resources that are eligible for the specified context.
 		/// </summary>
 		/// <param name="context">The context describing the time range, capabilities, capacities and filter of the eligibility request.</param>
-		/// <returns>A collection containing the eligible resources.</returns>
-		ICollection<Resource> GetEligibleResources(EligibleResourcesContext context);
+		/// <returns>The eligible resources and their usage during the requested time range.</returns>
+		EligibleResourcesResult GetEligibleResources(EligibleResourcesContext context);
 
 		/// <summary>
 		/// Gets all resources in the specified resource pool.

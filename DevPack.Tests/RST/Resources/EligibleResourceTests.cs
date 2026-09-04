@@ -160,6 +160,111 @@ namespace RT_MediaOps.Plan.RST.Resources
 		}
 
 		[TestMethod]
+		public void GetEligibleResources_ResourceWithExistingUsage_ReturnsCapacityAndConcurrencyUsage()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+			var capacity = new NumberCapacity { Name = $"{prefix}_Bandwidth", RangeMin = 0, RangeMax = 100 };
+			objectCreator.CreateCapacity(capacity);
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = CreateCompleteResource($"{prefix}_Resource", pool, value =>
+			{
+				value.Concurrency = 3;
+				value.AddCapacity(new NumberCapacitySetting(capacity.Id) { Value = 100 });
+			});
+
+			var bookedStart = currentTime.AddHours(1);
+			var bookedEnd = currentTime.AddHours(2);
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = bookedStart,
+				End = bookedEnd,
+				PreRollStart = bookedStart,
+				PostRollEnd = bookedEnd,
+			};
+
+			var resourceNode = new JobResourceNode(pool, resource);
+			resourceNode.OrchestrationSettings.AddCapacity(new NumberCapacitySetting(capacity.Id) { Value = 40 });
+			job.NodeGraph.Add(resourceNode);
+			job = objectCreator.CreateJob(job);
+			job = TestContext.Api.Jobs.SaveAsTentative(job);
+			TestContext.Api.Jobs.Confirm(job);
+
+			var result = TestContext.Api.Resources.GetEligibleResources(new EligibleResourcesContext(bookedStart, bookedEnd)
+			{
+				CapacitySettings = new[] { new NumberCapacitySetting(capacity.Id) { Value = 10 } },
+				Filter = ResourceExposers.Id.Equal(resource.Id),
+			});
+
+			var eligibleResource = result.EligibleResources.Single();
+			var capacityUsage = eligibleResource.Usage.CapacityUsages.OfType<NumberCapacityUsage>().Single(x => x.CapacityId == capacity.Id);
+
+			Assert.AreEqual(resource.Id, eligibleResource.Resource.Id);
+			Assert.AreEqual(1, eligibleResource.Usage.ConcurrencyConsumption);
+			Assert.AreEqual(2, eligibleResource.Usage.RemainingConcurrency);
+			Assert.AreEqual(40m, capacityUsage.CurrentConsumption);
+			Assert.AreEqual(60m, capacityUsage.Remaining);
+		}
+
+		[TestMethod]
+		public void GetEligibleResources_ResourceWithRangeUsage_ReturnsConsumedAndRemainingRanges()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+			var capacity = new RangeCapacity { Name = $"{prefix}_Frequency" };
+			objectCreator.CreateCapacity(capacity);
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = CreateCompleteResource($"{prefix}_Resource", pool, value =>
+			{
+				value.Concurrency = 2;
+				value.AddCapacity(new RangeCapacitySetting(capacity.Id) { MinValue = 0, MaxValue = 100 });
+			});
+
+			var bookedStart = currentTime.AddHours(1);
+			var bookedEnd = currentTime.AddHours(2);
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = bookedStart,
+				End = bookedEnd,
+				PreRollStart = bookedStart,
+				PostRollEnd = bookedEnd,
+			};
+
+			var resourceNode = new JobResourceNode(pool, resource);
+			resourceNode.OrchestrationSettings.AddCapacity(new RangeCapacitySetting(capacity.Id) { MinValue = 20, MaxValue = 40 });
+			job.NodeGraph.Add(resourceNode);
+			job = objectCreator.CreateJob(job);
+			job = TestContext.Api.Jobs.SaveAsTentative(job);
+			TestContext.Api.Jobs.Confirm(job);
+
+			var result = TestContext.Api.Resources.GetEligibleResources(new EligibleResourcesContext(bookedStart, bookedEnd)
+			{
+				CapacitySettings = new[] { new RangeCapacitySetting(capacity.Id) { MinValue = 60, MaxValue = 70 } },
+				Filter = ResourceExposers.Id.Equal(resource.Id),
+			});
+
+			var usage = result.EligibleResources.Single().Usage.CapacityUsages.OfType<RangeCapacityUsage>().Single();
+			var consumed = usage.CurrentConsumption.Single();
+			var remaining = usage.Remaining.ToList();
+
+			Assert.AreEqual(20m, consumed.Start);
+			Assert.AreEqual(40m, consumed.End);
+			Assert.AreEqual(2, remaining.Count);
+			Assert.AreEqual(0m, remaining[0].Start);
+			Assert.AreEqual(20m, remaining[0].End);
+			Assert.AreEqual(40m, remaining[1].Start);
+			Assert.AreEqual(100m, remaining[1].End);
+		}
+
+		[TestMethod]
 		public void GetEligibleResources_CompleteResourceAlreadyBooked_ReturnsResourceOnlyOutsideTheBookedTimeRange()
 		{
 			var prefix = Guid.NewGuid();
@@ -207,6 +312,47 @@ namespace RT_MediaOps.Plan.RST.Resources
 		}
 
 		[TestMethod]
+		public void GetEligibleResources_CompleteResourceBookedByIgnoredJob_ReturnsResourceDuringBooking()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = CreateCompleteResource($"{prefix}_Resource", pool, null);
+			var bookedStart = currentTime.AddHours(1);
+			var bookedEnd = currentTime.AddHours(2);
+
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = bookedStart,
+				End = bookedEnd,
+				PreRollStart = bookedStart,
+				PostRollEnd = bookedEnd,
+			};
+
+			job.NodeGraph.Add(new JobResourceNode(pool, resource));
+			job = objectCreator.CreateJob(job);
+			job = TestContext.Api.Jobs.SaveAsTentative(job);
+			job = TestContext.Api.Jobs.Confirm(job);
+
+			var context = new EligibleResourcesContext(bookedStart.AddMinutes(15), bookedEnd.AddMinutes(-15))
+			{
+				Filter = ResourceExposers.Id.Equal(resource.Id),
+				JobIdToIgnore = job.Id,
+			};
+
+			var result = TestContext.Api.Resources.GetEligibleResources(context);
+			var eligibleResource = result.EligibleResources.Single();
+
+			Assert.AreEqual(resource.Id, eligibleResource.Resource.Id, "Expected the resource to be eligible when the consuming job is ignored.");
+			Assert.AreEqual(0, eligibleResource.Usage.ConcurrencyConsumption, "Expected the ignored job not to contribute to concurrency consumption.");
+			Assert.AreEqual(1, eligibleResource.Usage.RemainingConcurrency, "Expected the ignored job's concurrency slot to remain available.");
+		}
+
+		[TestMethod]
 		public void GetEligibleResources_DeprecatedResource_DoesNotReturnResource()
 		{
 			var prefix = Guid.NewGuid();
@@ -245,7 +391,7 @@ namespace RT_MediaOps.Plan.RST.Resources
 				Filter = ResourceExposers.Id.Equal(firstResource.Id),
 			});
 
-			var eligibleIds = eligible.Select(x => x.Id).ToList();
+			var eligibleIds = eligible.EligibleResources.Select(x => x.Resource.Id).ToList();
 
 			CollectionAssert.Contains(eligibleIds, firstResource.Id, "Expected the resource that matches the filter to be eligible.");
 			CollectionAssert.DoesNotContain(eligibleIds, secondResource.Id, "Expected a resource that does not match the filter not to be returned.");
@@ -276,7 +422,7 @@ namespace RT_MediaOps.Plan.RST.Resources
 					.AND(ResourceExposers.Properties.Value.Equal(matchingValue)),
 			});
 
-			var eligibleIds = eligible.Select(x => x.Id).ToList();
+			var eligibleIds = eligible.EligibleResources.Select(x => x.Resource.Id).ToList();
 
 			CollectionAssert.Contains(eligibleIds, matchingResource.Id, "Expected the resource that has the requested property value to be eligible.");
 			CollectionAssert.DoesNotContain(eligibleIds, otherValueResource.Id, "Expected the resource that has another value for the property not to be eligible.");
@@ -525,7 +671,7 @@ namespace RT_MediaOps.Plan.RST.Resources
 				Filter = ResourceExposers.ResourcePoolIds.Contains(pool.Id),
 			});
 
-			return eligibleResources.Select(x => x.Id).ToList();
+			return eligibleResources.EligibleResources.Select(x => x.Resource.Id).ToList();
 		}
 
 		private Resource CreateCompleteResource(string name, ResourcePool pool, Action<Resource> configure)

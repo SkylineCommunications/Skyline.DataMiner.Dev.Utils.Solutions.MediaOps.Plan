@@ -843,7 +843,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 				// The already assigned resources are excluded through the filter, so any returned resource can be used.
 				// A node for which no resource is eligible keeps its resource pool node so it can be assigned later.
-				var resource = eligibleResources?.FirstOrDefault(x => x != null);
+				var resource = eligibleResources.EligibleResources.Select(x => x.Resource).FirstOrDefault();
 				if (resource == null)
 				{
 					continue;
