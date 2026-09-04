@@ -8,7 +8,7 @@
 
 	using StorageWorkflow = Storage.DOM.SlcWorkflow;
 
-	internal class WorkflowOrchestrationSettings : OrchestrationSettings
+	public class WorkflowOrchestrationSettings : OrchestrationSettings
 	{
 		private readonly List<WorkflowCapabilitySetting> capabilitySettings = [];
 		private readonly List<WorkflowDiscreteNumberConfigurationSetting> discreteNumberConfigurationSettings = [];
@@ -23,7 +23,7 @@
 
 		private StorageWorkflow.ConfigurationInstance updatedInstance;
 
-		internal WorkflowOrchestrationSettings() : base()
+		public WorkflowOrchestrationSettings() : base()
 		{
 		}
 
