@@ -316,8 +316,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 		{
 			var reservationUsages = GetOverlappingReservationUsages(resource.GUID, context).ToList();
 			var overlappingUsages = reservationUsages.Select(x => x.Usage).ToList();
+			var requestedCapacityIds = new HashSet<Guid>((context.RequiredCapacities ?? [])
+				.Where(capacity => capacity != null)
+				.Select(capacity => capacity.CapacityProfileID));
 			var capacityUsageDetails = (resource.Capacities ?? [])
-				.Where(capacity => capacity?.Value != null)
+				.Where(capacity => capacity?.Value != null && (context.CalculateAllCapacities || requestedCapacityIds.Contains(capacity.CapacityProfileID)))
 				.Select(capacity => BuildCapacityUsageDetails(capacity, overlappingUsages))
 				.ToList();
 
