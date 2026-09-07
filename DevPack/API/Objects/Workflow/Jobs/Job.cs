@@ -812,9 +812,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// settings and property settings of the original node.
 		/// </summary>
 		/// <remarks>
-		/// Resources that are already assigned to another node of this job are excluded from the lookup, so the same
-		/// resource is never assigned twice within the same job. A node for which no eligible resource is found keeps
-		/// its resource pool node. The changes are only applied in memory; the job must still be saved to persist them.
+		/// Resources that are already assigned to another node of this job are not excluded from the lookup, so the same
+		/// resource can be assigned to multiple nodes when it is eligible. A node for which no eligible resource is found
+		/// keeps its resource pool node. The changes are only applied in memory; the job must still be saved to persist them.
 		/// </remarks>
 		/// <param name="api">The <see cref="IMediaOpsPlanApi"/> instance used to look up the eligible resources.</param>
 		/// <returns>The current <see cref="Job"/> instance.</returns>
@@ -827,9 +827,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				throw new ArgumentNullException(nameof(api));
 			}
 
-			var assignedResourceIds = new HashSet<Guid>(
-				NodeGraph.Nodes.OfType<JobResourceNode>().Select(node => node.ResourceId).Where(id => id != Guid.Empty));
-
 			foreach (var poolNode in NodeGraph.Nodes.OfType<JobResourcePoolNode>().ToList())
 			{
 				GetNodeTimeRange(poolNode, out var start, out var end);
@@ -838,10 +835,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				{
 					CapabilitySettings = poolNode.OrchestrationSettings.Capabilities,
 					CapacitySettings = poolNode.OrchestrationSettings.Capacities,
-					Filter = CreateEligibleResourceFilter(poolNode.ResourcePoolId, assignedResourceIds),
+					Filter = CreateEligibleResourceFilter(poolNode.ResourcePoolId),
 				});
 
-				// The already assigned resources are excluded through the filter, so any returned resource can be used.
 				// A node for which no resource is eligible keeps its resource pool node so it can be assigned later.
 				var resource = eligibleResources.EligibleResources.Select(x => x.Resource).FirstOrDefault();
 				if (resource == null)
@@ -859,29 +855,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				resourceNode.CopyPropertiesFrom(poolNode);
 
 				NodeGraph.Swap(poolNode, resourceNode);
-
-				assignedResourceIds.Add(resource.Id);
 			}
 
 			return this;
 		}
 
 		/// <summary>
-		/// Creates the filter that restricts the eligible resources of a node to the resources of its resource pool,
-		/// excluding the resources that are already assigned to another node of the job.
+		/// Creates the filter that restricts the eligible resources of a node to the resources of its resource pool.
 		/// </summary>
-		private static FilterElement<Resource> CreateEligibleResourceFilter(Guid resourcePoolId, IReadOnlyCollection<Guid> excludedResourceIds)
+		private static FilterElement<Resource> CreateEligibleResourceFilter(Guid resourcePoolId)
 		{
-			var poolFilter = ResourceExposers.ResourcePoolIds.Contains(resourcePoolId);
-			if (excludedResourceIds.Count == 0)
-			{
-				return poolFilter;
-			}
-
-			var subFilters = new List<FilterElement<Resource>> { poolFilter };
-			subFilters.AddRange(excludedResourceIds.Select(resourceId => ResourceExposers.Id.NotEqual(resourceId)));
-
-			return new ANDFilterElement<Resource>(subFilters.ToArray());
+			return ResourceExposers.ResourcePoolIds.Contains(resourcePoolId);
 		}
 
 		/// <summary>

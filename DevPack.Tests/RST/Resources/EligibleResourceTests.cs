@@ -430,7 +430,7 @@ namespace RT_MediaOps.Plan.RST.Resources
 		}
 
 		[TestMethod]
-		public void AssignEligibleResources_PoolNodesWithCapability_AssignsADistinctEligibleResourcePerNode()
+		public void AssignEligibleResources_PoolNodesWithCapability_AssignsAnEligibleResourcePerNode()
 		{
 			var prefix = Guid.NewGuid();
 			var currentTime = DateTime.UtcNow.RoundToNextSecond();
@@ -472,7 +472,6 @@ namespace RT_MediaOps.Plan.RST.Resources
 			var assignedResourceIds = job.NodeGraph.Nodes.OfType<JobResourceNode>().Select(x => x.ResourceId).ToList();
 
 			Assert.AreEqual(2, assignedResourceIds.Count, "Expected a resource node for every resource pool node.");
-			Assert.AreEqual(2, assignedResourceIds.Distinct().Count(), "Expected a distinct resource to be assigned to every node.");
 			CollectionAssert.DoesNotContain(assignedResourceIds, otherValueResource.Id, "Expected the resource that does not have the requested capability value not to be assigned.");
 
 			foreach (var assignedResourceId in assignedResourceIds)
@@ -484,7 +483,7 @@ namespace RT_MediaOps.Plan.RST.Resources
 		}
 
 		[TestMethod]
-		public void AssignEligibleResources_WithAlreadyAssignedResources_AssignsOnlyUnusedResources()
+		public void AssignEligibleResources_WithAlreadyAssignedResource_CanReuseResource()
 		{
 			var prefix = Guid.NewGuid();
 			var currentTime = DateTime.UtcNow.RoundToNextSecond();
@@ -492,10 +491,7 @@ namespace RT_MediaOps.Plan.RST.Resources
 			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
 			pool = TestContext.Api.ResourcePools.Complete(pool);
 
-			var firstResource = CreateCompleteResource($"{prefix}_Resource_1", pool, null);
-			var secondResource = CreateCompleteResource($"{prefix}_Resource_2", pool, null);
-			var thirdResource = CreateCompleteResource($"{prefix}_Resource_3", pool, null);
-			var fourthResource = CreateCompleteResource($"{prefix}_Resource_4", pool, null);
+			var resource = CreateCompleteResource($"{prefix}_Resource", pool, null);
 
 			var job = new Job
 			{
@@ -507,8 +503,41 @@ namespace RT_MediaOps.Plan.RST.Resources
 			};
 
 			job.NodeGraph
-				.Add(new JobResourceNode(pool, firstResource))
-				.Add(new JobResourceNode(pool, secondResource))
+				.Add(new JobResourceNode(pool, resource))
+				.Add(new JobResourcePoolNode(pool));
+
+			job.AssignEligibleResources(TestContext.Api);
+
+			Assert.AreEqual(0, job.NodeGraph.Nodes.OfType<JobResourcePoolNode>().Count(), "Expected every resource pool node to be replaced by a resource node.");
+
+			var assignedResourceIds = job.NodeGraph.Nodes.OfType<JobResourceNode>().Select(x => x.ResourceId).ToList();
+
+			Assert.AreEqual(2, assignedResourceIds.Count, "Expected a resource node for the existing assignment and resource pool node.");
+			Assert.IsTrue(assignedResourceIds.All(resourceId => resourceId == resource.Id), "Expected the already assigned resource to be reused.");
+		}
+
+		[TestMethod]
+		public void AssignEligibleResources_MultiplePoolNodes_CanReuseSingleResource()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = CreateCompleteResource($"{prefix}_Resource", pool, null);
+
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = currentTime.AddHours(1),
+				End = currentTime.AddHours(2),
+				PreRollStart = currentTime.AddHours(1),
+				PostRollEnd = currentTime.AddHours(2),
+			};
+
+			job.NodeGraph
+				.Add(new JobResourcePoolNode(pool))
 				.Add(new JobResourcePoolNode(pool))
 				.Add(new JobResourcePoolNode(pool));
 
@@ -518,102 +547,8 @@ namespace RT_MediaOps.Plan.RST.Resources
 
 			var assignedResourceIds = job.NodeGraph.Nodes.OfType<JobResourceNode>().Select(x => x.ResourceId).ToList();
 
-			Assert.AreEqual(4, assignedResourceIds.Count, "Expected a resource node for every assigned resource and resource pool node.");
-			Assert.AreEqual(4, assignedResourceIds.Distinct().Count(), "Expected a distinct resource to be assigned to every node.");
-			CollectionAssert.Contains(assignedResourceIds, firstResource.Id, "Expected the already assigned resource to be kept.");
-			CollectionAssert.Contains(assignedResourceIds, secondResource.Id, "Expected the already assigned resource to be kept.");
-			CollectionAssert.Contains(assignedResourceIds, thirdResource.Id, "Expected the unused resource to be assigned.");
-			CollectionAssert.Contains(assignedResourceIds, fourthResource.Id, "Expected the unused resource to be assigned.");
-		}
-
-		[TestMethod]
-		public void AssignEligibleResources_WithMorePoolNodesThanAvailableResources_KeepsUnresolvedPoolNodes()
-		{
-			var prefix = Guid.NewGuid();
-			var currentTime = DateTime.UtcNow.RoundToNextSecond();
-
-			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
-			pool = TestContext.Api.ResourcePools.Complete(pool);
-
-			var firstResource = CreateCompleteResource($"{prefix}_Resource_1", pool, null);
-			var secondResource = CreateCompleteResource($"{prefix}_Resource_2", pool, null);
-			var thirdResource = CreateCompleteResource($"{prefix}_Resource_3", pool, null);
-			var fourthResource = CreateCompleteResource($"{prefix}_Resource_4", pool, null);
-
-			var job = new Job
-			{
-				Name = $"{prefix}_Job",
-				Start = currentTime.AddHours(1),
-				End = currentTime.AddHours(2),
-				PreRollStart = currentTime.AddHours(1),
-				PostRollEnd = currentTime.AddHours(2),
-			};
-
-			job.NodeGraph
-				.Add(new JobResourceNode(pool, firstResource))
-				.Add(new JobResourceNode(pool, secondResource))
-				.Add(new JobResourceNode(pool, thirdResource))
-				.Add(new JobResourcePoolNode(pool))
-				.Add(new JobResourcePoolNode(pool))
-				.Add(new JobResourcePoolNode(pool));
-
-			job.AssignEligibleResources(TestContext.Api);
-
-			Assert.AreEqual(2, job.NodeGraph.Nodes.OfType<JobResourcePoolNode>().Count(), "Expected unresolved resource pool nodes to be kept when no resource is eligible.");
-
-			var assignedResourceIds = job.NodeGraph.Nodes.OfType<JobResourceNode>().Select(x => x.ResourceId).ToList();
-
-			Assert.AreEqual(4, assignedResourceIds.Count, "Expected one resource pool node to be replaced by the remaining eligible resource.");
-			Assert.AreEqual(4, assignedResourceIds.Distinct().Count(), "Expected a distinct resource to be assigned to every resource node.");
-			CollectionAssert.Contains(assignedResourceIds, firstResource.Id, "Expected the already assigned resource to be kept.");
-			CollectionAssert.Contains(assignedResourceIds, secondResource.Id, "Expected the already assigned resource to be kept.");
-			CollectionAssert.Contains(assignedResourceIds, thirdResource.Id, "Expected the already assigned resource to be kept.");
-			CollectionAssert.Contains(assignedResourceIds, fourthResource.Id, "Expected the unused resource to be assigned.");
-		}
-
-		[TestMethod]
-		public void AssignEligibleResources_WithAllResourcesAlreadyAssigned_KeepsPoolNodes()
-		{
-			var prefix = Guid.NewGuid();
-			var currentTime = DateTime.UtcNow.RoundToNextSecond();
-
-			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
-			pool = TestContext.Api.ResourcePools.Complete(pool);
-
-			var firstResource = CreateCompleteResource($"{prefix}_Resource_1", pool, null);
-			var secondResource = CreateCompleteResource($"{prefix}_Resource_2", pool, null);
-			var thirdResource = CreateCompleteResource($"{prefix}_Resource_3", pool, null);
-			var fourthResource = CreateCompleteResource($"{prefix}_Resource_4", pool, null);
-
-			var job = new Job
-			{
-				Name = $"{prefix}_Job",
-				Start = currentTime.AddHours(1),
-				End = currentTime.AddHours(2),
-				PreRollStart = currentTime.AddHours(1),
-				PostRollEnd = currentTime.AddHours(2),
-			};
-
-			job.NodeGraph
-				.Add(new JobResourceNode(pool, firstResource))
-				.Add(new JobResourceNode(pool, secondResource))
-				.Add(new JobResourceNode(pool, thirdResource))
-				.Add(new JobResourceNode(pool, fourthResource))
-				.Add(new JobResourcePoolNode(pool))
-				.Add(new JobResourcePoolNode(pool));
-
-			job.AssignEligibleResources(TestContext.Api);
-
-			Assert.AreEqual(2, job.NodeGraph.Nodes.OfType<JobResourcePoolNode>().Count(), "Expected unresolved resource pool nodes to be kept when no resource is eligible.");
-
-			var assignedResourceIds = job.NodeGraph.Nodes.OfType<JobResourceNode>().Select(x => x.ResourceId).ToList();
-
-			Assert.AreEqual(4, assignedResourceIds.Count, "Expected no additional resource nodes to be created when no resource is eligible.");
-			Assert.AreEqual(4, assignedResourceIds.Distinct().Count(), "Expected a distinct resource to be assigned to every resource node.");
-			CollectionAssert.Contains(assignedResourceIds, firstResource.Id, "Expected the already assigned resource to be kept.");
-			CollectionAssert.Contains(assignedResourceIds, secondResource.Id, "Expected the already assigned resource to be kept.");
-			CollectionAssert.Contains(assignedResourceIds, thirdResource.Id, "Expected the already assigned resource to be kept.");
-			CollectionAssert.Contains(assignedResourceIds, fourthResource.Id, "Expected the already assigned resource to be kept.");
+			Assert.AreEqual(3, assignedResourceIds.Count, "Expected a resource node for every resource pool node.");
+			Assert.IsTrue(assignedResourceIds.All(resourceId => resourceId == resource.Id), "Expected the single eligible resource to be reused for every node.");
 		}
 
 		[TestMethod]
