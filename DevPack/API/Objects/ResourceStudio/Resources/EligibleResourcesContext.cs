@@ -59,6 +59,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <summary>
+		/// Gets or sets the ID of the job whose reservation usage must be ignored during the eligibility calculation.
+		/// <see cref="Guid.Empty"/> by default.
+		/// </summary>
+		public Guid JobIdToIgnore { get; set; }
+
+		/// <summary>
 		/// Gets or sets the filter that restricts the resources considered for the eligibility request. Can be <see langword="null"/>.
 		/// </summary>
 		public FilterElement<Resource> Filter { get; set; }

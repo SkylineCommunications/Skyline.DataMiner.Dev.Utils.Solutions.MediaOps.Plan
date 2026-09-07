@@ -111,7 +111,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					continue;
 				}
 
-				destination.Connect(from, to, connection.Configuration);
+				destination.ConnectWithConfigurationCopy(from, to, connection.Configuration);
 			}
 		}
 
