@@ -8,6 +8,9 @@
 
 	using StorageWorkflow = Storage.DOM.SlcWorkflow;
 
+	/// <summary>
+	/// Represents the orchestration settings for a workflow.
+	/// </summary>
 	public class WorkflowOrchestrationSettings : OrchestrationSettings
 	{
 		private readonly List<WorkflowCapabilitySetting> capabilitySettings = [];
@@ -23,6 +26,9 @@
 
 		private StorageWorkflow.ConfigurationInstance updatedInstance;
 
+		/// <summary>
+		/// Initializes a new instance of the <see cref="WorkflowOrchestrationSettings"/> class.
+		/// </summary>
 		public WorkflowOrchestrationSettings() : base()
 		{
 		}
@@ -33,12 +39,16 @@
 			InitTracking();
 		}
 
+		/// <inheritdoc/>
 		public override IReadOnlyCollection<CapabilitySetting> Capabilities => capabilitySettings;
 
+		/// <inheritdoc/>
 		public override IReadOnlyCollection<CapacitySetting> Capacities => GetCapacities();
 
+		/// <inheritdoc/>
 		public override IReadOnlyCollection<ConfigurationSetting> Configurations => GetConfigurations();
 
+		/// <inheritdoc/>
 		public override IReadOnlyCollection<OrchestrationEvent> OrchestrationEvents => orchestrationEvents;
 
 		internal StorageWorkflow.ConfigurationInstance OriginalInstance => originalInstance;
@@ -57,6 +67,7 @@
 				.ToList();
 		}
 
+		/// <inheritdoc/>
 		public override OrchestrationSettings AddCapability(CapabilitySetting capabilitySetting)
 		{
 			if (capabilitySetting == null)
@@ -68,6 +79,7 @@
 			return this;
 		}
 
+		/// <inheritdoc/>
 		public override OrchestrationSettings AddCapacity(CapacitySetting capacitySetting)
 		{
 			if (capacitySetting == null)
@@ -91,6 +103,7 @@
 			return this;
 		}
 
+		/// <inheritdoc/>
 		public override OrchestrationSettings AddConfiguration(ConfigurationSetting configurationSetting)
 		{
 			if (configurationSetting == null)
@@ -122,6 +135,7 @@
 			return this;
 		}
 
+		/// <inheritdoc/>
 		public override OrchestrationSettings AddOrchestrationEvent(OrchestrationEvent orchestrationEvent)
 		{
 			if (orchestrationEvent == null)
@@ -133,6 +147,7 @@
 			return this;
 		}
 
+		/// <inheritdoc/>
 		public override OrchestrationSettings RemoveCapability(CapabilitySetting capabilitySetting)
 		{
 			if (capabilitySetting == null)
@@ -144,6 +159,7 @@
 			return this;
 		}
 
+		/// <inheritdoc/>
 		public override OrchestrationSettings RemoveCapacity(CapacitySetting capacitySetting)
 		{
 			if (capacitySetting == null)
@@ -163,6 +179,7 @@
 			return this;
 		}
 
+		/// <inheritdoc/>
 		public override OrchestrationSettings RemoveConfiguration(ConfigurationSetting configurationSetting)
 		{
 			if (configurationSetting == null)
@@ -190,6 +207,7 @@
 			return this;
 		}
 
+		/// <inheritdoc/>
 		public override OrchestrationSettings RemoveOrchestrationEvent(OrchestrationEvent orchestrationEvent)
 		{
 			if (orchestrationEvent == null)
@@ -201,6 +219,7 @@
 			return this;
 		}
 
+		/// <inheritdoc/>
 		public override OrchestrationSettings SetCapabilities(IEnumerable<CapabilitySetting> capabilitySettings)
 		{
 			if (capabilitySettings == null)
@@ -217,6 +236,7 @@
 			return this;
 		}
 
+		/// <inheritdoc/>
 		public override OrchestrationSettings SetCapacities(IEnumerable<CapacitySetting> capacitySettings)
 		{
 			if (capacitySettings == null)
@@ -235,6 +255,7 @@
 			return this;
 		}
 
+		/// <inheritdoc/>
 		public override OrchestrationSettings SetConfigurations(IEnumerable<ConfigurationSetting> configurationSettings)
 		{
 			if (configurationSettings == null)
@@ -255,6 +276,7 @@
 			return this;
 		}
 
+		/// <inheritdoc/>
 		public override OrchestrationSettings SetOrchestrationEvents(IEnumerable<OrchestrationEvent> orchestrationEvents)
 		{
 			if (orchestrationEvents == null)
