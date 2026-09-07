@@ -112,6 +112,19 @@ namespace RT_MediaOps.Plan.Automation.ScriptExecution
 		}
 
 		[TestMethod]
+		public void FromStorage_UnfilledDummy_PreservesDummy()
+		{
+			var storage = new ScriptExecutionDetails { ScriptName = "TestScript" };
+			storage.Dummies.Add("dummy1", null);
+
+			var restored = Skyline.DataMiner.Solutions.MediaOps.Plan.API.ScriptExecutionDetails.FromStorage(null, storage);
+
+			Assert.AreEqual(1, restored.ScriptElements.Count);
+			Assert.AreEqual("dummy1", restored.ScriptElements.Single().Name);
+			Assert.IsNull(restored.ScriptElements.Single().ElementName);
+		}
+
+		[TestMethod]
 		public void RoundTrip_ProfileParameterValue_WithReference_PreservesAllData()
 		{
 			var id = Guid.NewGuid();

@@ -569,7 +569,7 @@
 			{
 				var scriptElementSetting = new ScriptElementSetting(kvp.Key);
 
-				if (kvp.Value.Contains('/'))
+				if (kvp.Value?.Contains('/') == true)
 				{
 					scriptElementSetting.DmsElementId = new DmsElementId(kvp.Value);
 				}
