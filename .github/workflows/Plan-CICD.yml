@@ -215,8 +215,6 @@ jobs:
        (needs.nuget_validation.result == 'success' && needs.integration_tests.result == 'success') ||
        (needs.nuget_validation.result == 'success' && github.ref_type == 'tag' && contains(github.ref_name, 'alpha')))
     uses: SkylineCommunications/_ReusableWorkflows/.github/workflows/Master Workflow.yml@main
-    with:
-      sonarcloud-project-name: SkylineCommunications_Skyline.DataMiner.MediaOps.API
     secrets:
       NUGET_API_KEY: ${{ secrets.NUGETAPIKEY_GITHUB }}
 
@@ -229,7 +227,6 @@ jobs:
       needs.nuget_validation.result == 'success' && needs.integration_tests.result == 'success'
     uses: SkylineCommunications/_ReusableWorkflows/.github/workflows/Master Workflow.yml@main
     with:
-      sonarcloud-project-name: SkylineCommunications_Skyline.DataMiner.MediaOps.API
       nuget-push-source: "https://api.nuget.org/v3/index.json"
     secrets:
       NUGET_API_KEY: ${{ secrets.NUGETAPIKEY }}
