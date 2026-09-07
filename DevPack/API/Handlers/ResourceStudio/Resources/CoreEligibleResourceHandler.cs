@@ -138,7 +138,13 @@
 
 				if (reservation != null)
 				{
-					coreContext.ReservationIdToIgnore = new Net.ReservationInstanceID(reservation.ID);
+					var resourceUsage = reservation.ResourcesInReservationInstance.OfType<ServiceResourceUsageDefinition>()
+						.FirstOrDefault(usage => filteredResourcesByCoreId == null || filteredResourcesByCoreId.ContainsKey(usage.GUID));
+					if (resourceUsage != null)
+					{
+						coreContext.ReservationIdToIgnore = new Net.ReservationInstanceID(reservation.ID);
+						coreContext.NodeIdToIgnore = resourceUsage.ServiceDefinitionNodeID;
+					}
 				}
 			}
 
