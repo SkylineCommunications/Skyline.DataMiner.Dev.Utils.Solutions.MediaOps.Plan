@@ -16,7 +16,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// are read in batch and cached for the lifetime of the calculator, so a single instance should be reused for a whole batch of jobs (or recurring jobs)
 	/// as long as those are not modified.
 	/// </remarks>
-	internal sealed class ConfigurationStateCalculator
+	public sealed class ConfigurationStateCalculator
 	{
 		private readonly IMediaOpsLiveApi _liveApi;
 
@@ -125,6 +125,25 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <summary>
+		/// Creates a calculator for the supplied orchestration settings. A single calculator should be reused when
+		/// calculating the state of multiple settings so parameter definitions and script input requirements are read in batch.
+		/// </summary>
+		/// <param name="planApi">The MediaOps Plan API.</param>
+		/// <param name="liveApi">The MediaOps Live API.</param>
+		/// <param name="settings">The settings for which states will be calculated. Null entries are ignored.</param>
+		/// <returns>A calculator for the supplied settings.</returns>
+		/// <exception cref="ArgumentNullException">When <paramref name="settings"/> is <see langword="null"/>.</exception>
+		public static ConfigurationStateCalculator ForSettings(IMediaOpsPlanApi planApi, IMediaOpsLiveApi liveApi, params OrchestrationSettings[] settings)
+		{
+			if (settings == null)
+			{
+				throw new ArgumentNullException(nameof(settings));
+			}
+
+			return new ConfigurationStateCalculator(planApi, liveApi, settings.Where(x => x != null).ToList());
+		}
+
+		/// <summary>
 		/// Gets the configuration state of the specified job itself, based on its job level orchestration settings.
 		/// </summary>
 		/// <param name="job">The job.</param>
@@ -209,7 +228,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// </summary>
 		/// <param name="settings">The orchestration settings.</param>
 		/// <returns>The configuration state of the specified orchestration settings, or <see cref="ConfigurationState.Unknown"/> when no settings are available.</returns>
-		private ConfigurationState GetConfigurationState(OrchestrationSettings settings)
+		public ConfigurationState GetConfigurationState(OrchestrationSettings settings)
 		{
 			if (settings == null)
 			{
@@ -225,6 +244,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			_stateBySettings[settings] = state;
 
 			return state;
+		}
+
+		/// <summary>
+		/// Determines whether the specified settings are missing mandatory values.
+		/// </summary>
+		/// <param name="settings">The settings to evaluate.</param>
+		/// <returns><c>true</c> when the settings have the state <see cref="ConfigurationState.MandatoryValuesMissing"/>; otherwise, <c>false</c>.</returns>
+		public bool HasMissingMandatoryValues(OrchestrationSettings settings)
+		{
+			return GetConfigurationState(settings) == ConfigurationState.MandatoryValuesMissing;
 		}
 
 		private static List<OrchestrationSettings> GetSettings<TObject, TNode>(IEnumerable<TObject> objects, Func<TObject, OrchestrationSettings> settingsSelector, Func<TObject, NodeGraph<TNode>> nodeGraphSelector)
