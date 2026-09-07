@@ -126,7 +126,7 @@
 				x => helper.GetResources(x));
 		}
 
-		public static IReadOnlyCollection<Resource> GetEligibleResourcesForContext(this ResourceManagerHelper helper, EligibleResourceContext context)
+		public static EligibleResourceResult GetEligibleResourcesForContext(this ResourceManagerHelper helper, EligibleResourceContext context)
 		{
 			if (helper == null)
 			{
@@ -155,11 +155,11 @@
 					throw new MediaOpsException(mediaOpsTraceData);
 				}
 
-				List<Resource> eligibleResources = result?.EligibleResources ?? new List<Resource>();
+				result ??= new EligibleResourceResult(context.ContextId);
 
-				act?.AddTag("Eligible Resources Count", eligibleResources.Count);
+				act?.AddTag("Eligible Resources Count", result.EligibleResources.Count);
 
-				return eligibleResources;
+				return result;
 			});
 		}
 

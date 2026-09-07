@@ -141,18 +141,30 @@ api.Resources.Delete(resource.Id);
 api.Resources.Delete(new[] { id1, id2, id3 });
 
 // Get the resources that are eligible for a time range, with the required capabilities and capacities
-var eligibleResources = api.Resources.GetEligibleResources(new EligibleResourcesContext(DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddHours(1))
+var eligibilityResult = api.Resources.GetEligibleResources(new EligibleResourcesContext(DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddHours(1))
 {
     CapabilitySettings = new[] { new CapabilitySetting(capabilityId) { Value = "4K" } },
     CapacitySettings = new CapacitySetting[] { new NumberCapacitySetting(capacityId) { Value = 10 } },
 });
 
-// Restrict the eligible resources with a filter
+foreach (var eligibleResource in eligibilityResult.EligibleResources)
+{
+    Resource resource = eligibleResource.Resource;
+    int concurrencyInUse = eligibleResource.Usage.ConcurrencyConsumption;
+    int concurrencyRemaining = eligibleResource.Usage.RemainingConcurrency;
+
+    var capacityUsage = eligibleResource.Usage.CapacityUsages
+        .OfType<NumberCapacityUsage>()
+        .FirstOrDefault(x => x.CapacityId == capacityId);
+}
+
+// Restrict the eligible resources with a filter and ignore the current job's reservation usage
 var eligibleResourcesInPool = api.Resources.GetEligibleResources(new EligibleResourcesContext(DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddHours(1))
 {
     CapabilitySettings = new[] { new CapabilitySetting(capabilityId) { Value = "4K" } },
     CapacitySettings = new CapacitySetting[] { new NumberCapacitySetting(capacityId) { Value = 10 } },
     Filter = ResourceExposers.ResourcePoolIds.Contains(poolId),
+    JobIdToIgnore = job.Id,
 });
 ```
 

@@ -536,6 +536,28 @@
 		}
 
 		/// <summary>
+		/// Creates a directed connection from one node to another with the specified configuration.
+		/// </summary>
+		/// <param name="from">The source node.</param>
+		/// <param name="to">The destination node.</param>
+		/// <param name="configuration">The configuration for the new connection.</param>
+		/// <returns>The current <see cref="NodeGraph{TNode}"/> instance for method chaining.</returns>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="from"/>, <paramref name="to"/> or <paramref name="configuration"/> is null.</exception>
+		/// <exception cref="InvalidOperationException">Thrown when either node is not part of the graph.</exception>
+		public NodeGraph<TNode> Connect(TNode from, TNode to, ConnectionConfiguration configuration)
+		{
+			if (configuration == null)
+			{
+				throw new ArgumentNullException(nameof(configuration));
+			}
+
+			var connection = CreateConnection(from, to);
+			connection.Configuration = configuration;
+
+			return this;
+		}
+
+		/// <summary>
 		/// Creates a directed connection from one node to another, applying a deep copy of the specified configuration.
 		/// </summary>
 		/// <param name="from">The source node.</param>
@@ -544,7 +566,7 @@
 		/// <returns>The created <see cref="NodeConnection{TNode}"/>.</returns>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="from"/> or <paramref name="to"/> is null.</exception>
 		/// <exception cref="InvalidOperationException">Thrown when either node is not part of the graph.</exception>
-		internal NodeConnection<TNode> Connect(TNode from, TNode to, ConnectionConfiguration configuration)
+		internal NodeConnection<TNode> ConnectWithConfigurationCopy(TNode from, TNode to, ConnectionConfiguration configuration)
 		{
 			var connection = CreateConnection(from, to);
 			connection.CopyConfigurationFrom(configuration);
