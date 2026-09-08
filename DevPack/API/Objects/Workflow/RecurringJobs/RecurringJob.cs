@@ -21,6 +21,8 @@
 		private RecurringJobsInstance updatedInstance;
 		private PropertySettingsContext propertiesContext;
 		private PropertySettingsScope propertySettingsScope;
+		private JobRelationshipsContext jobRelationshipsContext;
+		private JobRelationshipsScope jobRelationshipsScope;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="RecurringJob"/> class.
@@ -56,6 +58,8 @@
 			{
 				node.SetPropertiesContext(propertiesContext);
 			}
+
+			jobRelationshipsContext = new JobRelationshipsContext(planApi, Id, () => Name);
 
 			InitTracking();
 		}
@@ -156,7 +160,147 @@
 					duplicatedNode.AddProperty(setting);
 				}
 			}
+
+			// 5. Copy the links as independent, unsaved relationships owned by the duplicate.
+			foreach (var endpoint in original.RelationshipEndpoints)
+			{
+				AddRelationshipEndpoint(new JobRelationshipEndpoint(endpoint));
+			}
 		}
+
+		/// <summary>
+		/// Gets or sets the name of the recurring job.
+		/// </summary>
+		public override string Name { get; set; }
+
+		/// <summary>
+		/// Gets or sets the description of the recurring job.
+		/// </summary>
+		public string Description { get; set; }
+
+		/// <summary>
+		/// Gets or sets the priority of the recurring job.
+		/// </summary>
+		public RecurringJobPriority Priority { get; set; } = RecurringJobPriority.Normal;
+
+		/// <summary>
+		/// Gets the state of the recurring job.
+		/// </summary>
+		public RecurringJobState State { get; private set; } = RecurringJobState.Active;
+
+		/// <summary>
+		/// Gets the orchestration settings assigned to this recurring job.
+		/// </summary>
+		public OrchestrationSettings OrchestrationSettings { get; private set; }
+
+		/// <summary>
+		/// Gets the node graph containing all nodes and connections that define the recurring job structure.
+		/// </summary>
+		public NodeGraph<RecurringJobNode> NodeGraph { get; private set; }
+
+		/// <summary>
+		/// Gets or sets the notes or additional information.
+		/// </summary>
+		public string Notes { get; set; }
+
+		/// <summary>
+		/// Gets the custom property settings associated with this recurring job.
+		/// Property settings are loaded lazily in a single batch together with the property settings of all nodes.
+		/// </summary>
+		public IReadOnlyCollection<CustomPropertySetting> CustomPropertySettings => GetOrCreateScope().CustomPropertySettings;
+
+		/// <summary>
+		/// Gets the property settings associated with this recurring job.
+		/// Property settings are loaded lazily in a single batch together with the property settings of all nodes.
+		/// </summary>
+		public IReadOnlyCollection<PropertySetting> PropertySettings => GetOrCreateScope().PropertySettings;
+
+		/// <summary>
+		/// Gets the objects this recurring job takes part in a relationship with. They are loaded lazily.
+		/// Use <see cref="AddRelationshipEndpoint"/>, <see cref="SetRelationshipEndpoints"/> and <see cref="RemoveRelationshipEndpoint"/>
+		/// to configure them before creating the recurring job.
+		/// </summary>
+		public IReadOnlyCollection<JobRelationshipEndpoint> RelationshipEndpoints => GetOrCreateRelationshipsScope().RelationshipEndpoints;
+
+		/// <summary>
+		/// Gets or sets the start time of the first job generated from this recurring job, in the time zone specified by <see cref="TimeZone"/>.
+		/// </summary>
+		public DateTimeOffset Start { get; set; }
+
+		/// <summary>
+		/// Gets or sets the duration of each generated job, excluding pre-roll and post-roll.
+		/// </summary>
+		public TimeSpan Duration { get; set; }
+
+		/// <summary>
+		/// Gets or sets the pre-roll duration of each generated job.
+		/// </summary>
+		public TimeSpan PreRollDuration { get; set; }
+
+		/// <summary>
+		/// Gets or sets the post-roll duration of each generated job.
+		/// </summary>
+		public TimeSpan PostRollDuration { get; set; }
+
+		/// <summary>
+		/// Gets or sets the time zone used when generating jobs from this recurring job.
+		/// </summary>
+		public TimeZoneInfo TimeZone { get; set; } = TimeZoneInfo.Utc;
+
+		/// <summary>
+		/// Gets or sets the desired state of each job generated from this recurring job.
+		/// </summary>
+		public DesiredJobState DesiredJobState { get; set; } = DesiredJobState.Draft;
+
+		/// <summary>
+		/// Gets the current process state of this recurring job.
+		/// </summary>
+		public RecurringJobProcessState ProcessState { get; private set; } = RecurringJobProcessState.NA;
+
+		/// <summary>
+		/// Gets or sets the recurring pattern that defines when jobs are generated from this recurring job.
+		/// </summary>
+		public RecurringPattern Pattern { get; private set; } = new RecurringPattern();
+
+		/// <summary>
+		/// Gets or sets the ID of the organization associated with the recurring job.
+		/// </summary>
+		public Guid OrganizationId { get; set; }
+
+		/// <summary>
+		/// Gets or sets the ID of the owner of the recurring job.
+		/// </summary>
+		public Guid OwnerId { get; set; }
+
+		/// <summary>
+		/// Gets the collection of contact IDs associated with the recurring job.
+		/// </summary>
+		public IReadOnlyCollection<Guid> ContactIds => contactIds;
+
+		/// <summary>
+		/// Gets the configuration state of the <see cref="OrchestrationSettings"/> of the recurring job itself. The orchestration settings
+		/// of the nodes of the recurring job are not taken into account: those are exposed by <see cref="RecurringJobNode.ConfigurationState"/>.
+		/// This property is set by the system and cannot be modified directly.
+		/// </summary>
+		/// <remarks>
+		/// This value does not depict the actual state of the recurring job: it is only recalculated and stored when the recurring job is created or updated.
+		/// </remarks>
+		public ConfigurationState ConfigurationState { get; internal set; }
+
+		/// <summary>
+		/// Gets or sets the unique identifier of the associated recurring job type.
+		/// </summary>
+		public string JobTypeCategoryId { get; set; }
+
+		internal RecurringJobsInstance OriginalInstance => originalInstance;
+
+		internal PropertySettingsScope PropertySettingsScope => propertySettingsScope;
+
+		internal PropertySettingsContext PropertySettingsContext => propertiesContext;
+
+		internal JobRelationshipsScope JobRelationshipsScope => jobRelationshipsScope;
+
+		internal JobRelationshipsContext JobRelationshipsContext => jobRelationshipsContext;
 
 		/// <summary>
 		/// Creates a new recurring job based on the specified job.
@@ -248,7 +392,10 @@
 				}
 			}
 
-			// TODO: linked items (=relationships) are not yet being taken over
+			foreach (var endpoint in job.RelationshipEndpoints)
+			{
+				recurringJob.AddRelationshipEndpoint(new JobRelationshipEndpoint(endpoint));
+			}
 
 			return recurringJob;
 		}
@@ -299,118 +446,6 @@
 				_ => null,
 			};
 		}
-
-		/// <summary>
-		/// Gets or sets the name of the recurring job.
-		/// </summary>
-		public override string Name { get; set; }
-
-		/// <summary>
-		/// Gets or sets the description of the recurring job.
-		/// </summary>
-		public string Description { get; set; }
-
-		/// <summary>
-		/// Gets or sets the priority of the recurring job.
-		/// </summary>
-		public RecurringJobPriority Priority { get; set; } = RecurringJobPriority.Normal;
-
-		/// <summary>
-		/// Gets the state of the recurring job.
-		/// </summary>
-		public RecurringJobState State { get; private set; } = RecurringJobState.Active;
-
-		/// <summary>
-		/// Gets the orchestration settings assigned to this recurring job.
-		/// </summary>
-		public OrchestrationSettings OrchestrationSettings { get; private set; }
-
-		/// <summary>
-		/// Gets the node graph containing all nodes and connections that define the recurring job structure.
-		/// </summary>
-		public NodeGraph<RecurringJobNode> NodeGraph { get; private set; }
-
-		/// <summary>
-		/// Gets or sets the notes or additional information.
-		/// </summary>
-		public string Notes { get; set; }
-
-		/// <summary>
-		/// Gets the custom property settings associated with this recurring job.
-		/// Property settings are loaded lazily in a single batch together with the property settings of all nodes.
-		/// </summary>
-		public IReadOnlyCollection<CustomPropertySetting> CustomPropertySettings => GetOrCreateScope().CustomPropertySettings;
-
-		/// <summary>
-		/// Gets the property settings associated with this recurring job.
-		/// Property settings are loaded lazily in a single batch together with the property settings of all nodes.
-		/// </summary>
-		public IReadOnlyCollection<PropertySetting> PropertySettings => GetOrCreateScope().PropertySettings;
-
-		/// <summary>
-		/// Gets or sets the start time of the first job generated from this recurring job, in the time zone specified by <see cref="TimeZone"/>.
-		/// </summary>
-		public DateTimeOffset Start { get; set; }
-
-		/// <summary>
-		/// Gets or sets the duration of each generated job, excluding pre-roll and post-roll.
-		/// </summary>
-		public TimeSpan Duration { get; set; }
-
-		/// <summary>
-		/// Gets or sets the pre-roll duration of each generated job.
-		/// </summary>
-		public TimeSpan PreRollDuration { get; set; }
-
-		/// <summary>
-		/// Gets or sets the post-roll duration of each generated job.
-		/// </summary>
-		public TimeSpan PostRollDuration { get; set; }
-
-		/// <summary>
-		/// Gets or sets the time zone used when generating jobs from this recurring job.
-		/// </summary>
-		public TimeZoneInfo TimeZone { get; set; } = TimeZoneInfo.Utc;
-
-		/// <summary>
-		/// Gets or sets the desired state of each job generated from this recurring job.
-		/// </summary>
-		public DesiredJobState DesiredJobState { get; set; } = DesiredJobState.Draft;
-
-		/// <summary>
-		/// Gets the current process state of this recurring job.
-		/// </summary>
-		public RecurringJobProcessState ProcessState { get; private set; } = RecurringJobProcessState.NA;
-
-		/// <summary>
-		/// Gets or sets the recurring pattern that defines when jobs are generated from this recurring job.
-		/// </summary>
-		public RecurringPattern Pattern { get; private set; } = new RecurringPattern();
-
-		/// <summary>
-		/// Gets or sets the ID of the organization associated with the recurring job.
-		/// </summary>
-		public Guid OrganizationId { get; set; }
-
-		/// <summary>
-		/// Gets or sets the ID of the owner of the recurring job.
-		/// </summary>
-		public Guid OwnerId { get; set; }
-
-		/// <summary>
-		/// Gets the collection of contact IDs associated with the recurring job.
-		/// </summary>
-		public IReadOnlyCollection<Guid> ContactIds => contactIds;
-
-		/// <summary>
-		/// Gets the configuration state of the <see cref="OrchestrationSettings"/> of the recurring job itself. The orchestration settings
-		/// of the nodes of the recurring job are not taken into account: those are exposed by <see cref="RecurringJobNode.ConfigurationState"/>.
-		/// This property is set by the system and cannot be modified directly.
-		/// </summary>
-		/// <remarks>
-		/// This value does not depict the actual state of the recurring job: it is only recalculated and stored when the recurring job is created or updated.
-		/// </remarks>
-		public ConfigurationState ConfigurationState { get; internal set; }
 
 		/// <summary>
 		/// Creates a duplicate of this recurring job with a newly generated identifier. The duplicate is a brand new,
@@ -471,15 +506,40 @@
 		}
 
 		/// <summary>
-		/// Gets or sets the unique identifier of the associated recurring job type.
+		/// Relates an object to this recurring job. When it already relates to that object, its name and URL are updated instead.
 		/// </summary>
-		public string JobTypeCategoryId { get; set; }
+		/// <param name="endpoint">The object to relate to this recurring job.</param>
+		/// <returns>The current <see cref="RecurringJob"/> instance.</returns>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="endpoint"/> is <see langword="null"/>.</exception>
+		public RecurringJob AddRelationshipEndpoint(JobRelationshipEndpoint endpoint)
+		{
+			GetOrCreateRelationshipsScope().AddRelationshipEndpoint(endpoint);
+			return this;
+		}
 
-		internal RecurringJobsInstance OriginalInstance => originalInstance;
+		/// <summary>
+		/// Replaces every object this recurring job relates to with the specified ones.
+		/// </summary>
+		/// <param name="endpoints">The objects that should replace the current collection.</param>
+		/// <returns>The current <see cref="RecurringJob"/> instance.</returns>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="endpoints"/> is <see langword="null"/>.</exception>
+		public RecurringJob SetRelationshipEndpoints(IEnumerable<JobRelationshipEndpoint> endpoints)
+		{
+			GetOrCreateRelationshipsScope().SetRelationshipEndpoints(endpoints);
+			return this;
+		}
 
-		internal PropertySettingsScope PropertySettingsScope => propertySettingsScope;
-
-		internal PropertySettingsContext PropertySettingsContext => propertiesContext;
+		/// <summary>
+		/// Removes the relationship between this recurring job and the object described by the specified endpoint.
+		/// </summary>
+		/// <param name="endpoint">The object to stop relating to this recurring job.</param>
+		/// <returns>The current <see cref="RecurringJob"/> instance.</returns>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="endpoint"/> is <see langword="null"/>.</exception>
+		public RecurringJob RemoveRelationshipEndpoint(JobRelationshipEndpoint endpoint)
+		{
+			GetOrCreateRelationshipsScope().RemoveRelationshipEndpoint(endpoint);
+			return this;
+		}
 
 		/// <inheritdoc/>
 		public override int GetHashCode()
@@ -551,6 +611,15 @@
 
 		private PropertySettingsScope GetOrCreateScope()
 			=> propertySettingsScope ??= EnsureContext().CreateOwnerScope();
+
+		private JobRelationshipsScope GetOrCreateRelationshipsScope()
+			=> jobRelationshipsScope ??= EnsureRelationshipsContext().CreateOwnerScope();
+
+		internal JobRelationshipsContext EnsureRelationshipsContext()
+		{
+			// New, unsaved recurring job: a null planApi is fine because the lazy load can only return empty results.
+			return jobRelationshipsContext ??= new JobRelationshipsContext(null, Id, () => Name);
+		}
 
 		internal PropertySettingsContext EnsureContext()
 		{

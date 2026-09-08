@@ -3,15 +3,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using System;
 
 	/// <summary>
-	/// Describes the object a job is linked to, e.g. a booking or a reference in an external system.
-	/// Only this side of the relationship has to be described: the job side is filled in automatically.
+	/// Describes the object a job or recurring job is linked to, e.g. a booking or a reference in an external system.
+	/// Only this side of the relationship has to be described: the owning job side is filled in automatically.
 	/// </summary>
 	public class JobRelationshipEndpoint
 	{
 		/// <summary>
 		/// Initializes a new instance of the <see cref="JobRelationshipEndpoint"/> class.
 		/// </summary>
-		/// <param name="objectType">The type of the object that is linked to the job.</param>
+		/// <param name="objectType">The type of the object that is linked to the job or recurring job.</param>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="objectType"/> is <see langword="null"/>.</exception>
 		public JobRelationshipEndpoint(RelationshipObjectType objectType)
 			: this(objectType?.Id ?? throw new ArgumentNullException(nameof(objectType)))
@@ -21,7 +21,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <summary>
 		/// Initializes a new instance of the <see cref="JobRelationshipEndpoint"/> class.
 		/// </summary>
-		/// <param name="objectTypeId">The unique identifier of the type of the object that is linked to the job.</param>
+		/// <param name="objectTypeId">The unique identifier of the type of the object that is linked to the job or recurring job.</param>
 		/// <exception cref="ArgumentException">Thrown when <paramref name="objectTypeId"/> is <see cref="Guid.Empty"/>.</exception>
 		public JobRelationshipEndpoint(Guid objectTypeId)
 		{

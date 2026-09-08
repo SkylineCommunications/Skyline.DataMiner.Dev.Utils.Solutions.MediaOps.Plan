@@ -7,9 +7,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
 	/// <summary>
-	/// Owner-scoped context that lazily loads every <see cref="Relationship"/> a job takes part in and hands out a
+	/// Owner-scoped context that lazily loads every <see cref="Relationship"/> a job or recurring job takes part in and hands out a
 	/// <see cref="JobRelationshipsScope"/> that hides the storage details (the reserved "Job" object type, the parent/child
-	/// sides and the job's own object id) from the user.
+	/// sides and the owner's object id) from the user.
 	/// </summary>
 	internal sealed class JobRelationshipsContext
 	{
@@ -28,12 +28,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <summary>
-		/// Gets the object id the job is stored with. The solution stores it as a plain string, so the formatting has to match exactly.
+		/// Gets the object id the owner is stored with. The solution stores it as a plain string, so the formatting has to match exactly.
 		/// </summary>
 		internal string ObjectId => ownerId.ToString();
 
 		/// <summary>
-		/// Gets the name of the job, used as the denormalized snapshot on the job side of every link.
+		/// Gets the owner name, used as the denormalized snapshot on the owner side of every link.
 		/// </summary>
 		internal string OwnerName => getOwnerName?.Invoke();
 
@@ -62,7 +62,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		/// <summary>
 		/// Builds the symmetric filter that finds every relationship an object takes part in, on either side.
-		/// This matches how the solution looks up the links of a job.
+		/// This matches how the solution looks up the links of a job or recurring job.
 		/// </summary>
 		internal static FilterElement<Relationship> BuildLinkedObjectFilter(Guid objectTypeId, IEnumerable<string> objectIds)
 		{
@@ -90,7 +90,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 			if (planApi == null)
 			{
-				// New/unsaved job: nothing has ever been persisted yet.
+				// New/unsaved owner: nothing has ever been persisted yet.
 				return new LoadedEndpoints(Guid.Empty, EmptyEndpoints, new Dictionary<Guid, Relationship>());
 			}
 
@@ -118,7 +118,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <summary>
-		/// Projects a relationship onto the endpoint that is not the job.
+		/// Projects a relationship onto the endpoint that is not the owner.
 		/// </summary>
 		internal static JobRelationshipEndpoint ToEndpoint(Relationship relationship, Guid jobObjectTypeId, string jobObjectId)
 		{

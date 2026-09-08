@@ -282,5 +282,29 @@ namespace RT_MediaOps.Plan.Workflow.RecurringJobs
 
 			Assert.AreEqual("Value1", job.CustomPropertySettings.Single().Value);
 		}
+
+		[TestMethod]
+		public void FromJob_CopiesRelationshipsAsIndependentUnsavedEndpoints()
+		{
+			var objectTypeId = Guid.NewGuid();
+			var job = new Job { Name = "Test", Start = BaseStartTime, End = BaseStartTime + TimeSpan.FromHours(1) };
+			job.AddRelationshipEndpoint(new JobRelationshipEndpoint(objectTypeId)
+			{
+				ObjectId = "booking-1",
+				ObjectName = "Evening show",
+				Url = "https://example.invalid/booking/1",
+			});
+
+			var recurringJob = RecurringJob.FromJob(job);
+
+			var sourceEndpoint = job.RelationshipEndpoints.Single();
+			var copiedEndpoint = recurringJob.RelationshipEndpoints.Single();
+			Assert.AreNotSame(sourceEndpoint, copiedEndpoint);
+			Assert.AreEqual(Guid.Empty, copiedEndpoint.Id);
+			Assert.AreEqual(objectTypeId, copiedEndpoint.ObjectTypeId);
+			Assert.AreEqual("booking-1", copiedEndpoint.ObjectId);
+			Assert.AreEqual("Evening show", copiedEndpoint.ObjectName);
+			Assert.AreEqual("https://example.invalid/booking/1", copiedEndpoint.Url);
+		}
 	}
 }
