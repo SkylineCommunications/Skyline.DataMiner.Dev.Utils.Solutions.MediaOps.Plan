@@ -1,6 +1,7 @@
 namespace RT_MediaOps.Plan.Workflow.Jobs
 {
 	using System;
+	using System.Linq;
 
 	using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -184,6 +185,30 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			Assert.AreEqual(ownerId, job.OwnerId);
 			Assert.AreEqual("full-cat", job.JobTypeCategoryId);
 			CollectionAssert.Contains(new System.Collections.Generic.List<Guid>(job.ContactIds), contactId);
+		}
+
+		[TestMethod]
+		public void FromRecurringJob_CopiesRelationshipsAsIndependentUnsavedEndpoints()
+		{
+			var objectTypeId = Guid.NewGuid();
+			var recurringJob = new RecurringJob { Name = "Test", Duration = TimeSpan.FromHours(1) };
+			recurringJob.AddRelationshipEndpoint(new JobRelationshipEndpoint(objectTypeId)
+			{
+				ObjectId = "booking-1",
+				ObjectName = "Evening show",
+				Url = "https://example.invalid/booking/1",
+			});
+
+			var job = Job.FromRecurringJob(recurringJob, BaseStartTime);
+
+			var sourceEndpoint = recurringJob.RelationshipEndpoints.Single();
+			var copiedEndpoint = job.RelationshipEndpoints.Single();
+			Assert.AreNotSame(sourceEndpoint, copiedEndpoint);
+			Assert.AreEqual(Guid.Empty, copiedEndpoint.Id);
+			Assert.AreEqual(objectTypeId, copiedEndpoint.ObjectTypeId);
+			Assert.AreEqual("booking-1", copiedEndpoint.ObjectId);
+			Assert.AreEqual("Evening show", copiedEndpoint.ObjectName);
+			Assert.AreEqual("https://example.invalid/booking/1", copiedEndpoint.Url);
 		}
 	}
 }

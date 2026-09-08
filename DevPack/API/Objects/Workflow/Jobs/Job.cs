@@ -732,7 +732,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				}
 			}
 
-			// TODO: linked items (=relationships) are not yet being taken over
+			foreach (var endpoint in recurringJob.RelationshipEndpoints)
+			{
+				job.AddRelationshipEndpoint(new JobRelationshipEndpoint(endpoint));
+			}
 
 			return job;
 		}

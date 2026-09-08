@@ -157,6 +157,7 @@
 
 			CreateOrUpdateOrchestrationSettings(apiRecurringJobs.Where(IsValid).ToList());
 			CreateOrUpdatePropertySettingCollections(apiRecurringJobs.Where(IsValid).ToList());
+			CreateOrUpdateRecurringJobRelationships(apiRecurringJobs.Where(IsValid).ToList());
 
 			var toCreateDomInstances = toCreate
 				.Where(IsValid)
@@ -491,6 +492,7 @@
 
 			DeleteOrchestrationSettings(recurringJobsToDelete);
 			DeletePropertySettingCollections(recurringJobsToDelete);
+			DeleteRecurringJobRelationships(recurringJobsToDelete);
 
 			var domRecurringJobsById = recurringJobsToDelete.ToDictionary(x => x.Id, x => x.OriginalInstance);
 
@@ -537,6 +539,179 @@
 				.ToList();
 
 			DomWorkflowOrchestrationSettingsHandler.TryDelete(planApi, orchestrationSettings, out _);
+		}
+
+		private void CreateOrUpdateRecurringJobRelationships(ICollection<RecurringJob> apiRecurringJobs)
+		{
+			if (apiRecurringJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiRecurringJobs));
+			}
+
+			if (apiRecurringJobs.Count == 0)
+			{
+				return;
+			}
+
+			if (apiRecurringJobs.Any(x => !IsValid(x)))
+			{
+				throw new ArgumentException($"Not all provided recurring jobs are valid", nameof(apiRecurringJobs));
+			}
+
+			foreach (var recurringJob in apiRecurringJobs)
+			{
+				recurringJob.EnsureRelationshipsContext();
+			}
+
+			var dirtyRecurringJobs = apiRecurringJobs.Where(x => x.JobRelationshipsScope != null && x.JobRelationshipsScope.IsDirty).ToList();
+			if (dirtyRecurringJobs.Count == 0)
+			{
+				return;
+			}
+
+			var jobObjectTypeId = JobRelationshipsContext.ResolveJobObjectTypeId(planApi);
+			var recurringJobIdByRelationshipId = new Dictionary<Guid, Guid>();
+			var toCreateOrUpdate = new List<Relationship>();
+			var toDelete = new List<Relationship>();
+
+			foreach (var recurringJob in dirtyRecurringJobs)
+			{
+				var actions = recurringJob.JobRelationshipsScope.BuildPersistenceActions(jobObjectTypeId);
+				if (actions == null)
+				{
+					continue;
+				}
+
+				if (actions.JobObjectTypeMissing)
+				{
+					var error = new JobRelationshipObjectTypeNotFoundError
+					{
+						ErrorMessage = $"Relationship object type '{RelationshipObjectType.JobObjectTypeName}' does not exist, so links cannot be configured on a recurring job.",
+						Id = recurringJob.Id,
+					};
+
+					ReportError(recurringJob.Id, error);
+					continue;
+				}
+
+				foreach (var relationship in actions.ToCreateOrUpdate)
+				{
+					recurringJobIdByRelationshipId[relationship.Id] = recurringJob.Id;
+					toCreateOrUpdate.Add(relationship);
+				}
+
+				foreach (var relationship in actions.ToDelete)
+				{
+					recurringJobIdByRelationshipId[relationship.Id] = recurringJob.Id;
+					toDelete.Add(relationship);
+				}
+			}
+
+			if (toCreateOrUpdate.Count > 0)
+			{
+				DomRelationshipHandler.TryCreateOrUpdate(planApi, toCreateOrUpdate, out var result);
+				ReportRecurringJobRelationshipFailures(result, recurringJobIdByRelationshipId);
+			}
+
+			if (toDelete.Count > 0)
+			{
+				DomRelationshipHandler.TryDelete(planApi, toDelete, out var result);
+				ReportRecurringJobRelationshipFailures(result, recurringJobIdByRelationshipId);
+			}
+		}
+
+		private void DeleteRecurringJobRelationships(ICollection<RecurringJob> apiRecurringJobs)
+		{
+			if (apiRecurringJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiRecurringJobs));
+			}
+
+			if (apiRecurringJobs.Count == 0)
+			{
+				return;
+			}
+
+			var recurringJobIdByRelationshipId = new Dictionary<Guid, Guid>();
+			var toDelete = new List<Relationship>();
+			var recurringJobsRequiringQuery = new Dictionary<string, Guid>();
+
+			foreach (var recurringJob in apiRecurringJobs)
+			{
+				var cached = recurringJob.JobRelationshipsContext?.TryGetCachedOriginalRelationships();
+				if (cached == null)
+				{
+					recurringJobsRequiringQuery[recurringJob.Id.ToString()] = recurringJob.Id;
+					continue;
+				}
+
+				foreach (var relationship in cached)
+				{
+					recurringJobIdByRelationshipId[relationship.Id] = recurringJob.Id;
+					toDelete.Add(relationship);
+				}
+			}
+
+			QueryRecurringJobRelationshipsToDelete(recurringJobsRequiringQuery, recurringJobIdByRelationshipId, toDelete);
+
+			if (toDelete.Count == 0)
+			{
+				return;
+			}
+
+			DomRelationshipHandler.TryDelete(planApi, toDelete, out var result);
+			ReportRecurringJobRelationshipFailures(result, recurringJobIdByRelationshipId);
+		}
+
+		private void QueryRecurringJobRelationshipsToDelete(Dictionary<string, Guid> recurringJobsRequiringQuery, Dictionary<Guid, Guid> recurringJobIdByRelationshipId, List<Relationship> toDelete)
+		{
+			if (recurringJobsRequiringQuery.Count == 0)
+			{
+				return;
+			}
+
+			var jobObjectTypeId = JobRelationshipsContext.ResolveJobObjectTypeId(planApi);
+			if (jobObjectTypeId == Guid.Empty)
+			{
+				return;
+			}
+
+			var filter = JobRelationshipsContext.BuildLinkedObjectFilter(jobObjectTypeId, recurringJobsRequiringQuery.Keys);
+			foreach (var relationship in planApi.Relationships.Read(filter))
+			{
+				var recurringJobObjectId = relationship.Parent?.ObjectTypeId == jobObjectTypeId && recurringJobsRequiringQuery.ContainsKey(relationship.Parent.ObjectId ?? String.Empty)
+					? relationship.Parent.ObjectId
+					: relationship.Child?.ObjectId;
+
+				if (recurringJobObjectId != null && recurringJobsRequiringQuery.TryGetValue(recurringJobObjectId, out var recurringJobId))
+				{
+					recurringJobIdByRelationshipId[relationship.Id] = recurringJobId;
+					toDelete.Add(relationship);
+				}
+			}
+		}
+
+		private void ReportRecurringJobRelationshipFailures(DomInstanceBulkOperationResult<Storage.DOM.SlcRelationships.LinksInstance> result, Dictionary<Guid, Guid> recurringJobIdByRelationshipId)
+		{
+			if (result == null || !result.HasFailures)
+			{
+				return;
+			}
+
+			foreach (var id in result.UnsuccessfulIds)
+			{
+				if (!recurringJobIdByRelationshipId.TryGetValue(id, out var recurringJobId))
+				{
+					planApi.Logger.Error(this, $"Failed to find recurring job ID for relationship ID {id}.");
+					continue;
+				}
+
+				ReportError(recurringJobId);
+				if (result.TraceDataPerItem.TryGetValue(id, out var traceData))
+				{
+					PassTraceData(recurringJobId, traceData);
+				}
+			}
 		}
 
 		private void CreateOrUpdatePropertySettingCollections(ICollection<RecurringJob> apiRecurringJobs)

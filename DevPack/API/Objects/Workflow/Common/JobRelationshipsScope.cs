@@ -5,7 +5,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using System.Linq;
 
 	/// <summary>
-	/// Per-job mutable view over a <see cref="JobRelationshipsContext"/>. Exposes a flat list of <see cref="JobRelationshipEndpoint"/> objects
+	/// Per-owner mutable view over a <see cref="JobRelationshipsContext"/>. Exposes a flat list of <see cref="JobRelationshipEndpoint"/> objects
 	/// to the caller and translates the local state into <see cref="JobRelationshipsPersistenceActions"/> when it is time to persist.
 	/// </summary>
 	internal sealed class JobRelationshipsScope
