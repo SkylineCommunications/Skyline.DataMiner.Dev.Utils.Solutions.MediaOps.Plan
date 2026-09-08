@@ -490,10 +490,6 @@ api.Jobs.SetOrchestrationState(jobId, new OrchestrationUpdateDetails
     Message = "Preroll started successfully",
 });
 
-// Assign a resource to every node of a job that only has a resource pool assigned. Every node gets an
-// eligible resource of its pool for its own time range; resources already assigned to the job are skipped.
-job.AssignEligibleResources(api);
-job = api.Jobs.Update(job);
 ```
 
 ## Delete with Options

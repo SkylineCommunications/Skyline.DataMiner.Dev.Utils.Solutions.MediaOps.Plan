@@ -128,20 +128,6 @@
 				coreContext.ResourceFilter = new ORFilterElement<CoreResource>(filteredResourcesByCoreId.Keys.Select(x => Net.Messages.ResourceExposers.ID.Equal(x)).ToArray());
 			}
 
-			if (context.JobIdToIgnore != Guid.Empty)
-			{
-				var reservation = planApi.CoreHelpers.ResourceManagerHelper
-					.GetReservationInstances(
-						new[] { context.JobIdToIgnore },
-						jobId => ReservationInstanceExposers.Properties.StringField(CoreJobHandler.JobIdPropertyName).Equal(Convert.ToString(jobId)))
-					.FirstOrDefault();
-
-				if (reservation != null)
-				{
-					coreContext.ReservationIdToIgnore = new Net.ReservationInstanceID(reservation.ID);
-				}
-			}
-
 			var coreResult = planApi.CoreHelpers.ResourceManagerHelper.GetEligibleResourcesForContext(coreContext);
 			var resources = MapToResourceStudioResources(coreResult.EligibleResources, filteredResourcesByCoreId);
 			var usageByCoreResourceId = coreResult.UsageDetails.ToDictionary(usage => usage.ResourceId);
