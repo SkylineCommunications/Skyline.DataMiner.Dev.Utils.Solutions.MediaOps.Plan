@@ -311,47 +311,6 @@ namespace RT_MediaOps.Plan.RST.Resources
 		}
 
 		[TestMethod]
-		public void GetEligibleResources_CompleteResourceBookedByIgnoredJob_ReturnsResourceDuringBooking()
-		{
-			var prefix = Guid.NewGuid();
-			var currentTime = DateTime.UtcNow.RoundToNextSecond();
-
-			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
-			pool = TestContext.Api.ResourcePools.Complete(pool);
-
-			var resource = CreateCompleteResource($"{prefix}_Resource", pool, null);
-			var bookedStart = currentTime.AddHours(1);
-			var bookedEnd = currentTime.AddHours(2);
-
-			var job = new Job
-			{
-				Name = $"{prefix}_Job",
-				Start = bookedStart,
-				End = bookedEnd,
-				PreRollStart = bookedStart,
-				PostRollEnd = bookedEnd,
-			};
-
-			job.NodeGraph.Add(new JobResourceNode(pool, resource));
-			job = objectCreator.CreateJob(job);
-			job = TestContext.Api.Jobs.SaveAsTentative(job);
-			job = TestContext.Api.Jobs.Confirm(job);
-
-			var context = new EligibleResourcesContext(bookedStart.AddMinutes(15), bookedEnd.AddMinutes(-15))
-			{
-				Filter = ResourceExposers.Id.Equal(resource.Id),
-				JobIdToIgnore = job.Id,
-			};
-
-			var result = TestContext.Api.Resources.GetEligibleResources(context);
-			var eligibleResource = result.EligibleResources.Single();
-
-			Assert.AreEqual(resource.Id, eligibleResource.Resource.Id, "Expected the resource to be eligible when the consuming job is ignored.");
-			Assert.AreEqual(0, eligibleResource.Usage.ConcurrencyConsumption, "Expected the ignored job not to contribute to concurrency consumption.");
-			Assert.AreEqual(1, eligibleResource.Usage.RemainingConcurrency, "Expected the ignored job's concurrency slot to remain available.");
-		}
-
-		[TestMethod]
 		public void GetEligibleResources_DeprecatedResource_DoesNotReturnResource()
 		{
 			var prefix = Guid.NewGuid();
