@@ -20,7 +20,7 @@ namespace RT_MediaOps.Plan.Workflow
 				IsMandatory = true,
 			}.SetDiscretes(["A"]));
 
-			var settings = new OrchestrationSettings();
+			var settings = new WorkflowOrchestrationSettings();
 			settings.AddCapability(new CapabilitySetting(mandatoryCapability));
 
 			var calculator = ConfigurationStateCalculator.ForSettings(planApi, liveApi, settings);
@@ -33,7 +33,7 @@ namespace RT_MediaOps.Plan.Workflow
 		public void HasMissingMandatoryCapabilityValues_NullSettings_ThrowsArgumentNullException()
 		{
 			var (planApi, liveApi) = CreateApis();
-			var calculator = ConfigurationStateCalculator.ForSettings(planApi, liveApi, new OrchestrationSettings());
+			var calculator = ConfigurationStateCalculator.ForSettings(planApi, liveApi, new WorkflowOrchestrationSettings());
 
 			Assert.ThrowsException<ArgumentNullException>(() => calculator.HasMissingMandatoryCapabilityValues(null));
 		}
@@ -48,7 +48,7 @@ namespace RT_MediaOps.Plan.Workflow
 				IsMandatory = true,
 			}.SetDiscretes(["A"]));
 
-			var settings = new OrchestrationSettings();
+			var settings = new WorkflowOrchestrationSettings();
 			settings.AddCapability(new CapabilitySetting(mandatoryCapability)
 			{
 				Reference = new ResourcePropertyReference(Guid.NewGuid()),
@@ -69,7 +69,7 @@ namespace RT_MediaOps.Plan.Workflow
 				IsMandatory = true,
 			});
 
-			var settings = new OrchestrationSettings();
+			var settings = new WorkflowOrchestrationSettings();
 			settings.AddCapacity(new NumberCapacitySetting(mandatoryCapacity));
 
 			var calculator = ConfigurationStateCalculator.ForSettings(planApi, liveApi, settings);
@@ -82,7 +82,7 @@ namespace RT_MediaOps.Plan.Workflow
 		public void HasMissingMandatoryCapacityValues_NullSettings_ThrowsArgumentNullException()
 		{
 			var (planApi, liveApi) = CreateApis();
-			var calculator = ConfigurationStateCalculator.ForSettings(planApi, liveApi, new OrchestrationSettings());
+			var calculator = ConfigurationStateCalculator.ForSettings(planApi, liveApi, new WorkflowOrchestrationSettings());
 
 			Assert.ThrowsException<ArgumentNullException>(() => calculator.HasMissingMandatoryCapacityValues(null));
 		}
@@ -97,7 +97,7 @@ namespace RT_MediaOps.Plan.Workflow
 				IsMandatory = true,
 			});
 
-			var settings = new OrchestrationSettings();
+			var settings = new WorkflowOrchestrationSettings();
 			settings.AddCapacity(new NumberCapacitySetting(mandatoryCapacity)
 			{
 				Value = 42,
