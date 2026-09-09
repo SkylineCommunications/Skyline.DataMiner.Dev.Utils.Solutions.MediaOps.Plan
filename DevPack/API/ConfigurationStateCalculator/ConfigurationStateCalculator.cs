@@ -248,12 +248,53 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		/// <summary>
 		/// Determines whether the specified settings are missing mandatory values.
+		/// This considers <see cref="OrchestrationSettings.Capabilities"/>, <see cref="OrchestrationSettings.Capacities"/>, <see cref="OrchestrationSettings.Configurations"/> and <see cref="OrchestrationSettings.OrchestrationEvents"/>.
 		/// </summary>
 		/// <param name="settings">The settings to evaluate.</param>
 		/// <returns><c>true</c> when the settings have the state <see cref="ConfigurationState.MandatoryValuesMissing"/>; otherwise, <c>false</c>.</returns>
 		public bool HasMissingMandatoryValues(OrchestrationSettings settings)
 		{
 			return GetConfigurationState(settings) == ConfigurationState.MandatoryValuesMissing;
+		}
+
+		/// <summary>
+		/// Determines whether the specified settings are missing mandatory capability values.
+		/// </summary>
+		/// <param name="settings">The settings to evaluate.</param>
+		/// <returns><c>true</c> when the settings have missing mandatory capability values; otherwise, <c>false</c>.</returns>
+		public bool HasMissingMandatoryCapabilityValues(OrchestrationSettings settings)
+		{
+			if (settings == null)
+			{
+				throw new ArgumentNullException(nameof(settings));
+			}
+
+			if (settings.Capabilities.Any(x => !x.HasValue && !x.HasReference && IsMandatory(_capabilities.Get(x.Id), y => y.IsMandatory)))
+			{
+				return true;
+			}
+
+			return false;
+		}
+
+		/// <summary>
+		/// Determines whether the specified settings are missing mandatory capacity values.
+		/// </summary>
+		/// <param name="settings">The settings to evaluate.</param>
+		/// <returns><c>true</c> when the settings have missing mandatory capacity values; otherwise, <c>false</c>.</returns>
+		public bool HasMissingMandatoryCapacityValues(OrchestrationSettings settings)
+		{
+			if (settings == null)
+			{
+				throw new ArgumentNullException(nameof(settings));
+			}
+
+			if (settings.Capacities.Any(x => !x.HasValue && !x.HasReference && IsMandatory(_capacities.Get(x.Id), y => y.IsMandatory)))
+			{
+				return true;
+			}
+
+			return false;
 		}
 
 		private static List<OrchestrationSettings> GetSettings<TObject, TNode>(IEnumerable<TObject> objects, Func<TObject, OrchestrationSettings> settingsSelector, Func<TObject, NodeGraph<TNode>> nodeGraphSelector)
@@ -360,12 +401,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		private bool MandatoryParametersMissingValues(OrchestrationSettings settings)
 		{
-			if (settings.Capabilities.Any(x => !x.HasValue && !x.HasReference && IsMandatory(_capabilities.Get(x.Id), y => y.IsMandatory)))
+			if (HasMissingMandatoryCapabilityValues(settings))
 			{
 				return true;
 			}
 
-			if (settings.Capacities.Any(x => !x.HasValue && !x.HasReference && IsMandatory(_capacities.Get(x.Id), y => y.IsMandatory)))
+			if (HasMissingMandatoryCapacityValues(settings))
 			{
 				return true;
 			}
