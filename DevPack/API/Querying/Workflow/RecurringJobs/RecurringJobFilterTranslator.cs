@@ -29,8 +29,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			[RecurringJobExposers.OwnerId.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.CostingAndBilling.JobOwner), comparer, (Guid)value),
 			[RecurringJobExposers.JobTypeCategoryId.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.JobSource), comparer, (string)value),
 			[RecurringJobExposers.Pattern.EndDate.fieldName] = (comparer, value) => CreatePatternEndDateFilter(comparer, (DateTimeOffset)value),
-			[RecurringJobExposers.Resources.fieldName] = (comparer, value) => NodeReferenceFilterFactory.Create(SlcWorkflowIds.Enums.Nodetype.Resource, comparer, (Guid)value, RecurringJobExposers.Resources.fieldName),
-			[RecurringJobExposers.ResourcePools.fieldName] = (comparer, value) => NodeReferenceFilterFactory.Create(SlcWorkflowIds.Enums.Nodetype.ResourcePool, comparer, (Guid)value, RecurringJobExposers.ResourcePools.fieldName),
+			[RecurringJobExposers.Resources.fieldName] = (comparer, value) => NodeReferenceFilterFactory.CreateResourceFilter(comparer, (Guid)value, RecurringJobExposers.Resources.fieldName),
+			[RecurringJobExposers.ResourcePools.fieldName] = (comparer, value) => NodeReferenceFilterFactory.CreateResourcePoolFilter(comparer, (Guid)value, RecurringJobExposers.ResourcePools.fieldName),
 		};
 
 		private readonly Dictionary<string, Func<SortOrder, bool, IOrderByElement>> orderByHandlers = new Dictionary<string, Func<SortOrder, bool, IOrderByElement>>

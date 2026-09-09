@@ -126,9 +126,11 @@
 		/// Gets a dynamic list exposer for the resource pools referenced by the nodes of the <see cref="Job.NodeGraph"/> property.
 		/// </summary>
 		/// <remarks>
-		/// Only the <see cref="Comparer.Contains"/> and <see cref="Comparer.NotContains"/> comparisons are supported.
+		/// A job matches when it has a resource pool node referencing the resource pool, or a resource node referencing
+		/// a resource of that resource pool. Only the <see cref="Comparer.Contains"/> and
+		/// <see cref="Comparer.NotContains"/> comparisons are supported.
 		/// </remarks>
-		public static readonly DynamicListExposer<Job, Guid> ResourcePools = DynamicListExposer<Job, Guid>.CreateFromListExposer(new Exposer<Job, IEnumerable>((obj) => obj.NodeGraph.Nodes.OfType<IResourcePoolNode>().Select(x => x.ResourcePoolId), "ResourcePools"));
+		public static readonly DynamicListExposer<Job, Guid> ResourcePools = DynamicListExposer<Job, Guid>.CreateFromListExposer(new Exposer<Job, IEnumerable>((obj) => obj.NodeGraph.Nodes.Select(NodeReferences.GetResourcePoolId).Where(x => x != Guid.Empty), "ResourcePools"));
 
 		/// <summary>
 		/// Provides exposers for querying and filtering the nodes of the <see cref="Job.NodeGraph"/> property.

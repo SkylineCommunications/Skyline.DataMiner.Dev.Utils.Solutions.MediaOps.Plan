@@ -78,9 +78,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Gets a dynamic list exposer for the resource pools referenced by the nodes of the <see cref="RecurringJob.NodeGraph"/> property.
 		/// </summary>
 		/// <remarks>
-		/// Only the <see cref="Comparer.Contains"/> and <see cref="Comparer.NotContains"/> comparisons are supported.
+		/// A recurring job matches when it has a resource pool node referencing the resource pool, or a resource node
+		/// referencing a resource of that resource pool. Only the <see cref="Comparer.Contains"/> and
+		/// <see cref="Comparer.NotContains"/> comparisons are supported.
 		/// </remarks>
-		public static readonly DynamicListExposer<RecurringJob, Guid> ResourcePools = DynamicListExposer<RecurringJob, Guid>.CreateFromListExposer(new Exposer<RecurringJob, IEnumerable>((obj) => obj.NodeGraph.Nodes.OfType<IResourcePoolNode>().Select(x => x.ResourcePoolId), "ResourcePools"));
+		public static readonly DynamicListExposer<RecurringJob, Guid> ResourcePools = DynamicListExposer<RecurringJob, Guid>.CreateFromListExposer(new Exposer<RecurringJob, IEnumerable>((obj) => obj.NodeGraph.Nodes.Select(NodeReferences.GetResourcePoolId).Where(x => x != Guid.Empty), "ResourcePools"));
 
 		/// <summary>
 		/// Provides exposers for querying and filtering the <see cref="RecurringJob.Pattern"/> property.

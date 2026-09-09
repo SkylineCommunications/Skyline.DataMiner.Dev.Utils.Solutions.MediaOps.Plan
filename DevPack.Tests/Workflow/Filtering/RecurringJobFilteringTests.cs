@@ -84,8 +84,8 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 			new Tuple<RecurringJob[], FilterElement<RecurringJob>>([Setup.RecurringJob2!, Setup.RecurringJob3!], RecurringJobFilter.AND(RecurringJobExposers.Resources.NotContains(Setup.Resource!.Id))),
 			new Tuple<RecurringJob[], FilterElement<RecurringJob>>([], RecurringJobFilter.AND(RecurringJobExposers.Resources.Contains(Guid.NewGuid()))),
 
-			new Tuple<RecurringJob[], FilterElement<RecurringJob>>([Setup.RecurringJob2!], RecurringJobFilter.AND(RecurringJobExposers.ResourcePools.Contains(Setup.ResourcePool!.Id))),
-			new Tuple<RecurringJob[], FilterElement<RecurringJob>>([Setup.RecurringJob1!, Setup.RecurringJob3!], RecurringJobFilter.AND(RecurringJobExposers.ResourcePools.NotContains(Setup.ResourcePool!.Id))),
+			new Tuple<RecurringJob[], FilterElement<RecurringJob>>([Setup.RecurringJob1!, Setup.RecurringJob2!], RecurringJobFilter.AND(RecurringJobExposers.ResourcePools.Contains(Setup.ResourcePool!.Id))),
+			new Tuple<RecurringJob[], FilterElement<RecurringJob>>([Setup.RecurringJob3!], RecurringJobFilter.AND(RecurringJobExposers.ResourcePools.NotContains(Setup.ResourcePool!.Id))),
 			new Tuple<RecurringJob[], FilterElement<RecurringJob>>([], RecurringJobFilter.AND(RecurringJobExposers.ResourcePools.Contains(Guid.NewGuid()))),
 		};
 

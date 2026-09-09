@@ -73,8 +73,10 @@
 		/// Gets a dynamic list exposer for the resource pools referenced by the nodes of the <see cref="Workflow.NodeGraph"/> property.
 		/// </summary>
 		/// <remarks>
-		/// Only the <see cref="Comparer.Contains"/> and <see cref="Comparer.NotContains"/> comparisons are supported.
+		/// A workflow matches when it has a resource pool node referencing the resource pool, or a resource node
+		/// referencing a resource of that resource pool. Only the <see cref="Comparer.Contains"/> and
+		/// <see cref="Comparer.NotContains"/> comparisons are supported.
 		/// </remarks>
-		public static readonly DynamicListExposer<Workflow, Guid> ResourcePools = DynamicListExposer<Workflow, Guid>.CreateFromListExposer(new Exposer<Workflow, IEnumerable>((obj) => obj.NodeGraph.Nodes.OfType<IResourcePoolNode>().Select(x => x.ResourcePoolId), "ResourcePools"));
+		public static readonly DynamicListExposer<Workflow, Guid> ResourcePools = DynamicListExposer<Workflow, Guid>.CreateFromListExposer(new Exposer<Workflow, IEnumerable>((obj) => obj.NodeGraph.Nodes.Select(NodeReferences.GetResourcePoolId).Where(x => x != Guid.Empty), "ResourcePools"));
 	}
 }
