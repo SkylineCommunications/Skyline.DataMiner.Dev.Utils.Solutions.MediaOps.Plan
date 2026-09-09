@@ -264,6 +264,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <returns><c>true</c> when the settings have missing mandatory capability values; otherwise, <c>false</c>.</returns>
 		public bool HasMissingMandatoryCapabilityValues(OrchestrationSettings settings)
 		{
+			if (settings == null)
+			{
+				throw new ArgumentNullException(nameof(settings));
+			}
+
 			if (settings.Capabilities.Any(x => !x.HasValue && !x.HasReference && IsMandatory(_capabilities.Get(x.Id), y => y.IsMandatory)))
 			{
 				return true;
@@ -279,6 +284,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <returns><c>true</c> when the settings have missing mandatory capacity values; otherwise, <c>false</c>.</returns>
 		public bool HasMissingMandatoryCapacityValues(OrchestrationSettings settings)
 		{
+			if (settings == null)
+			{
+				throw new ArgumentNullException(nameof(settings));
+			}
+
 			if (settings.Capacities.Any(x => !x.HasValue && !x.HasReference && IsMandatory(_capacities.Get(x.Id), y => y.IsMandatory)))
 			{
 				return true;

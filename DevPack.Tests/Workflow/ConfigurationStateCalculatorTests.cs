@@ -30,6 +30,15 @@ namespace RT_MediaOps.Plan.Workflow
 		}
 
 		[TestMethod]
+		public void HasMissingMandatoryCapabilityValues_NullSettings_ThrowsArgumentNullException()
+		{
+			var (planApi, liveApi) = CreateApis();
+			var calculator = ConfigurationStateCalculator.ForSettings(planApi, liveApi, new OrchestrationSettings());
+
+			Assert.ThrowsException<ArgumentNullException>(() => calculator.HasMissingMandatoryCapabilityValues(null));
+		}
+
+		[TestMethod]
 		public void HasMissingMandatoryCapabilityValues_MandatoryCapabilityWithReference_ReturnsFalse()
 		{
 			var (planApi, liveApi) = CreateApis();
@@ -67,6 +76,15 @@ namespace RT_MediaOps.Plan.Workflow
 
 			Assert.IsTrue(calculator.HasMissingMandatoryCapacityValues(settings));
 			Assert.IsTrue(calculator.HasMissingMandatoryValues(settings));
+		}
+
+		[TestMethod]
+		public void HasMissingMandatoryCapacityValues_NullSettings_ThrowsArgumentNullException()
+		{
+			var (planApi, liveApi) = CreateApis();
+			var calculator = ConfigurationStateCalculator.ForSettings(planApi, liveApi, new OrchestrationSettings());
+
+			Assert.ThrowsException<ArgumentNullException>(() => calculator.HasMissingMandatoryCapacityValues(null));
 		}
 
 		[TestMethod]
