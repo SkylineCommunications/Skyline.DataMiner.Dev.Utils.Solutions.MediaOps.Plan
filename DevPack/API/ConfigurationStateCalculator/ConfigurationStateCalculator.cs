@@ -248,12 +248,30 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		/// <summary>
 		/// Determines whether the specified settings are missing mandatory values.
+		/// This considers <see cref="OrchestrationSettings.Capabilities"/>, <see cref="OrchestrationSettings.Capacities"/>, <see cref="OrchestrationSettings.Configurations"/>  and <see cref="OrchestrationSettings.OrchestrationEvents"/>.
 		/// </summary>
 		/// <param name="settings">The settings to evaluate.</param>
 		/// <returns><c>true</c> when the settings have the state <see cref="ConfigurationState.MandatoryValuesMissing"/>; otherwise, <c>false</c>.</returns>
 		public bool HasMissingMandatoryValues(OrchestrationSettings settings)
 		{
 			return GetConfigurationState(settings) == ConfigurationState.MandatoryValuesMissing;
+		}
+
+		/// <summary>
+		/// Determines whether the specified settings are missing mandatory parameter values.
+		/// This only considers <see cref="OrchestrationSettings.Capabilities"/>, <see cref="OrchestrationSettings.Capacities"/> and <see cref="OrchestrationSettings.Configurations"/>.
+		/// <see cref="OrchestrationSettings.OrchestrationEvents"/> are not included in this check.
+		/// </summary>
+		/// <param name="settings">The settings to evaluate.</param>
+		/// <returns><c>true</c> when any of the mandatory parameters are missing values; otherwise, <c>false</c>.</returns>
+		public bool HasMissingMandatoryParameterValues(OrchestrationSettings settings)
+		{
+			if (settings == null)
+			{
+				throw new ArgumentNullException(nameof(settings));
+			}
+
+			return MandatoryParametersMissingValues(settings);
 		}
 
 		private static List<OrchestrationSettings> GetSettings<TObject, TNode>(IEnumerable<TObject> objects, Func<TObject, OrchestrationSettings> settingsSelector, Func<TObject, NodeGraph<TNode>> nodeGraphSelector)
