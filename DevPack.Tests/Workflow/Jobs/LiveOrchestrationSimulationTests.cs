@@ -184,9 +184,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 					.Any(option => option.IndexOf(orchestrationEventId.ToString(), StringComparison.OrdinalIgnoreCase) >= 0));
 		}
 
-		private static void HideNode(TestSetup setup, Job job, string nodeId)
+		private static void SetNodeEnd(TestSetup setup, Job job, string nodeId, DateTimeOffset end)
 		{
-			// No API operation marks a node as hidden yet; the soft delete is applied by the DOM CRUD layer.
 			var domHelper = new DomHelper(setup.Connection.HandleMessages, "(slc)workflow");
 
 			var instance = domHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(job.Id)).Single();
@@ -196,7 +195,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				.Select(x => new NodesSection(x))
 				.Single(x => x.NodeID == nodeId);
 
-			nodeSection.Hidden = true;
+			nodeSection.NodeEndTime = end.UtcDateTime;
 
 			domHelper.DomInstances.Update(instance);
 		}
@@ -626,7 +625,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
-		public void Confirm_JobWithHiddenNode_ExcludesHiddenNodeAndItsConnections()
+		public void Confirm_JobWithEndedNode_ExcludesEndedNodeAndItsConnections()
 		{
 			var setup = CreateSetup();
 			var currentTime = DateTime.UtcNow.RoundToNextSecond();
@@ -644,7 +643,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			job.NodeGraph.Connect(nodes[1], nodes[2]);
 			job = setup.Api.Jobs.Update(job);
 
-			HideNode(setup, job, nodes[1].Id);
+			SetNodeEnd(setup, job, nodes[1].Id, currentTime.AddMinutes(-1));
 
 			var confirmedJob = Confirm(setup, setup.Api.Jobs.Read(job.Id));
 
@@ -654,12 +653,51 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			CollectionAssert.AreEquivalent(
 				new[] { nodes[0].Id, nodes[2].Id },
 				liveEvent.Configuration.NodeConfigurations.Select(x => x.NodeId).ToArray(),
-				"Expected the hidden node to be excluded from the orchestration configuration.");
+				"Expected the ended node to be excluded from the orchestration configuration.");
 
 			Assert.AreEqual(
 				0,
 				liveEvent.Configuration.Connections.Count,
-				"Expected every connection touching the hidden node to be excluded from the orchestration configuration.");
+				"Expected every connection touching the ended node to be excluded from the orchestration configuration.");
+		}
+
+		[TestMethod]
+		public void Update_RunningJobWithSwappedNode_ExcludesOutgoingNodeAndKeepsReplacement()
+		{
+			var setup = CreateSetup();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var job = CreateJob(
+				setup,
+				preRollStart: currentTime.AddMinutes(-10),
+				start: currentTime.AddMinutes(-5),
+				end: currentTime.AddMinutes(20),
+				postRollEnd: currentTime.AddMinutes(25),
+				numberOfNodes: 2);
+
+			var nodes = job.NodeGraph.Nodes.ToList();
+			job.NodeGraph.Connect(nodes[0], nodes[1]);
+			var runningJob = MakeRunning(setup, Confirm(setup, setup.Api.Jobs.Update(job)));
+
+			var outgoingNode = runningJob.NodeGraph.Nodes.Single(x => x.Id == nodes[0].Id);
+			var connectedNode = runningJob.NodeGraph.Nodes.Single(x => x.Id == nodes[1].Id);
+			var (replacementPool, replacementResource) = CreatePoolAndResource(setup, $"{Guid.NewGuid()}_Replacement");
+			var replacementNode = new JobResourceNode(replacementPool, replacementResource) { Alias = "Replacement" };
+			runningJob.NodeGraph.Swap(outgoingNode, replacementNode);
+
+			var updatedJob = setup.Api.Jobs.Update(runningJob);
+
+			var liveConfiguration = GetLiveConfiguration(setup, updatedJob);
+			var liveEvent = GetEvent(liveConfiguration, LiveEnums.EventType.PostrollStart);
+
+			CollectionAssert.AreEquivalent(
+				new[] { replacementNode.Id, connectedNode.Id },
+				liveEvent.Configuration.NodeConfigurations.Select(x => x.NodeId).ToArray(),
+				"Expected the outgoing node configuration to be removed and the replacement to remain.");
+
+			var liveConnection = liveEvent.Configuration.Connections.Single();
+			Assert.AreEqual(replacementNode.Id, liveConnection.SourceNodeId, "Expected the replacement node to remain connected.");
+			Assert.AreEqual(connectedNode.Id, liveConnection.DestinationNodeId, "Expected the connection to keep its destination.");
 		}
 
 		[TestMethod]
