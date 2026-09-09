@@ -662,6 +662,45 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void Update_RunningJobWithSwappedNode_ExcludesOutgoingNodeAndKeepsReplacement()
+		{
+			var setup = CreateSetup();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var job = CreateJob(
+				setup,
+				preRollStart: currentTime.AddMinutes(-10),
+				start: currentTime.AddMinutes(-5),
+				end: currentTime.AddMinutes(20),
+				postRollEnd: currentTime.AddMinutes(25),
+				numberOfNodes: 2);
+
+			var nodes = job.NodeGraph.Nodes.ToList();
+			job.NodeGraph.Connect(nodes[0], nodes[1]);
+			var runningJob = MakeRunning(setup, Confirm(setup, setup.Api.Jobs.Update(job)));
+
+			var outgoingNode = runningJob.NodeGraph.Nodes.Single(x => x.Id == nodes[0].Id);
+			var connectedNode = runningJob.NodeGraph.Nodes.Single(x => x.Id == nodes[1].Id);
+			var (replacementPool, replacementResource) = CreatePoolAndResource(setup, $"{Guid.NewGuid()}_Replacement");
+			var replacementNode = new JobResourceNode(replacementPool, replacementResource) { Alias = "Replacement" };
+			runningJob.NodeGraph.Swap(outgoingNode, replacementNode);
+
+			var updatedJob = setup.Api.Jobs.Update(runningJob);
+
+			var liveConfiguration = GetLiveConfiguration(setup, updatedJob);
+			var liveEvent = GetEvent(liveConfiguration, LiveEnums.EventType.PostrollStart);
+
+			CollectionAssert.AreEquivalent(
+				new[] { replacementNode.Id, connectedNode.Id },
+				liveEvent.Configuration.NodeConfigurations.Select(x => x.NodeId).ToArray(),
+				"Expected the outgoing node configuration to be removed and the replacement to remain.");
+
+			var liveConnection = liveEvent.Configuration.Connections.Single();
+			Assert.AreEqual(replacementNode.Id, liveConnection.SourceNodeId, "Expected the replacement node to remain connected.");
+			Assert.AreEqual(connectedNode.Id, liveConnection.DestinationNodeId, "Expected the connection to keep its destination.");
+		}
+
+		[TestMethod]
 		public void Confirm_JobWithConnectedNodes_MapsShuffledLevelsOntoLiveConnection()
 		{
 			var setup = CreateSetup();
