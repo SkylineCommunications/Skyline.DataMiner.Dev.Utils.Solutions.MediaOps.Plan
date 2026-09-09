@@ -290,11 +290,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			liveEventConfig.GlobalOrchestrationScriptArguments = arguments;
 			liveEventConfig.Profile = profile;
 
-			// Hidden nodes are soft-deleted (removed or swapped-out) nodes that are kept for history but must not be orchestrated.
-			var visibleNodes = _job.NodeGraph.Nodes.Where(n => !n.Hidden).ToList();
+			var activeNodes = _job.NodeGraph.Nodes.Where(IsNodeActive).ToList();
 
-			// Remove node configurations for nodes that no longer exist in the job or that are hidden.
-			var jobNodeIds = visibleNodes.Select(n => n.Id).ToHashSet();
+			// Remove node configurations for nodes that no longer exist in the job or have already ended.
+			var jobNodeIds = activeNodes.Select(n => n.Id).ToHashSet();
 			var nodeConfigs = liveEventConfig.Configuration.NodeConfigurations;
 
 			foreach (var nodeConfig in nodeConfigs.Where(n => !jobNodeIds.Contains(n.NodeId)).ToList())
@@ -302,7 +301,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				nodeConfigs.Remove(nodeConfig);
 			}
 
-			foreach (var node in visibleNodes)
+			foreach (var node in activeNodes)
 			{
 				SetLiveEventForNodeConfig(liveEventConfig, node, eventType);
 			}
@@ -464,9 +463,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 			var resourcesById = ResourcesById;
 
-			// Hidden nodes are soft-deleted (removed or swapped-out) nodes that are excluded from orchestration, so any
-			// connection touching a hidden node must be skipped as well.
-			foreach (var connection in _job.NodeGraph.Connections.Where(c => !c.From.Hidden && !c.To.Hidden))
+			foreach (var connection in _job.NodeGraph.Connections.Where(c => IsNodeActive(c.From) && IsNodeActive(c.To)))
 			{
 				if (!connection.From.IsResourceNode(out var sourceResourceNode) ||
 					!resourcesById.TryGetValue(sourceResourceNode.ResourceId, out var sourceResource) ||
@@ -506,6 +503,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 				yield return liveConnection;
 			}
+		}
+
+		private bool IsNodeActive(JobNode node)
+		{
+			return node.End > _currentTime;
 		}
 
 		private bool TryBuildLevelMapping(ConnectionConfiguration configuration, out IList<Live.LevelMapping> levelMappings)

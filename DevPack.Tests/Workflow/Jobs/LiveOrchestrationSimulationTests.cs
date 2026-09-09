@@ -184,9 +184,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 					.Any(option => option.IndexOf(orchestrationEventId.ToString(), StringComparison.OrdinalIgnoreCase) >= 0));
 		}
 
-		private static void HideNode(TestSetup setup, Job job, string nodeId)
+		private static void SetNodeEnd(TestSetup setup, Job job, string nodeId, DateTimeOffset end)
 		{
-			// No API operation marks a node as hidden yet; the soft delete is applied by the DOM CRUD layer.
 			var domHelper = new DomHelper(setup.Connection.HandleMessages, "(slc)workflow");
 
 			var instance = domHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(job.Id)).Single();
@@ -196,7 +195,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				.Select(x => new NodesSection(x))
 				.Single(x => x.NodeID == nodeId);
 
-			nodeSection.Hidden = true;
+			nodeSection.NodeEndTime = end.UtcDateTime;
 
 			domHelper.DomInstances.Update(instance);
 		}
@@ -626,7 +625,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
-		public void Confirm_JobWithHiddenNode_ExcludesHiddenNodeAndItsConnections()
+		public void Confirm_JobWithEndedNode_ExcludesEndedNodeAndItsConnections()
 		{
 			var setup = CreateSetup();
 			var currentTime = DateTime.UtcNow.RoundToNextSecond();
@@ -644,7 +643,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			job.NodeGraph.Connect(nodes[1], nodes[2]);
 			job = setup.Api.Jobs.Update(job);
 
-			HideNode(setup, job, nodes[1].Id);
+			SetNodeEnd(setup, job, nodes[1].Id, currentTime.AddMinutes(-1));
 
 			var confirmedJob = Confirm(setup, setup.Api.Jobs.Read(job.Id));
 
@@ -654,12 +653,12 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			CollectionAssert.AreEquivalent(
 				new[] { nodes[0].Id, nodes[2].Id },
 				liveEvent.Configuration.NodeConfigurations.Select(x => x.NodeId).ToArray(),
-				"Expected the hidden node to be excluded from the orchestration configuration.");
+				"Expected the ended node to be excluded from the orchestration configuration.");
 
 			Assert.AreEqual(
 				0,
 				liveEvent.Configuration.Connections.Count,
-				"Expected every connection touching the hidden node to be excluded from the orchestration configuration.");
+				"Expected every connection touching the ended node to be excluded from the orchestration configuration.");
 		}
 
 		[TestMethod]
