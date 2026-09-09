@@ -1,6 +1,8 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
+	using System.Collections;
+	using System.Linq;
 
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
@@ -58,5 +60,21 @@
 		/// Gets an exposer for the <see cref="Workflow.State"/> property.
 		/// </summary>
 		public static readonly Exposer<Workflow, WorkflowState> State = new Exposer<Workflow, WorkflowState>((obj) => obj.State, "State");
+
+		/// <summary>
+		/// Gets a dynamic list exposer for the resources referenced by the nodes of the <see cref="Workflow.NodeGraph"/> property.
+		/// </summary>
+		/// <remarks>
+		/// Only the <see cref="Comparer.Contains"/> and <see cref="Comparer.NotContains"/> comparisons are supported.
+		/// </remarks>
+		public static readonly DynamicListExposer<Workflow, Guid> Resources = DynamicListExposer<Workflow, Guid>.CreateFromListExposer(new Exposer<Workflow, IEnumerable>((obj) => obj.NodeGraph.Nodes.OfType<IResourceNode>().Select(x => x.ResourceId), "Resources"));
+
+		/// <summary>
+		/// Gets a dynamic list exposer for the resource pools referenced by the nodes of the <see cref="Workflow.NodeGraph"/> property.
+		/// </summary>
+		/// <remarks>
+		/// Only the <see cref="Comparer.Contains"/> and <see cref="Comparer.NotContains"/> comparisons are supported.
+		/// </remarks>
+		public static readonly DynamicListExposer<Workflow, Guid> ResourcePools = DynamicListExposer<Workflow, Guid>.CreateFromListExposer(new Exposer<Workflow, IEnumerable>((obj) => obj.NodeGraph.Nodes.OfType<IResourcePoolNode>().Select(x => x.ResourcePoolId), "ResourcePools"));
 	}
 }

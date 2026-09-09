@@ -1,6 +1,8 @@
 namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
+	using System.Collections;
+	using System.Linq;
 
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
@@ -63,6 +65,22 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Gets an exposer for the <see cref="RecurringJob.JobTypeCategoryId"/> property.
 		/// </summary>
 		public static readonly Exposer<RecurringJob, string> JobTypeCategoryId = new Exposer<RecurringJob, string>((obj) => obj.JobTypeCategoryId, "JobTypeCategoryId");
+
+		/// <summary>
+		/// Gets a dynamic list exposer for the resources referenced by the nodes of the <see cref="RecurringJob.NodeGraph"/> property.
+		/// </summary>
+		/// <remarks>
+		/// Only the <see cref="Comparer.Contains"/> and <see cref="Comparer.NotContains"/> comparisons are supported.
+		/// </remarks>
+		public static readonly DynamicListExposer<RecurringJob, Guid> Resources = DynamicListExposer<RecurringJob, Guid>.CreateFromListExposer(new Exposer<RecurringJob, IEnumerable>((obj) => obj.NodeGraph.Nodes.OfType<IResourceNode>().Select(x => x.ResourceId), "Resources"));
+
+		/// <summary>
+		/// Gets a dynamic list exposer for the resource pools referenced by the nodes of the <see cref="RecurringJob.NodeGraph"/> property.
+		/// </summary>
+		/// <remarks>
+		/// Only the <see cref="Comparer.Contains"/> and <see cref="Comparer.NotContains"/> comparisons are supported.
+		/// </remarks>
+		public static readonly DynamicListExposer<RecurringJob, Guid> ResourcePools = DynamicListExposer<RecurringJob, Guid>.CreateFromListExposer(new Exposer<RecurringJob, IEnumerable>((obj) => obj.NodeGraph.Nodes.OfType<IResourcePoolNode>().Select(x => x.ResourcePoolId), "ResourcePools"));
 
 		/// <summary>
 		/// Provides exposers for querying and filtering the <see cref="RecurringJob.Pattern"/> property.
