@@ -26,6 +26,8 @@
 			[WorkflowExposers.PostRoll.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.WorkflowInfo.Postroll), comparer, (TimeSpan)value),
 			[WorkflowExposers.JobTypeCategoryId.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.WorkflowInfo.JobType), comparer, (string)value),
 			[WorkflowExposers.State.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.StatusId, comparer, ConvertWorkflowState((WorkflowState)value)),
+			[WorkflowExposers.Resources.fieldName] = (comparer, value) => NodeReferenceFilterFactory.CreateResourceFilter(comparer, (Guid)value, WorkflowExposers.Resources.fieldName),
+			[WorkflowExposers.ResourcePools.fieldName] = (comparer, value) => NodeReferenceFilterFactory.CreateResourcePoolFilter(comparer, (Guid)value, WorkflowExposers.ResourcePools.fieldName),
 		};
 
 		private readonly Dictionary<string, Func<SortOrder, bool, IOrderByElement>> orderByHandlers = new Dictionary<string, Func<SortOrder, bool, IOrderByElement>>

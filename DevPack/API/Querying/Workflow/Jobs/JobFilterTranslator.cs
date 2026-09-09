@@ -44,6 +44,8 @@
 				[JobExposers.ActionRequired.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.ActionNeeded), comparer, (bool)value),
 				[JobExposers.ConfigurationState.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobExecution.JobConfigurationStatus), comparer, ConvertJobConfigurationState((ConfigurationState)value)),
 				[JobExposers.Nodes.ConfigurationState.fieldName] = (comparer, value) => FilterElementFactory.Create(DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.Nodes.NodeConfigurationStatus), comparer, ConvertNodeConfigurationState((ConfigurationState)value)),
+				[JobExposers.Resources.fieldName] = (comparer, value) => NodeReferenceFilterFactory.CreateResourceFilter(comparer, (Guid)value, JobExposers.Resources.fieldName),
+				[JobExposers.ResourcePools.fieldName] = (comparer, value) => NodeReferenceFilterFactory.CreateResourcePoolFilter(comparer, (Guid)value, JobExposers.ResourcePools.fieldName),
 				[JobExposers.Capabilities.CapabilityId.fieldName] = (comparer, value) => CreateOrchestrationSettingsFilter(SlcWorkflowIds.Sections.ProfileParameterValues.ProfileParameterID, comparer, Convert.ToString(value)),
 				[JobExposers.Capabilities.Discretes.fieldName] = (comparer, value) => CreateOrchestrationSettingsFilter(SlcWorkflowIds.Sections.ProfileParameterValues.StringValue, comparer, Convert.ToString(value)),
 				[JobExposers.Capacities.CapacityId.fieldName] = (comparer, value) => CreateOrchestrationSettingsFilter(SlcWorkflowIds.Sections.ProfileParameterValues.ProfileParameterID, comparer, Convert.ToString(value)),

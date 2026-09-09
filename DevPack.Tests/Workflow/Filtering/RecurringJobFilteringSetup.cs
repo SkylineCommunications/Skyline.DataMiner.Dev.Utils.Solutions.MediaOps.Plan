@@ -26,10 +26,15 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 			CategoryId = Guid.NewGuid();
 
 			CreateCategory();
+			CreateResources();
 			CreateRecurringJobs();
 		}
 
 		public string Prefix { get; }
+
+		public ResourcePool? ResourcePool { get; private set; }
+
+		public Resource? Resource { get; private set; }
 
 		public DateTimeOffset BaseTime { get; }
 
@@ -71,6 +76,21 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 		{
 			return testContext.CategoriesApi.Scopes.Read(CategoryScopes.JobTypes)
 				?? throw new InvalidOperationException($"Category Scope '{CategoryScopes.JobTypes}' is not available");
+		}
+
+		private void CreateResources()
+		{
+			ResourcePool = testContext.Api.ResourcePools.Complete(objectCreator.CreateResourcePool(new ResourcePool
+			{
+				Name = $"ResourcePool_{Prefix}",
+			}));
+
+			var resource = new UnmanagedResource
+			{
+				Name = $"Resource_{Prefix}",
+			}.AssignToPool(ResourcePool);
+
+			Resource = testContext.Api.Resources.Complete(objectCreator.CreateResource(resource));
 		}
 
 		private void CreateRecurringJobs()
@@ -124,6 +144,10 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 			recurringJob3.Pattern.RepeatType = RepeatType.Daily;
 			recurringJob3.Pattern.RepeatEvery = 3;
 			recurringJob3.Pattern.EndDate = EndDate2;
+
+			// The first recurring job references a resource, while the second recurring job references a resource pool.
+			recurringJob1.NodeGraph.Add(new RecurringJobResourceNode(ResourcePool!, Resource!));
+			recurringJob2.NodeGraph.Add(new RecurringJobResourcePoolNode(ResourcePool!));
 
 			RecurringJob1 = objectCreator.CreateRecurringJob(recurringJob1);
 			RecurringJob2 = objectCreator.CreateRecurringJob(recurringJob2);

@@ -18,10 +18,15 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 
 			Prefix = Guid.NewGuid().ToString();
 
+			CreateResources();
 			CreateWorkflows();
 		}
 
 		public string Prefix { get; }
+
+		public ResourcePool? ResourcePool { get; private set; }
+
+		public Resource? Resource { get; private set; }
 
 		public Workflow[] Workflows => new[]
 		{
@@ -36,9 +41,24 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 
 		public Workflow? CompleteWorkflow3 { get; private set; }
 
+		private void CreateResources()
+		{
+			ResourcePool = testContext.Api.ResourcePools.Complete(objectCreator.CreateResourcePool(new ResourcePool
+			{
+				Name = $"ResourcePool_{Prefix}",
+			}));
+
+			var resource = new UnmanagedResource
+			{
+				Name = $"Resource_{Prefix}",
+			}.AssignToPool(ResourcePool);
+
+			Resource = testContext.Api.Resources.Complete(objectCreator.CreateResource(resource));
+		}
+
 		private void CreateWorkflows()
 		{
-			DraftWorkflow1 = objectCreator.CreateWorkflow(new Workflow
+			var workflow1 = new Workflow
 			{
 				Name = $"Workflow_Draft_1_{Prefix}",
 				Description = "First draft workflow",
@@ -47,9 +67,9 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 				PreRoll = TimeSpan.FromSeconds(30),
 				PostRoll = TimeSpan.FromSeconds(60),
 				Notes = "Notes of the first workflow",
-			});
+			};
 
-			DraftWorkflow2 = objectCreator.CreateWorkflow(new Workflow
+			var workflow2 = new Workflow
 			{
 				Name = $"Workflow_Draft_2_{Prefix}",
 				Description = "Second draft workflow",
@@ -58,7 +78,15 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 				PreRoll = TimeSpan.FromSeconds(45),
 				PostRoll = TimeSpan.FromSeconds(90),
 				Notes = "Notes of the second workflow",
-			});
+			};
+
+			// The first workflow references a resource, while the second workflow references a resource pool.
+			workflow1.NodeGraph.Add(new WorkflowResourceNode(ResourcePool!, Resource!));
+			workflow2.NodeGraph.Add(new WorkflowResourcePoolNode(ResourcePool!));
+
+			DraftWorkflow1 = objectCreator.CreateWorkflow(workflow1);
+
+			DraftWorkflow2 = objectCreator.CreateWorkflow(workflow2);
 
 			CompleteWorkflow3 = objectCreator.CreateWorkflow(new Workflow
 			{
