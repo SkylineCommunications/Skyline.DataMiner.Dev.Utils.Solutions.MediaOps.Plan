@@ -72,6 +72,14 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 
 			new Tuple<Workflow[], FilterElement<Workflow>>([Setup.DraftWorkflow1!, Setup.DraftWorkflow2!], WorkflowFilter.AND(WorkflowExposers.State.Equal(WorkflowState.Draft))),
 			new Tuple<Workflow[], FilterElement<Workflow>>([Setup.CompleteWorkflow3!], WorkflowFilter.AND(WorkflowExposers.State.Equal(WorkflowState.Complete))),
+
+			new Tuple<Workflow[], FilterElement<Workflow>>([Setup.DraftWorkflow1!], WorkflowFilter.AND(WorkflowExposers.Resources.Contains(Setup.Resource!.Id))),
+			new Tuple<Workflow[], FilterElement<Workflow>>([Setup.DraftWorkflow2!, Setup.CompleteWorkflow3!], WorkflowFilter.AND(WorkflowExposers.Resources.NotContains(Setup.Resource!.Id))),
+			new Tuple<Workflow[], FilterElement<Workflow>>([], WorkflowFilter.AND(WorkflowExposers.Resources.Contains(Guid.NewGuid()))),
+
+			new Tuple<Workflow[], FilterElement<Workflow>>([Setup.DraftWorkflow2!], WorkflowFilter.AND(WorkflowExposers.ResourcePools.Contains(Setup.ResourcePool!.Id))),
+			new Tuple<Workflow[], FilterElement<Workflow>>([Setup.DraftWorkflow1!, Setup.CompleteWorkflow3!], WorkflowFilter.AND(WorkflowExposers.ResourcePools.NotContains(Setup.ResourcePool!.Id))),
+			new Tuple<Workflow[], FilterElement<Workflow>>([], WorkflowFilter.AND(WorkflowExposers.ResourcePools.Contains(Guid.NewGuid()))),
 		};
 
 		[TestMethod]

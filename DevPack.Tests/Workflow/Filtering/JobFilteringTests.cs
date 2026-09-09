@@ -112,6 +112,15 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 			new Tuple<Job[], FilterElement<Job>>([Setup.DraftJob1!], JobFilter.AND(JobExposers.Nodes.ConfigurationState.Equal(ConfigurationState.NoParametersDefined))),
 			new Tuple<Job[], FilterElement<Job>>([], JobFilter.AND(JobExposers.Nodes.ConfigurationState.Equal(ConfigurationState.AllValuesProvided))),
 
+			new Tuple<Job[], FilterElement<Job>>([Setup.DraftJob1!], JobFilter.AND(JobExposers.Resources.Contains(Setup.Resource!.Id))),
+			new Tuple<Job[], FilterElement<Job>>([Setup.DraftJob2!, Setup.TentativeJob3!], JobFilter.AND(JobExposers.Resources.NotContains(Setup.Resource!.Id))),
+			new Tuple<Job[], FilterElement<Job>>([], JobFilter.AND(JobExposers.Resources.Contains(Guid.NewGuid()))),
+			new Tuple<Job[], FilterElement<Job>>(Setup.Jobs, JobFilter.AND(JobExposers.Resources.NotContains(Guid.NewGuid()))),
+
+			new Tuple<Job[], FilterElement<Job>>([Setup.DraftJob1!, Setup.DraftJob2!], JobFilter.AND(JobExposers.ResourcePools.Contains(Setup.ResourcePool!.Id))),
+			new Tuple<Job[], FilterElement<Job>>([Setup.TentativeJob3!], JobFilter.AND(JobExposers.ResourcePools.NotContains(Setup.ResourcePool!.Id))),
+			new Tuple<Job[], FilterElement<Job>>([], JobFilter.AND(JobExposers.ResourcePools.Contains(Guid.NewGuid()))),
+
 			new Tuple<Job[], FilterElement<Job>>([Setup.DraftJob1!, Setup.DraftJob2!], JobFilter.AND(JobExposers.ConfigurationState.Equal(ConfigurationState.AllValuesProvided))),
 			new Tuple<Job[], FilterElement<Job>>([Setup.TentativeJob3!], JobFilter.AND(JobExposers.ConfigurationState.Equal(ConfigurationState.NoParametersDefined))),
 			new Tuple<Job[], FilterElement<Job>>([], JobFilter.AND(JobExposers.ConfigurationState.Equal(ConfigurationState.MandatoryValuesMissing))),
@@ -145,6 +154,14 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 		public void ReadJobsWithUnsupportedHasErrorComparerThrowsException()
 		{
 			var filter = JobFilter.AND(JobExposers.HasError.GreaterThan(false));
+
+			Assert.ThrowsException<NotSupportedException>(() => TestContext.Api.Jobs.Read(filter).ToList());
+		}
+
+		[TestMethod]
+		public void ReadJobsWithUnsupportedResourceComparerThrowsException()
+		{
+			var filter = JobFilter.AND(JobExposers.Resources.Equal(Setup.Resource!.Id));
 
 			Assert.ThrowsException<NotSupportedException>(() => TestContext.Api.Jobs.Read(filter).ToList());
 		}

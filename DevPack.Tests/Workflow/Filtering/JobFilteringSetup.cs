@@ -83,6 +83,8 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 
 		public ResourcePool? ResourcePool { get; private set; }
 
+		public Resource? Resource { get; private set; }
+
 		private void CreateOrchestrationParameters()
 		{
 			var capability = new Capability
@@ -122,6 +124,13 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 			{
 				Name = $"ResourcePool_{Prefix}",
 			}));
+
+			var resource = new UnmanagedResource
+			{
+				Name = $"Resource_{Prefix}",
+			}.AssignToPool(ResourcePool);
+
+			Resource = testContext.Api.Resources.Complete(objectCreator.CreateResource(resource));
 		}
 
 		private void CreateSchedulingProperty()
@@ -229,6 +238,9 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 			// The first job has a node without orchestration settings, while the node of the second job is missing a
 			// mandatory value. This makes the second job the only job that requires an action.
 			job1.NodeGraph.Add(new JobResourcePoolNode(ResourcePool!));
+
+			// The first job is the only job that references a resource directly.
+			job1.NodeGraph.Add(new JobResourceNode(ResourcePool!, Resource!));
 
 			var job2Node = new JobResourcePoolNode(ResourcePool!);
 			job2Node.OrchestrationSettings.AddCapability(new CapabilitySetting(MandatoryCapability!));
