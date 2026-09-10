@@ -34,10 +34,15 @@ var poolsRepo = api.ResourcePools;
 var capabilitiesRepo = api.Capabilities;
 var capacitiesRepo = api.Capacities;
 var configurationsRepo = api.Configurations;
-var propertiesRepo = api.ResourceProperties;
+var resourcePropertiesRepo = api.ResourceProperties;
 var jobsRepo = api.Jobs;
 var workflowsRepo = api.Workflows;
 var recurringJobsRepo = api.RecurringJobs;
+var propertiesRepo = api.Properties;
+var schedulingPropertiesRepo = api.SchedulingProperties;
+var propertySettingCollectionsRepo = api.PropertySettingCollections;
+var relationshipsRepo = api.Relationships;
+var relationshipObjectTypesRepo = api.RelationshipObjectTypes;
 ```
 
 ## Reading Objects
@@ -139,6 +144,12 @@ api.Resources.Delete(resource.Id);
 
 // Delete multiple resources
 api.Resources.Delete(new[] { id1, id2, id3 });
+```
+
+### Eligible Resources
+
+```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 
 // Get the resources that are eligible for a time range, with the required capabilities and capacities
 var eligibilityResult = api.Resources.GetEligibleResources(new EligibleResourcesContext(DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddHours(1))
@@ -158,13 +169,12 @@ foreach (var eligibleResource in eligibilityResult.EligibleResources)
         .FirstOrDefault(x => x.CapacityId == capacityId);
 }
 
-// Restrict the eligible resources with a filter and ignore the current job's reservation usage
+// Restrict the eligible resources with a filter, for example to a specific pool.
 var eligibleResourcesInPool = api.Resources.GetEligibleResources(new EligibleResourcesContext(DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddHours(1))
 {
     CapabilitySettings = new[] { new CapabilitySetting(capabilityId) { Value = "4K" } },
     CapacitySettings = new CapacitySetting[] { new NumberCapacitySetting(capacityId) { Value = 10 } },
     Filter = ResourceExposers.ResourcePoolIds.Contains(poolId),
-    JobIdToIgnore = job.Id,
 });
 ```
 
@@ -460,36 +470,364 @@ var poolsPerResource = api.ResourcePools.GetPoolsPerResource(new[] { resource1, 
 var parentLinks = api.ResourcePools.GetParentPoolLinks(new[] { pool1, pool2 });
 ```
 
-## Jobs and Workflows
-
-Jobs and workflows are read-only through the API:
+## Workflows
 
 ```csharp
 using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 
-// Read a job
-var job = api.Jobs.Read(jobId);
+// Create a workflow
+var workflow = api.Workflows.Create(new Workflow
+{
+    Name = "Studio Recording",
+    Priority = WorkflowPriority.Normal,
+    PreRoll = TimeSpan.FromMinutes(15),
+    PostRoll = TimeSpan.FromMinutes(15),
+    JobTypeCategoryId = categoryId, // Optional link to a category defined in the Categories app.
+});
 
-// Read all jobs
-var allJobs = api.Jobs.Read();
-
-// Read a workflow
-var workflow = api.Workflows.Read(workflowId);
-
-// Read all workflows
+// Read
+var readWorkflow = api.Workflows.Read(workflow.Id);
 var allWorkflows = api.Workflows.Read();
 
-// Read a recurring job
-var recurringJob = api.RecurringJobs.Read(recurringJobId);
+// Update
+workflow.Description = "Weekly recording template";
+workflow = api.Workflows.Update(workflow);
 
-// Update job orchestration state
-api.Jobs.SetOrchestrationState(jobId, new OrchestrationUpdateDetails
+// Draft -> Complete. Only a completed workflow can be turned into a job.
+workflow = api.Workflows.Complete(workflow);
+
+// Deep-copy into a new, unsaved workflow.
+var duplicatedWorkflow = workflow.Duplicate();
+var duplicatedWorkflowWithId = workflow.Duplicate(Guid.NewGuid());
+
+// Delete
+api.Workflows.Delete(workflow.Id);
+```
+
+## Job Lifecycle
+
+A job moves through `Draft -> Tentative -> Confirmed -> Running -> Completed`, with `Cancel` reachable from `Tentative`/`Confirmed`. See [Advanced Topics](Advanced%20Topics.md#job-lifecycle) for the full diagram and the timing rules enforced at every transition. The snippets below illustrate each transition independently; a single job only follows one path through the lifecycle.
+
+```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
+// Build a job from a completed workflow, then create it (starts in Draft).
+var job = Job.FromWorkflow(api, workflow.Id);
+job.Start = DateTimeOffset.UtcNow.AddHours(1);
+job.End = job.Start.AddHours(2);
+job.PreRollStart = job.Start - workflow.PreRoll;
+job.PostRollEnd = job.End + workflow.PostRoll;
+job = api.Jobs.Create(job);
+
+// Update
+job.Description = "Weekly studio recording";
+job = api.Jobs.Update(job);
+
+// Deep-copy into a new, unsaved job.
+var duplicatedJob = job.Duplicate();
+var duplicatedJobWithId = job.Duplicate(Guid.NewGuid());
+
+// Draft -> Tentative -> Confirmed
+job = api.Jobs.SaveAsTentative(job);
+job = api.Jobs.Confirm(job);
+
+// Confirmed -> Tentative, if you need to make changes again.
+job = api.Jobs.ReturnToTentative(job);
+job = api.Jobs.Confirm(job);
+
+// Start a confirmed job manually without changing JobState itself.
+// Omit the options to keep the scheduled Start; set NewStartTime to reschedule it.
+job = api.Jobs.Start(job, new JobStartOptions
+{
+    NewStartTime = DateTimeOffset.UtcNow.AddMinutes(5),
+});
+
+// Confirmed -> Running, once pre-roll start has passed and the core reservation is running.
+job = api.Jobs.TransitionToRunning(job);
+
+// Stop a running job early. Omit the options to retain its existing post-roll where possible.
+job = api.Jobs.Stop(job, new JobStopOptions
+{
+    NewPostRollEnd = DateTimeOffset.UtcNow.AddMinutes(10),
+});
+
+// Running -> Completed, once the core reservation has ended.
+job = api.Jobs.TransitionToCompleted(job);
+
+// Alternative paths, each starting from a different job in the indicated state:
+var canceledJob = api.Jobs.Cancel(tentativeOrConfirmedJob);
+var importedJob = api.Jobs.MarkAsCompleted(draftOrTentativeHistoricalJob);
+
+// Batch variants accept a collection of jobs or job IDs and return the updated jobs.
+var confirmedJobs = api.Jobs.Confirm(new[] { job1, job2 });
+
+// Report the outcome of an orchestration event back onto the job.
+api.Jobs.SetOrchestrationState(job.Id, new OrchestrationUpdateDetails
 {
     Event = OrchestrationEventType.PrerollStart,
     EventState = OrchestrationEventState.Succeeded,
     Message = "Preroll started successfully",
 });
 
+// Delete
+api.Jobs.Delete(job.Id, new JobDeleteOptions { ForceDelete = false });
+```
+
+### Building a Job
+
+```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
+// From a completed workflow: copies node graph, groups, and orchestration/property settings.
+var jobFromWorkflow = Job.FromWorkflow(api, workflow.Id);
+
+// From a recurring job occurrence: copies node graph, orchestration/property settings and relationships.
+var jobFromRecurringJob = Job.FromRecurringJob(recurringJob, startTime: DateTimeOffset.UtcNow.AddDays(1));
+
+// A key is generated automatically based on GlobalSettings.JobSettings unless you supply one explicitly.
+var jobWithExplicitKey = new Job(new JobData { Key = "MyKey" });
+```
+
+## Recurring Jobs
+
+A recurring job describes a series that follows a `RecurringPattern`, and moves through `Active -> Completed`/`Active -> Cancelled`.
+
+```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
+// Build a recurring job from an existing job (Start/Duration/pre-post-roll/priority/node graph are copied).
+var recurringJob = RecurringJob.FromJob(job);
+recurringJob.Pattern.RepeatType = RepeatType.Weekly;
+recurringJob.Pattern.RepeatEvery = 1;
+recurringJob.Pattern.WeekDays = WeekDays.Monday | WeekDays.Wednesday;
+recurringJob.Pattern.EndDate = DateTimeOffset.UtcNow.AddMonths(3);
+recurringJob.DesiredJobState = DesiredJobState.Tentative; // State new occurrences are created in.
+
+recurringJob = api.RecurringJobs.Create(recurringJob);
+
+// Read / Update
+recurringJob = api.RecurringJobs.Read(recurringJob.Id);
+recurringJob.Description = "Weekly studio recording series";
+recurringJob = api.RecurringJobs.Update(recurringJob);
+
+// Deep-copy into a new, unsaved recurring job.
+var duplicatedRecurringJob = recurringJob.Duplicate();
+
+// Choose one terminal transition for an active recurring job.
+var completedRecurringJob = api.RecurringJobs.Complete(recurringJob);
+var cancelledRecurringJob = api.RecurringJobs.Cancel(otherActiveRecurringJob);
+
+// Reflects the state of the (external) process that keeps the series' jobs up to date with the pattern.
+recurringJob = api.RecurringJobs.UpdateProcessState(recurringJob, RecurringJobProcessState.UpdatingSeries);
+
+// Delete (no ForceDelete-style options here, unlike Job).
+api.RecurringJobs.Delete(recurringJob.Id);
+
+// Calculate occurrence dates from the pattern without creating jobs.
+var nextOccurrences = recurringJob.Pattern.CalculateOccurrencesByAmount(5, recurringJob.Start, recurringJob.TimeZone);
+```
+
+## NodeGraph Operations
+
+`Job.NodeGraph`, `Workflow.NodeGraph` and `RecurringJob.NodeGraph` are all a `NodeGraph<TNode>` (`TNode` being `JobNode`, `WorkflowNode` or `RecurringJobNode`) with the same shape.
+
+```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
+var cameraNode = new JobResourceNode(cameraPool, camera);
+var backupCameraNode = new JobResourceNode(cameraPool, backupCamera);
+var poolNode = new JobResourcePoolNode(encoderPool);
+
+// Add nodes
+job.NodeGraph.Add(cameraNode).Add(poolNode);
+
+// Connect: a directed, data-oriented link between two nodes.
+// Use Connect(cameraNode, poolNode) when no explicit configuration is needed.
+job.NodeGraph.Connect(cameraNode, poolNode, new ShuffleLevelBasedConnectionConfiguration()
+    .AddLevelMapping(destinationLevel: 1, sourceLevel: 10));
+
+// Link: a parent/child hierarchy, distinct from a connection. A child has at most one parent.
+job.NodeGraph.Link(parent: poolNode, child: cameraNode);
+job.NodeGraph.Unlink(cameraNode);
+
+// Group nodes for organizational purposes.
+var group = job.NodeGraph.AddGroup("Studio A");
+group.Add(cameraNode).Add(poolNode);
+job.NodeGraph.RemoveGroup(group);
+
+// Swap: replace a node's resource/pool assignment, keeping its connections, links and group membership.
+job.NodeGraph.Swap(cameraNode, backupCameraNode);
+
+// Inspect the graph.
+var outgoing = job.NodeGraph.GetOutgoing(cameraNode);
+var incoming = job.NodeGraph.GetIncoming(poolNode);
+var parent = job.NodeGraph.GetParent(cameraNode);
+var children = job.NodeGraph.GetChildren(poolNode);
+
+// Remove a node and its connections/links/group memberships.
+job.NodeGraph.Remove(poolNode);
+
+job = api.Jobs.Update(job);
+```
+
+## Properties
+
+Generic properties can be attached to jobs, workflows, recurring jobs and their nodes; this is distinct from `ResourceProperties`, which only apply to resources.
+
+```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
+// api.Properties: explicitly select the property scope.
+var boolProperty = (BooleanProperty)api.Properties.Create(
+    new BooleanProperty(new PropertyData { Scope = "MediaOps" })
+{
+    Name = "Requires Approval",
+    DefaultValue = false,
+});
+
+// api.SchedulingProperties: convenience repository for properties in the "MediaOps" scope,
+// meant for jobs/workflows/recurring jobs. Scope is assigned for you.
+var discreteProperty = (DiscreteProperty)api.SchedulingProperties.Create(new DiscreteProperty
+{
+    Name = "Priority Reason",
+}
+.SetDiscretes(new[] { "VIP client", "Rescheduled", "Standard" }));
+
+// Assign values on a job/workflow/recurring job or one of their nodes.
+job.AddProperty(new DiscretePropertySetting(discreteProperty) { Value = "VIP client" });
+job.AddProperty(new BooleanPropertySetting(boolProperty) { Value = true });
+job.SetProperties(new[] { /* ... */ });
+job.RemoveProperty(job.PropertySettings.First());
+
+// Free-form name/value pairs that are not tied to a Property definition.
+job.AddCustomProperty(new CustomPropertySetting("External Reference") { Value = "PO-12345" });
+
+job = api.Jobs.Update(job);
+
+// Delete a property definition; ForceDelete also removes it from existing setting collections.
+api.Properties.Delete(boolProperty.Id, new PropertyDeleteOptions { ForceDelete = true });
+```
+
+## File Properties
+
+```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
+var attachmentProperty = (FileProperty)api.SchedulingProperties.Create(new FileProperty
+{
+    Name = "Run Sheet",
+    HasSizeLimit = true,
+    SizeLimit = 10, // MB
+    AllowMultiple = false,
+});
+
+var fileSetting = new FilePropertySetting(attachmentProperty)
+    .AddFile("runsheet.pdf", File.ReadAllBytes(@"C:\Files\runsheet.pdf"));
+
+job.AddProperty(fileSetting);
+job = api.Jobs.Update(job);
+
+// Read the content back (for example, after re-reading the job).
+var savedSetting = job.PropertySettings.OfType<FilePropertySetting>().Single(x => x.Id == attachmentProperty.Id);
+byte[] content = savedSetting.ReadContent("runsheet.pdf");
+
+// Remove a file, or clear all files from the setting.
+fileSetting.RemoveFile("runsheet.pdf");
+fileSetting.ClearFiles();
+```
+
+## Relationships
+
+Generic parent/child links between arbitrary object types, plus dedicated endpoints on `Job`/`RecurringJob` for linking to external business objects.
+
+```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
+// Define the object types that can participate in a relationship.
+var bookingType = api.RelationshipObjectTypes.Create(new RelationshipObjectType { Name = "Booking" });
+var clientType = api.RelationshipObjectTypes.Create(new RelationshipObjectType { Name = "Client" });
+
+// Generic relationship between two arbitrary objects.
+var relationship = api.Relationships.Create(new Relationship(new RelationshipData
+{
+    Parent = new RelationshipEndpoint(clientType.Id, objectId: "CLIENT-1") { ObjectName = "Acme Corp" },
+    Child = new RelationshipEndpoint(bookingType.Id, objectId: "BOOK-42") { ObjectName = "Client booking #42" },
+}));
+
+// Read / Update / Delete like any other repository object.
+relationship = api.Relationships.Read(relationship.Id);
+api.Relationships.Delete(relationship.Id);
+
+// Link a job or recurring job directly to an external object.
+job.AddRelationshipEndpoint(new JobRelationshipEndpoint(bookingType.Id)
+{
+    ObjectId = "BOOK-42",
+    ObjectName = "Client booking #42",
+    Url = "https://booking.example.com/BOOK-42",
+});
+job.SetRelationshipEndpoints(new[] { /* ... */ });
+job.RemoveRelationshipEndpoint(job.RelationshipEndpoints.First());
+job = api.Jobs.Update(job);
+```
+
+## Categories
+
+`Job.JobTypeCategoryId`, `Workflow.JobTypeCategoryId`, `RecurringJob.JobTypeCategoryId` and `ResourcePool.CategoryId` are plain string IDs that link an object to a category defined in the separate Categories app/DevPack. Setting the ID keeps that link in sync automatically; **category definitions themselves are not CRUD-able through this DevPack** — manage them through the Categories app or its own DevPack.
+
+```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
+job.JobTypeCategoryId = categoryId;
+job = api.Jobs.Update(job);
+```
+
+## Global Settings
+
+```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
+var jobSettings = api.GlobalSettings.GetJobSettings();
+
+// Controls how auto-generated Job keys look, e.g. "REC-00042".
+jobSettings.KeyPrefix = "REC-";
+jobSettings.KeyMinimumDigits = 5;
+jobSettings.KeyStartingSeed = 1;
+jobSettings.KeyIncrement = 1;
+
+api.GlobalSettings.UpdateJobSettings(jobSettings);
+```
+
+## Querying with Exposers
+
+Every repository's `Read(FilterElement<T>)` / `Count(FilterElement<T>)` accept filters built from that object's `*Exposers` class.
+
+```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
+// Jobs that are currently running.
+var runningJobs = api.Jobs.Read(JobExposers.State.Equal(JobState.Running));
+
+// Jobs referencing a specific resource, combined with another condition.
+var jobsForResource = api.Jobs.Read(JobExposers.Resources.Contains(resourceId).AND(JobExposers.HasError.Equal(false)));
+
+// Jobs with a specific capability value, or missing mandatory configuration state.
+var byCapability = api.Jobs.Read(JobExposers.Capabilities.Discretes.Contains("4K"));
+var missingConfig = api.Jobs.Read(JobExposers.ConfigurationState.Equal(ConfigurationState.MandatoryValuesMissing));
+
+// Jobs that ran longer than an hour.
+var longJobs = api.Jobs.Read(JobExposers.Duration.GreaterThan(TimeSpan.FromHours(1)));
+
+// Errors reported on a job.
+foreach (var error in job.Errors)
+{
+    Console.WriteLine($"{error.Code}: {error.Message}");
+}
+
+var jobsWithError = api.Jobs.Read(JobExposers.Errors.Code.Contains("JobResourceNotAvailable"));
+
+// Workflows and recurring jobs support the same pattern.
+var draftWorkflows = api.Workflows.Read(WorkflowExposers.State.Equal(WorkflowState.Draft));
+var recurringForResource = api.RecurringJobs.Read(RecurringJobExposers.Resources.Contains(resourceId));
 ```
 
 ## Delete with Options
@@ -505,6 +843,15 @@ api.ResourcePools.Delete(pool, new ResourcePoolDeleteOptions
     DeleteDraftResources = true,
     DeleteDeprecatedResources = true,
 });
+```
+
+### Job Delete Options
+
+```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
+// ForceDelete bypasses the usual state restrictions on delete.
+api.Jobs.Delete(job.Id, new JobDeleteOptions { ForceDelete = true });
 ```
 
 ## Synchronization with SRM
@@ -560,3 +907,9 @@ foreach (var failure in result.Failures)
     Console.WriteLine($"{failure.Key}: {failure.Value}");
 }
 ```
+
+## Next Steps
+
+- **[Getting Started](Getting%20Started.md)** – Installation and basic usage
+- **[Advanced Topics](Advanced%20Topics.md)** – Job lifecycle, timing rules, configuration state, orchestration, synchronization, and logging
+- **[What's New Since 1.5](What%27s%20New%20Since%201.5.md)** – What changed since 1.5.x, and what is still prerelease
