@@ -134,9 +134,11 @@
 		public static bool IsText(this Parameter parameter)
 		{
 			if (parameter.Type != Parameter.ParameterType.Text) return false;
-			if (parameter.InterpreteType?.RawType != InterpreteType.RawTypeEnum.Undefined) return false;
-			if (parameter.InterpreteType?.Type != InterpreteType.TypeEnum.Undefined) return false;
-			return true;
+
+			return (parameter.InterpreteType?.RawType == InterpreteType.RawTypeEnum.Undefined &&
+					parameter.InterpreteType?.Type == InterpreteType.TypeEnum.Undefined) ||
+				   (parameter.InterpreteType?.RawType == InterpreteType.RawTypeEnum.Other &&
+					parameter.InterpreteType?.Type == InterpreteType.TypeEnum.String);
 		}
 
 		/// <summary>

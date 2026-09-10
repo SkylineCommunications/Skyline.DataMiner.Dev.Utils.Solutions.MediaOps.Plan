@@ -6,6 +6,7 @@
 
 	using RT_MediaOps.Plan.RegressionTests;
 
+	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
@@ -768,7 +769,7 @@
 		}
 
 		[TestMethod]
-		public void SingleOrchestrationEvents_CreatePool()
+		public void SingleOrchestrationEvents_WithStringInterpreteType_CreatePool()
 		{
 			// Create Configuration
 			var prefix = Guid.NewGuid();
@@ -778,6 +779,15 @@
 			};
 
 			objectCreator.CreateConfigurations([textConfiguration]);
+
+			var coreTextConfiguration = TestContext.ProfileHelper.ProfileParameters.Read(
+				Skyline.DataMiner.Net.Profiles.ParameterExposers.ID.Equal(textConfiguration.Id)).Single();
+			coreTextConfiguration.InterpreteType = new Skyline.DataMiner.Net.Profiles.InterpreteType
+			{
+				RawType = Skyline.DataMiner.Net.Profiles.InterpreteType.RawTypeEnum.Other,
+				Type = Skyline.DataMiner.Net.Profiles.InterpreteType.TypeEnum.String,
+			};
+			TestContext.ProfileHelper.ProfileParameters.AddOrUpdateBulk([coreTextConfiguration]);
 
 			// Create new pool with Orchestration Setting referencing the created configuration
 			var resourcePool = new ResourcePool
