@@ -133,10 +133,7 @@
 		/// <returns><c>true</c> if the parameter is a text parameter; otherwise, <c>false</c>.</returns>
 		public static bool IsText(this Parameter parameter)
 		{
-			if (parameter.Type != Parameter.ParameterType.Text) return false;
-			if (parameter.InterpreteType?.RawType != InterpreteType.RawTypeEnum.Undefined) return false;
-			if (parameter.InterpreteType?.Type != InterpreteType.TypeEnum.Undefined) return false;
-			return true;
+			return parameter.Type == Parameter.ParameterType.Text;
 		}
 
 		/// <summary>
