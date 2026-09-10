@@ -7,10 +7,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// </summary>
 	/// <remarks>
 	/// Inside jobs both resource and resource pool nodes can be swapped to either a resource node or a resource pool
-	/// node. Swapping a resource node to a resource pool node returns the node to its pool; the states in which that is
-	/// allowed are not enforced here but by the job handler, which rejects a resource pool node on a Confirmed or
-	/// Running job. The rule is evaluated against the net original-to-final transition; intermediate swap steps are
-	/// ignored.
+	/// node. Swapping a resource node to a resource pool node moves the node to the target pool, which is not required
+	/// to be the pool the resource was taken from. The states in which that is allowed are not enforced here but by the
+	/// job handler, which rejects a resource pool node on a Confirmed or Running job. The rule is evaluated against the
+	/// net original-to-final transition; intermediate swap steps are ignored.
 	/// </remarks>
 	internal static class JobNodeSwapValidator
 	{

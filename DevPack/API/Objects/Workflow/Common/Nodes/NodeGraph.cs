@@ -296,9 +296,9 @@
 		/// the new one. The original node that was swapped out is preserved internally (see <see cref="GetOriginalNode"/>);
 		/// when a previously swapped node is swapped again, the mapping keeps the original node and updates its current
 		/// representation to <paramref name="newNode"/>.
-		/// The alias and the orchestration settings of <paramref name="oldNode"/> are not carried over: the new node
-		/// keeps its own alias and starts from empty orchestration settings. Use
-		/// <see cref="NodeBase.CopyOrchestrationSettingsFrom"/> before swapping to retain the configuration.
+		/// The alias and the orchestration settings of <paramref name="oldNode"/> are not carried over to
+		/// <paramref name="newNode"/>, which keeps whatever it was configured with before the swap. Use
+		/// <see cref="NodeBase.CopyOrchestrationSettingsFrom"/> on the new node to retain the configuration.
 		/// Context-specific type rules (e.g. which node types a job or workflow accepts as a swap target) are not
 		/// enforced here; they are validated against the net original-to-final transition by the node graph validator
 		/// when the owning job or workflow is saved, so all swap errors are aggregated with the other validation errors

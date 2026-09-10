@@ -1,11 +1,14 @@
 namespace RT_MediaOps.Plan.Workflow.Jobs
 {
 	using System;
+	using System.Collections.Generic;
 	using System.Linq;
 
 	using RT_MediaOps.Plan.Extensions;
 	using RT_MediaOps.Plan.RegressionTests;
 
+	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+	using Skyline.DataMiner.Net.ResourceManager.Objects;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
@@ -941,10 +944,14 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			job = objectCreator.CreateJob(job);
 			job = TestContext.Api.Jobs.SaveAsTentative(job);
 
+			Assert.AreEqual(1, GetReservationResourceUsages(job.Id).Count, "Expected the resource node to be booked on the core reservation.");
+
 			var poolNode = new JobResourcePoolNode(pool);
 			job.NodeGraph.Swap(job.NodeGraph.Nodes.Single(), poolNode);
 
 			job = TestContext.Api.Jobs.Update(job);
+
+			Assert.AreEqual(0, GetReservationResourceUsages(job.Id).Count, "Expected the resource to be released from the core reservation.");
 
 			var read = TestContext.Api.Jobs.Read(job.Id);
 			Assert.IsNotNull(read);
@@ -1890,6 +1897,16 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				Assert.AreEqual(preRollStart, node.Start, $"Node '{node.Id}' should start at the pre-roll start.");
 				Assert.AreEqual(postRollEnd, node.End, $"Node '{node.Id}' should end at the post-roll end.");
 			}
+		}
+
+		private static List<ServiceResourceUsageDefinition> GetReservationResourceUsages(Guid jobId)
+		{
+			var reservations = TestContext.ResourceManagerHelper.GetReservationInstances(
+				ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(jobId))).ToList();
+
+			Assert.AreEqual(1, reservations.Count, "Expected exactly one core reservation for the job.");
+
+			return reservations[0].ResourcesInReservationInstance.OfType<ServiceResourceUsageDefinition>().ToList();
 		}
 	}
 }
