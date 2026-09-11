@@ -296,10 +296,13 @@
 		/// the new one. The original node that was swapped out is preserved internally (see <see cref="GetOriginalNode"/>);
 		/// when a previously swapped node is swapped again, the mapping keeps the original node and updates its current
 		/// representation to <paramref name="newNode"/>.
-		/// Context-specific type rules (e.g. a resource node can only be swapped to another resource node inside a job)
-		/// are not enforced here; they are validated against the net original-to-final transition by the node graph
-		/// validator when the owning job or workflow is saved, so all swap errors are aggregated with the other
-		/// validation errors instead of failing on the first illegal swap.
+		/// The alias and the orchestration settings of <paramref name="oldNode"/> are not carried over to
+		/// <paramref name="newNode"/>, which keeps whatever it was configured with before the swap. Use
+		/// <see cref="NodeBase.CopyOrchestrationSettingsFrom"/> on the new node to retain the configuration.
+		/// Context-specific type rules (e.g. which node types a job or workflow accepts as a swap target) are not
+		/// enforced here; they are validated against the net original-to-final transition by the node graph validator
+		/// when the owning job or workflow is saved, so all swap errors are aggregated with the other validation errors
+		/// instead of failing on the first illegal swap.
 		/// </remarks>
 		/// <param name="oldNode">The node currently in the graph that should be replaced.</param>
 		/// <param name="newNode">The new, freshly initialized node that is not part of the graph.</param>
@@ -333,8 +336,8 @@
 				throw new InvalidOperationException("The node to swap to must be a newly initialized node.");
 			}
 
-			// Context-specific type rules (e.g. resource -> resource only inside jobs) are deferred to the node graph
-			// validator so that all swap errors are aggregated with the other validation errors at save time.
+			// Context-specific type rules are deferred to the node graph validator so that all swap errors are
+			// aggregated with the other validation errors at save time.
 
 			// Replace the node in the node list, preserving its position.
 			var index = nodes.IndexOf(oldNode);

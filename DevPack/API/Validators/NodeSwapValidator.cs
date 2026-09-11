@@ -6,10 +6,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// Validates whether a node swap is allowed within the node graph of a job.
 	/// </summary>
 	/// <remarks>
-	/// Inside jobs a node can only be swapped to a resource node or a resource pool node. In addition, a resource node
-	/// can only be swapped to another resource node, while a resource pool node can be swapped to either a resource pool
-	/// node or a resource node. The rule is evaluated against the net original-to-final transition; intermediate swap
-	/// steps are ignored.
+	/// Inside jobs both resource and resource pool nodes can be swapped to either a resource node or a resource pool
+	/// node. Swapping a resource node to a resource pool node moves the node to the target pool, which is not required
+	/// to be the pool the resource was taken from. The states in which that is allowed are not enforced here but by the
+	/// job handler, which rejects a resource pool node on a Confirmed or Running job. The rule is evaluated against the
+	/// net original-to-final transition; intermediate swap steps are ignored.
 	/// </remarks>
 	internal static class JobNodeSwapValidator
 	{
@@ -33,23 +34,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				throw new ArgumentNullException(nameof(target));
 			}
 
-			var targetIsResourceNode = target.IsResourceNode(out _);
-
-			// A node can only be swapped to a resource node or a resource pool node.
-			if (!targetIsResourceNode && !target.IsResourcePoolNode(out _))
+			// In jobs both resource and pool nodes can be swapped to a resource or pool node.
+			if (!target.IsResourceNode(out _) && !target.IsResourcePoolNode(out _))
 			{
 				errorMessage = "A node in a job can only be swapped to a resource node or a resource pool node.";
 				return false;
 			}
 
-			// A resource node can only be swapped to another resource node.
-			if (original.IsResourceNode(out _) && !targetIsResourceNode)
-			{
-				errorMessage = "A resource node in a job can only be swapped to another resource node.";
-				return false;
-			}
-
-			// A resource pool node can be swapped to a resource pool node or a resource node; no further restriction.
 			errorMessage = null;
 			return true;
 		}

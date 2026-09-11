@@ -1,11 +1,14 @@
 namespace RT_MediaOps.Plan.Workflow.Jobs
 {
 	using System;
+	using System.Collections.Generic;
 	using System.Linq;
 
 	using RT_MediaOps.Plan.Extensions;
 	using RT_MediaOps.Plan.RegressionTests;
 
+	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+	using Skyline.DataMiner.Net.ResourceManager.Objects;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
@@ -872,6 +875,188 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void NodeGraph_UpdateJob_Draft_SwapResourceNodeToPoolNode_NodeIsReturnedToPool()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = new UnmanagedResource { Name = $"{prefix}_Resource" }.AssignToPool(pool);
+			resource = objectCreator.CreateResource(resource);
+			resource = TestContext.Api.Resources.Complete(resource);
+
+			var node = new JobResourceNode(pool, resource);
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = currentTime,
+				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
+			};
+
+			job.NodeGraph.Add(node);
+
+			job = objectCreator.CreateJob(job);
+			Assert.AreEqual(JobState.Draft, job.State);
+
+			var poolNode = new JobResourcePoolNode(pool);
+			job.NodeGraph.Swap(job.NodeGraph.Nodes.Single(), poolNode);
+
+			job = TestContext.Api.Jobs.Update(job);
+
+			var read = TestContext.Api.Jobs.Read(job.Id);
+			Assert.IsNotNull(read);
+			Assert.AreEqual(1, read.NodeGraph.Nodes.Count);
+
+			var readNode = read.NodeGraph.Nodes.OfType<JobResourcePoolNode>().Single();
+			Assert.AreEqual(poolNode.Id, readNode.Id);
+			Assert.AreEqual(pool.Id, readNode.ResourcePoolId);
+		}
+
+		[TestMethod]
+		public void NodeGraph_UpdateJob_Tentative_SwapResourceNodeToPoolNode_NodeIsReturnedToPool()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = new UnmanagedResource { Name = $"{prefix}_Resource" }.AssignToPool(pool);
+			resource = objectCreator.CreateResource(resource);
+			resource = TestContext.Api.Resources.Complete(resource);
+
+			var node = new JobResourceNode(pool, resource);
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = currentTime,
+				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
+			};
+
+			job.NodeGraph.Add(node);
+
+			job = objectCreator.CreateJob(job);
+			job = TestContext.Api.Jobs.SaveAsTentative(job);
+
+			Assert.AreEqual(1, GetReservationResourceUsages(job.Id).Count, "Expected the resource node to be booked on the core reservation.");
+
+			var poolNode = new JobResourcePoolNode(pool);
+			job.NodeGraph.Swap(job.NodeGraph.Nodes.Single(), poolNode);
+
+			job = TestContext.Api.Jobs.Update(job);
+
+			Assert.AreEqual(0, GetReservationResourceUsages(job.Id).Count, "Expected the resource to be released from the core reservation.");
+
+			var read = TestContext.Api.Jobs.Read(job.Id);
+			Assert.IsNotNull(read);
+			Assert.AreEqual(1, read.NodeGraph.Nodes.Count);
+			Assert.IsFalse(read.NodeGraph.Nodes.Any(n => n.Id == node.Id));
+
+			var readNode = read.NodeGraph.Nodes.OfType<JobResourcePoolNode>().Single();
+			Assert.AreEqual(poolNode.Id, readNode.Id);
+			Assert.AreEqual(pool.Id, readNode.ResourcePoolId);
+		}
+
+		[TestMethod]
+		public void NodeGraph_ConfirmJob_Tentative_WithNodeReturnedToPool_Fails()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = new UnmanagedResource { Name = $"{prefix}_Resource" }.AssignToPool(pool);
+			resource = objectCreator.CreateResource(resource);
+			resource = TestContext.Api.Resources.Complete(resource);
+
+			var node = new JobResourceNode(pool, resource);
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = currentTime.AddMinutes(1),
+				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime.AddMinutes(1),
+				PostRollEnd = currentTime.AddMinutes(10),
+			};
+
+			job.NodeGraph.Add(node);
+
+			job = objectCreator.CreateJob(job);
+			job = TestContext.Api.Jobs.SaveAsTentative(job);
+
+			job.NodeGraph.Swap(job.NodeGraph.Nodes.Single(), new JobResourcePoolNode(pool));
+			job = TestContext.Api.Jobs.Update(job);
+
+			try
+			{
+				TestContext.Api.Jobs.Confirm(job);
+				Assert.Fail("Expected MediaOpsException was not thrown.");
+			}
+			catch (MediaOpsException ex)
+			{
+				var error = ex.TraceData.ErrorData.OfType<JobNodeResourceNotAssignedError>().SingleOrDefault();
+				Assert.IsNotNull(error);
+				Assert.AreEqual(job.Id, error.Id);
+			}
+		}
+
+		[TestMethod]
+		public void NodeGraph_UpdateJob_Confirmed_SwapResourceNodeToPoolNode_Fails()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = new UnmanagedResource { Name = $"{prefix}_Resource" }.AssignToPool(pool);
+			resource = objectCreator.CreateResource(resource);
+			resource = TestContext.Api.Resources.Complete(resource);
+
+			var node = new JobResourceNode(pool, resource);
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = currentTime.AddMinutes(1),
+				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime.AddMinutes(1),
+				PostRollEnd = currentTime.AddMinutes(10),
+			};
+
+			job.NodeGraph.Add(node);
+
+			job = objectCreator.CreateJob(job);
+			job = TestContext.Api.Jobs.SaveAsTentative(job);
+			job = TestContext.Api.Jobs.Confirm(job);
+
+			job.NodeGraph.Swap(job.NodeGraph.Nodes.Single(), new JobResourcePoolNode(pool));
+
+			try
+			{
+				TestContext.Api.Jobs.Update(job);
+				Assert.Fail("Expected MediaOpsException was not thrown.");
+			}
+			catch (MediaOpsException ex)
+			{
+				var error = ex.TraceData.ErrorData.OfType<JobResourcePoolNodeNotAllowedError>().SingleOrDefault();
+				Assert.IsNotNull(error);
+				Assert.AreEqual(job.Id, error.Id);
+			}
+
+			var read = TestContext.Api.Jobs.Read(job.Id);
+			Assert.IsNotNull(read);
+			Assert.AreEqual(1, read.NodeGraph.Nodes.Count);
+			Assert.AreEqual(resource.Id, read.NodeGraph.Nodes.OfType<JobResourceNode>().Single().ResourceId);
+		}
+
+		[TestMethod]
 		public void NodeGraph_UpdateJob_Confirmed_AddValidResourceNode_NodeIsActuallyAdded()
 		{
 			var prefix = Guid.NewGuid();
@@ -1712,6 +1897,16 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				Assert.AreEqual(preRollStart, node.Start, $"Node '{node.Id}' should start at the pre-roll start.");
 				Assert.AreEqual(postRollEnd, node.End, $"Node '{node.Id}' should end at the post-roll end.");
 			}
+		}
+
+		private static List<ServiceResourceUsageDefinition> GetReservationResourceUsages(Guid jobId)
+		{
+			var reservations = TestContext.ResourceManagerHelper.GetReservationInstances(
+				ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(jobId))).ToList();
+
+			Assert.AreEqual(1, reservations.Count, "Expected exactly one core reservation for the job.");
+
+			return reservations[0].ResourcesInReservationInstance.OfType<ServiceResourceUsageDefinition>().ToList();
 		}
 	}
 }

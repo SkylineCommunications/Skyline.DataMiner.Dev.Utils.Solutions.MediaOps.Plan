@@ -269,7 +269,7 @@ namespace RT_MediaOps.Plan.Workflow.Nodes
 		}
 
 		[TestMethod]
-		public void Job_Swap_ResourceToPool_ReportedByValidatorAfterSwapSucceeds()
+		public void Job_Swap_ResourceToPool_IsAllowed()
 		{
 			var job = new Job { Name = "Job" };
 
@@ -278,15 +278,10 @@ namespace RT_MediaOps.Plan.Workflow.Nodes
 
 			var newPoolNode = new JobResourcePoolNode(Guid.NewGuid());
 
-			// The swap itself no longer throws; the type rule is validated later, at save time.
 			job.NodeGraph.Swap(resourceNode, newPoolNode);
-			Assert.IsTrue(job.NodeGraph.Nodes.Contains(newPoolNode));
 
-			var error = GetJobSwapErrors(job).SingleOrDefault();
-			Assert.IsNotNull(error);
-			Assert.AreEqual(job.Id, error.Id);
-			Assert.AreEqual(resourceNode.Id, error.NodeId);
-			Assert.AreEqual(newPoolNode.Id, error.TargetNodeId);
+			Assert.IsTrue(job.NodeGraph.Nodes.Contains(newPoolNode));
+			Assert.AreEqual(0, GetJobSwapErrors(job).Count);
 		}
 
 		[TestMethod]
@@ -297,8 +292,7 @@ namespace RT_MediaOps.Plan.Workflow.Nodes
 			var poolNode = new JobResourcePoolNode(Guid.NewGuid());
 			job.NodeGraph.Add(poolNode);
 
-			// pool -> resource (allowed) then resource -> pool. The net original->final transition is pool -> pool,
-			// which is allowed, so the intermediate resource->pool step must not be reported.
+			// pool -> resource then resource -> pool. Only the net original->final transition (pool -> pool) is validated.
 			var resourceNode = new JobResourceNode(Guid.NewGuid(), Guid.NewGuid());
 			job.NodeGraph.Swap(poolNode, resourceNode);
 
