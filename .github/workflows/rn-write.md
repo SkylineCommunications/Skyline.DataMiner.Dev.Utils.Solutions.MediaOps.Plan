@@ -1,6 +1,6 @@
 ---
 description: |
-  Automated release note writer that runs when a pull request is merged.
+  Automated release note writer that runs when a pull request is ready for review or merged.
   Reads the PR diff and any linked issues, then posts a plain-language release
   note entry as a comment — written for a changelog audience rather than for
   PR reviewers. The comment includes a machine-readable anchor so a downstream
@@ -9,7 +9,7 @@ description: |
 
 on:
   pull_request_target:
-    types: [closed, labeled]
+    types: [closed, labeled, ready_for_review]
   skip-bots: ["dependabot[bot]", "github-actions[bot]"]
   reaction: eyes
 
@@ -19,7 +19,8 @@ if: >
     github.event.pull_request.head.repo.owner.login == github.repository_owner &&
     (
       (github.event.action == 'closed' && github.event.pull_request.merged == true) ||
-      (github.event.action == 'labeled' && github.event.label.name == 'rn-request' && github.event.pull_request.merged == true)
+      (github.event.action == 'labeled' && github.event.label.name == 'rn-request' && github.event.pull_request.merged == true) ||
+      github.event.action == 'ready_for_review'
     )
 
 permissions:
