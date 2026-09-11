@@ -1,7 +1,6 @@
 # Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan
 
-This documentation describes how to use the public API exposed by `Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan`.
-The API is intended to be used when developing custom solutions based on the MediaOps.PLAN solution.
+This repository contains the public API of the `Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan` NuGet package (C# namespace `Skyline.DataMiner.Solutions.MediaOps.Plan`), used when developing custom solutions based on the MediaOps.PLAN solution.
 
 ## Installation
 
@@ -24,9 +23,10 @@ Depending on your project type, one of the following additional packages is also
 
 | Document | Description |
 | -------- | ----------- |
-| [Getting Started](Documentation/Getting%20Started.md) | Installation, prerequisites, and basic usage |
-| [Quick Reference](Documentation/Quick%20Reference.md) | Common code snippets for repositories, querying, and connectivity |
-| [Advanced Topics](Documentation/Advanced%20Topics.md) | Caching, subscriptions, validation, logging, and error handling |
+| [What's New Since 1.5](Documentation/What%27s%20New%20Since%201.5.md) | Summary of changes since 1.5.x, split into stable (1.6.x) and prerelease (1.7.0-alpha) |
+| [Getting Started](Documentation/Getting%20Started.md) | Installation, prerequisites, and the core concepts (resources, jobs, workflows, recurring jobs, node graphs, properties, relationships) |
+| [Quick Reference](Documentation/Quick%20Reference.md) | Copyable snippets for every repository: CRUD, job/recurring job lifecycle, node graphs, properties, relationships, querying, and synchronization |
+| [Advanced Topics](Documentation/Advanced%20Topics.md) | State machines, job timing rules, configuration state, data references, eligible resources, SRM synchronization, logging, and installation checks |
 
 External resources:
 
