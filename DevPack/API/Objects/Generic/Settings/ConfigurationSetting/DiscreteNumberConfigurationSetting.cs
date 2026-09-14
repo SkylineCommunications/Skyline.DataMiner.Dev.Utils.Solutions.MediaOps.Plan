@@ -7,6 +7,8 @@
 	/// </summary>
 	public class DiscreteNumberConfigurationSetting : ConfigurationSetting
 	{
+		private NumberDiscreet value;
+
 		/// <summary>
 		/// Initializes a new instance of the <see cref="DiscreteNumberConfigurationSetting"/> class using the specified discrete number configuration.
 		/// </summary>
@@ -39,10 +41,26 @@
 		/// <summary>
 		/// Gets or sets the configuration value.
 		/// </summary>
-		public NumberDiscreet Value { get; set; }
+		public NumberDiscreet Value
+		{
+			get => value;
+			set
+			{
+				this.value = value;
+				if (value != null)
+				{
+					Reference = null;
+				}
+			}
+		}
 
 		/// <inheritdoc/>
 		public override bool HasValue => Value != null;
+
+		private protected override void ClearValue()
+		{
+			value = null;
+		}
 
 		/// <inheritdoc/>
 		public override int GetHashCode()

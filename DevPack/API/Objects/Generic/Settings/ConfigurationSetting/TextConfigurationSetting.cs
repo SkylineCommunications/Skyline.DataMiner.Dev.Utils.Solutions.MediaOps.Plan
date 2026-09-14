@@ -7,6 +7,8 @@
 	/// </summary>
 	public class TextConfigurationSetting : ConfigurationSetting
 	{
+		private string value;
+
 		/// <summary>
 		/// Initializes a new instance of the <see cref="TextConfigurationSetting"/> class using the specified text configuration.
 		/// </summary>
@@ -39,10 +41,26 @@
 		/// <summary>
 		/// Gets or sets the configuration value.
 		/// </summary>
-		public string Value { get; set; }
+		public string Value
+		{
+			get => value;
+			set
+			{
+				this.value = value;
+				if (value != null)
+				{
+					Reference = null;
+				}
+			}
+		}
 
 		/// <inheritdoc/>
 		public override bool HasValue => Value != null;
+
+		private protected override void ClearValue()
+		{
+			value = null;
+		}
 
 		/// <inheritdoc/>
 		public override int GetHashCode()

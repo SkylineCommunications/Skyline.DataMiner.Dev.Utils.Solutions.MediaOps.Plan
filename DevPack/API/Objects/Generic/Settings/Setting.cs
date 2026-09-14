@@ -10,6 +10,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// <seealso cref="ConfigurationSetting"/>
 	public abstract class Setting : TrackableObject
 	{
+		private DataReference reference;
+
 		private protected Setting()
 		{
 		}
@@ -29,7 +31,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		private protected Setting(Setting setting)
 		{
 			Id = setting.Id;
-			Reference = setting.Reference;
+			reference = setting.Reference;
 
 			IsNew = true;
 		}
@@ -42,7 +44,18 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <summary>
 		/// Gets or sets a reference to a data source that provides the value for this setting.
 		/// </summary>
-		public DataReference Reference { get; set; }
+		public DataReference Reference
+		{
+			get => reference;
+			set
+			{
+				reference = value;
+				if (value != null)
+				{
+					ClearValue();
+				}
+			}
+		}
 
 		/// <summary>
 		/// Gets a value indicating whether this setting has a reference defined.
@@ -55,6 +68,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		public abstract bool HasValue { get; }
 
 		internal virtual Storage.DOM.DomSectionBase OriginalSection { get; }
+
+		private protected abstract void ClearValue();
 
 		/// <summary>
 		/// Determines whether this setting is a capability setting and, if so, returns it as a <see cref="CapabilitySetting"/>.
