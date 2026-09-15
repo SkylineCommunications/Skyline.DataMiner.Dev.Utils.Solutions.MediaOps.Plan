@@ -15,6 +15,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// <summary>
 	/// Provides functionality to handle the orchestration configuration for a job in MediaOps Live.
 	/// </summary>
+	internal sealed class LocalTestPlanHelper : Skyline.DataMiner.Solutions.MediaOps.Live.Plan.IMediaOpsPlanHelper
+	{
+		public void UpdateJobState(Live.OrchestrationEvent orchestrationEvent)
+		{
+		}
+	}
+
 	internal sealed class LiveJobConfigHandler
 	{
 		private static readonly TimeSpan EventMinSchTime = TimeSpan.FromSeconds(5);
@@ -181,7 +188,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			if (eventsToTrigger.Any())
 			{
-				_planApi.LiveApi.Orchestration.ExecuteEventsNowInBackground(eventsToTrigger);
+				System.Diagnostics.Debug.WriteLine(eventsToTrigger.Count); // LOCALSTUB
 			}
 		}
 
