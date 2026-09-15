@@ -176,11 +176,17 @@
 		/// <param name="node">The node to add.</param>
 		/// <returns>The current <see cref="NodeGraph{TNode}"/> instance for method chaining.</returns>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="node"/> is null.</exception>
+		/// <exception cref="ArgumentException">Thrown when a node with the same ID is already part of the graph.</exception>
 		public NodeGraph<TNode> Add(TNode node)
 		{
 			if (node == null)
 			{
 				throw new ArgumentNullException(nameof(node));
+			}
+
+			if (nodes.Any(existing => String.Equals(existing.Id, node.Id, StringComparison.OrdinalIgnoreCase)))
+			{
+				throw new ArgumentException($"A node with ID '{node.Id}' is already part of this graph. Only new nodes can be added.", nameof(node));
 			}
 
 			nodes.Add(node);
