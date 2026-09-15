@@ -1345,7 +1345,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			ValidateStateForTransitionToRunningAction(apiJobs);
-			ValidatePreRollStartReached(apiJobs);
 
 			var lockResult = planApi.LockManager.LockAndExecute(apiJobs.Where(IsValid).ToList(), TransitionToRunningLocked);
 			ReportError(lockResult);
@@ -2485,19 +2484,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 		}
 
-		private void ValidatePreRollStartReached(ICollection<Job> apiJobs)
-		{
-			foreach (var job in apiJobs.Where(x => IsValid(x) && x.PreRollStart > currentTime))
-			{
-				ReportError(job.Id, new JobPreRollStartNotReachedError
-				{
-					ErrorMessage = "The job cannot be transitioned to running before its pre-roll start time has passed.",
-					Id = job.Id,
-					PreRollStart = job.PreRollStart,
-				});
-			}
-		}
-
+		// An ongoing reservation proves its start has been reached. The reservation is therefore authoritative; the DOM
+		// pre-roll start is only used to explain why a reservation that is not ongoing cannot transition its job.
 		private void ValidateReservationIsRunning(ICollection<Job> apiJobs)
 		{
 			var validJobs = apiJobs.Where(IsValid).ToList();
@@ -2510,6 +2498,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			CoreJobHandler.TryVerifyOngoing(planApi, domJobs, out var coreResult);
 
+			var jobsById = validJobs.ToDictionary(x => x.Id);
 			foreach (var id in coreResult.UnsuccessfulIds)
 			{
 				ReportError(id);
@@ -2517,6 +2506,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				if (coreResult.TraceDataPerItem.TryGetValue(id, out var traceData))
 				{
 					PassTraceData(id, traceData);
+				}
+
+				if (jobsById.TryGetValue(id, out var job) && job.PreRollStart > currentTime)
+				{
+					ReportError(id, new JobPreRollStartNotReachedError
+					{
+						ErrorMessage = "The job cannot be transitioned to running before its pre-roll start time has passed.",
+						Id = id,
+						PreRollStart = job.PreRollStart,
+					});
 				}
 			}
 		}
