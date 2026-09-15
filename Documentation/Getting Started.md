@@ -21,8 +21,6 @@ Depending on your project type, one of the following additional packages is also
 
 > [!NOTE]
 > This library targets `.NET Framework 4.8`.
->
-> See [What's New Since 1.5](What%27s%20New%20Since%201.5.md) for a summary of what changed since 1.5.x, including which APIs are still prerelease (`1.7.0-alpha*`).
 
 ## Entry Point
 
@@ -379,4 +377,3 @@ api.Resources.Delete(new[] { id1, id2, id3 });
 
 - **[Quick Reference](Quick%20Reference.md)** – Common snippets for repositories, querying, and resource management
 - **[Advanced Topics](Advanced%20Topics.md)** – Job lifecycle, timing rules, configuration state, orchestration, synchronization, and logging
-- **[What's New Since 1.5](What%27s%20New%20Since%201.5.md)** – What changed since 1.5.x, and what is still prerelease

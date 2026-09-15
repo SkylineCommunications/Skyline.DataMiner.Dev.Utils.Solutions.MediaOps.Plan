@@ -912,4 +912,3 @@ foreach (var failure in result.Failures)
 
 - **[Getting Started](Getting%20Started.md)** – Installation and basic usage
 - **[Advanced Topics](Advanced%20Topics.md)** – Job lifecycle, timing rules, configuration state, orchestration, synchronization, and logging
-- **[What's New Since 1.5](What%27s%20New%20Since%201.5.md)** – What changed since 1.5.x, and what is still prerelease

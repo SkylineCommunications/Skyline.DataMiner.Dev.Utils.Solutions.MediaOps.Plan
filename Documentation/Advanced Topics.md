@@ -172,9 +172,6 @@ var poolState = settingsCalculator.GetConfigurationState(pool.OrchestrationSetti
 
 `Job`, `RecurringJob` and `JobNode`/`RecurringJobNode` also expose the last-calculated value directly through their `ConfigurationState` property (populated when the job/recurring job is created or updated), and `JobExposers.ConfigurationState` / `JobExposers.Nodes.ConfigurationState` let you query on it.
 
-> [!IMPORTANT]
-> `ConfigurationState` replaces the `NodeConfigurationStatus`, `ResourceSelectionMode` and `ResourceSelectionState` types from 1.6.x, which have been removed. See [What's New Since 1.5](What%27s%20New%20Since%201.5.md#upgrading-from-16x-to-170-alpha) for the migration note.
-
 ## Data References and Reference Resolution
 
 Capability, capacity and configuration settings (`CapabilitySetting`, `CapacitySetting`, `ConfigurationSetting`) can hold a `Reference` (a `DataReference`) instead of, or in addition to, a literal value. A reference lets a value be resolved dynamically instead of being hard-coded on the workflow/job — for example, take the value from a resource property, from a job property, or from the job's name:
@@ -387,4 +384,3 @@ var resourceType = api.Capabilities.SystemCapabilities.ResourceType;
 
 - **[Quick Reference](Quick%20Reference.md)** – Common snippets for repositories, querying, and resource management
 - **[Getting Started](Getting%20Started.md)** – Installation and basic usage
-- **[What's New Since 1.5](What%27s%20New%20Since%201.5.md)** – What changed since 1.5.x, and what is still prerelease
