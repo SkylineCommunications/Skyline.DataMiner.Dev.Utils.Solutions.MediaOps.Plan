@@ -9,6 +9,10 @@
 	/// </summary>
 	public class ScriptElementSetting
 	{
+		private DmsElementId dmsElementId;
+		private string elementName;
+		private DataReference reference;
+
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ScriptElementSetting"/> class.
 		/// </summary>
@@ -32,17 +36,51 @@
 		/// <summary>
 		/// Gets or sets the unique identifier for the associated DMS element.
 		/// </summary>
-		public DmsElementId DmsElementId { get; set; }
+		public DmsElementId DmsElementId
+		{
+			get => dmsElementId;
+			set
+			{
+				dmsElementId = value;
+				if (value != default)
+				{
+					reference = null;
+				}
+			}
+		}
 
 		/// <summary>
 		/// Gets or sets the name of the element.
 		/// </summary>
-		public string ElementName { get; set; }
+		public string ElementName
+		{
+			get => elementName;
+			set
+			{
+				elementName = value;
+				if (value != null)
+				{
+					reference = null;
+				}
+			}
+		}
 
 		/// <summary>
 		/// Gets or sets a reference to a data source that provides the element ID.
 		/// </summary>
-		public DataReference Reference { get; set; }
+		public DataReference Reference
+		{
+			get => reference;
+			set
+			{
+				reference = value;
+				if (value != null)
+				{
+					dmsElementId = default;
+					elementName = null;
+				}
+			}
+		}
 
 		/// <summary>
 		/// Gets a value indicating whether this setting has a reference defined.

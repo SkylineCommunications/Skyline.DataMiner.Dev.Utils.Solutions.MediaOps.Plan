@@ -7,6 +7,9 @@
 	/// </summary>
 	public class ScriptParameterSetting
 	{
+		private string value;
+		private DataReference reference;
+
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ScriptParameterSetting"/> class.
 		/// </summary>
@@ -30,12 +33,34 @@
 		/// <summary>
 		/// Gets or sets the script parameter value.
 		/// </summary>
-		public string Value { get; set; }
+		public string Value
+		{
+			get => value;
+			set
+			{
+				this.value = value;
+				if (value != null)
+				{
+					reference = null;
+				}
+			}
+		}
 
 		/// <summary>
 		/// Gets or sets a reference to a data source that provides the value for this parameter.
 		/// </summary>
-		public DataReference Reference { get; set; }
+		public DataReference Reference
+		{
+			get => reference;
+			set
+			{
+				reference = value;
+				if (value != null)
+				{
+					this.value = null;
+				}
+			}
+		}
 
 		/// <summary>
 		/// Gets a value indicating whether this parameter has a reference defined.

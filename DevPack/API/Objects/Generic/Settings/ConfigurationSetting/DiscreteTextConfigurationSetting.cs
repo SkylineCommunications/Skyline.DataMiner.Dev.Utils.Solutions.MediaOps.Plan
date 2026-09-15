@@ -7,6 +7,8 @@
 	/// </summary>
 	public class DiscreteTextConfigurationSetting : ConfigurationSetting
 	{
+		private TextDiscreet value;
+
 		/// <summary>
 		/// Initializes a new instance of the <see cref="DiscreteTextConfigurationSetting"/> class using the specified discrete text configuration.
 		/// </summary>
@@ -39,10 +41,26 @@
 		/// <summary>
 		/// Gets or sets the configuration value.
 		/// </summary>
-		public TextDiscreet Value { get; set; }
+		public TextDiscreet Value
+		{
+			get => value;
+			set
+			{
+				this.value = value;
+				if (value != null)
+				{
+					Reference = null;
+				}
+			}
+		}
 
 		/// <inheritdoc/>
 		public override bool HasValue => Value != null && !string.IsNullOrWhiteSpace(Value.Value);
+
+		private protected override void ClearValue()
+		{
+			value = null;
+		}
 
 		/// <inheritdoc/>
 		public override int GetHashCode()

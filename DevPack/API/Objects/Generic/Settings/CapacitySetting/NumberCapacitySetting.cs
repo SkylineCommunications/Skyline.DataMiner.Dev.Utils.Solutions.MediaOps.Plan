@@ -7,6 +7,8 @@
 	/// </summary>
 	public class NumberCapacitySetting : CapacitySetting
 	{
+		private decimal? value;
+
 		/// <summary>
 		/// Initializes a new instance of the <see cref="NumberCapacitySetting"/> class using the specified capacity.
 		/// </summary>
@@ -40,10 +42,26 @@
 		/// <summary>
 		/// Gets or sets the capacity value.
 		/// </summary>
-		public decimal? Value { get; set; }
+		public decimal? Value
+		{
+			get => value;
+			set
+			{
+				this.value = value;
+				if (value.HasValue)
+				{
+					Reference = null;
+				}
+			}
+		}
 
 		/// <inheritdoc/>
 		public override bool HasValue => Value.HasValue;
+
+		private protected override void ClearValue()
+		{
+			value = null;
+		}
 
 		/// <inheritdoc/>
 		public override int GetHashCode()

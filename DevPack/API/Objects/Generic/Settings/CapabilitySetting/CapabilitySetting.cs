@@ -7,6 +7,8 @@
 	/// </summary>
 	public class CapabilitySetting : Setting
 	{
+		private string value;
+
 		/// <summary>
 		/// Initializes a new instance of the <see cref="CapabilitySetting"/> class using the specified capability.
 		/// </summary>
@@ -44,12 +46,28 @@
 		/// <summary>
 		/// Gets or sets the value associated with this capability.
 		/// </summary>
-		public string Value { get; set; }
+		public string Value
+		{
+			get => value;
+			set
+			{
+				this.value = value;
+				if (value != null)
+				{
+					Reference = null;
+				}
+			}
+		}
 
 		/// <summary>
 		/// Gets a value indicating whether this setting has a value defined.
 		/// </summary>
 		public override bool HasValue => Value != null;
+
+		private protected override void ClearValue()
+		{
+			value = null;
+		}
 
 		/// <summary>
 		/// Generates the hash code for the object.

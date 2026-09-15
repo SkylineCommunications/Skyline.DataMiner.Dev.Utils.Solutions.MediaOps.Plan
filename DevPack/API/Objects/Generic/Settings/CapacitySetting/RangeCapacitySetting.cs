@@ -7,6 +7,9 @@
 	/// </summary>
 	public class RangeCapacitySetting : CapacitySetting
 	{
+		private decimal? minValue;
+		private decimal? maxValue;
+
 		/// <summary>
 		/// Initializes a new instance of the <see cref="RangeCapacitySetting"/> class using the specified capacity.
 		/// </summary>
@@ -41,15 +44,43 @@
 		/// <summary>
 		/// Gets or sets the minimum capacity value.
 		/// </summary>
-		public decimal? MinValue { get; set; }
+		public decimal? MinValue
+		{
+			get => minValue;
+			set
+			{
+				minValue = value;
+				if (value.HasValue)
+				{
+					Reference = null;
+				}
+			}
+		}
 
 		/// <summary>
 		/// Gets or sets the maximum capacity value.
 		/// </summary>
-		public decimal? MaxValue { get; set; }
+		public decimal? MaxValue
+		{
+			get => maxValue;
+			set
+			{
+				maxValue = value;
+				if (value.HasValue)
+				{
+					Reference = null;
+				}
+			}
+		}
 
 		/// <inheritdoc/>
 		public override bool HasValue => MinValue.HasValue && MaxValue.HasValue;
+
+		private protected override void ClearValue()
+		{
+			minValue = null;
+			maxValue = null;
+		}
 
 		/// <inheritdoc/>
 		public override int GetHashCode()

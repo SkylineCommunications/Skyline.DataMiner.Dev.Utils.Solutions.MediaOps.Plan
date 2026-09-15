@@ -7,6 +7,8 @@
 	/// </summary>
 	public class NumberConfigurationSetting : ConfigurationSetting
 	{
+		private decimal? value;
+
 		/// <summary>
 		/// Initializes a new instance of the <see cref="NumberConfigurationSetting"/> class using the specified number configuration.
 		/// </summary>
@@ -39,10 +41,26 @@
 		/// <summary>
 		/// Gets or sets the configuration value.
 		/// </summary>
-		public decimal? Value { get; set; }
+		public decimal? Value
+		{
+			get => value;
+			set
+			{
+				this.value = value;
+				if (value.HasValue)
+				{
+					Reference = null;
+				}
+			}
+		}
 
 		/// <inheritdoc/>
 		public override bool HasValue => Value.HasValue;
+
+		private protected override void ClearValue()
+		{
+			value = null;
+		}
 
 		/// <inheritdoc/>
 		public override int GetHashCode()
