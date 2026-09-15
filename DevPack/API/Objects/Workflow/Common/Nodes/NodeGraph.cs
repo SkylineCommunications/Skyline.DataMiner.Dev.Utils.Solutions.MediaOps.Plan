@@ -188,14 +188,14 @@
 				throw new ArgumentNullException(nameof(node));
 			}
 
-			if (nodes.Any(existing => String.Equals(existing.Id, node.Id, StringComparison.OrdinalIgnoreCase)))
-			{
-				throw new ArgumentException($"A node with ID '{node.Id}' is already part of this graph. Only new nodes can be added.", nameof(node));
-			}
-
 			if (!node.IsNew)
 			{
 				throw new ArgumentException($"The node with ID '{node.Id}' is an existing node. Only newly created nodes can be added.", nameof(node));
+			}
+
+			if (nodes.Any(existing => String.Equals(existing.Id, node.Id, StringComparison.OrdinalIgnoreCase)))
+			{
+				throw new ArgumentException($"A node with ID '{node.Id}' is already part of this graph. Only new nodes can be added.", nameof(node));
 			}
 
 			nodes.Add(node);
