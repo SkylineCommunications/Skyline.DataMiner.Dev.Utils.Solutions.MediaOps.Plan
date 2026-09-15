@@ -184,6 +184,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			ValidatePostRoll(apiJobs);
 			ValidateStateTimings(apiJobs);
 
+			// This runs before ApplyNodeTimings because that call restores swapped-out nodes into the graph, which
+			// would hide the very changes this validation reports.
+			ValidateNoNodeGraphChangesInPostRoll(apiJobs);
+
 			// Apply the node timings before validating the node graph so that restored/added/changed nodes are part of
 			// the whole-graph validation, and before the lock's GetJobsWithChanges so the DOM snapshots capture them.
 			// Only valid jobs are touched so invalid job-level timings are not propagated onto the nodes. The application
@@ -2596,6 +2600,29 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 						Id = job.Id,
 						NodeId = node.Id,
 					});
+				}
+			}
+		}
+
+		private void ValidateNoNodeGraphChangesInPostRoll(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
+			// Once a running job passed its end time it only has its post-roll left, during which its resources are
+			// being released. Changing the topology at that point has no effect on the execution, so it is rejected.
+			foreach (var job in apiJobs.Where(x => IsValid(x) && !x.IsNew && x.State == JobState.Running && currentTime > x.End))
+			{
+				foreach (var error in JobNodeGraphPostRollFreezeValidator.Validate(job.Id, job.NodeGraph, job.OriginalInstance))
+				{
+					ReportError(job.Id, error);
 				}
 			}
 		}
