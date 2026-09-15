@@ -15,13 +15,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// <summary>
 	/// Provides functionality to handle the orchestration configuration for a job in MediaOps Live.
 	/// </summary>
-	internal sealed class LocalTestPlanHelper : Skyline.DataMiner.Solutions.MediaOps.Live.Plan.IMediaOpsPlanHelper
-	{
-		public void UpdateJobState(Live.OrchestrationEvent orchestrationEvent)
-		{
-		}
-	}
-
 	internal sealed class LiveJobConfigHandler
 	{
 		private static readonly TimeSpan EventMinSchTime = TimeSpan.FromSeconds(5);
@@ -188,7 +181,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			if (eventsToTrigger.Any())
 			{
-				System.Diagnostics.Debug.WriteLine(eventsToTrigger.Count); // LOCALSTUB
+				_planApi.LiveApi.Orchestration.ExecuteEventsNowInBackground(eventsToTrigger);
 			}
 		}
 
@@ -514,7 +507,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		private bool IsNodeActive(JobNode node)
 		{
-			return node.End > _currentTime;
+			// A node only drops out of the orchestration when it was ended before the job itself ends, for example a
+			// node that was ended early or swapped out while the job was running. A node that runs until the end of the
+			// job stays part of the orchestration even when that end lies in the past, which is the case after a manual
+			// stop: the stop moves the job end to the current time and clamps every node onto it, and the end events
+			// that are triggered by that stop must still orchestrate those nodes.
+			return node.End > _currentTime || node.End >= _job.End;
 		}
 
 		private bool TryBuildLevelMapping(ConnectionConfiguration configuration, out IList<Live.LevelMapping> levelMappings)
