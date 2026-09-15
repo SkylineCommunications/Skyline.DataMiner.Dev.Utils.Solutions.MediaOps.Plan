@@ -137,6 +137,43 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void NodeGraph_AddExistingNodeFromAnotherJob_Fails()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var sourceJob = new Job
+			{
+				Name = $"{prefix}_SourceJob",
+				Start = currentTime,
+				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
+			};
+
+			sourceJob.NodeGraph.Add(new JobResourcePoolNode(pool));
+			sourceJob = objectCreator.CreateJob(sourceJob);
+
+			var storedNode = TestContext.Api.Jobs.Read(sourceJob.Id).NodeGraph.Nodes.Single();
+
+			var targetJob = new Job
+			{
+				Name = $"{prefix}_TargetJob",
+				Start = currentTime,
+				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
+			};
+
+			// An existing node belongs to the job it was read from, so it cannot be taken over by another job.
+			Assert.ThrowsException<ArgumentException>(() => targetJob.NodeGraph.Add(storedNode));
+			Assert.AreEqual(0, targetJob.NodeGraph.Nodes.Count);
+		}
+
+		[TestMethod]
 		public void NodeGraph_CreateJob_DuplicateResources_NodeIsActuallyAdded()
 		{
 			var prefix = Guid.NewGuid();

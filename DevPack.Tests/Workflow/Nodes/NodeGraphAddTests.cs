@@ -35,6 +35,20 @@ namespace RT_MediaOps.Plan.Workflow.Nodes
 		}
 
 		[TestMethod]
+		public void Add_ExistingNode_Throws()
+		{
+			var workflow = new Workflow { Name = "Workflow" };
+			var node = new WorkflowResourceNode(Guid.NewGuid(), Guid.NewGuid())
+			{
+				// Simulates a node that was loaded from storage, e.g. a node of another workflow or job.
+				IsNew = false,
+			};
+
+			Assert.ThrowsException<ArgumentException>(() => workflow.NodeGraph.Add(node));
+			Assert.AreEqual(0, workflow.NodeGraph.Nodes.Count);
+		}
+
+		[TestMethod]
 		public void Add_Null_Throws()
 		{
 			var workflow = new Workflow { Name = "Workflow" };

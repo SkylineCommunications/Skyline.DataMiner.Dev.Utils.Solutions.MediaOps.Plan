@@ -171,12 +171,16 @@
 		}
 
 		/// <summary>
-		/// Adds a node to the graph.
+		/// Adds a new node to the graph.
 		/// </summary>
+		/// <remarks>
+		/// Only newly created nodes can be added. A node that was loaded from storage already belongs to the object it
+		/// was read from, so adding it to a graph would silently take over that node instead of creating a new one.
+		/// </remarks>
 		/// <param name="node">The node to add.</param>
 		/// <returns>The current <see cref="NodeGraph{TNode}"/> instance for method chaining.</returns>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="node"/> is null.</exception>
-		/// <exception cref="ArgumentException">Thrown when a node with the same ID is already part of the graph.</exception>
+		/// <exception cref="ArgumentException">Thrown when a node with the same ID is already part of the graph, or when the node is not a newly created node.</exception>
 		public NodeGraph<TNode> Add(TNode node)
 		{
 			if (node == null)
@@ -187,6 +191,11 @@
 			if (nodes.Any(existing => String.Equals(existing.Id, node.Id, StringComparison.OrdinalIgnoreCase)))
 			{
 				throw new ArgumentException($"A node with ID '{node.Id}' is already part of this graph. Only new nodes can be added.", nameof(node));
+			}
+
+			if (!node.IsNew)
+			{
+				throw new ArgumentException($"The node with ID '{node.Id}' is an existing node. Only newly created nodes can be added.", nameof(node));
 			}
 
 			nodes.Add(node);
