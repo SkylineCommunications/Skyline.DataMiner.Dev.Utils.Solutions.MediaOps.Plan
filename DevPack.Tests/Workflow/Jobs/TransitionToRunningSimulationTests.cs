@@ -33,6 +33,11 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 		private static Job CreateConfirmedStartedJob(IMediaOpsPlanApi api, out Guid jobId)
 		{
+			return api.Jobs.Start(CreateConfirmedJob(api, out jobId));
+		}
+
+		private static Job CreateConfirmedJob(IMediaOpsPlanApi api, out Guid jobId)
+		{
 			var prefix = Guid.NewGuid();
 			var currentTime = DateTime.UtcNow.RoundToNextSecond();
 
@@ -59,10 +64,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var confirmedJob = api.Jobs.Confirm(tentativeJob);
 
 			jobId = confirmedJob.Id;
-
-			// A manual start moves the reservation start (and the pre-roll) to now. The simulation has no SRM engine, so
-			// the reservation stays Confirmed until a test explicitly marks it ongoing.
-			return api.Jobs.Start(confirmedJob);
+			return confirmedJob;
 		}
 
 		[TestMethod]
@@ -101,6 +103,25 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				JobState.Running,
 				runningJob.State,
 				"Expected the job to be moved to the Running state.");
+		}
+
+		[TestMethod]
+		public void TransitionToRunning_RunningReservationWithFuturePreRoll_MovesJobToRunning()
+		{
+			var (api, resourceManagerHelper) = CreateContext();
+
+			var confirmedJob = CreateConfirmedJob(api, out var jobId);
+
+			var reservation = resourceManagerHelper.GetReservationInstances(
+				ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(jobId))).FirstOrDefault();
+			Assert.IsNotNull(reservation, "Expected a core reservation for the job.");
+
+			reservation.Status = ReservationStatus.Ongoing;
+			resourceManagerHelper.AddOrUpdateReservationInstances(reservation);
+
+			var runningJob = api.Jobs.TransitionToRunning(confirmedJob);
+
+			Assert.AreEqual(JobState.Running, runningJob.State);
 		}
 	}
 }
