@@ -558,6 +558,45 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void Stop_RunningJob_KeepsOrchestrationOfNodesThatTheStopEnded()
+		{
+			var setup = CreateSetup();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var job = CreateJob(
+				setup,
+				preRollStart: currentTime.AddMinutes(-10),
+				start: currentTime.AddMinutes(-5),
+				end: currentTime.AddMinutes(20),
+				postRollEnd: currentTime.AddMinutes(20),
+				numberOfNodes: 2);
+
+			var nodes = job.NodeGraph.Nodes.ToList();
+			job.NodeGraph.Connect(nodes[0], nodes[1]);
+
+			var runningJob = MakeRunning(setup, Confirm(setup, setup.Api.Jobs.Update(job)));
+
+			var stoppedJob = setup.Api.Jobs.Stop(runningJob);
+
+			var liveConfiguration = GetLiveConfiguration(setup, stoppedJob);
+
+			foreach (var eventType in new[] { LiveEnums.EventType.PostrollStart, LiveEnums.EventType.PostrollStop })
+			{
+				var liveEvent = GetEvent(liveConfiguration, eventType);
+
+				CollectionAssert.AreEquivalent(
+					nodes.Select(x => x.Id).ToArray(),
+					liveEvent.Configuration.NodeConfigurations.Select(x => x.NodeId).ToArray(),
+					$"Expected the {eventType} event to keep the configuration of the nodes that the stop ended.");
+
+				Assert.AreEqual(
+					1,
+					liveEvent.Configuration.Connections.Count,
+					$"Expected the {eventType} event to keep the connection between the nodes that the stop ended.");
+			}
+		}
+
+		[TestMethod]
 		public void Stop_RunningJob_DoesNotReExecuteEndEventsThatAlreadyRan()
 		{
 			var setup = CreateSetup();
