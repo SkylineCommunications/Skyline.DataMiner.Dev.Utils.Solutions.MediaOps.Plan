@@ -9,6 +9,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Net.ResourceManager.Objects;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation;
 
 	using ResourcePool = Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool;
@@ -73,6 +74,18 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			SetReservationStatus(resourceManagerHelper, confirmedJob.Id, ReservationStatus.Ongoing);
 
 			return api.Jobs.TransitionToRunning(confirmedJob);
+		}
+
+		/// <summary>
+		/// Creates a job that is running in its post-roll. Stopping a running job with a new post-roll end moves its end
+		/// to now while keeping it Running, which leaves only the post-roll ahead of it.
+		/// </summary>
+		private static Job CreateRunningJobInPostRoll(IMediaOpsPlanApi api, ResourceManagerHelper resourceManagerHelper)
+		{
+			var runningJob = CreateRunningJob(api, resourceManagerHelper);
+			var newPostRollEnd = DateTime.UtcNow.RoundToNextSecond().AddMinutes(15);
+
+			return api.Jobs.Stop(runningJob, new JobStopOptions { NewPostRollEnd = newPostRollEnd });
 		}
 
 		private static ReservationInstance GetReservation(ResourceManagerHelper resourceManagerHelper, Guid jobId)
@@ -157,6 +170,87 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				JobState.Completed,
 				completedJob.State,
 				"Expected the job to be completed even though its node graph was edited while it was running.");
+		}
+
+		[TestMethod]
+		public void SwapNode_WhileRunningInPostRoll_IsRejected()
+		{
+			var (api, resourceManagerHelper) = CreateContext();
+
+			var job = CreateRunningJobInPostRoll(api, resourceManagerHelper);
+
+			var originalNode = job.NodeGraph.Nodes.Single();
+			var (pool, resource) = CreatePoolAndResource(api, Guid.NewGuid());
+			var replacement = new JobResourceNode(pool, resource);
+
+			job.NodeGraph.Swap(originalNode, replacement);
+
+			var error = AssertUpdateFails<JobNodeSwappedInPostRollNotAllowedError>(api, job);
+			Assert.AreEqual(originalNode.Id, error.NodeId);
+			Assert.AreEqual(replacement.Id, error.TargetNodeId);
+
+			var read = api.Jobs.Read(job.Id);
+			Assert.AreEqual(originalNode.Id, read.NodeGraph.Nodes.Single().Id, "Expected the node graph to be left untouched.");
+		}
+
+		[TestMethod]
+		public void AddNode_WhileRunningInPostRoll_IsRejected()
+		{
+			var (api, resourceManagerHelper) = CreateContext();
+
+			var job = CreateRunningJobInPostRoll(api, resourceManagerHelper);
+
+			var (pool, resource) = CreatePoolAndResource(api, Guid.NewGuid());
+			var addedNode = new JobResourceNode(pool, resource);
+			job.NodeGraph.Add(addedNode);
+
+			var error = AssertUpdateFails<JobNodeAddedInPostRollNotAllowedError>(api, job);
+			Assert.AreEqual(addedNode.Id, error.NodeId);
+		}
+
+		[TestMethod]
+		public void RemoveNode_WhileRunningInPostRoll_IsRejected()
+		{
+			var (api, resourceManagerHelper) = CreateContext();
+
+			var job = CreateRunningJobInPostRoll(api, resourceManagerHelper);
+
+			var removedNode = job.NodeGraph.Nodes.Single();
+			job.NodeGraph.Remove(removedNode);
+
+			var error = AssertUpdateFails<JobNodeRemovedInPostRollNotAllowedError>(api, job);
+			Assert.AreEqual(removedNode.Id, error.NodeId);
+		}
+
+		[TestMethod]
+		public void UpdateWithoutNodeGraphChanges_WhileRunningInPostRoll_IsAllowed()
+		{
+			var (api, resourceManagerHelper) = CreateContext();
+
+			var job = CreateRunningJobInPostRoll(api, resourceManagerHelper);
+			job.Description = "Updated while running in the post-roll.";
+
+			var updatedJob = api.Jobs.Update(job);
+
+			Assert.AreEqual("Updated while running in the post-roll.", updatedJob.Description);
+		}
+
+		private static TError AssertUpdateFails<TError>(IMediaOpsPlanApi api, Job job)
+			where TError : MediaOpsErrorData
+		{
+			try
+			{
+				api.Jobs.Update(job);
+				Assert.Fail($"Expected a {typeof(TError).Name} but the update succeeded.");
+				return null;
+			}
+			catch (MediaOpsException ex)
+			{
+				var error = ex.TraceData.ErrorData.OfType<TError>().SingleOrDefault();
+				Assert.IsNotNull(error, $"Expected a {typeof(TError).Name}.");
+
+				return error;
+			}
 		}
 	}
 }
