@@ -562,11 +562,18 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 		private static NodeGraph<JobNode> GraphWith(params JobNode[] nodes)
 		{
+			// A node graph only accepts new nodes, so the nodes that simulate a persisted node are added as new nodes
+			// and are marked as existing afterwards, exactly like a graph that was loaded from storage.
+			var existingNodes = nodes.Where(node => !node.IsNew).ToList();
+			existingNodes.ForEach(node => node.IsNew = true);
+
 			var graph = new NodeGraph<JobNode>();
 			foreach (var node in nodes)
 			{
 				graph.Add(node);
 			}
+
+			existingNodes.ForEach(node => node.IsNew = false);
 
 			return graph;
 		}

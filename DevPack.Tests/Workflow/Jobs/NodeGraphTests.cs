@@ -111,7 +111,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
-		public void NodeGraph_CreateJob_DuplicateNode_Fails()
+		public void NodeGraph_AddDuplicateNode_Fails()
 		{
 			var prefix = Guid.NewGuid();
 			var currentTime = DateTime.UtcNow.RoundToNextSecond();
@@ -128,23 +128,49 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				PostRollEnd = currentTime.AddMinutes(10),
 			};
 
-			// Adding the same node twice is not blocked in-memory; the save-time node graph validator is the safety net.
+			// Adding a node that is already part of the graph is blocked in-memory.
 			var node = new JobResourcePoolNode(pool);
-			job.NodeGraph.Add(node).Add(node);
+			job.NodeGraph.Add(node);
 
-			try
+			Assert.ThrowsException<ArgumentException>(() => job.NodeGraph.Add(node));
+			Assert.AreEqual(1, job.NodeGraph.Nodes.Count);
+		}
+
+		[TestMethod]
+		public void NodeGraph_AddExistingNodeFromAnotherJob_Fails()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var sourceJob = new Job
 			{
-				objectCreator.CreateJob(job);
-				Assert.Fail("Expected MediaOpsException was not thrown.");
-			}
-			catch (MediaOpsException ex)
+				Name = $"{prefix}_SourceJob",
+				Start = currentTime,
+				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
+			};
+
+			sourceJob.NodeGraph.Add(new JobResourcePoolNode(pool));
+			sourceJob = objectCreator.CreateJob(sourceJob);
+
+			var storedNode = TestContext.Api.Jobs.Read(sourceJob.Id).NodeGraph.Nodes.Single();
+
+			var targetJob = new Job
 			{
-				var errors = ex.TraceData.ErrorData.OfType<JobNodeGraphDuplicateNodeIdError>().ToList();
-				Assert.IsTrue(errors.Count > 0, "Expected a duplicate node ID error to be reported.");
-				Assert.IsTrue(errors.All(error => error.Id == job.Id));
-				Assert.IsTrue(errors.All(error => error.NodeId == node.Id));
-				Assert.IsTrue(errors.All(error => error.ErrorMessage == "Node has a duplicate ID."));
-			}
+				Name = $"{prefix}_TargetJob",
+				Start = currentTime,
+				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
+			};
+
+			// An existing node belongs to the job it was read from, so it cannot be taken over by another job.
+			Assert.ThrowsException<ArgumentException>(() => targetJob.NodeGraph.Add(storedNode));
+			Assert.AreEqual(0, targetJob.NodeGraph.Nodes.Count);
 		}
 
 		[TestMethod]
