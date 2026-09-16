@@ -55,7 +55,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var errors = JobNodeGraphPostRollFreezeValidator.Validate(JobId, graph, original);
 
-			var error = errors.OfType<JobNodeSwapInPostRollNotAllowedError>().SingleOrDefault();
+			var error = errors.OfType<JobNodeSwappedInPostRollNotAllowedError>().SingleOrDefault();
 			Assert.IsNotNull(error);
 			Assert.AreEqual(JobId, error.Id);
 			Assert.AreEqual(first.Id, error.NodeId);
@@ -76,7 +76,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var errors = JobNodeGraphPostRollFreezeValidator.Validate(JobId, graph, original);
 
 			Assert.AreEqual(1, errors.Count, "A swap retargets the connection, link and group, which must not be reported separately.");
-			Assert.IsInstanceOfType(errors[0], typeof(JobNodeSwapInPostRollNotAllowedError));
+			Assert.IsInstanceOfType(errors[0], typeof(JobNodeSwappedInPostRollNotAllowedError));
 		}
 
 		[TestMethod]
@@ -124,7 +124,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var errors = JobNodeGraphPostRollFreezeValidator.Validate(JobId, graph, original);
 
-			var error = errors.OfType<JobNodeConnectionChangeInPostRollNotAllowedError>().SingleOrDefault();
+			var error = errors.OfType<JobNodeConnectionChangedInPostRollNotAllowedError>().SingleOrDefault();
 			Assert.IsNotNull(error);
 			Assert.AreEqual(graph.Connections.Last().Id, error.ConnectionId);
 		}
@@ -140,7 +140,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var errors = JobNodeGraphPostRollFreezeValidator.Validate(JobId, graph, original);
 
-			var error = errors.OfType<JobNodeConnectionChangeInPostRollNotAllowedError>().SingleOrDefault();
+			var error = errors.OfType<JobNodeConnectionChangedInPostRollNotAllowedError>().SingleOrDefault();
 			Assert.IsNotNull(error);
 			Assert.AreEqual(connection.Id, error.ConnectionId);
 		}
@@ -156,7 +156,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var errors = JobNodeGraphPostRollFreezeValidator.Validate(JobId, graph, original);
 
-			var error = errors.OfType<JobNodeConnectionChangeInPostRollNotAllowedError>().SingleOrDefault();
+			var error = errors.OfType<JobNodeConnectionChangedInPostRollNotAllowedError>().SingleOrDefault();
 			Assert.IsNotNull(error);
 			Assert.AreEqual(connection.Id, error.ConnectionId);
 		}
@@ -175,7 +175,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var errors = JobNodeGraphPostRollFreezeValidator.Validate(JobId, graph, original);
 
-			var error = errors.OfType<JobNodeLinkChangeInPostRollNotAllowedError>().SingleOrDefault();
+			var error = errors.OfType<JobNodeLinkChangedInPostRollNotAllowedError>().SingleOrDefault();
 			Assert.IsNotNull(error);
 			Assert.AreEqual(first.Id, error.ParentNodeId);
 			Assert.AreEqual(second.Id, error.ChildNodeId);
@@ -193,7 +193,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var errors = JobNodeGraphPostRollFreezeValidator.Validate(JobId, graph, original);
 
-			var error = errors.OfType<JobNodeLinkChangeInPostRollNotAllowedError>().SingleOrDefault();
+			var error = errors.OfType<JobNodeLinkChangedInPostRollNotAllowedError>().SingleOrDefault();
 			Assert.IsNotNull(error);
 			Assert.AreEqual(first.Id, error.ParentNodeId);
 			Assert.AreEqual(second.Id, error.ChildNodeId);
@@ -213,7 +213,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var errors = JobNodeGraphPostRollFreezeValidator.Validate(JobId, graph, original);
 
-			var error = errors.OfType<JobNodeGroupChangeInPostRollNotAllowedError>().SingleOrDefault();
+			var error = errors.OfType<JobNodeGroupChangedInPostRollNotAllowedError>().SingleOrDefault();
 			Assert.IsNotNull(error);
 			Assert.AreEqual("New group", error.GroupName);
 		}
@@ -231,7 +231,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var errors = JobNodeGraphPostRollFreezeValidator.Validate(JobId, graph, original);
 
-			var error = errors.OfType<JobNodeGroupChangeInPostRollNotAllowedError>().SingleOrDefault();
+			var error = errors.OfType<JobNodeGroupChangedInPostRollNotAllowedError>().SingleOrDefault();
 			Assert.IsNotNull(error);
 			Assert.AreEqual("Group", error.GroupName);
 		}
@@ -249,7 +249,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var errors = JobNodeGraphPostRollFreezeValidator.Validate(JobId, graph, original);
 
-			var error = errors.OfType<JobNodeGroupChangeInPostRollNotAllowedError>().SingleOrDefault();
+			var error = errors.OfType<JobNodeGroupChangedInPostRollNotAllowedError>().SingleOrDefault();
 			Assert.IsNotNull(error);
 			Assert.AreEqual("Group", error.GroupName);
 		}

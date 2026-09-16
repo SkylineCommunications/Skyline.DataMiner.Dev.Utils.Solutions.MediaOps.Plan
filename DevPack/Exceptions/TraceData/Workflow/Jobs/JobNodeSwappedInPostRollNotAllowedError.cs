@@ -3,7 +3,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions
 	/// <summary>
 	/// Represents an error that occurs when a node is swapped on a running job that is already in its post-roll.
 	/// </summary>
-	public sealed class JobNodeSwapInPostRollNotAllowedError : JobNodeGraphChangeInPostRollNotAllowedError
+	public sealed class JobNodeSwappedInPostRollNotAllowedError : JobNodeGraphChangedInPostRollNotAllowedError
 	{
 		/// <summary>
 		/// Gets the unique identifier of the job node that is being swapped out.

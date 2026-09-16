@@ -67,7 +67,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				swappedOutNodeIds.Add(swap.Key.Id);
 				swapTargetNodeIds.Add(swap.Value.Id);
 
-				errors.Add(new JobNodeSwapInPostRollNotAllowedError
+				errors.Add(new JobNodeSwappedInPostRollNotAllowedError
 				{
 					ErrorMessage = "A node of a running job cannot be swapped once the job passed its end time.",
 					Id = jobId,
@@ -213,9 +213,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 		}
 
-		private static JobNodeConnectionChangeInPostRollNotAllowedError CreateConnectionError(Guid jobId, string connectionId, string action)
+		private static JobNodeConnectionChangedInPostRollNotAllowedError CreateConnectionError(Guid jobId, string connectionId, string action)
 		{
-			return new JobNodeConnectionChangeInPostRollNotAllowedError
+			return new JobNodeConnectionChangedInPostRollNotAllowedError
 			{
 				ErrorMessage = $"A connection cannot be {action} a running job once the job passed its end time.",
 				Id = jobId,
@@ -223,9 +223,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			};
 		}
 
-		private static JobNodeLinkChangeInPostRollNotAllowedError CreateLinkError(Guid jobId, string parentNodeId, string childNodeId, string action)
+		private static JobNodeLinkChangedInPostRollNotAllowedError CreateLinkError(Guid jobId, string parentNodeId, string childNodeId, string action)
 		{
-			return new JobNodeLinkChangeInPostRollNotAllowedError
+			return new JobNodeLinkChangedInPostRollNotAllowedError
 			{
 				ErrorMessage = $"A parent-child link cannot be {action} a running job once the job passed its end time.",
 				Id = jobId,
@@ -234,9 +234,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			};
 		}
 
-		private static JobNodeGroupChangeInPostRollNotAllowedError CreateGroupError(Guid jobId, string groupName)
+		private static JobNodeGroupChangedInPostRollNotAllowedError CreateGroupError(Guid jobId, string groupName)
 		{
-			return new JobNodeGroupChangeInPostRollNotAllowedError
+			return new JobNodeGroupChangedInPostRollNotAllowedError
 			{
 				ErrorMessage = "A node group of a running job cannot be changed once the job passed its end time.",
 				Id = jobId,

@@ -4,7 +4,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions
 	/// Represents an error that occurs when a parent-child link of a running job that is already in its post-roll is
 	/// added or removed.
 	/// </summary>
-	public sealed class JobNodeLinkChangeInPostRollNotAllowedError : JobNodeGraphChangeInPostRollNotAllowedError
+	public sealed class JobNodeLinkChangedInPostRollNotAllowedError : JobNodeGraphChangedInPostRollNotAllowedError
 	{
 		/// <summary>
 		/// Gets the unique identifier of the parent job node.

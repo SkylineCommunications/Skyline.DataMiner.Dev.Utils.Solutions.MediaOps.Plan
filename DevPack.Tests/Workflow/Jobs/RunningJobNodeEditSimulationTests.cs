@@ -185,7 +185,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			job.NodeGraph.Swap(originalNode, replacement);
 
-			var error = AssertUpdateFails<JobNodeSwapInPostRollNotAllowedError>(api, job);
+			var error = AssertUpdateFails<JobNodeSwappedInPostRollNotAllowedError>(api, job);
 			Assert.AreEqual(originalNode.Id, error.NodeId);
 			Assert.AreEqual(replacement.Id, error.TargetNodeId);
 

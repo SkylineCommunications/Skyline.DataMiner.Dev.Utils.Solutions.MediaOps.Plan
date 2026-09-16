@@ -5,12 +5,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions
 	/// The concrete type indicates which part of the node graph was affected.
 	/// </summary>
 	/// <seealso cref="JobNodeAddedInPostRollNotAllowedError"/>
-	/// <seealso cref="JobNodeConnectionChangeInPostRollNotAllowedError"/>
-	/// <seealso cref="JobNodeGroupChangeInPostRollNotAllowedError"/>
-	/// <seealso cref="JobNodeLinkChangeInPostRollNotAllowedError"/>
+	/// <seealso cref="JobNodeConnectionChangedInPostRollNotAllowedError"/>
+	/// <seealso cref="JobNodeGroupChangedInPostRollNotAllowedError"/>
+	/// <seealso cref="JobNodeLinkChangedInPostRollNotAllowedError"/>
 	/// <seealso cref="JobNodeRemovedInPostRollNotAllowedError"/>
-	/// <seealso cref="JobNodeSwapInPostRollNotAllowedError"/>
-	public abstract class JobNodeGraphChangeInPostRollNotAllowedError : JobNodeGraphError
+	/// <seealso cref="JobNodeSwappedInPostRollNotAllowedError"/>
+	public abstract class JobNodeGraphChangedInPostRollNotAllowedError : JobNodeGraphError
 	{
 	}
 }
