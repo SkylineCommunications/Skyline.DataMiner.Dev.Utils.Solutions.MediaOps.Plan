@@ -63,6 +63,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 		public int MaxDocumentSizeInMegaBytes { get; set; } = 100;
 
 		/// <summary>
+		/// Gets or sets a value indicating whether the simulated agent starts a confirmed reservation whose start time
+		/// has passed right away, mirroring how SRM promotes such a reservation to the ongoing status.
+		/// </summary>
+		public bool StartConfirmedReservationsImmediately
+		{
+			get => _resourceManagerStore.StartConfirmedReservationsImmediately;
+			set => _resourceManagerStore.StartConfirmedReservationsImmediately = value;
+		}
+
+		/// <summary>
 		/// Gets the Automation scripts that are registered on the simulated agent.
 		/// </summary>
 		public IReadOnlyCollection<SimulatedAutomationScript> Scripts => _scripts.Values.ToList();

@@ -38,6 +38,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 		private readonly ConcurrentDictionary<Guid, long> _reservationCreationOrder = new ConcurrentDictionary<Guid, long>();
 		private long _lastReservationCreationOrder;
 
+		/// <summary>
+		/// Gets or sets a value indicating whether a confirmed reservation whose start time has passed is stored as
+		/// ongoing right away, mirroring how SRM starts such a reservation on a real DataMiner Agent.
+		/// </summary>
+		public bool StartConfirmedReservationsImmediately { get; set; }
+
 		public bool TryHandleMessage(DMSMessage message, out DMSMessage response)
 		{
 			switch (message)
@@ -191,6 +197,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 								_reservationCreationOrder.GetOrAdd(reservation.ID, _ => Interlocked.Increment(ref _lastReservationCreationOrder));
 
 								var stored = Copy(reservation);
+								ApplyImmediateStart(stored);
 								_reservationInstances[stored.ID] = stored;
 								successfulObjects.Add(Copy(stored));
 							}
@@ -419,6 +426,23 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 		private static ReservationInstance Copy(ReservationInstance reservation)
 		{
 			return (ReservationInstance)reservation.Clone();
+		}
+
+		// SRM starts a confirmed reservation as soon as its start time is reached, so a reservation that is confirmed
+		// with a start time in the past is already running by the time the confirming call gets its response.
+		private void ApplyImmediateStart(ReservationInstance reservation)
+		{
+			if (!StartConfirmedReservationsImmediately ||
+				reservation.Status != ReservationStatus.Confirmed)
+			{
+				return;
+			}
+
+			var now = DateTime.UtcNow;
+			if (reservation.Start <= now && reservation.End > now)
+			{
+				reservation.Status = ReservationStatus.Ongoing;
+			}
 		}
 
 		private static bool HasRequiredCapabilities(Resource resource, IReadOnlyCollection<ResourceCapabilityUsage> requiredCapabilities)

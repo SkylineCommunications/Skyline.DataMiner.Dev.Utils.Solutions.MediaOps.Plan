@@ -302,6 +302,55 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void Confirm_ReservationStartsRunningDuringConfirm_ReturnsRunningJobAndSynchronizesLiveOnce()
+		{
+			var setup = CreateSetup();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var job = CreateJob(
+				setup,
+				preRollStart: currentTime.AddMinutes(-10),
+				start: currentTime.AddMinutes(-5),
+				end: currentTime.AddMinutes(20),
+				postRollEnd: currentTime.AddMinutes(25));
+
+			var tentativeJob = setup.Api.Jobs.SaveAsTentative(job);
+
+			// SRM starts the reservation of a job whose start time already passed the moment that job is confirmed, so
+			// the reservation is already ongoing while the confirm is still running.
+			setup.Dms.StartConfirmedReservationsImmediately = true;
+
+			var confirmedJob = setup.Api.Jobs.Confirm(tentativeJob);
+
+			// The confirm itself continues the job to Running, because the reservation start event that would normally
+			// drive that transition is rejected while this confirm holds the job lock.
+			Assert.AreEqual(JobState.Running, confirmedJob.State, "Expected the confirm to return the running job.");
+			Assert.AreEqual(JobState.Running, setup.Api.Jobs.Read(tentativeJob.Id).State, "Expected the stored job to be running.");
+
+			var liveConfiguration = GetLiveConfiguration(setup, confirmedJob);
+			Assert.AreEqual(4, liveConfiguration.OrchestrationEvents.Count, "Expected a pre-roll and post-roll start and stop event.");
+
+			var preRollStart = GetEvent(liveConfiguration, LiveEnums.EventType.PrerollStart);
+			var preRollStop = GetEvent(liveConfiguration, LiveEnums.EventType.PrerollStop);
+
+			Assert.AreEqual(LiveEnums.EventState.Draft, preRollStart.EventState, "Expected the pre-roll start event to be put in draft so it triggers immediately.");
+			Assert.AreEqual(LiveEnums.EventState.Draft, preRollStop.EventState, "Expected the pre-roll stop event to be put in draft so it triggers immediately.");
+
+			var postRollStart = GetEvent(liveConfiguration, LiveEnums.EventType.PostrollStart);
+			Assert.AreEqual(LiveEnums.EventState.Confirmed, postRollStart.EventState, "Expected the post-roll start event to stay scheduled.");
+			Assert.IsNotNull(postRollStart.SchedulerReference, "Expected the post-roll start event to be scheduled.");
+
+			CollectionAssert.AreEquivalent(
+				new[] { preRollStart.ID, preRollStop.ID },
+				GetTriggeredEventIds(setup).ToArray(),
+				"Expected the orchestration of the running job to be synchronized.");
+
+			// The running job is synchronized with the Running state instead of being synchronized twice.
+			Assert.AreEqual(1, GetTriggerCount(setup, preRollStart.ID), "Expected the pre-roll start event to be triggered exactly once.");
+			Assert.AreEqual(1, GetTriggerCount(setup, preRollStop.ID), "Expected the pre-roll stop event to be triggered exactly once.");
+		}
+
+		[TestMethod]
 		public void ReturnToTentative_ConfirmedJob_RemovesOrchestrationEvents()
 		{
 			var setup = CreateSetup();
