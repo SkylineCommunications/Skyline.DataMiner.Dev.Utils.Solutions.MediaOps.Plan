@@ -2,6 +2,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 {
 	using System;
 	using System.Linq;
+	using System.Threading;
 
 	using RT_MediaOps.Plan.Extensions;
 
@@ -12,6 +13,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation;
 
+	using DomJob = Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow.JobsInstance;
 	using ResourcePool = Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool;
 
 	/// <summary>
@@ -109,23 +111,57 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
-		public void TransitionToRunning_JobConfirmedAfterItWasRead_MovesJobToRunning()
+		public void TransitionToRunning_JobConfirmedWhileTransitionWaitsForLock_MovesJobToRunning()
 		{
-			var (api, resourceManagerHelper) = CreateContext();
+			var dms = MediaOpsPlanSimulation.Create();
+			var connection = dms.CreateConnection();
+			var api = connection.GetMediaOpsPlanApi();
+			var resourceManagerHelper = new ResourceManagerHelper(connection.HandleSingleResponseMessage);
 
 			// The reservation of a job whose start time already passed runs as soon as the job is confirmed, so the
-			// reservation start event that drives this transition is handled with a job that was read before (or while)
-			// it was confirmed. The stale tentative job below represents that read.
+			// reservation start event that drives this transition is handled with a job that was read before it was
+			// confirmed. The tentative job below represents that read, and the handler is invoked with it directly
+			// because the repository re-reads the job by ID and would hide the stale snapshot.
 			var staleTentativeJob = CreateTentativeJobStartedInThePast(api, out var jobId);
 
-			var confirmedJob = api.Jobs.Confirm(staleTentativeJob);
-			Assert.AreEqual(JobState.Confirmed, confirmedJob.State, "Expected the job to be confirmed.");
+			var planApi = (MediaOpsPlanApi)api;
 
-			MarkReservationAsOngoing(resourceManagerHelper, jobId);
+			// The confirm runs through a second API instance, which has its own in-memory lock manager, so it is not
+			// blocked by the job lock that this test holds while the transition is already waiting for that lock.
+			var confirmingApi = dms.CreateConnection().GetMediaOpsPlanApi();
 
-			var runningJob = api.Jobs.TransitionToRunning(staleTentativeJob);
+			DomInstanceBulkOperationResult<DomJob> transitionResult = null;
+			Exception transitionException = null;
 
-			Assert.AreEqual(JobState.Running, runningJob.State, "Expected the job that was confirmed after it was read to be moved to running.");
+			var transitionThread = new Thread(() =>
+			{
+				try
+				{
+					DomJobHandler.TryTransitionToRunning(planApi, [staleTentativeJob], out transitionResult);
+				}
+				catch (Exception ex)
+				{
+					transitionException = ex;
+				}
+			});
+
+			planApi.LockManager.LockAndExecute<Job>([staleTentativeJob], _ =>
+			{
+				// The transition validates its stale tentative job and then waits for the job lock held here, so the
+				// confirm below happens after the transition read the job but before it acquires the lock.
+				transitionThread.Start();
+
+				var confirmedJob = confirmingApi.Jobs.Confirm(jobId);
+				Assert.AreEqual(JobState.Confirmed, confirmedJob.State, "Expected the job to be confirmed.");
+
+				MarkReservationAsOngoing(resourceManagerHelper, jobId);
+			});
+
+			Assert.IsTrue(transitionThread.Join(TimeSpan.FromMinutes(1)), "Expected the transition to finish.");
+			Assert.IsNull(transitionException, $"Expected the transition not to throw, but it threw: {transitionException}");
+			Assert.IsNotNull(transitionResult, "Expected the transition to return a result.");
+			Assert.IsFalse(transitionResult.HasFailures, $"Expected the transition to succeed, but it failed: {string.Join(", ", transitionResult.TraceDataPerItem.Values)}");
+
 			Assert.AreEqual(JobState.Running, api.Jobs.Read(jobId).State, "Expected the stored job to be running.");
 		}
 
