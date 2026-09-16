@@ -8,7 +8,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions
 	/// <seealso cref="WorkflowNodeGraphInvalidNodeAliasError"/>
 	/// <seealso cref="WorkflowNodeGraphInvalidResourceNodeError"/>
 	/// <seealso cref="WorkflowNodeGraphInvalidResourcePoolNodeError"/>
-	/// <seealso cref="WorkflowNodeSwapNotAllowedError"/>
+	/// <seealso cref="WorkflowNodeSwappedNotAllowedError"/>
 	public class WorkflowNodeGraphInvalidNodeError : WorkflowNodeGraphError
 	{
 		/// <summary>

@@ -8,7 +8,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions
 	/// <seealso cref="RecurringJobNodeGraphInvalidNodeAliasError"/>
 	/// <seealso cref="RecurringJobNodeGraphInvalidResourceNodeError"/>
 	/// <seealso cref="RecurringJobNodeGraphInvalidResourcePoolNodeError"/>
-	/// <seealso cref="RecurringJobNodeGraphSwapNotAllowedError"/>
+	/// <seealso cref="RecurringJobNodeGraphSwappedNotAllowedError"/>
 	public class RecurringJobNodeGraphInvalidNodeError : RecurringJobNodeGraphError
 	{
 		/// <summary>

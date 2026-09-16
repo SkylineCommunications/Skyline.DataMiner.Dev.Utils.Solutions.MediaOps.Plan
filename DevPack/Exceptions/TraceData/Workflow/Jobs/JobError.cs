@@ -34,7 +34,7 @@
 	/// <seealso cref="JobResourcePoolNodeNotAllowedError"/>
 	/// <seealso cref="JobRunningInPostRollError"/>
 	/// <seealso cref="JobRunningInPreRollError"/>
-	/// <seealso cref="JobTimingChangeNotAllowedError"/>
+	/// <seealso cref="JobTimingChangedNotAllowedError"/>
 	/// <seealso cref="JobUnresolvedReferenceError"/>
 	/// <seealso cref="JobValueAlreadyChangedError"/>
 	public class JobError : MediaOpsErrorData

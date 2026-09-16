@@ -439,7 +439,7 @@
 				return true;
 			}
 
-			error = new JobNodeSwapNotAllowedError
+			error = new JobNodeSwappedNotAllowedError
 			{
 				Id = ApiObjectId,
 				NodeId = original.Id,
@@ -575,7 +575,7 @@
 				return true;
 			}
 
-			error = new RecurringJobNodeGraphSwapNotAllowedError
+			error = new RecurringJobNodeGraphSwappedNotAllowedError
 			{
 				Id = ApiObjectId,
 				NodeId = original.Id,
@@ -711,7 +711,7 @@
 				return true;
 			}
 
-			error = new WorkflowNodeSwapNotAllowedError
+			error = new WorkflowNodeSwappedNotAllowedError
 			{
 				Id = ApiObjectId,
 				NodeId = original.Id,
