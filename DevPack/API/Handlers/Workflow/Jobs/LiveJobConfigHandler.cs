@@ -4,6 +4,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using System.Collections.Generic;
 	using System.Globalization;
 	using System.Linq;
+	using System.Runtime.ExceptionServices;
 
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
 	using Skyline.DataMiner.Utils.SecureCoding.SecureSerialization.Json.Newtonsoft;
@@ -63,7 +64,20 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return;
 			}
 
-			new LiveJobConfigHandler(planApi, job, targetState, referenceDefinitions, currentTime).ScheduleOrTriggerEvents();
+			if (new LiveJobConfigHandler(planApi, job, targetState, referenceDefinitions, currentTime).ScheduleOrTriggerEvents(out _))
+			{
+				return;
+			}
+
+			// The configuration is read when the handler is created and saved as a whole, so MediaOps Live rejects it
+			// when it updated one of the events in the meantime (it does so for every event it triggers) or when an
+			// event that was still scheduled while the configuration was built became due before it was saved. Nothing
+			// was saved and no event was triggered in that case, so the configuration is rebuilt from the data and the
+			// time of now and saved once more.
+			if (!new LiveJobConfigHandler(planApi, job, targetState, referenceDefinitions, DateTimeOffset.UtcNow).ScheduleOrTriggerEvents(out var saveException))
+			{
+				ExceptionDispatchInfo.Capture(saveException).Throw();
+			}
 		}
 
 		internal static void DeleteLiveJobConfigForJob(MediaOpsPlanApi planApi, Job job)
@@ -130,12 +144,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return parameterValue;
 		}
 
-		private void ScheduleOrTriggerEvents()
+		// Returns false when MediaOps Live rejected the configuration, which means that nothing was saved and that no
+		// event was triggered.
+		private bool ScheduleOrTriggerEvents(out Exception saveException)
 		{
+			saveException = null;
+
 			if (_targetState == JobState.Draft)
 			{
 				// A draft job has no orchestration events.
-				return;
+				return true;
 			}
 
 			var eventsToTrigger = new List<Live.OrchestrationEvent>();
@@ -151,7 +169,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					DeleteLiveJobConfigForJob(_planApi, _job);
 				}
 
-				return;
+				return true;
 			}
 			else if (_targetState == JobState.Confirmed || _targetState == JobState.Running)
 			{
@@ -163,7 +181,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				if (!_liveConfiguration.OrchestrationEvents.Any())
 				{
 					// A job that was canceled before it was ever confirmed (e.g. a tentative job) has no orchestration events.
-					return;
+					return true;
 				}
 
 				CancelEventsIfNotAlreadyTriggered();
@@ -177,12 +195,22 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				throw new NotSupportedException("Unexpected job state: " + _targetState);
 			}
 
-			_planApi.LiveApi.Orchestration.SaveOrchestrationJobConfiguration(_liveConfiguration);
+			try
+			{
+				_planApi.LiveApi.Orchestration.SaveOrchestrationJobConfiguration(_liveConfiguration);
+			}
+			catch (Exception ex)
+			{
+				saveException = ex;
+				return false;
+			}
 
 			if (eventsToTrigger.Any())
 			{
 				_planApi.LiveApi.Orchestration.ExecuteEventsNowInBackground(eventsToTrigger);
 			}
+
+			return true;
 		}
 
 		private List<Live.OrchestrationEvent> GetEventsToTriggerAndScheduleEvents()
