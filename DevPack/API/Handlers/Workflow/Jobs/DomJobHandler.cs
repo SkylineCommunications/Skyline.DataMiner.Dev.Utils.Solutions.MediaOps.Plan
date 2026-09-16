@@ -604,9 +604,35 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			var domJobs = ApplyConfirmNodeTimingsAndSave(apiJobs);
 
 			// Step 2: move the successfully-updated jobs to the Confirmed state.
-			TransitionDomJobsToConfirmed(domJobs);
+			var confirmedDomJobs = TransitionDomJobsToConfirmed(domJobs);
 
-			SyncLiveOrchestration(apiJobs, JobState.Confirmed);
+			// Step 3: the reservation of a job whose start time already passed starts running the moment it is confirmed,
+			// so SRM fires its reservation start event while this confirm still holds the job lock and the job has not
+			// reached the Confirmed state yet. The Confirmed-to-Running transition that the event drives is rejected in
+			// that window and the event never fires again, which would leave the job in Confirmed forever. The
+			// transition is therefore performed here for every job whose reservation is already running.
+			var runningJobIds = TransitionConfirmedDomJobsToRunningIfStarted(confirmedDomJobs, apiJobs);
+
+			SyncLiveOrchestration(apiJobs.Where(x => !runningJobIds.Contains(x.Id)), JobState.Confirmed);
+			SyncLiveOrchestration(apiJobs.Where(x => runningJobIds.Contains(x.Id)), JobState.Running);
+
+			// Step 4: a reservation can also start running while this confirm is waiting for the lock or is busy
+			// transitioning and synchronizing, so the reservations are re-checked as the very last step under the lock.
+			// Everything that happens after this check runs without the lock again, which allows the reservation start
+			// event to drive the transition itself.
+			var lateRunningJobIds = TransitionConfirmedDomJobsToRunningIfStarted(
+				confirmedDomJobs.Where(x => !runningJobIds.Contains(x.ID.Id)).ToList(),
+				apiJobs.Where(x => !runningJobIds.Contains(x.Id)).ToList());
+
+			if (lateRunningJobIds.Count != 0)
+			{
+				// The events of these jobs were synchronized with the Confirmed state above, so they are synchronized
+				// again now that the jobs are running.
+				SyncLiveOrchestration(apiJobs.Where(x => lateRunningJobIds.Contains(x.Id)), JobState.Running);
+				runningJobIds.UnionWith(lateRunningJobIds);
+			}
+
+			ReportSuccess(confirmedDomJobs.Where(x => !runningJobIds.Contains(x.ID.Id)));
 		}
 
 		private ICollection<DomJob> ApplyConfirmNodeTimingsAndSave(ICollection<Job> apiJobs)
@@ -664,7 +690,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return domJobsById.Values.ToList();
 		}
 
-		private void TransitionDomJobsToConfirmed(ICollection<DomJob> domJobs)
+		// The transitioned jobs are returned instead of being reported as successful right away, because a job whose
+		// start time has been reached continues to the Running state within the same confirm and must then be reported
+		// with its running instance.
+		private ICollection<DomJob> TransitionDomJobsToConfirmed(ICollection<DomJob> domJobs)
 		{
 			if (domJobs == null)
 			{
@@ -673,7 +702,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			if (domJobs.Count == 0)
 			{
-				return;
+				return Array.Empty<DomJob>();
 			}
 
 			var domJobsById = domJobs.ToDictionary(x => x.ID.Id);
@@ -701,18 +730,65 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			// The transition applies no field changes, so the DOM jobs are not re-saved; DoStatusTransition persists the
 			// status change on its own. Only jobs whose reservation confirmation succeeded are transitioned.
+			var confirmedDomJobs = new List<DomJob>();
 			foreach (var domJob in domJobsById.Values)
 			{
 				try
 				{
 					var transitionedInstance = planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.DoStatusTransition(domJob.ID, Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.Transitions.Tentative_To_Confirmed);
-					ReportSuccess(new DomJob(transitionedInstance));
+					confirmedDomJobs.Add(new DomJob(transitionedInstance));
 				}
 				catch (Exception ex)
 				{
 					ReportError(domJob.ID.Id, new MediaOpsErrorData() { ErrorMessage = ex.ToString() });
 				}
 			}
+
+			return confirmedDomJobs;
+		}
+
+		// Continues the jobs whose reservation is already running to the Running state. Just like the event-driven
+		// transition, an ongoing reservation is the proof that the job's start time has been reached. A failure keeps
+		// the job in its (successful) Confirmed state, because the reservation start event can still drive the
+		// transition later on.
+		private HashSet<Guid> TransitionConfirmedDomJobsToRunningIfStarted(ICollection<DomJob> confirmedDomJobs, ICollection<Job> apiJobs)
+		{
+			var runningJobIds = new HashSet<Guid>();
+			if (confirmedDomJobs.Count == 0)
+			{
+				return runningJobIds;
+			}
+
+			// Only a job whose pre-roll start has passed can have an ongoing reservation, so the reservations of the
+			// other jobs are not read at all. A freshly read time is used, because the reservation of a job can start
+			// running while this confirm is waiting for the lock or is busy transitioning the jobs.
+			var checkTime = DateTimeOffset.UtcNow;
+			var startedJobIds = apiJobs.Where(x => x.PreRollStart <= checkTime).Select(x => x.Id).ToHashSet();
+			var startedDomJobs = confirmedDomJobs.Where(x => startedJobIds.Contains(x.ID.Id)).ToList();
+			if (startedDomJobs.Count == 0)
+			{
+				return runningJobIds;
+			}
+
+			// The jobs whose reservation is not (yet) ongoing are not reported as errors: their confirm succeeded and
+			// the reservation start event still drives their transition to running.
+			CoreJobHandler.TryVerifyOngoing(planApi, startedDomJobs, out var coreResult);
+
+			foreach (var domJob in startedDomJobs.Where(x => coreResult.SuccessfulIds.Contains(x.ID.Id)))
+			{
+				try
+				{
+					var transitionedInstance = planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.DoStatusTransition(domJob.ID, Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.Transitions.Confirmed_To_Running);
+					ReportSuccess(new DomJob(transitionedInstance));
+					runningJobIds.Add(domJob.ID.Id);
+				}
+				catch (Exception ex)
+				{
+					planApi.Logger.Error(this, $"Failed to transition job {domJob.ID.Id} to running while confirming it: {ex}");
+				}
+			}
+
+			return runningJobIds;
 		}
 
 		private void Cancel(ICollection<Job> apiJobs)
@@ -1371,15 +1447,64 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				throw new ArgumentException($"Not all provided jobs are valid", nameof(apiJobs));
 			}
 
+			// The jobs were read before the lock was granted, so their state can be outdated: the confirm of a job whose
+			// start time already passed holds the lock while it moves that job from Tentative over Confirmed to Running.
+			// Re-evaluate the stored state now that the lock is held so a job that was read too early is still
+			// transitioned and a job that is already running is not rejected.
+			var jobsToTransition = GetStoredConfirmedJobs(apiJobs);
+			if (jobsToTransition.Count == 0)
+			{
+				return;
+			}
+
 			// Verify the core reservation is running while the lock is held, so no concurrent job change can alter the
 			// reservation between the check and the DOM transition. Jobs whose reservation is not running are reported
 			// as errors here and filtered out below.
-			ValidateReservationIsRunning(apiJobs);
+			ValidateReservationIsRunning(jobsToTransition);
 
-			var domJobs = apiJobs.Where(IsValid).Select(x => x.OriginalInstance).ToList();
+			var domJobs = jobsToTransition.Where(IsValid).Select(x => x.OriginalInstance).ToList();
 			TransitionDomJobsToRunning(domJobs);
 
-			SyncLiveOrchestration(apiJobs.Where(IsValid).ToList(), JobState.Running);
+			SyncLiveOrchestration(jobsToTransition.Where(IsValid).ToList(), JobState.Running);
+		}
+
+		// Re-reads the stored jobs and returns the ones that are in the Confirmed state, built from the data that is
+		// stored now instead of from the data that was read before the lock was granted. A job that is already running
+		// has reached the requested end state (the confirm of a job with a start time in the past transitions it
+		// straight to Running) and is reported as successful; any other state is reported as an error.
+		private ICollection<Job> GetStoredConfirmedJobs(ICollection<Job> apiJobs)
+		{
+			var storedJobsById = planApi.DomHelpers.SlcWorkflowHelper.GetJobs(apiJobs.Select(x => x.Id)).ToDictionary(x => x.ID.Id);
+
+			var confirmedJobs = new List<Job>();
+			foreach (var job in apiJobs)
+			{
+				if (!storedJobsById.TryGetValue(job.Id, out var storedJob))
+				{
+					ReportError(job.Id, new JobNotFoundError { ErrorMessage = $"Job with ID '{job.Id}' no longer exists.", Id = job.Id });
+					continue;
+				}
+
+				if (storedJob.Status == Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Running)
+				{
+					ReportSuccess(storedJob);
+					continue;
+				}
+
+				if (storedJob.Status != Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Confirmed)
+				{
+					ReportError(job.Id, new JobInvalidStateError
+					{
+						ErrorMessage = "Only jobs in Confirmed state can be transitioned to running.",
+						Id = job.Id,
+					});
+					continue;
+				}
+
+				confirmedJobs.Add(new Job(planApi, storedJob));
+			}
+
+			return confirmedJobs;
 		}
 
 		private void TransitionDomJobsToRunning(ICollection<DomJob> domJobs)
@@ -2415,9 +2540,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 		}
 
+		// A Tentative or Running job is not rejected here: the reservation start event that drives this transition can be
+		// handled while the confirm that created the running reservation still holds the job lock, so the job can have
+		// moved on by the time the lock is granted. Their stored state is re-evaluated under the lock instead.
 		private void ValidateStateForTransitionToRunningAction(ICollection<Job> apiJobs)
 		{
-			foreach (var job in apiJobs.Where(x => x.IsNew || x.State != JobState.Confirmed))
+			foreach (var job in apiJobs.Where(x => x.IsNew || (x.State != JobState.Confirmed && x.State != JobState.Tentative && x.State != JobState.Running)))
 			{
 				ReportError(job.Id, new JobInvalidStateError
 				{
