@@ -609,10 +609,26 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			// transition is therefore performed here for every job whose reservation is already running.
 			var runningJobIds = TransitionConfirmedDomJobsToRunningIfStarted(confirmedDomJobs, apiJobs);
 
-			ReportSuccess(confirmedDomJobs.Where(x => !runningJobIds.Contains(x.ID.Id)));
-
 			SyncLiveOrchestration(apiJobs.Where(x => !runningJobIds.Contains(x.Id)), JobState.Confirmed);
 			SyncLiveOrchestration(apiJobs.Where(x => runningJobIds.Contains(x.Id)), JobState.Running);
+
+			// Step 4: a reservation can also start running while this confirm is waiting for the lock or is busy
+			// transitioning and synchronizing, so the reservations are re-checked as the very last step under the lock.
+			// Everything that happens after this check runs without the lock again, which allows the reservation start
+			// event to drive the transition itself.
+			var lateRunningJobIds = TransitionConfirmedDomJobsToRunningIfStarted(
+				confirmedDomJobs.Where(x => !runningJobIds.Contains(x.ID.Id)).ToList(),
+				apiJobs.Where(x => !runningJobIds.Contains(x.Id)).ToList());
+
+			if (lateRunningJobIds.Count != 0)
+			{
+				// The events of these jobs were synchronized with the Confirmed state above, so they are synchronized
+				// again now that the jobs are running.
+				SyncLiveOrchestration(apiJobs.Where(x => lateRunningJobIds.Contains(x.Id)), JobState.Running);
+				runningJobIds.UnionWith(lateRunningJobIds);
+			}
+
+			ReportSuccess(confirmedDomJobs.Where(x => !runningJobIds.Contains(x.ID.Id)));
 		}
 
 		private ICollection<DomJob> ApplyConfirmNodeTimingsAndSave(ICollection<Job> apiJobs)
@@ -740,8 +756,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			// Only a job whose pre-roll start has passed can have an ongoing reservation, so the reservations of the
-			// other jobs are not read at all.
-			var startedJobIds = apiJobs.Where(x => x.PreRollStart <= currentTime).Select(x => x.Id).ToHashSet();
+			// other jobs are not read at all. A freshly read time is used, because the reservation of a job can start
+			// running while this confirm is waiting for the lock or is busy transitioning the jobs.
+			var checkTime = DateTimeOffset.UtcNow;
+			var startedJobIds = apiJobs.Where(x => x.PreRollStart <= checkTime).Select(x => x.Id).ToHashSet();
 			var startedDomJobs = confirmedDomJobs.Where(x => startedJobIds.Contains(x.ID.Id)).ToList();
 			if (startedDomJobs.Count == 0)
 			{
