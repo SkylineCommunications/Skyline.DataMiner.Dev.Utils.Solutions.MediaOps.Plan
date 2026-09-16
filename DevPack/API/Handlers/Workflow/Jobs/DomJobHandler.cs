@@ -2616,9 +2616,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return;
 			}
 
-			// Once a running job passed its end time it only has its post-roll left, during which its resources are
+			// Once a running job reached its end time it only has its post-roll left, during which its resources are
 			// being released. Changing the topology at that point has no effect on the execution, so it is rejected.
-			foreach (var job in apiJobs.Where(x => IsValid(x) && !x.IsNew && x.State == JobState.Running && currentTime > x.End))
+			// The check is >= and not > so a job that is stopped and edited within the same clock tick is covered too.
+			foreach (var job in apiJobs.Where(x => IsValid(x) && !x.IsNew && x.State == JobState.Running && currentTime >= x.End))
 			{
 				foreach (var error in JobNodeGraphPostRollFreezeValidator.Validate(job.Id, job.NodeGraph, job.OriginalInstance))
 				{
