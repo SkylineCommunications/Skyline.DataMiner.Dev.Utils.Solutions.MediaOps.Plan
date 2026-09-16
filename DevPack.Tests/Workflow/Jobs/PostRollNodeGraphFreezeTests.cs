@@ -274,14 +274,10 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		{
 			var first = ExistingNode();
 			var second = ExistingNode();
+			var connection = new NodeConnection<JobNode>(first, second) { IsNew = false };
 
-			var graph = new NodeGraph<JobNode>();
-			graph.Add(first).Add(second).Connect(first, second);
-
-			foreach (var connection in graph.Connections)
-			{
-				connection.IsNew = false;
-			}
+			// Mirrors how a stored job is parsed: existing nodes are handed to the constructor, they cannot be added.
+			var graph = new NodeGraph<JobNode>(new JobNode[] { first, second }, new[] { connection });
 
 			return (graph, first, second);
 		}
