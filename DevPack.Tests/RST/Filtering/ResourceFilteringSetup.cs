@@ -447,20 +447,20 @@
 				Name = $"Resolution_{Guid.NewGuid()}",
 				IsMandatory = false,
 			};
-			ResolutionConfig.AddDiscrete(new TextDiscreet("720p", "SD"));
-			ResolutionConfig.AddDiscrete(new TextDiscreet("1080p", "HD"));
-			ResolutionConfig.AddDiscrete(new TextDiscreet("4K", "UHD"));
-			ResolutionConfig.DefaultValue = new TextDiscreet("1080p", "HD");
+			ResolutionConfig.AddDiscrete(new TextDiscrete("720p", "SD"));
+			ResolutionConfig.AddDiscrete(new TextDiscrete("1080p", "HD"));
+			ResolutionConfig.AddDiscrete(new TextDiscrete("4K", "UHD"));
+			ResolutionConfig.DefaultValue = new TextDiscrete("1080p", "HD");
 
 			PriorityConfig = new DiscreteNumberConfiguration
 			{
 				Name = $"Priority_{Guid.NewGuid()}",
 				IsMandatory = false,
 			};
-			PriorityConfig.AddDiscrete(new NumberDiscreet(10, "Low"));
-			PriorityConfig.AddDiscrete(new NumberDiscreet(50, "Medium"));
-			PriorityConfig.AddDiscrete(new NumberDiscreet(100, "High"));
-			PriorityConfig.DefaultValue = new NumberDiscreet(50, "Medium");
+			PriorityConfig.AddDiscrete(new NumberDiscrete(10, "Low"));
+			PriorityConfig.AddDiscrete(new NumberDiscrete(50, "Medium"));
+			PriorityConfig.AddDiscrete(new NumberDiscrete(100, "High"));
+			PriorityConfig.DefaultValue = new NumberDiscrete(50, "Medium");
 
 			var configurations = new Configuration[]
 			{

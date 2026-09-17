@@ -141,9 +141,9 @@
 				int hash = 17;
 				hash = (hash * 23) + Id.GetHashCode();
 				hash = (hash * 23) + (OriginalSection != null ? OriginalSection.ID.Id.GetHashCode() : 0);
-				foreach (var discreet in discretes.OrderBy(x => x).ToArray())
+				foreach (var discrete in discretes.OrderBy(x => x).ToArray())
 				{
-					hash = (hash * 23) + (discreet != null ? discreet.GetHashCode() : 0);
+					hash = (hash * 23) + (discrete != null ? discrete.GetHashCode() : 0);
 				}
 
 				return hash;

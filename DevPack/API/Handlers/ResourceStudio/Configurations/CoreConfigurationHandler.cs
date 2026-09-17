@@ -299,7 +299,7 @@
 
 		private void ValidateDiscreteNumberConfigurations(ICollection<DiscreteNumberConfiguration> apiConfigurations)
 		{
-			var discreteValuesToVerify = new List<ParameterDiscreteValue<NumberDiscreet>>();
+			var discreteValuesToVerify = new List<ParameterDiscreteValue<NumberDiscrete>>();
 
 			foreach (var discreteNumberConfiguration in apiConfigurations)
 			{
@@ -312,10 +312,10 @@
 
 				var removedDiscretesToAdd = discreteNumberConfiguration.CoreParameter.GetDiscreets()
 					.Where(x => !discreteNumberConfiguration.Discretes.Any(y => Convert.ToString(y.Value) == x.RawValue))
-					.Select(removedDiscrete => new ParameterDiscreteValue<NumberDiscreet>
+					.Select(removedDiscrete => new ParameterDiscreteValue<NumberDiscrete>
 					{
 						ParameterId = discreteNumberConfiguration.Id,
-						DiscreteValue = new NumberDiscreet
+						DiscreteValue = new NumberDiscrete
 						{
 							Value = Convert.ToDecimal(removedDiscrete.RawValue),
 							DisplayName = removedDiscrete.DisplayValue,
@@ -335,7 +335,7 @@
 
 		private void ValidateDiscreteTextConfigurations(ICollection<DiscreteTextConfiguration> apiConfigurations)
 		{
-			var discreteValuesToVerify = new List<ParameterDiscreteValue<TextDiscreet>>();
+			var discreteValuesToVerify = new List<ParameterDiscreteValue<TextDiscrete>>();
 
 			foreach (var discreteTextConfiguration in apiConfigurations)
 			{
@@ -348,10 +348,10 @@
 
 				var removedDiscretesToAdd = discreteTextConfiguration.CoreParameter.GetDiscreets()
 					.Where(x => !discreteTextConfiguration.Discretes.Any(y => y.Value == x.RawValue))
-					.Select(removedDiscrete => new ParameterDiscreteValue<TextDiscreet>
+					.Select(removedDiscrete => new ParameterDiscreteValue<TextDiscrete>
 					{
 						ParameterId = discreteTextConfiguration.Id,
-						DiscreteValue = new TextDiscreet
+						DiscreteValue = new TextDiscrete
 						{
 							Value = removedDiscrete.RawValue,
 							DisplayName = removedDiscrete.DisplayValue,

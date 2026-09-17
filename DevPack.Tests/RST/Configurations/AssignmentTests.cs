@@ -37,9 +37,9 @@
 			}
 			.SetDiscretes(new[]
 			{
-				new TextDiscreet("1", "Value 1"),
-				new TextDiscreet("2", "Value 2"),
-				new TextDiscreet("3", "Value 3"),
+				new TextDiscrete("1", "Value 1"),
+				new TextDiscrete("2", "Value 2"),
+				new TextDiscrete("3", "Value 3"),
 			});
 			objectCreator.CreateConfiguration(configuration);
 
@@ -127,9 +127,9 @@
 			}
 			.SetDiscretes(new[]
 			{
-				new NumberDiscreet(1, "Value 1"),
-				new NumberDiscreet(2, "Value 2"),
-				new NumberDiscreet(3, "Value 3"),
+				new NumberDiscrete(1, "Value 1"),
+				new NumberDiscrete(2, "Value 2"),
+				new NumberDiscrete(3, "Value 3"),
 			});
 			objectCreator.CreateConfiguration(configuration);
 

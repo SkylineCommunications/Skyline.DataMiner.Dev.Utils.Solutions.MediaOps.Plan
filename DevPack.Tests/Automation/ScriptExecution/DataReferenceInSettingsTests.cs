@@ -113,7 +113,7 @@ namespace RT_MediaOps.Plan.Automation.ScriptExecution
 		public void StorageDiscreteTextConfigurationSetting_WithReference_ParsesReference()
 		{
 			var configuration = new DiscreteTextConfiguration()
-				.AddDiscrete(new TextDiscreet("val1", "Value 1"));
+				.AddDiscrete(new TextDiscrete("val1", "Value 1"));
 			var ppv = CreateProfileParameterValue(CreateStorageReference());
 
 			var setting = new StorageDiscreteTextConfigurationSetting(configuration, ppv);
@@ -129,7 +129,7 @@ namespace RT_MediaOps.Plan.Automation.ScriptExecution
 		public void StorageDiscreteNumberConfigurationSetting_WithReference_ParsesReference()
 		{
 			var configuration = new DiscreteNumberConfiguration()
-				.AddDiscrete(new NumberDiscreet(1m, "One"));
+				.AddDiscrete(new NumberDiscrete(1m, "One"));
 			var ppv = CreateProfileParameterValue(CreateStorageReference());
 
 			var setting = new StorageDiscreteNumberConfigurationSetting(configuration, ppv);

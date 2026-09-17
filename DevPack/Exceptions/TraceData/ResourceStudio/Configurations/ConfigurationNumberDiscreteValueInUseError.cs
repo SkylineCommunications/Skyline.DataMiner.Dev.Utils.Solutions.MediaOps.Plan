@@ -14,6 +14,6 @@
 		/// <summary>
 		/// The discrete value that is in use.
 		/// </summary>
-		public NumberDiscreet DiscreteValue { get; internal set; }
+		public NumberDiscrete DiscreteValue { get; internal set; }
 	}
 }

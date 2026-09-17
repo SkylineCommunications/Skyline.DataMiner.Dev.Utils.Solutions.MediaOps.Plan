@@ -143,11 +143,11 @@
 				{
 					yield return new NumberConfiguration(instance);
 				}
-				else if (instance.IsTextDiscreet())
+				else if (instance.IsTextDiscrete())
 				{
 					yield return new DiscreteTextConfiguration(instance);
 				}
-				else if (instance.IsNumberDiscreet())
+				else if (instance.IsNumberDiscrete())
 				{
 					yield return new DiscreteNumberConfiguration(instance);
 				}

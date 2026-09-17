@@ -23,12 +23,12 @@
 
 		private void ValidateDiscreteNumber()
 		{
-			// Any discreet options available
+			// Any discrete options available
 			if (!discreteNumberConfiguration.Discretes.Any())
 			{
 				ReportError(discreteNumberConfiguration.Id, new ConfigurationNoDiscretesError
 				{
-					ErrorMessage = "A discreet configuration should have at least one discreet option defined",
+					ErrorMessage = "A discrete configuration should have at least one discrete option defined",
 					Id = discreteNumberConfiguration.Id,
 				});
 				return;
@@ -37,17 +37,17 @@
 			// Validate default discrete option
 			if (discreteNumberConfiguration.DefaultValue != null && !discreteNumberConfiguration.Discretes.Any(x => discreteNumberConfiguration.DefaultValue == x))
 			{
-				ReportError(discreteNumberConfiguration.Id, new ConfigurationInvalidDefaultDiscreetError
+				ReportError(discreteNumberConfiguration.Id, new ConfigurationInvalidDefaultDiscreteError
 				{
-					ErrorMessage = "Default discreet should any of the discreet options",
+					ErrorMessage = "Default discrete should any of the discrete options",
 					Id = discreteNumberConfiguration.Id,
 				});
 			}
 
-			foreach (var discreet in discreteNumberConfiguration.Discretes)
+			foreach (var discrete in discreteNumberConfiguration.Discretes)
 			{
 				// Validate Display Value
-				if (!HasValidDisplayValue(discreet.DisplayName, out string invalidDisplayNameReason))
+				if (!HasValidDisplayValue(discrete.DisplayName, out string invalidDisplayNameReason))
 				{
 					ReportError(discreteNumberConfiguration.Id, new ConfigurationInvalidDiscretesError
 					{
@@ -99,12 +99,12 @@
 			reason = String.Empty;
 			if (String.IsNullOrEmpty(displayValue))
 			{
-				reason = "The display value of a discreet cannot be empty";
+				reason = "The display value of a discrete cannot be empty";
 				return false;
 			}
 			else if (!InputValidator.HasValidTextLength(displayValue))
 			{
-				reason = $"The display value of the discreet exceeds {InputValidator.DefaultMaxTextLength} characters";
+				reason = $"The display value of the discrete exceeds {InputValidator.DefaultMaxTextLength} characters";
 				return false;
 			}
 			else
