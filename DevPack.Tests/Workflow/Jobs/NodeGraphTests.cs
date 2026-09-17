@@ -462,7 +462,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			}
 			catch (MediaOpsException ex)
 			{
-				var error = ex.TraceData.ErrorData.OfType<JobNodeGraphConnectionWithInvalidNodeError>().SingleOrDefault();
+				var error = ex.TraceData.ErrorData.OfType<JobNodeGraphInvalidConnectionNodeError>().SingleOrDefault();
 				Assert.IsNotNull(error);
 				Assert.AreEqual(job.Id, error.Id);
 				Assert.AreEqual(node.Id, error.NodeId);

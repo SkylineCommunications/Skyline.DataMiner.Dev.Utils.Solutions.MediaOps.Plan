@@ -3,7 +3,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions
 	/// <summary>
 	/// Represents an error that occurs when a node group of a recurring job references a node that is not part of the node graph.
 	/// </summary>
-	public sealed class RecurringJobNodeGraphGroupWithInvalidNodeError : RecurringJobNodeGraphError
+	public sealed class RecurringJobNodeGraphInvalidGroupNodeError : RecurringJobNodeGraphError
 	{
 		/// <summary>
 		/// Gets the name of the node group.
