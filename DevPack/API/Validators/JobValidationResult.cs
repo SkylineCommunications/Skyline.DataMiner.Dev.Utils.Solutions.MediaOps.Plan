@@ -2,6 +2,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Globalization;
 	using System.Linq;
 
 	/// <summary>Contains the errors produced while validating a job and synchronizes them to that job.</summary>
@@ -38,8 +39,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return errors.ContainsKey(errorCode);
 		}
 
-		/// <summary>Synchronizes validation errors to the job and clears owned errors no longer produced.</summary>
-		/// <returns><see langword="true"/> when the job's errors changed; otherwise, <see langword="false"/>.</returns>
+		/// <summary>Synchronizes validation errors and quarantined resource-node states to the job.</summary>
+		/// <returns><see langword="true"/> when the job changed; otherwise, <see langword="false"/>.</returns>
 		public bool SyncResultsToInstance()
 		{
 			var changed = false;
@@ -58,6 +59,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				Job.RemoveError(error.Code);
 				changed = true;
+			}
+
+			foreach (var node in Job.NodeGraph.Nodes.OfType<JobResourceNode>())
+			{
+				var hasError = quarantinedNodeIds.Contains(node.Id)
+					|| (node.CoreReservationNodeId.HasValue && quarantinedNodeIds.Contains(node.CoreReservationNodeId.Value.ToString(CultureInfo.InvariantCulture)));
+				if (node.HasError != hasError)
+				{
+					node.HasError = hasError;
+					changed = true;
+				}
 			}
 
 			return changed;

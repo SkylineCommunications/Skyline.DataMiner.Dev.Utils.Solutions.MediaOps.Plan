@@ -76,17 +76,26 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <inheritdoc/>
 		public Guid ResourceId { get; private set; }
 
+		/// <summary>
+		/// Gets a value indicating whether resource selection for this node is in an error state.
+		/// </summary>
+		public bool HasError { get; internal set; }
+
 		internal override void ApplyJobNodeChanges(StorageWorkflow.NodesSection section)
 		{
 			section.NodeType = StorageWorkflow.SlcWorkflowIds.Enums.Nodetype.Resource;
 			section.ReferenceId = ResourceId;
 			section.ParentReferenceId = ResourcePoolId;
+			section.ResourceSelectState = HasError
+				? StorageWorkflow.SlcWorkflowIds.Enums.Resourceselectstate.Error
+				: (StorageWorkflow.SlcWorkflowIds.Enums.Resourceselectstate?)null;
 		}
 
 		private void ParseSection(StorageWorkflow.NodesSection section)
 		{
 			ResourcePoolId = section.ParentReferenceId;
 			ResourceId = section.ReferenceId;
+			HasError = section.ResourceSelectState == StorageWorkflow.SlcWorkflowIds.Enums.Resourceselectstate.Error;
 		}
 	}
 }
