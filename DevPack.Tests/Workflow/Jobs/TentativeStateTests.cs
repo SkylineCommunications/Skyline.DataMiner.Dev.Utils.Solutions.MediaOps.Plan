@@ -81,6 +81,28 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void SaveAsTentative_ClearsTransitionErrorAndPreservesUnrelatedErrors()
+		{
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+			var job = new Job
+			{
+				Name = $"{Guid.NewGuid()}_Job",
+				Start = currentTime,
+				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
+			};
+			job.AddError(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.JobError(TransitionToTentativeJobError.ErrorCode, "transition failed"));
+			job.AddError(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.JobError("LIV101", "unrelated"));
+			job = objectCreator.CreateJob(job);
+
+			var tentative = TestContext.Api.Jobs.SaveAsTentative(job);
+
+			Assert.IsFalse(tentative.Errors.Any(error => error.Code == TransitionToTentativeJobError.ErrorCode));
+			Assert.IsTrue(tentative.Errors.Any(error => error.Code == "LIV101"));
+		}
+
+		[TestMethod]
 		public void Update_TentativeJob_UpdatesCoreReservationNameAndTimings()
 		{
 			var prefix = Guid.NewGuid();

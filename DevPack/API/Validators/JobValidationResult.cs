@@ -61,6 +61,31 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				changed = true;
 			}
 
+			return SyncQuarantinedNodeStates() || changed;
+		}
+
+		internal bool ClearResolvedErrorsFromUpdate()
+		{
+			if (HasError(GenericJobValidationError.ErrorCode))
+			{
+				return false;
+			}
+
+			var changed = false;
+			var clearableCodes = JobError.MediaOpsOwnedErrorCodes.Where(code => code != TransitionToTentativeJobError.ErrorCode).ToHashSet(StringComparer.Ordinal);
+			foreach (var error in Job.Errors.Where(error => clearableCodes.Contains(error.Code) && !errors.ContainsKey(error.Code)).ToArray())
+			{
+				Job.RemoveError(error.Code);
+				changed = true;
+			}
+
+			return SyncQuarantinedNodeStates() || changed;
+		}
+
+		private bool SyncQuarantinedNodeStates()
+		{
+			var changed = false;
+
 			foreach (var node in Job.NodeGraph.Nodes.OfType<JobResourceNode>())
 			{
 				var hasError = quarantinedNodeIds.Contains(node.Id)

@@ -40,6 +40,36 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void ClearResolvedErrorsFromUpdate_ClearsResolvedValidationErrorsOnly()
+		{
+			var reproduced = new DomResourceNotFoundJobError(Guid.NewGuid(), "node");
+			var job = new Job()
+				.AddError(new JobError(GenericJobValidationError.ErrorCode, "old generic error"))
+				.AddError(reproduced)
+				.AddError(new JobError(CoreResourceNotFoundJobError.ErrorCode, "resolved"))
+				.AddError(new JobError(TransitionToTentativeJobError.ErrorCode, "transition"))
+				.AddError(new JobError("LIV101", "unrelated"));
+			var result = new JobValidationResult(job);
+			result.SetError(reproduced);
+
+			Assert.IsTrue(result.ClearResolvedErrorsFromUpdate());
+			CollectionAssert.AreEquivalent(
+				new[] { DomResourceNotFoundJobError.ErrorCode, TransitionToTentativeJobError.ErrorCode, "LIV101" },
+				job.Errors.Select(error => error.Code).ToArray());
+		}
+
+		[TestMethod]
+		public void ClearResolvedErrorsFromUpdate_WhenValidationFailed_DoesNotClearAnything()
+		{
+			var job = new Job().AddError(new JobError(CoreResourceNotFoundJobError.ErrorCode, "existing"));
+			var result = new JobValidationResult(job);
+			result.SetError(new GenericJobValidationError(new InvalidOperationException("validation failed")));
+
+			Assert.IsFalse(result.ClearResolvedErrorsFromUpdate());
+			Assert.IsTrue(job.Errors.Any(error => error.Code == CoreResourceNotFoundJobError.ErrorCode));
+		}
+
+		[TestMethod]
 		public void SyncResultsToInstance_SynchronizesQuarantinedResourceNodes()
 		{
 			var quarantinedNode = new JobResourceNode(System.Guid.NewGuid(), System.Guid.NewGuid());

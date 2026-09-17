@@ -1186,6 +1186,35 @@
 		}
 
 		[TestMethod]
+		public void UpdateClearsResolvedValidationErrorsButPreservesTransitionAndUnrelatedErrors()
+		{
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+			var job = new Job
+			{
+				Name = $"{Guid.NewGuid()}_Job",
+				Start = currentTime,
+				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
+			};
+
+			foreach (var code in JobError.MediaOpsOwnedErrorCodes)
+			{
+				job.AddError(new JobError(code, "existing"));
+			}
+
+			job.AddError(new JobError("LIV101", "unrelated"));
+			job = objectCreator.CreateJob(job);
+			job.Description = "trigger update";
+
+			var updated = TestContext.Api.Jobs.Update(job);
+
+			CollectionAssert.AreEquivalent(
+				new[] { TransitionToTentativeJobError.ErrorCode, "LIV101" },
+				updated.Errors.Select(error => error.Code).ToArray());
+		}
+
+		[TestMethod]
 		public void AddErrorWithExistingCodeUpdatesMessage()
 		{
 			var currentTime = DateTime.UtcNow.RoundToNextSecond();
