@@ -567,7 +567,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			ValidateStateForConfirmFromTentativeAction(apiJobs);
 			ValidateEndNotInPast(apiJobs);
 			ValidateAllNodesHaveResourceAssigned(apiJobs);
-			ValidateNoMandatoryConfigurationMissing(apiJobs);
+			ValidateNoMissingMandatoryConfiguration(apiJobs);
 			ValidateReferencesForConfirm(apiJobs);
 
 			var lockResult = planApi.LockManager.LockAndExecute(apiJobs.Where(IsValid).ToList(), ConfirmLocked);
@@ -2764,7 +2764,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				{
 					if (node.IsResourcePoolNode(out _) || (node.IsResourceNode(out var resourceNode) && resourceNode.ResourceId == Guid.Empty))
 					{
-						ReportError(job.Id, new JobNodeResourceNotAssignedError
+						ReportError(job.Id, new JobResourceNotAssignedError
 						{
 							ErrorMessage = "A job can only be confirmed when all of its nodes have a concrete resource assigned.",
 							Id = job.Id,
@@ -2775,7 +2775,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 		}
 
-		private void ValidateNoMandatoryConfigurationMissing(ICollection<Job> apiJobs)
+		private void ValidateNoMissingMandatoryConfiguration(ICollection<Job> apiJobs)
 		{
 			var validJobs = apiJobs.Where(IsValid).ToList();
 			if (validJobs.Count == 0)
@@ -2787,7 +2787,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				if (job.ConfigurationState == ConfigurationState.MandatoryValuesMissing)
 				{
-					ReportError(job.Id, new JobMandatoryConfigurationMissingError
+					ReportError(job.Id, new JobMissingMandatoryConfigurationError
 					{
 						ErrorMessage = "A job can only be confirmed when all mandatory configuration values are provided.",
 						Id = job.Id,
@@ -2796,7 +2796,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 				foreach (var node in job.NodeGraph.Nodes.Where(x => x.ConfigurationState == ConfigurationState.MandatoryValuesMissing))
 				{
-					ReportError(job.Id, new JobNodeMandatoryConfigurationMissingError
+					ReportError(job.Id, new JobNodeMissingMandatoryConfigurationError
 					{
 						ErrorMessage = "A job can only be confirmed when all mandatory configuration values are provided.",
 						Id = job.Id,

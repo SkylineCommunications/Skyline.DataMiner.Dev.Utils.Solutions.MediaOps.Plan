@@ -7,7 +7,7 @@
 	/// </summary>
 	public class DiscreteNumberConfigurationSetting : ConfigurationSetting
 	{
-		private NumberDiscreet value;
+		private NumberDiscrete value;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="DiscreteNumberConfigurationSetting"/> class using the specified discrete number configuration.
@@ -41,7 +41,7 @@
 		/// <summary>
 		/// Gets or sets the configuration value.
 		/// </summary>
-		public NumberDiscreet Value
+		public NumberDiscrete Value
 		{
 			get => value;
 			set

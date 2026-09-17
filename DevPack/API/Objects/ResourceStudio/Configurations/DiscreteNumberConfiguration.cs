@@ -16,7 +16,7 @@
 		/// <summary>
 		/// The backing collection that stores the configured discrete numeric values.
 		/// </summary>
-		private readonly List<NumberDiscreet> discretes = new List<NumberDiscreet>();
+		private readonly List<NumberDiscrete> discretes = new List<NumberDiscrete>();
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="DiscreteNumberConfiguration"/> class.
@@ -47,44 +47,44 @@
 		/// <summary>
 		/// Gets or sets the default discrete numeric value to use when no explicit value is provided.
 		/// </summary>
-		public NumberDiscreet DefaultValue { get; set; }
+		public NumberDiscrete DefaultValue { get; set; }
 
 		/// <summary>
 		/// Gets a read-only collection of configured discrete numeric values.
 		/// </summary>
-		public IReadOnlyCollection<NumberDiscreet> Discretes => discretes;
+		public IReadOnlyCollection<NumberDiscrete> Discretes => discretes;
 
 		/// <summary>
 		/// Adds a discrete number configuration to the current collection.
 		/// </summary>
-		/// <param name="discreet">The discrete number configuration to add. Cannot be <see langword="null"/>.</param>
+		/// <param name="discrete">The discrete number configuration to add. Cannot be <see langword="null"/>.</param>
 		/// <returns>
 		/// The current <see cref="DiscreteNumberConfiguration"/> instance, enabling fluent configuration.
 		/// </returns>
-		/// <exception cref="ArgumentNullException">Thrown if <paramref name="discreet"/> is <see langword="null"/>.</exception>
-		public DiscreteNumberConfiguration AddDiscrete(NumberDiscreet discreet)
+		/// <exception cref="ArgumentNullException">Thrown if <paramref name="discrete"/> is <see langword="null"/>.</exception>
+		public DiscreteNumberConfiguration AddDiscrete(NumberDiscrete discrete)
 		{
-			if (discreet == null)
-				throw new ArgumentNullException(nameof(discreet));
+			if (discrete == null)
+				throw new ArgumentNullException(nameof(discrete));
 
-			discretes.Add(discreet);
+			discretes.Add(discrete);
 			return this;
 		}
 
 		/// <summary>
 		/// Removes all occurrences of the specified discrete numeric value from the configuration.
 		/// </summary>
-		/// <param name="discreet">The discrete numeric value to remove. Cannot be <see langword="null"/>.</param>
+		/// <param name="discrete">The discrete numeric value to remove. Cannot be <see langword="null"/>.</param>
 		/// <returns>
 		/// The current <see cref="DiscreteNumberConfiguration"/> instance, enabling fluent configuration.
 		/// </returns>
-		/// <exception cref="ArgumentNullException">Thrown if <paramref name="discreet"/> is <see langword="null"/>.</exception>
-		public DiscreteNumberConfiguration RemoveDiscrete(NumberDiscreet discreet)
+		/// <exception cref="ArgumentNullException">Thrown if <paramref name="discrete"/> is <see langword="null"/>.</exception>
+		public DiscreteNumberConfiguration RemoveDiscrete(NumberDiscrete discrete)
 		{
-			if (discreet == null)
-				throw new ArgumentNullException(nameof(discreet));
+			if (discrete == null)
+				throw new ArgumentNullException(nameof(discrete));
 
-			discretes.RemoveAll(x => x.Equals(discreet));
+			discretes.RemoveAll(x => x.Equals(discrete));
 
 			return this;
 		}
@@ -99,7 +99,7 @@
 		/// The current <see cref="DiscreteNumberConfiguration"/> instance, enabling fluent configuration.
 		/// </returns>
 		/// <exception cref="ArgumentNullException">Thrown if <paramref name="discretes"/> is <see langword="null"/>.</exception>
-		public DiscreteNumberConfiguration SetDiscretes(ICollection<NumberDiscreet> discretes)
+		public DiscreteNumberConfiguration SetDiscretes(ICollection<NumberDiscrete> discretes)
 		{
 			if (discretes == null)
 				throw new ArgumentNullException(nameof(discretes));
@@ -118,9 +118,9 @@
 				int hash = base.GetHashCode();
 				hash = (hash * 23) + (DefaultValue != null ? DefaultValue.GetHashCode() : 0);
 
-				foreach (var discreet in discretes.OrderBy(x => x.DisplayName).ToArray())
+				foreach (var discrete in discretes.OrderBy(x => x.DisplayName).ToArray())
 				{
-					hash = (hash * 23) + discreet.GetHashCode();
+					hash = (hash * 23) + discrete.GetHashCode();
 				}
 
 				return hash;
@@ -189,7 +189,7 @@
 
 			for (int i = 0; i < parameter.Discretes.Count; i++)
 			{
-				discretes.Add(new NumberDiscreet(Decimal.Parse(parameter.Discretes[i]), parameter.DiscreetDisplayValues[i]));
+				discretes.Add(new NumberDiscrete(Decimal.Parse(parameter.Discretes[i]), parameter.DiscreetDisplayValues[i]));
 			}
 
 			if (!parameter.HasDefaultStringValue())

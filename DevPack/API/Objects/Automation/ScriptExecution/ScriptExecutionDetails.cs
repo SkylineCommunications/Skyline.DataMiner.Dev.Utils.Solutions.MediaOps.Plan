@@ -670,11 +670,11 @@
 			{
 				numberConfigurationSettings.Add(new StorageNumberConfigurationSetting(profileParameterValue));
 			}
-			else if (profileParameter.IsTextDiscreet())
+			else if (profileParameter.IsTextDiscrete())
 			{
 				discreteTextConfigurationSettings.Add(new StorageDiscreteTextConfigurationSetting(new DiscreteTextConfiguration(profileParameter), profileParameterValue));
 			}
-			else if (profileParameter.IsNumberDiscreet())
+			else if (profileParameter.IsNumberDiscrete())
 			{
 				discreteNumberConfigurationSettings.Add(new StorageDiscreteNumberConfigurationSetting(new DiscreteNumberConfiguration(profileParameter), profileParameterValue));
 			}

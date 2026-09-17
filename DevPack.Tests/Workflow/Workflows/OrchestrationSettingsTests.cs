@@ -111,12 +111,12 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 			{
 				Name = $"{prefix}_DiscreteTextConfiguration",
 			}
-			.AddDiscrete(new TextDiscreet("A", "A"));
+			.AddDiscrete(new TextDiscrete("A", "A"));
 			var discreteNumberConfiguration = new DiscreteNumberConfiguration
 			{
 				Name = $"{prefix}_DiscreteNumberConfiguration",
 			}
-			.AddDiscrete(new NumberDiscreet(1, "One"));
+			.AddDiscrete(new NumberDiscrete(1, "One"));
 			objectCreator.CreateConfigurations([textConfiguration, numberConfiguration, discreteTextConfiguration, discreteNumberConfiguration]);
 
 			var workflow = new Workflow
@@ -236,12 +236,12 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 			{
 				Name = $"{prefix}_DiscreteTextConfiguration",
 			}
-			.AddDiscrete(new TextDiscreet("A", "A"));
+			.AddDiscrete(new TextDiscrete("A", "A"));
 			var discreteNumberConfiguration = new DiscreteNumberConfiguration
 			{
 				Name = $"{prefix}_DiscreteNumberConfiguration",
 			}
-			.AddDiscrete(new NumberDiscreet(1, "One"));
+			.AddDiscrete(new NumberDiscrete(1, "One"));
 			objectCreator.CreateConfigurations([textConfiguration, numberConfiguration, discreteTextConfiguration, discreteNumberConfiguration]);
 
 			var workflow = new Workflow
@@ -309,12 +309,12 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 			{
 				Name = $"{prefix}_DiscreteTextConfiguration",
 			}
-			.AddDiscrete(new TextDiscreet("A", "A"));
+			.AddDiscrete(new TextDiscrete("A", "A"));
 			var discreteNumberConfiguration = new DiscreteNumberConfiguration
 			{
 				Name = $"{prefix}_DiscreteNumberConfiguration",
 			}
-			.AddDiscrete(new NumberDiscreet(1, "A"));
+			.AddDiscrete(new NumberDiscrete(1, "A"));
 			objectCreator.CreateConfigurations([textConfiguration, numberConfiguration, discreteTextConfiguration, discreteNumberConfiguration]);
 
 			var workflow = new Workflow
@@ -385,12 +385,12 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 			{
 				Name = $"{prefix}_DiscreteTextConfiguration",
 			}
-			.AddDiscrete(new TextDiscreet("A", "A"));
+			.AddDiscrete(new TextDiscrete("A", "A"));
 			var discreteNumberConfiguration = new DiscreteNumberConfiguration
 			{
 				Name = $"{prefix}_DiscreteNumberConfiguration",
 			}
-			.AddDiscrete(new NumberDiscreet(1, "A"));
+			.AddDiscrete(new NumberDiscrete(1, "A"));
 			objectCreator.CreateConfigurations([textConfiguration, numberConfiguration, discreteTextConfiguration, discreteNumberConfiguration]);
 
 			var workflow = new Workflow
@@ -465,12 +465,12 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 			{
 				Name = $"{prefix}_DiscreteTextConfiguration",
 			}
-			.AddDiscrete(new TextDiscreet("A", "A"));
+			.AddDiscrete(new TextDiscrete("A", "A"));
 			var discreteNumberConfiguration = new DiscreteNumberConfiguration
 			{
 				Name = $"{prefix}_DiscreteNumberConfiguration",
 			}
-			.AddDiscrete(new NumberDiscreet(1, "A"));
+			.AddDiscrete(new NumberDiscrete(1, "A"));
 			objectCreator.CreateConfigurations([textConfiguration, numberConfiguration, discreteTextConfiguration, discreteNumberConfiguration]);
 
 			var workflow = new Workflow
@@ -743,7 +743,7 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 			var discreteNumberConfiguration = new DiscreteNumberConfiguration
 			{
 				Name = $"{prefix}_DiscreteNumberConfiguration",
-			}.SetDiscretes([new NumberDiscreet(1, "One"), new NumberDiscreet(2, "Two"), new NumberDiscreet(3, "Three")]);
+			}.SetDiscretes([new NumberDiscrete(1, "One"), new NumberDiscrete(2, "Two"), new NumberDiscrete(3, "Three")]);
 
 			objectCreator.CreateConfigurations([textConfiguration, discreteNumberConfiguration]);
 
@@ -763,7 +763,7 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 				new OrchestrationEvent
 				{
 					EventType = OrchestrationEventType.PostrollStart,
-					ExecutionDetails = new ScriptExecutionDetails("PostrollStartScript").AddConfiguration(new DiscreteNumberConfigurationSetting(discreteNumberConfiguration) { Value = new NumberDiscreet(3, "Three") }),
+					ExecutionDetails = new ScriptExecutionDetails("PostrollStartScript").AddConfiguration(new DiscreteNumberConfigurationSetting(discreteNumberConfiguration) { Value = new NumberDiscrete(3, "Three") }),
 				},
 			});
 
@@ -801,7 +801,7 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 			var postrollDiscreteConfigurationSetting = postrollStartEvent.ExecutionDetails.Configurations.First() as DiscreteNumberConfigurationSetting;
 			Assert.IsNotNull(postrollDiscreteConfigurationSetting);
 			Assert.AreEqual(discreteNumberConfiguration.Id, postrollDiscreteConfigurationSetting.Id);
-			Assert.AreEqual(new NumberDiscreet(3, "Three"), postrollDiscreteConfigurationSetting.Value);
+			Assert.AreEqual(new NumberDiscrete(3, "Three"), postrollDiscreteConfigurationSetting.Value);
 
 			// Remove PrerollStart Event
 			workflow.OrchestrationSettings.RemoveOrchestrationEvent(workflow.OrchestrationSettings.OrchestrationEvents.First(x => x.EventType == OrchestrationEventType.PrerollStart));
@@ -810,7 +810,7 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 			// Update PostrollStart Event
 			workflow.OrchestrationSettings.OrchestrationEvents.First(x => x.EventType == OrchestrationEventType.PostrollStart)
 				.ExecutionDetails = new ScriptExecutionDetails("UpdatedPostrollScript")
-				.AddConfiguration(new DiscreteNumberConfigurationSetting(discreteNumberConfiguration) { Value = new NumberDiscreet(2, "Two") });
+				.AddConfiguration(new DiscreteNumberConfigurationSetting(discreteNumberConfiguration) { Value = new NumberDiscrete(2, "Two") });
 
 			// Add PrerollStop Event
 			workflow.OrchestrationSettings.AddOrchestrationEvent(new OrchestrationEvent
@@ -856,7 +856,7 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 			var discreteConfigurationSetting = updatedPostrollStartEvent.ExecutionDetails.Configurations.First() as DiscreteNumberConfigurationSetting;
 			Assert.IsNotNull(discreteConfigurationSetting);
 			Assert.AreEqual(discreteNumberConfiguration.Id, discreteConfigurationSetting.Id);
-			Assert.AreEqual(new NumberDiscreet(2, "Two"), discreteConfigurationSetting.Value);
+			Assert.AreEqual(new NumberDiscrete(2, "Two"), discreteConfigurationSetting.Value);
 		}
 
 		[TestMethod]
@@ -893,12 +893,12 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 			{
 				Name = $"{prefix}_DiscreteTextConfiguration",
 			}
-			.AddDiscrete(new TextDiscreet("A", "A"));
+			.AddDiscrete(new TextDiscrete("A", "A"));
 			var discreteNumberConfiguration = new DiscreteNumberConfiguration
 			{
 				Name = $"{prefix}_DiscreteNumberConfiguration",
 			}
-			.AddDiscrete(new NumberDiscreet(1, "A"));
+			.AddDiscrete(new NumberDiscrete(1, "A"));
 			objectCreator.CreateConfigurations([textConfiguration, numberConfiguration, discreteTextConfiguration, discreteNumberConfiguration]);
 
 			var workflow1 = new Workflow

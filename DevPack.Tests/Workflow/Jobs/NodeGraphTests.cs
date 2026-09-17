@@ -1027,7 +1027,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			}
 			catch (MediaOpsException ex)
 			{
-				var error = ex.TraceData.ErrorData.OfType<JobNodeResourceNotAssignedError>().SingleOrDefault();
+				var error = ex.TraceData.ErrorData.OfType<JobResourceNotAssignedError>().SingleOrDefault();
 				Assert.IsNotNull(error);
 				Assert.AreEqual(job.Id, error.Id);
 			}
@@ -1533,7 +1533,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			}
 			catch (MediaOpsException ex)
 			{
-				var error = ex.TraceData.ErrorData.OfType<JobNodeMandatoryConfigurationMissingError>().SingleOrDefault();
+				var error = ex.TraceData.ErrorData.OfType<JobNodeMissingMandatoryConfigurationError>().SingleOrDefault();
 				Assert.IsNotNull(error);
 				Assert.AreEqual(job.Id, error.Id);
 				Assert.AreEqual(node.Id, error.NodeId);

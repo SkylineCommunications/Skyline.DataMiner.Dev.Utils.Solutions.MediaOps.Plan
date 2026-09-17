@@ -254,12 +254,12 @@
 			{
 				Name = $"{prefix}_DiscreteTextConfiguration",
 			}
-			.AddDiscrete(new TextDiscreet("A", "A"));
+			.AddDiscrete(new TextDiscrete("A", "A"));
 			var discreteNumberConfiguration = new DiscreteNumberConfiguration
 			{
 				Name = $"{prefix}_DiscreteNumberConfiguration",
 			}
-			.AddDiscrete(new NumberDiscreet(1, "One"));
+			.AddDiscrete(new NumberDiscrete(1, "One"));
 			objectCreator.CreateConfigurations([textConfiguration, numberConfiguration, discreteTextConfiguration, discreteNumberConfiguration]);
 
 			var resourcePool = new ResourcePool
@@ -381,12 +381,12 @@
 			{
 				Name = $"{prefix}_DiscreteTextConfiguration",
 			}
-			.AddDiscrete(new TextDiscreet("A", "A"));
+			.AddDiscrete(new TextDiscrete("A", "A"));
 			var discreteNumberConfiguration = new DiscreteNumberConfiguration
 			{
 				Name = $"{prefix}_DiscreteNumberConfiguration",
 			}
-			.AddDiscrete(new NumberDiscreet(1, "One"));
+			.AddDiscrete(new NumberDiscrete(1, "One"));
 			objectCreator.CreateConfigurations([textConfiguration, numberConfiguration, discreteTextConfiguration, discreteNumberConfiguration]);
 
 			var resourcePool = new ResourcePool
@@ -455,12 +455,12 @@
 			{
 				Name = $"{prefix}_DiscreteTextConfiguration",
 			}
-			.AddDiscrete(new TextDiscreet("A", "A"));
+			.AddDiscrete(new TextDiscrete("A", "A"));
 			var discreteNumberConfiguration = new DiscreteNumberConfiguration
 			{
 				Name = $"{prefix}_DiscreteNumberConfiguration",
 			}
-			.AddDiscrete(new NumberDiscreet(1, "A"));
+			.AddDiscrete(new NumberDiscrete(1, "A"));
 			objectCreator.CreateConfigurations([textConfiguration, numberConfiguration, discreteTextConfiguration, discreteNumberConfiguration]);
 
 			var resourcePool = new ResourcePool
@@ -534,12 +534,12 @@
 			{
 				Name = $"{prefix}_DiscreteTextConfiguration",
 			}
-			.AddDiscrete(new TextDiscreet("A", "A"));
+			.AddDiscrete(new TextDiscrete("A", "A"));
 			var discreteNumberConfiguration = new DiscreteNumberConfiguration
 			{
 				Name = $"{prefix}_DiscreteNumberConfiguration",
 			}
-			.AddDiscrete(new NumberDiscreet(1, "A"));
+			.AddDiscrete(new NumberDiscrete(1, "A"));
 			objectCreator.CreateConfigurations([textConfiguration, numberConfiguration, discreteTextConfiguration, discreteNumberConfiguration]);
 
 			var resourcePool = new ResourcePool
@@ -616,12 +616,12 @@
 			{
 				Name = $"{prefix}_DiscreteTextConfiguration",
 			}
-			.AddDiscrete(new TextDiscreet("A", "A"));
+			.AddDiscrete(new TextDiscrete("A", "A"));
 			var discreteNumberConfiguration = new DiscreteNumberConfiguration
 			{
 				Name = $"{prefix}_DiscreteNumberConfiguration",
 			}
-			.AddDiscrete(new NumberDiscreet(1, "A"));
+			.AddDiscrete(new NumberDiscrete(1, "A"));
 			objectCreator.CreateConfigurations([textConfiguration, numberConfiguration, discreteTextConfiguration, discreteNumberConfiguration]);
 
 			var resourcePool = new ResourcePool
@@ -908,7 +908,7 @@
 			var discreteNumberConfiguration = new DiscreteNumberConfiguration
 			{
 				Name = $"{prefix}_DiscreteNumberConfiguration",
-			}.SetDiscretes([new NumberDiscreet(1, "One"), new NumberDiscreet(2, "Two"), new NumberDiscreet(3, "Three")]);
+			}.SetDiscretes([new NumberDiscrete(1, "One"), new NumberDiscrete(2, "Two"), new NumberDiscrete(3, "Three")]);
 
 			objectCreator.CreateConfigurations([textConfiguration, discreteNumberConfiguration]);
 
@@ -928,7 +928,7 @@
 				new OrchestrationEvent
 				{
 					EventType = OrchestrationEventType.PostrollStart,
-					ExecutionDetails = new ScriptExecutionDetails("PostrollStartScript").AddConfiguration(new DiscreteNumberConfigurationSetting(discreteNumberConfiguration) { Value = new NumberDiscreet(3, "Three") }),
+					ExecutionDetails = new ScriptExecutionDetails("PostrollStartScript").AddConfiguration(new DiscreteNumberConfigurationSetting(discreteNumberConfiguration) { Value = new NumberDiscrete(3, "Three") }),
 				},
 			});
 
@@ -967,7 +967,7 @@
 			var postrollDiscreteConfigurationSetting = postrollStartEvent.ExecutionDetails.Configurations.First() as DiscreteNumberConfigurationSetting;
 			Assert.IsNotNull(postrollDiscreteConfigurationSetting);
 			Assert.AreEqual(discreteNumberConfiguration.Id, postrollDiscreteConfigurationSetting.Id);
-			Assert.AreEqual(new NumberDiscreet(3, "Three"), postrollDiscreteConfigurationSetting.Value);
+			Assert.AreEqual(new NumberDiscrete(3, "Three"), postrollDiscreteConfigurationSetting.Value);
 
 			// Remove PrerollStart Event
 			resourcePool.OrchestrationSettings.RemoveOrchestrationEvent(resourcePool.OrchestrationSettings.OrchestrationEvents.First(x => x.EventType == OrchestrationEventType.PrerollStart));
@@ -976,7 +976,7 @@
 			// Update PostrollStart Event
 			resourcePool.OrchestrationSettings.OrchestrationEvents.First(x => x.EventType == OrchestrationEventType.PostrollStart)
 				.ExecutionDetails = new ScriptExecutionDetails("UpdatedPostrollScript")
-				.AddConfiguration(new DiscreteNumberConfigurationSetting(discreteNumberConfiguration) { Value = new NumberDiscreet(2, "Two") });
+				.AddConfiguration(new DiscreteNumberConfigurationSetting(discreteNumberConfiguration) { Value = new NumberDiscrete(2, "Two") });
 
 			// Add PrerollStop Event
 			resourcePool.OrchestrationSettings.AddOrchestrationEvent(new OrchestrationEvent
@@ -1023,7 +1023,7 @@
 			var discreteConfigurationSetting = updatedPostrollStartEvent.ExecutionDetails.Configurations.First() as DiscreteNumberConfigurationSetting;
 			Assert.IsNotNull(discreteConfigurationSetting);
 			Assert.AreEqual(discreteNumberConfiguration.Id, discreteConfigurationSetting.Id);
-			Assert.AreEqual(new NumberDiscreet(2, "Two"), discreteConfigurationSetting.Value);
+			Assert.AreEqual(new NumberDiscrete(2, "Two"), discreteConfigurationSetting.Value);
 		}
 
 		[TestMethod]
@@ -1060,12 +1060,12 @@
 			{
 				Name = $"{prefix}_DiscreteTextConfiguration",
 			}
-			.AddDiscrete(new TextDiscreet("A", "A"));
+			.AddDiscrete(new TextDiscrete("A", "A"));
 			var discreteNumberConfiguration = new DiscreteNumberConfiguration
 			{
 				Name = $"{prefix}_DiscreteNumberConfiguration",
 			}
-			.AddDiscrete(new NumberDiscreet(1, "A"));
+			.AddDiscrete(new NumberDiscrete(1, "A"));
 			objectCreator.CreateConfigurations([textConfiguration, numberConfiguration, discreteTextConfiguration, discreteNumberConfiguration]);
 
 			var resourcePool1 = new ResourcePool
@@ -1224,12 +1224,12 @@
 			{
 				Name = $"{prefix}_DiscreteTextConfiguration",
 			}
-			.AddDiscrete(new TextDiscreet("A", "A"));
+			.AddDiscrete(new TextDiscrete("A", "A"));
 			var discreteNumberConfiguration = new DiscreteNumberConfiguration
 			{
 				Name = $"{prefix}_DiscreteNumberConfiguration",
 			}
-			.AddDiscrete(new NumberDiscreet(1, "One"));
+			.AddDiscrete(new NumberDiscrete(1, "One"));
 			objectCreator.CreateConfigurations([textConfiguration, numberConfiguration, discreteTextConfiguration, discreteNumberConfiguration]);
 
 			var resourcePool = new ResourcePool
@@ -1241,8 +1241,8 @@
 			resourcePool.OrchestrationSettings
 				.AddConfiguration(new NumberConfigurationSetting(textConfiguration.Id) { Value = 42 })
 				.AddConfiguration(new TextConfigurationSetting(numberConfiguration.Id) { Value = "text" })
-				.AddConfiguration(new DiscreteTextConfigurationSetting(discreteNumberConfiguration.Id) { Value = new TextDiscreet("A", "A") })
-				.AddConfiguration(new DiscreteNumberConfigurationSetting(discreteTextConfiguration.Id) { Value = new NumberDiscreet(1, "One") });
+				.AddConfiguration(new DiscreteTextConfigurationSetting(discreteNumberConfiguration.Id) { Value = new TextDiscrete("A", "A") })
+				.AddConfiguration(new DiscreteNumberConfigurationSetting(discreteTextConfiguration.Id) { Value = new NumberDiscrete(1, "One") });
 
 			MediaOpsException? expectedException = null;
 			try
@@ -1293,10 +1293,10 @@
 			{
 				Name = $"{prefix}_DiscreteTextConfiguration",
 			}
-			.SetDiscretes([new TextDiscreet("1", "Value1"), new TextDiscreet("2", "Value2")]);
+			.SetDiscretes([new TextDiscrete("1", "Value1"), new TextDiscrete("2", "Value2")]);
 			objectCreator.CreateConfiguration(configuration);
 
-			var invalidValue = new TextDiscreet("99", "InvalidValue");
+			var invalidValue = new TextDiscrete("99", "InvalidValue");
 
 			var resourcePool = new ResourcePool
 			{
@@ -1333,10 +1333,10 @@
 			{
 				Name = $"{prefix}_DiscreteNumberConfiguration",
 			}
-			.SetDiscretes([new NumberDiscreet(1, "One"), new NumberDiscreet(2, "Two")]);
+			.SetDiscretes([new NumberDiscrete(1, "One"), new NumberDiscrete(2, "Two")]);
 			objectCreator.CreateConfiguration(configuration);
 
-			var invalidValue = new NumberDiscreet(99, "NinetyNine");
+			var invalidValue = new NumberDiscrete(99, "NinetyNine");
 
 			var resourcePool = new ResourcePool
 			{

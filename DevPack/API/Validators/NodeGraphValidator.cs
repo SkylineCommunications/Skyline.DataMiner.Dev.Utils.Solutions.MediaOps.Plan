@@ -575,7 +575,7 @@
 				return true;
 			}
 
-			error = new RecurringJobNodeGraphSwappedNotAllowedError
+			error = new RecurringJobNodeSwappedNotAllowedError
 			{
 				Id = ApiObjectId,
 				NodeId = original.Id,

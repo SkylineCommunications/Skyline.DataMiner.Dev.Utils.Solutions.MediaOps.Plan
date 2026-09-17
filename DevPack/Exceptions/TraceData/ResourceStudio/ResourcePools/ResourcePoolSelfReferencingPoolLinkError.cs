@@ -3,7 +3,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a resource pool configuration contains a self-referencing pool link.
 	/// </summary>
-	public sealed class ResourcePoolSelfReferencePoolLinkError : ResourcePoolInvalidPoolLinkError
+	public sealed class ResourcePoolSelfReferencingPoolLinkError : ResourcePoolInvalidPoolLinkError
 	{
 	}
 }
