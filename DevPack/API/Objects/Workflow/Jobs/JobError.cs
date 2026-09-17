@@ -1,12 +1,31 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
+	using System.Collections.Generic;
 
 	/// <summary>
 	/// Represents an error that is reported on a <see cref="Job"/>.
 	/// </summary>
 	public class JobError
 	{
+		/// <summary>
+		/// Gets a set of error codes that are managed by the MediaOps Plan solution.
+		/// </summary>
+		public static readonly HashSet<string> MediaOpsOwnedErrorCodes = new HashSet<string>(StringComparer.Ordinal)
+		{
+			GenericJobValidationError.ErrorCode,
+			DomResourceNotFoundJobError.ErrorCode,
+			CoreResourceNotFoundJobError.ErrorCode,
+			DomResourceInvalidJobError.ErrorCode,
+			CoreResourceUnavailableJobError.ErrorCode,
+			QuarantinedReservationJobError.ErrorCode,
+			VirtualSignalGroupNotFoundJobError.ErrorCode,
+			TransitionToTentativeJobError.ErrorCode,
+			UnresolvedReferencesJobError.ErrorCode,
+			ReservationRequirementsMismatchJobError.ErrorCode,
+			LiveEventsMismatchJobError.ErrorCode,
+		};
+
 		/// <summary>
 		/// Initializes a new instance of the <see cref="JobError"/> class.
 		/// </summary>
