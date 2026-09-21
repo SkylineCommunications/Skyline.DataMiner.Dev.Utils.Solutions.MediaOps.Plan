@@ -3,7 +3,7 @@
 	using System;
 
 	/// <summary>Represents a MediaOps Live virtual signal group that could not be found.</summary>
-	public class VirtualSignalGroupNotFoundJobValidationError : JobValidationError
+	public sealed class VirtualSignalGroupNotFoundJobValidationError : JobValidationError
 	{
 		/// <summary>The error code.</summary>
 		public const string ErrorCode = "J201";

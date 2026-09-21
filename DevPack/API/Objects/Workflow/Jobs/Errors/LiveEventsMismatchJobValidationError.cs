@@ -1,7 +1,7 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	/// <summary>Represents resolved values that no longer match scheduled MediaOps Live events.</summary>
-	public class LiveEventsMismatchJobValidationError : JobValidationError
+	public sealed class LiveEventsMismatchJobValidationError : JobValidationError
 	{
 		/// <summary>The error code.</summary>
 		public const string ErrorCode = "J603";
