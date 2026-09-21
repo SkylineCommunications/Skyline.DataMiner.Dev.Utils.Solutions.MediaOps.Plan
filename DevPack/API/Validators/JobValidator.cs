@@ -1,4 +1,4 @@
-namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
 	using System.Collections.Generic;
@@ -63,7 +63,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				foreach (var result in results.Values)
 				{
-					result.SetError(new GenericJobValidationError(exception));
+					result.SetError(new GenericJobValidatorError(exception));
 				}
 			}
 
@@ -115,7 +115,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 			catch (Exception exception)
 			{
-				result.SetError(new GenericJobValidationError(exception));
+				result.SetError(new GenericJobValidatorError(exception));
 			}
 		}
 
@@ -126,19 +126,19 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				if (!context.Resources.TryGetValue(node.ResourceId, out var resource))
 				{
-					result.SetError(new DomResourceNotFoundJobError(node.ResourceId, node.Id));
+					result.SetError(new DomResourceNotFoundJobValidatorError(node.ResourceId, node.Id));
 					continue;
 				}
 
 				resources[resource.Id] = resource;
 				if (resource.State != ResourceState.Complete)
 				{
-					result.SetError(new DomResourceInvalidJobError($"Resource '{resource.Name}' is not in complete state"));
+					result.SetError(new DomResourceInvalidJobValidatorError($"Resource '{resource.Name}' is not in complete state"));
 				}
 
 				if (resource.OriginalInstance?.Errors.Count > 0)
 				{
-					result.SetError(new DomResourceInvalidJobError($"Resource '{resource.Name}' has active errors"));
+					result.SetError(new DomResourceInvalidJobValidatorError($"Resource '{resource.Name}' has active errors"));
 				}
 
 				if (resource.CoreResourceId == Guid.Empty)
@@ -148,11 +148,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 				if (!context.CoreResources.TryGetValue(resource.CoreResourceId, out var coreResource))
 				{
-					result.SetError(new CoreResourceNotFoundJobError(resource.CoreResourceId, resource.Name));
+					result.SetError(new CoreResourceNotFoundJobValidatorError(resource.CoreResourceId, resource.Name));
 				}
 				else if (coreResource.Mode != ResourceMode.Available)
 				{
-					result.SetError(new CoreResourceUnavailableJobError(coreResource.Name, Convert.ToString(coreResource.Mode)));
+					result.SetError(new CoreResourceUnavailableJobValidatorError(coreResource.Name, Convert.ToString(coreResource.Mode)));
 				}
 			}
 
@@ -163,7 +163,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 			foreach (var reservation in reservations.Where(reservation => reservation.IsQuarantined))
 			{
-				result.SetError(new QuarantinedReservationJobError(ComposeQuarantineMessage(reservation, result)));
+				result.SetError(new QuarantinedReservationJobValidatorError(ComposeQuarantineMessage(reservation, result)));
 			}
 		}
 
@@ -178,12 +178,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				if (resource.VirtualSignalGroupInputId != Guid.Empty && !context.VirtualSignalGroupIds.Contains(resource.VirtualSignalGroupInputId))
 				{
-					result.SetError(new VirtualSignalGroupNotFoundJobError("input", resource.VirtualSignalGroupInputId, resource.Name));
+					result.SetError(new VirtualSignalGroupNotFoundJobValidatorError("input", resource.VirtualSignalGroupInputId, resource.Name));
 				}
 
 				if (resource.VirtualSignalGroupOutputId != Guid.Empty && !context.VirtualSignalGroupIds.Contains(resource.VirtualSignalGroupOutputId))
 				{
-					result.SetError(new VirtualSignalGroupNotFoundJobError("output", resource.VirtualSignalGroupOutputId, resource.Name));
+					result.SetError(new VirtualSignalGroupNotFoundJobValidatorError("output", resource.VirtualSignalGroupOutputId, resource.Name));
 				}
 			}
 		}
@@ -199,7 +199,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			var resolution = new JobReferenceValidator(resolver).Resolve(job);
 			if (!resolution.IsValid)
 			{
-				result.SetError(new UnresolvedReferencesJobError(ComposeUnresolvedReferencesMessage(resolution.UnresolvedReferences)));
+				result.SetError(new UnresolvedReferencesJobValidatorError(ComposeUnresolvedReferencesMessage(resolution.UnresolvedReferences)));
 			}
 
 			ValidateReservationRequirementsStillMatch(job, reservations, resolution, result);
@@ -250,7 +250,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			if (mismatches.Count > 0)
 			{
-				result.SetError(new ReservationRequirementsMismatchJobError(ComposeReservationMismatchMessage(mismatches)));
+				result.SetError(new ReservationRequirementsMismatchJobValidatorError(ComposeReservationMismatchMessage(mismatches)));
 			}
 		}
 
@@ -288,7 +288,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			if (mismatches.Count > 0)
 			{
-				result.SetError(new LiveEventsMismatchJobError(ComposeLiveEventMismatchMessage(mismatches)));
+				result.SetError(new LiveEventsMismatchJobValidatorError(ComposeLiveEventMismatchMessage(mismatches)));
 			}
 		}
 

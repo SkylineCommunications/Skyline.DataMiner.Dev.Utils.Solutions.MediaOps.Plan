@@ -1,4 +1,4 @@
-namespace RT_MediaOps.Plan.Workflow.Jobs
+﻿namespace RT_MediaOps.Plan.Workflow.Jobs
 {
 	using System;
 	using System.Linq;
@@ -13,34 +13,34 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 	public class JobValidationResultTests
 	{
 		[TestMethod]
-		public void SyncResultsToInstance_ReplacesAndClearsOwnedErrorsWhilePreservingOtherErrors()
+		public void SyncResultsToJob_ReplacesAndClearsOwnedErrorsWhilePreservingOtherErrors()
 		{
 			var job = new Job()
-				.AddError(new JobError("J101", "old"))
-				.AddError(new JobError("J501", "lifecycle"))
-				.AddError(new JobError("LIV101", "leave"));
+				.AddError(new JobValidatorError("J101", "old"))
+				.AddError(new JobValidatorError("J501", "lifecycle"))
+				.AddError(new JobValidatorError("LIV101", "leave"));
 			var result = new JobValidationResult(job);
-			result.SetError(new DomResourceNotFoundJobError(System.Guid.Empty, "node-1"));
+			result.SetError(new DomResourceNotFoundJobValidatorError(System.Guid.Empty, "node-1"));
 
-			Assert.IsTrue(result.SyncResultsToInstance());
+			Assert.IsTrue(result.SyncResultsToJob());
 			Assert.AreEqual(2, job.Errors.Count);
 			Assert.AreEqual("leave", job.Errors.Single(error => error.Code == "LIV101").Message);
 			Assert.AreEqual(result.Errors.Single().Message, job.Errors.Single(error => error.Code == "J101").Message);
 		}
 
 		[TestMethod]
-		public void SyncResultsToInstance_WhenAlreadySynchronized_ReturnsFalse()
+		public void SyncResultsToJob_WhenAlreadySynchronized_ReturnsFalse()
 		{
-			var error = new UnresolvedReferencesJobError("Unresolved references: value.");
+			var error = new UnresolvedReferencesJobValidatorError("Unresolved references: value.");
 			var job = new Job().AddError(error);
 			var result = new JobValidationResult(job);
 			result.SetError(error);
 
-			Assert.IsFalse(result.SyncResultsToInstance());
+			Assert.IsFalse(result.SyncResultsToJob());
 		}
 
 		[TestMethod]
-		public void SyncResultsToInstance_SynchronizesQuarantinedResourceNodes()
+		public void SyncResultsToJob_SynchronizesQuarantinedResourceNodes()
 		{
 			var quarantinedNode = new JobResourceNode(System.Guid.NewGuid(), System.Guid.NewGuid());
 			var quarantinedByCoreIdNode = new JobResourceNode(System.Guid.NewGuid(), System.Guid.NewGuid());
@@ -54,7 +54,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			result.AddQuarantinedNodeId(quarantinedNode.Id);
 			result.AddQuarantinedNodeId("42");
 
-			Assert.IsTrue(result.SyncResultsToInstance());
+			Assert.IsTrue(result.SyncResultsToJob());
 			Assert.IsTrue(quarantinedNode.HasError);
 			Assert.IsTrue(quarantinedByCoreIdNode.HasError);
 			Assert.IsFalse(recoveredNode.HasError);
