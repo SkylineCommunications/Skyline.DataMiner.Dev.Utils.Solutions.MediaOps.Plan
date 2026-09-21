@@ -82,7 +82,8 @@
 
 				foreach (var entry in EnumerateEventReferences(orchestrationSettings))
 				{
-					if (CanResolve(resolver, entry, owningNodeId))
+					var reason = GetUnresolvedReason(resolver, entry, owningNodeId);
+					if (reason == null)
 					{
 						continue;
 					}
@@ -92,15 +93,15 @@
 					{
 						Id = orchestrationSettings.Id,
 						Reference = label,
-						ErrorMessage = $"Reference '{label}' could not be resolved to a value.",
+						ErrorMessage = $"Reference '{label}' {reason}",
 					});
 				}
 			}
 		}
 
-		// A parameter the event feeds can be a dropdown, which only holds one of its own options, so the resolved
-		// value has to fit it as well.
-		private bool CanResolve(ReferenceResolver resolver, (DataReference Reference, Guid? TargetParameterId) entry, string owningNodeId)
+		// Returns null when the reference produced a value the parameter it feeds can take. A parameter can be a
+		// dropdown, which only holds one of its own options, so the resolved value has to fit it as well.
+		private string GetUnresolvedReason(ReferenceResolver resolver, (DataReference Reference, Guid? TargetParameterId) entry, string owningNodeId)
 		{
 			ResolvedValue resolved;
 			try
@@ -109,21 +110,15 @@
 			}
 			catch (Exception)
 			{
-				return false;
+				resolved = null;
 			}
 
-			if (resolved == null || !resolved.IsResolved)
-			{
-				return false;
-			}
+			// A script element or parameter has no target parameter, so it takes any value.
+			var target = entry.TargetParameterId == null
+				? null
+				: referenceValidationContext.Definitions.GetParameterDefinition(entry.TargetParameterId.Value);
 
-			if (entry.TargetParameterId == null)
-			{
-				return true;
-			}
-
-			var target = referenceValidationContext.Definitions.GetParameterDefinition(entry.TargetParameterId.Value);
-			return ResolvedValueConverter.TryConvert(resolved, target, out _);
+			return ResolvedValueConverter.GetFailureReason(resolved, target);
 		}
 
 		private static IEnumerable<(DataReference Reference, Guid? TargetParameterId)> EnumerateEventReferences(OrchestrationSettings orchestrationSettings)

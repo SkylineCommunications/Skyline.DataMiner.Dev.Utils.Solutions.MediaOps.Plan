@@ -94,6 +94,31 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				out converted);
 		}
 
+		/// <summary>
+		/// Returns why the specified value cannot be used for the given target parameter, or <see langword="null"/>
+		/// when it can. The text completes the sentence "Reference 'X' ...".
+		/// </summary>
+		/// <param name="value">The value that was resolved from the reference.</param>
+		/// <param name="target">The parameter that is going to hold the value, or <see langword="null"/> when it takes any value.</param>
+		internal static string GetFailureReason(ResolvedValue value, Parameter target)
+		{
+			if (value == null || !value.IsResolved)
+			{
+				return "could not be resolved to a value.";
+			}
+
+			if (TryConvert(value, target, out _))
+			{
+				return null;
+			}
+
+			var parameter = String.IsNullOrEmpty(target?.Name) ? "the parameter" : $"'{target.Name}'";
+
+			return String.IsNullOrEmpty(value.DisplayValue)
+				? $"does not resolve to one of the options of {parameter}."
+				: $"resolves to '{value.DisplayValue}', which is not one of the options of {parameter}.";
+		}
+
 		private static IReadOnlyCollection<TextDiscreet> BuildProfileParameterOptions(CoreParameter target)
 		{
 			var displayValues = target.DiscreetDisplayValues;

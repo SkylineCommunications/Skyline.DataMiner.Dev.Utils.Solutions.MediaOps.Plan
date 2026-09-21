@@ -39,7 +39,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			Assert.IsFalse(result.IsValid);
 			Assert.AreEqual(1, result.UnresolvedReferences.Count);
-			Assert.AreEqual(unresolvedReference, result.UnresolvedReferences.Single());
+			Assert.AreEqual(unresolvedReference, result.UnresolvedReferences.Single().Reference);
 			Assert.AreEqual(1, result.ResolvedReferences.Count);
 			Assert.IsTrue(result.ResolvedReferences.Contains(null, resolvedReference));
 		}
@@ -84,7 +84,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var result = new JobReferenceValidator(resolver, new ReferenceDefinitionCache(api)).Resolve(job);
 
 			Assert.IsFalse(result.IsValid);
-			Assert.AreEqual(reference, result.UnresolvedReferences.Single());
+			Assert.AreEqual(reference, result.UnresolvedReferences.Single().Reference);
 			Assert.AreEqual(0, result.ResolvedReferences.Count);
 		}
 
@@ -127,7 +127,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
-		public void JobReferenceValidator_Resolve_DropdownWithoutMatchingOption_IsUnresolved()
+		public void JobReferenceValidator_Resolve_DropdownWithoutMatchingOption_ReportsWhyTheValueIsNotUsable()
 		{
 			var context = ReferenceTestContext.Create();
 			var capability = context.CreateCapability();
@@ -145,7 +145,28 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var result = new JobReferenceValidator(resolver, new ReferenceDefinitionCache(context.Api)).Resolve(job);
 
 			Assert.IsFalse(result.IsValid);
-			Assert.AreEqual(reference, result.UnresolvedReferences.Single());
+
+			var unresolved = result.UnresolvedReferences.Single();
+			Assert.AreEqual(reference, unresolved.Reference);
+			Assert.AreEqual($"resolves to 'Unknown value', which is not one of the options of '{capability.Name}'.", unresolved.Reason);
+		}
+
+		[TestMethod]
+		public void JobReferenceValidator_Resolve_UnresolvableReference_ReportsThatItCouldNotBeResolved()
+		{
+			var context = ReferenceTestContext.Create();
+			var capability = context.CreateCapability();
+
+			var reference = new ResourcePropertyReference(Guid.NewGuid());
+
+			var job = new Job { Name = "Test job" };
+			job.OrchestrationSettings.AddCapability(new CapabilitySetting(capability.Id) { Reference = reference });
+
+			var resolver = new FakeReferenceResolver(context.Api, new Dictionary<DataReference, ResolvedValue>());
+
+			var result = new JobReferenceValidator(resolver, new ReferenceDefinitionCache(context.Api)).Resolve(job);
+
+			Assert.AreEqual("could not be resolved to a value.", result.UnresolvedReferences.Single().Reason);
 		}
 
 		[TestMethod]
@@ -170,7 +191,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			// The text configuration can hold the value, the capability cannot.
 			Assert.IsFalse(result.IsValid);
-			Assert.AreEqual(reference, result.UnresolvedReferences.Single());
+			Assert.AreEqual(reference, result.UnresolvedReferences.Single().Reference);
 			Assert.IsTrue(result.ResolvedReferences.Contains(null, reference));
 		}
 

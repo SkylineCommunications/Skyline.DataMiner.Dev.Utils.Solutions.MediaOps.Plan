@@ -2813,14 +2813,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				var resolver = new JobReferenceResolver(planApi, job, referenceDefinitions);
 				var resolution = new JobReferenceValidator(resolver, referenceDefinitions).Resolve(job);
 
-				foreach (var reference in resolution.UnresolvedReferences)
+				foreach (var (reference, reason) in resolution.UnresolvedReferences)
 				{
 					var label = resolver.GetDisplayLabel(reference);
 					ReportError(job.Id, new JobUnresolvedReferenceError
 					{
 						Id = job.Id,
 						Reference = label,
-						ErrorMessage = $"Reference '{label}' could not be resolved to a value.",
+						ErrorMessage = $"Reference '{label}' {reason}",
 					});
 				}
 			}
@@ -3432,14 +3432,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					continue;
 				}
 
-				foreach (var reference in resolution.UnresolvedReferences)
+				foreach (var (reference, reason) in resolution.UnresolvedReferences)
 				{
 					var label = resolver.GetDisplayLabel(reference);
 					ReportError(job.Id, new JobUnresolvedReferenceError
 					{
 						Id = job.Id,
 						Reference = label,
-						ErrorMessage = $"Reference '{label}' could not be resolved to a value.",
+						ErrorMessage = $"Reference '{label}' {reason}",
 					});
 				}
 			}

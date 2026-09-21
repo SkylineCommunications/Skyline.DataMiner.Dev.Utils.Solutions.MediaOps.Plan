@@ -27,9 +27,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <summary>
-		/// Resolves all settings references in the specified job and reports which references resolved to an
-		/// actual value and which could not be resolved. A reference that resolves to a value the setting cannot
-		/// hold - a dropdown whose options do not contain the resolved value - counts as unresolved.
+		/// Resolves all settings references in the specified job and reports which references produced a value and
+		/// which did not, together with the reason why. A reference that resolves to a value the setting cannot hold -
+		/// a dropdown whose options do not contain the resolved value - counts as unresolved as well.
 		/// </summary>
 		/// <param name="job">The job whose settings references should be resolved.</param>
 		/// <returns>A <see cref="JobReferenceResolution"/> describing the outcome.</returns>
@@ -40,7 +40,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				throw new ArgumentNullException(nameof(job));
 			}
 
-			var unresolved = new List<DataReference>();
+			var unresolved = new List<(DataReference Reference, string Reason)>();
 			var resolved = new ResolvedReferenceCache();
 
 			foreach (var entry in EnumerateReferenceSettings(job))
@@ -70,22 +70,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					}
 				}
 
-				// The value is cached as it was resolved; whether it fits is decided per setting, since the same
-				// reference can feed settings with different options.
-				if (!Fits(value, entry.Setting.Id) && !unresolved.Contains(reference))
+				// The value is cached as it was resolved; whether the setting can take it is decided per setting,
+				// since the same reference can feed settings with different options.
+				var reason = ResolvedValueConverter.GetFailureReason(value, definitions.GetParameterDefinition(entry.Setting.Id));
+				if (reason != null && !unresolved.Contains((reference, reason)))
 				{
-					unresolved.Add(reference);
+					unresolved.Add((reference, reason));
 				}
 			}
 
 			return new JobReferenceResolution(unresolved, resolved);
-		}
-
-		private bool Fits(ResolvedValue value, Guid parameterId)
-		{
-			return value != null
-				&& value.IsResolved
-				&& ResolvedValueConverter.TryConvert(value, definitions.GetParameterDefinition(parameterId), out _);
 		}
 
 		private static IEnumerable<(Setting Setting, string OwningNodeId)> EnumerateReferenceSettings(Job job)
