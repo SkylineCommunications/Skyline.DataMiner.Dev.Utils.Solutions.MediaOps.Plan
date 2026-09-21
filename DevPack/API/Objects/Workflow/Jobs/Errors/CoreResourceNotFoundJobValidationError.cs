@@ -3,13 +3,13 @@
 	using System;
 
 	/// <summary>Represents a linked core resource that could not be found.</summary>
-	public sealed class CoreResourceNotFoundJobValidatorError : JobValidatorError
+	public sealed class CoreResourceNotFoundJobValidationError : JobValidationError
 	{
 		/// <summary>The error code.</summary>
 		public const string ErrorCode = "J102";
 
-		/// <summary>Initializes a new instance of the <see cref="CoreResourceNotFoundJobValidatorError"/> class.</summary>
-		public CoreResourceNotFoundJobValidatorError(Guid coreResourceId, string resourceName)
+		/// <summary>Initializes a new instance of the <see cref="CoreResourceNotFoundJobValidationError"/> class.</summary>
+		public CoreResourceNotFoundJobValidationError(Guid coreResourceId, string resourceName)
 			: base(ErrorCode, $"Couldn't find core resource with ID '{coreResourceId}' linked to DOM resource '{resourceName}'")
 		{
 		}
