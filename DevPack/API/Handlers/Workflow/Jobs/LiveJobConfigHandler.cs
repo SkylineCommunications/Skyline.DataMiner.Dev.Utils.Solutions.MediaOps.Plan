@@ -427,12 +427,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					{
 						var target = _referenceDefinitions.GetParameterDefinition(profileParameterValue.ProfileParameterId);
 
-						if (ReferenceValueCoercion.TryCoerce(resolved, target, out var coerced))
+						if (ResolvedValueConverter.TryConvert(resolved, target, out var converted))
 						{
 							profile.Values.Add(new Live.OrchestrationProfileValue
 							{
 								Name = profileParameterValue.ProfileParameterId.ToString(),
-								Value = ToParameterValue(coerced),
+								Value = ToParameterValue(converted),
 							});
 						}
 					}

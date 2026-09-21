@@ -123,7 +123,7 @@
 			}
 
 			var target = referenceValidationContext.Definitions.GetParameterDefinition(entry.TargetParameterId.Value);
-			return ReferenceValueCoercion.TryCoerce(resolved, target, out _);
+			return ResolvedValueConverter.TryConvert(resolved, target, out _);
 		}
 
 		private static IEnumerable<(DataReference Reference, Guid? TargetParameterId)> EnumerateEventReferences(OrchestrationSettings orchestrationSettings)

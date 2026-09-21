@@ -85,7 +85,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 			return value != null
 				&& value.IsResolved
-				&& ReferenceValueCoercion.TryCoerce(value, definitions.GetParameterDefinition(parameterId), out _);
+				&& ResolvedValueConverter.TryConvert(value, definitions.GetParameterDefinition(parameterId), out _);
 		}
 
 		private static IEnumerable<(Setting Setting, string OwningNodeId)> EnumerateReferenceSettings(Job job)

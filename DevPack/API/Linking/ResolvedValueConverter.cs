@@ -10,7 +10,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using CoreParameter = Net.Profiles.Parameter;
 
 	/// <summary>
-	/// Fits a <see cref="ResolvedValue"/> onto the parameter that is going to hold it.
+	/// Converts a <see cref="ResolvedValue"/> into the value the parameter that is going to hold it can take.
 	/// </summary>
 	/// <remarks>
 	/// <para>
@@ -24,18 +24,18 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// Every other parameter keeps the incoming value as-is; a text parameter converts it to a string when it is used.
 	/// </para>
 	/// </remarks>
-	public static class ReferenceValueCoercion
+	public static class ResolvedValueConverter
 	{
 		/// <summary>
-		/// Fits the specified value onto the given target parameter.
+		/// Converts the specified value into the value the given target parameter can take.
 		/// </summary>
 		/// <param name="value">The value that was resolved from the reference.</param>
 		/// <param name="target">The parameter that is going to hold the value, or <see langword="null"/> when it is unknown.</param>
-		/// <param name="coerced">When this method returns, contains the value as the target holds it.</param>
+		/// <param name="converted">When this method returns, contains the value as the target holds it.</param>
 		/// <returns><see langword="true"/> when the target can hold the value; otherwise, <see langword="false"/>.</returns>
-		public static bool TryCoerce(ResolvedValue value, Parameter target, out ResolvedValue coerced)
+		public static bool TryConvert(ResolvedValue value, Parameter target, out ResolvedValue converted)
 		{
-			coerced = value;
+			converted = value;
 
 			if (value == null || !value.IsResolved)
 			{
@@ -46,13 +46,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				case Capability capability:
 					// Capability options have no separate display name, so the option is its own display value.
-					return TryMatchDiscrete(value, capability.Discretes, x => x, x => x, x => new StringResolvedValue(x, x), out coerced);
+					return TryMatchDiscrete(value, capability.Discretes, x => x, x => x, x => new StringResolvedValue(x, x), out converted);
 
 				case DiscreteTextConfiguration discreteText:
-					return TryMatchDiscrete(value, discreteText.Discretes, x => x.DisplayName, x => x.Value, x => new StringResolvedValue(x.Value, x.DisplayName), out coerced);
+					return TryMatchDiscrete(value, discreteText.Discretes, x => x.DisplayName, x => x.Value, x => new StringResolvedValue(x.Value, x.DisplayName), out converted);
 
 				case DiscreteNumberConfiguration discreteNumber:
-					return TryMatchDiscrete(value, discreteNumber.Discretes, x => x.DisplayName, x => Convert.ToString(x.Value, CultureInfo.InvariantCulture), x => new DecimalResolvedValue(x.Value, x.DisplayName), out coerced);
+					return TryMatchDiscrete(value, discreteNumber.Discretes, x => x.DisplayName, x => Convert.ToString(x.Value, CultureInfo.InvariantCulture), x => new DecimalResolvedValue(x.Value, x.DisplayName), out converted);
 
 				default:
 					return true;
@@ -60,15 +60,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <summary>
-		/// Fits the specified value onto the given target profile parameter.
+		/// Converts the specified value into the value the given target profile parameter can take.
 		/// </summary>
 		/// <param name="value">The value that was resolved from the reference.</param>
 		/// <param name="target">The profile parameter that is going to hold the value, or <see langword="null"/> when it is unknown.</param>
-		/// <param name="coerced">When this method returns, contains the value as the target holds it.</param>
+		/// <param name="converted">When this method returns, contains the value as the target holds it.</param>
 		/// <returns><see langword="true"/> when the target can hold the value; otherwise, <see langword="false"/>.</returns>
-		public static bool TryCoerce(ResolvedValue value, CoreParameter target, out ResolvedValue coerced)
+		public static bool TryConvert(ResolvedValue value, CoreParameter target, out ResolvedValue converted)
 		{
-			coerced = value;
+			converted = value;
 
 			if (value == null || !value.IsResolved)
 			{
@@ -91,7 +91,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				x => isNumber && Double.TryParse(x.Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var number)
 					? (ResolvedValue)new DoubleResolvedValue(number, x.DisplayName)
 					: new StringResolvedValue(x.Value, x.DisplayName),
-				out coerced);
+				out converted);
 		}
 
 		private static IReadOnlyCollection<TextDiscreet> BuildProfileParameterOptions(CoreParameter target)
@@ -110,10 +110,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			Func<T, string> displayNameSelector,
 			Func<T, string> rawValueSelector,
 			Func<T, ResolvedValue> resultSelector,
-			out ResolvedValue coerced)
+			out ResolvedValue converted)
 			where T : class
 		{
-			coerced = value;
+			converted = value;
 
 			if (options == null || options.Count == 0)
 			{
@@ -125,7 +125,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			var displayValue = value.DisplayValue;
 			if (String.IsNullOrEmpty(displayValue))
 			{
-				coerced = null;
+				converted = null;
 				return false;
 			}
 
@@ -136,11 +136,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			if (match == null)
 			{
-				coerced = null;
+				converted = null;
 				return false;
 			}
 
-			coerced = resultSelector(match);
+			converted = resultSelector(match);
 			return true;
 		}
 	}
