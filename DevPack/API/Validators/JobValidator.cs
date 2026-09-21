@@ -63,7 +63,7 @@
 			{
 				foreach (var result in results.Values)
 				{
-					result.SetError(new GenericJobValidatorError(exception));
+					result.SetError(new GenericJobValidationError(exception));
 				}
 			}
 
@@ -115,7 +115,7 @@
 			}
 			catch (Exception exception)
 			{
-				result.SetError(new GenericJobValidatorError(exception));
+				result.SetError(new GenericJobValidationError(exception));
 			}
 		}
 
@@ -126,19 +126,19 @@
 			{
 				if (!context.Resources.TryGetValue(node.ResourceId, out var resource))
 				{
-					result.SetError(new DomResourceNotFoundJobValidatorError(node.ResourceId, node.Id));
+					result.SetError(new DomResourceNotFoundJobValidationError(node.ResourceId, node.Id));
 					continue;
 				}
 
 				resources[resource.Id] = resource;
 				if (resource.State != ResourceState.Complete)
 				{
-					result.SetError(new DomResourceInvalidJobValidatorError($"Resource '{resource.Name}' is not in complete state"));
+					result.SetError(new DomResourceInvalidJobValidationError($"Resource '{resource.Name}' is not in complete state"));
 				}
 
 				if (resource.OriginalInstance?.Errors.Count > 0)
 				{
-					result.SetError(new DomResourceInvalidJobValidatorError($"Resource '{resource.Name}' has active errors"));
+					result.SetError(new DomResourceInvalidJobValidationError($"Resource '{resource.Name}' has active errors"));
 				}
 
 				if (resource.CoreResourceId == Guid.Empty)
@@ -148,11 +148,11 @@
 
 				if (!context.CoreResources.TryGetValue(resource.CoreResourceId, out var coreResource))
 				{
-					result.SetError(new CoreResourceNotFoundJobValidatorError(resource.CoreResourceId, resource.Name));
+					result.SetError(new CoreResourceNotFoundJobValidationError(resource.CoreResourceId, resource.Name));
 				}
 				else if (coreResource.Mode != ResourceMode.Available)
 				{
-					result.SetError(new CoreResourceUnavailableJobValidatorError(coreResource.Name, Convert.ToString(coreResource.Mode)));
+					result.SetError(new CoreResourceUnavailableJobValidationError(coreResource.Name, Convert.ToString(coreResource.Mode)));
 				}
 			}
 
@@ -163,7 +163,7 @@
 		{
 			foreach (var reservation in reservations.Where(reservation => reservation.IsQuarantined))
 			{
-				result.SetError(new QuarantinedReservationJobValidatorError(ComposeQuarantineMessage(reservation, result)));
+				result.SetError(new QuarantinedReservationJobValidationError(ComposeQuarantineMessage(reservation, result)));
 			}
 		}
 
@@ -178,12 +178,12 @@
 			{
 				if (resource.VirtualSignalGroupInputId != Guid.Empty && !context.VirtualSignalGroupIds.Contains(resource.VirtualSignalGroupInputId))
 				{
-					result.SetError(new VirtualSignalGroupNotFoundJobValidatorError("input", resource.VirtualSignalGroupInputId, resource.Name));
+					result.SetError(new VirtualSignalGroupNotFoundJobValidationError("input", resource.VirtualSignalGroupInputId, resource.Name));
 				}
 
 				if (resource.VirtualSignalGroupOutputId != Guid.Empty && !context.VirtualSignalGroupIds.Contains(resource.VirtualSignalGroupOutputId))
 				{
-					result.SetError(new VirtualSignalGroupNotFoundJobValidatorError("output", resource.VirtualSignalGroupOutputId, resource.Name));
+					result.SetError(new VirtualSignalGroupNotFoundJobValidationError("output", resource.VirtualSignalGroupOutputId, resource.Name));
 				}
 			}
 		}
@@ -199,7 +199,7 @@
 			var resolution = new JobReferenceValidator(resolver).Resolve(job);
 			if (!resolution.IsValid)
 			{
-				result.SetError(new UnresolvedReferencesJobValidatorError(ComposeUnresolvedReferencesMessage(resolution.UnresolvedReferences)));
+				result.SetError(new UnresolvedReferencesJobValidationError(ComposeUnresolvedReferencesMessage(resolution.UnresolvedReferences)));
 			}
 
 			ValidateReservationRequirementsStillMatch(job, reservations, resolution, result);
@@ -250,7 +250,7 @@
 
 			if (mismatches.Count > 0)
 			{
-				result.SetError(new ReservationRequirementsMismatchJobValidatorError(ComposeReservationMismatchMessage(mismatches)));
+				result.SetError(new ReservationRequirementsMismatchJobValidationError(ComposeReservationMismatchMessage(mismatches)));
 			}
 		}
 
@@ -288,7 +288,7 @@
 
 			if (mismatches.Count > 0)
 			{
-				result.SetError(new LiveEventsMismatchJobValidatorError(ComposeLiveEventMismatchMessage(mismatches)));
+				result.SetError(new LiveEventsMismatchJobValidationError(ComposeLiveEventMismatchMessage(mismatches)));
 			}
 		}
 

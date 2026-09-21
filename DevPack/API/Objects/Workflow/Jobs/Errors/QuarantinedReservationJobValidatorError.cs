@@ -1,14 +1,14 @@
-﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+﻿﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
-	/// <summary>Represents a job reservation that contains quarantined resources.</summary>
-	public sealed class QuarantinedReservationJobValidatorError : JobValidatorError
+
+	public sealed class QuarantinedReservationJobValidatorError : QuarantinedReservationJobValidationError
 	{
 		/// <summary>The error code.</summary>
-		public const string ErrorCode = "J105";
+		public new const string ErrorCode = QuarantinedReservationJobValidationError.ErrorCode;
 
 		/// <summary>Initializes a new instance of the <see cref="QuarantinedReservationJobValidatorError"/> class.</summary>
 		public QuarantinedReservationJobValidatorError(string message)
-			: base(ErrorCode, message)
+			: base(message)
 		{
 		}
 	}

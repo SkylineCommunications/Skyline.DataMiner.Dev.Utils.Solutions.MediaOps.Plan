@@ -13,34 +13,34 @@
 	public class JobValidationResultTests
 	{
 		[TestMethod]
-		public void SyncResultsToJob_ReplacesAndClearsOwnedErrorsWhilePreservingOtherErrors()
+		public void SyncToJob_ReplacesAndClearsOwnedErrorsWhilePreservingOtherErrors()
 		{
 			var job = new Job()
 				.AddError(new JobError("J101", "old"))
 				.AddError(new JobError("J501", "lifecycle"))
 				.AddError(new JobError("LIV101", "leave"));
 			var result = new JobValidationResult(job);
-			result.SetError(new DomResourceNotFoundJobValidatorError(System.Guid.Empty, "node-1"));
+			result.SetError(new DomResourceNotFoundJobValidationError(System.Guid.Empty, "node-1"));
 
-			Assert.IsTrue(result.SyncResultsToJob());
+			Assert.IsTrue(result.SyncToJob());
 			Assert.AreEqual(2, job.Errors.Count);
 			Assert.AreEqual("leave", job.Errors.Single(error => error.Code == "LIV101").Message);
 			Assert.AreEqual(result.Errors.Single().Message, job.Errors.Single(error => error.Code == "J101").Message);
 		}
 
 		[TestMethod]
-		public void SyncResultsToJob_WhenAlreadySynchronized_ReturnsFalse()
+		public void SyncToJob_WhenAlreadySynchronized_ReturnsFalse()
 		{
-			var error = new UnresolvedReferencesJobValidatorError("Unresolved references: value.");
+			var error = new UnresolvedReferencesJobValidationError("Unresolved references: value.");
 			var job = new Job().AddError(error);
 			var result = new JobValidationResult(job);
 			result.SetError(error);
 
-			Assert.IsFalse(result.SyncResultsToJob());
+			Assert.IsFalse(result.SyncToJob());
 		}
 
 		[TestMethod]
-		public void SyncResultsToJob_SynchronizesQuarantinedResourceNodes()
+		public void SyncToJob_SynchronizesQuarantinedResourceNodes()
 		{
 			var quarantinedNode = new JobResourceNode(System.Guid.NewGuid(), System.Guid.NewGuid());
 			var quarantinedByCoreIdNode = new JobResourceNode(System.Guid.NewGuid(), System.Guid.NewGuid());
@@ -54,7 +54,7 @@
 			result.AddQuarantinedNodeId(quarantinedNode.Id);
 			result.AddQuarantinedNodeId("42");
 
-			Assert.IsTrue(result.SyncResultsToJob());
+			Assert.IsTrue(result.SyncToJob());
 			Assert.IsTrue(quarantinedNode.HasError);
 			Assert.IsTrue(quarantinedByCoreIdNode.HasError);
 			Assert.IsFalse(recoveredNode.HasError);
