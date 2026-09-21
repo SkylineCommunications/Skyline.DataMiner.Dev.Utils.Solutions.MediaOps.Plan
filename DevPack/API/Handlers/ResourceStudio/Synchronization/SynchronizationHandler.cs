@@ -5,6 +5,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using System.Linq;
 
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+	using Skyline.DataMiner.SDM;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 	using Skyline.DataMiner.Utils.DOM.Extensions;
