@@ -3,7 +3,7 @@
 	using System;
 
 	/// <summary>Represents an unexpected job validation failure.</summary>
-	public sealed class GenericJobValidationError : JobValidationError
+	public class GenericJobValidationError : JobValidationError
 	{
 		/// <summary>The error code.</summary>
 		public const string ErrorCode = "J000";

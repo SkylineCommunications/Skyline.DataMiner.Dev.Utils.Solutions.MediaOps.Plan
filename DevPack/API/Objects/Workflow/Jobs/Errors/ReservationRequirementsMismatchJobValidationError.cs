@@ -1,7 +1,7 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	/// <summary>Represents resolved requirements that no longer match a job reservation.</summary>
-	public sealed class ReservationRequirementsMismatchJobValidationError : JobValidationError
+	public class ReservationRequirementsMismatchJobValidationError : JobValidationError
 	{
 		/// <summary>The error code.</summary>
 		public const string ErrorCode = "J602";
