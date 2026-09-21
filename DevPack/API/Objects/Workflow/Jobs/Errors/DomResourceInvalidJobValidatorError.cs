@@ -1,14 +1,14 @@
-﻿﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
-
-	public sealed class DomResourceInvalidJobValidatorError : DomResourceInvalidJobValidationError
+	/// <summary>Represents a Resource Studio resource that is incomplete or has active errors.</summary>
+	public sealed class DomResourceInvalidJobValidatorError : JobValidatorError
 	{
 		/// <summary>The error code.</summary>
-		public new const string ErrorCode = DomResourceInvalidJobValidationError.ErrorCode;
+		public const string ErrorCode = "J103";
 
 		/// <summary>Initializes a new instance of the <see cref="DomResourceInvalidJobValidatorError"/> class.</summary>
 		public DomResourceInvalidJobValidatorError(string message)
-			: base(message)
+			: base(ErrorCode, message)
 		{
 		}
 	}

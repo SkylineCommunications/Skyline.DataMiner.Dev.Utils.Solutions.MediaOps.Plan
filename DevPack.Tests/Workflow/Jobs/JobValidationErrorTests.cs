@@ -12,19 +12,19 @@
 		[TestMethod]
 		public void ValidationErrors_ExposeExpectedCodes()
 		{
-			var errors = new JobValidationError[]
+			var errors = new JobValidatorError[]
 			{
-				new GenericJobValidationError(new InvalidOperationException("failure")),
-				new DomResourceNotFoundJobValidationError(Guid.Empty, "node"),
-				new CoreResourceNotFoundJobValidationError(Guid.Empty, "resource"),
-				new DomResourceInvalidJobValidationError("message"),
-				new CoreResourceUnavailableJobValidationError("resource", "Unavailable"),
-				new QuarantinedReservationJobValidationError("message"),
-				new VirtualSignalGroupNotFoundJobValidationError("input", Guid.Empty, "resource"),
-				new TransitionToTentativeJobValidationError("message"),
-				new UnresolvedReferencesJobValidationError("message"),
-				new ReservationRequirementsMismatchJobValidationError("message"),
-				new LiveEventsMismatchJobValidationError("message"),
+				new GenericJobValidatorError(new InvalidOperationException("failure")),
+				new DomResourceNotFoundJobValidatorError(Guid.Empty, "node"),
+				new CoreResourceNotFoundJobValidatorError(Guid.Empty, "resource"),
+				new DomResourceInvalidJobValidatorError("message"),
+				new CoreResourceUnavailableJobValidatorError("resource", "Unavailable"),
+				new QuarantinedReservationJobValidatorError("message"),
+				new VirtualSignalGroupNotFoundJobValidatorError("input", Guid.Empty, "resource"),
+				new TransitionToTentativeJobValidatorError("message"),
+				new UnresolvedReferencesJobValidatorError("message"),
+				new ReservationRequirementsMismatchJobValidatorError("message"),
+				new LiveEventsMismatchJobValidatorError("message"),
 			};
 
 			CollectionAssert.AreEqual(
@@ -39,10 +39,10 @@
 
 			Assert.AreEqual(
 				$"Couldn't find DOM resource with ID '{resourceId}' for node node-1",
-				new DomResourceNotFoundJobValidationError(resourceId, "node-1").Message);
+				new DomResourceNotFoundJobValidatorError(resourceId, "node-1").Message);
 			Assert.AreEqual(
 				"Resource 'Encoder' has state Unavailable",
-				new CoreResourceUnavailableJobValidationError("Encoder", "Unavailable").Message);
+				new CoreResourceUnavailableJobValidatorError("Encoder", "Unavailable").Message);
 		}
 	}
 }
