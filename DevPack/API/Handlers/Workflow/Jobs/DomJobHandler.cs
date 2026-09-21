@@ -282,9 +282,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				.Select(x => x.GetInstanceWithChanges())
 				.ToList();
 
-			var changedJobs = changeResults
+			// Re-validate against the lock-merged DOM jobs so resolved validation errors are cleared from the exact
+			// instance that will be persisted, without requiring a second DOM update afterwards.
+			var mergedDomJobs = changeResults
 				.Where(IsValid)
-				.Select(x => new Job(planApi, new DomJob(x.Instance)))
+				.Select(x => new DomJob(x.Instance))
+				.ToList();
+
+			var changedJobs = mergedDomJobs
+				.Select(x => new Job(planApi, x))
 				.ToList();
 			ClearResolvedValidationErrors(changedJobs);
 
