@@ -16,7 +16,7 @@
 	public class Job : ApiNamedObject
 	{
 		private readonly HashSet<Guid> contactIds = [];
-		private readonly Dictionary<string, JobValidatorError> errors = [];
+		private readonly Dictionary<string, JobError> errors = [];
 
 		private StorageWorkflow.JobsInstance originalInstance;
 		private StorageWorkflow.JobsInstance updatedInstance;
@@ -312,7 +312,7 @@
 		/// <summary>
 		/// Gets the collection of errors reported on the job.
 		/// </summary>
-		public IReadOnlyCollection<JobValidatorError> Errors => errors.Values;
+		public IReadOnlyCollection<JobError> Errors => errors.Values;
 
 		/// <summary>
 		/// Gets or sets the unique identifier of the associated job type category.
@@ -848,7 +848,7 @@
 		/// <param name="error">The error to add.</param>
 		/// <returns>The current <see cref="Job"/> instance.</returns>
 		/// <exception cref="ArgumentException">Thrown when <paramref name="error"/> is <see langword="null"/>.</exception>
-		public Job AddError(JobValidatorError error)
+		public Job AddError(JobError error)
 		{
 			if (error == null)
 			{
@@ -882,7 +882,7 @@
 		/// <param name="error">The error to remove.</param>
 		/// <returns>The current <see cref="Job"/> instance.</returns>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="error"/> is <see langword="null"/>.</exception>
-		public Job RemoveError(JobValidatorError error)
+		public Job RemoveError(JobError error)
 		{
 			if (error == null)
 			{
@@ -1133,7 +1133,7 @@
 					continue;
 				}
 
-				errors[error.ErrorCode] = new JobValidatorError(error.ErrorCode, error.ErrorMessage);
+				errors[error.ErrorCode] = new JobError(error.ErrorCode, error.ErrorMessage);
 			}
 
 			if (instance.JobExecution.JobConfiguration == null || instance.JobExecution.JobConfiguration == Guid.Empty)

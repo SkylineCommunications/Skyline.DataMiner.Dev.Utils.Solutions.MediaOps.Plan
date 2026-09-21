@@ -16,9 +16,9 @@
 		public void SyncResultsToJob_ReplacesAndClearsOwnedErrorsWhilePreservingOtherErrors()
 		{
 			var job = new Job()
-				.AddError(new JobValidatorError("J101", "old"))
-				.AddError(new JobValidatorError("J501", "lifecycle"))
-				.AddError(new JobValidatorError("LIV101", "leave"));
+				.AddError(new JobError("J101", "old"))
+				.AddError(new JobError("J501", "lifecycle"))
+				.AddError(new JobError("LIV101", "leave"));
 			var result = new JobValidationResult(job);
 			result.SetError(new DomResourceNotFoundJobValidatorError(System.Guid.Empty, "node-1"));
 
