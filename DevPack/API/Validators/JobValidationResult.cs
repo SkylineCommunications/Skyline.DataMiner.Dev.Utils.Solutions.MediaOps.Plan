@@ -20,7 +20,7 @@
 		public Job Job { get; }
 
 		/// <summary>Gets the errors produced by the validator.</summary>
-		public IReadOnlyCollection<JobValidationError> Errors => errors.Values;
+		public IReadOnlyCollection<JobValidatorError> Errors => errors.Values;
 
 		/// <summary>Gets a value indicating whether validation produced errors.</summary>
 		public bool HasErrors => errors.Count != 0;
@@ -73,6 +73,14 @@
 			}
 
 			return changed;
+		}
+
+		/// <summary>Synchronizes validation errors and quarantined resource-node states to the job.</summary>
+		/// <returns><see langword="true"/> when the job changed; otherwise, <see langword="false"/>.</returns>
+		[Obsolete("Use SyncToJob instead.")]
+		public bool SyncResultsToJob()
+		{
+			return SyncToJob();
 		}
 
 		/// <summary>Synchronizes validation errors and quarantined resource-node states to the job.</summary>

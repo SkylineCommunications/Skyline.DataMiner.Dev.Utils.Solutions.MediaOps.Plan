@@ -1,7 +1,7 @@
 ﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	/// <summary>Represents job references that could not be resolved.</summary>
-	public sealed class UnresolvedReferencesJobValidationError : JobValidationError
+	public class UnresolvedReferencesJobValidationError : JobValidationError
 	{
 		/// <summary>The error code.</summary>
 		public const string ErrorCode = "J601";
