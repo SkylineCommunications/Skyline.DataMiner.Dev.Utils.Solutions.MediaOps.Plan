@@ -282,9 +282,20 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				.Select(x => x.GetInstanceWithChanges())
 				.ToList();
 
-			var toUpdateDomInstances = changeResults
+			// Re-validate against the lock-merged DOM jobs so resolved validation errors are cleared from the exact
+			// instance that will be persisted, without requiring a second DOM update afterwards.
+			var mergedDomJobs = changeResults
 				.Where(IsValid)
 				.Select(x => new DomJob(x.Instance))
+				.ToList();
+
+			var changedJobs = mergedDomJobs
+				.Select(x => new Job(planApi, x))
+				.ToList();
+			ClearResolvedValidationErrors(changedJobs);
+
+			var toUpdateDomInstances = changedJobs
+				.Select(x => new DomJob(x.GetInstanceWithChanges()))
 				.ToList();
 
 			CreateOrUpdateDomJobs(toCreateDomInstances.Concat(toUpdateDomInstances).ToList());
@@ -299,6 +310,19 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				.Where(x => !linkOnlyJobIds.Contains(x.ID.Id))
 				.Select(x => new Job(planApi, x))
 				.ToList());
+		}
+
+		private void ClearResolvedValidationErrors(ICollection<Job> jobs)
+		{
+			if (jobs.Count == 0)
+			{
+				return;
+			}
+
+			foreach (var result in new JobValidator(planApi).Validate(jobs))
+			{
+				result.ClearResolvedErrorsFromUpdate();
+			}
 		}
 
 		private void CreateOrUpdateDomJobs(ICollection<DomJob> domJobs)
@@ -543,6 +567,19 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				try
 				{
 					var transitionedInstance = planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.DoStatusTransition(domJob.ID, Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.Transitions.Draft_To_Tentative);
+					var transitionedJob = new Job(planApi, new DomJob(transitionedInstance));
+					if (transitionedJob.Errors.Any(error => error.Code == TransitionToTentativeJobValidationError.ErrorCode))
+					{
+						transitionedJob.RemoveError(TransitionToTentativeJobValidationError.ErrorCode);
+						planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.TryCreateOrUpdateInBatches([transitionedJob.GetInstanceWithChanges().ToInstance()], out var clearResult);
+						if (clearResult.UnsuccessfulIds.Count > 0)
+						{
+							throw new InvalidOperationException($"Failed to clear error {TransitionToTentativeJobValidationError.ErrorCode} after transitioning job {domJob.ID.Id} to Tentative.");
+						}
+
+						transitionedInstance = clearResult.SuccessfulItems.Single();
+					}
+
 					ReportSuccess(new DomJob(transitionedInstance));
 				}
 				catch (Exception ex)

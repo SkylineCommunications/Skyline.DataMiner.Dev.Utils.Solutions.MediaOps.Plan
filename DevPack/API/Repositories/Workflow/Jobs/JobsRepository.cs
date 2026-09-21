@@ -22,6 +22,11 @@
 
 		public JobTypes JobTypes { get; } = new JobTypes();
 
+		public IReadOnlyCollection<JobValidationResult> Validate(IEnumerable<Job> jobs)
+		{
+			return new JobValidator(PlanApi).Validate(jobs);
+		}
+
 		public Job SaveAsTentative(Job job)
 		{
 			if (job == null)
