@@ -8,7 +8,7 @@
 	/// <summary>Contains the errors produced while validating a job and synchronizes them to that job.</summary>
 	public sealed class JobValidationResult
 	{
-		private readonly Dictionary<string, JobValidationError> errors = new Dictionary<string, JobValidationError>(StringComparer.Ordinal);
+		private readonly Dictionary<string, JobValidatorError> errors = new Dictionary<string, JobValidatorError>(StringComparer.Ordinal);
 		private readonly HashSet<string> quarantinedNodeIds = new HashSet<string>(StringComparer.Ordinal);
 
 		internal JobValidationResult(Job job)
@@ -41,7 +41,7 @@
 
 		/// <summary>Synchronizes validation errors and quarantined resource-node states to the job.</summary>
 		/// <returns><see langword="true"/> when the job changed; otherwise, <see langword="false"/>.</returns>
-		public bool SyncToJob()
+		public bool SyncResultsToJob()
 		{
 			var changed = false;
 			var existingErrors = Job.Errors.ToDictionary(error => error.Code, StringComparer.Ordinal);
@@ -55,7 +55,7 @@
 				}
 			}
 
-			foreach (var error in existingErrors.Values.Where(error => JobValidationError.MediaOpsOwnedErrorCodes.Contains(error.Code) && !errors.ContainsKey(error.Code)))
+			foreach (var error in existingErrors.Values.Where(error => JobValidatorError.MediaOpsOwnedErrorCodes.Contains(error.Code) && !errors.ContainsKey(error.Code)))
 			{
 				Job.RemoveError(error.Code);
 				changed = true;
@@ -77,21 +77,13 @@
 
 		/// <summary>Synchronizes validation errors and quarantined resource-node states to the job.</summary>
 		/// <returns><see langword="true"/> when the job changed; otherwise, <see langword="false"/>.</returns>
-		[Obsolete("Use SyncToJob instead.")]
-		public bool SyncResultsToJob()
-		{
-			return SyncToJob();
-		}
-
-		/// <summary>Synchronizes validation errors and quarantined resource-node states to the job.</summary>
-		/// <returns><see langword="true"/> when the job changed; otherwise, <see langword="false"/>.</returns>
-		[Obsolete("Use SyncToJob instead.")]
+		[Obsolete("Use SyncResultsToJob instead.")]
 		public bool SyncResultsToInstance()
 		{
-			return SyncToJob();
+			return SyncResultsToJob();
 		}
 
-		internal void SetError(JobValidationError error)
+		internal void SetError(JobValidatorError error)
 		{
 			if (error == null)
 			{

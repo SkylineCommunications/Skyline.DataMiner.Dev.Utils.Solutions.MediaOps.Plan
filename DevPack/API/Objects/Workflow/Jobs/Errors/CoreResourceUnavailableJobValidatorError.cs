@@ -1,14 +1,14 @@
-﻿﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
-
-	public sealed class CoreResourceUnavailableJobValidatorError : CoreResourceUnavailableJobValidationError
+	/// <summary>Represents a linked core resource that is unavailable.</summary>
+	public sealed class CoreResourceUnavailableJobValidatorError : JobValidatorError
 	{
 		/// <summary>The error code.</summary>
-		public new const string ErrorCode = CoreResourceUnavailableJobValidationError.ErrorCode;
+		public const string ErrorCode = "J104";
 
 		/// <summary>Initializes a new instance of the <see cref="CoreResourceUnavailableJobValidatorError"/> class.</summary>
 		public CoreResourceUnavailableJobValidatorError(string resourceName, string mode)
-			: base(resourceName, mode)
+			: base(ErrorCode, $"Resource '{resourceName}' has state {mode}")
 		{
 		}
 	}

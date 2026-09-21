@@ -1,14 +1,14 @@
-﻿﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
-
-	public sealed class TransitionToTentativeJobValidatorError : TransitionToTentativeJobValidationError
+	/// <summary>Represents a recurring job occurrence that could not transition to tentative.</summary>
+	public sealed class TransitionToTentativeJobValidatorError : JobValidatorError
 	{
 		/// <summary>The error code.</summary>
-		public new const string ErrorCode = TransitionToTentativeJobValidationError.ErrorCode;
+		public const string ErrorCode = "J501";
 
 		/// <summary>Initializes a new instance of the <see cref="TransitionToTentativeJobValidatorError"/> class.</summary>
 		public TransitionToTentativeJobValidatorError(string message)
-			: base(message)
+			: base(ErrorCode, message)
 		{
 		}
 	}
