@@ -23,6 +23,17 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 			DataReferenceType.ConfigurationParameter,
 		];
 
+		private static readonly HashSet<DataReferenceType> NodeTargetableTypes =
+		[
+			DataReferenceType.ResourceName,
+			DataReferenceType.ResourceProperty,
+			DataReferenceType.ResourceLinkedObjectID,
+			DataReferenceType.CapabilityParameter,
+			DataReferenceType.CapacityParameter,
+			DataReferenceType.ConfigurationParameter,
+			DataReferenceType.JobProperty,
+		];
+
 		public static IEnumerable<object[]> AllTypes => DataReferenceFactory.AllTypes;
 
 		[DataTestMethod]
@@ -42,6 +53,21 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 				.ToList();
 
 			CollectionAssert.AreEquivalent(new[] { DataReferenceType.JobName, DataReferenceType.JobProperty }, jobLevelTypes);
+		}
+
+		[DataTestMethod]
+		[DynamicData(nameof(AllTypes))]
+		public void DataReferenceTypeExtensionsTests_SupportsNodeScope_MatchesTheExpectedScope(DataReferenceType type)
+		{
+			Assert.AreEqual(NodeTargetableTypes.Contains(type), type.SupportsNodeScope(), $"Unexpected node support for '{type}'.");
+		}
+
+		/// <summary>A job property can target a node even though it is not resolved against that node's resource.</summary>
+		[TestMethod]
+		public void DataReferenceTypeExtensionsTests_SupportsNodeScope_JobProperty_ReturnsTrue()
+		{
+			Assert.IsTrue(DataReferenceType.JobProperty.SupportsNodeScope());
+			Assert.IsFalse(DataReferenceType.JobProperty.IsNodeScoped());
 		}
 	}
 }
