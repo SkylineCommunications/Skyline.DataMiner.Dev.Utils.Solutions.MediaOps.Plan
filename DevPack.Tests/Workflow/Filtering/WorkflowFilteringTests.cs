@@ -6,6 +6,7 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 	using RT_MediaOps.Plan.RegressionTests;
 
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+	using Skyline.DataMiner.SDM;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 
 	using Workflow = Skyline.DataMiner.Solutions.MediaOps.Plan.API.Workflow;
