@@ -125,9 +125,9 @@
 			{
 				int hash = base.GetHashCode();
 				hash = (hash * 23) + IsTimeDependent.GetHashCode();
-				foreach (var discreet in discretes.OrderBy(x => x).ToArray())
+				foreach (var discrete in discretes.OrderBy(x => x).ToArray())
 				{
-					hash = (hash * 23) + (discreet != null ? discreet.GetHashCode() : 0);
+					hash = (hash * 23) + (discrete != null ? discrete.GetHashCode() : 0);
 				}
 
 				return hash;
@@ -149,9 +149,9 @@
 		protected internal override void InternalParseParameter(CoreParameter parameter)
 		{
 			discretes.Clear();
-			foreach (var discreet in parameter.Discretes)
+			foreach (var discrete in parameter.Discretes)
 			{
-				discretes.Add(discreet);
+				discretes.Add(discrete);
 			}
 
 			IsTimeDependent = TimeDependentCapabilityLink.TryDeserialize(parameter.Remarks, out var timeDependentLink) && timeDependentLink.IsTimeDependent;

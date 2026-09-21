@@ -7,45 +7,45 @@
 	/// Represents a value paired with a display name.
 	/// </summary>
 	/// <typeparam name="T">The type of the value to associate with a display name.</typeparam>
-	/// <seealso cref="NumberDiscreet"/>
-	/// <seealso cref="TextDiscreet"/>
-	public class Discreet<T> : IEquatable<Discreet<T>>
+	/// <seealso cref="NumberDiscrete"/>
+	/// <seealso cref="TextDiscrete"/>
+	public class Discrete<T> : IEquatable<Discrete<T>>
 	{
 		/// <summary>
-		/// Initializes a new instance of the <see cref="Discreet{T}"/> class.
+		/// Initializes a new instance of the <see cref="Discrete{T}"/> class.
 		/// </summary>
-		protected Discreet()
+		protected Discrete()
 		{
 		}
 
 		/// <summary>
-		/// Initializes a new instance of the <see cref="Discreet{T}"/> class.
+		/// Initializes a new instance of the <see cref="Discrete{T}"/> class.
 		/// </summary>
-		/// <param name="value">Value of the Discreet.</param>
-		/// <param name="displayName">DisplayName of the Discreet.</param>
-		protected Discreet(T value, string displayName)
+		/// <param name="value">Value of the Discrete.</param>
+		/// <param name="displayName">DisplayName of the Discrete.</param>
+		protected Discrete(T value, string displayName)
 		{
 			Value = value;
 			DisplayName = displayName;
 		}
 
 		/// <summary>
-		/// Value of the Discreet.
+		/// Value of the Discrete.
 		/// </summary>
 		public T Value { get; set; }
 
 		/// <summary>
-		/// DisplayName of the Discreet.
+		/// DisplayName of the Discrete.
 		/// </summary>
 		public string DisplayName { get; set; }
 
 		/// <summary>
-		/// Determines whether two <see cref="Discreet{T}"/> instances are equal.
+		/// Determines whether two <see cref="Discrete{T}"/> instances are equal.
 		/// </summary>
 		/// <param name="left">The left instance to compare.</param>
 		/// <param name="right">The right instance to compare.</param>
 		/// <returns>true if the instances are equal; otherwise, false.</returns>
-		public static bool operator ==(Discreet<T> left, Discreet<T> right)
+		public static bool operator ==(Discrete<T> left, Discrete<T> right)
 		{
 			if (ReferenceEquals(left, right))
 			{
@@ -61,33 +61,33 @@
 		}
 
 		/// <summary>
-		/// Determines whether two <see cref="Discreet{T}"/> instances are not equal.
+		/// Determines whether two <see cref="Discrete{T}"/> instances are not equal.
 		/// </summary>
 		/// <param name="left">The left instance to compare.</param>
 		/// <param name="right">The right instance to compare.</param>
 		/// <returns>true if the instances are not equal; otherwise, false.</returns>
-		public static bool operator !=(Discreet<T> left, Discreet<T> right)
+		public static bool operator !=(Discrete<T> left, Discrete<T> right)
 		{
 			return !(left == right);
 		}
 
 		/// <summary>
-		/// Returns a string that represents the current Discreet.
+		/// Returns a string that represents the current Discrete.
 		/// </summary>
-		/// <returns>String representation of the current Discreet instance.</returns>
+		/// <returns>String representation of the current Discrete instance.</returns>
 		public override string ToString()
 		{
 			return $"{DisplayName} ({Value})";
 		}
 
 		/// <summary>
-		/// Determines whether the specified object is equal to the current Discreet.
+		/// Determines whether the specified object is equal to the current Discrete.
 		/// </summary>
 		/// <param name="obj">The object to compare with the current instance.</param>
-		/// <returns>true if the object is a <see cref="Discreet{T}"/> and if the display name and value of both objects are equal; otherwise, false.</returns>
+		/// <returns>true if the object is a <see cref="Discrete{T}"/> and if the display name and value of both objects are equal; otherwise, false.</returns>
 		public override bool Equals(object obj)
 		{
-			if (obj is not Discreet<T> other)
+			if (obj is not Discrete<T> other)
 			{
 				return false;
 			}
@@ -96,12 +96,12 @@
 		}
 
 		/// <summary>
-		/// Determines whether the current instance and the specified <see cref="Discreet{T}"/> object have the same
+		/// Determines whether the current instance and the specified <see cref="Discrete{T}"/> object have the same
 		/// display name and value.
 		/// </summary>
-		/// <param name="other">The <see cref="Discreet{T}"/> object to compare with the current instance.</param>
+		/// <param name="other">The <see cref="Discrete{T}"/> object to compare with the current instance.</param>
 		/// <returns>true if the display name and value of both objects are equal; otherwise, false.</returns>
-		public virtual bool Equals(Discreet<T> other)
+		public virtual bool Equals(Discrete<T> other)
 		{
 			if (other == null)
 			{

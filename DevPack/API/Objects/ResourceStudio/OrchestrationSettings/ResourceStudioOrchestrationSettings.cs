@@ -394,11 +394,11 @@
 			{
 				numberConfigurationSettings.Add(new ResourceStudioNumberConfigurationSetting(section));
 			}
-			else if (profileParameter.IsTextDiscreet())
+			else if (profileParameter.IsTextDiscrete())
 			{
 				discreteTextConfigurationSettings.Add(new ResourceStudioDiscreteTextConfigurationSetting(new DiscreteTextConfiguration(profileParameter), section));
 			}
-			else if (profileParameter.IsNumberDiscreet())
+			else if (profileParameter.IsNumberDiscrete())
 			{
 				discreteNumberConfigurationSettings.Add(new ResourceStudioDiscreteNumberConfigurationSetting(new DiscreteNumberConfiguration(profileParameter), section));
 			}

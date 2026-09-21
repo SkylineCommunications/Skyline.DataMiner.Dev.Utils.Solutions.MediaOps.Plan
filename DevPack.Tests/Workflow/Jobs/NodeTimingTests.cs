@@ -185,7 +185,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var errors = JobNodeTimingResolver.Validate(JobId, JobState.Confirmed, requested, DefaultWindow(), CurrentTime);
 
-			var error = errors.OfType<JobStartChangeNotAllowedError>().SingleOrDefault();
+			var error = errors.OfType<JobStartChangedNotAllowedError>().SingleOrDefault();
 			Assert.IsNotNull(error);
 			Assert.AreEqual(requested.Start, error.Value);
 		}
@@ -197,7 +197,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var errors = JobNodeTimingResolver.Validate(JobId, JobState.Confirmed, requested, DefaultWindow(), CurrentTime);
 
-			var error = errors.OfType<JobPreRollStartChangeNotAllowedError>().SingleOrDefault();
+			var error = errors.OfType<JobPreRollStartChangedNotAllowedError>().SingleOrDefault();
 			Assert.IsNotNull(error);
 			Assert.AreEqual(requested.PreRollStart, error.Value);
 		}
@@ -235,7 +235,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var errors = JobNodeTimingResolver.Validate(JobId, JobState.Running, requested, DefaultWindow(), CurrentTime);
 
-			var error = errors.OfType<JobStartChangeNotAllowedError>().SingleOrDefault();
+			var error = errors.OfType<JobStartChangedNotAllowedError>().SingleOrDefault();
 			Assert.IsNotNull(error);
 			Assert.AreEqual(JobId, error.Id);
 			Assert.AreEqual(requested.Start, error.Value);
@@ -248,7 +248,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var errors = JobNodeTimingResolver.Validate(JobId, JobState.Running, requested, DefaultWindow(), CurrentTime);
 
-			var error = errors.OfType<JobPreRollStartChangeNotAllowedError>().SingleOrDefault();
+			var error = errors.OfType<JobPreRollStartChangedNotAllowedError>().SingleOrDefault();
 			Assert.IsNotNull(error);
 			Assert.AreEqual(requested.PreRollStart, error.Value);
 		}
@@ -260,7 +260,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var errors = JobNodeTimingResolver.Validate(JobId, JobState.Running, requested, DefaultWindow(), CurrentTime);
 
-			var error = errors.OfType<JobEndChangeNotAllowedError>().SingleOrDefault();
+			var error = errors.OfType<JobEndChangedNotAllowedError>().SingleOrDefault();
 			Assert.IsNotNull(error);
 			Assert.AreEqual(requested.End, error.Value);
 		}
@@ -282,7 +282,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var errors = JobNodeTimingResolver.Validate(JobId, JobState.Running, requested, DefaultWindow(), CurrentTime);
 
-			var error = errors.OfType<JobEndChangeNotAllowedError>().SingleOrDefault();
+			var error = errors.OfType<JobEndChangedNotAllowedError>().SingleOrDefault();
 			Assert.IsNotNull(error);
 			Assert.AreEqual(requested.End, error.Value);
 		}
@@ -294,7 +294,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var errors = JobNodeTimingResolver.Validate(JobId, JobState.Running, requested, DefaultWindow(), CurrentTime);
 
-			var error = errors.OfType<JobPostRollEndChangeNotAllowedError>().SingleOrDefault();
+			var error = errors.OfType<JobPostRollEndChangedNotAllowedError>().SingleOrDefault();
 			Assert.IsNotNull(error);
 			Assert.AreEqual(requested.PostRollEnd, error.Value);
 		}
@@ -308,7 +308,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var errors = JobNodeTimingResolver.Validate(JobId, state, requested, DefaultWindow(), CurrentTime);
 
-			var error = errors.OfType<JobPostRollEndChangeNotAllowedError>().SingleOrDefault();
+			var error = errors.OfType<JobPostRollEndChangedNotAllowedError>().SingleOrDefault();
 			Assert.IsNotNull(error);
 			Assert.AreEqual(requested.PostRollEnd, error.Value);
 			Assert.AreEqual("Timings of a completed or canceled job cannot be changed.", error.ErrorMessage);

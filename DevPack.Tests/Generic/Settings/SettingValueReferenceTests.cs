@@ -17,8 +17,8 @@ namespace RT_MediaOps.Plan.Generic.Settings
 			AssertValueClearsReference(new RangeCapacitySetting(Guid.NewGuid()), setting => setting.MaxValue = 2);
 			AssertValueClearsReference(new NumberConfigurationSetting(Guid.NewGuid()), setting => setting.Value = 1);
 			AssertValueClearsReference(new TextConfigurationSetting(Guid.NewGuid()), setting => setting.Value = "value");
-			AssertValueClearsReference(new DiscreteNumberConfigurationSetting(Guid.NewGuid()), setting => setting.Value = new NumberDiscreet(1, "one"));
-			AssertValueClearsReference(new DiscreteTextConfigurationSetting(Guid.NewGuid()), setting => setting.Value = new TextDiscreet("one", "one"));
+			AssertValueClearsReference(new DiscreteNumberConfigurationSetting(Guid.NewGuid()), setting => setting.Value = new NumberDiscrete(1, "one"));
+			AssertValueClearsReference(new DiscreteTextConfigurationSetting(Guid.NewGuid()), setting => setting.Value = new TextDiscrete("one", "one"));
 		}
 
 		[TestMethod]
@@ -28,8 +28,8 @@ namespace RT_MediaOps.Plan.Generic.Settings
 			AssertReferenceClearsValue(new NumberCapacitySetting(Guid.NewGuid()) { Value = 1 });
 			AssertReferenceClearsValue(new NumberConfigurationSetting(Guid.NewGuid()) { Value = 1 });
 			AssertReferenceClearsValue(new TextConfigurationSetting(Guid.NewGuid()) { Value = "value" });
-			AssertReferenceClearsValue(new DiscreteNumberConfigurationSetting(Guid.NewGuid()) { Value = new NumberDiscreet(1, "one") });
-			AssertReferenceClearsValue(new DiscreteTextConfigurationSetting(Guid.NewGuid()) { Value = new TextDiscreet("one", "one") });
+			AssertReferenceClearsValue(new DiscreteNumberConfigurationSetting(Guid.NewGuid()) { Value = new NumberDiscrete(1, "one") });
+			AssertReferenceClearsValue(new DiscreteTextConfigurationSetting(Guid.NewGuid()) { Value = new TextDiscrete("one", "one") });
 
 			var rangeSetting = new RangeCapacitySetting(Guid.NewGuid()) { MinValue = 1, MaxValue = 2 };
 			AssertReferenceClearsValue(rangeSetting);

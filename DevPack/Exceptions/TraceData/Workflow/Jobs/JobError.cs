@@ -19,10 +19,10 @@
 	/// <seealso cref="JobInvalidStartTimeError"/>
 	/// <seealso cref="JobInvalidStateError"/>
 	/// <seealso cref="JobInvalidTimingError"/>
-	/// <seealso cref="JobMandatoryConfigurationMissingError"/>
+	/// <seealso cref="JobMissingMandatoryConfigurationError"/>
 	/// <seealso cref="JobNodeGraphError"/>
-	/// <seealso cref="JobNodeMandatoryConfigurationMissingError"/>
-	/// <seealso cref="JobNodeResourceNotAssignedError"/>
+	/// <seealso cref="JobNodeMissingMandatoryConfigurationError"/>
+	/// <seealso cref="JobResourceNotAssignedError"/>
 	/// <seealso cref="JobNotFoundError"/>
 	/// <seealso cref="JobPostRollEndNotReachedError"/>
 	/// <seealso cref="JobPreRollStartNotReachedError"/>
@@ -34,7 +34,7 @@
 	/// <seealso cref="JobResourcePoolNodeNotAllowedError"/>
 	/// <seealso cref="JobRunningInPostRollError"/>
 	/// <seealso cref="JobRunningInPreRollError"/>
-	/// <seealso cref="JobTimingChangeNotAllowedError"/>
+	/// <seealso cref="JobTimingChangedNotAllowedError"/>
 	/// <seealso cref="JobUnresolvedReferenceError"/>
 	/// <seealso cref="JobValueAlreadyChangedError"/>
 	public class JobError : MediaOpsErrorData
