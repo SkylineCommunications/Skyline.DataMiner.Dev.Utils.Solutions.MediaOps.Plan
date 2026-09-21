@@ -3,7 +3,7 @@
 	using System;
 
 	/// <summary>Represents a linked core resource that could not be found.</summary>
-	public class CoreResourceNotFoundJobValidationError : JobValidationError
+	public sealed class CoreResourceNotFoundJobValidationError : JobValidationError
 	{
 		/// <summary>The error code.</summary>
 		public const string ErrorCode = "J102";

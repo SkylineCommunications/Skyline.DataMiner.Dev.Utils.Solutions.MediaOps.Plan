@@ -3,7 +3,7 @@
 	using System;
 
 	/// <summary>Represents a Resource Studio resource referenced by a job node that could not be found.</summary>
-	public class DomResourceNotFoundJobValidationError : JobValidationError
+	public sealed class DomResourceNotFoundJobValidationError : JobValidationError
 	{
 		/// <summary>The error code.</summary>
 		public const string ErrorCode = "J101";

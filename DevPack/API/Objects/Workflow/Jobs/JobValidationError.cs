@@ -1,17 +1,17 @@
-﻿﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
 	using System.Collections.Generic;
 
 	/// <summary>
-	/// Represents a validation error that is reported on a <see cref="Job"/>.
+	/// Represents a validator-owned error that is reported on a <see cref="Job"/>.
 	/// </summary>
-	public class JobValidationError : JobValidatorError
+	public class JobValidationError : JobError
 	{
 		/// <summary>
 		/// Gets a set of error codes that are managed by the MediaOps Plan solution.
 		/// </summary>
-		public new static readonly HashSet<string> MediaOpsOwnedErrorCodes = new HashSet<string>(StringComparer.Ordinal)
+		public static readonly HashSet<string> MediaOpsOwnedErrorCodes = new HashSet<string>(StringComparer.Ordinal)
 		{
 			GenericJobValidationError.ErrorCode,
 			DomResourceNotFoundJobValidationError.ErrorCode,
