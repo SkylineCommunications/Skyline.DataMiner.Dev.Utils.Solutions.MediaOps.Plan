@@ -6,33 +6,33 @@
 	/// <summary>
 	/// Represents an error that is reported on a <see cref="Job"/>.
 	/// </summary>
-	public class JobError
+	public class JobValidatorError
 	{
 		/// <summary>
 		/// Gets a set of error codes that are managed by the MediaOps Plan solution.
 		/// </summary>
 		public static readonly HashSet<string> MediaOpsOwnedErrorCodes = new HashSet<string>(StringComparer.Ordinal)
 		{
-			GenericJobValidationError.ErrorCode,
-			DomResourceNotFoundJobError.ErrorCode,
-			CoreResourceNotFoundJobError.ErrorCode,
-			DomResourceInvalidJobError.ErrorCode,
-			CoreResourceUnavailableJobError.ErrorCode,
-			QuarantinedReservationJobError.ErrorCode,
-			VirtualSignalGroupNotFoundJobError.ErrorCode,
-			TransitionToTentativeJobError.ErrorCode,
-			UnresolvedReferencesJobError.ErrorCode,
-			ReservationRequirementsMismatchJobError.ErrorCode,
-			LiveEventsMismatchJobError.ErrorCode,
+			GenericJobValidatorError.ErrorCode,
+			DomResourceNotFoundJobValidatorError.ErrorCode,
+			CoreResourceNotFoundJobValidatorError.ErrorCode,
+			DomResourceInvalidJobValidatorError.ErrorCode,
+			CoreResourceUnavailableJobValidatorError.ErrorCode,
+			QuarantinedReservationJobValidatorError.ErrorCode,
+			VirtualSignalGroupNotFoundJobValidatorError.ErrorCode,
+			TransitionToTentativeJobValidatorError.ErrorCode,
+			UnresolvedReferencesJobValidatorError.ErrorCode,
+			ReservationRequirementsMismatchJobValidatorError.ErrorCode,
+			LiveEventsMismatchJobValidatorError.ErrorCode,
 		};
 
 		/// <summary>
-		/// Initializes a new instance of the <see cref="JobError"/> class.
+		/// Initializes a new instance of the <see cref="JobValidatorError"/> class.
 		/// </summary>
 		/// <param name="code">The code that identifies the error.</param>
 		/// <param name="message">The message that describes the error.</param>
 		/// <exception cref="ArgumentException">Thrown when <paramref name="code"/> is <see langword="null"/> or whitespace.</exception>
-		public JobError(string code, string message)
+		public JobValidatorError(string code, string message)
 		{
 			if (string.IsNullOrWhiteSpace(code))
 			{
@@ -69,7 +69,7 @@
 		/// <inheritdoc/>
 		public override bool Equals(object obj)
 		{
-			if (obj is not JobError other)
+			if (obj is not JobValidatorError other)
 			{
 				return false;
 			}

@@ -1,4 +1,4 @@
-namespace RT_MediaOps.Plan.Workflow.Jobs
+﻿namespace RT_MediaOps.Plan.Workflow.Jobs
 {
 	using System;
 	using System.Linq;
@@ -114,7 +114,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		public void Duplicate_DoesNotCopyErrors()
 		{
 			var job = new Job { Name = "Original", Start = BaseStart, End = BaseEnd };
-			job.AddError(new JobError("LIV101", "Pre-roll could not be started."));
+			job.AddError(new JobValidatorError("LIV101", "Pre-roll could not be started."));
 
 			var duplicate = job.Duplicate(Guid.NewGuid());
 

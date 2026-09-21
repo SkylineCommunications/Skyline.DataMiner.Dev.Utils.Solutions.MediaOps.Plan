@@ -1032,7 +1032,7 @@
 					throw new NotSupportedException($"Unsupported Orchestration Event Type {updateDetails.Event}");
 			}
 
-			job.AddError(new JobError(errorCode, updateDetails.Message));
+			job.AddError(new JobValidatorError(errorCode, updateDetails.Message));
 			PlanApi.Jobs.Update(job);
 		}
 

@@ -202,12 +202,12 @@
 		public static class Errors
 		{
 			/// <summary>
-			/// Gets a dynamic list exposer for the <see cref="JobError.Code"/> property. A job matches when one of its errors matches.
+			/// Gets a dynamic list exposer for the <see cref="JobValidatorError.Code"/> property. A job matches when one of its errors matches.
 			/// </summary>
 			public static readonly DynamicListExposer<Job, string> Code = DynamicListExposer<Job, string>.CreateFromListExposer(new Exposer<Job, IEnumerable>((obj) => obj.Errors.Where(x => x != null).Select(x => x.Code).Where(x => x != null), "Errors.Code"));
 
 			/// <summary>
-			/// Gets a dynamic list exposer for the <see cref="JobError.Message"/> property. A job matches when one of its errors matches.
+			/// Gets a dynamic list exposer for the <see cref="JobValidatorError.Message"/> property. A job matches when one of its errors matches.
 			/// </summary>
 			public static readonly DynamicListExposer<Job, string> Message = DynamicListExposer<Job, string>.CreateFromListExposer(new Exposer<Job, IEnumerable>((obj) => obj.Errors.Where(x => x != null).Select(x => x.Message).Where(x => x != null), "Errors.Message"));
 		}

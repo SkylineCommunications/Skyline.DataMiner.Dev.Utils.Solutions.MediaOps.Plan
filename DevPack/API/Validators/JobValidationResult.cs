@@ -1,4 +1,4 @@
-namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
 	using System.Collections.Generic;
@@ -8,7 +8,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// <summary>Contains the errors produced while validating a job and synchronizes them to that job.</summary>
 	public sealed class JobValidationResult
 	{
-		private readonly Dictionary<string, JobError> errors = new Dictionary<string, JobError>(StringComparer.Ordinal);
+		private readonly Dictionary<string, JobValidatorError> errors = new Dictionary<string, JobValidatorError>(StringComparer.Ordinal);
 		private readonly HashSet<string> quarantinedNodeIds = new HashSet<string>(StringComparer.Ordinal);
 
 		internal JobValidationResult(Job job)
@@ -20,7 +20,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		public Job Job { get; }
 
 		/// <summary>Gets the errors produced by the validator.</summary>
-		public IReadOnlyCollection<JobError> Errors => errors.Values;
+		public IReadOnlyCollection<JobValidatorError> Errors => errors.Values;
 
 		/// <summary>Gets a value indicating whether validation produced errors.</summary>
 		public bool HasErrors => errors.Count != 0;
@@ -41,7 +41,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		/// <summary>Synchronizes validation errors and quarantined resource-node states to the job.</summary>
 		/// <returns><see langword="true"/> when the job changed; otherwise, <see langword="false"/>.</returns>
-		public bool SyncResultsToInstance()
+		public bool SyncResultsToJob()
 		{
 			var changed = false;
 			var existingErrors = Job.Errors.ToDictionary(error => error.Code, StringComparer.Ordinal);
@@ -55,7 +55,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				}
 			}
 
-			foreach (var error in existingErrors.Values.Where(error => JobError.MediaOpsOwnedErrorCodes.Contains(error.Code) && !errors.ContainsKey(error.Code)))
+			foreach (var error in existingErrors.Values.Where(error => JobValidatorError.MediaOpsOwnedErrorCodes.Contains(error.Code) && !errors.ContainsKey(error.Code)))
 			{
 				Job.RemoveError(error.Code);
 				changed = true;
@@ -75,7 +75,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return changed;
 		}
 
-		internal void SetError(JobError error)
+		internal void SetError(JobValidatorError error)
 		{
 			if (error == null)
 			{
