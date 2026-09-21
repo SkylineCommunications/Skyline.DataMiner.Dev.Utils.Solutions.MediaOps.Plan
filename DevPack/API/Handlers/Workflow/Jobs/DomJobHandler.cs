@@ -282,9 +282,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				.Select(x => x.GetInstanceWithChanges())
 				.ToList();
 
-			var toUpdateDomInstances = changeResults
+			var changedJobs = changeResults
 				.Where(IsValid)
-				.Select(x => new DomJob(x.Instance))
+				.Select(x => new Job(planApi, new DomJob(x.Instance)))
+				.ToList();
+			ClearResolvedValidationErrors(changedJobs);
+
+			var toUpdateDomInstances = changedJobs
+				.Select(x => new DomJob(x.GetInstanceWithChanges()))
 				.ToList();
 
 			CreateOrUpdateDomJobs(toCreateDomInstances.Concat(toUpdateDomInstances).ToList());
@@ -299,12 +304,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				.Where(x => !linkOnlyJobIds.Contains(x.ID.Id))
 				.Select(x => new Job(planApi, x))
 				.ToList());
-
-			var updatedJobIds = toUpdate.Select(job => job.Id).ToHashSet();
-			ClearResolvedValidationErrors(SuccessfulItems
-				.Where(job => updatedJobIds.Contains(job.ID.Id))
-				.Select(job => new Job(planApi, job))
-				.ToList());
 		}
 
 		private void ClearResolvedValidationErrors(ICollection<Job> jobs)
@@ -314,29 +313,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return;
 			}
 
-			var changedJobs = new JobValidator(planApi)
-				.Validate(jobs)
-				.Where(result => result.ClearResolvedErrorsFromUpdate())
-				.Select(result => result.Job)
-				.ToList();
-			if (changedJobs.Count == 0)
+			foreach (var result in new JobValidator(planApi).Validate(jobs))
 			{
-				return;
-			}
-
-			planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.TryCreateOrUpdateInBatches(
-				changedJobs.Select(job => job.GetInstanceWithChanges().ToInstance()),
-				out var domResult);
-
-			foreach (var id in domResult.UnsuccessfulIds)
-			{
-				planApi.Logger.Error(this, $"Failed to persist resolved validation-error clearing for job {id.Id}.");
-			}
-
-			foreach (var instance in domResult.SuccessfulItems)
-			{
-				successfulItems.RemoveWhere(job => job.ID == instance.ID);
-				successfulItems.Add(new DomJob(instance));
+				result.ClearResolvedErrorsFromUpdate();
 			}
 		}
 
