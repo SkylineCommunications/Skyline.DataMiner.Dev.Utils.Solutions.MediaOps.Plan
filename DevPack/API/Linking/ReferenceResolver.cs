@@ -481,8 +481,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				RangeCapacitySetting rcs => rcs.MaxValue != null ? new DecimalResolvedValue(rcs.MaxValue.Value) : new NullResolvedValue(),
 				TextConfigurationSetting tcs => tcs.Value != null ? new StringResolvedValue(tcs.Value) : new NullResolvedValue(),
 				NumberConfigurationSetting nfcs => nfcs.Value != null ? new DecimalResolvedValue(nfcs.Value.Value) : new NullResolvedValue(),
-				DiscreteTextConfigurationSetting dtcs => dtcs.Value?.Value != null ? new StringResolvedValue(dtcs.Value.Value) : new NullResolvedValue(),
-				DiscreteNumberConfigurationSetting dncs => dncs.Value?.Value != null ? new DecimalResolvedValue(dncs.Value.Value) : new NullResolvedValue(),
+				DiscreteTextConfigurationSetting dtcs => dtcs.Value?.Value != null ? new StringResolvedValue(dtcs.Value.Value, dtcs.Value.DisplayName) : new NullResolvedValue(),
+				DiscreteNumberConfigurationSetting dncs => dncs.Value?.Value != null ? new DecimalResolvedValue(dncs.Value.Value, dncs.Value.DisplayName) : new NullResolvedValue(),
 				_ => null,
 			};
 		}

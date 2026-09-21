@@ -14,6 +14,18 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			Value = value;
 		}
 
+		/// <summary>
+		/// Initializes a new instance of the <see cref="DoubleResolvedValue"/> class with the specified double value
+		/// and the display name of the dropdown option it originates from.
+		/// </summary>
+		/// <param name="value">The resolved double value.</param>
+		/// <param name="displayValue">The display name of the dropdown option the value originates from.</param>
+		public DoubleResolvedValue(double value, string displayValue)
+			: base(displayValue)
+		{
+			Value = value;
+		}
+
 		/// <summary>Gets the resolved double value.</summary>
 		public double Value { get; private set; }
 

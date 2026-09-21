@@ -16,10 +16,19 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Initializes a new instance of the <see cref="OrchestrationReferenceValidationContext"/> class.
 		/// </summary>
 		/// <param name="targetsBySettingsId">The validation targets keyed by orchestration settings identifier.</param>
-		public OrchestrationReferenceValidationContext(IReadOnlyDictionary<Guid, (ReferenceResolver Resolver, string OwningNodeId, bool ReportErrors)> targetsBySettingsId)
+		/// <param name="definitions">The definitions used to look up the parameter a setting holds its value for.</param>
+		public OrchestrationReferenceValidationContext(
+			IReadOnlyDictionary<Guid, (ReferenceResolver Resolver, string OwningNodeId, bool ReportErrors)> targetsBySettingsId,
+			ReferenceDefinitionCache definitions)
 		{
 			this.targetsBySettingsId = targetsBySettingsId ?? throw new ArgumentNullException(nameof(targetsBySettingsId));
+			Definitions = definitions ?? throw new ArgumentNullException(nameof(definitions));
 		}
+
+		/// <summary>
+		/// Gets the definitions used to look up the parameter a setting holds its value for.
+		/// </summary>
+		public ReferenceDefinitionCache Definitions { get; }
 
 		/// <summary>
 		/// Tries to get the validation target for the specified orchestration settings instance.

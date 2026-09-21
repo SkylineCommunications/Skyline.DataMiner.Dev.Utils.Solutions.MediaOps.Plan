@@ -1,5 +1,8 @@
 namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
+	using System;
+	using System.Globalization;
+
 	/// <summary>
 	/// Represents the result of a <see cref="ReferenceResolver"/> resolve call.
 	/// </summary>
@@ -19,9 +22,21 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// <seealso cref="StringResolvedValue"/>
 	public abstract class ResolvedValue
 	{
+		private readonly string displayValue;
+
 		/// <summary>Initializes a new instance of the <see cref="ResolvedValue"/> class.</summary>
 		protected ResolvedValue()
 		{
+		}
+
+		/// <summary>Initializes a new instance of the <see cref="ResolvedValue"/> class.</summary>
+		/// <param name="displayValue">
+		/// The label the value is shown with, or <see langword="null"/> when it is shown as-is. Only a discrete
+		/// (dropdown) value has a label that differs from the value itself.
+		/// </param>
+		protected ResolvedValue(string displayValue)
+		{
+			this.displayValue = displayValue;
 		}
 
 		/// <summary>
@@ -35,6 +50,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// When <see langword="false"/>, inspect <see cref="UnresolvedReference"/> for details.
 		/// </summary>
 		public bool IsResolved => UnresolvedReference == null;
+
+		/// <summary>
+		/// Gets the label this value is shown with. For a value that originates from a dropdown this is the display
+		/// name of the selected option; for every other value it is the value itself. This is what a dropdown target
+		/// matches its options against, while <see cref="GetRawValue"/> is what is passed on for actual usage.
+		/// </summary>
+		public string DisplayValue => displayValue ?? Convert.ToString(GetRawValue(), CultureInfo.InvariantCulture);
 
 		/// <summary>
 		/// Determines whether this resolved value holds a boolean and, if so, returns it as a <see cref="BooleanResolvedValue"/>.

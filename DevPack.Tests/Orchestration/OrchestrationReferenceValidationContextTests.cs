@@ -4,10 +4,16 @@ namespace RT_MediaOps.Plan.Orchestration
 	using System.Collections.Generic;
 
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation;
 
 	[TestClass]
 	public sealed class OrchestrationReferenceValidationContextTests
 	{
+		private static ReferenceDefinitionCache CreateDefinitions()
+		{
+			return new ReferenceDefinitionCache(MediaOpsPlanSimulation.Create().CreateConnection().GetMediaOpsPlanApi());
+		}
+
 		[TestMethod]
 		public void TryGetTarget_KnownId_ReturnsTargetAndFlag()
 		{
@@ -17,7 +23,7 @@ namespace RT_MediaOps.Plan.Orchestration
 				[id] = (null, "node-1", true),
 			};
 
-			var context = new OrchestrationReferenceValidationContext(targets);
+			var context = new OrchestrationReferenceValidationContext(targets, CreateDefinitions());
 
 			Assert.IsTrue(context.TryGetTarget(id, out var resolver, out var owningNodeId, out var reportErrors));
 			Assert.IsNull(resolver);
@@ -29,7 +35,8 @@ namespace RT_MediaOps.Plan.Orchestration
 		public void TryGetTarget_UnknownId_ReturnsFalse()
 		{
 			var context = new OrchestrationReferenceValidationContext(
-				new Dictionary<Guid, (ReferenceResolver Resolver, string OwningNodeId, bool ReportErrors)>());
+				new Dictionary<Guid, (ReferenceResolver Resolver, string OwningNodeId, bool ReportErrors)>(),
+				CreateDefinitions());
 
 			Assert.IsFalse(context.TryGetTarget(Guid.NewGuid(), out var resolver, out var owningNodeId, out var reportErrors));
 			Assert.IsNull(resolver);
@@ -40,7 +47,10 @@ namespace RT_MediaOps.Plan.Orchestration
 		[TestMethod]
 		public void Constructor_Null_Throws()
 		{
-			Assert.ThrowsException<ArgumentNullException>(() => new OrchestrationReferenceValidationContext(null));
+			Assert.ThrowsException<ArgumentNullException>(() => new OrchestrationReferenceValidationContext(null, CreateDefinitions()));
+			Assert.ThrowsException<ArgumentNullException>(() => new OrchestrationReferenceValidationContext(
+				new Dictionary<Guid, (ReferenceResolver Resolver, string OwningNodeId, bool ReportErrors)>(),
+				null));
 		}
 	}
 }

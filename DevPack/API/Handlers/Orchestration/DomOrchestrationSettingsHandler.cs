@@ -80,14 +80,14 @@
 					continue;
 				}
 
-				foreach (var reference in EnumerateEventReferences(orchestrationSettings))
+				foreach (var entry in EnumerateEventReferences(orchestrationSettings))
 				{
-					if (resolver.CanResolve(reference, owningNodeId))
+					if (CanResolve(resolver, entry, owningNodeId))
 					{
 						continue;
 					}
 
-					var label = resolver.GetDisplayLabel(reference);
+					var label = resolver.GetDisplayLabel(entry.Reference);
 					ReportError(orchestrationSettings.Id, new OrchestrationSettingsUnresolvedReferenceError
 					{
 						Id = orchestrationSettings.Id,
@@ -98,7 +98,35 @@
 			}
 		}
 
-		private static IEnumerable<DataReference> EnumerateEventReferences(OrchestrationSettings orchestrationSettings)
+		// A parameter the event feeds can be a dropdown, which only holds one of its own options, so the resolved
+		// value has to fit it as well.
+		private bool CanResolve(ReferenceResolver resolver, (DataReference Reference, Guid? TargetParameterId) entry, string owningNodeId)
+		{
+			ResolvedValue resolved;
+			try
+			{
+				resolved = resolver.ResolveValue(entry.Reference, owningNodeId);
+			}
+			catch (Exception)
+			{
+				return false;
+			}
+
+			if (resolved == null || !resolved.IsResolved)
+			{
+				return false;
+			}
+
+			if (entry.TargetParameterId == null)
+			{
+				return true;
+			}
+
+			var target = referenceValidationContext.Definitions.GetParameterDefinition(entry.TargetParameterId.Value);
+			return ReferenceValueCoercion.TryCoerce(resolved, target, out _);
+		}
+
+		private static IEnumerable<(DataReference Reference, Guid? TargetParameterId)> EnumerateEventReferences(OrchestrationSettings orchestrationSettings)
 		{
 			return orchestrationSettings.OrchestrationEvents
 				.Select(orchestrationEvent => orchestrationEvent.ExecutionDetails)
@@ -106,13 +134,13 @@
 				.SelectMany(EnumerateExecutionDetailReferences);
 		}
 
-		private static IEnumerable<DataReference> EnumerateExecutionDetailReferences(ScriptExecutionDetails executionDetails)
+		private static IEnumerable<(DataReference Reference, Guid? TargetParameterId)> EnumerateExecutionDetailReferences(ScriptExecutionDetails executionDetails)
 		{
-			return executionDetails.ScriptElements.Where(x => x.HasReference).Select(x => x.Reference)
-				.Concat(executionDetails.ScriptParameters.Where(x => x.HasReference).Select(x => x.Reference))
-				.Concat(executionDetails.Capabilities.Where(x => x.HasReference).Select(x => x.Reference))
-				.Concat(executionDetails.Capacities.Where(x => x.HasReference).Select(x => x.Reference))
-				.Concat(executionDetails.Configurations.Where(x => x.HasReference).Select(x => x.Reference));
+			return executionDetails.ScriptElements.Where(x => x.HasReference).Select(x => (x.Reference, (Guid?)null))
+				.Concat(executionDetails.ScriptParameters.Where(x => x.HasReference).Select(x => (x.Reference, (Guid?)null)))
+				.Concat(executionDetails.Capabilities.Where(x => x.HasReference).Select(x => (x.Reference, (Guid?)x.Id)))
+				.Concat(executionDetails.Capacities.Where(x => x.HasReference).Select(x => (x.Reference, (Guid?)x.Id)))
+				.Concat(executionDetails.Configurations.Where(x => x.HasReference).Select(x => (x.Reference, (Guid?)x.Id)));
 		}
 
 		private void ValidateCapacities(ICollection<TApiSettings> apiOrchestrationSettings)

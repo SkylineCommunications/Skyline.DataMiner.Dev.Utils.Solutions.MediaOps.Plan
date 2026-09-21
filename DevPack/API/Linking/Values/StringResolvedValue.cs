@@ -14,6 +14,18 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			Value = value;
 		}
 
+		/// <summary>
+		/// Initializes a new instance of the <see cref="StringResolvedValue"/> class with the specified string value
+		/// and the display name of the dropdown option it originates from.
+		/// </summary>
+		/// <param name="value">The resolved string value.</param>
+		/// <param name="displayValue">The display name of the dropdown option the value originates from.</param>
+		public StringResolvedValue(string value, string displayValue)
+			: base(displayValue)
+		{
+			Value = value;
+		}
+
 		/// <summary>Gets the resolved string value.</summary>
 		public string Value { get; private set; }
 
