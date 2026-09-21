@@ -79,6 +79,17 @@
 				changed = true;
 			}
 
+			foreach (var node in Job.NodeGraph.Nodes.OfType<JobResourceNode>())
+			{
+				var hasError = quarantinedNodeIds.Contains(node.Id)
+					|| (node.CoreReservationNodeId.HasValue && quarantinedNodeIds.Contains(node.CoreReservationNodeId.Value.ToString(CultureInfo.InvariantCulture)));
+				if (node.HasError != hasError)
+				{
+					node.HasError = hasError;
+					changed = true;
+				}
+			}
+
 			return SyncQuarantinedNodeStates() || changed;
 		}
 
