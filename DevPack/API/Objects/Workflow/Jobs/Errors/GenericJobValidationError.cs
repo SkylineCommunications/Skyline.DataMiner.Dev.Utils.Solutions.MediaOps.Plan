@@ -1,9 +1,9 @@
-namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
 
 	/// <summary>Represents an unexpected job validation failure.</summary>
-	public sealed class GenericJobValidationError : JobError
+	public sealed class GenericJobValidationError : JobValidationError
 	{
 		/// <summary>The error code.</summary>
 		public const string ErrorCode = "J000";

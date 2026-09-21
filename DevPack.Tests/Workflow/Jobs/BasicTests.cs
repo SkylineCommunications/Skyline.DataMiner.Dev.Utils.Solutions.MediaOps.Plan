@@ -1198,7 +1198,7 @@
 				PostRollEnd = currentTime.AddMinutes(10),
 			};
 
-			foreach (var code in JobError.MediaOpsOwnedErrorCodes)
+			foreach (var code in JobValidationError.MediaOpsOwnedErrorCodes)
 			{
 				job.AddError(new JobError(code, "existing"));
 			}
@@ -1210,7 +1210,7 @@
 			var updated = TestContext.Api.Jobs.Update(job);
 
 			CollectionAssert.AreEquivalent(
-				new[] { TransitionToTentativeJobError.ErrorCode, "LIV101" },
+				new[] { TransitionToTentativeJobValidationError.ErrorCode, "LIV101" },
 				updated.Errors.Select(error => error.Code).ToArray());
 		}
 

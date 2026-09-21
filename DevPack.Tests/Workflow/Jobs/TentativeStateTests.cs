@@ -92,13 +92,13 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				PreRollStart = currentTime,
 				PostRollEnd = currentTime.AddMinutes(10),
 			};
-			job.AddError(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.JobError(TransitionToTentativeJobError.ErrorCode, "transition failed"));
+			job.AddError(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.JobError(TransitionToTentativeJobValidationError.ErrorCode, "transition failed"));
 			job.AddError(new Skyline.DataMiner.Solutions.MediaOps.Plan.API.JobError("LIV101", "unrelated"));
 			job = objectCreator.CreateJob(job);
 
 			var tentative = TestContext.Api.Jobs.SaveAsTentative(job);
 
-			Assert.IsFalse(tentative.Errors.Any(error => error.Code == TransitionToTentativeJobError.ErrorCode));
+			Assert.IsFalse(tentative.Errors.Any(error => error.Code == TransitionToTentativeJobValidationError.ErrorCode));
 			Assert.IsTrue(tentative.Errors.Any(error => error.Code == "LIV101"));
 		}
 

@@ -583,13 +583,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				{
 					var transitionedInstance = planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.DoStatusTransition(domJob.ID, Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.Transitions.Draft_To_Tentative);
 					var transitionedJob = new Job(planApi, new DomJob(transitionedInstance));
-					if (transitionedJob.Errors.Any(error => error.Code == TransitionToTentativeJobError.ErrorCode))
+					if (transitionedJob.Errors.Any(error => error.Code == TransitionToTentativeJobValidationError.ErrorCode))
 					{
-						transitionedJob.RemoveError(TransitionToTentativeJobError.ErrorCode);
+						transitionedJob.RemoveError(TransitionToTentativeJobValidationError.ErrorCode);
 						planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.TryCreateOrUpdateInBatches([transitionedJob.GetInstanceWithChanges().ToInstance()], out var clearResult);
 						if (clearResult.UnsuccessfulIds.Count > 0)
 						{
-							throw new InvalidOperationException($"Failed to clear error {TransitionToTentativeJobError.ErrorCode} after transitioning job {domJob.ID.Id} to Tentative.");
+							throw new InvalidOperationException($"Failed to clear error {TransitionToTentativeJobValidationError.ErrorCode} after transitioning job {domJob.ID.Id} to Tentative.");
 						}
 
 						transitionedInstance = clearResult.SuccessfulItems.Single();

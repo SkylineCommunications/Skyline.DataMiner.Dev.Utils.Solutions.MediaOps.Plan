@@ -1,4 +1,4 @@
-namespace RT_MediaOps.Plan.Workflow.Jobs
+﻿namespace RT_MediaOps.Plan.Workflow.Jobs
 {
 	using System;
 	using System.Linq;
@@ -13,64 +13,34 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 	public class JobValidationResultTests
 	{
 		[TestMethod]
-		public void SyncResultsToInstance_ReplacesAndClearsOwnedErrorsWhilePreservingOtherErrors()
+		public void SyncResultsToJob_ReplacesAndClearsOwnedErrorsWhilePreservingOtherErrors()
 		{
 			var job = new Job()
 				.AddError(new JobError("J101", "old"))
 				.AddError(new JobError("J501", "lifecycle"))
 				.AddError(new JobError("LIV101", "leave"));
 			var result = new JobValidationResult(job);
-			result.SetError(new DomResourceNotFoundJobError(System.Guid.Empty, "node-1"));
+			result.SetError(new DomResourceNotFoundJobValidationError(System.Guid.Empty, "node-1"));
 
-			Assert.IsTrue(result.SyncResultsToInstance());
+			Assert.IsTrue(result.SyncToJob());
 			Assert.AreEqual(2, job.Errors.Count);
 			Assert.AreEqual("leave", job.Errors.Single(error => error.Code == "LIV101").Message);
 			Assert.AreEqual(result.Errors.Single().Message, job.Errors.Single(error => error.Code == "J101").Message);
 		}
 
 		[TestMethod]
-		public void SyncResultsToInstance_WhenAlreadySynchronized_ReturnsFalse()
+		public void SyncResultsToJob_WhenAlreadySynchronized_ReturnsFalse()
 		{
-			var error = new UnresolvedReferencesJobError("Unresolved references: value.");
+			var error = new UnresolvedReferencesJobValidationError("Unresolved references: value.");
 			var job = new Job().AddError(error);
 			var result = new JobValidationResult(job);
 			result.SetError(error);
 
-			Assert.IsFalse(result.SyncResultsToInstance());
+			Assert.IsFalse(result.SyncToJob());
 		}
 
 		[TestMethod]
-		public void ClearResolvedErrorsFromUpdate_ClearsResolvedValidationErrorsOnly()
-		{
-			var reproduced = new DomResourceNotFoundJobError(Guid.NewGuid(), "node");
-			var job = new Job()
-				.AddError(new JobError(GenericJobValidationError.ErrorCode, "old generic error"))
-				.AddError(reproduced)
-				.AddError(new JobError(CoreResourceNotFoundJobError.ErrorCode, "resolved"))
-				.AddError(new JobError(TransitionToTentativeJobError.ErrorCode, "transition"))
-				.AddError(new JobError("LIV101", "unrelated"));
-			var result = new JobValidationResult(job);
-			result.SetError(reproduced);
-
-			Assert.IsTrue(result.ClearResolvedErrorsFromUpdate());
-			CollectionAssert.AreEquivalent(
-				new[] { DomResourceNotFoundJobError.ErrorCode, TransitionToTentativeJobError.ErrorCode, "LIV101" },
-				job.Errors.Select(error => error.Code).ToArray());
-		}
-
-		[TestMethod]
-		public void ClearResolvedErrorsFromUpdate_WhenValidationFailed_DoesNotClearAnything()
-		{
-			var job = new Job().AddError(new JobError(CoreResourceNotFoundJobError.ErrorCode, "existing"));
-			var result = new JobValidationResult(job);
-			result.SetError(new GenericJobValidationError(new InvalidOperationException("validation failed")));
-
-			Assert.IsFalse(result.ClearResolvedErrorsFromUpdate());
-			Assert.IsTrue(job.Errors.Any(error => error.Code == CoreResourceNotFoundJobError.ErrorCode));
-		}
-
-		[TestMethod]
-		public void SyncResultsToInstance_SynchronizesQuarantinedResourceNodes()
+		public void SyncResultsToJob_SynchronizesQuarantinedResourceNodes()
 		{
 			var quarantinedNode = new JobResourceNode(System.Guid.NewGuid(), System.Guid.NewGuid());
 			var quarantinedByCoreIdNode = new JobResourceNode(System.Guid.NewGuid(), System.Guid.NewGuid());
@@ -84,7 +54,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			result.AddQuarantinedNodeId(quarantinedNode.Id);
 			result.AddQuarantinedNodeId("42");
 
-			Assert.IsTrue(result.SyncResultsToInstance());
+			Assert.IsTrue(result.SyncToJob());
 			Assert.IsTrue(quarantinedNode.HasError);
 			Assert.IsTrue(quarantinedByCoreIdNode.HasError);
 			Assert.IsFalse(recoveredNode.HasError);
