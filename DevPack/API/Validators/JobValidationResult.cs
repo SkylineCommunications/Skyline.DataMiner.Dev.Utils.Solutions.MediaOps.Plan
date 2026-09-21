@@ -75,6 +75,14 @@
 			return changed;
 		}
 
+		/// <summary>Synchronizes validation errors and quarantined resource-node states to the job.</summary>
+		/// <returns><see langword="true"/> when the job changed; otherwise, <see langword="false"/>.</returns>
+		[Obsolete("Use SyncResultsToJob instead.")]
+		public bool SyncResultsToInstance()
+		{
+			return SyncResultsToJob();
+		}
+
 		internal void SetError(JobValidatorError error)
 		{
 			if (error == null)

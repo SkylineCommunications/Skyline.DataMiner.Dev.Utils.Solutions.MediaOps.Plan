@@ -12,7 +12,7 @@
 
 	using SLDataGateway.API.Querying;
 
-	using JobValidatorError = Skyline.DataMiner.Solutions.MediaOps.Plan.API.JobValidatorError;
+	using JobError = Skyline.DataMiner.Solutions.MediaOps.Plan.API.JobError;
 
 	[TestClass]
 	[TestCategory("IntegrationTest")]
@@ -1147,15 +1147,15 @@
 				PreRollStart = currentTime,
 				PostRollEnd = currentTime.AddMinutes(5),
 			};
-			job.AddError(new JobValidatorError("LIV101", "Pre-roll could not be started.")).AddError(new JobValidatorError("LIV102", "Pre-roll could not be stopped."));
+			job.AddError(new JobError("LIV101", "Pre-roll could not be started.")).AddError(new JobError("LIV102", "Pre-roll could not be stopped."));
 
 			job = objectCreator.CreateJob(job);
 
 			var read = TestContext.Api.Jobs.Read(job.Id);
 			Assert.IsNotNull(read);
 			Assert.AreEqual(2, read.Errors.Count);
-			Assert.IsTrue(read.Errors.Contains(new JobValidatorError("LIV101", "Pre-roll could not be started.")));
-			Assert.IsTrue(read.Errors.Contains(new JobValidatorError("LIV102", "Pre-roll could not be stopped.")));
+			Assert.IsTrue(read.Errors.Contains(new JobError("LIV101", "Pre-roll could not be started.")));
+			Assert.IsTrue(read.Errors.Contains(new JobError("LIV102", "Pre-roll could not be stopped.")));
 		}
 
 		[TestMethod]
@@ -1171,7 +1171,7 @@
 				PreRollStart = currentTime,
 				PostRollEnd = currentTime.AddMinutes(5),
 			};
-			job.AddError(new JobValidatorError("LIV101", "Pre-roll could not be started.")).AddError(new JobValidatorError("LIV102", "Pre-roll could not be stopped."));
+			job.AddError(new JobError("LIV101", "Pre-roll could not be started.")).AddError(new JobError("LIV102", "Pre-roll could not be stopped."));
 			job = objectCreator.CreateJob(job);
 
 			var read = TestContext.Api.Jobs.Read(job.Id);
@@ -1198,7 +1198,7 @@
 				PreRollStart = currentTime,
 				PostRollEnd = currentTime.AddMinutes(5),
 			};
-			job.AddError(new JobValidatorError("LIV101", "Pre-roll could not be started.")).AddError(new JobValidatorError("LIV101", "Pre-roll failed."));
+			job.AddError(new JobError("LIV101", "Pre-roll could not be started.")).AddError(new JobError("LIV101", "Pre-roll failed."));
 
 			job = objectCreator.CreateJob(job);
 
@@ -1220,7 +1220,7 @@
 				PostRollEnd = DateTime.UtcNow.AddMinutes(5),
 			};
 
-			Assert.ThrowsException<ArgumentException>(() => job.AddError(new JobValidatorError(String.Empty, "Some message.")));
+			Assert.ThrowsException<ArgumentException>(() => job.AddError(new JobError(String.Empty, "Some message.")));
 		}
 
 		[TestMethod]
