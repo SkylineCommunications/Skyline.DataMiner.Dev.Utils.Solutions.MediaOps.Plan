@@ -1,16 +1,16 @@
-﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+﻿﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
 
-	/// <summary>Represents a linked core resource that could not be found.</summary>
-	public sealed class CoreResourceNotFoundJobValidatorError : JobValidatorError
+
+	public sealed class CoreResourceNotFoundJobValidatorError : CoreResourceNotFoundJobValidationError
 	{
 		/// <summary>The error code.</summary>
-		public const string ErrorCode = "J102";
+		public new const string ErrorCode = CoreResourceNotFoundJobValidationError.ErrorCode;
 
 		/// <summary>Initializes a new instance of the <see cref="CoreResourceNotFoundJobValidatorError"/> class.</summary>
 		public CoreResourceNotFoundJobValidatorError(Guid coreResourceId, string resourceName)
-			: base(ErrorCode, $"Couldn't find core resource with ID '{coreResourceId}' linked to DOM resource '{resourceName}'")
+			: base(coreResourceId, resourceName)
 		{
 		}
 	}
