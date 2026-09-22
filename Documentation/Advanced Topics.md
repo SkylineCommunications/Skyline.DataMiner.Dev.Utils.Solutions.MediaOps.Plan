@@ -185,7 +185,7 @@ api.Jobs.SetOrchestrationState(jobId, new OrchestrationUpdateDetails
 
 ## Logging
 
-The API supports custom logging through the `ILogger` interface.
+The API supports custom logging through the `ILogger` interface. Logging is opt-in: if no logger is set, the API uses a no-op logger and does not write log messages.
 
 ### Setting a Logger
 
@@ -194,9 +194,57 @@ using Skyline.DataMiner.Solutions.MediaOps.Plan.Automation;
 using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
 
 var api = engine.GetMediaOpsPlanApi();
+api.SetLogger(new AutomationLogger(engine));
+```
 
-// Set a custom logger
-api.SetLogger(myLogger);
+The API can also be retrieved from an `IConnection`, `SLProtocol`, or `GQIDMS`; set the logger on the returned API instance:
+
+```csharp
+connection.GetMediaOpsPlanApi().SetLogger(logger);
+protocol.GetMediaOpsPlanApi().SetLogger(logger);
+dms.GetMediaOpsPlanApi().SetLogger(logger);
+```
+
+### Automation Logger Example
+
+The following `ILogger` implementation writes every API log message to the Automation script log with `IEngine.Log(string message)`:
+
+```csharp
+using System;
+using System.Runtime.CompilerServices;
+using Skyline.DataMiner.Automation;
+using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
+
+public sealed class AutomationLogger : ILogger
+{
+    private readonly IEngine engine;
+
+    public AutomationLogger(IEngine engine)
+    {
+        this.engine = engine ?? throw new ArgumentNullException(nameof(engine));
+    }
+
+    public void Debug(object callerInstance, string message, object[] args = null, [CallerMemberName] string methodName = "") => Log(message);
+
+    public void Debug(string message) => Log(message);
+
+    public void Error(object callerInstance, string message, object[] args = null, [CallerMemberName] string methodName = "") => Log(message);
+
+    public void Error(string message) => Log(message);
+
+    public void Information(object callerInstance, string message, object[] args = null, [CallerMemberName] string methodName = "") => Log(message);
+
+    public void Information(string message) => Log(message);
+
+    public void Warning(object callerInstance, string message, object[] args = null, [CallerMemberName] string methodName = "") => Log(message);
+
+    public void Warning(string message) => Log(message);
+
+    private void Log(string message)
+    {
+        engine.Log(message);
+    }
+}
 ```
 
 ## Installation and Setup
