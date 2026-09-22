@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net48</TargetFramework>
+		<OutputType>Exe</OutputType>
+		<LangVersion>latest</LangVersion>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<AssemblyName>Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Benchmarks</AssemblyName>
+		<RootNamespace>Skyline.DataMiner.Solutions.MediaOps.Plan.Benchmarks</RootNamespace>
+		<IsPackable>false</IsPackable>
+	</PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\DevPack\Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.csproj" />
+		<ProjectReference Include="..\DevPack.UnitTesting\Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.UnitTesting.csproj" />
+	</ItemGroup>
+</Project>
