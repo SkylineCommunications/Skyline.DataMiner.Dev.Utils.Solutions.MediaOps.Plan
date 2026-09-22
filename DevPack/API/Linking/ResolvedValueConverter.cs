@@ -26,6 +26,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// </remarks>
 	public static class ResolvedValueConverter
 	{
+		private const string NotResolvedReason = "could not be resolved to a value.";
+
 		/// <summary>
 		/// Converts the specified value into the value the given target parameter can take.
 		/// </summary>
@@ -54,7 +56,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				case DiscreteNumberConfiguration discreteNumber:
 					return TryMatchDiscrete(value, discreteNumber.Discretes, x => x.DisplayName, x => Convert.ToString(x.Value, CultureInfo.InvariantCulture), x => new DecimalResolvedValue(x.Value, x.DisplayName), out converted);
 
+				case NumberCapacity numberCapacity:
+					return TryMatchNumber(value, numberCapacity.RangeMin, numberCapacity.RangeMax, out converted);
+
+				case NumberConfiguration numberConfiguration:
+					return TryMatchNumber(value, numberConfiguration.RangeMin, numberConfiguration.RangeMax, out converted);
+
 				default:
+					// A range needs a minimum and a maximum, so a single value is left untouched for it.
 					return true;
 			}
 		}
@@ -75,7 +84,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return false;
 			}
 
-			if (target == null || target.Type != CoreParameter.ParameterType.Discrete || target.Discretes == null)
+			if (target == null)
+			{
+				return true;
+			}
+
+			if (target.Type == CoreParameter.ParameterType.Number)
+			{
+				return TryMatchNumber(value, ToRangeBound(target.RangeMin, Double.MinValue), ToRangeBound(target.RangeMax, Double.MaxValue), out converted);
+			}
+
+			if (target.Type != CoreParameter.ParameterType.Discrete || target.Discretes == null)
 			{
 				return true;
 			}
@@ -104,7 +123,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 			if (value == null || !value.IsResolved)
 			{
-				return "could not be resolved to a value.";
+				return NotResolvedReason;
 			}
 
 			if (TryConvert(value, target, out _))
@@ -112,11 +131,110 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return null;
 			}
 
-			var parameter = String.IsNullOrEmpty(target?.Name) ? "the parameter" : $"'{target.Name}'";
+			return TryGetNumberRange(target, out var rangeMin, out var rangeMax)
+				? DescribeNumberFailure(value, target?.Name, rangeMin, rangeMax)
+				: DescribeOptionFailure(value, target?.Name);
+		}
+
+		private static string DescribeNumberFailure(ResolvedValue value, string parameterName, decimal? rangeMin, decimal? rangeMax)
+		{
+			var parameter = DescribeParameter(parameterName);
+			var displayValue = value.DisplayValue;
+
+			if (!TryGetNumber(value, out _))
+			{
+				return String.IsNullOrEmpty(displayValue)
+					? $"does not resolve to a number for {parameter}."
+					: $"resolves to '{displayValue}', which is not a number for {parameter}.";
+			}
+
+			return $"resolves to '{displayValue}', which is outside the range of {parameter} ({FormatRange(rangeMin, rangeMax)}).";
+		}
+
+		private static string DescribeOptionFailure(ResolvedValue value, string parameterName)
+		{
+			var parameter = DescribeParameter(parameterName);
 
 			return String.IsNullOrEmpty(value.DisplayValue)
 				? $"does not resolve to one of the options of {parameter}."
 				: $"resolves to '{value.DisplayValue}', which is not one of the options of {parameter}.";
+		}
+
+		private static string DescribeParameter(string parameterName)
+		{
+			return String.IsNullOrEmpty(parameterName) ? "the parameter" : $"'{parameterName}'";
+		}
+
+		private static bool TryGetNumberRange(Parameter target, out decimal? rangeMin, out decimal? rangeMax)
+		{
+			switch (target)
+			{
+				case NumberCapacity numberCapacity:
+					rangeMin = numberCapacity.RangeMin;
+					rangeMax = numberCapacity.RangeMax;
+					return true;
+
+				case NumberConfiguration numberConfiguration:
+					rangeMin = numberConfiguration.RangeMin;
+					rangeMax = numberConfiguration.RangeMax;
+					return true;
+
+				default:
+					rangeMin = null;
+					rangeMax = null;
+					return false;
+			}
+		}
+
+		private static string FormatRange(decimal? rangeMin, decimal? rangeMax)
+		{
+			if (rangeMin.HasValue && rangeMax.HasValue)
+			{
+				return $"{rangeMin} to {rangeMax}";
+			}
+
+			return rangeMin.HasValue ? $"minimum {rangeMin}" : $"maximum {rangeMax}";
+		}
+
+		private static decimal? ToRangeBound(double value, double sentinel)
+		{
+			return Double.IsNaN(value) || value.Equals(sentinel) ? (decimal?)null : (decimal)value;
+		}
+
+		private static bool TryMatchNumber(ResolvedValue value, decimal? rangeMin, decimal? rangeMax, out ResolvedValue converted)
+		{
+			converted = null;
+
+			if (!TryGetNumber(value, out var number))
+			{
+				return false;
+			}
+
+			if ((rangeMin.HasValue && number < rangeMin.Value) || (rangeMax.HasValue && number > rangeMax.Value))
+			{
+				return false;
+			}
+
+			converted = new DecimalResolvedValue(number);
+			return true;
+		}
+
+		private static bool TryGetNumber(ResolvedValue value, out decimal number)
+		{
+			switch (value)
+			{
+				case DecimalResolvedValue decimalValue:
+					number = decimalValue.Value;
+					return true;
+
+				case DoubleResolvedValue doubleValue when doubleValue.Value >= (double)Decimal.MinValue && doubleValue.Value <= (double)Decimal.MaxValue:
+					number = (decimal)doubleValue.Value;
+					return true;
+
+				default:
+					// Thousands separators are not accepted, so '1,5' is rejected instead of silently becoming 15.
+					return Decimal.TryParse(value.DisplayValue, NumberStyles.Float, CultureInfo.InvariantCulture, out number);
+			}
 		}
 
 		private static IReadOnlyCollection<TextDiscrete> BuildProfileParameterOptions(CoreParameter target)
