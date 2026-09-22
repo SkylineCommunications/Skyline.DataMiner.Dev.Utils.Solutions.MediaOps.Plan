@@ -404,7 +404,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			var referenceValidationContext = referenceTargets.Count > 0
-				? new OrchestrationReferenceValidationContext(referenceTargets)
+				? new OrchestrationReferenceValidationContext(referenceTargets, referenceDefinitions)
 				: null;
 
 			DomWorkflowOrchestrationSettingsHandler.TryCreateOrUpdate(planApi, orchestrationSettings, referenceValidationContext, out var domResult);
@@ -2848,16 +2848,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			foreach (var job in apiJobs.Where(IsValid))
 			{
 				var resolver = new JobReferenceResolver(planApi, job, referenceDefinitions);
-				var resolution = new JobReferenceValidator(resolver).Resolve(job);
+				var resolution = new JobReferenceValidator(resolver, referenceDefinitions).Resolve(job);
 
-				foreach (var reference in resolution.UnresolvedReferences)
+				foreach (var (reference, reason) in resolution.UnresolvedReferences)
 				{
 					var label = resolver.GetDisplayLabel(reference);
 					ReportError(job.Id, new JobUnresolvedReferenceError
 					{
 						Id = job.Id,
 						Reference = label,
-						ErrorMessage = $"Reference '{label}' could not be resolved to a value.",
+						ErrorMessage = $"Reference '{label}' {reason}",
 					});
 				}
 			}
@@ -3460,7 +3460,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			foreach (var job in apiJobs.Where(x => IsValid(x) && RequiresReferenceResolution(x.State)))
 			{
 				var resolver = new JobReferenceResolver(planApi, job, referenceDefinitions);
-				var resolution = new JobReferenceValidator(resolver).Resolve(job);
+				var resolution = new JobReferenceValidator(resolver, referenceDefinitions).Resolve(job);
 
 				resolvedReferencesByJobId[job.Id] = resolution.ResolvedReferences;
 
@@ -3469,14 +3469,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					continue;
 				}
 
-				foreach (var reference in resolution.UnresolvedReferences)
+				foreach (var (reference, reason) in resolution.UnresolvedReferences)
 				{
 					var label = resolver.GetDisplayLabel(reference);
 					ReportError(job.Id, new JobUnresolvedReferenceError
 					{
 						Id = job.Id,
 						Reference = label,
-						ErrorMessage = $"Reference '{label}' could not be resolved to a value.",
+						ErrorMessage = $"Reference '{label}' {reason}",
 					});
 				}
 			}

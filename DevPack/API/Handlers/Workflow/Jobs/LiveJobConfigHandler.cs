@@ -24,6 +24,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		private readonly JobState _targetState;
 		private readonly DateTimeOffset _currentTime;
 		private readonly JobReferenceResolver _referenceResolver;
+		private readonly ReferenceDefinitionCache _referenceDefinitions;
 		private readonly Live.OrchestrationJobConfiguration _liveConfiguration;
 		private readonly Lazy<Dictionary<long, ConnectivityLevel>> _lazyLevelsByNumber;
 		private readonly Lazy<Dictionary<Guid, Resource>> _lazyResourcesById;
@@ -36,7 +37,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			_targetState = targetState;
 			_currentTime = currentTime;
 
-			_referenceResolver = new JobReferenceResolver(planApi, job, referenceDefinitions);
+			_referenceDefinitions = referenceDefinitions ?? new ReferenceDefinitionCache(planApi);
+			_referenceResolver = new JobReferenceResolver(planApi, job, _referenceDefinitions);
 			_liveConfiguration = planApi.LiveApi.Orchestration.GetOrCreateNewOrchestrationJobConfiguration(job.Id.ToString());
 
 			_lazyLevelsByNumber = new Lazy<Dictionary<long, ConnectivityLevel>>(BuildLevelsByNumber);
@@ -419,13 +421,20 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				if (profileParameterValue.Reference != null)
 				{
+					// A referenced value is only usable once the target profile parameter can hold it; a dropdown
+					// passes on the raw value of the option its display value matched.
 					if (TryResolveReference(profileParameterValue.Reference, owningNodeId, out var resolved))
 					{
-						profile.Values.Add(new Live.OrchestrationProfileValue
+						var target = _referenceDefinitions.GetParameterDefinition(profileParameterValue.ProfileParameterId);
+
+						if (ResolvedValueConverter.TryConvert(resolved, target, out var converted))
 						{
-							Name = profileParameterValue.ProfileParameterId.ToString(),
-							Value = ToParameterValue(resolved),
-						});
+							profile.Values.Add(new Live.OrchestrationProfileValue
+							{
+								Name = profileParameterValue.ProfileParameterId.ToString(),
+								Value = ToParameterValue(converted),
+							});
+						}
 					}
 
 					continue;

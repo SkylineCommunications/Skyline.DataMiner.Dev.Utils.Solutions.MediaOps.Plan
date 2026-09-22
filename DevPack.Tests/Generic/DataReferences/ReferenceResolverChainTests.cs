@@ -79,6 +79,25 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 		}
 
 		[TestMethod]
+		public void ReferenceResolverChainTests_FromADropdownSetting_KeepsBothTheRawValueAndTheDisplayValue()
+		{
+			var context = ReferenceTestContext.Create();
+			var capability = context.CreateCapability();
+			var configuration = context.CreateDiscreteTextConfiguration();
+
+			var job = new Job { Name = "Chain job" };
+			job.OrchestrationSettings
+				.AddCapability(new CapabilitySetting(capability) { Reference = new ConfigurationParameterReference(configuration.Id) })
+				.AddConfiguration(new DiscreteTextConfigurationSetting(configuration) { Value = new TextDiscrete("A", "Option A") });
+
+			var resolved = new JobReferenceResolver(context.Api, job).ResolveValue(new CapabilityParameterReference(capability.Id));
+
+			Assert.IsTrue(resolved.IsResolved);
+			Assert.AreEqual("A", ((StringResolvedValue)resolved).Value);
+			Assert.AreEqual("Option A", resolved.DisplayValue);
+		}
+
+		[TestMethod]
 		public void ReferenceResolverChainTests_EndingInAnUnknownSetting_ReportsTheDeepestUnresolvedReference()
 		{
 			var context = ReferenceTestContext.Create();

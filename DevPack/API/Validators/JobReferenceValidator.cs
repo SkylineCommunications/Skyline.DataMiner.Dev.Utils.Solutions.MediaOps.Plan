@@ -13,19 +13,23 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	internal sealed class JobReferenceValidator
 	{
 		private readonly ReferenceResolver resolver;
+		private readonly ReferenceDefinitionCache definitions;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="JobReferenceValidator"/> class.
 		/// </summary>
 		/// <param name="resolver">The resolver used to resolve the references against the job's context.</param>
-		public JobReferenceValidator(ReferenceResolver resolver)
+		/// <param name="definitions">The definitions used to look up the parameter a setting holds its value for.</param>
+		public JobReferenceValidator(ReferenceResolver resolver, ReferenceDefinitionCache definitions)
 		{
 			this.resolver = resolver ?? throw new ArgumentNullException(nameof(resolver));
+			this.definitions = definitions ?? throw new ArgumentNullException(nameof(definitions));
 		}
 
 		/// <summary>
-		/// Resolves all settings references in the specified job and reports which references resolved to an
-		/// actual value and which could not be resolved.
+		/// Resolves all settings references in the specified job and reports which references produced a value and
+		/// which did not, together with the reason why. A reference that resolves to a value the setting cannot hold -
+		/// a dropdown whose options do not contain the resolved value - counts as unresolved as well.
 		/// </summary>
 		/// <param name="job">The job whose settings references should be resolved.</param>
 		/// <returns>A <see cref="JobReferenceResolution"/> describing the outcome.</returns>
@@ -36,36 +40,42 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				throw new ArgumentNullException(nameof(job));
 			}
 
-			var unresolved = new List<DataReference>();
+			var unresolved = new List<(DataReference Reference, string Reason)>();
 			var resolved = new ResolvedReferenceCache();
 
 			foreach (var entry in EnumerateReferenceSettings(job))
 			{
 				var reference = entry.Setting.Reference;
-				if (reference == null || resolved.Contains(entry.OwningNodeId, reference))
+				if (reference == null)
 				{
 					continue;
 				}
 
 				// A resource reference without a node resolves against the node holding the setting, so the same
 				// configured reference can produce a different value per node.
-				ResolvedValue value;
-				try
+				if (!resolved.TryGetValue(entry.OwningNodeId, reference, out var value))
 				{
-					value = resolver.ResolveValue(reference, entry.OwningNodeId);
-				}
-				catch (CircularReferenceException)
-				{
-					value = null;
+					try
+					{
+						value = resolver.ResolveValue(reference, entry.OwningNodeId);
+					}
+					catch (CircularReferenceException)
+					{
+						value = null;
+					}
+
+					if (value != null && value.IsResolved)
+					{
+						resolved.Set(entry.OwningNodeId, reference, value);
+					}
 				}
 
-				if (value != null && value.IsResolved)
+				// The value is cached as it was resolved; whether the setting can take it is decided per setting,
+				// since the same reference can feed settings with different options.
+				var reason = ResolvedValueConverter.GetFailureReason(value, definitions.GetParameterDefinition(entry.Setting.Id));
+				if (reason != null && !unresolved.Contains((reference, reason)))
 				{
-					resolved.Set(entry.OwningNodeId, reference, value);
-				}
-				else if (!unresolved.Contains(reference))
-				{
-					unresolved.Add(reference);
+					unresolved.Add((reference, reason));
 				}
 			}
 

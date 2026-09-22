@@ -977,10 +977,12 @@
 					return true;
 				}
 
-				if (TryGetResolvedRawValue(capability, resolvedReferences, owningNodeId, out var rawValue))
+				// A capability option has no separate display name, so the display value of the referenced value is
+				// the option to require.
+				if (TryGetResolvedValue(capability, resolvedReferences, owningNodeId, out var resolvedValue))
 				{
-					value = Convert.ToString(rawValue, CultureInfo.InvariantCulture);
-					return value != null;
+					value = resolvedValue.DisplayValue;
+					return !String.IsNullOrEmpty(value);
 				}
 
 				value = null;
@@ -1004,18 +1006,23 @@
 				return false;
 			}
 
-			private static bool TryGetResolvedRawValue(Setting setting, ResolvedReferenceCache resolvedReferences, string owningNodeId, out object rawValue)
+			private static bool TryGetResolvedValue(Setting setting, ResolvedReferenceCache resolvedReferences, string owningNodeId, out ResolvedValue resolvedValue)
 			{
-				rawValue = null;
+				resolvedValue = null;
 
 				if (!setting.HasReference || resolvedReferences == null)
 				{
 					return false;
 				}
 
-				var reference = setting.Reference;
+				return resolvedReferences.TryGetValue(owningNodeId, setting.Reference, out resolvedValue) && resolvedValue.IsResolved;
+			}
 
-				if (!resolvedReferences.TryGetValue(owningNodeId, reference, out var resolvedValue) || !resolvedValue.IsResolved)
+			private static bool TryGetResolvedRawValue(Setting setting, ResolvedReferenceCache resolvedReferences, string owningNodeId, out object rawValue)
+			{
+				rawValue = null;
+
+				if (!TryGetResolvedValue(setting, resolvedReferences, owningNodeId, out var resolvedValue))
 				{
 					return false;
 				}

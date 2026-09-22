@@ -14,6 +14,18 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			Value = value;
 		}
 
+		/// <summary>
+		/// Initializes a new instance of the <see cref="DecimalResolvedValue"/> class with the specified decimal value
+		/// and the display name of the dropdown option it originates from.
+		/// </summary>
+		/// <param name="value">The resolved decimal value.</param>
+		/// <param name="displayValue">The display name of the dropdown option the value originates from.</param>
+		public DecimalResolvedValue(decimal value, string displayValue)
+			: base(displayValue)
+		{
+			Value = value;
+		}
+
 		/// <summary>Gets the resolved decimal value.</summary>
 		public decimal Value { get; private set; }
 

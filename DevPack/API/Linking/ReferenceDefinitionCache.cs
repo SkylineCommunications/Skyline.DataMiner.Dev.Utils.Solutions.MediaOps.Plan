@@ -59,5 +59,25 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Gets the dictionary of resource property definitions keyed by their identifier.
 		/// </summary>
 		public IDictionary<Guid, ResourceProperty> ResourcePropertyDefinitions => lazyResourcePropertyDefinitions.Value;
+
+		/// <summary>
+		/// Returns the capability, capacity or configuration definition with the specified identifier, or
+		/// <see langword="null"/> when there is none.
+		/// </summary>
+		/// <param name="parameterId">The identifier of the parameter definition.</param>
+		public Parameter GetParameterDefinition(Guid parameterId)
+		{
+			if (CapabilityDefinitions.TryGetValue(parameterId, out var capability))
+			{
+				return capability;
+			}
+
+			if (ConfigurationDefinitions.TryGetValue(parameterId, out var configuration))
+			{
+				return configuration;
+			}
+
+			return CapacityDefinitions.TryGetValue(parameterId, out var capacity) ? capacity : null;
+		}
 	}
 }
