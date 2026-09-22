@@ -1041,7 +1041,8 @@
 					case double doubleValue:
 						value = (decimal)doubleValue;
 						return true;
-					case string stringValue when decimal.TryParse(stringValue, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed):
+					// Parsed the same way as ResolvedValueConverter, so '1,5' is rejected instead of silently becoming 15.
+					case string stringValue when decimal.TryParse(stringValue, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed):
 						value = parsed;
 						return true;
 					default:
