@@ -109,5 +109,70 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 			Assert.IsTrue(ResolvedValueConverter.TryConvert(new StringResolvedValue("Brussels"), (Parameter)null, out var converted));
 			Assert.AreEqual("Brussels", converted.GetRawValue());
 		}
+
+		[TestMethod]
+		public void ResolvedValueConverter_TryConvert_NumberTargetTakesNumericText()
+		{
+			var target = new NumberConfiguration { Name = "Channels" };
+
+			Assert.IsTrue(ResolvedValueConverter.TryConvert(new StringResolvedValue("7"), target, out var converted));
+			Assert.AreEqual(7m, converted.GetRawValue());
+		}
+
+		[TestMethod]
+		public void ResolvedValueConverter_TryConvert_NumberTargetRejectsNonNumericText()
+		{
+			var target = new NumberConfiguration { Name = "Channels" };
+
+			Assert.IsFalse(ResolvedValueConverter.TryConvert(new StringResolvedValue("seven"), target, out var converted));
+			Assert.IsNull(converted);
+		}
+
+		[TestMethod]
+		public void ResolvedValueConverter_TryConvert_NumberTargetRejectsThousandsSeparator()
+		{
+			var target = new NumberConfiguration { Name = "Channels" };
+
+			// '1,5' must not silently become 15.
+			Assert.IsFalse(ResolvedValueConverter.TryConvert(new StringResolvedValue("1,5"), target, out _));
+		}
+
+		[TestMethod]
+		public void ResolvedValueConverter_TryConvert_NumberTargetTakesDecimalText()
+		{
+			var target = new NumberConfiguration { Name = "Gain" };
+
+			Assert.IsTrue(ResolvedValueConverter.TryConvert(new StringResolvedValue("1.5"), target, out var converted));
+			Assert.AreEqual(1.5m, converted.GetRawValue());
+		}
+
+		[TestMethod]
+		public void ResolvedValueConverter_TryConvert_NumberTargetRejectsValueOutsideRange()
+		{
+			var target = new NumberConfiguration { Name = "Channels", RangeMin = 1, RangeMax = 8 };
+
+			Assert.IsTrue(ResolvedValueConverter.TryConvert(new StringResolvedValue("8"), target, out _));
+			Assert.IsFalse(ResolvedValueConverter.TryConvert(new StringResolvedValue("9"), target, out _));
+			Assert.IsFalse(ResolvedValueConverter.TryConvert(new StringResolvedValue("0"), target, out _));
+		}
+
+		[TestMethod]
+		public void ResolvedValueConverter_TryConvert_NumberCapacityTakesNumericText()
+		{
+			var target = new NumberCapacity { Name = "Bandwidth", RangeMin = 0 };
+
+			Assert.IsTrue(ResolvedValueConverter.TryConvert(new StringResolvedValue("100"), target, out var converted));
+			Assert.AreEqual(100m, converted.GetRawValue());
+		}
+
+		[TestMethod]
+		public void ResolvedValueConverter_TryConvert_RangeCapacityKeepsValue()
+		{
+			// A range needs a minimum and a maximum, so a single value is left untouched for it.
+			var target = new RangeCapacity { Name = "Window" };
+
+			Assert.IsTrue(ResolvedValueConverter.TryConvert(new StringResolvedValue("5"), target, out var converted));
+			Assert.AreEqual("5", converted.GetRawValue());
+		}
 	}
 }
