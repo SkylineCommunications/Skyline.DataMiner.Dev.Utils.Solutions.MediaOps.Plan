@@ -7,7 +7,7 @@
 	/// </summary>
 	public class DiscreteTextConfigurationSetting : ConfigurationSetting
 	{
-		private TextDiscreet value;
+		private TextDiscrete value;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="DiscreteTextConfigurationSetting"/> class using the specified discrete text configuration.
@@ -41,7 +41,7 @@
 		/// <summary>
 		/// Gets or sets the configuration value.
 		/// </summary>
-		public TextDiscreet Value
+		public TextDiscrete Value
 		{
 			get => value;
 			set

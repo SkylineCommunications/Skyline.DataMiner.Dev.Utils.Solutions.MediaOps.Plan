@@ -260,12 +260,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 			// Only the start-side boundaries are guarded for a confirmed (not yet started) job: a changed pre-roll start
 			// or start must remain at least the guard time in the future so it cannot be moved to (nearly) the present.
-			ValidateChangedBoundaryInFuture<JobPreRollStartChangeNotAllowedError>(jobId, changes.PreRollStartChanged, requested.PreRollStart, currentTime, "pre-roll start", "confirmed", errors);
-			ValidateChangedBoundaryInFuture<JobStartChangeNotAllowedError>(jobId, changes.StartChanged, requested.Start, currentTime, "start", "confirmed", errors);
+			ValidateChangedBoundaryInFuture<JobPreRollStartChangedNotAllowedError>(jobId, changes.PreRollStartChanged, requested.PreRollStart, currentTime, "pre-roll start", "confirmed", errors);
+			ValidateChangedBoundaryInFuture<JobStartChangedNotAllowedError>(jobId, changes.StartChanged, requested.Start, currentTime, "start", "confirmed", errors);
 		}
 
 		private static void ValidateChangedBoundaryInFuture<TError>(Guid jobId, bool changed, DateTimeOffset requestedValue, DateTimeOffset currentTime, string field, string state, List<MediaOpsErrorData> errors)
-			where TError : JobTimingChangeNotAllowedError, new()
+			where TError : JobTimingChangedNotAllowedError, new()
 		{
 			if (!changed)
 			{
@@ -282,14 +282,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 			// Every changed boundary of a running job must still lie in the future: one that already occurred can no
 			// longer be adapted, and one that is still ahead must remain at least the guard time in the future.
-			ValidateChangedRunningBoundary<JobPreRollStartChangeNotAllowedError>(jobId, changes.PreRollStartChanged, original.PreRollStart, requested.PreRollStart, currentTime, "pre-roll start", errors);
-			ValidateChangedRunningBoundary<JobStartChangeNotAllowedError>(jobId, changes.StartChanged, original.Start, requested.Start, currentTime, "start", errors);
-			ValidateChangedRunningBoundary<JobEndChangeNotAllowedError>(jobId, changes.EndChanged, original.End, requested.End, currentTime, "end", errors);
-			ValidateChangedRunningBoundary<JobPostRollEndChangeNotAllowedError>(jobId, changes.PostRollEndChanged, original.PostRollEnd, requested.PostRollEnd, currentTime, "post-roll end", errors);
+			ValidateChangedRunningBoundary<JobPreRollStartChangedNotAllowedError>(jobId, changes.PreRollStartChanged, original.PreRollStart, requested.PreRollStart, currentTime, "pre-roll start", errors);
+			ValidateChangedRunningBoundary<JobStartChangedNotAllowedError>(jobId, changes.StartChanged, original.Start, requested.Start, currentTime, "start", errors);
+			ValidateChangedRunningBoundary<JobEndChangedNotAllowedError>(jobId, changes.EndChanged, original.End, requested.End, currentTime, "end", errors);
+			ValidateChangedRunningBoundary<JobPostRollEndChangedNotAllowedError>(jobId, changes.PostRollEndChanged, original.PostRollEnd, requested.PostRollEnd, currentTime, "post-roll end", errors);
 		}
 
 		private static void ValidateChangedRunningBoundary<TError>(Guid jobId, bool changed, DateTimeOffset originalValue, DateTimeOffset requestedValue, DateTimeOffset currentTime, string field, List<MediaOpsErrorData> errors)
-			where TError : JobTimingChangeNotAllowedError, new()
+			where TError : JobTimingChangedNotAllowedError, new()
 		{
 			if (!changed)
 			{
@@ -313,27 +313,27 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			if (changes.PreRollStartChanged)
 			{
-				errors.Add(CreateChangeNotAllowed<JobPreRollStartChangeNotAllowedError>(jobId, requested.PreRollStart, message));
+				errors.Add(CreateChangeNotAllowed<JobPreRollStartChangedNotAllowedError>(jobId, requested.PreRollStart, message));
 			}
 
 			if (changes.StartChanged)
 			{
-				errors.Add(CreateChangeNotAllowed<JobStartChangeNotAllowedError>(jobId, requested.Start, message));
+				errors.Add(CreateChangeNotAllowed<JobStartChangedNotAllowedError>(jobId, requested.Start, message));
 			}
 
 			if (changes.EndChanged)
 			{
-				errors.Add(CreateChangeNotAllowed<JobEndChangeNotAllowedError>(jobId, requested.End, message));
+				errors.Add(CreateChangeNotAllowed<JobEndChangedNotAllowedError>(jobId, requested.End, message));
 			}
 
 			if (changes.PostRollEndChanged)
 			{
-				errors.Add(CreateChangeNotAllowed<JobPostRollEndChangeNotAllowedError>(jobId, requested.PostRollEnd, message));
+				errors.Add(CreateChangeNotAllowed<JobPostRollEndChangedNotAllowedError>(jobId, requested.PostRollEnd, message));
 			}
 		}
 
 		private static TError CreateChangeNotAllowed<TError>(Guid jobId, DateTimeOffset value, string message)
-			where TError : JobTimingChangeNotAllowedError, new()
+			where TError : JobTimingChangedNotAllowedError, new()
 		{
 			return new TError
 			{

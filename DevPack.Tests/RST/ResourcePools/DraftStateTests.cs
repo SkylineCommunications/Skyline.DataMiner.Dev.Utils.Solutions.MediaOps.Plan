@@ -67,11 +67,11 @@
 			var resourcePoolError = expectedException.TraceData.ErrorData.OfType<ResourcePoolError>().SingleOrDefault();
 			Assert.IsNotNull(resourcePoolError);
 
-			var resourcePoolInvalidStatePoolLinkError = resourcePoolError as ResourcePoolInvalidStatePoolLinkError;
-			Assert.IsNotNull(resourcePoolInvalidStatePoolLinkError);
-			Assert.AreEqual(pool2.Id, resourcePoolInvalidStatePoolLinkError.Id);
-			Assert.AreEqual(errorMessage, resourcePoolInvalidStatePoolLinkError.ErrorMessage);
-			Assert.AreEqual(pool1.Id, resourcePoolInvalidStatePoolLinkError.LinkedResourcePoolId);
+			var resourcePoolInvalidPoolLinkStateError = resourcePoolError as ResourcePoolInvalidPoolLinkStateError;
+			Assert.IsNotNull(resourcePoolInvalidPoolLinkStateError);
+			Assert.AreEqual(pool2.Id, resourcePoolInvalidPoolLinkStateError.Id);
+			Assert.AreEqual(errorMessage, resourcePoolInvalidPoolLinkStateError.ErrorMessage);
+			Assert.AreEqual(pool1.Id, resourcePoolInvalidPoolLinkStateError.LinkedResourcePoolId);
 
 			var domResourcePool2 = TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(pool2.Id)).SingleOrDefault();
 			Assert.IsNull(domResourcePool2);

@@ -13,7 +13,7 @@
 	/// </summary>
 	public class DiscreteTextConfiguration : Configuration
 	{
-		private readonly List<TextDiscreet> discretes = new List<TextDiscreet>();
+		private readonly List<TextDiscrete> discretes = new List<TextDiscrete>();
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="DiscreteTextConfiguration"/> class.
@@ -44,45 +44,45 @@
 		/// <summary>
 		/// Gets or sets the default value to use when no explicit value is provided.
 		/// </summary>
-		public TextDiscreet DefaultValue { get; set; }
+		public TextDiscrete DefaultValue { get; set; }
 
 		/// <summary>
 		/// Gets a read-only collection of discrete text values.
 		/// </summary>
-		public IReadOnlyCollection<TextDiscreet> Discretes => discretes;
+		public IReadOnlyCollection<TextDiscrete> Discretes => discretes;
 
 		/// <summary>
 		/// Adds the specified discrete text configuration to the current collection.
 		/// </summary>
-		/// <param name="discreet">The discrete text configuration to add. Cannot be null.</param>
+		/// <param name="discrete">The discrete text configuration to add. Cannot be null.</param>
 		/// <returns>
 		/// The current <see cref="DiscreteTextConfiguration"/> instance with the added discrete text configuration,
 		/// enabling fluent configuration.
 		/// </returns>
-		/// <exception cref="ArgumentNullException">Thrown if <paramref name="discreet"/> is null.</exception>
-		public DiscreteTextConfiguration AddDiscrete(TextDiscreet discreet)
+		/// <exception cref="ArgumentNullException">Thrown if <paramref name="discrete"/> is null.</exception>
+		public DiscreteTextConfiguration AddDiscrete(TextDiscrete discrete)
 		{
-			if (discreet == null)
-				throw new ArgumentNullException(nameof(discreet));
+			if (discrete == null)
+				throw new ArgumentNullException(nameof(discrete));
 
-			discretes.Add(discreet);
+			discretes.Add(discrete);
 			return this;
 		}
 
 		/// <summary>
 		/// Removes the specified discrete value from the configuration.
 		/// </summary>
-		/// <param name="discreet">The discrete value to remove from the configuration. Cannot be null.</param>
+		/// <param name="discrete">The discrete value to remove from the configuration. Cannot be null.</param>
 		/// <returns>
 		/// The current <see cref="DiscreteTextConfiguration"/> instance, allowing method chaining.
 		/// </returns>
-		/// <exception cref="ArgumentNullException">Thrown if <paramref name="discreet"/> is null.</exception>
-		public DiscreteTextConfiguration RemoveDiscrete(TextDiscreet discreet)
+		/// <exception cref="ArgumentNullException">Thrown if <paramref name="discrete"/> is null.</exception>
+		public DiscreteTextConfiguration RemoveDiscrete(TextDiscrete discrete)
 		{
-			if (discreet == null)
-				throw new ArgumentNullException(nameof(discreet));
+			if (discrete == null)
+				throw new ArgumentNullException(nameof(discrete));
 
-			discretes.RemoveAll(x => x.Equals(discreet));
+			discretes.RemoveAll(x => x.Equals(discrete));
 
 			return this;
 		}
@@ -95,7 +95,7 @@
 		/// The current <see cref="DiscreteTextConfiguration"/> instance, allowing method chaining.
 		/// </returns>
 		/// <exception cref="ArgumentNullException">Thrown if <paramref name="discretes"/> is null.</exception>
-		public DiscreteTextConfiguration SetDiscretes(ICollection<TextDiscreet> discretes)
+		public DiscreteTextConfiguration SetDiscretes(ICollection<TextDiscrete> discretes)
 		{
 			if (discretes == null)
 				throw new ArgumentNullException(nameof(discretes));
@@ -113,9 +113,9 @@
 			{
 				int hash = base.GetHashCode();
 				hash = (hash * 23) + (DefaultValue != null ? DefaultValue.GetHashCode() : 0);
-				foreach (var discreet in discretes.OrderBy(x => x.DisplayName).ToArray())
+				foreach (var discrete in discretes.OrderBy(x => x.DisplayName).ToArray())
 				{
-					hash = (hash * 23) + discreet.GetHashCode();
+					hash = (hash * 23) + discrete.GetHashCode();
 				}
 
 				return hash;
@@ -176,7 +176,7 @@
 
 			for (int i = 0; i < parameter.Discretes.Count; i++)
 			{
-				discretes.Add(new TextDiscreet(parameter.Discretes[i], parameter.DiscreetDisplayValues[i]));
+				discretes.Add(new TextDiscrete(parameter.Discretes[i], parameter.DiscreetDisplayValues[i]));
 			}
 
 			if (!parameter.HasDefaultStringValue())

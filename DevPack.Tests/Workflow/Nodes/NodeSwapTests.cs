@@ -441,7 +441,7 @@ namespace RT_MediaOps.Plan.Workflow.Nodes
 			Assert.ThrowsException<ArgumentNullException>(() => target.CopyOrchestrationSettingsFrom(null));
 		}
 
-		private static List<JobNodeSwapNotAllowedError> GetJobSwapErrors(Job job)
+		private static List<JobNodeSwappedNotAllowedError> GetJobSwapErrors(Job job)
 		{
 			// Run the job node graph validator and collect only the swap-related errors. Other validation errors
 			// (e.g. unknown resource/pool ids) are irrelevant here and are filtered out.
@@ -452,8 +452,8 @@ namespace RT_MediaOps.Plan.Workflow.Nodes
 				new Dictionary<Guid, ResourcePool>());
 
 			return validator.TraceDataPerItem.TryGetValue(job.Id, out var traceData)
-				? traceData.ErrorData.OfType<JobNodeSwapNotAllowedError>().ToList()
-				: new List<JobNodeSwapNotAllowedError>();
+				? traceData.ErrorData.OfType<JobNodeSwappedNotAllowedError>().ToList()
+				: new List<JobNodeSwappedNotAllowedError>();
 		}
 	}
 }

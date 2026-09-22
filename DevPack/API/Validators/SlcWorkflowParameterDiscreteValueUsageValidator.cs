@@ -31,7 +31,7 @@
 			return validator;
 		}
 
-		public static ApiObjectValidator Validate(MediaOpsPlanApi planApi, ICollection<ParameterDiscreteValue<TextDiscreet>> configurationTextDiscreteValues)
+		public static ApiObjectValidator Validate(MediaOpsPlanApi planApi, ICollection<ParameterDiscreteValue<TextDiscrete>> configurationTextDiscreteValues)
 		{
 			if (configurationTextDiscreteValues == null)
 			{
@@ -44,7 +44,7 @@
 			return validator;
 		}
 
-		public static ApiObjectValidator Validate(MediaOpsPlanApi planApi, ICollection<ParameterDiscreteValue<NumberDiscreet>> configurationNumberDiscreteValues)
+		public static ApiObjectValidator Validate(MediaOpsPlanApi planApi, ICollection<ParameterDiscreteValue<NumberDiscrete>> configurationNumberDiscreteValues)
 		{
 			if (configurationNumberDiscreteValues == null)
 			{
@@ -258,9 +258,9 @@
 			return result;
 		}
 
-		private Dictionary<ParameterDiscreteValue<TextDiscreet>, ICollection<Guid>> GetOrchestrationSettingsPerConfigurationTextDiscreteValue(ICollection<ParameterDiscreteValue<TextDiscreet>> configurationTextDiscreteValues)
+		private Dictionary<ParameterDiscreteValue<TextDiscrete>, ICollection<Guid>> GetOrchestrationSettingsPerConfigurationTextDiscreteValue(ICollection<ParameterDiscreteValue<TextDiscrete>> configurationTextDiscreteValues)
 		{
-			var result = new Dictionary<ParameterDiscreteValue<TextDiscreet>, ICollection<Guid>>();
+			var result = new Dictionary<ParameterDiscreteValue<TextDiscrete>, ICollection<Guid>>();
 
 			var parameterIds = configurationTextDiscreteValues.Select(x => x.ParameterId).ToHashSet();
 			var orchestrationSettings = GetOrchestrationSettings(parameterIds);
@@ -293,9 +293,9 @@
 			return result;
 		}
 
-		private Dictionary<ParameterDiscreteValue<NumberDiscreet>, ICollection<Guid>> GetOrchestrationSettingsPerConfigurationNumberDiscreteValue(ICollection<ParameterDiscreteValue<NumberDiscreet>> configurationNumberDiscreteValues)
+		private Dictionary<ParameterDiscreteValue<NumberDiscrete>, ICollection<Guid>> GetOrchestrationSettingsPerConfigurationNumberDiscreteValue(ICollection<ParameterDiscreteValue<NumberDiscrete>> configurationNumberDiscreteValues)
 		{
-			var result = new Dictionary<ParameterDiscreteValue<NumberDiscreet>, ICollection<Guid>>();
+			var result = new Dictionary<ParameterDiscreteValue<NumberDiscrete>, ICollection<Guid>>();
 
 			var parameterIds = configurationNumberDiscreteValues.Select(x => x.ParameterId).ToHashSet();
 			var orchestrationSettings = GetOrchestrationSettings(parameterIds);
@@ -342,7 +342,7 @@
 			ValidateWorkflowCapabilityDiscreteValueUsage(capabilityDiscreteValues, orchestrationSettingsPerCapabilityDiscreteValue);
 		}
 
-		private void ValidateConfigurationTextDiscreteValues(ICollection<ParameterDiscreteValue<TextDiscreet>> configurationTextDiscreteValues)
+		private void ValidateConfigurationTextDiscreteValues(ICollection<ParameterDiscreteValue<TextDiscrete>> configurationTextDiscreteValues)
 		{
 			if (!configurationTextDiscreteValues.Any())
 			{
@@ -356,7 +356,7 @@
 			ValidateWorkflowConfigurationTextDiscreteValueUsage(configurationTextDiscreteValues, orchestrationSettingsPerConfigurationTextDiscreteValue);
 		}
 
-		private void ValidateConfigurationNumberDiscreteValues(ICollection<ParameterDiscreteValue<NumberDiscreet>> configurationNumberDiscreteValues)
+		private void ValidateConfigurationNumberDiscreteValues(ICollection<ParameterDiscreteValue<NumberDiscrete>> configurationNumberDiscreteValues)
 		{
 			if (!configurationNumberDiscreteValues.Any())
 			{
@@ -460,7 +460,7 @@
 			}
 		}
 
-		private void ValidateJobConfigurationTextDiscreteValueUsage(ICollection<ParameterDiscreteValue<TextDiscreet>> configurationTextDiscreteValues, Dictionary<ParameterDiscreteValue<TextDiscreet>, ICollection<Guid>> orchestrationSettingsPerConfigurationTextDiscreteValue)
+		private void ValidateJobConfigurationTextDiscreteValueUsage(ICollection<ParameterDiscreteValue<TextDiscrete>> configurationTextDiscreteValues, Dictionary<ParameterDiscreteValue<TextDiscrete>, ICollection<Guid>> orchestrationSettingsPerConfigurationTextDiscreteValue)
 		{
 			var orchestrationSettingIds = orchestrationSettingsPerConfigurationTextDiscreteValue.Values.SelectMany(x => x).ToHashSet();
 			var jobsPerOrchestrationSettings = GetJobsPerOrchestrationSettings(orchestrationSettingIds);
@@ -490,7 +490,7 @@
 			}
 		}
 
-		private void ValidateRecurringJobConfigurationTextDiscreteValueUsage(ICollection<ParameterDiscreteValue<TextDiscreet>> configurationTextDiscreteValues, Dictionary<ParameterDiscreteValue<TextDiscreet>, ICollection<Guid>> orchestrationSettingsPerConfigurationTextDiscreteValue)
+		private void ValidateRecurringJobConfigurationTextDiscreteValueUsage(ICollection<ParameterDiscreteValue<TextDiscrete>> configurationTextDiscreteValues, Dictionary<ParameterDiscreteValue<TextDiscrete>, ICollection<Guid>> orchestrationSettingsPerConfigurationTextDiscreteValue)
 		{
 			var orchestrationSettingIds = orchestrationSettingsPerConfigurationTextDiscreteValue.Values.SelectMany(x => x).ToHashSet();
 			var recurringJobsPerOrchestrationSettings = GetRecurringJobsPerOrchestrationSettings(orchestrationSettingIds);
@@ -520,7 +520,7 @@
 			}
 		}
 
-		private void ValidateWorkflowConfigurationTextDiscreteValueUsage(ICollection<ParameterDiscreteValue<TextDiscreet>> configurationTextDiscreteValues, Dictionary<ParameterDiscreteValue<TextDiscreet>, ICollection<Guid>> orchestrationSettingsPerConfigurationTextDiscreteValue)
+		private void ValidateWorkflowConfigurationTextDiscreteValueUsage(ICollection<ParameterDiscreteValue<TextDiscrete>> configurationTextDiscreteValues, Dictionary<ParameterDiscreteValue<TextDiscrete>, ICollection<Guid>> orchestrationSettingsPerConfigurationTextDiscreteValue)
 		{
 			var orchestrationSettingIds = orchestrationSettingsPerConfigurationTextDiscreteValue.Values.SelectMany(x => x).ToHashSet();
 			var workflowsPerOrchestrationSettings = GetWorkflowsPerOrchestrationSettings(orchestrationSettingIds);
@@ -550,7 +550,7 @@
 			}
 		}
 
-		private void ValidateJobConfigurationNumberDiscreteValueUsage(ICollection<ParameterDiscreteValue<NumberDiscreet>> configurationNumberDiscreteValues, Dictionary<ParameterDiscreteValue<NumberDiscreet>, ICollection<Guid>> orchestrationSettingsPerConfigurationNumberDiscreteValue)
+		private void ValidateJobConfigurationNumberDiscreteValueUsage(ICollection<ParameterDiscreteValue<NumberDiscrete>> configurationNumberDiscreteValues, Dictionary<ParameterDiscreteValue<NumberDiscrete>, ICollection<Guid>> orchestrationSettingsPerConfigurationNumberDiscreteValue)
 		{
 			var orchestrationSettingIds = orchestrationSettingsPerConfigurationNumberDiscreteValue.Values.SelectMany(x => x).ToHashSet();
 			var jobsPerOrchestrationSettings = GetJobsPerOrchestrationSettings(orchestrationSettingIds);
@@ -580,7 +580,7 @@
 			}
 		}
 
-		private void ValidateRecurringJobConfigurationNumberDiscreteValueUsage(ICollection<ParameterDiscreteValue<NumberDiscreet>> configurationNumberDiscreteValues, Dictionary<ParameterDiscreteValue<NumberDiscreet>, ICollection<Guid>> orchestrationSettingsPerConfigurationNumberDiscreteValue)
+		private void ValidateRecurringJobConfigurationNumberDiscreteValueUsage(ICollection<ParameterDiscreteValue<NumberDiscrete>> configurationNumberDiscreteValues, Dictionary<ParameterDiscreteValue<NumberDiscrete>, ICollection<Guid>> orchestrationSettingsPerConfigurationNumberDiscreteValue)
 		{
 			var orchestrationSettingIds = orchestrationSettingsPerConfigurationNumberDiscreteValue.Values.SelectMany(x => x).ToHashSet();
 			var recurringJobsPerOrchestrationSettings = GetRecurringJobsPerOrchestrationSettings(orchestrationSettingIds);
@@ -610,7 +610,7 @@
 			}
 		}
 
-		private void ValidateWorkflowConfigurationNumberDiscreteValueUsage(ICollection<ParameterDiscreteValue<NumberDiscreet>> configurationNumberDiscreteValues, Dictionary<ParameterDiscreteValue<NumberDiscreet>, ICollection<Guid>> orchestrationSettingsPerConfigurationNumberDiscreteValue)
+		private void ValidateWorkflowConfigurationNumberDiscreteValueUsage(ICollection<ParameterDiscreteValue<NumberDiscrete>> configurationNumberDiscreteValues, Dictionary<ParameterDiscreteValue<NumberDiscrete>, ICollection<Guid>> orchestrationSettingsPerConfigurationNumberDiscreteValue)
 		{
 			var orchestrationSettingIds = orchestrationSettingsPerConfigurationNumberDiscreteValue.Values.SelectMany(x => x).ToHashSet();
 			var workflowsPerOrchestrationSettings = GetWorkflowsPerOrchestrationSettings(orchestrationSettingIds);

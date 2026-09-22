@@ -49,7 +49,7 @@
 		protected abstract MediaOpsErrorData CreateDuplicateConnectionIdError(string connectionId, string errorMessage);
 		protected abstract MediaOpsErrorData CreateConnectionInvalidNodeLinkError(string connectionId, string nodeId, string errorMessage);
 		protected abstract MediaOpsErrorData CreateInvalidNodeLinkError(string parentNodeId, string childNodeId, string errorMessage);
-		protected abstract MediaOpsErrorData CreateGroupWithInvalidNodeError(string groupName, string nodeId, string errorMessage);
+		protected abstract MediaOpsErrorData CreateInvalidGroupNodeError(string groupName, string nodeId, string errorMessage);
 
 		/// <summary>
 		/// Validates whether the net original-to-final swap transition is allowed for the owning context.
@@ -295,7 +295,7 @@
 				{
 					if (node == null || !NodeIds.Contains(node.Id))
 					{
-						ReportError(apiObjectId, CreateGroupWithInvalidNodeError(group.Name, node?.Id ?? string.Empty, $"Node with ID '{node?.Id}' does not exist in the graph."));
+						ReportError(apiObjectId, CreateInvalidGroupNodeError(group.Name, node?.Id ?? string.Empty, $"Node with ID '{node?.Id}' does not exist in the graph."));
 					}
 				}
 			}
@@ -328,7 +328,7 @@
 
 		protected override MediaOpsErrorData CreateConnectionInvalidNodeLinkError(string connectionId, string nodeId, string errorMessage)
 		{
-			return new JobNodeGraphConnectionWithInvalidNodeError
+			return new JobNodeGraphInvalidConnectionNodeError
 			{
 				ErrorMessage = errorMessage,
 				NodeId = nodeId,
@@ -420,9 +420,9 @@
 			};
 		}
 
-		protected override MediaOpsErrorData CreateGroupWithInvalidNodeError(string groupName, string nodeId, string errorMessage)
+		protected override MediaOpsErrorData CreateInvalidGroupNodeError(string groupName, string nodeId, string errorMessage)
 		{
-			return new JobNodeGraphGroupWithInvalidNodeError
+			return new JobNodeGraphInvalidGroupNodeError
 			{
 				ErrorMessage = errorMessage,
 				GroupName = groupName,
@@ -439,7 +439,7 @@
 				return true;
 			}
 
-			error = new JobNodeSwapNotAllowedError
+			error = new JobNodeSwappedNotAllowedError
 			{
 				Id = ApiObjectId,
 				NodeId = original.Id,
@@ -464,7 +464,7 @@
 
 		protected override MediaOpsErrorData CreateConnectionInvalidNodeLinkError(string connectionId, string nodeId, string errorMessage)
 		{
-			return new RecurringJobNodeGraphConnectionWithInvalidNodeError
+			return new RecurringJobNodeGraphInvalidConnectionNodeError
 			{
 				ErrorMessage = errorMessage,
 				NodeId = nodeId,
@@ -556,9 +556,9 @@
 			};
 		}
 
-		protected override MediaOpsErrorData CreateGroupWithInvalidNodeError(string groupName, string nodeId, string errorMessage)
+		protected override MediaOpsErrorData CreateInvalidGroupNodeError(string groupName, string nodeId, string errorMessage)
 		{
-			return new RecurringJobNodeGraphGroupWithInvalidNodeError
+			return new RecurringJobNodeGraphInvalidGroupNodeError
 			{
 				ErrorMessage = errorMessage,
 				GroupName = groupName,
@@ -575,7 +575,7 @@
 				return true;
 			}
 
-			error = new RecurringJobNodeGraphSwapNotAllowedError
+			error = new RecurringJobNodeSwappedNotAllowedError
 			{
 				Id = ApiObjectId,
 				NodeId = original.Id,
@@ -600,7 +600,7 @@
 
 		protected override MediaOpsErrorData CreateConnectionInvalidNodeLinkError(string connectionId, string nodeId, string errorMessage)
 		{
-			return new WorkflowNodeGraphConnectionWithInvalidNodeError
+			return new WorkflowNodeGraphInvalidConnectionNodeError
 			{
 				ErrorMessage = errorMessage,
 				NodeId = nodeId,
@@ -692,9 +692,9 @@
 			};
 		}
 
-		protected override MediaOpsErrorData CreateGroupWithInvalidNodeError(string groupName, string nodeId, string errorMessage)
+		protected override MediaOpsErrorData CreateInvalidGroupNodeError(string groupName, string nodeId, string errorMessage)
 		{
-			return new WorkflowNodeGraphGroupWithInvalidNodeError
+			return new WorkflowNodeGraphInvalidGroupNodeError
 			{
 				ErrorMessage = errorMessage,
 				GroupName = groupName,
@@ -711,7 +711,7 @@
 				return true;
 			}
 
-			error = new WorkflowNodeSwapNotAllowedError
+			error = new WorkflowNodeSwappedNotAllowedError
 			{
 				Id = ApiObjectId,
 				NodeId = original.Id,
