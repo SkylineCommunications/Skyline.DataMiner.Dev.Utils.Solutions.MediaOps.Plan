@@ -80,7 +80,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return true;
 			}
 
-			var isNumber = target.IsNumberDiscreet();
+			var isNumber = target.IsNumberDiscrete();
 			var options = BuildProfileParameterOptions(target);
 
 			return TryMatchDiscrete(
@@ -119,13 +119,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				: $"resolves to '{value.DisplayValue}', which is not one of the options of {parameter}.";
 		}
 
-		private static IReadOnlyCollection<TextDiscreet> BuildProfileParameterOptions(CoreParameter target)
+		private static IReadOnlyCollection<TextDiscrete> BuildProfileParameterOptions(CoreParameter target)
 		{
 			var displayValues = target.DiscreetDisplayValues;
 			var hasDisplayValues = displayValues != null && displayValues.Count == target.Discretes.Count;
 
 			return target.Discretes
-				.Select((x, i) => new TextDiscreet(x, hasDisplayValues ? displayValues[i] : x))
+				.Select((x, i) => new TextDiscrete(x, hasDisplayValues ? displayValues[i] : x))
 				.ToList();
 		}
 

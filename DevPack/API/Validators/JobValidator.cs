@@ -196,14 +196,14 @@
 			}
 
 			var resolver = new JobReferenceResolver(planApi, job, context.ReferenceDefinitions);
-			var resolution = new JobReferenceValidator(resolver).Resolve(job);
+			var resolution = new JobReferenceValidator(resolver, context.ReferenceDefinitions).Resolve(job);
 			if (!resolution.IsValid)
 			{
 				result.SetError(new UnresolvedReferencesJobValidationError(ComposeUnresolvedReferencesMessage(resolution.UnresolvedReferences)));
 			}
 
 			ValidateReservationRequirementsStillMatch(job, reservations, resolution, result);
-			ValidateLiveEventsStillMatch(job, resolver, result, context.LiveIsInstalled);
+			ValidateLiveEventsStillMatch(job, resolver, context.ReferenceDefinitions, result, context.LiveIsInstalled);
 		}
 
 		private static void ValidateReservationRequirementsStillMatch(Job job, IEnumerable<ReservationInstance> reservations, JobReferenceResolution resolution, JobValidationResult result)
@@ -227,7 +227,9 @@
 					if (TryGetResolvedValue(resolution, node.Id, capability, out var resolvedValue))
 					{
 						var booked = usage.RequiredCapabilities?.FirstOrDefault(required => required.CapabilityProfileID == capability.Id)?.RequiredDiscreet;
-						var resolved = FormatValue(resolvedValue);
+
+						// A capability is booked on the display value, since its options have no separate display name.
+						var resolved = resolvedValue.DisplayValue;
 						if (booked != null && !String.Equals(booked, resolved, StringComparison.Ordinal))
 						{
 							mismatches.Add($"Capability '{capability.Id}' of {GetNodeDisplayName(node)} resolves to '{resolved}' but the reservation was booked with '{booked}'");
@@ -237,12 +239,12 @@
 
 				foreach (var capacity in node.OrchestrationSettings.Capacities.OfType<NumberCapacitySetting>().Where(setting => setting.HasReference))
 				{
-					if (TryGetResolvedValue(resolution, node.Id, capacity, out var resolvedValue) && TryConvertToDecimal(resolvedValue, out var resolved))
+					if (TryGetResolvedValue(resolution, node.Id, capacity, out var resolvedValue) && TryConvertToDecimal(resolvedValue.GetRawValue(), out var resolved))
 					{
 						var booked = usage.RequiredCapacities?.FirstOrDefault(required => required.CapacityProfileID == capacity.Id);
 						if (booked != null && booked.DecimalQuantity != resolved)
 						{
-							mismatches.Add($"Capacity '{capacity.Id}' of {GetNodeDisplayName(node)} resolves to '{FormatValue(resolvedValue)}' but the reservation was booked with '{booked.DecimalQuantity.ToString(CultureInfo.InvariantCulture)}'");
+							mismatches.Add($"Capacity '{capacity.Id}' of {GetNodeDisplayName(node)} resolves to '{FormatValue(resolvedValue.GetRawValue())}' but the reservation was booked with '{booked.DecimalQuantity.ToString(CultureInfo.InvariantCulture)}'");
 						}
 					}
 				}
@@ -254,7 +256,7 @@
 			}
 		}
 
-		private void ValidateLiveEventsStillMatch(Job job, JobReferenceResolver resolver, JobValidationResult result, bool liveIsInstalled)
+		private void ValidateLiveEventsStillMatch(Job job, JobReferenceResolver resolver, ReferenceDefinitionCache definitions, JobValidationResult result, bool liveIsInstalled)
 		{
 			if (!liveIsInstalled || job.OrchestrationSettings?.OrchestrationEvents == null)
 			{
@@ -283,7 +285,7 @@
 
 				CompareArguments(orchestrationEvent.ExecutionDetails.ScriptParameters.Where(item => item.HasReference).Select(item => (item.Name, item.Reference)), LiveEnums.OrchestrationScriptArgumentType.Parameter, liveEventType, scheduledEvent.GlobalOrchestrationScriptArguments, resolver, mismatches);
 				CompareArguments(orchestrationEvent.ExecutionDetails.ScriptElements.Where(item => item.HasReference).Select(item => (item.Name, item.Reference)), LiveEnums.OrchestrationScriptArgumentType.Element, liveEventType, scheduledEvent.GlobalOrchestrationScriptArguments, resolver, mismatches);
-				CompareProfileSettings(orchestrationEvent.ExecutionDetails.Capabilities.Cast<Setting>().Concat(orchestrationEvent.ExecutionDetails.Capacities).Concat(orchestrationEvent.ExecutionDetails.Configurations), liveEventType, scheduledEvent.Profile, resolver, mismatches);
+				CompareProfileSettings(orchestrationEvent.ExecutionDetails.Capabilities.Cast<Setting>().Concat(orchestrationEvent.ExecutionDetails.Capacities).Concat(orchestrationEvent.ExecutionDetails.Configurations), liveEventType, scheduledEvent.Profile, resolver, definitions, mismatches);
 			}
 
 			if (mismatches.Count > 0)
@@ -307,7 +309,7 @@
 				}
 
 				var scheduled = scheduledArguments.FirstOrDefault(argument => argument.Type == type && String.Equals(argument.Name, reference.Name, StringComparison.Ordinal));
-				var expected = FormatValue(value);
+				var expected = FormatValue(value.GetRawValue());
 				if (scheduled != null && !String.Equals(scheduled.Value, expected, StringComparison.Ordinal))
 				{
 					mismatches.Add($"The '{reference.Name}' value of the '{eventType}' live event resolves to '{expected}' but was scheduled with '{scheduled.Value}'");
@@ -315,7 +317,7 @@
 			}
 		}
 
-		private static void CompareProfileSettings(IEnumerable<Setting> settings, LiveEnums.EventType eventType, Live.OrchestrationProfile scheduledProfile, JobReferenceResolver resolver, ICollection<string> mismatches)
+		private static void CompareProfileSettings(IEnumerable<Setting> settings, LiveEnums.EventType eventType, Live.OrchestrationProfile scheduledProfile, JobReferenceResolver resolver, ReferenceDefinitionCache definitions, ICollection<string> mismatches)
 		{
 			if (scheduledProfile?.Values == null)
 			{
@@ -324,13 +326,15 @@
 
 			foreach (var setting in settings.Where(item => item.HasReference))
 			{
-				if (!TryResolveReference(resolver, setting.Reference, out var value))
+				// The live event was scheduled with the value as the target parameter takes it, so compare it the same way.
+				if (!TryResolveReference(resolver, setting.Reference, out var value)
+					|| !ResolvedValueConverter.TryConvert(value, definitions.GetParameterDefinition(setting.Id), out var converted))
 				{
 					continue;
 				}
 
 				var scheduled = scheduledProfile.Values.FirstOrDefault(item => String.Equals(item.Name, setting.Id.ToString(), StringComparison.Ordinal));
-				var expected = FormatValue(value);
+				var expected = FormatValue(converted.GetRawValue());
 				var actual = scheduled == null ? null : FormatScheduledProfileValue(scheduled.Value);
 				if (scheduled != null && !String.Equals(actual, expected, StringComparison.Ordinal))
 				{
@@ -339,9 +343,9 @@
 			}
 		}
 
-		private static bool TryResolveReference(JobReferenceResolver resolver, DataReference reference, out object rawValue)
+		private static bool TryResolveReference(JobReferenceResolver resolver, DataReference reference, out ResolvedValue value)
 		{
-			rawValue = null;
+			value = null;
 			try
 			{
 				var resolved = resolver.ResolveValue(reference);
@@ -350,7 +354,7 @@
 					return false;
 				}
 
-				rawValue = resolved.GetRawValue();
+				value = resolved;
 				return true;
 			}
 			catch (CircularReferenceException)
@@ -359,16 +363,15 @@
 			}
 		}
 
-		private static bool TryGetResolvedValue(JobReferenceResolution resolution, string nodeId, Setting setting, out object value)
+		private static bool TryGetResolvedValue(JobReferenceResolution resolution, string nodeId, Setting setting, out ResolvedValue value)
 		{
-			value = null;
-			if (!resolution.ResolvedReferences.TryGetValue(nodeId, setting.Reference, out var resolved) || !resolved.IsResolved)
+			if (!resolution.ResolvedReferences.TryGetValue(nodeId, setting.Reference, out value) || !value.IsResolved)
 			{
+				value = null;
 				return false;
 			}
 
-			value = resolved.GetRawValue();
-			return value != null;
+			return true;
 		}
 
 		private static IReadOnlyCollection<JobResourceNode> GetResourceNodes(Job job)
@@ -419,9 +422,9 @@
 			return message.Length <= MaxErrorMessageLength ? message : $"Reservation contains {reservation.QuarantinedResources.Count} quarantined resources. Consider swapping the overbooked resources.";
 		}
 
-		private static string ComposeUnresolvedReferencesMessage(IReadOnlyCollection<DataReference> references)
+		private static string ComposeUnresolvedReferencesMessage(IReadOnlyCollection<(DataReference Reference, string Reason)> references)
 		{
-			var message = $"Unresolved references: {String.Join("; ", references)}.";
+			var message = $"Unresolved references: {String.Join("; ", references.Select(x => $"{x.Reference} {x.Reason}"))}.";
 			return message.Length <= MaxErrorMessageLength ? message : $"{references.Count} references cannot be resolved. Please verify the job configuration.";
 		}
 
