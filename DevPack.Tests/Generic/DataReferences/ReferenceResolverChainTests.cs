@@ -88,7 +88,7 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 			var job = new Job { Name = "Chain job" };
 			job.OrchestrationSettings
 				.AddCapability(new CapabilitySetting(capability) { Reference = new ConfigurationParameterReference(configuration.Id) })
-				.AddConfiguration(new DiscreteTextConfigurationSetting(configuration) { Value = new TextDiscreet("A", "Option A") });
+				.AddConfiguration(new DiscreteTextConfigurationSetting(configuration) { Value = new TextDiscrete("A", "Option A") });
 
 			var resolved = new JobReferenceResolver(context.Api, job).ResolveValue(new CapabilityParameterReference(capability.Id));
 

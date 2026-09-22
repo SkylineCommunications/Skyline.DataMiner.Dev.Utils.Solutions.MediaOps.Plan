@@ -45,8 +45,8 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 		public void ResolvedValueConverter_TryConvert_DiscreteTextMatchesDisplayValueAndReturnsRawValue()
 		{
 			var target = new DiscreteTextConfiguration { Name = "Location" }
-				.AddDiscrete(new TextDiscreet("BRU", "Brussels"))
-				.AddDiscrete(new TextDiscreet("PAR", "Paris"));
+				.AddDiscrete(new TextDiscrete("BRU", "Brussels"))
+				.AddDiscrete(new TextDiscrete("PAR", "Paris"));
 
 			Assert.IsTrue(ResolvedValueConverter.TryConvert(new StringResolvedValue("Brussels"), target, out var converted));
 			Assert.AreEqual("BRU", converted.GetRawValue());
@@ -57,7 +57,7 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 		public void ResolvedValueConverter_TryConvert_DiscreteTextMatchesRawValue()
 		{
 			var target = new DiscreteTextConfiguration { Name = "Location" }
-				.AddDiscrete(new TextDiscreet("BRU", "Brussels"));
+				.AddDiscrete(new TextDiscrete("BRU", "Brussels"));
 
 			Assert.IsTrue(ResolvedValueConverter.TryConvert(new StringResolvedValue("BRU"), target, out var converted));
 			Assert.AreEqual("BRU", converted.GetRawValue());
@@ -67,7 +67,7 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 		public void ResolvedValueConverter_TryConvert_DiscreteTextUsesDisplayValueOfSource()
 		{
 			var target = new DiscreteTextConfiguration { Name = "Location" }
-				.AddDiscrete(new TextDiscreet("BRU", "Brussels"));
+				.AddDiscrete(new TextDiscrete("BRU", "Brussels"));
 
 			// The source is a dropdown holding raw value "1" shown as "Brussels".
 			Assert.IsTrue(ResolvedValueConverter.TryConvert(new StringResolvedValue("1", "Brussels"), target, out var converted));
@@ -78,7 +78,7 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 		public void ResolvedValueConverter_TryConvert_DiscreteNumberMatchesDisplayValueAndReturnsRawValue()
 		{
 			var target = new DiscreteNumberConfiguration { Name = "Channels" }
-				.AddDiscrete(new NumberDiscreet(7, "Seven"));
+				.AddDiscrete(new NumberDiscrete(7, "Seven"));
 
 			Assert.IsTrue(ResolvedValueConverter.TryConvert(new StringResolvedValue("Seven"), target, out var converted));
 			Assert.AreEqual(7m, converted.GetRawValue());
@@ -88,7 +88,7 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 		public void ResolvedValueConverter_TryConvert_DiscreteNumberWithoutMatchHasNoValue()
 		{
 			var target = new DiscreteNumberConfiguration { Name = "Channels" }
-				.AddDiscrete(new NumberDiscreet(7, "Seven"));
+				.AddDiscrete(new NumberDiscrete(7, "Seven"));
 
 			Assert.IsFalse(ResolvedValueConverter.TryConvert(new StringResolvedValue("Eight"), target, out var converted));
 			Assert.IsNull(converted);
