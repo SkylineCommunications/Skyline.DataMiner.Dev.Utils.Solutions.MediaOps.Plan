@@ -294,8 +294,8 @@ var discreteTextConfig = api.Configurations.Create(
     }
     .SetDiscretes(new[]
     {
-        new TextDiscreet { Value = "BT.709" },
-        new TextDiscreet { Value = "BT.2020" },
+        new TextDiscrete { Value = "BT.709" },
+        new TextDiscrete { Value = "BT.2020" },
     }));
 
 // Discrete number configuration
@@ -306,9 +306,9 @@ var discreteNumberConfig = api.Configurations.Create(
     }
     .SetDiscretes(new[]
     {
-        new NumberDiscreet { Value = 25 },
-        new NumberDiscreet { Value = 50 },
-        new NumberDiscreet { Value = 60 },
+        new NumberDiscrete { Value = 25 },
+        new NumberDiscrete { Value = 50 },
+        new NumberDiscrete { Value = 60 },
     }));
 ```
 

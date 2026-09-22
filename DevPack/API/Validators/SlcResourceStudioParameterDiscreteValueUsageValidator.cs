@@ -31,7 +31,7 @@
 			return validator;
 		}
 
-		public static ApiObjectValidator Validate(MediaOpsPlanApi planApi, ICollection<ParameterDiscreteValue<TextDiscreet>> configurationTextDiscreteValues)
+		public static ApiObjectValidator Validate(MediaOpsPlanApi planApi, ICollection<ParameterDiscreteValue<TextDiscrete>> configurationTextDiscreteValues)
 		{
 			if (configurationTextDiscreteValues == null)
 			{
@@ -44,7 +44,7 @@
 			return validator;
 		}
 
-		public static ApiObjectValidator Validate(MediaOpsPlanApi planApi, ICollection<ParameterDiscreteValue<NumberDiscreet>> configurationNumberDiscreteValues)
+		public static ApiObjectValidator Validate(MediaOpsPlanApi planApi, ICollection<ParameterDiscreteValue<NumberDiscrete>> configurationNumberDiscreteValues)
 		{
 			if (configurationNumberDiscreteValues == null)
 			{
@@ -214,9 +214,9 @@
 			return result;
 		}
 
-		private Dictionary<ParameterDiscreteValue<TextDiscreet>, ICollection<Guid>> GetOrchestrationSettingsPerConfigurationTextDiscreteValue(ICollection<ParameterDiscreteValue<TextDiscreet>> configurationTextDiscreteValues)
+		private Dictionary<ParameterDiscreteValue<TextDiscrete>, ICollection<Guid>> GetOrchestrationSettingsPerConfigurationTextDiscreteValue(ICollection<ParameterDiscreteValue<TextDiscrete>> configurationTextDiscreteValues)
 		{
-			var result = new Dictionary<ParameterDiscreteValue<TextDiscreet>, ICollection<Guid>>();
+			var result = new Dictionary<ParameterDiscreteValue<TextDiscrete>, ICollection<Guid>>();
 
 			var parameterIds = configurationTextDiscreteValues.Select(x => x.ParameterId).ToHashSet();
 			var orchestrationSettings = GetOrchestrationSettings(parameterIds);
@@ -249,9 +249,9 @@
 			return result;
 		}
 
-		private Dictionary<ParameterDiscreteValue<NumberDiscreet>, ICollection<Guid>> GetOrchestrationSettingsPerConfigurationNumberDiscreteValue(ICollection<ParameterDiscreteValue<NumberDiscreet>> configurationNumberDiscreteValues)
+		private Dictionary<ParameterDiscreteValue<NumberDiscrete>, ICollection<Guid>> GetOrchestrationSettingsPerConfigurationNumberDiscreteValue(ICollection<ParameterDiscreteValue<NumberDiscrete>> configurationNumberDiscreteValues)
 		{
-			var result = new Dictionary<ParameterDiscreteValue<NumberDiscreet>, ICollection<Guid>>();
+			var result = new Dictionary<ParameterDiscreteValue<NumberDiscrete>, ICollection<Guid>>();
 
 			var parameterIds = configurationNumberDiscreteValues.Select(x => x.ParameterId).ToHashSet();
 			var orchestrationSettings = GetOrchestrationSettings(parameterIds);
@@ -295,7 +295,7 @@
 			ValidateResourceCapabilityDiscreteValueUsage(capabilityDiscreteValues);
 		}
 
-		private void ValidateConfigurationTextDiscreteValues(ICollection<ParameterDiscreteValue<TextDiscreet>> configurationTextDiscreteValues)
+		private void ValidateConfigurationTextDiscreteValues(ICollection<ParameterDiscreteValue<TextDiscrete>> configurationTextDiscreteValues)
 		{
 			if (!configurationTextDiscreteValues.Any())
 			{
@@ -305,7 +305,7 @@
 			ValidateResourcePoolConfigurationTextDiscreteValueUsage(configurationTextDiscreteValues);
 		}
 
-		private void ValidateConfigurationNumberDiscreteValues(ICollection<ParameterDiscreteValue<NumberDiscreet>> configurationNumberDiscreteValues)
+		private void ValidateConfigurationNumberDiscreteValues(ICollection<ParameterDiscreteValue<NumberDiscrete>> configurationNumberDiscreteValues)
 		{
 			if (!configurationNumberDiscreteValues.Any())
 			{
@@ -379,7 +379,7 @@
 			}
 		}
 
-		private void ValidateResourcePoolConfigurationTextDiscreteValueUsage(ICollection<ParameterDiscreteValue<TextDiscreet>> configurationTextDiscreteValues)
+		private void ValidateResourcePoolConfigurationTextDiscreteValueUsage(ICollection<ParameterDiscreteValue<TextDiscrete>> configurationTextDiscreteValues)
 		{
 			var orchestrationSettingsPerConfigurationTextDiscreteValue = GetOrchestrationSettingsPerConfigurationTextDiscreteValue(configurationTextDiscreteValues);
 
@@ -411,7 +411,7 @@
 			}
 		}
 
-		private void ValidateResourcePoolConfigurationNumberDiscreteValueUsage(ICollection<ParameterDiscreteValue<NumberDiscreet>> configurationNumberDiscreteValues)
+		private void ValidateResourcePoolConfigurationNumberDiscreteValueUsage(ICollection<ParameterDiscreteValue<NumberDiscrete>> configurationNumberDiscreteValues)
 		{
 			var orchestrationSettingsPerConfigurationNumberDiscreteValue = GetOrchestrationSettingsPerConfigurationNumberDiscreteValue(configurationNumberDiscreteValues);
 

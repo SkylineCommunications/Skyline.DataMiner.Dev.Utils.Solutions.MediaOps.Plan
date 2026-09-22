@@ -421,11 +421,11 @@
 			{
 				numberConfigurationSettings.Add(new WorkflowNumberConfigurationSetting(section));
 			}
-			else if (profileParameter.IsTextDiscreet())
+			else if (profileParameter.IsTextDiscrete())
 			{
 				discreteTextConfigurationSettings.Add(new WorkflowDiscreteTextConfigurationSetting(new DiscreteTextConfiguration(profileParameter), section));
 			}
-			else if (profileParameter.IsNumberDiscreet())
+			else if (profileParameter.IsNumberDiscrete())
 			{
 				discreteNumberConfigurationSettings.Add(new WorkflowDiscreteNumberConfigurationSetting(new DiscreteNumberConfiguration(profileParameter), section));
 			}

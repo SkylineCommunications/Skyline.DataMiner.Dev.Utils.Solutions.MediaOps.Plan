@@ -4,9 +4,9 @@
 	/// Represents an error that occurs when a resource pool configuration references an invalid or non-existent pool link.
 	/// </summary>
 	/// <seealso cref="ResourcePoolEmptyPoolLinkError"/>
-	/// <seealso cref="ResourcePoolInvalidStatePoolLinkError"/>
-	/// <seealso cref="ResourcePoolNotFoundPoolLinkError"/>
-	/// <seealso cref="ResourcePoolSelfReferencePoolLinkError"/>
+	/// <seealso cref="ResourcePoolInvalidPoolLinkStateError"/>
+	/// <seealso cref="ResourcePoolPoolLinkNotFoundError"/>
+	/// <seealso cref="ResourcePoolSelfReferencingPoolLinkError"/>
 	public class ResourcePoolInvalidPoolLinkError : ResourcePoolError
 	{
 	}

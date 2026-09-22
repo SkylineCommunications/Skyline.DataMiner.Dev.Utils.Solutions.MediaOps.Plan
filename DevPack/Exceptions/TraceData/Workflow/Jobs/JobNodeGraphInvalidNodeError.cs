@@ -8,7 +8,7 @@
 	/// <seealso cref="JobNodeGraphInvalidNodeAliasError"/>
 	/// <seealso cref="JobNodeGraphInvalidResourceNodeError"/>
 	/// <seealso cref="JobNodeGraphInvalidResourcePoolNodeError"/>
-	/// <seealso cref="JobNodeSwapNotAllowedError"/>
+	/// <seealso cref="JobNodeSwappedNotAllowedError"/>
 	public class JobNodeGraphInvalidNodeError : JobNodeGraphError
 	{
 		/// <summary>

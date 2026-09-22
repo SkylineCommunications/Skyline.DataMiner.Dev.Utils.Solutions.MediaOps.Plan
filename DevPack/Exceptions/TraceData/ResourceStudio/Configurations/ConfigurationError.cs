@@ -10,7 +10,7 @@
 	/// <seealso cref="ConfigurationIdInUseError"/>
 	/// <seealso cref="ConfigurationInUseError"/>
 	/// <seealso cref="ConfigurationInvalidDecimalsError"/>
-	/// <seealso cref="ConfigurationInvalidDefaultDiscreetError"/>
+	/// <seealso cref="ConfigurationInvalidDefaultDiscreteError"/>
 	/// <seealso cref="ConfigurationInvalidDefaultValueError"/>
 	/// <seealso cref="ConfigurationInvalidDiscretesError"/>
 	/// <seealso cref="ConfigurationInvalidNameError"/>

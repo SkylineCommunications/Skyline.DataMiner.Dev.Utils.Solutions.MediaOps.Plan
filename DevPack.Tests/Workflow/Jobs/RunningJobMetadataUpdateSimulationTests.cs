@@ -245,7 +245,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
-		public void Update_StartOfRunningJobThatStartedInThePast_ThrowsStartChangeNotAllowedError()
+		public void Update_StartOfRunningJobThatStartedInThePast_ThrowsStartChangedNotAllowedError()
 		{
 			var (api, resourceManagerHelper) = CreateContext();
 
@@ -255,12 +255,12 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var exception = Assert.ThrowsException<MediaOpsException>(() => api.Jobs.Update(runningJob));
 			Assert.IsTrue(
-				exception.TraceData.ErrorData.OfType<JobStartChangeNotAllowedError>().Any(),
-				"Expected a JobStartChangeNotAllowedError when the start time of a running job that already started is changed.");
+				exception.TraceData.ErrorData.OfType<JobStartChangedNotAllowedError>().Any(),
+				"Expected a JobStartChangedNotAllowedError when the start time of a running job that already started is changed.");
 		}
 
 		[TestMethod]
-		public void Update_PreRollStartOfRunningJobThatStartedInThePast_ThrowsPreRollStartChangeNotAllowedError()
+		public void Update_PreRollStartOfRunningJobThatStartedInThePast_ThrowsPreRollStartChangedNotAllowedError()
 		{
 			var (api, resourceManagerHelper) = CreateContext();
 
@@ -270,8 +270,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var exception = Assert.ThrowsException<MediaOpsException>(() => api.Jobs.Update(runningJob));
 			Assert.IsTrue(
-				exception.TraceData.ErrorData.OfType<JobPreRollStartChangeNotAllowedError>().Any(),
-				"Expected a JobPreRollStartChangeNotAllowedError when the pre-roll start of a running job that already started is changed.");
+				exception.TraceData.ErrorData.OfType<JobPreRollStartChangedNotAllowedError>().Any(),
+				"Expected a JobPreRollStartChangedNotAllowedError when the pre-roll start of a running job that already started is changed.");
 		}
 	}
 }

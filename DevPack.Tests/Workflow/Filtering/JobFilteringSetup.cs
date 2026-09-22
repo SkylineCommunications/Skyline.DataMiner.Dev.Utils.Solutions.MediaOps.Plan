@@ -1,4 +1,4 @@
-namespace RT_MediaOps.Plan.Workflow.Filtering
+﻿namespace RT_MediaOps.Plan.Workflow.Filtering
 {
 	using System;
 

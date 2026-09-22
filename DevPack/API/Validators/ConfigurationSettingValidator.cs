@@ -157,7 +157,7 @@
 			}
 		}
 
-		private void ValidateValue(TextDiscreet value, DiscreteTextConfiguration discreteTextConfiguration)
+		private void ValidateValue(TextDiscrete value, DiscreteTextConfiguration discreteTextConfiguration)
 		{
 			if (value == null)
 			{
@@ -175,7 +175,7 @@
 			}
 		}
 
-		private void ValidateValue(NumberDiscreet value, DiscreteNumberConfiguration discreteNumberConfiguration)
+		private void ValidateValue(NumberDiscrete value, DiscreteNumberConfiguration discreteNumberConfiguration)
 		{
 			if (value == null)
 			{

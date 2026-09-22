@@ -325,7 +325,7 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 			}
 			catch (MediaOpsException ex)
 			{
-				var error = ex.TraceData.ErrorData.OfType<WorkflowNodeGraphConnectionWithInvalidNodeError>().SingleOrDefault();
+				var error = ex.TraceData.ErrorData.OfType<WorkflowNodeGraphInvalidConnectionNodeError>().SingleOrDefault();
 				Assert.IsNotNull(error);
 				Assert.AreEqual(workflow.Id, error.Id);
 				Assert.AreEqual(node.Id, error.NodeId);
