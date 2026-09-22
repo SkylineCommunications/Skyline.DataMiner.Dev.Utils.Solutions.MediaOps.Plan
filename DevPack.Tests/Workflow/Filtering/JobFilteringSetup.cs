@@ -236,7 +236,8 @@
 			job2.AddError(new JobError(ErrorCodeB, ErrorMessageB));
 
 			// The first job has a node without orchestration settings, while the node of the second job is missing a
-			// mandatory value. This makes the second job the only job that requires an action.
+			// mandatory value. Both jobs have a resource pool node, so both require an action. The third job has no
+			// nodes at all and is the only job that does not require an action.
 			job1.NodeGraph.Add(new JobResourcePoolNode(ResourcePool!));
 
 			// The first job is the only job that references a resource directly.

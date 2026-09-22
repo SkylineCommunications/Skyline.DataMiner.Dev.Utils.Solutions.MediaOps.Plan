@@ -223,7 +223,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				}
 
 				job.ConfigurationState = calculator.GetJobConfigurationState(job);
-				job.ActionRequired = calculator.HasMissingMandatoryValues(job);
+
+				// A node that is still linked to a resource pool has no resource assigned yet, so the job requires a
+				// manual action to select one, just like a job or node that is missing mandatory values.
+				job.ActionRequired = calculator.HasMissingMandatoryValues(job) || job.NodeGraph.Nodes.OfType<IResourcePoolNode>().Any();
 			}
 		}
 
