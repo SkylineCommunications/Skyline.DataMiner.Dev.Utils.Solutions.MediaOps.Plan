@@ -105,7 +105,7 @@
 		/// </summary>
 		/// <param name="parameter">The parameter to check.</param>
 		/// <returns><c>true</c> if the parameter is a discrete number parameter; otherwise, <c>false</c>.</returns>
-		public static bool IsNumberDiscreet(this Parameter parameter)
+		public static bool IsNumberDiscrete(this Parameter parameter)
 		{
 			if (parameter.Type != Parameter.ParameterType.Discrete) return false;
 			if (parameter.InterpreteType?.RawType != InterpreteType.RawTypeEnum.NumericText) return false;
@@ -118,7 +118,7 @@
 		/// </summary>
 		/// <param name="parameter">The parameter to check.</param>
 		/// <returns><c>true</c> if the parameter is a discrete text parameter; otherwise, <c>false</c>.</returns>
-		public static bool IsTextDiscreet(this Parameter parameter)
+		public static bool IsTextDiscrete(this Parameter parameter)
 		{
 			if (parameter.Type != Parameter.ParameterType.Discrete) return false;
 			if (parameter.InterpreteType?.RawType != InterpreteType.RawTypeEnum.Other) return false;
@@ -143,7 +143,7 @@
 		/// <returns><c>true</c> if the parameter is a number parameter or a discrete number parameter; otherwise, <c>false</c>.</returns>
 		public static bool IsNumberParameter(this Parameter parameter)
 		{
-			return parameter.IsNumber() || parameter.IsNumberDiscreet();
+			return parameter.IsNumber() || parameter.IsNumberDiscrete();
 		}
 
 		/// <summary>
@@ -153,7 +153,7 @@
 		/// <returns><c>true</c> if the parameter is a text parameter or a discrete text parameter; otherwise, <c>false</c>.</returns>
 		public static bool IsTextParameter(this Parameter parameter)
 		{
-			return parameter.IsText() || parameter.IsTextDiscreet();
+			return parameter.IsText() || parameter.IsTextDiscrete();
 		}
 
 		/// <summary>

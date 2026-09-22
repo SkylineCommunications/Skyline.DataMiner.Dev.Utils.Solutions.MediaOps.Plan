@@ -110,7 +110,7 @@
 				var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolError>().SingleOrDefault();
 				Assert.IsNotNull(resourcePoolConfigurationError);
 
-				var resourcePoolConfigurationInvalidPoolLinkError = resourcePoolConfigurationError as ResourcePoolNotFoundPoolLinkError;
+				var resourcePoolConfigurationInvalidPoolLinkError = resourcePoolConfigurationError as ResourcePoolPoolLinkNotFoundError;
 				Assert.IsNotNull(resourcePoolConfigurationInvalidPoolLinkError);
 				Assert.AreEqual(invalidPoolId, resourcePoolConfigurationInvalidPoolLinkError.LinkedResourcePoolId);
 				Assert.AreEqual(errorMessage, resourcePoolConfigurationError.ErrorMessage);
@@ -150,7 +150,7 @@
 				var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolError>().SingleOrDefault();
 				Assert.IsNotNull(resourcePoolConfigurationError);
 
-				var resourcePoolConfigurationInvalidPoolLinkError = resourcePoolConfigurationError as ResourcePoolNotFoundPoolLinkError;
+				var resourcePoolConfigurationInvalidPoolLinkError = resourcePoolConfigurationError as ResourcePoolPoolLinkNotFoundError;
 				Assert.IsNotNull(resourcePoolConfigurationInvalidPoolLinkError);
 				Assert.AreEqual(invalidPoolId, resourcePoolConfigurationInvalidPoolLinkError.LinkedResourcePoolId);
 				Assert.AreEqual(errorMessage, resourcePoolConfigurationError.ErrorMessage);
@@ -348,10 +348,10 @@
 				var resourcePoolConfigurationError = ex.TraceData.ErrorData.OfType<ResourcePoolError>().SingleOrDefault();
 				Assert.IsNotNull(resourcePoolConfigurationError);
 
-				var resourcePoolInvalidStatePoolLinkError = resourcePoolConfigurationError as ResourcePoolInvalidStatePoolLinkError;
-				Assert.IsNotNull(resourcePoolInvalidStatePoolLinkError);
-				Assert.AreEqual(resourcePool1.Id, resourcePoolInvalidStatePoolLinkError.Id);
-				Assert.AreEqual(resourcePool2.Id, resourcePoolInvalidStatePoolLinkError.LinkedResourcePoolId);
+				var resourcePoolInvalidPoolLinkStateError = resourcePoolConfigurationError as ResourcePoolInvalidPoolLinkStateError;
+				Assert.IsNotNull(resourcePoolInvalidPoolLinkStateError);
+				Assert.AreEqual(resourcePool1.Id, resourcePoolInvalidPoolLinkStateError.Id);
+				Assert.AreEqual(resourcePool2.Id, resourcePoolInvalidPoolLinkStateError.LinkedResourcePoolId);
 				Assert.AreEqual(errorMessage, resourcePoolConfigurationError.ErrorMessage);
 
 				return;

@@ -141,8 +141,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var exception = Assert.ThrowsException<MediaOpsException>(() => TestContext.Api.Jobs.Confirm(tentativeJob));
 			Assert.IsTrue(
-				exception.TraceData.ErrorData.OfType<JobNodeResourceNotAssignedError>().Any(),
-				"Expected a JobNodeResourceNotAssignedError when confirming a job that still has a resource pool node.");
+				exception.TraceData.ErrorData.OfType<JobResourceNotAssignedError>().Any(),
+				"Expected a JobResourceNotAssignedError when confirming a job that still has a resource pool node.");
 		}
 
 		[TestMethod]

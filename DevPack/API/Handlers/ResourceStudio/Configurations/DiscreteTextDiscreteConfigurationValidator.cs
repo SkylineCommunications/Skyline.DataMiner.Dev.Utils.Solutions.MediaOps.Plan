@@ -23,12 +23,12 @@
 
 		private void ValidateDiscreteText()
 		{
-			// Any discreet options available
+			// Any discrete options available
 			if (!discreteTextConfiguration.Discretes.Any())
 			{
 				ReportError(discreteTextConfiguration.Id, new ConfigurationNoDiscretesError
 				{
-					ErrorMessage = "A discreet configuration should have at least one discreet option defined",
+					ErrorMessage = "A discrete configuration should have at least one discrete option defined",
 					Id = discreteTextConfiguration.Id,
 				});
 				return;
@@ -37,17 +37,17 @@
 			// Validate default discrete option
 			if (discreteTextConfiguration.DefaultValue != null && !discreteTextConfiguration.Discretes.Any(x => discreteTextConfiguration.DefaultValue == x))
 			{
-				ReportError(discreteTextConfiguration.Id, new ConfigurationInvalidDefaultDiscreetError
+				ReportError(discreteTextConfiguration.Id, new ConfigurationInvalidDefaultDiscreteError
 				{
-					ErrorMessage = "Default discreet should any of the discreet options",
+					ErrorMessage = "Default discrete should any of the discrete options",
 					Id = discreteTextConfiguration.Id,
 				});
 			}
 
-			foreach (var discreet in discreteTextConfiguration.Discretes)
+			foreach (var discrete in discreteTextConfiguration.Discretes)
 			{
 				// Validate Display Value
-				if (!HasValidDisplayValue(discreet.DisplayName, out string invalidDisplayNameReason))
+				if (!HasValidDisplayValue(discrete.DisplayName, out string invalidDisplayNameReason))
 				{
 					ReportError(discreteTextConfiguration.Id, new ConfigurationInvalidDiscretesError
 					{
@@ -57,11 +57,11 @@
 				}
 
 				// Validate String Value
-				if (!IsValidDiscreetText(discreet.Value, out string invalidDiscreetTextReason))
+				if (!IsValidDiscreteText(discrete.Value, out string invalidDiscreteTextReason))
 				{
 					ReportError(discreteTextConfiguration.Id, new ConfigurationInvalidDiscretesError
 					{
-						ErrorMessage = invalidDiscreetTextReason,
+						ErrorMessage = invalidDiscreteTextReason,
 						Id = discreteTextConfiguration.Id,
 					});
 				}
@@ -109,12 +109,12 @@
 			reason = String.Empty;
 			if (String.IsNullOrEmpty(displayValue))
 			{
-				reason = "The display value of a discreet cannot be empty";
+				reason = "The display value of a discrete cannot be empty";
 				return false;
 			}
 			else if (!InputValidator.HasValidTextLength(displayValue))
 			{
-				reason = $"The display value of the discreet exceeds {InputValidator.DefaultMaxTextLength} characters";
+				reason = $"The display value of the discrete exceeds {InputValidator.DefaultMaxTextLength} characters";
 				return false;
 			}
 			else
@@ -124,17 +124,17 @@
 			}
 		}
 
-		private bool IsValidDiscreetText(string value, out string reason)
+		private bool IsValidDiscreteText(string value, out string reason)
 		{
 			reason = String.Empty;
 			if (String.IsNullOrEmpty(value))
 			{
-				reason = "The value of a discreet in a text discreet configuration cannot be empty";
+				reason = "The value of a discrete in a text discrete configuration cannot be empty";
 				return false;
 			}
 			else if (!InputValidator.HasValidTextLength(value))
 			{
-				reason = $"The value of the discreet exceeds {InputValidator.DefaultMaxTextLength} characters";
+				reason = $"The value of the discrete exceeds {InputValidator.DefaultMaxTextLength} characters";
 				return false;
 			}
 			else

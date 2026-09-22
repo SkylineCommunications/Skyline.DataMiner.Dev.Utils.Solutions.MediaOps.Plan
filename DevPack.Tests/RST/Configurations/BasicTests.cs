@@ -238,7 +238,7 @@
 			var discreteTextConfiguration = new DiscreteTextConfiguration
 			{
 				Name = $"{prefix}_DiscreteTextConfiguration",
-			}.SetDiscretes([new TextDiscreet("A", "A")]);
+			}.SetDiscretes([new TextDiscrete("A", "A")]);
 
 			objectCreator.CreateConfigurations([discreteTextConfiguration]);
 
@@ -281,7 +281,7 @@
 			var discreteNumberConfiguration = new DiscreteNumberConfiguration
 			{
 				Name = $"{prefix}_DiscreteNumberConfiguration",
-			}.SetDiscretes([new NumberDiscreet(1, "A")]);
+			}.SetDiscretes([new NumberDiscrete(1, "A")]);
 
 			objectCreator.CreateConfigurations([discreteNumberConfiguration]);
 
@@ -424,7 +424,7 @@
 			var discreteTextConfiguration = new DiscreteTextConfiguration
 			{
 				Name = $"{prefix}_DiscreteTextConfiguration",
-			}.SetDiscretes([new TextDiscreet("A", "A")]);
+			}.SetDiscretes([new TextDiscrete("A", "A")]);
 
 			objectCreator.CreateConfigurations([discreteTextConfiguration]);
 
@@ -474,7 +474,7 @@
 			var discreteNumberConfiguration = new DiscreteNumberConfiguration
 			{
 				Name = $"{prefix}_DiscreteNumberConfiguration",
-			}.SetDiscretes([new NumberDiscreet(1, "A")]);
+			}.SetDiscretes([new NumberDiscrete(1, "A")]);
 
 			objectCreator.CreateConfigurations([discreteNumberConfiguration]);
 

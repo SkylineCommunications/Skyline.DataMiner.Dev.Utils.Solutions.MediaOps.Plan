@@ -16,6 +16,13 @@
 		public JobTypes JobTypes { get; }
 
 		/// <summary>
+		/// Validates jobs using shared bulk reads for all referenced objects.
+		/// </summary>
+		/// <param name="jobs">The jobs to validate.</param>
+		/// <returns>A read-only collection containing one validation result per job.</returns>
+		IReadOnlyCollection<JobValidationResult> Validate(IEnumerable<Job> jobs);
+
+		/// <summary>
 		/// Moves the specified <see cref="Job"/> from draft to tentative state.
 		/// </summary>
 		/// <param name="job">The job to move.</param>

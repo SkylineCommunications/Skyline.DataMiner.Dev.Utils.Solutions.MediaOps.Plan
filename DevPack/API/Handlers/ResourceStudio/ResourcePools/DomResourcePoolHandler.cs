@@ -980,7 +980,7 @@
 					}
 					else if (link.LinkedResourcePoolId == pool.Id)
 					{
-						var error = new ResourcePoolSelfReferencePoolLinkError
+						var error = new ResourcePoolSelfReferencingPoolLinkError
 						{
 							ErrorMessage = "A resource pool cannot link to itself.",
 							Id = pool.Id,
@@ -990,7 +990,7 @@
 					}
 					else if (!domPoolsById.TryGetValue(link.LinkedResourcePoolId, out var linkedPool))
 					{
-						var error = new ResourcePoolNotFoundPoolLinkError
+						var error = new ResourcePoolPoolLinkNotFoundError
 						{
 							ErrorMessage = $"Linked resource pool with ID '{link.LinkedResourcePoolId}' {(link.IsNew ? "does not exist" : "no longer exists")}.",
 							Id = pool.Id,
@@ -1001,7 +1001,7 @@
 					}
 					else if (linkedPool.Status == SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.StatusesEnum.Deprecated)
 					{
-						var error = new ResourcePoolInvalidStatePoolLinkError
+						var error = new ResourcePoolInvalidPoolLinkStateError
 						{
 							ErrorMessage = $"Linked resource pool with ID '{link.LinkedResourcePoolId}' is deprecated.",
 							Id = pool.Id,

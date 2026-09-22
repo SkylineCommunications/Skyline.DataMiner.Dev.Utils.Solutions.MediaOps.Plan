@@ -88,7 +88,7 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 		public DiscreteTextConfiguration CreateDiscreteTextConfiguration()
 		{
 			var configuration = new DiscreteTextConfiguration { Name = Name("DiscreteTextConfiguration") }
-				.AddDiscrete(new TextDiscreet("A", "Option A"));
+				.AddDiscrete(new TextDiscrete("A", "Option A"));
 
 			return (DiscreteTextConfiguration)Api.Configurations.Create(configuration);
 		}
@@ -96,7 +96,7 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 		public DiscreteNumberConfiguration CreateDiscreteNumberConfiguration()
 		{
 			var configuration = new DiscreteNumberConfiguration { Name = Name("DiscreteNumberConfiguration") }
-				.AddDiscrete(new NumberDiscreet(7, "Seven"));
+				.AddDiscrete(new NumberDiscrete(7, "Seven"));
 
 			return (DiscreteNumberConfiguration)Api.Configurations.Create(configuration);
 		}
