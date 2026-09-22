@@ -207,7 +207,7 @@ dms.GetMediaOpsPlanApi().SetLogger(logger);
 
 ### Automation Logger Example
 
-The following `ILogger` implementation writes every API log message to the Automation script log with `IEngine.Log(string message)`:
+The following `ILogger` implementation writes API log messages at or above `MinimumLogLevel` to the Automation script log with `IEngine.Log(string message)`. Each message is prefixed with its level, for example `[INF]`.
 
 ```csharp
 using System;
@@ -219,30 +219,64 @@ public sealed class AutomationLogger : ILogger
 {
     private readonly IEngine engine;
 
+    public enum LogLevel
+    {
+        Debug,
+        Information,
+        Warning,
+        Error,
+    }
+
+    public LogLevel MinimumLogLevel { get; set; } = LogLevel.Information;
+
     public AutomationLogger(IEngine engine)
     {
         this.engine = engine ?? throw new ArgumentNullException(nameof(engine));
     }
 
-    public void Debug(object callerInstance, string message, object[] args = null, [CallerMemberName] string methodName = "") => Log(message);
+    public void Debug(object callerInstance, string message, object[] args = null, [CallerMemberName] string methodName = "") => Log(LogLevel.Debug, message);
 
-    public void Debug(string message) => Log(message);
+    public void Debug(string message) => Log(LogLevel.Debug, message);
 
-    public void Error(object callerInstance, string message, object[] args = null, [CallerMemberName] string methodName = "") => Log(message);
+    public void Error(object callerInstance, string message, object[] args = null, [CallerMemberName] string methodName = "") => Log(LogLevel.Error, message);
 
-    public void Error(string message) => Log(message);
+    public void Error(string message) => Log(LogLevel.Error, message);
 
-    public void Information(object callerInstance, string message, object[] args = null, [CallerMemberName] string methodName = "") => Log(message);
+    public void Information(object callerInstance, string message, object[] args = null, [CallerMemberName] string methodName = "") => Log(LogLevel.Information, message);
 
-    public void Information(string message) => Log(message);
+    public void Information(string message) => Log(LogLevel.Information, message);
 
-    public void Warning(object callerInstance, string message, object[] args = null, [CallerMemberName] string methodName = "") => Log(message);
+    public void Warning(object callerInstance, string message, object[] args = null, [CallerMemberName] string methodName = "") => Log(LogLevel.Warning, message);
 
-    public void Warning(string message) => Log(message);
+    public void Warning(string message) => Log(LogLevel.Warning, message);
 
-    private void Log(string message)
+    private void Log(LogLevel logLevel, string message)
     {
-        engine.Log(message);
+        if (logLevel < MinimumLogLevel)
+        {
+            return;
+        }
+
+        string prefix;
+        switch (logLevel)
+        {
+            case LogLevel.Debug:
+                prefix = "DBG";
+                break;
+            case LogLevel.Information:
+                prefix = "INF";
+                break;
+            case LogLevel.Warning:
+                prefix = "WRN";
+                break;
+            case LogLevel.Error:
+                prefix = "ERR";
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(logLevel));
+        }
+
+        engine.Log($"[{prefix}] {message}");
     }
 }
 ```
