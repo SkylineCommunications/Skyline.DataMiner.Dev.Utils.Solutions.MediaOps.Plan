@@ -973,6 +973,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Collections.ObjectModel;
 	using System.Linq;
 
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
@@ -1144,8 +1145,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 		/// </summary>
 		public RecurringInfoSection RecurringInfo { get; set; }
 
+		[Obsolete("The Section Definition Link, this property represents, is marked as SoftDeleted, in the Definition.")]
 		/// <summary>
-		/// Gets or sets the MonitoringSettings section of the DOM Instance.
+		/// Gets the MonitoringSettings section of the DOM Instance.
 		/// </summary>
 		public MonitoringSettingsSection MonitoringSettings { get; set; }
 
@@ -1225,7 +1227,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 			}
 
 			domInstance.Sections.Add(RecurringInfo.ToSection());
-			domInstance.Sections.Add(MonitoringSettings.ToSection());
 			foreach (var item in Errors)
 			{
 				domInstance.Sections.Add(item.ToSection());
@@ -1379,8 +1380,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 		/// </summary>
 		public IList<NodeRelationshipsSection> NodeRelationships { get; private set; }
 
+		[Obsolete("The Section Definition Link, this property represents, is marked as SoftDeleted, in the Definition.")]
 		/// <summary>
-		/// Gets or sets the MonitoringSettings section of the DOM Instance.
+		/// Gets the MonitoringSettings section of the DOM Instance.
 		/// </summary>
 		public MonitoringSettingsSection MonitoringSettings { get; set; }
 
@@ -1399,8 +1401,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 		/// </summary>
 		public CostingAndBillingSection CostingAndBilling { get; set; }
 
+		[Obsolete("The Section Definition Link, this property represents, is marked as SoftDeleted, in the Definition.")]
 		/// <summary>
-		/// Gets or sets the CostingAndBillingDetails section of the DOM Instance.
+		/// Gets the CostingAndBillingDetails section of the DOM Instance.
 		/// </summary>
 		public IList<CostingAndBillingDetailsSection> CostingAndBillingDetails { get; private set; }
 
@@ -1464,7 +1467,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 				domInstance.Sections.Add(item.ToSection());
 			}
 
-			domInstance.Sections.Add(MonitoringSettings.ToSection());
 			foreach (var item in Errors)
 			{
 				domInstance.Sections.Add(item.ToSection());
@@ -1476,11 +1478,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 			}
 
 			domInstance.Sections.Add(CostingAndBilling.ToSection());
-			foreach (var item in CostingAndBillingDetails)
-			{
-				domInstance.Sections.Add(item.ToSection());
-			}
-
 			foreach (var item in Nodes)
 			{
 				domInstance.Sections.Add(item.ToSection());
@@ -1536,7 +1533,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 				CostingAndBilling = new CostingAndBillingSection(_costingAndBilling);
 			}
 
-			CostingAndBillingDetails = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.CostingAndBillingDetails.Id)).Select(section => new CostingAndBillingDetailsSection(section)).ToList();
+			CostingAndBillingDetails = new ReadOnlyCollection<CostingAndBillingDetailsSection>(domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.CostingAndBillingDetails.Id)).Select(section => new CostingAndBillingDetailsSection(section)).ToList());
 			Nodes = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.Nodes.Id)).Select(section => new NodesSection(section)).ToList();
 			var _jobExecution = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.JobExecution.Id));
 			if (_jobExecution is null)
@@ -1598,23 +1595,27 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 			AfterLoad();
 		}
 
+		[Obsolete("The Section Definition Link, this property represents, is marked as SoftDeleted, in the Definition.")]
 		/// <summary>
-		/// Gets or sets the JobLiteMetadata section of the DOM Instance.
+		/// Gets the JobLiteMetadata section of the DOM Instance.
 		/// </summary>
 		public JobLiteMetadataSection JobLiteMetadata { get; set; }
 
+		[Obsolete("The Section Definition Link, this property represents, is marked as SoftDeleted, in the Definition.")]
 		/// <summary>
-		/// Gets or sets the Errors section of the DOM Instance.
+		/// Gets the Errors section of the DOM Instance.
 		/// </summary>
 		public IList<ErrorsSection> Errors { get; private set; }
 
+		[Obsolete("The Section Definition Link, this property represents, is marked as SoftDeleted, in the Definition.")]
 		/// <summary>
-		/// Gets or sets the CostingAndBilling section of the DOM Instance.
+		/// Gets the CostingAndBilling section of the DOM Instance.
 		/// </summary>
 		public CostingAndBillingSection CostingAndBilling { get; set; }
 
+		[Obsolete("The Section Definition Link, this property represents, is marked as SoftDeleted, in the Definition.")]
 		/// <summary>
-		/// Gets or sets the JobInfo section of the DOM Instance.
+		/// Gets the JobInfo section of the DOM Instance.
 		/// </summary>
 		public JobInfoSection JobInfo { get; set; }
 
@@ -1653,18 +1654,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 		protected sealed override DomInstance InternalToInstance()
 		{
 			domInstance.Sections.Clear();
-			domInstance.Sections.Add(JobLiteMetadata.ToSection());
-			foreach (var item in Errors)
-			{
-				domInstance.Sections.Add(item.ToSection());
-			}
-
-			if (CostingAndBilling != null && !CostingAndBilling.IsEmpty)
-			{
-				domInstance.Sections.Add(CostingAndBilling.ToSection());
-			}
-
-			domInstance.Sections.Add(JobInfo.ToSection());
 			return domInstance;
 		}
 
@@ -1695,7 +1684,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 				JobLiteMetadata = new JobLiteMetadataSection(_jobLiteMetadata);
 			}
 
-			Errors = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.Errors.Id)).Select(section => new ErrorsSection(section)).ToList();
+			Errors = new ReadOnlyCollection<ErrorsSection>(domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.Errors.Id)).Select(section => new ErrorsSection(section)).ToList());
 			var _costingAndBilling = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.CostingAndBilling.Id));
 			if (_costingAndBilling is null)
 			{
@@ -1754,13 +1743,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 			AfterLoad();
 		}
 
+		[Obsolete("The Section Definition Link, this property represents, is marked as SoftDeleted, in the Definition.")]
 		/// <summary>
-		/// Gets or sets the JobNodeRelationshipReplaceActions section of the DOM Instance.
+		/// Gets the JobNodeRelationshipReplaceActions section of the DOM Instance.
 		/// </summary>
 		public JobNodeRelationshipReplaceActionsSection JobNodeRelationshipReplaceActions { get; set; }
 
+		[Obsolete("The Section Definition Link, this property represents, is marked as SoftDeleted, in the Definition.")]
 		/// <summary>
-		/// Gets or sets the JobNodeRelationshipGeneralActions section of the DOM Instance.
+		/// Gets the JobNodeRelationshipGeneralActions section of the DOM Instance.
 		/// </summary>
 		public JobNodeRelationshipGeneralActionsSection JobNodeRelationshipGeneralActions { get; set; }
 
@@ -1799,8 +1790,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 		protected sealed override DomInstance InternalToInstance()
 		{
 			domInstance.Sections.Clear();
-			domInstance.Sections.Add(JobNodeRelationshipReplaceActions.ToSection());
-			domInstance.Sections.Add(JobNodeRelationshipGeneralActions.ToSection());
 			return domInstance;
 		}
 
@@ -1900,8 +1889,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 		/// </summary>
 		public WorkflowInfoSection WorkflowInfo { get; set; }
 
+		[Obsolete("The Section Definition Link, this property represents, is marked as SoftDeleted, in the Definition.")]
 		/// <summary>
-		/// Gets or sets the MonitoringSettings section of the DOM Instance.
+		/// Gets the MonitoringSettings section of the DOM Instance.
 		/// </summary>
 		public MonitoringSettingsSection MonitoringSettings { get; set; }
 
@@ -1966,7 +1956,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 			}
 
 			domInstance.Sections.Add(WorkflowInfo.ToSection());
-			domInstance.Sections.Add(MonitoringSettings.ToSection());
 			domInstance.Sections.Add(WorkflowExecution.ToSection());
 			foreach (var item in Connections)
 			{
@@ -2076,8 +2065,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 			AfterLoad();
 		}
 
+		[Obsolete("The Section Definition Link, this property represents, is marked as SoftDeleted, in the Definition.")]
 		/// <summary>
-		/// Gets or sets the Rate section of the DOM Instance.
+		/// Gets the Rate section of the DOM Instance.
 		/// </summary>
 		public RateSection Rate { get; set; }
 
@@ -2116,7 +2106,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 		protected sealed override DomInstance InternalToInstance()
 		{
 			domInstance.Sections.Clear();
-			domInstance.Sections.Add(Rate.ToSection());
 			return domInstance;
 		}
 
@@ -2612,19 +2601,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the RelationshipAction field of the DOM Instance.
+		/// Gets the RelationshipAction field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public Guid? RelationshipAction
@@ -2639,18 +2624,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 				else
 				{
 					return null;
-				}
-			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.NodeRelationships.RelationshipAction);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.NodeRelationships.RelationshipAction, (Guid)value);
 				}
 			}
 		}
@@ -2912,19 +2885,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the LockedBy field of the DOM Instance.
+		/// Gets the LockedBy field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public String LockedBy
@@ -2939,18 +2908,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 				else
 				{
 					return null;
-				}
-			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.WorkflowInfo.LockedBy);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.WorkflowInfo.LockedBy, (String)value);
 				}
 			}
 		}
@@ -3134,19 +3091,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 		{
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the FullJobID field of the DOM Instance.
+		/// Gets the FullJobID field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public Guid? FullJobID
@@ -3163,33 +3116,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.JobLiteMetadata.FullJobID);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.JobLiteMetadata.FullJobID, (Guid)value);
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the JobState field of the DOM Instance.
+		/// Gets the JobState field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public SlcWorkflowIds.Enums.Jobstate? JobState
@@ -3206,33 +3143,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.JobLiteMetadata.JobState);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.JobLiteMetadata.JobState, (Int32)value);
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the LinkedResourcesMetadata field of the DOM Instance.
+		/// Gets the LinkedResourcesMetadata field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public String LinkedResourcesMetadata
@@ -3249,33 +3170,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.JobLiteMetadata.LinkedResourcesMetadata);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.JobLiteMetadata.LinkedResourcesMetadata, (String)value);
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the JobDuration field of the DOM Instance.
+		/// Gets the JobDuration field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public TimeSpan? JobDuration
@@ -3290,18 +3195,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 				else
 				{
 					return null;
-				}
-			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.JobLiteMetadata.JobDuration);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.JobLiteMetadata.JobDuration, (TimeSpan)value);
 				}
 			}
 		}
@@ -3324,14 +3217,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 			var section = (Section)this.ToSection().Clone();
 			section.ID = new SectionID(Guid.NewGuid());
 			return new JobLiteMetadataSection(section);
-		}
-
-		/// <inheritdoc />
-		protected override Section InternalToSection()
-		{
-			if (section.GetValue<Guid>(SlcWorkflowIds.Sections.JobLiteMetadata.FullJobID) == null)
-				throw new InvalidOperationException("'FullJobID' is required. Please fill it in before saving, or mark it as optional with the DOM Editor.");
-			return section;
 		}
 	}
 
@@ -3629,19 +3514,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 		{
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the AtJobStart field of the DOM Instance.
+		/// Gets the AtJobStart field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public SlcWorkflowIds.Enums.Atjobstart? AtJobStart
@@ -3658,33 +3539,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.MonitoringSettings.AtJobStart);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.MonitoringSettings.AtJobStart, (Int32)value);
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the AtJobEnd field of the DOM Instance.
+		/// Gets the AtJobEnd field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public SlcWorkflowIds.Enums.Atjobend? AtJobEnd
@@ -3701,33 +3566,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.MonitoringSettings.AtJobEnd);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.MonitoringSettings.AtJobEnd, (Int32)value);
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the MonitoringServiceTemplate field of the DOM Instance.
+		/// Gets the MonitoringServiceTemplate field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public String MonitoringServiceTemplate
@@ -3744,33 +3593,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.MonitoringSettings.MonitoringServiceTemplate);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.MonitoringSettings.MonitoringServiceTemplate, (String)value);
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the MonitoringServiceID field of the DOM Instance.
+		/// Gets the MonitoringServiceID field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public String MonitoringServiceID
@@ -3785,18 +3618,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 				else
 				{
 					return null;
-				}
-			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.MonitoringSettings.MonitoringServiceID);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.MonitoringSettings.MonitoringServiceID, (String)value);
 				}
 			}
 		}
@@ -4108,19 +3929,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 		{
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the WorkflowExecutionScript field of the DOM Instance.
+		/// Gets the WorkflowExecutionScript field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public String WorkflowExecutionScript
@@ -4135,18 +3952,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 				else
 				{
 					return null;
-				}
-			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.WorkflowExecution.WorkflowExecutionScript);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.WorkflowExecution.WorkflowExecutionScript, (String)value);
 				}
 			}
 		}
@@ -4236,19 +4041,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 		{
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the Qty field of the DOM Instance.
+		/// Gets the Qty field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public Int64? Qty
@@ -4265,33 +4066,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.Rate.Qty);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.Rate.Qty, (Int64)value);
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the QtyType field of the DOM Instance.
+		/// Gets the QtyType field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public SlcWorkflowIds.Enums.QtytypeEnum? QtyType
@@ -4308,33 +4093,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.Rate.QtyType);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.Rate.QtyType, SlcWorkflowIds.Enums.Qtytype.ToValue((SlcWorkflowIds.Enums.QtytypeEnum)value));
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the AmountPerUnit field of the DOM Instance.
+		/// Gets the AmountPerUnit field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public Double? AmountPerUnit
@@ -4351,33 +4120,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.Rate.AmountPerUnit);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.Rate.AmountPerUnit, (Double)value);
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the TotalAmount field of the DOM Instance.
+		/// Gets the TotalAmount field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public Double? TotalAmount
@@ -4394,33 +4147,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.Rate.TotalAmount);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.Rate.TotalAmount, (Double)value);
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the TotalNetAmount field of the DOM Instance.
+		/// Gets the TotalNetAmount field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public Double? TotalNetAmount
@@ -4435,18 +4172,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 				else
 				{
 					return null;
-				}
-			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.Rate.TotalNetAmount);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.Rate.TotalNetAmount, (Double)value);
 				}
 			}
 		}
@@ -4469,16 +4194,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 			var section = (Section)this.ToSection().Clone();
 			section.ID = new SectionID(Guid.NewGuid());
 			return new RateSection(section);
-		}
-
-		/// <inheritdoc />
-		protected override Section InternalToSection()
-		{
-			if (section.GetValue<Int64>(SlcWorkflowIds.Sections.Rate.Qty) == null)
-				throw new InvalidOperationException("'Qty' is required. Please fill it in before saving, or mark it as optional with the DOM Editor.");
-			if (section.GetValue<String>(SlcWorkflowIds.Sections.Rate.QtyType) == null)
-				throw new InvalidOperationException("'QtyType' is required. Please fill it in before saving, or mark it as optional with the DOM Editor.");
-			return section;
 		}
 	}
 
@@ -4641,19 +4356,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 		{
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the ReplaceAction field of the DOM Instance.
+		/// Gets the ReplaceAction field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public SlcWorkflowIds.Enums.Replaceaction? ReplaceAction
@@ -4670,33 +4381,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.JobNodeRelationshipReplaceActions.ReplaceAction);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.JobNodeRelationshipReplaceActions.ReplaceAction, (Int32)value);
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the ExecutePoolLinks field of the DOM Instance.
+		/// Gets the ExecutePoolLinks field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public Boolean? ExecutePoolLinks
@@ -4713,33 +4408,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.JobNodeRelationshipReplaceActions.ExecutePoolLinks);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.JobNodeRelationshipReplaceActions.ExecutePoolLinks, (Boolean)value);
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the ExecuteBookingExtensionScript field of the DOM Instance.
+		/// Gets the ExecuteBookingExtensionScript field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public Boolean? ExecuteBookingExtensionScript
@@ -4754,18 +4433,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 				else
 				{
 					return null;
-				}
-			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.JobNodeRelationshipReplaceActions.ExecuteBookingExtensionScript);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.JobNodeRelationshipReplaceActions.ExecuteBookingExtensionScript, (Boolean)value);
 				}
 			}
 		}
@@ -4788,14 +4455,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 			var section = (Section)this.ToSection().Clone();
 			section.ID = new SectionID(Guid.NewGuid());
 			return new JobNodeRelationshipReplaceActionsSection(section);
-		}
-
-		/// <inheritdoc />
-		protected override Section InternalToSection()
-		{
-			if (section.GetValue<Int32>(SlcWorkflowIds.Sections.JobNodeRelationshipReplaceActions.ReplaceAction) == null)
-				throw new InvalidOperationException("'ReplaceAction' is required. Please fill it in before saving, or mark it as optional with the DOM Editor.");
-			return section;
 		}
 	}
 
@@ -5398,19 +5057,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 		/// </remarks>
 		public IList<Guid> AdditionalContacts { get; private set; }
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the Contract field of the DOM Instance.
+		/// Gets the Contract field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public Guid? Contract
@@ -5427,33 +5082,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.CostingAndBilling.Contract);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.CostingAndBilling.Contract, (Guid)value);
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the JobStatus field of the DOM Instance.
+		/// Gets the JobStatus field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public String JobStatus
@@ -5470,33 +5109,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.CostingAndBilling.JobStatus);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.CostingAndBilling.JobStatus, (String)value);
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the ContractUplift field of the DOM Instance.
+		/// Gets the ContractUplift field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public Double? ContractUplift
@@ -5513,33 +5136,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.CostingAndBilling.ContractUplift);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.CostingAndBilling.ContractUplift, (Double)value);
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the ContractDiscount field of the DOM Instance.
+		/// Gets the ContractDiscount field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public Double? ContractDiscount
@@ -5556,33 +5163,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.CostingAndBilling.ContractDiscount);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.CostingAndBilling.ContractDiscount, (Double)value);
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the SpeedOrderIncrementOnTopOfBillingPrice field of the DOM Instance.
+		/// Gets the SpeedOrderIncrementOnTopOfBillingPrice field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public Double? SpeedOrderIncrementOnTopOfBillingPrice
@@ -5599,33 +5190,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.CostingAndBilling.SpeedOrderIncrementOnTopOfBillingPrice);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.CostingAndBilling.SpeedOrderIncrementOnTopOfBillingPrice, (Double)value);
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the SpeedOrderFixedFee field of the DOM Instance.
+		/// Gets the SpeedOrderFixedFee field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public Double? SpeedOrderFixedFee
@@ -5642,33 +5217,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.CostingAndBilling.SpeedOrderFixedFee);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.CostingAndBilling.SpeedOrderFixedFee, (Double)value);
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the CancellationOfBillingPrice field of the DOM Instance.
+		/// Gets the CancellationOfBillingPrice field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public Double? CancellationOfBillingPrice
@@ -5685,33 +5244,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.CostingAndBilling.CancellationOfBillingPrice);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.CostingAndBilling.CancellationOfBillingPrice, (Double)value);
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the CancellationFixedFee field of the DOM Instance.
+		/// Gets the CancellationFixedFee field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public String CancellationFixedFee
@@ -5728,33 +5271,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.CostingAndBilling.CancellationFixedFee);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.CostingAndBilling.CancellationFixedFee, (String)value);
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the LastBillCalculation field of the DOM Instance.
+		/// Gets the LastBillCalculation field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public DateTime? LastBillCalculation
@@ -5771,33 +5298,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.CostingAndBilling.LastBillCalculation);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.CostingAndBilling.LastBillCalculation, (DateTime)value);
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the TotalBillNetAmount field of the DOM Instance.
+		/// Gets the TotalBillNetAmount field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public Double? TotalBillNetAmount
@@ -5814,33 +5325,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.CostingAndBilling.TotalBillNetAmount);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.CostingAndBilling.TotalBillNetAmount, (Double)value);
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the TotalBillNetOverrideAmount field of the DOM Instance.
+		/// Gets the TotalBillNetOverrideAmount field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public Double? TotalBillNetOverrideAmount
@@ -5857,33 +5352,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.CostingAndBilling.TotalBillNetOverrideAmount);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.CostingAndBilling.TotalBillNetOverrideAmount, (Double)value);
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the BillCurrency field of the DOM Instance.
+		/// Gets the BillCurrency field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public Guid? BillCurrency
@@ -5898,18 +5377,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 				else
 				{
 					return null;
-				}
-			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.CostingAndBilling.BillCurrency);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.CostingAndBilling.BillCurrency, (Guid)value);
 				}
 			}
 		}
@@ -5956,7 +5423,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 		/// </summary>
 		public CostingAndBillingDetailsSection() : base(SlcWorkflowIds.Sections.CostingAndBillingDetails.Id)
 		{
-			Rates = new List<Guid>();
+			Rates = new ReadOnlyCollection<Guid>(new List<Guid>());
 		}
 
 		/// <summary>
@@ -5966,22 +5433,18 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 		public CostingAndBillingDetailsSection(Section section) : base(section, SlcWorkflowIds.Sections.CostingAndBillingDetails.Id)
 		{
 			var rates = section.GetListValue<Guid>(SlcWorkflowIds.Sections.CostingAndBillingDetails.Rates);
-			Rates = rates != null ? rates.Values : new List<Guid>();
+			Rates = rates != null ? new ReadOnlyCollection<Guid>(rates.Values) : new ReadOnlyCollection<Guid>(new List<Guid>());
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the LineItemType field of the DOM Instance.
+		/// Gets the LineItemType field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public SlcWorkflowIds.Enums.LineitemtypeEnum? LineItemType
@@ -5998,33 +5461,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.CostingAndBillingDetails.LineItemType);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.CostingAndBillingDetails.LineItemType, SlcWorkflowIds.Enums.Lineitemtype.ToValue((SlcWorkflowIds.Enums.LineitemtypeEnum)value));
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the ObjectType field of the DOM Instance.
+		/// Gets the ObjectType field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public SlcWorkflowIds.Enums.ObjecttypeEnum? ObjectType
@@ -6041,33 +5488,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.CostingAndBillingDetails.ObjectType);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.CostingAndBillingDetails.ObjectType, SlcWorkflowIds.Enums.Objecttype.ToValue((SlcWorkflowIds.Enums.ObjecttypeEnum)value));
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the ObjectID field of the DOM Instance.
+		/// Gets the ObjectID field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public String ObjectID
@@ -6084,33 +5515,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.CostingAndBillingDetails.ObjectID);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.CostingAndBillingDetails.ObjectID, (String)value);
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the Description field of the DOM Instance.
+		/// Gets the Description field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public String Description
@@ -6127,33 +5542,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.CostingAndBillingDetails.Description);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.CostingAndBillingDetails.Description, (String)value);
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the RateCard field of the DOM Instance.
+		/// Gets the RateCard field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public Guid? RateCard
@@ -6170,33 +5569,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.CostingAndBillingDetails.RateCard);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.CostingAndBillingDetails.RateCard, (Guid)value);
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the TotalNetOverrideAmount field of the DOM Instance.
+		/// Gets the TotalNetOverrideAmount field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public Double? TotalNetOverrideAmount
@@ -6213,33 +5596,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.CostingAndBillingDetails.TotalNetOverrideAmount);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.CostingAndBillingDetails.TotalNetOverrideAmount, (Double)value);
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the Currency field of the DOM Instance.
+		/// Gets the Currency field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public Guid? Currency
@@ -6256,20 +5623,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.CostingAndBillingDetails.Currency);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.CostingAndBillingDetails.Currency, (Guid)value);
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
 		/// Gets or sets the Rates field of the DOM Instance.
 		/// </summary>
@@ -6305,16 +5661,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 			var section = (Section)this.ToSection().Clone();
 			section.ID = new SectionID(Guid.NewGuid());
 			return new CostingAndBillingDetailsSection(section);
-		}
-
-		/// <inheritdoc />
-		protected override Section InternalToSection()
-		{
-			if (Rates.Count == 0)
-				section.RemoveFieldValueById(SlcWorkflowIds.Sections.CostingAndBillingDetails.Rates);
-			else
-				section.AddOrUpdateListValue<Guid>(SlcWorkflowIds.Sections.CostingAndBillingDetails.Rates, Rates.ToList());
-			return section;
 		}
 	}
 
@@ -6983,19 +6329,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the AutomaticConfiguration field of the DOM Instance.
+		/// Gets the AutomaticConfiguration field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public Boolean? AutomaticConfiguration
@@ -7012,33 +6354,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.Nodes.AutomaticConfiguration);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.Nodes.AutomaticConfiguration, (Boolean)value);
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the ConfigurationParameters field of the DOM Instance.
+		/// Gets the ConfigurationParameters field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public String ConfigurationParameters
@@ -7055,33 +6381,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.Nodes.ConfigurationParameters);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.Nodes.ConfigurationParameters, (String)value);
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the AdHocControlScript field of the DOM Instance.
+		/// Gets the AdHocControlScript field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public String AdHocControlScript
@@ -7096,18 +6406,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 				else
 				{
 					return null;
-				}
-			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.Nodes.AdHocControlScript);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.Nodes.AdHocControlScript, (String)value);
 				}
 			}
 		}
@@ -7155,19 +6453,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the ReserveNode field of the DOM Instance.
+		/// Gets the ReserveNode field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public Boolean? ReserveNode
@@ -7184,33 +6478,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.Nodes.ReserveNode);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.Nodes.ReserveNode, (Boolean)value);
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the Hidden field of the DOM Instance.
+		/// Gets the Hidden field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public Boolean? Hidden
@@ -7225,18 +6503,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 				else
 				{
 					return null;
-				}
-			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.Nodes.Hidden);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.Nodes.Hidden, (Boolean)value);
 				}
 			}
 		}
@@ -7327,19 +6593,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the LinkedBookingIds field of the DOM Instance.
+		/// Gets the LinkedBookingIds field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public String LinkedBookingIds
@@ -7356,33 +6618,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.Nodes.LinkedBookingIds);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.Nodes.LinkedBookingIds, (String)value);
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the ResourceSelectMode field of the DOM Instance.
+		/// Gets the ResourceSelectMode field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public SlcWorkflowIds.Enums.Resourceselectmode? ResourceSelectMode
@@ -7397,18 +6643,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 				else
 				{
 					return null;
-				}
-			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.Nodes.ResourceSelectMode);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.Nodes.ResourceSelectMode, (Int32)value);
 				}
 			}
 		}
@@ -7456,19 +6690,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the Billable field of the DOM Instance.
+		/// Gets the Billable field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public Boolean? Billable
@@ -7483,18 +6713,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 				else
 				{
 					return null;
-				}
-			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.Nodes.Billable);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.Nodes.Billable, (Boolean)value);
 				}
 			}
 		}
@@ -7627,19 +6845,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 		{
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the JobExecutionScript field of the DOM Instance.
+		/// Gets the JobExecutionScript field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public String JobExecutionScript
@@ -7654,18 +6868,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 				else
 				{
 					return null;
-				}
-			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.JobExecution.JobExecutionScript);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.JobExecution.JobExecutionScript, (String)value);
 				}
 			}
 		}
@@ -7927,19 +7129,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the Workflow field of the DOM Instance.
+		/// Gets the Workflow field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public Guid? Workflow
@@ -7954,18 +7152,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 				else
 				{
 					return null;
-				}
-			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.JobInfo.Workflow);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.JobInfo.Workflow, (Guid)value);
 				}
 			}
 		}
@@ -8433,19 +7619,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the LockedBy field of the DOM Instance.
+		/// Gets the LockedBy field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public String LockedBy
@@ -8460,18 +7642,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 				else
 				{
 					return null;
-				}
-			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.JobInfo.LockedBy);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.JobInfo.LockedBy, (String)value);
 				}
 			}
 		}
@@ -8774,19 +7944,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 		{
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the BookingAction field of the DOM Instance.
+		/// Gets the BookingAction field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public SlcWorkflowIds.Enums.Bookingaction? BookingAction
@@ -8803,33 +7969,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 					return null;
 				}
 			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.JobNodeRelationshipGeneralActions.BookingAction);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.JobNodeRelationshipGeneralActions.BookingAction, (Int32)value);
-				}
-			}
 		}
 
+		[Obsolete("The FieldDescriptor, this property represents, is marked as SoftDeleted, in the SectionDefinition.")]
 		/// <summary>
-		/// Gets or sets the DeleteAction field of the DOM Instance.
+		/// Gets the DeleteAction field of the DOM Instance.
 		/// </summary>
 		/// <remarks>
 		/// When retrieving the value:
 		/// <list type="bullet">
 		/// <item>If the field has been set, it will return the value.</item>
 		/// <item>If the field is not set it will return <see langword="null"/>.</item>
-		/// </list>
-		/// When setting the value:
-		/// <list type="bullet">
-		/// <item>If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-		/// <item>If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
 		public SlcWorkflowIds.Enums.Deleteaction? DeleteAction
@@ -8844,18 +7994,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 				else
 				{
 					return null;
-				}
-			}
-
-			set
-			{
-				if (value == null)
-				{
-					section.RemoveFieldValueById(SlcWorkflowIds.Sections.JobNodeRelationshipGeneralActions.DeleteAction);
-				}
-				else
-				{
-					section.AddOrUpdateValue(SlcWorkflowIds.Sections.JobNodeRelationshipGeneralActions.DeleteAction, (Int32)value);
 				}
 			}
 		}
@@ -8879,16 +8017,5 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 			section.ID = new SectionID(Guid.NewGuid());
 			return new JobNodeRelationshipGeneralActionsSection(section);
 		}
-
-		/// <inheritdoc />
-		protected override Section InternalToSection()
-		{
-			if (section.GetValue<Int32>(SlcWorkflowIds.Sections.JobNodeRelationshipGeneralActions.BookingAction) == null)
-				throw new InvalidOperationException("'BookingAction' is required. Please fill it in before saving, or mark it as optional with the DOM Editor.");
-			if (section.GetValue<Int32>(SlcWorkflowIds.Sections.JobNodeRelationshipGeneralActions.DeleteAction) == null)
-				throw new InvalidOperationException("'DeleteAction' is required. Please fill it in before saving, or mark it as optional with the DOM Editor.");
-			return section;
-		}
 	}
 }
-
