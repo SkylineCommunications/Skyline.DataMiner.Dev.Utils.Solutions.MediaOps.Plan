@@ -2,7 +2,6 @@
 {
 	using System;
 	using System.Collections.Generic;
-	using System.Globalization;
 	using System.Linq;
 	using System.Text.RegularExpressions;
 
@@ -997,7 +996,7 @@
 					return true;
 				}
 
-				if (TryGetResolvedRawValue(capacity, resolvedReferences, owningNodeId, out var rawValue) && TryConvertToDecimal(rawValue, out quantity))
+				if (TryGetResolvedValue(capacity, resolvedReferences, owningNodeId, out var resolvedValue) && ResolvedValueConverter.TryGetNumber(resolvedValue, out quantity))
 				{
 					return true;
 				}
@@ -1016,39 +1015,6 @@
 				}
 
 				return resolvedReferences.TryGetValue(owningNodeId, setting.Reference, out resolvedValue) && resolvedValue.IsResolved;
-			}
-
-			private static bool TryGetResolvedRawValue(Setting setting, ResolvedReferenceCache resolvedReferences, string owningNodeId, out object rawValue)
-			{
-				rawValue = null;
-
-				if (!TryGetResolvedValue(setting, resolvedReferences, owningNodeId, out var resolvedValue))
-				{
-					return false;
-				}
-
-				rawValue = resolvedValue.GetRawValue();
-				return rawValue != null;
-			}
-
-			private static bool TryConvertToDecimal(object rawValue, out decimal value)
-			{
-				switch (rawValue)
-				{
-					case decimal decimalValue:
-						value = decimalValue;
-						return true;
-					case double doubleValue:
-						value = (decimal)doubleValue;
-						return true;
-					// Parsed the same way as ResolvedValueConverter, so '1,5' is rejected instead of silently becoming 15.
-					case string stringValue when decimal.TryParse(stringValue, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed):
-						value = parsed;
-						return true;
-					default:
-						value = default;
-						return false;
-				}
 			}
 		}
 

@@ -259,12 +259,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			// when this user actually changed a timing field.
 			ValidateMergedTimings(toUpdate, changeResults);
 
-			// A reservation only mirrors the job's name, timings and nodes; all other fields are metadata that have no
-			// impact on the core reservation. Only mark jobs whose name, timing or node sections actually changed so
-			// the CoreJobHandler is not invoked for metadata-only updates.
+			// A reservation only mirrors the job's name, timings, nodes and the capabilities and capacities of the node
+			// configurations; all other fields are metadata that have no impact on the core reservation. Only mark jobs
+			// where one of these actually changed so the CoreJobHandler is not invoked for metadata-only updates.
 			var jobsWithReservationChanges = toUpdate.Where(x =>
 				IsValid(x)
-				&& changeResults.Any(y => y.Id == x.Id && HasReservationImpactingChanges(y)));
+				&& (changeResults.Any(y => y.Id == x.Id && HasReservationImpactingChanges(y)) || HasOrchestrationChanges(x)));
 
 			foreach (var job in jobsWithReservationChanges)
 			{
@@ -516,6 +516,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				}
 
 				orchestrationSettingsByJobId[job.Id] = jobOrchestrationSettings;
+
+				// A draft job skips the reference resolution on save, so the linked capabilities and capacities are resolved here.
+				var resolver = new JobReferenceResolver(planApi, job, referenceDefinitions);
+				resolvedReferencesByJobId[job.Id] = new JobReferenceValidator(resolver, referenceDefinitions).Resolve(job).ResolvedReferences;
 
 				// Every job gets a core reservation when it moves to Tentative, even when it has no resource nodes yet.
 				// The reservation is created (possibly without bookings) and is populated as resources are assigned.
@@ -3556,7 +3560,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		// orchestration parameter can reference a job property through a JobPropertyReference.
 		private static bool HasOnlyLinkChanges(Job job, ICollection<DomChangeResults> changeResults)
 		{
-			if (job.JobRelationshipsScope?.IsDirty != true || job.PropertySettingsScope?.IsDirty == true)
+			if (job.JobRelationshipsScope?.IsDirty != true || job.HasPropertySettingChanges)
 			{
 				return false;
 			}
@@ -3573,6 +3577,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			return IsOrchestrationUnchanged(job.OrchestrationSettings)
 				&& job.NodeGraph.Nodes.All(x => IsOrchestrationUnchanged(x.OrchestrationSettings));
+		}
+
+		// A node capability or capacity can link to the job, to another node or to a job property, so any change to
+		// these can change the values that must be booked on the reservation.
+		private static bool HasOrchestrationChanges(Job job)
+		{
+			return job.HasPropertySettingChanges
+				|| !IsOrchestrationUnchanged(job.OrchestrationSettings)
+				|| job.NodeGraph.Nodes.Any(x => !IsOrchestrationUnchanged(x.OrchestrationSettings));
 		}
 
 		// The orchestration settings are rewritten on every save, so the DOM diff cannot say whether they really

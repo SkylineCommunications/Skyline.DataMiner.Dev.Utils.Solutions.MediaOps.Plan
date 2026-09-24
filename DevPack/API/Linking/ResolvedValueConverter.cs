@@ -219,8 +219,20 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return true;
 		}
 
-		private static bool TryGetNumber(ResolvedValue value, out decimal number)
+		/// <summary>
+		/// Tries to get the specified value as a number.
+		/// </summary>
+		/// <param name="value">The value that was resolved from a reference.</param>
+		/// <param name="number">When this method returns, contains the number the value represents.</param>
+		/// <returns><see langword="true"/> when the value is resolved and represents a number; otherwise, <see langword="false"/>.</returns>
+		public static bool TryGetNumber(ResolvedValue value, out decimal number)
 		{
+			if (value == null || !value.IsResolved)
+			{
+				number = default;
+				return false;
+			}
+
 			switch (value)
 			{
 				case DecimalResolvedValue decimalValue:
