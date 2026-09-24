@@ -494,11 +494,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			// The field a referenced value feeds decides how it is converted; a dropdown only holds one of its own options.
-			var inputs = _planApi.LiveApi.Orchestration.Scripts.GetOrchestrationScriptInputInfo(executionDetails.ScriptName, new OrchestrationInputValues(values))?.InputDefinition;
-			if (inputs == null)
-			{
-				return;
-			}
+			var inputs = _planApi.LiveApi.Orchestration.Scripts.GetOrchestrationScriptInputInfo(executionDetails.ScriptName, new OrchestrationInputValues(values))?.InputDefinition
+				?? throw new InvalidOperationException($"The inputs of orchestration script '{executionDetails.ScriptName}' could not be evaluated, so its linked inputs cannot be resolved.");
 
 			foreach (var reference in references)
 			{

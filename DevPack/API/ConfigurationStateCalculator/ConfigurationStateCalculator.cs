@@ -538,7 +538,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				StringComparer.OrdinalIgnoreCase);
 
 			// A referenced input only gets its value when the job is scheduled, so the reference counts as a value.
-			return inputs.GetAllFields().All(field => referencedPaths.Contains(field.Path) || field.IsValidValue(field.GetEffectiveValue(), out _));
+			return inputs.GetAllFields().All(field => referencedPaths.Contains(field.Path) || field.TryValidate(out _));
 		}
 
 		private static bool IsParameterFullyDefined(OrchestrationScriptInputParameter parameter, ScriptExecutionDetails executionDetails)

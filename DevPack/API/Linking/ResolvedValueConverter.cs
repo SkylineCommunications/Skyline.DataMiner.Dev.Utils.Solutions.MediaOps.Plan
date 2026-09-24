@@ -160,6 +160,33 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 						return true;
 					}
 
+				case OrchestrationDateTimeInputField dateTime:
+					{
+						var text = Convert.ToString(value.GetRawValue(), CultureInfo.InvariantCulture);
+						if (String.IsNullOrEmpty(text) || !OrchestrationInputValue.FromText(text).TryGetDateTime(out var parsed))
+						{
+							return false;
+						}
+
+						converted = OrchestrationInputValue.FromDateTime(parsed);
+						return dateTime.IsValidValue(converted, out _);
+					}
+
+				case OrchestrationTimeSpanInputField timeSpan:
+					{
+						var candidate = TryGetNumber(value, out var seconds)
+							? OrchestrationInputValue.FromNumber((double)seconds)
+							: OrchestrationInputValue.FromText(Convert.ToString(value.GetRawValue(), CultureInfo.InvariantCulture) ?? String.Empty);
+
+						if (!candidate.TryGetTimeSpan(out var parsed))
+						{
+							return false;
+						}
+
+						converted = OrchestrationInputValue.FromTimeSpan(parsed);
+						return timeSpan.IsValidValue(converted, out _);
+					}
+
 				default:
 					converted = OrchestrationInputValue.FromText(Convert.ToString(value.GetRawValue(), CultureInfo.InvariantCulture) ?? String.Empty);
 					return true;

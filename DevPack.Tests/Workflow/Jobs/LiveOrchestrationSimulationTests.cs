@@ -1110,6 +1110,15 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var setup = CreateSetup();
 			var currentTime = DateTime.UtcNow.RoundToNextSecond();
 
+			setup.Dms.AddDynamicOrchestrationScript(DynamicScriptName, providedValues => new OrchestrationInputBuilder()
+				.AddGroup("General", general => general.AddNumber("Number of destinations"))
+				.AddGroup("Destinations", destinations => destinations.AddGroup("Destination 1", destination =>
+				{
+					destination.AddText("Endpoint");
+					destination.AddText("Format");
+				}))
+				.Build());
+
 			var job = CreateJob(
 				setup,
 				preRollStart: currentTime.AddMinutes(5),
@@ -1119,7 +1128,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			job.NodeGraph.Nodes.Single().OrchestrationSettings.SetOrchestrationEvents(new List<OrchestrationEvent>
 			{
-				CreateDynamicInputsEvent(),
+				CreateDynamicInputsEvent(DynamicScriptName),
 			});
 
 			var confirmedJob = Confirm(setup, setup.Api.Jobs.Update(job));
@@ -1132,6 +1141,33 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			Assert.AreEqual(2d, numberValue.Value.DoubleValue, "Expected the numeric input value.");
 
 			Assert.AreEqual("ENC-A", nodeProfile.GetInputValues().GetString("Destinations/Destination 1/Endpoint"), "Expected the text input value to reach MediaOps Live.");
+			Assert.AreEqual(confirmedJob.Name, nodeProfile.GetInputValues().GetString("Destinations/Destination 1/Format"), "Expected the linked input value to reach MediaOps Live.");
+		}
+
+		[TestMethod]
+		public void LiveJobConfigHandler_Confirm_FailsWhenLinkedInputsCannotBeEvaluated()
+		{
+			var setup = CreateSetup();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var job = CreateJob(
+				setup,
+				preRollStart: currentTime.AddMinutes(5),
+				start: currentTime.AddMinutes(10),
+				end: currentTime.AddMinutes(20),
+				postRollEnd: currentTime.AddMinutes(25));
+
+			// The script has no dynamic inputs, so the link has nothing to resolve against.
+			job.NodeGraph.Nodes.Single().OrchestrationSettings.SetOrchestrationEvents(new List<OrchestrationEvent>
+			{
+				CreateDynamicInputsEvent(OrchestrationScriptName),
+			});
+
+			Confirm(setup, setup.Api.Jobs.Update(job));
+
+			Assert.IsTrue(
+				setup.Logger.Errors.Any(x => x.Contains("could not be evaluated, so its linked inputs cannot be resolved")),
+				"Expected the confirmation to report that the linked inputs cannot be resolved.");
 		}
 
 		[TestMethod]
@@ -1173,12 +1209,12 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			Assert.AreEqual("UC", inputValues.GetString("Mode"), "Expected a discrete input to take the value of the option whose display text matches.");
 		}
 
-		private static OrchestrationEvent CreateDynamicInputsEvent()
+		private static OrchestrationEvent CreateDynamicInputsEvent(string scriptName = OrchestrationScriptName)
 		{
 			return new OrchestrationEvent
 			{
 				EventType = OrchestrationEventType.PrerollStart,
-				ExecutionDetails = new ScriptExecutionDetails(OrchestrationScriptName)
+				ExecutionDetails = new ScriptExecutionDetails(scriptName)
 					.AddDynamicInput(new DynamicInputSetting("General/Number of destinations") { Value = 2 })
 					.AddDynamicInput(new DynamicInputSetting("Destinations/Destination 1/Endpoint") { Value = "ENC-A" })
 					.AddDynamicInput(new DynamicInputSetting("Destinations/Destination 1/Format") { Reference = new JobNameReference() }),
