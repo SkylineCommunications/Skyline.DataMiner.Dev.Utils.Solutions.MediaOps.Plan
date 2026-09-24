@@ -4,18 +4,21 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 	using System.Collections.Generic;
 	using System.Linq;
 
+	using Skyline.DataMiner.Solutions.MediaOps.Live.Orchestration.Script.Inputs;
+
 	/// <summary>
 	/// An in-memory Automation script, mirroring the information a real DataMiner Agent exposes about an
 	/// installed script (its folder, input parameters and dummies).
 	/// </summary>
 	public sealed class SimulatedAutomationScript
 	{
-		internal SimulatedAutomationScript(string name, string folder, IEnumerable<string> parameters, IEnumerable<string> dummies)
+		internal SimulatedAutomationScript(string name, string folder, IEnumerable<string> parameters, IEnumerable<string> dummies, Func<OrchestrationInputValues, OrchestrationInputDefinition> inputs = null)
 		{
 			Name = name;
 			Folder = folder ?? String.Empty;
 			Parameters = (parameters ?? Enumerable.Empty<string>()).ToList();
 			Dummies = (dummies ?? Enumerable.Empty<string>()).ToList();
+			Inputs = inputs;
 		}
 
 		/// <summary>
@@ -37,5 +40,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 		/// Gets the descriptions of the input dummies of the script.
 		/// </summary>
 		public IReadOnlyList<string> Dummies { get; }
+
+		/// <summary>
+		/// Gets a value indicating whether the script is a dynamic orchestration script.
+		/// </summary>
+		public bool HasDynamicInputs => Inputs != null;
+
+		internal Func<OrchestrationInputValues, OrchestrationInputDefinition> Inputs { get; }
 	}
 }

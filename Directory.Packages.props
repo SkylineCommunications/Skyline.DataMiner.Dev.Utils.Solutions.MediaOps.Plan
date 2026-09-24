@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
 		<CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
-		<MediaOpsLiveDevPackVersion>1.2.0-alpha007</MediaOpsLiveDevPackVersion>
+		<MediaOpsLiveDevPackVersion>1.2.0-alpha008.local.1</MediaOpsLiveDevPackVersion>
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.1" />

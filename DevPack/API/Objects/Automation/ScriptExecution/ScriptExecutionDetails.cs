@@ -6,6 +6,7 @@
 
 	using Skyline.DataMiner.Core.DataMinerSystem.Common;
 	using Skyline.DataMiner.Net.Helper;
+	using Skyline.DataMiner.Solutions.MediaOps.Live.Orchestration.Script.Inputs;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
 
@@ -91,6 +92,24 @@
 					.Concat(discreteNumberConfigurationSettings)
 					.ToList();
 			}
+		}
+
+		/// <summary>
+		/// Gets the explicitly provided values for the dynamic inputs of the script, keyed by field path.
+		/// Only used for scripts that declare dynamic inputs.
+		/// </summary>
+		public OrchestrationInputValues InputValues { get; private set; } = OrchestrationInputValues.Empty;
+
+		/// <summary>
+		/// Replaces the values for the dynamic inputs of the script.
+		/// </summary>
+		/// <param name="inputValues">The explicitly provided values, keyed by field path.</param>
+		/// <returns>The current <see cref="ScriptExecutionDetails"/> instance.</returns>
+		/// <exception cref="ArgumentNullException">Thrown if <paramref name="inputValues"/> is <see langword="null"/>.</exception>
+		public ScriptExecutionDetails SetInputValues(OrchestrationInputValues inputValues)
+		{
+			InputValues = inputValues ?? throw new ArgumentNullException(nameof(inputValues));
+			return this;
 		}
 
 		/// <summary>
@@ -413,7 +432,8 @@
 					 textConfigurationSettings.ScrambledEquals(other.textConfigurationSettings) &&
 					 numberConfigurationSettings.ScrambledEquals(other.numberConfigurationSettings) &&
 					 discreteTextConfigurationSettings.ScrambledEquals(other.discreteTextConfigurationSettings) &&
-					 discreteNumberConfigurationSettings.ScrambledEquals(other.discreteNumberConfigurationSettings);
+					 discreteNumberConfigurationSettings.ScrambledEquals(other.discreteNumberConfigurationSettings) &&
+					 InputValues.HasSameValues(other.InputValues);
 		}
 
 		/// <inheritdoc/>
@@ -469,6 +489,8 @@
 					hash = (hash * 23) + configurationSetting.GetHashCode();
 				}
 
+				hash = (hash * 23) + InputValues.Count;
+
 				return hash;
 			}
 		}
@@ -490,6 +512,7 @@
 			scriptExecutionDetails.ParseStorageDummies(storageScriptExecutionDetails.Dummies, storageScriptExecutionDetails.DummyReferences);
 			scriptExecutionDetails.ParseStorageParameters(storageScriptExecutionDetails.Parameters, storageScriptExecutionDetails.ParameterReferences);
 			scriptExecutionDetails.ParseStorageProfileParameterValues(planApi, storageScriptExecutionDetails.ProfileParameterValues);
+			scriptExecutionDetails.InputValues = new OrchestrationInputValues(storageScriptExecutionDetails.InputValues);
 
 			return scriptExecutionDetails;
 		}
@@ -499,6 +522,7 @@
 			var storageScriptExecutionDetails = new Storage.DOM.ScriptExecutionDetails
 			{
 				ScriptName = ScriptName,
+				InputValues = InputValues.ToDictionary(),
 			};
 
 			foreach (var scriptElementSetting in scriptElementSettings)

@@ -465,6 +465,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				});
 			}
 
+			// Dynamic inputs are passed on by field path.
+			foreach (var inputValue in executionDetails.InputValues.Where(x => x.Value != null))
+			{
+				profile.Values.Add(new Live.OrchestrationProfileValue
+				{
+					Name = inputValue.Key,
+					Value = inputValue.Value.ToParameterValue(),
+				});
+			}
+
 			return profile;
 		}
 

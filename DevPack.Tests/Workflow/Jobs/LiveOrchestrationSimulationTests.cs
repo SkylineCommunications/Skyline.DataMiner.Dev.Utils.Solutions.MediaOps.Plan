@@ -17,6 +17,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 	using Skyline.DataMiner.Solutions.MediaOps.Live.API.Enums;
 	using Skyline.DataMiner.Solutions.MediaOps.Live.API.Extensions;
 	using Skyline.DataMiner.Solutions.MediaOps.Live.API.Objects.ConnectivityManagement;
+	using Skyline.DataMiner.Solutions.MediaOps.Live.Orchestration.Script.Inputs;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow;
@@ -1070,6 +1071,77 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				0,
 				GetEvent(liveConfiguration, LiveEnums.EventType.PrerollStop).Configuration.NodeConfigurations.Single().Profile.Values.Count,
 				"Expected the profile inputs to be limited to the orchestration event type they are configured for.");
+		}
+
+		[TestMethod]
+		public void ScriptExecutionDetails_Update_StoresTheDynamicInputValues()
+		{
+			var setup = CreateSetup();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var job = CreateJob(
+				setup,
+				preRollStart: currentTime.AddMinutes(5),
+				start: currentTime.AddMinutes(10),
+				end: currentTime.AddMinutes(20),
+				postRollEnd: currentTime.AddMinutes(25));
+
+			job.NodeGraph.Nodes.Single().OrchestrationSettings.SetOrchestrationEvents(new List<OrchestrationEvent>
+			{
+				CreateDynamicInputsEvent(),
+			});
+
+			job = setup.Api.Jobs.Update(job);
+
+			var stored = setup.Api.Jobs.Read(job.Id).NodeGraph.Nodes.Single().OrchestrationSettings.OrchestrationEvents.Single().ExecutionDetails.InputValues;
+
+			Assert.AreEqual(2, stored.GetInt32("General/Number of destinations"), "Expected the numeric input value to be stored as a number.");
+			Assert.AreEqual("ENC-A", stored.GetString("Destinations/Destination 1/Endpoint"), "Expected the text input value to be stored.");
+			Assert.IsTrue(stored.TryGetValue("General/Number of destinations", out var count) && count.IsNumber, "Expected the numeric input value to keep its type.");
+		}
+
+		[TestMethod]
+		public void LiveJobConfigHandler_Confirm_MapsDynamicInputValuesOntoLiveNodeProfileByPath()
+		{
+			var setup = CreateSetup();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var job = CreateJob(
+				setup,
+				preRollStart: currentTime.AddMinutes(5),
+				start: currentTime.AddMinutes(10),
+				end: currentTime.AddMinutes(20),
+				postRollEnd: currentTime.AddMinutes(25));
+
+			job.NodeGraph.Nodes.Single().OrchestrationSettings.SetOrchestrationEvents(new List<OrchestrationEvent>
+			{
+				CreateDynamicInputsEvent(),
+			});
+
+			var confirmedJob = Confirm(setup, setup.Api.Jobs.Update(job));
+
+			var nodeProfile = GetEvent(GetLiveConfiguration(setup, confirmedJob), LiveEnums.EventType.PrerollStart)
+				.Configuration.NodeConfigurations.Single().Profile;
+
+			var numberValue = nodeProfile.Values.Single(x => x.Name == "General/Number of destinations");
+			Assert.AreEqual(ProfileParameterValue.ValueType.Double, numberValue.Value.Type, "Expected a numeric input to become a double profile value.");
+			Assert.AreEqual(2d, numberValue.Value.DoubleValue, "Expected the numeric input value.");
+
+			Assert.AreEqual("ENC-A", nodeProfile.GetInputValues().GetString("Destinations/Destination 1/Endpoint"), "Expected the text input value to reach MediaOps Live.");
+		}
+
+		private static OrchestrationEvent CreateDynamicInputsEvent()
+		{
+			return new OrchestrationEvent
+			{
+				EventType = OrchestrationEventType.PrerollStart,
+				ExecutionDetails = new ScriptExecutionDetails(OrchestrationScriptName)
+					.SetInputValues(new OrchestrationInputValues(new Dictionary<string, OrchestrationInputValue>
+					{
+						["General/Number of destinations"] = 2,
+						["Destinations/Destination 1/Endpoint"] = "ENC-A",
+					})),
+			};
 		}
 
 		[TestMethod]

@@ -6,6 +6,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using System.Runtime.CompilerServices;
 
 	using Skyline.DataMiner.Solutions.MediaOps.Live.API;
+	using Skyline.DataMiner.Solutions.MediaOps.Live.Orchestration.Script.Inputs;
 	using Skyline.DataMiner.Solutions.MediaOps.Live.Orchestration.ScriptHelper;
 
 	/// <summary>
@@ -486,6 +487,18 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			var executionDetails = orchestrationEvent.ExecutionDetails;
 			var requirements = GetScriptInputRequirements(executionDetails.ScriptName);
 
+			OrchestrationInputDefinition inputs = null;
+			if (requirements.HasDynamicInputs)
+			{
+				// The structure of dynamic inputs depends on the provided values, so it can't be cached per script.
+				inputs = _liveApi.Orchestration.Scripts.GetOrchestrationScriptInputInfo(executionDetails.ScriptName, executionDetails.InputValues)?.InputDefinition;
+
+				if (inputs == null || !inputs.TryValidateValues(out _))
+				{
+					return false;
+				}
+			}
+
 			foreach (var element in requirements.Elements)
 			{
 				var elementSetting = executionDetails.ScriptElements.FirstOrDefault(x => x.Name == element.Name);
@@ -503,6 +516,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			foreach (var parameter in requirements.Parameters)
 			{
+				// Profile backed dynamic inputs are published by path and were validated with the other dynamic inputs.
+				if (inputs != null && inputs.TryGetField(parameter.Name, out _))
+				{
+					continue;
+				}
+
 				if (!IsParameterFullyDefined(parameter, executionDetails))
 				{
 					return false;
@@ -568,7 +587,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				requirements = new ScriptInputRequirements(
 					scriptInputInfo.Elements.ToList(),
-					scriptInputInfo.Parameters.ToList());
+					scriptInputInfo.Parameters.ToList(),
+					scriptInputInfo.HasDynamicInputs);
 			}
 
 			_requirementsByScriptName[scriptName] = requirements;
@@ -656,17 +676,20 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		private sealed class ScriptInputRequirements
 		{
-			public static readonly ScriptInputRequirements Empty = new ScriptInputRequirements(new List<OrchestrationScriptInputElement>(), new List<OrchestrationScriptInputParameter>());
+			public static readonly ScriptInputRequirements Empty = new ScriptInputRequirements(new List<OrchestrationScriptInputElement>(), new List<OrchestrationScriptInputParameter>(), false);
 
-			public ScriptInputRequirements(IReadOnlyCollection<OrchestrationScriptInputElement> elements, IReadOnlyCollection<OrchestrationScriptInputParameter> parameters)
+			public ScriptInputRequirements(IReadOnlyCollection<OrchestrationScriptInputElement> elements, IReadOnlyCollection<OrchestrationScriptInputParameter> parameters, bool hasDynamicInputs)
 			{
 				Elements = elements;
 				Parameters = parameters;
+				HasDynamicInputs = hasDynamicInputs;
 			}
 
 			public IReadOnlyCollection<OrchestrationScriptInputElement> Elements { get; }
 
 			public IReadOnlyCollection<OrchestrationScriptInputParameter> Parameters { get; }
+
+			public bool HasDynamicInputs { get; }
 		}
 	}
 }

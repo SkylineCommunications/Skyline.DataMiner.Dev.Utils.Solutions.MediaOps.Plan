@@ -171,6 +171,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			clone.SetCapabilities(source.Capabilities);
 			clone.SetCapacities(source.Capacities);
 			clone.SetConfigurations(source.Configurations);
+			clone.SetInputValues(source.InputValues);
 
 			foreach (var setting in clone.Capabilities)
 			{
