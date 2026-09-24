@@ -2,6 +2,7 @@ namespace RT_MediaOps.Plan.Workflow
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Linq;
 
 	using Skyline.DataMiner.Solutions.MediaOps.Live.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Live.API.Extensions;
@@ -143,15 +144,35 @@ namespace RT_MediaOps.Plan.Workflow
 			Assert.IsFalse(calculator.HasMissingMandatoryValues(settings));
 		}
 
+		[TestMethod]
+		public void ConfigurationStateCalculator_HasMissingMandatoryValues_DynamicScriptWithReferencedRequiredInput_ReturnsFalse()
+		{
+			var settings = CreateDynamicScriptSettings(new Dictionary<string, OrchestrationInputValue>
+			{
+				["Number of destinations"] = 2,
+				["Destination 1/Endpoint"] = "ENC-A",
+			});
+
+			settings.OrchestrationEvents.Single().ExecutionDetails.AddDynamicInput(new DynamicInputSetting("Destination 2/Endpoint") { Reference = new JobNameReference() });
+
+			var (planApi, liveApi) = CreateApisWithDynamicScript();
+			var calculator = ConfigurationStateCalculator.ForSettings(planApi, liveApi, settings);
+
+			Assert.IsFalse(calculator.HasMissingMandatoryValues(settings));
+		}
+
 		private static WorkflowOrchestrationSettings CreateDynamicScriptSettings(Dictionary<string, OrchestrationInputValue> inputValues)
 		{
+			var executionDetails = new ScriptExecutionDetails(DynamicScriptName)
+				.SetDynamicInputs(inputValues.Select(x => new DynamicInputSetting(x.Key) { Value = x.Value }));
+
 			var settings = new WorkflowOrchestrationSettings();
 			settings.SetOrchestrationEvents(new List<OrchestrationEvent>
 			{
 				new OrchestrationEvent
 				{
 					EventType = OrchestrationEventType.PrerollStart,
-					ExecutionDetails = new ScriptExecutionDetails(DynamicScriptName).SetInputValues(new OrchestrationInputValues(inputValues)),
+					ExecutionDetails = executionDetails,
 				},
 			});
 

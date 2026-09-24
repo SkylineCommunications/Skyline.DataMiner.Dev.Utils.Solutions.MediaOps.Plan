@@ -491,9 +491,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			if (requirements.HasDynamicInputs)
 			{
 				// The structure of dynamic inputs depends on the provided values, so it can't be cached per script.
-				inputs = _liveApi.Orchestration.Scripts.GetOrchestrationScriptInputInfo(executionDetails.ScriptName, executionDetails.InputValues)?.InputDefinition;
+				inputs = _liveApi.Orchestration.Scripts.GetOrchestrationScriptInputInfo(executionDetails.ScriptName, executionDetails.GetDynamicInputValues())?.InputDefinition;
 
-				if (inputs == null || !inputs.TryValidateValues(out _))
+				if (inputs == null || !AreDynamicInputsDefined(inputs, executionDetails))
 				{
 					return false;
 				}
@@ -529,6 +529,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			return true;
+		}
+
+		private static bool AreDynamicInputsDefined(OrchestrationInputDefinition inputs, ScriptExecutionDetails executionDetails)
+		{
+			var referencedPaths = new HashSet<string>(
+				executionDetails.DynamicInputs.Where(x => x.HasReference).Select(x => x.Path),
+				StringComparer.OrdinalIgnoreCase);
+
+			// A referenced input only gets its value when the job is scheduled, so the reference counts as a value.
+			return inputs.GetAllFields().All(field => referencedPaths.Contains(field.Path) || field.IsValidValue(field.GetEffectiveValue(), out _));
 		}
 
 		private static bool IsParameterFullyDefined(OrchestrationScriptInputParameter parameter, ScriptExecutionDetails executionDetails)

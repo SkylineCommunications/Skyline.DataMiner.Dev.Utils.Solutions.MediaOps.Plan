@@ -33,6 +33,9 @@
 		[JsonProperty("inputValues")]
 		public Dictionary<string, OrchestrationInputValue> InputValues { get; set; } = new Dictionary<string, OrchestrationInputValue>();
 
+		[JsonProperty("inputReferences")]
+		public Dictionary<string, DataReferenceStorage> InputReferences { get; set; } = new Dictionary<string, DataReferenceStorage>();
+
 		public static bool TryDeserialize(string json, out ScriptExecutionDetails scriptExecutionDetails)
 		{
 			scriptExecutionDetails = null;
@@ -92,6 +95,11 @@
 			}
 
 			if (!(InputValues ?? new Dictionary<string, OrchestrationInputValue>()).ScrambledEquals(other.InputValues ?? new Dictionary<string, OrchestrationInputValue>()))
+			{
+				return false;
+			}
+
+			if (!(InputReferences ?? new Dictionary<string, DataReferenceStorage>()).ScrambledEquals(other.InputReferences ?? new Dictionary<string, DataReferenceStorage>()))
 			{
 				return false;
 			}

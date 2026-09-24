@@ -1,6 +1,7 @@
 namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System.Collections.Generic;
+	using System.Linq;
 
 	/// <summary>
 	/// Generic helper that copies an <see cref="OrchestrationSettings"/> instance into another one
@@ -125,6 +126,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				parameter.Reference = RemapReference(parameter.Reference, nodeIdMap);
 			}
 
+			foreach (var input in details.DynamicInputs)
+			{
+				input.Reference = RemapReference(input.Reference, nodeIdMap);
+			}
+
 			foreach (var setting in details.Capabilities)
 			{
 				setting.Reference = RemapReference(setting.Reference, nodeIdMap);
@@ -171,7 +177,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			clone.SetCapabilities(source.Capabilities);
 			clone.SetCapacities(source.Capacities);
 			clone.SetConfigurations(source.Configurations);
-			clone.SetInputValues(source.InputValues);
+			clone.SetDynamicInputs(source.DynamicInputs.Select(x => new DynamicInputSetting(x.Path)
+			{
+				Value = x.Value,
+				Reference = RemapReference(x.Reference, nodeIdMap),
+			}));
 
 			foreach (var setting in clone.Capabilities)
 			{

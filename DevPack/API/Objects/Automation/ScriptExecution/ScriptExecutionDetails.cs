@@ -19,6 +19,8 @@
 
 		private readonly List<ScriptParameterSetting> scriptParameterSettings = [];
 
+		private readonly List<DynamicInputSetting> dynamicInputSettings = [];
+
 		private readonly List<StorageCapabilitySetting> capabilitySettings = [];
 
 		private readonly List<StorageNumberCapacitySetting> numberCapacitySettings = [];
@@ -95,20 +97,79 @@
 		}
 
 		/// <summary>
-		/// Gets the explicitly provided values for the dynamic inputs of the script, keyed by field path.
-		/// Only used for scripts that declare dynamic inputs.
+		/// Gets the settings of the dynamic inputs of the script. Only used for scripts that declare dynamic inputs.
 		/// </summary>
-		public OrchestrationInputValues InputValues { get; private set; } = OrchestrationInputValues.Empty;
+		public IReadOnlyCollection<DynamicInputSetting> DynamicInputs => dynamicInputSettings;
 
 		/// <summary>
-		/// Replaces the values for the dynamic inputs of the script.
+		/// Gets the values that were provided directly for the dynamic inputs of the script, keyed by field path.
+		/// Inputs that get their value through a reference are not included.
 		/// </summary>
-		/// <param name="inputValues">The explicitly provided values, keyed by field path.</param>
-		/// <returns>The current <see cref="ScriptExecutionDetails"/> instance.</returns>
-		/// <exception cref="ArgumentNullException">Thrown if <paramref name="inputValues"/> is <see langword="null"/>.</exception>
-		public ScriptExecutionDetails SetInputValues(OrchestrationInputValues inputValues)
+		/// <returns>The directly provided values.</returns>
+		public OrchestrationInputValues GetDynamicInputValues()
 		{
-			InputValues = inputValues ?? throw new ArgumentNullException(nameof(inputValues));
+			return new OrchestrationInputValues(dynamicInputSettings
+				.Where(x => !x.HasReference && x.Value != null)
+				.GroupBy(x => x.Path, StringComparer.OrdinalIgnoreCase)
+				.ToDictionary(x => x.Key, x => x.Last().Value, StringComparer.OrdinalIgnoreCase));
+		}
+
+		/// <summary>
+		/// Adds a new dynamic input, replacing the input with the same path.
+		/// </summary>
+		/// <param name="dynamicInputSetting">The dynamic input to add.</param>
+		/// <returns>The current <see cref="ScriptExecutionDetails"/> instance.</returns>
+		/// <exception cref="ArgumentNullException">Thrown if <paramref name="dynamicInputSetting"/> is <see langword="null"/>.</exception>
+		public ScriptExecutionDetails AddDynamicInput(DynamicInputSetting dynamicInputSetting)
+		{
+			if (dynamicInputSetting == null)
+			{
+				throw new ArgumentNullException(nameof(dynamicInputSetting));
+			}
+
+			dynamicInputSettings.RemoveAll(x => String.Equals(x.Path, dynamicInputSetting.Path, StringComparison.OrdinalIgnoreCase));
+			dynamicInputSettings.Add(dynamicInputSetting);
+			return this;
+		}
+
+		/// <summary>
+		/// Removes the specified dynamic input.
+		/// </summary>
+		/// <param name="dynamicInputSetting">The dynamic input to remove.</param>
+		/// <returns>The current <see cref="ScriptExecutionDetails"/> instance.</returns>
+		/// <exception cref="ArgumentNullException">Thrown if <paramref name="dynamicInputSetting"/> is <see langword="null"/>.</exception>
+		public ScriptExecutionDetails RemoveDynamicInput(DynamicInputSetting dynamicInputSetting)
+		{
+			if (dynamicInputSetting == null)
+			{
+				throw new ArgumentNullException(nameof(dynamicInputSetting));
+			}
+
+			dynamicInputSettings.Remove(dynamicInputSetting);
+			return this;
+		}
+
+		/// <summary>
+		/// Replaces the dynamic inputs of the script.
+		/// </summary>
+		/// <param name="dynamicInputSettings">The dynamic inputs.</param>
+		/// <returns>The current <see cref="ScriptExecutionDetails"/> instance.</returns>
+		/// <exception cref="ArgumentNullException">Thrown if <paramref name="dynamicInputSettings"/> is <see langword="null"/>.</exception>
+		public ScriptExecutionDetails SetDynamicInputs(IEnumerable<DynamicInputSetting> dynamicInputSettings)
+		{
+			if (dynamicInputSettings == null)
+			{
+				throw new ArgumentNullException(nameof(dynamicInputSettings));
+			}
+
+			var settings = dynamicInputSettings.ToList();
+
+			this.dynamicInputSettings.Clear();
+			foreach (var setting in settings)
+			{
+				AddDynamicInput(setting);
+			}
+
 			return this;
 		}
 
@@ -433,7 +494,7 @@
 					 numberConfigurationSettings.ScrambledEquals(other.numberConfigurationSettings) &&
 					 discreteTextConfigurationSettings.ScrambledEquals(other.discreteTextConfigurationSettings) &&
 					 discreteNumberConfigurationSettings.ScrambledEquals(other.discreteNumberConfigurationSettings) &&
-					 InputValues.HasSameValues(other.InputValues);
+					 dynamicInputSettings.ScrambledEquals(other.dynamicInputSettings);
 		}
 
 		/// <inheritdoc/>
@@ -489,7 +550,10 @@
 					hash = (hash * 23) + configurationSetting.GetHashCode();
 				}
 
-				hash = (hash * 23) + InputValues.Count;
+				foreach (var dynamicInputSetting in dynamicInputSettings.OrderBy(x => x.Path))
+				{
+					hash = (hash * 23) + dynamicInputSetting.GetHashCode();
+				}
 
 				return hash;
 			}
@@ -512,7 +576,7 @@
 			scriptExecutionDetails.ParseStorageDummies(storageScriptExecutionDetails.Dummies, storageScriptExecutionDetails.DummyReferences);
 			scriptExecutionDetails.ParseStorageParameters(storageScriptExecutionDetails.Parameters, storageScriptExecutionDetails.ParameterReferences);
 			scriptExecutionDetails.ParseStorageProfileParameterValues(planApi, storageScriptExecutionDetails.ProfileParameterValues);
-			scriptExecutionDetails.InputValues = new OrchestrationInputValues(storageScriptExecutionDetails.InputValues);
+			scriptExecutionDetails.ParseStorageDynamicInputs(storageScriptExecutionDetails.InputValues, storageScriptExecutionDetails.InputReferences);
 
 			return scriptExecutionDetails;
 		}
@@ -522,8 +586,19 @@
 			var storageScriptExecutionDetails = new Storage.DOM.ScriptExecutionDetails
 			{
 				ScriptName = ScriptName,
-				InputValues = InputValues.ToDictionary(),
 			};
+
+			foreach (var dynamicInputSetting in dynamicInputSettings)
+			{
+				if (dynamicInputSetting.Reference != null)
+				{
+					storageScriptExecutionDetails.InputReferences[dynamicInputSetting.Path] = dynamicInputSetting.Reference.ToStorage();
+				}
+				else if (dynamicInputSetting.Value != null)
+				{
+					storageScriptExecutionDetails.InputValues[dynamicInputSetting.Path] = dynamicInputSetting.Value;
+				}
+			}
 
 			foreach (var scriptElementSetting in scriptElementSettings)
 			{
@@ -613,6 +688,19 @@
 				};
 
 				AddScriptElement(scriptElementSetting);
+			}
+		}
+
+		private void ParseStorageDynamicInputs(Dictionary<string, OrchestrationInputValue> inputValues, Dictionary<string, Storage.DOM.DataReferenceStorage> inputReferences)
+		{
+			foreach (var kvp in inputValues ?? new Dictionary<string, OrchestrationInputValue>())
+			{
+				AddDynamicInput(new DynamicInputSetting(kvp.Key) { Value = kvp.Value });
+			}
+
+			foreach (var kvp in inputReferences ?? new Dictionary<string, Storage.DOM.DataReferenceStorage>())
+			{
+				AddDynamicInput(new DynamicInputSetting(kvp.Key) { Reference = kvp.Value?.ToDataReference() });
 			}
 		}
 

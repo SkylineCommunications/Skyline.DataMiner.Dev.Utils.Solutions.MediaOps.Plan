@@ -42,6 +42,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 	{
 		private const string OrchestrationScriptName = "Node Orchestration Script";
 
+		private const string DynamicScriptName = "Dynamic Orchestration Script";
+
 		private const string OrchestrationModuleId = "(slc)orchestration";
 
 		// The MediaOps Live storage model is internal, so the event state is addressed by its DOM identifiers.
@@ -1093,11 +1095,13 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			job = setup.Api.Jobs.Update(job);
 
-			var stored = setup.Api.Jobs.Read(job.Id).NodeGraph.Nodes.Single().OrchestrationSettings.OrchestrationEvents.Single().ExecutionDetails.InputValues;
+			var stored = setup.Api.Jobs.Read(job.Id).NodeGraph.Nodes.Single().OrchestrationSettings.OrchestrationEvents.Single().ExecutionDetails;
+			var storedValues = stored.GetDynamicInputValues();
 
-			Assert.AreEqual(2, stored.GetInt32("General/Number of destinations"), "Expected the numeric input value to be stored as a number.");
-			Assert.AreEqual("ENC-A", stored.GetString("Destinations/Destination 1/Endpoint"), "Expected the text input value to be stored.");
-			Assert.IsTrue(stored.TryGetValue("General/Number of destinations", out var count) && count.IsNumber, "Expected the numeric input value to keep its type.");
+			Assert.AreEqual(2, storedValues.GetInt32("General/Number of destinations"), "Expected the numeric input value to be stored as a number.");
+			Assert.AreEqual("ENC-A", storedValues.GetString("Destinations/Destination 1/Endpoint"), "Expected the text input value to be stored.");
+			Assert.IsTrue(storedValues.TryGetValue("General/Number of destinations", out var count) && count.IsNumber, "Expected the numeric input value to keep its type.");
+			Assert.IsInstanceOfType(stored.DynamicInputs.Single(x => x.Path == "Destinations/Destination 1/Format").Reference, typeof(JobNameReference), "Expected the input reference to be stored.");
 		}
 
 		[TestMethod]
@@ -1130,17 +1134,54 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			Assert.AreEqual("ENC-A", nodeProfile.GetInputValues().GetString("Destinations/Destination 1/Endpoint"), "Expected the text input value to reach MediaOps Live.");
 		}
 
+		[TestMethod]
+		public void LiveJobConfigHandler_Confirm_ResolvesReferencedDynamicInputsForTheInputField()
+		{
+			var setup = CreateSetup();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			setup.Dms.AddDynamicOrchestrationScript(DynamicScriptName, providedValues => new OrchestrationInputBuilder()
+				.AddText("Label")
+				.AddDiscrete("Mode", field => field.AddOption("Unicast", "UC"), "Multicast")
+				.Build());
+
+			var job = CreateJob(
+				setup,
+				preRollStart: currentTime.AddMinutes(5),
+				start: currentTime.AddMinutes(10),
+				end: currentTime.AddMinutes(20),
+				postRollEnd: currentTime.AddMinutes(25));
+
+			job.Name = "Unicast";
+			job.NodeGraph.Nodes.Single().OrchestrationSettings.SetOrchestrationEvents(new List<OrchestrationEvent>
+			{
+				new OrchestrationEvent
+				{
+					EventType = OrchestrationEventType.PrerollStart,
+					ExecutionDetails = new ScriptExecutionDetails(DynamicScriptName)
+						.AddDynamicInput(new DynamicInputSetting("Label") { Reference = new JobNameReference() })
+						.AddDynamicInput(new DynamicInputSetting("Mode") { Reference = new JobNameReference() }),
+				},
+			});
+
+			var confirmedJob = Confirm(setup, setup.Api.Jobs.Update(job));
+
+			var inputValues = GetEvent(GetLiveConfiguration(setup, confirmedJob), LiveEnums.EventType.PrerollStart)
+				.Configuration.NodeConfigurations.Single().Profile.GetInputValues();
+
+			Assert.AreEqual("Unicast", inputValues.GetString("Label"), "Expected a text input to take the referenced value as-is.");
+			Assert.AreEqual("UC", inputValues.GetString("Mode"), "Expected a discrete input to take the value of the option whose display text matches.");
+		}
+
 		private static OrchestrationEvent CreateDynamicInputsEvent()
 		{
 			return new OrchestrationEvent
 			{
 				EventType = OrchestrationEventType.PrerollStart,
 				ExecutionDetails = new ScriptExecutionDetails(OrchestrationScriptName)
-					.SetInputValues(new OrchestrationInputValues(new Dictionary<string, OrchestrationInputValue>
-					{
-						["General/Number of destinations"] = 2,
-						["Destinations/Destination 1/Endpoint"] = "ENC-A",
-					})),
+					.AddDynamicInput(new DynamicInputSetting("General/Number of destinations") { Value = 2 })
+					.AddDynamicInput(new DynamicInputSetting("Destinations/Destination 1/Endpoint") { Value = "ENC-A" })
+					.AddDynamicInput(new DynamicInputSetting("Destinations/Destination 1/Format") { Reference = new JobNameReference() }),
 			};
 		}
 

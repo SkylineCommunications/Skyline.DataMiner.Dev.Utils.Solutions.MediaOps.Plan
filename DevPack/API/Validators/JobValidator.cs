@@ -286,6 +286,7 @@
 				CompareArguments(orchestrationEvent.ExecutionDetails.ScriptParameters.Where(item => item.HasReference).Select(item => (item.Name, item.Reference)), LiveEnums.OrchestrationScriptArgumentType.Parameter, liveEventType, scheduledEvent.GlobalOrchestrationScriptArguments, resolver, mismatches);
 				CompareArguments(orchestrationEvent.ExecutionDetails.ScriptElements.Where(item => item.HasReference).Select(item => (item.Name, item.Reference)), LiveEnums.OrchestrationScriptArgumentType.Element, liveEventType, scheduledEvent.GlobalOrchestrationScriptArguments, resolver, mismatches);
 				CompareProfileSettings(orchestrationEvent.ExecutionDetails.Capabilities.Cast<Setting>().Concat(orchestrationEvent.ExecutionDetails.Capacities).Concat(orchestrationEvent.ExecutionDetails.Configurations), liveEventType, scheduledEvent.Profile, resolver, definitions, mismatches);
+				CompareDynamicInputs(orchestrationEvent.ExecutionDetails, liveEventType, scheduledEvent.Profile, resolver, mismatches);
 			}
 
 			if (mismatches.Count > 0)
@@ -339,6 +340,39 @@
 				if (scheduled != null && !String.Equals(actual, expected, StringComparison.Ordinal))
 				{
 					mismatches.Add($"The profile parameter '{setting.Id}' of the '{eventType}' live event resolves to '{expected}' but was scheduled with '{actual}'");
+				}
+			}
+		}
+
+		private void CompareDynamicInputs(ScriptExecutionDetails executionDetails, LiveEnums.EventType eventType, Live.OrchestrationProfile scheduledProfile, JobReferenceResolver resolver, ICollection<string> mismatches)
+		{
+			var referencedInputs = executionDetails.DynamicInputs.Where(item => item.HasReference).ToList();
+			if (referencedInputs.Count == 0 || scheduledProfile?.Values == null)
+			{
+				return;
+			}
+
+			// The live event was scheduled with the value as the input field takes it, so compare it the same way.
+			var inputs = liveApi.Orchestration.Scripts.GetOrchestrationScriptInputInfo(executionDetails.ScriptName, executionDetails.GetDynamicInputValues())?.InputDefinition;
+			if (inputs == null)
+			{
+				return;
+			}
+
+			var scheduledValues = scheduledProfile.GetInputValues();
+
+			foreach (var input in referencedInputs)
+			{
+				if (!inputs.TryGetField(input.Path, out var field)
+					|| !TryResolveReference(resolver, input.Reference, out var value)
+					|| !ResolvedValueConverter.TryConvert(value, field, out var expected))
+				{
+					continue;
+				}
+
+				if (scheduledValues.TryGetValue(input.Path, out var scheduled) && scheduled != expected)
+				{
+					mismatches.Add($"The '{input.Path}' input of the '{eventType}' live event resolves to '{expected}' but was scheduled with '{scheduled}'");
 				}
 			}
 		}
