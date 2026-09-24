@@ -239,9 +239,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					number = decimalValue.Value;
 					return true;
 
-				case DoubleResolvedValue doubleValue when doubleValue.Value >= (double)Decimal.MinValue && doubleValue.Value <= (double)Decimal.MaxValue:
-					number = (decimal)doubleValue.Value;
-					return true;
+				case DoubleResolvedValue doubleValue:
+					// (double)Decimal.MaxValue rounds up to 2^96, which no longer fits in a decimal, so the bounds are exclusive.
+					if (doubleValue.Value > (double)Decimal.MinValue && doubleValue.Value < (double)Decimal.MaxValue)
+					{
+						number = (decimal)doubleValue.Value;
+						return true;
+					}
+
+					number = default;
+					return false;
 
 				default:
 					// Thousands separators are not accepted, so '1,5' is rejected instead of silently becoming 15.

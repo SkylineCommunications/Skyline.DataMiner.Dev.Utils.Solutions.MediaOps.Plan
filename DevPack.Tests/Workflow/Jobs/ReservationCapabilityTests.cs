@@ -125,6 +125,68 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			Assert.AreEqual("Value 2", GetRequiredDiscrete(job.Id, setup.Capability.Id));
 		}
 
+		[TestMethod]
+		public void DomJobHandler_Update_LinkedJobConfigurationChanged_ReservationRequiresNewCapacity()
+		{
+			var setup = CreateSetup();
+			var configuration = objectCreator.CreateConfiguration(new NumberConfiguration { Name = $"{setup.Prefix}_NumberConfiguration" });
+
+			var node = new JobResourceNode(setup.Pool, setup.Resource);
+			node.OrchestrationSettings.AddCapacity(new NumberCapacitySetting(setup.Capacity) { Reference = new ConfigurationParameterReference(configuration.Id) });
+
+			var job = CreateTentativeJob(setup.Prefix, x =>
+			{
+				x.OrchestrationSettings.AddConfiguration(new NumberConfigurationSetting(configuration) { Value = 10 });
+				x.NodeGraph.Add(node);
+			});
+			Assert.AreEqual(10m, GetRequiredQuantity(job.Id, setup.Capacity.Id));
+
+			((NumberConfigurationSetting)job.OrchestrationSettings.Configurations.Single()).Value = 20;
+			TestContext.Api.Jobs.Update(job);
+
+			Assert.AreEqual(20m, GetRequiredQuantity(job.Id, setup.Capacity.Id));
+		}
+
+		[TestMethod]
+		public void DomJobHandler_Update_LinkedJobPropertyChanged_ReservationRequiresNewCapacity()
+		{
+			var setup = CreateSetup();
+			var property = CreateJobProperty(setup.Prefix);
+
+			var node = new JobResourceNode(setup.Pool, setup.Resource);
+			node.OrchestrationSettings.AddCapacity(new NumberCapacitySetting(setup.Capacity) { Reference = new JobPropertyReference(property.Id) });
+
+			var job = CreateTentativeJob(setup.Prefix, x =>
+			{
+				x.AddProperty(new StringPropertySetting(property) { Value = "25" });
+				x.NodeGraph.Add(node);
+			});
+			Assert.AreEqual(25m, GetRequiredQuantity(job.Id, setup.Capacity.Id));
+
+			job.SetProperties([new StringPropertySetting(property) { Value = "30.5" }]);
+			TestContext.Api.Jobs.Update(job);
+
+			Assert.AreEqual(30.5m, GetRequiredQuantity(job.Id, setup.Capacity.Id));
+		}
+
+		[TestMethod]
+		public void DomJobHandler_SaveAsTentative_LinkedJobPropertyNotNumeric_ReservationHasNoCapacity()
+		{
+			var setup = CreateSetup();
+			var property = CreateJobProperty(setup.Prefix);
+
+			var node = new JobResourceNode(setup.Pool, setup.Resource);
+			node.OrchestrationSettings.AddCapacity(new NumberCapacitySetting(setup.Capacity) { Reference = new JobPropertyReference(property.Id) });
+
+			var job = CreateTentativeJob(setup.Prefix, x =>
+			{
+				x.AddProperty(new StringPropertySetting(property) { Value = "1,5" });
+				x.NodeGraph.Add(node);
+			});
+
+			Assert.IsNull(GetRequiredQuantity(job.Id, setup.Capacity.Id));
+		}
+
 		private StringProperty CreateJobProperty(Guid prefix)
 		{
 			return (StringProperty)objectCreator.CreateSchedulingProperties([new StringProperty { Name = $"{prefix}_Property", SectionName = "General" }]).Single();
@@ -132,13 +194,22 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 		private static string GetRequiredDiscrete(Guid jobId, Guid capabilityId)
 		{
+			return GetUsage(jobId).RequiredCapabilities?.SingleOrDefault(x => x.CapabilityProfileID == capabilityId)?.RequiredDiscreet;
+		}
+
+		private static decimal? GetRequiredQuantity(Guid jobId, Guid capacityId)
+		{
+			return GetUsage(jobId).RequiredCapacities?.SingleOrDefault(x => x.CapacityProfileID == capacityId)?.DecimalQuantity;
+		}
+
+		private static ServiceResourceUsageDefinition GetUsage(Guid jobId)
+		{
 			var reservations = TestContext.ResourceManagerHelper.GetReservationInstances(
 				ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(jobId))).ToList();
 
 			Assert.AreEqual(1, reservations.Count, "Expected exactly one core reservation for the job.");
 
-			var usage = reservations[0].ResourcesInReservationInstance.OfType<ServiceResourceUsageDefinition>().Single();
-			return usage.RequiredCapabilities?.SingleOrDefault(x => x.CapabilityProfileID == capabilityId)?.RequiredDiscreet;
+			return reservations[0].ResourcesInReservationInstance.OfType<ServiceResourceUsageDefinition>().Single();
 		}
 
 		private Job CreateTentativeJob(Guid prefix, Action<Job> configure)
@@ -160,12 +231,15 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			return TestContext.Api.Jobs.SaveAsTentative(job);
 		}
 
-		private (Guid Prefix, ResourcePool Pool, Resource Resource, Capability Capability, TextConfiguration Configuration) CreateSetup()
+		private (Guid Prefix, ResourcePool Pool, Resource Resource, Capability Capability, NumberCapacity Capacity, TextConfiguration Configuration) CreateSetup()
 		{
 			var prefix = Guid.NewGuid();
 
 			var capability = new Capability { Name = $"{prefix}_Capability" }.SetDiscretes(["Value 1", "Value 2"]);
 			objectCreator.CreateCapability(capability);
+
+			var capacity = new NumberCapacity { Name = $"{prefix}_Capacity" };
+			objectCreator.CreateCapacities([capacity]);
 
 			var configuration = objectCreator.CreateConfiguration(new TextConfiguration { Name = $"{prefix}_Configuration" });
 
@@ -177,10 +251,11 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var resource = new UnmanagedResource { Name = $"{prefix}_Resource" };
 			resource.AddCapability(resourceCapability);
+			resource.AddCapacity(new NumberCapacitySetting(capacity) { Value = 100 });
 			resource.AssignToPool(pool);
 			var completedResource = TestContext.Api.Resources.Complete(objectCreator.CreateResource(resource));
 
-			return (prefix, pool, completedResource, capability, configuration);
+			return (prefix, pool, completedResource, capability, capacity, configuration);
 		}
 	}
 }
