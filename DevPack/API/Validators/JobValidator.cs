@@ -239,7 +239,7 @@
 
 				foreach (var capacity in node.OrchestrationSettings.Capacities.OfType<NumberCapacitySetting>().Where(setting => setting.HasReference))
 				{
-					if (TryGetResolvedValue(resolution, node.Id, capacity, out var resolvedValue) && TryConvertToDecimal(resolvedValue.GetRawValue(), out var resolved))
+					if (TryGetResolvedValue(resolution, node.Id, capacity, out var resolvedValue) && ResolvedValueConverter.TryGetNumber(resolvedValue, out var resolved))
 					{
 						var booked = usage.RequiredCapacities?.FirstOrDefault(required => required.CapacityProfileID == capacity.Id);
 						if (booked != null && booked.DecimalQuantity != resolved)
@@ -475,20 +475,6 @@
 		private static string FormatValue(object value)
 		{
 			return Convert.ToString(value, CultureInfo.InvariantCulture);
-		}
-
-		private static bool TryConvertToDecimal(object value, out decimal result)
-		{
-			try
-			{
-				result = Convert.ToDecimal(value, CultureInfo.InvariantCulture);
-				return value != null;
-			}
-			catch (Exception exception) when (exception is FormatException || exception is InvalidCastException || exception is OverflowException)
-			{
-				result = 0m;
-				return false;
-			}
 		}
 
 		private sealed class ValidationContext
