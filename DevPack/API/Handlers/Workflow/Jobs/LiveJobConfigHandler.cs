@@ -477,11 +477,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			foreach (var inputValue in values.Where(x => x.Value != null))
 			{
-				profile.Values.Add(new Live.OrchestrationProfileValue
-				{
-					Name = inputValue.Key,
-					Value = inputValue.Value.ToParameterValue(),
-				});
+				profile.SetInputValue(inputValue.Key, inputValue.Value);
 			}
 
 			var references = (executionDetails.InputReferences ?? new Dictionary<string, Storage.DOM.DataReferenceStorage>())
@@ -503,11 +499,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					&& TryResolveReference(reference.Value, owningNodeId, out var resolved)
 					&& ResolvedValueConverter.TryConvert(resolved, field, out var converted))
 				{
-					profile.Values.Add(new Live.OrchestrationProfileValue
-					{
-						Name = reference.Key,
-						Value = converted.ToParameterValue(),
-					});
+					profile.SetInputValue(reference.Key, converted);
 				}
 			}
 		}

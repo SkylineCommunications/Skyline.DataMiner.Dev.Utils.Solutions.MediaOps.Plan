@@ -487,11 +487,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			var executionDetails = orchestrationEvent.ExecutionDetails;
 			var requirements = GetScriptInputRequirements(executionDetails.ScriptName);
 
-			OrchestrationInputDefinition inputs = null;
 			if (requirements.HasDynamicInputs)
 			{
 				// The structure of dynamic inputs depends on the provided values, so it can't be cached per script.
-				inputs = _liveApi.Orchestration.Scripts.GetOrchestrationScriptInputInfo(executionDetails.ScriptName, executionDetails.GetDynamicInputValues())?.InputDefinition;
+				var inputs = _liveApi.Orchestration.Scripts.GetOrchestrationScriptInputInfo(executionDetails.ScriptName, executionDetails.GetDynamicInputValues())?.InputDefinition;
 
 				if (inputs == null || !AreDynamicInputsDefined(inputs, executionDetails))
 				{
@@ -516,12 +515,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			foreach (var parameter in requirements.Parameters)
 			{
-				// Profile backed dynamic inputs are published by path and were validated with the other dynamic inputs.
-				if (inputs != null && inputs.TryGetField(parameter.Name, out _))
-				{
-					continue;
-				}
-
 				if (!IsParameterFullyDefined(parameter, executionDetails))
 				{
 					return false;
