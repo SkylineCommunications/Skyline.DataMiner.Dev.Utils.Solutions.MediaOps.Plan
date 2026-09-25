@@ -219,17 +219,36 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return true;
 		}
 
-		private static bool TryGetNumber(ResolvedValue value, out decimal number)
+		/// <summary>
+		/// Tries to get the specified value as a number.
+		/// </summary>
+		/// <param name="value">The value that was resolved from a reference.</param>
+		/// <param name="number">When this method returns, contains the number the value represents.</param>
+		/// <returns><see langword="true"/> when the value is resolved and represents a number; otherwise, <see langword="false"/>.</returns>
+		public static bool TryGetNumber(ResolvedValue value, out decimal number)
 		{
+			if (value == null || !value.IsResolved)
+			{
+				number = default;
+				return false;
+			}
+
 			switch (value)
 			{
 				case DecimalResolvedValue decimalValue:
 					number = decimalValue.Value;
 					return true;
 
-				case DoubleResolvedValue doubleValue when doubleValue.Value >= (double)Decimal.MinValue && doubleValue.Value <= (double)Decimal.MaxValue:
-					number = (decimal)doubleValue.Value;
-					return true;
+				case DoubleResolvedValue doubleValue:
+					// (double)Decimal.MaxValue rounds up to 2^96, which no longer fits in a decimal, so the bounds are exclusive.
+					if (doubleValue.Value > (double)Decimal.MinValue && doubleValue.Value < (double)Decimal.MaxValue)
+					{
+						number = (decimal)doubleValue.Value;
+						return true;
+					}
+
+					number = default;
+					return false;
 
 				default:
 					// Thousands separators are not accepted, so '1,5' is rejected instead of silently becoming 15.

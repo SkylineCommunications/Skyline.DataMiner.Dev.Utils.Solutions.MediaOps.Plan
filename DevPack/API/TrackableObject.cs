@@ -33,7 +33,7 @@
 
 		internal bool IsNew { get; set; }
 
-		internal bool HasChanges
+		internal virtual bool HasChanges
 		{
 			get
 			{
