@@ -223,11 +223,18 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				}
 
 				job.ConfigurationState = calculator.GetJobConfigurationState(job);
-
-				// A node that is still linked to a resource pool has no resource assigned yet, so the job requires a
-				// manual action to select one, just like a job or node that is missing mandatory values.
-				job.ActionRequired = calculator.HasMissingMandatoryValues(job) || job.NodeGraph.Nodes.OfType<IResourcePoolNode>().Any();
+				job.ActionRequired = RequiresAction(calculator, job);
 			}
+		}
+
+		// A node that is still linked to a resource pool has no resource assigned yet and a resource node that is flagged
+		// with an error (a quarantined resource) has to be swapped, so both require a manual action, just like a job or
+		// node that is missing mandatory values.
+		private static bool RequiresAction(ConfigurationStateCalculator calculator, Job job)
+		{
+			return calculator.HasMissingMandatoryValues(job)
+				|| job.NodeGraph.Nodes.OfType<IResourcePoolNode>().Any()
+				|| job.NodeGraph.Nodes.OfType<JobResourceNode>().Any(node => node.HasError);
 		}
 
 		private void CreateOrUpdateLocked(ICollection<Job> apiJobs)
@@ -295,13 +302,23 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			var changedJobs = mergedDomJobs
 				.Select(x => new Job(planApi, x))
 				.ToList();
-			ClearResolvedValidationErrors(changedJobs);
 
-			var toUpdateDomInstances = changedJobs
-				.Select(x => new DomJob(x.GetInstanceWithChanges()))
+			// The core reservations are updated before the re-validation, because that validation reads the reservation
+			// of every job. A change that resolves a reservation error (for example a swapped resource that lifts a
+			// quarantine) is only visible on the reservation once it is synchronized, so validating first would keep
+			// reporting the error that this update just resolved.
+			var failedJobIds = UpdateCoreReservations(toCreateDomInstances
+				.Concat(changedJobs.Select(x => new DomJob(x.GetInstanceWithChanges())))
+				.ToList());
+
+			ClearResolvedValidationErrors(changedJobs.Where(x => !failedJobIds.Contains(x.Id)).ToList());
+
+			var domJobsToPersist = toCreateDomInstances
+				.Concat(changedJobs.Select(x => new DomJob(x.GetInstanceWithChanges())))
+				.Where(x => !failedJobIds.Contains(x.ID.Id))
 				.ToList();
 
-			CreateOrUpdateDomJobs(toCreateDomInstances.Concat(toUpdateDomInstances).ToList());
+			CreateOrUpdateDomJobs(domJobsToPersist);
 
 			// Register the category items only after the job DOM instances are persisted so the Categories app is not
 			// left with items pointing to jobs that failed to be created or updated.
@@ -322,10 +339,60 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return;
 			}
 
+			var jobsWithChangedNodeStates = new List<Job>();
 			foreach (var result in new JobValidator(planApi).Validate(jobs))
 			{
-				result.ClearResolvedErrorsFromUpdate();
+				if (result.ClearResolvedErrorsFromUpdate())
+				{
+					jobsWithChangedNodeStates.Add(result.Job);
+				}
 			}
+
+			if (jobsWithChangedNodeStates.Count == 0)
+			{
+				return;
+			}
+
+			// The error state of the resource nodes is only known after this revalidation, so the action needed flag of
+			// the merged jobs is refreshed here to keep it in sync with the node states that are about to be persisted.
+			var calculator = new ConfigurationStateCalculator(planApi, planApi.LiveApi, jobsWithChangedNodeStates);
+			foreach (var job in jobsWithChangedNodeStates)
+			{
+				job.ActionRequired = RequiresAction(calculator, job);
+			}
+		}
+
+		private ISet<Guid> UpdateCoreReservations(ICollection<DomJob> domJobs)
+		{
+			var failedJobIds = new HashSet<Guid>();
+			if (jobIdsWithCoreChanges.Count == 0)
+			{
+				return failedJobIds;
+			}
+
+			var domJobsWithCoreChanges = domJobs.Where(x => jobIdsWithCoreChanges.Contains(x.ID.Id)).ToList();
+			if (domJobsWithCoreChanges.Count == 0)
+			{
+				return failedJobIds;
+			}
+
+			UpdateCaches(domJobsWithCoreChanges);
+
+			CoreJobHandler.TryCreateOrUpdate(planApi, domJobsWithCoreChanges, out var coreResult);
+
+			foreach (var id in coreResult.UnsuccessfulIds)
+			{
+				ReportError(id);
+
+				if (coreResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+				{
+					PassTraceData(id, traceData);
+				}
+
+				failedJobIds.Add(id);
+			}
+
+			return failedJobIds;
 		}
 
 		private void CreateOrUpdateDomJobs(ICollection<DomJob> domJobs)
@@ -340,29 +407,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return;
 			}
 
-			var domJobsById = domJobs.ToDictionary(x => x.ID.Id);
-
-			if (jobIdsWithCoreChanges.Count != 0)
-			{
-				var domJobsWithCoreChanges = domJobs.Where(x => jobIdsWithCoreChanges.Contains(x.ID.Id)).ToList();
-				UpdateCaches(domJobsWithCoreChanges);
-
-				CoreJobHandler.TryCreateOrUpdate(planApi, domJobsWithCoreChanges, out var coreResult);
-
-				foreach (var id in coreResult.UnsuccessfulIds)
-				{
-					ReportError(id);
-
-					if (coreResult.TraceDataPerItem.TryGetValue(id, out var traceData))
-					{
-						PassTraceData(id, traceData);
-					}
-
-					domJobsById.Remove(id);
-				}
-			}
-
-			planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.TryCreateOrUpdateInBatches(domJobsById.Values.Select(x => x.ToInstance()), out var domResult);
+			planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.TryCreateOrUpdateInBatches(domJobs.Select(x => x.ToInstance()), out var domResult);
 
 			foreach (var id in domResult.UnsuccessfulIds)
 			{
@@ -547,24 +592,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			var domJobsById = domJobs.ToDictionary(x => x.ID.Id);
 
-			if (jobIdsWithCoreChanges.Count != 0)
+			foreach (var id in UpdateCoreReservations(domJobs))
 			{
-				var domJobsWithCoreChanges = domJobs.Where(x => jobIdsWithCoreChanges.Contains(x.ID.Id)).ToList();
-				UpdateCaches(domJobsWithCoreChanges);
-
-				CoreJobHandler.TryCreateOrUpdate(planApi, domJobsWithCoreChanges, out var coreResult);
-
-				foreach (var id in coreResult.UnsuccessfulIds)
-				{
-					ReportError(id);
-
-					if (coreResult.TraceDataPerItem.TryGetValue(id, out var traceData))
-					{
-						PassTraceData(id, traceData);
-					}
-
-					domJobsById.Remove(id);
-				}
+				domJobsById.Remove(id);
 			}
 
 			// The transition applies no field changes, so the DOM jobs are not re-saved; DoStatusTransition persists the
