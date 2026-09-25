@@ -421,9 +421,9 @@
 			foreach (var quarantined in reservation.QuarantinedResources)
 			{
 				var resourceName = String.Empty;
-				foreach (var trigger in quarantined.QuarantineTriggers)
+				foreach (var trigger in quarantined.QuarantineTriggers ?? [])
 				{
-					resourceName = trigger.UpdateTrigger.NewResource?.Name ?? trigger.UpdateTrigger.OldResource?.Name ?? resourceName;
+					resourceName = trigger.UpdateTrigger?.NewResource?.Name ?? trigger.UpdateTrigger?.OldResource?.Name ?? resourceName;
 				}
 
 				var nodeId = quarantined.QuarantinedResourceUsage is ServiceResourceUsageDefinition usage
