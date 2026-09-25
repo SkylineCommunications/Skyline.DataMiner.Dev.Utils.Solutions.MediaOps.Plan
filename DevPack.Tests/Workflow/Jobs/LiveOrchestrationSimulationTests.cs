@@ -17,6 +17,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 	using Skyline.DataMiner.Solutions.MediaOps.Live.API.Enums;
 	using Skyline.DataMiner.Solutions.MediaOps.Live.API.Extensions;
 	using Skyline.DataMiner.Solutions.MediaOps.Live.API.Objects.ConnectivityManagement;
+	using Skyline.DataMiner.Solutions.MediaOps.Live.Orchestration.Script.Inputs;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow;
@@ -40,6 +41,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 	public sealed class LiveOrchestrationSimulationTests
 	{
 		private const string OrchestrationScriptName = "Node Orchestration Script";
+
+		private const string DynamicScriptName = "Dynamic Orchestration Script";
 
 		private const string OrchestrationModuleId = "(slc)orchestration";
 
@@ -1070,6 +1073,152 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				0,
 				GetEvent(liveConfiguration, LiveEnums.EventType.PrerollStop).Configuration.NodeConfigurations.Single().Profile.Values.Count,
 				"Expected the profile inputs to be limited to the orchestration event type they are configured for.");
+		}
+
+		[TestMethod]
+		public void ScriptExecutionDetails_Update_StoresTheDynamicInputValues()
+		{
+			var setup = CreateSetup();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var job = CreateJob(
+				setup,
+				preRollStart: currentTime.AddMinutes(5),
+				start: currentTime.AddMinutes(10),
+				end: currentTime.AddMinutes(20),
+				postRollEnd: currentTime.AddMinutes(25));
+
+			job.NodeGraph.Nodes.Single().OrchestrationSettings.SetOrchestrationEvents(new List<OrchestrationEvent>
+			{
+				CreateDynamicInputsEvent(),
+			});
+
+			job = setup.Api.Jobs.Update(job);
+
+			var stored = setup.Api.Jobs.Read(job.Id).NodeGraph.Nodes.Single().OrchestrationSettings.OrchestrationEvents.Single().ExecutionDetails;
+			var storedValues = stored.GetDynamicInputValues();
+
+			Assert.AreEqual(2, storedValues.GetInt32("General/Number of destinations"), "Expected the numeric input value to be stored as a number.");
+			Assert.AreEqual("ENC-A", storedValues.GetString("Destinations/Destination 1/Endpoint"), "Expected the text input value to be stored.");
+			Assert.IsTrue(storedValues.TryGetValue("General/Number of destinations", out var count) && count.IsNumber, "Expected the numeric input value to keep its type.");
+			Assert.IsInstanceOfType(stored.DynamicInputs.Single(x => x.Path == "Destinations/Destination 1/Format").Reference, typeof(JobNameReference), "Expected the input reference to be stored.");
+		}
+
+		[TestMethod]
+		public void LiveJobConfigHandler_Confirm_MapsDynamicInputValuesOntoLiveNodeProfileByPath()
+		{
+			var setup = CreateSetup();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			setup.Dms.AddDynamicOrchestrationScript(DynamicScriptName, providedValues => new OrchestrationInputBuilder()
+				.AddGroup("General", general => general.AddNumber("Number of destinations"))
+				.AddGroup("Destinations", destinations => destinations.AddGroup("Destination 1", destination =>
+				{
+					destination.AddText("Endpoint");
+					destination.AddText("Format");
+				}))
+				.Build());
+
+			var job = CreateJob(
+				setup,
+				preRollStart: currentTime.AddMinutes(5),
+				start: currentTime.AddMinutes(10),
+				end: currentTime.AddMinutes(20),
+				postRollEnd: currentTime.AddMinutes(25));
+
+			job.NodeGraph.Nodes.Single().OrchestrationSettings.SetOrchestrationEvents(new List<OrchestrationEvent>
+			{
+				CreateDynamicInputsEvent(DynamicScriptName),
+			});
+
+			var confirmedJob = Confirm(setup, setup.Api.Jobs.Update(job));
+
+			var nodeProfile = GetEvent(GetLiveConfiguration(setup, confirmedJob), LiveEnums.EventType.PrerollStart)
+				.Configuration.NodeConfigurations.Single().Profile;
+
+			var numberValue = nodeProfile.Values.Single(x => x.Name == "General/Number of destinations");
+			Assert.AreEqual(ProfileParameterValue.ValueType.Double, numberValue.Value.Type, "Expected a numeric input to become a double profile value.");
+			Assert.AreEqual(2d, numberValue.Value.DoubleValue, "Expected the numeric input value.");
+
+			Assert.AreEqual("ENC-A", nodeProfile.GetInputValues().GetString("Destinations/Destination 1/Endpoint"), "Expected the text input value to reach MediaOps Live.");
+			Assert.AreEqual(confirmedJob.Name, nodeProfile.GetInputValues().GetString("Destinations/Destination 1/Format"), "Expected the linked input value to reach MediaOps Live.");
+		}
+
+		[TestMethod]
+		public void LiveJobConfigHandler_Confirm_FailsWhenLinkedInputsCannotBeEvaluated()
+		{
+			var setup = CreateSetup();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var job = CreateJob(
+				setup,
+				preRollStart: currentTime.AddMinutes(5),
+				start: currentTime.AddMinutes(10),
+				end: currentTime.AddMinutes(20),
+				postRollEnd: currentTime.AddMinutes(25));
+
+			// The script has no dynamic inputs, so the link has nothing to resolve against.
+			job.NodeGraph.Nodes.Single().OrchestrationSettings.SetOrchestrationEvents(new List<OrchestrationEvent>
+			{
+				CreateDynamicInputsEvent(OrchestrationScriptName),
+			});
+
+			Confirm(setup, setup.Api.Jobs.Update(job));
+
+			Assert.IsTrue(
+				setup.Logger.Errors.Any(x => x.Contains("could not be evaluated, so its linked inputs cannot be resolved")),
+				"Expected the confirmation to report that the linked inputs cannot be resolved.");
+		}
+
+		[TestMethod]
+		public void LiveJobConfigHandler_Confirm_ResolvesReferencedDynamicInputsForTheInputField()
+		{
+			var setup = CreateSetup();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			setup.Dms.AddDynamicOrchestrationScript(DynamicScriptName, providedValues => new OrchestrationInputBuilder()
+				.AddText("Label")
+				.AddDiscrete("Mode", field => field.AddOption("Unicast", "UC"), "Multicast")
+				.Build());
+
+			var job = CreateJob(
+				setup,
+				preRollStart: currentTime.AddMinutes(5),
+				start: currentTime.AddMinutes(10),
+				end: currentTime.AddMinutes(20),
+				postRollEnd: currentTime.AddMinutes(25));
+
+			job.Name = "Unicast";
+			job.NodeGraph.Nodes.Single().OrchestrationSettings.SetOrchestrationEvents(new List<OrchestrationEvent>
+			{
+				new OrchestrationEvent
+				{
+					EventType = OrchestrationEventType.PrerollStart,
+					ExecutionDetails = new ScriptExecutionDetails(DynamicScriptName)
+						.AddDynamicInput(new DynamicInputSetting("Label") { Reference = new JobNameReference() })
+						.AddDynamicInput(new DynamicInputSetting("Mode") { Reference = new JobNameReference() }),
+				},
+			});
+
+			var confirmedJob = Confirm(setup, setup.Api.Jobs.Update(job));
+
+			var inputValues = GetEvent(GetLiveConfiguration(setup, confirmedJob), LiveEnums.EventType.PrerollStart)
+				.Configuration.NodeConfigurations.Single().Profile.GetInputValues();
+
+			Assert.AreEqual("Unicast", inputValues.GetString("Label"), "Expected a text input to take the referenced value as-is.");
+			Assert.AreEqual("UC", inputValues.GetString("Mode"), "Expected a discrete input to take the value of the option whose display text matches.");
+		}
+
+		private static OrchestrationEvent CreateDynamicInputsEvent(string scriptName = OrchestrationScriptName)
+		{
+			return new OrchestrationEvent
+			{
+				EventType = OrchestrationEventType.PrerollStart,
+				ExecutionDetails = new ScriptExecutionDetails(scriptName)
+					.AddDynamicInput(new DynamicInputSetting("General/Number of destinations") { Value = 2 })
+					.AddDynamicInput(new DynamicInputSetting("Destinations/Destination 1/Endpoint") { Value = "ENC-A" })
+					.AddDynamicInput(new DynamicInputSetting("Destinations/Destination 1/Format") { Reference = new JobNameReference() }),
+			};
 		}
 
 		[TestMethod]

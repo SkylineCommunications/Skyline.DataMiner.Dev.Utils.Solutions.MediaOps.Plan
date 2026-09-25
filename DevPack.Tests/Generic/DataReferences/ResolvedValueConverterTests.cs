@@ -1,5 +1,6 @@
 namespace RT_MediaOps.Plan.Generic.DataReferences
 {
+	using Skyline.DataMiner.Solutions.MediaOps.Live.Orchestration.Script.Inputs;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 
 	[TestClass]
@@ -173,6 +174,52 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 
 			Assert.IsTrue(ResolvedValueConverter.TryConvert(new StringResolvedValue("5"), target, out var converted));
 			Assert.AreEqual("5", converted.GetRawValue());
+		}
+
+		[TestMethod]
+		public void ResolvedValueConverter_TryConvert_DateTimeInputParsesTheValue()
+		{
+			var target = new OrchestrationDateTimeInputField { Name = "Start" };
+
+			Assert.IsTrue(ResolvedValueConverter.TryConvert(new StringResolvedValue("2026-09-24T12:00:00Z"), target, out OrchestrationInputValue converted));
+			Assert.IsTrue(converted.TryGetDateTime(out var dateTime));
+			Assert.AreEqual(new DateTime(2026, 9, 24, 12, 0, 0, DateTimeKind.Utc), dateTime);
+		}
+
+		[TestMethod]
+		public void ResolvedValueConverter_TryConvert_DateTimeInputRejectsAValueOutsideTheRange()
+		{
+			var target = new OrchestrationDateTimeInputField { Name = "Start", Maximum = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) };
+
+			Assert.IsFalse(ResolvedValueConverter.TryConvert(new StringResolvedValue("2026-09-24T12:00:00Z"), target, out OrchestrationInputValue _));
+		}
+
+		[TestMethod]
+		public void ResolvedValueConverter_TryConvert_DateTimeInputRejectsText()
+		{
+			var target = new OrchestrationDateTimeInputField { Name = "Start" };
+
+			Assert.IsFalse(ResolvedValueConverter.TryConvert(new StringResolvedValue("tomorrow"), target, out OrchestrationInputValue _));
+		}
+
+		[TestMethod]
+		public void ResolvedValueConverter_TryConvert_TimeSpanInputTakesANumberAsSeconds()
+		{
+			var target = new OrchestrationTimeSpanInputField { Name = "Pre-roll" };
+
+			Assert.IsTrue(ResolvedValueConverter.TryConvert(new DoubleResolvedValue(90), target, out OrchestrationInputValue converted));
+			Assert.IsTrue(converted.TryGetTimeSpan(out var timeSpan));
+			Assert.AreEqual(TimeSpan.FromSeconds(90), timeSpan);
+		}
+
+		[TestMethod]
+		public void ResolvedValueConverter_TryConvert_TimeSpanInputParsesText()
+		{
+			var target = new OrchestrationTimeSpanInputField { Name = "Pre-roll", Maximum = TimeSpan.FromHours(1) };
+
+			Assert.IsTrue(ResolvedValueConverter.TryConvert(new StringResolvedValue("00:15:00"), target, out OrchestrationInputValue converted));
+			Assert.AreEqual(OrchestrationInputValue.FromTimeSpan(TimeSpan.FromMinutes(15)), converted);
+			Assert.IsFalse(ResolvedValueConverter.TryConvert(new StringResolvedValue("02:00:00"), target, out OrchestrationInputValue _));
 		}
 	}
 }

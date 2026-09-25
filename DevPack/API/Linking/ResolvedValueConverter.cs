@@ -5,6 +5,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using System.Globalization;
 	using System.Linq;
 
+	using Skyline.DataMiner.Solutions.MediaOps.Live.Orchestration.Script.Inputs;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
 
 	using CoreParameter = Net.Profiles.Parameter;
@@ -111,6 +112,85 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					? (ResolvedValue)new DoubleResolvedValue(number, x.DisplayName)
 					: new StringResolvedValue(x.Value, x.DisplayName),
 				out converted);
+		}
+
+		/// <summary>
+		/// Converts the specified value into the value the given dynamic input field of an orchestration script can take.
+		/// A discrete field is matched on the display text of its options first and on their value next.
+		/// </summary>
+		/// <param name="value">The value that was resolved from the reference.</param>
+		/// <param name="target">The field that is going to hold the value.</param>
+		/// <param name="converted">When this method returns <see langword="true"/>, contains the value as the field holds it.</param>
+		/// <returns><see langword="true"/> when the field can hold the value; otherwise, <see langword="false"/>.</returns>
+		public static bool TryConvert(ResolvedValue value, OrchestrationInputField target, out OrchestrationInputValue converted)
+		{
+			converted = null;
+
+			if (value == null || !value.IsResolved || target == null || value.IsNullResolvedValue(out _))
+			{
+				return false;
+			}
+
+			switch (target)
+			{
+				case OrchestrationDiscreteInputField discrete:
+					{
+						var displayValue = value.DisplayValue;
+						var match = discrete.Options.FirstOrDefault(x => String.Equals(x.Display, displayValue, StringComparison.Ordinal))
+							?? discrete.Options.FirstOrDefault(x => String.Equals(x.Value?.ToString(), displayValue, StringComparison.Ordinal));
+
+						converted = match?.Value;
+						return converted != null;
+					}
+
+				case OrchestrationNumberInputField number:
+					{
+						if (!TryGetNumber(value, out var decimalValue))
+						{
+							return false;
+						}
+
+						var numberValue = (double)decimalValue;
+						if ((number.Minimum.HasValue && numberValue < number.Minimum.Value) || (number.Maximum.HasValue && numberValue > number.Maximum.Value))
+						{
+							return false;
+						}
+
+						converted = OrchestrationInputValue.FromNumber(numberValue);
+						return true;
+					}
+
+				case OrchestrationDateTimeInputField dateTime:
+					{
+						var text = Convert.ToString(value.GetRawValue(), CultureInfo.InvariantCulture);
+						if (String.IsNullOrEmpty(text) || !OrchestrationInputValue.FromText(text).TryGetDateTime(out var parsed))
+						{
+							return false;
+						}
+
+						converted = OrchestrationInputValue.FromDateTime(parsed);
+						return dateTime.IsValidValue(converted, out _);
+					}
+
+				case OrchestrationTimeSpanInputField timeSpan:
+					{
+						var candidate = TryGetNumber(value, out var seconds)
+							? OrchestrationInputValue.FromNumber((double)seconds)
+							: OrchestrationInputValue.FromText(Convert.ToString(value.GetRawValue(), CultureInfo.InvariantCulture) ?? String.Empty);
+
+						if (!candidate.TryGetTimeSpan(out var parsed))
+						{
+							return false;
+						}
+
+						converted = OrchestrationInputValue.FromTimeSpan(parsed);
+						return timeSpan.IsValidValue(converted, out _);
+					}
+
+				default:
+					converted = OrchestrationInputValue.FromText(Convert.ToString(value.GetRawValue(), CultureInfo.InvariantCulture) ?? String.Empty);
+					return true;
+			}
 		}
 
 		/// <summary>

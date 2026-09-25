@@ -133,6 +133,7 @@
 		{
 			return executionDetails.ScriptElements.Where(x => x.HasReference).Select(x => (x.Reference, (Guid?)null))
 				.Concat(executionDetails.ScriptParameters.Where(x => x.HasReference).Select(x => (x.Reference, (Guid?)null)))
+				.Concat(executionDetails.DynamicInputs.Where(x => x.HasReference).Select(x => (x.Reference, (Guid?)null)))
 				.Concat(executionDetails.Capabilities.Where(x => x.HasReference).Select(x => (x.Reference, (Guid?)x.Id)))
 				.Concat(executionDetails.Capacities.Where(x => x.HasReference).Select(x => (x.Reference, (Guid?)x.Id)))
 				.Concat(executionDetails.Configurations.Where(x => x.HasReference).Select(x => (x.Reference, (Guid?)x.Id)));

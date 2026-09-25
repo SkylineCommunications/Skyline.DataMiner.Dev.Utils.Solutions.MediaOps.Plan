@@ -6,6 +6,7 @@
 	using Newtonsoft.Json;
 
 	using Skyline.DataMiner.Net.Helper;
+	using Skyline.DataMiner.Solutions.MediaOps.Live.Orchestration.Script.Inputs;
 	using Skyline.DataMiner.Utils.SecureCoding.SecureSerialization.Json.Newtonsoft;
 
 	[JsonObject(MemberSerialization.OptIn)]
@@ -28,6 +29,12 @@
 
 		[JsonProperty("values")]
 		public List<ProfileParameterValue> ProfileParameterValues { get; set; } = new List<ProfileParameterValue>();
+
+		[JsonProperty("inputValues")]
+		public Dictionary<string, OrchestrationInputValue> InputValues { get; set; } = new Dictionary<string, OrchestrationInputValue>();
+
+		[JsonProperty("inputReferences")]
+		public Dictionary<string, DataReferenceStorage> InputReferences { get; set; } = new Dictionary<string, DataReferenceStorage>();
 
 		public static bool TryDeserialize(string json, out ScriptExecutionDetails scriptExecutionDetails)
 		{
@@ -83,6 +90,16 @@
 			}
 
 			if (!DummyReferences.ScrambledEquals(other.DummyReferences))
+			{
+				return false;
+			}
+
+			if (!(InputValues ?? new Dictionary<string, OrchestrationInputValue>()).ScrambledEquals(other.InputValues ?? new Dictionary<string, OrchestrationInputValue>()))
+			{
+				return false;
+			}
+
+			if (!(InputReferences ?? new Dictionary<string, DataReferenceStorage>()).ScrambledEquals(other.InputReferences ?? new Dictionary<string, DataReferenceStorage>()))
 			{
 				return false;
 			}

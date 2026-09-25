@@ -5,6 +5,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using System.Globalization;
 	using System.Linq;
 
+	using Skyline.DataMiner.Solutions.MediaOps.Live.Orchestration.Script.Inputs;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
 	using Skyline.DataMiner.Utils.SecureCoding.SecureSerialization.Json.Newtonsoft;
 
@@ -359,6 +360,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			scriptName = executionDetails.ScriptName;
 			arguments = GetScriptArgumentsFromExecutionDetails(storage, eventSettings.Metadata, owningNodeId);
 			profile = GetScriptProfilesFromExecutionDetails(storage, owningNodeId);
+			AddDynamicInputs(profile, storage, owningNodeId);
 		}
 
 		private IList<Live.OrchestrationScriptArgument> GetScriptArgumentsFromExecutionDetails(Storage.DOM.ScriptExecutionDetails executionDetails, string metadata, string owningNodeId)
@@ -466,6 +468,40 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			return profile;
+		}
+
+		// Dynamic inputs are passed on by field path.
+		private void AddDynamicInputs(Live.OrchestrationProfile profile, Storage.DOM.ScriptExecutionDetails executionDetails, string owningNodeId)
+		{
+			var values = executionDetails.InputValues ?? new Dictionary<string, OrchestrationInputValue>();
+
+			foreach (var inputValue in values.Where(x => x.Value != null))
+			{
+				profile.SetInputValue(inputValue.Key, inputValue.Value);
+			}
+
+			var references = (executionDetails.InputReferences ?? new Dictionary<string, Storage.DOM.DataReferenceStorage>())
+				.Where(x => x.Value != null)
+				.ToList();
+
+			if (references.Count == 0)
+			{
+				return;
+			}
+
+			// The field a referenced value feeds decides how it is converted; a dropdown only holds one of its own options.
+			var inputs = _planApi.LiveApi.Orchestration.Scripts.GetOrchestrationScriptInputInfo(executionDetails.ScriptName, new OrchestrationInputValues(values))?.InputDefinition
+				?? throw new InvalidOperationException($"The inputs of orchestration script '{executionDetails.ScriptName}' could not be evaluated, so its linked inputs cannot be resolved.");
+
+			foreach (var reference in references)
+			{
+				if (inputs.TryGetField(reference.Key, out var field)
+					&& TryResolveReference(reference.Value, owningNodeId, out var resolved)
+					&& ResolvedValueConverter.TryConvert(resolved, field, out var converted))
+				{
+					profile.SetInputValue(reference.Key, converted);
+				}
+			}
 		}
 
 		private IEnumerable<Live.Connection> BuildConnections()
