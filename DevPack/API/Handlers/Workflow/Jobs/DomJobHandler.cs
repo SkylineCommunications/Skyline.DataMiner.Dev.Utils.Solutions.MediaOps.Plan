@@ -223,11 +223,18 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				}
 
 				job.ConfigurationState = calculator.GetJobConfigurationState(job);
-
-				// A node that is still linked to a resource pool has no resource assigned yet, so the job requires a
-				// manual action to select one, just like a job or node that is missing mandatory values.
-				job.ActionRequired = calculator.HasMissingMandatoryValues(job) || job.NodeGraph.Nodes.OfType<IResourcePoolNode>().Any();
+				job.ActionRequired = RequiresAction(calculator, job);
 			}
+		}
+
+		// A node that is still linked to a resource pool has no resource assigned yet and a resource node that is flagged
+		// with an error (a quarantined resource) has to be swapped, so both require a manual action, just like a job or
+		// node that is missing mandatory values.
+		private static bool RequiresAction(ConfigurationStateCalculator calculator, Job job)
+		{
+			return calculator.HasMissingMandatoryValues(job)
+				|| job.NodeGraph.Nodes.OfType<IResourcePoolNode>().Any()
+				|| job.NodeGraph.Nodes.OfType<JobResourceNode>().Any(node => node.HasError);
 		}
 
 		private void CreateOrUpdateLocked(ICollection<Job> apiJobs)
@@ -322,9 +329,26 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return;
 			}
 
+			var jobsWithChangedNodeStates = new List<Job>();
 			foreach (var result in new JobValidator(planApi).Validate(jobs))
 			{
-				result.ClearResolvedErrorsFromUpdate();
+				if (result.ClearResolvedErrorsFromUpdate())
+				{
+					jobsWithChangedNodeStates.Add(result.Job);
+				}
+			}
+
+			if (jobsWithChangedNodeStates.Count == 0)
+			{
+				return;
+			}
+
+			// The error state of the resource nodes is only known after this revalidation, so the action needed flag of
+			// the merged jobs is refreshed here to keep it in sync with the node states that are about to be persisted.
+			var calculator = new ConfigurationStateCalculator(planApi, planApi.LiveApi, jobsWithChangedNodeStates);
+			foreach (var job in jobsWithChangedNodeStates)
+			{
+				job.ActionRequired = RequiresAction(calculator, job);
 			}
 		}
 
