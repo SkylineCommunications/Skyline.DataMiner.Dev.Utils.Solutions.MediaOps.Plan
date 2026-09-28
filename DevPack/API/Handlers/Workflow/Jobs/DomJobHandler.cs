@@ -195,6 +195,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			ApplyNodeTimings(apiJobs.Where(IsValid).ToList());
 
 			ValidateNodeGraph(apiJobs);
+			ValidateNodeResourceRequirements(apiJobs);
 			ValidateNoResourcePoolNodeForLiveJob(apiJobs);
 			ValidateReferences(apiJobs);
 			ValidateDescription(apiJobs);
@@ -3475,6 +3476,23 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			foreach (var job in apiJobs)
 			{
 				PassTraceData(JobNodeGraphValidator.Validate(job.Id, job.NodeGraph, resourcesById, resourcePoolsById));
+			}
+		}
+
+		// Validates that the capability and capacity requirements configured on the resource nodes can be met by the
+		// resource that is assigned to them. Must run after ValidateNodeGraph so the node/resource pairing is already
+		// known to be valid and the resources it read can be reused, and before the orchestration settings are persisted
+		// inside the lock, so a misconfiguration never reaches the storage.
+		private void ValidateNodeResourceRequirements(ICollection<Job> apiJobs)
+		{
+			if (apiJobs == null)
+			{
+				throw new ArgumentNullException(nameof(apiJobs));
+			}
+
+			foreach (var job in apiJobs.Where(IsValid))
+			{
+				PassTraceData(JobNodeResourceRequirementsValidator.Validate(job.Id, job.NodeGraph, resourcesById));
 			}
 		}
 
