@@ -353,16 +353,17 @@
 							continue;
 						}
 
-						if (!traceDataPerItem.TryGetValue(error.SubjectId.Value, out var mediaOpsTraceData))
+						var subjectId = error.SubjectId.GetValueOrDefault();
+						if (!traceDataPerItem.TryGetValue(subjectId, out var mediaOpsTraceData))
 						{
 							mediaOpsTraceData = new MediaOpsTraceData();
-							traceDataPerItem.Add(error.SubjectId.Value, mediaOpsTraceData);
+							traceDataPerItem.Add(subjectId, mediaOpsTraceData);
 
-							unsuccessfulIds.Add(error.SubjectId.Value);
+							unsuccessfulIds.Add(subjectId);
 						}
 
 						mediaOpsTraceData.Add(error.ErrorReason == ResourceManagerErrorData.Reason.ResourceUpdateCausedReservationsToGoToQuarantine
-							? new ResourceUpdateCausedReservationsToGoToQuarantineError(error.SubjectId.Value, error)
+							? new ResourceUpdateCausedReservationsToGoToQuarantineError(subjectId, error)
 							: new MediaOpsErrorData() { ErrorMessage = error.ToString() });
 					}
 				}
