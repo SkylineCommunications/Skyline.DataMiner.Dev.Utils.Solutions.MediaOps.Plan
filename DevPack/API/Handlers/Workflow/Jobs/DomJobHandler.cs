@@ -259,12 +259,19 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			var changeResults = GetJobsWithChanges(toUpdate);
 
+			// A single wrapper per merged instance, shared by the timing re-validation and the error re-validation
+			// below. Wrapping the same DOM instance a second time re-parses all of its sections without yielding an
+			// independent copy, so both steps operate on the same object anyway.
+			var mergedDomJobsById = changeResults
+				.Where(IsValid)
+				.ToDictionary(x => x.Id, x => new DomJob(x.Instance));
+
 			// Re-validate the timing chain on the merged result while holding the lock. The pre-lock validation ran
 			// against this user's own snapshot, but a concurrent user may have changed a different timing field that
 			// only became visible after the merge. This check is baseline-independent: it asserts the absolute
 			// ordering invariants (PreRollStart <= Start <= End <= PostRollEnd) of the merged window and is only run
 			// when this user actually changed a timing field.
-			ValidateMergedTimings(toUpdate, changeResults);
+			ValidateMergedTimings(toUpdate, changeResults, mergedDomJobsById);
 
 			// A reservation only mirrors the job's name, timings, nodes and the capabilities and capacities of the node
 			// configurations; all other fields are metadata that have no impact on the core reservation. Only mark jobs
@@ -296,7 +303,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			// instance that will be persisted, without requiring a second DOM update afterwards.
 			var mergedDomJobs = changeResults
 				.Where(IsValid)
-				.Select(x => new DomJob(x.Instance))
+				.Select(x => mergedDomJobsById[x.Id])
 				.ToList();
 
 			var changedJobs = mergedDomJobs
@@ -308,13 +315,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			// quarantine) is only visible on the reservation once it is synchronized, so validating first would keep
 			// reporting the error that this update just resolved.
 			var failedJobIds = UpdateCoreReservations(toCreateDomInstances
-				.Concat(changedJobs.Select(x => new DomJob(x.GetInstanceWithChanges())))
+				.Concat(changedJobs.Select(x => x.GetInstanceWithChanges()))
 				.ToList());
 
 			ClearResolvedValidationErrors(changedJobs.Where(x => !failedJobIds.Contains(x.Id)).ToList());
 
+			// GetInstanceWithChanges is called again so the errors and the action-needed flag that the re-validation
+			// just updated are applied to the instances that are about to be persisted.
 			var domJobsToPersist = toCreateDomInstances
-				.Concat(changedJobs.Select(x => new DomJob(x.GetInstanceWithChanges())))
+				.Concat(changedJobs.Select(x => x.GetInstanceWithChanges()))
 				.Where(x => !failedJobIds.Contains(x.ID.Id))
 				.ToList();
 
@@ -604,7 +613,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				try
 				{
 					var transitionedInstance = planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.DoStatusTransition(domJob.ID, Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.Transitions.Draft_To_Tentative);
-					var transitionedJob = new Job(planApi, new DomJob(transitionedInstance));
+					var transitionedDomJob = new DomJob(transitionedInstance);
+					var transitionedJob = new Job(planApi, transitionedDomJob);
 					if (transitionedJob.Errors.Any(error => error.Code == TransitionToTentativeJobValidationError.ErrorCode))
 					{
 						transitionedJob.RemoveError(TransitionToTentativeJobValidationError.ErrorCode);
@@ -614,10 +624,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 							throw new InvalidOperationException($"Failed to clear error {TransitionToTentativeJobValidationError.ErrorCode} after transitioning job {domJob.ID.Id} to Tentative.");
 						}
 
-						transitionedInstance = clearResult.SuccessfulItems.Single();
+						// The saved instance replaces the transitioned one, so it is the only case that needs a new wrapper.
+						transitionedDomJob = new DomJob(clearResult.SuccessfulItems.Single());
 					}
 
-					ReportSuccess(new DomJob(transitionedInstance));
+					ReportSuccess(transitionedDomJob);
 				}
 				catch (Exception ex)
 				{
@@ -1452,7 +1463,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				var updatedInstances = GetJobsWithChanges(changedJobs)
 					.Where(IsValid)
-					.Select(x => new DomJob(x.Instance).ToInstance())
+					.Select(x => x.Instance)
 					.ToList();
 
 				if (updatedInstances.Count == 0)
@@ -1773,7 +1784,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				}
 			}
 
-			ReportSuccess(instancesToDelete.Where(x => domResult.SuccessfulIds.Contains(x.ID)).Select(x => new DomJob(x)).ToArray());
+			ReportSuccess(domJobsById.Values.Where(x => domResult.SuccessfulIds.Contains(x.ID)).ToArray());
 
 			// Remove the orchestration job configuration and events from MediaOps Live for the deleted jobs.
 			SyncLiveOrchestrationForDelete(jobsToDelete);
@@ -3410,7 +3421,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 		}
 
-		private void ValidateMergedTimings(ICollection<Job> toUpdate, ICollection<DomChangeResults> changeResults)
+		private void ValidateMergedTimings(ICollection<Job> toUpdate, ICollection<DomChangeResults> changeResults, IReadOnlyDictionary<Guid, DomJob> mergedDomJobsById)
 		{
 			if (toUpdate == null)
 			{
@@ -3422,6 +3433,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				throw new ArgumentNullException(nameof(changeResults));
 			}
 
+			if (mergedDomJobsById == null)
+			{
+				throw new ArgumentNullException(nameof(mergedDomJobsById));
+			}
+
 			if (changeResults.Count == 0)
 			{
 				return;
@@ -3431,7 +3447,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			foreach (var changeResult in changeResults.Where(IsValid))
 			{
-				if (!jobsById.TryGetValue(changeResult.Id, out var job))
+				if (!jobsById.TryGetValue(changeResult.Id, out var job)
+					|| !mergedDomJobsById.TryGetValue(changeResult.Id, out var mergedDomJob))
 				{
 					continue;
 				}
@@ -3445,7 +3462,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					continue;
 				}
 
-				var mergedWindow = JobTimingWindow.FromInstance(new DomJob(changeResult.Instance));
+				var mergedWindow = JobTimingWindow.FromInstance(mergedDomJob);
 
 				var errors = JobNodeTimingResolver.ValidateTimingChainOrdering(job.Id, mergedWindow);
 				foreach (var error in errors)
