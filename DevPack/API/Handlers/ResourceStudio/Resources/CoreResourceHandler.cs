@@ -1208,19 +1208,13 @@
 				: new Dictionary<Guid, DomJob>();
 
 			var impactedJobs = new List<ImpactedJobInfo>();
-			var emittedIds = new HashSet<Guid>();
 			foreach (var reservation in impactedReservations)
 			{
 				var jobId = GetJobId(reservation);
-				var uniqueId = jobId != Guid.Empty ? jobId : reservation.ID;
-				if (!emittedIds.Add(uniqueId))
-				{
-					continue;
-				}
-
 				jobsById.TryGetValue(jobId, out var job);
 				impactedJobs.Add(new ImpactedJobInfo(
-					uniqueId,
+					reservation.ID,
+					jobId,
 					job != null ? job.JobInfo.JobName : null,
 					job != null ? job.JobInfo.JobID : null,
 					reservation.Start,
@@ -1247,7 +1241,7 @@
 			var displayName = !String.IsNullOrWhiteSpace(impactedJob.Name) ? impactedJob.Name : impactedJob.FallbackName;
 			if (String.IsNullOrWhiteSpace(displayName))
 			{
-				displayName = $"Job ID {impactedJob.Id}";
+				displayName = impactedJob.JobId != Guid.Empty ? $"Job ID {impactedJob.JobId}" : $"Reservation {impactedJob.ReservationId}";
 			}
 
 			var details = new List<string>();
@@ -1255,9 +1249,9 @@
 			{
 				details.Add(impactedJob.Key);
 			}
-			else if (impactedJob.Id != Guid.Empty)
+			else if (impactedJob.JobId != Guid.Empty)
 			{
-				details.Add($"Job ID {impactedJob.Id}");
+				details.Add($"Job ID {impactedJob.JobId}");
 			}
 
 			if (impactedJob.Start != default && impactedJob.End != default)
@@ -1270,9 +1264,10 @@
 
 		private sealed class ImpactedJobInfo
 		{
-			public ImpactedJobInfo(Guid id, string name, string key, DateTime start, DateTime end, string fallbackName)
+			public ImpactedJobInfo(Guid reservationId, Guid jobId, string name, string key, DateTime start, DateTime end, string fallbackName)
 			{
-				Id = id;
+				ReservationId = reservationId;
+				JobId = jobId;
 				Name = name;
 				Key = key;
 				Start = start;
@@ -1280,7 +1275,9 @@
 				FallbackName = fallbackName;
 			}
 
-			public Guid Id { get; }
+			public Guid ReservationId { get; }
+
+			public Guid JobId { get; }
 
 			public string Name { get; }
 
