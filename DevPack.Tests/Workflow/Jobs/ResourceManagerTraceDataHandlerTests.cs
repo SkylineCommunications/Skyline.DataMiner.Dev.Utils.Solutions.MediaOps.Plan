@@ -243,6 +243,93 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			Assert.AreEqual(capabilityId, capabilityError.CapabilityId, "Expected the capability profile id to be reported.");
 		}
 
+		/// <summary>
+		/// The core software does not always report the matching reason for the requirement that could not be met, so the
+		/// reported requirement determines which error is surfaced.
+		/// </summary>
+		[TestMethod]
+		public void Translate_CapabilityReportedWithCapacityReason_EmitsInvalidCapability()
+		{
+			var (api, resource) = CreateContextWithResource();
+			var reservationId = Guid.NewGuid();
+			var capabilityId = Guid.NewGuid();
+
+			var error = new ResourceManagerErrorData(
+				ResourceManagerErrorData.Reason.ResourceCapacityInvalid,
+				reservationId,
+				resource.CoreResourceId,
+				new ResourceCapabilityUsage { CapabilityProfileID = capabilityId },
+				"Capability not available.");
+
+			var handler = new ResourceManagerTraceDataHandler((MediaOpsPlanApi)api);
+
+			var result = handler.Translate(new[] { error });
+
+			Assert.IsTrue(result.ContainsKey(reservationId), "Expected the translated errors to be keyed by the reservation id.");
+			var errorData = result[reservationId].ErrorData.ToList();
+			Assert.IsFalse(
+				errorData.OfType<JobResourceInvalidCapacityError>().Any(),
+				"Expected no capacity error for an error that only reports a capability.");
+			var capabilityError = errorData.OfType<JobResourceInvalidCapabilityError>().Single();
+			Assert.AreEqual(resource.Id, capabilityError.ResourceId, "Expected the DOM resource id to be reported.");
+			Assert.AreEqual(capabilityId, capabilityError.CapabilityId, "Expected the capability profile id to be reported.");
+		}
+
+		[TestMethod]
+		public void Translate_InvalidCapacityAndCapability_EmitsBothErrors()
+		{
+			var (api, resource) = CreateContextWithResource();
+			var reservationId = Guid.NewGuid();
+			var capacityId = Guid.NewGuid();
+			var capabilityId = Guid.NewGuid();
+
+			var error = new ResourceManagerErrorData(
+				ResourceManagerErrorData.Reason.ResourceCapacityInvalid,
+				reservationId,
+				resource.CoreResourceId,
+				new MultiResourceCapacityUsage { CapacityProfileID = capacityId })
+			{
+				ResourceCapabilityUsage = new ResourceCapabilityUsage { CapabilityProfileID = capabilityId },
+			};
+
+			var handler = new ResourceManagerTraceDataHandler((MediaOpsPlanApi)api);
+
+			var result = handler.Translate(new[] { error });
+
+			Assert.IsTrue(result.ContainsKey(reservationId), "Expected the translated errors to be keyed by the reservation id.");
+			var errorData = result[reservationId].ErrorData.ToList();
+			Assert.AreEqual(
+				capacityId,
+				errorData.OfType<JobResourceInvalidCapacityError>().Single().CapacityId,
+				"Expected the invalid capacity to be reported.");
+			Assert.AreEqual(
+				capabilityId,
+				errorData.OfType<JobResourceInvalidCapabilityError>().Single().CapabilityId,
+				"Expected the invalid capability to be reported alongside the invalid capacity.");
+		}
+
+		[TestMethod]
+		public void Translate_RequirementErrorWithoutCapacityOrCapability_EmitsResourceError()
+		{
+			var (api, resource) = CreateContextWithResource();
+			var reservationId = Guid.NewGuid();
+
+			var error = new ResourceManagerErrorData(
+				ResourceManagerErrorData.Reason.ResourceCapacityInvalid,
+				reservationId,
+				resource.CoreResourceId,
+				default(MultiResourceCapacityUsage)!);
+
+			var handler = new ResourceManagerTraceDataHandler((MediaOpsPlanApi)api);
+
+			var result = handler.Translate(new[] { error });
+
+			Assert.IsTrue(result.ContainsKey(reservationId), "Expected the translated errors to be keyed by the reservation id.");
+			var resourceError = result[reservationId].ErrorData.OfType<JobResourceError>().Single();
+			Assert.AreEqual(typeof(JobResourceError), resourceError.GetType(), "Expected a plain resource error when the requirement is unknown.");
+			Assert.AreEqual(resource.Id, resourceError.ResourceId, "Expected the DOM resource id to be reported.");
+		}
+
 		[TestMethod]
 		public void Translate_UncategorizedError_FallsBackToRawMessage()
 		{
