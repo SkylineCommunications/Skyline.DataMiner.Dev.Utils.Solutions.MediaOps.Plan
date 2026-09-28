@@ -361,7 +361,9 @@
 							unsuccessfulIds.Add(error.SubjectId.Value);
 						}
 
-						mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = error.ToString() });
+						mediaOpsTraceData.Add(error.ErrorReason == ResourceManagerErrorData.Reason.ResourceUpdateCausedReservationsToGoToQuarantine
+							? new ResourceUpdateCausedReservationsToGoToQuarantineError(error.SubjectId.Value, error)
+							: new MediaOpsErrorData() { ErrorMessage = error.ToString() });
 					}
 				}
 			});
