@@ -80,11 +80,7 @@
 				.GetResources(coreResourceIds, id => Skyline.DataMiner.Net.Messages.ResourceExposers.ID.Equal(id))
 				.ToDictionary(resource => resource.ID);
 
-			var reservationIdsByJob = jobs.ToDictionary(job => job, GetReservationIds);
-			var reservationIds = reservationIdsByJob.Values.SelectMany(ids => ids).Distinct().ToList();
-			var reservations = planApi.CoreHelpers.ResourceManagerHelper
-				.GetReservationInstances(reservationIds, id => ReservationInstanceExposers.ID.Equal(id))
-				.ToDictionary(reservation => reservation.ID);
+			var reservationsByJob = GetReservationsByJob(jobs);
 
 			var liveIsInstalled = liveApi.IsInstalled();
 			var virtualSignalGroupIds = resources.Values
@@ -96,7 +92,43 @@
 				? new HashSet<Guid>(liveApi.VirtualSignalGroups.Read(virtualSignalGroupIds).Keys)
 				: new HashSet<Guid>();
 
-			return new ValidationContext(resources, coreResources, reservations, reservationIdsByJob, virtualSignalGroupIdsFound, liveIsInstalled, new ReferenceDefinitionCache(planApi));
+			return new ValidationContext(resources, coreResources, reservationsByJob, virtualSignalGroupIdsFound, liveIsInstalled, new ReferenceDefinitionCache(planApi));
+		}
+
+		/// <summary>Retrieves the reservation of each job. A job is linked to at most one reservation, which holds the job ID in the 'Job ID' property.</summary>
+		private IReadOnlyDictionary<Job, ReservationInstance> GetReservationsByJob(IReadOnlyCollection<Job> jobs)
+		{
+			var jobIds = jobs.Select(job => job.Id).Distinct().ToList();
+
+			FilterElement<ReservationInstance> Filter(Guid id) => ReservationInstanceExposers.Properties.StringField(CoreJobHandler.JobIdPropertyName).Equal(Convert.ToString(id));
+
+			var reservationsByJobId = planApi.CoreHelpers.ResourceManagerHelper
+				.GetReservationInstances(jobIds, Filter)
+				.Select(reservation => (Reservation: reservation, JobId: GetJobId(reservation)))
+				.Where(item => item.JobId != Guid.Empty)
+				.GroupBy(item => item.JobId)
+				.ToDictionary(group => group.Key, group => group.First().Reservation);
+
+			var result = new Dictionary<Job, ReservationInstance>();
+			foreach (var job in jobs)
+			{
+				if (reservationsByJobId.TryGetValue(job.Id, out var reservation))
+				{
+					result[job] = reservation;
+				}
+			}
+
+			return result;
+		}
+
+		private static Guid GetJobId(ReservationInstance reservation)
+		{
+			if (reservation.Properties?.Dictionary == null || !reservation.Properties.Dictionary.TryGetValue(CoreJobHandler.JobIdPropertyName, out var value))
+			{
+				return Guid.Empty;
+			}
+
+			return Guid.TryParse(Convert.ToString(value), out var jobId) ? jobId : Guid.Empty;
 		}
 
 		private void Validate(Job job, JobValidationResult result, ValidationContext context)
@@ -104,14 +136,11 @@
 			try
 			{
 				var resources = ValidateResources(job, result, context);
-				var reservations = context.ReservationIdsByJob[job]
-					.Where(context.Reservations.ContainsKey)
-					.Select(id => context.Reservations[id])
-					.ToList();
+				context.ReservationsByJob.TryGetValue(job, out var reservation);
 
-				ValidateReservations(reservations, result);
+				ValidateReservation(reservation, result);
 				ValidateVirtualSignalGroups(resources, result, context);
-				ValidateReferences(job, reservations, result, context);
+				ValidateReferences(job, reservation, result, context);
 			}
 			catch (Exception exception)
 			{
@@ -159,12 +188,14 @@
 			return resources.Values.ToList().AsReadOnly();
 		}
 
-		private static void ValidateReservations(IEnumerable<ReservationInstance> reservations, JobValidationResult result)
+		private static void ValidateReservation(ReservationInstance reservation, JobValidationResult result)
 		{
-			foreach (var reservation in reservations.Where(reservation => reservation.IsQuarantined))
+			if (reservation == null || !reservation.IsQuarantined)
 			{
-				result.SetError(new QuarantinedReservationJobValidationError(ComposeQuarantineMessage(reservation, result)));
+				return;
 			}
+
+			result.SetError(new QuarantinedReservationJobValidationError(ComposeQuarantineMessage(reservation, result)));
 		}
 
 		private static void ValidateVirtualSignalGroups(IEnumerable<Resource> resources, JobValidationResult result, ValidationContext context)
@@ -188,7 +219,7 @@
 			}
 		}
 
-		private void ValidateReferences(Job job, IReadOnlyCollection<ReservationInstance> reservations, JobValidationResult result, ValidationContext context)
+		private void ValidateReferences(Job job, ReservationInstance reservation, JobValidationResult result, ValidationContext context)
 		{
 			if (job.State == JobState.Draft || job.State == JobState.Tentative)
 			{
@@ -202,14 +233,18 @@
 				result.SetError(new UnresolvedReferencesJobValidationError(ComposeUnresolvedReferencesMessage(resolution.UnresolvedReferences)));
 			}
 
-			ValidateReservationRequirementsStillMatch(job, reservations, resolution, result);
+			ValidateReservationRequirementsStillMatch(job, reservation, resolution, result);
 			ValidateLiveEventsStillMatch(job, resolver, context.ReferenceDefinitions, result, context.LiveIsInstalled);
 		}
 
-		private static void ValidateReservationRequirementsStillMatch(Job job, IEnumerable<ReservationInstance> reservations, JobReferenceResolution resolution, JobValidationResult result)
+		private static void ValidateReservationRequirementsStillMatch(Job job, ReservationInstance reservation, JobReferenceResolution resolution, JobValidationResult result)
 		{
-			var usagesByNodeId = reservations
-				.SelectMany(reservation => reservation.ResourcesInReservationInstance ?? new List<ResourceUsageDefinition>())
+			if (reservation == null)
+			{
+				return;
+			}
+
+			var usagesByNodeId = (reservation.ResourcesInReservationInstance ?? new List<ResourceUsageDefinition>())
 				.OfType<ServiceResourceUsageDefinition>()
 				.GroupBy(usage => usage.ServiceDefinitionNodeID)
 				.ToDictionary(group => group.Key, group => group.Last());
@@ -379,21 +414,6 @@
 			return job.NodeGraph.Nodes.OfType<JobResourceNode>().ToList().AsReadOnly();
 		}
 
-		private static IReadOnlyCollection<Guid> GetReservationIds(Job job)
-		{
-			if (job.OriginalInstance?.Nodes == null)
-			{
-				return Array.Empty<Guid>();
-			}
-
-			return job.OriginalInstance.Nodes
-				.Select(node => Guid.TryParse(node.LinkedBookingIds, out var id) ? id : Guid.Empty)
-				.Where(id => id != Guid.Empty)
-				.Distinct()
-				.ToList()
-				.AsReadOnly();
-		}
-
 		private static string ComposeQuarantineMessage(ReservationInstance reservation, JobValidationResult result)
 		{
 			var resourceNames = new List<string>();
@@ -401,9 +421,9 @@
 			foreach (var quarantined in reservation.QuarantinedResources)
 			{
 				var resourceName = String.Empty;
-				foreach (var trigger in quarantined.QuarantineTriggers)
+				foreach (var trigger in quarantined.QuarantineTriggers ?? [])
 				{
-					resourceName = trigger.UpdateTrigger.NewResource?.Name ?? trigger.UpdateTrigger.OldResource?.Name ?? resourceName;
+					resourceName = trigger.UpdateTrigger?.NewResource?.Name ?? trigger.UpdateTrigger?.OldResource?.Name ?? resourceName;
 				}
 
 				var nodeId = quarantined.QuarantinedResourceUsage is ServiceResourceUsageDefinition usage
@@ -482,16 +502,14 @@
 			public ValidationContext(
 				IReadOnlyDictionary<Guid, Resource> resources,
 				IReadOnlyDictionary<Guid, CoreResource> coreResources,
-				IReadOnlyDictionary<Guid, ReservationInstance> reservations,
-				IReadOnlyDictionary<Job, IReadOnlyCollection<Guid>> reservationIdsByJob,
+				IReadOnlyDictionary<Job, ReservationInstance> reservationsByJob,
 				ISet<Guid> virtualSignalGroupIds,
 				bool liveIsInstalled,
 				ReferenceDefinitionCache referenceDefinitions)
 			{
 				Resources = resources;
 				CoreResources = coreResources;
-				Reservations = reservations;
-				ReservationIdsByJob = reservationIdsByJob;
+				ReservationsByJob = reservationsByJob;
 				VirtualSignalGroupIds = virtualSignalGroupIds;
 				LiveIsInstalled = liveIsInstalled;
 				ReferenceDefinitions = referenceDefinitions;
@@ -499,8 +517,7 @@
 
 			public IReadOnlyDictionary<Guid, Resource> Resources { get; }
 			public IReadOnlyDictionary<Guid, CoreResource> CoreResources { get; }
-			public IReadOnlyDictionary<Guid, ReservationInstance> Reservations { get; }
-			public IReadOnlyDictionary<Job, IReadOnlyCollection<Guid>> ReservationIdsByJob { get; }
+			public IReadOnlyDictionary<Job, ReservationInstance> ReservationsByJob { get; }
 			public ISet<Guid> VirtualSignalGroupIds { get; }
 			public bool LiveIsInstalled { get; }
 			public ReferenceDefinitionCache ReferenceDefinitions { get; }

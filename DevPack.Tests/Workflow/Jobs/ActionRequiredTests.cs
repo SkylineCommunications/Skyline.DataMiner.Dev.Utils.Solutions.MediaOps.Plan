@@ -61,6 +61,20 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void JobWithResourceNodeInError_RequiresAnAction()
+		{
+			var prefix = Guid.NewGuid();
+
+			var resourcePool = CreateResourcePool(prefix);
+			var resource = CreateResource(prefix, resourcePool);
+
+			var job = NewValidJob($"{prefix}_Job");
+			job.NodeGraph.Add(new JobResourceNode(resourcePool, resource) { HasError = true });
+
+			AssertActionRequired(objectCreator.CreateJob(job), true);
+		}
+
+		[TestMethod]
 		public void JobWithResourcePoolNodeSwappedForResourceNode_NoLongerRequiresAnAction()
 		{
 			var prefix = Guid.NewGuid();
