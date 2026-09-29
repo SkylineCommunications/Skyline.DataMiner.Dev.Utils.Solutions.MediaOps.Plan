@@ -1,4 +1,4 @@
-namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
 	using System.Collections.Generic;
@@ -12,6 +12,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
 	using Skyline.DataMiner.Utils.DOM.Extensions;
 
+	using DomConfiguration = Storage.DOM.SlcWorkflow.ConfigurationInstance;
 	using DomJob = Storage.DOM.SlcWorkflow.JobsInstance;
 	using DomResource = Storage.DOM.SlcResource_Studio.ResourceInstance;
 
@@ -284,7 +285,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				.Where(x => IsValid(x) && HasOnlyLinkChanges(x, changeResults))
 				.Select(x => x.Id));
 
-			CreateOrUpdateOrchestrationSettings(apiJobs.Where(IsValid).ToList());
+			// Validated but not yet written: the settings are persisted only after the core reservation accepted the
+			// change, so a refused reservation leaves no changed settings behind on the nodes.
+			var orchestrationSettingsByJob = ValidateOrchestrationSettings(apiJobs.Where(IsValid).ToList());
+
 			CreateOrUpdatePropertySettingCollections(apiJobs.Where(IsValid).ToList());
 			CreateOrUpdateJobRelationships(apiJobs.Where(IsValid).ToList());
 
@@ -300,9 +304,18 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				.Select(x => new DomJob(x.Instance))
 				.ToList();
 
-			var changedJobs = mergedDomJobs
-				.Select(x => new Job(planApi, x))
-				.ToList();
+			// The orchestration settings are not in storage yet, so they are seeded into the parse path. Without this
+			// the rehydrated jobs would fall back to the stored (or, for a node that was just added, a missing)
+			// configuration and would be persisted pointing at settings that do not match what is being saved. The
+			// scope is closed again before anything is written, so the settings handler still compares against storage.
+			List<Job> changedJobs;
+			using (planApi.DomHelpers.SlcWorkflowHelper.BeginConfigurationScope(
+				configurationsToSeed: CollectConfigurationInstances(orchestrationSettingsByJob)))
+			{
+				changedJobs = mergedDomJobs
+					.Select(x => new Job(planApi, x))
+					.ToList();
+			}
 
 			// The core reservations are updated before the re-validation, because that validation reads the reservation
 			// of every job. A change that resolves a reservation error (for example a swapped resource that lifts a
@@ -311,6 +324,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			var failedJobIds = UpdateCoreReservations(toCreateDomInstances
 				.Concat(changedJobs.Select(x => new DomJob(x.GetInstanceWithChanges())))
 				.ToList());
+
+			// A job whose settings could not be written must not have its instance persisted either, otherwise it would
+			// point at settings that do not exist or that still hold the previous configuration.
+			failedJobIds.UnionWith(PersistOrchestrationSettings(orchestrationSettingsByJob, failedJobIds));
 
 			ClearResolvedValidationErrors(changedJobs.Where(x => !failedJobIds.Contains(x.Id)).ToList());
 
@@ -426,16 +443,20 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			ReportSuccess(domResult.SuccessfulItems.Select(x => new DomJob(x)));
 		}
 
-		private void CreateOrUpdateOrchestrationSettings(ICollection<Job> apiJobs)
+		// Collects the orchestration settings of the supplied jobs and validates them, without writing anything. The
+		// collected settings are returned so the caller can persist them once it knows which jobs survive the rest of
+		// the save.
+		private Dictionary<Guid, List<OrchestrationSettings>> ValidateOrchestrationSettings(ICollection<Job> apiJobs)
 		{
 			if (apiJobs == null)
 			{
 				throw new ArgumentNullException(nameof(apiJobs));
 			}
 
+			var settingsByJobId = new Dictionary<Guid, List<OrchestrationSettings>>();
 			if (apiJobs.Count == 0)
 			{
-				return;
+				return settingsByJobId;
 			}
 
 			if (apiJobs.Any(x => !IsValid(x)))
@@ -449,14 +470,51 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			foreach (var job in apiJobs)
 			{
-				CollectOrchestrationSettingsForJob(job, jobIdByOrchestrationSettingsId, orchestrationSettings, referenceTargets);
+				settingsByJobId[job.Id] = CollectOrchestrationSettingsForJob(job, jobIdByOrchestrationSettingsId, orchestrationSettings, referenceTargets);
 			}
 
 			var referenceValidationContext = referenceTargets.Count > 0
 				? new OrchestrationReferenceValidationContext(referenceTargets, referenceDefinitions)
 				: null;
 
-			DomWorkflowOrchestrationSettingsHandler.TryCreateOrUpdate(planApi, orchestrationSettings, referenceValidationContext, out var domResult);
+			DomWorkflowOrchestrationSettingsHandler.TryValidate(planApi, orchestrationSettings, referenceValidationContext, out var domResult);
+
+			ReportOrchestrationSettingsErrors(domResult, jobIdByOrchestrationSettingsId);
+
+			return settingsByJobId;
+		}
+
+		// Persists the orchestration settings of the jobs that are still valid. Runs after the core reservations are
+		// updated so a job whose reservation was refused does not leave changed settings behind: the settings, the
+		// reservation and the job instance are all written or all skipped.
+		private ISet<Guid> PersistOrchestrationSettings(IReadOnlyDictionary<Guid, List<OrchestrationSettings>> settingsByJobId, ICollection<Guid> jobIdsToSkip)
+		{
+			var jobIdByOrchestrationSettingsId = new Dictionary<Guid, Guid>();
+			var orchestrationSettings = new List<OrchestrationSettings>();
+
+			foreach (var entry in settingsByJobId.Where(x => !jobIdsToSkip.Contains(x.Key)))
+			{
+				foreach (var settings in entry.Value)
+				{
+					jobIdByOrchestrationSettingsId[settings.Id] = entry.Key;
+					orchestrationSettings.Add(settings);
+				}
+			}
+
+			if (orchestrationSettings.Count == 0)
+			{
+				return new HashSet<Guid>();
+			}
+
+			DomWorkflowOrchestrationSettingsHandler.TryPersist(planApi, orchestrationSettings, out var domResult);
+
+			return ReportOrchestrationSettingsErrors(domResult, jobIdByOrchestrationSettingsId);
+		}
+
+		private ISet<Guid> ReportOrchestrationSettingsErrors<T>(DomInstanceBulkOperationResult<T> domResult, IReadOnlyDictionary<Guid, Guid> jobIdByOrchestrationSettingsId)
+			where T : Storage.DOM.DomInstanceBase
+		{
+			var failedJobIds = new HashSet<Guid>();
 
 			foreach (var id in domResult.UnsuccessfulIds)
 			{
@@ -472,10 +530,25 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				{
 					PassTraceData(jobId, traceData);
 				}
+
+				failedJobIds.Add(jobId);
 			}
+
+			return failedJobIds;
 		}
 
-		private void CollectOrchestrationSettingsForJob(
+		// Collects the not-yet-persisted configuration instances of the supplied settings so they can be seeded into the
+		// parse path while the job instances are rehydrated.
+		private static List<DomConfiguration> CollectConfigurationInstances(IReadOnlyDictionary<Guid, List<OrchestrationSettings>> settingsByJobId)
+		{
+			return settingsByJobId.Values
+				.SelectMany(x => x)
+				.OfType<WorkflowOrchestrationSettings>()
+				.Select(x => x.GetInstanceWithChanges())
+				.ToList();
+		}
+
+		private List<OrchestrationSettings> CollectOrchestrationSettingsForJob(
 			Job job,
 			Dictionary<Guid, Guid> jobIdByOrchestrationSettingsId,
 			List<OrchestrationSettings> orchestrationSettings,
@@ -499,7 +572,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			// per job and share it across the job's own and its nodes' orchestration settings.
 			if (job.State != JobState.Confirmed && job.State != JobState.Running)
 			{
-				return;
+				return jobOrchestrationSettings;
 			}
 
 			var resolver = new JobReferenceResolver(planApi, job, referenceDefinitions);
@@ -509,6 +582,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				referenceTargets[node.OrchestrationSettings.Id] = (resolver, node.Id, true);
 			}
+
+			return jobOrchestrationSettings;
 		}
 
 		private void SaveAsTentative(ICollection<Job> apiJobs)

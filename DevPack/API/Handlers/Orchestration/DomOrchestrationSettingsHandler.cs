@@ -33,10 +33,41 @@
 				return;
 			}
 
+			Validate(apiOrchestrationSettings);
+			Persist(apiOrchestrationSettings);
+		}
+
+		// Split from the persistence so a caller that has to decide on the settings before writing them (for example to
+		// keep the write atomic with another operation) can validate first and persist later.
+		protected void Validate(ICollection<TApiSettings> apiOrchestrationSettings)
+		{
+			if (apiOrchestrationSettings == null)
+			{
+				throw new ArgumentNullException(nameof(apiOrchestrationSettings));
+			}
+
+			if (apiOrchestrationSettings.Count == 0)
+			{
+				return;
+			}
+
 			ValidateCapacities(apiOrchestrationSettings);
 			ValidateCapabilities(apiOrchestrationSettings);
 			ValidateConfigurations(apiOrchestrationSettings);
 			ValidateOrchestrationEventReferences(apiOrchestrationSettings);
+		}
+
+		protected void Persist(ICollection<TApiSettings> apiOrchestrationSettings)
+		{
+			if (apiOrchestrationSettings == null)
+			{
+				throw new ArgumentNullException(nameof(apiOrchestrationSettings));
+			}
+
+			if (apiOrchestrationSettings.Count == 0)
+			{
+				return;
+			}
 
 			var lockResult = planApi.LockManager.LockAndExecute(apiOrchestrationSettings.Where(IsValid).ToList(), CreateOrUpdateDomInstances);
 			ReportError(lockResult);

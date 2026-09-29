@@ -32,6 +32,41 @@
 			return !result.HasFailures;
 		}
 
+		/// <summary>
+		/// Validates the orchestration settings without persisting them.
+		/// </summary>
+		/// <param name="planApi">The API used to read the referenced data.</param>
+		/// <param name="apiOrchestrationSettings">The orchestration settings to validate.</param>
+		/// <param name="referenceValidationContext">The context describing how the orchestration event references are resolved and reported.</param>
+		/// <param name="result">The validation result.</param>
+		/// <returns><see langword="true"/> when every settings instance is valid; otherwise, <see langword="false"/>.</returns>
+		internal static bool TryValidate(MediaOpsPlanApi planApi, ICollection<OrchestrationSettings> apiOrchestrationSettings, OrchestrationReferenceValidationContext referenceValidationContext, out DomInstanceBulkOperationResult<DomWorkflowOrchestrationSetting> result)
+		{
+			var handler = new DomWorkflowOrchestrationSettingsHandler(planApi, referenceValidationContext);
+			handler.Validate(apiOrchestrationSettings.OfType<WorkflowOrchestrationSettings>().ToList());
+
+			result = new DomInstanceBulkOperationResult<DomWorkflowOrchestrationSetting>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+
+			return !result.HasFailures;
+		}
+
+		/// <summary>
+		/// Persists orchestration settings that were already validated by <see cref="TryValidate"/>.
+		/// </summary>
+		/// <param name="planApi">The API used to persist the settings.</param>
+		/// <param name="apiOrchestrationSettings">The orchestration settings to persist.</param>
+		/// <param name="result">The result of the persistence.</param>
+		/// <returns><see langword="true"/> when every settings instance was persisted; otherwise, <see langword="false"/>.</returns>
+		internal static bool TryPersist(MediaOpsPlanApi planApi, ICollection<OrchestrationSettings> apiOrchestrationSettings, out DomInstanceBulkOperationResult<DomWorkflowOrchestrationSetting> result)
+		{
+			var handler = new DomWorkflowOrchestrationSettingsHandler(planApi);
+			handler.Persist(apiOrchestrationSettings.OfType<WorkflowOrchestrationSettings>().ToList());
+
+			result = new DomInstanceBulkOperationResult<DomWorkflowOrchestrationSetting>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+
+			return !result.HasFailures;
+		}
+
 		internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<OrchestrationSettings> apiOrchestrationSettings, out DomInstanceBulkOperationResult<DomWorkflowOrchestrationSetting> result)
 		{
 			var handler = new DomWorkflowOrchestrationSettingsHandler(planApi);
