@@ -222,5 +222,85 @@
 				quarantinedReservations.Any(x => x.QuarantinedResources.Any(y => y.QuarantinedResourceUsage.GUID == resource.CoreResourceId)),
 				"Expected the lowered resource to be present in the quarantined resources.");
 		}
+
+		[TestMethod]
+		public void SwapQuarantinedResource_ClearsTheQuarantineErrorFromTheJob()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			Resource CreateResource(string name, int concurrency)
+			{
+				var resource = new UnmanagedResource
+				{
+					Name = $"{prefix}_{name}",
+					Concurrency = concurrency,
+				}.AssignToPool(pool);
+
+				return TestContext.Api.Resources.Complete(objectCreator.CreateResource(resource));
+			}
+
+			var sharedResource = CreateResource("SharedResource", 2);
+			var freeResource = CreateResource("FreeResource", 1);
+
+			Job CreateJob(string name)
+			{
+				var job = new Job
+				{
+					Name = $"{prefix}_{name}",
+					Start = currentTime.AddHours(1),
+					End = currentTime.AddHours(2),
+					PreRollStart = currentTime.AddHours(1),
+					PostRollEnd = currentTime.AddHours(2),
+				};
+				job.NodeGraph.Add(new JobResourceNode(pool, sharedResource));
+
+				return TestContext.Api.Jobs.SaveAsTentative(objectCreator.CreateJob(job));
+			}
+
+			var jobA = CreateJob("Job_1");
+			var jobB = CreateJob("Job_2");
+
+			// Lowering the concurrency of the shared resource pushes the resource usage of one of the overlapping
+			// reservations into quarantine.
+			var coreResource = TestContext.ResourceManagerHelper.GetResource(sharedResource.CoreResourceId);
+			coreResource.MaxConcurrency = 1;
+			TestContext.ResourceManagerHelper.AddOrUpdateResources(true, [coreResource]);
+
+			var reservations = new[] { jobA, jobB }
+				.SelectMany(x => TestContext.ResourceManagerHelper.GetReservationInstances(
+					ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(x.Id))))
+				.ToList();
+			Assert.AreEqual(1, reservations.Count(x => x.IsQuarantined), "Expected exactly one reservation to be quarantined.");
+
+			// The quarantine handling reports the error on the impacted job, just like the SRM quarantine script does.
+			var quarantinedJob = new[] { jobA, jobB }
+				.Select(x => TestContext.Api.Jobs.Read(x.Id))
+				.Single(x => TestContext.Api.Jobs.Validate([x]).Single().HasError(QuarantinedReservationJobValidationError.ErrorCode));
+
+			TestContext.Api.Jobs.Validate([quarantinedJob]).Single().SyncToJob();
+			quarantinedJob = TestContext.Api.Jobs.Update(quarantinedJob);
+
+			Assert.IsTrue(
+				quarantinedJob.Errors.Any(x => x.Code == QuarantinedReservationJobValidationError.ErrorCode),
+				"Expected the quarantine error to be reported on the job while its resource is quarantined.");
+
+			// Swapping the quarantined resource for an available one resolves the quarantine on the reservation, so the
+			// error must no longer be reported on the job.
+			var quarantinedNode = quarantinedJob.NodeGraph.Nodes.OfType<JobResourceNode>().Single();
+			quarantinedJob.NodeGraph.Swap(quarantinedNode, new JobResourceNode(pool, freeResource));
+
+			var updatedJob = TestContext.Api.Jobs.Update(quarantinedJob);
+
+			Assert.IsFalse(
+				updatedJob.Errors.Any(x => x.Code == QuarantinedReservationJobValidationError.ErrorCode),
+				"Expected the quarantine error to be cleared after swapping the quarantined resource.");
+			Assert.IsFalse(
+				TestContext.Api.Jobs.Read(updatedJob.Id).Errors.Any(x => x.Code == QuarantinedReservationJobValidationError.ErrorCode),
+				"Expected the quarantine error to be cleared on the stored job after swapping the quarantined resource.");
+		}
 	}
 }

@@ -221,5 +221,42 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 			Assert.AreEqual(OrchestrationInputValue.FromTimeSpan(TimeSpan.FromMinutes(15)), converted);
 			Assert.IsFalse(ResolvedValueConverter.TryConvert(new StringResolvedValue("02:00:00"), target, out OrchestrationInputValue _));
 		}
+
+		[TestMethod]
+		public void ResolvedValueConverter_TryGetNumber_TakesDecimalText()
+		{
+			Assert.IsTrue(ResolvedValueConverter.TryGetNumber(new StringResolvedValue("12.5"), out var number));
+			Assert.AreEqual(12.5m, number);
+		}
+
+		[TestMethod]
+		public void ResolvedValueConverter_TryGetNumber_RejectsThousandsSeparator()
+		{
+			Assert.IsFalse(ResolvedValueConverter.TryGetNumber(new StringResolvedValue("1,5"), out _));
+		}
+
+		[TestMethod]
+		public void ResolvedValueConverter_TryGetNumber_RejectsUnresolvedValue()
+		{
+			Assert.IsFalse(ResolvedValueConverter.TryGetNumber(ResolvedValue.FromUnresolvedReference(new JobNameReference()), out _));
+			Assert.IsFalse(ResolvedValueConverter.TryGetNumber(null, out _));
+		}
+
+		[DataRow((double)decimal.MaxValue, DisplayName = "Decimal.MaxValue as double")]
+		[DataRow((double)decimal.MinValue, DisplayName = "Decimal.MinValue as double")]
+		[DataRow(double.NaN, DisplayName = "NaN")]
+		[DataRow(double.PositiveInfinity, DisplayName = "Infinity")]
+		[TestMethod]
+		public void ResolvedValueConverter_TryGetNumber_RejectsDoubleOutsideDecimalRange(double value)
+		{
+			Assert.IsFalse(ResolvedValueConverter.TryGetNumber(new DoubleResolvedValue(value), out _));
+		}
+
+		[TestMethod]
+		public void ResolvedValueConverter_TryGetNumber_TakesDouble()
+		{
+			Assert.IsTrue(ResolvedValueConverter.TryGetNumber(new DoubleResolvedValue(2.5), out var number));
+			Assert.AreEqual(2.5m, number);
+		}
 	}
 }

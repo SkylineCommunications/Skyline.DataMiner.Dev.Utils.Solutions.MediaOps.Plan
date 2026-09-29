@@ -38,7 +38,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 			Job = job ?? throw new ArgumentNullException(nameof(job));
 
-			_lazyJobPropertySettings = new Lazy<IDictionary<PropertyIdSubId, PropertySettingBase>>(() => ReadPropertySettings(Job.Id));
+			_lazyJobPropertySettings = new Lazy<IDictionary<PropertyIdSubId, PropertySettingBase>>(GetJobPropertySettings);
 			_resourceCache = new Dictionary<Guid, Resource>();
 		}
 
@@ -103,6 +103,27 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			_resourceCache[resourceId] = resource;
 
 			return resource;
+		}
+
+		// Taken from the job instead of storage so values that are about to be saved are resolved as well.
+		private IDictionary<PropertyIdSubId, PropertySettingBase> GetJobPropertySettings()
+		{
+			var result = new Dictionary<PropertyIdSubId, PropertySettingBase>();
+
+			foreach (var setting in Job.PropertySettings)
+			{
+				result[(setting.Id, String.Empty)] = setting;
+			}
+
+			foreach (var node in Job.NodeGraph.Nodes)
+			{
+				foreach (var setting in node.PropertySettings)
+				{
+					result[(setting.Id, node.Id)] = setting;
+				}
+			}
+
+			return result;
 		}
 
 		/// <inheritdoc />

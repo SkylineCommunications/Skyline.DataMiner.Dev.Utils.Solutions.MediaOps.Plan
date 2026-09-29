@@ -49,7 +49,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API.Querying
 				case Comparer.Contains:
 					return containsNode;
 				case Comparer.NotContains:
-					return new NOTFilterElement<DomInstance>(containsNode);
+					// A negated filter on the field values of the nodes section is only evaluated for DOM instances
+					// that hold such a section, so objects without any node are not returned by it. Those objects do
+					// not reference the resource or resource pool either, so they are included explicitly.
+					return new ORFilterElement<DomInstance>(
+						new NOTFilterElement<DomInstance>(containsNode),
+						DomInstanceExposers.SectionDefinitionIds.NotContains(SlcWorkflowIds.Sections.Nodes.Id.Id));
 				default:
 					throw new NotSupportedException($"Comparer {comparer} is not supported for {fieldName} checks");
 			}
