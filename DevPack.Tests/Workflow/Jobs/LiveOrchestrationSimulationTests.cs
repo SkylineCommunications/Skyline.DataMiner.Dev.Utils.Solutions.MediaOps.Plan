@@ -19,6 +19,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 	using Skyline.DataMiner.Solutions.MediaOps.Live.API.Objects.ConnectivityManagement;
 	using Skyline.DataMiner.Solutions.MediaOps.Live.Orchestration.Script.Inputs;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation;
@@ -1207,6 +1208,40 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			Assert.AreEqual("Unicast", inputValues.GetString("Label"), "Expected a text input to take the referenced value as-is.");
 			Assert.AreEqual("UC", inputValues.GetString("Mode"), "Expected a discrete input to take the value of the option whose display text matches.");
+		}
+
+		[TestMethod]
+		public void DomOrchestrationSettingsHandler_UpdateConfirmedJob_ReportsLinkedDynamicInputThatIsNotAnOption()
+		{
+			var setup = CreateSetup();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			setup.Dms.AddDynamicOrchestrationScript(DynamicScriptName, providedValues => new OrchestrationInputBuilder()
+				.AddDiscrete("Mode", field => field.AddOption("Unicast", "UC"), "Multicast")
+				.Build());
+
+			var job = Confirm(setup, CreateJob(
+				setup,
+				preRollStart: currentTime.AddMinutes(5),
+				start: currentTime.AddMinutes(10),
+				end: currentTime.AddMinutes(20),
+				postRollEnd: currentTime.AddMinutes(25)));
+
+			// The job name is not one of the options, so the Live event would otherwise be scheduled without the value.
+			job.NodeGraph.Nodes.Single().OrchestrationSettings.SetOrchestrationEvents(new List<OrchestrationEvent>
+			{
+				new OrchestrationEvent
+				{
+					EventType = OrchestrationEventType.PrerollStart,
+					ExecutionDetails = new ScriptExecutionDetails(DynamicScriptName)
+						.AddDynamicInput(new DynamicInputSetting("Mode") { Reference = new JobNameReference() }),
+				},
+			});
+
+			var exception = Assert.ThrowsException<MediaOpsException>(() => setup.Api.Jobs.Update(job));
+
+			var error = exception.TraceData.ErrorData.OfType<OrchestrationSettingsUnresolvedReferenceError>().Single();
+			StringAssert.Contains(error.ErrorMessage, "which is not one of the options of 'Mode'");
 		}
 
 		private static OrchestrationEvent CreateDynamicInputsEvent(string scriptName = OrchestrationScriptName)

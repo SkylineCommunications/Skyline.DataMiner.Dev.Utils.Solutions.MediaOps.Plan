@@ -216,6 +216,45 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				: DescribeOptionFailure(value, target?.Name);
 		}
 
+		/// <summary>
+		/// Returns why the specified value cannot be used for the given dynamic input field, or <see langword="null"/>
+		/// when it can. The text completes the sentence "Reference 'X' ...".
+		/// </summary>
+		/// <param name="value">The value that was resolved from the reference.</param>
+		/// <param name="target">The field that is going to hold the value.</param>
+		internal static string GetFailureReason(ResolvedValue value, OrchestrationInputField target)
+		{
+			if (target == null)
+			{
+				throw new ArgumentNullException(nameof(target));
+			}
+
+			if (value == null || !value.IsResolved)
+			{
+				return NotResolvedReason;
+			}
+
+			// An optional input may stay empty when the linked data has no value.
+			if (TryConvert(value, target, out _) || (!target.IsRequired && value.IsNullResolvedValue(out _)))
+			{
+				return null;
+			}
+
+			switch (target)
+			{
+				case OrchestrationNumberInputField number:
+					return DescribeNumberFailure(value, target.Path, ToDecimalBound(number.Minimum), ToDecimalBound(number.Maximum));
+
+				case OrchestrationDiscreteInputField _:
+					return DescribeOptionFailure(value, target.Path);
+
+				default:
+					return String.IsNullOrEmpty(value.DisplayValue)
+						? $"does not resolve to a value for {DescribeParameter(target.Path)}."
+						: $"resolves to '{value.DisplayValue}', which is not a valid value for {DescribeParameter(target.Path)}.";
+			}
+		}
+
 		private static string DescribeNumberFailure(ResolvedValue value, string parameterName, decimal? rangeMin, decimal? rangeMax)
 		{
 			var parameter = DescribeParameter(parameterName);
@@ -279,6 +318,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		private static decimal? ToRangeBound(double value, double sentinel)
 		{
 			return Double.IsNaN(value) || value.Equals(sentinel) ? (decimal?)null : (decimal)value;
+		}
+
+		private static decimal? ToDecimalBound(double? value)
+		{
+			return value.HasValue && value.Value >= (double)Decimal.MinValue && value.Value <= (double)Decimal.MaxValue
+				? (decimal)value.Value
+				: (decimal?)null;
 		}
 
 		private static bool TryMatchNumber(ResolvedValue value, decimal? rangeMin, decimal? rangeMax, out ResolvedValue converted)
