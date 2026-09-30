@@ -74,6 +74,8 @@
 				return;
 			}
 
+			var validator = new OrchestrationEventReferenceValidator(planApi, referenceValidationContext.Definitions);
+
 			foreach (var orchestrationSettings in apiOrchestrationSettings)
 			{
 				if (!referenceValidationContext.TryGetTarget(orchestrationSettings.Id, out var resolver, out var owningNodeId, out var reportErrors) || !reportErrors)
@@ -81,21 +83,9 @@
 					continue;
 				}
 
-				foreach (var entry in EnumerateEventReferences(orchestrationSettings))
+				foreach (var (reference, reason) in validator.GetFailures(orchestrationSettings, resolver, owningNodeId))
 				{
-					var reason = GetUnresolvedReason(resolver, entry, owningNodeId);
-					if (reason != null)
-					{
-						ReportUnresolvedReference(orchestrationSettings, resolver, entry.Reference, reason);
-					}
-				}
-
-				foreach (var executionDetails in orchestrationSettings.OrchestrationEvents.Select(x => x.ExecutionDetails).Where(x => x != null))
-				{
-					foreach (var (reference, reason) in GetDynamicInputFailures(resolver, executionDetails, owningNodeId))
-					{
-						ReportUnresolvedReference(orchestrationSettings, resolver, reference, reason);
-					}
+					ReportUnresolvedReference(orchestrationSettings, resolver, reference, reason);
 				}
 			}
 		}
@@ -109,90 +99,6 @@
 				Reference = label,
 				ErrorMessage = $"Reference '{label}' {reason}",
 			});
-		}
-
-		// A linked dynamic input is checked against the field it feeds, like a linked profile parameter is.
-		private IEnumerable<(DataReference Reference, string Reason)> GetDynamicInputFailures(ReferenceResolver resolver, ScriptExecutionDetails executionDetails, string owningNodeId)
-		{
-			var linkedInputs = executionDetails.DynamicInputs.Where(x => x.HasReference).ToList();
-			if (linkedInputs.Count == 0)
-			{
-				yield break;
-			}
-
-			var inputs = GetDynamicInputDefinition(executionDetails);
-
-			foreach (var input in linkedInputs)
-			{
-				var resolved = ResolveReference(resolver, input.Reference, owningNodeId);
-
-				// A link to an input the script no longer has is kept for when it returns, so it is only checked for a value.
-				var reason = inputs != null && inputs.TryGetField(input.Path, out var field)
-					? ResolvedValueConverter.GetFailureReason(resolved, field)
-					: ResolvedValueConverter.GetFailureReason(resolved, (Parameter)null);
-
-				if (reason != null)
-				{
-					yield return (input.Reference, reason);
-				}
-			}
-		}
-
-		private OrchestrationInputDefinition GetDynamicInputDefinition(ScriptExecutionDetails executionDetails)
-		{
-			try
-			{
-				// The values of the event decide which inputs exist and what they accept.
-				return planApi.LiveApi.Orchestration.Scripts.GetOrchestrationScriptInputInfo(executionDetails.ScriptName, executionDetails.GetDynamicInputValues())?.InputDefinition;
-			}
-			catch (Exception ex)
-			{
-				planApi.Logger.Warning(this, $"Failed to evaluate the inputs of orchestration script '{executionDetails.ScriptName}', so its linked inputs are only checked for a value: {ex.Message}");
-				return null;
-			}
-		}
-
-		private static ResolvedValue ResolveReference(ReferenceResolver resolver, DataReference reference, string owningNodeId)
-		{
-			try
-			{
-				return resolver.ResolveValue(reference, owningNodeId);
-			}
-			catch (Exception)
-			{
-				return null;
-			}
-		}
-
-		// Returns null when the reference produced a value the parameter it feeds can take. A parameter can be a
-		// dropdown, which only holds one of its own options, so the resolved value has to fit it as well.
-		private string GetUnresolvedReason(ReferenceResolver resolver, (DataReference Reference, Guid? TargetParameterId) entry, string owningNodeId)
-		{
-			var resolved = ResolveReference(resolver, entry.Reference, owningNodeId);
-
-			// A script element or parameter has no target parameter, so it takes any value.
-			var target = entry.TargetParameterId == null
-				? null
-				: referenceValidationContext.Definitions.GetParameterDefinition(entry.TargetParameterId.Value);
-
-			return ResolvedValueConverter.GetFailureReason(resolved, target);
-		}
-
-		private static IEnumerable<(DataReference Reference, Guid? TargetParameterId)> EnumerateEventReferences(OrchestrationSettings orchestrationSettings)
-		{
-			return orchestrationSettings.OrchestrationEvents
-				.Select(orchestrationEvent => orchestrationEvent.ExecutionDetails)
-				.Where(executionDetails => executionDetails != null)
-				.SelectMany(EnumerateExecutionDetailReferences);
-		}
-
-		private static IEnumerable<(DataReference Reference, Guid? TargetParameterId)> EnumerateExecutionDetailReferences(ScriptExecutionDetails executionDetails)
-		{
-			return executionDetails.ScriptElements.Where(x => x.HasReference).Select(x => (x.Reference, (Guid?)null))
-				.Concat(executionDetails.ScriptParameters.Where(x => x.HasReference).Select(x => (x.Reference, (Guid?)null)))
-				.Concat(executionDetails.Capabilities.Where(x => x.HasReference).Select(x => (x.Reference, (Guid?)x.Id)))
-				.Concat(executionDetails.Capacities.Where(x => x.HasReference).Select(x => (x.Reference, (Guid?)x.Id)))
-				.Concat(executionDetails.Configurations.Where(x => x.HasReference).Select(x => (x.Reference, (Guid?)x.Id)));
 		}
 
 		private void ValidateCapacities(ICollection<TApiSettings> apiOrchestrationSettings)

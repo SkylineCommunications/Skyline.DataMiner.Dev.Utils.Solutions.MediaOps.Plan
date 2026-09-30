@@ -1244,6 +1244,43 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			StringAssert.Contains(error.ErrorMessage, "which is not one of the options of 'Mode'");
 		}
 
+		[TestMethod]
+		public void DomJobHandler_Confirm_ReportsLinkedDynamicInputThatIsNotAnOption()
+		{
+			var setup = CreateSetup();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			setup.Dms.AddDynamicOrchestrationScript(DynamicScriptName, providedValues => new OrchestrationInputBuilder()
+				.AddDiscrete("Mode", field => field.AddOption("Unicast", "UC"), "Multicast")
+				.Build());
+
+			var job = CreateJob(
+				setup,
+				preRollStart: currentTime.AddMinutes(5),
+				start: currentTime.AddMinutes(10),
+				end: currentTime.AddMinutes(20),
+				postRollEnd: currentTime.AddMinutes(25));
+
+			// A draft job doesn't validate its links, so the job name, which is not one of the options, is only caught when confirming.
+			job.NodeGraph.Nodes.Single().OrchestrationSettings.SetOrchestrationEvents(new List<OrchestrationEvent>
+			{
+				new OrchestrationEvent
+				{
+					EventType = OrchestrationEventType.PrerollStart,
+					ExecutionDetails = new ScriptExecutionDetails(DynamicScriptName)
+						.AddDynamicInput(new DynamicInputSetting("Mode") { Reference = new JobNameReference() }),
+				},
+			});
+
+			var tentativeJob = setup.Api.Jobs.SaveAsTentative(setup.Api.Jobs.Update(job));
+
+			var exception = Assert.ThrowsException<MediaOpsException>(() => setup.Api.Jobs.Confirm(tentativeJob));
+
+			var error = exception.TraceData.ErrorData.OfType<JobUnresolvedReferenceError>().Single();
+			StringAssert.Contains(error.ErrorMessage, "which is not one of the options of 'Mode'");
+			Assert.AreEqual(JobState.Tentative, setup.Api.Jobs.Read(job.Id).State, "Expected the job to stay tentative.");
+		}
+
 		private static OrchestrationEvent CreateDynamicInputsEvent(string scriptName = OrchestrationScriptName)
 		{
 			return new OrchestrationEvent
