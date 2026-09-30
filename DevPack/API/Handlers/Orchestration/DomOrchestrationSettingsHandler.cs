@@ -37,8 +37,8 @@
 			Persist(apiOrchestrationSettings);
 		}
 
-		// Split from the persistence so a caller that has to decide on the settings before writing them (for example to
-		// keep the write atomic with another operation) can validate first and persist later.
+		// Split from the persistence so a caller can validate the settings first and only persist them once its other
+		// operation succeeded. The two steps are not atomic: nothing is rolled back when that other operation fails later.
 		protected void Validate(ICollection<TApiSettings> apiOrchestrationSettings)
 		{
 			if (apiOrchestrationSettings == null)
