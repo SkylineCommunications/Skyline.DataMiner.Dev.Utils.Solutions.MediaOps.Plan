@@ -492,23 +492,25 @@
 		private ISet<Guid> PersistOrchestrationSettings(IReadOnlyDictionary<Guid, List<OrchestrationSettings>> settingsByJobId, ICollection<Guid> jobIdsToSkip)
 		{
 			var jobIdByOrchestrationSettingsId = new Dictionary<Guid, Guid>();
-			var orchestrationSettings = new List<OrchestrationSettings>();
+			var units = new List<ICollection<OrchestrationSettings>>();
 
-			foreach (var entry in settingsByJobId.Where(x => !jobIdsToSkip.Contains(x.Key)))
+			foreach (var entry in settingsByJobId.Where(x => !jobIdsToSkip.Contains(x.Key) && x.Value.Count > 0))
 			{
 				foreach (var settings in entry.Value)
 				{
 					jobIdByOrchestrationSettingsId[settings.Id] = entry.Key;
-					orchestrationSettings.Add(settings);
 				}
+
+				units.Add(entry.Value);
 			}
 
-			if (orchestrationSettings.Count == 0)
+			if (units.Count == 0)
 			{
 				return new HashSet<Guid>();
 			}
 
-			DomWorkflowOrchestrationSettingsHandler.TryPersist(planApi, orchestrationSettings, out var domResult);
+			// Each job's settings form one unit, so a job never ends up with only part of its settings saved.
+			DomWorkflowOrchestrationSettingsHandler.TryPersist(planApi, units, out var domResult);
 
 			return ReportOrchestrationSettingsErrors(domResult, jobIdByOrchestrationSettingsId);
 		}
