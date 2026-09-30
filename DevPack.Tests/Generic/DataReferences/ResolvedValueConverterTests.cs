@@ -1,5 +1,7 @@
 namespace RT_MediaOps.Plan.Generic.DataReferences
 {
+	using System.Globalization;
+
 	using Skyline.DataMiner.Solutions.MediaOps.Live.Orchestration.Script.Inputs;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 
@@ -257,6 +259,33 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 		{
 			Assert.IsTrue(ResolvedValueConverter.TryGetNumber(new DoubleResolvedValue(2.5), out var number));
 			Assert.AreEqual(2.5m, number);
+		}
+
+		[TestMethod]
+		public void ResolvedValueConverter_GetFailureReason_FormatsRangeIndependentOfCulture()
+		{
+			var definition = new OrchestrationInputBuilder()
+				.AddNumber("Frequency", field =>
+				{
+					field.Minimum = 10.7;
+					field.Maximum = 12.75;
+				})
+				.Build();
+			definition.TryGetField("Frequency", out var field);
+
+			var originalCulture = CultureInfo.CurrentCulture;
+			try
+			{
+				CultureInfo.CurrentCulture = new CultureInfo("nl-BE");
+
+				var reason = ResolvedValueConverter.GetFailureReason(new DoubleResolvedValue(20.5), field);
+
+				Assert.AreEqual("resolves to '20.5', which is outside the range of 'Frequency' (10.7 to 12.75).", reason);
+			}
+			finally
+			{
+				CultureInfo.CurrentCulture = originalCulture;
+			}
 		}
 	}
 }

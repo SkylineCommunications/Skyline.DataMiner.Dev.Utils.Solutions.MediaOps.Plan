@@ -1281,6 +1281,41 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			Assert.AreEqual(JobState.Tentative, setup.Api.Jobs.Read(job.Id).State, "Expected the job to stay tentative.");
 		}
 
+		[TestMethod]
+		public void DomJobHandler_Update_SavesDynamicInputValueChangedOnExistingSetting()
+		{
+			var setup = CreateSetup();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			setup.Dms.AddDynamicOrchestrationScript(DynamicScriptName, providedValues => new OrchestrationInputBuilder()
+				.AddText("Label")
+				.Build());
+
+			var job = CreateJob(
+				setup,
+				preRollStart: currentTime.AddMinutes(5),
+				start: currentTime.AddMinutes(10),
+				end: currentTime.AddMinutes(20),
+				postRollEnd: currentTime.AddMinutes(25));
+
+			job.NodeGraph.Nodes.Single().OrchestrationSettings.SetOrchestrationEvents(new List<OrchestrationEvent>
+			{
+				new OrchestrationEvent
+				{
+					EventType = OrchestrationEventType.PrerollStart,
+					ExecutionDetails = new ScriptExecutionDetails(DynamicScriptName)
+						.AddDynamicInput(new DynamicInputSetting("Label") { Value = "Before" }),
+				},
+			});
+
+			var savedJob = setup.Api.Jobs.Update(job);
+			savedJob.NodeGraph.Nodes.Single().OrchestrationSettings.OrchestrationEvents.Single().ExecutionDetails.DynamicInputs.Single().Value = "After";
+			setup.Api.Jobs.Update(savedJob);
+
+			var storedValue = setup.Api.Jobs.Read(job.Id).NodeGraph.Nodes.Single().OrchestrationSettings.OrchestrationEvents.Single().ExecutionDetails.DynamicInputs.Single().Value;
+			Assert.AreEqual((OrchestrationInputValue)"After", storedValue, "Expected the value changed on the existing dynamic input to be saved.");
+		}
+
 		private static OrchestrationEvent CreateDynamicInputsEvent(string scriptName = OrchestrationScriptName)
 		{
 			return new OrchestrationEvent

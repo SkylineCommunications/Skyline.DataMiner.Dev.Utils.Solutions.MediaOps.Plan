@@ -309,10 +309,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 			if (rangeMin.HasValue && rangeMax.HasValue)
 			{
-				return $"{rangeMin} to {rangeMax}";
+				return String.Format(CultureInfo.InvariantCulture, "{0} to {1}", rangeMin.Value, rangeMax.Value);
 			}
 
-			return rangeMin.HasValue ? $"minimum {rangeMin}" : $"maximum {rangeMax}";
+			return rangeMin.HasValue
+				? String.Format(CultureInfo.InvariantCulture, "minimum {0}", rangeMin.Value)
+				: String.Format(CultureInfo.InvariantCulture, "maximum {0}", rangeMax);
 		}
 
 		private static decimal? ToRangeBound(double value, double sentinel)

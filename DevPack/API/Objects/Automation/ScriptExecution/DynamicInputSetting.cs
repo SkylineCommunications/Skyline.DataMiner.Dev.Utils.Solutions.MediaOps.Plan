@@ -68,5 +68,30 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Gets a value indicating whether this input has a reference defined.
 		/// </summary>
 		public bool HasReference => Reference != null;
+
+		/// <inheritdoc/>
+		public override int GetHashCode()
+		{
+			unchecked
+			{
+				var hash = 17;
+				hash = (hash * 23) + StringComparer.OrdinalIgnoreCase.GetHashCode(Path);
+				hash = (hash * 23) + (Value != null ? Value.GetHashCode() : 0);
+				hash = (hash * 23) + (Reference != null ? Reference.GetHashCode() : 0);
+
+				return hash;
+			}
+		}
+
+		/// <inheritdoc/>
+		public override bool Equals(object obj)
+		{
+			if (obj is not DynamicInputSetting other)
+			{
+				return false;
+			}
+
+			return String.Equals(Path, other.Path, StringComparison.OrdinalIgnoreCase) && Value == other.Value && Equals(Reference, other.Reference);
+		}
 	}
 }
