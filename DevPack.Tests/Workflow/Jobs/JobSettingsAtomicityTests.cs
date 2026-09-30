@@ -52,6 +52,23 @@
 		}
 
 		[TestMethod]
+		public void Update_SettingsFailValidation_LeavesTheStoredSettingsUntouched()
+		{
+			var setup = CreateSetup();
+			var job = objectCreator.CreateJob(NewJob(setup, 10));
+
+			// Duplicate capacity settings are only rejected by the orchestration settings validation inside the lock.
+			job.NodeGraph.Nodes.Single().OrchestrationSettings.AddCapacity(new NumberCapacitySetting(setup.Capacity) { Value = 20 });
+
+			var exception = Assert.ThrowsException<MediaOpsBulkException<Guid>>(() => TestContext.Api.Jobs.Update([job]));
+			Assert.IsTrue(exception.Result.TraceDataPerItem.ContainsKey(job.Id), "No trace data reported for the job.");
+
+			var stored = TestContext.Api.Jobs.Read(job.Id).NodeGraph.Nodes.Single().OrchestrationSettings;
+			Assert.AreEqual(1, stored.Capacities.Count, "The rejected settings were written to the node anyway.");
+			Assert.AreEqual(10m, ((NumberCapacitySetting)stored.Capacities.Single()).Value);
+		}
+
+		[TestMethod]
 		public void Update_AddsANodeWithSettings_PersistsTheSettingsOfTheNewNode()
 		{
 			var setup = CreateSetup();

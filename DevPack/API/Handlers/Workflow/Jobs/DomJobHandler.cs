@@ -326,8 +326,10 @@
 				.ToList());
 
 			// A job whose settings could not be written must not have its instance persisted either, otherwise it would
-			// point at settings that do not exist or that still hold the previous configuration.
-			failedJobIds.UnionWith(PersistOrchestrationSettings(orchestrationSettingsByJob, failedJobIds));
+			// point at settings that do not exist or that still hold the previous configuration. Jobs rejected earlier in
+			// the save (for example by the settings validation) are not persisted, so neither are their settings.
+			var jobIdsToSkip = new HashSet<Guid>(failedJobIds.Concat(TraceDataPerItem.Keys));
+			failedJobIds.UnionWith(PersistOrchestrationSettings(orchestrationSettingsByJob, jobIdsToSkip));
 
 			ClearResolvedValidationErrors(changedJobs.Where(x => !failedJobIds.Contains(x.Id)).ToList());
 
@@ -485,8 +487,8 @@
 		}
 
 		// Persists the orchestration settings of the jobs that are still valid. Runs after the core reservations are
-		// updated so a job whose reservation was refused does not leave changed settings behind: the settings, the
-		// reservation and the job instance are all written or all skipped.
+		// updated so a job whose reservation was refused does not leave changed settings behind. A failure here is not
+		// rolled back on the reservation that was already updated; the job instance is skipped so it keeps its old settings.
 		private ISet<Guid> PersistOrchestrationSettings(IReadOnlyDictionary<Guid, List<OrchestrationSettings>> settingsByJobId, ICollection<Guid> jobIdsToSkip)
 		{
 			var jobIdByOrchestrationSettingsId = new Dictionary<Guid, Guid>();
