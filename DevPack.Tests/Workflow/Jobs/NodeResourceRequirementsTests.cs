@@ -77,6 +77,49 @@
 		}
 
 		[TestMethod]
+		public void Create_RangeCapacityOnResourceBounds_IsAccepted()
+		{
+			var setup = CreateSetup();
+
+			var node = new JobResourceNode(setup.Pool, setup.Resource);
+			node.OrchestrationSettings.AddCapacity(new RangeCapacitySetting(setup.RangeCapacity) { MinValue = 10, MaxValue = 100 });
+
+			var job = objectCreator.CreateJob(NewJob(setup.Prefix, node));
+
+			var stored = (RangeCapacitySetting)TestContext.Api.Jobs.Read(job.Id).NodeGraph.Nodes.Single().OrchestrationSettings.Capacities.Single();
+			Assert.AreEqual(10m, stored.MinValue);
+			Assert.AreEqual(100m, stored.MaxValue);
+		}
+
+		[TestMethod]
+		public void Create_RangeCapacityBelowResourceMinimum_IsRejected()
+		{
+			var setup = CreateSetup();
+
+			var node = new JobResourceNode(setup.Pool, setup.Resource);
+			node.OrchestrationSettings.AddCapacity(new RangeCapacitySetting(setup.RangeCapacity) { MinValue = 9, MaxValue = 50 });
+
+			var traceData = AssertCreateFails(NewJob(setup.Prefix, node));
+			var error = traceData.ErrorData.OfType<JobResourceInvalidCapacityError>().Single();
+			Assert.AreEqual(setup.RangeCapacity.Id, error.CapacityId);
+			StringAssert.Contains(error.ErrorMessage, "below the minimum of 10");
+		}
+
+		[TestMethod]
+		public void Create_RangeCapacityAboveResourceMaximum_IsRejected()
+		{
+			var setup = CreateSetup();
+
+			var node = new JobResourceNode(setup.Pool, setup.Resource);
+			node.OrchestrationSettings.AddCapacity(new RangeCapacitySetting(setup.RangeCapacity) { MinValue = 50, MaxValue = 101 });
+
+			var traceData = AssertCreateFails(NewJob(setup.Prefix, node));
+			var error = traceData.ErrorData.OfType<JobResourceInvalidCapacityError>().Single();
+			Assert.AreEqual(setup.RangeCapacity.Id, error.CapacityId);
+			StringAssert.Contains(error.ErrorMessage, "exceeds the maximum of 100");
+		}
+
+		[TestMethod]
 		public void Create_InvalidCapabilityAndCapacity_ReportsBothErrors()
 		{
 			var setup = CreateSetup();
@@ -173,7 +216,8 @@
 			objectCreator.CreateCapability(capability);
 
 			var capacity = new NumberCapacity { Name = $"{prefix}_Capacity" };
-			objectCreator.CreateCapacities([capacity]);
+			var rangeCapacity = new RangeCapacity { Name = $"{prefix}_RangeCapacity" };
+			objectCreator.CreateCapacities([capacity, rangeCapacity]);
 
 			var pool = TestContext.Api.ResourcePools.Complete(objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" }));
 
@@ -183,20 +227,22 @@
 			var resource = new UnmanagedResource { Name = $"{prefix}_Resource" };
 			resource.AddCapability(resourceCapability);
 			resource.AddCapacity(new NumberCapacitySetting(capacity) { Value = 100 });
+			resource.AddCapacity(new RangeCapacitySetting(rangeCapacity) { MinValue = 10, MaxValue = 100 });
 			resource.AssignToPool(pool);
 
-			return new Setup(prefix, pool, TestContext.Api.Resources.Complete(objectCreator.CreateResource(resource)), capability, capacity);
+			return new Setup(prefix, pool, TestContext.Api.Resources.Complete(objectCreator.CreateResource(resource)), capability, capacity, rangeCapacity);
 		}
 
 		private sealed class Setup
 		{
-			public Setup(Guid prefix, ResourcePool pool, Resource resource, Capability capability, NumberCapacity capacity)
+			public Setup(Guid prefix, ResourcePool pool, Resource resource, Capability capability, NumberCapacity capacity, RangeCapacity rangeCapacity)
 			{
 				Prefix = prefix;
 				Pool = pool;
 				Resource = resource;
 				Capability = capability;
 				Capacity = capacity;
+				RangeCapacity = rangeCapacity;
 			}
 
 			public Guid Prefix { get; }
@@ -208,6 +254,8 @@
 			public Capability Capability { get; }
 
 			public NumberCapacity Capacity { get; }
+
+			public RangeCapacity RangeCapacity { get; }
 		}
 	}
 }
