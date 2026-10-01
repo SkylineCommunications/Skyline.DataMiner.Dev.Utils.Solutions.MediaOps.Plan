@@ -293,7 +293,7 @@
 
 		private void ValidateLiveEventsStillMatch(Job job, JobReferenceResolver resolver, ReferenceDefinitionCache definitions, JobValidationResult result, bool liveIsInstalled)
 		{
-			if (!liveIsInstalled || job.OrchestrationSettings?.OrchestrationEvents == null)
+			if (!liveIsInstalled)
 			{
 				return;
 			}
@@ -305,23 +305,31 @@
 			}
 
 			var mismatches = new List<string>();
-			foreach (var orchestrationEvent in job.OrchestrationSettings.OrchestrationEvents.Where(item => item.ExecutionDetails != null))
+
+			foreach (var orchestrationEvent in GetEventsWithExecutionDetails(job.OrchestrationSettings))
 			{
-				if (!TryMapEventType(orchestrationEvent.EventType, out var liveEventType))
+				if (TryGetScheduledEvent(scheduledConfiguration, orchestrationEvent, out var liveEventType, out var scheduledEvent))
 				{
-					continue;
+					CompareEvent(orchestrationEvent.ExecutionDetails, null, $"the '{liveEventType}' live event", scheduledEvent.GlobalOrchestrationScriptArguments, scheduledEvent.Profile, resolver, definitions, mismatches);
 				}
+			}
 
-				var scheduledEvent = scheduledConfiguration.OrchestrationEvents.FirstOrDefault(item => item.EventType == liveEventType);
-				if (scheduledEvent == null)
+			// Node events are scheduled as node configurations of the live event, with their references resolved for the owning node.
+			foreach (var node in job.NodeGraph.Nodes)
+			{
+				foreach (var orchestrationEvent in GetEventsWithExecutionDetails(node.OrchestrationSettings))
 				{
-					continue;
-				}
+					if (!TryGetScheduledEvent(scheduledConfiguration, orchestrationEvent, out var liveEventType, out var scheduledEvent))
+					{
+						continue;
+					}
 
-				CompareArguments(orchestrationEvent.ExecutionDetails.ScriptParameters.Where(item => item.HasReference).Select(item => (item.Name, item.Reference)), LiveEnums.OrchestrationScriptArgumentType.Parameter, liveEventType, scheduledEvent.GlobalOrchestrationScriptArguments, resolver, mismatches);
-				CompareArguments(orchestrationEvent.ExecutionDetails.ScriptElements.Where(item => item.HasReference).Select(item => (item.Name, item.Reference)), LiveEnums.OrchestrationScriptArgumentType.Element, liveEventType, scheduledEvent.GlobalOrchestrationScriptArguments, resolver, mismatches);
-				CompareProfileSettings(orchestrationEvent.ExecutionDetails.Capabilities.Cast<Setting>().Concat(orchestrationEvent.ExecutionDetails.Capacities).Concat(orchestrationEvent.ExecutionDetails.Configurations), liveEventType, scheduledEvent.Profile, resolver, definitions, mismatches);
-				CompareDynamicInputs(orchestrationEvent.ExecutionDetails, liveEventType, scheduledEvent.Profile, resolver, mismatches);
+					var nodeConfiguration = scheduledEvent.Configuration?.NodeConfigurations?.FirstOrDefault(item => item.NodeId == node.Id);
+					if (nodeConfiguration != null)
+					{
+						CompareEvent(orchestrationEvent.ExecutionDetails, node.Id, $"{GetNodeDisplayName(node)} in the '{liveEventType}' live event", nodeConfiguration.OrchestrationScriptArguments, nodeConfiguration.Profile, resolver, definitions, mismatches);
+					}
+				}
 			}
 
 			if (mismatches.Count > 0)
@@ -330,7 +338,34 @@
 			}
 		}
 
-		private static void CompareArguments(IEnumerable<(string Name, DataReference Reference)> references, LiveEnums.OrchestrationScriptArgumentType type, LiveEnums.EventType eventType, IEnumerable<Live.OrchestrationScriptArgument> scheduledArguments, JobReferenceResolver resolver, ICollection<string> mismatches)
+		private static IEnumerable<OrchestrationEvent> GetEventsWithExecutionDetails(OrchestrationSettings settings)
+		{
+			return settings?.OrchestrationEvents?.Where(item => item.ExecutionDetails != null) ?? Enumerable.Empty<OrchestrationEvent>();
+		}
+
+		private static bool TryGetScheduledEvent(Live.OrchestrationJobConfiguration scheduledConfiguration, OrchestrationEvent orchestrationEvent, out LiveEnums.EventType liveEventType, out Live.OrchestrationEventConfiguration scheduledEvent)
+		{
+			scheduledEvent = null;
+
+			if (!TryMapEventType(orchestrationEvent.EventType, out liveEventType))
+			{
+				return false;
+			}
+
+			var eventType = liveEventType;
+			scheduledEvent = scheduledConfiguration.OrchestrationEvents.FirstOrDefault(item => item.EventType == eventType);
+			return scheduledEvent != null;
+		}
+
+		private void CompareEvent(ScriptExecutionDetails executionDetails, string owningNodeId, string target, IEnumerable<Live.OrchestrationScriptArgument> scheduledArguments, Live.OrchestrationProfile scheduledProfile, JobReferenceResolver resolver, ReferenceDefinitionCache definitions, ICollection<string> mismatches)
+		{
+			CompareArguments(executionDetails.ScriptParameters.Where(item => item.HasReference).Select(item => (item.Name, item.Reference)), LiveEnums.OrchestrationScriptArgumentType.Parameter, target, owningNodeId, scheduledArguments, resolver, mismatches);
+			CompareArguments(executionDetails.ScriptElements.Where(item => item.HasReference).Select(item => (item.Name, item.Reference)), LiveEnums.OrchestrationScriptArgumentType.Element, target, owningNodeId, scheduledArguments, resolver, mismatches);
+			CompareProfileSettings(executionDetails.Capabilities.Cast<Setting>().Concat(executionDetails.Capacities).Concat(executionDetails.Configurations), target, owningNodeId, scheduledProfile, resolver, definitions, mismatches);
+			CompareDynamicInputs(executionDetails, target, owningNodeId, scheduledProfile, resolver, mismatches);
+		}
+
+		private static void CompareArguments(IEnumerable<(string Name, DataReference Reference)> references, LiveEnums.OrchestrationScriptArgumentType type, string target, string owningNodeId, IEnumerable<Live.OrchestrationScriptArgument> scheduledArguments, JobReferenceResolver resolver, ICollection<string> mismatches)
 		{
 			if (scheduledArguments == null)
 			{
@@ -339,7 +374,7 @@
 
 			foreach (var reference in references)
 			{
-				if (!TryResolveReference(resolver, reference.Reference, out var value))
+				if (!TryResolveReference(resolver, reference.Reference, owningNodeId, out var value))
 				{
 					continue;
 				}
@@ -348,12 +383,12 @@
 				var expected = FormatValue(value.GetRawValue());
 				if (scheduled != null && !String.Equals(scheduled.Value, expected, StringComparison.Ordinal))
 				{
-					mismatches.Add($"The '{reference.Name}' value of the '{eventType}' live event resolves to '{expected}' but was scheduled with '{scheduled.Value}'");
+					mismatches.Add($"The '{reference.Name}' value of {target} resolves to '{expected}' but was scheduled with '{scheduled.Value}'");
 				}
 			}
 		}
 
-		private static void CompareProfileSettings(IEnumerable<Setting> settings, LiveEnums.EventType eventType, Live.OrchestrationProfile scheduledProfile, JobReferenceResolver resolver, ReferenceDefinitionCache definitions, ICollection<string> mismatches)
+		private static void CompareProfileSettings(IEnumerable<Setting> settings, string target, string owningNodeId, Live.OrchestrationProfile scheduledProfile, JobReferenceResolver resolver, ReferenceDefinitionCache definitions, ICollection<string> mismatches)
 		{
 			if (scheduledProfile?.Values == null)
 			{
@@ -363,7 +398,7 @@
 			foreach (var setting in settings.Where(item => item.HasReference))
 			{
 				// The live event was scheduled with the value as the target parameter takes it, so compare it the same way.
-				if (!TryResolveReference(resolver, setting.Reference, out var value)
+				if (!TryResolveReference(resolver, setting.Reference, owningNodeId, out var value)
 					|| !ResolvedValueConverter.TryConvert(value, definitions.GetParameterDefinition(setting.Id), out var converted))
 				{
 					continue;
@@ -374,12 +409,12 @@
 				var actual = scheduled == null ? null : FormatScheduledProfileValue(scheduled.Value);
 				if (scheduled != null && !String.Equals(actual, expected, StringComparison.Ordinal))
 				{
-					mismatches.Add($"The profile parameter '{setting.Id}' of the '{eventType}' live event resolves to '{expected}' but was scheduled with '{actual}'");
+					mismatches.Add($"The profile parameter '{setting.Id}' of {target} resolves to '{expected}' but was scheduled with '{actual}'");
 				}
 			}
 		}
 
-		private void CompareDynamicInputs(ScriptExecutionDetails executionDetails, LiveEnums.EventType eventType, Live.OrchestrationProfile scheduledProfile, JobReferenceResolver resolver, ICollection<string> mismatches)
+		private void CompareDynamicInputs(ScriptExecutionDetails executionDetails, string target, string owningNodeId, Live.OrchestrationProfile scheduledProfile, JobReferenceResolver resolver, ICollection<string> mismatches)
 		{
 			var referencedInputs = executionDetails.DynamicInputs.Where(item => item.HasReference).ToList();
 			if (referencedInputs.Count == 0 || scheduledProfile?.Values == null)
@@ -399,25 +434,30 @@
 			foreach (var input in referencedInputs)
 			{
 				if (!inputs.TryGetField(input.Path, out var field)
-					|| !TryResolveReference(resolver, input.Reference, out var value)
+					|| !TryResolveReference(resolver, input.Reference, owningNodeId, out var value)
 					|| !ResolvedValueConverter.TryConvert(value, field, out var expected))
 				{
 					continue;
 				}
 
-				if (scheduledValues.TryGetValue(input.Path, out var scheduled) && scheduled != expected)
+				// A value that resolves now but is missing from the live event is stale as well.
+				if (!scheduledValues.TryGetValue(input.Path, out var scheduled))
 				{
-					mismatches.Add($"The '{input.Path}' input of the '{eventType}' live event resolves to '{expected}' but was scheduled with '{scheduled}'");
+					mismatches.Add($"The '{input.Path}' input of {target} resolves to '{expected}' but was scheduled without a value");
+				}
+				else if (scheduled != expected)
+				{
+					mismatches.Add($"The '{input.Path}' input of {target} resolves to '{expected}' but was scheduled with '{scheduled}'");
 				}
 			}
 		}
 
-		private static bool TryResolveReference(JobReferenceResolver resolver, DataReference reference, out ResolvedValue value)
+		private static bool TryResolveReference(JobReferenceResolver resolver, DataReference reference, string owningNodeId, out ResolvedValue value)
 		{
 			value = null;
 			try
 			{
-				var resolved = resolver.ResolveValue(reference);
+				var resolved = resolver.ResolveValue(reference, owningNodeId);
 				if (resolved == null || !resolved.IsResolved)
 				{
 					return false;

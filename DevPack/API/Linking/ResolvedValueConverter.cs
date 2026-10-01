@@ -189,7 +189,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 				default:
 					converted = OrchestrationInputValue.FromText(Convert.ToString(value.GetRawValue(), CultureInfo.InvariantCulture) ?? String.Empty);
-					return true;
+					return target.IsValidValue(converted, out _);
 			}
 		}
 

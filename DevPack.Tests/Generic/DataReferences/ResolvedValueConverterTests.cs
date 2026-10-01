@@ -225,6 +225,15 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 		}
 
 		[TestMethod]
+		public void ResolvedValueConverter_TryConvert_RequiredTextInputRejectsWhitespace()
+		{
+			var target = new OrchestrationTextInputField { Name = "Label", IsRequired = true };
+
+			Assert.IsFalse(ResolvedValueConverter.TryConvert(new StringResolvedValue("   "), target, out OrchestrationInputValue _));
+			Assert.IsNotNull(ResolvedValueConverter.GetFailureReason(new StringResolvedValue("   "), target));
+		}
+
+		[TestMethod]
 		public void ResolvedValueConverter_TryGetNumber_TakesDecimalText()
 		{
 			Assert.IsTrue(ResolvedValueConverter.TryGetNumber(new StringResolvedValue("12.5"), out var number));

@@ -1316,6 +1316,46 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			Assert.AreEqual((OrchestrationInputValue)"After", storedValue, "Expected the value changed on the existing dynamic input to be saved.");
 		}
 
+		[TestMethod]
+		[DataRow("Stale")]
+		[DataRow(null)]
+		public void JobValidator_Validate_ReportsAStaleLinkedDynamicInputOfANodeEvent(string scheduledLabel)
+		{
+			var setup = CreateSetup();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			setup.Dms.AddDynamicOrchestrationScript(DynamicScriptName, providedValues => new OrchestrationInputBuilder()
+				.AddText("Label")
+				.Build());
+
+			var job = CreateJob(
+				setup,
+				preRollStart: currentTime.AddMinutes(5),
+				start: currentTime.AddMinutes(10),
+				end: currentTime.AddMinutes(20),
+				postRollEnd: currentTime.AddMinutes(25));
+
+			job.NodeGraph.Nodes.Single().OrchestrationSettings.SetOrchestrationEvents(new List<OrchestrationEvent>
+			{
+				new OrchestrationEvent
+				{
+					EventType = OrchestrationEventType.PrerollStart,
+					ExecutionDetails = new ScriptExecutionDetails(DynamicScriptName)
+						.AddDynamicInput(new DynamicInputSetting("Label") { Reference = new JobNameReference() }),
+				},
+			});
+
+			var confirmedJob = Confirm(setup, setup.Api.Jobs.Update(job));
+			Assert.IsFalse(setup.Api.Jobs.Validate([confirmedJob]).Single().HasError(LiveEventsMismatchJobValidationError.ErrorCode), "Expected the freshly scheduled live event to match.");
+
+			// Mimic a live event that was scheduled with an older or missing value.
+			var liveConfiguration = GetLiveConfiguration(setup, confirmedJob);
+			GetEvent(liveConfiguration, LiveEnums.EventType.PrerollStart).Configuration.NodeConfigurations.Single().Profile.SetInputValue("Label", scheduledLabel);
+			setup.LiveApi.Orchestration.SaveOrchestrationJobConfiguration(liveConfiguration);
+
+			Assert.IsTrue(setup.Api.Jobs.Validate([confirmedJob]).Single().HasError(LiveEventsMismatchJobValidationError.ErrorCode), "Expected the stale node input to be reported.");
+		}
+
 		private static OrchestrationEvent CreateDynamicInputsEvent(string scriptName = OrchestrationScriptName)
 		{
 			return new OrchestrationEvent

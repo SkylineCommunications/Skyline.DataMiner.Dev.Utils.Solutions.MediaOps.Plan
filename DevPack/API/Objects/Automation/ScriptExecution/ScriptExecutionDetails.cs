@@ -550,7 +550,7 @@
 					hash = (hash * 23) + configurationSetting.GetHashCode();
 				}
 
-				foreach (var dynamicInputSetting in dynamicInputSettings.OrderBy(x => x.Path))
+				foreach (var dynamicInputSetting in dynamicInputSettings.OrderBy(x => x.Path, StringComparer.OrdinalIgnoreCase))
 				{
 					hash = (hash * 23) + dynamicInputSetting.GetHashCode();
 				}
