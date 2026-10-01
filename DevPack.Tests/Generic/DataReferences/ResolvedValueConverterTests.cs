@@ -185,13 +185,13 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 
 			Assert.IsTrue(ResolvedValueConverter.TryConvert(new StringResolvedValue("2026-09-24T12:00:00Z"), target, out OrchestrationInputValue converted));
 			Assert.IsTrue(converted.TryGetDateTime(out var dateTime));
-			Assert.AreEqual(new DateTime(2026, 9, 24, 12, 0, 0, DateTimeKind.Utc), dateTime);
+			Assert.AreEqual(new DateTimeOffset(2026, 9, 24, 12, 0, 0, TimeSpan.Zero), dateTime);
 		}
 
 		[TestMethod]
 		public void ResolvedValueConverter_TryConvert_DateTimeInputRejectsAValueOutsideTheRange()
 		{
-			var target = new OrchestrationDateTimeInputField { Name = "Start", Maximum = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) };
+			var target = new OrchestrationDateTimeInputField { Name = "Start", Maximum = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero) };
 
 			Assert.IsFalse(ResolvedValueConverter.TryConvert(new StringResolvedValue("2026-09-24T12:00:00Z"), target, out OrchestrationInputValue _));
 		}
