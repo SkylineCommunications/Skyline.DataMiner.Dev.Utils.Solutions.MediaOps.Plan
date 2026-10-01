@@ -3,6 +3,7 @@
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
+	using System.Threading;
 
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow;
 
@@ -15,20 +16,19 @@
 	/// caller make configuration instances that are not persisted yet visible to the parse path.
 	/// <para>
 	/// The cache is deliberately scoped rather than ambient: outside a scope every read goes to storage, so a caller
-	/// can never observe a stale configuration.
+	/// can never observe a stale configuration. The scope is per thread, so concurrent operations on the same API
+	/// instance never see each other's cached or seeded configurations.
 	/// </para>
 	/// </remarks>
 	internal sealed class WorkflowConfigurationCache
 	{
-		private readonly Dictionary<Guid, ConfigurationInstance> configurationsById = new Dictionary<Guid, ConfigurationInstance>();
+		private readonly ThreadLocal<State> state = new ThreadLocal<State>(() => new State());
 
-		// Identifiers that were looked up and do not exist. Remembered so a missing configuration is not re-read for
-		// every node that points at it.
-		private readonly HashSet<Guid> missingIds = new HashSet<Guid>();
+		internal bool IsActive => state.Value.Depth > 0;
 
-		private int depth;
+		private Dictionary<Guid, ConfigurationInstance> configurationsById => state.Value.ConfigurationsById;
 
-		internal bool IsActive => depth > 0;
+		private HashSet<Guid> missingIds => state.Value.MissingIds;
 
 		/// <summary>
 		/// Opens a caching scope. Nested scopes share the same cache and only the outermost scope clears it.
@@ -36,7 +36,7 @@
 		/// <returns>A handle that closes the scope when disposed.</returns>
 		internal IDisposable BeginScope()
 		{
-			depth++;
+			state.Value.Depth++;
 			return new Scope(this);
 		}
 
@@ -112,18 +112,29 @@
 
 		private void EndScope()
 		{
-			if (depth == 0)
+			var current = state.Value;
+			if (current.Depth == 0)
 			{
 				return;
 			}
 
-			depth--;
+			current.Depth--;
 
-			if (depth == 0)
+			if (current.Depth == 0)
 			{
-				configurationsById.Clear();
-				missingIds.Clear();
+				current.ConfigurationsById.Clear();
+				current.MissingIds.Clear();
 			}
+		}
+
+		private sealed class State
+		{
+			public Dictionary<Guid, ConfigurationInstance> ConfigurationsById { get; } = new Dictionary<Guid, ConfigurationInstance>();
+
+			// Identifiers that were looked up and do not exist, so a missing configuration is not re-read for every node.
+			public HashSet<Guid> MissingIds { get; } = new HashSet<Guid>();
+
+			public int Depth { get; set; }
 		}
 
 		private sealed class Scope : IDisposable
