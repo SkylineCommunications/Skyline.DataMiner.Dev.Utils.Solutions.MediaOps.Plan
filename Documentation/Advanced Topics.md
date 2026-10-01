@@ -159,6 +159,35 @@ using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 // - OrchestrationEventType.PostrollStop
 ```
 
+### Dynamic Inputs of an Orchestration Script
+
+A dynamic orchestration script defines its own inputs by field path; see the Orchestration documentation of the MediaOps Live DevPack.
+The `DynamicInputs` of the execution details hold either a value or a link per path. Only store the values that differ from the defaults of the script.
+
+```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Live.Orchestration.Script.Inputs;
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
+var details = new ScriptExecutionDetails("MyDynamicOrchestrationScript")
+    .AddDynamicInput(new DynamicInputSetting("Downlink/Band") { Value = "Ku" })
+    .AddDynamicInput(new DynamicInputSetting("Destinations/Destination 1/Endpoint") { Reference = new ResourceNameReference() });
+
+var orchestrationEvent = new OrchestrationEvent
+{
+    EventType = OrchestrationEventType.PrerollStart,
+    ExecutionDetails = details,
+};
+
+// Only the values that were provided directly; linked inputs are resolved for the job.
+OrchestrationInputValues values = details.GetDynamicInputValues();
+```
+
+- Setting `Value` clears `Reference` and the other way around. Adding an input for a path that already exists replaces it.
+- Only link a field whose `SupportsLinks` is `true` and that doesn't have `TriggersReevaluation` set. The MediaOps apps don't offer a link for other fields; date/time and duration fields can't be linked yet.
+- For a Confirmed or Running job, every linked input is resolved and checked against its field, like a linked profile parameter.
+  A link that can't be resolved, or whose value the field doesn't accept, is reported as an `OrchestrationSettingsUnresolvedReferenceError`.
+  A link to a field the script no longer has is kept, and is only checked for a value.
+
 ### Updating Job Orchestration State
 
 After an orchestration event has been executed, the job state can be updated:

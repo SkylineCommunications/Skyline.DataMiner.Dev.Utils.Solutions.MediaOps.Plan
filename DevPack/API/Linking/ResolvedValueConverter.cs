@@ -5,6 +5,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using System.Globalization;
 	using System.Linq;
 
+	using Skyline.DataMiner.Solutions.MediaOps.Live.Orchestration.Script.Inputs;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
 
 	using CoreParameter = Net.Profiles.Parameter;
@@ -114,6 +115,85 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <summary>
+		/// Converts the specified value into the value the given dynamic input field of an orchestration script can take.
+		/// A discrete field is matched on the display text of its options first and on their value next.
+		/// </summary>
+		/// <param name="value">The value that was resolved from the reference.</param>
+		/// <param name="target">The field that is going to hold the value.</param>
+		/// <param name="converted">When this method returns <see langword="true"/>, contains the value as the field holds it.</param>
+		/// <returns><see langword="true"/> when the field can hold the value; otherwise, <see langword="false"/>.</returns>
+		public static bool TryConvert(ResolvedValue value, OrchestrationInputField target, out OrchestrationInputValue converted)
+		{
+			converted = null;
+
+			if (value == null || !value.IsResolved || target == null || value.IsNullResolvedValue(out _))
+			{
+				return false;
+			}
+
+			switch (target)
+			{
+				case OrchestrationDiscreteInputField discrete:
+					{
+						var displayValue = value.DisplayValue;
+						var match = discrete.Options.FirstOrDefault(x => String.Equals(x.Display, displayValue, StringComparison.Ordinal))
+							?? discrete.Options.FirstOrDefault(x => String.Equals(x.Value?.ToString(), displayValue, StringComparison.Ordinal));
+
+						converted = match?.Value;
+						return converted != null;
+					}
+
+				case OrchestrationNumberInputField number:
+					{
+						if (!TryGetNumber(value, out var decimalValue))
+						{
+							return false;
+						}
+
+						var numberValue = (double)decimalValue;
+						if ((number.Minimum.HasValue && numberValue < number.Minimum.Value) || (number.Maximum.HasValue && numberValue > number.Maximum.Value))
+						{
+							return false;
+						}
+
+						converted = OrchestrationInputValue.FromNumber(numberValue);
+						return true;
+					}
+
+				case OrchestrationDateTimeInputField dateTime:
+					{
+						var text = Convert.ToString(value.GetRawValue(), CultureInfo.InvariantCulture);
+						if (String.IsNullOrEmpty(text) || !OrchestrationInputValue.FromText(text).TryGetDateTime(out var parsed))
+						{
+							return false;
+						}
+
+						converted = OrchestrationInputValue.FromDateTime(parsed);
+						return dateTime.IsValidValue(converted, out _);
+					}
+
+				case OrchestrationTimeSpanInputField timeSpan:
+					{
+						var candidate = TryGetNumber(value, out var seconds)
+							? OrchestrationInputValue.FromNumber((double)seconds)
+							: OrchestrationInputValue.FromText(Convert.ToString(value.GetRawValue(), CultureInfo.InvariantCulture) ?? String.Empty);
+
+						if (!candidate.TryGetTimeSpan(out var parsed))
+						{
+							return false;
+						}
+
+						converted = OrchestrationInputValue.FromTimeSpan(parsed);
+						return timeSpan.IsValidValue(converted, out _);
+					}
+
+				default:
+					converted = OrchestrationInputValue.FromText(Convert.ToString(value.GetRawValue(), CultureInfo.InvariantCulture) ?? String.Empty);
+					return target.IsValidValue(converted, out _);
+			}
+		}
+
+		/// <summary>
 		/// Returns why the specified value cannot be used for the given target parameter, or <see langword="null"/>
 		/// when it can. The text completes the sentence "Reference 'X' ...".
 		/// </summary>
@@ -134,6 +214,45 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return TryGetNumberRange(target, out var rangeMin, out var rangeMax)
 				? DescribeNumberFailure(value, target?.Name, rangeMin, rangeMax)
 				: DescribeOptionFailure(value, target?.Name);
+		}
+
+		/// <summary>
+		/// Returns why the specified value cannot be used for the given dynamic input field, or <see langword="null"/>
+		/// when it can. The text completes the sentence "Reference 'X' ...".
+		/// </summary>
+		/// <param name="value">The value that was resolved from the reference.</param>
+		/// <param name="target">The field that is going to hold the value.</param>
+		internal static string GetFailureReason(ResolvedValue value, OrchestrationInputField target)
+		{
+			if (target == null)
+			{
+				throw new ArgumentNullException(nameof(target));
+			}
+
+			if (value == null || !value.IsResolved)
+			{
+				return NotResolvedReason;
+			}
+
+			// An optional input may stay empty when the linked data has no value.
+			if (TryConvert(value, target, out _) || (!target.IsRequired && value.IsNullResolvedValue(out _)))
+			{
+				return null;
+			}
+
+			switch (target)
+			{
+				case OrchestrationNumberInputField number:
+					return DescribeNumberFailure(value, target.Path, ToDecimalBound(number.Minimum), ToDecimalBound(number.Maximum));
+
+				case OrchestrationDiscreteInputField _:
+					return DescribeOptionFailure(value, target.Path);
+
+				default:
+					return String.IsNullOrEmpty(value.DisplayValue)
+						? $"does not resolve to a value for {DescribeParameter(target.Path)}."
+						: $"resolves to '{value.DisplayValue}', which is not a valid value for {DescribeParameter(target.Path)}.";
+			}
 		}
 
 		private static string DescribeNumberFailure(ResolvedValue value, string parameterName, decimal? rangeMin, decimal? rangeMax)
@@ -190,15 +309,24 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 			if (rangeMin.HasValue && rangeMax.HasValue)
 			{
-				return $"{rangeMin} to {rangeMax}";
+				return String.Format(CultureInfo.InvariantCulture, "{0} to {1}", rangeMin.Value, rangeMax.Value);
 			}
 
-			return rangeMin.HasValue ? $"minimum {rangeMin}" : $"maximum {rangeMax}";
+			return rangeMin.HasValue
+				? String.Format(CultureInfo.InvariantCulture, "minimum {0}", rangeMin.Value)
+				: String.Format(CultureInfo.InvariantCulture, "maximum {0}", rangeMax);
 		}
 
 		private static decimal? ToRangeBound(double value, double sentinel)
 		{
 			return Double.IsNaN(value) || value.Equals(sentinel) ? (decimal?)null : (decimal)value;
+		}
+
+		private static decimal? ToDecimalBound(double? value)
+		{
+			return value.HasValue && value.Value >= (double)Decimal.MinValue && value.Value <= (double)Decimal.MaxValue
+				? (decimal)value.Value
+				: (decimal?)null;
 		}
 
 		private static bool TryMatchNumber(ResolvedValue value, decimal? rangeMin, decimal? rangeMax, out ResolvedValue converted)

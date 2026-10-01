@@ -4,6 +4,7 @@
 	using System.Collections.Generic;
 	using System.Linq;
 
+	using Skyline.DataMiner.Solutions.MediaOps.Live.Orchestration.Script.Inputs;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
 
@@ -73,6 +74,8 @@
 				return;
 			}
 
+			var validator = new OrchestrationEventReferenceValidator(planApi, referenceValidationContext.Definitions);
+
 			foreach (var orchestrationSettings in apiOrchestrationSettings)
 			{
 				if (!referenceValidationContext.TryGetTarget(orchestrationSettings.Id, out var resolver, out var owningNodeId, out var reportErrors) || !reportErrors)
@@ -80,62 +83,22 @@
 					continue;
 				}
 
-				foreach (var entry in EnumerateEventReferences(orchestrationSettings))
+				foreach (var (reference, reason) in validator.GetFailures(orchestrationSettings, resolver, owningNodeId))
 				{
-					var reason = GetUnresolvedReason(resolver, entry, owningNodeId);
-					if (reason == null)
-					{
-						continue;
-					}
-
-					var label = resolver.GetDisplayLabel(entry.Reference);
-					ReportError(orchestrationSettings.Id, new OrchestrationSettingsUnresolvedReferenceError
-					{
-						Id = orchestrationSettings.Id,
-						Reference = label,
-						ErrorMessage = $"Reference '{label}' {reason}",
-					});
+					ReportUnresolvedReference(orchestrationSettings, resolver, reference, reason);
 				}
 			}
 		}
 
-		// Returns null when the reference produced a value the parameter it feeds can take. A parameter can be a
-		// dropdown, which only holds one of its own options, so the resolved value has to fit it as well.
-		private string GetUnresolvedReason(ReferenceResolver resolver, (DataReference Reference, Guid? TargetParameterId) entry, string owningNodeId)
+		private void ReportUnresolvedReference(TApiSettings orchestrationSettings, ReferenceResolver resolver, DataReference reference, string reason)
 		{
-			ResolvedValue resolved;
-			try
+			var label = resolver.GetDisplayLabel(reference);
+			ReportError(orchestrationSettings.Id, new OrchestrationSettingsUnresolvedReferenceError
 			{
-				resolved = resolver.ResolveValue(entry.Reference, owningNodeId);
-			}
-			catch (Exception)
-			{
-				resolved = null;
-			}
-
-			// A script element or parameter has no target parameter, so it takes any value.
-			var target = entry.TargetParameterId == null
-				? null
-				: referenceValidationContext.Definitions.GetParameterDefinition(entry.TargetParameterId.Value);
-
-			return ResolvedValueConverter.GetFailureReason(resolved, target);
-		}
-
-		private static IEnumerable<(DataReference Reference, Guid? TargetParameterId)> EnumerateEventReferences(OrchestrationSettings orchestrationSettings)
-		{
-			return orchestrationSettings.OrchestrationEvents
-				.Select(orchestrationEvent => orchestrationEvent.ExecutionDetails)
-				.Where(executionDetails => executionDetails != null)
-				.SelectMany(EnumerateExecutionDetailReferences);
-		}
-
-		private static IEnumerable<(DataReference Reference, Guid? TargetParameterId)> EnumerateExecutionDetailReferences(ScriptExecutionDetails executionDetails)
-		{
-			return executionDetails.ScriptElements.Where(x => x.HasReference).Select(x => (x.Reference, (Guid?)null))
-				.Concat(executionDetails.ScriptParameters.Where(x => x.HasReference).Select(x => (x.Reference, (Guid?)null)))
-				.Concat(executionDetails.Capabilities.Where(x => x.HasReference).Select(x => (x.Reference, (Guid?)x.Id)))
-				.Concat(executionDetails.Capacities.Where(x => x.HasReference).Select(x => (x.Reference, (Guid?)x.Id)))
-				.Concat(executionDetails.Configurations.Where(x => x.HasReference).Select(x => (x.Reference, (Guid?)x.Id)));
+				Id = orchestrationSettings.Id,
+				Reference = label,
+				ErrorMessage = $"Reference '{label}' {reason}",
+			});
 		}
 
 		private void ValidateCapacities(ICollection<TApiSettings> apiOrchestrationSettings)
