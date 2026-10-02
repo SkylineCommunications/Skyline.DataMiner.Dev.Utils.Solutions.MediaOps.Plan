@@ -691,6 +691,20 @@
 			var elementId = agent.CreateElement(configuration);
 
 			createdElementIds.Add(elementId);
+
+			// CreateElement returns before the element is visible through SLNet; on a loaded DMA this can take a few seconds.
+			var timeout = TimeSpan.FromSeconds(30);
+			var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+			while (!Dms.ElementExists(elementId))
+			{
+				if (stopwatch.Elapsed > timeout)
+				{
+					throw new TimeoutException($"Element '{elementId}' was not available within {timeout.TotalSeconds} seconds after creation.");
+				}
+
+				System.Threading.Thread.Sleep(500);
+			}
+
 			return elementId;
 		}
 
