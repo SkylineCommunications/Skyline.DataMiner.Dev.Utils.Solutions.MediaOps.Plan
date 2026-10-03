@@ -83,6 +83,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 						var objects = request.ResourceManagerObjects ?? new List<Resource>();
 						var updatedResources = new List<Resource>();
 						var handled = new List<Resource>(objects.Count);
+						var traceData = new TraceData();
 
 						foreach (var resource in objects)
 						{
@@ -110,10 +111,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 
 						if (!request.isDelete && request.ForceQuarantine)
 						{
-							ApplyQuarantineForUpdatedResources(updatedResources);
+							foreach (var quarantineError in ApplyQuarantineForUpdatedResources(updatedResources))
+							{
+								traceData.Add(quarantineError);
+							}
 						}
 
-						response = new ResourceResponseMessage(handled.ToArray()) { Success = true };
+						response = new ResourceResponseMessage(handled.ToArray()) { Success = true, TraceData = traceData };
 						return true;
 					}
 
@@ -516,11 +520,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 			return GetOverlappingResourceUsages(resource.GUID, context).Count() + 1 <= Math.Max(1, resource.MaxConcurrency);
 		}
 
-		private void ApplyQuarantineForUpdatedResources(IReadOnlyCollection<Resource> updatedResources)
+		private IReadOnlyCollection<ResourceManagerErrorData> ApplyQuarantineForUpdatedResources(IReadOnlyCollection<Resource> updatedResources)
 		{
+			var quarantineErrors = new List<ResourceManagerErrorData>();
+
 			foreach (var resource in updatedResources)
 			{
 				var maxConcurrency = Math.Max(1, resource.MaxConcurrency);
+				var quarantinedPerReservation = new Dictionary<Guid, QuarantinedUsagesOnSingleReservation>();
 				var usages = _reservationInstances.Values
 					.Where(x => ConsumesCapacity(x.Status))
 					.SelectMany(reservation => reservation.ResourcesInReservationInstance
@@ -543,12 +550,23 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 					if (overlappingAcceptedUsages.Count >= maxConcurrency)
 					{
 						MoveUsageToQuarantine(usage.Reservation, usage.Usage, QuarantineTrigger.Reason.ConcurrencyDowngraded);
+						AddQuarantinedUsage(quarantinedPerReservation, usage, Array.Empty<Guid>());
 						continue;
 					}
 
 					acceptedUsages.Add(usage);
 				}
+
+				if (quarantinedPerReservation.Count > 0)
+				{
+					quarantineErrors.Add(new ResourceManagerErrorData(ResourceManagerErrorData.Reason.ResourceUpdateCausedReservationsToGoToQuarantine, resource.GUID)
+					{
+						MustBeMovedToQuarantine = quarantinedPerReservation.Values.ToList(),
+					});
+				}
 			}
+
+			return quarantineErrors;
 		}
 
 		/// <summary>

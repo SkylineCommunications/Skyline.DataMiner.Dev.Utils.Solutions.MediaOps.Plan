@@ -2,6 +2,7 @@
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Globalization;
 	using System.Linq;
 
 	using Skyline.DataMiner.Core.DataMinerSystem.Common;
@@ -9,13 +10,16 @@
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Helper;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+	using Skyline.DataMiner.Net.ResponseErrorData;
 	using Skyline.DataMiner.Net.SRM.Capacities;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
 
+	using CoreReservation = Net.ResourceManager.Objects.ReservationInstance;
 	using CoreFunctionResource = Net.ResourceManager.Objects.FunctionResource;
 	using CoreResource = Net.Messages.Resource;
+	using DomJob = Storage.DOM.SlcWorkflow.JobsInstance;
 	using DomResource = Storage.DOM.SlcResource_Studio.ResourceInstance;
 	using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
 
@@ -349,7 +353,7 @@
 
 				if (result.TraceDataPerItem.TryGetValue(id, out var traceData))
 				{
-					traceDataPerItem.Add(domResource.ID.Id, traceData);
+					traceDataPerItem.Add(domResource.ID.Id, TranslateCoreCreateOrUpdateTraceData(domResource, traceData));
 				}
 			}
 
@@ -513,7 +517,7 @@
 
 				if (result.TraceDataPerItem.TryGetValue(id, out var traceData))
 				{
-					traceDataPerItem.Add(domResource.ID.Id, traceData);
+					traceDataPerItem.Add(domResource.ID.Id, TranslateCoreCreateOrUpdateTraceData(domResource, traceData));
 				}
 			}
 
@@ -1118,6 +1122,172 @@
 			}
 
 			mediaOpsTraceData.Add(error);
+		}
+
+		private MediaOpsTraceData TranslateCoreCreateOrUpdateTraceData(DomResource domResource, MediaOpsTraceData traceData)
+		{
+			if (domResource == null)
+			{
+				throw new ArgumentNullException(nameof(domResource));
+			}
+
+			if (traceData == null || traceData.ErrorData.Count == 0)
+			{
+				return traceData ?? new MediaOpsTraceData();
+			}
+
+			var translatedTraceData = new MediaOpsTraceData();
+			foreach (var error in traceData.ErrorData)
+			{
+				translatedTraceData.Add(TranslateCoreCreateOrUpdateError(domResource, error));
+			}
+
+			return translatedTraceData;
+		}
+
+		private MediaOpsErrorData TranslateCoreCreateOrUpdateError(DomResource domResource, MediaOpsErrorData error)
+		{
+			if (error is ResourceUpdateCausedReservationsToGoToQuarantineError quarantineError
+				&& TryComposeResourceUpdateCausedQuarantineMessage(domResource, quarantineError.ResourceManagerError, out var message))
+			{
+				return new ResourceError
+				{
+					Id = domResource.ID.Id,
+					ErrorMessage = message,
+				};
+			}
+
+			return error;
+		}
+
+		private bool TryComposeResourceUpdateCausedQuarantineMessage(DomResource domResource, ResourceManagerErrorData error, out string message)
+		{
+			message = null;
+
+			if (domResource == null || error == null)
+			{
+				return false;
+			}
+
+			var coreResourceId = error.SubjectId.GetValueOrDefault();
+			if (coreResourceId == Guid.Empty)
+			{
+				coreResourceId = domResource.ResourceInternalProperties.Resource_Id.GetValueOrDefault();
+			}
+
+			var impactedJobs = ResolveImpactedJobs(error, coreResourceId);
+			if (impactedJobs.Count == 0)
+			{
+				return false;
+			}
+
+			var resourceName = !String.IsNullOrWhiteSpace(domResource.ResourceInfo?.Name) ? domResource.ResourceInfo.Name : domResource.ID.Id.ToString();
+			var impactedJobsLabel = impactedJobs.Count == 1 ? "job" : "jobs";
+			message = $"Updating resource '{resourceName}' (ID '{domResource.ID.Id}') would move the following {impactedJobsLabel} to quarantine: {String.Join(", ", impactedJobs.Select(FormatImpactedJob))}.";
+			return true;
+		}
+
+		private IReadOnlyCollection<ImpactedJobInfo> ResolveImpactedJobs(ResourceManagerErrorData error, Guid coreResourceId)
+		{
+			var impactedReservations = (error.MustBeMovedToQuarantine ?? new List<Net.SRM.Quarantine.QuarantinedUsagesOnSingleReservation>())
+				.Where(x => x?.ReservationInstance != null)
+				.Where(x => coreResourceId == Guid.Empty
+					|| (x.QuarantinedUsages ?? new List<Net.SRM.Quarantine.QuarantinedResourceUsageDefinition>())
+						.Any(y => y?.QuarantinedResourceUsage != null && y.QuarantinedResourceUsage.GUID == coreResourceId))
+				.Select(x => x.ReservationInstance)
+				.ToList();
+
+			if (impactedReservations.Count == 0)
+			{
+				return [];
+			}
+
+			var jobIds = impactedReservations.Select(GetJobId).Where(x => x != Guid.Empty).Distinct().ToList();
+			var jobsById = jobIds.Count > 0
+				? planApi.DomHelpers.SlcWorkflowHelper.GetJobs(jobIds).ToDictionary(x => x.ID.Id)
+				: new Dictionary<Guid, DomJob>();
+
+			var impactedJobs = new List<ImpactedJobInfo>();
+			foreach (var reservation in impactedReservations)
+			{
+				var jobId = GetJobId(reservation);
+				jobsById.TryGetValue(jobId, out var job);
+				impactedJobs.Add(new ImpactedJobInfo(
+					reservation.ID,
+					jobId,
+					job != null ? job.JobInfo.JobName : null,
+					job != null ? job.JobInfo.JobID : null,
+					reservation.Start,
+					reservation.End,
+					reservation.Name));
+			}
+
+			return impactedJobs;
+		}
+
+		private static Guid GetJobId(CoreReservation reservation)
+		{
+			if (reservation?.Properties?.Dictionary == null
+				|| !reservation.Properties.Dictionary.TryGetValue(CoreJobHandler.JobIdPropertyName, out var value))
+			{
+				return Guid.Empty;
+			}
+
+			return Guid.TryParse(Convert.ToString(value), out var jobId) ? jobId : Guid.Empty;
+		}
+
+		private static string FormatImpactedJob(ImpactedJobInfo impactedJob)
+		{
+			var displayName = !String.IsNullOrWhiteSpace(impactedJob.Name) ? impactedJob.Name : impactedJob.FallbackName;
+			if (String.IsNullOrWhiteSpace(displayName))
+			{
+				displayName = impactedJob.JobId != Guid.Empty ? $"Job ID {impactedJob.JobId}" : $"Reservation {impactedJob.ReservationId}";
+			}
+
+			var details = new List<string>();
+			if (!String.IsNullOrWhiteSpace(impactedJob.Key))
+			{
+				details.Add(impactedJob.Key);
+			}
+			else if (impactedJob.JobId != Guid.Empty)
+			{
+				details.Add($"Job ID {impactedJob.JobId}");
+			}
+
+			if (impactedJob.Start != default && impactedJob.End != default)
+			{
+				details.Add($"{impactedJob.Start.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)} - {impactedJob.End.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)}");
+			}
+
+			return details.Count == 0 ? $"'{displayName}'" : $"'{displayName}' ({String.Join("; ", details)})";
+		}
+
+		private sealed class ImpactedJobInfo
+		{
+			public ImpactedJobInfo(Guid reservationId, Guid jobId, string name, string key, DateTime start, DateTime end, string fallbackName)
+			{
+				ReservationId = reservationId;
+				JobId = jobId;
+				Name = name;
+				Key = key;
+				Start = start;
+				End = end;
+				FallbackName = fallbackName;
+			}
+
+			public Guid ReservationId { get; }
+
+			public Guid JobId { get; }
+
+			public string Name { get; }
+
+			public string Key { get; }
+
+			public DateTime Start { get; }
+
+			public DateTime End { get; }
+
+			public string FallbackName { get; }
 		}
 
 		private void SyncName(DomResource domResource, CoreResource coreResource, ICollection<SynchronizationDifference> differences)
