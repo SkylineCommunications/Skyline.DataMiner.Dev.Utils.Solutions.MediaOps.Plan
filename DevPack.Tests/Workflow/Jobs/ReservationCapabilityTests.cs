@@ -65,6 +65,63 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void DomJobHandler_Update_OneOfTwoQuarantinedNodesFixed_ReleasesOnlyTheFixedUsage()
+		{
+			var setup = CreateSetup();
+
+			var resourceCapability = new CapabilitySettings(setup.Capability);
+			resourceCapability.SetDiscretes(["Value 1", "Value 2"]);
+			var otherResource = new UnmanagedResource { Name = $"{setup.Prefix}_Resource_2" };
+			otherResource.AddCapability(resourceCapability);
+			otherResource.AssignToPool(setup.Pool);
+			var secondResource = TestContext.Api.Resources.Complete(objectCreator.CreateResource(otherResource));
+
+			var job = CreateTentativeJob(setup.Prefix, x =>
+			{
+				foreach (var resource in new[] { setup.Resource, secondResource })
+				{
+					var node = new JobResourceNode(setup.Pool, resource);
+					node.OrchestrationSettings.AddCapability(new CapabilitySetting(setup.Capability) { Value = "Value 1" });
+					x.NodeGraph.Add(node);
+				}
+			});
+
+			// Removing the required option from both resources with a forced update pushes both usages into quarantine.
+			var coreResources = new[] { setup.Resource, secondResource }
+				.Select(x => TestContext.ResourceManagerHelper.GetResource(x.CoreResourceId))
+				.ToList();
+			foreach (var coreResource in coreResources)
+			{
+				coreResource.Capabilities.Single(x => x.CapabilityProfileID == setup.Capability.Id).Value.Discreets = new List<string> { "Value 2" };
+			}
+
+			TestContext.ResourceManagerHelper.AddOrUpdateResources(true, coreResources.ToArray());
+
+			Assert.AreEqual(2, GetReservation(job.Id).QuarantinedResources.Count, "Expected both usages to be quarantined after the forced capability downgrade.");
+
+			var quarantinedJob = TestContext.Api.Jobs.Read(job.Id);
+			TestContext.Api.Jobs.Validate([quarantinedJob]).Single().SyncToJob();
+			quarantinedJob = TestContext.Api.Jobs.Update(quarantinedJob);
+			Assert.IsTrue(quarantinedJob.Errors.Any(x => x.Code == QuarantinedReservationJobValidationError.ErrorCode), "Expected the quarantine error on the job.");
+
+			// Only the node of the first resource is changed to an option that its resource still offers.
+			quarantinedJob.NodeGraph.Nodes.OfType<JobResourceNode>().Single(x => x.ResourceId == setup.Resource.Id).OrchestrationSettings.Capabilities.Single().Value = "Value 2";
+			var updatedJob = TestContext.Api.Jobs.Update(quarantinedJob);
+
+			Assert.IsTrue(updatedJob.Errors.Any(x => x.Code == QuarantinedReservationJobValidationError.ErrorCode), "Expected the quarantine error to remain while the second node is still quarantined.");
+
+			var reservation = GetReservation(job.Id);
+			Assert.IsTrue(reservation.IsQuarantined, "Expected the reservation to remain quarantined.");
+
+			var quarantinedUsage = reservation.QuarantinedResources.Select(x => x.QuarantinedResourceUsage).OfType<ServiceResourceUsageDefinition>().Single();
+			Assert.AreEqual(secondResource.CoreResourceId, quarantinedUsage.GUID, "Expected only the usage of the unchanged node to remain quarantined.");
+
+			var releasedUsage = reservation.ResourcesInReservationInstance.OfType<ServiceResourceUsageDefinition>().Single();
+			Assert.AreEqual(setup.Resource.CoreResourceId, releasedUsage.GUID, "Expected the usage of the fixed node to be released from quarantine.");
+			Assert.AreEqual("Value 2", releasedUsage.RequiredCapabilities.Single(x => x.CapabilityProfileID == setup.Capability.Id).RequiredDiscreet);
+		}
+
+		[TestMethod]
 		public void DomJobHandler_Update_NodeCapabilityChanged_ReservationRequiresNewValue()
 		{
 			var setup = CreateSetup();

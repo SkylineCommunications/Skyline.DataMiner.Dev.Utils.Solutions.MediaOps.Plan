@@ -145,18 +145,86 @@
 
 			// A quarantined reservation is first submitted with all of its quarantined usages released, as the update
 			// (or a change made outside of the job, such as a resource of which the concurrency, capability or capacity
-			// was restored) may have resolved the quarantine. When the core software refuses that, the reservation is
-			// submitted again with the usages of the resources that are still assigned kept in quarantine, so an update
-			// that does not resolve the quarantine is still saved and the job keeps reporting the quarantine.
-			var releaseAttemptJobs = CreateOrUpdate(domJobs, keepQuarantine: false);
-			if (releaseAttemptJobs.Count > 0)
+			// was restored) may have resolved the quarantine. When the core software refuses that, the quarantined usages
+			// of the resources that are still assigned are released one by one while the others are kept in quarantine,
+			// so a usage that was resolved is released even when another usage of the reservation is still invalid.
+			// When none of those releases is accepted, the reservation is submitted with all of these usages kept in
+			// quarantine, so an update that does not resolve the quarantine is still saved and the job keeps reporting it.
+			var refusedReleases = CreateOrUpdate(domJobs, (job, usage) => true);
+			if (refusedReleases.Count == 0)
 			{
-				CreateOrUpdate(releaseAttemptJobs, keepQuarantine: true);
+				return;
+			}
+
+			var savedJobs = ReleaseQuarantinedUsagesOneByOne(refusedReleases);
+			ReportSuccess(savedJobs);
+
+			var remainingJobs = refusedReleases.Except(savedJobs).ToList();
+			if (remainingJobs.Count > 0)
+			{
+				CreateOrUpdate(remainingJobs, releaseQuarantinedUsage: null);
 			}
 		}
 
-		// Returns the jobs of which the release of the quarantined usages was refused, without reporting them as failed.
-		private List<DomJob> CreateOrUpdate(ICollection<DomJob> domJobs, bool keepQuarantine)
+		// Returns the jobs of which a reservation was saved with one of its quarantined usages released.
+		private List<DomJob> ReleaseQuarantinedUsagesOneByOne(ICollection<DomJob> domJobs)
+		{
+			var savedJobs = new List<DomJob>();
+			var triedUsagesByJobId = domJobs.ToDictionary(x => x.ID.Id, x => new List<ServiceResourceUsageDefinition>());
+			var pendingJobs = domJobs.ToList();
+			bool isFirstRound = true;
+
+			while (pendingJobs.Count > 0)
+			{
+				var usageToReleaseByJobId = new Dictionary<Guid, ServiceResourceUsageDefinition>();
+				foreach (var mapping in JobReservationMapping.GetMappings(planApi, pendingJobs))
+				{
+					var expectedUsages = ResourceUsageBuilder.BuildUsages(planApi, mapping.Job);
+					var triedUsages = triedUsagesByJobId[mapping.Job.ID.Id];
+					var keptUsages = expectedUsages
+						.Where(x => mapping.Reservation.QuarantinedResources.Any(y => IsSameAssignment(y.QuarantinedResourceUsage, x)))
+						.ToList();
+
+					// Releasing the only usage that would be kept is what the first submission already attempted.
+					if (isFirstRound && keptUsages.Count < 2)
+					{
+						continue;
+					}
+
+					var usageToRelease = keptUsages.FirstOrDefault(x => !triedUsages.Any(y => IsSameAssignment(y, x)));
+					if (usageToRelease == null)
+					{
+						continue;
+					}
+
+					triedUsages.Add(usageToRelease);
+					usageToReleaseByJobId.Add(mapping.Job.ID.Id, usageToRelease);
+				}
+
+				pendingJobs = pendingJobs.Where(x => usageToReleaseByJobId.ContainsKey(x.ID.Id)).ToList();
+				if (pendingJobs.Count == 0)
+				{
+					break;
+				}
+
+				var savedReleases = new List<DomJob>();
+				CreateOrUpdate(
+					pendingJobs,
+					(job, usage) => usageToReleaseByJobId.TryGetValue(job.ID.Id, out var releasedUsage) && IsSameAssignment(usage, releasedUsage),
+					savedReleases);
+
+				savedJobs.AddRange(savedReleases.Where(x => !savedJobs.Contains(x)));
+				isFirstRound = false;
+			}
+
+			return savedJobs;
+		}
+
+		// When releaseQuarantinedUsage is provided, the submission is an attempt to release (some of) the quarantined usages of the
+		// resources that are still assigned: the jobs of which such a release was refused are returned without reporting them as
+		// failed, and when savedReleases is provided, the jobs of which such a release was saved are added to it instead of being
+		// reported as successful. Without releaseQuarantinedUsage, all of these usages are kept in quarantine.
+		private List<DomJob> CreateOrUpdate(ICollection<DomJob> domJobs, Func<DomJob, Skyline.DataMiner.Net.Messages.ResourceUsageDefinition, bool> releaseQuarantinedUsage, ICollection<DomJob> savedReleases = null)
 		{
 			var jobByReservationId = new Dictionary<Guid, DomJob>();
 			var releasedReservationIds = new HashSet<Guid>();
@@ -173,12 +241,12 @@
 					newReservationIds.Add(reservation.ID);
 				}
 
-				if (!keepQuarantine && reservation.IsQuarantined)
+				if (releaseQuarantinedUsage != null && reservation.IsQuarantined)
 				{
 					releasedReservationIds.Add(reservation.ID);
 				}
 
-				if (!SyncJobWithReservation(job, ref reservation, keepQuarantine))
+				if (!SyncJobWithReservation(job, ref reservation, releaseQuarantinedUsage))
 				{
 					planApi.Logger.Information(this, $"No update required for Job with ID {job.ID.Id} and Reservation with ID {reservation.ID}.");
 					continue;
@@ -233,6 +301,12 @@
 				if (reservation == null)
 				{
 					planApi.Logger.Error(this, $"Linkable object with ID {linkableObject.ID} is not of type CoreReservation.");
+					continue;
+				}
+
+				if (savedReleases != null && releasedReservationIds.Contains(reservation.ID))
+				{
+					savedReleases.Add(domJob);
 					continue;
 				}
 
@@ -639,7 +713,7 @@
 			}
 		}
 
-		private bool SyncJobWithReservation(DomJob job, ref CoreReservation reservation, bool keepQuarantine)
+		private bool SyncJobWithReservation(DomJob job, ref CoreReservation reservation, Func<DomJob, Skyline.DataMiner.Net.Messages.ResourceUsageDefinition, bool> releaseQuarantinedUsage)
 		{
 			bool updateRequired = false;
 
@@ -649,7 +723,7 @@
 			updateRequired |= SyncProperties(job, reservation);
 			updateRequired |= SyncTime(job, ref reservation);
 			updateRequired |= SyncEvents(reservation);
-			updateRequired |= SyncResources(job, reservation, keepQuarantine);
+			updateRequired |= SyncResources(job, reservation, releaseQuarantinedUsage);
 
 			return updateRequired;
 		}
@@ -777,7 +851,7 @@
 			return updateRequired;
 		}
 
-		private bool SyncResources(DomJob job, CoreReservation reservation, bool keepQuarantine)
+		private bool SyncResources(DomJob job, CoreReservation reservation, Func<DomJob, Skyline.DataMiner.Net.Messages.ResourceUsageDefinition, bool> releaseQuarantinedUsage)
 		{
 			var expectedUsages = ResourceUsageBuilder.BuildUsages(planApi, job);
 
@@ -793,11 +867,12 @@
 				return true;
 			}
 
-			// Without keeping the quarantine, every quarantined usage is released and the expected usages are submitted
-			// as a whole. Otherwise, a quarantined usage stays in quarantine as long as the same resource is still
-			// assigned to the same node, even when its requirements changed; a usage of a resource that is no longer
-			// expected (for example a swapped or removed resource) is released.
-			reservation.QuarantinedResources.RemoveAll(x => !keepQuarantine || !expectedUsages.Any(y => IsSameAssignment(x.QuarantinedResourceUsage, y)));
+			// A quarantined usage stays in quarantine as long as the same resource is still assigned to the same node, even
+			// when its requirements changed, unless it is selected to be released; a usage of a resource that is no longer
+			// expected (for example a swapped or removed resource) is always released.
+			reservation.QuarantinedResources.RemoveAll(x =>
+				!expectedUsages.Any(y => IsSameAssignment(x.QuarantinedResourceUsage, y))
+				|| (releaseQuarantinedUsage != null && releaseQuarantinedUsage(job, x.QuarantinedResourceUsage)));
 
 			reservation.ResourcesInReservationInstance.AddRange(expectedUsages.Where(x =>
 				!reservation.QuarantinedResources.Any(y => IsSameAssignment(y.QuarantinedResourceUsage, x))));
