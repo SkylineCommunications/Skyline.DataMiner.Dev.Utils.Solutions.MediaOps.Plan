@@ -40,10 +40,10 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 		}
 
 		/// <summary>Configures the events while the job is still a draft, the way the job is built in the field.</summary>
-		private static Job ConfirmJobWithElementLinkedEvents(ReferenceTestContext context, DataReference reference)
+		private static Job ConfirmJobWithElementLinkedEvents(ReferenceTestContext context, DataReference reference, params ResourcePropertySettings[] resourceProperties)
 		{
 			var pool = context.CreatePool();
-			var resource = context.CreateResource(pool);
+			var resource = context.CreateResource(pool, resourceProperties);
 
 			var start = ReferenceTestContext.ScheduleStart;
 			var job = new Job
@@ -152,6 +152,20 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 			var context = ReferenceTestContext.Create();
 
 			var job = ConfirmJobWithElementLinkedEvents(context, new ResourceLinkedObjectIdReference());
+
+			Assert.AreEqual(JobState.Confirmed, job.State);
+		}
+
+		[TestMethod]
+		public void OrchestrationEventReferenceTests_ResourcePropertyReferenceWithoutNodeId_IsAcceptedWhenConfirmingTheJob()
+		{
+			var context = ReferenceTestContext.Create();
+			var resourceProperty = context.CreateResourceProperty();
+
+			var job = ConfirmJobWithElementLinkedEvents(
+				context,
+				new ResourcePropertyReference(resourceProperty.Id),
+				new ResourcePropertySettings(resourceProperty.Id) { Value = "Property value" });
 
 			Assert.AreEqual(JobState.Confirmed, job.State);
 		}
