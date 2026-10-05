@@ -762,39 +762,15 @@
 				return true;
 			}
 
-			reservation.QuarantinedResources.RemoveAll(x =>
-			{
-				// Can be removed if not present in expected usages
-				var coreResourceUsages = expectedUsages.Where(y => y.GUID == x.QuarantinedResourceUsage.GUID).ToList();
-				if (coreResourceUsages.Count == 0)
-				{
-					return true;
-				}
-
-				// Cannot be removed if the corresponding ServiceDefinitionNodeID is still present in expected usages, even if other details differ
-				if (coreResourceUsages.Select(y => y.ServiceDefinitionNodeID).Contains(((ServiceResourceUsageDefinition)x.QuarantinedResourceUsage).ServiceDefinitionNodeID))
-				{
-					return false;
-				}
-
-				return true;
-			});
+			// A quarantined usage only stays in quarantine while the job still requires exactly the same usage: the same
+			// resource on the same node with the same required capabilities and capacities. A usage that is no longer
+			// expected (for example a swapped or removed resource), or whose requirements changed (for example a lowered
+			// capacity in the node configuration), is released from quarantine. The updated usage is then submitted to
+			// SRM again, which either accepts it (lifting the quarantine) or refuses the update.
+			reservation.QuarantinedResources.RemoveAll(x => !expectedUsages.Any(y => IsSameUsage(x.QuarantinedResourceUsage, y)));
 
 			reservation.ResourcesInReservationInstance.AddRange(expectedUsages.Where(x =>
-			{
-				var coreResourcesInQuarantine = reservation.QuarantinedResources.Where(y => y.QuarantinedResourceUsage.GUID == x.GUID).ToList();
-				if (coreResourcesInQuarantine.Count == 0)
-				{
-					return true;
-				}
-
-				if (coreResourcesInQuarantine.Select(y => ((ServiceResourceUsageDefinition)y.QuarantinedResourceUsage).ServiceDefinitionNodeID).Contains(x.ServiceDefinitionNodeID))
-				{
-					return false;
-				}
-
-				return true;
-			}));
+				!reservation.QuarantinedResources.Any(y => IsSameUsage(y.QuarantinedResourceUsage, x))));
 
 			if (reservation.QuarantinedResources.Count == 0)
 			{
@@ -809,6 +785,19 @@
 			}
 
 			return true;
+		}
+
+		private static bool IsSameUsage(Skyline.DataMiner.Net.Messages.ResourceUsageDefinition quarantinedUsage, ServiceResourceUsageDefinition expectedUsage)
+		{
+			if (!(quarantinedUsage is ServiceResourceUsageDefinition serviceUsage))
+			{
+				return false;
+			}
+
+			return serviceUsage.GUID == expectedUsage.GUID
+				&& serviceUsage.ServiceDefinitionNodeID == expectedUsage.ServiceDefinitionNodeID
+				&& (serviceUsage.RequiredCapabilities ?? new List<ResourceCapabilityUsage>()).ScrambledEquals(expectedUsage.RequiredCapabilities ?? new List<ResourceCapabilityUsage>())
+				&& (serviceUsage.RequiredCapacities ?? new List<MultiResourceCapacityUsage>()).ScrambledEquals(expectedUsage.RequiredCapacities ?? new List<MultiResourceCapacityUsage>());
 		}
 
 		private static class ReservationNameComposer

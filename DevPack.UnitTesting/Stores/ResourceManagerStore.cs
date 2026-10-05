@@ -546,9 +546,25 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 						continue;
 					}
 
+					if (!HasCapacityAvailable(resource, usage.Usage, overlappingAcceptedUsages.Select(x => x.Usage).ToList()))
+					{
+						MoveUsageToQuarantine(usage.Reservation, usage.Usage, QuarantineTrigger.Reason.CapacityDowngraded);
+						continue;
+					}
+
 					acceptedUsages.Add(usage);
 				}
 			}
+		}
+
+		private static bool HasCapacityAvailable(Resource resource, ServiceResourceUsageDefinition usage, IReadOnlyCollection<ServiceResourceUsageDefinition> otherUsages)
+		{
+			if (UsesCompleteResource(usage))
+			{
+				return true;
+			}
+
+			return usage.RequiredCapacities.All(x => HasCapacityAvailable(resource, x, otherUsages));
 		}
 
 		/// <summary>

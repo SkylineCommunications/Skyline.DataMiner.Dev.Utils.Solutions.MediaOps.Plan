@@ -302,5 +302,99 @@
 				TestContext.Api.Jobs.Read(updatedJob.Id).Errors.Any(x => x.Code == QuarantinedReservationJobValidationError.ErrorCode),
 				"Expected the quarantine error to be cleared on the stored job after swapping the quarantined resource.");
 		}
+
+		[TestMethod]
+		public void LowerRequiredCapacityOfQuarantinedNode_ClearsTheQuarantine()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var capacity = new NumberCapacity
+			{
+				Name = $"{prefix}_Capacity",
+				RangeMin = 0,
+				RangeMax = 100,
+			};
+			objectCreator.CreateCapacity(capacity);
+
+			var resource = new UnmanagedResource
+			{
+				Name = $"{prefix}_Resource",
+				Concurrency = 1,
+			}.AssignToPool(pool);
+			resource.AddCapacity(new NumberCapacitySetting(capacity) { Value = 100 });
+			resource = TestContext.Api.Resources.Complete(objectCreator.CreateResource(resource));
+
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = currentTime.AddHours(1),
+				End = currentTime.AddHours(2),
+				PreRollStart = currentTime.AddHours(1),
+				PostRollEnd = currentTime.AddHours(2),
+			};
+			var node = new JobResourceNode(pool, resource);
+			node.OrchestrationSettings.AddCapacity(new NumberCapacitySetting(capacity) { Value = 50 });
+			job.NodeGraph.Add(node);
+
+			job = TestContext.Api.Jobs.SaveAsTentative(objectCreator.CreateJob(job));
+
+			// Lowering the capacity of the resource below what the job requires pushes the resource usage of the
+			// reservation into quarantine.
+			var coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
+			coreResource.Capacities.Single().Value.MaxDecimalQuantity = 20;
+			TestContext.ResourceManagerHelper.AddOrUpdateResources(true, [coreResource]);
+
+			Assert.IsTrue(GetReservation(job).IsQuarantined, "Expected the reservation to be quarantined after lowering the capacity of the resource.");
+
+			// The quarantine handling reports the error on the job, just like the SRM quarantine script does.
+			var quarantinedJob = TestContext.Api.Jobs.Read(job.Id);
+			TestContext.Api.Jobs.Validate([quarantinedJob]).Single().SyncToJob();
+			quarantinedJob = TestContext.Api.Jobs.Update(quarantinedJob);
+
+			Assert.IsTrue(
+				quarantinedJob.Errors.Any(x => x.Code == QuarantinedReservationJobValidationError.ErrorCode),
+				"Expected the quarantine error to be reported on the job while its resource is quarantined.");
+			Assert.IsTrue(
+				quarantinedJob.NodeGraph.Nodes.OfType<JobResourceNode>().Single().HasError,
+				"Expected the resource node to be flagged while its resource is quarantined.");
+
+			// Lowering the required capacity on the node configuration to a value the resource can provide resolves
+			// the quarantine, so the error must no longer be reported on the job.
+			var quarantinedNode = quarantinedJob.NodeGraph.Nodes.OfType<JobResourceNode>().Single();
+			((NumberCapacitySetting)quarantinedNode.OrchestrationSettings.Capacities.Single()).Value = 10;
+
+			var updatedJob = TestContext.Api.Jobs.Update(quarantinedJob);
+
+			Assert.IsFalse(
+				updatedJob.Errors.Any(x => x.Code == QuarantinedReservationJobValidationError.ErrorCode),
+				"Expected the quarantine error to be cleared after lowering the required capacity.");
+
+			var storedJob = TestContext.Api.Jobs.Read(updatedJob.Id);
+			Assert.IsFalse(
+				storedJob.Errors.Any(x => x.Code == QuarantinedReservationJobValidationError.ErrorCode),
+				"Expected the quarantine error to be cleared on the stored job after lowering the required capacity.");
+			Assert.IsFalse(
+				storedJob.NodeGraph.Nodes.OfType<JobResourceNode>().Single().HasError,
+				"Expected the resource node to no longer be flagged after lowering the required capacity.");
+
+			var reservation = GetReservation(job);
+			Assert.IsFalse(reservation.IsQuarantined, "Expected the reservation to be out of quarantine after lowering the required capacity.");
+			Assert.AreEqual(0, reservation.QuarantinedResources.Count, "Expected no quarantined resources on the reservation.");
+
+			var usage = reservation.ResourcesInReservationInstance.OfType<ServiceResourceUsageDefinition>().Single();
+			Assert.AreEqual(resource.CoreResourceId, usage.GUID);
+			Assert.AreEqual(10m, usage.RequiredCapacities.Single().DecimalQuantity);
+		}
+
+		private static ReservationInstance GetReservation(Job job)
+		{
+			return TestContext.ResourceManagerHelper.GetReservationInstances(
+				ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(job.Id)))
+				.Single();
+		}
 	}
 }
