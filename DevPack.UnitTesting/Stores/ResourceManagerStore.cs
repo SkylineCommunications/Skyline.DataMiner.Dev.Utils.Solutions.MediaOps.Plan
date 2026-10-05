@@ -546,6 +546,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 						continue;
 					}
 
+					if (!HasRequiredCapabilities(resource, usage.Usage.RequiredCapabilities))
+					{
+						MoveUsageToQuarantine(usage.Reservation, usage.Usage, QuarantineTrigger.Reason.CapabilityDowngraded);
+						continue;
+					}
+
 					if (!HasCapacityAvailable(resource, usage.Usage, overlappingAcceptedUsages.Select(x => x.Usage).ToList()))
 					{
 						MoveUsageToQuarantine(usage.Reservation, usage.Usage, QuarantineTrigger.Reason.CapacityDowngraded);
@@ -722,6 +728,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 					.ToList();
 
 				if (otherUsages.Count + 1 > Math.Max(1, resource.MaxConcurrency))
+				{
+					return true;
+				}
+
+				if (!HasRequiredCapabilities(resource, usage.RequiredCapabilities))
 				{
 					return true;
 				}

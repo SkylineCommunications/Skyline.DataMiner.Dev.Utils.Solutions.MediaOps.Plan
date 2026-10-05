@@ -143,7 +143,23 @@
 				return;
 			}
 
+			// A quarantined reservation is first submitted with all of its quarantined usages released, as the update
+			// (or a change made outside of the job, such as a resource of which the concurrency, capability or capacity
+			// was restored) may have resolved the quarantine. When the core software refuses that, the reservation is
+			// submitted again with the usages of the resources that are still assigned kept in quarantine, so an update
+			// that does not resolve the quarantine is still saved and the job keeps reporting the quarantine.
+			var releaseAttemptJobs = CreateOrUpdate(domJobs, keepQuarantine: false);
+			if (releaseAttemptJobs.Count > 0)
+			{
+				CreateOrUpdate(releaseAttemptJobs, keepQuarantine: true);
+			}
+		}
+
+		// Returns the jobs of which the release of the quarantined usages was refused, without reporting them as failed.
+		private List<DomJob> CreateOrUpdate(ICollection<DomJob> domJobs, bool keepQuarantine)
+		{
 			var jobByReservationId = new Dictionary<Guid, DomJob>();
+			var releasedReservationIds = new HashSet<Guid>();
 
 			var reservationsToCreateOrUpdate = new List<CoreReservation>();
 			var newReservationIds = new HashSet<Guid>();
@@ -156,8 +172,13 @@
 				{
 					newReservationIds.Add(reservation.ID);
 				}
-				
-				if (!SyncJobWithReservation(job, ref reservation))
+
+				if (!keepQuarantine && reservation.IsQuarantined)
+				{
+					releasedReservationIds.Add(reservation.ID);
+				}
+
+				if (!SyncJobWithReservation(job, ref reservation, keepQuarantine))
 				{
 					planApi.Logger.Information(this, $"No update required for Job with ID {job.ID.Id} and Reservation with ID {reservation.ID}.");
 					continue;
@@ -168,9 +189,11 @@
 				jobByReservationId.Add(reservation.ID, job);
 			}
 
+			var refusedReleases = new List<DomJob>();
+
 			if (reservationsToCreateOrUpdate.Count == 0)
 			{
-				return;
+				return refusedReleases;
 			}
 
 			planApi.CoreHelpers.ResourceManagerHelper.TryCreateOrUpdateReservationInstancesInBatches(reservationsToCreateOrUpdate, out var result, traceDataHandler: new ResourceManagerTraceDataHandler(planApi), newReservationIds: newReservationIds);
@@ -180,6 +203,12 @@
 				if (!jobByReservationId.TryGetValue(id, out var domJob))
 				{
 					planApi.Logger.Error(this, $"Failed to find DOM ID for Reservation ID {id}.");
+					continue;
+				}
+
+				if (releasedReservationIds.Contains(id))
+				{
+					refusedReleases.Add(domJob);
 					continue;
 				}
 
@@ -209,6 +238,8 @@
 
 				ReportSuccess(domJob);
 			}
+
+			return refusedReleases;
 		}
 
 		private void Confirm(ICollection<DomJob> domJobs)
@@ -608,7 +639,7 @@
 			}
 		}
 
-		private bool SyncJobWithReservation(DomJob job, ref CoreReservation reservation)
+		private bool SyncJobWithReservation(DomJob job, ref CoreReservation reservation, bool keepQuarantine)
 		{
 			bool updateRequired = false;
 
@@ -618,7 +649,7 @@
 			updateRequired |= SyncProperties(job, reservation);
 			updateRequired |= SyncTime(job, ref reservation);
 			updateRequired |= SyncEvents(reservation);
-			updateRequired |= SyncResources(job, reservation);
+			updateRequired |= SyncResources(job, reservation, keepQuarantine);
 
 			return updateRequired;
 		}
@@ -746,7 +777,7 @@
 			return updateRequired;
 		}
 
-		private bool SyncResources(DomJob job, CoreReservation reservation)
+		private bool SyncResources(DomJob job, CoreReservation reservation, bool keepQuarantine)
 		{
 			var expectedUsages = ResourceUsageBuilder.BuildUsages(planApi, job);
 
@@ -762,15 +793,14 @@
 				return true;
 			}
 
-			// A quarantined usage only stays in quarantine while the job still requires exactly the same usage: the same
-			// resource on the same node with the same required capabilities and capacities. A usage that is no longer
-			// expected (for example a swapped or removed resource), or whose requirements changed (for example a lowered
-			// capacity in the node configuration), is released from quarantine. The updated usage is then submitted to
-			// SRM again, which either accepts it (lifting the quarantine) or refuses the update.
-			reservation.QuarantinedResources.RemoveAll(x => !expectedUsages.Any(y => IsSameUsage(x.QuarantinedResourceUsage, y)));
+			// Without keeping the quarantine, every quarantined usage is released and the expected usages are submitted
+			// as a whole. Otherwise, a quarantined usage stays in quarantine as long as the same resource is still
+			// assigned to the same node, even when its requirements changed; a usage of a resource that is no longer
+			// expected (for example a swapped or removed resource) is released.
+			reservation.QuarantinedResources.RemoveAll(x => !keepQuarantine || !expectedUsages.Any(y => IsSameAssignment(x.QuarantinedResourceUsage, y)));
 
 			reservation.ResourcesInReservationInstance.AddRange(expectedUsages.Where(x =>
-				!reservation.QuarantinedResources.Any(y => IsSameUsage(y.QuarantinedResourceUsage, x))));
+				!reservation.QuarantinedResources.Any(y => IsSameAssignment(y.QuarantinedResourceUsage, x))));
 
 			if (reservation.QuarantinedResources.Count == 0)
 			{
@@ -787,17 +817,11 @@
 			return true;
 		}
 
-		private static bool IsSameUsage(Skyline.DataMiner.Net.Messages.ResourceUsageDefinition quarantinedUsage, ServiceResourceUsageDefinition expectedUsage)
+		private static bool IsSameAssignment(Skyline.DataMiner.Net.Messages.ResourceUsageDefinition quarantinedUsage, ServiceResourceUsageDefinition expectedUsage)
 		{
-			if (!(quarantinedUsage is ServiceResourceUsageDefinition serviceUsage))
-			{
-				return false;
-			}
-
-			return serviceUsage.GUID == expectedUsage.GUID
-				&& serviceUsage.ServiceDefinitionNodeID == expectedUsage.ServiceDefinitionNodeID
-				&& (serviceUsage.RequiredCapabilities ?? new List<ResourceCapabilityUsage>()).ScrambledEquals(expectedUsage.RequiredCapabilities ?? new List<ResourceCapabilityUsage>())
-				&& (serviceUsage.RequiredCapacities ?? new List<MultiResourceCapacityUsage>()).ScrambledEquals(expectedUsage.RequiredCapacities ?? new List<MultiResourceCapacityUsage>());
+			return quarantinedUsage is ServiceResourceUsageDefinition serviceUsage
+				&& serviceUsage.GUID == expectedUsage.GUID
+				&& serviceUsage.ServiceDefinitionNodeID == expectedUsage.ServiceDefinitionNodeID;
 		}
 
 		private static class ReservationNameComposer

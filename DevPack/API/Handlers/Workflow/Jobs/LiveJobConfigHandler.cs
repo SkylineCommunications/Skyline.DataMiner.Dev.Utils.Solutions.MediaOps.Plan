@@ -183,7 +183,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			if (eventsToTrigger.Any())
 			{
-//TMPSTUB				_planApi.LiveApi.Orchestration.ExecuteEventsNowInBackground(eventsToTrigger);
+				_planApi.LiveApi.Orchestration.ExecuteEventsNowInBackground(eventsToTrigger);
 			}
 		}
 

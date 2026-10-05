@@ -396,5 +396,88 @@
 				ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(job.Id)))
 				.Single();
 		}
+
+		[TestMethod]
+		public void ChangeRequiredCapacityOfConcurrencyQuarantinedNode_SavesTheJobAndKeepsTheQuarantine()
+		{
+			var setup = CreateConcurrencyQuarantineSetup();
+			var quarantinedJob = setup.QuarantinedJob;
+
+			// Changing the requirements does not resolve a concurrency conflict, but must not prevent the job from being saved.
+			((NumberCapacitySetting)quarantinedJob.NodeGraph.Nodes.Single().OrchestrationSettings.Capacities.Single()).Value = 5;
+			var updatedJob = TestContext.Api.Jobs.Update(quarantinedJob);
+
+			Assert.AreEqual(5m, ((NumberCapacitySetting)TestContext.Api.Jobs.Read(updatedJob.Id).NodeGraph.Nodes.Single().OrchestrationSettings.Capacities.Single()).Value);
+			Assert.IsTrue(GetReservation(updatedJob).IsQuarantined, "Expected the reservation to remain quarantined while the concurrency is still exceeded.");
+			Assert.IsTrue(
+				updatedJob.Errors.Any(x => x.Code == QuarantinedReservationJobValidationError.ErrorCode),
+				"Expected the quarantine error to remain on the job while the concurrency is still exceeded.");
+		}
+
+		[TestMethod]
+		public void MoveConcurrencyQuarantinedJobOutOfTheOverlap_ClearsTheQuarantine()
+		{
+			var setup = CreateConcurrencyQuarantineSetup();
+			var quarantinedJob = setup.QuarantinedJob;
+
+			quarantinedJob.PostRollEnd = setup.CurrentTime.AddHours(6);
+			quarantinedJob.End = setup.CurrentTime.AddHours(6);
+			quarantinedJob.Start = setup.CurrentTime.AddHours(5);
+			quarantinedJob.PreRollStart = setup.CurrentTime.AddHours(5);
+			var updatedJob = TestContext.Api.Jobs.Update(quarantinedJob);
+
+			Assert.IsFalse(GetReservation(updatedJob).IsQuarantined, "Expected the reservation to leave quarantine once it no longer overlaps.");
+			Assert.IsFalse(
+				updatedJob.Errors.Any(x => x.Code == QuarantinedReservationJobValidationError.ErrorCode),
+				"Expected the quarantine error to be cleared once the job no longer overlaps.");
+		}
+
+		private (Job QuarantinedJob, DateTime CurrentTime) CreateConcurrencyQuarantineSetup()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = TestContext.Api.ResourcePools.Complete(objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" }));
+
+			var capacity = new NumberCapacity { Name = $"{prefix}_Capacity", RangeMin = 0, RangeMax = 100 };
+			objectCreator.CreateCapacity(capacity);
+
+			var resource = new UnmanagedResource { Name = $"{prefix}_Resource", Concurrency = 2 }.AssignToPool(pool);
+			resource.AddCapacity(new NumberCapacitySetting(capacity) { Value = 100 });
+			resource = TestContext.Api.Resources.Complete(objectCreator.CreateResource(resource));
+
+			Job CreateJob(string name)
+			{
+				var job = new Job
+				{
+					Name = $"{prefix}_{name}",
+					Start = currentTime.AddHours(1),
+					End = currentTime.AddHours(2),
+					PreRollStart = currentTime.AddHours(1),
+					PostRollEnd = currentTime.AddHours(2),
+				};
+				var node = new JobResourceNode(pool, resource);
+				node.OrchestrationSettings.AddCapacity(new NumberCapacitySetting(capacity) { Value = 10 });
+				job.NodeGraph.Add(node);
+
+				return TestContext.Api.Jobs.SaveAsTentative(objectCreator.CreateJob(job));
+			}
+
+			var jobs = new[] { CreateJob("Job_1"), CreateJob("Job_2") };
+
+			var coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
+			coreResource.MaxConcurrency = 1;
+			TestContext.ResourceManagerHelper.AddOrUpdateResources(true, [coreResource]);
+
+			var quarantinedJob = TestContext.Api.Jobs.Read(jobs.Single(x => GetReservation(x).IsQuarantined).Id);
+			TestContext.Api.Jobs.Validate([quarantinedJob]).Single().SyncToJob();
+			quarantinedJob = TestContext.Api.Jobs.Update(quarantinedJob);
+
+			Assert.IsTrue(
+				quarantinedJob.Errors.Any(x => x.Code == QuarantinedReservationJobValidationError.ErrorCode),
+				"Expected the quarantine error to be reported on the job while its resource is quarantined.");
+
+			return (quarantinedJob, currentTime);
+		}
 	}
 }

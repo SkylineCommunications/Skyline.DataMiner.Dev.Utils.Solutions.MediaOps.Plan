@@ -31,6 +31,40 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void DomJobHandler_Update_NodeCapabilityChangedAfterForcedCapabilityDowngrade_ClearsTheQuarantine()
+		{
+			var setup = CreateSetup();
+
+			var node = new JobResourceNode(setup.Pool, setup.Resource);
+			node.OrchestrationSettings.AddCapability(new CapabilitySetting(setup.Capability) { Value = "Value 1" });
+
+			var job = CreateTentativeJob(setup.Prefix, x => x.NodeGraph.Add(node));
+
+			// Removing the required option from the resource with a forced update pushes the usage into quarantine.
+			var coreResource = TestContext.ResourceManagerHelper.GetResource(setup.Resource.CoreResourceId);
+			coreResource.Capabilities.Single(x => x.CapabilityProfileID == setup.Capability.Id).Value.Discreets = new List<string> { "Value 2" };
+			TestContext.ResourceManagerHelper.AddOrUpdateResources(true, [coreResource]);
+
+			Assert.IsTrue(GetReservation(job.Id).IsQuarantined, "Expected the reservation to be quarantined after the forced capability downgrade.");
+
+			var quarantinedJob = TestContext.Api.Jobs.Read(job.Id);
+			TestContext.Api.Jobs.Validate([quarantinedJob]).Single().SyncToJob();
+			quarantinedJob = TestContext.Api.Jobs.Update(quarantinedJob);
+			Assert.IsTrue(quarantinedJob.Errors.Any(x => x.Code == QuarantinedReservationJobValidationError.ErrorCode), "Expected the quarantine error on the job.");
+
+			// Requiring an option that the resource still offers resolves the quarantine.
+			quarantinedJob.NodeGraph.Nodes.Single().OrchestrationSettings.Capabilities.Single().Value = "Value 2";
+			var updatedJob = TestContext.Api.Jobs.Update(quarantinedJob);
+
+			Assert.IsFalse(updatedJob.Errors.Any(x => x.Code == QuarantinedReservationJobValidationError.ErrorCode), "Expected the quarantine error to be cleared.");
+			Assert.IsFalse(TestContext.Api.Jobs.Read(job.Id).Errors.Any(x => x.Code == QuarantinedReservationJobValidationError.ErrorCode), "Expected the quarantine error to be cleared on the stored job.");
+
+			var reservation = GetReservation(job.Id);
+			Assert.IsFalse(reservation.IsQuarantined, "Expected the reservation to be out of quarantine.");
+			Assert.AreEqual("Value 2", GetRequiredDiscrete(job.Id, setup.Capability.Id));
+		}
+
+		[TestMethod]
 		public void DomJobHandler_Update_NodeCapabilityChanged_ReservationRequiresNewValue()
 		{
 			var setup = CreateSetup();
@@ -204,12 +238,17 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 		private static ServiceResourceUsageDefinition GetUsage(Guid jobId)
 		{
+			return GetReservation(jobId).ResourcesInReservationInstance.OfType<ServiceResourceUsageDefinition>().Single();
+		}
+
+		private static ReservationInstance GetReservation(Guid jobId)
+		{
 			var reservations = TestContext.ResourceManagerHelper.GetReservationInstances(
 				ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(jobId))).ToList();
 
 			Assert.AreEqual(1, reservations.Count, "Expected exactly one core reservation for the job.");
 
-			return reservations[0].ResourcesInReservationInstance.OfType<ServiceResourceUsageDefinition>().Single();
+			return reservations[0];
 		}
 
 		private Job CreateTentativeJob(Guid prefix, Action<Job> configure)
