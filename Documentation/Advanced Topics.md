@@ -113,7 +113,7 @@ stateDiagram-v2
 - **`Stop`** (optionally with `JobStopOptions.NewPostRollEnd`) – ends a running job early by moving its end to the current time; the job cannot already be in its pre-roll or post-roll window. Like `Start`, it does not change `JobState` by itself.
 - **`TransitionToCompleted`** – Running → Completed, once the core reservation has ended (its status is authoritative even if the job's persisted post-roll end has not passed yet).
 - **`Cancel`** – Tentative or Confirmed → Canceled.
-- **`MarkAsCompleted`** – Draft or Tentative → Completed, for a job whose end time already lies in the past (for example, historical data import).
+- **`MarkAsCompleted`** – Draft or Tentative → Completed, for a job whose end time already lies in the past (for example, historical data import). With this action no automated actions will take place.
 - **`Delete`** (with `JobDeleteOptions.ForceDelete`) – removes the job; `ForceDelete = true` bypasses the usual state restrictions on delete.
 
 Every transition method has a single-job overload (`Job` or `Guid`) and a batch overload (`IEnumerable<Job>` or `IEnumerable<Guid>`) that returns the updated jobs. `RecurringJob` follows a simpler, independent lifecycle: **Active → Completed** (`RecurringJobs.Complete`) and **Active → Cancelled** (`RecurringJobs.Cancel`).
@@ -234,7 +234,7 @@ api.ResourcePools.Deprecate(pool, new ResourcePoolDeprecateOptions
 
 Orchestration settings define automation behavior for resource pools and workflows. They contain capability, capacity, configuration, and orchestration event settings.
 
-For a broader overview of orchestration concepts in MediaOps Live, see the official [Orchestration documentation](https://docs.dataminer.services/solutions/standard_solutions/MediaOps%20Live/Apps/MO_Orchestration_Events.html).
+For a broader overview of orchestration concepts in MediaOps Live, see the official [Orchestration documentation](https://aka.dataminer.services/1177WCNlk).
 
 ### Resource Pool Orchestration Settings
 
