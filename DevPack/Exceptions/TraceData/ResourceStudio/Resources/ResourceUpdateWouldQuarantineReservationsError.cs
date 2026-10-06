@@ -4,9 +4,9 @@
 
 	using Skyline.DataMiner.Net.ResponseErrorData;
 
-	internal sealed class ResourceUpdateCausedReservationsToGoToQuarantineError : ResourceError
+	internal sealed class ResourceUpdateWouldQuarantineReservationsError : ResourceError
 	{
-		internal ResourceUpdateCausedReservationsToGoToQuarantineError(Guid coreResourceId, ResourceManagerErrorData resourceManagerError)
+		internal ResourceUpdateWouldQuarantineReservationsError(Guid coreResourceId, ResourceManagerErrorData resourceManagerError)
 		{
 			if (resourceManagerError == null)
 			{

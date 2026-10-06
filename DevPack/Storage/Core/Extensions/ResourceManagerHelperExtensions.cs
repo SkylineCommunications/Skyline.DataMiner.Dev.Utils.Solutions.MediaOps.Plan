@@ -363,7 +363,7 @@
 						}
 
 						mediaOpsTraceData.Add(error.ErrorReason == ResourceManagerErrorData.Reason.ResourceUpdateCausedReservationsToGoToQuarantine
-							? new ResourceUpdateCausedReservationsToGoToQuarantineError(subjectId, error)
+							? new ResourceUpdateWouldQuarantineReservationsError(subjectId, error)
 							: new MediaOpsErrorData() { ErrorMessage = error.ToString() });
 					}
 				}

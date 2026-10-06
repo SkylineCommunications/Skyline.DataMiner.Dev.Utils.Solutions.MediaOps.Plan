@@ -1147,7 +1147,7 @@
 
 		private MediaOpsErrorData TranslateCoreCreateOrUpdateError(DomResource domResource, MediaOpsErrorData error)
 		{
-			if (error is ResourceUpdateCausedReservationsToGoToQuarantineError quarantineError
+			if (error is ResourceUpdateWouldQuarantineReservationsError quarantineError
 				&& TryComposeResourceUpdateCausedQuarantineMessage(domResource, quarantineError.ResourceManagerError, out var message))
 			{
 				return new ResourceError
