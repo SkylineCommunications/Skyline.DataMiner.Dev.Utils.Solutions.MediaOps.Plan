@@ -1190,7 +1190,7 @@
 
 		private IReadOnlyCollection<ImpactedJobInfo> ResolveImpactedJobs(ResourceManagerErrorData error, Guid coreResourceId)
 		{
-			var impactedReservations = (error.MustBeMovedToQuarantine ?? new List<Net.SRM.Quarantine.QuarantinedUsagesOnSingleReservation>())
+			var impactedReservations = (error.MustBeMovedToQuarantine ?? new List<Net.ResourceManager.Helpers.QuarantinedUsagesOnSingleReservation>())
 				.Where(x => x?.ReservationInstance != null)
 				.Where(x => coreResourceId == Guid.Empty
 					|| (x.QuarantinedUsages ?? new List<Net.SRM.Quarantine.QuarantinedResourceUsageDefinition>())
