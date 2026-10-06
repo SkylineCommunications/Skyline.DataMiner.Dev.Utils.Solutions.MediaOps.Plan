@@ -265,14 +265,17 @@
 				.Concat(TestContext.ResourceManagerHelper.GetReservationInstances(
 					ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(jobB.Id))))
 				.ToList();
-			var quarantinedReservation = reservations.Single(x => x.IsQuarantined);
+			Assert.AreEqual(2, reservations.Count);
+			Assert.IsFalse(reservations.Any(x => x.IsQuarantined), "Expected a refused update not to quarantine any reservations.");
+			Assert.AreEqual(2, TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId).MaxConcurrency);
+			Assert.AreEqual(2, TestContext.Api.Resources.Read(resource.Id).Concurrency);
 
 			StringAssert.Contains(exception.Message, $"Updating resource '{resource.Name}'");
 			StringAssert.Contains(exception.Message, resource.Id.ToString());
 			StringAssert.Contains(exception.Message, jobB.Name);
 			StringAssert.Contains(exception.Message, jobB.Key);
 			Assert.IsFalse(exception.Message.Contains(resource.CoreResourceId.ToString()), "Expected the user-facing message to reference the MediaOps resource instead of the CORE resource ID.");
-			Assert.IsFalse(exception.Message.Contains(quarantinedReservation.ID.ToString()), "Expected the user-facing message to reference the impacted job instead of the reservation ID.");
+			Assert.IsFalse(reservations.Any(x => exception.Message.Contains(x.ID.ToString())), "Expected the user-facing message to reference the impacted job instead of the reservation ID.");
 		}
 
 		[TestMethod]
@@ -324,6 +327,11 @@
 			StringAssert.Contains(exception.Message, fallbackReservationName);
 			StringAssert.Contains(exception.Message, fallbackJobId.ToString());
 			Assert.IsFalse(exception.Message.Contains(reservationToMutate.ID.ToString()), "Expected the fallback message to surface the reservation name or job identifier instead of the reservation ID.");
+			Assert.AreEqual(2, TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId).MaxConcurrency);
+			Assert.AreEqual(2, TestContext.Api.Resources.Read(resource.Id).Concurrency);
+			Assert.IsFalse(TestContext.ResourceManagerHelper.GetReservationInstances(
+				ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(fallbackJobId)))
+				.Single().IsQuarantined);
 		}
 
 		[TestMethod]
