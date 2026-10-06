@@ -162,7 +162,7 @@ var property = api.ResourceProperties.Create(new ResourceProperty
 
 ### Workflows
 
-A `Workflow` is a reusable planning template: a node graph of resources/resource pools plus orchestration settings, without a concrete start/end time. Workflows are full CRUD objects and go through a simple **Draft → Complete** lifecycle (`api.Workflows.Complete(workflow)`); only a completed workflow can be turned into a job.
+A `Workflow` is a reusable planning template: a node graph of resources/resource pools plus orchestration settings, without a concrete start/end time. Workflows are full CRUD objects and go through a simple **Draft → Complete** lifecycle (`api.Workflows.Complete(workflow)`); only a completed workflow can be used for building jobs.
 
 ```csharp
 using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
@@ -214,6 +214,8 @@ Nodes can also be grouped for organizational purposes (`AddGroup`), and a node's
 ```csharp
 using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 
+// Add nodes and connection to job
+var job = api.Jobs.Read(id);
 var cameraNode = new JobResourceNode(cameraPool, camera);
 var encoderNode = new JobResourceNode(encoderPool, encoder);
 
@@ -223,6 +225,7 @@ job.NodeGraph
     .Connect(cameraNode, encoderNode);
 
 job.NodeGraph.AddGroup("Studio A").Add(cameraNode).Add(encoderNode);
+job = api.Jobs.Update(job);
 
 // Replace the camera with another one, keeping its connections and group membership.
 var newCameraNode = new JobResourceNode(cameraPool, backupCamera);
@@ -249,16 +252,18 @@ recurringJob = api.RecurringJobs.Create(recurringJob);
 
 ### Generic Properties
 
-Besides Resource Properties, jobs, workflows, recurring jobs and their nodes can carry **generic properties**: custom metadata fields defined once and assigned a value per object through a `PropertySetting` (`BooleanPropertySetting`, `DiscretePropertySetting`, `StringPropertySetting`, `FilePropertySetting`). `api.SchedulingProperties` is a convenience repository over the same `Property` model for properties meant to be used on jobs, workflows and recurring jobs (it manages properties in the `"MediaOps"` scope for you).
+Jobs, workflows, recurring jobs and their nodes (not to be confused with resource properties) can carry **generic properties**: custom metadata fields defined once and assigned a value per object through a `PropertySetting` (`BooleanPropertySetting`, `DiscretePropertySetting`, `StringPropertySetting`, `FilePropertySetting`). `api.SchedulingProperties` is a convenience repository over the same `Property` model for properties meant to be used on jobs, workflows and recurring jobs (it manages properties in the `"MediaOps"` scope for you).
 
 ```csharp
 using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 
+// Creating a new generic property (should only be done once).
 var notesProperty = (StringProperty)api.SchedulingProperties.Create(new StringProperty
 {
     Name = "Client Reference",
 });
 
+// Setting a value for a generic property on a job
 job.AddProperty(new StringPropertySetting(notesProperty) { Value = "PO-12345" });
 job = api.Jobs.Update(job);
 ```
