@@ -1176,12 +1176,13 @@
 			}
 
 			var impactedJobs = ResolveImpactedJobs(error, coreResourceId);
+			var resourceName = !String.IsNullOrWhiteSpace(domResource.ResourceInfo?.Name) ? domResource.ResourceInfo.Name : domResource.ID.Id.ToString();
 			if (impactedJobs.Count == 0)
 			{
-				return false;
+				message = $"Updating resource '{resourceName}' (ID '{domResource.ID.Id}') would move one or more jobs to quarantine, but the impacted jobs could not be resolved.";
+				return true;
 			}
 
-			var resourceName = !String.IsNullOrWhiteSpace(domResource.ResourceInfo?.Name) ? domResource.ResourceInfo.Name : domResource.ID.Id.ToString();
 			var impactedJobsLabel = impactedJobs.Count == 1 ? "job" : "jobs";
 			message = $"Updating resource '{resourceName}' (ID '{domResource.ID.Id}') would move the following {impactedJobsLabel} to quarantine: {String.Join(", ", impactedJobs.Select(FormatImpactedJob))}.";
 			return true;
