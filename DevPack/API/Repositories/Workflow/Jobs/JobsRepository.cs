@@ -76,7 +76,7 @@
 				result.ThrowBulkException();
 			}
 
-			return result.SuccessfulItems.Select(x => new Job(PlanApi, x)).ToList();
+			return Job.Parse(PlanApi, result.SuccessfulItems);
 		}
 
 		public Job Confirm(Job job)
@@ -128,7 +128,7 @@
 				result.ThrowBulkException();
 			}
 
-			return result.SuccessfulItems.Select(x => new Job(PlanApi, x)).ToList();
+			return Job.Parse(PlanApi, result.SuccessfulItems);
 		}
 
 		public Job TransitionToRunning(Job job)
@@ -180,7 +180,7 @@
 				result.ThrowBulkException();
 			}
 
-			return result.SuccessfulItems.Select(x => new Job(PlanApi, x)).ToList();
+			return Job.Parse(PlanApi, result.SuccessfulItems);
 		}
 
 		public Job TransitionToCompleted(Job job)
@@ -232,7 +232,7 @@
 				result.ThrowBulkException();
 			}
 
-			return result.SuccessfulItems.Select(x => new Job(PlanApi, x)).ToList();
+			return Job.Parse(PlanApi, result.SuccessfulItems);
 		}
 
 		public Job Cancel(Job job)
@@ -284,7 +284,7 @@
 				result.ThrowBulkException();
 			}
 
-			return result.SuccessfulItems.Select(x => new Job(PlanApi, x)).ToList();
+			return Job.Parse(PlanApi, result.SuccessfulItems);
 		}
 
 		public Job ReturnToTentative(Job job)
@@ -336,7 +336,7 @@
 				result.ThrowBulkException();
 			}
 
-			return result.SuccessfulItems.Select(x => new Job(PlanApi, x)).ToList();
+			return Job.Parse(PlanApi, result.SuccessfulItems);
 		}
 
 		public Job MarkAsCompleted(Job job)
@@ -388,7 +388,7 @@
 				result.ThrowBulkException();
 			}
 
-			return result.SuccessfulItems.Select(x => new Job(PlanApi, x)).ToList();
+			return Job.Parse(PlanApi, result.SuccessfulItems);
 		}
 
 		public Job Start(Job job)
@@ -485,7 +485,7 @@
 				result.ThrowBulkException();
 			}
 
-			return result.SuccessfulItems.Select(x => new Job(PlanApi, x)).ToList();
+			return Job.Parse(PlanApi, result.SuccessfulItems);
 		}
 
 		public Job Stop(Job job)
@@ -582,7 +582,7 @@
 				result.ThrowBulkException();
 			}
 
-			return result.SuccessfulItems.Select(x => new Job(PlanApi, x)).ToList();
+			return Job.Parse(PlanApi, result.SuccessfulItems);
 		}
 
 		public long Count()
@@ -649,7 +649,7 @@
 				result.ThrowBulkException();
 			}
 
-			return result.SuccessfulItems.Select(x => new Job(PlanApi, x)).ToList();
+			return Job.Parse(PlanApi, result.SuccessfulItems);
 		}
 
 		public Job Create(Job oToCreate)
@@ -686,7 +686,7 @@
 				result.ThrowBulkException();
 			}
 
-			return result.SuccessfulItems.Select(x => new Job(PlanApi, x)).ToList();
+			return Job.Parse(PlanApi, result.SuccessfulItems);
 		}
 
 		public void Delete(Guid apiObjectId)
@@ -961,7 +961,7 @@
 			{
 				var page = enumerator.Current;
 				hasNext = enumerator.MoveNext();
-				yield return new PagedResult<Job>(page.Select(x => new Job(PlanApi, x)), pageNumber++, pageSize, hasNext);
+				yield return new PagedResult<Job>(Job.Parse(PlanApi, page), pageNumber++, pageSize, hasNext);
 			}
 		}
 
@@ -984,7 +984,7 @@
 			{
 				var page = enumerator.Current;
 				hasNext = enumerator.MoveNext();
-				yield return new PagedResult<Job>(page.Select(x => new Job(PlanApi, x)), pageNumber++, pageSize, hasNext);
+				yield return new PagedResult<Job>(Job.Parse(PlanApi, page), pageNumber++, pageSize, hasNext);
 			}
 		}
 
@@ -1056,7 +1056,7 @@
 				result.ThrowBulkException();
 			}
 
-			return result.SuccessfulItems.Select(x => new Job(PlanApi, x)).ToList();
+			return Job.Parse(PlanApi, result.SuccessfulItems);
 		}
 
 		public Job Update(Job oToUpdate)

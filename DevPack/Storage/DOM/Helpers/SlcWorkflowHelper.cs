@@ -14,6 +14,8 @@
 
 	internal class SlcWorkflowHelper : DomModuleHelperBase
 	{
+		private readonly WorkflowConfigurationCache configurationCache = new WorkflowConfigurationCache();
+
 		public SlcWorkflowHelper(IConnection connection) : base(SlcWorkflowIds.ModuleId, connection)
 		{
 		}
@@ -48,6 +50,39 @@
 			return GetConfigurationIterator(filter);
 		}
 
+		/// <summary>
+		/// Opens a scope in which the configurations that are read are cached and can be pre-seeded.
+		/// </summary>
+		/// <param name="idsToPrefetch">Identifiers to read in a single batch when the scope is opened. Optional.</param>
+		/// <param name="configurationsToSeed">Configurations to make available without reading them. Optional.</param>
+		/// <returns>A handle that closes the scope when disposed.</returns>
+		public IDisposable BeginConfigurationScope(IEnumerable<Guid> idsToPrefetch = null, IEnumerable<ConfigurationInstance> configurationsToSeed = null)
+		{
+			var scope = configurationCache.BeginScope();
+
+			try
+			{
+				if (idsToPrefetch != null)
+				{
+					// Materialized so the batched read is performed now rather than on first enumeration.
+					GetConfigurations(idsToPrefetch).ToList();
+				}
+
+				if (configurationsToSeed != null)
+				{
+					// Seeded after the prefetch so an in-memory configuration always wins from the stored one.
+					configurationCache.Seed(configurationsToSeed);
+				}
+			}
+			catch
+			{
+				scope.Dispose();
+				throw;
+			}
+
+			return scope;
+		}
+
 		public IEnumerable<ConfigurationInstance> GetConfigurations(IEnumerable<Guid> ids)
 		{
 			if (ids == null)
@@ -60,6 +95,25 @@
 				return Enumerable.Empty<ConfigurationInstance>();
 			}
 
+			if (!configurationCache.IsActive)
+			{
+				return ReadConfigurations(ids);
+			}
+
+			var cached = configurationCache.Resolve(ids, out var missing);
+			if (missing.Count == 0)
+			{
+				return cached;
+			}
+
+			var read = ReadConfigurations(missing).ToList();
+			configurationCache.Store(missing, read);
+
+			return cached.Concat(read).ToList();
+		}
+
+		private IEnumerable<ConfigurationInstance> ReadConfigurations(IEnumerable<Guid> ids)
+		{
 			FilterElement<DomInstance> Filter(Guid id) =>
 				DomInstanceExposers.DomDefinitionId.Equal(SlcWorkflowIds.Definitions.Configuration.Id)
 				.AND(DomInstanceExposers.Id.Equal(id));

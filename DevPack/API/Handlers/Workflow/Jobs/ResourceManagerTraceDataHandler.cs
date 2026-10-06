@@ -44,19 +44,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			var reservationUpdateCausedReservationsToGoToQuarantineErrors = resourceManagerErrors.Where(x => x.ErrorReason == ResourceManagerErrorData.Reason.ReservationUpdateCausedReservationsToGoToQuarantine).ToList();
-			var resourceCapacityInvalidErrors = resourceManagerErrors.Where(x => x.ErrorReason == ResourceManagerErrorData.Reason.ResourceCapacityInvalid).ToList();
-			var resourceCapabilityInvalidErrors = resourceManagerErrors.Where(x => x.ErrorReason == ResourceManagerErrorData.Reason.ResourceCapabilityInvalid).ToList();
+			var resourceRequirementErrors = resourceManagerErrors.Where(IsResourceRequirementError).ToList();
 
 			// The DevPack surfaces resources by their Resource Studio (DOM) id, so the core resource ids in the errors are
 			// resolved to their DOM counterparts in a batched query (one or more backend calls, depending on filter size).
 			var domResourceIdByCoreId = BuildDomResourceIdByCoreId(
 				reservationUpdateCausedReservationsToGoToQuarantineErrors,
-				resourceCapacityInvalidErrors,
-				resourceCapabilityInvalidErrors);
+				resourceRequirementErrors);
 
 			HandleReservationUpdateCausedReservationsToGoToQuarantine(reservationUpdateCausedReservationsToGoToQuarantineErrors, domResourceIdByCoreId);
-			HandleResourceCapacityInvalid(resourceCapacityInvalidErrors, domResourceIdByCoreId);
-			HandleResourceCapabilityInvalid(resourceCapabilityInvalidErrors, domResourceIdByCoreId);
+			HandleResourceRequirementErrors(resourceRequirementErrors, domResourceIdByCoreId);
 
 			// Errors that are not one of the known types are added to their reservation's trace data as raw defaults.
 			AddDefaultTraceData(GetUnknownErrors(resourceManagerErrors));
@@ -68,15 +65,46 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 			return resourceManagerErrors
 				.Where(x => x.ErrorReason != ResourceManagerErrorData.Reason.ReservationUpdateCausedReservationsToGoToQuarantine
-					&& x.ErrorReason != ResourceManagerErrorData.Reason.ResourceCapacityInvalid
-					&& x.ErrorReason != ResourceManagerErrorData.Reason.ResourceCapabilityInvalid)
+					&& !IsResourceRequirementError(x))
 				.ToList();
+		}
+
+		// The capability and capacity requirements of a resource usage are validated together by the core software, which
+		// does not always report the matching reason for the requirement that could not be met. The reported requirement
+		// (and not the reason) therefore determines which error is surfaced, so both reasons are handled the same way.
+		private static bool IsResourceRequirementError(ResourceManagerErrorData error)
+		{
+			return error.ErrorReason == ResourceManagerErrorData.Reason.ResourceCapacityInvalid
+				|| error.ErrorReason == ResourceManagerErrorData.Reason.ResourceCapabilityInvalid;
+		}
+
+		private static IEnumerable<Guid> GetInvalidCapabilityIds(ResourceManagerErrorData error)
+		{
+			return new[]
+			{
+				error.ResourceCapabilityUsage?.CapabilityProfileID ?? Guid.Empty,
+				error.ResourceCapability?.CapabilityProfileID ?? Guid.Empty,
+			}
+			.Where(x => x != Guid.Empty)
+			.Distinct();
+		}
+
+		private static IEnumerable<Guid> GetInvalidCapacityIds(ResourceManagerErrorData error)
+		{
+			return new[]
+			{
+				error.ResourceCapacityUsage?.CapacityProfileID ?? Guid.Empty,
+				error.ResourceCapacity?.CapacityProfileID ?? Guid.Empty,
+				error.CapacityProfileId ?? Guid.Empty,
+			}
+			.Concat(error.CapacityProfileIds ?? Enumerable.Empty<Guid>())
+			.Where(x => x != Guid.Empty)
+			.Distinct();
 		}
 
 		private Dictionary<Guid, Guid> BuildDomResourceIdByCoreId(
 			IEnumerable<ResourceManagerErrorData> quarantineErrors,
-			IEnumerable<ResourceManagerErrorData> capacityErrors,
-			IEnumerable<ResourceManagerErrorData> capabilityErrors)
+			IEnumerable<ResourceManagerErrorData> requirementErrors)
 		{
 			var coreResourceIds = new HashSet<Guid>();
 
@@ -88,7 +116,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				}
 			}
 
-			foreach (var error in capacityErrors.Concat(capabilityErrors))
+			foreach (var error in requirementErrors)
 			{
 				if (error.ResourceId.HasValue)
 				{
@@ -238,11 +266,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 		}
 
-		private void HandleResourceCapacityInvalid(
-			IReadOnlyCollection<ResourceManagerErrorData> capacityErrors,
+		private void HandleResourceRequirementErrors(
+			IReadOnlyCollection<ResourceManagerErrorData> requirementErrors,
 			IReadOnlyDictionary<Guid, Guid> domResourceIdByCoreId)
 		{
-			foreach (var error in capacityErrors)
+			foreach (var error in requirementErrors)
 			{
 				if (!TryGetReservationId(error, out var reservationId))
 				{
@@ -257,40 +285,45 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					continue;
 				}
 
-				traceData.Add(new JobResourceInvalidCapacityError
-				{
-					ErrorMessage = error.Message,
-					ResourceId = domResourceId,
-					CapacityId = error.ResourceCapacityUsage.CapacityProfileID,
-				});
-			}
-		}
+				var reported = false;
 
-		private void HandleResourceCapabilityInvalid(
-			IReadOnlyCollection<ResourceManagerErrorData> capabilityErrors,
-			IReadOnlyDictionary<Guid, Guid> domResourceIdByCoreId)
-		{
-			foreach (var error in capabilityErrors)
-			{
-				if (!TryGetReservationId(error, out var reservationId))
+				// A single error can report an invalid capability and an invalid capacity at the same time, in which case
+				// both are surfaced so the consumer knows every requirement that could not be met.
+				foreach (var capabilityId in GetInvalidCapabilityIds(error))
 				{
-					continue;
+					traceData.Add(new JobResourceInvalidCapabilityError
+					{
+						ErrorMessage = error.Message,
+						ResourceId = domResourceId,
+						CapabilityId = capabilityId,
+					});
+
+					reported = true;
 				}
 
-				var traceData = GetOrCreateTraceData(reservationId);
-
-				if (!TryGetDomResourceId(error, domResourceIdByCoreId, out var domResourceId))
+				foreach (var capacityId in GetInvalidCapacityIds(error))
 				{
-					AddRawFallback(traceData, error);
-					continue;
+					traceData.Add(new JobResourceInvalidCapacityError
+					{
+						ErrorMessage = error.Message,
+						ResourceId = domResourceId,
+						CapacityId = capacityId,
+					});
+
+					reported = true;
 				}
 
-				traceData.Add(new JobResourceInvalidCapabilityError
+				if (!reported)
 				{
-					ErrorMessage = error.Message,
-					ResourceId = domResourceId,
-					CapabilityId = error.ResourceCapabilityUsage.CapabilityProfileID,
-				});
+					// The requirement that could not be met is unknown, so only the resource it applies to is surfaced.
+					planApi.Logger.Error(this, $"Error with reason {error.ErrorReason} does not report a capability or a capacity. Error message: {error.Message}");
+
+					traceData.Add(new JobResourceError
+					{
+						ErrorMessage = error.Message,
+						ResourceId = domResourceId,
+					});
+				}
 			}
 		}
 

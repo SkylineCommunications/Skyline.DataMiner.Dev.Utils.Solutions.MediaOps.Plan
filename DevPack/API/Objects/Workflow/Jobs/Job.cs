@@ -103,6 +103,69 @@
 		}
 
 		/// <summary>
+		/// Parses the specified job instances, reading the orchestration settings of every job and node in a single batch.
+		/// </summary>
+		/// <param name="planApi">The API used to read the referenced data.</param>
+		/// <param name="instances">The job instances to parse.</param>
+		/// <returns>The parsed jobs.</returns>
+		/// <remarks>
+		/// The orchestration settings of a job and of each of its nodes are separate DOM instances, so parsing a job one
+		/// instance at a time performs one read per node. Prefetching them keeps that to a single batched read.
+		/// </remarks>
+		internal static List<Job> Parse(MediaOpsPlanApi planApi, IEnumerable<StorageWorkflow.JobsInstance> instances)
+		{
+			if (planApi == null)
+			{
+				throw new ArgumentNullException(nameof(planApi));
+			}
+
+			if (instances == null)
+			{
+				throw new ArgumentNullException(nameof(instances));
+			}
+
+			var toParse = instances.ToList();
+			if (toParse.Count == 0)
+			{
+				return new List<Job>();
+			}
+
+			using (planApi.DomHelpers.SlcWorkflowHelper.BeginConfigurationScope(CollectConfigurationIds(toParse)))
+			{
+				return toParse.Select(x => new Job(planApi, x)).ToList();
+			}
+		}
+
+		private static List<Guid> CollectConfigurationIds(ICollection<StorageWorkflow.JobsInstance> instances)
+		{
+			var ids = new HashSet<Guid>();
+
+			foreach (var instance in instances)
+			{
+				var jobConfiguration = instance.JobExecution?.JobConfiguration;
+				if (jobConfiguration != null && jobConfiguration != Guid.Empty)
+				{
+					ids.Add(jobConfiguration.Value);
+				}
+
+				if (instance.Nodes == null)
+				{
+					continue;
+				}
+
+				foreach (var node in instance.Nodes)
+				{
+					if (node.NodeConfiguration != null && node.NodeConfiguration != Guid.Empty)
+					{
+						ids.Add(node.NodeConfiguration.Value);
+					}
+				}
+			}
+
+			return ids.ToList();
+		}
+
+		/// <summary>
 		/// Initializes a new instance of the <see cref="Job"/> class as a deep copy of the specified original
 		/// job, using the supplied identifier for the new job. The resulting instance is a brand new,
 		/// unsaved job that shares no references with <paramref name="original"/>.
