@@ -50,8 +50,8 @@
 			return Capabilities.Select(x => x.Reference)
 				.Concat(Capacities.Select(x => x.Reference))
 				.Concat(Configurations.Select(x => x.Reference))
-				.Where(x => x != null)
 				.Concat(OrchestrationEvents.Where(x => x?.ExecutionDetails != null).SelectMany(x => x.ExecutionDetails.GetReferences()))
+				.Where(x => x != null)
 				.ToList();
 		}
 
