@@ -9,11 +9,13 @@
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Helper;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+	using Skyline.DataMiner.Net.ResponseErrorData;
 	using Skyline.DataMiner.Net.SRM.Capacities;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
 
+	using CoreReservation = Net.ResourceManager.Objects.ReservationInstance;
 	using CoreFunctionResource = Net.ResourceManager.Objects.FunctionResource;
 	using CoreResource = Net.Messages.Resource;
 	using DomResource = Storage.DOM.SlcResource_Studio.ResourceInstance;
@@ -349,7 +351,7 @@
 
 				if (result.TraceDataPerItem.TryGetValue(id, out var traceData))
 				{
-					traceDataPerItem.Add(domResource.ID.Id, traceData);
+					traceDataPerItem.Add(domResource.ID.Id, TranslateCoreCreateOrUpdateTraceData(domResource, traceData));
 				}
 			}
 
@@ -513,7 +515,7 @@
 
 				if (result.TraceDataPerItem.TryGetValue(id, out var traceData))
 				{
-					traceDataPerItem.Add(domResource.ID.Id, traceData);
+					traceDataPerItem.Add(domResource.ID.Id, TranslateCoreCreateOrUpdateTraceData(domResource, traceData));
 				}
 			}
 
@@ -1118,6 +1120,84 @@
 			}
 
 			mediaOpsTraceData.Add(error);
+		}
+
+		private MediaOpsTraceData TranslateCoreCreateOrUpdateTraceData(DomResource domResource, MediaOpsTraceData traceData)
+		{
+			if (domResource == null)
+			{
+				throw new ArgumentNullException(nameof(domResource));
+			}
+
+			if (traceData == null || traceData.ErrorData.Count == 0)
+			{
+				return traceData ?? new MediaOpsTraceData();
+			}
+
+			var translatedTraceData = new MediaOpsTraceData();
+			foreach (var error in traceData.ErrorData)
+			{
+				translatedTraceData.Add(TranslateCoreCreateOrUpdateError(domResource, error));
+			}
+
+			return translatedTraceData;
+		}
+
+		private MediaOpsErrorData TranslateCoreCreateOrUpdateError(DomResource domResource, MediaOpsErrorData error)
+		{
+			if (error is not ResourceUpdateWouldQuarantineReservationsError quarantineError)
+			{
+				return error;
+			}
+
+			var coreResourceId = quarantineError.ResourceManagerError.SubjectId.GetValueOrDefault();
+			if (coreResourceId == Guid.Empty)
+			{
+				coreResourceId = domResource.ResourceInternalProperties.Resource_Id.GetValueOrDefault();
+			}
+
+			var jobIds = ResolveImpactedJobIds(quarantineError.ResourceManagerError, coreResourceId, out var impactedJobCount);
+			var impactedJobsText = impactedJobCount > 0 ? $"{impactedJobCount} job(s)" : "one or more jobs";
+
+			return new ResourceUpdateWouldQuarantineJobsError
+			{
+				Id = domResource.ID.Id,
+				ErrorMessage = $"Updating resource '{domResource.ResourceInfo?.Name}' would move {impactedJobsText} to quarantine.",
+				JobIds = jobIds,
+			};
+		}
+
+		// Returns the existing impacted jobs; the count also includes reservations that no longer map to an existing job.
+		private IReadOnlyCollection<Guid> ResolveImpactedJobIds(ResourceManagerErrorData error, Guid coreResourceId, out int impactedJobCount)
+		{
+			var impactedReservations = (error.MustBeMovedToQuarantine ?? new List<Net.ResourceManager.Helpers.QuarantinedUsagesOnSingleReservation>())
+				.Where(x => x?.ReservationInstance != null)
+				.Where(x => coreResourceId == Guid.Empty
+					|| (x.QuarantinedUsages ?? new List<Net.SRM.Quarantine.QuarantinedResourceUsageDefinition>())
+						.Any(y => y?.QuarantinedResourceUsage != null && y.QuarantinedResourceUsage.GUID == coreResourceId))
+				.Select(x => x.ReservationInstance)
+				.ToList();
+
+			var candidateJobIds = impactedReservations.Select(GetJobId).Where(x => x != Guid.Empty).Distinct().ToList();
+			var existingJobIds = candidateJobIds.Count > 0
+				? new HashSet<Guid>(planApi.DomHelpers.SlcWorkflowHelper.GetJobs(candidateJobIds).Select(x => x.ID.Id))
+				: new HashSet<Guid>();
+
+			var unresolvedReservationCount = impactedReservations.Count(x => !existingJobIds.Contains(GetJobId(x)));
+			impactedJobCount = existingJobIds.Count + unresolvedReservationCount;
+
+			return existingJobIds.ToList();
+		}
+
+		private static Guid GetJobId(CoreReservation reservation)
+		{
+			if (reservation?.Properties?.Dictionary == null
+				|| !reservation.Properties.Dictionary.TryGetValue(CoreJobHandler.JobIdPropertyName, out var value))
+			{
+				return Guid.Empty;
+			}
+
+			return Guid.TryParse(Convert.ToString(value), out var jobId) ? jobId : Guid.Empty;
 		}
 
 		private void SyncName(DomResource domResource, CoreResource coreResource, ICollection<SynchronizationDifference> differences)

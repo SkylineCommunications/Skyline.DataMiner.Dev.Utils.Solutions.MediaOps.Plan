@@ -225,6 +225,120 @@
 		}
 
 		[TestMethod]
+		public void UpdateConcurrency_WithOverlappingTentativeReservations_ReportsTheJobsThatWouldBeQuarantined()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = new UnmanagedResource
+			{
+				Name = $"{prefix}_ResourceA",
+				Concurrency = 2,
+			}.AssignToPool(pool);
+			resource = TestContext.Api.Resources.Complete(objectCreator.CreateResource(resource));
+
+			Job CreateJob(string name)
+			{
+				var job = new Job
+				{
+					Name = $"{prefix}_{name}",
+					Start = currentTime.AddHours(1),
+					End = currentTime.AddHours(2),
+					PreRollStart = currentTime.AddHours(1),
+					PostRollEnd = currentTime.AddHours(2),
+				};
+
+				job.NodeGraph.Add(new JobResourceNode(pool, resource));
+				return job;
+			}
+
+			var jobA = TestContext.Api.Jobs.SaveAsTentative(objectCreator.CreateJob(CreateJob("Job_1")));
+			var jobB = TestContext.Api.Jobs.SaveAsTentative(objectCreator.CreateJob(CreateJob("Job_2")));
+
+			resource.Concurrency = 1;
+			var exception = Assert.ThrowsException<MediaOpsException>(() => TestContext.Api.Resources.Update(resource));
+
+			var reservations = TestContext.ResourceManagerHelper.GetReservationInstances(
+				ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(jobA.Id)))
+				.Concat(TestContext.ResourceManagerHelper.GetReservationInstances(
+					ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(jobB.Id))))
+				.ToList();
+			Assert.AreEqual(2, reservations.Count);
+			Assert.IsFalse(reservations.Any(x => x.IsQuarantined), "Expected a refused update not to quarantine any reservations.");
+			Assert.AreEqual(2, TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId).MaxConcurrency);
+			Assert.AreEqual(2, TestContext.Api.Resources.Read(resource.Id).Concurrency);
+
+			var error = exception.TraceData.ErrorData.OfType<ResourceUpdateWouldQuarantineJobsError>().Single();
+			Assert.AreEqual(resource.Id, error.Id);
+			CollectionAssert.AreEqual(new[] { jobB.Id }, error.JobIds.ToArray());
+			Assert.AreEqual($"Updating resource '{resource.Name}' would move 1 job(s) to quarantine.", error.ErrorMessage);
+			Assert.IsFalse(exception.Message.Contains(resource.Id.ToString()), "Expected the message not to contain the MediaOps resource ID.");
+			Assert.IsFalse(exception.Message.Contains(resource.CoreResourceId.ToString()), "Expected the message not to contain the CORE resource ID.");
+			Assert.IsFalse(reservations.Any(x => exception.Message.Contains(x.ID.ToString())), "Expected the message not to contain reservation IDs.");
+		}
+
+		[TestMethod]
+		public void UpdateConcurrency_WithUnresolvableJobLookup_CountsTheReservationWithoutReportingAJobId()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = new UnmanagedResource
+			{
+				Name = $"{prefix}_ResourceA",
+				Concurrency = 2,
+			}.AssignToPool(pool);
+			resource = TestContext.Api.Resources.Complete(objectCreator.CreateResource(resource));
+
+			Job CreateJob(string name)
+			{
+				var job = new Job
+				{
+					Name = $"{prefix}_{name}",
+					Start = currentTime.AddHours(1),
+					End = currentTime.AddHours(2),
+					PreRollStart = currentTime.AddHours(1),
+					PostRollEnd = currentTime.AddHours(2),
+				};
+
+				job.NodeGraph.Add(new JobResourceNode(pool, resource));
+				return job;
+			}
+
+			var jobA = TestContext.Api.Jobs.SaveAsTentative(objectCreator.CreateJob(CreateJob("Job_1")));
+			var jobB = TestContext.Api.Jobs.SaveAsTentative(objectCreator.CreateJob(CreateJob("Job_2")));
+
+			var fallbackReservationName = $"{prefix}_DetachedReservation";
+			var fallbackJobId = Guid.NewGuid();
+			var reservationToMutate = TestContext.ResourceManagerHelper
+				.GetReservationInstances(ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(jobB.Id)))
+				.Single();
+			reservationToMutate.Name = fallbackReservationName;
+			reservationToMutate.Properties.AddOrUpdate("Job ID", Convert.ToString(fallbackJobId));
+			TestContext.ResourceManagerHelper.AddOrUpdateReservationInstances(reservationToMutate);
+
+			resource.Concurrency = 1;
+			var exception = Assert.ThrowsException<MediaOpsException>(() => TestContext.Api.Resources.Update(resource));
+
+			var error = exception.TraceData.ErrorData.OfType<ResourceUpdateWouldQuarantineJobsError>().Single();
+			Assert.AreEqual(0, error.JobIds.Count, "Expected a job that no longer exists not to be reported.");
+			Assert.AreEqual($"Updating resource '{resource.Name}' would move 1 job(s) to quarantine.", error.ErrorMessage);
+			Assert.IsFalse(exception.Message.Contains(fallbackJobId.ToString()), "Expected the message not to contain the stored job ID.");
+			Assert.IsFalse(exception.Message.Contains(reservationToMutate.ID.ToString()), "Expected the message not to contain the reservation ID.");
+			Assert.AreEqual(2, TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId).MaxConcurrency);
+			Assert.AreEqual(2, TestContext.Api.Resources.Read(resource.Id).Concurrency);
+			Assert.IsFalse(TestContext.ResourceManagerHelper.GetReservationInstances(
+				ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(fallbackJobId)))
+				.Single().IsQuarantined);
+		}
+
+		[TestMethod]
 		public void SwapQuarantinedResource_ClearsTheQuarantineErrorFromTheJob()
 		{
 			var prefix = Guid.NewGuid();

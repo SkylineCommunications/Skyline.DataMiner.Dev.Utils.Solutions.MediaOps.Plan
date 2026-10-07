@@ -83,6 +83,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 						var objects = request.ResourceManagerObjects ?? new List<Resource>();
 						var updatedResources = new List<Resource>();
 						var handled = new List<Resource>(objects.Count);
+						var traceData = new TraceData();
 
 						foreach (var resource in objects)
 						{
@@ -94,6 +95,20 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 							}
 
 							var stored = Copy(resource);
+
+							if (!request.ForceQuarantine)
+							{
+								var quarantineErrors = GetQuarantineErrorsForUpdatedResources(new[] { stored }, false);
+								if (quarantineErrors.Count > 0)
+								{
+									foreach (var error in quarantineErrors)
+									{
+										traceData.Add(error);
+									}
+
+									continue;
+								}
+							}
 
 							// A real DataMiner Agent provisions the DVE row for a function resource and
 							// assigns its primary key. Mirror that by assigning a primary key so callers
@@ -110,10 +125,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 
 						if (!request.isDelete && request.ForceQuarantine)
 						{
-							ApplyQuarantineForUpdatedResources(updatedResources);
+							foreach (var quarantineError in GetQuarantineErrorsForUpdatedResources(updatedResources, true))
+							{
+								traceData.Add(quarantineError);
+							}
 						}
 
-						response = new ResourceResponseMessage(handled.ToArray()) { Success = true };
+						response = new ResourceResponseMessage(handled.ToArray()) { Success = true, TraceData = traceData };
 						return true;
 					}
 
@@ -520,7 +538,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 			return GetOverlappingResourceUsages(resource.GUID, context).Count() + 1 <= Math.Max(1, resource.MaxConcurrency);
 		}
 
-		private IReadOnlyCollection<ResourceManagerErrorData> ApplyQuarantineForUpdatedResources(IReadOnlyCollection<Resource> updatedResources)
+		private IReadOnlyCollection<ResourceManagerErrorData> GetQuarantineErrorsForUpdatedResources(IReadOnlyCollection<Resource> updatedResources, bool forceQuarantine)
 		{
 			var quarantineErrors = new List<ResourceManagerErrorData>();
 
@@ -549,23 +567,20 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 
 					if (overlappingAcceptedUsages.Count >= maxConcurrency)
 					{
-						MoveUsageToQuarantine(usage.Reservation, usage.Usage, QuarantineTrigger.Reason.ConcurrencyDowngraded);
-						AddQuarantinedUsage(quarantinedPerReservation, usage, Array.Empty<Guid>(), QuarantineTrigger.Reason.ConcurrencyDowngraded);
+						QuarantineUsage(quarantinedPerReservation, usage, QuarantineTrigger.Reason.ConcurrencyDowngraded, forceQuarantine);
 						continue;
 					}
 
 					if (!HasRequiredCapabilities(resource, usage.Usage.RequiredCapabilities))
 					{
-						MoveUsageToQuarantine(usage.Reservation, usage.Usage, QuarantineTrigger.Reason.CapabilityDowngraded);
-						AddQuarantinedUsage(quarantinedPerReservation, usage, Array.Empty<Guid>(), QuarantineTrigger.Reason.CapabilityDowngraded);
+						QuarantineUsage(quarantinedPerReservation, usage, QuarantineTrigger.Reason.CapabilityDowngraded, forceQuarantine);
 						continue;
 					}
 
 					// Summing all overlapping usages overstates the load when they do not overlap each other, as the concurrency check does.
 					if (!HasCapacityAvailable(resource, usage.Usage, overlappingAcceptedUsages.Select(x => x.Usage).ToList()))
 					{
-						MoveUsageToQuarantine(usage.Reservation, usage.Usage, QuarantineTrigger.Reason.CapacityDowngraded);
-						AddQuarantinedUsage(quarantinedPerReservation, usage, Array.Empty<Guid>(), QuarantineTrigger.Reason.CapacityDowngraded);
+						QuarantineUsage(quarantinedPerReservation, usage, QuarantineTrigger.Reason.CapacityDowngraded, forceQuarantine);
 						continue;
 					}
 
@@ -582,6 +597,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 			}
 
 			return quarantineErrors;
+		}
+
+		private void QuarantineUsage(IDictionary<Guid, QuarantinedUsagesOnSingleReservation> quarantinedPerReservation, ReservationUsage usage, QuarantineTrigger.Reason reason, bool forceQuarantine)
+		{
+			if (forceQuarantine)
+			{
+				MoveUsageToQuarantine(usage.Reservation, usage.Usage, reason);
+			}
+
+			AddQuarantinedUsage(quarantinedPerReservation, usage, Array.Empty<Guid>(), reason);
 		}
 
 		private static bool HasCapacityAvailable(Resource resource, ServiceResourceUsageDefinition usage, IReadOnlyCollection<ServiceResourceUsageDefinition> otherUsages)
