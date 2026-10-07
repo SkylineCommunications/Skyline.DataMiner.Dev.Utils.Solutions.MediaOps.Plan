@@ -119,6 +119,67 @@
 			return new LockResult<T, K>(result.FailedToLockObjects, result.ActionResults);
 		}
 
+		/// <summary>
+		/// Locks the objects per group and executes the action on the groups of which every object was locked. A group
+		/// that is only partially locked is released and retried as a whole, so the action never sees part of a group.
+		/// </summary>
+		public LockResult<T> LockGroupsAndExecute<T>(ICollection<ICollection<T>> groups, Action<ICollection<T>> action) where T : ApiObject
+		{
+			if (groups == null)
+			{
+				throw new ArgumentNullException(nameof(groups));
+			}
+
+			if (action == null)
+			{
+				throw new ArgumentNullException(nameof(action));
+			}
+
+			var remainingGroups = groups.Where(x => x.Count > 0).ToList();
+			int attempts = 0;
+
+			while (remainingGroups.Count > 0 && attempts < MaxLockAttempts)
+			{
+				if (attempts > 0)
+				{
+					Thread.Sleep(_sleepTime);
+				}
+
+				attempts++;
+
+				var lockResult = LockObjects(remainingGroups.SelectMany(x => x).ToList());
+				var lockedIds = new HashSet<string>(lockResult.LockedObjects.Select(x => x.LockId));
+				var lockedGroups = remainingGroups.Where(x => x.All(y => lockedIds.Contains(y.LockId))).ToList();
+
+				try
+				{
+					if (lockedGroups.Count > 0)
+					{
+						action(lockedGroups.SelectMany(x => x).ToList());
+					}
+				}
+				catch (Exception e)
+				{
+					_logger.Error(this, $"An error occurred while executing action with locked objects: {e}");
+					throw;
+				}
+				finally
+				{
+					UnlockObjects(lockResult.LockedObjects);
+				}
+
+				remainingGroups = remainingGroups.Except(lockedGroups).ToList();
+			}
+
+			var failedToLockObjects = remainingGroups.SelectMany(x => x).ToList();
+			if (failedToLockObjects.Count > 0)
+			{
+				_logger.Error(this, "Failed to lock all {0} objects after {1} attempts. Remaining objects: {2}", [typeof(T).Name, MaxLockAttempts, string.Join(", ", failedToLockObjects.Select(x => x.Id))]);
+			}
+
+			return new LockResult<T>(failedToLockObjects);
+		}
+
 		private LockAndExecuteResult<T, K> LockAndExecuteInternal<T, K>(ICollection<T> apiObjects, Func<ICollection<T>, ICollection<K>> action) where T : ApiObject
 		{
 			int attempts = 0;

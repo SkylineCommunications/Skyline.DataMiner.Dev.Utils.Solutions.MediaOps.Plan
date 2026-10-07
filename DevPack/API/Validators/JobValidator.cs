@@ -165,11 +165,6 @@
 					result.SetError(new DomResourceInvalidJobValidationError($"Resource '{resource.Name}' is not in complete state"));
 				}
 
-				if (resource.OriginalInstance?.Errors.Count > 0)
-				{
-					result.SetError(new DomResourceInvalidJobValidationError($"Resource '{resource.Name}' has active errors"));
-				}
-
 				if (resource.CoreResourceId == Guid.Empty)
 				{
 					continue;

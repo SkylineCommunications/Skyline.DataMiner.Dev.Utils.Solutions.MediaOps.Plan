@@ -34,10 +34,41 @@
 				return;
 			}
 
+			Validate(apiOrchestrationSettings);
+			Persist(apiOrchestrationSettings);
+		}
+
+		// Split from the persistence so a caller can validate the settings first and only persist them once its other
+		// operation succeeded. The two steps are not atomic: nothing is rolled back when that other operation fails later.
+		protected void Validate(ICollection<TApiSettings> apiOrchestrationSettings)
+		{
+			if (apiOrchestrationSettings == null)
+			{
+				throw new ArgumentNullException(nameof(apiOrchestrationSettings));
+			}
+
+			if (apiOrchestrationSettings.Count == 0)
+			{
+				return;
+			}
+
 			ValidateCapacities(apiOrchestrationSettings);
 			ValidateCapabilities(apiOrchestrationSettings);
 			ValidateConfigurations(apiOrchestrationSettings);
 			ValidateOrchestrationEventReferences(apiOrchestrationSettings);
+		}
+
+		protected void Persist(ICollection<TApiSettings> apiOrchestrationSettings)
+		{
+			if (apiOrchestrationSettings == null)
+			{
+				throw new ArgumentNullException(nameof(apiOrchestrationSettings));
+			}
+
+			if (apiOrchestrationSettings.Count == 0)
+			{
+				return;
+			}
 
 			var lockResult = planApi.LockManager.LockAndExecute(apiOrchestrationSettings.Where(IsValid).ToList(), CreateOrUpdateDomInstances);
 			ReportError(lockResult);

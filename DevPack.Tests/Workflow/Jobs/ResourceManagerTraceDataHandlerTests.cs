@@ -243,6 +243,182 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			Assert.AreEqual(capabilityId, capabilityError.CapabilityId, "Expected the capability profile id to be reported.");
 		}
 
+		/// <summary>
+		/// The core software does not always report the matching reason for the requirement that could not be met, so the
+		/// reported requirement determines which error is surfaced.
+		/// </summary>
+		[TestMethod]
+		public void Translate_CapabilityReportedWithCapacityReason_EmitsInvalidCapability()
+		{
+			var (api, resource) = CreateContextWithResource();
+			var reservationId = Guid.NewGuid();
+			var capabilityId = Guid.NewGuid();
+
+			var error = new ResourceManagerErrorData(
+				ResourceManagerErrorData.Reason.ResourceCapacityInvalid,
+				reservationId,
+				resource.CoreResourceId,
+				new ResourceCapabilityUsage { CapabilityProfileID = capabilityId },
+				"Capability not available.");
+
+			var handler = new ResourceManagerTraceDataHandler((MediaOpsPlanApi)api);
+
+			var result = handler.Translate(new[] { error });
+
+			Assert.IsTrue(result.ContainsKey(reservationId), "Expected the translated errors to be keyed by the reservation id.");
+			var errorData = result[reservationId].ErrorData.ToList();
+			Assert.IsFalse(
+				errorData.OfType<JobResourceInvalidCapacityError>().Any(),
+				"Expected no capacity error for an error that only reports a capability.");
+			var capabilityError = errorData.OfType<JobResourceInvalidCapabilityError>().Single();
+			Assert.AreEqual(resource.Id, capabilityError.ResourceId, "Expected the DOM resource id to be reported.");
+			Assert.AreEqual(capabilityId, capabilityError.CapabilityId, "Expected the capability profile id to be reported.");
+		}
+
+		[TestMethod]
+		public void Translate_InvalidCapacityAndCapability_EmitsBothErrors()
+		{
+			var (api, resource) = CreateContextWithResource();
+			var reservationId = Guid.NewGuid();
+			var capacityId = Guid.NewGuid();
+			var capabilityId = Guid.NewGuid();
+
+			var error = new ResourceManagerErrorData(
+				ResourceManagerErrorData.Reason.ResourceCapacityInvalid,
+				reservationId,
+				resource.CoreResourceId,
+				new MultiResourceCapacityUsage { CapacityProfileID = capacityId })
+			{
+				ResourceCapabilityUsage = new ResourceCapabilityUsage { CapabilityProfileID = capabilityId },
+			};
+
+			var handler = new ResourceManagerTraceDataHandler((MediaOpsPlanApi)api);
+
+			var result = handler.Translate(new[] { error });
+
+			Assert.IsTrue(result.ContainsKey(reservationId), "Expected the translated errors to be keyed by the reservation id.");
+			var errorData = result[reservationId].ErrorData.ToList();
+			Assert.AreEqual(
+				capacityId,
+				errorData.OfType<JobResourceInvalidCapacityError>().Single().CapacityId,
+				"Expected the invalid capacity to be reported.");
+			Assert.AreEqual(
+				capabilityId,
+				errorData.OfType<JobResourceInvalidCapabilityError>().Single().CapabilityId,
+				"Expected the invalid capability to be reported alongside the invalid capacity.");
+		}
+
+		[TestMethod]
+		public void Translate_CapabilityReportedAsResourceCapability_EmitsInvalidCapability()
+		{
+			var (api, resource) = CreateContextWithResource();
+			var reservationId = Guid.NewGuid();
+			var capabilityId = Guid.NewGuid();
+
+			var error = new ResourceManagerErrorData(
+				ResourceManagerErrorData.Reason.ResourceCapabilityInvalid,
+				reservationId,
+				resource.CoreResourceId)
+			{
+				ResourceCapability = new ResourceCapability { CapabilityProfileID = capabilityId },
+			};
+
+			var result = new ResourceManagerTraceDataHandler((MediaOpsPlanApi)api).Translate(new[] { error });
+
+			var capabilityError = result[reservationId].ErrorData.OfType<JobResourceInvalidCapabilityError>().Single();
+			Assert.AreEqual(resource.Id, capabilityError.ResourceId, "Expected the DOM resource id to be reported.");
+			Assert.AreEqual(capabilityId, capabilityError.CapabilityId, "Expected the capability profile id to be reported.");
+		}
+
+		[TestMethod]
+		public void Translate_CapacityReportedAsResourceCapacity_EmitsInvalidCapacity()
+		{
+			var (api, resource) = CreateContextWithResource();
+			var reservationId = Guid.NewGuid();
+			var capacityId = Guid.NewGuid();
+
+			var error = new ResourceManagerErrorData(
+				ResourceManagerErrorData.Reason.ResourceCapacityInvalid,
+				reservationId,
+				resource.CoreResourceId)
+			{
+				ResourceCapacity = new MultiResourceCapacity { CapacityProfileID = capacityId },
+			};
+
+			var result = new ResourceManagerTraceDataHandler((MediaOpsPlanApi)api).Translate(new[] { error });
+
+			var capacityError = result[reservationId].ErrorData.OfType<JobResourceInvalidCapacityError>().Single();
+			Assert.AreEqual(resource.Id, capacityError.ResourceId, "Expected the DOM resource id to be reported.");
+			Assert.AreEqual(capacityId, capacityError.CapacityId, "Expected the capacity profile id to be reported.");
+		}
+
+		[TestMethod]
+		public void Translate_CapacityReportedAsCapacityProfileId_EmitsInvalidCapacity()
+		{
+			var (api, resource) = CreateContextWithResource();
+			var reservationId = Guid.NewGuid();
+			var capacityId = Guid.NewGuid();
+
+			var error = new ResourceManagerErrorData(
+				ResourceManagerErrorData.Reason.ResourceCapacityInvalid,
+				reservationId,
+				new List<Guid>(),
+				resource.CoreResourceId,
+				capacityId);
+
+			var result = new ResourceManagerTraceDataHandler((MediaOpsPlanApi)api).Translate(new[] { error });
+
+			var capacityError = result[reservationId].ErrorData.OfType<JobResourceInvalidCapacityError>().Single();
+			Assert.AreEqual(resource.Id, capacityError.ResourceId, "Expected the DOM resource id to be reported.");
+			Assert.AreEqual(capacityId, capacityError.CapacityId, "Expected the capacity profile id to be reported.");
+		}
+
+		[TestMethod]
+		public void Translate_CapacitiesReportedAsCapacityProfileIds_EmitsInvalidCapacityPerId()
+		{
+			var (api, resource) = CreateContextWithResource();
+			var reservationId = Guid.NewGuid();
+			var firstCapacityId = Guid.NewGuid();
+			var secondCapacityId = Guid.NewGuid();
+
+			var error = new ResourceManagerErrorData(
+				ResourceManagerErrorData.Reason.ResourceCapacityInvalid,
+				reservationId,
+				resource.CoreResourceId,
+				new List<Guid> { firstCapacityId, secondCapacityId });
+
+			var result = new ResourceManagerTraceDataHandler((MediaOpsPlanApi)api).Translate(new[] { error });
+
+			var capacityErrors = result[reservationId].ErrorData.OfType<JobResourceInvalidCapacityError>().ToList();
+			CollectionAssert.AreEquivalent(
+				new[] { firstCapacityId, secondCapacityId },
+				capacityErrors.Select(x => x.CapacityId).ToArray(),
+				"Expected an invalid capacity error for every reported capacity profile id.");
+			Assert.IsTrue(capacityErrors.All(x => x.ResourceId == resource.Id), "Expected the DOM resource id to be reported.");
+		}
+
+		[TestMethod]
+		public void Translate_RequirementErrorWithoutCapacityOrCapability_EmitsResourceError()
+		{
+			var (api, resource) = CreateContextWithResource();
+			var reservationId = Guid.NewGuid();
+
+			var error = new ResourceManagerErrorData(
+				ResourceManagerErrorData.Reason.ResourceCapacityInvalid,
+				reservationId,
+				resource.CoreResourceId,
+				default(MultiResourceCapacityUsage)!);
+
+			var handler = new ResourceManagerTraceDataHandler((MediaOpsPlanApi)api);
+
+			var result = handler.Translate(new[] { error });
+
+			Assert.IsTrue(result.ContainsKey(reservationId), "Expected the translated errors to be keyed by the reservation id.");
+			var resourceError = result[reservationId].ErrorData.OfType<JobResourceError>().Single();
+			Assert.AreEqual(typeof(JobResourceError), resourceError.GetType(), "Expected a plain resource error when the requirement is unknown.");
+			Assert.AreEqual(resource.Id, resourceError.ResourceId, "Expected the DOM resource id to be reported.");
+		}
+
 		[TestMethod]
 		public void Translate_UncategorizedError_FallsBackToRawMessage()
 		{
