@@ -2,7 +2,6 @@
 {
 	using System;
 	using System.Collections.Generic;
-	using System.Globalization;
 	using System.Linq;
 
 	using Skyline.DataMiner.Core.DataMinerSystem.Common;
@@ -19,7 +18,6 @@
 	using CoreReservation = Net.ResourceManager.Objects.ReservationInstance;
 	using CoreFunctionResource = Net.ResourceManager.Objects.FunctionResource;
 	using CoreResource = Net.Messages.Resource;
-	using DomJob = Storage.DOM.SlcWorkflow.JobsInstance;
 	using DomResource = Storage.DOM.SlcResource_Studio.ResourceInstance;
 	using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
 
@@ -1147,48 +1145,30 @@
 
 		private MediaOpsErrorData TranslateCoreCreateOrUpdateError(DomResource domResource, MediaOpsErrorData error)
 		{
-			if (error is ResourceUpdateWouldQuarantineReservationsError quarantineError
-				&& TryComposeResourceUpdateCausedQuarantineMessage(domResource, quarantineError.ResourceManagerError, out var message))
+			if (error is not ResourceUpdateWouldQuarantineReservationsError quarantineError)
 			{
-				return new ResourceError
-				{
-					Id = domResource.ID.Id,
-					ErrorMessage = message,
-				};
+				return error;
 			}
 
-			return error;
-		}
-
-		private bool TryComposeResourceUpdateCausedQuarantineMessage(DomResource domResource, ResourceManagerErrorData error, out string message)
-		{
-			message = null;
-
-			if (domResource == null || error == null)
-			{
-				return false;
-			}
-
-			var coreResourceId = error.SubjectId.GetValueOrDefault();
+			var coreResourceId = quarantineError.ResourceManagerError.SubjectId.GetValueOrDefault();
 			if (coreResourceId == Guid.Empty)
 			{
 				coreResourceId = domResource.ResourceInternalProperties.Resource_Id.GetValueOrDefault();
 			}
 
-			var impactedJobs = ResolveImpactedJobs(error, coreResourceId);
-			var resourceName = !String.IsNullOrWhiteSpace(domResource.ResourceInfo?.Name) ? domResource.ResourceInfo.Name : domResource.ID.Id.ToString();
-			if (impactedJobs.Count == 0)
-			{
-				message = $"Updating resource '{resourceName}' (ID '{domResource.ID.Id}') would move one or more jobs to quarantine, but the impacted jobs could not be resolved.";
-				return true;
-			}
+			var jobIds = ResolveImpactedJobIds(quarantineError.ResourceManagerError, coreResourceId, out var impactedJobCount);
+			var impactedJobsText = impactedJobCount > 0 ? $"{impactedJobCount} job(s)" : "one or more jobs";
 
-			var impactedJobsLabel = impactedJobs.Count == 1 ? "job" : "jobs";
-			message = $"Updating resource '{resourceName}' (ID '{domResource.ID.Id}') would move the following {impactedJobsLabel} to quarantine: {String.Join(", ", impactedJobs.Select(FormatImpactedJob))}.";
-			return true;
+			return new ResourceUpdateWouldQuarantineJobsError
+			{
+				Id = domResource.ID.Id,
+				ErrorMessage = $"Updating resource '{domResource.ResourceInfo?.Name}' would move {impactedJobsText} to quarantine.",
+				JobIds = jobIds,
+			};
 		}
 
-		private IReadOnlyCollection<ImpactedJobInfo> ResolveImpactedJobs(ResourceManagerErrorData error, Guid coreResourceId)
+		// Returns the existing impacted jobs; the count also includes reservations that no longer map to an existing job.
+		private IReadOnlyCollection<Guid> ResolveImpactedJobIds(ResourceManagerErrorData error, Guid coreResourceId, out int impactedJobCount)
 		{
 			var impactedReservations = (error.MustBeMovedToQuarantine ?? new List<Net.ResourceManager.Helpers.QuarantinedUsagesOnSingleReservation>())
 				.Where(x => x?.ReservationInstance != null)
@@ -1198,32 +1178,15 @@
 				.Select(x => x.ReservationInstance)
 				.ToList();
 
-			if (impactedReservations.Count == 0)
-			{
-				return [];
-			}
+			var candidateJobIds = impactedReservations.Select(GetJobId).Where(x => x != Guid.Empty).Distinct().ToList();
+			var existingJobIds = candidateJobIds.Count > 0
+				? new HashSet<Guid>(planApi.DomHelpers.SlcWorkflowHelper.GetJobs(candidateJobIds).Select(x => x.ID.Id))
+				: new HashSet<Guid>();
 
-			var jobIds = impactedReservations.Select(GetJobId).Where(x => x != Guid.Empty).Distinct().ToList();
-			var jobsById = jobIds.Count > 0
-				? planApi.DomHelpers.SlcWorkflowHelper.GetJobs(jobIds).ToDictionary(x => x.ID.Id)
-				: new Dictionary<Guid, DomJob>();
+			var unresolvedReservationCount = impactedReservations.Count(x => !existingJobIds.Contains(GetJobId(x)));
+			impactedJobCount = existingJobIds.Count + unresolvedReservationCount;
 
-			var impactedJobs = new List<ImpactedJobInfo>();
-			foreach (var reservation in impactedReservations)
-			{
-				var jobId = GetJobId(reservation);
-				jobsById.TryGetValue(jobId, out var job);
-				impactedJobs.Add(new ImpactedJobInfo(
-					reservation.ID,
-					jobId,
-					job != null ? job.JobInfo.JobName : null,
-					job != null ? job.JobInfo.JobID : null,
-					reservation.Start,
-					reservation.End,
-					reservation.Name));
-			}
-
-			return impactedJobs;
+			return existingJobIds.ToList();
 		}
 
 		private static Guid GetJobId(CoreReservation reservation)
@@ -1235,60 +1198,6 @@
 			}
 
 			return Guid.TryParse(Convert.ToString(value), out var jobId) ? jobId : Guid.Empty;
-		}
-
-		private static string FormatImpactedJob(ImpactedJobInfo impactedJob)
-		{
-			var displayName = !String.IsNullOrWhiteSpace(impactedJob.Name) ? impactedJob.Name : impactedJob.FallbackName;
-			if (String.IsNullOrWhiteSpace(displayName))
-			{
-				displayName = impactedJob.JobId != Guid.Empty ? $"Job ID {impactedJob.JobId}" : $"Reservation {impactedJob.ReservationId}";
-			}
-
-			var details = new List<string>();
-			if (!String.IsNullOrWhiteSpace(impactedJob.Key))
-			{
-				details.Add(impactedJob.Key);
-			}
-			else if (impactedJob.JobId != Guid.Empty)
-			{
-				details.Add($"Job ID {impactedJob.JobId}");
-			}
-
-			if (impactedJob.Start != default && impactedJob.End != default)
-			{
-				details.Add($"{impactedJob.Start.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)} - {impactedJob.End.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)}");
-			}
-
-			return details.Count == 0 ? $"'{displayName}'" : $"'{displayName}' ({String.Join("; ", details)})";
-		}
-
-		private sealed class ImpactedJobInfo
-		{
-			public ImpactedJobInfo(Guid reservationId, Guid jobId, string name, string key, DateTime start, DateTime end, string fallbackName)
-			{
-				ReservationId = reservationId;
-				JobId = jobId;
-				Name = name;
-				Key = key;
-				Start = start;
-				End = end;
-				FallbackName = fallbackName;
-			}
-
-			public Guid ReservationId { get; }
-
-			public Guid JobId { get; }
-
-			public string Name { get; }
-
-			public string Key { get; }
-
-			public DateTime Start { get; }
-
-			public DateTime End { get; }
-
-			public string FallbackName { get; }
 		}
 
 		private void SyncName(DomResource domResource, CoreResource coreResource, ICollection<SynchronizationDifference> differences)

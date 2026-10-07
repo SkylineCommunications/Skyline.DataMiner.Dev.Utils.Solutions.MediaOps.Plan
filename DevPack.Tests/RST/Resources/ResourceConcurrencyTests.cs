@@ -225,7 +225,7 @@
 		}
 
 		[TestMethod]
-		public void UpdateConcurrency_WithOverlappingTentativeReservations_ThrowsFriendlyQuarantineException()
+		public void UpdateConcurrency_WithOverlappingTentativeReservations_ReportsTheJobsThatWouldBeQuarantined()
 		{
 			var prefix = Guid.NewGuid();
 			var currentTime = DateTime.UtcNow.RoundToNextSecond();
@@ -271,16 +271,17 @@
 			Assert.AreEqual(2, TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId).MaxConcurrency);
 			Assert.AreEqual(2, TestContext.Api.Resources.Read(resource.Id).Concurrency);
 
-			StringAssert.Contains(exception.Message, $"Updating resource '{resource.Name}'");
-			StringAssert.Contains(exception.Message, resource.Id.ToString());
-			StringAssert.Contains(exception.Message, jobB.Name);
-			StringAssert.Contains(exception.Message, jobB.Key);
-			Assert.IsFalse(exception.Message.Contains(resource.CoreResourceId.ToString()), "Expected the user-facing message to reference the MediaOps resource instead of the CORE resource ID.");
-			Assert.IsFalse(reservations.Any(x => exception.Message.Contains(x.ID.ToString())), "Expected the user-facing message to reference the impacted job instead of the reservation ID.");
+			var error = exception.TraceData.ErrorData.OfType<ResourceUpdateWouldQuarantineJobsError>().Single();
+			Assert.AreEqual(resource.Id, error.Id);
+			CollectionAssert.AreEqual(new[] { jobB.Id }, error.JobIds.ToArray());
+			Assert.AreEqual($"Updating resource '{resource.Name}' would move 1 job(s) to quarantine.", error.ErrorMessage);
+			Assert.IsFalse(exception.Message.Contains(resource.Id.ToString()), "Expected the message not to contain the MediaOps resource ID.");
+			Assert.IsFalse(exception.Message.Contains(resource.CoreResourceId.ToString()), "Expected the message not to contain the CORE resource ID.");
+			Assert.IsFalse(reservations.Any(x => exception.Message.Contains(x.ID.ToString())), "Expected the message not to contain reservation IDs.");
 		}
 
 		[TestMethod]
-		public void UpdateConcurrency_WithUnresolvableJobLookup_FallsBackToReservationNameAndJobId()
+		public void UpdateConcurrency_WithUnresolvableJobLookup_CountsTheReservationWithoutReportingAJobId()
 		{
 			var prefix = Guid.NewGuid();
 			var currentTime = DateTime.UtcNow.RoundToNextSecond();
@@ -325,9 +326,11 @@
 			resource.Concurrency = 1;
 			var exception = Assert.ThrowsException<MediaOpsException>(() => TestContext.Api.Resources.Update(resource));
 
-			StringAssert.Contains(exception.Message, fallbackReservationName);
-			StringAssert.Contains(exception.Message, fallbackJobId.ToString());
-			Assert.IsFalse(exception.Message.Contains(reservationToMutate.ID.ToString()), "Expected the fallback message to surface the reservation name or job identifier instead of the reservation ID.");
+			var error = exception.TraceData.ErrorData.OfType<ResourceUpdateWouldQuarantineJobsError>().Single();
+			Assert.AreEqual(0, error.JobIds.Count, "Expected a job that no longer exists not to be reported.");
+			Assert.AreEqual($"Updating resource '{resource.Name}' would move 1 job(s) to quarantine.", error.ErrorMessage);
+			Assert.IsFalse(exception.Message.Contains(fallbackJobId.ToString()), "Expected the message not to contain the stored job ID.");
+			Assert.IsFalse(exception.Message.Contains(reservationToMutate.ID.ToString()), "Expected the message not to contain the reservation ID.");
 			Assert.AreEqual(2, TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId).MaxConcurrency);
 			Assert.AreEqual(2, TestContext.Api.Resources.Read(resource.Id).Concurrency);
 			Assert.IsFalse(TestContext.ResourceManagerHelper.GetReservationInstances(
