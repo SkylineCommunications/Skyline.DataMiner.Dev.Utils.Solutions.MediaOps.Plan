@@ -13,6 +13,7 @@
 
 	[TestClass]
 	[TestCategory("IntegrationTest")]
+	[DoNotParallelize]
 	public sealed class ResourceConcurrencyTests : IDisposable
 	{
 		private readonly TestObjectCreator objectCreator;
@@ -281,12 +282,7 @@
 				.Select(x => TestContext.Api.Jobs.Read(x.Id))
 				.Single(x => TestContext.Api.Jobs.Validate([x]).Single().HasError(QuarantinedReservationJobValidationError.ErrorCode));
 
-			TestContext.Api.Jobs.Validate([quarantinedJob]).Single().SyncToJob();
-			quarantinedJob = TestContext.Api.Jobs.Update(quarantinedJob);
-
-			Assert.IsTrue(
-				quarantinedJob.Errors.Any(x => x.Code == QuarantinedReservationJobValidationError.ErrorCode),
-				"Expected the quarantine error to be reported on the job while its resource is quarantined.");
+			quarantinedJob = SyncQuarantineError(quarantinedJob);
 
 			// Swapping the quarantined resource for an available one resolves the quarantine on the reservation, so the
 			// error must no longer be reported on the job.
@@ -351,9 +347,7 @@
 			Assert.IsTrue(GetReservation(job).IsQuarantined, "Expected the reservation to be quarantined after lowering the capacity of the resource.");
 
 			// The quarantine handling reports the error on the job, just like the SRM quarantine script does.
-			var quarantinedJob = TestContext.Api.Jobs.Read(job.Id);
-			TestContext.Api.Jobs.Validate([quarantinedJob]).Single().SyncToJob();
-			quarantinedJob = TestContext.Api.Jobs.Update(quarantinedJob);
+			var quarantinedJob = SyncQuarantineError(job);
 
 			Assert.IsTrue(
 				quarantinedJob.Errors.Any(x => x.Code == QuarantinedReservationJobValidationError.ErrorCode),
@@ -390,13 +384,6 @@
 			Assert.AreEqual(10m, usage.RequiredCapacities.Single().DecimalQuantity);
 		}
 
-		private static ReservationInstance GetReservation(Job job)
-		{
-			return TestContext.ResourceManagerHelper.GetReservationInstances(
-				ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(job.Id)))
-				.Single();
-		}
-
 		[TestMethod]
 		public void ChangeRequiredCapacityOfConcurrencyQuarantinedNode_SavesTheJobAndKeepsTheQuarantine()
 		{
@@ -412,6 +399,7 @@
 			Assert.IsTrue(
 				updatedJob.Errors.Any(x => x.Code == QuarantinedReservationJobValidationError.ErrorCode),
 				"Expected the quarantine error to remain on the job while the concurrency is still exceeded.");
+			Assert.IsFalse(GetReservation(setup.OtherJob).IsQuarantined, "Expected the refused release not to quarantine the other booking.");
 		}
 
 		[TestMethod]
@@ -430,9 +418,273 @@
 			Assert.IsFalse(
 				updatedJob.Errors.Any(x => x.Code == QuarantinedReservationJobValidationError.ErrorCode),
 				"Expected the quarantine error to be cleared once the job no longer overlaps.");
+			Assert.IsFalse(GetReservation(setup.OtherJob).IsQuarantined, "Expected the other booking to stay out of quarantine.");
 		}
 
-		private (Job QuarantinedJob, DateTime CurrentTime) CreateConcurrencyQuarantineSetup()
+		[TestMethod]
+		public void LowerRequiredCapacityOfQuarantinedNodeToValueThatStillDoesNotFit_SavesTheJobAndKeepsTheQuarantine()
+		{
+			var setup = CreateCapacityQuarantineSetup();
+			var quarantinedJob = setup.QuarantinedJob;
+
+			// The resource only offers 20.
+			((NumberCapacitySetting)quarantinedJob.NodeGraph.Nodes.Single().OrchestrationSettings.Capacities.Single()).Value = 30;
+			var updatedJob = TestContext.Api.Jobs.Update(quarantinedJob);
+
+			Assert.AreEqual(30m, ((NumberCapacitySetting)TestContext.Api.Jobs.Read(updatedJob.Id).NodeGraph.Nodes.Single().OrchestrationSettings.Capacities.Single()).Value);
+			Assert.IsTrue(GetReservation(updatedJob).IsQuarantined, "Expected the reservation to remain quarantined while the required capacity still does not fit.");
+			Assert.IsTrue(
+				updatedJob.Errors.Any(x => x.Code == QuarantinedReservationJobValidationError.ErrorCode),
+				"Expected the quarantine error to remain on the job while the required capacity still does not fit.");
+		}
+
+		[TestMethod]
+		public void LowerRequiredCapacityOfQuarantinedNodeToFitNextToOtherBooking_ClearsTheQuarantine()
+		{
+			var setup = CreateSharedCapacityQuarantineSetup();
+			var quarantinedJob = setup.QuarantinedJob;
+
+			// The other booking uses 40 of the 50 that the resource offers.
+			((NumberCapacitySetting)quarantinedJob.NodeGraph.Nodes.Single().OrchestrationSettings.Capacities.Single()).Value = 10;
+			var updatedJob = TestContext.Api.Jobs.Update(quarantinedJob);
+
+			Assert.IsFalse(GetReservation(updatedJob).IsQuarantined, "Expected the reservation to leave quarantine once the required capacity fits.");
+			Assert.IsFalse(
+				updatedJob.Errors.Any(x => x.Code == QuarantinedReservationJobValidationError.ErrorCode),
+				"Expected the quarantine error to be cleared once the required capacity fits.");
+			Assert.IsFalse(GetReservation(setup.OtherJob).IsQuarantined, "Expected the other booking to stay out of quarantine.");
+		}
+
+		[TestMethod]
+		public void LowerRequiredCapacityOfQuarantinedNodeNotEnoughNextToOtherBooking_KeepsTheQuarantineOfOnlyThisJob()
+		{
+			var setup = CreateSharedCapacityQuarantineSetup();
+			var quarantinedJob = setup.QuarantinedJob;
+
+			// The other booking uses 40 of the 50 that the resource offers.
+			((NumberCapacitySetting)quarantinedJob.NodeGraph.Nodes.Single().OrchestrationSettings.Capacities.Single()).Value = 20;
+			var updatedJob = TestContext.Api.Jobs.Update(quarantinedJob);
+
+			Assert.AreEqual(20m, ((NumberCapacitySetting)TestContext.Api.Jobs.Read(updatedJob.Id).NodeGraph.Nodes.Single().OrchestrationSettings.Capacities.Single()).Value);
+			Assert.IsTrue(GetReservation(updatedJob).IsQuarantined, "Expected the reservation to remain quarantined while the required capacity does not fit.");
+			Assert.IsTrue(
+				updatedJob.Errors.Any(x => x.Code == QuarantinedReservationJobValidationError.ErrorCode),
+				"Expected the quarantine error to remain on the job.");
+
+			var otherReservation = GetReservation(setup.OtherJob);
+			Assert.IsFalse(otherReservation.IsQuarantined, "Expected the refused release not to quarantine the other booking.");
+			Assert.AreEqual(40m, otherReservation.ResourcesInReservationInstance.OfType<ServiceResourceUsageDefinition>().Single().RequiredCapacities.Single().DecimalQuantity);
+		}
+
+		[TestMethod]
+		public void RestoreCapacityOfQuarantinedResource_NextJobUpdateClearsTheQuarantine()
+		{
+			var setup = CreateCapacityQuarantineSetup();
+			var quarantinedJob = setup.QuarantinedJob;
+
+			// The quarantine is resolved outside of the job, which itself keeps requiring the same capacity.
+			RestoreCapacity(setup.Resource);
+
+			// Only updates that impact the reservation reach the core software, so the job is renamed.
+			quarantinedJob.Name = $"{quarantinedJob.Name}_Renamed";
+			var updatedJob = TestContext.Api.Jobs.Update(quarantinedJob);
+
+			Assert.IsFalse(
+				updatedJob.Errors.Any(x => x.Code == QuarantinedReservationJobValidationError.ErrorCode),
+				"Expected the quarantine error to be cleared once the resource offers the required capacity again.");
+
+			var storedJob = TestContext.Api.Jobs.Read(updatedJob.Id);
+			Assert.IsFalse(
+				storedJob.Errors.Any(x => x.Code == QuarantinedReservationJobValidationError.ErrorCode),
+				"Expected the quarantine error to be cleared on the stored job.");
+			Assert.IsFalse(storedJob.NodeGraph.Nodes.OfType<JobResourceNode>().Single().HasError, "Expected the resource node to no longer be flagged.");
+
+			var reservation = GetReservation(updatedJob);
+			Assert.IsFalse(reservation.IsQuarantined, "Expected the reservation to be out of quarantine.");
+			Assert.AreEqual(50m, reservation.ResourcesInReservationInstance.OfType<ServiceResourceUsageDefinition>().Single().RequiredCapacities.Single().DecimalQuantity);
+		}
+
+		[TestMethod]
+		public void RestoreCapacityOfQuarantinedResource_SaveWithoutChanges_KeepsTheQuarantine()
+		{
+			var setup = CreateCapacityQuarantineSetup();
+
+			RestoreCapacity(setup.Resource);
+
+			// A save without reservation-impacting changes does not reach the core software.
+			var updatedJob = TestContext.Api.Jobs.Update(setup.QuarantinedJob);
+
+			Assert.IsTrue(GetReservation(updatedJob).IsQuarantined, "Expected the reservation to remain quarantined.");
+			Assert.IsTrue(
+				TestContext.Api.Jobs.Read(updatedJob.Id).Errors.Any(x => x.Code == QuarantinedReservationJobValidationError.ErrorCode),
+				"Expected the quarantine error to remain on the stored job.");
+		}
+
+		[TestMethod]
+		public void ChangeRequiredCapacityOfQuarantinedJobWithUnavailableResource_ReportsTheUnrelatedError()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = TestContext.Api.ResourcePools.Complete(objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" }));
+
+			var capacity = new NumberCapacity { Name = $"{prefix}_Capacity", RangeMin = 0, RangeMax = 100 };
+			objectCreator.CreateCapacity(capacity);
+
+			var sharedResource = new UnmanagedResource { Name = $"{prefix}_SharedResource", Concurrency = 2 }.AssignToPool(pool);
+			sharedResource.AddCapacity(new NumberCapacitySetting(capacity) { Value = 100 });
+			sharedResource = TestContext.Api.Resources.Complete(objectCreator.CreateResource(sharedResource));
+
+			var otherResource = TestContext.Api.Resources.Complete(objectCreator.CreateResource(
+				new UnmanagedResource { Name = $"{prefix}_OtherResource", Concurrency = 2 }.AssignToPool(pool)));
+
+			Job CreateJob(string name)
+			{
+				var job = new Job
+				{
+					Name = $"{prefix}_{name}",
+					Start = currentTime.AddHours(1),
+					End = currentTime.AddHours(2),
+					PreRollStart = currentTime.AddHours(1),
+					PostRollEnd = currentTime.AddHours(2),
+				};
+				var sharedNode = new JobResourceNode(pool, sharedResource);
+				sharedNode.OrchestrationSettings.AddCapacity(new NumberCapacitySetting(capacity) { Value = 10 });
+				job.NodeGraph.Add(sharedNode);
+				job.NodeGraph.Add(new JobResourceNode(pool, otherResource));
+
+				return TestContext.Api.Jobs.SaveAsTentative(objectCreator.CreateJob(job));
+			}
+
+			var jobs = new[] { CreateJob("Job_1"), CreateJob("Job_2") };
+
+			var sharedCoreResource = TestContext.ResourceManagerHelper.GetResource(sharedResource.CoreResourceId);
+			sharedCoreResource.MaxConcurrency = 1;
+			TestContext.ResourceManagerHelper.AddOrUpdateResources(true, [sharedCoreResource]);
+
+			var quarantinedJob = SyncQuarantineError(jobs.Single(x => GetReservation(x).IsQuarantined));
+
+			var otherCoreResource = TestContext.ResourceManagerHelper.GetResource(otherResource.CoreResourceId);
+			otherCoreResource.Mode = Skyline.DataMiner.Net.Messages.ResourceMode.Unavailable;
+			TestContext.ResourceManagerHelper.AddOrUpdateResources(true, [otherCoreResource]);
+
+			// The core software refuses every submission because of the unavailable resource, including the fallback.
+			var sharedNodeToChange = quarantinedJob.NodeGraph.Nodes.OfType<JobResourceNode>().Single(x => x.ResourceId == sharedResource.Id);
+			((NumberCapacitySetting)sharedNodeToChange.OrchestrationSettings.Capacities.Single()).Value = 5;
+			var exception = Assert.ThrowsException<MediaOpsException>(() => TestContext.Api.Jobs.Update(quarantinedJob));
+
+			StringAssert.Contains(exception.Message, "ResourceNotAvailable");
+			StringAssert.Contains(exception.Message, otherResource.CoreResourceId.ToString());
+
+			var storedJob = TestContext.Api.Jobs.Read(quarantinedJob.Id);
+			Assert.AreEqual(10m, ((NumberCapacitySetting)storedJob.NodeGraph.Nodes.OfType<JobResourceNode>().Single(x => x.ResourceId == sharedResource.Id).OrchestrationSettings.Capacities.Single()).Value);
+			Assert.IsTrue(GetReservation(storedJob).IsQuarantined, "Expected the reservation to remain quarantined.");
+			Assert.IsTrue(storedJob.Errors.Any(x => x.Code == QuarantinedReservationJobValidationError.ErrorCode), "Expected the quarantine error to remain on the job.");
+		}
+
+		private static ReservationInstance GetReservation(Job job)
+		{
+			return TestContext.ResourceManagerHelper.GetReservationInstances(
+				ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(job.Id)))
+				.Single();
+		}
+
+		private static void RestoreCapacity(Resource resource)
+		{
+			var coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
+			coreResource.Capacities.Single().Value.MaxDecimalQuantity = 100;
+			TestContext.ResourceManagerHelper.AddOrUpdateResources(true, [coreResource]);
+		}
+
+		private static Job SyncQuarantineError(Job job)
+		{
+			var quarantinedJob = TestContext.ReportQuarantineOnJob(job.Id);
+
+			Assert.IsTrue(
+				quarantinedJob.Errors.Any(x => x.Code == QuarantinedReservationJobValidationError.ErrorCode),
+				"Expected the quarantine error to be reported on the job while its resource is quarantined.");
+
+			return quarantinedJob;
+		}
+
+		// One job requiring 50 of a resource of which the capacity is forced down from 100 to 20.
+		private (Job QuarantinedJob, Resource Resource) CreateCapacityQuarantineSetup()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = TestContext.Api.ResourcePools.Complete(objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" }));
+
+			var capacity = new NumberCapacity { Name = $"{prefix}_Capacity", RangeMin = 0, RangeMax = 100 };
+			objectCreator.CreateCapacity(capacity);
+
+			var resource = new UnmanagedResource { Name = $"{prefix}_Resource", Concurrency = 1 }.AssignToPool(pool);
+			resource.AddCapacity(new NumberCapacitySetting(capacity) { Value = 100 });
+			resource = TestContext.Api.Resources.Complete(objectCreator.CreateResource(resource));
+
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = currentTime.AddHours(1),
+				End = currentTime.AddHours(2),
+				PreRollStart = currentTime.AddHours(1),
+				PostRollEnd = currentTime.AddHours(2),
+			};
+			var node = new JobResourceNode(pool, resource);
+			node.OrchestrationSettings.AddCapacity(new NumberCapacitySetting(capacity) { Value = 50 });
+			job.NodeGraph.Add(node);
+			job = TestContext.Api.Jobs.SaveAsTentative(objectCreator.CreateJob(job));
+
+			var coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
+			coreResource.Capacities.Single().Value.MaxDecimalQuantity = 20;
+			TestContext.ResourceManagerHelper.AddOrUpdateResources(true, [coreResource]);
+
+			return (SyncQuarantineError(job), resource);
+		}
+
+		// Two overlapping jobs requiring 40 each of a resource of which the capacity is forced down from 100 to 50.
+		private (Job QuarantinedJob, Job OtherJob) CreateSharedCapacityQuarantineSetup()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = TestContext.Api.ResourcePools.Complete(objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" }));
+
+			var capacity = new NumberCapacity { Name = $"{prefix}_Capacity", RangeMin = 0, RangeMax = 100 };
+			objectCreator.CreateCapacity(capacity);
+
+			var resource = new UnmanagedResource { Name = $"{prefix}_Resource", Concurrency = 2 }.AssignToPool(pool);
+			resource.AddCapacity(new NumberCapacitySetting(capacity) { Value = 100 });
+			resource = TestContext.Api.Resources.Complete(objectCreator.CreateResource(resource));
+
+			Job CreateJob(string name)
+			{
+				var job = new Job
+				{
+					Name = $"{prefix}_{name}",
+					Start = currentTime.AddHours(1),
+					End = currentTime.AddHours(2),
+					PreRollStart = currentTime.AddHours(1),
+					PostRollEnd = currentTime.AddHours(2),
+				};
+				var node = new JobResourceNode(pool, resource);
+				node.OrchestrationSettings.AddCapacity(new NumberCapacitySetting(capacity) { Value = 40 });
+				job.NodeGraph.Add(node);
+
+				return TestContext.Api.Jobs.SaveAsTentative(objectCreator.CreateJob(job));
+			}
+
+			var jobs = new[] { CreateJob("Job_1"), CreateJob("Job_2") };
+
+			var coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
+			coreResource.Capacities.Single().Value.MaxDecimalQuantity = 50;
+			TestContext.ResourceManagerHelper.AddOrUpdateResources(true, [coreResource]);
+
+			var quarantinedJob = jobs.Single(x => GetReservation(x).IsQuarantined);
+			return (SyncQuarantineError(quarantinedJob), jobs.Single(x => x.Id != quarantinedJob.Id));
+		}
+
+		private (Job QuarantinedJob, Job OtherJob, DateTime CurrentTime) CreateConcurrencyQuarantineSetup()
 		{
 			var prefix = Guid.NewGuid();
 			var currentTime = DateTime.UtcNow.RoundToNextSecond();
@@ -469,15 +721,8 @@
 			coreResource.MaxConcurrency = 1;
 			TestContext.ResourceManagerHelper.AddOrUpdateResources(true, [coreResource]);
 
-			var quarantinedJob = TestContext.Api.Jobs.Read(jobs.Single(x => GetReservation(x).IsQuarantined).Id);
-			TestContext.Api.Jobs.Validate([quarantinedJob]).Single().SyncToJob();
-			quarantinedJob = TestContext.Api.Jobs.Update(quarantinedJob);
-
-			Assert.IsTrue(
-				quarantinedJob.Errors.Any(x => x.Code == QuarantinedReservationJobValidationError.ErrorCode),
-				"Expected the quarantine error to be reported on the job while its resource is quarantined.");
-
-			return (quarantinedJob, currentTime);
+			var quarantinedJob = jobs.Single(x => GetReservation(x).IsQuarantined);
+			return (SyncQuarantineError(quarantinedJob), jobs.Single(x => x.Id != quarantinedJob.Id), currentTime);
 		}
 	}
 }

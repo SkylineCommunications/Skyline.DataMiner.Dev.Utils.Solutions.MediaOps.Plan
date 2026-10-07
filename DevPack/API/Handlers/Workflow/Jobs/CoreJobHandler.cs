@@ -150,7 +150,12 @@
 			// so a usage that was resolved is released even when another usage of the reservation is still invalid.
 			// When none of those releases is accepted, the reservation is submitted with all of these usages kept in
 			// quarantine, so an update that does not resolve the quarantine is still saved and the job keeps reporting it.
-			var refusedReleases = CreateOrUpdate(domJobs, (job, usage) => true);
+			// Every save of a quarantined job therefore costs up to k + 2 core calls (k = quarantined usages that are still
+			// assigned), batched over all jobs of the request; this is accepted so a quarantine resolved outside the job is lifted.
+			var outcomes = CreateOrUpdate(domJobs, (job, usage) => true);
+			ReportSuccess(GetJobs(outcomes, ReservationSaveOutcome.Saved));
+
+			var refusedReleases = GetJobs(outcomes, ReservationSaveOutcome.Refused);
 			if (refusedReleases.Count == 0)
 			{
 				return;
@@ -162,8 +167,13 @@
 			var remainingJobs = refusedReleases.Except(savedJobs).ToList();
 			if (remainingJobs.Count > 0)
 			{
-				CreateOrUpdate(remainingJobs, releaseQuarantinedUsage: null);
+				ReportSuccess(GetJobs(CreateOrUpdate(remainingJobs, releaseQuarantinedUsage: null), ReservationSaveOutcome.Saved));
 			}
+		}
+
+		private static List<DomJob> GetJobs(IReadOnlyDictionary<DomJob, ReservationSaveOutcome> outcomes, ReservationSaveOutcome outcome)
+		{
+			return outcomes.Where(x => x.Value == outcome).Select(x => x.Key).ToList();
 		}
 
 		// Returns the jobs of which a reservation was saved with one of its quarantined usages released.
@@ -207,24 +217,20 @@
 					break;
 				}
 
-				var savedReleases = new List<DomJob>();
-				CreateOrUpdate(
+				var outcomes = CreateOrUpdate(
 					pendingJobs,
-					(job, usage) => usageToReleaseByJobId.TryGetValue(job.ID.Id, out var releasedUsage) && IsSameAssignment(usage, releasedUsage),
-					savedReleases);
+					(job, usage) => usageToReleaseByJobId.TryGetValue(job.ID.Id, out var releasedUsage) && IsSameAssignment(usage, releasedUsage));
 
-				savedJobs.AddRange(savedReleases.Where(x => !savedJobs.Contains(x)));
+				savedJobs.AddRange(GetJobs(outcomes, ReservationSaveOutcome.Saved).Where(x => !savedJobs.Contains(x)));
 				isFirstRound = false;
 			}
 
 			return savedJobs;
 		}
 
-		// When releaseQuarantinedUsage is provided, the submission is an attempt to release (some of) the quarantined usages of the
-		// resources that are still assigned: the jobs of which such a release was refused are returned without reporting them as
-		// failed, and when savedReleases is provided, the jobs of which such a release was saved are added to it instead of being
-		// reported as successful. Without releaseQuarantinedUsage, all of these usages are kept in quarantine.
-		private List<DomJob> CreateOrUpdate(ICollection<DomJob> domJobs, Func<DomJob, Skyline.DataMiner.Net.Messages.ResourceUsageDefinition, bool> releaseQuarantinedUsage, ICollection<DomJob> savedReleases = null)
+		// Failed jobs are reported here; saved jobs are left to the caller. A refusal of a quarantined reservation is Refused
+		// instead of Failed when releaseQuarantinedUsage is provided, as the caller retries with fewer usages released.
+		private Dictionary<DomJob, ReservationSaveOutcome> CreateOrUpdate(ICollection<DomJob> domJobs, Func<DomJob, Skyline.DataMiner.Net.Messages.ResourceUsageDefinition, bool> releaseQuarantinedUsage)
 		{
 			var jobByReservationId = new Dictionary<Guid, DomJob>();
 			var releasedReservationIds = new HashSet<Guid>();
@@ -257,11 +263,11 @@
 				jobByReservationId.Add(reservation.ID, job);
 			}
 
-			var refusedReleases = new List<DomJob>();
+			var outcomes = new Dictionary<DomJob, ReservationSaveOutcome>();
 
 			if (reservationsToCreateOrUpdate.Count == 0)
 			{
-				return refusedReleases;
+				return outcomes;
 			}
 
 			planApi.CoreHelpers.ResourceManagerHelper.TryCreateOrUpdateReservationInstancesInBatches(reservationsToCreateOrUpdate, out var result, traceDataHandler: new ResourceManagerTraceDataHandler(planApi), newReservationIds: newReservationIds);
@@ -274,15 +280,19 @@
 					continue;
 				}
 
+				result.TraceDataPerItem.TryGetValue(id, out var traceData);
+
 				if (releasedReservationIds.Contains(id))
 				{
-					refusedReleases.Add(domJob);
+					planApi.Logger.Debug(this, $"Releasing the quarantined resource usages of Reservation with ID {id} for Job with ID {domJob.ID.Id} was refused: {traceData}");
+					outcomes[domJob] = ReservationSaveOutcome.Refused;
 					continue;
 				}
 
+				outcomes[domJob] = ReservationSaveOutcome.Failed;
 				ReportError(domJob.ID.Id);
 
-				if (result.TraceDataPerItem.TryGetValue(id, out var traceData))
+				if (traceData != null)
 				{
 					StampJobId(traceData, domJob.ID.Id);
 					PassTraceData(domJob.ID.Id, traceData);
@@ -297,23 +307,16 @@
 					continue;
 				}
 
-				var reservation = linkableObject as CoreReservation;
-				if (reservation == null)
+				if (!(linkableObject is CoreReservation))
 				{
 					planApi.Logger.Error(this, $"Linkable object with ID {linkableObject.ID} is not of type CoreReservation.");
 					continue;
 				}
 
-				if (savedReleases != null && releasedReservationIds.Contains(reservation.ID))
-				{
-					savedReleases.Add(domJob);
-					continue;
-				}
-
-				ReportSuccess(domJob);
+				outcomes[domJob] = ReservationSaveOutcome.Saved;
 			}
 
-			return refusedReleases;
+			return outcomes;
 		}
 
 		private void Confirm(ICollection<DomJob> domJobs)
@@ -897,6 +900,13 @@
 			return quarantinedUsage is ServiceResourceUsageDefinition serviceUsage
 				&& serviceUsage.GUID == expectedUsage.GUID
 				&& serviceUsage.ServiceDefinitionNodeID == expectedUsage.ServiceDefinitionNodeID;
+		}
+
+		private enum ReservationSaveOutcome
+		{
+			Saved,
+			Refused,
+			Failed,
 		}
 
 		private static class ReservationNameComposer
