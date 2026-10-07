@@ -6,6 +6,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using System.Runtime.CompilerServices;
 
 	using Skyline.DataMiner.Solutions.MediaOps.Live.API;
+	using Skyline.DataMiner.Solutions.MediaOps.Live.Orchestration.Script.Inputs;
 	using Skyline.DataMiner.Solutions.MediaOps.Live.Orchestration.ScriptHelper;
 
 	/// <summary>
@@ -486,6 +487,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			var executionDetails = orchestrationEvent.ExecutionDetails;
 			var requirements = GetScriptInputRequirements(executionDetails.ScriptName);
 
+			if (requirements.HasDynamicInputs)
+			{
+				// The structure of dynamic inputs depends on the provided values, so it can't be cached per script.
+				var inputs = _liveApi.Orchestration.Scripts.GetOrchestrationScriptInputInfo(executionDetails.ScriptName, executionDetails.GetDynamicInputValues())?.InputDefinition;
+
+				if (inputs == null || !AreDynamicInputsDefined(inputs, executionDetails))
+				{
+					return false;
+				}
+			}
+
 			foreach (var element in requirements.Elements)
 			{
 				var elementSetting = executionDetails.ScriptElements.FirstOrDefault(x => x.Name == element.Name);
@@ -510,6 +522,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			return true;
+		}
+
+		private static bool AreDynamicInputsDefined(OrchestrationInputDefinition inputs, ScriptExecutionDetails executionDetails)
+		{
+			var referencedPaths = new HashSet<string>(
+				executionDetails.DynamicInputs.Where(x => x.HasReference).Select(x => x.Path),
+				StringComparer.OrdinalIgnoreCase);
+
+			// A referenced input only gets its value when the job is scheduled, so the reference counts as a value.
+			return inputs.GetAllFields().All(field => referencedPaths.Contains(field.Path) || field.TryValidate(out _));
 		}
 
 		private static bool IsParameterFullyDefined(OrchestrationScriptInputParameter parameter, ScriptExecutionDetails executionDetails)
@@ -568,7 +590,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				requirements = new ScriptInputRequirements(
 					scriptInputInfo.Elements.ToList(),
-					scriptInputInfo.Parameters.ToList());
+					scriptInputInfo.Parameters.ToList(),
+					scriptInputInfo.HasDynamicInputs);
 			}
 
 			_requirementsByScriptName[scriptName] = requirements;
@@ -656,17 +679,20 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		private sealed class ScriptInputRequirements
 		{
-			public static readonly ScriptInputRequirements Empty = new ScriptInputRequirements(new List<OrchestrationScriptInputElement>(), new List<OrchestrationScriptInputParameter>());
+			public static readonly ScriptInputRequirements Empty = new ScriptInputRequirements(new List<OrchestrationScriptInputElement>(), new List<OrchestrationScriptInputParameter>(), false);
 
-			public ScriptInputRequirements(IReadOnlyCollection<OrchestrationScriptInputElement> elements, IReadOnlyCollection<OrchestrationScriptInputParameter> parameters)
+			public ScriptInputRequirements(IReadOnlyCollection<OrchestrationScriptInputElement> elements, IReadOnlyCollection<OrchestrationScriptInputParameter> parameters, bool hasDynamicInputs)
 			{
 				Elements = elements;
 				Parameters = parameters;
+				HasDynamicInputs = hasDynamicInputs;
 			}
 
 			public IReadOnlyCollection<OrchestrationScriptInputElement> Elements { get; }
 
 			public IReadOnlyCollection<OrchestrationScriptInputParameter> Parameters { get; }
+
+			public bool HasDynamicInputs { get; }
 		}
 	}
 }

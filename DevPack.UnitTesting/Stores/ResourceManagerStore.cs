@@ -200,6 +200,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 								_reservationCreationOrder.TryRemove(reservation.ID, out _);
 								successfulObjects.Add(reservation);
 							}
+							else if (TryGetUnavailableResourceId(reservation, out var unavailableResourceId))
+							{
+								traceData.Add(new ResourceManagerErrorData(ResourceManagerErrorData.Reason.ResourceNotAvailable, reservation.ID, (Guid?)unavailableResourceId));
+							}
 							else if (HasReservationConflict(reservation, _reservationInstances.Values))
 							{
 								if (quarantineError == null)
@@ -563,12 +567,20 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 
 					if (overlappingAcceptedUsages.Count >= maxConcurrency)
 					{
-						if (forceQuarantine)
-						{
-							MoveUsageToQuarantine(usage.Reservation, usage.Usage, QuarantineTrigger.Reason.ConcurrencyDowngraded);
-						}
+						QuarantineUsage(quarantinedPerReservation, usage, QuarantineTrigger.Reason.ConcurrencyDowngraded, forceQuarantine);
+						continue;
+					}
 
-						AddQuarantinedUsage(quarantinedPerReservation, usage, Array.Empty<Guid>());
+					if (!HasRequiredCapabilities(resource, usage.Usage.RequiredCapabilities))
+					{
+						QuarantineUsage(quarantinedPerReservation, usage, QuarantineTrigger.Reason.CapabilityDowngraded, forceQuarantine);
+						continue;
+					}
+
+					// Summing all overlapping usages overstates the load when they do not overlap each other, as the concurrency check does.
+					if (!HasCapacityAvailable(resource, usage.Usage, overlappingAcceptedUsages.Select(x => x.Usage).ToList()))
+					{
+						QuarantineUsage(quarantinedPerReservation, usage, QuarantineTrigger.Reason.CapacityDowngraded, forceQuarantine);
 						continue;
 					}
 
@@ -585,6 +597,26 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 			}
 
 			return quarantineErrors;
+		}
+
+		private void QuarantineUsage(IDictionary<Guid, QuarantinedUsagesOnSingleReservation> quarantinedPerReservation, ReservationUsage usage, QuarantineTrigger.Reason reason, bool forceQuarantine)
+		{
+			if (forceQuarantine)
+			{
+				MoveUsageToQuarantine(usage.Reservation, usage.Usage, reason);
+			}
+
+			AddQuarantinedUsage(quarantinedPerReservation, usage, Array.Empty<Guid>(), reason);
+		}
+
+		private static bool HasCapacityAvailable(Resource resource, ServiceResourceUsageDefinition usage, IReadOnlyCollection<ServiceResourceUsageDefinition> otherUsages)
+		{
+			if (UsesCompleteResource(usage))
+			{
+				return true;
+			}
+
+			return usage.RequiredCapacities.All(x => HasCapacityAvailable(resource, x, otherUsages));
 		}
 
 		/// <summary>
@@ -653,7 +685,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 						continue;
 					}
 
-					AddQuarantinedUsage(quarantinedPerReservation, usage, triggerIds);
+					AddQuarantinedUsage(quarantinedPerReservation, usage, triggerIds, QuarantineTrigger.Reason.ConcurrencyDowngraded);
 				}
 			}
 
@@ -669,7 +701,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 			};
 		}
 
-		private static void AddQuarantinedUsage(IDictionary<Guid, QuarantinedUsagesOnSingleReservation> quarantinedPerReservation, ReservationUsage usage, IEnumerable<Guid> triggerIds)
+		private static void AddQuarantinedUsage(IDictionary<Guid, QuarantinedUsagesOnSingleReservation> quarantinedPerReservation, ReservationUsage usage, IEnumerable<Guid> triggerIds, QuarantineTrigger.Reason reason)
 		{
 			if (!quarantinedPerReservation.TryGetValue(usage.Reservation.ID, out var quarantined))
 			{
@@ -682,16 +714,23 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 				quarantinedPerReservation[usage.Reservation.ID] = quarantined;
 			}
 
+			var triggers = triggerIds
+				.Select(x => new QuarantineTrigger
+				{
+					QuarantineReason = reason,
+					ReservationUpdateTrigger = new ReservationDifference { ReservationId = x },
+				})
+				.ToList();
+
+			if (triggers.Count == 0)
+			{
+				triggers.Add(new QuarantineTrigger { QuarantineReason = reason });
+			}
+
 			quarantined.QuarantinedUsages.Add(new QuarantinedResourceUsageDefinition
 			{
 				QuarantinedResourceUsage = usage.Usage,
-				QuarantineTriggers = triggerIds
-					.Select(x => new QuarantineTrigger
-					{
-						QuarantineReason = QuarantineTrigger.Reason.ConcurrencyDowngraded,
-						ReservationUpdateTrigger = new ReservationDifference { ReservationId = x },
-					})
-					.ToList(),
+				QuarantineTriggers = triggers,
 			});
 		}
 
@@ -713,6 +752,26 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 				QuarantinedResourceUsage = usage,
 				QuarantineTriggers = [new QuarantineTrigger { QuarantineReason = reason }],
 			});
+		}
+
+		private bool TryGetUnavailableResourceId(ReservationInstance reservation, out Guid resourceId)
+		{
+			resourceId = Guid.Empty;
+			if (!ConsumesCapacity(reservation.Status))
+			{
+				return false;
+			}
+
+			var unavailableUsage = reservation.ResourcesInReservationInstance
+				.OfType<ServiceResourceUsageDefinition>()
+				.FirstOrDefault(x => _resources.TryGetValue(x.GUID, out var resource) && resource.Mode == ResourceMode.Unavailable);
+			if (unavailableUsage == null)
+			{
+				return false;
+			}
+
+			resourceId = unavailableUsage.GUID;
+			return true;
 		}
 
 		private bool HasReservationConflict(ReservationInstance reservation, IEnumerable<ReservationInstance> existingReservations)
@@ -742,6 +801,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 					.ToList();
 
 				if (otherUsages.Count + 1 > Math.Max(1, resource.MaxConcurrency))
+				{
+					return true;
+				}
+
+				if (!HasRequiredCapabilities(resource, usage.RequiredCapabilities))
 				{
 					return true;
 				}

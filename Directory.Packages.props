@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
 		<CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
-		<MediaOpsLiveDevPackVersion>1.2.0-alpha007</MediaOpsLiveDevPackVersion>
+		<MediaOpsLiveDevPackVersion>1.2.0-alpha012</MediaOpsLiveDevPackVersion>
 		<CategoriesDevPackVersion>1.3.0</CategoriesDevPackVersion>
 	</PropertyGroup>
 	<ItemGroup>
