@@ -57,6 +57,16 @@
 		/// <inheritdoc/>
 		public override bool HasValue => Value.HasValue;
 
+		/// <inheritdoc/>
+		public override ConfigurationSetting Clone()
+		{
+			return new NumberConfigurationSetting(Id)
+			{
+				Value = Value,
+				Reference = Reference?.Clone(),
+			};
+		}
+
 		private protected override void ClearValue()
 		{
 			value = null;

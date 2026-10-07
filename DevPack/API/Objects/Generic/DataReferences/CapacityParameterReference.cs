@@ -20,6 +20,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 		}
 
+		/// <inheritdoc/>
+		public override DataReference Clone()
+		{
+			return new CapacityParameterReference(ParameterId, NodeId);
+		}
+
 		internal static CapacityParameterReference ParseFromStorage(Storage.DOM.DataReferenceStorage reference, string nodeId)
 		{
 			if (reference.ReferenceData == null || !reference.ReferenceData.TryGetValue(ParameterIdKey, out var raw))

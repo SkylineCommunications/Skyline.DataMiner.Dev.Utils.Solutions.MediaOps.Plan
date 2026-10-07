@@ -30,6 +30,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		public Guid JobPropertyId { get; }
 
 		/// <inheritdoc/>
+		public override DataReference Clone()
+		{
+			return new JobPropertyReference(JobPropertyId, NodeId);
+		}
+
+		/// <inheritdoc/>
 		public override bool Equals(DataReference other)
 		{
 			return base.Equals(other)

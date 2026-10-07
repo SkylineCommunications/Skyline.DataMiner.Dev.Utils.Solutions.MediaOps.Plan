@@ -15,5 +15,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		public ResourceNameReference(string nodeId = null) : base(DataReferenceType.ResourceName, nodeId)
 		{
 		}
+
+		/// <inheritdoc/>
+		public override DataReference Clone()
+		{
+			return new ResourceNameReference(NodeId);
+		}
 	}
 }

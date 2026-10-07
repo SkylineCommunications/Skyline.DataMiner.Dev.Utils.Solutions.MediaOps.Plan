@@ -131,6 +131,24 @@
 		}
 
 		/// <summary>
+		/// Creates new script execution details with copies of all settings, inputs and script arguments of this instance.
+		/// </summary>
+		/// <returns>A new <see cref="ScriptExecutionDetails"/> instance.</returns>
+		public ScriptExecutionDetails Clone()
+		{
+			var clone = new ScriptExecutionDetails(ScriptName);
+
+			clone.scriptElementSettings.AddRange(scriptElementSettings.Select(x => x.Clone()));
+			clone.scriptParameterSettings.AddRange(scriptParameterSettings.Select(x => x.Clone()));
+			clone.dynamicInputSettings.AddRange(dynamicInputSettings.Select(x => x.Clone()));
+			clone.SetCapabilities(Capabilities.Select(x => x.Clone()));
+			clone.SetCapacities(Capacities.Select(x => x.Clone()));
+			clone.SetConfigurations(Configurations.Select(x => x.Clone()));
+
+			return clone;
+		}
+
+		/// <summary>
 		/// Adds a new dynamic input, replacing the input with the same path.
 		/// </summary>
 		/// <param name="dynamicInputSetting">The dynamic input to add.</param>

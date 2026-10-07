@@ -76,6 +76,17 @@
 		/// <inheritdoc/>
 		public override bool HasValue => MinValue.HasValue && MaxValue.HasValue;
 
+		/// <inheritdoc/>
+		public override CapacitySetting Clone()
+		{
+			return new RangeCapacitySetting(Id)
+			{
+				MinValue = MinValue,
+				MaxValue = MaxValue,
+				Reference = Reference?.Clone(),
+			};
+		}
+
 		private protected override void ClearValue()
 		{
 			minValue = null;
