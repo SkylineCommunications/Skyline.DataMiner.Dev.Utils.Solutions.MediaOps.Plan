@@ -2973,12 +2973,18 @@
 
 		private void ValidateReferencesForConfirm(ICollection<Job> apiJobs)
 		{
+			var eventReferenceValidator = new OrchestrationEventReferenceValidator(planApi, referenceDefinitions);
+
 			foreach (var job in apiJobs.Where(IsValid))
 			{
 				var resolver = new JobReferenceResolver(planApi, job, referenceDefinitions);
 				var resolution = new JobReferenceValidator(resolver, referenceDefinitions).Resolve(job);
 
-				foreach (var (reference, reason) in resolution.UnresolvedReferences)
+				// A confirmed job reports the references of its orchestration events on every update, so they have to be usable from the start.
+				var eventFailures = EnumerateOrchestrationSettings(job)
+					.SelectMany(x => eventReferenceValidator.GetFailures(x.Settings, resolver, x.OwningNodeId));
+
+				foreach (var (reference, reason) in resolution.UnresolvedReferences.Concat(eventFailures))
 				{
 					var label = resolver.GetDisplayLabel(reference);
 					ReportError(job.Id, new JobUnresolvedReferenceError
@@ -2988,6 +2994,16 @@
 						ErrorMessage = $"Reference '{label}' {reason}",
 					});
 				}
+			}
+		}
+
+		private static IEnumerable<(OrchestrationSettings Settings, string OwningNodeId)> EnumerateOrchestrationSettings(Job job)
+		{
+			yield return (job.OrchestrationSettings, null);
+
+			foreach (var node in job.NodeGraph.Nodes)
+			{
+				yield return (node.OrchestrationSettings, node.Id);
 			}
 		}
 

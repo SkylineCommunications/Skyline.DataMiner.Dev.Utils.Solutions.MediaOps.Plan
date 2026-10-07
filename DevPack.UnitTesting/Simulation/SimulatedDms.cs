@@ -7,13 +7,18 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 	using System.Linq;
 	using System.Threading;
 
+	using Newtonsoft.Json;
+
 	using Skyline.DataMiner.Net;
 	using Skyline.DataMiner.Net.AppPackages;
 	using Skyline.DataMiner.Net.AppPackages.Messages;
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Automation;
+	using Skyline.DataMiner.Net.Automation.CustomEntryPoint;
 	using Skyline.DataMiner.Net.Messages;
 	using Skyline.DataMiner.Net.Messages.Advanced;
+	using Skyline.DataMiner.Solutions.MediaOps.Live.Orchestration.Script.Inputs;
+	using Skyline.DataMiner.Solutions.MediaOps.Live.Orchestration.Script.Objects;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Connection;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores;
 	using Skyline.DataMiner.Utils.DOM.UnitTesting;
@@ -25,6 +30,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 	/// </summary>
 	public sealed class SimulatedDms
 	{
+		// Keys of the MediaOps Live script info protocol, which MediaOps Live keeps internal.
+		private const string ScriptActionKey = "OrchestrationScriptAction";
+		private const string ScriptInfoAction = "OrchestrationScriptInfo";
+		private const string ScriptInputKey = "OrchestrationScriptInput";
+		private const string ScriptInfoOutputKey = "OrchestrationScriptInfo";
+
 		private readonly ConcurrentBag<SimulatedConnection> _connections = new ConcurrentBag<SimulatedConnection>();
 		private readonly ConcurrentBag<InstalledAppInfo> _appPackages = new ConcurrentBag<InstalledAppInfo>();
 		private readonly ConcurrentBag<SimulatedElement> _elements = new ConcurrentBag<SimulatedElement>();
@@ -103,6 +114,22 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 			}
 
 			_scripts[name] = new SimulatedAutomationScript(name, folder, parameters, dummies);
+		}
+
+		/// <summary>
+		/// Registers a dynamic orchestration script that answers input information requests the way a MediaOps Live
+		/// <c>DynamicOrchestrationScript</c> does.
+		/// </summary>
+		/// <param name="name">The script name.</param>
+		/// <param name="inputs">Produces the input items of the script for the values that were already provided.</param>
+		public void AddDynamicOrchestrationScript(string name, Func<OrchestrationInputValues, OrchestrationInputDefinition> inputs)
+		{
+			if (String.IsNullOrWhiteSpace(name))
+			{
+				throw new ArgumentException($"'{nameof(name)}' cannot be null or whitespace.", nameof(name));
+			}
+
+			_scripts[name] = new SimulatedAutomationScript(name, MediaOpsPlanSimulation.OrchestrationScriptFolder, null, null, inputs ?? throw new ArgumentNullException(nameof(inputs)));
 		}
 
 		/// <summary>
@@ -557,8 +584,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 				Dummies = script.Dummies.Select(x => new AutomationProtocolInfo { Description = x, ProtocolId = nextId++, ProtocolName = "Protocol", ProtocolVersion = "Production" }).ToArray(),
 				Memories = Array.Empty<AutomationMemoryInfo>(),
 
-				// No C# blocks are exposed, so callers do not attempt to run the script to request its script info.
-				Exes = Array.Empty<AutomationExeInfo>(),
+				// Only dynamic orchestration scripts expose a C# block, so callers only request their script info.
+				Exes = script.HasDynamicInputs
+					? new[] { new AutomationExeInfo { Type = AutomationExeType.CSharpCode } }
+					: Array.Empty<AutomationExeInfo>(),
 			};
 		}
 
@@ -582,7 +611,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 
 		private IEnumerable<DMSMessage> HandleMessage(ExecuteScriptMessage msg)
 		{
-			if (!_scripts.ContainsKey(msg.ScriptName))
+			if (!_scripts.TryGetValue(msg.ScriptName, out var script))
 			{
 				throw new InvalidOperationException(
 					$"Script '{msg.ScriptName}' is not registered. Register it with {nameof(AddScript)}() before it is used. " +
@@ -591,11 +620,52 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 
 			_executedScripts.Add(msg);
 
+			if (script.HasDynamicInputs && TryGetScriptInfoRequest(msg, out var providedValues))
+			{
+				var scriptInfo = new OrchestrationScriptInfo
+				{
+					InputDefinition = OrchestrationInputDefinition.Evaluate(script.Inputs, providedValues),
+				};
+
+				yield return new ExecuteScriptResponseMessage
+				{
+					saRet = new SA(new[] { "0" }),
+					EntryPointResult = new AutomationEntryPointResult(new RequestScriptInfoOutput
+					{
+						Data = new Dictionary<string, string> { [ScriptInfoOutputKey] = JsonConvert.SerializeObject(scriptInfo) },
+					}),
+				};
+
+				yield break;
+			}
+
 			// The simulation records the execution request; it does not run any script logic.
 			yield return new ExecuteScriptResponseMessage
 			{
 				saRet = new SA(new[] { "0" }),
 			};
+		}
+
+		private static bool TryGetScriptInfoRequest(ExecuteScriptMessage msg, out OrchestrationInputValues providedValues)
+		{
+			providedValues = OrchestrationInputValues.Empty;
+
+			var metadata = msg.CustomEntryPoint?.Parameters?.OfType<RequestScriptInfoInput>().FirstOrDefault()?.Data;
+
+			if (metadata == null
+				|| !metadata.TryGetValue(ScriptActionKey, out var action)
+				|| !String.Equals(action, ScriptInfoAction, StringComparison.Ordinal))
+			{
+				return false;
+			}
+
+			if (metadata.TryGetValue(ScriptInputKey, out var serializedInput) && !String.IsNullOrWhiteSpace(serializedInput))
+			{
+				var input = JsonConvert.DeserializeObject<SimulatedScriptInput>(serializedInput);
+				providedValues = new OrchestrationInputValues(input?.InputValues);
+			}
+
+			return true;
 		}
 
 		private IEnumerable<DMSMessage> HandleMessage(SetSchedulerInfoMessage msg)
@@ -723,6 +793,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 			{
 				Success = true,
 			};
+		}
+
+		private sealed class SimulatedScriptInput
+		{
+			public Dictionary<string, OrchestrationInputValue> InputValues { get; set; }
 		}
 	}
 }

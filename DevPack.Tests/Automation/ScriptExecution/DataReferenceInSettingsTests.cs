@@ -165,5 +165,19 @@ namespace RT_MediaOps.Plan.Automation.ScriptExecution
 
 			Assert.IsNull(result.Reference);
 		}
+
+		[TestMethod]
+		public void ScriptExecutionDetails_GetHashCode_IgnoresTheCasingOfDynamicInputPaths()
+		{
+			var first = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ScriptExecutionDetails("Script")
+				.AddDynamicInput(new DynamicInputSetting("a") { Value = "x" })
+				.AddDynamicInput(new DynamicInputSetting("B") { Value = "y" });
+			var second = new Skyline.DataMiner.Solutions.MediaOps.Plan.API.ScriptExecutionDetails("Script")
+				.AddDynamicInput(new DynamicInputSetting("A") { Value = "x" })
+				.AddDynamicInput(new DynamicInputSetting("b") { Value = "y" });
+
+			Assert.AreEqual(first, second);
+			Assert.AreEqual(first.GetHashCode(), second.GetHashCode());
+		}
 	}
 }
