@@ -132,6 +132,31 @@
 		public ProtocolFunctionHelper ProtocolFunctionHelper { get; private set; }
 
 		/// <summary>
+		/// Reports the quarantine of the reservation on the job, as the MediaOps_SRM_QuarantineHandling script does, and
+		/// returns the stored job. On a real agent that script updates the job itself, so it is awaited first to avoid
+		/// modifying a copy of the job that the script makes outdated.
+		/// </summary>
+		internal Job ReportQuarantineOnJob(Guid jobId)
+		{
+			if (UseRealDma)
+			{
+				var timeout = DateTime.UtcNow.AddSeconds(30);
+				while (!Api.Jobs.Read(jobId).Errors.Any(x => x.Code == QuarantinedReservationJobValidationError.ErrorCode))
+				{
+					if (DateTime.UtcNow > timeout)
+					{
+						throw new TimeoutException($"The quarantine handling script did not report the quarantine on job {jobId}.");
+					}
+
+					System.Threading.Thread.Sleep(500);
+				}
+			}
+
+			var job = Api.Jobs.Read(jobId);
+			return Api.Jobs.Validate([job]).Single().SyncToJob() ? Api.Jobs.Update(job) : job;
+		}
+
+		/// <summary>
 		/// Reads the current job settings DOM instance and captures it as a <see cref="JobSettingsSnapshot"/>
 		/// that can later be passed to <see cref="RestoreJobSettings"/>.
 		/// </summary>

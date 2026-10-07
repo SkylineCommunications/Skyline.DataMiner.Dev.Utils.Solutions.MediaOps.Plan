@@ -143,7 +143,97 @@
 				return;
 			}
 
+			// A quarantined reservation is first submitted with all of its quarantined usages released, as the update
+			// (or a change made outside of the job, such as a resource of which the concurrency, capability or capacity
+			// was restored) may have resolved the quarantine. When the core software refuses that, the quarantined usages
+			// of the resources that are still assigned are released one by one while the others are kept in quarantine,
+			// so a usage that was resolved is released even when another usage of the reservation is still invalid.
+			// When none of those releases is accepted, the reservation is submitted with all of these usages kept in
+			// quarantine, so an update that does not resolve the quarantine is still saved and the job keeps reporting it.
+			// Every save of a quarantined job therefore costs up to k + 2 core calls (k = quarantined usages that are still
+			// assigned), batched over all jobs of the request; this is accepted so a quarantine resolved outside the job is lifted.
+			var outcomes = CreateOrUpdate(domJobs, (job, usage) => true);
+			ReportSuccess(GetJobs(outcomes, ReservationSaveOutcome.Saved));
+
+			var refusedReleases = GetJobs(outcomes, ReservationSaveOutcome.Refused);
+			if (refusedReleases.Count == 0)
+			{
+				return;
+			}
+
+			var savedJobs = ReleaseQuarantinedUsagesOneByOne(refusedReleases);
+			ReportSuccess(savedJobs);
+
+			var remainingJobs = refusedReleases.Except(savedJobs).ToList();
+			if (remainingJobs.Count > 0)
+			{
+				ReportSuccess(GetJobs(CreateOrUpdate(remainingJobs, releaseQuarantinedUsage: null), ReservationSaveOutcome.Saved));
+			}
+		}
+
+		private static List<DomJob> GetJobs(IReadOnlyDictionary<DomJob, ReservationSaveOutcome> outcomes, ReservationSaveOutcome outcome)
+		{
+			return outcomes.Where(x => x.Value == outcome).Select(x => x.Key).ToList();
+		}
+
+		// Returns the jobs of which a reservation was saved with one of its quarantined usages released.
+		private List<DomJob> ReleaseQuarantinedUsagesOneByOne(ICollection<DomJob> domJobs)
+		{
+			var savedJobs = new List<DomJob>();
+			var triedUsagesByJobId = domJobs.ToDictionary(x => x.ID.Id, x => new List<ServiceResourceUsageDefinition>());
+			var pendingJobs = domJobs.ToList();
+			bool isFirstRound = true;
+
+			while (pendingJobs.Count > 0)
+			{
+				var usageToReleaseByJobId = new Dictionary<Guid, ServiceResourceUsageDefinition>();
+				foreach (var mapping in JobReservationMapping.GetMappings(planApi, pendingJobs))
+				{
+					var expectedUsages = ResourceUsageBuilder.BuildUsages(planApi, mapping.Job);
+					var triedUsages = triedUsagesByJobId[mapping.Job.ID.Id];
+					var keptUsages = expectedUsages
+						.Where(x => mapping.Reservation.QuarantinedResources.Any(y => IsSameAssignment(y.QuarantinedResourceUsage, x)))
+						.ToList();
+
+					// Releasing the only usage that would be kept is what the first submission already attempted.
+					if (isFirstRound && keptUsages.Count < 2)
+					{
+						continue;
+					}
+
+					var usageToRelease = keptUsages.FirstOrDefault(x => !triedUsages.Any(y => IsSameAssignment(y, x)));
+					if (usageToRelease == null)
+					{
+						continue;
+					}
+
+					triedUsages.Add(usageToRelease);
+					usageToReleaseByJobId.Add(mapping.Job.ID.Id, usageToRelease);
+				}
+
+				pendingJobs = pendingJobs.Where(x => usageToReleaseByJobId.ContainsKey(x.ID.Id)).ToList();
+				if (pendingJobs.Count == 0)
+				{
+					break;
+				}
+
+				var outcomes = CreateOrUpdate(
+					pendingJobs,
+					(job, usage) => usageToReleaseByJobId.TryGetValue(job.ID.Id, out var releasedUsage) && IsSameAssignment(usage, releasedUsage));
+
+				savedJobs.AddRange(GetJobs(outcomes, ReservationSaveOutcome.Saved).Where(x => !savedJobs.Contains(x)));
+				isFirstRound = false;
+			}
+
+			return savedJobs;
+		}
+
+		// Failed jobs are reported here; saved jobs are left to the caller. A refusal of a quarantined reservation is Refused
+		// instead of Failed when releaseQuarantinedUsage is provided, as the caller retries with fewer usages released.
+		private Dictionary<DomJob, ReservationSaveOutcome> CreateOrUpdate(ICollection<DomJob> domJobs, Func<DomJob, Skyline.DataMiner.Net.Messages.ResourceUsageDefinition, bool> releaseQuarantinedUsage)
+		{
 			var jobByReservationId = new Dictionary<Guid, DomJob>();
+			var releasedReservationIds = new HashSet<Guid>();
 
 			var reservationsToCreateOrUpdate = new List<CoreReservation>();
 			var newReservationIds = new HashSet<Guid>();
@@ -156,8 +246,13 @@
 				{
 					newReservationIds.Add(reservation.ID);
 				}
-				
-				if (!SyncJobWithReservation(job, ref reservation))
+
+				if (releaseQuarantinedUsage != null && reservation.IsQuarantined)
+				{
+					releasedReservationIds.Add(reservation.ID);
+				}
+
+				if (!SyncJobWithReservation(job, ref reservation, releaseQuarantinedUsage))
 				{
 					planApi.Logger.Information(this, $"No update required for Job with ID {job.ID.Id} and Reservation with ID {reservation.ID}.");
 					continue;
@@ -168,9 +263,11 @@
 				jobByReservationId.Add(reservation.ID, job);
 			}
 
+			var outcomes = new Dictionary<DomJob, ReservationSaveOutcome>();
+
 			if (reservationsToCreateOrUpdate.Count == 0)
 			{
-				return;
+				return outcomes;
 			}
 
 			planApi.CoreHelpers.ResourceManagerHelper.TryCreateOrUpdateReservationInstancesInBatches(reservationsToCreateOrUpdate, out var result, traceDataHandler: new ResourceManagerTraceDataHandler(planApi), newReservationIds: newReservationIds);
@@ -183,9 +280,19 @@
 					continue;
 				}
 
+				result.TraceDataPerItem.TryGetValue(id, out var traceData);
+
+				if (releasedReservationIds.Contains(id))
+				{
+					planApi.Logger.Debug(this, $"Releasing the quarantined resource usages of Reservation with ID {id} for Job with ID {domJob.ID.Id} was refused: {traceData}");
+					outcomes[domJob] = ReservationSaveOutcome.Refused;
+					continue;
+				}
+
+				outcomes[domJob] = ReservationSaveOutcome.Failed;
 				ReportError(domJob.ID.Id);
 
-				if (result.TraceDataPerItem.TryGetValue(id, out var traceData))
+				if (traceData != null)
 				{
 					StampJobId(traceData, domJob.ID.Id);
 					PassTraceData(domJob.ID.Id, traceData);
@@ -200,15 +307,16 @@
 					continue;
 				}
 
-				var reservation = linkableObject as CoreReservation;
-				if (reservation == null)
+				if (!(linkableObject is CoreReservation))
 				{
 					planApi.Logger.Error(this, $"Linkable object with ID {linkableObject.ID} is not of type CoreReservation.");
 					continue;
 				}
 
-				ReportSuccess(domJob);
+				outcomes[domJob] = ReservationSaveOutcome.Saved;
 			}
+
+			return outcomes;
 		}
 
 		private void Confirm(ICollection<DomJob> domJobs)
@@ -608,7 +716,7 @@
 			}
 		}
 
-		private bool SyncJobWithReservation(DomJob job, ref CoreReservation reservation)
+		private bool SyncJobWithReservation(DomJob job, ref CoreReservation reservation, Func<DomJob, Skyline.DataMiner.Net.Messages.ResourceUsageDefinition, bool> releaseQuarantinedUsage)
 		{
 			bool updateRequired = false;
 
@@ -618,7 +726,7 @@
 			updateRequired |= SyncProperties(job, reservation);
 			updateRequired |= SyncTime(job, ref reservation);
 			updateRequired |= SyncEvents(reservation);
-			updateRequired |= SyncResources(job, reservation);
+			updateRequired |= SyncResources(job, reservation, releaseQuarantinedUsage);
 
 			return updateRequired;
 		}
@@ -746,7 +854,7 @@
 			return updateRequired;
 		}
 
-		private bool SyncResources(DomJob job, CoreReservation reservation)
+		private bool SyncResources(DomJob job, CoreReservation reservation, Func<DomJob, Skyline.DataMiner.Net.Messages.ResourceUsageDefinition, bool> releaseQuarantinedUsage)
 		{
 			var expectedUsages = ResourceUsageBuilder.BuildUsages(planApi, job);
 
@@ -762,39 +870,15 @@
 				return true;
 			}
 
+			// A quarantined usage stays in quarantine as long as the same resource is still assigned to the same node, even
+			// when its requirements changed, unless it is selected to be released; a usage of a resource that is no longer
+			// expected (for example a swapped or removed resource) is always released.
 			reservation.QuarantinedResources.RemoveAll(x =>
-			{
-				// Can be removed if not present in expected usages
-				var coreResourceUsages = expectedUsages.Where(y => y.GUID == x.QuarantinedResourceUsage.GUID).ToList();
-				if (coreResourceUsages.Count == 0)
-				{
-					return true;
-				}
-
-				// Cannot be removed if the corresponding ServiceDefinitionNodeID is still present in expected usages, even if other details differ
-				if (coreResourceUsages.Select(y => y.ServiceDefinitionNodeID).Contains(((ServiceResourceUsageDefinition)x.QuarantinedResourceUsage).ServiceDefinitionNodeID))
-				{
-					return false;
-				}
-
-				return true;
-			});
+				!expectedUsages.Any(y => IsSameAssignment(x.QuarantinedResourceUsage, y))
+				|| (releaseQuarantinedUsage != null && releaseQuarantinedUsage(job, x.QuarantinedResourceUsage)));
 
 			reservation.ResourcesInReservationInstance.AddRange(expectedUsages.Where(x =>
-			{
-				var coreResourcesInQuarantine = reservation.QuarantinedResources.Where(y => y.QuarantinedResourceUsage.GUID == x.GUID).ToList();
-				if (coreResourcesInQuarantine.Count == 0)
-				{
-					return true;
-				}
-
-				if (coreResourcesInQuarantine.Select(y => ((ServiceResourceUsageDefinition)y.QuarantinedResourceUsage).ServiceDefinitionNodeID).Contains(x.ServiceDefinitionNodeID))
-				{
-					return false;
-				}
-
-				return true;
-			}));
+				!reservation.QuarantinedResources.Any(y => IsSameAssignment(y.QuarantinedResourceUsage, x))));
 
 			if (reservation.QuarantinedResources.Count == 0)
 			{
@@ -809,6 +893,20 @@
 			}
 
 			return true;
+		}
+
+		private static bool IsSameAssignment(Skyline.DataMiner.Net.Messages.ResourceUsageDefinition quarantinedUsage, ServiceResourceUsageDefinition expectedUsage)
+		{
+			return quarantinedUsage is ServiceResourceUsageDefinition serviceUsage
+				&& serviceUsage.GUID == expectedUsage.GUID
+				&& serviceUsage.ServiceDefinitionNodeID == expectedUsage.ServiceDefinitionNodeID;
+		}
+
+		private enum ReservationSaveOutcome
+		{
+			Saved,
+			Refused,
+			Failed,
 		}
 
 		private static class ReservationNameComposer
