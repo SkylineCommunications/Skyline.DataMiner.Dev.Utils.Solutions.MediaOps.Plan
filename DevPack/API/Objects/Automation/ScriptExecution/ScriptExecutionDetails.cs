@@ -102,6 +102,22 @@
 		public IReadOnlyCollection<DynamicInputSetting> DynamicInputs => dynamicInputSettings;
 
 		/// <summary>
+		/// Gets the references of all settings, inputs and script arguments.
+		/// </summary>
+		/// <returns>The references; settings without a reference are skipped.</returns>
+		public IReadOnlyCollection<DataReference> GetReferences()
+		{
+			return ScriptElements.Select(x => x.Reference)
+				.Concat(ScriptParameters.Select(x => x.Reference))
+				.Concat(DynamicInputs.Select(x => x.Reference))
+				.Concat(Capabilities.Select(x => x.Reference))
+				.Concat(Capacities.Select(x => x.Reference))
+				.Concat(Configurations.Select(x => x.Reference))
+				.Where(x => x != null)
+				.ToList();
+		}
+
+		/// <summary>
 		/// Gets the values that were provided directly for the dynamic inputs of the script, keyed by field path.
 		/// Inputs that get their value through a reference are not included.
 		/// </summary>
