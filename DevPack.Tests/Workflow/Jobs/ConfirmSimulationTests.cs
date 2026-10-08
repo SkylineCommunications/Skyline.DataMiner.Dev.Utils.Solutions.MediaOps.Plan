@@ -9,6 +9,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Net.ResourceManager.Objects;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation;
 
 	using ResourcePool = Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool;
@@ -81,6 +82,25 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			Assert.IsTrue(DomJobHandler.TryConfirm((MediaOpsPlanApi)api, [staleTentativeJob], out _), "Expected the confirm to succeed for a job that already reached Running.");
 			Assert.AreEqual(JobState.Running, api.Jobs.Read(staleTentativeJob.Id).State);
 			Assert.AreEqual(ReservationStatus.Ongoing, GetReservationStatus(resourceManagerHelper, staleTentativeJob.Id), "Expected the running reservation not to be pushed back.");
+		}
+
+		[TestMethod]
+		public void Confirm_JobCanceledWhileConfirmWaitedForLock_FailsWithoutTouchingReservation()
+		{
+			var dms = MediaOpsPlanSimulation.Create();
+			var connection = dms.CreateConnection();
+			var api = connection.GetMediaOpsPlanApi();
+			var resourceManagerHelper = new ResourceManagerHelper(connection.HandleSingleResponseMessage);
+
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+			var staleTentativeJob = CreateTentativeJob(api, currentTime.AddMinutes(-5), currentTime.AddMinutes(20));
+
+			dms.CreateConnection().GetMediaOpsPlanApi().Jobs.Cancel(staleTentativeJob.Id);
+
+			Assert.IsFalse(DomJobHandler.TryConfirm((MediaOpsPlanApi)api, [staleTentativeJob], out var result), "Expected the confirm of a canceled job to fail.");
+			Assert.IsTrue(result.TraceDataPerItem[staleTentativeJob.Id].ErrorData.OfType<JobInvalidStateError>().Any());
+			Assert.AreEqual(JobState.Canceled, api.Jobs.Read(staleTentativeJob.Id).State);
+			Assert.AreEqual(ReservationStatus.Canceled, GetReservationStatus(resourceManagerHelper, staleTentativeJob.Id), "Expected the reservation of the canceled job to stay canceled.");
 		}
 	}
 }

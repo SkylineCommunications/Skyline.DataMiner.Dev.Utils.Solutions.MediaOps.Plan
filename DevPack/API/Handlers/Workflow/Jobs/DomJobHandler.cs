@@ -854,6 +854,14 @@
 				throw new ArgumentException($"Not all provided jobs are valid", nameof(apiJobs));
 			}
 
+			// The jobs were read before the lock was granted, so neither the job nor its reservation may be touched before
+			// the stored state confirms the job is still Tentative.
+			apiJobs = GetStoredTentativeJobs(apiJobs);
+			if (apiJobs.Count == 0)
+			{
+				return;
+			}
+
 			// Every Tentative job has a core reservation (created during the draft-to-tentative transition), including
 			// resource-less jobs, so every job's reservation must be confirmed.
 			foreach (var job in apiJobs)
@@ -898,6 +906,45 @@
 			ReportSuccess(confirmedDomJobs.Where(x => !runningJobIds.Contains(x.ID.Id)));
 		}
 
+		// Returns the provided jobs that are still Tentative in storage. A job that already reached Confirmed or Running is
+		// reported as successful and any other state as an error, without touching the job or its reservation.
+		private ICollection<Job> GetStoredTentativeJobs(ICollection<Job> apiJobs)
+		{
+			var storedJobsById = planApi.DomHelpers.SlcWorkflowHelper.GetJobs(apiJobs.Select(x => x.Id)).ToDictionary(x => x.ID.Id);
+
+			var tentativeJobs = new List<Job>();
+			foreach (var job in apiJobs)
+			{
+				if (!storedJobsById.TryGetValue(job.Id, out var storedJob))
+				{
+					ReportError(job.Id, new JobNotFoundError { ErrorMessage = $"Job with ID '{job.Id}' no longer exists.", Id = job.Id });
+					continue;
+				}
+
+				switch (storedJob.Status)
+				{
+					case Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Tentative:
+						tentativeJobs.Add(job);
+						break;
+
+					case Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Confirmed:
+					case Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Running:
+						ReportSuccess(storedJob);
+						break;
+
+					default:
+						ReportError(job.Id, new JobInvalidStateError
+						{
+							ErrorMessage = "Only jobs in Tentative state can be confirmed.",
+							Id = job.Id,
+						});
+						break;
+				}
+			}
+
+			return tentativeJobs;
+		}
+
 		private ICollection<DomJob> ApplyConfirmNodeTimingsAndSave(ICollection<Job> apiJobs)
 		{
 			if (apiJobs == null)
@@ -923,45 +970,64 @@
 				return domJobsById.Values.ToList();
 			}
 
-			// Merged onto the stored jobs so concurrent changes made since the jobs were read (e.g. Live errors) are kept.
-			var updatedInstances = GetJobsWithChanges(changedJobs.Where(x => x.HasChanges).ToList())
-				.Where(IsValid)
-				.Select(x => x.Instance)
-				.ToList();
+			const int maxAttempts = 10;
+			const int retryDelayMs = 250;
 
-			foreach (var job in changedJobs.Where(x => !IsValid(x)))
+			var jobsToSave = changedJobs.Where(x => x.HasChanges).ToList();
+			for (int attempt = 1; attempt <= maxAttempts && jobsToSave.Count > 0; attempt++)
 			{
-				domJobsById.Remove(job.Id);
-			}
+				// Merged onto the stored jobs so concurrent changes made since the jobs were read (e.g. Live errors) are kept.
+				var updatedInstances = GetJobsWithChanges(jobsToSave)
+					.Where(IsValid)
+					.Select(x => x.Instance)
+					.ToList();
 
-			if (updatedInstances.Count == 0)
-			{
-				return domJobsById.Values.ToList();
-			}
-
-			planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.TryCreateOrUpdateInBatches(updatedInstances, out var domResult);
-
-			foreach (var id in domResult.UnsuccessfulIds)
-			{
-				ReportError(id.Id);
-
-				if (domResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+				foreach (var job in jobsToSave.Where(x => !IsValid(x)))
 				{
-					var mediaOpsTraceData = new MediaOpsTraceData();
-					mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = traceData.ToString() });
-
-					PassTraceData(id.Id, mediaOpsTraceData);
+					domJobsById.Remove(job.Id);
 				}
 
-				// A job whose node-timing update failed must not be transitioned to Confirmed.
-				domJobsById.Remove(id.Id);
-			}
+				if (updatedInstances.Count == 0)
+				{
+					break;
+				}
 
-			// Replace the stored instance of every successfully-updated job with its saved instance so the transition
-			// operates on the latest data.
-			foreach (var saved in domResult.SuccessfulItems)
-			{
-				domJobsById[saved.ID.Id] = new DomJob(saved);
+				planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.TryCreateOrUpdateInBatches(updatedInstances, out var domResult);
+
+				// Replace the stored instance of every successfully-updated job with its saved instance so the transition
+				// operates on the latest data.
+				foreach (var saved in domResult.SuccessfulItems)
+				{
+					domJobsById[saved.ID.Id] = new DomJob(saved);
+				}
+
+				// A status transition that lands between the re-read and the write rejects the write, so only those jobs
+				// are re-read and retried.
+				if (attempt < maxAttempts && HasOnlyStatusChangeFailures(domResult))
+				{
+					var failedIds = new HashSet<Guid>(domResult.UnsuccessfulIds.Select(x => x.Id));
+					jobsToSave = jobsToSave.Where(x => failedIds.Contains(x.Id)).ToList();
+					System.Threading.Thread.Sleep(retryDelayMs);
+					continue;
+				}
+
+				foreach (var id in domResult.UnsuccessfulIds)
+				{
+					ReportError(id.Id);
+
+					if (domResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+					{
+						var mediaOpsTraceData = new MediaOpsTraceData();
+						mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = traceData.ToString() });
+
+						PassTraceData(id.Id, mediaOpsTraceData);
+					}
+
+					// A job whose node-timing update failed must not be transitioned to Confirmed.
+					domJobsById.Remove(id.Id);
+				}
+
+				break;
 			}
 
 			return domJobsById.Values.ToList();
