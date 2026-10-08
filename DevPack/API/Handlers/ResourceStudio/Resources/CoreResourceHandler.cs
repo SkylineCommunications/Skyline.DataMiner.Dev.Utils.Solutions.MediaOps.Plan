@@ -1173,17 +1173,6 @@
 			var jobIdByReservationId = GetImpactedReservations(error, coreResourceId)
 				.ToDictionary(x => x.ID, GetJobId);
 
-			// Reservations in the error data do not always carry their properties.
-			var reservationIdsWithoutJobId = jobIdByReservationId.Where(x => x.Value == Guid.Empty).Select(x => x.Key).ToList();
-			if (reservationIdsWithoutJobId.Count > 0)
-			{
-				FilterElement<CoreReservation> Filter(Guid id) => Net.ResourceManager.Objects.ReservationInstanceExposers.ID.Equal(id);
-				foreach (var reservation in planApi.CoreHelpers.ResourceManagerHelper.GetReservationInstances(reservationIdsWithoutJobId, Filter))
-				{
-					jobIdByReservationId[reservation.ID] = GetJobId(reservation);
-				}
-			}
-
 			var candidateJobIds = jobIdByReservationId.Values.Where(x => x != Guid.Empty).Distinct().ToList();
 			var existingJobIds = candidateJobIds.Count > 0
 				? new HashSet<Guid>(planApi.DomHelpers.SlcWorkflowHelper.GetJobs(candidateJobIds).Select(x => x.ID.Id))

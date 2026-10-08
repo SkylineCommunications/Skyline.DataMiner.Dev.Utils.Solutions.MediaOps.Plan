@@ -8,6 +8,7 @@
 
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Net.ResourceManager.Objects;
+	using Skyline.DataMiner.Net.ResponseErrorData;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
@@ -273,11 +274,68 @@
 
 			var error = exception.TraceData.ErrorData.OfType<ResourceUpdateWouldQuarantineJobsError>().Single();
 			Assert.AreEqual(resource.Id, error.Id);
-			CollectionAssert.AreEqual(new[] { jobB.Id }, error.JobIds.ToArray());
+			Assert.AreEqual(1, error.JobIds.Count);
+			CollectionAssert.Contains(new[] { jobA.Id, jobB.Id }, error.JobIds.Single(), "Expected one of the overlapping jobs to be reported.");
 			Assert.AreEqual($"Updating resource '{resource.Name}' would move 1 job(s) to quarantine.", error.ErrorMessage);
 			Assert.IsFalse(exception.Message.Contains(resource.Id.ToString()), "Expected the message not to contain the MediaOps resource ID.");
 			Assert.IsFalse(exception.Message.Contains(resource.CoreResourceId.ToString()), "Expected the message not to contain the CORE resource ID.");
 			Assert.IsFalse(reservations.Any(x => exception.Message.Contains(x.ID.ToString())), "Expected the message not to contain reservation IDs.");
+		}
+
+		// Pins the raw SRM response that the in-memory simulation mirrors, so a real DMA run catches any drift.
+		[TestMethod]
+		public void UpdateConcurrency_WithOverlappingTentativeReservations_CoreReportsTheReservationAsConflictingUsage()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = new UnmanagedResource
+			{
+				Name = $"{prefix}_ResourceA",
+				Concurrency = 2,
+			}.AssignToPool(pool);
+			resource = TestContext.Api.Resources.Complete(objectCreator.CreateResource(resource));
+
+			Job CreateJob(string name)
+			{
+				var job = new Job
+				{
+					Name = $"{prefix}_{name}",
+					Start = currentTime.AddHours(1),
+					End = currentTime.AddHours(2),
+					PreRollStart = currentTime.AddHours(1),
+					PostRollEnd = currentTime.AddHours(2),
+				};
+
+				job.NodeGraph.Add(new JobResourceNode(pool, resource));
+				return job;
+			}
+
+			var jobA = TestContext.Api.Jobs.SaveAsTentative(objectCreator.CreateJob(CreateJob("Job_1")));
+			var jobB = TestContext.Api.Jobs.SaveAsTentative(objectCreator.CreateJob(CreateJob("Job_2")));
+
+			var coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
+			coreResource.MaxConcurrency = 1;
+			TestContext.ResourceManagerHelper.AddOrUpdateResources(coreResource);
+
+			var error = TestContext.ResourceManagerHelper.GetTraceDataLastCall().ErrorData.OfType<ResourceManagerErrorData>().Single();
+			Assert.AreEqual(ResourceManagerErrorData.Reason.ResourceUpdateCausedReservationsToGoToQuarantine, error.ErrorReason);
+			Assert.AreEqual(resource.CoreResourceId, error.SubjectId);
+			Assert.AreEqual(0, error.MustBeMovedToQuarantine?.Count ?? 0, "Expected a refused resource update not to report reservations that must be moved to quarantine.");
+
+			var usage = error.ConflictInformation?.ConflictingUsages?.SingleOrDefault();
+			Assert.IsNotNull(usage, "Expected the impacted reservation to be reported as conflicting usage.");
+			Assert.AreEqual(resource.CoreResourceId, usage.Usage.GUID);
+
+			var reservation = usage.Instance as ReservationInstance;
+			Assert.IsNotNull(reservation, "Expected the conflicting usage to contain the reservation instance.");
+			CollectionAssert.Contains(
+				new[] { Convert.ToString(jobA.Id), Convert.ToString(jobB.Id) },
+				Convert.ToString(reservation.Properties.Dictionary["Job ID"]),
+				"Expected the reservation to carry the ID of one of the overlapping jobs.");
 		}
 
 		[TestMethod]
@@ -314,14 +372,20 @@
 			var jobA = TestContext.Api.Jobs.SaveAsTentative(objectCreator.CreateJob(CreateJob("Job_1")));
 			var jobB = TestContext.Api.Jobs.SaveAsTentative(objectCreator.CreateJob(CreateJob("Job_2")));
 
-			var fallbackReservationName = $"{prefix}_DetachedReservation";
-			var fallbackJobId = Guid.NewGuid();
-			var reservationToMutate = TestContext.ResourceManagerHelper
-				.GetReservationInstances(ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(jobB.Id)))
-				.Single();
-			reservationToMutate.Name = fallbackReservationName;
-			reservationToMutate.Properties.AddOrUpdate("Job ID", Convert.ToString(fallbackJobId));
-			TestContext.ResourceManagerHelper.AddOrUpdateReservationInstances(reservationToMutate);
+			// Detach both reservations, as the core software decides which of the overlapping reservations is impacted.
+			var detachedJobIds = new[] { Guid.NewGuid(), Guid.NewGuid() };
+			var detachedReservations = new[] { jobA.Id, jobB.Id }
+				.Select((jobId, i) =>
+				{
+					var reservation = TestContext.ResourceManagerHelper
+						.GetReservationInstances(ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(jobId)))
+						.Single();
+					reservation.Name = $"{prefix}_DetachedReservation_{i}";
+					reservation.Properties.AddOrUpdate("Job ID", Convert.ToString(detachedJobIds[i]));
+					TestContext.ResourceManagerHelper.AddOrUpdateReservationInstances(reservation);
+					return reservation;
+				})
+				.ToList();
 
 			resource.Concurrency = 1;
 			var exception = Assert.ThrowsException<MediaOpsException>(() => TestContext.Api.Resources.Update(resource));
@@ -329,13 +393,14 @@
 			var error = exception.TraceData.ErrorData.OfType<ResourceUpdateWouldQuarantineJobsError>().Single();
 			Assert.AreEqual(0, error.JobIds.Count, "Expected a job that no longer exists not to be reported.");
 			Assert.AreEqual($"Updating resource '{resource.Name}' would move 1 job(s) to quarantine.", error.ErrorMessage);
-			Assert.IsFalse(exception.Message.Contains(fallbackJobId.ToString()), "Expected the message not to contain the stored job ID.");
-			Assert.IsFalse(exception.Message.Contains(reservationToMutate.ID.ToString()), "Expected the message not to contain the reservation ID.");
+			Assert.IsFalse(detachedJobIds.Any(x => exception.Message.Contains(x.ToString())), "Expected the message not to contain the stored job IDs.");
+			Assert.IsFalse(detachedReservations.Any(x => exception.Message.Contains(x.ID.ToString())), "Expected the message not to contain the reservation IDs.");
 			Assert.AreEqual(2, TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId).MaxConcurrency);
 			Assert.AreEqual(2, TestContext.Api.Resources.Read(resource.Id).Concurrency);
-			Assert.IsFalse(TestContext.ResourceManagerHelper.GetReservationInstances(
-				ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(fallbackJobId)))
-				.Single().IsQuarantined);
+			Assert.IsFalse(detachedJobIds
+				.SelectMany(x => TestContext.ResourceManagerHelper.GetReservationInstances(
+					ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(x))))
+				.Any(x => x.IsQuarantined));
 		}
 
 		[TestMethod]
