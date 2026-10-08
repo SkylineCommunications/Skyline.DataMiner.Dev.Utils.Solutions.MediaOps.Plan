@@ -281,6 +281,43 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void SetLiveJobConfigForJob_CompletedState_DoesNotSaveOrchestration()
+		{
+			var setup = CreateSetup();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var job = CreateJob(
+				setup,
+				preRollStart: currentTime.AddMinutes(-10),
+				start: currentTime.AddMinutes(-5),
+				end: currentTime.AddMinutes(20),
+				postRollEnd: currentTime.AddMinutes(25));
+
+			var runningJob = MakeRunning(setup, Confirm(setup, job));
+
+			// Mirror a MediaOps Live failure callback racing with the completion: the end events are still stored as
+			// confirmed at a time that has just passed while the job is synchronized with the Completed state.
+			var liveConfiguration = GetLiveConfiguration(setup, runningJob);
+			var originalJobName = liveConfiguration.JobInfo.JobName;
+			var postRollStart = GetEvent(liveConfiguration, LiveEnums.EventType.PostrollStart);
+			var postRollStop = GetEvent(liveConfiguration, LiveEnums.EventType.PostrollStop);
+
+			SetOrchestrationEventTime(setup, postRollStart.ID, currentTime.AddMinutes(-2));
+			SetOrchestrationEventState(setup, postRollStart.ID, LiveEnums.EventState.Failed);
+			SetOrchestrationEventTime(setup, postRollStop.ID, currentTime.AddMinutes(-1));
+
+			runningJob.Name = $"{runningJob.Name}_Renamed";
+
+			LiveJobConfigHandler.SetLiveJobConfigForJob((MediaOpsPlanApi)setup.Api, runningJob, JobState.Completed, null, DateTimeOffset.UtcNow);
+
+			var storedConfiguration = GetLiveConfiguration(setup, runningJob);
+			Assert.AreEqual(originalJobName, storedConfiguration.JobInfo.JobName, "Expected the orchestration configuration of a completed job not to be saved.");
+
+			var storedPostRollStop = GetEvent(storedConfiguration, LiveEnums.EventType.PostrollStop);
+			Assert.AreEqual(LiveEnums.EventState.Confirmed, storedPostRollStop.EventState, "Expected the orchestration events to be left to MediaOps Live.");
+		}
+
+		[TestMethod]
 		public void Confirm_JobWithTimingsInTheFuture_SchedulesAllOrchestrationEvents()
 		{
 			var setup = CreateSetup();
