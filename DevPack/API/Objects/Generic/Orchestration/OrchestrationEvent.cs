@@ -41,6 +41,20 @@
 		public string Metadata { get; set; }
 
 		/// <summary>
+		/// Creates a new orchestration event with the same values as this event, including a copy of its execution details.
+		/// </summary>
+		/// <returns>A new <see cref="OrchestrationEvent"/> instance.</returns>
+		public OrchestrationEvent Clone()
+		{
+			return new OrchestrationEvent
+			{
+				EventType = EventType,
+				ExecutionDetails = ExecutionDetails?.Clone(),
+				Metadata = Metadata,
+			};
+		}
+
+		/// <summary>
 		/// Checks if the provided object is an OrchestrationEvent instance and compares its properties to determine equality.
 		/// </summary>
 		/// <param name="obj">Object to compare.</param>

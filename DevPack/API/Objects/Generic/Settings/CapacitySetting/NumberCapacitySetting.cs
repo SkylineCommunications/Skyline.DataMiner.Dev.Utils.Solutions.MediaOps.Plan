@@ -58,6 +58,16 @@
 		/// <inheritdoc/>
 		public override bool HasValue => Value.HasValue;
 
+		/// <inheritdoc/>
+		public override CapacitySetting Clone()
+		{
+			return new NumberCapacitySetting(Id)
+			{
+				Value = Value,
+				Reference = Reference?.Clone(),
+			};
+		}
+
 		private protected override void ClearValue()
 		{
 			value = null;

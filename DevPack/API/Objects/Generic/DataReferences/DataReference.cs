@@ -46,6 +46,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		public string NodeId { get; set; }
 
 		/// <summary>
+		/// Creates a new reference with the same values as this reference.
+		/// </summary>
+		/// <returns>A new <see cref="DataReference"/> instance.</returns>
+		public abstract DataReference Clone();
+
+		/// <summary>
 		/// Determines whether this reference targets a job name and, if so, returns it as a <see cref="JobNameReference"/>.
 		/// </summary>
 		/// <param name="reference">When this method returns, contains the current reference as a <see cref="JobNameReference"/> when it is one; otherwise, <c>null</c>.</param>

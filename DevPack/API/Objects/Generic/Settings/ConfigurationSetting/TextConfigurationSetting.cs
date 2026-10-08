@@ -57,6 +57,16 @@
 		/// <inheritdoc/>
 		public override bool HasValue => Value != null;
 
+		/// <inheritdoc/>
+		public override ConfigurationSetting Clone()
+		{
+			return new TextConfigurationSetting(Id)
+			{
+				Value = Value,
+				Reference = Reference?.Clone(),
+			};
+		}
+
 		private protected override void ClearValue()
 		{
 			value = null;

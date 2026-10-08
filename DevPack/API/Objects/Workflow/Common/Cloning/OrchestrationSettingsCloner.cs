@@ -39,37 +39,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return;
 			}
 
-			destination.SetCapabilities(source.Capabilities);
-			destination.SetCapacities(source.Capacities);
-			destination.SetConfigurations(source.Configurations);
-			destination.SetOrchestrationEvents(source.OrchestrationEvents);
+			destination.SetCapabilities(source.Capabilities.Select(x => x.Clone()));
+			destination.SetCapacities(source.Capacities.Select(x => x.Clone()));
+			destination.SetConfigurations(source.Configurations.Select(x => x.Clone()));
+			destination.SetOrchestrationEvents(source.OrchestrationEvents.Select(x => x.Clone()));
 
-			// SetX wrappers re-use the source instances; replace shared references with retargeted copies so the
-			// source object stays untouched.
-			foreach (var setting in destination.Capabilities)
-			{
-				setting.Reference = RemapReference(setting.Reference, nodeIdMap);
-			}
-
-			foreach (var setting in destination.Capacities)
-			{
-				setting.Reference = RemapReference(setting.Reference, nodeIdMap);
-			}
-
-			foreach (var setting in destination.Configurations)
-			{
-				setting.Reference = RemapReference(setting.Reference, nodeIdMap);
-			}
-
-			// OrchestrationEvent.ExecutionDetails is shared with the source after SetOrchestrationEvents;
-			// replace it with a deep clone that has its own retargeted references.
-			foreach (var orchestrationEvent in destination.OrchestrationEvents)
-			{
-				if (orchestrationEvent.ExecutionDetails != null)
-				{
-					orchestrationEvent.ExecutionDetails = CloneExecutionDetails(orchestrationEvent.ExecutionDetails, nodeIdMap);
-				}
-			}
+			RetargetReferences(destination, nodeIdMap);
 		}
 
 		/// <summary>
@@ -145,60 +120,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				setting.Reference = RemapReference(setting.Reference, nodeIdMap);
 			}
-		}
-
-		/// <summary>
-		/// Creates an independent copy of <paramref name="source"/> in which every <see cref="DataReference"/>
-		/// has been retargeted using <paramref name="nodeIdMap"/>.
-		/// </summary>
-		private static ScriptExecutionDetails CloneExecutionDetails(ScriptExecutionDetails source, IReadOnlyDictionary<string, string> nodeIdMap)
-		{
-			var clone = new ScriptExecutionDetails(source.ScriptName);
-
-			foreach (var element in source.ScriptElements)
-			{
-				clone.AddScriptElement(new ScriptElementSetting(element.Name)
-				{
-					DmsElementId = element.DmsElementId,
-					ElementName = element.ElementName,
-					Reference = RemapReference(element.Reference, nodeIdMap),
-				});
-			}
-
-			foreach (var parameter in source.ScriptParameters)
-			{
-				clone.AddScriptParameter(new ScriptParameterSetting(parameter.Name)
-				{
-					Value = parameter.Value,
-					Reference = RemapReference(parameter.Reference, nodeIdMap),
-				});
-			}
-
-			clone.SetCapabilities(source.Capabilities);
-			clone.SetCapacities(source.Capacities);
-			clone.SetConfigurations(source.Configurations);
-			clone.SetDynamicInputs(source.DynamicInputs.Select(x => new DynamicInputSetting(x.Path)
-			{
-				Value = x.Value,
-				Reference = RemapReference(x.Reference, nodeIdMap),
-			}));
-
-			foreach (var setting in clone.Capabilities)
-			{
-				setting.Reference = RemapReference(setting.Reference, nodeIdMap);
-			}
-
-			foreach (var setting in clone.Capacities)
-			{
-				setting.Reference = RemapReference(setting.Reference, nodeIdMap);
-			}
-
-			foreach (var setting in clone.Configurations)
-			{
-				setting.Reference = RemapReference(setting.Reference, nodeIdMap);
-			}
-
-			return clone;
 		}
 
 		/// <summary>

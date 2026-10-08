@@ -69,6 +69,19 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// </summary>
 		public bool HasReference => Reference != null;
 
+		/// <summary>
+		/// Creates a new dynamic input setting with the same values as this setting.
+		/// </summary>
+		/// <returns>A new <see cref="DynamicInputSetting"/> instance.</returns>
+		public DynamicInputSetting Clone()
+		{
+			return new DynamicInputSetting(Path)
+			{
+				value = value,
+				reference = reference?.Clone(),
+			};
+		}
+
 		/// <inheritdoc/>
 		public override int GetHashCode()
 		{

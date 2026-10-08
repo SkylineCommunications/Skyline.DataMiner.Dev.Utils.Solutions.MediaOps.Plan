@@ -44,6 +44,12 @@
 		public new Guid Id { get => base.Id; internal set => base.Id = value; }
 
 		/// <summary>
+		/// Creates a new capacity setting with the same values as this setting.
+		/// </summary>
+		/// <returns>A new <see cref="CapacitySetting"/> instance.</returns>
+		public abstract CapacitySetting Clone();
+
+		/// <summary>
 		/// Determines whether this capacity setting represents a numeric capacity and, if so, returns it as a <see cref="NumberCapacitySetting"/>.
 		/// </summary>
 		/// <param name="setting">When this method returns, contains the current capacity setting as a <see cref="NumberCapacitySetting"/> when it represents a numeric capacity; otherwise, <c>null</c>.</param>

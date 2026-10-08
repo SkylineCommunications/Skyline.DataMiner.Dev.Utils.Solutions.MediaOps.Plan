@@ -66,5 +66,18 @@
 		/// Gets a value indicating whether this parameter has a reference defined.
 		/// </summary>
 		public bool HasReference => Reference != null;
+
+		/// <summary>
+		/// Creates a new script parameter setting with the same values as this setting.
+		/// </summary>
+		/// <returns>A new <see cref="ScriptParameterSetting"/> instance.</returns>
+		public ScriptParameterSetting Clone()
+		{
+			return new ScriptParameterSetting(Name)
+			{
+				value = value,
+				reference = reference?.Clone(),
+			};
+		}
 	}
 }

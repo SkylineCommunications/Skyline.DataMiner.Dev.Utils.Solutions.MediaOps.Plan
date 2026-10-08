@@ -86,5 +86,19 @@
 		/// Gets a value indicating whether this setting has a reference defined.
 		/// </summary>
 		public bool HasReference => Reference != null;
+
+		/// <summary>
+		/// Creates a new script element setting with the same values as this setting.
+		/// </summary>
+		/// <returns>A new <see cref="ScriptElementSetting"/> instance.</returns>
+		public ScriptElementSetting Clone()
+		{
+			return new ScriptElementSetting(Name)
+			{
+				dmsElementId = dmsElementId,
+				elementName = elementName,
+				reference = reference?.Clone(),
+			};
+		}
 	}
 }

@@ -36,6 +36,12 @@
 		public new Guid Id { get => base.Id; internal set => base.Id = value; }
 
 		/// <summary>
+		/// Creates a new configuration setting with the same values as this setting.
+		/// </summary>
+		/// <returns>A new <see cref="ConfigurationSetting"/> instance.</returns>
+		public abstract ConfigurationSetting Clone();
+
+		/// <summary>
 		/// Determines whether this configuration setting represents a numeric configuration and, if so, returns it as a <see cref="NumberConfigurationSetting"/>.
 		/// </summary>
 		/// <param name="setting">When this method returns, contains the current configuration setting as a <see cref="NumberConfigurationSetting"/> when it represents a numeric configuration; otherwise, <c>null</c>.</param>

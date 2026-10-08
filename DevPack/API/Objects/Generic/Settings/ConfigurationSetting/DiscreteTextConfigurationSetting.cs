@@ -57,6 +57,16 @@
 		/// <inheritdoc/>
 		public override bool HasValue => Value != null && !string.IsNullOrWhiteSpace(Value.Value);
 
+		/// <inheritdoc/>
+		public override ConfigurationSetting Clone()
+		{
+			return new DiscreteTextConfigurationSetting(Id)
+			{
+				Value = Value != null ? new TextDiscrete(Value.Value, Value.DisplayName) : null,
+				Reference = Reference?.Clone(),
+			};
+		}
+
 		private protected override void ClearValue()
 		{
 			value = null;

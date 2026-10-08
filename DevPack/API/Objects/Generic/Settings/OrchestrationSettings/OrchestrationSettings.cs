@@ -42,6 +42,20 @@
 		public abstract IReadOnlyCollection<OrchestrationEvent> OrchestrationEvents { get; }
 
 		/// <summary>
+		/// Gets the references of all settings, including the ones in the execution details of the orchestration events.
+		/// </summary>
+		/// <returns>The references; settings without a reference are skipped.</returns>
+		public IReadOnlyCollection<DataReference> GetReferences()
+		{
+			return Capabilities.Select(x => x.Reference)
+				.Concat(Capacities.Select(x => x.Reference))
+				.Concat(Configurations.Select(x => x.Reference))
+				.Concat(OrchestrationEvents.Where(x => x?.ExecutionDetails != null).SelectMany(x => x.ExecutionDetails.GetReferences()))
+				.Where(x => x != null)
+				.ToList();
+		}
+
+		/// <summary>
 		/// Adds a new capability.
 		/// </summary>
 		/// <param name="capabilitySetting">The capability setting to add.</param>

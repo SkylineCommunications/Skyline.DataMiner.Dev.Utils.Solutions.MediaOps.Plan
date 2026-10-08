@@ -57,6 +57,16 @@
 		/// <inheritdoc/>
 		public override bool HasValue => Value != null;
 
+		/// <inheritdoc/>
+		public override ConfigurationSetting Clone()
+		{
+			return new DiscreteNumberConfigurationSetting(Id)
+			{
+				Value = Value != null ? new NumberDiscrete(Value.Value, Value.DisplayName) : null,
+				Reference = Reference?.Clone(),
+			};
+		}
+
 		private protected override void ClearValue()
 		{
 			value = null;

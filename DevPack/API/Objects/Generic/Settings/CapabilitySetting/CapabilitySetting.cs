@@ -64,6 +64,19 @@
 		/// </summary>
 		public override bool HasValue => Value != null;
 
+		/// <summary>
+		/// Creates a new capability setting with the same values as this setting.
+		/// </summary>
+		/// <returns>A new <see cref="CapabilitySetting"/> instance.</returns>
+		public CapabilitySetting Clone()
+		{
+			return new CapabilitySetting(Id)
+			{
+				Value = Value,
+				Reference = Reference?.Clone(),
+			};
+		}
+
 		private protected override void ClearValue()
 		{
 			value = null;

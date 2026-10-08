@@ -29,6 +29,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		public Guid ResourcePropertyId { get; }
 
 		/// <inheritdoc/>
+		public override DataReference Clone()
+		{
+			return new ResourcePropertyReference(ResourcePropertyId, NodeId);
+		}
+
+		/// <inheritdoc/>
 		public override int GetHashCode()
 		{
 			unchecked
