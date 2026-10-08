@@ -297,7 +297,7 @@ OrchestrationInputValues values = details.GetDynamicInputValues();
 ```
 
 - Setting `Value` clears `Reference` and the other way around. Adding an input for a path that already exists replaces it.
-- Only link a field whose `SupportsLinks` is `true` and that doesn't have `TriggersReevaluation` set. The MediaOps apps don't offer a link for other fields; date/time and duration fields can't be linked yet.
+- Only link a field whose `SupportsLinks` is `true` and that doesn't have `TriggersReevaluation` set. For other fields, the MediaOps apps show a disabled link button with a tooltip that explains why; date/time and duration fields can't be linked yet.
 - For a Confirmed or Running job, every linked input is resolved and checked against its field, like a linked profile parameter.
   A link that can't be resolved, or whose value the field doesn't accept, is reported as an `OrchestrationSettingsUnresolvedReferenceError`.
   A link to a field the script no longer has is kept, and is only checked for a value.
