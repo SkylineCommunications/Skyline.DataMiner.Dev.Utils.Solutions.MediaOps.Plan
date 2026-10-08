@@ -141,6 +141,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return;
 			}
 
+			if (_targetState == JobState.Completed)
+			{
+				// Saving would re-validate end events that MediaOps Live may still be executing and fail on them.
+				return;
+			}
+
 			var eventsToTrigger = new List<Live.OrchestrationEvent>();
 			_liveConfiguration.JobInfo.JobName = _job.Name;
 			_liveConfiguration.JobInfo.JobDescription = _job.Description;
@@ -170,10 +176,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				}
 
 				CancelEventsIfNotAlreadyTriggered();
-			}
-			else if (_targetState == JobState.Completed)
-			{
-				// A completed job keeps its orchestration events as-is.
 			}
 			else
 			{

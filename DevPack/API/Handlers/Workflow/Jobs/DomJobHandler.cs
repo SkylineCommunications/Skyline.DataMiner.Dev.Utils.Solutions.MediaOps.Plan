@@ -1209,8 +1209,6 @@
 			var domJobs = apiJobs.Select(x => x.OriginalInstance).ToList();
 
 			TransitionDomJobsToCompleted(domJobs);
-
-			SyncLiveOrchestration(apiJobs, JobState.Completed);
 		}
 
 		private void TransitionDomJobsToCompleted(ICollection<DomJob> domJobs)
@@ -1742,8 +1740,6 @@
 
 			var domJobs = apiJobs.Where(IsValid).Select(x => x.OriginalInstance).ToList();
 			TransitionDomJobsToCompletedFromRunning(domJobs);
-
-			SyncLiveOrchestration(apiJobs.Where(IsValid).ToList(), JobState.Completed);
 		}
 
 		private void TransitionDomJobsToCompletedFromRunning(ICollection<DomJob> domJobs)
