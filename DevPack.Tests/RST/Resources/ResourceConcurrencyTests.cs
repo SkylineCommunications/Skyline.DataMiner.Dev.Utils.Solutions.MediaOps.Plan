@@ -209,6 +209,9 @@
 			Assert.IsNotNull(coreResource);
 			coreResource.MaxConcurrency = 1;
 			TestContext.ResourceManagerHelper.AddOrUpdateResources(true, [coreResource]);
+			Assert.IsFalse(
+				TestContext.ResourceManagerHelper.GetTraceDataLastCall()?.ErrorData?.OfType<ResourceManagerErrorData>().Any() ?? false,
+				"Expected a forced resource update not to report errors.");
 
 			var reservations = TestContext.ResourceManagerHelper.GetReservationInstances(
 				ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(jobA.Id)))

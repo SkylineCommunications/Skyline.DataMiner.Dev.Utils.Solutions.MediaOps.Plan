@@ -125,10 +125,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 
 						if (!request.isDelete && request.ForceQuarantine)
 						{
-							foreach (var quarantineError in GetQuarantineErrorsForUpdatedResources(updatedResources, true))
-							{
-								traceData.Add(quarantineError);
-							}
+							// A real DataMiner Agent quarantines the impacted reservations without reporting trace data.
+							GetQuarantineErrorsForUpdatedResources(updatedResources, true);
 						}
 
 						response = new ResourceResponseMessage(handled.ToArray()) { Success = true, TraceData = traceData };
@@ -592,24 +590,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 					continue;
 				}
 
-				var quarantineError = new ResourceManagerErrorData(ResourceManagerErrorData.Reason.ResourceUpdateCausedReservationsToGoToQuarantine, resource.GUID);
-				if (forceQuarantine)
+				// A real DataMiner Agent rejects the update and only reports the impacted reservations as conflicting usages.
+				quarantineErrors.Add(new ResourceManagerErrorData(ResourceManagerErrorData.Reason.ResourceUpdateCausedReservationsToGoToQuarantine, resource.GUID)
 				{
-					quarantineError.MustBeMovedToQuarantine = quarantinedPerReservation.Values.ToList();
-				}
-				else
-				{
-					// A real DataMiner Agent rejects the update and only reports the impacted reservations as conflicting usages.
-					quarantineError.ConflictInformation = new ConflictResult
+					ConflictInformation = new ConflictResult
 					{
 						ResourceInConflict = resource,
 						ConflictingUsages = quarantinedPerReservation.Values
 							.SelectMany(x => x.QuarantinedUsages.Select(y => new UsageOnSingleReservation(y.QuarantinedResourceUsage, y.QuarantineTriggers, x.ReservationInstance)))
 							.ToList(),
-					};
-				}
-
-				quarantineErrors.Add(quarantineError);
+					},
+				});
 			}
 
 			return quarantineErrors;
