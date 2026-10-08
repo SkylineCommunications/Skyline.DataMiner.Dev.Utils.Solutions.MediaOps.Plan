@@ -383,9 +383,10 @@
 		public string JobTypeCategoryId { get; set; }
 
 		/// <summary>
-		/// Gets or sets the unique identifier of the recurring job that generated this job, if applicable.
+		/// Gets the unique identifier of the recurring job that generated this job, if applicable.
+		/// This property is set by the system when the job is created using <see cref="FromRecurringJob(RecurringJob, DateTimeOffset)"/>.
 		/// </summary>
-		public Guid RecurringJobId { get; set; }
+		public Guid RecurringJobId { get; internal set; }
 
 		/// <summary>
 		/// Gets a value indicating whether manual actions are required to complete the job. This property is set by the system and cannot be modified directly.
@@ -740,6 +741,7 @@
 				OrganizationId = recurringJob.OrganizationId,
 				OwnerId = recurringJob.OwnerId,
 				JobTypeCategoryId = recurringJob.JobTypeCategoryId,
+				RecurringJobId = recurringJob.Id,
 			};
 
 			foreach (var contactId in recurringJob.ContactIds)
