@@ -1170,23 +1170,41 @@
 		// Returns the existing impacted jobs; the count also includes reservations that no longer map to an existing job.
 		private IReadOnlyCollection<Guid> ResolveImpactedJobIds(ResourceManagerErrorData error, Guid coreResourceId, out int impactedJobCount)
 		{
-			var impactedReservations = (error.MustBeMovedToQuarantine ?? new List<Net.ResourceManager.Helpers.QuarantinedUsagesOnSingleReservation>())
-				.Where(x => x?.ReservationInstance != null)
-				.Where(x => coreResourceId == Guid.Empty
-					|| (x.QuarantinedUsages ?? new List<Net.SRM.Quarantine.QuarantinedResourceUsageDefinition>())
-						.Any(y => y?.QuarantinedResourceUsage != null && y.QuarantinedResourceUsage.GUID == coreResourceId))
-				.Select(x => x.ReservationInstance)
-				.ToList();
+			var jobIdByReservationId = GetImpactedReservations(error, coreResourceId)
+				.ToDictionary(x => x.ID, GetJobId);
 
-			var candidateJobIds = impactedReservations.Select(GetJobId).Where(x => x != Guid.Empty).Distinct().ToList();
+			var candidateJobIds = jobIdByReservationId.Values.Where(x => x != Guid.Empty).Distinct().ToList();
 			var existingJobIds = candidateJobIds.Count > 0
 				? new HashSet<Guid>(planApi.DomHelpers.SlcWorkflowHelper.GetJobs(candidateJobIds).Select(x => x.ID.Id))
 				: new HashSet<Guid>();
 
-			var unresolvedReservationCount = impactedReservations.Count(x => !existingJobIds.Contains(GetJobId(x)));
+			var unresolvedReservationCount = jobIdByReservationId.Values.Count(x => !existingJobIds.Contains(x));
 			impactedJobCount = existingJobIds.Count + unresolvedReservationCount;
 
 			return existingJobIds.ToList();
+		}
+
+		private static List<CoreReservation> GetImpactedReservations(ResourceManagerErrorData error, Guid coreResourceId)
+		{
+			var quarantinedReservations = (error.MustBeMovedToQuarantine ?? new List<Net.ResourceManager.Helpers.QuarantinedUsagesOnSingleReservation>())
+				.Where(x => x != null)
+				.Where(x => coreResourceId == Guid.Empty
+					|| (x.QuarantinedUsages ?? new List<Net.SRM.Quarantine.QuarantinedResourceUsageDefinition>())
+						.Any(y => y?.QuarantinedResourceUsage != null && y.QuarantinedResourceUsage.GUID == coreResourceId))
+				.Select(x => x.ReservationInstance);
+
+			// A DataMiner Agent reports the reservations impacted by a resource update as conflicting usages.
+			var conflictingReservations = (error.ConflictInformation?.ConflictingUsages ?? Enumerable.Empty<Net.ResourceManager.Helpers.UsageOnSingleReservation>())
+				.Where(x => x != null)
+				.Where(x => coreResourceId == Guid.Empty || (x.Usage != null && x.Usage.GUID == coreResourceId))
+				.Select(x => x.Instance as CoreReservation);
+
+			return quarantinedReservations
+				.Concat(conflictingReservations)
+				.Where(x => x != null && x.ID != Guid.Empty)
+				.GroupBy(x => x.ID)
+				.Select(x => x.FirstOrDefault(y => GetJobId(y) != Guid.Empty) ?? x.First())
+				.ToList();
 		}
 
 		private static Guid GetJobId(CoreReservation reservation)
