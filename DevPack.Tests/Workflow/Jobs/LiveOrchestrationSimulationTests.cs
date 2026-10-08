@@ -1077,6 +1077,69 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void LiveJobConfigHandler_Confirm_ProfileInputsLinkedToNodeCapabilityAndCapacity_PassesResolvedValues()
+		{
+			var setup = CreateSetup();
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var capability = setup.Api.Capabilities.Create(new Capability { Name = $"{prefix}_Capability" }.SetDiscretes(["North", "South"]));
+			var capacity = (NumberCapacity)setup.Api.Capacities.Create(new NumberCapacity { Name = $"{prefix}_Capacity", RangeMin = 0, RangeMax = 100 });
+
+			var pool = setup.Api.ResourcePools.Complete(setup.Api.ResourcePools.Create(new ResourcePool { Name = $"{prefix}_Pool" }));
+
+			var resourceCapability = new CapabilitySettings(capability);
+			resourceCapability.SetDiscretes(["North", "South"]);
+
+			var resource = new UnmanagedResource { Name = $"{prefix}_Resource" };
+			resource.AddCapability(resourceCapability);
+			resource.AddCapacity(new NumberCapacitySetting(capacity) { Value = 100 });
+			resource.AssignToPool(pool);
+			resource = (UnmanagedResource)setup.Api.Resources.Complete(setup.Api.Resources.Create(resource));
+
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				PreRollStart = currentTime.AddMinutes(5),
+				Start = currentTime.AddMinutes(10),
+				End = currentTime.AddMinutes(20),
+				PostRollEnd = currentTime.AddMinutes(25),
+			};
+			job.NodeGraph.Add(new JobResourceNode(pool, resource) { Alias = "Node 0" });
+			job = setup.Api.Jobs.Create(job);
+
+			var node = job.NodeGraph.Nodes.Single();
+			node.OrchestrationSettings.AddCapability(new CapabilitySetting(capability) { Value = "South" });
+			node.OrchestrationSettings.AddCapacity(new NumberCapacitySetting(capacity) { Value = 50 });
+			node.OrchestrationSettings.SetOrchestrationEvents(new List<OrchestrationEvent>
+			{
+				new OrchestrationEvent
+				{
+					EventType = OrchestrationEventType.PrerollStart,
+					ExecutionDetails = new ScriptExecutionDetails(OrchestrationScriptName)
+						.AddCapability(new CapabilitySetting(capability) { Reference = new CapabilityParameterReference(capability.Id, node.Id) })
+						.AddCapacity(new NumberCapacitySetting(capacity) { Reference = new CapacityParameterReference(capacity.Id, node.Id) }),
+				},
+			});
+
+			job = setup.Api.Jobs.Update(job);
+
+			var confirmedJob = Confirm(setup, job);
+
+			var nodeConfiguration = GetEvent(GetLiveConfiguration(setup, confirmedJob), LiveEnums.EventType.PrerollStart)
+				.Configuration.NodeConfigurations.Single();
+
+			var capabilityValue = nodeConfiguration.Profile.Values.SingleOrDefault(x => x.Name == capability.Id.ToString());
+			Assert.IsNotNull(capabilityValue, "Expected the linked capability to reach MediaOps Live.");
+			Assert.AreEqual("South", capabilityValue.Value.StringValue);
+
+			var capacityValue = nodeConfiguration.Profile.Values.SingleOrDefault(x => x.Name == capacity.Id.ToString());
+			Assert.IsNotNull(capacityValue, "Expected the linked capacity to reach MediaOps Live.");
+			Assert.AreEqual(ProfileParameterValue.ValueType.Double, capacityValue.Value.Type);
+			Assert.AreEqual(50d, capacityValue.Value.DoubleValue);
+		}
+
+		[TestMethod]
 		public void ScriptExecutionDetails_Update_StoresTheDynamicInputValues()
 		{
 			var setup = CreateSetup();
