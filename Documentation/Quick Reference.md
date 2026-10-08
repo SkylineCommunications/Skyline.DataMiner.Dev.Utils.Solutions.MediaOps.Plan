@@ -581,7 +581,8 @@ using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 // From a completed workflow: copies node graph, groups, and orchestration/property settings.
 var jobFromWorkflow = Job.FromWorkflow(api, workflow.Id);
 
-// From a recurring job occurrence: copies node graph, orchestration/property settings and relationships.
+// From a recurring job occurrence: copies node graph, orchestration/property settings and relationships,
+// and links the job to the recurring job through the read-only RecurringJobId property.
 var jobFromRecurringJob = Job.FromRecurringJob(recurringJob, startTime: DateTimeOffset.UtcNow.AddDays(1));
 
 // A key is generated automatically based on GlobalSettings.JobSettings unless you supply one explicitly.

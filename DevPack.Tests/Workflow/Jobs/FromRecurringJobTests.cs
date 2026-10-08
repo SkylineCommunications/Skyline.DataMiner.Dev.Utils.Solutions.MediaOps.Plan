@@ -101,6 +101,17 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void FromRecurringJob_RecurringJobId_IsSet()
+		{
+			var recurringJobId = Guid.NewGuid();
+			var recurringJob = new RecurringJob(recurringJobId) { Name = "Test", Duration = TimeSpan.FromHours(1) };
+
+			var job = Job.FromRecurringJob(recurringJob, BaseStartTime);
+
+			Assert.AreEqual(recurringJobId, job.RecurringJobId);
+		}
+
+		[TestMethod]
 		public void FromRecurringJob_OrganizationId_IsCopied()
 		{
 			var orgId = Guid.NewGuid();
