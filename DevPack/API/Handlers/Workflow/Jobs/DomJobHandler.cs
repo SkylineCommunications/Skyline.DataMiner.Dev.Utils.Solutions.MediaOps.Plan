@@ -882,7 +882,7 @@
 			// reached the Confirmed state yet. The Confirmed-to-Running transition that the event drives is rejected in
 			// that window and the event never fires again, which would leave the job in Confirmed forever. The
 			// transition is therefore performed here for every job whose reservation is already running.
-			var runningJobIds = TransitionConfirmedDomJobsToRunningIfStarted(confirmedDomJobs, apiJobs);
+			var runningJobIds = TransitionConfirmedDomJobsToRunningIfStarted(confirmedDomJobs, apiJobs, out _);
 
 			SyncLiveOrchestration(apiJobs.Where(x => !runningJobIds.Contains(x.Id)), JobState.Confirmed);
 			SyncLiveOrchestration(apiJobs.Where(x => runningJobIds.Contains(x.Id)), JobState.Running);
@@ -893,7 +893,8 @@
 			// event to drive the transition itself.
 			var lateRunningJobIds = TransitionConfirmedDomJobsToRunningIfStarted(
 				confirmedDomJobs.Where(x => !runningJobIds.Contains(x.ID.Id)).ToList(),
-				apiJobs.Where(x => !runningJobIds.Contains(x.Id)).ToList());
+				apiJobs.Where(x => !runningJobIds.Contains(x.Id)).ToList(),
+				out var failedRunningJobIds);
 
 			if (lateRunningJobIds.Count != 0)
 			{
@@ -903,11 +904,23 @@
 				runningJobIds.UnionWith(lateRunningJobIds);
 			}
 
-			ReportSuccess(confirmedDomJobs.Where(x => !runningJobIds.Contains(x.ID.Id)));
+			// The reservation start event was rejected while this confirm held the lock and doesn't fire again, so a job that
+			// couldn't follow its running reservation must not be reported as successfully confirmed.
+			foreach (var id in failedRunningJobIds)
+			{
+				ReportError(id, new MediaOpsErrorData
+				{
+					ErrorMessage = $"Job {id} was confirmed, but could not be transitioned to Running although its reservation is already running.",
+				});
+			}
+
+			ReportSuccess(confirmedDomJobs.Where(x => !runningJobIds.Contains(x.ID.Id) && !failedRunningJobIds.Contains(x.ID.Id)));
 		}
 
-		// Returns the provided jobs that are still Tentative in storage. A job that already reached Confirmed or Running is
-		// reported as successful and any other state as an error, without touching the job or its reservation.
+		// Returns the provided jobs that are still Tentative in storage, built from the stored data so everything that follows
+		// (including the Live synchronization) works on the state protected by the lock. A job that already reached
+		// Confirmed or Running is reported as successful and any other state as an error, without touching the job or its
+		// reservation.
 		private ICollection<Job> GetStoredTentativeJobs(ICollection<Job> apiJobs)
 		{
 			var storedJobsById = planApi.DomHelpers.SlcWorkflowHelper.GetJobs(apiJobs.Select(x => x.Id)).ToDictionary(x => x.ID.Id);
@@ -924,7 +937,7 @@
 				switch (storedJob.Status)
 				{
 					case Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Tentative:
-						tentativeJobs.Add(job);
+						tentativeJobs.Add(new Job(planApi, storedJob));
 						break;
 
 					case Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Confirmed:
@@ -1191,8 +1204,9 @@
 		// transition, an ongoing reservation is the proof that the job's start time has been reached. The reservation start
 		// event that would normally drive this transition is rejected while the confirm holds the lock, so the job must
 		// follow its running reservation here.
-		private HashSet<Guid> TransitionConfirmedDomJobsToRunningIfStarted(ICollection<DomJob> confirmedDomJobs, ICollection<Job> apiJobs)
+		private HashSet<Guid> TransitionConfirmedDomJobsToRunningIfStarted(ICollection<DomJob> confirmedDomJobs, ICollection<Job> apiJobs, out HashSet<Guid> failedJobIds)
 		{
+			failedJobIds = new HashSet<Guid>();
 			var runningJobIds = new HashSet<Guid>();
 			if (confirmedDomJobs.Count == 0)
 			{
@@ -1235,6 +1249,7 @@
 				else
 				{
 					planApi.Logger.Error(this, $"Failed to transition job {domJob.ID.Id} to running while confirming it, although its reservation is running: {exception}");
+					failedJobIds.Add(domJob.ID.Id);
 				}
 			}
 
