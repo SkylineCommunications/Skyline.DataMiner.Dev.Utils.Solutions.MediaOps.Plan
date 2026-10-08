@@ -383,10 +383,16 @@
 		public string JobTypeCategoryId { get; set; }
 
 		/// <summary>
-		/// Gets the unique identifier of the recurring job that generated this job, if applicable.
-		/// This property is set by the system when the job is created using <see cref="FromRecurringJob(RecurringJob, DateTimeOffset)"/>.
+		/// Gets or sets the unique identifier of the recurring job this job belongs to, if applicable.
+		/// This property is set automatically when the job is created using <see cref="FromRecurringJob(RecurringJob, DateTimeOffset)"/>.
+		/// It can also be set explicitly, for example to link the job that was used to create a recurring job
+		/// (see <see cref="RecurringJob.FromJob(Job)"/>) to that recurring job, so it is part of the series.
 		/// </summary>
-		public Guid RecurringJobId { get; internal set; }
+		/// <remarks>
+		/// When the job is created or updated, the referenced recurring job must exist; otherwise a
+		/// <see cref="JobRecurringJobNotFoundError"/> is reported.
+		/// </remarks>
+		public Guid RecurringJobId { get; set; }
 
 		/// <summary>
 		/// Gets a value indicating whether manual actions are required to complete the job. This property is set by the system and cannot be modified directly.
