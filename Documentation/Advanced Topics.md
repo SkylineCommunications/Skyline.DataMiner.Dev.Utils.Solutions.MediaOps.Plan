@@ -326,6 +326,11 @@ api.Jobs.SetOrchestrationState(jobId, new OrchestrationUpdateDetails
 });
 ```
 
+- A failure adds or updates the matching error on the job (`LIV101` pre-roll start, `LIV102` pre-roll stop, `LIV103` post-roll start, `LIV104` post-roll stop). A success is ignored and doesn't remove an earlier error.
+- Always set `EventState` explicitly: its default value is `Succeeded`, so an update without it is ignored.
+- Only the error is written: the job isn't revalidated, its reservation and MediaOps Live configuration aren't synchronized, and the error is also added to Completed and Canceled jobs.
+- Every call, ignored update, written error and failure is logged through the logger passed to `api.SetLogger(...)`.
+
 ## Eligible Resources
 
 `api.Resources.GetEligibleResources(EligibleResourcesContext)` finds resources that satisfy a set of capability/capacity requirements for a time range, together with how much of their capacity is already consumed:

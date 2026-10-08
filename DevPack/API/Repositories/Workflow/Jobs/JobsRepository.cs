@@ -1000,40 +1000,62 @@
 				throw new ArgumentNullException(nameof(updateDetails));
 			}
 
+			PlanApi.Logger.Information(this, "Received orchestration update for job {0}: event {1}, state {2}, message '{3}'.", [id, updateDetails.Event, updateDetails.EventState, updateDetails.Message]);
+
 			if (updateDetails.EventState == OrchestrationEventState.Succeeded)
 			{
+				PlanApi.Logger.Information(this, "Ignored orchestration update for job {0}: event {1} succeeded.", [id, updateDetails.Event]);
 				return;
 			}
 
-			var job = Read(id)
-				?? throw new MediaOpsException(
-					new JobNotFoundError()
-					{
-						ErrorMessage = $"Unable to find job with ID {id}.",
-						Id = id,
-					});
+			try
+			{
+				var errorCode = GetOrchestrationErrorCode(updateDetails.Event);
 
-			var errorCode = string.Empty;
-			switch (updateDetails.Event)
+				var job = Read(id)
+					?? throw new MediaOpsException(
+						new JobNotFoundError()
+						{
+							ErrorMessage = $"Unable to find job with ID {id}.",
+							Id = id,
+						});
+
+				if (!DomJobHandler.TrySetError(PlanApi, job, new JobError(errorCode, updateDetails.Message), out var changed, out var result))
+				{
+					result.ThrowSingleException(id);
+				}
+
+				if (changed)
+				{
+					PlanApi.Logger.Information(this, "Set error {0} on job {1}.", [errorCode, id]);
+				}
+				else
+				{
+					PlanApi.Logger.Information(this, "Error {0} with the same message is already present on job {1}.", [errorCode, id]);
+				}
+			}
+			catch (Exception ex)
+			{
+				PlanApi.Logger.Error(this, "Failed to process orchestration update for job {0} (event {1}): {2}", [id, updateDetails.Event, ex]);
+				throw;
+			}
+		}
+
+		private static string GetOrchestrationErrorCode(OrchestrationEventType eventType)
+		{
+			switch (eventType)
 			{
 				case OrchestrationEventType.PrerollStart:
-					errorCode = "LIV101";
-					break;
+					return "LIV101";
 				case OrchestrationEventType.PrerollStop:
-					errorCode = "LIV102";
-					break;
+					return "LIV102";
 				case OrchestrationEventType.PostrollStart:
-					errorCode = "LIV103";
-					break;
+					return "LIV103";
 				case OrchestrationEventType.PostrollStop:
-					errorCode = "LIV104";
-					break;
+					return "LIV104";
 				default:
-					throw new NotSupportedException($"Unsupported Orchestration Event Type {updateDetails.Event}");
+					throw new NotSupportedException($"Unsupported Orchestration Event Type {eventType}");
 			}
-
-			job.AddError(new JobError(errorCode, updateDetails.Message));
-			PlanApi.Jobs.Update(job);
 		}
 
 		public IReadOnlyCollection<Job> Update(IEnumerable<Job> oToUpdate)

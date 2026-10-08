@@ -156,6 +156,104 @@
 			return !result.HasFailures;
 		}
 
+		// Bypasses update validation, reservation and Live sync so it also works on completed/canceled or otherwise invalid jobs.
+		internal static bool TrySetError(MediaOpsPlanApi planApi, Job apiJob, JobError error, out bool changed, out DomInstanceBulkOperationResult<DomJob> result)
+		{
+			var handler = new DomJobHandler(planApi);
+			changed = handler.SetError(apiJob, error);
+
+			result = new DomInstanceBulkOperationResult<DomJob>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+
+			return !result.HasFailures;
+		}
+
+		private bool SetError(Job apiJob, JobError error)
+		{
+			if (apiJob == null)
+			{
+				throw new ArgumentNullException(nameof(apiJob));
+			}
+
+			if (error == null)
+			{
+				throw new ArgumentNullException(nameof(error));
+			}
+
+			var changed = false;
+			var lockResult = planApi.LockManager.LockAndExecute([apiJob], jobs => changed = SetErrorLocked(jobs.Single(), error));
+			ReportError(lockResult);
+
+			return changed;
+		}
+
+		private bool SetErrorLocked(Job apiJob, JobError error)
+		{
+			const int maxAttempts = 10;
+			const int retryDelayMs = 250;
+
+			for (int attempt = 1; attempt <= maxAttempts; attempt++)
+			{
+				// Re-read under the lock so only the error section is changed on the latest stored job.
+				var storedJob = planApi.DomHelpers.SlcWorkflowHelper.GetJobs([apiJob.Id]).FirstOrDefault();
+				if (storedJob == null)
+				{
+					ReportError(apiJob.Id, new JobNotFoundError { ErrorMessage = $"Job with ID '{apiJob.Id}' no longer exists.", Id = apiJob.Id });
+					return false;
+				}
+
+				var existingSections = storedJob.Errors.Where(x => x.ErrorCode == error.Code).ToList();
+				if (existingSections.Count == 1 && existingSections[0].ErrorMessage == error.Message)
+				{
+					ReportSuccess(storedJob);
+					return false;
+				}
+
+				if (existingSections.Count == 0)
+				{
+					storedJob.Errors.Add(new Storage.DOM.SlcWorkflow.ErrorsSection
+					{
+						ErrorCode = error.Code,
+						ErrorMessage = error.Message,
+					});
+				}
+				else
+				{
+					existingSections[0].ErrorMessage = error.Message;
+					foreach (var duplicate in existingSections.Skip(1))
+					{
+						storedJob.Errors.Remove(duplicate);
+					}
+				}
+
+				planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.TryCreateOrUpdateInBatches([storedJob.ToInstance()], out var domResult);
+
+				// A status transition that lands between the re-read and the write rejects the write, so re-read and retry.
+				if (attempt < maxAttempts && HasOnlyStatusChangeFailures(domResult))
+				{
+					System.Threading.Thread.Sleep(retryDelayMs);
+					continue;
+				}
+
+				foreach (var id in domResult.UnsuccessfulIds)
+				{
+					ReportError(id.Id);
+
+					if (domResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+					{
+						var mediaOpsTraceData = new MediaOpsTraceData();
+						mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = traceData.ToString() });
+
+						PassTraceData(id.Id, mediaOpsTraceData);
+					}
+				}
+
+				ReportSuccess(domResult.SuccessfulItems.Select(x => new DomJob(x)).ToArray());
+				return domResult.SuccessfulItems.Count > 0;
+			}
+
+			return false;
+		}
+
 		private void CreateOrUpdate(ICollection<Job> apiJobs)
 		{
 			if (apiJobs == null)
@@ -825,7 +923,21 @@
 				return domJobsById.Values.ToList();
 			}
 
-			var updatedInstances = changedJobs.Select(x => x.GetInstanceWithChanges().ToInstance()).ToList();
+			// Merged onto the stored jobs so concurrent changes made since the jobs were read (e.g. Live errors) are kept.
+			var updatedInstances = GetJobsWithChanges(changedJobs.Where(x => x.HasChanges).ToList())
+				.Where(IsValid)
+				.Select(x => x.Instance)
+				.ToList();
+
+			foreach (var job in changedJobs.Where(x => !IsValid(x)))
+			{
+				domJobsById.Remove(job.Id);
+			}
+
+			if (updatedInstances.Count == 0)
+			{
+				return domJobsById.Values.ToList();
+			}
 
 			planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.TryCreateOrUpdateInBatches(updatedInstances, out var domResult);
 
@@ -896,26 +1008,123 @@
 			// The transition applies no field changes, so the DOM jobs are not re-saved; DoStatusTransition persists the
 			// status change on its own. Only jobs whose reservation confirmation succeeded are transitioned.
 			var confirmedDomJobs = new List<DomJob>();
+			var failedDomJobs = new List<DomJob>();
 			foreach (var domJob in domJobsById.Values)
 			{
-				try
+				if (TryTransitionDomJobToConfirmed(domJob, out var confirmedDomJob))
 				{
-					var transitionedInstance = planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.DoStatusTransition(domJob.ID, Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.Transitions.Tentative_To_Confirmed);
-					confirmedDomJobs.Add(new DomJob(transitionedInstance));
+					confirmedDomJobs.Add(confirmedDomJob);
 				}
-				catch (Exception ex)
+				else
 				{
-					ReportError(domJob.ID.Id, new MediaOpsErrorData() { ErrorMessage = ex.ToString() });
+					failedDomJobs.Add(domJob);
 				}
 			}
+
+			RevertConfirmedReservations(failedDomJobs);
 
 			return confirmedDomJobs;
 		}
 
+		// The reservation is already confirmed at this point, so the job must follow: transient failures are retried and a
+		// job that already reached Confirmed (or Running) counts as transitioned.
+		private bool TryTransitionDomJobToConfirmed(DomJob domJob, out DomJob confirmedDomJob)
+		{
+			if (TryTransitionDomJobWithRetry(
+				domJob,
+				Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.Transitions.Tentative_To_Confirmed,
+				[Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Confirmed, Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Running],
+				out confirmedDomJob,
+				out var exception))
+			{
+				return true;
+			}
+
+			planApi.Logger.Error(this, $"Failed to transition job {domJob.ID.Id} to Confirmed after its reservation was confirmed: {exception}");
+			ReportError(domJob.ID.Id, new MediaOpsErrorData() { ErrorMessage = exception?.ToString() });
+
+			return false;
+		}
+
+		private bool TryTransitionDomJobWithRetry(
+			DomJob domJob,
+			string transitionId,
+			ICollection<Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum> targetStatuses,
+			out DomJob transitionedDomJob,
+			out Exception lastException)
+		{
+			const int maxAttempts = 3;
+			const int retryDelayMs = 250;
+
+			lastException = null;
+			for (int attempt = 1; attempt <= maxAttempts; attempt++)
+			{
+				try
+				{
+					var transitionedInstance = planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.DoStatusTransition(domJob.ID, transitionId);
+					transitionedDomJob = new DomJob(transitionedInstance);
+					return true;
+				}
+				catch (Exception ex)
+				{
+					lastException = ex;
+				}
+
+				var storedDomJob = planApi.DomHelpers.SlcWorkflowHelper.GetJobs([domJob.ID.Id]).FirstOrDefault();
+				if (storedDomJob != null && targetStatuses.Contains(storedDomJob.Status))
+				{
+					transitionedDomJob = storedDomJob;
+					return true;
+				}
+
+				if (attempt < maxAttempts)
+				{
+					System.Threading.Thread.Sleep(retryDelayMs);
+				}
+			}
+
+			transitionedDomJob = null;
+			return false;
+		}
+
+		// A job that could not follow its confirmed reservation stays Tentative, so the reservation is put back to Pending.
+		// A reservation that already started running (start time in the past) can no longer go back.
+		private void RevertConfirmedReservations(ICollection<DomJob> domJobs)
+		{
+			if (domJobs.Count == 0)
+			{
+				return;
+			}
+
+			CoreJobHandler.TryVerifyOngoing(planApi, domJobs, out var ongoingResult);
+			foreach (var id in ongoingResult.SuccessfulIds)
+			{
+				planApi.Logger.Error(this, $"The reservation of job {id} is already running, but the job could not be confirmed; the job stays Tentative while its reservation is running.");
+			}
+
+			var domJobsToRevert = domJobs.Where(x => !ongoingResult.SuccessfulIds.Contains(x.ID.Id)).ToList();
+			if (domJobsToRevert.Count == 0)
+			{
+				return;
+			}
+
+			CoreJobHandler.TryReturnToPending(planApi, domJobsToRevert, out var revertResult);
+
+			foreach (var id in revertResult.UnsuccessfulIds)
+			{
+				planApi.Logger.Error(this, $"Failed to return the reservation of job {id} to Pending after the job could not be confirmed; the reservation stays Confirmed while the job is Tentative.");
+
+				if (revertResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+				{
+					PassTraceData(id, traceData);
+				}
+			}
+		}
+
 		// Continues the jobs whose reservation is already running to the Running state. Just like the event-driven
-		// transition, an ongoing reservation is the proof that the job's start time has been reached. A failure keeps
-		// the job in its (successful) Confirmed state, because the reservation start event can still drive the
-		// transition later on.
+		// transition, an ongoing reservation is the proof that the job's start time has been reached. The reservation start
+		// event that would normally drive this transition is rejected while the confirm holds the lock, so the job must
+		// follow its running reservation here.
 		private HashSet<Guid> TransitionConfirmedDomJobsToRunningIfStarted(ICollection<DomJob> confirmedDomJobs, ICollection<Job> apiJobs)
 		{
 			var runningJobIds = new HashSet<Guid>();
@@ -924,12 +1133,18 @@
 				return runningJobIds;
 			}
 
+			foreach (var domJob in confirmedDomJobs.Where(x => x.Status == Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Running))
+			{
+				ReportSuccess(domJob);
+				runningJobIds.Add(domJob.ID.Id);
+			}
+
 			// Only a job whose pre-roll start has passed can have an ongoing reservation, so the reservations of the
 			// other jobs are not read at all. A freshly read time is used, because the reservation of a job can start
 			// running while this confirm is waiting for the lock or is busy transitioning the jobs.
 			var checkTime = DateTimeOffset.UtcNow;
 			var startedJobIds = apiJobs.Where(x => x.PreRollStart <= checkTime).Select(x => x.Id).ToHashSet();
-			var startedDomJobs = confirmedDomJobs.Where(x => startedJobIds.Contains(x.ID.Id)).ToList();
+			var startedDomJobs = confirmedDomJobs.Where(x => startedJobIds.Contains(x.ID.Id) && !runningJobIds.Contains(x.ID.Id)).ToList();
 			if (startedDomJobs.Count == 0)
 			{
 				return runningJobIds;
@@ -941,15 +1156,19 @@
 
 			foreach (var domJob in startedDomJobs.Where(x => coreResult.SuccessfulIds.Contains(x.ID.Id)))
 			{
-				try
+				if (TryTransitionDomJobWithRetry(
+					domJob,
+					Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.Transitions.Confirmed_To_Running,
+					[Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Running],
+					out var runningDomJob,
+					out var exception))
 				{
-					var transitionedInstance = planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.DoStatusTransition(domJob.ID, Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.Transitions.Confirmed_To_Running);
-					ReportSuccess(new DomJob(transitionedInstance));
+					ReportSuccess(runningDomJob);
 					runningJobIds.Add(domJob.ID.Id);
 				}
-				catch (Exception ex)
+				else
 				{
-					planApi.Logger.Error(this, $"Failed to transition job {domJob.ID.Id} to running while confirming it: {ex}");
+					planApi.Logger.Error(this, $"Failed to transition job {domJob.ID.Id} to running while confirming it, although its reservation is running: {exception}");
 				}
 			}
 
