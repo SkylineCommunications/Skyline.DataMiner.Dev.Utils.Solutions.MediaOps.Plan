@@ -321,7 +321,8 @@
 
 		private void Confirm(ICollection<DomJob> domJobs)
 		{
-			UpdateStatus(domJobs, Skyline.DataMiner.Net.Messages.ReservationStatus.Confirmed);
+			// A reservation with a start time in the past is started by SRM on confirm and must not be pushed back to Confirmed.
+			UpdateStatus(domJobs, Skyline.DataMiner.Net.Messages.ReservationStatus.Confirmed, Skyline.DataMiner.Net.Messages.ReservationStatus.Ongoing);
 		}
 
 		private void ReturnToPending(ICollection<DomJob> domJobs)
@@ -657,7 +658,7 @@
 			return reservation;
 		}
 
-		private void UpdateStatus(ICollection<DomJob> domJobs, Skyline.DataMiner.Net.Messages.ReservationStatus reservationStatus)
+		private void UpdateStatus(ICollection<DomJob> domJobs, Skyline.DataMiner.Net.Messages.ReservationStatus reservationStatus, params Skyline.DataMiner.Net.Messages.ReservationStatus[] statusesToKeep)
 		{
 			if (domJobs == null)
 			{
@@ -677,6 +678,12 @@
 				if (mapping.IsNew)
 				{
 					ReportError(mapping.Job.ID.Id);
+					continue;
+				}
+
+				if (mapping.Reservation.Status == reservationStatus || statusesToKeep.Contains(mapping.Reservation.Status))
+				{
+					ReportSuccess(mapping.Job);
 					continue;
 				}
 

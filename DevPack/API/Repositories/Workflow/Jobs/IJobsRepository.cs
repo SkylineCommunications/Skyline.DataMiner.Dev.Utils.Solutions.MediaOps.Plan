@@ -339,7 +339,7 @@
 		IReadOnlyCollection<Job> Stop(IEnumerable<Guid> jobIds, JobStopOptions options);
 
 		/// <summary>
-		/// Set the state of a specific orchestration event for a job.
+		/// Set the state of a specific orchestration event for a job. A failed event adds or updates its LIV10x error on the job, also when the job is completed or canceled; a succeeded event is ignored.
 		/// </summary>
 		/// <param name="id">The unique identifier of the job.</param>
 		/// <param name="updateDetails">An object containing the new state information and any associated metadata. Cannot be null.</param>

@@ -358,6 +358,37 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void Confirm_JobUpdatedWhileConfirmWaitedForLock_SynchronizesStoredStateToLive()
+		{
+			var setup = CreateSetup();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var job = CreateJob(
+				setup,
+				preRollStart: currentTime.AddMinutes(5),
+				start: currentTime.AddMinutes(10),
+				end: currentTime.AddMinutes(20),
+				postRollEnd: currentTime.AddMinutes(25));
+
+			var staleTentativeJob = setup.Api.Jobs.SaveAsTentative(job);
+
+			// This update completes while the confirm below waits for the job lock with its snapshot read before it.
+			var updatedJob = setup.Api.Jobs.Read(job.Id);
+			updatedJob.End = currentTime.AddMinutes(30);
+			updatedJob.PostRollEnd = currentTime.AddMinutes(35);
+			setup.Api.Jobs.Update(updatedJob);
+
+			// The handler is invoked directly because the repository re-reads the job by ID and would hide the stale snapshot.
+			Assert.IsTrue(DomJobHandler.TryConfirm((MediaOpsPlanApi)setup.Api, [staleTentativeJob], out _), "Expected the confirm to succeed.");
+
+			var liveConfiguration = GetLiveConfiguration(setup, staleTentativeJob);
+			Assert.AreEqual(
+				currentTime.AddMinutes(35),
+				GetEvent(liveConfiguration, LiveEnums.EventType.PostrollStop).EventTime?.UtcDateTime,
+				"Expected Live to follow the stored post-roll end instead of the snapshot read before the lock.");
+		}
+
+		[TestMethod]
 		public void Confirm_JobWithStartInThePast_TriggersStartEventsImmediately()
 		{
 			var setup = CreateSetup();

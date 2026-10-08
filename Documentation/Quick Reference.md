@@ -561,12 +561,12 @@ var importedJob = api.Jobs.MarkAsCompleted(draftOrTentativeHistoricalJob);
 // Batch variants accept a collection of jobs or job IDs and return the updated jobs.
 var confirmedJobs = api.Jobs.Confirm(new[] { job1, job2 });
 
-// Report the outcome of an orchestration event back onto the job.
+// Report the outcome of an orchestration event back onto the job. A failure adds an LIV10x error; always set EventState.
 api.Jobs.SetOrchestrationState(job.Id, new OrchestrationUpdateDetails
 {
     Event = OrchestrationEventType.PrerollStart,
-    EventState = OrchestrationEventState.Succeeded,
-    Message = "Preroll started successfully",
+    EventState = OrchestrationEventState.Failed,
+    Message = "Preroll failed: device not reachable",
 });
 
 // Delete
