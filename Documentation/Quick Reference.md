@@ -582,7 +582,7 @@ using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 var jobFromWorkflow = Job.FromWorkflow(api, workflow.Id);
 
 // From a recurring job occurrence: copies node graph, orchestration/property settings and relationships,
-// and links the job to the recurring job through the read-only RecurringJobId property.
+// and links the job to the recurring job through the RecurringJobId property.
 var jobFromRecurringJob = Job.FromRecurringJob(recurringJob, startTime: DateTimeOffset.UtcNow.AddDays(1));
 
 // A key is generated automatically based on GlobalSettings.JobSettings unless you supply one explicitly.
@@ -605,6 +605,11 @@ recurringJob.Pattern.EndDate = DateTimeOffset.UtcNow.AddMonths(3);
 recurringJob.DesiredJobState = DesiredJobState.Tentative; // State new occurrences are created in.
 
 recurringJob = api.RecurringJobs.Create(recurringJob);
+
+// Link the source job to the new recurring job so it is part of the series
+// (e.g. it is found through JobExposers.RecurringJobId). The recurring job must exist.
+job.RecurringJobId = recurringJob.Id;
+job = api.Jobs.Update(job);
 
 // Read / Update
 recurringJob = api.RecurringJobs.Read(recurringJob.Id);
