@@ -531,7 +531,7 @@ var duplicatedJobWithId = job.Duplicate(Guid.NewGuid());
 job = api.Jobs.SaveAsTentative(job);
 job = api.Jobs.Confirm(job);
 
-// Confirmed -> Tentative, if you need to make changes again.
+// Confirmed -> Tentative, if you need to make changes again (not possible once the core reservation is running).
 job = api.Jobs.ReturnToTentative(job);
 job = api.Jobs.Confirm(job);
 
@@ -555,6 +555,7 @@ job = api.Jobs.Stop(job, new JobStopOptions
 job = api.Jobs.TransitionToCompleted(job);
 
 // Alternative paths, each starting from a different job in the indicated state:
+// Cancel is rejected once the core reservation is running.
 var canceledJob = api.Jobs.Cancel(tentativeOrConfirmedJob);
 var importedJob = api.Jobs.MarkAsCompleted(draftOrTentativeHistoricalJob);
 

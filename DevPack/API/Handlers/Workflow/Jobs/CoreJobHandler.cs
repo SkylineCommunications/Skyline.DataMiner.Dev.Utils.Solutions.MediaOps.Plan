@@ -48,13 +48,39 @@
 			return !result.HasFailures;
 		}
 
-		public static bool TryReturnToPending(MediaOpsPlanApi planApi, ICollection<DomJob> domJobs, out DomInstanceBulkOperationResult<DomJob> result)
+		// A reservation that already started (Ongoing or Ended) is left untouched and reported as an error, with its job
+		// ID in startedJobIds. The status is checked and written from the same read, so a reservation that starts
+		// in the meantime is never pushed back to Pending.
+		public static bool TryReturnToPendingUnlessStarted(MediaOpsPlanApi planApi, ICollection<DomJob> domJobs, out DomInstanceBulkOperationResult<DomJob> result, out ISet<Guid> startedJobIds)
 		{
 			var handler = new CoreJobHandler(planApi);
-			handler.ReturnToPending(domJobs);
+			startedJobIds = handler.ReturnToPendingUnlessStarted(domJobs);
 
 			result = new DomInstanceBulkOperationResult<DomJob>(handler.successfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 			return !result.HasFailures;
+		}
+
+		// Jobs without a core reservation are not included.
+		public static IReadOnlyDictionary<Guid, Skyline.DataMiner.Net.Messages.ReservationStatus> GetReservationStatuses(MediaOpsPlanApi planApi, ICollection<DomJob> domJobs)
+		{
+			if (planApi == null)
+			{
+				throw new ArgumentNullException(nameof(planApi));
+			}
+
+			if (domJobs == null)
+			{
+				throw new ArgumentNullException(nameof(domJobs));
+			}
+
+			if (domJobs.Count == 0)
+			{
+				return new Dictionary<Guid, Skyline.DataMiner.Net.Messages.ReservationStatus>();
+			}
+
+			return JobReservationMapping.GetMappings(planApi, domJobs)
+				.Where(x => !x.IsNew)
+				.ToDictionary(x => x.Job.ID.Id, x => x.Reservation.Status);
 		}
 
 		public static bool TryCancel(MediaOpsPlanApi planApi, ICollection<DomJob> domJobs, out DomInstanceBulkOperationResult<DomJob> result)
@@ -322,12 +348,19 @@
 		private void Confirm(ICollection<DomJob> domJobs)
 		{
 			// A reservation with a start time in the past is started by SRM on confirm and must not be pushed back to Confirmed.
-			UpdateStatus(domJobs, Skyline.DataMiner.Net.Messages.ReservationStatus.Confirmed, Skyline.DataMiner.Net.Messages.ReservationStatus.Ongoing);
+			UpdateStatus(domJobs, Skyline.DataMiner.Net.Messages.ReservationStatus.Confirmed, statusesToKeep: [Skyline.DataMiner.Net.Messages.ReservationStatus.Ongoing]);
 		}
 
-		private void ReturnToPending(ICollection<DomJob> domJobs)
+		private ISet<Guid> ReturnToPendingUnlessStarted(ICollection<DomJob> domJobs)
 		{
-			UpdateStatus(domJobs, Skyline.DataMiner.Net.Messages.ReservationStatus.Pending);
+			var startedJobIds = new HashSet<Guid>();
+			UpdateStatus(
+				domJobs,
+				Skyline.DataMiner.Net.Messages.ReservationStatus.Pending,
+				statusesToRefuse: [Skyline.DataMiner.Net.Messages.ReservationStatus.Ongoing, Skyline.DataMiner.Net.Messages.ReservationStatus.Ended],
+				refusedJobIds: startedJobIds);
+
+			return startedJobIds;
 		}
 
 		private void Cancel(ICollection<DomJob> domJobs)
@@ -658,7 +691,12 @@
 			return reservation;
 		}
 
-		private void UpdateStatus(ICollection<DomJob> domJobs, Skyline.DataMiner.Net.Messages.ReservationStatus reservationStatus, params Skyline.DataMiner.Net.Messages.ReservationStatus[] statusesToKeep)
+		private void UpdateStatus(
+			ICollection<DomJob> domJobs,
+			Skyline.DataMiner.Net.Messages.ReservationStatus reservationStatus,
+			ICollection<Skyline.DataMiner.Net.Messages.ReservationStatus> statusesToKeep = null,
+			ICollection<Skyline.DataMiner.Net.Messages.ReservationStatus> statusesToRefuse = null,
+			ISet<Guid> refusedJobIds = null)
 		{
 			if (domJobs == null)
 			{
@@ -670,6 +708,9 @@
 				return;
 			}
 
+			statusesToKeep = statusesToKeep ?? Array.Empty<Skyline.DataMiner.Net.Messages.ReservationStatus>();
+			statusesToRefuse = statusesToRefuse ?? Array.Empty<Skyline.DataMiner.Net.Messages.ReservationStatus>();
+
 			var domJobsByReservationId = new Dictionary<Guid, DomJob>();
 			var toUpdate = new List<CoreReservation>();
 
@@ -678,6 +719,17 @@
 				if (mapping.IsNew)
 				{
 					ReportError(mapping.Job.ID.Id);
+					continue;
+				}
+
+				if (statusesToRefuse.Contains(mapping.Reservation.Status))
+				{
+					ReportError(mapping.Job.ID.Id, new JobInvalidStateError
+					{
+						ErrorMessage = $"The core reservation is {mapping.Reservation.Status}, so its status cannot be changed to {reservationStatus}.",
+						Id = mapping.Job.ID.Id,
+					});
+					refusedJobIds?.Add(mapping.Job.ID.Id);
 					continue;
 				}
 

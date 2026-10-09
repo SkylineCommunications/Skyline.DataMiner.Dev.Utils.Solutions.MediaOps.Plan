@@ -55,6 +55,7 @@
 		/// </summary>
 		/// <param name="job">The job to confirm.</param>
 		/// <returns>The confirmed job.</returns>
+		/// <remarks>The job as stored is validated and confirmed; unsaved changes on a passed job are ignored. A job that is already confirmed while its core reservation is running is moved to running.</remarks>
 		Job Confirm(Job job);
 
 		/// <summary>
@@ -62,6 +63,7 @@
 		/// </summary>
 		/// <param name="jobId">The unique identifier of the job to confirm.</param>
 		/// <returns>The confirmed job.</returns>
+		/// <remarks>The job as stored is validated and confirmed; unsaved changes on a passed job are ignored. A job that is already confirmed while its core reservation is running is moved to running.</remarks>
 		Job Confirm(Guid jobId);
 
 		/// <summary>
@@ -69,6 +71,7 @@
 		/// </summary>
 		/// <param name="jobs">The jobs to confirm.</param>
 		/// <returns>A read-only collection containing the confirmed jobs.</returns>
+		/// <remarks>The job as stored is validated and confirmed; unsaved changes on a passed job are ignored. A job that is already confirmed while its core reservation is running is moved to running.</remarks>
 		IReadOnlyCollection<Job> Confirm(IEnumerable<Job> jobs);
 
 		/// <summary>
@@ -76,6 +79,7 @@
 		/// </summary>
 		/// <param name="jobIds">The unique identifiers of the jobs to confirm.</param>
 		/// <returns>A read-only collection containing the confirmed jobs.</returns>
+		/// <remarks>The job as stored is validated and confirmed; unsaved changes on a passed job are ignored. A job that is already confirmed while its core reservation is running is moved to running.</remarks>
 		IReadOnlyCollection<Job> Confirm(IEnumerable<Guid> jobIds);
 
 		/// <summary>
@@ -116,6 +120,7 @@
 		/// </summary>
 		/// <param name="job">The job to transition to completed.</param>
 		/// <returns>The completed job.</returns>
+		/// <remarks>A confirmed job whose core reservation already ended (because the reservation events were missed) is moved to running and then completed.</remarks>
 		Job TransitionToCompleted(Job job);
 
 		/// <summary>
@@ -124,6 +129,7 @@
 		/// </summary>
 		/// <param name="jobId">The unique identifier of the job to transition to completed.</param>
 		/// <returns>The completed job.</returns>
+		/// <remarks>A confirmed job whose core reservation already ended (because the reservation events were missed) is moved to running and then completed.</remarks>
 		Job TransitionToCompleted(Guid jobId);
 
 		/// <summary>
@@ -132,6 +138,7 @@
 		/// </summary>
 		/// <param name="jobs">The jobs to transition to completed.</param>
 		/// <returns>A read-only collection containing the completed jobs.</returns>
+		/// <remarks>A confirmed job whose core reservation already ended (because the reservation events were missed) is moved to running and then completed.</remarks>
 		IReadOnlyCollection<Job> TransitionToCompleted(IEnumerable<Job> jobs);
 
 		/// <summary>
@@ -140,6 +147,7 @@
 		/// </summary>
 		/// <param name="jobIds">The unique identifiers of the jobs to transition to completed.</param>
 		/// <returns>A read-only collection containing the completed jobs.</returns>
+		/// <remarks>A confirmed job whose core reservation already ended (because the reservation events were missed) is moved to running and then completed.</remarks>
 		IReadOnlyCollection<Job> TransitionToCompleted(IEnumerable<Guid> jobIds);
 
 		/// <summary>
@@ -147,6 +155,7 @@
 		/// </summary>
 		/// <param name="job">The job to cancel.</param>
 		/// <returns>The canceled job.</returns>
+		/// <remarks>Canceling is rejected once the job's core reservation is running or has ended; the job is then moved along with its reservation instead.</remarks>
 		Job Cancel(Job job);
 
 		/// <summary>
@@ -154,6 +163,7 @@
 		/// </summary>
 		/// <param name="jobId">The unique identifier of the job to cancel.</param>
 		/// <returns>The canceled job.</returns>
+		/// <remarks>Canceling is rejected once the job's core reservation is running or has ended; the job is then moved along with its reservation instead.</remarks>
 		Job Cancel(Guid jobId);
 
 		/// <summary>
@@ -161,6 +171,7 @@
 		/// </summary>
 		/// <param name="jobs">The jobs to cancel.</param>
 		/// <returns>A read-only collection containing the canceled jobs.</returns>
+		/// <remarks>Canceling is rejected once the job's core reservation is running or has ended; the job is then moved along with its reservation instead.</remarks>
 		IReadOnlyCollection<Job> Cancel(IEnumerable<Job> jobs);
 
 		/// <summary>
@@ -168,6 +179,7 @@
 		/// </summary>
 		/// <param name="jobIds">The unique identifiers of the jobs to cancel.</param>
 		/// <returns>A read-only collection containing the canceled jobs.</returns>
+		/// <remarks>Canceling is rejected once the job's core reservation is running or has ended; the job is then moved along with its reservation instead.</remarks>
 		IReadOnlyCollection<Job> Cancel(IEnumerable<Guid> jobIds);
 
 		/// <summary>
@@ -175,6 +187,7 @@
 		/// </summary>
 		/// <param name="job">The job to return to tentative state.</param>
 		/// <returns>The job that was returned to tentative state.</returns>
+		/// <remarks>Returning to tentative is rejected once the job's core reservation is running or has ended; the job is then moved along with its reservation instead.</remarks>
 		Job ReturnToTentative(Job job);
 
 		/// <summary>
@@ -182,6 +195,7 @@
 		/// </summary>
 		/// <param name="jobId">The unique identifier of the job to return to tentative state.</param>
 		/// <returns>The job that was returned to tentative state.</returns>
+		/// <remarks>Returning to tentative is rejected once the job's core reservation is running or has ended; the job is then moved along with its reservation instead.</remarks>
 		Job ReturnToTentative(Guid jobId);
 
 		/// <summary>
@@ -189,6 +203,7 @@
 		/// </summary>
 		/// <param name="jobs">The jobs to return to tentative state.</param>
 		/// <returns>A read-only collection containing the jobs that were returned to tentative state.</returns>
+		/// <remarks>Returning to tentative is rejected once the job's core reservation is running or has ended; the job is then moved along with its reservation instead.</remarks>
 		IReadOnlyCollection<Job> ReturnToTentative(IEnumerable<Job> jobs);
 
 		/// <summary>
@@ -196,6 +211,7 @@
 		/// </summary>
 		/// <param name="jobIds">The unique identifiers of the jobs to return to tentative state.</param>
 		/// <returns>A read-only collection containing the jobs that were returned to tentative state.</returns>
+		/// <remarks>Returning to tentative is rejected once the job's core reservation is running or has ended; the job is then moved along with its reservation instead.</remarks>
 		IReadOnlyCollection<Job> ReturnToTentative(IEnumerable<Guid> jobIds);
 
 		/// <summary>

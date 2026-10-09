@@ -61,7 +61,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		[DataRow(OrchestrationEventType.PrerollStop, "LIV102")]
 		[DataRow(OrchestrationEventType.PostrollStart, "LIV103")]
 		[DataRow(OrchestrationEventType.PostrollStop, "LIV104")]
-		public void Failed_AddsMatchingError(OrchestrationEventType eventType, string expectedCode)
+		public void SetOrchestrationState_Failed_AddsMatchingError(OrchestrationEventType eventType, string expectedCode)
 		{
 			var (api, logger) = CreateContext();
 			var currentTime = DateTime.UtcNow.RoundToNextSecond();
@@ -76,7 +76,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
-		public void Succeeded_IsIgnoredAndLogged()
+		public void SetOrchestrationState_Succeeded_IsIgnoredAndLogged()
 		{
 			var (api, logger) = CreateContext();
 			var currentTime = DateTime.UtcNow.RoundToNextSecond();
@@ -90,7 +90,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
-		public void FailedTwice_UpdatesMessageOfSingleError()
+		public void SetOrchestrationState_FailedTwice_UpdatesMessageOfSingleError()
 		{
 			var (api, logger) = CreateContext();
 			var currentTime = DateTime.UtcNow.RoundToNextSecond();
@@ -107,7 +107,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
-		public void Failed_PreservesExistingErrors()
+		public void SetOrchestrationState_Failed_PreservesExistingErrors()
 		{
 			var (api, _) = CreateContext();
 			var currentTime = DateTime.UtcNow.RoundToNextSecond();
@@ -131,7 +131,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
-		public void Failed_OnCompletedJob_AddsError()
+		public void SetOrchestrationState_Failed_OnCompletedJob_AddsError()
 		{
 			var (api, logger) = CreateContext();
 			var currentTime = DateTime.UtcNow.RoundToNextSecond();
@@ -146,7 +146,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
-		public void Failed_OnCanceledJob_AddsError()
+		public void SetOrchestrationState_Failed_OnCanceledJob_AddsError()
 		{
 			var (api, logger) = CreateContext();
 			var currentTime = DateTime.UtcNow.RoundToNextSecond();
@@ -161,7 +161,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
-		public void Failed_UnknownJob_ThrowsAndLogsError()
+		public void SetOrchestrationState_Failed_UnknownJob_ThrowsAndLogsError()
 		{
 			var (api, logger) = CreateContext();
 

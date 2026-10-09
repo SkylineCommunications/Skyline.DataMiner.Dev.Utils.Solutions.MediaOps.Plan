@@ -1012,15 +1012,8 @@
 			{
 				var errorCode = GetOrchestrationErrorCode(updateDetails.Event);
 
-				var job = Read(id)
-					?? throw new MediaOpsException(
-						new JobNotFoundError()
-						{
-							ErrorMessage = $"Unable to find job with ID {id}.",
-							Id = id,
-						});
-
-				if (!DomJobHandler.TrySetError(PlanApi, job, new JobError(errorCode, updateDetails.Message), out var changed, out var result))
+				// The handler reads the stored job under the lock and reports a missing job, so the job isn't read here.
+				if (!DomJobHandler.TrySetError(PlanApi, id, new JobError(errorCode, updateDetails.Message), out var changed, out var result))
 				{
 					result.ThrowSingleException(id);
 				}

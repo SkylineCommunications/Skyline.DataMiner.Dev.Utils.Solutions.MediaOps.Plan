@@ -102,5 +102,53 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			Assert.AreEqual(JobState.Canceled, api.Jobs.Read(staleTentativeJob.Id).State);
 			Assert.AreEqual(ReservationStatus.Canceled, GetReservationStatus(resourceManagerHelper, staleTentativeJob.Id), "Expected the reservation of the canceled job to stay canceled.");
 		}
+
+		[TestMethod]
+		public void Confirm_StoredJobLostResourceWhileConfirmWaitedForLock_FailsWithoutTouchingReservation()
+		{
+			var dms = MediaOpsPlanSimulation.Create();
+			var connection = dms.CreateConnection();
+			var api = connection.GetMediaOpsPlanApi();
+			var resourceManagerHelper = new ResourceManagerHelper(connection.HandleSingleResponseMessage);
+
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+			var staleTentativeJob = CreateTentativeJob(api, currentTime.AddMinutes(10), currentTime.AddMinutes(20));
+
+			// Behind the stale snapshot's back, the node is swapped for a pool node without a resource assigned.
+			var otherApi = dms.CreateConnection().GetMediaOpsPlanApi();
+			var storedJob = otherApi.Jobs.Read(staleTentativeJob.Id);
+			storedJob.NodeGraph.Swap(storedJob.NodeGraph.Nodes.Single(), new JobResourcePoolNode(((JobResourceNode)staleTentativeJob.NodeGraph.Nodes.Single()).ResourcePoolId));
+			otherApi.Jobs.Update(storedJob);
+
+			// The stale snapshot still has the resource assigned, but the stored job is what gets confirmed.
+			Assert.IsFalse(DomJobHandler.TryConfirm((MediaOpsPlanApi)api, [staleTentativeJob], out var result), "Expected the confirm to validate the stored job.");
+			Assert.IsTrue(result.TraceDataPerItem[staleTentativeJob.Id].ErrorData.OfType<JobResourceNotAssignedError>().Any());
+			Assert.AreEqual(JobState.Tentative, api.Jobs.Read(staleTentativeJob.Id).State);
+			Assert.AreEqual(ReservationStatus.Pending, GetReservationStatus(resourceManagerHelper, staleTentativeJob.Id));
+		}
+
+		[TestMethod]
+		public void Confirm_JobConfirmedAndReservationStartedEventLost_JobFollowsRunningReservation()
+		{
+			var dms = MediaOpsPlanSimulation.Create();
+			var connection = dms.CreateConnection();
+			var api = connection.GetMediaOpsPlanApi();
+			var resourceManagerHelper = new ResourceManagerHelper(connection.HandleSingleResponseMessage);
+
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+			var staleTentativeJob = CreateTentativeJob(api, currentTime.AddMinutes(10), currentTime.AddMinutes(20));
+
+			dms.CreateConnection().GetMediaOpsPlanApi().Jobs.Confirm(staleTentativeJob.Id);
+
+			// The reservation starts, but its start event never reaches the job (the simulation fires no reservation events).
+			var reservation = resourceManagerHelper.GetReservationInstances(
+				ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(staleTentativeJob.Id))).Single();
+			reservation.Status = ReservationStatus.Ongoing;
+			resourceManagerHelper.AddOrUpdateReservationInstances(reservation);
+
+			Assert.IsTrue(DomJobHandler.TryConfirm((MediaOpsPlanApi)api, [staleTentativeJob], out _), "Expected the confirm to succeed for a job that already reached Confirmed.");
+			Assert.AreEqual(JobState.Running, api.Jobs.Read(staleTentativeJob.Id).State, "Expected the job to follow its running reservation.");
+			Assert.AreEqual(ReservationStatus.Ongoing, GetReservationStatus(resourceManagerHelper, staleTentativeJob.Id));
+		}
 	}
 }

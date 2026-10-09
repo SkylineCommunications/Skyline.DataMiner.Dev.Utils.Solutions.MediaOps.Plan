@@ -111,10 +111,16 @@ stateDiagram-v2
 - **`Start`** (optionally with `JobStartOptions.NewStartTime`) – does not change `JobState` itself; it pulls a confirmed job's pre-roll start (and all node starts) forward to the current time so it begins immediately instead of waiting for its scheduled time. `TransitionToRunning` is still what moves it to `Running`, once its core reservation reports running.
 - **`TransitionToRunning`** – Confirmed → Running. The job's pre-roll start time must have passed and its core reservation must already be running; use this once a job's reservation has actually started (whether that was triggered by `Start` or by reaching its scheduled pre-roll start on its own).
 - **`Stop`** (optionally with `JobStopOptions.NewPostRollEnd`) – ends a running job early by moving its end to the current time; the job cannot already be in its pre-roll or post-roll window. Like `Start`, it does not change `JobState` by itself.
-- **`TransitionToCompleted`** – Running → Completed, once the core reservation has ended (its status is authoritative even if the job's persisted post-roll end has not passed yet).
+- **`TransitionToCompleted`** – Running → Completed, once the core reservation has ended (its status is authoritative even if the job's persisted post-roll end has not passed yet). A Confirmed job whose reservation already ended is moved through Running to Completed.
 - **`Cancel`** – Tentative or Confirmed → Canceled.
 - **`MarkAsCompleted`** – Draft or Tentative → Completed, for a job whose end time already lies in the past (for example, historical data import). With this action no automated actions will take place.
 - **`Delete`** (with `JobDeleteOptions.ForceDelete`) – removes the job; `ForceDelete = true` bypasses the usual state restrictions on delete.
+
+The job state follows the state of its core reservation (Pending ↔ Tentative, Confirmed ↔ Confirmed, Ongoing ↔ Running, Ended ↔ Completed, Canceled ↔ Canceled):
+
+- `Confirm`, `Cancel`, `ReturnToTentative` and `TransitionToCompleted` work on the job as stored, not on the passed object, so unsaved changes are ignored and the confirm validations run against the stored job.
+- Once the core reservation is running or has ended, the job can no longer return to Tentative or be canceled. Those calls fail with a `JobInvalidStateError`, and the reservation is left untouched.
+- If a reservation event was missed, these calls catch the job up with its reservation: a Confirmed job with a running reservation is moved to Running, and one with an ended reservation is moved to Completed.
 
 Every transition method has a single-job overload (`Job` or `Guid`) and a batch overload (`IEnumerable<Job>` or `IEnumerable<Guid>`) that returns the updated jobs. `RecurringJob` follows a simpler, independent lifecycle: **Active → Completed** (`RecurringJobs.Complete`) and **Active → Cancelled** (`RecurringJobs.Cancel`).
 
