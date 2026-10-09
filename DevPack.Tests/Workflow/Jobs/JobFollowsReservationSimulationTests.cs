@@ -5,6 +5,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 	using RT_MediaOps.Plan.Extensions;
 
+	using Skyline.DataMiner.Net.Helper;
 	using Skyline.DataMiner.Net.Messages;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Net.ResourceManager.Objects;
@@ -153,6 +154,80 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			Assert.AreEqual(JobState.Completed, completedJob.State);
 			Assert.AreEqual(JobState.Completed, api.Jobs.Read(confirmedJob.Id).State);
+		}
+
+		[TestMethod]
+		public void Cancel_ReservationStartsWithinGuardTime_IsRejected()
+		{
+			var (_, api, resourceManagerHelper) = CreateContext();
+			var confirmedJob = CreateConfirmedJob(api);
+
+			MoveReservationStartWithinGuardTime(resourceManagerHelper, confirmedJob.Id);
+
+			var exception = Assert.ThrowsException<MediaOpsException>(() => api.Jobs.Cancel(confirmedJob.Id));
+			Assert.IsTrue(exception.TraceData.ErrorData.OfType<JobInvalidStateError>().Any(), "Expected a JobInvalidStateError.");
+
+			Assert.AreEqual(JobState.Confirmed, api.Jobs.Read(confirmedJob.Id).State);
+			Assert.AreEqual(ReservationStatus.Confirmed, GetReservation(resourceManagerHelper, confirmedJob.Id).Status, "Expected the reservation that is about to start not to be canceled.");
+		}
+
+		[TestMethod]
+		public void ReturnToTentative_ReservationStartsWithinGuardTime_IsRejected()
+		{
+			var (_, api, resourceManagerHelper) = CreateContext();
+			var confirmedJob = CreateConfirmedJob(api);
+
+			MoveReservationStartWithinGuardTime(resourceManagerHelper, confirmedJob.Id);
+
+			var exception = Assert.ThrowsException<MediaOpsException>(() => api.Jobs.ReturnToTentative(confirmedJob.Id));
+			Assert.IsTrue(exception.TraceData.ErrorData.OfType<JobInvalidStateError>().Any(), "Expected a JobInvalidStateError.");
+
+			Assert.AreEqual(JobState.Confirmed, api.Jobs.Read(confirmedJob.Id).State);
+			Assert.AreEqual(ReservationStatus.Confirmed, GetReservation(resourceManagerHelper, confirmedJob.Id).Status, "Expected the reservation that is about to start not to be pushed back.");
+		}
+
+		[TestMethod]
+		public void Cancel_TentativeJobWithReservationStartingWithinGuardTime_IsCanceled()
+		{
+			var (_, api, resourceManagerHelper) = CreateContext();
+			var tentativeJob = api.Jobs.ReturnToTentative(CreateConfirmedJob(api).Id);
+
+			// A Pending reservation is never started by SRM, so the guard does not apply.
+			MoveReservationStartWithinGuardTime(resourceManagerHelper, tentativeJob.Id);
+
+			var canceledJob = api.Jobs.Cancel(tentativeJob.Id);
+
+			Assert.AreEqual(JobState.Canceled, canceledJob.State);
+			Assert.AreEqual(ReservationStatus.Canceled, GetReservation(resourceManagerHelper, tentativeJob.Id).Status);
+		}
+
+		[TestMethod]
+		public void CancelUnlessStarted_OngoingReservation_IsRefused()
+		{
+			var (_, api, resourceManagerHelper) = CreateContext();
+			var confirmedJob = CreateConfirmedJob(api);
+
+			SetReservationStatus(resourceManagerHelper, confirmedJob.Id, ReservationStatus.Ongoing);
+
+			var planApi = (MediaOpsPlanApi)api;
+			var domJob = planApi.DomHelpers.SlcWorkflowHelper.GetJobs([confirmedJob.Id]).Single();
+
+			Assert.IsFalse(CoreJobHandler.TryCancelUnlessStarted(planApi, [domJob], out var result, out var startedJobIds));
+			Assert.IsTrue(startedJobIds.Contains(confirmedJob.Id));
+			Assert.IsTrue(result.UnsuccessfulIds.Contains(confirmedJob.Id));
+			Assert.AreEqual(ReservationStatus.Ongoing, GetReservation(resourceManagerHelper, confirmedJob.Id).Status, "Expected the running reservation not to be canceled.");
+		}
+
+		private static void MoveReservationStartWithinGuardTime(ResourceManagerHelper resourceManagerHelper, Guid jobId)
+		{
+			var reservation = GetReservation(resourceManagerHelper, jobId);
+			foreach (var existingEvent in reservation.Events)
+			{
+				reservation.RemoveEvent(existingEvent.Key, existingEvent.Value);
+			}
+
+			reservation = reservation.NewTimeRange(new Skyline.DataMiner.Net.Time.TimeRangeUtc(DateTime.UtcNow.AddSeconds(2), reservation.TimeRange.Stop));
+			resourceManagerHelper.AddOrUpdateReservationInstances(reservation);
 		}
 	}
 }

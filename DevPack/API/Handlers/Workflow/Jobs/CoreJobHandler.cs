@@ -49,12 +49,23 @@
 		}
 
 		// A reservation that already started (Ongoing or Ended) is left untouched and reported as an error, with its job
-		// ID in startedJobIds. The status is checked and written from the same read, so a reservation that starts
-		// in the meantime is never pushed back to Pending.
-		public static bool TryReturnToPendingUnlessStarted(MediaOpsPlanApi planApi, ICollection<DomJob> domJobs, out DomInstanceBulkOperationResult<DomJob> result, out ISet<Guid> startedJobIds)
+		// ID in startedJobIds. Unless refuseStartingWithinGuardTime is false, a Confirmed reservation that starts within the
+		// guard time is refused as well, because SRM could start it between the read and the write; its job ID is not in
+		// startedJobIds, as it has not started yet.
+		public static bool TryReturnToPendingUnlessStarted(MediaOpsPlanApi planApi, ICollection<DomJob> domJobs, out DomInstanceBulkOperationResult<DomJob> result, out ISet<Guid> startedJobIds, bool refuseStartingWithinGuardTime = true)
 		{
 			var handler = new CoreJobHandler(planApi);
-			startedJobIds = handler.ReturnToPendingUnlessStarted(domJobs);
+			startedJobIds = handler.ChangeStatusUnlessStarted(domJobs, Skyline.DataMiner.Net.Messages.ReservationStatus.Pending, refuseStartingWithinGuardTime);
+
+			result = new DomInstanceBulkOperationResult<DomJob>(handler.successfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
+			return !result.HasFailures;
+		}
+
+		// Same refusal rules as TryReturnToPendingUnlessStarted, for canceling the reservation.
+		public static bool TryCancelUnlessStarted(MediaOpsPlanApi planApi, ICollection<DomJob> domJobs, out DomInstanceBulkOperationResult<DomJob> result, out ISet<Guid> startedJobIds)
+		{
+			var handler = new CoreJobHandler(planApi);
+			startedJobIds = handler.ChangeStatusUnlessStarted(domJobs, Skyline.DataMiner.Net.Messages.ReservationStatus.Canceled, refuseStartingWithinGuardTime: true);
 
 			result = new DomInstanceBulkOperationResult<DomJob>(handler.successfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 			return !result.HasFailures;
@@ -81,15 +92,6 @@
 			return JobReservationMapping.GetMappings(planApi, domJobs)
 				.Where(x => !x.IsNew)
 				.ToDictionary(x => x.Job.ID.Id, x => x.Reservation.Status);
-		}
-
-		public static bool TryCancel(MediaOpsPlanApi planApi, ICollection<DomJob> domJobs, out DomInstanceBulkOperationResult<DomJob> result)
-		{
-			var handler = new CoreJobHandler(planApi);
-			handler.Cancel(domJobs);
-
-			result = new DomInstanceBulkOperationResult<DomJob>(handler.successfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
-			return !result.HasFailures;
 		}
 
 		public static bool TryDelete(MediaOpsPlanApi planApi, ICollection<DomJob> domJobs, out DomInstanceBulkOperationResult<DomJob> result)
@@ -347,25 +349,29 @@
 
 		private void Confirm(ICollection<DomJob> domJobs)
 		{
-			// A reservation with a start time in the past is started by SRM on confirm and must not be pushed back to Confirmed.
-			UpdateStatus(domJobs, Skyline.DataMiner.Net.Messages.ReservationStatus.Confirmed, statusesToKeep: [Skyline.DataMiner.Net.Messages.ReservationStatus.Ongoing]);
+			// A reservation with a start time in the past is started by SRM on confirm, and a reservation that was confirmed
+			// before (for example by a confirm whose job transition failed) can already have ended. Neither may be pushed
+			// back to Confirmed; the job follows them instead.
+			UpdateStatus(
+				domJobs,
+				Skyline.DataMiner.Net.Messages.ReservationStatus.Confirmed,
+				statusesToKeep: [Skyline.DataMiner.Net.Messages.ReservationStatus.Ongoing, Skyline.DataMiner.Net.Messages.ReservationStatus.Ended]);
 		}
 
-		private ISet<Guid> ReturnToPendingUnlessStarted(ICollection<DomJob> domJobs)
+		// The status is checked and written from the same read. SRM starts a reservation on its own, so it could still
+		// start between that read and the write; when requested, a Confirmed reservation that starts within the guard time
+		// is therefore refused as well, which makes the check independent of how long the write takes.
+		private ISet<Guid> ChangeStatusUnlessStarted(ICollection<DomJob> domJobs, Skyline.DataMiner.Net.Messages.ReservationStatus reservationStatus, bool refuseStartingWithinGuardTime)
 		{
 			var startedJobIds = new HashSet<Guid>();
 			UpdateStatus(
 				domJobs,
-				Skyline.DataMiner.Net.Messages.ReservationStatus.Pending,
+				reservationStatus,
 				statusesToRefuse: [Skyline.DataMiner.Net.Messages.ReservationStatus.Ongoing, Skyline.DataMiner.Net.Messages.ReservationStatus.Ended],
-				refusedJobIds: startedJobIds);
+				refusedJobIds: startedJobIds,
+				refuseConfirmedStartingWithinGuardTime: refuseStartingWithinGuardTime);
 
 			return startedJobIds;
-		}
-
-		private void Cancel(ICollection<DomJob> domJobs)
-		{
-			UpdateStatus(domJobs, Skyline.DataMiner.Net.Messages.ReservationStatus.Canceled);
 		}
 
 		private void Delete(ICollection<DomJob> domJobs)
@@ -696,7 +702,8 @@
 			Skyline.DataMiner.Net.Messages.ReservationStatus reservationStatus,
 			ICollection<Skyline.DataMiner.Net.Messages.ReservationStatus> statusesToKeep = null,
 			ICollection<Skyline.DataMiner.Net.Messages.ReservationStatus> statusesToRefuse = null,
-			ISet<Guid> refusedJobIds = null)
+			ISet<Guid> refusedJobIds = null,
+			bool refuseConfirmedStartingWithinGuardTime = false)
 		{
 			if (domJobs == null)
 			{
@@ -714,7 +721,13 @@
 			var domJobsByReservationId = new Dictionary<Guid, DomJob>();
 			var toUpdate = new List<CoreReservation>();
 
-			foreach (var mapping in JobReservationMapping.GetMappings(planApi, domJobs))
+			var mappings = JobReservationMapping.GetMappings(planApi, domJobs).ToList();
+
+			// Taken right after the read (not when the handler was created), so time spent waiting for the job lock
+			// doesn't shrink the guard.
+			var guardLimit = DateTime.UtcNow + JobNodeTimingResolver.GuardTime;
+
+			foreach (var mapping in mappings)
 			{
 				if (mapping.IsNew)
 				{
@@ -730,6 +743,18 @@
 						Id = mapping.Job.ID.Id,
 					});
 					refusedJobIds?.Add(mapping.Job.ID.Id);
+					continue;
+				}
+
+				if (refuseConfirmedStartingWithinGuardTime
+					&& mapping.Reservation.Status == Skyline.DataMiner.Net.Messages.ReservationStatus.Confirmed
+					&& mapping.Reservation.TimeRange.Start < guardLimit)
+				{
+					ReportError(mapping.Job.ID.Id, new JobInvalidStateError
+					{
+						ErrorMessage = $"The core reservation starts within {JobNodeTimingResolver.GuardTime.TotalSeconds:0} seconds, so its status can no longer be changed to {reservationStatus}.",
+						Id = mapping.Job.ID.Id,
+					});
 					continue;
 				}
 

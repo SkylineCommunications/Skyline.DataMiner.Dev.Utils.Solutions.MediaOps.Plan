@@ -120,7 +120,8 @@ The job state follows the state of its core reservation (Pending ↔ Tentative, 
 
 - `Confirm`, `Cancel`, `ReturnToTentative` and `TransitionToCompleted` work on the job as stored, not on the passed object, so unsaved changes are ignored and the confirm validations run against the stored job.
 - Once the core reservation is running or has ended, the job can no longer return to Tentative or be canceled. Those calls fail with a `JobInvalidStateError`, and the reservation is left untouched.
-- If a reservation event was missed, these calls catch the job up with its reservation: a Confirmed job with a running reservation is moved to Running, and one with an ended reservation is moved to Completed.
+- SRM starts a confirmed reservation on its own, so `Cancel` and `ReturnToTentative` of a Confirmed job are also rejected with a `JobInvalidStateError` when its core reservation starts within the next 5 seconds. This leaves enough margin between checking the reservation status and changing it. A reservation that is started manually in SRM within that short check-and-write window is not covered.
+- If a reservation event was missed, these calls catch the job up with its reservation: a Confirmed job with a running reservation is moved to Running, and one with an ended reservation is moved to Completed. `Confirm` does the same for a job whose reservation already started or ended, so it never pushes the reservation back to Confirmed. If the job can't follow, the call fails and tells you to call `TransitionToRunning` or `TransitionToCompleted`.
 
 Every transition method has a single-job overload (`Job` or `Guid`) and a batch overload (`IEnumerable<Job>` or `IEnumerable<Guid>`) that returns the updated jobs. `RecurringJob` follows a simpler, independent lifecycle: **Active → Completed** (`RecurringJobs.Complete`) and **Active → Cancelled** (`RecurringJobs.Cancel`).
 

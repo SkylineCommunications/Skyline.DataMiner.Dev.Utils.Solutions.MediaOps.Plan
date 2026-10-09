@@ -150,5 +150,30 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			Assert.AreEqual(JobState.Running, api.Jobs.Read(staleTentativeJob.Id).State, "Expected the job to follow its running reservation.");
 			Assert.AreEqual(ReservationStatus.Ongoing, GetReservationStatus(resourceManagerHelper, staleTentativeJob.Id));
 		}
+
+		[TestMethod]
+		public void Confirm_TentativeJobWithEndedReservation_JobFollowsEndedReservation()
+		{
+			var dms = MediaOpsPlanSimulation.Create();
+			var connection = dms.CreateConnection();
+			var api = connection.GetMediaOpsPlanApi();
+			var resourceManagerHelper = new ResourceManagerHelper(connection.HandleSingleResponseMessage);
+
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+			var tentativeJob = CreateTentativeJob(api, currentTime.AddMinutes(-5), currentTime.AddMinutes(20));
+
+			// The reservation was confirmed and ran to its end before (for example by a confirm whose job transition
+			// failed), while the job stayed Tentative.
+			var reservation = resourceManagerHelper.GetReservationInstances(
+				ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(tentativeJob.Id))).Single();
+			reservation.Status = ReservationStatus.Ended;
+			resourceManagerHelper.AddOrUpdateReservationInstances(reservation);
+
+			var confirmedJob = api.Jobs.Confirm(tentativeJob.Id);
+
+			Assert.AreEqual(JobState.Completed, confirmedJob.State, "Expected the job to follow its ended reservation.");
+			Assert.AreEqual(JobState.Completed, api.Jobs.Read(tentativeJob.Id).State);
+			Assert.AreEqual(ReservationStatus.Ended, GetReservationStatus(resourceManagerHelper, tentativeJob.Id), "Expected the ended reservation not to be pushed back to Confirmed.");
+		}
 	}
 }
