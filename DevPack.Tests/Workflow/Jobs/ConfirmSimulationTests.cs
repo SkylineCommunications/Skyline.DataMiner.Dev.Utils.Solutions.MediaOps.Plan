@@ -175,5 +175,37 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			Assert.AreEqual(JobState.Completed, api.Jobs.Read(tentativeJob.Id).State);
 			Assert.AreEqual(ReservationStatus.Ended, GetReservationStatus(resourceManagerHelper, tentativeJob.Id), "Expected the ended reservation not to be pushed back to Confirmed.");
 		}
+
+		[TestMethod]
+		public void Confirm_ReservationEndsRightAfterJobFollowedRunningReservation_JobIsCompleted()
+		{
+			var dms = MediaOpsPlanSimulation.Create();
+			var connection = dms.CreateConnection();
+			var api = connection.GetMediaOpsPlanApi();
+			var resourceManagerHelper = new ResourceManagerHelper(connection.HandleSingleResponseMessage);
+
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+			var tentativeJob = CreateTentativeJob(api, currentTime.AddMinutes(-5), currentTime.AddMinutes(20));
+
+			// A reservation with a start time in the past starts running the moment it is confirmed. It ends right after
+			// the job was moved to Running, while the confirm still holds the job lock, so its end event would be rejected.
+			dms.StartConfirmedReservationsImmediately = true;
+			api.SetLogger(new CallbackLogger(message =>
+			{
+				if (message.Contains("moved to Running"))
+				{
+					var reservation = resourceManagerHelper.GetReservationInstances(
+						ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(tentativeJob.Id))).Single();
+					reservation.Status = ReservationStatus.Ended;
+					resourceManagerHelper.AddOrUpdateReservationInstances(reservation);
+				}
+			}));
+
+			var confirmedJob = api.Jobs.Confirm(tentativeJob.Id);
+
+			Assert.AreEqual(JobState.Completed, confirmedJob.State, "Expected the job to follow its reservation that ended.");
+			Assert.AreEqual(JobState.Completed, api.Jobs.Read(tentativeJob.Id).State);
+			Assert.AreEqual(ReservationStatus.Ended, GetReservationStatus(resourceManagerHelper, tentativeJob.Id));
+		}
 	}
 }

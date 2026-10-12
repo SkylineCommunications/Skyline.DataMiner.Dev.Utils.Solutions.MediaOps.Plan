@@ -28,6 +28,9 @@
 
 		private readonly HashSet<Guid> jobIdsWithCoreChanges = new HashSet<Guid>();
 
+		// The jobs this call moved to Running because their reservation was Ongoing, with their Running instance.
+		private readonly Dictionary<Guid, DomJob> domJobsMovedToRunningById = new Dictionary<Guid, DomJob>();
+
 		private readonly Dictionary<Guid, ResolvedReferenceCache> resolvedReferencesByJobId = new Dictionary<Guid, ResolvedReferenceCache>();
 
 		private readonly Dictionary<Guid, List<OrchestrationSettings>> orchestrationSettingsByJobId = new Dictionary<Guid, List<OrchestrationSettings>>();
@@ -857,6 +860,7 @@
 			apiJobs = GetStoredTentativeJobs(apiJobs);
 			if (apiJobs.Count == 0)
 			{
+				CompleteJobsMovedToRunningIfReservationEnded();
 				return;
 			}
 
@@ -921,6 +925,8 @@
 			}
 
 			ReportSuccess(confirmedDomJobs.Where(x => !reachedStateByJobId.ContainsKey(x.ID.Id) && !failedJobIds.Contains(x.ID.Id)));
+
+			CompleteJobsMovedToRunningIfReservationEnded();
 		}
 
 		private void SyncLiveOrchestrationPerReachedState(ICollection<Job> apiJobs, IReadOnlyDictionary<Guid, JobState> reachedStateByJobId)
@@ -1302,6 +1308,12 @@
 				reachedStateByJobId[domJob.ID.Id] = latestDomJob.Status == Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Completed
 					? JobState.Completed
 					: JobState.Running;
+
+				if (latestDomJob.Status == Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Running)
+				{
+					planApi.Logger.Information(this, $"Job {domJob.ID.Id} was moved to Running while confirming it, because its reservation is already running.");
+					domJobsMovedToRunningById[domJob.ID.Id] = latestDomJob;
+				}
 			}
 
 			return reachedStateByJobId;
@@ -1370,6 +1382,11 @@
 
 				planApi.Logger.Warning(this, $"Job {domJob.ID.Id} was still Confirmed while its reservation is {reservationStatus}, so it was moved to {reachedState}.");
 				followed = true;
+
+				if (reachedState == JobState.Running)
+				{
+					domJobsMovedToRunningById[domJob.ID.Id] = latestDomJob;
+				}
 			}
 			catch (Exception ex)
 			{
@@ -1392,6 +1409,64 @@
 			}
 
 			return followed;
+		}
+
+		// A job moved to Running because its reservation was Ongoing would stay Running if the reservation ended after that
+		// read: the reservation end event is rejected while this call holds the job lock and doesn't fire again. The
+		// reservations are therefore re-read as the very last step under the lock, and a job whose reservation ended in the
+		// meantime is moved on to Completed. A reservation that ends after this read is handled by its own end event, which
+		// only has to wait for the lock to be released.
+		private void CompleteJobsMovedToRunningIfReservationEnded()
+		{
+			if (domJobsMovedToRunningById.Count == 0)
+			{
+				return;
+			}
+
+			var runningDomJobs = domJobsMovedToRunningById.Values.ToList();
+			domJobsMovedToRunningById.Clear();
+
+			var reservationStatuses = CoreJobHandler.GetReservationStatuses(planApi, runningDomJobs);
+			foreach (var domJob in runningDomJobs)
+			{
+				if (!reservationStatuses.TryGetValue(domJob.ID.Id, out var reservationStatus) || reservationStatus != Net.Messages.ReservationStatus.Ended)
+				{
+					continue;
+				}
+
+				var wasSuccessful = SuccessfulIds.Contains(domJob.ID.Id);
+
+				if (TryTransitionDomJob(
+					domJob,
+					Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.Transitions.Running_To_Completed,
+					[Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Completed],
+					out var completedDomJob,
+					out var exception))
+				{
+					planApi.Logger.Warning(this, $"The reservation of job {domJob.ID.Id} ended right after the job was moved to Running, so it was moved on to Completed.");
+
+					if (wasSuccessful)
+					{
+						WithdrawSuccess(domJob.ID.Id);
+						ReportSuccess(completedDomJob);
+					}
+
+					continue;
+				}
+
+				planApi.Logger.Error(this, $"Failed to move job {domJob.ID.Id} to Completed, although its reservation has ended: {exception}");
+
+				if (wasSuccessful)
+				{
+					WithdrawSuccess(domJob.ID.Id);
+				}
+
+				ReportError(domJob.ID.Id, new JobInvalidStateError
+				{
+					ErrorMessage = $"The reservation of job {domJob.ID.Id} has ended, but the job could not be moved along with it and is still Running. Call {nameof(IJobsRepository.TransitionToCompleted)} for the job to bring it in line with its reservation.",
+					Id = domJob.ID.Id,
+				});
+			}
 		}
 
 		private void ReportCatchUpFailures(IEnumerable<DomJob> failedDomJobs)
@@ -1469,6 +1544,8 @@
 			TransitionDomJobsToCanceled(domJobs);
 
 			SyncLiveOrchestration(domJobs.Select(x => new Job(planApi, x)).ToList(), JobState.Canceled);
+
+			CompleteJobsMovedToRunningIfReservationEnded();
 		}
 
 		// Re-reads the jobs while holding the lock. The jobs in one of the expected statuses are returned; a job that already
@@ -1515,7 +1592,7 @@
 			{
 				ReportError(domJob.ID.Id, new JobInvalidStateError
 				{
-					ErrorMessage = $"The reservation of the job already started, so the job can no longer be {action}. The job was moved to {domJob.Status} along with its reservation.",
+					ErrorMessage = $"The reservation of the job already started, so the job can no longer be {action}. The job was moved along with its reservation instead.",
 					Id = domJob.ID.Id,
 				});
 			}
@@ -1641,6 +1718,8 @@
 			TransitionDomJobsToTentativeFromConfirmed(domJobs);
 
 			SyncLiveOrchestration(domJobs.Select(x => new Job(planApi, x)).ToList(), JobState.Tentative);
+
+			CompleteJobsMovedToRunningIfReservationEnded();
 		}
 
 		private void TransitionDomJobsToTentativeFromConfirmed(ICollection<DomJob> domJobs)

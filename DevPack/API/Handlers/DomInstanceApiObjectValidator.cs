@@ -24,6 +24,13 @@
 			successfulItems.Add(item);
 		}
 
+		// Withdraws an earlier success, so the item can be reported again with a newer instance or as an error.
+		protected void WithdrawSuccess(Guid id)
+		{
+			successfulIds.RemoveAll(x => x == id);
+			successfulItems.RemoveWhere(x => x.ID.Id == id);
+		}
+
 		protected IEnumerable<DomChangeResults> GetItemsWithChanges<TApiObject, TDomInstance>(
 			ICollection<TApiObject> apiObjects,
 			Func<TApiObject, DomInstanceBase> getOriginalInstance,

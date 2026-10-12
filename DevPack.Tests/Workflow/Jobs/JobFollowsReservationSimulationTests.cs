@@ -218,6 +218,30 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			Assert.AreEqual(ReservationStatus.Ongoing, GetReservation(resourceManagerHelper, confirmedJob.Id).Status, "Expected the running reservation not to be canceled.");
 		}
 
+		[TestMethod]
+		public void Cancel_ReservationEndsRightAfterJobFollowedRunningReservation_JobIsCompleted()
+		{
+			var (_, api, resourceManagerHelper) = CreateContext();
+			var confirmedJob = CreateConfirmedJob(api);
+
+			SetReservationStatus(resourceManagerHelper, confirmedJob.Id, ReservationStatus.Ongoing);
+
+			// The reservation ends right after the job was moved to Running, while the cancel still holds the job lock, so
+			// its end event would be rejected.
+			api.SetLogger(new CallbackLogger(message =>
+			{
+				if (message.Contains("moved to Running"))
+				{
+					SetReservationStatus(resourceManagerHelper, confirmedJob.Id, ReservationStatus.Ended);
+				}
+			}));
+
+			Assert.ThrowsException<MediaOpsException>(() => api.Jobs.Cancel(confirmedJob.Id));
+
+			Assert.AreEqual(JobState.Completed, api.Jobs.Read(confirmedJob.Id).State, "Expected the job to follow its reservation that ended.");
+			Assert.AreEqual(ReservationStatus.Ended, GetReservation(resourceManagerHelper, confirmedJob.Id).Status);
+		}
+
 		private static void MoveReservationStartWithinGuardTime(ResourceManagerHelper resourceManagerHelper, Guid jobId)
 		{
 			var reservation = GetReservation(resourceManagerHelper, jobId);
