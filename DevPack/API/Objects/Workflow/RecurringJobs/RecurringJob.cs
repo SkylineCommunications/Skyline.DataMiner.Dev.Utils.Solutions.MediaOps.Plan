@@ -206,19 +206,21 @@
 		/// <summary>
 		/// Gets the custom property settings associated with this recurring job.
 		/// Property settings are loaded lazily in a single batch together with the property settings of all nodes.
+		/// Values changed directly on the returned settings are saved as well.
 		/// </summary>
 		public IReadOnlyCollection<CustomPropertySetting> CustomPropertySettings => GetOrCreateScope().CustomPropertySettings;
 
 		/// <summary>
 		/// Gets the property settings associated with this recurring job.
 		/// Property settings are loaded lazily in a single batch together with the property settings of all nodes.
+		/// Values changed directly on the returned settings are saved as well.
 		/// </summary>
 		public IReadOnlyCollection<PropertySetting> PropertySettings => GetOrCreateScope().PropertySettings;
 
 		/// <summary>
 		/// Gets the objects this recurring job takes part in a relationship with. They are loaded lazily.
 		/// Use <see cref="AddRelationshipEndpoint"/>, <see cref="SetRelationshipEndpoints"/> and <see cref="RemoveRelationshipEndpoint"/>
-		/// to configure them before creating the recurring job.
+		/// to configure them before creating the recurring job. Details changed directly on the returned endpoints are saved as well.
 		/// </summary>
 		public IReadOnlyCollection<JobRelationshipEndpoint> RelationshipEndpoints => GetOrCreateRelationshipsScope().RelationshipEndpoints;
 

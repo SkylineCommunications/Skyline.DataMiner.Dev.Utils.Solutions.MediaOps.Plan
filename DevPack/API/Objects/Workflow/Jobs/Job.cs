@@ -341,6 +341,7 @@
 		/// Gets the custom property settings associated with this job.
 		/// Property settings are loaded lazily in a single batch together with the property settings of all nodes.
 		/// Use <see cref="AddCustomProperty"/>, <see cref="SetCustomProperties"/> and <see cref="RemoveCustomProperty"/> to modify them.
+		/// Values changed directly on the returned settings are saved as well.
 		/// </summary>
 		public IReadOnlyCollection<CustomPropertySetting> CustomPropertySettings => GetOrCreateScope().CustomPropertySettings;
 
@@ -348,12 +349,14 @@
 		/// Gets the property settings associated with this job.
 		/// Property settings are loaded lazily in a single batch together with the property settings of all nodes.
 		/// Use <see cref="AddProperty"/>, <see cref="SetProperties"/> and <see cref="RemoveProperty"/> to modify them.
+		/// Values changed directly on the returned settings are saved as well.
 		/// </summary>
 		public IReadOnlyCollection<PropertySetting> PropertySettings => GetOrCreateScope().PropertySettings;
 
 		/// <summary>
 		/// Gets the objects this job takes part in a relationship with. They are loaded lazily.
 		/// Use <see cref="AddRelationshipEndpoint"/>, <see cref="SetRelationshipEndpoints"/> and <see cref="RemoveRelationshipEndpoint"/> to modify them.
+		/// Details changed directly on the returned endpoints are saved as well.
 		/// </summary>
 		public IReadOnlyCollection<JobRelationshipEndpoint> RelationshipEndpoints => GetOrCreateRelationshipsScope().RelationshipEndpoints;
 

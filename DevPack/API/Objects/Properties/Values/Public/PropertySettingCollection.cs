@@ -210,6 +210,16 @@
 				&& fileSettings.ScrambledEquals(other.fileSettings);
 		}
 
+		internal bool HasSameContent(PropertySettingCollection other)
+		{
+			return other != null
+				&& customSettings.ScrambledEquals(other.customSettings)
+				&& stringSettings.ScrambledEquals(other.stringSettings)
+				&& booleanSettings.ScrambledEquals(other.booleanSettings)
+				&& discreteSettings.ScrambledEquals(other.discreteSettings)
+				&& fileSettings.ScrambledEquals(other.fileSettings);
+		}
+
 		/// <inheritdoc />
 		public void Add(PropertySettingBase item)
 		{

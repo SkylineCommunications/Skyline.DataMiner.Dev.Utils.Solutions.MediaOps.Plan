@@ -4,6 +4,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using System.Collections.Generic;
 	using System.Linq;
 
+	using Skyline.DataMiner.Net.Helper;
+
 	/// <summary>
 	/// Per-owner mutable view over a <see cref="JobRelationshipsContext"/>. Exposes a flat list of <see cref="JobRelationshipEndpoint"/> objects
 	/// to the caller and translates the local state into <see cref="JobRelationshipsPersistenceActions"/> when it is time to persist.
@@ -13,14 +15,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		private readonly Func<JobRelationshipsContext> getContext;
 
 		private List<JobRelationshipEndpoint> links;
-		private bool isDirty;
+		private List<JobRelationshipEndpoint> initialLinks;
 
 		internal JobRelationshipsScope(Func<JobRelationshipsContext> getContext)
 		{
 			this.getContext = getContext;
 		}
 
-		internal bool IsDirty => isDirty;
+		// Compared against the loaded state, so details edited in place on returned endpoints are picked up as well.
+		internal bool IsDirty => links != null && !links.ScrambledEquals(initialLinks);
 
 		internal IReadOnlyCollection<JobRelationshipEndpoint> RelationshipEndpoints => Current;
 
@@ -46,8 +49,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				Current.Add(link);
 			}
-
-			isDirty = true;
 		}
 
 		internal void SetRelationshipEndpoints(IEnumerable<JobRelationshipEndpoint> newLinks)
@@ -80,7 +81,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			links = replacement;
-			isDirty = true;
 		}
 
 		internal void RemoveRelationshipEndpoint(JobRelationshipEndpoint link)
@@ -95,17 +95,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				Current.Remove(existing);
 			}
-
-			isDirty = true;
 		}
 
 		/// <summary>
-		/// Produces the relationships that have to be created, updated or deleted, or <see langword="null"/> when the scope was never mutated.
+		/// Produces the relationships that have to be created, updated or deleted, or <see langword="null"/> when the links did not change since they were loaded.
 		/// </summary>
 		/// <param name="jobObjectTypeId">The unique identifier of the reserved "Job" object type, resolved once per save.</param>
 		internal JobRelationshipsPersistenceActions BuildPersistenceActions(Guid jobObjectTypeId)
 		{
-			if (!isDirty)
+			if (!IsDirty)
 			{
 				return null;
 			}
@@ -183,6 +181,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		private List<JobRelationshipEndpoint> BuildInitialEndpoints()
+		{
+			initialLinks = CopyInitialEndpoints();
+			return CopyInitialEndpoints();
+		}
+
+		private List<JobRelationshipEndpoint> CopyInitialEndpoints()
 		{
 			var context = Context;
 

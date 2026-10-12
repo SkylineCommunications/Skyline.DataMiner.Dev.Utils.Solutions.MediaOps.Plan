@@ -29,6 +29,36 @@ namespace RT_MediaOps.Plan.Relationships.Links
 		}
 
 		[TestMethod]
+		public void UpdateWithEndpointsChangedInPlacePersistsValues()
+		{
+			var parentType = objectCreator.CreateRelationshipObjectType(new RelationshipObjectType { Name = $"{Guid.NewGuid()}_Parent" });
+			var childType = objectCreator.CreateRelationshipObjectType(new RelationshipObjectType { Name = $"{Guid.NewGuid()}_Child" });
+
+			var relationship = objectCreator.CreateRelationship(new Relationship(new RelationshipData
+			{
+				Parent = new RelationshipEndpoint(parentType, "parent-1") { ObjectName = "Parent", Url = "https://example.invalid/parent" },
+				Child = new RelationshipEndpoint(childType, "child-1") { ObjectName = "Child", Url = "https://example.invalid/child" },
+			}));
+
+			var read = TestContext.Api.Relationships.Read(relationship.Id);
+			read.Parent.ObjectId = "parent-2";
+			read.Parent.Url = "https://example.invalid/parent-2";
+			read.Child.ObjectId = "child-2";
+			read.Child.ObjectName = "Renamed child";
+			read.Child.Url = "https://example.invalid/child-2";
+			TestContext.Api.Relationships.Update(read);
+
+			var returned = TestContext.Api.Relationships.Read(relationship.Id);
+			Assert.IsNotNull(returned);
+			Assert.AreEqual("parent-2", returned.Parent.ObjectId);
+			Assert.AreEqual("Parent", returned.Parent.ObjectName);
+			Assert.AreEqual("https://example.invalid/parent-2", returned.Parent.Url);
+			Assert.AreEqual("child-2", returned.Child.ObjectId);
+			Assert.AreEqual("Renamed child", returned.Child.ObjectName);
+			Assert.AreEqual("https://example.invalid/child-2", returned.Child.Url);
+		}
+
+		[TestMethod]
 		public void BasicCrudActions()
 		{
 			var parentType = objectCreator.CreateRelationshipObjectType(new RelationshipObjectType { Name = $"{Guid.NewGuid()}_Parent" });

@@ -134,6 +134,33 @@
 			Assert.IsTrue(nodeCollections.All(c => nodeIds.Contains(c.SubId)), "Each node collection's SubId must match a node id.");
 		}
 
+		[TestMethod]
+		public void UpdateWorkflow_ValuesChangedInPlaceOnWorkflowAndNode_PersistsValues()
+		{
+			var prefix = Guid.NewGuid();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var workflow = new Workflow { Name = $"{prefix}_Workflow" };
+			workflow.AddCustomProperty(new CustomPropertySetting("Tag") { Value = "Original" });
+
+			var node = new WorkflowResourcePoolNode(pool);
+			node.AddCustomProperty(new CustomPropertySetting("Tag") { Value = "Original" });
+			workflow.NodeGraph.Add(node);
+
+			workflow = objectCreator.CreateWorkflow(workflow);
+
+			var read = TestContext.Api.Workflows.Read(workflow.Id);
+			read.CustomPropertySettings.Single().Value = "Changed";
+			read.NodeGraph.Nodes.Single().CustomPropertySettings.Single().Value = "Changed";
+			TestContext.Api.Workflows.Update(read);
+
+			var returned = TestContext.Api.Workflows.Read(workflow.Id);
+			Assert.AreEqual("Changed", returned.CustomPropertySettings.Single().Value);
+			Assert.AreEqual("Changed", returned.NodeGraph.Nodes.Single().CustomPropertySettings.Single().Value);
+		}
+
 		private System.Collections.Generic.List<PropertySettingCollection> ReadCollections(Guid ownerId)
 		{
 			var filter = new ANDFilterElement<PropertySettingCollection>(

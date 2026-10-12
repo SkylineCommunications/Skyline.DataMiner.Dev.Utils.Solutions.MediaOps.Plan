@@ -197,6 +197,7 @@
 		/// Gets the custom property settings associated with this workflow.
 		/// Property settings are loaded lazily in a single batch together with the property settings of all nodes.
 		/// Use <see cref="AddCustomProperty"/>, <see cref="SetCustomProperties"/> and <see cref="RemoveCustomProperty"/> to modify them.
+		/// Values changed directly on the returned settings are saved as well.
 		/// </summary>
 		public IReadOnlyCollection<CustomPropertySetting> CustomPropertySettings => GetOrCreateScope().CustomPropertySettings;
 
@@ -204,6 +205,7 @@
 		/// Gets the property settings associated with this workflow.
 		/// Property settings are loaded lazily in a single batch together with the property settings of all nodes.
 		/// Use <see cref="AddProperty"/>, <see cref="SetProperties"/> and <see cref="RemoveProperty"/> to modify them.
+		/// Values changed directly on the returned settings are saved as well.
 		/// </summary>
 		public IReadOnlyCollection<PropertySetting> PropertySettings => GetOrCreateScope().PropertySettings;
 
