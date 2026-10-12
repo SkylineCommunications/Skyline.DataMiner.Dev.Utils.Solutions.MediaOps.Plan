@@ -598,6 +598,48 @@ namespace RT_MediaOps.Plan.Properties.Values
 		}
 
 		[TestMethod]
+		public void UpdateJob_ReadContentChangedAndAddedBack_StoresNewContent()
+		{
+			var (api, _) = CreateContext();
+			var jobId = CreateJobWithFile(api, out _);
+
+			var read = api.Jobs.Read(jobId);
+			var setting = read.PropertySettings.OfType<FilePropertySetting>().Single();
+			var content = setting.ReadContent("document.pdf");
+			content[0] = (byte)'F';
+			setting.AddFile("document.pdf", content);
+			api.Jobs.Update(read);
+
+			var returned = api.Jobs.Read(jobId).PropertySettings.OfType<FilePropertySetting>().Single();
+			CollectionAssert.AreEqual(Content("First"), returned.ReadContent("document.pdf"));
+		}
+
+		[TestMethod]
+		public void ReadJob_ReadContentChangedWithoutAddingBack_HasNoPropertySettingChanges()
+		{
+			var (api, _) = CreateContext();
+			var jobId = CreateJobWithFile(api, out _);
+
+			var read = api.Jobs.Read(jobId);
+			var setting = read.PropertySettings.OfType<FilePropertySetting>().Single();
+			setting.ReadContent("document.pdf")[0] = (byte)'F';
+
+			Assert.IsFalse(read.HasPropertySettingChanges);
+			CollectionAssert.AreEqual(Content("first"), setting.ReadContent("document.pdf"));
+		}
+
+		[TestMethod]
+		public void AddFile_ContentChangedAfterwards_KeepsAddedContent()
+		{
+			var content = Content("first");
+			var setting = new FilePropertySetting(new FileProperty()).AddFile("document.pdf", content);
+
+			content[0] = (byte)'F';
+
+			CollectionAssert.AreEqual(Content("first"), setting.ReadContent("document.pdf"));
+		}
+
+		[TestMethod]
 		public void ReadJob_FileSettings_ReadsEachAttachmentOnce()
 		{
 			var (api, attachments) = CreateContext();
