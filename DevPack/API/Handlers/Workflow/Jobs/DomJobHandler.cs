@@ -930,8 +930,8 @@
 				return;
 			}
 
+			// A completed job is not synchronized (see LiveJobConfigHandler), so only the jobs that reached Running are.
 			SyncLiveOrchestration(apiJobs.Where(x => reachedStateByJobId.TryGetValue(x.Id, out var state) && state == JobState.Running), JobState.Running);
-			SyncLiveOrchestration(apiJobs.Where(x => reachedStateByJobId.TryGetValue(x.Id, out var state) && state == JobState.Completed), JobState.Completed);
 		}
 
 		// Returns the provided jobs that are still Tentative in storage and pass the confirm validations, built from the
@@ -1349,7 +1349,7 @@
 		}
 
 		// Moves a Confirmed job along with its Ongoing (-> Running) or Ended (-> Running -> Completed) reservation and
-		// synchronizes Live with the state the job actually reached. latestDomJob is the instance after the last successful
+		// synchronizes Live when the job reached Running. latestDomJob is the instance after the last successful
 		// step, so a job that only got half-way is still reported with its real state.
 		private bool TryFollowStartedReservation(DomJob domJob, Net.Messages.ReservationStatus reservationStatus, out DomJob latestDomJob)
 		{
@@ -1378,7 +1378,8 @@
 			}
 
 			// Synchronized before any error is reported for the job, because the synchronization skips jobs with errors.
-			if (reachedState != JobState.Confirmed)
+			// A completed job is not synchronized (see LiveJobConfigHandler).
+			if (reachedState == JobState.Running)
 			{
 				try
 				{
@@ -1747,8 +1748,6 @@
 			var domJobs = apiJobs.Select(x => x.OriginalInstance).ToList();
 
 			TransitionDomJobsToCompleted(domJobs);
-
-			SyncLiveOrchestration(apiJobs, JobState.Completed);
 		}
 
 		private void TransitionDomJobsToCompleted(ICollection<DomJob> domJobs)
@@ -2322,8 +2321,6 @@
 
 			var domJobs = runningJobs.Where(IsValid).Select(x => x.OriginalInstance).ToList();
 			TransitionDomJobsToCompletedFromRunning(domJobs);
-
-			SyncLiveOrchestration(runningJobs.Where(IsValid).ToList(), JobState.Completed);
 		}
 
 		private void TransitionDomJobsToCompletedFromRunning(ICollection<DomJob> domJobs)
