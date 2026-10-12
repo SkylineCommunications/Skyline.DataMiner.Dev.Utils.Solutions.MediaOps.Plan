@@ -197,6 +197,33 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void UpdateJob_DetailsChangedOnStoredDuplicate_UpdatesRelationship()
+		{
+			var prefix = Guid.NewGuid();
+			var objectType = objectCreator.CreateRelationshipObjectType(new RelationshipObjectType { Name = $"{prefix}_Booking" });
+			var job = objectCreator.CreateJob(NewJob($"{prefix}_Job"));
+			var jobObjectType = TestContext.Api.RelationshipObjectTypes.Read(RelationshipObjectTypeExposers.Name.Equal(RelationshipObjectType.JobObjectTypeName)).Single();
+
+			foreach (var name in new[] { "First", "Second" })
+			{
+				objectCreator.CreateRelationship(new Relationship(new RelationshipData
+				{
+					Parent = new RelationshipEndpoint(jobObjectType, job.Id.ToString()) { ObjectName = job.Name },
+					Child = new RelationshipEndpoint(objectType, "booking-1") { ObjectName = name },
+				}));
+			}
+
+			var read = TestContext.Api.Jobs.Read(job.Id);
+			var edited = read.RelationshipEndpoints.Single(x => x.ObjectName == "First");
+			edited.Url = "https://example.invalid/booking/1";
+			TestContext.Api.Jobs.Update(read);
+
+			var relationship = TestContext.Api.Relationships.Read(edited.Id);
+			Assert.AreEqual("https://example.invalid/booking/1", relationship.Child.Url);
+			Assert.AreEqual(2, TestContext.Api.Jobs.Read(job.Id).RelationshipEndpoints.Count);
+		}
+
+		[TestMethod]
 		public void SetRelationshipEndpoints_WithUnchangedEndpoints_IsNotDirty()
 		{
 			var prefix = Guid.NewGuid();

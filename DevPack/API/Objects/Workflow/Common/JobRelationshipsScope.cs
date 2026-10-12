@@ -165,7 +165,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return String.Equals(left.ObjectId, right.ObjectId, StringComparison.Ordinal);
 		}
 
-		// Links edited in place bypass the merge of Add/Set. Duplicates that were already stored are left alone so they don't block other changes.
+		// Links edited in place bypass the merge of Add/Set. Only a target with more links than were stored is reported, so stored duplicates don't block other changes.
 		internal IReadOnlyList<JobRelationshipEndpoint> GetChangedDuplicates()
 		{
 			if (!IsDirty)
@@ -173,10 +173,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return Array.Empty<JobRelationshipEndpoint>();
 			}
 
+			var initialCounts = initialLinks
+				.Where(x => !String.IsNullOrWhiteSpace(x.ObjectId))
+				.GroupBy(x => (x.ObjectTypeId, x.ObjectId))
+				.ToDictionary(g => g.Key, g => g.Count());
+
 			return links
 				.Where(x => !String.IsNullOrWhiteSpace(x.ObjectId))
 				.GroupBy(x => (x.ObjectTypeId, x.ObjectId))
-				.Where(g => g.Count() > 1 && g.Any(x => !initialLinks.Contains(x)))
+				.Where(g => g.Count() > 1 && g.Count() > (initialCounts.TryGetValue(g.Key, out var initialCount) ? initialCount : 0))
 				.Select(g => g.First())
 				.ToList();
 		}
