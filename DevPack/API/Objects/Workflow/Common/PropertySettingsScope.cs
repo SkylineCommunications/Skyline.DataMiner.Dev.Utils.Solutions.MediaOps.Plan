@@ -15,7 +15,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		private readonly string subId;
 
 		private PropertySettingCollection settings;
-		private PropertySettingCollection initialSettings;
+		private PropertySettingsSnapshot initialSnapshot;
 
 		internal PropertySettingsScope(Func<PropertySettingsContext> getContext, string subId)
 		{
@@ -24,7 +24,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		// Compared against the loaded state, so values edited in place on returned settings are picked up as well.
-		internal bool IsDirty => settings != null && !settings.HasSameContent(initialSettings);
+		internal bool IsDirty => settings != null && !initialSnapshot.Matches(settings);
 
 		internal IReadOnlyCollection<CustomPropertySetting> CustomPropertySettings => Settings.CustomSettings;
 
@@ -54,12 +54,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		private PropertySettingCollection BuildInitialSettings()
 		{
-			initialSettings = LoadInitialSettings();
-			return LoadInitialSettings();
-		}
-
-		private PropertySettingCollection LoadInitialSettings()
-		{
 			var collection = new PropertySettingCollection();
 			var context = Context;
 			var key = Key;
@@ -74,6 +68,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				collection.Add(setting);
 			}
 
+			initialSnapshot = PropertySettingsSnapshot.Capture(collection);
 			return collection;
 		}
 

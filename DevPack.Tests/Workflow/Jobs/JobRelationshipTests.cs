@@ -173,6 +173,30 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void UpdateJob_EndpointObjectIdChangedInPlaceToOtherEndpoint_ReportsDuplicate()
+		{
+			var prefix = Guid.NewGuid();
+			var objectType = objectCreator.CreateRelationshipObjectType(new RelationshipObjectType { Name = $"{prefix}_Booking" });
+
+			var job = NewJob($"{prefix}_Job");
+			job.AddRelationshipEndpoint(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1" });
+			job.AddRelationshipEndpoint(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-2" });
+			job = objectCreator.CreateJob(job);
+
+			var read = TestContext.Api.Jobs.Read(job.Id);
+			read.RelationshipEndpoints.Single(x => x.ObjectId == "booking-1").ObjectId = "booking-2";
+
+			var exception = Assert.ThrowsException<MediaOpsException>(() => TestContext.Api.Jobs.Update(read));
+			var error = exception.TraceData.ErrorData.OfType<JobDuplicateRelationshipEndpointError>().Single();
+			Assert.AreEqual(objectType.Id, error.ObjectTypeId);
+			Assert.AreEqual("booking-2", error.ObjectId);
+
+			CollectionAssert.AreEquivalent(
+				new[] { "booking-1", "booking-2" },
+				TestContext.Api.Jobs.Read(job.Id).RelationshipEndpoints.Select(x => x.ObjectId).ToArray());
+		}
+
+		[TestMethod]
 		public void SetRelationshipEndpoints_WithUnchangedEndpoints_IsNotDirty()
 		{
 			var prefix = Guid.NewGuid();

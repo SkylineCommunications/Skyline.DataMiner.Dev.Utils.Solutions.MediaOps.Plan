@@ -151,6 +151,9 @@
 
 		internal IReadOnlyCollection<FilePropertySetting> RemovedFileSettings => removedFileSettings;
 
+		// The hash only covers file names, so content replaced under the same name is only visible as a pending upload.
+		internal override bool HasChanges => base.HasChanges || (!IsNew && fileSettings.Any(x => x.FilesToUpload.Count > 0));
+
 		/// <inheritdoc />
 		public override int GetHashCode()
 		{
@@ -203,16 +206,6 @@
 				&& LinkedObjectId == other.LinkedObjectId
 				&& Scope == other.Scope
 				&& SubId == other.SubId
-				&& customSettings.ScrambledEquals(other.customSettings)
-				&& stringSettings.ScrambledEquals(other.stringSettings)
-				&& booleanSettings.ScrambledEquals(other.booleanSettings)
-				&& discreteSettings.ScrambledEquals(other.discreteSettings)
-				&& fileSettings.ScrambledEquals(other.fileSettings);
-		}
-
-		internal bool HasSameContent(PropertySettingCollection other)
-		{
-			return other != null
 				&& customSettings.ScrambledEquals(other.customSettings)
 				&& stringSettings.ScrambledEquals(other.stringSettings)
 				&& booleanSettings.ScrambledEquals(other.booleanSettings)

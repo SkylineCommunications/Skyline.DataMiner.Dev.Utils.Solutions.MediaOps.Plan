@@ -165,6 +165,22 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return String.Equals(left.ObjectId, right.ObjectId, StringComparison.Ordinal);
 		}
 
+		// Links edited in place bypass the merge of Add/Set. Duplicates that were already stored are left alone so they don't block other changes.
+		internal IReadOnlyList<JobRelationshipEndpoint> GetChangedDuplicates()
+		{
+			if (!IsDirty)
+			{
+				return Array.Empty<JobRelationshipEndpoint>();
+			}
+
+			return links
+				.Where(x => !String.IsNullOrWhiteSpace(x.ObjectId))
+				.GroupBy(x => (x.ObjectTypeId, x.ObjectId))
+				.Where(g => g.Count() > 1 && g.Any(x => !initialLinks.Contains(x)))
+				.Select(g => g.First())
+				.ToList();
+		}
+
 		private static void ApplyToRelationship(Relationship relationship, JobRelationshipEndpoint link, JobRelationshipsContext context, Guid jobObjectTypeId)
 		{
 			var jobEndpoint = link.JobIsParent ? relationship.Parent : relationship.Child;

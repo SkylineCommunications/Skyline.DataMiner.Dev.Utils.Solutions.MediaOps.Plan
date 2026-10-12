@@ -201,6 +201,7 @@
 			ValidateReferences(apiJobs);
 			ValidateDescription(apiJobs);
 			ValidateNotes(apiJobs);
+			ValidateRelationshipEndpoints(apiJobs);
 
 			// The configuration state of the nodes and the action needed flag of the job are stored on the DOM instance so
 			// they can be queried without recalculating them. They are refreshed here, before the instances with changes are
@@ -3216,6 +3217,23 @@
 			}
 
 			return JobTimingWindow.FromJob(job).GetChanges(JobTimingWindow.FromInstance(job.OriginalInstance));
+		}
+
+		private void ValidateRelationshipEndpoints(ICollection<Job> apiJobs)
+		{
+			foreach (var job in apiJobs.Where(x => x.JobRelationshipsScope != null))
+			{
+				foreach (var endpoint in job.JobRelationshipsScope.GetChangedDuplicates())
+				{
+					ReportError(job.Id, new JobDuplicateRelationshipEndpointError
+					{
+						ErrorMessage = $"More than one link of job '{job.Name}' points at object '{endpoint.ObjectId}'.",
+						Id = job.Id,
+						ObjectTypeId = endpoint.ObjectTypeId,
+						ObjectId = endpoint.ObjectId,
+					});
+				}
+			}
 		}
 
 		private void ValidateDescription(ICollection<Job> apiJobs)
