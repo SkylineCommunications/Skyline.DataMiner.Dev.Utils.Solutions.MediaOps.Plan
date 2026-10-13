@@ -15,7 +15,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		private readonly string subId;
 
 		private PropertySettingCollection settings;
-		private bool isDirty;
+		private PropertySettingsSnapshot initialSnapshot;
 
 		internal PropertySettingsScope(Func<PropertySettingsContext> getContext, string subId)
 		{
@@ -23,7 +23,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			this.subId = subId ?? string.Empty;
 		}
 
-		internal bool IsDirty => isDirty;
+		// Compared against the loaded state, so values edited in place on returned settings are picked up as well.
+		internal bool IsDirty => settings != null && !initialSnapshot.Matches(settings);
 
 		internal IReadOnlyCollection<CustomPropertySetting> CustomPropertySettings => Settings.CustomSettings;
 
@@ -67,6 +68,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				collection.Add(setting);
 			}
 
+			initialSnapshot = PropertySettingsSnapshot.Capture(collection);
 			return collection;
 		}
 
@@ -78,7 +80,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			Settings.Add(setting);
-			isDirty = true;
 		}
 
 		internal void SetCustomProperties(IEnumerable<CustomPropertySetting> settings)
@@ -89,7 +90,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			Settings.SetCustomSettings(settings.Where(s => s != null));
-			isDirty = true;
 		}
 
 		internal void RemoveCustomProperty(CustomPropertySetting setting)
@@ -100,7 +100,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			Settings.Remove(setting);
-			isDirty = true;
 		}
 
 		internal void AddProperty(PropertySetting setting)
@@ -111,7 +110,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			Settings.Add(setting);
-			isDirty = true;
 		}
 
 		internal void SetProperties(IEnumerable<PropertySetting> settings)
@@ -122,7 +120,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			Settings.SetPropertySettings(settings.Where(s => s != null));
-			isDirty = true;
 		}
 
 		internal void RemoveProperty(PropertySetting setting)
@@ -133,16 +130,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			Settings.Remove(setting);
-			isDirty = true;
 		}
 
 		/// <summary>
 		/// Produces the persistence action that the property setting collection handler should apply, or
-		/// <c>null</c> when the scope was never mutated.
+		/// <c>null</c> when the settings did not change since they were loaded.
 		/// </summary>
 		internal PropertySettingsPersistenceAction BuildPersistenceAction()
 		{
-			if (!isDirty)
+			if (!IsDirty)
 			{
 				return null;
 			}

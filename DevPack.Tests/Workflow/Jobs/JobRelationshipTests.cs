@@ -121,6 +121,128 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void UpdateJob_EndpointDetailsChangedInPlace_UpdatesSameRelationship()
+		{
+			var prefix = Guid.NewGuid();
+			var objectType = objectCreator.CreateRelationshipObjectType(new RelationshipObjectType { Name = $"{prefix}_Booking" });
+
+			var job = NewJob($"{prefix}_Job");
+			job.AddRelationshipEndpoint(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1", ObjectName = "Original", Url = "https://example.invalid/original" });
+			job = objectCreator.CreateJob(job);
+
+			var read = TestContext.Api.Jobs.Read(job.Id);
+			var originalRelationshipId = read.RelationshipEndpoints.Single().Id;
+			read.RelationshipEndpoints.Single().ObjectName = "Renamed";
+			read.RelationshipEndpoints.Single().Url = "https://example.invalid/renamed";
+			TestContext.Api.Jobs.Update(read);
+
+			var endpoint = TestContext.Api.Jobs.Read(job.Id).RelationshipEndpoints.Single();
+			Assert.AreEqual(originalRelationshipId, endpoint.Id);
+			Assert.AreEqual("booking-1", endpoint.ObjectId);
+			Assert.AreEqual("Renamed", endpoint.ObjectName);
+			Assert.AreEqual("https://example.invalid/renamed", endpoint.Url);
+
+			var relationship = TestContext.Api.Relationships.Read(originalRelationshipId);
+			Assert.IsNotNull(relationship);
+			Assert.AreEqual("Renamed", relationship.Child.ObjectName);
+			Assert.AreEqual("https://example.invalid/renamed", relationship.Child.Url);
+		}
+
+		[TestMethod]
+		public void UpdateJob_EndpointObjectIdChangedInPlace_UpdatesSameRelationship()
+		{
+			var prefix = Guid.NewGuid();
+			var objectType = objectCreator.CreateRelationshipObjectType(new RelationshipObjectType { Name = $"{prefix}_Booking" });
+
+			var job = NewJob($"{prefix}_Job");
+			job.AddRelationshipEndpoint(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1", ObjectName = "Booking" });
+			job = objectCreator.CreateJob(job);
+
+			var read = TestContext.Api.Jobs.Read(job.Id);
+			var originalRelationshipId = read.RelationshipEndpoints.Single().Id;
+			read.RelationshipEndpoints.Single().ObjectId = "booking-2";
+			TestContext.Api.Jobs.Update(read);
+
+			var endpoint = TestContext.Api.Jobs.Read(job.Id).RelationshipEndpoints.Single();
+			Assert.AreEqual(originalRelationshipId, endpoint.Id);
+			Assert.AreEqual("booking-2", endpoint.ObjectId);
+
+			var relationship = TestContext.Api.Relationships.Read(originalRelationshipId);
+			Assert.IsNotNull(relationship);
+			Assert.AreEqual("booking-2", relationship.Child.ObjectId);
+		}
+
+		[TestMethod]
+		public void UpdateJob_EndpointObjectIdChangedInPlaceToOtherEndpoint_ReportsDuplicate()
+		{
+			var prefix = Guid.NewGuid();
+			var objectType = objectCreator.CreateRelationshipObjectType(new RelationshipObjectType { Name = $"{prefix}_Booking" });
+
+			var job = NewJob($"{prefix}_Job");
+			job.AddRelationshipEndpoint(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1" });
+			job.AddRelationshipEndpoint(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-2" });
+			job = objectCreator.CreateJob(job);
+
+			var read = TestContext.Api.Jobs.Read(job.Id);
+			read.RelationshipEndpoints.Single(x => x.ObjectId == "booking-1").ObjectId = "booking-2";
+
+			var exception = Assert.ThrowsException<MediaOpsException>(() => TestContext.Api.Jobs.Update(read));
+			var error = exception.TraceData.ErrorData.OfType<JobDuplicateRelationshipEndpointError>().Single();
+			Assert.AreEqual(objectType.Id, error.ObjectTypeId);
+			Assert.AreEqual("booking-2", error.ObjectId);
+
+			CollectionAssert.AreEquivalent(
+				new[] { "booking-1", "booking-2" },
+				TestContext.Api.Jobs.Read(job.Id).RelationshipEndpoints.Select(x => x.ObjectId).ToArray());
+		}
+
+		[TestMethod]
+		public void UpdateJob_DetailsChangedOnStoredDuplicate_UpdatesRelationship()
+		{
+			var prefix = Guid.NewGuid();
+			var objectType = objectCreator.CreateRelationshipObjectType(new RelationshipObjectType { Name = $"{prefix}_Booking" });
+			var job = objectCreator.CreateJob(NewJob($"{prefix}_Job"));
+			var jobObjectType = TestContext.Api.RelationshipObjectTypes.Read(RelationshipObjectTypeExposers.Name.Equal(RelationshipObjectType.JobObjectTypeName)).Single();
+
+			foreach (var name in new[] { "First", "Second" })
+			{
+				objectCreator.CreateRelationship(new Relationship(new RelationshipData
+				{
+					Parent = new RelationshipEndpoint(jobObjectType, job.Id.ToString()) { ObjectName = job.Name },
+					Child = new RelationshipEndpoint(objectType, "booking-1") { ObjectName = name },
+				}));
+			}
+
+			var read = TestContext.Api.Jobs.Read(job.Id);
+			var edited = read.RelationshipEndpoints.Single(x => x.ObjectName == "First");
+			edited.Url = "https://example.invalid/booking/1";
+			TestContext.Api.Jobs.Update(read);
+
+			var relationship = TestContext.Api.Relationships.Read(edited.Id);
+			Assert.AreEqual("https://example.invalid/booking/1", relationship.Child.Url);
+			Assert.AreEqual(2, TestContext.Api.Jobs.Read(job.Id).RelationshipEndpoints.Count);
+		}
+
+		[TestMethod]
+		public void SetRelationshipEndpoints_WithUnchangedEndpoints_IsNotDirty()
+		{
+			var prefix = Guid.NewGuid();
+			var objectType = objectCreator.CreateRelationshipObjectType(new RelationshipObjectType { Name = $"{prefix}_Booking" });
+
+			var job = NewJob($"{prefix}_Job");
+			job.AddRelationshipEndpoint(new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1", ObjectName = "Booking" });
+			job = objectCreator.CreateJob(job);
+
+			var read = TestContext.Api.Jobs.Read(job.Id);
+			read.SetRelationshipEndpoints([new JobRelationshipEndpoint(objectType) { ObjectId = "booking-1", ObjectName = "Booking" }]);
+
+			Assert.IsFalse(read.JobRelationshipsScope.IsDirty);
+
+			read.RelationshipEndpoints.Single().Url = "https://example.invalid/booking";
+			Assert.IsTrue(read.JobRelationshipsScope.IsDirty);
+		}
+
+		[TestMethod]
 		public void UpdateJob_RemovingEndpoint_DeletesRelationship()
 		{
 			var prefix = Guid.NewGuid();

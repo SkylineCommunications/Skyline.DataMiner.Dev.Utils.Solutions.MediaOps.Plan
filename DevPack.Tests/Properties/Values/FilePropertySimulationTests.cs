@@ -5,6 +5,8 @@ namespace RT_MediaOps.Plan.Properties.Values
 	using System.Linq;
 	using System.Text;
 
+	using RT_MediaOps.Plan.Extensions;
+
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Exceptions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
@@ -175,6 +177,23 @@ namespace RT_MediaOps.Plan.Properties.Values
 
 			Assert.AreEqual(0, updated.FileSettings.Single().Files.Count, "Expected the file to be removed from the property.");
 			Assert.IsFalse(attachments.Contains(collection.Id, $"{property.Id}_document.pdf"), "Expected the attachment to be deleted.");
+		}
+
+		[TestMethod]
+		public void Update_ReplacingFileContent_UploadsNewContent()
+		{
+			var (api, attachments) = CreateContext();
+			var property = CreateFileProperty(api);
+
+			var collection = CreateCollection();
+			collection.Add(new FilePropertySetting(property).AddFile("document.pdf", Content("hello")));
+			api.PropertySettingCollections.Create(collection);
+
+			var read = api.PropertySettingCollections.Read(collection.Id);
+			read.FileSettings.Single().AddFile("document.pdf", Content("replaced"));
+			api.PropertySettingCollections.Update(read);
+
+			CollectionAssert.AreEqual(Content("replaced"), attachments.Get(new DomInstanceId(collection.Id), $"{property.Id}_document.pdf"));
 		}
 
 		[TestMethod]
@@ -564,6 +583,94 @@ namespace RT_MediaOps.Plan.Properties.Values
 			Assert.IsFalse(read.HasSizeLimit, "Expected a property without its own size limit to keep using the server limit.");
 		}
 
+		[TestMethod]
+		public void UpdateJob_FileContentReplacedInPlace_StoresNewContent()
+		{
+			var (api, _) = CreateContext();
+			var jobId = CreateJobWithFile(api, out _);
+
+			var read = api.Jobs.Read(jobId);
+			read.PropertySettings.OfType<FilePropertySetting>().Single().AddFile("document.pdf", Content("second"));
+			api.Jobs.Update(read);
+
+			var setting = api.Jobs.Read(jobId).PropertySettings.OfType<FilePropertySetting>().Single();
+			CollectionAssert.AreEqual(Content("second"), setting.ReadContent("document.pdf"));
+		}
+
+		[TestMethod]
+		public void UpdateJob_ReadContentChangedAndAddedBack_StoresNewContent()
+		{
+			var (api, _) = CreateContext();
+			var jobId = CreateJobWithFile(api, out _);
+
+			var read = api.Jobs.Read(jobId);
+			var setting = read.PropertySettings.OfType<FilePropertySetting>().Single();
+			var content = setting.ReadContent("document.pdf");
+			content[0] = (byte)'F';
+			setting.AddFile("document.pdf", content);
+			api.Jobs.Update(read);
+
+			var returned = api.Jobs.Read(jobId).PropertySettings.OfType<FilePropertySetting>().Single();
+			CollectionAssert.AreEqual(Content("First"), returned.ReadContent("document.pdf"));
+		}
+
+		[TestMethod]
+		public void ReadJob_ReadContentChangedWithoutAddingBack_HasNoPropertySettingChanges()
+		{
+			var (api, _) = CreateContext();
+			var jobId = CreateJobWithFile(api, out _);
+
+			var read = api.Jobs.Read(jobId);
+			var setting = read.PropertySettings.OfType<FilePropertySetting>().Single();
+			setting.ReadContent("document.pdf")[0] = (byte)'F';
+
+			Assert.IsFalse(read.HasPropertySettingChanges);
+			CollectionAssert.AreEqual(Content("first"), setting.ReadContent("document.pdf"));
+		}
+
+		[TestMethod]
+		public void AddFile_ContentChangedAfterwards_KeepsAddedContent()
+		{
+			var content = Content("first");
+			var setting = new FilePropertySetting(new FileProperty()).AddFile("document.pdf", content);
+
+			content[0] = (byte)'F';
+
+			CollectionAssert.AreEqual(Content("first"), setting.ReadContent("document.pdf"));
+		}
+
+		[TestMethod]
+		public void ReadJob_FileSettings_ReadsEachAttachmentOnce()
+		{
+			var (api, attachments) = CreateContext();
+			var jobId = CreateJobWithFile(api, out _);
+			attachments.GetCallCount = 0;
+
+			var read = api.Jobs.Read(jobId);
+			_ = read.PropertySettings.Count;
+
+			Assert.AreEqual(1, attachments.GetCallCount);
+			Assert.IsFalse(read.HasPropertySettingChanges);
+		}
+
+		private static Guid CreateJobWithFile(IMediaOpsPlanApi api, out FileProperty property)
+		{
+			property = (FileProperty)api.SchedulingProperties.Create(new FileProperty { Name = $"{Guid.NewGuid()}_File", SectionName = "General" });
+
+			var start = DateTime.UtcNow.AddHours(1).RoundToNextSecond();
+			var job = new Job
+			{
+				Name = $"{Guid.NewGuid()}_Job",
+				Start = start,
+				End = start.AddHours(1),
+				PreRollStart = start,
+				PostRollEnd = start.AddHours(1),
+			};
+			job.AddProperty(new FilePropertySetting(property).AddFile("document.pdf", Content("first")));
+
+			return api.Jobs.Create(job).Id;
+		}
+
 		private sealed class FakePropertyAttachmentStore : IPropertyAttachmentStore
 		{
 			private readonly Dictionary<Guid, Dictionary<string, byte[]>> attachments = new Dictionary<Guid, Dictionary<string, byte[]>>();
@@ -573,6 +680,8 @@ namespace RT_MediaOps.Plan.Properties.Values
 			public Exception AddException { get; set; }
 
 			public int AddCallCount { get; private set; }
+
+			public int GetCallCount { get; set; }
 
 			public void Add(DomInstanceId instanceId, string attachmentName, byte[] content)
 			{
@@ -599,6 +708,8 @@ namespace RT_MediaOps.Plan.Properties.Values
 
 			public byte[] Get(DomInstanceId instanceId, string attachmentName)
 			{
+				GetCallCount++;
+
 				return attachments.TryGetValue(instanceId.Id, out var perInstance) && perInstance.TryGetValue(attachmentName, out var content)
 					? content
 					: throw new InvalidOperationException($"Attachment '{attachmentName}' was not found.");

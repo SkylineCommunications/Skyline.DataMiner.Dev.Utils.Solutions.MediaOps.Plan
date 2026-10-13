@@ -106,10 +106,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 			var name = NormalizeFileName(fileName);
 
-			// A file that is not stored yet is still held in memory.
+			// A file that is not stored yet is still held in memory; a copy keeps callers from changing it unnoticed.
 			if (filesToUpload.TryGetValue(name, out var content))
 			{
-				return content;
+				return (byte[])content.Clone();
 			}
 
 			if (!files.Contains(name, StringComparer.OrdinalIgnoreCase))
@@ -143,7 +143,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			filesToDelete.Remove(name);
-			filesToUpload[name] = content;
+			filesToUpload[name] = (byte[])content.Clone();
 
 			if (!files.Contains(name, StringComparer.OrdinalIgnoreCase))
 			{

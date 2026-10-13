@@ -151,6 +151,9 @@
 
 		internal IReadOnlyCollection<FilePropertySetting> RemovedFileSettings => removedFileSettings;
 
+		// The hash only covers file names, so content replaced under the same name is only visible as a pending upload.
+		internal override bool HasChanges => base.HasChanges || (!IsNew && fileSettings.Any(x => x.FilesToUpload.Count > 0));
+
 		/// <inheritdoc />
 		public override int GetHashCode()
 		{

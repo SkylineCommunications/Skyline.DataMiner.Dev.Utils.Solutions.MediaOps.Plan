@@ -614,6 +614,42 @@ namespace RT_MediaOps.Plan.Properties.Values
 		}
 
 		[TestMethod]
+		public void UpdateWithValuesChangedInPlacePersistsValues()
+		{
+			var prefix = Guid.NewGuid();
+			var stringProperty = objectCreator.CreateProperty(new StringProperty(new PropertyData { Scope = "global" }) { Name = $"{prefix}_String", SectionName = "General" });
+			var booleanProperty = objectCreator.CreateProperty(new BooleanProperty(new PropertyData { Scope = "global" }) { Name = $"{prefix}_Boolean", SectionName = "General" });
+			var discreteProperty = new DiscreteProperty(new PropertyData { Scope = "global" }) { Name = $"{prefix}_Discrete", SectionName = "General" };
+			discreteProperty.AddDiscrete("A").AddDiscrete("B");
+			discreteProperty = objectCreator.CreateProperty(discreteProperty);
+
+			var collection = new PropertySettingCollection(new PropertySettingCollectionData
+			{
+				LinkedObjectId = $"obj-{Guid.NewGuid()}",
+				Scope = "global",
+				SubId = string.Empty,
+			});
+			collection.Add(new StringPropertySetting(stringProperty) { Value = "Original" });
+			collection.Add(new BooleanPropertySetting(booleanProperty) { Value = false });
+			collection.Add(new DiscretePropertySetting(discreteProperty) { Value = "A" });
+			collection.Add(new CustomPropertySetting($"{prefix}_Custom") { Value = "Original" });
+			collection = objectCreator.CreatePropertySettingCollection(collection);
+
+			var read = TestContext.Api.PropertySettingCollections.Read(collection.Id);
+			read.StringSettings.Single().Value = "Changed";
+			read.BooleanSettings.Single().Value = true;
+			read.DiscreteSettings.Single().Value = "B";
+			read.CustomSettings.Single().Value = "Changed";
+			TestContext.Api.PropertySettingCollections.Update(read);
+
+			var returned = TestContext.Api.PropertySettingCollections.Read(collection.Id);
+			Assert.AreEqual("Changed", returned.StringSettings.Single().Value);
+			Assert.IsTrue(returned.BooleanSettings.Single().Value);
+			Assert.AreEqual("B", returned.DiscreteSettings.Single().Value);
+			Assert.AreEqual("Changed", returned.CustomSettings.Single().Value);
+		}
+
+		[TestMethod]
 		public void BulkUpdateWithChangedAndUnchangedPropertySettingCollectionReturnsTwoCollections()
 		{
 			var property = new StringProperty(new PropertyData

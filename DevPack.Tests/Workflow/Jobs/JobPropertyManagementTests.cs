@@ -1,6 +1,7 @@
 namespace RT_MediaOps.Plan.Workflow.Jobs
 {
 	using System;
+	using System.Collections.Generic;
 	using System.Linq;
 
 	using RT_MediaOps.Plan.Extensions;
@@ -194,6 +195,143 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var nodeCollections = collections.Where(c => !string.IsNullOrEmpty(c.SubId)).ToList();
 			Assert.AreEqual(2, nodeCollections.Count, "Each cloned node must have its own collection.");
 			Assert.IsTrue(nodeCollections.All(c => nodeIds.Contains(c.SubId)), "Each node collection's SubId must match a cloned node id.");
+		}
+
+		[TestMethod]
+		public void UpdateJob_ValuesChangedInPlaceOnJob_PersistsValues()
+		{
+			var prefix = Guid.NewGuid();
+			var (stringProperty, booleanProperty, discreteProperty) = CreateSchedulingProperties(prefix);
+
+			var job = NewJob($"{prefix}_Job");
+			job.AddProperty(new StringPropertySetting(stringProperty) { Value = "Original" });
+			job.AddProperty(new BooleanPropertySetting(booleanProperty) { Value = false });
+			job.AddProperty(new DiscretePropertySetting(discreteProperty) { Value = "A" });
+			job.AddCustomProperty(new CustomPropertySetting("Tag") { Value = "Original" });
+			job = objectCreator.CreateJob(job);
+
+			var read = TestContext.Api.Jobs.Read(job.Id);
+			read.PropertySettings.OfType<StringPropertySetting>().Single().Value = "Changed";
+			read.PropertySettings.OfType<BooleanPropertySetting>().Single().Value = true;
+			read.PropertySettings.OfType<DiscretePropertySetting>().Single().Value = "B";
+			read.CustomPropertySettings.Single().Value = "Changed";
+			TestContext.Api.Jobs.Update(read);
+
+			var returned = TestContext.Api.Jobs.Read(job.Id);
+			AssertChangedValues(returned.PropertySettings, returned.CustomPropertySettings);
+		}
+
+		[TestMethod]
+		public void UpdateJob_ValuesChangedInPlaceOnNode_PersistsValues()
+		{
+			var prefix = Guid.NewGuid();
+			var (stringProperty, booleanProperty, discreteProperty) = CreateSchedulingProperties(prefix);
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var node = new JobResourcePoolNode(pool);
+			node.AddProperty(new StringPropertySetting(stringProperty) { Value = "Original" });
+			node.AddProperty(new BooleanPropertySetting(booleanProperty) { Value = false });
+			node.AddProperty(new DiscretePropertySetting(discreteProperty) { Value = "A" });
+			node.AddCustomProperty(new CustomPropertySetting("Tag") { Value = "Original" });
+
+			var job = NewJob($"{prefix}_Job");
+			job.NodeGraph.Add(node);
+			job = objectCreator.CreateJob(job);
+
+			var read = TestContext.Api.Jobs.Read(job.Id);
+			var readNode = read.NodeGraph.Nodes.Single();
+			readNode.PropertySettings.OfType<StringPropertySetting>().Single().Value = "Changed";
+			readNode.PropertySettings.OfType<BooleanPropertySetting>().Single().Value = true;
+			readNode.PropertySettings.OfType<DiscretePropertySetting>().Single().Value = "B";
+			readNode.CustomPropertySettings.Single().Value = "Changed";
+			TestContext.Api.Jobs.Update(read);
+
+			var returnedNode = TestContext.Api.Jobs.Read(job.Id).NodeGraph.Nodes.Single();
+			AssertChangedValues(returnedNode.PropertySettings, returnedNode.CustomPropertySettings);
+		}
+
+		[TestMethod]
+		public void ReadJob_OnlyReadingSettings_HasNoPropertySettingChanges()
+		{
+			var job = CreateJobWithStringProperty(out _);
+
+			var read = TestContext.Api.Jobs.Read(job.Id);
+			_ = read.PropertySettings.Single().Id;
+			_ = read.CustomPropertySettings.Single().Value;
+
+			Assert.IsFalse(read.HasPropertySettingChanges);
+		}
+
+		[TestMethod]
+		public void SetProperties_WithUnchangedValues_HasNoPropertySettingChanges()
+		{
+			var job = CreateJobWithStringProperty(out var property);
+
+			var read = TestContext.Api.Jobs.Read(job.Id);
+			read.SetProperties([new StringPropertySetting(property) { Value = "Original" }]);
+			read.SetCustomProperties([new CustomPropertySetting("Tag") { Value = "Original" }]);
+
+			Assert.IsFalse(read.HasPropertySettingChanges);
+		}
+
+		[TestMethod]
+		public void ValueChangedInPlaceAndRestored_HasNoPropertySettingChanges()
+		{
+			var job = CreateJobWithStringProperty(out _);
+
+			var read = TestContext.Api.Jobs.Read(job.Id);
+			var setting = read.PropertySettings.OfType<StringPropertySetting>().Single();
+			setting.Value = "Changed";
+			Assert.IsTrue(read.HasPropertySettingChanges);
+
+			setting.Value = "Original";
+			Assert.IsFalse(read.HasPropertySettingChanges);
+		}
+
+		private Job CreateJobWithStringProperty(out StringProperty property)
+		{
+			var prefix = Guid.NewGuid();
+			property = objectCreator.CreateSchedulingProperty(new StringProperty { Name = $"{prefix}_String", SectionName = "General" });
+
+			var job = NewJob($"{prefix}_Job");
+			job.AddProperty(new StringPropertySetting(property) { Value = "Original" });
+			job.AddCustomProperty(new CustomPropertySetting("Tag") { Value = "Original" });
+			return objectCreator.CreateJob(job);
+		}
+
+		private static void AssertChangedValues(IReadOnlyCollection<PropertySetting> settings, IReadOnlyCollection<CustomPropertySetting> customSettings)
+		{
+			Assert.AreEqual("Changed", settings.OfType<StringPropertySetting>().Single().Value);
+			Assert.IsTrue(settings.OfType<BooleanPropertySetting>().Single().Value);
+			Assert.AreEqual("B", settings.OfType<DiscretePropertySetting>().Single().Value);
+			Assert.AreEqual("Changed", customSettings.Single().Value);
+		}
+
+		private static Job NewJob(string name)
+		{
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			return new Job
+			{
+				Name = name,
+				Start = currentTime,
+				End = currentTime.AddMinutes(10),
+				PreRollStart = currentTime,
+				PostRollEnd = currentTime.AddMinutes(10),
+			};
+		}
+
+		private (StringProperty, BooleanProperty, DiscreteProperty) CreateSchedulingProperties(Guid prefix)
+		{
+			var stringProperty = objectCreator.CreateSchedulingProperty(new StringProperty { Name = $"{prefix}_String", SectionName = "General" });
+			var booleanProperty = objectCreator.CreateSchedulingProperty(new BooleanProperty { Name = $"{prefix}_Boolean", SectionName = "General" });
+			var discreteProperty = new DiscreteProperty { Name = $"{prefix}_Discrete", SectionName = "General" };
+			discreteProperty.AddDiscrete("A").AddDiscrete("B");
+			discreteProperty = objectCreator.CreateSchedulingProperty(discreteProperty);
+
+			return (stringProperty, booleanProperty, discreteProperty);
 		}
 
 		private System.Collections.Generic.List<PropertySettingCollection> ReadCollections(Guid ownerId)

@@ -106,6 +106,7 @@
 
 			ValidateNodeGraph(apiRecurringJobs);
 			ValidateDescription(apiRecurringJobs);
+			ValidateRelationshipEndpoints(apiRecurringJobs);
 
 			// The configuration state of the recurring job and its nodes is stored on the DOM instance so it can be
 			// queried without recalculating it. It is refreshed here, before the instances with changes are built, so
@@ -1113,6 +1114,23 @@
 					};
 
 					ReportError(recurringJob.Id, error);
+				}
+			}
+		}
+
+		private void ValidateRelationshipEndpoints(ICollection<RecurringJob> apiRecurringJobs)
+		{
+			foreach (var recurringJob in apiRecurringJobs.Where(x => x.JobRelationshipsScope != null))
+			{
+				foreach (var endpoint in recurringJob.JobRelationshipsScope.GetChangedDuplicates())
+				{
+					ReportError(recurringJob.Id, new JobDuplicateRelationshipEndpointError
+					{
+						ErrorMessage = $"More than one link of recurring job '{recurringJob.Name}' points at object '{endpoint.ObjectId}'.",
+						Id = recurringJob.Id,
+						ObjectTypeId = endpoint.ObjectTypeId,
+						ObjectId = endpoint.ObjectId,
+					});
 				}
 			}
 		}
