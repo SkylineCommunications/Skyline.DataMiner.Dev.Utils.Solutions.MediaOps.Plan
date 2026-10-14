@@ -129,6 +129,8 @@ jobs:
     steps:
       - id: check
         uses: actions/github-script@v7
+        env:
+          REAL_DMA: ${{ needs.route.outputs.real_dma }}
         with:
           script: |
             try {
@@ -141,6 +143,13 @@ jobs:
               // commit was already tested on a branch/PR. Never skip on a tag.
               if (context.ref.startsWith('refs/tags/')) {
                 core.info('Tag detected; validation and integration tests will run (real DMA enforced).');
+                core.setOutput('tested', 'false');
+                return;
+              }
+              // Runs targeting a real DMA (e.g. a manual run with use_real_dma) must always execute the
+              // integration tests, even if the commit already passed a (simulated) run before.
+              if (process.env.REAL_DMA === 'true') {
+                core.info('Real DMA requested; validation and integration tests will run.');
                 core.setOutput('tested', 'false');
                 return;
               }
@@ -224,7 +233,7 @@ jobs:
   internal_release:
     name: Internal Release
     needs: [route, check_existing, nuget_validation, integration_tests]
-    if: > #Trigger on branch changes or on prerelease tags (e.g. 1.2.3-something). Scheduled runs only test, never release. Branches may reuse a prior successful test run (check_existing always returns false for tags, so already_tested is implicitly branch-only). 'alpha' tags skip the integration tests but still require NuGet validation.
+    if: > #Trigger on branch changes or on prerelease tags (e.g. 1.2.3-something). Scheduled runs only test, never release. Branches may reuse a prior successful test run (check_existing always returns false for tags and real-DMA runs, so already_tested is implicitly branch-only). 'alpha' tags skip the integration tests but still require NuGet validation.
       always() &&
       github.event_name != 'schedule' &&
       needs.route.outputs.should_run == 'true' &&
