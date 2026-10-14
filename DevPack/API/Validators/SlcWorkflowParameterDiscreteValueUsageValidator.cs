@@ -114,7 +114,7 @@
 
 			var jobFilter = new ANDFilterElement<DomInstance>(
 					DomInstanceExposers.DomDefinitionId.Equal(SlcWorkflowIds.Definitions.Jobs.Id),
-					DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.Postroll).GreaterThan(DateTimeOffset.UtcNow),
+					DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.JobInfo.Postroll).GreaterThan(DateTime.UtcNow),
 					DomInstanceExposers.StatusId.NotEqual(SlcWorkflowIds.Behaviors.Job_Behavior.Statuses.ToValue(SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Canceled)));
 
 			var configurationFilters = orchestrationSettingsIds

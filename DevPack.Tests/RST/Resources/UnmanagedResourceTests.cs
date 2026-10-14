@@ -2,7 +2,9 @@
 {
 	using System;
 	using System.Collections.Concurrent;
+	using System.Linq;
 
+	using RT_MediaOps.Plan.Extensions;
 	using RT_MediaOps.Plan.RegressionTests;
 
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
@@ -520,12 +522,60 @@
 			coreResource.Mode = Skyline.DataMiner.Net.Messages.ResourceMode.Unavailable;
 			TestContext.ResourceManagerHelper.AddOrUpdateResources(true, [coreResource]);
 
+			coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
+			Assert.IsNotNull(coreResource);
+			Assert.AreEqual(Skyline.DataMiner.Net.Messages.ResourceMode.Unavailable, coreResource.Mode);
+
 			TestContext.Api.Resources.Restore(unmanagedResource.Id);
 			resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
 			Assert.IsNotNull(resource);
 			Assert.AreEqual(ResourceState.Complete, resource.State);
 
 			coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
+			Assert.IsNotNull(coreResource);
+			Assert.AreEqual(Skyline.DataMiner.Net.Messages.ResourceMode.Available, coreResource.Mode);
+		}
+
+		[TestMethod]
+		public void DeprecateResourceInUseByJob()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = new UnmanagedResource
+			{
+				Name = $"{prefix}_Resource",
+			}.AssignToPool(pool);
+			resource = objectCreator.CreateResource(resource);
+			resource = TestContext.Api.Resources.Complete(resource);
+
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = currentTime.AddHours(1),
+				End = currentTime.AddHours(2),
+				PreRollStart = currentTime.AddHours(1),
+				PostRollEnd = currentTime.AddHours(2),
+			};
+			job.NodeGraph.Add(new JobResourceNode(pool, resource));
+			job = objectCreator.CreateJob(job);
+			job = TestContext.Api.Jobs.SaveAsTentative(job);
+			Assert.AreEqual(JobState.Tentative, job.State);
+
+			// Deprecation is refused before the CORE resource is touched, so CORE never moves an in-use resource to Maintenance.
+			var ex = Assert.ThrowsException<MediaOpsException>(() => TestContext.Api.Resources.Deprecate(resource.Id));
+			var inUseError = ex.TraceData.ErrorData.OfType<ResourceInUseByJobsError>().SingleOrDefault();
+			Assert.IsNotNull(inUseError);
+			CollectionAssert.AreEqual(new[] { job.Id }, inUseError.JobIds.ToArray());
+
+			resource = TestContext.Api.Resources.Read(resource.Id);
+			Assert.IsNotNull(resource);
+			Assert.AreEqual(ResourceState.Complete, resource.State);
+
+			var coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
 			Assert.IsNotNull(coreResource);
 			Assert.AreEqual(Skyline.DataMiner.Net.Messages.ResourceMode.Available, coreResource.Mode);
 		}
