@@ -483,13 +483,47 @@
 
 			coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
 			Assert.IsNotNull(coreResource);
-			Assert.AreEqual(Skyline.DataMiner.Net.Messages.ResourceMode.Unavailable, coreResource.Mode);
+			Assert.AreEqual(Skyline.DataMiner.Net.Messages.ResourceMode.Maintenance, coreResource.Mode);
 
 			TestContext.Api.Resources.Restore(unmanagedResource.Id);
 			resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
 			Assert.IsNotNull(resource);
 			Assert.AreEqual(ResourceState.Complete, resource.State);
 			Assert.AreNotEqual(Guid.Empty, resource.CoreResourceId);
+
+			coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
+			Assert.IsNotNull(coreResource);
+			Assert.AreEqual(Skyline.DataMiner.Net.Messages.ResourceMode.Available, coreResource.Mode);
+		}
+
+		[TestMethod]
+		public void RestoreDeprecatedResourceWithUnavailableCoreResource()
+		{
+			var prefix = Guid.NewGuid();
+
+			var unmanagedResource = new UnmanagedResource
+			{
+				Name = $"{prefix}_resource",
+			};
+			objectCreator.CreateResource(unmanagedResource);
+
+			TestContext.Api.Resources.Complete(unmanagedResource.Id);
+			TestContext.Api.Resources.Deprecate(unmanagedResource.Id);
+
+			var resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
+			Assert.IsNotNull(resource);
+			Assert.AreEqual(ResourceState.Deprecated, resource.State);
+
+			// Resources deprecated before CORE resources were put in Maintenance mode have their CORE resource in Unavailable mode.
+			var coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
+			Assert.IsNotNull(coreResource);
+			coreResource.Mode = Skyline.DataMiner.Net.Messages.ResourceMode.Unavailable;
+			TestContext.ResourceManagerHelper.AddOrUpdateResources(true, [coreResource]);
+
+			TestContext.Api.Resources.Restore(unmanagedResource.Id);
+			resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
+			Assert.IsNotNull(resource);
+			Assert.AreEqual(ResourceState.Complete, resource.State);
 
 			coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
 			Assert.IsNotNull(coreResource);

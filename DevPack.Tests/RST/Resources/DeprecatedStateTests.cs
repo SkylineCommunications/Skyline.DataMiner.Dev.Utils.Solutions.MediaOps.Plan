@@ -56,7 +56,7 @@
 			Assert.AreEqual(coreResourceId, resource.CoreResourceId);
 			coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
 			Assert.IsNotNull(coreResource);
-			Assert.AreEqual(Skyline.DataMiner.Net.Messages.ResourceMode.Unavailable, coreResource.Mode);
+			Assert.AreEqual(Skyline.DataMiner.Net.Messages.ResourceMode.Maintenance, coreResource.Mode);
 			Assert.AreEqual(name, coreResource.Name);
 
 			// Update name
@@ -326,7 +326,7 @@
 			Assert.AreEqual(coreResourceId, resource.CoreResourceId);
 			coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
 			Assert.IsNotNull(coreResource);
-			Assert.AreEqual(Skyline.DataMiner.Net.Messages.ResourceMode.Unavailable, coreResource.Mode);
+			Assert.AreEqual(Skyline.DataMiner.Net.Messages.ResourceMode.Maintenance, coreResource.Mode);
 			Assert.AreEqual(1, coreResource.MaxConcurrency);
 
 			// Update concurrency
