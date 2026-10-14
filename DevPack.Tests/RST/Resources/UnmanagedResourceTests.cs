@@ -485,7 +485,7 @@
 
 			coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
 			Assert.IsNotNull(coreResource);
-			Assert.AreEqual(Skyline.DataMiner.Net.Messages.ResourceMode.Maintenance, coreResource.Mode);
+			Assert.AreEqual(Skyline.DataMiner.Net.Messages.ResourceMode.Unavailable, coreResource.Mode);
 
 			TestContext.Api.Resources.Restore(unmanagedResource.Id);
 			resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
