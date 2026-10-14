@@ -418,16 +418,7 @@
 
 			ActivityHelper.Track(nameof(ResourceManagerHelperExtensions), nameof(InnerCreateOrUpdateReservationInstancesInBatches), act =>
 			{
-				var toCreate = reservationInstances.Where(x => newReservationIds?.Contains(x.ID) ?? false).ToList();
-				var toUpdate = reservationInstances.Except(toCreate).ToList();
-
-				// Batch of 1 is used instead of 100 because for creating jobs because of issue in core software [DCP296627]
-				foreach (var batch in toCreate.Batch(1))
-				{
-					HandleBatch(batch);
-				}
-
-				foreach (var batch in toUpdate.Batch(100))
+				foreach (var batch in reservationInstances.Batch(100))
 				{
 					HandleBatch(batch);
 				}
