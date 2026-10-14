@@ -422,7 +422,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 			foreach (var resource in resources)
 			{
 				if (resource.Mode == ResourceMode.Unavailable ||
-					resource.Mode == ResourceMode.Maintenance ||
 					!HasRequiredCapabilities(resource, context?.RequiredCapabilities) ||
 					!HasConcurrencyAvailable(resource, context) ||
 					!HasRequiredCapacities(resource, context))
@@ -772,7 +771,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 
 			var unavailableUsage = reservation.ResourcesInReservationInstance
 				.OfType<ServiceResourceUsageDefinition>()
-				.FirstOrDefault(x => _resources.TryGetValue(x.GUID, out var resource) && (resource.Mode == ResourceMode.Unavailable || resource.Mode == ResourceMode.Maintenance));
+				.FirstOrDefault(x => _resources.TryGetValue(x.GUID, out var resource) && resource.Mode == ResourceMode.Unavailable);
 			if (unavailableUsage == null)
 			{
 				return false;

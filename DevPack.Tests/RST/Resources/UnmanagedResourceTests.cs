@@ -499,44 +499,6 @@
 		}
 
 		[TestMethod]
-		public void RestoreDeprecatedResourceWithUnavailableCoreResource()
-		{
-			var prefix = Guid.NewGuid();
-
-			var unmanagedResource = new UnmanagedResource
-			{
-				Name = $"{prefix}_resource",
-			};
-			objectCreator.CreateResource(unmanagedResource);
-
-			TestContext.Api.Resources.Complete(unmanagedResource.Id);
-			TestContext.Api.Resources.Deprecate(unmanagedResource.Id);
-
-			var resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
-			Assert.IsNotNull(resource);
-			Assert.AreEqual(ResourceState.Deprecated, resource.State);
-
-			// Resources deprecated before CORE resources were put in Maintenance mode have their CORE resource in Unavailable mode.
-			var coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
-			Assert.IsNotNull(coreResource);
-			coreResource.Mode = Skyline.DataMiner.Net.Messages.ResourceMode.Unavailable;
-			TestContext.ResourceManagerHelper.AddOrUpdateResources(true, [coreResource]);
-
-			coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
-			Assert.IsNotNull(coreResource);
-			Assert.AreEqual(Skyline.DataMiner.Net.Messages.ResourceMode.Unavailable, coreResource.Mode);
-
-			TestContext.Api.Resources.Restore(unmanagedResource.Id);
-			resource = TestContext.Api.Resources.Read(unmanagedResource.Id);
-			Assert.IsNotNull(resource);
-			Assert.AreEqual(ResourceState.Complete, resource.State);
-
-			coreResource = TestContext.ResourceManagerHelper.GetResource(resource.CoreResourceId);
-			Assert.IsNotNull(coreResource);
-			Assert.AreEqual(Skyline.DataMiner.Net.Messages.ResourceMode.Available, coreResource.Mode);
-		}
-
-		[TestMethod]
 		public void DeprecateResourceInUseByJob()
 		{
 			var prefix = Guid.NewGuid();
@@ -565,7 +527,7 @@
 			job = TestContext.Api.Jobs.SaveAsTentative(job);
 			Assert.AreEqual(JobState.Tentative, job.State);
 
-			// Deprecation is refused before the CORE resource is touched, so CORE never moves an in-use resource to Maintenance.
+			// Deprecation is refused before the CORE resource is touched.
 			var ex = Assert.ThrowsException<MediaOpsException>(() => TestContext.Api.Resources.Deprecate(resource.Id));
 			var inUseError = ex.TraceData.ErrorData.OfType<ResourceInUseByJobsError>().SingleOrDefault();
 			Assert.IsNotNull(inUseError);
