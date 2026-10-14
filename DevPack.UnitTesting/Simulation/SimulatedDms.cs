@@ -20,6 +20,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 	using Skyline.DataMiner.Solutions.MediaOps.Live.Orchestration.Script.Inputs;
 	using Skyline.DataMiner.Solutions.MediaOps.Live.Orchestration.Script.Objects;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Connection;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Querying;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores;
 	using Skyline.DataMiner.Utils.DOM.UnitTesting;
 
@@ -344,6 +345,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 			{
 				throw new ArgumentNullException(nameof(message));
 			}
+
+			DomFilterDateTimeNormalizer.Normalize(message);
 
 			// A paged read on an agent uses the limit only as a hint for the page size, so it is stripped before
 			// the DOM message handler applies it.
