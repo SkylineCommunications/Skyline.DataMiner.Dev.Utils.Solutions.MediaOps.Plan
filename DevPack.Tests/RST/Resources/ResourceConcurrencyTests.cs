@@ -702,8 +702,10 @@
 				"Expected the quarantine error to remain on the stored job.");
 		}
 
-		[TestMethod]
-		public void ChangeRequiredCapacityOfQuarantinedJobWithUnavailableResource_ReportsTheUnrelatedError()
+		[DataTestMethod]
+		[DataRow(Skyline.DataMiner.Net.Messages.ResourceMode.Unavailable)]
+		[DataRow(Skyline.DataMiner.Net.Messages.ResourceMode.Maintenance)]
+		public void ChangeRequiredCapacityOfQuarantinedJobWithUnavailableResource_ReportsTheUnrelatedError(Skyline.DataMiner.Net.Messages.ResourceMode unavailableMode)
 		{
 			var prefix = Guid.NewGuid();
 			var currentTime = DateTime.UtcNow.RoundToNextSecond();
@@ -747,7 +749,7 @@
 			var quarantinedJob = SyncQuarantineError(jobs.Single(x => GetReservation(x).IsQuarantined));
 
 			var otherCoreResource = TestContext.ResourceManagerHelper.GetResource(otherResource.CoreResourceId);
-			otherCoreResource.Mode = Skyline.DataMiner.Net.Messages.ResourceMode.Unavailable;
+			otherCoreResource.Mode = unavailableMode;
 			TestContext.ResourceManagerHelper.AddOrUpdateResources(true, [otherCoreResource]);
 
 			// The core software refuses every submission because of the unavailable resource, including the fallback.
