@@ -256,7 +256,7 @@
 					continue;
 				}
 
-				mapping.CoreResource.Mode = Net.Messages.ResourceMode.Unavailable;
+				mapping.CoreResource.Mode = Net.Messages.ResourceMode.Maintenance;
 
 				resourcesToDeprecate.Add(mapping.CoreResource);
 				domInstanceByCoreId.Add(mapping.CoreResource.ID, mapping.DomResource);
