@@ -262,14 +262,16 @@
 		/// <param name="settings">The custom property settings that should replace the current custom settings. May be <see langword="null"/> to clear them.</param>
 		public void SetCustomSettings(IEnumerable<CustomPropertySetting> settings)
 		{
+			var newSettings = settings?.ToList();
+
 			customSettings.Clear();
 
-			if (settings == null)
+			if (newSettings == null)
 			{
 				return;
 			}
 
-			foreach (var setting in settings)
+			foreach (var setting in newSettings)
 			{
 				Add(setting);
 			}
@@ -283,18 +285,20 @@
 		/// <param name="settings">The property settings that should replace the current property settings. May be <see langword="null"/> to clear them.</param>
 		public void SetPropertySettings(IEnumerable<PropertySetting> settings)
 		{
+			var newSettings = settings?.ToList();
+
 			stringSettings.Clear();
 			booleanSettings.Clear();
 			discreteSettings.Clear();
 			TrackRemovedFileSettings(fileSettings);
 			fileSettings.Clear();
 
-			if (settings == null)
+			if (newSettings == null)
 			{
 				return;
 			}
 
-			foreach (var setting in settings)
+			foreach (var setting in newSettings)
 			{
 				Add(setting);
 			}

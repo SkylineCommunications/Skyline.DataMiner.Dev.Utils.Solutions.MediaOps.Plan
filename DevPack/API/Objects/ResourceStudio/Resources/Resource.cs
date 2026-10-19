@@ -321,8 +321,10 @@
 				throw new ArgumentNullException(nameof(capabilitySettings));
 			}
 
+			var settings = capabilitySettings.ToList();
+
 			this.capabilitySettings.Clear();
-			foreach (var setting in capabilitySettings)
+			foreach (var setting in settings)
 			{
 				AddCapability(setting);
 			}
@@ -454,8 +456,10 @@
 				throw new ArgumentNullException(nameof(properties));
 			}
 
+			var settings = properties.ToList();
+
 			this.propertySettings.Clear();
-			foreach (var property in properties)
+			foreach (var property in settings)
 			{
 				AddProperty(property);
 			}
