@@ -203,8 +203,10 @@
 				throw new ArgumentNullException(nameof(capabilitySettings));
 			}
 
+			var settings = capabilitySettings.ToList();
+
 			this.capabilitySettings.Clear();
-			foreach (var capabilitySetting in capabilitySettings)
+			foreach (var capabilitySetting in settings)
 			{
 				AddCapability(capabilitySetting);
 			}
@@ -257,8 +259,10 @@
 				throw new ArgumentNullException(nameof(orchestrationEvents));
 			}
 
+			var events = orchestrationEvents.ToList();
+
 			this.orchestrationEvents.Clear();
-			foreach (var orchestrationEvent in orchestrationEvents)
+			foreach (var orchestrationEvent in events)
 			{
 				AddOrchestrationEvent(orchestrationEvent);
 			}

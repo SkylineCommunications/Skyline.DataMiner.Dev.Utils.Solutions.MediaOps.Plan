@@ -103,14 +103,16 @@
 			if (options == null)
 				throw new ArgumentNullException(nameof(options));
 
-			if (options.Any(x => x == null))
+			var values = options.ToList();
+
+			if (values.Any(x => x == null))
 				throw new ArgumentException(nameof(options));
 
-			if (discretes.ScrambledEquals(options))
+			if (discretes.ScrambledEquals(values))
 				return this;
 
 			discretes.Clear();
-			foreach (var option in options)
+			foreach (var option in values)
 			{
 				discretes.Add(option);
 			}
