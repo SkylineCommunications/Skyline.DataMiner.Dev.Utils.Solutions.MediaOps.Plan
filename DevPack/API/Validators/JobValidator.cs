@@ -72,7 +72,8 @@
 
 		private ValidationContext BuildContext(IReadOnlyCollection<Job> jobs)
 		{
-			var resourceIds = jobs.SelectMany(GetResourceNodes).Select(node => node.ResourceId).Distinct().ToList();
+			var now = DateTimeOffset.UtcNow;
+			var resourceIds = jobs.SelectMany(job => GetActiveResourceNodes(job, now)).Select(node => node.ResourceId).Distinct().ToList();
 			var resources = planApi.Resources.Read(resourceIds).ToDictionary(resource => resource.Id);
 
 			var coreResourceIds = resources.Values.Select(resource => resource.CoreResourceId).Where(id => id != Guid.Empty).Distinct().ToList();
@@ -92,7 +93,7 @@
 				? new HashSet<Guid>(liveApi.VirtualSignalGroups.Read(virtualSignalGroupIds).Keys)
 				: new HashSet<Guid>();
 
-			return new ValidationContext(resources, coreResources, reservationsByJob, virtualSignalGroupIdsFound, liveIsInstalled, new ReferenceDefinitionCache(planApi));
+			return new ValidationContext(now, resources, coreResources, reservationsByJob, virtualSignalGroupIdsFound, liveIsInstalled, new ReferenceDefinitionCache(planApi));
 		}
 
 		/// <summary>Retrieves the reservation of each job. A job is linked to at most one reservation, which holds the job ID in the 'Job ID' property.</summary>
@@ -151,7 +152,7 @@
 		private static IReadOnlyCollection<Resource> ValidateResources(Job job, JobValidationResult result, ValidationContext context)
 		{
 			var resources = new Dictionary<Guid, Resource>();
-			foreach (var node in GetResourceNodes(job))
+			foreach (var node in GetActiveResourceNodes(job, context.Now))
 			{
 				if (!context.Resources.TryGetValue(node.ResourceId, out var resource))
 				{
@@ -483,6 +484,12 @@
 			return job.NodeGraph.Nodes.OfType<JobResourceNode>().ToList().AsReadOnly();
 		}
 
+		// An ended node (such as one swapped out of a running job) is no longer booked; an unsaved node has no end yet.
+		private static IEnumerable<JobResourceNode> GetActiveResourceNodes(Job job, DateTimeOffset now)
+		{
+			return GetResourceNodes(job).Where(node => node.End == default || node.End > now);
+		}
+
 		private static string ComposeQuarantineMessage(ReservationInstance reservation, JobValidationResult result)
 		{
 			var resourceNames = new List<string>();
@@ -569,6 +576,7 @@
 		private sealed class ValidationContext
 		{
 			public ValidationContext(
+				DateTimeOffset now,
 				IReadOnlyDictionary<Guid, Resource> resources,
 				IReadOnlyDictionary<Guid, CoreResource> coreResources,
 				IReadOnlyDictionary<Job, ReservationInstance> reservationsByJob,
@@ -576,6 +584,7 @@
 				bool liveIsInstalled,
 				ReferenceDefinitionCache referenceDefinitions)
 			{
+				Now = now;
 				Resources = resources;
 				CoreResources = coreResources;
 				ReservationsByJob = reservationsByJob;
@@ -584,6 +593,7 @@
 				ReferenceDefinitions = referenceDefinitions;
 			}
 
+			public DateTimeOffset Now { get; }
 			public IReadOnlyDictionary<Guid, Resource> Resources { get; }
 			public IReadOnlyDictionary<Guid, CoreResource> CoreResources { get; }
 			public IReadOnlyDictionary<Job, ReservationInstance> ReservationsByJob { get; }

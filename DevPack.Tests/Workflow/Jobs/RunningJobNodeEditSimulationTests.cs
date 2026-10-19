@@ -194,6 +194,55 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void SwapResourceInMaintenance_WhileRunning_ClearsTheUnavailableResourceError()
+		{
+			var (api, resourceManagerHelper) = CreateContext();
+
+			var job = CreateRunningJob(api, resourceManagerHelper);
+			var originalNode = (JobResourceNode)job.NodeGraph.Nodes.Single();
+
+			var coreResource = resourceManagerHelper.GetResource(api.Resources.Read(originalNode.ResourceId).CoreResourceId);
+			coreResource.Mode = ResourceMode.Maintenance;
+			resourceManagerHelper.AddOrUpdateResources(true, [coreResource]);
+
+			job = api.Jobs.Read(job.Id);
+			api.Jobs.Validate([job]).Single().SyncToJob();
+			job = api.Jobs.Update(job);
+			Assert.IsTrue(job.Errors.Any(x => x.Code == CoreResourceUnavailableJobValidationError.ErrorCode), "Expected the resource in maintenance to be reported.");
+
+			var (pool, resource) = CreatePoolAndResource(api, Guid.NewGuid());
+			job.NodeGraph.Swap(job.NodeGraph.Nodes.Single(), new JobResourceNode(pool, resource));
+			var updatedJob = api.Jobs.Update(job);
+
+			Assert.IsFalse(updatedJob.Errors.Any(x => x.Code == CoreResourceUnavailableJobValidationError.ErrorCode), "Expected the error of the swapped out resource to be cleared.");
+			Assert.IsFalse(api.Jobs.Validate([updatedJob]).Single().HasErrors, "Expected the ended node of the swapped out resource to be ignored by the validation.");
+
+			var swappedOutNode = updatedJob.NodeGraph.Nodes.OfType<JobResourceNode>().Single(x => x.ResourceId == originalNode.ResourceId);
+			Assert.IsTrue(swappedOutNode.End <= DateTimeOffset.UtcNow, "Expected the swapped out node to be kept as history.");
+			Assert.IsFalse(swappedOutNode.HasError, "Expected the swapped out node not to be in error.");
+		}
+
+		[TestMethod]
+		public void ResourceInMaintenance_WhileRunningWithoutSwap_KeepsTheUnavailableResourceError()
+		{
+			var (api, resourceManagerHelper) = CreateContext();
+
+			var job = CreateRunningJob(api, resourceManagerHelper);
+			var node = (JobResourceNode)job.NodeGraph.Nodes.Single();
+
+			var coreResource = resourceManagerHelper.GetResource(api.Resources.Read(node.ResourceId).CoreResourceId);
+			coreResource.Mode = ResourceMode.Maintenance;
+			resourceManagerHelper.AddOrUpdateResources(true, [coreResource]);
+
+			job = api.Jobs.Read(job.Id);
+			api.Jobs.Validate([job]).Single().SyncToJob();
+			job.Description = "Updated while the resource is in maintenance.";
+			var updatedJob = api.Jobs.Update(job);
+
+			Assert.IsTrue(updatedJob.Errors.Any(x => x.Code == CoreResourceUnavailableJobValidationError.ErrorCode), "Expected the resource in maintenance to remain reported.");
+		}
+
+		[TestMethod]
 		public void AddNode_WhileRunningInPostRoll_IsRejected()
 		{
 			var (api, resourceManagerHelper) = CreateContext();
