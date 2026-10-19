@@ -183,7 +183,7 @@
 				return;
 			}
 
-			var instancesToDelete = propertiesToDelete.Select(x => x.OriginalInstance.ToInstance());
+			var instancesToDelete = propertiesToDelete.Select(x => x.OriginalInstance.ToInstance()).ToList();
 			planApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.TryDeleteInBatches(instancesToDelete, out var domResult);
 
 			foreach (var id in domResult.UnsuccessfulIds)
