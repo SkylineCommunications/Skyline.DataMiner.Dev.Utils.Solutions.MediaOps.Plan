@@ -395,7 +395,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			// The server removes the attachments together with the instance, so they need no separate cleanup here.
-			var toDelete = apiSettingCollections.Select(x => x.OriginalInstance.ToInstance());
+			var toDelete = apiSettingCollections.Select(x => x.OriginalInstance.ToInstance()).ToList();
 			planApi.DomHelpers.SlcPropertiesHelper.DomHelper.DomInstances.TryDeleteInBatches(toDelete, out var domResult);
 
 			foreach (var id in domResult.UnsuccessfulIds)

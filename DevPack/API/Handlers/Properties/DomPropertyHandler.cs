@@ -171,7 +171,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				throw new ArgumentException($"Not all provided properties are valid", nameof(apiProperties));
 			}
 
-			var toDelete = apiProperties.Select(x => x.OriginalInstance.ToInstance());
+			var toDelete = apiProperties.Select(x => x.OriginalInstance.ToInstance()).ToList();
 			planApi.DomHelpers.SlcPropertiesHelper.DomHelper.DomInstances.TryDeleteInBatches(toDelete, out var domResult);
 
 			foreach (var id in domResult.UnsuccessfulIds)
