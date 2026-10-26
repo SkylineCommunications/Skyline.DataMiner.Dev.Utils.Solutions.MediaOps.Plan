@@ -220,6 +220,32 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void Translate_LinkedTimeDependentParameterReported_EmitsParentCapability()
+		{
+			var (api, resource) = CreateContextWithResource();
+			var reservationId = Guid.NewGuid();
+
+			var capability = api.Capabilities.Create(new Capability { Name = $"{Guid.NewGuid()}_Capability", IsTimeDependent = true }.SetDiscretes(["Value 1", "Value 2"]));
+			var linkedId = api.Capabilities.Read(capability.Id).LinkedTimeDependentCapabilityId;
+			Assert.AreNotEqual(Guid.Empty, linkedId, "Precondition: the capability has no linked time-dependent parameter.");
+
+			// The core software reports a clash on the value of a time-dependent capability against the linked parameter,
+			// which is not a Resource Studio capability.
+			var error = new ResourceManagerErrorData(
+				ResourceManagerErrorData.Reason.ResourceCapabilityInvalid,
+				reservationId,
+				resource.CoreResourceId,
+				new ResourceCapabilityUsage { CapabilityProfileID = linkedId, RequiredString = "Value 1" },
+				"Capability not available.");
+
+			var result = new ResourceManagerTraceDataHandler((MediaOpsPlanApi)api).Translate(new[] { error });
+
+			var capabilityError = result[reservationId].ErrorData.OfType<JobResourceInvalidCapabilityError>().Single();
+			Assert.AreEqual(resource.Id, capabilityError.ResourceId, "Expected the DOM resource id to be reported.");
+			Assert.AreEqual(capability.Id, capabilityError.CapabilityId, "Expected the parent capability to be reported instead of its linked time-dependent parameter.");
+		}
+
+		[TestMethod]
 		public void Translate_ResourceCapabilityInvalid_EmitsInvalidCapabilityWithIds()
 		{
 			var (api, resource) = CreateContextWithResource();

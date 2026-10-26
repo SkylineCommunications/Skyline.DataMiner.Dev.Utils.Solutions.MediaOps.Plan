@@ -9,9 +9,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Apps.ManagerStore.Select;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+	using Skyline.DataMiner.Net.Profiles;
 	using Skyline.DataMiner.Net.ResponseErrorData;
 	using Skyline.DataMiner.Net.SRM.Quarantine;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
 
 	using CoreReservation = Net.ResourceManager.Objects.ReservationInstance;
@@ -87,6 +89,38 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 			.Where(x => x != Guid.Empty)
 			.Distinct();
+		}
+
+		// A clash on the linked parameter of a time-dependent capability is reported with the ID of that linked parameter,
+		// which is not a Resource Studio capability. It is surfaced as its parent capability instead.
+		private static IEnumerable<Guid> GetInvalidCapabilityIds(ResourceManagerErrorData error, IReadOnlyDictionary<Guid, Guid> parentCapabilityIdByLinkedId)
+		{
+			return GetInvalidCapabilityIds(error)
+				.Select(x => parentCapabilityIdByLinkedId.TryGetValue(x, out var parentCapabilityId) ? parentCapabilityId : x)
+				.Distinct();
+		}
+
+		private Dictionary<Guid, Guid> BuildParentCapabilityIdByLinkedId(IEnumerable<ResourceManagerErrorData> requirementErrors)
+		{
+			var parentCapabilityIdByLinkedId = new Dictionary<Guid, Guid>();
+
+			var reportedCapabilityIds = requirementErrors.SelectMany(GetInvalidCapabilityIds).ToHashSet();
+			if (reportedCapabilityIds.Count == 0)
+			{
+				return parentCapabilityIdByLinkedId;
+			}
+
+			// The linked parameter does not reference its parent, so the parents are looked up by the link stored in their remarks.
+			var filter = ProfileProvider.AllCapabilitiesFilter.AND(new ORFilterElement<Net.Profiles.Parameter>(reportedCapabilityIds.Select(id => ParameterExposers.Remarks.Contains(id.ToString())).ToArray()));
+			foreach (var parentCapability in planApi.CoreHelpers.ProfileProvider.GetParameters(filter))
+			{
+				if (parentCapability.IsTimeDependent(out var link) && reportedCapabilityIds.Contains(link.LinkedParameterId))
+				{
+					parentCapabilityIdByLinkedId[link.LinkedParameterId] = parentCapability.ID;
+				}
+			}
+
+			return parentCapabilityIdByLinkedId;
 		}
 
 		private static IEnumerable<Guid> GetInvalidCapacityIds(ResourceManagerErrorData error)
@@ -270,6 +304,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			IReadOnlyCollection<ResourceManagerErrorData> requirementErrors,
 			IReadOnlyDictionary<Guid, Guid> domResourceIdByCoreId)
 		{
+			var parentCapabilityIdByLinkedId = BuildParentCapabilityIdByLinkedId(requirementErrors);
+
 			foreach (var error in requirementErrors)
 			{
 				if (!TryGetReservationId(error, out var reservationId))
@@ -289,7 +325,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 				// A single error can report an invalid capability and an invalid capacity at the same time, in which case
 				// both are surfaced so the consumer knows every requirement that could not be met.
-				foreach (var capabilityId in GetInvalidCapabilityIds(error))
+				foreach (var capabilityId in GetInvalidCapabilityIds(error, parentCapabilityIdByLinkedId))
 				{
 					traceData.Add(new JobResourceInvalidCapabilityError
 					{

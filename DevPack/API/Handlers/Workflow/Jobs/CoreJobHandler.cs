@@ -1067,6 +1067,10 @@
 				// The resolved references were cached earlier in the pipeline, so referenced values can be applied here.
 				var resolvedReferences = job.ResolvedReferenceCache;
 
+				// Time-dependent capabilities also require a usage on their linked parameter, so the links of all capabilities
+				// used by the resource nodes are resolved once up front.
+				var usageBuilder = TimeDependentCapabilityUsageBuilder.Create(planApi, GetCapabilityIds(resourceNodes, orchestrationSettingsCache));
+
 				var result = new List<ServiceResourceUsageDefinition>();
 				foreach (var node in resourceNodes)
 				{
@@ -1087,7 +1091,7 @@
 						&& node.NodeConfiguration.Value != Guid.Empty
 						&& orchestrationSettingsCache.TryGetValue(node.NodeConfiguration.Value, out var orchestrationSettings))
 					{
-						resourceUsage.RequiredCapabilities = BuildCapabilities(orchestrationSettings.Capabilities, resolvedReferences, node.NodeID).ToList();
+						resourceUsage.RequiredCapabilities = BuildCapabilities(orchestrationSettings.Capabilities, resolvedReferences, node.NodeID, usageBuilder).ToList();
 						resourceUsage.RequiredCapacities = BuildCapacities(orchestrationSettings.Capacities, resolvedReferences, node.NodeID).ToList();
 					}
 
@@ -1097,7 +1101,23 @@
 				return result;
 			}
 
-			private static IEnumerable<ResourceCapabilityUsage> BuildCapabilities(IReadOnlyCollection<CapabilitySetting> capabilities, ResolvedReferenceCache resolvedReferences, string owningNodeId)
+			private static IEnumerable<Guid> GetCapabilityIds(IEnumerable<Storage.DOM.SlcWorkflow.NodesSection> resourceNodes, OrchestrationSettingsCache orchestrationSettingsCache)
+			{
+				foreach (var node in resourceNodes)
+				{
+					if (node.NodeConfiguration.HasValue
+						&& node.NodeConfiguration.Value != Guid.Empty
+						&& orchestrationSettingsCache.TryGetValue(node.NodeConfiguration.Value, out var orchestrationSettings))
+					{
+						foreach (var capability in orchestrationSettings.Capabilities)
+						{
+							yield return capability.Id;
+						}
+					}
+				}
+			}
+
+			private static IEnumerable<ResourceCapabilityUsage> BuildCapabilities(IReadOnlyCollection<CapabilitySetting> capabilities, ResolvedReferenceCache resolvedReferences, string owningNodeId, TimeDependentCapabilityUsageBuilder usageBuilder)
 			{
 				foreach (var capability in capabilities)
 				{
@@ -1107,11 +1127,10 @@
 						continue;
 					}
 
-					yield return new ResourceCapabilityUsage
+					foreach (var usage in usageBuilder.CreateUsages(capability.Id, value))
 					{
-						CapabilityProfileID = capability.Id,
-						RequiredDiscreet = value,
-					};
+						yield return usage;
+					}
 				}
 			}
 
