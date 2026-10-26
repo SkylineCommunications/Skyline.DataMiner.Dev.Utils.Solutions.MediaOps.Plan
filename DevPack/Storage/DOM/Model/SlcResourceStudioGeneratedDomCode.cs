@@ -3581,7 +3581,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
 		/// </summary>
 		public FlowrulesinfoSection() : base(SlcResource_StudioIds.Sections.Flowrulesinfo.Id)
 		{
-			Ownertype = new List<SlcResource_StudioIds.Enums.Flowruleobjecttype>();
 		}
 
 		/// <summary>
@@ -3590,8 +3589,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
 		/// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="FlowrulesinfoSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
 		public FlowrulesinfoSection(Section section) : base(section, SlcResource_StudioIds.Sections.Flowrulesinfo.Id)
 		{
-			var ownertype = section.GetListValue<Int32>(SlcResource_StudioIds.Sections.Flowrulesinfo.Ownertype);
-			Ownertype = ownertype != null ? ownertype.Values.Cast<SlcResource_StudioIds.Enums.Flowruleobjecttype>().ToList() : new List<SlcResource_StudioIds.Enums.Flowruleobjecttype>();
 		}
 
 		/// <summary>
@@ -3652,7 +3649,33 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
 		/// <item>If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
-		public IList<SlcResource_StudioIds.Enums.Flowruleobjecttype> Ownertype { get; private set; }
+		public SlcResource_StudioIds.Enums.Flowruleobjecttype? Ownertype
+		{
+			get
+			{
+				var wrapper = section.GetValue<Int32>(SlcResource_StudioIds.Sections.Flowrulesinfo.Ownertype);
+				if (wrapper != null)
+				{
+					return (SlcResource_StudioIds.Enums.Flowruleobjecttype?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcResource_StudioIds.Sections.Flowrulesinfo.Ownertype);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcResource_StudioIds.Sections.Flowrulesinfo.Ownertype, (Int32)value);
+				}
+			}
+		}
 
 		/// <summary>
 		/// Creates a deep copy of the current <see cref="FlowrulesinfoSection"/>.
@@ -3672,16 +3695,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
 			var section = (Section)this.ToSection().Clone();
 			section.ID = new SectionID(Guid.NewGuid());
 			return new FlowrulesinfoSection(section);
-		}
-
-		/// <inheritdoc />
-		protected override Section InternalToSection()
-		{
-			if (Ownertype.Count == 0)
-				section.RemoveFieldValueById(SlcResource_StudioIds.Sections.Flowrulesinfo.Ownertype);
-			else
-				section.AddOrUpdateListValue<Int32>(SlcResource_StudioIds.Sections.Flowrulesinfo.Ownertype, Ownertype.Cast<Int32>().ToList());
-			return section;
 		}
 	}
 
@@ -3875,8 +3888,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
 		/// </summary>
 		public FlowruleSection() : base(SlcResource_StudioIds.Sections.Flowrule.Id)
 		{
-			Direction = new List<SlcResource_StudioIds.Enums.Flowruledirection>();
-			Targettype = new List<SlcResource_StudioIds.Enums.Flowruleobjecttype>();
 		}
 
 		/// <summary>
@@ -3885,10 +3896,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
 		/// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="FlowruleSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
 		public FlowruleSection(Section section) : base(section, SlcResource_StudioIds.Sections.Flowrule.Id)
 		{
-			var direction = section.GetListValue<Int32>(SlcResource_StudioIds.Sections.Flowrule.Direction);
-			Direction = direction != null ? direction.Values.Cast<SlcResource_StudioIds.Enums.Flowruledirection>().ToList() : new List<SlcResource_StudioIds.Enums.Flowruledirection>();
-			var targettype = section.GetListValue<Int32>(SlcResource_StudioIds.Sections.Flowrule.Targettype);
-			Targettype = targettype != null ? targettype.Values.Cast<SlcResource_StudioIds.Enums.Flowruleobjecttype>().ToList() : new List<SlcResource_StudioIds.Enums.Flowruleobjecttype>();
 		}
 
 		/// <summary>
@@ -3906,7 +3913,33 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
 		/// <item>If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
-		public IList<SlcResource_StudioIds.Enums.Flowruledirection> Direction { get; private set; }
+		public SlcResource_StudioIds.Enums.Flowruledirection? Direction
+		{
+			get
+			{
+				var wrapper = section.GetValue<Int32>(SlcResource_StudioIds.Sections.Flowrule.Direction);
+				if (wrapper != null)
+				{
+					return (SlcResource_StudioIds.Enums.Flowruledirection?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcResource_StudioIds.Sections.Flowrule.Direction);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcResource_StudioIds.Sections.Flowrule.Direction, (Int32)value);
+				}
+			}
+		}
 
 		/// <summary>
 		/// Gets or sets the Target field of the DOM Instance.
@@ -3966,7 +3999,33 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
 		/// <item>If a valid value is assigned, the field value will be added or updated in the section.</item>
 		/// </list>
 		/// </remarks>
-		public IList<SlcResource_StudioIds.Enums.Flowruleobjecttype> Targettype { get; private set; }
+		public SlcResource_StudioIds.Enums.Flowruleobjecttype? Targettype
+		{
+			get
+			{
+				var wrapper = section.GetValue<Int32>(SlcResource_StudioIds.Sections.Flowrule.Targettype);
+				if (wrapper != null)
+				{
+					return (SlcResource_StudioIds.Enums.Flowruleobjecttype?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcResource_StudioIds.Sections.Flowrule.Targettype);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcResource_StudioIds.Sections.Flowrule.Targettype, (Int32)value);
+				}
+			}
+		}
 
 		/// <summary>
 		/// Gets or sets the Outcome field of the DOM Instance.
@@ -4072,20 +4131,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
 			var section = (Section)this.ToSection().Clone();
 			section.ID = new SectionID(Guid.NewGuid());
 			return new FlowruleSection(section);
-		}
-
-		/// <inheritdoc />
-		protected override Section InternalToSection()
-		{
-			if (Direction.Count == 0)
-				section.RemoveFieldValueById(SlcResource_StudioIds.Sections.Flowrule.Direction);
-			else
-				section.AddOrUpdateListValue<Int32>(SlcResource_StudioIds.Sections.Flowrule.Direction, Direction.Cast<Int32>().ToList());
-			if (Targettype.Count == 0)
-				section.RemoveFieldValueById(SlcResource_StudioIds.Sections.Flowrule.Targettype);
-			else
-				section.AddOrUpdateListValue<Int32>(SlcResource_StudioIds.Sections.Flowrule.Targettype, Targettype.Cast<Int32>().ToList());
-			return section;
 		}
 	}
 
