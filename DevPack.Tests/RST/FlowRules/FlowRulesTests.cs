@@ -1,0 +1,375 @@
+namespace RT_MediaOps.Plan.RST.FlowRules
+{
+	using System;
+	using System.Linq;
+
+	using RT_MediaOps.Plan.RegressionTests;
+
+	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+
+	using StorageResourceStudio = Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
+
+	[TestClass]
+	[TestCategory("IntegrationTest")]
+	[DoNotParallelize]
+	public sealed class FlowRulesTests : IDisposable
+	{
+		private readonly TestObjectCreator objectCreator;
+
+		public FlowRulesTests()
+		{
+			objectCreator = new TestObjectCreator(TestContext);
+		}
+
+		private static IntegrationTestContext TestContext => TestContextManager.SharedTestContext;
+
+		public void Dispose()
+		{
+			objectCreator.Dispose();
+		}
+
+		[TestMethod]
+		public void NewResourcePool_HasEmptyFlowRules()
+		{
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{Guid.NewGuid()}_Pool" });
+
+			Assert.IsNotNull(pool.FlowRules);
+			Assert.AreEqual(pool.Id, pool.FlowRules.ResourcePoolId);
+			Assert.AreEqual(0, pool.FlowRules.Rules.Count);
+
+			var stored = TestContext.Api.FlowRules.Read(pool.Id);
+			Assert.IsNotNull(stored, "Expected every new resource pool to get a stored rule set.");
+			Assert.AreEqual(pool.FlowRules.Id, stored.Id);
+		}
+
+		[TestMethod]
+		public void CreateAndReadResourcePoolWithFlowRules()
+		{
+			var prefix = Guid.NewGuid();
+			var target = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Target" });
+
+			var pool = new ResourcePool { Name = $"{prefix}_Pool" };
+			pool.FlowRules
+				.SetDefault(FlowRuleDirection.Before, FlowRuleOutcome.Warning, "Unusual predecessor.")
+				.SetOverride(FlowRuleDirection.After, target, FlowRuleOutcome.Forbidden, "Never after this pool.");
+			objectCreator.CreateResourcePool(pool);
+
+			var read = TestContext.Api.ResourcePools.Read(pool.Id);
+
+			Assert.AreEqual(2, read.FlowRules.Rules.Count);
+			Assert.AreEqual(new FlowRule(FlowRuleDirection.Before, FlowRuleOutcome.Warning, "Unusual predecessor."), read.FlowRules.GetDefault(FlowRuleDirection.Before));
+			Assert.AreEqual(new FlowRule(FlowRuleDirection.After, target.Id, FlowRuleOutcome.Forbidden, "Never after this pool."), read.FlowRules.GetOverride(FlowRuleDirection.After, target.Id));
+			Assert.IsNull(read.FlowRules.GetDefault(FlowRuleDirection.After));
+
+			var fromRepository = TestContext.Api.FlowRules.Read([pool.Id, target.Id]);
+			Assert.AreEqual(2, fromRepository.Count);
+			Assert.AreEqual(2, fromRepository[pool.Id].Rules.Count);
+			Assert.AreEqual(0, fromRepository[target.Id].Rules.Count);
+		}
+
+		[TestMethod]
+		public void UpdateFlowRules()
+		{
+			var prefix = Guid.NewGuid();
+			var target = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Target" });
+
+			var pool = new ResourcePool { Name = $"{prefix}_Pool" };
+			pool.FlowRules
+				.SetDefault(FlowRuleDirection.Before, FlowRuleOutcome.Warning)
+				.SetOverride(FlowRuleDirection.Before, target, FlowRuleOutcome.Forbidden);
+			pool = objectCreator.CreateResourcePool(pool);
+
+			pool.FlowRules
+				.RemoveOverride(FlowRuleDirection.Before, target.Id)
+				.SetDefault(FlowRuleDirection.Before, FlowRuleOutcome.Forbidden, "Updated")
+				.SetDefault(FlowRuleDirection.After, FlowRuleOutcome.Warning);
+			TestContext.Api.ResourcePools.Update(pool);
+
+			var read = TestContext.Api.ResourcePools.Read(pool.Id);
+			Assert.AreEqual(2, read.FlowRules.Rules.Count);
+			Assert.AreEqual(FlowRuleOutcome.Forbidden, read.FlowRules.GetDefault(FlowRuleDirection.Before).Outcome);
+			Assert.AreEqual("Updated", read.FlowRules.GetDefault(FlowRuleDirection.Before).Message);
+			Assert.AreEqual(FlowRuleOutcome.Warning, read.FlowRules.GetDefault(FlowRuleDirection.After).Outcome);
+			Assert.IsNull(read.FlowRules.GetOverride(FlowRuleDirection.Before, target.Id));
+
+			read.FlowRules.Clear();
+			TestContext.Api.ResourcePools.Update(read);
+			Assert.AreEqual(0, TestContext.Api.ResourcePools.Read(pool.Id).FlowRules.Rules.Count);
+		}
+
+		[TestMethod]
+		public void ReadPool_IsUnchanged()
+		{
+			var pool = new ResourcePool { Name = $"{Guid.NewGuid()}_Pool" };
+			pool.FlowRules.SetDefault(FlowRuleDirection.After, FlowRuleOutcome.Warning);
+			pool = objectCreator.CreateResourcePool(pool);
+
+			var read = TestContext.Api.ResourcePools.Read(pool.Id);
+
+			Assert.IsFalse(read.HasChanges);
+			Assert.IsFalse(read.FlowRules.HasChanges);
+
+			read.FlowRules.SetDefault(FlowRuleDirection.After, FlowRuleOutcome.Forbidden);
+			Assert.IsTrue(read.HasChanges, "Expected a flow rule change to mark the resource pool as changed.");
+		}
+
+		[TestMethod]
+		public void SelfTargetingOverride_IsAllowed()
+		{
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{Guid.NewGuid()}_Switch" });
+
+			pool.FlowRules.SetOverride(FlowRuleDirection.After, pool, FlowRuleOutcome.Warning);
+			TestContext.Api.ResourcePools.Update(pool);
+
+			Assert.AreEqual(FlowRuleOutcome.Warning, TestContext.Api.ResourcePools.Read(pool.Id).FlowRules.GetOverride(FlowRuleDirection.After, pool.Id).Outcome);
+		}
+
+		[TestMethod]
+		public void OverrideToResourcePoolCreatedInSameCall_IsAllowed()
+		{
+			var prefix = Guid.NewGuid();
+			var target = new ResourcePool { Name = $"{prefix}_Target" };
+			var pool = new ResourcePool { Name = $"{prefix}_Pool" };
+			pool.FlowRules.SetOverride(FlowRuleDirection.After, target, FlowRuleOutcome.Forbidden);
+
+			objectCreator.CreateResourcePools([target, pool]);
+
+			Assert.IsNotNull(TestContext.Api.ResourcePools.Read(pool.Id).FlowRules.GetOverride(FlowRuleDirection.After, target.Id));
+		}
+
+		[TestMethod]
+		public void DuplicateRules_AreRejected()
+		{
+			var pool = new ResourcePool { Name = $"{Guid.NewGuid()}_Pool" };
+			pool.FlowRules
+				.Add(new FlowRule(FlowRuleDirection.Before, FlowRuleOutcome.Warning))
+				.Add(new FlowRule(FlowRuleDirection.Before, FlowRuleOutcome.Forbidden));
+
+			var exception = Assert.ThrowsException<MediaOpsException>(() => objectCreator.CreateResourcePool(pool));
+
+			var error = exception.TraceData.ErrorData.OfType<ResourcePoolDuplicateFlowRuleError>().Single();
+			Assert.AreEqual(pool.Id, error.Id);
+			Assert.AreEqual(FlowRuleDirection.Before, error.Direction);
+			Assert.IsNull(error.TargetResourcePoolId);
+			Assert.IsNull(TestContext.Api.ResourcePools.Read(pool.Id));
+		}
+
+		[TestMethod]
+		public void OverrideToUnknownResourcePool_IsRejected()
+		{
+			var unknownId = Guid.NewGuid();
+			var pool = new ResourcePool { Name = $"{Guid.NewGuid()}_Pool" };
+			pool.FlowRules.SetOverride(FlowRuleDirection.After, unknownId, FlowRuleOutcome.Forbidden);
+
+			var exception = Assert.ThrowsException<MediaOpsException>(() => objectCreator.CreateResourcePool(pool));
+
+			var error = exception.TraceData.ErrorData.OfType<ResourcePoolFlowRuleTargetNotFoundError>().Single();
+			Assert.AreEqual(unknownId, error.TargetResourcePoolId);
+			Assert.AreEqual(FlowRuleDirection.After, error.Direction);
+		}
+
+		[TestMethod]
+		public void OverrideToDeprecatedResourcePool_IsRejected()
+		{
+			var prefix = Guid.NewGuid();
+			var target = CreateDeprecatedResourcePool($"{prefix}_Target");
+
+			var pool = new ResourcePool { Name = $"{prefix}_Pool" };
+			pool.FlowRules.SetOverride(FlowRuleDirection.Before, target, FlowRuleOutcome.Forbidden);
+
+			var exception = Assert.ThrowsException<MediaOpsException>(() => objectCreator.CreateResourcePool(pool));
+
+			Assert.AreEqual(target.Id, exception.TraceData.ErrorData.OfType<ResourcePoolFlowRuleTargetInvalidStateError>().Single().TargetResourcePoolId);
+		}
+
+		[TestMethod]
+		public void ExistingOverrideToResourcePoolThatGotDeprecated_DoesNotBlockUpdates()
+		{
+			var prefix = Guid.NewGuid();
+			var target = TestContext.Api.ResourcePools.Complete(objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Target" }));
+
+			var pool = new ResourcePool { Name = $"{prefix}_Pool" };
+			pool.FlowRules.SetOverride(FlowRuleDirection.Before, target, FlowRuleOutcome.Forbidden);
+			pool = objectCreator.CreateResourcePool(pool);
+
+			TestContext.Api.ResourcePools.Deprecate(target);
+
+			pool.Name = $"{prefix}_Renamed";
+			var updated = TestContext.Api.ResourcePools.Update(pool);
+
+			Assert.AreEqual($"{prefix}_Renamed", updated.Name);
+			Assert.IsNotNull(updated.FlowRules.GetOverride(FlowRuleDirection.Before, target.Id), "Expected the override to be kept when the target is deprecated.");
+		}
+
+		[TestMethod]
+		public void TooLongMessage_IsRejected()
+		{
+			var pool = new ResourcePool { Name = $"{Guid.NewGuid()}_Pool" };
+			pool.FlowRules.SetDefault(FlowRuleDirection.After, FlowRuleOutcome.Warning, new string('x', 500));
+
+			var exception = Assert.ThrowsException<MediaOpsException>(() => objectCreator.CreateResourcePool(pool));
+
+			Assert.AreEqual(1, exception.TraceData.ErrorData.OfType<ResourcePoolFlowRuleInvalidMessageError>().Count());
+		}
+
+		[TestMethod]
+		public void DeleteResourcePoolReferencedByOverride_IsRejected()
+		{
+			var prefix = Guid.NewGuid();
+			var target = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Target" });
+
+			var pool = new ResourcePool { Name = $"{prefix}_Pool" };
+			pool.FlowRules.SetOverride(FlowRuleDirection.After, target, FlowRuleOutcome.Forbidden);
+			pool = objectCreator.CreateResourcePool(pool);
+
+			var exception = Assert.ThrowsException<MediaOpsException>(() => TestContext.Api.ResourcePools.Delete(target));
+
+			var error = exception.TraceData.ErrorData.OfType<ResourcePoolInUseByFlowRulesError>().Single();
+			Assert.AreEqual(target.Id, error.Id);
+			CollectionAssert.AreEqual(new[] { pool.Id }, error.ReferencingResourcePoolIds.ToArray());
+			Assert.IsNotNull(TestContext.Api.ResourcePools.Read(target.Id));
+
+			// Once the override is removed the pool can be deleted.
+			pool.FlowRules.RemoveOverride(FlowRuleDirection.After, target.Id);
+			TestContext.Api.ResourcePools.Update(pool);
+			TestContext.Api.ResourcePools.Delete(target);
+			Assert.IsNull(TestContext.Api.ResourcePools.Read(target.Id));
+		}
+
+		[TestMethod]
+		public void DeprecateResourcePoolReferencedByOverride_IsAllowed()
+		{
+			var prefix = Guid.NewGuid();
+			var target = TestContext.Api.ResourcePools.Complete(objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Target" }));
+
+			var pool = new ResourcePool { Name = $"{prefix}_Pool" };
+			pool.FlowRules.SetOverride(FlowRuleDirection.After, target, FlowRuleOutcome.Forbidden);
+			objectCreator.CreateResourcePool(pool);
+
+			var deprecated = TestContext.Api.ResourcePools.Deprecate(target);
+
+			Assert.AreEqual(ResourcePoolState.Deprecated, deprecated.State);
+		}
+
+		[TestMethod]
+		public void DeleteReferencingAndReferencedResourcePoolsTogether_IsAllowed()
+		{
+			var prefix = Guid.NewGuid();
+			var target = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Target" });
+
+			var pool = new ResourcePool { Name = $"{prefix}_Pool" };
+			pool.FlowRules.SetOverride(FlowRuleDirection.After, target, FlowRuleOutcome.Forbidden);
+			pool = objectCreator.CreateResourcePool(pool);
+
+			TestContext.Api.ResourcePools.Delete([target, pool]);
+
+			Assert.IsNull(TestContext.Api.ResourcePools.Read(target.Id));
+			Assert.IsNull(TestContext.Api.ResourcePools.Read(pool.Id));
+		}
+
+		[TestMethod]
+		public void DeleteResourcePool_DeletesItsFlowRules()
+		{
+			var pool = new ResourcePool { Name = $"{Guid.NewGuid()}_Pool" };
+			pool.FlowRules.SetDefault(FlowRuleDirection.After, FlowRuleOutcome.Warning);
+			pool = objectCreator.CreateResourcePool(pool);
+			var flowRulesId = pool.FlowRules.Id;
+
+			TestContext.Api.ResourcePools.Delete(pool);
+
+			Assert.IsFalse(ReadFlowRulesInstances().Any(x => x.ID.Id == flowRulesId), "Expected the rule set of the deleted pool to be removed.");
+		}
+
+		[TestMethod]
+		public void PoolWithoutStoredFlowRules_GetsThemOnItsNextChange()
+		{
+			var prefix = Guid.NewGuid();
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			RemoveFlowRulesFromStorage(pool.Id);
+
+			var legacyPool = TestContext.Api.ResourcePools.Read(pool.Id);
+			Assert.AreEqual(0, legacyPool.FlowRules.Rules.Count);
+			Assert.IsNull(TestContext.Api.FlowRules.Read(pool.Id));
+
+			// An unchanged pool must not leave an orphan rule set behind.
+			var instancesBefore = ReadFlowRulesInstances().Count();
+			TestContext.Api.ResourcePools.CreateOrUpdate([legacyPool]);
+			Assert.AreEqual(instancesBefore, ReadFlowRulesInstances().Count());
+			Assert.IsNull(TestContext.Api.FlowRules.Read(pool.Id));
+
+			legacyPool = TestContext.Api.ResourcePools.Read(pool.Id);
+			legacyPool.Name = $"{prefix}_Renamed";
+			TestContext.Api.ResourcePools.Update(legacyPool);
+
+			Assert.IsNotNull(TestContext.Api.FlowRules.Read(pool.Id), "Expected the rule set to be created when the pool is saved.");
+		}
+
+		[TestMethod]
+		public void Repository_EvaluateConnectionsAndCandidates()
+		{
+			var prefix = Guid.NewGuid();
+			var ird = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_IRD" });
+			var encoder = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Encoder" });
+
+			var downstream = new ResourcePool { Name = $"{prefix}_Downstream" };
+			downstream.FlowRules
+				.SetDefault(FlowRuleDirection.Before, FlowRuleOutcome.Allowed)
+				.SetOverride(FlowRuleDirection.Before, ird, FlowRuleOutcome.Forbidden, "No IRD before downstream.")
+				.SetOverride(FlowRuleDirection.Before, encoder, FlowRuleOutcome.Warning);
+			downstream = objectCreator.CreateResourcePool(downstream);
+
+			var single = TestContext.Api.FlowRules.Evaluate(ird.Id, downstream.Id);
+			Assert.AreEqual(FlowRuleOutcome.Forbidden, single.Outcome);
+			CollectionAssert.AreEqual(new[] { "No IRD before downstream." }, single.Messages.ToArray());
+
+			var bulk = TestContext.Api.FlowRules.Evaluate([(ird.Id, downstream.Id), (encoder.Id, downstream.Id), (downstream.Id, ird.Id)]).ToList();
+			CollectionAssert.AreEqual(
+				new[] { FlowRuleOutcome.Forbidden, FlowRuleOutcome.Warning, FlowRuleOutcome.Allowed },
+				bulk.Select(x => x.Outcome).ToArray());
+
+			var candidates = TestContext.Api.FlowRules.EvaluateCandidates(downstream.Id, FlowRuleDirection.Before, [ird.Id, encoder.Id]);
+			Assert.AreEqual(FlowRuleOutcome.Forbidden, candidates[ird.Id].Outcome);
+			Assert.AreEqual(FlowRuleOutcome.Warning, candidates[encoder.Id].Outcome);
+
+			var graph = new Workflow { Name = "Graph" }.NodeGraph;
+			var irdNode = new WorkflowResourcePoolNode(ird);
+			var downstreamNode = new WorkflowResourcePoolNode(downstream);
+			graph.Add(irdNode).Add(downstreamNode).Connect(irdNode, downstreamNode);
+
+			var graphEvaluation = TestContext.Api.FlowRules.Evaluate(graph).Single();
+			Assert.AreEqual(FlowRuleOutcome.Forbidden, graphEvaluation.Outcome);
+			Assert.AreEqual(irdNode.Id, graphEvaluation.FromNodeId);
+			Assert.AreEqual(downstreamNode.Id, graphEvaluation.ToNodeId);
+		}
+
+		private ResourcePool CreateDeprecatedResourcePool(string name)
+		{
+			var pool = TestContext.Api.ResourcePools.Complete(objectCreator.CreateResourcePool(new ResourcePool { Name = name }));
+			return TestContext.Api.ResourcePools.Deprecate(pool);
+		}
+
+		private static System.Collections.Generic.IEnumerable<DomInstance> ReadFlowRulesInstances()
+		{
+			return TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Flowrules.Id));
+		}
+
+		// Simulates a resource pool that was created before flow rules existed.
+		private static void RemoveFlowRulesFromStorage(Guid resourcePoolId)
+		{
+			var domHelper = TestContext.ResourceStudioDomHelper;
+			var poolInstance = new StorageResourceStudio.ResourcepoolInstance(domHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(resourcePoolId)).Single());
+
+			var flowRulesId = poolInstance.ConfigurationInfo.FlowRules;
+			poolInstance.ConfigurationInfo.FlowRules = null;
+			domHelper.DomInstances.Update(poolInstance.ToInstance());
+
+			if (flowRulesId.HasValue)
+			{
+				domHelper.DomInstances.Delete(domHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(flowRulesId.Value)).Single());
+			}
+		}
+	}
+}

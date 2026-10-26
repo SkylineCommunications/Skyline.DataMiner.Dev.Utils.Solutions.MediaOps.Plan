@@ -177,7 +177,7 @@
 
 				act?.AddTag("ResourcePoolId", result.SuccessfulIds.Single());
 
-				return new ResourcePool(PlanApi, result.SuccessfulItems.Single());
+				return ToApiResourcePools([result.SuccessfulItems.Single()]).Single();
 			});
 		}
 
@@ -212,7 +212,7 @@
 
 				act?.AddTag("ResourcePoolIds", String.Join(", ", result.SuccessfulIds));
 
-				return result.SuccessfulItems.Select(x => new ResourcePool(PlanApi, x)).ToList();
+				return ToApiResourcePools(result.SuccessfulItems).ToList();
 			});
 		}
 
@@ -243,7 +243,7 @@
 				act?.AddTag("Created or Updated Resource Pools", String.Join(", ", resourcePoolIds));
 				act?.AddTag("Created or Updated Resource Pools Count", resourcePoolIds.Count);
 
-				return result.SuccessfulItems.Select(x => new ResourcePool(PlanApi, x)).ToList();
+				return ToApiResourcePools(result.SuccessfulItems).ToList();
 			});
 		}
 
@@ -397,7 +397,7 @@
 				result.ThrowSingleException(resourcePool.Id);
 			}
 
-			return new ResourcePool(PlanApi, result.SuccessfulItems.Single());
+			return ToApiResourcePools([result.SuccessfulItems.Single()]).Single();
 		}
 
 		public IReadOnlyCollection<ResourcePool> Complete(IEnumerable<ResourcePool> resourcePools)
@@ -423,7 +423,7 @@
 				result.ThrowBulkException();
 			}
 
-			return result.SuccessfulItems.Select(x => new ResourcePool(PlanApi, x)).ToList();
+			return ToApiResourcePools(result.SuccessfulItems).ToList();
 		}
 
 		public ResourcePool Deprecate(ResourcePool resourcePool)
@@ -504,7 +504,7 @@
 
 				act?.AddTag("Deprecated Resource pool", result.SuccessfulIds.Single());
 
-				return new ResourcePool(PlanApi, result.SuccessfulItems.Single());
+				return ToApiResourcePools([result.SuccessfulItems.Single()]).Single();
 			});
 		}
 
@@ -539,7 +539,7 @@
 				act?.AddTag("Deprecated Resource Pools", String.Join(", ", result.SuccessfulIds));
 				act?.AddTag("Deprecated Resource Pools Count", result.SuccessfulIds.Count);
 
-				return result.SuccessfulItems.Select(x => new ResourcePool(PlanApi, x)).ToList();
+				return ToApiResourcePools(result.SuccessfulItems).ToList();
 			});
 		}
 
@@ -568,7 +568,7 @@
 				.AND(DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Resourcepool.Id));
 
 			var domPools = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(filter);
-			var parentApiPoolsById = domPools.Select(x => new ResourcePool(PlanApi, x)).ToDictionary(x => x.Id);
+			var parentApiPoolsById = ToApiResourcePools(domPools).ToDictionary(x => x.Id);
 
 			var parentPoolsPerPool = resourcePools.ToDictionary(
 				pool => pool,
@@ -736,9 +736,9 @@
 				var domFilter = filterTranslator.TranslateFilter(filter);
 				IEnumerable<ResourcePool> Iterator()
 				{
-					foreach (var domResourcePool in PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(domFilter))
+					foreach (var resourcePool in ToApiResourcePools(PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(domFilter)))
 					{
-						yield return new ResourcePool(PlanApi, domResourcePool);
+						yield return resourcePool;
 					}
 				}
 
@@ -776,9 +776,9 @@
 
 			IEnumerable<ResourcePool> Iterator()
 			{
-				foreach (var domResourcePool in PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(domQuery))
+				foreach (var resourcePool in ToApiResourcePools(PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(domQuery)))
 				{
-					yield return new ResourcePool(PlanApi, domResourcePool);
+					yield return resourcePool;
 				}
 			}
 
@@ -888,7 +888,7 @@
 			{
 				var page = enumerator.Current;
 				hasNext = enumerator.MoveNext();
-				yield return new PagedResult<ResourcePool>(page.Select(x => new ResourcePool(PlanApi, x)), pageNumber++, pageSize, hasNext);
+				yield return new PagedResult<ResourcePool>(ToApiResourcePools(page).ToList(), pageNumber++, pageSize, hasNext);
 			}
 		}
 
@@ -903,7 +903,45 @@
 			{
 				var page = enumerator.Current;
 				hasNext = enumerator.MoveNext();
-				yield return new PagedResult<ResourcePool>(page.Select(x => new ResourcePool(PlanApi, x)), pageNumber++, pageSize, hasNext);
+				yield return new PagedResult<ResourcePool>(ToApiResourcePools(page).ToList(), pageNumber++, pageSize, hasNext);
+			}
+		}
+
+		// Loads the flow rules per batch of resource pools, so a streamed read does not need one extra query per pool.
+		private IEnumerable<ResourcePool> ToApiResourcePools(IEnumerable<StorageResourceStudio.ResourcepoolInstance> instances)
+		{
+			var batch = new List<StorageResourceStudio.ResourcepoolInstance>(MediaOpsPlanApi.DefaultPageSize);
+
+			foreach (var instance in instances)
+			{
+				batch.Add(instance);
+				if (batch.Count < MediaOpsPlanApi.DefaultPageSize)
+				{
+					continue;
+				}
+
+				foreach (var resourcePool in CreateBatch(batch))
+				{
+					yield return resourcePool;
+				}
+
+				batch.Clear();
+			}
+
+			foreach (var resourcePool in CreateBatch(batch))
+			{
+				yield return resourcePool;
+			}
+
+			IEnumerable<ResourcePool> CreateBatch(List<StorageResourceStudio.ResourcepoolInstance> items)
+			{
+				if (items.Count == 0)
+				{
+					return [];
+				}
+
+				var flowRulesById = ResourcePool.LoadFlowRules(PlanApi, items);
+				return items.Select(x => new ResourcePool(PlanApi, x, flowRulesById)).ToList();
 			}
 		}
 
@@ -1033,7 +1071,7 @@
 
 				act?.AddTag("ResourcePoolId", result.SuccessfulIds.Single());
 
-				return new ResourcePool(PlanApi, result.SuccessfulItems.Single());
+				return ToApiResourcePools([result.SuccessfulItems.Single()]).Single();
 			});
 		}
 
@@ -1068,7 +1106,7 @@
 				}
 
 				act?.AddTag("ResourcePoolIds", String.Join(", ", result.SuccessfulIds));
-				return result.SuccessfulItems.Select(x => new ResourcePool(PlanApi, x)).ToList();
+				return ToApiResourcePools(result.SuccessfulItems).ToList();
 			});
 		}
 

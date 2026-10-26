@@ -12,6 +12,7 @@
 	/// <seealso cref="ResourcePoolIdInUseError"/>
 	/// <seealso cref="ResourcePoolInUseError"/>
 	/// <seealso cref="ResourcePoolInvalidCapabilitySettingsError"/>
+	/// <seealso cref="ResourcePoolInvalidFlowRuleError"/>
 	/// <seealso cref="ResourcePoolInvalidNameError"/>
 	/// <seealso cref="ResourcePoolInvalidPoolLinkError"/>
 	/// <seealso cref="ResourcePoolInvalidStateError"/>

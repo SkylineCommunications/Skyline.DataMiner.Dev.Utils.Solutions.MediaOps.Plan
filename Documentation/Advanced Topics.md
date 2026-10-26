@@ -237,6 +237,36 @@ api.ResourcePools.Deprecate(pool, new ResourcePoolDeprecateOptions
 });
 ```
 
+## Flow Rules
+
+Flow rules constrain which resource pools may be directly connected in the node graph of a job, workflow or recurring job. Each resource pool owns one rule set (`ResourcePool.FlowRules`), stored in its own DOM instance and persisted together with the pool.
+
+### Rule model
+
+- Two independent directions: `Before` (other node → this pool) and `After` (this pool → other node).
+- Per direction an optional **default** rule and any number of **overrides** for specific target pools. An override takes precedence over the default; a direction without a default behaves as `Allowed`.
+- Outcomes: `Allowed`, `Warning` (allowed but flagged), `Forbidden`. Each rule can carry a message.
+- An override may target the owning pool itself, to constrain connections between two nodes of the same pool.
+
+### Evaluation
+
+A connection `A → B` is evaluated against the `After` rules of `A` and the `Before` rules of `B`; the most restrictive outcome wins (`Forbidden` > `Warning` > `Allowed`). `FlowRuleEvaluation` exposes the outcome per side, the applied rules and the messages of the decisive rule(s). Resource nodes are evaluated through the pool they were selected from.
+
+### Enforcement
+
+| Where | Behavior |
+| --- | --- |
+| Creating or updating a job, workflow or recurring job | A `Forbidden` connection that is **new or changed** in that save fails it with `JobNodeGraphForbiddenConnectionError`, `WorkflowNodeGraphForbiddenConnectionError` or `RecurringJobNodeGraphForbiddenConnectionError`. A connection is considered changed when one of its endpoints now references another resource pool (for example after a swap). |
+| Connections stored before the rules changed | Not blocked, so the object stays editable. `Jobs.Validate` reports them with `FlowRuleViolationJobValidationError` (`J701`); the error is cleared automatically by the save that resolves the connection. |
+| `Warning` connections | Never block a save; use `api.FlowRules.Evaluate(...)` to flag them in a UI. |
+
+### Lifecycle and validation
+
+- Saving a resource pool rejects duplicate rules (`ResourcePoolDuplicateFlowRuleError`), messages longer than 150 characters, and new overrides that target a resource pool that does not exist or is deprecated.
+- Deleting a resource pool that is targeted by overrides of other pools fails with `ResourcePoolInUseByFlowRulesError`; remove the overrides first, or delete the referencing pools in the same call. Deleting a pool removes its own rule set.
+- Deprecating a pool keeps its rules and the overrides that target it, so restoring it brings the configuration back.
+- Resource pools created before flow rules existed get their rule set on their next save.
+
 ## Orchestration Settings
 
 Orchestration settings define automation behavior for resource pools and workflows. They contain capability, capacity, configuration, and orchestration event settings.

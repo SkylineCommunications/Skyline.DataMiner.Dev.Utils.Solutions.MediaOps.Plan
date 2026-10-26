@@ -31,6 +31,7 @@ using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 
 var resourcesRepo = api.Resources;
 var poolsRepo = api.ResourcePools;
+var flowRulesRepo = api.FlowRules;
 var capabilitiesRepo = api.Capabilities;
 var capacitiesRepo = api.Capacities;
 var configurationsRepo = api.Configurations;
@@ -468,6 +469,34 @@ var poolsPerResource = api.ResourcePools.GetPoolsPerResource(new[] { resource1, 
 
 // Get parent pool links
 var parentLinks = api.ResourcePools.GetParentPoolLinks(new[] { pool1, pool2 });
+```
+
+## Flow Rules
+
+Flow rules define which resource pools may be connected before or after a pool. They are edited on `ResourcePool.FlowRules` and saved together with the pool. See [Advanced Topics](Advanced%20Topics.md#flow-rules) for the evaluation and enforcement details.
+
+```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
+// "Anything may come before this pool, except the IRD pool."
+pool.FlowRules
+    .SetDefault(FlowRuleDirection.Before, FlowRuleOutcome.Allowed)
+    .SetOverride(FlowRuleDirection.Before, irdPool, FlowRuleOutcome.Forbidden, "An IRD cannot feed this pool.")
+    .SetDefault(FlowRuleDirection.After, FlowRuleOutcome.Warning, "Unusual successor.");
+api.ResourcePools.Update(pool);
+
+// Evaluate a single connection (from → to)
+FlowRuleEvaluation evaluation = api.FlowRules.Evaluate(irdPool.Id, pool.Id);
+if (evaluation.Outcome == FlowRuleOutcome.Forbidden)
+{
+    var reasons = string.Join(" ", evaluation.Messages);
+}
+
+// Which pools may be added after an existing node?
+var candidates = api.FlowRules.EvaluateCandidates(pool.Id, FlowRuleDirection.After, candidatePoolIds);
+
+// Evaluate every connection of a job, workflow or recurring job that is being edited
+var perConnection = api.FlowRules.Evaluate(job.NodeGraph);
 ```
 
 ## Workflows

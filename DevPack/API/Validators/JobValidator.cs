@@ -93,7 +93,10 @@
 				? new HashSet<Guid>(liveApi.VirtualSignalGroups.Read(virtualSignalGroupIds).Keys)
 				: new HashSet<Guid>();
 
-			return new ValidationContext(now, resources, coreResources, reservationsByJob, virtualSignalGroupIdsFound, liveIsInstalled, new ReferenceDefinitionCache(planApi));
+			var connectedResourcePoolIds = jobs.SelectMany(job => FlowRuleEvaluator.GetConnectedResourcePoolIds(job.NodeGraph)).Distinct().ToList();
+			var flowRulesByResourcePoolId = planApi.FlowRules.Read(connectedResourcePoolIds);
+
+			return new ValidationContext(now, resources, coreResources, reservationsByJob, virtualSignalGroupIdsFound, liveIsInstalled, new ReferenceDefinitionCache(planApi), flowRulesByResourcePoolId);
 		}
 
 		/// <summary>Retrieves the reservation of each job. A job is linked to at most one reservation, which holds the job ID in the 'Job ID' property.</summary>
@@ -141,6 +144,7 @@
 
 				ValidateReservation(reservation, result);
 				ValidateVirtualSignalGroups(resources, result, context);
+				ValidateFlowRules(job, result, context);
 				ValidateReferences(job, reservation, result, context);
 			}
 			catch (Exception exception)
@@ -490,6 +494,37 @@
 			return GetResourceNodes(job).Where(node => node.End == default || node.End > now);
 		}
 
+		private static void ValidateFlowRules(Job job, JobValidationResult result, ValidationContext context)
+		{
+			FlowRules GetFlowRules(Guid resourcePoolId) => context.FlowRulesByResourcePoolId.TryGetValue(resourcePoolId, out var flowRules) ? flowRules : null;
+
+			var forbidden = FlowRuleEvaluator.Evaluate(job.NodeGraph, GetFlowRules)
+				.Where(x => x.Outcome == FlowRuleOutcome.Forbidden && x.FromNodeId != x.ToNodeId)
+				.ToList();
+
+			if (forbidden.Count == 0)
+			{
+				return;
+			}
+
+			var nodesById = job.NodeGraph.Nodes.Where(x => x.Id != null).GroupBy(x => x.Id).ToDictionary(x => x.Key, x => x.First());
+			string DisplayName(string nodeId) => nodesById.TryGetValue(nodeId, out var node) ? GetNodeDisplayName(node) : $"node {nodeId}";
+
+			result.SetError(new FlowRuleViolationJobValidationError(ComposeFlowRuleViolationMessage(forbidden, DisplayName)));
+		}
+
+		private static string ComposeFlowRuleViolationMessage(IReadOnlyCollection<FlowRuleConnectionEvaluation> forbidden, Func<string, string> displayName)
+		{
+			var connections = forbidden.Select(x =>
+			{
+				var connection = $"{displayName(x.FromNodeId)} → {displayName(x.ToNodeId)}";
+				return x.Messages.Count > 0 ? $"{connection} ({String.Join(" ", x.Messages.Select(m => m.Trim()))})" : connection;
+			});
+
+			var message = $"Connections forbidden by the flow rules: {String.Join("; ", connections)}.";
+			return message.Length <= MaxErrorMessageLength ? message : $"{forbidden.Count} connection(s) are forbidden by the flow rules.";
+		}
+
 		private static string ComposeQuarantineMessage(ReservationInstance reservation, JobValidationResult result)
 		{
 			var resourceNames = new List<string>();
@@ -582,7 +617,8 @@
 				IReadOnlyDictionary<Job, ReservationInstance> reservationsByJob,
 				ISet<Guid> virtualSignalGroupIds,
 				bool liveIsInstalled,
-				ReferenceDefinitionCache referenceDefinitions)
+				ReferenceDefinitionCache referenceDefinitions,
+				IReadOnlyDictionary<Guid, FlowRules> flowRulesByResourcePoolId)
 			{
 				Now = now;
 				Resources = resources;
@@ -591,6 +627,7 @@
 				VirtualSignalGroupIds = virtualSignalGroupIds;
 				LiveIsInstalled = liveIsInstalled;
 				ReferenceDefinitions = referenceDefinitions;
+				FlowRulesByResourcePoolId = flowRulesByResourcePoolId;
 			}
 
 			public DateTimeOffset Now { get; }
@@ -600,6 +637,7 @@
 			public ISet<Guid> VirtualSignalGroupIds { get; }
 			public bool LiveIsInstalled { get; }
 			public ReferenceDefinitionCache ReferenceDefinitions { get; }
+			public IReadOnlyDictionary<Guid, FlowRules> FlowRulesByResourcePoolId { get; }
 		}
 	}
 }

@@ -4264,7 +4264,7 @@
 
 			foreach (var job in apiJobs)
 			{
-				PassTraceData(JobNodeGraphValidator.Validate(job.Id, job.NodeGraph, resourcesById, resourcePoolsById));
+				PassTraceData(JobNodeGraphValidator.Validate(job.Id, job.NodeGraph, resourcesById, resourcePoolsById, FlowRuleEvaluator.GetStoredPoolConnections(job.OriginalInstance?.Nodes, job.OriginalInstance?.Connections)));
 			}
 		}
 

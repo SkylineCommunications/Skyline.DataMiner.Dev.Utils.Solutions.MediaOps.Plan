@@ -323,6 +323,82 @@
 				x => GetConfigurationIterator(x));
 		}
 
+		public IEnumerable<FlowrulesInstance> GetFlowRules(FilterElement<DomInstance> filter)
+		{
+			if (filter == null)
+			{
+				throw new ArgumentNullException(nameof(filter));
+			}
+
+			return GetFlowRulesIterator(filter);
+		}
+
+		public IEnumerable<FlowrulesInstance> GetFlowRules(IEnumerable<Guid> ids)
+		{
+			if (ids == null)
+			{
+				throw new ArgumentNullException(nameof(ids));
+			}
+
+			if (!ids.Any())
+			{
+				return Enumerable.Empty<FlowrulesInstance>();
+			}
+
+			FilterElement<DomInstance> Filter(Guid id) =>
+				DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Flowrules.Id)
+				.AND(DomInstanceExposers.Id.Equal(id));
+
+			return FilterQueryExecutor.RetrieveFilteredItems(
+				ids.Distinct(),
+				x => Filter(x),
+				x => GetFlowRulesIterator(x));
+		}
+
+		public IEnumerable<FlowrulesInstance> GetFlowRulesByOwner(IEnumerable<Guid> ownerIds)
+		{
+			if (ownerIds == null)
+			{
+				throw new ArgumentNullException(nameof(ownerIds));
+			}
+
+			if (!ownerIds.Any())
+			{
+				return Enumerable.Empty<FlowrulesInstance>();
+			}
+
+			FilterElement<DomInstance> Filter(Guid id) =>
+				DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Flowrules.Id)
+				.AND(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.Flowrulesinfo.Owner).Equal(Convert.ToString(id)));
+
+			return FilterQueryExecutor.RetrieveFilteredItems(
+				ownerIds.Distinct(),
+				x => Filter(x),
+				x => GetFlowRulesIterator(x));
+		}
+
+		public IEnumerable<FlowrulesInstance> GetFlowRulesByTarget(IEnumerable<Guid> targetIds)
+		{
+			if (targetIds == null)
+			{
+				throw new ArgumentNullException(nameof(targetIds));
+			}
+
+			if (!targetIds.Any())
+			{
+				return Enumerable.Empty<FlowrulesInstance>();
+			}
+
+			FilterElement<DomInstance> Filter(Guid id) =>
+				DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Flowrules.Id)
+				.AND(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.Flowrule.Target).Equal(Convert.ToString(id)));
+
+			return FilterQueryExecutor.RetrieveFilteredItems(
+				targetIds.Distinct(),
+				x => Filter(x),
+				x => GetFlowRulesIterator(x));
+		}
+
 		internal IEnumerable<ResourcepoolInstance> GetResourcePools(IQuery<DomInstance> query)
 		{
 			if (query == null)
@@ -464,6 +540,11 @@
 		private IEnumerable<ConfigurationInstance> GetConfigurationIterator(FilterElement<DomInstance> filter)
 		{
 			return InstanceFactory.ReadAndCreateInstances(DomHelper, filter, instance => new ConfigurationInstance(instance));
+		}
+
+		private IEnumerable<FlowrulesInstance> GetFlowRulesIterator(FilterElement<DomInstance> filter)
+		{
+			return InstanceFactory.ReadAndCreateInstances(DomHelper, filter, instance => new FlowrulesInstance(instance));
 		}
 	}
 }

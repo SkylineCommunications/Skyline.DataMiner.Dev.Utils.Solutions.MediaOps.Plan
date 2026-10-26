@@ -184,6 +184,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 			{
 				BuildDefinition(ResourceStudioDefinitions.Resourcepool, ResourceStudioBehaviors.Resourcepool_Behavior.Id, ResourceStudioSections.ResourcePoolInfo.Name),
 				BuildDefinition(ResourceStudioDefinitions.Resource, ResourceStudioBehaviors.Resource_Behavior.Id, ResourceStudioSections.ResourceInfo.Name),
+				BuildDefinition(ResourceStudioDefinitions.Flowrules, null),
 			};
 
 			dms.RegisterDomModule(ResourceStudioModuleId, definitions, new[] { resourcePoolBehavior, resourceBehavior });
