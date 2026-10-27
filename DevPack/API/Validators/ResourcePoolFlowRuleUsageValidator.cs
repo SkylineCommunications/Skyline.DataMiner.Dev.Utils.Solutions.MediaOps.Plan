@@ -74,7 +74,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				{
 					Id = resourcePool.Id,
 					ErrorMessage = $"Resource pool '{resourcePool.Name}' is referenced by the flow rules of {referencingPoolIds.Length} resource pool(s).",
-					ReferencingResourcePoolIds = referencingPoolIds,
+					ReferencingOwnerIds = referencingPoolIds,
 				});
 			}
 		}

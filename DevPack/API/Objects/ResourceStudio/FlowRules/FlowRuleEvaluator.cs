@@ -7,27 +7,27 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using StorageWorkflow = Storage.DOM.SlcWorkflow;
 
 	/// <summary>
-	/// Evaluates flow rules for connections between resource pools. A connection <c>A → B</c> is evaluated against the
+	/// Evaluates flow rules for connections between objects. A connection <c>A → B</c> is evaluated against the
 	/// <see cref="FlowRuleDirection.After"/> rules of <c>A</c> and the <see cref="FlowRuleDirection.Before"/> rules of
 	/// <c>B</c>; the most restrictive outcome wins. An override takes precedence over the default of its direction, and a
 	/// missing rule set or rule results in <see cref="FlowRuleOutcome.Allowed"/>.
 	/// </summary>
 	internal static class FlowRuleEvaluator
 	{
-		public static FlowRuleEvaluation Evaluate(Guid fromResourcePoolId, Guid toResourcePoolId, Func<Guid, FlowRules> getFlowRules)
+		public static FlowRuleEvaluation Evaluate(FlowRuleObject from, FlowRuleObject to, Func<FlowRuleObject, FlowRules> getFlowRules)
 		{
 			if (getFlowRules == null)
 			{
 				throw new ArgumentNullException(nameof(getFlowRules));
 			}
 
-			var fromRule = getFlowRules(fromResourcePoolId)?.GetApplicableRule(FlowRuleDirection.After, toResourcePoolId);
-			var toRule = getFlowRules(toResourcePoolId)?.GetApplicableRule(FlowRuleDirection.Before, fromResourcePoolId);
+			var fromRule = getFlowRules(from)?.GetApplicableRule(FlowRuleDirection.After, to);
+			var toRule = getFlowRules(to)?.GetApplicableRule(FlowRuleDirection.Before, from);
 
-			return new FlowRuleEvaluation(fromResourcePoolId, toResourcePoolId, fromRule, toRule);
+			return new FlowRuleEvaluation(from, to, fromRule, toRule);
 		}
 
-		public static IReadOnlyCollection<FlowRuleConnectionEvaluation> Evaluate<TNode>(NodeGraph<TNode> nodeGraph, Func<Guid, FlowRules> getFlowRules)
+		public static IReadOnlyCollection<FlowRuleConnectionEvaluation> Evaluate<TNode>(NodeGraph<TNode> nodeGraph, Func<FlowRuleObject, FlowRules> getFlowRules)
 			where TNode : NodeBase
 		{
 			if (nodeGraph == null)
@@ -45,20 +45,20 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				if (connection?.From == null
 					|| connection.To == null
-					|| !TryGetResourcePoolId(connection.From, out var fromResourcePoolId)
-					|| !TryGetResourcePoolId(connection.To, out var toResourcePoolId))
+					|| !TryGetFlowRuleObject(connection.From, out var from)
+					|| !TryGetFlowRuleObject(connection.To, out var to))
 				{
 					continue;
 				}
 
-				var evaluation = Evaluate(fromResourcePoolId, toResourcePoolId, getFlowRules);
+				var evaluation = Evaluate(from, to, getFlowRules);
 				result.Add(new FlowRuleConnectionEvaluation(connection.Id, connection.From.Id, connection.To.Id, evaluation));
 			}
 
 			return result;
 		}
 
-		public static IReadOnlyCollection<Guid> GetConnectedResourcePoolIds<TNode>(NodeGraph<TNode> nodeGraph)
+		public static IReadOnlyCollection<FlowRuleObject> GetConnectedObjects<TNode>(NodeGraph<TNode> nodeGraph)
 			where TNode : NodeBase
 		{
 			if (nodeGraph == null)
@@ -66,36 +66,36 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				throw new ArgumentNullException(nameof(nodeGraph));
 			}
 
-			var ids = new HashSet<Guid>();
+			var objects = new HashSet<FlowRuleObject>();
 			foreach (var connection in nodeGraph.Connections)
 			{
-				if (connection?.From != null && TryGetResourcePoolId(connection.From, out var fromResourcePoolId))
+				if (connection?.From != null && TryGetFlowRuleObject(connection.From, out var from))
 				{
-					ids.Add(fromResourcePoolId);
+					objects.Add(from);
 				}
 
-				if (connection?.To != null && TryGetResourcePoolId(connection.To, out var toResourcePoolId))
+				if (connection?.To != null && TryGetFlowRuleObject(connection.To, out var to))
 				{
-					ids.Add(toResourcePoolId);
+					objects.Add(to);
 				}
 			}
 
-			return ids;
+			return objects;
 		}
 
-		// Returns the connections of a stored node graph as (connection ID, from pool, to pool), so a save can tell which
+		// Returns the connections of a stored node graph as (connection ID, from object, to object), so a save can tell which
 		// forbidden connections it introduces and which ones were already stored before (for example before a rule change).
-		public static ISet<(string ConnectionId, Guid FromResourcePoolId, Guid ToResourcePoolId)> GetStoredPoolConnections(
+		public static ISet<(string ConnectionId, FlowRuleObject From, FlowRuleObject To)> GetStoredConnections(
 			IEnumerable<StorageWorkflow.NodesSection> storedNodes,
 			IEnumerable<StorageWorkflow.ConnectionsSection> storedConnections)
 		{
-			var result = new HashSet<(string, Guid, Guid)>();
+			var result = new HashSet<(string, FlowRuleObject, FlowRuleObject)>();
 			if (storedNodes == null || storedConnections == null)
 			{
 				return result;
 			}
 
-			var poolIdByNodeId = new Dictionary<string, Guid>(StringComparer.Ordinal);
+			var objectByNodeId = new Dictionary<string, FlowRuleObject>(StringComparer.Ordinal);
 			foreach (var node in storedNodes.Where(x => x.NodeID != null))
 			{
 				var poolId = node.NodeType switch
@@ -107,40 +107,34 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 				if (poolId != Guid.Empty)
 				{
-					poolIdByNodeId[node.NodeID] = poolId;
+					objectByNodeId[node.NodeID] = FlowRuleObject.ResourcePool(poolId);
 				}
 			}
 
 			foreach (var connection in storedConnections.Where(x => x.ConnectionID != null && x.SourceNodeID != null && x.DestinationNodeID != null))
 			{
-				if (poolIdByNodeId.TryGetValue(connection.SourceNodeID, out var fromPoolId)
-					&& poolIdByNodeId.TryGetValue(connection.DestinationNodeID, out var toPoolId))
+				if (objectByNodeId.TryGetValue(connection.SourceNodeID, out var from)
+					&& objectByNodeId.TryGetValue(connection.DestinationNodeID, out var to))
 				{
-					result.Add((connection.ConnectionID, fromPoolId, toPoolId));
+					result.Add((connection.ConnectionID, from, to));
 				}
 			}
 
 			return result;
 		}
 
-		public static bool TryGetResourcePoolId(NodeBase node, out Guid resourcePoolId)
+		// Resource nodes and resource pool nodes are evaluated against the flow rules of their resource pool.
+		public static bool TryGetFlowRuleObject(NodeBase node, out FlowRuleObject flowRuleObject)
 		{
-			switch (node)
+			var resourcePoolId = node switch
 			{
-				case IResourceNode resourceNode:
-					resourcePoolId = resourceNode.ResourcePoolId;
-					break;
+				IResourceNode resourceNode => resourceNode.ResourcePoolId,
+				IResourcePoolNode resourcePoolNode => resourcePoolNode.ResourcePoolId,
+				_ => Guid.Empty,
+			};
 
-				case IResourcePoolNode resourcePoolNode:
-					resourcePoolId = resourcePoolNode.ResourcePoolId;
-					break;
-
-				default:
-					resourcePoolId = Guid.Empty;
-					break;
-			}
-
-			return resourcePoolId != Guid.Empty;
+			flowRuleObject = FlowRuleObject.ResourcePool(resourcePoolId);
+			return !flowRuleObject.IsEmpty;
 		}
 
 		public static string ComposeMessage(FlowRuleEvaluation evaluation, string fromDisplayName, string toDisplayName)

@@ -93,10 +93,10 @@
 				? new HashSet<Guid>(liveApi.VirtualSignalGroups.Read(virtualSignalGroupIds).Keys)
 				: new HashSet<Guid>();
 
-			var connectedResourcePoolIds = jobs.SelectMany(job => FlowRuleEvaluator.GetConnectedResourcePoolIds(job.NodeGraph)).Distinct().ToList();
-			var flowRulesByResourcePoolId = planApi.FlowRules.Read(connectedResourcePoolIds);
+			var connectedObjects = jobs.SelectMany(job => FlowRuleEvaluator.GetConnectedObjects(job.NodeGraph)).Distinct().ToList();
+			var flowRulesByOwner = new FlowRulesRepository(planApi).Read(connectedObjects);
 
-			return new ValidationContext(now, resources, coreResources, reservationsByJob, virtualSignalGroupIdsFound, liveIsInstalled, new ReferenceDefinitionCache(planApi), flowRulesByResourcePoolId);
+			return new ValidationContext(now, resources, coreResources, reservationsByJob, virtualSignalGroupIdsFound, liveIsInstalled, new ReferenceDefinitionCache(planApi), flowRulesByOwner);
 		}
 
 		/// <summary>Retrieves the reservation of each job. A job is linked to at most one reservation, which holds the job ID in the 'Job ID' property.</summary>
@@ -496,7 +496,7 @@
 
 		private static void ValidateFlowRules(Job job, JobValidationResult result, ValidationContext context)
 		{
-			FlowRules GetFlowRules(Guid resourcePoolId) => context.FlowRulesByResourcePoolId.TryGetValue(resourcePoolId, out var flowRules) ? flowRules : null;
+			FlowRules GetFlowRules(FlowRuleObject owner) => context.FlowRulesByOwner.TryGetValue(owner, out var flowRules) ? flowRules : null;
 
 			var forbidden = FlowRuleEvaluator.Evaluate(job.NodeGraph, GetFlowRules)
 				.Where(x => x.Outcome == FlowRuleOutcome.Forbidden && x.FromNodeId != x.ToNodeId)
@@ -618,7 +618,7 @@
 				ISet<Guid> virtualSignalGroupIds,
 				bool liveIsInstalled,
 				ReferenceDefinitionCache referenceDefinitions,
-				IReadOnlyDictionary<Guid, FlowRules> flowRulesByResourcePoolId)
+				IReadOnlyDictionary<FlowRuleObject, FlowRules> flowRulesByOwner)
 			{
 				Now = now;
 				Resources = resources;
@@ -627,7 +627,7 @@
 				VirtualSignalGroupIds = virtualSignalGroupIds;
 				LiveIsInstalled = liveIsInstalled;
 				ReferenceDefinitions = referenceDefinitions;
-				FlowRulesByResourcePoolId = flowRulesByResourcePoolId;
+				FlowRulesByOwner = flowRulesByOwner;
 			}
 
 			public DateTimeOffset Now { get; }
@@ -637,7 +637,7 @@
 			public ISet<Guid> VirtualSignalGroupIds { get; }
 			public bool LiveIsInstalled { get; }
 			public ReferenceDefinitionCache ReferenceDefinitions { get; }
-			public IReadOnlyDictionary<Guid, FlowRules> FlowRulesByResourcePoolId { get; }
+			public IReadOnlyDictionary<FlowRuleObject, FlowRules> FlowRulesByOwner { get; }
 		}
 	}
 }

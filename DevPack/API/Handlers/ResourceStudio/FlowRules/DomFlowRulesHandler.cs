@@ -9,7 +9,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 	using DomFlowRules = Storage.DOM.SlcResource_Studio.FlowrulesInstance;
 
-	// Flow rules are only written through their owning resource pool, so they are persisted under the lock of that pool.
+	// Flow rules are only written through the object that owns them, so they are persisted under the lock of that object.
 	internal sealed class DomFlowRulesHandler : DomInstanceApiObjectValidator<DomFlowRules>
 	{
 		private readonly MediaOpsPlanApi planApi;
@@ -54,8 +54,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				x => x.OriginalInstance,
 				x => x.GetInstanceWithChanges(),
 				ids => planApi.DomHelpers.SlcResourceStudioHelper.GetFlowRules(ids),
-				x => new MediaOpsErrorData { ErrorMessage = $"Flow rules with ID '{x.Id}' of resource pool '{x.ResourcePoolId}' no longer exist." },
-				(x, msg) => new ResourcePoolValueAlreadyChangedError { ErrorMessage = msg, Id = x.ResourcePoolId })
+				x => new FlowRulesNotFoundError { ErrorMessage = $"Flow rules with ID '{x.Id}' of {x.OwnerType} '{x.OwnerId}' no longer exist.", Id = x.Id, OwnerType = x.OwnerType, OwnerId = x.OwnerId },
+				(x, msg) => new FlowRulesValueAlreadyChangedError { ErrorMessage = msg, Id = x.Id, OwnerType = x.OwnerType, OwnerId = x.OwnerId })
 				.ToList();
 
 			var instances = toCreate

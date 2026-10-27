@@ -7,8 +7,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
 	/// <summary>
-	/// Represents a single flow rule of a resource pool. A rule without a target resource pool is the default rule for its
-	/// direction; a rule with a target resource pool overrides that default for the target.
+	/// Represents a single flow rule. A rule without a target is the default rule for its direction; a rule with a target
+	/// overrides that default for the target object.
 	/// </summary>
 	public sealed class FlowRule : IEquatable<FlowRule>
 	{
@@ -18,7 +18,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Initializes a new instance of the <see cref="FlowRule"/> class that represents the default rule of a direction.
 		/// </summary>
 		/// <param name="direction">The direction the rule applies to.</param>
-		/// <param name="outcome">The outcome for any resource pool that is not covered by an override.</param>
+		/// <param name="outcome">The outcome for any object that is not covered by an override.</param>
 		/// <param name="message">An optional message that explains the outcome.</param>
 		/// <exception cref="ArgumentException">Thrown when <paramref name="direction"/> or <paramref name="outcome"/> is not a defined value.</exception>
 		public FlowRule(FlowRuleDirection direction, FlowRuleOutcome outcome, string message = null)
@@ -27,15 +27,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <summary>
-		/// Initializes a new instance of the <see cref="FlowRule"/> class that overrides the default rule of a direction for a specific resource pool.
+		/// Initializes a new instance of the <see cref="FlowRule"/> class that overrides the default rule of a direction for a specific object.
 		/// </summary>
 		/// <param name="direction">The direction the rule applies to.</param>
-		/// <param name="targetResourcePoolId">The unique identifier of the resource pool the override applies to.</param>
-		/// <param name="outcome">The outcome for the target resource pool.</param>
+		/// <param name="targetType">The type of the object the override applies to.</param>
+		/// <param name="targetId">The unique identifier of the object the override applies to.</param>
+		/// <param name="outcome">The outcome for the target object.</param>
 		/// <param name="message">An optional message that explains the outcome.</param>
-		/// <exception cref="ArgumentException">Thrown when <paramref name="targetResourcePoolId"/> is <see cref="Guid.Empty"/>, or when <paramref name="direction"/> or <paramref name="outcome"/> is not a defined value.</exception>
-		public FlowRule(FlowRuleDirection direction, Guid targetResourcePoolId, FlowRuleOutcome outcome, string message = null)
-			: this(direction, ValidateTarget(targetResourcePoolId), outcome, message)
+		/// <exception cref="ArgumentException">Thrown when <paramref name="targetId"/> is <see cref="Guid.Empty"/>, or when <paramref name="direction"/>, <paramref name="targetType"/> or <paramref name="outcome"/> is not a defined value.</exception>
+		public FlowRule(FlowRuleDirection direction, FlowRuleObjectType targetType, Guid targetId, FlowRuleOutcome outcome, string message = null)
+			: this(direction, ValidateTarget(targetType, targetId), outcome, message)
 		{
 		}
 
@@ -46,14 +47,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			Direction = section.Direction.HasValue
 				? section.Direction.Value.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Enums.Flowruledirection, FlowRuleDirection>()
 				: FlowRuleDirection.Before;
-			TargetResourcePoolId = section.TargetId;
+			Target = section.TargetId.HasValue
+				? new FlowRuleObject(FlowRuleObject.FromStorage(section.Targettype), section.TargetId.Value)
+				: (FlowRuleObject?)null;
 			Outcome = section.Outcome.HasValue
 				? section.Outcome.Value.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Enums.Flowruleoutcome, FlowRuleOutcome>()
 				: FlowRuleOutcome.Allowed;
 			Message = section.Message;
 		}
 
-		private FlowRule(FlowRuleDirection direction, Guid? targetResourcePoolId, FlowRuleOutcome outcome, string message)
+		private FlowRule(FlowRuleDirection direction, FlowRuleObject? target, FlowRuleOutcome outcome, string message)
 		{
 			if (!Enum.IsDefined(typeof(FlowRuleDirection), direction))
 			{
@@ -66,7 +69,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			Direction = direction;
-			TargetResourcePoolId = targetResourcePoolId;
+			Target = target;
 			Outcome = outcome;
 			Message = message;
 		}
@@ -77,9 +80,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		public FlowRuleDirection Direction { get; }
 
 		/// <summary>
-		/// Gets the unique identifier of the resource pool this rule applies to, or <see langword="null"/> when this is the default rule of its direction.
+		/// Gets the type of the object this rule applies to, or <see langword="null"/> when this is the default rule of its direction.
 		/// </summary>
-		public Guid? TargetResourcePoolId { get; }
+		public FlowRuleObjectType? TargetType => Target?.Type;
+
+		/// <summary>
+		/// Gets the unique identifier of the object this rule applies to, or <see langword="null"/> when this is the default rule of its direction.
+		/// </summary>
+		public Guid? TargetId => Target?.Id;
 
 		/// <summary>
 		/// Gets the outcome of the rule.
@@ -94,7 +102,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <summary>
 		/// Gets a value indicating whether this rule is the default rule of its direction.
 		/// </summary>
-		public bool IsDefault => !TargetResourcePoolId.HasValue;
+		public bool IsDefault => !Target.HasValue;
+
+		internal FlowRuleObject? Target { get; }
 
 		/// <inheritdoc/>
 		public bool Equals(FlowRule other)
@@ -105,7 +115,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			return Direction == other.Direction
-				&& TargetResourcePoolId == other.TargetResourcePoolId
+				&& Target == other.Target
 				&& Outcome == other.Outcome
 				&& String.Equals(Message, other.Message, StringComparison.Ordinal);
 		}
@@ -123,7 +133,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				int hash = 17;
 				hash = (hash * 23) + Direction.GetHashCode();
-				hash = (hash * 23) + TargetResourcePoolId.GetHashCode();
+				hash = (hash * 23) + Target.GetHashCode();
 				hash = (hash * 23) + Outcome.GetHashCode();
 				hash = (hash * 23) + (Message != null ? StringComparer.Ordinal.GetHashCode(Message) : 0);
 				return hash;
@@ -133,13 +143,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <inheritdoc/>
 		public override string ToString()
 		{
-			var target = IsDefault ? "default" : TargetResourcePoolId.Value.ToString();
+			var target = IsDefault ? "default" : Target.Value.ToString();
 			return $"{Direction} {target}: {Outcome}";
 		}
 
-		internal bool Matches(FlowRuleDirection direction, Guid? targetResourcePoolId)
+		internal bool Matches(FlowRuleDirection direction, FlowRuleObject? target)
 		{
-			return Direction == direction && TargetResourcePoolId == targetResourcePoolId;
+			return Direction == direction && Target == target;
 		}
 
 		internal StorageResourceStudio.FlowruleSection GetSectionWithChanges()
@@ -147,22 +157,24 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			var section = originalSection != null ? originalSection.Clone() : new StorageResourceStudio.FlowruleSection();
 
 			section.Direction = Direction.MapEnum<FlowRuleDirection, StorageResourceStudio.SlcResource_StudioIds.Enums.Flowruledirection>();
-			section.TargetId = TargetResourcePoolId;
-			section.Targettype = TargetResourcePoolId.HasValue ? StorageResourceStudio.SlcResource_StudioIds.Enums.Flowruleobjecttype.Resourcepool : null;
+			section.TargetId = TargetId;
+			section.Targettype = Target.HasValue ? FlowRuleObject.ToStorage(Target.Value.Type) : null;
 			section.Outcome = Outcome.MapEnum<FlowRuleOutcome, StorageResourceStudio.SlcResource_StudioIds.Enums.Flowruleoutcome>();
 			section.Message = String.IsNullOrEmpty(Message) ? null : Message;
 
 			return section;
 		}
 
-		private static Guid? ValidateTarget(Guid targetResourcePoolId)
+		private static FlowRuleObject? ValidateTarget(FlowRuleObjectType targetType, Guid targetId)
 		{
-			if (targetResourcePoolId == Guid.Empty)
+			FlowRuleObject.ValidateType(targetType, nameof(targetType));
+
+			if (targetId == Guid.Empty)
 			{
-				throw new ArgumentException("Target resource pool ID cannot be empty.", nameof(targetResourcePoolId));
+				throw new ArgumentException("Target ID cannot be empty.", nameof(targetId));
 			}
 
-			return targetResourcePoolId;
+			return new FlowRuleObject(targetType, targetId);
 		}
 	}
 }

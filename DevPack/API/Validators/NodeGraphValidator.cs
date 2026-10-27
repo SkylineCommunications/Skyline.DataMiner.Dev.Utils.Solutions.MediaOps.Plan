@@ -12,7 +12,7 @@
 		private readonly NodeGraph<TNode> nodeGraph;
 		private readonly IReadOnlyDictionary<Guid, Resource> resourcesById;
 		private readonly IReadOnlyDictionary<Guid, ResourcePool> resourcePoolsById;
-		private readonly ISet<(string ConnectionId, Guid FromResourcePoolId, Guid ToResourcePoolId)> storedPoolConnections;
+		private readonly ISet<(string ConnectionId, FlowRuleObject From, FlowRuleObject To)> storedConnections;
 
 		private readonly Lazy<HashSet<string>> lazyNodeIds;
 
@@ -21,7 +21,7 @@
 			NodeGraph<TNode> nodeGraph,
 			IReadOnlyDictionary<Guid, Resource> resourcesById,
 			IReadOnlyDictionary<Guid, ResourcePool> resourcePoolsById,
-			ISet<(string ConnectionId, Guid FromResourcePoolId, Guid ToResourcePoolId)> storedPoolConnections)
+			ISet<(string ConnectionId, FlowRuleObject From, FlowRuleObject To)> storedConnections)
 		{
 			if (apiObjectId == Guid.Empty)
 			{
@@ -32,7 +32,7 @@
 			this.nodeGraph = nodeGraph ?? throw new ArgumentNullException(nameof(nodeGraph));
 			this.resourcesById = resourcesById ?? throw new ArgumentNullException(nameof(resourcesById));
 			this.resourcePoolsById = resourcePoolsById ?? throw new ArgumentNullException(nameof(resourcePoolsById));
-			this.storedPoolConnections = storedPoolConnections ?? new HashSet<(string, Guid, Guid)>();
+			this.storedConnections = storedConnections ?? new HashSet<(string, FlowRuleObject, FlowRuleObject)>();
 
 			lazyNodeIds = new Lazy<HashSet<string>>(() => new HashSet<string>(nodeGraph.Nodes.Select(x => x.Id).Where(id => id != null)));
 
@@ -75,11 +75,11 @@
 		}
 
 		// Only forbidden connections introduced by this save are rejected. A connection that was already stored between the
-		// same resource pools (for example before the flow rules changed) is reported by the job validation instead, so the
+		// same objects (for example before the flow rules changed) is reported by the job validation instead, so the
 		// object stays editable and the violation can be resolved.
 		private void ValidateFlowRules()
 		{
-			FlowRules GetFlowRules(Guid resourcePoolId) => resourcePoolsById.TryGetValue(resourcePoolId, out var pool) ? pool.FlowRules : null;
+			FlowRules GetFlowRules(FlowRuleObject owner) => owner.Type == FlowRuleObjectType.ResourcePool && resourcePoolsById.TryGetValue(owner.Id, out var pool) ? pool.FlowRules : null;
 
 			var nodesById = nodeGraph.Nodes
 				.Where(x => x.Id != null)
@@ -90,7 +90,7 @@
 			{
 				if (evaluation.Outcome != FlowRuleOutcome.Forbidden
 					|| evaluation.FromNodeId == evaluation.ToNodeId
-					|| storedPoolConnections.Contains((evaluation.ConnectionId, evaluation.FromResourcePoolId, evaluation.ToResourcePoolId)))
+					|| storedConnections.Contains((evaluation.ConnectionId, evaluation.From, evaluation.To)))
 				{
 					continue;
 				}
@@ -358,14 +358,14 @@
 
 	internal class JobNodeGraphValidator : NodeGraphValidator<JobNode>
 	{
-		private JobNodeGraphValidator(Guid jobId, NodeGraph<JobNode> nodeGraph, IReadOnlyDictionary<Guid, Resource> resourcesById, IReadOnlyDictionary<Guid, ResourcePool> resourcePoolsById, ISet<(string ConnectionId, Guid FromResourcePoolId, Guid ToResourcePoolId)> storedPoolConnections)
-			: base(jobId, nodeGraph, resourcesById, resourcePoolsById, storedPoolConnections)
+		private JobNodeGraphValidator(Guid jobId, NodeGraph<JobNode> nodeGraph, IReadOnlyDictionary<Guid, Resource> resourcesById, IReadOnlyDictionary<Guid, ResourcePool> resourcePoolsById, ISet<(string ConnectionId, FlowRuleObject From, FlowRuleObject To)> storedConnections)
+			: base(jobId, nodeGraph, resourcesById, resourcePoolsById, storedConnections)
 		{
 		}
 
-		public static ApiObjectValidator Validate(Guid jobId, NodeGraph<JobNode> nodeGraph, IReadOnlyDictionary<Guid, Resource> resourcesById, IReadOnlyDictionary<Guid, ResourcePool> resourcePoolsById, ISet<(string ConnectionId, Guid FromResourcePoolId, Guid ToResourcePoolId)> storedPoolConnections = null)
+		public static ApiObjectValidator Validate(Guid jobId, NodeGraph<JobNode> nodeGraph, IReadOnlyDictionary<Guid, Resource> resourcesById, IReadOnlyDictionary<Guid, ResourcePool> resourcePoolsById, ISet<(string ConnectionId, FlowRuleObject From, FlowRuleObject To)> storedConnections = null)
 		{
-			return new JobNodeGraphValidator(jobId, nodeGraph, resourcesById, resourcePoolsById, storedPoolConnections);
+			return new JobNodeGraphValidator(jobId, nodeGraph, resourcesById, resourcePoolsById, storedConnections);
 		}
 
 		protected override MediaOpsErrorData CreateConnectionInvalidNodeLinkError(string connectionId, string nodeId, string errorMessage)
@@ -470,8 +470,10 @@
 				ConnectionId = evaluation.ConnectionId,
 				FromNodeId = evaluation.FromNodeId,
 				ToNodeId = evaluation.ToNodeId,
-				FromResourcePoolId = evaluation.FromResourcePoolId,
-				ToResourcePoolId = evaluation.ToResourcePoolId,
+				FromObjectType = evaluation.FromObjectType,
+				FromObjectId = evaluation.FromObjectId,
+				ToObjectType = evaluation.ToObjectType,
+				ToObjectId = evaluation.ToObjectId,
 				Id = ApiObjectId,
 			};
 		}
@@ -508,14 +510,14 @@
 
 	internal class RecurringJobNodeGraphValidator : NodeGraphValidator<RecurringJobNode>
 	{
-		private RecurringJobNodeGraphValidator(Guid recurringJobId, NodeGraph<RecurringJobNode> nodeGraph, IReadOnlyDictionary<Guid, Resource> resourcesById, IReadOnlyDictionary<Guid, ResourcePool> resourcePoolsById, ISet<(string ConnectionId, Guid FromResourcePoolId, Guid ToResourcePoolId)> storedPoolConnections)
-			: base(recurringJobId, nodeGraph, resourcesById, resourcePoolsById, storedPoolConnections)
+		private RecurringJobNodeGraphValidator(Guid recurringJobId, NodeGraph<RecurringJobNode> nodeGraph, IReadOnlyDictionary<Guid, Resource> resourcesById, IReadOnlyDictionary<Guid, ResourcePool> resourcePoolsById, ISet<(string ConnectionId, FlowRuleObject From, FlowRuleObject To)> storedConnections)
+			: base(recurringJobId, nodeGraph, resourcesById, resourcePoolsById, storedConnections)
 		{
 		}
 
-		public static ApiObjectValidator Validate(Guid recurringJobId, NodeGraph<RecurringJobNode> nodeGraph, IReadOnlyDictionary<Guid, Resource> resourcesById, IReadOnlyDictionary<Guid, ResourcePool> resourcePoolsById, ISet<(string ConnectionId, Guid FromResourcePoolId, Guid ToResourcePoolId)> storedPoolConnections = null)
+		public static ApiObjectValidator Validate(Guid recurringJobId, NodeGraph<RecurringJobNode> nodeGraph, IReadOnlyDictionary<Guid, Resource> resourcesById, IReadOnlyDictionary<Guid, ResourcePool> resourcePoolsById, ISet<(string ConnectionId, FlowRuleObject From, FlowRuleObject To)> storedConnections = null)
 		{
-			return new RecurringJobNodeGraphValidator(recurringJobId, nodeGraph, resourcesById, resourcePoolsById, storedPoolConnections);
+			return new RecurringJobNodeGraphValidator(recurringJobId, nodeGraph, resourcesById, resourcePoolsById, storedConnections);
 		}
 
 		protected override MediaOpsErrorData CreateConnectionInvalidNodeLinkError(string connectionId, string nodeId, string errorMessage)
@@ -620,8 +622,10 @@
 				ConnectionId = evaluation.ConnectionId,
 				FromNodeId = evaluation.FromNodeId,
 				ToNodeId = evaluation.ToNodeId,
-				FromResourcePoolId = evaluation.FromResourcePoolId,
-				ToResourcePoolId = evaluation.ToResourcePoolId,
+				FromObjectType = evaluation.FromObjectType,
+				FromObjectId = evaluation.FromObjectId,
+				ToObjectType = evaluation.ToObjectType,
+				ToObjectId = evaluation.ToObjectId,
 				Id = ApiObjectId,
 			};
 		}
@@ -658,14 +662,14 @@
 
 	internal class WorkflowNodeGraphValidator : NodeGraphValidator<WorkflowNode>
 	{
-		private WorkflowNodeGraphValidator(Guid workflowId, NodeGraph<WorkflowNode> nodeGraph, IReadOnlyDictionary<Guid, Resource> resourcesById, IReadOnlyDictionary<Guid, ResourcePool> resourcePoolsById, ISet<(string ConnectionId, Guid FromResourcePoolId, Guid ToResourcePoolId)> storedPoolConnections)
-			: base(workflowId, nodeGraph, resourcesById, resourcePoolsById, storedPoolConnections)
+		private WorkflowNodeGraphValidator(Guid workflowId, NodeGraph<WorkflowNode> nodeGraph, IReadOnlyDictionary<Guid, Resource> resourcesById, IReadOnlyDictionary<Guid, ResourcePool> resourcePoolsById, ISet<(string ConnectionId, FlowRuleObject From, FlowRuleObject To)> storedConnections)
+			: base(workflowId, nodeGraph, resourcesById, resourcePoolsById, storedConnections)
 		{
 		}
 
-		public static ApiObjectValidator Validate(Guid workflowId, NodeGraph<WorkflowNode> nodeGraph, IReadOnlyDictionary<Guid, Resource> resourcesById, IReadOnlyDictionary<Guid, ResourcePool> resourcePoolsById, ISet<(string ConnectionId, Guid FromResourcePoolId, Guid ToResourcePoolId)> storedPoolConnections = null)
+		public static ApiObjectValidator Validate(Guid workflowId, NodeGraph<WorkflowNode> nodeGraph, IReadOnlyDictionary<Guid, Resource> resourcesById, IReadOnlyDictionary<Guid, ResourcePool> resourcePoolsById, ISet<(string ConnectionId, FlowRuleObject From, FlowRuleObject To)> storedConnections = null)
 		{
-			return new WorkflowNodeGraphValidator(workflowId, nodeGraph, resourcesById, resourcePoolsById, storedPoolConnections);
+			return new WorkflowNodeGraphValidator(workflowId, nodeGraph, resourcesById, resourcePoolsById, storedConnections);
 		}
 
 		protected override MediaOpsErrorData CreateConnectionInvalidNodeLinkError(string connectionId, string nodeId, string errorMessage)
@@ -770,8 +774,10 @@
 				ConnectionId = evaluation.ConnectionId,
 				FromNodeId = evaluation.FromNodeId,
 				ToNodeId = evaluation.ToNodeId,
-				FromResourcePoolId = evaluation.FromResourcePoolId,
-				ToResourcePoolId = evaluation.ToResourcePoolId,
+				FromObjectType = evaluation.FromObjectType,
+				FromObjectId = evaluation.FromObjectId,
+				ToObjectType = evaluation.ToObjectType,
+				ToObjectId = evaluation.ToObjectId,
 				Id = ApiObjectId,
 			};
 		}

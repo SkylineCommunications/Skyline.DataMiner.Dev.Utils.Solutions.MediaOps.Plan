@@ -9,8 +9,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	{
 		internal FlowRuleConnectionEvaluation(string connectionId, string fromNodeId, string toNodeId, FlowRuleEvaluation evaluation)
 			: base(
-				  evaluation?.FromResourcePoolId ?? throw new ArgumentNullException(nameof(evaluation)),
-				  evaluation.ToResourcePoolId,
+				  evaluation?.From ?? throw new ArgumentNullException(nameof(evaluation)),
+				  evaluation.To,
 				  evaluation.FromRule,
 				  evaluation.ToRule)
 		{

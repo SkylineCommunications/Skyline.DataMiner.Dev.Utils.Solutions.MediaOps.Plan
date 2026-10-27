@@ -7,10 +7,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
 	/// <summary>
-	/// Represents the flow rules of a resource pool: per direction an optional default rule and any number of overrides for
-	/// specific resource pools. Directions without a default rule behave as <see cref="FlowRuleOutcome.Allowed"/>.
+	/// Represents the flow rules of an object: per direction an optional default rule and any number of overrides for
+	/// specific objects. Directions without a default rule behave as <see cref="FlowRuleOutcome.Allowed"/>.
 	/// </summary>
-	/// <remarks>Flow rules are persisted together with the owning <see cref="ResourcePool"/>.</remarks>
+	/// <remarks>Flow rules are persisted together with the object that owns them.</remarks>
 	public sealed class FlowRules : ApiObject
 	{
 		private readonly List<FlowRule> rules = [];
@@ -18,18 +18,18 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		private StorageResourceStudio.FlowrulesInstance originalInstance;
 		private StorageResourceStudio.FlowrulesInstance updatedInstance;
 
-		internal FlowRules(Guid resourcePoolId) : base()
+		internal FlowRules(FlowRuleObject owner) : base()
 		{
 			IsNew = true;
-			ResourcePoolId = resourcePoolId;
+			Owner = owner;
 		}
 
-		internal FlowRules(StorageResourceStudio.FlowrulesInstance instance, Guid resourcePoolId) : base(instance?.ID.Id ?? throw new ArgumentNullException(nameof(instance)))
+		internal FlowRules(StorageResourceStudio.FlowrulesInstance instance, FlowRuleObject owner) : base(instance?.ID.Id ?? throw new ArgumentNullException(nameof(instance)))
 		{
 			originalInstance = instance;
 
-			// The owning pool is authoritative; the stored owner only matters for queries on the rule set itself.
-			ResourcePoolId = resourcePoolId;
+			// The owning object is authoritative; the stored owner only matters for queries on the rule set itself.
+			Owner = owner;
 
 			foreach (var section in instance.Flowrule.Where(x => x.Direction.HasValue))
 			{
@@ -40,9 +40,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <summary>
-		/// Gets the unique identifier of the resource pool that owns these flow rules.
+		/// Gets the type of the object that owns these flow rules.
 		/// </summary>
-		public Guid ResourcePoolId { get; private set; }
+		public FlowRuleObjectType OwnerType => Owner.Type;
+
+		/// <summary>
+		/// Gets the unique identifier of the object that owns these flow rules.
+		/// </summary>
+		public Guid OwnerId => Owner.Id;
+
+		internal FlowRuleObject Owner { get; }
 
 		/// <summary>
 		/// Gets all flow rules, both defaults and overrides.
@@ -57,7 +64,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <param name="rule">The flow rule to add.</param>
 		/// <returns>The current <see cref="FlowRules"/> instance.</returns>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="rule"/> is <see langword="null"/>.</exception>
-		/// <remarks>Adding a second default for the same direction, or a second override for the same direction and target, is reported as an error when the resource pool is saved. Use <see cref="SetDefault"/> or <see cref="SetOverride(FlowRuleDirection, Guid, FlowRuleOutcome, string)"/> to replace an existing rule.</remarks>
+		/// <remarks>Adding a second default for the same direction, or a second override for the same direction and target, is reported as an error when the owning object is saved. Use <see cref="SetDefault"/> or <see cref="SetOverride(FlowRuleDirection, FlowRuleObjectType, Guid, FlowRuleOutcome, string)"/> to replace an existing rule.</remarks>
 		public FlowRules Add(FlowRule rule)
 		{
 			if (rule == null)
@@ -90,7 +97,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Sets the default rule of a direction, replacing any existing default for that direction.
 		/// </summary>
 		/// <param name="direction">The direction to set the default for.</param>
-		/// <param name="outcome">The outcome for any resource pool that is not covered by an override.</param>
+		/// <param name="outcome">The outcome for any object that is not covered by an override.</param>
 		/// <param name="message">An optional message that explains the outcome.</param>
 		/// <returns>The current <see cref="FlowRules"/> instance.</returns>
 		public FlowRules SetDefault(FlowRuleDirection direction, FlowRuleOutcome outcome, string message = null)
@@ -100,7 +107,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <summary>
-		/// Removes the default rule of a direction, so that direction behaves as <see cref="FlowRuleOutcome.Allowed"/> for resource pools without an override.
+		/// Removes the default rule of a direction, so that direction behaves as <see cref="FlowRuleOutcome.Allowed"/> for objects without an override.
 		/// </summary>
 		/// <param name="direction">The direction to remove the default for.</param>
 		/// <returns>The current <see cref="FlowRules"/> instance.</returns>
@@ -111,47 +118,51 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <summary>
-		/// Sets an override for a specific resource pool, replacing any existing override for that direction and resource pool.
+		/// Sets an override for a specific object, replacing any existing override for that direction and object.
 		/// </summary>
 		/// <param name="direction">The direction the override applies to.</param>
-		/// <param name="targetResourcePoolId">The unique identifier of the resource pool the override applies to.</param>
-		/// <param name="outcome">The outcome for the target resource pool.</param>
+		/// <param name="targetType">The type of the object the override applies to.</param>
+		/// <param name="targetId">The unique identifier of the object the override applies to.</param>
+		/// <param name="outcome">The outcome for the target object.</param>
 		/// <param name="message">An optional message that explains the outcome.</param>
 		/// <returns>The current <see cref="FlowRules"/> instance.</returns>
-		public FlowRules SetOverride(FlowRuleDirection direction, Guid targetResourcePoolId, FlowRuleOutcome outcome, string message = null)
+		public FlowRules SetOverride(FlowRuleDirection direction, FlowRuleObjectType targetType, Guid targetId, FlowRuleOutcome outcome, string message = null)
 		{
-			Replace(new FlowRule(direction, targetResourcePoolId, outcome, message));
+			Replace(new FlowRule(direction, targetType, targetId, outcome, message));
 			return this;
 		}
 
 		/// <summary>
-		/// Sets an override for a specific resource pool, replacing any existing override for that direction and resource pool.
+		/// Sets an override for a specific object, replacing any existing override for that direction and object.
 		/// </summary>
 		/// <param name="direction">The direction the override applies to.</param>
-		/// <param name="targetResourcePool">The resource pool the override applies to.</param>
-		/// <param name="outcome">The outcome for the target resource pool.</param>
+		/// <param name="target">The object the override applies to.</param>
+		/// <param name="outcome">The outcome for the target object.</param>
 		/// <param name="message">An optional message that explains the outcome.</param>
 		/// <returns>The current <see cref="FlowRules"/> instance.</returns>
-		/// <exception cref="ArgumentNullException">Thrown when <paramref name="targetResourcePool"/> is <see langword="null"/>.</exception>
-		public FlowRules SetOverride(FlowRuleDirection direction, ResourcePool targetResourcePool, FlowRuleOutcome outcome, string message = null)
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="target"/> is <see langword="null"/>.</exception>
+		/// <remarks>Shorthand for <see cref="SetOverride(FlowRuleDirection, FlowRuleObjectType, Guid, FlowRuleOutcome, string)"/> with the type and identifier of <paramref name="target"/>.</remarks>
+		public FlowRules SetOverride(FlowRuleDirection direction, IFlowRuleObject target, FlowRuleOutcome outcome, string message = null)
 		{
-			if (targetResourcePool == null)
+			if (target == null)
 			{
-				throw new ArgumentNullException(nameof(targetResourcePool));
+				throw new ArgumentNullException(nameof(target));
 			}
 
-			return SetOverride(direction, targetResourcePool.Id, outcome, message);
+			return SetOverride(direction, target.FlowRuleObjectType, target.Id, outcome, message);
 		}
 
 		/// <summary>
-		/// Removes the override of a direction for a specific resource pool.
+		/// Removes the override of a direction for a specific object.
 		/// </summary>
 		/// <param name="direction">The direction of the override.</param>
-		/// <param name="targetResourcePoolId">The unique identifier of the resource pool the override applies to.</param>
+		/// <param name="targetType">The type of the object the override applies to.</param>
+		/// <param name="targetId">The unique identifier of the object the override applies to.</param>
 		/// <returns>The current <see cref="FlowRules"/> instance.</returns>
-		public FlowRules RemoveOverride(FlowRuleDirection direction, Guid targetResourcePoolId)
+		public FlowRules RemoveOverride(FlowRuleDirection direction, FlowRuleObjectType targetType, Guid targetId)
 		{
-			rules.RemoveAll(x => x.Matches(direction, targetResourcePoolId));
+			var target = new FlowRuleObject(targetType, targetId);
+			rules.RemoveAll(x => x.Matches(direction, target));
 			return this;
 		}
 
@@ -187,40 +198,43 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <summary>
-		/// Gets the override of a direction for a specific resource pool.
+		/// Gets the override of a direction for a specific object.
 		/// </summary>
 		/// <param name="direction">The direction.</param>
-		/// <param name="targetResourcePoolId">The unique identifier of the resource pool.</param>
+		/// <param name="targetType">The type of the object.</param>
+		/// <param name="targetId">The unique identifier of the object.</param>
 		/// <returns>The override, or <see langword="null"/> when no override is configured.</returns>
-		public FlowRule GetOverride(FlowRuleDirection direction, Guid targetResourcePoolId)
+		public FlowRule GetOverride(FlowRuleDirection direction, FlowRuleObjectType targetType, Guid targetId)
 		{
-			return rules.FirstOrDefault(x => x.Matches(direction, targetResourcePoolId));
+			return GetOverride(direction, new FlowRuleObject(targetType, targetId));
 		}
 
 		/// <summary>
-		/// Gets the rule that applies to a specific resource pool in a direction: its override when present, otherwise the default of the direction.
+		/// Gets the rule that applies to a specific object in a direction: its override when present, otherwise the default of the direction.
 		/// </summary>
 		/// <param name="direction">The direction.</param>
-		/// <param name="resourcePoolId">The unique identifier of the resource pool.</param>
+		/// <param name="type">The type of the object.</param>
+		/// <param name="id">The unique identifier of the object.</param>
 		/// <returns>The applicable rule, or <see langword="null"/> when neither an override nor a default is configured.</returns>
-		public FlowRule GetApplicableRule(FlowRuleDirection direction, Guid resourcePoolId)
+		public FlowRule GetApplicableRule(FlowRuleDirection direction, FlowRuleObjectType type, Guid id)
 		{
-			return GetOverride(direction, resourcePoolId) ?? GetDefault(direction);
+			return GetApplicableRule(direction, new FlowRuleObject(type, id));
 		}
 
 		/// <inheritdoc/>
-		/// <remarks>The identifier is not part of the hash code: a resource pool that has no stored flow rules yet gets a new identifier on every read.</remarks>
+		/// <remarks>The identifier is not part of the hash code: an object that has no stored flow rules yet gets a new identifier on every read.</remarks>
 		public override int GetHashCode()
 		{
 			unchecked
 			{
 				int hash = 17;
-				hash = (hash * 23) + ResourcePoolId.GetHashCode();
+				hash = (hash * 23) + Owner.GetHashCode();
 
 				foreach (var rule in rules
 					.OrderBy(x => x.Direction)
-					.ThenBy(x => x.TargetResourcePoolId.HasValue)
-					.ThenBy(x => x.TargetResourcePoolId)
+					.ThenBy(x => x.TargetId.HasValue)
+					.ThenBy(x => x.TargetType)
+					.ThenBy(x => x.TargetId)
 					.ThenBy(x => x.Outcome)
 					.ThenBy(x => x.Message, StringComparer.Ordinal))
 				{
@@ -232,7 +246,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <inheritdoc/>
-		/// <remarks>Two instances are equal when they belong to the same resource pool and contain the same rules, regardless of their order.</remarks>
+		/// <remarks>Two instances are equal when they belong to the same object and contain the same rules, regardless of their order.</remarks>
 		public override bool Equals(object obj)
 		{
 			if (obj is not FlowRules other)
@@ -240,7 +254,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return false;
 			}
 
-			return ResourcePoolId == other.ResourcePoolId
+			return Owner == other.Owner
 				&& rules.Count == other.rules.Count
 				&& rules.All(other.rules.Contains)
 				&& other.rules.All(rules.Contains);
@@ -253,8 +267,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				updatedInstance = IsNew ? new StorageResourceStudio.FlowrulesInstance(Id) : originalInstance.Clone();
 			}
 
-			updatedInstance.Flowrulesinfo.OwnerId = ResourcePoolId;
-			updatedInstance.Flowrulesinfo.Ownertype = StorageResourceStudio.SlcResource_StudioIds.Enums.Flowruleobjecttype.Resourcepool;
+			updatedInstance.Flowrulesinfo.OwnerId = Owner.Id;
+			updatedInstance.Flowrulesinfo.Ownertype = FlowRuleObject.ToStorage(Owner.Type);
 
 			updatedInstance.Flowrule.Clear();
 			foreach (var rule in rules)
@@ -265,9 +279,19 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return updatedInstance;
 		}
 
+		internal FlowRule GetOverride(FlowRuleDirection direction, FlowRuleObject target)
+		{
+			return rules.FirstOrDefault(x => x.Matches(direction, target));
+		}
+
+		internal FlowRule GetApplicableRule(FlowRuleDirection direction, FlowRuleObject target)
+		{
+			return GetOverride(direction, target) ?? GetDefault(direction);
+		}
+
 		private void Replace(FlowRule rule)
 		{
-			rules.RemoveAll(x => x.Matches(rule.Direction, rule.TargetResourcePoolId));
+			rules.RemoveAll(x => x.Matches(rule.Direction, rule.Target));
 			rules.Add(rule);
 		}
 	}

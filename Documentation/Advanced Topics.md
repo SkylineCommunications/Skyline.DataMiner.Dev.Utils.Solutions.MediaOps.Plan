@@ -239,24 +239,24 @@ api.ResourcePools.Deprecate(pool, new ResourcePoolDeprecateOptions
 
 ## Flow Rules
 
-Flow rules constrain which resource pools may be directly connected in the node graph of a job, workflow or recurring job. Each resource pool owns one rule set (`ResourcePool.FlowRules`), stored in its own DOM instance and persisted together with the pool.
+Flow rules constrain which objects may be directly connected in the node graph of a job, workflow or recurring job. Flow rules are a generic concept: an owner and a target are identified by a `FlowRuleObjectType` and an ID. Today the only type is `ResourcePool`: each resource pool owns one rule set (`ResourcePool.FlowRules`), stored in its own DOM instance and persisted together with the pool.
 
 ### Rule model
 
-- Two independent directions: `Before` (other node → this pool) and `After` (this pool → other node).
-- Per direction an optional **default** rule and any number of **overrides** for specific target pools. An override takes precedence over the default; a direction without a default behaves as `Allowed`.
+- Two independent directions: `Before` (other node → owning object) and `After` (owning object → other node).
+- Per direction an optional **default** rule and any number of **overrides** for specific target objects (`TargetType` + `TargetId`). An override takes precedence over the default; a direction without a default behaves as `Allowed`.
 - Outcomes: `Allowed`, `Warning` (allowed but flagged), `Forbidden`. Each rule can carry a message.
-- An override may target the owning pool itself, to constrain connections between two nodes of the same pool.
+- An override may target the owning object itself, to constrain connections between two nodes of the same object.
 
 ### Evaluation
 
-A connection `A → B` is evaluated against the `After` rules of `A` and the `Before` rules of `B`; the most restrictive outcome wins (`Forbidden` > `Warning` > `Allowed`). `FlowRuleEvaluation` exposes the outcome per side, the applied rules and the messages of the decisive rule(s). Resource nodes are evaluated through the pool they were selected from.
+A connection `A → B` is evaluated against the `After` rules of `A` and the `Before` rules of `B`; the most restrictive outcome wins (`Forbidden` > `Warning` > `Allowed`). `FlowRuleEvaluation` exposes both endpoints (`FromObjectType`/`FromObjectId`, `ToObjectType`/`ToObjectId`), the outcome per side, the applied rules and the messages of the decisive rule(s). In a node graph, resource pool nodes and resource nodes are evaluated through their resource pool; other nodes are skipped.
 
 ### Enforcement
 
 | Where | Behavior |
 | --- | --- |
-| Creating or updating a job, workflow or recurring job | A `Forbidden` connection that is **new or changed** in that save fails it with `JobNodeGraphForbiddenConnectionError`, `WorkflowNodeGraphForbiddenConnectionError` or `RecurringJobNodeGraphForbiddenConnectionError`. A connection is considered changed when one of its endpoints now references another resource pool (for example after a swap). |
+| Creating or updating a job, workflow or recurring job | A `Forbidden` connection that is **new or changed** in that save fails it with `JobNodeGraphForbiddenConnectionError`, `WorkflowNodeGraphForbiddenConnectionError` or `RecurringJobNodeGraphForbiddenConnectionError`. A connection is considered changed when one of its endpoints now references another object (for example after swapping a resource for one of another pool). |
 | Connections stored before the rules changed | Not blocked, so the object stays editable. `Jobs.Validate` reports them with `FlowRuleViolationJobValidationError` (`J701`); the error is cleared automatically by the save that resolves the connection. |
 | `Warning` connections | Never block a save; use `api.FlowRules.Evaluate(...)` to flag them in a UI. |
 

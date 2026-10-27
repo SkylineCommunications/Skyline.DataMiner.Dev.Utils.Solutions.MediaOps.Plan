@@ -53,12 +53,12 @@ namespace RT_MediaOps.Plan.RST.FlowRules
 		{
 			RulesOf(poolB)
 				.SetDefault(FlowRuleDirection.Before, FlowRuleOutcome.Allowed)
-				.SetOverride(FlowRuleDirection.Before, poolA, FlowRuleOutcome.Forbidden, "No IRD before this pool.");
+				.SetOverride(FlowRuleDirection.Before, FlowRuleObjectType.ResourcePool, poolA, FlowRuleOutcome.Forbidden, "No IRD before this pool.");
 
 			var forbidden = Evaluate(poolA, poolB);
 			Assert.AreEqual(FlowRuleOutcome.Forbidden, forbidden.Outcome);
 			Assert.AreEqual(FlowRuleOutcome.Forbidden, forbidden.ToOutcome);
-			Assert.AreEqual(poolA, forbidden.ToRule.TargetResourcePoolId);
+			Assert.AreEqual(poolA, forbidden.ToRule.TargetId);
 			CollectionAssert.AreEqual(new[] { "No IRD before this pool." }, forbidden.Messages.ToArray());
 
 			Assert.AreEqual(FlowRuleOutcome.Allowed, Evaluate(poolC, poolB).Outcome);
@@ -69,7 +69,7 @@ namespace RT_MediaOps.Plan.RST.FlowRules
 		{
 			RulesOf(poolB)
 				.SetDefault(FlowRuleDirection.Before, FlowRuleOutcome.Forbidden)
-				.SetOverride(FlowRuleDirection.Before, poolA, FlowRuleOutcome.Allowed);
+				.SetOverride(FlowRuleDirection.Before, FlowRuleObjectType.ResourcePool, poolA, FlowRuleOutcome.Allowed);
 
 			Assert.AreEqual(FlowRuleOutcome.Allowed, Evaluate(poolA, poolB).Outcome);
 			Assert.AreEqual(FlowRuleOutcome.Forbidden, Evaluate(poolC, poolB).Outcome);
@@ -114,7 +114,7 @@ namespace RT_MediaOps.Plan.RST.FlowRules
 		[TestMethod]
 		public void Evaluate_SelfTargetingOverride_AppliesToConnectionBetweenNodesOfTheSamePool()
 		{
-			RulesOf(poolA).SetOverride(FlowRuleDirection.After, poolA, FlowRuleOutcome.Forbidden);
+			RulesOf(poolA).SetOverride(FlowRuleDirection.After, FlowRuleObjectType.ResourcePool, poolA, FlowRuleOutcome.Forbidden);
 
 			Assert.AreEqual(FlowRuleOutcome.Forbidden, Evaluate(poolA, poolA).Outcome);
 			Assert.AreEqual(FlowRuleOutcome.Allowed, Evaluate(poolA, poolB).Outcome);
@@ -123,7 +123,7 @@ namespace RT_MediaOps.Plan.RST.FlowRules
 		[TestMethod]
 		public void Evaluate_NodeGraph_EvaluatesEachConnectionWithItsNodes()
 		{
-			RulesOf(poolB).SetOverride(FlowRuleDirection.Before, poolA, FlowRuleOutcome.Forbidden);
+			RulesOf(poolB).SetOverride(FlowRuleDirection.Before, FlowRuleObjectType.ResourcePool, poolA, FlowRuleOutcome.Forbidden);
 
 			var nodeA = new WorkflowResourcePoolNode(poolA);
 			var nodeB = new WorkflowResourcePoolNode(poolB);
@@ -143,8 +143,10 @@ namespace RT_MediaOps.Plan.RST.FlowRules
 			var forbidden = evaluations.Single(x => x.FromNodeId == nodeA.Id);
 			Assert.AreEqual(FlowRuleOutcome.Forbidden, forbidden.Outcome);
 			Assert.AreEqual(nodeB.Id, forbidden.ToNodeId);
-			Assert.AreEqual(poolA, forbidden.FromResourcePoolId);
-			Assert.AreEqual(poolB, forbidden.ToResourcePoolId);
+			Assert.AreEqual(FlowRuleObjectType.ResourcePool, forbidden.FromObjectType);
+			Assert.AreEqual(poolA, forbidden.FromObjectId);
+			Assert.AreEqual(FlowRuleObjectType.ResourcePool, forbidden.ToObjectType);
+			Assert.AreEqual(poolB, forbidden.ToObjectId);
 			Assert.IsFalse(String.IsNullOrEmpty(forbidden.ConnectionId));
 
 			Assert.AreEqual(FlowRuleOutcome.Allowed, evaluations.Single(x => x.FromNodeId == nodeC.Id).Outcome);
@@ -156,13 +158,28 @@ namespace RT_MediaOps.Plan.RST.FlowRules
 			var rules = RulesOf(poolA)
 				.SetDefault(FlowRuleDirection.Before, FlowRuleOutcome.Warning)
 				.SetDefault(FlowRuleDirection.Before, FlowRuleOutcome.Forbidden)
-				.SetOverride(FlowRuleDirection.Before, poolB, FlowRuleOutcome.Warning)
-				.SetOverride(FlowRuleDirection.Before, poolB, FlowRuleOutcome.Allowed);
+				.SetOverride(FlowRuleDirection.Before, FlowRuleObjectType.ResourcePool, poolB, FlowRuleOutcome.Warning)
+				.SetOverride(FlowRuleDirection.Before, FlowRuleObjectType.ResourcePool, poolB, FlowRuleOutcome.Allowed);
 
 			Assert.AreEqual(2, rules.Rules.Count);
 			Assert.AreEqual(FlowRuleOutcome.Forbidden, rules.GetDefault(FlowRuleDirection.Before).Outcome);
-			Assert.AreEqual(FlowRuleOutcome.Allowed, rules.GetOverride(FlowRuleDirection.Before, poolB).Outcome);
+			Assert.AreEqual(FlowRuleOutcome.Allowed, rules.GetOverride(FlowRuleDirection.Before, FlowRuleObjectType.ResourcePool, poolB).Outcome);
 			Assert.IsNull(rules.GetDefault(FlowRuleDirection.After));
+		}
+
+		[TestMethod]
+		public void FlowRules_SetOverrideWithObject_UsesItsTypeAndId()
+		{
+			IFlowRuleObject target = new ResourcePool(poolB);
+
+			var rule = RulesOf(poolA)
+				.SetOverride(FlowRuleDirection.After, target, FlowRuleOutcome.Forbidden)
+				.GetOverride(FlowRuleDirection.After, FlowRuleObjectType.ResourcePool, poolB);
+
+			Assert.IsNotNull(rule);
+			Assert.AreEqual(FlowRuleObjectType.ResourcePool, rule.TargetType);
+			Assert.AreEqual(poolB, rule.TargetId);
+			Assert.ThrowsException<ArgumentNullException>(() => RulesOf(poolA).SetOverride(FlowRuleDirection.After, (IFlowRuleObject)null, FlowRuleOutcome.Forbidden));
 		}
 
 		[TestMethod]
@@ -171,9 +188,9 @@ namespace RT_MediaOps.Plan.RST.FlowRules
 			var rules = RulesOf(poolA)
 				.SetDefault(FlowRuleDirection.Before, FlowRuleOutcome.Warning)
 				.SetDefault(FlowRuleDirection.After, FlowRuleOutcome.Warning)
-				.SetOverride(FlowRuleDirection.After, poolB, FlowRuleOutcome.Forbidden);
+				.SetOverride(FlowRuleDirection.After, FlowRuleObjectType.ResourcePool, poolB, FlowRuleOutcome.Forbidden);
 
-			rules.RemoveOverride(FlowRuleDirection.After, poolB);
+			rules.RemoveOverride(FlowRuleDirection.After, FlowRuleObjectType.ResourcePool, poolB);
 			Assert.AreEqual(2, rules.Rules.Count);
 
 			rules.RemoveDefault(FlowRuleDirection.Before);
@@ -186,7 +203,8 @@ namespace RT_MediaOps.Plan.RST.FlowRules
 		[TestMethod]
 		public void FlowRule_InvalidArguments_Throw()
 		{
-			Assert.ThrowsException<ArgumentException>(() => new FlowRule(FlowRuleDirection.After, Guid.Empty, FlowRuleOutcome.Forbidden));
+			Assert.ThrowsException<ArgumentException>(() => new FlowRule(FlowRuleDirection.After, FlowRuleObjectType.ResourcePool, Guid.Empty, FlowRuleOutcome.Forbidden));
+			Assert.ThrowsException<ArgumentException>(() => new FlowRule(FlowRuleDirection.After, (FlowRuleObjectType)5, poolA, FlowRuleOutcome.Forbidden));
 			Assert.ThrowsException<ArgumentException>(() => new FlowRule((FlowRuleDirection)5, FlowRuleOutcome.Forbidden));
 			Assert.ThrowsException<ArgumentException>(() => new FlowRule(FlowRuleDirection.After, (FlowRuleOutcome)5));
 		}
@@ -195,12 +213,12 @@ namespace RT_MediaOps.Plan.RST.FlowRules
 		public void FlowRule_ValueEquality()
 		{
 			Assert.AreEqual(
-				new FlowRule(FlowRuleDirection.After, poolA, FlowRuleOutcome.Warning, "message"),
-				new FlowRule(FlowRuleDirection.After, poolA, FlowRuleOutcome.Warning, "message"));
+				new FlowRule(FlowRuleDirection.After, FlowRuleObjectType.ResourcePool, poolA, FlowRuleOutcome.Warning, "message"),
+				new FlowRule(FlowRuleDirection.After, FlowRuleObjectType.ResourcePool, poolA, FlowRuleOutcome.Warning, "message"));
 
 			Assert.AreNotEqual(
-				new FlowRule(FlowRuleDirection.After, poolA, FlowRuleOutcome.Warning, "message"),
-				new FlowRule(FlowRuleDirection.After, poolA, FlowRuleOutcome.Warning, "other"));
+				new FlowRule(FlowRuleDirection.After, FlowRuleObjectType.ResourcePool, poolA, FlowRuleOutcome.Warning, "message"),
+				new FlowRule(FlowRuleDirection.After, FlowRuleObjectType.ResourcePool, poolA, FlowRuleOutcome.Warning, "other"));
 		}
 
 		[TestMethod]
@@ -209,10 +227,10 @@ namespace RT_MediaOps.Plan.RST.FlowRules
 			var rules = new ResourcePool().FlowRules;
 			var emptyHash = rules.GetHashCode();
 
-			rules.SetDefault(FlowRuleDirection.After, FlowRuleOutcome.Warning).SetOverride(FlowRuleDirection.After, poolB, FlowRuleOutcome.Forbidden);
+			rules.SetDefault(FlowRuleDirection.After, FlowRuleOutcome.Warning).SetOverride(FlowRuleDirection.After, FlowRuleObjectType.ResourcePool, poolB, FlowRuleOutcome.Forbidden);
 			var hashInOrder = rules.GetHashCode();
 
-			rules.Clear().SetOverride(FlowRuleDirection.After, poolB, FlowRuleOutcome.Forbidden).SetDefault(FlowRuleDirection.After, FlowRuleOutcome.Warning);
+			rules.Clear().SetOverride(FlowRuleDirection.After, FlowRuleObjectType.ResourcePool, poolB, FlowRuleOutcome.Forbidden).SetDefault(FlowRuleDirection.After, FlowRuleOutcome.Warning);
 			var hashReversed = rules.GetHashCode();
 
 			Assert.AreNotEqual(emptyHash, hashInOrder);
@@ -241,14 +259,14 @@ namespace RT_MediaOps.Plan.RST.FlowRules
 			return rules;
 		}
 
-		private ApiFlowRules GetFlowRules(Guid poolId)
+		private ApiFlowRules GetFlowRules(FlowRuleObject owner)
 		{
-			return flowRulesByPoolId.TryGetValue(poolId, out var rules) ? rules : null;
+			return owner.Type == FlowRuleObjectType.ResourcePool && flowRulesByPoolId.TryGetValue(owner.Id, out var rules) ? rules : null;
 		}
 
 		private FlowRuleEvaluation Evaluate(Guid from, Guid to)
 		{
-			return FlowRuleEvaluator.Evaluate(from, to, GetFlowRules);
+			return FlowRuleEvaluator.Evaluate(FlowRuleObject.ResourcePool(from), FlowRuleObject.ResourcePool(to), GetFlowRules);
 		}
 	}
 }

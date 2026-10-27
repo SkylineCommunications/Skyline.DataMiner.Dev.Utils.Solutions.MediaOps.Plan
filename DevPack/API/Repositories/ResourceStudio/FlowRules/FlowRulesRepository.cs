@@ -10,7 +10,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
 	/// <summary>
-	/// Provides read access to the flow rules of resource pools and evaluates connections against them.
+	/// Provides read access to flow rules and evaluates connections against them.
 	/// </summary>
 	internal class FlowRulesRepository : Repository, IFlowRulesRepository
 	{
@@ -23,50 +23,28 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <inheritdoc/>
-		public FlowRules Read(Guid resourcePoolId)
+		public FlowRules Read(FlowRuleObjectType ownerType, Guid ownerId)
 		{
-			if (resourcePoolId == Guid.Empty)
+			if (ownerId == Guid.Empty)
 			{
-				throw new ArgumentException("Resource pool ID cannot be empty.", nameof(resourcePoolId));
+				throw new ArgumentException("Owner ID cannot be empty.", nameof(ownerId));
 			}
 
-			return Read([resourcePoolId]).TryGetValue(resourcePoolId, out var flowRules) ? flowRules : null;
+			return Read(ownerType, [ownerId]).TryGetValue(ownerId, out var flowRules) ? flowRules : null;
 		}
 
 		/// <inheritdoc/>
-		public IReadOnlyDictionary<Guid, FlowRules> Read(IEnumerable<Guid> resourcePoolIds)
+		public IReadOnlyDictionary<Guid, FlowRules> Read(FlowRuleObjectType ownerType, IEnumerable<Guid> ownerIds)
 		{
-			if (resourcePoolIds == null)
+			FlowRuleObject.ValidateType(ownerType, nameof(ownerType));
+
+			if (ownerIds == null)
 			{
-				throw new ArgumentNullException(nameof(resourcePoolIds));
+				throw new ArgumentNullException(nameof(ownerIds));
 			}
 
-			var ids = resourcePoolIds.Where(x => x != Guid.Empty).Distinct().ToList();
-			if (ids.Count == 0)
-			{
-				return new Dictionary<Guid, FlowRules>();
-			}
-
-			// The pointer on the pool identifies its rule set, so the pools are read without their other configuration.
-			var flowRulesIdByPoolId = PlanApi.DomHelpers.SlcResourceStudioHelper
-				.GetResourcePools(ids)
-				.Where(x => x.ConfigurationInfo.FlowRules.HasValue && x.ConfigurationInfo.FlowRules.Value != Guid.Empty)
-				.ToDictionary(x => x.ID.Id, x => x.ConfigurationInfo.FlowRules.Value);
-
-			var flowRulesInstancesById = PlanApi.DomHelpers.SlcResourceStudioHelper
-				.GetFlowRules(flowRulesIdByPoolId.Values)
-				.ToDictionary(x => x.ID.Id);
-
-			var result = new Dictionary<Guid, FlowRules>();
-			foreach (var pair in flowRulesIdByPoolId)
-			{
-				if (flowRulesInstancesById.TryGetValue(pair.Value, out var instance))
-				{
-					result[pair.Key] = new FlowRules(instance, pair.Key);
-				}
-			}
-
-			return result;
+			return Read(ownerIds.Select(x => new FlowRuleObject(ownerType, x)))
+				.ToDictionary(x => x.Key.Id, x => x.Value);
 		}
 
 		/// <inheritdoc/>
@@ -76,48 +54,45 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			foreach (var instance in PlanApi.DomHelpers.SlcResourceStudioHelper.GetFlowRules(filter))
 			{
-				yield return new FlowRules(instance, instance.Flowrulesinfo.OwnerId);
+				var owner = new FlowRuleObject(FlowRuleObject.FromStorage(instance.Flowrulesinfo.Ownertype), instance.Flowrulesinfo.OwnerId);
+				yield return new FlowRules(instance, owner);
 			}
 		}
 
 		/// <inheritdoc/>
-		public FlowRuleEvaluation Evaluate(Guid fromResourcePoolId, Guid toResourcePoolId)
+		public FlowRuleEvaluation Evaluate(FlowRuleObjectType fromType, Guid fromId, FlowRuleObjectType toType, Guid toId)
 		{
-			return Evaluate([(fromResourcePoolId, toResourcePoolId)]).Single();
+			return Evaluate([(fromType, fromId, toType, toId)]).Single();
 		}
 
 		/// <inheritdoc/>
-		public IReadOnlyCollection<FlowRuleEvaluation> Evaluate(IEnumerable<(Guid FromResourcePoolId, Guid ToResourcePoolId)> connections)
+		public IReadOnlyCollection<FlowRuleEvaluation> Evaluate(IEnumerable<(FlowRuleObjectType FromType, Guid FromId, FlowRuleObjectType ToType, Guid ToId)> connections)
 		{
 			if (connections == null)
 			{
 				throw new ArgumentNullException(nameof(connections));
 			}
 
-			var list = connections.ToList();
-			if (list.Any(x => x.FromResourcePoolId == Guid.Empty || x.ToResourcePoolId == Guid.Empty))
-			{
-				throw new ArgumentException("Resource pool IDs cannot be empty.", nameof(connections));
-			}
+			var list = connections
+				.Select(x => (From: ToObject(x.FromType, x.FromId, nameof(connections)), To: ToObject(x.ToType, x.ToId, nameof(connections))))
+				.ToList();
 
-			var flowRulesByPoolId = Read(list.SelectMany(x => new[] { x.FromResourcePoolId, x.ToResourcePoolId }));
+			var flowRulesByOwner = Read(list.SelectMany(x => new[] { x.From, x.To }));
 
 			return list
-				.Select(x => FlowRuleEvaluator.Evaluate(x.FromResourcePoolId, x.ToResourcePoolId, id => GetOrNull(flowRulesByPoolId, id)))
+				.Select(x => FlowRuleEvaluator.Evaluate(x.From, x.To, owner => GetOrNull(flowRulesByOwner, owner)))
 				.ToList();
 		}
 
 		/// <inheritdoc/>
-		public IReadOnlyDictionary<Guid, FlowRuleEvaluation> EvaluateCandidates(Guid resourcePoolId, FlowRuleDirection direction, IEnumerable<Guid> candidateResourcePoolIds)
+		public IReadOnlyDictionary<Guid, FlowRuleEvaluation> EvaluateCandidates(FlowRuleObjectType type, Guid id, FlowRuleDirection direction, FlowRuleObjectType candidateType, IEnumerable<Guid> candidateIds)
 		{
-			if (resourcePoolId == Guid.Empty)
-			{
-				throw new ArgumentException("Resource pool ID cannot be empty.", nameof(resourcePoolId));
-			}
+			var existing = ToObject(type, id, nameof(id));
+			FlowRuleObject.ValidateType(candidateType, nameof(candidateType));
 
-			if (candidateResourcePoolIds == null)
+			if (candidateIds == null)
 			{
-				throw new ArgumentNullException(nameof(candidateResourcePoolIds));
+				throw new ArgumentNullException(nameof(candidateIds));
 			}
 
 			if (!Enum.IsDefined(typeof(FlowRuleDirection), direction))
@@ -125,14 +100,20 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				throw new ArgumentException($"Value '{direction}' is not a valid flow rule direction.", nameof(direction));
 			}
 
-			var candidates = candidateResourcePoolIds.Where(x => x != Guid.Empty).Distinct().ToList();
-			var flowRulesByPoolId = Read(candidates.Concat([resourcePoolId]));
+			var candidates = candidateIds
+				.Where(x => x != Guid.Empty)
+				.Distinct()
+				.Select(x => new FlowRuleObject(candidateType, x))
+				.ToList();
+			var flowRulesByOwner = Read(candidates.Concat([existing]));
+
+			FlowRules GetFlowRules(FlowRuleObject owner) => GetOrNull(flowRulesByOwner, owner);
 
 			return candidates.ToDictionary(
-				candidate => candidate,
+				candidate => candidate.Id,
 				candidate => direction == FlowRuleDirection.After
-					? FlowRuleEvaluator.Evaluate(resourcePoolId, candidate, id => GetOrNull(flowRulesByPoolId, id))
-					: FlowRuleEvaluator.Evaluate(candidate, resourcePoolId, id => GetOrNull(flowRulesByPoolId, id)));
+					? FlowRuleEvaluator.Evaluate(existing, candidate, GetFlowRules)
+					: FlowRuleEvaluator.Evaluate(candidate, existing, GetFlowRules));
 		}
 
 		/// <inheritdoc/>
@@ -143,13 +124,67 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				throw new ArgumentNullException(nameof(nodeGraph));
 			}
 
-			var flowRulesByPoolId = Read(FlowRuleEvaluator.GetConnectedResourcePoolIds(nodeGraph));
-			return FlowRuleEvaluator.Evaluate(nodeGraph, id => GetOrNull(flowRulesByPoolId, id));
+			var flowRulesByOwner = Read(FlowRuleEvaluator.GetConnectedObjects(nodeGraph));
+			return FlowRuleEvaluator.Evaluate(nodeGraph, owner => GetOrNull(flowRulesByOwner, owner));
 		}
 
-		private static FlowRules GetOrNull(IReadOnlyDictionary<Guid, FlowRules> flowRulesByPoolId, Guid resourcePoolId)
+		internal IReadOnlyDictionary<FlowRuleObject, FlowRules> Read(IEnumerable<FlowRuleObject> owners)
 		{
-			return flowRulesByPoolId.TryGetValue(resourcePoolId, out var flowRules) ? flowRules : null;
+			var result = new Dictionary<FlowRuleObject, FlowRules>();
+
+			foreach (var group in owners.Where(x => !x.IsEmpty).Distinct().GroupBy(x => x.Type))
+			{
+				switch (group.Key)
+				{
+					case FlowRuleObjectType.ResourcePool:
+						ReadResourcePoolFlowRules(group.Select(x => x.Id).ToList(), result);
+						break;
+
+					default:
+						throw new NotSupportedException($"Flow rules of type '{group.Key}' are not supported.");
+				}
+			}
+
+			return result;
+		}
+
+		// The pointer on the pool identifies its rule set, so the pools are read without their other configuration.
+		private void ReadResourcePoolFlowRules(ICollection<Guid> resourcePoolIds, IDictionary<FlowRuleObject, FlowRules> result)
+		{
+			var flowRulesIdByPoolId = PlanApi.DomHelpers.SlcResourceStudioHelper
+				.GetResourcePools(resourcePoolIds)
+				.Where(x => x.ConfigurationInfo.FlowRules.HasValue && x.ConfigurationInfo.FlowRules.Value != Guid.Empty)
+				.ToDictionary(x => x.ID.Id, x => x.ConfigurationInfo.FlowRules.Value);
+
+			var flowRulesInstancesById = PlanApi.DomHelpers.SlcResourceStudioHelper
+				.GetFlowRules(flowRulesIdByPoolId.Values)
+				.ToDictionary(x => x.ID.Id);
+
+			foreach (var pair in flowRulesIdByPoolId)
+			{
+				if (flowRulesInstancesById.TryGetValue(pair.Value, out var instance))
+				{
+					var owner = FlowRuleObject.ResourcePool(pair.Key);
+					result[owner] = new FlowRules(instance, owner);
+				}
+			}
+		}
+
+		private static FlowRuleObject ToObject(FlowRuleObjectType type, Guid id, string paramName)
+		{
+			FlowRuleObject.ValidateType(type, paramName);
+
+			if (id == Guid.Empty)
+			{
+				throw new ArgumentException("Object ID cannot be empty.", paramName);
+			}
+
+			return new FlowRuleObject(type, id);
+		}
+
+		private static FlowRules GetOrNull(IReadOnlyDictionary<FlowRuleObject, FlowRules> flowRulesByOwner, FlowRuleObject owner)
+		{
+			return flowRulesByOwner.TryGetValue(owner, out var flowRules) ? flowRules : null;
 		}
 	}
 }

@@ -782,7 +782,7 @@
 
 			foreach (var workflow in apiWorkflows)
 			{
-				PassTraceData(WorkflowNodeGraphValidator.Validate(workflow.Id, workflow.NodeGraph, resourcesById, resourcePoolsById, FlowRuleEvaluator.GetStoredPoolConnections(workflow.OriginalInstance?.Nodes, workflow.OriginalInstance?.Connections)));
+				PassTraceData(WorkflowNodeGraphValidator.Validate(workflow.Id, workflow.NodeGraph, resourcesById, resourcePoolsById, FlowRuleEvaluator.GetStoredConnections(workflow.OriginalInstance?.Nodes, workflow.OriginalInstance?.Connections)));
 			}
 		}
 

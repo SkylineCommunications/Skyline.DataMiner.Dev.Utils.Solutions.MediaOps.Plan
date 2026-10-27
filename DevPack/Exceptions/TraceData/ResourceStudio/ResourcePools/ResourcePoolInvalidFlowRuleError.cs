@@ -19,8 +19,13 @@
 		public FlowRuleDirection Direction { get; internal set; }
 
 		/// <summary>
-		/// Gets the unique identifier of the target resource pool of the invalid flow rule, or <see langword="null"/> when the rule is a default rule.
+		/// Gets the type of the target object of the invalid flow rule, or <see langword="null"/> when the rule is a default rule.
 		/// </summary>
-		public Guid? TargetResourcePoolId { get; internal set; }
+		public FlowRuleObjectType? TargetType { get; internal set; }
+
+		/// <summary>
+		/// Gets the unique identifier of the target object of the invalid flow rule, or <see langword="null"/> when the rule is a default rule.
+		/// </summary>
+		public Guid? TargetId { get; internal set; }
 	}
 }

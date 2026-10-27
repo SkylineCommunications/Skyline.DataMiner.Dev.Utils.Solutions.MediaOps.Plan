@@ -18,7 +18,7 @@
 		IResourcePoolsRepository ResourcePools { get; }
 
 		/// <summary>
-		/// Gets the repository for reading the flow rules of resource pools and evaluating connections against them.
+		/// Gets the repository for reading flow rules and evaluating connections against them.
 		/// </summary>
 		IFlowRulesRepository FlowRules { get; }
 

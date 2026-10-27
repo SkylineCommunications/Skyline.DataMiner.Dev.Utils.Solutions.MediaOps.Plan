@@ -45,8 +45,10 @@ namespace RT_MediaOps.Plan.Workflow.FlowRules
 			Assert.AreEqual(job.NodeGraph.Connections.Single().Id, error.ConnectionId);
 			Assert.AreEqual(irdNode.Id, error.FromNodeId);
 			Assert.AreEqual(downstreamNode.Id, error.ToNodeId);
-			Assert.AreEqual(ird.Id, error.FromResourcePoolId);
-			Assert.AreEqual(downstream.Id, error.ToResourcePoolId);
+			Assert.AreEqual(FlowRuleObjectType.ResourcePool, error.FromObjectType);
+			Assert.AreEqual(ird.Id, error.FromObjectId);
+			Assert.AreEqual(FlowRuleObjectType.ResourcePool, error.ToObjectType);
+			Assert.AreEqual(downstream.Id, error.ToObjectId);
 			StringAssert.Contains(error.ErrorMessage, "node 'IRD'");
 			StringAssert.Contains(error.ErrorMessage, "node 'Downstream'");
 			StringAssert.Contains(error.ErrorMessage, "No IRD before this pool.");

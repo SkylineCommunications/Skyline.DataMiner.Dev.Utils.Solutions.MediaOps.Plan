@@ -1093,7 +1093,8 @@
 
 			var storedTargetIds = newOverridesPerPool
 				.SelectMany(x => x.Overrides)
-				.Select(x => x.TargetResourcePoolId.Value)
+				.Where(x => x.Target.Value.Type == FlowRuleObjectType.ResourcePool)
+				.Select(x => x.Target.Value.Id)
 				.Where(x => !poolsInOperationById.ContainsKey(x))
 				.Distinct()
 				.ToList();
@@ -1101,14 +1102,15 @@
 
 			foreach (var (pool, newOverrides) in newOverridesPerPool)
 			{
-				foreach (var duplicate in pool.FlowRules.Rules.GroupBy(x => (x.Direction, x.TargetResourcePoolId)).Where(x => x.Count() > 1))
+				foreach (var duplicate in pool.FlowRules.Rules.GroupBy(x => (x.Direction, x.Target)).Where(x => x.Count() > 1))
 				{
-					var target = duplicate.Key.TargetResourcePoolId.HasValue ? $"target resource pool '{duplicate.Key.TargetResourcePoolId.Value}'" : "the default";
+					var target = duplicate.Key.Target.HasValue ? $"target {duplicate.Key.Target.Value.Type} '{duplicate.Key.Target.Value.Id}'" : "the default";
 					ReportError(pool.Id, new ResourcePoolDuplicateFlowRuleError
 					{
 						Id = pool.Id,
 						Direction = duplicate.Key.Direction,
-						TargetResourcePoolId = duplicate.Key.TargetResourcePoolId,
+						TargetType = duplicate.Key.Target?.Type,
+						TargetId = duplicate.Key.Target?.Id,
 						ErrorMessage = $"Flow rule '{duplicate.Key.Direction}' for {target} is defined {duplicate.Count()} times.",
 					});
 				}
@@ -1119,14 +1121,15 @@
 					{
 						Id = pool.Id,
 						Direction = rule.Direction,
-						TargetResourcePoolId = rule.TargetResourcePoolId,
+						TargetType = rule.TargetType,
+						TargetId = rule.TargetId,
 						ErrorMessage = $"Flow rule message exceeds maximum length of {InputValidator.DefaultMaxTextLength} characters.",
 					});
 				}
 
-				foreach (var rule in newOverrides)
+				foreach (var rule in newOverrides.Where(x => x.Target.Value.Type == FlowRuleObjectType.ResourcePool))
 				{
-					var targetId = rule.TargetResourcePoolId.Value;
+					var targetId = rule.Target.Value.Id;
 					if (targetId == pool.Id)
 					{
 						continue;
@@ -1151,7 +1154,8 @@
 						{
 							Id = pool.Id,
 							Direction = rule.Direction,
-							TargetResourcePoolId = targetId,
+							TargetType = FlowRuleObjectType.ResourcePool,
+							TargetId = targetId,
 							ErrorMessage = $"Flow rule target resource pool with ID '{targetId}' does not exist.",
 						});
 					}
@@ -1161,7 +1165,8 @@
 						{
 							Id = pool.Id,
 							Direction = rule.Direction,
-							TargetResourcePoolId = targetId,
+							TargetType = FlowRuleObjectType.ResourcePool,
+							TargetId = targetId,
 							ErrorMessage = $"Flow rule target resource pool with ID '{targetId}' is deprecated.",
 						});
 					}
@@ -1171,18 +1176,18 @@
 
 		private static IReadOnlyCollection<FlowRule> GetNewFlowRuleOverrides(ResourcePool pool)
 		{
-			var storedOverrides = new HashSet<(FlowRuleDirection Direction, Guid? TargetResourcePoolId)>();
+			var storedOverrides = new HashSet<(FlowRuleDirection Direction, FlowRuleObject? Target)>();
 			if (pool.FlowRules.OriginalInstance != null)
 			{
 				foreach (var section in pool.FlowRules.OriginalInstance.Flowrule.Where(x => x.Direction.HasValue && x.TargetId.HasValue))
 				{
 					var storedRule = new FlowRule(section);
-					storedOverrides.Add((storedRule.Direction, storedRule.TargetResourcePoolId));
+					storedOverrides.Add((storedRule.Direction, storedRule.Target));
 				}
 			}
 
 			return pool.FlowRules.Rules
-				.Where(x => !x.IsDefault && !storedOverrides.Contains((x.Direction, x.TargetResourcePoolId)))
+				.Where(x => !x.IsDefault && !storedOverrides.Contains((x.Direction, x.Target)))
 				.ToList();
 		}
 
