@@ -109,19 +109,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 		public IList<SchedulerAction> Actions { get; }
 
 		/// <summary>
-		/// Gets a value indicating whether the task already ran.
-		/// </summary>
-		public bool HasRun { get; private set; }
-
-		/// <summary>
-		/// Marks the task as run, like an Agent does when the scheduled time is reached.
-		/// </summary>
-		public void MarkAsRun()
-		{
-			HasRun = true;
-		}
-
-		/// <summary>
 		/// Gets the value of an Automation script parameter of the first Automation action of this task.
 		/// </summary>
 		/// <param name="parameterId">The ID of the script parameter.</param>
@@ -152,8 +139,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 				RepeatType = RepeatType,
 				Actions = Actions.ToArray(),
 				FinalActions = Array.Empty<SchedulerAction>(),
-				Executed = HasRun ? 1 : 0,
-				Finished = HasRun,
 			};
 		}
 

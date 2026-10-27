@@ -835,93 +835,11 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
-		public void TransitionToRunning_PreRollStartTaskAlreadyRan_DoesNotTriggerItAgain()
-		{
-			var setup = CreateSetup();
-			var currentTime = DateTime.UtcNow.RoundToNextSecond();
-			var confirmedJob = ConfirmJobWithFutureTimings(setup, currentTime);
-
-			var preRollStart = GetEvent(GetLiveConfiguration(setup, confirmedJob), LiveEnums.EventType.PrerollStart);
-			GetSchedulerTask(setup, preRollStart).MarkAsRun();
-
-			SyncAsRunning(setup, confirmedJob, currentTime.AddMinutes(5).AddSeconds(2));
-
-			Assert.AreEqual(LiveEnums.EventState.Draft, GetEvent(GetLiveConfiguration(setup, confirmedJob), LiveEnums.EventType.PrerollStart).EventState, "Expected the pre-roll start event to no longer be scheduled.");
-			Assert.AreEqual(0, GetTriggerCount(setup, preRollStart.ID), "Expected the pre-roll start event that its scheduler task executes not to be executed a second time.");
-		}
-
-		[TestMethod]
-		public void TransitionToRunning_PreRollStartTaskNeverRan_TriggersIt()
-		{
-			var setup = CreateSetup();
-			var currentTime = DateTime.UtcNow.RoundToNextSecond();
-			var confirmedJob = ConfirmJobWithFutureTimings(setup, currentTime);
-
-			SyncAsRunning(setup, confirmedJob, currentTime.AddMinutes(5).AddSeconds(2));
-
-			var preRollStart = GetEvent(GetLiveConfiguration(setup, confirmedJob), LiveEnums.EventType.PrerollStart);
-			Assert.AreEqual(LiveEnums.EventState.Draft, preRollStart.EventState, "Expected the pre-roll start event to be put in draft so it triggers immediately.");
-			Assert.AreEqual(1, GetTriggerCount(setup, preRollStart.ID), "Expected the pre-roll start event that its scheduler task missed to be executed once.");
-		}
-
-		[TestMethod]
-		public void TransitionToRunning_PreRollStartTaskRemovedByOrchestrationScript_DoesNotTriggerIt()
-		{
-			var setup = CreateSetup();
-			var currentTime = DateTime.UtcNow.RoundToNextSecond();
-			var confirmedJob = ConfirmJobWithFutureTimings(setup, currentTime);
-
-			var preRollStart = GetEvent(GetLiveConfiguration(setup, confirmedJob), LiveEnums.EventType.PrerollStart);
-			DeleteSchedulerTask(setup, preRollStart);
-
-			SyncAsRunning(setup, confirmedJob, currentTime.AddMinutes(5).AddSeconds(2));
-
-			Assert.AreEqual(0, GetTriggerCount(setup, preRollStart.ID), "Expected the pre-roll start event that the orchestration script is executing not to be executed a second time.");
-		}
-
-		[TestMethod]
-		public void TransitionToRunning_PreRollStartTaskRemovedLongAgo_TriggersIt()
-		{
-			var setup = CreateSetup();
-			var currentTime = DateTime.UtcNow.RoundToNextSecond();
-			var confirmedJob = ConfirmJobWithFutureTimings(setup, currentTime);
-
-			var preRollStart = GetEvent(GetLiveConfiguration(setup, confirmedJob), LiveEnums.EventType.PrerollStart);
-			DeleteSchedulerTask(setup, preRollStart);
-
-			SyncAsRunning(setup, confirmedJob, currentTime.AddMinutes(7));
-
-			Assert.AreEqual(1, GetTriggerCount(setup, preRollStart.ID), "Expected the pre-roll start event that never started executing to be executed once.");
-		}
-
-		[TestMethod]
-		public void TransitionToRunning_PreRollStopTaskRanAndPreRollStartTaskMissed_OnlyTriggersPreRollStart()
+		public void TransitionToRunning_AtPreRollStart_LeavesPreRollStartToItsSchedulerTask()
 		{
 			var setup = CreateSetup();
 			var currentTime = DateTime.UtcNow.RoundToNextSecond();
 
-			var job = CreateJob(
-				setup,
-				preRollStart: currentTime.AddMinutes(5),
-				start: currentTime.AddMinutes(6),
-				end: currentTime.AddMinutes(20),
-				postRollEnd: currentTime.AddMinutes(25));
-
-			var confirmedJob = Confirm(setup, job);
-
-			var liveConfiguration = GetLiveConfiguration(setup, confirmedJob);
-			var preRollStart = GetEvent(liveConfiguration, LiveEnums.EventType.PrerollStart);
-			var preRollStop = GetEvent(liveConfiguration, LiveEnums.EventType.PrerollStop);
-			GetSchedulerTask(setup, preRollStop).MarkAsRun();
-
-			SyncAsRunning(setup, confirmedJob, currentTime.AddMinutes(6).AddSeconds(1));
-
-			Assert.AreEqual(1, GetTriggerCount(setup, preRollStart.ID), "Expected the missed pre-roll start event to be executed once.");
-			Assert.AreEqual(0, GetTriggerCount(setup, preRollStop.ID), "Expected the pre-roll stop event that its scheduler task executes not to be executed a second time.");
-		}
-
-		private static Job ConfirmJobWithFutureTimings(TestSetup setup, DateTime currentTime)
-		{
 			var job = CreateJob(
 				setup,
 				preRollStart: currentTime.AddMinutes(5),
@@ -929,27 +847,39 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				end: currentTime.AddMinutes(20),
 				postRollEnd: currentTime.AddMinutes(25));
 
-			return Confirm(setup, job);
+			var confirmedJob = Confirm(setup, job);
+
+			// Mirror the reservation start, which coincides with the pre-roll start its scheduler task executes.
+			LiveJobConfigHandler.SetLiveJobConfigForJob((MediaOpsPlanApi)setup.Api, confirmedJob, JobState.Running, null, currentTime.AddMinutes(5).AddSeconds(2), leaveDueEventsToScheduler: true);
+
+			var preRollStart = GetEvent(GetLiveConfiguration(setup, confirmedJob), LiveEnums.EventType.PrerollStart);
+			Assert.AreEqual(LiveEnums.EventState.Confirmed, preRollStart.EventState, "Expected the pre-roll start event to be left to its scheduler task.");
+			Assert.IsNotNull(preRollStart.SchedulerReference, "Expected the scheduler task of the pre-roll start event to be kept.");
+			Assert.AreEqual(0, GetTriggerCount(setup, preRollStart.ID), "Expected the pre-roll start event not to be executed a second time.");
+			Assert.AreEqual(4, setup.Dms.SchedulerTasks.Count, "Expected the scheduler tasks to be left untouched.");
 		}
 
-		private static void SyncAsRunning(TestSetup setup, Job job, DateTimeOffset currentTime)
+		[TestMethod]
+		public void TransitionToRunning_PreRollStartMissedByItsSchedulerTask_TriggersPreRollStart()
 		{
-			// Mirrors the synchronization of the reservation-driven transition to Running at the given time.
-			LiveJobConfigHandler.SetLiveJobConfigForJob((MediaOpsPlanApi)setup.Api, job, JobState.Running, null, currentTime);
-		}
+			var setup = CreateSetup();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
 
-		private static SimulatedSchedulerTask GetSchedulerTask(TestSetup setup, LiveOrchestration.OrchestrationEvent liveEvent)
-		{
-			Assert.IsNotNull(liveEvent.SchedulerReference, $"Expected the {liveEvent.EventType} event to be scheduled.");
+			var job = CreateJob(
+				setup,
+				preRollStart: currentTime.AddMinutes(5),
+				start: currentTime.AddMinutes(10),
+				end: currentTime.AddMinutes(20),
+				postRollEnd: currentTime.AddMinutes(25));
 
-			return setup.Dms.SchedulerTasks.Single(x => x.HandlingAgentId == liveEvent.SchedulerReference.DmaId && x.Id == liveEvent.SchedulerReference.TaskId);
-		}
+			var confirmedJob = Confirm(setup, job);
 
-		private static void DeleteSchedulerTask(TestSetup setup, LiveOrchestration.OrchestrationEvent liveEvent)
-		{
-			var task = GetSchedulerTask(setup, liveEvent);
+			// Long after its time the pre-roll start event is no longer expected to be executed by its scheduler task.
+			LiveJobConfigHandler.SetLiveJobConfigForJob((MediaOpsPlanApi)setup.Api, confirmedJob, JobState.Running, null, currentTime.AddMinutes(7), leaveDueEventsToScheduler: true);
 
-			setup.Connection.HandleMessage(new Skyline.DataMiner.Net.Messages.Advanced.SetSchedulerInfoMessage { DataMinerID = task.HandlingAgentId, What = 3, Info = task.Id });
+			var preRollStart = GetEvent(GetLiveConfiguration(setup, confirmedJob), LiveEnums.EventType.PrerollStart);
+			Assert.AreEqual(LiveEnums.EventState.Draft, preRollStart.EventState, "Expected the pre-roll start event to be put in draft so it triggers immediately.");
+			Assert.AreEqual(1, GetTriggerCount(setup, preRollStart.ID), "Expected the missed pre-roll start event to be executed once.");
 		}
 
 		[TestMethod]
