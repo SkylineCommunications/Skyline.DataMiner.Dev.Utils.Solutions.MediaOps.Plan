@@ -835,54 +835,6 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
-		public void TransitionToRunning_AtPreRollStart_LeavesPreRollStartToItsSchedulerTask()
-		{
-			var setup = CreateSetup();
-			var currentTime = DateTime.UtcNow.RoundToNextSecond();
-
-			var job = CreateJob(
-				setup,
-				preRollStart: currentTime.AddMinutes(5),
-				start: currentTime.AddMinutes(10),
-				end: currentTime.AddMinutes(20),
-				postRollEnd: currentTime.AddMinutes(25));
-
-			var confirmedJob = Confirm(setup, job);
-
-			// Mirror the reservation start, which coincides with the pre-roll start its scheduler task executes.
-			LiveJobConfigHandler.SetLiveJobConfigForJob((MediaOpsPlanApi)setup.Api, confirmedJob, JobState.Running, null, currentTime.AddMinutes(5).AddSeconds(2), leaveDueEventsToScheduler: true);
-
-			var preRollStart = GetEvent(GetLiveConfiguration(setup, confirmedJob), LiveEnums.EventType.PrerollStart);
-			Assert.AreEqual(LiveEnums.EventState.Confirmed, preRollStart.EventState, "Expected the pre-roll start event to be left to its scheduler task.");
-			Assert.IsNotNull(preRollStart.SchedulerReference, "Expected the scheduler task of the pre-roll start event to be kept.");
-			Assert.AreEqual(0, GetTriggerCount(setup, preRollStart.ID), "Expected the pre-roll start event not to be executed a second time.");
-			Assert.AreEqual(4, setup.Dms.SchedulerTasks.Count, "Expected the scheduler tasks to be left untouched.");
-		}
-
-		[TestMethod]
-		public void TransitionToRunning_PreRollStartMissedByItsSchedulerTask_TriggersPreRollStart()
-		{
-			var setup = CreateSetup();
-			var currentTime = DateTime.UtcNow.RoundToNextSecond();
-
-			var job = CreateJob(
-				setup,
-				preRollStart: currentTime.AddMinutes(5),
-				start: currentTime.AddMinutes(10),
-				end: currentTime.AddMinutes(20),
-				postRollEnd: currentTime.AddMinutes(25));
-
-			var confirmedJob = Confirm(setup, job);
-
-			// Long after its time the pre-roll start event is no longer expected to be executed by its scheduler task.
-			LiveJobConfigHandler.SetLiveJobConfigForJob((MediaOpsPlanApi)setup.Api, confirmedJob, JobState.Running, null, currentTime.AddMinutes(7), leaveDueEventsToScheduler: true);
-
-			var preRollStart = GetEvent(GetLiveConfiguration(setup, confirmedJob), LiveEnums.EventType.PrerollStart);
-			Assert.AreEqual(LiveEnums.EventState.Draft, preRollStart.EventState, "Expected the pre-roll start event to be put in draft so it triggers immediately.");
-			Assert.AreEqual(1, GetTriggerCount(setup, preRollStart.ID), "Expected the missed pre-roll start event to be executed once.");
-		}
-
-		[TestMethod]
 		public void Confirm_JobWithEndedNode_ExcludesEndedNodeAndItsConnections()
 		{
 			var setup = CreateSetup();

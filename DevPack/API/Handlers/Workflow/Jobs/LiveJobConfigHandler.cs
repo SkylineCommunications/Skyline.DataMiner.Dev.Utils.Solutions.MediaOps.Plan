@@ -20,14 +20,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	{
 		private static readonly TimeSpan EventMinSchTime = TimeSpan.FromSeconds(5);
 
-		// How long after its time a due event is assumed to be executed by its own scheduler task.
-		private static readonly TimeSpan ScheduledEventGracePeriod = TimeSpan.FromMinutes(1);
-
 		private readonly MediaOpsPlanApi _planApi;
 		private readonly Job _job;
 		private readonly JobState _targetState;
 		private readonly DateTimeOffset _currentTime;
-		private readonly bool _leaveDueEventsToScheduler;
 		private readonly JobReferenceResolver _referenceResolver;
 		private readonly ReferenceDefinitionCache _referenceDefinitions;
 		private readonly Live.OrchestrationJobConfiguration _liveConfiguration;
@@ -35,13 +31,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		private readonly Lazy<Dictionary<Guid, Resource>> _lazyResourcesById;
 		private readonly Lazy<Dictionary<Guid, ResourcePool>> _lazyResourcePoolsById;
 
-		private LiveJobConfigHandler(MediaOpsPlanApi planApi, Job job, JobState targetState, ReferenceDefinitionCache referenceDefinitions, DateTimeOffset currentTime, bool leaveDueEventsToScheduler)
+		private LiveJobConfigHandler(MediaOpsPlanApi planApi, Job job, JobState targetState, ReferenceDefinitionCache referenceDefinitions, DateTimeOffset currentTime)
 		{
 			_planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
 			_job = job ?? throw new ArgumentNullException(nameof(job));
 			_targetState = targetState;
 			_currentTime = currentTime;
-			_leaveDueEventsToScheduler = leaveDueEventsToScheduler;
 
 			_referenceDefinitions = referenceDefinitions ?? new ReferenceDefinitionCache(planApi);
 			_referenceResolver = new JobReferenceResolver(planApi, job, _referenceDefinitions);
@@ -58,7 +53,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		private Dictionary<Guid, ResourcePool> ResourcePoolsById => _lazyResourcePoolsById.Value;
 
-		internal static void SetLiveJobConfigForJob(MediaOpsPlanApi planApi, Job job, JobState targetState, ReferenceDefinitionCache referenceDefinitions, DateTimeOffset currentTime, bool leaveDueEventsToScheduler = false)
+		internal static void SetLiveJobConfigForJob(MediaOpsPlanApi planApi, Job job, JobState targetState, ReferenceDefinitionCache referenceDefinitions, DateTimeOffset currentTime)
 		{
 			if (planApi == null)
 			{
@@ -71,7 +66,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return;
 			}
 
-			new LiveJobConfigHandler(planApi, job, targetState, referenceDefinitions, currentTime, leaveDueEventsToScheduler).ScheduleOrTriggerEvents();
+			new LiveJobConfigHandler(planApi, job, targetState, referenceDefinitions, currentTime).ScheduleOrTriggerEvents();
 		}
 
 		internal static void DeleteLiveJobConfigForJob(MediaOpsPlanApi planApi, Job job)
@@ -169,13 +164,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 			else if (_targetState == JobState.Confirmed || _targetState == JobState.Running)
 			{
-				if (_leaveDueEventsToScheduler && AreAllDueEventsOwnedByScheduler())
-				{
-					// Triggering these events as well would execute them twice.
-					_planApi.Logger.Information(this, "Left the due orchestration events of job {0} to their scheduled tasks.", [_job.Id]);
-					return;
-				}
-
 				// Schedule events in the future and trigger events in the past that did not trigger yet.
 				eventsToTrigger = GetEventsToTriggerAndScheduleEvents();
 			}
@@ -231,35 +219,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			return eventsToTrigger;
-		}
-
-		private bool AreAllDueEventsOwnedByScheduler()
-		{
-			var eventTypes = IsEventInThePast(LiveEnums.EventType.PostrollStart)
-				? new[] { LiveEnums.EventType.PostrollStart, LiveEnums.EventType.PostrollStop }
-				: new[] { LiveEnums.EventType.PrerollStart, LiveEnums.EventType.PrerollStop, LiveEnums.EventType.PostrollStart, LiveEnums.EventType.PostrollStop };
-
-			var dueEventTypes = eventTypes.Where(x => IsEventInThePast(x) && !DidEventAlreadyTrigger(x)).ToList();
-
-			return dueEventTypes.Count > 0 && dueEventTypes.All(IsEventOwnedByScheduler);
-		}
-
-		// The scheduler task of an event executes it at the time it was scheduled for, as long as that time did not change.
-		private bool IsEventOwnedByScheduler(LiveEnums.EventType eventType)
-		{
-			var liveEventConfig = _liveConfiguration.OrchestrationEvents.SingleOrDefault(e => e.EventType == eventType);
-			if (liveEventConfig?.EventTime == null
-				|| liveEventConfig.EventState != LiveEnums.EventState.Confirmed
-				|| liveEventConfig.SchedulerReference == null)
-			{
-				return false;
-			}
-
-			var scheduledTime = liveEventConfig.EventTime.Value;
-
-			// MediaOps Live stores event times truncated to the second.
-			return (scheduledTime - GetEventTimeForEventType(eventType)).Duration() < TimeSpan.FromSeconds(1)
-				&& scheduledTime >= _currentTime - ScheduledEventGracePeriod;
 		}
 
 		private void CancelEventsIfNotAlreadyTriggered()

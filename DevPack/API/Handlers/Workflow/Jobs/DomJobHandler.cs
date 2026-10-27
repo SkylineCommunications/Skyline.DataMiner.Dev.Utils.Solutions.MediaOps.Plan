@@ -2247,8 +2247,7 @@
 			var domJobs = jobsToTransition.Where(IsValid).Select(x => x.OriginalInstance).ToList();
 			TransitionDomJobsToRunning(domJobs);
 
-			// The reservation starts at the pre-roll start, the moment its scheduler task executes the pre-roll start event.
-			SyncLiveOrchestration(jobsToTransition.Where(IsValid).ToList(), JobState.Running, leaveDueEventsToScheduler: true);
+			SyncLiveOrchestration(jobsToTransition.Where(IsValid).ToList(), JobState.Running);
 		}
 
 		// Re-reads the stored jobs and returns the ones that are in the Confirmed state, built from the data that is
@@ -2533,9 +2532,8 @@
 		/// </summary>
 		/// <param name="apiJobs">The jobs to synchronize. Only valid jobs are synchronized.</param>
 		/// <param name="overrideState">When provided, the state to synchronize the jobs with instead of each job's own state.</param>
-		/// <param name="leaveDueEventsToScheduler">When <see langword="true"/>, the synchronization is skipped for a job whose due events are still executed by their scheduler tasks.</param>
 		/// <exception cref="ArgumentNullException"><paramref name="apiJobs"/> is <see langword="null"/>.</exception>
-		private void SyncLiveOrchestration(IEnumerable<Job> apiJobs, JobState? overrideState = null, bool leaveDueEventsToScheduler = false)
+		private void SyncLiveOrchestration(IEnumerable<Job> apiJobs, JobState? overrideState = null)
 		{
 			if (apiJobs == null)
 			{
@@ -2554,7 +2552,7 @@
 
 				try
 				{
-					LiveJobConfigHandler.SetLiveJobConfigForJob(planApi, job, state, referenceDefinitions, currentTime, leaveDueEventsToScheduler);
+					LiveJobConfigHandler.SetLiveJobConfigForJob(planApi, job, state, referenceDefinitions, currentTime);
 				}
 				catch (Exception ex)
 				{
