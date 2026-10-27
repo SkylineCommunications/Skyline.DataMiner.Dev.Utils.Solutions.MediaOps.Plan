@@ -5,6 +5,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using System.Globalization;
 	using System.Linq;
 
+	using Skyline.DataMiner.Solutions.MediaOps.Live.Orchestration.Scheduling;
 	using Skyline.DataMiner.Solutions.MediaOps.Live.Orchestration.Script.Inputs;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
 	using Skyline.DataMiner.Utils.SecureCoding.SecureSerialization.Json.Newtonsoft;
@@ -12,6 +13,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using ConnectivityLevel = Skyline.DataMiner.Solutions.MediaOps.Live.API.Objects.ConnectivityManagement.Level;
 	using Live = Skyline.DataMiner.Solutions.MediaOps.Live.API.Objects.Orchestration;
 	using LiveEnums = Skyline.DataMiner.Solutions.MediaOps.Live.API.Enums;
+	using SLNetMessages = Skyline.DataMiner.Net.Messages;
 
 	/// <summary>
 	/// Provides functionality to handle the orchestration configuration for a job in MediaOps Live.
@@ -20,14 +22,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	{
 		private static readonly TimeSpan EventMinSchTime = TimeSpan.FromSeconds(5);
 
-		// How long after its time a due event is assumed to be executed by its own scheduler task.
-		private static readonly TimeSpan ScheduledEventGracePeriod = TimeSpan.FromMinutes(1);
+		// How long after its time an event whose scheduler task is gone is assumed to be executed by that task.
+		private static readonly TimeSpan ScheduledExecutionGracePeriod = TimeSpan.FromMinutes(1);
 
 		private readonly MediaOpsPlanApi _planApi;
 		private readonly Job _job;
 		private readonly JobState _targetState;
 		private readonly DateTimeOffset _currentTime;
-		private readonly bool _leaveDueEventsToScheduler;
 		private readonly JobReferenceResolver _referenceResolver;
 		private readonly ReferenceDefinitionCache _referenceDefinitions;
 		private readonly Live.OrchestrationJobConfiguration _liveConfiguration;
@@ -35,13 +36,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		private readonly Lazy<Dictionary<Guid, Resource>> _lazyResourcesById;
 		private readonly Lazy<Dictionary<Guid, ResourcePool>> _lazyResourcePoolsById;
 
-		private LiveJobConfigHandler(MediaOpsPlanApi planApi, Job job, JobState targetState, ReferenceDefinitionCache referenceDefinitions, DateTimeOffset currentTime, bool leaveDueEventsToScheduler)
+		private LiveJobConfigHandler(MediaOpsPlanApi planApi, Job job, JobState targetState, ReferenceDefinitionCache referenceDefinitions, DateTimeOffset currentTime)
 		{
 			_planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
 			_job = job ?? throw new ArgumentNullException(nameof(job));
 			_targetState = targetState;
 			_currentTime = currentTime;
-			_leaveDueEventsToScheduler = leaveDueEventsToScheduler;
 
 			_referenceDefinitions = referenceDefinitions ?? new ReferenceDefinitionCache(planApi);
 			_referenceResolver = new JobReferenceResolver(planApi, job, _referenceDefinitions);
@@ -58,7 +58,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		private Dictionary<Guid, ResourcePool> ResourcePoolsById => _lazyResourcePoolsById.Value;
 
-		internal static void SetLiveJobConfigForJob(MediaOpsPlanApi planApi, Job job, JobState targetState, ReferenceDefinitionCache referenceDefinitions, DateTimeOffset currentTime, bool leaveDueEventsToScheduler = false)
+		internal static void SetLiveJobConfigForJob(MediaOpsPlanApi planApi, Job job, JobState targetState, ReferenceDefinitionCache referenceDefinitions, DateTimeOffset currentTime)
 		{
 			if (planApi == null)
 			{
@@ -71,7 +71,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return;
 			}
 
-			new LiveJobConfigHandler(planApi, job, targetState, referenceDefinitions, currentTime, leaveDueEventsToScheduler).ScheduleOrTriggerEvents();
+			new LiveJobConfigHandler(planApi, job, targetState, referenceDefinitions, currentTime).ScheduleOrTriggerEvents();
 		}
 
 		internal static void DeleteLiveJobConfigForJob(MediaOpsPlanApi planApi, Job job)
@@ -169,13 +169,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 			else if (_targetState == JobState.Confirmed || _targetState == JobState.Running)
 			{
-				if (_leaveDueEventsToScheduler && AreAllDueEventsOwnedByScheduler())
-				{
-					// Triggering these events as well would execute them twice.
-					_planApi.Logger.Information(this, "Left the due orchestration events of job {0} to their scheduled tasks.", [_job.Id]);
-					return;
-				}
-
 				// Schedule events in the future and trigger events in the past that did not trigger yet.
 				eventsToTrigger = GetEventsToTriggerAndScheduleEvents();
 			}
@@ -233,19 +226,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return eventsToTrigger;
 		}
 
-		private bool AreAllDueEventsOwnedByScheduler()
+		private enum SchedulerTaskState
 		{
-			var eventTypes = IsEventInThePast(LiveEnums.EventType.PostrollStart)
-				? new[] { LiveEnums.EventType.PostrollStart, LiveEnums.EventType.PostrollStop }
-				: new[] { LiveEnums.EventType.PrerollStart, LiveEnums.EventType.PrerollStop, LiveEnums.EventType.PostrollStart, LiveEnums.EventType.PostrollStop };
-
-			var dueEventTypes = eventTypes.Where(x => IsEventInThePast(x) && !DidEventAlreadyTrigger(x)).ToList();
-
-			return dueEventTypes.Count > 0 && dueEventTypes.All(IsEventOwnedByScheduler);
+			Unknown,
+			NotFound,
+			NotRun,
+			Ran,
 		}
 
-		// The scheduler task of an event executes it at the time it was scheduled for, as long as that time did not change.
-		private bool IsEventOwnedByScheduler(LiveEnums.EventType eventType)
+		private bool IsExecutedByItsSchedulerTask(LiveEnums.EventType eventType)
 		{
 			var liveEventConfig = _liveConfiguration.OrchestrationEvents.SingleOrDefault(e => e.EventType == eventType);
 			if (liveEventConfig?.EventTime == null
@@ -257,9 +246,51 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			var scheduledTime = liveEventConfig.EventTime.Value;
 
-			// MediaOps Live stores event times truncated to the second.
-			return (scheduledTime - GetEventTimeForEventType(eventType)).Duration() < TimeSpan.FromSeconds(1)
-				&& scheduledTime >= _currentTime - ScheduledEventGracePeriod;
+			// A task only executes the event at the time it was scheduled for; MediaOps Live truncates that time to the second.
+			if ((scheduledTime - GetEventTimeForEventType(eventType)).Duration() >= TimeSpan.FromSeconds(1))
+			{
+				return false;
+			}
+
+			switch (GetSchedulerTaskState(liveEventConfig.SchedulerReference))
+			{
+				case SchedulerTaskState.Ran:
+					return true;
+
+				case SchedulerTaskState.NotFound:
+					// The orchestration script removes the task when it starts executing the event.
+					return scheduledTime >= _currentTime - ScheduledExecutionGracePeriod;
+
+				default:
+					return false;
+			}
+		}
+
+		private SchedulerTaskState GetSchedulerTaskState(ScheduledTaskId taskId)
+		{
+			try
+			{
+				var request = new SLNetMessages.GetInfoMessage(SLNetMessages.InfoType.SchedulerTasks) { DataMinerID = taskId.DmaId };
+
+				var task = _planApi.Connection.HandleMessage(request)
+					.OfType<SLNetMessages.GetSchedulerTasksResponseMessage>()
+					.Where(response => response.Tasks != null)
+					.SelectMany(response => response.Tasks.OfType<SLNetMessages.SchedulerTask>())
+					.FirstOrDefault(x => x.HandlingDMA == taskId.DmaId && x.Id == taskId.TaskId);
+
+				if (task == null)
+				{
+					return SchedulerTaskState.NotFound;
+				}
+
+				return task.Executed > 0 || task.Finished ? SchedulerTaskState.Ran : SchedulerTaskState.NotRun;
+			}
+			catch (Exception ex)
+			{
+				// An agent that cannot be reached will not run the task either.
+				_planApi.Logger.Warning(this, "Could not retrieve scheduler task {0} of job {1}: {2}", [taskId, _job.Id, ex]);
+				return SchedulerTaskState.Unknown;
+			}
 		}
 
 		private void CancelEventsIfNotAlreadyTriggered()
@@ -286,6 +317,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				if (DidEventAlreadyTrigger(eventType))
 				{
+					return false;
+				}
+
+				if (IsExecutedByItsSchedulerTask(eventType))
+				{
+					// Draft keeps the save valid; triggering it as well would execute it twice.
+					SetEventConfig(eventType, LiveEnums.EventState.Draft);
 					return false;
 				}
 
