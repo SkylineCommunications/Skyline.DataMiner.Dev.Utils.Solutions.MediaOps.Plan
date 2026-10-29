@@ -24,18 +24,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			Owner = owner;
 		}
 
-		internal FlowRules(StorageResourceStudio.FlowrulesInstance instance, FlowRuleObject owner) : base(instance?.ID.Id ?? throw new ArgumentNullException(nameof(instance)))
+		internal FlowRules(StorageResourceStudio.FlowrulesInstance instance) : base(instance?.ID.Id ?? throw new ArgumentNullException(nameof(instance)))
 		{
-			originalInstance = instance;
-
-			// The owning object is authoritative; the stored owner only matters for queries on the rule set itself.
-			Owner = owner;
-
-			foreach (var section in instance.Flowrule.Where(x => x.Direction.HasValue))
-			{
-				rules.Add(new FlowRule(section));
-			}
-
+			ParseInstance(instance);
 			InitTracking();
 		}
 
@@ -49,7 +40,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// </summary>
 		public Guid OwnerId => Owner.Id;
 
-		internal FlowRuleObject Owner { get; }
+		internal FlowRuleObject Owner { get; private set; }
 
 		/// <summary>
 		/// Gets all flow rules, both defaults and overrides.
@@ -287,6 +278,18 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		internal FlowRule GetApplicableRule(FlowRuleDirection direction, FlowRuleObject target)
 		{
 			return GetOverride(direction, target) ?? GetDefault(direction);
+		}
+
+		private void ParseInstance(StorageResourceStudio.FlowrulesInstance instance)
+		{
+			originalInstance = instance;
+
+			Owner = new FlowRuleObject(FlowRuleObject.FromStorage(instance.Flowrulesinfo.Ownertype), instance.Flowrulesinfo.OwnerId);
+
+			foreach (var section in instance.Flowrule.Where(x => x.Direction.HasValue))
+			{
+				rules.Add(new FlowRule(section));
+			}
 		}
 
 		// Updates the existing rule in place so its stored section, and therefore its section ID, is kept.

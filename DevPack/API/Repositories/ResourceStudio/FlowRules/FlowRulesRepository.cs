@@ -54,8 +54,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			foreach (var instance in PlanApi.DomHelpers.SlcResourceStudioHelper.GetFlowRules(filter))
 			{
-				var owner = new FlowRuleObject(FlowRuleObject.FromStorage(instance.Flowrulesinfo.Ownertype), instance.Flowrulesinfo.OwnerId);
-				yield return new FlowRules(instance, owner);
+				yield return new FlowRules(instance);
 			}
 		}
 
@@ -162,11 +161,20 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			foreach (var pair in flowRulesIdByPoolId)
 			{
-				if (flowRulesInstancesById.TryGetValue(pair.Value, out var instance))
+				if (!flowRulesInstancesById.TryGetValue(pair.Value, out var instance))
 				{
-					var owner = FlowRuleObject.ResourcePool(pair.Key);
-					result[owner] = new FlowRules(instance, owner);
+					continue;
 				}
+
+				var owner = FlowRuleObject.ResourcePool(pair.Key);
+				var flowRules = new FlowRules(instance);
+
+				if (flowRules.Owner != owner)
+				{
+					PlanApi.Logger.Warning(this, "Flow rules {0} of resource pool {1} are stored with owner {2}.", [flowRules.Id, pair.Key, flowRules.Owner]);
+				}
+
+				result[owner] = flowRules;
 			}
 		}
 

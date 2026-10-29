@@ -47,6 +47,20 @@ namespace RT_MediaOps.Plan.RST.FlowRules
 		}
 
 		[TestMethod]
+		public void ReadAll_ReturnsTheStoredOwner()
+		{
+			var pool = new ResourcePool { Name = $"{Guid.NewGuid()}_Pool" };
+			pool.FlowRules.SetDefault(FlowRuleDirection.After, FlowRuleOutcome.Warning);
+			pool = objectCreator.CreateResourcePool(pool);
+
+			var stored = TestContext.Api.FlowRules.Read().Single(x => x.Id == pool.FlowRules.Id);
+
+			Assert.AreEqual(FlowRuleObjectType.ResourcePool, stored.OwnerType);
+			Assert.AreEqual(pool.Id, stored.OwnerId);
+			Assert.AreEqual(FlowRuleOutcome.Warning, stored.GetDefault(FlowRuleDirection.After).Outcome);
+		}
+
+		[TestMethod]
 		public void CreateAndReadResourcePoolWithFlowRules()
 		{
 			var prefix = Guid.NewGuid();

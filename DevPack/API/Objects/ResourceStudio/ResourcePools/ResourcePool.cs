@@ -53,7 +53,7 @@
 			}
 
 			ParseInstance(planApi, instance);
-			ParseFlowRules(instance, flowRulesById);
+			ParseFlowRules(planApi, instance, flowRulesById);
 			InitTracking();
 		}
 
@@ -354,12 +354,17 @@
 			return planApi.DomHelpers.SlcResourceStudioHelper.GetFlowRules(flowRulesIds).ToDictionary(x => x.ID.Id);
 		}
 
-		private void ParseFlowRules(StorageResourceStudio.ResourcepoolInstance instance, IReadOnlyDictionary<Guid, StorageResourceStudio.FlowrulesInstance> flowRulesById)
+		private void ParseFlowRules(MediaOpsPlanApi planApi, StorageResourceStudio.ResourcepoolInstance instance, IReadOnlyDictionary<Guid, StorageResourceStudio.FlowrulesInstance> flowRulesById)
 		{
 			var flowRulesId = instance.ConfigurationInfo.FlowRules;
 			if (flowRulesId.HasValue && flowRulesById.TryGetValue(flowRulesId.Value, out var flowRulesInstance))
 			{
-				FlowRules = new FlowRules(flowRulesInstance, FlowRuleObject.ResourcePool(Id));
+				FlowRules = new FlowRules(flowRulesInstance);
+
+				if (FlowRules.Owner != FlowRuleObject.ResourcePool(Id))
+				{
+					planApi.Logger.Warning(this, "Flow rules {0} of resource pool {1} are stored with owner {2}.", [FlowRules.Id, Id, FlowRules.Owner]);
+				}
 			}
 			else
 			{
