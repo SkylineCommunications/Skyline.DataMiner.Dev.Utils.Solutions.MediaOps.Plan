@@ -583,11 +583,19 @@
 			// Simulates a save of which the rule set was written but the pool (with its pointer) was not.
 			var abandoned = TestContext.Api.ResourcePools.Read(pool.Id);
 			abandoned.FlowRules.SetOverride(FlowRuleDirection.After, target, FlowRuleOutcome.Forbidden);
-			TestContext.ResourceStudioDomHelper.DomInstances.Create(abandoned.FlowRules.GetInstanceWithChanges().ToInstance());
+			var abandonedInstance = TestContext.ResourceStudioDomHelper.DomInstances.Create(abandoned.FlowRules.GetInstanceWithChanges().ToInstance());
 
-			TestContext.Api.ResourcePools.Delete(target);
+			try
+			{
+				TestContext.Api.ResourcePools.Delete(target);
 
-			Assert.IsNull(TestContext.Api.ResourcePools.Read(target.Id));
+				Assert.IsNull(TestContext.Api.ResourcePools.Read(target.Id));
+			}
+			finally
+			{
+				// The pool does not point to this rule set, so deleting the pool does not remove it.
+				DeleteFlowRulesInstance(abandonedInstance.ID.Id);
+			}
 		}
 
 		[TestMethod]
@@ -661,6 +669,15 @@
 				.Where(x => x.SectionDefinitionID.Equals(StorageResourceStudio.SlcResource_StudioIds.Sections.Flowrule.Id))
 				.Select(x => x.ID.Id)
 				.ToArray();
+		}
+
+		private static void DeleteFlowRulesInstance(Guid flowRulesId)
+		{
+			var domHelper = TestContext.ResourceStudioDomHelper;
+			foreach (var instance in domHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(flowRulesId)))
+			{
+				domHelper.DomInstances.Delete(instance);
+			}
 		}
 
 		// Simulates a resource pool that was created before flow rules existed.
