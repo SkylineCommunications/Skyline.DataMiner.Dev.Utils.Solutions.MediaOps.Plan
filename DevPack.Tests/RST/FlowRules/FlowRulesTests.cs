@@ -573,6 +573,24 @@
 		}
 
 		[TestMethod]
+		public void OverrideInRuleSetNotAttachedToItsPool_DoesNotBlockDeletingTheTarget()
+		{
+			var prefix = Guid.NewGuid();
+			var target = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Target" });
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			RemoveFlowRulesFromStorage(pool.Id);
+
+			// Simulates a save of which the rule set was written but the pool (with its pointer) was not.
+			var abandoned = TestContext.Api.ResourcePools.Read(pool.Id);
+			abandoned.FlowRules.SetOverride(FlowRuleDirection.After, target, FlowRuleOutcome.Forbidden);
+			TestContext.ResourceStudioDomHelper.DomInstances.Create(abandoned.FlowRules.GetInstanceWithChanges().ToInstance());
+
+			TestContext.Api.ResourcePools.Delete(target);
+
+			Assert.IsNull(TestContext.Api.ResourcePools.Read(target.Id));
+		}
+
+		[TestMethod]
 		public void Repository_EvaluateConnectionsAndCandidates()
 		{
 			var prefix = Guid.NewGuid();

@@ -50,17 +50,21 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return;
 			}
 
-			// Rule sets left behind by a pool that no longer exists must not block the delete. Requested pools exist.
-			var existingOwnerIds = planApi.DomHelpers.SlcResourceStudioHelper
-				.GetResourcePools(referencingRuleSets.Select(x => x.Flowrulesinfo.OwnerId).Where(x => !requestedPoolIds.Contains(x)).Distinct().ToList())
-				.Select(x => x.ID.Id)
-				.Concat(requestedPoolIds)
-				.ToHashSet();
+			// Only the rule set an owner points to counts, like for pool reads and evaluation: a rule set that is not attached
+			// to its pool (left behind by a failed save, or of a pool that no longer exists) must not block the delete.
+			var flowRulesIdByOwnerId = planApi.DomHelpers.SlcResourceStudioHelper
+				.GetResourcePools(referencingRuleSets.Select(x => x.Flowrulesinfo.OwnerId).Distinct().ToList())
+				.Where(x => x.ConfigurationInfo.FlowRules.HasValue)
+				.ToDictionary(x => x.ID.Id, x => x.ConfigurationInfo.FlowRules.Value);
+
+			var attachedRuleSets = referencingRuleSets
+				.Where(x => flowRulesIdByOwnerId.TryGetValue(x.Flowrulesinfo.OwnerId, out var flowRulesId) && flowRulesId == x.ID.Id)
+				.ToList();
 
 			var referencingOwnerIdsByPoolId = requestedPoolIds.ToDictionary(
 				x => x,
-				x => referencingRuleSets
-					.Where(set => existingOwnerIds.Contains(set.Flowrulesinfo.OwnerId) && set.Flowrule.Any(rule => rule.TargetId == x))
+				x => attachedRuleSets
+					.Where(set => set.Flowrule.Any(rule => rule.TargetId == x))
 					.Select(set => set.Flowrulesinfo.OwnerId)
 					.Where(ownerId => ownerId != x)
 					.ToHashSet());
