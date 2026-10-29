@@ -247,6 +247,43 @@
 		}
 
 		[TestMethod]
+		public void OverrideToResourcePoolThatFailsInSameCall_IsRejected()
+		{
+			var prefix = Guid.NewGuid();
+			var target = new ResourcePool { Name = String.Empty };
+			var pool = new ResourcePool { Name = $"{prefix}_Pool" };
+			pool.FlowRules.SetOverride(FlowRuleDirection.After, target, FlowRuleOutcome.Forbidden);
+
+			var exception = Assert.ThrowsException<MediaOpsBulkException<Guid>>(() => objectCreator.CreateResourcePools([target, pool]));
+
+			CollectionAssert.AreEquivalent(new[] { target.Id, pool.Id }, exception.Result.UnsuccessfulIds.ToArray());
+			var error = exception.Result.TraceDataPerItem[pool.Id].ErrorData.OfType<FlowRulesTargetNotFoundError>().Single();
+			Assert.AreEqual(pool.Id, error.OwnerId);
+			Assert.AreEqual(target.Id, error.TargetId);
+			Assert.IsNull(TestContext.Api.ResourcePools.Read(pool.Id));
+		}
+
+		[TestMethod]
+		public void OverrideToResourcePoolWithInvalidFlowRulesInSameCall_IsRejected()
+		{
+			var prefix = Guid.NewGuid();
+			var target = new ResourcePool { Name = $"{prefix}_Target" };
+			target.FlowRules
+				.Add(new FlowRule(FlowRuleDirection.Before, FlowRuleOutcome.Warning))
+				.Add(new FlowRule(FlowRuleDirection.Before, FlowRuleOutcome.Forbidden));
+			var pool = new ResourcePool { Name = $"{prefix}_Pool" };
+			pool.FlowRules.SetOverride(FlowRuleDirection.After, target, FlowRuleOutcome.Forbidden);
+
+			var exception = Assert.ThrowsException<MediaOpsBulkException<Guid>>(() => objectCreator.CreateResourcePools([target, pool]));
+
+			CollectionAssert.AreEquivalent(new[] { target.Id, pool.Id }, exception.Result.UnsuccessfulIds.ToArray());
+			Assert.AreEqual(target.Id, exception.Result.TraceDataPerItem[target.Id].ErrorData.OfType<FlowRulesDuplicateRuleError>().Single().OwnerId);
+			Assert.AreEqual(target.Id, exception.Result.TraceDataPerItem[pool.Id].ErrorData.OfType<FlowRulesTargetNotFoundError>().Single().TargetId);
+			Assert.IsNull(TestContext.Api.ResourcePools.Read(target.Id));
+			Assert.IsNull(TestContext.Api.ResourcePools.Read(pool.Id));
+		}
+
+		[TestMethod]
 		public void DuplicateRules_AreRejected()
 		{
 			var pool = new ResourcePool { Name = $"{Guid.NewGuid()}_Pool" };
