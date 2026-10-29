@@ -94,7 +94,7 @@
 				: new HashSet<Guid>();
 
 			var connectedObjects = jobs.SelectMany(job => FlowRuleEvaluator.GetConnectedObjects(job.NodeGraph)).Distinct().ToList();
-			var flowRulesByOwner = new FlowRulesRepository(planApi).Read(connectedObjects);
+			var flowRulesByOwner = FlowRuleEvaluationHandler.ReadByOwner(planApi, connectedObjects);
 
 			return new ValidationContext(now, resources, coreResources, reservationsByJob, virtualSignalGroupIdsFound, liveIsInstalled, new ReferenceDefinitionCache(planApi), flowRulesByOwner);
 		}
