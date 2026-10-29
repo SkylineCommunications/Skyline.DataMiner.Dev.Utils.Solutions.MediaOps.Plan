@@ -18,7 +18,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		private StorageResourceStudio.FlowrulesInstance originalInstance;
 		private StorageResourceStudio.FlowrulesInstance updatedInstance;
 
-		internal FlowRules(FlowRuleObject owner) : base()
+		// A failed save leaves an owner without a stored pointer to its rule set, so every attempt starts a new rule set;
+		// a fixed ID per owner makes the next attempt overwrite the rule set of the previous one instead of adding another.
+		internal FlowRules(FlowRuleObject owner) : base(owner.GetFlowRulesId())
 		{
 			IsNew = true;
 			Owner = owner;

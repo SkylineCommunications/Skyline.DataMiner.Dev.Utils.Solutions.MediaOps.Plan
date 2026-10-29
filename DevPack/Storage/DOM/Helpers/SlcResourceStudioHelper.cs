@@ -355,28 +355,6 @@
 				x => GetFlowRulesIterator(x));
 		}
 
-		public IEnumerable<FlowrulesInstance> GetFlowRulesByOwner(IEnumerable<Guid> ownerIds)
-		{
-			if (ownerIds == null)
-			{
-				throw new ArgumentNullException(nameof(ownerIds));
-			}
-
-			if (!ownerIds.Any())
-			{
-				return Enumerable.Empty<FlowrulesInstance>();
-			}
-
-			FilterElement<DomInstance> Filter(Guid id) =>
-				DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Flowrules.Id)
-				.AND(DomInstanceExposers.FieldValues.DomInstanceField(SlcResource_StudioIds.Sections.Flowrulesinfo.Owner).Equal(Convert.ToString(id)));
-
-			return FilterQueryExecutor.RetrieveFilteredItems(
-				ownerIds.Distinct(),
-				x => Filter(x),
-				x => GetFlowRulesIterator(x));
-		}
-
 		public IEnumerable<FlowrulesInstance> GetFlowRulesByTarget(IEnumerable<Guid> targetIds)
 		{
 			if (targetIds == null)

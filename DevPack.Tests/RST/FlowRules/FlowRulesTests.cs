@@ -208,6 +208,28 @@
 		}
 
 		[TestMethod]
+		public void ChainOfOverridesToResourcePoolThatFailsUnderLockInSameCall_IsRejected()
+		{
+			var prefix = Guid.NewGuid();
+			var existing = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Existing" });
+
+			// The last pool of the chain fails on its name under the lock; every pool that leads to it must fail as well.
+			var last = new ResourcePool { Name = existing.Name };
+			var middle = new ResourcePool { Name = $"{prefix}_Middle" };
+			middle.FlowRules.SetOverride(FlowRuleDirection.After, last, FlowRuleOutcome.Forbidden);
+			var first = new ResourcePool { Name = $"{prefix}_First" };
+			first.FlowRules.SetOverride(FlowRuleDirection.After, middle, FlowRuleOutcome.Forbidden);
+
+			var exception = Assert.ThrowsException<MediaOpsBulkException<Guid>>(() => objectCreator.CreateResourcePools([last, middle, first]));
+
+			CollectionAssert.AreEquivalent(new[] { last.Id, middle.Id, first.Id }, exception.Result.UnsuccessfulIds.ToArray());
+			Assert.AreEqual(last.Id, exception.Result.TraceDataPerItem[middle.Id].ErrorData.OfType<FlowRulesTargetNotFoundError>().Single().TargetId);
+			Assert.AreEqual(middle.Id, exception.Result.TraceDataPerItem[first.Id].ErrorData.OfType<FlowRulesTargetNotFoundError>().Single().TargetId);
+			Assert.IsNull(TestContext.Api.ResourcePools.Read(first.Id));
+			Assert.AreEqual(0, TestContext.Api.FlowRules.Count(FlowRulesExposers.OwnerId.Equal(first.Id)));
+		}
+
+		[TestMethod]
 		public void ReadPool_IsUnchanged()
 		{
 			var pool = new ResourcePool { Name = $"{Guid.NewGuid()}_Pool" };
@@ -520,6 +542,34 @@
 			TestContext.Api.ResourcePools.Update(legacyPool);
 
 			Assert.IsNotNull(ReadByOwner(pool.Id), "Expected the rule set to be created when the pool is saved.");
+		}
+
+		[TestMethod]
+		public void RuleSetNotAttachedToItsPool_IsNotEvaluated_AndIsOverwrittenByTheNextSave()
+		{
+			var prefix = Guid.NewGuid();
+			var source = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Source" });
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			RemoveFlowRulesFromStorage(pool.Id);
+
+			// Simulates a save of which the rule set was written but the pool (with its pointer) was not.
+			var abandoned = TestContext.Api.ResourcePools.Read(pool.Id);
+			abandoned.FlowRules.SetDefault(FlowRuleDirection.Before, FlowRuleOutcome.Forbidden);
+			TestContext.ResourceStudioDomHelper.DomInstances.Create(abandoned.FlowRules.GetInstanceWithChanges().ToInstance());
+
+			Assert.AreEqual(0, TestContext.Api.ResourcePools.Read(pool.Id).FlowRules.Rules.Count);
+			Assert.AreEqual(FlowRuleOutcome.Allowed, TestContext.Api.FlowRules.Evaluate(FlowRuleObjectType.ResourcePool, source.Id, FlowRuleObjectType.ResourcePool, pool.Id).Outcome);
+
+			// The retry gets the same rule set ID, so it replaces the abandoned rule set instead of adding a second one.
+			var retry = TestContext.Api.ResourcePools.Read(pool.Id);
+			Assert.AreEqual(abandoned.FlowRules.Id, retry.FlowRules.Id);
+			retry.FlowRules.SetDefault(FlowRuleDirection.Before, FlowRuleOutcome.Warning);
+			TestContext.Api.ResourcePools.Update(retry);
+
+			var stored = ReadByOwner(pool.Id);
+			Assert.AreEqual(retry.FlowRules.Id, stored.Id);
+			Assert.AreEqual(FlowRuleOutcome.Warning, stored.GetDefault(FlowRuleDirection.Before).Outcome);
+			Assert.AreEqual(FlowRuleOutcome.Warning, TestContext.Api.FlowRules.Evaluate(FlowRuleObjectType.ResourcePool, source.Id, FlowRuleObjectType.ResourcePool, pool.Id).Outcome);
 		}
 
 		[TestMethod]

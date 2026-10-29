@@ -72,7 +72,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				act => handler.Evaluate(nodeGraph));
 		}
 
-		// Looks the rule sets up by their stored owner, in batches, so it works the same for every owner type.
+		// Looks the rule sets up through their owner (for resource pools: the pointer on the stored pool), in batches.
 		public static IReadOnlyDictionary<FlowRuleObject, FlowRules> ReadByOwner(MediaOpsPlanApi planApi, IEnumerable<FlowRuleObject> owners)
 		{
 			if (owners == null)
@@ -137,33 +137,53 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return FlowRuleEvaluator.Evaluate(nodeGraph, owner => GetOrNull(flowRulesByOwner, owner));
 		}
 
+		// Resource pools are resolved through the pointer on the stored pool, exactly like a pool read, so a rule set that is
+		// not attached to its pool (for example left behind by a failed save) is never evaluated.
 		private IReadOnlyDictionary<FlowRuleObject, FlowRules> ReadByOwner(IEnumerable<FlowRuleObject> owners)
 		{
 			var result = new Dictionary<FlowRuleObject, FlowRules>();
 
 			foreach (var group in owners.Where(x => !x.IsEmpty).Distinct().GroupBy(x => x.Type))
 			{
-				var requested = new HashSet<FlowRuleObject>(group);
-
-				foreach (var instance in planApi.DomHelpers.SlcResourceStudioHelper.GetFlowRulesByOwner(group.Select(x => x.Id)))
+				switch (group.Key)
 				{
-					var flowRules = new FlowRules(instance);
-					if (!requested.Contains(flowRules.Owner))
-					{
-						continue;
-					}
+					case FlowRuleObjectType.ResourcePool:
+						ReadResourcePoolFlowRules(group.Select(x => x.Id).ToList(), result);
+						break;
 
-					if (result.TryGetValue(flowRules.Owner, out var existing))
-					{
-						planApi.Logger.Warning(this, "Owner {0} has multiple flow rules: {1} and {2}. Only {1} is used.", [flowRules.Owner, existing.Id, flowRules.Id]);
-						continue;
-					}
-
-					result[flowRules.Owner] = flowRules;
+					default:
+						throw new NotSupportedException($"Flow rules of owners of type '{group.Key}' are not supported.");
 				}
 			}
 
 			return result;
+		}
+
+		private void ReadResourcePoolFlowRules(ICollection<Guid> poolIds, IDictionary<FlowRuleObject, FlowRules> result)
+		{
+			var poolIdByFlowRulesId = planApi.DomHelpers.SlcResourceStudioHelper
+				.GetResourcePools(poolIds)
+				.Where(x => x.ConfigurationInfo.FlowRules.HasValue && x.ConfigurationInfo.FlowRules.Value != Guid.Empty)
+				.GroupBy(x => x.ConfigurationInfo.FlowRules.Value)
+				.ToDictionary(x => x.Key, x => x.First().ID.Id);
+
+			if (poolIdByFlowRulesId.Count == 0)
+			{
+				return;
+			}
+
+			foreach (var instance in planApi.DomHelpers.SlcResourceStudioHelper.GetFlowRules(poolIdByFlowRulesId.Keys))
+			{
+				var owner = FlowRuleObject.ResourcePool(poolIdByFlowRulesId[instance.ID.Id]);
+				var flowRules = new FlowRules(instance);
+
+				if (flowRules.Owner != owner)
+				{
+					planApi.Logger.Warning(this, "Flow rules {0} of resource pool {1} are stored with owner {2}.", [flowRules.Id, owner.Id, flowRules.Owner]);
+				}
+
+				result[owner] = flowRules;
+			}
 		}
 	}
 }

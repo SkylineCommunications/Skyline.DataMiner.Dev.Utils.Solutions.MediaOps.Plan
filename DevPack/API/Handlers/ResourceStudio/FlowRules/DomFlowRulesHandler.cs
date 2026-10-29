@@ -113,18 +113,38 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				.ToList();
 		}
 
-		// A target of the same operation that failed after the flow rules were validated will not be written.
+		// A target of the same operation that failed after the flow rules were validated will not be written. A rule set that
+		// is rejected here takes its owner down with it, so its owner is dropped as a target as well until nothing changes.
 		private void ValidateDroppedTargets(ICollection<FlowRules> apiFlowRules)
 		{
-			foreach (var (flowRules, rule) in GetNewOverrides(apiFlowRules).Where(x => validationContext.IsDropped(x.Rule.Target.Value)))
+			var remaining = apiFlowRules.ToList();
+			bool changed;
+
+			do
 			{
-				var target = rule.Target.Value;
-				ReportError(flowRules.Id, CreateRuleError<FlowRulesTargetNotFoundError>(
-					flowRules,
-					rule.Direction,
-					target,
-					$"Flow rule target {target.Type} with ID '{target.Id}' could not be saved in the same operation."));
+				var rejected = new List<FlowRules>();
+
+				foreach (var (flowRules, rule) in GetNewOverrides(remaining).Where(x => validationContext.IsDropped(x.Rule.Target.Value)))
+				{
+					var target = rule.Target.Value;
+					ReportError(flowRules.Id, CreateRuleError<FlowRulesTargetNotFoundError>(
+						flowRules,
+						rule.Direction,
+						target,
+						$"Flow rule target {target.Type} with ID '{target.Id}' could not be saved in the same operation."));
+
+					rejected.Add(flowRules);
+				}
+
+				foreach (var flowRules in rejected.Distinct())
+				{
+					validationContext.Drop(flowRules.Owner);
+					remaining.Remove(flowRules);
+				}
+
+				changed = rejected.Count > 0;
 			}
+			while (changed);
 		}
 
 		private void ValidateTargets(ICollection<FlowRules> apiFlowRules)
