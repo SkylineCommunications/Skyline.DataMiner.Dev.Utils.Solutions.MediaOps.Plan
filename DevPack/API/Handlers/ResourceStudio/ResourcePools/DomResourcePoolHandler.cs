@@ -23,6 +23,11 @@
 
 		private readonly HashSet<ResourcePool> referencedApiResourcePoolsToUpdate = new HashSet<ResourcePool>();
 
+		// Pools of the operation that may be targeted by the flow rules of other pools of the same operation.
+		private readonly List<ResourcePool> flowRuleTargetsInOperation = new List<ResourcePool>();
+
+		private FlowRulesValidationContext flowRulesValidationContext = FlowRulesValidationContext.Empty;
+
 		private DomResourcePoolHandler(MediaOpsPlanApi planApi)
 		{
 			this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
@@ -349,8 +354,14 @@
 				return;
 			}
 
-			// The flow rules were validated together with the pools, so they only need to be persisted here.
-			DomFlowRulesHandler.TryPersist(planApi, poolsToPersist.Select(x => x.FlowRules).ToList(), out var domResult);
+			// The flow rules were validated together with the pools; a pool of this operation that failed since then (for
+			// example on its name or category, which are only checked under the lock) is dropped as a target.
+			foreach (var target in flowRuleTargetsInOperation.Where(x => !IsValid(x)))
+			{
+				flowRulesValidationContext.Drop(FlowRuleObject.ResourcePool(target.Id));
+			}
+
+			DomFlowRulesHandler.TryPersist(planApi, poolsToPersist.Select(x => x.FlowRules).ToList(), flowRulesValidationContext, out var domResult);
 			ReportFlowRulesErrors(poolsToPersist, domResult);
 		}
 
@@ -541,7 +552,6 @@
 		private ICollection<ResourcePool> DeleteCoreResourcePools(ICollection<ResourcePool> poolsToDelete)
 		{
 			DeleteOrchestrationSettings(poolsToDelete.Where(IsValid).ToList());
-			DeleteFlowRules(poolsToDelete.Where(IsValid).ToList());
 
 			var domPoolsById = poolsToDelete.ToDictionary(x => x.Id, x => x.OriginalInstance);
 
@@ -577,6 +587,10 @@
 
 			ReportSuccess(instancesToDelete.Where(x => domResult.SuccessfulIds.Contains(x.ID)).Select(x => new DomResourcePool(x)).ToArray());
 
+			// Only the rules of pools that are gone are deleted, so a pool that could not be deleted keeps its restrictions.
+			var deletedPoolIds = new HashSet<Guid>(domResult.SuccessfulIds.Select(x => x.Id));
+			DeleteFlowRules(poolsToDelete.Where(x => deletedPoolIds.Contains(x.Id)).ToList());
+
 			// Return affected pools that require updates
 			return referencedApiResourcePoolsToUpdate.Where(x => !domResult.SuccessfulIds.Select(y => y.Id).Contains(x.Id)).ToList();
 		}
@@ -601,6 +615,11 @@
 			if (resourcePools == null)
 			{
 				throw new ArgumentNullException(nameof(resourcePools));
+			}
+
+			if (resourcePools.Count == 0)
+			{
+				return;
 			}
 
 			if (!DomFlowRulesHandler.TryDelete(planApi, resourcePools.Select(x => x.FlowRules).ToList(), out var domResult))
@@ -1079,6 +1098,8 @@
 				var remaining = candidates.Where(IsValid).ToList();
 				if (remaining.Count == candidates.Count)
 				{
+					flowRulesValidationContext = validationContext;
+					flowRuleTargetsInOperation.AddRange(candidates);
 					return;
 				}
 

@@ -164,6 +164,50 @@
 		}
 
 		[TestMethod]
+		public void ConcurrentlyAddedDefaults_AreRejected()
+		{
+			var pool = new ResourcePool { Name = $"{Guid.NewGuid()}_Pool" };
+			pool.FlowRules.SetDefault(FlowRuleDirection.Before, FlowRuleOutcome.Warning);
+			pool = objectCreator.CreateResourcePool(pool);
+
+			var first = TestContext.Api.ResourcePools.Read(pool.Id);
+			var second = TestContext.Api.ResourcePools.Read(pool.Id);
+
+			first.FlowRules.SetDefault(FlowRuleDirection.After, FlowRuleOutcome.Allowed);
+			TestContext.Api.ResourcePools.Update(first);
+
+			second.FlowRules.SetDefault(FlowRuleDirection.After, FlowRuleOutcome.Forbidden);
+			var exception = Assert.ThrowsException<MediaOpsException>(() => TestContext.Api.ResourcePools.Update(second));
+
+			var error = exception.TraceData.ErrorData.OfType<FlowRulesDuplicateRuleError>().Single();
+			Assert.AreEqual(FlowRuleDirection.After, error.Direction);
+			Assert.IsNull(error.TargetId);
+
+			var stored = TestContext.Api.ResourcePools.Read(pool.Id).FlowRules;
+			Assert.AreEqual(2, stored.Rules.Count);
+			Assert.AreEqual(FlowRuleOutcome.Allowed, stored.GetDefault(FlowRuleDirection.After).Outcome);
+		}
+
+		[TestMethod]
+		public void OverrideToResourcePoolThatFailsUnderLockInSameCall_IsRejected()
+		{
+			var prefix = Guid.NewGuid();
+			var existing = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Existing" });
+
+			// The name is only checked against the stored pools under the lock, after the flow rules were validated.
+			var target = new ResourcePool { Name = existing.Name };
+			var pool = new ResourcePool { Name = $"{prefix}_Pool" };
+			pool.FlowRules.SetOverride(FlowRuleDirection.After, target, FlowRuleOutcome.Forbidden);
+
+			var exception = Assert.ThrowsException<MediaOpsBulkException<Guid>>(() => objectCreator.CreateResourcePools([target, pool]));
+
+			CollectionAssert.AreEquivalent(new[] { target.Id, pool.Id }, exception.Result.UnsuccessfulIds.ToArray());
+			Assert.AreEqual(target.Id, exception.Result.TraceDataPerItem[pool.Id].ErrorData.OfType<FlowRulesTargetNotFoundError>().Single().TargetId);
+			Assert.IsNull(TestContext.Api.ResourcePools.Read(pool.Id));
+			Assert.AreEqual(0, TestContext.Api.FlowRules.Count(FlowRulesExposers.OwnerId.Equal(pool.Id)));
+		}
+
+		[TestMethod]
 		public void ReadPool_IsUnchanged()
 		{
 			var pool = new ResourcePool { Name = $"{Guid.NewGuid()}_Pool" };
@@ -399,6 +443,30 @@
 			var deprecated = TestContext.Api.ResourcePools.Deprecate(target);
 
 			Assert.AreEqual(ResourcePoolState.Deprecated, deprecated.State);
+		}
+
+		[TestMethod]
+		public void DeleteChainWhereLastReferencedPoolIsKept_RejectsTheWholeChain()
+		{
+			var prefix = Guid.NewGuid();
+			var first = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_First" });
+
+			var second = new ResourcePool { Name = $"{prefix}_Second" };
+			second.FlowRules.SetOverride(FlowRuleDirection.After, first, FlowRuleOutcome.Forbidden);
+			second = objectCreator.CreateResourcePool(second);
+
+			var third = new ResourcePool { Name = $"{prefix}_Third" };
+			third.FlowRules.SetOverride(FlowRuleDirection.After, second, FlowRuleOutcome.Forbidden);
+			objectCreator.CreateResourcePool(third);
+
+			// The second pool is kept because the third one references it, so its reference to the first one blocks as well.
+			var exception = Assert.ThrowsException<MediaOpsBulkException<Guid>>(() => TestContext.Api.ResourcePools.Delete([first, second]));
+
+			CollectionAssert.AreEquivalent(new[] { first.Id, second.Id }, exception.Result.UnsuccessfulIds.ToArray());
+			var firstError = exception.Result.TraceDataPerItem[first.Id].ErrorData.OfType<ResourcePoolInUseByFlowRulesError>().Single();
+			CollectionAssert.AreEqual(new[] { second.Id }, firstError.ReferencingOwnerIds.ToArray());
+			Assert.IsNotNull(TestContext.Api.ResourcePools.Read(first.Id));
+			Assert.IsNotNull(TestContext.Api.ResourcePools.Read(second.Id));
 		}
 
 		[TestMethod]

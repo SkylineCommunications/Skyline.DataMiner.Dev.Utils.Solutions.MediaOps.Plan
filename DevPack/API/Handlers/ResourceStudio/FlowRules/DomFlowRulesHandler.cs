@@ -12,7 +12,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 	// Flow rules are only written through the object that owns them, so they are persisted under the lock of that object.
 	// The owner validates them together with its own validation (TryValidate), before anything is written, so the
-	// validation context only contains objects that will be written; the rules are persisted afterwards (TryPersist).
+	// validation context only contains objects that will be written; the rules are persisted afterwards (TryPersist),
+	// skipping overrides to objects of the context that failed in the meantime and re-checking the merged rule sets.
 	internal sealed class DomFlowRulesHandler : DomInstanceApiObjectValidator<DomFlowRules>
 	{
 		private readonly MediaOpsPlanApi planApi;
@@ -35,10 +36,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return !result.HasFailures;
 		}
 
-		internal static bool TryPersist(MediaOpsPlanApi planApi, ICollection<FlowRules> apiFlowRules, out DomInstanceBulkOperationResult<DomFlowRules> result)
+		internal static bool TryPersist(MediaOpsPlanApi planApi, ICollection<FlowRules> apiFlowRules, FlowRulesValidationContext validationContext, out DomInstanceBulkOperationResult<DomFlowRules> result)
 		{
-			var handler = new DomFlowRulesHandler(planApi);
-			handler.Persist(apiFlowRules ?? throw new ArgumentNullException(nameof(apiFlowRules)));
+			var handler = new DomFlowRulesHandler(planApi, validationContext);
+			var flowRules = apiFlowRules ?? throw new ArgumentNullException(nameof(apiFlowRules));
+			handler.ValidateDroppedTargets(flowRules);
+			handler.Persist(flowRules.Where(handler.IsValid).ToList());
 
 			result = new DomInstanceBulkOperationResult<DomFlowRules>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
@@ -67,7 +70,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			ValidateTargets(apiFlowRules);
 		}
 
-		private void ValidateDuplicates(ICollection<FlowRules> apiFlowRules)
+		private void ValidateDuplicates(ICollection<FlowRules> apiFlowRules, string remark = null)
 		{
 			foreach (var flowRules in apiFlowRules)
 			{
@@ -78,7 +81,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 						flowRules,
 						duplicate.Key.Direction,
 						duplicate.Key.Target,
-						$"Flow rule '{duplicate.Key.Direction}' for {target} is defined {duplicate.Count()} times."));
+						$"Flow rule '{duplicate.Key.Direction}' for {target} is defined {duplicate.Count()} times.{remark}"));
 				}
 			}
 		}
@@ -101,13 +104,32 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		// Only overrides that were not stored before are checked against their target, so an existing override that targets
 		// an object that got deprecated afterwards does not block unrelated updates. The direction and target of a stored
 		// rule cannot change, so a stored override is never new.
-		private void ValidateTargets(ICollection<FlowRules> apiFlowRules)
+		private static List<(FlowRules FlowRules, FlowRule Rule)> GetNewOverrides(ICollection<FlowRules> apiFlowRules)
 		{
-			var newOverrides = apiFlowRules
+			return apiFlowRules
 				.SelectMany(flowRules => flowRules.Rules
 					.Where(rule => !rule.IsDefault && rule.IsNew && rule.Target.Value != flowRules.Owner)
 					.Select(rule => (FlowRules: flowRules, Rule: rule)))
 				.ToList();
+		}
+
+		// A target of the same operation that failed after the flow rules were validated will not be written.
+		private void ValidateDroppedTargets(ICollection<FlowRules> apiFlowRules)
+		{
+			foreach (var (flowRules, rule) in GetNewOverrides(apiFlowRules).Where(x => validationContext.IsDropped(x.Rule.Target.Value)))
+			{
+				var target = rule.Target.Value;
+				ReportError(flowRules.Id, CreateRuleError<FlowRulesTargetNotFoundError>(
+					flowRules,
+					rule.Direction,
+					target,
+					$"Flow rule target {target.Type} with ID '{target.Id}' could not be saved in the same operation."));
+			}
+		}
+
+		private void ValidateTargets(ICollection<FlowRules> apiFlowRules)
+		{
+			var newOverrides = GetNewOverrides(apiFlowRules);
 
 			if (newOverrides.Count == 0)
 			{
@@ -201,6 +223,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				x => new FlowRulesNotFoundError { ErrorMessage = $"Flow rules with ID '{x.Id}' of {x.OwnerType} '{x.OwnerId}' no longer exist.", Id = x.Id, OwnerType = x.OwnerType, OwnerId = x.OwnerId },
 				(x, msg) => new FlowRulesValueAlreadyChangedError { ErrorMessage = msg, Id = x.Id, OwnerType = x.OwnerType, OwnerId = x.OwnerId })
 				.ToList();
+
+			// The changes are merged onto the latest stored rule set, so a rule added by a concurrent save can collide with a
+			// rule added by this save. This runs under the lock of the owner, so the merged result is what will be stored.
+			ValidateDuplicates(
+				changeResults.Where(IsValid).Select(x => new FlowRules(new DomFlowRules(x.Instance))).ToList(),
+				" The rule was added concurrently by another change.");
 
 			var instances = toCreate
 				.Select(x => x.GetInstanceWithChanges())

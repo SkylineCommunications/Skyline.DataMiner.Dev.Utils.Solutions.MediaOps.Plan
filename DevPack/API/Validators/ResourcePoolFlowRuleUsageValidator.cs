@@ -38,12 +38,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return;
 			}
 
-			var poolIdsToDelete = resourcePools.Select(x => x.Id).ToHashSet();
+			var requestedPoolIds = resourcePools.Select(x => x.Id).ToHashSet();
 
-			// References from rule sets of pools that are deleted in the same operation do not block the delete.
 			var referencingRuleSets = planApi.DomHelpers.SlcResourceStudioHelper
-				.GetFlowRulesByTarget(poolIdsToDelete)
-				.Where(x => x.Flowrulesinfo.OwnerId != Guid.Empty && !poolIdsToDelete.Contains(x.Flowrulesinfo.OwnerId))
+				.GetFlowRulesByTarget(requestedPoolIds)
+				.Where(x => x.Flowrulesinfo.OwnerId != Guid.Empty)
 				.ToList();
 
 			if (referencingRuleSets.Count == 0)
@@ -51,24 +50,41 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				return;
 			}
 
-			// Rule sets left behind by a pool that no longer exists must not block the delete either.
+			// Rule sets left behind by a pool that no longer exists must not block the delete. Requested pools exist.
 			var existingOwnerIds = planApi.DomHelpers.SlcResourceStudioHelper
-				.GetResourcePools(referencingRuleSets.Select(x => x.Flowrulesinfo.OwnerId).Distinct().ToList())
+				.GetResourcePools(referencingRuleSets.Select(x => x.Flowrulesinfo.OwnerId).Where(x => !requestedPoolIds.Contains(x)).Distinct().ToList())
 				.Select(x => x.ID.Id)
+				.Concat(requestedPoolIds)
 				.ToHashSet();
 
-			foreach (var resourcePool in resourcePools)
-			{
-				var referencingPoolIds = referencingRuleSets
-					.Where(x => existingOwnerIds.Contains(x.Flowrulesinfo.OwnerId) && x.Flowrule.Any(rule => rule.TargetId == resourcePool.Id))
-					.Select(x => x.Flowrulesinfo.OwnerId)
-					.Distinct()
-					.ToArray();
+			var referencingOwnerIdsByPoolId = requestedPoolIds.ToDictionary(
+				x => x,
+				x => referencingRuleSets
+					.Where(set => existingOwnerIds.Contains(set.Flowrulesinfo.OwnerId) && set.Flowrule.Any(rule => rule.TargetId == x))
+					.Select(set => set.Flowrulesinfo.OwnerId)
+					.Where(ownerId => ownerId != x)
+					.ToHashSet());
 
-				if (referencingPoolIds.Length == 0)
-				{
-					continue;
-				}
+			// References from pools that are deleted in the same operation do not block the delete, but only as long as
+			// those pools can be deleted themselves: a rejected pool keeps its rules, so its references block again.
+			var deletablePoolIds = new HashSet<Guid>(requestedPoolIds);
+			bool changed;
+			do
+			{
+				var blockedPoolIds = deletablePoolIds
+					.Where(id => referencingOwnerIdsByPoolId[id].Any(ownerId => !deletablePoolIds.Contains(ownerId)))
+					.ToList();
+
+				deletablePoolIds.ExceptWith(blockedPoolIds);
+				changed = blockedPoolIds.Count > 0;
+			}
+			while (changed);
+
+			foreach (var resourcePool in resourcePools.Where(x => !deletablePoolIds.Contains(x.Id)))
+			{
+				var referencingPoolIds = referencingOwnerIdsByPoolId[resourcePool.Id]
+					.Where(x => !deletablePoolIds.Contains(x))
+					.ToArray();
 
 				ReportError(resourcePool.Id, new ResourcePoolInUseByFlowRulesError
 				{
