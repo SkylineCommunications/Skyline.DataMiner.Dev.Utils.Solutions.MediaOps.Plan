@@ -256,8 +256,10 @@
 
 			var exception = Assert.ThrowsException<MediaOpsException>(() => objectCreator.CreateResourcePool(pool));
 
-			var error = exception.TraceData.ErrorData.OfType<ResourcePoolDuplicateFlowRuleError>().Single();
-			Assert.AreEqual(pool.Id, error.Id);
+			var error = exception.TraceData.ErrorData.OfType<FlowRulesDuplicateRuleError>().Single();
+			Assert.AreEqual(pool.FlowRules.Id, error.Id);
+			Assert.AreEqual(FlowRuleObjectType.ResourcePool, error.OwnerType);
+			Assert.AreEqual(pool.Id, error.OwnerId);
 			Assert.AreEqual(FlowRuleDirection.Before, error.Direction);
 			Assert.IsNull(error.TargetType);
 			Assert.IsNull(error.TargetId);
@@ -273,7 +275,7 @@
 
 			var exception = Assert.ThrowsException<MediaOpsException>(() => objectCreator.CreateResourcePool(pool));
 
-			var error = exception.TraceData.ErrorData.OfType<ResourcePoolFlowRuleTargetNotFoundError>().Single();
+			var error = exception.TraceData.ErrorData.OfType<FlowRulesTargetNotFoundError>().Single();
 			Assert.AreEqual(FlowRuleObjectType.ResourcePool, error.TargetType);
 			Assert.AreEqual(unknownId, error.TargetId);
 			Assert.AreEqual(FlowRuleDirection.After, error.Direction);
@@ -290,7 +292,7 @@
 
 			var exception = Assert.ThrowsException<MediaOpsException>(() => objectCreator.CreateResourcePool(pool));
 
-			Assert.AreEqual(target.Id, exception.TraceData.ErrorData.OfType<ResourcePoolFlowRuleTargetInvalidStateError>().Single().TargetId);
+			Assert.AreEqual(target.Id, exception.TraceData.ErrorData.OfType<FlowRulesTargetInvalidStateError>().Single().TargetId);
 		}
 
 		[TestMethod]
@@ -320,7 +322,7 @@
 
 			var exception = Assert.ThrowsException<MediaOpsException>(() => objectCreator.CreateResourcePool(pool));
 
-			Assert.AreEqual(1, exception.TraceData.ErrorData.OfType<ResourcePoolFlowRuleInvalidMessageError>().Count());
+			Assert.AreEqual(1, exception.TraceData.ErrorData.OfType<FlowRulesInvalidMessageError>().Count());
 		}
 
 		[TestMethod]

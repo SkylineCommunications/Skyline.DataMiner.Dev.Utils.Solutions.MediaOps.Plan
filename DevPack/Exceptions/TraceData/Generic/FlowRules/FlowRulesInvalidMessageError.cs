@@ -3,7 +3,7 @@
 	/// <summary>
 	/// Represents an error that occurs when the message of a flow rule is not valid.
 	/// </summary>
-	public sealed class ResourcePoolFlowRuleInvalidMessageError : ResourcePoolInvalidFlowRuleError
+	public sealed class FlowRulesInvalidMessageError : FlowRulesInvalidRuleError
 	{
 	}
 }

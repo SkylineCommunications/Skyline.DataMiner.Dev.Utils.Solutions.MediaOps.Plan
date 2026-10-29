@@ -5,8 +5,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 
 	/// <summary>
-	/// Represents an error that occurs when persisting the flow rules of an object.
+	/// Represents an error that occurs when validating or persisting the flow rules of an object.
 	/// </summary>
+	/// <seealso cref="FlowRulesInvalidRuleError"/>
 	/// <seealso cref="FlowRulesNotFoundError"/>
 	/// <seealso cref="FlowRulesValueAlreadyChangedError"/>
 	public class FlowRulesError : MediaOpsErrorData

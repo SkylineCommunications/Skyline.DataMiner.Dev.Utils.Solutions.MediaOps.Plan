@@ -349,25 +349,9 @@
 				return;
 			}
 
-			var resourcePoolIdByFlowRulesId = poolsToPersist.ToDictionary(x => x.FlowRules.Id, x => x.Id);
-
-			DomFlowRulesHandler.TryCreateOrUpdate(planApi, poolsToPersist.Select(x => x.FlowRules).ToList(), out var domResult);
-
-			foreach (var id in domResult.UnsuccessfulIds)
-			{
-				if (!resourcePoolIdByFlowRulesId.TryGetValue(id, out var resourcePoolId))
-				{
-					planApi.Logger.Error(this, $"Failed to find resource pool ID for flow rules ID", [id]);
-					continue;
-				}
-
-				ReportError(resourcePoolId);
-
-				if (domResult.TraceDataPerItem.TryGetValue(id, out var traceData))
-				{
-					PassTraceData(resourcePoolId, traceData);
-				}
-			}
+			// The flow rules were validated together with the pools, so they only need to be persisted here.
+			DomFlowRulesHandler.TryPersist(planApi, poolsToPersist.Select(x => x.FlowRules).ToList(), out var domResult);
+			ReportFlowRulesErrors(poolsToPersist, domResult);
 		}
 
 		private void CreateOrUpdateDomResourcePools(ICollection<DomResourcePool> domResourcePools)
@@ -1081,100 +1065,43 @@
 				return;
 			}
 
-			var poolsInOperationById = apiResourcePools
-				.GroupBy(x => x.Id)
-				.ToDictionary(x => x.Key, x => x.First());
-
-			// Only overrides that were not stored before are checked against their target, so an existing override that
-			// targets a pool that got deprecated afterwards does not block unrelated updates of the owning pool. The
-			// direction and target of a stored rule cannot change, so a stored override is never new.
-			var newOverridesPerPool = apiResourcePools
-				.Select(pool => (Pool: pool, Overrides: pool.FlowRules.Rules.Where(x => !x.IsDefault && x.IsNew).ToList()))
-				.ToList();
-
-			var storedTargetIds = newOverridesPerPool
-				.SelectMany(x => x.Overrides)
-				.Where(x => x.Target.Value.Type == FlowRuleObjectType.ResourcePool)
-				.Select(x => x.Target.Value.Id)
-				.Where(x => !poolsInOperationById.ContainsKey(x))
-				.Distinct()
-				.ToList();
-			var storedTargetsById = planApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(storedTargetIds).ToDictionary(x => x.ID.Id);
-
-			foreach (var (pool, newOverrides) in newOverridesPerPool)
+			var validationContext = new FlowRulesValidationContext();
+			foreach (var pool in apiResourcePools)
 			{
-				foreach (var duplicate in pool.FlowRules.Rules.GroupBy(x => (x.Direction, x.Target)).Where(x => x.Count() > 1))
+				validationContext.Add(FlowRuleObject.ResourcePool(pool.Id), pool.State == ResourcePoolState.Deprecated);
+			}
+
+			DomFlowRulesHandler.TryValidate(planApi, apiResourcePools.Select(x => x.FlowRules).ToList(), validationContext, out var result);
+			ReportFlowRulesErrors(apiResourcePools, result);
+		}
+
+		private void ReportFlowRulesErrors(ICollection<ResourcePool> resourcePools, DomInstanceBulkOperationResult<FlowrulesInstance> result)
+		{
+			if (!result.HasFailures)
+			{
+				return;
+			}
+
+			var resourcePoolIdByFlowRulesId = resourcePools
+				.GroupBy(x => x.FlowRules.Id)
+				.ToDictionary(x => x.Key, x => x.First().Id);
+
+			foreach (var id in result.UnsuccessfulIds)
+			{
+				if (!resourcePoolIdByFlowRulesId.TryGetValue(id, out var resourcePoolId))
 				{
-					var target = duplicate.Key.Target.HasValue ? $"target {duplicate.Key.Target.Value.Type} '{duplicate.Key.Target.Value.Id}'" : "the default";
-					ReportError(pool.Id, new ResourcePoolDuplicateFlowRuleError
-					{
-						Id = pool.Id,
-						Direction = duplicate.Key.Direction,
-						TargetType = duplicate.Key.Target?.Type,
-						TargetId = duplicate.Key.Target?.Id,
-						ErrorMessage = $"Flow rule '{duplicate.Key.Direction}' for {target} is defined {duplicate.Count()} times.",
-					});
+					planApi.Logger.Error(this, $"Failed to find resource pool ID for flow rules ID", [id]);
+					continue;
 				}
 
-				foreach (var rule in pool.FlowRules.Rules.Where(x => !String.IsNullOrEmpty(x.Message) && !InputValidator.HasValidTextLength(x.Message)))
+				ReportError(resourcePoolId);
+
+				if (result.TraceDataPerItem.TryGetValue(id, out var traceData))
 				{
-					ReportError(pool.Id, new ResourcePoolFlowRuleInvalidMessageError
-					{
-						Id = pool.Id,
-						Direction = rule.Direction,
-						TargetType = rule.TargetType,
-						TargetId = rule.TargetId,
-						ErrorMessage = $"Flow rule message exceeds maximum length of {InputValidator.DefaultMaxTextLength} characters.",
-					});
-				}
-
-				foreach (var rule in newOverrides.Where(x => x.Target.Value.Type == FlowRuleObjectType.ResourcePool))
-				{
-					var targetId = rule.Target.Value.Id;
-					if (targetId == pool.Id)
-					{
-						continue;
-					}
-
-					bool exists;
-					bool isDeprecated;
-					if (poolsInOperationById.TryGetValue(targetId, out var poolInOperation))
-					{
-						exists = true;
-						isDeprecated = poolInOperation.State == ResourcePoolState.Deprecated;
-					}
-					else
-					{
-						exists = storedTargetsById.TryGetValue(targetId, out var storedTarget);
-						isDeprecated = exists && storedTarget.Status == SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.StatusesEnum.Deprecated;
-					}
-
-					if (!exists)
-					{
-						ReportError(pool.Id, new ResourcePoolFlowRuleTargetNotFoundError
-						{
-							Id = pool.Id,
-							Direction = rule.Direction,
-							TargetType = FlowRuleObjectType.ResourcePool,
-							TargetId = targetId,
-							ErrorMessage = $"Flow rule target resource pool with ID '{targetId}' does not exist.",
-						});
-					}
-					else if (isDeprecated)
-					{
-						ReportError(pool.Id, new ResourcePoolFlowRuleTargetInvalidStateError
-						{
-							Id = pool.Id,
-							Direction = rule.Direction,
-							TargetType = FlowRuleObjectType.ResourcePool,
-							TargetId = targetId,
-							ErrorMessage = $"Flow rule target resource pool with ID '{targetId}' is deprecated.",
-						});
-					}
+					PassTraceData(resourcePoolId, traceData);
 				}
 			}
 		}
-
 		private void ValidateCapabilities(ICollection<ResourcePool> apiResourcePools)
 		{
 			if (apiResourcePools == null)

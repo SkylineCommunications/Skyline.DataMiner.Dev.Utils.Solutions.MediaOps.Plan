@@ -3,7 +3,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a flow rule targets an object that does not exist.
 	/// </summary>
-	public sealed class ResourcePoolFlowRuleTargetNotFoundError : ResourcePoolInvalidFlowRuleError
+	public sealed class FlowRulesTargetNotFoundError : FlowRulesInvalidRuleError
 	{
 	}
 }

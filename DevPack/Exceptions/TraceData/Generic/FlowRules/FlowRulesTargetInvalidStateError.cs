@@ -3,7 +3,7 @@
 	/// <summary>
 	/// Represents an error that occurs when a flow rule targets an object that is in a state that does not allow it to be targeted, such as deprecated.
 	/// </summary>
-	public sealed class ResourcePoolFlowRuleTargetInvalidStateError : ResourcePoolInvalidFlowRuleError
+	public sealed class FlowRulesTargetInvalidStateError : FlowRulesInvalidRuleError
 	{
 	}
 }
