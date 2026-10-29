@@ -64,7 +64,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <param name="rule">The flow rule to add.</param>
 		/// <returns>The current <see cref="FlowRules"/> instance.</returns>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="rule"/> is <see langword="null"/>.</exception>
-		/// <remarks>Adding a second default for the same direction, or a second override for the same direction and target, is reported as an error when the owning object is saved. Use <see cref="SetDefault"/> or <see cref="SetOverride(FlowRuleDirection, FlowRuleObjectType, Guid, FlowRuleOutcome, string)"/> to replace an existing rule.</remarks>
+		/// <remarks>A copy of <paramref name="rule"/> is added. Adding a second default for the same direction, or a second override for the same direction and target, is reported as an error when the owning object is saved. Use <see cref="SetDefault"/> or <see cref="SetOverride(FlowRuleDirection, FlowRuleObjectType, Guid, FlowRuleOutcome, string)"/> to update an existing rule, or change the <see cref="FlowRule.Outcome"/> and <see cref="FlowRule.Message"/> of a rule in <see cref="Rules"/> directly.</remarks>
 		public FlowRules Add(FlowRule rule)
 		{
 			if (rule == null)
@@ -72,7 +72,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				throw new ArgumentNullException(nameof(rule));
 			}
 
-			rules.Add(rule);
+			rules.Add(new FlowRule(rule));
 			return this;
 		}
 
@@ -94,7 +94,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <summary>
-		/// Sets the default rule of a direction, replacing any existing default for that direction.
+		/// Sets the default rule of a direction. An existing default for that direction is updated.
 		/// </summary>
 		/// <param name="direction">The direction to set the default for.</param>
 		/// <param name="outcome">The outcome for any object that is not covered by an override.</param>
@@ -102,7 +102,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <returns>The current <see cref="FlowRules"/> instance.</returns>
 		public FlowRules SetDefault(FlowRuleDirection direction, FlowRuleOutcome outcome, string message = null)
 		{
-			Replace(new FlowRule(direction, outcome, message));
+			Set(new FlowRule(direction, outcome, message));
 			return this;
 		}
 
@@ -118,7 +118,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <summary>
-		/// Sets an override for a specific object, replacing any existing override for that direction and object.
+		/// Sets an override for a specific object. An existing override for that direction and object is updated.
 		/// </summary>
 		/// <param name="direction">The direction the override applies to.</param>
 		/// <param name="targetType">The type of the object the override applies to.</param>
@@ -128,12 +128,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <returns>The current <see cref="FlowRules"/> instance.</returns>
 		public FlowRules SetOverride(FlowRuleDirection direction, FlowRuleObjectType targetType, Guid targetId, FlowRuleOutcome outcome, string message = null)
 		{
-			Replace(new FlowRule(direction, targetType, targetId, outcome, message));
+			Set(new FlowRule(direction, targetType, targetId, outcome, message));
 			return this;
 		}
 
 		/// <summary>
-		/// Sets an override for a specific object, replacing any existing override for that direction and object.
+		/// Sets an override for a specific object. An existing override for that direction and object is updated.
 		/// </summary>
 		/// <param name="direction">The direction the override applies to.</param>
 		/// <param name="target">The object the override applies to.</param>
@@ -289,10 +289,21 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return GetOverride(direction, target) ?? GetDefault(direction);
 		}
 
-		private void Replace(FlowRule rule)
+		// Updates the existing rule in place so its stored section, and therefore its section ID, is kept.
+		private void Set(FlowRule rule)
 		{
-			rules.RemoveAll(x => x.Matches(rule.Direction, rule.Target));
-			rules.Add(rule);
+			var existing = rules.FirstOrDefault(x => x.Matches(rule.Direction, rule.Target));
+			if (existing == null)
+			{
+				rules.Add(rule);
+				return;
+			}
+
+			existing.Outcome = rule.Outcome;
+			existing.Message = rule.Message;
+
+			// Duplicates added through Add are collapsed onto the updated rule.
+			rules.RemoveAll(x => !ReferenceEquals(x, existing) && x.Matches(rule.Direction, rule.Target));
 		}
 	}
 }

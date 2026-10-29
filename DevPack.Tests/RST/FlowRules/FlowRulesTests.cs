@@ -118,6 +118,49 @@ namespace RT_MediaOps.Plan.RST.FlowRules
 		}
 
 		[TestMethod]
+		public void EditingARuleDirectly_IsPersisted()
+		{
+			var pool = new ResourcePool { Name = $"{Guid.NewGuid()}_Pool" };
+			pool.FlowRules.SetDefault(FlowRuleDirection.After, FlowRuleOutcome.Warning, "before");
+			pool = objectCreator.CreateResourcePool(pool);
+
+			var read = TestContext.Api.ResourcePools.Read(pool.Id);
+			var rule = read.FlowRules.GetDefault(FlowRuleDirection.After);
+			rule.Outcome = FlowRuleOutcome.Forbidden;
+			rule.Message = "after";
+
+			Assert.IsTrue(read.HasChanges, "Expected a change on a rule to mark the resource pool as changed.");
+			TestContext.Api.ResourcePools.Update(read);
+
+			var stored = TestContext.Api.ResourcePools.Read(pool.Id).FlowRules.GetDefault(FlowRuleDirection.After);
+			Assert.AreEqual(FlowRuleOutcome.Forbidden, stored.Outcome);
+			Assert.AreEqual("after", stored.Message);
+		}
+
+		[TestMethod]
+		public void UpdatingARule_KeepsItsStoredSection()
+		{
+			var prefix = Guid.NewGuid();
+			var target = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Target" });
+
+			var pool = new ResourcePool { Name = $"{prefix}_Pool" };
+			pool.FlowRules
+				.SetDefault(FlowRuleDirection.Before, FlowRuleOutcome.Warning)
+				.SetOverride(FlowRuleDirection.Before, target, FlowRuleOutcome.Warning);
+			pool = objectCreator.CreateResourcePool(pool);
+
+			var sectionIdsBefore = ReadFlowRuleSectionIds(pool.FlowRules.Id);
+
+			var read = TestContext.Api.ResourcePools.Read(pool.Id);
+			read.FlowRules
+				.SetDefault(FlowRuleDirection.Before, FlowRuleOutcome.Forbidden, "changed")
+				.SetOverride(FlowRuleDirection.Before, target, FlowRuleOutcome.Allowed);
+			TestContext.Api.ResourcePools.Update(read);
+
+			CollectionAssert.AreEquivalent(sectionIdsBefore, ReadFlowRuleSectionIds(pool.FlowRules.Id), "Expected updated rules to keep their DOM section.");
+		}
+
+		[TestMethod]
 		public void SelfTargetingOverride_IsAllowed()
 		{
 			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{Guid.NewGuid()}_Switch" });
@@ -364,6 +407,16 @@ namespace RT_MediaOps.Plan.RST.FlowRules
 		private static System.Collections.Generic.IEnumerable<DomInstance> ReadFlowRulesInstances()
 		{
 			return TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.DomDefinitionId.Equal(StorageResourceStudio.SlcResource_StudioIds.Definitions.Flowrules.Id));
+		}
+
+		private static Guid[] ReadFlowRuleSectionIds(Guid flowRulesId)
+		{
+			return TestContext.ResourceStudioDomHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(flowRulesId))
+				.Single()
+				.Sections
+				.Where(x => x.SectionDefinitionID.Equals(StorageResourceStudio.SlcResource_StudioIds.Sections.Flowrule.Id))
+				.Select(x => x.ID.Id)
+				.ToArray();
 		}
 
 		// Simulates a resource pool that was created before flow rules existed.

@@ -488,6 +488,12 @@ api.ResourcePools.Update(pool);
 // Shorthand when the target is an object (any IFlowRuleObject, such as a ResourcePool)
 pool.FlowRules.SetOverride(FlowRuleDirection.After, encoderPool, FlowRuleOutcome.Warning);
 
+// Calling SetDefault/SetOverride again updates the existing rule; a rule can also be edited directly
+var afterDefault = pool.FlowRules.GetDefault(FlowRuleDirection.After);
+afterDefault.Outcome = FlowRuleOutcome.Forbidden;
+afterDefault.Message = "Not allowed as successor.";
+api.ResourcePools.Update(pool);
+
 // Read the rules of one or more owners
 FlowRules rules = api.FlowRules.Read(FlowRuleObjectType.ResourcePool, pool.Id);
 

@@ -168,6 +168,46 @@ namespace RT_MediaOps.Plan.RST.FlowRules
 		}
 
 		[TestMethod]
+		public void FlowRules_SetDefaultAndSetOverride_UpdateTheExistingRuleInPlace()
+		{
+			var rules = RulesOf(poolA)
+				.SetDefault(FlowRuleDirection.Before, FlowRuleOutcome.Warning)
+				.SetOverride(FlowRuleDirection.Before, FlowRuleObjectType.ResourcePool, poolB, FlowRuleOutcome.Warning);
+
+			var defaultRule = rules.GetDefault(FlowRuleDirection.Before);
+			var overrideRule = rules.GetOverride(FlowRuleDirection.Before, FlowRuleObjectType.ResourcePool, poolB);
+
+			rules
+				.SetDefault(FlowRuleDirection.Before, FlowRuleOutcome.Forbidden, "updated")
+				.SetOverride(FlowRuleDirection.Before, FlowRuleObjectType.ResourcePool, poolB, FlowRuleOutcome.Allowed);
+
+			Assert.AreSame(defaultRule, rules.GetDefault(FlowRuleDirection.Before));
+			Assert.AreSame(overrideRule, rules.GetOverride(FlowRuleDirection.Before, FlowRuleObjectType.ResourcePool, poolB));
+			Assert.AreEqual(FlowRuleOutcome.Forbidden, defaultRule.Outcome);
+			Assert.AreEqual("updated", defaultRule.Message);
+			Assert.AreEqual(FlowRuleOutcome.Allowed, overrideRule.Outcome);
+		}
+
+		[TestMethod]
+		public void FlowRules_Add_AddsACopy()
+		{
+			var rule = new FlowRule(FlowRuleDirection.After, FlowRuleOutcome.Warning);
+			var rules = RulesOf(poolA).Add(rule);
+
+			rule.Outcome = FlowRuleOutcome.Forbidden;
+
+			Assert.AreEqual(FlowRuleOutcome.Warning, rules.GetDefault(FlowRuleDirection.After).Outcome);
+		}
+
+		[TestMethod]
+		public void FlowRule_Outcome_RejectsUndefinedValues()
+		{
+			var rule = new FlowRule(FlowRuleDirection.After, FlowRuleOutcome.Warning);
+
+			Assert.ThrowsException<ArgumentException>(() => rule.Outcome = (FlowRuleOutcome)5);
+		}
+
+		[TestMethod]
 		public void FlowRules_SetOverrideWithObject_UsesItsTypeAndId()
 		{
 			IFlowRuleObject target = new ResourcePool(poolB);

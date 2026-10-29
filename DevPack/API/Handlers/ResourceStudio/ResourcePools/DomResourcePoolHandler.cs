@@ -1086,9 +1086,10 @@
 				.ToDictionary(x => x.Key, x => x.First());
 
 			// Only overrides that were not stored before are checked against their target, so an existing override that
-			// targets a pool that got deprecated afterwards does not block unrelated updates of the owning pool.
+			// targets a pool that got deprecated afterwards does not block unrelated updates of the owning pool. The
+			// direction and target of a stored rule cannot change, so a stored override is never new.
 			var newOverridesPerPool = apiResourcePools
-				.Select(pool => (Pool: pool, Overrides: GetNewFlowRuleOverrides(pool)))
+				.Select(pool => (Pool: pool, Overrides: pool.FlowRules.Rules.Where(x => !x.IsDefault && x.IsNew).ToList()))
 				.ToList();
 
 			var storedTargetIds = newOverridesPerPool
@@ -1172,23 +1173,6 @@
 					}
 				}
 			}
-		}
-
-		private static IReadOnlyCollection<FlowRule> GetNewFlowRuleOverrides(ResourcePool pool)
-		{
-			var storedOverrides = new HashSet<(FlowRuleDirection Direction, FlowRuleObject? Target)>();
-			if (pool.FlowRules.OriginalInstance != null)
-			{
-				foreach (var section in pool.FlowRules.OriginalInstance.Flowrule.Where(x => x.Direction.HasValue && x.TargetId.HasValue))
-				{
-					var storedRule = new FlowRule(section);
-					storedOverrides.Add((storedRule.Direction, storedRule.Target));
-				}
-			}
-
-			return pool.FlowRules.Rules
-				.Where(x => !x.IsDefault && !storedOverrides.Contains((x.Direction, x.Target)))
-				.ToList();
 		}
 
 		private void ValidateCapabilities(ICollection<ResourcePool> apiResourcePools)

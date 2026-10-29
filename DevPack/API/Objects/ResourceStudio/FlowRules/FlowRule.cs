@@ -10,9 +10,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// Represents a single flow rule. A rule without a target is the default rule for its direction; a rule with a target
 	/// overrides that default for the target object.
 	/// </summary>
-	public sealed class FlowRule : IEquatable<FlowRule>
+	public class FlowRule : TrackableObject
 	{
 		private readonly StorageResourceStudio.FlowruleSection originalSection;
+
+		private StorageResourceStudio.FlowruleSection updatedSection;
+
+		private FlowRuleOutcome outcome;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="FlowRule"/> class that represents the default rule of a direction.
@@ -22,8 +26,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <param name="message">An optional message that explains the outcome.</param>
 		/// <exception cref="ArgumentException">Thrown when <paramref name="direction"/> or <paramref name="outcome"/> is not a defined value.</exception>
 		public FlowRule(FlowRuleDirection direction, FlowRuleOutcome outcome, string message = null)
-			: this(direction, null, outcome, message)
 		{
+			Initialize(direction, null, outcome, message);
 		}
 
 		/// <summary>
@@ -36,48 +40,39 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <param name="message">An optional message that explains the outcome.</param>
 		/// <exception cref="ArgumentException">Thrown when <paramref name="targetId"/> is <see cref="Guid.Empty"/>, or when <paramref name="direction"/>, <paramref name="targetType"/> or <paramref name="outcome"/> is not a defined value.</exception>
 		public FlowRule(FlowRuleDirection direction, FlowRuleObjectType targetType, Guid targetId, FlowRuleOutcome outcome, string message = null)
-			: this(direction, ValidateTarget(targetType, targetId), outcome, message)
 		{
+			FlowRuleObject.ValidateType(targetType, nameof(targetType));
+
+			if (targetId == Guid.Empty)
+			{
+				throw new ArgumentException("Target ID cannot be empty.", nameof(targetId));
+			}
+
+			Initialize(direction, new FlowRuleObject(targetType, targetId), outcome, message);
+		}
+
+		internal FlowRule(FlowRule flowRule)
+		{
+			if (flowRule == null)
+			{
+				throw new ArgumentNullException(nameof(flowRule));
+			}
+
+			Initialize(flowRule.Direction, flowRule.Target, flowRule.Outcome, flowRule.Message);
 		}
 
 		internal FlowRule(StorageResourceStudio.FlowruleSection section)
 		{
 			originalSection = section ?? throw new ArgumentNullException(nameof(section));
 
-			Direction = section.Direction.HasValue
-				? section.Direction.Value.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Enums.Flowruledirection, FlowRuleDirection>()
-				: FlowRuleDirection.Before;
-			Target = section.TargetId.HasValue
-				? new FlowRuleObject(FlowRuleObject.FromStorage(section.Targettype), section.TargetId.Value)
-				: (FlowRuleObject?)null;
-			Outcome = section.Outcome.HasValue
-				? section.Outcome.Value.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Enums.Flowruleoutcome, FlowRuleOutcome>()
-				: FlowRuleOutcome.Allowed;
-			Message = section.Message;
-		}
-
-		private FlowRule(FlowRuleDirection direction, FlowRuleObject? target, FlowRuleOutcome outcome, string message)
-		{
-			if (!Enum.IsDefined(typeof(FlowRuleDirection), direction))
-			{
-				throw new ArgumentException($"Value '{direction}' is not a valid flow rule direction.", nameof(direction));
-			}
-
-			if (!Enum.IsDefined(typeof(FlowRuleOutcome), outcome))
-			{
-				throw new ArgumentException($"Value '{outcome}' is not a valid flow rule outcome.", nameof(outcome));
-			}
-
-			Direction = direction;
-			Target = target;
-			Outcome = outcome;
-			Message = message;
+			ParseSection();
+			InitTracking();
 		}
 
 		/// <summary>
 		/// Gets the direction the rule applies to.
 		/// </summary>
-		public FlowRuleDirection Direction { get; }
+		public FlowRuleDirection Direction { get; private set; }
 
 		/// <summary>
 		/// Gets the type of the object this rule applies to, or <see langword="null"/> when this is the default rule of its direction.
@@ -90,41 +85,37 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		public Guid? TargetId => Target?.Id;
 
 		/// <summary>
-		/// Gets the outcome of the rule.
+		/// Gets or sets the outcome of the rule.
 		/// </summary>
-		public FlowRuleOutcome Outcome { get; }
+		/// <exception cref="ArgumentException">Thrown when the value is not a defined <see cref="FlowRuleOutcome"/>.</exception>
+		public FlowRuleOutcome Outcome
+		{
+			get => outcome;
+
+			set
+			{
+				if (!Enum.IsDefined(typeof(FlowRuleOutcome), value))
+				{
+					throw new ArgumentException($"Value '{value}' is not a valid flow rule outcome.", nameof(value));
+				}
+
+				outcome = value;
+			}
+		}
 
 		/// <summary>
-		/// Gets the optional message that explains the outcome.
+		/// Gets or sets the optional message that explains the outcome.
 		/// </summary>
-		public string Message { get; }
+		public string Message { get; set; }
 
 		/// <summary>
 		/// Gets a value indicating whether this rule is the default rule of its direction.
 		/// </summary>
 		public bool IsDefault => !Target.HasValue;
 
-		internal FlowRuleObject? Target { get; }
+		internal FlowRuleObject? Target { get; private set; }
 
-		/// <inheritdoc/>
-		public bool Equals(FlowRule other)
-		{
-			if (other is null)
-			{
-				return false;
-			}
-
-			return Direction == other.Direction
-				&& Target == other.Target
-				&& Outcome == other.Outcome
-				&& String.Equals(Message, other.Message, StringComparison.Ordinal);
-		}
-
-		/// <inheritdoc/>
-		public override bool Equals(object obj)
-		{
-			return obj is FlowRule other && Equals(other);
-		}
+		internal StorageResourceStudio.FlowruleSection OriginalSection => originalSection;
 
 		/// <inheritdoc/>
 		public override int GetHashCode()
@@ -135,9 +126,27 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				hash = (hash * 23) + Direction.GetHashCode();
 				hash = (hash * 23) + Target.GetHashCode();
 				hash = (hash * 23) + Outcome.GetHashCode();
-				hash = (hash * 23) + (Message != null ? StringComparer.Ordinal.GetHashCode(Message) : 0);
+				hash = (hash * 23) + (Message != null ? Message.GetHashCode() : 0);
 				return hash;
 			}
+		}
+
+		/// <summary>
+		/// Determines whether the specified object is equal to the current <see cref="FlowRule"/> instance.
+		/// </summary>
+		/// <param name="obj">The object to compare with the current instance.</param>
+		/// <returns><see langword="true"/> if the specified object is a <see cref="FlowRule"/> with the same direction, target, outcome and message; otherwise, <see langword="false"/>.</returns>
+		public override bool Equals(object obj)
+		{
+			if (obj is not FlowRule other)
+			{
+				return false;
+			}
+
+			return Direction == other.Direction
+				&& Target == other.Target
+				&& Outcome == other.Outcome
+				&& Message == other.Message;
 		}
 
 		/// <inheritdoc/>
@@ -154,27 +163,47 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		internal StorageResourceStudio.FlowruleSection GetSectionWithChanges()
 		{
-			var section = originalSection != null ? originalSection.Clone() : new StorageResourceStudio.FlowruleSection();
-
-			section.Direction = Direction.MapEnum<FlowRuleDirection, StorageResourceStudio.SlcResource_StudioIds.Enums.Flowruledirection>();
-			section.TargetId = TargetId;
-			section.Targettype = Target.HasValue ? FlowRuleObject.ToStorage(Target.Value.Type) : null;
-			section.Outcome = Outcome.MapEnum<FlowRuleOutcome, StorageResourceStudio.SlcResource_StudioIds.Enums.Flowruleoutcome>();
-			section.Message = String.IsNullOrEmpty(Message) ? null : Message;
-
-			return section;
-		}
-
-		private static FlowRuleObject? ValidateTarget(FlowRuleObjectType targetType, Guid targetId)
-		{
-			FlowRuleObject.ValidateType(targetType, nameof(targetType));
-
-			if (targetId == Guid.Empty)
+			if (updatedSection == null)
 			{
-				throw new ArgumentException("Target ID cannot be empty.", nameof(targetId));
+				updatedSection = IsNew ? new StorageResourceStudio.FlowruleSection() : originalSection.Clone();
 			}
 
-			return new FlowRuleObject(targetType, targetId);
+			updatedSection.Direction = Direction.MapEnum<FlowRuleDirection, StorageResourceStudio.SlcResource_StudioIds.Enums.Flowruledirection>();
+			updatedSection.TargetId = TargetId;
+			updatedSection.Targettype = Target.HasValue ? FlowRuleObject.ToStorage(Target.Value.Type) : null;
+			updatedSection.Outcome = Outcome.MapEnum<FlowRuleOutcome, StorageResourceStudio.SlcResource_StudioIds.Enums.Flowruleoutcome>();
+			updatedSection.Message = String.IsNullOrEmpty(Message) ? null : Message;
+
+			return updatedSection;
+		}
+
+		private void Initialize(FlowRuleDirection direction, FlowRuleObject? target, FlowRuleOutcome outcome, string message)
+		{
+			if (!Enum.IsDefined(typeof(FlowRuleDirection), direction))
+			{
+				throw new ArgumentException($"Value '{direction}' is not a valid flow rule direction.", nameof(direction));
+			}
+
+			Direction = direction;
+			Target = target;
+			Outcome = outcome;
+			Message = message;
+
+			IsNew = true;
+		}
+
+		private void ParseSection()
+		{
+			Direction = originalSection.Direction.HasValue
+				? originalSection.Direction.Value.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Enums.Flowruledirection, FlowRuleDirection>()
+				: FlowRuleDirection.Before;
+			Target = originalSection.TargetId.HasValue
+				? new FlowRuleObject(FlowRuleObject.FromStorage(originalSection.Targettype), originalSection.TargetId.Value)
+				: (FlowRuleObject?)null;
+			outcome = originalSection.Outcome.HasValue
+				? originalSection.Outcome.Value.MapEnum<StorageResourceStudio.SlcResource_StudioIds.Enums.Flowruleoutcome, FlowRuleOutcome>()
+				: FlowRuleOutcome.Allowed;
+			Message = originalSection.Message;
 		}
 	}
 }
