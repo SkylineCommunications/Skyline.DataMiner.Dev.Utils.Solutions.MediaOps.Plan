@@ -264,7 +264,7 @@ A connection `A → B` is evaluated against the `After` rules of `A` and the `Be
 
 ### Lifecycle and validation
 
-- Saving a resource pool validates its flow rules first and rejects duplicate rules (`FlowRulesDuplicateRuleError`), messages longer than 150 characters (`FlowRulesInvalidMessageError`), and new overrides that target an object that does not exist (`FlowRulesTargetNotFoundError`) or is deprecated (`FlowRulesTargetInvalidStateError`). These errors derive from `FlowRulesInvalidRuleError` and identify the rule set (`Id`), its owner (`OwnerType`, `OwnerId`) and the rule (`Direction`, `TargetType`, `TargetId`); the owning pool is reported as failed as well.
+- Saving a resource pool validates its flow rules and rejects duplicate rules (`FlowRulesDuplicateRuleError`), messages longer than 150 characters (`FlowRulesInvalidMessageError`), and new overrides that target an object that does not exist (`FlowRulesTargetNotFoundError`) or is deprecated (`FlowRulesTargetInvalidStateError`). These errors derive from `FlowRulesInvalidRuleError` and identify the rule set (`Id`), its owner (`OwnerType`, `OwnerId`) and the rule (`Direction`, `TargetType`, `TargetId`); the owning pool is reported as failed as well.
 - Deleting a resource pool that is targeted by overrides of other pools fails with `ResourcePoolInUseByFlowRulesError`; remove the overrides first, or delete the referencing pools in the same call. Deleting a pool removes its own rule set.
 - Deprecating a pool keeps its rules and the overrides that target it, so restoring it brings the configuration back.
 - Resource pools created before flow rules existed get their rule set on their next save.

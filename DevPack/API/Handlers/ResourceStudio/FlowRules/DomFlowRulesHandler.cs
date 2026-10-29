@@ -11,7 +11,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using DomFlowRules = Storage.DOM.SlcResource_Studio.FlowrulesInstance;
 
 	// Flow rules are only written through the object that owns them, so they are persisted under the lock of that object.
-	// The owner validates them first (TryValidate) and persists them once its own validation passed (TryPersist).
 	internal sealed class DomFlowRulesHandler : DomInstanceApiObjectValidator<DomFlowRules>
 	{
 		private readonly MediaOpsPlanApi planApi;
@@ -24,20 +23,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			this.validationContext = validationContext ?? FlowRulesValidationContext.Empty;
 		}
 
-		internal static bool TryValidate(MediaOpsPlanApi planApi, ICollection<FlowRules> apiFlowRules, FlowRulesValidationContext validationContext, out DomInstanceBulkOperationResult<DomFlowRules> result)
+		internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<FlowRules> apiFlowRules, FlowRulesValidationContext validationContext, out DomInstanceBulkOperationResult<DomFlowRules> result)
 		{
 			var handler = new DomFlowRulesHandler(planApi, validationContext);
-			handler.Validate(apiFlowRules ?? throw new ArgumentNullException(nameof(apiFlowRules)));
-
-			result = new DomInstanceBulkOperationResult<DomFlowRules>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
-
-			return !result.HasFailures;
-		}
-
-		internal static bool TryPersist(MediaOpsPlanApi planApi, ICollection<FlowRules> apiFlowRules, out DomInstanceBulkOperationResult<DomFlowRules> result)
-		{
-			var handler = new DomFlowRulesHandler(planApi);
-			handler.Persist(apiFlowRules ?? throw new ArgumentNullException(nameof(apiFlowRules)));
+			handler.CreateOrUpdate(apiFlowRules ?? throw new ArgumentNullException(nameof(apiFlowRules)));
 
 			result = new DomInstanceBulkOperationResult<DomFlowRules>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
@@ -52,6 +41,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			result = new DomInstanceBulkOperationResult<DomFlowRules>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
 
 			return !result.HasFailures;
+		}
+
+		private void CreateOrUpdate(ICollection<FlowRules> apiFlowRules)
+		{
+			Validate(apiFlowRules);
+			Persist(apiFlowRules.Where(IsValid).ToList());
 		}
 
 		private void Validate(ICollection<FlowRules> apiFlowRules)

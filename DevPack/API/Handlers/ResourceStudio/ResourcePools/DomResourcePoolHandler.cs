@@ -23,6 +23,10 @@
 
 		private readonly HashSet<ResourcePool> referencedApiResourcePoolsToUpdate = new HashSet<ResourcePool>();
 
+		// Built from all pools of the operation before locking, because the lock manager can run the save in several
+		// rounds and a flow rule may target a pool that is saved in another round.
+		private FlowRulesValidationContext flowRulesValidationContext = FlowRulesValidationContext.Empty;
+
 		private DomResourcePoolHandler(MediaOpsPlanApi planApi)
 		{
 			this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
@@ -88,8 +92,9 @@
 
 			ValidatePoolLinks(apiResourcePools);
 			ValidateCapabilities(apiResourcePools);
-			ValidateFlowRules(apiResourcePools);
 			ValidateNames(apiResourcePools);
+
+			flowRulesValidationContext = CreateFlowRulesValidationContext(apiResourcePools);
 
 			// Create or update DOM resource pools
 			var validResourcePools = apiResourcePools.Where(IsValid).ToList();
@@ -349,8 +354,7 @@
 				return;
 			}
 
-			// The flow rules were validated together with the pools, so they only need to be persisted here.
-			DomFlowRulesHandler.TryPersist(planApi, poolsToPersist.Select(x => x.FlowRules).ToList(), out var domResult);
+			DomFlowRulesHandler.TryCreateOrUpdate(planApi, poolsToPersist.Select(x => x.FlowRules).ToList(), flowRulesValidationContext, out var domResult);
 			ReportFlowRulesErrors(poolsToPersist, domResult);
 		}
 
@@ -1053,26 +1057,15 @@
 			}
 		}
 
-		private void ValidateFlowRules(ICollection<ResourcePool> apiResourcePools)
+		private static FlowRulesValidationContext CreateFlowRulesValidationContext(ICollection<ResourcePool> apiResourcePools)
 		{
-			if (apiResourcePools == null)
-			{
-				throw new ArgumentNullException(nameof(apiResourcePools));
-			}
-
-			if (apiResourcePools.Count == 0)
-			{
-				return;
-			}
-
 			var validationContext = new FlowRulesValidationContext();
-			foreach (var pool in apiResourcePools)
+			foreach (var pool in apiResourcePools.Where(x => x.Id != Guid.Empty))
 			{
 				validationContext.Add(FlowRuleObject.ResourcePool(pool.Id), pool.State == ResourcePoolState.Deprecated);
 			}
 
-			DomFlowRulesHandler.TryValidate(planApi, apiResourcePools.Select(x => x.FlowRules).ToList(), validationContext, out var result);
-			ReportFlowRulesErrors(apiResourcePools, result);
+			return validationContext;
 		}
 
 		private void ReportFlowRulesErrors(ICollection<ResourcePool> resourcePools, DomInstanceBulkOperationResult<FlowrulesInstance> result)
