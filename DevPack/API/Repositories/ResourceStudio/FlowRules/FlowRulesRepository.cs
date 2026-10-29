@@ -28,31 +28,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <inheritdoc/>
-		public FlowRules Read(FlowRuleObjectType ownerType, Guid ownerId)
-		{
-			if (ownerId == Guid.Empty)
-			{
-				throw new ArgumentException("Owner ID cannot be empty.", nameof(ownerId));
-			}
-
-			return Read(ownerType, [ownerId]).TryGetValue(ownerId, out var flowRules) ? flowRules : null;
-		}
-
-		/// <inheritdoc/>
-		public IReadOnlyDictionary<Guid, FlowRules> Read(FlowRuleObjectType ownerType, IEnumerable<Guid> ownerIds)
-		{
-			FlowRuleObject.ValidateType(ownerType, nameof(ownerType));
-
-			if (ownerIds == null)
-			{
-				throw new ArgumentNullException(nameof(ownerIds));
-			}
-
-			return Read(ownerIds.Select(x => new FlowRuleObject(ownerType, x)))
-				.ToDictionary(x => x.Key.Id, x => x.Value);
-		}
-
-		/// <inheritdoc/>
 		public long Count()
 		{
 			return Count(new TRUEFilterElement<FlowRules>());
@@ -294,55 +269,34 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return FlowRuleEvaluator.Evaluate(nodeGraph, owner => GetOrNull(flowRulesByOwner, owner));
 		}
 
+		// Looks the rule sets up by their stored owner, in batches, so it works the same for every owner type.
 		internal IReadOnlyDictionary<FlowRuleObject, FlowRules> Read(IEnumerable<FlowRuleObject> owners)
 		{
 			var result = new Dictionary<FlowRuleObject, FlowRules>();
 
 			foreach (var group in owners.Where(x => !x.IsEmpty).Distinct().GroupBy(x => x.Type))
 			{
-				switch (group.Key)
-				{
-					case FlowRuleObjectType.ResourcePool:
-						ReadResourcePoolFlowRules(group.Select(x => x.Id).ToList(), result);
-						break;
+				var requested = new HashSet<FlowRuleObject>(group);
 
-					default:
-						throw new NotSupportedException($"Flow rules of type '{group.Key}' are not supported.");
+				foreach (var instance in PlanApi.DomHelpers.SlcResourceStudioHelper.GetFlowRulesByOwner(group.Select(x => x.Id)))
+				{
+					var flowRules = new FlowRules(instance);
+					if (!requested.Contains(flowRules.Owner))
+					{
+						continue;
+					}
+
+					if (result.TryGetValue(flowRules.Owner, out var existing))
+					{
+						PlanApi.Logger.Warning(this, "Owner {0} has multiple flow rules: {1} and {2}. Only {1} is used.", [flowRules.Owner, existing.Id, flowRules.Id]);
+						continue;
+					}
+
+					result[flowRules.Owner] = flowRules;
 				}
 			}
 
 			return result;
-		}
-
-		// The pointer on the pool identifies its rule set, so the pools are read without their other configuration.
-		private void ReadResourcePoolFlowRules(ICollection<Guid> resourcePoolIds, IDictionary<FlowRuleObject, FlowRules> result)
-		{
-			var flowRulesIdByPoolId = PlanApi.DomHelpers.SlcResourceStudioHelper
-				.GetResourcePools(resourcePoolIds)
-				.Where(x => x.ConfigurationInfo.FlowRules.HasValue && x.ConfigurationInfo.FlowRules.Value != Guid.Empty)
-				.ToDictionary(x => x.ID.Id, x => x.ConfigurationInfo.FlowRules.Value);
-
-			var flowRulesInstancesById = PlanApi.DomHelpers.SlcResourceStudioHelper
-				.GetFlowRules(flowRulesIdByPoolId.Values)
-				.ToDictionary(x => x.ID.Id);
-
-			foreach (var pair in flowRulesIdByPoolId)
-			{
-				if (!flowRulesInstancesById.TryGetValue(pair.Value, out var instance))
-				{
-					continue;
-				}
-
-				var owner = FlowRuleObject.ResourcePool(pair.Key);
-				var flowRules = new FlowRules(instance);
-
-				if (flowRules.Owner != owner)
-				{
-					PlanApi.Logger.Warning(this, "Flow rules {0} of resource pool {1} are stored with owner {2}.", [flowRules.Id, pair.Key, flowRules.Owner]);
-				}
-
-				result[owner] = flowRules;
-			}
 		}
 
 		private static FlowRuleObject ToObject(FlowRuleObjectType type, Guid id, string paramName)

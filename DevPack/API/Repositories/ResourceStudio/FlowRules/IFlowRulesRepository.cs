@@ -26,7 +26,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <param name="id">The unique identifier of the flow rules.</param>
 		/// <returns>The flow rules with the specified identifier, or <see langword="null"/> if not found.</returns>
 		/// <exception cref="ArgumentException">Thrown when <paramref name="id"/> is <see cref="Guid.Empty"/>.</exception>
-		/// <remarks>To read the flow rules of an object, use <see cref="Read(FlowRuleObjectType, Guid)"/>.</remarks>
+		/// <remarks>To read the flow rules of an object, filter on <see cref="FlowRulesExposers.OwnerType"/> and <see cref="FlowRulesExposers.OwnerId"/>.</remarks>
 		FlowRules Read(Guid id);
 
 		/// <summary>
@@ -35,7 +35,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <param name="ids">The unique identifiers of the flow rules.</param>
 		/// <returns>The flow rules matching the specified identifiers.</returns>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="ids"/> is <see langword="null"/>.</exception>
-		/// <remarks>To read the flow rules of objects, use <see cref="Read(FlowRuleObjectType, IEnumerable{Guid})"/>.</remarks>
+		/// <remarks>To read the flow rules of objects, filter on <see cref="FlowRulesExposers.OwnerType"/> and <see cref="FlowRulesExposers.OwnerId"/>.</remarks>
 		IEnumerable<FlowRules> Read(IEnumerable<Guid> ids);
 
 		/// <summary>
@@ -50,25 +50,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <param name="pageSize">The number of items per page.</param>
 		/// <returns>An enumerable collection of pages of flow rules.</returns>
 		IEnumerable<IPagedResult<FlowRules>> ReadPaged(int pageSize);
-
-		/// <summary>
-		/// Reads the flow rules of an object.
-		/// </summary>
-		/// <param name="ownerType">The type of the object that owns the flow rules.</param>
-		/// <param name="ownerId">The unique identifier of the object that owns the flow rules.</param>
-		/// <returns>The flow rules of the object, or <see langword="null"/> when the object does not exist or has no stored flow rules.</returns>
-		/// <exception cref="ArgumentException">Thrown when <paramref name="ownerId"/> is <see cref="Guid.Empty"/> or <paramref name="ownerType"/> is not a defined value.</exception>
-		FlowRules Read(FlowRuleObjectType ownerType, Guid ownerId);
-
-		/// <summary>
-		/// Reads the flow rules of multiple objects of the same type.
-		/// </summary>
-		/// <param name="ownerType">The type of the objects that own the flow rules.</param>
-		/// <param name="ownerIds">The unique identifiers of the objects that own the flow rules.</param>
-		/// <returns>The flow rules keyed by owner ID. Objects that do not exist or have no stored flow rules are not included.</returns>
-		/// <exception cref="ArgumentNullException">Thrown when <paramref name="ownerIds"/> is <see langword="null"/>.</exception>
-		/// <exception cref="ArgumentException">Thrown when <paramref name="ownerType"/> is not a defined value.</exception>
-		IReadOnlyDictionary<Guid, FlowRules> Read(FlowRuleObjectType ownerType, IEnumerable<Guid> ownerIds);
 
 		/// <summary>
 		/// Reads all stored flow rules.

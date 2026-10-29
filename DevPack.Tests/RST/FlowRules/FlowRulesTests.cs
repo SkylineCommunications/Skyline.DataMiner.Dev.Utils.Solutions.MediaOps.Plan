@@ -1,4 +1,4 @@
-namespace RT_MediaOps.Plan.RST.FlowRules
+﻿namespace RT_MediaOps.Plan.RST.FlowRules
 {
 	using System;
 	using System.Linq;
@@ -45,7 +45,7 @@ namespace RT_MediaOps.Plan.RST.FlowRules
 			Assert.AreEqual(pool.Id, pool.FlowRules.OwnerId);
 			Assert.AreEqual(0, pool.FlowRules.Rules.Count);
 
-			var stored = TestContext.Api.FlowRules.Read(FlowRuleObjectType.ResourcePool, pool.Id);
+			var stored = ReadByOwner(pool.Id);
 			Assert.IsNotNull(stored, "Expected every new resource pool to get a stored rule set.");
 			Assert.AreEqual(pool.FlowRules.Id, stored.Id);
 		}
@@ -125,7 +125,9 @@ namespace RT_MediaOps.Plan.RST.FlowRules
 			Assert.AreEqual(new FlowRule(FlowRuleDirection.After, FlowRuleObjectType.ResourcePool, target.Id, FlowRuleOutcome.Forbidden, "Never after this pool."), read.FlowRules.GetOverride(FlowRuleDirection.After, FlowRuleObjectType.ResourcePool, target.Id));
 			Assert.IsNull(read.FlowRules.GetDefault(FlowRuleDirection.After));
 
-			var fromRepository = TestContext.Api.FlowRules.Read(FlowRuleObjectType.ResourcePool, [pool.Id, target.Id]);
+			var fromRepository = TestContext.Api.FlowRules
+				.Read(new ORFilterElement<ApiFlowRules>(FlowRulesExposers.OwnerId.Equal(pool.Id), FlowRulesExposers.OwnerId.Equal(target.Id)))
+				.ToDictionary(x => x.OwnerId);
 			Assert.AreEqual(2, fromRepository.Count);
 			Assert.AreEqual(2, fromRepository[pool.Id].Rules.Count);
 			Assert.AreEqual(0, fromRepository[target.Id].Rules.Count);
@@ -398,19 +400,19 @@ namespace RT_MediaOps.Plan.RST.FlowRules
 
 			var legacyPool = TestContext.Api.ResourcePools.Read(pool.Id);
 			Assert.AreEqual(0, legacyPool.FlowRules.Rules.Count);
-			Assert.IsNull(TestContext.Api.FlowRules.Read(FlowRuleObjectType.ResourcePool, pool.Id));
+			Assert.IsNull(ReadByOwner(pool.Id));
 
 			// An unchanged pool must not leave an orphan rule set behind.
 			var instancesBefore = ReadFlowRulesInstances().Count();
 			TestContext.Api.ResourcePools.CreateOrUpdate([legacyPool]);
 			Assert.AreEqual(instancesBefore, ReadFlowRulesInstances().Count());
-			Assert.IsNull(TestContext.Api.FlowRules.Read(FlowRuleObjectType.ResourcePool, pool.Id));
+			Assert.IsNull(ReadByOwner(pool.Id));
 
 			legacyPool = TestContext.Api.ResourcePools.Read(pool.Id);
 			legacyPool.Name = $"{prefix}_Renamed";
 			TestContext.Api.ResourcePools.Update(legacyPool);
 
-			Assert.IsNotNull(TestContext.Api.FlowRules.Read(FlowRuleObjectType.ResourcePool, pool.Id), "Expected the rule set to be created when the pool is saved.");
+			Assert.IsNotNull(ReadByOwner(pool.Id), "Expected the rule set to be created when the pool is saved.");
 		}
 
 		[TestMethod]
@@ -462,6 +464,13 @@ namespace RT_MediaOps.Plan.RST.FlowRules
 		{
 			var pool = TestContext.Api.ResourcePools.Complete(objectCreator.CreateResourcePool(new ResourcePool { Name = name }));
 			return TestContext.Api.ResourcePools.Deprecate(pool);
+		}
+
+		private static ApiFlowRules ReadByOwner(Guid resourcePoolId)
+		{
+			return TestContext.Api.FlowRules
+				.Read(FlowRulesExposers.OwnerType.Equal(FlowRuleObjectType.ResourcePool).AND(FlowRulesExposers.OwnerId.Equal(resourcePoolId)))
+				.SingleOrDefault();
 		}
 
 		private static System.Collections.Generic.IEnumerable<DomInstance> ReadFlowRulesInstances()
