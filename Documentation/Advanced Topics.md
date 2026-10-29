@@ -237,6 +237,39 @@ api.ResourcePools.Deprecate(pool, new ResourcePoolDeprecateOptions
 });
 ```
 
+## Flow Rules
+
+Flow rules constrain which objects may be directly connected in the node graph of a job, workflow or recurring job. Flow rules are a generic concept: an owner and a target are identified by a `FlowRuleObjectType` and an ID. Today the only type is `ResourcePool`: each resource pool owns one rule set (`ResourcePool.FlowRules`), stored in its own DOM instance and persisted together with the pool.
+
+`api.FlowRules` is read-only, because rule sets are only written through their owner. It implements the SDM read interfaces (`IPageableRepository<FlowRules>`, `ICountableRepository<FlowRules>`), so rule sets can be filtered, queried, paged and counted with `FlowRulesExposers` (`Id`, `OwnerType`, `OwnerId`, `Rules.TargetId`), like the other repositories.
+
+### Rule model
+
+- Two independent directions: `Before` (other node → owning object) and `After` (owning object → other node).
+- Per direction an optional **default** rule and any number of **overrides** for specific target objects (`TargetType` + `TargetId`). An override takes precedence over the default; a direction without a default behaves as `Allowed`.
+- Outcomes: `Allowed`, `Warning` (allowed but flagged), `Forbidden`. Each rule can carry a message.
+- An override may target the owning object itself, to constrain connections between two nodes of the same object.
+
+### Evaluation
+
+A connection `A → B` is evaluated against the `After` rules of `A` and the `Before` rules of `B`; the most restrictive outcome wins (`Forbidden` > `Warning` > `Allowed`). `FlowRuleEvaluation` exposes both endpoints (`FromObjectType`/`FromObjectId`, `ToObjectType`/`ToObjectId`), the outcome per side, the applied rules and the messages of the decisive rule(s). In a node graph, resource pool nodes and resource nodes are evaluated through their resource pool; other nodes are skipped.
+
+### Enforcement
+
+| Where | Behavior |
+| --- | --- |
+| Creating or updating a job, workflow or recurring job | A `Forbidden` connection that is **new or changed** in that save fails it with `JobNodeGraphForbiddenConnectionError`, `WorkflowNodeGraphForbiddenConnectionError` or `RecurringJobNodeGraphForbiddenConnectionError`. A connection is considered changed when one of its endpoints now references another object (for example after swapping a resource for one of another pool). |
+| Connections stored before the rules changed | Not blocked, so the object stays editable. `Jobs.Validate` reports them with `FlowRuleViolationJobValidationError` (`J701`); the error is cleared automatically by the save that resolves the connection. |
+| `Warning` connections | Never block a save; use `api.FlowRules.Evaluate(...)` to flag them in a UI. |
+
+### Lifecycle and validation
+
+- Saving a resource pool validates its flow rules and rejects duplicate rules (`FlowRulesDuplicateRuleError`), messages longer than 150 characters (`FlowRulesInvalidMessageError`), and new overrides that target an object that does not exist (`FlowRulesTargetNotFoundError`) or is deprecated (`FlowRulesTargetInvalidStateError`). These errors derive from `FlowRulesInvalidRuleError` and identify the rule set (`Id`), its owner (`OwnerType`, `OwnerId`) and the rule (`Direction`, `TargetType`, `TargetId`); the owning pool is reported as failed as well. An override may target a pool that is created in the same call, as long as that pool is saved as well. When two saves start from the same version, their rules are merged; a merge that would result in a duplicate rule is rejected with `FlowRulesDuplicateRuleError`.
+- Deleting a resource pool that is targeted by overrides of other pools fails with `ResourcePoolInUseByFlowRulesError`; remove the overrides first, or delete the referencing pools in the same call. A referencing pool only unblocks the delete when it can be deleted itself. Deleting a pool removes its own rule set once the pool is deleted.
+- The checks above run when the change is made; a concurrent change of the referenced object is not locked against (the same applies to the other references between objects). An override to a pool that no longer exists never matches, and the edit check of a node graph runs on the version that was read, so a merge with a concurrent save can still result in a forbidden connection, which `Jobs.Validate` then reports (`J701`).
+- Deprecating a pool keeps its rules and the overrides that target it, so restoring it brings the configuration back.
+- Resource pools created before flow rules existed get their rule set on their next save.
+
 ## Orchestration Settings
 
 Orchestration settings define automation behavior for resource pools and workflows. They contain capability, capacity, configuration, and orchestration event settings.

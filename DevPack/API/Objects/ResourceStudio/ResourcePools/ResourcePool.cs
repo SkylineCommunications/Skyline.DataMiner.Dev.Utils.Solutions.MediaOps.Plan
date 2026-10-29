@@ -11,7 +11,7 @@
 	/// <summary>
 	/// Represents a resource pool in MediaOps Plan.
 	/// </summary>
-	public class ResourcePool : ApiNamedObject
+	public class ResourcePool : ApiNamedObject, IFlowRuleObject
 	{
 		private readonly List<LinkedResourcePool> linkedResourcepools = [];
 		private readonly List<ResourcePoolCapabilitySetting> capabilitySettings = [];
@@ -29,6 +29,7 @@
 			IsNew = true;
 
 			OrchestrationSettings = new ResourceStudioOrchestrationSettings();
+			FlowRules = new FlowRules(FlowRuleObject.ResourcePool(Id));
 		}
 
 		/// <summary>
@@ -41,11 +42,18 @@
 			HasUserDefinedId = true;
 
 			OrchestrationSettings = new ResourceStudioOrchestrationSettings();
+			FlowRules = new FlowRules(FlowRuleObject.ResourcePool(Id));
 		}
 
-		internal ResourcePool(MediaOpsPlanApi planApi, StorageResourceStudio.ResourcepoolInstance instance) : base(instance.ID.Id)
+		internal ResourcePool(MediaOpsPlanApi planApi, StorageResourceStudio.ResourcepoolInstance instance, IReadOnlyDictionary<Guid, StorageResourceStudio.FlowrulesInstance> flowRulesById) : base(instance.ID.Id)
 		{
+			if (flowRulesById == null)
+			{
+				throw new ArgumentNullException(nameof(flowRulesById));
+			}
+
 			ParseInstance(planApi, instance);
+			ParseFlowRules(planApi, instance, flowRulesById);
 			InitTracking();
 		}
 
@@ -94,6 +102,13 @@
 		/// </summary>
 		public OrchestrationSettings OrchestrationSettings { get; private set; }
 
+		/// <summary>
+		/// Gets the flow rules of this resource pool, which define what may be connected before and after it. The flow rules are persisted together with the resource pool.
+		/// </summary>
+		public FlowRules FlowRules { get; private set; }
+
+		FlowRuleObjectType IFlowRuleObject.FlowRuleObjectType => FlowRuleObjectType.ResourcePool;
+
 		internal Guid CoreResourcePoolId => coreResourcePoolId;
 
 		internal StorageResourceStudio.ResourcepoolInstance OriginalInstance => originalInstance;
@@ -112,6 +127,7 @@
 				hash = (hash * 23) + (CategoryId != null ? CategoryId.GetHashCode() : 0);
 				hash = (hash * 23) + State.GetHashCode();
 				hash = (hash * 23) + OrchestrationSettings.GetHashCode();
+				hash = (hash * 23) + FlowRules.GetHashCode();
 
 				foreach (var linkedResourcePool in LinkedResourcePools.OrderBy(x => x.LinkedResourcePoolId).ToArray())
 				{
@@ -131,7 +147,7 @@
 		/// Determines whether the specified object is equal to the current ResourcePool instance.
 		/// </summary>
 		/// <remarks>Equality is determined by comparing the Id, Name, IsExternallyManaged, IconImage,
-		/// Url, CategoryId, State, LinkedResourcePools, and Capabilities properties. Two ResourcePool instances are
+		/// Url, CategoryId, State, FlowRules, LinkedResourcePools, and Capabilities properties. Two ResourcePool instances are
 		/// considered equal if all these properties are equal.</remarks>
 		/// <param name="obj">The object to compare with the current ResourcePool instance.</param>
 		/// <returns>true if the specified object is a ResourcePool and has the same values for all properties as the current
@@ -151,6 +167,7 @@
 				   CategoryId == other.CategoryId &&
 				   State == other.State &&
 				   OrchestrationSettings == other.OrchestrationSettings &&
+				   Equals(FlowRules, other.FlowRules) &&
 				   LinkedResourcePools.SequenceEqual(other.LinkedResourcePools) &&
 				   Capabilities.SequenceEqual(other.Capabilities);
 		}
@@ -289,6 +306,7 @@
 			updatedInstance.ResourcePoolOther.URL = Url;
 
 			updatedInstance.ConfigurationInfo.PoolConfiguration = OrchestrationSettings.Id;
+			updatedInstance.ConfigurationInfo.FlowRules = FlowRules.Id;
 
 			// Setting to null will not create a DOM section in storage.
 			updatedInstance.ExternalMetadata.ExternallyManaged = IsExternallyManaged ? true : null;
@@ -306,6 +324,25 @@
 			}
 
 			return updatedInstance;
+		}
+
+		private void ParseFlowRules(MediaOpsPlanApi planApi, StorageResourceStudio.ResourcepoolInstance instance, IReadOnlyDictionary<Guid, StorageResourceStudio.FlowrulesInstance> flowRulesById)
+		{
+			var flowRulesId = instance.ConfigurationInfo.FlowRules;
+			if (flowRulesId.HasValue && flowRulesById.TryGetValue(flowRulesId.Value, out var flowRulesInstance))
+			{
+				FlowRules = new FlowRules(flowRulesInstance);
+
+				if (FlowRules.Owner != FlowRuleObject.ResourcePool(Id))
+				{
+					planApi.Logger.Warning(this, "Flow rules {0} of resource pool {1} are stored with owner {2}.", [FlowRules.Id, Id, FlowRules.Owner]);
+				}
+			}
+			else
+			{
+				// Pools created before flow rules existed get their rule set on their next save.
+				FlowRules = new FlowRules(FlowRuleObject.ResourcePool(Id));
+			}
 		}
 
 		private void ParseInstance(MediaOpsPlanApi planApi, StorageResourceStudio.ResourcepoolInstance instance)

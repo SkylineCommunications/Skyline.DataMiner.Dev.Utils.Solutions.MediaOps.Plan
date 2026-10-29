@@ -17,6 +17,24 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
 		public const string ModuleId = "(slc)resource_studio";
 		public static class Enums
 		{
+			public enum Flowruleobjecttype
+			{
+				Resourcepool = 0
+			}
+
+			public enum Flowruledirection
+			{
+				Before = 0,
+				After = 1
+			}
+
+			public enum Flowruleoutcome
+			{
+				Allowed = 0,
+				Warning = 1,
+				Forbidden = 2
+			}
+
 			public enum Type
 			{
 				Element = 0,
@@ -151,6 +169,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
 				{ ModuleId = "(slc)resource_studio" };
 				public static FieldDescriptorID ProfileDefinitionID { get; } = new FieldDescriptorID(new Guid("b5f7703c-7a13-44d8-83a4-c690c9ba0f05"));
 				public static FieldDescriptorID PoolConfiguration { get; } = new FieldDescriptorID(new Guid("961784a2-3b59-4e5e-bb8d-27ccdea9cfdb"));
+				public static FieldDescriptorID FlowRules { get; } = new FieldDescriptorID(new Guid("0b4cb4c8-8c20-4a22-8c03-54fe574f31f0"));
 			}
 
 			public static class ResourcePoolInternalProperties
@@ -169,6 +188,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
 				public static FieldDescriptorID DoubleMinValue { get; } = new FieldDescriptorID(new Guid("a02e774f-1ee3-4be6-bb4f-e950a877f100"));
 			}
 
+			public static class Flowrulesinfo
+			{
+				public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("9a61f4e9-fbda-444d-9380-faecd866b0d6"))
+				{ ModuleId = "(slc)resource_studio" };
+				public static FieldDescriptorID Owner { get; } = new FieldDescriptorID(new Guid("65548ab1-3ba2-473c-8d5b-2a5de5b525cd"));
+				public static FieldDescriptorID Ownertype { get; } = new FieldDescriptorID(new Guid("a9be82c1-a6bc-404a-8596-1964f4289d33"));
+			}
+
 			public static class OrchestrationEvents
 			{
 				public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("09bd71e9-813b-45d8-8110-e6068d5038e1"))
@@ -176,6 +203,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
 				public static FieldDescriptorID Name { get; } = new FieldDescriptorID(new Guid("a03da98b-bfda-4c71-a890-8a75bebc6756"));
 				public static FieldDescriptorID Script { get; } = new FieldDescriptorID(new Guid("46d1f842-cbd8-4db0-b286-4e2c8956337d"));
 				public static FieldDescriptorID ScriptInput { get; } = new FieldDescriptorID(new Guid("a8224cf3-d544-4b08-84ff-e78e6c10c88c"));
+			}
+
+			public static class Flowrule
+			{
+				public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("fffb2bf2-61c2-441b-9ce1-7624681f26cb"))
+				{ ModuleId = "(slc)resource_studio" };
+				public static FieldDescriptorID Direction { get; } = new FieldDescriptorID(new Guid("003cb903-bca7-4fa4-ba2c-89bf62d913f5"));
+				public static FieldDescriptorID Target { get; } = new FieldDescriptorID(new Guid("b1b2d00b-05b0-4966-85a2-4586932aa4ff"));
+				public static FieldDescriptorID Targettype { get; } = new FieldDescriptorID(new Guid("431b14c4-1fdf-4053-ad76-71093354d014"));
+				public static FieldDescriptorID Outcome { get; } = new FieldDescriptorID(new Guid("86111821-6cc5-40c7-a7de-3fe9e3a5fb91"));
+				public static FieldDescriptorID Message { get; } = new FieldDescriptorID(new Guid("636686ac-9efb-41aa-af0b-6e64e9b31a68"));
 			}
 
 			public static class ResourceInfo
@@ -217,6 +255,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
 
 		public static class Definitions
 		{
+			public static DomDefinitionId Flowrules { get; } = new DomDefinitionId(new Guid("f9314dd0-a74f-407d-9c85-8b2e6a99e63b"))
+			{ ModuleId = "(slc)resource_studio" };
 			public static DomDefinitionId Resourceproperty { get; } = new DomDefinitionId(new Guid("60450534-b5bd-43c2-b088-37e171725fa0"))
 			{ ModuleId = "(slc)resource_studio" };
 			public static DomDefinitionId Configuration { get; } = new DomDefinitionId(new Guid("dad3646a-caaa-4971-b550-c618e562f5cc"))
@@ -472,6 +512,127 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
 
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Messages;
+
+	/// <summary>
+	/// Represents a wrapper class for accessing a FlowrulesInstance DOM instance.
+	/// The <see cref="FlowrulesInstance"/> class provides simplified access to the data and functionality of the underlying DOM instance, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	internal partial class FlowrulesInstance : DomInstanceBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="FlowrulesInstance"/> class. Creates an empty <see cref="FlowrulesInstance"/> instance with default settings.
+		/// </summary>
+		public FlowrulesInstance() : base(SlcResource_StudioIds.Definitions.Flowrules)
+		{
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="FlowrulesInstance"/> class. Creates an empty <see cref="FlowrulesInstance"/> instance with default settings and a specific ID.
+		/// </summary>
+		public FlowrulesInstance(Guid id) : base(SlcResource_StudioIds.Definitions.Flowrules, id)
+		{
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="FlowrulesInstance"/> class using the specified <paramref name="domInstance"/> for initializing the object.
+		/// </summary>
+		/// <param name="domInstance">The <see cref="DomInstance"/> object that provides data for initializing the <see cref="FlowrulesInstance"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public FlowrulesInstance(DomInstance domInstance) : base(domInstance)
+		{
+			if (!domInstance.DomDefinitionId.Equals(SlcResource_StudioIds.Definitions.Flowrules))
+				throw new ArgumentException($"The given domInstance, is not of type '{nameof(SlcResource_StudioIds.Definitions.Flowrules)}'", nameof(domInstance));
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Gets or sets the Flowrulesinfo section of the DOM Instance.
+		/// </summary>
+		public FlowrulesinfoSection Flowrulesinfo { get; set; }
+
+		/// <summary>
+		/// Gets or sets the Flowrule section of the DOM Instance.
+		/// </summary>
+		public IList<FlowruleSection> Flowrule { get; private set; }
+
+		public static explicit operator FlowrulesInstance(DomInstance instance)
+		{
+			return new FlowrulesInstance(instance);
+		}
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="FlowrulesInstance"/>.
+		/// </summary>
+		/// <returns>A new <see cref="FlowrulesInstance"/> object that is a deep copy of this instance.</returns>
+		public FlowrulesInstance Clone()
+		{
+			return new FlowrulesInstance((DomInstance)this.ToInstance().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="FlowrulesInstance"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="FlowrulesInstance"/> object that is a copy of this instance but with a different id.</returns>
+		public FlowrulesInstance Duplicate()
+		{
+			var instance = (DomInstance)this.ToInstance().Clone();
+			instance.ID = new DomInstanceId(Guid.NewGuid())
+			{ ModuleId = ModuleId };
+			foreach (var section in instance.Sections)
+			{
+				section.ID = new Skyline.DataMiner.Net.Sections.SectionID(Guid.NewGuid());
+			}
+
+			return new FlowrulesInstance(instance);
+		}
+
+		/// <inheritdoc />
+		protected sealed override DomInstance InternalToInstance()
+		{
+			domInstance.Sections.Clear();
+			domInstance.Sections.Add(Flowrulesinfo.ToSection());
+			foreach (var item in Flowrule)
+			{
+				domInstance.Sections.Add(item.ToSection());
+			}
+
+			return domInstance;
+		}
+
+		/// <inheritdoc />
+		public sealed override void Save(DomHelper helper)
+		{
+			var exist = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(domInstance.ID)).FirstOrDefault();
+			var instance = ToInstance();
+			if (exist == null)
+			{
+				domInstance = helper.DomInstances.Create(instance);
+			}
+			else
+			{
+				domInstance = helper.DomInstances.Update(instance);
+			}
+		}
+
+		protected sealed override void InitializeProperties()
+		{
+			var _flowrulesinfo = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcResource_StudioIds.Sections.Flowrulesinfo.Id));
+			if (_flowrulesinfo is null)
+			{
+				Flowrulesinfo = new FlowrulesinfoSection();
+			}
+			else
+			{
+				Flowrulesinfo = new FlowrulesinfoSection(_flowrulesinfo);
+			}
+
+			Flowrule = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcResource_StudioIds.Sections.Flowrule.Id)).Select(section => new FlowruleSection(section)).ToList();
+		}
+	}
 
 	/// <summary>
 	/// Represents a wrapper class for accessing a ResourcepropertyInstance DOM instance.
@@ -3090,6 +3251,49 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
 		}
 
 		/// <summary>
+		/// Gets or sets the FlowRules field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public Guid? FlowRules
+		{
+			get
+			{
+				var wrapper = section.GetValue<Guid>(SlcResource_StudioIds.Sections.ConfigurationInfo.FlowRules);
+				if (wrapper != null)
+				{
+					return (Guid?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcResource_StudioIds.Sections.ConfigurationInfo.FlowRules);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcResource_StudioIds.Sections.ConfigurationInfo.FlowRules, (Guid)value);
+				}
+			}
+		}
+
+		/// <summary>
 		/// Creates a deep copy of the current <see cref="ConfigurationInfoSection"/>.
 		/// </summary>
 		/// <returns>A new <see cref="ConfigurationInfoSection"/> object that is a deep copy of this section.</returns>
@@ -3367,6 +3571,134 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
 	}
 
 	/// <summary>
+	/// Represents a wrapper class for accessing a FlowrulesinfoSection section.
+	/// The <see cref="FlowrulesinfoSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	internal partial class FlowrulesinfoSection : DomSectionBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="FlowrulesinfoSection"/> class. Creates an empty <see cref="FlowrulesinfoSection"/> object with default settings.
+		/// </summary>
+		public FlowrulesinfoSection() : base(SlcResource_StudioIds.Sections.Flowrulesinfo.Id)
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="FlowrulesinfoSection"/> class using the specified <paramref name="section"/> for initializing the object.
+		/// </summary>
+		/// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="FlowrulesinfoSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public FlowrulesinfoSection(Section section) : base(section, SlcResource_StudioIds.Sections.Flowrulesinfo.Id)
+		{
+		}
+
+		/// <summary>
+		/// Gets or sets the Owner field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String Owner
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcResource_StudioIds.Sections.Flowrulesinfo.Owner);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcResource_StudioIds.Sections.Flowrulesinfo.Owner);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcResource_StudioIds.Sections.Flowrulesinfo.Owner, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the Ownertype field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public SlcResource_StudioIds.Enums.Flowruleobjecttype? Ownertype
+		{
+			get
+			{
+				var wrapper = section.GetValue<Int32>(SlcResource_StudioIds.Sections.Flowrulesinfo.Ownertype);
+				if (wrapper != null)
+				{
+					return (SlcResource_StudioIds.Enums.Flowruleobjecttype?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcResource_StudioIds.Sections.Flowrulesinfo.Ownertype);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcResource_StudioIds.Sections.Flowrulesinfo.Ownertype, (Int32)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="FlowrulesinfoSection"/>.
+		/// </summary>
+		/// <returns>A new <see cref="FlowrulesinfoSection"/> object that is a deep copy of this section.</returns>
+		public FlowrulesinfoSection Clone()
+		{
+			return new FlowrulesinfoSection((Section)this.ToSection().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="FlowrulesinfoSection"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="FlowrulesinfoSection"/> object that is a copy of this section but with a different id.</returns>
+		public FlowrulesinfoSection Duplicate()
+		{
+			var section = (Section)this.ToSection().Clone();
+			section.ID = new SectionID(Guid.NewGuid());
+			return new FlowrulesinfoSection(section);
+		}
+	}
+
+	/// <summary>
 	/// Represents a wrapper class for accessing a OrchestrationEventsSection section.
 	/// The <see cref="OrchestrationEventsSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
 	/// </summary>
@@ -3542,6 +3874,263 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Stud
 			if (section.GetValue<String>(SlcResource_StudioIds.Sections.OrchestrationEvents.Name) == null)
 				throw new InvalidOperationException("'Name' is required. Please fill it in before saving, or mark it as optional with the DOM Editor.");
 			return section;
+		}
+	}
+
+	/// <summary>
+	/// Represents a wrapper class for accessing a FlowruleSection section.
+	/// The <see cref="FlowruleSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	internal partial class FlowruleSection : DomSectionBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="FlowruleSection"/> class. Creates an empty <see cref="FlowruleSection"/> object with default settings.
+		/// </summary>
+		public FlowruleSection() : base(SlcResource_StudioIds.Sections.Flowrule.Id)
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="FlowruleSection"/> class using the specified <paramref name="section"/> for initializing the object.
+		/// </summary>
+		/// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="FlowruleSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public FlowruleSection(Section section) : base(section, SlcResource_StudioIds.Sections.Flowrule.Id)
+		{
+		}
+
+		/// <summary>
+		/// Gets or sets the Direction field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public SlcResource_StudioIds.Enums.Flowruledirection? Direction
+		{
+			get
+			{
+				var wrapper = section.GetValue<Int32>(SlcResource_StudioIds.Sections.Flowrule.Direction);
+				if (wrapper != null)
+				{
+					return (SlcResource_StudioIds.Enums.Flowruledirection?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcResource_StudioIds.Sections.Flowrule.Direction);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcResource_StudioIds.Sections.Flowrule.Direction, (Int32)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the Target field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String Target
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcResource_StudioIds.Sections.Flowrule.Target);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcResource_StudioIds.Sections.Flowrule.Target);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcResource_StudioIds.Sections.Flowrule.Target, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the Targettype field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public SlcResource_StudioIds.Enums.Flowruleobjecttype? Targettype
+		{
+			get
+			{
+				var wrapper = section.GetValue<Int32>(SlcResource_StudioIds.Sections.Flowrule.Targettype);
+				if (wrapper != null)
+				{
+					return (SlcResource_StudioIds.Enums.Flowruleobjecttype?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcResource_StudioIds.Sections.Flowrule.Targettype);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcResource_StudioIds.Sections.Flowrule.Targettype, (Int32)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the Outcome field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public SlcResource_StudioIds.Enums.Flowruleoutcome? Outcome
+		{
+			get
+			{
+				var wrapper = section.GetValue<Int32>(SlcResource_StudioIds.Sections.Flowrule.Outcome);
+				if (wrapper != null)
+				{
+					return (SlcResource_StudioIds.Enums.Flowruleoutcome?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcResource_StudioIds.Sections.Flowrule.Outcome);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcResource_StudioIds.Sections.Flowrule.Outcome, (Int32)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the Message field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String Message
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcResource_StudioIds.Sections.Flowrule.Message);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcResource_StudioIds.Sections.Flowrule.Message);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcResource_StudioIds.Sections.Flowrule.Message, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="FlowruleSection"/>.
+		/// </summary>
+		/// <returns>A new <see cref="FlowruleSection"/> object that is a deep copy of this section.</returns>
+		public FlowruleSection Clone()
+		{
+			return new FlowruleSection((Section)this.ToSection().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="FlowruleSection"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="FlowruleSection"/> object that is a copy of this section but with a different id.</returns>
+		public FlowruleSection Duplicate()
+		{
+			var section = (Section)this.ToSection().Clone();
+			section.ID = new SectionID(Guid.NewGuid());
+			return new FlowruleSection(section);
 		}
 	}
 

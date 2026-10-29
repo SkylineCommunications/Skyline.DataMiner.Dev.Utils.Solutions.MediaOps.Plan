@@ -6,6 +6,7 @@
 	/// <seealso cref="JobNodeGraphInvalidConnectionNodeError"/>
 	/// <seealso cref="JobNodeGraphDuplicateConnectionIdError"/>
 	/// <seealso cref="JobNodeGraphEmptyConnectionIdError"/>
+	/// <seealso cref="JobNodeGraphForbiddenConnectionError"/>
 	public class JobNodeGraphInvalidConnectionError : JobNodeGraphError
 	{
 		/// <summary>

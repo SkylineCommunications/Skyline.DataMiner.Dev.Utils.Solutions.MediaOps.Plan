@@ -3,6 +3,7 @@
 	/// <summary>
 	/// Represents an error that occurs when attempting to delete a resource pool that is currently in use.
 	/// </summary>
+	/// <seealso cref="ResourcePoolInUseByFlowRulesError"/>
 	/// <seealso cref="ResourcePoolInUseByJobsError"/>
 	/// <seealso cref="ResourcePoolInUseByLinkedPoolsError"/>
 	/// <seealso cref="ResourcePoolInUseByRecurringJobsError"/>

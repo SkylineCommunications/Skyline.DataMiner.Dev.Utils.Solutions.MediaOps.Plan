@@ -18,6 +18,11 @@
 		IResourcePoolsRepository ResourcePools { get; }
 
 		/// <summary>
+		/// Gets the repository for reading flow rules and evaluating connections against them.
+		/// </summary>
+		IFlowRulesRepository FlowRules { get; }
+
+		/// <summary>
 		/// Gets the repository for managing capabilities.
 		/// </summary>
 		ICapabilitiesRepository Capabilities { get; }
