@@ -907,7 +907,7 @@
 			}
 		}
 
-		// Loads the flow rules per batch of resource pools, so a streamed read does not need one extra query per pool.
+		// Reads the rule sets per batch of resource pools, so a streamed read does not need one extra query per pool.
 		private IEnumerable<ResourcePool> ToApiResourcePools(IEnumerable<StorageResourceStudio.ResourcepoolInstance> instances)
 		{
 			var batch = new List<StorageResourceStudio.ResourcepoolInstance>(MediaOpsPlanApi.DefaultPageSize);
@@ -940,9 +940,28 @@
 					return [];
 				}
 
-				var flowRulesById = ResourcePool.LoadFlowRules(PlanApi, items);
+				var flowRulesById = LoadFlowRules(items);
 				return items.Select(x => new ResourcePool(PlanApi, x, flowRulesById)).ToList();
 			}
+		}
+
+		// The pointer on each pool identifies its rule set, so all rule sets of a batch are read in one query.
+		private IReadOnlyDictionary<Guid, StorageResourceStudio.FlowrulesInstance> LoadFlowRules(IEnumerable<StorageResourceStudio.ResourcepoolInstance> instances)
+		{
+			var flowRulesIds = instances
+				.Where(x => x != null)
+				.Select(x => x.ConfigurationInfo.FlowRules)
+				.Where(x => x.HasValue && x.Value != Guid.Empty)
+				.Select(x => x.Value)
+				.Distinct()
+				.ToList();
+
+			if (flowRulesIds.Count == 0)
+			{
+				return new Dictionary<Guid, StorageResourceStudio.FlowrulesInstance>();
+			}
+
+			return PlanApi.DomHelpers.SlcResourceStudioHelper.GetFlowRules(flowRulesIds).ToDictionary(x => x.ID.Id);
 		}
 
 		private IQuery<DomInstance> TranslateToDomQuery(IQuery<ResourcePool> query)

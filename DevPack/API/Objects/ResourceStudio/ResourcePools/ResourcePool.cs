@@ -326,34 +326,6 @@
 			return updatedInstance;
 		}
 
-		internal static IReadOnlyDictionary<Guid, StorageResourceStudio.FlowrulesInstance> LoadFlowRules(MediaOpsPlanApi planApi, IEnumerable<StorageResourceStudio.ResourcepoolInstance> instances)
-		{
-			if (planApi == null)
-			{
-				throw new ArgumentNullException(nameof(planApi));
-			}
-
-			if (instances == null)
-			{
-				throw new ArgumentNullException(nameof(instances));
-			}
-
-			var flowRulesIds = instances
-				.Where(x => x != null)
-				.Select(x => x.ConfigurationInfo.FlowRules)
-				.Where(x => x.HasValue && x.Value != Guid.Empty)
-				.Select(x => x.Value)
-				.Distinct()
-				.ToList();
-
-			if (flowRulesIds.Count == 0)
-			{
-				return new Dictionary<Guid, StorageResourceStudio.FlowrulesInstance>();
-			}
-
-			return planApi.DomHelpers.SlcResourceStudioHelper.GetFlowRules(flowRulesIds).ToDictionary(x => x.ID.Id);
-		}
-
 		private void ParseFlowRules(MediaOpsPlanApi planApi, StorageResourceStudio.ResourcepoolInstance instance, IReadOnlyDictionary<Guid, StorageResourceStudio.FlowrulesInstance> flowRulesById)
 		{
 			var flowRulesId = instance.ConfigurationInfo.FlowRules;
