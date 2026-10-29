@@ -399,6 +399,47 @@
 				x => GetFlowRulesIterator(x));
 		}
 
+		internal IEnumerable<FlowrulesInstance> GetFlowRules(IQuery<DomInstance> query)
+		{
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			return InstanceFactory.ReadAndCreateInstances(DomHelper, query, instance => new FlowrulesInstance(instance));
+		}
+
+		internal IEnumerable<IEnumerable<FlowrulesInstance>> GetFlowRulesPaged(FilterElement<DomInstance> paramFilter, int pageSize)
+		{
+			if (paramFilter == null)
+			{
+				throw new ArgumentNullException(nameof(paramFilter));
+			}
+
+			if (pageSize <= 0)
+			{
+				throw new ArgumentOutOfRangeException(nameof(pageSize));
+			}
+
+			var pages = DomHelper.DomInstances.ReadPaged(paramFilter, pageSize);
+			return InstanceFactory.CreateInstances(pages, instance => new FlowrulesInstance(instance));
+		}
+
+		internal IEnumerable<IEnumerable<FlowrulesInstance>> GetFlowRulesPaged(IQuery<DomInstance> query, int pageSize)
+		{
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			if (pageSize <= 0)
+			{
+				throw new ArgumentOutOfRangeException(nameof(pageSize));
+			}
+
+			return InstanceFactory.ReadAndCreateInstancesPaged(DomHelper, query, pageSize, instance => new FlowrulesInstance(instance));
+		}
+
 		internal IEnumerable<ResourcepoolInstance> GetResourcePools(IQuery<DomInstance> query)
 		{
 			if (query == null)

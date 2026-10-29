@@ -7,9 +7,13 @@ namespace RT_MediaOps.Plan.RST.FlowRules
 
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+	using Skyline.DataMiner.SDM;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
+	using SLDataGateway.API.Querying;
+
+	using ApiFlowRules = Skyline.DataMiner.Solutions.MediaOps.Plan.API.FlowRules;
 	using StorageResourceStudio = Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
 
 	[TestClass]
@@ -58,6 +62,48 @@ namespace RT_MediaOps.Plan.RST.FlowRules
 			Assert.AreEqual(FlowRuleObjectType.ResourcePool, stored.OwnerType);
 			Assert.AreEqual(pool.Id, stored.OwnerId);
 			Assert.AreEqual(FlowRuleOutcome.Warning, stored.GetDefault(FlowRuleDirection.After).Outcome);
+		}
+
+		[TestMethod]
+		public void Querying_ByIdOwnerAndTarget()
+		{
+			var prefix = Guid.NewGuid();
+			var target = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Target" });
+
+			var referencing = new ResourcePool { Name = $"{prefix}_Referencing" };
+			referencing.FlowRules.SetOverride(FlowRuleDirection.After, target, FlowRuleOutcome.Forbidden);
+			referencing = objectCreator.CreateResourcePool(referencing);
+
+			var other = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Other" });
+
+			var repository = TestContext.Api.FlowRules;
+			var ownFilter = new ORFilterElement<ApiFlowRules>(new[] { target, referencing, other }.Select(x => FlowRulesExposers.OwnerId.Equal(x.Id)).ToArray());
+
+			// By its own ID
+			Assert.AreEqual(referencing.Id, repository.Read(referencing.FlowRules.Id).OwnerId);
+			Assert.AreEqual(2, repository.Read([referencing.FlowRules.Id, other.FlowRules.Id]).Count());
+			Assert.IsNull(repository.Read(Guid.NewGuid()));
+
+			// By owner
+			var byOwner = repository.Read(FlowRulesExposers.OwnerType.Equal(FlowRuleObjectType.ResourcePool).AND(FlowRulesExposers.OwnerId.Equal(other.Id))).Single();
+			Assert.AreEqual(other.FlowRules.Id, byOwner.Id);
+
+			// By target of an override
+			var referencingTarget = repository.Read(ownFilter.AND(FlowRulesExposers.Rules.TargetId.Contains(target.Id))).Single();
+			Assert.AreEqual(referencing.Id, referencingTarget.OwnerId);
+
+			// Count, paging and query with ordering
+			Assert.AreEqual(3, repository.Count(ownFilter));
+			Assert.AreEqual(1, repository.Count(ownFilter.AND(FlowRulesExposers.Rules.TargetId.Contains(target.Id)).ToQuery()));
+
+			var pages = repository.ReadPaged(ownFilter, 2).ToList();
+			Assert.AreEqual(2, pages.Count);
+			Assert.AreEqual(3, pages.Sum(x => x.Count()));
+
+			var ordered = repository.Read(ownFilter.ToQuery().OrderBy(FlowRulesExposers.OwnerId)).Select(x => x.OwnerId).ToList();
+			CollectionAssert.AreEqual(ordered.OrderBy(x => x.ToString()).ToList(), ordered);
+
+			Assert.AreEqual(0, repository.Count(new ORFilterElement<ApiFlowRules>()));
 		}
 
 		[TestMethod]

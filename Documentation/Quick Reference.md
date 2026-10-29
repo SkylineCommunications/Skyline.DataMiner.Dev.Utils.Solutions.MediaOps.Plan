@@ -497,6 +497,14 @@ api.ResourcePools.Update(pool);
 // Read the rules of one or more owners
 FlowRules rules = api.FlowRules.Read(FlowRuleObjectType.ResourcePool, pool.Id);
 
+// Query across rule sets (read-only: filtering, paging and counting like the other repositories)
+var referencingIrd = api.FlowRules.Read(FlowRulesExposers.Rules.TargetId.Contains(irdPool.Id));
+var count = api.FlowRules.Count(FlowRulesExposers.OwnerType.Equal(FlowRuleObjectType.ResourcePool));
+foreach (var page in api.FlowRules.ReadPaged())
+{
+    // ...
+}
+
 // Evaluate a single connection (from → to)
 FlowRuleEvaluation evaluation = api.FlowRules.Evaluate(
     FlowRuleObjectType.ResourcePool, irdPool.Id,

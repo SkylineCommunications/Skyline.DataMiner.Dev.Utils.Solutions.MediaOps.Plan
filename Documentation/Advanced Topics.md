@@ -241,6 +241,8 @@ api.ResourcePools.Deprecate(pool, new ResourcePoolDeprecateOptions
 
 Flow rules constrain which objects may be directly connected in the node graph of a job, workflow or recurring job. Flow rules are a generic concept: an owner and a target are identified by a `FlowRuleObjectType` and an ID. Today the only type is `ResourcePool`: each resource pool owns one rule set (`ResourcePool.FlowRules`), stored in its own DOM instance and persisted together with the pool.
 
+`api.FlowRules` is read-only, because rule sets are only written through their owner. It implements the SDM read interfaces (`IPageableRepository<FlowRules>`, `ICountableRepository<FlowRules>`), so rule sets can be filtered, queried, paged and counted with `FlowRulesExposers` (`Id`, `OwnerType`, `OwnerId`, `Rules.TargetId`), like the other repositories.
+
 ### Rule model
 
 - Two independent directions: `Before` (other node → owning object) and `After` (owning object → other node).
