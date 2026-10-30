@@ -165,6 +165,68 @@
 			Assert.IsTrue(TestContext.Api.Jobs.Read(created.Id).NodeGraph.Nodes.Single().OrchestrationSettings.Capabilities.Single().HasReference);
 		}
 
+		[TestMethod]
+		public void Create_CapabilityOnlyOnPool_IsAccepted()
+		{
+			var setup = CreatePoolCapabilitySetup(poolDiscretes: ["Value 1", "Value 2"], resourceDiscretes: null);
+
+			var node = new JobResourceNode(setup.Pool, setup.Resource);
+			node.OrchestrationSettings.AddCapability(new CapabilitySetting(setup.Capability) { Value = "Value 2" });
+
+			var job = objectCreator.CreateJob(NewJob(setup.Prefix, node));
+			Assert.AreEqual("Value 2", TestContext.Api.Jobs.Read(job.Id).NodeGraph.Nodes.Single().OrchestrationSettings.Capabilities.Single().Value);
+		}
+
+		[TestMethod]
+		public void Update_CapabilityValueOnlyOnPool_IsAccepted()
+		{
+			var setup = CreatePoolCapabilitySetup(poolDiscretes: ["Value 2"], resourceDiscretes: ["Value 1"]);
+			var job = CreateJobWithNode(setup, node => node.OrchestrationSettings.AddCapability(new CapabilitySetting(setup.Capability) { Value = "Value 1" }));
+
+			job.NodeGraph.Nodes.Single().OrchestrationSettings.Capabilities.Single().Value = "Value 2";
+			TestContext.Api.Jobs.Update([job]);
+
+			Assert.AreEqual("Value 2", TestContext.Api.Jobs.Read(job.Id).NodeGraph.Nodes.Single().OrchestrationSettings.Capabilities.Single().Value);
+		}
+
+		[TestMethod]
+		public void Create_CapabilityOnOtherPoolOfResource_IsAccepted()
+		{
+			var prefix = Guid.NewGuid();
+			var capability = objectCreator.CreateCapability(new Capability { Name = $"{prefix}_Capability" }.SetDiscretes(["Value 1"]));
+
+			var nodePool = TestContext.Api.ResourcePools.Complete(objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_NodePool" }));
+
+			var otherPool = new ResourcePool { Name = $"{prefix}_OtherPool" };
+			otherPool.AddCapability(new CapabilitySettings(capability).SetDiscretes(["Value 1"]));
+			otherPool = TestContext.Api.ResourcePools.Complete(objectCreator.CreateResourcePool(otherPool));
+
+			var resource = new UnmanagedResource { Name = $"{prefix}_Resource" };
+			resource.AssignToPool(nodePool);
+			resource.AssignToPool(otherPool);
+			var completedResource = TestContext.Api.Resources.Complete(objectCreator.CreateResource(resource));
+
+			var node = new JobResourceNode(nodePool, completedResource);
+			node.OrchestrationSettings.AddCapability(new CapabilitySetting(capability) { Value = "Value 1" });
+
+			var job = objectCreator.CreateJob(NewJob(prefix, node));
+			Assert.AreEqual("Value 1", TestContext.Api.Jobs.Read(job.Id).NodeGraph.Nodes.Single().OrchestrationSettings.Capabilities.Single().Value);
+		}
+
+		[TestMethod]
+		public void Create_CapabilityValueOnNeitherResourceNorPool_IsRejected()
+		{
+			var setup = CreatePoolCapabilitySetup(poolDiscretes: ["Value 2"], resourceDiscretes: ["Value 1"]);
+
+			var node = new JobResourceNode(setup.Pool, setup.Resource);
+			node.OrchestrationSettings.AddCapability(new CapabilitySetting(setup.Capability) { Value = "Value 3" });
+
+			var traceData = AssertCreateFails(NewJob(setup.Prefix, node));
+			var error = traceData.ErrorData.OfType<JobResourceInvalidCapabilityError>().Single();
+			Assert.AreEqual(setup.Capability.Id, error.CapabilityId);
+			StringAssert.Contains(error.ErrorMessage, "Supported values: 'Value 1', 'Value 2'.");
+		}
+
 		private static MediaOpsTraceData AssertCreateFails(Job job)
 		{
 			var exception = Assert.ThrowsException<MediaOpsBulkException<Guid>>(() => TestContext.Api.Jobs.Create([job]));
@@ -231,6 +293,29 @@
 			resource.AssignToPool(pool);
 
 			return new Setup(prefix, pool, TestContext.Api.Resources.Complete(objectCreator.CreateResource(resource)), capability, capacity, rangeCapacity);
+		}
+
+		private Setup CreatePoolCapabilitySetup(string[] poolDiscretes, string[]? resourceDiscretes)
+		{
+			var prefix = Guid.NewGuid();
+
+			var capability = new Capability { Name = $"{prefix}_Capability" }.SetDiscretes(["Value 1", "Value 2", "Value 3"]);
+			objectCreator.CreateCapability(capability);
+
+			var pool = new ResourcePool { Name = $"{prefix}_Pool" };
+			pool.AddCapability(new CapabilitySettings(capability).SetDiscretes(poolDiscretes));
+			pool = TestContext.Api.ResourcePools.Complete(objectCreator.CreateResourcePool(pool));
+
+			var resource = new UnmanagedResource { Name = $"{prefix}_Resource" };
+			if (resourceDiscretes != null)
+			{
+				resource.AddCapability(new CapabilitySettings(capability).SetDiscretes(resourceDiscretes));
+			}
+
+			resource.AssignToPool(pool);
+
+			// The pool capability tests don't use capacities.
+			return new Setup(prefix, pool, TestContext.Api.Resources.Complete(objectCreator.CreateResource(resource)), capability, null!, null!);
 		}
 
 		private sealed class Setup

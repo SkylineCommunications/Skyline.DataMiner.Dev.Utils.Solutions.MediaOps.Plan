@@ -37,6 +37,8 @@
 
 		private Dictionary<Guid, Resource> resourcesById = new Dictionary<Guid, Resource>();
 
+		private Dictionary<Guid, ResourcePool> resourcePoolsById = new Dictionary<Guid, ResourcePool>();
+
 		private DomJobHandler(MediaOpsPlanApi planApi)
 			: this(planApi, DateTimeOffset.UtcNow)
 		{
@@ -4260,7 +4262,7 @@
 			CollectReferencedIds(apiJobs, out var resourceIds, out var resourcePoolIds);
 
 			resourcesById = planApi.Resources.Read(resourceIds).ToDictionary(x => x.Id);
-			var resourcePoolsById = planApi.ResourcePools.Read(resourcePoolIds).ToDictionary(x => x.Id);
+			resourcePoolsById = planApi.ResourcePools.Read(resourcePoolIds).ToDictionary(x => x.Id);
 
 			foreach (var job in apiJobs)
 			{
@@ -4279,9 +4281,39 @@
 				throw new ArgumentNullException(nameof(apiJobs));
 			}
 
-			foreach (var job in apiJobs.Where(IsValid))
+			var validJobs = apiJobs.Where(IsValid).ToList();
+			if (validJobs.Count == 0)
 			{
-				PassTraceData(JobNodeResourceRequirementsValidator.Validate(job.Id, job.NodeGraph, resourcesById));
+				return;
+			}
+
+			// A resource inherits the capabilities of every pool it belongs to, not only of the pool its node refers to.
+			LoadPoolsOfReferencedResources(validJobs);
+
+			foreach (var job in validJobs)
+			{
+				PassTraceData(JobNodeResourceRequirementsValidator.Validate(job.Id, job.NodeGraph, resourcesById, resourcePoolsById));
+			}
+		}
+
+		private void LoadPoolsOfReferencedResources(IEnumerable<Job> apiJobs)
+		{
+			var missingPoolIds = apiJobs
+				.SelectMany(j => j.NodeGraph.Nodes.OfType<JobResourceNode>())
+				.Select(n => resourcesById.TryGetValue(n.ResourceId, out var resource) ? resource : null)
+				.Where(r => r != null)
+				.SelectMany(r => r.ResourcePoolIds)
+				.Where(id => id != Guid.Empty && !resourcePoolsById.ContainsKey(id))
+				.ToHashSet();
+
+			if (missingPoolIds.Count == 0)
+			{
+				return;
+			}
+
+			foreach (var pool in planApi.ResourcePools.Read(missingPoolIds))
+			{
+				resourcePoolsById[pool.Id] = pool;
 			}
 		}
 

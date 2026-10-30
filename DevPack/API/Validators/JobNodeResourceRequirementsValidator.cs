@@ -19,14 +19,20 @@
 	/// Only requirements that carry a literal value are validated. Requirements that carry a reference are resolved later
 	/// in the pipeline and are therefore not known here.
 	/// </para>
+	/// <para>
+	/// Capabilities are validated against the effective capabilities of the resource: the capabilities configured on the
+	/// resource itself merged with the capabilities of every resource pool it belongs to, the same way they are pushed to
+	/// the CORE resource.
+	/// </para>
 	/// </remarks>
 	internal sealed class JobNodeResourceRequirementsValidator : ApiObjectValidator
 	{
 		private readonly Guid jobId;
 		private readonly NodeGraph<JobNode> nodeGraph;
 		private readonly IReadOnlyDictionary<Guid, Resource> resourcesById;
+		private readonly IReadOnlyDictionary<Guid, ResourcePool> resourcePoolsById;
 
-		private JobNodeResourceRequirementsValidator(Guid jobId, NodeGraph<JobNode> nodeGraph, IReadOnlyDictionary<Guid, Resource> resourcesById)
+		private JobNodeResourceRequirementsValidator(Guid jobId, NodeGraph<JobNode> nodeGraph, IReadOnlyDictionary<Guid, Resource> resourcesById, IReadOnlyDictionary<Guid, ResourcePool> resourcePoolsById)
 		{
 			if (jobId == Guid.Empty)
 			{
@@ -36,6 +42,7 @@
 			this.jobId = jobId;
 			this.nodeGraph = nodeGraph ?? throw new ArgumentNullException(nameof(nodeGraph));
 			this.resourcesById = resourcesById ?? throw new ArgumentNullException(nameof(resourcesById));
+			this.resourcePoolsById = resourcePoolsById ?? throw new ArgumentNullException(nameof(resourcePoolsById));
 
 			Validate();
 		}
@@ -46,10 +53,11 @@
 		/// <param name="jobId">The unique identifier of the job that owns the node graph.</param>
 		/// <param name="nodeGraph">The node graph to validate.</param>
 		/// <param name="resourcesById">The resources referenced by the node graph, indexed by their unique identifier.</param>
+		/// <param name="resourcePoolsById">The resource pools the referenced resources belong to, indexed by their unique identifier.</param>
 		/// <returns>The validator holding the trace data of the validation.</returns>
-		public static ApiObjectValidator Validate(Guid jobId, NodeGraph<JobNode> nodeGraph, IReadOnlyDictionary<Guid, Resource> resourcesById)
+		public static ApiObjectValidator Validate(Guid jobId, NodeGraph<JobNode> nodeGraph, IReadOnlyDictionary<Guid, Resource> resourcesById, IReadOnlyDictionary<Guid, ResourcePool> resourcePoolsById)
 		{
-			return new JobNodeResourceRequirementsValidator(jobId, nodeGraph, resourcesById);
+			return new JobNodeResourceRequirementsValidator(jobId, nodeGraph, resourcesById, resourcePoolsById);
 		}
 
 		private static string Describe(NodeBase node)
@@ -104,7 +112,7 @@
 
 		private void ValidateCapabilities(JobResourceNode node, Resource resource)
 		{
-			var resourceCapabilitiesById = IndexById(resource.Capabilities, x => x.Id);
+			var effectiveDiscretesById = GetEffectiveCapabilityDiscretes(resource);
 
 			foreach (var capability in node.OrchestrationSettings.Capabilities)
 			{
@@ -114,21 +122,49 @@
 					continue;
 				}
 
-				if (!resourceCapabilitiesById.TryGetValue(capability.Id, out var resourceCapability))
+				if (!effectiveDiscretesById.TryGetValue(capability.Id, out var discretes))
 				{
-					ReportCapabilityError(resource, capability.Id, $"Capability '{capability.Id}' configured on node '{Describe(node)}' is not assigned to resource '{resource.Name}'.");
+					ReportCapabilityError(resource, capability.Id, $"Capability '{capability.Id}' configured on node '{Describe(node)}' is not assigned to resource '{resource.Name}' or any of its resource pools.");
 					continue;
 				}
 
-				if (!resourceCapability.Discretes.Contains(capability.Value))
+				if (!discretes.Contains(capability.Value))
 				{
-					var supported = resourceCapability.Discretes.Count == 0
+					var supported = discretes.Count == 0
 						? "none"
-						: String.Join(", ", resourceCapability.Discretes.OrderBy(x => x, StringComparer.Ordinal).Select(x => $"'{x}'"));
+						: String.Join(", ", discretes.OrderBy(x => x, StringComparer.Ordinal).Select(x => $"'{x}'"));
 
 					ReportCapabilityError(resource, capability.Id, $"Value '{capability.Value}' configured for capability '{capability.Id}' on node '{Describe(node)}' is not supported by resource '{resource.Name}'. Supported values: {supported}.");
 				}
 			}
+		}
+
+		// Mirrors the capabilities pushed to the CORE resource: own capabilities merged with those of every pool the
+		// resource belongs to, with the discretes of a capability configured in multiple places combined.
+		private Dictionary<Guid, HashSet<string>> GetEffectiveCapabilityDiscretes(Resource resource)
+		{
+			var settings = new List<CapabilitySettings>(resource.Capabilities);
+			foreach (var poolId in resource.ResourcePoolIds)
+			{
+				if (resourcePoolsById.TryGetValue(poolId, out var pool))
+				{
+					settings.AddRange(pool.Capabilities);
+				}
+			}
+
+			var discretesById = new Dictionary<Guid, HashSet<string>>();
+			foreach (var setting in settings)
+			{
+				if (!discretesById.TryGetValue(setting.Id, out var discretes))
+				{
+					discretes = new HashSet<string>(StringComparer.Ordinal);
+					discretesById[setting.Id] = discretes;
+				}
+
+				discretes.UnionWith(setting.Discretes);
+			}
+
+			return discretesById;
 		}
 
 		private void ValidateCapacities(JobResourceNode node, Resource resource)
