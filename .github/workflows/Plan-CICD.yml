@@ -304,13 +304,13 @@ jobs:
   skyline_cicd:
     name: Skyline CICD
     needs: [nuget_validation, tag_branch_validation, unit_tests, integration_tests]
-    # Branches and alpha tags publish after simulated tests; all other tags also require QAOps.
+    # Merge pushes require validation and unit tests; tag pushes also require passing regression.
     if: >-
       ${{ !cancelled() && github.event_name == 'push' &&
           needs.nuget_validation.result == 'success' && needs.tag_branch_validation.result == 'success' &&
           needs.unit_tests.result == 'success' &&
           (github.ref_type == 'branch' ||
-            (github.ref_type == 'tag' && (contains(github.ref_name, '-alpha') || needs.integration_tests.result == 'success'))) }}
+            (github.ref_type == 'tag' && needs.integration_tests.result == 'success')) }}
     permissions:
       contents: read
       id-token: write
