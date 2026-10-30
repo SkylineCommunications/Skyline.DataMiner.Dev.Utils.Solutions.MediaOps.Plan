@@ -25,25 +25,44 @@ env:
   NUGET_RESTORE_MSBUILD_ARGS: /p:Configuration=Release
 
 jobs:
-  nuget_validation:
-    name: Validate NuGets
+  unit_tests:
+    name: Unit Tests
+    needs: [nuget_validation, tag_branch_validation]
+    outputs:
+      target_environment: ${{ needs.tag_branch_validation.outputs.target_environment }}
     if: >-
       github.event_name == 'pull_request' || github.event_name == 'push' ||
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'pull_request_review' && github.event.review.state == 'approved' &&
        !github.event.pull_request.draft && github.event.review.commit_id == github.event.pull_request.head.sha)
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      CI: 'true'
+      MEDIAOPS_PLAN_USE_REAL_DMA: 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
-      - name: Install dotnet-consolidate
-        run: dotnet tool install -g dotnet-consolidate
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5.3.0
+        with:
+          dotnet-version: '10.0.x'
 
-      - name: Run dotnet consolidate
-        run: dotnet consolidate -s 'MediaOps Plan.slnx'
+      - name: Configure GitHub NuGet Source
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: dotnet nuget add source "https://nuget.pkg.github.com/SkylineCommunications/index.json" --name github --username USERNAME --password "$env:GH_TOKEN" --store-password-in-clear-text
+
+      - name: Restore and Build Unit Tests
+        run: dotnet build "DevPack.Tests/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests.csproj" -c Release -p:WarningLevel=0 -p:DefineConstants=CI
+
+      - name: Run Unit Tests
+        run: dotnet test "DevPack.Tests/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests.csproj" -c Release --no-build --settings DevPack.Tests.runsettings --logger "console;verbosity=detailed"
 
   tag_branch_validation:
     name: Validate Tag Matches Branch
@@ -114,46 +133,29 @@ jobs:
             core.info(`Tagged commit ${context.sha} is ${onMain ? '' : 'not '}on main (compare status: ${cmp.status}).`);
             core.setOutput('use_rc_dma', String(!onMain));
 
-  unit_tests:
-    name: Unit Tests
-    needs: [nuget_validation, tag_branch_validation]
+  nuget_validation:
+    name: Validate NuGets
     if: >-
       github.event_name == 'pull_request' || github.event_name == 'push' ||
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'pull_request_review' && github.event.review.state == 'approved' &&
        !github.event.pull_request.draft && github.event.review.commit_id == github.event.pull_request.head.sha)
-    runs-on: windows-latest
-    defaults:
-      run:
-        shell: pwsh
-    env:
-      CI: 'true'
-      MEDIAOPS_PLAN_USE_REAL_DMA: 'false'
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v5.3.0
-        with:
-          dotnet-version: '10.0.x'
+      - name: Install dotnet-consolidate
+        run: dotnet tool install -g dotnet-consolidate
 
-      - name: Configure GitHub NuGet Source
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: dotnet nuget add source "https://nuget.pkg.github.com/SkylineCommunications/index.json" --name github --username USERNAME --password "$env:GH_TOKEN" --store-password-in-clear-text
-
-      - name: Restore and Build Unit Tests
-        run: dotnet build "DevPack.Tests/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests.csproj" -c Release -p:WarningLevel=0 -p:DefineConstants=CI
-
-      - name: Run Unit Tests
-        run: dotnet test "DevPack.Tests/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests.csproj" -c Release --no-build --settings DevPack.Tests.runsettings --logger "console;verbosity=detailed"
+      - name: Run dotnet consolidate
+        run: dotnet consolidate -s 'MediaOps Plan.slnx'
 
   integration_tests:
     name: Integration Tests
-    needs: [unit_tests, tag_branch_validation]
+    needs: unit_tests
     # Alpha tag pushes use the simulated suite in Unit Tests; other tags also require QAOps.
     if: >-
       ${{ !cancelled() && needs.unit_tests.result == 'success' &&
@@ -168,11 +170,11 @@ jobs:
       packages: read
       pull-requests: read
     concurrency:
-      group: mediaops-plan-regression-${{ needs.tag_branch_validation.outputs.target_environment || 'default' }}
+      group: mediaops-plan-regression-${{ needs.unit_tests.outputs.target_environment || 'default' }}
       cancel-in-progress: false
       queue: max
     # dma-rc overrides repository-level QAOps settings; DMA_RC_ENABLED=false selects the default target.
-    environment: ${{ needs.tag_branch_validation.outputs.target_environment }}
+    environment: ${{ needs.unit_tests.outputs.target_environment }}
     runs-on: windows-latest
     defaults:
       run:
