@@ -181,25 +181,6 @@ jobs:
       TEST_PACKAGE_PROJECT: QAOpsPackage/QAOpsPackage.csproj
       PACKAGE_VERSION: ${{ github.event_name == 'push' && github.ref_type == 'tag' && github.ref_name || format('0.1.{0}', github.run_number) }}
     steps:
-      - name: Verify approval still covers the current PR head
-        if: github.event_name == 'pull_request_review'
-        uses: actions/github-script@v7
-        env:
-          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-        with:
-          script: |
-            const { owner, repo } = context.repo;
-            const pull_number = context.payload.pull_request.number;
-            const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number });
-            const { data: review } = await github.rest.pulls.getReview({
-              owner, repo, pull_number, review_id: context.payload.review.id
-            });
-            if (pr.state !== 'open' || pr.draft || pr.base.ref !== 'main' || pr.head.repo.full_name !== `${owner}/${repo}` ||
-                pr.head.sha !== process.env.SOURCE_SHA || review.state !== 'APPROVED' ||
-                review.commit_id !== pr.head.sha) {
-              throw new Error('PR approval is no longer valid for the current head. Approve the latest commit to run integration tests.');
-            }
-
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -232,6 +213,25 @@ jobs:
           $packages = @(Get-ChildItem $outputDirectory -Recurse -File -Filter "$projectName.$env:PACKAGE_VERSION.dmtest")
           if ($packages.Count -ne 1) { throw "Expected one $projectName.$env:PACKAGE_VERSION.dmtest; found $($packages.Count)" }
           "path=$($packages[0].FullName)" >> $env:GITHUB_OUTPUT
+
+      - name: Verify approval still covers the current PR head
+        if: github.event_name == 'pull_request_review'
+        uses: actions/github-script@v7
+        env:
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const pull_number = context.payload.pull_request.number;
+            const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number });
+            const { data: review } = await github.rest.pulls.getReview({
+              owner, repo, pull_number, review_id: context.payload.review.id
+            });
+            if (pr.state !== 'open' || pr.draft || pr.base.ref !== 'main' || pr.head.repo.full_name !== `${owner}/${repo}` ||
+                pr.head.sha !== process.env.SOURCE_SHA || review.state !== 'APPROVED' ||
+                review.commit_id !== pr.head.sha) {
+              throw new Error('PR approval is no longer valid for the current head. Approve the latest commit to run integration tests.');
+            }
 
       - name: Run QAOps and wait for results
         env:
