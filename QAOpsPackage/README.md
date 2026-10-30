@@ -4,32 +4,34 @@ This project builds a **DataMiner QAOps Test Package** (`.dmtest`) for `Skyline.
 
 ## What this package tests
 
-When this package runs in QAOps, it executes the harvested `Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests` MSTest assembly and only runs tests with:
+When this package runs in QAOps, it executes the complete harvested `Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests` MSTest assembly. CI uses the same suite for simulated **Unit Tests** and real-Agent **Integration Tests**.
 
-```txt
-TestCategory=IntegrationTest
-```
-
-The integration tests cover the MediaOps Plan API against a real DataMiner system, including:
+The integration tests cover the MediaOps Plan API against a real DataMiner System, including:
 
 - **Properties**: property definitions and values.
 - **Resource Studio / RST**: resources, resource pools, capabilities, capacities, configurations, resource properties, and filtering behavior.
 - **Workflow**: jobs, workflows, recurring jobs, scheduling properties, and job settings.
 
-In other words, this package validates the **integration behavior of the MediaOps Plan .NET API** against a live QAOps-provisioned DataMiner environment. It is not a unit-test package.
+The QAOps credentials branch in `DevPack.Tests/RegressionTests/Config.cs` enables real-Agent mode and connects to `localhost` with the encrypted QAOps credentials.
 
-## What gets installed when the package runs
+## Execution and package contents
 
-`qaops.config.xml` sets `PerformPackageInstallation` to `true`, so QAOps installs the **test package itself** before executing the pipeline.
+`qaops.config.xml` sets `PerformPackageInstallation` to `false`. QAOps extracts the test content and runs the pipeline against the configured target, where MediaOps Plan and its prerequisites are already installed.
 
 This package currently contains:
 
-- the harvested build output of `Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests`
+- the harvested build output of `Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests`, including the library built from the checked-out source
 - the QAOps pipeline scripts in `TestPackagePipeline`
 
-This package currently does **not** add extra repository-committed test assets under `TestPackageContent\Tests`, does **not** add extra static dependencies under `TestPackageContent\Dependencies`, and does **not** install XML automation tests from `xmlautomationtests.generated`.
+## CI execution
 
-The setup and finalize pipeline steps are currently placeholders, so they do not perform extra provisioning or extra teardown beyond the integration test execution itself.
+[`Plan-CICD.yml`](../.github/workflows/Plan-CICD.yml) runs validation and the simulated suite first. Manual runs, eligible current-head approvals of non-draft same-repository PRs targeting `main`, and tag pushes without `-alpha` then run the full suite through `dataminer-qaops test-run-and-wait`.
+
+Branch pushes and tags containing `-alpha` publish internally after simulated tests pass. Other prerelease tags require successful QAOps tests before internal publication. Stable tags also require matching release-branch ancestry and publish to nuget.org. Publication runs only on pushes.
+
+QAOps uses repository-level `QAOPS_CONFIGURATION_ID` and `QAOPS_TEST_SUITE_ID` variables and the `QAOPS_TOKEN` secret by default. Tags whose commits are outside `main` use the `dma-rc` environment's settings unless `DMA_RC_ENABLED=false`. Integration runs are serialized per target.
+
+The workflow restores the test project before building `QAOpsPackage.csproj` with a tag-derived or run-specific version, submits that exact `.dmtest`, and uploads the QAOps results JSON.
 
 ## What gets cleaned up after the run
 
