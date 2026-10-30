@@ -312,7 +312,8 @@ jobs:
           needs.nuget_validation.result == 'success' && needs.tag_branch_validation.result == 'success' &&
           needs.unit_tests.result == 'success' &&
           (github.ref_type == 'branch' ||
-            (github.ref_type == 'tag' && needs.integration_tests.result == 'success')) }}
+            (github.ref_type == 'tag' &&
+             (contains(github.ref_name, '-alpha') || needs.integration_tests.result == 'success'))) }}
     permissions:
       contents: read
       id-token: write
