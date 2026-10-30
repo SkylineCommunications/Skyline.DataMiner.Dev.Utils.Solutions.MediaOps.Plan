@@ -3640,20 +3640,39 @@
 				var resolver = new JobReferenceResolver(planApi, job, referenceDefinitions);
 				var resolution = new JobReferenceValidator(resolver, referenceDefinitions).Resolve(job);
 
+				ReportUnresolvedSettings(job.Id, resolver, resolution);
+
 				// A confirmed job reports the references of its orchestration events on every update, so they have to be usable from the start.
 				var eventFailures = EnumerateOrchestrationSettings(job)
-					.SelectMany(x => eventReferenceValidator.GetFailures(x.Settings, resolver, x.OwningNodeId));
+					.SelectMany(x => eventReferenceValidator.GetFailures(x.Settings, resolver, x.OwningNodeId).Select(f => (x.OwningNodeId, f.Reference, f.Reason)));
 
-				foreach (var (reference, reason) in resolution.UnresolvedReferences.Concat(eventFailures))
+				foreach (var (nodeId, reference, reason) in eventFailures)
 				{
 					var label = resolver.GetDisplayLabel(reference);
 					ReportError(job.Id, new JobUnresolvedReferenceError
 					{
 						Id = job.Id,
 						Reference = label,
+						NodeId = nodeId,
 						ErrorMessage = $"Reference '{label}' {reason}",
 					});
 				}
+			}
+		}
+
+		private void ReportUnresolvedSettings(Guid jobId, ReferenceResolver resolver, JobReferenceResolution resolution)
+		{
+			foreach (var unresolved in resolution.UnresolvedSettings)
+			{
+				var label = resolver.GetDisplayLabel(unresolved.Reference);
+				ReportError(jobId, new JobUnresolvedReferenceError
+				{
+					Id = jobId,
+					Reference = label,
+					NodeId = unresolved.NodeId,
+					SettingId = unresolved.SettingId,
+					ErrorMessage = $"Reference '{label}' {unresolved.Reason}",
+				});
 			}
 		}
 
@@ -4313,16 +4332,7 @@
 					continue;
 				}
 
-				foreach (var (reference, reason) in resolution.UnresolvedReferences)
-				{
-					var label = resolver.GetDisplayLabel(reference);
-					ReportError(job.Id, new JobUnresolvedReferenceError
-					{
-						Id = job.Id,
-						Reference = label,
-						ErrorMessage = $"Reference '{label}' {reason}",
-					});
-				}
+				ReportUnresolvedSettings(job.Id, resolver, resolution);
 			}
 		}
 

@@ -195,6 +195,34 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			Assert.IsTrue(result.ResolvedReferences.Contains(null, reference));
 		}
 
+		[TestMethod]
+		public void JobReferenceValidator_Resolve_SameReferenceOnSeveralSettings_ListsEachSettingWithItsNode()
+		{
+			var context = ReferenceTestContext.Create();
+			var capability = context.CreateCapability();
+			var configuration = context.CreateNumberConfiguration();
+
+			var reference = new JobNameReference();
+
+			var job = new Job { Name = "Test job" };
+			job.OrchestrationSettings.AddCapability(new CapabilitySetting(capability.Id) { Reference = reference });
+			var node = new JobResourcePoolNode(Guid.NewGuid());
+			node.OrchestrationSettings.AddConfiguration(new NumberConfigurationSetting(configuration.Id) { Reference = reference });
+			job.NodeGraph.Add(node);
+
+			var resolver = new FakeReferenceResolver(context.Api, new Dictionary<DataReference, ResolvedValue>());
+
+			var result = new JobReferenceValidator(resolver, new ReferenceDefinitionCache(context.Api)).Resolve(job);
+
+			Assert.AreEqual(1, result.UnresolvedReferences.Count);
+			Assert.AreEqual(2, result.UnresolvedSettings.Count);
+			var jobLevel = result.UnresolvedSettings.Single(x => x.NodeId == null);
+			Assert.AreEqual(capability.Id, jobLevel.SettingId);
+			var nodeLevel = result.UnresolvedSettings.Single(x => x.NodeId == node.Id);
+			Assert.AreEqual(configuration.Id, nodeLevel.SettingId);
+			Assert.AreEqual("could not be resolved to a value.", nodeLevel.Reason);
+		}
+
 		private sealed class FakeReferenceResolver : ReferenceResolver
 		{
 			private readonly IReadOnlyDictionary<DataReference, ResolvedValue> resolvedValues;

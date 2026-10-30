@@ -41,6 +41,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			var unresolved = new List<(DataReference Reference, string Reason)>();
+			var unresolvedSettings = new List<UnresolvedSetting>();
 			var resolved = new ResolvedReferenceCache();
 
 			foreach (var entry in EnumerateReferenceSettings(job))
@@ -73,13 +74,19 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				// The value is cached as it was resolved; whether the setting can take it is decided per setting,
 				// since the same reference can feed settings with different options.
 				var reason = ResolvedValueConverter.GetFailureReason(value, definitions.GetParameterDefinition(entry.Setting.Id));
-				if (reason != null && !unresolved.Contains((reference, reason)))
+				if (reason == null)
+				{
+					continue;
+				}
+
+				unresolvedSettings.Add(new UnresolvedSetting(entry.OwningNodeId, entry.Setting.Id, reference, reason));
+				if (!unresolved.Contains((reference, reason)))
 				{
 					unresolved.Add((reference, reason));
 				}
 			}
 
-			return new JobReferenceResolution(unresolved, resolved);
+			return new JobReferenceResolution(unresolved, resolved, unresolvedSettings);
 		}
 
 		private static IEnumerable<(Setting Setting, string OwningNodeId)> EnumerateReferenceSettings(Job job)
