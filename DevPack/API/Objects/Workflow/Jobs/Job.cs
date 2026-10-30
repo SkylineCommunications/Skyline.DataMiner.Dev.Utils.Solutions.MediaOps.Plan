@@ -684,6 +684,9 @@
 				OrchestrationSettingsCloner.Clone(workflowNode.OrchestrationSettings, jobNode.OrchestrationSettings, nodeIdMap);
 			}
 
+			// 3b. A workflow node that leaves a setting of its resource pool undefined uses the one of the pool.
+			AddInheritedPoolSettings(api, workflowNodesById, jobNodesById, nodeIdMap);
+
 			// 4. Copy the job-level orchestration settings.
 			OrchestrationSettingsCloner.Clone(workflow.OrchestrationSettings, job.OrchestrationSettings, nodeIdMap);
 
@@ -819,6 +822,78 @@
 			}
 
 			return job;
+		}
+
+		/// <summary>
+		/// Copies every setting of a node's resource pool that the workflow node does not define onto the job node. A parameter
+		/// reference of a pool has no node, as a pool has none: on the job node it targets that node itself.
+		/// </summary>
+		private static void AddInheritedPoolSettings(
+			IMediaOpsPlanApi api,
+			IReadOnlyDictionary<string, WorkflowNode> workflowNodesById,
+			IReadOnlyDictionary<string, JobNode> jobNodesById,
+			IReadOnlyDictionary<string, string> nodeIdMap)
+		{
+			var poolIdsByWorkflowNodeId = workflowNodesById.Values
+				.Select(n => (n.Id, PoolId: GetResourcePoolId(n)))
+				.Where(x => x.PoolId != Guid.Empty)
+				.ToDictionary(x => x.Id, x => x.PoolId);
+			if (poolIdsByWorkflowNodeId.Count == 0)
+			{
+				return;
+			}
+
+			var poolsById = api.ResourcePools.Read(poolIdsByWorkflowNodeId.Values.Distinct().ToList())
+				.Where(p => p != null)
+				.ToDictionary(p => p.Id);
+
+			foreach (var entry in nodeIdMap)
+			{
+				if (!poolIdsByWorkflowNodeId.TryGetValue(entry.Key, out var poolId) || !poolsById.TryGetValue(poolId, out var pool))
+				{
+					continue;
+				}
+
+				var target = jobNodesById[entry.Value].OrchestrationSettings;
+				var poolSettings = pool.OrchestrationSettings;
+
+				foreach (var setting in poolSettings.Capabilities.Where(s => !target.Capabilities.Any(x => x.Id == s.Id)))
+				{
+					target.AddCapability(WithNodeScopedReference(setting.Clone(), entry.Value));
+				}
+
+				foreach (var setting in poolSettings.Capacities.Where(s => !target.Capacities.Any(x => x.Id == s.Id)))
+				{
+					target.AddCapacity(WithNodeScopedReference(setting.Clone(), entry.Value));
+				}
+
+				foreach (var setting in poolSettings.Configurations.Where(s => !target.Configurations.Any(x => x.Id == s.Id)))
+				{
+					target.AddConfiguration(WithNodeScopedReference(setting.Clone(), entry.Value));
+				}
+			}
+		}
+
+		// The setting is a clone, so its reference is not shared with the pool.
+		private static T WithNodeScopedReference<T>(T setting, string nodeId)
+			where T : Setting
+		{
+			if (setting.Reference is ParameterReference && String.IsNullOrEmpty(setting.Reference.NodeId))
+			{
+				setting.Reference.NodeId = nodeId;
+			}
+
+			return setting;
+		}
+
+		private static Guid GetResourcePoolId(WorkflowNode node)
+		{
+			return node switch
+			{
+				WorkflowResourceNode resourceNode => resourceNode.ResourcePoolId,
+				WorkflowResourcePoolNode resourcePoolNode => resourcePoolNode.ResourcePoolId,
+				_ => Guid.Empty,
+			};
 		}
 
 		/// <summary>

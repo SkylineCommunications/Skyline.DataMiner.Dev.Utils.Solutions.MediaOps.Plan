@@ -76,6 +76,46 @@ namespace RT_MediaOps.Plan.Generic.DataReferences
 		}
 
 		[TestMethod]
+		public void ReferenceMigrationTests_PoolSettingsUndefinedOnWorkflowNode_AreCopiedOntoTheJobNode()
+		{
+			var context = ReferenceTestContext.Create();
+			var capability = context.CreateCapability();
+			var configuration = context.CreateTextConfiguration();
+
+			var pool = new ResourcePool { Name = context.Name("Pool") };
+			pool.OrchestrationSettings.AddCapability(new CapabilitySetting(capability) { Value = "Value 1" });
+			pool.OrchestrationSettings.AddConfiguration(new TextConfigurationSetting(configuration) { Reference = new CapabilityParameterReference(capability.Id) });
+			pool = context.Api.ResourcePools.Complete(context.Api.ResourcePools.Create(pool));
+			var resource = context.CreateResource(pool);
+
+			var workflow = new Workflow { Name = context.Name("Workflow") };
+			var customizedNode = new WorkflowResourceNode(pool, resource);
+			customizedNode.OrchestrationSettings.AddCapability(new CapabilitySetting(capability) { Value = "Value 2" });
+			var inheritingNode = new WorkflowResourcePoolNode(pool);
+			workflow.NodeGraph.Add(customizedNode).Add(inheritingNode);
+			workflow = CompleteWorkflow(context, workflow);
+
+			var job = Job.FromWorkflow(context.Api, workflow.Id);
+			job.Name = context.Name("Job");
+
+			var jobCustomizedNode = job.NodeGraph.Nodes.OfType<JobResourceNode>().Single();
+			Assert.AreEqual("Value 2", jobCustomizedNode.OrchestrationSettings.Capabilities.Single().Value, "A setting the workflow node defines is kept.");
+
+			var jobInheritingNode = job.NodeGraph.Nodes.OfType<JobResourcePoolNode>().Single();
+			Assert.AreEqual("Value 1", jobInheritingNode.OrchestrationSettings.Capabilities.Single().Value);
+
+			// A pool reference without a node targets the node that uses the pool.
+			var reference = jobInheritingNode.OrchestrationSettings.Configurations.Single().Reference;
+			Assert.IsInstanceOfType(reference, typeof(CapabilityParameterReference));
+			Assert.AreEqual(jobInheritingNode.Id, reference.NodeId);
+			Assert.AreEqual(jobCustomizedNode.Id, jobCustomizedNode.OrchestrationSettings.Configurations.Single().Reference.NodeId);
+			Assert.IsNull(context.Api.ResourcePools.Read(pool.Id).OrchestrationSettings.Configurations.Single().Reference.NodeId, "The pool is not changed.");
+
+			var resolver = new JobReferenceResolver(context.Api, job);
+			Assert.AreEqual("Value 1", ResolveString(resolver, reference));
+		}
+
+		[TestMethod]
 		public void ReferenceMigrationTests_JobNameReference_MigratedFromWorkflowToJob_SurvivesPersistence()
 		{
 			var context = ReferenceTestContext.Create();

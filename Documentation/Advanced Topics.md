@@ -199,14 +199,22 @@ node.OrchestrationSettings.AddConfiguration(new TextConfigurationSetting(configu
 });
 ```
 
-Available reference types: `ResourceNameReference`, `ResourcePropertyReference`, `ResourceLinkedObjectIdReference`, `CapabilityParameterReference`, `CapacityParameterReference`, `ConfigurationParameterReference` (all node-scoped — they resolve relative to a specific node, defaulting to the node that owns the setting when `nodeId` is omitted), and `JobNameReference` / `JobPropertyReference` (job-scoped, not tied to a node).
+Available reference types:
 
-References are resolved through a `ReferenceResolver` (or the job/workflow-specific `JobReferenceResolver` / `WorkflowReferenceResolver`). Resolution can fail in two ways, both surfaced as exceptions rather than silent defaults:
+- `ResourceNameReference`, `ResourcePropertyReference` and `ResourceLinkedObjectIdReference` read the resource assigned to a node. Without a `nodeId`, they use the node that holds the setting.
+- `CapabilityParameterReference`, `CapacityParameterReference` and `ConfigurationParameterReference` read another setting. Without a `nodeId`, they read the settings of the workflow or job itself, not those of the node that holds the setting; pass the node's ID to read a setting of a node (including the same node).
+- `JobNameReference` reads the name of the job, also when it has a `nodeId`. `JobPropertyReference` reads a job property, or a property of the node when it has a `nodeId`. In a workflow, both stay unresolved, because there is no job yet.
 
-- **`UnresolvedReferenceException`** – the referenced value (property, node, ...) does not exist or has no value.
-- **`CircularReferenceException`** – following the chain of references leads back to itself.
+A resource pool has no nodes, so the references in its settings have no `nodeId`; they are meant for the node that uses the pool. When `Job.FromWorkflow` builds a job, every setting of a node's pool that the workflow node does not define is copied onto the job node, and a parameter reference copied that way gets the ID of that job node.
 
-Job save/confirm flows validate references internally so that a job with broken references surfaces a clear error instead of silently orchestrating with a missing value. For custom tooling that needs to preview a resolved value, use `JobReferenceResolver` or `WorkflowReferenceResolver` and inspect the `ResolvedValue` returned by `ResolveValue(...)`.
+References are resolved through a `ReferenceResolver` (or the job/workflow-specific `JobReferenceResolver` / `WorkflowReferenceResolver`). `ResolveValue(...)` returns a `ResolvedValue`:
+
+- When the referenced value (property, node, setting, ...) does not exist or has no value, `IsResolved` is `false` and `UnresolvedReference` holds the reference that could not be followed.
+- When following the chain of references leads back to itself, a **`CircularReferenceException`** is thrown.
+
+A resolved value can still be unusable for the setting that holds the reference: a number setting needs a value that parses as a number (invariant culture, no thousands separators) within its range, and a discrete setting needs a value that matches the display name or value of one of its options (case-sensitive).
+
+Job save/confirm flows validate references internally so that a job with broken references surfaces a clear error instead of silently orchestrating with a missing value. Confirming reports a `JobUnresolvedReferenceError` per setting, with the `NodeId` (`null` for the job itself) and `SettingId` of the setting that holds the reference. For custom tooling that needs to preview a resolved value, use `JobReferenceResolver` or `WorkflowReferenceResolver` and inspect the `ResolvedValue` returned by `ResolveValue(...)`.
 
 ## Resource Pool Options
 

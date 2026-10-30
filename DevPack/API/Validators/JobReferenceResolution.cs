@@ -15,12 +15,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// </summary>
 		/// <param name="unresolvedReferences">The references that did not produce a value their parameter can take, with the reason why.</param>
 		/// <param name="resolvedReferences">The values that were resolved, per node and reference.</param>
+		/// <param name="unresolvedSettings">The settings whose reference did not produce a value they can take, with the reason why.</param>
 		public JobReferenceResolution(
 			IReadOnlyCollection<(DataReference Reference, string Reason)> unresolvedReferences,
-			ResolvedReferenceCache resolvedReferences)
+			ResolvedReferenceCache resolvedReferences,
+			IReadOnlyCollection<UnresolvedSetting> unresolvedSettings = null)
 		{
 			UnresolvedReferences = unresolvedReferences ?? throw new ArgumentNullException(nameof(unresolvedReferences));
 			ResolvedReferences = resolvedReferences ?? throw new ArgumentNullException(nameof(resolvedReferences));
+			UnresolvedSettings = unresolvedSettings ?? Array.Empty<UnresolvedSetting>();
 		}
 
 		/// <summary>
@@ -28,6 +31,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// A reason completes the sentence "Reference 'X' ...".
 		/// </summary>
 		public IReadOnlyCollection<(DataReference Reference, string Reason)> UnresolvedReferences { get; }
+
+		/// <summary>
+		/// Gets every setting whose reference did not produce a value it can take; unlike <see cref="UnresolvedReferences"/>,
+		/// a reference that several settings use is listed once per setting.
+		/// </summary>
+		public IReadOnlyCollection<UnresolvedSetting> UnresolvedSettings { get; }
 
 		/// <summary>
 		/// Gets the values that were resolved, per node and reference.
@@ -38,5 +47,33 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Gets a value indicating whether every reference produced a value its parameter can take.
 		/// </summary>
 		public bool IsValid => UnresolvedReferences.Count == 0;
+	}
+
+	/// <summary>
+	/// A setting whose reference did not produce a value the setting can take.
+	/// </summary>
+	internal sealed class UnresolvedSetting
+	{
+		public UnresolvedSetting(string nodeId, Guid settingId, DataReference reference, string reason)
+		{
+			NodeId = nodeId;
+			SettingId = settingId;
+			Reference = reference ?? throw new ArgumentNullException(nameof(reference));
+			Reason = reason ?? throw new ArgumentNullException(nameof(reason));
+		}
+
+		/// <summary>
+		/// Gets the node that holds the setting, or <see langword="null"/> when the job itself holds it.
+		/// </summary>
+		public string NodeId { get; }
+
+		public Guid SettingId { get; }
+
+		public DataReference Reference { get; }
+
+		/// <summary>
+		/// Gets the reason, which completes the sentence "Reference 'X' ...".
+		/// </summary>
+		public string Reason { get; }
 	}
 }
