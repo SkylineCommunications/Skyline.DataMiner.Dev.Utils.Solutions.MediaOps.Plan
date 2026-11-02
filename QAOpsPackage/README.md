@@ -25,11 +25,13 @@ This package currently contains:
 
 ## CI execution
 
-[`Plan-CICD.yml`](../.github/workflows/Plan-CICD.yml) runs validation and the simulated suite first. Manual runs, eligible current-head approvals of non-draft same-repository PRs targeting `main`, and tag pushes without `-alpha` then run the full suite through `dataminer-qaops test-run-and-wait`.
+[`Plan-CICD.yml`](../.github/workflows/Plan-CICD.yml) runs validation, builds `MediaOps Plan.UnitTests.slnf` with MSBuild, and runs the complete simulated suite with VSTest. This unit build harvests test output into the runner's temporary directory to avoid Windows path-length limits.
 
-Branch pushes and tags containing `-alpha` publish internally after simulated tests pass. Other prerelease tags require successful QAOps tests before internal publication. Stable tags also require matching release-branch ancestry and publish to nuget.org. Publication runs only on pushes.
+Manual runs, eligible current-head approvals of non-draft same-repository PRs targeting `main`, and tag pushes without `-alpha` then run the full suite through `dataminer-qaops test-run-and-wait`. Non-alpha tags require QAOps tests regardless of whether the tagged commit is on `main`.
 
-QAOps uses repository-level `QAOPS_CONFIGURATION_ID` and `QAOPS_TEST_SUITE_ID` variables and the `QAOPS_TOKEN` secret by default. Tags whose commits are outside `main` use the `dma-rc` environment's settings unless `DMA_RC_ENABLED=false`. Integration runs are serialized per target.
+Branch pushes run Skyline CICD after validation and simulated tests pass. Tags containing `-alpha` publish to GitHub Packages after simulated tests pass. Other prerelease tags require successful QAOps tests before publication to GitHub Packages. Stable tags also require matching release-branch ancestry and publish to nuget.org. NuGet publication runs only on tag pushes.
+
+Automatic QAOps runs target the `MediaOps RT` environment. Manual runs select an environment through `target_env`, including `dma-rc`. The selected environment can override the repository-level `QAOPS_CONFIGURATION_ID` and `QAOPS_TEST_SUITE_ID` variables and `QAOPS_TOKEN` secret. Integration runs are serialized per target.
 
 The workflow restores the test project before building `QAOpsPackage.csproj` with a tag-derived or run-specific version, submits that exact `.dmtest`, and uploads the QAOps results JSON.
 

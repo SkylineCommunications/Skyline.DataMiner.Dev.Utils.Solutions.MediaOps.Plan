@@ -26,7 +26,7 @@
 	</ItemGroup>
 	<Target Name="CopyIntegrationTestOutputToTestPackage" AfterTargets="Build">
 		<PropertyGroup>
-			<QAOpsHarvestingOutput>..\QAOpsPackage\TestPackageContent\TestHarvesting\postbuild.generated\$(MSBuildProjectName)\</QAOpsHarvestingOutput>
+			<QAOpsHarvestingOutput Condition="'$(QAOpsHarvestingOutput)' == ''">..\QAOpsPackage\TestPackageContent\TestHarvesting\postbuild.generated\$(MSBuildProjectName)\</QAOpsHarvestingOutput>
 		</PropertyGroup>
 		<ItemGroup>
 			<IntegrationTestOutput Include="$(OutputPath)**\*.*" />
