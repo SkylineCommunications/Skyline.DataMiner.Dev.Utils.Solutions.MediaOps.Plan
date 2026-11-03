@@ -5,6 +5,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// <summary>
 	/// Represents an exception that is thrown when a data reference cannot be resolved.
 	/// </summary>
+	/// <remarks>
+	/// This exception is never thrown: an unresolved reference is returned as a <see cref="ResolvedValue"/> whose
+	/// <see cref="ResolvedValue.IsResolved"/> is <see langword="false"/>.
+	/// </remarks>
+	[Obsolete("This exception is never thrown. An unresolved reference is returned as a ResolvedValue whose IsResolved is false. This type will be removed in a future major version.")]
 	public sealed class UnresolvedReferenceException : Exception
 	{
 		/// <summary>
