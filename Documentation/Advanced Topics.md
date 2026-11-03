@@ -205,8 +205,6 @@ Available reference types:
 - `CapabilityParameterReference`, `CapacityParameterReference` and `ConfigurationParameterReference` read another setting. Without a `nodeId`, they read the settings of the workflow or job itself, not those of the node that holds the setting; pass the node's ID to read a setting of a node (including the same node).
 - `JobNameReference` reads the name of the job, also when it has a `nodeId`. `JobPropertyReference` reads a job property, or a property of the node when it has a `nodeId`. In a workflow, both stay unresolved, because there is no job yet.
 
-A resource pool has no nodes, so the references in its settings have no `nodeId`; they are meant for the node that uses the pool. When `Job.FromWorkflow` builds a job, every setting of a node's pool that the workflow node does not define is copied onto the job node, and a parameter reference copied that way gets the ID of that job node.
-
 References are resolved through a `ReferenceResolver` (or the job/workflow-specific `JobReferenceResolver` / `WorkflowReferenceResolver`). `ResolveValue(...)` returns a `ResolvedValue`:
 
 - When the referenced value (property, node, setting, ...) does not exist or has no value, `IsResolved` is `false` and `UnresolvedReference` holds the reference that could not be followed.
