@@ -1,32 +1,31 @@
-namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
+	using System.Collections;
 	using System.Collections.Generic;
 	using System.Linq;
 
 	using StorageResourceStudio = Storage.DOM.SlcResource_Studio;
 
 	/// <summary>
-	/// Represents the flow rules of an object: per direction an optional default rule and any number of overrides for
-	/// specific objects. Directions without a default rule behave as <see cref="FlowRuleOutcome.Allowed"/>.
+	/// Represents the collection of flow rules of an object: per direction an optional default rule and any number of
+	/// overrides for specific objects. Directions without a default rule behave as <see cref="FlowRuleOutcome.Allowed"/>.
 	/// </summary>
 	/// <remarks>Flow rules are persisted together with the object that owns them.</remarks>
-	public sealed class FlowRules : ApiObject
+	public sealed class FlowRuleCollection : ApiObject, ICollection<FlowRule>
 	{
 		private readonly List<FlowRule> rules = [];
 
 		private StorageResourceStudio.FlowrulesInstance originalInstance;
 		private StorageResourceStudio.FlowrulesInstance updatedInstance;
 
-		// A failed save leaves an owner without a stored pointer to its rule set, so every attempt starts a new rule set;
-		// a fixed ID per owner makes the next attempt overwrite the rule set of the previous one instead of adding another.
-		internal FlowRules(FlowRuleObject owner) : base(owner.GetFlowRulesId())
+		internal FlowRuleCollection(FlowRuleObject owner) : base()
 		{
 			IsNew = true;
 			Owner = owner;
 		}
 
-		internal FlowRules(StorageResourceStudio.FlowrulesInstance instance) : base(instance?.ID.Id ?? throw new ArgumentNullException(nameof(instance)))
+		internal FlowRuleCollection(StorageResourceStudio.FlowrulesInstance instance) : base(instance?.ID.Id ?? throw new ArgumentNullException(nameof(instance)))
 		{
 			ParseInstance(instance);
 			InitTracking();
@@ -49,41 +48,98 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// </summary>
 		public IReadOnlyCollection<FlowRule> Rules => rules;
 
+		/// <summary>
+		/// Gets the number of flow rules, both defaults and overrides.
+		/// </summary>
+		public int Count => rules.Count;
+
+		/// <summary>
+		/// Gets a value indicating whether the collection is read-only. Always <see langword="false"/>.
+		/// </summary>
+		public bool IsReadOnly => false;
+
 		internal StorageResourceStudio.FlowrulesInstance OriginalInstance => originalInstance;
 
 		/// <summary>
 		/// Adds a flow rule.
 		/// </summary>
-		/// <param name="rule">The flow rule to add.</param>
-		/// <returns>The current <see cref="FlowRules"/> instance.</returns>
-		/// <exception cref="ArgumentNullException">Thrown when <paramref name="rule"/> is <see langword="null"/>.</exception>
-		/// <remarks>A copy of <paramref name="rule"/> is added. Adding a second default for the same direction, or a second override for the same direction and target, is reported as an error when the owning object is saved. Use <see cref="SetDefault"/> or <see cref="SetOverride(FlowRuleDirection, FlowRuleObjectType, Guid, FlowRuleOutcome, string)"/> to update an existing rule, or change the <see cref="FlowRule.Outcome"/> and <see cref="FlowRule.Message"/> of a rule in <see cref="Rules"/> directly.</remarks>
-		public FlowRules Add(FlowRule rule)
+		/// <param name="item">The flow rule to add.</param>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="item"/> is <see langword="null"/>.</exception>
+		/// <remarks>A copy of <paramref name="item"/> is added. Adding a second default for the same direction, or a second override for the same direction and target, is reported as an error when the owning object is saved. Use <see cref="SetDefault"/> or <see cref="SetOverride(FlowRuleDirection, FlowRuleObjectType, Guid, FlowRuleOutcome, string)"/> to update an existing rule, or change the <see cref="FlowRule.Outcome"/> and <see cref="FlowRule.Message"/> of a rule in the collection directly.</remarks>
+		public void Add(FlowRule item)
 		{
-			if (rule == null)
+			if (item == null)
 			{
-				throw new ArgumentNullException(nameof(rule));
+				throw new ArgumentNullException(nameof(item));
 			}
 
-			rules.Add(new FlowRule(rule));
-			return this;
+			rules.Add(new FlowRule(item));
 		}
 
 		/// <summary>
 		/// Removes a flow rule.
 		/// </summary>
-		/// <param name="rule">The flow rule to remove.</param>
-		/// <returns>The current <see cref="FlowRules"/> instance.</returns>
-		/// <exception cref="ArgumentNullException">Thrown when <paramref name="rule"/> is <see langword="null"/>.</exception>
-		public FlowRules Remove(FlowRule rule)
+		/// <param name="item">The flow rule to remove. A rule with the same direction, target, outcome and message is removed.</param>
+		/// <returns><see langword="true"/> when a rule was removed; otherwise, <see langword="false"/>.</returns>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="item"/> is <see langword="null"/>.</exception>
+		public bool Remove(FlowRule item)
 		{
-			if (rule == null)
+			if (item == null)
 			{
-				throw new ArgumentNullException(nameof(rule));
+				throw new ArgumentNullException(nameof(item));
 			}
 
-			rules.RemoveAll(x => x.Equals(rule));
-			return this;
+			var index = rules.FindIndex(x => x.Equals(item));
+			if (index < 0)
+			{
+				return false;
+			}
+
+			rules.RemoveAt(index);
+			return true;
+		}
+
+		/// <summary>
+		/// Determines whether the collection contains a flow rule.
+		/// </summary>
+		/// <param name="item">The flow rule to locate. A rule with the same direction, target, outcome and message matches.</param>
+		/// <returns><see langword="true"/> when the collection contains the rule; otherwise, <see langword="false"/>.</returns>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="item"/> is <see langword="null"/>.</exception>
+		public bool Contains(FlowRule item)
+		{
+			if (item == null)
+			{
+				throw new ArgumentNullException(nameof(item));
+			}
+
+			return rules.Any(x => x.Equals(item));
+		}
+
+		/// <summary>
+		/// Copies the flow rules to an array, starting at a particular index.
+		/// </summary>
+		/// <param name="array">The destination array.</param>
+		/// <param name="arrayIndex">The zero-based index in <paramref name="array"/> at which copying begins.</param>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="array"/> is <see langword="null"/>.</exception>
+		/// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="arrayIndex"/> is less than zero.</exception>
+		/// <exception cref="ArgumentException">Thrown when the rules do not fit in <paramref name="array"/> from <paramref name="arrayIndex"/> on.</exception>
+		public void CopyTo(FlowRule[] array, int arrayIndex)
+		{
+			rules.CopyTo(array, arrayIndex);
+		}
+
+		/// <summary>
+		/// Returns an enumerator that iterates through the flow rules.
+		/// </summary>
+		/// <returns>An enumerator for the flow rules.</returns>
+		public IEnumerator<FlowRule> GetEnumerator()
+		{
+			return rules.GetEnumerator();
+		}
+
+		IEnumerator IEnumerable.GetEnumerator()
+		{
+			return GetEnumerator();
 		}
 
 		/// <summary>
@@ -92,22 +148,18 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <param name="direction">The direction to set the default for.</param>
 		/// <param name="outcome">The outcome for any object that is not covered by an override.</param>
 		/// <param name="message">An optional message that explains the outcome.</param>
-		/// <returns>The current <see cref="FlowRules"/> instance.</returns>
-		public FlowRules SetDefault(FlowRuleDirection direction, FlowRuleOutcome outcome, string message = null)
+		public void SetDefault(FlowRuleDirection direction, FlowRuleOutcome outcome, string message = null)
 		{
 			Set(new FlowRule(direction, outcome, message));
-			return this;
 		}
 
 		/// <summary>
 		/// Removes the default rule of a direction, so that direction behaves as <see cref="FlowRuleOutcome.Allowed"/> for objects without an override.
 		/// </summary>
 		/// <param name="direction">The direction to remove the default for.</param>
-		/// <returns>The current <see cref="FlowRules"/> instance.</returns>
-		public FlowRules RemoveDefault(FlowRuleDirection direction)
+		public void RemoveDefault(FlowRuleDirection direction)
 		{
 			rules.RemoveAll(x => x.Matches(direction, null));
-			return this;
 		}
 
 		/// <summary>
@@ -118,11 +170,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <param name="targetId">The unique identifier of the object the override applies to.</param>
 		/// <param name="outcome">The outcome for the target object.</param>
 		/// <param name="message">An optional message that explains the outcome.</param>
-		/// <returns>The current <see cref="FlowRules"/> instance.</returns>
-		public FlowRules SetOverride(FlowRuleDirection direction, FlowRuleObjectType targetType, Guid targetId, FlowRuleOutcome outcome, string message = null)
+		public void SetOverride(FlowRuleDirection direction, FlowRuleObjectType targetType, Guid targetId, FlowRuleOutcome outcome, string message = null)
 		{
 			Set(new FlowRule(direction, targetType, targetId, outcome, message));
-			return this;
 		}
 
 		/// <summary>
@@ -132,17 +182,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <param name="target">The object the override applies to.</param>
 		/// <param name="outcome">The outcome for the target object.</param>
 		/// <param name="message">An optional message that explains the outcome.</param>
-		/// <returns>The current <see cref="FlowRules"/> instance.</returns>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="target"/> is <see langword="null"/>.</exception>
 		/// <remarks>Shorthand for <see cref="SetOverride(FlowRuleDirection, FlowRuleObjectType, Guid, FlowRuleOutcome, string)"/> with the type and identifier of <paramref name="target"/>.</remarks>
-		public FlowRules SetOverride(FlowRuleDirection direction, IFlowRuleObject target, FlowRuleOutcome outcome, string message = null)
+		public void SetOverride(FlowRuleDirection direction, IFlowRuleObject target, FlowRuleOutcome outcome, string message = null)
 		{
 			if (target == null)
 			{
 				throw new ArgumentNullException(nameof(target));
 			}
 
-			return SetOverride(direction, target.FlowRuleObjectType, target.Id, outcome, message);
+			SetOverride(direction, target.FlowRuleObjectType, target.Id, outcome, message);
 		}
 
 		/// <summary>
@@ -151,35 +200,28 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <param name="direction">The direction of the override.</param>
 		/// <param name="targetType">The type of the object the override applies to.</param>
 		/// <param name="targetId">The unique identifier of the object the override applies to.</param>
-		/// <returns>The current <see cref="FlowRules"/> instance.</returns>
-		public FlowRules RemoveOverride(FlowRuleDirection direction, FlowRuleObjectType targetType, Guid targetId)
+		public void RemoveOverride(FlowRuleDirection direction, FlowRuleObjectType targetType, Guid targetId)
 		{
 			var target = new FlowRuleObject(targetType, targetId);
 			rules.RemoveAll(x => x.Matches(direction, target));
-			return this;
 		}
 
 		/// <summary>
 		/// Removes all flow rules.
 		/// </summary>
-		/// <returns>The current <see cref="FlowRules"/> instance.</returns>
-		public FlowRules Clear()
+		public void Clear()
 		{
 			rules.Clear();
-			return this;
 		}
 
 		/// <summary>
 		/// Removes all flow rules of a direction.
 		/// </summary>
 		/// <param name="direction">The direction to remove the rules for.</param>
-		/// <returns>The current <see cref="FlowRules"/> instance.</returns>
-		public FlowRules Clear(FlowRuleDirection direction)
+		public void Clear(FlowRuleDirection direction)
 		{
 			rules.RemoveAll(x => x.Direction == direction);
-			return this;
 		}
-
 		/// <summary>
 		/// Gets the default rule of a direction.
 		/// </summary>
@@ -242,7 +284,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <remarks>Two instances are equal when they belong to the same object and contain the same rules, regardless of their order.</remarks>
 		public override bool Equals(object obj)
 		{
-			if (obj is not FlowRules other)
+			if (obj is not FlowRuleCollection other)
 			{
 				return false;
 			}

@@ -1,4 +1,4 @@
-namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
 	using System.Collections.Generic;
@@ -15,26 +15,26 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// <summary>
 	/// Provides read access to flow rules and evaluates connections against them.
 	/// </summary>
-	internal class FlowRulesRepository : Repository, IFlowRulesRepository
+	internal class FlowRuleCollectionsRepository : Repository, IFlowRuleCollectionsRepository
 	{
 		private readonly FlowRulesFilterTranslator filterTranslator = new FlowRulesFilterTranslator();
 
 		/// <summary>
-		/// Initializes a new instance of the <see cref="FlowRulesRepository"/> class.
+		/// Initializes a new instance of the <see cref="FlowRuleCollectionsRepository"/> class.
 		/// </summary>
 		/// <param name="planApi">The MediaOps Plan API instance.</param>
-		public FlowRulesRepository(MediaOpsPlanApi planApi) : base(planApi)
+		public FlowRuleCollectionsRepository(MediaOpsPlanApi planApi) : base(planApi)
 		{
 		}
 
 		/// <inheritdoc/>
 		public long Count()
 		{
-			return Count(new TRUEFilterElement<FlowRules>());
+			return Count(new TRUEFilterElement<FlowRuleCollection>());
 		}
 
 		/// <inheritdoc/>
-		public long Count(FilterElement<FlowRules> filter)
+		public long Count(FilterElement<FlowRuleCollection> filter)
 		{
 			if (filter == null)
 			{
@@ -50,7 +50,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <inheritdoc/>
-		public long Count(IQuery<FlowRules> query)
+		public long Count(IQuery<FlowRuleCollection> query)
 		{
 			if (query == null)
 			{
@@ -66,18 +66,18 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		/// <inheritdoc/>
-		public FlowRules Read(Guid id)
+		public FlowRuleCollection Read(Guid id)
 		{
 			if (id == Guid.Empty)
 			{
 				throw new ArgumentException("Flow rules ID cannot be empty.", nameof(id));
 			}
 
-			return Read(FlowRulesExposers.Id.Equal(id)).FirstOrDefault();
+			return Read(FlowRuleCollectionExposers.Id.Equal(id)).FirstOrDefault();
 		}
 
 		/// <inheritdoc/>
-		public IEnumerable<FlowRules> Read(IEnumerable<Guid> ids)
+		public IEnumerable<FlowRuleCollection> Read(IEnumerable<Guid> ids)
 		{
 			if (ids == null)
 			{
@@ -86,20 +86,20 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			if (!ids.Any())
 			{
-				return Array.Empty<FlowRules>();
+				return Array.Empty<FlowRuleCollection>();
 			}
 
-			return Read(new ORFilterElement<FlowRules>(ids.Select(x => FlowRulesExposers.Id.Equal(x)).ToArray()));
+			return Read(new ORFilterElement<FlowRuleCollection>(ids.Select(x => FlowRuleCollectionExposers.Id.Equal(x)).ToArray()));
 		}
 
 		/// <inheritdoc/>
-		public IEnumerable<FlowRules> Read()
+		public IEnumerable<FlowRuleCollection> Read()
 		{
-			return Read(new TRUEFilterElement<FlowRules>());
+			return Read(new TRUEFilterElement<FlowRuleCollection>());
 		}
 
 		/// <inheritdoc/>
-		public IEnumerable<FlowRules> Read(FilterElement<FlowRules> filter)
+		public IEnumerable<FlowRuleCollection> Read(FilterElement<FlowRuleCollection> filter)
 		{
 			if (filter == null)
 			{
@@ -108,16 +108,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			if (filter.isEmpty())
 			{
-				return Enumerable.Empty<FlowRules>();
+				return Enumerable.Empty<FlowRuleCollection>();
 			}
 
 			return PlanApi.DomHelpers.SlcResourceStudioHelper
 				.GetFlowRules(filterTranslator.TranslateFilter(filter))
-				.Select(x => new FlowRules(x));
+				.Select(x => new FlowRuleCollection(x));
 		}
 
 		/// <inheritdoc/>
-		public IEnumerable<FlowRules> Read(IQuery<FlowRules> query)
+		public IEnumerable<FlowRuleCollection> Read(IQuery<FlowRuleCollection> query)
 		{
 			if (query == null)
 			{
@@ -126,40 +126,40 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			if (query.Filter.isEmpty())
 			{
-				return Enumerable.Empty<FlowRules>();
+				return Enumerable.Empty<FlowRuleCollection>();
 			}
 
 			return PlanApi.DomHelpers.SlcResourceStudioHelper
 				.GetFlowRules(TranslateToDomQuery(query))
-				.Select(x => new FlowRules(x));
+				.Select(x => new FlowRuleCollection(x));
 		}
 
 		/// <inheritdoc/>
-		public IEnumerable<IPagedResult<FlowRules>> ReadPaged()
+		public IEnumerable<IPagedResult<FlowRuleCollection>> ReadPaged()
 		{
-			return ReadPaged(new TRUEFilterElement<FlowRules>());
+			return ReadPaged(new TRUEFilterElement<FlowRuleCollection>());
 		}
 
 		/// <inheritdoc/>
-		public IEnumerable<IPagedResult<FlowRules>> ReadPaged(int pageSize)
+		public IEnumerable<IPagedResult<FlowRuleCollection>> ReadPaged(int pageSize)
 		{
-			return ReadPaged(new TRUEFilterElement<FlowRules>(), pageSize);
+			return ReadPaged(new TRUEFilterElement<FlowRuleCollection>(), pageSize);
 		}
 
 		/// <inheritdoc/>
-		public IEnumerable<IPagedResult<FlowRules>> ReadPaged(FilterElement<FlowRules> filter)
+		public IEnumerable<IPagedResult<FlowRuleCollection>> ReadPaged(FilterElement<FlowRuleCollection> filter)
 		{
 			return ReadPaged(filter, MediaOpsPlanApi.DefaultPageSize);
 		}
 
 		/// <inheritdoc/>
-		public IEnumerable<IPagedResult<FlowRules>> ReadPaged(IQuery<FlowRules> query)
+		public IEnumerable<IPagedResult<FlowRuleCollection>> ReadPaged(IQuery<FlowRuleCollection> query)
 		{
 			return ReadPaged(query, MediaOpsPlanApi.DefaultPageSize);
 		}
 
 		/// <inheritdoc/>
-		public IEnumerable<IPagedResult<FlowRules>> ReadPaged(FilterElement<FlowRules> filter, int pageSize)
+		public IEnumerable<IPagedResult<FlowRuleCollection>> ReadPaged(FilterElement<FlowRuleCollection> filter, int pageSize)
 		{
 			if (filter == null)
 			{
@@ -173,14 +173,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			if (filter.isEmpty())
 			{
-				return Enumerable.Empty<IPagedResult<FlowRules>>();
+				return Enumerable.Empty<IPagedResult<FlowRuleCollection>>();
 			}
 
 			return ReadPagedIterator(PlanApi.DomHelpers.SlcResourceStudioHelper.GetFlowRulesPaged(filterTranslator.TranslateFilter(filter), pageSize), pageSize);
 		}
 
 		/// <inheritdoc/>
-		public IEnumerable<IPagedResult<FlowRules>> ReadPaged(IQuery<FlowRules> query, int pageSize)
+		public IEnumerable<IPagedResult<FlowRuleCollection>> ReadPaged(IQuery<FlowRuleCollection> query, int pageSize)
 		{
 			if (query == null)
 			{
@@ -194,7 +194,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			if (query.Filter.isEmpty())
 			{
-				return Enumerable.Empty<IPagedResult<FlowRules>>();
+				return Enumerable.Empty<IPagedResult<FlowRuleCollection>>();
 			}
 
 			return ReadPagedIterator(PlanApi.DomHelpers.SlcResourceStudioHelper.GetFlowRulesPaged(TranslateToDomQuery(query), pageSize), pageSize);
@@ -224,7 +224,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return FlowRuleEvaluationHandler.Evaluate(PlanApi, nodeGraph);
 		}
 
-		private static IEnumerable<IPagedResult<FlowRules>> ReadPagedIterator(IEnumerable<IEnumerable<StorageResourceStudio.FlowrulesInstance>> pages, int pageSize)
+		private static IEnumerable<IPagedResult<FlowRuleCollection>> ReadPagedIterator(IEnumerable<IEnumerable<StorageResourceStudio.FlowrulesInstance>> pages, int pageSize)
 		{
 			var pageNumber = 0;
 			var enumerator = pages.GetEnumerator();
@@ -234,11 +234,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				var page = enumerator.Current;
 				hasNext = enumerator.MoveNext();
-				yield return new PagedResult<FlowRules>(page.Select(x => new FlowRules(x)), pageNumber++, pageSize, hasNext);
+				yield return new PagedResult<FlowRuleCollection>(page.Select(x => new FlowRuleCollection(x)), pageNumber++, pageSize, hasNext);
 			}
 		}
 
-		private IQuery<DomInstance> TranslateToDomQuery(IQuery<FlowRules> query)
+		private IQuery<DomInstance> TranslateToDomQuery(IQuery<FlowRuleCollection> query)
 		{
 			var domFilter = filterTranslator.TranslateFilter(query.Filter);
 			var domOrderBy = filterTranslator.TranslateFullOrderBy(query.Order);

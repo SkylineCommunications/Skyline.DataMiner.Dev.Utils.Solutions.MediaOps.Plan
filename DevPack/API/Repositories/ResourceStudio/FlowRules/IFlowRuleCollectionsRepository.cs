@@ -1,4 +1,4 @@
-namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
 	using System.Collections.Generic;
@@ -10,9 +10,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// </summary>
 	/// <remarks>
 	/// Flow rules are edited and persisted together with the object that owns them, so this repository is read-only.
-	/// Filtering, querying, paging and counting use <see cref="FlowRulesExposers"/>.
+	/// Filtering, querying, paging and counting use <see cref="FlowRuleCollectionExposers"/>.
 	/// </remarks>
-	public interface IFlowRulesRepository : IPageableRepository<FlowRules>, ICountableRepository<FlowRules>
+	public interface IFlowRuleCollectionsRepository : IPageableRepository<FlowRuleCollection>, ICountableRepository<FlowRuleCollection>
 	{
 		/// <summary>
 		/// Gets the total number of stored flow rules.
@@ -26,8 +26,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <param name="id">The unique identifier of the flow rules.</param>
 		/// <returns>The flow rules with the specified identifier, or <see langword="null"/> if not found.</returns>
 		/// <exception cref="ArgumentException">Thrown when <paramref name="id"/> is <see cref="Guid.Empty"/>.</exception>
-		/// <remarks>To read the flow rules of an object, filter on <see cref="FlowRulesExposers.OwnerType"/> and <see cref="FlowRulesExposers.OwnerId"/>.</remarks>
-		FlowRules Read(Guid id);
+		/// <remarks>To read the flow rules of an object, filter on <see cref="FlowRuleCollectionExposers.OwnerType"/> and <see cref="FlowRuleCollectionExposers.OwnerId"/>.</remarks>
+		FlowRuleCollection Read(Guid id);
 
 		/// <summary>
 		/// Reads stored flow rules by their own unique identifiers.
@@ -35,27 +35,27 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <param name="ids">The unique identifiers of the flow rules.</param>
 		/// <returns>The flow rules matching the specified identifiers.</returns>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="ids"/> is <see langword="null"/>.</exception>
-		/// <remarks>To read the flow rules of objects, filter on <see cref="FlowRulesExposers.OwnerType"/> and <see cref="FlowRulesExposers.OwnerId"/>.</remarks>
-		IEnumerable<FlowRules> Read(IEnumerable<Guid> ids);
+		/// <remarks>To read the flow rules of objects, filter on <see cref="FlowRuleCollectionExposers.OwnerType"/> and <see cref="FlowRuleCollectionExposers.OwnerId"/>.</remarks>
+		IEnumerable<FlowRuleCollection> Read(IEnumerable<Guid> ids);
 
 		/// <summary>
 		/// Reads all stored flow rules in pages.
 		/// </summary>
 		/// <returns>An enumerable collection of pages of flow rules.</returns>
-		IEnumerable<IPagedResult<FlowRules>> ReadPaged();
+		IEnumerable<IPagedResult<FlowRuleCollection>> ReadPaged();
 
 		/// <summary>
 		/// Reads all stored flow rules in pages.
 		/// </summary>
 		/// <param name="pageSize">The number of items per page.</param>
 		/// <returns>An enumerable collection of pages of flow rules.</returns>
-		IEnumerable<IPagedResult<FlowRules>> ReadPaged(int pageSize);
+		IEnumerable<IPagedResult<FlowRuleCollection>> ReadPaged(int pageSize);
 
 		/// <summary>
 		/// Reads all stored flow rules.
 		/// </summary>
 		/// <returns>All stored flow rules, of all owners.</returns>
-		IEnumerable<FlowRules> Read();
+		IEnumerable<FlowRuleCollection> Read();
 
 		/// <summary>
 		/// Evaluates a connection from one object to another.

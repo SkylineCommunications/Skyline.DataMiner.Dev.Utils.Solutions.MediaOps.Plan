@@ -496,7 +496,7 @@
 
 		private static void ValidateFlowRules(Job job, JobValidationResult result, ValidationContext context)
 		{
-			FlowRules GetFlowRules(FlowRuleObject owner) => context.FlowRulesByOwner.TryGetValue(owner, out var flowRules) ? flowRules : null;
+			FlowRuleCollection GetFlowRules(FlowRuleObject owner) => context.FlowRulesByOwner.TryGetValue(owner, out var flowRules) ? flowRules : null;
 
 			var forbidden = FlowRuleEvaluator.Evaluate(job.NodeGraph, GetFlowRules)
 				.Where(x => x.Outcome == FlowRuleOutcome.Forbidden && x.FromNodeId != x.ToNodeId)
@@ -618,7 +618,7 @@
 				ISet<Guid> virtualSignalGroupIds,
 				bool liveIsInstalled,
 				ReferenceDefinitionCache referenceDefinitions,
-				IReadOnlyDictionary<FlowRuleObject, FlowRules> flowRulesByOwner)
+				IReadOnlyDictionary<FlowRuleObject, FlowRuleCollection> flowRulesByOwner)
 			{
 				Now = now;
 				Resources = resources;
@@ -637,7 +637,7 @@
 			public ISet<Guid> VirtualSignalGroupIds { get; }
 			public bool LiveIsInstalled { get; }
 			public ReferenceDefinitionCache ReferenceDefinitions { get; }
-			public IReadOnlyDictionary<FlowRuleObject, FlowRules> FlowRulesByOwner { get; }
+			public IReadOnlyDictionary<FlowRuleObject, FlowRuleCollection> FlowRulesByOwner { get; }
 		}
 	}
 }

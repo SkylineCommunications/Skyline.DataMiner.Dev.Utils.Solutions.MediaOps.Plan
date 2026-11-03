@@ -1,4 +1,4 @@
-namespace RT_MediaOps.Plan.Workflow.FlowRules
+﻿namespace RT_MediaOps.Plan.Workflow.FlowRules
 {
 	using System;
 	using System.Linq;
@@ -82,7 +82,7 @@ namespace RT_MediaOps.Plan.Workflow.FlowRules
 			var created = objectCreator.CreateJob(job);
 
 			Assert.AreEqual(1, created.NodeGraph.Connections.Count);
-			Assert.AreEqual(FlowRuleOutcome.Warning, TestContext.Api.FlowRules.Evaluate(created.NodeGraph).Single().Outcome);
+			Assert.AreEqual(FlowRuleOutcome.Warning, TestContext.Api.FlowRuleCollections.Evaluate(created.NodeGraph).Single().Outcome);
 		}
 
 		[TestMethod]
@@ -225,14 +225,16 @@ namespace RT_MediaOps.Plan.Workflow.FlowRules
 			var ird = CreateCompletedPool($"{prefix}_IRD");
 			var downstream = CreateCompletedPool(
 				$"{prefix}_Downstream",
-				rules => rules
-					.SetDefault(FlowRuleDirection.Before, FlowRuleOutcome.Allowed)
-					.SetOverride(FlowRuleDirection.Before, ird, FlowRuleOutcome.Forbidden, "No IRD before this pool."));
+				rules =>
+				{
+					rules.SetDefault(FlowRuleDirection.Before, FlowRuleOutcome.Allowed);
+					rules.SetOverride(FlowRuleDirection.Before, ird, FlowRuleOutcome.Forbidden, "No IRD before this pool.");
+				});
 
 			return (ird, downstream);
 		}
 
-		private ResourcePool CreateCompletedPool(string name, Action<Skyline.DataMiner.Solutions.MediaOps.Plan.API.FlowRules> configureRules = null)
+		private ResourcePool CreateCompletedPool(string name, Action<FlowRuleCollection> configureRules = null)
 		{
 			var pool = new ResourcePool { Name = name };
 			configureRules?.Invoke(pool.FlowRules);

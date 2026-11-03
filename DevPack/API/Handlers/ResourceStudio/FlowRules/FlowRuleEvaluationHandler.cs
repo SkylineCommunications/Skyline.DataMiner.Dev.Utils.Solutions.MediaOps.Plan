@@ -1,4 +1,4 @@
-namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
 	using System.Collections.Generic;
@@ -73,7 +73,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		}
 
 		// Looks the rule sets up through their owner (for resource pools: the pointer on the stored pool), in batches.
-		public static IReadOnlyDictionary<FlowRuleObject, FlowRules> ReadByOwner(MediaOpsPlanApi planApi, IEnumerable<FlowRuleObject> owners)
+		public static IReadOnlyDictionary<FlowRuleObject, FlowRuleCollection> ReadByOwner(MediaOpsPlanApi planApi, IEnumerable<FlowRuleObject> owners)
 		{
 			if (owners == null)
 			{
@@ -95,7 +95,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return new FlowRuleObject(type, id);
 		}
 
-		private static FlowRules GetOrNull(IReadOnlyDictionary<FlowRuleObject, FlowRules> flowRulesByOwner, FlowRuleObject owner)
+		private static FlowRuleCollection GetOrNull(IReadOnlyDictionary<FlowRuleObject, FlowRuleCollection> flowRulesByOwner, FlowRuleObject owner)
 		{
 			return flowRulesByOwner.TryGetValue(owner, out var flowRules) ? flowRules : null;
 		}
@@ -122,7 +122,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				.ToList();
 			var flowRulesByOwner = ReadByOwner(candidates.Concat([existing]));
 
-			FlowRules GetFlowRules(FlowRuleObject owner) => GetOrNull(flowRulesByOwner, owner);
+			FlowRuleCollection GetFlowRules(FlowRuleObject owner) => GetOrNull(flowRulesByOwner, owner);
 
 			return candidates.ToDictionary(
 				candidate => candidate.Id,
@@ -139,9 +139,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		// Resource pools are resolved through the pointer on the stored pool, exactly like a pool read, so a rule set that is
 		// not attached to its pool (for example left behind by a failed save) is never evaluated.
-		private IReadOnlyDictionary<FlowRuleObject, FlowRules> ReadByOwner(IEnumerable<FlowRuleObject> owners)
+		private IReadOnlyDictionary<FlowRuleObject, FlowRuleCollection> ReadByOwner(IEnumerable<FlowRuleObject> owners)
 		{
-			var result = new Dictionary<FlowRuleObject, FlowRules>();
+			var result = new Dictionary<FlowRuleObject, FlowRuleCollection>();
 
 			foreach (var group in owners.Where(x => !x.IsEmpty).Distinct().GroupBy(x => x.Type))
 			{
@@ -159,7 +159,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return result;
 		}
 
-		private void ReadResourcePoolFlowRules(ICollection<Guid> poolIds, IDictionary<FlowRuleObject, FlowRules> result)
+		private void ReadResourcePoolFlowRules(ICollection<Guid> poolIds, IDictionary<FlowRuleObject, FlowRuleCollection> result)
 		{
 			var poolIdByFlowRulesId = planApi.DomHelpers.SlcResourceStudioHelper
 				.GetResourcePools(poolIds)
@@ -175,7 +175,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			foreach (var instance in planApi.DomHelpers.SlcResourceStudioHelper.GetFlowRules(poolIdByFlowRulesId.Keys))
 			{
 				var owner = FlowRuleObject.ResourcePool(poolIdByFlowRulesId[instance.ID.Id]);
-				var flowRules = new FlowRules(instance);
+				var flowRules = new FlowRuleCollection(instance);
 
 				if (flowRules.Owner != owner)
 				{

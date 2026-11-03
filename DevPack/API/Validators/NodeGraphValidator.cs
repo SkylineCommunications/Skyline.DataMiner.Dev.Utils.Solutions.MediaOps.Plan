@@ -79,7 +79,7 @@
 		// object stays editable and the violation can be resolved.
 		private void ValidateFlowRules()
 		{
-			FlowRules GetFlowRules(FlowRuleObject owner) => owner.Type == FlowRuleObjectType.ResourcePool && resourcePoolsById.TryGetValue(owner.Id, out var pool) ? pool.FlowRules : null;
+			FlowRuleCollection GetFlowRules(FlowRuleObject owner) => owner.Type == FlowRuleObjectType.ResourcePool && resourcePoolsById.TryGetValue(owner.Id, out var pool) ? pool.FlowRules : null;
 
 			var nodesById = nodeGraph.Nodes
 				.Where(x => x.Id != null)

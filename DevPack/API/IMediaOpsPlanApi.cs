@@ -20,7 +20,7 @@
 		/// <summary>
 		/// Gets the repository for reading flow rules and evaluating connections against them.
 		/// </summary>
-		IFlowRulesRepository FlowRules { get; }
+		IFlowRuleCollectionsRepository FlowRuleCollections { get; }
 
 		/// <summary>
 		/// Gets the repository for managing capabilities.

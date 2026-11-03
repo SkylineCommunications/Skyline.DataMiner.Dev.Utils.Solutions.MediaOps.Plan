@@ -33,7 +33,7 @@
 		private readonly Lazy<IMediaOpsLiveApi> lazyLiveApi;
 		private readonly Lazy<IResourcesRepository> lazyResourceRepository;
 		private readonly Lazy<IResourcePoolsRepository> lazyResourcePoolsRepository;
-		private readonly Lazy<IFlowRulesRepository> lazyFlowRulesRepository;
+		private readonly Lazy<IFlowRuleCollectionsRepository> lazyFlowRuleCollectionsRepository;
 		private readonly Lazy<ICapabilitiesRepository> lazyCapabilitiesRepository;
 		private readonly Lazy<ICapacitiesRepository> lazyCapacitiesRepository;
 		private readonly Lazy<IConfigurationsRepository> lazyConfigurationsRepository;
@@ -73,7 +73,7 @@
 			lazyLiveApi = new Lazy<IMediaOpsLiveApi>(() => connection.GetMediaOpsLiveApi());
 			lazyResourceRepository = new Lazy<IResourcesRepository>(() => new ResourcesRepository(this));
 			lazyResourcePoolsRepository = new Lazy<IResourcePoolsRepository>(() => new ResourcePoolsRepository(this));
-			lazyFlowRulesRepository = new Lazy<IFlowRulesRepository>(() => new FlowRulesRepository(this));
+			lazyFlowRuleCollectionsRepository = new Lazy<IFlowRuleCollectionsRepository>(() => new FlowRuleCollectionsRepository(this));
 			lazyCapabilitiesRepository = new Lazy<ICapabilitiesRepository>(() => new CapabilitiesRepository(this));
 			lazyCapacitiesRepository = new Lazy<ICapacitiesRepository>(() => new CapacitiesRepository(this));
 			lazyConfigurationsRepository = new Lazy<IConfigurationsRepository>(() => new ConfigurationsRepository(this));
@@ -107,7 +107,7 @@
 		/// <summary>
 		/// <inheritdoc/>
 		/// </summary>
-		public IFlowRulesRepository FlowRules => lazyFlowRulesRepository.Value;
+		public IFlowRuleCollectionsRepository FlowRuleCollections => lazyFlowRuleCollectionsRepository.Value;
 
 		/// <summary>
 		/// <inheritdoc/>

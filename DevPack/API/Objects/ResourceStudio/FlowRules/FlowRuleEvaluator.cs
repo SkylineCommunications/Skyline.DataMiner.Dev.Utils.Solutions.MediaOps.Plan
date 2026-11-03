@@ -1,4 +1,4 @@
-namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
 	using System.Collections.Generic;
@@ -14,7 +14,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// </summary>
 	internal static class FlowRuleEvaluator
 	{
-		public static FlowRuleEvaluation Evaluate(FlowRuleObject from, FlowRuleObject to, Func<FlowRuleObject, FlowRules> getFlowRules)
+		public static FlowRuleEvaluation Evaluate(FlowRuleObject from, FlowRuleObject to, Func<FlowRuleObject, FlowRuleCollection> getFlowRules)
 		{
 			if (getFlowRules == null)
 			{
@@ -27,7 +27,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return new FlowRuleEvaluation(from, to, fromRule, toRule);
 		}
 
-		public static IReadOnlyCollection<FlowRuleConnectionEvaluation> Evaluate<TNode>(NodeGraph<TNode> nodeGraph, Func<FlowRuleObject, FlowRules> getFlowRules)
+		public static IReadOnlyCollection<FlowRuleConnectionEvaluation> Evaluate<TNode>(NodeGraph<TNode> nodeGraph, Func<FlowRuleObject, FlowRuleCollection> getFlowRules)
 			where TNode : NodeBase
 		{
 			if (nodeGraph == null)

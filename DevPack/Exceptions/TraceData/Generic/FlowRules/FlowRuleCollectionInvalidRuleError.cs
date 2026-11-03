@@ -7,11 +7,11 @@
 	/// <summary>
 	/// Represents an error that occurs when flow rules contain an invalid rule.
 	/// </summary>
-	/// <seealso cref="FlowRulesDuplicateRuleError"/>
-	/// <seealso cref="FlowRulesInvalidMessageError"/>
-	/// <seealso cref="FlowRulesTargetInvalidStateError"/>
-	/// <seealso cref="FlowRulesTargetNotFoundError"/>
-	public class FlowRulesInvalidRuleError : FlowRulesError
+	/// <seealso cref="FlowRuleCollectionDuplicateRuleError"/>
+	/// <seealso cref="FlowRuleCollectionInvalidMessageError"/>
+	/// <seealso cref="FlowRuleCollectionTargetInvalidStateError"/>
+	/// <seealso cref="FlowRuleCollectionTargetNotFoundError"/>
+	public class FlowRuleCollectionInvalidRuleError : FlowRuleCollectionError
 	{
 		/// <summary>
 		/// Gets the direction of the invalid rule.

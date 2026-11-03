@@ -1,4 +1,4 @@
-namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
 	using System.Collections.Generic;
@@ -26,7 +26,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			this.validationContext = validationContext ?? FlowRulesValidationContext.Empty;
 		}
 
-		internal static bool TryValidate(MediaOpsPlanApi planApi, ICollection<FlowRules> apiFlowRules, FlowRulesValidationContext validationContext, out DomInstanceBulkOperationResult<DomFlowRules> result)
+		internal static bool TryValidate(MediaOpsPlanApi planApi, ICollection<FlowRuleCollection> apiFlowRules, FlowRulesValidationContext validationContext, out DomInstanceBulkOperationResult<DomFlowRules> result)
 		{
 			var handler = new DomFlowRulesHandler(planApi, validationContext);
 			handler.Validate(apiFlowRules ?? throw new ArgumentNullException(nameof(apiFlowRules)));
@@ -36,7 +36,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return !result.HasFailures;
 		}
 
-		internal static bool TryPersist(MediaOpsPlanApi planApi, ICollection<FlowRules> apiFlowRules, FlowRulesValidationContext validationContext, out DomInstanceBulkOperationResult<DomFlowRules> result)
+		internal static bool TryPersist(MediaOpsPlanApi planApi, ICollection<FlowRuleCollection> apiFlowRules, FlowRulesValidationContext validationContext, out DomInstanceBulkOperationResult<DomFlowRules> result)
 		{
 			var handler = new DomFlowRulesHandler(planApi, validationContext);
 			var flowRules = apiFlowRules ?? throw new ArgumentNullException(nameof(apiFlowRules));
@@ -48,7 +48,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return !result.HasFailures;
 		}
 
-		internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<FlowRules> apiFlowRules, out DomInstanceBulkOperationResult<DomFlowRules> result)
+		internal static bool TryDelete(MediaOpsPlanApi planApi, ICollection<FlowRuleCollection> apiFlowRules, out DomInstanceBulkOperationResult<DomFlowRules> result)
 		{
 			var handler = new DomFlowRulesHandler(planApi);
 			handler.Delete(apiFlowRules ?? throw new ArgumentNullException(nameof(apiFlowRules)));
@@ -58,7 +58,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return !result.HasFailures;
 		}
 
-		private void Validate(ICollection<FlowRules> apiFlowRules)
+		private void Validate(ICollection<FlowRuleCollection> apiFlowRules)
 		{
 			if (apiFlowRules.Count == 0)
 			{
@@ -70,14 +70,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			ValidateTargets(apiFlowRules);
 		}
 
-		private void ValidateDuplicates(ICollection<FlowRules> apiFlowRules, string remark = null)
+		private void ValidateDuplicates(ICollection<FlowRuleCollection> apiFlowRules, string remark = null)
 		{
 			foreach (var flowRules in apiFlowRules)
 			{
 				foreach (var duplicate in flowRules.Rules.GroupBy(x => (x.Direction, x.Target)).Where(x => x.Count() > 1))
 				{
 					var target = duplicate.Key.Target.HasValue ? $"target {duplicate.Key.Target.Value.Type} '{duplicate.Key.Target.Value.Id}'" : "the default";
-					ReportError(flowRules.Id, CreateRuleError<FlowRulesDuplicateRuleError>(
+					ReportError(flowRules.Id, CreateRuleError<FlowRuleCollectionDuplicateRuleError>(
 						flowRules,
 						duplicate.Key.Direction,
 						duplicate.Key.Target,
@@ -86,13 +86,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 		}
 
-		private void ValidateMessages(ICollection<FlowRules> apiFlowRules)
+		private void ValidateMessages(ICollection<FlowRuleCollection> apiFlowRules)
 		{
 			foreach (var flowRules in apiFlowRules)
 			{
 				foreach (var rule in flowRules.Rules.Where(x => !String.IsNullOrEmpty(x.Message) && !InputValidator.HasValidTextLength(x.Message)))
 				{
-					ReportError(flowRules.Id, CreateRuleError<FlowRulesInvalidMessageError>(
+					ReportError(flowRules.Id, CreateRuleError<FlowRuleCollectionInvalidMessageError>(
 						flowRules,
 						rule.Direction,
 						rule.Target,
@@ -104,7 +104,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		// Only overrides that were not stored before are checked against their target, so an existing override that targets
 		// an object that got deprecated afterwards does not block unrelated updates. The direction and target of a stored
 		// rule cannot change, so a stored override is never new.
-		private static List<(FlowRules FlowRules, FlowRule Rule)> GetNewOverrides(ICollection<FlowRules> apiFlowRules)
+		private static List<(FlowRuleCollection FlowRuleCollection, FlowRule Rule)> GetNewOverrides(ICollection<FlowRuleCollection> apiFlowRules)
 		{
 			return apiFlowRules
 				.SelectMany(flowRules => flowRules.Rules
@@ -115,19 +115,19 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		// A target of the same operation that failed after the flow rules were validated will not be written. A rule set that
 		// is rejected here takes its owner down with it, so its owner is dropped as a target as well until nothing changes.
-		private void ValidateDroppedTargets(ICollection<FlowRules> apiFlowRules)
+		private void ValidateDroppedTargets(ICollection<FlowRuleCollection> apiFlowRules)
 		{
 			var remaining = apiFlowRules.ToList();
 			bool changed;
 
 			do
 			{
-				var rejected = new List<FlowRules>();
+				var rejected = new List<FlowRuleCollection>();
 
 				foreach (var (flowRules, rule) in GetNewOverrides(remaining).Where(x => validationContext.IsDropped(x.Rule.Target.Value)))
 				{
 					var target = rule.Target.Value;
-					ReportError(flowRules.Id, CreateRuleError<FlowRulesTargetNotFoundError>(
+					ReportError(flowRules.Id, CreateRuleError<FlowRuleCollectionTargetNotFoundError>(
 						flowRules,
 						rule.Direction,
 						target,
@@ -147,7 +147,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			while (changed);
 		}
 
-		private void ValidateTargets(ICollection<FlowRules> apiFlowRules)
+		private void ValidateTargets(ICollection<FlowRuleCollection> apiFlowRules)
 		{
 			var newOverrides = GetNewOverrides(apiFlowRules);
 
@@ -168,7 +168,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 				if (!validationContext.TryGet(target, out var isDeprecated) && !storedTargets.TryGetValue(target, out isDeprecated))
 				{
-					ReportError(flowRules.Id, CreateRuleError<FlowRulesTargetNotFoundError>(
+					ReportError(flowRules.Id, CreateRuleError<FlowRuleCollectionTargetNotFoundError>(
 						flowRules,
 						rule.Direction,
 						target,
@@ -176,7 +176,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				}
 				else if (isDeprecated)
 				{
-					ReportError(flowRules.Id, CreateRuleError<FlowRulesTargetInvalidStateError>(
+					ReportError(flowRules.Id, CreateRuleError<FlowRuleCollectionTargetInvalidStateError>(
 						flowRules,
 						rule.Direction,
 						target,
@@ -210,8 +210,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return result;
 		}
 
-		private static T CreateRuleError<T>(FlowRules flowRules, FlowRuleDirection direction, FlowRuleObject? target, string message)
-			where T : FlowRulesInvalidRuleError, new()
+		private static T CreateRuleError<T>(FlowRuleCollection flowRules, FlowRuleDirection direction, FlowRuleObject? target, string message)
+			where T : FlowRuleCollectionInvalidRuleError, new()
 		{
 			return new T
 			{
@@ -225,7 +225,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			};
 		}
 
-		private void Persist(ICollection<FlowRules> apiFlowRules)
+		private void Persist(ICollection<FlowRuleCollection> apiFlowRules)
 		{
 			if (apiFlowRules.Count == 0)
 			{
@@ -235,19 +235,19 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			var toCreate = apiFlowRules.Where(x => x.IsNew).ToList();
 			var toUpdate = apiFlowRules.Except(toCreate).ToList();
 
-			var changeResults = GetItemsWithChanges<FlowRules, DomFlowRules>(
+			var changeResults = GetItemsWithChanges<FlowRuleCollection, DomFlowRules>(
 				toUpdate,
 				x => x.OriginalInstance,
 				x => x.GetInstanceWithChanges(),
 				ids => planApi.DomHelpers.SlcResourceStudioHelper.GetFlowRules(ids),
-				x => new FlowRulesNotFoundError { ErrorMessage = $"Flow rules with ID '{x.Id}' of {x.OwnerType} '{x.OwnerId}' no longer exist.", Id = x.Id, OwnerType = x.OwnerType, OwnerId = x.OwnerId },
-				(x, msg) => new FlowRulesValueAlreadyChangedError { ErrorMessage = msg, Id = x.Id, OwnerType = x.OwnerType, OwnerId = x.OwnerId })
+				x => new FlowRuleCollectionNotFoundError { ErrorMessage = $"Flow rules with ID '{x.Id}' of {x.OwnerType} '{x.OwnerId}' no longer exist.", Id = x.Id, OwnerType = x.OwnerType, OwnerId = x.OwnerId },
+				(x, msg) => new FlowRuleCollectionValueAlreadyChangedError { ErrorMessage = msg, Id = x.Id, OwnerType = x.OwnerType, OwnerId = x.OwnerId })
 				.ToList();
 
 			// The changes are merged onto the latest stored rule set, so a rule added by a concurrent save can collide with a
 			// rule added by this save. This runs under the lock of the owner, so the merged result is what will be stored.
 			ValidateDuplicates(
-				changeResults.Where(IsValid).Select(x => new FlowRules(new DomFlowRules(x.Instance))).ToList(),
+				changeResults.Where(IsValid).Select(x => new FlowRuleCollection(new DomFlowRules(x.Instance))).ToList(),
 				" The rule was added concurrently by another change.");
 
 			var instances = toCreate
@@ -279,7 +279,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			ReportSuccess(domResult.SuccessfulItems.Select(x => new DomFlowRules(x)));
 		}
 
-		private void Delete(ICollection<FlowRules> apiFlowRules)
+		private void Delete(ICollection<FlowRuleCollection> apiFlowRules)
 		{
 			var instances = apiFlowRules
 				.Where(x => !x.IsNew && x.OriginalInstance != null)

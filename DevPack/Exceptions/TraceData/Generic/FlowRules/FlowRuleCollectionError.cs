@@ -1,4 +1,4 @@
-namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions
+﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions
 {
 	using System;
 
@@ -7,10 +7,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions
 	/// <summary>
 	/// Represents an error that occurs when validating or persisting the flow rules of an object.
 	/// </summary>
-	/// <seealso cref="FlowRulesInvalidRuleError"/>
-	/// <seealso cref="FlowRulesNotFoundError"/>
-	/// <seealso cref="FlowRulesValueAlreadyChangedError"/>
-	public class FlowRulesError : MediaOpsErrorData
+	/// <seealso cref="FlowRuleCollectionInvalidRuleError"/>
+	/// <seealso cref="FlowRuleCollectionNotFoundError"/>
+	/// <seealso cref="FlowRuleCollectionValueAlreadyChangedError"/>
+	public class FlowRuleCollectionError : MediaOpsErrorData
 	{
 		/// <summary>
 		/// Gets the unique identifier of the flow rules.

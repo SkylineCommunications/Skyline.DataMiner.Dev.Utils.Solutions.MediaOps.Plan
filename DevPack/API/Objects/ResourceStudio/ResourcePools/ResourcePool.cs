@@ -29,7 +29,7 @@
 			IsNew = true;
 
 			OrchestrationSettings = new ResourceStudioOrchestrationSettings();
-			FlowRules = new FlowRules(FlowRuleObject.ResourcePool(Id));
+			FlowRules = new FlowRuleCollection(FlowRuleObject.ResourcePool(Id));
 		}
 
 		/// <summary>
@@ -42,7 +42,7 @@
 			HasUserDefinedId = true;
 
 			OrchestrationSettings = new ResourceStudioOrchestrationSettings();
-			FlowRules = new FlowRules(FlowRuleObject.ResourcePool(Id));
+			FlowRules = new FlowRuleCollection(FlowRuleObject.ResourcePool(Id));
 		}
 
 		internal ResourcePool(MediaOpsPlanApi planApi, StorageResourceStudio.ResourcepoolInstance instance, IReadOnlyDictionary<Guid, StorageResourceStudio.FlowrulesInstance> flowRulesById) : base(instance.ID.Id)
@@ -105,7 +105,7 @@
 		/// <summary>
 		/// Gets the flow rules of this resource pool, which define what may be connected before and after it. The flow rules are persisted together with the resource pool.
 		/// </summary>
-		public FlowRules FlowRules { get; private set; }
+		public FlowRuleCollection FlowRules { get; private set; }
 
 		FlowRuleObjectType IFlowRuleObject.FlowRuleObjectType => FlowRuleObjectType.ResourcePool;
 
@@ -331,7 +331,7 @@
 			var flowRulesId = instance.ConfigurationInfo.FlowRules;
 			if (flowRulesId.HasValue && flowRulesById.TryGetValue(flowRulesId.Value, out var flowRulesInstance))
 			{
-				FlowRules = new FlowRules(flowRulesInstance);
+				FlowRules = new FlowRuleCollection(flowRulesInstance);
 
 				if (FlowRules.Owner != FlowRuleObject.ResourcePool(Id))
 				{
@@ -341,7 +341,7 @@
 			else
 			{
 				// Pools created before flow rules existed get their rule set on their next save.
-				FlowRules = new FlowRules(FlowRuleObject.ResourcePool(Id));
+				FlowRules = new FlowRuleCollection(FlowRuleObject.ResourcePool(Id));
 			}
 		}
 
