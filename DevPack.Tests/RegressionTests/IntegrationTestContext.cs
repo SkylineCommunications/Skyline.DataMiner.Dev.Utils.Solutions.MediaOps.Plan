@@ -97,6 +97,7 @@
 			connection.ConnectionCheckFailMax = 5;
 
 			connection.Authenticate(config.Username, config.Password, config.Domain);
+			connection.Subscribe();
 
 			return connection;
 		}
@@ -132,6 +133,19 @@
 		public ProtocolFunctionHelper ProtocolFunctionHelper { get; private set; }
 
 		/// <summary>
+		/// Creates a <see cref="Skyline.DataMiner.Net.ResourceManagerHelper"/> that is not shared with other tests.
+		/// Use it when a test inspects <c>GetTraceDataLastCall()</c>, which reports the last call made through that
+		/// helper and would otherwise be overwritten by tests running in parallel.
+		/// </summary>
+		internal ResourceManagerHelper CreateResourceManagerHelper()
+		{
+			lock (connectionLock)
+			{
+				return new ResourceManagerHelper(connection.HandleSingleResponseMessage);
+			}
+		}
+
+		/// <summary>
 		/// Reports the quarantine of the reservation on the job, as the MediaOps_SRM_QuarantineHandling script does, and
 		/// returns the stored job. On a real agent that script updates the job itself, so it is awaited first to avoid
 		/// modifying a copy of the job that the script makes outdated.
@@ -140,7 +154,8 @@
 		{
 			if (UseRealDma)
 			{
-				var timeout = DateTime.UtcNow.AddSeconds(30);
+				// The script needs 3-15 s on an idle agent; allow for the extra load of tests running in parallel.
+				var timeout = DateTime.UtcNow.AddSeconds(60);
 				while (!Api.Jobs.Read(jobId).Errors.Any(x => x.Code == QuarantinedReservationJobValidationError.ErrorCode))
 				{
 					if (DateTime.UtcNow > timeout)

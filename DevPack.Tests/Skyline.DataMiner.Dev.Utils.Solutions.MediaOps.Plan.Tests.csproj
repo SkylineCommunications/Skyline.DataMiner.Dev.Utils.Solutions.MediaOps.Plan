@@ -10,6 +10,9 @@
 		<RootNamespace>RT_MediaOps.Plan</RootNamespace>
 	</PropertyGroup>
 	<ItemGroup>
+	  <None Remove="Run-Tests.ps1" />
+	</ItemGroup>
+	<ItemGroup>
 		<PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" />
 		<PackageReference Include="Skyline.DataMiner.CICD.Tools.WinEncryptedKeys.Lib" />
@@ -32,8 +35,6 @@
 			<IntegrationTestOutput Include="$(OutputPath)**\*.*" />
 		</ItemGroup>
 		<RemoveDir Directories="$(QAOpsHarvestingOutput)" />
-		<Copy
-			SourceFiles="@(IntegrationTestOutput)"
-			DestinationFiles="@(IntegrationTestOutput->'$(QAOpsHarvestingOutput)%(RecursiveDir)%(Filename)%(Extension)')" />
+		<Copy SourceFiles="@(IntegrationTestOutput)" DestinationFiles="@(IntegrationTestOutput->'$(QAOpsHarvestingOutput)%(RecursiveDir)%(Filename)%(Extension)')" />
 	</Target>
 </Project>

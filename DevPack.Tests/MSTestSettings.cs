@@ -1,1 +1,1 @@
-﻿[assembly: Parallelize(Scope = ExecutionScope.MethodLevel)]
+﻿[assembly: Parallelize(Workers = 8, Scope = ExecutionScope.MethodLevel)]
