@@ -313,6 +313,36 @@
 		}
 
 		[TestMethod]
+		public void FlowRules_Equality_CountsDuplicatesAndIgnoresOrder()
+		{
+			var a = new FlowRule(FlowRuleDirection.Before, FlowRuleOutcome.Warning);
+			var b = new FlowRule(FlowRuleDirection.After, FlowRuleObjectType.ResourcePool, poolB, FlowRuleOutcome.Forbidden);
+
+			var first = new ResourcePool(poolA).FlowRules;
+			first.Add(a);
+			first.Add(a);
+			first.Add(b);
+
+			var second = new ResourcePool(poolA).FlowRules;
+			second.Add(a);
+			second.Add(b);
+			second.Add(b);
+
+			Assert.AreNotEqual(first, second);
+
+			var inOrder = new ResourcePool(poolA).FlowRules;
+			inOrder.Add(a);
+			inOrder.Add(b);
+
+			var reversed = new ResourcePool(poolA).FlowRules;
+			reversed.Add(b);
+			reversed.Add(a);
+
+			Assert.AreEqual(inOrder, reversed);
+			Assert.AreEqual(inOrder.GetHashCode(), reversed.GetHashCode());
+		}
+
+		[TestMethod]
 		public void ResourcePool_HashCode_ChangesWithFlowRules()
 		{
 			var pool = new ResourcePool { Name = "Pool" };

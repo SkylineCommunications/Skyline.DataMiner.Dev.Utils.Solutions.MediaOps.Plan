@@ -265,13 +265,7 @@
 				int hash = 17;
 				hash = (hash * 23) + Owner.GetHashCode();
 
-				foreach (var rule in rules
-					.OrderBy(x => x.Direction)
-					.ThenBy(x => x.TargetId.HasValue)
-					.ThenBy(x => x.TargetType)
-					.ThenBy(x => x.TargetId)
-					.ThenBy(x => x.Outcome)
-					.ThenBy(x => x.Message, StringComparer.Ordinal))
+				foreach (var rule in GetOrderedRules())
 				{
 					hash = (hash * 23) + rule.GetHashCode();
 				}
@@ -281,7 +275,7 @@
 		}
 
 		/// <inheritdoc/>
-		/// <remarks>Two instances are equal when they belong to the same object and contain the same rules, regardless of their order.</remarks>
+		/// <remarks>Two instances are equal when they belong to the same object and contain the same rules, as often, regardless of their order.</remarks>
 		public override bool Equals(object obj)
 		{
 			if (obj is not FlowRuleCollection other)
@@ -289,10 +283,10 @@
 				return false;
 			}
 
+			// Compared in a fixed order, so duplicates are counted like in GetHashCode.
 			return Owner == other.Owner
 				&& rules.Count == other.rules.Count
-				&& rules.All(other.rules.Contains)
-				&& other.rules.All(rules.Contains);
+				&& GetOrderedRules().SequenceEqual(other.GetOrderedRules());
 		}
 
 		internal StorageResourceStudio.FlowrulesInstance GetInstanceWithChanges()
@@ -322,6 +316,17 @@
 		internal FlowRule GetApplicableRule(FlowRuleDirection direction, FlowRuleObject target)
 		{
 			return GetOverride(direction, target) ?? GetDefault(direction);
+		}
+
+		private IEnumerable<FlowRule> GetOrderedRules()
+		{
+			return rules
+				.OrderBy(x => x.Direction)
+				.ThenBy(x => x.TargetId.HasValue)
+				.ThenBy(x => x.TargetType)
+				.ThenBy(x => x.TargetId)
+				.ThenBy(x => x.Outcome)
+				.ThenBy(x => x.Message, StringComparer.Ordinal);
 		}
 
 		private void ParseInstance(StorageResourceStudio.FlowrulesInstance instance)
