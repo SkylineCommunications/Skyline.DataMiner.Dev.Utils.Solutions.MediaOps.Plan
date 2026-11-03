@@ -67,8 +67,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// </summary>
 		public string NodeId { get; }
 
+		/// <summary>
+		/// Gets the ID of the capability, capacity or configuration setting that holds the reference.
+		/// </summary>
 		public Guid SettingId { get; }
 
+		/// <summary>
+		/// Gets the reference that did not produce a value the setting can take.
+		/// </summary>
 		public DataReference Reference { get; }
 
 		/// <summary>
