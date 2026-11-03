@@ -31,7 +31,7 @@ Manual runs, eligible current-head approvals of non-draft same-repository PRs ta
 
 Branch pushes run Skyline CICD after validation and simulated tests pass. Tags containing `-alpha` publish to GitHub Packages after simulated tests pass. Other prerelease tags require successful QAOps tests before publication to GitHub Packages. Stable tags also require matching release-branch ancestry and publish to nuget.org. NuGet publication runs only on tag pushes.
 
-Automatic QAOps runs target the `MediaOps RT` environment. Manual runs select an environment through `target_env`, including `dma-rc`. The selected environment can override the repository-level `QAOPS_CONFIGURATION_ID` and `QAOPS_TEST_SUITE_ID` variables and `QAOPS_TOKEN` secret. Integration runs are serialized per target.
+Tag-triggered QAOps runs target the `dma-rc` environment after the applicable validation and simulated tests pass. Eligible PR-approval runs target `MediaOps RT`. Manual runs select an environment through `target_env`, including `dma-rc`. The selected environment can override the repository-level `QAOPS_CONFIGURATION_ID` and `QAOPS_TEST_SUITE_ID` variables and `QAOPS_TOKEN` secret. Integration runs are serialized per target.
 
 The workflow restores the test project before building `QAOpsPackage.csproj` with a tag-derived or run-specific version, submits that exact `.dmtest`, and uploads the QAOps results JSON.
 

@@ -177,10 +177,13 @@ jobs:
       packages: read
       pull-requests: read
     concurrency:
-      group: ${{ (inputs.target_env || 'MediaOps RT') == 'MediaOps RT' && 'mediaops-rt-regression' || format('mediaops-regression-{0}', inputs.target_env) }}
+      group: >-
+        ${{ (inputs.target_env || (github.event_name == 'push' && github.ref_type == 'tag' && 'dma-rc' || 'MediaOps RT')) == 'MediaOps RT' &&
+            'mediaops-rt-regression' || format('mediaops-regression-{0}',
+              inputs.target_env || (github.event_name == 'push' && github.ref_type == 'tag' && 'dma-rc' || 'MediaOps RT')) }}
       cancel-in-progress: false
       queue: max
-    environment: ${{ inputs.target_env || 'MediaOps RT' }}
+    environment: ${{ inputs.target_env || (github.event_name == 'push' && github.ref_type == 'tag' && 'dma-rc' || 'MediaOps RT') }}
     runs-on: windows-latest
     defaults:
       run:
