@@ -551,7 +551,7 @@ job = api.Jobs.Stop(job, new JobStopOptions
     NewPostRollEnd = DateTimeOffset.UtcNow.AddMinutes(10),
 });
 
-// Running -> Completed, once the core reservation has ended.
+// Running -> Completed, once the core reservation has ended or reached its end time.
 job = api.Jobs.TransitionToCompleted(job);
 
 // Alternative paths, each starting from a different job in the indicated state:

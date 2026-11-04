@@ -23,6 +23,10 @@
 	{
 		internal const string JobIdPropertyName = "Job ID";
 
+		// Allows the reservation end event to fire slightly before the reservation stop time (or a small clock
+		// difference between the script host and SRM) while the reservation is still reported as Ongoing.
+		internal static readonly TimeSpan ReservationEndTolerance = TimeSpan.FromSeconds(1);
+
 		private readonly MediaOpsPlanApi planApi;
 
 		private CoreJobHandler(MediaOpsPlanApi planApi)
@@ -617,7 +621,12 @@
 				return;
 			}
 
-			foreach (var mapping in JobReservationMapping.GetMappings(planApi, domJobs))
+			var mappings = JobReservationMapping.GetMappings(planApi, domJobs).ToList();
+
+			// Read after the reservations, so a reservation that reached its stop time before it was read is accepted.
+			var now = DateTime.UtcNow;
+
+			foreach (var mapping in mappings)
 			{
 				// A Running job always has a reservation; a missing one is unexpected and cannot be transitioned.
 				if (mapping.IsNew)
@@ -630,9 +639,19 @@
 					continue;
 				}
 
-				// The Running-to-Completed transition may only happen once the reservation has actually finished, which
-				// SRM reflects as the Ended status.
-				if (mapping.Reservation.Status != Skyline.DataMiner.Net.Messages.ReservationStatus.Ended)
+				// The Running-to-Completed transition may only happen once the reservation has actually finished. SRM
+				// runs the reservation end event script (which triggers this transition) before it sets the reservation
+				// to Ended, so an Ongoing reservation whose stop time has been reached counts as ended as well.
+				var status = mapping.Reservation.Status;
+				var hasReachedStop = status == Skyline.DataMiner.Net.Messages.ReservationStatus.Ongoing
+					&& mapping.Reservation.TimeRange.Stop <= now + ReservationEndTolerance;
+
+				if (hasReachedStop)
+				{
+					planApi.Logger.Information(this, $"The core reservation {mapping.Reservation.ID} of job {mapping.Job.ID.Id} is still Ongoing, but its stop time {mapping.Reservation.TimeRange.Stop:O} has been reached, so it is considered ended.");
+				}
+
+				if (status != Skyline.DataMiner.Net.Messages.ReservationStatus.Ended && !hasReachedStop)
 				{
 					ReportError(mapping.Job.ID.Id, new JobReservationNotEndedError
 					{
