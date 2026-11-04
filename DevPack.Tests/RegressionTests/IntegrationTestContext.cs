@@ -18,7 +18,10 @@
 		private readonly object connectionLock = new object();
 		private readonly Config config;
 
+		private readonly System.Threading.AsyncLocal<ConnectionHelpers> helpers = new System.Threading.AsyncLocal<ConnectionHelpers>();
+
 		private IConnection connection;
+		private volatile int connectionGeneration;
 
 		public IntegrationTestContext()
 		{
@@ -32,17 +35,9 @@
 				? CreateRealConnection(config)
 				: CreateSimulatedConnection();
 
-			Api = connection.GetMediaOpsPlanApi() ?? throw new NullReferenceException("Unable to create MediaOpsPlanApi");
-			Dms = connection.GetDms() ?? throw new NullReferenceException("Unable to get DMS");
+			connectionGeneration++;
 
-			Api.SetLogger(Logger);
-			ResourceStudioDomHelper = new DomHelper(connection.HandleMessages, "(slc)resource_studio") ?? throw new NullReferenceException("Unable to create ResourceStudioDomHelper");
-
-			ResourceManagerHelper = new ResourceManagerHelper(connection.HandleSingleResponseMessage) ?? throw new NullReferenceException("Unable to create ResourceManagerHelper");
-			ProfileHelper = new ProfileHelper(connection.HandleMessages) ?? throw new NullReferenceException("Unable to create ProfileHelper");
-			CategoriesApi = connection.GetCategoriesApi() ?? throw new NullReferenceException("Unable to create CategoriesApi");
-			CategoriesApi.SetLogger(new ConsoleCategoriesLogger());
-			ProtocolFunctionHelper = new ProtocolFunctionHelper(connection.HandleMessages) ?? throw new NullReferenceException("Unable to create ProtocolFunctionHelper");
+			_ = new ConnectionHelpers(connection, connectionGeneration, Logger).Api.Capabilities.SystemCapabilities.ResourceType;
 		}
 
 		/// <summary>
@@ -56,14 +51,15 @@
 		{
 			lock (connectionLock)
 			{
-				if (IsConnectionHealthy())
+				if (!IsConnectionHealthy())
 				{
-					return;
+					connection.Dispose();
+					Initialize();
 				}
-
-				connection.Dispose();
-				Initialize();
 			}
+
+			// Create the helpers on the calling test's context, so the tasks it starts later inherit them.
+			_ = Helpers;
 		}
 
 		private bool IsConnectionHealthy()
@@ -97,6 +93,7 @@
 			connection.ConnectionCheckFailMax = 5;
 
 			connection.Authenticate(config.Username, config.Password, config.Domain);
+			connection.Subscribe();
 
 			return connection;
 		}
@@ -115,21 +112,53 @@
 		/// </summary>
 		public bool UseRealDma => config.UseRealDma;
 
-		public IMediaOpsPlanApi Api { get; private set; }
+		public IMediaOpsPlanApi Api => Helpers.Api;
 
-		public IDms Dms { get; private set; }
+		public IDms Dms => Helpers.Dms;
 
 		public ConsolePlanLogger Logger { get; private set; } = new ConsolePlanLogger();
 
-		public DomHelper ResourceStudioDomHelper { get; private set; }
+		public DomHelper ResourceStudioDomHelper => Helpers.ResourceStudioDomHelper;
 
-		public ResourceManagerHelper ResourceManagerHelper { get; private set; }
+		public ResourceManagerHelper ResourceManagerHelper => Helpers.ResourceManagerHelper;
 
-		public ProfileHelper ProfileHelper { get; private set; }
+		public ProfileHelper ProfileHelper => Helpers.ProfileHelper;
 
-		public ICategoriesApi CategoriesApi { get; private set; }
+		public ICategoriesApi CategoriesApi => Helpers.CategoriesApi;
 
-		public ProtocolFunctionHelper ProtocolFunctionHelper { get; private set; }
+		public ProtocolFunctionHelper ProtocolFunctionHelper => Helpers.ProtocolFunctionHelper;
+
+		private ConnectionHelpers Helpers
+		{
+			get
+			{
+				var current = helpers.Value;
+				if (current == null || current.Generation != connectionGeneration)
+				{
+					lock (connectionLock)
+					{
+						current = new ConnectionHelpers(connection, connectionGeneration, Logger);
+					}
+
+					helpers.Value = current;
+				}
+
+				return current;
+			}
+		}
+
+		/// <summary>
+		/// Creates a <see cref="Skyline.DataMiner.Net.ResourceManagerHelper"/> that is not shared with other tests.
+		/// Use it when a test inspects <c>GetTraceDataLastCall()</c>, which reports the last call made through that
+		/// helper and would otherwise be overwritten by tests running in parallel.
+		/// </summary>
+		internal ResourceManagerHelper CreateResourceManagerHelper()
+		{
+			lock (connectionLock)
+			{
+				return new ResourceManagerHelper(connection.HandleSingleResponseMessage);
+			}
+		}
 
 		/// <summary>
 		/// Reports the quarantine of the reservation on the job, as the MediaOps_SRM_QuarantineHandling script does, and
@@ -140,7 +169,8 @@
 		{
 			if (UseRealDma)
 			{
-				var timeout = DateTime.UtcNow.AddSeconds(30);
+				// The script needs 3-15 s on an idle agent; allow for the extra load of tests running in parallel.
+				var timeout = DateTime.UtcNow.AddSeconds(60);
 				while (!Api.Jobs.Read(jobId).Errors.Any(x => x.Code == QuarantinedReservationJobValidationError.ErrorCode))
 				{
 					if (DateTime.UtcNow > timeout)
@@ -197,6 +227,42 @@
 		public void Dispose()
 		{
 			connection.Dispose();
+		}
+
+		private sealed class ConnectionHelpers
+		{
+			public ConnectionHelpers(IConnection connection, int generation, ConsolePlanLogger logger)
+			{
+				Generation = generation;
+
+				Api = connection.GetMediaOpsPlanApi() ?? throw new NullReferenceException("Unable to create MediaOpsPlanApi");
+				Dms = connection.GetDms() ?? throw new NullReferenceException("Unable to get DMS");
+
+				Api.SetLogger(logger);
+				ResourceStudioDomHelper = new DomHelper(connection.HandleMessages, "(slc)resource_studio") ?? throw new NullReferenceException("Unable to create ResourceStudioDomHelper");
+
+				ResourceManagerHelper = new ResourceManagerHelper(connection.HandleSingleResponseMessage) ?? throw new NullReferenceException("Unable to create ResourceManagerHelper");
+				ProfileHelper = new ProfileHelper(connection.HandleMessages) ?? throw new NullReferenceException("Unable to create ProfileHelper");
+				CategoriesApi = connection.GetCategoriesApi() ?? throw new NullReferenceException("Unable to create CategoriesApi");
+				CategoriesApi.SetLogger(new ConsoleCategoriesLogger());
+				ProtocolFunctionHelper = new ProtocolFunctionHelper(connection.HandleMessages) ?? throw new NullReferenceException("Unable to create ProtocolFunctionHelper");
+			}
+
+			public int Generation { get; }
+
+			public IMediaOpsPlanApi Api { get; }
+
+			public IDms Dms { get; }
+
+			public DomHelper ResourceStudioDomHelper { get; }
+
+			public ResourceManagerHelper ResourceManagerHelper { get; }
+
+			public ProfileHelper ProfileHelper { get; }
+
+			public ICategoriesApi CategoriesApi { get; }
+
+			public ProtocolFunctionHelper ProtocolFunctionHelper { get; }
 		}
 	}
 }

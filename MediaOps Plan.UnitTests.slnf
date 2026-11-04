@@ -1,0 +1,8 @@
+{
+  "solution": {
+    "path": "MediaOps Plan.slnx",
+    "projects": [
+      "DevPack.Tests\\Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests.csproj"
+    ]
+  }
+}

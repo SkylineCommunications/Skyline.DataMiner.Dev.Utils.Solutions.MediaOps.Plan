@@ -15,7 +15,6 @@
 	/// </summary>
 	[TestClass]
 	[TestCategory("IntegrationTest")]
-	[DoNotParallelize]
 	public sealed class NodeResourceRequirementsTests : IDisposable
 	{
 		private readonly TestObjectCreator objectCreator;
@@ -229,6 +228,8 @@
 
 		private static MediaOpsTraceData AssertCreateFails(Job job)
 		{
+			objectCreator.AssignJobKey(job);
+
 			var exception = Assert.ThrowsException<MediaOpsBulkException<Guid>>(() => TestContext.Api.Jobs.Create([job]));
 			return GetTraceData(exception, job.Id);
 		}
