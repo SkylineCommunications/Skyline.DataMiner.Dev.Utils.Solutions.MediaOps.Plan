@@ -9,14 +9,14 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 	[TestClass]
 	[TestCategory("IntegrationTest")]
-	[DoNotParallelize]
+	[DoNotParallelize] // Snapshots and restores the global job settings, and asserts on the key sequence stored there.
 	public sealed class KeyAssignmentTests : IDisposable
 	{
 		private readonly TestObjectCreator objectCreator;
 
 		public KeyAssignmentTests()
 		{
-			objectCreator = new TestObjectCreator(TestContext);
+			objectCreator = new TestObjectCreator(TestContext, assignJobKeys: false);
 		}
 
 		private static IntegrationTestContext TestContext => TestContextManager.SharedTestContext;

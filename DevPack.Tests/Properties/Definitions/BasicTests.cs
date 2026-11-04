@@ -13,7 +13,6 @@ namespace RT_MediaOps.Plan.Properties.Definitions
 
 	[TestClass]
 	[TestCategory("IntegrationTest")]
-	[DoNotParallelize]
 	public sealed class BasicTests : IDisposable
 	{
 		private readonly TestObjectCreator objectCreator;

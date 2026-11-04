@@ -11,7 +11,6 @@ namespace RT_MediaOps.Plan.Workflow.SchedulingProperties
 
 	[TestClass]
 	[TestCategory("IntegrationTest")]
-	[DoNotParallelize]
 	public sealed class BasicTests : IDisposable
 	{
 		private const string MediaOpsScope = "MediaOps";

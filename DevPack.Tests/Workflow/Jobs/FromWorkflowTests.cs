@@ -12,7 +12,6 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 	[TestClass]
 	[TestCategory("IntegrationTest")]
-	[DoNotParallelize]
 	public sealed class FromWorkflowTests : IDisposable
 	{
 		private readonly TestObjectCreator objectCreator;

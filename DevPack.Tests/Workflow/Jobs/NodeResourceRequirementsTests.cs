@@ -15,7 +15,6 @@
 	/// </summary>
 	[TestClass]
 	[TestCategory("IntegrationTest")]
-	[DoNotParallelize]
 	public sealed class NodeResourceRequirementsTests : IDisposable
 	{
 		private readonly TestObjectCreator objectCreator;
@@ -165,8 +164,10 @@
 			Assert.IsTrue(TestContext.Api.Jobs.Read(created.Id).NodeGraph.Nodes.Single().OrchestrationSettings.Capabilities.Single().HasReference);
 		}
 
-		private static MediaOpsTraceData AssertCreateFails(Job job)
+		private MediaOpsTraceData AssertCreateFails(Job job)
 		{
+			objectCreator.AssignJobKey(job);
+
 			var exception = Assert.ThrowsException<MediaOpsBulkException<Guid>>(() => TestContext.Api.Jobs.Create([job]));
 			return GetTraceData(exception, job.Id);
 		}
