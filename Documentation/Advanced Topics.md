@@ -1,4 +1,4 @@
-# Advanced Topics
+﻿# Advanced Topics
 
 This document covers advanced features of the `Skyline.DataMiner.Solutions.MediaOps.Plan` API: resource/pool and job state management, timing constraints, configuration state, orchestration settings and state, data references, eligible resources, Resource Studio ↔ SRM synchronization, logging, and installation checks.
 
@@ -199,14 +199,20 @@ node.OrchestrationSettings.AddConfiguration(new TextConfigurationSetting(configu
 });
 ```
 
-Available reference types: `ResourceNameReference`, `ResourcePropertyReference`, `ResourceLinkedObjectIdReference`, `CapabilityParameterReference`, `CapacityParameterReference`, `ConfigurationParameterReference` (all node-scoped — they resolve relative to a specific node, defaulting to the node that owns the setting when `nodeId` is omitted), and `JobNameReference` / `JobPropertyReference` (job-scoped, not tied to a node).
+Available reference types:
 
-References are resolved through a `ReferenceResolver` (or the job/workflow-specific `JobReferenceResolver` / `WorkflowReferenceResolver`). Resolution can fail in two ways, both surfaced as exceptions rather than silent defaults:
+- `ResourceNameReference`, `ResourcePropertyReference` and `ResourceLinkedObjectIdReference` read the resource assigned to a node. Without a `nodeId`, they use the node that holds the setting.
+- `CapabilityParameterReference`, `CapacityParameterReference` and `ConfigurationParameterReference` read another setting. Without a `nodeId`, they read the settings of the workflow or job itself, not those of the node that holds the setting; pass the node's ID to read a setting of a node (including the same node).
+- `JobNameReference` reads the name of the job, also when it has a `nodeId`. `JobPropertyReference` reads a job property, or a property of the node when it has a `nodeId`. In a workflow, both stay unresolved, because there is no job yet.
 
-- **`UnresolvedReferenceException`** – the referenced value (property, node, ...) does not exist or has no value.
-- **`CircularReferenceException`** – following the chain of references leads back to itself.
+References are resolved through a `ReferenceResolver` (or the job/workflow-specific `JobReferenceResolver` / `WorkflowReferenceResolver`). `ResolveValue(...)` returns a `ResolvedValue`:
 
-Job save/confirm flows validate references internally so that a job with broken references surfaces a clear error instead of silently orchestrating with a missing value. For custom tooling that needs to preview a resolved value, use `JobReferenceResolver` or `WorkflowReferenceResolver` and inspect the `ResolvedValue` returned by `ResolveValue(...)`.
+- When the referenced value (property, node, setting, ...) does not exist or has no value, `IsResolved` is `false` and `UnresolvedReference` holds the reference that could not be followed.
+- When following the chain of references leads back to itself, a **`CircularReferenceException`** is thrown.
+
+A resolved value can still be unusable for the setting that holds the reference: a number setting needs a value that parses as a number (invariant culture, no thousands separators) within its range, and a discrete setting needs a value that matches the display name or value of one of its options (case-sensitive).
+
+Job save/confirm flows validate references internally so that a job with broken references surfaces a clear error instead of silently orchestrating with a missing value. Confirming reports a `JobUnresolvedReferenceError` per setting, with the `NodeId` (`null` for the job itself) and `SettingId` of the setting that holds the reference. For custom tooling that needs to preview a resolved value, use `JobReferenceResolver` or `WorkflowReferenceResolver` and inspect the `ResolvedValue` returned by `ResolveValue(...)`.
 
 ## Resource Pool Options
 
@@ -236,6 +242,39 @@ api.ResourcePools.Deprecate(pool, new ResourcePoolDeprecateOptions
     AllowResourceDeprecation = true, // Also deprecate resources assigned to this pool
 });
 ```
+
+## Flow Rules
+
+Flow rules constrain which objects may be directly connected in the node graph of a job, workflow or recurring job. Flow rules are a generic concept: an owner and a target are identified by a `FlowRuleObjectType` and an ID. Today the only type is `ResourcePool`: each resource pool owns one rule set (`ResourcePool.FlowRules`, a `FlowRuleCollection`), stored in its own DOM instance and persisted together with the pool.
+
+`api.FlowRuleCollections` is read-only, because rule sets are only written through their owner. It implements the SDM read interfaces (`IPageableRepository<FlowRuleCollection>`, `ICountableRepository<FlowRuleCollection>`), so rule sets can be filtered, queried, paged and counted with `FlowRuleCollectionExposers` (`Id`, `OwnerType`, `OwnerId`, `Rules.TargetId`), like the other repositories.
+
+### Rule model
+
+- Two independent directions: `Before` (other node → owning object) and `After` (owning object → other node).
+- Per direction an optional **default** rule and any number of **overrides** for specific target objects (`TargetType` + `TargetId`). An override takes precedence over the default; a direction without a default behaves as `Allowed`.
+- Outcomes: `Allowed`, `Warning` (allowed but flagged), `Forbidden`. Each rule can carry a message.
+- An override may target the owning object itself, to constrain connections between two nodes of the same object.
+
+### Evaluation
+
+A connection `A → B` is evaluated against the `After` rules of `A` and the `Before` rules of `B`; the most restrictive outcome wins (`Forbidden` > `Warning` > `Allowed`). `FlowRuleEvaluation` exposes both endpoints (`FromObjectType`/`FromObjectId`, `ToObjectType`/`ToObjectId`), the outcome per side, the applied rules and the messages of the decisive rule(s). In a node graph, resource pool nodes and resource nodes are evaluated through their resource pool; other nodes are skipped.
+
+### Enforcement
+
+| Where | Behavior |
+| --- | --- |
+| Creating or updating a job, workflow or recurring job | A `Forbidden` connection that is **new or changed** in that save fails it with `JobNodeGraphForbiddenConnectionError`, `WorkflowNodeGraphForbiddenConnectionError` or `RecurringJobNodeGraphForbiddenConnectionError`. A connection is considered changed when one of its endpoints now references another object (for example after swapping a resource for one of another pool). |
+| Connections stored before the rules changed | Not blocked, so the object stays editable. `Jobs.Validate` reports them with `FlowRuleViolationJobValidationError` (`J701`); the error is cleared automatically by the save that resolves the connection. |
+| `Warning` connections | Never block a save; use `api.FlowRuleCollections.Evaluate(...)` to flag them in a UI. |
+
+### Lifecycle and validation
+
+- Saving a resource pool validates its flow rules and rejects duplicate rules (`FlowRuleCollectionDuplicateRuleError`), messages longer than 150 characters (`FlowRuleCollectionInvalidMessageError`), and new overrides that target an object that does not exist (`FlowRuleCollectionTargetNotFoundError`) or is deprecated (`FlowRuleCollectionTargetInvalidStateError`). These errors derive from `FlowRuleCollectionInvalidRuleError` and identify the rule set (`Id`), its owner (`OwnerType`, `OwnerId`) and the rule (`Direction`, `TargetType`, `TargetId`); the owning pool is reported as failed as well. An override may target a pool that is created in the same call, as long as that pool is saved as well. When two saves start from the same version, their rules are merged; a merge that would result in a duplicate rule is rejected with `FlowRuleCollectionDuplicateRuleError`.
+- Deleting a resource pool that is targeted by overrides of other pools fails with `ResourcePoolInUseByFlowRulesError`; remove the overrides first, or delete the referencing pools in the same call. A referencing pool only unblocks the delete when it can be deleted itself. Deleting a pool removes its own rule set once the pool is deleted.
+- The checks above run when the change is made; a concurrent change of the referenced object is not locked against (the same applies to the other references between objects). An override to a pool that no longer exists never matches, and the edit check of a node graph runs on the version that was read, so a merge with a concurrent save can still result in a forbidden connection, which `Jobs.Validate` then reports (`J701`).
+- Deprecating a pool keeps its rules and the overrides that target it, so restoring it brings the configuration back.
+- Resource pools created before flow rules existed get their rule set on their next save.
 
 ## Orchestration Settings
 

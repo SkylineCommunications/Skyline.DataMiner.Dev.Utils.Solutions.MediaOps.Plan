@@ -23,6 +23,11 @@
 
 		private readonly HashSet<ResourcePool> referencedApiResourcePoolsToUpdate = new HashSet<ResourcePool>();
 
+		// Pools of the operation that may be targeted by the flow rules of other pools of the same operation.
+		private readonly List<ResourcePool> flowRuleTargetsInOperation = new List<ResourcePool>();
+
+		private FlowRulesValidationContext flowRulesValidationContext = FlowRulesValidationContext.Empty;
+
 		private DomResourcePoolHandler(MediaOpsPlanApi planApi)
 		{
 			this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
@@ -89,6 +94,7 @@
 			ValidatePoolLinks(apiResourcePools);
 			ValidateCapabilities(apiResourcePools);
 			ValidateNames(apiResourcePools);
+			ValidateFlowRules(apiResourcePools);
 
 			// Create or update DOM resource pools
 			var validResourcePools = apiResourcePools.Where(IsValid).ToList();
@@ -131,6 +137,7 @@
 			ValidateCategories(resourcePools.Where(IsValid).ToList());
 
 			CreateOrUpdateOrchestrationSettings(resourcePools.Where(IsValid).ToList());
+			CreateOrUpdateFlowRules(resourcePools.Where(IsValid).ToList());
 
 			var toCreateDomInstances = resourcePoolsToCreate
 				.Where(IsValid)
@@ -330,6 +337,34 @@
 			}
 		}
 
+		private void CreateOrUpdateFlowRules(ICollection<ResourcePool> resourcePools)
+		{
+			if (resourcePools == null)
+			{
+				throw new ArgumentNullException(nameof(resourcePools));
+			}
+
+			// A rule set that does not exist yet on an unchanged pool is skipped: the pool is not written either, so its pointer would not be stored.
+			var poolsToPersist = resourcePools
+				.Where(x => x.IsNew || !x.FlowRules.IsNew || x.HasChanges)
+				.ToList();
+
+			if (poolsToPersist.Count == 0)
+			{
+				return;
+			}
+
+			// The flow rules were validated together with the pools; a pool of this operation that failed since then (for
+			// example on its name or category, which are only checked under the lock) is dropped as a target.
+			foreach (var target in flowRuleTargetsInOperation.Where(x => !IsValid(x)))
+			{
+				flowRulesValidationContext.Drop(FlowRuleObject.ResourcePool(target.Id));
+			}
+
+			DomFlowRulesHandler.TryPersist(planApi, poolsToPersist.Select(x => x.FlowRules).ToList(), flowRulesValidationContext, out var domResult);
+			ReportFlowRulesErrors(poolsToPersist, domResult);
+		}
+
 		private void CreateOrUpdateDomResourcePools(ICollection<DomResourcePool> domResourcePools)
 		{
 			if (domResourcePools == null)
@@ -500,6 +535,7 @@
 			}
 
 			ValidateStateForDeleteAction(apiResourcePools);
+			PassTraceData(ResourcePoolFlowRuleUsageValidator.Validate(planApi, apiResourcePools.Where(IsValid).ToArray()));
 
 			var poolsToDelete = apiResourcePools.Where(IsValid).ToList();
 			RemovePoolFromParentPoolLinks(poolsToDelete);
@@ -551,6 +587,10 @@
 
 			ReportSuccess(instancesToDelete.Where(x => domResult.SuccessfulIds.Contains(x.ID)).Select(x => new DomResourcePool(x)).ToArray());
 
+			// Only the rules of pools that are gone are deleted, so a pool that could not be deleted keeps its restrictions.
+			var deletedPoolIds = new HashSet<Guid>(domResult.SuccessfulIds.Select(x => x.Id));
+			DeleteFlowRules(poolsToDelete.Where(x => deletedPoolIds.Contains(x.Id)).ToList());
+
 			// Return affected pools that require updates
 			return referencedApiResourcePoolsToUpdate.Where(x => !domResult.SuccessfulIds.Select(y => y.Id).Contains(x.Id)).ToList();
 		}
@@ -568,6 +608,24 @@
 			}
 
 			DomResourceStudioOrchestrationSettingsHandler.TryDelete(planApi, resourcePools.Select(x => x.OrchestrationSettings).ToList(), out _);
+		}
+
+		private void DeleteFlowRules(ICollection<ResourcePool> resourcePools)
+		{
+			if (resourcePools == null)
+			{
+				throw new ArgumentNullException(nameof(resourcePools));
+			}
+
+			if (resourcePools.Count == 0)
+			{
+				return;
+			}
+
+			if (!DomFlowRulesHandler.TryDelete(planApi, resourcePools.Select(x => x.FlowRules).ToList(), out var domResult))
+			{
+				planApi.Logger.Error(this, $"Failed to delete the flow rules of resource pools", domResult.UnsuccessfulIds.Cast<object>().ToArray());
+			}
 		}
 
 		private void DeprecatePoolResources(ICollection<ResourcePool> apiResourcePools)
@@ -1014,6 +1072,68 @@
 			}
 		}
 
+		// Runs last in the validation step, so the context only contains pools that passed their own validation: a rule
+		// that targets a pool of the same call is only accepted when that pool will be written. A pool that fails on its
+		// flow rules is no valid target either, so the remaining pools are validated again until no new pool fails.
+		private void ValidateFlowRules(ICollection<ResourcePool> apiResourcePools)
+		{
+			if (apiResourcePools == null)
+			{
+				throw new ArgumentNullException(nameof(apiResourcePools));
+			}
+
+			var candidates = apiResourcePools.Where(IsValid).ToList();
+
+			while (candidates.Count > 0)
+			{
+				var validationContext = new FlowRulesValidationContext();
+				foreach (var pool in candidates)
+				{
+					validationContext.Add(FlowRuleObject.ResourcePool(pool.Id), pool.State == ResourcePoolState.Deprecated);
+				}
+
+				DomFlowRulesHandler.TryValidate(planApi, candidates.Select(x => x.FlowRules).ToList(), validationContext, out var result);
+				ReportFlowRulesErrors(candidates, result);
+
+				var remaining = candidates.Where(IsValid).ToList();
+				if (remaining.Count == candidates.Count)
+				{
+					flowRulesValidationContext = validationContext;
+					flowRuleTargetsInOperation.AddRange(candidates);
+					return;
+				}
+
+				candidates = remaining;
+			}
+		}
+
+		private void ReportFlowRulesErrors(ICollection<ResourcePool> resourcePools, DomInstanceBulkOperationResult<FlowrulesInstance> result)
+		{
+			if (!result.HasFailures)
+			{
+				return;
+			}
+
+			var resourcePoolIdByFlowRulesId = resourcePools
+				.GroupBy(x => x.FlowRules.Id)
+				.ToDictionary(x => x.Key, x => x.First().Id);
+
+			foreach (var id in result.UnsuccessfulIds)
+			{
+				if (!resourcePoolIdByFlowRulesId.TryGetValue(id, out var resourcePoolId))
+				{
+					planApi.Logger.Error(this, $"Failed to find resource pool ID for flow rules ID", [id]);
+					continue;
+				}
+
+				ReportError(resourcePoolId);
+
+				if (result.TraceDataPerItem.TryGetValue(id, out var traceData))
+				{
+					PassTraceData(resourcePoolId, traceData);
+				}
+			}
+		}
 		private void ValidateCapabilities(ICollection<ResourcePool> apiResourcePools)
 		{
 			if (apiResourcePools == null)

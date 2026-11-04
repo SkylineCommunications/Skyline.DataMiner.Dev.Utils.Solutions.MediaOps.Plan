@@ -1352,7 +1352,7 @@
 
 			foreach (var job in apiRecurringJobs)
 			{
-				PassTraceData(RecurringJobNodeGraphValidator.Validate(job.Id, job.NodeGraph, resourcesById, resourcePoolsById));
+				PassTraceData(RecurringJobNodeGraphValidator.Validate(job.Id, job.NodeGraph, resourcesById, resourcePoolsById, FlowRuleEvaluator.GetStoredConnections(job.OriginalInstance?.Nodes, job.OriginalInstance?.Connections)));
 			}
 		}
 

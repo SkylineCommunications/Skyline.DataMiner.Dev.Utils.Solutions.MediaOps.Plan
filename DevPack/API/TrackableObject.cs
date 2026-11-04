@@ -10,6 +10,7 @@
 	/// instantiation  outside of derived classes.</remarks>
 	/// <seealso cref="ApiObject"/>
 	/// <seealso cref="CapabilitySettings"/>
+	/// <seealso cref="FlowRule"/>
 	/// <seealso cref="LinkedResourcePool"/>
 	/// <seealso cref="NodeBase"/>
 	/// <seealso cref="NodeConnection{TNode}"/>
