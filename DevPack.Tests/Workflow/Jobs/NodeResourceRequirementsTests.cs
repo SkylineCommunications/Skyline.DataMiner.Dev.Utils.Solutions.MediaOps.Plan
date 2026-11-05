@@ -226,7 +226,7 @@
 			StringAssert.Contains(error.ErrorMessage, "Supported values: 'Value 1', 'Value 2'.");
 		}
 
-		private static MediaOpsTraceData AssertCreateFails(Job job)
+		private MediaOpsTraceData AssertCreateFails(Job job)
 		{
 			objectCreator.AssignJobKey(job);
 
