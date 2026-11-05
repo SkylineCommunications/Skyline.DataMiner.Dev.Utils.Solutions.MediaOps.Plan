@@ -874,9 +874,12 @@
 			}
 		}
 
-		public Job CreateJob(Job job)
+		public Job CreateJob(Job job, bool assignKey = true)
 		{
-			AssignJobKey(job);
+			if (assignKey)
+			{
+				AssignJobKey(job);
+			}
 
 			var createdJob = PlanApi.Jobs.Create(job);
 			createdJobIds.Add(createdJob.Id);
