@@ -10,7 +10,7 @@ namespace RT_MediaOps.Plan.Workflow.JobSettings
 
 	[TestClass]
 	[TestCategory("IntegrationTest")]
-	[DoNotParallelize]
+	[DoNotParallelize] // Reads and modifies the global job settings, which every job creation depends on.
 	public sealed class BasicTests
 	{
 		private static IntegrationTestContext TestContext => TestContextManager.SharedTestContext;
