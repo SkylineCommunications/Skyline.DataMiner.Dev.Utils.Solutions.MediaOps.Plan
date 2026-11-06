@@ -9,7 +9,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// </summary>
 	public sealed class RangeCapacityUsage : CapacityUsage
 	{
-		internal RangeCapacityUsage(Guid capacityId, IEnumerable<CapacityRange> currentConsumption, IEnumerable<CapacityRange> remaining)
+		/// <summary>
+		/// Initializes a new instance of the <see cref="RangeCapacityUsage"/> class.
+		/// </summary>
+		/// <param name="capacityId">The capacity identifier.</param>
+		/// <param name="currentConsumption">The ranges currently consumed.</param>
+		/// <param name="remaining">The ranges remaining.</param>
+		public RangeCapacityUsage(Guid capacityId, IEnumerable<CapacityRange> currentConsumption, IEnumerable<CapacityRange> remaining)
 			: base(capacityId)
 		{
 			CurrentConsumption = currentConsumption.ToList().AsReadOnly();

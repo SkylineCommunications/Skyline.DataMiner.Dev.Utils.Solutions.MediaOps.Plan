@@ -5,7 +5,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// </summary>
 	public sealed class CapacityRange
 	{
-		internal CapacityRange(decimal start, decimal end)
+		/// <summary>
+		/// Initializes a new instance of the <see cref="CapacityRange"/> class.
+		/// </summary>
+		/// <param name="start">The start of the range.</param>
+		/// <param name="end">The end of the range.</param>
+		public CapacityRange(decimal start, decimal end)
 		{
 			Start = start;
 			End = end;
