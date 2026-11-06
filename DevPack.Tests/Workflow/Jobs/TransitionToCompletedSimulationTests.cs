@@ -100,12 +100,31 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 		private static void SetReservationStatus(ResourceManagerHelper resourceManagerHelper, Guid jobId, ReservationStatus status)
 		{
+			var reservation = GetReservation(resourceManagerHelper, jobId);
+
+			reservation.Status = status;
+			resourceManagerHelper.AddOrUpdateReservationInstances(reservation);
+		}
+
+		private static void MoveReservationStop(ResourceManagerHelper resourceManagerHelper, Guid jobId, DateTime stop)
+		{
+			var reservation = GetReservation(resourceManagerHelper, jobId);
+			foreach (var existingEvent in reservation.Events)
+			{
+				reservation.RemoveEvent(existingEvent.Key, existingEvent.Value);
+			}
+
+			reservation = reservation.NewTimeRange(new Skyline.DataMiner.Net.Time.TimeRangeUtc(reservation.TimeRange.Start, stop));
+			resourceManagerHelper.AddOrUpdateReservationInstances(reservation);
+		}
+
+		private static ReservationInstance GetReservation(ResourceManagerHelper resourceManagerHelper, Guid jobId)
+		{
 			var reservation = resourceManagerHelper.GetReservationInstances(
 				ReservationInstanceExposers.Properties.StringField("Job ID").Equal(Convert.ToString(jobId))).FirstOrDefault();
 			Assert.IsNotNull(reservation, "Expected a core reservation for the job.");
 
-			reservation.Status = status;
-			resourceManagerHelper.AddOrUpdateReservationInstances(reservation);
+			return reservation;
 		}
 
 		[TestMethod]
@@ -136,7 +155,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
-		public void TransitionToCompleted_ReservationNotEnded_ThrowsReservationNotEndedError()
+		public void TransitionToCompleted_OngoingReservationBeforeStop_ThrowsReservationNotEndedError()
 		{
 			var (api, resourceManagerHelper) = CreateContext();
 
@@ -146,12 +165,79 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			// the post-roll end time guard passes on the completion attempt below.
 			var stoppedJob = api.Jobs.Stop(runningJob);
 
-			// The reservation is left ongoing, mirroring a reservation that has not actually finished yet.
+			// The reservation is left ongoing and its stop time is moved beyond the tolerance, mirroring a reservation
+			// that has not actually finished yet.
+			MoveReservationStop(resourceManagerHelper, stoppedJob.Id, DateTime.UtcNow.AddMinutes(1));
 
 			var exception = Assert.ThrowsException<MediaOpsException>(() => api.Jobs.TransitionToCompleted(stoppedJob));
 			Assert.IsTrue(
 				exception.TraceData.ErrorData.OfType<JobReservationNotEndedError>().Any(),
 				"Expected a JobReservationNotEndedError when the core reservation has not ended.");
+			Assert.IsFalse(
+				exception.TraceData.ErrorData.OfType<JobPostRollEndNotReachedError>().Any(),
+				"Expected no JobPostRollEndNotReachedError, because the job's post-roll end has passed.");
+			Assert.AreEqual(JobState.Running, api.Jobs.Read(stoppedJob.Id).State, "Expected the job to stay Running.");
+		}
+
+		[TestMethod]
+		public void TransitionToCompleted_OngoingReservationPastStop_MovesJobToCompleted()
+		{
+			var (api, resourceManagerHelper) = CreateContext();
+
+			var runningJob = CreateRunningJob(api, resourceManagerHelper, withPostRoll: false);
+
+			// Stopping the running job moves its reservation stop to (approximately) now.
+			var stoppedJob = api.Jobs.Stop(runningJob);
+
+			// The reservation is left ongoing: SRM runs the reservation end event script, which triggers this transition,
+			// before it sets the reservation to Ended.
+			var completedJob = api.Jobs.TransitionToCompleted(stoppedJob);
+
+			Assert.IsNotNull(completedJob, "Expected the transition to return the updated job.");
+			Assert.AreEqual(
+				JobState.Completed,
+				completedJob.State,
+				"Expected the job to be moved to the Completed state.");
+			Assert.AreEqual(
+				ReservationStatus.Ongoing,
+				GetReservation(resourceManagerHelper, stoppedJob.Id).Status,
+				"Expected the reservation status to be left to SRM.");
+		}
+
+		[TestMethod]
+		public void TransitionToCompleted_OngoingReservationStopWithinTolerance_MovesJobToCompleted()
+		{
+			var (api, resourceManagerHelper) = CreateContext();
+
+			var runningJob = CreateRunningJob(api, resourceManagerHelper, withPostRoll: false);
+			var stoppedJob = api.Jobs.Stop(runningJob);
+
+			// The reservation end event can fire slightly before the reservation stop time.
+			MoveReservationStop(resourceManagerHelper, stoppedJob.Id, DateTime.UtcNow.AddMilliseconds(500));
+
+			var completedJob = api.Jobs.TransitionToCompleted(stoppedJob);
+
+			Assert.AreEqual(
+				JobState.Completed,
+				completedJob.State,
+				"Expected the job to be moved to the Completed state when its reservation stops within the tolerance.");
+		}
+
+		[TestMethod]
+		public void TransitionToCompleted_CanceledReservationPastStop_ThrowsReservationNotEndedError()
+		{
+			var (api, resourceManagerHelper) = CreateContext();
+
+			var runningJob = CreateRunningJob(api, resourceManagerHelper, withPostRoll: false);
+			var stoppedJob = api.Jobs.Stop(runningJob);
+
+			// Only an Ongoing reservation that reached its stop time counts as ended; any other status does not.
+			SetReservationStatus(resourceManagerHelper, stoppedJob.Id, ReservationStatus.Canceled);
+
+			var exception = Assert.ThrowsException<MediaOpsException>(() => api.Jobs.TransitionToCompleted(stoppedJob));
+			Assert.IsTrue(
+				exception.TraceData.ErrorData.OfType<JobReservationNotEndedError>().Any(),
+				"Expected a JobReservationNotEndedError when the core reservation is neither Ongoing nor Ended.");
 		}
 
 		[TestMethod]

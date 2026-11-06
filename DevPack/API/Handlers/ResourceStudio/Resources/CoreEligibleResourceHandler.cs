@@ -43,12 +43,16 @@
 				act => handler.GetEligibleResources(context));
 		}
 
-		private static IEnumerable<ResourceCapabilityUsage> BuildCapabilities(IReadOnlyCollection<CapabilitySetting> capabilitySettings)
+		private IEnumerable<ResourceCapabilityUsage> BuildCapabilities(IReadOnlyCollection<CapabilitySetting> capabilitySettings)
 		{
 			if (capabilitySettings == null)
 			{
 				yield break;
 			}
+
+			// Time-dependent capabilities also require a usage on their linked parameter, so only resources of which the value
+			// is not yet reserved by an overlapping booking are considered eligible.
+			var usageBuilder = TimeDependentCapabilityUsageBuilder.Create(planApi, capabilitySettings.Where(x => x != null).Select(x => x.Id));
 
 			foreach (var capability in capabilitySettings)
 			{
@@ -58,11 +62,10 @@
 					continue;
 				}
 
-				yield return new ResourceCapabilityUsage
+				foreach (var usage in usageBuilder.CreateUsages(capability.Id, capability.Value))
 				{
-					CapabilityProfileID = capability.Id,
-					RequiredDiscreet = capability.Value,
-				};
+					yield return usage;
+				}
 			}
 		}
 
