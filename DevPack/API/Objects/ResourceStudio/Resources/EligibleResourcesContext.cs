@@ -62,5 +62,37 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Gets or sets the filter that restricts the resources considered for the eligibility request. Can be <see langword="null"/>.
 		/// </summary>
 		public FilterElement<Resource> Filter { get; set; }
+
+		/// <summary>
+		/// Gets the identifier of this context, which is returned as <see cref="EligibleResourcesResult.ContextId"/>.
+		/// </summary>
+		public Guid Id { get; } = Guid.NewGuid();
+
+		/// <summary>
+		/// Gets or sets the job of which the booked usage of node <see cref="NodeIdToIgnore"/> is ignored, as if that node
+		/// did not use its resource. Must be set together with <see cref="NodeIdToIgnore"/>.
+		/// </summary>
+		/// <remarks>The job must have a booking that contains the node.</remarks>
+		public Guid JobIdToIgnore { get; set; }
+
+		/// <summary>
+		/// Gets or sets the node of job <see cref="JobIdToIgnore"/> of which the booked usage is ignored. Must be set together
+		/// with <see cref="JobIdToIgnore"/>.
+		/// </summary>
+		public string NodeIdToIgnore { get; set; }
+
+		/// <summary>
+		/// Gets or sets a value indicating whether the usage of every capacity of the eligible resources is returned, instead of
+		/// only the usage of the requested capacities.
+		/// </summary>
+		public bool IncludeAllCapacityUsages { get; set; }
+
+		/// <summary>
+		/// Gets or sets a value indicating whether the usage of every capability of the eligible resources is returned, instead
+		/// of only the usage of the requested capabilities.
+		/// </summary>
+		public bool IncludeAllCapabilityUsages { get; set; }
+
+		internal bool HasNodeToIgnore => JobIdToIgnore != Guid.Empty || !String.IsNullOrEmpty(NodeIdToIgnore);
 	}
 }

@@ -19,6 +19,7 @@ namespace RT_MediaOps.Plan.RST.Resources
 	/// </remarks>
 	[TestClass]
 	[TestCategory("IntegrationTest")]
+	[DoNotParallelize]
 	public sealed class EligibleResourceTests : IDisposable
 	{
 		private readonly TestObjectCreator objectCreator;
@@ -387,11 +388,146 @@ namespace RT_MediaOps.Plan.RST.Resources
 			CollectionAssert.DoesNotContain(eligibleIds, withoutPropertyResource.Id, "Expected the resource that does not have the property not to be eligible.");
 		}
 
+		[TestMethod]
+		public void GetEligibleResources_MultipleContexts_ReturnsOneResultPerContextInOrder()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = CreateCompleteResource($"{prefix}_Resource", pool, null);
+			var job = CreateConfirmedJob($"{prefix}_Job", currentTime.AddHours(1), currentTime.AddHours(2), new JobResourceNode(pool, resource));
+
+			var duringBooking = new EligibleResourcesContext(currentTime.AddHours(1), currentTime.AddHours(2)) { Filter = ResourceExposers.Id.Equal(resource.Id) };
+			var afterBooking = new EligibleResourcesContext(currentTime.AddHours(3), currentTime.AddHours(4)) { Filter = ResourceExposers.Id.Equal(resource.Id) };
+
+			var results = TestContext.Api.Resources.GetEligibleResources(new[] { afterBooking, duringBooking });
+
+			Assert.AreEqual(2, results.Count);
+			Assert.AreEqual(afterBooking.Id, results[0].ContextId);
+			Assert.AreEqual(duringBooking.Id, results[1].ContextId);
+			Assert.AreEqual(resource.Id, results[0].EligibleResources.Single().Resource.Id, $"Expected the resource to be eligible after job {job.Id}.");
+			Assert.AreEqual(0, results[1].EligibleResources.Count, $"Expected the resource not to be eligible while job {job.Id} books it.");
+		}
+
+		[TestMethod]
+		public void GetEligibleResources_NodeToIgnore_IgnoresOnlyTheUsageOfThatNode()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+			var capacity = new NumberCapacity { Name = $"{prefix}_Bandwidth", RangeMin = 0, RangeMax = 100 };
+			objectCreator.CreateCapacity(capacity);
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = CreateCompleteResource($"{prefix}_Resource", pool, value =>
+			{
+				value.Concurrency = 2;
+				value.AddCapacity(new NumberCapacitySetting(capacity.Id) { Value = 100 });
+			});
+
+			var ignoredNode = new JobResourceNode(pool, resource);
+			ignoredNode.OrchestrationSettings.AddCapacity(new NumberCapacitySetting(capacity.Id) { Value = 30 });
+			var otherNode = new JobResourceNode(pool, resource);
+			otherNode.OrchestrationSettings.AddCapacity(new NumberCapacitySetting(capacity.Id) { Value = 50 });
+
+			var bookedStart = currentTime.AddHours(1);
+			var bookedEnd = currentTime.AddHours(2);
+			var job = CreateConfirmedJob($"{prefix}_Job", bookedStart, bookedEnd, ignoredNode, otherNode);
+
+			var withoutIgnore = TestContext.Api.Resources.GetEligibleResources(new EligibleResourcesContext(bookedStart, bookedEnd)
+			{
+				Filter = ResourceExposers.Id.Equal(resource.Id),
+				IncludeAllCapacityUsages = true,
+			});
+
+			Assert.AreEqual(0, withoutIgnore.EligibleResources.Count, "Expected both nodes of the job to use the full concurrency of the resource.");
+
+			var result = TestContext.Api.Resources.GetEligibleResources(new EligibleResourcesContext(bookedStart, bookedEnd)
+			{
+				Filter = ResourceExposers.Id.Equal(resource.Id),
+				IncludeAllCapacityUsages = true,
+				JobIdToIgnore = job.Id,
+				NodeIdToIgnore = ignoredNode.Id,
+			});
+
+			var usage = result.EligibleResources.Single().Usage;
+			Assert.AreEqual(1, usage.RemainingConcurrency, "Expected only the usage of the ignored node to be freed.");
+			Assert.AreEqual(50m, usage.CapacityUsages.OfType<NumberCapacityUsage>().Single().Remaining, "Expected only the capacity of the ignored node to be freed.");
+		}
+
+		[TestMethod]
+		public void GetEligibleResources_NodeToIgnoreWithoutJob_Throws()
+		{
+			var context = new EligibleResourcesContext(DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddHours(2)) { NodeIdToIgnore = "node" };
+
+			Assert.ThrowsException<ArgumentException>(() => TestContext.Api.Resources.GetEligibleResources(context));
+		}
+
+		[TestMethod]
+		public void GetEligibleResources_UsagesThatDoNotOverlapEachOther_ReturnsWhatIsLeftAtTheBusiestMoment()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+			var capacity = new NumberCapacity { Name = $"{prefix}_Bandwidth", RangeMin = 0, RangeMax = 100 };
+			objectCreator.CreateCapacity(capacity);
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = CreateCompleteResource($"{prefix}_Resource", pool, value =>
+			{
+				value.Concurrency = 2;
+				value.AddCapacity(new NumberCapacitySetting(capacity.Id) { Value = 100 });
+			});
+
+			foreach (var (start, quantity) in new[] { (currentTime.AddHours(1), 40m), (currentTime.AddHours(2), 70m) })
+			{
+				var node = new JobResourceNode(pool, resource);
+				node.OrchestrationSettings.AddCapacity(new NumberCapacitySetting(capacity.Id) { Value = quantity });
+				CreateConfirmedJob($"{prefix}_Job_{quantity}", start, start.AddHours(1), node);
+			}
+
+			var result = TestContext.Api.Resources.GetEligibleResources(new EligibleResourcesContext(currentTime.AddHours(1), currentTime.AddHours(3))
+			{
+				Filter = ResourceExposers.Id.Equal(resource.Id),
+				IncludeAllCapacityUsages = true,
+			});
+
+			var usage = result.EligibleResources.Single().Usage;
+			Assert.AreEqual(1, usage.RemainingConcurrency);
+			Assert.AreEqual(30m, usage.CapacityUsages.OfType<NumberCapacityUsage>().Single().Remaining);
+		}
+
 		private static CapabilitySettings CreateCapabilitySettings(Capability capability, string value)
 		{
 			var capabilitySettings = new CapabilitySettings(capability.Id);
 			capabilitySettings.AddDiscrete(value);
 			return capabilitySettings;
+		}
+
+		private Job CreateConfirmedJob(string name, DateTimeOffset start, DateTimeOffset end, params JobNode[] nodes)
+		{
+			var job = new Job
+			{
+				Name = name,
+				Start = start,
+				End = end,
+				PreRollStart = start,
+				PostRollEnd = end,
+			};
+
+			foreach (var node in nodes)
+			{
+				job.NodeGraph.Add(node);
+			}
+
+			job = objectCreator.CreateJob(job);
+			job = TestContext.Api.Jobs.SaveAsTentative(job);
+			return TestContext.Api.Jobs.Confirm(job);
 		}
 
 		private static List<Guid> GetEligibleResourceIds(

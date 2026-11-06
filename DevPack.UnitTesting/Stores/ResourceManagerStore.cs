@@ -342,44 +342,91 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 		private ResourceUsageDetails BuildResourceUsageDetails(Resource resource, EligibleResourceContext context)
 		{
 			var reservationUsages = GetOverlappingReservationUsages(resource.GUID, context).ToList();
-			var overlappingUsages = reservationUsages.Select(x => x.Usage).ToList();
 			var requestedCapacityIds = new HashSet<Guid>((context.RequiredCapacities ?? [])
 				.Where(capacity => capacity != null)
 				.Select(capacity => capacity.CapacityProfileID));
 			var capacityUsageDetails = (resource.Capacities ?? [])
 				.Where(capacity => capacity?.Value != null && (context.CalculateAllCapacities || requestedCapacityIds.Contains(capacity.CapacityProfileID)))
-				.Select(capacity => BuildCapacityUsageDetails(capacity, overlappingUsages))
+				.Select(capacity => BuildCapacityUsageDetails(capacity, reservationUsages, context))
 				.ToList();
 
-			var usageDetails = new ResourceUsageDetails(resource.GUID)
+			var requestedCapabilityIds = new HashSet<Guid>((context.RequiredCapabilities ?? [])
+				.Where(capability => capability != null)
+				.Select(capability => capability.CapabilityProfileID));
+			var capabilityUsageDetails = (resource.Capabilities ?? [])
+				.Where(capability => capability != null && (context.CalculateAllCapabilities || requestedCapabilityIds.Contains(capability.CapabilityProfileID)))
+				.Select(capability => BuildCapabilityUsageDetails(capability, reservationUsages))
+				.ToList();
+
+			var usageDetails = new ResourceUsageDetails(resource.GUID, capabilityUsageDetails)
 			{
-				ConcurrencyLeft = Math.Max(0, Math.Max(1, resource.MaxConcurrency) - overlappingUsages.Count),
+				ConcurrencyLeft = Math.Max(0, Math.Max(1, resource.MaxConcurrency) - (int)GetPeakUsage(reservationUsages, context, usage => 1m)),
 			};
 
 			usageDetails.CapacityUsageDetails.AddRange(capacityUsageDetails);
 			return usageDetails;
 		}
 
-		private static CapacityUsageDetails BuildCapacityUsageDetails(MultiResourceCapacity capacity, IReadOnlyCollection<ServiceResourceUsageDefinition> overlappingUsages)
+		private static CapacityUsageDetails BuildCapacityUsageDetails(MultiResourceCapacity capacity, IReadOnlyCollection<ReservationUsage> reservationUsages, EligibleResourceContext context)
 		{
-			var usedCapacities = overlappingUsages
-				.SelectMany(usage => usage.RequiredCapacities ?? [])
-				.Where(usage => usage.CapacityProfileID == capacity.CapacityProfileID)
-				.ToList();
-
 			if (!capacity.Value.MinDecimalQuantity.HasValue)
 			{
-				var consumption = usedCapacities.Where(usage => !usage.RangeStart.HasValue).Sum(usage => usage.DecimalQuantity);
+				var consumption = GetPeakUsage(reservationUsages, context, usage => GetQuantity(usage, capacity.CapacityProfileID));
 				return new CapacityUsageDetails(capacity.CapacityProfileID, capacity.Value.MaxDecimalQuantity - consumption);
 			}
 
 			var remainingRanges = BuildRemainingRanges(
 				capacity.Value.MinDecimalQuantity.Value,
 				capacity.Value.MaxDecimalQuantity,
-				usedCapacities.Where(usage => usage.RangeStart.HasValue)
+				reservationUsages
+					.SelectMany(usage => usage.Usage.RequiredCapacities ?? [])
+					.Where(usage => usage.CapacityProfileID == capacity.CapacityProfileID && usage.RangeStart.HasValue)
 					.Select(usage => new CapacityUsageRange(usage.RangeStart.Value, usage.RangeStart.Value + usage.DecimalQuantity)));
 
 			return new CapacityUsageDetails(capacity.CapacityProfileID, remainingRanges.ToArray());
+		}
+
+		private static CapabilityUsageDetails BuildCapabilityUsageDetails(ResourceCapability capability, IReadOnlyCollection<ReservationUsage> reservationUsages)
+		{
+			if (!capability.IsTimeDynamic)
+			{
+				return new CapabilityUsageDetails(capability.CapabilityProfileID, null);
+			}
+
+			var bookedCapabilities = reservationUsages
+				.SelectMany(usage => (usage.Usage.RequiredCapabilities ?? [])
+					.Where(required => required.CapabilityProfileID == capability.CapabilityProfileID)
+					.Select(required => new BookedCapability(new Net.Time.TimeRangeUtc(usage.Reservation.Start, usage.Reservation.End), required)))
+				.ToList();
+
+			var details = new CapabilityUsageDetails(capability.CapabilityProfileID, bookedCapabilities.Count > 0);
+			details.BookedCapabilities.AddRange(bookedCapabilities);
+			return details;
+		}
+
+		// Usage details describe what is left for the whole requested window, so the busiest moment of the window counts.
+		private static decimal GetPeakUsage(IReadOnlyCollection<ReservationUsage> reservationUsages, EligibleResourceContext context, Func<ServiceResourceUsageDefinition, decimal> getUsage)
+		{
+			if (reservationUsages.Count == 0 || context?.TimeRange == null)
+			{
+				return 0;
+			}
+
+			var windowStart = context.TimeRange.Start;
+			return reservationUsages
+				.Select(usage => usage.Reservation.Start < windowStart ? windowStart : usage.Reservation.Start)
+				.Distinct()
+				.Select(moment => reservationUsages
+					.Where(usage => usage.Reservation.Start <= moment && moment < usage.Reservation.End)
+					.Sum(usage => getUsage(usage.Usage)))
+				.Max();
+		}
+
+		private static decimal GetQuantity(ServiceResourceUsageDefinition usage, Guid capacityProfileId)
+		{
+			return (usage.RequiredCapacities ?? [])
+				.Where(required => required.CapacityProfileID == capacityProfileId && !required.RangeStart.HasValue)
+				.Sum(required => required.DecimalQuantity);
 		}
 
 		private static IReadOnlyCollection<CapacityUsageRange> BuildRemainingRanges(decimal minimum, decimal maximum, IEnumerable<CapacityUsageRange> occupiedRanges)
@@ -533,7 +580,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 
 		private bool HasConcurrencyAvailable(Resource resource, EligibleResourceContext context)
 		{
-			return GetOverlappingResourceUsages(resource.GUID, context).Count() + 1 <= Math.Max(1, resource.MaxConcurrency);
+			var reservationUsages = GetOverlappingReservationUsages(resource.GUID, context).ToList();
+			return GetPeakUsage(reservationUsages, context, usage => 1m) + 1 <= Math.Max(1, resource.MaxConcurrency);
 		}
 
 		private IReadOnlyCollection<ResourceManagerErrorData> GetQuarantineErrorsForUpdatedResources(IReadOnlyCollection<Resource> updatedResources, bool forceQuarantine)
@@ -875,10 +923,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 
 		private decimal GetUsedQuantity(Guid resourceId, MultiResourceCapacityUsage requiredCapacity, EligibleResourceContext context)
 		{
-			return GetOverlappingResourceUsages(resourceId, context)
-				.SelectMany(x => x.RequiredCapacities ?? Enumerable.Empty<MultiResourceCapacityUsage>())
-				.Where(x => x.CapacityProfileID == requiredCapacity.CapacityProfileID && !x.RangeStart.HasValue)
-				.Sum(x => x.DecimalQuantity);
+			var reservationUsages = GetOverlappingReservationUsages(resourceId, context).ToList();
+			return GetPeakUsage(reservationUsages, context, usage => GetQuantity(usage, requiredCapacity.CapacityProfileID));
 		}
 
 		private bool HasOverlappingRangeUsage(Guid resourceId, MultiResourceCapacityUsage requiredCapacity, EligibleResourceContext context)
@@ -907,7 +953,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 			foreach (var reservation in _reservationInstances.Values)
 			{
 				if (!ConsumesCapacity(reservation.Status) ||
-					IsIgnoredReservation(reservation, context) ||
 					!RangesOverlap(context.TimeRange.Start, context.TimeRange.Stop, reservation.Start, reservation.End))
 				{
 					continue;
@@ -915,7 +960,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 
 				foreach (var usage in reservation.ResourcesInReservationInstance.OfType<ServiceResourceUsageDefinition>())
 				{
-					if (usage.GUID == resourceId)
+					if (usage.GUID == resourceId && !IsIgnoredUsage(reservation, usage, context))
 					{
 						yield return new ReservationUsage(reservation, usage);
 					}
@@ -930,14 +975,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 				status == ReservationStatus.Ongoing;
 		}
 
-		private static bool IsIgnoredReservation(ReservationInstance reservation, EligibleResourceContext context)
+		// A real agent ignores only the usage of NodeIdToIgnore; without a node the whole reservation is ignored.
+		private static bool IsIgnoredUsage(ReservationInstance reservation, ServiceResourceUsageDefinition usage, EligibleResourceContext context)
 		{
-			if (context.ReservationIdToIgnore == null || context.ReservationIdToIgnore.Id == Guid.Empty)
+			if (context.ReservationIdToIgnore == null || context.ReservationIdToIgnore.Id == Guid.Empty || reservation.ID != context.ReservationIdToIgnore.Id)
 			{
 				return false;
 			}
 
-			return reservation.ID == context.ReservationIdToIgnore.Id;
+			return context.NodeIdToIgnore <= 0 || usage.ServiceDefinitionNodeID == context.NodeIdToIgnore;
 		}
 
 		private static bool RangesOverlap(DateTime start1, DateTime end1, DateTime start2, DateTime end2)
