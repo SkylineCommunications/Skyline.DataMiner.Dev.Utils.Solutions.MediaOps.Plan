@@ -9,7 +9,6 @@ namespace RT_MediaOps.Plan.Workflow.RecurringJobs
 
 	[TestClass]
 	[TestCategory("IntegrationTest")]
-	[DoNotParallelize]
 	public sealed class ConfigurationStateTests : IDisposable
 	{
 		private readonly TestObjectCreator objectCreator;

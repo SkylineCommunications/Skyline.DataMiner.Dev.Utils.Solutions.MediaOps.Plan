@@ -21,7 +21,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <param name="parameterId">The unique identifier of the parameter.</param>
 		/// <param name="nodeId">
 		/// Optional identifier of the workflow node whose parameter is referenced.
-		/// When <see langword="null"/> the reference targets the parameter on the current node.
+		/// When <see langword="null"/> the reference targets the parameter of the workflow / job itself.
 		/// </param>
 		protected ParameterReference(DataReferenceType type, Guid parameterId, string nodeId)
 			: base(type, nodeId)

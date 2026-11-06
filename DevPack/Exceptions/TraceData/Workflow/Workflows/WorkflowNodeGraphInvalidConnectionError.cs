@@ -6,6 +6,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions
 	/// <seealso cref="WorkflowNodeGraphInvalidConnectionNodeError"/>
 	/// <seealso cref="WorkflowNodeGraphDuplicateConnectionIdError"/>
 	/// <seealso cref="WorkflowNodeGraphEmptyConnectionIdError"/>
+	/// <seealso cref="WorkflowNodeGraphForbiddenConnectionError"/>
 	public class WorkflowNodeGraphInvalidConnectionError : WorkflowNodeGraphError
 	{
 		/// <summary>

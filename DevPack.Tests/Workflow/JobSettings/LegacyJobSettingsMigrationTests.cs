@@ -28,7 +28,7 @@ namespace RT_MediaOps.Plan.Workflow.JobSettings
 
 		public LegacyJobSettingsMigrationTests()
 		{
-			objectCreator = new TestObjectCreator(TestContext);
+			objectCreator = new TestObjectCreator(TestContext, assignJobKeys: false);
 			originalAppSettings = ReadAllAppSettings().Select(x => (DomInstance)x.Clone()).ToList();
 		}
 

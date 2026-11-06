@@ -1459,6 +1459,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var error = exception.TraceData.ErrorData.OfType<JobUnresolvedReferenceError>().Single();
 			StringAssert.Contains(error.ErrorMessage, "which is not one of the options of 'Mode'");
+			Assert.AreEqual(job.NodeGraph.Nodes.Single().Id, error.NodeId);
+			Assert.IsNull(error.SettingId, "An orchestration event reference has no setting.");
 			Assert.AreEqual(JobState.Tentative, setup.Api.Jobs.Read(job.Id).State, "Expected the job to stay tentative.");
 		}
 
