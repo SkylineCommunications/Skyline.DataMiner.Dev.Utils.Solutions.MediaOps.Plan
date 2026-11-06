@@ -26,6 +26,7 @@ Depending on your project type, one of the following additional packages is also
 | [Getting Started](Documentation/Getting%20Started.md) | Installation, prerequisites, and the core concepts (resources, jobs, workflows, recurring jobs, node graphs, properties, relationships) |
 | [Quick Reference](Documentation/Quick%20Reference.md) | Copyable snippets for every repository: CRUD, job/recurring job lifecycle, node graphs, properties, relationships, querying, and synchronization |
 | [Advanced Topics](Documentation/Advanced%20Topics.md) | State machines, job timing rules, configuration state, data references, eligible resources, SRM synchronization, logging, and installation checks |
+| [DOM Installation](Documentation/DOM%20Installation.md) | Code-first schema installation, ownership, failure semantics, source baselines, and unit-only validation |
 
 External resources:
 

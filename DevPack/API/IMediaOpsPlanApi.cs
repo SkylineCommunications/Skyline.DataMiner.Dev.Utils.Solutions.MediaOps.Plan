@@ -88,6 +88,19 @@
 		IGlobalSettings GlobalSettings { get; }
 
 		/// <summary>
+		/// Installs or reconciles the DOM schemas owned by MediaOps Plan, including People and Organizations.
+		/// </summary>
+		/// <remarks>
+		/// Requires DataMiner 10.6.11 or later and permission to configure module settings.
+		/// Module settings and declared schema metadata are authoritative. Removed fields and section links
+		/// are retained as soft-deleted metadata; unrelated definitions and sections are not removed.
+		/// This method does not install scripts, migrate instance data, or register the solution.
+		/// Each module's DOM Manager is reinitialized after reconciliation. Exceptions propagate and
+		/// previously completed writes are not rolled back.
+		/// </remarks>
+		void InstallDomModules();
+
+		/// <summary>
 		/// Determines whether the MediaOps.PLAN application is installed on the DataMiner System.
 		/// </summary>
 		/// <returns>
