@@ -1,4 +1,4 @@
-﻿namespace RT_MediaOps.Plan.Workflow.Jobs
+namespace RT_MediaOps.Plan.Workflow.Jobs
 {
 	using System;
 	using System.Linq;
@@ -15,7 +15,6 @@
 	/// </summary>
 	[TestClass]
 	[TestCategory("IntegrationTest")]
-	[DoNotParallelize]
 	public sealed class NodeResourceRequirementsTests : IDisposable
 	{
 		private readonly TestObjectCreator objectCreator;
