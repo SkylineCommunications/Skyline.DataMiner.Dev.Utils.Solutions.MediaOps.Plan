@@ -1,4 +1,4 @@
-﻿namespace RT_MediaOps.Plan.Workflow.Jobs
+namespace RT_MediaOps.Plan.Workflow.Jobs
 {
 	using System;
 	using System.Linq;
@@ -15,7 +15,6 @@
 	/// </summary>
 	[TestClass]
 	[TestCategory("IntegrationTest")]
-	[DoNotParallelize]
 	public sealed class NodeResourceRequirementsTests : IDisposable
 	{
 		private readonly TestObjectCreator objectCreator;
@@ -227,8 +226,10 @@
 			StringAssert.Contains(error.ErrorMessage, "Supported values: 'Value 1', 'Value 2'.");
 		}
 
-		private static MediaOpsTraceData AssertCreateFails(Job job)
+		private MediaOpsTraceData AssertCreateFails(Job job)
 		{
+			objectCreator.AssignJobKey(job);
+
 			var exception = Assert.ThrowsException<MediaOpsBulkException<Guid>>(() => TestContext.Api.Jobs.Create([job]));
 			return GetTraceData(exception, job.Id);
 		}
