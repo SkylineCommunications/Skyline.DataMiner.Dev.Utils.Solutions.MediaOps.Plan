@@ -226,10 +226,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			StringAssert.Contains(error.ErrorMessage, "Supported values: 'Value 1', 'Value 2'.");
 		}
 
-		private MediaOpsTraceData AssertCreateFails(Job job)
+		private static MediaOpsTraceData AssertCreateFails(Job job)
 		{
-			objectCreator.AssignJobKey(job);
-
 			var exception = Assert.ThrowsException<MediaOpsBulkException<Guid>>(() => TestContext.Api.Jobs.Create([job]));
 			return GetTraceData(exception, job.Id);
 		}
