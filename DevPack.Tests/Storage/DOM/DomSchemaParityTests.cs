@@ -13,6 +13,7 @@ namespace RT_MediaOps.Plan.Storage.DOM
 	{
 		// Independently captured from SLC-S-MediaOps.Plan at 7a79bf3768337de562d06bd1bde0a6c062951fe5.
 		// Resource Studio's Flow Rules delta is from ab6c315db41a3f0b1a682059108ccdfb2d3f4f90.
+		// The FlowRules definition additionally includes the optional repeatable-link correction approved on 2026-11-09.
 		// P&O also matches the user-approved Rysomez.zip export (Collaboration excluded).
 		// Hashes cover complete schema objects, including nested fields and status rules.
 		// See DomSchemaSnapshot for the only excluded platform/serialization metadata.
@@ -60,7 +61,7 @@ namespace RT_MediaOps.Plan.Storage.DOM
 		[DataRow("(slc)resource_studio", "DomDefinitions", "a8262bd8-6f6c-47d4-964e-87de26d1e32e", "13c902f1447272ce97aef33b8e94ea90dba0929a5385dc89540d3a672790de1c")]
 		[DataRow("(slc)resource_studio", "DomDefinitions", "d2afc1dc-f39c-49c8-a70f-9120bfbfc0a0", "cb4b91a2ac8b5347b5034052eb950c7279279d6b1f057cd9ef518e1402e16a15")]
 		[DataRow("(slc)resource_studio", "DomDefinitions", "dad3646a-caaa-4971-b550-c618e562f5cc", "eba6034697316a28a768fd13944bd4c3973a5601dd82fd6fe1c23308bb736214")]
-		[DataRow("(slc)resource_studio", "DomDefinitions", "f9314dd0-a74f-407d-9c85-8b2e6a99e63b", "fe40d8d86ea16fef46ad406fd7968afad3f698fa08685fbb7b03d81f5e1ddba4")]
+		[DataRow("(slc)resource_studio", "DomDefinitions", "f9314dd0-a74f-407d-9c85-8b2e6a99e63b", "08eccca8e45fee5cba4542693ef998a0b82b4e4f4fcca85f12d8d12af70f132c")]
 		[DataRow("(slc)resource_studio", "SectionDefinitions", "08995f51-a59d-4ac9-a224-9481dbc4c782", "d0403de49c4ac6459616772341961a799b3165edaad1165c7470101aab9bfeff")]
 		[DataRow("(slc)resource_studio", "SectionDefinitions", "09bd71e9-813b-45d8-8110-e6068d5038e1", "e7a8fb4c4a7e5aef78dcb1129c5165e5188ce1e5744ffed426f4c294099b6a1f")]
 		[DataRow("(slc)resource_studio", "SectionDefinitions", "2377a750-f9e6-4a91-9d5c-4b9a4bee25ac", "6c66541e65088f97d9e46278316d86b00f19fffd3ba9bb81fcc0363aa4a3d964")]

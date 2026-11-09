@@ -23,7 +23,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.Definitions.SlcR
 			SectionDefinitionLinks =
 			{
 				new SectionDefinitionLink(SlcResource_StudioIds.Sections.Flowrulesinfo.Id) { IsOptional = false, AllowMultipleSections = false },
-				new SectionDefinitionLink(SlcResource_StudioIds.Sections.Flowrule.Id) { IsOptional = false, AllowMultipleSections = true },
+				new SectionDefinitionLink(SlcResource_StudioIds.Sections.Flowrule.Id) { IsOptional = true, AllowMultipleSections = true },
 			},
 		};
 
