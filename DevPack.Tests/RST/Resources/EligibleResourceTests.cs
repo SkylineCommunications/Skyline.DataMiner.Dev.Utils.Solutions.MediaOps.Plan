@@ -387,6 +387,53 @@ namespace RT_MediaOps.Plan.RST.Resources
 			CollectionAssert.DoesNotContain(eligibleIds, withoutPropertyResource.Id, "Expected the resource that does not have the property not to be eligible.");
 		}
 
+		[TestMethod]
+		public void GetEligibleResources_TimeDependentCapabilityValueLockedByOverlappingJob_ReturnsResourceOnlyForTheSameValue()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var capability = new Capability { Name = $"{prefix}_Frequency", IsTimeDependent = true };
+			capability.SetDiscretes(new[] { "Value 1", "Value 2" });
+			objectCreator.CreateCapability(capability);
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = CreateCompleteResource($"{prefix}_Resource", pool, value =>
+			{
+				value.Concurrency = 2;
+				var settings = new CapabilitySettings(capability.Id);
+				settings.SetDiscretes(["Value 1", "Value 2"]);
+				value.AddCapability(settings);
+			});
+
+			var bookedStart = currentTime.AddHours(1);
+			var bookedEnd = currentTime.AddHours(2);
+			var job = new Job
+			{
+				Name = $"{prefix}_Job",
+				Start = bookedStart,
+				End = bookedEnd,
+				PreRollStart = bookedStart,
+				PostRollEnd = bookedEnd,
+			};
+
+			var resourceNode = new JobResourceNode(pool, resource);
+			resourceNode.OrchestrationSettings.AddCapability(new CapabilitySetting(capability.Id) { Value = "Value 1" });
+			job.NodeGraph.Add(resourceNode);
+			job = objectCreator.CreateJob(job);
+			TestContext.Api.Jobs.SaveAsTentative(job);
+
+			var eligibleForSameValue = GetEligibleResourceIds(bookedStart, bookedEnd, new[] { new CapabilitySetting(capability.Id) { Value = "Value 1" } }, Array.Empty<CapacitySetting>(), pool);
+			var eligibleForOtherValue = GetEligibleResourceIds(bookedStart, bookedEnd, new[] { new CapabilitySetting(capability.Id) { Value = "Value 2" } }, Array.Empty<CapacitySetting>(), pool);
+			var eligibleForOtherValueOutsideBooking = GetEligibleResourceIds(bookedEnd.AddHours(1), bookedEnd.AddHours(2), new[] { new CapabilitySetting(capability.Id) { Value = "Value 2" } }, Array.Empty<CapacitySetting>(), pool);
+
+			CollectionAssert.Contains(eligibleForSameValue, resource.Id, "Expected the resource to be eligible for the value that is already reserved on it.");
+			CollectionAssert.DoesNotContain(eligibleForOtherValue, resource.Id, "Expected the resource not to be eligible for another value while the time-dependent value is reserved.");
+			CollectionAssert.Contains(eligibleForOtherValueOutsideBooking, resource.Id, "Expected the resource to be eligible for another value outside the booked time range.");
+		}
+
 		private static CapabilitySettings CreateCapabilitySettings(Capability capability, string value)
 		{
 			var capabilitySettings = new CapabilitySettings(capability.Id);

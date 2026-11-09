@@ -157,8 +157,8 @@
 
 		private IEnumerable<ConfigurationInstance> GetWorkflowConfigurations(HashSet<Guid> apiParameterIds)
 		{
-			var configurationFilter = DomInstanceExposers.DomDefinitionId.Equal(SlcWorkflowIds.Definitions.Configuration.Id);
-			configurationFilter.AND(new ORFilterElement<DomInstance>(apiParameterIds.Select(x =>
+			var configurationFilter = DomInstanceExposers.DomDefinitionId.Equal(SlcWorkflowIds.Definitions.Configuration.Id)
+				.AND(new ORFilterElement<DomInstance>(apiParameterIds.Select(x =>
 				DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.ProfileParameterValues.ProfileParameterID).Equal(x).OR(
 				DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.OrchestrationEvents.ScriptInputValues).Contains(x.ToString())))
 				.ToArray()));

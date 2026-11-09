@@ -605,7 +605,7 @@ job = api.Jobs.Stop(job, new JobStopOptions
     NewPostRollEnd = DateTimeOffset.UtcNow.AddMinutes(10),
 });
 
-// Running -> Completed, once the core reservation has ended.
+// Running -> Completed, once the core reservation has ended or reached its end time.
 job = api.Jobs.TransitionToCompleted(job);
 
 // Alternative paths, each starting from a different job in the indicated state:
@@ -857,6 +857,8 @@ jobSettings.KeyIncrement = 1;
 
 api.GlobalSettings.UpdateJobSettings(jobSettings);
 ```
+
+Job settings are stored in a single App Settings instance with a fixed ID. Systems upgraded from MediaOps 1.6.X can still hold the settings in an App Settings instance with a random ID. The first job settings access (`GetJobSettings`, or creating a job without a key) merges such legacy instances into the fixed-ID instance and deletes them. The legacy key configuration is kept and the next sequence never goes back.
 
 ## Querying with Exposers
 
