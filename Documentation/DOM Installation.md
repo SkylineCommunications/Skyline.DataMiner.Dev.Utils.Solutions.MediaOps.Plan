@@ -88,5 +88,3 @@ Builds and in-memory tests do **not** establish DataMiner 10.6.11 acceptance. No
 Two legacy Workflow behavior anomalies are deliberately preserved: duplicate field rules, including a conflicting Job ID visibility rule in the Running state, and references to monitoring field ID `a6649369-2c5c-4b84-a745-6aa94ca8d550` without a corresponding field declaration. Correcting these would change the approved schema and is separate work; server acceptance remains unverified.
 
 The future solution switch must deploy the new DevPack first, enforce the 10.6.11 prerequisite, and make its existing script delegate to this method at the schema-installation phase. It must also propagate API errors as installation failures: the existing `MediaOpsScript.HandleException` default implementation only logs through its caller and does not report a failed subscript. Preserve the solution's separate initialization, data migrations, and scheduled cleanup. Exporter retention and obsolete payload removal remain deferred.
-
-See [ADR 0001](../docs/adr/0001-code-first-dom-installation.md) for the ownership and compatibility decision.

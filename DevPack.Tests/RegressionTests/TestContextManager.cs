@@ -2,7 +2,7 @@
 {
 	public static class TestContextManager
 	{
-		private static readonly Lazy<IntegrationTestContext> sharedTestContext = new Lazy<IntegrationTestContext>(() => new IntegrationTestContext());
+		private static readonly IntegrationTestContext sharedTestContext = new IntegrationTestContext();
 
 		public static IntegrationTestContext SharedTestContext
 		{
@@ -10,20 +10,15 @@
 			{
 				// Verify the connection is still alive and authenticated before every test,
 				// recreating it when needed.
-				var context = sharedTestContext.Value;
-				context.EnsureConnected();
-				return context;
+				sharedTestContext.EnsureConnected();
+				return sharedTestContext;
 			}
 		}
 
 		[AssemblyCleanup]
 		public static void Cleanup()
 		{
-			// A unit-only run must not establish an integration connection just to dispose it.
-			if (sharedTestContext.IsValueCreated)
-			{
-				sharedTestContext.Value.Dispose();
-			}
+			sharedTestContext.Dispose();
 		}
 	}
 }
