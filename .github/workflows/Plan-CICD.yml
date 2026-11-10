@@ -153,12 +153,12 @@ jobs:
           if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
             environment="${TARGET_ENV:-MediaOps RT}"
           elif [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF_TYPE" == "tag" ]]; then
-            environment="dma-rc"
+            environment="MediaOps RC"
           elif [[ "$GITHUB_EVENT_NAME" == "pull_request_review" ]]; then
             if [[ "$PR_BASE_REF" == "main" ]]; then
               environment="MediaOps RT"
             elif [[ "$PR_BASE_REF" == *.*.X && "$PR_BASE_REF" != */* ]]; then
-              environment="dma-rc"
+              environment="MediaOps RC"
             fi
           fi
           echo "environment=$environment" >> "$GITHUB_OUTPUT"
@@ -188,7 +188,7 @@ jobs:
     name: Integration Tests
     if: >-
       ${{ !cancelled() && needs.unit_tests.result == 'success' &&
-          ((github.event_name == 'push' && github.ref_type == 'tag' && !contains(github.ref_name, '-alpha')) ||
+          ((github.event_name == 'push' && github.ref_type == 'tag') ||
           github.event_name == 'workflow_dispatch' ||
           (github.event_name == 'pull_request_review' && github.event.review.state == 'approved' &&
            !github.event.pull_request.draft && github.event.review.commit_id == github.event.pull_request.head.sha &&
@@ -344,8 +344,7 @@ jobs:
           needs.nuget_validation.result == 'success' && needs.tag_branch_validation.result == 'success' &&
           needs.unit_tests.result == 'success' &&
           (github.ref_type == 'branch' ||
-            (github.ref_type == 'tag' &&
-             (contains(github.ref_name, '-alpha') || needs.integration_tests.result == 'success'))) }}
+            (github.ref_type == 'tag' && needs.integration_tests.result == 'success')) }}
     permissions:
       contents: read
       id-token: write
