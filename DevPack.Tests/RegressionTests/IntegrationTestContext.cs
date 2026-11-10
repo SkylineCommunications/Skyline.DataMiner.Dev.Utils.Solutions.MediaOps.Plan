@@ -37,6 +37,7 @@
 
 			try
 			{
+				QaOpsInstallerDependencyWorkaround.Apply(newConnection, Logger);
 				var api = new ConnectionHelpers(newConnection, connectionGeneration + 1, Logger).Api;
 				_ = api.Capabilities.SystemCapabilities.ResourceType;
 			}
