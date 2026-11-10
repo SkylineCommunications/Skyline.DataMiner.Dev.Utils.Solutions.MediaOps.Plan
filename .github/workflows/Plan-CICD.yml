@@ -235,6 +235,8 @@ jobs:
 
       - name: Build Test Package
         id: package
+        env:
+          skyline__sdk__dataminertoken: ${{ secrets.SKYLINE__SDK__DATAMINERTOKEN }}
         run: |
           dotnet restore "DevPack.Tests/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests.csproj" -p:Configuration=Release -p:Version="$env:PACKAGE_VERSION" -p:DefineConstants=CI
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
