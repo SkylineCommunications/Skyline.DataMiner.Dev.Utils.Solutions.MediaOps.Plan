@@ -16,9 +16,6 @@
 		<CatalogDefaultDownloadKeyName>skyline:sdk:dataminertoken</CatalogDefaultDownloadKeyName>
 	</PropertyGroup>
 	<ItemGroup>
-		<ProjectReference Include="..\DevPack.Tests\Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests.csproj" ReferenceOutputAssembly="false" />
-	</ItemGroup>
-	<ItemGroup>
 		<PackageReference Include="Skyline.DataMiner.CICD.CSharpAnalysis.Analyzer">
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
@@ -46,4 +43,14 @@
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
 	</ItemGroup>
+
+	<!-- Temporary SDK 2.6.2 workaround: installer harvesting ignores ReferenceOutputAssembly="false".
+	     Build tests explicitly to keep their dependencies out of Install.xml. Once fixed, replace
+	     these two targets with the build-only DevPack.Tests ProjectReference. -->
+	<Target Name="RestoreIntegrationTests" BeforeTargets="Restore">
+		<MSBuild Projects="..\DevPack.Tests\Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests.csproj" Targets="Restore" Properties="Configuration=$(Configuration)" />
+	</Target>
+	<Target Name="BuildIntegrationTests" BeforeTargets="BeforeBuild">
+		<MSBuild Projects="..\DevPack.Tests\Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests.csproj" Targets="Build" Properties="Configuration=$(Configuration)" />
+	</Target>
 </Project>
