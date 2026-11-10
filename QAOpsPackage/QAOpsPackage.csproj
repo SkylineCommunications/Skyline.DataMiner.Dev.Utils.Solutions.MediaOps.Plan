@@ -16,6 +16,9 @@
 		<CatalogDefaultDownloadKeyName>skyline:sdk:dataminertoken</CatalogDefaultDownloadKeyName>
 	</PropertyGroup>
 	<ItemGroup>
+		<ProjectReference Include="..\DevPack.Tests\Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests.csproj" ReferenceOutputAssembly="false" />
+	</ItemGroup>
+	<ItemGroup>
 		<PackageReference Include="Skyline.DataMiner.CICD.CSharpAnalysis.Analyzer">
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
