@@ -16,10 +16,11 @@ The QAOps credentials branch in `DevPack.Tests/RegressionTests/Config.cs` enable
 
 ## Execution and package contents
 
-`qaops.config.xml` sets `PerformPackageInstallation` to `false`. QAOps extracts the test content and runs the pipeline against the configured target, where MediaOps Plan and its prerequisites are already installed.
+`TestPackageContent/qaops.config.xml` sets `PerformPackageInstallation` to `true`. During the dependency-installation phase, QAOps runs this package's installer before starting the test pipeline. The existing `InstallDefaultContent()` call installs the embedded Catalog prerequisites in filename order: Standard Data Model Registration first, then Categories. These prerequisites do not need to be preinstalled on the target.
 
 This package currently contains:
 
+- the Standard Data Model Registration and Categories packages declared in `PackageContent/CatalogReferences.xml`
 - the harvested build output of `Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests`, including the library built from the checked-out source
 - the QAOps pipeline scripts in `TestPackagePipeline`
 

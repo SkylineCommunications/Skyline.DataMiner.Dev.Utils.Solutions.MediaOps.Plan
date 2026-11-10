@@ -377,7 +377,7 @@ namespace RT_MediaOps.Plan.Storage.DOM
 		}
 
 		[TestMethod]
-		public void FailedReinitializationTrace_ThrowsAndRetainsEarlierWrites()
+		public void UnsuccessfulReinitializationTrace_ThrowsAndRetainsEarlierWrites()
 		{
 			var store = new InMemoryDomSchemaStore();
 			var trace = new TraceData();
