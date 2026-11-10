@@ -38,12 +38,6 @@
 			try
 			{
 				var api = new ConnectionHelpers(newConnection, connectionGeneration + 1, Logger).Api;
-				if (config.UseRealDma)
-				{
-					// The simulation installs its schema before seeding data. Real targets must be reconciled here.
-					api.InstallDomModules();
-				}
-
 				_ = api.Capabilities.SystemCapabilities.ResourceType;
 			}
 			catch

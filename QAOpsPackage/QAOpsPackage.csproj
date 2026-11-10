@@ -16,6 +16,7 @@
 		<CatalogDefaultDownloadKeyName>skyline:sdk:dataminertoken</CatalogDefaultDownloadKeyName>
 	</PropertyGroup>
 	<ItemGroup>
+		<ProjectReference Include="..\DevPack\Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.csproj" />
 		<ProjectReference Include="..\DevPack.Tests\Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests.csproj" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 

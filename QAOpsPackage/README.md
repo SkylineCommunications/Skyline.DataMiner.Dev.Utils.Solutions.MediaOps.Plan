@@ -18,6 +18,10 @@ The QAOps credentials branch in `DevPack.Tests/RegressionTests/Config.cs` enable
 
 `TestPackageContent/qaops.config.xml` sets `PerformPackageInstallation` to `true`. During the dependency-installation phase, QAOps runs this package's installer before starting the test pipeline. The existing `InstallDefaultContent()` call installs the embedded Catalog prerequisites in filename order: Standard Data Model Registration first, then Categories. These prerequisites do not need to be preinstalled on the target.
 
+After installing those dependencies, the installer reconciles Plan's DOM schemas through the DevPack built from this checkout. It then creates the `Job Types` and `Resource Pools` category scopes and the reserved `Job` relationship object type if they are missing. Existing records are preserved. The reserved object type is seeded directly through DOM, matching the solution's setup because the public repository does not allow creating reserved names.
+
+This initialization belongs to the test package, not the schema-only `InstallDomModules()` API. The shared scopes and relationship object type remain on the target after a run. Quarantine-handler deployment is not part of this bootstrap.
+
 This package currently contains:
 
 - the Standard Data Model Registration and Categories packages declared in `PackageContent/CatalogReferences.xml`
