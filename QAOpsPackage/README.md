@@ -16,10 +16,15 @@ The QAOps credentials branch in `DevPack.Tests/RegressionTests/Config.cs` enable
 
 ## Execution and package contents
 
-`qaops.config.xml` sets `PerformPackageInstallation` to `false`. QAOps extracts the test content and runs the pipeline against the configured target, where MediaOps Plan and its prerequisites are already installed.
+`TestPackageContent/qaops.config.xml` sets `PerformPackageInstallation` to `true`. During the dependency-installation phase, QAOps runs this package's installer before starting the test pipeline. The existing `InstallDefaultContent()` call installs the embedded Catalog prerequisites in filename order: Standard Data Model Registration first, then Categories. These prerequisites do not need to be preinstalled on the target.
+
+After installing those dependencies, the installer reconciles Plan's DOM schemas through the DevPack built from this checkout. It then creates the `Job Types` and `Resource Pools` category scopes and the reserved `Job` relationship object type if they are missing. Existing records are preserved. The reserved object type is seeded directly through DOM, matching the solution's setup because the public repository does not allow creating reserved names.
+
+This initialization belongs to the test package, not the schema-only `InstallDomModules()` API. The shared scopes and relationship object type remain on the target after a run. Quarantine-handler deployment is not part of this bootstrap.
 
 This package currently contains:
 
+- the Standard Data Model Registration and Categories packages declared in `PackageContent/CatalogReferences.xml`
 - the harvested build output of `Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests`, including the library built from the checked-out source
 - the QAOps pipeline scripts in `TestPackagePipeline`
 
@@ -27,11 +32,11 @@ This package currently contains:
 
 [`Plan-CICD.yml`](../.github/workflows/Plan-CICD.yml) runs validation, builds `MediaOps Plan.UnitTests.slnf` with MSBuild, and runs the complete simulated suite with VSTest. This unit build harvests test output into the runner's temporary directory to avoid Windows path-length limits.
 
-Manual runs, eligible current-head approvals of non-draft same-repository PRs targeting `main` or RC branches matching `*.*.X`, and tag pushes without `-alpha` then run the full suite through `dataminer-qaops test-run-and-wait`. Non-alpha tags require QAOps tests regardless of whether the tagged commit is on `main`.
+Manual runs, eligible current-head approvals of non-draft same-repository PRs targeting `main` or RC branches matching `*.*.X`, and all release tag pushes (including `-alpha`) then run the full suite through `dataminer-qaops test-run-and-wait`. All tags require QAOps tests regardless of whether the tagged commit is on `main`.
 
-Branch pushes run Skyline CICD after validation and simulated tests pass. Tags containing `-alpha` publish to GitHub Packages after simulated tests pass. Other prerelease tags require successful QAOps tests before publication to GitHub Packages. Stable tags also require matching release-branch ancestry and publish to nuget.org. NuGet publication runs only on tag pushes.
+Branch pushes run Skyline CICD after validation and simulated tests pass. All tags require successful QAOps tests before publishing. Prerelease tags publish to GitHub Packages. Stable tags also require matching release-branch ancestry and publish to nuget.org. NuGet publication runs only on tag pushes.
 
-Tag-triggered QAOps runs and eligible approvals of PRs targeting RC branches (`*.*.X`) use the `dma-rc` environment after the applicable validation and simulated tests pass. Eligible approvals of PRs targeting `main` use `MediaOps RT`. Manual runs select an environment through `target_env`, including `dma-rc`. The selected environment can override the repository-level `QAOPS_CONFIGURATION_ID` and `QAOPS_TEST_SUITE_ID` variables and `QAOPS_TOKEN` secret. Integration runs are serialized per target, so RC approvals and tag runs share the same queue.
+Tag-triggered QAOps runs and eligible approvals of PRs targeting RC branches (`*.*.X`) use the `MediaOps RC` environment after the applicable validation and simulated tests pass. Eligible approvals of PRs targeting `main` use `MediaOps RT`. Manual runs select an environment through `target_env`, including `MediaOps RC`. The selected environment can override the repository-level `QAOPS_CONFIGURATION_ID` and `QAOPS_TEST_SUITE_ID` variables and `QAOPS_TOKEN` secret. Integration runs are serialized per target, so RC approvals and tag runs share the same queue.
 
 The workflow restores the test project before building `QAOpsPackage.csproj` with a tag-derived or run-specific version, revalidates the current PR head and target for approval-triggered runs, submits that exact `.dmtest`, and uploads the QAOps results JSON.
 

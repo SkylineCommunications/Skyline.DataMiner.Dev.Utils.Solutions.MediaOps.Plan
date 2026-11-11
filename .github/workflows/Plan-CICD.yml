@@ -153,12 +153,12 @@ jobs:
           if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
             environment="${TARGET_ENV:-MediaOps RT}"
           elif [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF_TYPE" == "tag" ]]; then
-            environment="dma-rc"
+            environment="MediaOps RC"
           elif [[ "$GITHUB_EVENT_NAME" == "pull_request_review" ]]; then
             if [[ "$PR_BASE_REF" == "main" ]]; then
               environment="MediaOps RT"
             elif [[ "$PR_BASE_REF" == *.*.X && "$PR_BASE_REF" != */* ]]; then
-              environment="dma-rc"
+              environment="MediaOps RC"
             fi
           fi
           echo "environment=$environment" >> "$GITHUB_OUTPUT"
@@ -235,6 +235,9 @@ jobs:
 
       - name: Build Test Package
         id: package
+        env:
+          Configuration: Release
+          skyline__sdk__dataminertoken: ${{ secrets.SKYLINE__SDK__DATAMINERTOKEN }}
         run: |
           dotnet restore "DevPack.Tests/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests.csproj" -p:Configuration=Release -p:Version="$env:PACKAGE_VERSION" -p:DefineConstants=CI
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -344,8 +347,7 @@ jobs:
           needs.nuget_validation.result == 'success' && needs.tag_branch_validation.result == 'success' &&
           needs.unit_tests.result == 'success' &&
           (github.ref_type == 'branch' ||
-            (github.ref_type == 'tag' &&
-             (contains(github.ref_name, '-alpha') || needs.integration_tests.result == 'success'))) }}
+            (github.ref_type == 'tag' && (contains(github.ref_name, '-alpha') || needs.integration_tests.result == 'success'))) }}
     permissions:
       contents: read
       id-token: write
