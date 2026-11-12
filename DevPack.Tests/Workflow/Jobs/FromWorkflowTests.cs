@@ -245,6 +245,10 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			{
 				CollectionAssert.IsSubsetOf(group.Nodes.ToArray(), job.NodeGraph.Nodes.ToArray());
 			}
+
+			// The job groups are new groups, so none of them reuses the ID of a workflow group.
+			Assert.AreEqual(3, job.NodeGraph.Groups.Select(group => group.Id).Distinct().Count());
+			Assert.IsFalse(job.NodeGraph.Groups.Select(group => group.Id).Intersect(workflow.NodeGraph.Groups.Select(group => group.Id)).Any());
 		}
 
 		[TestMethod]

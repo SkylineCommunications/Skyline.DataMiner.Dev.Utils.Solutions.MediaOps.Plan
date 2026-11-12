@@ -174,42 +174,37 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		private static void ValidateGroups(Guid jobId, NodeGraph<JobNode> nodeGraph, StorageWorkflow.JobsInstance original, IReadOnlyDictionary<string, string> swappedNodeIds, List<MediaOpsErrorData> errors)
 		{
-			// Groups have no stable identifier, so they are matched as a multiset of their name and membership.
-			var unmatchedOriginals = original.NodeGroups
-				.Select(x => (Name: x.GroupName, Key: GroupKey(x.GroupName, x.GroupNodeIds)))
-				.ToList();
+			var originalSectionsById = new Dictionary<string, StorageWorkflow.NodeGroupsSection>(StringComparer.OrdinalIgnoreCase);
+			foreach (var section in original.NodeGroups)
+			{
+				var groupId = section.EffectiveGroupId;
+				if (!originalSectionsById.ContainsKey(groupId))
+				{
+					originalSectionsById.Add(groupId, section);
+				}
+			}
 
-			var unmatchedCurrent = new List<NodeGroup<JobNode>>();
-
+			var currentGroupIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 			foreach (var group in nodeGraph.Groups)
 			{
-				var key = GroupKey(group.Name, group.Nodes.Select(x => Normalize(x.Id, swappedNodeIds)));
-				var index = unmatchedOriginals.FindIndex(x => x.Key == key);
-				if (index >= 0)
+				currentGroupIds.Add(group.Id);
+
+				if (!originalSectionsById.TryGetValue(group.Id, out var originalSection))
 				{
-					unmatchedOriginals.RemoveAt(index);
+					errors.Add(CreateGroupError(jobId, group.Id, group.Name, "added to"));
 					continue;
 				}
 
-				unmatchedCurrent.Add(group);
-			}
-
-			foreach (var group in unmatchedCurrent)
-			{
-				// A group whose membership changed is matched on its name so it is reported once instead of as both a
-				// removal and an addition.
-				var index = unmatchedOriginals.FindIndex(x => x.Name == group.Name);
-				if (index >= 0)
+				var membersChanged = MembershipKey(group.Nodes.Select(x => Normalize(x.Id, swappedNodeIds))) != MembershipKey(originalSection.GroupNodeIds);
+				if (group.Name != originalSection.GroupName || membersChanged)
 				{
-					unmatchedOriginals.RemoveAt(index);
+					errors.Add(CreateGroupError(jobId, group.Id, group.Name, "changed on"));
 				}
-
-				errors.Add(CreateGroupError(jobId, group.Name));
 			}
 
-			foreach (var unmatched in unmatchedOriginals)
+			foreach (var removed in originalSectionsById.Where(x => !currentGroupIds.Contains(x.Key)))
 			{
-				errors.Add(CreateGroupError(jobId, unmatched.Name));
+				errors.Add(CreateGroupError(jobId, removed.Key, removed.Value.GroupName, "removed from"));
 			}
 		}
 
@@ -234,12 +229,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			};
 		}
 
-		private static JobNodeGroupChangedInPostRollNotAllowedError CreateGroupError(Guid jobId, string groupName)
+		private static JobNodeGroupChangedInPostRollNotAllowedError CreateGroupError(Guid jobId, string groupId, string groupName, string action)
 		{
 			return new JobNodeGroupChangedInPostRollNotAllowedError
 			{
-				ErrorMessage = "A node group of a running job cannot be changed once the job passed its end time.",
+				ErrorMessage = $"A node group cannot be {action} a running job once the job passed its end time.",
 				Id = jobId,
+				GroupId = groupId,
 				GroupName = groupName,
 			};
 		}
@@ -254,11 +250,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return $"{parentNodeId}|{childNodeId}";
 		}
 
-		private static string GroupKey(string groupName, IEnumerable<string> nodeIds)
+		private static string MembershipKey(IEnumerable<string> nodeIds)
 		{
-			var members = (nodeIds ?? []).OrderBy(x => x, StringComparer.Ordinal);
-
-			return $"{groupName}|{string.Join(",", members)}";
+			return string.Join(",", (nodeIds ?? []).OrderBy(x => x, StringComparer.Ordinal));
 		}
 	}
 }

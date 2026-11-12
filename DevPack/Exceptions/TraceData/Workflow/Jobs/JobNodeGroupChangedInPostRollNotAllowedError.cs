@@ -7,6 +7,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions
 	public sealed class JobNodeGroupChangedInPostRollNotAllowedError : JobNodeGraphChangedInPostRollNotAllowedError
 	{
 		/// <summary>
+		/// Gets the unique identifier of the node group.
+		/// </summary>
+		public string GroupId { get; internal set; }
+
+		/// <summary>
 		/// Gets the name of the node group.
 		/// </summary>
 		public string GroupName { get; internal set; }

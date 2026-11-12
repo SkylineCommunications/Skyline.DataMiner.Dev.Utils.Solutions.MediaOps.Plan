@@ -215,6 +215,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var error = errors.OfType<JobNodeGroupChangedInPostRollNotAllowedError>().SingleOrDefault();
 			Assert.IsNotNull(error);
+			Assert.AreEqual(graph.Groups.Single().Id, error.GroupId);
 			Assert.AreEqual("New group", error.GroupName);
 		}
 
@@ -233,7 +234,80 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var error = errors.OfType<JobNodeGroupChangedInPostRollNotAllowedError>().SingleOrDefault();
 			Assert.IsNotNull(error);
+			Assert.AreEqual(group.Id, error.GroupId);
 			Assert.AreEqual("Group", error.GroupName);
+		}
+
+		[TestMethod]
+		public void Validate_UnchangedGroup_ReturnsNoGroupError()
+		{
+			var (graph, first, _) = GraphWithTwoConnectedNodes();
+			graph.AddGroup("Group").Add(first);
+			graph.AddGroup("Group").Add(first);
+
+			var original = SnapshotOf(graph);
+
+			var errors = JobNodeGraphPostRollFreezeValidator.Validate(JobId, graph, original);
+
+			Assert.IsFalse(errors.OfType<JobNodeGroupChangedInPostRollNotAllowedError>().Any());
+		}
+
+		[TestMethod]
+		public void Validate_RenamedGroup_ReturnsSingleGroupChangeWithItsId()
+		{
+			var (graph, first, _) = GraphWithTwoConnectedNodes();
+			var group = graph.AddGroup("Group");
+			group.Add(first);
+
+			var original = SnapshotOf(graph);
+
+			group.Name = "Renamed";
+
+			var errors = JobNodeGraphPostRollFreezeValidator.Validate(JobId, graph, original);
+
+			var error = errors.OfType<JobNodeGroupChangedInPostRollNotAllowedError>().SingleOrDefault();
+			Assert.IsNotNull(error);
+			Assert.AreEqual(group.Id, error.GroupId);
+			Assert.AreEqual("Renamed", error.GroupName);
+		}
+
+		[TestMethod]
+		public void Validate_GroupReplacedBySameNameAndMembers_ReturnsAddAndRemove()
+		{
+			var (graph, first, _) = GraphWithTwoConnectedNodes();
+			var group = graph.AddGroup("Group");
+			group.Add(first);
+
+			var original = SnapshotOf(graph);
+
+			graph.RemoveGroup(group);
+			var replacement = graph.AddGroup("Group");
+			replacement.Add(first);
+
+			var errors = JobNodeGraphPostRollFreezeValidator.Validate(JobId, graph, original)
+				.OfType<JobNodeGroupChangedInPostRollNotAllowedError>()
+				.Select(x => x.GroupId)
+				.ToList();
+
+			CollectionAssert.AreEquivalent(new[] { group.Id, replacement.Id }, errors);
+		}
+
+		[TestMethod]
+		public void Validate_LegacyGroupWithoutStoredId_IsMatchedOnItsSectionId()
+		{
+			var (graph, first, _) = GraphWithTwoConnectedNodes();
+			var original = SnapshotOf(graph);
+
+			var legacySection = new StorageWorkflow.NodeGroupsSection { GroupName = "Legacy" };
+			legacySection.GroupNodeIds.Add(first.Id);
+			original.NodeGroups.Add(legacySection);
+
+			// Mirrors how a stored job is parsed: a group without a stored ID gets its section ID.
+			graph.AddGroup(legacySection.ID.Id.ToString(), "Legacy").Add(first);
+
+			var errors = JobNodeGraphPostRollFreezeValidator.Validate(JobId, graph, original);
+
+			Assert.IsFalse(errors.OfType<JobNodeGroupChangedInPostRollNotAllowedError>().Any());
 		}
 
 		[TestMethod]
@@ -251,6 +325,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			var error = errors.OfType<JobNodeGroupChangedInPostRollNotAllowedError>().SingleOrDefault();
 			Assert.IsNotNull(error);
+			Assert.AreEqual(group.Id, error.GroupId);
 			Assert.AreEqual("Group", error.GroupName);
 		}
 
@@ -318,7 +393,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			foreach (var group in graph.Groups)
 			{
-				var section = new StorageWorkflow.NodeGroupsSection { GroupName = group.Name };
+				var section = new StorageWorkflow.NodeGroupsSection { GroupID = group.Id, GroupName = group.Name };
 				foreach (var node in group.Nodes)
 				{
 					section.GroupNodeIds.Add(node.Id);

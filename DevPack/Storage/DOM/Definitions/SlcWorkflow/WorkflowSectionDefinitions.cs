@@ -210,6 +210,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.Definitions.SlcW
 			{
 				ID = Ids.Sections.NodeGroups.GroupNodeIds, Name = "Group node IDs", FieldType = typeof(List<string>), IsOptional = true, Tooltip = String.Empty,
 			});
+			section.AddOrReplaceFieldDescriptor(new FieldDescriptor
+			{
+				ID = Ids.Sections.NodeGroups.GroupID, Name = "Group ID", FieldType = typeof(string), IsOptional = true,
+				Tooltip = "An auto-assigned value representing the ID of this group.",
+			});
 			return section;
 		}
 
