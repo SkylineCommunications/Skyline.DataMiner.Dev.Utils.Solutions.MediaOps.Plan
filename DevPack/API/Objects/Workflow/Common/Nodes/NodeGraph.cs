@@ -6,6 +6,8 @@
 
 	using Skyline.DataMiner.Net.Helper;
 
+	using StorageWorkflow = Storage.DOM.SlcWorkflow;
+
 	/// <summary>
 	/// Represents a directed graph of nodes with connections between them.
 	/// </summary>
@@ -139,27 +141,24 @@
 		/// <returns>The group that was added.</returns>
 		public NodeGroup<TNode> AddGroup(string name)
 		{
-			return AddGroup(Guid.NewGuid(), name);
-		}
-
-		/// <summary>
-		/// Adds a new, empty group with the specified identifier to the graph.
-		/// </summary>
-		/// <param name="id">The identifier of the group.</param>
-		/// <param name="name">The name of the group.</param>
-		/// <returns>The group that was added.</returns>
-		/// <exception cref="ArgumentException">Thrown when <paramref name="id"/> is empty or a group with the same ID is already part of the graph.</exception>
-		internal NodeGroup<TNode> AddGroup(Guid id, string name)
-		{
-			if (ContainsGroup(id))
-			{
-				throw new ArgumentException($"A group with ID '{id}' is already part of this graph.", nameof(id));
-			}
-
-			var group = new NodeGroup<TNode>(this, id, name);
+			var group = new NodeGroup<TNode>(this, name);
 			groups.Add(group);
 
 			return group;
+		}
+
+		/// <summary>
+		/// Adds the groups stored in the specified storage sections to the graph.
+		/// </summary>
+		/// <param name="sections">The storage node groups sections to parse.</param>
+		/// <param name="nodeResolver">A function that resolves node identifiers to nodes of the graph, returning null for unknown nodes.</param>
+		/// <param name="onWarning">Receives a message for each inconsistency in the stored data that is repaired while parsing.</param>
+		internal void AddGroups(IEnumerable<StorageWorkflow.NodeGroupsSection> sections, Func<string, TNode> nodeResolver, Action<string> onWarning)
+		{
+			foreach (var section in sections ?? [])
+			{
+				groups.Add(new NodeGroup<TNode>(this, section, nodeResolver, onWarning));
+			}
 		}
 
 		/// <summary>
