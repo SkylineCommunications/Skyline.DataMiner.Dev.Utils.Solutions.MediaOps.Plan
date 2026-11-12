@@ -729,7 +729,7 @@
 				if (NodeGraph.ContainsGroup(groupId))
 				{
 					planApi.Logger.Warning(this, $"Node group '{groupSection.GroupName}' has duplicate ID '{groupId}'. A new ID will be assigned.");
-					groupId = Guid.Empty;
+					groupId = Guid.NewGuid();
 				}
 
 				var group = NodeGraph.AddGroup(groupId, groupSection.GroupName);

@@ -139,19 +139,19 @@
 		/// <returns>The group that was added.</returns>
 		public NodeGroup<TNode> AddGroup(string name)
 		{
-			return AddGroup(Guid.Empty, name);
+			return AddGroup(Guid.NewGuid(), name);
 		}
 
 		/// <summary>
 		/// Adds a new, empty group with the specified identifier to the graph.
 		/// </summary>
-		/// <param name="id">The identifier of the group, or <see cref="Guid.Empty"/> to assign a new one.</param>
+		/// <param name="id">The identifier of the group.</param>
 		/// <param name="name">The name of the group.</param>
 		/// <returns>The group that was added.</returns>
-		/// <exception cref="ArgumentException">Thrown when a group with the same ID is already part of the graph.</exception>
+		/// <exception cref="ArgumentException">Thrown when <paramref name="id"/> is empty or a group with the same ID is already part of the graph.</exception>
 		internal NodeGroup<TNode> AddGroup(Guid id, string name)
 		{
-			if (id != Guid.Empty && ContainsGroup(id))
+			if (ContainsGroup(id))
 			{
 				throw new ArgumentException($"A group with ID '{id}' is already part of this graph.", nameof(id));
 			}
