@@ -132,7 +132,9 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 		}
 
 		[TestMethod]
-		public void NodeGraph_GroupStoredWithoutId_GetsItsSectionIdAndPersistsItOnNextSave()
+		[DataRow(null, DisplayName = "No stored group ID")]
+		[DataRow("not-a-guid", DisplayName = "Stored group ID is not a GUID")]
+		public void NodeGraph_GroupStoredWithoutValidId_GetsItsSectionIdAndPersistsItOnNextSave(string storedGroupId)
 		{
 			var prefix = Guid.NewGuid();
 
@@ -146,14 +148,14 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 
 			workflow = objectCreator.CreateWorkflow(workflow);
 
-			// Simulate a group that was stored before the group ID field existed.
+			// Simulate a group that was stored before the group ID field existed, or with an invalid ID.
 			var workflowHelper = ((MediaOpsPlanApi)TestContext.Api).DomHelpers.SlcWorkflowHelper;
 			var instance = workflowHelper.GetWorkflows(new[] { workflow.Id }).Single();
 			var section = instance.NodeGroups.Single();
-			section.GroupID = null;
+			section.GroupID = storedGroupId;
 			workflowHelper.DomHelper.DomInstances.Update(instance.ToInstance());
 
-			var expectedId = section.ID.Id.ToString();
+			var expectedId = section.ID.Id;
 
 			var firstRead = TestContext.Api.Workflows.Read(workflow.Id);
 			var secondRead = TestContext.Api.Workflows.Read(workflow.Id);
@@ -165,7 +167,7 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 			TestContext.Api.Workflows.Update(firstRead);
 
 			var stored = workflowHelper.GetWorkflows(new[] { workflow.Id }).Single();
-			Assert.AreEqual(expectedId, stored.NodeGroups.Single().GroupID);
+			Assert.AreEqual(expectedId.ToString(), stored.NodeGroups.Single().GroupID);
 		}
 
 		[TestMethod]

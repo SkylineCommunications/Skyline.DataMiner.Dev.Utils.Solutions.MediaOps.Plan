@@ -52,7 +52,7 @@
 		protected abstract MediaOpsErrorData CreateDuplicateConnectionIdError(string connectionId, string errorMessage);
 		protected abstract MediaOpsErrorData CreateConnectionInvalidNodeLinkError(string connectionId, string nodeId, string errorMessage);
 		protected abstract MediaOpsErrorData CreateInvalidNodeLinkError(string parentNodeId, string childNodeId, string errorMessage);
-		protected abstract MediaOpsErrorData CreateInvalidGroupNodeError(string groupId, string groupName, string nodeId, string errorMessage);
+		protected abstract MediaOpsErrorData CreateInvalidGroupNodeError(Guid groupId, string groupName, string nodeId, string errorMessage);
 		protected abstract MediaOpsErrorData CreateForbiddenConnectionError(FlowRuleConnectionEvaluation evaluation, string errorMessage);
 
 		/// <summary>
@@ -478,7 +478,7 @@
 			};
 		}
 
-		protected override MediaOpsErrorData CreateInvalidGroupNodeError(string groupId, string groupName, string nodeId, string errorMessage)
+		protected override MediaOpsErrorData CreateInvalidGroupNodeError(Guid groupId, string groupName, string nodeId, string errorMessage)
 		{
 			return new JobNodeGraphInvalidGroupNodeError
 			{
@@ -631,7 +631,7 @@
 			};
 		}
 
-		protected override MediaOpsErrorData CreateInvalidGroupNodeError(string groupId, string groupName, string nodeId, string errorMessage)
+		protected override MediaOpsErrorData CreateInvalidGroupNodeError(Guid groupId, string groupName, string nodeId, string errorMessage)
 		{
 			return new RecurringJobNodeGraphInvalidGroupNodeError
 			{
@@ -784,7 +784,7 @@
 			};
 		}
 
-		protected override MediaOpsErrorData CreateInvalidGroupNodeError(string groupId, string groupName, string nodeId, string errorMessage)
+		protected override MediaOpsErrorData CreateInvalidGroupNodeError(Guid groupId, string groupName, string nodeId, string errorMessage)
 		{
 			return new WorkflowNodeGraphInvalidGroupNodeError
 			{

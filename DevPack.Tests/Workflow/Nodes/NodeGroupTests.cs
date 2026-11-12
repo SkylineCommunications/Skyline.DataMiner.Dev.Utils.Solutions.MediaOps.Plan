@@ -37,8 +37,8 @@ namespace RT_MediaOps.Plan.Workflow.Nodes
 			var second = workflow.NodeGraph.AddGroup("Group");
 			var id = first.Id;
 
-			Assert.IsTrue(Guid.TryParse(first.Id, out _));
-			Assert.IsTrue(Guid.TryParse(second.Id, out _));
+			Assert.AreNotEqual(Guid.Empty, first.Id);
+			Assert.AreNotEqual(Guid.Empty, second.Id);
 			Assert.AreNotEqual(first.Id, second.Id);
 
 			first.Name = "Renamed";

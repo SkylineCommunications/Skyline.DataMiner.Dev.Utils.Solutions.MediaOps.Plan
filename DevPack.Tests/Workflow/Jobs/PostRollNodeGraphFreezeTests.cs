@@ -303,7 +303,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			original.NodeGroups.Add(legacySection);
 
 			// Mirrors how a stored job is parsed: a group without a stored ID gets its section ID.
-			graph.AddGroup(legacySection.ID.Id.ToString(), "Legacy").Add(first);
+			graph.AddGroup(legacySection.ID.Id, "Legacy").Add(first);
 
 			var errors = JobNodeGraphPostRollFreezeValidator.Validate(JobId, graph, original);
 
@@ -393,7 +393,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			foreach (var group in graph.Groups)
 			{
-				var section = new StorageWorkflow.NodeGroupsSection { GroupID = group.Id, GroupName = group.Name };
+				var section = new StorageWorkflow.NodeGroupsSection { GroupID = group.Id.ToString(), GroupName = group.Name };
 				foreach (var node in group.Nodes)
 				{
 					section.GroupNodeIds.Add(node.Id);

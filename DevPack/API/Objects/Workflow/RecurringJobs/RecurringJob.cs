@@ -729,7 +729,7 @@
 				if (NodeGraph.ContainsGroup(groupId))
 				{
 					planApi.Logger.Warning(this, $"Node group '{groupSection.GroupName}' has duplicate ID '{groupId}'. A new ID will be assigned.");
-					groupId = null;
+					groupId = Guid.Empty;
 				}
 
 				var group = NodeGraph.AddGroup(groupId, groupSection.GroupName);
@@ -903,7 +903,7 @@
 			{
 				var groupSection = new StorageWorkflow.NodeGroupsSection
 				{
-					GroupID = group.Id,
+					GroupID = group.Id.ToString(),
 					GroupName = group.Name,
 				};
 

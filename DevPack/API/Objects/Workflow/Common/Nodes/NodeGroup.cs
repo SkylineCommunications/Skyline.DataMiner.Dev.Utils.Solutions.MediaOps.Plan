@@ -22,13 +22,13 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Initializes a new instance of the <see cref="NodeGroup{TNode}"/> class.
 		/// </summary>
 		/// <param name="graph">The graph that owns this group.</param>
-		/// <param name="id">The identifier of the group, or <see langword="null"/> to assign a new one.</param>
+		/// <param name="id">The identifier of the group, or <see cref="Guid.Empty"/> to assign a new one.</param>
 		/// <param name="name">The name of the group.</param>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="graph"/> is null.</exception>
-		internal NodeGroup(NodeGraph<TNode> graph, string id, string name)
+		internal NodeGroup(NodeGraph<TNode> graph, Guid id, string name)
 		{
 			this.graph = graph ?? throw new ArgumentNullException(nameof(graph));
-			Id = String.IsNullOrWhiteSpace(id) ? Guid.NewGuid().ToString() : id;
+			Id = id == Guid.Empty ? Guid.NewGuid() : id;
 			Name = name;
 		}
 
@@ -38,7 +38,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <remarks>
 		/// The identifier is assigned automatically and cannot be changed.
 		/// </remarks>
-		public string Id { get; }
+		public Guid Id { get; }
 
 		/// <summary>
 		/// Gets or sets the name of the group.

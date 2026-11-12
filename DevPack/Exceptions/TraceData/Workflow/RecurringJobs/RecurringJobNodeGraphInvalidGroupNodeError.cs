@@ -1,5 +1,7 @@
 namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions
 {
+	using System;
+
 	/// <summary>
 	/// Represents an error that occurs when a node group of a recurring job references a node that is not part of the node graph.
 	/// </summary>
@@ -8,7 +10,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions
 		/// <summary>
 		/// Gets the unique identifier of the node group.
 		/// </summary>
-		public string GroupId { get; internal set; }
+		public Guid GroupId { get; internal set; }
 
 		/// <summary>
 		/// Gets the name of the node group.
