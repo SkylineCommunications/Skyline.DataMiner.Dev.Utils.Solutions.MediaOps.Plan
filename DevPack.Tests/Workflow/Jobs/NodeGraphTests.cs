@@ -93,8 +93,10 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var poolNode = new JobResourcePoolNode(pool);
 
 			job.NodeGraph.Add(resourceNode).Add(poolNode);
-			job.NodeGraph.AddGroup("Group A").Add(resourceNode);
-			job.NodeGraph.AddGroup("Group B").Add(resourceNode).Add(poolNode);
+			var groupA = job.NodeGraph.AddGroup("Group A");
+			groupA.Add(resourceNode);
+			var groupB = job.NodeGraph.AddGroup("Group B");
+			groupB.Add(resourceNode).Add(poolNode);
 
 			job = objectCreator.CreateJob(job);
 
@@ -105,8 +107,8 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			var storedResourceNode = stored.NodeGraph.Nodes.Single(node => node.Id == resourceNode.Id);
 			var storedPoolNode = stored.NodeGraph.Nodes.Single(node => node.Id == poolNode.Id);
 
-			CollectionAssert.AreEqual(new[] { storedResourceNode }, stored.NodeGraph.Groups.Single(group => group.Name == "Group A").Nodes.ToArray());
-			CollectionAssert.AreEqual(new[] { storedResourceNode, storedPoolNode }, stored.NodeGraph.Groups.Single(group => group.Name == "Group B").Nodes.ToArray());
+			CollectionAssert.AreEqual(new[] { storedResourceNode }, stored.NodeGraph.Groups.Single(group => group.Id == groupA.Id).Nodes.ToArray());
+			CollectionAssert.AreEqual(new[] { storedResourceNode, storedPoolNode }, stored.NodeGraph.Groups.Single(group => group.Id == groupB.Id).Nodes.ToArray());
 		}
 
 		[TestMethod]

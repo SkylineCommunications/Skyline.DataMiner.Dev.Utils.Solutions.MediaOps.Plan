@@ -72,22 +72,100 @@ namespace RT_MediaOps.Plan.Workflow.Workflows
 			var poolNode = new WorkflowResourcePoolNode(pool);
 
 			workflow.NodeGraph.Add(resourceNode).Add(poolNode);
-			workflow.NodeGraph.AddGroup("Group A").Add(resourceNode);
-			workflow.NodeGraph.AddGroup("Group B").Add(resourceNode).Add(poolNode);
-			workflow.NodeGraph.AddGroup("Empty group");
+			var groupA = workflow.NodeGraph.AddGroup("Group A");
+			groupA.Add(resourceNode);
+			var groupB = workflow.NodeGraph.AddGroup("Group B");
+			groupB.Add(resourceNode).Add(poolNode);
+			var emptyGroup = workflow.NodeGraph.AddGroup("Empty group");
 
 			workflow = objectCreator.CreateWorkflow(workflow);
 
 			var stored = TestContext.Api.Workflows.Read(workflow.Id);
 
 			Assert.AreEqual(3, stored.NodeGraph.Groups.Count);
+			CollectionAssert.AreEquivalent(new[] { groupA.Id, groupB.Id, emptyGroup.Id }, stored.NodeGraph.Groups.Select(group => group.Id).ToArray());
 
 			var storedResourceNode = stored.NodeGraph.Nodes.Single(node => node.Id == resourceNode.Id);
 			var storedPoolNode = stored.NodeGraph.Nodes.Single(node => node.Id == poolNode.Id);
 
-			CollectionAssert.AreEqual(new[] { storedResourceNode }, stored.NodeGraph.Groups.Single(group => group.Name == "Group A").Nodes.ToArray());
-			CollectionAssert.AreEqual(new[] { storedResourceNode, storedPoolNode }, stored.NodeGraph.Groups.Single(group => group.Name == "Group B").Nodes.ToArray());
-			Assert.AreEqual(0, stored.NodeGraph.Groups.Single(group => group.Name == "Empty group").Nodes.Count);
+			CollectionAssert.AreEqual(new[] { storedResourceNode }, stored.NodeGraph.Groups.Single(group => group.Id == groupA.Id).Nodes.ToArray());
+			CollectionAssert.AreEqual(new[] { storedResourceNode, storedPoolNode }, stored.NodeGraph.Groups.Single(group => group.Id == groupB.Id).Nodes.ToArray());
+			Assert.AreEqual(0, stored.NodeGraph.Groups.Single(group => group.Id == emptyGroup.Id).Nodes.Count);
+		}
+
+		[TestMethod]
+		public void NodeGraph_UpdatingGroups_KeepsTheIdsOfExistingGroups()
+		{
+			var prefix = Guid.NewGuid();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var workflow = new Workflow { Name = $"{prefix}_Workflow" };
+			var firstNode = new WorkflowResourcePoolNode(pool);
+			var secondNode = new WorkflowResourcePoolNode(pool);
+
+			workflow.NodeGraph.Add(firstNode).Add(secondNode);
+			workflow.NodeGraph.AddGroup("Renamed").Add(firstNode);
+			workflow.NodeGraph.AddGroup("Membership").Add(firstNode);
+			workflow.NodeGraph.AddGroup("Removed");
+
+			workflow = objectCreator.CreateWorkflow(workflow);
+
+			var renamed = workflow.NodeGraph.Groups.Single(group => group.Name == "Renamed");
+			var membership = workflow.NodeGraph.Groups.Single(group => group.Name == "Membership");
+			var removed = workflow.NodeGraph.Groups.Single(group => group.Name == "Removed");
+
+			renamed.Name = "Renamed again";
+			membership.Add(workflow.NodeGraph.Nodes.Single(node => node.Id == secondNode.Id));
+			workflow.NodeGraph.RemoveGroup(removed);
+			var added = workflow.NodeGraph.AddGroup("Added");
+
+			TestContext.Api.Workflows.Update(workflow);
+
+			var stored = TestContext.Api.Workflows.Read(workflow.Id);
+
+			CollectionAssert.AreEquivalent(new[] { renamed.Id, membership.Id, added.Id }, stored.NodeGraph.Groups.Select(group => group.Id).ToArray());
+			Assert.AreEqual("Renamed again", stored.NodeGraph.Groups.Single(group => group.Id == renamed.Id).Name);
+			Assert.AreEqual(2, stored.NodeGraph.Groups.Single(group => group.Id == membership.Id).Nodes.Count);
+			Assert.AreNotEqual(removed.Id, added.Id);
+		}
+
+		[TestMethod]
+		public void NodeGraph_GroupStoredWithoutId_GetsItsSectionIdAndPersistsItOnNextSave()
+		{
+			var prefix = Guid.NewGuid();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var workflow = new Workflow { Name = $"{prefix}_Workflow" };
+			var node = new WorkflowResourcePoolNode(pool);
+			workflow.NodeGraph.Add(node);
+			workflow.NodeGraph.AddGroup("Legacy").Add(node);
+
+			workflow = objectCreator.CreateWorkflow(workflow);
+
+			// Simulate a group that was stored before the group ID field existed.
+			var workflowHelper = ((MediaOpsPlanApi)TestContext.Api).DomHelpers.SlcWorkflowHelper;
+			var instance = workflowHelper.GetWorkflows(new[] { workflow.Id }).Single();
+			var section = instance.NodeGroups.Single();
+			section.GroupID = null;
+			workflowHelper.DomHelper.DomInstances.Update(instance.ToInstance());
+
+			var expectedId = section.ID.Id.ToString();
+
+			var firstRead = TestContext.Api.Workflows.Read(workflow.Id);
+			var secondRead = TestContext.Api.Workflows.Read(workflow.Id);
+			Assert.AreEqual(expectedId, firstRead.NodeGraph.Groups.Single().Id);
+			Assert.AreEqual(expectedId, secondRead.NodeGraph.Groups.Single().Id);
+			CollectionAssert.AreEqual(new[] { node.Id }, firstRead.NodeGraph.Groups.Single().Nodes.Select(x => x.Id).ToArray());
+
+			firstRead.Description = "Saved again";
+			TestContext.Api.Workflows.Update(firstRead);
+
+			var stored = workflowHelper.GetWorkflows(new[] { workflow.Id }).Single();
+			Assert.AreEqual(expectedId, stored.NodeGroups.Single().GroupID);
 		}
 
 		[TestMethod]

@@ -209,7 +209,7 @@ job = api.Jobs.Confirm(job);
 - **Connections** (`Connect`) – directed, data-oriented links between two nodes (for example, a source feeding a destination).
 - **Links** (`Link`) – a simple parent/child hierarchy; a child has at most one parent.
 
-Nodes can also be grouped for organizational purposes (`AddGroup`), and a node's resource/pool assignment can be replaced with `Swap` without losing its connections, links or group membership.
+Nodes can also be grouped for organizational purposes (`AddGroup`), and a node's resource/pool assignment can be replaced with `Swap` without losing its connections, links or group membership. Like nodes, each group gets an automatically assigned, read-only `Id` that is kept across updates, so you can tell which groups were added, changed or removed. Group names don't have to be unique.
 
 ```csharp
 using Skyline.DataMiner.Solutions.MediaOps.Plan.API;

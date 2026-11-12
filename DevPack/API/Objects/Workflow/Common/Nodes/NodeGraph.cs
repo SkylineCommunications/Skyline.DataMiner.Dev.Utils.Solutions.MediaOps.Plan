@@ -132,16 +132,44 @@
 		/// Adds a new, empty group to the graph.
 		/// </summary>
 		/// <remarks>
-		/// Group names are not required to be unique and may be empty.
+		/// Group names are not required to be unique and may be empty. The group gets a new, automatically assigned
+		/// <see cref="NodeGroup{TNode}.Id"/>.
 		/// </remarks>
 		/// <param name="name">The name of the group.</param>
 		/// <returns>The group that was added.</returns>
 		public NodeGroup<TNode> AddGroup(string name)
 		{
-			var group = new NodeGroup<TNode>(this, name);
+			return AddGroup(null, name);
+		}
+
+		/// <summary>
+		/// Adds a new, empty group with the specified identifier to the graph.
+		/// </summary>
+		/// <param name="id">The identifier of the group, or <see langword="null"/> to assign a new one.</param>
+		/// <param name="name">The name of the group.</param>
+		/// <returns>The group that was added.</returns>
+		/// <exception cref="ArgumentException">Thrown when a group with the same ID is already part of the graph.</exception>
+		internal NodeGroup<TNode> AddGroup(string id, string name)
+		{
+			if (!String.IsNullOrWhiteSpace(id) && ContainsGroup(id))
+			{
+				throw new ArgumentException($"A group with ID '{id}' is already part of this graph.", nameof(id));
+			}
+
+			var group = new NodeGroup<TNode>(this, id, name);
 			groups.Add(group);
 
 			return group;
+		}
+
+		/// <summary>
+		/// Determines whether a group with the specified identifier is part of the graph.
+		/// </summary>
+		/// <param name="id">The identifier of the group.</param>
+		/// <returns>true when a group with the identifier is part of the graph; otherwise, false.</returns>
+		internal bool ContainsGroup(string id)
+		{
+			return groups.Any(group => String.Equals(group.Id, id, StringComparison.OrdinalIgnoreCase));
 		}
 
 		/// <summary>

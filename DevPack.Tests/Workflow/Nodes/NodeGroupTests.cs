@@ -27,6 +27,27 @@ namespace RT_MediaOps.Plan.Workflow.Nodes
 		}
 
 		[TestMethod]
+		public void AddGroup_AssignsUniqueIdThatSurvivesRenamesAndMembershipChanges()
+		{
+			var workflow = new Workflow { Name = "Workflow" };
+			var node = new WorkflowResourceNode(Guid.NewGuid(), Guid.NewGuid());
+			workflow.NodeGraph.Add(node);
+
+			var first = workflow.NodeGraph.AddGroup("Group");
+			var second = workflow.NodeGraph.AddGroup("Group");
+			var id = first.Id;
+
+			Assert.IsTrue(Guid.TryParse(first.Id, out _));
+			Assert.IsTrue(Guid.TryParse(second.Id, out _));
+			Assert.AreNotEqual(first.Id, second.Id);
+
+			first.Name = "Renamed";
+			first.Add(node);
+
+			Assert.AreEqual(id, first.Id);
+		}
+
+		[TestMethod]
 		public void RemoveGroup_RemovesGroupButKeepsNodes()
 		{
 			var workflow = new Workflow { Name = "Workflow" };

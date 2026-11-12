@@ -8,8 +8,9 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// Represents a named group of nodes within a <see cref="NodeGraph{TNode}"/>.
 	/// </summary>
 	/// <remarks>
-	/// Group names are not required to be unique and may be empty; it is up to the consumer to give groups meaningful
-	/// names. A group is identified by its object reference, not by its name.
+	/// A group is identified by its <see cref="Id"/>, which is assigned automatically when the group is created and is
+	/// kept across updates. Group names are not required to be unique and may be empty; it is up to the consumer to
+	/// give groups meaningful names.
 	/// </remarks>
 	/// <typeparam name="TNode">The type of nodes in the group, must derive from <see cref="NodeBase"/>.</typeparam>
 	public sealed class NodeGroup<TNode> where TNode : NodeBase
@@ -21,13 +22,23 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Initializes a new instance of the <see cref="NodeGroup{TNode}"/> class.
 		/// </summary>
 		/// <param name="graph">The graph that owns this group.</param>
+		/// <param name="id">The identifier of the group, or <see langword="null"/> to assign a new one.</param>
 		/// <param name="name">The name of the group.</param>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="graph"/> is null.</exception>
-		internal NodeGroup(NodeGraph<TNode> graph, string name)
+		internal NodeGroup(NodeGraph<TNode> graph, string id, string name)
 		{
 			this.graph = graph ?? throw new ArgumentNullException(nameof(graph));
+			Id = String.IsNullOrWhiteSpace(id) ? Guid.NewGuid().ToString() : id;
 			Name = name;
 		}
+
+		/// <summary>
+		/// Gets the unique identifier of the group within its graph.
+		/// </summary>
+		/// <remarks>
+		/// The identifier is assigned automatically and cannot be changed.
+		/// </remarks>
+		public string Id { get; }
 
 		/// <summary>
 		/// Gets or sets the name of the group.
@@ -134,7 +145,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		internal string GetComparisonKey()
 		{
 			var nameKey = Name == null ? "null" : $"value:{Name}";
-			return $"{nameKey}:{String.Join(",", nodes.Select(node => node?.Id).OrderBy(id => id, StringComparer.Ordinal))}";
+			return $"{Id}:{nameKey}:{String.Join(",", nodes.Select(node => node?.Id).OrderBy(id => id, StringComparer.Ordinal))}";
 		}
 	}
 }

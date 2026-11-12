@@ -38,7 +38,7 @@ namespace RT_MediaOps.Plan.Storage.DOM
 				new[] { "(slc)people_organizations", "(slc)properties", "(slc)relationships", "(slc)resource_studio", "(slc)workflow" },
 				store.ModuleSettings.Select(x => x.ModuleId).ToArray());
 			Assert.AreEqual(63, store.Messages.OfType<ManagerStoreCreateRequest<SectionDefinition>>().Count());
-			Assert.AreEqual(259, store.Messages.OfType<ManagerStoreCreateRequest<SectionDefinition>>().Sum(x => x.Object.GetAllFieldDescriptors().Count()));
+			Assert.AreEqual(260, store.Messages.OfType<ManagerStoreCreateRequest<SectionDefinition>>().Sum(x => x.Object.GetAllFieldDescriptors().Count()));
 			Assert.AreEqual(8, store.Messages.OfType<ManagerStoreCreateRequest<DomBehaviorDefinition>>().Count());
 			Assert.AreEqual(23, store.Messages.OfType<ManagerStoreCreateRequest<DomDefinition>>().Count());
 			Assert.AreEqual(5, store.Messages.OfType<ManagerStoreReinitializeCustomManagerRequest>().Count());

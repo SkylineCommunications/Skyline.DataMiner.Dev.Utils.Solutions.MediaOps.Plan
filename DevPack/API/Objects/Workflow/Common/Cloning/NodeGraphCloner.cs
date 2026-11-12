@@ -143,6 +143,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		{
 			foreach (var sourceGroup in source.Groups)
 			{
+				// A cloned group is a new group, so it intentionally gets a new ID instead of the source group's ID.
 				var destinationGroup = destination.AddGroup(sourceGroup.Name);
 				foreach (var sourceNode in sourceGroup.Nodes)
 				{
