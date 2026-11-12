@@ -174,14 +174,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		private static void ValidateGroups(Guid jobId, NodeGraph<JobNode> nodeGraph, StorageWorkflow.JobsInstance original, IReadOnlyDictionary<string, string> swappedNodeIds, List<MediaOpsErrorData> errors)
 		{
+			// Stored groups are identified exactly as when the job is parsed, so duplicate IDs resolve to the same groups.
 			var originalSectionsById = new Dictionary<Guid, StorageWorkflow.NodeGroupsSection>();
 			foreach (var section in original.NodeGroups)
 			{
-				var groupId = section.EffectiveGroupId;
-				if (!originalSectionsById.ContainsKey(groupId))
-				{
-					originalSectionsById.Add(groupId, section);
-				}
+				originalSectionsById.Add(section.GetUniqueGroupId(originalSectionsById.ContainsKey), section);
 			}
 
 			var currentGroupIds = new HashSet<Guid>();

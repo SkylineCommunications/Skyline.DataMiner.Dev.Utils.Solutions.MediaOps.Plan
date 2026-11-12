@@ -303,7 +303,29 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			original.NodeGroups.Add(legacySection);
 
 			// Mirrors how a stored job is parsed: a group without a stored ID gets its section ID.
-			graph.AddGroup(legacySection.ID.Id, "Legacy").Add(first);
+			graph.AddGroups(new[] { legacySection }, id => graph.Nodes.FirstOrDefault(node => node.Id == id), _ => { });
+
+			var errors = JobNodeGraphPostRollFreezeValidator.Validate(JobId, graph, original);
+
+			Assert.AreEqual(legacySection.ID.Id, graph.Groups.Single().Id);
+			Assert.IsFalse(errors.OfType<JobNodeGroupChangedInPostRollNotAllowedError>().Any());
+		}
+
+		[TestMethod]
+		public void Validate_StoredGroupsWithDuplicateId_AreMatchedAsWhenParsed()
+		{
+			var (graph, first, second) = GraphWithTwoConnectedNodes();
+			var original = SnapshotOf(graph);
+
+			var sharedId = Guid.NewGuid().ToString();
+			var firstSection = new StorageWorkflow.NodeGroupsSection { GroupID = sharedId, GroupName = "First" };
+			firstSection.GroupNodeIds.Add(first.Id);
+			var secondSection = new StorageWorkflow.NodeGroupsSection { GroupID = sharedId, GroupName = "Second" };
+			secondSection.GroupNodeIds.Add(second.Id);
+			original.NodeGroups.Add(firstSection);
+			original.NodeGroups.Add(secondSection);
+
+			graph.AddGroups(original.NodeGroups, id => graph.Nodes.FirstOrDefault(node => node.Id == id), _ => { });
 
 			var errors = JobNodeGraphPostRollFreezeValidator.Validate(JobId, graph, original);
 
@@ -393,13 +415,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			foreach (var group in graph.Groups)
 			{
-				var section = new StorageWorkflow.NodeGroupsSection { GroupID = group.Id.ToString(), GroupName = group.Name };
-				foreach (var node in group.Nodes)
-				{
-					section.GroupNodeIds.Add(node.Id);
-				}
-
-				instance.NodeGroups.Add(section);
+				instance.NodeGroups.Add(group.ToSection());
 			}
 
 			return instance;

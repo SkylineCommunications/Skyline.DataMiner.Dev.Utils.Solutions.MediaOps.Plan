@@ -6,6 +6,8 @@ namespace RT_MediaOps.Plan.Workflow.Nodes
 
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 
+	using StorageWorkflow = Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow;
+
 	[TestClass]
 	public sealed class NodeGroupTests
 	{
@@ -45,6 +47,63 @@ namespace RT_MediaOps.Plan.Workflow.Nodes
 			first.Add(node);
 
 			Assert.AreEqual(id, first.Id);
+		}
+
+		[TestMethod]
+		public void AddGroups_ParsesStoredSectionsAndRoundTripsThroughToSection()
+		{
+			var workflow = new Workflow { Name = "Workflow" };
+			var node = new WorkflowResourceNode(Guid.NewGuid(), Guid.NewGuid());
+			workflow.NodeGraph.Add(node);
+
+			var storedId = Guid.NewGuid();
+			var section = new StorageWorkflow.NodeGroupsSection { GroupID = storedId.ToString(), GroupName = "Group" };
+			section.GroupNodeIds.Add(node.Id);
+
+			var warnings = new List<string>();
+			workflow.NodeGraph.AddGroups(new[] { section }, id => workflow.NodeGraph.Nodes.FirstOrDefault(x => x.Id == id), warnings.Add);
+
+			var group = workflow.NodeGraph.Groups.Single();
+			Assert.AreEqual(storedId, group.Id);
+			Assert.AreEqual("Group", group.Name);
+			CollectionAssert.AreEqual(new[] { node }, group.Nodes.ToArray());
+			Assert.AreEqual(0, warnings.Count);
+
+			var written = group.ToSection();
+			Assert.AreEqual(storedId.ToString(), written.GroupID);
+			Assert.AreEqual("Group", written.GroupName);
+			CollectionAssert.AreEqual(new[] { node.Id }, written.GroupNodeIds.ToArray());
+		}
+
+		[TestMethod]
+		public void AddGroups_DuplicateStoredId_FallsBackToTheSectionIdAndWarns()
+		{
+			var workflow = new Workflow { Name = "Workflow" };
+			var sharedId = Guid.NewGuid().ToString();
+			var first = new StorageWorkflow.NodeGroupsSection { GroupID = sharedId, GroupName = "First" };
+			var second = new StorageWorkflow.NodeGroupsSection { GroupID = sharedId, GroupName = "Second" };
+
+			var warnings = new List<string>();
+			workflow.NodeGraph.AddGroups(new[] { first, second }, _ => null, warnings.Add);
+
+			CollectionAssert.AreEqual(
+				new[] { Guid.Parse(sharedId), second.ID.Id },
+				workflow.NodeGraph.Groups.Select(group => group.Id).ToArray());
+			Assert.AreEqual(1, warnings.Count);
+		}
+
+		[TestMethod]
+		public void AddGroups_UnknownNode_IsIgnoredWithWarning()
+		{
+			var workflow = new Workflow { Name = "Workflow" };
+			var section = new StorageWorkflow.NodeGroupsSection { GroupID = Guid.NewGuid().ToString(), GroupName = "Group" };
+			section.GroupNodeIds.Add("unknown");
+
+			var warnings = new List<string>();
+			workflow.NodeGraph.AddGroups(new[] { section }, _ => null, warnings.Add);
+
+			Assert.AreEqual(0, workflow.NodeGraph.Groups.Single().Nodes.Count);
+			Assert.AreEqual(1, warnings.Count);
 		}
 
 		[TestMethod]
