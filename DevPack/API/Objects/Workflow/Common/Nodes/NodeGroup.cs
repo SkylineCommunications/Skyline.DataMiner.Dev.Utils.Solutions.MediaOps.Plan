@@ -22,13 +22,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Initializes a new instance of the <see cref="NodeGroup{TNode}"/> class.
 		/// </summary>
 		/// <param name="graph">The graph that owns this group.</param>
-		/// <param name="id">The identifier of the group, or <see cref="Guid.Empty"/> to assign a new one.</param>
+		/// <param name="id">The identifier of the group.</param>
 		/// <param name="name">The name of the group.</param>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="graph"/> is null.</exception>
+		/// <exception cref="ArgumentException">Thrown when <paramref name="id"/> is empty.</exception>
 		internal NodeGroup(NodeGraph<TNode> graph, Guid id, string name)
 		{
 			this.graph = graph ?? throw new ArgumentNullException(nameof(graph));
-			Id = id == Guid.Empty ? Guid.NewGuid() : id;
+			Id = id != Guid.Empty ? id : throw new ArgumentException("The group ID cannot be empty.", nameof(id));
 			Name = name;
 		}
 
