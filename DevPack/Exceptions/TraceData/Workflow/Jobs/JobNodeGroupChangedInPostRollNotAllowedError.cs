@@ -1,5 +1,7 @@
 namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions
 {
+	using System;
+
 	/// <summary>
 	/// Represents an error that occurs when a node group of a running job that is already in its post-roll is added,
 	/// removed or has its membership changed.
@@ -9,7 +11,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions
 		/// <summary>
 		/// Gets the unique identifier of the node group.
 		/// </summary>
-		public string GroupId { get; internal set; }
+		public Guid GroupId { get; internal set; }
 
 		/// <summary>
 		/// Gets the name of the node group.

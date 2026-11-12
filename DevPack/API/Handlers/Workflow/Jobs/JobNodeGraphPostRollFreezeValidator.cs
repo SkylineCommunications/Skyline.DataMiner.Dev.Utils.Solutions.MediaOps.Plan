@@ -174,7 +174,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 		private static void ValidateGroups(Guid jobId, NodeGraph<JobNode> nodeGraph, StorageWorkflow.JobsInstance original, IReadOnlyDictionary<string, string> swappedNodeIds, List<MediaOpsErrorData> errors)
 		{
-			var originalSectionsById = new Dictionary<string, StorageWorkflow.NodeGroupsSection>(StringComparer.OrdinalIgnoreCase);
+			var originalSectionsById = new Dictionary<Guid, StorageWorkflow.NodeGroupsSection>();
 			foreach (var section in original.NodeGroups)
 			{
 				var groupId = section.EffectiveGroupId;
@@ -184,7 +184,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				}
 			}
 
-			var currentGroupIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+			var currentGroupIds = new HashSet<Guid>();
 			foreach (var group in nodeGraph.Groups)
 			{
 				currentGroupIds.Add(group.Id);
@@ -229,7 +229,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			};
 		}
 
-		private static JobNodeGroupChangedInPostRollNotAllowedError CreateGroupError(Guid jobId, string groupId, string groupName, string action)
+		private static JobNodeGroupChangedInPostRollNotAllowedError CreateGroupError(Guid jobId, Guid groupId, string groupName, string action)
 		{
 			return new JobNodeGroupChangedInPostRollNotAllowedError
 			{
