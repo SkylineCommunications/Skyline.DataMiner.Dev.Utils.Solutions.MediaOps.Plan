@@ -2,6 +2,7 @@
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Linq;
 
 	using Skyline.DataMiner.Core.DataMinerSystem.Common;
@@ -17,6 +18,8 @@
 	internal class TestObjectCreator : IDisposable
 	{
 		private readonly IntegrationTestContext testContext;
+
+		private readonly bool assignJobKeys;
 
 		private readonly HashSet<Guid> createdPoolIds = new HashSet<Guid>();
 
@@ -54,9 +57,10 @@
 
 		private readonly HashSet<Guid> createdWorkflowIds = new HashSet<Guid>();
 
-		public TestObjectCreator(IntegrationTestContext testContext)
+		public TestObjectCreator(IntegrationTestContext testContext, bool assignJobKeys = true)
 		{
 			this.testContext = testContext ?? throw new ArgumentNullException(nameof(testContext));
+			this.assignJobKeys = assignJobKeys;
 		}
 
 		private IMediaOpsPlanApi PlanApi => testContext.Api;
@@ -67,6 +71,8 @@
 
 		public void Dispose()
 		{
+			var stopwatch = Stopwatch.StartNew();
+
 			try
 			{
 				JobsCleanup();
@@ -229,17 +235,22 @@
 			{
 				// Ignore cleanup errors
 			}
+
+			testContext.Logger.Information(this, $"Cleanup took {stopwatch.Elapsed.TotalSeconds:F1} s.");
 		}
 
 		private void ResourcesCleanup()
 		{
-			var resources = PlanApi.Resources.Read(createdResourceIds.ToArray());
+			var completeResourceIds = PlanApi.Resources.Read(createdResourceIds.ToArray())
+				.Where(r => r.State == ResourceState.Complete)
+				.Select(r => r.Id)
+				.ToArray();
 
-			foreach (var resource in resources.Where(r => r.State == ResourceState.Complete))
+			if (completeResourceIds.Length > 0)
 			{
 				try
 				{
-					PlanApi.Resources.Deprecate(resource.Id);
+					PlanApi.Resources.Deprecate(completeResourceIds);
 				}
 				catch
 				{
@@ -252,13 +263,16 @@
 
 		private void ResourcePoolsCleanup()
 		{
-			var pools = PlanApi.ResourcePools.Read(createdPoolIds.ToArray());
+			var completePoolIds = PlanApi.ResourcePools.Read(createdPoolIds.ToArray())
+				.Where(p => p.State == ResourcePoolState.Complete)
+				.Select(p => p.Id)
+				.ToArray();
 
-			foreach (var pool in pools.Where(p => p.State == ResourcePoolState.Complete))
+			if (completePoolIds.Length > 0)
 			{
 				try
 				{
-					PlanApi.ResourcePools.Deprecate(pool.Id);
+					PlanApi.ResourcePools.Deprecate(completePoolIds);
 				}
 				catch
 				{
@@ -271,30 +285,22 @@
 
 		private void CapabilitiesCleanup()
 		{
-			var capabilities = PlanApi.Capabilities.Read(createdCapabilityIds.ToArray());
-
-			PlanApi.Capabilities.Delete(capabilities.ToArray());
+			PlanApi.Capabilities.Delete(createdCapabilityIds.ToArray());
 		}
 
 		private void CapacitiesCleanup()
 		{
-			var capacities = PlanApi.Capacities.Read(createdCapacityIds.ToArray());
-
-			PlanApi.Capacities.Delete(capacities.ToArray());
+			PlanApi.Capacities.Delete(createdCapacityIds.ToArray());
 		}
 
 		private void ConfigurationsCleanup()
 		{
-			var configurations = PlanApi.Configurations.Read(createdConfigurationIds.ToArray());
-
-			PlanApi.Configurations.Delete(configurations.ToArray());
+			PlanApi.Configurations.Delete(createdConfigurationIds.ToArray());
 		}
 
 		private void ResourcePropertiesCleanup()
 		{
-			var properties = PlanApi.ResourceProperties.Read(createdResourcePropertyIds.ToArray());
-
-			PlanApi.ResourceProperties.Delete(properties.ToArray());
+			PlanApi.ResourceProperties.Delete(createdResourcePropertyIds.ToArray());
 		}
 
 		private void CategoriesCleanup()
@@ -362,16 +368,12 @@
 
 		private void JobsCleanup()
 		{
-			var jobs = PlanApi.Jobs.Read(createdJobIds.ToArray());
-
-			PlanApi.Jobs.Delete(jobs.ToArray(), new JobDeleteOptions { ForceDelete = true });
+			PlanApi.Jobs.Delete(createdJobIds.ToArray(), new JobDeleteOptions { ForceDelete = true });
 		}
 
 		private void WorkflowsCleanup()
 		{
-			var workflows = PlanApi.Workflows.Read(createdWorkflowIds.ToArray());
-
-			PlanApi.Workflows.Delete(workflows.ToArray());
+			PlanApi.Workflows.Delete(createdWorkflowIds.ToArray());
 		}
 
 		private void RecurringJobsCleanup()
@@ -386,9 +388,7 @@
 
 		private void PropertiesCleanup()
 		{
-			var properties = PlanApi.Properties.Read(createdPropertyIds.ToArray());
-
-			PlanApi.Properties.Delete(properties.ToArray());
+			PlanApi.Properties.Delete(createdPropertyIds.ToArray());
 		}
 
 		private void PropertySettingCollectionsCleanup()
@@ -865,8 +865,19 @@
 			}
 		}
 
+		public void AssignJobKey(Job job)
+		{
+			// Auto-generated keys come from one globally locked job-settings instance, and that lock gives up after a few attempts: parallel job creators would fail on it.
+			if (assignJobKeys && string.IsNullOrEmpty(job.Key))
+			{
+				job.AssignKey($"RT_{Guid.NewGuid():N}");
+			}
+		}
+
 		public Job CreateJob(Job job)
 		{
+			AssignJobKey(job);
+
 			var createdJob = PlanApi.Jobs.Create(job);
 			createdJobIds.Add(createdJob.Id);
 			return createdJob;
@@ -881,9 +892,15 @@
 
 		public IReadOnlyCollection<Job> CreateJobs(IEnumerable<Job> jobs)
 		{
+			var jobsToCreate = jobs.ToArray();
+			foreach (var job in jobsToCreate)
+			{
+				AssignJobKey(job);
+			}
+
 			try
 			{
-				var createdJobs = PlanApi.Jobs.Create(jobs);
+				var createdJobs = PlanApi.Jobs.Create(jobsToCreate);
 
 				foreach (var job in createdJobs)
 				{

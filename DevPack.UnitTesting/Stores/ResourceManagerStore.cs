@@ -482,7 +482,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 				if (resource.Mode == ResourceMode.Unavailable ||
 					!HasRequiredCapabilities(resource, context?.RequiredCapabilities) ||
 					!HasConcurrencyAvailable(resource, context) ||
-					!HasRequiredCapacities(resource, context))
+					!HasRequiredCapacities(resource, context) ||
+					HasTimeDynamicCapabilityConflict(resource, context?.RequiredCapabilities, GetOverlappingResourceUsages(resource.GUID, context)))
 				{
 					continue;
 				}
@@ -628,7 +629,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 						continue;
 					}
 
-					if (!HasRequiredCapabilities(resource, usage.Usage.RequiredCapabilities))
+					if (!HasRequiredCapabilities(resource, usage.Usage.RequiredCapabilities) ||
+						HasTimeDynamicCapabilityConflict(resource, usage.Usage.RequiredCapabilities, overlappingAcceptedUsages.Select(x => x.Usage)))
 					{
 						QuarantineUsage(quarantinedPerReservation, usage, QuarantineTrigger.Reason.CapabilityDowngraded, forceQuarantine);
 						continue;
@@ -733,7 +735,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 						.Where(x => RangesOverlap(usage.Reservation.Start, usage.Reservation.End, x.Reservation.Start, x.Reservation.End))
 						.ToList();
 
-					if (overlappingAcceptedUsages.Count < maxConcurrency)
+					if (overlappingAcceptedUsages.Count < maxConcurrency &&
+						!HasTimeDynamicCapabilityConflict(resource, usage.Usage.RequiredCapabilities, overlappingAcceptedUsages.Select(x => x.Usage)))
 					{
 						acceptedUsages.Add(usage);
 						continue;
@@ -751,7 +754,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 						continue;
 					}
 
-					AddQuarantinedUsage(quarantinedPerReservation, usage, triggerIds, QuarantineTrigger.Reason.ConcurrencyDowngraded);
+					// A usage that requires another value for a time-dynamic capability than the overlapping usages is
+					// reported the same way as a usage that exceeds the concurrency: the resource is not available to it.
+					var reason = overlappingAcceptedUsages.Count < maxConcurrency ? QuarantineTrigger.Reason.CapabilityDowngraded : QuarantineTrigger.Reason.ConcurrencyDowngraded;
+					AddQuarantinedUsage(quarantinedPerReservation, usage, triggerIds, reason);
 				}
 			}
 
@@ -871,7 +877,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 					return true;
 				}
 
-				if (!HasRequiredCapabilities(resource, usage.RequiredCapabilities))
+				if (!HasRequiredCapabilities(resource, usage.RequiredCapabilities) ||
+					HasTimeDynamicCapabilityConflict(resource, usage.RequiredCapabilities, otherUsages))
 				{
 					return true;
 				}
@@ -896,6 +903,41 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 		private static bool UsesCompleteResource(ServiceResourceUsageDefinition usage)
 		{
 			return usage.UsesCompleteCapacity || usage.RequiredCapacities == null || usage.RequiredCapacities.Count == 0;
+		}
+
+		// A time-dynamic capability takes the value required by its bookings, so a real DataMiner Agent refuses a usage that
+		// requires a different value than an overlapping usage of the same resource.
+		private static bool HasTimeDynamicCapabilityConflict(Resource resource, IReadOnlyCollection<ResourceCapabilityUsage> requiredCapabilities, IEnumerable<ServiceResourceUsageDefinition> otherUsages)
+		{
+			if (requiredCapabilities == null || requiredCapabilities.Count == 0)
+			{
+				return false;
+			}
+
+			var otherRequiredCapabilities = otherUsages
+				.SelectMany(x => x.RequiredCapabilities ?? Enumerable.Empty<ResourceCapabilityUsage>())
+				.ToList();
+
+			foreach (var required in requiredCapabilities)
+			{
+				if (required == null)
+				{
+					continue;
+				}
+
+				var capability = resource.Capabilities?.FirstOrDefault(x => x.CapabilityProfileID == required.CapabilityProfileID);
+				if (capability == null || !capability.IsTimeDynamic)
+				{
+					continue;
+				}
+
+				if (otherRequiredCapabilities.Any(x => x.CapabilityProfileID == required.CapabilityProfileID && !String.Equals(x.RequiredString, required.RequiredString, StringComparison.Ordinal)))
+				{
+					return true;
+				}
+			}
+
+			return false;
 		}
 
 		private static bool HasCapacityAvailable(Resource resource, MultiResourceCapacityUsage requiredCapacity, IReadOnlyCollection<ServiceResourceUsageDefinition> otherUsages)

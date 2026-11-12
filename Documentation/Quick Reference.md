@@ -1,4 +1,4 @@
-# Quick Reference
+﻿# Quick Reference
 
 Common snippets for the public API in `Skyline.DataMiner.Solutions.MediaOps.Plan`.
 
@@ -31,6 +31,7 @@ using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 
 var resourcesRepo = api.Resources;
 var poolsRepo = api.ResourcePools;
+var flowRuleCollectionsRepo = api.FlowRuleCollections;
 var capabilitiesRepo = api.Capabilities;
 var capacitiesRepo = api.Capacities;
 var configurationsRepo = api.Configurations;
@@ -470,6 +471,59 @@ var poolsPerResource = api.ResourcePools.GetPoolsPerResource(new[] { resource1, 
 var parentLinks = api.ResourcePools.GetParentPoolLinks(new[] { pool1, pool2 });
 ```
 
+## Flow Rules
+
+Flow rules define which objects may be connected before or after an object in a node graph. Every object that can own flow rules has a `FlowRules` property of type `FlowRuleCollection` (an `ICollection<FlowRule>`) and saves it together with itself; today this is the resource pool (`ResourcePool.FlowRules`, `FlowRuleObjectType.ResourcePool`). See [Advanced Topics](Advanced%20Topics.md#flow-rules) for the evaluation and enforcement details.
+
+```csharp
+using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
+
+// "Anything may come before this pool, except the IRD pool."
+pool.FlowRules.SetDefault(FlowRuleDirection.Before, FlowRuleOutcome.Allowed);
+pool.FlowRules.SetOverride(FlowRuleDirection.Before, FlowRuleObjectType.ResourcePool, irdPool.Id, FlowRuleOutcome.Forbidden, "An IRD cannot feed this pool.");
+pool.FlowRules.SetDefault(FlowRuleDirection.After, FlowRuleOutcome.Warning, "Unusual successor.");
+api.ResourcePools.Update(pool);
+
+// Shorthand when the target is an object (any IFlowRuleObject, such as a ResourcePool)
+pool.FlowRules.SetOverride(FlowRuleDirection.After, encoderPool, FlowRuleOutcome.Warning);
+
+// Calling SetDefault/SetOverride again updates the existing rule; a rule can also be edited directly.
+// The collection can be enumerated and supports Add, Remove, Contains and Clear like any ICollection<FlowRule>.
+var afterDefault = pool.FlowRules.GetDefault(FlowRuleDirection.After);
+afterDefault.Outcome = FlowRuleOutcome.Forbidden;
+afterDefault.Message = "Not allowed as successor.";
+api.ResourcePools.Update(pool);
+
+// Read the rules of an object, or query across rule sets (read-only: filtering, paging and counting like the other repositories)
+FlowRuleCollection rules = api.FlowRuleCollections
+    .Read(FlowRuleCollectionExposers.OwnerType.Equal(FlowRuleObjectType.ResourcePool).AND(FlowRuleCollectionExposers.OwnerId.Equal(pool.Id)))
+    .SingleOrDefault();
+var referencingIrd = api.FlowRuleCollections.Read(FlowRuleCollectionExposers.Rules.TargetId.Contains(irdPool.Id));
+var count = api.FlowRuleCollections.Count(FlowRuleCollectionExposers.OwnerType.Equal(FlowRuleObjectType.ResourcePool));
+foreach (var page in api.FlowRuleCollections.ReadPaged())
+{
+    // ...
+}
+
+// Evaluate a single connection (from → to)
+FlowRuleEvaluation evaluation = api.FlowRuleCollections.Evaluate(
+    FlowRuleObjectType.ResourcePool, irdPool.Id,
+    FlowRuleObjectType.ResourcePool, pool.Id);
+if (evaluation.Outcome == FlowRuleOutcome.Forbidden)
+{
+    var reasons = string.Join(" ", evaluation.Messages);
+}
+
+// Which pools may be added after an existing node?
+var candidates = api.FlowRuleCollections.EvaluateCandidates(
+    FlowRuleObjectType.ResourcePool, pool.Id,
+    FlowRuleDirection.After,
+    FlowRuleObjectType.ResourcePool, candidatePoolIds);
+
+// Evaluate every connection of a job, workflow or recurring job that is being edited
+var perConnection = api.FlowRuleCollections.Evaluate(job.NodeGraph);
+```
+
 ## Workflows
 
 ```csharp
@@ -551,7 +605,7 @@ job = api.Jobs.Stop(job, new JobStopOptions
     NewPostRollEnd = DateTimeOffset.UtcNow.AddMinutes(10),
 });
 
-// Running -> Completed, once the core reservation has ended.
+// Running -> Completed, once the core reservation has ended or reached its end time.
 job = api.Jobs.TransitionToCompleted(job);
 
 // Alternative paths, each starting from a different job in the indicated state:
@@ -803,6 +857,8 @@ jobSettings.KeyIncrement = 1;
 
 api.GlobalSettings.UpdateJobSettings(jobSettings);
 ```
+
+Job settings are stored in a single App Settings instance with a fixed ID. Systems upgraded from MediaOps 1.6.X can still hold the settings in an App Settings instance with a random ID. The first job settings access (`GetJobSettings`, or creating a job without a key) merges such legacy instances into the fixed-ID instance and deletes them. The legacy key configuration is kept and the next sequence never goes back.
 
 ## Querying with Exposers
 

@@ -24,6 +24,7 @@
 				Password = qaOpsConfig.Password;
 				Domain = qaOpsConfig.Domain;
 				BaseUrl = qaOpsConfig.BaseUrl;
+				UseRealDma = true;
 				return;
 			}
 

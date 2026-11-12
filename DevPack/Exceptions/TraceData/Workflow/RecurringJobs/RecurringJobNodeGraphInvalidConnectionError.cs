@@ -6,6 +6,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions
 	/// <seealso cref="RecurringJobNodeGraphInvalidConnectionNodeError"/>
 	/// <seealso cref="RecurringJobNodeGraphDuplicateConnectionIdError"/>
 	/// <seealso cref="RecurringJobNodeGraphEmptyConnectionIdError"/>
+	/// <seealso cref="RecurringJobNodeGraphForbiddenConnectionError"/>
 	public class RecurringJobNodeGraphInvalidConnectionError : RecurringJobNodeGraphError
 	{
 		/// <summary>

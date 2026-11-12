@@ -56,8 +56,9 @@
 
 		private void GetOrCreate()
 		{
-			var existing = planApi.DomHelpers.SlcWorkflowHelper.GetAppSettings(DomInstanceExposers.Id.Equal(JobSettingId)).SingleOrDefault();
-			if (existing != null)
+			var allSettings = GetAllAppSettings();
+			var existing = allSettings.SingleOrDefault(x => x.ID.Id == JobSettingId);
+			if (existing != null && allSettings.Count == 1)
 			{
 				ReportSuccess(existing);
 				return;
@@ -67,7 +68,7 @@
 				new[] { new JobSettingsSentinel(JobSettingId) },
 				_ =>
 				{
-					return new[] { CreateLocked() };
+					return new[] { GetOrCreateInsideLock() };
 				});
 
 			if (!lockResult.AllLocksGranted)
@@ -117,15 +118,46 @@
 			return generatedKeys ?? Array.Empty<string>();
 		}
 
+		/// <summary>
+		/// Returns the job settings instance with the fixed ID. Must be called while holding the job settings lock.
+		/// Systems upgraded from MediaOps 1.6.X can still hold App Settings instances with a random ID (created by
+		/// the legacy solution setup), possibly next to a fixed-ID instance with default values. Those legacy
+		/// instances are merged into the fixed-ID instance and deleted.
+		/// </summary>
 		private DomJobSettings GetOrCreateInsideLock()
 		{
-			var existing = planApi.DomHelpers.SlcWorkflowHelper.GetAppSettings(DomInstanceExposers.Id.Equal(JobSettingId)).SingleOrDefault();
-			if (existing != null)
+			var allSettings = GetAllAppSettings();
+			var existing = allSettings.SingleOrDefault(x => x.ID.Id == JobSettingId);
+			var legacy = allSettings.Where(x => x.ID.Id != JobSettingId).ToList();
+
+			if (legacy.Count == 0)
 			{
-				return existing;
+				return existing ?? CreateDefaultInstance();
 			}
 
-			return CreateLocked();
+			var source = legacy
+				.OrderByDescending(x => x.JobSettings.JobIDNextSequence ?? long.MinValue)
+				.First();
+
+			var result = existing == null
+				? MigrateInstance(source)
+				: RepairInstance(existing, source);
+
+			planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.DeleteInBatches(legacy.Select(i => i.ToInstance()));
+
+			planApi.Logger.Information(
+				this,
+				$"Merged legacy job settings into {JobSettingId} and deleted the legacy instance(s). Key prefix '{result.JobSettings.JobIDPrefix}', next sequence {result.JobSettings.JobIDNextSequence}.",
+				legacy.Select(x => (object)x.ID.Id).ToArray());
+
+			return result;
+		}
+
+		private List<DomJobSettings> GetAllAppSettings()
+		{
+			return planApi.DomHelpers.SlcWorkflowHelper
+				.GetAppSettings(DomInstanceExposers.DomDefinitionId.Equal(SlcWorkflowIds.Definitions.AppSettings.Id))
+				.ToList();
 		}
 
 		private static IReadOnlyList<string> GenerateKeys(DomJobSettings settings, int count)
@@ -145,27 +177,74 @@
 			return keys;
 		}
 
-		private DomJobSettings CreateLocked()
-		{
-			return CreateDefaultInstance();
-		}
-
 		private DomJobSettings CreateDefaultInstance()
 		{
 			var newInstance = new DomJobSettings(JobSettingId);
-			newInstance.JobSettings.JobIDPrefix = "JOB #";
-			newInstance.JobSettings.JobIDMinimumDigits = 5;
-			newInstance.JobSettings.JobIDStartingSeed = 1;
-			newInstance.JobSettings.JobIDIncrement = 1;
-			newInstance.JobSettings.JobIDNextSequence = 1;
-
-			newInstance.JobSettings.DefaultPreroll = TimeSpan.Zero;
-			newInstance.JobSettings.DefaultPostroll = TimeSpan.Zero;
-
-			newInstance.JobSettings.DesiredJobStatus = SlcWorkflowIds.Enums.Desiredjobstatus.Draft;
+			ApplyDefaultsToMissingValues(newInstance.JobSettings);
 
 			var createdInstance = planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.Create(newInstance.ToInstance());
 			return new DomJobSettings(createdInstance);
+		}
+
+		private DomJobSettings MigrateInstance(DomJobSettings source)
+		{
+			var migratedInstance = new DomJobSettings(JobSettingId);
+			var target = migratedInstance.JobSettings;
+			var legacy = source.JobSettings;
+
+			target.JobIDPrefix = legacy.JobIDPrefix;
+			target.JobIDMinimumDigits = legacy.JobIDMinimumDigits;
+			target.JobIDStartingSeed = legacy.JobIDStartingSeed;
+			target.JobIDIncrement = legacy.JobIDIncrement;
+			target.JobIDNextSequence = legacy.JobIDNextSequence ?? legacy.JobIDStartingSeed;
+			target.DefaultPreroll = legacy.DefaultPreroll;
+			target.DefaultPostroll = legacy.DefaultPostroll;
+			target.DesiredJobStatus = legacy.DesiredJobStatus;
+			ApplyDefaultsToMissingValues(target);
+
+			var createdInstance = planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.Create(migratedInstance.ToInstance());
+			return new DomJobSettings(createdInstance);
+		}
+
+		/// <summary>
+		/// Repairs a fixed-ID instance that was created with default values while a legacy instance still held the
+		/// customer's configuration: the legacy key configuration wins and the sequence never goes back.
+		/// </summary>
+		private DomJobSettings RepairInstance(DomJobSettings existing, DomJobSettings source)
+		{
+			var target = existing.JobSettings;
+			var legacy = source.JobSettings;
+
+			target.JobIDPrefix = legacy.JobIDPrefix ?? target.JobIDPrefix;
+			target.JobIDMinimumDigits = legacy.JobIDMinimumDigits ?? target.JobIDMinimumDigits;
+			target.JobIDStartingSeed = legacy.JobIDStartingSeed ?? target.JobIDStartingSeed;
+			target.JobIDIncrement = legacy.JobIDIncrement ?? target.JobIDIncrement;
+			target.DefaultPreroll = target.DefaultPreroll ?? legacy.DefaultPreroll;
+			target.DefaultPostroll = target.DefaultPostroll ?? legacy.DefaultPostroll;
+			target.DesiredJobStatus = target.DesiredJobStatus ?? legacy.DesiredJobStatus;
+			ApplyDefaultsToMissingValues(target);
+
+			target.JobIDNextSequence = Math.Max(
+				legacy.JobIDNextSequence ?? target.JobIDStartingSeed.Value,
+				target.JobIDNextSequence ?? target.JobIDStartingSeed.Value);
+			target.JobIDNextSequence = RecalculateNextSequence(existing);
+
+			var updatedInstance = planApi.DomHelpers.SlcWorkflowHelper.DomHelper.DomInstances.Update(existing.ToInstance());
+			return new DomJobSettings(updatedInstance);
+		}
+
+		private static void ApplyDefaultsToMissingValues(JobSettingsSection settings)
+		{
+			settings.JobIDPrefix = settings.JobIDPrefix ?? "JOB #";
+			settings.JobIDMinimumDigits = settings.JobIDMinimumDigits ?? 5;
+			settings.JobIDStartingSeed = settings.JobIDStartingSeed ?? 1;
+			settings.JobIDIncrement = settings.JobIDIncrement ?? 1;
+			settings.JobIDNextSequence = settings.JobIDNextSequence ?? settings.JobIDStartingSeed;
+
+			settings.DefaultPreroll = settings.DefaultPreroll ?? TimeSpan.Zero;
+			settings.DefaultPostroll = settings.DefaultPostroll ?? TimeSpan.Zero;
+
+			settings.DesiredJobStatus = settings.DesiredJobStatus ?? SlcWorkflowIds.Enums.Desiredjobstatus.Draft;
 		}
 
 		private void Update(JobSettings apiJobSetting)

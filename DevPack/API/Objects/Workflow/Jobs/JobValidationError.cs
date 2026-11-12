@@ -24,6 +24,7 @@
 			UnresolvedReferencesJobValidationError.ErrorCode,
 			ReservationRequirementsMismatchJobValidationError.ErrorCode,
 			LiveEventsMismatchJobValidationError.ErrorCode,
+			FlowRuleViolationJobValidationError.ErrorCode,
 		};
 
 		/// <summary>

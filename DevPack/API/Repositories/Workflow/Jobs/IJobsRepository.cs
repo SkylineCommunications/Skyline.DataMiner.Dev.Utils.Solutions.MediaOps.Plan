@@ -116,7 +116,8 @@
 
 		/// <summary>
 		/// Moves the specified <see cref="Job"/> from running to completed state. The job's core reservation must have
-		/// ended; its status is authoritative even if the job's persisted post-roll end has not yet been updated.
+		/// ended; its status is authoritative even if the job's persisted post-roll end has not yet been updated. A core
+		/// reservation that is still running but has reached its end time also counts as ended.
 		/// </summary>
 		/// <param name="job">The job to transition to completed.</param>
 		/// <returns>The completed job.</returns>
@@ -125,7 +126,8 @@
 
 		/// <summary>
 		/// Moves the specified job from running to completed state. The job's core reservation must have ended, which
-		/// also means its post-roll end time has passed.
+		/// also means its post-roll end time has passed. A core reservation that is still running but has reached its end
+		/// time also counts as ended.
 		/// </summary>
 		/// <param name="jobId">The unique identifier of the job to transition to completed.</param>
 		/// <returns>The completed job.</returns>
@@ -134,7 +136,8 @@
 
 		/// <summary>
 		/// Moves the specified jobs from running to completed state. Each job's core reservation must have ended; its status
-		/// is authoritative even if the job's persisted post-roll end has not yet been updated.
+		/// is authoritative even if the job's persisted post-roll end has not yet been updated. A core reservation that is
+		/// still running but has reached its end time also counts as ended.
 		/// </summary>
 		/// <param name="jobs">The jobs to transition to completed.</param>
 		/// <returns>A read-only collection containing the completed jobs.</returns>
@@ -143,7 +146,8 @@
 
 		/// <summary>
 		/// Moves the specified jobs from running to completed state. Each job's core reservation must have ended, which
-		/// also means its post-roll end time has passed.
+		/// also means its post-roll end time has passed. A core reservation that is still running but has reached its end
+		/// time also counts as ended.
 		/// </summary>
 		/// <param name="jobIds">The unique identifiers of the jobs to transition to completed.</param>
 		/// <returns>A read-only collection containing the completed jobs.</returns>
