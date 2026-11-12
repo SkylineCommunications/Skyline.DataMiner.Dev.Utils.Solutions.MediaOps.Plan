@@ -1,10 +1,17 @@
 namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions
 {
+	using System;
+
 	/// <summary>
 	/// Represents an error that occurs when a node group of a workflow references a node that is not part of the node graph.
 	/// </summary>
 	public sealed class WorkflowNodeGraphInvalidGroupNodeError : WorkflowNodeGraphError
 	{
+		/// <summary>
+		/// Gets the unique identifier of the node group.
+		/// </summary>
+		public Guid GroupId { get; internal set; }
+
 		/// <summary>
 		/// Gets the name of the node group.
 		/// </summary>

@@ -25,6 +25,8 @@ namespace RT_MediaOps.Plan.Workflow.Nodes
 			var duplicate = workflow.Duplicate();
 
 			Assert.AreEqual(2, duplicate.NodeGraph.Groups.Count);
+			CollectionAssert.AreEquivalent(new[] { "A", "B" }, duplicate.NodeGraph.Groups.Select(group => group.Name).ToArray());
+			Assert.IsFalse(duplicate.NodeGraph.Groups.Select(group => group.Id).Intersect(workflow.NodeGraph.Groups.Select(group => group.Id)).Any());
 
 			var groupA = duplicate.NodeGraph.Groups.Single(group => group.Name == "A");
 			Assert.AreEqual(1, groupA.Nodes.Count);
@@ -71,6 +73,7 @@ namespace RT_MediaOps.Plan.Workflow.Nodes
 
 			var group = recurringJob.NodeGraph.Groups.Single();
 			Assert.AreEqual("Group", group.Name);
+			Assert.AreNotEqual(job.NodeGraph.Groups.Single().Id, group.Id);
 			Assert.AreSame(recurringJob.NodeGraph.Nodes.Single(), group.Nodes.Single());
 		}
 
@@ -83,6 +86,7 @@ namespace RT_MediaOps.Plan.Workflow.Nodes
 
 			var group = job.NodeGraph.Groups.Single();
 			Assert.AreEqual("Group", group.Name);
+			Assert.AreNotEqual(recurringJob.NodeGraph.Groups.Single().Id, group.Id);
 			Assert.AreSame(job.NodeGraph.Nodes.Single(), group.Nodes.Single());
 		}
 

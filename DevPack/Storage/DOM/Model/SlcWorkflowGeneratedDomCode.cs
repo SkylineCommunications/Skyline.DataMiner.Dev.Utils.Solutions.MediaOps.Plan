@@ -531,6 +531,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 				{ ModuleId = "(slc)workflow" };
 				public static FieldDescriptorID GroupName { get; } = new FieldDescriptorID(new Guid("069a0c53-25ff-4538-86e3-73e9f83afd36"));
 				public static FieldDescriptorID GroupNodeIds { get; } = new FieldDescriptorID(new Guid("6b7b43d0-ec5a-44b2-b25d-614e9c8a05dc"));
+				public static FieldDescriptorID GroupID { get; } = new FieldDescriptorID(new Guid("113e6887-b585-453d-ae91-4bb7a58064ad"));
 			}
 
 			public static class JobNodeRelationshipGeneralActions
@@ -7871,6 +7872,49 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow
 				else
 				{
 					section.AddOrUpdateValue(SlcWorkflowIds.Sections.NodeGroups.GroupName, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the GroupID field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String GroupID
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcWorkflowIds.Sections.NodeGroups.GroupID);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcWorkflowIds.Sections.NodeGroups.GroupID);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcWorkflowIds.Sections.NodeGroups.GroupID, (String)value);
 				}
 			}
 		}

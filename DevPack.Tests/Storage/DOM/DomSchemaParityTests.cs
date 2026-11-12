@@ -14,6 +14,8 @@ namespace RT_MediaOps.Plan.Storage.DOM
 		// Independently captured from SLC-S-MediaOps.Plan at 7a79bf3768337de562d06bd1bde0a6c062951fe5.
 		// Resource Studio's Flow Rules delta is from ab6c315db41a3f0b1a682059108ccdfb2d3f4f90.
 		// The FlowRules definition additionally includes the optional repeatable-link correction approved on 2026-11-09.
+		// The workflow Node groups section and the Workflow, Job and Recurring Job behaviors additionally include the
+		// Group ID field (WI 49176).
 		// P&O also matches the user-approved Rysomez.zip export (Collaboration excluded).
 		// Hashes cover complete schema objects, including nested fields and status rules.
 		// See DomSchemaSnapshot for the only excluded platform/serialization metadata.
@@ -86,9 +88,9 @@ namespace RT_MediaOps.Plan.Storage.DOM
 		[DataRow("(slc)resource_studio", "SectionDefinitions", "ff481176-1bbe-4216-ad77-214fd50ebdf3", "46d3d94394169360bdd7b1eb3ebad3040eeeaea00eca5202df99f8969dc335ca")]
 		[DataRow("(slc)resource_studio", "SectionDefinitions", "fffb2bf2-61c2-441b-9ce1-7624681f26cb", "a04645922e6d6693137bde2f57513e4ed3c0889b8e58857162e7f4e72e5c9c88")]
 		[DataRow("(slc)workflow", "ModuleSettings", "(slc)workflow", "b1b60b105b141ad2713bb041d01bb2d3704d957d3c483a4daa422fac713fd93d")]
-		[DataRow("(slc)workflow", "DomBehaviorDefinitions", "4db4650b-c81b-48df-b48f-d6f47e69a829", "5a396210bad7a948209fbdd36f53a7a0a6f11a2e621c78ce5660ef5b91184523")]
-		[DataRow("(slc)workflow", "DomBehaviorDefinitions", "6ee464d6-d84b-4d92-9135-ed95a6f69e87", "012cb351638a41ef294a61ecb3a076f3b1b4a7fd21e2e54e83291f0d500f2757")]
-		[DataRow("(slc)workflow", "DomBehaviorDefinitions", "7d764b5d-37fc-4b74-b9a3-22183b4162f7", "acea7a9d035bd87b4f1de3377ad3ebf96399086062d1d4c07bd39e7ba65c0248")]
+		[DataRow("(slc)workflow", "DomBehaviorDefinitions", "4db4650b-c81b-48df-b48f-d6f47e69a829", "68a1f6a6f0ff5a0ad3833ac30f4420fa18338bcac29fb24d55f7e98eda7a6bb7")]
+		[DataRow("(slc)workflow", "DomBehaviorDefinitions", "6ee464d6-d84b-4d92-9135-ed95a6f69e87", "5ae781e673910059d0dc6e9f010c4bb1498659e20cca8a7e1b380063e7e3e670")]
+		[DataRow("(slc)workflow", "DomBehaviorDefinitions", "7d764b5d-37fc-4b74-b9a3-22183b4162f7", "962b66e96217d3c5239e94d0c843e4968fa7ef73af3b65aca26e49bfbeb44783")]
 		[DataRow("(slc)workflow", "DomDefinitions", "03a014b3-0a74-4abd-aefd-ead1f50c27d3", "9c963adcc27c4644f1a8b3c3de23a3823b7907f62e5226439e17081d3054c561")]
 		[DataRow("(slc)workflow", "DomDefinitions", "094b7503-2cd8-4e86-a189-c33076cabfbc", "37eb9d0a75120a4eb5dfdd501e83fab610c957fd2f6a07a50428eea8a999f9ab")]
 		[DataRow("(slc)workflow", "DomDefinitions", "89828ce8-7647-440e-81fa-6de9d24019b3", "77742747aabf53489a24123170d0d9fd25273ff2f4f7ba2fd84bbade547d139f")]
@@ -103,7 +105,7 @@ namespace RT_MediaOps.Plan.Storage.DOM
 		[DataRow("(slc)workflow", "SectionDefinitions", "3a4fc9fc-7a4d-4840-a79a-7a889a0d6a42", "5e0f856bc2cdbe5533a671eddf1727de153c89a6c1b3e85c023f82d2feeb7e0c")]
 		[DataRow("(slc)workflow", "SectionDefinitions", "43a36804-3409-4498-8620-eaec80238fcc", "e06900d20599bffa43bde8c533518f9092bc69f2ce48d7ece76132ce45f677b7")]
 		[DataRow("(slc)workflow", "SectionDefinitions", "5d0df0b7-38ee-4297-851c-df6b616bddaa", "5f9e8f467eafbb2b31c99396fe755947dcc0343612432065263cefc93c763b17")]
-		[DataRow("(slc)workflow", "SectionDefinitions", "6f964b2c-9682-4a44-9c91-bc3a5871a794", "c132298a3ae6f367ea622e091556d1ee2a013c5d61f8bb55a05f57b6c2b63315")]
+		[DataRow("(slc)workflow", "SectionDefinitions", "6f964b2c-9682-4a44-9c91-bc3a5871a794", "a4ac67e716fd0a18bea58c1e4ad7146aedf4c4c1c221d74c0eb4659dec5704ed")]
 		[DataRow("(slc)workflow", "SectionDefinitions", "717f9a98-a705-4740-86ec-05204ef6dd28", "51459afd6af70283ffc95db8e9c11d26c9b2fceb2eef746ece26705a8c0bc5c9")]
 		[DataRow("(slc)workflow", "SectionDefinitions", "7467b898-571c-4dfd-b5e9-cf444480a12f", "b5907a780a46f4fe61fc69639e5ce9b74379dd105afb8fc12086f92449553bb4")]
 		[DataRow("(slc)workflow", "SectionDefinitions", "74d2d947-36be-41f0-babd-9a5b986d928b", "718fa13d96b241096a516327ec9ddae64fcccf102be4bf205b1600a589b796c8")]

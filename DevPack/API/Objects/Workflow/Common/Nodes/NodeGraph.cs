@@ -6,6 +6,8 @@
 
 	using Skyline.DataMiner.Net.Helper;
 
+	using StorageWorkflow = Storage.DOM.SlcWorkflow;
+
 	/// <summary>
 	/// Represents a directed graph of nodes with connections between them.
 	/// </summary>
@@ -132,7 +134,8 @@
 		/// Adds a new, empty group to the graph.
 		/// </summary>
 		/// <remarks>
-		/// Group names are not required to be unique and may be empty.
+		/// Group names are not required to be unique and may be empty. The group gets a new, automatically assigned
+		/// <see cref="NodeGroup{TNode}.Id"/>.
 		/// </remarks>
 		/// <param name="name">The name of the group.</param>
 		/// <returns>The group that was added.</returns>
@@ -142,6 +145,30 @@
 			groups.Add(group);
 
 			return group;
+		}
+
+		/// <summary>
+		/// Adds the groups stored in the specified storage sections to the graph.
+		/// </summary>
+		/// <param name="sections">The storage node groups sections to parse.</param>
+		/// <param name="nodeResolver">A function that resolves node identifiers to nodes of the graph, returning null for unknown nodes.</param>
+		/// <param name="onWarning">Receives a message for each inconsistency in the stored data that is repaired while parsing.</param>
+		internal void AddGroups(IEnumerable<StorageWorkflow.NodeGroupsSection> sections, Func<string, TNode> nodeResolver, Action<string> onWarning)
+		{
+			foreach (var section in sections ?? [])
+			{
+				groups.Add(new NodeGroup<TNode>(this, section, nodeResolver, onWarning));
+			}
+		}
+
+		/// <summary>
+		/// Determines whether a group with the specified identifier is part of the graph.
+		/// </summary>
+		/// <param name="id">The identifier of the group.</param>
+		/// <returns>true when a group with the identifier is part of the graph; otherwise, false.</returns>
+		internal bool ContainsGroup(Guid id)
+		{
+			return groups.Any(group => group.Id == id);
 		}
 
 		/// <summary>

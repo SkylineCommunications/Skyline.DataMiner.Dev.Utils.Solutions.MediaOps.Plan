@@ -73,6 +73,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.Definitions.SlcW
 				{
 					new(Ids.Sections.NodeGroups.GroupName) { Visible = true, RequiredForStatus = false, ReadOnly = false, ClientReadOnly = false },
 					new(Ids.Sections.NodeGroups.GroupNodeIds) { Visible = true, RequiredForStatus = false, ReadOnly = false, ClientReadOnly = false },
+					new(Ids.Sections.NodeGroups.GroupID) { Visible = true, RequiredForStatus = false, ReadOnly = false, ClientReadOnly = true },
 				},
 			};
 		}

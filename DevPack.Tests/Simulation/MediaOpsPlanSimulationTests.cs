@@ -21,7 +21,7 @@ namespace RT_MediaOps.Plan.Simulation
 		[DataRow("(slc)properties", 5, 17, 0, 2)]
 		[DataRow("(slc)relationships", 2, 11, 0, 2)]
 		[DataRow("(slc)resource_studio", 23, 62, 2, 5)]
-		[DataRow("(slc)workflow", 20, 135, 3, 8)]
+		[DataRow("(slc)workflow", 20, 136, 3, 8)]
 		public void Create_InstallsTheCompleteProductionSchema(string moduleId, int sections, int fields, int behaviors, int definitions)
 		{
 			var connection = MediaOpsPlanSimulation.Create().CreateConnection();
