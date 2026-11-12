@@ -1035,7 +1035,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 				&& usage.ServiceDefinitionNodeID == context.NodeIdToIgnore;
 		}
 
-		// Like a real agent, only one node of a service reservation can be ignored; a plain reservation has no service nodes.
+		// Like a real agent, only one node can be ignored, and the reservation must have a usage for that node.
 		private ResourceManagerErrorData ValidateNodeToIgnore(EligibleResourceContext context)
 		{
 			if (context?.ReservationIdToIgnore == null)
@@ -1050,7 +1050,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 			}
 
 			var hasNode = context.NodeIdToIgnore != -1
-				&& reservation is ServiceReservationInstance
 				&& reservation.ResourcesInReservationInstance.OfType<ServiceResourceUsageDefinition>().Any(x => x.ServiceDefinitionNodeID == context.NodeIdToIgnore);
 
 			return hasNode ? null : new ResourceManagerErrorData(ResourceManagerErrorData.Reason.ServiceNodeResourceUsageNotFound, (Guid?)reservationId, (int?)context.NodeIdToIgnore);
