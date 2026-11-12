@@ -27,21 +27,6 @@
 			return new JobValidator(PlanApi).Validate(jobs);
 		}
 
-		public JobBooking GetBooking(Guid jobId)
-		{
-			if (jobId == Guid.Empty)
-			{
-				throw new ArgumentException("The job ID cannot be empty.", nameof(jobId));
-			}
-
-			return ActivityHelper.Track(nameof(JobsRepository), nameof(GetBooking), act => JobBookingReader.GetBooking(PlanApi, jobId));
-		}
-
-		public IReadOnlyCollection<JobNodeResourceUsage> GetResourceUsages(Job job)
-		{
-			return JobResourceUsageBuilder.Build(PlanApi, job, DateTimeOffset.UtcNow);
-		}
-
 		public Job SaveAsTentative(Job job)
 		{
 			if (job == null)

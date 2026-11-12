@@ -23,21 +23,6 @@
 		IReadOnlyCollection<JobValidationResult> Validate(IEnumerable<Job> jobs);
 
 		/// <summary>
-		/// Gets the booking of a job: the booked time range and the resource usage of its nodes as they are booked.
-		/// </summary>
-		/// <param name="jobId">The identifier of the job.</param>
-		/// <returns>The booking, or <see langword="null"/> when the job has no booking.</returns>
-		JobBooking GetBooking(Guid jobId);
-
-		/// <summary>
-		/// Gets the resource usage of the resource and resource pool nodes of a job as it would be booked when the job is saved.
-		/// The job does not need to be saved: references are resolved against the job as it is.
-		/// </summary>
-		/// <param name="job">The job.</param>
-		/// <returns>The resource usage of the nodes that would be booked. Nodes that already ended are not included.</returns>
-		IReadOnlyCollection<JobNodeResourceUsage> GetResourceUsages(Job job);
-
-		/// <summary>
 		/// Moves the specified <see cref="Job"/> from draft to tentative state.
 		/// </summary>
 		/// <param name="job">The job to move.</param>

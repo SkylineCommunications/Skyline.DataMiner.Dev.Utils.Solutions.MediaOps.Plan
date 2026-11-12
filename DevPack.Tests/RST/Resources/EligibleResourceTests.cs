@@ -425,7 +425,7 @@ namespace RT_MediaOps.Plan.RST.Resources
 
 			var resource = CreateCompleteResource($"{prefix}_Resource", pool, value =>
 			{
-				value.Concurrency = 2;
+				value.Concurrency = 3;
 				value.AddCapacity(new NumberCapacitySetting(capacity.Id) { Value = 100 });
 			});
 
@@ -444,7 +444,9 @@ namespace RT_MediaOps.Plan.RST.Resources
 				IncludeAllCapacityUsages = true,
 			});
 
-			Assert.AreEqual(0, withoutIgnore.EligibleResources.Count, "Expected both nodes of the job to use the full concurrency of the resource.");
+			var usageWithoutIgnore = withoutIgnore.EligibleResources.Single().Usage;
+			Assert.AreEqual(1, usageWithoutIgnore.RemainingConcurrency, "Expected both nodes of the job to use the resource.");
+			Assert.AreEqual(20m, usageWithoutIgnore.CapacityUsages.OfType<NumberCapacityUsage>().Single().Remaining, "Expected both nodes of the job to use their capacity.");
 
 			var result = TestContext.Api.Resources.GetEligibleResources(new EligibleResourcesContext(bookedStart, bookedEnd)
 			{
@@ -455,7 +457,7 @@ namespace RT_MediaOps.Plan.RST.Resources
 			});
 
 			var usage = result.EligibleResources.Single().Usage;
-			Assert.AreEqual(1, usage.RemainingConcurrency, "Expected only the usage of the ignored node to be freed.");
+			Assert.AreEqual(2, usage.RemainingConcurrency, "Expected only the usage of the ignored node to be freed.");
 			Assert.AreEqual(50m, usage.CapacityUsages.OfType<NumberCapacityUsage>().Single().Remaining, "Expected only the capacity of the ignored node to be freed.");
 		}
 
@@ -463,6 +465,26 @@ namespace RT_MediaOps.Plan.RST.Resources
 		public void GetEligibleResources_NodeToIgnoreWithoutJob_Throws()
 		{
 			var context = new EligibleResourcesContext(DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddHours(2)) { NodeIdToIgnore = "node" };
+
+			Assert.ThrowsException<ArgumentException>(() => TestContext.Api.Resources.GetEligibleResources(context));
+		}
+
+		[TestMethod]
+		public void GetEligibleResources_JobToIgnoreWithoutNode_Throws()
+		{
+			var context = new EligibleResourcesContext(DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddHours(2)) { JobIdToIgnore = Guid.NewGuid() };
+
+			Assert.ThrowsException<ArgumentException>(() => TestContext.Api.Resources.GetEligibleResources(context));
+		}
+
+		[TestMethod]
+		public void GetEligibleResources_NodeToIgnoreOfJobWithoutBooking_Throws()
+		{
+			var context = new EligibleResourcesContext(DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddHours(2))
+			{
+				JobIdToIgnore = Guid.NewGuid(),
+				NodeIdToIgnore = "node",
+			};
 
 			Assert.ThrowsException<ArgumentException>(() => TestContext.Api.Resources.GetEligibleResources(context));
 		}

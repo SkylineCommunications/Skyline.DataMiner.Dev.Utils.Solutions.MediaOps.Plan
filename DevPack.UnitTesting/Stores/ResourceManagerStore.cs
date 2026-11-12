@@ -312,6 +312,17 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 
 		private EligibleResourcesResponseMessage HandleGetEligibleResources(GetEligibleResourcesMessage request)
 		{
+			var contexts = request.MultipleContexts != null && request.MultipleContexts.Count > 0
+				? request.MultipleContexts
+				: new List<EligibleResourceContext> { request.Context };
+			var errors = contexts.Select(ValidateNodeToIgnore).Where(x => x != null).ToList();
+			if (errors.Count > 0)
+			{
+				var traceData = new TraceData();
+				errors.ForEach(traceData.Add);
+				return new EligibleResourcesResponseMessage { Success = true, TraceData = traceData };
+			}
+
 			if (request.MultipleContexts != null && request.MultipleContexts.Count > 0)
 			{
 				var results = request.MultipleContexts
@@ -975,15 +986,32 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 				status == ReservationStatus.Ongoing;
 		}
 
-		// A real agent ignores only the usage of NodeIdToIgnore; without a node the whole reservation is ignored.
 		private static bool IsIgnoredUsage(ReservationInstance reservation, ServiceResourceUsageDefinition usage, EligibleResourceContext context)
 		{
-			if (context.ReservationIdToIgnore == null || context.ReservationIdToIgnore.Id == Guid.Empty || reservation.ID != context.ReservationIdToIgnore.Id)
+			return context.ReservationIdToIgnore != null
+				&& reservation.ID == context.ReservationIdToIgnore.Id
+				&& usage.ServiceDefinitionNodeID == context.NodeIdToIgnore;
+		}
+
+		// Like a real agent, only one node of a service reservation can be ignored; a plain reservation has no service nodes.
+		private ResourceManagerErrorData ValidateNodeToIgnore(EligibleResourceContext context)
+		{
+			if (context?.ReservationIdToIgnore == null)
 			{
-				return false;
+				return null;
 			}
 
-			return context.NodeIdToIgnore <= 0 || usage.ServiceDefinitionNodeID == context.NodeIdToIgnore;
+			var reservationId = context.ReservationIdToIgnore.Id;
+			if (!_reservationInstances.TryGetValue(reservationId, out var reservation))
+			{
+				return new ResourceManagerErrorData(ResourceManagerErrorData.Reason.ReservationInstanceNotFound, (Guid?)reservationId);
+			}
+
+			var hasNode = context.NodeIdToIgnore != -1
+				&& reservation is ServiceReservationInstance
+				&& reservation.ResourcesInReservationInstance.OfType<ServiceResourceUsageDefinition>().Any(x => x.ServiceDefinitionNodeID == context.NodeIdToIgnore);
+
+			return hasNode ? null : new ResourceManagerErrorData(ResourceManagerErrorData.Reason.ServiceNodeResourceUsageNotFound, (Guid?)reservationId, (int?)context.NodeIdToIgnore);
 		}
 
 		private static bool RangesOverlap(DateTime start1, DateTime end1, DateTime start2, DateTime end2)

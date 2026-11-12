@@ -2,7 +2,6 @@
 {
 	using System;
 	using System.Collections.Generic;
-	using System.Globalization;
 	using System.Linq;
 
 	/// <summary>Contains the errors produced while validating a job and synchronizes them to that job.</summary>
@@ -79,17 +78,6 @@
 				changed = true;
 			}
 
-			foreach (var node in Job.NodeGraph.Nodes.OfType<JobResourceNode>())
-			{
-				var hasError = quarantinedNodeIds.Contains(node.Id)
-					|| (node.CoreReservationNodeId.HasValue && quarantinedNodeIds.Contains(node.CoreReservationNodeId.Value.ToString(CultureInfo.InvariantCulture)));
-				if (node.HasError != hasError)
-				{
-					node.HasError = hasError;
-					changed = true;
-				}
-			}
-
 			return SyncQuarantinedNodeStates() || changed;
 		}
 
@@ -99,8 +87,7 @@
 
 			foreach (var node in Job.NodeGraph.Nodes.OfType<JobResourceNode>())
 			{
-				var hasError = quarantinedNodeIds.Contains(node.Id)
-					|| (node.CoreReservationNodeId.HasValue && quarantinedNodeIds.Contains(node.CoreReservationNodeId.Value.ToString(CultureInfo.InvariantCulture)));
+				var hasError = quarantinedNodeIds.Contains(node.Id);
 				if (node.HasError != hasError)
 				{
 					node.HasError = hasError;

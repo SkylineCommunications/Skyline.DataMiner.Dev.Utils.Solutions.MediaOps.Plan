@@ -1245,12 +1245,7 @@
 
 			private static IEnumerable<JobReservationMapping> GetMappingsIterator(MediaOpsPlanApi planApi, ICollection<DomJob> domJobs)
 			{
-				var jobIds = domJobs.Select(x => x.ID.Id).ToList();
-				FilterElement<CoreReservation> Filter(Guid id) => ReservationInstanceExposers.Properties.StringField(JobIdPropertyName).Equal(Convert.ToString(id));
-				var reservationsByJobId = planApi.CoreHelpers.ResourceManagerHelper.GetReservationInstances(jobIds, Filter)
-					.GroupBy(x => Guid.Parse(Convert.ToString(x.Properties
-						.First(y => y.Key == JobIdPropertyName).Value)))
-					.ToDictionary(g => g.Key, g => g.ToList());
+				var reservationsByJobId = JobReservationLookup.GetReservationsByJobId(planApi, domJobs.Select(x => x.ID.Id));
 
 				foreach (var domJob in domJobs)
 				{

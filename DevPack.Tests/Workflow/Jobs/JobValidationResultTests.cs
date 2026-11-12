@@ -43,20 +43,15 @@
 		public void SyncResultsToJob_SynchronizesQuarantinedResourceNodes()
 		{
 			var quarantinedNode = new JobResourceNode(System.Guid.NewGuid(), System.Guid.NewGuid());
-			var quarantinedByCoreIdNode = new JobResourceNode(System.Guid.NewGuid(), System.Guid.NewGuid());
-			quarantinedByCoreIdNode.SetCoreReservationNodeId(42);
 			var recoveredNode = new JobResourceNode(System.Guid.NewGuid(), System.Guid.NewGuid()) { HasError = true };
 			var job = new Job();
 			job.NodeGraph.Add(quarantinedNode);
-			job.NodeGraph.Add(quarantinedByCoreIdNode);
 			job.NodeGraph.Add(recoveredNode);
 			var result = new JobValidationResult(job);
 			result.AddQuarantinedNodeId(quarantinedNode.Id);
-			result.AddQuarantinedNodeId("42");
 
 			Assert.IsTrue(result.SyncToJob());
 			Assert.IsTrue(quarantinedNode.HasError);
-			Assert.IsTrue(quarantinedByCoreIdNode.HasError);
 			Assert.IsFalse(recoveredNode.HasError);
 		}
 

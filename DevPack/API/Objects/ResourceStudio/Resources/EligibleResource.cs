@@ -7,12 +7,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// </summary>
 	public sealed class EligibleResource
 	{
-		/// <summary>
-		/// Initializes a new instance of the <see cref="EligibleResource"/> class.
-		/// </summary>
-		/// <param name="resource">The eligible resource.</param>
-		/// <param name="usage">The usage of the resource during the requested time range.</param>
-		public EligibleResource(Resource resource, ResourceUsage usage)
+		internal EligibleResource(Resource resource, ResourceUsage usage)
 		{
 			Resource = resource ?? throw new ArgumentNullException(nameof(resource));
 			Usage = usage ?? throw new ArgumentNullException(nameof(usage));

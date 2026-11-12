@@ -9,13 +9,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// </summary>
 	public sealed class CapabilityUsage
 	{
-		/// <summary>
-		/// Initializes a new instance of the <see cref="CapabilityUsage"/> class.
-		/// </summary>
-		/// <param name="capabilityId">The capability identifier.</param>
-		/// <param name="isTimeDependent">Whether the capability is time-dependent.</param>
-		/// <param name="bookings">The bookings of the capability by other bookings that overlap with the time range.</param>
-		public CapabilityUsage(Guid capabilityId, bool isTimeDependent, IEnumerable<CapabilityBooking> bookings)
+		internal CapabilityUsage(Guid capabilityId, bool isTimeDependent, IEnumerable<CapabilityBooking> bookings)
 		{
 			CapabilityId = capabilityId;
 			IsTimeDependent = isTimeDependent;

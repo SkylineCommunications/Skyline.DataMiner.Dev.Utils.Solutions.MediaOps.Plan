@@ -8,14 +8,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// </summary>
 	public sealed class ResourceUsage
 	{
-		/// <summary>
-		/// Initializes a new instance of the <see cref="ResourceUsage"/> class.
-		/// </summary>
-		/// <param name="concurrencyConsumption">The number of concurrency slots consumed.</param>
-		/// <param name="remainingConcurrency">The number of concurrency slots remaining.</param>
-		/// <param name="capacityUsages">The capacity usage details.</param>
-		/// <param name="capabilityUsages">The capability usage details.</param>
-		public ResourceUsage(int concurrencyConsumption, int remainingConcurrency, IEnumerable<CapacityUsage> capacityUsages, IEnumerable<CapabilityUsage> capabilityUsages)
+		internal ResourceUsage(int concurrencyConsumption, int remainingConcurrency, IEnumerable<CapacityUsage> capacityUsages, IEnumerable<CapabilityUsage> capabilityUsages)
 		{
 			ConcurrencyConsumption = concurrencyConsumption;
 			RemainingConcurrency = remainingConcurrency;

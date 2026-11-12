@@ -9,12 +9,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// </summary>
 	public sealed class EligibleResourcesResult
 	{
-		/// <summary>
-		/// Initializes a new instance of the <see cref="EligibleResourcesResult"/> class.
-		/// </summary>
-		/// <param name="contextId">The identifier of the context the result is for.</param>
-		/// <param name="eligibleResources">The eligible resources and their usage.</param>
-		public EligibleResourcesResult(Guid contextId, IEnumerable<EligibleResource> eligibleResources)
+		internal EligibleResourcesResult(Guid contextId, IEnumerable<EligibleResource> eligibleResources)
 		{
 			ContextId = contextId;
 			EligibleResources = (eligibleResources ?? throw new ArgumentNullException(nameof(eligibleResources))).ToList().AsReadOnly();

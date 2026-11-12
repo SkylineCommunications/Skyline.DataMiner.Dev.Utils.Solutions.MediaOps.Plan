@@ -7,13 +7,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// </summary>
 	public sealed class CapabilityBooking
 	{
-		/// <summary>
-		/// Initializes a new instance of the <see cref="CapabilityBooking"/> class.
-		/// </summary>
-		/// <param name="start">The start of the booked time range.</param>
-		/// <param name="end">The end of the booked time range.</param>
-		/// <param name="value">The booked value.</param>
-		public CapabilityBooking(DateTimeOffset start, DateTimeOffset end, string value)
+		internal CapabilityBooking(DateTimeOffset start, DateTimeOffset end, string value)
 		{
 			Start = start;
 			End = end;
