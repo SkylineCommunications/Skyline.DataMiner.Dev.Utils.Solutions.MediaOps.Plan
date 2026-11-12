@@ -333,6 +333,26 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void Validate_StoredGroupsWithStoredAndSectionIdBothTaken_AreMatchedAsWhenParsed()
+		{
+			var (graph, _, _) = GraphWithTwoConnectedNodes();
+			var original = SnapshotOf(graph);
+
+			// The copy precedes the original, so the original's stored ID and section ID are both already used.
+			var originalSection = new StorageWorkflow.NodeGroupsSection { GroupName = "Original" };
+			originalSection.GroupID = originalSection.ID.Id.ToString();
+			var copySection = new StorageWorkflow.NodeGroupsSection { GroupID = originalSection.GroupID, GroupName = "Copy" };
+			original.NodeGroups.Add(copySection);
+			original.NodeGroups.Add(originalSection);
+
+			graph.AddGroups(original.NodeGroups, _ => null, _ => { });
+
+			var errors = JobNodeGraphPostRollFreezeValidator.Validate(JobId, graph, original);
+
+			Assert.IsFalse(errors.OfType<JobNodeGroupChangedInPostRollNotAllowedError>().Any());
+		}
+
+		[TestMethod]
 		public void Validate_ChangedGroupMembership_ReturnsGroupChangeNotAllowed()
 		{
 			var (graph, first, second) = GraphWithTwoConnectedNodes();
