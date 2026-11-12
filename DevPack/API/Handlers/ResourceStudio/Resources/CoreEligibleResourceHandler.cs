@@ -35,12 +35,32 @@
 				throw new ArgumentNullException(nameof(context));
 			}
 
+			return GetEligibleResources(planApi, new[] { context }).Single();
+		}
+
+		public static IReadOnlyList<EligibleResourcesResult> GetEligibleResources(MediaOpsPlanApi planApi, IReadOnlyCollection<EligibleResourcesContext> contexts)
+		{
+			if (contexts == null)
+			{
+				throw new ArgumentNullException(nameof(contexts));
+			}
+
+			if (contexts.Any(x => x == null))
+			{
+				throw new ArgumentException("The contexts cannot contain null values.", nameof(contexts));
+			}
+
+			if (contexts.Select(x => x.Id).Distinct().Count() != contexts.Count)
+			{
+				throw new ArgumentException("Every context can only be requested once.", nameof(contexts));
+			}
+
 			var handler = new CoreEligibleResourceHandler(planApi);
 
 			return ActivityHelper.Track(
 				nameof(CoreEligibleResourceHandler),
 				nameof(GetEligibleResources),
-				act => handler.GetEligibleResources(context));
+				act => handler.GetEligibleResources(contexts));
 		}
 
 		private IEnumerable<ResourceCapabilityUsage> BuildCapabilities(IReadOnlyCollection<CapabilitySetting> capabilitySettings)
@@ -102,38 +122,121 @@
 			}
 		}
 
-		private EligibleResourcesResult GetEligibleResources(EligibleResourcesContext context)
+		private IReadOnlyList<EligibleResourcesResult> GetEligibleResources(IReadOnlyCollection<EligibleResourcesContext> contexts)
 		{
-			var coreContext = new EligibleResourceContext(new Net.Time.TimeRangeUtc(context.Start.UtcDateTime, context.End.UtcDateTime))
+			var nodesToIgnore = ResolveNodesToIgnore(contexts);
+
+			var requests = new List<(EligibleResourcesContext Context, EligibleResourceContext CoreContext, Dictionary<Guid, Resource> FilteredResourcesByCoreId)>();
+			var resultsByContextId = new Dictionary<Guid, EligibleResourcesResult>();
+			foreach (var context in contexts)
 			{
-				RequiredCapabilities = BuildCapabilities(context.CapabilitySettings).ToList(),
-				RequiredCapacities = BuildCapacities(context.CapacitySettings).ToList(),
-			};
-
-			var filter = context.Filter;
-
-			Dictionary<Guid, Resource> filteredResourcesByCoreId = null;
-			if (filter != null && !filter.isEmpty())
-			{
-				// The DevPack filter is defined on the Resource Studio resources, so it is resolved first and the matching
-				// core resources are then used to restrict the eligibility request.
-				filteredResourcesByCoreId = planApi.Resources.Read(filter)
-					.Where(x => x.CoreResourceId != Guid.Empty)
-					.GroupBy(x => x.CoreResourceId)
-					.ToDictionary(x => x.Key, x => x.First());
-
-				if (filteredResourcesByCoreId.Count == 0)
+				var coreContext = new EligibleResourceContext(context.Id)
 				{
-					// No Resource Studio resource matches the filter, so no resource can be eligible.
-					return new EligibleResourcesResult(Array.Empty<EligibleResource>());
+					TimeRange = new Net.Time.TimeRangeUtc(context.Start.UtcDateTime, context.End.UtcDateTime),
+					RequiredCapabilities = BuildCapabilities(context.CapabilitySettings).ToList(),
+					RequiredCapacities = BuildCapacities(context.CapacitySettings).ToList(),
+					CalculateAllCapacities = context.IncludeAllCapacityUsages,
+					CalculateAllCapabilities = context.IncludeAllCapabilityUsages,
+					FillLinkerTableEntries = false,
+				};
+
+				if (nodesToIgnore.TryGetValue(context.Id, out var nodeToIgnore))
+				{
+					coreContext.ReservationIdToIgnore = new Net.ReservationInstanceID(nodeToIgnore.ReservationId);
+					coreContext.NodeIdToIgnore = nodeToIgnore.CoreNodeId;
 				}
 
-				coreContext.ResourceFilter = new ORFilterElement<CoreResource>(filteredResourcesByCoreId.Keys.Select(x => Net.Messages.ResourceExposers.ID.Equal(x)).ToArray());
+				var filter = context.Filter;
+
+				Dictionary<Guid, Resource> filteredResourcesByCoreId = null;
+				if (filter != null && !filter.isEmpty())
+				{
+					// The DevPack filter is defined on the Resource Studio resources, so it is resolved first and the matching
+					// core resources are then used to restrict the eligibility request.
+					filteredResourcesByCoreId = planApi.Resources.Read(filter)
+						.Where(x => x.CoreResourceId != Guid.Empty)
+						.GroupBy(x => x.CoreResourceId)
+						.ToDictionary(x => x.Key, x => x.First());
+
+					if (filteredResourcesByCoreId.Count == 0)
+					{
+						// No Resource Studio resource matches the filter, so no resource can be eligible.
+						resultsByContextId[context.Id] = new EligibleResourcesResult(context.Id, Array.Empty<EligibleResource>());
+						continue;
+					}
+
+					coreContext.ResourceFilter = new ORFilterElement<CoreResource>(filteredResourcesByCoreId.Keys.Select(x => Net.Messages.ResourceExposers.ID.Equal(x)).ToArray());
+				}
+
+				requests.Add((context, coreContext, filteredResourcesByCoreId));
 			}
 
-			var coreResult = planApi.CoreHelpers.ResourceManagerHelper.GetEligibleResourcesForContext(coreContext);
+			if (requests.Count > 0)
+			{
+				var coreResults = planApi.CoreHelpers.ResourceManagerHelper.GetEligibleResourcesForContexts(requests.Select(x => x.CoreContext).ToList());
+				var capabilityIdResolver = new CapabilityIdResolver(planApi);
+
+				foreach (var request in requests)
+				{
+					if (!coreResults.TryGetValue(request.Context.Id, out var coreResult))
+					{
+						throw new InvalidOperationException($"No eligibility result was returned for context {request.Context.Id}.");
+					}
+
+					resultsByContextId[request.Context.Id] = MapResult(request.Context.Id, coreResult, request.FilteredResourcesByCoreId, capabilityIdResolver);
+				}
+			}
+
+			return contexts.Select(x => resultsByContextId[x.Id]).ToList().AsReadOnly();
+		}
+
+		private IReadOnlyDictionary<Guid, (Guid ReservationId, int CoreNodeId)> ResolveNodesToIgnore(IReadOnlyCollection<EligibleResourcesContext> contexts)
+		{
+			var result = new Dictionary<Guid, (Guid ReservationId, int CoreNodeId)>();
+
+			var contextsWithNodeToIgnore = contexts.Where(x => x.HasNodeToIgnore).ToList();
+			if (contextsWithNodeToIgnore.Count == 0)
+			{
+				return result;
+			}
+
+			if (contextsWithNodeToIgnore.Any(x => x.JobIdToIgnore == Guid.Empty || String.IsNullOrEmpty(x.NodeIdToIgnore)))
+			{
+				throw new ArgumentException($"{nameof(EligibleResourcesContext.JobIdToIgnore)} and {nameof(EligibleResourcesContext.NodeIdToIgnore)} must be set together.", nameof(contexts));
+			}
+
+			var jobIds = contextsWithNodeToIgnore.Select(x => x.JobIdToIgnore).Distinct().ToList();
+			var jobsById = planApi.Jobs.Read(jobIds).ToDictionary(x => x.Id);
+			var reservationsByJobId = JobReservationLookup.GetReservationsByJobId(planApi, jobIds);
+
+			foreach (var context in contextsWithNodeToIgnore)
+			{
+				if (!jobsById.TryGetValue(context.JobIdToIgnore, out var job) || !reservationsByJobId.TryGetValue(context.JobIdToIgnore, out var reservations))
+				{
+					throw new ArgumentException($"Job {context.JobIdToIgnore} has no booking.", nameof(contexts));
+				}
+
+				var node = job.NodeGraph.Nodes.FirstOrDefault(x => String.Equals(x.Id, context.NodeIdToIgnore, StringComparison.OrdinalIgnoreCase));
+				var coreNodeId = node?.CoreReservationNodeId;
+				var reservation = coreNodeId.HasValue
+					? reservations.FirstOrDefault(r => (r.ResourcesInReservationInstance ?? new List<Net.Messages.ResourceUsageDefinition>()).OfType<ServiceResourceUsageDefinition>().Any(x => x.ServiceDefinitionNodeID == coreNodeId.Value))
+					: null;
+
+				if (reservation == null)
+				{
+					throw new ArgumentException($"Node {context.NodeIdToIgnore} of job {context.JobIdToIgnore} is not booked.", nameof(contexts));
+				}
+
+				result[context.Id] = (reservation.ID, coreNodeId.Value);
+			}
+
+			return result;
+		}
+
+		private EligibleResourcesResult MapResult(Guid contextId, EligibleResourceResult coreResult, IReadOnlyDictionary<Guid, Resource> filteredResourcesByCoreId, CapabilityIdResolver capabilityIdResolver)
+		{
 			var resources = MapToResourceStudioResources(coreResult.EligibleResources, filteredResourcesByCoreId);
-			var usageByCoreResourceId = coreResult.UsageDetails.ToDictionary(usage => usage.ResourceId);
+			var usageByCoreResourceId = (coreResult.UsageDetails ?? new List<ResourceUsageDetails>()).ToDictionary(usage => usage.ResourceId);
 
 			var eligibleResources = resources.Select(resource =>
 			{
@@ -142,22 +245,44 @@
 					throw new InvalidOperationException($"No usage details were returned for eligible resource {resource.Id}.");
 				}
 
-				return new EligibleResource(resource, MapUsage(resource, usageDetails));
+				return new EligibleResource(resource, MapUsage(resource, usageDetails, capabilityIdResolver));
 			});
 
-			return new EligibleResourcesResult(eligibleResources);
+			return new EligibleResourcesResult(contextId, eligibleResources);
 		}
 
-		private static ResourceUsage MapUsage(Resource resource, ResourceUsageDetails usageDetails)
+		private static ResourceUsage MapUsage(Resource resource, ResourceUsageDetails usageDetails, CapabilityIdResolver capabilityIdResolver)
 		{
 			var capacitySettingsById = resource.Capacities.ToDictionary(capacity => capacity.Id);
-			var capacityUsages = usageDetails.CapacityUsageDetails
+			var capacityUsages = (usageDetails.CapacityUsageDetails ?? new List<CapacityUsageDetails>())
 				.Where(usage => capacitySettingsById.ContainsKey(usage.CapacityParameterId))
 				.Select(usage => MapCapacityUsage(capacitySettingsById[usage.CapacityParameterId], usage))
 				.ToList();
 
+			var capabilityUsages = (usageDetails.CapabilityUsageDetails ?? new List<CapabilityUsageDetails>())
+				.Select(usage => MapCapabilityUsage(resource, usage, capabilityIdResolver))
+				.Where(usage => usage != null)
+				.ToList();
+
 			var remainingConcurrency = Math.Max(0, usageDetails.ConcurrencyLeft);
-			return new ResourceUsage(Math.Max(0, resource.Concurrency - remainingConcurrency), remainingConcurrency, capacityUsages);
+			return new ResourceUsage(Math.Max(0, resource.Concurrency - remainingConcurrency), remainingConcurrency, capacityUsages, capabilityUsages);
+		}
+
+		private static CapabilityUsage MapCapabilityUsage(Resource resource, CapabilityUsageDetails usageDetails, CapabilityIdResolver capabilityIdResolver)
+		{
+			if (!capabilityIdResolver.TryGetCapabilityId(resource, usageDetails.CapabilityParameterId, out var capabilityId))
+			{
+				return null;
+			}
+
+			var bookings = (usageDetails.BookedCapabilities ?? new List<BookedCapability>())
+				.Where(booked => booked?.BookedTimeRange != null)
+				.Select(booked => new CapabilityBooking(
+					new DateTimeOffset(DateTime.SpecifyKind(booked.BookedTimeRange.Start, DateTimeKind.Utc)),
+					new DateTimeOffset(DateTime.SpecifyKind(booked.BookedTimeRange.Stop, DateTimeKind.Utc)),
+					booked.Value?.RequiredDiscreet ?? booked.Value?.RequiredString));
+
+			return new CapabilityUsage(capabilityId, usageDetails.HasExistingBookings.HasValue, bookings);
 		}
 
 		private static CapacityUsage MapCapacityUsage(CapacitySetting capacitySetting, CapacityUsageDetails usageDetails)
@@ -231,6 +356,41 @@
 			var domResources = planApi.DomHelpers.SlcResourceStudioHelper.GetResources(coreResourceIds, Filter);
 
 			return Resource.InstantiateResources(planApi, domResources).ToList();
+		}
+
+		// Core reports a time-dependent capability on its linked parameter, which is mapped back to the capability it belongs to.
+		private sealed class CapabilityIdResolver
+		{
+			private readonly MediaOpsPlanApi planApi;
+			private readonly HashSet<Guid> readCapabilityIds = new HashSet<Guid>();
+			private readonly Dictionary<Guid, Guid> capabilityIdByLinkedId = new Dictionary<Guid, Guid>();
+
+			public CapabilityIdResolver(MediaOpsPlanApi planApi)
+			{
+				this.planApi = planApi;
+			}
+
+			public bool TryGetCapabilityId(Resource resource, Guid coreParameterId, out Guid capabilityId)
+			{
+				var resourceCapabilityIds = resource.Capabilities.Select(x => x.Id).ToList();
+				if (resourceCapabilityIds.Contains(coreParameterId))
+				{
+					capabilityId = coreParameterId;
+					return true;
+				}
+
+				var unreadIds = resourceCapabilityIds.Where(x => !readCapabilityIds.Contains(x)).ToList();
+				if (unreadIds.Count > 0)
+				{
+					readCapabilityIds.UnionWith(unreadIds);
+					foreach (var capability in planApi.Capabilities.Read(unreadIds).Where(x => x.IsTimeDependent && x.LinkedTimeDependentCapabilityId != Guid.Empty))
+					{
+						capabilityIdByLinkedId[capability.LinkedTimeDependentCapabilityId] = capability.Id;
+					}
+				}
+
+				return capabilityIdByLinkedId.TryGetValue(coreParameterId, out capabilityId);
+			}
 		}
 	}
 }

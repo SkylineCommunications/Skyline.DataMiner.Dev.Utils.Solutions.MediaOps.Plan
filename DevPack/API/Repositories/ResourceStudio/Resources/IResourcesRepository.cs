@@ -136,6 +136,13 @@
 		EligibleResourcesResult GetEligibleResources(EligibleResourcesContext context);
 
 		/// <summary>
+		/// Gets the resources that are eligible for each of the specified contexts in a single request.
+		/// </summary>
+		/// <param name="contexts">The contexts describing the eligibility requests.</param>
+		/// <returns>One result per context, in the order of the contexts.</returns>
+		IReadOnlyList<EligibleResourcesResult> GetEligibleResources(IEnumerable<EligibleResourcesContext> contexts);
+
+		/// <summary>
 		/// Gets all resources in the specified resource pool.
 		/// </summary>
 		/// <param name="resourcePool">The resource pool to search for resources.</param>

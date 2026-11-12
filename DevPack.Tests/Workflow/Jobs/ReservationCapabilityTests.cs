@@ -106,6 +106,9 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 
 			Assert.IsTrue(updatedJob.Errors.Any(x => x.Code == QuarantinedReservationJobValidationError.ErrorCode), "Expected the quarantine error to remain while the second node is still quarantined.");
 
+			var stillQuarantinedNode = updatedJob.NodeGraph.Nodes.OfType<JobResourceNode>().Single(x => x.ResourceId == secondResource.Id);
+			CollectionAssert.AreEqual(new[] { stillQuarantinedNode.Id }, TestContext.Api.Jobs.Validate([updatedJob]).Single().QuarantinedNodeIds.ToArray(), "Expected the quarantined node to be reported by its job node ID.");
+
 			var reservation = GetReservation(job.Id);
 			Assert.IsTrue(reservation.IsQuarantined, "Expected the reservation to remain quarantined.");
 
