@@ -16,6 +16,8 @@
 
 	using DomResource = Storage.DOM.SlcResource_Studio.ResourceInstance;
 	using DomResourcePool = Storage.DOM.SlcResource_Studio.ResourcepoolInstance;
+	using LiveEndpointRole = Skyline.DataMiner.Solutions.MediaOps.Live.API.Enums.EndpointRole;
+	using LiveVirtualSignalGroup = Skyline.DataMiner.Solutions.MediaOps.Live.API.Objects.ConnectivityManagement.VirtualSignalGroup;
 
 	internal class DomResourceHandler : DomInstanceApiObjectValidator<DomResource>
 	{
@@ -1188,29 +1190,38 @@
 
 			foreach (var resource in apiResources)
 			{
-				if (resource.VirtualSignalGroupInputId != Guid.Empty && !virtualSignalGroupsById.TryGetValue(resource.VirtualSignalGroupInputId, out _))
+				ValidateVirtualSignalGroupLink(resource, resource.VirtualSignalGroupInputId, LiveEndpointRole.Destination, "input", virtualSignalGroupsById);
+				ValidateVirtualSignalGroupLink(resource, resource.VirtualSignalGroupOutputId, LiveEndpointRole.Source, "output", virtualSignalGroupsById);
+			}
+		}
+
+		private void ValidateVirtualSignalGroupLink(Resource resource, Guid virtualSignalGroupId, LiveEndpointRole expectedRole, string direction, IDictionary<Guid, LiveVirtualSignalGroup> virtualSignalGroupsById)
+		{
+			if (virtualSignalGroupId == Guid.Empty)
+			{
+				return;
+			}
+
+			if (!virtualSignalGroupsById.TryGetValue(virtualSignalGroupId, out var virtualSignalGroup))
+			{
+				ReportError(resource.Id, new ResourceInvalidVirtualSignalGroupError
 				{
-					var error = new ResourceInvalidVirtualSignalGroupError
-					{
-						ErrorMessage = $"Virtual Signal Group with ID '{resource.VirtualSignalGroupInputId}' not found.",
-						Id = resource.Id,
-						VirtualSignalGroupId = resource.VirtualSignalGroupInputId,
-					};
+					ErrorMessage = $"Virtual Signal Group with ID '{virtualSignalGroupId}' not found.",
+					Id = resource.Id,
+					VirtualSignalGroupId = virtualSignalGroupId,
+				});
 
-					ReportError(resource.Id, error);
-				}
+				return;
+			}
 
-				if (resource.VirtualSignalGroupOutputId != Guid.Empty && !virtualSignalGroupsById.TryGetValue(resource.VirtualSignalGroupOutputId, out _))
+			if (virtualSignalGroup.Role != expectedRole)
+			{
+				ReportError(resource.Id, new ResourceInvalidVirtualSignalGroupRoleError
 				{
-					var error = new ResourceInvalidVirtualSignalGroupError
-					{
-						ErrorMessage = $"Virtual Signal Group with ID '{resource.VirtualSignalGroupOutputId}' not found.",
-						Id = resource.Id,
-						VirtualSignalGroupId = resource.VirtualSignalGroupOutputId,
-					};
-
-					ReportError(resource.Id, error);
-				}
+					ErrorMessage = $"Virtual Signal Group '{virtualSignalGroup.Name}' ({virtualSignalGroupId}) has role '{virtualSignalGroup.Role}' and cannot be used as {direction}: the {direction} virtual signal group must have role '{expectedRole}'.",
+					Id = resource.Id,
+					VirtualSignalGroupId = virtualSignalGroupId,
+				});
 			}
 		}
 
@@ -1268,7 +1279,7 @@
 
 		private void ConvertToVirtualFunctionResource(Resource resource, ResourceVirtualFunctionLinkSetting setting)
 		{
-			if (!CoreResourceHandler.TryValidateVirtualFunctionConfiguration(planApi, setting, out var error))
+			if (!CoreResourceHandler.TryValidateVirtualFunctionConfiguration(planApi, setting, out var error, resource.CoreResourceId))
 			{
 				error.Id = resource.Id;
 				ReportError(resource.Id, error);

@@ -8,6 +8,7 @@
 	/// <seealso cref="ResourceDuplicateIdError"/>
 	/// <seealso cref="ResourceDuplicateNameError"/>
 	/// <seealso cref="ResourceDuplicateTableIndexLinkError"/>
+	/// <seealso cref="ResourceFunctionMaxInstancesExceededError"/>
 	/// <seealso cref="ResourceIdInUseError"/>
 	/// <seealso cref="ResourceInUseError"/>
 	/// <seealso cref="ResourceInvalidAssignedPoolError"/>
@@ -22,6 +23,7 @@
 	/// <seealso cref="ResourceInvalidStateError"/>
 	/// <seealso cref="ResourceInvalidTableIndexLinkError"/>
 	/// <seealso cref="ResourceInvalidVirtualSignalGroupError"/>
+	/// <seealso cref="ResourceInvalidVirtualSignalGroupRoleError"/>
 	/// <seealso cref="ResourceNameExistsError"/>
 	/// <seealso cref="ResourceNotFoundError"/>
 	/// <seealso cref="ResourceValueAlreadyChangedError"/>

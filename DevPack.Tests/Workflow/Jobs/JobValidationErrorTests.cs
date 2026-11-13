@@ -21,6 +21,7 @@
 				new CoreResourceUnavailableJobValidationError("resource", "Unavailable"),
 				new QuarantinedReservationJobValidationError("message"),
 				new VirtualSignalGroupNotFoundJobValidationError("input", Guid.Empty, "resource"),
+				new VirtualSignalGroupInvalidRoleJobValidationError("output", Guid.Empty, "Destination", "Source", "resource"),
 				new TransitionToTentativeJobValidationError("message"),
 				new UnresolvedReferencesJobValidationError("message"),
 				new ReservationRequirementsMismatchJobValidationError("message"),
@@ -28,7 +29,7 @@
 			};
 
 			CollectionAssert.AreEqual(
-				new[] { "J000", "J101", "J102", "J103", "J104", "J105", "J201", "J501", "J601", "J602", "J603" },
+				new[] { "J000", "J101", "J102", "J103", "J104", "J105", "J201", "J202", "J501", "J601", "J602", "J603" },
 				Array.ConvertAll(errors, error => error.Code));
 		}
 

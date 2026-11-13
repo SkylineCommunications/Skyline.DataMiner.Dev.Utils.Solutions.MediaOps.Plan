@@ -114,7 +114,7 @@
 			return !result.HasFailures;
 		}
 
-		public static bool TryValidateVirtualFunctionConfiguration(MediaOpsPlanApi planApi, ResourceVirtualFunctionLinkSetting setting, out ResourceError error)
+		public static bool TryValidateVirtualFunctionConfiguration(MediaOpsPlanApi planApi, ResourceVirtualFunctionLinkSetting setting, out ResourceError error, Guid ownCoreResourceId = default)
 		{
 			error = null;
 
@@ -137,15 +137,36 @@
 				return false;
 			}
 
-			if (!handler.TryValidateVirtualFunctionResourceFunctionDefinition(setting.FunctionId, out string invalidFunctionDefinitionReason))
+			var functionDefinition = planApi.CoreHelpers.ProtocolFunctionHelperCache.GetFunctionDefinition(setting.FunctionId);
+			if (functionDefinition == null)
 			{
 				error = new ResourceInvalidFunctionLinkError
 				{
-					ErrorMessage = invalidFunctionDefinitionReason,
+					ErrorMessage = $"No function found with ID '{setting.FunctionId}'.",
 					FunctionId = setting.FunctionId,
 				};
 
 				return false;
+			}
+
+			if (!HasEntryPoints(functionDefinition))
+			{
+				// Table-based functions are bounded by their table rows; only functions without entry points are limited by MaxInstances.
+				if (!handler.TryValidateVirtualFunctionResourceMaxInstances(functionDefinition, elementId, ownCoreResourceId, out string maxInstancesReason))
+				{
+					error = new ResourceFunctionMaxInstancesExceededError
+					{
+						ErrorMessage = maxInstancesReason,
+						AgentId = setting.AgentId,
+						ElementId = setting.ElementId,
+						FunctionId = setting.FunctionId,
+						MaxInstances = functionDefinition.MaxInstances,
+					};
+
+					return false;
+				}
+
+				return true;
 			}
 
 			if (!handler.TryValidateVirtualFunctionResourceTableIndex(setting.FunctionId, elementId, setting.FunctionTableIndex, out string invalidTableIndexReason))
@@ -980,8 +1001,10 @@
 					continue;
 				}
 
-				if (functionDefinition.EntryPoints == null || !functionDefinition.EntryPoints.Any())
+				if (!HasEntryPoints(functionDefinition))
 				{
+					// Table-based functions are bounded by their table rows; only functions without entry points are limited by MaxInstances.
+					ValidateVirtualFunctionResourceMaxInstances(functionDefinition, kvp.Key.ElementInfo, kvp.Value);
 					continue;
 				}
 
@@ -1034,15 +1057,70 @@
 			}
 		}
 
-		private bool TryValidateVirtualFunctionResourceFunctionDefinition(Guid functionDefinitionId, out string reason)
+		private static bool HasEntryPoints(Net.Messages.FunctionDefinition functionDefinition)
+		{
+			return functionDefinition.EntryPoints != null && functionDefinition.EntryPoints.Any();
+		}
+
+		private void ValidateVirtualFunctionResourceMaxInstances(Net.Messages.FunctionDefinition functionDefinition, DmsElementId elementInfo, ICollection<DomResource> domResources)
+		{
+			if (functionDefinition.MaxInstances <= 0)
+			{
+				return;
+			}
+
+			var existingInstanceIds = new HashSet<Guid>(planApi.CoreHelpers.ResourceManagerHelper
+				.GetFunctionResourcesOnElement(functionDefinition.GUID, elementInfo.AgentId, elementInfo.ElementId)
+				.Select(x => x.ID));
+
+			// Resources whose CORE resource already instantiates the function on this element keep their slot; every other resource claims a new one.
+			var newResources = domResources
+				.Where(x =>
+				{
+					var coreResourceId = x.ResourceInternalProperties.Resource_Id.GetValueOrDefault();
+					return coreResourceId == Guid.Empty || !existingInstanceIds.Contains(coreResourceId);
+				})
+				.ToList();
+
+			if (newResources.Count == 0 || existingInstanceIds.Count + newResources.Count <= functionDefinition.MaxInstances)
+			{
+				return;
+			}
+
+			foreach (var resource in newResources)
+			{
+				var error = new ResourceFunctionMaxInstancesExceededError
+				{
+					ErrorMessage = $"Resource '{resource.ResourceInfo.Name}' cannot be linked to element '{elementInfo.Value}': function '{functionDefinition.Name}' allows at most {functionDefinition.MaxInstances} instance(s) per element and {existingInstanceIds.Count} instance(s) already exist.",
+					Id = resource.ID.Id,
+					AgentId = elementInfo.AgentId,
+					ElementId = elementInfo.ElementId,
+					FunctionId = functionDefinition.GUID,
+					MaxInstances = functionDefinition.MaxInstances,
+				};
+
+				AddError(resource.ID.Id, error);
+			}
+		}
+
+		private bool TryValidateVirtualFunctionResourceMaxInstances(Net.Messages.FunctionDefinition functionDefinition, DmsElementId elementInfo, Guid ownCoreResourceId, out string reason)
 		{
 			reason = String.Empty;
 
-			var functionDefinition = planApi.CoreHelpers.ProtocolFunctionHelperCache.GetFunctionDefinition(functionDefinitionId);
-
-			if (functionDefinition == null)
+			if (functionDefinition.MaxInstances <= 0)
 			{
-				reason = $"No function found with ID '{functionDefinitionId}'.";
+				return true;
+			}
+
+			var existingInstances = planApi.CoreHelpers.ResourceManagerHelper.GetFunctionResourcesOnElement(functionDefinition.GUID, elementInfo.AgentId, elementInfo.ElementId);
+			if (ownCoreResourceId != Guid.Empty && existingInstances.Any(x => x.ID == ownCoreResourceId))
+			{
+				return true;
+			}
+
+			if (existingInstances.Count >= functionDefinition.MaxInstances)
+			{
+				reason = $"Function '{functionDefinition.Name}' allows at most {functionDefinition.MaxInstances} instance(s) per element and {existingInstances.Count} instance(s) already exist on element '{elementInfo.Value}'.";
 				return false;
 			}
 
