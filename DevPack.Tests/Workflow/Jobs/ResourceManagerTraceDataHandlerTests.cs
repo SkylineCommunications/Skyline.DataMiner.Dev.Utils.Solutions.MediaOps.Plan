@@ -117,6 +117,10 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 				result[jobBReservationId].ErrorData.OfType<JobResourceNotAvailableError>().Single().ResourceId,
 				"Expected the DOM resource id to be reported.");
 			Assert.AreEqual(
+				$"Resource '{resources[0].Name}' is not available during the requested time range.",
+				result[jobBReservationId].ErrorData.OfType<JobResourceNotAvailableError>().Single().ErrorMessage,
+				"Expected an error message mentioning the unavailable resource.");
+			Assert.AreEqual(
 				resources[1].Id,
 				result[jobCReservationId].ErrorData.OfType<JobResourceNotAvailableError>().Single().ResourceId,
 				"Expected the DOM resource id to be reported.");
