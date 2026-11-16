@@ -4,7 +4,9 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 	using System.Collections.Generic;
 	using System.Linq;
 
+	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Messages;
+	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Net.ResourceManager.Helpers;
 	using Skyline.DataMiner.Net.ResponseErrorData;
 	using Skyline.DataMiner.Net.SRM.Capabilities;
@@ -12,6 +14,7 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 	using Skyline.DataMiner.Net.SRM.Quarantine;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation;
 
 	using ResourcePool = Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool;
@@ -198,6 +201,33 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			Assert.IsTrue(result.ContainsKey(reservationId), "Expected the translated errors to be keyed by the reservation id.");
 			var notAvailable = result[reservationId].ErrorData.OfType<JobResourceNotAvailableError>().Single();
 			Assert.AreEqual(resource.Id, notAvailable.ResourceId, "Expected the DOM resource id to be reported.");
+		}
+
+		[TestMethod]
+		[DataRow(null, DisplayName = "Name field absent")]
+		[DataRow("   ", DisplayName = "Name field whitespace")]
+		public void Translate_Quarantine_ResourceWithoutName_ReportsResourceIdInErrorMessage(string storedName)
+		{
+			var (api, resource) = CreateContextWithResource();
+			var planApi = (MediaOpsPlanApi)api;
+			var reservationId = Guid.NewGuid();
+
+			var domHelper = planApi.DomHelpers.SlcResourceStudioHelper.DomHelper;
+			var instance = new ResourceInstance(domHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(resource.Id)).Single());
+			instance.ResourceInfo.Name = storedName;
+			domHelper.DomInstances.Update(instance.ToInstance());
+
+			var error = CreateQuarantineError(
+				CreateQuarantinedReservation(reservationId, CreateQuarantinedUsage(resource.CoreResourceId, reservationId)));
+
+			var result = new ResourceManagerTraceDataHandler(planApi).Translate(new[] { error });
+
+			var notAvailable = result[reservationId].ErrorData.OfType<JobResourceNotAvailableError>().Single();
+			Assert.AreEqual(resource.Id, notAvailable.ResourceId, "Expected the DOM resource id to be reported.");
+			Assert.AreEqual(
+				$"Resource '{resource.Id}' is not available during the requested time range.",
+				notAvailable.ErrorMessage,
+				"Expected the error message to fall back to the DOM resource id.");
 		}
 
 		[TestMethod]
