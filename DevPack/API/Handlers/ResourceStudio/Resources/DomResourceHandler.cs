@@ -21,6 +21,8 @@
 
 	internal class DomResourceHandler : DomInstanceApiObjectValidator<DomResource>
 	{
+		internal const string FunctionInstancesLockFailedMessage = "Failed to lock the function instances of the linked element. Try again later.";
+
 		private readonly MediaOpsPlanApi planApi;
 
 		private readonly HashSet<Guid> resourceIdsWithCoreChanges = new HashSet<Guid>();
@@ -328,30 +330,30 @@
 			ClearErrors(resourcesToCreate, ResourceErrors.ExecuteAction_MarkCompleteException);
 
 			// Counting the function instances on an element and creating the CORE resource must not interleave with another writer.
-			DomInstanceBulkOperationResult<DomResource> coreResult = null;
-			var slotLockResult = CoreResourceHandler.LockFunctionInstanceSlotsAndExecute(planApi, resourcesToCreate, () => CoreResourceHandler.TryCreateOrUpdate(planApi, resourcesToCreate, out coreResult));
-			if (!slotLockResult.AllLocksGranted)
+			var coreSuccessfulIds = new HashSet<Guid>();
+			var notLockedResources = CoreResourceHandler.LockFunctionInstanceSlotsAndExecute(planApi, resourcesToCreate, subset =>
 			{
-				foreach (var resource in resourcesToCreate)
+				CoreResourceHandler.TryCreateOrUpdate(planApi, subset, out var coreResult);
+				coreSuccessfulIds.UnionWith(coreResult.SuccessfulIds);
+
+				foreach (var id in coreResult.UnsuccessfulIds)
 				{
-					ReportError(resource.ID.Id, new MediaOpsErrorData { ErrorMessage = "Failed to lock the function instances of the linked elements. Try again later." });
+					ReportError(id);
+
+					if (coreResult.TraceDataPerItem.TryGetValue(id, out var traceData))
+					{
+						PassTraceData(id, traceData);
+					}
 				}
+			});
 
-				return;
-			}
-
-			foreach (var id in coreResult.UnsuccessfulIds)
+			foreach (var resource in notLockedResources)
 			{
-				ReportError(id);
-
-				if (coreResult.TraceDataPerItem.TryGetValue(id, out var traceData))
-				{
-					PassTraceData(id, traceData);
-				}
+				ReportError(resource.ID.Id, new MediaOpsErrorData { ErrorMessage = FunctionInstancesLockFailedMessage });
 			}
 
 			// Save link with CORE Resources
-			var resourcesToSave = resourcesToCreate.Where(x => coreResult.SuccessfulIds.Contains(x.ID.Id)).ToList();
+			var resourcesToSave = resourcesToCreate.Where(x => coreSuccessfulIds.Contains(x.ID.Id)).ToList();
 			planApi.DomHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.TryCreateOrUpdateInBatches(resourcesToSave.Select(x => x.ToInstance()), out var domResult);
 			foreach (var id in domResult.UnsuccessfulIds)
 			{

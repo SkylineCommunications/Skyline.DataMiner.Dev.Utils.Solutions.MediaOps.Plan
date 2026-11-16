@@ -74,11 +74,12 @@
 		}
 
 		/// <summary>
-		/// Executes the action while holding a lock per (function, element) pair of the provided virtual function resources, so
-		/// that counting the existing function instances on an element and creating a new one cannot interleave with another writer.
+		/// Processes the resources in subsets that hold a lock per (function, element) pair, so that counting the existing function
+		/// instances on an element and creating a new one cannot interleave with another writer. Resources without such a pair are
+		/// processed without lock, and resources that compete for the same pair are always processed together.
 		/// </summary>
-		/// <returns>The lock result. The action is only executed when every lock was granted.</returns>
-		public static Plan.Tools.LockManager.LockResult<FunctionInstanceSlotLock> LockFunctionInstanceSlotsAndExecute(MediaOpsPlanApi planApi, IEnumerable<DomResource> domResources, Action action)
+		/// <returns>The resources that were not processed because their lock could not be acquired.</returns>
+		public static IReadOnlyCollection<DomResource> LockFunctionInstanceSlotsAndExecute(MediaOpsPlanApi planApi, IEnumerable<DomResource> domResources, Action<ICollection<DomResource>> action)
 		{
 			if (planApi == null)
 			{
@@ -90,20 +91,59 @@
 				throw new ArgumentNullException(nameof(domResources));
 			}
 
-			var slotLocks = domResources
-				.Where(x => x.ResourceInfo.Type == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type.VirtualFunction
-					&& x.ResourceInternalProperties.Metadata.LinkedFunctionId != Guid.Empty
-					&& !String.IsNullOrWhiteSpace(x.ResourceInternalProperties.Metadata.LinkedElementInfo))
-				.Select(x =>
-				{
-					var elementInfo = new DmsElementId(x.ResourceInternalProperties.Metadata.LinkedElementInfo);
-					return FunctionInstanceSlotLock.For(x.ResourceInternalProperties.Metadata.LinkedFunctionId, elementInfo.AgentId, elementInfo.ElementId);
-				})
-				.GroupBy(x => x.Id)
-				.Select(x => x.First())
-				.ToList();
+			if (action == null)
+			{
+				throw new ArgumentNullException(nameof(action));
+			}
 
-			return planApi.LockManager.LockAllAndExecute(slotLocks, action);
+			var lockFreeResources = new List<DomResource>();
+			var resourcesBySlotId = new Dictionary<Guid, List<DomResource>>();
+			var slotLocks = new List<FunctionInstanceSlotLock>();
+			foreach (var domResource in domResources)
+			{
+				var slotLock = GetFunctionInstanceSlotLock(domResource);
+				if (slotLock == null)
+				{
+					lockFreeResources.Add(domResource);
+					continue;
+				}
+
+				if (!resourcesBySlotId.TryGetValue(slotLock.Id, out var slotResources))
+				{
+					slotResources = new List<DomResource>();
+					resourcesBySlotId.Add(slotLock.Id, slotResources);
+					slotLocks.Add(slotLock);
+				}
+
+				slotResources.Add(domResource);
+			}
+
+			if (lockFreeResources.Count > 0)
+			{
+				action(lockFreeResources);
+			}
+
+			if (slotLocks.Count == 0)
+			{
+				return Array.Empty<DomResource>();
+			}
+
+			var lockResult = planApi.LockManager.LockAndExecute(slotLocks, lockedSlots => action(lockedSlots.SelectMany(x => resourcesBySlotId[x.Id]).ToList()));
+
+			return lockResult.FailedToLockObjects.SelectMany(x => resourcesBySlotId[x.Id]).ToList();
+		}
+
+		private static FunctionInstanceSlotLock GetFunctionInstanceSlotLock(DomResource domResource)
+		{
+			if (domResource.ResourceInfo.Type != Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type.VirtualFunction
+				|| domResource.ResourceInternalProperties.Metadata.LinkedFunctionId == Guid.Empty
+				|| String.IsNullOrWhiteSpace(domResource.ResourceInternalProperties.Metadata.LinkedElementInfo))
+			{
+				return null;
+			}
+
+			var elementInfo = new DmsElementId(domResource.ResourceInternalProperties.Metadata.LinkedElementInfo);
+			return FunctionInstanceSlotLock.For(domResource.ResourceInternalProperties.Metadata.LinkedFunctionId, elementInfo.AgentId, elementInfo.ElementId);
 		}
 
 		public static bool TryGetDifferences(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out SynchronizationDetectionResult result)

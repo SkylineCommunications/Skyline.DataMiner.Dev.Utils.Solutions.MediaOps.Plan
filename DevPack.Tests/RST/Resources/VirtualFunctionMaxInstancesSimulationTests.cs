@@ -209,6 +209,104 @@
 			Assert.AreEqual(1, setup.CountCoreInstances(setup.ElementA));
 		}
 
+		[TestMethod]
+		public void Complete_MixedBatchWithLockedFunctionInstances_OnlyRefusesTheLockedResources()
+		{
+			var setup = CreateSetup(maxInstances: 1);
+			var unmanaged = setup.Api.Resources.Create(new UnmanagedResource { Name = "Unmanaged" });
+			var onElementA = setup.Api.Resources.Create(setup.NewResource(setup.ElementA));
+			var onElementB = setup.Api.Resources.Create(setup.NewResource(setup.ElementB));
+
+			MediaOpsBulkException<Guid>? exception = null;
+			setup.HoldFunctionInstanceLock(setup.ElementA, () => exception = Assert.ThrowsException<MediaOpsBulkException<Guid>>(() => setup.Api.Resources.Complete([unmanaged, onElementA, onElementB])));
+
+			CollectionAssert.AreEquivalent(new[] { onElementA.Id }, exception!.Result.TraceDataPerItem.Keys.ToArray());
+			StringAssert.Contains(exception.Result.TraceDataPerItem[onElementA.Id].ErrorData.Single().ErrorMessage, "Failed to lock the function instances");
+			Assert.AreEqual(ResourceState.Complete, setup.Api.Resources.Read(unmanaged.Id).State);
+			Assert.AreEqual(ResourceState.Complete, setup.Api.Resources.Read(onElementB.Id).State);
+			Assert.AreEqual(ResourceState.Draft, setup.Api.Resources.Read(onElementA.Id).State);
+			Assert.AreEqual(0, setup.CountCoreInstances(setup.ElementA));
+		}
+
+		[TestMethod]
+		public void Synchronize_MixedBatchWithLockedFunctionInstances_OnlyFailsTheLockedResources()
+		{
+			var setup = CreateSetup(maxInstances: 1);
+			var pool = setup.CreateCompletedPool();
+			var unmanaged = setup.Api.Resources.Complete(setup.Api.Resources.Create(new UnmanagedResource { Name = "Unmanaged" }.AssignToPool(pool)));
+			var onElementA = setup.Api.Resources.Complete(setup.Api.Resources.Create(setup.NewResource(setup.ElementA).AssignToPool(pool)));
+			var onElementB = setup.Api.Resources.Complete(setup.Api.Resources.Create(setup.NewResource(setup.ElementB).AssignToPool(pool)));
+			setup.ResourceManagerHelper.RemoveResources([new CoreResource(unmanaged.CoreResourceId), new CoreResource(onElementA.CoreResourceId), new CoreResource(onElementB.CoreResourceId)]);
+			var items = setup.Api.ResourcePools.GetOutOfSyncItems([pool]).Resources;
+
+			SynchronizationResult? result = null;
+			setup.HoldFunctionInstanceLock(setup.ElementA, () => result = setup.Api.ResourcePools.Synchronize(items));
+
+			CollectionAssert.AreEquivalent(new[] { onElementA.Id }, result!.Failures.Keys.ToArray());
+			CollectionAssert.AreEquivalent(new[] { unmanaged.Id, onElementB.Id }, result.SynchronizedResourceIds.ToArray());
+			Assert.AreEqual(0, setup.CountCoreInstances(setup.ElementA));
+			Assert.AreEqual(1, setup.CountCoreInstances(setup.ElementB));
+		}
+
+		[TestMethod]
+		public void Synchronize_MissingInstanceWhileExternalInstanceFillsTheLimit_IsBlockedAndNotRecreated()
+		{
+			var setup = CreateSetup(maxInstances: 1);
+			var pool = setup.CreateCompletedPool();
+			var resource = setup.Api.Resources.Complete(setup.Api.Resources.Create(setup.NewResource(setup.ElementA).AssignToPool(pool)));
+			setup.ResourceManagerHelper.RemoveResources([new CoreResource(resource.CoreResourceId)]);
+			setup.AddExternalInstance(setup.ElementA);
+
+			var item = setup.Api.ResourcePools.GetOutOfSyncItems([pool]).Resources.Single();
+
+			Assert.IsFalse(item.CanSynchronize);
+			var blocker = item.Blockers.OfType<ResourceFunctionMaxInstancesExceededError>().Single();
+			Assert.AreEqual(setup.ElementA.ElementId, blocker.ElementId);
+			Assert.AreEqual(1, blocker.MaxInstances);
+
+			var result = setup.Api.ResourcePools.Synchronize([item]);
+
+			Assert.IsTrue(result.Failures[resource.Id].ErrorData.OfType<ResourceFunctionMaxInstancesExceededError>().Any());
+			Assert.AreEqual(1, setup.CountCoreInstances(setup.ElementA), "Only the external instance may exist.");
+		}
+
+		[TestMethod]
+		public void Synchronize_LinkMovedToElementAtTheLimit_IsBlockedAndNotMoved()
+		{
+			var setup = CreateSetup(maxInstances: 1);
+			var pool = setup.CreateCompletedPool();
+			var resource = setup.Api.Resources.Complete(setup.Api.Resources.Create(setup.NewResource(setup.ElementA).AssignToPool(pool)));
+			setup.Api.Resources.Complete(setup.Api.Resources.Create(setup.NewResource(setup.ElementB).AssignToPool(pool)));
+			setup.MoveDomLink(resource.Id, setup.ElementB);
+
+			var item = setup.Api.ResourcePools.GetOutOfSyncItems([pool]).Resources.Single();
+
+			Assert.IsFalse(item.CanSynchronize);
+			Assert.AreEqual(setup.ElementB.ElementId, item.Blockers.OfType<ResourceFunctionMaxInstancesExceededError>().Single().ElementId);
+
+			setup.Api.ResourcePools.Synchronize([item]);
+
+			Assert.AreEqual(1, setup.CountCoreInstances(setup.ElementA), "The CORE instance may not be moved away.");
+			Assert.AreEqual(1, setup.CountCoreInstances(setup.ElementB));
+		}
+
+		[TestMethod]
+		public void Synchronize_LinkMovedToElementWithRoom_MovesTheInstance()
+		{
+			var setup = CreateSetup(maxInstances: 1);
+			var pool = setup.CreateCompletedPool();
+			var resource = setup.Api.Resources.Complete(setup.Api.Resources.Create(setup.NewResource(setup.ElementA).AssignToPool(pool)));
+			setup.MoveDomLink(resource.Id, setup.ElementB);
+
+			var item = setup.Api.ResourcePools.GetOutOfSyncItems([pool]).Resources.Single();
+			Assert.IsTrue(item.CanSynchronize, String.Join(" | ", item.Blockers.Select(x => x.ErrorMessage)));
+
+			Assert.IsFalse(setup.Api.ResourcePools.Synchronize([item]).HasFailures);
+
+			Assert.AreEqual(0, setup.CountCoreInstances(setup.ElementA));
+			Assert.AreEqual(1, setup.CountCoreInstances(setup.ElementB));
+		}
+
 		private static TestSetup CreateSetup(int maxInstances)
 		{
 			var dms = MediaOpsPlanSimulation.Create();
@@ -305,6 +403,40 @@
 			{
 				var slotLock = CoreResourceHandler.FunctionInstanceSlotLock.For(FunctionId, element.AgentId, element.ElementId);
 				return ((MediaOpsPlanApi)Api).LockManager.LockAllAndExecute([slotLock], action);
+			}
+
+			public ResourcePool CreateCompletedPool()
+			{
+				return Api.ResourcePools.Complete(Api.ResourcePools.Create(new ResourcePool { Name = $"Pool {++_counter}" }));
+			}
+
+			/// <summary>Adds a CORE function instance that was not created through MediaOps Plan.</summary>
+			public void AddExternalInstance(ElementRef element)
+			{
+				ResourceManagerHelper.AddOrUpdateResources(new Skyline.DataMiner.Net.ResourceManager.Objects.FunctionResource
+				{
+					ID = Guid.NewGuid(),
+					Name = $"External instance {++_counter}",
+					FunctionGUID = FunctionId,
+					MainDVEDmaID = element.AgentId,
+					MainDVEElementID = element.ElementId,
+				});
+			}
+
+			/// <summary>Points the stored element link to another element without touching the CORE resource, so the two drift apart.</summary>
+			public void MoveDomLink(Guid resourceId, ElementRef element)
+			{
+				var domHelpers = ((MediaOpsPlanApi)Api).DomHelpers;
+				var domResource = domHelpers.SlcResourceStudioHelper.GetResources([resourceId]).Single();
+				var metadata = domResource.ResourceInternalProperties.Metadata;
+				domResource.ResourceInternalProperties.Metadata = new Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio.ResourceMetadata
+				{
+					LinkedElementInfo = new Skyline.DataMiner.Core.DataMinerSystem.Common.DmsElementId(element.AgentId, element.ElementId).Value,
+					LinkedFunctionId = metadata.LinkedFunctionId,
+					LinkedFunctionTableIndex = metadata.LinkedFunctionTableIndex,
+				};
+
+				domHelpers.SlcResourceStudioHelper.DomHelper.DomInstances.Update(domResource.ToInstance());
 			}
 		}
 	}
