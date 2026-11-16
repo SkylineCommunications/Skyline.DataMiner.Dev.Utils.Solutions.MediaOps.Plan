@@ -995,6 +995,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 			foreach (var reservation in _reservationInstances.Values)
 			{
 				if (!ConsumesCapacity(reservation.Status) ||
+					IsIgnoredReservation(reservation, context) ||
 					!RangesOverlap(context.TimeRange.Start, context.TimeRange.Stop, reservation.Start, reservation.End))
 				{
 					continue;
@@ -1015,6 +1016,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 			return status == ReservationStatus.Pending ||
 				status == ReservationStatus.Confirmed ||
 				status == ReservationStatus.Ongoing;
+		}
+
+		private static bool IsIgnoredReservation(ReservationInstance reservation, EligibleResourceContext context)
+		{
+			return context.ReservationIdToIgnore != null && reservation.ID == context.ReservationIdToIgnore.Id;
 		}
 
 		private static bool RangesOverlap(DateTime start1, DateTime end1, DateTime start2, DateTime end2)
