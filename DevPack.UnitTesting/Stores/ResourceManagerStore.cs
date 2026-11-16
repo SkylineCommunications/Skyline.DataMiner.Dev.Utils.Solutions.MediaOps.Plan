@@ -312,17 +312,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 
 		private EligibleResourcesResponseMessage HandleGetEligibleResources(GetEligibleResourcesMessage request)
 		{
-			var contexts = request.MultipleContexts != null && request.MultipleContexts.Count > 0
-				? request.MultipleContexts
-				: new List<EligibleResourceContext> { request.Context };
-			var errors = contexts.Select(ValidateNodeToIgnore).Where(x => x != null).ToList();
-			if (errors.Count > 0)
-			{
-				var traceData = new TraceData();
-				errors.ForEach(traceData.Add);
-				return new EligibleResourcesResponseMessage { Success = true, TraceData = traceData };
-			}
-
 			if (request.MultipleContexts != null && request.MultipleContexts.Count > 0)
 			{
 				var results = request.MultipleContexts
@@ -1013,7 +1002,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 
 				foreach (var usage in reservation.ResourcesInReservationInstance.OfType<ServiceResourceUsageDefinition>())
 				{
-					if (usage.GUID == resourceId && !IsIgnoredUsage(reservation, usage, context))
+					if (usage.GUID == resourceId)
 					{
 						yield return new ReservationUsage(reservation, usage);
 					}
@@ -1026,33 +1015,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Stores
 			return status == ReservationStatus.Pending ||
 				status == ReservationStatus.Confirmed ||
 				status == ReservationStatus.Ongoing;
-		}
-
-		private static bool IsIgnoredUsage(ReservationInstance reservation, ServiceResourceUsageDefinition usage, EligibleResourceContext context)
-		{
-			return context.ReservationIdToIgnore != null
-				&& reservation.ID == context.ReservationIdToIgnore.Id
-				&& usage.ServiceDefinitionNodeID == context.NodeIdToIgnore;
-		}
-
-		// Like a real agent, only one node can be ignored, and the reservation must have a usage for that node.
-		private ResourceManagerErrorData ValidateNodeToIgnore(EligibleResourceContext context)
-		{
-			if (context?.ReservationIdToIgnore == null)
-			{
-				return null;
-			}
-
-			var reservationId = context.ReservationIdToIgnore.Id;
-			if (!_reservationInstances.TryGetValue(reservationId, out var reservation))
-			{
-				return new ResourceManagerErrorData(ResourceManagerErrorData.Reason.ReservationInstanceNotFound, (Guid?)reservationId);
-			}
-
-			var hasNode = context.NodeIdToIgnore != -1
-				&& reservation.ResourcesInReservationInstance.OfType<ServiceResourceUsageDefinition>().Any(x => x.ServiceDefinitionNodeID == context.NodeIdToIgnore);
-
-			return hasNode ? null : new ResourceManagerErrorData(ResourceManagerErrorData.Reason.ServiceNodeResourceUsageNotFound, (Guid?)reservationId, (int?)context.NodeIdToIgnore);
 		}
 
 		private static bool RangesOverlap(DateTime start1, DateTime end1, DateTime start2, DateTime end2)

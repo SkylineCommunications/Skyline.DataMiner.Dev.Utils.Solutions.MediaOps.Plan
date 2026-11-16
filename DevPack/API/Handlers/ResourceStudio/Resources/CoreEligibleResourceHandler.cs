@@ -124,8 +124,6 @@
 
 		private IReadOnlyList<EligibleResourcesResult> GetEligibleResources(IReadOnlyCollection<EligibleResourcesContext> contexts)
 		{
-			var nodesToIgnore = ResolveNodesToIgnore(contexts);
-
 			var requests = new List<(EligibleResourcesContext Context, EligibleResourceContext CoreContext, Dictionary<Guid, Resource> FilteredResourcesByCoreId)>();
 			var resultsByContextId = new Dictionary<Guid, EligibleResourcesResult>();
 			foreach (var context in contexts)
@@ -139,12 +137,6 @@
 					CalculateAllCapabilities = context.IncludeAllCapabilityUsages,
 					FillLinkerTableEntries = false,
 				};
-
-				if (nodesToIgnore.TryGetValue(context.Id, out var nodeToIgnore))
-				{
-					coreContext.ReservationIdToIgnore = new Net.ReservationInstanceID(nodeToIgnore.ReservationId);
-					coreContext.NodeIdToIgnore = nodeToIgnore.CoreNodeId;
-				}
 
 				var filter = context.Filter;
 
@@ -188,49 +180,6 @@
 			}
 
 			return contexts.Select(x => resultsByContextId[x.Id]).ToList().AsReadOnly();
-		}
-
-		private IReadOnlyDictionary<Guid, (Guid ReservationId, int CoreNodeId)> ResolveNodesToIgnore(IReadOnlyCollection<EligibleResourcesContext> contexts)
-		{
-			var result = new Dictionary<Guid, (Guid ReservationId, int CoreNodeId)>();
-
-			var contextsWithNodeToIgnore = contexts.Where(x => x.HasNodeToIgnore).ToList();
-			if (contextsWithNodeToIgnore.Count == 0)
-			{
-				return result;
-			}
-
-			if (contextsWithNodeToIgnore.Any(x => x.JobIdToIgnore == Guid.Empty || String.IsNullOrEmpty(x.NodeIdToIgnore)))
-			{
-				throw new ArgumentException($"{nameof(EligibleResourcesContext.JobIdToIgnore)} and {nameof(EligibleResourcesContext.NodeIdToIgnore)} must be set together.", nameof(contexts));
-			}
-
-			var jobIds = contextsWithNodeToIgnore.Select(x => x.JobIdToIgnore).Distinct().ToList();
-			var jobsById = planApi.Jobs.Read(jobIds).ToDictionary(x => x.Id);
-			var reservationsByJobId = JobReservationLookup.GetReservationsByJobId(planApi, jobIds);
-
-			foreach (var context in contextsWithNodeToIgnore)
-			{
-				if (!jobsById.TryGetValue(context.JobIdToIgnore, out var job) || !reservationsByJobId.TryGetValue(context.JobIdToIgnore, out var reservations))
-				{
-					throw new ArgumentException($"Job {context.JobIdToIgnore} has no booking.", nameof(contexts));
-				}
-
-				var node = job.NodeGraph.Nodes.FirstOrDefault(x => String.Equals(x.Id, context.NodeIdToIgnore, StringComparison.OrdinalIgnoreCase));
-				var coreNodeId = node?.CoreReservationNodeId;
-				var reservation = coreNodeId.HasValue
-					? reservations.FirstOrDefault(r => (r.ResourcesInReservationInstance ?? new List<Net.Messages.ResourceUsageDefinition>()).OfType<ServiceResourceUsageDefinition>().Any(x => x.ServiceDefinitionNodeID == coreNodeId.Value))
-					: null;
-
-				if (reservation == null)
-				{
-					throw new ArgumentException($"Node {context.NodeIdToIgnore} of job {context.JobIdToIgnore} is not booked.", nameof(contexts));
-				}
-
-				result[context.Id] = (reservation.ID, coreNodeId.Value);
-			}
-
-			return result;
 		}
 
 		private EligibleResourcesResult MapResult(Guid contextId, EligibleResourceResult coreResult, IReadOnlyDictionary<Guid, Resource> filteredResourcesByCoreId, CapabilityIdResolver capabilityIdResolver)
