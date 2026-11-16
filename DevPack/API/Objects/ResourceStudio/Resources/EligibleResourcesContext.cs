@@ -72,9 +72,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// Gets or sets the job of which the booked usage is ignored, as if that job did not use any of its resources. Useful to
 		/// find alternative resources for a job that is already booked. <see cref="Guid.Empty"/> by default.
 		/// </summary>
-		/// <remarks>
-		/// The job must have a booking. Requires DataMiner 10.7.2 or higher.
-		/// </remarks>
+		/// <remarks>The job must have a booking.</remarks>
 		public Guid JobIdToIgnore { get; set; }
 
 		/// <summary>
