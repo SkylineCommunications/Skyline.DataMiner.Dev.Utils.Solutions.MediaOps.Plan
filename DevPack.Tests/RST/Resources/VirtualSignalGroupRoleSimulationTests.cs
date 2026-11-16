@@ -112,7 +112,54 @@
 		}
 
 		[TestMethod]
-		public void JobValidate_RoleChangedAfterResourceSave_ReportsInvalidRoleError()
+		public void Update_StaleSnapshotAfterInputWasSwitched_ValidatesTheStoredInput()
+		{
+			var setup = CreateSetup();
+			var original = setup.CreateVirtualSignalGroup(EndpointRole.Destination);
+			var replacement = setup.CreateVirtualSignalGroup(EndpointRole.Destination);
+			var created = setup.Api.Resources.Create(new UnmanagedResource { Name = "Resource", VirtualSignalGroupInputId = original.ID });
+
+			var stale = setup.Api.Resources.Read(created.Id);
+			var current = setup.Api.Resources.Read(created.Id);
+			current.VirtualSignalGroupInputId = replacement.ID;
+			setup.Api.Resources.Update(current);
+
+			// The VSG the stale snapshot still refers to is no longer linked, so its role may not block the rename.
+			setup.ChangeRole(original, EndpointRole.Source);
+			stale.Name = "Renamed";
+
+			var updated = setup.Api.Resources.Update(stale);
+
+			Assert.AreEqual("Renamed", updated.Name);
+			Assert.AreEqual(replacement.ID, updated.VirtualSignalGroupInputId);
+		}
+
+		[TestMethod]
+		public void Update_StaleSnapshotAfterInputWasSwitched_RejectsStoredInputWithWrongRole()
+		{
+			var setup = CreateSetup();
+			var original = setup.CreateVirtualSignalGroup(EndpointRole.Destination);
+			var replacement = setup.CreateVirtualSignalGroup(EndpointRole.Destination);
+			var created = setup.Api.Resources.Create(new UnmanagedResource { Name = "Resource", VirtualSignalGroupInputId = original.ID });
+
+			var stale = setup.Api.Resources.Read(created.Id);
+			var current = setup.Api.Resources.Read(created.Id);
+			current.VirtualSignalGroupInputId = replacement.ID;
+			setup.Api.Resources.Update(current);
+
+			setup.ChangeRole(replacement, EndpointRole.Source);
+			stale.Name = "Renamed";
+
+			var exception = Assert.ThrowsException<MediaOpsException>(() => setup.Api.Resources.Update(stale));
+
+			Assert.AreEqual(replacement.ID, exception.TraceData.ErrorData.OfType<ResourceInvalidVirtualSignalGroupRoleError>().Single().VirtualSignalGroupId);
+			Assert.AreEqual("Resource", setup.Api.Resources.Read(created.Id).Name);
+		}
+
+		[DataTestMethod]
+		[DataRow("input", EndpointRole.Source, EndpointRole.Destination)]
+		[DataRow("output", EndpointRole.Destination, EndpointRole.Source)]
+		public void JobValidate_RoleChangedAfterResourceSave_ReportsInvalidRoleError(string direction, EndpointRole changedRole, EndpointRole expectedRole)
 		{
 			var setup = CreateSetup();
 			var destination = setup.CreateVirtualSignalGroup(EndpointRole.Destination);
@@ -121,10 +168,13 @@
 
 			Assert.IsFalse(setup.Api.Jobs.Validate([job]).Single().HasErrors, "A job on correctly linked virtual signal groups must validate.");
 
-			setup.ChangeRole(source, EndpointRole.Destination);
+			var changed = direction == "input" ? destination : source;
+			setup.ChangeRole(changed, changedRole);
 
 			var result = setup.Api.Jobs.Validate([job]).Single();
-			Assert.IsTrue(result.HasError(VirtualSignalGroupInvalidRoleJobValidationError.ErrorCode), "Expected the output virtual signal group with role Destination to be reported.");
+			var error = result.Errors.Single(x => x.Code == VirtualSignalGroupInvalidRoleJobValidationError.ErrorCode);
+			StringAssert.Contains(error.Message, $"({direction}) virtual signal group with ID '{changed.ID}'");
+			StringAssert.Contains(error.Message, $"has role '{changedRole}' but must have role '{expectedRole}'");
 			Assert.IsFalse(result.HasError(VirtualSignalGroupNotFoundJobValidationError.ErrorCode), "An existing virtual signal group must not be reported as not found.");
 		}
 

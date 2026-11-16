@@ -25,6 +25,8 @@
 
 		private readonly HashSet<Guid> resourceIdsWithCoreChanges = new HashSet<Guid>();
 
+		private readonly HashSet<Guid> resourceIdsRequiringConnectionManagementValidation = new HashSet<Guid>();
+
 		private Dictionary<Guid, ResourcePool> resourcePoolsById = new Dictionary<Guid, ResourcePool>();
 
 		private DomResourceHandler(MediaOpsPlanApi planApi)
@@ -158,7 +160,7 @@
 			ValidateResourceProperties(toValidate);
 			ValidateNames(toValidate);
 			ValidateConcurrency(toValidate);
-			ValidateConnectionManagement(toValidate);
+			resourceIdsRequiringConnectionManagementValidation.UnionWith(toValidate.Select(x => x.Id));
 
 			var validResources = apiResources.Where(IsValid).ToList();
 			var lockResult = planApi.LockManager.LockAndExecute(validResources, CreateOrUpdateCoreResources);
@@ -225,14 +227,23 @@
 				MarkAsResourceWithCoreChanges(resource);
 			}
 
-			var toCreateDomInstances = resourcesToCreate
+			// The VSGs are validated on the merged instances, so a stale snapshot cannot validate VSGs that are no longer linked.
+			var createdInstancesById = resourcesToCreate
 				.Where(IsValid)
-				.Select(x => x.GetInstanceWithChanges())
-				.ToList();
-
-			var toUpdateDomInstances = changeResults
+				.ToDictionary(x => x.Id, x => x.GetInstanceWithChanges());
+			var mergedInstances = changeResults
 				.Where(IsValid)
 				.Select(x => new DomResource(x.Instance))
+				.ToList();
+
+			ValidateConnectionManagement(createdInstancesById.Values.Concat(mergedInstances).Where(x => resourceIdsRequiringConnectionManagementValidation.Contains(x.ID.Id)).ToList());
+
+			var toCreateDomInstances = createdInstancesById.Values
+				.Where(x => !TraceDataPerItem.ContainsKey(x.ID.Id))
+				.ToList();
+
+			var toUpdateDomInstances = mergedInstances
+				.Where(x => !TraceDataPerItem.ContainsKey(x.ID.Id))
 				.ToList();
 
 			CreateOrUpdateDomResources(toCreateDomInstances.Concat(toUpdateDomInstances).ToList());
@@ -315,7 +326,20 @@
 			}
 
 			ClearErrors(resourcesToCreate, ResourceErrors.ExecuteAction_MarkCompleteException);
-			CoreResourceHandler.TryCreateOrUpdate(planApi, resourcesToCreate, out var coreResult);
+
+			// Counting the function instances on an element and creating the CORE resource must not interleave with another writer.
+			DomInstanceBulkOperationResult<DomResource> coreResult = null;
+			var slotLockResult = CoreResourceHandler.LockFunctionInstanceSlotsAndExecute(planApi, resourcesToCreate, () => CoreResourceHandler.TryCreateOrUpdate(planApi, resourcesToCreate, out coreResult));
+			if (!slotLockResult.AllLocksGranted)
+			{
+				foreach (var resource in resourcesToCreate)
+				{
+					ReportError(resource.ID.Id, new MediaOpsErrorData { ErrorMessage = "Failed to lock the function instances of the linked elements. Try again later." });
+				}
+
+				return;
+			}
+
 			foreach (var id in coreResult.UnsuccessfulIds)
 			{
 				ReportError(id);
@@ -1157,14 +1181,14 @@
 			}
 		}
 
-		private void ValidateConnectionManagement(ICollection<Resource> apiResources)
+		private void ValidateConnectionManagement(ICollection<DomResource> domResources)
 		{
-			if (apiResources == null)
+			if (domResources == null)
 			{
-				throw new ArgumentNullException(nameof(apiResources));
+				throw new ArgumentNullException(nameof(domResources));
 			}
 
-			if (apiResources.Count == 0)
+			if (domResources.Count == 0)
 			{
 				return;
 			}
@@ -1175,8 +1199,8 @@
 				return;
 			}
 
-			var virtualSignalGroupIds = apiResources
-				.SelectMany(x => new[] { x.VirtualSignalGroupInputId, x.VirtualSignalGroupOutputId })
+			var virtualSignalGroupIds = domResources
+				.SelectMany(x => new[] { x.ResourceConnectionManagement.VirtualSignalGroupInputId, x.ResourceConnectionManagement.VirtualSignalGroupOutputId })
 				.Where(x => x != Guid.Empty)
 				.Distinct()
 				.ToList();
@@ -1188,14 +1212,14 @@
 
 			var virtualSignalGroupsById = planApi.LiveApi.VirtualSignalGroups.Read(virtualSignalGroupIds);
 
-			foreach (var resource in apiResources)
+			foreach (var domResource in domResources)
 			{
-				ValidateVirtualSignalGroupLink(resource, resource.VirtualSignalGroupInputId, LiveEndpointRole.Destination, "input", virtualSignalGroupsById);
-				ValidateVirtualSignalGroupLink(resource, resource.VirtualSignalGroupOutputId, LiveEndpointRole.Source, "output", virtualSignalGroupsById);
+				ValidateVirtualSignalGroupLink(domResource.ID.Id, domResource.ResourceConnectionManagement.VirtualSignalGroupInputId, LiveEndpointRole.Destination, "input", virtualSignalGroupsById);
+				ValidateVirtualSignalGroupLink(domResource.ID.Id, domResource.ResourceConnectionManagement.VirtualSignalGroupOutputId, LiveEndpointRole.Source, "output", virtualSignalGroupsById);
 			}
 		}
 
-		private void ValidateVirtualSignalGroupLink(Resource resource, Guid virtualSignalGroupId, LiveEndpointRole expectedRole, string direction, IDictionary<Guid, LiveVirtualSignalGroup> virtualSignalGroupsById)
+		private void ValidateVirtualSignalGroupLink(Guid resourceId, Guid virtualSignalGroupId, LiveEndpointRole expectedRole, string direction, IDictionary<Guid, LiveVirtualSignalGroup> virtualSignalGroupsById)
 		{
 			if (virtualSignalGroupId == Guid.Empty)
 			{
@@ -1204,10 +1228,10 @@
 
 			if (!virtualSignalGroupsById.TryGetValue(virtualSignalGroupId, out var virtualSignalGroup))
 			{
-				ReportError(resource.Id, new ResourceInvalidVirtualSignalGroupError
+				ReportError(resourceId, new ResourceInvalidVirtualSignalGroupError
 				{
 					ErrorMessage = $"Virtual Signal Group with ID '{virtualSignalGroupId}' not found.",
-					Id = resource.Id,
+					Id = resourceId,
 					VirtualSignalGroupId = virtualSignalGroupId,
 				});
 
@@ -1216,10 +1240,10 @@
 
 			if (virtualSignalGroup.Role != expectedRole)
 			{
-				ReportError(resource.Id, new ResourceInvalidVirtualSignalGroupRoleError
+				ReportError(resourceId, new ResourceInvalidVirtualSignalGroupRoleError
 				{
 					ErrorMessage = $"Virtual Signal Group '{virtualSignalGroup.Name}' ({virtualSignalGroupId}) has role '{virtualSignalGroup.Role}' and cannot be used as {direction}: the {direction} virtual signal group must have role '{expectedRole}'.",
-					Id = resource.Id,
+					Id = resourceId,
 					VirtualSignalGroupId = virtualSignalGroupId,
 				});
 			}

@@ -10,6 +10,7 @@
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation;
 
 	using CoreResource = Skyline.DataMiner.Net.Messages.Resource;
+	using PlanResource = Skyline.DataMiner.Solutions.MediaOps.Plan.API.Resource;
 	using ResourcePool = Skyline.DataMiner.Solutions.MediaOps.Plan.API.ResourcePool;
 
 	/// <summary>
@@ -160,6 +161,54 @@
 			Assert.AreEqual(setup.ElementA.ElementId, converted.ElementId);
 		}
 
+		[TestMethod]
+		public void Complete_FunctionInstancesLockedByAnotherWriter_IsRefusedWithoutCreatingAnInstance()
+		{
+			var setup = CreateSetup(maxInstances: 1);
+			var draft = setup.Api.Resources.Create(setup.NewResource(setup.ElementA));
+
+			MediaOpsException? exception = null;
+			var lockResult = setup.HoldFunctionInstanceLock(setup.ElementA, () => exception = Assert.ThrowsException<MediaOpsException>(() => setup.Api.Resources.Complete(draft)));
+
+			Assert.IsTrue(lockResult.AllLocksGranted);
+			StringAssert.Contains(exception!.TraceData.ErrorData.Single().ErrorMessage, "Failed to lock the function instances");
+			Assert.AreEqual(0, setup.CountCoreInstances(setup.ElementA), "No CORE instance may be created while another writer holds the function instances.");
+
+			var completed = setup.Api.Resources.Complete(setup.Api.Resources.Read(draft.Id));
+			Assert.AreEqual(ResourceState.Complete, completed.State, "The lock must be released after the refused attempt.");
+		}
+
+		[TestMethod]
+		public void Complete_FunctionInstancesOfOtherElementLocked_IsNotBlocked()
+		{
+			var setup = CreateSetup(maxInstances: 1);
+			var draft = setup.Api.Resources.Create(setup.NewResource(setup.ElementA));
+
+			PlanResource? completed = null;
+			setup.HoldFunctionInstanceLock(setup.ElementB, () => completed = setup.Api.Resources.Complete(draft));
+
+			Assert.AreEqual(ResourceState.Complete, completed!.State);
+		}
+
+		[TestMethod]
+		public void Synchronize_FunctionInstancesLockedByAnotherWriter_DoesNotRecreateTheInstance()
+		{
+			var setup = CreateSetup(maxInstances: 1);
+			var pool = setup.Api.ResourcePools.Complete(setup.Api.ResourcePools.Create(new ResourcePool { Name = "Pool" }));
+			var resource = setup.Api.Resources.Complete(setup.Api.Resources.Create(setup.NewResource(setup.ElementA).AssignToPool(pool)));
+			setup.ResourceManagerHelper.RemoveResources([new CoreResource(resource.CoreResourceId)]);
+			var item = setup.Api.ResourcePools.GetOutOfSyncItems([pool]).Resources.Single();
+
+			SynchronizationResult? result = null;
+			setup.HoldFunctionInstanceLock(setup.ElementA, () => result = setup.Api.ResourcePools.Synchronize([item]));
+
+			Assert.IsTrue(result!.Failures.ContainsKey(resource.Id));
+			Assert.AreEqual(0, setup.CountCoreInstances(setup.ElementA));
+
+			Assert.IsFalse(setup.Api.ResourcePools.Synchronize([item]).HasFailures, "The lock must be released after the refused attempt.");
+			Assert.AreEqual(1, setup.CountCoreInstances(setup.ElementA));
+		}
+
 		private static TestSetup CreateSetup(int maxInstances)
 		{
 			var dms = MediaOpsPlanSimulation.Create();
@@ -249,6 +298,13 @@
 				return ResourceManagerHelper.GetResources(new TRUEFilterElement<CoreResource>())
 					.OfType<Skyline.DataMiner.Net.ResourceManager.Objects.FunctionResource>()
 					.Count(x => x.FunctionGUID == FunctionId && x.MainDVEDmaID == element.AgentId && x.MainDVEElementID == element.ElementId);
+			}
+
+			/// <summary>Simulates another writer that holds the function instances of the element while the action runs.</summary>
+			public Skyline.DataMiner.Solutions.MediaOps.Plan.Tools.LockManager.LockResult<CoreResourceHandler.FunctionInstanceSlotLock> HoldFunctionInstanceLock(ElementRef element, Action action)
+			{
+				var slotLock = CoreResourceHandler.FunctionInstanceSlotLock.For(FunctionId, element.AgentId, element.ElementId);
+				return ((MediaOpsPlanApi)Api).LockManager.LockAllAndExecute([slotLock], action);
 			}
 		}
 	}

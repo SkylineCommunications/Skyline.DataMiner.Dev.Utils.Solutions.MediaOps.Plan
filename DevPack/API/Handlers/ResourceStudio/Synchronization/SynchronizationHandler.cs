@@ -230,38 +230,57 @@ var resources = planApi.Resources.Read(ids).ToList();
 				AddFailure(failures, resource.Id, new ResourceInvalidStateError { ErrorMessage = "Resource is no longer in Completed state.", Id = resource.Id });
 			}
 
-			CoreResourceHandler.TryGetDifferences(planApi, domResourcesById.Values.ToList(), out var detection);
-
 			var toSynchronize = new List<DomResource>();
 			var idsWithoutCoreObject = new HashSet<Guid>();
-			foreach (var entry in domResourcesById)
+			DomInstanceBulkOperationResult<DomResource> result = null;
+
+			// Detection counts the function instances on an element (MaxInstances), so detection and the CORE write share one lock.
+			var slotLockResult = CoreResourceHandler.LockFunctionInstanceSlotsAndExecute(planApi, domResourcesById.Values, () =>
 			{
-				if (detection.BlockersPerItem.TryGetValue(entry.Key, out var traceData))
+				CoreResourceHandler.TryGetDifferences(planApi, domResourcesById.Values.ToList(), out var detection);
+
+				foreach (var entry in domResourcesById)
 				{
-					failures[entry.Key] = traceData;
-					continue;
+					if (detection.BlockersPerItem.TryGetValue(entry.Key, out var traceData))
+					{
+						failures[entry.Key] = traceData;
+						continue;
+					}
+
+					if (detection.IsSynchronizedItem(entry.Key))
+					{
+						synchronizedIds.Add(entry.Key);
+						continue;
+					}
+
+					if (!CoreObjectExists(detection, entry.Key))
+					{
+						idsWithoutCoreObject.Add(entry.Key);
+					}
+
+					toSynchronize.Add(entry.Value);
 				}
 
-				if (detection.IsSynchronizedItem(entry.Key))
+				if (toSynchronize.Count > 0)
 				{
-					synchronizedIds.Add(entry.Key);
-					continue;
+					CoreResourceHandler.TryCreateOrUpdate(planApi, toSynchronize, out result, recreateMissingCoreResources: true);
 				}
+			});
 
-				if (!CoreObjectExists(detection, entry.Key))
-				{
-					idsWithoutCoreObject.Add(entry.Key);
-				}
-
-				toSynchronize.Add(entry.Value);
-			}
-
-			if (toSynchronize.Count == 0)
+			if (!slotLockResult.AllLocksGranted)
 			{
+				foreach (var id in domResourcesById.Keys)
+				{
+					AddFailure(failures, id, new MediaOpsErrorData { ErrorMessage = "Failed to lock the function instances of the linked elements. Try again later." });
+				}
+
 				return synchronizedIds;
 			}
 
-			CoreResourceHandler.TryCreateOrUpdate(planApi, toSynchronize, out var result, recreateMissingCoreResources: true);
+			if (result == null)
+			{
+				return synchronizedIds;
+			}
 
 			foreach (var id in result.UnsuccessfulIds)
 			{

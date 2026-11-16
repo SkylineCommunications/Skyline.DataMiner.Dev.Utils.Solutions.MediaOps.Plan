@@ -73,6 +73,39 @@
 			return !result.HasFailures;
 		}
 
+		/// <summary>
+		/// Executes the action while holding a lock per (function, element) pair of the provided virtual function resources, so
+		/// that counting the existing function instances on an element and creating a new one cannot interleave with another writer.
+		/// </summary>
+		/// <returns>The lock result. The action is only executed when every lock was granted.</returns>
+		public static Plan.Tools.LockManager.LockResult<FunctionInstanceSlotLock> LockFunctionInstanceSlotsAndExecute(MediaOpsPlanApi planApi, IEnumerable<DomResource> domResources, Action action)
+		{
+			if (planApi == null)
+			{
+				throw new ArgumentNullException(nameof(planApi));
+			}
+
+			if (domResources == null)
+			{
+				throw new ArgumentNullException(nameof(domResources));
+			}
+
+			var slotLocks = domResources
+				.Where(x => x.ResourceInfo.Type == Storage.DOM.SlcResource_Studio.SlcResource_StudioIds.Enums.Type.VirtualFunction
+					&& x.ResourceInternalProperties.Metadata.LinkedFunctionId != Guid.Empty
+					&& !String.IsNullOrWhiteSpace(x.ResourceInternalProperties.Metadata.LinkedElementInfo))
+				.Select(x =>
+				{
+					var elementInfo = new DmsElementId(x.ResourceInternalProperties.Metadata.LinkedElementInfo);
+					return FunctionInstanceSlotLock.For(x.ResourceInternalProperties.Metadata.LinkedFunctionId, elementInfo.AgentId, elementInfo.ElementId);
+				})
+				.GroupBy(x => x.Id)
+				.Select(x => x.First())
+				.ToList();
+
+			return planApi.LockManager.LockAllAndExecute(slotLocks, action);
+		}
+
 		public static bool TryGetDifferences(MediaOpsPlanApi planApi, ICollection<DomResource> domResources, out SynchronizationDetectionResult result)
 		{
 			var handler = new CoreResourceHandler(planApi);
@@ -1721,6 +1754,29 @@
 			public Guid FunctionDefinitionId { get; set; }
 
 			public DmsElementId ElementInfo { get; set; }
+		}
+
+		/// <summary>
+		/// Lock that represents the function instances of one function on one element. Resource locks cannot serialize the
+		/// MaxInstances check, because different resources compete for the same instances.
+		/// </summary>
+		internal sealed class FunctionInstanceSlotLock : ApiObject
+		{
+			private FunctionInstanceSlotLock(Guid id) : base(id)
+			{
+			}
+
+			public static FunctionInstanceSlotLock For(Guid functionDefinitionId, int agentId, int elementId)
+			{
+				using (var sha = System.Security.Cryptography.SHA256.Create())
+				{
+					var hash = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes($"{functionDefinitionId:D}|{agentId}/{elementId}"));
+					var bytes = new byte[16];
+					Array.Copy(hash, bytes, bytes.Length);
+
+					return new FunctionInstanceSlotLock(new Guid(bytes));
+				}
+			}
 		}
 	}
 }
