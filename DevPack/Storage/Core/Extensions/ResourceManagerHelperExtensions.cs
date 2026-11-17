@@ -163,6 +163,52 @@
 			});
 		}
 
+		public static IReadOnlyDictionary<Guid, EligibleResourceResult> GetEligibleResourcesForContexts(this ResourceManagerHelper helper, List<EligibleResourceContext> contexts)
+		{
+			if (helper == null)
+			{
+				throw new ArgumentNullException(nameof(helper));
+			}
+
+			if (contexts == null)
+			{
+				throw new ArgumentNullException(nameof(contexts));
+			}
+
+			if (contexts.Count == 1)
+			{
+				var single = helper.GetEligibleResourcesForContext(contexts[0]);
+				return new Dictionary<Guid, EligibleResourceResult> { [contexts[0].ContextId] = single };
+			}
+
+			return ActivityHelper.Track(nameof(ResourceManagerHelperExtensions), nameof(GetEligibleResourcesForContexts), act =>
+			{
+				var results = helper.GetEligibleResources(contexts);
+
+				var traceData = helper.GetTraceDataLastCall();
+				var errors = traceData?.ErrorData?.OfType<ResourceManagerErrorData>().ToList();
+				if (errors?.Count > 0)
+				{
+					var mediaOpsTraceData = new MediaOpsTraceData();
+					foreach (var error in errors)
+					{
+						mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = error.ToString() });
+					}
+
+					throw new MediaOpsException(mediaOpsTraceData);
+				}
+
+				var resultsByContextId = (results ?? new List<EligibleResourceResult>())
+					.Where(x => x != null)
+					.GroupBy(x => x.ForContextId)
+					.ToDictionary(x => x.Key, x => x.First());
+
+				act?.AddTag("Contexts Count", contexts.Count);
+
+				return resultsByContextId;
+			});
+		}
+
 		public static bool TryCreateOrUpdateResourcesInBatches(this ResourceManagerHelper helper, IEnumerable<Resource> resources, out ResourceBulkOperationResult result)
 		{
 			if (helper == null)

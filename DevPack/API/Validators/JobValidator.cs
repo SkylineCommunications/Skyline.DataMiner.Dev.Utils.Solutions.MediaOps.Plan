@@ -99,40 +99,21 @@
 			return new ValidationContext(now, resources, coreResources, reservationsByJob, virtualSignalGroupIdsFound, liveIsInstalled, new ReferenceDefinitionCache(planApi), flowRulesByOwner);
 		}
 
-		/// <summary>Retrieves the reservation of each job. A job is linked to at most one reservation, which holds the job ID in the 'Job ID' property.</summary>
+		/// <summary>Retrieves the reservation of each job.</summary>
 		private IReadOnlyDictionary<Job, ReservationInstance> GetReservationsByJob(IReadOnlyCollection<Job> jobs)
 		{
-			var jobIds = jobs.Select(job => job.Id).Distinct().ToList();
-
-			FilterElement<ReservationInstance> Filter(Guid id) => ReservationInstanceExposers.Properties.StringField(CoreJobHandler.JobIdPropertyName).Equal(Convert.ToString(id));
-
-			var reservationsByJobId = planApi.CoreHelpers.ResourceManagerHelper
-				.GetReservationInstances(jobIds, Filter)
-				.Select(reservation => (Reservation: reservation, JobId: GetJobId(reservation)))
-				.Where(item => item.JobId != Guid.Empty)
-				.GroupBy(item => item.JobId)
-				.ToDictionary(group => group.Key, group => group.First().Reservation);
+			var reservationsByJobId = JobReservationLookup.GetReservationsByJobId(planApi, jobs.Select(job => job.Id));
 
 			var result = new Dictionary<Job, ReservationInstance>();
 			foreach (var job in jobs)
 			{
-				if (reservationsByJobId.TryGetValue(job.Id, out var reservation))
+				if (reservationsByJobId.TryGetValue(job.Id, out var reservations))
 				{
-					result[job] = reservation;
+					result[job] = reservations[0];
 				}
 			}
 
 			return result;
-		}
-
-		private static Guid GetJobId(ReservationInstance reservation)
-		{
-			if (reservation.Properties?.Dictionary == null || !reservation.Properties.Dictionary.TryGetValue(CoreJobHandler.JobIdPropertyName, out var value))
-			{
-				return Guid.Empty;
-			}
-
-			return Guid.TryParse(Convert.ToString(value), out var jobId) ? jobId : Guid.Empty;
 		}
 
 		private void Validate(Job job, JobValidationResult result, ValidationContext context)
@@ -529,6 +510,10 @@
 		{
 			var resourceNames = new List<string>();
 			var quarantinedIds = reservation.QuarantinedResources.Select(item => item.QuarantinedResourceUsage.GUID).ToList();
+			var nodeIdsByCoreNodeId = result.Job.NodeGraph.Nodes
+				.Where(node => node.CoreReservationNodeId.HasValue)
+				.GroupBy(node => node.CoreReservationNodeId.Value)
+				.ToDictionary(group => group.Key, group => group.First().Id);
 			foreach (var quarantined in reservation.QuarantinedResources)
 			{
 				var resourceName = String.Empty;
@@ -537,10 +522,16 @@
 					resourceName = trigger.UpdateTrigger?.NewResource?.Name ?? trigger.UpdateTrigger?.OldResource?.Name ?? resourceName;
 				}
 
-				var nodeId = quarantined.QuarantinedResourceUsage is ServiceResourceUsageDefinition usage
-					? usage.ServiceDefinitionNodeID.ToString(CultureInfo.InvariantCulture)
-					: String.Empty;
-				result.AddQuarantinedNodeId(nodeId);
+				var nodeId = String.Empty;
+				if (quarantined.QuarantinedResourceUsage is ServiceResourceUsageDefinition usage)
+				{
+					nodeId = usage.ServiceDefinitionNodeID.ToString(CultureInfo.InvariantCulture);
+					if (nodeIdsByCoreNodeId.TryGetValue(usage.ServiceDefinitionNodeID, out var jobNodeId))
+					{
+						result.AddQuarantinedNodeId(jobNodeId);
+					}
+				}
+
 				if (quarantinedIds.Count(id => id == quarantined.QuarantinedResourceUsage.GUID) > 1 && !String.IsNullOrEmpty(nodeId))
 				{
 					resourceName += $" ({nodeId})";

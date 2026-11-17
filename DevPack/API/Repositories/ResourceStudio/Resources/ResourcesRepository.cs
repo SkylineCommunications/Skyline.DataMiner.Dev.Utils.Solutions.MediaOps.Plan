@@ -635,6 +635,34 @@
 		}
 
 		/// <summary>
+		/// Retrieves the resources that are eligible for each of the specified contexts in a single request.
+		/// </summary>
+		/// <param name="contexts">The contexts describing the eligibility requests.</param>
+		/// <returns>One result per context, in the order of the contexts.</returns>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="contexts"/> is <c>null</c>.</exception>
+		/// <exception cref="MediaOpsException">Thrown when the eligibility request fails.</exception>
+		public IReadOnlyList<EligibleResourcesResult> GetEligibleResources(IEnumerable<EligibleResourcesContext> contexts)
+		{
+			if (contexts == null)
+			{
+				throw new ArgumentNullException(nameof(contexts));
+			}
+
+			var contextList = contexts.ToList();
+			if (contextList.Count == 0)
+			{
+				return Array.Empty<EligibleResourcesResult>();
+			}
+
+			return ActivityHelper.Track(nameof(ResourcesRepository), nameof(GetEligibleResources), act =>
+			{
+				act?.AddTag("Contexts Count", contextList.Count);
+
+				return CoreEligibleResourceHandler.GetEligibleResources(PlanApi, contextList);
+			});
+		}
+
+		/// <summary>
 		/// Retrieves all resources in the specified resource pool.
 		/// </summary>
 		/// <param name="resourcePool">The resource pool for which to retrieve resources.</param>

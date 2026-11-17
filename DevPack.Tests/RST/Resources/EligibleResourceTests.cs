@@ -19,6 +19,7 @@ namespace RT_MediaOps.Plan.RST.Resources
 	/// </remarks>
 	[TestClass]
 	[TestCategory("IntegrationTest")]
+	[DoNotParallelize]
 	public sealed class EligibleResourceTests : IDisposable
 	{
 		private readonly TestObjectCreator objectCreator;
@@ -388,6 +389,30 @@ namespace RT_MediaOps.Plan.RST.Resources
 		}
 
 		[TestMethod]
+		public void GetEligibleResources_MultipleContexts_ReturnsOneResultPerContextInOrder()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = CreateCompleteResource($"{prefix}_Resource", pool, null);
+			var job = CreateConfirmedJob($"{prefix}_Job", currentTime.AddHours(1), currentTime.AddHours(2), new JobResourceNode(pool, resource));
+
+			var duringBooking = new EligibleResourcesContext(currentTime.AddHours(1), currentTime.AddHours(2)) { Filter = ResourceExposers.Id.Equal(resource.Id) };
+			var afterBooking = new EligibleResourcesContext(currentTime.AddHours(3), currentTime.AddHours(4)) { Filter = ResourceExposers.Id.Equal(resource.Id) };
+
+			var results = TestContext.Api.Resources.GetEligibleResources(new[] { afterBooking, duringBooking });
+
+			Assert.AreEqual(2, results.Count);
+			Assert.AreEqual(afterBooking.Id, results[0].ContextId);
+			Assert.AreEqual(duringBooking.Id, results[1].ContextId);
+			Assert.AreEqual(resource.Id, results[0].EligibleResources.Single().Resource.Id, $"Expected the resource to be eligible after job {job.Id}.");
+			Assert.AreEqual(0, results[1].EligibleResources.Count, $"Expected the resource not to be eligible while job {job.Id} books it.");
+		}
+
+		[TestMethod]
 		public void GetEligibleResources_TimeDependentCapabilityValueLockedByOverlappingJob_ReturnsResourceOnlyForTheSameValue()
 		{
 			var prefix = Guid.NewGuid();
@@ -434,11 +459,67 @@ namespace RT_MediaOps.Plan.RST.Resources
 			CollectionAssert.Contains(eligibleForOtherValueOutsideBooking, resource.Id, "Expected the resource to be eligible for another value outside the booked time range.");
 		}
 
+		[TestMethod]
+		public void GetEligibleResources_UsagesThatDoNotOverlapEachOther_ReturnsWhatIsLeftAtTheBusiestMoment()
+		{
+			var prefix = Guid.NewGuid();
+			var currentTime = DateTime.UtcNow.RoundToNextSecond();
+			var capacity = new NumberCapacity { Name = $"{prefix}_Bandwidth", RangeMin = 0, RangeMax = 100 };
+			objectCreator.CreateCapacity(capacity);
+
+			var pool = objectCreator.CreateResourcePool(new ResourcePool { Name = $"{prefix}_Pool" });
+			pool = TestContext.Api.ResourcePools.Complete(pool);
+
+			var resource = CreateCompleteResource($"{prefix}_Resource", pool, value =>
+			{
+				value.Concurrency = 2;
+				value.AddCapacity(new NumberCapacitySetting(capacity.Id) { Value = 100 });
+			});
+
+			foreach (var (start, quantity) in new[] { (currentTime.AddHours(1), 40m), (currentTime.AddHours(2), 70m) })
+			{
+				var node = new JobResourceNode(pool, resource);
+				node.OrchestrationSettings.AddCapacity(new NumberCapacitySetting(capacity.Id) { Value = quantity });
+				CreateConfirmedJob($"{prefix}_Job_{quantity}", start, start.AddHours(1), node);
+			}
+
+			var result = TestContext.Api.Resources.GetEligibleResources(new EligibleResourcesContext(currentTime.AddHours(1), currentTime.AddHours(3))
+			{
+				Filter = ResourceExposers.Id.Equal(resource.Id),
+				IncludeAllCapacityUsages = true,
+			});
+
+			var usage = result.EligibleResources.Single().Usage;
+			Assert.AreEqual(1, usage.RemainingConcurrency);
+			Assert.AreEqual(30m, usage.CapacityUsages.OfType<NumberCapacityUsage>().Single().Remaining);
+		}
+
 		private static CapabilitySettings CreateCapabilitySettings(Capability capability, string value)
 		{
 			var capabilitySettings = new CapabilitySettings(capability.Id);
 			capabilitySettings.AddDiscrete(value);
 			return capabilitySettings;
+		}
+
+		private Job CreateConfirmedJob(string name, DateTimeOffset start, DateTimeOffset end, params JobNode[] nodes)
+		{
+			var job = new Job
+			{
+				Name = name,
+				Start = start,
+				End = end,
+				PreRollStart = start,
+				PostRollEnd = end,
+			};
+
+			foreach (var node in nodes)
+			{
+				job.NodeGraph.Add(node);
+			}
+
+			job = objectCreator.CreateJob(job);
+			job = TestContext.Api.Jobs.SaveAsTentative(job);
+			return TestContext.Api.Jobs.Confirm(job);
 		}
 
 		private static List<Guid> GetEligibleResourceIds(
