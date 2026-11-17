@@ -126,6 +126,33 @@
 				x => helper.GetResources(x));
 		}
 
+		/// <summary>
+		/// Gets the CORE function resources that instantiate the specified function on the specified element.
+		/// Instances created outside MediaOps Plan are included, as they occupy the same function slots.
+		/// </summary>
+		public static IReadOnlyCollection<FunctionResource> GetFunctionResourcesOnElement(this ResourceManagerHelper helper, Guid functionDefinitionId, int agentId, int elementId)
+		{
+			if (helper == null)
+			{
+				throw new ArgumentNullException(nameof(helper));
+			}
+
+			if (functionDefinitionId == Guid.Empty)
+			{
+				throw new ArgumentException("Function definition ID cannot be empty.", nameof(functionDefinitionId));
+			}
+
+			var filter = new ANDFilterElement<Resource>(
+				FunctionResourceExposers.FunctionGUID.Equal(functionDefinitionId),
+				FunctionResourceExposers.MainDVEDmaID.Equal(agentId),
+				FunctionResourceExposers.MainDVEElementID.Equal(elementId));
+
+			return ActivityHelper.Track(nameof(ResourceManagerHelperExtensions), nameof(GetFunctionResourcesOnElement), act => helper.GetResources(filter))
+				.OfType<FunctionResource>()
+				.Where(x => x.FunctionGUID == functionDefinitionId && x.MainDVEDmaID == agentId && x.MainDVEElementID == elementId)
+				.ToList();
+		}
+
 		public static EligibleResourceResult GetEligibleResourcesForContext(this ResourceManagerHelper helper, EligibleResourceContext context)
 		{
 			if (helper == null)

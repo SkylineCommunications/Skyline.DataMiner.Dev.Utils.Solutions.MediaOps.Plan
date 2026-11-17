@@ -20,6 +20,7 @@
 			CoreResourceUnavailableJobValidationError.ErrorCode,
 			QuarantinedReservationJobValidationError.ErrorCode,
 			VirtualSignalGroupNotFoundJobValidationError.ErrorCode,
+			VirtualSignalGroupInvalidRoleJobValidationError.ErrorCode,
 			TransitionToTentativeJobValidationError.ErrorCode,
 			UnresolvedReferencesJobValidationError.ErrorCode,
 			ReservationRequirementsMismatchJobValidationError.ErrorCode,
