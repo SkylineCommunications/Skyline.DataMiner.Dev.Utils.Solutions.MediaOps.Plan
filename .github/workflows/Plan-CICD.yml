@@ -355,8 +355,7 @@ jobs:
     uses: SkylineCommunications/_ReusableWorkflows/.github/workflows/Master Workflow.yml@main
     with:
       configuration: Release
-      # .NET SDK 11+ can no longer run net48 tests on Linux (Mono support dropped).
-      runs-on: windows-latest
+      runs-on: ubuntu-latest
       nuget-push-source: ${{ github.ref_type == 'tag' && !contains(github.ref_name, '-') && 'https://api.nuget.org/v3/index.json' || 'https://nuget.pkg.github.com/SkylineCommunications/index.json' }}
     secrets:
       NUGET_API_KEY: ${{ secrets[github.ref_type == 'tag' && !contains(github.ref_name, '-') && 'NUGETAPIKEY' || 'NUGETAPIKEY_GITHUB'] }}
