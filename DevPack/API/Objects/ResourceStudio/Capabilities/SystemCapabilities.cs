@@ -36,7 +36,11 @@
 				}
 				.SetDiscretes(["Element", "Pool Resource", "Service", "Unlinked Resource", "Virtual Function",]);
 
-				planApi.Capabilities.Create(newCapability);
+				if (!CoreCapabilityHandler.TryCreateOrUpdate(planApi, [newCapability], true, out var result))
+				{
+					result.ThrowSingleException(newCapability.Id);
+				}
+
 				resourceType = planApi.Capabilities.Read(CoreCapabilities.ResourceType.Id);
 			}
 

@@ -245,7 +245,7 @@ var timeDepCapability = api.Capabilities.Create(new Capability
 capability.AddDiscrete("16K");
 capability = api.Capabilities.Update(capability);
 
-// Access system capabilities
+// Access system capabilities (read-only: Update and Delete refuse them with a CapabilitySystemCapabilityError)
 var resourceType = api.Capabilities.SystemCapabilities.ResourceType;
 ```
 
