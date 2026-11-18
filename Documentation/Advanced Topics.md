@@ -542,6 +542,8 @@ var resourceType = api.Capabilities.SystemCapabilities.ResourceType;
 // "Element", "Pool Resource", "Service", "Unlinked Resource", "Virtual Function"
 ```
 
+System capabilities are managed by MediaOps itself. Accessing `SystemCapabilities.ResourceType` creates the capability when it does not exist yet; this is the only way to create it. Creating, updating or deleting a system capability through `api.Capabilities` (`Create`, `CreateOrUpdate`, `Update` or `Delete`) fails with a `CapabilitySystemCapabilityError`.
+
 ## Next Steps
 
 - **[Quick Reference](Quick%20Reference.md)** – Common snippets for repositories, querying, and resource management
