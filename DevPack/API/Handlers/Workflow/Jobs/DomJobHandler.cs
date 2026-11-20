@@ -745,13 +745,11 @@
 
 			// The jobs were read before the lock was granted, so the stored jobs are validated and moved instead. A core
 			// reservation is created before the transition, so a job that is no longer a Draft must be rejected first.
-			apiJobs = GetStoredDomJobs(
+			apiJobs = Job.Parse(planApi, GetStoredDomJobs(
 				apiJobs,
 				[Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Draft],
 				[Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Tentative],
-				"Only jobs in Draft state can be moved to Tentative state.")
-				.Select(x => new Job(planApi, x))
-				.ToList();
+				"Only jobs in Draft state can be moved to Tentative state."));
 			ValidateEndNotInPast(apiJobs);
 			apiJobs = apiJobs.Where(IsValid).ToList();
 			if (apiJobs.Count == 0)
@@ -1839,13 +1837,11 @@
 
 			// The jobs were read before the lock was granted. The reservation is deleted before the transition, so the
 			// stored state (and end time) is validated first: a job that was confirmed in the meantime keeps its reservation.
-			var storedJobs = GetStoredDomJobs(
+			var storedJobs = Job.Parse(planApi, GetStoredDomJobs(
 				apiJobs,
 				[Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Draft, Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Tentative],
 				[Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Completed],
-				"Only jobs in Draft or Tentative state can be marked as completed.")
-				.Select(x => new Job(planApi, x))
-				.ToList();
+				"Only jobs in Draft or Tentative state can be marked as completed."));
 			ValidateEndInPast(storedJobs);
 			storedJobs = storedJobs.Where(IsValid).ToList();
 
@@ -1972,13 +1968,11 @@
 
 			// The jobs were read before the lock was granted, so the stored jobs are validated and started instead. A job
 			// that already runs has been started, unless a new start time was requested that would not be applied.
-			apiJobs = GetStoredDomJobs(
+			apiJobs = Job.Parse(planApi, GetStoredDomJobs(
 				apiJobs,
 				[Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Confirmed],
 				options.NewStartTime.HasValue ? [] : [Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Running],
-				"Only jobs in Confirmed state can be manually started.")
-				.Select(x => new Job(planApi, x))
-				.ToList();
+				"Only jobs in Confirmed state can be manually started."));
 			ValidateNewStartTime(apiJobs, options);
 			apiJobs = apiJobs.Where(IsValid).ToList();
 			if (apiJobs.Count == 0)
@@ -2083,13 +2077,11 @@
 
 			// The jobs were read before the lock was granted, so the stored jobs are validated and stopped instead. A job
 			// that completed in the meantime is rejected: its reservation already ended and the requested end is not applied.
-			apiJobs = GetStoredDomJobs(
+			apiJobs = Job.Parse(planApi, GetStoredDomJobs(
 				apiJobs,
 				[Storage.DOM.SlcWorkflow.SlcWorkflowIds.Behaviors.Job_Behavior.StatusesEnum.Running],
 				[],
-				"Only jobs in Running state can be stopped.")
-				.Select(x => new Job(planApi, x))
-				.ToList();
+				"Only jobs in Running state can be stopped."));
 			ValidateNotRunningInPreRoll(apiJobs);
 			ValidateNotRunningInPostRoll(apiJobs);
 			ValidateNewPostRollEnd(apiJobs, options);
@@ -2599,7 +2591,7 @@
 		{
 			var storedJobsById = planApi.DomHelpers.SlcWorkflowHelper.GetJobs(apiJobs.Select(x => x.Id)).ToDictionary(x => x.ID.Id);
 
-			var storedJobs = new List<Job>();
+			var storedDomJobs = new List<DomJob>();
 			foreach (var job in apiJobs)
 			{
 				if (!storedJobsById.TryGetValue(job.Id, out var storedJob))
@@ -2621,10 +2613,10 @@
 					continue;
 				}
 
-				storedJobs.Add(new Job(planApi, storedJob));
+				storedDomJobs.Add(storedJob);
 			}
 
-			return storedJobs;
+			return Job.Parse(planApi, storedDomJobs);
 		}
 
 		/// <summary>
