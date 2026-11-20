@@ -9,6 +9,7 @@
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Solutions.Categories.API;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcResource_Studio;
 	using Skyline.DataMiner.Utils.DOM.Extensions;
@@ -127,9 +128,11 @@
 			}
 
 			var resourcePoolsToCreate = resourcePools.Where(x => x.IsNew).ToList();
-			var resourcePoolsToUpdate = resourcePools.Except(resourcePoolsToCreate).ToList();
 
-			var changeResults = GetPoolsWithChanges(resourcePoolsToUpdate);
+			var storedPoolsById = ValidateStoredStateForUpdateAction(resourcePools.Except(resourcePoolsToCreate).ToList());
+			var resourcePoolsToUpdate = resourcePools.Except(resourcePoolsToCreate).Where(IsValid).ToList();
+
+			var changeResults = GetPoolsWithChanges(resourcePoolsToUpdate, storedPoolsById);
 
 			var toUpdateNameValidation = resourcePoolsToUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcResource_StudioIds.Sections.ResourcePoolInfo.Name.Id))).ToList();
 			ValidateDomNames(resourcePoolsToCreate.Concat(toUpdateNameValidation).ToList());
@@ -428,9 +431,23 @@
 
 			ValidateStateForCompleteAction(apiResourcePools);
 
+			var lockResult = planApi.LockManager.LockAndExecute(apiResourcePools.Where(IsValid).ToList(), TransitionToCompletedLocked);
+			ReportError(lockResult);
+		}
+
+		private void TransitionToCompletedLocked(ICollection<ResourcePool> apiResourcePools)
+		{
+			// The pools were read before the lock was granted. The CORE resource pool is created and linked to the stored
+			// pool, so a pool that was completed in the meantime does not get a second CORE resource pool, and the link is
+			// saved on the stored pool instead of on a copy that would overwrite later changes.
+			var storedPools = GetStoredResourcePools(
+				apiResourcePools,
+				[ResourcePoolState.Draft],
+				[ResourcePoolState.Complete],
+				"Not allowed to complete a resource pool that is not in Draft state.");
+
 			// Create CORE resource pools
-			var poolsToCreate = apiResourcePools
-				.Where(x => !TraceDataPerItem.Keys.Contains(x.Id))
+			var poolsToCreate = storedPools
 				.Select(x => x.OriginalInstance)
 				.ToList();
 			if (poolsToCreate.Count == 0)
@@ -480,7 +497,7 @@
 			}
 
 			// Update CORE resources
-			var toUpdateCoreResources = apiResourcePools
+			var toUpdateCoreResources = storedPools
 				.Where(x => !TraceDataPerItem.Keys.Contains(x.Id))
 				.ToList();
 			UpdateCoreResources(toUpdateCoreResources);
@@ -502,7 +519,24 @@
 			ValidateResourceStudioUsage(apiResourcePools.Where(IsValid).ToArray());
 			ValidateWorkflowUsage(apiResourcePools.Where(IsValid).ToArray());
 
-			var poolsToDeprecate = apiResourcePools.Where(IsValid).ToList();
+			var lockResult = planApi.LockManager.LockAndExecute(apiResourcePools.Where(IsValid).ToList(), pools => TransitionToDeprecatedLocked(pools, options));
+			ReportError(lockResult);
+		}
+
+		private void TransitionToDeprecatedLocked(ICollection<ResourcePool> apiResourcePools, ResourcePoolDeprecateOptions options)
+		{
+			// The pools were read before the lock was granted. The resources of the pool can be deprecated before the DOM
+			// transition, so the stored state is validated first.
+			var poolsToDeprecate = GetStoredResourcePools(
+				apiResourcePools,
+				[ResourcePoolState.Complete],
+				[ResourcePoolState.Deprecated],
+				"Not allowed to deprecate a resource pool that is not in Completed state.");
+			if (poolsToDeprecate.Count == 0)
+			{
+				return;
+			}
+
 			if (options.AllowResourceDeprecation)
 			{
 				DeprecatePoolResources(poolsToDeprecate);
@@ -537,16 +571,43 @@
 			ValidateStateForDeleteAction(apiResourcePools);
 			PassTraceData(ResourcePoolFlowRuleUsageValidator.Validate(planApi, apiResourcePools.Where(IsValid).ToArray()));
 
-			var poolsToDelete = apiResourcePools.Where(IsValid).ToList();
-			RemovePoolFromParentPoolLinks(poolsToDelete);
-			HandleDeleteOptions(poolsToDelete, options);
-			UnassignResourcesFromPool(poolsToDelete);
-			DeleteCategoryItems(poolsToDelete.Select(x => x.OriginalInstance.ID).ToArray());
-
-			var deleteCorePoolsLockResult = planApi.LockManager.LockAndExecute(poolsToDelete, DeleteCoreResourcePools); // Returns pools that require updates after referenced pools have been removed.
+			var deleteCorePoolsLockResult = planApi.LockManager.LockAndExecute(apiResourcePools.Where(IsValid).ToList(), pools => DeleteLocked(pools, options)); // Returns pools that require updates after referenced pools have been removed.
 			ReportError(deleteCorePoolsLockResult);
 
 			planApi.ResourcePools.Update(deleteCorePoolsLockResult.ActionResults);
+		}
+
+		private ICollection<ResourcePool> DeleteLocked(ICollection<ResourcePool> apiResourcePools, ResourcePoolDeleteOptions options)
+		{
+			// The pools were read before the lock was granted. The stored pools are validated first and everything that is
+			// removed along with a pool (parent links, resources, resource assignments, categories, the CORE resource
+			// pool) is based on them, so a pool that was completed in the meantime is left untouched.
+			var poolsToDelete = GetStoredResourcePools(
+				apiResourcePools,
+				[ResourcePoolState.Draft, ResourcePoolState.Deprecated],
+				[],
+				"Not allowed to delete a resource pool that is not in Draft or Deprecated state.",
+				isDelete: true);
+			if (poolsToDelete.Count == 0)
+			{
+				return [];
+			}
+
+			// The pool's resources are deleted and unassigned first: a pool whose resources could not be unassigned is
+			// not deleted, so its parent links, categories and CORE resource pool are only removed for the other pools.
+			HandleDeleteOptions(poolsToDelete, options);
+			UnassignResourcesFromPool(poolsToDelete);
+
+			poolsToDelete = poolsToDelete.Where(IsValid).ToList();
+			if (poolsToDelete.Count == 0)
+			{
+				return [];
+			}
+
+			RemovePoolFromParentPoolLinks(poolsToDelete);
+			DeleteCategoryItems(poolsToDelete.Select(x => x.OriginalInstance.ID).ToArray());
+
+			return DeleteCoreResourcePools(poolsToDelete);
 		}
 
 		private ICollection<ResourcePool> DeleteCoreResourcePools(ICollection<ResourcePool> poolsToDelete)
@@ -728,7 +789,51 @@
 
 			var resourcesToUpdate = resourcesPerPoolCollection.Values.SelectMany(x => x).Distinct(new DefaultApiObjectComparer()).Cast<Resource>().ToList();
 
-			DomResourceHandler.TryCreateOrUpdate(planApi, resourcesToUpdate, out _, allowDeprecatedUpdates: true);
+			if (DomResourceHandler.TryCreateOrUpdate(planApi, resourcesToUpdate, out var result, allowDeprecatedUpdates: true))
+			{
+				return;
+			}
+
+			// A resource whose state changed after it was read is rejected by the update, so it is read again and the
+			// pools are unassigned from the stored resource once more.
+			var retryIds = result.TraceDataPerItem
+				.Where(x => x.Value.ErrorData.OfType<ResourceInvalidStateError>().Any())
+				.Select(x => x.Key)
+				.ToList();
+			var failedIds = new HashSet<Guid>(result.UnsuccessfulIds.Except(retryIds));
+			if (retryIds.Count > 0)
+			{
+				var poolIds = apiResourcePools.Select(x => x.Id).ToList();
+				var resourcesToRetry = planApi.Resources.Read(retryIds.ToArray()).ToList();
+				foreach (var resource in resourcesToRetry)
+				{
+					foreach (var poolId in poolIds.Where(resource.ResourcePoolIds.Contains).ToList())
+					{
+						resource.UnassignFromPool(poolId);
+					}
+				}
+
+				if (!DomResourceHandler.TryCreateOrUpdate(planApi, resourcesToRetry, out var retryResult, allowDeprecatedUpdates: true))
+				{
+					failedIds.UnionWith(retryResult.UnsuccessfulIds);
+				}
+			}
+
+			// A pool that is still assigned to a resource is not deleted, so the resource does not refer to a pool that
+			// no longer exists.
+			foreach (var resourcesPerPool in resourcesPerPoolCollection)
+			{
+				var failedResourceIds = resourcesPerPool.Value.Select(x => x.Id).Where(failedIds.Contains).ToList();
+				if (failedResourceIds.Count == 0)
+				{
+					continue;
+				}
+
+				ReportError(resourcesPerPool.Key.Id, new MediaOpsErrorData
+				{
+					ErrorMessage = $"Failed to unassign the resources {String.Join(", ", failedResourceIds)} from resource pool {resourcesPerPool.Key.Id}, so the resource pool was not deleted.",
+				});
+			}
 		}
 
 		private void UpdateCoreResources(ICollection<ResourcePool> apiResourcePools)
@@ -809,6 +914,83 @@
 
 				ReportError(foundInstance.ID.Id, error);
 			}
+		}
+
+		// The state rules, the state-dependent validations and the decision which changes go to the CORE resource pool
+		// and its resources ran against the pools as they were read, before the lock was granted. A pool whose stored
+		// state changed since then is rejected. The stored pools are returned so they are not read twice.
+		private Dictionary<Guid, DomResourcePool> ValidateStoredStateForUpdateAction(ICollection<ResourcePool> apiResourcePools)
+		{
+			if (apiResourcePools.Count == 0)
+			{
+				return new Dictionary<Guid, DomResourcePool>();
+			}
+
+			var storedPoolsById = planApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(apiResourcePools.Select(x => x.Id)).ToDictionary(x => x.ID.Id);
+			foreach (var pool in apiResourcePools)
+			{
+				// A pool that no longer exists is reported by the change detection.
+				if (!storedPoolsById.TryGetValue(pool.Id, out var storedPool) || storedPool.Status == pool.OriginalInstance.Status)
+				{
+					continue;
+				}
+
+				var storedState = EnumExtensions.MapEnum<SlcResource_StudioIds.Behaviors.Resourcepool_Behavior.StatusesEnum, ResourcePoolState>(storedPool.Status);
+				ReportError(pool.Id, new ResourcePoolInvalidStateError
+				{
+					ErrorMessage = $"The state of the resource pool changed from {pool.State} to {storedState} after the resource pool was read. Read the resource pool again and retry the update.",
+					Id = pool.Id,
+				});
+			}
+
+			return storedPoolsById;
+		}
+
+		// Re-reads the pools while holding the lock. The pools in one of the expected states are returned; a pool that
+		// already reached one of the target states is reported as successful and any other one as an error. A pool that
+		// no longer exists is reported as successful when deleting it, and as an error otherwise.
+		private List<ResourcePool> GetStoredResourcePools(
+			ICollection<ResourcePool> apiResourcePools,
+			ICollection<ResourcePoolState> expectedStates,
+			ICollection<ResourcePoolState> targetStates,
+			string invalidStateMessage,
+			bool isDelete = false)
+		{
+			var storedPoolsById = planApi.ResourcePools.Read(apiResourcePools.Select(x => x.Id).ToArray()).ToDictionary(x => x.Id);
+
+			var storedPools = new List<ResourcePool>();
+			foreach (var pool in apiResourcePools)
+			{
+				if (!storedPoolsById.TryGetValue(pool.Id, out var storedPool))
+				{
+					if (isDelete)
+					{
+						ReportSuccess(pool.OriginalInstance);
+					}
+					else
+					{
+						ReportError(pool.Id, new ResourcePoolNotFoundError { ErrorMessage = $"Resource pool with ID '{pool.Id}' no longer exists.", Id = pool.Id });
+					}
+				}
+				else if (expectedStates.Contains(storedPool.State))
+				{
+					storedPools.Add(storedPool);
+				}
+				else if (targetStates.Contains(storedPool.State))
+				{
+					ReportSuccess(storedPool.OriginalInstance);
+				}
+				else
+				{
+					ReportError(pool.Id, new ResourcePoolInvalidStateError
+					{
+						ErrorMessage = invalidStateMessage,
+						Id = pool.Id,
+					});
+				}
+			}
+
+			return storedPools;
 		}
 
 		private void ValidateStateForUpdateAction(ICollection<ResourcePool> apiResourcePools)
@@ -1293,13 +1475,13 @@
 			PassTraceData(SlcWorkflowResourcePoolUsageValidator.Validate(planApi, apiResourcePools));
 		}
 
-		private ICollection<DomChangeResults> GetPoolsWithChanges(ICollection<ResourcePool> apiResourcePools)
+		private ICollection<DomChangeResults> GetPoolsWithChanges(ICollection<ResourcePool> apiResourcePools, IReadOnlyDictionary<Guid, DomResourcePool> storedPoolsById)
 		{
 			return GetItemsWithChanges<ResourcePool, DomResourcePool>(
 				apiResourcePools,
 				p => p.OriginalInstance,
 				p => p.GetInstanceWithChanges(),
-				ids => planApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(ids),
+				ids => ids.Where(storedPoolsById.ContainsKey).Select(id => storedPoolsById[id]),
 				p => new ResourcePoolNotFoundError { ErrorMessage = $"Resource pool with ID '{p.Id}' no longer exists.", Id = p.Id },
 				(p, msg) => new ResourcePoolValueAlreadyChangedError { ErrorMessage = msg, Id = p.Id })
 				.ToList();
