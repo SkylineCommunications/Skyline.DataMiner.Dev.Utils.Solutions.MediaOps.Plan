@@ -199,6 +199,50 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void SaveAsTentative_DraftJobMovedIntoPastAfterRead_FailsWithoutReservation()
+		{
+			var context = new Context();
+			var staleDraftJob = context.CreateFutureDraftJob();
+
+			// The state stays Draft, but another user moved the whole job into the past.
+			var otherApi = context.OtherApi;
+			var movedJob = otherApi.Jobs.Read(staleDraftJob.Id);
+			var pastTime = DateTime.UtcNow.RoundToNextSecond().AddMinutes(-30);
+			movedJob.PreRollStart = pastTime;
+			movedJob.Start = pastTime;
+			movedJob.End = pastTime.AddMinutes(10);
+			movedJob.PostRollEnd = pastTime.AddMinutes(10);
+			otherApi.Jobs.Update(movedJob);
+
+			Assert.IsFalse(DomJobHandler.TrySaveAsTentative(context.PlanApi, [staleDraftJob], out var result), "Expected saving a job whose stored end is in the past as tentative to fail.");
+			Assert.IsTrue(result.TraceDataPerItem[staleDraftJob.Id].ErrorData.OfType<JobInvalidEndTimeError>().Any(), "Expected a JobInvalidEndTimeError for the stored end time.");
+			Assert.AreEqual(JobState.Draft, context.Api.Jobs.Read(staleDraftJob.Id).State);
+			Assert.AreEqual(0, context.GetReservations(staleDraftJob.Id).Count, "Expected no reservation for the job.");
+		}
+
+		[TestMethod]
+		public void MarkAsCompleted_DraftJobMovedIntoFutureAfterRead_FailsWithoutChangingJob()
+		{
+			var context = new Context();
+			var pastTime = DateTime.UtcNow.RoundToNextSecond().AddMinutes(-30);
+			var staleDraftJob = context.CreateDraftJob(pastTime, pastTime.AddMinutes(10));
+
+			// The state stays Draft, but another user moved the whole job into the future.
+			var otherApi = context.OtherApi;
+			var movedJob = otherApi.Jobs.Read(staleDraftJob.Id);
+			var futureTime = DateTime.UtcNow.RoundToNextSecond().AddMinutes(10);
+			movedJob.PostRollEnd = futureTime.AddMinutes(10);
+			movedJob.End = futureTime.AddMinutes(10);
+			movedJob.Start = futureTime;
+			movedJob.PreRollStart = futureTime;
+			otherApi.Jobs.Update(movedJob);
+
+			Assert.IsFalse(DomJobHandler.TryMarkAsCompleted(context.PlanApi, [staleDraftJob], out var result), "Expected marking a job whose stored end is in the future as completed to fail.");
+			Assert.IsTrue(result.TraceDataPerItem[staleDraftJob.Id].ErrorData.OfType<JobInvalidEndTimeError>().Any(), "Expected a JobInvalidEndTimeError for the stored end time.");
+			Assert.AreEqual(JobState.Draft, context.Api.Jobs.Read(staleDraftJob.Id).State);
+		}
+
+		[TestMethod]
 		public void SaveAsTentative_DraftJobCanceledAfterRead_FailsWithoutTouchingReservation()
 		{
 			var context = new Context();
