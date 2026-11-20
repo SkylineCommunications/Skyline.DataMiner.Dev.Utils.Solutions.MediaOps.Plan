@@ -23,14 +23,11 @@ internal class Script
 			engine.GenerateInformation("Starting installation");
 			var installer = new AppInstaller(Engine.SLNetRaw, context);
 			installer.InstallDefaultContent();
-
-			////string setupContentPath = installer.GetSetupContentDirectory();
-
-			// Custom installation logic can be added here for each individual install package.
 		}
-		catch (Exception e)
+		catch (Exception e) when (!(e is ScriptAbortException || e is ScriptForceAbortException || e is ScriptTimeoutException || e is InteractiveUserDetachedException))
 		{
-			engine.ExitFail($"Exception encountered during installation: {e}");
+			engine.Log("Install|Unexpected exception: " + e);
+			engine.ExitFail("QAOps prerequisite installation failed. See the Automation log for details.");
 		}
 	}
 }

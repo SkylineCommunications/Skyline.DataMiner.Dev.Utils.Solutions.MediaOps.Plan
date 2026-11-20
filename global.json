@@ -4,6 +4,6 @@
         "rollForward": "latestFeature"
     },
     "msbuild-sdks": {
-        "Skyline.DataMiner.Sdk": "2.5.2"
+        "Skyline.DataMiner.Sdk": "2.6.2"
     }
 }

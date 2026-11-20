@@ -15,6 +15,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Automation;
 	using Skyline.DataMiner.Net.Automation.CustomEntryPoint;
+	using Skyline.DataMiner.Net.ManagerStore;
 	using Skyline.DataMiner.Net.Messages;
 	using Skyline.DataMiner.Net.Messages.Advanced;
 	using Skyline.DataMiner.Solutions.MediaOps.Live.Orchestration.Script.Inputs;
@@ -376,6 +377,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.UnitTesting.Simulation
 
 			switch (message)
 			{
+				case ManagerStoreReinitializeCustomManagerRequest _:
+					// Schema changes are applied immediately by the DOM handler; there is no manager process to restart.
+					responses = new DMSMessage[] { new ManagerStoreReinitializeCustomManagerResponse { TraceData = new TraceData() } };
+					return true;
+
 				case ImpersonateMessage msg:
 					responses = HandleMessage(msg);
 					return true;

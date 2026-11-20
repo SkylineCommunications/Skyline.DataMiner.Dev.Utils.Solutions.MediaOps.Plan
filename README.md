@@ -49,7 +49,7 @@ The [Plan CICD](./.github/workflows/Plan-CICD.yml) workflow runs validation and 
 
 - Approval of the current head commit of a non-draft PR from this repository targeting `main` or an RC branch matching `*.*.X`.
 - Manual workflow runs.
-- Release tag pushes whose names do not contain `-alpha`.
+- Release tag pushes, including alpha tags.
 
 Pushes and merges to `main` or RC branches run validation and simulated tests but do not automatically trigger QAOps testing.
 
@@ -61,11 +61,11 @@ Pushes and merges to `main` or RC branches run validation and simulated tests bu
 | Current-head approval to other branches | Yes | Yes | No | No |
 | Manual run | Yes | Yes | Yes | No |
 | Push or merge to main or RC | Yes | Yes | No | Yes |
-| Tag containing `-alpha` | Yes | Yes | No | Yes |
+| Tag containing `-alpha` | Yes | Yes | Yes | Yes |
 | Other prerelease tag | Yes | Yes | Yes | Yes |
 | Stable release tag | Yes | Yes | Yes | Yes |
 
-Each stage requires the applicable preceding checks to pass. Stable release tags must be contained in the matching `<major>.<minor>.X` branch. NuGet publication runs only on tag pushes: alpha tags publish after simulated tests, while other tags also require successful QAOps tests. Prerelease packages go to GitHub Packages; stable packages go to nuget.org.
+Each stage requires the applicable preceding checks to pass. Stable release tags must be contained in the matching `<major>.<minor>.X` branch. NuGet publication runs only on tag pushes and requires successful QAOps tests. Prerelease packages go to GitHub Packages; stable packages go to nuget.org.
 
 The **Unit Tests** job builds [MediaOps Plan.UnitTests.slnf](./MediaOps%20Plan.UnitTests.slnf) with MSBuild and runs the complete test assembly with VSTest and `MEDIAOPS_PLAN_USE_REAL_DMA=false`. Test output is harvested into the runner's temporary directory to avoid Windows path-length limits.
 
@@ -93,7 +93,7 @@ Configure the QAOps target through GitHub variables and secrets. The selected Gi
 
 `GITHUB_TOKEN` supplies access to the GitHub NuGet feed. The QAOps job uses a Windows runner and .NET 10.
 
-Eligible PR approvals targeting `main` use `MediaOps RT`. Eligible approvals targeting RC branches (`*.*.X`) and non-alpha tag pushes use `dma-rc`. Manual runs use the selected `target_env`, which defaults to `MediaOps RT`. Integration runs are serialized per GitHub environment, so RC approvals and release tags share the same queue.
+Eligible PR approvals targeting `main` use `MediaOps RT`. Eligible approvals targeting RC branches (`*.*.X`) and all release tag pushes use `MediaOps RC`. Manual runs use the selected `target_env`, which defaults to `MediaOps RT`. Integration runs are serialized per GitHub environment, so RC approvals and release tags share the same queue.
 
 ## Local test setup
 
