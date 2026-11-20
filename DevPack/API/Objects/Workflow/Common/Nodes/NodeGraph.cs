@@ -5,6 +5,7 @@
 	using System.Linq;
 
 	using Skyline.DataMiner.Net.Helper;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Tools;
 
 	/// <summary>
 	/// Represents a directed graph of nodes with connections between them.
@@ -14,16 +15,18 @@
 	{
 		private readonly List<TNode> nodes = [];
 		private readonly List<NodeConnection<TNode>> connections = [];
-		private readonly Dictionary<TNode, TNode> childToParent = [];
+		// Node-keyed dictionaries compare by reference: the hash code of a node includes mutable state (alias, icon and
+		// orchestration settings), so a value-based key would become unreachable once the node is modified.
+		private readonly Dictionary<TNode, TNode> childToParent = new(ReferenceEqualityComparer<TNode>.Instance);
 		private readonly List<NodeGroup<TNode>> groups = [];
 
 		// Maps the original node that was swapped out to the node that currently represents it in the graph.
 		// The original node is always kept as the key so future logic (e.g. running jobs) can reason about it.
-		private readonly Dictionary<TNode, TNode> originalToCurrentSwap = [];
+		private readonly Dictionary<TNode, TNode> originalToCurrentSwap = new(ReferenceEqualityComparer<TNode>.Instance);
 
 		// Group membership of a swapped-out node, captured at swap time. It cannot be derived from the replacement later
 		// on, because the consumer is free to change the replacement's group membership after the swap.
-		private readonly Dictionary<TNode, List<NodeGroup<TNode>>> swappedOutGroupMemberships = [];
+		private readonly Dictionary<TNode, List<NodeGroup<TNode>>> swappedOutGroupMemberships = new(ReferenceEqualityComparer<TNode>.Instance);
 
 		private Action<IReadOnlyDictionary<string, string>> externalReferenceRetargeter;
 
