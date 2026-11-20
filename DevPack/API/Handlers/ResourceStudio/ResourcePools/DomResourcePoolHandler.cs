@@ -736,33 +736,10 @@
 				return;
 			}
 
-			// A resource whose state changed after it was read is rejected by the update, so it is read again and the
-			// pools are unassigned from the stored resource once more.
-			var retryIds = result.TraceDataPerItem
-				.Where(x => x.Value.ErrorData.OfType<ResourceInvalidStateError>().Any())
-				.Select(x => x.Key)
-				.ToList();
-			var failedIds = new HashSet<Guid>(result.UnsuccessfulIds.Except(retryIds));
-			if (retryIds.Count > 0)
-			{
-				var poolIds = apiResourcePools.Select(x => x.Id).ToList();
-				var resourcesToRetry = planApi.Resources.Read(retryIds.ToArray()).ToList();
-				foreach (var resource in resourcesToRetry)
-				{
-					foreach (var poolId in poolIds.Where(resource.ResourcePoolIds.Contains).ToList())
-					{
-						resource.UnassignFromPool(poolId);
-					}
-				}
-
-				if (!DomResourceHandler.TryCreateOrUpdate(planApi, resourcesToRetry, out var retryResult, allowDeprecatedUpdates: true))
-				{
-					failedIds.UnionWith(retryResult.UnsuccessfulIds);
-				}
-			}
-
 			// A pool that is still assigned to a resource is not deleted, so the resource does not refer to a pool that
-			// no longer exists.
+			// no longer exists. This includes a resource whose state changed after it was read: deleting the pool again
+			// reads the resource again.
+			var failedIds = new HashSet<Guid>(result.UnsuccessfulIds);
 			foreach (var resourcesPerPool in resourcesPerPoolCollection)
 			{
 				var failedResourceIds = resourcesPerPool.Value.Select(x => x.Id).Where(failedIds.Contains).ToList();
