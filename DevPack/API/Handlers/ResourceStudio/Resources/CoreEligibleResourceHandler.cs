@@ -124,6 +124,8 @@
 
 		private IReadOnlyList<EligibleResourcesResult> GetEligibleResources(IReadOnlyCollection<EligibleResourcesContext> contexts)
 		{
+			var reservationIdsToIgnore = ResolveReservationsToIgnore(contexts);
+
 			var requests = new List<(EligibleResourcesContext Context, EligibleResourceContext CoreContext, Dictionary<Guid, Resource> FilteredResourcesByCoreId)>();
 			var resultsByContextId = new Dictionary<Guid, EligibleResourcesResult>();
 			foreach (var context in contexts)
@@ -137,6 +139,11 @@
 					CalculateAllCapabilities = context.IncludeAllCapabilityUsages,
 					FillLinkerTableEntries = false,
 				};
+
+				if (reservationIdsToIgnore.TryGetValue(context.Id, out var reservationIdToIgnore))
+				{
+					coreContext.ReservationIdToIgnore = new Net.ReservationInstanceID(reservationIdToIgnore);
+				}
 
 				var filter = context.Filter;
 
@@ -180,6 +187,31 @@
 			}
 
 			return contexts.Select(x => resultsByContextId[x.Id]).ToList().AsReadOnly();
+		}
+
+		private IReadOnlyDictionary<Guid, Guid> ResolveReservationsToIgnore(IReadOnlyCollection<EligibleResourcesContext> contexts)
+		{
+			var result = new Dictionary<Guid, Guid>();
+
+			var contextsWithJobToIgnore = contexts.Where(x => x.JobIdToIgnore != Guid.Empty).ToList();
+			if (contextsWithJobToIgnore.Count == 0)
+			{
+				return result;
+			}
+
+			var reservationsByJobId = JobReservationLookup.GetReservationsByJobId(planApi, contextsWithJobToIgnore.Select(x => x.JobIdToIgnore));
+			foreach (var context in contextsWithJobToIgnore)
+			{
+				if (!reservationsByJobId.TryGetValue(context.JobIdToIgnore, out var reservations))
+				{
+					throw new ArgumentException($"Job {context.JobIdToIgnore} has no booking.", nameof(contexts));
+				}
+
+				// Core can only ignore one reservation; a job normally has exactly one.
+				result[context.Id] = reservations[0].ID;
+			}
+
+			return result;
 		}
 
 		private EligibleResourcesResult MapResult(Guid contextId, EligibleResourceResult coreResult, IReadOnlyDictionary<Guid, Resource> filteredResourcesByCoreId, CapabilityIdResolver capabilityIdResolver)
