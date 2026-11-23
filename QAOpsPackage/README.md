@@ -18,15 +18,15 @@ The QAOps credentials branch in `DevPack.Tests/RegressionTests/Config.cs` enable
 
 The QAOps target must run DataMiner 10.6.11 or later. For a local build, store an organization key that can download the Catalog prerequisites in the project's `skyline:sdk:dataminertoken` user secret. CI reads the key from the `SKYLINE__SDK__DATAMINERTOKEN` GitHub secret.
 
-`TestPackageContent/qaops.config.xml` sets `PerformPackageInstallation` to `true`. During the dependency-installation phase, QAOps runs [`QAOpsPackage.cs`](QAOpsPackage.cs) before starting the test pipeline. `InstallDefaultContent()` installs the embedded Catalog prerequisites in filename order: Standard Data Model Registration first, then Categories. These prerequisites do not need to be preinstalled on the target.
+`TestPackageContent/qaops.config.xml` sets `PerformPackageInstallation` to `true`. QAOps runs [`QAOpsPackage.cs`](QAOpsPackage.cs) before starting the test pipeline. `InstallDefaultContent()` installs the embedded Catalog packages in filename order: Standard Data Model Registration, Categories, then MediaOps Plan. These packages do not need to be preinstalled on the target.
 
-The installer then calls `InstallDomModules()` on the Plan DevPack built from this checkout to reconcile Properties, Relationships, Resource Studio, and Workflow. It does not install or reconcile the People & Organizations schema. The installer creates the `Job Types` and `Resource Pools` category scopes and the reserved `Job` relationship object type only if they are missing. The reserved object type is seeded directly through DOM because the public repository does not allow creating reserved names.
+The installer then calls `InstallDomModules()` on the Plan DevPack built from this checkout to reconcile Properties, Relationships, Resource Studio, and Workflow. This call does not install or reconcile the People & Organizations schema. The installer creates the `Job Types` and `Resource Pools` category scopes and the reserved `Job` relationship object type only if they are missing. The reserved object type is seeded directly through DOM because the public repository does not allow creating reserved names.
 
-Test initialization and reconnects do not run this setup. The shared scopes and relationship object type remain on the target after a run. This package does not deploy the full MediaOps Plan application or the quarantine handler.
+Test initialization and reconnects do not run this setup.
 
 This package currently contains:
 
-- the Standard Data Model Registration and Categories packages declared in `PackageContent/CatalogReferences.xml`
+- the Standard Data Model Registration, Categories, and MediaOps Plan packages declared in [`PackageContent/CatalogReferences.xml`](PackageContent/CatalogReferences.xml)
 - `Scripts/Install.xml` and its dependencies in `Scripts/InstallDependencies`, including the Plan DevPack built from this checkout
 - the harvested build output of `Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests`, including the library built from the checked-out source
 - the QAOps pipeline scripts in `TestPackagePipeline`
@@ -57,9 +57,6 @@ The integration tests create and track test data, and the test cleanup code atte
 - elements and services
 - core resources and core resource pools
 
-However, this cleanup is **best-effort**, not a hard guarantee. The cleanup code intentionally ignores cleanup failures so the package can continue disposing the remaining tracked objects. Because of that, this README should **not** claim that absolutely everything is always removed.
+Cleanup is **best-effort**. If a delete or deprecate operation fails, cleanup continues with the remaining tracked objects. Some temporary data may remain until the QAOps test environment is discarded.
 
-So the correct expectation is:
-
-- **Usually cleaned up:** the temporary test objects created by the integration tests.
-- **Not guaranteed to be fully clean in every failure scenario:** if one of the delete/deprecate operations fails, some test data can remain in the QAOps test environment until that environment is discarded.
+Test cleanup does not remove the installed Catalog packages, reconciled DOM schemas, or shared test fixtures.

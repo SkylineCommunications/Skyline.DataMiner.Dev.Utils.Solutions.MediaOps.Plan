@@ -79,7 +79,7 @@ The **Integration Tests** job (`integration_tests`):
 4. Waits for QAOps to execute the harvested MSTest suite against the real DataMiner System.
 5. Propagates the QAOps exit status to CI and uploads the results JSON as the `qaops-results` artifact when available.
 
-`PerformPackageInstallation` is `true`: before tests start, the QAOps package installer installs Standard Data Model Registration and Categories, reconciles the four Plan-owned DOM modules, and seeds missing test fixtures. It does not install the People & Organizations schema or deploy the full MediaOps Plan application.
+`PerformPackageInstallation` is `true`. Before tests start, the QAOps package installer installs the Catalog packages for Standard Data Model Registration, Categories, and MediaOps Plan. It then reconciles the four Plan-owned DOM modules with the DevPack built from the selected commit and creates any missing shared test fixtures.
 
 By default, CI and local execution use eight method-level MSTest workers. QAOps runs targeting the same GitHub environment are queued to prevent overlapping test execution.
 
