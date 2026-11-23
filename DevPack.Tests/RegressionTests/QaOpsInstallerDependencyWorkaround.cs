@@ -18,6 +18,9 @@ namespace RT_MediaOps.Plan.RegressionTests
 	/// </summary>
 	internal static class QaOpsInstallerDependencyWorkaround
 	{
+		private static readonly object setupLock = new object();
+		private static bool setupComplete;
+
 		internal static void Apply(IConnection connection, ConsolePlanLogger logger)
 		{
 			if (!Config.IsQaOps)
@@ -25,15 +28,25 @@ namespace RT_MediaOps.Plan.RegressionTests
 				return;
 			}
 
-			logger.Warning("Applying temporary QAOps installer dependency workaround.");
-			var planApi = connection.GetMediaOpsPlanApi();
-			logger.Information("Ensuring MediaOps Plan DOM schemas exist before seeding test prerequisites.");
-			planApi.InstallDomModules();
+			lock (setupLock)
+			{
+				// Reconnecting must not reinitialize DOM managers while tests are running.
+				if (setupComplete)
+				{
+					return;
+				}
 
-			var categoriesApi = connection.GetCategoriesApi();
-			EnsureCategoryScope(categoriesApi, CategoryScopes.JobTypes, logger);
-			EnsureCategoryScope(categoriesApi, CategoryScopes.ResourcePools, logger);
-			EnsureJobRelationshipObjectType(planApi, connection, logger);
+				logger.Warning("Applying temporary QAOps installer dependency workaround.");
+				var planApi = connection.GetMediaOpsPlanApi();
+				logger.Information("Ensuring MediaOps Plan DOM schemas exist before seeding test prerequisites.");
+				planApi.InstallDomModules();
+
+				var categoriesApi = connection.GetCategoriesApi();
+				EnsureCategoryScope(categoriesApi, CategoryScopes.JobTypes, logger);
+				EnsureCategoryScope(categoriesApi, CategoryScopes.ResourcePools, logger);
+				EnsureJobRelationshipObjectType(planApi, connection, logger);
+				setupComplete = true;
+			}
 		}
 
 		private static void EnsureCategoryScope(ICategoriesApi categoriesApi, string name, ConsolePlanLogger logger)

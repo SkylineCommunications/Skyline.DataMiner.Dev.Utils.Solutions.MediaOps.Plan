@@ -11,8 +11,8 @@ namespace RT_MediaOps.Plan.Storage.DOM
 	[TestCategory("UnitTest")]
 	public sealed class DomSchemaParityTests
 	{
-		// Independently captured from SLC-S-MediaOps.Plan at 7a79bf3768337de562d06bd1bde0a6c062951fe5.
-		// Resource Studio's Flow Rules delta is from ab6c315db41a3f0b1a682059108ccdfb2d3f4f90.
+		// Baseline: SLC-S-MediaOps.Plan release 2.0.0 (1b8c9de909cf3930ef605b89d3ac6c428b4c1e22).
+		// Resource Studio's Flow Rules delta comes from feature/flow-rules (ab6c315db41a3f0b1a682059108ccdfb2d3f4f90).
 		// The FlowRules definition additionally includes the optional repeatable-link correction approved on 2026-11-09.
 		// P&O also matches the user-approved Rysomez.zip export (Collaboration excluded).
 		// Hashes cover complete schema objects, including nested fields and status rules.

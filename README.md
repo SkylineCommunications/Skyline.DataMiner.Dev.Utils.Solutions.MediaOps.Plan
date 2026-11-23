@@ -33,7 +33,7 @@ External resources:
 
 ## Regression testing
 
-Tests use C# and MSTest. The same test assembly supports in-memory simulation for unit tests and a real DataMiner System with MediaOps Plan deployed for integration tests. Simulation is the default.
+Tests use C# and MSTest. The same test assembly supports in-memory simulation for unit tests and a real DataMiner System for integration tests. Simulation is the default.
 
 Testing uses the following projects:
 
@@ -49,7 +49,7 @@ The [Plan CICD](./.github/workflows/Plan-CICD.yml) workflow runs validation and 
 
 - Approval of the current head commit of a non-draft PR from this repository targeting `main` or an RC branch matching `*.*.X`.
 - Manual workflow runs.
-- Release tag pushes, including alpha tags.
+- Pushes of release tags that do not contain `-alpha`.
 
 Pushes and merges to `main` or RC branches run validation and simulated tests but do not automatically trigger QAOps testing.
 
@@ -61,11 +61,11 @@ Pushes and merges to `main` or RC branches run validation and simulated tests bu
 | Current-head approval to other branches | Yes | Yes | No | No |
 | Manual run | Yes | Yes | Yes | No |
 | Push or merge to main or RC | Yes | Yes | No | Yes |
-| Tag containing `-alpha` | Yes | Yes | Yes | Yes |
+| Tag containing `-alpha` | Yes | Yes | No | Yes |
 | Other prerelease tag | Yes | Yes | Yes | Yes |
 | Stable release tag | Yes | Yes | Yes | Yes |
 
-Each stage requires the applicable preceding checks to pass. Stable release tags must be contained in the matching `<major>.<minor>.X` branch. NuGet publication runs only on tag pushes and requires successful QAOps tests. Prerelease packages go to GitHub Packages; stable packages go to nuget.org.
+Each stage requires the applicable preceding checks to pass. Stable release tags must be contained in the matching `<major>.<minor>.X` branch. NuGet publication runs only on tag pushes. Tags containing `-alpha` skip the QAOps publishing gate; all other release tags require QAOps to pass. Prerelease packages go to GitHub Packages; stable packages go to nuget.org.
 
 The **Unit Tests** job builds [MediaOps Plan.UnitTests.slnf](./MediaOps%20Plan.UnitTests.slnf) with MSBuild and runs the complete test assembly with VSTest and `MEDIAOPS_PLAN_USE_REAL_DMA=false`. Test output is harvested into the runner's temporary directory to avoid Windows path-length limits.
 
@@ -77,7 +77,7 @@ The **Integration Tests** job (`integration_tests`):
 4. Waits for QAOps to execute the harvested MSTest suite against the real DataMiner System.
 5. Propagates the QAOps exit status to CI and uploads the results JSON as the `qaops-results` artifact when available.
 
-The package does **not** deploy MediaOps Plan or its prerequisites. `PerformPackageInstallation` is `false`; the target must already have the required solution and dependencies installed.
+`PerformPackageInstallation` is `true`: the package installs Standard Data Model Registration and Categories before the tests start. The QAOps test context then installs the Plan DOM modules and seeds missing test fixtures. The package does not deploy the full MediaOps Plan application.
 
 By default, CI and local execution use eight method-level MSTest workers. QAOps runs targeting the same GitHub environment are queued to prevent overlapping test execution.
 
@@ -93,7 +93,7 @@ Configure the QAOps target through GitHub variables and secrets. The selected Gi
 
 `GITHUB_TOKEN` supplies access to the GitHub NuGet feed. The QAOps job uses a Windows runner and .NET 10.
 
-Eligible PR approvals targeting `main` use `MediaOps RT`. Eligible approvals targeting RC branches (`*.*.X`) and all release tag pushes use `MediaOps RC`. Manual runs use the selected `target_env`, which defaults to `MediaOps RT`. Integration runs are serialized per GitHub environment, so RC approvals and release tags share the same queue.
+Eligible PR approvals targeting `main` use `MediaOps RT`. Eligible approvals targeting RC branches (`*.*.X`) and pushes of release tags that do not contain `-alpha` use `MediaOps RC`. Manual runs use the selected `target_env`, which defaults to `MediaOps RT`. Integration runs are serialized per GitHub environment, so RC approvals and tag-triggered QAOps runs share the same queue.
 
 ## Local test setup
 
