@@ -17,7 +17,6 @@ namespace RT_MediaOps.Plan.Simulation
 	public sealed class MediaOpsPlanSimulationTests
 	{
 		[TestMethod]
-		[DataRow("(slc)people_organizations", 13, 34, 3, 6)]
 		[DataRow("(slc)properties", 5, 17, 0, 2)]
 		[DataRow("(slc)relationships", 2, 11, 0, 2)]
 		[DataRow("(slc)resource_studio", 23, 62, 2, 5)]
@@ -66,7 +65,7 @@ namespace RT_MediaOps.Plan.Simulation
 
 			api.InstallDomModules();
 
-			Assert.AreEqual(99, log.Count(x => x.StartsWith("Skipping ", StringComparison.Ordinal)));
+			Assert.AreEqual(76, log.Count(x => x.StartsWith("Skipping ", StringComparison.Ordinal)));
 			Assert.IsFalse(log.Any(x => x.StartsWith("Creating ", StringComparison.Ordinal) || x.StartsWith("Updating ", StringComparison.Ordinal)));
 			CollectionAssert.AreEqual(before, helper.DomInstances.ReadAll().OrderBy(x => x.ID.Id).Select(x => x.ToJson()).ToArray());
 		}

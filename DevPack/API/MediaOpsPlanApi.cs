@@ -16,7 +16,6 @@
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
-	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.Definitions.SlcPeopleOrganizations;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.Definitions.SlcProperties;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.Definitions.SlcRelationships;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.Definitions.SlcResourceStudio;
@@ -217,7 +216,6 @@
 		{
 			Action<string> logAction = message => Logger.Information(message);
 
-			DomModuleInstaller.Install(Connection.HandleMessages, new SlcPeopleOrganizationsDomModule(), logAction);
 			DomModuleInstaller.Install(Connection.HandleMessages, new SlcPropertiesDomModule(), logAction);
 			DomModuleInstaller.Install(Connection.HandleMessages, new SlcRelationshipsDomModule(), logAction);
 			DomModuleInstaller.Install(Connection.HandleMessages, new SlcResourceStudioDomModule(), logAction);

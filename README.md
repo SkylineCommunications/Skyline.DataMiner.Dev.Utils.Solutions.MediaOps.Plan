@@ -19,6 +19,8 @@ Depending on your project type, one of the following additional packages is also
 > [!NOTE]
 > This library targets `.NET Framework 4.8`.
 
+Adding the NuGet package does not install the DOM schema. For a custom installer, see [Installing the DOM schema](Documentation/Advanced%20Topics.md#installing-the-dom-schema) for the People & Organizations prerequisite and the Plan installation step.
+
 ## Documentation
 
 | Document | Description |
@@ -77,7 +79,7 @@ The **Integration Tests** job (`integration_tests`):
 4. Waits for QAOps to execute the harvested MSTest suite against the real DataMiner System.
 5. Propagates the QAOps exit status to CI and uploads the results JSON as the `qaops-results` artifact when available.
 
-`PerformPackageInstallation` is `true`: before tests start, the QAOps package installer installs Standard Data Model Registration and Categories, reconciles the Plan DOM modules, and seeds missing test fixtures. The package does not deploy the full MediaOps Plan application.
+`PerformPackageInstallation` is `true`: before tests start, the QAOps package installer installs Standard Data Model Registration and Categories, reconciles the four Plan-owned DOM modules, and seeds missing test fixtures. It does not install the People & Organizations schema or deploy the full MediaOps Plan application.
 
 By default, CI and local execution use eight method-level MSTest workers. QAOps runs targeting the same GitHub environment are queued to prevent overlapping test execution.
 
