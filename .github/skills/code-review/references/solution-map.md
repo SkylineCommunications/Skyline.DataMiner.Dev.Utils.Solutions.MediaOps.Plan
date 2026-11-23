@@ -24,7 +24,7 @@ Plan and Live are independently usable. A referenced or deployed Live DLL does n
 | Project or location | Owns |
 | --- | --- |
 | [DevPack/API](../../../../DevPack/API/) | `IMediaOpsPlanApi`, objects, repositories, handlers, validators, configuration/reference resolution and querying |
-| [DevPack/Storage](../../../../DevPack/Storage/) | DOM models/mappings/helpers and core resource/reservation storage helpers/caches |
+| [DevPack/Storage](../../../../DevPack/Storage/) | Plan-owned DOM schema declarations, DOM models/mappings/helpers, and core resource/reservation storage helpers/caches |
 | [DevPack/Tools](../../../../DevPack/Tools/), [logging](../../../../DevPack/Logging/), [exceptions](../../../../DevPack/Exceptions/) | Connection/runtime helpers, locking, logging and typed error/bulk-result contracts |
 | [DevPack.Automation](../../../../DevPack.Automation/) | NuGet library adapting `Engine`/`IEngine` to the shared API |
 | [DevPack.GQI](../../../../DevPack.GQI/) | NuGet library adapting `GQIDMS` to the shared API, not a standalone GQI data source |

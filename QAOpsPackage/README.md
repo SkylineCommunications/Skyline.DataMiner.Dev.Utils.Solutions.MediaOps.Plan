@@ -16,24 +16,36 @@ The QAOps credentials branch in `DevPack.Tests/RegressionTests/Config.cs` enable
 
 ## Execution and package contents
 
-`qaops.config.xml` sets `PerformPackageInstallation` to `false`. QAOps extracts the test content and runs the pipeline against the configured target, where MediaOps Plan and its prerequisites are already installed.
+The QAOps target must run DataMiner 10.6.11 or later. For a local build, store an organization key that can download the Catalog prerequisites in the project's `skyline:sdk:dataminertoken` user secret. CI reads the key from the `SKYLINE__SDK__DATAMINERTOKEN` GitHub secret.
+
+`TestPackageContent/qaops.config.xml` sets `PerformPackageInstallation` to `true`. During the dependency-installation phase, QAOps runs [`QAOpsPackage.cs`](QAOpsPackage.cs) before starting the test pipeline. `InstallDefaultContent()` installs the embedded Catalog prerequisites in filename order: Standard Data Model Registration first, then Categories. These prerequisites do not need to be preinstalled on the target.
+
+The installer then calls `InstallDomModules()` on the Plan DevPack built from this checkout to reconcile Properties, Relationships, Resource Studio, and Workflow. It does not install or reconcile the People & Organizations schema. The installer creates the `Job Types` and `Resource Pools` category scopes and the reserved `Job` relationship object type only if they are missing. The reserved object type is seeded directly through DOM because the public repository does not allow creating reserved names.
+
+Use a target compatible with the `2.0.X` schema. This package does not include Flow Rules. On a target with the newer schema, the installer can soft-delete fields that are not part of `2.0.X`.
+
+Test initialization and reconnects do not run this setup. The shared scopes and relationship object type remain on the target after a run. This package does not deploy the full MediaOps Plan application or the quarantine handler. Real-Agent quarantine tests require the `MediaOps_SRM_QuarantineHandling` callback to be configured on the target.
 
 This package currently contains:
 
+- the Standard Data Model Registration and Categories packages declared in `PackageContent/CatalogReferences.xml`
+- `Scripts/Install.xml` and its dependencies in `Scripts/InstallDependencies`, including the Plan DevPack built from this checkout
 - the harvested build output of `Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests`, including the library built from the checked-out source
 - the QAOps pipeline scripts in `TestPackagePipeline`
+
+Visual Studio references the Plan DevPack project directly, and the solution builds the test project before the package. The install script compiles before it can install the embedded prerequisites. Because the SDK normally omits solution-library NuGet DLLs from `Scripts/InstallDependencies`, the package build stages the required DLLs from the active DevPack build and bundles them as direct assembly references.
 
 ## CI execution
 
 [`Plan-CICD.yml`](../.github/workflows/Plan-CICD.yml) runs validation, builds `MediaOps Plan.UnitTests.slnf` with MSBuild, and runs the complete simulated suite with VSTest. This unit build harvests test output into the runner's temporary directory to avoid Windows path-length limits.
 
-Manual runs, eligible current-head approvals of non-draft same-repository PRs targeting `main`, and tag pushes without `-alpha` then run the full suite through `dataminer-qaops test-run-and-wait`. Non-alpha tags require QAOps tests regardless of whether the tagged commit is on `main`.
+Manual runs, eligible current-head approvals of non-draft same-repository PRs targeting `main` or RC branches matching `*.*.X`, and pushes of release tags that do not contain `-alpha` then run the full suite through `dataminer-qaops test-run-and-wait`.
 
-Branch pushes run Skyline CICD after validation and simulated tests pass. Tags containing `-alpha` publish to GitHub Packages after simulated tests pass. Other prerelease tags require successful QAOps tests before publication to GitHub Packages. Stable tags also require matching release-branch ancestry and publish to nuget.org. NuGet publication runs only on tag pushes.
+Branch pushes run Skyline CICD after validation and simulated tests pass. Tags containing `-alpha` skip the QAOps publishing gate; all other release tags require QAOps to pass. Prerelease tags publish to GitHub Packages. Stable tags also require matching release-branch ancestry and publish to nuget.org. NuGet publication runs only on tag pushes.
 
-Tag-triggered QAOps runs target the `dma-rc` environment after the applicable validation and simulated tests pass. Eligible PR-approval runs target `MediaOps RT`. Manual runs select an environment through `target_env`, including `dma-rc`. The selected environment can override the repository-level `QAOPS_CONFIGURATION_ID` and `QAOPS_TEST_SUITE_ID` variables and `QAOPS_TOKEN` secret. Integration runs are serialized per target.
+Tag-triggered QAOps runs and eligible approvals of PRs targeting RC branches (`*.*.X`) use the `MediaOps RC` environment after the applicable validation and simulated tests pass. Eligible approvals of PRs targeting `main` use `MediaOps RT`. Manual runs select an environment through `target_env`, including `MediaOps RC`. The selected environment can override the repository-level `QAOPS_CONFIGURATION_ID` and `QAOPS_TEST_SUITE_ID` variables and `QAOPS_TOKEN` secret. Integration runs are serialized per target, so RC approvals and tag runs share the same queue.
 
-The workflow restores the test project before building `QAOpsPackage.csproj` with a tag-derived or run-specific version, submits that exact `.dmtest`, and uploads the QAOps results JSON.
+The workflow restores the test project before building `QAOpsPackage.csproj` with a tag-derived or run-specific version, revalidates the current PR head and target for approval-triggered runs, submits that exact `.dmtest`, and uploads the QAOps results JSON.
 
 ## What gets cleaned up after the run
 

@@ -92,6 +92,8 @@ jobs:
       (github.event_name == 'pull_request_review' && github.event.review.state == 'approved' &&
        !github.event.pull_request.draft && github.event.review.commit_id == github.event.pull_request.head.sha)
     runs-on: ubuntu-latest
+    outputs:
+      regression_environment: ${{ steps.regression_environment.outputs.environment }}
 
     steps:
       - name: Skip tag/branch validation
@@ -140,6 +142,27 @@ jobs:
             exit 1
           fi
 
+      - name: Select regression environment
+        id: regression_environment
+        shell: bash
+        env:
+          TARGET_ENV: ${{ inputs.target_env }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          environment=""
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            environment="${TARGET_ENV:-MediaOps RT}"
+          elif [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF_TYPE" == "tag" ]]; then
+            environment="MediaOps RC"
+          elif [[ "$GITHUB_EVENT_NAME" == "pull_request_review" ]]; then
+            if [[ "$PR_BASE_REF" == "main" ]]; then
+              environment="MediaOps RT"
+            elif [[ "$PR_BASE_REF" == *.*.X && "$PR_BASE_REF" != */* ]]; then
+              environment="MediaOps RC"
+            fi
+          fi
+          echo "environment=$environment" >> "$GITHUB_OUTPUT"
+
   nuget_validation:
     name: Validate NuGets
     if: >-
@@ -169,21 +192,21 @@ jobs:
           github.event_name == 'workflow_dispatch' ||
           (github.event_name == 'pull_request_review' && github.event.review.state == 'approved' &&
            !github.event.pull_request.draft && github.event.review.commit_id == github.event.pull_request.head.sha &&
-           github.event.pull_request.base.ref == 'main' &&
+           needs.tag_branch_validation.outputs.regression_environment != '' &&
            github.event.pull_request.head.repo.full_name == github.repository)) }}
-    needs: unit_tests
+    needs: [unit_tests, tag_branch_validation]
     permissions:
       contents: read
       packages: read
       pull-requests: read
     concurrency:
       group: >-
-        ${{ (inputs.target_env || (github.event_name == 'push' && github.ref_type == 'tag' && 'dma-rc' || 'MediaOps RT')) == 'MediaOps RT' &&
+        ${{ needs.tag_branch_validation.outputs.regression_environment == 'MediaOps RT' &&
             'mediaops-rt-regression' || format('mediaops-regression-{0}',
-              inputs.target_env || (github.event_name == 'push' && github.ref_type == 'tag' && 'dma-rc' || 'MediaOps RT')) }}
+              needs.tag_branch_validation.outputs.regression_environment) }}
       cancel-in-progress: false
       queue: max
-    environment: ${{ inputs.target_env || (github.event_name == 'push' && github.ref_type == 'tag' && 'dma-rc' || 'MediaOps RT') }}
+    environment: ${{ needs.tag_branch_validation.outputs.regression_environment }}
     runs-on: windows-latest
     defaults:
       run:
@@ -212,6 +235,9 @@ jobs:
 
       - name: Build Test Package
         id: package
+        env:
+          Configuration: Release
+          skyline__sdk__dataminertoken: ${{ secrets.SKYLINE__SDK__DATAMINERTOKEN }}
         run: |
           dotnet restore "DevPack.Tests/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests.csproj" -p:Configuration=Release -p:Version="$env:PACKAGE_VERSION" -p:DefineConstants=CI
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -225,7 +251,7 @@ jobs:
           if ($packages.Count -ne 1) { throw "Expected one $projectName.$env:PACKAGE_VERSION.dmtest; found $($packages.Count)" }
           "path=$($packages[0].FullName)" >> $env:GITHUB_OUTPUT
 
-      - name: Verify approval still covers the current PR head
+      - name: Verify approval still covers the current PR head and target
         if: github.event_name == 'pull_request_review'
         uses: actions/github-script@v7
         env:
@@ -238,10 +264,11 @@ jobs:
             const { data: review } = await github.rest.pulls.getReview({
               owner, repo, pull_number, review_id: context.payload.review.id
             });
-            if (pr.state !== 'open' || pr.draft || pr.base.ref !== 'main' || pr.head.repo.full_name !== `${owner}/${repo}` ||
+            if (pr.state !== 'open' || pr.draft || pr.base.ref !== context.payload.pull_request.base.ref ||
+                pr.head.repo.full_name !== `${owner}/${repo}` ||
                 pr.head.sha !== process.env.SOURCE_SHA || review.state !== 'APPROVED' ||
                 review.commit_id !== pr.head.sha) {
-              throw new Error('PR approval is no longer valid for the current head. Approve the latest commit to run regression.');
+              throw new Error('PR approval is no longer valid for the current head or target. Approve the latest commit to run regression.');
             }
 
       - name: Run QAOps and wait for results
@@ -320,8 +347,7 @@ jobs:
           needs.nuget_validation.result == 'success' && needs.tag_branch_validation.result == 'success' &&
           needs.unit_tests.result == 'success' &&
           (github.ref_type == 'branch' ||
-            (github.ref_type == 'tag' &&
-             (contains(github.ref_name, '-alpha') || needs.integration_tests.result == 'success'))) }}
+            (github.ref_type == 'tag' && (contains(github.ref_name, '-alpha') || needs.integration_tests.result == 'success'))) }}
     permissions:
       contents: read
       id-token: write

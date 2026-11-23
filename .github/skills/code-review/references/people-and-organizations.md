@@ -13,6 +13,7 @@ PNO models people, organization/team memberships, skills/experience and operatio
 | Plan resource/pool contracts | Local `DevPack/API/{Objects,Repositories,Handlers}/ResourceStudio/`, usage validators and core/DOM mappings |
 | PNO entity rules | PNO DevPack `DevPack/API/{Objects,Repositories,Validators,Querying}/`, `Handlers/{People,Teams,Organizations,Skills,Roles,Experience,Categories}/` |
 | PNO -> Plan mapping | PNO DevPack `DevPack/API/Handlers/MediaOps/MediaOpsResourceHandler.cs` and `MediaOpsResourcePoolHandler.cs` |
+| PNO schema and installation | The PNO DevPack declares and installs `(slc)people_organizations`. The application's `DOM Setup` script calls it before the Plan installer. Plan's Workflow schema references PNO definitions but does not install them. |
 | PNO persistence/cache | PNO DevPack `DevPack/Storage/DOM/`, `DevPack/Cache/` |
 | Application scripts/read models | Plan solution `People and Organizations -*`, `PNO-*`, shared application code, People & Organizations app/GQI and scheduling owner/contact consumers |
 
