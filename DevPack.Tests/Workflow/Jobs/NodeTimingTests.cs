@@ -132,6 +132,76 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 			Assert.AreEqual(2, graph.Nodes.Count);
 		}
 
+		[TestMethod]
+		public void Apply_Running_RemovedNode_IsTruncatedAndRestoredWithConnectionLinkAndGroup()
+		{
+			var parent = ExistingNode(Start, PostRollEnd);
+			var child = ExistingNode(Start, PostRollEnd);
+			var neighbour = ExistingNode(Start, PostRollEnd);
+			var graph = GraphWith(parent, child, neighbour);
+			graph.Link(parent, child);
+			graph.Connect(neighbour, parent);
+			var group = graph.AddGroup("Group");
+			group.Add(parent).Add(child);
+
+			graph.Remove(parent);
+			Assert.AreEqual(1, graph.Nodes.Count, "Precondition: the parent and its child are removed.");
+
+			JobNodeTimingResolver.Apply(JobState.Running, DefaultWindow(), CurrentTime, graph);
+
+			Assert.AreEqual(3, graph.Nodes.Count);
+			Assert.AreEqual(Start, parent.Start);
+			Assert.AreEqual(CurrentTime, parent.End);
+			Assert.AreEqual(Start, child.Start);
+			Assert.AreEqual(CurrentTime, child.End);
+			Assert.AreEqual(PostRollEnd, neighbour.End);
+			Assert.AreSame(parent, graph.GetParent(child));
+			Assert.AreSame(parent, graph.GetOutgoing(neighbour).Single().To);
+			Assert.IsTrue(group.Contains(parent) && group.Contains(child));
+		}
+
+		[TestMethod]
+		public void Apply_Running_RemovedAlreadyEndedNode_IsRestoredUnchanged()
+		{
+			var endedAt = CurrentTime.AddMinutes(-5);
+			var node = ExistingNode(PreRollStart, endedAt);
+			var graph = GraphWith(node);
+
+			graph.Remove(node);
+			JobNodeTimingResolver.Apply(JobState.Running, DefaultWindow(), CurrentTime, graph);
+
+			Assert.IsTrue(graph.Nodes.Contains(node));
+			Assert.AreEqual(PreRollStart, node.Start);
+			Assert.AreEqual(endedAt, node.End);
+		}
+
+		[TestMethod]
+		public void Apply_Running_RemovedNewNode_IsNotRestored()
+		{
+			var node = NewNode();
+			var graph = GraphWith(node);
+
+			graph.Remove(node);
+			JobNodeTimingResolver.Apply(JobState.Running, DefaultWindow(), CurrentTime, graph);
+
+			Assert.AreEqual(0, graph.Nodes.Count);
+		}
+
+		[DataTestMethod]
+		[DataRow(JobState.Draft)]
+		[DataRow(JobState.Tentative)]
+		[DataRow(JobState.Confirmed)]
+		public void Apply_ScheduledState_RemovedNode_IsNotRestored(JobState state)
+		{
+			var node = ExistingNode(PreRollStart, PostRollEnd);
+			var graph = GraphWith(node);
+
+			graph.Remove(node);
+			JobNodeTimingResolver.Apply(state, DefaultWindow(), CurrentTime, graph);
+
+			Assert.AreEqual(0, graph.Nodes.Count);
+		}
+
 		#endregion
 
 		#region Apply - frozen states (Completed/Canceled)

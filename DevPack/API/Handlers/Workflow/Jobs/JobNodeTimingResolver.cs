@@ -238,6 +238,19 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				nodeGraph.RestoreSwappedOutNode(swappedOut);
 			}
 
+			// Rule 2.b: an existing node that was removed while the job is running is not deleted. It keeps its start, its
+			// end is truncated to the current time and it is restored into the graph as history. A node that already ended
+			// is restored unchanged, so the history of the job cannot be deleted.
+			foreach (var removed in nodeGraph.RemovedNodes)
+			{
+				if (removed.End > currentTime)
+				{
+					removed.End = currentTime;
+				}
+			}
+
+			nodeGraph.RestoreRemovedNodes();
+
 			foreach (var node in nodeGraph.Nodes)
 			{
 				if (node.IsNew)

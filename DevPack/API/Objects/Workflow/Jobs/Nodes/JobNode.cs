@@ -42,6 +42,14 @@
 
 		internal int? CoreReservationNodeId { get; private set; }
 
+		// Node timings are not part of the node equality, so a timing-only change (e.g. a node that is ended while its job
+		// is running) is tracked against the stored values instead of through the hash code of the job.
+		internal bool HasTimingChanges => !IsNew && (Start != originalStart || End != originalEnd);
+
+		private DateTimeOffset originalStart;
+
+		private DateTimeOffset originalEnd;
+
 		internal sealed override void ApplyChanges(StorageWorkflow.NodesSection section)
 		{
 			section.NodeStartTime = Start.UtcDateTime;
@@ -134,6 +142,8 @@
 		{
 			Start = section.NodeStartTime.Value;
 			End = section.NodeEndTime.Value;
+			originalStart = Start;
+			originalEnd = End;
 			CoreReservationNodeId = ResolveCoreReservationNodeId(section.CoreReservationNodeID, section.NodeID);
 
 			ConfigurationState = section.NodeConfigurationStatus.HasValue

@@ -145,6 +145,89 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void RemoveNode_WhileRunning_KeepsNodeEndedAtRemovalTimeAndReleasesResource()
+		{
+			var (api, resourceManagerHelper) = CreateContext();
+
+			var runningJob = CreateRunningJob(api, resourceManagerHelper);
+			var keptNode = (JobResourceNode)runningJob.NodeGraph.Nodes.Single();
+
+			var (pool, resource) = CreatePoolAndResource(api, Guid.NewGuid());
+			var removedNode = new JobResourceNode(pool, resource);
+			runningJob.NodeGraph.Add(removedNode).Connect(keptNode, removedNode);
+			runningJob = api.Jobs.Update(runningJob);
+
+			var nodeToRemove = runningJob.NodeGraph.Nodes.Single(x => x.Id == removedNode.Id);
+			var nodeStart = nodeToRemove.Start;
+			var beforeRemoval = DateTimeOffset.UtcNow;
+
+			runningJob.NodeGraph.Remove(nodeToRemove);
+			api.Jobs.Update(runningJob);
+
+			var read = api.Jobs.Read(runningJob.Id);
+			var retainedNode = read.NodeGraph.Nodes.SingleOrDefault(x => x.Id == removedNode.Id);
+			Assert.IsNotNull(retainedNode, "Expected the removed node to be kept as history of the running job.");
+			Assert.AreEqual(nodeStart, retainedNode.Start, "Expected the removed node to keep its start time.");
+			Assert.IsTrue(retainedNode.End >= beforeRemoval.AddSeconds(-1) && retainedNode.End <= DateTimeOffset.UtcNow, "Expected the removed node to end at the removal time.");
+			Assert.AreEqual(retainedNode.Id, read.NodeGraph.GetOutgoing(read.NodeGraph.Nodes.Single(x => x.Id == keptNode.Id)).Single().To.Id, "Expected the connection of the removed node to be kept.");
+
+			var resourceIds = GetReservation(resourceManagerHelper, read.Id).ResourcesInReservationInstance
+				.OfType<ServiceResourceUsageDefinition>()
+				.Select(x => x.GUID)
+				.ToList();
+			CollectionAssert.DoesNotContain(resourceIds, resource.CoreResourceId, "Expected the resource of the removed node to be released.");
+			CollectionAssert.Contains(resourceIds, api.Resources.Read(keptNode.ResourceId).CoreResourceId, "Expected the remaining resource to stay booked.");
+		}
+
+		[TestMethod]
+		public void RemoveParentNode_WhileRunning_KeepsParentAndChildEnded()
+		{
+			var (api, resourceManagerHelper) = CreateContext();
+
+			var runningJob = CreateRunningJob(api, resourceManagerHelper);
+			var parentNode = runningJob.NodeGraph.Nodes.Single();
+
+			var (pool, resource) = CreatePoolAndResource(api, Guid.NewGuid());
+			var childNode = new JobResourceNode(pool, resource);
+			runningJob.NodeGraph.Add(childNode).Link(parentNode, childNode);
+			runningJob = api.Jobs.Update(runningJob);
+
+			runningJob.NodeGraph.Remove(runningJob.NodeGraph.Nodes.Single(x => x.Id == parentNode.Id));
+			api.Jobs.Update(runningJob);
+
+			var read = api.Jobs.Read(runningJob.Id);
+			Assert.AreEqual(2, read.NodeGraph.Nodes.Count, "Expected the removed parent and child to be kept.");
+			Assert.IsTrue(read.NodeGraph.Nodes.All(x => x.End <= DateTimeOffset.UtcNow), "Expected the removed parent and child to be ended.");
+
+			var readChild = read.NodeGraph.Nodes.Single(x => x.Id == childNode.Id);
+			Assert.AreEqual(parentNode.Id, read.NodeGraph.GetParent(readChild)?.Id, "Expected the parent-child link to be kept.");
+		}
+
+		[TestMethod]
+		public void RemoveAlreadyEndedNode_WhileRunning_KeepsItUnchanged()
+		{
+			var (api, resourceManagerHelper) = CreateContext();
+
+			var runningJob = CreateRunningJob(api, resourceManagerHelper);
+			var originalNode = runningJob.NodeGraph.Nodes.Single();
+
+			var (pool, resource) = CreatePoolAndResource(api, Guid.NewGuid());
+			runningJob.NodeGraph.Swap(originalNode, new JobResourceNode(pool, resource));
+			runningJob = api.Jobs.Update(runningJob);
+
+			var swappedOutNode = runningJob.NodeGraph.Nodes.Single(x => x.Id == originalNode.Id);
+			var swappedOutEnd = swappedOutNode.End;
+
+			runningJob.NodeGraph.Remove(swappedOutNode);
+			api.Jobs.Update(runningJob);
+
+			var read = api.Jobs.Read(runningJob.Id);
+			var retainedNode = read.NodeGraph.Nodes.SingleOrDefault(x => x.Id == originalNode.Id);
+			Assert.IsNotNull(retainedNode, "Expected the ended node to be kept as history.");
+			Assert.AreEqual(swappedOutEnd, retainedNode.End, "Expected the end of the already ended node to be left untouched.");
+		}
+
+		[TestMethod]
 		public void TransitionToCompleted_AfterNodeEditWhileRunning_MovesJobToCompleted()
 		{
 			var (api, resourceManagerHelper) = CreateContext();
