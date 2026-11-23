@@ -461,9 +461,9 @@ public sealed class AutomationLogger : ILogger
 
 ### Installing the DOM schema
 
-Call `api.InstallDomModules()` explicitly from an installer to install or reconcile the Plan-owned Properties, Relationships, Resource Studio, and Workflow schemas. This requires DataMiner 10.6.11 or later and permission to configure DOM module settings. Creating an API client does not install the schema.
+Call `api.InstallDomModules()` explicitly on a client created by the DevPack to install or reconcile the Plan-owned Properties, Relationships, Resource Studio, and Workflow schemas. The extension method is in the `Skyline.DataMiner.Solutions.MediaOps.Plan.API` namespace. It requires DataMiner 10.6.11 or later and permission to configure DOM module settings. Creating an API client does not install the schema.
 
-Install `(slc)people_organizations` first through the People & Organizations DevPack's `InstallDomModules()` API. Workflow references definitions from that module, but the Plan DevPack does not install it.
+When deploying both schemas through the DevPacks, install `(slc)people_organizations` first through the People & Organizations DevPack's `InstallDomModules()` extension. Workflow references definitions from that module, but the Plan DevPack does not install it.
 
 The DevPack declarations are authoritative. Removed fields and section links are retained as soft-deleted metadata. Each module's DOM Manager is reinitialized after reconciliation. Errors propagate and completed writes are not rolled back.
 

@@ -193,7 +193,7 @@ Dependencies/
 
 ### qaops.config.xml
 
-Keep `PerformPackageInstallation` set to `true` in [`qaops.config.xml`](qaops.config.xml). The MediaOps Plan tests need the [package installer](../QAOpsPackage.cs) to provision the Plan-owned DOM schemas and shared fixtures before the PowerShell pipeline starts.
+Keep `PerformPackageInstallation` set to `true` in [`qaops.config.xml`](qaops.config.xml). Before the PowerShell pipeline starts, the [package installer](../QAOpsPackage.cs) deploys the full MediaOps Plan solution, reconciles the Plan-owned DOM schemas, and seeds only missing fixtures. See the [QAOps setup order](../README.md#execution-and-package-contents) for the prerequisites and intentional overlap.
 
 #### Configuration Options
 

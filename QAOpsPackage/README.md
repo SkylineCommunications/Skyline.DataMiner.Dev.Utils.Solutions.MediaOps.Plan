@@ -18,17 +18,24 @@ The QAOps credentials branch in `DevPack.Tests/RegressionTests/Config.cs` enable
 
 The QAOps target must run DataMiner 10.6.11 or later. For a local build, store an organization key that can download the Catalog prerequisites in the project's `skyline:sdk:dataminertoken` user secret. CI reads the key from the `SKYLINE__SDK__DATAMINERTOKEN` GitHub secret.
 
-`TestPackageContent/qaops.config.xml` sets `PerformPackageInstallation` to `true`. During the dependency-installation phase, QAOps runs [`QAOpsPackage.cs`](QAOpsPackage.cs) before starting the test pipeline. `InstallDefaultContent()` installs the embedded Catalog prerequisites in filename order: Standard Data Model Registration first, then Categories. These prerequisites do not need to be preinstalled on the target.
+`TestPackageContent/qaops.config.xml` sets `PerformPackageInstallation` to `true`. QAOps runs [`QAOpsPackage.cs`](QAOpsPackage.cs) before starting the test pipeline. The current setup order is:
 
-The installer then calls `InstallDomModules()` on the Plan DevPack built from this checkout to reconcile Properties, Relationships, Resource Studio, and Workflow. It does not install or reconcile the People & Organizations schema. The installer creates the `Job Types` and `Resource Pools` category scopes and the reserved `Job` relationship object type only if they are missing. The reserved object type is seeded directly through DOM because the public repository does not allow creating reserved names.
+1. `InstallDefaultContent()` installs the embedded Catalog packages in filename order: Standard Data Model Registration, Categories, then the **full MediaOps Plan solution**.
 
-Use a target compatible with the `2.0.X` schema. This package does not include Flow Rules. On a target with the newer schema, the installer can soft-delete fields that are not part of `2.0.X`.
+   The solution release selected by `Range 2` runs its own installer and supplies the initial Plan and People & Organizations DOM schemas. Release `2.0.0`, for example, imports the shipped JSON schemas and seeds the same shared fixtures. The range does not pin that release or its installer behavior.
 
-Test initialization and reconnects do not run this setup. The shared scopes and relationship object type remain on the target after a run. This package does not deploy the full MediaOps Plan application or the quarantine handler. Real-Agent quarantine tests require the `MediaOps_SRM_QuarantineHandling` callback to be configured on the target.
+2. The `InstallDomModules()` extension from the Plan DevPack built from this checkout reconciles Properties, Relationships, Resource Studio, and Workflow on top of the deployed solution. It does not reconcile the People & Organizations schema.
+3. The test package creates the `Job Types` and `Resource Pools` category scopes and the reserved `Job` relationship object type only if they are missing. The fallback creates the reserved object type directly through DOM because the public API does not allow creating reserved names.
+
+**Intentional overlap for now:** QAOps reconciles the Plan schemas after the full solution has already installed them. The fixture checks are fallbacks and skip entries that the solution already seeded. Keep this redundancy until provisioning ownership is clarified. These tests exercise the source-built DevPack on top of a full solution deployment, not a fresh DevPack-only installation.
+
+Use a target and an embedded solution release compatible with the `2.0.X` schema. The DevPack under test does not include Flow Rules. Its installer can soft-delete fields from a newer schema, including one supplied by the embedded solution.
+
+Test initialization and reconnects do not run this setup. The shared scopes and relationship object type remain on the target after a run. Real-Agent quarantine tests still require the `MediaOps_SRM_QuarantineHandling` callback to be configured on the target. Check what the selected solution release deploys and what the environment provides separately.
 
 This package currently contains:
 
-- the Standard Data Model Registration and Categories packages declared in `PackageContent/CatalogReferences.xml`
+- the Standard Data Model Registration, Categories, and full MediaOps Plan solution packages declared in [`PackageContent/CatalogReferences.xml`](PackageContent/CatalogReferences.xml)
 - `Scripts/Install.xml` and its dependencies in `Scripts/InstallDependencies`, including the Plan DevPack built from this checkout
 - the harvested build output of `Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests`, including the library built from the checked-out source
 - the QAOps pipeline scripts in `TestPackagePipeline`

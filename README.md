@@ -19,7 +19,9 @@ Depending on your project type, one of the following additional packages is also
 > [!NOTE]
 > This library targets `.NET Framework 4.8`.
 
-Adding the NuGet package does not install the DOM schema. For a custom installer, see [Installing the DOM schema](Documentation/Advanced%20Topics.md#installing-the-dom-schema) for the People & Organizations prerequisite and the Plan installation step.
+Adding the NuGet package or creating an API client does not install the DOM schema. Deployment code calls the `InstallDomModules()` extension from `Skyline.DataMiner.Solutions.MediaOps.Plan.API` on a client created by the Plan DevPack. It reconciles only Properties, Relationships, Resource Studio, and Workflow.
+
+When deploying both schemas through the DevPacks, install People & Organizations first. See [Installing the DOM schema](Documentation/Advanced%20Topics.md#installing-the-dom-schema) for both steps and the `2.0.X` compatibility requirements.
 
 ## Documentation
 
@@ -79,7 +81,7 @@ The **Integration Tests** job (`integration_tests`):
 4. Waits for QAOps to execute the harvested MSTest suite against the real DataMiner System.
 5. Propagates the QAOps exit status to CI and uploads the results JSON as the `qaops-results` artifact when available.
 
-`PerformPackageInstallation` is `true`: before tests start, the QAOps package installer installs Standard Data Model Registration and Categories, reconciles the four Plan-owned DOM modules, and seeds missing test fixtures. It does not install the People & Organizations schema or deploy the full MediaOps Plan application.
+`PerformPackageInstallation` is `true`. Before tests start, QAOps installs Standard Data Model Registration, Categories, and the full Catalog-selected MediaOps Plan solution, which supplies the People & Organizations schema. The DevPack under test then reconciles the four Plan-owned modules and the test package seeds only missing fixtures. See the [QAOps setup order](QAOpsPackage/README.md#execution-and-package-contents) for the intentional overlap and `2.0.X` compatibility requirements.
 
 By default, CI and local execution use eight method-level MSTest workers. QAOps runs targeting the same GitHub environment are queued to prevent overlapping test execution.
 
