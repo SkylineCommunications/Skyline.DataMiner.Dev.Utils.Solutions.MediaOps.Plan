@@ -11,4 +11,10 @@
 			<Range>1</Range>
 		</Selection>
 	</CatalogReference>
+	<CatalogReference id="1b67a623-4ca6-4d25-8b3d-ed4e39496a75">
+		<Name>002 MediaOps Plan</Name>
+		<Selection>
+			<Range>2</Range>
+		</Selection>
+	</CatalogReference>
 </CatalogReferences>
