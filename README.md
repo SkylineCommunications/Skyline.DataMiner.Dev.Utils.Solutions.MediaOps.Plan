@@ -77,19 +77,20 @@ The **Integration Tests** job (`integration_tests`):
 4. Waits for QAOps to execute the harvested MSTest suite against the real DataMiner System.
 5. Propagates the QAOps exit status to CI and uploads the results JSON as the `qaops-results` artifact when available.
 
-`PerformPackageInstallation` is `true`: the package installs Standard Data Model Registration and Categories before the tests start. The QAOps test context then installs the Plan DOM modules and seeds missing test fixtures. The package does not deploy the full MediaOps Plan application.
+`PerformPackageInstallation` is `true`: before tests start, the QAOps package installer installs Standard Data Model Registration and Categories, reconciles the Plan DOM modules, and seeds missing test fixtures. The package does not deploy the full MediaOps Plan application.
 
 By default, CI and local execution use eight method-level MSTest workers. QAOps runs targeting the same GitHub environment are queued to prevent overlapping test execution.
 
 ### QAOps configuration
 
-Configure the QAOps target through GitHub variables and secrets. The selected GitHub environment can override repository/organization values.
+Select a QAOps target running DataMiner 10.6.11 or later. Configure it through GitHub variables and secrets. The selected GitHub environment can override repository or organization values.
 
 | Configuration | Name | Purpose |
 | --- | --- | --- |
 | Variable | `QAOPS_CONFIGURATION_ID` | Selects the QAOps target. |
 | Variable | `QAOPS_TEST_SUITE_ID` | Selects the QAOps test suite. |
 | Secret | `QAOPS_TOKEN` | Authorizes the QAOps run. |
+| Secret | `SKYLINE__SDK__DATAMINERTOKEN` | Allows the SDK to download the Catalog prerequisites during the `.dmtest` build. |
 
 `GITHUB_TOKEN` supplies access to the GitHub NuGet feed. The QAOps job uses a Windows runner and .NET 10.
 

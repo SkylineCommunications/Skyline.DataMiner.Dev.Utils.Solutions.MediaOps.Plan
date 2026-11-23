@@ -23,7 +23,7 @@ Core/adapter Debug packaging can copy NuGet output to `C:\Skyline_Data\MyNugets\
 - Review changed signatures, interfaces, defaults, overload resolution, enum/result semantics and exception behavior against the intended compatibility/release contract and affected consumers. Public callers can exist outside this repository.
 - Follow public objects through handlers, validation, serialization and storage. API-only, binary-only and data-compatible changes are different claims.
 - [Storage/DOM/Model](../../../../DevPack/Storage/DOM/Model/) contains generated schema-facing code and mappings. Stable module/field/behavior IDs and existing persisted objects must agree with the installed application schema. A fresh simulation cannot establish every upgrade path.
-- The Plan solution's `SLC-S-MediaOps/SetupContent/DOM/`, package entry point and `SolutionInstallerTools/` own full schema/app installation and supported upgrades. Resolve their relevant app release when a mapper/schema change requires coordination.
+- [`InstallDomModules()`](../../../../Documentation/Advanced%20Topics.md#installing-the-dom-schema) reconciles the schema only. The Plan application installer still owns full deployment and instance-data migrations. `SLC-S-MediaOps/SetupContent/DOM/` is the schema source for older releases that used JSON imports. Check the relevant application release when reviewing schema or upgrade compatibility.
 - Do not require a local low-code app archive, scripts-only application package or Playwright project: those artifacts belong to external application repositories. Trace actual affected consumers through [solution-map](solution-map.md).
 
 ## Dependency and deployment contracts

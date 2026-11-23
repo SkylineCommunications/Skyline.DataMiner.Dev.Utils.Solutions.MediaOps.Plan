@@ -16,17 +16,22 @@ The QAOps credentials branch in `DevPack.Tests/RegressionTests/Config.cs` enable
 
 ## Execution and package contents
 
-`TestPackageContent/qaops.config.xml` sets `PerformPackageInstallation` to `true`. During the dependency-installation phase, QAOps runs this package's installer before starting the test pipeline. The existing `InstallDefaultContent()` call installs the embedded Catalog prerequisites in filename order: Standard Data Model Registration first, then Categories. These prerequisites do not need to be preinstalled on the target.
+The QAOps target must run DataMiner 10.6.11 or later. For a local build, store an organization key that can download the Catalog prerequisites in the project's `skyline:sdk:dataminertoken` user secret. CI reads the key from the `SKYLINE__SDK__DATAMINERTOKEN` GitHub secret.
 
-When the test context first initializes on QAOps, the temporary [`QaOpsInstallerDependencyWorkaround`](../DevPack.Tests/RegressionTests/QaOpsInstallerDependencyWorkaround.cs) reconciles Plan's DOM schemas through the DevPack built from this checkout. It then creates the `Job Types` and `Resource Pools` category scopes and the reserved `Job` relationship object type if they are missing. Existing records are preserved. The reserved object type is seeded directly through DOM, matching the solution's setup because the public repository does not allow creating reserved names.
+`TestPackageContent/qaops.config.xml` sets `PerformPackageInstallation` to `true`. During the dependency-installation phase, QAOps runs [`QAOpsPackage.cs`](QAOpsPackage.cs) before starting the test pipeline. `InstallDefaultContent()` installs the embedded Catalog prerequisites in filename order: Standard Data Model Registration first, then Categories. These prerequisites do not need to be preinstalled on the target.
 
-Once schema installation and seeding succeed, reconnects do not repeat setup in the same test process. Seeding is QAOps test setup, not part of the schema-only `InstallDomModules()` API. The shared scopes and relationship object type remain on the target after a run. This package does not deploy the full MediaOps Plan application or the quarantine handler.
+The installer then calls `InstallDomModules()` on the Plan DevPack built from this checkout. It creates the `Job Types` and `Resource Pools` category scopes and the reserved `Job` relationship object type only if they are missing. The reserved object type is seeded directly through DOM because the public repository does not allow creating reserved names.
+
+Test initialization and reconnects do not run this setup. The shared scopes and relationship object type remain on the target after a run. This package does not deploy the full MediaOps Plan application or the quarantine handler.
 
 This package currently contains:
 
 - the Standard Data Model Registration and Categories packages declared in `PackageContent/CatalogReferences.xml`
+- `Scripts/Install.xml` and its dependencies in `Scripts/InstallDependencies`, including the Plan DevPack built from this checkout
 - the harvested build output of `Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests`, including the library built from the checked-out source
 - the QAOps pipeline scripts in `TestPackagePipeline`
+
+Visual Studio references the Plan DevPack project directly, and the solution builds the test project before the package. The install script compiles before it can install the embedded prerequisites. Because the SDK normally omits solution-library NuGet DLLs from `Scripts/InstallDependencies`, the package build stages the required DLLs from the active DevPack build and bundles them as direct assembly references.
 
 ## CI execution
 
