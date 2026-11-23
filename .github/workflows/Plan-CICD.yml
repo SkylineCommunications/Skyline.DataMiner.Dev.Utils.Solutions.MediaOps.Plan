@@ -199,8 +199,8 @@ jobs:
     if: ${{ always() && needs.route.outputs.should_run == 'true' && needs.check_existing.outputs.already_tested != 'true' && needs.nuget_validation.result == 'success' && !(github.ref_type == 'tag' && contains(github.ref_name, 'alpha')) }}
     concurrency:
       group: reg-${{github.ref}}
-    # dma-rc overrides the repo-level DATAMINER_* secrets/vars; set repo var DMA_RC_ENABLED=false to fall back to repo-level values.
-    environment: ${{ needs.route.outputs.use_rc_dma == 'true' && vars.DMA_RC_ENABLED != 'false' && 'dma-rc' || '' }}
+    # MediaOpsNewHelpers overrides the repo-level DATAMINER_* secrets/vars; set repo var DMA_RC_ENABLED=false to fall back to repo-level values.
+    environment: ${{ needs.route.outputs.use_rc_dma == 'true' && vars.DMA_RC_ENABLED != 'false' && 'MediaOpsNewHelpers' || '' }}
 
     env:
       CI: "true"
