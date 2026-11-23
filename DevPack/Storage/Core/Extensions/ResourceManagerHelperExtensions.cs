@@ -126,6 +126,33 @@
 				x => helper.GetResources(x));
 		}
 
+		/// <summary>
+		/// Gets the CORE function resources that instantiate the specified function on the specified element.
+		/// Instances created outside MediaOps Plan are included, as they occupy the same function slots.
+		/// </summary>
+		public static IReadOnlyCollection<FunctionResource> GetFunctionResourcesOnElement(this ResourceManagerHelper helper, Guid functionDefinitionId, int agentId, int elementId)
+		{
+			if (helper == null)
+			{
+				throw new ArgumentNullException(nameof(helper));
+			}
+
+			if (functionDefinitionId == Guid.Empty)
+			{
+				throw new ArgumentException("Function definition ID cannot be empty.", nameof(functionDefinitionId));
+			}
+
+			var filter = new ANDFilterElement<Resource>(
+				FunctionResourceExposers.FunctionGUID.Equal(functionDefinitionId),
+				FunctionResourceExposers.MainDVEDmaID.Equal(agentId),
+				FunctionResourceExposers.MainDVEElementID.Equal(elementId));
+
+			return ActivityHelper.Track(nameof(ResourceManagerHelperExtensions), nameof(GetFunctionResourcesOnElement), act => helper.GetResources(filter))
+				.OfType<FunctionResource>()
+				.Where(x => x.FunctionGUID == functionDefinitionId && x.MainDVEDmaID == agentId && x.MainDVEElementID == elementId)
+				.ToList();
+		}
+
 		public static EligibleResourceResult GetEligibleResourcesForContext(this ResourceManagerHelper helper, EligibleResourceContext context)
 		{
 			if (helper == null)
@@ -160,6 +187,52 @@
 				act?.AddTag("Eligible Resources Count", result.EligibleResources.Count);
 
 				return result;
+			});
+		}
+
+		public static IReadOnlyDictionary<Guid, EligibleResourceResult> GetEligibleResourcesForContexts(this ResourceManagerHelper helper, List<EligibleResourceContext> contexts)
+		{
+			if (helper == null)
+			{
+				throw new ArgumentNullException(nameof(helper));
+			}
+
+			if (contexts == null)
+			{
+				throw new ArgumentNullException(nameof(contexts));
+			}
+
+			if (contexts.Count == 1)
+			{
+				var single = helper.GetEligibleResourcesForContext(contexts[0]);
+				return new Dictionary<Guid, EligibleResourceResult> { [contexts[0].ContextId] = single };
+			}
+
+			return ActivityHelper.Track(nameof(ResourceManagerHelperExtensions), nameof(GetEligibleResourcesForContexts), act =>
+			{
+				var results = helper.GetEligibleResources(contexts);
+
+				var traceData = helper.GetTraceDataLastCall();
+				var errors = traceData?.ErrorData?.OfType<ResourceManagerErrorData>().ToList();
+				if (errors?.Count > 0)
+				{
+					var mediaOpsTraceData = new MediaOpsTraceData();
+					foreach (var error in errors)
+					{
+						mediaOpsTraceData.Add(new MediaOpsErrorData() { ErrorMessage = error.ToString() });
+					}
+
+					throw new MediaOpsException(mediaOpsTraceData);
+				}
+
+				var resultsByContextId = (results ?? new List<EligibleResourceResult>())
+					.Where(x => x != null)
+					.GroupBy(x => x.ForContextId)
+					.ToDictionary(x => x.Key, x => x.First());
+
+				act?.AddTag("Contexts Count", contexts.Count);
+
+				return resultsByContextId;
 			});
 		}
 

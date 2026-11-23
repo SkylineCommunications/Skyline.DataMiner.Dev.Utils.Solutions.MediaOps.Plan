@@ -13,16 +13,27 @@
 
 	internal class CoreCapabilityHandler : ParameterApiObjectValidator
 	{
+		private static readonly HashSet<Guid> SystemCapabilityIds = new HashSet<Guid>(CoreCapabilities.AllCapabilities.Select(x => x.Id));
+
 		private readonly MediaOpsPlanApi planApi;
 
-		private CoreCapabilityHandler(MediaOpsPlanApi planApi)
+		private readonly bool allowSystemCapabilityCreation;
+
+		private CoreCapabilityHandler(MediaOpsPlanApi planApi, bool allowSystemCapabilityCreation = false)
 		{
 			this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
+			this.allowSystemCapabilityCreation = allowSystemCapabilityCreation;
 		}
 
 		internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Capability> apiCapabilities, out ParameterBulkOperationResult result)
 		{
-			var handler = new CoreCapabilityHandler(planApi);
+			return TryCreateOrUpdate(planApi, apiCapabilities, false, out result);
+		}
+
+		// System capabilities can only be created when allowSystemCapabilityCreation is true (reserved for SystemCapabilities) and can never be updated or deleted.
+		internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Capability> apiCapabilities, bool allowSystemCapabilityCreation, out ParameterBulkOperationResult result)
+		{
+			var handler = new CoreCapabilityHandler(planApi, allowSystemCapabilityCreation);
 			handler.CreateOrUpdate(apiCapabilities);
 
 			result = new ParameterBulkOperationResult(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
@@ -66,6 +77,12 @@
 				}
 			}
 
+			if (!allowSystemCapabilityCreation)
+			{
+				ValidateSystemCapabilities(toCreate, "created");
+			}
+
+			ValidateSystemCapabilities(toUpdate, "updated");
 			ValidateIdsNotInUse(toCreate);
 			ValidateNames(apiCapabilities);
 			ValidateDiscretes(apiCapabilities);
@@ -148,6 +165,7 @@
 			}
 
 			ValidateExistence(apiCapabilities);
+			ValidateSystemCapabilities(apiCapabilities, "deleted");
 			ValidateResourceStudioUsage(apiCapabilities);
 			ValidateWorkflowUsage(apiCapabilities);
 
@@ -178,6 +196,18 @@
 			}
 
 			ReportSuccess(result.SuccessfulItems);
+		}
+
+		private void ValidateSystemCapabilities(ICollection<Capability> apiCapabilities, string operation)
+		{
+			foreach (var capability in apiCapabilities.Where(x => SystemCapabilityIds.Contains(x.Id)))
+			{
+				ReportError(capability.Id, new CapabilitySystemCapabilityError
+				{
+					ErrorMessage = $"Capability '{capability.Name}' is a system capability and cannot be {operation}.",
+					Id = capability.Id,
+				});
+			}
 		}
 
 		private void ValidateIdsNotInUse(ICollection<Capability> apiCapabilities)

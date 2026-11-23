@@ -14,6 +14,7 @@
 	using CoreResource = Skyline.DataMiner.Net.Messages.Resource;
 	using Live = Skyline.DataMiner.Solutions.MediaOps.Live.API.Objects.Orchestration;
 	using LiveEnums = Skyline.DataMiner.Solutions.MediaOps.Live.API.Enums;
+	using LiveVirtualSignalGroup = Skyline.DataMiner.Solutions.MediaOps.Live.API.Objects.ConnectivityManagement.VirtualSignalGroup;
 
 	/// <summary>Validates jobs against their Resource Studio, core DataMiner, and MediaOps Live dependencies.</summary>
 	internal sealed class JobValidator
@@ -89,50 +90,31 @@
 				.Where(id => id != Guid.Empty)
 				.Distinct()
 				.ToList();
-			var virtualSignalGroupIdsFound = liveIsInstalled
-				? new HashSet<Guid>(liveApi.VirtualSignalGroups.Read(virtualSignalGroupIds).Keys)
-				: new HashSet<Guid>();
+			var virtualSignalGroupsById = liveIsInstalled
+				? liveApi.VirtualSignalGroups.Read(virtualSignalGroupIds)
+				: new Dictionary<Guid, LiveVirtualSignalGroup>();
 
 			var connectedObjects = jobs.SelectMany(job => FlowRuleEvaluator.GetConnectedObjects(job.NodeGraph)).Distinct().ToList();
 			var flowRulesByOwner = FlowRuleEvaluationHandler.ReadByOwner(planApi, connectedObjects);
 
-			return new ValidationContext(now, resources, coreResources, reservationsByJob, virtualSignalGroupIdsFound, liveIsInstalled, new ReferenceDefinitionCache(planApi), flowRulesByOwner);
+			return new ValidationContext(now, resources, coreResources, reservationsByJob, virtualSignalGroupsById, liveIsInstalled, new ReferenceDefinitionCache(planApi), flowRulesByOwner);
 		}
 
-		/// <summary>Retrieves the reservation of each job. A job is linked to at most one reservation, which holds the job ID in the 'Job ID' property.</summary>
+		/// <summary>Retrieves the reservation of each job.</summary>
 		private IReadOnlyDictionary<Job, ReservationInstance> GetReservationsByJob(IReadOnlyCollection<Job> jobs)
 		{
-			var jobIds = jobs.Select(job => job.Id).Distinct().ToList();
-
-			FilterElement<ReservationInstance> Filter(Guid id) => ReservationInstanceExposers.Properties.StringField(CoreJobHandler.JobIdPropertyName).Equal(Convert.ToString(id));
-
-			var reservationsByJobId = planApi.CoreHelpers.ResourceManagerHelper
-				.GetReservationInstances(jobIds, Filter)
-				.Select(reservation => (Reservation: reservation, JobId: GetJobId(reservation)))
-				.Where(item => item.JobId != Guid.Empty)
-				.GroupBy(item => item.JobId)
-				.ToDictionary(group => group.Key, group => group.First().Reservation);
+			var reservationsByJobId = JobReservationLookup.GetReservationsByJobId(planApi, jobs.Select(job => job.Id));
 
 			var result = new Dictionary<Job, ReservationInstance>();
 			foreach (var job in jobs)
 			{
-				if (reservationsByJobId.TryGetValue(job.Id, out var reservation))
+				if (reservationsByJobId.TryGetValue(job.Id, out var reservations))
 				{
-					result[job] = reservation;
+					result[job] = reservations[0];
 				}
 			}
 
 			return result;
-		}
-
-		private static Guid GetJobId(ReservationInstance reservation)
-		{
-			if (reservation.Properties?.Dictionary == null || !reservation.Properties.Dictionary.TryGetValue(CoreJobHandler.JobIdPropertyName, out var value))
-			{
-				return Guid.Empty;
-			}
-
-			return Guid.TryParse(Convert.ToString(value), out var jobId) ? jobId : Guid.Empty;
 		}
 
 		private void Validate(Job job, JobValidationResult result, ValidationContext context)
@@ -207,15 +189,27 @@
 
 			foreach (var resource in resources)
 			{
-				if (resource.VirtualSignalGroupInputId != Guid.Empty && !context.VirtualSignalGroupIds.Contains(resource.VirtualSignalGroupInputId))
-				{
-					result.SetError(new VirtualSignalGroupNotFoundJobValidationError("input", resource.VirtualSignalGroupInputId, resource.Name));
-				}
+				ValidateVirtualSignalGroup(resource, resource.VirtualSignalGroupInputId, LiveEnums.EndpointRole.Destination, "input", result, context);
+				ValidateVirtualSignalGroup(resource, resource.VirtualSignalGroupOutputId, LiveEnums.EndpointRole.Source, "output", result, context);
+			}
+		}
 
-				if (resource.VirtualSignalGroupOutputId != Guid.Empty && !context.VirtualSignalGroupIds.Contains(resource.VirtualSignalGroupOutputId))
-				{
-					result.SetError(new VirtualSignalGroupNotFoundJobValidationError("output", resource.VirtualSignalGroupOutputId, resource.Name));
-				}
+		private static void ValidateVirtualSignalGroup(Resource resource, Guid virtualSignalGroupId, LiveEnums.EndpointRole expectedRole, string direction, JobValidationResult result, ValidationContext context)
+		{
+			if (virtualSignalGroupId == Guid.Empty)
+			{
+				return;
+			}
+
+			if (!context.VirtualSignalGroups.TryGetValue(virtualSignalGroupId, out var virtualSignalGroup))
+			{
+				result.SetError(new VirtualSignalGroupNotFoundJobValidationError(direction, virtualSignalGroupId, resource.Name));
+				return;
+			}
+
+			if (virtualSignalGroup.Role != expectedRole)
+			{
+				result.SetError(new VirtualSignalGroupInvalidRoleJobValidationError(direction, virtualSignalGroupId, Convert.ToString(virtualSignalGroup.Role), Convert.ToString(expectedRole), resource.Name));
 			}
 		}
 
@@ -529,6 +523,10 @@
 		{
 			var resourceNames = new List<string>();
 			var quarantinedIds = reservation.QuarantinedResources.Select(item => item.QuarantinedResourceUsage.GUID).ToList();
+			var nodeIdsByCoreNodeId = result.Job.NodeGraph.Nodes
+				.Where(node => node.CoreReservationNodeId.HasValue)
+				.GroupBy(node => node.CoreReservationNodeId.Value)
+				.ToDictionary(group => group.Key, group => group.First().Id);
 			foreach (var quarantined in reservation.QuarantinedResources)
 			{
 				var resourceName = String.Empty;
@@ -537,10 +535,16 @@
 					resourceName = trigger.UpdateTrigger?.NewResource?.Name ?? trigger.UpdateTrigger?.OldResource?.Name ?? resourceName;
 				}
 
-				var nodeId = quarantined.QuarantinedResourceUsage is ServiceResourceUsageDefinition usage
-					? usage.ServiceDefinitionNodeID.ToString(CultureInfo.InvariantCulture)
-					: String.Empty;
-				result.AddQuarantinedNodeId(nodeId);
+				var nodeId = String.Empty;
+				if (quarantined.QuarantinedResourceUsage is ServiceResourceUsageDefinition usage)
+				{
+					nodeId = usage.ServiceDefinitionNodeID.ToString(CultureInfo.InvariantCulture);
+					if (nodeIdsByCoreNodeId.TryGetValue(usage.ServiceDefinitionNodeID, out var jobNodeId))
+					{
+						result.AddQuarantinedNodeId(jobNodeId);
+					}
+				}
+
 				if (quarantinedIds.Count(id => id == quarantined.QuarantinedResourceUsage.GUID) > 1 && !String.IsNullOrEmpty(nodeId))
 				{
 					resourceName += $" ({nodeId})";
@@ -615,7 +619,7 @@
 				IReadOnlyDictionary<Guid, Resource> resources,
 				IReadOnlyDictionary<Guid, CoreResource> coreResources,
 				IReadOnlyDictionary<Job, ReservationInstance> reservationsByJob,
-				ISet<Guid> virtualSignalGroupIds,
+				IDictionary<Guid, LiveVirtualSignalGroup> virtualSignalGroups,
 				bool liveIsInstalled,
 				ReferenceDefinitionCache referenceDefinitions,
 				IReadOnlyDictionary<FlowRuleObject, FlowRuleCollection> flowRulesByOwner)
@@ -624,7 +628,7 @@
 				Resources = resources;
 				CoreResources = coreResources;
 				ReservationsByJob = reservationsByJob;
-				VirtualSignalGroupIds = virtualSignalGroupIds;
+				VirtualSignalGroups = virtualSignalGroups;
 				LiveIsInstalled = liveIsInstalled;
 				ReferenceDefinitions = referenceDefinitions;
 				FlowRulesByOwner = flowRulesByOwner;
@@ -634,7 +638,7 @@
 			public IReadOnlyDictionary<Guid, Resource> Resources { get; }
 			public IReadOnlyDictionary<Guid, CoreResource> CoreResources { get; }
 			public IReadOnlyDictionary<Job, ReservationInstance> ReservationsByJob { get; }
-			public ISet<Guid> VirtualSignalGroupIds { get; }
+			public IDictionary<Guid, LiveVirtualSignalGroup> VirtualSignalGroups { get; }
 			public bool LiveIsInstalled { get; }
 			public ReferenceDefinitionCache ReferenceDefinitions { get; }
 			public IReadOnlyDictionary<FlowRuleObject, FlowRuleCollection> FlowRulesByOwner { get; }

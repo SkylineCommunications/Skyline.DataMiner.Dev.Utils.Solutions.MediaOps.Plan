@@ -18,13 +18,15 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 	using CoreReservation = Net.ResourceManager.Objects.ReservationInstance;
 
-	// Translates core ResourceManager errors into DevPack job resource errors keyed per reservation (SubjectId). Only the
-	// resource, capacity and capability ids are surfaced; the consumer is responsible for resolving them to names.
+	// Translates core ResourceManager errors into DevPack job resource errors keyed per reservation (SubjectId). The resource,
+	// capacity and capability ids are surfaced; the consumer is responsible for resolving the capacity and capability ids to names.
 	internal sealed class ResourceManagerTraceDataHandler : ITraceDataHandler<ResourceManagerErrorData>
 	{
 		private readonly MediaOpsPlanApi planApi;
 
 		private readonly Dictionary<Guid, MediaOpsTraceData> traceDataPerReservationId = new Dictionary<Guid, MediaOpsTraceData>();
+
+		private readonly Dictionary<Guid, string> resourceNameByDomId = new Dictionary<Guid, string>();
 
 		public ResourceManagerTraceDataHandler(MediaOpsPlanApi planApi)
 		{
@@ -39,6 +41,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			traceDataPerReservationId.Clear();
+			resourceNameByDomId.Clear();
 
 			if (resourceManagerErrors.Count == 0)
 			{
@@ -164,7 +167,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			var selectedFields = new SelectedFields<DomInstance>()
-				.Add(SlcResource_StudioIds.Sections.ResourceInternalProperties.Resource_Id);
+				.Add(SlcResource_StudioIds.Sections.ResourceInternalProperties.Resource_Id)
+				.Add(SlcResource_StudioIds.Sections.ResourceInfo.Name);
 
 			FilterElement<DomInstance> Filter(Guid coreResourceId) =>
 				DomInstanceExposers.DomDefinitionId.Equal(SlcResource_StudioIds.Definitions.Resource.Id)
@@ -180,6 +184,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				}
 
 				domResourceIdByCoreId[coreId] = partialObject.Id.Id;
+
+				if (partialObject.TryGetValue<string>(SlcResource_StudioIds.Sections.ResourceInfo.Name, out var name) && !String.IsNullOrWhiteSpace(name))
+				{
+					resourceNameByDomId[partialObject.Id.Id] = name;
+				}
 			}
 
 			return domResourceIdByCoreId;
@@ -231,8 +240,11 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				{
 					if (emitted.Add(Tuple.Create(reservationId, domResourceId)))
 					{
+						var resourceName = resourceNameByDomId.TryGetValue(domResourceId, out var name) ? name : domResourceId.ToString();
+
 						GetOrCreateTraceData(reservationId).Add(new JobResourceNotAvailableError
 						{
+							ErrorMessage = $"Resource '{resourceName}' is not available during the requested time range.",
 							ResourceId = domResourceId,
 						});
 					}

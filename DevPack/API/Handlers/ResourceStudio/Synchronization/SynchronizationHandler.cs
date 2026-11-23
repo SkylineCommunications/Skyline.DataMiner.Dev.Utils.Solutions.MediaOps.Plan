@@ -1,4 +1,4 @@
-namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
+﻿namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 {
 	using System;
 	using System.Collections.Generic;
@@ -230,47 +230,61 @@ var resources = planApi.Resources.Read(ids).ToList();
 				AddFailure(failures, resource.Id, new ResourceInvalidStateError { ErrorMessage = "Resource is no longer in Completed state.", Id = resource.Id });
 			}
 
-			CoreResourceHandler.TryGetDifferences(planApi, domResourcesById.Values.ToList(), out var detection);
-
-			var toSynchronize = new List<DomResource>();
 			var idsWithoutCoreObject = new HashSet<Guid>();
-			foreach (var entry in domResourcesById)
+			var coreSuccessfulItems = new List<DomResource>();
+
+			// Detection counts the function instances on an element (MaxInstances), so detection and the CORE write share one lock.
+			var notLockedResources = CoreResourceHandler.LockFunctionInstanceSlotsAndExecute(planApi, domResourcesById.Values, subset =>
 			{
-				if (detection.BlockersPerItem.TryGetValue(entry.Key, out var traceData))
+				CoreResourceHandler.TryGetDifferences(planApi, subset, out var detection);
+
+				var toSynchronize = new List<DomResource>();
+				foreach (var domResource in subset)
 				{
-					failures[entry.Key] = traceData;
-					continue;
+					var id = domResource.ID.Id;
+					if (detection.BlockersPerItem.TryGetValue(id, out var traceData))
+					{
+						failures[id] = traceData;
+						continue;
+					}
+
+					if (detection.IsSynchronizedItem(id))
+					{
+						synchronizedIds.Add(id);
+						continue;
+					}
+
+					if (!CoreObjectExists(detection, id))
+					{
+						idsWithoutCoreObject.Add(id);
+					}
+
+					toSynchronize.Add(domResource);
 				}
 
-				if (detection.IsSynchronizedItem(entry.Key))
+				if (toSynchronize.Count == 0)
 				{
-					synchronizedIds.Add(entry.Key);
-					continue;
+					return;
 				}
 
-				if (!CoreObjectExists(detection, entry.Key))
+				CoreResourceHandler.TryCreateOrUpdate(planApi, toSynchronize, out var result, recreateMissingCoreResources: true);
+
+				foreach (var id in result.UnsuccessfulIds)
 				{
-					idsWithoutCoreObject.Add(entry.Key);
+					failures[id] = result.TraceDataPerItem.TryGetValue(id, out var traceData) ? traceData : new MediaOpsTraceData();
 				}
 
-				toSynchronize.Add(entry.Value);
-			}
+				coreSuccessfulItems.AddRange(result.SuccessfulItems);
+			});
 
-			if (toSynchronize.Count == 0)
+			foreach (var domResource in notLockedResources)
 			{
-				return synchronizedIds;
+				AddFailure(failures, domResource.ID.Id, new MediaOpsErrorData { ErrorMessage = DomResourceHandler.FunctionInstancesLockFailedMessage });
 			}
 
-			CoreResourceHandler.TryCreateOrUpdate(planApi, toSynchronize, out var result, recreateMissingCoreResources: true);
+			SaveDomInstances(coreSuccessfulItems.Where(x => idsWithoutCoreObject.Contains(x.ID.Id)).Select(x => x.ToInstance()), failures);
 
-			foreach (var id in result.UnsuccessfulIds)
-			{
-				failures[id] = result.TraceDataPerItem.TryGetValue(id, out var traceData) ? traceData : new MediaOpsTraceData();
-			}
-
-			SaveDomInstances(result.SuccessfulItems.Where(x => idsWithoutCoreObject.Contains(x.ID.Id)).Select(x => x.ToInstance()), failures);
-
-			synchronizedIds.AddRange(result.SuccessfulIds.Where(x => !failures.ContainsKey(x)));
+			synchronizedIds.AddRange(coreSuccessfulItems.Select(x => x.ID.Id).Where(x => !failures.ContainsKey(x)));
 
 			return synchronizedIds;
 		}

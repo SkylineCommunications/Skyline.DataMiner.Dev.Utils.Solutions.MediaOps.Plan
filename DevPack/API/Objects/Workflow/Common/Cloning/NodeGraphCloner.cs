@@ -3,6 +3,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using System;
 	using System.Collections.Generic;
 
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Tools;
+
 	/// <summary>
 	/// Generic helper that clones a <see cref="NodeGraph{TSource}"/> into a <see cref="NodeGraph{TDest}"/> using a caller-supplied node factory.
 	/// </summary>
@@ -60,7 +62,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 				throw new ArgumentNullException(nameof(nodeFactory));
 			}
 
-			var nodeMap = new Dictionary<TSource, TDest>();
+			var nodeMap = new Dictionary<TSource, TDest>(ReferenceEqualityComparer<TSource>.Instance);
 			var nodeIdMap = CloneNodes(source, destination, nodeFactory, nodeMap);
 
 			CloneConnections(source, destination, nodeMap);

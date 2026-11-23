@@ -15,6 +15,7 @@
 	/// <seealso cref="CapabilityInvalidStateError"/>
 	/// <seealso cref="CapabilityInvalidTimeDependencyError"/>
 	/// <seealso cref="CapabilityNameExistsError"/>
+	/// <seealso cref="CapabilitySystemCapabilityError"/>
 	public class CapabilityError : MediaOpsErrorData
 	{
 		/// <summary>
