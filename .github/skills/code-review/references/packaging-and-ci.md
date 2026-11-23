@@ -10,7 +10,7 @@ Load for public API compatibility, NuGet contents, DOM mappings, dependency vers
 | [Automation](../../../../DevPack.Automation/), [GQI](../../../../DevPack.GQI/), [Protocol](../../../../DevPack.Protocol/) | Context-adapter NuGet libraries referencing the local core project |
 | [DevPack.UnitTesting](../../../../DevPack.UnitTesting/) | Simulation-support library; `GeneratePackageOnBuild` is false, and it is not itself a test suite |
 | [DevPack.Tests](../../../../DevPack.Tests/Skyline.DataMiner.Dev.Utils.Solutions.MediaOps.Plan.Tests.csproj) | MSTest suite and post-build harvesting of its output |
-| [QAOpsPackage](../../../../QAOpsPackage/QAOpsPackage.csproj) | Skyline SDK Test Package, not the full Plan application package |
+| [QAOpsPackage](../../../../QAOpsPackage/QAOpsPackage.csproj) | Skyline SDK Test Package that embeds a Catalog release of the full Plan application |
 | [DevPack.Injector](../../../../DevPack.Injector/) | Manual executable/tool; inspect before use and do not run it during hosted review |
 | [MediaOps Plan.slnx](../../../../MediaOps%20Plan.slnx), [Directory.Packages.props](../../../../Directory.Packages.props), [global.json](../../../../global.json) | Project selection, central package/transitive pinning and Skyline SDK version |
 
@@ -51,7 +51,7 @@ Core/adapter Debug packaging can copy NuGet output to `C:\Skyline_Data\MyNugets\
 3. **Target selection:** eligible tag pushes and approvals of PRs targeting RC branches (`*.*.X`) use `MediaOps RC` after the applicable validation and simulated tests pass; eligible approvals of PRs targeting `main` use `MediaOps RT`. Manual dispatch uses the selected `target_env`. Environment-specific QAOps settings affect the actual target.
 4. **Shared environment:** the QAOps job serializes the selected environment through completion; RC approvals and tag runs share the same queue. Within-run method parallelism still requires isolated data, cleanup and restoration of global settings.
 5. **Discovery and freshness:** the test project harvests into `postbuild.generated`, then the package copies it to `tests.generated`. Verify current DLLs/dependencies and actual discovered/executed cases. The presence of a DLL is not proof of a nonempty run.
-6. **Runtime readiness:** see the [QAOps setup order](../../../../QAOpsPackage/README.md#execution-and-package-contents). The package does not deploy the full Plan/Live application or its callbacks. Establish what the selected QAOps environment supplies.
+6. **Runtime readiness:** follow the [QAOps setup order](../../../../QAOpsPackage/README.md#execution-and-package-contents). The test package deploys Standard Data Model Registration, Categories, then the full Plan solution, whose installer supplies the PNO schema. The source-built DevPack then reconciles the four Plan-owned modules and the test package seeds any missing fixtures. Keep the overlap until provisioning ownership is clarified. Check the exact Catalog release embedded in the test package and distinguish what it installs from what the QAOps environment supplies separately, such as Live where required.
 7. **Publishing:** tags containing `-alpha` skip the QAOps publishing gate. Inspect stable/prerelease tag conditions, branch validation, required job outcomes, package source and version metadata. A green unrelated workflow does not establish that a gated publish or QAOps run occurred.
 8. **Failures:** distinguish failed assertions, retries, skips, no discovery and no execution. Use revision-matched TRX/QAOps results rather than a summary omitting cases.
 

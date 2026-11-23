@@ -21,7 +21,9 @@ QAOps runs automated integration tests for the MediaOps Plan API on a real DataM
 
 ## Which components get installed
 
-Before the tests start, QAOps installs the Catalog packages for Standard Data Model Registration, Categories, and MediaOps Plan in that order. The test package then uses its bundled DevPack to reconcile the four Plan-owned DOM modules. It creates the `Job Types` and `Resource Pools` category scopes and the reserved `Job` relationship object type only if they are missing.
+Before the tests start, QAOps installs Standard Data Model Registration, Categories, and the **full MediaOps Plan solution** in that order. The selected Catalog release supplies the Plan and People & Organizations DOM schemas. The test package then uses its bundled DevPack to reconcile the four Plan-owned modules and creates the `Job Types` and `Resource Pools` category scopes and the reserved `Job` relationship object type only if they are missing.
+
+The two setup stages intentionally overlap for now, until it is clearer which package should provision each prerequisite. These tests run on top of a full solution deployment, not a DevPack-only installation.
 
 ## Which items remain in the system after the package is run
 

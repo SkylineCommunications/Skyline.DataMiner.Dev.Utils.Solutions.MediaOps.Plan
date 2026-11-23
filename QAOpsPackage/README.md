@@ -18,11 +18,16 @@ The QAOps credentials branch in `DevPack.Tests/RegressionTests/Config.cs` enable
 
 The QAOps target must run DataMiner 10.6.11 or later. For a local build, store an organization key that can download the Catalog prerequisites in the project's `skyline:sdk:dataminertoken` user secret. CI reads the key from the `SKYLINE__SDK__DATAMINERTOKEN` GitHub secret.
 
-`TestPackageContent/qaops.config.xml` sets `PerformPackageInstallation` to `true`. QAOps runs [`QAOpsPackage.cs`](QAOpsPackage.cs) before starting the test pipeline. `InstallDefaultContent()` installs the embedded Catalog packages in filename order: Standard Data Model Registration, Categories, then MediaOps Plan. These packages do not need to be preinstalled on the target.
+`TestPackageContent/qaops.config.xml` sets `PerformPackageInstallation` to `true`. QAOps runs [`QAOpsPackage.cs`](QAOpsPackage.cs) before starting the test pipeline. The current setup order is:
 
-The installer then creates a client from the Plan DevPack built from this checkout and calls the `InstallDomModules()` extension to reconcile Properties, Relationships, Resource Studio, and Workflow. This call does not reconcile the People & Organizations schema; that schema is supplied by the embedded MediaOps Plan solution package.
+1. `InstallDefaultContent()` installs the embedded Catalog packages in filename order: Standard Data Model Registration, Categories, then the **full MediaOps Plan solution**.
 
-The installer creates the `Job Types` and `Resource Pools` category scopes and the reserved `Job` relationship object type only if they are missing. The reserved object type is seeded directly through DOM because the public repository does not allow creating reserved names.
+   The solution release selected by `Range 2` runs its own installer and supplies the initial Plan and People & Organizations DOM schemas. Release `2.0.0`, for example, imports the shipped JSON schemas and seeds the same shared fixtures. The range does not pin that release or its installer behavior.
+
+2. The `InstallDomModules()` extension from the Plan DevPack built from this checkout reconciles Properties, Relationships, Resource Studio, and Workflow on top of the deployed solution. It does not reconcile the People & Organizations schema.
+3. The test package creates the `Job Types` and `Resource Pools` category scopes and the reserved `Job` relationship object type only if they are missing. The fallback creates the reserved object type directly through DOM because the public API does not allow creating reserved names.
+
+**Intentional overlap for now:** QAOps reconciles the Plan schemas after the full solution has already installed them. The fixture checks are fallbacks and skip entries that the solution already seeded. Keep this redundancy until provisioning ownership is clarified. These tests exercise the source-built DevPack on top of a full solution deployment, not a fresh DevPack-only installation.
 
 Test initialization and reconnects do not run this setup.
 
