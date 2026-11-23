@@ -20,7 +20,9 @@ The QAOps target must run DataMiner 10.6.11 or later. For a local build, store a
 
 `TestPackageContent/qaops.config.xml` sets `PerformPackageInstallation` to `true`. QAOps runs [`QAOpsPackage.cs`](QAOpsPackage.cs) before starting the test pipeline. `InstallDefaultContent()` installs the embedded Catalog packages in filename order: Standard Data Model Registration, Categories, then MediaOps Plan. These packages do not need to be preinstalled on the target.
 
-The installer then calls `InstallDomModules()` on the Plan DevPack built from this checkout to reconcile Properties, Relationships, Resource Studio, and Workflow. This call does not install or reconcile the People & Organizations schema. The installer creates the `Job Types` and `Resource Pools` category scopes and the reserved `Job` relationship object type only if they are missing. The reserved object type is seeded directly through DOM because the public repository does not allow creating reserved names.
+The installer then creates a client from the Plan DevPack built from this checkout and calls the `InstallDomModules()` extension to reconcile Properties, Relationships, Resource Studio, and Workflow. This call does not reconcile the People & Organizations schema; that schema is supplied by the embedded MediaOps Plan solution package.
+
+The installer creates the `Job Types` and `Resource Pools` category scopes and the reserved `Job` relationship object type only if they are missing. The reserved object type is seeded directly through DOM because the public repository does not allow creating reserved names.
 
 Test initialization and reconnects do not run this setup.
 

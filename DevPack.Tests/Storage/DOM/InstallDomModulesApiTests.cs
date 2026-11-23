@@ -25,6 +25,13 @@ namespace RT_MediaOps.Plan.Storage.DOM
 		}
 
 		[TestMethod]
+		public void InstallDomModules_RejectsNullApi()
+		{
+			IMediaOpsPlanApi? api = null;
+			Assert.ThrowsException<ArgumentNullException>(() => api!.InstallDomModules());
+		}
+
+		[TestMethod]
 		public void InstallDomModules_InstallsOnlyTheFourPlanModules()
 		{
 			var store = new InMemoryDomSchemaStore();

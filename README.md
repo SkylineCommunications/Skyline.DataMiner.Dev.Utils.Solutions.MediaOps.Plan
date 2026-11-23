@@ -19,7 +19,9 @@ Depending on your project type, one of the following additional packages is also
 > [!NOTE]
 > This library targets `.NET Framework 4.8`.
 
-Adding the NuGet package does not install the DOM schema. For a custom installer, see [Installing the DOM schema](Documentation/Advanced%20Topics.md#installing-the-dom-schema) for the People & Organizations prerequisite and the Plan installation step.
+Adding the NuGet package or creating an API client does not install the DOM schema. Deployment code calls the `InstallDomModules()` extension from `Skyline.DataMiner.Solutions.MediaOps.Plan.API` on a client created by the Plan DevPack. It reconciles only Properties, Relationships, Resource Studio, and Workflow.
+
+When deploying MediaOps Plan, install the People & Organizations schema through its own DevPack first. See [Installing the DOM schema](Documentation/Advanced%20Topics.md#installing-the-dom-schema) for both steps.
 
 ## Documentation
 

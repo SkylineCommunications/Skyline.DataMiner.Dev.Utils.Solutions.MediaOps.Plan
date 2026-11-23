@@ -16,11 +16,6 @@
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Logging;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.Core;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM;
-	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.Definitions.SlcProperties;
-	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.Definitions.SlcRelationships;
-	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.Definitions.SlcResourceStudio;
-	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.Definitions.SlcWorkflow;
-	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.Tools;
 
 	/// <summary>
 	/// Provides the main entry point for interacting with the MediaOps Plan API.
@@ -209,17 +204,6 @@
 		public void SetLogger(ILogger logger)
 		{
 			this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
-		}
-
-		/// <inheritdoc/>
-		public void InstallDomModules()
-		{
-			Action<string> logAction = message => Logger.Information(message);
-
-			DomModuleInstaller.Install(Connection.HandleMessages, new SlcPropertiesDomModule(), logAction);
-			DomModuleInstaller.Install(Connection.HandleMessages, new SlcRelationshipsDomModule(), logAction);
-			DomModuleInstaller.Install(Connection.HandleMessages, new SlcResourceStudioDomModule(), logAction);
-			DomModuleInstaller.Install(Connection.HandleMessages, new SlcWorkflowDomModule(), logAction);
 		}
 
 		/// <inheritdoc/>
