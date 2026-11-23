@@ -28,6 +28,10 @@
 		// on, because the consumer is free to change the replacement's group membership after the swap.
 		private readonly Dictionary<TNode, List<NodeGroup<TNode>>> swappedOutGroupMemberships = new(ReferenceEqualityComparer<TNode>.Instance);
 
+		// Persisted nodes that were removed from the graph, in removal order, together with the connections, parent link
+		// and group memberships they had at that time, so running-job logic can keep them as ended history.
+		private readonly List<RemovedNodeSnapshot> removedNodes = [];
+
 		private Action<IReadOnlyDictionary<string, string>> externalReferenceRetargeter;
 
 		// Monotonic high-water mark of core reservation node IDs handed out for JobNodes in this graph. Seeded from
@@ -268,6 +272,11 @@
 		/// When the node is a parent, all of its child nodes are removed as well.
 		/// The node is also removed from every group it belongs to; a group that becomes empty is kept.
 		/// </summary>
+		/// <remarks>
+		/// When the graph belongs to a job in the <see cref="JobState.Running"/> state, an existing node is not deleted when
+		/// the job is saved. Instead, its end time is set to the time of the save (unless it already ended) and it is kept in
+		/// the graph, together with its connections, parent-child links and group memberships, as history of the job.
+		/// </remarks>
 		/// <param name="node">The node to remove.</param>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="node"/> is null.</exception>
 		/// <exception cref="InvalidOperationException">Thrown when the node is not part of the graph.</exception>
@@ -290,6 +299,15 @@
 			}
 
 			var connectionsToRemove = connections.Where(c => c.From == node || c.To == node).ToList();
+			if (!node.IsNew)
+			{
+				removedNodes.Add(new RemovedNodeSnapshot(
+					node,
+					connectionsToRemove,
+					childToParent.TryGetValue(node, out var parent) ? parent : null,
+					CaptureGroupMemberships(node)));
+			}
+
 			foreach (var connection in connectionsToRemove)
 			{
 				Disconnect(connection);
@@ -303,6 +321,55 @@
 			}
 
 			nodes.Remove(node);
+		}
+
+		/// <summary>
+		/// Gets the existing (persisted) nodes that were removed from the graph and are not part of it anymore.
+		/// </summary>
+		internal IReadOnlyCollection<TNode> RemovedNodes => removedNodes
+			.Where(x => !Contains(x.Node))
+			.Select(x => x.Node)
+			.ToList();
+
+		/// <summary>
+		/// Re-adds every existing node that was removed from the graph, keeping its original object identity (and therefore
+		/// its underlying section) intact.
+		/// </summary>
+		/// <remarks>
+		/// This is used by running-job timing logic to keep a removed node as ended history instead of deleting it. The
+		/// connections, parent-child link and group memberships the node had when it was removed are restored as well, as
+		/// long as their counterpart (other endpoint, parent or group) is part of the graph again. The method is idempotent.
+		/// </remarks>
+		internal void RestoreRemovedNodes()
+		{
+			foreach (var snapshot in removedNodes.Where(x => !Contains(x.Node)))
+			{
+				nodes.Add(snapshot.Node);
+			}
+
+			foreach (var snapshot in removedNodes)
+			{
+				foreach (var connection in snapshot.Connections)
+				{
+					if (Contains(connection.From)
+						&& Contains(connection.To)
+						&& !connections.Any(existing => ReferenceEquals(existing, connection)))
+					{
+						connections.Add(connection);
+					}
+				}
+
+				if (snapshot.Parent != null && Contains(snapshot.Parent) && !childToParent.ContainsKey(snapshot.Node))
+				{
+					childToParent[snapshot.Node] = snapshot.Parent;
+				}
+
+				// A group that was removed from the graph after the node removal is not resurrected.
+				foreach (var group in snapshot.Groups.Where(x => groups.Contains(x) && !x.Contains(snapshot.Node)))
+				{
+					group.Add(snapshot.Node);
+				}
+			}
 		}
 
 		/// <summary>
@@ -538,6 +605,25 @@
 			{
 				originalToCurrentSwap[oldNode] = newNode;
 			}
+		}
+
+		private sealed class RemovedNodeSnapshot
+		{
+			public RemovedNodeSnapshot(TNode node, List<NodeConnection<TNode>> connections, TNode parent, List<NodeGroup<TNode>> groups)
+			{
+				Node = node;
+				Connections = connections;
+				Parent = parent;
+				Groups = groups;
+			}
+
+			public TNode Node { get; }
+
+			public List<NodeConnection<TNode>> Connections { get; }
+
+			public TNode Parent { get; }
+
+			public List<NodeGroup<TNode>> Groups { get; }
 		}
 
 
