@@ -8,6 +8,7 @@
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.SDM;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.API.Querying;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
@@ -19,6 +20,7 @@
 	internal class ResourcesRepository : Repository, IResourcesRepository
 	{
 		private readonly ResourceFilterTranslator filterTranslator = new ResourceFilterTranslator();
+		private readonly DomPartialReader<Resource> partialReader;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ResourcesRepository"/> class.
@@ -26,6 +28,7 @@
 		/// <param name="planApi">The MediaOps Plan API instance.</param>
 		public ResourcesRepository(MediaOpsPlanApi planApi) : base(planApi)
 		{
+			partialReader = new DomPartialReader<Resource>(planApi, () => planApi.DomHelpers.SlcResourceStudioHelper.DomHelper, filterTranslator, ResourcePartialFieldMapper.Instance, nameof(ResourcesRepository));
 		}
 
 		public Resource Complete(Resource resource)
@@ -809,6 +812,35 @@
 		public IEnumerable<Resource> Read()
 		{
 			return Read(new TRUEFilterElement<Resource>());
+		}
+
+		/// <inheritdoc/>
+		public IEnumerable<SDM.PartialObject<Resource>> ReadPartial(SDM.IPartialFilterElement<Resource> partialFilter)
+		{
+			return partialReader.ReadPartial(partialFilter);
+		}
+
+		/// <inheritdoc/>
+		public IEnumerable<SDM.PartialObject<Resource>> ReadPartial(SDM.IPartialQuery<Resource> partialQuery)
+		{
+			return partialReader.ReadPartial(partialQuery);
+		}
+
+		/// <inheritdoc/>
+		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<Resource>>> ReadPartialPaged(SDM.IPartialFilterElement<Resource> partialFilter)
+		{
+			return partialReader.ReadPartialPaged(partialFilter, MediaOpsPlanApi.DefaultPageSize);
+		}
+
+		/// <inheritdoc/>
+		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<Resource>>> ReadPartialPaged(SDM.IPartialQuery<Resource> partialQuery)
+		{
+			return partialReader.ReadPartialPaged(partialQuery, MediaOpsPlanApi.DefaultPageSize);
+		}
+
+		internal IEnumerable<SDM.IPagedResult<SDM.PartialObject<Resource>>> ReadPartialPaged(SDM.IPartialQuery<Resource> partialQuery, int pageSize)
+		{
+			return partialReader.ReadPartialPaged(partialQuery, pageSize);
 		}
 
 		/// <summary>
