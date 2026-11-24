@@ -731,7 +731,9 @@
 
 			var resourcesToUpdate = resourcesPerPoolCollection.Values.SelectMany(x => x).Distinct(new DefaultApiObjectComparer()).Cast<Resource>().ToList();
 
-			if (DomResourceHandler.TryCreateOrUpdate(planApi, resourcesToUpdate, out var result, allowDeprecatedUpdates: true))
+			// Only pools in Draft or Deprecated state are deleted: jobs and workflows cannot use a Draft pool, and a pool
+			// can only be deprecated when no job or workflow uses it, so the pool usage of the resources is not validated.
+			if (DomResourceHandler.TryCreateOrUpdate(planApi, resourcesToUpdate, out var result, allowDeprecatedUpdates: true, validatePoolAssignmentUsage: false))
 			{
 				return;
 			}
