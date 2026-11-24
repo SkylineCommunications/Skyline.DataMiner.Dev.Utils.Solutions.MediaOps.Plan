@@ -7,16 +7,19 @@
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.SDM;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.API.Querying;
 
 	using SLDataGateway.API.Types.Querying;
 
 	internal class SchedulingPropertiesRepository : Repository, ISchedulingPropertiesRepository
 	{
 		private readonly SchedulingPropertyFilterTranslator filterTranslator = new SchedulingPropertyFilterTranslator();
+		private readonly DomPartialReader<Property> partialReader;
 
 		public SchedulingPropertiesRepository(MediaOpsPlanApi planApi)
 			: base(planApi)
 		{
+			partialReader = new DomPartialReader<Property>(planApi, () => planApi.DomHelpers.SlcPropertiesHelper.DomHelper, filterTranslator, SchedulingPropertyPartialFieldMapper.Instance, nameof(SchedulingPropertiesRepository));
 		}
 
 		public long Count()
@@ -267,6 +270,31 @@
 
 			var properties = PlanApi.DomHelpers.SlcPropertiesHelper.GetProperties(TranslateToDomQuery(query));
 			return Property.InstantiateProperties(properties);
+		}
+
+		public IEnumerable<SDM.PartialObject<Property>> ReadPartial(SDM.IPartialFilterElement<Property> partialFilter)
+		{
+			return partialReader.ReadPartial(partialFilter);
+		}
+
+		public IEnumerable<SDM.PartialObject<Property>> ReadPartial(SDM.IPartialQuery<Property> partialQuery)
+		{
+			return partialReader.ReadPartial(partialQuery);
+		}
+
+		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<Property>>> ReadPartialPaged(SDM.IPartialFilterElement<Property> partialFilter)
+		{
+			return partialReader.ReadPartialPaged(partialFilter, MediaOpsPlanApi.DefaultPageSize);
+		}
+
+		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<Property>>> ReadPartialPaged(SDM.IPartialQuery<Property> partialQuery)
+		{
+			return partialReader.ReadPartialPaged(partialQuery, MediaOpsPlanApi.DefaultPageSize);
+		}
+
+		internal IEnumerable<SDM.IPagedResult<SDM.PartialObject<Property>>> ReadPartialPaged(SDM.IPartialQuery<Property> partialQuery, int pageSize)
+		{
+			return partialReader.ReadPartialPaged(partialQuery, pageSize);
 		}
 
 		public IEnumerable<IPagedResult<Property>> ReadPaged()
