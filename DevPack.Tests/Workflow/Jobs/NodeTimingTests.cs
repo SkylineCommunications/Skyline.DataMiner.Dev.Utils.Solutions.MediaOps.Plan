@@ -161,6 +161,45 @@ namespace RT_MediaOps.Plan.Workflow.Jobs
 		}
 
 		[TestMethod]
+		public void Apply_Running_AfterRestore_TopologyEditsOfRestoredNodeAreNotReplayed()
+		{
+			var parent = ExistingNode(Start, PostRollEnd);
+			var child = ExistingNode(Start, PostRollEnd);
+			var neighbour = ExistingNode(Start, PostRollEnd);
+			var graph = GraphWith(parent, child, neighbour);
+			graph.Link(parent, child);
+			graph.Connect(neighbour, parent);
+			var group = graph.AddGroup("Group");
+			group.Add(parent);
+
+			graph.Remove(parent);
+			JobNodeTimingResolver.Apply(JobState.Running, DefaultWindow(), CurrentTime, graph);
+
+			graph.Disconnect(graph.GetOutgoing(neighbour).Single());
+			graph.Unlink(child);
+			group.Remove(parent);
+
+			JobNodeTimingResolver.Apply(JobState.Running, DefaultWindow(), CurrentTime, graph);
+
+			Assert.AreEqual(0, graph.Connections.Count, "Expected the removed connection to stay removed.");
+			Assert.IsNull(graph.GetParent(child), "Expected the removed link to stay removed.");
+			Assert.IsFalse(group.Contains(parent), "Expected the removed group membership to stay removed.");
+		}
+
+		[TestMethod]
+		public void Apply_Running_NodeRemovedWhileScheduled_IsNotRestored()
+		{
+			var node = ExistingNode(PreRollStart, PostRollEnd);
+			var graph = GraphWith(node);
+
+			graph.Remove(node);
+			JobNodeTimingResolver.Apply(JobState.Confirmed, DefaultWindow(), CurrentTime, graph);
+			JobNodeTimingResolver.Apply(JobState.Running, DefaultWindow(), CurrentTime, graph);
+
+			Assert.AreEqual(0, graph.Nodes.Count, "Expected a node that was removed while the job was not running to stay removed.");
+		}
+
+		[TestMethod]
 		public void Apply_Running_RemovedAlreadyEndedNode_IsRestoredUnchanged()
 		{
 			var endedAt = CurrentTime.AddMinutes(-5);

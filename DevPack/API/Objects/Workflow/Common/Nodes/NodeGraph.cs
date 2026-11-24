@@ -338,7 +338,8 @@
 		/// <remarks>
 		/// This is used by running-job timing logic to keep a removed node as ended history instead of deleting it. The
 		/// connections, parent-child link and group memberships the node had when it was removed are restored as well, as
-		/// long as their counterpart (other endpoint, parent or group) is part of the graph again. The method is idempotent.
+		/// long as their counterpart (other endpoint, parent or group) is part of the graph again. The recorded removals are
+		/// kept until <see cref="ClearRemovedNodes"/> is called.
 		/// </remarks>
 		internal void RestoreRemovedNodes()
 		{
@@ -370,6 +371,15 @@
 					group.Add(snapshot.Node);
 				}
 			}
+		}
+
+		/// <summary>
+		/// Forgets the recorded node removals, so a later save of the same graph cannot restore a node or replay its
+		/// connections, parent-child link or group memberships again.
+		/// </summary>
+		internal void ClearRemovedNodes()
+		{
+			removedNodes.Clear();
 		}
 
 		/// <summary>
