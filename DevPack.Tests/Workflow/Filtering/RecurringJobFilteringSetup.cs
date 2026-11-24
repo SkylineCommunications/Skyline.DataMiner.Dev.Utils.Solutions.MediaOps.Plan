@@ -145,8 +145,9 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 			recurringJob3.Pattern.RepeatEvery = 3;
 			recurringJob3.Pattern.EndDate = EndDate2;
 
-			// The first recurring job references a resource, while the second recurring job references a resource pool.
+			// The first recurring job references a resource and its resource pool, while the second recurring job only references the resource pool.
 			recurringJob1.NodeGraph.Add(new RecurringJobResourceNode(ResourcePool!, Resource!));
+			recurringJob1.NodeGraph.Add(new RecurringJobResourcePoolNode(ResourcePool!));
 			recurringJob2.NodeGraph.Add(new RecurringJobResourcePoolNode(ResourcePool!));
 
 			RecurringJob1 = objectCreator.CreateRecurringJob(recurringJob1);

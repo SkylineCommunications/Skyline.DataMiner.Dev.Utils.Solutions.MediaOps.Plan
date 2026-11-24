@@ -7,6 +7,7 @@
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Jobs;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.API.Querying;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
 
 	using SLDataGateway.API.Types.Querying;
@@ -14,9 +15,11 @@
 	internal class RecurringJobsRepository : Repository, IRecurringJobsRepository
 	{
 		private readonly RecurringJobFilterTranslator filterTranslator = new RecurringJobFilterTranslator();
+		private readonly DomPartialReader<RecurringJob> partialReader;
 
 		public RecurringJobsRepository(MediaOpsPlanApi planApi) : base(planApi)
 		{
+			partialReader = new DomPartialReader<RecurringJob>(planApi, () => planApi.DomHelpers.SlcWorkflowHelper.DomHelper, filterTranslator, RecurringJobPartialFieldMapper.Instance, nameof(RecurringJobsRepository));
 		}
 
 		public RecurringJob Cancel(RecurringJob recurringJob)
@@ -329,6 +332,31 @@
 		public IEnumerable<RecurringJob> Read()
 		{
 			return Read(new TRUEFilterElement<RecurringJob>());
+		}
+
+		public IEnumerable<SDM.PartialObject<RecurringJob>> ReadPartial(SDM.IPartialFilterElement<RecurringJob> partialFilter)
+		{
+			return partialReader.ReadPartial(partialFilter);
+		}
+
+		public IEnumerable<SDM.PartialObject<RecurringJob>> ReadPartial(SDM.IPartialQuery<RecurringJob> partialQuery)
+		{
+			return partialReader.ReadPartial(partialQuery);
+		}
+
+		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<RecurringJob>>> ReadPartialPaged(SDM.IPartialFilterElement<RecurringJob> partialFilter)
+		{
+			return partialReader.ReadPartialPaged(partialFilter, MediaOpsPlanApi.DefaultPageSize);
+		}
+
+		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<RecurringJob>>> ReadPartialPaged(SDM.IPartialQuery<RecurringJob> partialQuery)
+		{
+			return partialReader.ReadPartialPaged(partialQuery, MediaOpsPlanApi.DefaultPageSize);
+		}
+
+		internal IEnumerable<SDM.IPagedResult<SDM.PartialObject<RecurringJob>>> ReadPartialPaged(SDM.IPartialQuery<RecurringJob> partialQuery, int pageSize)
+		{
+			return partialReader.ReadPartialPaged(partialQuery, pageSize);
 		}
 
 		public RecurringJob Read(Guid id)
