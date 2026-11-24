@@ -429,7 +429,7 @@
 		internal JobRelationshipsContext JobRelationshipsContext => jobRelationshipsContext;
 
 		// Property settings are stored outside the job instance, so they are not covered by the hash-based tracking.
-		internal override bool HasChanges => base.HasChanges || (!IsNew && (HasPropertySettingChanges || NodeGraph.Nodes.Any(x => x.HasTimingChanges)));
+		internal override bool HasChanges => base.HasChanges || (!IsNew && HasPropertySettingChanges);
 
 		internal bool HasPropertySettingChanges => propertySettingsScope?.IsDirty == true
 			|| NodeGraph.Nodes.Any(x => x.PropertySettingsScope?.IsDirty == true);
