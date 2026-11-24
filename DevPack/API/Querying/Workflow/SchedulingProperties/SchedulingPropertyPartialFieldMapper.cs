@@ -20,7 +20,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	/// Maps the <see cref="PropertyExposers"/> that can be selected in a partial read of the scheduling properties to the
 	/// DOM fields they are read from, and converts those values the same way <see cref="Property"/> does when it parses a
 	/// full DOM instance. All fields are stored in single sections of the property DOM instance, so every field holds one value.
-	/// Like a full read, property DOM instances without a known property type are skipped.
+	/// Like a full read, property DOM instances without a property type are skipped and an unknown property type throws.
 	/// </summary>
 	internal sealed class SchedulingPropertyPartialFieldMapper : IDomPartialFieldMapper<Property>
 	{
@@ -31,14 +31,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			[PropertyExposers.Scope.fieldName] = PartialField.ForString(PropertyInfo.Scope),
 			[PropertyExposers.SectionName.fieldName] = PartialField.ForString(Layout.SectionName),
 			[PropertyExposers.Order.fieldName] = new PartialField(x => x.TryGetValue<long>(Layout.Order, out var value) ? (int)value : 0, Layout.Order),
-		};
-
-		private static readonly HashSet<string> KnownPropertyTypes = new HashSet<string>(StringComparer.Ordinal)
-		{
-			Propertytype.String,
-			Propertytype.Discrete,
-			Propertytype.Boolean,
-			Propertytype.File,
 		};
 
 		private SchedulingPropertyPartialFieldMapper()
@@ -82,6 +74,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 		/// <param name="domPartialObjects">The partial property DOM instances, read with <see cref="CreateSelectedFields"/>.</param>
 		/// <param name="fields">The fields to return.</param>
 		/// <exception cref="NotSupportedException">Thrown when one of the fields can't be read partially.</exception>
+		/// <exception cref="ArgumentOutOfRangeException">Thrown when an instance has an unknown property type, like a full read.</exception>
 		public static IReadOnlyList<Skyline.DataMiner.SDM.PartialObject<Property>> CreatePartialProperties(IEnumerable<DomPartialObject> domPartialObjects, IEnumerable<FieldExposer> fields)
 		{
 			if (domPartialObjects == null)
@@ -97,7 +90,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			var selected = GetFields(fields).ToList();
 
 			return domPartialObjects
-				.Where(HasKnownPropertyType)
+				.Where(HasPropertyType)
 				.Select(domPartialObject => new Skyline.DataMiner.SDM.PartialObject<Property>(
 					domPartialObject.Id.Id,
 					selected.Select(x => new KeyValuePair<FieldExposer, IEnumerable<object>>(x.Exposer, ToValues(x.Field.Read(domPartialObject))))))
@@ -114,11 +107,16 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			return CreatePartialProperties(domPartialObjects, fields);
 		}
 
-		private static bool HasKnownPropertyType(DomPartialObject domPartialObject)
+		private static bool HasPropertyType(DomPartialObject domPartialObject)
 		{
-			return domPartialObject.TryGetValue<string>(PropertyInfo.PropertyType, out var propertyType)
-				&& propertyType != null
-				&& KnownPropertyTypes.Contains(propertyType);
+			if (!domPartialObject.TryGetValue<string>(PropertyInfo.PropertyType, out var propertyType) || propertyType == null)
+			{
+				return false;
+			}
+
+			// Same conversion as the full read, which throws for an unknown property type.
+			Propertytype.ToEnum(propertyType);
+			return true;
 		}
 
 		private static IEnumerable<(FieldExposer Exposer, PartialField Field)> GetFields(IEnumerable<FieldExposer> fields)
