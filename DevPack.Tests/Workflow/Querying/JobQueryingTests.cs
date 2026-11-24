@@ -124,6 +124,55 @@ namespace RT_MediaOps.Plan.Workflow.Querying
 		}
 
 		[TestMethod]
+		public void ReadPartialPagedJobsWithQuery_DefaultPageSize_ReturnsSameJobsInOnePage()
+		{
+			foreach (var (expectedObjects, query) in JobQueryTestCases.Concat(JobLimitedQueryTestCases))
+			{
+				var pages = TestContext.Api.Jobs.ReadPartialPaged(query.WithFields(JobExposers.Name)).ToList();
+
+				Assert.AreEqual(1, pages.Count, $"Query: {query}");
+				Assert.IsFalse(pages[0].HasNextPage, $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages[0].Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Name).ToList(), pages[0].Select(x => x.GetValue(JobExposers.Name)).ToList(), $"Query: {query}");
+			}
+		}
+
+		[TestMethod]
+		public void ReadPartialPagedJobsWithQuery_CustomPageSize_SplitsJobsOverPages()
+		{
+			var repository = (JobsRepository)TestContext.Api.Jobs;
+
+			foreach (var (expectedObjects, query) in JobQueryTestCases.Concat(JobLimitedQueryTestCases))
+			{
+				var pages = repository.ReadPartialPaged(query.WithFields(JobExposers.Name), 2).ToList();
+
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages.SelectMany(x => x).Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(Enumerable.Range(0, pages.Count).ToList(), pages.Select(x => x.PageNumber).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(pages.Select((_, i) => i < pages.Count - 1).ToList(), pages.Select(x => x.HasNextPage).ToList(), $"Query: {query}");
+				Assert.IsTrue(pages.All(x => x.Count <= 2), $"Query: {query}");
+			}
+
+			Assert.IsTrue(JobQueryTestCases.Any(x => x.Item1.Length > 2), "No query returns more than one page.");
+		}
+
+		[TestMethod]
+		public void ReadPartialPagedJobsWithFilter_ReturnsAllJobs()
+		{
+			var pages = TestContext.Api.Jobs.ReadPartialPaged(JobFilter.WithFields(JobExposers.Name, JobExposers.Resources)).ToList();
+			var jobsById = TestContext.Api.Jobs.Read(JobFilter).ToDictionary(x => x.Id);
+
+			Assert.AreEqual(1, pages.Count);
+			CollectionAssert.AreEquivalent(jobsById.Keys.ToList(), pages[0].Select(x => x.Id).ToList());
+
+			foreach (var partialJob in pages[0])
+			{
+				var job = jobsById[partialJob.Id];
+				Assert.AreEqual(job.Name, partialJob.GetValue(JobExposers.Name));
+				CollectionAssert.AreEqual(job.NodeGraph.Nodes.OfType<IResourceNode>().Select(x => x.ResourceId).ToList(), partialJob.GetValues(JobExposers.Resources).ToList(), job.Name);
+			}
+		}
+
+		[TestMethod]
 		public void ReadPartialJobsWithFilter_ReturnsSameValuesAsFullRead()
 		{
 			var partialFilter = JobFilter.WithFields(

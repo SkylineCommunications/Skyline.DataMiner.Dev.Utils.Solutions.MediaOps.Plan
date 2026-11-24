@@ -4,6 +4,8 @@
 	using System.Collections.Generic;
 	using System.Linq;
 
+	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+	using Skyline.DataMiner.Net.Apps.ManagerStore.Select;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.ActivityHelper;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
@@ -881,13 +883,7 @@
 
 		private IEnumerable<SDM.PartialObject<Job>> ReadPartial(IQuery<Job> query, IReadOnlyCollection<FieldExposer> fields, string paramName)
 		{
-			if (fields == null || fields.Count == 0)
-			{
-				throw new ArgumentException("At least one field must be selected.", paramName);
-			}
-
-			// Validates the fields before anything is read, so an unsupported field fails immediately instead of on enumeration.
-			var selectedFields = JobPartialFieldMapper.CreateSelectedFields(fields);
+			var selectedFields = CreateSelectedFields(fields, paramName);
 
 			if (query.Filter.isEmpty())
 			{
@@ -898,16 +894,12 @@
 			{
 				act?.AddTag("Fields", String.Join(",", fields.Select(x => x.fieldName)));
 
-				var domQuery = query
-					.WithFilter(filterTranslator.TranslateFilter(query.Filter))
-					.WithOrder(filterTranslator.TranslateFullOrderBy(query.Order))
-					.WithLimit(query.Limit);
+				var domQuery = TranslateQuery(query);
 
 				IEnumerable<SDM.PartialObject<Job>> Iterator()
 				{
 					var domPartialObjects = PlanApi.DomHelpers.SlcWorkflowHelper.GetJobFields(domQuery, selectedFields);
 
-					// Converted per batch, so data stored outside the job DOM instances is read once per batch instead of per job.
 					foreach (var batch in Batch(domPartialObjects, PartialReadBatchSize))
 					{
 						foreach (var partialJob in JobPartialFieldMapper.CreatePartialJobs(PlanApi, batch, fields))
@@ -921,8 +913,97 @@
 			});
 		}
 
+		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<Job>>> ReadPartialPaged(SDM.IPartialFilterElement<Job> partialFilter)
+		{
+			if (partialFilter == null)
+			{
+				throw new ArgumentNullException(nameof(partialFilter));
+			}
+
+			if (partialFilter.Filter == null)
+			{
+				throw new ArgumentException("The filter can't be null.", nameof(partialFilter));
+			}
+
+			return ReadPartialPaged(partialFilter.Filter.ToQuery(), partialFilter.Fields, MediaOpsPlanApi.DefaultPageSize, nameof(partialFilter));
+		}
+
+		public IEnumerable<SDM.IPagedResult<SDM.PartialObject<Job>>> ReadPartialPaged(SDM.IPartialQuery<Job> partialQuery)
+		{
+			return ReadPartialPaged(partialQuery, MediaOpsPlanApi.DefaultPageSize);
+		}
+
+		internal IEnumerable<SDM.IPagedResult<SDM.PartialObject<Job>>> ReadPartialPaged(SDM.IPartialQuery<Job> partialQuery, int pageSize)
+		{
+			if (partialQuery == null)
+			{
+				throw new ArgumentNullException(nameof(partialQuery));
+			}
+
+			return ReadPartialPaged(partialQuery, partialQuery.Fields, pageSize, nameof(partialQuery));
+		}
+
+		private IEnumerable<SDM.IPagedResult<SDM.PartialObject<Job>>> ReadPartialPaged(IQuery<Job> query, IReadOnlyCollection<FieldExposer> fields, int pageSize, string paramName)
+		{
+			if (pageSize <= 0)
+			{
+				throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size must be greater than zero.");
+			}
+
+			var selectedFields = CreateSelectedFields(fields, paramName);
+
+			if (query.Filter.isEmpty())
+			{
+				return Enumerable.Empty<SDM.IPagedResult<SDM.PartialObject<Job>>>();
+			}
+
+			return ReadPartialPagedIterator(TranslateQuery(query), selectedFields, fields, pageSize);
+		}
+
+		private IEnumerable<SDM.IPagedResult<SDM.PartialObject<Job>>> ReadPartialPagedIterator(IQuery<DomInstance> domQuery, SelectedFields<DomInstance> selectedFields, IReadOnlyCollection<FieldExposer> fields, int pageSize)
+		{
+			var pageNumber = 0;
+			var pages = PlanApi.DomHelpers.SlcWorkflowHelper.GetJobFieldsPaged(domQuery, selectedFields, pageSize);
+			var enumerator = pages.GetEnumerator();
+			var hasNext = enumerator.MoveNext();
+
+			while (hasNext)
+			{
+				var page = enumerator.Current;
+				hasNext = enumerator.MoveNext();
+
+				var partialJobs = Batch(page, PartialReadBatchSize)
+					.SelectMany(batch => JobPartialFieldMapper.CreatePartialJobs(PlanApi, batch, fields))
+					.ToList();
+
+				yield return new PagedResult<SDM.PartialObject<Job>>(partialJobs, pageNumber++, pageSize, hasNext);
+			}
+		}
+
+		/// <summary>
+		/// Validates the fields before anything is read, so an unsupported field fails immediately instead of on enumeration.
+		/// </summary>
+		private static SelectedFields<DomInstance> CreateSelectedFields(IReadOnlyCollection<FieldExposer> fields, string paramName)
+		{
+			if (fields == null || fields.Count == 0)
+			{
+				throw new ArgumentException("At least one field must be selected.", paramName);
+			}
+
+			return JobPartialFieldMapper.CreateSelectedFields(fields);
+		}
+
+		private IQuery<DomInstance> TranslateQuery(IQuery<Job> query)
+		{
+			return query
+				.WithFilter(filterTranslator.TranslateFilter(query.Filter))
+				.WithOrder(filterTranslator.TranslateFullOrderBy(query.Order))
+				.WithLimit(query.Limit);
+		}
+
 		private static IEnumerable<List<T>> Batch<T>(IEnumerable<T> source, int size)
 		{
+			// Partial jobs are created per batch, so data stored outside the job DOM instances is read once per batch instead of per job.
 			var batch = new List<T>(size);
 			foreach (var item in source)
 			{
