@@ -43,6 +43,11 @@ namespace RT_MediaOps.Plan.Simulation
 		/// </summary>
 		internal int ProfileParameterReads => Volatile.Read(ref profileParameterReads);
 
+		/// <summary>
+		/// Gets or sets a value indicating whether the next configuration read fails, like a read that times out.
+		/// </summary>
+		internal bool FailNextConfigurationRead { get; set; }
+
 		internal void Reset()
 		{
 			Interlocked.Exchange(ref configurationReads, 0);
@@ -55,16 +60,27 @@ namespace RT_MediaOps.Plan.Simulation
 			{
 				case ManagerStoreReadRequest<DomInstance> read when IsConfigurationFilter(read.Query?.Filter?.ToString()):
 					Interlocked.Increment(ref configurationReads);
+					ThrowIfConfigurationReadMustFail();
 					break;
 
 				case ManagerStoreStartPagingRequest<DomInstance> paging when IsConfigurationFilter(paging.Filter?.ToString()):
 					Interlocked.Increment(ref configurationReads);
+					ThrowIfConfigurationReadMustFail();
 					break;
 
 				case ManagerStoreReadRequest<Parameter> _:
 				case ManagerStoreStartPagingRequest<Parameter> _:
 					Interlocked.Increment(ref profileParameterReads);
 					break;
+			}
+		}
+
+		private void ThrowIfConfigurationReadMustFail()
+		{
+			if (FailNextConfigurationRead)
+			{
+				FailNextConfigurationRead = false;
+				throw new TimeoutException("Simulated failure of a configuration read.");
 			}
 		}
 

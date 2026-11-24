@@ -80,6 +80,14 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			var read = idsToRead.Count > 0 ? reader.Read(idsToRead).Where(x => x != null).ToList() : new List<TInstance>();
 
 			var parameters = new ProfileParameterLookup(reader.PlanApi);
+
+			// Parameters the owners already resolved (for example through another owner of the same read) are not read again.
+			var seenLookups = new HashSet<object>(ReferenceEqualityComparer.Instance);
+			foreach (var context in pending.Where(x => seenLookups.Add(x.Parameters)))
+			{
+				parameters.SeedFrom(context.Parameters);
+			}
+
 			parameters.Prefetch(read.SelectMany(reader.CollectProfileParameterIds));
 
 			var readById = new Dictionary<Guid, TInstance>();
@@ -117,15 +125,23 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			{
 				if (instancesById == null)
 				{
-					instancesById = new Dictionary<Guid, TInstance>();
-					LoadLocked(ids.ToList());
+					// Only marked as loaded once the read succeeded, so a failed read is retried on the next access
+					// instead of reporting stored settings as missing (which would make a save replace them).
+					instancesById = ReadInstances(ids.ToList());
 				}
 
-				if (!instancesById.TryGetValue(id, out instance) && ids.Add(id))
+				if (!instancesById.TryGetValue(id, out instance) && !ids.Contains(id))
 				{
 					// Not part of the owner when the context was created, so it is read on its own.
-					LoadLocked([id]);
-					instancesById.TryGetValue(id, out instance);
+					var read = ReadInstances([id]);
+					ids.Add(id);
+
+					foreach (var entry in read)
+					{
+						instancesById[entry.Key] = entry.Value;
+					}
+
+					read.TryGetValue(id, out instance);
 				}
 			}
 
@@ -172,11 +188,12 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 		}
 
-		private void LoadLocked(ICollection<Guid> idsToRead)
+		private Dictionary<Guid, TInstance> ReadInstances(ICollection<Guid> idsToRead)
 		{
+			var result = new Dictionary<Guid, TInstance>();
 			if (idsToRead.Count == 0)
 			{
-				return;
+				return result;
 			}
 
 			var read = Read(idsToRead).Where(x => x != null).ToList();
@@ -184,8 +201,10 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 
 			foreach (var instance in read)
 			{
-				instancesById[GetId(instance)] = instance;
+				result[GetId(instance)] = instance;
 			}
+
+			return result;
 		}
 
 		private sealed class ReferenceEqualityComparer : IEqualityComparer<object>
