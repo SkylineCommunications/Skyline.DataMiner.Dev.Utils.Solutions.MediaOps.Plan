@@ -46,6 +46,7 @@ namespace RT_MediaOps.Plan.Properties.Querying
 			PropertySettingCollection1!,
 			PropertySettingCollection2!,
 			PropertySettingCollection3!,
+			PropertySettingCollection4!,
 		};
 
 		public StringProperty? GlobalPropertyA { get; private set; }
@@ -56,11 +57,19 @@ namespace RT_MediaOps.Plan.Properties.Querying
 
 		public StringProperty? SchedulingPropertyD { get; private set; }
 
+		public BooleanProperty? GlobalBooleanProperty { get; private set; }
+
+		public DiscreteProperty? GlobalDiscreteProperty { get; private set; }
+
+		public FileProperty? GlobalFileProperty { get; private set; }
+
 		public PropertySettingCollection? PropertySettingCollection1 { get; private set; }
 
 		public PropertySettingCollection? PropertySettingCollection2 { get; private set; }
 
 		public PropertySettingCollection? PropertySettingCollection3 { get; private set; }
+
+		public PropertySettingCollection? PropertySettingCollection4 { get; private set; }
 
 		private void CreateProperties()
 		{
@@ -91,6 +100,29 @@ namespace RT_MediaOps.Plan.Properties.Querying
 				SectionName = "Other",
 				Order = 4,
 			});
+
+			GlobalBooleanProperty = objectCreator.CreateProperty(new BooleanProperty(new PropertyData { Scope = GlobalScope })
+			{
+				Name = $"Property_Boolean_{Prefix}",
+				SectionName = "Other",
+				Order = 5,
+			});
+
+			var discreteProperty = new DiscreteProperty(new PropertyData { Scope = GlobalScope })
+			{
+				Name = $"Property_Discrete_{Prefix}",
+				SectionName = "Other",
+				Order = 6,
+			};
+			discreteProperty.AddDiscrete("Option_1").AddDiscrete("Option_2");
+			GlobalDiscreteProperty = objectCreator.CreateProperty(discreteProperty);
+
+			GlobalFileProperty = objectCreator.CreateProperty(new FileProperty(new PropertyData { Scope = GlobalScope })
+			{
+				Name = $"Property_File_{Prefix}",
+				SectionName = "Other",
+				Order = 7,
+			});
 		}
 
 		private void CreatePropertySettingCollections()
@@ -101,7 +133,15 @@ namespace RT_MediaOps.Plan.Properties.Querying
 				Scope = GlobalScope,
 				SubId = String.Empty,
 			});
+
+			// Settings of every type, mixed with custom settings and added in another order than the one of PropertySettingCollection.PropertySettings.
+			collection1.Add(new DiscretePropertySetting(GlobalDiscreteProperty!) { Value = "Option_1" });
+			collection1.Add(new FilePropertySetting(GlobalFileProperty!));
+			collection1.Add(new CustomPropertySetting($"Custom_1_{Prefix}") { Value = "Custom value 1" });
+			collection1.Add(new BooleanPropertySetting(GlobalBooleanProperty!) { Value = true });
 			collection1.Add(new StringPropertySetting(GlobalPropertyA!) { Value = "First" });
+			collection1.Add(new CustomPropertySetting($"Custom_2_{Prefix}"));
+			collection1.Add(new StringPropertySetting(GlobalPropertyC!) { Value = "Extra" });
 
 			var collection2 = new PropertySettingCollection(new PropertySettingCollectionData
 			{
@@ -109,7 +149,11 @@ namespace RT_MediaOps.Plan.Properties.Querying
 				Scope = GlobalScope,
 				SubId = String.Empty,
 			});
+
+			// Only settings with a value that are linked to a property, so their values are combined per section by position.
+			collection2.Add(new BooleanPropertySetting(GlobalBooleanProperty!) { Value = false });
 			collection2.Add(new StringPropertySetting(GlobalPropertyA!) { Value = "Second" });
+			collection2.Add(new DiscretePropertySetting(GlobalDiscreteProperty!) { Value = "Option_2" });
 
 			var collection3 = new PropertySettingCollection(new PropertySettingCollectionData
 			{
@@ -119,9 +163,20 @@ namespace RT_MediaOps.Plan.Properties.Querying
 			});
 			collection3.Add(new StringPropertySetting(GlobalPropertyC!) { Value = "Third" });
 
+			// Only custom settings.
+			var collection4 = new PropertySettingCollection(new PropertySettingCollectionData
+			{
+				LinkedObjectId = $"Object_4_{Prefix}",
+				Scope = GlobalScope,
+				SubId = String.Empty,
+			});
+			collection4.Add(new CustomPropertySetting($"Custom_3_{Prefix}") { Value = "Custom value 3" });
+			collection4.Add(new CustomPropertySetting($"Custom_4_{Prefix}") { Value = "Custom value 4" });
+
 			PropertySettingCollection1 = objectCreator.CreatePropertySettingCollection(collection1);
 			PropertySettingCollection2 = objectCreator.CreatePropertySettingCollection(collection2);
 			PropertySettingCollection3 = objectCreator.CreatePropertySettingCollection(collection3);
+			PropertySettingCollection4 = objectCreator.CreatePropertySettingCollection(collection4);
 		}
 	}
 }
