@@ -1,6 +1,7 @@
 namespace RT_MediaOps.Plan.RST.Querying
 {
 	using System;
+	using System.Collections.Generic;
 	using System.Linq;
 
 	using RT_MediaOps.Plan.Querying;
@@ -221,6 +222,25 @@ namespace RT_MediaOps.Plan.RST.Querying
 			new Tuple<Configuration[], IQuery<Configuration>>(
 				[Setup.ResolutionConfig!, Setup.Region!, Setup.PriorityConfig!, Setup.Distance!],
 				ConfigurationFilter.ToQuery().OrderByDescending(ConfigurationExposers.Name)),
+		};
+
+		/// <summary>
+		/// Gets the expected objects, in the expected order, mapped to the applied query with a limit.
+		/// </summary>
+		private Tuple<Configuration[], IQuery<Configuration>>[] ConfigurationLimitedQueryTestCases => new[]
+		{
+			new Tuple<Configuration[], IQuery<Configuration>>(
+				[Setup.Distance!],
+				ConfigurationFilter.ToQuery().OrderBy(ConfigurationExposers.Name).Limit(1)),
+			new Tuple<Configuration[], IQuery<Configuration>>(
+				[Setup.Distance!, Setup.PriorityConfig!],
+				ConfigurationFilter.ToQuery().OrderBy(ConfigurationExposers.Name).Limit(2)),
+			new Tuple<Configuration[], IQuery<Configuration>>(
+				[Setup.ResolutionConfig!, Setup.Region!],
+				ConfigurationFilter.ToQuery().OrderByDescending(ConfigurationExposers.Name).Limit(2)),
+			new Tuple<Configuration[], IQuery<Configuration>>(
+				[Setup.Distance!, Setup.PriorityConfig!, Setup.Region!, Setup.ResolutionConfig!],
+				ConfigurationFilter.ToQuery().OrderBy(ConfigurationExposers.Name).Limit(10)),
 		};
 
 		[TestMethod]
@@ -1059,6 +1079,116 @@ namespace RT_MediaOps.Plan.RST.Querying
 		private static IPartialQuery<ResourceProperty> SelectResourcePropertyIdAndName(IQuery<ResourceProperty> query)
 		{
 			return new PartialQuery<ResourceProperty>(query).Include(ResourcePropertyExposers.Id).Include(ResourcePropertyExposers.Name);
+		}
+
+		[TestMethod]
+		public void ReadPartialConfigurationsWithQuery_ReturnsSameConfigurationsInSameOrder()
+		{
+			foreach (var (expectedObjects, query) in ConfigurationQueryTestCases.Concat(ConfigurationLimitedQueryTestCases))
+			{
+				var partialObjects = TestContext.Api.Configurations.ReadPartial(query.WithFields(ConfigurationExposers.Name)).ToList();
+
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), partialObjects.Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Name).ToList(), partialObjects.Select(x => x.GetValue(ConfigurationExposers.Name)).ToList(), $"Query: {query}");
+			}
+		}
+
+		[TestMethod]
+		public void ReadPartialPagedConfigurationsWithQuery_DefaultPageSize_ReturnsSameConfigurationsInOnePage()
+		{
+			foreach (var (expectedObjects, query) in ConfigurationQueryTestCases.Concat(ConfigurationLimitedQueryTestCases))
+			{
+				var pages = TestContext.Api.Configurations.ReadPartialPaged(query.WithFields(ConfigurationExposers.Name)).ToList();
+
+				Assert.AreEqual(1, pages.Count, $"Query: {query}");
+				Assert.IsFalse(pages[0].HasNextPage, $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages[0].Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Name).ToList(), pages[0].Select(x => x.GetValue(ConfigurationExposers.Name)).ToList(), $"Query: {query}");
+			}
+		}
+
+		[TestMethod]
+		public void ReadPartialPagedConfigurationsWithQuery_CustomPageSize_SplitsConfigurationsOverPages()
+		{
+			var repository = (ConfigurationsRepository)TestContext.Api.Configurations;
+
+			foreach (var (expectedObjects, query) in ConfigurationQueryTestCases.Concat(ConfigurationLimitedQueryTestCases))
+			{
+				var pages = repository.ReadPartialPaged(query.WithFields(ConfigurationExposers.Name), 2).ToList();
+
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages.SelectMany(x => x).Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(Enumerable.Range(0, pages.Count).ToList(), pages.Select(x => x.PageNumber).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(pages.Select((_, i) => i < pages.Count - 1).ToList(), pages.Select(x => x.HasNextPage).ToList(), $"Query: {query}");
+				Assert.IsTrue(pages.All(x => x.Count <= 2), $"Query: {query}");
+			}
+
+			Assert.IsTrue(ConfigurationQueryTestCases.Any(x => x.Item1.Length > 2), "No query returns more than one page.");
+		}
+
+		[TestMethod]
+		public void ReadPartialPagedConfigurationsWithFilter_ReturnsAllConfigurations()
+		{
+			var pages = TestContext.Api.Configurations.ReadPartialPaged(ConfigurationFilter.WithFields(ConfigurationExposers.Name)).ToList();
+			var objectsById = TestContext.Api.Configurations.Read(ConfigurationFilter).ToDictionary(x => x.Id);
+
+			Assert.AreEqual(1, pages.Count);
+			Assert.IsFalse(pages[0].HasNextPage);
+			CollectionAssert.AreEquivalent(objectsById.Keys.ToList(), pages[0].Select(x => x.Id).ToList());
+
+			foreach (var partialObject in pages[0])
+			{
+				Assert.AreEqual(objectsById[partialObject.Id].Name, partialObject.GetValue(ConfigurationExposers.Name));
+			}
+		}
+
+		[TestMethod]
+		public void ReadPartialConfigurations_CustomExposer_IsEvaluatedOnFullObject()
+		{
+			// The objects are read in full, so any exposer of the type can be projected, also one that is unknown to the filter translator.
+			var customField = new Exposer<Configuration, string>(x => x.Name, "Unknown");
+
+			var partialObjectsById = TestContext.Api.Configurations.ReadPartial(ConfigurationFilter.WithFields(customField)).ToDictionary(x => x.Id);
+
+			Assert.AreEqual(Setup.Configurations.Length, partialObjectsById.Count);
+
+			foreach (var expected in Setup.Configurations)
+			{
+				Assert.AreEqual(expected.Name, partialObjectsById[expected.Id].GetValue(customField));
+			}
+		}
+
+		[TestMethod]
+		public void ReadPartialConfigurationsWithFilter_ReturnsSameValuesAsFullRead()
+		{
+			var partialFilter = ConfigurationFilter.WithFields(
+				ConfigurationExposers.Id,
+				ConfigurationExposers.IsMandatory,
+				ConfigurationExposers.Name,
+				DiscreteTextConfigurationExposers.Discretes,
+				DiscreteNumberConfigurationExposers.Discretes);
+
+			var partialObjectsById = TestContext.Api.Configurations.ReadPartial(partialFilter).ToDictionary(x => x.Id);
+			var configurations = TestContext.Api.Configurations.Read(ConfigurationFilter).ToList();
+
+			Assert.AreEqual(configurations.Count, partialObjectsById.Count);
+
+			foreach (var configuration in configurations)
+			{
+				var partialObject = partialObjectsById[configuration.Id];
+				var textDiscretes = configuration is DiscreteTextConfiguration textConfiguration ? textConfiguration.Discretes.Select(x => x.Value).ToList() : new List<string>();
+				var numberDiscretes = configuration is DiscreteNumberConfiguration numberConfiguration ? numberConfiguration.Discretes.Select(x => x.Value).ToList() : new List<decimal>();
+
+				Assert.AreEqual(configuration.Id, partialObject.GetValue(ConfigurationExposers.Id));
+				Assert.AreEqual(configuration.IsMandatory, partialObject.GetValue(ConfigurationExposers.IsMandatory));
+				Assert.AreEqual(configuration.Name, partialObject.GetValue(ConfigurationExposers.Name));
+				CollectionAssert.AreEqual(textDiscretes, partialObject.GetValues(DiscreteTextConfigurationExposers.Discretes).ToList(), configuration.Name);
+				CollectionAssert.AreEqual(numberDiscretes, partialObject.GetValues(DiscreteNumberConfigurationExposers.Discretes).ToList(), configuration.Name);
+			}
+
+			Assert.IsTrue(configurations.Any(x => x.IsMandatory) && configurations.Any(x => !x.IsMandatory), "The setup doesn't cover both mandatory values.");
+			Assert.IsTrue(configurations.OfType<DiscreteTextConfiguration>().Any(x => x.Discretes.Count > 1), "No discrete text configuration with multiple discretes.");
+			Assert.IsTrue(configurations.OfType<DiscreteNumberConfiguration>().Any(x => x.Discretes.Count > 1), "No discrete number configuration with multiple discretes.");
+			Assert.IsTrue(configurations.Any(x => !(x is DiscreteTextConfiguration) && !(x is DiscreteNumberConfiguration)), "No configuration without discretes.");
 		}
 	}
 }
