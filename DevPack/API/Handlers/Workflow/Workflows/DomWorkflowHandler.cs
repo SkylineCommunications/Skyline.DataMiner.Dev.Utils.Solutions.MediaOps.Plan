@@ -64,6 +64,9 @@
 				return;
 			}
 
+			// Saving touches the orchestration settings of every workflow and node, so they are read up front in a single batch.
+			Workflow.LoadOrchestrationSettings(apiWorkflows);
+
 			var toCreate = apiWorkflows.Where(x => x.IsNew).ToList();
 
 			ValidateIdsNotInUse(toCreate);
@@ -306,6 +309,8 @@
 			}
 
 			// The orchestration settings of the nodes are stored as separate DOM instances and must be removed as well.
+			Workflow.LoadOrchestrationSettings(apiWorkflows);
+
 			var orchestrationSettings = apiWorkflows
 				.SelectMany(x => new[] { x.OrchestrationSettings }.Concat(x.NodeGraph.Nodes.Select(node => node.OrchestrationSettings)))
 				.Where(x => x != null)

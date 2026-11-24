@@ -95,7 +95,13 @@
 				DomInstanceExposers.FieldValues.DomInstanceField(SlcWorkflowIds.Sections.OrchestrationEvents.ScriptInputValues).Contains(x.ToString())))
 				.ToArray()));
 
-			return planApi.DomHelpers.SlcWorkflowHelper.GetConfigurations(configurationFilter).Select(x => new WorkflowOrchestrationSettings(planApi, x));
+			var configurations = planApi.DomHelpers.SlcWorkflowHelper.GetConfigurations(configurationFilter).ToList();
+
+			// The profile parameters of all configurations are read in a single call instead of once per configuration.
+			var parameters = new ProfileParameterLookup(planApi);
+			parameters.Prefetch(configurations.SelectMany(WorkflowOrchestrationSettings.CollectProfileParameterIds));
+
+			return configurations.Select(x => new WorkflowOrchestrationSettings(planApi, x, parameters)).ToList();
 		}
 
 		private Dictionary<Guid, ICollection<Guid>> GetJobsPerOrchestrationSettings(HashSet<Guid> orchestrationSettingsIds)

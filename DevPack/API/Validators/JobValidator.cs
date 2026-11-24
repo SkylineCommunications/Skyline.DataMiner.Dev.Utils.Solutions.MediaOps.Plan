@@ -46,6 +46,10 @@
 				throw new ArgumentException("The jobs collection cannot contain null values.", nameof(jobs));
 			}
 
+			// The jobs are dictionary keys and their orchestration settings are validated, so the settings, which are
+			// read lazily, are read up front in a single batch.
+			Job.LoadOrchestrationSettings(jobList);
+
 			var results = jobList.ToDictionary(job => job, job => new JobValidationResult(job));
 			if (jobList.Count == 0)
 			{

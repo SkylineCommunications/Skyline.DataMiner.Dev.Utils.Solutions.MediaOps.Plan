@@ -713,6 +713,9 @@
 
 			var resources = PlanApi.Resources.Read(resourcesInPoolsFilter);
 
+			// The pools are dictionary keys, and their equality covers their lazily read orchestration settings.
+			ResourcePool.LoadOrchestrationSettings(resourcePools);
+
 			var resourcesPerPool = resourcePools.ToDictionary(
 				pool => pool,
 				pool => (IReadOnlyCollection<Resource>)resources.Where(x => x.ResourcePoolIds.Contains(pool.Id)).ToArray());
@@ -739,6 +742,9 @@
 			var resourceStateFilter = ResourceExposers.State.Equal(state);
 
 			var resources = PlanApi.Resources.Read(resourcesInPoolsFilter.AND(resourceStateFilter));
+
+			// The pools are dictionary keys, and their equality covers their lazily read orchestration settings.
+			ResourcePool.LoadOrchestrationSettings(resourcePools);
 
 			var resourcesPerPool = resourcePools.ToDictionary(
 				pool => pool,

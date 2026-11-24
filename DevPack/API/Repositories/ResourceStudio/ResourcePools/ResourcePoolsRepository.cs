@@ -570,6 +570,10 @@
 			var domPools = PlanApi.DomHelpers.SlcResourceStudioHelper.GetResourcePools(filter);
 			var parentApiPoolsById = ToApiResourcePools(domPools).ToDictionary(x => x.Id);
 
+			// The pools are dictionary keys and callers typically collect the parents in sets, while pool equality covers
+			// the lazily read orchestration settings, so these are read in a single batch.
+			ResourcePool.LoadOrchestrationSettings(resourcePools.Concat(parentApiPoolsById.Values));
+
 			var parentPoolsPerPool = resourcePools.ToDictionary(
 				pool => pool,
 				pool =>
@@ -941,7 +945,8 @@
 				}
 
 				var flowRulesById = LoadFlowRules(items);
-				return items.Select(x => new ResourcePool(PlanApi, x, flowRulesById)).ToList();
+				var parameters = new ProfileParameterLookup(PlanApi);
+				return items.Select(x => new ResourcePool(PlanApi, x, flowRulesById, parameters)).ToList();
 			}
 		}
 
