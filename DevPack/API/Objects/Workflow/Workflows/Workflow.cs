@@ -421,17 +421,7 @@
 			updatedInstance.NodeGroups.Clear();
 			foreach (var group in NodeGraph.Groups)
 			{
-				var groupSection = new StorageWorkflow.NodeGroupsSection
-				{
-					GroupName = group.Name,
-				};
-
-				foreach (var node in group.Nodes)
-				{
-					groupSection.GroupNodeIds.Add(node.Id);
-				}
-
-				updatedInstance.NodeGroups.Add(groupSection);
+				updatedInstance.NodeGroups.Add(group.ToSection());
 			}
 
 			return updatedInstance;
@@ -494,25 +484,10 @@
 
 		private void ParseGroups(MediaOpsPlanApi planApi, IReadOnlyDictionary<string, WorkflowNode> parsedNodesById, ICollection<StorageWorkflow.NodeGroupsSection> nodeGroups)
 		{
-			if (nodeGroups == null)
-			{
-				return;
-			}
-
-			foreach (var groupSection in nodeGroups)
-			{
-				var group = NodeGraph.AddGroup(groupSection.GroupName);
-				foreach (var nodeId in groupSection.GroupNodeIds ?? [])
-				{
-					if (!parsedNodesById.TryGetValue(nodeId ?? string.Empty, out var node))
-					{
-						planApi.Logger.Warning(this, $"Node group '{groupSection.GroupName}' references unknown node '{nodeId}'. This node will be ignored.");
-						continue;
-					}
-
-					group.Add(node);
-				}
-			}
+			NodeGraph.AddGroups(
+				nodeGroups,
+				nodeId => parsedNodesById.TryGetValue(nodeId, out var node) ? node : null,
+				message => planApi.Logger.Warning(this, message));
 		}
 
 		private Dictionary<string, WorkflowNode> ParseNodes(MediaOpsPlanApi planApi, ICollection<StorageWorkflow.NodesSection> nodes)

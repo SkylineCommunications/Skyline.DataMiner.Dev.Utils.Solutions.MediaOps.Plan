@@ -711,9 +711,10 @@ job.NodeGraph.Connect(cameraNode, poolNode, new ShuffleLevelBasedConnectionConfi
 job.NodeGraph.Link(parent: poolNode, child: cameraNode);
 job.NodeGraph.Unlink(cameraNode);
 
-// Group nodes for organizational purposes.
+// Group nodes for organizational purposes. Each group gets an auto-assigned, read-only Id that is kept across updates.
 var group = job.NodeGraph.AddGroup("Studio A");
 group.Add(cameraNode).Add(poolNode);
+var groupId = group.Id;
 job.NodeGraph.RemoveGroup(group);
 
 // Swap: replace a node's resource/pool assignment, keeping its connections, links and group membership.

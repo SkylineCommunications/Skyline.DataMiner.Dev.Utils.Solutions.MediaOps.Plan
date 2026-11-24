@@ -52,7 +52,7 @@
 		protected abstract MediaOpsErrorData CreateDuplicateConnectionIdError(string connectionId, string errorMessage);
 		protected abstract MediaOpsErrorData CreateConnectionInvalidNodeLinkError(string connectionId, string nodeId, string errorMessage);
 		protected abstract MediaOpsErrorData CreateInvalidNodeLinkError(string parentNodeId, string childNodeId, string errorMessage);
-		protected abstract MediaOpsErrorData CreateInvalidGroupNodeError(string groupName, string nodeId, string errorMessage);
+		protected abstract MediaOpsErrorData CreateInvalidGroupNodeError(Guid groupId, string groupName, string nodeId, string errorMessage);
 		protected abstract MediaOpsErrorData CreateForbiddenConnectionError(FlowRuleConnectionEvaluation evaluation, string errorMessage);
 
 		/// <summary>
@@ -337,7 +337,7 @@
 				{
 					if (node == null || !NodeIds.Contains(node.Id))
 					{
-						ReportError(apiObjectId, CreateInvalidGroupNodeError(group.Name, node?.Id ?? string.Empty, $"Node with ID '{node?.Id}' does not exist in the graph."));
+						ReportError(apiObjectId, CreateInvalidGroupNodeError(group.Id, group.Name, node?.Id ?? string.Empty, $"Node with ID '{node?.Id}' does not exist in the graph."));
 					}
 				}
 			}
@@ -478,11 +478,12 @@
 			};
 		}
 
-		protected override MediaOpsErrorData CreateInvalidGroupNodeError(string groupName, string nodeId, string errorMessage)
+		protected override MediaOpsErrorData CreateInvalidGroupNodeError(Guid groupId, string groupName, string nodeId, string errorMessage)
 		{
 			return new JobNodeGraphInvalidGroupNodeError
 			{
 				ErrorMessage = errorMessage,
+				GroupId = groupId,
 				GroupName = groupName,
 				NodeId = nodeId,
 				Id = ApiObjectId,
@@ -630,11 +631,12 @@
 			};
 		}
 
-		protected override MediaOpsErrorData CreateInvalidGroupNodeError(string groupName, string nodeId, string errorMessage)
+		protected override MediaOpsErrorData CreateInvalidGroupNodeError(Guid groupId, string groupName, string nodeId, string errorMessage)
 		{
 			return new RecurringJobNodeGraphInvalidGroupNodeError
 			{
 				ErrorMessage = errorMessage,
+				GroupId = groupId,
 				GroupName = groupName,
 				NodeId = nodeId,
 				Id = ApiObjectId,
@@ -782,11 +784,12 @@
 			};
 		}
 
-		protected override MediaOpsErrorData CreateInvalidGroupNodeError(string groupName, string nodeId, string errorMessage)
+		protected override MediaOpsErrorData CreateInvalidGroupNodeError(Guid groupId, string groupName, string nodeId, string errorMessage)
 		{
 			return new WorkflowNodeGraphInvalidGroupNodeError
 			{
 				ErrorMessage = errorMessage,
+				GroupId = groupId,
 				GroupName = groupName,
 				NodeId = nodeId,
 				Id = ApiObjectId,
