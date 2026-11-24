@@ -9,6 +9,7 @@
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Net.Sections;
 	using Skyline.DataMiner.SDM;
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.API.Querying;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Extensions;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow;
 
@@ -22,8 +23,14 @@
 	/// converts that data the same way <see cref="Job"/> does when it parses a full DOM instance. Fields of sections
 	/// that occur multiple times, of the orchestration settings and of the property settings return a list of values.
 	/// </summary>
-	internal static class JobPartialFieldMapper
+	internal sealed class JobPartialFieldMapper : IDomPartialFieldMapper<Job>
 	{
+		private JobPartialFieldMapper()
+		{
+		}
+
+		public static JobPartialFieldMapper Instance { get; } = new JobPartialFieldMapper();
+
 		private static readonly Dictionary<string, PartialField> Fields = new Dictionary<string, PartialField>
 		{
 			[JobExposers.Id.fieldName] = PartialField.Single(x => x.Id.Id),
@@ -156,6 +163,16 @@
 					context.JobId,
 					selected.Select(x => new KeyValuePair<FieldExposer, IEnumerable<object>>(x.Exposer, x.Field.Read(context).ToList()))))
 				.ToList();
+		}
+
+		SelectedFields<DomInstance> IDomPartialFieldMapper<Job>.CreateSelectedFields(IEnumerable<FieldExposer> fields)
+		{
+			return CreateSelectedFields(fields);
+		}
+
+		IReadOnlyList<Skyline.DataMiner.SDM.PartialObject<Job>> IDomPartialFieldMapper<Job>.CreatePartialObjects(MediaOpsPlanApi planApi, IEnumerable<DomPartialObject> domPartialObjects, IEnumerable<FieldExposer> fields)
+		{
+			return CreatePartialJobs(planApi, domPartialObjects, fields);
 		}
 
 		private static void LoadFullInstancesWhereNeeded(MediaOpsPlanApi planApi, IReadOnlyCollection<JobPartialReadContext> contexts, IReadOnlyCollection<PartialField> fields)

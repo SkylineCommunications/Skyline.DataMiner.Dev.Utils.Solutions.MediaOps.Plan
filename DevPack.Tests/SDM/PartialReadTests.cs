@@ -135,6 +135,24 @@ namespace RT_MediaOps.Plan.SDM
 			Assert.ThrowsException<ArgumentException>(() => new PartialObject<Job>(Guid.Empty, Array.Empty<KeyValuePair<FieldExposer, IEnumerable<object>>>()));
 		}
 
+		[TestMethod]
+		public void ProjectionPartialReader_Project_ReturnsSingleAndListValuesOfTheObject()
+		{
+			var resourceId = Guid.NewGuid();
+			var job = new Job { Name = "Job" };
+			job.NodeGraph.Add(new JobResourceNode(Guid.NewGuid(), resourceId));
+			job.NodeGraph.Add(new JobResourcePoolNode(Guid.NewGuid()));
+
+			var partial = Skyline.DataMiner.Solutions.MediaOps.Plan.API.Querying.ProjectionPartialReader<Job>.Project(job, new FieldExposer[] { JobExposers.Name, JobExposers.Notes, JobExposers.Resources });
+
+			Assert.AreEqual(job.Id, partial.Id);
+			Assert.AreEqual("Job", partial.GetValue(JobExposers.Name));
+			Assert.IsTrue(partial.HasField(JobExposers.Notes));
+			Assert.IsNull(partial.GetValue(JobExposers.Notes));
+			CollectionAssert.AreEqual(new[] { resourceId }, partial.GetValues(JobExposers.Resources).ToList());
+			Assert.IsFalse(partial.HasField(JobExposers.Start));
+		}
+
 		private static PartialObject<Job> CreatePartialObject(params (FieldExposer Field, object[] Values)[] fields)
 		{
 			return new PartialObject<Job>(Guid.NewGuid(), fields.Select(x => new KeyValuePair<FieldExposer, IEnumerable<object>>(x.Field, x.Values)));
