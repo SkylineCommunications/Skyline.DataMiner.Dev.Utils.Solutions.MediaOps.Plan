@@ -15,8 +15,9 @@
 	/// error, orchestration setting or property setting (e.g. <see cref="JobExposers.Resources"/> or
 	/// <see cref="JobExposers.Errors.Code"/>) are read with <see cref="PartialObject{T}.GetValues{TField}(Net.Messages.SLDataGateway.DynamicListExposer{T, TField})"/>.
 	/// Selecting orchestration or property settings fields reads the instances they are stored in once per batch of jobs.
+	/// <see cref="IPartialPageableRepository{T}.ReadPartialPaged(IPartialQuery{T})"/> returns the same objects in pages of 200.
 	/// </remarks>
-	public interface IJobsRepository : IRepository<Job>, IPartialReadableRepository<Job>
+	public interface IJobsRepository : IRepository<Job>, IPartialPageableRepository<Job>
 	{
 		/// <summary>
 		/// Gets the identifiers for predefined job types.

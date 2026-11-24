@@ -156,6 +156,42 @@
 				: ReadPartialPagedIterator(domHelper, query, selectedFields);
 		}
 
+		/// <summary>
+		/// Reads only the selected fields of the DOM instances that match the query, page by page.
+		/// </summary>
+		public static IEnumerable<IReadOnlyList<PartialObject<DomInstance, DomInstanceId>>> ReadPartialInstancesPaged(DomHelper domHelper, IQuery<DomInstance> query, SelectedFields<DomInstance> selectedFields, int pageSize)
+		{
+			if (domHelper == null)
+			{
+				throw new ArgumentNullException(nameof(domHelper));
+			}
+
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			if (selectedFields == null)
+			{
+				throw new ArgumentNullException(nameof(selectedFields));
+			}
+
+			if (pageSize <= 0)
+			{
+				throw new ArgumentOutOfRangeException(nameof(pageSize));
+			}
+
+			if (query.Filter.isEmpty())
+			{
+				return Enumerable.Empty<IReadOnlyList<PartialObject<DomInstance, DomInstanceId>>>();
+			}
+
+			// Same as for full reads: a paged read ignores the limit and offset, so a limited query is read at once and split into pages afterwards.
+			return IsLimited(query)
+				? SplitInPages(ReadPartialIterator(domHelper, query, selectedFields), pageSize)
+				: ReadPartialPagesIterator(domHelper, query, selectedFields, pageSize);
+		}
+
 		public static IEnumerable<IEnumerable<T>> CreateInstances<T>(IEnumerable<IEnumerable<DomInstance>> pages, Func<DomInstance, T> createInstance)
 							where T : DomInstanceBase
 		{
@@ -253,6 +289,37 @@
 				{
 					yield return partialObject;
 				}
+			}
+		}
+
+		private static IEnumerable<IReadOnlyList<PartialObject<DomInstance, DomInstanceId>>> ReadPartialPagesIterator(DomHelper domHelper, IQuery<DomInstance> query, SelectedFields<DomInstance> selectedFields, int pageSize)
+		{
+			var pagingHelper = domHelper.DomInstances.PreparePaging(query, selectedFields, pageSize);
+
+			while (pagingHelper.MoveToNextPage())
+			{
+				yield return pagingHelper.GetCurrentPage();
+			}
+		}
+
+		private static IEnumerable<IReadOnlyList<T>> SplitInPages<T>(IEnumerable<T> items, int pageSize)
+		{
+			var page = new List<T>(pageSize);
+
+			foreach (var item in items)
+			{
+				page.Add(item);
+
+				if (page.Count == pageSize)
+				{
+					yield return page;
+					page = new List<T>(pageSize);
+				}
+			}
+
+			if (page.Count > 0)
+			{
+				yield return page;
 			}
 		}
 
