@@ -4,6 +4,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 	using System.Collections.Generic;
 	using System.Linq;
 
+	using Skyline.DataMiner.Solutions.MediaOps.Plan.Tools;
+
 	/// <summary>
 	/// Owner-scoped context that lazily reads the orchestration settings of an owning object (e.g. a job) and of all its
 	/// nodes in a single backend call, the first time any of them is accessed.
@@ -61,7 +63,7 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			var pending = new List<OrchestrationSettingsContext<TSettings, TInstance>>();
-			var seen = new HashSet<object>(ReferenceEqualityComparer.Instance);
+			var seen = new HashSet<OrchestrationSettingsContext<TSettings, TInstance>>(ObjectReferenceComparer<OrchestrationSettingsContext<TSettings, TInstance>>.Instance);
 			foreach (var context in contexts)
 			{
 				if (context != null && !context.IsLoaded && seen.Add(context))
@@ -78,17 +80,18 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			var reader = pending[0];
 			var idsToRead = pending.SelectMany(x => x.GetIds()).Distinct().ToList();
 			var read = idsToRead.Count > 0 ? reader.Read(idsToRead).Where(x => x != null).ToList() : new List<TInstance>();
+			var parameterIds = read.SelectMany(reader.CollectProfileParameterIds).Distinct().ToList();
 
 			var parameters = new ProfileParameterLookup(reader.PlanApi);
 
 			// Parameters the owners already resolved (for example through another owner of the same read) are not read again.
-			var seenLookups = new HashSet<object>(ReferenceEqualityComparer.Instance);
+			var seenLookups = new HashSet<ProfileParameterLookup>(ObjectReferenceComparer<ProfileParameterLookup>.Instance);
 			foreach (var context in pending.Where(x => seenLookups.Add(x.Parameters)))
 			{
-				parameters.SeedFrom(context.Parameters);
+				parameters.SeedFrom(context.Parameters, parameterIds);
 			}
 
-			parameters.Prefetch(read.SelectMany(reader.CollectProfileParameterIds));
+			parameters.Prefetch(parameterIds);
 
 			var readById = new Dictionary<Guid, TInstance>();
 			foreach (var instance in read)
@@ -184,7 +187,8 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 					}
 				}
 
-				Parameters.SeedFrom(parameters);
+				// Only the parameters of this owner's configurations are taken over from the batch.
+				Parameters.SeedFrom(parameters, instancesById.Values.SelectMany(CollectProfileParameterIds));
 			}
 		}
 
@@ -205,15 +209,6 @@ namespace Skyline.DataMiner.Solutions.MediaOps.Plan.API
 			}
 
 			return result;
-		}
-
-		private sealed class ReferenceEqualityComparer : IEqualityComparer<object>
-		{
-			internal static readonly ReferenceEqualityComparer Instance = new ReferenceEqualityComparer();
-
-			public new bool Equals(object x, object y) => ReferenceEquals(x, y);
-
-			public int GetHashCode(object obj) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
 		}
 	}
 }
