@@ -12,7 +12,7 @@
 		/// <summary>
 		/// Gets an exposer for the <see cref="ApiObject.Id"/> property.
 		/// </summary>
-		public static readonly Exposer<Capacity, Guid> Id = new Exposer<Capacity, Guid>("Id");
+		public static readonly Exposer<Capacity, Guid> Id = new Exposer<Capacity, Guid>((obj) => obj.Id, "Id");
 
 		/// <summary>
 		/// Gets an exposer for the <see cref="Parameter.IsMandatory"/> property.
@@ -32,46 +32,46 @@
 		/// <summary>
 		/// Gets an exposer for the <see cref="Capacity.Units"/> property.
 		/// </summary>
-		public static readonly Exposer<Capacity, bool> HasUnits = new Exposer<Capacity, bool>("HasUnits");
+		public static readonly Exposer<Capacity, bool> HasUnits = new Exposer<Capacity, bool>((obj) => !String.IsNullOrEmpty(obj.Units), "HasUnits");
 
 		/// <summary>
 		/// Gets an exposer for the <see cref="Capacity.RangeMin"/> property.
 		/// </summary>
-		public static readonly Exposer<Capacity, decimal> RangeMin = new Exposer<Capacity, decimal>((obj) => (decimal)obj.RangeMin, "RangeMin");
+		public static readonly Exposer<Capacity, decimal> RangeMin = new Exposer<Capacity, decimal>((obj) => obj.RangeMin.GetValueOrDefault(), "RangeMin");
 
 		/// <summary>
 		/// Gets an exposer for the <see cref="Capacity.RangeMin"/> property.
 		/// </summary>
-		public static readonly Exposer<Capacity, bool> HasRangeMin = new Exposer<Capacity, bool>("HasRangeMin");
+		public static readonly Exposer<Capacity, bool> HasRangeMin = new Exposer<Capacity, bool>((obj) => obj.RangeMin.HasValue, "HasRangeMin");
 
 		/// <summary>
 		/// Gets an exposer for the <see cref="Capacity.RangeMax"/> property.
 		/// </summary>
-		public static readonly Exposer<Capacity, decimal> RangeMax = new Exposer<Capacity, decimal>((obj) => (decimal)obj.RangeMax, "RangeMax");
+		public static readonly Exposer<Capacity, decimal> RangeMax = new Exposer<Capacity, decimal>((obj) => obj.RangeMax.GetValueOrDefault(), "RangeMax");
 
 		/// <summary>
 		/// Gets an exposer for the <see cref="Capacity.Units"/> property.
 		/// </summary>
-		public static readonly Exposer<Capacity, bool> HasRangeMax = new Exposer<Capacity, bool>("HasRangeMax");
+		public static readonly Exposer<Capacity, bool> HasRangeMax = new Exposer<Capacity, bool>((obj) => obj.RangeMax.HasValue, "HasRangeMax");
 
 		/// <summary>
 		/// Gets an exposer for the <see cref="Capacity.StepSize"/> property.
 		/// </summary>
-		public static readonly Exposer<Capacity, decimal> StepSize = new Exposer<Capacity, decimal>((obj) => (decimal)obj.StepSize, "StepSize");
+		public static readonly Exposer<Capacity, decimal> StepSize = new Exposer<Capacity, decimal>((obj) => obj.StepSize.GetValueOrDefault(), "StepSize");
 
 		/// <summary>
 		/// Gets an exposer for the <see cref="Capacity.StepSize"/> property.
 		/// </summary>
-		public static readonly Exposer<Capacity, bool> HasStepSize = new Exposer<Capacity, bool>("HasStepSize");
+		public static readonly Exposer<Capacity, bool> HasStepSize = new Exposer<Capacity, bool>((obj) => obj.StepSize.HasValue, "HasStepSize");
 
 		/// <summary>
 		/// Gets an exposer for the <see cref="Capacity.Decimals"/> property.
 		/// </summary>
-		public static readonly Exposer<Capacity, int> Decimals = new Exposer<Capacity, int>((obj) => (int)obj.Decimals, "Decimals");
+		public static readonly Exposer<Capacity, int> Decimals = new Exposer<Capacity, int>((obj) => obj.Decimals.GetValueOrDefault(), "Decimals");
 
 		/// <summary>
 		/// Gets an exposer for the <see cref="Capacity.Decimals"/> property.
 		/// </summary>
-		public static readonly Exposer<Capacity, bool> HasDecimals = new Exposer<Capacity, bool>("HasDecimals");
+		public static readonly Exposer<Capacity, bool> HasDecimals = new Exposer<Capacity, bool>((obj) => obj.Decimals.HasValue, "HasDecimals");
 	}
 }
