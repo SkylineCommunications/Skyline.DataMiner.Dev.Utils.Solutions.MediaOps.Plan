@@ -18,6 +18,7 @@
 	internal class ResourcePropertiesRepository : Repository, IResourcePropertiesRepository
 	{
 		private readonly ResourcePropertyFilterTranslator filterTranslator = new ResourcePropertyFilterTranslator();
+		private readonly Querying.DomPartialReader<ResourceProperty> partialReader;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ResourcePropertiesRepository"/> class.
@@ -26,6 +27,7 @@
 		public ResourcePropertiesRepository(MediaOpsPlanApi planApi)
 			: base(planApi)
 		{
+			partialReader = new Querying.DomPartialReader<ResourceProperty>(planApi, () => planApi.DomHelpers.SlcResourceStudioHelper.DomHelper, filterTranslator, ResourcePropertyPartialFieldMapper.Instance, nameof(ResourcePropertiesRepository));
 		}
 
 		/// <summary>
@@ -456,6 +458,31 @@
 		public IEnumerable<IPagedResult<ResourceProperty>> ReadPaged(int pageSize)
 		{
 			return ReadPaged(new TRUEFilterElement<ResourceProperty>(), pageSize);
+		}
+
+		public IEnumerable<PartialObject<ResourceProperty>> ReadPartial(IPartialFilterElement<ResourceProperty> partialFilter)
+		{
+			return partialReader.ReadPartial(partialFilter);
+		}
+
+		public IEnumerable<PartialObject<ResourceProperty>> ReadPartial(IPartialQuery<ResourceProperty> partialQuery)
+		{
+			return partialReader.ReadPartial(partialQuery);
+		}
+
+		public IEnumerable<IPagedResult<PartialObject<ResourceProperty>>> ReadPartialPaged(IPartialFilterElement<ResourceProperty> partialFilter)
+		{
+			return partialReader.ReadPartialPaged(partialFilter, MediaOpsPlanApi.DefaultPageSize);
+		}
+
+		public IEnumerable<IPagedResult<PartialObject<ResourceProperty>>> ReadPartialPaged(IPartialQuery<ResourceProperty> partialQuery)
+		{
+			return partialReader.ReadPartialPaged(partialQuery, MediaOpsPlanApi.DefaultPageSize);
+		}
+
+		internal IEnumerable<IPagedResult<PartialObject<ResourceProperty>>> ReadPartialPaged(IPartialQuery<ResourceProperty> partialQuery, int pageSize)
+		{
+			return partialReader.ReadPartialPaged(partialQuery, pageSize);
 		}
 
 		/// <summary>
