@@ -22,6 +22,7 @@
 	internal class ResourcePoolsRepository : Repository, IResourcePoolsRepository
 	{
 		private readonly ResourcePoolPoolFilterTranslator filterTranslator = new ResourcePoolPoolFilterTranslator();
+		private readonly Querying.DomPartialReader<ResourcePool> partialReader;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ResourcePoolsRepository"/> class.
@@ -29,6 +30,7 @@
 		/// <param name="planApi">The MediaOps Plan API instance.</param>
 		public ResourcePoolsRepository(MediaOpsPlanApi planApi) : base(planApi)
 		{
+			partialReader = new Querying.DomPartialReader<ResourcePool>(planApi, () => planApi.DomHelpers.SlcResourceStudioHelper.DomHelper, filterTranslator, ResourcePoolPartialFieldMapper.Instance, nameof(ResourcePoolsRepository));
 		}
 
 		/// <summary>
@@ -791,6 +793,31 @@
 			}
 
 			return Iterator();
+		}
+
+		public IEnumerable<PartialObject<ResourcePool>> ReadPartial(IPartialFilterElement<ResourcePool> partialFilter)
+		{
+			return partialReader.ReadPartial(partialFilter);
+		}
+
+		public IEnumerable<PartialObject<ResourcePool>> ReadPartial(IPartialQuery<ResourcePool> partialQuery)
+		{
+			return partialReader.ReadPartial(partialQuery);
+		}
+
+		public IEnumerable<IPagedResult<PartialObject<ResourcePool>>> ReadPartialPaged(IPartialFilterElement<ResourcePool> partialFilter)
+		{
+			return partialReader.ReadPartialPaged(partialFilter, MediaOpsPlanApi.DefaultPageSize);
+		}
+
+		public IEnumerable<IPagedResult<PartialObject<ResourcePool>>> ReadPartialPaged(IPartialQuery<ResourcePool> partialQuery)
+		{
+			return partialReader.ReadPartialPaged(partialQuery, MediaOpsPlanApi.DefaultPageSize);
+		}
+
+		internal IEnumerable<IPagedResult<PartialObject<ResourcePool>>> ReadPartialPaged(IPartialQuery<ResourcePool> partialQuery, int pageSize)
+		{
+			return partialReader.ReadPartialPaged(partialQuery, pageSize);
 		}
 
 		/// <summary>
