@@ -80,8 +80,9 @@ namespace RT_MediaOps.Plan.Workflow.Filtering
 				Notes = "Notes of the second workflow",
 			};
 
-			// The first workflow references a resource, while the second workflow references a resource pool.
+			// The first workflow references a resource and its resource pool, while the second workflow references a resource pool.
 			workflow1.NodeGraph.Add(new WorkflowResourceNode(ResourcePool!, Resource!));
+			workflow1.NodeGraph.Add(new WorkflowResourcePoolNode(ResourcePool!));
 			workflow2.NodeGraph.Add(new WorkflowResourcePoolNode(ResourcePool!));
 
 			DraftWorkflow1 = objectCreator.CreateWorkflow(workflow1);
