@@ -3,12 +3,22 @@
 	using System;
 	using System.Collections.Generic;
 
+	using Skyline.DataMiner.SDM;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Exceptions;
 
 	/// <summary>
 	/// Defines methods for managing <see cref="Property"/> objects.
 	/// </summary>
-	public interface IPropertiesRepository : IRepository<Property>
+	/// <remarks>
+	/// Partial reads (<see cref="IPartialReadableRepository{T}.ReadPartial(IPartialFilterElement{T})"/>) support every
+	/// field of <see cref="PropertyExposers"/> and return the same values as a full read for every property type
+	/// (<see cref="StringProperty"/>, <see cref="BooleanProperty"/>, <see cref="DiscreteProperty"/> and <see cref="FileProperty"/>).
+	/// Every field holds a single value, read with
+	/// <see cref="PartialObject{T}.GetValue{TField}(Net.Messages.SLDataGateway.Exposer{T, TField})"/>, and no data stored
+	/// outside the property is read. Like a full read, properties without a property type are not returned.
+	/// <see cref="IPartialPageableRepository{T}.ReadPartialPaged(IPartialQuery{T})"/> returns the same objects in pages of 200.
+	/// </remarks>
+	public interface IPropertiesRepository : IRepository<Property>, IPartialPageableRepository<Property>
 	{
 		/// <summary>
 		/// Deletes the specified properties from the repository using the provided <see cref="PropertyDeleteOptions"/>.
