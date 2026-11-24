@@ -137,7 +137,20 @@ namespace Skyline.DataMiner.SDM
 		/// <exception cref="InvalidOperationException">Thrown when the field was not selected or has a value that is not of type <typeparamref name="TField"/>.</exception>
 		public IEnumerable<TField> GetValues<TField>(Exposer<T, TField> exposer)
 		{
-			return GetSelectedValues(exposer).Select(x => Cast<TField>(exposer, x)).ToList();
+			return GetValuesOfField<TField>(exposer);
+		}
+
+		/// <summary>
+		/// Gets all values of the specified list field, for example the resources referenced by the nodes of a job.
+		/// </summary>
+		/// <typeparam name="TField">The type of the values.</typeparam>
+		/// <param name="exposer">The exposer of the list field.</param>
+		/// <returns>The values, or an empty collection when the field has no value.</returns>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="exposer"/> is <see langword="null"/>.</exception>
+		/// <exception cref="InvalidOperationException">Thrown when the field was not selected or has a value that is not of type <typeparamref name="TField"/>.</exception>
+		public IEnumerable<TField> GetValues<TField>(DynamicListExposer<T, TField> exposer)
+		{
+			return GetValuesOfField<TField>(exposer);
 		}
 
 		/// <summary>
@@ -149,6 +162,29 @@ namespace Skyline.DataMiner.SDM
 		/// <returns><see langword="true"/> if the field was selected and has at least one value, all of type <typeparamref name="TField"/>; otherwise, <see langword="false"/>.</returns>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="exposer"/> is <see langword="null"/>.</exception>
 		public bool TryGetValues<TField>(Exposer<T, TField> exposer, out IEnumerable<TField> values)
+		{
+			return TryGetValuesOfField(exposer, out values);
+		}
+
+		/// <summary>
+		/// Tries to get all values of the specified list field.
+		/// </summary>
+		/// <typeparam name="TField">The type of the values.</typeparam>
+		/// <param name="exposer">The exposer of the list field.</param>
+		/// <param name="values">The values, or an empty collection when <see langword="false"/> is returned.</param>
+		/// <returns><see langword="true"/> if the field was selected and has at least one value, all of type <typeparamref name="TField"/>; otherwise, <see langword="false"/>.</returns>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="exposer"/> is <see langword="null"/>.</exception>
+		public bool TryGetValues<TField>(DynamicListExposer<T, TField> exposer, out IEnumerable<TField> values)
+		{
+			return TryGetValuesOfField(exposer, out values);
+		}
+
+		private IEnumerable<TField> GetValuesOfField<TField>(FieldExposer exposer)
+		{
+			return GetSelectedValues(exposer).Select(x => Cast<TField>(exposer, x)).ToList();
+		}
+
+		private bool TryGetValuesOfField<TField>(FieldExposer exposer, out IEnumerable<TField> values)
 		{
 			if (exposer == null)
 			{

@@ -13,6 +13,8 @@
 
 	internal class JobsRepository : Repository, IJobsRepository
 	{
+		private const int PartialReadBatchSize = 100;
+
 		private readonly JobFilterTranslator filterTranslator;
 
 		public JobsRepository(MediaOpsPlanApi planApi) : base(planApi)
@@ -850,6 +852,92 @@
 		public IEnumerable<Job> Read()
 		{
 			return Read(new TRUEFilterElement<Job>());
+		}
+
+		public IEnumerable<SDM.PartialObject<Job>> ReadPartial(SDM.IPartialFilterElement<Job> partialFilter)
+		{
+			if (partialFilter == null)
+			{
+				throw new ArgumentNullException(nameof(partialFilter));
+			}
+
+			if (partialFilter.Filter == null)
+			{
+				throw new ArgumentException("The filter can't be null.", nameof(partialFilter));
+			}
+
+			return ReadPartial(partialFilter.Filter.ToQuery(), partialFilter.Fields, nameof(partialFilter));
+		}
+
+		public IEnumerable<SDM.PartialObject<Job>> ReadPartial(SDM.IPartialQuery<Job> partialQuery)
+		{
+			if (partialQuery == null)
+			{
+				throw new ArgumentNullException(nameof(partialQuery));
+			}
+
+			return ReadPartial(partialQuery, partialQuery.Fields, nameof(partialQuery));
+		}
+
+		private IEnumerable<SDM.PartialObject<Job>> ReadPartial(IQuery<Job> query, IReadOnlyCollection<FieldExposer> fields, string paramName)
+		{
+			if (fields == null || fields.Count == 0)
+			{
+				throw new ArgumentException("At least one field must be selected.", paramName);
+			}
+
+			// Validates the fields before anything is read, so an unsupported field fails immediately instead of on enumeration.
+			var selectedFields = JobPartialFieldMapper.CreateSelectedFields(fields);
+
+			if (query.Filter.isEmpty())
+			{
+				return Enumerable.Empty<SDM.PartialObject<Job>>();
+			}
+
+			return ActivityHelper.Track(nameof(JobsRepository), nameof(ReadPartial), act =>
+			{
+				act?.AddTag("Fields", String.Join(",", fields.Select(x => x.fieldName)));
+
+				var domQuery = query
+					.WithFilter(filterTranslator.TranslateFilter(query.Filter))
+					.WithOrder(filterTranslator.TranslateFullOrderBy(query.Order))
+					.WithLimit(query.Limit);
+
+				IEnumerable<SDM.PartialObject<Job>> Iterator()
+				{
+					var domPartialObjects = PlanApi.DomHelpers.SlcWorkflowHelper.GetJobFields(domQuery, selectedFields);
+
+					// Converted per batch, so data stored outside the job DOM instances is read once per batch instead of per job.
+					foreach (var batch in Batch(domPartialObjects, PartialReadBatchSize))
+					{
+						foreach (var partialJob in JobPartialFieldMapper.CreatePartialJobs(PlanApi, batch, fields))
+						{
+							yield return partialJob;
+						}
+					}
+				}
+
+				return Iterator();
+			});
+		}
+
+		private static IEnumerable<List<T>> Batch<T>(IEnumerable<T> source, int size)
+		{
+			var batch = new List<T>(size);
+			foreach (var item in source)
+			{
+				batch.Add(item);
+				if (batch.Count == size)
+				{
+					yield return batch;
+					batch = new List<T>(size);
+				}
+			}
+
+			if (batch.Count > 0)
+			{
+				yield return batch;
+			}
 		}
 
 		public Job Read(Guid id)

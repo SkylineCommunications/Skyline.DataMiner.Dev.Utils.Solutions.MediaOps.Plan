@@ -6,6 +6,7 @@
 
 	using Skyline.DataMiner.Net;
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+	using Skyline.DataMiner.Net.Apps.ManagerStore.Select;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Solutions.MediaOps.Plan.Storage.DOM.SlcWorkflow;
 	using Skyline.DataMiner.Utils.DOM.Extensions;
@@ -297,6 +298,21 @@
 			}
 
 			return InstanceFactory.ReadAndCreateInstancesPaged(DomHelper, query, pageSize, instance => new JobsInstance(instance));
+		}
+
+		public IEnumerable<PartialObject<DomInstance, DomInstanceId>> GetJobFields(IQuery<DomInstance> query, SelectedFields<DomInstance> selectedFields)
+		{
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			if (selectedFields == null)
+			{
+				throw new ArgumentNullException(nameof(selectedFields));
+			}
+
+			return InstanceFactory.ReadPartialInstances(DomHelper, query, selectedFields);
 		}
 
 		public IEnumerable<IEnumerable<RecurringJobsInstance>> GetRecurringJobsPaged(FilterElement<DomInstance> filter, int pageSize)

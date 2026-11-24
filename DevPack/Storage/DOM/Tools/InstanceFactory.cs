@@ -6,6 +6,7 @@
 	using System.Linq;
 
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+	using Skyline.DataMiner.Net.Apps.ManagerStore.Select;
 	using Skyline.DataMiner.Net.Helper;
 	using Skyline.DataMiner.Net.ManagerStore;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
@@ -124,6 +125,37 @@
 			return CreateInstances(pages, createInstance);
 		}
 
+		/// <summary>
+		/// Reads only the selected fields of the DOM instances that match the query.
+		/// </summary>
+		public static IEnumerable<PartialObject<DomInstance, DomInstanceId>> ReadPartialInstances(DomHelper domHelper, IQuery<DomInstance> query, SelectedFields<DomInstance> selectedFields)
+		{
+			if (domHelper == null)
+			{
+				throw new ArgumentNullException(nameof(domHelper));
+			}
+
+			if (query == null)
+			{
+				throw new ArgumentNullException(nameof(query));
+			}
+
+			if (selectedFields == null)
+			{
+				throw new ArgumentNullException(nameof(selectedFields));
+			}
+
+			if (query.Filter.isEmpty())
+			{
+				return Enumerable.Empty<PartialObject<DomInstance, DomInstanceId>>();
+			}
+
+			// Same as for full reads: a paged read ignores the limit and offset, so a limited query is read at once.
+			return IsLimited(query)
+				? ReadPartialIterator(domHelper, query, selectedFields)
+				: ReadPartialPagedIterator(domHelper, query, selectedFields);
+		}
+
 		public static IEnumerable<IEnumerable<T>> CreateInstances<T>(IEnumerable<IEnumerable<DomInstance>> pages, Func<DomInstance, T> createInstance)
 							where T : DomInstanceBase
 		{
@@ -200,6 +232,27 @@
 			if (page.Count > 0)
 			{
 				yield return page;
+			}
+		}
+
+		private static IEnumerable<PartialObject<DomInstance, DomInstanceId>> ReadPartialIterator(DomHelper domHelper, IQuery<DomInstance> query, SelectedFields<DomInstance> selectedFields)
+		{
+			foreach (var partialObject in domHelper.DomInstances.Read(query, selectedFields))
+			{
+				yield return partialObject;
+			}
+		}
+
+		private static IEnumerable<PartialObject<DomInstance, DomInstanceId>> ReadPartialPagedIterator(DomHelper domHelper, IQuery<DomInstance> query, SelectedFields<DomInstance> selectedFields)
+		{
+			var pagingHelper = domHelper.DomInstances.PreparePaging(query, selectedFields);
+
+			while (pagingHelper.MoveToNextPage())
+			{
+				foreach (var partialObject in pagingHelper.GetCurrentPage())
+				{
+					yield return partialObject;
+				}
 			}
 		}
 
