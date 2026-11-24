@@ -275,6 +275,125 @@ namespace RT_MediaOps.Plan.RST.Querying
 		}
 
 		[TestMethod]
+		public void ReadPartialResourcePoolsWithQuery_ReturnsSamePoolsInSameOrder()
+		{
+			foreach (var (expectedObjects, query) in ResourcePoolQueryTestCases.Concat(ResourcePoolLimitedQueryTestCases))
+			{
+				var partialPools = TestContext.Api.ResourcePools.ReadPartial(query.WithFields(ResourcePoolExposers.Name)).ToList();
+
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), partialPools.Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Name).ToList(), partialPools.Select(x => x.GetValue(ResourcePoolExposers.Name)).ToList(), $"Query: {query}");
+			}
+		}
+
+		[TestMethod]
+		public void ReadPartialPagedResourcePoolsWithQuery_DefaultPageSize_ReturnsSamePoolsInOnePage()
+		{
+			foreach (var (expectedObjects, query) in ResourcePoolQueryTestCases.Concat(ResourcePoolLimitedQueryTestCases))
+			{
+				var pages = TestContext.Api.ResourcePools.ReadPartialPaged(query.WithFields(ResourcePoolExposers.Name)).ToList();
+
+				Assert.AreEqual(1, pages.Count, $"Query: {query}");
+				Assert.IsFalse(pages[0].HasNextPage, $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages[0].Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Name).ToList(), pages[0].Select(x => x.GetValue(ResourcePoolExposers.Name)).ToList(), $"Query: {query}");
+			}
+		}
+
+		[TestMethod]
+		public void ReadPartialPagedResourcePoolsWithQuery_CustomPageSize_SplitsPoolsOverPages()
+		{
+			var repository = (ResourcePoolsRepository)TestContext.Api.ResourcePools;
+
+			foreach (var (expectedObjects, query) in ResourcePoolQueryTestCases.Concat(ResourcePoolLimitedQueryTestCases))
+			{
+				var pages = repository.ReadPartialPaged(query.WithFields(ResourcePoolExposers.Name), 2).ToList();
+
+				CollectionAssert.AreEqual(expectedObjects.Select(x => x.Id).ToList(), pages.SelectMany(x => x).Select(x => x.Id).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(Enumerable.Range(0, pages.Count).ToList(), pages.Select(x => x.PageNumber).ToList(), $"Query: {query}");
+				CollectionAssert.AreEqual(pages.Select((_, i) => i < pages.Count - 1).ToList(), pages.Select(x => x.HasNextPage).ToList(), $"Query: {query}");
+				Assert.IsTrue(pages.All(x => x.Count <= 2), $"Query: {query}");
+			}
+
+			Assert.IsTrue(ResourcePoolQueryTestCases.Any(x => x.Item1.Length > 2), "No query returns more than one page.");
+		}
+
+		[TestMethod]
+		public void ReadPartialPagedResourcePoolsWithFilter_ReturnsAllPools()
+		{
+			var pages = TestContext.Api.ResourcePools.ReadPartialPaged(ResourcePoolFilter.WithFields(ResourcePoolExposers.Name, ResourcePoolExposers.LinkedResourcePools.LinkedResourcePoolId)).ToList();
+			var poolsById = TestContext.Api.ResourcePools.Read(ResourcePoolFilter).ToDictionary(x => x.Id);
+
+			Assert.AreEqual(1, pages.Count);
+			CollectionAssert.AreEquivalent(poolsById.Keys.ToList(), pages[0].Select(x => x.Id).ToList());
+
+			foreach (var partialPool in pages[0])
+			{
+				var pool = poolsById[partialPool.Id];
+				Assert.AreEqual(pool.Name, partialPool.GetValue(ResourcePoolExposers.Name));
+				CollectionAssert.AreEqual(pool.LinkedResourcePools.Select(x => x.LinkedResourcePoolId).ToList(), partialPool.GetValues(ResourcePoolExposers.LinkedResourcePools.LinkedResourcePoolId).ToList(), pool.Name);
+			}
+		}
+
+		[TestMethod]
+		public void ReadPartialResourcePoolsWithFilter_ReturnsSameValuesAsFullRead()
+		{
+			var partialFilter = ResourcePoolFilter.WithFields(
+				ResourcePoolExposers.Id,
+				ResourcePoolExposers.Name,
+				ResourcePoolExposers.State,
+				ResourcePoolExposers.IconImage,
+				ResourcePoolExposers.HasIconImage,
+				ResourcePoolExposers.Url,
+				ResourcePoolExposers.HasUrl,
+				ResourcePoolExposers.CategoryId,
+				ResourcePoolExposers.HasCategory,
+				ResourcePoolExposers.LinkedResourcePools.LinkedResourcePoolId,
+				ResourcePoolExposers.LinkedResourcePools.SelectionType,
+				ResourcePoolExposers.Capabilities.CapabilityId,
+				ResourcePoolExposers.Capabilities.Discretes);
+
+			var partialPoolsById = TestContext.Api.ResourcePools.ReadPartial(partialFilter).ToDictionary(x => x.Id);
+			var pools = TestContext.Api.ResourcePools.Read(ResourcePoolFilter).ToList();
+
+			Assert.AreEqual(pools.Count, partialPoolsById.Count);
+
+			foreach (var pool in pools)
+			{
+				var partialPool = partialPoolsById[pool.Id];
+
+				Assert.AreEqual(pool.Id, partialPool.GetValue(ResourcePoolExposers.Id));
+				Assert.AreEqual(pool.Name, partialPool.GetValue(ResourcePoolExposers.Name));
+				Assert.AreEqual(pool.State, partialPool.GetValue(ResourcePoolExposers.State));
+				Assert.AreEqual(pool.IconImage, partialPool.GetValue(ResourcePoolExposers.IconImage));
+				Assert.AreEqual(pool.IconImage != null, partialPool.GetValue(ResourcePoolExposers.HasIconImage));
+				Assert.AreEqual(pool.Url, partialPool.GetValue(ResourcePoolExposers.Url));
+				Assert.AreEqual(pool.Url != null, partialPool.GetValue(ResourcePoolExposers.HasUrl));
+				Assert.AreEqual(pool.CategoryId, partialPool.GetValue(ResourcePoolExposers.CategoryId));
+				Assert.AreEqual(pool.CategoryId != null, partialPool.GetValue(ResourcePoolExposers.HasCategory));
+
+				CollectionAssert.AreEqual(pool.LinkedResourcePools.Select(x => x.LinkedResourcePoolId).ToList(), partialPool.GetValues(ResourcePoolExposers.LinkedResourcePools.LinkedResourcePoolId).ToList(), pool.Name);
+				CollectionAssert.AreEqual(pool.LinkedResourcePools.Select(x => x.SelectionType).ToList(), partialPool.GetValues(ResourcePoolExposers.LinkedResourcePools.SelectionType).ToList(), pool.Name);
+				CollectionAssert.AreEqual(pool.Capabilities.Select(x => x.Id).ToList(), partialPool.GetValues(ResourcePoolExposers.Capabilities.CapabilityId).ToList(), pool.Name);
+				CollectionAssert.AreEqual(pool.Capabilities.SelectMany(x => x.Discretes).ToList(), partialPool.GetValues(ResourcePoolExposers.Capabilities.Discretes).ToList(), pool.Name);
+			}
+
+			// The setup must cover the multi-section fields, otherwise the comparison above proves little.
+			Assert.IsTrue(pools.Any(x => x.LinkedResourcePools.Count > 1 && x.LinkedResourcePools.Select(l => l.SelectionType).Distinct().Count() > 1), "No pool with multiple links of different selection types.");
+			Assert.IsTrue(pools.Any(x => x.Capabilities.Count > 1 && x.Capabilities.Any(c => c.Discretes.Count > 1)), "No pool with multiple capabilities with multiple discretes.");
+			Assert.IsTrue(pools.Any(x => x.IconImage != null) && pools.Any(x => x.IconImage == null), "No pools with and without an icon.");
+			Assert.IsTrue(pools.Any(x => x.State == ResourcePoolState.Draft) && pools.Any(x => x.State == ResourcePoolState.Complete), "No pools in different states.");
+		}
+
+		[TestMethod]
+		public void ReadPartialResourcePools_UnknownField_ThrowsBeforeReading()
+		{
+			var unknownField = new Exposer<ResourcePool, string>(x => x.Name, "Unknown");
+
+			Assert.ThrowsException<NotSupportedException>(() => TestContext.Api.ResourcePools.ReadPartial(ResourcePoolFilter.WithFields(unknownField)));
+		}
+
+		[TestMethod]
 		public void ReadCapabilitiesWithQuery()
 		{
 			foreach (var (expectedObjects, query) in CapabilityQueryTestCases)
