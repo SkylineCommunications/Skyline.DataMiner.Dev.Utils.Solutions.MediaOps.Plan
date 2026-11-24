@@ -32,14 +32,19 @@
 
 		private Dictionary<Guid, ResourcePool> resourcePoolsById = new Dictionary<Guid, ResourcePool>();
 
+		private bool validatePoolAssignmentUsage = true;
+
 		private DomResourceHandler(MediaOpsPlanApi planApi)
 		{
 			this.planApi = planApi ?? throw new ArgumentNullException(nameof(planApi));
 		}
 
-		internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Resource> apiResources, out DomInstanceBulkOperationResult<DomResource> result, bool allowDeprecatedUpdates = false)
+		internal static bool TryCreateOrUpdate(MediaOpsPlanApi planApi, ICollection<Resource> apiResources, out DomInstanceBulkOperationResult<DomResource> result, bool allowDeprecatedUpdates = false, bool validatePoolAssignmentUsage = true)
 		{
-			var handler = new DomResourceHandler(planApi);
+			var handler = new DomResourceHandler(planApi)
+			{
+				validatePoolAssignmentUsage = validatePoolAssignmentUsage,
+			};
 			handler.CreateOrUpdate(apiResources, allowDeprecatedUpdates);
 
 			result = new DomInstanceBulkOperationResult<DomResource>(handler.SuccessfulItems, handler.UnsuccessfulItems, handler.TraceDataPerItem);
@@ -187,6 +192,9 @@
 			var storedResourcesById = ValidateStoredStateForUpdateAction(resources.Except(resourcesToCreate).ToList());
 			var resourcesToUpdate = resources.Except(resourcesToCreate).Where(IsValid).ToList();
 
+			// The change detection merges the changes into the stored instances, so the stored pools are captured first.
+			var storedPoolIdsByResourceId = GetStoredPoolIdsOfCompleteResources(storedResourcesById.Values);
+
 			var changeResults = ActivityHelper.Track(nameof(DomResourceHandler), nameof(GetResourcesWithChanges), act => GetResourcesWithChanges(resourcesToUpdate, storedResourcesById));
 
 			var toUpdateNameValidation = resourcesToUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcResource_StudioIds.Sections.ResourceInfo.Name.Id)));
@@ -195,6 +203,11 @@
 			var toCreatePoolValidation = resourcesToCreate.Where(IsValid);
 			var toUpdatePoolValidation = resourcesToUpdate.Where(x => changeResults.Any(y => y.Instance.ID.Id == x.Id && y.ChangedFields.Select(z => z.FieldDescriptorId).Contains(SlcResource_StudioIds.Sections.ResourceInternalProperties.Pool_Ids.Id)));
 			ValidatePoolAssignments(toCreatePoolValidation.Concat(toUpdatePoolValidation).ToList());
+
+			if (validatePoolAssignmentUsage)
+			{
+				ValidateRemovedPoolAssignmentUsage(toUpdatePoolValidation.Where(IsValid).ToList(), changeResults, storedPoolIdsByResourceId);
+			}
 
 			var resourcesWithCapabilityChanges = resourcesToUpdate.Where(x =>
 				IsValid(x)
@@ -1056,6 +1069,43 @@
 					MarkAsResourceWithCoreChanges(resource);
 				}
 			}
+		}
+
+		// Jobs and workflows validate that each resource node's resource is still part of the node's pool, so a resource
+		// that is unassigned from a pool it is used from would make those jobs and workflows impossible to update.
+		// The removed pools are taken from the stored resource, so a stale snapshot cannot hide a removal.
+		private void ValidateRemovedPoolAssignmentUsage(ICollection<Resource> apiResources, ICollection<DomChangeResults> changeResults, IReadOnlyDictionary<Guid, List<Guid>> storedPoolIdsByResourceId)
+		{
+			if (apiResources.Count == 0)
+			{
+				return;
+			}
+
+			var mergedInstancesById = changeResults.ToDictionary(x => x.Instance.ID.Id, x => new DomResource(x.Instance));
+			var removedAssignments = new List<(Resource Resource, Guid ResourcePoolId)>();
+
+			foreach (var resource in apiResources)
+			{
+				if (!storedPoolIdsByResourceId.TryGetValue(resource.Id, out var storedPoolIds)
+					|| !mergedInstancesById.TryGetValue(resource.Id, out var mergedResource))
+				{
+					continue;
+				}
+
+				var mergedPoolIds = mergedResource.ResourceInternalProperties?.PoolIds ?? Enumerable.Empty<Guid>();
+
+				removedAssignments.AddRange(storedPoolIds.Except(mergedPoolIds).Select(x => (resource, x)));
+			}
+
+			PassTraceData(SlcWorkflowResourcePoolAssignmentUsageValidator.Validate(planApi, removedAssignments));
+		}
+
+		// Only resources in Complete state can be used by jobs and workflows.
+		private static Dictionary<Guid, List<Guid>> GetStoredPoolIdsOfCompleteResources(IEnumerable<DomResource> storedResources)
+		{
+			return storedResources
+				.Where(x => x.Status == SlcResource_StudioIds.Behaviors.Resource_Behavior.StatusesEnum.Complete)
+				.ToDictionary(x => x.ID.Id, x => x.ResourceInternalProperties?.PoolIds?.ToList() ?? new List<Guid>());
 		}
 
 		private void ValidateCapacities(ICollection<Resource> apiResources)
